@@ -10,17 +10,16 @@ Alla prima apertura scegli come lo vuoi: **🎮 Gaming** (tutto Tasso, con gioch
 
 ## 📥 Scarica
 
-👉 **[Scarica Tasso (ultima versione)](https://github.com/SerginoLimoncino/tasso/raw/main/Tasso.zip)**
+👉 **[Scarica Tasso (ultima versione)](https://github.com/SerginoLimoncino/tasso/releases/latest/download/Tasso.exe)**
 
 Non serve un account: clicca e parte il download.
 
 ## Come si apre
 
-1. Tasto destro sul file scaricato, poi **Estrai tutto**.
-2. Doppio clic su **Tasso.exe** e rispondi **Sì** alla richiesta di Windows: Tasso ha bisogno dei permessi di amministratore per pulire e riparare.
-3. Se compare la schermata blu "PC protetto da Windows", clicca **Ulteriori informazioni** e poi **Esegui comunque**. Succede con tutti i programmi nuovi senza firma digitale a pagamento.
+1. Doppio clic su **Tasso.exe** e rispondi **Sì** alla richiesta di Windows: Tasso ha bisogno dei permessi di amministratore per pulire e riparare.
+2. Se compare la schermata blu "PC protetto da Windows", clicca **Ulteriori informazioni** e poi **Esegui comunque**. Succede con tutti i programmi nuovi senza firma digitale a pagamento.
 
-Dentro lo zip trovi anche il **manuale** in PDF e l'**indice** delle funzioni.
+Sito: https://serginolimoncino.github.io/tasso/
 
 ## Cosa fa
 
@@ -32,7 +31,7 @@ Dentro lo zip trovi anche il **manuale** in PDF e l'**indice** delle funzioni.
 - 🔧 **Risolvi problemi**: audio, internet, Windows Update, stampante e **13 problemi dei giocatori** con un pulsante (scatti, pochi FPS, ping alto, gioco che non parte, Steam/Epic, schermo nero, controller e cuffie, Xbox e Game Pass, anti-cheat, Discord).
 - 🔌 **Driver di tutto il PC**: scheda video AMD Radeon, NVIDIA o Intel, audio, mouse, tastiera, rete… da Windows Update e dai siti ufficiali.
 - 📦 **Programmi**: aggiornamento con winget, disinstallazione completa, app preinstallate, icone vere.
-- 📂 **File**: doppi e grandi anche su altri dischi, distruggi file, **Apri qualsiasi file** (riconosce il tipo vero e ti dà il programma gratuito con il link ufficiale).
+- 📂 **File**: doppi e grandi anche su altri dischi, distruggi file.
 - 🔑 **Portachiavi**: password cifrate solo sul PC, con PIN da 4 a 12 numeri o senza PIN.
 - ↩️ **Torna indietro**: tutto quello che Tasso cambia resta anche dopo il riavvio, e torna com'era solo quando lo decidi tu.
 - 🌐 **La tua connessione** con consigli utili (rete a 5 GHz, segnale, cavo), 🩺 **Salute del PC**, 💬 **Stato del PC su Discord**, 🎨 **14 temi** (8 per il Gaming e 8 per l'Ufficio).
@@ -41,7 +40,8 @@ Dentro lo zip trovi anche il **manuale** in PDF e l'**indice** delle funzioni.
 
 | Versione | Novità |
 |---|---|
-| **2.6.2** | **Tasso in inglese**: scegli la lingua alla prima apertura o in Impostazioni (manuale e guide anche in inglese). Modalità Normale che rimette davvero le tue impostazioni di prima, pulizia programmata che non parte a batteria per i lavori lunghi, controllo che blocca l'autoclick con i giochi con anti-cheat, Prestazioni+ più preciso per ogni processore e scheda video, tante piccole correzioni. |
+| **3.0** | **Scrivici** (idee, problemi e commenti con foto), **numeri anonimi** solo se dici sì, più sicurezza, stemma nuovo in Ufficio. |
+| 2.6.2 | **Tasso in inglese**: scegli la lingua alla prima apertura o in Impostazioni (manuale e guide anche in inglese). Modalità Normale che rimette davvero le tue impostazioni di prima, pulizia programmata che non parte a batteria per i lavori lunghi, controllo che blocca l'autoclick con i giochi con anti-cheat, Prestazioni+ più preciso per ogni processore e scheda video, tante piccole correzioni. |
 | 2.6.1 | Aggiornamenti di Tasso in Impostazioni, con una scheda tutta loro: quando esce una versione nuova, in Home compare un avviso che ti porta lì. |
 | 2.6 | Due modalità, **Gaming** e **Ufficio**. **Rileva i problemi** (58 controlli in un minuto, ti mostra solo quelli trovati). **100 problemi dell'ufficio** con gruppi e ricerca. **Aggiorna con un clic**. Home più semplice e menu in ordine. 3 nuovi problemi da gioco (mira del mouse, gioco che si riduce a icona, download lenti), libreria in cima a Giochi, Prestazioni+ riordinata, voto al PC da 1 a 100. Al posto del consumo di internet c'è "La tua connessione" con consigli utili. Pulizia programmata anche Profonda o Eccezionale. 6 temi nuovi per l'Ufficio. |
 | 2.5.1 | Corretta la scheda "Media" della pulizia, che si vedeva deformata. |
@@ -60,14 +60,13 @@ Dentro lo zip trovi anche il **manuale** in PDF e l'**indice** delle funzioni.
 
 Tasso is a free program for **Windows 10 and 11** (64-bit). It's lightweight and doesn't need installing. It speaks **English and Italian**: pick the language the first time you open it, or in Settings.
 
-👉 **[Download Tasso (latest version)](https://github.com/SerginoLimoncino/tasso/raw/main/Tasso.zip)**
+👉 **[Download Tasso (latest version)](https://github.com/SerginoLimoncino/tasso/releases/latest/download/Tasso.exe)**
 
-1. Right-click the downloaded file, then **Extract All**.
-2. Double-click **Tasso.exe** and answer **Yes** to Windows: Tasso needs administrator rights to clean and repair.
-3. If the blue "Windows protected your PC" screen appears, click **More info** and then **Run anyway**. This happens with every new program that doesn't have a paid digital signature.
+1. Double-click **Tasso.exe** and answer **Yes** to Windows: Tasso needs administrator rights to clean and repair.
+2. If the blue "Windows protected your PC" screen appears, click **More info** and then **Run anyway**. This happens with every new program that doesn't have a paid digital signature.
 
-The zip also contains the **manual** (Manual_Tasso_EN.pdf) and the feature **index** (INDEX.txt).
+Website: https://serginolimoncino.github.io/tasso/en/
 
 ---
 
-Creato da **SerginoLimoncino**. Novità e supporto sul server Discord: https://discord.gg/rwfFFZNRVn
+Creato da **Sergio Tassoni**. Per scrivermi: tasso.services@proton.me
