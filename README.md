@@ -21,6 +21,10 @@ Non serve un account: clicca e parte il download.
 
 Sito: https://sergiotassoni.github.io/tasso/
 
+## Codice sorgente
+
+Il codice è nella cartella [`codice`](codice), con licenza [GPL-3.0](LICENSE).
+
 ## Cosa fa
 
 - 🔎 **Rileva i problemi**: un clic e Tasso controlla 58 cose in circa un minuto (stampanti, internet, Word, Excel, Outlook, OneDrive, periferiche, Windows e giochi). Non cambia niente: ti mostra solo i problemi trovati davvero, ognuno con il suo **Risolvi**.
@@ -66,6 +70,10 @@ Tasso is a free program for **Windows 10 and 11** (64-bit). It's lightweight and
 2. If the blue "Windows protected your PC" screen appears, click **More info** and then **Run anyway**. This happens with every new program that doesn't have a paid digital signature.
 
 Website: https://sergiotassoni.github.io/tasso/en/
+
+## Source code
+
+The source code is in the [`codice`](codice) folder, under the [GPL-3.0](LICENSE) license.
 
 ---
 

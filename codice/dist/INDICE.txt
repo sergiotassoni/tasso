@@ -1,0 +1,279 @@
+﻿TASSO 3.0 - INDICE DELLE FUNZIONI
+=================================
+
+1. PULIZIA
+   - 5 livelli: Classica (~1 min), Normale, Media (consigliata), Profonda, Eccezionale
+     (ogni livello fa anche tutto quello dei livelli prima)
+   - Anteprima: prima di iniziare ti dice quanti file inutili ha trovato
+   - File temporanei tuoi e di Windows
+   - Cestino
+   - Cache delle anteprime (miniature)
+   - Cache dei browser: Chrome, Edge, Brave, Opera, Firefox (password e cookie restano)
+   - Cache delle app: Discord, Steam, Teams, Epic Games
+   - Cache della scheda video (NVIDIA, AMD, Intel, DirectX)
+   - Cache di Windows Update
+   - File di sistema inutili: rapporti errori, dump, log vecchi (senza finestre)
+   - Pulizia componenti di Windows (DISM)
+   - Cache DNS
+   - Pulizia programmata (Home): giorno, ora, livello (anche Profonda o Eccezionale), ogni 1 o 2 settimane
+   - Voto al PC da 1 a 100: velocità dei componenti, leggerezza di Windows, voto totale e
+     classifica (da "PC lento" a "top"), anche prima e dopo la pulizia
+   - Spegnimento automatico del PC quando la pulizia è finita
+
+2. VELOCITÀ
+   - Modalità: Normale, Gaming, FPS competitivo, Film, Silenzioso
+     (con avviso se il PC non è adatto: portatile, poca RAM)
+   - Turbo: chiude i programmi in background inutili mentre giochi
+   - Programmi all'avvio: interruttore acceso/spento per ognuno
+   - Guardiano dell'avvio: avvisa se si aggiunge un programma nuovo
+   - Deframmentazione (dischi meccanici) e TRIM (SSD)
+
+3. PROGRAMMI E AGGIORNAMENTI
+   - Disinstallazione completa, con ricerca delle cartelle rimaste
+   - Rimozione app preinstallate (Candy Crush, TikTok, Solitaire, ecc.)
+   - Aggiornamento programmi (winget): elenco di quelli con una versione nuova, uno per uno o tutti
+   - Driver di tutto il PC: scheda video AMD/NVIDIA/Intel, audio, mouse, tastiera, rete,
+     Bluetooth, webcam; Windows Update e siti ufficiali; download automatico dei driver
+   - Icone vere dei programmi
+   - Aggiornamenti di Windows
+   - Controllo estensioni dei browser
+   - Controllo di ogni programma (app di Windows rotte, programmi senza cartella)
+
+4. FILE
+   - File doppi (il primo resta, le copie vanno nel Cestino solo se confermi)
+   - File più grandi (sopra 100 MB, 300 MB o 1 GB), anche in altre cartelle e dischi esterni
+   - Cartelle vuote
+   - Collegamenti rotti sul Desktop e nel menu Start
+   - Riordino della cartella Download per tipo di file
+   - Distruggi file riservati, anche più file insieme
+   - Cancella lo spazio libero (prima di vendere il PC)
+   - Recupera file cancellati (Cestino + strumento gratuito Microsoft)
+
+5. RIPARAZIONE E SICUREZZA
+   - Backup automatico (punto di ripristino) prima delle pulizie importanti
+   - Risolvi problemi: audio, internet, Windows Update, stampante, Store, ricerca
+   - Problemi nei giochi (13): scatti, pochi FPS, ping alto, il gioco non parte, launcher,
+     schermo nero, controller e cuffie, Xbox e Game Pass, anti-cheat, Discord, mira del mouse,
+     gioco che si riduce a icona, download lenti
+   - Riparazione di Windows (DISM + SFC)
+   - Controllo errori del disco
+   - Controllo periferiche
+   - Salute, usura e temperatura dei dischi
+   - Scansione antivirus con Microsoft Defender
+   - Privacy: stop a pubblicità e tracciamento di Windows (con tasto per ripristinare)
+
+5a. UFFICIO (modalità Ufficio)
+   - I 100 problemi più comuni del PC da lavoro, ognuno con un pulsante, divisi in gruppi.
+     In Risolvi problemi c'è una ricerca sola per tutti (Ufficio, Gaming e Windows):
+   Stampa e scanner:
+     - La stampante dice "offline"
+     - Stampa sempre sulla stampante sbagliata
+     - Manca "Stampa su PDF"
+     - Non trovo la stampante (o i PC) in rete
+     - La stampante USB non si vede
+     - Lo scanner non funziona
+   Word, Excel, Office e Adobe:
+     - Office si blocca o dà errori
+     - Aggiorna Office
+     - Ho perso un documento non salvato
+     - Word o Excel si chiudono appena li apri
+     - Office chiede sempre di accedere o dice "senza licenza"
+     - Manca il pulsante di Teams in Outlook
+     - Word o Excel lenti, sfarfallano o restano bianchi
+     - Word o Excel non salvano su OneDrive o SharePoint
+     - Il file scaricato si apre in "Visualizzazione protetta"
+     - Il file è "bloccato da un altro utente"
+     - Date, decimali o file CSV sbagliati in Excel
+     - Adobe Acrobat Reader non apre i PDF o si blocca
+   Outlook e posta:
+     - Outlook non si apre
+     - La ricerca di Outlook non trova le email
+     - Le email non arrivano o non partono
+     - Outlook lento: la casella è troppo grande
+     - Outlook chiede sempre la password
+     - Gli allegati di Outlook non si aprono
+     - I promemoria di Outlook impazziscono
+     - Outlook non si aggiorna o mostra cartelle vuote
+     - Outlook è cambiato: rivoglio quello di prima
+     - I link nelle email non si aprono
+     - "Nessun programma di posta" quando invio un file per email
+   Teams e riunioni:
+     - Teams lento, bianco o non si apre
+     - In riunione non mi sentono
+     - La webcam non va
+     - Le cuffie Bluetooth non si collegano
+     - Non sento gli altri in riunione
+     - Non arrivano le notifiche di Teams e Outlook
+     - La webcam è "usata da un altro programma"
+     - Il volume si abbassa da solo durante le chiamate
+   File, cartelle e zip:
+     - I file si aprono con il programma sbagliato
+     - I file .zip non si aprono o danno errore
+     - "Il nome del file è troppo lungo"
+     - Non posso cancellare o rinominare un file ("è aperto in un altro programma")
+     - Ho cancellato un file per sbaglio
+     - Una cartella o un file è sparito (forse è nascosto)
+     - Icone del desktop che non aprono più niente
+     - Le cartelle si aprono lente o con la vista sbagliata
+     - Esplora file si apre su "Home" invece di "Questo PC"
+     - Il disco C: è pieno
+     - Windows 11: il menu del tasto destro è corto
+   Rete, Wi-Fi e VPN:
+     - Il Wi-Fi si stacca spesso
+     - Il Wi-Fi non si collega
+     - La VPN non si collega
+     - Con la VPN i siti dell'ufficio non si aprono
+     - Le unità di rete hanno la X rossa
+     - La cartella di rete chiede sempre la password
+     - Internet c'è ma i siti non si aprono
+     - Il cavo di rete è collegato ma non va
+     - Aggiornamenti e OneDrive fermi: "connessione a consumo"
+     - Internet è lento solo su questo PC
+     - Desktop remoto: schermo nero, lento o non si collega
+     - Un sito di lavoro è bloccato senza motivo
+     - Il portatile non va su internet in un'altra rete
+   Schermi e USB:
+     - Il secondo schermo è nero
+     - Il proiettore o la TV non mostrano niente
+     - Lo schermo è girato
+     - Scritte sfocate o troppo piccole
+     - Chiavetta, disco USB o docking non vanno
+     - Mouse, chiavette o periferiche USB si staccano da sole
+     - Lo schermo si spegne o si blocca troppo presto
+     - La luminosità cambia da sola
+     - Win + Maiusc + S (cattura dello schermo) non funziona
+   Mouse, tastiera e portatile:
+     - La tastiera scrive i simboli sbagliati
+     - Copia e incolla non funziona
+     - Voglio ritrovare le cose copiate prima (Win + V)
+     - Il mouse va troppo piano, troppo veloce o il doppio clic non va
+     - Il touchpad del portatile non funziona
+     - Il tastierino numerico è spento quando accendo il PC
+     - La tastiera fa bip, scrive lento o i tasti restano premuti
+     - Il tasto Windows non funziona
+     - La batteria del portatile dura poco
+   Windows lento o bloccato:
+     - Esplora file si blocca o è lento
+     - Barra in basso bloccata o icone sparite
+     - La barra in basso si nasconde da sola
+     - Le icone del desktop sono sparite
+     - Un programma non risponde
+     - Il PC è lento adesso
+     - Scritte strane o caratteri che mancano
+     - Non vedo le anteprime di foto e documenti
+     - Non vedo .pdf .docx alla fine dei file
+     - Il PC ci mette tanto ad accendersi
+     - Spegnendo il PC i problemi non spariscono
+     - Il PC non va in sospensione o si riaccende da solo
+   Ora, OneDrive, account e sicurezza:
+     - L'ora è sbagliata (e i siti danno errore)
+     - OneDrive non sincronizza
+     - Libera spazio con OneDrive
+     - In OneDrive ci sono file doppi con il nome del PC
+     - Controllo dei programmi sospetti
+     - Compare la scritta "Attiva Windows"
+     - Sono entrato con un "profilo temporaneo" (desktop vuoto)
+     - La password di Windows sta per scadere
+     - Il PC chiede la chiave di ripristino BitLocker
+
+5b. GIOCHI (modalità Gaming)
+   - Libreria Steam, Epic, Riot con copertine
+   - Profilo gioco (interruttore che resta acceso dopo il riavvio) e potenza per ogni gioco
+   - Regola con Tasso, Comandi gaming spiegati, Ottimizza prima di giocare
+   - Ping ai server dei giochi, pannellino in gioco, autoclick
+
+6. HARDWARE
+   - Componenti: processore, scheda video, scheda madre, BIOS, RAM, dischi, sistema
+   - Uso in tempo reale di processore e RAM
+   - Scheda video NVIDIA: temperatura, uso, ventola, memoria
+   - BIOS: versione e pagina ufficiale del produttore (con avviso sui rischi)
+   - Apertura del pannello NVIDIA / AMD
+
+7. IMPOSTAZIONI
+   - Modalità di Tasso: Gaming o Ufficio (pulsante in alto a sinistra, cambia solo l'aspetto)
+   - Temi Gaming: Tasso, Aurora, Lava, Neon, Carbonio, Belva, Ghiaccio, Sabbia
+   - Temi Ufficio: Ufficio, Carta, Salvia, Lavanda, Notte, Ardesia, Ghiaccio, Sabbia
+   - Tasso acceso / spento
+   - Torna indietro: l'elenco di tutto quello che Tasso ha cambiato, un pulsante per ogni
+     cosa e uno per tutto. Spegnere o riavviare il PC non rimette niente da solo
+   - Avvio con Windows
+   - Avvisi intelligenti (mai in modalità Gaming o FPS)
+
+NOVITÀ DELLA 2.6
+   - Rileva i problemi (in cima al menu con Risolvi problemi, e pulsante in Home): controlla 58 problemi
+     in circa un minuto senza cambiare niente e mostra solo quelli trovati, con Risolvi
+   - Internet: "La tua connessione" con consigli (es. collegati al 5 GHz) al posto del
+     consumo di dati
+   - Due modalità: Gaming (tutto, anche giochi, FPS e ping) e Ufficio (più semplice e
+     tranquilla, con un tasso più carino). Si sceglie al primo avvio e si cambia quando vuoi
+   - I 100 problemi più comuni dell'ufficio in Risolvi problemi (anche Word, Excel, Adobe,
+     file zip, mouse e tastiera, account e BitLocker)
+   - Risolvi problemi diviso in sezioni (Ufficio, Gaming, Windows) con una ricerca sola
+   - 3 problemi da gioco nuovi: mira del mouse, gioco che si riduce a icona, download lenti
+   - Voto al PC da 1 a 100 per tutto, con voto totale e classifica
+   - Giochi: la tua libreria in cima. Prestazioni+ riordinata: prima le cose facili e sicure
+   - 6 temi nuovi per l'ufficio: Ufficio, Carta, Salvia, Lavanda, Notte, Ardesia
+     (8 in tutto, con Ghiaccio e Sabbia)
+
+NOVITÀ DELLA 2.5
+   - Profilo gioco con interruttore: resta acceso dopo il riavvio finché non lo spegni
+   - Potenza per ogni gioco: Potenza alta o Massima potenza, messa da sola quando apri il gioco
+   - Ping ai server dei giochi con il server migliore per te
+   - 10 problemi dei giocatori con un pulsante, driver di tutto il PC
+   - 5 livelli di pulizia, pulizia programmata ogni 1 o 2 settimane, voto al PC
+   - Aggiornamento programmi, icone vere, Apri qualsiasi file più furbo
+   - Torna indietro, portachiavi con PIN da 4 a 12 numeri o senza PIN
+   - Regola con Tasso: grafica consigliata per ogni gioco in base al tipo di gioco e al tuo PC
+     (Automatico, Competitivo, Bilanciato, Qualità), con modalità del PC dedicata e "Annulla"
+   - Comandi gaming: registrazione in background, priorità ai giochi, rete a bassa latenza,
+     pianificazione GPU, ottimizzazioni giochi in finestra, svuota memoria standby,
+     svuota cache shader, riavvia driver video
+   - Portachiavi con PIN da 4 a 12 numeri o senza PIN (AES-256, solo su questo PC),
+     generatore, controllo password rubate
+   - Pulizia: resti dei driver, cache dei launcher, driver video vecchi, sicurezza,
+     stabilità (crash ed errori hardware), tracce di attività
+   - Discord: report più ricco con spunte verdi, ogni 3/6/12/24 ore, su richiesta con !stato
+   - Programmi all'avvio uguali a Gestione attività, comprese le app dello Store
+
+NOVITÀ DELLA 2.4
+   - Apri qualsiasi file: scegli un file e Tasso ti dice cos'è e con quale programma aprirlo
+   - Aggiorna con un clic: in Impostazioni (avviso in Home quando esce una versione nuova), Tasso si scarica e si riapre da solo
+   - Pulsante "Controlla aggiornamenti" e versione sempre in vista, con collegamento diretto al Discord
+   - Risolvi problemi: stampante, Microsoft Store e app, ricerca e menu Start
+   - File grandi (oltre 300 MB): pulsante "Apri cartella" per vederli nel computer
+   - Giochi: la tua libreria è la prima cosa che vedi
+   - Velocità: una tabella spiega cosa cambia davvero tra le modalità (e perché le ventole non cambiano subito)
+   - Programmi: spiegazioni più chiare e avviso a non togliere giochi, Discord, Steam ed Epic
+   - Corretto il leggero sfarfallio dello schermo e del programma
+
+NOVITÀ DELLA 2.2
+   - Giochi: Ottimizza prima di giocare (chiude i programmi pesanti e a fine partita li riapre)
+   - Pannellino in gioco trasparente: CPU, scheda video (uso e temperatura), RAM, ora
+     (Ctrl + Maiusc + F12 per mostrarlo o nasconderlo)
+   - Autoclick: ogni quanto, quanti click, tasto, punto fisso, piccoli movimenti, tasto rapido a scelta
+   - Libreria giochi con copertine: Steam, Epic Games e Riot in un posto solo
+   - Temperatura e uso delle schede video AMD Radeon (prima solo NVIDIA)
+   - Stato del PC su Discord: un riepilogo nel tuo canale privato (solo lettura)
+   - Pulizia più sicura: i file temporanei in uso restano, non segue mai i collegamenti
+   - Il tasto Ferma interrompe subito anche il passaggio in corso
+
+NOVITÀ DELLA 2.1
+   - Salute del PC: voto da 0 a 100 con i consigli e il pulsante per sistemare
+   - Internet: test di velocità (download, upload, ping), la tua connessione con consigli (es. collegati al 5 GHz), Wi-Fi salvati con password
+   - Mappa del disco: le cartelle più grandi, dalla più grande
+   - Modalità gioco automatica: Gaming quando apri un gioco, poi torna com'era
+   - Nessuna finestra di Windows durante le pulizie
+
+COSA TASSO NON FA, APPOSTA
+   - Pulizia del registro: benefici minimi, rischio di rendere Windows instabile
+   - "Libera RAM" continuo e "acceleratori di internet" miracolosi: Windows lo fa già da solo
+     (Tasso offre solo i comandi che servono davvero, e dice quando aiutano)
+   - Driver da siti sconosciuti o programmi "aggiorna tutti i driver": solo Windows Update
+     e siti ufficiali
+   - Overclock e aggiornamento automatico del BIOS: troppo rischiosi
+
+IN ARRIVO
+   - Firma digitale (serve un certificato a pagamento)
+   - Lettore video e musica con sottotitoli, convertitori di file
+   - Registratore degli ultimi 30 secondi di gioco, statistiche delle ore giocate
+   - Blocco pubblicità, controllo webcam e microfono

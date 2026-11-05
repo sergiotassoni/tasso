@@ -1,0 +1,240 @@
+TASSO 3.0
+Pulisce, ripara e spinge il tuo PC. In un clic.
+=================================================
+
+COME SI APRE
+1. Estrai la cartella dallo zip (tasto destro > Estrai tutto).
+   Puoi anche copiarla su una chiavetta USB: Tasso funziona da lì senza installarlo.
+   (Solo se accendi la pulizia programmata o il profilo gioco, Tasso mette una sua
+   copia in Programmi\Tasso, perché Windows possa avviarla da solo.)
+2. Doppio clic su Tasso.exe e rispondi "Sì" alla richiesta di Windows:
+   Tasso ha bisogno dei permessi di amministratore per pulire e riparare.
+   Se sul PC non sei amministratore, Windows ti chiede la password di un amministratore.
+3. Se compare la schermata blu "PC protetto da Windows":
+   clicca "Ulteriori informazioni" e poi "Esegui comunque".
+   Questa versione non ha ancora la firma digitale, e Windows mostra questo
+   avviso con i programmi nuovi senza firma. Non vuol dire che Tasso sia un virus.
+
+SERVE
+- Windows 10 o Windows 11 a 64 bit.
+- Microsoft Edge WebView2: è già dentro Windows 11 e quasi tutti i Windows 10.
+  Se manca, Tasso apre da solo la pagina ufficiale Microsoft per installarlo.
+
+SPEGNERE TASSO
+In basso a sinistra c'è il pulsante "Tasso è acceso". Cliccalo per spegnerlo:
+da spento non parte con Windows, non fa pulizie automatiche e non manda avvisi.
+Quando lo spegni scegli: "rimetti com'era prima di Tasso" (le impostazioni di Windows
+cambiate da Tasso tornano come prima) oppure "lascia tutto così".
+Ricliccalo per riaccenderlo.
+
+SCARICARE L'ULTIMA VERSIONE
+Sempre allo stesso link: https://github.com/sergiotassoni/tasso/raw/main/Tasso.zip
+
+DOVE SALVA LE SUE COSE
+%LOCALAPPDATA%\Tasso  (impostazioni, registri di ogni pulizia e portachiavi cifrato)
+
+Il manuale completo, con le spiegazioni passo passo, è nel file Manuale_Tasso.pdf.
+L'elenco rapido delle funzioni è nel file INDICE.txt e dentro Tasso,
+alla voce "Info e indice".
+
+------------------------------------------------------------
+NOVITÀ DELLA 3.0
+------------------------------------------------------------
+- Più sicuro: i programmi di Windows che Tasso usa partono sempre dalla cartella
+  di sistema.
+- Se Tasso si chiudesse per un errore grave, il motivo resta scritto in
+  %LOCALAPPDATA%\Tasso\logs\crash.txt: mandalo su Discord e lo correggo.
+- Scrivici (Impostazioni e Info): mandi un'idea, un problema o un commento,
+  con fino a 2 foto. Li leggo tutti.
+- Se vuoi, numeri anonimi per migliorare Tasso: lo chiede una volta, e puoi
+  cambiare idea nelle Impostazioni. Mai nome, file o indirizzo IP.
+- "Apri qualsiasi file" per ora non c'è: torna più completo in una delle
+  prossime versioni.
+- In Proprietà di Tasso.exe ora c'è la versione giusta.
+- Piccole pulizie nel codice.
+
+------------------------------------------------------------
+NOVITÀ DELLA 2.6.2
+------------------------------------------------------------
+Un grande controllo generale di tutto il programma, con tante correzioni:
+- La modalità Normale ora rimette le TUE impostazioni (mouse, spegnimento dello
+  schermo, piano energetico) invece di quelle di fabbrica.
+- Pulizia programmata più prudente: dal Cestino toglie solo quello buttato da più
+  di 7 giorni, e i lavori lunghi non partono se il portatile va a batteria.
+- Riparazione di Windows: ora ti dice il risultato vero, e se Windows aspetta un
+  riavvio te lo dice prima di iniziare.
+- Il backup (punto di ripristino) ti avvisa se non è riuscito a farne uno nuovo.
+- Driver video vecchi: restano sempre gli ultimi due, per poter tornare indietro.
+- Apri qualsiasi file: ora riconosce le cartelle e i collegamenti alle cartelle e le
+  apre in Esplora file.
+- Autoclick: si ferma se è aperto uno dei giochi con anti-cheat più conosciuti
+  (Valorant, LoL, Fortnite, Apex, Call of Duty, BattlEye), per non farti bannare.
+- Prestazioni+: consigli più onesti e precisi per il tuo processore, la tua scheda
+  video (anche Radeon) e la tua RAM; sui portatili non propone cose che non si possono fare.
+- Aggiornamento con un clic più sicuro, attività pianificate più solide, e tante
+  piccole correzioni ai testi e alle schermate (anche su schermi piccoli).
+
+------------------------------------------------------------
+NOVITÀ DELLA 2.6.1
+------------------------------------------------------------
+- Aggiornamenti di Tasso ora in Impostazioni, in una scheda tutta loro. Quando esce una
+  versione nuova, in Home compare un avviso che ti porta lì.
+
+NOVITÀ DELLA 2.6
+------------------------------------------------------------
+RILEVA I PROBLEMI
+- Il menu ora è in gruppi: Problemi, Velocità, File e programmi, PC e rete, Altro.
+- In cima al menu, insieme a Risolvi problemi (e pulsante in Home). Un clic e Tasso
+  controlla 58 problemi diversi in circa un minuto (stampanti, internet, Word, Excel,
+  Outlook, OneDrive, periferiche, tastiera, Windows e, in Gaming, i giochi).
+- Non cambia niente: ti mostra solo i problemi trovati davvero, ognuno con Risolvi.
+- Alcuni problemi si vedono solo quando succedono (es. secondo schermo nero): per
+  quelli usa Risolvi problemi, con la ricerca.
+- Internet: al posto del consumo di dati c'è "La tua connessione", con consigli utili
+  (es. "collegati alla rete a 5 GHz" se il tuo router ce l'ha, o "usa il cavo").
+
+DUE MODALITÀ: GAMING E UFFICIO
+- Alla prima apertura scegli Gaming o Ufficio. Le cambi quando vuoi con il pulsante
+  in alto a sinistra, sotto il logo: cambia solo l'aspetto di Tasso, non il PC.
+- Gaming: tutto Tasso, con giochi, FPS, ping ai server, Turbo e Prestazioni+.
+- Ufficio: più semplice e tranquillo, colori chiari e morbidi, un tasso più carino;
+  niente giochi, FPS e ping. 6 temi nuovi: Ufficio, Carta,
+  Salvia, Lavanda, Notte e Ardesia (8 in tutto, con Ghiaccio e Sabbia).
+- Gaming: 3 problemi da gioco nuovi (mira del mouse, gioco che si riduce a icona,
+  download lenti), la tua libreria in cima alla pagina Giochi, Prestazioni+ riordinata.
+- AGGIORNA CON UN CLIC: in Impostazioni c'è "Aggiornamenti di Tasso". Quando esce
+  una versione nuova, in Home compare un avviso che ti porta lì: premi "Aggiorna ora",
+  Tasso scarica la nuova versione dalla pagina ufficiale, controlla che il file sia
+  quello giusto e si riapre da solo. Funziona dalla 2.6 in poi.
+- Pulizia programmata: oltre a Classica, Normale e Media ora puoi scegliere anche
+  Profonda (circa 50 min) o Eccezionale (circa 1 ora e mezza). Non sono attive da
+  sole: le scegli tu. Se alla fine serve un riavvio, Tasso non lo fa da solo.
+
+I 100 PROBLEMI DELL'UFFICIO (in Risolvi problemi, con la ricerca)
+- Risolvi problemi è diviso in sezioni: Ufficio, Gaming e Windows, con una ricerca
+  sola in cima: scrivi il problema (es. "stampante", "zip", "password") e lo trovi.
+- Stampanti offline o sbagliate, Stampa su PDF, stampanti di rete e USB, scanner.
+- Word, Excel e Adobe: riparazione ufficiale di Office, aggiornamento, documenti non
+  salvati, programmi che si chiudono o restano bianchi, accesso e licenza, file
+  "bloccato da un altro utente", date e CSV sbagliati, Acrobat Reader che non va.
+- Outlook: non si apre, ricerca, posta che non arriva o non si aggiorna, casella
+  troppo grande, password, allegati, promemoria, Outlook classico, link e "Invia a".
+- Teams e riunioni: cache, microfono, webcam (anche "usata da un altro programma"),
+  cuffie Bluetooth, casse, notifiche, volume che si abbassa in chiamata.
+- File e zip: programma sbagliato, zip che non si aprono, nomi troppo lunghi, file
+  bloccati, cancellati per sbaglio o nascosti, disco pieno, menu del tasto destro.
+- Rete: Wi-Fi, cavo, VPN, unità di rete, proxy, rete "a consumo", internet lento,
+  Desktop remoto, siti bloccati, portatile in un'altra rete.
+- Schermi, mouse e tastiera: secondo monitor, proiettore, schermo girato o che si
+  spegne, luminosità, cattura dello schermo, USB, mouse, touchpad, Bloc Num, tasti
+  permanenti, tasto Windows, batteria, cronologia degli appunti.
+- Windows e account: Esplora file, barra e icone, programmi bloccati, PC lento adesso,
+  avvio rapido, ora sbagliata, OneDrive e file doppi, attivazione, profilo temporaneo,
+  password che scade, BitLocker, programmi sospetti.
+- Sicuro: non cancella mai documenti, salva le impostazioni prima di cambiarle e non
+  chiude mai Word, Excel o Outlook se sono aperti. Dove non si può fare in automatico
+  Tasso lo dice e spiega cosa fare.
+
+------------------------------------------------------------
+NOVITÀ DELLA 2.5
+------------------------------------------------------------
+PULIZIA
+- 5 livelli: 1 Classica (un minuto), 2 Normale, 3 Media (consigliata), 4 Profonda,
+  5 Eccezionale. Ognuno fa anche tutto quello dei livelli prima.
+- Pulizia programmata in Home: scegli giorno, ora, livello (Classica, Normale, Media; a scelta anche Profonda o Eccezionale)
+  e se ogni settimana o ogni 2 settimane. Se il PC era spento, la fa appena lo accendi.
+  Se Tasso è già aperto, la fa lui senza aprire una seconda finestra.
+- Voto al PC: misura velocità dei componenti e "leggerezza" di Windows, anche prima e
+  dopo ogni pulizia, così vedi quanto è servita. Dalla 2.6 tutti i voti vanno da 1 a
+  100, con il voto totale e la classifica.
+- File doppi e file grandi anche in altre cartelle (dischi esterni compresi), con soglia
+  100 MB / 300 MB / 1 GB e l'avviso sui file non toccati da più di un anno.
+- Distruggi file: più file insieme, con la spiegazione onesta sugli SSD.
+
+GIOCHI
+- Profilo gioco: scegli una volta cosa ti serve (potenza, comandi gaming, pannellino,
+  modalità gioco automatica) e lo accendi con un interruttore. RESTA ACCESO anche se
+  spegni o riavvii il PC: a ogni accensione Tasso controlla e rimette quello che Windows
+  o il programma del produttore del PC hanno cambiato. Si spegne solo quando lo spegni tu.
+- Potenza per ogni gioco: scegli un gioco e "Potenza alta" o "Massima potenza": Tasso la
+  mette da solo quando apri quel gioco e la toglie quando lo chiudi.
+- Ping ai server dei giochi (League of Legends, TFT, Valorant, CS2, Dota 2, Fortnite e
+  altri giochi sui server Amazon): ms, salti e pacchetti persi, con il server migliore.
+- Regola con Tasso: grafica consigliata per ogni gioco in base al tipo di gioco e al PC.
+- Comandi gaming spiegati in parole semplici: cosa fa, quando serve, se ci sono rischi.
+
+RISOLVI PROBLEMI
+- 10 problemi dei giocatori con un pulsante: gioco a scatti, pochi FPS, ping alto,
+  il gioco non parte (Visual C++, DirectX, .NET ufficiali Microsoft), Steam/Epic/launcher
+  che non si aprono, schermo nero o risoluzione sbagliata, controller/cuffie/microfono,
+  app Xbox e Game Pass, errori dell'anti-cheat (Vanguard, Easy Anti-Cheat, BattlEye),
+  Discord che non va o non ti sentono.
+- Driver di tutto il PC: scheda video AMD Radeon, NVIDIA o Intel, audio, cuffie, mouse,
+  tastiera, rete, Bluetooth, webcam... Tasso li elenca, trova quelli con problemi
+  (pulsante Ripara), cerca i driver nuovi su Windows Update (certificati Microsoft) e li
+  installa; per il resto apre il sito ufficiale della marca (NVIDIA App, AMD, Intel,
+  Logitech, Razer, Corsair, SteelSeries, scheda madre...). Mai siti di "driver gratis".
+
+PROGRAMMI E FILE
+- Aggiornamento programmi: vedi quali hanno una versione nuova e li aggiorni uno per
+  uno o tutti insieme (winget, gratuito, già dentro Windows).
+- Icone vere dei programmi installati, di quelli all'avvio e di quelli aperti.
+- Apri qualsiasi file: Tasso guarda DENTRO il file e capisce cos'è davvero (anche se il
+  nome è sbagliato o senza estensione). Se manca il programma giusto ti consiglia
+  quello gratuito e affidabile (7-Zip, VLC, LibreOffice, Acrobat Reader...): lo installa
+  con un clic o ti apre direttamente la pagina ufficiale per scaricarlo.
+- Programmi all'avvio uguali a Gestione attività, comprese le app dello Store.
+
+SICUREZZA E COMODITÀ
+- Torna indietro (Impostazioni): l'elenco di tutto quello che Tasso ha cambiato, con un
+  pulsante per rimettere com'era ogni cosa o tutto insieme. Spegnere o riavviare il PC
+  NON rimette niente: torna indietro solo quando lo decidi tu.
+- Portachiavi: PIN da 4, da 6 o da 7 a 12 numeri, oppure senza PIN (si apre da solo con
+  il tuo account di Windows: comodo, ma chi usa il tuo account vede le password).
+- Stato del PC su Discord più ricco, ogni 3/6/12/24 ore e su richiesta con !stato.
+- "Tutti gli strumenti" si apre con tutte le sezioni aperte.
+
+CORREZIONI
+- Internet > Consumo di internet: il pulsante "Aggiorna" ora mostra che sta lavorando e
+  l'ora dell'ultimo aggiornamento.
+- Prestazioni elevate: sui PC che hanno solo il piano "Bilanciato" (molti portatili
+  nuovi) prima non succedeva niente; ora Tasso crea il piano o usa "Prestazioni migliori".
+- Pulizia programmata: se Tasso era già aperto non puliva; ora pulisce.
+- Comandi gaming: spegnendoli tornano esattamente al valore di prima di Tasso.
+- Portachiavi: i tentativi sbagliati restano contati anche chiudendo Tasso,
+  si blocca da solo dopo un po' che non lo usi.
+- Sicurezza: pagine web, giochi e file scaricati ora si aprono come programmi normali,
+  non con i permessi di amministratore di Tasso.
+- Apri qualsiasi file: se un file "travestito" (es. foto.jpg) è in realtà un programma,
+  Tasso lo dice chiaro e non lo apre da solo.
+- Prestazioni elevate: non crea più una copia nuova del piano energetico a ogni gioco;
+  corretto il piano "Risparmio energia" della modalità Silenzioso.
+- Massima potenza per un gioco ora passa davvero a FPS competitivo anche se eri in Gaming.
+- Anti-cheat: Vanguard (Valorant, LoL) viene rimesso in automatico come chiede Riot,
+  compreso il pezzo che parte con Windows (vgk).
+- Xbox e anti-cheat: Tasso dice "sistemato" solo se l'ha sistemato davvero.
+- Driver: "Ripara" non lascia mai spenti tastiera, mouse o dischi; i driver facoltativi
+  non vengono installati se non li spunti tu.
+- Il gioco non parte: Visual C++ già presente in versione più nuova ora risulta a posto.
+- Pulizia programmata anche quando il portatile va a batteria.
+- File doppi e grandi: mai dentro Windows.old e le cartelle di ripristino.
+- La finestra per scegliere una cartella si apre sopra Tasso e non dietro.
+- Interfaccia: finestra stretta ordinata, "Controlla aggiornamenti" scrive nel posto
+  giusto, interruttori sempre aggiornati, tante piccole correzioni.
+
+------------------------------------------------------------
+NOVITÀ DELLA 2.4
+------------------------------------------------------------
+- Sottocartelle: "Tutti gli strumenti" ora è diviso in sezioni ordinate e richiudibili.
+- Disinstallatore profondo: dopo aver disinstallato un programma, Tasso trova i resti
+  rimasti nelle cartelle E nel registro e li toglie (cartelle nel Cestino, registro con
+  backup automatico). Più completo di una disinstallazione normale.
+- Nuova sezione "Prestazioni+" (overclock sicuro): legge i tuoi componenti e ti guida
+  passo-passo (profilo prestazioni, EXPO/XMP per la RAM, MSI Afterburner per la scheda
+  video, undervolt guidato per il processore). Tasso non tocca da solo frequenze o
+  voltaggi: apre gli strumenti ufficiali e consiglia margini di sicurezza.
+- Backup foto e documenti con un clic su una chiavetta o un disco esterno (copia, non sposta).
+- "Crea collegamento sul Desktop".
+- Avviso Wi-Fi: se sei sulla banda 2.4 GHz ti suggerisce di passare al 5 GHz.
+- Avvisi su misura: scegli tu di cosa vuoi essere avvisato (temperature, disco, memoria...).
+- Nuovo tema "Belva" (viola feroce).

@@ -1,0 +1,296 @@
+﻿TASSO 3.0 - FEATURE INDEX
+=================================
+
+1. CLEANUP
+   - 5 levels: Classic (~1 min), Normal, Medium (recommended), Deep, Extreme
+     (each level also does everything the levels before it do)
+   - Preview: before starting, it tells you how many junk files it found
+   - Your temporary files and Windows temporary files
+   - Recycle Bin
+   - Thumbnail cache
+   - Browser cache: Chrome, Edge, Brave, Opera, Firefox (passwords and cookies stay)
+   - App cache: Discord, Steam, Teams, Epic Games
+   - Graphics card cache (NVIDIA, AMD, Intel, DirectX)
+   - Windows Update cache
+   - Useless system files: error reports, dumps, old logs (no pop-up windows)
+   - Windows component cleanup (DISM)
+   - DNS cache
+   - Scheduled cleanup (Home): day, time, level (Deep or Extreme too), every 1 or 2 weeks
+   - PC score from 1 to 100: component speed, Windows lightness, overall score and
+     rank (from "Slow PC" to "top"), also before and after the cleanup
+   - Automatic PC shutdown when the cleanup is finished
+
+2. SPEED
+   - Modes: Normal, Gaming, Competitive FPS, Movie, Quiet
+     (with a warning if the PC isn't suited: laptop, little RAM)
+   - Turbo: closes useless background programs while you play
+   - Startup apps: an on/off switch for each one
+   - Startup guard: lets you know if a new program adds itself
+   - Defragmentation (hard drives) and TRIM (SSDs)
+
+3. PROGRAMS AND UPDATES
+   - Complete uninstall, with a search for leftover folders
+   - Removal of preinstalled apps (Candy Crush, TikTok, Solitaire, etc.)
+   - Program updates (winget): a list of programs with a new version, one by one or all
+   - Drivers for the whole PC: AMD/NVIDIA/Intel graphics card, audio, mouse, keyboard,
+     network, Bluetooth, webcam; Windows Update and official websites; automatic
+     driver downloads
+   - Real program icons
+   - Windows updates
+   - Browser extension check
+   - A check of every program (broken Windows apps, programs with no folder)
+
+4. FILES
+   - Duplicate files (the first one stays; the copies go to the Recycle Bin only if you
+     confirm)
+   - Largest files (over 100 MB, 300 MB or 1 GB), in other folders and external drives too
+   - Empty folders
+   - Broken shortcuts on the Desktop and in the Start menu
+   - Tidy up the Downloads folder by file type
+   - Shred private files, even several files at once
+   - Wipe free space (before selling the PC)
+   - Recover deleted files (Recycle Bin + free Microsoft tool)
+
+5. REPAIR AND SECURITY
+   - Automatic backup (restore point) before the big cleanups
+   - Fix problems: audio, internet, Windows Update, printer, Store, search
+   - Game problems (13): stuttering, low FPS, high ping, game won't start, launchers,
+     black screen, controller and headset, Xbox and Game Pass, anti-cheat, Discord,
+     mouse aim, game that minimizes by itself, slow downloads
+   - Windows repair (DISM + SFC)
+   - Disk error check
+   - Device check
+   - Disk health, wear and temperature
+   - Antivirus scan with Microsoft Defender
+   - Privacy: stop Windows ads and tracking (with a button to restore)
+
+5a. OFFICE (Office mode)
+   - The 100 most common work PC problems, each with a button, sorted into groups.
+     In Fix problems there's a single search for all of them (Office, Gaming and Windows):
+   Printing & scanners:
+     - The printer says "offline"
+     - It always prints on the wrong printer
+     - "Print to PDF" is missing
+     - I can't find the printer (or other PCs) on the network
+     - The USB printer doesn't show up
+     - The scanner doesn't work
+   Word, Excel, Office & Adobe:
+     - Office freezes or shows errors
+     - Update Office
+     - I lost a document I hadn't saved
+     - Word or Excel closes as soon as you open it
+     - Office keeps asking you to sign in or says "unlicensed"
+     - The Teams button is missing in Outlook
+     - Word or Excel is slow, flickers or stays blank
+     - Word or Excel won't save to OneDrive or SharePoint
+     - A downloaded file opens in "Protected View"
+     - The file is "locked by another user"
+     - Wrong dates, decimals or CSV files in Excel
+     - Adobe Acrobat Reader won't open PDFs or freezes
+   Outlook & email:
+     - Outlook won't open
+     - Outlook search doesn't find my emails
+     - Emails don't arrive or don't send
+     - Outlook is slow: the mailbox is too big
+     - Outlook keeps asking for the password
+     - Outlook attachments won't open
+     - Outlook reminders are going crazy
+     - Outlook doesn't update or shows empty folders
+     - Outlook has changed: I want the old one back
+     - Links in emails won't open
+     - "No email program" when I send a file by email
+   Teams & meetings:
+     - Teams is slow, blank or won't open
+     - People can't hear me in meetings
+     - The webcam doesn't work
+     - Bluetooth headphones won't connect
+     - I can't hear the others in meetings
+     - Teams and Outlook notifications don't arrive
+     - The webcam is "in use by another program"
+     - The volume goes down by itself during calls
+   Files, folders & zip:
+     - Files open with the wrong program
+     - .zip files won't open or give an error
+     - "The file name is too long"
+     - I can't delete or rename a file ("it's open in another program")
+     - I deleted a file by mistake
+     - A folder or file has disappeared (maybe it's hidden)
+     - Desktop icons that don't open anything anymore
+     - Folders open slowly or with the wrong view
+     - File Explorer opens on "Home" instead of "This PC"
+     - The C: drive is full
+     - Windows 11: the right-click menu is short
+   Network, Wi-Fi & VPN:
+     - The Wi-Fi keeps dropping
+     - The Wi-Fi won't connect
+     - The VPN won't connect
+     - With the VPN on, office websites won't open
+     - Network drives have a red X
+     - The network folder keeps asking for a password
+     - The internet works but websites won't open
+     - The network cable is plugged in but doesn't work
+     - Updates and OneDrive stuck: "metered connection"
+     - Internet is slow only on this PC
+     - Remote Desktop: black screen, slow, or won't connect
+     - A work website is blocked for no reason
+     - The laptop can't get online on a different network
+   Screens & USB:
+     - The second screen is black
+     - The projector or TV shows nothing
+     - The screen is rotated
+     - Text is blurry or too small
+     - USB stick, USB drive or dock not working
+     - Mouse, USB sticks or other USB devices disconnect by themselves
+     - The screen turns off or locks too soon
+     - The brightness changes by itself
+     - Win + Shift + S (screenshot) doesn't work
+   Mouse, keyboard & laptop:
+     - The keyboard types the wrong symbols
+     - Copy and paste doesn't work
+     - I want to find things I copied earlier (Win + V)
+     - The mouse is too slow, too fast, or double-click doesn't work
+     - The laptop's touchpad doesn't work
+     - The number pad is off when I turn on the PC
+     - The keyboard beeps, types slowly, or keys stay pressed
+     - The Windows key doesn't work
+     - The laptop battery doesn't last long
+   Windows slow or frozen:
+     - File Explorer freezes or is slow
+     - Taskbar frozen or icons missing
+     - The taskbar hides by itself
+     - The desktop icons have disappeared
+     - A program isn't responding
+     - The PC is slow right now
+     - Strange text or missing characters
+     - I can't see previews of photos and documents
+     - I can't see .pdf .docx at the end of file names
+     - The PC takes a long time to start
+     - Turning off the PC doesn't make problems go away
+     - The PC won't go to sleep or wakes up by itself
+   Time, OneDrive, accounts & security:
+     - The time is wrong (and websites show errors)
+     - OneDrive isn't syncing
+     - Free up space with OneDrive
+     - OneDrive has duplicate files with the PC's name
+     - Check for suspicious programs
+     - The "Activate Windows" message shows up
+     - I signed in with a "temporary profile" (empty desktop)
+     - My Windows password is about to expire
+     - The PC asks for the BitLocker recovery key
+
+5b. GAMES (Gaming mode)
+   - Steam, Epic and Riot library with covers
+   - Game profile (a switch that stays on after a restart) and per-game power
+   - Tune with Tasso, Gaming commands explained, Optimize before playing
+   - Game server ping, in-game overlay, autoclicker
+
+6. HARDWARE
+   - Components: processor, graphics card, motherboard, BIOS, RAM, disks, system
+   - Real-time processor and RAM usage
+   - NVIDIA graphics card: temperature, usage, fan, memory
+   - BIOS: version and the maker's official page (with a warning about the risks)
+   - Opens the NVIDIA / AMD control panel
+
+7. SETTINGS
+   - Tasso mode: Gaming or Office (button at the top left; it only changes how Tasso
+     looks)
+   - Gaming themes: Tasso, Aurora, Lava, Neon, Carbon, Beast, Ice, Sand
+   - Office themes: Office, Paper, Sage, Lavender, Night, Slate, Ice, Sand
+   - Tasso on / off
+   - Undo: the list of everything Tasso has changed, a button for each thing and
+     one for everything. Turning off or restarting the PC doesn't put anything back
+     by itself
+   - Start with Windows
+   - Smart alerts (never in Gaming or FPS mode)
+
+WHAT'S NEW IN 2.6
+   - Detect problems (at the top of the menu with Fix problems, and as a button in Home):
+     checks for 58 problems in about a minute without changing anything and shows only
+     the ones it found, with Fix
+   - Internet: "Your connection" with tips (e.g. connect to 5 GHz) instead of
+     data usage
+   - Two modes: Gaming (everything, including games, FPS and ping) and Office (simpler and
+     calmer, with a cuter badger). You choose it the first time you open Tasso and can
+     switch whenever you want
+   - The 100 most common office problems in Fix problems (also Word, Excel, Adobe,
+     zip files, mouse and keyboard, accounts and BitLocker)
+   - Fix problems split into sections (Office, Gaming, Windows) with a single search
+   - 3 new game problems: mouse aim, game that minimizes by itself, slow downloads
+   - PC score from 1 to 100 for everything, with overall score and rank
+   - Games: your library at the top. Performance+ reorganized: easy, safe things first
+   - 6 new themes for the office: Office, Paper, Sage, Lavender, Night, Slate
+     (8 in all, with Ice and Sand)
+
+WHAT'S NEW IN 2.5
+   - Game profile with a switch: it stays on after a restart until you turn it off
+   - Per-game power: High power or Maximum power, set automatically when you open the game
+   - Game server ping with the best server for you
+   - 10 gamer problems with one button each, drivers for the whole PC
+   - 5 cleanup levels, scheduled cleanup every 1 or 2 weeks, PC score
+   - Program updates, real icons, smarter Open any file
+   - Undo, vault with a 4 to 12-digit PIN or no PIN
+   - Tune with Tasso: recommended graphics settings for each game, based on the type of
+     game and your PC (Automatic, Competitive, Balanced, Quality), with a dedicated PC
+     mode and "Cancel"
+   - Gaming commands: background recording, game priority, low-latency network,
+     GPU scheduling, windowed game optimizations, clear standby memory,
+     clear shader cache, restart graphics driver
+   - Vault with a 4 to 12-digit PIN or no PIN (AES-256, only on this PC),
+     password generator, stolen password check
+   - Cleanup: driver leftovers, launcher cache, old graphics drivers, security,
+     stability (crashes and hardware errors), activity traces
+   - Discord: richer report with green checkmarks, every 3/6/12/24 hours, on request
+     with !stato
+   - Startup apps match Task Manager, including Store apps
+
+WHAT'S NEW IN 2.4
+   - Open any file: choose a file and Tasso tells you what it is and which program to
+     open it with
+   - One-click update: in Settings (with an alert in Home when a new version comes out),
+     Tasso downloads itself and reopens by itself
+   - "Check for updates" button and the version always in view, with a direct link to
+     the Discord server
+   - Fix problems: printer, Microsoft Store and apps, search and Start menu
+   - Large files (over 300 MB): "Open folder" button to see them on your computer
+   - Games: your library is the first thing you see
+   - Speed: a table explains what really changes between the modes (and why the fans
+     don't change right away)
+   - Programs: clearer explanations and a warning not to remove games, Discord, Steam
+     and Epic
+   - Fixed a slight flicker in the program window
+
+WHAT'S NEW IN 2.2
+   - Games: Optimize before playing (closes heavy programs and reopens them when you're
+     done playing)
+   - See-through in-game overlay: CPU, graphics card (usage and temperature), RAM, time
+     (Ctrl + Shift + F12 to show or hide it)
+   - Autoclicker: how often, how many clicks, which button, fixed spot, small movements,
+     hotkey of your choice
+   - Game library with covers: Steam, Epic Games and Riot in one place
+   - AMD Radeon graphics card temperature and usage (before, NVIDIA only)
+   - PC status on Discord: a summary in your private channel (read-only)
+   - Safer cleanup: temporary files in use stay, and it never follows shortcuts
+   - The Stop button also interrupts the current step right away
+
+WHAT'S NEW IN 2.1
+   - PC health: a score from 0 to 100 with tips and a button to fix things
+   - Internet: speed test (download, upload, ping), your connection with tips (e.g.
+     connect to 5 GHz), saved Wi-Fi with passwords
+   - Disk map: the biggest folders, largest first
+   - Automatic game mode: Gaming when you open a game, then back to how it was
+   - No Windows pop-up windows during cleanups
+
+WHAT TASSO DOESN'T DO, ON PURPOSE
+   - Registry cleaning: minimal benefits, risk of making Windows unstable
+   - Constant "RAM freeing" and miracle "internet boosters": Windows already does this
+     by itself (Tasso only offers the commands that really help, and tells you when
+     they do)
+   - Drivers from unknown websites or "update all drivers" programs: only Windows Update
+     and official websites
+   - Overclocking and automatic BIOS updates: too risky
+
+COMING SOON
+   - Digital signature (it needs a paid certificate)
+   - Video and music player with subtitles, file converters
+   - Recorder for the last 30 seconds of gameplay, stats on hours played
+   - Ad blocking, webcam and microphone control
