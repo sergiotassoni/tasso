@@ -17,7 +17,7 @@ Non serve un account: clicca e parte il download.
 ## Come si apre
 
 1. Doppio clic su **Tasso.exe** e rispondi **Sì** alla richiesta di Windows: Tasso ha bisogno dei permessi di amministratore per pulire e riparare.
-2. Se compare la schermata blu "PC protetto da Windows", clicca **Ulteriori informazioni** e poi **Esegui comunque**. Succede con tutti i programmi nuovi senza firma digitale a pagamento.
+2. Se compare la schermata blu "PC protetto da Windows", clicca **Ulteriori informazioni** e poi **Esegui comunque**. Tasso ha la firma digitale, ma Windows può mostrare l'avviso finché un programma è nuovo.
 
 Sito: https://sergiotassoni.github.io/tasso/
 
@@ -67,7 +67,7 @@ Tasso is a free program for **Windows 10 and 11** (64-bit). It's lightweight and
 👉 **[Download Tasso (latest version)](https://github.com/sergiotassoni/tasso/releases/latest/download/Tasso.exe)**
 
 1. Double-click **Tasso.exe** and answer **Yes** to Windows: Tasso needs administrator rights to clean and repair.
-2. If the blue "Windows protected your PC" screen appears, click **More info** and then **Run anyway**. This happens with every new program that doesn't have a paid digital signature.
+2. If the blue "Windows protected your PC" screen appears, click **More info** and then **Run anyway**. Tasso is digitally signed, but Windows may still show this while a program is new.
 
 Website: https://sergiotassoni.github.io/tasso/en/
 
