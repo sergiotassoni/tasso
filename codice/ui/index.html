@@ -709,9 +709,10 @@ details.navmore[open]{display:flex;flex-direction:column;gap:2px}
 <section class="view" id="v-games">
   <div><h1 style="font-size:26px">Gioca</h1><p class="sub">Premi il tasto e Tasso prepara il PC per giocare. Quando hai finito, rimette tutto com'era.</p></div>
   <div class="card boostcard" id="boostCard">
-    <div style="flex:1 1 320px;min-width:0"><div class="boostk">PRONTO A GIOCARE</div><h2 id="boostTitle">Il PC è in modalità normale</h2><p class="sub" id="boostSub" style="margin:0">Boost chiude i programmi in background che non servono, mette il PC al massimo per giocare e misura gli FPS veri. Quando hai finito, rimette tutto com'era.</p><p class="small" style="margin:10px 0 0"><a href="#" id="boostUndo">↩️ Rimetti com'era</a> · <a href="#" id="boostFpsBtn">📊 Misura gli FPS</a> · <a href="#" id="boostCheckBtn">🔍 Controllo FPS</a></p><p class="small" style="margin:8px 0 0"><label style="cursor:pointer"><input type="checkbox" id="boostAuto"> Boost automatico: parte da solo quando apri un gioco e si spegne quando lo chiudi</label></p><div class="small" id="boostFps" style="margin-top:8px"></div><div id="fpsCheck" style="margin-top:10px;display:flex;flex-direction:column;gap:8px"></div></div>
+    <div style="flex:1 1 320px;min-width:0"><div class="boostk">PRONTO A GIOCARE</div><h2 id="boostTitle">Il PC è in modalità normale</h2><p class="sub" id="boostSub" style="margin:0">Boost chiude i programmi in background che non servono, mette il PC al massimo per giocare e misura gli FPS veri. Quando hai finito, rimette tutto com'era.</p><p class="small" style="margin:10px 0 0"><a href="#" id="boostUndo">↩️ Rimetti com'era</a> · <a href="#" id="boostFpsBtn">📊 Misura gli FPS</a> · <a href="#" id="boostCheckBtn">🔍 Controllo FPS</a></p><p class="small" style="margin:8px 0 0"><label style="cursor:pointer"><input type="checkbox" id="boostAuto"> Boost automatico: parte da solo quando apri un gioco e si spegne quando lo chiudi</label></p><div class="small" id="boostFps" style="margin-top:8px"></div></div>
     <button class="btn primary boostgo" id="btnBoost" aria-label="Boost: prepara il PC per giocare">🚀<br>BOOST</button>
   </div>
+  <div class="card" id="fpsCheckCard" style="display:none"><div id="fpsCheck" role="status" aria-live="polite" style="display:flex;flex-direction:column;gap:8px"></div></div>
   <div class="card" style="display:flex;flex-direction:column;gap:12px">
     <div class="row wrap" style="justify-content:space-between"><div><h2>🕹️ La tua libreria</h2><p class="sub" style="margin:2px 0 0" id="libMsg">Steam, Epic Games e Riot in un posto solo.</p></div><div class="row wrap" style="gap:8px"><input id="libSearch" type="search" placeholder="Cerca un gioco…" style="padding:9px 12px;border-radius:10px;border:1px solid var(--line);background:transparent;color:inherit;font:inherit;min-width:200px"><button class="btn ghost" id="btnLib">Aggiorna</button></div></div>
     <div class="grid" id="libGrid" style="grid-template-columns:repeat(auto-fill,minmax(150px,1fr))"></div>
@@ -1541,7 +1542,7 @@ $('#btnBoost').onclick = async () => {
 };
 $('#boostUndo').onclick = async (e) => {
   e.preventDefault();
-  if (!BST.on && !BST.auto) { toast(_t('Non c\'è niente da rimettere: il Boost non è acceso.')); return; }
+  if (!BST.on && !BST.auto && !BST.gpuFix) { toast(_t('Non c\'è niente da rimettere: il Boost non è acceso.')); return; }
   const r = await call('goBoostAllOff'); if (r === 'busy') { toast(_t('Un attimo, sto ancora finendo.')); return; }
   toast(_t('Rimetto tutto com\'era…'));
 };
@@ -1557,39 +1558,69 @@ $('#boostFpsBtn').onclick = async (e) => {
   $('#boostFps').textContent = _t('Torna nel gioco entro 10 secondi e gioca normalmente: misuro per 30 secondi. Un bip quando inizio, due quando ho finito.');
 };
 const FC_SEV = {big:'var(--a3)', mid:'var(--a2)', info:'var(--muted)'};
+function fcItem(f, i){
+  const lab = f.sev === 'big' ? _t('Guadagno grande') : _t('Guadagno medio');
+  const btn = f.action ? (f.action === 'hz' || f.action === 'gpu' ? _t('Sistemalo') : f.action === 'tune' ? _t('Apri la libreria') : _t('Apri la pagina')) : '';
+  return '<div class="li" style="border-left:3px solid ' + (FC_SEV[f.sev] || 'var(--line)') + ';padding:8px 10px;display:block"><div class="small" style="font-weight:700;color:' + (FC_SEV[f.sev] || 'inherit') + '">' + lab + '</div><b>' + esc(f.title) + '</b><div class="small muted" style="margin-top:2px">' + esc(f.why) + '</div><div class="small" style="margin-top:4px">📈 ' + esc(f.gain) + '</div><div class="small" style="margin-top:4px">👉 ' + esc(f.fix) + '</div>' +
+    (btn ? '<button class="btn ghost" style="margin-top:6px" data-fc="' + i + '" aria-label="' + esc(btn + ': ' + f.title) + '">' + btn + '</button>' : '') + '</div>';
+}
 function paintCheck(r){
   const box = $('#fpsCheck'); if (!box) return;
+  $('#fpsCheckCard').style.display = '';
   const list = (r && Array.isArray(r.found)) ? r.found : [];
-  if (!list.length) { box.innerHTML = '<div class="small">' + _t('✅ Nessun problema grande trovato: il PC è già messo bene per giocare.') + (r && r.measured ? '' : ' ' + _t('Per un controllo completo misura prima gli FPS con il gioco aperto.')) + '</div>'; return; }
-  box.innerHTML = '<div class="small"><b>' + _t('Controllo FPS: ') + list.length + _t(' cose da sistemare') + '</b>' + (r.measured ? '' : ' · ' + _t('misura gli FPS con il gioco aperto per controllare anche limite, caldo e scheda video')) + '</div>' +
-    list.map((f, i) => '<div class="li" style="border-left:3px solid ' + (FC_SEV[f.sev] || 'var(--line)') + ';padding:8px 10px;display:block"><b>' + esc(f.title) + '</b><div class="small muted" style="margin-top:2px">' + esc(f.why) + '</div><div class="small" style="margin-top:4px">📈 ' + esc(f.gain) + '</div><div class="small" style="margin-top:4px">👉 ' + esc(f.fix) + '</div>' +
-      (f.action ? '<button class="btn ghost" style="margin-top:6px" data-fc="' + i + '">' + (f.action === 'hz' || f.action === 'gpu' ? _t('Sistema') : f.action === 'tune' ? _t('Apri la libreria') : _t('Apri')) + '</button>' : '') + '</div>').join('');
+  const auto = (r && Array.isArray(r.auto)) ? r.auto : [];
+  let h = '<h2 style="margin:0">' + _t('🔍 Controllo FPS') + '</h2>';
+  if (auto.length) h += '<div class="small">' + _t('✅ Sistemato da solo: ') + auto.map(esc).join(' · ') + '</div>';
+  if (!list.length) {
+    h += '<div class="small">' + _t('✅ Nessun problema grande trovato: il PC è già messo bene. Per guadagnare ancora molto resta la grafica del gioco: un livello più basso o DLSS/FSR su Qualità danno di solito +20–40%.') + (r && r.measured ? '' : ' ' + _t('Per un controllo completo misura prima gli FPS con il gioco aperto.')) + '</div>';
+    box.innerHTML = h; return;
+  }
+  h += '<div class="small"><b>' + list.length + _t(' cose da sistemare a mano') + '</b>' + (r.measured ? '' : ' · ' + _t('misura gli FPS con il gioco aperto per controllare anche limite, caldo e scheda video')) + '</div>';
+  h += list.slice(0, 3).map(fcItem).join('');
+  if (list.length > 3) h += '<details><summary class="small">' + _t('Altri ') + (list.length - 3) + '</summary><div style="display:flex;flex-direction:column;gap:8px;margin-top:8px">' + list.slice(3).map((f, j) => fcItem(f, j + 3)).join('') + '</div></details>';
+  box.innerHTML = h;
   box.querySelectorAll('[data-fc]').forEach(b => { b.onclick = () => fcAction(list[Number(b.dataset.fc)], b); });
+}
+let HZ_MODAL = false, HZ_TICK = null;
+function hzModal(ch){
+  let left = 15; HZ_MODAL = true;
+  modal('<h2>' + _t('Lo schermo si vede bene?') + '</h2><p class="muted">' + esc(ch.join(', ')) + '. ' + _t('Se non premi "Tengo", torna com\'era tra ') + '<b id="hzLeft">15</b>' + _t(' secondi.') + '</p>',
+    [{label:_t('Tengo'), cls:'primary', fn: () => { HZ_MODAL = false; clearInterval(HZ_TICK); call('goFpsKeepHz'); }},
+     {label:_t('Torna com\'era'), fn: () => { HZ_MODAL = false; clearInterval(HZ_TICK); call('goFpsUndoHz'); }}]);
+  clearInterval(HZ_TICK);
+  HZ_TICK = setInterval(() => { left--; const e = $('#hzLeft'); if (e) e.textContent = Math.max(0, left); if (left <= 0) clearInterval(HZ_TICK); }, 1000);
 }
 async function fcAction(f, b){
   if (!f) return;
   if (f.action === 'hz') {
-    const r = await call('goFpsFixHz'); const ch = (r && r.changed) || [];
-    if (!ch.length) { toast(_t('Non sono riuscito a cambiare la frequenza dello schermo.')); return; }
-    modal('<h2>' + _t('Lo schermo si vede bene?') + '</h2><p class="muted">' + esc(ch.join(', ')) + '. ' + _t('Se non premi "Tengo" entro 15 secondi, torna com\'era.') + '</p>',
-      [{label:_t('Torna com\'era')}, {label:_t('Tengo'), cls:'primary', fn: () => call('goFpsKeepHz')}]);
+    const r = await call('goFpsFixHz'); if (r === 'busy') toast(_t('Un attimo, sto ancora finendo.'));
   } else if (f.action === 'gpu') {
-    const r = await call('goFpsFixGpu'); toast(String(r || '').replace(/^ok:/, ''), 'var(--a3)'); if (b) b.disabled = true;
+    const r = String(await call('goFpsFixGpu') || '');
+    const ok = r.indexOf('ok:') === 0; toast(r.replace(/^ok:/, ''), ok ? 'var(--a3)' : 'var(--a4)'); if (ok && b) b.disabled = true;
   } else if (f.action === 'tune') {
     const m = $('#libGrid'); if (m) m.scrollIntoView({behavior:'smooth', block:'center'});
     toast(_t('Premi sul gioco nella libreria e poi "Regola con Tasso": ti dico la grafica giusta per il tuo PC.'));
   } else if (f.action.indexOf('driver:') === 0) {
-    call('goFpsDriver', f.action.slice(7));
+    const r = await call('goFpsDriver', f.action.slice(7));
+    toast(r === 'ok' ? _t('Apro la pagina ufficiale del driver nel browser.') : _t('Non riesco ad aprire la pagina.'));
   }
 }
 $('#boostCheckBtn').onclick = async (e) => {
   e.preventDefault();
-  const r = await call('goFpsCheck'); if (r === 'busy') return;
+  const r = await call('goFpsCheck'); if (r === 'busy') { toast(_t('Il controllo è già in corso.')); return; }
+  $('#fpsCheckCard').style.display = '';
   $('#fpsCheck').innerHTML = '<div class="small muted">' + _t('Controllo schermo, scheda video, RAM, temperature e driver…') + '</div>';
 };
 Object.assign(window.tasso, {
-  onFpsCheck(r){ paintCheck(r); },
-  onFpsHz(r){ toast(r && r.kept ? _t('Frequenza dello schermo tenuta.') : _t('Frequenza dello schermo rimessa com\'era.')); },
+  onFpsCheck(r){ paintCheck(r); ((r && r.auto) || []).forEach(m => toast(m, 'var(--a3)')); },
+  onFpsHzTry(r){
+    const ch = (r && r.changed) || [];
+    if (ch.length) hzModal(ch); else toast((r && r.msg) || _t('Non sono riuscito a cambiare la frequenza dello schermo.'));
+  },
+  onFpsHz(r){
+    if (HZ_MODAL) { HZ_MODAL = false; clearInterval(HZ_TICK); closeModal(); }
+    toast(r && r.kept ? _t('Frequenza dello schermo tenuta.') : _t('Frequenza dello schermo rimessa com\'era.'));
+  },
   onBoost(r){
     $('#btnBoost').disabled = false;
     (r && r.msgs || []).slice(0, 6).forEach(m => toast(m, 'var(--a3)'));

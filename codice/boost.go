@@ -81,6 +81,8 @@ type fpsResult struct {
 	GpuTemp   float64 `json:"gpuTemp,omitempty"`
 	Throttle  bool    `json:"throttle,omitempty"` // la scheda video NVIDIA ha rallentato per il caldo
 	Hz        int     `json:"hz,omitempty"`       // frequenza dello schermo durante la misura
+	Spread    float64 `json:"spread,omitempty"`   // differenza % tra fotogrammi veloci e lenti (bassa = FPS fermi su un limite)
+	VramPct   float64 `json:"vramPct,omitempty"`  // memoria della scheda video usata (%)
 	pid       string
 	path      string
 }
@@ -181,7 +183,7 @@ func boostInfo() map[string]interface{} {
 	bMu.Lock()
 	defer bMu.Unlock()
 	s := loadBoost()
-	return map[string]interface{}{"on": s.On, "auto": s.Auto, "game": bGame, "battery": onBattery()}
+	return map[string]interface{}{"on": s.On, "auto": s.Auto, "game": bGame, "battery": onBattery(), "gpuFix": len(s.GpuPrev) > 0}
 }
 
 // onBattery: portatile senza caricatore. In quel caso niente piano energetico al massimo.
@@ -397,13 +399,18 @@ func restoreBoostMode(prev string) bool {
 
 // boostOff ("Rimetti com'era"): spegne il Boost e anche il Boost automatico, e rimette solo
 // quello che il Boost ha cambiato.
-func boostOff() []string {
+func boostOff(explicit bool) []string {
 	bOpMu.Lock()
 	defer bOpMu.Unlock()
 	bMu.Lock()
 	s := loadBoost()
-	prev, auto, prevAG, gpuPrev := s.PrevMode, s.Auto, s.PrevAG, s.GpuPrev
-	s.On, s.Auto, s.PrevMode, s.PrevAG, s.GpuPrev = false, false, "", nil, nil
+	prev, auto, prevAG := s.PrevMode, s.Auto, s.PrevAG
+	var gpuPrev map[string]string
+	if explicit { // la scheda video per i giochi la rimette solo il pulsante "Rimetti com'era"
+		gpuPrev = s.GpuPrev
+		s.GpuPrev = nil
+	}
+	s.On, s.Auto, s.PrevMode, s.PrevAG = false, false, "", nil
 	if bGame != "" {
 		bSkip = bGame
 	}
@@ -449,7 +456,7 @@ func setBoostAuto(on bool) string {
 		if !manual {
 			go func() {
 				defer guard("boost.go:autooff")
-				emit("onBoost", map[string]interface{}{"msgs": boostOff(), "state": boostInfo()})
+				emit("onBoost", map[string]interface{}{"msgs": boostOff(false), "state": boostInfo()})
 			}()
 			return "ok:Boost automatico spento: rimetto tutto com'era."
 		}
@@ -541,6 +548,7 @@ func startBoostWatcher() {
 							defer guard("boost.go:automeasure")
 							if r, err := fpsMeasure(0, 60, true, false, g); err == nil {
 								emit("onFpsAuto", map[string]interface{}{"game": g, "result": r})
+								fpsAutoFix(false)
 							}
 						}(name)
 					}
@@ -702,6 +710,16 @@ func fpsMeasure(delay, secs int, boosted, beeps bool, prefer string) (*fpsResult
 		return nil, errors.New("non riesco ad avviare la misura degli FPS")
 	}
 	done := make(chan struct{})
+	temps := make(chan tempRead, 1)
+	go func() {
+		defer guard("boost.go:temps")
+		// Verso la fine della misura, mentre il gioco lavora ancora.
+		select {
+		case <-done:
+		case <-time.After(time.Duration(delay+secs-8) * time.Second):
+		}
+		temps <- readTemps()
+	}()
 	fg := map[uint32]bool{}
 	var fgMu sync.Mutex
 	go func() {
@@ -722,6 +740,7 @@ func fpsMeasure(delay, secs int, boosted, beeps bool, prefer string) (*fpsResult
 	_, _ = io.Copy(io.Discard, out)
 	werr := cmd.Wait()
 	close(done)
+	hzAtEnd := gameScreenHz()
 	fgMu.Lock()
 	fg[foregroundPid()] = true
 	fgMu.Unlock()
@@ -746,9 +765,16 @@ func fpsMeasure(delay, secs int, boosted, beeps bool, prefer string) (*fpsResult
 		return nil, errors.New("il gioco non era in primo piano durante la misura: tienilo davanti e riprova")
 	}
 	res.Boost, res.When = boosted, time.Now().Format(time.RFC3339)
-	res.path = processPath(uint32(pidN))
-	res.Hz = primaryHz()
-	res.CpuTemp, res.GpuTemp, res.Throttle = readTemps()
+	// Il programma con quel numero deve essere ancora il gioco (i numeri dei processi si riusano).
+	if pp := processPath(uint32(pidN)); pp != "" && strings.EqualFold(safeName(strings.TrimSuffix(filepath.Base(pp), filepath.Ext(pp))), res.Game) {
+		res.path = pp
+	}
+	res.Hz = hzAtEnd
+	select {
+	case t := <-temps:
+		res.CpuTemp, res.GpuTemp, res.Throttle, res.VramPct = t.cpu, t.gpu, t.throttle, t.vram
+	case <-time.After(10 * time.Second):
+	}
 	setLastFps(res)
 	bMu.Lock()
 	s := loadBoost()
@@ -799,6 +825,7 @@ func parsePresentMon(r io.Reader, prefer string) (*fpsResult, error) {
 		app, pid string
 		ft       []float64
 		busy     float64
+		busyFt   float64
 		nBusy    int
 	}
 	groups := map[string]*grp{}
@@ -835,6 +862,7 @@ func parsePresentMon(r io.Reader, prefer string) (*fpsResult, error) {
 		if okB && len(rec) > ib {
 			if b, err := strconv.ParseFloat(rec[ib], 64); err == nil && b >= 0 && b <= 2000 {
 				g.busy += b
+				g.busyFt += v
 				g.nBusy++
 			}
 		}
@@ -856,12 +884,8 @@ func parsePresentMon(r io.Reader, prefer string) (*fpsResult, error) {
 	}
 	res := fpsStats(safeName(strings.TrimSuffix(best.app, ".exe")), best.ft)
 	res.pid = best.pid
-	if best.nBusy > len(best.ft)/2 {
-		total := 0.0
-		for _, v := range best.ft {
-			total += v
-		}
-		res.GpuBusy = math.Round(math.Min(100, best.busy/total*100))
+	if best.nBusy > len(best.ft)/2 && best.busyFt > 0 {
+		res.GpuBusy = math.Round(math.Min(100, best.busy/best.busyFt*100))
 	}
 	return res, nil
 }
@@ -882,6 +906,7 @@ func fpsStats(app string, ft []float64) *fpsResult {
 	for _, v := range s[len(s)-n:] {
 		slow += v
 	}
+	p5, p95 := s[len(s)*5/100], s[len(s)*95/100]
 	stutter := 0
 	for _, v := range ft {
 		if v > 2*median && v > 1000.0/60 { // sopra i 60 FPS un fotogramma "doppio" non si nota
@@ -893,6 +918,7 @@ func fpsStats(app string, ft []float64) *fpsResult {
 		Game: app, Seconds: round(total / 1000), Frames: len(ft),
 		Avg: round(float64(len(ft)) * 1000 / total), Low1: round(1000 / (slow / float64(n))),
 		Stutter: stutter, StutterPM: round(float64(stutter) / (total / 60000)),
+		Spread: round((p95 - p5) / median * 100),
 	}
 }
 
@@ -951,10 +977,13 @@ func fpsSummary() map[string]interface{} {
 // automatico se era acceso.
 func bindBoost(w webview2.WebView) {
 	_ = w.Bind("goBoostAll", func() string {
-		return async("boostall", func() { emit("onBoost", map[string]interface{}{"msgs": boostOn(), "state": boostInfo()}) })
+		return async("boostall", func() {
+			emit("onBoost", map[string]interface{}{"msgs": boostOn(), "state": boostInfo()})
+			fpsAutoFix(true)
+		})
 	})
 	_ = w.Bind("goBoostAllOff", func() string {
-		return async("boostoff", func() { emit("onBoost", map[string]interface{}{"msgs": boostOff(), "state": boostInfo()}) })
+		return async("boostoff", func() { emit("onBoost", map[string]interface{}{"msgs": boostOff(true), "state": boostInfo()}) })
 	})
 	_ = w.Bind("goBoostInfo", func() map[string]interface{} { return boostInfo() })
 	_ = w.Bind("goBoostAuto", func(on bool) string { return setBoostAuto(on) })
@@ -976,8 +1005,9 @@ func bindBoost(w webview2.WebView) {
 	_ = w.Bind("goFpsCheck", func() string {
 		return async("fpscheck", func() { emit("onFpsCheck", fpsCheck()) })
 	})
-	_ = w.Bind("goFpsFixHz", func() map[string]interface{} { return screenHzMax() })
-	_ = w.Bind("goFpsKeepHz", func() string { screenHzKeep(); return "ok" })
+	_ = w.Bind("goFpsFixHz", func() string { return async("fpshz", screenHzMax) })
+	_ = w.Bind("goFpsKeepHz", func() string { go screenHzKeep(); return "ok" })
+	_ = w.Bind("goFpsUndoHz", func() string { go screenHzUndo(false); return "ok" })
 	_ = w.Bind("goFpsFixGpu", func() string { return fpsSetGpu() })
 	_ = w.Bind("goFpsDriver", func(id string) string {
 		if id != "nvidia" && id != "amd" && id != "intel" {
