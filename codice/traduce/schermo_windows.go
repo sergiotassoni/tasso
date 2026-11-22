@@ -845,3 +845,9 @@ func nascondiMotore(h uintptr) {
 	pSetWindowPos.Call(h, 0, uintptr(fuori), uintptr(fuori), 0, 0, 0x1|0x4|0x10|0x20)
 	pShowWindow.Call(h, 4) // SW_SHOWNOACTIVATE: visibile per WebView2, ma fuori dallo schermo
 }
+
+// nomeTasto: il tasto scelto adesso per una funzione, da scrivere nei messaggi (es. "F7").
+func nomeTasto(funzione string) string {
+	return etichettaTasto(tastiCompleti(leggiImp().Tasti)[funzione])
+}
+

@@ -77,11 +77,6 @@ func etichettaTasto(codice uint32) string {
 	return strings.Join(append(p, n), "+")
 }
 
-// nomeTasto: il tasto scelto adesso per una funzione, da scrivere nei messaggi (es. "F7").
-func nomeTasto(funzione string) string {
-	return etichettaTasto(tastiCompleti(leggiImp().Tasti)[funzione])
-}
-
 func tastiCompleti(t map[string]uint32) map[string]uint32 {
 	out := map[string]uint32{}
 	for k, v := range tastiDiBase {
