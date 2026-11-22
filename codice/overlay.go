@@ -401,31 +401,57 @@ func overlayShow(show bool) string {
 	return "ok"
 }
 
-// cpuTempLoop legge la temperatura del processore ogni 20 secondi, solo mentre il pannellino è visibile.
+// cpuTempLoop legge la temperatura del processore: ogni minuto mentre il pannellino è visibile,
+// ogni 15 secondi mentre la pagina Hardware è aperta davanti (mai con Tasso a icona o durante un gioco).
 // Windows non la dà sempre: se c'è LibreHardwareMonitor aperto uso quella (più precisa), altrimenti
 // il sensore ACPI; se nessuno dei due risponde, il pannellino mostra solo la percentuale.
 func cpuTempLoop() {
 	var last time.Time
+	var acpiLast float64
+	acpiSame := 0
 	for {
 		ovMu.Lock()
 		shown := ovShown
-		watch := time.Since(hwWatchAt) < 30*time.Second
+		watch := time.Since(hwWatchAt) < 30*time.Second && !ovInGame
 		ovMu.Unlock()
+		if watch && !shown && wv != nil {
+			if r, _, _ := pIsIconic.Call(uintptr(wv.Window())); r != 0 {
+				watch = false // Tasso a icona: nessuno guarda la pagina Hardware
+			}
+		}
 		// Nel gioco ogni minuto (lanciare PowerShell più spesso darebbe piccoli scatti);
 		// sulla pagina Hardware ogni 10 secondi, così vedi la temperatura dal vivo.
 		every := 60 * time.Second
 		if watch && !shown {
-			every = 10 * time.Second
+			every = 15 * time.Second
 		}
 		if (shown || watch) && time.Since(last) >= every {
 			last = time.Now()
 			r := runPS(cpuTempScript, 30*time.Second, nil)
 			v := -1.0
-			if f, err := strconv.ParseFloat(strings.TrimSpace(r.JSON), 64); err == nil && f > 15 && f < 115 {
+			raw := strings.TrimSpace(r.JSON)
+			acpi := strings.HasPrefix(raw, "A")
+			raw = strings.TrimLeft(raw, "AL")
+			if f, err := strconv.ParseFloat(raw, 64); err == nil && f > 15 && f < 115 {
 				v = f
+			}
+			// il sensore ACPI su molti PC è la scheda madre e dà sempre lo stesso numero:
+			// se resta identico per 3 letture di fila non è il processore, non lo mostro
+			if acpi && v > 0 {
+				if v == acpiLast {
+					acpiSame++
+				} else {
+					acpiLast, acpiSame = v, 1
+				}
+				if acpiSame >= 3 {
+					v = -1
+				}
+			} else {
+				acpiLast, acpiSame = 0, 0
 			}
 			ovMu.Lock()
 			ovCPUTemp = v
+			ovCPUTempAt = time.Now()
 			ovMu.Unlock()
 		}
 		time.Sleep(2 * time.Second)
@@ -435,11 +461,17 @@ func cpuTempLoop() {
 // hwWatchAt: l'ultima volta che la pagina Hardware era aperta (per leggere la temperatura del processore).
 var hwWatchAt time.Time
 
+// ovCPUTempAt: quando è stata letta ovCPUTemp (una lettura vecchia non si mostra come attuale).
+var ovCPUTempAt time.Time
+
 // hwWatch: la pagina Hardware è aperta, quindi leggo anche la temperatura del processore.
 func hwWatch() map[string]interface{} {
 	ovMu.Lock()
 	hwWatchAt = time.Now()
 	t := ovCPUTemp
+	if time.Since(ovCPUTempAt) > 25*time.Second {
+		t = -1
+	}
 	ovMu.Unlock()
 	ovTempStart.Do(func() { go cpuTempLoop() })
 	out := map[string]interface{}{}
@@ -453,15 +485,15 @@ const cpuTempScript = `
 $t = $null
 try {
   $s = Get-CimInstance -Namespace root/LibreHardwareMonitor -ClassName Sensor -ErrorAction Stop | Where-Object { $_.SensorType -eq 'Temperature' -and ($_.Name -match 'CPU Package|Core \(Tctl|Tctl|Tdie|CPU Total') } | Select-Object -First 1
-  if ($s) { $t = [double]$s.Value }
+  if ($s) { $t = [double]$s.Value; $src = 'L' }
 } catch {}
 if (-not $t) {
   try {
     $z = Get-CimInstance -Namespace root/wmi -ClassName MSAcpi_ThermalZoneTemperature -ErrorAction Stop | Sort-Object -Property CurrentTemperature -Descending | Select-Object -First 1
-    if ($z) { $c = ([double]$z.CurrentTemperature / 10) - 273.15; if ($c -gt 28 -or $c -lt 27) { $t = $c } }
+    if ($z) { $c = ([double]$z.CurrentTemperature / 10) - 273.15; if ($c -gt 28 -or $c -lt 27) { $t = $c; $src = 'A' } }
   } catch {}
 }
-if ($t) { [Console]::Out.WriteLine('JSON ' + ([math]::Round($t, 1)).ToString([Globalization.CultureInfo]::InvariantCulture)) }
+if ($t) { [Console]::Out.WriteLine('JSON ' + $src + ([math]::Round($t, 1)).ToString([Globalization.CultureInfo]::InvariantCulture)) }
 `
 
 // acRegister registra il tasto scelto per l'autoclick (di base F6). Va chiamata sul thread del pannellino.
