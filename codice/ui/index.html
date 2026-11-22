@@ -1016,7 +1016,7 @@ dl.sum{display:grid;grid-template-columns:max-content 1fr;gap:6px 14px;margin:0}
 
 <section class="view" id="v-hw">
   <div class="row wrap" style="justify-content:space-between">
-    <div><h1 style="font-size:26px">Hardware</h1><p class="sub">Letture in tempo reale e componenti del tuo PC.</p></div>
+    <div><h1 style="font-size:26px">Hardware</h1><p class="sub">Uso e temperatura di ogni pezzo, dal vivo (si aggiorna da solo ogni 2 secondi), e i componenti del tuo PC.</p></div>
     <button class="btn ghost" id="btnHwReload">Aggiorna</button>
   </div>
   <div class="grid g4" id="hwLive"></div>
@@ -1710,7 +1710,12 @@ function paintLive(){
   else if (g && g.util != null) tiles += sensorTile(_t('Scheda video in uso'), Math.round(g.util) + '%', g.util, 'var(--a3)');
   else tiles += sensorTile(_t('Scheda video'), HW ? _t('non leggibile') : '…', 0, 'var(--a3)');
   if (CURVIEW === 'home' && tiles !== LAST_SENS) { LAST_SENS = tiles; $('#sensors').innerHTML = tiles; }
-  let hw = tiles;
+  const cpuName = HW && HW.cpu && HW.cpu.name ? String(HW.cpu.name).replace(/\s+/g, ' ').trim() : '';
+  const gpuName = HW && HW.gpus && HW.gpus[0] && HW.gpus[0].name ? HW.gpus[0].name : '';
+  let hw = sensorTile(_t('Processore') + (cpuName ? ' · ' + esc(cpuName) : ''), Math.round(LIVE.cpu || 0) + '%' + (LIVE.cpuTemp ? ' · ' + Math.round(LIVE.cpuTemp) + '°C' : ''), LIVE.cpuTemp || LIVE.cpu, LIVE.cpuTemp ? tempColor(LIVE.cpuTemp) : 'var(--a1)') +
+    (g && (g.temp != null || g.util != null) ? sensorTile(_t('Scheda video') + (gpuName ? ' · ' + esc(gpuName) : ''), (g.util != null ? Math.round(g.util) + '%' : '') + (g.temp != null ? (g.util != null ? ' · ' : '') + Math.round(g.temp) + '°C' : ''), g.temp != null ? g.temp : g.util, g.temp != null ? tempColor(g.temp) : 'var(--a3)') : sensorTile(_t('Scheda video') + (gpuName ? ' · ' + esc(gpuName) : ''), HW ? _t('non leggibile') : '…', 0, 'var(--a3)')) +
+    sensorTile(_t('RAM in uso'), fmtBytes(LIVE.ramUsed) + ' / ' + fmtBytes(LIVE.ramTotal), ramPct, 'var(--a2)') +
+    sensorTile(_t('Disco di sistema pieno al'), Math.round(diskPct) + '%', diskPct, diskPct > 90 ? 'var(--red)' : 'var(--a3)');
   if (g && g.fan != null) hw += sensorTile(_t('Ventola scheda video'), Math.round(g.fan) + '%', g.fan, 'var(--a3)');
   if (g && g.memTot) hw += sensorTile(_t('Memoria video'), Math.round(g.memUsed) + ' / ' + Math.round(g.memTot) + ' MB', g.memUsed / g.memTot * 100, 'var(--a2)');
   if (HW && HW.disks) HW.disks.forEach(d => { const dt = Number(d.temp) || 0; if (dt) hw += sensorTile(_t('Temperatura ') + esc(d.name), dt + '°C', dt, tempColor(dt + 15)); });
@@ -1727,7 +1732,7 @@ function alertSmart(text, action){
   if (S.mode === 'gaming' || S.mode === 'fps') return;
   toast(text, 'var(--a4)', action);
 }
-async function pollLive(){ try { const l = await call('goLive'); if (l) { LIVE = l; paintLive(); } } catch (e) {} }
+async function pollLive(){ try { const l = await call('goLive'); if (l) { if (CURVIEW === 'hw') { const w = await call('goHwWatch'); if (w) l.cpuTemp = w.cpuTemp; } LIVE = l; paintLive(); } } catch (e) {} }
 
 /* ---------- hardware ---------- */
 function paintHardware(){

@@ -340,6 +340,7 @@ func bindAll(w webview2.WebView) {
 	_ = w.Bind("goAnalyze", func() string { go analyze(); return "ok" })
 	_ = w.Bind("goHardware", func() string { go hardwareInfo(); return "ok" })
 	_ = w.Bind("goLive", func() map[string]interface{} { return liveStats() })
+	_ = w.Bind("goHwWatch", func() map[string]interface{} { return hwWatch() })
 	_ = w.Bind("goStartLevel", func(level int, off bool) string { return startLevel(level, off) })
 	_ = w.Bind("goStartSteps", func(ids []string, off bool) string { return startSteps(ids, 0, off) })
 	_ = w.Bind("goCancelShutdown", func() string { return cancelShutdown() })

@@ -4262,6 +4262,7 @@
   "Processore (uso)": "Processor (usage)",
   "Temperatura del processore": "Processor temperature",
   "Scheda video (uso)": "Graphics card (usage)",
-  "Temperatura della scheda video": "Graphics card temperature"
+  "Temperatura della scheda video": "Graphics card temperature",
+  "Uso e temperatura di ogni pezzo, dal vivo (si aggiorna da solo ogni 2 secondi), e i componenti del tuo PC.": "Usage and temperature of each part, live (it updates by itself every 2 seconds), and your PC's components."
  }
 }

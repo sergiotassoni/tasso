@@ -405,11 +405,20 @@ func overlayShow(show bool) string {
 // Windows non la dà sempre: se c'è LibreHardwareMonitor aperto uso quella (più precisa), altrimenti
 // il sensore ACPI; se nessuno dei due risponde, il pannellino mostra solo la percentuale.
 func cpuTempLoop() {
+	var last time.Time
 	for {
 		ovMu.Lock()
 		shown := ovShown
+		watch := time.Since(hwWatchAt) < 30*time.Second
 		ovMu.Unlock()
-		if shown {
+		// Nel gioco ogni minuto (lanciare PowerShell più spesso darebbe piccoli scatti);
+		// sulla pagina Hardware ogni 10 secondi, così vedi la temperatura dal vivo.
+		every := 60 * time.Second
+		if watch && !shown {
+			every = 10 * time.Second
+		}
+		if (shown || watch) && time.Since(last) >= every {
+			last = time.Now()
 			r := runPS(cpuTempScript, 30*time.Second, nil)
 			v := -1.0
 			if f, err := strconv.ParseFloat(strings.TrimSpace(r.JSON), 64); err == nil && f > 15 && f < 115 {
@@ -419,8 +428,25 @@ func cpuTempLoop() {
 			ovCPUTemp = v
 			ovMu.Unlock()
 		}
-		time.Sleep(60 * time.Second) // ogni minuto: lanciare PowerShell più spesso darebbe piccoli scatti nel gioco
+		time.Sleep(2 * time.Second)
 	}
+}
+
+// hwWatchAt: l'ultima volta che la pagina Hardware era aperta (per leggere la temperatura del processore).
+var hwWatchAt time.Time
+
+// hwWatch: la pagina Hardware è aperta, quindi leggo anche la temperatura del processore.
+func hwWatch() map[string]interface{} {
+	ovMu.Lock()
+	hwWatchAt = time.Now()
+	t := ovCPUTemp
+	ovMu.Unlock()
+	ovTempStart.Do(func() { go cpuTempLoop() })
+	out := map[string]interface{}{}
+	if t > 0 {
+		out["cpuTemp"] = t
+	}
+	return out
 }
 
 const cpuTempScript = `
