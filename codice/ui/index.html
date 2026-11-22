@@ -461,8 +461,10 @@ details.navmore[open]{display:flex;flex-direction:column;gap:2px}
 .navsub button{font-size:13px;padding:5px 10px}
 .navsub button>svg{width:15px!important;height:15px!important;padding:4px!important}
 nav button[data-grp="rip"]{--ic:#4DA3FF} nav button[data-grp="opz"]{--ic:#A1A6B4}
-nav button.navgrp.on{background:transparent;box-shadow:none;color:var(--text)}
-@media (max-width:760px){.navsub{margin-left:0;padding-left:0;border-left:0}}
+body nav button.navgrp.on,body.office nav button.navgrp.on{background:transparent;box-shadow:none;color:var(--text)}
+body:not(.office) nav button.navgrp.on>svg{stroke:var(--ic);color:var(--ic);background:color-mix(in srgb,var(--ic) 14%,transparent);box-shadow:none}
+body.office nav .navsub button{padding:6px 8px;font-size:13px;white-space:nowrap}
+@media (max-width:760px){.navsub{margin-left:0;padding-left:0;border-left:0}aside nav .navsub button{font-size:0;justify-content:center;gap:0;padding:8px 0}aside nav .navsub button>svg{width:18px!important;height:18px!important}}
 /* 3.1: menu a tendina Gaming/Ufficio accanto a TASSO */
 .brand{position:relative}
 .brandt{display:flex;flex-direction:column;align-items:flex-start;gap:4px;min-width:0}
@@ -477,14 +479,17 @@ nav button.navgrp.on{background:transparent;box-shadow:none;color:var(--text)}
 .modemenu button{display:flex;align-items:center;gap:10px;text-align:left;border:0;background:transparent;color:var(--text);padding:9px 10px;border-radius:9px;font-size:18px;cursor:pointer}
 .modemenu button:hover{background:var(--hover)}
 .modemenu button.on{background:color-mix(in srgb,var(--a1) 16%,transparent);box-shadow:inset 0 0 0 1px var(--a1)}
-.modemenu b{display:block;font-size:14px}.modemenu small{display:block;font-size:12px;color:var(--muted)}
-@media (max-width:760px){.brand{flex-direction:column;gap:6px}.modesel{margin-left:0}#modeBtn .lt,#modeBtn .chev{display:none}#modeBtn{padding:6px}.modemenu{position:fixed;left:70px;right:auto;top:12px;width:230px}aside .brand .modemenu b,aside .brand .modemenu small{display:block}}
+.modemenu b{display:block;font-size:14px}.modemenu small{display:block;font-size:12px;color:var(--muted)}.modemenu button.on small{color:var(--text)}
+@media (max-width:760px){.brand{flex-direction:column;gap:6px}.modesel{margin-left:0}#modeBtn .chev{display:none}#modeBtn .lt{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}#modeBtn{padding:6px}.modemenu{position:fixed;left:70px;right:auto;top:12px;width:230px}aside .brand .modemenu b,aside .brand .modemenu small{display:block}}
 /* 3.1: gli occhi del tasso si muovono ogni 5 secondi */
-.brand .pup{animation:tlook 5s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
+.brand .pup,.welcome .pup{animation:tlook 5s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
 @keyframes tlook{0%,70%,100%{transform:translateX(0)}76%,82%{transform:translateX(-45%)}88%,93%{transform:translateX(45%)}}
-@media (prefers-reduced-motion:reduce){.brand .pup{animation:none}}
+@media (prefers-reduced-motion:reduce){.brand .pup,.welcome .pup{animation:none}}
 .gspec{cursor:pointer;transition:background .15s}
 .gspec:hover,.gspec:focus-visible{background:color-mix(in srgb,var(--a1) 7%,transparent)}
+.gspec:focus-visible{outline:2px solid var(--a1);outline-offset:2px}
+.gspec{padding-left:10px;padding-right:10px;border-radius:10px}
+.gsh{font-size:11px!important;font-weight:700;letter-spacing:.08em;color:var(--a1)!important;margin-top:4px!important;text-transform:uppercase}
 </style>
 </head>
 <body>
@@ -495,7 +500,7 @@ nav button.navgrp.on{background:transparent;box-shadow:none;color:var(--text)}
 <aside>
   <div class="brand">
     <svg class="gm" width="44" height="44" viewBox="0 0 200 200" aria-hidden="true"><rect x="4" y="4" width="192" height="192" rx="48" fill="#141725"/><rect x="4" y="4" width="192" height="192" rx="48" fill="none" stroke="var(--a1)" stroke-opacity=".75" stroke-width="7"/><path d="M100 172 L34 94 L58 38 L142 38 L166 94 Z" fill="#F2F4F8"/><path d="M58 38 L86 38 L94 122 L76 132 L44 104 Z" fill="#07080D"/><path d="M142 38 L114 38 L106 122 L124 132 L156 104 Z" fill="#07080D"/><circle class="pup" cx="74" cy="98" r="9" fill="var(--a1)"/><circle class="pup" cx="126" cy="98" r="9" fill="var(--a1)"/></svg><svg class="om tassino" width="44" height="44" viewBox="0 0 200 200" aria-hidden="true"><rect x="4" y="4" width="192" height="192" rx="48" fill="#FFFFFF"/><rect x="4" y="4" width="192" height="192" rx="48" fill="none" stroke="#C9CDD4" stroke-width="6"/><g transform="translate(28 36) scale(0.6)"><path d="M44 22 H196 L226 104 L120 206 L14 104 Z" fill="#0A0B0D"/><path d="M80 22 H106 L108 142 L56 132 L36 98 Z" fill="#FFFFFF"/><path d="M160 22 H134 L132 142 L184 132 L204 98 Z" fill="#FFFFFF"/><circle class="pup" cx="82" cy="112" r="12" fill="#2F6FEB"/><circle class="pup" cx="158" cy="112" r="12" fill="#2F6FEB"/><path d="M100 164 H140 L120 190 Z" fill="#FFFFFF"/></g></svg>
-    <div class="brandt"><b>TASSO</b><div class="modesel"><button id="modeBtn" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="lookSw" title="Cambia modalità"><span id="modeNow">🎮 <span class="lt">Gaming</span></span><span class="chev" aria-hidden="true">▾</span></button>
+    <div class="brandt"><b>TASSO</b><div class="modesel"><button id="modeBtn" type="button" aria-expanded="false" aria-controls="lookSw" title="Cambia modalità"><span id="modeNow">🎮 <span class="lt">Gaming</span></span><span class="chev" aria-hidden="true">▾</span></button>
       <div class="modemenu" id="lookSw" role="group" aria-label="Modalità di Tasso" hidden><button type="button" data-look="gioco">🎮 <span><b>Gaming</b><small>Giochi, Boost, FPS e ping</small></span></button><button type="button" data-look="ufficio">💼 <span><b>Ufficio</b><small>Più semplice, con i problemi dell'ufficio</small></span></button></div></div></div>
   </div>
   <nav aria-label="Menu">
@@ -511,8 +516,8 @@ nav button.navgrp.on{background:transparent;box-shadow:none;color:var(--text)}
       <button data-go="net"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 9a15 15 0 0 1 20 0M5.5 12.5a10 10 0 0 1 13 0M9 16a5 5 0 0 1 6 0"/><circle cx="12" cy="19.5" r="1"/></svg>Internet</button>
       <button data-go="hw"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="6" width="12" height="12" rx="2"/><rect x="9.5" y="9.5" width="5" height="5"/><path d="M9 2v4M15 2v4M9 18v4M15 18v4M2 9h4M2 15h4M18 9h4M18 15h4"/></svg>Hardware</button>
       <button data-go="perf" class="gadv gm"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/><path d="M19 3v4M21 5h-4" opacity=".7"/></svg>Prestazioni+</button>
-      <button data-go="files" class="gadv"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>File</button>
-      <button data-go="disk" class="gadv"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-9-9v9z"/><path d="M15 3.5A9 9 0 0 1 20.5 9H15z"/></svg>Mappa del disco</button>
+      <button data-go="files"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>File</button>
+      <button data-go="disk"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-9-9v9z"/><path d="M15 3.5A9 9 0 0 1 20.5 9H15z"/></svg>Mappa del disco</button>
       <button data-go="vault"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="15" r="4"/><path d="M10.8 12.2L20 3M16 7l3 3M14 9l2 2"/></svg>Portachiavi</button>
     </div>
     <button data-grp="opz" class="navgrp"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg>Impostazioni</button>
@@ -544,14 +549,16 @@ nav button.navgrp.on{background:transparent;box-shadow:none;color:var(--text)}
       </div>
     </div>
     <dl class="gspecs">
-      <div class="gspec" role="button" tabindex="0" data-go2="scan"><dt>Salute del PC</dt><dd id="gScore">…</dd></div>
-      <div class="gspec" role="button" tabindex="0" data-go2="clean"><dt>Da liberare</dt><dd id="gJunk">…</dd></div>
-      <div class="gspec" role="button" tabindex="0" data-go2="clean"><dt>Spazio libero</dt><dd id="gFree">…</dd></div>
-      <div class="gspec" role="button" tabindex="0" data-go2="speed"><dt>Programmi all'avvio</dt><dd id="gStart">…</dd></div>
+      <div class="gspec" role="button" tabindex="0" data-go2="scan"><dt>Salute del PC</dt><dd id="gScore">…</dd><dd class="gsh">Vedi →</dd></div>
+      <div class="gspec" role="button" tabindex="0" data-go2="clean"><dt>Da liberare</dt><dd id="gJunk">…</dd><dd class="gsh">Pulisci →</dd></div>
+      <div class="gspec" role="button" tabindex="0" data-go2="clean"><dt>Spazio libero</dt><dd id="gFree">…</dd><dd class="gsh">Cosa occupa →</dd></div>
+      <div class="gspec" role="button" tabindex="0" data-go2="speed"><dt>Programmi all'avvio</dt><dd id="gStart">…</dd><dd class="gsh">Scegli →</dd></div>
     </dl>
     <ul class="gfeats">
-      <li><button id="gDetect"><b>Controlla i problemi</b><span>Tasso guarda il PC e ti dice cosa non va.</span><em>Apri</em></button></li>
-      <li><button data-go2="games"><b>I tuoi giochi</b><span>Tutti i giochi trovati sul PC, con le copertine.</span><em>Apri</em></button></li>
+      <li><button id="gDetect"><b>Salute e problemi</b><span>Tasso guarda il PC e ti dice cosa non va.</span><em>Apri</em></button></li>
+      <li><button data-go2="clean"><b>Pulisci</b><span>File inutili, cache e Cestino, con anteprima.</span><em>Apri</em></button></li>
+      <li><button data-go2="fix"><b>Risolvi un problema</b><span>Audio, Wi-Fi, giochi che scattano e tanti altri.</span><em>Apri</em></button></li>
+      <li><button data-go2="games"><b>Giochi</b><span>Tutti i giochi trovati sul PC, con le copertine.</span><em>Apri</em></button></li>
     </ul>
   </div>
   <div class="card hero om">
@@ -571,7 +578,7 @@ nav button.navgrp.on{background:transparent;box-shadow:none;color:var(--text)}
     </div>
   </div>
   <div class="quick q2 om" role="group" aria-label="Le cose principali">
-    <button class="qk" id="btnHomeDetect"><span class="qi">🔎</span><b>Problemi</b><span>Tasso controlla il PC e ti dice cosa non va</span></button>
+    <button class="qk" id="btnHomeDetect"><span class="qi">🔎</span><b>Salute e problemi</b><span>Tasso controlla il PC e ti dice cosa non va</span></button>
     <button class="qk gm" data-go2="games"><span class="qi">🚀</span><b>Giochi</b><span>Un tasto e il PC va al massimo per giocare</span></button>
     <button class="qk om" data-go2="fix"><span class="qi">🛠️</span><b>Risolvi un problema</b><span>Stampante, Word, Wi-Fi e tanti altri</span></button>
   </div>
@@ -692,7 +699,7 @@ nav button.navgrp.on{background:transparent;box-shadow:none;color:var(--text)}
     <div class="detbar" id="detBar" hidden><i></i></div>
   </div>
   <div id="detResult" style="display:flex;flex-direction:column;gap:12px"></div>
-  <p class="small muted" id="detNote" style="margin:0">Alcuni problemi si vedono solo quando succedono (per esempio <span class="om">il secondo schermo nero o il microfono in riunione</span><span class="gm">il gioco che scatta o il microfono su Discord</span>): per quelli c'è <a href="#" id="detToFix">Risolvi problemi</a>, con la ricerca.</p>
+  <p class="small muted" id="detNote" style="margin:0">Alcuni problemi si vedono solo quando succedono (per esempio <span class="om">il secondo schermo nero o il microfono in riunione</span><span class="gm">il gioco che scatta o il microfono su Discord</span>): per quelli c'è <a href="#" id="detToFix">Risolvi un problema</a>, con la ricerca.</p>
 </section>
 
 <!-- PROGRAMS -->
@@ -769,7 +776,7 @@ nav button.navgrp.on{background:transparent;box-shadow:none;color:var(--text)}
 
 <!-- FIX -->
 <section class="view" id="v-fix">
-  <div id="fixTitle"><h1 style="font-size:26px">Risolvi un problema</h1><p class="sub">Un clic sul problema che hai: Tasso prova a sistemarlo da solo. Se non lo trovi, scrivilo nella ricerca. Non sai qual è il problema? <a href="#" id="fixToDetect">Rileva i problemi</a> e te lo dice Tasso.</p></div>
+  <div id="fixTitle"><h1 style="font-size:26px">Risolvi un problema</h1><p class="sub">Un clic sul problema che hai: Tasso prova a sistemarlo da solo. Se non lo trovi, scrivilo nella ricerca. Non sai qual è il problema? <a href="#" id="fixToDetect">Salute e problemi</a> e te lo dice Tasso.</p></div>
   <div class="fixsearch"><input class="search" id="fixSearch" type="search" placeholder="Scrivi il problema: Wi-Fi, audio, lento, mouse…" aria-label="Cerca un problema"><p class="sub" id="fixNone" role="status" aria-live="polite" style="display:none;margin:8px 0 0">Nessun problema con queste parole. Prova con una parola sola, per esempio "audio", "lento", "mouse" o "password".</p></div>
   <div class="fixsec" id="secWin">
   <div class="sech"><span class="sei">🪟</span><div><h2>Sezione Windows</h2><p class="sub"><span class="gm">Audio, internet, aggiornamenti e ricerca: valgono per tutti.</span><span class="om">Audio, internet, stampa, aggiornamenti e ricerca: valgono per tutti.</span></p></div></div>
@@ -1041,7 +1048,7 @@ nav button.navgrp.on{background:transparent;box-shadow:none;color:var(--text)}
   <div class="card" style="display:flex;flex-direction:column;gap:14px">
     <div><h2>Aspetto</h2><p class="sub" style="margin:2px 0 0">Clicca una scheda e Tasso cambia colore subito. Gaming e Ufficio ricordano ognuna il suo tema.</p></div>
     <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px" id="themeCards"></div>
-    <button class="toggle gm" id="tgShowAll"><span><b>Mostra tutte le funzioni</b><span>In Gaming il menu tiene solo le cose per giocare. Accendi per vedere anche Prestazioni+, File, Mappa del disco e, in Pulisci, le pulizie una per una (privacy, Download…).</span></span><span class="sw"><i></i></span></button>
+    <button class="toggle gm" id="tgShowAll"><span><b>Mostra tutte le funzioni</b><span>In Gaming il menu tiene solo le cose per giocare. Accendi per vedere anche Prestazioni+ e, in Pulisci, le pulizie una per una (privacy, Download…).</span></span><span class="sw"><i></i></span></button>
   </div>
   <div class="row wrap" style="align-items:stretch;gap:18px">
     <div class="card" style="flex:1 1 360px;padding:6px 22px">
@@ -1120,7 +1127,7 @@ nav button.navgrp.on{background:transparent;box-shadow:none;color:var(--text)}
 <!-- WELCOME -->
 <div class="welcome" id="welcome"><div class="in">
   <div class="row wrap" style="justify-content:space-between">
-    <div class="brand" style="padding:0"><svg class="gm" width="42" height="42" viewBox="0 0 200 200" aria-hidden="true"><rect x="4" y="4" width="192" height="192" rx="48" fill="#141725"/><rect x="4" y="4" width="192" height="192" rx="48" fill="none" stroke="var(--a1)" stroke-opacity=".8" stroke-width="7"/><path d="M100 172 L34 94 L58 38 L142 38 L166 94 Z" fill="#F2F4F8"/><path d="M58 38 L86 38 L94 122 L76 132 L44 104 Z" fill="#07080D"/><path d="M142 38 L114 38 L106 122 L124 132 L156 104 Z" fill="#07080D"/><circle class="pup" cx="74" cy="98" r="9" fill="var(--a1)"/><circle class="pup" cx="126" cy="98" r="9" fill="var(--a1)"/></svg><svg class="om tassino" width="42" height="42" viewBox="0 0 200 200" aria-hidden="true"><rect x="4" y="4" width="192" height="192" rx="48" fill="#FFFFFF"/><rect x="4" y="4" width="192" height="192" rx="48" fill="none" stroke="#C9CDD4" stroke-width="6"/><g transform="translate(28 36) scale(0.6)"><path d="M44 22 H196 L226 104 L120 206 L14 104 Z" fill="#0A0B0D"/><path d="M80 22 H106 L108 142 L56 132 L36 98 Z" fill="#FFFFFF"/><path d="M160 22 H134 L132 142 L184 132 L204 98 Z" fill="#FFFFFF"/><circle cx="82" cy="112" r="12" fill="#2F6FEB"/><circle cx="158" cy="112" r="12" fill="#2F6FEB"/><path d="M100 164 H140 L120 190 Z" fill="#FFFFFF"/></g></svg><div><b>TASSO</b></div></div>
+    <div class="brand" style="padding:0"><svg class="gm" width="42" height="42" viewBox="0 0 200 200" aria-hidden="true"><rect x="4" y="4" width="192" height="192" rx="48" fill="#141725"/><rect x="4" y="4" width="192" height="192" rx="48" fill="none" stroke="var(--a1)" stroke-opacity=".8" stroke-width="7"/><path d="M100 172 L34 94 L58 38 L142 38 L166 94 Z" fill="#F2F4F8"/><path d="M58 38 L86 38 L94 122 L76 132 L44 104 Z" fill="#07080D"/><path d="M142 38 L114 38 L106 122 L124 132 L156 104 Z" fill="#07080D"/><circle class="pup" cx="74" cy="98" r="9" fill="var(--a1)"/><circle class="pup" cx="126" cy="98" r="9" fill="var(--a1)"/></svg><svg class="om tassino" width="42" height="42" viewBox="0 0 200 200" aria-hidden="true"><rect x="4" y="4" width="192" height="192" rx="48" fill="#FFFFFF"/><rect x="4" y="4" width="192" height="192" rx="48" fill="none" stroke="#C9CDD4" stroke-width="6"/><g transform="translate(28 36) scale(0.6)"><path d="M44 22 H196 L226 104 L120 206 L14 104 Z" fill="#0A0B0D"/><path d="M80 22 H106 L108 142 L56 132 L36 98 Z" fill="#FFFFFF"/><path d="M160 22 H134 L132 142 L184 132 L204 98 Z" fill="#FFFFFF"/><circle class="pup" cx="82" cy="112" r="12" fill="#2F6FEB"/><circle class="pup" cx="158" cy="112" r="12" fill="#2F6FEB"/><path d="M100 164 H140 L120 190 Z" fill="#FFFFFF"/></g></svg><div><b>TASSO</b></div></div>
     <span class="row" style="gap:6px"><button class="btn ghost langbtn" data-lang="it" style="padding:8px 14px">Italiano</button><button class="btn ghost langbtn" data-lang="en" style="padding:8px 14px">English</button></span>
   </div>
   <div style="display:flex;flex-direction:column;align-items:center;gap:12px;text-align:center">
@@ -2228,11 +2235,11 @@ function paintPerf(){
 }
 const INDEX = [
   {t:_t('Pulizia'), c:'var(--a1)', i:[_t('<b>5 livelli</b>: Classica, Normale, Media, Profonda, Eccezionale, con anteprima di quanto c\'è da liberare'),_t('<b>File temporanei</b> tuoi e di Windows, <b>Cestino</b>, <b>anteprime</b>'),_t('<b>Cache dei browser</b> (Chrome, Edge, Brave, Opera, Firefox) senza toccare password e cookie'),_t('<b>Cache delle app</b>: Discord, Steam, Teams, Epic Games'),_t('<b>Cache della scheda video</b> e di <b>Windows Update</b>'),_t('<b>File di sistema inutili</b> (rapporti errori, dump, log vecchi) e <b>pulizia componenti</b> (DISM), senza finestre'),_t('<b>Resti dei driver</b> (C:\\AMD, C:\\NVIDIA), <b>driver video vecchi</b> e <b>cache dei launcher</b> (Battle.net, EA, Ubisoft, GOG, Riot, Steam, Spotify)'),_t('<b>Pulizia programmata</b> ogni 1 o 2 settimane (giorno, ora e livello li scegli tu) e <b>spegnimento automatico</b> a fine lavoro'),_t('<b>Voto al PC</b> prima e dopo la pulizia')]},
-  {t:_t('Velocità'), c:'var(--a4)', i:[_t('<b>Modalità</b> Normale, Gaming, FPS competitivo, Film, Silenzioso, con controllo dei componenti'),_t('<b>Turbo</b>: chiude i programmi in background che non servono'),_t('<b>Programmi all\'avvio</b>: accendi e spegni con un interruttore'),_t('<b>Guardiano dell\'avvio</b>: ti avvisa quando si aggiunge un programma nuovo'),_t('<b>Deframmentazione</b> dei dischi meccanici e <b>TRIM</b> degli SSD')]},
+  {t:_t('Avvio del PC'), c:'var(--a4)', i:[_t('<b>Modalità</b> Normale, Gaming, FPS competitivo, Film, Silenzioso, con controllo dei componenti'),_t('<b>Turbo</b>: chiude i programmi in background che non servono'),_t('<b>Programmi all\'avvio</b>: accendi e spegni con un interruttore'),_t('<b>Guardiano dell\'avvio</b>: ti avvisa quando si aggiunge un programma nuovo'),_t('<b>Deframmentazione</b> dei dischi meccanici e <b>TRIM</b> degli SSD')]},
   {t:_t('Programmi e aggiornamenti'), c:'var(--a3)', i:[_t('<b>Disinstallazione completa</b>, con ricerca delle cartelle rimaste'),_t('<b>App preinstallate</b>: via Candy Crush, TikTok e simili'),_t('<b>Aggiornamento programmi</b> con winget: vedi quali hanno una versione nuova e li aggiorni uno per uno o tutti'),_t('<b>Driver di tutto il PC</b> (scheda video AMD, NVIDIA o Intel, audio, mouse, tastiera, rete…): Windows Update e siti ufficiali'),_t('<b>Aggiornamenti di Windows</b>'),_t('<b>Icone vere</b> dei programmi installati e all\'avvio'),_t('<b>Controllo estensioni</b> dei browser')]},
   {t:_t('File'), c:'var(--a2)', i:[_t('<b>File doppi</b>, <b>file enormi</b>, <b>cartelle vuote</b>, <b>collegamenti rotti</b>: sempre con conferma e nel Cestino'),_t('<b>Riordino della cartella Download</b> per tipo di file'),_t('<b>Distruggi file</b> riservati (anche più file insieme) e <b>cancella lo spazio libero</b>'),_t('<b>Recupera file cancellati</b> con lo strumento di Microsoft')]},
   {t:_t('Riparazione e sicurezza'), c:'var(--red)', i:[_t('<b>Backup automatico</b> (punto di ripristino) prima delle pulizie importanti'),_t('<b>Risolvi problemi</b> di audio, internet, Windows Update, stampante, Store e ricerca'),_t('<b>Problemi nei giochi</b> (13, con un pulsante): scatti, pochi FPS, ping alto, il gioco non parte (Visual C++, DirectX), launcher, schermo nero, controller e cuffie, Xbox e Game Pass, anti-cheat, Discord, mira del mouse, gioco che si riduce a icona, download lenti'),_t('<b>Driver di tutto il PC</b>: scheda video AMD, NVIDIA, Intel, audio, mouse, tastiera, rete; Windows Update e siti ufficiali'),_t('<b>Riparazione di Windows</b> (DISM + SFC) e <b>controllo errori del disco</b>'),_t('<b>Controllo periferiche</b>, <b>salute dei dischi</b>, <b>antivirus</b> Defender'),_t('<b>Controllo sicurezza</b> (firewall, Secure Boot, TPM, SMBv1…) e <b>controllo stabilità</b> (crash, schermate blu, errori hardware)'),_t('<b>Privacy</b>: stop a pubblicità e tracciamento di Windows, con ripristino, e <b>tracce di attività</b>')]},
-  {t:'Giochi', c:'var(--a2)', i:[_t('<b>Libreria</b> Steam, Epic e Riot con copertine'),_t('<b>Regola con Tasso</b>: grafica consigliata per ogni gioco in base al tipo di gioco e al tuo PC'),_t('<b>Comandi gaming</b>: priorità ai giochi, rete a bassa latenza, registrazione in background spenta, pianificazione GPU, memoria in standby, riavvio del driver video'),_t('<b>Ottimizza prima di giocare</b>, <b>pannellino in gioco</b>, <b>autoclick</b>'),_t('<b>Profilo gioco</b> con un interruttore: resta acceso anche dopo il riavvio finché non lo spegni'),_t('<b>Potenza per ogni gioco</b>: Potenza alta o Massima potenza, messa da sola quando apri il gioco'),_t('<b>Ping ai server dei giochi</b> (LoL, Valorant, CS2, Fortnite…) per scegliere il server migliore'),_t('<b>Problemi nei giochi</b>: in Risolvi problemi, 13 riparazioni con un pulsante spiegate semplici')]},
+  {t:'Giochi', c:'var(--a2)', i:[_t('<b>Libreria</b> Steam, Epic e Riot con copertine'),_t('<b>Regola con Tasso</b>: grafica consigliata per ogni gioco in base al tipo di gioco e al tuo PC'),_t('<b>Comandi gaming</b>: priorità ai giochi, rete a bassa latenza, registrazione in background spenta, pianificazione GPU, memoria in standby, riavvio del driver video'),_t('<b>Ottimizza prima di giocare</b>, <b>pannellino in gioco</b>, <b>autoclick</b>'),_t('<b>Profilo gioco</b> con un interruttore: resta acceso anche dopo il riavvio finché non lo spegni'),_t('<b>Potenza per ogni gioco</b>: Potenza alta o Massima potenza, messa da sola quando apri il gioco'),_t('<b>Ping ai server dei giochi</b> (LoL, Valorant, CS2, Fortnite…) per scegliere il server migliore'),_t('<b>Problemi nei giochi</b>: in Risolvi un problema, 13 riparazioni con un pulsante spiegate semplici')]},
   {t:'Portachiavi e Discord', c:'var(--a1)', i:[_t('<b>Portachiavi</b> con PIN da 4 a 12 numeri o senza PIN: cifrato sul PC, generatore di password, password deboli o usate più volte'),_t('<b>Controllo password rubate</b> senza mandare la password'),_t('<b>Stato del PC su Discord</b>: report con spunte verdi e temperature, ogni 3/6/12/24 ore'),_t('<b>Report su richiesta</b> scrivendo !stato (con un bot tuo, facoltativo)')]},
   {t:_t('Hardware e comodità'), c:'var(--a3)', i:[_t('<b>Componenti</b>: processore, scheda video, scheda madre, RAM, dischi'),_t('<b>Sensori</b>: uso di processore e RAM, scheda video, temperatura dei dischi'),_t('<b>BIOS</b>: versione e pagina ufficiale del produttore'),_t('<b>8 temi</b>, <b>avvisi intelligenti</b>, <b>avvio con Windows</b>'),_t('<b>Interruttore Tasso acceso/spento</b>: da spento non fa nulla in automatico'),_t('<b>Torna indietro</b>: l\'elenco di tutto quello che Tasso ha cambiato, con un pulsante per rimettere com\'era ogni cosa o tutto insieme. Spegnere o riavviare il PC non cambia niente: torna indietro solo quando lo decidi tu')]}
 ];
@@ -2458,7 +2465,7 @@ async function copySecret(t){ const r = await call('goCopySecret', t); if (r ===
 async function copyText(t){ try { await navigator.clipboard.writeText(t); toast(_t('Copiata.')); return; } catch (e) {} try { const ta = el('textarea', {style:'position:fixed;left:-9999px;top:0'}); ta.value = t; document.body.appendChild(ta); ta.select(); const ok = document.execCommand('copy'); ta.remove(); toast(ok ? _t('Copiata.') : _t('Non riesco a copiare.')); } catch (e) { toast(_t('Non riesco a copiare.')); } }
 Object.assign(window.tasso, {
   onDetectProgress(m){ if (DET_RUN && typeof m === 'string') $('#detStatus').textContent = m; },
-  onDetect(r){ DET_RUN = false; DET = r || {error:_t('Il controllo non è riuscito: riprova tra poco.')}; const d = new Date(); DET.when = String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); paintDetect(); if (CURVIEW !== 'scan') toast(_t('Controllo finito: guarda in Rileva i problemi.')); },
+  onDetect(r){ DET_RUN = false; DET = r || {error:_t('Il controllo non è riuscito: riprova tra poco.')}; const d = new Date(); DET.when = String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); paintDetect(); if (CURVIEW !== 'scan') toast(_t('Controllo finito: guarda in Salute e problemi.')); },
   onHealth(h){ if (!h || typeof h.score !== 'number') { $('#hSub').textContent = _t('Controllo non riuscito: riprova tra poco.'); return; } HEALTH = h; paintHealth(); paintHero(); },
   onSpeedProgress(m){ $('#spMsg').textContent = m; },
   onPingProgress(m){ $('#pgMsg').textContent = m; },
@@ -2645,13 +2652,14 @@ async function setLook(p){
   S.profile = p; S.onboarded = true;
   applyLook(); repaintLook();
   if (p === 'ufficio' && (CURVIEW === 'games' || CURVIEW === 'perf')) show('home');
-  if (p !== 'ufficio' && !S.showAll && ['perf', 'files', 'disk', 'vault'].indexOf(CURVIEW) >= 0) show('home');
+  if (p !== 'ufficio' && !S.showAll && CURVIEW === 'perf') show('home');
   if (p === 'ufficio' && (S.mode === 'gaming' || S.mode === 'fps')) toast(_t('Modalità Ufficio attiva. Il PC però è ancora in modalità ') + (S.mode === 'fps' ? 'FPS' : 'Gaming') + _t(' (consuma di più).'), 'var(--a3)', {label:_t('Metti Normale'), fn: () => { call('goSetMode', 'normale'); toast(_t('Metto la modalità Normale…')); }});
   else if (p === 'ufficio' && (S.autoGame || S.overlayOn)) toast(_t('Modalità Ufficio attiva. Sono ancora accese funzioni da gioco (') + [S.autoGame ? _t('Boost automatico') : '', S.overlayOn ? _t('pannellino in gioco') : ''].filter(Boolean).join(_t(' e ')) + ').', 'var(--a3)', {label:_t('Spegnile'), fn: async () => { if (S.autoGame) await call('goSetAutoGame', false); if (S.overlayOn) await call('goOverlaySet', false, S.overlayPos || 'dx'); await refreshS(); paintSettings(); toast(_t('Funzioni da gioco spente.')); }});
   else toast(p === 'ufficio' ? _t('Modalità Ufficio: Tasso più semplice e tranquillo.') : _t('Modalità Gaming: solo le cose per giocare, con giochi, FPS e ping.'), p === 'ufficio' ? 'var(--a3)' : 'var(--red)');
 }
 function modeMenu(open){ const m = $('#lookSw'), b = $('#modeBtn'); if (!m || !b) return; m.hidden = !open; b.setAttribute('aria-expanded', open ? 'true' : 'false'); }
-$$('#lookSw button').forEach(b => { b.onclick = () => { modeMenu(false); setLook(b.dataset.look); }; });
+$$('#lookSw button').forEach(b => { b.onclick = () => { modeMenu(false); $('#modeBtn').focus(); setLook(b.dataset.look); }; });
+$('.modesel').addEventListener('focusout', (e) => { if (!e.relatedTarget || !e.relatedTarget.closest || !e.relatedTarget.closest('.modesel')) modeMenu(false); });
 $('#modeBtn').onclick = (e) => { e.stopPropagation(); modeMenu($('#lookSw').hidden); };
 document.addEventListener('click', (e) => { if (!e.target.closest || !e.target.closest('.modesel')) modeMenu(false); });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('#lookSw').hidden) { modeMenu(false); $('#modeBtn').focus(); } });

@@ -374,7 +374,7 @@ foreach ($r in ($rows | Sort-Object { [long]$_[1] } -Descending)) { if ([long]$r
 Say 'Cosa puoi fare in sicurezza:'
 Say '1) In Tasso, Pulizia > livello Media o Profonda: toglie file temporanei, cache e (in Profonda) il vecchio Windows. Non tocca i tuoi documenti.'
 Say '2) Download: è la cartella che cresce di più. In Tasso c''è "Riordino della cartella Download", oppure aprila e ordina per Dimensione.'
-if ((Get-OneDriveRoots).Count) { Say '3) OneDrive: usa "Libera spazio con OneDrive" qui in Risolvi problemi: i file vecchi restano online e smettono di occupare il disco.' }
+if ((Get-OneDriveRoots).Count) { Say '3) OneDrive: usa "Libera spazio con OneDrive" qui in Risolvi un problema: i file vecchi restano online e smettono di occupare il disco.' }
 if ($rb -gt 1GB) { Say ('4) Il Cestino occupa ' + (Fmt $rb) + ': svuotalo se non ti serve niente.') }
 Say 'Video e foto: spostali su un disco esterno o in OneDrive. Tasso non cancella mai i tuoi file da solo.'
 `)},
