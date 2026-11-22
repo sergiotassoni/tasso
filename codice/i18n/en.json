@@ -4065,6 +4065,21 @@
   "· le pulizie e le riparazioni una per una, da avviare quando vuoi": "· cleanups and repairs one by one, to run whenever you want",
   "In Gaming il menu tiene solo le cose per giocare. Accendi per vedere anche Prestazioni+, File, Mappa del disco e, in Pulisci, le pulizie una per una (privacy, Download…).": "In Gaming the menu keeps only what's for playing. Turn on to also see Performance+, Files, Disk map and, in Clean, the single cleanups (privacy, Downloads…).",
   "Nessun problema con queste parole. Prova con una parola sola, per esempio \"audio\", \"lento\", \"mouse\" o \"password\".": "No problems match these words. Try a single word, for example \"audio\", \"slow\", \"mouse\" or \"password\".",
-  "Passaggi in corso": "Steps running"
+  "Passaggi in corso": "Steps running",
+  "Gaming": "Gaming",
+  "Un tasto prima di giocare: Tasso chiude quello che rallenta, mette la potenza massima e misura gli FPS prima e dopo. A fine partita rimette tutto com'era.": "One button before you play: Tasso closes what slows you down, sets full power and measures FPS before and after. When the match is over it puts everything back.",
+  "BOOST": "BOOST",
+  "Da liberare": "To free up",
+  "Spazio libero": "Free space",
+  "Controlla i problemi": "Check for problems",
+  "Tasso guarda il PC e ti dice cosa non va.": "Tasso looks at your PC and tells you what's wrong.",
+  "I tuoi giochi": "Your games",
+  "Tutti i giochi trovati sul PC, con le copertine.": "All the games found on your PC, with covers.",
+  "Controllo il PC…": "Checking your PC…",
+  "Pulisci ": "Clean ",
+  "PC in forma": "PC in good shape",
+  "PC da sistemare un po'": "PC needs a little work",
+  "Il PC ha bisogno di una pulizia": "Your PC needs a cleanup",
+  "Scuro · come il sito": "Dark · like the website"
  }
 }
