@@ -17,7 +17,7 @@ if ($cur -ne 1) { Say 'Su questo PC Windows può rallentare i programmi in secon
 $s = (powercfg /getactivescheme) -join ' '
 $ov = ''; try { $ov = [string](Get-ItemProperty -LiteralPath 'HKLM:\SYSTEM\CurrentControlSet\Control\Power\User\PowerSchemes' -Name ActiveOverlayAcPowerScheme -ErrorAction Stop).ActiveOverlayAcPowerScheme } catch {}
 if ($s -notmatch '8c5e7fda|Prestazioni elevate|High performance|Ultimate|Prestazioni ottimali' -and $ov -notmatch 'ded574b5') { Say 'Consiglio: in Tasso metti la modalità Gaming (o accendi il Profilo gioco): il piano energetico ora non è al massimo.' }
-Say 'Le cache della grafica le lascio: servono proprio a non scattare. Solo se gli scatti o gli errori grafici sono iniziati dopo un aggiornamento del driver, usa "Cache della scheda video" in Tutti gli strumenti.'
+Say 'Le cache della grafica le lascio: servono proprio a non scattare. Solo se gli scatti o gli errori grafici sono iniziati dopo un aggiornamento del driver, usa "Cache della scheda video" in Pulisci › Un passaggio alla volta (in Gaming accendi prima "Mostra tutte le funzioni" in Impostazioni).'
 Say 'Altre cause frequenti: il gioco installato su un disco meccanico (meglio un SSD), un programma che registra in sottofondo, o il portatile a batteria.'
 `},
 	{ID: "fix_game_start", Name: "Il gioco non parte o si chiude da solo", Desc: "Installa o ripara i componenti che servono ai giochi (Visual C++, DirectX, .NET) dal sito ufficiale Microsoft.", Level: 0, Minutes: 4, Timeout: 30 * time.Minute, Script: `

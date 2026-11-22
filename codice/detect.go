@@ -235,5 +235,5 @@ try {
   if ($st) { $cfg = Join-Path ($st -replace '/', '\') 'config\config.vdf'; if ((Get-Content -LiteralPath $cfg -Raw -ErrorAction SilentlyContinue) -match '"DownloadThrottleKbps"\s+"([1-9]\d*)"') { F 'fix_game_download' 'c' 'Steam ha un limite alla velocità dei download.' } }
 } catch {}
 
-Write-Output ('JSON ' + (@{ found = @($found); checked = 58; games = 4 } | ConvertTo-Json -Depth 4 -Compress))
+Write-Output ('JSON ' + (@{ found = @($found); checked = 58; games = 4; office = 13 } | ConvertTo-Json -Depth 4 -Compress))
 `
