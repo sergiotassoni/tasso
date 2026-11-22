@@ -764,7 +764,7 @@ $junk = [long]0
 $junk += Get-FolderSize $env:TEMP
 $junk += Get-FolderSize (Join-Path $env:windir 'Temp')
 $junk += Get-FolderSize (Join-Path $env:windir 'SoftwareDistribution\Download')
-foreach ($p in $GpuCaches) { $junk += Get-FolderSize $p }
+# Le cache della scheda video (shader) non si contano: nessun livello di pulizia le toglie (solo il passaggio a mano gpu_cache).
 foreach ($b in $BrowserRoots) {
   if (-not (Test-Path -LiteralPath $b.Root)) { continue }
   Get-ChildItem -LiteralPath $b.Root -Directory -Force -ErrorAction SilentlyContinue | ForEach-Object {

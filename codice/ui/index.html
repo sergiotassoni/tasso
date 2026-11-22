@@ -93,7 +93,7 @@ h3{margin:0;font-size:15px}
 .lvl .bars i.f{background:var(--c)}
 .lvl .t{font-family:var(--display);font-size:24px;font-weight:700;color:var(--c)}
 .lvl .d{font-size:13px;color:var(--soft);line-height:1.5}
-.lvl .f2{margin-top:auto;display:flex;justify-content:space-between;align-items:center;font-size:12px}
+.lvl .f2{margin-top:auto;display:flex;justify-content:space-between;align-items:center;font-size:12px;flex-wrap:wrap;gap:4px 8px}
 .lvl .f2 .mono{color:var(--muted)}
 .lvl .f2 b{color:var(--c);letter-spacing:.4px}
 .lvl.best{border:2px solid var(--c);padding:19px}
@@ -247,18 +247,31 @@ body:not(.office) h2{font-weight:700;font-stretch:105%}
 body:not(.office) .brand b{font-weight:800;font-stretch:112%;letter-spacing:-.01em}
 body.th-tasso:not(.office) .btn.primary{background:var(--text);color:var(--bg)}
 body.th-tasso:not(.office) .card{border-radius:14px}
-body.th-tasso:not(.office) .glow{opacity:.3}
+body.th-tasso:not(.office) .glow{display:none}
+body.th-tasso:not(.office) .btn.primary:hover{background:#fff;filter:none;box-shadow:0 0 0 3px color-mix(in srgb,var(--text) 18%,transparent)}
+body:not(.office) main a{color:var(--text);text-decoration-color:var(--line);text-underline-offset:3px}
+body:not(.office) main a:hover{color:var(--a1)}
+body:not(.office) .boostk{font:500 12px var(--mono);letter-spacing:.14em;color:var(--muted)}
+body.th-tasso:not(.office) .dethead{color:var(--a1);background:none;border:1px solid var(--line);border-radius:12px}
+body:not(.office) .boostcard{border-color:var(--line)}
+body:not(.office) .boostgo{width:auto;height:auto;border-radius:10px;box-shadow:none;padding:18px 40px;font:800 20px var(--display);font-stretch:118%;letter-spacing:.04em;line-height:1.1}
+body:not(.office) .boostgo.on{background:var(--a1);color:var(--ink)}
 /* icone del menu colorate, ognuna con il suo colore */
 nav button[data-go="home"]{--ic:#2FF3A6} nav button[data-go="games"]{--ic:#FF4D6D} nav button[data-go="clean"]{--ic:#4DA3FF} nav button[data-go="scan"]{--ic:#FFB020}
 details.navmore>summary{--ic:#A97BFF} nav button[data-go="speed"]{--ic:#FFE14D} nav button[data-go="perf"]{--ic:#FF8A3D} nav button[data-go="fix"]{--ic:#F472B6}
 nav button[data-go="programs"]{--ic:#22D3EE} nav button[data-go="files"]{--ic:#FBBF24} nav button[data-go="disk"]{--ic:#A3E635} nav button[data-go="net"]{--ic:#38BDF8}
 nav button[data-go="hw"]{--ic:#C084FC} nav button[data-go="vault"]{--ic:#2FF3A6} nav button[data-go="info"]{--ic:#94A3B8} nav button[data-go="settings"]{--ic:#A1A6B4}
-nav button>svg,details.navmore>summary>svg{box-sizing:content-box;width:18px;height:18px;padding:6px;border-radius:9px;flex:0 0 auto;color:var(--ic);stroke:var(--ic);background:color-mix(in srgb,var(--ic) 15%,transparent)}
-nav button.on>svg{stroke:#050506;color:#050506;background:var(--ic);box-shadow:0 0 14px color-mix(in srgb,var(--ic) 45%,transparent)}
-nav button.on{box-shadow:none}
+nav button>svg,details.navmore>summary>svg{box-sizing:content-box;width:18px;height:18px;padding:6px;border-radius:9px;flex:0 0 auto}
+body:not(.office) nav button>svg,body:not(.office) details.navmore>summary>svg{color:var(--ic);stroke:var(--ic);background:color-mix(in srgb,var(--ic) 15%,transparent)}
+body:not(.office) details.navmore>button:not(.on)>svg{--ic:var(--muted);background:color-mix(in srgb,var(--muted) 12%,transparent)}
+body.th-ghiaccio:not(.office) nav button:not(.on)>svg,body.th-sabbia:not(.office) nav button:not(.on)>svg,body.th-ghiaccio:not(.office) details.navmore>summary>svg,body.th-sabbia:not(.office) details.navmore>summary>svg{stroke:color-mix(in srgb,var(--ic) 55%,#000);color:color-mix(in srgb,var(--ic) 55%,#000)}
+body:not(.office) nav button.on>svg{stroke:#050506;color:#050506;background:var(--ic);box-shadow:0 0 14px color-mix(in srgb,var(--ic) 45%,transparent)}
+body:not(.office) nav button.on{box-shadow:none}
 nav button{padding:6px 10px}
-details.navmore>summary{padding:6px 10px}
+details.navmore>button{width:100%}
 /* Home Gaming */
+body:not(.office) #healthCard .stat{display:none}
+body:not(.office) #homeMore{border-top:0}
 .ghome{display:flex;flex-direction:column;gap:30px}
 .gkick{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;font:500 12px var(--mono);letter-spacing:.16em;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--line);padding-bottom:16px}
 .gdot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--a1);box-shadow:0 0 12px var(--a1);margin-right:10px;vertical-align:1px}
@@ -268,28 +281,34 @@ details.navmore>summary{padding:6px 10px}
 .gmask .eye{animation:gblink 6s infinite;transform-box:fill-box;transform-origin:center;filter:drop-shadow(0 0 10px color-mix(in srgb,var(--a1) 60%,transparent))}
 @keyframes gblink{0%,94%,100%{transform:scaleY(1)}96%{transform:scaleY(.1)}}
 @media (prefers-reduced-motion:reduce){.gmask .eye{animation:none}}
-.gname{font:800 clamp(40px,6vw,76px)/1 var(--display);font-stretch:122%;letter-spacing:-.03em;text-transform:uppercase}
-.gname::after{content:"";display:block;width:48px;height:3px;background:var(--a1);margin-top:16px}
+h1.gname{margin:0;font:800 clamp(40px,6vw,76px)/1 var(--display);font-stretch:122%;letter-spacing:-.03em;text-transform:uppercase}
+.ghome h1.gname{font-stretch:122%;letter-spacing:-.03em}
+.ghome h1.gname:focus{outline:none}
+h1[tabindex="-1"]:focus,.view[tabindex="-1"]:focus{outline:none}
+h1.gname::after{content:"";display:block;width:48px;height:3px;background:var(--a1);margin-top:16px}
 .ghero p{margin:16px 0 22px;color:var(--muted);font-size:16px;line-height:1.55;max-width:46ch}
 .gbtns{display:flex;gap:12px;flex-wrap:wrap}
 .gbig{border:0;border-radius:10px;background:var(--text);color:var(--bg);font:800 20px var(--display);font-stretch:118%;letter-spacing:.04em;padding:18px 40px;transition:transform .2s}
 .gbig:hover{transform:translateY(-1px)}
+.gbig.on{background:var(--a1);color:var(--ink)}
+.gbig.off{opacity:.45}
 .gline{border:0;border-radius:10px;background:transparent;color:var(--text);box-shadow:inset 0 0 0 1px var(--line);font:600 16px var(--body);padding:17px 26px}
 .gline:hover{box-shadow:inset 0 0 0 1px var(--muted)}
 .gspecs{display:grid;grid-template-columns:repeat(4,1fr);margin:0;border-block:1px solid var(--line)}
-.gspecs>div{padding:18px 16px 18px 0;min-width:0}
+.gspecs>div{padding:18px 16px 18px 0;min-width:0;display:flex;flex-direction:column;justify-content:space-between}
 .gspecs>div+div{border-left:1px solid var(--line);padding-left:16px}
 .gspecs dt{font:500 11px var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
-.gspecs dd{margin:6px 0 0;font:800 26px var(--display);font-stretch:112%;font-variant-numeric:tabular-nums}
+.gspecs dd{margin:6px 0 0;white-space:nowrap;font:800 clamp(20px,2.4vw,26px) var(--display);font-stretch:112%;font-variant-numeric:tabular-nums}
 .gfeats{list-style:none;margin:0;padding:0;border-bottom:1px solid var(--line)}
 .gfeats li{border-top:1px solid var(--line)}
 .gfeats button{width:100%;border:0;background:none;text-align:left;padding:18px 0;display:grid;grid-template-columns:1fr auto;gap:4px 16px;align-items:center}
 .gfeats b{font:700 18px/1.25 var(--display);font-stretch:105%}
-.gfeats b::before{content:"";display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--c);margin-right:12px;vertical-align:3px}
+.gfeats b::before{content:"";display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--a1);margin-right:12px;vertical-align:3px}
 .gfeats span{color:var(--muted);font-size:14.5px;grid-column:1}
 .gfeats em{font:500 12px var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-style:normal;grid-column:2;grid-row:1/3}
 .gfeats button:hover em{color:var(--a1)}
-@media (max-width:760px){.ghero{grid-template-columns:1fr}.gmask{max-width:150px}.gspecs{grid-template-columns:1fr 1fr}.gspecs>div:nth-child(3){border-left:0;padding-left:0}.gspecs>div:nth-child(n+3){border-top:1px solid var(--line)}
+@media (max-width:1000px){.gspecs{grid-template-columns:1fr 1fr}.gspecs>div:nth-child(3){border-left:0;padding-left:0}.gspecs>div:nth-child(n+3){border-top:1px solid var(--line)}}
+@media (max-width:760px){.ghero{grid-template-columns:1fr}.gmask{max-width:150px}
   nav button>svg,details.navmore>summary>svg{padding:5px}}
 
 body.fixq #secOffice{display:block!important}
@@ -366,7 +385,8 @@ details.ofg .ofgrid{padding:0 12px 12px}
   aside nav button{font-size:0;justify-content:center;padding:10px 0}
   aside nav .navh{display:none}
   .hero{padding:22px 20px;gap:18px}.hero h1{font-size:30px;letter-spacing:-.5px;overflow-wrap:normal}.orb{transform:scale(.78);margin:-28px auto}
-  details.navmore>summary{justify-content:center;padding:10px 0}details.navmore>summary span,details.navmore>summary::after{display:none}
+  aside details.navmore>summary{justify-content:center;padding:10px 0}details.navmore>summary span,details.navmore>summary::after{display:none}
+  aside nav button{gap:0}
   aside .brand b,aside .brand small,.power b,.power span{display:none}
   .power{justify-content:center;padding:11px 0}
   .g2,.g3,.g4{grid-template-columns:repeat(auto-fit,minmax(min(100%,250px),1fr))}
@@ -399,7 +419,7 @@ details.more[open]>summary::before{content:'▾ '}
 .morebox{display:flex;flex-direction:column;gap:22px;padding-top:10px}
 #v-home{gap:28px}
 body.office .qk:hover{transform:none}
-details.navmore>summary{display:flex;align-items:center;gap:11px;padding:8px 12px;border-radius:11px;color:var(--soft);font-size:14px;font-weight:600;cursor:pointer;list-style:none;min-height:38px}
+details.navmore>summary{display:flex;align-items:center;gap:11px;padding:6px 10px;border-radius:11px;color:var(--soft);font-size:14px;font-weight:600;cursor:pointer;list-style:none}
 details.navmore>summary::-webkit-details-marker{display:none}
 details.navmore>summary:hover{background:var(--hover);color:var(--text)}
 details.navmore>summary::after{content:'▸';margin-left:auto;font-size:11px;color:var(--muted)}
@@ -474,12 +494,12 @@ details.navmore[open]{display:flex;flex-direction:column;gap:2px}
     <span class="pill" id="modePill">MODALITÀ NORMALE</span>
   </div>
   <div class="gm ghome">
-    <div class="gkick"><span id="gDate"></span><span><span class="gdot" id="gDot"></span><span id="gState">Controllo il PC…</span></span></div>
+    <div class="gkick"><span id="gDate"></span><span><span class="gdot" id="gDot"></span><span id="gState" aria-live="polite">Controllo il PC…</span></span></div>
     <div class="ghero">
-      <svg class="gmask" viewBox="0 0 240 220" aria-hidden="true"><path d="M44 22 H196 L226 104 L120 206 L14 104 Z" fill="#F4F5F7"/><path d="M80 22 H106 L108 142 L56 132 L36 98 Z" fill="#050506"/><path d="M160 22 H134 L132 142 L184 132 L204 98 Z" fill="#050506"/><circle class="eye" cx="82" cy="112" r="12" fill="var(--a1)"/><circle class="eye" cx="158" cy="112" r="12" fill="var(--a1)"/><path d="M100 164 H140 L120 190 Z" fill="#050506"/></svg>
+      <svg class="gmask" viewBox="0 0 240 220" aria-hidden="true"><path d="M44 22 H196 L226 104 L120 206 L14 104 Z" fill="var(--text)"/><path d="M80 22 H106 L108 142 L56 132 L36 98 Z" fill="var(--bg)"/><path d="M160 22 H134 L132 142 L184 132 L204 98 Z" fill="var(--bg)"/><circle class="eye" cx="82" cy="112" r="12" fill="var(--a1)"/><circle class="eye" cx="158" cy="112" r="12" fill="var(--a1)"/><path d="M100 164 H140 L120 190 Z" fill="var(--bg)"/></svg>
       <div>
-        <div class="gname">Gaming</div>
-        <p>Un tasto prima di giocare: Tasso chiude quello che rallenta, mette la potenza massima e misura gli FPS prima e dopo. A fine partita rimette tutto com'era.</p>
+        <h1 class="gname" tabindex="-1">Gaming</h1>
+        <p>Un tasto prima di giocare: Tasso chiude i programmi in background che non servono e prepara il PC per giocare. Quando hai finito, premi «Rimetti com'era» nella pagina Gioca e torna tutto come prima.</p>
         <div class="gbtns"><button class="gbig" id="gBoost">BOOST</button><button class="gline" id="gClean">Pulisci</button></div>
       </div>
     </div>
@@ -490,8 +510,8 @@ details.navmore[open]{display:flex;flex-direction:column;gap:2px}
       <div><dt>Programmi all'avvio</dt><dd id="gStart">…</dd></div>
     </dl>
     <ul class="gfeats">
-      <li><button id="gDetect" style="--c:#FFB020"><b>Controlla i problemi</b><span>Tasso guarda il PC e ti dice cosa non va.</span><em>Apri</em></button></li>
-      <li><button data-go2="games" style="--c:#FF4D6D"><b>I tuoi giochi</b><span>Tutti i giochi trovati sul PC, con le copertine.</span><em>Apri</em></button></li>
+      <li><button id="gDetect"><b>Controlla i problemi</b><span>Tasso guarda il PC e ti dice cosa non va.</span><em>Apri</em></button></li>
+      <li><button data-go2="games"><b>I tuoi giochi</b><span>Tutti i giochi trovati sul PC, con le copertine.</span><em>Apri</em></button></li>
     </ul>
   </div>
   <div class="card hero om">
@@ -518,7 +538,7 @@ details.navmore[open]{display:flex;flex-direction:column;gap:2px}
   <details class="more" id="homeMore">
     <summary>Mostra dettagli <span class="muted">· salute del PC, sensori</span></summary>
     <div class="morebox">
-  <div class="card">
+  <div class="card om">
       <div class="facts">
         <div><b id="fJunk">…</b><span>da liberare</span></div>
         <div><b id="fFree">…</b><span>spazio libero</span></div>
@@ -793,7 +813,7 @@ details.navmore[open]{display:flex;flex-direction:column;gap:2px}
   <div><h1 style="font-size:26px">Gioca</h1><p class="sub">Premi il tasto e Tasso prepara il PC per giocare. Quando hai finito, rimette tutto com'era.</p></div>
   <div class="card boostcard" id="boostCard">
     <div style="flex:1 1 320px;min-width:0"><div class="boostk">PRONTO A GIOCARE</div><h2 id="boostTitle">Il PC è in modalità normale</h2><p class="sub" id="boostSub" style="margin:0">Boost chiude i programmi in background che non servono, mette il PC al massimo per giocare e misura gli FPS veri. Quando hai finito, rimette tutto com'era.</p><p class="small" style="margin:10px 0 0"><a href="#" id="boostUndo">↩️ Rimetti com'era</a> · <a href="#" id="boostFpsBtn">📊 Misura gli FPS</a> · <a href="#" id="boostCheckBtn">🔍 Controllo FPS</a></p><p class="small" style="margin:8px 0 0"><label style="cursor:pointer"><input type="checkbox" id="boostAuto"> Boost automatico: parte da solo quando apri un gioco e si spegne quando lo chiudi</label></p><div class="small" id="boostFps" style="margin-top:8px"></div></div>
-    <button class="btn primary boostgo" id="btnBoost" aria-label="Boost: prepara il PC per giocare">🚀<br>BOOST</button>
+    <button class="btn primary boostgo" id="btnBoost" aria-label="Boost: prepara il PC per giocare">BOOST</button>
   </div>
   <div class="card" id="fpsCheckCard" style="display:none"><div id="fpsCheck" role="status" aria-live="polite" style="display:flex;flex-direction:column;gap:8px"></div></div>
   <div class="card" id="gpCard" style="display:none;flex-direction:column;gap:12px;border-color:var(--a1)">
@@ -839,7 +859,7 @@ details.navmore[open]{display:flex;flex-direction:column;gap:2px}
     <div class="card" style="flex:1 1 320px;display:flex;flex-direction:column;gap:12px">
       <h2>Pannellino in gioco</h2>
       <p class="sub" style="margin:0">Una scritta piccola e trasparente in alto con <b>CPU</b>, <b>scheda video</b> (uso e temperatura) e <b>RAM</b>. Non si può cliccare e non disturba. Si vede nei giochi in finestra o "schermo intero senza bordi".</p>
-      <button class="toggle" id="tgOverlay" style="padding:6px 0"><span><b>Mostralo da solo quando gioco</b><span>Appare quando apri un gioco e sparisce quando lo chiudi. Serve la "Modalità gioco automatica" accesa nelle Impostazioni.</span></span><span class="sw"><i></i></span></button>
+      <button class="toggle" id="tgOverlay" style="padding:6px 0"><span><b>Mostralo da solo quando gioco</b><span>Appare quando apri un gioco e sparisce quando lo chiudi. Serve il "Boost automatico" acceso.</span></span><span class="sw"><i></i></span></button>
       <div class="row wrap" style="gap:8px"><span class="small muted" style="align-self:center">Posizione:</span><button class="btn ghost" id="btnOvSx">In alto a sinistra</button><button class="btn ghost" id="btnOvDx">In alto a destra</button></div>
       <div class="row wrap" style="gap:8px"><button class="btn ghost" id="btnOvShow">Mostra ora</button><button class="btn ghost" id="btnOvHide">Nascondi</button></div>
       <span class="small muted">Durante il gioco: <b>Ctrl + Maiusc + F12</b> lo mostra o lo nasconde.<br><b>FPS</b>: Tasso non entra dentro i giochi (con gli anti-cheat si rischia il ban). Per gli FPS usa quelli ufficiali e sicuri: <b>Win + G</b> → Prestazioni (Windows) oppure <b>Alt + R</b> (NVIDIA). La temperatura del processore appare se Windows la fornisce, oppure se hai aperto LibreHardwareMonitor.</span>
@@ -1234,7 +1254,10 @@ function renderLevels(){ ['#levelCards', '#levelCards2'].forEach(id => { const c
 const loaded = {};
 let CURVIEW='home', TUNE_REQ = null, DC_GUIDE_SHOWN = false;
 function show(v){ CURVIEW=v;
+  const ae = document.activeElement;
   $$('.view').forEach(x => x.classList.toggle('on', x.id === 'v-' + v));
+  // La tastiera non resta su un pulsante della pagina appena nascosta: va al titolo della pagina nuova.
+  if (ae && ae.closest && ae.closest('.view') && !ae.closest('.view.on')) { const nv = $('#v-' + v); const h = nv && [...nv.querySelectorAll('h1')].find(x => x.offsetParent); const t = h || nv; if (t) { if (!t.hasAttribute('tabindex')) t.setAttribute('tabindex', '-1'); try { t.focus({preventScroll:true}); } catch (e) {} } }
   $$('nav button').forEach(x => x.classList.toggle('on', x.dataset.go === v));
   const nb = document.querySelector('#navMore [data-go="' + v + '"]'); if (nb) $('#navMore').open = true;
   $('#main').scrollTop = 0;
@@ -1506,18 +1529,44 @@ function paintHero(){
   if (ds > 30) bits.push(ds >= 999 ? _t('nessuna pulizia fatta finora') : _t('ultima pulizia ') + ds + _t(' giorni fa'));
   $('#heroSub').textContent = bits.join(', ') + '.';
   $('#fJunk').textContent = fmtBytes(junk); $('#fStart').textContent = st;
-  paintGHome(score, col, junk, st);
+  paintGHome(score);
 }
-function paintGHome(score, col, junk, st){
+// Home Gaming (3.1): voto, numeri e stato. Colori fissi buono/medio/cattivo (non quelli del tema:
+// su Carbonio o Neon il verde del tema è rosso). Se l'analisi non è arrivata o non è riuscita, niente numeri finti.
+function paintGHome(score){
   const g = (id) => document.getElementById(id); if (!g('gScore')) return;
+  gDatePaint();
+  const okJunk = AN && typeof AN.junk === 'number', okHealth = HEALTH && HEALTH.score != null;
+  if (!okJunk && !okHealth) {
+    ['gScore', 'gJunk', 'gStart'].forEach(id => { g(id).textContent = '…'; g(id).style.color = ''; });
+    g('gDot').style.background = 'var(--muted)'; g('gDot').style.boxShadow = 'none';
+    g('gState').textContent = _t('Controllo non riuscito');
+    return;
+  }
+  const light = document.documentElement.style.colorScheme === 'light';
+  const col = score >= 80 ? (light ? '#0E8F62' : '#2FF3A6') : score >= 60 ? (light ? '#A86400' : '#FFB020') : (light ? '#C8243F' : '#FF4D6D');
   g('gScore').textContent = score + '/100'; g('gScore').style.color = col;
-  g('gJunk').textContent = fmtBytes(junk); g('gStart').textContent = st;
-  g('gClean').textContent = _t('Pulisci ') + fmtBytes(junk);
+  g('gJunk').textContent = okJunk ? fmtBytes(AN.junk) : '…';
+  g('gStart').textContent = AN && typeof AN.startup === 'number' ? AN.startup : '…';
   g('gDot').style.background = col; g('gDot').style.boxShadow = '0 0 12px ' + col;
-  g('gState').textContent = score >= 80 ? _t('PC in forma') : score >= 60 ? _t('PC da sistemare un po\'') : _t('Il PC ha bisogno di una pulizia');
+  g('gState').textContent = score >= 80 ? _t('PC in forma') : score >= 60 ? _t('PC da sistemare un po\'') : _t('Il PC ha bisogno di una mano');
 }
-(function(){ const d = document.getElementById('gDate'); if (d) { try { d.textContent = new Date().toLocaleDateString((BOOT.lang || (EN ? 'en' : 'it')) === 'en' ? 'en-GB' : 'it-IT', {weekday:'long', day:'numeric', month:'long'}); } catch (e) {} } })();
-$('#gBoost').onclick = () => { show('games'); setTimeout(() => { const b = document.getElementById('btnBoost'); if (b && !b.disabled) b.click(); }, 0); };
+function gDatePaint(){ const d = document.getElementById('gDate'); if (d) { try { d.textContent = new Date().toLocaleDateString((BOOT.lang || (EN ? 'en' : 'it')) === 'en' ? 'en-GB' : 'it-IT', {weekday:'long', day:'numeric', month:'long'}); } catch (e) {} } }
+gDatePaint();
+// Il BOOST della Home è lo stesso del BOOST in Gioca: mostra se è acceso, e con Tasso spento spiega perché non parte.
+function gBoostPaint(){
+  const gb = document.getElementById('gBoost'); if (!gb) return;
+  const on = !!(BST.on || BST.game), off = !!(S && S.paused);
+  gb.classList.toggle('on', on && !off); gb.classList.toggle('off', off);
+  gb.textContent = on && !off ? _t('BOOST ACCESO') : _t('BOOST');
+  gb.setAttribute('aria-disabled', off ? 'true' : 'false');
+  gb.title = off ? _t('Tasso è spento: riaccendilo per usare il Boost.') : '';
+}
+$('#gBoost').onclick = () => {
+  if (S && S.paused) { toast(_t('Tasso è spento: riaccendilo per usare il Boost.'), 'var(--a4)'); return; }
+  show('games');
+  setTimeout(() => { const b = document.getElementById('btnBoost'); if (!b) return; if (b.disabled) toast(_t('Un attimo, sto ancora finendo.')); else b.click(); }, 0);
+};
 $('#gClean').onclick = () => confirmLevel(RECOMMENDED);
 $('#gDetect').onclick = () => { show('scan'); if (!DET) detStart(); };
 function sensorTile(name, value, pct, color){
@@ -1627,9 +1676,10 @@ function boostPaintState(){
   try { if (typeof S !== 'undefined' && S && S.modeBeforeBoost) { $('#bsCard').style.display = 'flex'; $('#btnBsEnd').style.display = ''; } } catch (e) {}
   const on = !!(BST.on || BST.game);
   $('#btnBoost').classList.toggle('on', on);
-  $('#btnBoost').innerHTML = on ? _t('✅<br>ACCESO') : _t('🚀<br>BOOST');
+  $('#btnBoost').textContent = on ? _t('ACCESO') : _t('BOOST');
   const a = $('#boostAuto'); if (a) a.checked = !!BST.auto;
   const k = $('#boostCard .boostk'); if (k) k.textContent = BST.game ? _t('BOOST AUTOMATICO: ') + BST.game : on ? _t('BOOST ACCESO') : _t('PRONTO A GIOCARE');
+  if (typeof gBoostPaint === 'function') gBoostPaint();
 }
 function fpsLine(r){
   if (!r) return '';
@@ -2184,6 +2234,7 @@ function paintSettings(){
   $('#powerTitle').textContent = S.paused ? _t('Tasso è spento') : _t('Tasso è acceso');
   $('#powerSub').textContent = S.paused ? _t('Clicca per riaccenderlo') : _t('Clicca per spegnerlo');
   $('#pausedBanner').classList.toggle('on', !!S.paused);
+  if (typeof gBoostPaint === 'function') gBoostPaint();
 }
 const RESTORE_INFO = _t('<div class="note"><b>Tasso rimette com\'erano:</b> piano energetico e limite del processore, spegnimento dello schermo e sospensione, notifiche, mouse, Modalità Gioco, impostazioni di privacy e programmi all\'avvio che hai acceso o spento da Tasso.<br><br><b>Non si possono rimettere:</b> i file cancellati, i programmi disinstallati e gli aggiornamenti installati. Per quelli c\'è il backup di Windows (punto di ripristino) creato da Tasso prima delle pulizie.</div>');
 async function setPaused(on){
@@ -2661,7 +2712,7 @@ function paintOverlay(){
   $('#btnOvDx').classList.toggle('primary', pos === 'dx'); $('#btnOvDx').classList.toggle('ghost', pos !== 'dx');
 }
 async function setOv(on, pos){ await call('goOverlaySet', on, pos); S.overlayOn = on; S.overlayPos = pos; paintOverlay(); }
-$('#tgOverlay').onclick = async () => { const on = !S.overlayOn; await setOv(on, S.overlayPos || 'dx'); toast(on ? (S.autoGame ? _t('Pannellino acceso: appare quando giochi.') : _t('Pannellino acceso. Accendi anche la Modalità gioco automatica nelle Impostazioni.')) : _t('Pannellino spento.')); };
+$('#tgOverlay').onclick = async () => { const on = !S.overlayOn; await setOv(on, S.overlayPos || 'dx'); toast(on ? (S.autoGame ? _t('Pannellino acceso: appare quando giochi.') : _t('Pannellino acceso. Accendi anche il Boost automatico nella pagina Gioca.')) : _t('Pannellino spento.')); };
 $('#btnOvSx').onclick = () => setOv(!!S.overlayOn, 'sx');
 $('#btnOvDx').onclick = () => setOv(!!S.overlayOn, 'dx');
 $('#btnOvShow').onclick = () => { call('goOverlayShow', true); toast(_t('Pannellino visibile in alto.')); };
