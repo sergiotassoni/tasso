@@ -477,6 +477,16 @@ func bindAll(w webview2.WebView) {
 	_ = w.Bind("goAutoClickKey", func(vk, mods uint32) string { return setAutoClickKey(vk, mods) })
 	_ = w.Bind("goAutoClickArm", func() bool { return acArm() })
 	_ = w.Bind("goSelfUpdate", func() string { return async("update", selfUpdate) })
+	// 3.1 "Aggiorna Tasso da solo": mai mentre un gioco è aperto o c'è una partita col Boost.
+	_ = w.Bind("goSelfUpdateAuto", func() string {
+		bMu.Lock()
+		inPartita := bGame != ""
+		bMu.Unlock()
+		if inPartita || runningGame() != "" {
+			return "game"
+		}
+		return async("update", selfUpdate)
+	})
 	_ = w.Bind("goCheckUpdate", func() string { return async("update", func() { emit("onUpdate", checkUpdate()) }) })
 	_ = w.Bind("goOpenDiscord", func() string { openURL(discordURL); return "ok" })
 	_ = w.Bind("goFeedbackPhoto", func() map[string]interface{} { return pickFeedbackPhoto() })

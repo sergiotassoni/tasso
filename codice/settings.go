@@ -149,7 +149,7 @@ func setPaused(on bool) string {
 	return "ok"
 }
 
-var validThemes = map[string]bool{"tasso": true, "aurora": true, "lava": true, "neon": true, "carbonio": true, "belva": true, "ghiaccio": true, "sabbia": true, "ufficio": true, "carta": true, "notte": true, "salvia": true, "lavanda": true, "ardesia": true}
+var validThemes = map[string]bool{"tasso": true, "aurora": true, "lava": true, "neon": true, "carbonio": true, "belva": true, "ghiaccio": true, "sabbia": true, "ufficio": true, "carta": true, "notte": true, "salvia": true, "lavanda": true, "ardesia": true, "perla": true}
 
 // Avvisi: cosa l'utente vuole che Tasso gli segnali. Se non impostato, sono tutti attivi.
 var alertKeys = []string{"temp", "disk", "startup", "ram", "health"}
