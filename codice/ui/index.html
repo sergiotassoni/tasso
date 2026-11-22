@@ -488,6 +488,7 @@ body.office nav .navsub button{padding:6px 8px;font-size:13px;white-space:nowrap
 .gspec{cursor:pointer;transition:background .15s}
 .gspec:hover,.gspec:focus-visible{background:color-mix(in srgb,var(--a1) 7%,transparent)}
 /* 3.1 tappa 2: Giochi con traduzione, schede, pagina del gioco e procedura a passi */
+nav [data-sub="gio"] button{--ic:#FF4D6D}
 .trbar{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
 .trbar .sw{flex:none;border:0;cursor:pointer}
 .gtabs{display:flex;gap:4px;border-bottom:1px solid var(--line);overflow-x:auto}
@@ -554,6 +555,11 @@ dl.sum{display:grid;grid-template-columns:max-content 1fr;gap:6px 14px;margin:0}
   <nav aria-label="Menu">
     <button data-go="home" class="on"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg>Home</button>
     <button data-go="games" class="gm"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="11" rx="4"/><path d="M7 11v3M5.5 12.5h3M15.5 12h.01M18 13.5h.01"/></svg>Giochi</button>
+    <div class="navsub gm" data-sub="gio">
+      <button data-gtab="lib"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="10" rx="5"/><path d="M7 12h3M8.5 10.5v3"/></svg>I miei giochi</button>
+      <button data-gtab="cro"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Cronologia</button>
+      <button data-gtab="imp"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h16"/><circle cx="9" cy="6" r="2"/><circle cx="15" cy="12" r="2"/><circle cx="8" cy="18" r="2"/></svg>Impostazioni</button>
+    </div>
     <button data-grp="rip" class="navgrp"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.8 4.7 4.7 1.8-4.7 1.8L12 16l-1.8-4.7-4.7-1.8 4.7-1.8z"/><path d="M19 15l.8 2.2 2.2.8-2.2.8L19 21l-.8-2.2-2.2-.8 2.2-.8z"/></svg>Pulisci e ripara</button>
     <div class="navsub" data-sub="rip">
       <button data-go="clean"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.8 4.7 4.7 1.8-4.7 1.8L12 16l-1.8-4.7-4.7-1.8 4.7-1.8z"/><path d="M19 15l.8 2.2 2.2.8-2.2.8L19 21l-.8-2.2-2.2-.8 2.2-.8z"/></svg>Pulisci</button>
@@ -1386,6 +1392,7 @@ function navGroups(v){
   Object.keys(NAVGRP).forEach(g => { const on = NAVGRP[g].indexOf(v) >= 0;
     const h = document.querySelector('nav [data-grp="' + g + '"]'); if (h) { h.classList.toggle('on', on); h.setAttribute('aria-expanded', on ? 'true' : 'false'); }
     const sb = document.querySelector('nav [data-sub="' + g + '"]'); if (sb) sb.classList.toggle('open', on); });
+  const gs = document.querySelector('nav [data-sub="gio"]'); if (gs) gs.classList.toggle('open', v === 'games');
 }
 $$('nav button[data-go]').forEach(b => { b.onclick = () => show(b.dataset.go); });
 $$('nav button[data-grp]').forEach(b => { b.onclick = () => show(NAVGRP[b.dataset.grp][0]); });
@@ -3300,11 +3307,14 @@ $('#trSw').onclick = async () => {
 function gTab(t){
   if (GP_ID) closeGame();
   $$('#gTabs [data-gt]').forEach(b => b.setAttribute('aria-selected', b.dataset.gt === t ? 'true' : 'false'));
+  $$('nav [data-gtab]').forEach(b => { b.classList.toggle('on', b.dataset.gtab === t); b.setAttribute('aria-current', b.dataset.gtab === t ? 'page' : 'false'); });
   $$('#v-games .gpanel').forEach(p => { p.hidden = p.dataset.gp !== t; });
   if (t === 'cro') paintCro();
   if (t === 'imp') paintTrSet();
 }
 $$('#gTabs [data-gt]').forEach(b => { b.onclick = () => gTab(b.dataset.gt); });
+$$('nav [data-gtab]').forEach(b => { b.onclick = () => { show('games'); gTab(b.dataset.gtab); }; });
+gTab('lib');
 async function paintCro(){
   const box = $('#croList'); box.innerHTML = '<div class="li"><span class="muted">' + esc(_t('Un momento…')) + '</span></div>';
   const l = await ttc('ttCronologia') || [];
