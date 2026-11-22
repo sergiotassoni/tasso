@@ -1,23 +1,29 @@
 package main
 
-// BOOST (3.1): un solo pulsante che prepara il PC per giocare, misura gli FPS veri prima e dopo
-// e rimette tutto com'era. Usa solo regolazioni che il Tasso sapeva già fare (comandi gaming,
-// modalità Gaming, chiusura gentile dei programmi in background, memoria in standby) e le mette
-// insieme. Non tocca mai i file del gioco né la sua memoria: niente problemi con gli anticheat.
+// BOOST (3.1): un solo pulsante che prepara il PC per giocare, misura gli FPS veri e rimette
+// tutto com'era. Usa regolazioni che il Tasso sapeva già fare e le mette insieme. Non tocca i file
+// del gioco né la sua memoria.
 //
-// Onestà sugli FPS: le regolazioni di Windows di solito danno da 0 al 10% in più, e aiutano
-// soprattutto contro gli scatti (1% low) sui PC con tanti programmi aperti. Per questo il Tasso
-// misura davvero, con PresentMon di Intel (gratuito, licenza MIT, firmato da Intel): legge gli
-// eventi di Windows sui fotogrammi mostrati, come fanno i contatori FPS dei giochi, senza entrare
-// nel gioco. Se la differenza è piccola lo dice.
+// Onestà (dopo la revisione con 4 revisori + scettico):
+//   - Le regolazioni di Windows di solito danno da 0 al 10% di FPS in più; aiutano soprattutto sui
+//     PC con tanti programmi aperti e sui portatili. I salti enormi delle pubblicità (92 -> 218)
+//     vengono quasi sempre da grafica diversa, DLSS/FSR o generazione di fotogrammi.
+//   - Rete, priorità ai giochi e ottimizzazioni in finestra valgono dal prossimo avvio del gioco
+//     (la priorità a volte dal riavvio del PC): per questo il Boost le lascia accese finché non premi
+//     "Rimetti com'era", invece di accenderle e spegnerle a ogni partita.
+//   - Niente svuotamento della memoria in standby durante il gioco: toglierebbe al gioco i suoi file
+//     già in memoria e farebbe più scatti, non meno.
+//   - La misura FPS usa PresentMon di Intel (gratuito, licenza MIT, firmato da Intel): legge gli
+//     eventi di Windows sui fotogrammi, come i contatori FPS, senza entrare nel gioco. Il confronto
+//     prima/dopo dice "simile" quando la differenza è nella variazione normale.
 //
-// Boost automatico ("capacità di adattamento"): quando parte un gioco il Tasso accende il Boost da
-// solo; la modalità giusta per QUEL gioco la sceglie la modalità gioco automatica (Gaming, FPS,
-// Potenza per ogni gioco o Regola con Tasso). Con programmi normali non fa niente. Un minuto dopo
-// la chiusura del gioco rimette tutto com'era e riapre i programmi chiusi.
+// Boost automatico ("capacità di adattamento"): la modalità giusta per QUEL gioco la mette la
+// modalità gioco automatica (Gaming, FPS, Potenza per ogni gioco, Regola con Tasso), che il Boost
+// automatico accende. In più a ogni partita il Boost chiude i programmi di sincronizzazione e chat in
+// background e li riapre un minuto dopo la fine. Con programmi normali non fa niente.
 
 import (
-	"bytes"
+	"bufio"
 	"context"
 	"crypto/sha256"
 	_ "embed"
@@ -37,89 +43,121 @@ import (
 	"sync"
 	"syscall"
 	"time"
+	"unsafe"
 
 	webview2 "github.com/jchv/go-webview2"
+	"golang.org/x/sys/windows"
 )
 
 //go:embed strumenti/PresentMon.exe
 var presentMonExe []byte
 
-// SHA-256 di PresentMon 2.4.1 x64 (release ufficiale Intel su GitHub). Se il file sul disco non è
-// identico non lo avvio.
+// SHA-256 di PresentMon 2.4.1 x64 (release ufficiale Intel su GitHub).
 const presentMonSHA = "d74183e7ae630f72cd3690be0373ecbfdc6cbb86578148aab8fa2a7166068f34"
 
-// I comandi gaming che il Boost accende (solo se erano spenti). La pianificazione GPU (hags) no:
-// vuole il riavvio del PC e su alcuni PC peggiora le cose.
+// Comandi gaming del Boost (accesi solo se erano spenti, rispenti con "Rimetti com'era").
+// Niente pianificazione GPU (vuole il riavvio e su alcuni PC peggiora).
 var boostCmds = []string{"gamedvr", "mmcss", "nagle", "winopt"}
 
+// Programmi che il Boost chiude, solo se sono in background (senza finestra) e non sono app dello
+// Store: sincronizzazione e chat. Mai Office, Outlook, Acrobat o programmi con lavoro non salvato.
+var boostClosable = map[string]bool{
+	"onedrive.exe": true, "dropbox.exe": true, "googledrivefs.exe": true, "icloudservices.exe": true,
+	"iclouddrive.exe": true, "teams.exe": true, "zoom.exe": true, "skype.exe": true,
+}
+
 type fpsResult struct {
-	Game    string  `json:"game"`
-	When    string  `json:"when"`
-	Boost   bool    `json:"boost"`
-	Seconds float64 `json:"seconds"`
-	Frames  int     `json:"frames"`
-	Avg     float64 `json:"avg"`     // FPS medi
-	Low1    float64 `json:"low1"`    // 1% low: la media del centesimo di fotogrammi più lenti
-	Stutter int     `json:"stutter"` // scatti: fotogrammi lunghi più del doppio del normale
+	Game      string  `json:"game"`
+	When      string  `json:"when"`
+	Boost     bool    `json:"boost"`
+	Seconds   float64 `json:"seconds"`
+	Frames    int     `json:"frames"`
+	Avg       float64 `json:"avg"`       // FPS medi
+	Low1      float64 `json:"low1"`      // 1% low: media del centesimo di fotogrammi più lenti
+	Stutter   int     `json:"stutter"`   // scatti: fotogrammi lunghi più del doppio del normale
+	StutterPM float64 `json:"stutterPm"` // scatti al minuto (per confrontare misure di durata diversa)
+	pid       string
 }
 
 type boostState struct {
-	On       bool                    `json:"on"`
-	Auto     bool                    `json:"auto"`   // Boost automatico acceso
-	ByAuto   bool                    `json:"byAuto"` // acceso da solo all'apertura di un gioco
-	Game     string                  `json:"game"`   // gioco per cui è acceso (se automatico)
-	Since    string                  `json:"since"`
+	On       bool                    `json:"on"`       // Boost acceso a mano
+	Auto     bool                    `json:"auto"`     // Boost automatico acceso
 	Cmds     []string                `json:"cmds"`     // comandi accesi dal Boost (da rispegnere)
 	PrevMode string                  `json:"prevMode"` // modalità da rimettere ("" = non l'ha cambiata il Boost)
-	Closed   []string                `json:"closed"`   // programmi chiusi (percorso), da riaprire
-	Before   *fpsResult              `json:"before,omitempty"`
-	After    *fpsResult              `json:"after,omitempty"`
+	PrevAG   *bool                   `json:"prevAutoGame,omitempty"`
 	History  map[string][]*fpsResult `json:"history,omitempty"` // per gioco, ultime misure
 }
 
 var (
-	pMessageBeep = user32.NewProc("MessageBeep")
-	bMu          sync.Mutex
-	bState       *boostState
-	fpsMu        sync.Mutex // una misura alla volta
-	bAutoRun     sync.Once
+	pMessageBeep    = user32.NewProc("MessageBeep")
+	pForegroundWin  = user32.NewProc("GetForegroundWindow")
+	pGetPowerStatus = windows.NewLazySystemDLL("kernel32.dll").NewProc("GetSystemPowerStatus")
+
+	bMu     sync.Mutex // protegge bState, bClosed, bSkip, bGame
+	bState  *boostState
+	bOpMu   sync.Mutex // un'accensione/spegnimento alla volta, dall'inizio alla fine
+	fpsMu   sync.Mutex // una misura alla volta
+	bWatch  sync.Once
+	bClosed []string // programmi chiusi da riaprire (solo in memoria: mai letti da un file)
+	bSkip   string   // gioco per cui hai premuto "Rimetti com'era": niente Boost automatico finché resta aperto
+	bGame   string   // gioco della partita col Boost automatico in corso
 )
 
 func boostFile() string { return filepath.Join(appDir, "boost.json") }
 
-// loadBoost: lo stato resta salvato, così "Rimetti com'era" funziona anche dopo un riavvio di Tasso.
-// Chiamare con bMu preso.
+// safeName: i nomi dei giochi arrivano da fuori (nome del programma): tengo solo caratteri semplici.
+func safeName(s string) string {
+	var b strings.Builder
+	for _, r := range s {
+		if b.Len() >= 60 {
+			break
+		}
+		if r == ' ' || r == '.' || r == '-' || r == '_' || (r >= '0' && r <= '9') || (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') {
+			b.WriteRune(r)
+		}
+	}
+	return b.String()
+}
+
+// loadBoost legge lo stato salvato. boost.json si può modificare senza essere amministratore:
+// tengo solo valori ammessi. Chiamare con bMu preso.
 func loadBoost() *boostState {
 	if bState != nil {
 		return bState
 	}
-	bState = &boostState{}
+	raw := &boostState{}
 	if b, err := os.ReadFile(boostFile()); err == nil {
-		_ = json.Unmarshal(b, bState)
+		_ = json.Unmarshal(b, raw)
 	}
-	// boost.json si può modificare senza essere amministratore: tengo solo valori ammessi.
-	var ok []string
-	for _, c := range bState.Cmds {
-		if hasStr(boostCmds, c) && !hasStr(ok, c) {
-			ok = append(ok, c)
+	s := &boostState{On: raw.On, Auto: raw.Auto, PrevAG: raw.PrevAG, History: map[string][]*fpsResult{}}
+	for _, c := range raw.Cmds {
+		if hasStr(boostCmds, c) && !hasStr(s.Cmds, c) {
+			s.Cmds = append(s.Cmds, c)
 		}
 	}
-	bState.Cmds = ok
-	if _, valid := modeScripts[bState.PrevMode]; !valid {
-		bState.PrevMode = ""
+	if _, ok := modeScripts[raw.PrevMode]; ok {
+		s.PrevMode = raw.PrevMode
 	}
-	if bState.History == nil {
-		bState.History = map[string][]*fpsResult{}
+	for k, v := range raw.History {
+		if k == "" || k != strings.ToLower(safeName(k)) || len(v) > 10 {
+			continue
+		}
+		for _, r := range v {
+			if r != nil {
+				r.Game = safeName(r.Game)
+				s.History[k] = append(s.History[k], r)
+			}
+		}
 	}
-	return bState
+	bState = s
+	return s
 }
 
 func saveBoost() {
 	if bState == nil {
 		return
 	}
-	b, err := json.MarshalIndent(bState, "", "  ")
-	if err == nil {
+	if b, err := json.MarshalIndent(bState, "", "  "); err == nil {
 		_ = os.WriteFile(boostFile(), b, 0o644)
 	}
 }
@@ -128,21 +166,157 @@ func boostInfo() map[string]interface{} {
 	bMu.Lock()
 	defer bMu.Unlock()
 	s := loadBoost()
-	out := map[string]interface{}{
-		"on": s.On, "auto": s.Auto, "byAuto": s.ByAuto, "game": s.Game, "since": s.Since,
-		"before": s.Before, "after": s.After,
+	return map[string]interface{}{"on": s.On, "auto": s.Auto, "game": bGame, "battery": onBattery()}
+}
+
+// onBattery: portatile senza caricatore. In quel caso niente piano energetico al massimo.
+func onBattery() bool {
+	var st struct {
+		ACLineStatus, BatteryFlag, BatteryLifePercent, SystemStatusFlag byte
+		BatteryLifeTime, BatteryFullLifeTime                            uint32
 	}
-	if s.Before != nil && s.After != nil {
-		out["compare"] = fpsCompare(s.Before, s.After)
+	r, _, _ := pGetPowerStatus.Call(uintptr(unsafe.Pointer(&st)))
+	return r != 0 && st.ACLineStatus == 0
+}
+
+func removeStr(list []string, v string) []string {
+	var out []string
+	for _, x := range list {
+		if x != v {
+			out = append(out, x)
+		}
 	}
 	return out
 }
 
-// ---------------- Accendi / spegni ----------------
+// ---------------- Parti del Boost ----------------
 
-// boostOn accende il Boost. game = "" se acceso a mano. Con il Boost automatico la modalità
-// la sceglie la modalità gioco automatica, quindi qui non la cambio (setMode=false).
-func boostOn(game string, byAuto bool) []string {
+// boostCmdsOn accende i comandi spenti e si ricorda quali. Salvo PRIMA di cambiare: se il Tasso si
+// chiude a metà, "Rimetti com'era" sa comunque cosa rispegnere.
+func boostCmdsOn() int {
+	st := gamingState()
+	n := 0
+	for _, id := range boostCmds {
+		if on, _ := st[id].(bool); on {
+			continue
+		}
+		if id == "winopt" && winBuild() < 22000 {
+			continue
+		}
+		bMu.Lock()
+		s := loadBoost()
+		if !hasStr(s.Cmds, id) {
+			s.Cmds = append(s.Cmds, id)
+		}
+		saveBoost()
+		bMu.Unlock()
+		if strings.HasPrefix(gamingSet(id, true), "ok:") {
+			n++
+		} else {
+			bMu.Lock()
+			s.Cmds = removeStr(s.Cmds, id)
+			saveBoost()
+			bMu.Unlock()
+		}
+	}
+	return n
+}
+
+// boostCmdsOff rispegne solo i comandi accesi dal Boost. Se uno non si spegne resta nell'elenco,
+// così si può riprovare.
+func boostCmdsOff() int {
+	bMu.Lock()
+	cmds := append([]string(nil), loadBoost().Cmds...)
+	bMu.Unlock()
+	setMu.Lock()
+	active := map[string]bool{}
+	for k, v := range settings.GamingCmds {
+		active[k] = v
+	}
+	setMu.Unlock()
+	n := 0
+	for _, id := range cmds {
+		ok := true
+		if active[id] { // se "Rimetti com'era" generale l'ha già spento, non lo tocco
+			ok = strings.HasPrefix(gamingSet(id, false), "ok:")
+		}
+		if ok {
+			n++
+			bMu.Lock()
+			s := loadBoost()
+			s.Cmds = removeStr(s.Cmds, id)
+			saveBoost()
+			bMu.Unlock()
+		}
+	}
+	return n
+}
+
+// closeBackground chiude con gentilezza (mai di forza) i programmi di sincronizzazione e chat che
+// girano senza finestra. Restituisce i nomi chiusi.
+func closeBackground() []string {
+	withWin := pidsWithWindow(1, 1)
+	var names []string
+	for exe := range boostClosable {
+		pids := pidsByExe(exe)
+		if len(pids) == 0 {
+			continue
+		}
+		path, skip := "", false
+		for _, p := range pids {
+			if withWin[p] {
+				skip = true
+			}
+			if pp := processPath(p); pp != "" {
+				path = pp
+			}
+		}
+		if skip || path == "" || strings.Contains(strings.ToLower(path), `\windowsapps\`) {
+			continue
+		}
+		_, _ = runHidden("taskkill.exe", "/IM", exe) // senza /F: chiusura normale, finiscono di salvare
+		for i := 0; i < 16 && len(pidsByExe(exe)) > 0; i++ {
+			time.Sleep(500 * time.Millisecond)
+		}
+		if len(pidsByExe(exe)) == 0 {
+			bMu.Lock()
+			bClosed = append(bClosed, path)
+			bMu.Unlock()
+			names = append(names, strings.TrimSuffix(filepath.Base(path), filepath.Ext(path)))
+		}
+	}
+	return names
+}
+
+// reopenBackground riapre i programmi chiusi (se non sono già ripartiti da soli), come utente
+// normale tramite Esplora file.
+func reopenBackground() []string {
+	bMu.Lock()
+	list := bClosed
+	bClosed = nil
+	bMu.Unlock()
+	win, err := windows.GetSystemWindowsDirectory()
+	if err != nil {
+		return nil
+	}
+	explorer := filepath.Join(win, "explorer.exe")
+	var names []string
+	for _, p := range list {
+		if len(pidsByExe(filepath.Base(p))) > 0 || !fileExists(p) {
+			continue
+		}
+		if openPath(explorer, "\""+p+"\"") {
+			names = append(names, strings.TrimSuffix(filepath.Base(p), filepath.Ext(p)))
+		}
+	}
+	return names
+}
+
+// ---------------- Accendi / spegni (pulsante) ----------------
+
+func boostOn() []string {
+	bOpMu.Lock()
+	defer bOpMu.Unlock()
 	setMu.Lock()
 	paused, mode := settings.Paused, settings.Mode
 	setMu.Unlock()
@@ -155,35 +329,17 @@ func boostOn(game string, byAuto bool) []string {
 		bMu.Unlock()
 		return []string{"Il Boost è già acceso."}
 	}
-	s.On, s.ByAuto, s.Game, s.Since = true, byAuto, game, time.Now().Format(time.RFC3339)
-	s.Cmds, s.Closed, s.PrevMode = nil, nil, ""
-	saveBoost() // subito: se Tasso si chiude a metà, "Rimetti com'era" sa che c'è qualcosa da rimettere
+	s.On = true
+	saveBoost()
 	bMu.Unlock()
 
 	var msgs []string
-	// 1) Comandi gaming: accendo solo quelli spenti e mi ricordo quali, per rispegnere solo quelli.
-	st := gamingState()
-	for _, id := range boostCmds {
-		if on, _ := st[id].(bool); on {
-			continue
-		}
-		if id == "winopt" && winBuild() < 22000 {
-			continue
-		}
-		r := gamingSet(id, true)
-		if strings.HasPrefix(r, "ok:") {
-			bMu.Lock()
-			s.Cmds = append(s.Cmds, id)
-			saveBoost()
-			bMu.Unlock()
-			msgs = append(msgs, strings.TrimPrefix(r, "ok:"))
-		}
+	if n := boostCmdsOn(); n > 0 {
+		msgs = append(msgs, "Accese le regolazioni per giocare (registrazione in background spenta, priorità ai giochi, rete, giochi in finestra). Valgono dal prossimo avvio del gioco.")
 	}
-	// 2) Modalità Gaming (piano energetico al massimo, notifiche in pausa), se non c'è già.
-	setMu.Lock()
-	autoGame := settings.AutoGame
-	setMu.Unlock()
-	if !(byAuto && autoGame) && mode != "gaming" && mode != "fps" {
+	if onBattery() {
+		msgs = append(msgs, "Sei a batteria: lascio il risparmio energetico. Collega il caricatore per avere tutta la potenza.")
+	} else if mode != "gaming" && mode != "fps" {
 		prev := mode
 		if _, ok := modeScripts[prev]; !ok {
 			prev = "normale"
@@ -193,25 +349,10 @@ func boostOn(game string, byAuto bool) []string {
 		saveBoost()
 		bMu.Unlock()
 		setMode("gaming")
-		msgs = append(msgs, "Modalità Gaming: processore e scheda video al massimo, notifiche in pausa.")
+		msgs = append(msgs, "Modalità Gaming: processore al massimo, notifiche in pausa.")
 	}
-	// 3) Programmi in background che non servono (sincronizzazione e chat senza finestra aperta).
-	//    Quelli con una finestra non li chiudo da solo: potresti avere un lavoro non salvato.
-	for _, h := range listHeavy() {
-		if !h.Suggest || h.Window {
-			continue
-		}
-		if closeGently(strings.ToLower(h.Name) + ".exe") {
-			bMu.Lock()
-			s.Closed = append(s.Closed, h.path)
-			saveBoost()
-			bMu.Unlock()
-			msgs = append(msgs, "Chiuso in background: "+h.Name+" (lo riapro quando hai finito).")
-		}
-	}
-	// 4) Memoria in standby: la svuoto una volta, così il gioco trova RAM libera subito.
-	if r := purgeStandby(); strings.HasPrefix(r, "ok:") {
-		msgs = append(msgs, "Memoria liberata.")
+	if names := closeBackground(); len(names) > 0 {
+		msgs = append(msgs, "Chiusi in background: "+strings.Join(names, ", ")+". Li riapro quando premi \"Rimetti com'era\".")
 	}
 	if len(msgs) == 0 {
 		msgs = append(msgs, "Il PC era già pronto per giocare: non c'era niente da cambiare.")
@@ -219,110 +360,191 @@ func boostOn(game string, byAuto bool) []string {
 	return msgs
 }
 
-// boostOff rimette com'era solo quello che il Boost ha cambiato.
+// restoreBoostMode rimette la modalità di prima, se l'ha cambiata il Boost e non l'hai cambiata tu.
+func restoreBoostMode(prev string) bool {
+	if prev == "" {
+		return false
+	}
+	setMu.Lock()
+	cur, target, before := settings.Mode, settings.GameTarget, settings.ModeBeforeGame
+	setMu.Unlock()
+	// Partita in corso con la modalità gioco automatica: a fine gioco deve tornare la TUA modalità,
+	// non "gaming" messa dal Boost.
+	if before == "gaming" || before == "fps" {
+		updateSettings(func(st *Settings) { st.ModeBeforeGame = prev })
+	}
+	if cur == "gaming" || (target != "" && cur == target) {
+		setMode(prev)
+		return true
+	}
+	return false
+}
+
+// boostOff ("Rimetti com'era"): spegne il Boost e anche il Boost automatico, e rimette solo
+// quello che il Boost ha cambiato.
 func boostOff() []string {
+	bOpMu.Lock()
+	defer bOpMu.Unlock()
 	bMu.Lock()
 	s := loadBoost()
-	if !s.On {
-		bMu.Unlock()
-		return []string{"Il Boost era già spento."}
+	prev, auto, prevAG := s.PrevMode, s.Auto, s.PrevAG
+	s.On, s.Auto, s.PrevMode, s.PrevAG = false, false, "", nil
+	if bGame != "" {
+		bSkip = bGame
 	}
-	cmds, prev, closed := s.Cmds, s.PrevMode, s.Closed
+	bGame = ""
+	saveBoost()
 	bMu.Unlock()
 
 	var msgs []string
-	for _, id := range cmds {
-		if r := gamingSet(id, false); strings.HasPrefix(r, "ok:") {
-			msgs = append(msgs, strings.TrimPrefix(r, "ok:"))
-		}
+	if boostCmdsOff() > 0 {
+		msgs = append(msgs, "Regolazioni per giocare rimesse come prima.")
 	}
-	if prev != "" {
-		setMu.Lock()
-		cur := settings.Mode
-		setMu.Unlock()
-		if cur == "gaming" { // se nel frattempo hai scelto tu un'altra modalità, la lascio
-			setMode(prev)
-			msgs = append(msgs, "Rimessa la modalità di prima.")
-		}
+	if restoreBoostMode(prev) {
+		msgs = append(msgs, "Rimessa la modalità di prima.")
 	}
-	for _, p := range closed {
-		// Riaperto tramite Esplora file, così parte come programma normale e non da amministratore.
-		if p != "" && fileExists(p) && openPath(filepath.Join(os.Getenv("SystemRoot"), "explorer.exe"), "\""+p+"\"") {
-			msgs = append(msgs, "Riaperto: "+strings.TrimSuffix(filepath.Base(p), ".exe"))
-		}
+	if auto && prevAG != nil && !*prevAG {
+		setAutoGame(false)
+	}
+	if names := reopenBackground(); len(names) > 0 {
+		msgs = append(msgs, "Riaperti: "+strings.Join(names, ", ")+".")
 	}
 	bMu.Lock()
-	s.On, s.ByAuto, s.Game, s.Since, s.Cmds, s.PrevMode, s.Closed = false, false, "", "", nil, "", nil
-	saveBoost()
+	left := len(loadBoost().Cmds)
 	bMu.Unlock()
-	msgs = append(msgs, "Tutto com'era prima del Boost.")
+	if left > 0 {
+		msgs = append(msgs, "Qualcosa non si è potuto rimettere: premi di nuovo \"Rimetti com'era\".")
+	} else {
+		msgs = append(msgs, "Tutto com'era prima del Boost.")
+	}
 	return msgs
 }
 
-// ---------------- Pulsante: Boost con misura prima e dopo ----------------
+// ---------------- Boost automatico ----------------
 
-// boostWithMeasure: misura 30 secondi senza Boost, accende il Boost, misura altri 30 secondi.
-// Hai 10 secondi per tornare nel gioco: un bip all'inizio e due alla fine di ogni misura.
-func boostWithMeasure(measure bool) {
-	if !measure {
-		msgs := boostOn("", false)
-		emit("onBoost", map[string]interface{}{"msgs": msgs, "state": boostInfo()})
-		return
+func setBoostAuto(on bool) string {
+	if !on {
+		bMu.Lock()
+		manual := loadBoost().On
+		bMu.Unlock()
+		if !manual {
+			go func() {
+				defer guard("boost.go:autooff")
+				emit("onBoost", map[string]interface{}{"msgs": boostOff(), "state": boostInfo()})
+			}()
+			return "ok:Boost automatico spento: rimetto tutto com'era."
+		}
+		bMu.Lock()
+		s := loadBoost()
+		s.Auto = false
+		saveBoost()
+		bMu.Unlock()
+		return "ok:Boost automatico spento. Il Boost acceso a mano resta acceso."
 	}
-	bMu.Lock()
-	on := loadBoost().On
-	bMu.Unlock()
-	if on {
-		emit("onBoost", map[string]interface{}{"msgs": []string{"Il Boost è già acceso: premi \"Rimetti com'era\" e riprova per misurare prima e dopo."}, "state": boostInfo()})
-		return
-	}
-	emit("onBoostStep", map[string]interface{}{"step": "before", "msg": "Torna nel gioco entro 10 secondi e gioca normalmente: misuro gli FPS per 30 secondi."})
-	before, err := fpsMeasure(10, 30, false)
-	if err != nil {
-		emit("onBoost", map[string]interface{}{"msgs": []string{err.Error()}, "state": boostInfo()})
-		return
-	}
-	emit("onBoostStep", map[string]interface{}{"step": "apply", "msg": "Misura fatta. Accendo il Boost…"})
-	msgs := boostOn("", false)
-	time.Sleep(5 * time.Second) // lascio assestare Windows dopo il cambio
-	emit("onBoostStep", map[string]interface{}{"step": "after", "msg": "Boost acceso. Continua a giocare nello stesso posto: misuro altri 30 secondi."})
-	after, err := fpsMeasure(0, 30, true)
-	if err != nil {
-		msgs = append(msgs, "Seconda misura non riuscita: "+err.Error())
-	}
+	setMu.Lock()
+	ag := settings.AutoGame
+	setMu.Unlock()
 	bMu.Lock()
 	s := loadBoost()
-	s.Before, s.After = before, after
+	if !s.Auto {
+		s.PrevAG = &ag
+	}
+	s.Auto = true
 	saveBoost()
 	bMu.Unlock()
-	emit("onBoost", map[string]interface{}{"msgs": msgs, "state": boostInfo()})
+	if !ag {
+		setAutoGame(true) // sceglie la modalità giusta per ogni gioco
+	}
+	go func() {
+		defer guard("boost.go:autoon")
+		bOpMu.Lock()
+		boostCmdsOn() // una volta sola, restano accese: valgono dal prossimo avvio del gioco
+		bOpMu.Unlock()
+	}()
+	startBoostWatcher()
+	return "ok:Boost automatico acceso: quando apri un gioco il Tasso prepara il PC da solo e misura gli FPS."
 }
 
-// fpsCompare: confronto onesto. Sotto il 3% non si può dire che sia merito del Boost.
-func fpsCompare(a, b *fpsResult) map[string]interface{} {
-	out := map[string]interface{}{"sameGame": strings.EqualFold(a.Game, b.Game)}
-	if a.Avg <= 0 || b.Avg <= 0 {
-		return out
-	}
-	da := (b.Avg - a.Avg) / a.Avg * 100
-	dl := 0.0
-	if a.Low1 > 0 {
-		dl = (b.Low1 - a.Low1) / a.Low1 * 100
-	}
-	out["avgPct"], out["lowPct"] = math.Round(da*10)/10, math.Round(dl*10)/10
-	var verdict string
-	switch {
-	case !strings.EqualFold(a.Game, b.Game):
-		verdict = "Le due misure sono di programmi diversi: non si possono confrontare."
-	case math.Abs(da) < 3 && math.Abs(dl) < 5:
-		verdict = "Differenza piccola: è dentro la variazione normale tra due momenti di gioco. Il tuo PC era già in forma."
-	case da >= 3 || dl >= 5:
-		verdict = fmt.Sprintf("Con il Boost: FPS medi %+.0f%%, cali (1%% low) %+.0f%%. Vale se hai giocato nella stessa zona e con la stessa grafica.", da, dl)
-	default:
-		verdict = "Con il Boost gli FPS sono scesi: probabilmente la scena era più pesante. Riprova nello stesso punto del gioco."
-	}
-	out["verdict"] = verdict
-	return out
+// startBoostWatcher: guarda ogni 10 secondi se c'è un gioco aperto.
+func startBoostWatcher() {
+	bWatch.Do(func() {
+		go func() {
+			defer guard("boost.go:watcher")
+			var missing int
+			var measured string
+			var since time.Time
+			t := time.NewTicker(10 * time.Second)
+			defer t.Stop()
+			for range t.C {
+				bMu.Lock()
+				auto, game, skip := loadBoost().Auto, bGame, bSkip
+				bMu.Unlock()
+				setMu.Lock()
+				paused := settings.Paused
+				setMu.Unlock()
+				name := ""
+				if auto && !paused {
+					name = safeName(runningGame())
+				}
+				if name == "" && skip != "" {
+					bMu.Lock()
+					bSkip = ""
+					bMu.Unlock()
+				}
+				switch {
+				case name != "" && game == "" && !strings.EqualFold(name, skip):
+					missing, measured, since = 0, "", time.Now()
+					bOpMu.Lock()
+					bMu.Lock()
+					bGame = name
+					bMu.Unlock()
+					closed := closeBackground()
+					bOpMu.Unlock()
+					msgs := []string{"Boost automatico per " + name + "."}
+					if len(closed) > 0 {
+						msgs = append(msgs, "Chiusi in background: "+strings.Join(closed, ", ")+". Li riapro quando chiudi il gioco.")
+					}
+					emit("onBoost", map[string]interface{}{"msgs": msgs, "state": boostInfo(), "auto": true})
+				case name != "" && game != "":
+					missing = 0
+					if !strings.EqualFold(name, game) {
+						bMu.Lock()
+						if bGame != "" {
+							bGame = name
+						}
+						bMu.Unlock()
+						measured, since = "", time.Now()
+					}
+					// Una misura per partita, dopo 2 minuti (così salto il caricamento), senza bip.
+					if measured != name && time.Since(since) > 2*time.Minute {
+						measured = name
+						go func(g string) {
+							defer guard("boost.go:automeasure")
+							if r, err := fpsMeasure(0, 60, true, false, g); err == nil {
+								emit("onFpsAuto", map[string]interface{}{"game": g, "result": r})
+							}
+						}(name)
+					}
+				case name == "" && game != "":
+					missing++
+					if missing >= 6 || !auto || paused { // un minuto senza giochi aperti
+						missing = 0
+						bOpMu.Lock()
+						bMu.Lock()
+						bGame = ""
+						bMu.Unlock()
+						names := reopenBackground()
+						bOpMu.Unlock()
+						msgs := []string{"Gioco chiuso."}
+						if len(names) > 0 {
+							msgs = append(msgs, "Riaperti: "+strings.Join(names, ", ")+".")
+						}
+						emit("onBoost", map[string]interface{}{"msgs": msgs, "state": boostInfo(), "auto": true})
+					}
+				}
+			}
+		}()
+	})
 }
 
 // ---------------- Misura FPS (PresentMon) ----------------
@@ -335,53 +557,75 @@ var notFpsApp = map[string]bool{
 	"shellexperiencehost.exe": true, "applicationframehost.exe": true, "claude.exe": true,
 }
 
-// presentMonPath scrive PresentMon in Programmi\Tasso\strumenti (solo un amministratore può
-// modificarlo) e controlla che sia identico all'originale prima di ogni uso.
-func presentMonPath() (string, error) {
-	pf := os.Getenv("ProgramFiles")
-	if pf == "" {
+// presentMonDir: Programmi\Tasso\strumenti. Il percorso lo chiedo a Windows, non alle variabili
+// d'ambiente (che un utente normale può cambiare).
+func presentMonDir() (string, error) {
+	pf, err := windows.KnownFolderPath(windows.FOLDERID_ProgramFiles, 0)
+	if err != nil || pf == "" {
 		return "", errors.New("cartella Programmi non trovata")
 	}
-	dir := filepath.Join(pf, "Tasso", "strumenti")
-	p := filepath.Join(dir, "PresentMon.exe")
-	if fileSHA(p) != presentMonSHA {
-		if fileSHA256(presentMonExe) != presentMonSHA {
-			return "", errors.New("il misuratore di FPS dentro Tasso è danneggiato")
-		}
-		if err := os.MkdirAll(dir, 0o755); err != nil {
-			return "", err
-		}
-		tmp := p + ".nuovo"
-		if err := os.WriteFile(tmp, presentMonExe, 0o755); err != nil {
-			return "", err
-		}
-		_ = os.Remove(p)
-		if err := os.Rename(tmp, p); err != nil {
-			return "", err
-		}
-		if fileSHA(p) != presentMonSHA {
-			return "", errors.New("non riesco a preparare il misuratore di FPS")
-		}
-	}
-	return p, nil
+	return filepath.Join(pf, "Tasso", "strumenti"), nil
 }
 
-func fileSHA256(b []byte) string {
-	h := sha256.Sum256(b)
-	return hex.EncodeToString(h[:])
-}
-
-func fileSHA(p string) string {
-	f, err := os.Open(p)
+// lockedPresentMon apre PresentMon bloccando scrittura, rinomina e cancellazione, controlla che sia
+// identico all'originale e lascia il file bloccato finché il chiamante non chiude la maniglia
+// (cioè finché PresentMon non è partito): nessuno può sostituirlo in mezzo.
+func lockedPresentMon() (string, windows.Handle, error) {
+	dir, err := presentMonDir()
 	if err != nil {
-		return ""
+		return "", 0, err
 	}
-	defer f.Close()
-	h := sha256.New()
-	if _, err := io.Copy(h, f); err != nil {
-		return ""
+	p := filepath.Join(dir, "PresentMon.exe")
+	open := func() (windows.Handle, error) {
+		u, _ := windows.UTF16PtrFromString(p)
+		return windows.CreateFile(u, windows.GENERIC_READ, windows.FILE_SHARE_READ, nil, windows.OPEN_EXISTING, windows.FILE_ATTRIBUTE_NORMAL, 0)
 	}
-	return hex.EncodeToString(h.Sum(nil))
+	check := func(h windows.Handle) bool {
+		hs := sha256.New()
+		buf := make([]byte, 64*1024)
+		for {
+			var n uint32
+			if err := windows.ReadFile(h, buf, &n, nil); err != nil {
+				return false
+			}
+			if n == 0 {
+				break
+			}
+			hs.Write(buf[:n])
+		}
+		return hex.EncodeToString(hs.Sum(nil)) == presentMonSHA
+	}
+	if h, err := open(); err == nil {
+		if check(h) {
+			return p, h, nil
+		}
+		windows.CloseHandle(h)
+	}
+	sum := sha256.Sum256(presentMonExe)
+	if hex.EncodeToString(sum[:]) != presentMonSHA {
+		return "", 0, errors.New("il misuratore di FPS dentro Tasso è danneggiato")
+	}
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		return "", 0, err
+	}
+	tmp := p + ".nuovo"
+	_ = os.Remove(tmp)
+	if err := os.WriteFile(tmp, presentMonExe, 0o755); err != nil {
+		return "", 0, err
+	}
+	_ = os.Remove(p)
+	if err := os.Rename(tmp, p); err != nil {
+		return "", 0, err
+	}
+	h, err := open()
+	if err != nil {
+		return "", 0, err
+	}
+	if !check(h) {
+		windows.CloseHandle(h)
+		return "", 0, errors.New("non riesco a preparare il misuratore di FPS")
+	}
+	return p, h, nil
 }
 
 func beep(n int) {
@@ -391,89 +635,130 @@ func beep(n int) {
 	}
 }
 
-// fpsMeasure misura per secs secondi dopo delay secondi. Se c'è un gioco riconosciuto misura
-// quello, altrimenti il programma che ha mostrato più fotogrammi (escluso Windows e i browser).
-func fpsMeasure(delay, secs int, boosted bool) (*fpsResult, error) {
+func foregroundPid() uint32 {
+	h, _, _ := pForegroundWin.Call()
+	if h == 0 {
+		return 0
+	}
+	var pid uint32
+	pGetWindowPid.Call(h, uintptr(unsafe.Pointer(&pid)))
+	return pid
+}
+
+// fpsMeasure misura per secs secondi dopo delay secondi, leggendo i dati da PresentMon senza file
+// intermedi. prefer = nome del gioco riconosciuto (se c'è), altrimenti vince la finestra con più
+// fotogrammi. Il gioco deve restare davanti: se non lo era, la misura non vale.
+func fpsMeasure(delay, secs int, boosted, beeps bool, prefer string) (*fpsResult, error) {
 	if !fpsMu.TryLock() {
 		return nil, errors.New("c'è già una misura in corso")
 	}
 	defer fpsMu.Unlock()
-	pm, err := presentMonPath()
+	pm, lock, err := lockedPresentMon()
 	if err != nil {
 		return nil, errors.New("Misura FPS non disponibile: " + err.Error() + ".")
 	}
-	csvPath := filepath.Join(os.TempDir(), fmt.Sprintf("tasso-fps-%d.csv", time.Now().UnixNano()))
-	defer os.Remove(csvPath)
-	args := []string{"--output_file", csvPath, "--timed", strconv.Itoa(secs), "--terminate_after_timed",
-		"--session_name", "TassoFPS", "--stop_existing_session", "--no_console_stats",
-		"--no_track_input", "--no_track_gpu"}
+	args := []string{"--output_stdout", "--timed", strconv.Itoa(secs), "--terminate_after_timed",
+		"--session_name", "TassoFPS", "--stop_existing_session", "--no_console_stats", "--no_track_input"}
 	if delay > 0 {
 		args = append(args, "--delay", strconv.Itoa(delay))
 	}
-	if name := runningGame(); name != "" {
-		args = append(args, "--process_id", strconv.Itoa(int(gamePid.Load())))
-	} else {
-		for e := range notFpsApp {
-			args = append(args, "--exclude", e)
-		}
+	for e := range notFpsApp {
+		args = append(args, "--exclude", e)
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(delay+secs+30)*time.Second)
 	defer cancel()
 	cmd := exec.CommandContext(ctx, pm, args...)
 	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true, CreationFlags: 0x08000000}
-	var stderr bytes.Buffer
-	cmd.Stderr = &stderr
-	if err := cmd.Start(); err != nil {
+	cmd.Dir = filepath.Dir(pm)
+	out, err := cmd.StdoutPipe()
+	if err != nil {
+		windows.CloseHandle(lock)
 		return nil, errors.New("non riesco ad avviare la misura degli FPS")
 	}
-	go func() {
-		defer guard("boost.go:beep")
-		time.Sleep(time.Duration(delay) * time.Second)
-		beep(1) // inizia
-	}()
-	err = cmd.Wait()
-	beep(2) // finita
-	f, ferr := os.Open(csvPath)
-	if ferr != nil {
-		if err != nil {
-			return nil, errors.New("la misura degli FPS si è fermata: riprova")
-		}
-		return nil, errors.New("nessun gioco visto: apri il gioco e tienilo davanti mentre misuro")
+	var errBuf strings.Builder
+	cmd.Stderr = &errBuf
+	startErr := cmd.Start()
+	windows.CloseHandle(lock)
+	if startErr != nil {
+		return nil, errors.New("non riesco ad avviare la misura degli FPS")
 	}
-	defer f.Close()
-	res, perr := parsePresentMon(f)
+	done := make(chan struct{})
+	fg := map[uint32]bool{}
+	var fgMu sync.Mutex
+	go func() {
+		defer guard("boost.go:fg")
+		select {
+		case <-done:
+			return
+		case <-time.After(time.Duration(delay)*time.Second + 2*time.Second):
+		}
+		if beeps {
+			beep(1) // inizia
+		}
+		fgMu.Lock()
+		fg[foregroundPid()] = true
+		fgMu.Unlock()
+	}()
+	res, perr := parsePresentMon(bufio.NewReader(out), prefer)
+	_, _ = io.Copy(io.Discard, out)
+	werr := cmd.Wait()
+	close(done)
+	fgMu.Lock()
+	fg[foregroundPid()] = true
+	fgMu.Unlock()
+	if beeps {
+		beep(2) // finita
+	}
+	if werr != nil && perr != nil {
+		var ee *exec.ExitError
+		if (errors.As(werr, &ee) && ee.ExitCode() == 6) || strings.Contains(strings.ToLower(errBuf.String()), "access") {
+			return nil, errors.New("Windows non mi lascia misurare gli FPS: serve aprire Tasso come amministratore")
+		}
+		return nil, errors.New("la misura degli FPS si è fermata: riprova")
+	}
 	if perr != nil {
 		return nil, perr
+	}
+	pidN, _ := strconv.ParseUint(res.pid, 10, 32)
+	fgMu.Lock()
+	front := fg[uint32(pidN)]
+	fgMu.Unlock()
+	if !front {
+		return nil, errors.New("il gioco non era in primo piano durante la misura: tienilo davanti e riprova")
 	}
 	res.Boost, res.When = boosted, time.Now().Format(time.RFC3339)
 	bMu.Lock()
 	s := loadBoost()
-	k := strings.ToLower(res.Game)
-	s.History[k] = append(s.History[k], res)
-	if n := len(s.History[k]); n > 10 {
-		s.History[k] = s.History[k][n-10:]
+	if k := strings.ToLower(res.Game); k != "" {
+		s.History[k] = append(s.History[k], res)
+		if n := len(s.History[k]); n > 10 {
+			s.History[k] = s.History[k][n-10:]
+		}
+		saveBoost()
 	}
-	saveBoost()
 	bMu.Unlock()
 	return res, nil
 }
 
-// parsePresentMon legge il CSV di PresentMon e calcola FPS medi, 1% low e scatti del programma
-// con più fotogrammi. Separata dal resto così si può provare anche senza Windows.
-func parsePresentMon(r io.Reader) (*fpsResult, error) {
+// parsePresentMon legge il CSV di PresentMon e calcola FPS medi, 1% low e scatti della finestra del
+// gioco (prefer) o di quella con più fotogrammi. I tempi tra due fotogrammi valgono per singola
+// finestra (swapchain), quindi raggruppo per programma + finestra.
+func parsePresentMon(r io.Reader, prefer string) (*fpsResult, error) {
+	errNone := errors.New("nessun gioco visto: apri il gioco e tienilo davanti mentre misuro")
 	cr := csv.NewReader(r)
 	cr.FieldsPerRecord = -1
 	head, err := cr.Read()
 	if err != nil {
-		return nil, errors.New("nessun gioco visto: apri il gioco e tienilo davanti mentre misuro")
+		return nil, errNone
 	}
 	col := map[string]int{}
 	for i, h := range head {
-		col[strings.TrimSpace(strings.TrimPrefix(h, "\ufeff"))] = i
+		col[strings.TrimSpace(strings.TrimPrefix(h, "﻿"))] = i
 	}
 	ia, ok1 := col["Application"]
 	ip, ok2 := col["ProcessID"]
-	// Nome della colonna del tempo tra due fotogrammi: versione attuale, 1.x e 2.x di PresentMon.
+	is, okS := col["SwapChainAddress"]
+	// Colonna del tempo tra due fotogrammi: versione attuale, 1.x e 2.x di PresentMon.
 	it, ok3 := col["MsBetweenPresents"]
 	for _, alt := range []string{"msBetweenPresents", "FrameTime"} {
 		if !ok3 {
@@ -484,8 +769,8 @@ func parsePresentMon(r io.Reader) (*fpsResult, error) {
 		return nil, errors.New("il misuratore di FPS ha dato un risultato che non conosco")
 	}
 	type grp struct {
-		app string
-		ft  []float64
+		app, pid string
+		ft       []float64
 	}
 	groups := map[string]*grp{}
 	for {
@@ -501,26 +786,42 @@ func parsePresentMon(r io.Reader) (*fpsResult, error) {
 			continue
 		}
 		v, err := strconv.ParseFloat(rec[it], 64)
-		if err != nil || v <= 0 || v > 1000 { // NA o pause lunghissime (menu, caricamento)
+		// 0 = primo fotogramma; oltre 2 secondi = pausa, menu o cambio finestra, non uno scatto.
+		if err != nil || v <= 0 || v > 2000 {
 			continue
 		}
-		g := groups[rec[ip]]
+		key := rec[ip]
+		if okS && len(rec) > is {
+			key += "/" + rec[is]
+		}
+		g := groups[key]
 		if g == nil {
-			g = &grp{app: app}
-			groups[rec[ip]] = g
+			if len(groups) > 500 {
+				continue
+			}
+			g = &grp{app: app, pid: rec[ip]}
+			groups[key] = g
 		}
 		g.ft = append(g.ft, v)
 	}
 	var best *grp
+	isPref := func(g *grp) bool {
+		return prefer != "" && strings.EqualFold(safeName(strings.TrimSuffix(g.app, ".exe")), prefer)
+	}
 	for _, g := range groups {
-		if best == nil || len(g.ft) > len(best.ft) {
+		if len(g.ft) < 100 {
+			continue
+		}
+		if best == nil || (isPref(g) && !isPref(best)) || (isPref(g) == isPref(best) && len(g.ft) > len(best.ft)) {
 			best = g
 		}
 	}
-	if best == nil || len(best.ft) < 100 {
-		return nil, errors.New("nessun gioco visto: apri il gioco e tienilo davanti mentre misuro")
+	if best == nil {
+		return nil, errNone
 	}
-	return fpsStats(strings.TrimSuffix(best.app, ".exe"), best.ft), nil
+	res := fpsStats(safeName(strings.TrimSuffix(best.app, ".exe")), best.ft)
+	res.pid = best.pid
+	return res, nil
 }
 
 func fpsStats(app string, ft []float64) *fpsResult {
@@ -548,126 +849,88 @@ func fpsStats(app string, ft []float64) *fpsResult {
 	round := func(x float64) float64 { return math.Round(x*10) / 10 }
 	return &fpsResult{
 		Game: app, Seconds: round(total / 1000), Frames: len(ft),
-		Avg: round(float64(len(ft)) * 1000 / total), Low1: round(1000 / (slow / float64(n))), Stutter: stutter,
+		Avg: round(float64(len(ft)) * 1000 / total), Low1: round(1000 / (slow / float64(n))),
+		Stutter: stutter, StutterPM: round(float64(stutter) / (total / 60000)),
 	}
 }
 
-// ---------------- Boost automatico ----------------
-
-func setBoostAuto(on bool) string {
-	bMu.Lock()
-	s := loadBoost()
-	s.Auto = on
-	saveBoost()
-	wasAuto := s.On && s.ByAuto
-	bMu.Unlock()
-	if on {
-		// La modalità giusta per ogni gioco la mette la modalità gioco automatica.
-		setMu.Lock()
-		ag := settings.AutoGame
-		setMu.Unlock()
-		if !ag {
-			setAutoGame(true)
-		}
-		startBoostWatcher()
-		return "ok:Boost automatico acceso: quando apri un gioco il Tasso prepara il PC da solo e misura gli FPS."
+// fpsCompare: confronto onesto tra una misura senza Boost e una con. Una sola misura di gioco
+// libero varia facilmente del 5-10%: sotto queste soglie, o se FPS medi e cali vanno in direzioni
+// diverse, il risultato è "più o meno uguale". Guadagni e perdite sono trattati allo stesso modo.
+func fpsCompare(a, b *fpsResult) map[string]interface{} {
+	out := map[string]interface{}{"sameGame": strings.EqualFold(a.Game, b.Game)}
+	if a.Avg <= 0 || b.Avg <= 0 || a.Low1 <= 0 {
+		return out
 	}
-	if wasAuto {
-		go boostOff()
+	da := (b.Avg - a.Avg) / a.Avg * 100
+	dl := (b.Low1 - a.Low1) / a.Low1 * 100
+	out["avgPct"], out["lowPct"] = math.Round(da*10)/10, math.Round(dl*10)/10
+	var verdict string
+	switch {
+	case !strings.EqualFold(a.Game, b.Game):
+		verdict = "Le due misure sono di giochi diversi: non si possono confrontare."
+	case (da >= 5 && dl >= 0) || (dl >= 10 && da >= 0):
+		verdict = fmt.Sprintf("Con il Boost va meglio: FPS medi %+.0f%%, cali (1%% low) %+.0f%%. Vale se hai giocato nello stesso posto e con la stessa grafica.", da, dl)
+	case (da <= -5 && dl <= 0) || (dl <= -10 && da <= 0):
+		verdict = fmt.Sprintf("Con il Boost va peggio: FPS medi %+.0f%%, cali %+.0f%%. Può essere la scena; se succede di nuovo nello stesso posto, premi \"Rimetti com'era\".", da, dl)
+	default:
+		verdict = "Più o meno uguale: la differenza è dentro la variazione normale tra due momenti di gioco."
 	}
-	return "ok:Boost automatico spento."
+	out["verdict"] = verdict
+	return out
 }
 
-// startBoostWatcher: da chiamare all'avvio di Tasso (e quando accendi il Boost automatico).
-func startBoostWatcher() {
-	bAutoRun.Do(func() {
-		go func() {
-			defer guard("boost.go:watcher")
-			var missing int
-			var measured string
-			var since time.Time
-			t := time.NewTicker(10 * time.Second)
-			defer t.Stop()
-			for range t.C {
-				bMu.Lock()
-				s := loadBoost()
-				auto, on, byAuto, game := s.Auto, s.On, s.ByAuto, s.Game
-				bMu.Unlock()
-				setMu.Lock()
-				paused := settings.Paused
-				setMu.Unlock()
-				name := ""
-				if auto && !paused {
-					name = runningGame()
-				}
-				switch {
-				case name != "" && !on:
-					missing, measured, since = 0, "", time.Now()
-					msgs := boostOn(name, true)
-					emit("onBoost", map[string]interface{}{"msgs": msgs, "state": boostInfo(), "auto": true})
-				case name != "" && on && byAuto:
-					missing = 0
-					if !strings.EqualFold(name, game) { // un altro gioco: aggiorno il nome
-						bMu.Lock()
-						s.Game = name
-						saveBoost()
-						bMu.Unlock()
-						measured, since = "", time.Now()
-					}
-					// Una misura per partita, dopo 2 minuti di gioco (così salto il caricamento).
-					if measured != name && time.Since(since) > 2*time.Minute {
-						measured = name
-						go func(g string) {
-							defer guard("boost.go:automeasure")
-							if r, err := fpsMeasure(0, 60, true); err == nil {
-								emit("onFpsAuto", map[string]interface{}{"game": g, "result": r})
-							}
-						}(name)
-					}
-				case name == "" && on && byAuto:
-					missing++
-					if missing >= 6 || !auto || paused { // un minuto senza giochi aperti
-						missing = 0
-						msgs := boostOff()
-						emit("onBoost", map[string]interface{}{"msgs": msgs, "state": boostInfo(), "auto": true})
-					}
-				}
-			}
-		}()
-	})
-}
-
-// fpsHistory: le ultime misure di ogni gioco, per la schermata.
-func fpsHistory() map[string][]*fpsResult {
+// fpsSummary: per ogni gioco l'ultima misura senza Boost, l'ultima con Boost e il confronto.
+func fpsSummary() map[string]interface{} {
 	bMu.Lock()
 	defer bMu.Unlock()
-	out := map[string][]*fpsResult{}
-	for k, v := range loadBoost().History {
-		out[k] = append([]*fpsResult(nil), v...)
+	out := map[string]interface{}{}
+	for k, list := range loadBoost().History {
+		var off, on *fpsResult
+		for _, r := range list {
+			if r.Boost {
+				on = r
+			} else {
+				off = r
+			}
+		}
+		e := map[string]interface{}{"without": off, "with": on, "list": list}
+		if off != nil && on != nil {
+			e["compare"] = fpsCompare(off, on)
+		}
+		out[k] = e
 	}
 	return out
 }
 
+// ---------------- Collegamento all'interfaccia ----------------
+
 // bindBoost collega il Boost all'interfaccia (una riga in main.go) e fa ripartire il Boost
 // automatico se era acceso.
 func bindBoost(w webview2.WebView) {
-	_ = w.Bind("goBoostAll", func(measure bool) string { return async("boostall", func() { boostWithMeasure(measure) }) })
+	_ = w.Bind("goBoostAll", func() string {
+		return async("boostall", func() { emit("onBoost", map[string]interface{}{"msgs": boostOn(), "state": boostInfo()}) })
+	})
 	_ = w.Bind("goBoostAllOff", func() string {
-		return async("boostall", func() { emit("onBoost", map[string]interface{}{"msgs": boostOff(), "state": boostInfo()}) })
+		return async("boostoff", func() { emit("onBoost", map[string]interface{}{"msgs": boostOff(), "state": boostInfo()}) })
 	})
 	_ = w.Bind("goBoostInfo", func() map[string]interface{} { return boostInfo() })
 	_ = w.Bind("goBoostAuto", func(on bool) string { return setBoostAuto(on) })
 	_ = w.Bind("goFpsMeasure", func() string {
 		return async("fps", func() {
-			r, err := fpsMeasure(10, 30, false)
+			bMu.Lock()
+			s := loadBoost()
+			boosted := s.On || s.Auto
+			bMu.Unlock()
+			r, err := fpsMeasure(10, 30, boosted, true, safeName(runningGame()))
 			if err != nil {
 				emit("onFps", map[string]interface{}{"ok": false, "msg": err.Error()})
 				return
 			}
-			emit("onFps", map[string]interface{}{"ok": true, "result": r})
+			emit("onFps", map[string]interface{}{"ok": true, "result": r, "summary": fpsSummary()})
 		})
 	})
-	_ = w.Bind("goFpsHistory", func() map[string][]*fpsResult { return fpsHistory() })
+	_ = w.Bind("goFpsSummary", func() map[string]interface{} { return fpsSummary() })
 	bMu.Lock()
 	auto := loadBoost().Auto
 	bMu.Unlock()
