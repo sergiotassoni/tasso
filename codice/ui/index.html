@@ -711,7 +711,7 @@ details.navmore[open]{display:flex;flex-direction:column;gap:2px}
 <section class="view" id="v-games">
   <div><h1 style="font-size:26px">Gioca</h1><p class="sub">Premi il tasto e Tasso prepara il PC per giocare. Quando hai finito, rimette tutto com'era.</p></div>
   <div class="card boostcard" id="boostCard">
-    <div style="flex:1 1 320px;min-width:0"><div class="boostk">PRONTO A GIOCARE</div><h2 id="boostTitle">Il PC è in modalità normale</h2><p class="sub" id="boostSub" style="margin:0">Boost chiude i programmi inutili e mette il PC al massimo per giocare. Quando hai finito, rimette tutto com'era.</p><p class="small" style="margin:10px 0 0"><a href="#" id="boostUndo">↩️ Rimetti com'era</a></p></div>
+    <div style="flex:1 1 320px;min-width:0"><div class="boostk">PRONTO A GIOCARE</div><h2 id="boostTitle">Il PC è in modalità normale</h2><p class="sub" id="boostSub" style="margin:0">Boost chiude i programmi in background che non servono, mette il PC al massimo per giocare e misura gli FPS veri. Quando hai finito, rimette tutto com'era.</p><p class="small" style="margin:10px 0 0"><a href="#" id="boostUndo">↩️ Rimetti com'era</a> · <a href="#" id="boostFpsBtn">📊 Misura gli FPS</a></p><p class="small" style="margin:8px 0 0"><label style="cursor:pointer"><input type="checkbox" id="boostAuto"> Boost automatico: parte da solo quando apri un gioco e si spegne quando lo chiudi</label></p><div class="small" id="boostFps" style="margin-top:8px"></div></div>
     <button class="btn primary boostgo" id="btnBoost" aria-label="Boost: prepara il PC per giocare">🚀<br>BOOST</button>
   </div>
   <div class="card" style="display:flex;flex-direction:column;gap:12px">
@@ -1507,15 +1507,74 @@ function paintModes(){
   boostPaint();
 }
 /* ---------- Gioca: pulsante BOOST (3.1) ----------
-   Per ora usa "Ottimizza prima di giocare" (in Altre opzioni); la versione con FPS prima/dopo si collega qui. */
+   Logica in boost.go: Boost, Rimetti com'era, Boost automatico e misura FPS (PresentMon). */
 function boostPaint(){
   const t = $('#boostTitle'); if (!t) return;
   const cur = MODES.find(m => m.id === (S.mode || 'normale'));
   t.textContent = cur ? (EN ? 'The PC is in ' + cur.name + ' mode' : 'Il PC è in modalità ' + cur.name) : _t('Il PC ha le impostazioni originali di Windows');
+  if (typeof boostPaintState === 'function' && $('#boostAuto')) boostPaintState();
 }
-function boostOpenTools(){ const m = $('#gamesMore'); if (m) m.open = true; const c = $('#bsList'); if (c) c.scrollIntoView({behavior:'smooth', block:'center'}); }
-$('#btnBoost').onclick = () => { boostOpenTools(); $('#btnBsScan').click(); toast(_t('Cerco i programmi pesanti: spunta quelli da chiudere e premi "Ottimizza e gioca".')); };
-$('#boostUndo').onclick = (e) => { e.preventDefault(); const b = $('#btnBsEnd'); if (b && b.style.display !== 'none' && !b.disabled) { b.click(); toast(_t('Rimetto tutto com\'era…')); } else toast(_t('Non c\'è niente da rimettere: Boost non è acceso.')); };
+var BST = {};
+async function boostRefresh(){ BST = (await call('goBoostInfo')) || {}; boostPaint(); }
+function boostPaintState(){
+  const on = !!(BST.on || BST.game);
+  $('#btnBoost').classList.toggle('on', on);
+  $('#btnBoost').innerHTML = on ? _t('✅<br>ACCESO') : _t('🚀<br>BOOST');
+  const a = $('#boostAuto'); if (a) a.checked = !!BST.auto;
+  const k = $('#boostCard .boostk'); if (k) k.textContent = BST.game ? _t('BOOST AUTOMATICO: ') + BST.game : on ? _t('BOOST ACCESO') : _t('PRONTO A GIOCARE');
+}
+function fpsLine(r){
+  if (!r) return '';
+  return esc(r.game) + ': <b>' + Math.round(r.avg) + _t(' FPS medi</b>, cali (1% low) ') + Math.round(r.low1) + ', ' + r.stutterPm + _t(' scatti al minuto') + (r.boost ? _t(' · con Boost') : _t(' · senza Boost'));
+}
+function paintFps(r, summary){
+  const box = $('#boostFps'); if (!box) return;
+  if (!r) { box.innerHTML = ''; return; }
+  let h = '<div>' + fpsLine(r) + '</div>';
+  const e = summary && summary[String(r.game).toLowerCase()];
+  if (e && e.compare && e.compare.verdict) h += '<div style="margin-top:4px">' + esc(e.compare.verdict) + '</div>';
+  else if (!r.boost) h += '<div class="muted" style="margin-top:4px">' + _t('Ora premi BOOST, riapri il gioco e misura di nuovo nello stesso posto: ti dico la differenza vera.') + '</div>';
+  else h += '<div class="muted" style="margin-top:4px">' + _t('Per un confronto serve anche una misura senza Boost (premi "Rimetti com\'era", poi misura).') + '</div>';
+  h += '<div class="muted" style="margin-top:4px">' + _t('I fotogrammi creati dalla generazione di fotogrammi (frame generation) non sono contati.') + '</div>';
+  box.innerHTML = h;
+}
+$('#btnBoost').onclick = async () => {
+  if (BST.on) { toast(_t('Il Boost è già acceso. Per spegnerlo premi "Rimetti com\'era".')); return; }
+  const r = await call('goBoostAll'); if (r === 'busy') { toast(_t('Un attimo, sto ancora finendo.')); return; }
+  $('#btnBoost').disabled = true; toast(_t('Preparo il PC per giocare…'), 'var(--a3)');
+};
+$('#boostUndo').onclick = async (e) => {
+  e.preventDefault();
+  if (!BST.on && !BST.auto) { toast(_t('Non c\'è niente da rimettere: il Boost non è acceso.')); return; }
+  const r = await call('goBoostAllOff'); if (r === 'busy') { toast(_t('Un attimo, sto ancora finendo.')); return; }
+  toast(_t('Rimetto tutto com\'era…'));
+};
+$('#boostAuto').onchange = async (e) => {
+  const r = await call('goBoostAuto', e.target.checked);
+  if (r) toast(String(r).replace(/^ok:/, ''), 'var(--a3)');
+  setTimeout(boostRefresh, 1500);
+};
+$('#boostFpsBtn').onclick = async (e) => {
+  e.preventDefault();
+  const r = await call('goFpsMeasure');
+  if (r === 'busy') { toast(_t('C\'è già una misura in corso.')); return; }
+  $('#boostFps').textContent = _t('Torna nel gioco entro 10 secondi e gioca normalmente: misuro per 30 secondi. Un bip quando inizio, due quando ho finito.');
+};
+Object.assign(window.tasso, {
+  onBoost(r){
+    $('#btnBoost').disabled = false;
+    (r && r.msgs || []).slice(0, 6).forEach(m => toast(m, 'var(--a3)'));
+    if (r && r.state) BST = r.state;
+    boostPaintState();
+    setTimeout(async () => { await refreshS(); paintModes(); }, 2500);
+  },
+  onFps(r){
+    if (!r || !r.ok) { $('#boostFps').textContent = (r && r.msg) || _t('Misura non riuscita: riprova.'); return; }
+    paintFps(r.result, r.summary);
+  },
+  onFpsAuto(r){ if (r && r.result) call('goFpsSummary').then(s => paintFps(r.result, s)); }
+});
+call('goBoostInfo').then(b => { BST = b || {}; boostPaintState(); });
 function askMode(m){
   const warn = [];
   const ramGB = HW && HW.ram && HW.ram.total ? HW.ram.total / 1073741824 : (LIVE && LIVE.ramTotal ? LIVE.ramTotal / 1073741824 : 16);

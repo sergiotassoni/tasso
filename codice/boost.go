@@ -753,7 +753,7 @@ func parsePresentMon(r io.Reader, prefer string) (*fpsResult, error) {
 	}
 	col := map[string]int{}
 	for i, h := range head {
-		col[strings.TrimSpace(strings.TrimPrefix(h, "﻿"))] = i
+		col[strings.TrimSpace(strings.TrimPrefix(h, "\ufeff"))] = i
 	}
 	ia, ok1 := col["Application"]
 	ip, ok2 := col["ProcessID"]
