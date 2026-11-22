@@ -429,6 +429,7 @@ func bindAll(w webview2.WebView) {
 	_ = w.Bind("goBoostScan", func() string { return async("boostscan", boostScan) })
 	_ = w.Bind("goBoostStart", func(names []string) string { return async("boost", func() { boostStart(names) }) })
 	_ = w.Bind("goBoostEnd", func() string { return async("boost", boostEnd) })
+	bindBoost(w) // Boost 3.1 (boost.go)
 	_ = w.Bind("goAutoClickSet", func(c acConfig) string { return autoClickSet(c) })
 	_ = w.Bind("goAutoClickStart", func() string { return autoClickStart(false) })
 	_ = w.Bind("goAutoClickStop", func() string { return autoClickStop() })
