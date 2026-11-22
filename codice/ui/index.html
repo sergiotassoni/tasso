@@ -955,6 +955,13 @@ dl.sum{display:grid;grid-template-columns:max-content 1fr;gap:6px 14px;margin:0}
     <div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(min(300px,100%),1fr));gap:10px" id="gcList"></div>
   </div>
 
+  <div class="card" id="bkCard" style="display:flex;flex-direction:column;gap:10px">
+    <h2>🛑 Cosa chiude il Boost</h2>
+    <p class="sub" style="margin:0">Chiude solo i programmi di sincronizzazione e chat <b>aperti in sottofondo, senza finestra</b>, con gentilezza, e li riapre a fine partita. <b>Non chiude mai</b> Discord, OBS e i programmi per lo stream, Spotify, Steam e gli altri launcher, i browser, e niente che abbia una finestra aperta.</p>
+    <b>Non chiudere mai anche</b>
+    <div class="row wrap" id="bkList" style="gap:8px"></div>
+    <span class="small muted">Tocca un programma: con la ✓ il Boost lo lascia sempre aperto.</span>
+  </div>
   <div class="row wrap" style="align-items:stretch;gap:18px">
     <div class="card" id="bsCard" style="flex:1 1 380px;display:none;flex-direction:column;gap:12px">
       <div class="row wrap" style="justify-content:space-between"><div><h2>Ottimizza prima di giocare</h2><p class="sub" style="margin:2px 0 0" id="bsMsg">Chiude i programmi pesanti che non servono, mette la modalità Gaming. Con "Rimetti com'era" torna tutto come prima e riapre i programmi chiusi.</p></div></div>
@@ -2705,6 +2712,8 @@ async function setLook(p){
   S.profile = p; S.onboarded = true;
   applyLook(); repaintLook();
   if (p === 'ufficio' && (CURVIEW === 'games' || CURVIEW === 'perf')) show('home');
+  // 3.1: in Ufficio niente giochi e niente traduzione: se era accesa la spengo (tasti F7 liberi)
+  if (p === 'ufficio' && typeof TT !== 'undefined' && TT && TT.acceso) { call('ttAccendi', false).then(() => { if (typeof ttRefresh === 'function') ttRefresh(); }); }
   if (p !== 'ufficio' && !S.showAll && CURVIEW === 'perf') show('home');
   if (p === 'ufficio' && (S.mode === 'gaming' || S.mode === 'fps')) toast(_t('Modalità Ufficio attiva. Il PC però è ancora in modalità ') + (S.mode === 'fps' ? 'FPS' : 'Gaming') + _t(' (consuma di più).'), 'var(--a3)', {label:_t('Metti Normale'), fn: () => { call('goSetMode', 'normale'); toast(_t('Metto la modalità Normale…')); }});
   else if (p === 'ufficio' && (S.autoGame || S.overlayOn)) toast(_t('Modalità Ufficio attiva. Sono ancora accese funzioni da gioco (') + [S.autoGame ? _t('Boost automatico') : '', S.overlayOn ? _t('pannellino in gioco') : ''].filter(Boolean).join(_t(' e ')) + ').', 'var(--a3)', {label:_t('Spegnile'), fn: async () => { if (S.autoGame) await call('goSetAutoGame', false); if (S.overlayOn) await call('goOverlaySet', false, S.overlayPos || 'dx'); await refreshS(); paintSettings(); toast(_t('Funzioni da gioco spente.')); }});
@@ -3498,6 +3507,27 @@ function wzProgress(x){
   const m = $('#gwMsg'); if (m) m.textContent = tx(x.testo || '');
 }
 ttRefresh();
+
+// ---- 3.1 "Non chiudere mai anche"
+const BKN = {'onedrive.exe':'OneDrive','dropbox.exe':'Dropbox','googledrivefs.exe':'Google Drive','icloudservices.exe':'iCloud','iclouddrive.exe':'iCloud Drive','teams.exe':'Teams','zoom.exe':'Zoom','skype.exe':'Skype'};
+let BK = null;
+async function paintBoostKeep(){
+  BK = await call('goBoostKeep') || {closable:[], keep:[]};
+  const box = $('#bkList'); if (!box) return; box.innerHTML = '';
+  const keep = BK.keep || [];
+  (BK.closable || []).forEach(x => {
+    const on = keep.indexOf(x) >= 0;
+    const b = el('button', {class:'btn ' + (on ? 'primary' : 'ghost'), 'aria-pressed': on ? 'true' : 'false', style:'min-height:34px;padding:6px 12px;font-size:13px'}, (on ? '✓ ' : '') + esc(BKN[x] || x.replace(/\.exe$/, '')));
+    b.onclick = async () => {
+      const k = (BK.keep || []).filter(y => y !== x); if (!on) k.push(x);
+      const r = await call('goSetBoostKeep', k);
+      if (r === 'ok') toast(on ? (BKN[x] || x) + _t(': il Boost può chiuderlo di nuovo.') : (BKN[x] || x) + _t(': il Boost lo lascia sempre aperto.'), 'var(--a3)'); else toast(_t('Non sono riuscito a salvare.'), 'var(--a4)');
+      paintBoostKeep();
+    };
+    box.appendChild(b);
+  });
+}
+paintBoostKeep();
 
 // ---------- Regola con Tasso ----------
 let TUNE = null, TUNE_P = '';

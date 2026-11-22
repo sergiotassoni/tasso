@@ -274,8 +274,12 @@ func boostCmdsOff() int {
 // girano senza finestra. Restituisce i nomi chiusi.
 func closeBackground() []string {
 	withWin := pidsWithWindow(1, 1)
+	keep := boostKeepSet()
 	var names []string
 	for exe := range boostClosable {
+		if keep[exe] {
+			continue // "Non chiudere mai anche": scelto da te
+		}
 		pids := pidsByExe(exe)
 		if len(pids) == 0 {
 			continue

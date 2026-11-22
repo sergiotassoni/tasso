@@ -4234,6 +4234,16 @@
   "Da ora, quando apri ": "From now on, when you open ",
   ", Tasso mette la potenza scelta.": ", Tasso sets the chosen power.",
   "Il traduttore non ha risposto: riprova.": "The translator did not answer: try again.",
-  "Non sono riuscito a partire.": "I could not start."
+  "Non sono riuscito a partire.": "I could not start.",
+  "Cosa chiude il Boost": "What the Boost closes",
+  "Non chiudere mai anche": "Also never close",
+  "Tocca un programma: con la ✓ il Boost lo lascia sempre aperto.": "Tap a program: with the ✓ the Boost always leaves it open.",
+  ": il Boost può chiuderlo di nuovo.": ": the Boost can close it again.",
+  ": il Boost lo lascia sempre aperto.": ": the Boost always leaves it open.",
+  "Chiude solo i programmi di sincronizzazione e chat": "It only closes sync and chat programs",
+  "aperti in sottofondo, senza finestra": "running in the background, without a window",
+  ", con gentilezza, e li riapre a fine partita.": ", gently, and reopens them when you finish playing.",
+  "Non chiude mai": "It never closes",
+  "Discord, OBS e i programmi per lo stream, Spotify, Steam e gli altri launcher, i browser, e niente che abbia una finestra aperta.": "Discord, OBS and streaming programs, Spotify, Steam and the other launchers, browsers, or anything with an open window."
  }
 }
