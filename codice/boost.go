@@ -333,19 +333,26 @@ func reopenBackground() []string {
 // ---------------- Accendi / spegni (pulsante) ----------------
 
 func boostOn() []string {
+	msgs, _ := boostOnOK()
+	return msgs
+}
+
+// boostOnOK: come boostOn, e dice anche se il Boost è stato acceso adesso (false = rifiutato:
+// Tasso spento o Boost già acceso).
+func boostOnOK() ([]string, bool) {
 	bOpMu.Lock()
 	defer bOpMu.Unlock()
 	setMu.Lock()
 	paused, mode := settings.Paused, settings.Mode
 	setMu.Unlock()
 	if paused {
-		return []string{"Tasso è spento: riaccendilo per usare il Boost."}
+		return []string{"Tasso è spento: riaccendilo per usare il Boost."}, false
 	}
 	bMu.Lock()
 	s := loadBoost()
 	if s.On {
 		bMu.Unlock()
-		return []string{"Il Boost è già acceso."}
+		return []string{"Il Boost è già acceso."}, false
 	}
 	s.On = true
 	saveBoost()
@@ -379,7 +386,7 @@ func boostOn() []string {
 	if len(msgs) == 0 {
 		msgs = append(msgs, "Il PC era già pronto per giocare: non c'era niente da cambiare.")
 	}
-	return msgs
+	return msgs, true
 }
 
 // restoreBoostMode rimette la modalità di prima, se l'ha cambiata il Boost e non l'hai cambiata tu.
@@ -1008,8 +1015,11 @@ func fpsSummary() map[string]interface{} {
 func bindBoost(w webview2.WebView) {
 	_ = w.Bind("goBoostAll", func() string {
 		return async("boostall", func() {
-			emit("onBoost", map[string]interface{}{"msgs": boostOn(), "state": boostInfo()})
-			fpsAutoFix(true)
+			msgs, ok := boostOnOK()
+			emit("onBoost", map[string]interface{}{"msgs": msgs, "state": boostInfo()})
+			if ok { // niente sistemazioni se il Boost ha rifiutato (Tasso spento o già acceso)
+				fpsAutoFix(true)
+			}
 		})
 	})
 	_ = w.Bind("goBoostAllOff", func() string {

@@ -664,6 +664,12 @@ func gpuPrefRestore(prev map[string]string) {
 //     confermare; mai durante una partita, perché non potresti vedere la conferma
 //   - il resto (grafica nel gioco, BIOS, cavi, polvere) si fa a mano: il Tasso spiega come
 func fpsAutoFix(interactive bool) {
+	setMu.Lock()
+	paused := settings.Paused
+	setMu.Unlock()
+	if paused { // Tasso spento: non cambio niente (né schermo né registro)
+		return
+	}
 	r := fpsCheck()
 	found, _ := r["found"].([]fpsFinding)
 	var left []fpsFinding
