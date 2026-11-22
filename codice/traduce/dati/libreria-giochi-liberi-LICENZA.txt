@@ -1,0 +1,24 @@
+Libreria di traduzioni (libreria-giochi-liberi.tsv.gz)
+
+Frasi inglesi con la traduzione italiana fatta a mano dai traduttori volontari di questi giochi
+liberi, prese dai loro file di traduzione (.po) il 22/11/2026. Ogni file è distribuito con la
+stessa licenza del gioco; tutte sono compatibili con la GPL-3.0 di Tasso Traduce.
+
+- The Battle for Wesnoth — https://github.com/wesnoth/wesnoth (po/*/it.po) — GPL-2.0-or-later
+- SuperTuxKart — https://github.com/supertuxkart/stk-code (data/po/it.po) — GPL-3.0-or-later
+- 0 A.D. Empires Ascendant — https://github.com/0ad/0ad (binaries/data/mods/public/l10n/it.*.po) — GPL-2.0-or-later
+- Luanti — https://github.com/luanti-org/luanti (po/it/luanti.po) — LGPL-2.1-or-later
+- Freeciv — https://github.com/freeciv/freeciv (translations/core/it.po) — GPL-2.0-or-later
+
+I nomi dei traduttori sono nelle intestazioni dei file .po originali. Grazie a tutti loro.
+Tenute solo le traduzioni non "fuzzy", senza segnaposto, su una riga; le 1000 frasi di prova di
+Tasso Traduce sono state tolte, così la misura della qualità resta onesta.
+
+Librerie per le altre lingue (cartella librerie\libreria-XX.tsv.gz: fr, de, es, pt, pl, ru, ja,
+ko, zh = cinese semplificato, zt = cinese tradizionale, da, fi, nb, sv, tr)
+
+Stesse fonti e stesse licenze (Wesnoth, SuperTuxKart, Luanti, Freeciv; i file di 0 A.D. per queste
+lingue non sono stati scaricati), file .po della lingua corrispondente presi il 22/11/2026.
+Anche da queste sono state tolte le 1000 frasi di prova di Tasso Traduce e le frasi inglesi
+FLORES-200 usate per misurare le altre lingue. Si usano solo per le frasi identiche di 4 o
+più parole, dall'inglese verso quella lingua.

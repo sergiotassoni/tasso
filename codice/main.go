@@ -14,6 +14,8 @@ import (
 
 	webview2 "github.com/jchv/go-webview2"
 	"golang.org/x/sys/windows"
+
+	"tasso/traduce"
 )
 
 //go:embed ui/index.html
@@ -144,6 +146,16 @@ func main() {
 	defer w.Destroy()
 
 	bindAll(w)
+	// Tasso Traduce (sezione Traduci): collegamenti prima di caricare la pagina; il resto parte
+	// in sottofondo e non legge lo schermo finché non accendi la traduzione.
+	traduce.Prepara(w, filepath.Join(appDir, "WebView2"))
+	if !scheduledRun.Load() {
+		go func() {
+			defer guard("traduce")
+			traduce.Avvia()
+		}()
+	}
+	defer traduce.Chiudi()
 	startLiveMonitor()
 	startGameWatcher()
 	startOverlay()

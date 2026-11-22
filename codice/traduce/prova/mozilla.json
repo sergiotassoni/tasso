@@ -1,0 +1,805 @@
+{
+ "load": 2165.3000000000466,
+ "out": [
+  {
+   "id": 1,
+   "genere": "rpg",
+   "en": "The bridge to the northern valley collapsed last winter.",
+   "ref": "Il ponte verso la valle settentrionale è crollato lo scorso inverno.",
+   "hyp": "Il ponte verso la valle settentrionale è crollato lo scorso inverno.",
+   "ms": 27.199999999953434
+  },
+  {
+   "id": 2,
+   "genere": "rpg",
+   "en": "Take this lantern. The mines are darker than you think.",
+   "ref": "Prendi questa lanterna. Le miniere sono più buie di quanto pensi.",
+   "hyp": "Prendi questa lanterna. Le miniere sono più oscure di quanto pensi.",
+   "ms": 41.20000000006985
+  },
+  {
+   "id": 3,
+   "genere": "rpg",
+   "en": "Healing potions are 20 gold each. Want some?",
+   "ref": "Le pozioni curative costano 20 monete d'oro l'una. Ne vuoi qualcuna?",
+   "hyp": "Le pozioni di invecchiamento sono 20 oro ciascuno. Ne vuoi un po'?",
+   "ms": 33.699999999953434
+  },
+  {
+   "id": 4,
+   "genere": "rpg",
+   "en": "You've got guts, kid. I'll give you that.",
+   "ref": "Hai fegato, ragazzo. Questo te lo concedo.",
+   "hyp": "Hai il coraggio, ragazzo. - Ti do io.",
+   "ms": 22.900000000023283
+  },
+  {
+   "id": 5,
+   "genere": "rpg",
+   "en": "The king hasn't left the castle in three years.",
+   "ref": "Il re non lascia il castello da tre anni.",
+   "hyp": "Il re non ha lasciato il castello da tre anni.",
+   "ms": 30.800000000046566
+  },
+  {
+   "id": 6,
+   "genere": "rpg",
+   "en": "If you see the hooded man again, don't follow him.",
+   "ref": "Se rivedi l'uomo incappucciato, non seguirlo.",
+   "hyp": "Se vedi di nuovo l'uomo incappucciato, non seguirlo.",
+   "ms": 27.79999999993015
+  },
+  {
+   "id": 7,
+   "genere": "rpg",
+   "en": "Your sword is dull. Let me sharpen it for you.",
+   "ref": "La tua spada è smussata. Lascia che te la affili.",
+   "hyp": "La tua spada è noiosa. Lascia che te lo affidi.",
+   "ms": 29.70000000006985
+  },
+  {
+   "id": 8,
+   "genere": "rpg",
+   "en": "We leave at dawn, whether you're ready or not.",
+   "ref": "Partiamo all'alba, che tu sia pronto o no.",
+   "hyp": "Partiamo all'alba, che tu sia pronto o no.",
+   "ms": 23.099999999976717
+  },
+  {
+   "id": 9,
+   "genere": "rpg",
+   "en": "I owe you one. Come find me if you ever need a hand.",
+   "ref": "Te ne devo una. Vienimi a cercare se mai ti servisse una mano.",
+   "hyp": "Ti devo un'altra. Vieni a trovarmi se mai hai bisogno di una mano.",
+   "ms": 42.90000000002328
+  },
+  {
+   "id": 10,
+   "genere": "rpg",
+   "en": "The old witch lives past the swamp, but nobody comes back from there.",
+   "ref": "La vecchia strega vive oltre la palude, ma da lì non torna nessuno.",
+   "hyp": "La vecchia strega vive oltre la palude, ma nessuno torna da lì.",
+   "ms": 36
+  },
+  {
+   "id": 11,
+   "genere": "rpg",
+   "en": "Don't touch that! It's cursed.",
+   "ref": "Non toccarlo! È maledetto.",
+   "hyp": "Non toccarlo! E' maledetta.",
+   "ms": 33.89999999990687
+  },
+  {
+   "id": 12,
+   "genere": "rpg",
+   "en": "Rest here for the night. The roads aren't safe after dark.",
+   "ref": "Riposa qui stanotte. Le strade non sono sicure dopo il tramonto.",
+   "hyp": "Riposa qui per la notte. Le strade non sono sicure dopo il tramonto.",
+   "ms": 25.100000000093132
+  },
+  {
+   "id": 13,
+   "genere": "rpg",
+   "en": "My brother went hunting a week ago and never came back.",
+   "ref": "Mio fratello è andato a caccia una settimana fa e non è più tornato.",
+   "hyp": "Mio fratello è andato a caccia una settimana fa e non è mai tornato.",
+   "ms": 22.699999999953434
+  },
+  {
+   "id": 14,
+   "genere": "rpg",
+   "en": "So you're the one everyone's been talking about.",
+   "ref": "Quindi sei tu quello di cui parlano tutti.",
+   "hyp": "Quindi sei tu quello di cui tutti parlano.",
+   "ms": 19.400000000023283
+  },
+  {
+   "id": 15,
+   "genere": "rpg",
+   "en": "The guards won't let you through without a permit.",
+   "ref": "Le guardie non ti faranno passare senza un lasciapassare.",
+   "hyp": "Le guardie non ti permetteranno di passare senza un permesso.",
+   "ms": 25.900000000023283
+  },
+  {
+   "id": 16,
+   "genere": "rpg",
+   "en": "Bring me three wolf pelts and I'll make you a cloak.",
+   "ref": "Portami tre pelli di lupo e ti farò un mantello.",
+   "hyp": "Portami tre pelli di lupo e ti faccio un mantello.",
+   "ms": 25.099999999976717
+  },
+  {
+   "id": 17,
+   "genere": "rpg",
+   "en": "Watch your step. These ruins are older than the kingdom itself.",
+   "ref": "Attento a dove metti i piedi. Queste rovine sono più antiche del regno stesso.",
+   "hyp": "Attento al tuo passo. Queste rovine sono più antiche del regno stesso.",
+   "ms": 23.900000000023283
+  },
+  {
+   "id": 18,
+   "genere": "rpg",
+   "en": "I'm not a hero. I just didn't want to die today.",
+   "ref": "Non sono un eroe. Solo che oggi non volevo morire.",
+   "hyp": "Non sono un eroe. Non volevo morire oggi.",
+   "ms": 22.5
+  },
+  {
+   "id": 19,
+   "genere": "rpg",
+   "en": "There's a storm coming. Better find shelter.",
+   "ref": "Sta arrivando una tempesta. Meglio trovare un riparo.",
+   "hyp": "C'e' una tempesta in arrivo. Meglio trovare un riparo.",
+   "ms": 20.900000000023283
+  },
+  {
+   "id": 20,
+   "genere": "rpg",
+   "en": "You can't buy loyalty, but you can rent it for a while.",
+   "ref": "La lealtà non si compra, ma la si può affittare per un po'.",
+   "hyp": "Non puoi comprare la lealtà, ma puoi affittarla per un po '.",
+   "ms": 25.29999999993015
+  },
+  {
+   "id": 21,
+   "genere": "shooter",
+   "en": "Enemy sniper on the roof! Get down!",
+   "ref": "Cecchino nemico sul tetto! Giù!",
+   "hyp": "Nemico cecchino sul tetto! Mettiti giu'!",
+   "ms": 29.300000000046566
+  },
+  {
+   "id": 22,
+   "genere": "shooter",
+   "en": "Reloading, cover me!",
+   "ref": "Ricarico, coprimi!",
+   "hyp": "Ricaricare, coprimi!",
+   "ms": 14.199999999953434
+  },
+  {
+   "id": 23,
+   "genere": "shooter",
+   "en": "We need to hold this position until the chopper arrives.",
+   "ref": "Dobbiamo tenere questa posizione finché non arriva l'elicottero.",
+   "hyp": "Dobbiamo mantenere questa posizione fino all'arrivo dell'elicottero.",
+   "ms": 19.800000000046566
+  },
+  {
+   "id": 24,
+   "genere": "shooter",
+   "en": "Grenade out!",
+   "ref": "Granata!",
+   "hyp": "Granata fuori!",
+   "ms": 9.79999999993015
+  },
+  {
+   "id": 25,
+   "genere": "shooter",
+   "en": "Two hostiles down. Moving to the next room.",
+   "ref": "Due nemici a terra. Passo alla stanza successiva.",
+   "hyp": "Due ostili a valle. Traslocare nella stanza accanto.",
+   "ms": 18.900000000023283
+  },
+  {
+   "id": 26,
+   "genere": "shooter",
+   "en": "I'm hit! I need a medic!",
+   "ref": "Sono stato colpito! Mi serve un medico!",
+   "hyp": "Sono colpito! Ho bisogno di un medico!",
+   "ms": 17.599999999976717
+  },
+  {
+   "id": 27,
+   "genere": "shooter",
+   "en": "Check your corners and stay quiet.",
+   "ref": "Controlla gli angoli e resta in silenzio.",
+   "hyp": "Controlla i tuoi angoli e stai tranquillo.",
+   "ms": 14.20000000006985
+  },
+  {
+   "id": 28,
+   "genere": "shooter",
+   "en": "Ammo's running low. Grab whatever you can find.",
+   "ref": "Le munizioni stanno finendo. Prendi tutto quello che trovi.",
+   "hyp": "Ammo sta correndo basso. Afferra tutto quello che puoi trovare.",
+   "ms": 23.29999999993015
+  },
+  {
+   "id": 29,
+   "genere": "shooter",
+   "en": "Fall back to the extraction point, now!",
+   "ref": "Ripiegate sul punto di estrazione, subito!",
+   "hyp": "Ritorno al punto di estrazione, ora!",
+   "ms": 15.70000000006985
+  },
+  {
+   "id": 30,
+   "genere": "shooter",
+   "en": "That was too close. Nice shot, though.",
+   "ref": "C'è mancato poco. Bel colpo, però.",
+   "hyp": "E' stato troppo vicino. Bel colpo, pero'.",
+   "ms": 16.699999999953434
+  },
+  {
+   "id": 31,
+   "genere": "shooter",
+   "en": "The bomb is planted. Defend the site.",
+   "ref": "La bomba è piazzata. Difendete il sito.",
+   "hyp": "La bomba è piantata. Difendere il sito.",
+   "ms": 19
+  },
+  {
+   "id": 32,
+   "genere": "shooter",
+   "en": "Stay on my six and don't shoot unless I say so.",
+   "ref": "Restami alle spalle e non sparare se non te lo dico io.",
+   "hyp": "Rimani sui sei e non sparare a meno che non lo dica.",
+   "ms": 23
+  },
+  {
+   "id": 33,
+   "genere": "horror",
+   "en": "Did you hear that? Something's moving upstairs.",
+   "ref": "L'hai sentito? Qualcosa si muove al piano di sopra.",
+   "hyp": "L'hai sentito? Qualcosa si muove di sopra.",
+   "ms": 20.900000000023283
+  },
+  {
+   "id": 34,
+   "genere": "horror",
+   "en": "Don't turn off the flashlight. Whatever you do.",
+   "ref": "Non spegnere la torcia. Qualunque cosa succeda.",
+   "hyp": "Non spegnere la torcia. Qualsiasi cosa tu faccia.",
+   "ms": 21.599999999976717
+  },
+  {
+   "id": 35,
+   "genere": "horror",
+   "en": "The door was locked from the inside.",
+   "ref": "La porta era chiusa a chiave dall'interno.",
+   "hyp": "La porta era chiusa dall'interno.",
+   "ms": 14
+  },
+  {
+   "id": 36,
+   "genere": "horror",
+   "en": "Day 14. The scratching inside the walls is getting louder.",
+   "ref": "Giorno 14. I graffi dentro i muri sono sempre più forti.",
+   "hyp": "Giorno 14. Il graffio all'interno delle pareti sta diventando più forte.",
+   "ms": 28.599999999976717
+  },
+  {
+   "id": 37,
+   "genere": "horror",
+   "en": "If you're reading this, it's already too late for me.",
+   "ref": "Se stai leggendo queste righe, per me è già troppo tardi.",
+   "hyp": "Se stai leggendo questo, è già troppo tardi per me.",
+   "ms": 22.20000000006985
+  },
+  {
+   "id": 38,
+   "genere": "horror",
+   "en": "It only moves when you're not looking at it.",
+   "ref": "Si muove solo quando non lo guardi.",
+   "hyp": "Si muove solo quando non lo guardi.",
+   "ms": 18.400000000023283
+  },
+  {
+   "id": 39,
+   "genere": "horror",
+   "en": "Run! Don't look back!",
+   "ref": "Corri! Non voltarti!",
+   "hyp": "Corri! Non guardare indietro!",
+   "ms": 15.5
+  },
+  {
+   "id": 40,
+   "genere": "horror",
+   "en": "The children stopped singing at midnight.",
+   "ref": "I bambini hanno smesso di cantare a mezzanotte.",
+   "hyp": "I bambini hanno smesso di cantare a mezzanotte.",
+   "ms": 13.5
+  },
+  {
+   "id": 41,
+   "genere": "sci-fi",
+   "en": "Warning: hull integrity at 30 percent.",
+   "ref": "Attenzione: integrità dello scafo al 30 percento.",
+   "hyp": "Attenzione: integrità dello scafo al 30 per cento.",
+   "ms": 21.399999999906868
+  },
+  {
+   "id": 42,
+   "genere": "sci-fi",
+   "en": "Set a course for the outer colonies.",
+   "ref": "Imposta una rotta verso le colonie esterne.",
+   "hyp": "Impostare un corso per le colonie esterne.",
+   "ms": 15
+  },
+  {
+   "id": 43,
+   "genere": "sci-fi",
+   "en": "The signal isn't human. I've checked it twice.",
+   "ref": "Il segnale non è umano. L'ho controllato due volte.",
+   "hyp": "Il segnale non è umano. L'ho controllato due volte.",
+   "ms": 19.900000000023283
+  },
+  {
+   "id": 44,
+   "genere": "sci-fi",
+   "en": "Oxygen levels critical. Return to the ship immediately.",
+   "ref": "Livelli di ossigeno critici. Torna immediatamente alla nave.",
+   "hyp": "Livelli di ossigeno critici. Rientro immediatamente alla nave.",
+   "ms": 17.900000000023283
+  },
+  {
+   "id": 45,
+   "genere": "sci-fi",
+   "en": "Captain, we're being hailed by an unknown vessel.",
+   "ref": "Capitano, una nave sconosciuta ci sta contattando.",
+   "hyp": "Capitano, siamo stati salutati da una nave sconosciuta.",
+   "ms": 15.699999999953434
+  },
+  {
+   "id": 46,
+   "genere": "sci-fi",
+   "en": "The AI has locked us out of the control room.",
+   "ref": "L'IA ci ha chiusi fuori dalla sala di controllo.",
+   "hyp": "L'IA ci ha chiusi fuori dalla sala di controllo.",
+   "ms": 16.70000000006985
+  },
+  {
+   "id": 47,
+   "genere": "sci-fi",
+   "en": "Jump drive charged. Ready when you are.",
+   "ref": "Motore a curvatura carico. Pronti quando vuoi.",
+   "hyp": "Salta l'unità carica. Pronti quando si è.",
+   "ms": 13.900000000023283
+  },
+  {
+   "id": 48,
+   "genere": "sci-fi",
+   "en": "Whatever happened here, it happened fast.",
+   "ref": "Qualunque cosa sia successa qui, è successa in fretta.",
+   "hyp": "Qualunque cosa sia successa qui, e' successo in fretta.",
+   "ms": 14.399999999906868
+  },
+  {
+   "id": 49,
+   "genere": "racing",
+   "en": "Box, box! Your tires are gone.",
+   "ref": "Ai box, ai box! Le gomme sono finite.",
+   "hyp": "Scatola, scatola! Le gomme sono sparite.",
+   "ms": 16.600000000093132
+  },
+  {
+   "id": 50,
+   "genere": "racing",
+   "en": "You're three seconds behind the leader. Push!",
+   "ref": "Sei a tre secondi dal primo. Spingi!",
+   "hyp": "Sei tre secondi dietro il leader. Spingi!",
+   "ms": 16.79999999993015
+  },
+  {
+   "id": 51,
+   "genere": "racing",
+   "en": "Final lap. Don't throw it away now.",
+   "ref": "Ultimo giro. Non buttare tutto proprio adesso.",
+   "hyp": "Il giro finale. Non buttarlo via adesso.",
+   "ms": 19.800000000046566
+  },
+  {
+   "id": 52,
+   "genere": "racing",
+   "en": "New personal best!",
+   "ref": "Nuovo record personale!",
+   "hyp": "Nuovo personale migliore!",
+   "ms": 6.900000000023283
+  },
+  {
+   "id": 53,
+   "genere": "racing",
+   "en": "Watch out for the hairpin after the tunnel.",
+   "ref": "Attento al tornante dopo la galleria.",
+   "hyp": "Attento al tornante dopo il tunnel.",
+   "ms": 13.29999999993015
+  },
+  {
+   "id": 54,
+   "genere": "racing",
+   "en": "You've been disqualified for cutting the track.",
+   "ref": "Sei stato squalificato per aver tagliato il percorso.",
+   "hyp": "Sei stato squalificato per aver tagliato la pista.",
+   "ms": 15.099999999976717
+  },
+  {
+   "id": 55,
+   "genere": "menu",
+   "en": "Press any key to continue.",
+   "ref": "Premi un tasto qualsiasi per continuare.",
+   "hyp": "Premere qualsiasi tasto per continuare.",
+   "ms": 10
+  },
+  {
+   "id": 56,
+   "genere": "menu",
+   "en": "Are you sure you want to quit? Unsaved progress will be lost.",
+   "ref": "Vuoi davvero uscire? I progressi non salvati andranno persi.",
+   "hyp": "Sei sicuro di voler smettere? I progressi non salvati andranno perduti.",
+   "ms": 19.300000000046566
+  },
+  {
+   "id": 57,
+   "genere": "menu",
+   "en": "Autosave in progress. Do not turn off your computer.",
+   "ref": "Salvataggio automatico in corso. Non spegnere il computer.",
+   "hyp": "Autosvegliere in corso. Non spegnere il computer.",
+   "ms": 16.099999999976717
+  },
+  {
+   "id": 58,
+   "genere": "menu",
+   "en": "Restore default settings",
+   "ref": "Ripristina impostazioni predefinite",
+   "hyp": "Ripristinare le impostazioni predefinite",
+   "ms": 10.300000000046566
+  },
+  {
+   "id": 59,
+   "genere": "menu",
+   "en": "Do you want to overwrite the existing save file?",
+   "ref": "Vuoi sovrascrivere il salvataggio esistente?",
+   "hyp": "Vuoi sovrascrivere il file di salvataggio esistente?",
+   "ms": 13.400000000023283
+  },
+  {
+   "id": 60,
+   "genere": "menu",
+   "en": "Connection to the server was lost.",
+   "ref": "La connessione al server è stata persa.",
+   "hyp": "La connessione al server è stata persa.",
+   "ms": 11.199999999953434
+  },
+  {
+   "id": 61,
+   "genere": "menu",
+   "en": "Waiting for other players...",
+   "ref": "In attesa degli altri giocatori...",
+   "hyp": "Aspettando altri giocatori...",
+   "ms": 8.800000000046566
+  },
+  {
+   "id": 62,
+   "genere": "menu",
+   "en": "Your inventory is full.",
+   "ref": "Il tuo inventario è pieno.",
+   "hyp": "Il tuo inventario è pieno.",
+   "ms": 8.899999999906868
+  },
+  {
+   "id": 63,
+   "genere": "menu",
+   "en": "Not enough gold.",
+   "ref": "Oro insufficiente.",
+   "hyp": "Non abbastanza oro.",
+   "ms": 8
+  },
+  {
+   "id": 64,
+   "genere": "menu",
+   "en": "Quest updated: Find a way through the mines.",
+   "ref": "Missione aggiornata: trova una strada attraverso le miniere.",
+   "hyp": "Quest aggiornata: Trova un modo attraverso le miniere.",
+   "ms": 14.70000000006985
+  },
+  {
+   "id": 65,
+   "genere": "menu",
+   "en": "Achievement unlocked: Untouchable",
+   "ref": "Obiettivo sbloccato: Intoccabile",
+   "hyp": "Achievement sbloccato: intoccabile",
+   "ms": 14
+  },
+  {
+   "id": 66,
+   "genere": "menu",
+   "en": "Level up! You gained 2 skill points.",
+   "ref": "Livello aumentato! Hai ottenuto 2 punti abilità.",
+   "hyp": "Salite di livello! Hai guadagnato 2 punti abilità.",
+   "ms": 16.29999999993015
+  },
+  {
+   "id": 67,
+   "genere": "menu",
+   "en": "You died.",
+   "ref": "Sei morto.",
+   "hyp": "Sei morto.",
+   "ms": 7.600000000093132
+  },
+  {
+   "id": 68,
+   "genere": "menu",
+   "en": "Checkpoint reached.",
+   "ref": "Checkpoint raggiunto.",
+   "hyp": "Il checkpoint è arrivato.",
+   "ms": 8.099999999976717
+  },
+  {
+   "id": 69,
+   "genere": "menu",
+   "en": "Hold E to interact.",
+   "ref": "Tieni premuto E per interagire.",
+   "hyp": "Tenere E per interagire.",
+   "ms": 8.79999999993015
+  },
+  {
+   "id": 70,
+   "genere": "tutorial",
+   "en": "Use the left stick to move and the right stick to look around.",
+   "ref": "Usa la levetta sinistra per muoverti e quella destra per guardarti intorno.",
+   "hyp": "Utilizzare il bastone sinistro per muoversi e il bastone destro per guardarsi intorno.",
+   "ms": 18.899999999906868
+  },
+  {
+   "id": 71,
+   "genere": "tutorial",
+   "en": "Press Space to jump. Press it twice to double jump.",
+   "ref": "Premi Spazio per saltare. Premilo due volte per il doppio salto.",
+   "hyp": "Premere lo spazio per saltare. Premere due volte per saltare doppio.",
+   "ms": 17.300000000046566
+  },
+  {
+   "id": 72,
+   "genere": "tutorial",
+   "en": "Crouch to stay hidden from enemies.",
+   "ref": "Accovacciati per restare nascosto ai nemici.",
+   "hyp": "Crouch per rimanere nascosto ai nemici.",
+   "ms": 11.5
+  },
+  {
+   "id": 73,
+   "genere": "tutorial",
+   "en": "Combine items in your inventory to craft new gear.",
+   "ref": "Combina gli oggetti nell'inventario per creare nuovo equipaggiamento.",
+   "hyp": "Combina gli articoli nel tuo inventario per creare nuove attrezzature.",
+   "ms": 15.300000000046566
+  },
+  {
+   "id": 74,
+   "genere": "tutorial",
+   "en": "Your stamina refills when you stop running.",
+   "ref": "La resistenza si ricarica quando smetti di correre.",
+   "hyp": "La tua resistenza si ricarica quando smetti di correre.",
+   "ms": 13.899999999906868
+  },
+  {
+   "id": 75,
+   "genere": "tutorial",
+   "en": "Block at the right moment to parry an attack.",
+   "ref": "Para al momento giusto per deviare un attacco.",
+   "hyp": "Blocco al momento giusto per parare un attacco.",
+   "ms": 15.399999999906868
+  },
+  {
+   "id": 76,
+   "genere": "slang",
+   "en": "No way, dude. That's insane!",
+   "ref": "Ma dai, amico. È pazzesco!",
+   "hyp": "Non c'e' modo, amico. E' una follia!",
+   "ms": 16.900000000023283
+  },
+  {
+   "id": 77,
+   "genere": "slang",
+   "en": "Chill out, it's not a big deal.",
+   "ref": "Rilassati, non è niente di grave.",
+   "hyp": "Rilassati, non e' un grosso problema.",
+   "ms": 17.800000000046566
+  },
+  {
+   "id": 78,
+   "genere": "slang",
+   "en": "He totally bailed on us.",
+   "ref": "Ci ha piantato in asso.",
+   "hyp": "Ci ha completamente ceduto.",
+   "ms": 11.79999999993015
+  },
+  {
+   "id": 79,
+   "genere": "slang",
+   "en": "Gotta go, see ya!",
+   "ref": "Devo andare, ci vediamo!",
+   "hyp": "Devo andare, ti vedi!",
+   "ms": 10.600000000093132
+  },
+  {
+   "id": 80,
+   "genere": "slang",
+   "en": "That guy's a total legend.",
+   "ref": "Quel tipo è una vera leggenda.",
+   "hyp": "Quel tipo e' una leggenda.",
+   "ms": 11.599999999976717
+  },
+  {
+   "id": 81,
+   "genere": "slang",
+   "en": "Don't sweat it. I've got your back.",
+   "ref": "Non preoccuparti. Ti copro io.",
+   "hyp": "Non sudare. Ti ho preso le spalle.",
+   "ms": 17.900000000023283
+  },
+  {
+   "id": 82,
+   "genere": "slang",
+   "en": "Well, that went sideways fast.",
+   "ref": "Be', la cosa è andata storta in fretta.",
+   "hyp": "Beh, e' andata di lato veloce.",
+   "ms": 13
+  },
+  {
+   "id": 83,
+   "genere": "slang",
+   "en": "Are you kidding me right now?",
+   "ref": "Mi stai prendendo in giro?",
+   "hyp": "Mi prendi in giro?",
+   "ms": 10.099999999976717
+  },
+  {
+   "id": 84,
+   "genere": "humor",
+   "en": "Great plan. What could possibly go wrong?",
+   "ref": "Ottimo piano. Cosa potrebbe mai andare storto?",
+   "hyp": "Ottimo piano. Cosa potrebbe andare storto?",
+   "ms": 17.900000000023283
+  },
+  {
+   "id": 85,
+   "genere": "humor",
+   "en": "I'm not lost. I'm exploring with confidence.",
+   "ref": "Non mi sono perso. Sto esplorando con sicurezza.",
+   "hyp": "- Non sono perso. Sto esplorando con fiducia.",
+   "ms": 18.199999999953434
+  },
+  {
+   "id": 86,
+   "genere": "humor",
+   "en": "Rule number one: never trust a talking chest.",
+   "ref": "Regola numero uno: mai fidarsi di un forziere che parla.",
+   "hyp": "Regola numero uno: mai fidarsi di un torace parlante.",
+   "ms": 19.400000000023283
+  },
+  {
+   "id": 87,
+   "genere": "pirate",
+   "en": "Arr, hand over yer treasure or walk the plank!",
+   "ref": "Arrr, consegna il tuo tesoro o finirai sulla passerella!",
+   "hyp": "Arr, consegna il tuo tesoro o cammina la tavola!",
+   "ms": 21.900000000023283
+  },
+  {
+   "id": 88,
+   "genere": "pirate",
+   "en": "Hoist the sails, ye lazy dogs!",
+   "ref": "Issate le vele, cani pigri!",
+   "hyp": "Hoss le vele, cani pigri!",
+   "ms": 20.199999999953434
+  },
+  {
+   "id": 89,
+   "genere": "noir",
+   "en": "She walked into my office like trouble wearing a red dress.",
+   "ref": "Entrò nel mio ufficio come un guaio vestito di rosso.",
+   "hyp": "E' entrata nel mio ufficio come un problema con un vestito rosso.",
+   "ms": 20.699999999953434
+  },
+  {
+   "id": 90,
+   "genere": "noir",
+   "en": "In this city, everybody's guilty of something.",
+   "ref": "In questa città, tutti sono colpevoli di qualcosa.",
+   "hyp": "In questa città, tutti sono colpevoli di qualcosa.",
+   "ms": 17.600000000093132
+  },
+  {
+   "id": 91,
+   "genere": "emotional",
+   "en": "I'm sorry I wasn't there when you needed me.",
+   "ref": "Mi dispiace di non esserci stato quando avevi bisogno di me.",
+   "hyp": "Mi dispiace di non esserci quando hai bisogno di me.",
+   "ms": 19.599999999976717
+  },
+  {
+   "id": 92,
+   "genere": "emotional",
+   "en": "Promise me you'll come back.",
+   "ref": "Promettimi che tornerai.",
+   "hyp": "Promettimi che tornerai.",
+   "ms": 14.79999999993015
+  },
+  {
+   "id": 93,
+   "genere": "emotional",
+   "en": "We did it. We actually did it.",
+   "ref": "Ce l'abbiamo fatta. Ce l'abbiamo fatta davvero.",
+   "hyp": "- Lo abbiamo fatto. In realta' l'abbiamo fatto.",
+   "ms": 18.900000000023283
+  },
+  {
+   "id": 94,
+   "genere": "emotional",
+   "en": "Whatever happens, it's been an honor fighting beside you.",
+   "ref": "Qualunque cosa accada, è stato un onore combattere al tuo fianco.",
+   "hyp": "Qualunque cosa succeda, e' stato un onore litigare accanto a te.",
+   "ms": 25.70000000006985
+  },
+  {
+   "id": 95,
+   "genere": "sport",
+   "en": "What a goal! The keeper didn't stand a chance!",
+   "ref": "Che gol! Il portiere non ha avuto scampo!",
+   "hyp": "Che obiettivo! Il custostostosto non ha avuto alcuna possibilità!",
+   "ms": 26.899999999906868
+  },
+  {
+   "id": 96,
+   "genere": "sport",
+   "en": "The referee shows a yellow card.",
+   "ref": "L'arbitro estrae il cartellino giallo.",
+   "hyp": "L'arbitro mostra un cartellino giallo.",
+   "ms": 14.900000000023283
+  },
+  {
+   "id": 97,
+   "genere": "strategy",
+   "en": "Our scouts report enemy troops gathering near the river.",
+   "ref": "I nostri esploratori segnalano truppe nemiche che si radunano vicino al fiume.",
+   "hyp": "I nostri esploratori riferiscono che le truppe nemiche si radunano vicino al fiume.",
+   "ms": 26.70000000006985
+  },
+  {
+   "id": 98,
+   "genere": "strategy",
+   "en": "Build more farms or your people will starve.",
+   "ref": "Costruisci altre fattorie o il tuo popolo morirà di fame.",
+   "hyp": "Costruire più fattorie o la gente morirà di fame.",
+   "ms": 18.29999999993015
+  },
+  {
+   "id": 99,
+   "genere": "strategy",
+   "en": "Research complete: Iron Working.",
+   "ref": "Ricerca completata: Lavorazione del ferro.",
+   "hyp": "Ricerca completa: Iron Working.",
+   "ms": 12.900000000023283
+  },
+  {
+   "id": 100,
+   "genere": "strategy",
+   "en": "The alliance has been broken. Prepare for war.",
+   "ref": "L'alleanza è stata infranta. Preparatevi alla guerra.",
+   "hyp": "L'alleanza è stata spezzata. Preparatevi per la guerra.",
+   "ms": 18.599999999976717
+  }
+ ]
+}

@@ -1,0 +1,505 @@
+package traduce
+
+// Traduzione dentro il gioco (giochi Unity): invece di leggere lo schermo, il testo viene preso
+// direttamente dal gioco e rimesso tradotto al suo posto, con il carattere del gioco.
+// Strumenti liberi: BepInEx (LGPL-2.1) carica il componente XUnity.AutoTranslator (MIT), che
+// chiede ogni scritta a Tasso Traduce sul PC (http://127.0.0.1, niente internet: i traduttori
+// in rete di XUnity NON vengono installati).
+//
+// Regole di sicurezza:
+//   - solo giochi Unity senza anti-imbroglio; se il gioco ha già delle mod non lo tocco;
+//   - nessun file del gioco viene cambiato: aggiungo solo i file di BepInEx accanto all'exe. Se un
+//     file dovesse esistere già, prima ne faccio una copia di sicurezza;
+//   - un elenco di tutto quello che ho aggiunto (manifesto) permette a "Ferma traduzione" di
+//     togliere tutto e rimettere il gioco esattamente com'era.
+
+import (
+	"archive/zip"
+	"crypto/rand"
+	"encoding/hex"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"io"
+	"os"
+	"path/filepath"
+	"strings"
+	"time"
+)
+
+const portaModGioco = 47321
+
+var (
+	zipBepInExIL2CPP = FileDaScaricare{
+		URL:    "https://builds.bepinex.dev/projects/bepinex_be/793/BepInEx-Unity.IL2CPP-win-x64-6.0.0-be.793%2Bdbc82f0.zip",
+		Nome:   "BepInEx-Unity.IL2CPP-win-x64-6.0.0-be.793.zip",
+		SHA256: "5b63d7d0e92a2448ccd13b738ff95ff1cc1026c6d718555d4df8e6c824953ac4",
+		Byte:   34339235,
+	}
+	zipXUnityIL2CPP = FileDaScaricare{
+		URL:    "https://github.com/bbepis/XUnity.AutoTranslator/releases/download/v5.6.3.1/XUnity.AutoTranslator-BepInEx-IL2CPP-5.6.3.1.zip",
+		Nome:   "XUnity.AutoTranslator-BepInEx-IL2CPP-5.6.3.1.zip",
+		SHA256: "f1d4d3151a061edfcda815e4472fe1f1de8756bdc23708c9b5ebb9bfe736fb1f",
+		Byte:   762471,
+	}
+	zipBepInExMono = FileDaScaricare{
+		URL:    "https://github.com/BepInEx/BepInEx/releases/download/v5.4.23.6/BepInEx_win_x64_5.4.23.6.zip",
+		Nome:   "BepInEx_win_x64_5.4.23.6.zip",
+		SHA256: "6c57a714a892efb4e9e1fef63d608a3391f30ec984031c465404e4ee381a0755",
+		Byte:   642076,
+	}
+	zipXUnityMono = FileDaScaricare{
+		URL:    "https://github.com/bbepis/XUnity.AutoTranslator/releases/download/v5.6.3.1/XUnity.AutoTranslator-BepInEx-5.6.3.1.zip",
+		Nome:   "XUnity.AutoTranslator-BepInEx-5.6.3.1.zip",
+		SHA256: "6c3ff03aafe9708f25c2115c0c04c255b6a9d88e716896ae7bacb590a8777609",
+		Byte:   759511,
+	}
+)
+
+// TipoUnity: "il2cpp", "mono" o "" (non è un gioco Unity che so tradurre dai file).
+func TipoUnity(cartella string) (tipo, exe string) {
+	voci, err := os.ReadDir(cartella)
+	if err != nil {
+		return "", ""
+	}
+	for _, v := range voci {
+		n := v.Name()
+		if v.IsDir() || !strings.EqualFold(filepath.Ext(n), ".exe") || strings.EqualFold(n, "UnityCrashHandler64.exe") || strings.EqualFold(n, "UnityCrashHandler32.exe") {
+			continue
+		}
+		base := strings.TrimSuffix(n, filepath.Ext(n))
+		dati := filepath.Join(cartella, base+"_Data")
+		if st, err := os.Stat(dati); err != nil || !st.IsDir() {
+			continue
+		}
+		if _, err := os.Stat(filepath.Join(cartella, "GameAssembly.dll")); err == nil {
+			return "il2cpp", n
+		}
+		if _, err := os.Stat(filepath.Join(dati, "Managed", "Assembly-CSharp.dll")); err == nil {
+			return "mono", n
+		}
+	}
+	return "", ""
+}
+
+// ModGiaPresenti: il gioco ha già un caricatore di mod (non mescolo le mie con quelle dell'utente).
+func ModGiaPresenti(cartella string) string {
+	for _, n := range []string{"BepInEx", "winhttp.dll", "version.dll", "doorstop_config.ini", "MelonLoader", "dinput8.dll"} {
+		if _, err := os.Stat(filepath.Join(cartella, n)); err == nil {
+			return n
+		}
+	}
+	return ""
+}
+
+// ManifestoMod: tutto quello che ho aggiunto o sostituito in un gioco.
+type ManifestoMod struct {
+	Gioco      string    `json:"gioco"`
+	Cartella   string    `json:"cartella"`
+	Tipo       string    `json:"tipo"`
+	Exe        string    `json:"exe"`
+	Quando     time.Time `json:"quando"`
+	Aggiunti   []string  `json:"aggiunti"`   // percorsi relativi alla cartella del gioco (file e cartelle in cima)
+	Sostituiti []string  `json:"sostituiti"` // file che esistevano: l'originale è nella copia di sicurezza
+	Token      string    `json:"token"`      // segreto nell'indirizzo: solo questo gioco può chiedere traduzioni
+	Lingue     [2]string `json:"lingue"`     // da → a
+}
+
+func cartellaCopie(dirApp, chiave string) string {
+	return filepath.Join(dirApp, "copie-giochi", chiave)
+}
+
+func leggiManifesto(dirApp, chiave string) (ManifestoMod, bool) {
+	var m ManifestoMod
+	b, err := os.ReadFile(filepath.Join(cartellaCopie(dirApp, chiave), "manifesto.json"))
+	if err != nil || json.Unmarshal(b, &m) != nil {
+		return m, false
+	}
+	return m, true
+}
+
+func scriviManifesto(dirApp, chiave string, m ManifestoMod) error {
+	d := cartellaCopie(dirApp, chiave)
+	if err := os.MkdirAll(d, 0o755); err != nil {
+		return err
+	}
+	b, _ := json.MarshalIndent(m, "", "  ")
+	tmp := filepath.Join(d, "manifesto.json.tmp")
+	if err := os.WriteFile(tmp, b, 0o644); err != nil {
+		return err
+	}
+	return os.Rename(tmp, filepath.Join(d, "manifesto.json"))
+}
+
+// voluto: quali file degli zip copio. Dei traduttori di XUnity tengo SOLO CustomTranslate
+// (quello che parla con Tasso sul PC): Google, Bing, DeepL & co. non vengono installati.
+func voluto(nome string) bool {
+	n := strings.ReplaceAll(nome, `\`, "/")
+	if strings.HasSuffix(n, "/") {
+		return false
+	}
+	if i := strings.Index(n, "XUnity.AutoTranslator/Translators/"); i >= 0 {
+		return strings.HasSuffix(n, "/CustomTranslate.dll") && !strings.Contains(n[i:], "FullNET")
+	}
+	base := strings.ToLower(n[strings.LastIndex(n, "/")+1:])
+	if base == "changelog.txt" || strings.HasPrefix(base, "readme") {
+		return false // non servono, e potrebbero coprire un file del gioco con lo stesso nome
+	}
+	return true
+}
+
+// estraiInGioco copia i file di uno zip nella cartella del gioco, ricordando cosa ha aggiunto.
+// Un file che esiste già viene prima copiato nella copia di sicurezza.
+func estraiInGioco(zipPath, cartella, copie string, m *ManifestoMod, inCima map[string]bool, salva func() error) error {
+	r, err := zip.OpenReader(zipPath)
+	if err != nil {
+		return err
+	}
+	defer r.Close()
+	base := filepath.Clean(cartella) + string(os.PathSeparator)
+	for _, f := range r.File {
+		if !voluto(f.Name) {
+			continue
+		}
+		dest := filepath.Join(cartella, filepath.FromSlash(strings.ReplaceAll(f.Name, `\`, "/")))
+		if !strings.HasPrefix(filepath.Clean(dest), base) { // niente file fuori dalla cartella del gioco
+			return fmt.Errorf("percorso non valido nello zip: %s", f.Name)
+		}
+		rel, _ := filepath.Rel(cartella, dest)
+		primo := strings.Split(filepath.ToSlash(rel), "/")[0]
+		if _, err := os.Stat(dest); err == nil {
+			// esiste già: se l'ho messo io con lo zip prima va bene, altrimenti copia di sicurezza
+			if !inCima[primo] {
+				if err := copiaFile(dest, filepath.Join(copie, "originali", rel)); err != nil {
+					return fmt.Errorf("copia di sicurezza di %s: %w", rel, err)
+				}
+				m.Sostituiti = append(m.Sostituiti, rel)
+			}
+		} else if _, err := os.Stat(filepath.Join(cartella, primo)); err != nil && !inCima[primo] {
+			inCima[primo] = true
+			m.Aggiunti = append(m.Aggiunti, primo)
+			// il manifesto sa di questo file PRIMA che io lo crei: se il PC si spegne a metà,
+			// "Ferma traduzione" lo toglie lo stesso
+			if err := salva(); err != nil {
+				return fmt.Errorf("non riesco a scrivere l'elenco dei file aggiunti: %w", err)
+			}
+		} else if !inCima[primo] {
+			// cartella del gioco che esiste già (es. "dotnet"): non ci scrivo dentro
+			return fmt.Errorf("il gioco ha già una cartella %s: per sicurezza non lo tocco", primo)
+		}
+		if err := os.MkdirAll(filepath.Dir(dest), 0o755); err != nil {
+			return err
+		}
+		if err := scriviDaZip(f, dest); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func scriviDaZip(f *zip.File, dest string) error {
+	rc, err := f.Open()
+	if err != nil {
+		return err
+	}
+	defer rc.Close()
+	out, err := os.Create(dest)
+	if err != nil {
+		return err
+	}
+	if _, err := io.Copy(out, rc); err != nil {
+		out.Close()
+		return err
+	}
+	return out.Close()
+}
+
+func copiaFile(da, a string) error {
+	if err := os.MkdirAll(filepath.Dir(a), 0o755); err != nil {
+		return err
+	}
+	in, err := os.Open(da)
+	if err != nil {
+		return err
+	}
+	defer in.Close()
+	out, err := os.Create(a)
+	if err != nil {
+		return err
+	}
+	if _, err := io.Copy(out, in); err != nil {
+		out.Close()
+		return err
+	}
+	return out.Close()
+}
+
+// configXUnity: inglese → italiano, solo con Tasso sul PC.
+func configXUnity(chiave, token, da, a string) string {
+	return fmt.Sprintf(`[Service]
+Endpoint=CustomTranslate
+FallbackEndpoint=
+
+[General]
+Language=%s
+FromLanguage=%s
+
+[Custom]
+Url=http://127.0.0.1:%d/gioco/%s/%s
+EnableShortDelay=True
+DisableSpamChecks=True
+
+[Behaviour]
+MaxCharactersPerTranslation=1000
+EnableUIResizing=True
+EnableBatching=False
+UseStaticTranslations=False
+TranslationPostProcessing=ReplaceHtmlEntities
+
+[TextFrameworks]
+EnableUGUI=True
+EnableUIElements=True
+EnableNGUI=True
+EnableTextMeshPro=True
+EnableTextMesh=True
+EnableIMGUI=False
+`, codiceXUnity(a), codiceXUnity(da), portaModGioco, chiave, token)
+}
+
+func codiceXUnity(c string) string {
+	switch c {
+	case "zh":
+		return "zh-CN"
+	case "zt":
+		return "zh-TW"
+	case "nb":
+		return "no"
+	}
+	return c
+}
+
+// configBepInEx: niente finestra nera della console mentre si gioca.
+const configBepInEx = `[Logging.Console]
+Enabled = false
+
+[Logging.Disk]
+Enabled = true
+`
+
+// InstallaModGioco mette BepInEx + XUnity nel gioco. zips: [bepinex, xunity] già scaricati.
+func InstallaModGioco(dirApp, nome, cartella, chiave string, zips []string, da, a string) (ManifestoMod, error) {
+	tipo, exe := TipoUnity(cartella)
+	if tipo == "" {
+		return ManifestoMod{}, errors.New("non è un gioco Unity: lo traduco con la sovrimpressione")
+	}
+	if g := ModGiaPresenti(cartella); g != "" {
+		return ManifestoMod{}, fmt.Errorf("il gioco ha già delle mod (%s): per sicurezza non lo tocco", g)
+	}
+	if _, gia := leggiManifesto(dirApp, chiave); gia {
+		return ManifestoMod{}, errors.New("la traduzione dentro il gioco è già installata")
+	}
+	copie := cartellaCopie(dirApp, chiave)
+	tok := make([]byte, 16)
+	_, _ = rand.Read(tok)
+	m := ManifestoMod{Gioco: nome, Cartella: cartella, Tipo: tipo, Exe: exe, Quando: time.Now(), Token: hex.EncodeToString(tok), Lingue: [2]string{da, a}}
+	inCima := map[string]bool{}
+	// il manifesto si scrive PRIMA di toccare il gioco e prima di ogni cosa nuova in cima
+	salva := func() error { return scriviManifesto(dirApp, chiave, m) }
+	if err := salva(); err != nil {
+		return ManifestoMod{}, err
+	}
+	for _, z := range zips {
+		err := estraiInGioco(z, cartella, copie, &m, inCima, salva)
+		if err == nil {
+			err = salva()
+		}
+		if err != nil {
+			_ = TogliModGioco(dirApp, chiave)
+			return ManifestoMod{}, err
+		}
+	}
+	cfg := filepath.Join(cartella, "BepInEx", "config")
+	_ = os.MkdirAll(cfg, 0o755)
+	if err := os.WriteFile(filepath.Join(cfg, "AutoTranslatorConfig.ini"), []byte(configXUnity(chiave, m.Token, da, a)), 0o644); err != nil {
+		_ = TogliModGioco(dirApp, chiave)
+		return ManifestoMod{}, err
+	}
+	_ = os.WriteFile(filepath.Join(cfg, "BepInEx.cfg"), []byte(configBepInEx), 0o644)
+	// traduzioni già fatte in una prova precedente: le rimetto, così non si riparte da zero
+	salvate := filepath.Join(copie, "traduzioni")
+	if _, err := os.Stat(salvate); err == nil {
+		_ = copiaCartella(salvate, filepath.Join(cartella, "BepInEx", "Translation"))
+	}
+	return m, scriviManifesto(dirApp, chiave, m)
+}
+
+// TogliModGioco: "Ferma traduzione". Tolgo solo quello che ho aggiunto io e rimetto gli originali.
+// Le traduzioni fatte nel gioco le tengo da parte per la prossima volta.
+func TogliModGioco(dirApp, chiave string) error {
+	m, ok := leggiManifesto(dirApp, chiave)
+	if !ok {
+		return nil
+	}
+	copie := cartellaCopie(dirApp, chiave)
+	if tr := filepath.Join(m.Cartella, "BepInEx", "Translation"); esisteVoce(tr) {
+		_ = os.RemoveAll(filepath.Join(copie, "traduzioni"))
+		_ = copiaCartella(tr, filepath.Join(copie, "traduzioni"))
+	}
+	// plugin che l'utente ha aggiunto da solo dentro BepInEx: li metto da parte, non li cancello
+	for _, sub := range []string{"plugins", "patchers"} {
+		voci, _ := os.ReadDir(filepath.Join(m.Cartella, "BepInEx", sub))
+		for _, v := range voci {
+			n := v.Name()
+			if strings.HasPrefix(n, "XUnity.") || strings.HasPrefix(strings.ToLower(n), "readme") {
+				continue
+			}
+			_ = os.MkdirAll(filepath.Join(copie, "plugin-utente", sub), 0o755)
+			_ = os.Rename(filepath.Join(m.Cartella, "BepInEx", sub, n), filepath.Join(copie, "plugin-utente", sub, n))
+		}
+	}
+	var errori []string
+	for _, a := range m.Aggiunti {
+		if a == "" || strings.ContainsAny(a, `/\`) || a == "." || a == ".." {
+			continue
+		}
+		if err := os.RemoveAll(filepath.Join(m.Cartella, a)); err != nil {
+			errori = append(errori, a)
+		}
+	}
+	for _, s := range m.Sostituiti {
+		if filepath.IsAbs(s) || strings.Contains(s, "..") {
+			continue
+		}
+		if err := copiaFile(filepath.Join(copie, "originali", s), filepath.Join(m.Cartella, s)); err != nil {
+			errori = append(errori, s)
+		}
+	}
+	if len(errori) > 0 {
+		return fmt.Errorf("non sono riuscito a togliere: %s (il gioco è aperto?)", strings.Join(errori, ", "))
+	}
+	_ = os.Remove(filepath.Join(copie, "manifesto.json"))
+	_ = os.RemoveAll(filepath.Join(copie, "originali"))
+	return nil
+}
+
+func copiaCartella(da, a string) error {
+	return filepath.Walk(da, func(p string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		rel, _ := filepath.Rel(da, p)
+		if info.IsDir() {
+			return os.MkdirAll(filepath.Join(a, rel), 0o755)
+		}
+		return copiaFile(p, filepath.Join(a, rel))
+	})
+}
+
+// ---- correzioni dell'IA nel file delle traduzioni di XUnity ----
+// XUnity chiede ogni frase una volta sola e la salva in _AutoGeneratedTranslations.txt. Quando
+// il correttore IA migliora una frase, la cambio in quel file: al prossimo avvio del gioco si
+// vede già corretta.
+
+func escapeXUnity(s string) string {
+	r := strings.NewReplacer(`\`, `\\`, "\n", `\n`, "\r", `\r`, "=", `\=`)
+	return r.Replace(s)
+}
+
+// CorreggiFileXUnity sostituisce le righe "inglese=bozza" con "inglese=corretta". Ritorna quante.
+func CorreggiFileXUnity(file string, corr map[string][2]string) (int, error) {
+	b, err := os.ReadFile(file)
+	if err != nil {
+		return 0, err
+	}
+	righe := strings.Split(string(b), "\n")
+	n := 0
+	for i, r := range righe {
+		chiave, val, ok := tagliaRigaXUnity(strings.TrimRight(r, "\r"))
+		if !ok {
+			continue
+		}
+		for en, c := range corr {
+			if chiave == escapeXUnity(en) && val == escapeXUnity(c[0]) {
+				righe[i] = chiave + "=" + escapeXUnity(c[1])
+				n++
+			}
+		}
+	}
+	if n == 0 {
+		return 0, nil
+	}
+	tmp := file + ".tasso"
+	if err := os.WriteFile(tmp, []byte(strings.Join(righe, "\n")), 0o644); err != nil {
+		return 0, err
+	}
+	return n, os.Rename(tmp, file)
+}
+
+// tagliaRigaXUnity divide "chiave=valore" al primo "=" non preceduto da "\".
+func tagliaRigaXUnity(r string) (string, string, bool) {
+	if strings.HasPrefix(r, "//") {
+		return "", "", false
+	}
+	for i := 0; i < len(r); i++ {
+		if r[i] == '\\' {
+			i++
+			continue
+		}
+		if r[i] == '=' {
+			return r[:i], r[i+1:], true
+		}
+	}
+	return "", "", false
+}
+
+func esisteVoce(p string) bool { _, err := os.Stat(p); return err == nil }
+
+// versioneMetadataMassima: la versione più nuova dei dati IL2CPP che il BepInEx incluso sa
+// leggere (Cpp2IL: "We support 23-106"). Unity 6.6 usa la 108: lì la traduzione dentro il gioco
+// NON parte (visto su Moon Sweepers il 22/11/2026), quindi non la propongo nemmeno.
+const versioneMetadataMassima = 106
+
+// ModPossibile: si può tradurre dentro il gioco? Se no, il motivo in parole semplici.
+func ModPossibile(cartella string) (bool, string) {
+	tipo, exe := TipoUnity(cartella)
+	switch tipo {
+	case "mono":
+		return true, ""
+	case "il2cpp":
+		base := strings.TrimSuffix(exe, filepath.Ext(exe))
+		f, err := os.Open(filepath.Join(cartella, base+"_Data", "il2cpp_data", "Metadata", "global-metadata.dat"))
+		if err != nil {
+			return false, "non trovo i dati del gioco"
+		}
+		defer f.Close()
+		var h [8]byte
+		if _, err := io.ReadFull(f, h[:]); err != nil {
+			return false, "non riesco a leggere i dati del gioco"
+		}
+		magia := uint32(h[0]) | uint32(h[1])<<8 | uint32(h[2])<<16 | uint32(h[3])<<24
+		ver := int(uint32(h[4]) | uint32(h[5])<<8 | uint32(h[6])<<16 | uint32(h[7])<<24)
+		if magia != 0xFAB11BAF {
+			return false, "i dati del gioco sono protetti"
+		}
+		if ver > versioneMetadataMassima {
+			return false, "gioco troppo nuovo per gli strumenti liberi"
+		}
+		return true, ""
+	}
+	return false, "solo giochi Unity, per ora"
+}
+
+// ModNonPartita: dal registro di BepInEx, la traduzione dentro il gioco non è partita.
+func ModNonPartita(cartella string) bool {
+	b, err := os.ReadFile(filepath.Join(cartella, "BepInEx", "LogOutput.log"))
+	if err != nil {
+		return false
+	}
+	s := string(b)
+	for _, segno := range []string{"Unable to execute IL2CPP chainloader", "Failed to generate Il2Cpp interop", "Unsupported metadata version", "Could not load XUnity", "XUnity.AutoTranslator: Failed"} {
+		if strings.Contains(s, segno) {
+			return true
+		}
+	}
+	return false
+}

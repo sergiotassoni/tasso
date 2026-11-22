@@ -1,0 +1,450 @@
+# Frasi fisse dei giochi già tradotte (scritte per Tasso Traduce, GPL-3.0).
+# Se la frase letta coincide (senza contare maiuscole, spazi e punteggiatura finale) esce questa traduzione.
+# Formato: inglese<TAB>italiano
+Press any key	Premi un tasto qualsiasi
+Press any key to continue	Premi un tasto qualsiasi per continuare
+Press any button	Premi un pulsante qualsiasi
+Press any button to continue	Premi un pulsante qualsiasi per continuare
+Press start	Premi Start
+Press Start to begin	Premi Start per iniziare
+Press Enter to continue	Premi Invio per continuare
+Press Enter	Premi Invio
+Press Space to continue	Premi Spazio per continuare
+Press Esc to skip	Premi Esc per saltare
+Hold to skip	Tieni premuto per saltare
+Hold E to interact	Tieni premuto E per interagire
+Press E to interact	Premi E per interagire
+Press F to interact	Premi F per interagire
+Press E to open	Premi E per aprire
+Press E to pick up	Premi E per raccogliere
+Press F to pay respects	Premi F per rendere omaggio
+Press R to reload	Premi R per ricaricare
+Press Tab to open the map	Premi Tab per aprire la mappa
+Press I to open the inventory	Premi I per aprire l'inventario
+Click to continue	Fai clic per continuare
+Tap to continue	Tocca per continuare
+Skip	Salta
+Skip cutscene	Salta filmato
+Skip tutorial	Salta il tutorial
+Continue	Continua
+Resume	Riprendi
+Resume game	Riprendi la partita
+New game	Nuova partita
+New Game Plus	Nuova partita+
+Load game	Carica partita
+Save game	Salva partita
+Save and quit	Salva ed esci
+Save and exit	Salva ed esci
+Quit	Esci
+Quit game	Esci dal gioco
+Quit to main menu	Torna al menu principale
+Quit to desktop	Esci al desktop
+Exit to main menu	Torna al menu principale
+Exit to desktop	Esci al desktop
+Return to main menu	Torna al menu principale
+Back to main menu	Torna al menu principale
+Back	Indietro
+Main menu	Menu principale
+Settings	Impostazioni
+Options	Opzioni
+Controls	Comandi
+Graphics	Grafica
+Display	Schermo
+Sound	Audio
+Audio	Audio
+Gameplay	Gioco
+Language	Lingua
+Accessibility	Accessibilità
+Subtitles	Sottotitoli
+Subtitles on	Sottotitoli attivi
+Subtitles off	Sottotitoli disattivati
+Master volume	Volume generale
+Music volume	Volume della musica
+Effects volume	Volume degli effetti
+Voice volume	Volume delle voci
+Dialogue volume	Volume dei dialoghi
+Brightness	Luminosità
+Gamma	Gamma
+Resolution	Risoluzione
+Fullscreen	Schermo intero
+Windowed	In finestra
+Borderless	Senza bordi
+Borderless windowed	Finestra senza bordi
+VSync	Sincronizzazione verticale
+Frame rate limit	Limite di fotogrammi
+Field of view	Campo visivo
+Mouse sensitivity	Sensibilità del mouse
+Invert Y axis	Inverti asse Y
+Invert mouse	Inverti mouse
+Key bindings	Assegnazione tasti
+Restore defaults	Ripristina predefiniti
+Reset to default	Ripristina predefiniti
+Apply	Applica
+Apply changes	Applica le modifiche
+Discard changes	Annulla le modifiche
+Cancel	Annulla
+Confirm	Conferma
+Accept	Accetta
+Decline	Rifiuta
+Yes	Sì
+No	No
+OK	OK
+Close	Chiudi
+Done	Fatto
+Next	Avanti
+Previous	Indietro
+Select	Seleziona
+Change	Cambia
+Delete	Elimina
+Delete save	Elimina salvataggio
+Are you sure?	Sei sicuro?
+Are you sure you want to quit?	Vuoi davvero uscire?
+Are you sure you want to exit?	Vuoi davvero uscire?
+Are you sure you want to quit to the main menu?	Vuoi davvero tornare al menu principale?
+Are you sure you want to delete this save?	Vuoi davvero eliminare questo salvataggio?
+Any unsaved progress will be lost	I progressi non salvati andranno persi
+All unsaved progress will be lost	Tutti i progressi non salvati andranno persi
+Unsaved progress will be lost	I progressi non salvati andranno persi
+Do you want to save your changes?	Vuoi salvare le modifiche?
+Overwrite save?	Sovrascrivere il salvataggio?
+Do you want to overwrite this save?	Vuoi sovrascrivere questo salvataggio?
+Game saved	Partita salvata
+Saving	Salvataggio in corso
+Loading	Caricamento
+Please wait	Attendi
+Autosave in progress	Salvataggio automatico in corso
+Autosaving	Salvataggio automatico
+Do not turn off your computer	Non spegnere il computer
+Do not turn off your console	Non spegnere la console
+Do not turn off the power	Non spegnere
+Autosave in progress. Do not turn off your computer.	Salvataggio automatico in corso. Non spegnere il computer.
+This game saves automatically	Questo gioco salva automaticamente
+This game uses an autosave feature	Questo gioco usa il salvataggio automatico
+Do not turn off your computer when you see this icon	Non spegnere il computer quando vedi questa icona
+Checkpoint reached	Checkpoint raggiunto
+Checkpoint	Checkpoint
+Game over	Partita finita
+You died	Sei morto
+You are dead	Sei morto
+Try again	Riprova
+Retry	Riprova
+Restart	Ricomincia
+Restart from checkpoint	Ricomincia dal checkpoint
+Restart mission	Ricomincia la missione
+Restart level	Ricomincia il livello
+Load last checkpoint	Carica l'ultimo checkpoint
+Load last save	Carica l'ultimo salvataggio
+Respawning	Rinascita in corso
+Respawning in	Rinascita tra
+Mission failed	Missione fallita
+Mission complete	Missione completata
+Mission accomplished	Missione compiuta
+Level complete	Livello completato
+Victory	Vittoria
+Defeat	Sconfitta
+You win	Hai vinto
+You lose	Hai perso
+New quest	Nuova missione
+Quest updated	Missione aggiornata
+Quest completed	Missione completata
+Quest failed	Missione fallita
+Objective updated	Obiettivo aggiornato
+Objective complete	Obiettivo completato
+New objective	Nuovo obiettivo
+New area discovered	Nuova zona scoperta
+Location discovered	Luogo scoperto
+New location discovered	Nuovo luogo scoperto
+Achievement unlocked	Obiettivo sbloccato
+Trophy unlocked	Trofeo sbloccato
+New item	Nuovo oggetto
+Item acquired	Oggetto ottenuto
+Item received	Oggetto ricevuto
+Inventory full	Inventario pieno
+Your inventory is full	Il tuo inventario è pieno
+Not enough gold	Oro insufficiente
+Not enough money	Soldi insufficienti
+Not enough resources	Risorse insufficienti
+Not enough mana	Mana insufficiente
+Not enough stamina	Resistenza insufficiente
+You can't do that right now	Non puoi farlo adesso
+You cannot do that now	Non puoi farlo adesso
+You can't carry any more	Non puoi trasportare altro
+You are overencumbered	Sei sovraccarico
+Level up!	Aumento di livello!
+You have reached a new level	Hai raggiunto un nuovo livello
+New skill unlocked	Nuova abilità sbloccata
+Skill point available	Punto abilità disponibile
+New ability unlocked	Nuova abilità sbloccata
+Locked	Bloccato
+Unlocked	Sbloccato
+It's locked	È chiuso a chiave
+The door is locked	La porta è chiusa a chiave
+It won't open	Non si apre
+It won't budge	Non si muove
+You need a key	Ti serve una chiave
+You need a key to open this door	Ti serve una chiave per aprire questa porta
+Nothing here	Qui non c'è niente
+There's nothing here	Qui non c'è niente
+There is nothing here	Qui non c'è niente
+Out of ammo	Munizioni finite
+Low ammo	Munizioni scarse
+No ammo	Niente munizioni
+Reloading	Ricarica in corso
+Low health	Salute bassa
+Health restored	Salute ripristinata
+Enemy spotted	Nemico avvistato
+Enemy down	Nemico a terra
+Enemy eliminated	Nemico eliminato
+Target eliminated	Bersaglio eliminato
+Target acquired	Bersaglio acquisito
+Headshot	Colpo alla testa
+Double kill	Doppia uccisione
+Triple kill	Tripla uccisione
+Return to the combat area	Torna nell'area di combattimento
+You are leaving the combat area	Stai uscendo dall'area di combattimento
+You are leaving the mission area	Stai uscendo dall'area della missione
+Return to the mission area	Torna nell'area della missione
+Waiting for players	In attesa dei giocatori
+Waiting for other players	In attesa degli altri giocatori
+Searching for a match	Ricerca della partita
+Searching for match...	Ricerca della partita...
+Match found	Partita trovata
+Connecting	Connessione in corso
+Connection lost	Connessione persa
+Disconnected from server	Disconnesso dal server
+Connection to the server was lost	La connessione al server è stata persa
+Reconnecting	Riconnessione in corso
+Ready	Pronto
+Not ready	Non pronto
+Get ready	Preparati
+Round 1	Round 1
+Final round	Round finale
+Fight!	Combattete!
+Go!	Via!
+Start	Inizia
+Final lap	Ultimo giro
+New lap record	Nuovo record sul giro
+New record!	Nuovo record!
+Wrong way	Senso contrario
+Race complete	Gara completata
+Pit stop	Pit stop
+Box this lap	Rientra ai box in questo giro
+Time remaining	Tempo rimanente
+Time's up	Tempo scaduto
+Time left	Tempo rimasto
+Score	Punteggio
+High score	Punteggio massimo
+Best time	Tempo migliore
+Total	Totale
+Rewards	Ricompense
+Claim reward	Riscatta la ricompensa
+Claim	Riscatta
+Buy	Compra
+Sell	Vendi
+Trade	Scambia
+Upgrade	Potenzia
+Repair	Ripara
+Equip	Equipaggia
+Unequip	Rimuovi
+Use	Usa
+Drop	Getta
+Discard	Scarta
+Examine	Esamina
+Inspect	Esamina
+Talk	Parla
+Open	Apri
+Pick up	Raccogli
+Take	Prendi
+Take all	Prendi tutto
+Loot all	Raccogli tutto
+Interact	Interagisci
+Search	Cerca
+Climb	Arrampicati
+Jump	Salta
+Crouch	Accovacciati
+Sprint	Scatto
+Run	Corri
+Walk	Cammina
+Aim	Mira
+Shoot	Spara
+Fire	Fuoco
+Melee	Corpo a corpo
+Heavy attack	Attacco pesante
+Light attack	Attacco leggero
+Dodge	Schiva
+Block	Para
+Parry	Para
+Rest	Riposa
+Sleep	Dormi
+Wait	Aspetta
+Fast travel	Viaggio rapido
+Travel	Viaggia
+Map	Mappa
+Inventory	Inventario
+Journal	Diario
+Quests	Missioni
+Character	Personaggio
+Skills	Abilità
+Crafting	Creazione
+Equipment	Equipaggiamento
+Credits	Riconoscimenti
+Thank you for playing	Grazie per aver giocato
+Thanks for playing!	Grazie per aver giocato!
+To be continued	Continua
+The end	Fine
+Chapter complete	Capitolo completato
+Coming soon	Prossimamente
+Online	Online
+Offline	Offline
+Single player	Giocatore singolo
+Multiplayer	Multigiocatore
+Campaign	Campagna
+Story mode	Modalità storia
+Free roam	Esplorazione libera
+Custom game	Partita personalizzata
+Difficulty	Difficoltà
+Select difficulty	Scegli la difficoltà
+Choose your difficulty	Scegli la difficoltà
+Choose your character	Scegli il personaggio
+Choose a class	Scegli una classe
+Enter your name	Inserisci il tuo nome
+Character creation	Creazione del personaggio
+Randomize	Casuale
+Hint	Suggerimento
+Tip	Consiglio
+Warning	Attenzione
+Error	Errore
+Paused	In pausa
+Game paused	Gioco in pausa
+Click	Clicca
+Hide	Nascondi
+Show	Mostra
+Sell All	Vendi tutto
+Buy All	Compra tutto
+Repair All	Ripara tutto
+Dismantle	Smonta
+Salvage	Recupera
+Craft	Crea
+Cook	Cucina
+Eat	Mangia
+Drink	Bevi
+Consume	Consuma
+Compare	Confronta
+Sort	Ordina
+Sort by	Ordina per
+Filter	Filtra
+Split	Dividi
+Split Stack	Dividi la pila
+Destroy	Distruggi
+Mark as Junk	Segna come cianfrusaglia
+Favorite	Preferito
+Track Quest	Segui la missione
+Untrack	Non seguire
+Abandon Quest	Abbandona la missione
+Accept Quest	Accetta la missione
+Turn In	Consegna
+Read	Leggi
+Assign	Assegna
+Unlock	Sblocca
+Inventory is full	L'inventario è pieno
+You cannot carry any more	Non puoi trasportare altro
+Item added	Oggetto aggiunto
+Item removed	Oggetto rimosso
+V-Sync	V-Sync
+Extras	Extra
+Box, box!	Ai box, ai box!
+Box box!	Ai box, ai box!
+Box, box	Ai box, ai box
+Achievement unlocked	Obiettivo sbloccato
+Trophy unlocked	Trofeo sbloccato
+Enemy sniper	Cecchino nemico
+# Modi di dire e slang dei giochi (7/11/2026)
+Good game	Bella partita
+Good game, well played	Bella partita, ben giocato
+Well played	Ben giocato
+Nice shot	Bel colpo
+Nice one	Bella mossa
+Let's go	Andiamo
+Let's do this	Facciamolo
+Let's roll	Si parte
+Watch out	Attento
+Heads up	Occhio
+Behind you	Dietro di te
+I need backup	Mi serve rinforzo
+Need a hand	Ti serve una mano
+On my way	Sto arrivando
+Be right back	Torno subito
+Hang on	Aspetta un attimo
+Hold up	Aspetta
+No way	Non ci credo
+You serious	Dici sul serio
+For real	Sul serio
+Are you kidding me	Mi prendi in giro
+Too easy	Troppo facile
+Piece of cake	Un gioco da ragazzi
+Easy peasy	Facilissimo
+That was close	C'è mancato poco
+Close call	Per un pelo
+Nailed it	Centrato in pieno
+Got him	Preso
+Got it	Ricevuto
+Gotcha	Ti ho preso
+Gotta go	Devo andare
+Gotta run	Devo scappare
+Wanna play	Vuoi giocare
+Wanna trade	Vuoi scambiare
+What's up	Come va
+Sup	Ehi
+Hey there	Ciao
+See ya	Ci vediamo
+Take care	Stammi bene
+No worries	Tranquillo
+No problem	Nessun problema
+My pleasure	Figurati
+Thanks a lot	Grazie mille
+Thanks, man	Grazie, amico
+Sorry, my fault	Scusa, colpa mia
+Oops	Ops
+Ouch	Ahi
+Yikes	Accidenti
+Damn it	Accidenti
+Holy cow	Porca miseria
+What the heck	Ma che diavolo
+Shut up	Stai zitto
+Get lost	Sparisci
+Back off	Stai indietro
+Bring it on	Fatti sotto
+Come at me	Fatti sotto
+You're dead	Sei morto
+Game over, man	È finita, amico
+I'm out	Io mi ritiro
+I'm in	Ci sto
+Count me in	Contate su di me
+Count me out	Non contate su di me
+Fair enough	Giusto
+Sounds good	Va bene
+It's a deal	Affare fatto
+No deal	Niente da fare
+Big time	Alla grande
+Awesome	Fantastico
+Noob	Novellino
+Newbie	Novellino
+Camper	Camper
+Rage quit	Abbandono per rabbia
+Lag	Lag
+Laggy	Lagga
+Gank	Imboscata
+Carry me	Portami tu
+Gonna be fine	Andrà tutto bene
+Hurry up	Sbrigati
+Move it	Muoviti
+Stay sharp	Stai all'erta
+Eyes open	Occhi aperti
+Keep it down	Abbassa la voce
+Calm down	Calmati
+Easy now	Piano
+Whoa	Ehi
+Yo	Ehi
+Dude	Amico
+Bro	Fratello
+Buddy	Amico
