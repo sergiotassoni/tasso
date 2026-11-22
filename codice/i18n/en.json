@@ -3634,7 +3634,9 @@
   "Problemi ignorati": "Ignored problems",
   "Tasso non te li segnala più. Se cambi idea, clicca Ripristina.": "Tasso won't flag these any more. If you change your mind, click Restore.",
   "Ripristina": "Restore",
-  "Ignorato: non te lo segnalo più. Lo trovi in fondo, in Problemi ignorati.": "Ignored: I won't flag it again. You'll find it at the bottom, in Ignored problems.",
-  "Ripristinato: se c'è ancora, te lo segnalo di nuovo.": "Restored: if it's still there, I'll flag it again."
+  "Ripristinato: se c'è ancora, te lo segnalo di nuovo.": "Restored: if it's still there, I'll flag it again.",
+  "All'ultimo controllo non c'era.": "It wasn't there at the last check.",
+  "Risolvi i 2 problemi insieme": "Fix both problems at once",
+  "Ignorato: lo trovi in fondo, in Problemi ignorati.": "Ignored: you'll find it at the bottom, in Ignored problems."
  }
 }

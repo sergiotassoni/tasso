@@ -1163,33 +1163,54 @@ async function detStart(){
   $('#detStatus').textContent = _t('Comincio…');
   $('#btnDetect').disabled = true; $('#detBar').hidden = false; $('#detResult').innerHTML = '';
 }
+function detOkId(id){ return !!STEP[id] && !(isOffice() && String(id).startsWith('fix_game_')); }
+function detIgnoredIds(){ return (Array.isArray(S.detIgnored) ? S.detIgnored : []).filter(detOkId); }
+// "Problemi ignorati": si vede sempre (anche prima del controllo), così puoi ripristinarli quando vuoi.
+function detIgnSection(box, found){
+  const ids = detIgnoredIds();
+  if (!ids.length) return;
+  const d = el('details', {class:'card detign'});
+  d.open = DET_IGN_OPEN;
+  d.addEventListener('toggle', () => { DET_IGN_OPEN = d.open; });
+  d.appendChild(el('summary', {}, '<span class="chev" aria-hidden="true">▸</span><b>' + esc(_t('Problemi ignorati')) + '</b> <span class="muted small">(' + ids.length + ')</span>'));
+  d.appendChild(el('p', {class:'sub', style:'margin:10px 0 0'}, esc(_t('Tasso non te li segnala più. Se cambi idea, clicca Ripristina.'))));
+  ids.forEach(id => {
+    const s = STEP[id], x = (found || []).find(f => f.id === id);
+    const why = x ? (x.why || s.desc) : (found ? _t('All\'ultimo controllo non c\'era.') : s.desc);
+    const sev = x ? '<span class="detsev' + (x.sev === 'p' ? '' : ' c') + '">' + (x.sev === 'p' ? _t('Problema') : _t('Consiglio')) + '</span>' : '';
+    const r = el('div', {class:'detitem detignrow'}, '<div class="x">' + sev + '<b>' + esc(s.name) + '</b><span class="sub" style="margin:0">' + esc(why) + '</span></div>');
+    const rb = el('button', {class:'btn ghost'}, _t('Ripristina'));
+    rb.onclick = () => detIgnore(id, false, rb);
+    r.appendChild(rb); d.appendChild(r);
+  });
+  box.appendChild(d);
+}
 function paintDetect(){
   $('#btnDetect').disabled = DET_RUN; $('#detBar').hidden = !DET_RUN;
-  if (DET_RUN || !DET) return;
+  if (DET_RUN) return;
   const box = $('#detResult'); box.innerHTML = '';
+  if (!DET) { detIgnSection(box, null); return; }
   $('#btnDetect').textContent = _t('🔎 Controlla di nuovo');
-  if (DET.error) { $('#detTitle').textContent = _t('Controllo non riuscito'); $('#detStatus').textContent = DET.error; return; }
+  if (DET.error) { $('#detTitle').textContent = _t('Controllo non riuscito'); $('#detStatus').textContent = DET.error; detIgnSection(box, null); return; }
   const office = isOffice();
-  const IGN = new Set(Array.isArray(S.detIgnored) ? S.detIgnored : []);
-  const okId = id => STEP[id] && !(office && String(id).startsWith('fix_game_'));
-  const found = (DET.found || []).filter(x => x && okId(x.id));
+  const IGN = new Set(detIgnoredIds());
+  const found = (DET.found || []).filter(x => x && detOkId(x.id));
   const list = found.filter(x => !IGN.has(x.id));
   list.sort((a, b) => (a.sev === 'p' ? 0 : 1) - (b.sev === 'p' ? 0 : 1));
-  // Problemi ignorati: tutti quelli scelti da te, con il motivo di oggi se il controllo li ha ritrovati.
-  const ign = [...IGN].filter(okId).map(id => found.find(x => x.id === id) || {id: id});
+  const ignFound = found.some(x => IGN.has(x.id));
   const probs = list.filter(x => x.sev === 'p'), tips = list.filter(x => x.sev !== 'p');
   const n = Math.max(0, (Number(DET.checked) || 0) - (office ? (Number(DET.games) || 0) : 0));
   const when = DET.when ? _t(' Ultimo controllo alle ') + DET.when + '.' : '';
   if (!list.length) {
-    $('#detTitle').textContent = ign.length ? _t('Nessun problema nuovo 🎉') : _t('Nessun problema trovato 🎉');
-    $('#detStatus').textContent = _t('Ho controllato ') + n + (ign.length ? _t(' problemi diversi: a parte quelli che hai scelto di ignorare, va tutto bene.') : _t(' problemi diversi e va tutto bene.')) + when;
+    $('#detTitle').textContent = ignFound ? _t('Nessun problema nuovo 🎉') : _t('Nessun problema trovato 🎉');
+    $('#detStatus').textContent = _t('Ho controllato ') + n + (ignFound ? _t(' problemi diversi: a parte quelli che hai scelto di ignorare, va tutto bene.') : _t(' problemi diversi e va tutto bene.')) + when;
   } else {
     $('#detTitle').textContent = probs.length ? (_t('Ho trovato ') + probs.length + (probs.length === 1 ? _t(' problema') : _t(' problemi')) + (tips.length ? _t(' e ') + tips.length + (tips.length === 1 ? _t(' consiglio') : _t(' consigli')) : '')) : (_t('Nessun problema, ') + tips.length + (tips.length === 1 ? _t(' consiglio') : _t(' consigli')));
     $('#detStatus').textContent = _t('Ho controllato ') + n + _t(' problemi diversi. Clicca Risolvi su quello che vuoi sistemare, o Ignora se non ti interessa.') + when;
   }
   const fixable = probs.filter(x => !OFFICE_CHECK[x.id]).map(x => x.id);
   if (fixable.length >= 2) {
-    const all = el('button', {class:'btn primary', style:'align-self:flex-start'}, _t('Risolvi i ') + fixable.length + _t(' problemi insieme'));
+    const all = el('button', {class:'btn primary', style:'align-self:flex-start'}, fixable.length === 2 ? _t('Risolvi i 2 problemi insieme') : _t('Risolvi i ') + fixable.length + _t(' problemi insieme'));
     all.onclick = () => { const ss = fixable.map(i => STEP[i]); runSteps(fixable, _t('Risolvi i problemi trovati'), ss.map(s => s.name).join(' · '), ss.reduce((a, s) => a + s.minutes, 0)); };
     box.appendChild(all);
   }
@@ -1203,30 +1224,23 @@ function paintDetect(){
     ig.onclick = () => detIgnore(x.id, true, ig);
     btns.appendChild(b); btns.appendChild(ig); c.appendChild(btns); box.appendChild(c);
   });
-  if (ign.length) {
-    const d = el('details', {class:'card detign'});
-    d.open = DET_IGN_OPEN;
-    d.addEventListener('toggle', () => { DET_IGN_OPEN = d.open; });
-    d.appendChild(el('summary', {}, '<span class="chev" aria-hidden="true">▸</span><b>' + esc(_t('Problemi ignorati')) + '</b> <span class="muted small">(' + ign.length + ')</span>'));
-    d.appendChild(el('p', {class:'sub', style:'margin:10px 0 0'}, esc(_t('Tasso non te li segnala più. Se cambi idea, clicca Ripristina.'))));
-    ign.forEach(x => {
-      const s = STEP[x.id];
-      const r = el('div', {class:'detitem detignrow'}, '<div class="x"><b>' + esc(s.name) + '</b><span class="sub" style="margin:0">' + esc(x.why || s.desc) + '</span></div>');
-      const rb = el('button', {class:'btn ghost'}, _t('Ripristina'));
-      rb.onclick = () => detIgnore(x.id, false, rb);
-      r.appendChild(rb); d.appendChild(r);
-    });
-    box.appendChild(d);
-  }
+  detIgnSection(box, found);
 }
-let DET_IGN_OPEN = false;
+let DET_IGN_OPEN = false, DET_TOAST = null;
 async function detIgnore(id, on, btn){
   if (btn) btn.disabled = true;
   const r = await call('goDetIgnore', id, on);
-  if (r !== 'ok') { if (btn) btn.disabled = false; toast(_t('Non sono riuscito a salvare la scelta: riprova.'), 'var(--red)'); return; }
-  await refreshS();
+  if (r !== 'ok') { if (btn) btn.disabled = false; toast(typeof r === 'string' && r ? r : _t('Non sono riuscito a salvare la scelta: riprova.'), 'var(--red)'); return; }
+  // Aggiorno subito anche la copia locale: la lista cambia anche se la rilettura delle impostazioni non riesce.
+  const cur = (Array.isArray(S.detIgnored) ? S.detIgnored : []).filter(x => x !== id);
+  if (on) cur.push(id);
+  S.detIgnored = cur;
+  const s2 = await call('goGetSettings'); if (s2) S = s2;
+  S.detIgnored = cur;
   paintDetect();
-  toast(on ? _t('Ignorato: non te lo segnalo più. Lo trovi in fondo, in Problemi ignorati.') : _t('Ripristinato: se c\'è ancora, te lo segnalo di nuovo.'));
+  if (DET_TOAST) DET_TOAST.remove();
+  toast(on ? _t('Ignorato: lo trovi in fondo, in Problemi ignorati.') : _t('Ripristinato: se c\'è ancora, te lo segnalo di nuovo.'));
+  DET_TOAST = $('#toasts').lastElementChild;
 }
 $('#btnDetect').onclick = detStart;
 $('#btnHomeDetect').onclick = () => { show('scan'); if (!DET) detStart(); };
