@@ -548,7 +548,7 @@ func addGame() string {
 		}
 		s.HiddenGames = withoutStr(s.HiddenGames, "man:"+shortHash(p))
 	})
-	async("library", scanLibrary)
+	rescanLibrary()
 	return "ok"
 }
 
@@ -583,7 +583,7 @@ func hideGame(id string, on bool) string {
 
 func unhideAllGames() string {
 	updateSettings(func(s *Settings) { s.HiddenGames = nil })
-	async("library", scanLibrary)
+	rescanLibrary()
 	return "ok"
 }
 
@@ -832,4 +832,14 @@ func userUninstallCmd(key string) (string, string) {
 		return "", ""
 	}
 	return exe, rest
+}
+
+// rescanLibrary: rifà la libreria; se ne sta già girando una (es. mentre cerca le copertine) parte subito dopo.
+func rescanLibrary() {
+	if async("library", scanLibrary) == "busy" {
+		go func() {
+			defer guard("games_more.go:rescanLibrary")
+			scanLibrary()
+		}()
+	}
 }
