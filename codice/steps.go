@@ -435,7 +435,7 @@ $on = @($all | Where-Object { $_.enabled })
 $off = @($all | Where-Object { -not $_.enabled })
 Say ('Programmi che partono all''accensione: ' + $on.Count + ' (altri ' + $off.Count + ' sono già spenti)')
 foreach ($s in $on) { Say (' - ' + $s.name) }
-if ($on.Count -gt 5) { Say 'Consiglio: Tasso > Velocità > Programmi all''avvio > spegni quelli che non usi.' }
+if ($on.Count -gt 5) { Say 'Consiglio: Tasso > Pulisci e ripara > Avvio del PC > spegni quelli che non usi.' }
 `},
 	{ID: "disk_health", Name: "Salute dei dischi", Desc: "Controlla stato, usura e temperatura di SSD e dischi.", Level: 3, Minutes: 0.3, Timeout: 5 * time.Minute, Script: `
 Get-PhysicalDisk | ForEach-Object {

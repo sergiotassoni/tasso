@@ -61,7 +61,7 @@ func driversCheck() {
 	r := runPS(driversCheckScript, 10*time.Minute, func(m string) { emit("onDriversProgress", m) })
 	res, _ := decodeJSON(r.JSON).(map[string]interface{})
 	if res == nil {
-		res = map[string]interface{}{"ok": false, "error": "Windows Update non ha risposto. Riprova tra poco (o usa Risolvi problemi → Windows Update bloccato)."}
+		res = map[string]interface{}{"ok": false, "error": "Windows Update non ha risposto. Riprova tra poco (o usa Risolvi un problema → Windows Update bloccato)."}
 	}
 	emit("onDriversUpdates", res)
 }
