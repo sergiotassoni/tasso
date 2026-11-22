@@ -76,7 +76,13 @@ type fpsResult struct {
 	Low1      float64 `json:"low1"`      // 1% low: media del centesimo di fotogrammi più lenti
 	Stutter   int     `json:"stutter"`   // scatti: fotogrammi lunghi più del doppio del normale
 	StutterPM float64 `json:"stutterPm"` // scatti al minuto (per confrontare misure di durata diversa)
+	GpuBusy   float64 `json:"gpuBusy"`   // % del tempo di ogni fotogramma in cui la scheda video lavora (alto = limite della scheda video)
+	CpuTemp   float64 `json:"cpuTemp,omitempty"`
+	GpuTemp   float64 `json:"gpuTemp,omitempty"`
+	Throttle  bool    `json:"throttle,omitempty"` // la scheda video NVIDIA ha rallentato per il caldo
+	Hz        int     `json:"hz,omitempty"`       // frequenza dello schermo durante la misura
 	pid       string
+	path      string
 }
 
 type boostState struct {
@@ -85,6 +91,7 @@ type boostState struct {
 	Cmds     []string                `json:"cmds"`     // comandi accesi dal Boost (da rispegnere)
 	PrevMode string                  `json:"prevMode"` // modalità da rimettere ("" = non l'ha cambiata il Boost)
 	PrevAG   *bool                   `json:"prevAutoGame,omitempty"`
+	GpuPrev  map[string]string       `json:"gpuPrev,omitempty"` // gioco -> scelta della scheda video di prima ("0" = nessuna)
 	History  map[string][]*fpsResult `json:"history,omitempty"` // per gioco, ultime misure
 }
 
@@ -133,6 +140,14 @@ func loadBoost() *boostState {
 	for _, c := range raw.Cmds {
 		if hasStr(boostCmds, c) && !hasStr(s.Cmds, c) {
 			s.Cmds = append(s.Cmds, c)
+		}
+	}
+	for k, v := range raw.GpuPrev {
+		if strings.HasSuffix(strings.ToLower(k), ".exe") && len(k) < 400 && len(v) < 300 && (v == "0" || strings.HasPrefix(v, "1")) {
+			if s.GpuPrev == nil {
+				s.GpuPrev = map[string]string{}
+			}
+			s.GpuPrev[k] = v
 		}
 	}
 	if _, ok := modeScripts[raw.PrevMode]; ok {
@@ -387,8 +402,8 @@ func boostOff() []string {
 	defer bOpMu.Unlock()
 	bMu.Lock()
 	s := loadBoost()
-	prev, auto, prevAG := s.PrevMode, s.Auto, s.PrevAG
-	s.On, s.Auto, s.PrevMode, s.PrevAG = false, false, "", nil
+	prev, auto, prevAG, gpuPrev := s.PrevMode, s.Auto, s.PrevAG, s.GpuPrev
+	s.On, s.Auto, s.PrevMode, s.PrevAG, s.GpuPrev = false, false, "", nil, nil
 	if bGame != "" {
 		bSkip = bGame
 	}
@@ -399,6 +414,10 @@ func boostOff() []string {
 	var msgs []string
 	if boostCmdsOff() > 0 {
 		msgs = append(msgs, "Regolazioni per giocare rimesse come prima.")
+	}
+	if len(gpuPrev) > 0 {
+		gpuPrefRestore(gpuPrev)
+		msgs = append(msgs, "Scelta della scheda video per i giochi rimessa com'era.")
 	}
 	if restoreBoostMode(prev) {
 		msgs = append(msgs, "Rimessa la modalità di prima.")
@@ -727,6 +746,10 @@ func fpsMeasure(delay, secs int, boosted, beeps bool, prefer string) (*fpsResult
 		return nil, errors.New("il gioco non era in primo piano durante la misura: tienilo davanti e riprova")
 	}
 	res.Boost, res.When = boosted, time.Now().Format(time.RFC3339)
+	res.path = processPath(uint32(pidN))
+	res.Hz = primaryHz()
+	res.CpuTemp, res.GpuTemp, res.Throttle = readTemps()
+	setLastFps(res)
 	bMu.Lock()
 	s := loadBoost()
 	if k := strings.ToLower(res.Game); k != "" {
@@ -755,6 +778,10 @@ func parsePresentMon(r io.Reader, prefer string) (*fpsResult, error) {
 	for i, h := range head {
 		col[strings.TrimSpace(strings.TrimPrefix(h, "\ufeff"))] = i
 	}
+	ib, okB := col["MsGPUBusy"]
+	if !okB {
+		ib, okB = col["GPUBusy"]
+	}
 	ia, ok1 := col["Application"]
 	ip, ok2 := col["ProcessID"]
 	is, okS := col["SwapChainAddress"]
@@ -771,6 +798,8 @@ func parsePresentMon(r io.Reader, prefer string) (*fpsResult, error) {
 	type grp struct {
 		app, pid string
 		ft       []float64
+		busy     float64
+		nBusy    int
 	}
 	groups := map[string]*grp{}
 	for {
@@ -803,6 +832,12 @@ func parsePresentMon(r io.Reader, prefer string) (*fpsResult, error) {
 			groups[key] = g
 		}
 		g.ft = append(g.ft, v)
+		if okB && len(rec) > ib {
+			if b, err := strconv.ParseFloat(rec[ib], 64); err == nil && b >= 0 && b <= 2000 {
+				g.busy += b
+				g.nBusy++
+			}
+		}
 	}
 	var best *grp
 	isPref := func(g *grp) bool {
@@ -821,6 +856,13 @@ func parsePresentMon(r io.Reader, prefer string) (*fpsResult, error) {
 	}
 	res := fpsStats(safeName(strings.TrimSuffix(best.app, ".exe")), best.ft)
 	res.pid = best.pid
+	if best.nBusy > len(best.ft)/2 {
+		total := 0.0
+		for _, v := range best.ft {
+			total += v
+		}
+		res.GpuBusy = math.Round(math.Min(100, best.busy/total*100))
+	}
 	return res, nil
 }
 
@@ -931,6 +973,18 @@ func bindBoost(w webview2.WebView) {
 		})
 	})
 	_ = w.Bind("goFpsSummary", func() map[string]interface{} { return fpsSummary() })
+	_ = w.Bind("goFpsCheck", func() string {
+		return async("fpscheck", func() { emit("onFpsCheck", fpsCheck()) })
+	})
+	_ = w.Bind("goFpsFixHz", func() map[string]interface{} { return screenHzMax() })
+	_ = w.Bind("goFpsKeepHz", func() string { screenHzKeep(); return "ok" })
+	_ = w.Bind("goFpsFixGpu", func() string { return fpsSetGpu() })
+	_ = w.Bind("goFpsDriver", func(id string) string {
+		if id != "nvidia" && id != "amd" && id != "intel" {
+			return "no"
+		}
+		return openVendorPage(id)
+	})
 	bMu.Lock()
 	auto := loadBoost().Auto
 	bMu.Unlock()
