@@ -300,6 +300,9 @@ func gdEmit(stage, msg string, extra map[string]interface{}) {
 
 // gpuDrvCheck: c'è un driver nuovo? Emette onGpuDrvInfo.
 func gpuDrvCheck() {
+	gdMu.Lock()
+	gdVendor = ""
+	gdMu.Unlock()
 	g, err := nvDetect()
 	if errors.Is(err, errNoNvidia) {
 		ga, aerr := amdDetect()
@@ -312,6 +315,8 @@ func gpuDrvCheck() {
 		}
 		if errors.Is(aerr, errNoAMD) {
 			err = errors.New("Non ho trovato una scheda video NVIDIA o AMD Radeon.")
+		} else {
+			err = aerr
 		}
 	}
 	if err != nil {
@@ -537,7 +542,7 @@ $key = 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\SystemRestore'
 $oldFreq = (Get-ItemProperty -Path $key -Name 'SystemRestorePointCreationFrequency' -ErrorAction SilentlyContinue).SystemRestorePointCreationFrequency
 New-ItemProperty -Path $key -Name 'SystemRestorePointCreationFrequency' -Value 0 -PropertyType DWord -Force | Out-Null
 $before = @(Get-ComputerRestorePoint).Count
-try { Checkpoint-Computer -Description ('Tasso - prima del driver NVIDIA ' + [string]$A.v) -RestorePointType DEVICE_DRIVER_INSTALL -ErrorAction Stop } catch {}
+try { Checkpoint-Computer -Description ('Tasso - prima del driver ' + [string]$A.v) -RestorePointType DEVICE_DRIVER_INSTALL -ErrorAction Stop } catch {}
 $after = @(Get-ComputerRestorePoint).Count
 if ($null -ne $oldFreq) { New-ItemProperty -Path $key -Name 'SystemRestorePointCreationFrequency' -Value ([int]$oldFreq) -PropertyType DWord -Force | Out-Null } else { Remove-ItemProperty -Path $key -Name 'SystemRestorePointCreationFrequency' -ErrorAction SilentlyContinue }
 $res = 'none'
@@ -550,8 +555,8 @@ elseif ($after -gt 0) {
 `
 
 // gdRestorePoint: "new" (fatto adesso), "recent" (ce n'è uno di meno di 2 ore fa), "none".
-func gdRestorePoint(ver string) string {
-	r := runPSArgs(nvRestoreScript, map[string]string{"v": ver}, 10*time.Minute, nil)
+func gdRestorePoint(label string) string {
+	r := runPSArgs(nvRestoreScript, map[string]string{"v": label}, 10*time.Minute, nil)
 	var o struct {
 		Res string `json:"res"`
 	}
@@ -673,7 +678,7 @@ func gpuDrvInstall(undo, noBackup bool) {
 	backupMsg := ""
 	if !noBackup {
 		gdEmit("backup", "Creo il punto di ripristino…", nil)
-		switch gdRestorePoint(ver) {
+		switch gdRestorePoint("NVIDIA " + ver) {
 		case "new":
 		case "recent":
 			backupMsg = " Uso il punto di ripristino creato poco fa."

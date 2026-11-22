@@ -88,7 +88,7 @@ try {
 try {
   $os = Get-CimInstance Win32_OperatingSystem
   $used = 100 - [math]::Round(100 * $os.FreePhysicalMemory / $os.TotalVisibleMemorySize)
-  if ($used -gt 85) { Bad 5 ('Memoria quasi piena: ' + $used + '%') 'Chiudi i programmi che non usi o attiva il Turbo.' 'turbo' }
+  if ($used -gt 85) { Bad 5 ('Memoria quasi piena: ' + $used + '%') 'Chiudi i programmi che non usi, o usa il Boost prima di giocare.' 'turbo' }
   else { Good ('Memoria usata: ' + $used + '%') }
 } catch {}
 
