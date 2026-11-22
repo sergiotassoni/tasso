@@ -87,6 +87,8 @@ type Settings struct {
 	HagsReboot  string               `json:"hagsReboot,omitempty"`
 	GameProfile *gameProfile         `json:"gameProfile,omitempty"`
 	GamePower   map[string]gamePower `json:"gamePower,omitempty"`
+	// 3.1 "Tasso si ricorda": cosa hai scelto l'ultima volta nella procedura a passi di ogni gioco.
+	GameMemo map[string]*GameMemo `json:"gameMemo,omitempty"`
 	// Avvisi: cosa l'utente vuole che Tasso gli segnali (temperature, disco pieno, avvio, memoria, salute dischi).
 	Alerts map[string]bool `json:"alerts,omitempty"`
 	// Scrivici (3.0): la domanda dopo la prima pulizia si fa una volta sola; massimo 5 messaggi al giorno.

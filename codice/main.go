@@ -429,6 +429,9 @@ func bindAll(w webview2.WebView) {
 	_ = w.Bind("goOverlayShow", func(show bool) string { return overlayShow(show) })
 	_ = w.Bind("goLibrary", func() string { return async("library", scanLibrary) })
 	_ = w.Bind("goLaunchGame", func(id string) string { return launchGame(id) })
+	// 3.1: traduzione e "Tasso si ricorda" per ogni gioco della libreria
+	_ = w.Bind("goGameTr", func(id string) map[string]any { return gameTrInfo(id) })
+	_ = w.Bind("goGameMemo", func(id string, m GameMemo) string { return setGameMemo(id, m) })
 	_ = w.Bind("goUninstallGame", func(id string) string { return uninstallGame(id) })
 	_ = w.Bind("goAddGame", func() string { return addGame() })
 	_ = w.Bind("goHideGame", func(id string, on bool) string { return hideGame(id, on) })

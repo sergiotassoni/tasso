@@ -189,3 +189,38 @@ func verificaTraduzione(g GiocoInstallato) {
 	}
 	dici(false, "In 5 minuti non ho visto scritte da tradurre in "+g.Nome+". Se ci sono scritte inglesi, premi "+nomeTasto("pagina")+" nel gioco.")
 }
+
+// InfoGioco (3.1, dentro Tasso): la libreria di Tasso conosce più negozi di Traduce (GOG, EA,
+// Ubisoft, giochi aggiunti a mano…). Tasso registra qui il gioco con la sua cartella e il suo
+// indirizzo di avvio, così "Applica" e "Apri il gioco" funzionano per tutti, e riceve le stesse
+// informazioni dell'elenco di Traduce (anti-imbroglio, Unity, già tradotto…).
+func InfoGioco(nome, piattaforma, cartella, avvio string) map[string]any {
+	if cartella == "" {
+		return map[string]any{"nome": nome, "cartella": "", "errore": "Non so in che cartella è installato questo gioco."}
+	}
+	if st, err := os.Stat(cartella); err != nil || !st.IsDir() {
+		return map[string]any{"nome": nome, "cartella": "", "errore": "La cartella del gioco non c'è più: aggiorna la libreria."}
+	}
+	g := GiocoInstallato{Nome: nome, Piattaforma: piattaforma, Cartella: cartella, Avvio: avvio}
+	muGiochiNoti.Lock()
+	if giochiNoti == nil {
+		giochiNoti = map[string]GiocoInstallato{}
+	}
+	if vecchio, ok := giochiNoti[chiaveGioco(cartella)]; ok && g.Avvio == "" {
+		g.Avvio = vecchio.Avvio
+	}
+	giochiNoti[chiaveGioco(cartella)] = g
+	muGiochiNoti.Unlock()
+	fileOK, fileMotivo := ModPossibile(cartella)
+	return map[string]any{
+		"nome": nome, "piattaforma": piattaforma, "cartella": cartella,
+		"tradotto":    giocoTradotto(cartella),
+		"unity":       unityDi(cartella),
+		"in_file":     giocoInFile(cartella),
+		"file_ok":     fileOK,
+		"file_motivo": fileMotivo,
+		"avviabile":   g.Avvio != "" || exeGioco(cartella) != "",
+		"traduzioni":  ContaLibreria(fileLibreriaPer(filepath.Join(dirApp, "librerie"), nome)),
+		"anticheat":   conAntiCheat(GiocoRiconosciuto{Nome: nome, Piattaforma: piattaforma, Cartella: cartella}),
+	}
+}
