@@ -94,6 +94,7 @@ type boostState struct {
 	PrevMode string                  `json:"prevMode"` // modalità da rimettere ("" = non l'ha cambiata il Boost)
 	PrevAG   *bool                   `json:"prevAutoGame,omitempty"`
 	GpuPrev  map[string]string       `json:"gpuPrev,omitempty"` // gioco -> scelta della scheda video di prima ("0" = nessuna)
+	Mouse    *[3]int32               `json:"mouse,omitempty"`   // accelerazione del mouse di prima (solo se l'ha tolta il Boost)
 	History  map[string][]*fpsResult `json:"history,omitempty"` // per gioco, ultime misure
 }
 
@@ -371,6 +372,10 @@ func boostOn() []string {
 	if names := closeBackground(); len(names) > 0 {
 		msgs = append(msgs, "Chiusi in background: "+strings.Join(names, ", ")+". Li riapro quando premi \"Rimetti com'era\".")
 	}
+	if m := mouseAccelOff(safeName(runningGame())); m != "" {
+		msgs = append(msgs, m)
+		startBoostWatcher() // serve per rimettere il mouse quando chiudi il gioco
+	}
 	if len(msgs) == 0 {
 		msgs = append(msgs, "Il PC era già pronto per giocare: non c'era niente da cambiare.")
 	}
@@ -434,6 +439,9 @@ func boostOff(explicit bool) []string {
 	}
 	if names := reopenBackground(); len(names) > 0 {
 		msgs = append(msgs, "Riaperti: "+strings.Join(names, ", ")+".")
+	}
+	if m := mouseAccelRestore(); m != "" {
+		msgs = append(msgs, m)
 	}
 	bMu.Lock()
 	left := len(loadBoost().Cmds)
@@ -517,6 +525,12 @@ func startBoostWatcher() {
 					bSkip = ""
 					bMu.Unlock()
 				}
+				// Boost a mano (senza automatico): il mouse torna com'era appena chiudi lo sparatutto.
+				if game == "" && mouseAccelActive() && !competitiveGame(safeName(runningGame())) {
+					if m := mouseAccelRestore(); m != "" {
+						emit("onBoost", map[string]interface{}{"msgs": []string{m}, "state": boostInfo(), "auto": true})
+					}
+				}
 				switch {
 				case name != "" && game == "" && !strings.EqualFold(name, skip):
 					missing, measured, since = 0, "", time.Now()
@@ -530,6 +544,9 @@ func startBoostWatcher() {
 					if len(closed) > 0 {
 						msgs = append(msgs, "Chiusi in background: "+strings.Join(closed, ", ")+". Li riapro quando chiudi il gioco.")
 					}
+					if m := mouseAccelOff(name); m != "" {
+						msgs = append(msgs, m)
+					}
 					emit("onBoost", map[string]interface{}{"msgs": msgs, "state": boostInfo(), "auto": true})
 				case name != "" && game != "":
 					missing = 0
@@ -540,6 +557,16 @@ func startBoostWatcher() {
 						}
 						bMu.Unlock()
 						measured, since = "", time.Now()
+						// Cambio gioco: mouse senza accelerazione solo se anche il nuovo è competitivo.
+						m := ""
+						if competitiveGame(name) {
+							m = mouseAccelOff(name)
+						} else {
+							m = mouseAccelRestore()
+						}
+						if m != "" {
+							emit("onBoost", map[string]interface{}{"msgs": []string{m}, "state": boostInfo(), "auto": true})
+						}
 					}
 					// Una misura per partita, dopo 2 minuti (così salto il caricamento), senza bip.
 					if measured != name && time.Since(since) > 2*time.Minute {
@@ -565,6 +592,9 @@ func startBoostWatcher() {
 						msgs := []string{"Gioco chiuso."}
 						if len(names) > 0 {
 							msgs = append(msgs, "Riaperti: "+strings.Join(names, ", ")+".")
+						}
+						if m := mouseAccelRestore(); m != "" {
+							msgs = append(msgs, m)
 						}
 						emit("onBoost", map[string]interface{}{"msgs": msgs, "state": boostInfo(), "auto": true})
 					}
@@ -1018,6 +1048,12 @@ func bindBoost(w webview2.WebView) {
 	bMu.Lock()
 	auto := loadBoost().Auto
 	bMu.Unlock()
+	// Il Tasso si era chiuso con il mouse ancora senza accelerazione: lo rimetto com'era.
+	if !competitiveGame(safeName(runningGame())) {
+		mouseAccelRestore()
+	} else {
+		startBoostWatcher()
+	}
 	if auto {
 		startBoostWatcher()
 	}
