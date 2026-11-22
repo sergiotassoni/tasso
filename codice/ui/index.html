@@ -707,7 +707,7 @@ details.navmore[open]{display:flex;flex-direction:column;gap:2px}
 <section class="view" id="v-games">
   <div><h1 style="font-size:26px">Gioca</h1><p class="sub">Premi il tasto e Tasso prepara il PC per giocare. Quando hai finito, premi "Rimetti com'era".</p></div>
   <div class="card boostcard" id="boostCard">
-    <div style="flex:1 1 320px;min-width:0"><div class="boostk">PRONTO A GIOCARE</div><h2 id="boostTitle">Il PC è in modalità normale</h2><p class="sub" id="boostSub" style="margin:0">Boost chiude i programmi in background che non servono e mette il PC al massimo per giocare. Con "Misura gli FPS" vedi gli FPS veri. Quando hai finito, premi "Rimetti com'era" (con il Boost automatico, quando chiudi il gioco riapre da solo i programmi chiusi e rimette la modalità di prima).</p><p class="small" style="margin:10px 0 0"><a href="#" id="boostUndo">↩️ Rimetti com'era</a> · <a href="#" id="boostFpsBtn">📊 Misura gli FPS</a> · <a href="#" id="boostCheckBtn">🔍 Controllo FPS</a></p><p class="small" style="margin:8px 0 0"><label style="cursor:pointer"><input type="checkbox" id="boostAuto"> Boost automatico: parte da solo quando apri un gioco; quando lo chiudi riapre i programmi chiusi</label></p><div class="small" id="boostFps" style="margin-top:8px"></div></div>
+    <div style="flex:1 1 320px;min-width:0"><div class="boostk">PRONTO A GIOCARE</div><h2 id="boostTitle">Il PC è in modalità normale</h2><p class="sub" id="boostSub" style="margin:0">Boost chiude i programmi in background che non servono e prepara il PC per giocare. Con "Misura gli FPS" vedi gli FPS veri. Quando hai finito, premi "Rimetti com'era" (con il Boost automatico, quando chiudi il gioco riapre da solo i programmi chiusi e rimette la modalità di prima).</p><p class="small" style="margin:10px 0 0"><a href="#" id="boostUndo">↩️ Rimetti com'era</a> · <a href="#" id="boostFpsBtn">📊 Misura gli FPS</a> · <a href="#" id="boostCheckBtn">🔍 Controllo FPS</a></p><p class="small" style="margin:8px 0 0"><label style="cursor:pointer"><input type="checkbox" id="boostAuto"> Boost automatico: parte da solo quando apri un gioco; quando lo chiudi riapre i programmi chiusi</label></p><div class="small" id="boostFps" style="margin-top:8px"></div></div>
     <button class="btn primary boostgo" id="btnBoost" aria-label="Boost: prepara il PC per giocare">🚀<br>BOOST</button>
   </div>
   <div class="card" id="fpsCheckCard" style="display:none"><div id="fpsCheck" role="status" aria-live="polite" style="display:flex;flex-direction:column;gap:8px"></div></div>
@@ -1519,6 +1519,7 @@ function boostPaintState(){
   // Partita avviata col vecchio "Ottimizza prima di giocare" (prima della 3.1): mostro il tasto per chiuderla.
   try { if (typeof S !== 'undefined' && S && S.modeBeforeBoost) { $('#bsCard').style.display = 'flex'; $('#btnBsEnd').style.display = ''; } } catch (e) {}
   const on = !!(BST.on || BST.game);
+  if (typeof S !== 'undefined' && S && 'auto' in BST) { S.autoGame = !!BST.auto; setToggle('#tgGame', !!BST.auto, S.paused); }
   $('#btnBoost').classList.toggle('on', on);
   $('#btnBoost').innerHTML = on ? _t('✅<br>ACCESO') : _t('🚀<br>BOOST');
   const a = $('#boostAuto'); if (a) a.checked = !!BST.auto;
@@ -1552,9 +1553,8 @@ $('#boostUndo').onclick = async (e) => {
 };
 $('#boostAuto').onchange = async (e) => {
   const r = await call('goBoostAuto', e.target.checked);
-  S.autoGame = e.target.checked; paintSettings();
   if (r) toast(String(r).replace(/^ok:/, ''), 'var(--a3)');
-  setTimeout(boostRefresh, 1500);
+  boostRefresh(); setTimeout(boostRefresh, 1500);
 };
 $('#boostFpsBtn').onclick = async (e) => {
   e.preventDefault();
@@ -2065,7 +2065,7 @@ function paintSettings(){
   paintWeekly();
   setToggle('#tgAlerts', S.smartAlerts !== false, S.paused);
   if (BOOT.cassetta) { $('#tgStats').style.display = ''; $('#statsWhatRow').style.display = ''; setToggle('#tgStats', S.stats === true, false); }
-  setToggle('#tgGame', !!S.autoGame, S.paused);
+  setToggle('#tgGame', !!BST.auto, S.paused); // stato vero del Boost automatico
   paintAlerts();
   paintDiscord();
   const box = $('#profBtns'); box.innerHTML = '';
@@ -2243,7 +2243,7 @@ $('#btnDcTest').onclick = async () => {
 Object.assign(window.tasso, { onDiscordBot: async (r) => { await refreshS(); paintBot(r); paintDiscord(); } });
 call('goDiscordBotState').then(r => { if (r && r.msg) paintBot(r); });
 Object.assign(window.tasso, { onDiscord: async (r) => { $('#btnDcTest').disabled = false; await refreshS(); paintDiscord(); toast(r && r.ok ? _t('Messaggio inviato su Discord.') : _t('Non inviato: ') + ((r && r.error) || _t('errore sconosciuto'))); } });
-$('#tgGame').onclick = async () => { const on = !S.autoGame; const r = await call('goBoostAuto', on); S.autoGame = on; paintSettings(); if (r) toast(String(r).replace(/^ok:/, ''), 'var(--a3)'); call('goBoostInfo').then(x => { BST = x || BST; boostPaintState(); }); };
+$('#tgGame').onclick = async () => { const on = !BST.auto; const r = await call('goBoostAuto', on); if (r) toast(String(r).replace(/^ok:/, ''), 'var(--a3)'); call('goBoostInfo').then(x => { BST = x || BST; boostPaintState(); }); };
 async function copySecret(t){ const r = await call('goCopySecret', t); if (r === 'ok') { toast(_t('Copiata. Non finisce nella cronologia degli appunti e si cancella dopo 30 secondi.')); return; } return copyText(t); }
 async function copyText(t){ try { await navigator.clipboard.writeText(t); toast(_t('Copiata.')); return; } catch (e) {} try { const ta = el('textarea', {style:'position:fixed;left:-9999px;top:0'}); ta.value = t; document.body.appendChild(ta); ta.select(); const ok = document.execCommand('copy'); ta.remove(); toast(ok ? _t('Copiata.') : _t('Non riesco a copiare.')); } catch (e) { toast(_t('Non riesco a copiare.')); } }
 Object.assign(window.tasso, {
