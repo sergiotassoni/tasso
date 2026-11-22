@@ -524,8 +524,9 @@ details.navmore[open]{display:flex;flex-direction:column;gap:2px}
 <section class="view" id="v-speed">
   <div><h1 style="font-size:26px">Velocità</h1><p class="sub"><span class="gm">Modalità del PC e programmi che partono all'accensione.</span><span class="om">Come lavora il PC e quali programmi partono quando lo accendi: meno sono, prima è pronto.</span></p></div>
   <h2>Modalità</h2>
+  <p class="sub gm" style="margin:-6px 0 0">Per giocare usa il <a href="#" data-goto="games" style="color:var(--a1)">Boost nella pagina Gioca</a>: mette lui la potenza massima e la toglie quando hai finito.</p>
   <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(170px,1fr))" id="modeCards"></div>
-  <div class="card gm" style="display:flex;flex-direction:column;gap:10px">
+  <div class="card gm" id="modeExplain" style="display:none;flex-direction:column;gap:10px">
     <h2 style="margin:0">Cosa cambia davvero tra le modalità</h2>
     <p class="sub" style="margin:0">Da <b>Normale</b> a <b>Gaming</b> la potenza <b>sale per davvero</b>: il processore smette di "riposare" e resta sempre al massimo, Windows attiva la Modalità Gioco e mette in pausa le notifiche. <b>Le ventole non cambiano subito, ed è normale</b>: la velocità delle ventole la decide la scheda madre in base alla temperatura, non Windows — appena il gioco scalda, salgono da sole. Tasso di proposito non le forza, perché cambiare le curve delle ventole a mano è rischioso.</p>
     <div class="list" id="modeCompare"></div>
@@ -916,7 +917,7 @@ details.navmore[open]{display:flex;flex-direction:column;gap:2px}
     <div class="card" style="flex:2 1 420px;padding:6px 22px">
       <button class="toggle" id="tgPaused"><span><b>Tasso acceso</b><span>Spento: non parte con Windows, niente pulizie automatiche né avvisi. Riaccendilo e Tasso riprende a funzionare come prima.</span></span><span class="sw"><i></i></span></button>
       <button class="toggle" id="tgAutostart"><span><b>Avvia con Windows</b><span>Tasso parte da solo, ridotto a icona, quando accendi il PC.</span></span><span class="sw"><i></i></span></button>
-      <button class="toggle gm" id="tgGame"><span><b>Modalità gioco automatica</b><span>Quando apri un gioco (Steam, Epic, Riot, Xbox…) Tasso passa da solo alla modalità Gaming e, quando lo chiudi, rimette la modalità di prima.</span></span><span class="sw"><i></i></span></button>
+      <button class="toggle gm" id="tgGame"><span><b>Boost automatico</b><span>Lo stesso interruttore della pagina Gioca: quando apri un gioco Tasso fa il Boost da solo e, quando lo chiudi, rimette tutto com'era.</span></span><span class="sw"><i></i></span></button>
       <div class="gm" style="padding:15px 0;border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:10px">
         <span><b style="font-size:15px">Stato del PC su Discord</b><br><span class="small muted">Tasso manda in un tuo canale Discord il report del PC: voto di salute, processore, scheda video, scheda madre, RAM, dischi, temperature e internet, con le <b style="color:var(--a1)">spunte verdi</b> per tutto quello che va bene. Arriva da solo ogni tot ore e dopo ogni pulizia. Da Discord si può solo leggere, non comandare il PC.</span></span>
         <details class="guide" id="dcGuide"><summary>📘 Come si collega (2 minuti)</summary>
@@ -1491,7 +1492,8 @@ const MODES = [
 ];
 function paintModes(){
   const box = $('#modeCards'); box.innerHTML = '';
-  MODES.filter(m => !isOffice() || (m.id !== 'gaming' && m.id !== 'fps') || m.id === (S.mode || 'normale')).forEach(m => {
+  // 3.1: Gaming e FPS competitivo li mette il Boost (pagina Gioca): qui si vedono solo se sono accese.
+  MODES.filter(m => (m.id !== 'gaming' && m.id !== 'fps') || m.id === (S.mode || 'normale')).forEach(m => {
     const on = (S.mode || 'normale') === m.id;
     const b = el('button', {class:'mode' + (on ? ' on' : ''), style:'--c:' + m.c, 'aria-pressed': on ? 'true' : 'false'}, '<span class="t">' + m.name + '</span><span class="d">' + m.d + '</span><span class="s">' + (on ? _t('ATTIVA') : _t('ATTIVA CON UN CLIC')) + '</span>');
     b.onclick = () => askMode(m);
@@ -1719,6 +1721,7 @@ async function gpuDrvOpen(){
   const r = await call('goGpuDrvCheck');
   if (r !== 'ok' && GD.stage === 'check') { GD.stage = ''; if (gdOurs()) closeModal(); toast(_t('Un attimo, sto ancora controllando.')); }
 }
+document.addEventListener('click', (e) => { const a = e.target.closest && e.target.closest('a[data-goto]'); if (a) { e.preventDefault(); show(a.dataset.goto); } });
 document.addEventListener('click', (e) => { const b = e.target.closest && e.target.closest('[data-gpudrv]'); if (b) { e.preventDefault(); gpuDrvOpen(); } });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && GD.stage === 'check') GD.stage = ''; });
 Object.assign(window.tasso, {
@@ -2239,7 +2242,7 @@ $('#btnDcTest').onclick = async () => {
 Object.assign(window.tasso, { onDiscordBot: async (r) => { await refreshS(); paintBot(r); paintDiscord(); } });
 call('goDiscordBotState').then(r => { if (r && r.msg) paintBot(r); });
 Object.assign(window.tasso, { onDiscord: async (r) => { $('#btnDcTest').disabled = false; await refreshS(); paintDiscord(); toast(r && r.ok ? _t('Messaggio inviato su Discord.') : _t('Non inviato: ') + ((r && r.error) || _t('errore sconosciuto'))); } });
-$('#tgGame').onclick = async () => { const on = !S.autoGame; await call('goSetAutoGame', on); S.autoGame = on; paintSettings(); toast(on ? _t('Modalità gioco automatica accesa.') : _t('Modalità gioco automatica spenta.')); };
+$('#tgGame').onclick = async () => { const on = !S.autoGame; const r = await call('goBoostAuto', on); S.autoGame = on; paintSettings(); if (r) toast(String(r).replace(/^ok:/, ''), 'var(--a3)'); call('goBoostInfo').then(x => { BST = x || BST; boostPaintState(); }); };
 async function copySecret(t){ const r = await call('goCopySecret', t); if (r === 'ok') { toast(_t('Copiata. Non finisce nella cronologia degli appunti e si cancella dopo 30 secondi.')); return; } return copyText(t); }
 async function copyText(t){ try { await navigator.clipboard.writeText(t); toast(_t('Copiata.')); return; } catch (e) {} try { const ta = el('textarea', {style:'position:fixed;left:-9999px;top:0'}); ta.value = t; document.body.appendChild(ta); ta.select(); const ok = document.execCommand('copy'); ta.remove(); toast(ok ? _t('Copiata.') : _t('Non riesco a copiare.')); } catch (e) { toast(_t('Non riesco a copiare.')); } }
 Object.assign(window.tasso, {
@@ -2921,15 +2924,13 @@ const GAMING = [
   {id:'hags', tag:'GPU', c:'--a2', t:_t('Pianificazione GPU hardware'), d:_t('<b>Cosa fa:</b> la scheda video organizza da sola il suo lavoro invece di farselo dire ogni volta dal processore. Il processore ha meno da fare e l\'immagine arriva prima allo schermo.<br><b>Quando serve:</b> con schede recenti: NVIDIA GTX 10 o più nuove, AMD RX 7000 o più nuove, Intel Arc. Serve per usare la "Generazione fotogrammi" (DLSS 3, AFMF). <b>Guadagno:</b> un po\' meno ritardo.<br><b>Rischi:</b> su qualche gioco vecchio può dare piccoli scatti: in quel caso spegnilo. Vale dopo il riavvio del PC; sulle schede vecchie Windows la ignora.')},
   {id:'winopt', tag:'WIN', c:'--a1', t:_t('Ottimizzazioni per i giochi in finestra'), d:_t('<b>Cosa fa:</b> fa funzionare i giochi in finestra e in "schermo intero senza bordi" quasi come lo schermo intero vero.<br><b>Quando serve:</b> se giochi in finestra o senza bordi (comodo per passare al browser o a Discord). <b>Guadagno:</b> meno ritardo e a volte qualche FPS in più.<br><b>Rischi:</b> nessuno. Solo Windows 11.'), w11:true},
   {id:'standby', tag:'RAM', c:'--a1', t:_t('Svuota la memoria in standby'), d:_t('<b>Cosa fa:</b> Windows tiene in memoria pezzi di programmi chiusi "per sicurezza", così si riaprono prima. Di solito è utile, ma su alcuni PC dopo ore di gioco questa memoria si riempie e il gioco comincia a scattare. Il pulsante la svuota.<br><b>Quando serve:</b> solo se un gioco va bene all\'inizio e scatta dopo tanto tempo. Windows poi la riempie di nuovo da solo, ed è normale.<br><b>Rischi:</b> nessuno; per qualche minuto i programmi si aprono un pelo più lenti.'), act:_t('Svuota ora')},
-  {id:'shader', tag:'SHD', c:'--a2', t:_t('Svuota la cache degli shader'), d:_t('<b>Cosa fa:</b> gli "shader" sono i pezzi della grafica che la scheda video prepara e salva per non rifarli ogni volta. A volte, dopo un aggiornamento del driver, quelli vecchi danno problemi. Il pulsante li cancella e il gioco li rifà nuovi.<br><b>Quando serve:</b> dopo un aggiornamento del driver video, o se un gioco scatta all\'inizio o ha grafica strana.<br><b>Rischi:</b> nessuno; la prima partita dopo può caricare un po\' di più.'), act:_t('Svuota')},
-  {id:'gpureset', tag:'DRV', c:'--a3', t:_t('Riavvia il driver video'), d:_t('<b>Cosa fa:</b> come premere Win+Ctrl+Maiusc+B: Windows fa ripartire la scheda video in 2 secondi, senza riavviare il PC.<br><b>Quando serve:</b> se lo schermo resta nero, si blocca o il gioco va a scatti dopo un crash.<br><b>Rischi:</b> nessuno; lo schermo lampeggia un attimo. Chiudi prima i giochi aperti.'), act:_t('Riavvia')}
 ];
 let GCS = null;
 async function paintGaming(){
   GCS = (await call('goGamingState')) || GCS || {};
   const box = $('#gcList'); box.innerHTML = '';
   GAMING.forEach(g => {
-    const d = el('div', {class:'tool', style:'align-items:flex-start'}, '<span class="tag" style="--c:var(' + g.c + ')">' + g.tag + '</span><span class="x"><b>' + g.t + '</b><span style="line-height:1.45">' + g.d + (g.id === 'hags' && GCS.rebootHags ? _t(' <b style="color:var(--a4)">Riavvia il PC per completare.</b>') : '') + '</span></span>');
+    const d = el('div', {class:'tool', style:'align-items:flex-start'}, '<span class="tag" style="--c:var(' + g.c + ')">' + g.tag + '</span><span class="x"><b>' + g.t + '</b><details class="small"><summary style="cursor:pointer;color:var(--muted)">' + _t('Cosa fa?') + '</summary><span style="line-height:1.45">' + g.d + (g.id === 'hags' && GCS.rebootHags ? _t(' <b style="color:var(--a4)">Riavvia il PC per completare.</b>') : '') + '</span></details></span>');
     if (g.act) {
       const b = el('button', {class:'btn ghost', style:'min-height:36px;padding:6px 12px;font-size:12px;flex:0 0 auto'}, g.act);
       b.onclick = async () => {

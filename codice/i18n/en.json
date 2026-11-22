@@ -4003,6 +4003,12 @@
   "driver del ": "driver from ",
   "Senza punto di ripristino, se il driver nuovo dà problemi prova Gestione dispositivi → scheda video → Ripristina driver (se il pulsante è attivo), oppure il sito AMD.": "Without a restore point, if the new driver gives problems try Device Manager → graphics card → Roll Back Driver (if the button is active), or the AMD site.",
   "Modalità del PC e programmi che partono all'accensione.": "PC mode and programs that start when you turn it on.",
-  "%). Chiudi i programmi che non usi, o usa il Boost prima di giocare.": "%). Close the programs you're not using, or use Boost before playing."
+  "%). Chiudi i programmi che non usi, o usa il Boost prima di giocare.": "%). Close the programs you're not using, or use Boost before playing.",
+  "Cosa fa?": "What does it do?",
+  "Per giocare usa il ": "To play use ",
+  "Boost nella pagina Gioca": "Boost on the Play page",
+  ": mette lui la potenza massima e la toglie quando hai finito.": ": it sets full power and removes it when you're done.",
+  "Boost automatico": "Auto Boost",
+  "Lo stesso interruttore della pagina Gioca: quando apri un gioco Tasso fa il Boost da solo e, quando lo chiudi, rimette tutto com'era.": "The same switch as on the Play page: when you open a game Tasso does the Boost by itself and, when you close it, puts everything back."
  }
 }
