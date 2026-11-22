@@ -16,6 +16,7 @@ package main
 import (
 	"encoding/json"
 	"math"
+	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -133,7 +134,33 @@ func screens() []screenInfo {
 	return out
 }
 
-func primaryHz() int {
+var (
+	pMonitorFromWindow = user32.NewProc("MonitorFromWindow")
+	pGetMonitorInfo    = user32.NewProc("GetMonitorInfoW")
+)
+
+// gameScreenHz: frequenza dello schermo dove c'è la finestra davanti (il gioco, alla fine della misura).
+func gameScreenHz() int {
+	h, _, _ := pForegroundWin.Call()
+	if h != 0 {
+		mon, _, _ := pMonitorFromWindow.Call(h, 2) // MONITOR_DEFAULTTONEAREST
+		if mon != 0 {
+			var mi struct {
+				Size          uint32
+				Monitor, Work [4]int32
+				Flags         uint32
+				Device        [32]uint16
+			}
+			mi.Size = uint32(unsafe.Sizeof(mi))
+			if r, _, _ := pGetMonitorInfo.Call(mon, uintptr(unsafe.Pointer(&mi))); r != 0 {
+				var dm devMode
+				dm.Size = uint16(unsafe.Sizeof(dm))
+				if r, _, _ := pEnumDisplaySettings.Call(uintptr(unsafe.Pointer(&mi.Device[0])), 0xFFFFFFFF, uintptr(unsafe.Pointer(&dm))); r != 0 {
+					return int(dm.DisplayFrequency)
+				}
+			}
+		}
+	}
 	for _, s := range screens() {
 		if s.Primary {
 			return s.Hz
@@ -142,15 +169,18 @@ func primaryHz() int {
 	return 0
 }
 
+// hzWorth: lo stesso criterio per il controllo e per "Sistemalo": almeno 15 Hz in più e oltre i 60.
+func hzWorth(s screenInfo) bool { return s.Hz > 0 && s.MaxHz >= s.Hz+15 && s.MaxHz > 60 }
+
 var (
-	hzMu     sync.Mutex
-	hzUndo   map[string]int // schermo -> frequenza di prima, finché non confermi
-	hzTimers map[string]*time.Timer
+	hzMu    sync.Mutex
+	hzUndo  map[string]int // schermo -> frequenza di prima, finché non confermi
+	hzTimer *time.Timer
 )
 
-// setScreenHz cambia la frequenza di uno schermo. Se non confermi entro 15 secondi (per esempio
-// perché lo schermo è diventato nero) rimette quella di prima, come fa Windows.
-func setScreenHz(dev string, hz int) bool {
+// setScreenHz cambia la frequenza di uno schermo. save=false: solo per adesso (se il Tasso si
+// chiude o il PC si riavvia torna quella salvata); save=true: la salva in Windows.
+func setScreenHz(dev string, hz int, save bool) bool {
 	var dm devMode
 	dm.Size = uint16(unsafe.Sizeof(dm))
 	name, err := windows.UTF16PtrFromString(dev)
@@ -161,85 +191,142 @@ func setScreenHz(dev string, hz int) bool {
 		return false
 	}
 	dm.DisplayFrequency = uint32(hz)
-	dm.Fields = 0x400000 | 0x80000 | 0x100000                                                              // frequenza, larghezza, altezza
-	r, _, _ := pChangeDisplay.Call(uintptr(unsafe.Pointer(name)), uintptr(unsafe.Pointer(&dm)), 0, 0x1, 0) // CDS_UPDATEREGISTRY
+	dm.Fields = 0x400000 | 0x80000 | 0x100000                                                                           // frequenza, larghezza, altezza
+	if r, _, _ := pChangeDisplay.Call(uintptr(unsafe.Pointer(name)), uintptr(unsafe.Pointer(&dm)), 0, 0x2, 0); r != 0 { // CDS_TEST
+		return false
+	}
+	flags := uintptr(0)
+	if save {
+		flags = 0x1 // CDS_UPDATEREGISTRY
+	}
+	r, _, _ := pChangeDisplay.Call(uintptr(unsafe.Pointer(name)), uintptr(unsafe.Pointer(&dm)), 0, flags, 0)
 	return r == 0
 }
 
-func screenHzMax() map[string]interface{} {
+// screenHzMax prova la frequenza più alta sugli schermi che ne hanno bisogno, SENZA salvarla.
+// Se non confermi entro 15 secondi (per esempio perché lo schermo è nero) torna com'era; se il
+// Tasso si chiude prima, la frequenza salvata in Windows è ancora quella vecchia.
+func screenHzMax() {
+	if onBattery() {
+		emit("onFpsHzTry", map[string]interface{}{"changed": []string{}, "msg": "Sei a batteria: molti portatili tengono 60 Hz apposta per consumare meno. Collega il caricatore e riprova."})
+		return
+	}
 	hzMu.Lock()
-	defer hzMu.Unlock()
 	if hzUndo == nil {
-		hzUndo, hzTimers = map[string]int{}, map[string]*time.Timer{}
+		hzUndo = map[string]int{}
 	}
 	var done []string
 	for _, s := range screens() {
-		if s.MaxHz <= s.Hz || s.Hz <= 0 {
+		if !hzWorth(s) {
 			continue
 		}
-		if setScreenHz(s.Dev, s.MaxHz) {
-			dev, prev := s.Dev, s.Hz
-			hzUndo[dev] = prev
-			if t := hzTimers[dev]; t != nil {
-				t.Stop()
+		if setScreenHz(s.Dev, s.MaxHz, false) {
+			if _, already := hzUndo[s.Dev]; !already {
+				hzUndo[s.Dev] = s.Hz
 			}
-			hzTimers[dev] = time.AfterFunc(15*time.Second, func() {
-				hzMu.Lock()
-				p, ok := hzUndo[dev]
-				delete(hzUndo, dev)
-				delete(hzTimers, dev)
-				hzMu.Unlock()
-				if ok {
-					setScreenHz(dev, p)
-					emit("onFpsHz", map[string]interface{}{"kept": false})
-				}
-			})
 			done = append(done, strconv.Itoa(s.Hz)+" → "+strconv.Itoa(s.MaxHz)+" Hz")
 		}
 	}
-	return map[string]interface{}{"changed": done}
+	if len(done) > 0 {
+		if hzTimer != nil {
+			hzTimer.Stop()
+		}
+		hzTimer = time.AfterFunc(15*time.Second, func() { screenHzUndo(true) })
+	}
+	hzMu.Unlock()
+	emit("onFpsHzTry", map[string]interface{}{"changed": done})
 }
 
-// screenHzKeep: hai confermato che lo schermo si vede bene.
+// screenHzUndo rimette subito la frequenza di prima (pulsante "Torna com'era" o tempo scaduto).
+func screenHzUndo(timeout bool) {
+	hzMu.Lock()
+	undo := hzUndo
+	hzUndo = nil
+	if hzTimer != nil {
+		hzTimer.Stop()
+		hzTimer = nil
+	}
+	hzMu.Unlock()
+	for dev, hz := range undo {
+		setScreenHz(dev, hz, false)
+	}
+	if len(undo) > 0 {
+		emit("onFpsHz", map[string]interface{}{"kept": false, "timeout": timeout})
+	}
+}
+
+// screenHzKeep: hai confermato che lo schermo si vede bene: ora la salvo in Windows.
 func screenHzKeep() {
 	hzMu.Lock()
-	defer hzMu.Unlock()
-	for dev, t := range hzTimers {
-		t.Stop()
-		delete(hzTimers, dev)
-		delete(hzUndo, dev)
+	undo := hzUndo
+	hzUndo = nil
+	if hzTimer != nil {
+		hzTimer.Stop()
+		hzTimer = nil
+	}
+	hzMu.Unlock()
+	if len(undo) == 0 {
+		return // tempo già scaduto: è già tornato com'era
+	}
+	for _, s := range screens() {
+		if _, ok := undo[s.Dev]; ok {
+			setScreenHz(s.Dev, s.Hz, true)
+		}
 	}
 	emit("onFpsHz", map[string]interface{}{"kept": true})
 }
 
-// ---------------- Temperature ----------------
+// ---------------- Temperature e memoria video ----------------
 
-// readTemps: processore (LibreHardwareMonitor o sensore ACPI) e scheda video, letti alla fine della
-// misura, quando il gioco ha appena lavorato. -1 / 0 = non disponibile.
-func readTemps() (cpu, gpu float64, throttle bool) {
-	r := runPS(cpuTempScript, 20*time.Second, nil)
+// Solo LibreHardwareMonitor: il sensore ACPI di Windows spesso non è il processore.
+const cpuTempLHMScript = `
+try {
+  $s = Get-CimInstance -Namespace root/LibreHardwareMonitor -ClassName Sensor -ErrorAction Stop | Where-Object { $_.SensorType -eq 'Temperature' -and ($_.Name -match 'CPU Package|Core \(Tctl|Tctl|Tdie') } | Select-Object -First 1
+  if ($s) { [Console]::Out.WriteLine('JSON ' + ([math]::Round([double]$s.Value, 1)).ToString([Globalization.CultureInfo]::InvariantCulture)) }
+} catch {}
+`
+
+type tempRead struct {
+	cpu, gpu, vram float64
+	throttle       bool
+}
+
+// readTemps: temperature e memoria video lette verso la fine della misura (in parallelo, così la
+// misura non si allunga). 0 = non disponibile.
+func readTemps() tempRead {
+	var t tempRead
+	r := runPS(cpuTempLHMScript, 8*time.Second, nil)
 	if f, err := strconv.ParseFloat(strings.TrimSpace(r.JSON), 64); err == nil && f > 15 && f < 115 {
-		cpu = f
+		t.cpu = f
 	}
 	sampleGPUNow()
 	liveMu.Lock()
 	if g := gpuFresh(); g != nil {
-		if t, ok := g["temp"].(float64); ok {
-			gpu = t
+		if v, ok := g["temp"].(float64); ok {
+			t.gpu = v
+		}
+		u, ok1 := g["memUsed"].(float64)
+		tot, ok2 := g["memTot"].(float64)
+		if ok1 && ok2 && tot > 0 {
+			t.vram = math.Round(u / tot * 100)
 		}
 	}
 	liveMu.Unlock()
 	if nvsmi != "" {
-		out, err := runHiddenTimeout(3*time.Second, nvsmi, "--query-gpu=clocks_throttle_reasons.hw_thermal_slowdown,clocks_throttle_reasons.sw_thermal_slowdown", "--format=csv,noheader")
-		if err == nil && strings.Contains(strings.ToLower(out), "active") && !strings.Contains(strings.ToLower(out), "not active, not active") {
-			for _, f := range strings.Split(strings.Split(out, "\n")[0], ",") {
+		for _, q := range []string{"clocks_event_reasons.hw_thermal_slowdown,clocks_event_reasons.sw_thermal_slowdown", "clocks_throttle_reasons.hw_thermal_slowdown,clocks_throttle_reasons.sw_thermal_slowdown"} {
+			out, err := runHiddenTimeout(3*time.Second, nvsmi, "--query-gpu="+q, "--format=csv,noheader")
+			if err != nil || strings.Contains(strings.ToLower(out), "field") {
+				continue
+			}
+			for _, f := range strings.Split(strings.Split(strings.TrimSpace(out), "\n")[0], ",") {
 				if strings.TrimSpace(strings.ToLower(f)) == "active" {
-					throttle = true
+					t.throttle = true
 				}
 			}
+			break
 		}
 	}
-	return
+	return t
 }
 
 // ---------------- RAM, schede video e driver (PowerShell, una volta) ----------------
@@ -250,7 +337,7 @@ $gpus = @(Get-CimInstance Win32_VideoController -ErrorAction SilentlyContinue)
 $bat = @(Get-CimInstance Win32_Battery -ErrorAction SilentlyContinue)
 $o = [ordered]@{
   laptop = ($bat.Count -gt 0)
-  ram = @($mem | ForEach-Object { [ordered]@{ type = [int]$_.SMBIOSMemoryType; speed = [int]$_.Speed; conf = [int]$_.ConfiguredClockSpeed; size = [long]$_.Capacity } })
+  ram = @($mem | ForEach-Object { [ordered]@{ type = [int]$_.SMBIOSMemoryType; speed = [int]$_.Speed; conf = [int]$_.ConfiguredClockSpeed; size = [long]$_.Capacity; part = ([string]$_.PartNumber).Trim() } })
   gpus = @($gpus | ForEach-Object { [ordered]@{ name = [string]$_.Name; date = $(if ($_.DriverDate) { $_.DriverDate.ToString('yyyy-MM-dd') } else { '' }) } })
 }
 [Console]::Out.WriteLine('JSON ' + ($o | ConvertTo-Json -Compress -Depth 4))
@@ -259,10 +346,11 @@ $o = [ordered]@{
 type pcFacts struct {
 	Laptop bool `json:"laptop"`
 	RAM    []struct {
-		Type  int   `json:"type"`
-		Speed int   `json:"speed"`
-		Conf  int   `json:"conf"`
-		Size  int64 `json:"size"`
+		Type  int    `json:"type"`
+		Speed int    `json:"speed"`
+		Conf  int    `json:"conf"`
+		Size  int64  `json:"size"`
+		Part  string `json:"part"`
 	} `json:"ram"`
 	GPUs []struct {
 		Name string `json:"name"`
@@ -274,6 +362,36 @@ func discreteGPU(name string) bool {
 	n := strings.ToLower(name)
 	return strings.Contains(n, "nvidia") || strings.Contains(n, "radeon rx") || strings.Contains(n, "radeon pro") ||
 		strings.Contains(n, "arc(tm) a") || strings.Contains(n, "arc a") || strings.Contains(n, "arc(tm) b") || strings.Contains(n, "arc b")
+}
+
+// integratedGPU: solo le vere schede video integrate nel processore (non quelle virtuali di
+// Parsec, Desktop remoto, DisplayLink...).
+func integratedGPU(name string) bool {
+	n := strings.ToLower(name)
+	if discreteGPU(name) {
+		return false
+	}
+	return strings.Contains(n, "intel") && (strings.Contains(n, "uhd") || strings.Contains(n, "iris") || strings.Contains(n, "hd graphics") || strings.Contains(n, "arc(tm) graphics") || strings.Contains(n, "arc graphics")) ||
+		strings.Contains(n, "amd radeon(tm) graphics") || strings.Contains(n, "amd radeon graphics") || strings.Contains(n, "radeon(tm) vega") ||
+		regexpRadeonM.MatchString(n)
+}
+
+var regexpRadeonM = regexp.MustCompile(`radeon\(tm\)? \d{3}m\b|radeon \d{3}m\b`)
+
+// ramRated: velocità scritta nel codice del banco (es. F4-3600C16, CMK16GX4M2B3200C16), se c'è.
+var ramSpeedRe = regexp.MustCompile(`\d{4}`)
+
+func ramRated(part string) int {
+	best := 0
+	for _, m := range ramSpeedRe.FindAllString(part, -1) {
+		v, _ := strconv.Atoi(m)
+		if v >= 2400 && v <= 8800 && v%100 == 0 || v == 2666 || v == 2933 || v == 3466 {
+			if v > best {
+				best = v
+			}
+		}
+	}
+	return best
 }
 
 func gpuVendorPage(name string) string {
@@ -298,80 +416,116 @@ func gamePrefHigh(path string) bool {
 // ---------------- Analisi ----------------
 
 // fpsFindings: la parte che decide, separata dalla lettura del PC così si può provare anche su Linux.
+// Regola: meglio non dire niente che dare un falso allarme.
 func fpsFindings(f pcFacts, scr []screenInfo, last *fpsResult, battery, gpuPrefHigh bool, now time.Time) []fpsFinding {
 	var out []fpsFinding
 	add := func(x fpsFinding) { out = append(out, x) }
-
-	// 1. Schermo
-	for _, s := range scr {
-		if s.MaxHz >= s.Hz+15 && s.MaxHz > 60 {
-			add(fpsFinding{ID: "hz", Sev: "big", Title: "Lo schermo va a " + strconv.Itoa(s.Hz) + " Hz ma può andare a " + strconv.Itoa(s.MaxHz) + " Hz",
-				Why:  "Vedi al massimo " + strconv.Itoa(s.Hz) + " immagini al secondo, anche se il gioco ne fa di più.",
-				Gain: "Fino a " + strconv.Itoa(s.MaxHz) + " FPS visibili invece di " + strconv.Itoa(s.Hz) + ": il gioco sembra molto più fluido.",
-				Fix:  "Premi Sistema: hai 15 secondi per confermare che lo schermo si vede bene, altrimenti torna com'era.", Action: "hz"})
-			break
-		}
-	}
-	// 2. Portatile con due schede video: il gioco deve usare quella potente.
 	disc, integ := false, false
 	for _, g := range f.GPUs {
 		if discreteGPU(g.Name) {
 			disc = true
-		} else {
+		} else if integratedGPU(g.Name) {
 			integ = true
 		}
 	}
-	if disc && integ && last != nil && last.path != "" && !gpuPrefHigh {
-		add(fpsFinding{ID: "gpu", Sev: "big", Title: last.Game + " potrebbe usare la scheda video integrata",
-			Why:  "Questo PC ha due schede video e Windows non ha scelto quella potente per questo gioco.",
-			Gain: "Se il gioco usava quella integrata: anche il doppio degli FPS o più.",
-			Fix:  "Premi Sistema: il Tasso dice a Windows di usare la scheda video potente per questo gioco. Poi riavvia il gioco.", Action: "gpu"})
-	}
-	// 3 e 4. Dalla misura
-	if last != nil && last.Avg > 0 {
-		capped := false
-		for _, c := range []float64{30, 60, 72, 75, 90, 100, 120, 144, 165, 170, 180, 240, float64(last.Hz)} {
-			if c > 0 && math.Abs(last.Avg-c)/c < 0.03 && last.Low1 > c*0.8 && (last.GpuBusy == 0 || last.GpuBusy < 85) {
-				capped = true
+
+	// Schermo collegato alla scheda madre invece che alla scheda video (PC fisso).
+	if disc && !f.Laptop {
+		for _, s := range scr {
+			if s.Primary && integratedGPU(s.Name) {
+				add(fpsFinding{ID: "port", Sev: "big", Title: "Lo schermo è collegato alla scheda madre, non alla scheda video",
+					Why:  "Così i giochi possono girare sulla grafica del processore, molto più lenta, o fare un passaggio in più.",
+					Gain: "Spesso il doppio degli FPS o più.",
+					Fix:  "Spegni il PC e sposta il cavo dello schermo nelle uscite della scheda video (quelle più in basso, dietro il PC).", Action: ""})
 				break
 			}
 		}
-		if capped {
-			add(fpsFinding{ID: "cap", Sev: "big", Title: last.Game + " è bloccato a circa " + strconv.Itoa(int(math.Round(last.Avg))) + " FPS",
-				Why:  "Gli FPS sono fermi su un numero tondo e la scheda video non è al limite: c'è un limite (V-Sync o limite FPS) nel gioco o nel pannello della scheda video.",
-				Gain: "Se il tuo schermo va più veloce: +20% e oltre, finché la scheda video arriva al massimo.",
-				Fix:  "Nel gioco metti V-Sync spento e limite FPS uguale ai Hz del tuo schermo (o 3 in meno se hai G-Sync/FreeSync). Se il limite è nel pannello NVIDIA o AMD, togli \"Frequenza fotogrammi massima\".", Action: "tune"})
-		} else if last.GpuBusy >= 90 && last.Avg < 100 {
+	}
+	// 1. Schermo più lento di quanto può.
+	if !battery {
+		for _, s := range scr {
+			if hzWorth(s) {
+				add(fpsFinding{ID: "hz", Sev: "big", Title: "Lo schermo va a " + strconv.Itoa(s.Hz) + " Hz ma può andare a " + strconv.Itoa(s.MaxHz) + " Hz",
+					Why:  "Lo schermo mostra al massimo " + strconv.Itoa(s.Hz) + " immagini al secondo, anche se il gioco ne fa di più.",
+					Gain: "Il gioco diventa molto più fluido (non cambia il numero di FPS del gioco, cambia quanti ne vedi).",
+					Fix:  "Premi Sistemalo: hai 15 secondi per confermare che lo schermo si vede bene, altrimenti torna com'era. Se diventa nero o sfarfalla, il cavo potrebbe non reggere: usa DisplayPort o HDMI 2.1.", Action: "hz"})
+				break
+			}
+		}
+	}
+	// 2. Portatile con due schede video: Windows non ha una preferenza salvata per il gioco.
+	if f.Laptop && disc && integ && last != nil && last.path != "" && !gpuPrefHigh {
+		add(fpsFinding{ID: "gpu", Sev: "mid", Title: last.Game + " potrebbe partire sulla scheda video integrata",
+			Why:  "Questo portatile ha due schede video e Windows non ha una preferenza salvata per questo gioco. Molti giochi scelgono da soli quella potente, ma non tutti.",
+			Gain: "Solo se ora usa quella integrata: anche il doppio degli FPS.",
+			Fix:  "Premi Sistemalo: il Tasso dice a Windows di usare la scheda video potente per questo gioco. Poi riavvia il gioco e misura di nuovo.", Action: "gpu"})
+	}
+	// 3, 4 e altri: dalla misura.
+	if last != nil && last.Avg > 0 {
+		capped := 0.0
+		if !battery && last.GpuBusy > 0 && last.GpuBusy < 80 && last.Spread > 0 && last.Spread < 5 {
+			for _, c := range []float64{30, 60, 72, 75, 90, 100, 120} {
+				if math.Abs(last.Avg-c)/c < 0.02 && (last.Hz == 0 || c < float64(last.Hz)*0.9) {
+					capped = c
+					break
+				}
+			}
+		}
+		switch {
+		case capped > 0:
+			add(fpsFinding{ID: "cap", Sev: "big", Title: last.Game + " è bloccato a " + strconv.Itoa(int(capped)) + " FPS",
+				Why:  "Gli FPS sono fermi e la scheda video non è al limite, mentre lo schermo va a " + strconv.Itoa(last.Hz) + " Hz: c'è un limite (V-Sync o limite FPS) nel gioco o nel pannello della scheda video.",
+				Gain: "Finché la scheda video arriva al massimo: spesso +20% e oltre.",
+				Fix:  "Senza G-Sync/FreeSync: nel gioco V-Sync spento e limite FPS uguale ai Hz dello schermo. Con G-Sync/FreeSync: V-Sync acceso nel pannello NVIDIA/AMD, spento nel gioco, limite FPS 3 sotto i Hz.", Action: "tune"})
+		case last.GpuBusy >= 90 && last.Avg < 100:
 			add(fpsFinding{ID: "upscale", Sev: "big", Title: "La scheda video è al massimo in " + last.Game,
 				Why:  "Lavora per il " + strconv.Itoa(int(last.GpuBusy)) + "% di ogni fotogramma: il limite è lei, non Windows.",
-				Gain: "DLSS, FSR o XeSS in modalità Qualità: di solito +30–60%. La generazione di fotogrammi raddoppia gli FPS mostrati, ma aggiunge un po' di ritardo.",
-				Fix:  "Nelle impostazioni grafiche del gioco accendi DLSS (NVIDIA), FSR o XeSS su Qualità. \"Regola con Tasso\" ti dice anche la grafica giusta per il tuo PC.", Action: "tune"})
-		} else if last.GpuBusy > 0 && last.GpuBusy < 60 && last.Avg < 120 {
+				Gain: "DLSS, FSR o XeSS su Qualità: di solito +20–40% (se non sono già accesi). La generazione di fotogrammi arriva quasi al doppio degli FPS mostrati, ma serve partire da almeno 50–60 FPS.",
+				Fix:  "Nelle impostazioni grafiche del gioco accendi DLSS (NVIDIA), FSR o XeSS su Qualità, oppure abbassa la grafica di un livello. \"Regola con Tasso\" ti dice la grafica giusta per il tuo PC.", Action: "tune"})
+		case last.GpuBusy > 0 && last.GpuBusy < 60 && last.Avg < 120:
 			add(fpsFinding{ID: "cpu", Sev: "mid", Title: "In " + last.Game + " il limite è il processore",
 				Why:  "La scheda video lavora solo il " + strconv.Itoa(int(last.GpuBusy)) + "% del tempo: aspetta il processore.",
-				Gain: "Abbassare le opzioni che pesano sul processore (distanza di visibilità, folla, ombre, fisica): +10–25%. DLSS/FSR qui aiutano poco.",
+				Gain: "Abbassare distanza di visibilità, folla, ombre e fisica: +10–25%. Qui la generazione di fotogrammi aiuta, DLSS/FSR da soli poco.",
 				Fix:  "Chiudi browser e programmi pesanti prima di giocare (il Boost lo fa per quelli in background) e abbassa quelle opzioni nel gioco.", Action: ""})
 		}
-		// 6. Caldo
-		if last.Throttle || last.GpuTemp >= 87 {
-			add(fpsFinding{ID: "gpuhot", Sev: "big", Title: "La scheda video scalda troppo (" + strconv.Itoa(int(last.GpuTemp)) + " °C)",
-				Why:  "Quando è troppo calda rallenta da sola per proteggersi.",
-				Gain: "+10–30% quando smette di rallentare.",
+		if last.VramPct >= 95 {
+			add(fpsFinding{ID: "vram", Sev: "mid", Title: "La memoria della scheda video è piena (" + strconv.Itoa(int(last.VramPct)) + "%)",
+				Why:  "Quando è piena il gioco deve usare la RAM normale, molto più lenta: arrivano cali e scatti.",
+				Gain: "Meno scatti e cali, a volte +10–20% nei momenti pesanti.",
+				Fix:  "Nel gioco abbassa la qualità delle texture di un livello.", Action: ""})
+		}
+		// Caldo: solo quando la scheda video rallenta davvero, o con temperature alte anche per un portatile.
+		gpuLimit := 87.0
+		if f.Laptop {
+			gpuLimit = 92
+		}
+		if (last.Throttle && !f.Laptop) || last.GpuTemp >= gpuLimit {
+			t := "La scheda video rallenta per il caldo"
+			if last.GpuTemp > 0 {
+				t += " (" + strconv.Itoa(int(last.GpuTemp)) + " °C)"
+			}
+			add(fpsFinding{ID: "gpuhot", Sev: "mid", Title: t,
+				Why:  "Quando è troppo calda abbassa la sua velocità per proteggersi.",
+				Gain: "Di solito +5–15% quando smette di rallentare.",
 				Fix:  "Pulisci la polvere da ventole e filtri, lascia spazio dietro e sotto il PC. Sui portatili usa una base con ventole.", Action: ""})
 		}
-		if last.CpuTemp >= 95 {
-			add(fpsFinding{ID: "cpuhot", Sev: "big", Title: "Il processore scalda troppo (" + strconv.Itoa(int(last.CpuTemp)) + " °C)",
-				Why:  "Sopra i 95 °C il processore abbassa la sua velocità.",
-				Gain: "+10–30% nei giochi che usano molto il processore.",
+		if last.CpuTemp >= 98 {
+			add(fpsFinding{ID: "cpuhot", Sev: "mid", Title: "Il processore è al limite di temperatura (" + strconv.Itoa(int(last.CpuTemp)) + " °C)",
+				Why:  "A questa temperatura il processore abbassa la sua velocità. Su molti processori recenti un po' è normale.",
+				Gain: "Di solito +5–15% nei giochi che usano molto il processore.",
 				Fix:  "Pulisci la polvere dal dissipatore e controlla che la ventola giri. Se il PC ha qualche anno, la pasta termica va cambiata (meglio da un tecnico).", Action: ""})
 		}
 	}
 	// 5. RAM
 	if len(f.RAM) > 0 {
+		ddr, conf, rated := 0, 0, 0
 		var total int64
-		ddr, conf := 0, 0
+		lp := false
 		for _, m := range f.RAM {
 			total += m.Size
+			if m.Type == 30 || m.Type == 35 || m.Type == 36 {
+				lp = true // LPDDR saldata: spesso un solo modulo ma già a più canali
+			}
 			if m.Type > ddr {
 				ddr = m.Type
 			}
@@ -382,27 +536,26 @@ func fpsFindings(f pcFacts, scr []screenInfo, last *fpsResult, battery, gpuPrefH
 			if conf == 0 || (c > 0 && c < conf) {
 				conf = c
 			}
-		}
-		if len(f.RAM) == 1 && total >= 4<<30 {
-			add(fpsFinding{ID: "ram1", Sev: "big", Title: "C'è un solo banco di RAM",
-				Why:  "Con un banco solo la memoria lavora a metà strada (single channel). Pesa molto con la scheda video integrata e nei giochi che usano tanto il processore.",
-				Gain: "Con due banchi uguali: di solito +10–25%, con la scheda video integrata anche +30–50%.",
-				Fix:  "Aggiungi un secondo banco uguale (stessa marca, misura e velocità). Sui portatili controlla prima che ci sia lo slot libero.", Action: ""})
-		}
-		if !f.Laptop && ((ddr == 26 && conf > 0 && conf <= 2666) || (ddr == 34 && conf > 0 && conf <= 4800)) {
-			kind := "DDR4"
-			if ddr == 34 {
-				kind = "DDR5"
+			if r := ramRated(m.Part); r > rated {
+				rated = r
 			}
-			add(fpsFinding{ID: "xmp", Sev: "mid", Title: "La RAM va a " + strconv.Itoa(conf) + " MHz (velocità base " + kind + ")",
-				Why:  "Molti banchi da gioco sono fatti per andare più veloci, ma solo se nel BIOS è acceso XMP (Intel) o EXPO (AMD). Se i tuoi banchi sono normali, va già bene così.",
-				Gain: "Se i banchi lo permettono: +5–20%, soprattutto nei cali di FPS.",
-				Fix:  "Riavvia ed entra nel BIOS (di solito tasto Canc o F2 all'accensione), cerca XMP, D.O.C.P. o EXPO e scegli il Profilo 1. Se il PC non si avvia più, il BIOS torna da solo come prima dopo qualche tentativo.", Action: ""})
+		}
+		if len(f.RAM) == 1 && total >= 4<<30 && !lp && (ddr == 26 || ddr == 34 || ddr == 24) {
+			add(fpsFinding{ID: "ram1", Sev: "big", Title: "C'è un solo banco di RAM",
+				Why:  "Con un banco solo la memoria lavora a metà strada (single channel). Pesa soprattutto con la grafica integrata e nei giochi che usano tanto il processore.",
+				Gain: "Con due banchi uguali: di solito +10–25% (con DDR5 un po' meno), con la grafica integrata anche +30–50%.",
+				Fix:  "Aggiungi un secondo banco identico (meglio comprare un kit da due). Sui portatili controlla prima che ci sia lo slot libero.", Action: ""})
+		}
+		if !f.Laptop && (ddr == 26 || ddr == 34) && conf > 0 && rated >= conf+200 {
+			add(fpsFinding{ID: "xmp", Sev: "mid", Title: "La RAM va a " + strconv.Itoa(conf) + " invece di " + strconv.Itoa(rated) + " (XMP/EXPO spento)",
+				Why:  "I tuoi banchi sono fatti per andare a " + strconv.Itoa(rated) + ", ma solo se nel BIOS è acceso XMP (Intel) o EXPO (AMD).",
+				Gain: "Di solito +5–15%, soprattutto nei cali di FPS.",
+				Fix:  "Nel BIOS (tasto Canc o F2 all'accensione) cerca XMP, D.O.C.P. o EXPO e scegli il Profilo 1. Con DDR5 il primo avvio può restare nero qualche minuto: aspetta. Se poi il PC si blocca o va in crash, rimetti XMP spento.", Action: ""})
 		}
 	}
 	// 7. Driver video
 	for _, g := range f.GPUs {
-		if !discreteGPU(g.Name) && disc {
+		if disc && !discreteGPU(g.Name) {
 			continue
 		}
 		d, err := time.Parse("2006-01-02", g.Date)
@@ -411,10 +564,14 @@ func fpsFindings(f pcFacts, scr []screenInfo, last *fpsResult, battery, gpuPrefH
 		}
 		if months := int(now.Sub(d).Hours() / 24 / 30); months >= 6 {
 			if v := gpuVendorPage(g.Name); v != "" {
-				add(fpsFinding{ID: "driver", Sev: "mid", Title: "Il driver della scheda video ha " + strconv.Itoa(months) + " mesi",
+				fix := "Premi Apri: si apre la pagina ufficiale per scaricare il driver giusto."
+				if f.Laptop {
+					fix += " Se il sito non accetta il driver per il tuo portatile, usa quello del produttore del portatile."
+				}
+				add(fpsFinding{ID: "driver", Sev: "mid", Title: "Il driver della scheda video è vecchio (" + strconv.Itoa(months) + " mesi fa)",
 					Why:  "I driver nuovi sistemano errori e a volte migliorano i giochi usciti da poco.",
 					Gain: "Di solito pochi FPS; nei giochi nuovi a volte +10% o più, e meno crash.",
-					Fix:  "Premi Apri: si apre la pagina ufficiale per scaricare il driver giusto.", Action: "driver:" + v})
+					Fix:  fix, Action: "driver:" + v})
 				break
 			}
 		}
@@ -493,4 +650,33 @@ func gpuPrefRestore(prev map[string]string) {
 			regDel(registry.CURRENT_USER, gpuPrefKey, path)
 		}
 	}
+}
+
+// fpsAutoFix: dopo il Boost (o una misura automatica) il Tasso sistema da solo quello che si può
+// sistemare in modo sicuro e reversibile, e mostra il resto come consigli.
+//   - scheda video potente per il gioco (portatili): da solo, si rimette con "Rimetti com'era"
+//   - frequenza dello schermo: solo quando premi BOOST (sei davanti al Tasso), con 15 secondi per
+//     confermare; mai durante una partita, perché non potresti vedere la conferma
+//   - il resto (grafica nel gioco, BIOS, cavi, polvere) si fa a mano: il Tasso spiega come
+func fpsAutoFix(interactive bool) {
+	r := fpsCheck()
+	found, _ := r["found"].([]fpsFinding)
+	var left []fpsFinding
+	var msgs []string
+	for _, f := range found {
+		switch {
+		case f.Action == "gpu":
+			if m := fpsSetGpu(); strings.HasPrefix(m, "ok:") {
+				msgs = append(msgs, strings.TrimPrefix(m, "ok:"))
+				continue
+			}
+		case f.Action == "hz" && interactive:
+			go screenHzMax()
+			continue
+		}
+		left = append(left, f)
+	}
+	r["found"] = left
+	r["auto"] = msgs
+	emit("onFpsCheck", r)
 }
