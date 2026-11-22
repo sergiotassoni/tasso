@@ -234,6 +234,7 @@ body .banner.banner.upd{border-radius:8px;background:color-mix(in srgb,var(--a3)
 .pic:has(img){background:rgba(255,255,255,.06)}
 /* 2.6: due modalità. Gaming mostra tutto; Ufficio è più semplice, morbida e tranquilla. */
 body.office .gm{display:none!important}
+body:not(.office):not(.showall) .gadv{display:none!important}
 body:not(.office) .om{display:none!important}
 .look{display:flex;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:4px;gap:4px;margin-top:-4px}
 .look button{flex:1;border:0;background:transparent;color:var(--muted);font-weight:700;font-size:13px;padding:8px 4px;border-radius:10px;display:flex;align-items:center;justify-content:center;gap:6px;transition:background .2s,color .2s}
@@ -390,14 +391,14 @@ details.navmore[open]{display:flex;flex-direction:column;gap:2px}
     <button data-go="scan"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/><path d="M11 8v3.5M11 14h.01"/></svg>Problemi</button>
     <details class="navmore" id="navMore"><summary><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="5" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="19" cy="12" r="1.3"/></svg><span>Altro</span></summary>
     <button data-go="speed"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg>Velocità</button>
-    <button data-go="perf" class="gm"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/><path d="M19 3v4M21 5h-4" opacity=".7"/></svg>Prestazioni+</button>
+    <button data-go="perf" class="gadv gm"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/><path d="M19 3v4M21 5h-4" opacity=".7"/></svg>Prestazioni+</button>
     <button data-go="fix"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.6 2.6-2.4-.6-.6-2.4z"/></svg>Risolvi problemi</button>
     <button data-go="programs"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><path d="M14 17.5h7M17.5 14v7"/></svg>Programmi</button>
-    <button data-go="files"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>File</button>
-    <button data-go="disk"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-9-9v9z"/><path d="M15 3.5A9 9 0 0 1 20.5 9H15z"/></svg>Mappa del disco</button>
+    <button data-go="files" class="gadv"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>File</button>
+    <button data-go="disk" class="gadv"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-9-9v9z"/><path d="M15 3.5A9 9 0 0 1 20.5 9H15z"/></svg>Mappa del disco</button>
     <button data-go="net"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 9a15 15 0 0 1 20 0M5.5 12.5a10 10 0 0 1 13 0M9 16a5 5 0 0 1 6 0"/><circle cx="12" cy="19.5" r="1"/></svg>Internet</button>
     <button data-go="hw"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="6" width="12" height="12" rx="2"/><rect x="9.5" y="9.5" width="5" height="5"/><path d="M9 2v4M15 2v4M9 18v4M15 18v4M2 9h4M2 15h4M18 9h4M18 15h4"/></svg>Hardware</button>
-    <button data-go="vault"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="15" r="4"/><path d="M10.8 12.2L20 3M16 7l3 3M14 9l2 2"/></svg>Portachiavi</button>
+    <button data-go="vault" class="gadv"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="15" r="4"/><path d="M10.8 12.2L20 3M16 7l3 3M14 9l2 2"/></svg>Portachiavi</button>
     <button data-go="info"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5h.01"/></svg>Info e indice</button>
     </details>
     <button data-go="settings"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg>Impostazioni</button>
@@ -636,7 +637,7 @@ details.navmore[open]{display:flex;flex-direction:column;gap:2px}
   <div id="fixTitle"><h1 style="font-size:26px">Risolvi problemi</h1><p class="sub">Un clic sul problema che hai: Tasso prova a sistemarlo da solo. Se non lo trovi, scrivilo nella ricerca. Non sai qual è il problema? <a href="#" id="fixToDetect">Rileva i problemi</a> e te lo dice Tasso.</p></div>
   <div class="fixsearch"><input class="search" id="fixSearch" type="search" placeholder="Scrivi il problema: stampante, Word, PDF, zip, Wi-Fi, lento…" aria-label="Cerca un problema"><p class="sub" id="fixNone" role="status" aria-live="polite" style="display:none;margin:8px 0 0">Nessun problema con queste parole. Prova con una parola sola, per esempio "stampa", "audio", "lento" o "password".</p></div>
   <div class="fixsec" id="secWin">
-  <div class="sech"><span class="sei">🪟</span><div><h2>Sezione Windows</h2><p class="sub">Audio, internet, stampa, aggiornamenti e ricerca: valgono per tutti.</p></div></div>
+  <div class="sech"><span class="sei">🪟</span><div><h2>Sezione Windows</h2><p class="sub"><span class="gm">Audio, internet, aggiornamenti e ricerca: valgono per tutti.</span><span class="om">Audio, internet, stampa, aggiornamenti e ricerca: valgono per tutti.</span></p></div></div>
   <div class="grid g3">
     <div class="card fixcard" style="--c:var(--a1)"><span class="big"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5L6 9H2v6h4l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M19 5a10 10 0 0 1 0 14"/></svg></span><h3>Non sento l'audio</h3><p class="sub" style="margin:0">Riavvia i servizi audio di Windows e controlla le schede audio.</p><button class="btn primary" data-step="fix_audio" style="margin-top:auto">Risolvi</button></div>
     <div class="card fixcard" style="--c:var(--a3)"><span class="big"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8.5a15 15 0 0 1 20 0M5 12a10 10 0 0 1 14 0M8.5 15.5a5 5 0 0 1 7 0"/><circle cx="12" cy="19" r="1"/></svg></span><h3>Internet non va</h3><p class="sub" style="margin:0">Rinnova la connessione e ripristina le impostazioni di rete. Poi serve un riavvio.</p><button class="btn primary" data-step="fix_net" style="margin-top:auto">Risolvi</button></div>
@@ -644,7 +645,7 @@ details.navmore[open]{display:flex;flex-direction:column;gap:2px}
     <div class="card fixcard" style="--c:var(--a2)"><span class="big"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M8.5 12l2.5 2.5 4.5-5"/></svg></span><h3>Windows dà errori</h3><p class="sub" style="margin:0">Controlla e ripara i file di sistema danneggiati (DISM + SFC). 20–40 minuti.</p><button class="btn primary" data-step="repair" style="margin-top:auto">Ripara</button></div>
     <div class="card fixcard" style="--c:var(--a3)"><span class="big"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg></span><h3>Una periferica non va</h3><p class="sub" style="margin:0">Controlla mouse, tastiera, rete, video e USB e ti dice quale ha problemi.</p><button class="btn primary" data-step="devices" style="margin-top:auto">Controlla</button></div>
     <div class="card fixcard" style="--c:var(--a1)"><span class="big"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v6c0 1.7 3.6 3 8 3s8-1.3 8-3V6M4 12v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/></svg></span><h3>Il disco fa i capricci</h3><p class="sub" style="margin:0">Controlla errori, salute e usura dei dischi.</p><button class="btn primary" data-steps="chkdsk,disk_health" style="margin-top:auto">Controlla</button></div>
-    <div class="card fixcard" style="--c:var(--a1)"><span class="big"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V3h12v6M6 18H4a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="7" rx="1"/></svg></span><h3>La stampante non stampa</h3><p class="sub" style="margin:0">Riavvia il servizio di stampa e svuota la coda bloccata. È la causa più comune quando non esce niente.</p><button class="btn primary" data-step="fix_print" style="margin-top:auto">Risolvi</button></div>
+    <div class="card fixcard om" style="--c:var(--a1)"><span class="big"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V3h12v6M6 18H4a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="7" rx="1"/></svg></span><h3>La stampante non stampa</h3><p class="sub" style="margin:0">Riavvia il servizio di stampa e svuota la coda bloccata. È la causa più comune quando non esce niente.</p><button class="btn primary" data-step="fix_print" style="margin-top:auto">Risolvi</button></div>
     <div class="card fixcard" style="--c:var(--a2)"><span class="big"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l1.5-5h15L21 9M3 9h18M3 9v9a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V9M9 13h6"/></svg></span><h3>Lo Store e le app non si aprono</h3><p class="sub" style="margin:0">Svuota la cache del Microsoft Store e ricontrolla le app di Windows quando restano bianche o non si aggiornano.</p><button class="btn primary" data-step="fix_store" style="margin-top:auto">Risolvi</button></div>
     <div class="card fixcard" style="--c:var(--a3)"><span class="big"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg></span><h3>Ricerca e menu Start bloccati</h3><p class="sub" style="margin:0">Riavvia la ricerca di Windows e il menu Start quando non rispondono o non trovano i programmi.</p><button class="btn primary" data-step="fix_search" style="margin-top:auto">Risolvi</button></div>
   </div>
@@ -667,7 +668,7 @@ details.navmore[open]{display:flex;flex-direction:column;gap:2px}
     <div class="card fixcard" style="--c:var(--a1)"><span class="big">💬</span><h3>Discord non va o non ti sentono</h3><p class="sub" style="margin:0">Chiude Discord bloccato, svuota la sua cache (messaggi e accesso restano) e controlla che Windows non blocchi il microfono.</p><button class="btn primary" data-step="fix_discord" style="margin-top:auto">Risolvi</button></div>
   </div>
   </div>
-  <div class="fixsec" id="secOffice">
+  <div class="om fixsec" id="secOffice">
   <div class="sech"><span class="sei">💼</span><div><h2>Sezione Ufficio</h2><p class="sub" id="ofSub">Stampanti, Word, Excel, Adobe, Outlook, Teams, rete, file e schermi. Tasso non cancella mai documenti e non chiude Word o Excel se sono aperti: ti chiede di salvare.</p></div></div>
   <div id="ofBlock" class="ofblock"></div>
   </div>
@@ -903,6 +904,7 @@ details.navmore[open]{display:flex;flex-direction:column;gap:2px}
   <div class="card" style="display:flex;flex-direction:column;gap:14px">
     <div><h2>Aspetto</h2><p class="sub" style="margin:2px 0 0">Clicca una scheda e Tasso cambia colore subito. Gaming e Ufficio ricordano ognuna il suo tema.</p></div>
     <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px" id="themeCards"></div>
+    <button class="toggle gm" id="tgShowAll"><span><b>Mostra tutte le funzioni</b><span>In Gaming il menu tiene solo le cose per giocare. Accendi per vedere anche Prestazioni+, File, Mappa del disco e Portachiavi.</span></span><span class="sw"><i></i></span></button>
   </div>
   <div class="row wrap" style="align-items:stretch;gap:18px">
     <div class="card" style="flex:1 1 360px;padding:6px 22px">
@@ -1096,6 +1098,10 @@ const THEMES = [
 const OFFICE_THEMES = ['ufficio', 'carta', 'salvia', 'lavanda', 'ghiaccio', 'sabbia', 'notte', 'ardesia'];
 const GAME_THEMES = ['tasso', 'aurora', 'lava', 'neon', 'carbonio', 'belva', 'ghiaccio', 'sabbia'];
 const isOffice = () => S.profile === 'ufficio';
+// 3.1: "Mostra tutte le funzioni" (solo Gaming): preferenza di questo PC.
+function paintShowAll(){ let on = false; try { on = localStorage.getItem('tassoShowAll') === '1'; } catch (e) {} document.body.classList.toggle('showall', on); const t = document.getElementById('tgShowAll'); if (t) t.classList.toggle('on', on); }
+document.addEventListener('click', (e) => { const t = e.target.closest && e.target.closest('#tgShowAll'); if (!t) return; let on = !document.body.classList.contains('showall'); try { localStorage.setItem('tassoShowAll', on ? '1' : '0'); } catch (e2) {} paintShowAll(); });
+setTimeout(paintShowAll, 0);
 const curTheme = () => isOffice() ? (OFFICE_THEMES.indexOf(S.themeOffice) >= 0 ? S.themeOffice : 'ufficio') : (GAME_THEMES.indexOf(S.theme) >= 0 ? S.theme : 'tasso');
 function applyTheme(id){
   const t = THEMES.find(x => x.id === id) || THEMES[0];
@@ -1181,7 +1187,11 @@ async function detStart(){
   $('#detStatus').textContent = _t('Comincio…');
   $('#btnDetect').disabled = true; $('#detBar').hidden = false; $('#detResult').innerHTML = '';
 }
-function detOkId(id){ return !!STEP[id] && !(isOffice() && String(id).startsWith('fix_game_')); }
+// 3.1: Gaming e Ufficio divisi. Le cose del lavoro (stampanti, Office...) solo in Ufficio, quelle dei giochi solo in Gaming.
+const OFFICE_ONLY = (id) => /^of_/.test(id) || id === 'fix_print';
+const GAME_ONLY = (id) => /^fix_game_/.test(id) || id === 'fix_discord' || id === 'turbo' || id === 'game_cache';
+const forMode = (id) => isOffice() ? !GAME_ONLY(String(id)) : !OFFICE_ONLY(String(id));
+function detOkId(id){ return !!STEP[id] && forMode(id); }
 function detIgnoredIds(){ return (Array.isArray(S.detIgnored) ? S.detIgnored : []).filter(detOkId); }
 // "Problemi ignorati": si vede sempre (anche prima del controllo), così puoi ripristinarli quando vuoi.
 function detIgnSection(box, found){
@@ -1712,18 +1722,19 @@ function paintTools(){
   const byId = {}; STEPS.forEach(s => byId[s.id] = s);
   const placed = {};
   TOOLGROUPS.forEach((g, gi) => {
-    if (g.game && isOffice()) { g.ids.forEach(id => { placed[id] = true; }); return; }
-    const items = g.ids.filter(id => !(isOffice() && (id === 'turbo' || id === 'game_cache'))).map(id => byId[id]).filter(Boolean);
+    if ((g.game && isOffice()) || (g.office && !isOffice())) { g.ids.forEach(id => { placed[id] = true; }); return; }
+    const items = g.ids.filter(forMode).map(id => byId[id]).filter(Boolean);
     if(!items.length) return;
     const det = el('details', {class:'tgroup', style:'--c:var(' + g.c + ')'});
     if (!(g.office && !isOffice())) det.setAttribute('open',''); // tutte le sezioni aperte (quelle dell'ufficio chiuse in Gaming)
-    const sum = el('summary', {}, '<span class="gi">' + g.e + '</span><span>' + g.t + '</span><span class="gc">' + items.length + '</span><span class="chev"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span>');
+    const gt = (!isOffice() && g.ids.indexOf('fix_print') >= 0) ? _t('Internet e app') : g.t;
+    const sum = el('summary', {}, '<span class="gi">' + g.e + '</span><span>' + gt + '</span><span class="gc">' + items.length + '</span><span class="chev"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span>');
     det.appendChild(sum);
     const body = el('div', {class:'tgbody'});
     items.forEach(s => { placed[s.id] = true; body.appendChild(toolCard(s)); });
     det.appendChild(body); box.appendChild(det);
   });
-  const rest = STEPS.filter(s => !placed[s.id] && !(isOffice() && (s.id === 'turbo' || s.id === 'game_cache')));
+  const rest = STEPS.filter(s => !placed[s.id] && forMode(s.id));
   if(rest.length){
     const det = el('details', {class:'tgroup', style:'--c:var(--muted)'});
     det.setAttribute('open','');

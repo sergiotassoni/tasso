@@ -3709,6 +3709,10 @@
   "1 gioco trovato": "1 game found",
   "<span class=\"muted\">Hai nascosto tutti i giochi.</span>": "<span class=\"muted\">You've hidden all your games.</span>",
   "<span class=\"muted\">Nessun gioco con questo nome. Se manca, premi \"Aggiungi un gioco\" (o guarda tra i giochi nascosti).</span>": "<span class=\"muted\">No game with this name. If it's missing, press \"Add a game\" (or check the hidden games).</span>",
-  "Le copertine che mancano Tasso le cerca nel negozio di Steam, mandando solo il nome del gioco (mai quelli aggiunti a mano o presi da Desktop e Download).": "Missing covers are looked up in the Steam store, sending only the game's name (never for games you added by hand or found in Desktop and Downloads)."
+  "Le copertine che mancano Tasso le cerca nel negozio di Steam, mandando solo il nome del gioco (mai quelli aggiunti a mano o presi da Desktop e Download).": "Missing covers are looked up in the Steam store, sending only the game's name (never for games you added by hand or found in Desktop and Downloads).",
+  "Mostra tutte le funzioni": "Show all features",
+  "In Gaming il menu tiene solo le cose per giocare. Accendi per vedere anche Prestazioni+, File, Mappa del disco e Portachiavi.": "In Gaming the menu keeps only what's for playing. Turn on to also see Performance+, Files, Disk map and Keychain.",
+  "Internet e app": "Internet and apps",
+  "Audio, internet, aggiornamenti e ricerca: valgono per tutti.": "Audio, internet, updates and search: for everyone."
  }
 }
