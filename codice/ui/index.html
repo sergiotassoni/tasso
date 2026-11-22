@@ -365,6 +365,10 @@ details.navmore[open]{display:flex;flex-direction:column;gap:2px}
 @media (max-width:620px){.fbkinds{grid-template-columns:1fr}}
 #modalBox h2,#modalBox b{overflow-wrap:anywhere}
 .gmore{min-height:30px;padding:2px 9px;font-size:18px;line-height:1;flex:none}
+.gph{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:12px;text-align:center;background:linear-gradient(160deg,hsl(var(--h) 45% 30%),hsl(calc(var(--h) + 40) 40% 12%))}
+.gph b{font-size:15px;line-height:1.25;color:#fff;font-weight:700;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.gph .pic{flex:none;width:64px;height:64px;margin:0;font-size:28px;border-radius:16px}.cover .gph .pic img{position:static;width:48px;height:48px;object-fit:contain}
+.gph .gini{font-size:34px;color:#fff;opacity:.9}
 </style>
 </head>
 <body>
@@ -715,8 +719,9 @@ details.navmore[open]{display:flex;flex-direction:column;gap:2px}
     <button class="btn primary boostgo" id="btnBoost" aria-label="Boost: prepara il PC per giocare">🚀<br>BOOST</button>
   </div>
   <div class="card" style="display:flex;flex-direction:column;gap:12px">
-    <div class="row wrap" style="justify-content:space-between"><div><h2>🕹️ La tua libreria</h2><p class="sub" style="margin:2px 0 0" id="libMsg">Steam, Epic Games e Riot in un posto solo.</p></div><div class="row wrap" style="gap:8px"><input id="libSearch" type="search" placeholder="Cerca un gioco…" style="padding:9px 12px;border-radius:10px;border:1px solid var(--line);background:transparent;color:inherit;font:inherit;min-width:200px"><button class="btn ghost" id="btnLib">Aggiorna</button></div></div>
+    <div class="row wrap" style="justify-content:space-between"><div><h2>🕹️ La tua libreria</h2><p class="sub" style="margin:2px 0 0" id="libMsg">Tutti i tuoi giochi in un posto solo: Steam, Epic, GOG, EA, Ubisoft, Battle.net, Xbox, Riot e anche quelli installati a mano.</p></div><div class="row wrap" style="gap:8px"><input id="libSearch" type="search" placeholder="Cerca un gioco…" style="padding:9px 12px;border-radius:10px;border:1px solid var(--line);background:transparent;color:inherit;font:inherit;min-width:200px"><button class="btn ghost" id="btnAddGame">➕ Aggiungi un gioco</button><button class="btn ghost" id="btnLib">Aggiorna</button></div></div>
     <div class="grid" id="libGrid" style="grid-template-columns:repeat(auto-fill,minmax(150px,1fr))"></div>
+    <p class="small muted" id="libHidden" style="margin:0;display:none"></p>
   </div>
 
 
@@ -2224,19 +2229,31 @@ if (BOOT.autoLevel) setTimeout(() => startLevel(BOOT.autoLevel, false), 800);
 
 // ---------- Giochi ----------
 let LIB = [], BOOST = [];
-const STORE_COL = {Steam:'var(--a2)', Epic:'var(--a3)', Riot:'var(--red)'};
+const STORE_COL = {Steam:'var(--a2)', Epic:'var(--a3)', Riot:'var(--red)', GOG:'#a46ad8', EA:'#ff5a5a', Ubisoft:'#4aa3ff', 'Battle.net':'#39a0ff', Xbox:'#4cc04c', Rockstar:'#f5b400', Amazon:'#ff9900', 'itch.io':'#fa5c5c', Altro:'var(--a1)', Mano:'var(--a1)'};
+// 3.1: nomi dei negozi da mostrare ("Altro" = trovato da Tasso sul disco, "Mano" = aggiunto da te)
+const storeName = (s) => s === 'Altro' ? _t('Trovato sul PC') : s === 'Mano' ? _t('Aggiunto da te') : s;
 function paintLib(){
   const q = ($('#libSearch').value || '').toLowerCase().trim();
   const box = $('#libGrid'); box.innerHTML = '';
-  const list = LIB.filter(g => !q || g.name.toLowerCase().includes(q));
-  if (!LIB.length) { box.innerHTML = _t('<span class="muted">Nessun gioco trovato su Steam, Epic o Riot. Se li hai su un altro disco, apri prima il loro launcher una volta e poi premi Aggiorna.</span>'); return; }
+  const vis = LIB.filter(g => !g.hidden);
+  const nHid = LIB.length - vis.length;
+  const hb = $('#libHidden'); hb.style.display = nHid ? '' : 'none';
+  hb.innerHTML = nHid ? esc(nHid + _t(' giochi nascosti.')) + ' <a href="#" id="lnkUnhide">' + _t('Mostrali di nuovo') + '</a>' : '';
+  if (nHid) $('#lnkUnhide').onclick = (e) => { e.preventDefault(); call('goUnhideGames'); $('#libMsg').textContent = _t('Cerco i giochi…'); };
+  const list = vis.filter(g => !q || g.name.toLowerCase().includes(q));
+  if (!vis.length) { box.innerHTML = _t('<span class="muted">Nessun gioco trovato. Se un gioco manca, premi "Aggiungi un gioco" e scegli il suo programma (.exe).</span>'); $('#libMsg').textContent = _t('Nessun gioco trovato.'); return; }
+  const icons = {};
   list.forEach(g => {
     const ini = esc(g.name.replace(/[^A-Za-z0-9 ]/g, '').split(' ').filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase() || '?');
-    const c = el('div', {class:'card', style:'padding:10px;display:flex;flex-direction:column;gap:8px'}, '<div class="cover" style="color:' + (STORE_COL[g.store] || 'var(--a1)') + '"><span>' + ini + '</span></div><div style="display:flex;align-items:flex-start;gap:6px"><div style="min-width:0;flex:1"><b style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + esc(g.name) + '">' + esc(g.name) + '</b><span class="small muted">' + esc(g.store) + (g.size ? ' · ' + fmtBytes(g.size) : '') + '</span></div><button class="btn ghost gmore" title="' + _t('Opzioni del gioco') + '" aria-label="' + _t('Opzioni del gioco') + '">⋯</button></div>');
+    const hue = [...String(g.name)].reduce((a, ch) => (a * 31 + ch.charCodeAt(0)) % 360, 7);
+    // Senza copertina: sfondo colorato con l'icona del gioco e il nome (al posto delle sole iniziali)
+    const ph = g.img ? '<span>' + ini + '</span>' : '<div class="gph" style="--h:' + hue + '">' + (g.icon ? picHTML('g:' + g.id, g.name) : '<span class="gini">' + ini + '</span>') + '<b>' + esc(g.name) + '</b></div>';
+    if (!g.img && g.icon) icons['g:' + g.id] = [g.icon];
+    const c = el('div', {class:'card', style:'padding:10px;display:flex;flex-direction:column;gap:8px'}, '<div class="cover" style="color:' + (STORE_COL[g.store] || 'var(--a1)') + '">' + ph + '</div><div style="display:flex;align-items:flex-start;gap:6px"><div style="min-width:0;flex:1"><b style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + esc(g.name) + '">' + esc(g.name) + '</b><span class="small muted">' + esc(storeName(g.store)) + (g.size ? ' · ' + fmtBytes(g.size) : '') + '</span></div><button class="btn ghost gmore" title="' + _t('Opzioni del gioco') + '" aria-label="' + _t('Opzioni del gioco') + '">⋯</button></div>');
     c.querySelector('.gmore').onclick = () => gameOptions(g);
     if (g.img) {
-      const im = document.createElement('img'); im.alt = ''; im.loading = 'lazy'; im.className = g.store === 'Riot' ? 'ico' : '';
-      im.onerror = () => { if (g.img2 && im.src !== g.img2) im.src = g.img2; else im.remove(); };
+      const im = document.createElement('img'); im.alt = ''; im.loading = 'lazy'; im.className = (g.store === 'Riot' || g.store === 'Xbox') ? 'ico' : '';
+      im.onerror = () => { if (g.img2 && im.src !== g.img2) im.src = g.img2; else { im.remove(); if (g.icon) { const cv = c.querySelector('.cover'); cv.innerHTML = '<div class="gph" style="--h:' + hue + '">' + picHTML('g:' + g.id, g.name) + '<b>' + esc(g.name) + '</b></div>'; askIcons({['g:' + g.id]: [g.icon]}); } } };
       im.onload = () => { if (im.naturalWidth > im.naturalHeight * 1.2) im.className = 'wide'; };
       im.src = g.img; const cv = c.querySelector('.cover'); if (cv) cv.appendChild(im);
     }
@@ -2245,21 +2262,34 @@ function paintLib(){
     const t = el('button', {class:'btn ghost', style:'min-height:34px;padding:6px 10px;font-size:12px' + (tuned ? ';border-color:var(--a1);color:var(--a1)' : '')}, tuned ? _t('✓ Regolato da Tasso') : _t('⚙ Regola con Tasso')); t.onclick = () => openTune(g);
     c.appendChild(b); c.appendChild(t); box.appendChild(c);
   });
-  $('#libMsg').textContent = LIB.length + _t(' giochi trovati su Steam, Epic Games e Riot.');
+  askIcons(icons);
+  const stores = [...new Set(vis.map(g => storeName(g.store)))];
+  $('#libMsg').textContent = vis.length + _t(' giochi trovati') + ' (' + stores.join(', ') + ').';
 }
+$('#btnAddGame').onclick = async () => {
+  const r = await call('goAddGame');
+  if (r === 'ok') { toast(_t('Gioco aggiunto alla libreria.'), 'var(--a3)'); $('#libMsg').textContent = _t('Cerco i giochi…'); }
+  else if (r && r !== 'cancel') toast(r, 'var(--a4)');
+};
 // 3.1: opzioni del gioco (⋯): disinstalla con il programma ufficiale del launcher, che chiede conferma.
 function gameOptions(g){
-  modal('<h2>' + esc(g.name) + '</h2><p class="muted" style="margin:0;line-height:1.5">' + esc(g.store) + (g.size ? ' · ' + fmtBytes(g.size) : '') + '</p>',
-    [{label:_t('Chiudi')}, {label:_t('🗑️ Disinstalla'), cls:'danger', fn: () => { confirmGameUninstall(g); return 'keep'; }}]);
+  const man = String(g.id).indexOf('man:') === 0;
+  const btns = [{label:_t('Chiudi')}, {label: man ? _t('Togli dalla libreria') : _t('🙈 Nascondi'), fn: async () => {
+    const r = await call('goHideGame', g.id, true);
+    if (r === 'ok') { g.hidden = true; if (man) LIB = LIB.filter(x => x.id !== g.id); paintLib(); toast(man ? _t('Tolto dalla libreria.') : _t('Nascosto. Lo rivedi con "Mostrali di nuovo" sotto la libreria.'), 'var(--a3)'); }
+    else toast(r || _t('Non sono riuscito a salvare.'), 'var(--a4)');
+  }}];
+  if (g.uninst) btns.push({label:_t('🗑️ Disinstalla'), cls:'danger', fn: () => { confirmGameUninstall(g); return 'keep'; }});
+  modal('<h2>' + esc(g.name) + '</h2><p class="muted" style="margin:0;line-height:1.5">' + esc(storeName(g.store)) + (g.size ? ' · ' + fmtBytes(g.size) : '') + '</p>' + (g.uninst ? '' : _t('<p class="small muted" style="margin:8px 0 0;line-height:1.5">Tasso non conosce un programma di disinstallazione per questo gioco.</p>')), btns);
 }
 function confirmGameUninstall(g){
-  const how = g.store === 'Epic' ? _t('Si apre Epic Games: lì scegli tu di disinstallarlo.') : esc(g.store) + _t(' ti chiede conferma e lo toglie con il suo programma ufficiale.');
+  const how = g.store === 'Epic' ? _t('Si apre Epic Games: lì scegli tu di disinstallarlo.') : g.store === 'Xbox' ? _t('Si aprono le Impostazioni di Windows: lì scegli tu di disinstallarlo.') : (g.store === 'Steam' || g.store === 'Riot') ? esc(g.store) + _t(' ti chiede conferma e lo toglie con il suo programma ufficiale.') : _t('Si apre il suo programma di disinstallazione: segui le sue finestre.');
   modal(_t('<h2>Disinstallare ') + esc(g.name) + '?</h2><p class="muted" style="margin:0;line-height:1.5">' + how + _t(' Prima di farlo, controlla che i tuoi salvataggi siano al sicuro (nel cloud o copiati).</p>'),
     [{label:_t('Annulla'), focus:true}, {label:_t('Disinstalla'), cls:'danger', fn: async () => {
       const r = String(await call('goUninstallGame', g.id) || '');
       if (r.indexOf('ok:') === 0) {
         // Le istruzioni restano a schermo finché non le chiudi (la finestra del launcher copre Tasso).
-        if (g.store === 'Epic') modal('<h2>Epic Games</h2><p style="margin:0;line-height:1.5">' + esc(r.slice(3)) + '</p>', [{label:_t('Ho capito')}]);
+        if (g.store === 'Epic' || g.store === 'Xbox') modal('<h2>' + esc(g.store === 'Xbox' ? 'Xbox' : 'Epic Games') + '</h2><p style="margin:0;line-height:1.5">' + esc(r.slice(3)) + '</p>', [{label:_t('Ho capito')}]);
         else toast(r.slice(3), 'var(--a3)');
       } else toast(r || _t('Non sono riuscito ad aprire il launcher.'), 'var(--a4)');
     }}]);

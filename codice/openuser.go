@@ -15,7 +15,7 @@ func explorerExe() string { return filepath.Join(os.Getenv("SystemRoot"), "explo
 // isWebURL: indirizzi che si possono aprire con il browser (o con il launcher del gioco).
 func isWebURL(u string) bool {
 	l := strings.ToLower(u)
-	for _, p := range []string{"https://", "http://", "steam://", "com.epicgames.launcher://", "riotclient://", "battlenet://", "uplay://", "origin2://", "goggalaxy://", "ms-windows-store://", "ms-settings:", "discord://", "mailto:"} {
+	for _, p := range []string{"https://", "http://", "steam://", "com.epicgames.launcher://", "riotclient://", "battlenet://", "uplay://", "origin2://", "goggalaxy://", "ms-windows-store://", "ms-settings:", "discord://", "mailto:", "amazon-games://", `shell:appsfolder\`} {
 		if strings.HasPrefix(l, p) {
 			return !strings.ContainsAny(u, "\"\r\n")
 		}

@@ -75,6 +75,9 @@ type Settings struct {
 	// "Regola con Tasso": regolazioni per gioco e modalità del PC da mettere quando parte quel gioco.
 	GameTunes map[string]*GameTune `json:"gameTunes,omitempty"`
 	GameModes map[string]string    `json:"gameModes,omitempty"`
+	// 3.1: giochi aggiunti a mano e giochi nascosti dalla libreria.
+	CustomGames []CustomGame `json:"customGames,omitempty"`
+	HiddenGames []string     `json:"hiddenGames,omitempty"`
 	// Comandi gaming accesi da Tasso (per poterli rimettere com'erano) e riavvio richiesto per la GPU.
 	GamingCmds  map[string]bool      `json:"gamingCmds,omitempty"`
 	PingRegion  string               `json:"pingRegion,omitempty"`

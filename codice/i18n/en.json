@@ -810,7 +810,15 @@
   "ok:Si apre Riot: conferma la disinstallazione nella sua finestra.": "ok:Riot opens: confirm the uninstall in its window.",
   "Non so come disinstallare ": "I don't know how to uninstall ",
   "ok:Si apre Epic Games. Nella Libreria clicca i tre puntini (…) sotto il gioco e scegli Disinstalla.": "ok:Epic Games opens. In the Library click the three dots (…) under the game and choose Uninstall.",
-  "Non sono riuscito a toglierlo dall'elenco.": "I couldn't remove it from the list."
+  "Non sono riuscito a toglierlo dall'elenco.": "I couldn't remove it from the list.",
+  "Scegli il programma del gioco (.exe)": "Choose the game's program (.exe)",
+  "Scegli un file .exe.": "Choose an .exe file.",
+  "Gioco non valido.": "Invalid game.",
+  "ok:Si aprono le Impostazioni di Windows: cerca ": "ok:Windows Settings open: look for ",
+  " nell'elenco e premi Disinstalla.": " in the list and press Uninstall.",
+  "Aspetta che finisca la disinstallazione in corso.": "Wait for the current uninstall to finish.",
+  "ok:Si apre il programma di disinstallazione del gioco: segui le sue finestre.": "ok:The game's uninstaller opens: follow its windows.",
+  "Questo gioco non ha un programma di disinstallazione: puoi toglierlo dalla libreria con \"Nascondi\".": "This game has no uninstaller: you can remove it from the library with \"Hide\"."
  },
  "ps": {
   "   non riuscita, prova a reinstallarla dal Microsoft Store.": "   failed, try reinstalling it from the Microsoft Store.",
@@ -3677,6 +3685,24 @@
   "Non sono riuscito ad aprire il launcher.": "I couldn't open the launcher.",
   "Si apre Epic Games: lì scegli tu di disinstallarlo.": "Epic Games opens: there you choose to uninstall it.",
   " ti chiede conferma e lo toglie con il suo programma ufficiale.": " asks you to confirm and removes it with its official program.",
-  " Prima di farlo, controlla che i tuoi salvataggi siano al sicuro (nel cloud o copiati).</p>": " Before doing it, make sure your saves are safe (in the cloud or copied).</p>"
+  " Prima di farlo, controlla che i tuoi salvataggi siano al sicuro (nel cloud o copiati).</p>": " Before doing it, make sure your saves are safe (in the cloud or copied).</p>",
+  "Tutti i tuoi giochi in un posto solo: Steam, Epic, GOG, EA, Ubisoft, Battle.net, Xbox, Riot e anche quelli installati a mano.": "All your games in one place: Steam, Epic, GOG, EA, Ubisoft, Battle.net, Xbox, Riot and also the ones installed by hand.",
+  "➕ Aggiungi un gioco": "➕ Add a game",
+  "Trovato sul PC": "Found on this PC",
+  "Aggiunto da te": "Added by you",
+  " giochi nascosti.": " hidden games.",
+  "Mostrali di nuovo": "Show them again",
+  "<span class=\"muted\">Nessun gioco trovato. Se un gioco manca, premi \"Aggiungi un gioco\" e scegli il suo programma (.exe).</span>": "<span class=\"muted\">No games found. If a game is missing, press \"Add a game\" and choose its program (.exe).</span>",
+  "Nessun gioco trovato.": "No games found.",
+  " giochi trovati": " games found",
+  "Gioco aggiunto alla libreria.": "Game added to the library.",
+  "Togli dalla libreria": "Remove from library",
+  "🙈 Nascondi": "🙈 Hide",
+  "Tolto dalla libreria.": "Removed from the library.",
+  "Nascosto. Lo rivedi con \"Mostrali di nuovo\" sotto la libreria.": "Hidden. You can bring it back with \"Show them again\" below the library.",
+  "Non sono riuscito a salvare.": "I couldn't save.",
+  "<p class=\"small muted\" style=\"margin:8px 0 0;line-height:1.5\">Tasso non conosce un programma di disinstallazione per questo gioco.</p>": "<p class=\"small muted\" style=\"margin:8px 0 0;line-height:1.5\">Tasso doesn't know an uninstaller for this game.</p>",
+  "Si aprono le Impostazioni di Windows: lì scegli tu di disinstallarlo.": "Windows Settings open: there you choose to uninstall it.",
+  "Si apre il suo programma di disinstallazione: segui le sue finestre.": "Its uninstaller opens: follow its windows."
  }
 }
