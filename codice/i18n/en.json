@@ -1029,7 +1029,18 @@
   "Fatto: driver AMD installato (": "Done: AMD driver installed (",
   "). Se ti dà problemi usa il punto di ripristino, oppure in Gestione dispositivi → scheda video → Ripristina driver.": "). If it gives you problems use the restore point, or Device Manager → graphics card → Roll Back Driver.",
   "Per AMD si torna indietro con il punto di ripristino, oppure in Gestione dispositivi → scheda video → Ripristina driver.": "For AMD you go back with the restore point, or Device Manager → graphics card → Roll Back Driver.",
-  "Premi Aggiorna il driver: il Tasso prende da Windows Update il driver AMD certificato, crea un punto di ripristino e lo installa.": "Press Update the driver: Tasso gets the certified AMD driver from Windows Update, creates a restore point and installs it."
+  "Premi Aggiorna il driver: il Tasso prende da Windows Update il driver AMD certificato, crea un punto di ripristino e lo installa.": "Press Update the driver: Tasso gets the certified AMD driver from Windows Update, creates a restore point and installs it.",
+  "Chiudi i programmi che non usi, o usa il Boost prima di giocare.": "Close the programs you're not using, or use Boost before playing.",
+  "Windows Update è spento su questo PC, quindi non posso cercare il driver. Prendilo dal sito AMD.": "Windows Update is turned off on this PC, so I can't look for the driver. Get it from the AMD site.",
+  "Su questo PC Windows Update non cerca i driver (impostazione dell'azienda o della scuola). Prendilo dal sito AMD.": "On this PC Windows Update doesn't look for drivers (a company or school setting). Get it from the AMD site.",
+  "Windows Update non ha risposto: controlla internet e riprova, oppure prendi il driver dal sito AMD.": "Windows Update didn't answer: check the internet and try again, or get the driver from the AMD site.",
+  "Hai AMD Software: aggiorna il driver da lì (Driver e software → Controlla aggiornamenti), così driver e programma restano uguali.": "You have AMD Software: update the driver from there (Drivers & Software → Check for updates), so driver and program stay the same.",
+  "Non riesco a leggere la scheda video: riprova.": "I can't read the graphics card: try again.",
+  "Hai già un driver AMD uguale o più nuovo: non lo cambio.": "You already have the same or a newer AMD driver: I won't change it.",
+  "Scarico e installo il driver AMD da Windows Update. Può volerci qualche minuto.": "Downloading and installing the AMD driver from Windows Update. It may take a few minutes.",
+  "Windows Update non offre più quel driver (forse l'ha già messo da solo): premi di nuovo \"Aggiorna con Tasso\" per ricontrollare.": "Windows Update no longer offers that driver (maybe it already installed it): press \"Update with Tasso\" again to recheck.",
+  "). Se ti dà problemi usa il punto di ripristino.": "). If it gives you problems use the restore point.",
+  "Non sono sicuro di com'è andata. Riavvia il PC e poi premi di nuovo \"Aggiorna con Tasso\" per controllare.": "I'm not sure how it went. Restart the PC and then press \"Update with Tasso\" again to check."
  },
  "ps": {
   "   non riuscita, prova a reinstallarla dal Microsoft Store.": "   failed, try reinstalling it from the Microsoft Store.",
@@ -2312,7 +2323,8 @@
   "Non l'ho tolto: non sono riuscito a farne una copia di sicurezza.": "I didn't remove it: I couldn't make a backup copy.",
   "Tolto dall'elenco: ": "Removed from the list: ",
   ". La copia di sicurezza è nella cartella backup di Tasso.": ". The backup copy is in Tasso's backup folder.",
-  "Non sono riuscito a toglierlo dall'elenco.": "I couldn't remove it from the list."
+  "Non sono riuscito a toglierlo dall'elenco.": "I couldn't remove it from the list.",
+  "Chiudi i programmi che non usi, o usa il Boost prima di giocare.": "Close the programs you're not using, or use Boost before playing."
  },
  "ui": {
   " (consuma di più).": " mode (uses more power).",
@@ -4016,6 +4028,13 @@
   "Lo prendo da Windows Update: è il driver AMD certificato da Microsoft per la tua scheda.": "I get it from Windows Update: it's the AMD driver certified by Microsoft for your card.",
   "Può essere un po' più vecchio di quello sul sito AMD, ma è il più sicuro.": "It may be a bit older than the one on the AMD site, but it's the safest.",
   "Preparo…": "Preparing…",
-  "Senza punto di ripristino, se il driver nuovo dà problemi usa Gestione dispositivi → scheda video → Ripristina driver.": "Without a restore point, if the new driver gives problems use Device Manager → graphics card → Roll Back Driver."
+  "Senza punto di ripristino, se il driver nuovo dà problemi usa Gestione dispositivi → scheda video → Ripristina driver.": "Without a restore point, if the new driver gives problems use Device Manager → graphics card → Roll Back Driver.",
+  "Controllo se c'è un driver nuovo… (può volerci qualche minuto)": "Checking if there's a new driver… (it may take a few minutes)",
+  "Hai AMD Software: il driver aggiornalo da lì (Driver e software → Controlla aggiornamenti). Così driver e programma AMD restano della stessa versione.": "You have AMD Software: update the driver from there (Drivers & Software → Check for updates). That way the AMD driver and program stay the same version.",
+  "Apri AMD Software": "Open AMD Software",
+  "driver del ": "driver from ",
+  "Senza punto di ripristino, se il driver nuovo dà problemi prova Gestione dispositivi → scheda video → Ripristina driver (se il pulsante è attivo), oppure il sito AMD.": "Without a restore point, if the new driver gives problems try Device Manager → graphics card → Roll Back Driver (if the button is active), or the AMD site.",
+  "Modalità del PC e programmi che partono all'accensione.": "PC mode and programs that start when you turn it on.",
+  "%). Chiudi i programmi che non usi, o usa il Boost prima di giocare.": "%). Close the programs you're not using, or use Boost before playing."
  }
 }

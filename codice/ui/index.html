@@ -527,7 +527,7 @@ details.navmore[open]{display:flex;flex-direction:column;gap:2px}
 
 <!-- SPEED -->
 <section class="view" id="v-speed">
-  <div><h1 style="font-size:26px">Velocità</h1><p class="sub"><span class="gm">Modalità del PC, Turbo per i giochi e programmi che partono all'accensione.</span><span class="om">Come lavora il PC e quali programmi partono quando lo accendi: meno sono, prima è pronto.</span></p></div>
+  <div><h1 style="font-size:26px">Velocità</h1><p class="sub"><span class="gm">Modalità del PC e programmi che partono all'accensione.</span><span class="om">Come lavora il PC e quali programmi partono quando lo accendi: meno sono, prima è pronto.</span></p></div>
   <h2>Modalità</h2>
   <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(170px,1fr))" id="modeCards"></div>
   <div class="card gm" style="display:flex;flex-direction:column;gap:10px">
@@ -1444,7 +1444,7 @@ function paintLive(){
   let hotDisk = 0; if (HW && HW.disks) HW.disks.forEach(d => { if (d.temp && d.temp > hotDisk) hotDisk = d.temp; });
   const hotGpu = (g && g.temp != null) ? g.temp : 0;
   if (alertOn('temp') && !tempAlerted && (hotGpu >= 88 || hotDisk >= 62)) { tempAlerted = true; alertSmart(_t('Temperatura alta: ') + (hotGpu >= 88 ? _t('scheda video a ') + Math.round(hotGpu) + '°C' : _t('un disco a ') + Math.round(hotDisk) + '°C') + _t('. Chiudi qualche programma pesante o controlla le ventole.')); setTimeout(() => { tempAlerted = false; }, 120000); }
-  if (alertOn('ram') && !ramAlerted && ramPct >= 92) { ramAlerted = true; (isOffice() ? alertSmart(_t('Memoria quasi piena (') + Math.round(ramPct) + _t('%). Chiudi i programmi che non usi.')) : alertSmart(_t('Memoria quasi piena (') + Math.round(ramPct) + _t('%). Chiudi i programmi che non usi o attiva il Turbo.'), {label:'Turbo', fn: () => runStep('turbo')})); setTimeout(() => { ramAlerted = false; }, 120000); }
+  if (alertOn('ram') && !ramAlerted && ramPct >= 92) { ramAlerted = true; (isOffice() ? alertSmart(_t('Memoria quasi piena (') + Math.round(ramPct) + _t('%). Chiudi i programmi che non usi.')) : alertSmart(_t('Memoria quasi piena (') + Math.round(ramPct) + _t('%). Chiudi i programmi che non usi, o usa il Boost prima di giocare.'), {label:'Boost', fn: () => show('games')})); setTimeout(() => { ramAlerted = false; }, 120000); }
 }
 function alertSmart(text, action){
   if (S.paused || S.smartAlerts === false) return;
@@ -1517,6 +1517,8 @@ function boostPaint(){
 var BST = {};
 async function boostRefresh(){ BST = (await call('goBoostInfo')) || {}; boostPaint(); }
 function boostPaintState(){
+  // Partita avviata col vecchio "Ottimizza prima di giocare" (prima della 3.1): mostro il tasto per chiuderla.
+  try { if (typeof S !== 'undefined' && S && S.modeBeforeBoost) { $('#bsCard').style.display = 'flex'; $('#btnBsEnd').style.display = ''; } } catch (e) {}
   const on = !!(BST.on || BST.game);
   $('#btnBoost').classList.toggle('on', on);
   $('#btnBoost').innerHTML = on ? _t('✅<br>ACCESO') : _t('🚀<br>BOOST');
@@ -1663,13 +1665,13 @@ function gdPaint(force){
       '<div class="bigbar" role="progressbar" aria-label="' + _t('Avanzamento') + '" aria-valuemin="0" aria-valuemax="100"' + (det ? ' aria-valuenow="' + pct + '"' : '') + '><i id="gdBar" style="width:' + (det || st !== 'download' ? (det ? pct : 100) : 0) + '%"></i></div>' +
       '<div class="small" id="gdTxt" style="margin-top:8px">' + txt + '</div>' +
       '<div class="small muted" role="status" aria-live="polite" style="margin-top:6px">' + (st === 'download' ? _t('Prima di installare controllo la firma digitale di NVIDIA e creo un punto di ripristino.') : esc(l.msg || '')) + '</div>',
-      st === 'install' || (GD.info && GD.info.vendor === 'amd') ? [{label:_t('Chiudi')}] : [{label:_t('Annulla'), fn: (box) => {
+      st === 'install' || (GD.info && GD.info.vendor === 'amd') ? [{label:_t('Continua in background')}] : [{label:_t('Annulla'), fn: (box) => {
         if (Date.now() - GD.t0 < 800) return 'keep'; // un doppio clic su "Aggiorna" non deve annullare
         call('goGpuDrvCancel'); const b = [...box.querySelectorAll('button')].find(x => x.textContent === _t('Annulla')); if (b) { b.disabled = true; b.textContent = _t('Sto annullando…'); }
         return 'keep'; }}, {label:_t('Continua in background')}]);
     return;
   }
-  if (st === 'check') { gdBox('<div class="muted" role="status">' + _t('Controllo se c\'è un driver nuovo…') + '</div>', [{label:_t('Chiudi'), fn: () => { GD.stage = ''; }}]); return; }
+  if (st === 'check') { gdBox('<div class="muted" role="status">' + _t('Controllo se c\'è un driver nuovo… (può volerci qualche minuto)') + '</div>', [{label:_t('Chiudi'), fn: () => { GD.stage = ''; }}]); return; }
   if (!i) return;
   const g = i.gpu || {}, o = i.offer || {}, amd = i.vendor === 'amd';
   const site = amd ? [{label:_t('Apri il sito AMD'), fn: () => { call('goVendorPage', 'amd'); }}] : i.gpu ? [{label:_t('Apri NVIDIA App'), fn: () => { call('goVendorPage', 'nvidia'); }}] : [];
@@ -1677,12 +1679,17 @@ function gdPaint(force){
     gdBox('<div class="note">' + esc(i.error) + '</div>' + (i.canUndo ? gdUndoHtml(i) : ''), gdUndoBtns(i, site.concat([{label:_t('Chiudi')}])));
     return;
   }
+  if (amd && i.adrenalin) {
+    gdBox('<div><b>' + esc(g.name || '') + '</b><br><span class="muted">' + _t('Driver ') + esc(g.ver || '') + '</span></div><div class="note">' + _t('Hai AMD Software: il driver aggiornalo da lì (Driver e software → Controlla aggiornamenti). Così driver e programma AMD restano della stessa versione.') + '</div>',
+      [{label:_t('Apri AMD Software'), fn: () => { call('goGpuPanel', 'amd'); }}, {label:_t('Chiudi')}]);
+    return;
+  }
   if (amd && !i.newer) {
     gdBox('<div><b>' + esc(g.name || '') + '</b><br><span class="muted">' + _t('Driver ') + esc(g.ver || '') + '</span></div><div class="note" style="border-color:var(--a1)">' + _t('✓ Windows Update non ha un driver AMD più nuovo per la tua scheda.') + '</div><div class="small muted">' + _t('Le versioni nuovissime escono prima sul sito AMD: se un gioco nuovo ti dà problemi, prendila da lì.') + '</div>', site.concat([{label:_t('Chiudi')}]));
     return;
   }
   if (amd) {
-    gdBox('<div><b>' + esc(g.name || '') + '</b></div><div style="font-size:18px;margin:8px 0">' + esc(g.ver || '') + ' → <b style="color:var(--a1)">' + esc(o.ver || _t('nuovo')) + '</b></div>' +
+    gdBox('<div><b>' + esc(g.name || '') + '</b></div><div style="font-size:18px;margin:8px 0">' + esc(g.ver || '') + ' → <b style="color:var(--a1)">' + (o.ver ? esc(o.ver) : _t('driver del ') + esc((o.date || '').split('-').reverse().join('/'))) + '</b></div>' +
       (o.date ? '<div class="small muted">' + _t('Driver del ') + esc(o.date.split('-').reverse().join('/')) + '</div>' : '') +
       '<ul class="small" style="line-height:1.6"><li>' + _t('Lo prendo da Windows Update: è il driver AMD certificato da Microsoft per la tua scheda.') + '</li><li>' + _t('Prima creo un punto di ripristino.') + '</li><li>' + _t('Può essere un po\' più vecchio di quello sul sito AMD, ma è il più sicuro.') + '</li><li>' + _t('Chiudi i giochi. Durante l\'installazione lo schermo può diventare nero per qualche secondo.') + '</li></ul>',
       [{label:_t('Aggiorna il driver'), cls:'primary', fn: () => { gdStart(false, false); return 'keep'; }}].concat(site, [{label:_t('Non ora')}]));
@@ -1729,13 +1736,13 @@ Object.assign(window.tasso, {
     }
     GD.stage = '';
     if (st === 'nobackup') {
-      gdShow('<div class="note" style="border-color:var(--a4)">' + esc(m.msg || '') + '</div>' + (m.undoURL ? '<div class="small muted">' + _t('Senza punto di ripristino, se il driver nuovo dà problemi puoi comunque usare "Torna al driver di prima".') + '</div>' : '<div class="small muted">' + (m.vendor === 'amd' ? _t('Senza punto di ripristino, se il driver nuovo dà problemi usa Gestione dispositivi → scheda video → Ripristina driver.') : _t('Senza punto di ripristino, se il driver nuovo dà problemi dovrai reinstallare quello vecchio dal sito NVIDIA.')) + '</div>'),
+      gdShow('<div class="note" style="border-color:var(--a4)">' + esc(m.msg || '') + '</div>' + (m.undoURL ? '<div class="small muted">' + _t('Senza punto di ripristino, se il driver nuovo dà problemi puoi comunque usare "Torna al driver di prima".') + '</div>' : '<div class="small muted">' + (m.vendor === 'amd' ? _t('Senza punto di ripristino, se il driver nuovo dà problemi prova Gestione dispositivi → scheda video → Ripristina driver (se il pulsante è attivo), oppure il sito AMD.') : _t('Senza punto di ripristino, se il driver nuovo dà problemi dovrai reinstallare quello vecchio dal sito NVIDIA.')) + '</div>'),
         [{label:_t('Installa lo stesso'), fn: () => { gdStart(!!m.undo, true); return 'keep'; }}, {label:_t('Annulla')}], m.msg || '');
       return;
     }
     const ok = st === 'done';
     gdShow('<div class="note" style="border-color:' + (ok ? 'var(--a1)' : 'var(--a4)') + '">' + (ok && !m.reboot ? '✅ ' : '') + esc(m.msg || '') + '</div>', [{label:_t('Chiudi')}], m.msg || '');
-    if (ok) setTimeout(() => call('goGpuDrvCheck'), 1500); // aggiorna in silenzio "Torna al driver di prima"
+    if (ok && m.vendor !== 'amd') setTimeout(() => call('goGpuDrvCheck'), 1500); // aggiorna in silenzio "Torna al driver di prima"
   }
 });
 function askMode(m){
@@ -2687,7 +2694,7 @@ function paintDrivers(d){
   const g = $('#drvGpu'); g.innerHTML = '';
   (d.gpus || []).forEach(x => {
     const age = drvAge(x.date), v = x.vendor;
-    const btns = v === 'nvidia' ? '<button class="btn primary" data-gpudrv="1" style="min-height:34px;padding:5px 12px;font-size:12px">' + _t('Aggiorna con Tasso') + '</button>' + drvBtn('nvidia', _t('Apri NVIDIA App')) + drvBtn('nvidia_drv', _t('Driver NVIDIA')) : v === 'amd' ? '<button class="btn primary" data-gpudrv="1" style="min-height:34px;padding:5px 12px;font-size:12px">' + _t('Aggiorna con Tasso') + '</button>' + drvBtn('amd', _t('Apri il sito AMD')) : v === 'intel' ? drvBtn('intel', _t('Apri Intel Assistant')) : '';
+    const btns = v === 'nvidia' ? '<button class="btn primary" data-gpudrv="1" style="min-height:34px;padding:5px 12px;font-size:12px">' + _t('Aggiorna con Tasso') + '</button>' + drvBtn('nvidia', _t('Apri NVIDIA App')) + drvBtn('nvidia_drv', _t('Driver NVIDIA')) : v === 'amd' && !(d.gpus || []).some(z => z.vendor === 'nvidia') ? '<button class="btn primary" data-gpudrv="1" style="min-height:34px;padding:5px 12px;font-size:12px">' + _t('Aggiorna con Tasso') + '</button>' + drvBtn('amd', _t('Apri il sito AMD')) : v === 'intel' ? drvBtn('intel', _t('Apri Intel Assistant')) : '';
     g.appendChild(el('div', {class:'li', style:'flex-wrap:wrap;gap:8px'}, '<span style="flex:1 1 260px"><b>🎮 ' + esc(x.name) + _t('</b><br><span class="small muted">Driver ') + esc(x.ver || '?') + (x.date ? _t(' del ') + esc(x.date.split('-').reverse().join('/')) : '') + (age >= 6 ? _t(' · <b style="color:var(--a4)">ha ') + age + _t(' mesi: conviene aggiornarlo</b>') : age ? _t(' · recente') : '') + _t('</span><br><span class="small muted">Il driver video più nuovo esce prima sul sito ') + (v === 'nvidia' ? 'NVIDIA' : v === 'amd' ? 'AMD' : v === 'intel' ? 'Intel' : _t('del produttore')) + _t(' che su Windows Update: per i giochi conviene prenderlo da lì.</span></span>') + btns));
   });
   // Programmi ufficiali per le periferiche trovate
