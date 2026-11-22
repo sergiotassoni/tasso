@@ -315,6 +315,17 @@ details.ofg .ofgrid{padding:0 12px 12px}
   .row{flex-wrap:wrap}.card,.grid>*{min-width:0;overflow-wrap:anywhere}
 }
 .navh{display:block;font-size:10.5px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);opacity:.8;padding:10px 12px 3px}
+.boostcard{display:flex;align-items:center;gap:28px;flex-wrap:wrap;padding:28px;border-color:var(--a1)}
+.boostcard h2{font-size:28px;margin:6px 0}
+.boostk{font-size:12px;font-weight:800;letter-spacing:.08em;color:var(--a2)}
+.boostgo{width:180px;height:180px;border-radius:50%;font-size:28px;font-weight:900;line-height:1.25;margin:0 auto;box-shadow:0 0 0 14px color-mix(in srgb,var(--a1) 18%,transparent)}
+@media (max-width:560px){.boostgo{width:140px;height:140px;font-size:22px}.boostcard h2{font-size:22px}}
+.homelv{display:flex;flex-direction:column;gap:12px}
+.homelv h2{margin:0}
+.homelv .lvl .d{display:none}
+.homelv .lvl{min-height:0}
+.homelv .lvl .f2 .mono{display:none}
+.quick.q2{grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr))}
 .quick{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:16px}
 .qk{display:flex;flex-direction:column;align-items:flex-start;gap:6px;text-align:left;padding:20px 22px;border-radius:20px;border:1px solid var(--line);background:var(--panel);color:var(--text);cursor:pointer;transition:transform .15s,border-color .15s}
 .qk:hover{transform:translateY(-2px);border-color:var(--a1)}
@@ -367,20 +378,16 @@ details.navmore[open]{display:flex;flex-direction:column;gap:2px}
   <div class="look" id="lookSw" role="group" aria-label="Modalità di Tasso"><button data-look="gioco" title="Modalità Gaming" aria-label="Modalità Gaming">🎮<span class="lt">Gaming</span></button><button data-look="ufficio" title="Modalità Ufficio" aria-label="Modalità Ufficio">💼<span class="lt">Ufficio</span></button></div>
   <nav aria-label="Menu">
     <button data-go="home" class="on"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg>Home</button>
-    <span class="navh" aria-hidden="true">Problemi</span>
-    <button data-go="scan"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/><path d="M11 8v3.5M11 14h.01"/></svg>Rileva i problemi</button>
-    <button data-go="fix"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.6 2.6-2.4-.6-.6-2.4z"/></svg>Risolvi problemi</button>
-    <span class="navh" aria-hidden="true">Velocità</span>
-    <button data-go="clean"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.8 4.7 4.7 1.8-4.7 1.8L12 16l-1.8-4.7-4.7-1.8 4.7-1.8z"/><path d="M19 15l.8 2.2 2.2.8-2.2.8L19 21l-.8-2.2-2.2-.8 2.2-.8z"/></svg>Pulizia</button>
+    <button data-go="games" class="gm"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="11" rx="4"/><path d="M7 11v3M5.5 12.5h3M15.5 12h.01M18 13.5h.01"/></svg>Gioca</button>
+    <button data-go="clean"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.8 4.7 4.7 1.8-4.7 1.8L12 16l-1.8-4.7-4.7-1.8 4.7-1.8z"/><path d="M19 15l.8 2.2 2.2.8-2.2.8L19 21l-.8-2.2-2.2-.8 2.2-.8z"/></svg>Pulisci</button>
+    <button data-go="scan"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/><path d="M11 8v3.5M11 14h.01"/></svg>Problemi</button>
+    <details class="navmore" id="navMore"><summary><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="5" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="19" cy="12" r="1.3"/></svg><span>Altro</span></summary>
     <button data-go="speed"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg>Velocità</button>
-    <button data-go="games" class="gm"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="11" rx="4"/><path d="M7 11v3M5.5 12.5h3M15.5 12h.01M18 13.5h.01"/></svg>Giochi</button>
     <button data-go="perf" class="gm"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/><path d="M19 3v4M21 5h-4" opacity=".7"/></svg>Prestazioni+</button>
-    <details class="navmore" id="navMore"><summary><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="5" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="19" cy="12" r="1.3"/></svg><span>Altri strumenti</span></summary>
-    <span class="navh" aria-hidden="true">File e programmi</span>
+    <button data-go="fix"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.6 2.6-2.4-.6-.6-2.4z"/></svg>Risolvi problemi</button>
     <button data-go="programs"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><path d="M14 17.5h7M17.5 14v7"/></svg>Programmi</button>
     <button data-go="files"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>File</button>
     <button data-go="disk"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-9-9v9z"/><path d="M15 3.5A9 9 0 0 1 20.5 9H15z"/></svg>Mappa del disco</button>
-    <span class="navh" aria-hidden="true">PC e rete</span>
     <button data-go="net"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 9a15 15 0 0 1 20 0M5.5 12.5a10 10 0 0 1 13 0M9 16a5 5 0 0 1 6 0"/><circle cx="12" cy="19.5" r="1"/></svg>Internet</button>
     <button data-go="hw"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="6" width="12" height="12" rx="2"/><rect x="9.5" y="9.5" width="5" height="5"/><path d="M9 2v4M15 2v4M9 18v4M15 18v4M2 9h4M2 15h4M18 9h4M18 15h4"/></svg>Hardware</button>
     <button data-go="vault"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="15" r="4"/><path d="M10.8 12.2L20 3M16 7l3 3M14 9l2 2"/></svg>Portachiavi</button>
@@ -417,14 +424,17 @@ details.navmore[open]{display:flex;flex-direction:column;gap:2px}
       </button>
     </div>
   </div>
-  <div class="quick" role="group" aria-label="Le cose principali">
-    <button class="qk" id="btnHomeDetect"><span class="qi">🔎</span><b>Rileva i problemi</b><span>Tasso controlla il PC e ti dice cosa non va</span></button>
-    <button class="qk" data-go2="speed"><span class="qi">⚡</span><b>Velocità</b><span>Come lavora il PC e cosa parte all'accensione</span></button>
-    <button class="qk gm" data-go2="games"><span class="qi">🎮</span><b>Giochi</b><span>La tua libreria e il profilo gioco</span></button>
-    <button class="qk om" data-go2="fix"><span class="qi">🛠️</span><b>Risolvi problemi</b><span>Stampante, Word, Wi-Fi e tanti altri</span></button>
+  <div class="card homelv">
+    <h2>🧹 Tutte le pulizie</h2>
+    <div class="grid g5" id="levelCards"></div>
+  </div>
+  <div class="quick q2" role="group" aria-label="Le cose principali">
+    <button class="qk" id="btnHomeDetect"><span class="qi">🔎</span><b>Problemi</b><span>Tasso controlla il PC e ti dice cosa non va</span></button>
+    <button class="qk gm" data-go2="games"><span class="qi">🚀</span><b>Gioca</b><span>Un tasto e il PC va al massimo per giocare</span></button>
+    <button class="qk om" data-go2="fix"><span class="qi">🛠️</span><b>Risolvi un problema</b><span>Stampante, Word, Wi-Fi e tanti altri</span></button>
   </div>
   <details class="more" id="homeMore">
-    <summary>Mostra dettagli <span class="muted">· salute del PC, potenza della pulizia, pulizia programmata, sensori</span></summary>
+    <summary>Mostra dettagli <span class="muted">· salute del PC, pulizia programmata, sensori</span></summary>
     <div class="morebox">
   <div class="card">
       <div class="facts">
@@ -442,8 +452,6 @@ details.navmore[open]{display:flex;flex-direction:column;gap:2px}
     <div class="list" id="hIssues"></div>
     <div class="small muted" id="hGood"></div>
   </div>
-  <h2>Scegli la potenza</h2>
-  <div class="grid g5" id="levelCards"></div>
   <div class="card" style="display:flex;flex-direction:column;gap:12px;padding-top:6px">
       <button class="toggle" id="tgWeekly"><span><b style="font-size:16px">Pulizia programmata</b><span id="wkDesc">Tasso pulisce da solo ogni settimana o ogni due, senza che tu debba aprirlo.</span></span><span class="sw"><i></i></span></button>
       <div class="row wrap" style="gap:12px" id="wkPlan">
@@ -699,11 +707,21 @@ details.navmore[open]{display:flex;flex-direction:column;gap:2px}
 </section>
 
 <section class="view" id="v-games">
-  <div><h1 style="font-size:26px">Giochi</h1><p class="sub">Prepara il PC prima di giocare, guarda temperature e uso mentre giochi, e apri tutti i tuoi giochi da qui.</p></div>
+  <div><h1 style="font-size:26px">Gioca</h1><p class="sub">Premi il tasto e Tasso prepara il PC per giocare. Quando hai finito, rimette tutto com'era.</p></div>
+  <div class="card boostcard" id="boostCard">
+    <div style="flex:1 1 320px;min-width:0"><div class="boostk">PRONTO A GIOCARE</div><h2 id="boostTitle">Il PC è in modalità normale</h2><p class="sub" id="boostSub" style="margin:0">Boost chiude i programmi inutili e mette il PC al massimo per giocare. Quando hai finito, rimette tutto com'era.</p><p class="small" style="margin:10px 0 0"><a href="#" id="boostUndo">↩️ Rimetti com'era</a></p></div>
+    <button class="btn primary boostgo" id="btnBoost" aria-label="Boost: prepara il PC per giocare">🚀<br>BOOST</button>
+  </div>
   <div class="card" style="display:flex;flex-direction:column;gap:12px">
     <div class="row wrap" style="justify-content:space-between"><div><h2>🕹️ La tua libreria</h2><p class="sub" style="margin:2px 0 0" id="libMsg">Steam, Epic Games e Riot in un posto solo.</p></div><div class="row wrap" style="gap:8px"><input id="libSearch" type="search" placeholder="Cerca un gioco…" style="padding:9px 12px;border-radius:10px;border:1px solid var(--line);background:transparent;color:inherit;font:inherit;min-width:200px"><button class="btn ghost" id="btnLib">Aggiorna</button></div></div>
     <div class="grid" id="libGrid" style="grid-template-columns:repeat(auto-fill,minmax(150px,1fr))"></div>
   </div>
+
+
+
+  <details class="more" id="gamesMore">
+    <summary>⚙️ Altre opzioni <span class="muted">· profilo gioco, potenza per ogni gioco, comandi gaming, ottimizza prima di giocare, pannellino in gioco, autoclick</span></summary>
+    <div class="morebox">
   <div class="card" id="gpCard" style="display:flex;flex-direction:column;gap:12px;border-color:var(--a1)">
     <div class="row wrap" style="justify-content:space-between;align-items:center"><div style="flex:1 1 300px"><h2>🎮 Profilo gioco</h2><p class="sub" style="margin:2px 0 0">Scegli una volta sola cosa ti serve per giocare, poi lo accendi e lo spegni con un interruttore. <b>Resta acceso anche se spegni o riavvii il PC</b>: si spegne solo quando lo spegni tu.</p></div><button class="sw" id="gpSwitch" style="border:0;transform:scale(1.35);margin-right:10px" aria-label="Profilo gioco"><i></i></button></div>
     <div class="note" id="gpState" style="margin:0"></div>
@@ -728,11 +746,6 @@ details.navmore[open]{display:flex;flex-direction:column;gap:2px}
     </div>
     <span class="small muted">Come funziona, in parole semplici: quando accendi il profilo Tasso mette tutte le cose che hai scelto e si ricorda com'erano prima. A ogni accensione del PC controlla che sia ancora tutto così (a volte un aggiornamento di Windows o il programma del produttore del PC rimette il piano energetico normale) e rimette a posto quello che è cambiato. Quando lo spegni torna tutto com'era prima di accenderlo. Lo trovi anche in Impostazioni → Torna indietro.</span>
   </div>
-
-
-  <details class="more" id="gamesMore">
-    <summary>Altri strumenti per giocare <span class="muted">· comandi gaming, ottimizza prima di giocare, pannellino in gioco, autoclick</span></summary>
-    <div class="morebox">
   <div class="card" style="display:flex;flex-direction:column;gap:12px">
     <div class="row wrap" style="justify-content:space-between"><div><h2>Comandi gaming</h2><p class="sub" style="margin:2px 0 0">Le regolazioni di Windows che contano davvero per giocare, gratis e in un clic. Ogni comando ti spiega cosa fa, quando serve e se ci sono rischi. Restano accesi anche dopo il riavvio. Quando li spegni tornano esattamente com'erano prima di Tasso. Per accenderne tanti insieme usa il <b>Profilo gioco</b> qui sopra.</p></div><button class="btn ghost" id="btnGcReload">Aggiorna</button></div>
     <div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(min(300px,100%),1fr));gap:10px" id="gcList"></div>
@@ -1487,7 +1500,18 @@ function paintModes(){
   const p = $('#modePill');
   if (cur) { p.textContent = _t('MODALITÀ ') + cur.name.toUpperCase(); p.style.color = cur.c; p.style.borderColor = cur.c; }
   else { p.textContent = _t('IMPOSTAZIONI ORIGINALI DI WINDOWS'); p.style.color = 'var(--muted)'; p.style.borderColor = 'var(--line)'; }
+  boostPaint();
 }
+/* ---------- Gioca: pulsante BOOST (3.1) ----------
+   Per ora usa "Ottimizza prima di giocare" (in Altre opzioni); la versione con FPS prima/dopo si collega qui. */
+function boostPaint(){
+  const t = $('#boostTitle'); if (!t) return;
+  const cur = MODES.find(m => m.id === (S.mode || 'normale'));
+  t.textContent = cur ? (EN ? 'The PC is in ' + cur.name + ' mode' : 'Il PC è in modalità ' + cur.name) : _t('Il PC ha le impostazioni originali di Windows');
+}
+function boostOpenTools(){ const m = $('#gamesMore'); if (m) m.open = true; const c = $('#bsList'); if (c) c.scrollIntoView({behavior:'smooth', block:'center'}); }
+$('#btnBoost').onclick = () => { boostOpenTools(); $('#btnBsScan').click(); toast(_t('Cerco i programmi pesanti: spunta quelli da chiudere e premi "Ottimizza e gioca".')); };
+$('#boostUndo').onclick = (e) => { e.preventDefault(); const b = $('#btnBsEnd'); if (b && b.style.display !== 'none' && !b.disabled) { b.click(); toast(_t('Rimetto tutto com\'era…')); } else toast(_t('Non c\'è niente da rimettere: Boost non è acceso.')); };
 function askMode(m){
   const warn = [];
   const ramGB = HW && HW.ram && HW.ram.total ? HW.ram.total / 1073741824 : (LIVE && LIVE.ramTotal ? LIVE.ramTotal / 1073741824 : 16);

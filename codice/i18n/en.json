@@ -3638,6 +3638,21 @@
   "Ripristinato: se c'è ancora, te lo segnalo di nuovo.": "Restored: if it's still there, I'll flag it again.",
   "All'ultimo controllo non c'era.": "It wasn't there at the last check.",
   "Risolvi i 2 problemi insieme": "Fix both problems at once",
-  "Ignorato: lo trovi in fondo, in Problemi ignorati.": "Ignored: you'll find it at the bottom, in Ignored problems."
+  "Ignorato: lo trovi in fondo, in Problemi ignorati.": "Ignored: you'll find it at the bottom, in Ignored problems.",
+  "🧹 Tutte le pulizie": "🧹 All cleanups",
+  "Un tasto e il PC va al massimo per giocare": "One button and the PC goes all out for gaming",
+  "Risolvi un problema": "Fix a problem",
+  "· salute del PC, pulizia programmata, sensori": "· PC health, scheduled cleanup, sensors",
+  "Premi il tasto e Tasso prepara il PC per giocare. Quando hai finito, rimette tutto com'era.": "Press the button and Tasso gets the PC ready for gaming. When you're done, it puts everything back.",
+  "PRONTO A GIOCARE": "READY TO PLAY",
+  "Il PC è in modalità normale": "The PC is in Normal mode",
+  "Boost chiude i programmi inutili e mette il PC al massimo per giocare. Quando hai finito, rimette tutto com'era.": "Boost closes programs you don't need and puts the PC at full power for gaming. When you're done, it puts everything back.",
+  "↩️ Rimetti com'era": "↩️ Put it back",
+  "Boost: prepara il PC per giocare": "Boost: get the PC ready for gaming",
+  "⚙️ Altre opzioni": "⚙️ More options",
+  "· profilo gioco, potenza per ogni gioco, comandi gaming, ottimizza prima di giocare, pannellino in gioco, autoclick": "· game profile, power for each game, gaming tweaks, optimize before playing, in-game panel, autoclick",
+  "Il PC ha le impostazioni originali di Windows": "The PC has the original Windows settings",
+  "Cerco i programmi pesanti: spunta quelli da chiudere e premi \"Ottimizza e gioca\".": "Looking for heavy programs: tick the ones to close and press \"Optimize and play\".",
+  "Non c'è niente da rimettere: Boost non è acceso.": "There's nothing to put back: Boost isn't on."
  }
 }
