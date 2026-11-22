@@ -1540,7 +1540,7 @@ function paintFps(r, summary){
   box.innerHTML = h;
 }
 $('#btnBoost').onclick = async () => {
-  if (BST.on) { toast(_t('Il Boost è già acceso. Per spegnerlo premi "Rimetti com\'era".')); return; }
+  if (BST.on || BST.game) { toast(_t('Il Boost è già acceso. Per spegnerlo premi "Rimetti com\'era".')); return; }
   const r = await call('goBoostAll'); if (r === 'busy') { toast(_t('Un attimo, sto ancora finendo.')); return; }
   $('#btnBoost').disabled = true; toast(_t('Preparo il PC per giocare…'), 'var(--a3)');
 };
