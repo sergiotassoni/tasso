@@ -10,6 +10,7 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
+	"io"
 	"net/http"
 	"net/url"
 	"os"
@@ -94,8 +95,9 @@ func scanGOG(un []uninstEntry) []gameEntry {
 			dir, _, _ := sk.GetStringValue("path")
 			exe, _, _ := sk.GetStringValue("exe")
 			args, _, _ := sk.GetStringValue("launchParam")
+			dep, _, _ := sk.GetStringValue("dependsOn")
 			sk.Close()
-			if name == "" || !dirExists(dir) {
+			if name == "" || dep != "" || len(dir) <= 3 || !dirExists(dir) {
 				continue
 			}
 			if !fileExists(exe) {
@@ -135,8 +137,11 @@ func scanUbisoft(un []uninstEntry) []gameEntry {
 		}
 		dir, _, _ := sk.GetStringValue("InstallDir")
 		sk.Close()
+		if strings.TrimSpace(dir) == "" {
+			continue
+		}
 		dir = filepath.Clean(strings.ReplaceAll(dir, "/", `\`))
-		if !dirExists(dir) {
+		if len(dir) <= 3 || !dirExists(dir) {
 			continue
 		}
 		g := gameEntry{ID: "ubi:" + id, Name: filepath.Base(dir), Store: "Ubisoft", launch: "uplay://launch/" + id + "/0", dir: dir, Icon: "dir:" + dir}
@@ -161,6 +166,7 @@ var (
 	xbExeRe2  = regexp.MustCompile(`<Executable[^>]*\sId="([^"]+)"[^>]*\sName="([^"]+)"`)
 	xbNameRe  = regexp.MustCompile(`DefaultDisplayName="([^"]+)"`)
 	xbLogoRe  = regexp.MustCompile(`Square150x150Logo="([^"]+)"`)
+	xbSafeRe  = regexp.MustCompile(`^[A-Za-z0-9._-]{1,200}$`)
 )
 
 func xboxFamilies() map[string]string {
@@ -217,7 +223,7 @@ func scanXbox() []gameEntry {
 				if fam == nil {
 					fam = xboxFamilies()
 				}
-				if f := fam[strings.ToLower(string(m[1]))]; f != "" {
+				if f := fam[strings.ToLower(string(m[1]))]; f != "" && xbSafeRe.MatchString(f) && xbSafeRe.MatchString(appID) {
 					g.launch = `shell:AppsFolder\` + f + "!" + appID
 				}
 			}
@@ -235,7 +241,7 @@ func scanXbox() []gameEntry {
 var (
 	amazonIDRe = regexp.MustCompile(`(?i)-p\s+"?([A-Za-z0-9._-]+)`)
 	// i launcher stessi e gli strumenti non sono giochi
-	notGameNameRe = regexp.MustCompile(`(?i)^(steam|battle\.net|ea app|ea desktop|origin|ubisoft connect|uplay|gog galaxy|rockstar games (launcher|social club)|social club|amazon games|epic games launcher|riot client|xbox|itch|launcher|.*(redistributable|runtime|directx|visual c\+\+|anti-?cheat|easyanticheat|battleye|punkbuster|vulkan|physx|\.net|driver|benchmark|server|sdk|editor|tool(s|kit)?|mod manager|updater|uninstall)).*$`)
+	notGameNameRe = regexp.MustCompile(`(?i)^(steam|battle\.net|ea app|ea desktop|origin|ubisoft connect|uplay|gog galaxy( \d+)?|rockstar games launcher|rockstar games social club|social club|amazon games|epic games launcher|epic online services|riot client|xbox|itch)$|\b(redistributable|runtime|directx|visual c\+\+|anti-?cheat|easyanticheat|battleye|punkbuster|physx|\.net framework|sdk|dedicated server|mod manager|uninstaller)\b`)
 )
 
 func storeFromUninstall(e uninstEntry) (store, launch string) {
@@ -259,17 +265,19 @@ func storeFromUninstall(e uninstEntry) (store, launch string) {
 
 // ---------- giochi installati a mano (anche non ufficiali): si riconoscono dai motori ----------
 
-// gameMarkers: file o cartelle che hanno quasi solo i giochi.
+// gameMarkers: file o cartelle che hanno quasi solo i giochi (ne basta uno).
 var gameMarkers = []string{
 	"UnityPlayer.dll", "UnityCrashHandler64.exe", "UnityCrashHandler32.exe", // Unity
 	`Engine\Binaries`, `Engine\Content\Paks`, // Unreal
 	"data.win", "options.ini.gmx", // GameMaker
 	"renpy", `game\script_version.txt`, // Ren'Py
 	`www\js\rpg_core.js`, `www\js\rmmz_core.js`, `js\rmmz_core.js`, "Game.rgss3a", "Game.rgssad", "RGSS301.dll", "RGSS104E.dll", // RPG Maker
-	"steam_api.dll", "steam_api64.dll", "steam_appid.txt", "EOSSDK-Win64-Shipping.dll", "galaxy64.dll", "Galaxy.dll", // giochi con SDK dei negozi
-	"fmod.dll", "fmodex.dll", "fmodstudio.dll", "bink2w64.dll", "binkw32.dll", "binkw64.dll", "d3dx9_43.dll", "xinput1_3.dll",
-	"love.dll", "SDL2.dll", "openal32.dll", "MonoBleedingEdge", "nw.dll", // LÖVE, SDL, Mono, NW.js
+	"steam_api.dll", "steam_api64.dll", "steam_appid.txt", "EOSSDK-Win64-Shipping.dll", "galaxy64.dll", "Galaxy.dll", // SDK dei negozi
+	"love.dll", "bink2w64.dll", "binkw32.dll", "binkw64.dll", "MonoBleedingEdge",
 }
+
+// gameMarkersWeak: li hanno anche programmi normali: ne servono almeno due.
+var gameMarkersWeak = []string{"fmod.dll", "fmodex.dll", "fmodstudio.dll", "d3dx9_43.dll", "xinput1_3.dll", "SDL2.dll", "openal32.dll", "nw.dll", "physxloader.dll", "PhysX3_x64.dll"}
 
 func looksLikeGame(dir string) bool {
 	for _, m := range gameMarkers {
@@ -277,29 +285,66 @@ func looksLikeGame(dir string) bool {
 			return true
 		}
 	}
-	// Godot: un .pck accanto all'exe con lo stesso nome
-	if pcks, _ := filepath.Glob(filepath.Join(dir, "*.pck")); len(pcks) > 0 {
+	if pcks, _ := filepath.Glob(filepath.Join(dir, "*.pck")); len(pcks) > 0 { // Godot
 		return true
 	}
-	// Unity: cartella "<nome>_Data"
-	if d, _ := filepath.Glob(filepath.Join(dir, "*_Data", "globalgamemanagers")); len(d) > 0 {
+	if d, _ := filepath.Glob(filepath.Join(dir, "*_Data", "globalgamemanagers")); len(d) > 0 { // Unity
 		return true
+	}
+	weak := 0
+	for _, m := range gameMarkersWeak {
+		if _, err := os.Stat(filepath.Join(dir, m)); err == nil {
+			if weak++; weak >= 2 {
+				return true
+			}
+		}
 	}
 	return false
 }
 
+// notGameExeRe: installatori e strumenti che stanno spesso nella cartella del gioco.
+var notGameExeRe = regexp.MustCompile(`(?i)(unins|uninst|setup|install|redist|vcredist|vc_redist|dxsetup|directx|dotnet|oalinst|physx|crash|report|helper|update|patch|config|settings|benchmark|server|editor|ue4prereq|prereq|easyanticheat|battleye|cefprocess|webhelper|7z|unitycrash)`)
+
+// bestExe: il programma del gioco in una cartella: preferisco quello con un nome simile alla cartella, se no il più grande.
+func bestExe(dir string) string {
+	ents, err := os.ReadDir(dir)
+	if err != nil {
+		return ""
+	}
+	want := normTitle(filepath.Base(dir))
+	best, bestScore := "", int64(-1)
+	for _, e := range ents {
+		n := e.Name()
+		if e.IsDir() || !strings.HasSuffix(strings.ToLower(n), ".exe") || notGameExeRe.MatchString(n) {
+			continue
+		}
+		fi, err := e.Info()
+		if err != nil {
+			continue
+		}
+		score := fi.Size()
+		if nt := normTitle(strings.TrimSuffix(n, filepath.Ext(n))); len(nt) >= 3 && len(want) >= 3 && (strings.Contains(want, nt) || strings.Contains(nt, want)) {
+			score += 1 << 40
+		}
+		if score > bestScore {
+			best, bestScore = filepath.Join(dir, n), score
+		}
+	}
+	return best
+}
+
 // gameDirExe: il programma del gioco (anche dentro Binaries\Win64 per Unreal).
 func gameDirExe(dir string) string {
-	if e := dirExe(dir); e != "" {
+	if e := bestExe(dir); e != "" {
 		return e
 	}
 	for _, sub := range []string{"bin", "Bin", "x64", `Binaries\Win64`, "Game", "Content"} {
-		if e := dirExe(filepath.Join(dir, sub)); e != "" {
+		if e := bestExe(filepath.Join(dir, sub)); e != "" {
 			return e
 		}
 	}
 	if m, _ := filepath.Glob(filepath.Join(dir, "*", "Binaries", "Win64")); len(m) > 0 {
-		if e := dirExe(m[0]); e != "" {
+		if e := bestExe(m[0]); e != "" {
 			return e
 		}
 	}
@@ -310,7 +355,8 @@ func fixedDrives() []string {
 	var out []string
 	for c := 'C'; c <= 'Z'; c++ {
 		d := string(c) + `:\`
-		if dirExists(d) {
+		p, _ := windows.UTF16PtrFromString(d)
+		if windows.GetDriveType(p) == windows.DRIVE_FIXED && dirExists(d) {
 			out = append(out, d)
 		}
 	}
@@ -320,30 +366,52 @@ func fixedDrives() []string {
 // skipDirRe: cartelle di Program Files che non sono giochi (si risparmia tempo).
 var skipDirRe = regexp.MustCompile(`(?i)^(common files|windows.*|microsoft.*|internet explorer|modifiablewindowsapps|windowsapps|reference assemblies|dotnet|nvidia.*|amd|intel|realtek|google|mozilla.*|7-zip|winrar|java|uninstall information|msbuild|iis.*|steam|epic games|riot games|gog galaxy|ea|ea games|origin|ubisoft|battle\.net|rockstar games|amazon games|xboxgames|windowspowershell|package cache|tasso)$`)
 
-func scanFolders(known map[string]bool) []gameEntry {
-	deadline := time.Now().Add(6 * time.Second)
-	var roots []string
-	home := os.Getenv("USERPROFILE")
-	for _, d := range fixedDrives() {
-		for _, n := range []string{"Games", "Giochi", "Game", "Gioco", "Program Files", "Program Files (x86)", "GOG Games", "EA Games", "Ubisoft Games"} {
-			roots = append(roots, filepath.Join(d, n))
-		}
+func scanFolders(known map[string]bool, deadline time.Time) []gameEntry {
+	type root struct {
+		path    string
+		depth   int
+		anyExe  bool // cartelle solo di giochi: va bene qualsiasi programma (anche i giochi senza motore riconoscibile)
+		private bool // Desktop e Download: il nome non va mandato a Steam per la copertina
+		store   string
 	}
-	itch := filepath.Join(os.Getenv("APPDATA"), "itch", "apps")
-	roots = append(roots, filepath.Join(home, "Games"), filepath.Join(home, "Giochi"), filepath.Join(home, "Desktop"), filepath.Join(home, "Downloads"),
-		filepath.Join(os.Getenv("LOCALAPPDATA"), "Programs"), itch, filepath.Join(home, "AppData", "Local", "Games"))
-	var out []gameEntry
-	seen := map[string]bool{}
-	var walk func(dir string, depth int)
-	walk = func(dir string, depth int) {
-		if time.Now().After(deadline) {
+	var roots []root
+	add := func(p string, depth int, anyExe, private bool, store string) {
+		if p == "" || len(p) <= 3 || !filepath.IsAbs(p) {
 			return
 		}
+		roots = append(roots, root{p, depth, anyExe, private, store})
+	}
+	for _, d := range fixedDrives() {
+		for _, n := range []string{"Games", "Giochi", "Game", "Gioco", "GOG Games", "EA Games", "Ubisoft Games"} {
+			add(filepath.Join(d, n), 1, true, false, "Altro")
+		}
+		add(filepath.Join(d, "Program Files"), 0, false, false, "Altro")
+		add(filepath.Join(d, "Program Files (x86)"), 0, false, false, "Altro")
+	}
+	if home := os.Getenv("USERPROFILE"); home != "" {
+		add(filepath.Join(home, "Games"), 1, true, false, "Altro")
+		add(filepath.Join(home, "Giochi"), 1, true, false, "Altro")
+		add(filepath.Join(home, "Desktop"), 0, false, true, "Altro")
+		add(filepath.Join(home, "Downloads"), 0, false, true, "Altro")
+	}
+	if la := os.Getenv("LOCALAPPDATA"); la != "" {
+		add(filepath.Join(la, "Programs"), 0, false, false, "Altro")
+	}
+	if ad := os.Getenv("APPDATA"); ad != "" {
+		add(filepath.Join(ad, "itch", "apps"), 0, true, false, "itch.io")
+	}
+	var out []gameEntry
+	seen := map[string]bool{}
+	var walk func(r root, dir string, depth int)
+	walk = func(r root, dir string, depth int) {
 		ents, err := os.ReadDir(dir)
 		if err != nil {
 			return
 		}
 		for _, e := range ents {
+			if time.Now().After(deadline) {
+				return
+			}
 			if !e.IsDir() || e.Type()&os.ModeSymlink != 0 || skipDirRe.MatchString(e.Name()) || strings.HasPrefix(e.Name(), ".") || strings.HasPrefix(e.Name(), "$") {
 				continue
 			}
@@ -353,34 +421,22 @@ func scanFolders(known map[string]bool) []gameEntry {
 				continue
 			}
 			seen[lp] = true
-			if looksLikeGame(p) {
+			if r.anyExe || looksLikeGame(p) {
 				if exe := gameDirExe(p); exe != "" {
-					store := "Altro"
-					if strings.HasPrefix(lp, strings.ToLower(itch)) {
-						store = "itch.io"
-					}
-					out = append(out, gameEntry{ID: "dir:" + shortHash(lp), Name: niceName(e.Name()), Store: store, exe: exe, dir: p, Icon: exe})
+					out = append(out, gameEntry{ID: "dir:" + shortHash(lp), Name: niceName(e.Name()), Store: r.store, exe: exe, dir: p, Icon: exe, private: r.private})
 					known[lp] = true
 					continue
 				}
 			}
 			if depth > 0 {
-				walk(p, depth-1)
+				walk(r, p, depth-1)
 			}
 		}
 	}
 	for _, r := range roots {
-		if !dirExists(r) {
-			continue
+		if dirExists(r.path) && !time.Now().After(deadline) {
+			walk(r, r.path, r.depth)
 		}
-		depth := 1
-		if strings.Contains(strings.ToLower(r), `\program files`) || strings.HasSuffix(strings.ToLower(r), `\desktop`) || strings.HasSuffix(strings.ToLower(r), `\downloads`) {
-			depth = 0
-		}
-		if strings.HasPrefix(strings.ToLower(r), strings.ToLower(itch)) {
-			depth = 1
-		}
-		walk(r, depth)
 	}
 	return out
 }
@@ -399,15 +455,15 @@ func shortHash(s string) string {
 	return hex.EncodeToString(h[:6])
 }
 
-// niceName: "the_witcher-3_v1.2" -> "The Witcher 3"
-var verTailRe = regexp.MustCompile(`(?i)[\s._-]*(v|ver|build)?[\s._-]*\d+(\.\d+)+.*$`)
+// niceName: "the_witcher-3_v1.2.0" -> "The witcher 3" (tolgo solo la versione in fondo)
+var verTailRe = regexp.MustCompile(`(?i)([\s._-]+v\d+(\.\d+)*|[\s._-]+\d+(\.\d+){2,})[\w.()-]*$`)
 
 func niceName(n string) string {
 	s := verTailRe.ReplaceAllString(n, "")
-	if s == "" {
+	if strings.TrimSpace(s) == "" {
 		s = n
 	}
-	s = strings.NewReplacer("_", " ", ".", " ").Replace(s)
+	s = strings.NewReplacer("_", " ", "-", " ").Replace(s)
 	s = strings.Join(strings.Fields(s), " ")
 	r := []rune(s)
 	if len(r) > 0 {
@@ -442,9 +498,30 @@ func customGames() []gameEntry {
 		if !fileExists(c.Exe) {
 			continue
 		}
-		out = append(out, gameEntry{ID: "man:" + shortHash(c.Exe), Name: c.Name, Store: "Mano", exe: c.Exe, dir: filepath.Dir(c.Exe), Icon: c.Exe})
+		dir := filepath.Dir(c.Exe)
+		if isBroadDir(dir) {
+			dir = "" // niente "Regola con Tasso" su cartelle come Download o Desktop
+		}
+		out = append(out, gameEntry{ID: "man:" + shortHash(c.Exe), Name: c.Name, Store: "Mano", exe: c.Exe, dir: dir, Icon: c.Exe, private: true})
 	}
 	return out
+}
+
+var genericDirRe = regexp.MustCompile(`(?i)^(bin|binaries|win64|win32|x64|x86|game|games|giochi|downloads|download|desktop|documents|documenti|program files.*|programs)$`)
+
+// isBroadDir: cartelle troppo grandi per "Regola con Tasso" (Desktop, Download, Program Files, radice del disco, Windows).
+func isBroadDir(d string) bool {
+	d = strings.ToLower(strings.TrimRight(filepath.Clean(d), `\`))
+	if len(d) <= 3 {
+		return true
+	}
+	for _, x := range []string{os.Getenv("USERPROFILE"), filepath.Join(os.Getenv("USERPROFILE"), "Desktop"), filepath.Join(os.Getenv("USERPROFILE"), "Downloads"),
+		filepath.Join(os.Getenv("USERPROFILE"), "Documents"), os.Getenv("ProgramFiles"), os.Getenv("ProgramFiles(x86)"), os.Getenv("SystemRoot"), os.Getenv("LOCALAPPDATA"), os.Getenv("APPDATA")} {
+		if x != "" && d == strings.ToLower(strings.TrimRight(filepath.Clean(x), `\`)) {
+			return true
+		}
+	}
+	return strings.HasPrefix(d, strings.ToLower(os.Getenv("SystemRoot"))+`\`)
 }
 
 // addGame: finestra di Windows per scegliere il programma del gioco.
@@ -457,7 +534,7 @@ func addGame() string {
 		return "Scegli un file .exe."
 	}
 	name := niceName(strings.TrimSuffix(filepath.Base(p), filepath.Ext(p)))
-	if gn := filepath.Base(filepath.Dir(p)); gn != "" && !regexp.MustCompile(`(?i)^(bin|binaries|win64|win32|x64|x86|game)$`).MatchString(gn) && len(gn) > 2 {
+	if gn := filepath.Base(filepath.Dir(p)); len(gn) > 2 && !genericDirRe.MatchString(gn) && !isBroadDir(filepath.Dir(p)) {
 		name = niceName(gn)
 	}
 	updateSettings(func(s *Settings) {
@@ -469,9 +546,9 @@ func addGame() string {
 		if len(s.CustomGames) < 300 {
 			s.CustomGames = append(s.CustomGames, CustomGame{Name: name, Exe: p})
 		}
-		s.HiddenGames = removeStr(s.HiddenGames, "man:"+shortHash(p))
+		s.HiddenGames = withoutStr(s.HiddenGames, "man:"+shortHash(p))
 	})
-	go scanLibrary()
+	async("library", scanLibrary)
 	return "ok"
 }
 
@@ -479,6 +556,11 @@ func addGame() string {
 func hideGame(id string, on bool) string {
 	if len(id) > 200 {
 		return "Gioco non valido."
+	}
+	if strings.HasPrefix(id, "man:") && on {
+		libMu.Lock()
+		delete(library, id)
+		libMu.Unlock()
 	}
 	updateSettings(func(s *Settings) {
 		if strings.HasPrefix(id, "man:") && on {
@@ -491,7 +573,7 @@ func hideGame(id string, on bool) string {
 			s.CustomGames = out
 			return
 		}
-		s.HiddenGames = removeStr(s.HiddenGames, id)
+		s.HiddenGames = withoutStr(s.HiddenGames, id)
 		if on && len(s.HiddenGames) < 1000 {
 			s.HiddenGames = append(s.HiddenGames, id)
 		}
@@ -501,11 +583,11 @@ func hideGame(id string, on bool) string {
 
 func unhideAllGames() string {
 	updateSettings(func(s *Settings) { s.HiddenGames = nil })
-	go scanLibrary()
+	async("library", scanLibrary)
 	return "ok"
 }
 
-func removeStr(list []string, x string) []string {
+func withoutStr(list []string, x string) []string {
 	out := list[:0:0]
 	for _, v := range list {
 		if v != x {
@@ -591,23 +673,41 @@ func normTitle(s string) string {
 	return b.String()
 }
 
-func steamCoverFor(name string) string {
-	key := normTitle(name)
-	if len(key) < 2 {
-		return ""
+func loadCoverCache() {
+	if coverCache != nil {
+		return
 	}
-	coverMu.Lock()
-	if coverCache == nil {
-		coverCache = map[string]coverHit{}
+	coverCache = map[string]coverHit{}
+	if st, err := os.Stat(coverCacheFile()); err == nil && st.Size() < 4<<20 {
 		if b, err := os.ReadFile(coverCacheFile()); err == nil {
 			_ = json.Unmarshal(b, &coverCache)
 		}
 	}
-	h, ok := coverCache[key]
-	coverMu.Unlock()
-	if ok && (h.App != "" || time.Since(time.Unix(h.When, 0)) < 7*24*time.Hour) {
-		return h.App
+	for k, h := range coverCache {
+		if h.App != "" && strings.Trim(h.App, "0123456789") != "" {
+			delete(coverCache, k)
+		}
 	}
+}
+
+// cachedCover: la risposta già nota (known=false se va chiesta a Steam).
+func cachedCover(name string) (app string, known bool) {
+	key := normTitle(name)
+	if len(key) < 2 {
+		return "", true
+	}
+	coverMu.Lock()
+	defer coverMu.Unlock()
+	loadCoverCache()
+	h, ok := coverCache[key]
+	if ok && (h.App != "" || time.Since(time.Unix(h.When, 0)) < 7*24*time.Hour) {
+		return h.App, true
+	}
+	return "", false
+}
+
+func steamCoverFor(name string) string {
+	key := normTitle(name)
 	app := ""
 	client := &http.Client{Timeout: 8 * time.Second}
 	resp, err := client.Get("https://store.steampowered.com/api/storesearch/?l=english&cc=US&term=" + url.QueryEscape(name))
@@ -620,18 +720,19 @@ func steamCoverFor(name string) string {
 			Name string `json:"name"`
 		} `json:"items"`
 	}
-	ok2 := resp.StatusCode == 200 && json.NewDecoder(http.MaxBytesReader(nil, resp.Body, 1<<20)).Decode(&r) == nil
+	ok2 := resp.StatusCode == 200 && json.NewDecoder(io.LimitReader(resp.Body, 1<<20)).Decode(&r) == nil
 	resp.Body.Close()
 	if !ok2 {
 		return ""
 	}
 	for _, it := range r.Items {
-		if normTitle(it.Name) == key {
+		if normTitle(it.Name) == key && it.ID > 0 {
 			app = strconv.Itoa(it.ID)
 			break
 		}
 	}
 	coverMu.Lock()
+	loadCoverCache()
 	coverCache[key] = coverHit{App: app, When: time.Now().Unix()}
 	if b, err := json.Marshal(coverCache); err == nil {
 		_ = os.WriteFile(coverCacheFile(), b, 0o644)
@@ -645,20 +746,31 @@ func steamCDN(app string) (string, string) {
 	return cdn + "library_600x900.jpg", cdn + "header.jpg"
 }
 
-// fillCovers: copertine per chi non ce l'ha (al massimo 40 ricerche per volta, 4 alla volta).
+// fillCovers: copertine per chi non ce l'ha. Prima quelle già note (senza internet),
+// poi al massimo 40 ricerche nuove per volta, 4 alla volta. Desktop, Download e giochi aggiunti a mano: niente ricerca.
 func fillCovers(all []gameEntry) bool {
-	sem := make(chan struct{}, 4)
-	var wg sync.WaitGroup
 	changed := false
-	var mu sync.Mutex
-	n := 0
+	var ask []*gameEntry
 	for i := range all {
-		if all[i].Img != "" || all[i].Store == "Steam" {
+		g := &all[i]
+		if g.Img != "" || g.Store == "Steam" || g.private {
 			continue
 		}
-		if n++; n > 40 {
-			break
+		if app, known := cachedCover(g.Name); known {
+			if app != "" {
+				g.Img, g.ImgAlt = steamCDN(app)
+				changed = true
+			}
+			continue
 		}
+		if len(ask) < 40 {
+			ask = append(ask, g)
+		}
+	}
+	sem := make(chan struct{}, 4)
+	var wg sync.WaitGroup
+	var mu sync.Mutex
+	for _, g := range ask {
 		wg.Add(1)
 		sem <- struct{}{}
 		go func(g *gameEntry) {
@@ -671,7 +783,7 @@ func fillCovers(all []gameEntry) bool {
 				changed = true
 				mu.Unlock()
 			}
-		}(&all[i])
+		}(g)
 	}
 	wg.Wait()
 	return changed
@@ -693,4 +805,31 @@ func pickFile(title, filter string) string {
 		return ""
 	}
 	return windows.UTF16ToString(buf)
+}
+
+// userUninstallCmd: programma e argomenti di disinstallazione di una voce HKCU.
+func userUninstallCmd(key string) (string, string) {
+	const pre = `HKEY_CURRENT_USER\`
+	if !strings.HasPrefix(strings.ToUpper(key), pre) {
+		return "", ""
+	}
+	k, err := registry.OpenKey(registry.CURRENT_USER, key[len(pre):], registry.QUERY_VALUE)
+	if err != nil {
+		return "", ""
+	}
+	cmd, _, _ := k.GetStringValue("UninstallString")
+	k.Close()
+	cmd = strings.TrimSpace(expandEnv(cmd))
+	exe := exeFromCmd(cmd)
+	if exe == "" {
+		return "", ""
+	}
+	rest := strings.TrimSpace(strings.TrimPrefix(strings.TrimPrefix(cmd, `"`+exe+`"`), exe))
+	if !filepath.IsAbs(exe) {
+		exe = filepath.Join(os.Getenv("SystemRoot"), "System32", exe)
+	}
+	if !fileExists(exe) {
+		return "", ""
+	}
+	return exe, rest
 }

@@ -818,7 +818,8 @@
   " nell'elenco e premi Disinstalla.": " in the list and press Uninstall.",
   "Aspetta che finisca la disinstallazione in corso.": "Wait for the current uninstall to finish.",
   "ok:Si apre il programma di disinstallazione del gioco: segui le sue finestre.": "ok:The game's uninstaller opens: follow its windows.",
-  "Questo gioco non ha un programma di disinstallazione: puoi toglierlo dalla libreria con \"Nascondi\".": "This game has no uninstaller: you can remove it from the library with \"Hide\"."
+  "Questo gioco non ha un programma di disinstallazione: puoi toglierlo dalla libreria con \"Nascondi\".": "This game has no uninstaller: you can remove it from the library with \"Hide\".",
+  "Non riesco ad aprire il programma di disinstallazione del gioco.": "I can't open the game's uninstaller."
  },
  "ps": {
   "   non riuscita, prova a reinstallarla dal Microsoft Store.": "   failed, try reinstalling it from the Microsoft Store.",
@@ -3703,6 +3704,11 @@
   "Non sono riuscito a salvare.": "I couldn't save.",
   "<p class=\"small muted\" style=\"margin:8px 0 0;line-height:1.5\">Tasso non conosce un programma di disinstallazione per questo gioco.</p>": "<p class=\"small muted\" style=\"margin:8px 0 0;line-height:1.5\">Tasso doesn't know an uninstaller for this game.</p>",
   "Si aprono le Impostazioni di Windows: lì scegli tu di disinstallarlo.": "Windows Settings open: there you choose to uninstall it.",
-  "Si apre il suo programma di disinstallazione: segui le sue finestre.": "Its uninstaller opens: follow its windows."
+  "Si apre il suo programma di disinstallazione: segui le sue finestre.": "Its uninstaller opens: follow its windows.",
+  "1 gioco nascosto.": "1 hidden game.",
+  "1 gioco trovato": "1 game found",
+  "<span class=\"muted\">Hai nascosto tutti i giochi.</span>": "<span class=\"muted\">You've hidden all your games.</span>",
+  "<span class=\"muted\">Nessun gioco con questo nome. Se manca, premi \"Aggiungi un gioco\" (o guarda tra i giochi nascosti).</span>": "<span class=\"muted\">No game with this name. If it's missing, press \"Add a game\" (or check the hidden games).</span>",
+  "Le copertine che mancano Tasso le cerca nel negozio di Steam, mandando solo il nome del gioco (mai quelli aggiunti a mano o presi da Desktop e Download).": "Missing covers are looked up in the Steam store, sending only the game's name (never for games you added by hand or found in Desktop and Downloads)."
  }
 }

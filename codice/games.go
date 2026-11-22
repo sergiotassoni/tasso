@@ -13,6 +13,7 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 	"unsafe"
 
@@ -33,6 +34,7 @@ type gameEntry struct {
 	Hidden    bool   `json:"hidden,omitempty"`
 	Uninst    bool   `json:"uninst,omitempty"` // si può disinstallare da Tasso
 	uninstKey string // voce di "Programmi installati" (per disinstallare)
+	private   bool   // trovato in Desktop/Download o aggiunto a mano: il nome non va mandato a Steam
 	launch    string // indirizzo steam:// o com.epicgames.launcher://
 	exe       string // programma da avviare (Riot)
 	exeArgs   string
@@ -247,7 +249,7 @@ var scanLibMu sync.Mutex
 
 func scanLibrary() {
 	scanLibMu.Lock()
-	defer scanLibMu.Unlock()
+	deadline := time.Now().Add(12 * time.Second)
 	un := readUninstall()
 	all := append(append(scanSteam(), scanEpic()...), scanRiot()...)
 	all = append(all, scanGOG(un)...)
@@ -267,7 +269,10 @@ func scanLibrary() {
 	for _, e := range un {
 		store, launch := storeFromUninstall(e)
 		loc := strings.TrimRight(filepath.Clean(e.loc), `\`)
-		if e.loc == "" || !dirExists(loc) || known[strings.ToLower(loc)] || insideKnown(strings.ToLower(loc), known) || notGameNameRe.MatchString(e.name) {
+		if time.Now().After(deadline) {
+			break
+		}
+		if e.loc == "" || len(loc) <= 3 || isBroadDir(loc) || !dirExists(loc) || known[strings.ToLower(loc)] || insideKnown(strings.ToLower(loc), known) || notGameNameRe.MatchString(e.name) {
 			continue
 		}
 		if strings.HasPrefix(strings.ToLower(e.key[strings.LastIndex(e.key, `\`)+1:]), "steam app ") || strings.HasPrefix(strings.ToLower(e.key[strings.LastIndex(e.key, `\`)+1:]), "uplay install ") {
@@ -293,7 +298,7 @@ func scanLibrary() {
 		all = append(all, g)
 		addKnown(loc)
 	}
-	all = append(all, scanFolders(known)...)
+	all = append(all, scanFolders(known, deadline)...)
 	custom := customGames()
 	for _, c := range custom {
 		dup := false
@@ -319,14 +324,20 @@ func scanLibrary() {
 			}
 		}
 	}
-	setMu.Lock()
-	hidden := map[string]bool{}
-	for _, h := range settings.HiddenGames {
-		hidden[h] = true
+	// niente doppioni (stesso gioco trovato due volte)
+	uniq := all[:0]
+	ids := map[string]bool{}
+	for _, g := range all {
+		if !ids[g.ID] {
+			ids[g.ID] = true
+			uniq = append(uniq, g)
+		}
 	}
-	setMu.Unlock()
+	all = uniq
 	for i := range all {
-		all[i].Hidden = hidden[all[i].ID]
+		if isBroadDir(all[i].dir) {
+			all[i].dir = ""
+		}
 		switch all[i].Store {
 		case "Steam", "Riot", "Epic", "Xbox":
 			all[i].Uninst = true
@@ -335,20 +346,45 @@ func scanLibrary() {
 		}
 	}
 	sort.Slice(all, func(i, j int) bool { return strings.ToLower(all[i].Name) < strings.ToLower(all[j].Name) })
-	publish := func() {
-		libMu.Lock()
-		library = map[string]gameEntry{}
-		for _, g := range all {
-			library[g.ID] = g
+	gen := libGen.Add(1)
+	publishLibrary(all)
+	scanLibMu.Unlock()
+	// poi le copertine che mancano, da Steam (se c'è internet), senza tenere ferma la libreria
+	if fillCovers(all) && libGen.Load() == gen {
+		publishLibrary(all)
+	}
+}
+
+var libGen atomic.Int64
+
+// publishLibrary: manda la libreria alla finestra, rileggendo ogni volta nascosti e giochi aggiunti a mano
+// (così un gioco nascosto mentre arrivavano le copertine non ricompare).
+func publishLibrary(all []gameEntry) {
+	setMu.Lock()
+	hidden := map[string]bool{}
+	for _, h := range settings.HiddenGames {
+		hidden[h] = true
+	}
+	man := map[string]bool{}
+	for _, c := range settings.CustomGames {
+		man["man:"+shortHash(c.Exe)] = true
+	}
+	setMu.Unlock()
+	out := make([]gameEntry, 0, len(all))
+	for _, g := range all {
+		if strings.HasPrefix(g.ID, "man:") && !man[g.ID] {
+			continue
 		}
-		libMu.Unlock()
-		emit("onLibrary", all)
+		g.Hidden = hidden[g.ID]
+		out = append(out, g)
 	}
-	publish()
-	// poi le copertine che mancano, da Steam (se c'è internet)
-	if fillCovers(all) {
-		publish()
+	libMu.Lock()
+	library = map[string]gameEntry{}
+	for _, g := range out {
+		library[g.ID] = g
 	}
+	libMu.Unlock()
+	emitRaw("onLibrary", out)
 }
 
 // launchGame avvia solo un gioco trovato dalla scansione (niente indirizzi arbitrari dalla pagina).
@@ -373,7 +409,8 @@ func launchGame(id string) string {
 }
 
 // uninstallGame (3.1): disinstalla un gioco della libreria con il programma ufficiale del suo launcher,
-// che chiede sempre conferma. Niente disinstallatori presi dal registro: parte tutto come utente normale.
+// che chiede sempre conferma. Per gli altri negozi e i giochi installati a mano usa il loro disinstallatore
+// da "Programmi installati": quelli dell'utente (HKCU) partono come utente normale.
 // Risposta: "ok:<messaggio>" se è partito, altrimenti il messaggio d'errore.
 func uninstallGame(id string) string {
 	libMu.Lock()
@@ -407,6 +444,13 @@ func uninstallGame(id string) string {
 		return "ok:Si apre Epic Games. Nella Libreria clicca i tre puntini (…) sotto il gioco e scegli Disinstalla."
 	}
 	if g.uninstKey != "" && uninstallKeyRe.MatchString(g.uninstKey) {
+		// Voci dell'utente (HKCU): il disinstallatore parte come utente normale, mai da amministratore.
+		if strings.HasPrefix(strings.ToUpper(g.uninstKey), `HKEY_CURRENT_USER\`) {
+			if exe, args := userUninstallCmd(g.uninstKey); exe != "" && openUser(exe, args) {
+				return "ok:Si apre il programma di disinstallazione del gioco: segui le sue finestre."
+			}
+			return "Non riesco ad aprire il programma di disinstallazione del gioco."
+		}
 		if async("uninstall", func() { uninstallProgram(g.uninstKey) }) == "busy" {
 			return "Aspetta che finisca la disinstallazione in corso."
 		}

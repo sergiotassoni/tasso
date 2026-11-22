@@ -267,6 +267,19 @@ func emit(name string, payload interface{}) {
 	wv.Dispatch(func() { wv.Eval(js) })
 }
 
+// emitRaw: come emit ma senza traduzione (nomi di giochi e programmi non vanno tradotti).
+func emitRaw(name string, payload interface{}) {
+	if wv == nil {
+		return
+	}
+	b, err := json.Marshal(payload)
+	if err != nil {
+		return
+	}
+	js := "window.tasso && window.tasso." + name + " && window.tasso." + name + "(" + string(b) + ");"
+	wv.Dispatch(func() { wv.Eval(js) })
+}
+
 func bringToFront() bool {
 	// Cerco la finestra di Tasso per classe ("webview") e titolo, così non confondo
 	// la finestra di Esplora file della cartella "Tasso".

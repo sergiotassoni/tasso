@@ -369,6 +369,7 @@ details.navmore[open]{display:flex;flex-direction:column;gap:2px}
 .gph b{font-size:15px;line-height:1.25;color:#fff;font-weight:700;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
 .gph .pic{flex:none;width:64px;height:64px;margin:0;font-size:28px;border-radius:16px}.cover .gph .pic img{position:static;width:48px;height:48px;object-fit:contain}
 .gph .gini{font-size:34px;color:#fff;opacity:.9}
+@media (max-width:560px){#libGrid{grid-template-columns:repeat(auto-fill,minmax(130px,1fr))!important}}
 </style>
 </head>
 <body>
@@ -722,6 +723,7 @@ details.navmore[open]{display:flex;flex-direction:column;gap:2px}
     <div class="row wrap" style="justify-content:space-between"><div><h2>🕹️ La tua libreria</h2><p class="sub" style="margin:2px 0 0" id="libMsg">Tutti i tuoi giochi in un posto solo: Steam, Epic, GOG, EA, Ubisoft, Battle.net, Xbox, Riot e anche quelli installati a mano.</p></div><div class="row wrap" style="gap:8px"><input id="libSearch" type="search" placeholder="Cerca un gioco…" style="padding:9px 12px;border-radius:10px;border:1px solid var(--line);background:transparent;color:inherit;font:inherit;min-width:200px"><button class="btn ghost" id="btnAddGame">➕ Aggiungi un gioco</button><button class="btn ghost" id="btnLib">Aggiorna</button></div></div>
     <div class="grid" id="libGrid" style="grid-template-columns:repeat(auto-fill,minmax(150px,1fr))"></div>
     <p class="small muted" id="libHidden" style="margin:0;display:none"></p>
+    <p class="small muted" style="margin:0">Le copertine che mancano Tasso le cerca nel negozio di Steam, mandando solo il nome del gioco (mai quelli aggiunti a mano o presi da Desktop e Download).</p>
   </div>
 
 
@@ -2234,10 +2236,11 @@ function paintLib(){
   const vis = LIB.filter(g => !g.hidden);
   const nHid = LIB.length - vis.length;
   const hb = $('#libHidden'); hb.style.display = nHid ? '' : 'none';
-  hb.innerHTML = nHid ? esc(nHid + _t(' giochi nascosti.')) + ' <a href="#" id="lnkUnhide">' + _t('Mostrali di nuovo') + '</a>' : '';
-  if (nHid) $('#lnkUnhide').onclick = (e) => { e.preventDefault(); call('goUnhideGames'); $('#libMsg').textContent = _t('Cerco i giochi…'); };
+  hb.innerHTML = nHid ? esc(nHid === 1 ? _t('1 gioco nascosto.') : nHid + _t(' giochi nascosti.')) + ' <a href="#" id="lnkUnhide">' + _t('Mostrali di nuovo') + '</a>' : '';
+  if (nHid) $('#lnkUnhide').onclick = async (e) => { e.preventDefault(); if (e.target.dataset.busy) return; e.target.dataset.busy = 1; $('#libMsg').textContent = _t('Cerco i giochi…'); const r = await call('goUnhideGames'); if (r !== 'ok') { toast(_t('Non sono riuscito a salvare.'), 'var(--a4)'); paintLib(); } };
   const list = vis.filter(g => !q || g.name.toLowerCase().includes(q));
-  if (!vis.length) { box.innerHTML = _t('<span class="muted">Nessun gioco trovato. Se un gioco manca, premi "Aggiungi un gioco" e scegli il suo programma (.exe).</span>'); $('#libMsg').textContent = _t('Nessun gioco trovato.'); return; }
+  if (!vis.length) { box.innerHTML = nHid ? _t('<span class="muted">Hai nascosto tutti i giochi.</span>') : _t('<span class="muted">Nessun gioco trovato. Se un gioco manca, premi "Aggiungi un gioco" e scegli il suo programma (.exe).</span>'); $('#libMsg').textContent = nHid ? '' : _t('Nessun gioco trovato.'); return; }
+  if (!list.length) box.innerHTML = _t('<span class="muted">Nessun gioco con questo nome. Se manca, premi "Aggiungi un gioco" (o guarda tra i giochi nascosti).</span>');
   const icons = {};
   list.forEach(g => {
     const ini = esc(g.name.replace(/[^A-Za-z0-9 ]/g, '').split(' ').filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase() || '?');
@@ -2249,7 +2252,12 @@ function paintLib(){
     c.querySelector('.gmore').onclick = () => gameOptions(g);
     if (g.img) {
       const im = document.createElement('img'); im.alt = ''; im.loading = 'lazy'; im.className = (g.store === 'Riot' || g.store === 'Xbox') ? 'ico' : '';
-      im.onerror = () => { if (g.img2 && im.src !== g.img2) im.src = g.img2; else { im.remove(); if (g.icon) { const cv = c.querySelector('.cover'); cv.innerHTML = '<div class="gph" style="--h:' + hue + '">' + picHTML('g:' + g.id, g.name) + '<b>' + esc(g.name) + '</b></div>'; askIcons({['g:' + g.id]: [g.icon]}); } } };
+      im.onerror = () => {
+        if (g.img2 && !im.dataset.alt) { im.dataset.alt = 1; im.src = g.img2; return; }
+        im.remove();
+        const cv = c.querySelector('.cover'); cv.innerHTML = '<div class="gph" style="--h:' + hue + '">' + (g.icon ? picHTML('g:' + g.id, g.name) : '<span class="gini">' + ini + '</span>') + '<b>' + esc(g.name) + '</b></div>';
+        if (g.icon) askIcons({['g:' + g.id]: [g.icon]});
+      };
       im.onload = () => { if (im.naturalWidth > im.naturalHeight * 1.2) im.className = 'wide'; };
       im.src = g.img; const cv = c.querySelector('.cover'); if (cv) cv.appendChild(im);
     }
@@ -2260,7 +2268,7 @@ function paintLib(){
   });
   askIcons(icons);
   const stores = [...new Set(vis.map(g => storeName(g.store)))];
-  $('#libMsg').textContent = vis.length + _t(' giochi trovati') + ' (' + stores.join(', ') + ').';
+  $('#libMsg').textContent = (vis.length === 1 ? _t('1 gioco trovato') : vis.length + _t(' giochi trovati')) + ' (' + stores.join(', ') + ').';
 }
 $('#btnAddGame').onclick = async () => {
   const r = await call('goAddGame');
@@ -2272,7 +2280,7 @@ function gameOptions(g){
   const man = String(g.id).indexOf('man:') === 0;
   const btns = [{label:_t('Chiudi')}, {label: man ? _t('Togli dalla libreria') : _t('🙈 Nascondi'), fn: async () => {
     const r = await call('goHideGame', g.id, true);
-    if (r === 'ok') { g.hidden = true; if (man) LIB = LIB.filter(x => x.id !== g.id); paintLib(); toast(man ? _t('Tolto dalla libreria.') : _t('Nascosto. Lo rivedi con "Mostrali di nuovo" sotto la libreria.'), 'var(--a3)'); }
+    if (r === 'ok') { LIB.forEach(x => { if (x.id === g.id) x.hidden = true; }); if (man) LIB = LIB.filter(x => x.id !== g.id); paintLib(); toast(man ? _t('Tolto dalla libreria.') : _t('Nascosto. Lo rivedi con "Mostrali di nuovo" sotto la libreria.'), 'var(--a3)'); }
     else toast(r || _t('Non sono riuscito a salvare.'), 'var(--a4)');
   }}];
   if (g.uninst) btns.push({label:_t('🗑️ Disinstalla'), cls:'danger', fn: () => { confirmGameUninstall(g); return 'keep'; }});
