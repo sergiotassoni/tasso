@@ -1225,8 +1225,10 @@
   " scarica la lingua nella procedura a passi del gioco.": " download the language in the game's step-by-step setup.",
   " · lingua delle scritte: ": " · text language: ",
   ". Per tradurle scarica la lingua nella procedura a passi del gioco.": ". To translate it download the language in the game's step-by-step setup.",
-  "Chat degli altri accesa: i messaggi nuovi compaiono in italiano accanto alla chat.": "Other players' chat on: new messages appear translated next to the chat.",
-  "Chat degli altri · ": "Other players' chat · "
+  "Chat degli altri accesa per ": "Other players' chat on for ",
+  ": i messaggi nuovi compaiono in italiano accanto alla chat.": ": new messages appear translated next to the chat.",
+  "Apri prima il gioco con la chat visibile, poi torna qui e premi di nuovo «Scegli dove sta la chat».": "First open the game with the chat visible, then come back here and press «Choose where the chat is» again.",
+  "Chat degli altri: Windows non riesce a leggere il testo della chat. Riprovo tra un minuto.": "Other players' chat: Windows can't read the chat text. I'll try again in a minute."
  },
  "ps": {
   "   non riuscita, prova a reinstallarla dal Microsoft Store.": "   failed, try reinstalling it from the Microsoft Store.",
@@ -4871,13 +4873,13 @@
   "Traduci i messaggi degli altri": "Translate other players' messages",
   "Scegli dove sta la chat": "Choose where the chat is",
   "Cambia zona": "Change area",
-  "Facoltativa. Disegni una volta il riquadro della chat del gioco: i messaggi nuovi degli altri compaiono in italiano accanto. Legge solo lo schermo.": "Optional. Draw the game chat box once: new messages from others appear translated next to it. It only reads the screen.",
   "Accesa: con la traduzione dello schermo attiva, i messaggi nuovi compaiono in italiano accanto alla chat.": "On: with screen translation active, new messages appear translated next to the chat.",
   "Spenta. La zona della chat è già scelta.": "Off. The chat area is already chosen.",
-  "Disegna con il mouse il riquadro della chat del gioco (Esc per annullare).": "Draw the game chat box with the mouse (Esc to cancel).",
   "Chat degli altri": "Other players' chat",
   "I messaggi degli altri giocatori in italiano, accanto alla chat.": "Other players' messages translated, next to the chat.",
   "Uso dei pezzi dal vivo e, quando Windows la dà, la temperatura. Sotto, i componenti del tuo PC.": "Live usage of each part and, when Windows provides it, the temperature. Below, your PC components.",
-  "Pannellino visibile.": "Overlay visible."
+  "Pannellino visibile.": "Overlay visible.",
+  "Apri il gioco con la chat visibile: Tasso va a icona e tra 3 secondi disegni il riquadro della chat (Esc per annullare).": "Open the game with the chat visible: Tasso minimizes and in 3 seconds you draw the chat box (Esc to cancel).",
+  "Facoltativa. Per ogni gioco disegni una volta il riquadro della chat: i messaggi nuovi degli altri compaiono in italiano accanto. Legge solo lo schermo.": "Optional. For each game, draw the chat box once: new messages from others appear translated next to it. It only reads the screen."
  }
 }

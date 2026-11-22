@@ -94,6 +94,47 @@ func (t *Traduttore) TraduciScritta(ctx context.Context, grezzo string) Risultat
 
 func (t *Traduttore) SalvaMemoria() { t.salvaCache(); t.salvaLibreria() }
 
+// TraduciMessaggio: un messaggio della chat degli altri giocatori (3.1). Niente contesto dei
+// dialoghi, niente libreria del gioco, niente memoria su disco, niente correzioni IA: i messaggi
+// dei giocatori non si salvano e non confondono le traduzioni dei dialoghi.
+func (t *Traduttore) TraduciMessaggio(ctx context.Context, grezzo string) Risultato {
+	inizio := time.Now()
+	testo := pulisci(grezzo)
+	if testo == "" {
+		return Risultato{}
+	}
+	parlante, battuta := separaParlante(testo)
+	battuta = strings.ReplaceAll(battuta, "\n", " ")
+	ris := Risultato{Originale: testo, Parlante: parlante}
+	if t.Coppia != nil {
+		if da, a := t.Coppia(); !(da == "en" && a == "it") {
+			r := t.traduciCoppia(ctx, battuta, da, a, inizio)
+			r.Originale, r.Parlante = testo, parlante
+			return r
+		}
+	}
+	t.mu.Lock()
+	motori := append([]Motore(nil), t.motori...)
+	req := RichiestaTraduzione{Testo: battuta, Parlante: parlante, Glossario: t.glossarioPieno.trova(battuta)}
+	t.mu.Unlock()
+	var errori []string
+	for _, m := range motori {
+		out, err := m.Traduci(ctx, req)
+		if err == nil && strings.TrimSpace(out) != "" {
+			ris.Tradotto, ris.Motore = strings.TrimSpace(out), m.Nome()
+			break
+		}
+		if err != nil {
+			errori = append(errori, m.Nome()+": "+err.Error())
+		}
+	}
+	ris.Millisec = time.Since(inizio).Milliseconds()
+	if ris.Tradotto == "" {
+		ris.Errore = strings.Join(errori, " · ")
+	}
+	return ris
+}
+
 func (t *Traduttore) traduci(ctx context.Context, grezzo string, dialogo bool) Risultato {
 	inizio := time.Now()
 	if t.Coppia != nil {

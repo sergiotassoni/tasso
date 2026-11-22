@@ -97,6 +97,7 @@ func suTastoChat() {
 		avvisoBreve("Chat: non riesco a scrivere negli appunti")
 		return
 	}
+	ricordaMioMessaggio(en)
 	avvisoBreve("Inglese pronto, premi Ctrl+V: " + en)
 	emetti("chat", map[string]string{"it": it, "en": en})
 }

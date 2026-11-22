@@ -76,6 +76,7 @@ type Impostazioni struct {
 // Profilo di un gioco: si carica da solo quando quel gioco è in primo piano.
 type Profilo struct {
 	Zona      Zona   `json:"zona"`
+	ZonaChat  Zona   `json:"zona_chat"` // 3.1: dove sta la chat degli altri in questo gioco
 	Posizione string `json:"posizione"`
 	DimFont   int    `json:"dim_font"`
 }
@@ -561,9 +562,9 @@ func collega(w webview2.WebView) {
 		return "ok"
 	})
 	_ = w.Bind("ttScegliZona", func() string { selPerChat.Store(false); ov.DimenticaGioco(); ov.ApriSelezione(); return "ok" })
-	_ = w.Bind("ttScegliZonaChat", func() string { scegliZonaChat(); return "ok" })
+	_ = w.Bind("ttScegliZonaChat", func() string { go scegliZonaChat(); return "ok" })
 	_ = w.Bind("ttImpostaChatAltri", func(on bool) string {
-		if on && !leggiImp().ZonaChat.Valida() {
+		if on && !zonaChatPresente(leggiImp()) {
 			return "zona" // prima va scelta la zona della chat
 		}
 		impostaChatAltri(on)
@@ -726,7 +727,7 @@ func stato() map[string]interface{} {
 		"posizione":       i.Posizione,
 		"tutto_auto":      i.TuttoAuto,
 		"chat_altri":      i.ChatAltri,
-		"zona_chat_ok":    i.ZonaChat.Valida(),
+		"zona_chat_ok":    zonaChatPresente(i),
 		"acceso":          acceso.Load(),
 		"tasti":           etichetteTasti(i.Tasti),
 		"motore":          i.Motore,
@@ -916,6 +917,7 @@ func suTasto(id int) {
 	}
 	switch id {
 	case tastoSeleziona:
+		selPerChat.Store(false) // F9 sceglie sempre la zona dei dialoghi
 		ov.RicordaGioco() // F9 premuto mentre giochi: quella è la finestra del gioco
 		ov.ApriSelezione()
 	case tastoTraduci:
@@ -1115,7 +1117,7 @@ func leggiETraduci(img *image.RGBA, impronta Impronta, forza bool) {
 	ov.Mostra(z, "…", pulito, "")
 	r := traduttore.Traduci(context.Background(), grezzo)
 	if r.Errore != "" {
-		ov.Mostra(z, "Non riesco a tradurre adesso.", pulito, r.Errore)
+		ov.Mostra(z, testoTasso("Non riesco a tradurre adesso.", "I can't translate right now."), pulito, r.Errore)
 		emetti("info", map[string]string{"testo": "Traduzione non riuscita: " + r.Errore})
 		return
 	}

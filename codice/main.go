@@ -150,6 +150,7 @@ func main() {
 	// in sottofondo e non legge lo schermo finché non accendi la traduzione.
 	traduce.Ospite.ApriComeUtente = openUser
 	traduce.Ospite.CartellaScript = scriptDir
+	traduce.InIngleseTasso = isEN
 	traduce.Prepara(w, filepath.Join(appDir, "WebView2"))
 	if !scheduledRun.Load() {
 		go func() {

@@ -81,7 +81,9 @@ func ricordaProfilo() {
 	if imp.Profili == nil {
 		imp.Profili = map[string]Profilo{}
 	}
-	imp.Profili[exe] = Profilo{Zona: imp.Zona, Posizione: imp.Posizione, DimFont: imp.DimFont}
+	pr := imp.Profili[exe] // tengo la zona della chat, se c'è
+	pr.Zona, pr.Posizione, pr.DimFont = imp.Zona, imp.Posizione, imp.DimFont
+	imp.Profili[exe] = pr
 	muImp.Unlock()
 	muProfilo.Lock()
 	profiloAttivo = exe

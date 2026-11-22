@@ -732,6 +732,9 @@ func chiudiSelezione(z *Zona) {
 	sel.hwnd = 0
 	pReleaseCapture.Call()
 	pDestroyWindow.Call(h)
+	if z == nil {
+		selPerChat.Store(false) // scelta annullata: la prossima zona torna a essere quella dei dialoghi
+	}
 	if z != nil && ov.selezione != nil {
 		zz := *z
 		go func() {
