@@ -988,7 +988,26 @@
   "). Hai ancora il driver ": "). You still have driver ",
   ". Se qualcosa non va, usa il punto di ripristino.": ". If something's wrong, use the restore point.",
   "Chiudi ": "Close ",
-  "Premi Aggiorna il driver: il Tasso scarica il driver ufficiale da NVIDIA, controlla la firma digitale, crea un punto di ripristino e lo installa.": "Press Update the driver: Tasso downloads the official driver from NVIDIA, checks the digital signature, creates a restore point and installs it."
+  "Premi Aggiorna il driver: il Tasso scarica il driver ufficiale da NVIDIA, controlla la firma digitale, crea un punto di ripristino e lo installa.": "Press Update the driver: Tasso downloads the official driver from NVIDIA, checks the digital signature, creates a restore point and installs it.",
+  "Non riesco a leggere la versione del driver NVIDIA (forse il driver NVIDIA non è installato: usa NVIDIA App o il sito NVIDIA).": "I can't read the NVIDIA driver version (maybe the NVIDIA driver isn't installed: use NVIDIA App or the NVIDIA site).",
+  "Non riesco a leggere la risposta di NVIDIA. Usa NVIDIA App per aggiornare.": "I can't read NVIDIA's answer. Use NVIDIA App to update.",
+  "Non riesco a salvare il file (forse l'antivirus lo blocca).": "I can't save the file (maybe the antivirus is blocking it).",
+  "Non riesco a salvare il file: forse il disco è pieno.": "I can't save the file: maybe the disk is full.",
+  "Windows aspetta un riavvio per finire un aggiornamento: riavvia il PC e poi aggiorna il driver.": "Windows is waiting for a restart to finish an update: restart the PC and then update the driver.",
+  "Windows sta installando degli aggiornamenti proprio adesso: riprova tra un po'.": "Windows is installing updates right now: try again in a while.",
+  "Sta girando una pulizia o un aggiornamento del Tasso: aspetta che finisca.": "A cleanup or a Tasso update is running: wait for it to finish.",
+  "Il driver di prima (": "The previous driver (",
+  ") non si può riscaricare da NVIDIA. Per tornare indietro usa il punto di ripristino del ": ") can't be downloaded again from NVIDIA. To go back use the restore point from ",
+  "Il driver ": "Driver ",
+  " è già installato: riavvia il PC per finire.": " is already installed: restart the PC to finish.",
+  "Download annullato: il driver non è cambiato.": "Download cancelled: the driver didn't change.",
+  "Annullato: il driver non è cambiato.": "Cancelled: the driver didn't change.",
+  " Uso il punto di ripristino creato poco fa.": " I'm using the restore point created a little while ago.",
+  ". Lo schermo può diventare nero per qualche secondo: è normale. Non spegnere e non riavviare il PC.": ". The screen may go black for a few seconds: that's normal. Don't turn off or restart the PC.",
+  "Installazione finita, ma Windows mostra ancora il driver di prima. Riavvia il PC: poi controllo di nuovo.": "Install finished, but Windows still shows the previous driver. Restart the PC: then I'll check again.",
+  ").": ").",
+  " Hai ancora il driver ": " You still have driver ",
+  " Se qualcosa non va, usa il punto di ripristino.": " If something's wrong, use the restore point."
  },
  "ps": {
   "   non riuscita, prova a reinstallarla dal Microsoft Store.": "   failed, try reinstalling it from the Microsoft Store.",
@@ -3926,6 +3945,16 @@
   "Uscito il ": "Released on ",
   "✓ Hai già il driver più nuovo di NVIDIA.": "✓ You already have NVIDIA's newest driver.",
   "🎮 Driver della scheda video": "🎮 Graphics card driver",
-  "Aggiorna il driver": "Update the driver"
+  "Aggiorna il driver": "Update the driver",
+  "Sto annullando…": "Cancelling…",
+  "Continua in background": "Continue in the background",
+  "Aggiorna con Tasso": "Update with Tasso",
+  "Il driver ": "Driver ",
+  " è installato ma serve un riavvio per finire. Riavvia il PC quando puoi.": " is installed but a restart is needed to finish. Restart the PC when you can.",
+  "Non è un'installazione pulita: di solito le impostazioni NVIDIA restano.": "It's not a clean install: NVIDIA settings usually stay.",
+  ". Quella versione non si può riscaricare da NVIDIA: per tornare indietro usa il punto di ripristino.": ". That version can't be downloaded again from NVIDIA: to go back use the restore point.",
+  "Un attimo, il Tasso sta finendo un'altra cosa.": "One moment, Tasso is finishing something else.",
+  "Non riesco ad avviare l'aggiornamento: riprova.": "I can't start the update: try again.",
+  "Senza punto di ripristino, se il driver nuovo dà problemi dovrai reinstallare quello vecchio dal sito NVIDIA.": "Without a restore point, if the new driver gives problems you'll have to reinstall the old one from NVIDIA's site."
  }
 }

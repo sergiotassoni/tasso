@@ -39,6 +39,8 @@ type nvGpu struct {
 	WinVer string `json:"winVer"` // versione Windows, es. 32.0.15.6124
 	Ver    string `json:"ver"`    // versione NVIDIA, es. 561.24
 	Laptop bool   `json:"laptop"`
+	reboot bool   // Windows aspetta un riavvio
+	wu     bool   // Windows Update sta installando qualcosa
 }
 
 type nvOffer struct {
@@ -55,6 +57,7 @@ type gpuDrvState struct {
 	PrevURL string `json:"prevURL"`
 	NewVer  string `json:"newVer"`
 	When    string `json:"when"`
+	Reboot  bool   `json:"reboot"` // installato ma Windows aspetta un riavvio
 }
 
 var (
@@ -65,16 +68,18 @@ var (
 )
 
 var (
-	nvDevRe  = regexp.MustCompile(`(?i)VEN_10DE&DEV_([0-9A-F]{4})`)
-	nvVerRe  = regexp.MustCompile(`^\d{3}\.\d{2}$`)
-	nvSubjRe = regexp.MustCompile(`(^|,\s*)O="?NVIDIA Corporation"?(,|$)`)
-	nvCNRe   = regexp.MustCompile(`(^|,\s*)CN="?NVIDIA Corporation"?(,|$)`)
+	nvDevRe = regexp.MustCompile(`(?i)VEN_10DE&DEV_([0-9A-F]{4})`)
+	nvVerRe = regexp.MustCompile(`^\d{3}\.\d{2}$`)
 )
 
 // nvVersion trasforma la versione di Windows (32.0.15.6124) in quella NVIDIA (561.24).
 func nvVersion(win string) string {
 	p := strings.Split(strings.TrimSpace(win), ".")
 	if len(p) != 4 {
+		return ""
+	}
+	// Il driver "Scheda video di base Microsoft" ha versioni tipo 10.0.19041.1: non è NVIDIA.
+	if maj, err := strconv.Atoi(p[0]); err != nil || maj < 20 {
 		return ""
 	}
 	d := p[2] + p[3]
@@ -158,7 +163,7 @@ func nvParseOffer(b []byte) *nvOffer {
 				if dn, err := url.QueryUnescape(o.Name); err == nil {
 					o.Name = dn
 				}
-				if nvVerRe.MatchString(o.Ver) && nvURLOk(o.URL) {
+				if nvVerRe.MatchString(o.Ver) && nvURLOk(o.URL) && strings.Contains(o.URL, "/"+o.Ver+"/"+o.Ver+"-") {
 					found = o
 				}
 				return
@@ -180,7 +185,9 @@ const nvGpuScript = `
 $g = @(Get-CimInstance Win32_VideoController -ErrorAction SilentlyContinue | Where-Object { [string]$_.PNPDeviceID -match 'VEN_10DE' } | Select-Object -First 1)
 $lap = $false
 try { $lap = [bool](@(Get-CimInstance Win32_SystemEnclosure -ErrorAction Stop).ChassisTypes | Where-Object { $_ -in 8,9,10,11,12,14,18,21,30,31,32 }) } catch {}
-if ($g.Count) { [Console]::Out.WriteLine('JSON ' + (ConvertTo-Json -Compress -InputObject ([ordered]@{ name = [string]$g[0].Name; pnp = [string]$g[0].PNPDeviceID; ver = [string]$g[0].DriverVersion; laptop = $lap }))) }
+$rb = (Test-Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\RebootPending') -or (Test-Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\RebootRequired')
+$wu = [bool](Get-Process -Name TiWorker, TrustedInstaller -ErrorAction SilentlyContinue)
+if ($g.Count) { [Console]::Out.WriteLine('JSON ' + (ConvertTo-Json -Compress -InputObject ([ordered]@{ name = [string]$g[0].Name; pnp = [string]$g[0].PNPDeviceID; ver = [string]$g[0].DriverVersion; laptop = $lap; reboot = $rb; wu = $wu }))) }
 else { [Console]::Out.WriteLine('JSON {}') }
 `
 
@@ -191,6 +198,8 @@ func nvDetect() (*nvGpu, error) {
 		PNP    string `json:"pnp"`
 		Ver    string `json:"ver"`
 		Laptop bool   `json:"laptop"`
+		Reboot bool   `json:"reboot"`
+		WU     bool   `json:"wu"`
 	}
 	if r.JSON == "" || json.Unmarshal([]byte(r.JSON), &raw) != nil {
 		return nil, errors.New("Non riesco a leggere la scheda video.")
@@ -199,15 +208,16 @@ func nvDetect() (*nvGpu, error) {
 	if m == nil {
 		return nil, errors.New("Non ho trovato una scheda video NVIDIA.")
 	}
-	g := &nvGpu{Name: strings.TrimSpace(raw.Name), DevID: strings.ToUpper(m[1]), WinVer: raw.Ver, Ver: nvVersion(raw.Ver), Laptop: raw.Laptop}
+	g := &nvGpu{Name: strings.TrimSpace(raw.Name), DevID: strings.ToUpper(m[1]), WinVer: raw.Ver, Ver: nvVersion(raw.Ver), Laptop: raw.Laptop, reboot: raw.Reboot, wu: raw.WU}
 	if g.Ver == "" {
-		return nil, errors.New("Non riesco a leggere la versione del driver NVIDIA.")
+		return nil, errors.New("Non riesco a leggere la versione del driver NVIDIA (forse il driver NVIDIA non è installato: usa NVIDIA App o il sito NVIDIA).")
 	}
 	return g, nil
 }
 
 func nvHTTP(timeout time.Duration) *http.Client {
-	return &http.Client{Timeout: timeout, Transport: &http.Transport{Proxy: http.ProxyFromEnvironment},
+	// Niente proxy preso dalle variabili d'ambiente dell'utente: le può cambiare chiunque.
+	return &http.Client{Timeout: timeout, Transport: &http.Transport{Proxy: nil, ResponseHeaderTimeout: 30 * time.Second, TLSHandshakeTimeout: 20 * time.Second},
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
 			if len(via) > 3 || req.URL.Scheme != "https" || !strings.HasSuffix(strings.ToLower(req.URL.Hostname()), ".nvidia.com") {
 				return errors.New("redirect non sicuro")
@@ -239,7 +249,7 @@ func nvLookup(g *nvGpu) (*nvOffer, error) {
 	}
 	o := nvParseOffer(body)
 	if o == nil {
-		return nil, errors.New("NVIDIA non ha un driver per questa scheda (o ha risposto in modo strano). Usa NVIDIA App.")
+		return nil, errors.New("Non riesco a leggere la risposta di NVIDIA. Usa NVIDIA App per aggiornare.")
 	}
 	return o, nil
 }
@@ -262,7 +272,7 @@ func loadGpuDrvState() gpuDrvState {
 	if err != nil || len(b) > 4096 || json.Unmarshal(b, &s) != nil {
 		return gpuDrvState{}
 	}
-	if !nvVerRe.MatchString(s.PrevVer) || !nvURLOk(s.PrevURL) {
+	if !nvVerRe.MatchString(s.PrevVer) || !nvVerRe.MatchString(s.NewVer) || (s.PrevURL != "" && !nvURLOk(s.PrevURL)) {
 		return gpuDrvState{}
 	}
 	return s
@@ -294,7 +304,15 @@ func gpuDrvCheck() {
 	}
 	o, err := nvLookup(g)
 	st := loadGpuDrvState()
-	out := map[string]interface{}{"gpu": g, "canUndo": st.PrevVer != "" && st.NewVer == g.Ver, "prevVer": st.PrevVer}
+	if st.Reboot && st.NewVer == g.Ver {
+		st.Reboot = false
+		saveGpuDrvState(st)
+	}
+	out := map[string]interface{}{"gpu": g, "canUndo": st.PrevVer != "" && st.NewVer == g.Ver, "prevVer": st.PrevVer,
+		"undoURL": st.PrevURL != "", "rebootFor": ""}
+	if st.Reboot && st.NewVer != g.Ver {
+		out["rebootFor"] = st.NewVer // installato, manca il riavvio: non lo riproporre
+	}
 	if err != nil {
 		out["error"] = err.Error()
 	} else {
@@ -342,12 +360,14 @@ func gdDownload(ctx context.Context, u, ver string) (string, error) {
 			_ = os.Remove(f)
 		}
 	}
+	// Se per 60 secondi non arriva niente, il download si ferma (invece di restare appeso).
+	ctx, stop := context.WithCancel(ctx)
+	defer stop()
+	idle := time.AfterFunc(60*time.Second, stop)
+	defer idle.Stop()
 	req, _ := http.NewRequestWithContext(ctx, "GET", u, nil)
 	resp, err := nvHTTP(0).Do(req)
 	if err != nil {
-		if ctx.Err() != nil {
-			return "", context.Canceled
-		}
 		return "", errors.New("Download non riuscito: controlla internet e riprova.")
 	}
 	defer resp.Body.Close()
@@ -371,18 +391,19 @@ func gdDownload(ctx context.Context, u, ver string) (string, error) {
 	tmp := filepath.Join(dir, "nvidia-"+ver+".exe.part")
 	f, err := os.OpenFile(tmp, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0o644)
 	if err != nil {
-		return "", err
+		return "", errors.New("Non riesco a salvare il file (forse l'antivirus lo blocca).")
 	}
 	buf := make([]byte, 256*1024)
 	var done int64
 	last := time.Time{}
 	for {
 		n, rerr := resp.Body.Read(buf)
+		idle.Reset(60 * time.Second)
 		if n > 0 {
 			if _, werr := f.Write(buf[:n]); werr != nil {
 				f.Close()
 				os.Remove(tmp)
-				return "", werr
+				return "", errors.New("Non riesco a salvare il file: forse il disco è pieno.")
 			}
 			done += int64(n)
 			if done > gpuDrvMax {
@@ -405,15 +426,12 @@ func gdDownload(ctx context.Context, u, ver string) (string, error) {
 		if rerr != nil {
 			f.Close()
 			os.Remove(tmp)
-			if ctx.Err() != nil {
-				return "", context.Canceled
-			}
 			return "", errors.New("Download interrotto: controlla internet e riprova.")
 		}
 	}
 	if err := f.Close(); err != nil {
 		os.Remove(tmp)
-		return "", err
+		return "", errors.New("Non riesco a salvare il file: forse il disco è pieno.")
 	}
 	if total > 0 && done != total {
 		os.Remove(tmp)
@@ -421,21 +439,59 @@ func gdDownload(ctx context.Context, u, ver string) (string, error) {
 	}
 	if err := os.Rename(tmp, p); err != nil {
 		os.Remove(tmp)
-		return "", err
+		return "", errors.New("Non riesco a salvare il file (forse l'antivirus lo blocca).")
 	}
 	return p, nil
 }
 
 const nvSigScript = `
 $s = Get-AuthenticodeSignature -LiteralPath ([string]$A.p) -ErrorAction SilentlyContinue
-$o = [ordered]@{ status = 'Error'; subject = '' }
-if ($s) { $o.status = [string]$s.Status; if ($s.SignerCertificate) { $o.subject = [string]$s.SignerCertificate.Subject } }
+$o = [ordered]@{ status = 'Error'; rdn = @(); machineRoot = $false }
+if ($s) {
+  $o.status = [string]$s.Status
+  $c = $s.SignerCertificate
+  if ($c) {
+    # Un pezzo del nome per riga (le virgole dentro le virgolette non contano): niente trucchi col nome.
+    $o.rdn = @(($c.SubjectName.Decode([Security.Cryptography.X509Certificates.X500DistinguishedNameFlags]::UseNewLines)) -split "\r?\n" | Where-Object { $_ })
+    # La radice della catena deve essere tra quelle del computer, non una aggiunta dall'utente.
+    $ch = New-Object Security.Cryptography.X509Certificates.X509Chain
+    $ch.ChainPolicy.RevocationMode = 'NoCheck'
+    [void]$ch.Build($c)
+    if ($ch.ChainElements.Count -gt 0) {
+      $root = $ch.ChainElements[$ch.ChainElements.Count - 1].Certificate
+      $o.machineRoot = Test-Path -LiteralPath ('Cert:\LocalMachine\Root\' + $root.Thumbprint)
+    }
+  }
+}
 [Console]::Out.WriteLine('JSON ' + (ConvertTo-Json -InputObject $o -Compress))
 `
 
-// nvSigOk: firma valida e di NVIDIA Corporation (separata per le prove).
-func nvSigOk(s sigInfo) bool {
-	return s.Status == "Valid" && nvSubjRe.MatchString(s.Subject) && nvCNRe.MatchString(s.Subject)
+type nvSig struct {
+	Status      string   `json:"status"`
+	RDN         []string `json:"rdn"`
+	MachineRoot bool     `json:"machineRoot"`
+}
+
+// nvSigOk: firma valida, nome esatto "NVIDIA Corporation" (CN e O), radice del computer.
+func nvSigOk(s nvSig) bool {
+	if s.Status != "Valid" || !s.MachineRoot {
+		return false
+	}
+	cn, o := false, false
+	for _, r := range s.RDN {
+		switch strings.TrimSpace(r) {
+		case "CN=NVIDIA Corporation", `CN="NVIDIA Corporation"`:
+			cn = true
+		case "O=NVIDIA Corporation", `O="NVIDIA Corporation"`:
+			o = true
+		default:
+			k := strings.SplitN(strings.TrimSpace(r), "=", 2)[0]
+			if k == "CN" || k == "O" {
+				return false // un secondo CN/O diverso: non mi fido
+			}
+		}
+	}
+	return cn && o
 }
 
 // gdLockVerify blocca il file (solo lettura per gli altri) e controlla la firma.
@@ -447,7 +503,7 @@ func gdLockVerify(p string) (windows.Handle, error) {
 		return 0, errors.New("Non riesco ad aprire il file scaricato.")
 	}
 	r := runPSArgs(nvSigScript, map[string]string{"p": p}, 3*time.Minute, nil)
-	var s sigInfo
+	var s nvSig
 	if r.JSON == "" || json.Unmarshal([]byte(r.JSON), &s) != nil || !nvSigOk(s) {
 		windows.CloseHandle(h)
 		_ = os.Remove(p)
@@ -465,24 +521,35 @@ $before = @(Get-ComputerRestorePoint).Count
 try { Checkpoint-Computer -Description ('Tasso - prima del driver NVIDIA ' + [string]$A.v) -RestorePointType DEVICE_DRIVER_INSTALL -ErrorAction Stop } catch {}
 $after = @(Get-ComputerRestorePoint).Count
 if ($null -ne $oldFreq) { New-ItemProperty -Path $key -Name 'SystemRestorePointCreationFrequency' -Value ([int]$oldFreq) -PropertyType DWord -Force | Out-Null } else { Remove-ItemProperty -Path $key -Name 'SystemRestorePointCreationFrequency' -ErrorAction SilentlyContinue }
-$ok = $after -gt $before
-if (-not $ok -and $after -gt 0) {
+$res = 'none'
+if ($after -gt $before) { $res = 'new' }
+elseif ($after -gt 0) {
   $last = @(Get-ComputerRestorePoint | Sort-Object SequenceNumber)[-1]
-  try { $when = [Management.ManagementDateTimeConverter]::ToDateTime([string]$last.CreationTime); if ($when -gt (Get-Date).AddHours(-24)) { $ok = $true } } catch {}
+  try { $when = [Management.ManagementDateTimeConverter]::ToDateTime([string]$last.CreationTime); if ($when -gt (Get-Date).AddHours(-2)) { $res = 'recent' } } catch {}
 }
-[Console]::Out.WriteLine('JSON ' + (ConvertTo-Json -Compress -InputObject ([ordered]@{ ok = $ok })))
+[Console]::Out.WriteLine('JSON ' + (ConvertTo-Json -Compress -InputObject ([ordered]@{ res = $res })))
 `
 
-func gdRestorePoint(ver string) bool {
+// gdRestorePoint: "new" (fatto adesso), "recent" (ce n'è uno di meno di 2 ore fa), "none".
+func gdRestorePoint(ver string) string {
 	r := runPSArgs(nvRestoreScript, map[string]string{"v": ver}, 10*time.Minute, nil)
 	var o struct {
-		OK bool `json:"ok"`
+		Res string `json:"res"`
 	}
-	return r.JSON != "" && json.Unmarshal([]byte(r.JSON), &o) == nil && o.OK
+	if r.JSON == "" || json.Unmarshal([]byte(r.JSON), &o) != nil {
+		return "none"
+	}
+	return o.Res
 }
 
 // gdBlocker: motivi per non installare adesso (anche per le prove).
-func gdBlocker(battery bool, game string) string {
+func gdBlocker(battery bool, game string, reboot, wu bool) string {
+	if reboot {
+		return "Windows aspetta un riavvio per finire un aggiornamento: riavvia il PC e poi aggiorna il driver."
+	}
+	if wu {
+		return "Windows sta installando degli aggiornamenti proprio adesso: riprova tra un po'."
+	}
 	if battery {
 		return "Sei a batteria: collega il caricatore, l'installazione non si deve interrompere."
 	}
@@ -496,17 +563,20 @@ func gdBlocker(battery bool, game string) string {
 // noBackup=true solo se l'utente ha scelto di continuare senza punto di ripristino.
 func gpuDrvInstall(undo, noBackup bool) {
 	fail := func(msg string) { gdEmit("error", msg, nil) }
-	if isRunning() {
-		fail("Sta girando una pulizia: aspetta che finisca.")
+	// Occupo il posto delle pulizie: nessuna pulizia (che tocca C:\NVIDIA e i driver vecchi)
+	// può partire mentre installo, e viceversa.
+	if !claimRun() {
+		fail("Sta girando una pulizia o un aggiornamento del Tasso: aspetta che finisca.")
 		return
 	}
-	if b := gdBlocker(onBattery(), safeName(runningGame())); b != "" {
-		fail(b)
-		return
-	}
+	defer releaseRun()
 	g, err := nvDetect()
 	if err != nil {
 		fail(err.Error())
+		return
+	}
+	if b := gdBlocker(onBattery(), safeName(runningGame()), g.reboot, g.wu); b != "" {
+		fail(b)
 		return
 	}
 	var ver, u string
@@ -516,6 +586,10 @@ func gpuDrvInstall(undo, noBackup bool) {
 			fail("Non c'è un driver di prima a cui tornare.")
 			return
 		}
+		if st.PrevURL == "" {
+			fail("Il driver di prima (" + st.PrevVer + ") non si può riscaricare da NVIDIA. Per tornare indietro usa il punto di ripristino del " + st.When + ".")
+			return
+		}
 		ver, u = st.PrevVer, st.PrevURL
 	} else {
 		gdMu.Lock()
@@ -523,6 +597,10 @@ func gpuDrvInstall(undo, noBackup bool) {
 		gdMu.Unlock()
 		if o == nil || !nvNewer(o.Ver, g.Ver) {
 			fail("Hai già il driver più nuovo.")
+			return
+		}
+		if st.Reboot && st.NewVer == o.Ver {
+			fail("Il driver " + o.Ver + " è già installato: riavvia il PC per finire.")
 			return
 		}
 		ver, u = o.Ver, o.URL
@@ -539,8 +617,8 @@ func gpuDrvInstall(undo, noBackup bool) {
 	}()
 	gdEmit("download", "", map[string]interface{}{"pct": 0, "from": g.Ver, "to": ver})
 	p, err := gdDownload(ctx, u, ver)
-	if errors.Is(err, context.Canceled) {
-		gdEmit("cancel", "Download annullato: non ho cambiato niente.", nil)
+	if ctx.Err() != nil {
+		gdEmit("cancel", "Download annullato: il driver non è cambiato.", nil)
 		return
 	}
 	if err != nil {
@@ -559,54 +637,73 @@ func gpuDrvInstall(undo, noBackup bool) {
 		}
 	}()
 	if ctx.Err() != nil {
-		gdEmit("cancel", "Annullato: non ho cambiato niente.", nil)
+		gdEmit("cancel", "Annullato: il driver non è cambiato.", nil)
 		return
 	}
+	backupMsg := ""
 	if !noBackup {
 		gdEmit("backup", "Creo il punto di ripristino…", nil)
-		if !gdRestorePoint(ver) {
-			gdEmit("nobackup", "Non sono riuscito a creare il punto di ripristino. Vuoi installare lo stesso?", map[string]interface{}{"undo": undo})
-			return
+		switch gdRestorePoint(ver) {
+		case "new":
+		case "recent":
+			backupMsg = " Uso il punto di ripristino creato poco fa."
+		default:
+			if ctx.Err() == nil {
+				gdEmit("nobackup", "Non sono riuscito a creare il punto di ripristino. Vuoi installare lo stesso?", map[string]interface{}{"undo": undo, "undoURL": !undo && nvPrevURL(u, ver, g.Ver) != ""})
+				return
+			}
 		}
 	}
+	if ctx.Err() != nil {
+		gdEmit("cancel", "Annullato: il driver non è cambiato.", nil)
+		return
+	}
 	// Controllo di nuovo poco prima di installare: nel frattempo può essere partito un gioco.
-	if b := gdBlocker(onBattery(), safeName(runningGame())); b != "" {
+	if b := gdBlocker(onBattery(), safeName(runningGame()), false, false); b != "" {
 		fail(b)
 		return
 	}
-	if ctx.Err() != nil {
-		gdEmit("cancel", "Annullato: non ho cambiato niente.", nil)
-		return
+	prevURL := ""
+	if !undo {
+		prevURL = nvPrevURL(u, ver, g.Ver)
+		if prevURL != "" && !nvExists(prevURL) {
+			prevURL = "" // la versione di prima non è più sul sito NVIDIA: resta il punto di ripristino
+		}
 	}
-	gdEmit("install", "Installo il driver "+ver+". Lo schermo può diventare nero per qualche secondo: è normale. Non spegnere il PC.", nil)
+	gdEmit("install", "Installo il driver "+ver+"."+backupMsg+" Lo schermo può diventare nero per qualche secondo: è normale. Non spegnere e non riavviare il PC.", nil)
+	// Salvo lo stato PRIMA di installare: se va via la corrente o chiudi il Tasso, al prossimo
+	// controllo so comunque com'era prima.
+	when := time.Now().Format("02/01/2006 15:04")
+	if undo {
+		saveGpuDrvState(gpuDrvState{PrevVer: st.NewVer, NewVer: ver, When: when})
+	} else {
+		saveGpuDrvState(gpuDrvState{PrevVer: g.Ver, PrevURL: prevURL, NewVer: ver, When: when})
+	}
 	// -s = senza finestre, -noreboot = non riavvia da solo, -noeula = niente schermata licenza.
-	// Le impostazioni del pannello NVIDIA restano (niente installazione pulita).
+	// Niente installazione pulita (-clean): di solito le impostazioni del pannello NVIDIA restano.
+	dir := filepath.Dir(p)
 	cmd := exec.Command(p, "-s", "-noreboot", "-noeula")
+	cmd.Dir = dir
 	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
 	if err := cmd.Start(); err != nil {
+		saveGpuDrvState(st)
 		fail("Non riesco ad avviare l'installazione NVIDIA.")
 		return
 	}
 	windows.CloseHandle(h)
 	h = 0
-	done := make(chan error, 1)
-	go func() { done <- cmd.Wait() }()
-	var werr error
-	select {
-	case werr = <-done:
-	case <-time.After(30 * time.Minute):
-		_ = cmd.Process.Kill()
-		fail("L'installazione NVIDIA non ha finito in 30 minuti. Riavvia il PC: se qualcosa non va usa il punto di ripristino.")
-		return
-	}
+	// Non lo fermo mai a metà: un driver interrotto è peggio di uno lento.
+	werr := cmd.Wait()
 	code := 0
 	if ee, ok := werr.(*exec.ExitError); ok {
 		code = ee.ExitCode()
 	}
-	// La prova vera: che versione c'è adesso?
+	// La prova vera: che versione c'è adesso? Il pacchetto a volte finisce prima dell'installazione
+	// vera, quindi aspetto fino a 15 minuti che Windows mostri la versione nuova.
 	var now string
-	for i := 0; i < 6; i++ {
-		time.Sleep(5 * time.Second)
+	deadline := time.Now().Add(15 * time.Minute)
+	for time.Now().Before(deadline) {
+		time.Sleep(10 * time.Second)
 		if g2, e := nvDetect(); e == nil {
 			now = g2.Ver
 			if now == ver {
@@ -614,26 +711,43 @@ func gpuDrvInstall(undo, noBackup bool) {
 			}
 		}
 	}
-	reboot := code == 1 || code == 3010
-	switch {
-	case now == ver:
-		if !undo {
-			saveGpuDrvState(gpuDrvState{PrevVer: g.Ver, PrevURL: nvPrevURL(u, ver, g.Ver), NewVer: ver, When: time.Now().Format("02/01/2006 15:04")})
-		} else {
+	_ = os.Remove(p)
+	if now == ver {
+		if undo {
 			saveGpuDrvState(gpuDrvState{})
 		}
-		_ = os.Remove(p)
-		gdEmit("done", "Fatto: driver NVIDIA "+ver+" installato.", map[string]interface{}{"reboot": reboot, "undo": undo})
-	case reboot:
-		if !undo {
-			saveGpuDrvState(gpuDrvState{PrevVer: g.Ver, PrevURL: nvPrevURL(u, ver, g.Ver), NewVer: ver, When: time.Now().Format("02/01/2006 15:04")})
-		}
-		_ = os.Remove(p)
-		gdEmit("done", "Driver "+ver+" installato: riavvia il PC per finire.", map[string]interface{}{"reboot": true, "undo": undo})
-	default:
-		_ = os.Remove(p)
-		fail(fmt.Sprintf("L'installazione NVIDIA non è andata (codice %d). Hai ancora il driver %s. Se qualcosa non va, usa il punto di ripristino.", code, now))
+		gdEmit("done", "Fatto: driver NVIDIA "+ver+" installato.", map[string]interface{}{"undo": undo})
+		return
 	}
+	if code == 0 || code == 1 || code == 3010 {
+		// Il programma NVIDIA dice che è andata, ma Windows mostra ancora la versione vecchia:
+		// di solito manca solo il riavvio.
+		cur := loadGpuDrvState()
+		cur.Reboot = true
+		saveGpuDrvState(cur)
+		gdEmit("done", "Installazione finita, ma Windows mostra ancora il driver di prima. Riavvia il PC: poi controllo di nuovo.", map[string]interface{}{"reboot": true, "undo": undo})
+		return
+	}
+	saveGpuDrvState(st) // non è cambiato niente: rimetto lo stato di prima
+	msg := fmt.Sprintf("L'installazione NVIDIA non è andata (codice %d).", code)
+	if now == g.Ver {
+		msg += " Hai ancora il driver " + now + "."
+	}
+	fail(msg + " Se qualcosa non va, usa il punto di ripristino.")
+}
+
+// nvExists: il file c'è ancora sul sito NVIDIA? (solo intestazioni, niente download)
+func nvExists(u string) bool {
+	if !nvURLOk(u) {
+		return false
+	}
+	req, _ := http.NewRequest("HEAD", u, nil)
+	resp, err := nvHTTP(20 * time.Second).Do(req)
+	if err != nil {
+		return false
+	}
+	resp.Body.Close()
+	return resp.StatusCode == 200 && nvURLOk(resp.Request.URL.String())
 }
 
 func gpuDrvCancel() {
