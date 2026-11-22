@@ -526,6 +526,12 @@ dl.sum{display:grid;grid-template-columns:max-content 1fr;gap:6px 14px;margin:0}
 .gspecs>.gspec{padding-left:12px;padding-right:12px}
 @media (max-width:1000px){.gspecs>.gspec:nth-child(3){padding-left:12px}}
 .gsh{font-size:11px!important;font-weight:700;letter-spacing:.08em;color:var(--a1)!important;margin-top:4px!important;text-transform:uppercase}
+.ovpos{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:6px}
+.ovpos .btn{min-height:34px;padding:6px 10px;font-size:12px}
+.ovprev{position:relative;height:86px;margin-top:6px;border-radius:10px;border:1px solid var(--line);background:linear-gradient(135deg,#1b2a3a,#2a1b2f 60%,#3a2a1b);overflow:hidden}
+.ovprev span{position:absolute;font:700 12px var(--mono,monospace);color:#f5f5fa;text-shadow:0 0 2px #000,0 0 2px #000;white-space:nowrap}
+.ovprev i{font-style:normal;color:#bea0ff}.ovprev em{font-style:normal;color:#78ffbe}.ovprev u{text-decoration:none;color:#aaafbe}
+.ovprev.sx span{top:6px;left:8px}.ovprev.dx span{top:6px;right:8px}.ovprev.sxb span{bottom:6px;left:8px}.ovprev.dxb span{bottom:6px;right:8px}
 </style>
 </head>
 <body>
@@ -971,9 +977,9 @@ dl.sum{display:grid;grid-template-columns:max-content 1fr;gap:6px 14px;margin:0}
     </div>
     <div class="card" style="flex:1 1 320px;display:flex;flex-direction:column;gap:12px">
       <h2>Pannellino in gioco</h2>
-      <p class="sub" style="margin:0">Una scritta piccola e trasparente in alto con <b>CPU</b>, <b>scheda video</b> (uso e temperatura) e <b>RAM</b>. Non si può cliccare e non disturba. Si vede nei giochi in finestra o "schermo intero senza bordi".</p>
+      <p class="sub" style="margin:0">Una scritta piccola e trasparente in un angolo dello schermo. Scegli tu cosa mostrare: <b>CPU</b>, <b>scheda video</b>, <b>temperature</b>, <b>RAM</b> e l'ora. Non si può cliccare e non disturba. Si vede nei giochi in finestra o "schermo intero senza bordi".</p>
       <button class="toggle" id="tgOverlay" style="padding:6px 0"><span><b>Mostralo da solo quando gioco</b><span>Appare quando apri un gioco e sparisce quando lo chiudi. Serve il "Boost automatico" acceso.</span></span><span class="sw"><i></i></span></button>
-      <div class="row wrap" style="gap:8px"><span class="small muted" style="align-self:center">Posizione:</span><button class="btn ghost" id="btnOvSx">In alto a sinistra</button><button class="btn ghost" id="btnOvDx">In alto a destra</button></div>
+      <div><b style="font-size:14px">Cosa mostrare</b><div class="row wrap" id="ovItems" style="gap:6px;margin-top:6px"></div></div><div><b style="font-size:14px">Dove</b><div class="ovpos" id="ovPos" role="group" aria-label="Posizione del pannellino"><button data-pos="sx" class="btn ghost">↖ In alto a sinistra</button><button data-pos="dx" class="btn ghost">↗ In alto a destra</button><button data-pos="sxb" class="btn ghost">↙ In basso a sinistra</button><button data-pos="dxb" class="btn ghost">↘ In basso a destra</button></div></div><div><b style="font-size:14px">Anteprima</b> <span class="small muted">(numeri di esempio)</span><div class="ovprev" id="ovPrev"><span id="ovPrevTxt"></span></div></div>
       <div class="row wrap" style="gap:8px"><button class="btn ghost" id="btnOvShow">Mostra ora</button><button class="btn ghost" id="btnOvHide">Nascondi</button></div>
       <span class="small muted">Durante il gioco: <b>Ctrl + Maiusc + F12</b> lo mostra o lo nasconde.<br><b>FPS</b>: Tasso non entra dentro i giochi (con gli anti-cheat si rischia il ban). Per gli FPS usa quelli ufficiali e sicuri: <b>Win + G</b> → Prestazioni (Windows) oppure <b>Alt + R</b> (NVIDIA). La temperatura del processore appare se Windows la fornisce, oppure se hai aperto LibreHardwareMonitor.</span>
     </div>
@@ -2831,16 +2837,33 @@ $('#btnBsGo').onclick = async () => {
   $('#btnBsGo').disabled = true; $('#bsMsg').textContent = _t('Preparo il PC…');
 };
 $('#btnBsEnd').onclick = async () => { const r = await call('goBoostEnd'); if (r === 'busy') return; $('#btnBsEnd').disabled = true; $('#bsMsg').textContent = _t('Rimetto tutto com\'era…'); };
+const OV_ALL = ['cpu', 'cputemp', 'gpu', 'gputemp', 'ram', 'ora'];
+const OV_ITEMS = [['cpu', _t('Processore (uso)')], ['cputemp', _t('Temperatura del processore')], ['gpu', _t('Scheda video (uso)')], ['gputemp', _t('Temperatura della scheda video')], ['ram', 'RAM'], ['ora', _t('Ora')]];
 function paintOverlay(){
   $('#tgOverlay').classList.toggle('on', !!S.overlayOn);
-  const pos = S.overlayPos === 'sx' ? 'sx' : 'dx';
-  $('#btnOvSx').classList.toggle('primary', pos === 'sx'); $('#btnOvSx').classList.toggle('ghost', pos !== 'sx');
-  $('#btnOvDx').classList.toggle('primary', pos === 'dx'); $('#btnOvDx').classList.toggle('ghost', pos !== 'dx');
+  const pos = ['sx', 'dx', 'sxb', 'dxb'].indexOf(S.overlayPos) >= 0 ? S.overlayPos : 'dx';
+  $$('#ovPos [data-pos]').forEach(b => { const on = b.dataset.pos === pos; b.classList.toggle('primary', on); b.classList.toggle('ghost', !on); b.setAttribute('aria-pressed', on ? 'true' : 'false'); });
+  const it = (S.overlayItems && S.overlayItems.length) ? S.overlayItems : OV_ALL;
+  $('#ovItems').innerHTML = OV_ITEMS.map(x => '<label class="check" style="font-size:13px"><input type="checkbox" data-ovi="' + x[0] + '"' + (it.indexOf(x[0]) >= 0 ? ' checked' : '') + '> ' + esc(x[1]) + '</label>').join('');
+  $$('#ovItems [data-ovi]').forEach(c => { c.onchange = saveOvItems; });
+  const pv = $('#ovPrev'); pv.className = 'ovprev ' + pos;
+  const seg = []; const has = k => it.indexOf(k) >= 0;
+  if (has('cpu') || has('cputemp')) seg.push('<i>CPU</i> ' + (has('cpu') ? '37%' : '') + (has('cputemp') ? ' <em>61°</em>' : ''));
+  if (has('gpu') || has('gputemp')) seg.push('<i>GPU</i> ' + (has('gpu') ? '92%' : '') + (has('gputemp') ? ' <em>68°</em>' : ''));
+  if (has('ram')) seg.push('<i>RAM</i> 54%');
+  if (has('ora')) seg.push('<u>21:30</u>');
+  $('#ovPrevTxt').innerHTML = seg.join('&nbsp;&nbsp;&nbsp;');
 }
 async function setOv(on, pos){ await call('goOverlaySet', on, pos); S.overlayOn = on; S.overlayPos = pos; paintOverlay(); }
 $('#tgOverlay').onclick = async () => { const on = !S.overlayOn; await setOv(on, S.overlayPos || 'dx'); toast(on ? (S.autoGame ? _t('Pannellino acceso: appare quando giochi.') : _t('Pannellino acceso. Accendi anche il Boost automatico nella pagina Giochi.')) : _t('Pannellino spento.')); };
-$('#btnOvSx').onclick = () => setOv(!!S.overlayOn, 'sx');
-$('#btnOvDx').onclick = () => setOv(!!S.overlayOn, 'dx');
+$$('#ovPos [data-pos]').forEach(b => { b.onclick = () => setOv(!!S.overlayOn, b.dataset.pos); });
+async function saveOvItems(){
+  const list = $$('#ovItems [data-ovi]').filter(c => c.checked).map(c => c.dataset.ovi);
+  if (!list.length) { toast(_t('Scegli almeno una cosa da mostrare.'), 'var(--a4)'); paintOverlay(); return; }
+  const r = await call('goOverlayItems', list);
+  if (r === 'ok') S.overlayItems = list; else toast(r || _t('Non sono riuscito a salvare.'), 'var(--a4)');
+  paintOverlay();
+}
 $('#btnOvShow').onclick = () => { call('goOverlayShow', true); toast(_t('Pannellino visibile in alto.')); };
 $('#btnOvHide').onclick = () => call('goOverlayShow', false);
 Object.assign(window.tasso, {

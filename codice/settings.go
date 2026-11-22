@@ -68,6 +68,8 @@ type Settings struct {
 	AcVK       uint32 `json:"acVK,omitempty"`
 	AcMods     uint32 `json:"acMods,omitempty"`
 	OverlayPos string `json:"overlayPos,omitempty"`
+	// 3.1: cosa mostra il pannellino (vuoto = tutto). Valori: cpu, cputemp, gpu, gputemp, ram, ora.
+	OverlayItems []string `json:"overlayItems,omitempty"`
 	// Snapshot: le impostazioni di Windows com'erano prima che Tasso le cambiasse la prima volta.
 	Snapshot    json.RawMessage `json:"snapshot,omitempty"`
 	SnapshotAt  string          `json:"snapshotAt,omitempty"`

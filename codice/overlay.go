@@ -225,12 +225,17 @@ func ovApply(hwnd uintptr) {
 		return
 	}
 	sw, _, _ := pGetSysMetrics.Call(0) // larghezza dello schermo principale
+	sh, _, _ := pGetSysMetrics.Call(1) // altezza
 	x := int32(sw) - ovW - 14
-	if pos == "sx" {
+	if ovLeft(pos) {
 		x = 14
 	}
-	pSetWindowPos.Call(hwnd, ^uintptr(0), uintptr(x), 8, ovW, ovH, 0x10|0x40) // NOACTIVATE|SHOWWINDOW
-	pShowWin.Call(hwnd, 4)                                                    // SW_SHOWNOACTIVATE
+	y := int32(8)
+	if ovBottom(pos) {
+		y = int32(sh) - ovH - 8
+	}
+	pSetWindowPos.Call(hwnd, ^uintptr(0), uintptr(x), uintptr(y), ovW, ovH, 0x10|0x40) // NOACTIVATE|SHOWWINDOW
+	pShowWin.Call(hwnd, 4)                                                             // SW_SHOWNOACTIVATE
 	pInvalidateRect.Call(hwnd, 0, 1)
 	ovTempStart.Do(func() { go cpuTempLoop() })
 }
@@ -254,35 +259,61 @@ func tempColor(t float64, warn, hot float64) uint32 {
 
 func ovSegments() []ovSeg {
 	ls := liveStats()
-	white := rgb(245, 245, 250)
+	white, lab := rgb(245, 245, 250), rgb(190, 160, 255)
+	on := ovItems()
 	var segs []ovSeg
-	cpu, _ := ls["cpu"].(float64)
-	segs = append(segs, ovSeg{"CPU ", rgb(190, 160, 255)}, ovSeg{fmt.Sprintf("%d%%", int(cpu+0.5)), white})
-	ovMu.Lock()
-	ct := ovCPUTemp
-	ovMu.Unlock()
-	if ct > 0 {
-		segs = append(segs, ovSeg{fmt.Sprintf(" %d°", int(ct+0.5)), tempColor(ct, 80, 90)})
-	}
-	if g, ok := ls["gpu"].(map[string]interface{}); ok && g != nil {
-		segs = append(segs, ovSeg{"    GPU ", rgb(190, 160, 255)})
-		if u, ok := g["util"].(float64); ok {
-			segs = append(segs, ovSeg{fmt.Sprintf("%d%%", int(u+0.5)), white})
-		}
-		if t, ok := g["temp"].(float64); ok {
-			segs = append(segs, ovSeg{fmt.Sprintf(" %d°", int(t+0.5)), tempColor(t, 78, 86)})
+	sep := func() {
+		if len(segs) > 0 {
+			segs = append(segs, ovSeg{"    ", white})
 		}
 	}
-	if tot, _ := ls["ramTotal"].(uint64); tot > 0 {
+	if on["cpu"] || on["cputemp"] {
+		ovMu.Lock()
+		ct := ovCPUTemp
+		ovMu.Unlock()
+		if on["cpu"] || ct > 0 {
+			sep()
+			segs = append(segs, ovSeg{"CPU ", lab})
+		}
+		if on["cpu"] {
+			cpu, _ := ls["cpu"].(float64)
+			segs = append(segs, ovSeg{fmt.Sprintf("%d%%", int(cpu+0.5)), white})
+		}
+		if on["cputemp"] && ct > 0 {
+			segs = append(segs, ovSeg{fmt.Sprintf(" %d°", int(ct+0.5)), tempColor(ct, 80, 90)})
+		}
+	}
+	if g, ok := ls["gpu"].(map[string]interface{}); ok && g != nil && (on["gpu"] || on["gputemp"]) {
+		u, uok := g["util"].(float64)
+		t, tok := g["temp"].(float64)
+		if (on["gpu"] && uok) || (on["gputemp"] && tok) {
+			sep()
+			segs = append(segs, ovSeg{"GPU ", lab})
+			if on["gpu"] && uok {
+				segs = append(segs, ovSeg{fmt.Sprintf("%d%%", int(u+0.5)), white})
+			}
+			if on["gputemp"] && tok {
+				segs = append(segs, ovSeg{fmt.Sprintf(" %d°", int(t+0.5)), tempColor(t, 78, 86)})
+			}
+		}
+	}
+	if tot, _ := ls["ramTotal"].(uint64); tot > 0 && on["ram"] {
 		used, _ := ls["ramUsed"].(uint64)
 		p := float64(used) * 100 / float64(tot)
 		c := white
 		if p >= 90 {
 			c = rgb(255, 196, 70)
 		}
-		segs = append(segs, ovSeg{"    RAM ", rgb(190, 160, 255)}, ovSeg{fmt.Sprintf("%d%%", int(p+0.5)), c})
+		sep()
+		segs = append(segs, ovSeg{"RAM ", lab}, ovSeg{fmt.Sprintf("%d%%", int(p+0.5)), c})
 	}
-	segs = append(segs, ovSeg{"    " + time.Now().Format("15:04"), rgb(170, 175, 190)})
+	if on["ora"] {
+		sep()
+		segs = append(segs, ovSeg{time.Now().Format("15:04"), rgb(170, 175, 190)})
+	}
+	if len(segs) == 0 {
+		segs = append(segs, ovSeg{"Tasso", lab})
+	}
 	return segs
 }
 
@@ -307,7 +338,7 @@ func ovPaintNow(hwnd uintptr) {
 		total += sz.cx
 	}
 	setMu.Lock()
-	left := settings.OverlayPos == "sx"
+	left := ovLeft(settings.OverlayPos)
 	setMu.Unlock()
 	x := cr.Right - total - 6
 	if left {
@@ -351,7 +382,7 @@ func overlayGameEnded() {
 }
 
 func setOverlay(on bool, pos string) string {
-	if pos != "sx" {
+	if pos != "sx" && pos != "sxb" && pos != "dxb" {
 		pos = "dx"
 	}
 	updateSettings(func(s *Settings) { s.OverlayOn = on; s.OverlayPos = pos })

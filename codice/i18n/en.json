@@ -1041,7 +1041,8 @@
   "). Se ti dà problemi usa il punto di ripristino.": "). If it gives you problems use the restore point.",
   "Non sono sicuro di com'è andata. Riavvia il PC e poi premi di nuovo \"Aggiorna con Tasso\" per controllare.": "I'm not sure how it went. Restart the PC and then press \"Update with Tasso\" again to check.",
   "Windows Update non ha risposto. Riprova tra poco (o usa Risolvi un problema → Windows Update bloccato).": "Windows Update didn't respond. Try again in a moment (or use Fix a problem → Windows Update is stuck).",
-  "Nel gioco V-Sync spento e limite FPS uguale ai Hz dello schermo (con G-Sync/FreeSync: V-Sync acceso nel pannello NVIDIA/AMD).": "In the game V-Sync off and FPS cap equal to the screen's Hz (with G-Sync/FreeSync: V-Sync on in the NVIDIA/AMD panel)."
+  "Nel gioco V-Sync spento e limite FPS uguale ai Hz dello schermo (con G-Sync/FreeSync: V-Sync acceso nel pannello NVIDIA/AMD).": "In the game V-Sync off and FPS cap equal to the screen's Hz (with G-Sync/FreeSync: V-Sync on in the NVIDIA/AMD panel).",
+  "Scegli almeno una cosa da mostrare.": "Choose at least one thing to show."
  },
  "ps": {
   "   non riuscita, prova a reinstallarla dal Microsoft Store.": "   failed, try reinstalling it from the Microsoft Store.",
@@ -4244,6 +4245,23 @@
   "aperti in sottofondo, senza finestra": "running in the background, without a window",
   ", con gentilezza, e li riapre a fine partita.": ", gently, and reopens them when you finish playing.",
   "Non chiude mai": "It never closes",
-  "Discord, OBS e i programmi per lo stream, Spotify, Steam e gli altri launcher, i browser, e niente che abbia una finestra aperta.": "Discord, OBS and streaming programs, Spotify, Steam and the other launchers, browsers, or anything with an open window."
+  "Discord, OBS e i programmi per lo stream, Spotify, Steam e gli altri launcher, i browser, e niente che abbia una finestra aperta.": "Discord, OBS and streaming programs, Spotify, Steam and the other launchers, browsers, or anything with an open window.",
+  "Cosa mostrare": "What to show",
+  "Dove": "Where",
+  "Anteprima": "Preview",
+  "(numeri di esempio)": "(sample numbers)",
+  "↖ In alto a sinistra": "↖ Top left",
+  "↗ In alto a destra": "↗ Top right",
+  "↙ In basso a sinistra": "↙ Bottom left",
+  "↘ In basso a destra": "↘ Bottom right",
+  "Posizione del pannellino": "Panel position",
+  "Una scritta piccola e trasparente in un angolo dello schermo. Scegli tu cosa mostrare:": "Small see-through text in a corner of the screen. You choose what to show:",
+  "temperature": "temperatures",
+  "e l'ora. Non si può cliccare e non disturba. Si vede nei giochi in finestra o \"schermo intero senza bordi\".": "and the time. It can't be clicked and doesn't get in the way. It shows in windowed or \"borderless fullscreen\" games.",
+  "Scegli almeno una cosa da mostrare.": "Choose at least one thing to show.",
+  "Processore (uso)": "Processor (usage)",
+  "Temperatura del processore": "Processor temperature",
+  "Scheda video (uso)": "Graphics card (usage)",
+  "Temperatura della scheda video": "Graphics card temperature"
  }
 }
