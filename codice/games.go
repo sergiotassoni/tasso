@@ -249,6 +249,12 @@ var scanLibMu sync.Mutex
 
 func scanLibrary() {
 	scanLibMu.Lock()
+	locked := true
+	defer func() {
+		if locked { // anche se qualcosa va storto a metà, la libreria non resta bloccata
+			scanLibMu.Unlock()
+		}
+	}()
 	deadline := time.Now().Add(12 * time.Second)
 	un := readUninstall()
 	all := append(append(scanSteam(), scanEpic()...), scanRiot()...)
@@ -349,6 +355,7 @@ func scanLibrary() {
 	gen := libGen.Add(1)
 	publishLibrary(all)
 	scanLibMu.Unlock()
+	locked = false
 	// poi le copertine che mancano, da Steam (se c'è internet), senza tenere ferma la libreria
 	if fillCovers(all) && libGen.Load() == gen {
 		publishLibrary(all)
@@ -396,7 +403,12 @@ func launchGame(id string) string {
 		return "Gioco non trovato: aggiorna la libreria."
 	}
 	if g.exe != "" {
-		if !openUser(g.exe, g.exeArgs) {
+		// Sempre tramite collegamento (anche senza argomenti), così il gioco parte dalla sua cartella.
+		args := g.exeArgs
+		if args == "" {
+			args = " "
+		}
+		if !openUser(g.exe, args) {
 			return "Non riesco ad avviare " + g.Name + "."
 		}
 		return "ok"
