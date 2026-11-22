@@ -1224,7 +1224,9 @@
   ". Per tradurle in ": ". To translate it into ",
   " scarica la lingua nella procedura a passi del gioco.": " download the language in the game's step-by-step setup.",
   " · lingua delle scritte: ": " · text language: ",
-  ". Per tradurle scarica la lingua nella procedura a passi del gioco.": ". To translate it download the language in the game's step-by-step setup."
+  ". Per tradurle scarica la lingua nella procedura a passi del gioco.": ". To translate it download the language in the game's step-by-step setup.",
+  "Chat degli altri accesa: i messaggi nuovi compaiono in italiano accanto alla chat.": "Other players' chat on: new messages appear translated next to the chat.",
+  "Chat degli altri · ": "Other players' chat · "
  },
  "ps": {
   "   non riuscita, prova a reinstallarla dal Microsoft Store.": "   failed, try reinstalling it from the Microsoft Store.",
@@ -4865,6 +4867,15 @@
   "Chiaro · lilla tenue": "Light · soft lilac",
   "Perla": "Pearl",
   "Chiaro · grigio perla": "Light · pearl grey",
-  "🛑 Cosa chiude il Boost": "🛑 What the Boost closes"
+  "🛑 Cosa chiude il Boost": "🛑 What the Boost closes",
+  "Traduci i messaggi degli altri": "Translate other players' messages",
+  "Scegli dove sta la chat": "Choose where the chat is",
+  "Cambia zona": "Change area",
+  "Facoltativa. Disegni una volta il riquadro della chat del gioco: i messaggi nuovi degli altri compaiono in italiano accanto. Legge solo lo schermo.": "Optional. Draw the game chat box once: new messages from others appear translated next to it. It only reads the screen.",
+  "Accesa: con la traduzione dello schermo attiva, i messaggi nuovi compaiono in italiano accanto alla chat.": "On: with screen translation active, new messages appear translated next to the chat.",
+  "Spenta. La zona della chat è già scelta.": "Off. The chat area is already chosen.",
+  "Disegna con il mouse il riquadro della chat del gioco (Esc per annullare).": "Draw the game chat box with the mouse (Esc to cancel).",
+  "Chat degli altri": "Other players' chat",
+  "I messaggi degli altri giocatori in italiano, accanto alla chat.": "Other players' messages translated, next to the chat."
  }
 }

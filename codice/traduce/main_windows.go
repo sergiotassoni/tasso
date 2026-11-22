@@ -68,6 +68,9 @@ type Impostazioni struct {
 	// lingua del gioco ("auto" = la riconosco dalle scritte) e lingua in cui tradurre
 	LinguaDa string `json:"lingua_da"`
 	LinguaA  string `json:"lingua_a"`
+	// 3.1 chat degli altri: zona della chat del gioco e interruttore
+	ZonaChat  Zona `json:"zona_chat"`
+	ChatAltri bool `json:"chat_altri,omitempty"`
 }
 
 // Profilo di un gioco: si carica da solo quando quel gioco è in primo piano.
@@ -174,6 +177,7 @@ func Avvia() {
 	ov.ImpostaPosizione(leggiImp().Posizione)
 	ov.ImpostaInglese(leggiImp().MostraEN)
 	go cicloAutomatico()
+	go cicloChatAltri()
 	go cicloTuttoAutomatico()
 	go preparaMotori()
 	go func() { // le traduzioni nuove su disco ogni 2 minuti (se Windows si spegne di colpo)
@@ -238,11 +242,13 @@ func assicuraMotore() {
 		motoreMu.Unlock()
 		if e, _ := mozErr.Load().(string); m != nil && !mozOK.Load() && e != "" {
 			// il motore c'è ma ha detto che non è pronto (file mancanti o rovinati): ricarico la sua pagina
+			mozErr.Store("") // l'errore vecchio non vale più: aspetto la risposta della pagina ricaricata
 			m.Dispatch(func() { m.Navigate(url) })
 		}
 		return
 	}
 	motoreAvviato.Store(true)
+	mozErr.Store("")
 	func() {
 		pronta := make(chan struct{})
 		go func() {
@@ -554,7 +560,15 @@ func collega(w webview2.WebView) {
 		}()
 		return "ok"
 	})
-	_ = w.Bind("ttScegliZona", func() string { ov.DimenticaGioco(); ov.ApriSelezione(); return "ok" })
+	_ = w.Bind("ttScegliZona", func() string { selPerChat.Store(false); ov.DimenticaGioco(); ov.ApriSelezione(); return "ok" })
+	_ = w.Bind("ttScegliZonaChat", func() string { scegliZonaChat(); return "ok" })
+	_ = w.Bind("ttImpostaChatAltri", func(on bool) string {
+		if on && !leggiImp().ZonaChat.Valida() {
+			return "zona" // prima va scelta la zona della chat
+		}
+		impostaChatAltri(on)
+		return "ok"
+	})
 	_ = w.Bind("ttTraduciOra", func() string { go traduciOra(true); return "ok" })
 	_ = w.Bind("ttImpostaAuto", func(on bool) string { impostaAuto(on); return "ok" })
 	_ = w.Bind("ttImpostaTasto", func(nome string, codice uint32) map[string]string {
@@ -711,6 +725,8 @@ func stato() map[string]interface{} {
 		"dim_font":        i.DimFont,
 		"posizione":       i.Posizione,
 		"tutto_auto":      i.TuttoAuto,
+		"chat_altri":      i.ChatAltri,
+		"zona_chat_ok":    i.ZonaChat.Valida(),
 		"acceso":          acceso.Load(),
 		"tasti":           etichetteTasti(i.Tasti),
 		"motore":          i.Motore,
@@ -942,6 +958,10 @@ func suTasto(id int) {
 }
 
 func suZonaScelta(z Zona) {
+	if selPerChat.Swap(false) {
+		zonaChatScelta(z)
+		return
+	}
 	muImp.Lock()
 	imp.Zona = z
 	muImp.Unlock()

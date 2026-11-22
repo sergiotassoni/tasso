@@ -1016,6 +1016,7 @@ dl.sum{display:grid;grid-template-columns:max-content 1fr;gap:6px 14px;margin:0}
       <div class="li" id="trIaRow"><span style="flex:1"><b>Traduzione più precisa (IA)</b><br><span class="small muted" id="trIaTxt"></span></span><button class="btn ghost" id="btnTrIa">Scarica</button></div>
       <div class="li" id="trVociRow"><span style="flex:1"><b>Voci in italiano (sottotitoli)</b><br><span class="small muted" id="trVociTxt"></span></span><button class="btn ghost" id="btnTrVoci">Scarica</button></div>
       <div class="li" id="trChatRow"><span style="flex:1"><b>Chat tradotta</b><br><span class="small muted" id="trChatTxt"></span></span><button class="btn ghost" id="btnTrChat">Scarica</button></div>
+      <div class="li" id="trChatAltriRow"><span style="flex:1"><b>Traduci i messaggi degli altri</b><br><span class="small muted" id="trChatAltriTxt"></span></span><button class="btn ghost" id="btnTrChatZona">Scegli dove sta la chat</button><button class="sw" role="switch" aria-checked="false" id="trSwChatAltri" aria-label="Traduci i messaggi degli altri"><i></i></button></div>
       <div class="li"><span style="flex:1"><b>Traduci da solo appena apro un gioco</b><br><span class="small muted">Spento: Tasso traduce da solo i giochi che hai preparato, e per gli altri te lo chiede.</span></span><button class="sw" role="switch" aria-checked="false" id="trSwAuto" aria-label="Traduci da solo appena apro un gioco"><i></i></button></div>
       <div class="li"><span style="flex:1"><b>Mostra anche l'inglese</b><br><span class="small muted">Sotto la traduzione vedi anche la frase originale.</span></span><button class="sw" role="switch" aria-checked="false" id="trSwEn" aria-label="Mostra anche l'inglese"><i></i></button></div>
       <div class="row wrap" style="gap:14px;align-items:flex-end"><label class="acf">Dove mettere la traduzione<select id="trPos"><option value="sopra">Sopra la scritta</option><option value="sotto">Sotto la scritta</option><option value="copri">Al posto della scritta</option><option value="lato">Di lato</option><option value="sottotitoli">In basso, come sottotitoli</option></select></label><label class="acf">Grandezza del testo <span class="small muted" id="trFontV"></span><input type="range" id="trFont" min="14" max="48" step="1"></label></div>
@@ -3455,6 +3456,9 @@ async function paintTrSet(){
   $('#btnTrVoci').textContent = v.file ? (v.accese ? _t('Spegni') : _t('Accendi')) : _t('Scarica'); $('#btnTrVoci').disabled = !!v.scaricando;
   $('#trChatTxt').textContent = st.scaricando_chat ? _t('La sto scaricando…') : st.chat_file ? _t('Pronta. Copia la tua frase in italiano e premi ') + keyName('chat', 'Ctrl+Alt+T') + _t(': negli appunti trovi la frase in inglese, da incollare nella chat.') : _t('Facoltativa. Scrivi in italiano e Tasso lo copia in inglese, da incollare nella chat del gioco.');
   $('#btnTrChat').hidden = !!st.chat_file; $('#btnTrChat').disabled = !!st.scaricando_chat;
+  $('#trChatAltriTxt').textContent = !st.zona_chat_ok ? _t('Facoltativa. Disegni una volta il riquadro della chat del gioco: i messaggi nuovi degli altri compaiono in italiano accanto. Legge solo lo schermo.') : st.chat_altri ? _t('Accesa: con la traduzione dello schermo attiva, i messaggi nuovi compaiono in italiano accanto alla chat.') : _t('Spenta. La zona della chat è già scelta.');
+  $('#btnTrChatZona').textContent = st.zona_chat_ok ? _t('Cambia zona') : _t('Scegli dove sta la chat');
+  setSw('#trSwChatAltri', !!st.chat_altri);
   setSw('#trSwAuto', !!st.tutto_auto); setSw('#trSwEn', !!st.mostra_en);
   $('#trPos').value = st.posizione || 'sopra';
   $('#trFont').value = st.dim_font || 22; $('#trFontV').textContent = (st.dim_font || 22) + ' px';
@@ -3483,6 +3487,13 @@ $('#btnTrVoci').onclick = async () => {
   const r = await ttc('ttAccendiVoci', !v.accese); if (r && r.errore) toast(tx(r.errore), 'var(--a4)'); ttRefresh();
 };
 $('#trSwAuto').onclick = async () => { const r = await ttc('ttImpostaTuttoAuto', !(TT && TT.tutto_auto)); if (TT) TT.tutto_auto = !!r; setSw('#trSwAuto', !!r); toast(r ? _t('Tasso traduce da solo appena apre un gioco (con la traduzione accesa).') : _t('Tasso traduce in automatico solo i giochi che hai preparato; per gli altri chiede.')); };
+async function chatAltri(on){
+  const r = await ttc('ttImpostaChatAltri', on);
+  if (r === 'zona') { toast(_t('Disegna con il mouse il riquadro della chat del gioco (Esc per annullare).')); ttc('ttScegliZonaChat'); return; }
+  if (TT) TT.chat_altri = on; setSw('#trSwChatAltri', on); await ttRefresh();
+}
+$('#trSwChatAltri').onclick = () => chatAltri(!(TT && TT.chat_altri));
+$('#btnTrChatZona').onclick = () => { toast(_t('Disegna con il mouse il riquadro della chat del gioco (Esc per annullare).')); ttc('ttScegliZonaChat'); };
 $('#trSwEn').onclick = async () => { const on = !(TT && TT.mostra_en); await ttc('ttImpostaInglese', on); if (TT) TT.mostra_en = on; setSw('#trSwEn', on); };
 $('#trPos').onchange = async (e) => { const p = await ttc('ttImpostaPosizione', e.target.value); if (TT) TT.posizione = p; toast(_t('Salvato.'), 'var(--a3)'); };
 $('#trFont').oninput = (e) => { $('#trFontV').textContent = e.target.value + ' px'; };
@@ -3596,6 +3607,7 @@ function gameTools(g){
     {k:'tr', id:'trs', ic:'🔤', t:_t('Traduzione dello schermo'), d:_t('Menu e dialoghi tradotti al loro posto. Tasto ') + keyName('pagina', 'F7') + '.', s: st.acceso ? _t('ACCESA') : _t('SPENTA'), ok: !!st.acceso},
     {k:'tr', id:'voci', ic:'🎙️', t:_t('Voci in italiano'), d:_t('Sottotitoli di quello che dicono i personaggi. Tasto ') + keyName('voci', 'Ctrl+Alt+V') + '.', s: v.file ? (v.accese ? _t('ACCESE') : _t('SPENTE')) : _t('DA SCARICARE'), ok: !!v.accese},
     {k:'tr', id:'chat', ic:'💬', t:_t('Chat tradotta'), d:_t('Scrivi in italiano, Tasso lo copia in inglese. Tasto ') + keyName('chat', 'Ctrl+Alt+T') + '.', s: st.chat_file ? _t('QUANDO VUOI') : _t('DA SCARICARE')},
+    {k:'tr', id:'chata', ic:'🗨️', t:_t('Chat degli altri'), d:_t('I messaggi degli altri giocatori in italiano, accanto alla chat.'), s: st.chat_altri ? _t('ACCESA') : _t('SPENTA'), ok: !!st.chat_altri},
     {k:'tr', id:'cro', ic:'🕘', t:_t('Cronologia delle traduzioni'), d:_t('Le ultime scritte tradotte. Tasto ') + keyName('cronologia', 'F8') + '.', s:_t('APRI')},
     {k:'perf', id:'tune', ic:'🎛️', t:_t('Impostazioni consigliate'), d:_t('Calcolate per questo gioco e per il tuo PC.'), s: S.gameTunes && S.gameTunes[g.id] ? _t('FATTE') : _t('QUANDO VUOI'), ok: !!(S.gameTunes && S.gameTunes[g.id])},
     {k:'perf', id:'fpsm', ic:'📊', t:_t('Misura gli FPS'), d:_t('Gioca 30 secondi: ti dico gli FPS veri e i cali.'), s:_t('QUANDO VUOI')},
@@ -3618,6 +3630,7 @@ function paintGameTools(g){
 async function toolClick(g, id){
   if (id === 'trs') { $('#trSw').click(); return; }
   if (id === 'voci') { const v = (TT && TT.voci) || {}; if (!v.file) { closeGame(); gTab('imp'); return; } const r = await ttc('ttAccendiVoci', !v.accese); if (r && r.errore) toast(tx(r.errore), 'var(--a4)'); ttRefresh(); return; }
+  if (id === 'chata') { chatAltri(!(TT && TT.chat_altri)); return; }
   if (id === 'chat') { if (!(TT && TT.chat_file)) { closeGame(); gTab('imp'); toast(_t('Scarica la chat tradotta qui, in Impostazioni.')); return; } toast(_t('Copia il testo in italiano e premi ') + keyName('chat', 'Ctrl+Alt+T') + _t(': negli appunti trovi la frase in inglese, da incollare nella chat.')); return; }
   if (id === 'cro') { gTab('cro'); return; }
   if (id === 'tune') { openTune(g); return; }

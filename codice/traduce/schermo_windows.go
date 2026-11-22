@@ -321,6 +321,17 @@ func avviaFinestrella(dimFont int, tasti func(int), selezione func(Zona)) {
 			// i tasti rapidi si registrano solo quando accendi Tasso Traduce (goAccendi):
 			// da spento F6…F11 restano liberi per gli altri programmi
 			creaFinestraPagina()
+			// 3.1: secondo riquadro, per la chat degli altri (stessa classe, stesso disegno)
+			if hc, _, _ := pCreateWindowEx.Call(ex, uintptr(unsafe.Pointer(classe)), 0, 0x80000000, 0, 0, 420, 120, 0, 0, 0, 0); hc != 0 {
+				pSetLayeredAttr.Call(hc, 0, 228, 2)
+				pSetDisplayAffin.Call(hc, affinita())
+				ovChat.mu.Lock()
+				ovChat.creaFont()
+				ovChat.sfondo, _, _ = pCreateBrush.Call(0x000D0807)
+				ovChat.bordo, _, _ = pCreateBrush.Call(0x00FF7BA9) // #A97BFF (BGR): viola, diverso dai dialoghi
+				ovChat.hwnd = hc
+				ovChat.mu.Unlock()
+			}
 		}
 		close(pronta)
 		var m msgW
@@ -579,64 +590,65 @@ func (f *finestrella) posiziona(hwnd uintptr) {
 }
 
 func ovProc(hwnd, msg, wp, lp uintptr) uintptr {
+	f := finDi(hwnd)
 	switch msg {
 	case wmPaint:
 		var ps paintStruct
 		hdc, _, _ := pBeginPaint.Call(hwnd, uintptr(unsafe.Pointer(&ps)))
 		var r rect
 		pGetClientRect.Call(hwnd, uintptr(unsafe.Pointer(&r)))
-		pFillRect.Call(hdc, uintptr(unsafe.Pointer(&r)), ov.sfondo)
-		pFrameRect.Call(hdc, uintptr(unsafe.Pointer(&r)), ov.bordo)
+		pFillRect.Call(hdc, uintptr(unsafe.Pointer(&r)), f.sfondo)
+		pFrameRect.Call(hdc, uintptr(unsafe.Pointer(&r)), f.bordo)
 		pSetBkMode.Call(hdc, 1) // TRANSPARENT
-		ov.mu.Lock()
-		testo, en, stato, mostraEN, cinema := ov.testo, ov.inglese, ov.stato, ov.mostraEN, ov.posizione == "sottotitoli" || ov.voce
-		ov.mu.Unlock()
+		f.mu.Lock()
+		testo, en, stato, mostraEN, cinema := f.testo, f.inglese, f.stato, f.mostraEN, f.posizione == "sottotitoli" || f.voce
+		f.mu.Unlock()
 		larg := r.Right - 2*margine
 		y := int32(margine)
 		if cinema { // sottotitoli: testo centrato, senza riga di stato, fascia senza bordo verde
-			pFillRect.Call(hdc, uintptr(unsafe.Pointer(&r)), ov.sfondo)
-			ht := misura(hdc, ov.fontT, testo, larg)
+			pFillRect.Call(hdc, uintptr(unsafe.Pointer(&r)), f.sfondo)
+			ht := misura(hdc, f.fontT, testo, larg)
 			y = (r.Bottom - ht) / 2
 			if y < 4 {
 				y = 4
 			}
-			disegnaCentrato(hdc, ov.fontT, 0x00F8F4F2, testo, rect{margine, y, margine + larg, y + ht})
+			disegnaCentrato(hdc, f.fontT, 0x00F8F4F2, testo, rect{margine, y, margine + larg, y + ht})
 			pEndPaint.Call(hwnd, uintptr(unsafe.Pointer(&ps)))
 			return 0
 		}
 		if mostraEN && en != "" {
-			hh := misura(hdc, ov.fontP, en, larg)
-			disegna(hdc, ov.fontP, 0x00A7918B, en, rect{margine, y, margine + larg, y + hh}) // grigio
+			hh := misura(hdc, f.fontP, en, larg)
+			disegna(hdc, f.fontP, 0x00A7918B, en, rect{margine, y, margine + larg, y + hh}) // grigio
 			y += hh + 6
 		}
-		ht := misura(hdc, ov.fontT, testo, larg)
-		disegna(hdc, ov.fontT, 0x00F8F4F2, testo, rect{margine, y, margine + larg, y + ht}) // bianco
+		ht := misura(hdc, f.fontT, testo, larg)
+		disegna(hdc, f.fontT, 0x00F8F4F2, testo, rect{margine, y, margine + larg, y + ht}) // bianco
 		y += ht + 4
 		if stato != "" {
-			disegna(hdc, ov.fontP, 0x00A6F32F, stato, rect{margine, y, margine + larg, r.Bottom})
+			disegna(hdc, f.fontP, 0x00A6F32F, stato, rect{margine, y, margine + larg, r.Bottom})
 		}
 		pEndPaint.Call(hwnd, uintptr(unsafe.Pointer(&ps)))
 		return 0
 	case wmAggiorna:
 		if wp == 1 {
-			ov.mu.Lock()
-			ov.creaFont()
-			ov.mu.Unlock()
+			f.mu.Lock()
+			f.creaFont()
+			f.mu.Unlock()
 		}
-		ov.posiziona(hwnd)
+		f.posiziona(hwnd)
 		return 0
 	case wmMostra:
-		ov.posiziona(hwnd)
+		f.posiziona(hwnd)
 		return 0
 	case 0x0113: // WM_TIMER: se esci dal gioco (Alt+Tab) la finestrella si nasconde, quando torni riappare
 		fg, _, _ := pGetForeground.Call()
-		ov.mu.Lock()
-		via := ov.gioco != 0 && fg != ov.gioco && fg != sel.hwnd
-		cambia := via != ov.nascosta
-		ov.nascosta = via
-		ov.mu.Unlock()
+		f.mu.Lock()
+		via := f.gioco != 0 && fg != f.gioco && fg != sel.hwnd
+		cambia := via != f.nascosta
+		f.nascosta = via
+		f.mu.Unlock()
 		if cambia {
-			ov.posiziona(hwnd)
+			f.posiziona(hwnd)
 		}
 		return 0
 	case wmSeleziona:
@@ -649,16 +661,27 @@ func ovProc(hwnd, msg, wp, lp uintptr) uintptr {
 		}
 		return uintptr(registraTasti(hwnd, *pag))
 	case wmHotkey:
-		if ov.tasti != nil {
+		if f.tasti != nil {
 			go func(id int) {
 				defer guard("tasto")
-				ov.tasti(id)
+				f.tasti(id)
 			}(int(wp))
 		}
 		return 0
 	}
 	r, _, _ := pDefWindowProc.Call(hwnd, msg, wp, lp)
 	return r
+}
+
+// finDi: quale riquadro è (quello dei dialoghi o quello della chat degli altri).
+func finDi(hwnd uintptr) *finestrella {
+	ovChat.mu.Lock()
+	h := ovChat.hwnd
+	ovChat.mu.Unlock()
+	if h != 0 && hwnd == h {
+		return ovChat
+	}
+	return ov
 }
 
 // ---------------------------------------------------------------- scelta della zona
@@ -850,4 +873,3 @@ func nascondiMotore(h uintptr) {
 func nomeTasto(funzione string) string {
 	return etichettaTasto(tastiCompleti(leggiImp().Tasti)[funzione])
 }
-
