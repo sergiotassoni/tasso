@@ -65,7 +65,10 @@ var (
 	gdCancel context.CancelFunc
 	gdOffer  *nvOffer // ultima offerta mostrata: si installa solo quella
 	gdGpu    *nvGpu
+	gdVendor string // "nvidia" o "amd": cosa ha trovato l'ultimo controllo
 )
+
+var errNoNvidia = errors.New("Non ho trovato una scheda video NVIDIA.")
 
 var (
 	nvDevRe = regexp.MustCompile(`(?i)VEN_10DE&DEV_([0-9A-F]{4})`)
@@ -206,7 +209,7 @@ func nvDetect() (*nvGpu, error) {
 	}
 	m := nvDevRe.FindStringSubmatch(raw.PNP)
 	if m == nil {
-		return nil, errors.New("Non ho trovato una scheda video NVIDIA.")
+		return nil, errNoNvidia
 	}
 	g := &nvGpu{Name: strings.TrimSpace(raw.Name), DevID: strings.ToUpper(m[1]), WinVer: raw.Ver, Ver: nvVersion(raw.Ver), Laptop: raw.Laptop, reboot: raw.Reboot, wu: raw.WU}
 	if g.Ver == "" {
@@ -298,6 +301,19 @@ func gdEmit(stage, msg string, extra map[string]interface{}) {
 // gpuDrvCheck: c'è un driver nuovo? Emette onGpuDrvInfo.
 func gpuDrvCheck() {
 	g, err := nvDetect()
+	if errors.Is(err, errNoNvidia) {
+		ga, aerr := amdDetect()
+		if aerr == nil {
+			gdMu.Lock()
+			gdVendor = "amd"
+			gdMu.Unlock()
+			amdCheck(ga)
+			return
+		}
+		if errors.Is(aerr, errNoAMD) {
+			err = errors.New("Non ho trovato una scheda video NVIDIA o AMD Radeon.")
+		}
+	}
 	if err != nil {
 		emit("onGpuDrvInfo", map[string]interface{}{"error": err.Error()})
 		return
@@ -308,7 +324,10 @@ func gpuDrvCheck() {
 		st.Reboot = false
 		saveGpuDrvState(st)
 	}
-	out := map[string]interface{}{"gpu": g, "canUndo": st.PrevVer != "" && st.NewVer == g.Ver, "prevVer": st.PrevVer,
+	gdMu.Lock()
+	gdVendor = "nvidia"
+	gdMu.Unlock()
+	out := map[string]interface{}{"vendor": "nvidia", "gpu": g, "canUndo": st.PrevVer != "" && st.NewVer == g.Ver, "prevVer": st.PrevVer,
 		"undoURL": st.PrevURL != "", "rebootFor": ""}
 	if st.Reboot && st.NewVer != g.Ver {
 		out["rebootFor"] = st.NewVer // installato, manca il riavvio: non lo riproporre
@@ -563,6 +582,17 @@ func gdBlocker(battery bool, game string, reboot, wu bool) string {
 // noBackup=true solo se l'utente ha scelto di continuare senza punto di ripristino.
 func gpuDrvInstall(undo, noBackup bool) {
 	fail := func(msg string) { gdEmit("error", msg, nil) }
+	gdMu.Lock()
+	v := gdVendor
+	gdMu.Unlock()
+	if v == "amd" {
+		if undo {
+			fail("Per AMD si torna indietro con il punto di ripristino, oppure in Gestione dispositivi → scheda video → Ripristina driver.")
+			return
+		}
+		amdInstall(noBackup)
+		return
+	}
 	// Occupo il posto delle pulizie: nessuna pulizia (che tocca C:\NVIDIA e i driver vecchi)
 	// può partire mentre installo, e viceversa.
 	if !claimRun() {

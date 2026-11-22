@@ -1007,7 +1007,20 @@
   "Installazione finita, ma Windows mostra ancora il driver di prima. Riavvia il PC: poi controllo di nuovo.": "Install finished, but Windows still shows the previous driver. Restart the PC: then I'll check again.",
   ").": ").",
   " Hai ancora il driver ": " You still have driver ",
-  " Se qualcosa non va, usa il punto di ripristino.": " If something's wrong, use the restore point."
+  " Se qualcosa non va, usa il punto di ripristino.": " If something's wrong, use the restore point.",
+  "Non ho trovato una scheda video AMD Radeon.": "I didn't find an AMD Radeon graphics card.",
+  "Non ho trovato una scheda video NVIDIA o AMD Radeon.": "I didn't find an NVIDIA or AMD Radeon graphics card.",
+  "Windows Update non ha risposto. Riprova tra poco, oppure prendi il driver dal sito AMD.": "Windows Update didn't answer. Try again shortly, or get the driver from the AMD site.",
+  "Windows Update non ha un driver AMD più nuovo per la tua scheda.": "Windows Update has no newer AMD driver for your card.",
+  "Scarico e installo il driver AMD da Windows Update.": "Downloading and installing the AMD driver from Windows Update.",
+  "Windows Update non è riuscito a installare il driver AMD. Il driver di prima è rimasto.": "Windows Update couldn't install the AMD driver. The previous driver is still there.",
+  "Windows Update non è riuscito a installare il driver AMD. Il driver di prima è rimasto. Prova dal sito AMD.": "Windows Update couldn't install the AMD driver. The previous driver is still there. Try the AMD site.",
+  "Windows Update non offre più quel driver: premi di nuovo \"Aggiorna con Tasso\" per ricontrollare.": "Windows Update no longer offers that driver: press \"Update with Tasso\" again to recheck.",
+  "Driver AMD installato: riavvia il PC per finire.": "AMD driver installed: restart the PC to finish.",
+  "Fatto: driver AMD installato (": "Done: AMD driver installed (",
+  "). Se ti dà problemi usa il punto di ripristino, oppure in Gestione dispositivi → scheda video → Ripristina driver.": "). If it gives you problems use the restore point, or Device Manager → graphics card → Roll Back Driver.",
+  "Per AMD si torna indietro con il punto di ripristino, oppure in Gestione dispositivi → scheda video → Ripristina driver.": "For AMD you go back with the restore point, or Device Manager → graphics card → Roll Back Driver.",
+  "Premi Aggiorna il driver: il Tasso prende da Windows Update il driver AMD certificato, crea un punto di ripristino e lo installa.": "Press Update the driver: Tasso gets the certified AMD driver from Windows Update, creates a restore point and installs it."
  },
  "ps": {
   "   non riuscita, prova a reinstallarla dal Microsoft Store.": "   failed, try reinstalling it from the Microsoft Store.",
@@ -3962,6 +3975,15 @@
   "Il ": "The ",
   " accende già quelle utili. Qui le puoi accendere o spegnere una per una: ogni comando ti spiega cosa fa e se ci sono rischi. Quando lo spegni torna com'era prima di Tasso.": " already turns on the useful ones. Here you can turn them on or off one by one: each command explains what it does and whether there are risks. When you turn it off it goes back to how it was before Tasso.",
   "Il profilo gioco è stato sostituito dal ": "The game profile has been replaced by ",
-  ", qui sopra. Il tuo profilo è ancora acceso: spegnilo con l'interruttore e usa il Boost. Questa finestra poi sparisce.": ", above. Your profile is still on: turn it off with the switch and use Boost. This box then disappears."
+  ", qui sopra. Il tuo profilo è ancora acceso: spegnilo con l'interruttore e usa il Boost. Questa finestra poi sparisce.": ", above. Your profile is still on: turn it off with the switch and use Boost. This box then disappears.",
+  "Controllo se c'è un driver nuovo…": "Checking if there's a new driver…",
+  "✓ Windows Update non ha un driver AMD più nuovo per la tua scheda.": "✓ Windows Update has no newer AMD driver for your card.",
+  "Le versioni nuovissime escono prima sul sito AMD: se un gioco nuovo ti dà problemi, prendila da lì.": "The very newest versions come out first on the AMD site: if a new game gives you problems, get it from there.",
+  "nuovo": "new",
+  "Driver del ": "Driver from ",
+  "Lo prendo da Windows Update: è il driver AMD certificato da Microsoft per la tua scheda.": "I get it from Windows Update: it's the AMD driver certified by Microsoft for your card.",
+  "Può essere un po' più vecchio di quello sul sito AMD, ma è il più sicuro.": "It may be a bit older than the one on the AMD site, but it's the safest.",
+  "Preparo…": "Preparing…",
+  "Senza punto di ripristino, se il driver nuovo dà problemi usa Gestione dispositivi → scheda video → Ripristina driver.": "Without a restore point, if the new driver gives problems use Device Manager → graphics card → Roll Back Driver."
  }
 }
