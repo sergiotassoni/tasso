@@ -715,18 +715,9 @@ details.navmore[open]{display:flex;flex-direction:column;gap:2px}
     <button class="btn primary boostgo" id="btnBoost" aria-label="Boost: prepara il PC per giocare">🚀<br>BOOST</button>
   </div>
   <div class="card" id="fpsCheckCard" style="display:none"><div id="fpsCheck" role="status" aria-live="polite" style="display:flex;flex-direction:column;gap:8px"></div></div>
-  <div class="card" style="display:flex;flex-direction:column;gap:12px">
-    <div class="row wrap" style="justify-content:space-between"><div><h2>🕹️ La tua libreria</h2><p class="sub" style="margin:2px 0 0" id="libMsg">Steam, Epic Games e Riot in un posto solo.</p></div><div class="row wrap" style="gap:8px"><input id="libSearch" type="search" placeholder="Cerca un gioco…" style="padding:9px 12px;border-radius:10px;border:1px solid var(--line);background:transparent;color:inherit;font:inherit;min-width:200px"><button class="btn ghost" id="btnLib">Aggiorna</button></div></div>
-    <div class="grid" id="libGrid" style="grid-template-columns:repeat(auto-fill,minmax(150px,1fr))"></div>
-  </div>
-
-
-
-  <details class="more" id="gamesMore">
-    <summary>⚙️ Altre opzioni <span class="muted">· profilo gioco, potenza per ogni gioco, comandi gaming, ottimizza prima di giocare, pannellino in gioco, autoclick</span></summary>
-    <div class="morebox">
-  <div class="card" id="gpCard" style="display:flex;flex-direction:column;gap:12px;border-color:var(--a1)">
+  <div class="card" id="gpCard" style="display:none;flex-direction:column;gap:12px;border-color:var(--a1)">
     <div class="row wrap" style="justify-content:space-between;align-items:center"><div style="flex:1 1 300px"><h2>🎮 Profilo gioco</h2><p class="sub" style="margin:2px 0 0">Scegli una volta sola cosa ti serve per giocare, poi lo accendi e lo spegni con un interruttore. <b>Resta acceso anche se spegni o riavvii il PC</b>: si spegne solo quando lo spegni tu.</p></div><button class="sw" id="gpSwitch" style="border:0;transform:scale(1.35);margin-right:10px" aria-label="Profilo gioco"><i></i></button></div>
+    <div class="note" style="margin:0;border-color:var(--a4)">Il profilo gioco è stato sostituito dal <b>Boost</b>, qui sopra. Il tuo profilo è ancora acceso: spegnilo con l'interruttore e usa il Boost. Questa finestra poi sparisce.</div>
     <div class="note" id="gpState" style="margin:0"></div>
     <details id="gpDet"><summary style="cursor:pointer;font-weight:700">Cosa c'è nel profilo (tocca per cambiare)</summary>
       <div style="display:flex;flex-direction:column;gap:10px;margin-top:10px">
@@ -741,21 +732,24 @@ details.navmore[open]{display:flex;flex-direction:column;gap:2px}
         <div class="row wrap"><button class="btn ghost" id="gpSave">Salva le scelte</button></div>
       </div>
     </details>
-    <div style="display:flex;flex-direction:column;gap:8px;border-top:1px solid var(--line);padding-top:12px">
-      <b>⚡ Potenza per ogni gioco</b>
+    <span class="small muted">Come funziona, in parole semplici: quando accendi il profilo Tasso mette tutte le cose che hai scelto e si ricorda com'erano prima. A ogni accensione del PC controlla che sia ancora tutto così (a volte un aggiornamento di Windows o il programma del produttore del PC rimette il piano energetico normale) e rimette a posto quello che è cambiato. Quando lo spegni torna tutto com'era prima di accenderlo. Lo trovi anche in Impostazioni → Torna indietro.</span>
+  </div>
+  <details class="more" id="gamesMore">
+    <summary>⚙️ Altro per giocare <span class="muted">· potenza per ogni gioco, regolazioni una per una, pannellino in gioco, autoclick</span></summary>
+    <div class="morebox">
+    <div class="card" style="display:flex;flex-direction:column;gap:8px">
+      <h2>⚡ Potenza per ogni gioco</h2>
       <span class="small muted">Scegli un gioco e quanta potenza vuoi. Quando apri quel gioco Tasso la mette da solo, quando lo chiudi rimette com'era. Funziona anche con il profilo spento.<br><b>Potenza alta</b> = modalità Gaming (piano energetico al massimo, notifiche in pausa). <b>Massima potenza</b> = modalità FPS competitivo (in più mouse senza accelerazione, per mirare meglio).</span>
       <div class="row wrap" style="gap:8px"><select id="gwGame" style="min-width:220px"><option value="">Scegli un gioco…</option></select><select id="gwMode"><option value="gaming">Potenza alta</option><option value="max">Massima potenza</option></select><button class="btn primary" id="gwSave">Salva</button></div>
       <div class="list" id="gwList"></div>
     </div>
-    <span class="small muted">Come funziona, in parole semplici: quando accendi il profilo Tasso mette tutte le cose che hai scelto e si ricorda com'erano prima. A ogni accensione del PC controlla che sia ancora tutto così (a volte un aggiornamento di Windows o il programma del produttore del PC rimette il piano energetico normale) e rimette a posto quello che è cambiato. Quando lo spegni torna tutto com'era prima di accenderlo. Lo trovi anche in Impostazioni → Torna indietro.</span>
-  </div>
   <div class="card" style="display:flex;flex-direction:column;gap:12px">
-    <div class="row wrap" style="justify-content:space-between"><div><h2>Comandi gaming</h2><p class="sub" style="margin:2px 0 0">Le regolazioni di Windows che contano davvero per giocare, gratis e in un clic. Ogni comando ti spiega cosa fa, quando serve e se ci sono rischi. Restano accesi anche dopo il riavvio. Quando li spegni tornano esattamente com'erano prima di Tasso. Per accenderne tanti insieme usa il <b>Profilo gioco</b> qui sopra.</p></div><button class="btn ghost" id="btnGcReload">Aggiorna</button></div>
+    <div class="row wrap" style="justify-content:space-between"><div><h2>Regolazioni una per una</h2><p class="sub" style="margin:2px 0 0">Il <b>Boost</b> accende già quelle utili. Qui le puoi accendere o spegnere una per una: ogni comando ti spiega cosa fa e se ci sono rischi. Quando lo spegni torna com'era prima di Tasso.</p></div><button class="btn ghost" id="btnGcReload">Aggiorna</button></div>
     <div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(min(300px,100%),1fr));gap:10px" id="gcList"></div>
   </div>
 
   <div class="row wrap" style="align-items:stretch;gap:18px">
-    <div class="card" style="flex:1 1 380px;display:flex;flex-direction:column;gap:12px">
+    <div class="card" id="bsCard" style="flex:1 1 380px;display:none;flex-direction:column;gap:12px">
       <div class="row wrap" style="justify-content:space-between"><div><h2>Ottimizza prima di giocare</h2><p class="sub" style="margin:2px 0 0" id="bsMsg">Chiude i programmi pesanti che non servono, mette la modalità Gaming. A fine partita rimette tutto com'era e riapre i programmi chiusi.</p></div></div>
       <div class="list" id="bsList" style="max-height:300px"><div class="li"><span class="muted">Premi "Cerca programmi pesanti".</span></div></div>
       <div class="row wrap"><button class="btn ghost" id="btnBsScan">Cerca programmi pesanti</button><button class="btn primary" id="btnBsGo" disabled>Ottimizza e gioca</button><button class="btn ghost" id="btnBsEnd" style="display:none">Fine partita: rimetti tutto</button></div>
@@ -790,6 +784,13 @@ details.navmore[open]{display:flex;flex-direction:column;gap:2px}
   </div>
     </div>
   </details>
+  <div class="card" style="display:flex;flex-direction:column;gap:12px">
+    <div class="row wrap" style="justify-content:space-between"><div><h2>🕹️ La tua libreria</h2><p class="sub" style="margin:2px 0 0" id="libMsg">Steam, Epic Games e Riot in un posto solo.</p></div><div class="row wrap" style="gap:8px"><input id="libSearch" type="search" placeholder="Cerca un gioco…" style="padding:9px 12px;border-radius:10px;border:1px solid var(--line);background:transparent;color:inherit;font:inherit;min-width:200px"><button class="btn ghost" id="btnLib">Aggiorna</button></div></div>
+    <div class="grid" id="libGrid" style="grid-template-columns:repeat(auto-fill,minmax(150px,1fr))"></div>
+  </div>
+
+
+
 </section>
 
 <section class="view" id="v-disk">
@@ -2509,6 +2510,7 @@ Object.assign(window.tasso, {
     (r.msgs || []).slice(0, 6).forEach(m => toast(m, 'var(--a3)'));
     $('#btnBsGo').disabled = false; $('#btnBsEnd').disabled = false;
     $('#btnBsEnd').style.display = r.active ? '' : 'none';
+    $('#bsCard').style.display = r.active ? 'flex' : 'none'; // il vecchio "Ottimizza": solo per chiudere una partita già avviata
     $('#bsMsg').textContent = (r && r.ok === false) ? (((r.msgs || [])[0]) || _t('Non riuscito: riprova.')) : r.active ? _t('Pronto: modalità Gaming attiva. Buona partita! Quando hai finito premi "Fine partita".') : _t('Fatto: tutto com\'era prima.');
     if (!r.active) { BOOST = []; $('#bsList').innerHTML = _t('<div class="li"><span class="muted">Premi "Cerca programmi pesanti".</span></div>'); }
     setTimeout(async () => { await refreshS(); paintModes(); }, 2500);
@@ -2576,6 +2578,8 @@ function paintProfile(info){
   if (!GP) return;
   const p = GP.profile || {};
   $('#gpSwitch').classList.toggle('on', !!p.on);
+  // Il vecchio Profilo gioco ora lo fa il Boost: la card si vede solo se è ancora acceso, per poterlo spegnere.
+  $('#gpCard').style.display = p.on ? 'flex' : 'none';
   $$('input[name=gpMode]').forEach(x => x.checked = x.value === (p.mode || 'gaming'));
   const box = $('#gpCmds'); box.innerHTML = '';
   GAMING.filter(g => !g.act).forEach(g => {

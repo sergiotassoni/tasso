@@ -3955,6 +3955,13 @@
   ". Quella versione non si può riscaricare da NVIDIA: per tornare indietro usa il punto di ripristino.": ". That version can't be downloaded again from NVIDIA: to go back use the restore point.",
   "Un attimo, il Tasso sta finendo un'altra cosa.": "One moment, Tasso is finishing something else.",
   "Non riesco ad avviare l'aggiornamento: riprova.": "I can't start the update: try again.",
-  "Senza punto di ripristino, se il driver nuovo dà problemi dovrai reinstallare quello vecchio dal sito NVIDIA.": "Without a restore point, if the new driver gives problems you'll have to reinstall the old one from NVIDIA's site."
+  "Senza punto di ripristino, se il driver nuovo dà problemi dovrai reinstallare quello vecchio dal sito NVIDIA.": "Without a restore point, if the new driver gives problems you'll have to reinstall the old one from NVIDIA's site.",
+  "⚙️ Altro per giocare": "⚙️ More for gaming",
+  "· potenza per ogni gioco, regolazioni una per una, pannellino in gioco, autoclick": "· power for each game, settings one by one, in-game panel, autoclicker",
+  "Regolazioni una per una": "Settings one by one",
+  "Il ": "The ",
+  " accende già quelle utili. Qui le puoi accendere o spegnere una per una: ogni comando ti spiega cosa fa e se ci sono rischi. Quando lo spegni torna com'era prima di Tasso.": " already turns on the useful ones. Here you can turn them on or off one by one: each command explains what it does and whether there are risks. When you turn it off it goes back to how it was before Tasso.",
+  "Il profilo gioco è stato sostituito dal ": "The game profile has been replaced by ",
+  ", qui sopra. Il tuo profilo è ancora acceso: spegnilo con l'interruttore e usa il Boost. Questa finestra poi sparisce.": ", above. Your profile is still on: turn it off with the switch and use Boost. This box then disappears."
  }
 }
