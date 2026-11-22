@@ -19,7 +19,7 @@ import (
 //go:embed ui/index.html
 var indexHTML string
 
-const appVersion = "3.0"
+const appVersion = "3.1"
 
 var (
 	wv       webview2.WebView

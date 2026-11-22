@@ -94,6 +94,12 @@ func async(kind string, f func()) string {
 func startupList() {
 	r := runPS(startupListScript, 2*time.Minute, nil)
 	list, _ := decodeJSON(r.JSON).([]interface{})
+	if list == nil {
+		// Lettura non riuscita: non cancello l'elenco dei programmi già visti, se no la volta dopo
+		// conterebbe come "prima volta" e i programmi nuovi all'avvio non verrebbero segnalati.
+		emit("onStartup", map[string]interface{}{"items": []interface{}{}, "fresh": []string{}})
+		return
+	}
 	setMu.Lock()
 	known := map[string]bool{}
 	for _, k := range settings.KnownStartup {

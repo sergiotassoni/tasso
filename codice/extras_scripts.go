@@ -13,8 +13,10 @@ function Good([string]$title) { [void]$good.Add($title) }
 try {
   $d = Get-CimInstance Win32_LogicalDisk -Filter ("DeviceID='" + $env:SystemDrive + "'")
   $pct = [math]::Round(100 * $d.FreeSpace / $d.Size)
-  if ($pct -lt 10) { Bad 25 ('Disco quasi pieno: libero solo il ' + $pct + '%') 'Fai la pulizia Media e guarda la Mappa del disco per trovare cosa occupa spazio.' 'diskmap' }
-  elseif ($pct -lt 20) { Bad 10 ('Spazio libero basso: ' + $pct + '%') 'Una pulizia Normale o Media libera spazio subito.' 'clean' }
+  $gb = $d.FreeSpace / 1GB
+  # 3.1: su un disco grande una percentuale bassa può essere ancora tanto spazio (es. 150 GB su 2 TB).
+  if ($pct -lt 10 -and $gb -lt 40) { Bad 25 ('Disco quasi pieno: libero solo il ' + $pct + '%') 'Fai la pulizia Media e guarda la Mappa del disco per trovare cosa occupa spazio.' 'diskmap' }
+  elseif ($pct -lt 20 -and $gb -lt 60) { Bad 10 ('Spazio libero basso: ' + $pct + '%') 'Una pulizia Normale o Media libera spazio subito.' 'clean' }
   else { Good ('Spazio libero: ' + $pct + '%') }
 } catch {}
 
@@ -147,10 +149,17 @@ $o = [pscustomobject]@{ hours = [math]::Round($up.TotalHours, 1); adapters = @($
 
 // Le reti Wi-Fi salvate con la loro password: si esportano in una cartella temporanea
 // (formato XML, uguale in tutte le lingue di Windows), si leggono e si cancellano subito.
+// 3.1: la cartella sta in Programmi\Tasso\lavoro ($A.base), dove i programmi normali non possono
+// leggere le password né preparare trappole; si cancella con Remove-Safe (non segue i collegamenti).
 const wifiScript = `
-# Se una volta precedente è stata interrotta, tolgo i file rimasti.
-Get-ChildItem -LiteralPath $env:TEMP -Directory -Filter 'tasso_wifi_*' -Force -ErrorAction SilentlyContinue | ForEach-Object { Remove-Item -LiteralPath $_.FullName -Recurse -Force -ErrorAction SilentlyContinue }
-$dir = Join-Path $env:TEMP ('tasso_wifi_' + [guid]::NewGuid().ToString('N'))
+# Se una volta precedente (anche della 3.0, in TEMP) è stata interrotta, tolgo i file rimasti.
+foreach ($old in @([string]$A.base, [string]$env:TEMP)) {
+  if (-not $old) { continue }
+  Get-ChildItem -LiteralPath $old -Directory -Filter 'tasso_wifi_*' -Force -ErrorAction SilentlyContinue | ForEach-Object { Remove-Safe $_.FullName }
+}
+$base = [string]$A.base
+if (-not $base -or -not (Test-Path -LiteralPath $base)) { $base = $env:TEMP }
+$dir = Join-Path $base ('tasso_wifi_' + [guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $dir -Force | Out-Null
 $list = New-Object System.Collections.ArrayList
 try {
@@ -165,7 +174,7 @@ try {
       [void]$list.Add([pscustomobject]@{ name = $name; password = $key; open = ($auth -eq 'open') })
     } catch {}
   }
-} finally { Remove-Item -LiteralPath $dir -Recurse -Force -ErrorAction SilentlyContinue }
+} finally { Remove-Safe $dir }
 $sorted = @($list | Sort-Object -Property name)
 [Console]::Out.WriteLine('JSON ' + (ConvertTo-Json -InputObject $sorted -Compress -Depth 3))
 `

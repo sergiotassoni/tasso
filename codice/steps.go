@@ -74,7 +74,8 @@ function Remove-Old([string]$p, [datetime]$limit) {
   }
   if ($it.PSIsContainer) {
     Get-ChildItem -LiteralPath $it.FullName -Force -ErrorAction SilentlyContinue | ForEach-Object { Remove-Old $_.FullName $limit }
-    if (-not (Get-ChildItem -LiteralPath $it.FullName -Force -ErrorAction SilentlyContinue | Select-Object -First 1)) { Remove-Item -LiteralPath $it.FullName -Force -ErrorAction SilentlyContinue }
+    # Solo cartelle vuote e create da tempo: una cartella appena creata da un installatore resta lì (3.1).
+    if ($it.CreationTime -lt $limit -and -not (Get-ChildItem -LiteralPath $it.FullName -Force -ErrorAction SilentlyContinue | Select-Object -First 1)) { Remove-Item -LiteralPath $it.FullName -Force -ErrorAction SilentlyContinue }
   } elseif ($it.LastWriteTime -lt $limit -and $it.CreationTime -lt $limit) {
     # Anche la data di creazione: un file appena estratto da uno zip può avere una data di modifica vecchia.
     Remove-Item -LiteralPath $it.FullName -Force -ErrorAction SilentlyContinue
@@ -350,7 +351,7 @@ foreach ($p in $GpuCaches) { if (Test-Path -LiteralPath $p) { $f += Clear-Folder
 Freed $f; Say ('Liberati ' + (Fmt $f))
 `},
 	{ID: "wu_cache", Name: "Cache di Windows Update", Desc: "File degli aggiornamenti già scaricati. Se ne serve ancora uno, Windows lo riscarica da solo.", Level: 2, Minutes: 1, Timeout: 15 * time.Minute, Script: `
-if (Get-Process -Name TiWorker -ErrorAction SilentlyContinue) { Say 'Windows sta installando degli aggiornamenti proprio adesso: salto, per non disturbarlo. Rifallo più tardi.'; return }
+if ((Get-Process -Name TiWorker, MoUsoCoreWorker, TrustedInstaller -ErrorAction SilentlyContinue) -or (Test-Path -LiteralPath 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\RebootRequired')) { Say 'Windows sta installando degli aggiornamenti proprio adesso: salto, per non disturbarlo. Rifallo più tardi.'; return }
 Stop-Service -Name wuauserv, bits -Force -ErrorAction SilentlyContinue
 $f = Clear-Folder (Join-Path $env:windir 'SoftwareDistribution\Download')
 Start-Service -Name wuauserv, bits -ErrorAction SilentlyContinue
@@ -467,8 +468,12 @@ else {
 }
 `},
 	{ID: "programs", Name: "Controllo di ogni programma", Desc: "Ripara le app di Windows danneggiate e trova i programmi rotti.", Level: 4, Minutes: 3, Timeout: 30 * time.Minute, Script: `
-$badApps = @(Get-AppxPackage -AllUsers -ErrorAction SilentlyContinue | Where-Object { [string]$_.Status -ne 'Ok' })
-if ($badApps.Count -eq 0) { Say 'App di Windows: tutte a posto.' }
+# 3.1: solo le app di questo account e solo quelle rotte davvero (non quelle che si stanno aggiornando);
+# nella pulizia programmata non le tocco, perché Windows potrebbe aggiornarle proprio in quel momento.
+$badApps = @()
+if (-not $TassoAuto) { $badApps = @(Get-AppxPackage -ErrorAction SilentlyContinue | Where-Object { [string]$_.Status -match 'NeedsRemediation|Modified|Tampered|LicenseIssue' -and $_.InstallLocation }) }
+if ($TassoAuto) { Say 'App di Windows: nella pulizia programmata non le controllo (lo faccio quando la avvii tu).' }
+elseif ($badApps.Count -eq 0) { Say 'App di Windows: tutte a posto.' }
 foreach ($p in $badApps) {
   Say ('Riparo: ' + $p.Name)
   try { Add-AppxPackage -DisableDevelopmentMode -Register (Join-Path $p.InstallLocation 'AppxManifest.xml') -ErrorAction Stop; Say '   riparata.' } catch { Say '   non riuscita, prova a reinstallarla dal Microsoft Store.' }

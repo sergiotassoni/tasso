@@ -154,6 +154,24 @@ var (
 	cancelReq atomic.Bool
 )
 
+// claimRun prende il "posto" della pulizia per un lavoro lungo che cambia Windows (Rimetti com'era,
+// Torna indietro): così una pulizia programmata non può partire nel mezzo. false = c'è già qualcosa.
+func claimRun() bool {
+	runMu.Lock()
+	defer runMu.Unlock()
+	if running || updating.Load() {
+		return false
+	}
+	running = true
+	return true
+}
+
+func releaseRun() {
+	runMu.Lock()
+	running = false
+	runMu.Unlock()
+}
+
 func isRunning() bool {
 	runMu.Lock()
 	defer runMu.Unlock()

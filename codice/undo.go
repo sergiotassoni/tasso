@@ -105,13 +105,14 @@ func undoChange(kind, id string) {
 			msg = "Non c'è niente da rimettere."
 			break
 		}
-		if isRunning() {
+		if !claimRun() {
 			msg = "Sta girando una pulizia: aspetta che finisca, poi riprova."
 			break
 		}
 		modeMu.Lock()
 		ok := runRestoreScript(snap, nil)
 		modeMu.Unlock()
+		releaseRun()
 		if !ok {
 			msg = "Non sono riuscito a rimettere le impostazioni di Windows: le tengo salvate, riprova tra poco."
 			break

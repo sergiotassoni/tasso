@@ -186,15 +186,18 @@ func selfUpdate() {
 	}
 	updMsg("done", "Fatto! Tasso "+latest+" si riapre tra un attimo.")
 	time.Sleep(1500 * time.Millisecond)
+	// Aspetto che finisca un eventuale cambio di modalità, così non chiudo Tasso a metà di uno script.
+	// 3.1: lo aspetto PRIMA di aprire la copia nuova, che aspetta la vecchia al massimo 2 minuti:
+	// se il cambio durava di più, la nuova si arrendeva e Tasso restava chiuso.
+	modeMu.Lock()
 	cmd := exec.Command(cur, "--after-update")
 	cmd.Dir = dir
 	if err := cmd.Start(); err != nil {
+		modeMu.Unlock()
 		updating.Store(false)
 		updMsg("error", "Aggiornato, ma non riesco a riaprirlo: chiudi Tasso e riaprilo tu.")
 		return
 	}
-	// Aspetto che finisca un eventuale cambio di modalità, così non chiudo Tasso a metà di uno script.
-	modeMu.Lock()
 	wv.Dispatch(func() { wv.Terminate() })
 }
 

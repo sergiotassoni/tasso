@@ -1123,6 +1123,7 @@
   "Antivirus in tempo reale spento.": "Real-time antivirus off.",
   "Antivirus non aggiornato da ": "Antivirus not updated for ",
   "App di Windows: ": "Windows app: ",
+  "App di Windows: nella pulizia programmata non le controllo (lo faccio quando la avvii tu).": "Windows apps: I don't check them during scheduled cleaning (I do it when you start it yourself).",
   "App di Windows: tutte a posto.": "Windows apps: all fine.",
   "Appunti: svuotati.": "Clipboard: cleared.",
   "Aprile con Word, Excel o PowerPoint (File > Apri > scegli il file; per i file .asd scegli \"Tutti i file\"). Il nome inizia con giorno e ora dell'ultima modifica.": "Open them with Word, Excel or PowerPoint (File > Open > pick the file; for .asd files choose \"All Files\"). The name starts with the day and time of the last change.",

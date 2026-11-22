@@ -820,7 +820,9 @@ func gameTuneUndoQuiet(id string) bool {
 			}
 		}
 	}
-	if t.Ini != "" {
+	// 3.1: il percorso viene da settings.json, che un programma qualsiasi può cambiare: rimetto il backup
+	// solo sul file delle impostazioni del gioco, e mai attraverso collegamenti o giunzioni.
+	if t.Ini != "" && safeIniPath(t.Ini) {
 		bak := t.Ini + ".tasso-backup"
 		if b, err := os.ReadFile(bak); err == nil {
 			if os.WriteFile(t.Ini, b, 0o644) == nil {
@@ -866,4 +868,31 @@ func gameModeFor(exe string) string {
 		return m
 	}
 	return settings.GameModes[e]
+}
+
+// safeIniPath: solo GameUserSettings.ini, percorso assoluto, e nessun collegamento/giunzione
+// né sul file, né sul backup, né sulle cartelle che li contengono.
+func safeIniPath(p string) bool {
+	if !filepath.IsAbs(p) || !strings.EqualFold(filepath.Base(p), "GameUserSettings.ini") {
+		return false
+	}
+	isLink := func(q string) bool {
+		fi, err := os.Lstat(q)
+		if err != nil {
+			return false // non esiste: va bene, non è un collegamento
+		}
+		return fi.Mode()&(os.ModeSymlink|os.ModeIrregular) != 0
+	}
+	if isLink(p) || isLink(p+".tasso-backup") {
+		return false
+	}
+	for d := filepath.Dir(p); ; d = filepath.Dir(d) {
+		if isLink(d) {
+			return false
+		}
+		if filepath.Dir(d) == d {
+			break
+		}
+	}
+	return true
 }

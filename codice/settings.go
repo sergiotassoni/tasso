@@ -58,6 +58,8 @@ type Settings struct {
 	DiscordLastMsg string `json:"discordLastMsg,omitempty"`
 	// Modalità da rimettere quando si chiude il gioco (modalità gioco automatica).
 	ModeBeforeGame string `json:"modeBeforeGame,omitempty"`
+	// Modalità messa da Tasso all'apertura del gioco (3.1: salvata, così vale anche dopo uno spegnimento in partita).
+	GameTarget string `json:"gameTarget,omitempty"`
 	// Modalità da rimettere a fine partita dopo "Ottimizza prima di giocare".
 	ModeBeforeBoost string `json:"modeBeforeBoost,omitempty"`
 	// Pannellino in gioco: si mostra da solo quando parte un gioco; posizione "dx" o "sx".

@@ -55,9 +55,10 @@ func rememberStartup(scope, name string, newState bool) {
 
 // restoreOriginal rimette le impostazioni di Windows com'erano prima di Tasso.
 func restoreOriginal() []string {
-	if isRunning() {
+	if !claimRun() {
 		return []string{"Sta girando una pulizia: aspetta che finisca, poi rimetti com'era."}
 	}
+	defer releaseRun()
 	profileForget()
 	modeMu.Lock()
 	defer modeMu.Unlock()

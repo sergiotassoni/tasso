@@ -176,7 +176,7 @@ func netUsage() {
 }
 
 func wifiList() {
-	r := runPS(wifiScript, 2*time.Minute, nil)
+	r := runPSArgs(wifiScript, map[string]string{"base": scriptDir()}, 2*time.Minute, nil)
 	emit("onWifi", decodeJSON(r.JSON))
 }
 
@@ -227,6 +227,10 @@ var (
 // gameTarget: la modalità che Tasso ha messo da solo all'apertura del gioco.
 var gameTarget atomic.Value
 
+// gameResumeDone: al primo giro dopo l'avvio controllo se era rimasta in sospeso una partita
+// (PC spento in gioco): in quel caso rimetto la modalità di prima.
+var gameResumeDone atomic.Bool
+
 func startGameWatcher() {
 	go func() {
 		defer guard("extras.go:230")
@@ -242,7 +246,12 @@ func gameTick() {
 	setMu.Lock()
 	on := settings.AutoGame && !settings.Paused
 	prev := settings.Mode
+	left := settings.ModeBeforeGame
 	setMu.Unlock()
+	if !gameResumeDone.Swap(true) && left != "" && runningGame() == "" {
+		endGameMode()
+		return
+	}
 	if !on {
 		// Automatico spento (o Tasso in pausa) a partita in corso: rimetto la modalità di prima.
 		gameMu.Lock()
@@ -276,7 +285,7 @@ func gameTick() {
 				if _, ok := modeScripts[back]; !ok {
 					back = "normale" // es. dopo "Rimetti com'era": non è una modalità da rimettere
 				}
-				updateSettings(func(s *Settings) { s.ModeBeforeGame = back })
+				updateSettings(func(s *Settings) { s.ModeBeforeGame, s.GameTarget = back, target })
 				gameTarget.Store(target)
 				go setMode(target)
 			}
@@ -304,11 +313,15 @@ func endGameMode() {
 	setMu.Lock()
 	back := settings.ModeBeforeGame
 	cur := settings.Mode
+	saved := settings.GameTarget
 	setMu.Unlock()
 	restored := ""
 	if back != "" {
-		updateSettings(func(s *Settings) { s.ModeBeforeGame = "" })
+		updateSettings(func(s *Settings) { s.ModeBeforeGame, s.GameTarget = "", "" })
 		t, _ := gameTarget.Load().(string)
+		if t == "" {
+			t = saved
+		}
 		if cur == "gaming" || (t != "" && cur == t) {
 			restored = back
 			go setMode(back)

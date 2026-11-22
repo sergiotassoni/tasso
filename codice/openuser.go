@@ -15,7 +15,7 @@ func explorerExe() string { return filepath.Join(os.Getenv("SystemRoot"), "explo
 // isWebURL: indirizzi che si possono aprire con il browser (o con il launcher del gioco).
 func isWebURL(u string) bool {
 	l := strings.ToLower(u)
-	for _, p := range []string{"https://", "http://", "steam://", "com.epicgames.launcher://", "riotclient://", "battlenet://", "uplay://", "origin2://", "goggalaxy://", "ms-windows-store://", "ms-settings:", "discord://"} {
+	for _, p := range []string{"https://", "http://", "steam://", "com.epicgames.launcher://", "riotclient://", "battlenet://", "uplay://", "origin2://", "goggalaxy://", "ms-windows-store://", "ms-settings:", "discord://", "mailto:"} {
 		if strings.HasPrefix(l, p) {
 			return !strings.ContainsAny(u, "\"\r\n")
 		}
@@ -38,12 +38,20 @@ func openUser(p, args string) bool {
 	// Il collegamento lo preparo in sottofondo (ci vuole un secondo): la finestra di Tasso non si blocca.
 	go func() {
 		defer guard("openuser.go:39")
-		dir := filepath.Join(appDir, "tmp")
-		_ = os.MkdirAll(dir, 0o755)
-		lnk := filepath.Join(dir, "apri-"+time.Now().Format("150405.000")+".lnk")
-		r := runPSArgs(lnkScript, map[string]interface{}{"lnk": lnk, "t": p, "a": args, "w": filepath.Dir(p)}, time.Minute, nil)
-		if r.Err != nil || !fileExists(lnk) {
-			openPath(p, args) // ultima possibilità: meglio aprirlo che non aprirlo
+		// 3.1: se il collegamento non si crea, NON apro il programma da amministratore (prima succedeva):
+		// riprovo nella cartella di lavoro di Tasso in Programmi, poi lascio perdere.
+		var lnk string
+		for _, dir := range []string{filepath.Join(appDir, "tmp"), scriptDir()} {
+			_ = os.MkdirAll(dir, 0o755)
+			try := filepath.Join(dir, "apri-"+time.Now().Format("150405.000")+".lnk")
+			r := runPSArgs(lnkScript, map[string]interface{}{"lnk": try, "t": p, "a": args, "w": filepath.Dir(p)}, time.Minute, nil)
+			if r.Err == nil && fileExists(try) {
+				lnk = try
+				break
+			}
+		}
+		if lnk == "" {
+			logPanic("openuser", "collegamento non creato per "+p, nil)
 			return
 		}
 		openPath(explorerExe(), "\""+lnk+"\"")

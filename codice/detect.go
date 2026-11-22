@@ -66,7 +66,7 @@ try {
   if ($wi -match '(?:Segnale|Signal)\s*:\s*(\d+)\s*%' -and [int]$Matches[1] -lt 40) { F 'of_net_slow' 'c' ('Il segnale del Wi-Fi è debole (' + $Matches[1] + '%): internet può essere lento o staccarsi.') }
   $since = (Get-Date).AddDays(-3)
   # Conto solo i distacchi "strani": non quelli vicini a sospensione, riavvio o spegnimento.
-  $pw = @(Get-WinEvent -FilterHashtable @{ LogName = 'System'; Id = 42, 107, 1074, 6006, 6008; StartTime = $since } -MaxEvents 500 -ErrorAction SilentlyContinue | ForEach-Object { $_.TimeCreated })
+  $pw = @(Get-WinEvent -FilterHashtable @{ LogName = 'System'; Id = 42, 107, 506, 507, 1074, 6006, 6008; StartTime = $since } -MaxEvents 500 -ErrorAction SilentlyContinue | ForEach-Object { $_.TimeCreated })
   $drops = @(Get-WinEvent -FilterHashtable @{ LogName = 'Microsoft-Windows-WLAN-AutoConfig/Operational'; Id = 8003; StartTime = $since } -MaxEvents 200 -ErrorAction SilentlyContinue | Where-Object { $t = $_.TimeCreated; -not @($pw | Where-Object { [math]::Abs(($_ - $t).TotalMinutes) -lt 3 }).Count }).Count
   if ($drops -ge 15) { F 'of_wifi_drop' 'p' ('Il Wi-Fi si è staccato ' + $drops + ' volte negli ultimi 3 giorni.') }
 } catch {}
@@ -163,7 +163,7 @@ try {
   $sys = Get-PSDrive -Name ($env:SystemDrive.TrimEnd(':')) -ErrorAction SilentlyContinue
   if ($sys -and ($sys.Used + $sys.Free) -gt 0) {
     $pct = [math]::Round(100 * $sys.Free / ($sys.Used + $sys.Free))
-    if ($sys.Free -lt 10GB -or $pct -lt 8) { F 'of_disk_full' 'p' ('Il disco C: è quasi pieno: liberi ' + (Fmt $sys.Free) + ' (' + $pct + '%).') }
+    if ($sys.Free -lt 10GB -or ($pct -lt 8 -and $sys.Free -lt 40GB)) { F 'of_disk_full' 'p' ('Il disco C: è quasi pieno: liberi ' + (Fmt $sys.Free) + ' (' + $pct + '%).') }
   }
   foreach ($x in @(@('.zip', 'of_zip', 'I file .zip'), @('.pdf', 'of_open_with', 'I PDF'), @('.docx', 'of_open_with', 'I documenti Word'), @('.xlsx', 'of_open_with', 'I file Excel'))) {
     $p = Get-UserChoice $x[0]
@@ -175,7 +175,13 @@ try {
 C 'Controllo OneDrive…'
 try {
   $roots = @(Get-OneDriveRoots)
-  if ($roots.Count -and -not (Get-Process -Name OneDrive -ErrorAction SilentlyContinue)) { F 'of_onedrive' 'p' 'OneDrive è collegato ma non è acceso: i file non si sincronizzano.' }
+  # 3.1: lo segnalo solo se OneDrive è installato, c'è un account vero e deve partire con Windows.
+  # Se l'hai disinstallato, scollegato o tolto dall'avvio, non è un problema.
+  $odExe = @((Join-Path $env:LOCALAPPDATA 'Microsoft\OneDrive\OneDrive.exe'), (Join-Path $env:ProgramFiles 'Microsoft OneDrive\OneDrive.exe'), (Join-Path ${env:ProgramFiles(x86)} 'Microsoft OneDrive\OneDrive.exe')) | Where-Object { $_ -and (Test-Path -LiteralPath $_) } | Select-Object -First 1
+  $odMail = @(Get-ChildItem -LiteralPath 'HKCU:\Software\Microsoft\OneDrive\Accounts' -ErrorAction SilentlyContinue | Where-Object { [string](Get-ItemProperty -LiteralPath $_.PSPath -Name UserEmail -ErrorAction SilentlyContinue).UserEmail }).Count
+  $odRun = [string](Get-RegValue 'HKCU\Software\Microsoft\Windows\CurrentVersion\Run' 'OneDrive')
+  $odAuto = $odRun -and (Test-StartupOn 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\Run' 'OneDrive')
+  if ($roots.Count -and $odExe -and $odMail -and $odAuto -and -not (Get-Process -Name OneDrive -ErrorAction SilentlyContinue)) { F 'of_onedrive' 'p' 'OneDrive è collegato ma non è acceso: i file non si sincronizzano.' }
   foreach ($r in $roots) {
     $rx = '-' + [regex]::Escape($env:COMPUTERNAME) + '(-\d+)?$'
     $dup = Get-ChildItem -LiteralPath $r -Recurse -Depth 6 -File -Filter ('*-' + $env:COMPUTERNAME + '*') -ErrorAction SilentlyContinue | Where-Object { $_.BaseName -match $rx } | Select-Object -First 1
@@ -224,7 +230,7 @@ C 'Controllo le impostazioni per i giochi…'
 try {
   if ((Get-RegValue 'HKCU\Control Panel\Desktop' 'ForegroundLockTimeout') -eq 0) { F 'fix_game_minimize' 'p' 'Un programma ha tolto la protezione che impedisce alle finestre di "rubare" il gioco: può ridursi a icona da solo.' }
   if ([string](Get-RegValue 'HKCU\Control Panel\Mouse' 'MouseSpeed') -eq '1') { F 'fix_game_mouse' 'c' 'L''accelerazione del mouse è accesa: la mira nei giochi è meno precisa.' }
-  if ((Get-RegValue 'HKCU\Software\Microsoft\Windows\CurrentVersion\GameDVR' 'AppCaptureEnabled') -eq 1) { F 'fix_game_lag' 'c' 'La registrazione in background di Xbox è accesa: toglie qualche FPS.' }
+  if ((Get-RegValue 'HKCU\Software\Microsoft\Windows\CurrentVersion\GameDVR' 'HistoricalCaptureEnabled') -eq 1) { F 'fix_game_lag' 'c' 'La registrazione in background di Xbox è accesa: toglie qualche FPS.' }
   $st = [string](Get-RegValue 'HKCU\Software\Valve\Steam' 'SteamPath')
   if ($st) { $cfg = Join-Path ($st -replace '/', '\') 'config\config.vdf'; if ((Get-Content -LiteralPath $cfg -Raw -ErrorAction SilentlyContinue) -match '"DownloadThrottleKbps"\s+"([1-9]\d*)"') { F 'fix_game_download' 'c' 'Steam ha un limite alla velocità dei download.' } }
 } catch {}
