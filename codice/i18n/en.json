@@ -4085,6 +4085,10 @@
   "Impostazioni di Tasso": "Tasso settings",
   "Giochi, Boost, FPS e ping": "Games, Boost, FPS and ping",
   "Più semplice, con i problemi dell'ufficio": "Simpler, with office problems",
-  "Cambia modalità": "Change mode"
+  "Cambia modalità": "Change mode",
+  "Lo stesso interruttore della pagina Giochi: quando apri un gioco Tasso fa il Boost da solo e, quando lo chiudi, riapre i programmi chiusi e rimette la modalità di prima.": "The same switch as on the Play page: when you open a game Tasso does the Boost by itself and, when you close it, reopens the closed programs and puts back your previous mode.",
+  "Pannellino acceso. Accendi anche il Boost automatico nella pagina Giochi.": "Overlay on. Also turn on Auto Boost on the Play page.",
+  "Boost nella pagina Giochi": "Boost on the Play page",
+  "Un tasto prima di giocare: Tasso chiude i programmi in background che non servono e prepara il PC. Quando hai finito, premi \"Rimetti com'era\" nella pagina Giochi.": "One button before you play: Tasso closes the background programs you don't need and gets the PC ready. When you're done, press \"Put it back\" on the Play page."
  }
 }

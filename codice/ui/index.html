@@ -483,6 +483,8 @@ nav button.navgrp.on{background:transparent;box-shadow:none;color:var(--text)}
 .brand .pup{animation:tlook 5s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
 @keyframes tlook{0%,70%,100%{transform:translateX(0)}76%,82%{transform:translateX(-45%)}88%,93%{transform:translateX(45%)}}
 @media (prefers-reduced-motion:reduce){.brand .pup{animation:none}}
+.gspec{cursor:pointer;transition:background .15s}
+.gspec:hover,.gspec:focus-visible{background:color-mix(in srgb,var(--a1) 7%,transparent)}
 </style>
 </head>
 <body>
@@ -537,15 +539,15 @@ nav button.navgrp.on{background:transparent;box-shadow:none;color:var(--text)}
       <svg class="gmask" viewBox="0 0 240 220" aria-hidden="true"><path d="M44 22 H196 L226 104 L120 206 L14 104 Z" fill="var(--text)"/><path d="M80 22 H106 L108 142 L56 132 L36 98 Z" fill="var(--bg)"/><path d="M160 22 H134 L132 142 L184 132 L204 98 Z" fill="var(--bg)"/><circle class="eye" cx="82" cy="112" r="12" fill="var(--a1)"/><circle class="eye" cx="158" cy="112" r="12" fill="var(--a1)"/><path d="M100 164 H140 L120 190 Z" fill="var(--bg)"/></svg>
       <div>
         <h1 class="gname" tabindex="-1">Gaming</h1>
-        <p>Un tasto prima di giocare: Tasso chiude i programmi in background che non servono e prepara il PC. Quando hai finito, premi "Rimetti com'era" nella pagina Gioca.</p>
+        <p>Un tasto prima di giocare: Tasso chiude i programmi in background che non servono e prepara il PC. Quando hai finito, premi "Rimetti com'era" nella pagina Giochi.</p>
         <div class="gbtns"><button class="gbig" id="gBoost">BOOST</button><button class="gline" id="gClean">Pulisci</button></div>
       </div>
     </div>
     <dl class="gspecs">
-      <div><dt>Salute del PC</dt><dd id="gScore">…</dd></div>
-      <div><dt>Da liberare</dt><dd id="gJunk">…</dd></div>
-      <div><dt>Spazio libero</dt><dd id="gFree">…</dd></div>
-      <div><dt>Programmi all'avvio</dt><dd id="gStart">…</dd></div>
+      <div class="gspec" role="button" tabindex="0" data-go2="scan"><dt>Salute del PC</dt><dd id="gScore">…</dd></div>
+      <div class="gspec" role="button" tabindex="0" data-go2="clean"><dt>Da liberare</dt><dd id="gJunk">…</dd></div>
+      <div class="gspec" role="button" tabindex="0" data-go2="clean"><dt>Spazio libero</dt><dd id="gFree">…</dd></div>
+      <div class="gspec" role="button" tabindex="0" data-go2="speed"><dt>Programmi all'avvio</dt><dd id="gStart">…</dd></div>
     </dl>
     <ul class="gfeats">
       <li><button id="gDetect"><b>Controlla i problemi</b><span>Tasso guarda il PC e ti dice cosa non va.</span><em>Apri</em></button></li>
@@ -570,7 +572,7 @@ nav button.navgrp.on{background:transparent;box-shadow:none;color:var(--text)}
   </div>
   <div class="quick q2 om" role="group" aria-label="Le cose principali">
     <button class="qk" id="btnHomeDetect"><span class="qi">🔎</span><b>Problemi</b><span>Tasso controlla il PC e ti dice cosa non va</span></button>
-    <button class="qk gm" data-go2="games"><span class="qi">🚀</span><b>Gioca</b><span>Un tasto e il PC va al massimo per giocare</span></button>
+    <button class="qk gm" data-go2="games"><span class="qi">🚀</span><b>Giochi</b><span>Un tasto e il PC va al massimo per giocare</span></button>
     <button class="qk om" data-go2="fix"><span class="qi">🛠️</span><b>Risolvi un problema</b><span>Stampante, Word, Wi-Fi e tanti altri</span></button>
   </div>
   <details class="more" id="homeMore">
@@ -665,24 +667,24 @@ nav button.navgrp.on{background:transparent;box-shadow:none;color:var(--text)}
 
 <!-- SPEED -->
 <section class="view" id="v-speed">
-  <div><h1 style="font-size:26px">Velocità</h1><p class="sub"><span class="gm">Modalità del PC e programmi che partono all'accensione.</span><span class="om">Come lavora il PC e quali programmi partono quando lo accendi: meno sono, prima è pronto.</span></p></div>
+  <div><h1 style="font-size:26px">Avvio del PC</h1><p class="sub"><span class="gm">Modalità del PC e programmi che partono all'accensione.</span><span class="om">Come lavora il PC e quali programmi partono quando lo accendi: meno sono, prima è pronto.</span></p></div>
+  <div class="card" style="display:flex;flex-direction:column;gap:10px">
+    <div class="row wrap" style="justify-content:space-between"><div><h2>Programmi all'avvio</h2><p class="sub" style="margin:2px 0 0">Spegni quelli che non ti servono appena accendi il PC: Windows parte più veloce. Tasso ti avvisa se se ne aggiunge uno nuovo.</p></div><button class="btn ghost" id="btnStartupReload">Aggiorna</button></div>
+    <div class="list" id="startupList"><div class="li"><span class="muted">Lettura…</span></div></div>
+  </div>
   <h2>Modalità</h2>
-  <p class="sub gm" style="margin:-6px 0 0">Per giocare usa il <a href="#" data-goto="games" style="color:var(--a1)">Boost nella pagina Gioca</a>: mette lui la potenza massima e la toglie quando hai finito.</p>
+  <p class="sub gm" style="margin:-6px 0 0">Per giocare usa il <a href="#" data-goto="games" style="color:var(--a1)">Boost nella pagina Giochi</a>: mette lui la potenza massima e la toglie quando hai finito.</p>
   <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(170px,1fr))" id="modeCards"></div>
   <div class="card gm" id="modeExplain" style="display:none;flex-direction:column;gap:10px">
     <h2 style="margin:0">Cosa cambia davvero tra le modalità</h2>
     <p class="sub" style="margin:0">Da <b>Normale</b> a <b>Gaming</b> la potenza <b>sale per davvero</b>: il processore smette di "riposare" e resta sempre al massimo, Windows attiva la Modalità Gioco e mette in pausa le notifiche. <b>Le ventole non cambiano subito, ed è normale</b>: la velocità delle ventole la decide la scheda madre in base alla temperatura, non Windows — appena il gioco scalda, salgono da sole. Tasso di proposito non le forza, perché cambiare le curve delle ventole a mano è rischioso.</p>
     <div class="list" id="modeCompare"></div>
   </div>
-  <div class="card" style="display:flex;flex-direction:column;gap:10px">
-    <div class="row wrap" style="justify-content:space-between"><div><h2>Programmi all'avvio</h2><p class="sub" style="margin:2px 0 0">Spegni quelli che non ti servono appena accendi il PC: Windows parte più veloce. Tasso ti avvisa se se ne aggiunge uno nuovo.</p></div><button class="btn ghost" id="btnStartupReload">Aggiorna</button></div>
-    <div class="list" id="startupList"><div class="li"><span class="muted">Lettura…</span></div></div>
-  </div>
 </section>
 
 <!-- RILEVA I PROBLEMI -->
 <section class="view" id="v-scan">
-  <div><h1 style="font-size:26px">Rileva i problemi</h1><p class="sub">Un clic e Tasso controlla il PC da cima a fondo: <span class="om">stampanti, internet, Word ed Excel, Outlook, OneDrive, periferiche, tastiera, Windows</span><span class="gm">internet, audio, periferiche, disco, Windows e impostazioni per i giochi</span>. <b>Non cambia niente</b>: ti dice cosa ha trovato e sei tu a scegliere cosa sistemare.</p></div>
+  <div><h1 style="font-size:26px">Salute e problemi</h1><p class="sub">Un clic e Tasso controlla il PC da cima a fondo: <span class="om">stampanti, internet, Word ed Excel, Outlook, OneDrive, periferiche, tastiera, Windows</span><span class="gm">internet, audio, periferiche, disco, Windows e impostazioni per i giochi</span>. <b>Non cambia niente</b>: ti dice cosa ha trovato e sei tu a scegliere cosa sistemare.</p></div>
   <div class="card detcard">
     <span class="dethead"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/><path d="M11 8v3.5M11 14h.01"/></svg></span>
     <div style="flex:1 1 260px;min-width:0"><h2 id="detTitle">Pronto a controllare</h2><p class="sub" id="detStatus" role="status" aria-live="polite" style="margin:4px 0 0">Ci vuole circa un minuto. Puoi continuare a usare il PC.</p></div>
@@ -767,7 +769,7 @@ nav button.navgrp.on{background:transparent;box-shadow:none;color:var(--text)}
 
 <!-- FIX -->
 <section class="view" id="v-fix">
-  <div id="fixTitle"><h1 style="font-size:26px">Risolvi problemi</h1><p class="sub">Un clic sul problema che hai: Tasso prova a sistemarlo da solo. Se non lo trovi, scrivilo nella ricerca. Non sai qual è il problema? <a href="#" id="fixToDetect">Rileva i problemi</a> e te lo dice Tasso.</p></div>
+  <div id="fixTitle"><h1 style="font-size:26px">Risolvi un problema</h1><p class="sub">Un clic sul problema che hai: Tasso prova a sistemarlo da solo. Se non lo trovi, scrivilo nella ricerca. Non sai qual è il problema? <a href="#" id="fixToDetect">Rileva i problemi</a> e te lo dice Tasso.</p></div>
   <div class="fixsearch"><input class="search" id="fixSearch" type="search" placeholder="Scrivi il problema: Wi-Fi, audio, lento, mouse…" aria-label="Cerca un problema"><p class="sub" id="fixNone" role="status" aria-live="polite" style="display:none;margin:8px 0 0">Nessun problema con queste parole. Prova con una parola sola, per esempio "audio", "lento", "mouse" o "password".</p></div>
   <div class="fixsec" id="secWin">
   <div class="sech"><span class="sei">🪟</span><div><h2>Sezione Windows</h2><p class="sub"><span class="gm">Audio, internet, aggiornamenti e ricerca: valgono per tutti.</span><span class="om">Audio, internet, stampa, aggiornamenti e ricerca: valgono per tutti.</span></p></div></div>
@@ -848,7 +850,7 @@ nav button.navgrp.on{background:transparent;box-shadow:none;color:var(--text)}
 </section>
 
 <section class="view" id="v-games">
-  <div><h1 style="font-size:26px">Gioca</h1><p class="sub">Premi il tasto e Tasso prepara il PC per giocare. Quando hai finito, premi "Rimetti com'era".</p></div>
+  <div><h1 style="font-size:26px">Giochi</h1><p class="sub">Premi il tasto e Tasso prepara il PC per giocare. Quando hai finito, premi "Rimetti com'era".</p></div>
   <div class="card boostcard" id="boostCard">
     <div style="flex:1 1 320px;min-width:0"><div class="boostk">PRONTO A GIOCARE</div><h2 id="boostTitle">Il PC è in modalità normale</h2><p class="sub" id="boostSub" style="margin:0">Boost chiude i programmi in background che non servono e prepara il PC per giocare. Con "Misura gli FPS" vedi gli FPS veri. Quando hai finito, premi "Rimetti com'era" (con il Boost automatico, quando chiudi il gioco riapre da solo i programmi chiusi e rimette la modalità di prima).</p><p class="small" style="margin:10px 0 0"><a href="#" id="boostUndo">↩️ Rimetti com'era</a> · <a href="#" id="boostFpsBtn">📊 Misura gli FPS</a> · <a href="#" id="boostCheckBtn">🔍 Controllo FPS</a></p><p class="small" style="margin:8px 0 0"><label style="cursor:pointer"><input type="checkbox" id="boostAuto"> Boost automatico: parte da solo quando apri un gioco; quando lo chiudi riapre i programmi chiusi</label></p><div class="small" id="boostFps" style="margin-top:8px"></div></div>
     <button class="btn primary boostgo" id="btnBoost" aria-label="Boost: prepara il PC per giocare">BOOST</button>
@@ -1022,7 +1024,7 @@ nav button.navgrp.on{background:transparent;box-shadow:none;color:var(--text)}
 
 <!-- SETTINGS -->
 <section class="view" id="v-settings">
-  <div><h1 style="font-size:26px">Impostazioni</h1></div>
+  <div><h1 style="font-size:26px">Impostazioni di Tasso</h1></div>
   <div class="card updcard" id="updCard">
     <div class="updicon">⬆️</div>
     <div class="updtxt"><h2 style="margin:0">Aggiornamenti di Tasso</h2><p class="sub" style="margin:4px 0 0">Versione installata: <b id="verNum2"></b></p><p class="sub" style="margin:4px 0 0" id="appUpdMsg">Controlla se è uscita una versione più nuova: se c’è, Tasso si aggiorna da solo con un clic.</p></div>
@@ -1059,7 +1061,7 @@ nav button.navgrp.on{background:transparent;box-shadow:none;color:var(--text)}
     <div class="card" style="flex:2 1 420px;padding:6px 22px">
       <button class="toggle" id="tgPaused"><span><b>Tasso acceso</b><span>Spento: non parte con Windows, niente pulizie automatiche né avvisi. Riaccendilo e Tasso riprende a funzionare come prima.</span></span><span class="sw"><i></i></span></button>
       <button class="toggle" id="tgAutostart"><span><b>Avvia con Windows</b><span>Tasso parte da solo, ridotto a icona, quando accendi il PC.</span></span><span class="sw"><i></i></span></button>
-      <button class="toggle gm" id="tgGame"><span><b>Boost automatico</b><span>Lo stesso interruttore della pagina Gioca: quando apri un gioco Tasso fa il Boost da solo e, quando lo chiudi, riapre i programmi chiusi e rimette la modalità di prima.</span></span><span class="sw"><i></i></span></button>
+      <button class="toggle gm" id="tgGame"><span><b>Boost automatico</b><span>Lo stesso interruttore della pagina Giochi: quando apri un gioco Tasso fa il Boost da solo e, quando lo chiudi, riapre i programmi chiusi e rimette la modalità di prima.</span></span><span class="sw"><i></i></span></button>
       <div class="gm" style="padding:15px 0;border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:10px">
         <span><b style="font-size:15px">Stato del PC su Discord</b><br><span class="small muted">Tasso manda in un tuo canale Discord il report del PC: voto di salute, processore, scheda video, scheda madre, RAM, dischi, temperature e internet, con le <b style="color:var(--a1)">spunte verdi</b> per tutto quello che va bene. Arriva da solo ogni tot ore e dopo ogni pulizia. Da Discord si può solo leggere, non comandare il PC.</span></span>
         <details class="guide" id="dcGuide"><summary>📘 Come si collega (2 minuti)</summary>
@@ -1421,6 +1423,7 @@ async function detIgnore(id, on, btn){
 $('#btnDetect').onclick = detStart;
 $('#btnHomeDetect').onclick = () => { show('scan'); if (!DET) detStart(); };
 $$('[data-go2]').forEach(b => { b.onclick = () => show(b.dataset.go2); });
+$$('.gspec[data-go2]').forEach(b => { b.onkeydown = (ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); show(b.dataset.go2); } }; });
 try { const hm = $('#homeMore'); if (localStorage.getItem('tassoHomeMore') === '1') hm.open = true; hm.addEventListener('toggle', () => { try { localStorage.setItem('tassoHomeMore', hm.open ? '1' : '0'); } catch (e) {} }); } catch (e) {}
 $('#detToFix').onclick = (e) => { e.preventDefault(); show('fix'); };
 $('#fixToDetect').onclick = (e) => { e.preventDefault(); show('scan'); };
@@ -1458,7 +1461,7 @@ function runStep(id){ const s = STEP[id]; if (s) runSteps([id], s.name, s.desc, 
 $$('[data-step]').forEach(b => { b.onclick = () => runStep(b.dataset.step); });
 $$('[data-steps]').forEach(b => { b.onclick = () => { const ids = b.dataset.steps.split(','); const ss = ids.map(i => STEP[i]).filter(Boolean); runSteps(ids, ss.map(s => s.name).join(' + '), ss.map(s => s.desc).join(' '), ss.reduce((a, s) => a + s.minutes, 0)); }; });
 $('#bigGo').onclick = () => confirmLevel(RECOMMENDED);
-// Turbo (Velocità) tolto in 3.1: chiudere le app in background lo fa il Boost nella pagina Gioca.
+// Turbo (Velocità) tolto in 3.1: chiudere le app in background lo fa il Boost nella pagina Giochi.
 
 /* ---------- run events ---------- */
 const MSGS = [_t('Il computer sta lavorando per la pulizia finale…'), _t('Sto controllando che tutto funzioni bene…'), _t('Metto in ordine i file di Windows…'), _t('Ancora un attimo, sto finendo questo passaggio…'), _t('Niente paura: c\'è il backup se serve tornare indietro.'), _t('Il tasso sta scavando tra i file inutili…')];
@@ -1694,7 +1697,7 @@ const MODES = [
 ];
 function paintModes(){
   const box = $('#modeCards'); box.innerHTML = '';
-  // 3.1: Gaming e FPS competitivo li mette il Boost (pagina Gioca): qui si vedono solo se sono accese.
+  // 3.1: Gaming e FPS competitivo li mette il Boost (pagina Giochi): qui si vedono solo se sono accese.
   MODES.filter(m => (m.id !== 'gaming' && m.id !== 'fps') || m.id === (S.mode || 'normale')).forEach(m => {
     const on = (S.mode || 'normale') === m.id;
     const b = el('button', {class:'mode' + (on ? ' on' : ''), style:'--c:' + m.c, 'aria-pressed': on ? 'true' : 'false'}, '<span class="t">' + m.name + '</span><span class="d">' + m.d + '</span><span class="s">' + (on ? _t('ATTIVA') : _t('ATTIVA CON UN CLIC')) + '</span>');
@@ -2764,7 +2767,7 @@ function paintOverlay(){
   $('#btnOvDx').classList.toggle('primary', pos === 'dx'); $('#btnOvDx').classList.toggle('ghost', pos !== 'dx');
 }
 async function setOv(on, pos){ await call('goOverlaySet', on, pos); S.overlayOn = on; S.overlayPos = pos; paintOverlay(); }
-$('#tgOverlay').onclick = async () => { const on = !S.overlayOn; await setOv(on, S.overlayPos || 'dx'); toast(on ? (S.autoGame ? _t('Pannellino acceso: appare quando giochi.') : _t('Pannellino acceso. Accendi anche il Boost automatico nella pagina Gioca.')) : _t('Pannellino spento.')); };
+$('#tgOverlay').onclick = async () => { const on = !S.overlayOn; await setOv(on, S.overlayPos || 'dx'); toast(on ? (S.autoGame ? _t('Pannellino acceso: appare quando giochi.') : _t('Pannellino acceso. Accendi anche il Boost automatico nella pagina Giochi.')) : _t('Pannellino spento.')); };
 $('#btnOvSx').onclick = () => setOv(!!S.overlayOn, 'sx');
 $('#btnOvDx').onclick = () => setOv(!!S.overlayOn, 'dx');
 $('#btnOvShow').onclick = () => { call('goOverlayShow', true); toast(_t('Pannellino visibile in alto.')); };
