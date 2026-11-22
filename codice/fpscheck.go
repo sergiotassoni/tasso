@@ -476,7 +476,7 @@ func fpsFindings(f pcFacts, scr []screenInfo, last *fpsResult, battery, gpuPrefH
 			add(fpsFinding{ID: "cap", Sev: "big", Title: last.Game + " è bloccato a " + strconv.Itoa(int(capped)) + " FPS",
 				Why:  "Gli FPS sono fermi e la scheda video non è al limite, mentre lo schermo va a " + strconv.Itoa(last.Hz) + " Hz: c'è un limite (V-Sync o limite FPS) nel gioco o nel pannello della scheda video.",
 				Gain: "Finché la scheda video arriva al massimo: spesso +20% e oltre.",
-				Fix:  "Senza G-Sync/FreeSync: nel gioco V-Sync spento e limite FPS uguale ai Hz dello schermo. Con G-Sync/FreeSync: V-Sync acceso nel pannello NVIDIA/AMD, spento nel gioco, limite FPS 3 sotto i Hz.", Action: "tune"})
+				Fix:  "Nel gioco V-Sync spento e limite FPS uguale ai Hz dello schermo (con G-Sync/FreeSync: V-Sync acceso nel pannello NVIDIA/AMD).", Action: "tune"})
 		case last.GpuBusy >= 90 && last.Avg < 100:
 			add(fpsFinding{ID: "upscale", Sev: "big", Title: "La scheda video è al massimo in " + last.Game,
 				Why:  "Lavora per il " + strconv.Itoa(int(last.GpuBusy)) + "% di ogni fotogramma: il limite è lei, non Windows.",

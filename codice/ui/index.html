@@ -3510,7 +3510,6 @@ function openTune(g){
 }
 function tuneOptsUI(o, t){
   const caps = [0, 30, 60, 75, 90, 120, 144, 165, 240];
-  if (t.hz && caps.indexOf(t.hz - 3) < 0) caps.push(t.hz - 3);
   if (t.hz && caps.indexOf(t.hz) < 0) caps.push(t.hz);
   if (o.fpsCap && caps.indexOf(o.fpsCap) < 0) caps.push(o.fpsCap);
   caps.sort((a, b) => a - b);

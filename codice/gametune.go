@@ -276,12 +276,12 @@ func recommend(preset string, tier, hz int, vendor string) tuneRec {
 	case "grafico":
 		r.Label = "Qualità: il gioco più bello possibile, fluido"
 		q := []int{0, 1, 2, 3}[tier]
-		r.Opts = tuneOpts{GpuHigh: true, Mode: "gaming", InGame: true, Quality: q, VSync: false, FPSCap: hz - 3}
+		r.Opts = tuneOpts{GpuHigh: true, Mode: "gaming", InGame: true, Quality: q, VSync: false, FPSCap: hz}
 		r.Graphics = [][]string{
 			{"Qualità generale", qualityNames[q]},
 			{"Upscaling", "FSR / DLSS / XeSS " + up[tier]},
 			{"VSync", "Spento nel gioco, con FreeSync / G-Sync acceso (se il monitor non li ha: VSync acceso)"},
-			{"Limite FPS", strconv.Itoa(hz-3) + " (3 sotto i " + strconv.Itoa(hz) + " Hz: sincronizzazione ottimale, niente strappi)"},
+			{"Limite FPS", strconv.Itoa(hz) + " (come il monitor: niente lavoro sprecato, PC più fresco)"},
 			{"Ray tracing", map[int]string{0: "Spento", 1: "Spento", 2: "Basso o spento", 3: "Medio/Alto"}[tier]},
 			{"Generazione di fotogrammi", "Solo se fai già almeno 60 FPS"},
 		}

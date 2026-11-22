@@ -4,7 +4,6 @@
   "   (dettaglio tecnico: ": "   (technical detail: ",
   "   Saltato: non sono riuscito a salvare com'era Windows, quindi non cambio la privacy.": "   Skipped: I couldn't save how Windows was set up, so I won't change the privacy settings.",
   " %d non distrutti: sono di sistema, aperti in un altro programma o spariti.": " %d not destroyed: they're system files, open in another program, or gone.",
-  " (3 sotto i ": " (3 below the monitor's ",
   " (come il monitor: niente lavoro sprecato, PC più fresco)": " (same as the monitor: no wasted work, cooler PC)",
   " (e la toglie quando chiudi). Ho acceso la Modalità gioco automatica.": " mode on its own (and switches back when you close it). I turned on automatic Game Mode.",
   " (gratis, dal sito ufficiale tramite winget). Può volerci qualche minuto…": " (free, from the official source via winget). This may take a few minutes…",
@@ -13,7 +12,6 @@
   " BIOS download ufficiale": " official BIOS download",
   " Disco ": " Drive ",
   " Hz del monitor)": " Hz)",
-  " Hz: sincronizzazione ottimale, niente strappi)": " Hz: best sync, no tearing)",
   " Processore": " Processor",
   " Scheda madre": " Motherboard",
   " Scheda video": " Graphics card",
@@ -932,7 +930,6 @@
   "Gli FPS sono fermi e la scheda video non è al limite, mentre lo schermo va a ": "FPS are stuck and the graphics card isn't maxed out, while the screen runs at ",
   " Hz: c'è un limite (V-Sync o limite FPS) nel gioco o nel pannello della scheda video.": " Hz: there's a limit (V-Sync or FPS cap) in the game or in the graphics card panel.",
   "Finché la scheda video arriva al massimo: spesso +20% e oltre.": "Until the graphics card is maxed out: often +20% and more.",
-  "Senza G-Sync/FreeSync: nel gioco V-Sync spento e limite FPS uguale ai Hz dello schermo. Con G-Sync/FreeSync: V-Sync acceso nel pannello NVIDIA/AMD, spento nel gioco, limite FPS 3 sotto i Hz.": "Without G-Sync/FreeSync: in the game V-Sync off and FPS cap equal to the screen's Hz. With G-Sync/FreeSync: V-Sync on in the NVIDIA/AMD panel, off in the game, FPS cap 3 below the Hz.",
   "DLSS, FSR o XeSS su Qualità: di solito +20–40% (se non sono già accesi). La generazione di fotogrammi arriva quasi al doppio degli FPS mostrati, ma serve partire da almeno 50–60 FPS.": "DLSS, FSR or XeSS on Quality: usually +20–40% (if not already on). Frame generation gets close to double the FPS shown, but you need at least 50–60 FPS to start with.",
   "Nelle impostazioni grafiche del gioco accendi DLSS (NVIDIA), FSR o XeSS su Qualità, oppure abbassa la grafica di un livello. \"Regola con Tasso\" ti dice la grafica giusta per il tuo PC.": "In the game's graphics settings turn on DLSS (NVIDIA), FSR or XeSS on Quality, or lower the graphics one level. \"Tune with Tasso\" tells you the right graphics for your PC.",
   "Abbassare distanza di visibilità, folla, ombre e fisica: +10–25%. Qui la generazione di fotogrammi aiuta, DLSS/FSR da soli poco.": "Lowering view distance, crowds, shadows and physics: +10–25%. Here frame generation helps, DLSS/FSR alone help little.",
@@ -1043,7 +1040,8 @@
   "Windows Update non offre più quel driver (forse l'ha già messo da solo): premi di nuovo \"Aggiorna con Tasso\" per ricontrollare.": "Windows Update no longer offers that driver (maybe it already installed it): press \"Update with Tasso\" again to recheck.",
   "). Se ti dà problemi usa il punto di ripristino.": "). If it gives you problems use the restore point.",
   "Non sono sicuro di com'è andata. Riavvia il PC e poi premi di nuovo \"Aggiorna con Tasso\" per controllare.": "I'm not sure how it went. Restart the PC and then press \"Update with Tasso\" again to check.",
-  "Windows Update non ha risposto. Riprova tra poco (o usa Risolvi un problema → Windows Update bloccato).": "Windows Update didn't respond. Try again in a moment (or use Fix a problem → Windows Update is stuck)."
+  "Windows Update non ha risposto. Riprova tra poco (o usa Risolvi un problema → Windows Update bloccato).": "Windows Update didn't respond. Try again in a moment (or use Fix a problem → Windows Update is stuck).",
+  "Nel gioco V-Sync spento e limite FPS uguale ai Hz dello schermo (con G-Sync/FreeSync: V-Sync acceso nel pannello NVIDIA/AMD).": "In the game V-Sync off and FPS cap equal to the screen's Hz (with G-Sync/FreeSync: V-Sync on in the NVIDIA/AMD panel)."
  },
  "ps": {
   "   non riuscita, prova a reinstallarla dal Microsoft Store.": "   failed, try reinstalling it from the Microsoft Store.",
