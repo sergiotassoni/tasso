@@ -2324,7 +2324,9 @@
   "Tolto dall'elenco: ": "Removed from the list: ",
   ". La copia di sicurezza è nella cartella backup di Tasso.": ". The backup copy is in Tasso's backup folder.",
   "Non sono riuscito a toglierlo dall'elenco.": "I couldn't remove it from the list.",
-  "Chiudi i programmi che non usi, o usa il Boost prima di giocare.": "Close the programs you're not using, or use Boost before playing."
+  "Chiudi i programmi che non usi, o usa il Boost prima di giocare.": "Close the programs you're not using, or use Boost before playing.",
+  "Gli aggiornamenti chiudono falle di sicurezza: premi Aggiorna.": "Updates close security holes: press Update.",
+  "Le cache della grafica le lascio: servono proprio a non scattare. Solo se gli scatti o gli errori grafici sono iniziati dopo un aggiornamento del driver, usa \"Cache della scheda video\" in Pulisci › Un passaggio alla volta (in Gaming accendi prima \"Mostra tutte le funzioni\" in Impostazioni).": "I'm leaving the graphics caches alone: they are exactly what stops stuttering. Only if the stutters or graphics errors started after a driver update, use \"Graphics card cache\" in Clean › One step at a time (in Gaming, first turn on \"Show all features\" in Settings)."
  },
  "ui": {
   " (consuma di più).": " mode (uses more power).",
@@ -3172,7 +3174,6 @@
   "Nel menu a sinistra vai su": "In the menu on the left, go to",
   "Nessun disco letto.": "No disks read.",
   "Nessun limite": "No limit",
-  "Nessun problema con queste parole. Prova con una parola sola, per esempio \"stampa\", \"audio\", \"lento\" o \"password\".": "No problems match these words. Try a single word, for example \"print\", \"audio\", \"slow\" or \"password\".",
   "Nessun problema trovato 🎉": "No problems found 🎉",
   "Nessun problema, ": "No problems, ",
   "Nessun programma trovato.": "No programs found.",
@@ -4037,7 +4038,6 @@
   "Modalità del PC e programmi che partono all'accensione.": "PC mode and programs that start when you turn it on.",
   "%). Chiudi i programmi che non usi, o usa il Boost prima di giocare.": "%). Close the programs you're not using, or use Boost before playing.",
   "Mostra tutte le funzioni": "Show all features",
-  "In Gaming il menu tiene solo le cose per giocare. Accendi per vedere anche Prestazioni+, File, Mappa del disco e Portachiavi.": "In Gaming the menu keeps only what's for playing. Turn on to also see Performance+, Files, Disk map and Keychain.",
   "Internet e app": "Internet and apps",
   "Audio, internet, aggiornamenti e ricerca: valgono per tutti.": "Audio, internet, updates and search: for everyone.",
   "Cosa fa?": "What does it do?",
@@ -4045,6 +4045,23 @@
   "Boost nella pagina Gioca": "Boost on the Play page",
   ": mette lui la potenza massima e la toglie quando hai finito.": ": it sets full power and removes it when you're done.",
   "Boost automatico": "Auto Boost",
-  "Lo stesso interruttore della pagina Gioca: quando apri un gioco Tasso fa il Boost da solo e, quando lo chiudi, rimette tutto com'era.": "The same switch as on the Play page: when you open a game Tasso does the Boost by itself and, when you close it, puts everything back."
+  "Lo stesso interruttore della pagina Gioca: quando apri un gioco Tasso fa il Boost da solo e, quando lo chiudi, rimette tutto com'era.": "The same switch as on the Play page: when you open a game Tasso does the Boost by itself and, when you close it, puts everything back.",
+  "Un clic e Tasso controlla il PC da cima a fondo:": "One click and Tasso checks your PC from top to bottom:",
+  "stampanti, internet, Word ed Excel, Outlook, OneDrive, periferiche, tastiera, Windows": "printers, internet, Word and Excel, Outlook, OneDrive, devices, keyboard, Windows",
+  "internet, audio, periferiche, disco, Windows e impostazioni per i giochi": "internet, audio, devices, disk, Windows and game settings",
+  "Alcuni problemi si vedono solo quando succedono (per esempio": "Some problems only show up when they happen (for example,",
+  "il secondo schermo nero o il microfono in riunione": "a black second screen or the microphone during a meeting",
+  "il gioco che scatta o il microfono su Discord": "a game that stutters or the microphone on Discord",
+  "): per quelli c'è": "): for those there's",
+  "Gaming: solo le cose per giocare, con giochi, FPS e ping. Ufficio: più semplice e tranquilla, con i 100 problemi da lavoro. Cambia solo cosa vedi, non il PC.": "Gaming: only what you need to play, with games, FPS and ping. Office: simpler and calmer, with 100 common work problems. It only changes what you see, not the PC.",
+  "Modalità Gaming: solo le cose per giocare, con giochi, FPS e ping.": "Gaming mode: only what you need to play, with games, FPS and ping.",
+  "Per chi gioca: solo le cose per giocare, con FPS, ping, giochi e Boost.": "For gamers: only what you need to play, with FPS, ping, games and Boost.",
+  "Scrivi il problema: Wi-Fi, audio, lento, mouse…": "Type the problem: Wi-Fi, audio, slow, mouse…",
+  "🧰 Un passaggio alla volta": "🧰 One step at a time",
+  "· salute del PC, sensori": "· PC health, sensors",
+  "· le pulizie e le riparazioni una per una, da avviare quando vuoi": "· cleanups and repairs one by one, to run whenever you want",
+  "In Gaming il menu tiene solo le cose per giocare. Accendi per vedere anche Prestazioni+, File, Mappa del disco e, in Pulisci, le pulizie una per una (privacy, Download…).": "In Gaming the menu keeps only what's for playing. Turn on to also see Performance+, Files, Disk map and, in Clean, the single cleanups (privacy, Downloads…).",
+  "Nessun problema con queste parole. Prova con una parola sola, per esempio \"audio\", \"lento\", \"mouse\" o \"password\".": "No problems match these words. Try a single word, for example \"audio\", \"slow\", \"mouse\" or \"password\".",
+  "Passaggi in corso": "Steps running"
  }
 }

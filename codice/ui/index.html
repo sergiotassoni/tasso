@@ -232,10 +232,12 @@ body .banner.banner.upd{border-radius:8px;background:color-mix(in srgb,var(--a3)
 .pic{flex:0 0 34px;width:34px;height:34px;border-radius:9px;display:inline-flex;align-items:center;justify-content:center;font-weight:800;font-size:15px;color:#fff;background:hsl(var(--h,200) 45% 38%);margin-right:12px;overflow:hidden}
 .pic img{width:28px;height:28px;object-fit:contain;image-rendering:auto}
 .pic:has(img){background:rgba(255,255,255,.06)}
-/* 2.6: due modalità. Gaming mostra tutto; Ufficio è più semplice, morbida e tranquilla. */
+/* 2.6: due modalità. 3.1: Gaming mostra solo le cose per giocare; Ufficio è più semplice, morbida e tranquilla. */
 body.office .gm{display:none!important}
 body:not(.office):not(.showall) .gadv{display:none!important}
 body:not(.office) .om{display:none!important}
+body.fixq #secOffice{display:block!important}
+body.fixq #secOffice .sech{display:none}
 .look{display:flex;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:4px;gap:4px;margin-top:-4px}
 .look button{flex:1;border:0;background:transparent;color:var(--muted);font-weight:700;font-size:13px;padding:8px 4px;border-radius:10px;display:flex;align-items:center;justify-content:center;gap:6px;transition:background .2s,color .2s}
 .look button:hover{color:var(--text)}
@@ -398,7 +400,7 @@ details.navmore[open]{display:flex;flex-direction:column;gap:2px}
     <button data-go="disk" class="gadv"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-9-9v9z"/><path d="M15 3.5A9 9 0 0 1 20.5 9H15z"/></svg>Mappa del disco</button>
     <button data-go="net"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 9a15 15 0 0 1 20 0M5.5 12.5a10 10 0 0 1 13 0M9 16a5 5 0 0 1 6 0"/><circle cx="12" cy="19.5" r="1"/></svg>Internet</button>
     <button data-go="hw"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="6" width="12" height="12" rx="2"/><rect x="9.5" y="9.5" width="5" height="5"/><path d="M9 2v4M15 2v4M9 18v4M15 18v4M2 9h4M2 15h4M18 9h4M18 15h4"/></svg>Hardware</button>
-    <button data-go="vault" class="gadv"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="15" r="4"/><path d="M10.8 12.2L20 3M16 7l3 3M14 9l2 2"/></svg>Portachiavi</button>
+    <button data-go="vault"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="15" r="4"/><path d="M10.8 12.2L20 3M16 7l3 3M14 9l2 2"/></svg>Portachiavi</button>
     <button data-go="info"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5h.01"/></svg>Info e indice</button>
     </details>
     <button data-go="settings"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg>Impostazioni</button>
@@ -478,8 +480,8 @@ details.navmore[open]{display:flex;flex-direction:column;gap:2px}
         <span class="small muted" style="flex:1 1 220px;align-self:flex-end">Se a quell'ora il PC è spento, la fa appena lo riaccendi. Tasso si apre ridotto a icona e alla fine si richiude da solo. Funziona anche con il portatile a batteria.</span>
       </div>
   </div>
-    <details class="more" id="toolsMore">
-      <summary>🧰 Un passaggio alla volta <span class="muted">· ogni passaggio delle pulizie, da avviare da solo quando vuoi</span></summary>
+    <details class="more gadv" id="toolsMore">
+      <summary>🧰 Un passaggio alla volta <span class="muted">· le pulizie e le riparazioni una per una, da avviare quando vuoi</span></summary>
       <div class="morebox"><div class="grid g3" id="toolCards"></div></div>
     </details>
     <div class="card" id="lastResult" style="display:none"></div>
@@ -545,7 +547,7 @@ details.navmore[open]{display:flex;flex-direction:column;gap:2px}
 
 <!-- RILEVA I PROBLEMI -->
 <section class="view" id="v-scan">
-  <div><h1 style="font-size:26px">Rileva i problemi</h1><p class="sub">Un clic e Tasso controlla il PC da cima a fondo: stampanti, internet, Word ed Excel, Outlook, OneDrive, periferiche, tastiera, Windows<span class="gm"> e impostazioni per i giochi</span>. <b>Non cambia niente</b>: ti dice cosa ha trovato e sei tu a scegliere cosa sistemare.</p></div>
+  <div><h1 style="font-size:26px">Rileva i problemi</h1><p class="sub">Un clic e Tasso controlla il PC da cima a fondo: <span class="om">stampanti, internet, Word ed Excel, Outlook, OneDrive, periferiche, tastiera, Windows</span><span class="gm">internet, audio, periferiche, disco, Windows e impostazioni per i giochi</span>. <b>Non cambia niente</b>: ti dice cosa ha trovato e sei tu a scegliere cosa sistemare.</p></div>
   <div class="card detcard">
     <span class="dethead"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/><path d="M11 8v3.5M11 14h.01"/></svg></span>
     <div style="flex:1 1 260px;min-width:0"><h2 id="detTitle">Pronto a controllare</h2><p class="sub" id="detStatus" role="status" aria-live="polite" style="margin:4px 0 0">Ci vuole circa un minuto. Puoi continuare a usare il PC.</p></div>
@@ -553,7 +555,7 @@ details.navmore[open]{display:flex;flex-direction:column;gap:2px}
     <div class="detbar" id="detBar" hidden><i></i></div>
   </div>
   <div id="detResult" style="display:flex;flex-direction:column;gap:12px"></div>
-  <p class="small muted" id="detNote" style="margin:0">Alcuni problemi si vedono solo quando succedono (per esempio il secondo schermo nero o il microfono in riunione): per quelli c'è <a href="#" id="detToFix">Risolvi problemi</a>, con la ricerca.</p>
+  <p class="small muted" id="detNote" style="margin:0">Alcuni problemi si vedono solo quando succedono (per esempio <span class="om">il secondo schermo nero o il microfono in riunione</span><span class="gm">il gioco che scatta o il microfono su Discord</span>): per quelli c'è <a href="#" id="detToFix">Risolvi problemi</a>, con la ricerca.</p>
 </section>
 
 <!-- PROGRAMS -->
@@ -631,7 +633,7 @@ details.navmore[open]{display:flex;flex-direction:column;gap:2px}
 <!-- FIX -->
 <section class="view" id="v-fix">
   <div id="fixTitle"><h1 style="font-size:26px">Risolvi problemi</h1><p class="sub">Un clic sul problema che hai: Tasso prova a sistemarlo da solo. Se non lo trovi, scrivilo nella ricerca. Non sai qual è il problema? <a href="#" id="fixToDetect">Rileva i problemi</a> e te lo dice Tasso.</p></div>
-  <div class="fixsearch"><input class="search" id="fixSearch" type="search" placeholder="Scrivi il problema: stampante, Word, PDF, zip, Wi-Fi, lento…" aria-label="Cerca un problema"><p class="sub" id="fixNone" role="status" aria-live="polite" style="display:none;margin:8px 0 0">Nessun problema con queste parole. Prova con una parola sola, per esempio "stampa", "audio", "lento" o "password".</p></div>
+  <div class="fixsearch"><input class="search" id="fixSearch" type="search" placeholder="Scrivi il problema: Wi-Fi, audio, lento, mouse…" aria-label="Cerca un problema"><p class="sub" id="fixNone" role="status" aria-live="polite" style="display:none;margin:8px 0 0">Nessun problema con queste parole. Prova con una parola sola, per esempio "audio", "lento", "mouse" o "password".</p></div>
   <div class="fixsec" id="secWin">
   <div class="sech"><span class="sei">🪟</span><div><h2>Sezione Windows</h2><p class="sub"><span class="gm">Audio, internet, aggiornamenti e ricerca: valgono per tutti.</span><span class="om">Audio, internet, stampa, aggiornamenti e ricerca: valgono per tutti.</span></p></div></div>
   <div class="grid g3">
@@ -902,7 +904,7 @@ details.navmore[open]{display:flex;flex-direction:column;gap:2px}
   <div class="card" style="display:flex;flex-direction:column;gap:14px">
     <div><h2>Aspetto</h2><p class="sub" style="margin:2px 0 0">Clicca una scheda e Tasso cambia colore subito. Gaming e Ufficio ricordano ognuna il suo tema.</p></div>
     <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px" id="themeCards"></div>
-    <button class="toggle gm" id="tgShowAll"><span><b>Mostra tutte le funzioni</b><span>In Gaming il menu tiene solo le cose per giocare. Accendi per vedere anche Prestazioni+, File, Mappa del disco e Portachiavi.</span></span><span class="sw"><i></i></span></button>
+    <button class="toggle gm" id="tgShowAll"><span><b>Mostra tutte le funzioni</b><span>In Gaming il menu tiene solo le cose per giocare. Accendi per vedere anche Prestazioni+, File, Mappa del disco e, in Pulisci, le pulizie una per una (privacy, Download…).</span></span><span class="sw"><i></i></span></button>
   </div>
   <div class="row wrap" style="align-items:stretch;gap:18px">
     <div class="card" style="flex:1 1 360px;padding:6px 22px">
@@ -955,7 +957,7 @@ details.navmore[open]{display:flex;flex-direction:column;gap:2px}
       <button class="toggle" id="tgStats" style="display:none"><span><b>📊 Aiuta a migliorare Tasso</b><span>Manda numeri anonimi: versione, Windows, marca di processore e scheda video, RAM, spazio liberato, pulsanti usati, errori. Niente nome, niente file.</span></span><span class="sw"><i></i></span></button>
       <div class="small" id="statsWhatRow" style="display:none;padding:10px 0;border-bottom:1px solid var(--line)"><a href="#" id="lnkStatsWhat">📄 Cosa manda Tasso, nel dettaglio</a></div>
       <button class="toggle" id="tgAlerts"><span><b>Avvisi intelligenti</b><span>Piccoli avvisi in basso a destra (disco quasi pieno, nuovo programma all'avvio). <span class="gm">Mai in modalità Gaming o FPS.</span></span></span><span class="sw"><i></i></span></button>
-      <div style="padding:15px 0;border-bottom:1px solid var(--line)"><b style="font-size:15px">Modalità di Tasso</b><br><span class="small muted">Gaming: tutto, anche giochi, FPS e ping. Ufficio: più semplice e tranquilla, con i 100 problemi da lavoro. Cambia solo cosa vedi, non il PC.</span><div class="row wrap" style="gap:8px;margin-top:10px" id="profBtns"></div></div>
+      <div style="padding:15px 0;border-bottom:1px solid var(--line)"><b style="font-size:15px">Modalità di Tasso</b><br><span class="small muted">Gaming: solo le cose per giocare, con giochi, FPS e ping. Ufficio: più semplice e tranquilla, con i 100 problemi da lavoro. Cambia solo cosa vedi, non il PC.</span><div class="row wrap" style="gap:8px;margin-top:10px" id="profBtns"></div></div>
       <div style="padding:15px 0;border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:10px" id="undoBox">
         <span><b style="font-size:15px">↩️ Torna indietro</b><br><span class="small muted">Tutto quello che Tasso ha cambiato, una cosa per riga. Le modifiche <b>restano anche se spegni o riavvii il PC</b>: tornano com'erano solo se premi tu "Rimetti". Prima di cambiare qualcosa la prima volta, Tasso si salva com'era.</span></span>
         <div class="list" id="undoList"><div class="li"><span class="muted">Lettura…</span></div></div>
@@ -1097,8 +1099,8 @@ const OFFICE_THEMES = ['ufficio', 'carta', 'salvia', 'lavanda', 'ghiaccio', 'sab
 const GAME_THEMES = ['tasso', 'aurora', 'lava', 'neon', 'carbonio', 'belva', 'ghiaccio', 'sabbia'];
 const isOffice = () => S.profile === 'ufficio';
 // 3.1: "Mostra tutte le funzioni" (solo Gaming): preferenza di questo PC.
-function paintShowAll(){ let on = false; try { on = localStorage.getItem('tassoShowAll') === '1'; } catch (e) {} document.body.classList.toggle('showall', on); const t = document.getElementById('tgShowAll'); if (t) t.classList.toggle('on', on); }
-document.addEventListener('click', (e) => { const t = e.target.closest && e.target.closest('#tgShowAll'); if (!t) return; let on = !document.body.classList.contains('showall'); try { localStorage.setItem('tassoShowAll', on ? '1' : '0'); } catch (e2) {} paintShowAll(); });
+function paintShowAll(){ const on = !!(typeof S !== 'undefined' && S && S.showAll); document.body.classList.toggle('showall', on); const t = document.getElementById('tgShowAll'); if (t) t.classList.toggle('on', on); }
+document.addEventListener('click', (e) => { const t = e.target.closest && e.target.closest('#tgShowAll'); if (!t) return; const on = !document.body.classList.contains('showall'); S.showAll = on; paintShowAll(); if (window.goSetShowAll) Promise.resolve(window.goSetShowAll(on)).catch(() => {}); });
 setTimeout(paintShowAll, 0);
 const curTheme = () => isOffice() ? (OFFICE_THEMES.indexOf(S.themeOffice) >= 0 ? S.themeOffice : 'ufficio') : (GAME_THEMES.indexOf(S.theme) >= 0 ? S.theme : 'tasso');
 function applyTheme(id){
@@ -1186,7 +1188,8 @@ async function detStart(){
   $('#btnDetect').disabled = true; $('#detBar').hidden = false; $('#detResult').innerHTML = '';
 }
 // 3.1: Gaming e Ufficio divisi. Le cose del lavoro (stampanti, Office...) solo in Ufficio, quelle dei giochi solo in Gaming.
-const OFFICE_ONLY = (id) => /^of_/.test(id) || id === 'fix_print';
+// Solo le cose del lavoro (stampa, Office, Outlook, Teams, OneDrive, VPN, unità di rete…). Tastiera, mouse, Wi-Fi, disco pieno, ora: valgono per tutti.
+const OFFICE_ONLY = (id) => /^of_(print_|scan$|office_|outlook_|teams$|adobe$|netdrive$|netpwd$|vpn|excel_locked$|onedrive|rdp$|projector$|pwd_expire$|mailto$|regional$)/.test(id) || id === 'fix_print';
 const GAME_ONLY = (id) => /^fix_game_/.test(id) || id === 'fix_discord' || id === 'turbo' || id === 'game_cache';
 const forMode = (id) => isOffice() ? !GAME_ONLY(String(id)) : !OFFICE_ONLY(String(id));
 function detOkId(id){ return !!STEP[id] && forMode(id); }
@@ -1225,7 +1228,7 @@ function paintDetect(){
   list.sort((a, b) => (a.sev === 'p' ? 0 : 1) - (b.sev === 'p' ? 0 : 1));
   const ignFound = found.some(x => IGN.has(x.id));
   const probs = list.filter(x => x.sev === 'p'), tips = list.filter(x => x.sev !== 'p');
-  const n = Math.max(0, (Number(DET.checked) || 0) - (office ? (Number(DET.games) || 0) : 0));
+  const n = Math.max(0, (Number(DET.checked) || 0) - (office ? (Number(DET.games) || 0) : (Number(DET.office) || 0)));
   const when = DET.when ? _t(' Ultimo controllo alle ') + DET.when + '.' : '';
   if (!list.length) {
     $('#detTitle').textContent = ignFound ? _t('Nessun problema nuovo 🎉') : _t('Nessun problema trovato 🎉');
@@ -1340,7 +1343,7 @@ window.tasso = {
   onRunStart(p){
     const lv = LEVELS[(p.level || 0) - 1];
     RUN = {level:p.level, steps:p.steps || [], cur:0, creep:0, freed:0, freedBy:{}};
-    $('#runTitle').textContent = lv ? _t('Pulizia ') + lv.name + _t(' in corso') : (RUN.steps.length === 1 ? RUN.steps[0].name : _t('Strumenti in corso'));
+    $('#runTitle').textContent = lv ? _t('Pulizia ') + lv.name + _t(' in corso') : (RUN.steps.length === 1 ? RUN.steps[0].name : _t('Passaggi in corso'));
     $('#runLog').textContent = ''; $('#btnCancel').disabled = false; $('#btnCancel').textContent = _t('Interrompi');
     runUI(true); paintRun();
     let k = 0; clearInterval(msgTimer); msgTimer = setInterval(() => { $('#runMsg').textContent = MSGS[++k % MSGS.length]; }, 4000);
@@ -1946,14 +1949,16 @@ function toolCard(s){
   p.onclick = () => runStep(s.id);
   d.appendChild(p); return d;
 }
+// 3.1: i problemi dell'ufficio e dei giochi stanno solo in Risolvi problemi, non anche qui.
+const IN_TOOLS = (id) => !/^(of_|fix_game_)/.test(String(id)) && id !== 'fix_discord';
 function paintTools(){
   const box = $('#toolCards'); box.innerHTML = '';
   const byId = {}; STEPS.forEach(s => byId[s.id] = s);
   const placed = {};
   TOOLGROUPS.forEach((g, gi) => {
     if ((g.game && isOffice()) || (g.office && !isOffice())) { g.ids.forEach(id => { placed[id] = true; }); return; }
-    const items = g.ids.filter(forMode).map(id => byId[id]).filter(Boolean);
-    if(!items.length) return;
+    const items = g.ids.filter(id => forMode(id) && IN_TOOLS(id)).map(id => byId[id]).filter(Boolean);
+    if(!items.length) { g.ids.forEach(id => { placed[id] = true; }); return; }
     const det = el('details', {class:'tgroup', style:'--c:var(' + g.c + ')'});
     if (!(g.office && !isOffice())) det.setAttribute('open',''); // tutte le sezioni aperte (quelle dell'ufficio chiuse in Gaming)
     const gt = (!isOffice() && g.ids.indexOf('fix_print') >= 0) ? _t('Internet e app') : g.t;
@@ -1963,7 +1968,7 @@ function paintTools(){
     items.forEach(s => { placed[s.id] = true; body.appendChild(toolCard(s)); });
     det.appendChild(body); box.appendChild(det);
   });
-  const rest = STEPS.filter(s => !placed[s.id] && forMode(s.id));
+  const rest = STEPS.filter(s => !placed[s.id] && forMode(s.id) && IN_TOOLS(s.id));
   if(rest.length){
     const det = el('details', {class:'tgroup', style:'--c:var(--muted)'});
     det.setAttribute('open','');
@@ -2049,7 +2054,7 @@ function paintIndex(){
 
 /* ---------- settings ---------- */
 const PROFILES = [
-  {id:'gioco', name:'Gaming', c:'var(--red)', d:_t('Per chi gioca: tutto Tasso, con FPS, ping, giochi, modalità Gaming e Turbo.'), chips:[_t('Giochi e FPS'),_t('Ping ai server'),_t('Turbo a un clic')], art:'<svg width="112" height="112" viewBox="0 0 200 200" aria-hidden="true"><rect x="4" y="4" width="192" height="192" rx="48" fill="#141725"/><rect x="4" y="4" width="192" height="192" rx="48" fill="none" stroke="var(--a1)" stroke-opacity=".8" stroke-width="7"/><path d="M100 172 L34 94 L58 38 L142 38 L166 94 Z" fill="#F2F4F8"/><path d="M58 38 L86 38 L94 122 L76 132 L44 104 Z" fill="#07080D"/><path d="M142 38 L114 38 L106 122 L124 132 L156 104 Z" fill="#07080D"/><circle cx="74" cy="98" r="9" fill="var(--a1)"/><circle cx="126" cy="98" r="9" fill="var(--a1)"/><path d="M88 148 L112 148 L100 164 Z" fill="#07080D"/></svg>'},
+  {id:'gioco', name:'Gaming', c:'var(--red)', d:_t('Per chi gioca: solo le cose per giocare, con FPS, ping, giochi e Boost.'), chips:[_t('Giochi e FPS'),_t('Ping ai server'),_t('Turbo a un clic')], art:'<svg width="112" height="112" viewBox="0 0 200 200" aria-hidden="true"><rect x="4" y="4" width="192" height="192" rx="48" fill="#141725"/><rect x="4" y="4" width="192" height="192" rx="48" fill="none" stroke="var(--a1)" stroke-opacity=".8" stroke-width="7"/><path d="M100 172 L34 94 L58 38 L142 38 L166 94 Z" fill="#F2F4F8"/><path d="M58 38 L86 38 L94 122 L76 132 L44 104 Z" fill="#07080D"/><path d="M142 38 L114 38 L106 122 L124 132 L156 104 Z" fill="#07080D"/><circle cx="74" cy="98" r="9" fill="var(--a1)"/><circle cx="126" cy="98" r="9" fill="var(--a1)"/><path d="M88 148 L112 148 L100 164 Z" fill="#07080D"/></svg>'},
   {id:'ufficio', name:_t('Ufficio'), c:'var(--a3)', d:_t('Per lavorare: più semplice e tranquilla, con i 100 problemi del PC da ufficio risolti con un clic.'), chips:[_t('Stampanti e Office'),_t('Teams e riunioni'),_t('Pulizia programmata')], art:'<span class="offart"></span>'},
 ];
 function setToggle(id, on, disabled){ const t = $(id); t.classList.toggle('on', !!on); t.disabled = !!disabled; }
@@ -2386,7 +2391,7 @@ const OFFICE = [
 const OFFICE_CHECK = {of_outlook_mail:1, of_outlook_size:1, of_netpwd:1, of_slow_boot:1, of_sleep:1, of_office_protected:1, of_open_with:1, of_deleted:1, of_disk_full:1, of_links:1, of_cam_busy:1, of_net_slow:1, of_battery:1, of_slow_now:1, of_onedrive_conflict:1, of_activation:1, of_temp_profile:1, of_pwd_expire:1, of_bitlocker:1};
 function ofCard(id, ic, c){
   const s = STEP[id]; if (!s) return null;
-  const d = el('div', {class:'ofc', style:'--c:' + c, 'data-q': (s.name + ' ' + s.desc).toLowerCase()},
+  const d = el('div', {class:'ofc', 'data-id': id, style:'--c:' + c, 'data-q': (s.name + ' ' + s.desc).toLowerCase()},
     '<span class="ic">' + ic + '</span><span class="x"><b>' + esc(s.name) + '</b><span>' + esc(s.desc) + '</span></span>');
   const b = el('button', {class:'btn ' + (OFFICE_CHECK[id] ? 'ghost' : 'primary')}, OFFICE_CHECK[id] ? _t('Controlla') : _t('Risolvi'));
   b.onclick = () => runStep(id);
@@ -2417,10 +2422,12 @@ function fixFilter(){
   const words = FIX_Q.toLowerCase().trim().split(/\s+/).filter(Boolean);
   const hit = c => { if (!c.dataset.q) { const h = c.querySelector('h3'), pp = c.querySelector('p'); c.dataset.q = ((h ? h.textContent : '') + ' ' + (pp ? pp.textContent : '')).toLowerCase(); } return words.every(w => c.dataset.q.indexOf(w) >= 0); };
   const off = document.body.classList.contains('office');
+  // In Gaming la Sezione Ufficio resta nascosta, ma se cerchi trovi anche tastiera, mouse, Wi-Fi… (mai stampa, Word, Outlook).
+  document.body.classList.toggle('fixq', !off && words.length > 0);
   let shown = 0;
-  $$('#secWin .fixcard, #secGame .fixcard').forEach(c => { const ok = hit(c); c.style.display = ok ? '' : 'none'; if (ok && !(off && c.closest('.gm'))) shown++; });
-  $$('#ofBlock .ofsec').forEach(d => { let n = 0; d.querySelectorAll('.ofc').forEach(c => { const ok = hit(c); c.style.display = ok ? '' : 'none'; if (ok) n++; }); const nn = d.querySelector('summary .n'); if (nn) { if (!nn.dataset.t) nn.dataset.t = nn.textContent; nn.textContent = words.length ? n + _t(' di ') + nn.dataset.t : nn.dataset.t; } d.style.display = n ? '' : 'none'; d.open = words.length ? n > 0 : !!d.dataset.def; shown += n; });
-  ['#secWin', '#secGame', '#secOffice'].forEach(id => { const sec = $(id); if (!sec) return; const vis = [...sec.querySelectorAll('.fixcard, .ofc')].some(c => c.style.display !== 'none'); sec.style.display = vis ? '' : 'none'; });
+  $$('#secWin .fixcard, #secGame .fixcard').forEach(c => { const ok = hit(c); c.style.display = ok ? '' : 'none'; if (ok && !(off && c.closest('.gm')) && !(!off && c.classList.contains('om'))) shown++; });
+  $$('#ofBlock .ofsec').forEach(d => { let n = 0; d.querySelectorAll('.ofc').forEach(c => { const ok = hit(c) && (off || (words.length > 0 && !OFFICE_ONLY(c.dataset.id || ''))); c.style.display = ok ? '' : 'none'; if (ok) n++; }); const nn = d.querySelector('summary .n'); if (nn) { if (!nn.dataset.t) nn.dataset.t = nn.textContent; nn.textContent = words.length ? n + _t(' di ') + nn.dataset.t : nn.dataset.t; } d.style.display = n ? '' : 'none'; d.open = words.length ? n > 0 : !!d.dataset.def; shown += n; });
+  ['#secWin', '#secGame', '#secOffice'].forEach(id => { const sec = $(id); if (!sec) return; const vis = [...sec.querySelectorAll('.fixcard, .ofc')].some(c => c.style.display !== 'none' && !(!off && c.classList.contains('om')) && !(off && c.closest('.gm'))); sec.style.display = vis ? '' : 'none'; });
   if (!words.length) ['#secWin', '#secGame', '#secOffice'].forEach(id => { const sec = $(id); if (sec) sec.style.display = ''; });
   $('#fixNone').style.display = words.length && !shown ? 'block' : 'none';
   $('#drvCard').style.display = words.length ? 'none' : 'flex';
@@ -2436,7 +2443,8 @@ function applyLook(preview){
   applyTheme(preview ? (off ? (S.themeOffice || 'ufficio') : (S.theme || 'tasso')) : curTheme());
   $$('.offart').forEach(x => { x.innerHTML = OFF_ART; });
 }
-function repaintLook(){ paintModes(); paintTools(); paintIndex(); paintThemes(); paintSettings(); paintOffice(); }
+function repaintLook(){ paintModes(); paintTools(); paintIndex(); paintThemes(); paintSettings(); paintOffice(); paintDetect(); fixFilter(); paintFixPh(); }
+function paintFixPh(){ const i = $('#fixSearch'); if (i) i.placeholder = isOffice() ? _t('Scrivi il problema: stampante, Word, PDF, zip, Wi-Fi, lento…') : _t('Scrivi il problema: Wi-Fi, audio, lento, mouse…'); }
 async function setLook(p){
   if ((isOffice() ? 'ufficio' : 'gioco') === p && S.onboarded) return;
   const r = await call('goSetLook', p);
@@ -2444,9 +2452,10 @@ async function setLook(p){
   S.profile = p; S.onboarded = true;
   applyLook(); repaintLook();
   if (p === 'ufficio' && (CURVIEW === 'games' || CURVIEW === 'perf')) show('home');
+  if (p !== 'ufficio' && !S.showAll && ['perf', 'files', 'disk', 'vault'].indexOf(CURVIEW) >= 0) show('home');
   if (p === 'ufficio' && (S.mode === 'gaming' || S.mode === 'fps')) toast(_t('Modalità Ufficio attiva. Il PC però è ancora in modalità ') + (S.mode === 'fps' ? 'FPS' : 'Gaming') + _t(' (consuma di più).'), 'var(--a3)', {label:_t('Metti Normale'), fn: () => { call('goSetMode', 'normale'); toast(_t('Metto la modalità Normale…')); }});
   else if (p === 'ufficio' && (S.autoGame || S.overlayOn)) toast(_t('Modalità Ufficio attiva. Sono ancora accese funzioni da gioco (') + [S.autoGame ? _t('modalità gioco automatica') : '', S.overlayOn ? _t('pannellino in gioco') : ''].filter(Boolean).join(_t(' e ')) + ').', 'var(--a3)', {label:_t('Spegnile'), fn: async () => { if (S.autoGame) await call('goSetAutoGame', false); if (S.overlayOn) await call('goOverlaySet', false, S.overlayPos || 'dx'); await refreshS(); paintSettings(); toast(_t('Funzioni da gioco spente.')); }});
-  else toast(p === 'ufficio' ? _t('Modalità Ufficio: Tasso più semplice e tranquillo.') : _t('Modalità Gaming: c\'è tutto, anche giochi, FPS e ping.'), p === 'ufficio' ? 'var(--a3)' : 'var(--red)');
+  else toast(p === 'ufficio' ? _t('Modalità Ufficio: Tasso più semplice e tranquillo.') : _t('Modalità Gaming: solo le cose per giocare, con giochi, FPS e ping.'), p === 'ufficio' ? 'var(--a3)' : 'var(--red)');
 }
 $$('#lookSw button').forEach(b => { b.onclick = () => setLook(b.dataset.look); });
 OFFICE.forEach(g => g.ids.forEach(x => { TAGS[x[0]] = [x[1], '--a3']; }));
@@ -2456,7 +2465,7 @@ Object.assign(TAGS, {fix_game_mouse:['AIM','--a4'], fix_game_minimize:['WIN','--
 applyLook();
 const h = new Date().getHours();
 $('#hello').textContent = h < 6 ? _t('Buonanotte!') : h < 13 ? _t('Buongiorno!') : h < 18 ? _t('Buon pomeriggio!') : _t('Buonasera!');
-renderLevels(); paintModes(); paintTools(); paintIndex(); paintThemes(); paintSettings(); paintOffice();
+renderLevels(); paintModes(); paintTools(); paintIndex(); paintThemes(); paintSettings(); paintOffice(); paintFixPh();
 if (!S.onboarded && !BOOT.autoLevel) { paintWelcome(); $('#welcome').classList.add('on'); }
 call('goAnalyze'); call('goHardware'); setTimeout(() => call('goHealth'), 1500);
 if (S.onboarded) setTimeout(statsAsk, 3000);

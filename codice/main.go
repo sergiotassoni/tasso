@@ -419,6 +419,7 @@ func bindAll(w webview2.WebView) {
 	_ = w.Bind("goAddGame", func() string { return addGame() })
 	_ = w.Bind("goHideGame", func(id string, on bool) string { return hideGame(id, on) })
 	_ = w.Bind("goUnhideGames", func() string { return unhideAllGames() })
+	_ = w.Bind("goSetShowAll", func(on bool) string { updateSettings(func(s *Settings) { s.ShowAll = on }); return "ok" })
 	_ = w.Bind("goGamePower", func() map[string]interface{} { return gamePowerList() })
 	_ = w.Bind("goSetGamePower", func(id, mode string) string {
 		return async("gpower", func() { emit("onGamePower", setGamePower(id, mode)) })

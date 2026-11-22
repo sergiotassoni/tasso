@@ -53,7 +53,7 @@ try {
   $last = (New-Object -ComObject Microsoft.Update.AutoUpdate).Results.LastInstallationSuccessDate
   if ($last) {
     $days = [int]((Get-Date) - [datetime]$last).TotalDays
-    if ($days -gt 45) { Bad 10 ('Windows non si aggiorna da ' + $days + ' giorni') 'Gli aggiornamenti chiudono falle di sicurezza: falli dagli Strumenti.' 'winupdate' }
+    if ($days -gt 45) { Bad 10 ('Windows non si aggiorna da ' + $days + ' giorni') 'Gli aggiornamenti chiudono falle di sicurezza: premi Aggiorna.' 'winupdate' }
     else { Good 'Windows aggiornato' }
   }
 } catch {}

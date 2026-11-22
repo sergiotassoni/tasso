@@ -78,6 +78,7 @@ type Settings struct {
 	// 3.1: giochi aggiunti a mano e giochi nascosti dalla libreria.
 	CustomGames []CustomGame `json:"customGames,omitempty"`
 	HiddenGames []string     `json:"hiddenGames,omitempty"`
+	ShowAll     bool         `json:"showAll,omitempty"` // 3.1: in Gaming mostra anche le funzioni nascoste
 	// Comandi gaming accesi da Tasso (per poterli rimettere com'erano) e riavvio richiesto per la GPU.
 	GamingCmds  map[string]bool      `json:"gamingCmds,omitempty"`
 	PingRegion  string               `json:"pingRegion,omitempty"`
