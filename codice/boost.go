@@ -350,7 +350,7 @@ func boostOnOK() ([]string, bool) {
 	}
 	bMu.Lock()
 	s := loadBoost()
-	if s.On {
+	if s.On || bGame != "" { // acceso a mano o dal Boost automatico durante una partita
 		bMu.Unlock()
 		return []string{"Il Boost è già acceso."}, false
 	}
