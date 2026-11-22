@@ -4039,6 +4039,12 @@
   "Mostra tutte le funzioni": "Show all features",
   "In Gaming il menu tiene solo le cose per giocare. Accendi per vedere anche Prestazioni+, File, Mappa del disco e Portachiavi.": "In Gaming the menu keeps only what's for playing. Turn on to also see Performance+, Files, Disk map and Keychain.",
   "Internet e app": "Internet and apps",
-  "Audio, internet, aggiornamenti e ricerca: valgono per tutti.": "Audio, internet, updates and search: for everyone."
+  "Audio, internet, aggiornamenti e ricerca: valgono per tutti.": "Audio, internet, updates and search: for everyone.",
+  "Cosa fa?": "What does it do?",
+  "Per giocare usa il ": "To play use ",
+  "Boost nella pagina Gioca": "Boost on the Play page",
+  ": mette lui la potenza massima e la toglie quando hai finito.": ": it sets full power and removes it when you're done.",
+  "Boost automatico": "Auto Boost",
+  "Lo stesso interruttore della pagina Gioca: quando apri un gioco Tasso fa il Boost da solo e, quando lo chiudi, rimette tutto com'era.": "The same switch as on the Play page: when you open a game Tasso does the Boost by itself and, when you close it, puts everything back."
  }
 }
