@@ -96,6 +96,8 @@ type Settings struct {
 	StatsRuns   int    `json:"statsRuns,omitempty"`
 	StatsRunDay string `json:"statsRunDay,omitempty"`
 	StatsErr    int    `json:"statsErr,omitempty"`
+	// Rileva i problemi (3.1): problemi che la persona ha scelto di ignorare (id del passaggio Risolvi).
+	DetIgnored []string `json:"detIgnored,omitempty"`
 }
 
 // setPaused spegne o riaccende Tasso: da spento non parte con Windows, non fa pulizie
@@ -159,6 +161,33 @@ func setAlert(key string, on bool) string {
 			s.Alerts = defaultAlerts()
 		}
 		s.Alerts[key] = on
+	})
+	return "ok"
+}
+
+// setDetIgnored mette o toglie un problema dalla lista "Problemi ignorati" di Rileva i problemi.
+func setDetIgnored(id string, on bool) string {
+	known := false
+	for _, st := range allSteps {
+		if st.ID == id {
+			known = true
+			break
+		}
+	}
+	if !known {
+		return "problema sconosciuto"
+	}
+	updateSettings(func(s *Settings) {
+		out := make([]string, 0, len(s.DetIgnored)+1)
+		for _, x := range s.DetIgnored {
+			if x != id {
+				out = append(out, x)
+			}
+		}
+		if on {
+			out = append(out, id)
+		}
+		s.DetIgnored = out
 	})
 	return "ok"
 }

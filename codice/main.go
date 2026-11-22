@@ -378,6 +378,7 @@ func bindAll(w webview2.WebView) {
 	_ = w.Bind("goGpuPanel", func(vendor string) string { return openGpuPanel(vendor) })
 	_ = w.Bind("goHealth", func() string { return async("health", healthCheck) })
 	_ = w.Bind("goDetect", func() string { return async("detect", detectProblems) })
+	_ = w.Bind("goDetIgnore", func(id string, on bool) string { return setDetIgnored(id, on) })
 	_ = w.Bind("goSpeedTest", func() string { return async("speed", speedTest) })
 	_ = w.Bind("goUpdatesList", func() string { return async("updates", updatesList) })
 	_ = w.Bind("goUpdatesApply", func(ids []string) string { return async("updates", func() { updatesApply(ids) }) })

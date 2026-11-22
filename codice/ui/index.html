@@ -292,6 +292,12 @@ details.ofg[open]>summary .chev{transform:rotate(90deg)}
 .detitem .x b{font-size:15px}
 .detsev{align-self:flex-start;font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;padding:3px 8px;border-radius:99px;color:color-mix(in srgb,var(--red) 65%,var(--text));background:color-mix(in srgb,var(--red) 14%,transparent)}
 .detsev.c{color:color-mix(in srgb,var(--a4) 60%,var(--text));background:color-mix(in srgb,var(--a4) 16%,transparent)}
+.detign>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:8px;min-height:32px;user-select:none}
+.detign>summary::-webkit-details-marker{display:none}
+.detign>summary .chev{transition:transform .15s;color:var(--muted)}
+.detign[open]>summary .chev{transform:rotate(90deg)}
+.detignrow{margin-top:10px;padding:12px 14px;border-radius:12px;background:var(--panel2)}
+.detignrow .x b{font-size:14px}
 details.ofg .ofgrid{padding:0 12px 12px}
 .ofh h3{font-size:16px;font-family:var(--display);font-weight:600}
 .ofh .n{font-size:12px;color:var(--muted)}
@@ -1164,18 +1170,23 @@ function paintDetect(){
   $('#btnDetect').textContent = _t('🔎 Controlla di nuovo');
   if (DET.error) { $('#detTitle').textContent = _t('Controllo non riuscito'); $('#detStatus').textContent = DET.error; return; }
   const office = isOffice();
-  const list = (DET.found || []).filter(x => x && STEP[x.id] && !(office && String(x.id).startsWith('fix_game_')));
+  const IGN = new Set(Array.isArray(S.detIgnored) ? S.detIgnored : []);
+  const okId = id => STEP[id] && !(office && String(id).startsWith('fix_game_'));
+  const found = (DET.found || []).filter(x => x && okId(x.id));
+  const list = found.filter(x => !IGN.has(x.id));
   list.sort((a, b) => (a.sev === 'p' ? 0 : 1) - (b.sev === 'p' ? 0 : 1));
+  // Problemi ignorati: tutti quelli scelti da te, con il motivo di oggi se il controllo li ha ritrovati.
+  const ign = [...IGN].filter(okId).map(id => found.find(x => x.id === id) || {id: id});
   const probs = list.filter(x => x.sev === 'p'), tips = list.filter(x => x.sev !== 'p');
   const n = Math.max(0, (Number(DET.checked) || 0) - (office ? (Number(DET.games) || 0) : 0));
   const when = DET.when ? _t(' Ultimo controllo alle ') + DET.when + '.' : '';
   if (!list.length) {
-    $('#detTitle').textContent = _t('Nessun problema trovato 🎉');
-    $('#detStatus').textContent = _t('Ho controllato ') + n + _t(' problemi diversi e va tutto bene.') + when;
-    return;
+    $('#detTitle').textContent = ign.length ? _t('Nessun problema nuovo 🎉') : _t('Nessun problema trovato 🎉');
+    $('#detStatus').textContent = _t('Ho controllato ') + n + (ign.length ? _t(' problemi diversi: a parte quelli che hai scelto di ignorare, va tutto bene.') : _t(' problemi diversi e va tutto bene.')) + when;
+  } else {
+    $('#detTitle').textContent = probs.length ? (_t('Ho trovato ') + probs.length + (probs.length === 1 ? _t(' problema') : _t(' problemi')) + (tips.length ? _t(' e ') + tips.length + (tips.length === 1 ? _t(' consiglio') : _t(' consigli')) : '')) : (_t('Nessun problema, ') + tips.length + (tips.length === 1 ? _t(' consiglio') : _t(' consigli')));
+    $('#detStatus').textContent = _t('Ho controllato ') + n + _t(' problemi diversi. Clicca Risolvi su quello che vuoi sistemare, o Ignora se non ti interessa.') + when;
   }
-  $('#detTitle').textContent = probs.length ? (_t('Ho trovato ') + probs.length + (probs.length === 1 ? _t(' problema') : _t(' problemi')) + (tips.length ? _t(' e ') + tips.length + (tips.length === 1 ? _t(' consiglio') : _t(' consigli')) : '')) : (_t('Nessun problema, ') + tips.length + (tips.length === 1 ? _t(' consiglio') : _t(' consigli')));
-  $('#detStatus').textContent = _t('Ho controllato ') + n + _t(' problemi diversi. Clicca Risolvi su quello che vuoi sistemare.') + when;
   const fixable = probs.filter(x => !OFFICE_CHECK[x.id]).map(x => x.id);
   if (fixable.length >= 2) {
     const all = el('button', {class:'btn primary', style:'align-self:flex-start'}, _t('Risolvi i ') + fixable.length + _t(' problemi insieme'));
@@ -1185,9 +1196,37 @@ function paintDetect(){
   list.forEach(x => {
     const s = STEP[x.id], chk = !!OFFICE_CHECK[x.id];
     const c = el('div', {class:'card detitem'}, '<div class="x"><span class="detsev' + (x.sev === 'p' ? '' : ' c') + '">' + (x.sev === 'p' ? _t('Problema') : _t('Consiglio')) + '</span><b>' + esc(s.name) + '</b><span class="sub" style="margin:0">' + esc(x.why || s.desc) + '</span></div>');
+    const btns = el('div', {class:'row', style:'gap:8px'});
     const b = el('button', {class:'btn ' + (x.sev === 'p' ? 'primary' : 'ghost')}, chk ? _t('Controlla') : _t('Risolvi'));
-    b.onclick = () => runStep(x.id); c.appendChild(b); box.appendChild(c);
+    b.onclick = () => runStep(x.id);
+    const ig = el('button', {class:'btn ghost', title:_t('Non segnalarmelo più')}, _t('Ignora'));
+    ig.onclick = () => detIgnore(x.id, true, ig);
+    btns.appendChild(b); btns.appendChild(ig); c.appendChild(btns); box.appendChild(c);
   });
+  if (ign.length) {
+    const d = el('details', {class:'card detign'});
+    d.open = DET_IGN_OPEN;
+    d.addEventListener('toggle', () => { DET_IGN_OPEN = d.open; });
+    d.appendChild(el('summary', {}, '<span class="chev" aria-hidden="true">▸</span><b>' + esc(_t('Problemi ignorati')) + '</b> <span class="muted small">(' + ign.length + ')</span>'));
+    d.appendChild(el('p', {class:'sub', style:'margin:10px 0 0'}, esc(_t('Tasso non te li segnala più. Se cambi idea, clicca Ripristina.'))));
+    ign.forEach(x => {
+      const s = STEP[x.id];
+      const r = el('div', {class:'detitem detignrow'}, '<div class="x"><b>' + esc(s.name) + '</b><span class="sub" style="margin:0">' + esc(x.why || s.desc) + '</span></div>');
+      const rb = el('button', {class:'btn ghost'}, _t('Ripristina'));
+      rb.onclick = () => detIgnore(x.id, false, rb);
+      r.appendChild(rb); d.appendChild(r);
+    });
+    box.appendChild(d);
+  }
+}
+let DET_IGN_OPEN = false;
+async function detIgnore(id, on, btn){
+  if (btn) btn.disabled = true;
+  const r = await call('goDetIgnore', id, on);
+  if (r !== 'ok') { if (btn) btn.disabled = false; toast(_t('Non sono riuscito a salvare la scelta: riprova.'), 'var(--red)'); return; }
+  await refreshS();
+  paintDetect();
+  toast(on ? _t('Ignorato: non te lo segnalo più. Lo trovi in fondo, in Problemi ignorati.') : _t('Ripristinato: se c\'è ancora, te lo segnalo di nuovo.'));
 }
 $('#btnDetect').onclick = detStart;
 $('#btnHomeDetect').onclick = () => { show('scan'); if (!DET) detStart(); };

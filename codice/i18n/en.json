@@ -801,7 +801,8 @@
   "Messaggio mandato. Grazie, lo leggo davvero!": "Message sent. Thank you, I really read it!",
   "Idea": "Idea",
   "Problema": "Problem",
-  "Commento": "Comment"
+  "Commento": "Comment",
+  "problema sconosciuto": "unknown problem"
  },
  "ps": {
   "   non riuscita, prova a reinstallarla dal Microsoft Store.": "   failed, try reinstalling it from the Microsoft Store.",
@@ -3624,6 +3625,16 @@
   "Puoi mettere questo commento sul sito di Tasso": "You can put this comment on the Tasso website",
   "Nome da mostrare sul sito (facoltativo, per esempio \"Marco, Torino\")": "Name to show on the website (optional, for example \"Mark, London\")",
   "Se lo lasci vuoto, sul sito compare \"Un utente di Tasso\". L'email non va mai sul sito.": "If you leave it empty, the website shows \"A Tasso user\". Your email never goes on the website.",
-  "Puoi metterlo sul sito": "You can put it on the website"
+  "Puoi metterlo sul sito": "You can put it on the website",
+  "Nessun problema nuovo 🎉": "No new problems 🎉",
+  " problemi diversi: a parte quelli che hai scelto di ignorare, va tutto bene.": " different problems: apart from the ones you chose to ignore, everything is fine.",
+  " problemi diversi. Clicca Risolvi su quello che vuoi sistemare, o Ignora se non ti interessa.": " different problems. Click Fix on the one you want to sort out, or Ignore if you don't care about it.",
+  "Non segnalarmelo più": "Don't tell me about this again",
+  "Ignora": "Ignore",
+  "Problemi ignorati": "Ignored problems",
+  "Tasso non te li segnala più. Se cambi idea, clicca Ripristina.": "Tasso won't flag these any more. If you change your mind, click Restore.",
+  "Ripristina": "Restore",
+  "Ignorato: non te lo segnalo più. Lo trovi in fondo, in Problemi ignorati.": "Ignored: I won't flag it again. You'll find it at the bottom, in Ignored problems.",
+  "Ripristinato: se c'è ancora, te lo segnalo di nuovo.": "Restored: if it's still there, I'll flag it again."
  }
 }
