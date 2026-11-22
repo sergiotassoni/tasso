@@ -236,8 +236,8 @@ func assicuraMotore() {
 		motoreMu.Lock()
 		m := motore
 		motoreMu.Unlock()
-		if m != nil && !mozOK.Load() {
-			// il motore c'è ma non era pronto (file mancanti o rovinati): ricarico la sua pagina
+		if e, _ := mozErr.Load().(string); m != nil && !mozOK.Load() && e != "" {
+			// il motore c'è ma ha detto che non è pronto (file mancanti o rovinati): ricarico la sua pagina
 			m.Dispatch(func() { m.Navigate(url) })
 		}
 		return
@@ -447,13 +447,14 @@ func emetti(nome string, dati interface{}) {
 }
 
 func collega(w webview2.WebView) {
-	_ = w.Bind("ttStato", func() map[string]interface{} {
-		// la pagina Giochi è aperta e il traduttore è già scaricato: lo preparo, così
-		// l'interruttore e la procedura lo trovano pronto (e non chiedono di riscaricarlo)
+	_ = w.Bind("ttStato", func() map[string]interface{} { return stato() })
+	// ttPrepara: la pagina Giochi è aperta (mai in Ufficio) e il traduttore è già scaricato:
+	// lo preparo, così l'interruttore e la procedura lo trovano pronto
+	_ = w.Bind("ttPrepara", func() string {
 		if mozillaPresente() && !motoreAvviato.Load() {
 			go assicuraMotore()
 		}
-		return stato()
+		return "ok"
 	})
 	_ = w.Bind("ttScaricaMozilla", func() string { go scaricaMozilla(); return "ok" })
 	_ = w.Bind("ttAnalizzaPC", func() string {

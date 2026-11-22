@@ -128,9 +128,22 @@ func applicaTraduzione(nome, cartella string) {
 		emetti("guidata", map[string]any{"nome": nome, "errore": testo})
 	}
 	passo(5, "Controllo il traduttore veloce…")
-	if !mozillaPresente() || !mozOK.Load() {
+	if !mozillaPresente() {
 		fallito("Il traduttore veloce non è pronto: scaricalo in Giochi → Impostazioni (o con il pulsante qui sopra) e riprova.")
 		return
+	}
+	if !mozOK.Load() {
+		// scaricato ma il motore si sta ancora aprendo (pochi secondi dopo l'avvio di Tasso): aspetto
+		assicuraMotore()
+		for t := time.Now(); !mozOK.Load() && time.Since(t) < 20*time.Second; time.Sleep(250 * time.Millisecond) {
+			if e, _ := mozErr.Load().(string); e != "" {
+				break
+			}
+		}
+		if !mozOK.Load() {
+			fallito("Il traduttore veloce è scaricato ma non è partito: in Giochi → Impostazioni premi Riprova, poi rifai Applica.")
+			return
+		}
 	}
 	// lingue scelte: scarico i modelli che mancano (il giocatore ha visto la dimensione al passo 3)
 	i := leggiImp()

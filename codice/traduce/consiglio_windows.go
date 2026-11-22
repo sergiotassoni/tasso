@@ -107,6 +107,13 @@ func profiloPC() (ProfiloCorrettore, bool) {
 	if g == nil {
 		return ProfiloCorrettore{}, false
 	}
+	if g.Nome == "" && g.MemoriaGB == 0 { // misura non riuscita o nessuna scheda dedicata
+		m := g.Motivo
+		if m == "" {
+			m = "Non sono riuscito a misurare la scheda video."
+		}
+		return ProfiloCorrettore{Motivo: m}, true
+	}
 	// conto la scheda a riposo: il gioco non è ancora aperto
 	return sceltaCorrettore(InfoGPU{Nome: g.Nome, MemoriaGB: g.MemoriaGB}, ram, core), true
 }

@@ -202,7 +202,7 @@ func segnaLinguaVista(cartella, nome, lingua string) bool {
 		return false // il gioco è già nella lingua che vuoi (non lo ricordo come lingua del gioco)
 	}
 	if !coppiaPronta(lingua, a) {
-		dillaUnaVolta("modelli"+lingua+a, "Le scritte sono in "+nomeLingua(lingua)+": per tradurle in "+nomeLingua(a)+" scarica la lingua, nella procedura a passi del gioco.")
+		dillaUnaVolta("modelli"+lingua+a, "Lingua delle scritte: "+nomeLingua(lingua)+". Per tradurle in "+nomeLingua(a)+" scarica la lingua nella procedura a passi del gioco.")
 		return false
 	}
 	linguaRilevata.Store(lingua) // solo una lingua che so davvero tradurre

@@ -390,7 +390,7 @@ func messaggioLingua(nome, lingua string) string {
 	if lingua == a {
 		return nome + " è già in " + nomeLingua(a) + ": non serve tradurlo."
 	}
-	return "Le scritte di " + nome + " sono in " + nomeLingua(lingua) + ": per tradurle scarica il " + nomeLingua(lingua) + ", nella procedura a passi del gioco."
+	return nome + " · lingua delle scritte: " + nomeLingua(lingua) + ". Per tradurle scarica la lingua nella procedura a passi del gioco."
 }
 
 // segnaLingua: ricordo la lingua delle scritte lette sullo schermo di un gioco.

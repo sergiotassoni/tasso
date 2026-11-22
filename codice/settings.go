@@ -81,6 +81,8 @@ type Settings struct {
 	CustomGames []CustomGame `json:"customGames,omitempty"`
 	HiddenGames []string     `json:"hiddenGames,omitempty"`
 	ShowAll     bool         `json:"showAll,omitempty"` // 3.1: in Gaming mostra anche le funzioni nascoste
+	// 3.1: "Aggiorna Tasso da solo" è acceso di base; true = l'utente l'ha spento.
+	NoAutoUpdate bool `json:"noAutoUpdate,omitempty"`
 	// Comandi gaming accesi da Tasso (per poterli rimettere com'erano) e riavvio richiesto per la GPU.
 	GamingCmds  map[string]bool      `json:"gamingCmds,omitempty"`
 	PingRegion  string               `json:"pingRegion,omitempty"`

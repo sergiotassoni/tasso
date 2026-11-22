@@ -1190,7 +1190,7 @@
   "Con questo PC (": "With this PC (",
   " GB di memoria, ": " GB of memory, ",
   " core) l'IA rallenterebbe il gioco: uso solo il traduttore veloce.": " cores) AI would slow the game down: I only use the fast translator.",
-  "Liberi sulla scheda video solo ": "Only free on the graphics card: ",
+  "Liberi sulla scheda video solo ": "Free on the graphics card: only ",
   " GB: la lascio tutta al gioco e uso solo il traduttore veloce.": " GB: I leave it all to the game and only use the fast translator.",
   " GB liberi sulla scheda video: il correttore lavora tutto lì (circa ": " GB free on the graphics card: the corrector works entirely there (about ",
   " GB liberi: il correttore lavora in parte sulla scheda video (circa ": " GB free: the corrector works partly on the graphics card (about ",
@@ -1218,7 +1218,13 @@
   "spento per questo gioco: traduco con il traduttore veloce": "off for this game: I translate with the fast translator",
   "installato, ma su questo PC rallenterebbe il gioco: traduco con il traduttore veloce": "installed, but on this PC it would slow the game down: I translate with the fast translator",
   "Le frasi migliorate dal correttore IA si vedono dalla volta dopo. ": "Sentences improved by the AI corrector show up from the next time. ",
-  "Se il gioco si aggiorna, rifai Applica.": "If the game updates, do Apply again."
+  "Se il gioco si aggiorna, rifai Applica.": "If the game updates, do Apply again.",
+  "Il traduttore veloce è scaricato ma non è partito: in Giochi → Impostazioni premi Riprova, poi rifai Applica.": "The fast translator is downloaded but didn't start: in Games → Settings press Try again, then do Apply again.",
+  "Lingua delle scritte: ": "Text language: ",
+  ". Per tradurle in ": ". To translate it into ",
+  " scarica la lingua nella procedura a passi del gioco.": " download the language in the game's step-by-step setup.",
+  " · lingua delle scritte: ": " · text language: ",
+  ". Per tradurle scarica la lingua nella procedura a passi del gioco.": ". To translate it download the language in the game's step-by-step setup."
  },
  "ps": {
   "   non riuscita, prova a reinstallarla dal Microsoft Store.": "   failed, try reinstalling it from the Microsoft Store.",
@@ -4843,6 +4849,22 @@
   "Riprova": "Try again",
   "… La traduzione non è accesa: prima scarica il traduttore veloce in Giochi → Impostazioni.": "… Translation isn't on: first download the fast translator in Games → Settings.",
   "accende già quelle utili. Qui le puoi accendere o spegnere una per una: ogni comando ti spiega cosa fa e se ci sono rischi. Quando lo spegni torna com'era prima di Tasso.": "already turns on the useful ones. Here you can turn them on or off one by one: each command explains what it does and whether there are risks. When you turn it off it goes back to how it was before Tasso.",
-  "Il profilo gioco è stato sostituito dal": "The game profile has been replaced by the"
+  "Il profilo gioco è stato sostituito dal": "The game profile has been replaced by the",
+  "Aggiorna Tasso da solo": "Update Tasso by itself",
+  "Quando esce una versione nuova Tasso la scarica, controlla che sia firmata da noi e si riapre. Prima ti avvisa e puoi dire \"Non ora\". Non lo fa mentre giochi o durante una pulizia.": "When a new version comes out Tasso downloads it, checks that it's signed by us and reopens. It warns you first and you can say \"Not now\". It doesn't do it while you play or during a cleanup.",
+  "Tasso si aggiornerà da solo.": "Tasso will update by itself.",
+  "Tasso ti avviserà quando esce una versione nuova, e aggiorni tu.": "Tasso will tell you when a new version comes out, and you update it.",
+  "Va bene: aggiorni tu dalle Impostazioni quando vuoi.": "OK: update it yourself from Settings whenever you want.",
+  "Aggiorno Tasso": "Updating Tasso",
+  "È uscita la versione ": "Version ",
+  ". Tasso la scarica, controlla la firma e si riapre da solo. Le impostazioni restano.": " is out. Tasso downloads it, checks the signature and reopens by itself. Your settings stay.",
+  "Aggiorna adesso": "Update now",
+  "Azzurro": "Light blue",
+  "Chiaro · azzurro tenue": "Light · soft blue",
+  "Chiaro · verde tenue": "Light · soft green",
+  "Chiaro · lilla tenue": "Light · soft lilac",
+  "Perla": "Pearl",
+  "Chiaro · grigio perla": "Light · pearl grey",
+  "🛑 Cosa chiude il Boost": "🛑 What the Boost closes"
  }
 }
