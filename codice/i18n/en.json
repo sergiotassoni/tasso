@@ -4035,6 +4035,10 @@
   "driver del ": "driver from ",
   "Senza punto di ripristino, se il driver nuovo dà problemi prova Gestione dispositivi → scheda video → Ripristina driver (se il pulsante è attivo), oppure il sito AMD.": "Without a restore point, if the new driver gives problems try Device Manager → graphics card → Roll Back Driver (if the button is active), or the AMD site.",
   "Modalità del PC e programmi che partono all'accensione.": "PC mode and programs that start when you turn it on.",
-  "%). Chiudi i programmi che non usi, o usa il Boost prima di giocare.": "%). Close the programs you're not using, or use Boost before playing."
+  "%). Chiudi i programmi che non usi, o usa il Boost prima di giocare.": "%). Close the programs you're not using, or use Boost before playing.",
+  "Mostra tutte le funzioni": "Show all features",
+  "In Gaming il menu tiene solo le cose per giocare. Accendi per vedere anche Prestazioni+, File, Mappa del disco e Portachiavi.": "In Gaming the menu keeps only what's for playing. Turn on to also see Performance+, Files, Disk map and Keychain.",
+  "Internet e app": "Internet and apps",
+  "Audio, internet, aggiornamenti e ricerca: valgono per tutti.": "Audio, internet, updates and search: for everyone."
  }
 }
