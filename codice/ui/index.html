@@ -3403,7 +3403,7 @@ function paintGame(g){
   $('#gpBack').onclick = () => { closeGame(); const c = [...$$('#libGrid .cover')].find(x => x.closest('.card').querySelector('b[title]').title === g.name); if (c) c.focus(); };
   box.querySelectorAll('[data-act]').forEach(b => { b.onclick = async () => {
     const a = b.dataset.act;
-    if (a === 'play') { const r = await call('goLaunchGame', g.id); toast(r === 'ok' ? _t('Avvio ') + g.name + '…' : r); }
+    if (a === 'play') { if (m && !m.skip && m.a && GPI && GPI.tradotto && TT && !TT.acceso) { await ttc('ttAccendi', true); ttRefresh(); } const r = await call('goLaunchGame', g.id); toast(r === 'ok' ? _t('Avvio ') + g.name + '…' : r); }
     else if (a === 'wiz') wzOpen(g);
     else if (a === 'tune') openTune(g);
     else if (a === 'opt') gameOptions(g);
