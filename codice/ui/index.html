@@ -455,6 +455,34 @@ details.navmore[open]{display:flex;flex-direction:column;gap:2px}
 .gph .pic{flex:none;width:64px;height:64px;margin:0;font-size:28px;border-radius:16px}.cover .gph .pic img{position:static;width:48px;height:48px;object-fit:contain}
 .gph .gini{font-size:34px;color:#fff;opacity:.9}
 @media (max-width:560px){#libGrid{grid-template-columns:repeat(auto-fill,minmax(130px,1fr))!important}}
+/* 3.1 nuova disposizione: gruppi del menu */
+.navsub{display:none;flex-direction:column;gap:1px;margin:2px 0 6px 18px;padding-left:8px;border-left:1px solid var(--line)}
+.navsub.open{display:flex}
+.navsub button{font-size:13px;padding:5px 10px}
+.navsub button>svg{width:15px!important;height:15px!important;padding:4px!important}
+nav button[data-grp="rip"]{--ic:#4DA3FF} nav button[data-grp="opz"]{--ic:#A1A6B4}
+nav button.navgrp.on{background:transparent;box-shadow:none;color:var(--text)}
+@media (max-width:760px){.navsub{margin-left:0;padding-left:0;border-left:0}}
+/* 3.1: menu a tendina Gaming/Ufficio accanto a TASSO */
+.brand{position:relative}
+.brandt{display:flex;flex-direction:column;align-items:flex-start;gap:4px;min-width:0}
+.modesel{margin:0}
+.brand>svg{flex:none}
+#modeNow{display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+#modeBtn{display:flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--panel);color:var(--text);border-radius:9px;padding:3px 9px;font:700 12px var(--body,inherit);cursor:pointer}
+#modeBtn:hover{border-color:var(--a1)}
+#modeBtn .chev{color:var(--muted);font-size:11px}
+.modemenu{position:absolute;top:calc(100% + 6px);left:0;right:0;z-index:50;display:flex;flex-direction:column;gap:4px;padding:6px;border-radius:12px;border:1px solid var(--line);background:var(--panel);box-shadow:0 12px 30px rgba(0,0,0,.35)}
+.modemenu[hidden]{display:none}
+.modemenu button{display:flex;align-items:center;gap:10px;text-align:left;border:0;background:transparent;color:var(--text);padding:9px 10px;border-radius:9px;font-size:18px;cursor:pointer}
+.modemenu button:hover{background:var(--hover)}
+.modemenu button.on{background:color-mix(in srgb,var(--a1) 16%,transparent);box-shadow:inset 0 0 0 1px var(--a1)}
+.modemenu b{display:block;font-size:14px}.modemenu small{display:block;font-size:12px;color:var(--muted)}
+@media (max-width:760px){.brand{flex-direction:column;gap:6px}.modesel{margin-left:0}#modeBtn .lt,#modeBtn .chev{display:none}#modeBtn{padding:6px}.modemenu{position:fixed;left:70px;right:auto;top:12px;width:230px}aside .brand .modemenu b,aside .brand .modemenu small{display:block}}
+/* 3.1: gli occhi del tasso si muovono ogni 5 secondi */
+.brand .pup{animation:tlook 5s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
+@keyframes tlook{0%,70%,100%{transform:translateX(0)}76%,82%{transform:translateX(-45%)}88%,93%{transform:translateX(45%)}}
+@media (prefers-reduced-motion:reduce){.brand .pup{animation:none}}
 </style>
 </head>
 <body>
@@ -464,28 +492,32 @@ details.navmore[open]{display:flex;flex-direction:column;gap:2px}
 <div class="app">
 <aside>
   <div class="brand">
-    <svg class="gm" width="44" height="44" viewBox="0 0 200 200" aria-hidden="true"><rect x="4" y="4" width="192" height="192" rx="48" fill="#141725"/><rect x="4" y="4" width="192" height="192" rx="48" fill="none" stroke="var(--a1)" stroke-opacity=".75" stroke-width="7"/><path d="M100 172 L34 94 L58 38 L142 38 L166 94 Z" fill="#F2F4F8"/><path d="M58 38 L86 38 L94 122 L76 132 L44 104 Z" fill="#07080D"/><path d="M142 38 L114 38 L106 122 L124 132 L156 104 Z" fill="#07080D"/><circle cx="74" cy="98" r="9" fill="var(--a1)"/><circle cx="126" cy="98" r="9" fill="var(--a1)"/></svg><svg class="om tassino" width="44" height="44" viewBox="0 0 200 200" aria-hidden="true"><rect x="4" y="4" width="192" height="192" rx="48" fill="#FFFFFF"/><rect x="4" y="4" width="192" height="192" rx="48" fill="none" stroke="#C9CDD4" stroke-width="6"/><g transform="translate(28 36) scale(0.6)"><path d="M44 22 H196 L226 104 L120 206 L14 104 Z" fill="#0A0B0D"/><path d="M80 22 H106 L108 142 L56 132 L36 98 Z" fill="#FFFFFF"/><path d="M160 22 H134 L132 142 L184 132 L204 98 Z" fill="#FFFFFF"/><circle cx="82" cy="112" r="12" fill="#2F6FEB"/><circle cx="158" cy="112" r="12" fill="#2F6FEB"/><path d="M100 164 H140 L120 190 Z" fill="#FFFFFF"/></g></svg>
-    <div><b>TASSO</b></div>
+    <svg class="gm" width="44" height="44" viewBox="0 0 200 200" aria-hidden="true"><rect x="4" y="4" width="192" height="192" rx="48" fill="#141725"/><rect x="4" y="4" width="192" height="192" rx="48" fill="none" stroke="var(--a1)" stroke-opacity=".75" stroke-width="7"/><path d="M100 172 L34 94 L58 38 L142 38 L166 94 Z" fill="#F2F4F8"/><path d="M58 38 L86 38 L94 122 L76 132 L44 104 Z" fill="#07080D"/><path d="M142 38 L114 38 L106 122 L124 132 L156 104 Z" fill="#07080D"/><circle class="pup" cx="74" cy="98" r="9" fill="var(--a1)"/><circle class="pup" cx="126" cy="98" r="9" fill="var(--a1)"/></svg><svg class="om tassino" width="44" height="44" viewBox="0 0 200 200" aria-hidden="true"><rect x="4" y="4" width="192" height="192" rx="48" fill="#FFFFFF"/><rect x="4" y="4" width="192" height="192" rx="48" fill="none" stroke="#C9CDD4" stroke-width="6"/><g transform="translate(28 36) scale(0.6)"><path d="M44 22 H196 L226 104 L120 206 L14 104 Z" fill="#0A0B0D"/><path d="M80 22 H106 L108 142 L56 132 L36 98 Z" fill="#FFFFFF"/><path d="M160 22 H134 L132 142 L184 132 L204 98 Z" fill="#FFFFFF"/><circle class="pup" cx="82" cy="112" r="12" fill="#2F6FEB"/><circle class="pup" cx="158" cy="112" r="12" fill="#2F6FEB"/><path d="M100 164 H140 L120 190 Z" fill="#FFFFFF"/></g></svg>
+    <div class="brandt"><b>TASSO</b><div class="modesel"><button id="modeBtn" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="lookSw" title="Cambia modalità"><span id="modeNow">🎮 <span class="lt">Gaming</span></span><span class="chev" aria-hidden="true">▾</span></button>
+      <div class="modemenu" id="lookSw" role="group" aria-label="Modalità di Tasso" hidden><button type="button" data-look="gioco">🎮 <span><b>Gaming</b><small>Giochi, Boost, FPS e ping</small></span></button><button type="button" data-look="ufficio">💼 <span><b>Ufficio</b><small>Più semplice, con i problemi dell'ufficio</small></span></button></div></div></div>
   </div>
-  <div class="look" id="lookSw" role="group" aria-label="Modalità di Tasso"><button data-look="gioco" title="Modalità Gaming" aria-label="Modalità Gaming">🎮<span class="lt">Gaming</span></button><button data-look="ufficio" title="Modalità Ufficio" aria-label="Modalità Ufficio">💼<span class="lt">Ufficio</span></button></div>
   <nav aria-label="Menu">
     <button data-go="home" class="on"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg>Home</button>
-    <button data-go="games" class="gm"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="11" rx="4"/><path d="M7 11v3M5.5 12.5h3M15.5 12h.01M18 13.5h.01"/></svg>Gioca</button>
-    <button data-go="clean"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.8 4.7 4.7 1.8-4.7 1.8L12 16l-1.8-4.7-4.7-1.8 4.7-1.8z"/><path d="M19 15l.8 2.2 2.2.8-2.2.8L19 21l-.8-2.2-2.2-.8 2.2-.8z"/></svg>Pulisci</button>
-    <button data-go="scan"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/><path d="M11 8v3.5M11 14h.01"/></svg>Problemi</button>
-    <details class="navmore" id="navMore"><summary><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="5" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="19" cy="12" r="1.3"/></svg><span>Altro</span></summary>
-    <button data-go="speed"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg>Velocità</button>
-    <button data-go="perf" class="gadv gm"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/><path d="M19 3v4M21 5h-4" opacity=".7"/></svg>Prestazioni+</button>
-    <button data-go="fix"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.6 2.6-2.4-.6-.6-2.4z"/></svg>Risolvi problemi</button>
-    <button data-go="programs"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><path d="M14 17.5h7M17.5 14v7"/></svg>Programmi</button>
-    <button data-go="files" class="gadv"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>File</button>
-    <button data-go="disk" class="gadv"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-9-9v9z"/><path d="M15 3.5A9 9 0 0 1 20.5 9H15z"/></svg>Mappa del disco</button>
-    <button data-go="net"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 9a15 15 0 0 1 20 0M5.5 12.5a10 10 0 0 1 13 0M9 16a5 5 0 0 1 6 0"/><circle cx="12" cy="19.5" r="1"/></svg>Internet</button>
-    <button data-go="hw"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="6" width="12" height="12" rx="2"/><rect x="9.5" y="9.5" width="5" height="5"/><path d="M9 2v4M15 2v4M9 18v4M15 18v4M2 9h4M2 15h4M18 9h4M18 15h4"/></svg>Hardware</button>
-    <button data-go="vault"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="15" r="4"/><path d="M10.8 12.2L20 3M16 7l3 3M14 9l2 2"/></svg>Portachiavi</button>
-    <button data-go="info"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5h.01"/></svg>Info e indice</button>
-    </details>
-    <button data-go="settings"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg>Impostazioni</button>
+    <button data-go="games" class="gm"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="11" rx="4"/><path d="M7 11v3M5.5 12.5h3M15.5 12h.01M18 13.5h.01"/></svg>Giochi</button>
+    <button data-grp="rip" class="navgrp"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.8 4.7 4.7 1.8-4.7 1.8L12 16l-1.8-4.7-4.7-1.8 4.7-1.8z"/><path d="M19 15l.8 2.2 2.2.8-2.2.8L19 21l-.8-2.2-2.2-.8 2.2-.8z"/></svg>Pulisci e ripara</button>
+    <div class="navsub" data-sub="rip">
+      <button data-go="clean"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.8 4.7 4.7 1.8-4.7 1.8L12 16l-1.8-4.7-4.7-1.8 4.7-1.8z"/><path d="M19 15l.8 2.2 2.2.8-2.2.8L19 21l-.8-2.2-2.2-.8 2.2-.8z"/></svg>Pulisci</button>
+      <button data-go="scan"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/><path d="M11 8v3.5M11 14h.01"/></svg>Salute e problemi</button>
+      <button data-go="fix"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.6 2.6-2.4-.6-.6-2.4z"/></svg>Risolvi un problema</button>
+      <button data-go="speed"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg>Avvio del PC</button>
+      <button data-go="programs"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><path d="M14 17.5h7M17.5 14v7"/></svg>Programmi</button>
+      <button data-go="net"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 9a15 15 0 0 1 20 0M5.5 12.5a10 10 0 0 1 13 0M9 16a5 5 0 0 1 6 0"/><circle cx="12" cy="19.5" r="1"/></svg>Internet</button>
+      <button data-go="hw"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="6" width="12" height="12" rx="2"/><rect x="9.5" y="9.5" width="5" height="5"/><path d="M9 2v4M15 2v4M9 18v4M15 18v4M2 9h4M2 15h4M18 9h4M18 15h4"/></svg>Hardware</button>
+      <button data-go="perf" class="gadv gm"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/><path d="M19 3v4M21 5h-4" opacity=".7"/></svg>Prestazioni+</button>
+      <button data-go="files" class="gadv"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>File</button>
+      <button data-go="disk" class="gadv"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-9-9v9z"/><path d="M15 3.5A9 9 0 0 1 20.5 9H15z"/></svg>Mappa del disco</button>
+      <button data-go="vault"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="15" r="4"/><path d="M10.8 12.2L20 3M16 7l3 3M14 9l2 2"/></svg>Portachiavi</button>
+    </div>
+    <button data-grp="opz" class="navgrp"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg>Impostazioni</button>
+    <div class="navsub" data-sub="opz">
+      <button data-go="settings"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg>Impostazioni di Tasso</button>
+      <button data-go="info"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5h.01"/></svg>Info e indice</button>
+    </div>
   </nav>
   <button class="power" id="powerBtn" aria-label="Accendi o spegni Tasso"><span class="dot"></span><span><b id="powerTitle">Tasso è acceso</b><span id="powerSub">Clicca per spegnerlo</span></span></button>
 </aside>
@@ -1071,7 +1103,7 @@ details.navmore[open]{display:flex;flex-direction:column;gap:2px}
     </div>
     <div style="flex:1 1 260px;display:flex;flex-direction:column;gap:14px">
       <div class="card" style="display:flex;flex-direction:column;gap:6px">
-        <svg width="64" height="64" viewBox="0 0 200 200" aria-hidden="true"><rect x="4" y="4" width="192" height="192" rx="48" fill="#141725"/><rect x="4" y="4" width="192" height="192" rx="48" fill="none" stroke="var(--a1)" stroke-opacity=".75" stroke-width="6"/><path d="M100 172 L34 94 L58 38 L142 38 L166 94 Z" fill="#F2F4F8"/><path d="M58 38 L86 38 L94 122 L76 132 L44 104 Z" fill="#07080D"/><path d="M142 38 L114 38 L106 122 L124 132 L156 104 Z" fill="#07080D"/><circle cx="74" cy="98" r="9" fill="var(--a1)"/><circle cx="126" cy="98" r="9" fill="var(--a1)"/></svg>
+        <svg width="64" height="64" viewBox="0 0 200 200" aria-hidden="true"><rect x="4" y="4" width="192" height="192" rx="48" fill="#141725"/><rect x="4" y="4" width="192" height="192" rx="48" fill="none" stroke="var(--a1)" stroke-opacity=".75" stroke-width="6"/><path d="M100 172 L34 94 L58 38 L142 38 L166 94 Z" fill="#F2F4F8"/><path d="M58 38 L86 38 L94 122 L76 132 L44 104 Z" fill="#07080D"/><path d="M142 38 L114 38 L106 122 L124 132 L156 104 Z" fill="#07080D"/><circle class="pup" cx="74" cy="98" r="9" fill="var(--a1)"/><circle class="pup" cx="126" cy="98" r="9" fill="var(--a1)"/></svg>
         <b style="font-family:var(--display);font-size:20px">TASSO</b>
         <span class="muted" id="verLine">Versione</span>
         <span class="muted small">Pulisce, ripara e spinge il tuo PC.</span>
@@ -1086,7 +1118,7 @@ details.navmore[open]{display:flex;flex-direction:column;gap:2px}
 <!-- WELCOME -->
 <div class="welcome" id="welcome"><div class="in">
   <div class="row wrap" style="justify-content:space-between">
-    <div class="brand" style="padding:0"><svg class="gm" width="42" height="42" viewBox="0 0 200 200" aria-hidden="true"><rect x="4" y="4" width="192" height="192" rx="48" fill="#141725"/><rect x="4" y="4" width="192" height="192" rx="48" fill="none" stroke="var(--a1)" stroke-opacity=".8" stroke-width="7"/><path d="M100 172 L34 94 L58 38 L142 38 L166 94 Z" fill="#F2F4F8"/><path d="M58 38 L86 38 L94 122 L76 132 L44 104 Z" fill="#07080D"/><path d="M142 38 L114 38 L106 122 L124 132 L156 104 Z" fill="#07080D"/><circle cx="74" cy="98" r="9" fill="var(--a1)"/><circle cx="126" cy="98" r="9" fill="var(--a1)"/></svg><svg class="om tassino" width="42" height="42" viewBox="0 0 200 200" aria-hidden="true"><rect x="4" y="4" width="192" height="192" rx="48" fill="#FFFFFF"/><rect x="4" y="4" width="192" height="192" rx="48" fill="none" stroke="#C9CDD4" stroke-width="6"/><g transform="translate(28 36) scale(0.6)"><path d="M44 22 H196 L226 104 L120 206 L14 104 Z" fill="#0A0B0D"/><path d="M80 22 H106 L108 142 L56 132 L36 98 Z" fill="#FFFFFF"/><path d="M160 22 H134 L132 142 L184 132 L204 98 Z" fill="#FFFFFF"/><circle cx="82" cy="112" r="12" fill="#2F6FEB"/><circle cx="158" cy="112" r="12" fill="#2F6FEB"/><path d="M100 164 H140 L120 190 Z" fill="#FFFFFF"/></g></svg><div><b>TASSO</b></div></div>
+    <div class="brand" style="padding:0"><svg class="gm" width="42" height="42" viewBox="0 0 200 200" aria-hidden="true"><rect x="4" y="4" width="192" height="192" rx="48" fill="#141725"/><rect x="4" y="4" width="192" height="192" rx="48" fill="none" stroke="var(--a1)" stroke-opacity=".8" stroke-width="7"/><path d="M100 172 L34 94 L58 38 L142 38 L166 94 Z" fill="#F2F4F8"/><path d="M58 38 L86 38 L94 122 L76 132 L44 104 Z" fill="#07080D"/><path d="M142 38 L114 38 L106 122 L124 132 L156 104 Z" fill="#07080D"/><circle class="pup" cx="74" cy="98" r="9" fill="var(--a1)"/><circle class="pup" cx="126" cy="98" r="9" fill="var(--a1)"/></svg><svg class="om tassino" width="42" height="42" viewBox="0 0 200 200" aria-hidden="true"><rect x="4" y="4" width="192" height="192" rx="48" fill="#FFFFFF"/><rect x="4" y="4" width="192" height="192" rx="48" fill="none" stroke="#C9CDD4" stroke-width="6"/><g transform="translate(28 36) scale(0.6)"><path d="M44 22 H196 L226 104 L120 206 L14 104 Z" fill="#0A0B0D"/><path d="M80 22 H106 L108 142 L56 132 L36 98 Z" fill="#FFFFFF"/><path d="M160 22 H134 L132 142 L184 132 L204 98 Z" fill="#FFFFFF"/><circle cx="82" cy="112" r="12" fill="#2F6FEB"/><circle cx="158" cy="112" r="12" fill="#2F6FEB"/><path d="M100 164 H140 L120 190 Z" fill="#FFFFFF"/></g></svg><div><b>TASSO</b></div></div>
     <span class="row" style="gap:6px"><button class="btn ghost langbtn" data-lang="it" style="padding:8px 14px">Italiano</button><button class="btn ghost langbtn" data-lang="en" style="padding:8px 14px">English</button></span>
   </div>
   <div style="display:flex;flex-direction:column;align-items:center;gap:12px;text-align:center">
@@ -1265,7 +1297,7 @@ function show(v){ CURVIEW=v;
   // La tastiera non resta su un pulsante della pagina appena nascosta: va al titolo della pagina nuova.
   if (ae && ae.closest && ae.closest('.view') && !ae.closest('.view.on')) { const nv = $('#v-' + v); const h = nv && [...nv.querySelectorAll('h1')].find(x => x.offsetParent); const t = h || nv; if (t) { if (!t.hasAttribute('tabindex')) t.setAttribute('tabindex', '-1'); try { t.focus({preventScroll:true}); } catch (e) {} } }
   $$('nav button').forEach(x => x.classList.toggle('on', x.dataset.go === v));
-  const nb = document.querySelector('#navMore [data-go="' + v + '"]'); if (nb) $('#navMore').open = true;
+  navGroups(v);
   $('#main').scrollTop = 0;
   if (v === 'hw' && !HW) call('goHardware');
   if (v === 'speed' && !loaded.startup) { loaded.startup = 1; call('goStartupList'); }
@@ -1281,7 +1313,15 @@ function show(v){ CURVIEW=v;
   if (v === 'vault') vaultRefresh();
   if (v === 'scan') paintDetect();
 }
-$$('nav button').forEach(b => { b.onclick = () => show(b.dataset.go); });
+const NAVGRP = { rip: ['clean', 'scan', 'fix', 'speed', 'programs', 'net', 'hw', 'perf', 'files', 'disk', 'vault'], opz: ['settings', 'info'] };
+function navGroups(v){
+  Object.keys(NAVGRP).forEach(g => { const on = NAVGRP[g].indexOf(v) >= 0;
+    const h = document.querySelector('nav [data-grp="' + g + '"]'); if (h) { h.classList.toggle('on', on); h.setAttribute('aria-expanded', on ? 'true' : 'false'); }
+    const sb = document.querySelector('nav [data-sub="' + g + '"]'); if (sb) sb.classList.toggle('open', on); });
+}
+$$('nav button[data-go]').forEach(b => { b.onclick = () => show(b.dataset.go); });
+$$('nav button[data-grp]').forEach(b => { b.onclick = () => show(NAVGRP[b.dataset.grp][0]); });
+navGroups('home');
 
 /* ---------- rileva i problemi ---------- */
 let DET = null, DET_RUN = false;
@@ -2589,6 +2629,7 @@ function applyLook(preview){
   if (fs && so && sg && sw) { if (off) { fs.after(so); so.after(sw); sw.after(sg); } else { fs.after(sg); sg.after(sw); sw.after(so); } }
   document.body.classList.toggle('office', off);
   $$('#lookSw button').forEach(b => { const on = (b.dataset.look === 'ufficio') === off; b.classList.toggle('on', on); b.setAttribute('aria-pressed', on ? 'true' : 'false'); });
+  const mn = $('#modeNow'); if (mn) mn.innerHTML = off ? '💼 <span class="lt">' + _t('Ufficio') + '</span>' : '🎮 <span class="lt">' + _t('Gaming') + '</span>';
   applyTheme(preview ? (off ? (S.themeOffice || 'ufficio') : (S.theme || 'tasso')) : curTheme());
   $$('.offart').forEach(x => { x.innerHTML = OFF_ART; });
 }
@@ -2606,7 +2647,11 @@ async function setLook(p){
   else if (p === 'ufficio' && (S.autoGame || S.overlayOn)) toast(_t('Modalità Ufficio attiva. Sono ancora accese funzioni da gioco (') + [S.autoGame ? _t('Boost automatico') : '', S.overlayOn ? _t('pannellino in gioco') : ''].filter(Boolean).join(_t(' e ')) + ').', 'var(--a3)', {label:_t('Spegnile'), fn: async () => { if (S.autoGame) await call('goSetAutoGame', false); if (S.overlayOn) await call('goOverlaySet', false, S.overlayPos || 'dx'); await refreshS(); paintSettings(); toast(_t('Funzioni da gioco spente.')); }});
   else toast(p === 'ufficio' ? _t('Modalità Ufficio: Tasso più semplice e tranquillo.') : _t('Modalità Gaming: solo le cose per giocare, con giochi, FPS e ping.'), p === 'ufficio' ? 'var(--a3)' : 'var(--red)');
 }
-$$('#lookSw button').forEach(b => { b.onclick = () => setLook(b.dataset.look); });
+function modeMenu(open){ const m = $('#lookSw'), b = $('#modeBtn'); if (!m || !b) return; m.hidden = !open; b.setAttribute('aria-expanded', open ? 'true' : 'false'); }
+$$('#lookSw button').forEach(b => { b.onclick = () => { modeMenu(false); setLook(b.dataset.look); }; });
+$('#modeBtn').onclick = (e) => { e.stopPropagation(); modeMenu($('#lookSw').hidden); };
+document.addEventListener('click', (e) => { if (!e.target.closest || !e.target.closest('.modesel')) modeMenu(false); });
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('#lookSw').hidden) { modeMenu(false); $('#modeBtn').focus(); } });
 OFFICE.forEach(g => g.ids.forEach(x => { TAGS[x[0]] = [x[1], '--a3']; }));
 Object.assign(TAGS, {fix_game_mouse:['AIM','--a4'], fix_game_minimize:['WIN','--red'], fix_game_download:['DL','--a3']});
 

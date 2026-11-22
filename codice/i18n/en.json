@@ -4078,6 +4078,13 @@
   "Tasso è spento: riaccendilo per usare il Boost.": "Tasso is off: turn it back on to use Boost.",
   "Appare quando apri un gioco e sparisce quando lo chiudi. Serve il \"Boost automatico\" acceso.": "It appears when you open a game and disappears when you close it. \"Auto Boost\" needs to be on.",
   "Pannellino acceso. Accendi anche il Boost automatico nella pagina Gioca.": "Overlay on. Also turn on Auto Boost on the Play page.",
-  "Lo stesso interruttore della pagina Gioca: quando apri un gioco Tasso fa il Boost da solo e, quando lo chiudi, riapre i programmi chiusi e rimette la modalità di prima.": "The same switch as on the Play page: when you open a game Tasso does the Boost by itself and, when you close it, reopens the closed programs and puts back your previous mode."
+  "Lo stesso interruttore della pagina Gioca: quando apri un gioco Tasso fa il Boost da solo e, quando lo chiudi, riapre i programmi chiusi e rimette la modalità di prima.": "The same switch as on the Play page: when you open a game Tasso does the Boost by itself and, when you close it, reopens the closed programs and puts back your previous mode.",
+  "Pulisci e ripara": "Clean & fix",
+  "Salute e problemi": "Health & problems",
+  "Avvio del PC": "PC startup",
+  "Impostazioni di Tasso": "Tasso settings",
+  "Giochi, Boost, FPS e ping": "Games, Boost, FPS and ping",
+  "Più semplice, con i problemi dell'ufficio": "Simpler, with office problems",
+  "Cambia modalità": "Change mode"
  }
 }
