@@ -336,6 +336,7 @@ func bindAll(w webview2.WebView) {
 	})
 	_ = w.Bind("goPrograms", func() string { return async("programs", programsList) })
 	_ = w.Bind("goUninstall", func(key string) string { return async("uninstall", func() { uninstallProgram(key) }) })
+	_ = w.Bind("goRemoveOrphan", func(key string) string { return async("uninstall", func() { removeOrphanProgram(key) }) })
 	_ = w.Bind("goRemoveLeftovers", func(paths []string, keys []string) string {
 		return async("leftovers", func() { removeLeftovers(paths, keys) })
 	})
@@ -401,6 +402,7 @@ func bindAll(w webview2.WebView) {
 	_ = w.Bind("goOverlayShow", func(show bool) string { return overlayShow(show) })
 	_ = w.Bind("goLibrary", func() string { return async("library", scanLibrary) })
 	_ = w.Bind("goLaunchGame", func(id string) string { return launchGame(id) })
+	_ = w.Bind("goUninstallGame", func(id string) string { return uninstallGame(id) })
 	_ = w.Bind("goGamePower", func() map[string]interface{} { return gamePowerList() })
 	_ = w.Bind("goSetGamePower", func(id, mode string) string {
 		return async("gpower", func() { emit("onGamePower", setGamePower(id, mode)) })

@@ -175,6 +175,28 @@ func uninstallProgram(key string) {
 	emit("onUninstallDone", map[string]interface{}{"ok": true, "msgs": msgs, "result": decodeJSON(r.JSON)})
 }
 
+// uninstallKeyRe: solo una voce diretta di "Programmi installati" (HKLM o HKCU, anche WOW6432Node).
+var uninstallKeyRe = regexp.MustCompile(`(?i)^HKEY_(LOCAL_MACHINE|CURRENT_USER)\\SOFTWARE\\(WOW6432Node\\)?Microsoft\\Windows\\CurrentVersion\\Uninstall\\[^\\/\x00-\x1f]+$`)
+
+// removeOrphanProgram (3.1): toglie dall'elenco un programma che risulta già disinstallato.
+func removeOrphanProgram(key string) {
+	if !uninstallKeyRe.MatchString(key) || strings.HasSuffix(key, `\.`) || strings.HasSuffix(key, `\..`) {
+		emit("onOrphanDone", map[string]interface{}{"ok": false, "msgs": []string{"Voce non valida."}})
+		return
+	}
+	var msgs []string
+	bdir := filepath.Join(appDir, "backup")
+	r := runPSArgs(removeOrphanScript, map[string]interface{}{"key": key, "dir": bdir}, 2*time.Minute, func(m string) { msgs = append(msgs, m) })
+	ok := false
+	if m, _ := decodeJSON(r.JSON).(map[string]interface{}); m != nil {
+		ok, _ = m["ok"].(bool)
+	}
+	if len(msgs) == 0 {
+		msgs = []string{"Non sono riuscito a toglierlo dall'elenco."}
+	}
+	emit("onOrphanDone", map[string]interface{}{"ok": ok, "msgs": msgs})
+}
+
 var leftoverBlock = map[string]bool{
 	"microsoft": true, "common files": true, "windowsapps": true, "windows defender": true, "windows nt": true,
 	"internet explorer": true, "microsoft.net": true, "packages": true, "temp": true, "programs": true,

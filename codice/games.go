@@ -272,6 +272,40 @@ func launchGame(id string) string {
 	return "ok"
 }
 
+// uninstallGame (3.1): disinstalla un gioco della libreria con il programma ufficiale del suo launcher,
+// che chiede sempre conferma. Niente disinstallatori presi dal registro: parte tutto come utente normale.
+// Risposta: "ok:<messaggio>" se è partito, altrimenti il messaggio d'errore.
+func uninstallGame(id string) string {
+	libMu.Lock()
+	g, ok := library[id]
+	libMu.Unlock()
+	if !ok {
+		return "Gioco non trovato: aggiorna la libreria."
+	}
+	switch g.Store {
+	case "Steam":
+		appid := strings.TrimPrefix(g.ID, "steam:")
+		if appid == "" || strings.Trim(appid, "0123456789") != "" {
+			return "Non riesco a trovare il gioco in Steam."
+		}
+		openURL("steam://uninstall/" + appid)
+		return "ok:Steam ti chiede conferma: premi Disinstalla nella sua finestra."
+	case "Riot":
+		prod := strings.TrimPrefix(g.ID, "riot:")
+		if g.exe == "" || prod == "" || strings.Trim(prod, "abcdefghijklmnopqrstuvwxyz_") != "" {
+			return "Non trovo il programma di Riot."
+		}
+		if !openUser(g.exe, "--uninstall-product="+prod+" --uninstall-patchline=live") {
+			return "Non riesco ad aprire il programma di Riot."
+		}
+		return "ok:Si apre Riot: conferma la disinstallazione nella sua finestra."
+	case "Epic":
+		openURL("com.epicgames.launcher://store/library")
+		return "ok:Si apre Epic Games. Nella Libreria clicca i tre puntini (…) sotto il gioco e scegli Disinstalla."
+	}
+	return "Non so come disinstallare " + g.Name + "."
+}
+
 // ---------------- Ottimizza prima di giocare ----------------
 
 type heavyProc struct {

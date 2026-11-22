@@ -802,7 +802,15 @@
   "Idea": "Idea",
   "Problema": "Problem",
   "Commento": "Comment",
-  "problema sconosciuto": "unknown problem"
+  "problema sconosciuto": "unknown problem",
+  "Non riesco a trovare il gioco in Steam.": "I can't find the game in Steam.",
+  "ok:Steam ti chiede conferma: premi Disinstalla nella sua finestra.": "ok:Steam asks you to confirm: press Uninstall in its window.",
+  "Non trovo il programma di Riot.": "I can't find the Riot program.",
+  "Non riesco ad aprire il programma di Riot.": "I can't open the Riot program.",
+  "ok:Si apre Riot: conferma la disinstallazione nella sua finestra.": "ok:Riot opens: confirm the uninstall in its window.",
+  "Non so come disinstallare ": "I don't know how to uninstall ",
+  "ok:Si apre Epic Games. Nella Libreria clicca i tre puntini (…) sotto il gioco e scegli Disinstalla.": "ok:Epic Games opens. In the Library click the three dots (…) under the game and choose Uninstall.",
+  "Non sono riuscito a toglierlo dall'elenco.": "I couldn't remove it from the list."
  },
  "ps": {
   "   non riuscita, prova a reinstallarla dal Microsoft Store.": "   failed, try reinstalling it from the Microsoft Store.",
@@ -2079,7 +2087,13 @@
   "È lento: un PC da ufficio con disco SSD dovrebbe starci sotto il minuto.": "That's slow: an office PC with an SSD should start in under a minute.",
   "È molto consumata: va cambiata. Con il modello del portatile un tecnico la sostituisce, di solito tra 50 e 120 euro.": "It's very worn out: it needs replacing. With the laptop model, a technician can replace it, usually for 50 to 120 euros.",
   "È un po' consumata: è normale dopo 2-3 anni. Dura meno, ma va ancora.": "It's a bit worn out: that's normal after 2-3 years. It lasts less, but it still works.",
-  "È una licenza aziendale: si attiva da sola quando il PC è collegato alla rete dell'ufficio (o con la VPN), almeno una volta ogni 6 mesi. Collegati e riavvia; se resta, chiama l'assistenza.": "It's a business license: it activates by itself when the PC is connected to the office network (or with the VPN), at least once every 6 months. Connect and restart; if it stays, call your IT support."
+  "È una licenza aziendale: si attiva da sola quando il PC è collegato alla rete dell'ufficio (o con la VPN), almeno una volta ogni 6 mesi. Collegati e riavvia; se resta, chiama l'assistenza.": "It's a business license: it activates by itself when the PC is connected to the office network (or with the VPN), at least once every 6 months. Connect and restart; if it stays, call your IT support.",
+  "Fatto: non era più nell'elenco.": "Done: it was no longer in the list.",
+  "Questo programma sembra ancora installato: non lo tolgo dall'elenco. Prova a disinstallarlo.": "This program still seems to be installed: I won't remove it from the list. Try uninstalling it.",
+  "Non l'ho tolto: non sono riuscito a farne una copia di sicurezza.": "I didn't remove it: I couldn't make a backup copy.",
+  "Tolto dall'elenco: ": "Removed from the list: ",
+  ". La copia di sicurezza è nella cartella backup di Tasso.": ". The backup copy is in Tasso's backup folder.",
+  "Non sono riuscito a toglierlo dall'elenco.": "I couldn't remove it from the list."
  },
  "ui": {
   " (consuma di più).": " mode (uses more power).",
@@ -3653,6 +3667,16 @@
   "· profilo gioco, potenza per ogni gioco, comandi gaming, ottimizza prima di giocare, pannellino in gioco, autoclick": "· game profile, power for each game, gaming tweaks, optimize before playing, in-game panel, autoclick",
   "Il PC ha le impostazioni originali di Windows": "The PC has the original Windows settings",
   "Cerco i programmi pesanti: spunta quelli da chiudere e premi \"Ottimizza e gioca\".": "Looking for heavy programs: tick the ones to close and press \"Optimize and play\".",
-  "Non c'è niente da rimettere: Boost non è acceso.": "There's nothing to put back: Boost isn't on."
+  "Non c'è niente da rimettere: Boost non è acceso.": "There's nothing to put back: Boost isn't on.",
+  "<h2>Programma non trovato</h2><p class=\"muted\" style=\"margin:0;line-height:1.5\"><b>": "<h2>Program not found</h2><p class=\"muted\" style=\"margin:0;line-height:1.5\"><b>",
+  "</b> potrebbe essere già stato disinstallato: il suo programma di disinstallazione non c'è più.</p><p style=\"margin:10px 0 0;line-height:1.5\">Vuoi toglierlo dall'elenco? Tasso salva prima una copia di sicurezza.</p>": "</b> may have already been uninstalled: its uninstaller is no longer there.</p><p style=\"margin:10px 0 0;line-height:1.5\">Do you want to remove it from the list? Tasso saves a backup copy first.</p>",
+  "No": "No",
+  "Sì, toglilo": "Yes, remove it",
+  "Opzioni del gioco": "Game options",
+  "🗑️ Disinstalla": "🗑️ Uninstall",
+  "Non sono riuscito ad aprire il launcher.": "I couldn't open the launcher.",
+  "Si apre Epic Games: lì scegli tu di disinstallarlo.": "Epic Games opens: there you choose to uninstall it.",
+  " ti chiede conferma e lo toglie con il suo programma ufficiale.": " asks you to confirm and removes it with its official program.",
+  " Prima di farlo, controlla che i tuoi salvataggi siano al sicuro (nel cloud o copiati).</p>": " Before doing it, make sure your saves are safe (in the cloud or copied).</p>"
  }
 }

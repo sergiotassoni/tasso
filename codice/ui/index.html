@@ -363,6 +363,8 @@ details.navmore[open]{display:flex;flex-direction:column;gap:2px}
 .fbpic button{position:absolute;top:4px;right:4px;width:22px;height:22px;border-radius:50%;border:0;background:rgba(0,0,0,.7);color:#fff;font:700 13px/22px system-ui;cursor:pointer;padding:0}
 .fbpc{font-size:12px;color:var(--muted);margin:2px 0 0 28px;line-height:1.4}
 @media (max-width:620px){.fbkinds{grid-template-columns:1fr}}
+#modalBox h2,#modalBox b{overflow-wrap:anywhere}
+.gmore{min-height:30px;padding:2px 9px;font-size:18px;line-height:1;flex:none}
 </style>
 </head>
 <body>
@@ -1268,7 +1270,8 @@ function modal(html, buttons){
   const row = el('div', {class:'row wrap', style:'justify-content:flex-end;gap:10px;margin-top:6px'});
   buttons.forEach(bt => { const b = el('button', {class:'btn ' + (bt.cls || 'ghost')}, esc(bt.label)); b.onclick = () => { const keep = bt.fn ? bt.fn(box) : null; if (keep !== 'keep') closeModal(); }; row.appendChild(b); });
   box.appendChild(row); $('#modal').classList.add('on');
-  const last = row.lastChild; if (last) last.focus();
+  // 3.1: nelle domande pericolose il fuoco va su "Annulla", così un Invio di troppo non fa danni.
+  const fi = buttons.findIndex(bt => bt.focus); const f = fi >= 0 ? row.children[fi] : row.lastChild; if (f) f.focus();
 }
 function closeModal(){ $('#modal').classList.remove('on'); }
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal(); });
@@ -1362,6 +1365,7 @@ window.tasso = {
   onStartup(p){ STARTUP = p.items || []; paintStartup(); (alertOn('startup') ? (p.fresh || []) : []).forEach(n => alertSmart(_t('Nuovo programma all\'avvio: ') + n, {label:_t('Vedi'), fn: () => show('speed')})); },
   onPrograms(list){ PROGS = list || []; paintPrograms(); },
   onUninstallDone(p){ uninstallDone(p); },
+  onOrphanDone(p){ orphanDone(p); },
   onLeftoversDone(p){ (p.msgs || []).forEach(m => toast(m, 'var(--a3)')); },
   onBackupProgress(m){ toast(m, 'var(--a3)'); },
   onBackupDone(p){ (p.msgs || []).forEach(m => toast(m, 'var(--a3)')); },
@@ -1582,8 +1586,9 @@ function paintPrograms(){
 $('#progSearch').oninput = paintPrograms;
 $('#btnProgReload').onclick = () => { PROGS = null; paintPrograms(); call('goPrograms'); };
 function uninstallDone(p){
-  (p.msgs || []).forEach(m => toast(m, 'var(--a3)'));
   const res = p.result;
+  (p.msgs || []).forEach(m => toast(m, 'var(--a3)'));
+  if (res && res.orphan) { askOrphan(res); return; }
   call('goPrograms');
   const folders = (res && res.leftovers) || [];
   const regs = (res && res.regleft) || [];
@@ -1606,6 +1611,15 @@ function uninstallDone(p){
       const keys = Array.prototype.slice.call(box.querySelectorAll('input[data-r]')).filter(x => x.checked).map(x => regs[Number(x.dataset.r)].key);
       if (paths.length || keys.length) call('goRemoveLeftovers', paths, keys); else toast(_t('Non hai selezionato niente da rimuovere.'), 'var(--a4)');
     }}]);
+}
+// 3.1: come il Pannello di controllo, se il programma non c'è più propone di toglierlo dall'elenco.
+function askOrphan(res){
+  modal(_t('<h2>Programma non trovato</h2><p class="muted" style="margin:0;line-height:1.5"><b>') + esc(res.name || '') + _t('</b> potrebbe essere già stato disinstallato: il suo programma di disinstallazione non c\'è più.</p><p style="margin:10px 0 0;line-height:1.5">Vuoi toglierlo dall\'elenco? Tasso salva prima una copia di sicurezza.</p>'),
+    [{label:_t('No'), focus:true}, {label:_t('Sì, toglilo'), cls:'primary', fn: () => { call('goRemoveOrphan', res.key).then(r => { if (r === 'busy') toast(_t('Aspetta che finisca la disinstallazione in corso.'), 'var(--a4)'); }); }}]);
+}
+function orphanDone(p){
+  (p.msgs || []).forEach(m => toast(m, p.ok ? 'var(--a3)' : 'var(--a4)'));
+  PROGS = null; paintPrograms(); call('goPrograms');
 }
 function paintBloat(){
   const box = $('#bloatList'); box.innerHTML = '';
@@ -2218,7 +2232,8 @@ function paintLib(){
   if (!LIB.length) { box.innerHTML = _t('<span class="muted">Nessun gioco trovato su Steam, Epic o Riot. Se li hai su un altro disco, apri prima il loro launcher una volta e poi premi Aggiorna.</span>'); return; }
   list.forEach(g => {
     const ini = esc(g.name.replace(/[^A-Za-z0-9 ]/g, '').split(' ').filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase() || '?');
-    const c = el('div', {class:'card', style:'padding:10px;display:flex;flex-direction:column;gap:8px'}, '<div class="cover" style="color:' + (STORE_COL[g.store] || 'var(--a1)') + '"><span>' + ini + '</span></div><div style="min-width:0"><b style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + esc(g.name) + '">' + esc(g.name) + '</b><span class="small muted">' + esc(g.store) + (g.size ? ' · ' + fmtBytes(g.size) : '') + '</span></div>');
+    const c = el('div', {class:'card', style:'padding:10px;display:flex;flex-direction:column;gap:8px'}, '<div class="cover" style="color:' + (STORE_COL[g.store] || 'var(--a1)') + '"><span>' + ini + '</span></div><div style="display:flex;align-items:flex-start;gap:6px"><div style="min-width:0;flex:1"><b style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + esc(g.name) + '">' + esc(g.name) + '</b><span class="small muted">' + esc(g.store) + (g.size ? ' · ' + fmtBytes(g.size) : '') + '</span></div><button class="btn ghost gmore" title="' + _t('Opzioni del gioco') + '" aria-label="' + _t('Opzioni del gioco') + '">⋯</button></div>');
+    c.querySelector('.gmore').onclick = () => gameOptions(g);
     if (g.img) {
       const im = document.createElement('img'); im.alt = ''; im.loading = 'lazy'; im.className = g.store === 'Riot' ? 'ico' : '';
       im.onerror = () => { if (g.img2 && im.src !== g.img2) im.src = g.img2; else im.remove(); };
@@ -2231,6 +2246,23 @@ function paintLib(){
     c.appendChild(b); c.appendChild(t); box.appendChild(c);
   });
   $('#libMsg').textContent = LIB.length + _t(' giochi trovati su Steam, Epic Games e Riot.');
+}
+// 3.1: opzioni del gioco (⋯): disinstalla con il programma ufficiale del launcher, che chiede conferma.
+function gameOptions(g){
+  modal('<h2>' + esc(g.name) + '</h2><p class="muted" style="margin:0;line-height:1.5">' + esc(g.store) + (g.size ? ' · ' + fmtBytes(g.size) : '') + '</p>',
+    [{label:_t('Chiudi')}, {label:_t('🗑️ Disinstalla'), cls:'danger', fn: () => { confirmGameUninstall(g); return 'keep'; }}]);
+}
+function confirmGameUninstall(g){
+  const how = g.store === 'Epic' ? _t('Si apre Epic Games: lì scegli tu di disinstallarlo.') : esc(g.store) + _t(' ti chiede conferma e lo toglie con il suo programma ufficiale.');
+  modal(_t('<h2>Disinstallare ') + esc(g.name) + '?</h2><p class="muted" style="margin:0;line-height:1.5">' + how + _t(' Prima di farlo, controlla che i tuoi salvataggi siano al sicuro (nel cloud o copiati).</p>'),
+    [{label:_t('Annulla'), focus:true}, {label:_t('Disinstalla'), cls:'danger', fn: async () => {
+      const r = String(await call('goUninstallGame', g.id) || '');
+      if (r.indexOf('ok:') === 0) {
+        // Le istruzioni restano a schermo finché non le chiudi (la finestra del launcher copre Tasso).
+        if (g.store === 'Epic') modal('<h2>Epic Games</h2><p style="margin:0;line-height:1.5">' + esc(r.slice(3)) + '</p>', [{label:_t('Ho capito')}]);
+        else toast(r.slice(3), 'var(--a3)');
+      } else toast(r || _t('Non sono riuscito ad aprire il launcher.'), 'var(--a4)');
+    }}]);
 }
 $('#libSearch').oninput = paintLib;
 $('#btnLib').onclick = () => { $('#libMsg').textContent = _t('Cerco i giochi…'); call('goLibrary'); };
