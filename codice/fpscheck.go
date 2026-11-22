@@ -565,7 +565,10 @@ func fpsFindings(f pcFacts, scr []screenInfo, last *fpsResult, battery, gpuPrefH
 		if months := int(now.Sub(d).Hours() / 24 / 30); months >= 6 {
 			if v := gpuVendorPage(g.Name); v != "" {
 				fix := "Premi Apri: si apre la pagina ufficiale per scaricare il driver giusto."
-				if f.Laptop {
+				if v == "nvidia" {
+					fix = "Premi Aggiorna il driver: il Tasso scarica il driver ufficiale da NVIDIA, controlla la firma digitale, crea un punto di ripristino e lo installa."
+				}
+				if f.Laptop && v != "nvidia" {
 					fix += " Se il sito non accetta il driver per il tuo portatile, usa quello del produttore del portatile."
 				}
 				add(fpsFinding{ID: "driver", Sev: "mid", Title: "Il driver della scheda video è vecchio (" + strconv.Itoa(months) + " mesi fa)",
