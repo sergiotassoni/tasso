@@ -243,7 +243,7 @@ func applicaModGioco(nome, cartella string) {
 		return
 	}
 	if !mozillaPresente() || !mozOK.Load() {
-		fallito("Il traduttore veloce non è pronto: scaricalo dalla pagina iniziale e riprova.")
+		fallito("Il traduttore veloce non è pronto: scaricalo in Giochi → Impostazioni e riprova.")
 		return
 	}
 	zips := []FileDaScaricare{zipBepInExMono, zipXUnityMono}
@@ -284,7 +284,7 @@ func applicaModGioco(nome, cartella string) {
 	avviaServerModGioco()
 	impostaGiocoTradotto(cartella, true)
 	time.Sleep(300 * time.Millisecond)
-	esito := "File aggiunti, copia di sicurezza fatta. Ora premi Apri il gioco (con Tasso Traduce aperto): ti dico io se la traduzione dentro parte davvero. "
+	esito := "File aggiunti, copia di sicurezza fatta. Ora premi Apri il gioco: ti dico io se la traduzione dentro parte davvero. "
 	if tipo == "il2cpp" {
 		esito += "La prima volta il gioco ci mette qualche minuto in più a partire (prepara i file una volta sola). "
 	}
@@ -387,7 +387,7 @@ func messaggioLingua(nome, lingua string) string {
 	if lingua == a {
 		return nome + " è già in " + nomeLingua(a) + ": non serve tradurlo."
 	}
-	return "Le scritte di " + nome + " sono in " + nomeLingua(lingua) + ": per tradurle scarica il " + nomeLingua(lingua) + " da Traduzione gioco (passo 2)."
+	return "Le scritte di " + nome + " sono in " + nomeLingua(lingua) + ": per tradurle scarica il " + nomeLingua(lingua) + ", nella procedura a passi del gioco."
 }
 
 // segnaLingua: ricordo la lingua delle scritte lette sullo schermo di un gioco.

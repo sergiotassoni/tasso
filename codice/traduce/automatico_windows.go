@@ -138,6 +138,12 @@ func cicloTuttoAutomatico() {
 		if g, ok := riconosciGioco(percorsoDiFinestra(fg)); ok {
 			nomeG, cartG = g.Nome, g.Cartella
 		}
+		if !giocoTradotto(cartG) {
+			// 3.1: giochi tradotti da Tasso fuori dalle cartelle dei negozi (Xbox, Riot, aggiunti a mano)
+			if c := cartellaTradottaDi(percorsoDiFinestra(fg)); c != "" {
+				cartG = c
+			}
+		}
 		if modDaUsare(cartG, time.Since(visto[fg]), nomeG) {
 			continue // tradotto dentro il gioco: la sovrimpressione non serve
 		}
@@ -175,7 +181,7 @@ func proponiTraduzione(fg uintptr, nome string) {
 		return
 	}
 	tasto := etichettaTasto(tastiCompleti(leggiImp().Tasti)["pagina"])
-	testo := "Tasso Traduce: ho riconosciuto " + nome + ". Premi " + tasto + " per tradurlo in italiano."
+	testo := "Tasso: ho riconosciuto " + nome + ". Premi " + tasto + " per tradurlo in italiano."
 	em := 22.0
 	w := min(area.W-40, int(float64(len([]rune(testo)))*em*0.56)+20)
 	b := Blocco{X: (area.W - w) / 2, Y: 24, W: w, H: 34, Righe: 1, Em: em, LargMax: w,

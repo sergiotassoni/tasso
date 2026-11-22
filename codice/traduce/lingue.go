@@ -218,3 +218,9 @@ func cineseTradizionaleOSemplificato(testi []string) string {
 	}
 	return "han" // non si capisce: chi chiama tiene la scelta di prima
 }
+
+// LinguaValida (3.1): per Tasso, che controlla le lingue ricordate per ogni gioco.
+func LinguaValida(codice string) bool {
+	_, ok := linguaDa(codice)
+	return ok
+}

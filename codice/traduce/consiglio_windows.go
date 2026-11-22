@@ -4,6 +4,7 @@ package traduce
 
 import (
 	"runtime"
+	"sync"
 	"unsafe"
 
 	"golang.org/x/sys/windows"
@@ -76,4 +77,27 @@ func coreFisici() int {
 func analizzaPC() AnalisiPC {
 	g := controllaGPU()
 	return consiglioPC(g, memoriaPC(), coreFisici(), motoreIADisponibile())
+}
+
+var (
+	pcOnce sync.Once
+	pcRAM  float64
+	pcCore int
+)
+
+func pcRisorse() (float64, int) {
+	pcOnce.Do(func() { pcRAM, pcCore = memoriaPC(), coreFisici() })
+	return pcRAM, pcCore
+}
+
+// iaAdattaPC (3.1): l'IA su questo PC può partire? (memoria, processore e scheda video a riposo)
+func iaAdattaPC() bool {
+	ram, core := pcRisorse()
+	return sceltaCorrettore(InfoGPU{Nome: gpu.Nome, MemoriaGB: gpu.MemoriaGB}, ram, core).Nome != ""
+}
+
+// iaMotivoPC: perché sì o perché no, in una frase.
+func iaMotivoPC() string {
+	ram, core := pcRisorse()
+	return sceltaCorrettore(InfoGPU{Nome: gpu.Nome, MemoriaGB: gpu.MemoriaGB}, ram, core).Motivo
 }

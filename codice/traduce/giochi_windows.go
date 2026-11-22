@@ -125,6 +125,12 @@ func apriGioco(cartella string) string {
 	} else {
 		return "Non trovo come aprirlo: aprilo tu."
 	}
+	avviaVerifica(g)
+	return ""
+}
+
+// avviaVerifica: un solo controllo alla volta per gioco.
+func avviaVerifica(g GiocoInstallato) {
 	muVerifiche.Lock()
 	gia := verificheInCorso[chiaveGioco(g.Cartella)]
 	verificheInCorso[chiaveGioco(g.Cartella)] = true
@@ -139,7 +145,22 @@ func apriGioco(cartella string) string {
 			verificaTraduzione(g)
 		}()
 	}
-	return ""
+}
+
+// VerificaDopoAvvio (3.1): Tasso ha aperto il gioco con "Gioca" o "Apri il gioco"; se è tradotto
+// controllo se la traduzione parte davvero e lo dico (evento "verifica").
+func VerificaDopoAvvio(cartella string) string {
+	if cartella == "" || !giocoTradotto(cartella) {
+		return "no"
+	}
+	muGiochiNoti.Lock()
+	g, ok := giochiNoti[chiaveGioco(cartella)]
+	muGiochiNoti.Unlock()
+	if !ok {
+		return "no"
+	}
+	avviaVerifica(g)
+	return "ok"
 }
 
 // verificaTraduzione: dopo "Apri il gioco" guardo se la traduzione parte DAVVERO, e lo dico.
@@ -194,6 +215,7 @@ func verificaTraduzione(g GiocoInstallato) {
 // Ubisoft, giochi aggiunti a mano…). Tasso registra qui il gioco con la sua cartella e il suo
 // indirizzo di avvio, così "Applica" e "Apri il gioco" funzionano per tutti, e riceve le stesse
 // informazioni dell'elenco di Traduce (anti-imbroglio, Unity, già tradotto…).
+// in_file = la traduzione è GIÀ messa dentro il gioco; file_ok = si può mettere dentro il gioco.
 func InfoGioco(nome, piattaforma, cartella, avvio string) map[string]any {
 	if cartella == "" {
 		return map[string]any{"nome": nome, "cartella": "", "errore": "Non so in che cartella è installato questo gioco."}

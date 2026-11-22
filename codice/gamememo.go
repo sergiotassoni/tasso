@@ -22,14 +22,12 @@ type GameMemo struct {
 	When  string `json:"when,omitempty"`  // data dell'ultima volta (2006-01-02)
 }
 
-var memoLangs = map[string]bool{"auto": true, "en": true, "it": true, "fr": true, "de": true, "es": true, "pt": true, "pl": true, "ru": true, "ja": true, "ko": true, "zh": true, "zh-Hant": true, "da": true, "fi": true, "nb": true, "sv": true, "tr": true}
-
 // cleanMemo tiene solo valori conosciuti: il file delle impostazioni non si riempie di testo a caso.
 func cleanMemo(m GameMemo) GameMemo {
-	if !memoLangs[m.Da] {
+	if m.Da != "auto" && !traduce.LinguaValida(m.Da) {
 		m.Da = ""
 	}
-	if !memoLangs[m.A] || m.A == "auto" {
+	if !traduce.LinguaValida(m.A) {
 		m.A = ""
 	}
 	if m.Modo != "schermo" && m.Modo != "file" {
@@ -57,6 +55,7 @@ func setGameMemo(id string, m GameMemo) string {
 	c := cleanMemo(m)
 	res := "ok"
 	updateSettings(func(s *Settings) {
+		res = "ok" // updateSettings può ripetere la funzione
 		if s.GameMemo == nil {
 			s.GameMemo = map[string]*GameMemo{}
 		}

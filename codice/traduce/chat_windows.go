@@ -73,7 +73,7 @@ func traduciChat(ctx context.Context, testo string) (string, error) {
 		return "", errors.New("testo troppo lungo per la chat")
 	}
 	if !chatPresente() {
-		return "", errors.New("manca il traduttore italiano→inglese: scaricalo nella finestra di Tasso Traduce (37 MB)")
+		return "", errors.New("manca il traduttore italiano→inglese: scaricalo in Giochi → Impostazioni (37 MB)")
 	}
 	return moz.traduciCoppia(ctx, testo, "it", "en")
 }
