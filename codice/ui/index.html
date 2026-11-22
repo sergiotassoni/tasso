@@ -255,7 +255,9 @@ body:not(.office) .boostk{font:500 12px var(--mono);letter-spacing:.14em;color:v
 body.th-tasso:not(.office) .dethead{color:var(--a1);background:none;border:1px solid var(--line);border-radius:12px}
 body:not(.office) .boostcard{border-color:var(--line)}
 body:not(.office) .boostgo{width:auto;height:auto;border-radius:10px;box-shadow:none;padding:18px 40px;font:800 20px var(--display);font-stretch:118%;letter-spacing:.04em;line-height:1.1}
-body:not(.office) .boostgo.on{background:var(--a1);color:var(--ink)}
+body:not(.office) .btn.primary.boostgo:not(.on){background:var(--text);color:var(--bg);filter:none}
+body:not(.office) .btn.primary.boostgo:not(.on):hover{box-shadow:0 0 0 3px color-mix(in srgb,var(--text) 18%,transparent)}
+body:not(.office) .btn.primary.boostgo.on,body:not(.office) .btn.primary.boostgo.on:hover{background:var(--a1);color:var(--ink);filter:none;box-shadow:0 0 0 3px color-mix(in srgb,var(--a1) 35%,transparent)}
 /* icone del menu colorate, ognuna con il suo colore */
 nav button[data-go="home"]{--ic:#2FF3A6} nav button[data-go="games"]{--ic:#FF4D6D} nav button[data-go="clean"]{--ic:#4DA3FF} nav button[data-go="scan"]{--ic:#FFB020}
 details.navmore>summary{--ic:#A97BFF} nav button[data-go="speed"]{--ic:#FFE14D} nav button[data-go="perf"]{--ic:#FF8A3D} nav button[data-go="fix"]{--ic:#F472B6}
@@ -269,6 +271,10 @@ body:not(.office) nav button.on>svg{stroke:#050506;color:#050506;background:var(
 body:not(.office) nav button.on{box-shadow:none}
 nav button{padding:6px 10px}
 details.navmore>button{width:100%}
+body.office nav button,body.office details.navmore>summary{padding:8px 12px}
+body.office details.navmore>summary{min-height:38px}
+body.office nav button>svg,body.office details.navmore>summary>svg{padding:0;width:20px;height:20px}
+@media (max-width:760px){body.office aside nav button,body.office aside details.navmore>summary{padding:10px 0}}
 /* Home Gaming */
 body:not(.office) #healthCard .stat{display:none}
 body:not(.office) #homeMore{border-top:0}
@@ -290,7 +296,7 @@ h1.gname::after{content:"";display:block;width:48px;height:3px;background:var(--
 .gbtns{display:flex;gap:12px;flex-wrap:wrap}
 .gbig{border:0;border-radius:10px;background:var(--text);color:var(--bg);font:800 20px var(--display);font-stretch:118%;letter-spacing:.04em;padding:18px 40px;transition:transform .2s}
 .gbig:hover{transform:translateY(-1px)}
-.gbig.on{background:var(--a1);color:var(--ink)}
+.gbig.on,.gbig.on:hover{background:var(--a1);color:var(--ink);filter:none;box-shadow:0 0 0 3px color-mix(in srgb,var(--a1) 35%,transparent)}
 .gbig.off{opacity:.45}
 .gline{border:0;border-radius:10px;background:transparent;color:var(--text);box-shadow:inset 0 0 0 1px var(--line);font:600 16px var(--body);padding:17px 26px}
 .gline:hover{box-shadow:inset 0 0 0 1px var(--muted)}
@@ -499,7 +505,7 @@ details.navmore[open]{display:flex;flex-direction:column;gap:2px}
       <svg class="gmask" viewBox="0 0 240 220" aria-hidden="true"><path d="M44 22 H196 L226 104 L120 206 L14 104 Z" fill="var(--text)"/><path d="M80 22 H106 L108 142 L56 132 L36 98 Z" fill="var(--bg)"/><path d="M160 22 H134 L132 142 L184 132 L204 98 Z" fill="var(--bg)"/><circle class="eye" cx="82" cy="112" r="12" fill="var(--a1)"/><circle class="eye" cx="158" cy="112" r="12" fill="var(--a1)"/><path d="M100 164 H140 L120 190 Z" fill="var(--bg)"/></svg>
       <div>
         <h1 class="gname" tabindex="-1">Gaming</h1>
-        <p>Un tasto prima di giocare: Tasso chiude i programmi in background che non servono e prepara il PC per giocare. Quando hai finito, premi «Rimetti com'era» nella pagina Gioca e torna tutto come prima.</p>
+        <p>Un tasto prima di giocare: Tasso chiude i programmi in background che non servono e prepara il PC. Quando hai finito, premi "Rimetti com'era" nella pagina Gioca.</p>
         <div class="gbtns"><button class="gbig" id="gBoost">BOOST</button><button class="gline" id="gClean">Pulisci</button></div>
       </div>
     </div>
@@ -1556,14 +1562,14 @@ gDatePaint();
 // Il BOOST della Home è lo stesso del BOOST in Gioca: mostra se è acceso, e con Tasso spento spiega perché non parte.
 function gBoostPaint(){
   const gb = document.getElementById('gBoost'); if (!gb) return;
-  const on = !!(BST.on || BST.game), off = !!(S && S.paused);
-  gb.classList.toggle('on', on && !off); gb.classList.toggle('off', off);
-  gb.textContent = on && !off ? _t('BOOST ACCESO') : _t('BOOST');
+  const on = !!(BST.on || BST.game), off = !!(S && S.paused) && !on; // spento ma col Boost acceso: si vede ACCESO e si arriva a "Rimetti com'era"
+  gb.classList.toggle('on', on); gb.classList.toggle('off', off);
+  gb.textContent = on ? _t('BOOST ACCESO') : _t('BOOST');
   gb.setAttribute('aria-disabled', off ? 'true' : 'false');
   gb.title = off ? _t('Tasso è spento: riaccendilo per usare il Boost.') : '';
 }
 $('#gBoost').onclick = () => {
-  if (S && S.paused) { toast(_t('Tasso è spento: riaccendilo per usare il Boost.'), 'var(--a4)'); return; }
+  if (S && S.paused && !(BST.on || BST.game)) { toast(_t('Tasso è spento: riaccendilo per usare il Boost.'), 'var(--a4)'); return; }
   show('games');
   setTimeout(() => { const b = document.getElementById('btnBoost'); if (!b) return; if (b.disabled) toast(_t('Un attimo, sto ancora finendo.')); else b.click(); }, 0);
 };
@@ -2596,7 +2602,7 @@ async function setLook(p){
   if (p === 'ufficio' && (CURVIEW === 'games' || CURVIEW === 'perf')) show('home');
   if (p !== 'ufficio' && !S.showAll && ['perf', 'files', 'disk', 'vault'].indexOf(CURVIEW) >= 0) show('home');
   if (p === 'ufficio' && (S.mode === 'gaming' || S.mode === 'fps')) toast(_t('Modalità Ufficio attiva. Il PC però è ancora in modalità ') + (S.mode === 'fps' ? 'FPS' : 'Gaming') + _t(' (consuma di più).'), 'var(--a3)', {label:_t('Metti Normale'), fn: () => { call('goSetMode', 'normale'); toast(_t('Metto la modalità Normale…')); }});
-  else if (p === 'ufficio' && (S.autoGame || S.overlayOn)) toast(_t('Modalità Ufficio attiva. Sono ancora accese funzioni da gioco (') + [S.autoGame ? _t('modalità gioco automatica') : '', S.overlayOn ? _t('pannellino in gioco') : ''].filter(Boolean).join(_t(' e ')) + ').', 'var(--a3)', {label:_t('Spegnile'), fn: async () => { if (S.autoGame) await call('goSetAutoGame', false); if (S.overlayOn) await call('goOverlaySet', false, S.overlayPos || 'dx'); await refreshS(); paintSettings(); toast(_t('Funzioni da gioco spente.')); }});
+  else if (p === 'ufficio' && (S.autoGame || S.overlayOn)) toast(_t('Modalità Ufficio attiva. Sono ancora accese funzioni da gioco (') + [S.autoGame ? _t('Boost automatico') : '', S.overlayOn ? _t('pannellino in gioco') : ''].filter(Boolean).join(_t(' e ')) + ').', 'var(--a3)', {label:_t('Spegnile'), fn: async () => { if (S.autoGame) await call('goSetAutoGame', false); if (S.overlayOn) await call('goOverlaySet', false, S.overlayPos || 'dx'); await refreshS(); paintSettings(); toast(_t('Funzioni da gioco spente.')); }});
   else toast(p === 'ufficio' ? _t('Modalità Ufficio: Tasso più semplice e tranquillo.') : _t('Modalità Gaming: solo le cose per giocare, con giochi, FPS e ping.'), p === 'ufficio' ? 'var(--a3)' : 'var(--red)');
 }
 $$('#lookSw button').forEach(b => { b.onclick = () => setLook(b.dataset.look); });
