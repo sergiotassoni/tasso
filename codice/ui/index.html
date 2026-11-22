@@ -2923,8 +2923,8 @@ function paintOverlay(){
   $$('#ovItems [data-ovi]').forEach(c => { c.onchange = saveOvItems; });
   const pv = $('#ovPrev'); pv.className = 'ovprev ' + pos;
   const seg = []; const has = k => it.indexOf(k) >= 0;
-  if (has('cpu') || has('cputemp')) seg.push('<i>CPU</i> ' + (has('cpu') ? '37%' : '') + (has('cputemp') ? ' <em>61°</em>' : ''));
-  if (has('gpu') || has('gputemp')) seg.push('<i>GPU</i> ' + (has('gpu') ? '92%' : '') + (has('gputemp') ? ' <em>68°</em>' : ''));
+  if (has('cpu') || has('cputemp')) seg.push('<i>CPU</i> ' + (has('cpu') ? '37%' : '') + (has('cputemp') ? (has('cpu') ? ' ' : '') + '<em>61°</em>' : ''));
+  if (has('gpu') || has('gputemp')) seg.push('<i>GPU</i> ' + (has('gpu') ? '92%' : '') + (has('gputemp') ? (has('gpu') ? ' ' : '') + '<em>68°</em>' : ''));
   if (has('ram')) seg.push('<i>RAM</i> 54%');
   if (has('ora')) seg.push('<u>21:30</u>');
   $('#ovPrevTxt').innerHTML = seg.join('&nbsp;&nbsp;&nbsp;');
@@ -2939,7 +2939,7 @@ async function saveOvItems(){
   if (r === 'ok') S.overlayItems = list; else toast(r || _t('Non sono riuscito a salvare.'), 'var(--a4)');
   paintOverlay();
 }
-$('#btnOvShow').onclick = () => { call('goOverlayShow', true); toast(_t('Pannellino visibile in alto.')); };
+$('#btnOvShow').onclick = () => { call('goOverlayShow', true); toast(_t('Pannellino visibile.')); };
 $('#btnOvHide').onclick = () => call('goOverlayShow', false);
 Object.assign(window.tasso, {
   onLibrary(list){ LIB = Array.isArray(list) ? list : (list ? [list] : []); paintLib(); paintRecent(); call('goGamePower').then(paintGamePower); if (GP_ID) openGame(GP_ID, true); if (W && !$('#gwz').hidden && wzStep() === 'pick' && !W.busy) wzDraw(); },

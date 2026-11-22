@@ -19,8 +19,19 @@ func ovItems() map[string]bool {
 		}
 		return m
 	}
+	known := map[string]bool{}
+	for _, k := range ovAllItems {
+		known[k] = true
+	}
 	for _, k := range list {
-		m[k] = true
+		if known[k] {
+			m[k] = true
+		}
+	}
+	if len(m) == 0 { // voci sconosciute (file cambiato a mano o versione futura): mostro tutto
+		for _, k := range ovAllItems {
+			m[k] = true
+		}
 	}
 	return m
 }

@@ -280,7 +280,7 @@ func ovSegments() []ovSeg {
 			segs = append(segs, ovSeg{fmt.Sprintf("%d%%", int(cpu+0.5)), white})
 		}
 		if on["cputemp"] && ct > 0 {
-			segs = append(segs, ovSeg{fmt.Sprintf(" %d°", int(ct+0.5)), tempColor(ct, 80, 90)})
+			segs = append(segs, ovSeg{strings.Repeat(" ", b2i(on["cpu"])) + fmt.Sprintf("%d°", int(ct+0.5)), tempColor(ct, 80, 90)})
 		}
 	}
 	if g, ok := ls["gpu"].(map[string]interface{}); ok && g != nil && (on["gpu"] || on["gputemp"]) {
@@ -293,7 +293,7 @@ func ovSegments() []ovSeg {
 				segs = append(segs, ovSeg{fmt.Sprintf("%d%%", int(u+0.5)), white})
 			}
 			if on["gputemp"] && tok {
-				segs = append(segs, ovSeg{fmt.Sprintf(" %d°", int(t+0.5)), tempColor(t, 78, 86)})
+				segs = append(segs, ovSeg{strings.Repeat(" ", b2i(on["gpu"])) + fmt.Sprintf("%d°", int(t+0.5)), tempColor(t, 78, 86)})
 			}
 		}
 	}
@@ -414,6 +414,10 @@ func cpuTempLoop() {
 		shown := ovShown
 		watch := time.Since(hwWatchAt) < 30*time.Second && !ovInGame
 		ovMu.Unlock()
+		if shown && !watch && !ovItems()["cputemp"] {
+			time.Sleep(2 * time.Second) // il pannellino non mostra la temperatura: niente PowerShell
+			continue
+		}
 		if watch && !shown && wv != nil {
 			if r, _, _ := pIsIconic.Call(uintptr(wv.Window())); r != 0 {
 				watch = false // Tasso a icona: nessuno guarda la pagina Hardware
@@ -587,4 +591,11 @@ func ovSig() string {
 		b.WriteString(s.text)
 	}
 	return b.String()
+}
+
+func b2i(b bool) int {
+	if b {
+		return 1
+	}
+	return 0
 }
