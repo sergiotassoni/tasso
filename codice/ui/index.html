@@ -260,21 +260,18 @@ body:not(.office) .btn.primary.boostgo:not(.on):hover{box-shadow:0 0 0 3px color
 body:not(.office) .btn.primary.boostgo.on,body:not(.office) .btn.primary.boostgo.on:hover{background:var(--a1);color:var(--ink);filter:none;box-shadow:0 0 0 3px color-mix(in srgb,var(--a1) 35%,transparent)}
 /* icone del menu colorate, ognuna con il suo colore */
 nav button[data-go="home"]{--ic:#2FF3A6} nav button[data-go="games"]{--ic:#FF4D6D} nav button[data-go="clean"]{--ic:#4DA3FF} nav button[data-go="scan"]{--ic:#FFB020}
-details.navmore>summary{--ic:#A97BFF} nav button[data-go="speed"]{--ic:#FFE14D} nav button[data-go="perf"]{--ic:#FF8A3D} nav button[data-go="fix"]{--ic:#F472B6}
+nav button[data-go="speed"]{--ic:#FFE14D} nav button[data-go="perf"]{--ic:#FF8A3D} nav button[data-go="fix"]{--ic:#F472B6}
 nav button[data-go="programs"]{--ic:#22D3EE} nav button[data-go="files"]{--ic:#FBBF24} nav button[data-go="disk"]{--ic:#A3E635} nav button[data-go="net"]{--ic:#38BDF8}
 nav button[data-go="hw"]{--ic:#C084FC} nav button[data-go="vault"]{--ic:#2FF3A6} nav button[data-go="info"]{--ic:#94A3B8} nav button[data-go="settings"]{--ic:#A1A6B4}
-nav button>svg,details.navmore>summary>svg{box-sizing:content-box;width:18px;height:18px;padding:6px;border-radius:9px;flex:0 0 auto}
-body:not(.office) nav button>svg,body:not(.office) details.navmore>summary>svg{color:var(--ic);stroke:var(--ic);background:color-mix(in srgb,var(--ic) 15%,transparent)}
-body:not(.office) details.navmore>button:not(.on)>svg{--ic:var(--muted);background:color-mix(in srgb,var(--muted) 12%,transparent)}
-body.th-ghiaccio:not(.office) nav button:not(.on)>svg,body.th-sabbia:not(.office) nav button:not(.on)>svg,body.th-ghiaccio:not(.office) details.navmore>summary>svg,body.th-sabbia:not(.office) details.navmore>summary>svg{stroke:color-mix(in srgb,var(--ic) 55%,#000);color:color-mix(in srgb,var(--ic) 55%,#000)}
+nav button>svg{box-sizing:content-box;width:18px;height:18px;padding:6px;border-radius:9px;flex:0 0 auto}
+body:not(.office) nav button>svg{color:var(--ic);stroke:var(--ic);background:color-mix(in srgb,var(--ic) 15%,transparent)}
+body.th-ghiaccio:not(.office) nav button:not(.on)>svg,body.th-sabbia:not(.office) nav button:not(.on)>svg{stroke:color-mix(in srgb,var(--ic) 55%,#000);color:color-mix(in srgb,var(--ic) 55%,#000)}
 body:not(.office) nav button.on>svg{stroke:#050506;color:#050506;background:var(--ic);box-shadow:0 0 14px color-mix(in srgb,var(--ic) 45%,transparent)}
 body:not(.office) nav button.on{box-shadow:none}
 nav button{padding:6px 10px}
-details.navmore>button{width:100%}
-body.office nav button,body.office details.navmore>summary{padding:8px 12px}
-body.office details.navmore>summary{min-height:38px}
-body.office nav button>svg,body.office details.navmore>summary>svg{padding:0;width:20px;height:20px}
-@media (max-width:760px){body.office aside nav button,body.office aside details.navmore>summary{padding:10px 0}}
+body.office nav button{padding:8px 12px}
+body.office nav button>svg{padding:0;width:20px;height:20px}
+@media (max-width:760px){body.office aside nav button{padding:10px 0}}
 /* Home Gaming */
 body:not(.office) #healthCard .stat{display:none}
 body:not(.office) #homeMore{border-top:0}
@@ -315,14 +312,10 @@ h1.gname::after{content:"";display:block;width:48px;height:3px;background:var(--
 .gfeats button:hover em{color:var(--a1)}
 @media (max-width:1000px){.gspecs{grid-template-columns:1fr 1fr}.gspecs>div:nth-child(3){border-left:0;padding-left:0}.gspecs>div:nth-child(n+3){border-top:1px solid var(--line)}}
 @media (max-width:760px){.ghero{grid-template-columns:1fr}.gmask{max-width:150px}
-  nav button>svg,details.navmore>summary>svg{padding:5px}}
+  nav button>svg{padding:5px}}
 
 body.fixq #secOffice{display:block!important}
 body.fixq #secOffice .sech{display:none}
-.look{display:flex;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:4px;gap:4px;margin-top:-4px}
-.look button{flex:1;border:0;background:transparent;color:var(--muted);font-weight:700;font-size:13px;padding:8px 4px;border-radius:10px;display:flex;align-items:center;justify-content:center;gap:6px;transition:background .2s,color .2s}
-.look button:hover{color:var(--text)}
-.look button.on{background:var(--a1);color:var(--ink)}
 body.office{--display:'Segoe UI Variable Display','Segoe UI',system-ui,sans-serif}
 body.office .glow,body.office .orbit{display:none}
 body.office .go{animation:none;box-shadow:0 12px 34px color-mix(in srgb,var(--a1) 32%,transparent)}
@@ -386,12 +379,10 @@ details.ofg .ofgrid{padding:0 12px 12px}
 .ofh h3{font-size:16px;font-family:var(--display);font-weight:600}
 .ofh .n{font-size:12px;color:var(--muted)}
 @media (max-width:760px){
-  .look{flex-direction:column}.look .lt{display:none}.look button{min-height:40px}
   aside{width:64px;flex:0 0 64px;padding:14px 6px}
   aside nav button{font-size:0;justify-content:center;padding:10px 0}
   aside nav .navh{display:none}
   .hero{padding:22px 20px;gap:18px}.hero h1{font-size:30px;letter-spacing:-.5px;overflow-wrap:normal}.orb{transform:scale(.78);margin:-28px auto}
-  aside details.navmore>summary{justify-content:center;padding:10px 0}details.navmore>summary span,details.navmore>summary::after{display:none}
   aside nav button{gap:0}
   aside .brand b,aside .brand small,.power b,.power span{display:none}
   .power{justify-content:center;padding:11px 0}
@@ -425,12 +416,6 @@ details.more[open]>summary::before{content:'▾ '}
 .morebox{display:flex;flex-direction:column;gap:22px;padding-top:10px}
 #v-home{gap:28px}
 body.office .qk:hover{transform:none}
-details.navmore>summary{display:flex;align-items:center;gap:11px;padding:6px 10px;border-radius:11px;color:var(--soft);font-size:14px;font-weight:600;cursor:pointer;list-style:none}
-details.navmore>summary::-webkit-details-marker{display:none}
-details.navmore>summary:hover{background:var(--hover);color:var(--text)}
-details.navmore>summary::after{content:'▸';margin-left:auto;font-size:11px;color:var(--muted)}
-details.navmore[open]>summary::after{content:'▾'}
-details.navmore[open]{display:flex;flex-direction:column;gap:2px}
 /* Scrivici (3.0) */
 .fbrev{display:flex;flex-direction:column;gap:8px;padding:12px;border-radius:12px;border:1px solid var(--line)}
 .fbstars{display:flex;gap:4px;align-items:center}
@@ -464,7 +449,7 @@ nav button[data-grp="rip"]{--ic:#4DA3FF} nav button[data-grp="opz"]{--ic:#A1A6B4
 body nav button.navgrp.on,body.office nav button.navgrp.on{background:transparent;box-shadow:none;color:var(--text)}
 body:not(.office) nav button.navgrp.on>svg{stroke:var(--ic);color:var(--ic);background:color-mix(in srgb,var(--ic) 14%,transparent);box-shadow:none}
 body.office nav .navsub button{padding:6px 8px;font-size:13px;white-space:nowrap}
-@media (max-width:760px){.navsub{margin-left:0;padding-left:0;border-left:0}aside nav .navsub button{font-size:0;justify-content:center;gap:0;padding:8px 0}aside nav .navsub button>svg{width:18px!important;height:18px!important}}
+@media (max-width:760px){.navsub{margin-left:0;padding-left:0;border-left:0}aside nav .navsub button,body.office aside nav .navsub button{font-size:0;justify-content:center;gap:0;padding:8px 0}aside nav .navsub button>svg{width:18px!important;height:18px!important}}
 /* 3.1: menu a tendina Gaming/Ufficio accanto a TASSO */
 .brand{position:relative}
 .brandt{display:flex;flex-direction:column;align-items:flex-start;gap:4px;min-width:0}
@@ -479,8 +464,8 @@ body.office nav .navsub button{padding:6px 8px;font-size:13px;white-space:nowrap
 .modemenu button{display:flex;align-items:center;gap:10px;text-align:left;border:0;background:transparent;color:var(--text);padding:9px 10px;border-radius:9px;font-size:18px;cursor:pointer}
 .modemenu button:hover{background:var(--hover)}
 .modemenu button.on{background:color-mix(in srgb,var(--a1) 16%,transparent);box-shadow:inset 0 0 0 1px var(--a1)}
-.modemenu b{display:block;font-size:14px}.modemenu small{display:block;font-size:12px;color:var(--muted)}.modemenu button.on small{color:var(--text)}
-@media (max-width:760px){.brand{flex-direction:column;gap:6px}.modesel{margin-left:0}#modeBtn .chev{display:none}#modeBtn .lt{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}#modeBtn{padding:6px}.modemenu{position:fixed;left:70px;right:auto;top:12px;width:230px}aside .brand .modemenu b,aside .brand .modemenu small{display:block}}
+.brand .modemenu b{display:block;font-size:14px;font-family:inherit;font-weight:700;letter-spacing:normal;font-stretch:normal;text-transform:none}.modemenu small{display:block;font-size:12px;color:var(--muted)}.modemenu button.on small{color:var(--text)}
+@media (max-width:760px){aside .brand{flex-direction:column;gap:6px}.modesel{margin-left:0}#modeBtn .chev{display:none}#modeBtn .lt{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}#modeBtn{padding:6px}.modemenu{position:fixed;left:70px;right:auto;top:12px;width:230px}aside .brand .modemenu b,aside .brand .modemenu small{display:block}}
 /* 3.1: gli occhi del tasso si muovono ogni 5 secondi */
 .brand .pup,.welcome .pup{animation:tlook 5s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
 @keyframes tlook{0%,70%,100%{transform:translateX(0)}76%,82%{transform:translateX(-45%)}88%,93%{transform:translateX(45%)}}
@@ -488,7 +473,8 @@ body.office nav .navsub button{padding:6px 8px;font-size:13px;white-space:nowrap
 .gspec{cursor:pointer;transition:background .15s}
 .gspec:hover,.gspec:focus-visible{background:color-mix(in srgb,var(--a1) 7%,transparent)}
 .gspec:focus-visible{outline:2px solid var(--a1);outline-offset:2px}
-.gspec{padding-left:10px;padding-right:10px;border-radius:10px}
+.gspecs>.gspec{padding-left:12px;padding-right:12px}
+@media (max-width:1000px){.gspecs>.gspec:nth-child(3){padding-left:12px}}
 .gsh{font-size:11px!important;font-weight:700;letter-spacing:.08em;color:var(--a1)!important;margin-top:4px!important;text-transform:uppercase}
 </style>
 </head>
@@ -506,8 +492,8 @@ body.office nav .navsub button{padding:6px 8px;font-size:13px;white-space:nowrap
   <nav aria-label="Menu">
     <button data-go="home" class="on"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg>Home</button>
     <button data-go="games" class="gm"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="11" rx="4"/><path d="M7 11v3M5.5 12.5h3M15.5 12h.01M18 13.5h.01"/></svg>Giochi</button>
-    <button data-grp="rip" class="navgrp"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.8 4.7 4.7 1.8-4.7 1.8L12 16l-1.8-4.7-4.7-1.8 4.7-1.8z"/><path d="M19 15l.8 2.2 2.2.8-2.2.8L19 21l-.8-2.2-2.2-.8 2.2-.8z"/></svg>Pulisci e ripara</button>
-    <div class="navsub" data-sub="rip">
+    <button data-grp="rip" class="navgrp" aria-controls="navsub-rip"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.8 4.7 4.7 1.8-4.7 1.8L12 16l-1.8-4.7-4.7-1.8 4.7-1.8z"/><path d="M19 15l.8 2.2 2.2.8-2.2.8L19 21l-.8-2.2-2.2-.8 2.2-.8z"/></svg>Pulisci e ripara</button>
+    <div class="navsub" data-sub="rip" id="navsub-rip">
       <button data-go="clean"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.8 4.7 4.7 1.8-4.7 1.8L12 16l-1.8-4.7-4.7-1.8 4.7-1.8z"/><path d="M19 15l.8 2.2 2.2.8-2.2.8L19 21l-.8-2.2-2.2-.8 2.2-.8z"/></svg>Pulisci</button>
       <button data-go="scan"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/><path d="M11 8v3.5M11 14h.01"/></svg>Salute e problemi</button>
       <button data-go="fix"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.6 2.6-2.4-.6-.6-2.4z"/></svg>Risolvi un problema</button>
@@ -520,8 +506,8 @@ body.office nav .navsub button{padding:6px 8px;font-size:13px;white-space:nowrap
       <button data-go="disk"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-9-9v9z"/><path d="M15 3.5A9 9 0 0 1 20.5 9H15z"/></svg>Mappa del disco</button>
       <button data-go="vault"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="15" r="4"/><path d="M10.8 12.2L20 3M16 7l3 3M14 9l2 2"/></svg>Portachiavi</button>
     </div>
-    <button data-grp="opz" class="navgrp"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg>Impostazioni</button>
-    <div class="navsub" data-sub="opz">
+    <button data-grp="opz" class="navgrp" aria-controls="navsub-opz"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg>Impostazioni</button>
+    <div class="navsub" data-sub="opz" id="navsub-opz">
       <button data-go="settings"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg>Impostazioni di Tasso</button>
       <button data-go="info"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5h.01"/></svg>Info e indice</button>
     </div>
@@ -551,7 +537,7 @@ body.office nav .navsub button{padding:6px 8px;font-size:13px;white-space:nowrap
     <dl class="gspecs">
       <div class="gspec" role="button" tabindex="0" data-go2="scan"><dt>Salute del PC</dt><dd id="gScore">…</dd><dd class="gsh">Vedi →</dd></div>
       <div class="gspec" role="button" tabindex="0" data-go2="clean"><dt>Da liberare</dt><dd id="gJunk">…</dd><dd class="gsh">Pulisci →</dd></div>
-      <div class="gspec" role="button" tabindex="0" data-go2="clean"><dt>Spazio libero</dt><dd id="gFree">…</dd><dd class="gsh">Cosa occupa →</dd></div>
+      <div class="gspec" role="button" tabindex="0" data-go2="disk"><dt>Spazio libero</dt><dd id="gFree">…</dd><dd class="gsh">Cosa occupa →</dd></div>
       <div class="gspec" role="button" tabindex="0" data-go2="speed"><dt>Programmi all'avvio</dt><dd id="gStart">…</dd><dd class="gsh">Scegli →</dd></div>
     </dl>
     <ul class="gfeats">
@@ -776,7 +762,7 @@ body.office nav .navsub button{padding:6px 8px;font-size:13px;white-space:nowrap
 
 <!-- FIX -->
 <section class="view" id="v-fix">
-  <div id="fixTitle"><h1 style="font-size:26px">Risolvi un problema</h1><p class="sub">Un clic sul problema che hai: Tasso prova a sistemarlo da solo. Se non lo trovi, scrivilo nella ricerca. Non sai qual è il problema? <a href="#" id="fixToDetect">Salute e problemi</a> e te lo dice Tasso.</p></div>
+  <div id="fixTitle"><h1 style="font-size:26px">Risolvi un problema</h1><p class="sub">Un clic sul problema che hai: Tasso prova a sistemarlo da solo. Se non lo trovi, scrivilo nella ricerca. Non sai qual è il problema? Apri <a href="#" id="fixToDetect">Salute e problemi</a> e te lo dice Tasso.</p></div>
   <div class="fixsearch"><input class="search" id="fixSearch" type="search" placeholder="Scrivi il problema: Wi-Fi, audio, lento, mouse…" aria-label="Cerca un problema"><p class="sub" id="fixNone" role="status" aria-live="polite" style="display:none;margin:8px 0 0">Nessun problema con queste parole. Prova con una parola sola, per esempio "audio", "lento", "mouse" o "password".</p></div>
   <div class="fixsec" id="secWin">
   <div class="sech"><span class="sei">🪟</span><div><h2>Sezione Windows</h2><p class="sub"><span class="gm">Audio, internet, aggiornamenti e ricerca: valgono per tutti.</span><span class="om">Audio, internet, stampa, aggiornamenti e ricerca: valgono per tutti.</span></p></div></div>
@@ -1012,7 +998,7 @@ body.office nav .navsub button{padding:6px 8px;font-size:13px;white-space:nowrap
     <li><b>Riparazione di Windows</b> con il risultato vero; <b>Apri qualsiasi file</b> ora apre anche le cartelle; <b>autoclick</b> fermato nei giochi con anti-cheat più conosciuti.</li></ul></div>
   <div class="card idx" style="--c:var(--a3)"><h3>Novità della 2.6</h3><ul>
     <li><b>Due modalità</b>: <b>Gaming</b> (tutto, anche giochi, FPS e ping) e <b>Ufficio</b> (più semplice, tranquilla, con un tasso più morbido). Si sceglie al primo avvio e si cambia quando vuoi dal pulsante in alto a sinistra.</li>
-    <li><b>I 100 problemi dell'ufficio</b> in Risolvi problemi, ognuno con un pulsante: stampanti, Word ed Excel, Outlook, Teams e riunioni, Wi-Fi e VPN, unità di rete, schermi e proiettore, tastiera, OneDrive, ora sbagliata, programmi sospetti.</li>
+    <li><b>I 100 problemi dell'ufficio</b> in Risolvi un problema, ognuno con un pulsante: stampanti, Word ed Excel, Outlook, Teams e riunioni, Wi-Fi e VPN, unità di rete, schermi e proiettore, tastiera, OneDrive, ora sbagliata, programmi sospetti.</li>
     <li><b>6 temi nuovi</b> per l'ufficio: Ufficio, Carta, Salvia, Lavanda, Notte e Ardesia (8 in tutto, con Ghiaccio e Sabbia).</li></ul></div>
   <div class="card idx gm" style="--c:var(--a1)"><h3>Novità della 2.5</h3><ul>
     <li><b>5 livelli di pulizia</b> (Classica, Normale, Media, Profonda, Eccezionale) e <b>pulizia programmata</b> ogni 1 o 2 settimane, in Home.</li>
