@@ -1293,7 +1293,7 @@ const TF = EN ? (I18N.frags || []).filter(k => k.length >= 6 && TG[k] !== undefi
 // t: un testo scritto qui nella finestra.
 const _t = (s) => (EN && typeof s === 'string' && TD[s] !== undefined) ? TD[s] : s;
 // tx: i dati che arrivano da Go (messaggi, elenchi). Nomi, percorsi e codici non si toccano.
-const TX_SKIP = {id:1, ids:1, key:1, path:1, paths:1, exe:1, dir:1, mode:1, theme:1, themeOffice:1, profile:1, guid:1, url:1, icon:1, src:1, value:1, val:1, hook:1, token:1, webhook:1, discordWebhook:1, discordBot:1, kind_id:1, file:1, cmd:1, arg:1, lang:1, region:1, settings:1, snapshot:1};
+const TX_SKIP = {id:1, ids:1, key:1, path:1, paths:1, exe:1, dir:1, mode:1, theme:1, themeOffice:1, profile:1, guid:1, url:1, icon:1, src:1, value:1, val:1, hook:1, token:1, webhook:1, discordWebhook:1, discordBot:1, kind_id:1, file:1, cmd:1, arg:1, lang:1, region:1, settings:1, snapshot:1, originale:1, tradotto:1, non_tradurre:1, termini:1, parlante:1, cartella:1};
 function tx(v, depth){
   if (!EN) return v;
   depth = depth || 0;
@@ -1576,6 +1576,7 @@ $('#fixToDetect').onclick = (e) => { e.preventDefault(); show('scan'); };
 
 /* ---------- modal ---------- */
 function modal(html, buttons){
+  if (!$('#modal').classList.contains('on')) MODAL_BACK = document.activeElement;
   const box = $('#modalBox'); box.innerHTML = html;
   const row = el('div', {class:'row wrap', style:'justify-content:flex-end;gap:10px;margin-top:6px'});
   buttons.forEach(bt => { const b = el('button', {class:'btn ' + (bt.cls || 'ghost')}, esc(bt.label)); b.onclick = () => { const keep = bt.fn ? bt.fn(box) : null; if (keep !== 'keep') closeModal(); }; row.appendChild(b); });
@@ -1583,7 +1584,8 @@ function modal(html, buttons){
   // 3.1: nelle domande pericolose il fuoco va su "Annulla", così un Invio di troppo non fa danni.
   const fi = buttons.findIndex(bt => bt.focus); const f = fi >= 0 ? row.children[fi] : row.lastChild; if (f) f.focus();
 }
-function closeModal(){ $('#modal').classList.remove('on'); }
+let MODAL_BACK = null;
+function closeModal(){ $('#modal').classList.remove('on'); const b = MODAL_BACK; MODAL_BACK = null; if (b && b.isConnected && typeof b.focus === 'function') { try { b.focus(); } catch (e) {} } }
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && $('#modal').classList.contains('on')) { closeModal(); e.stopImmediatePropagation(); } });
 
 const OFF_BOX = _t('<label class="check"><input type="checkbox" id="chkOff"> Spegni il PC quando ha finito</label>');
@@ -2797,6 +2799,7 @@ async function setLook(p){
   if (r !== 'ok') { toast(_t('Non sono riuscito a cambiare modalità: riprova.'), 'var(--a4)'); return; }
   S.profile = p; S.onboarded = true;
   applyLook(); repaintLook();
+  if (p === 'ufficio' && typeof GP_ID !== 'undefined' && GP_ID) closeGame();
   if (p === 'ufficio' && (CURVIEW === 'games' || CURVIEW === 'perf')) show('home');
   // 3.1: in Ufficio niente giochi e niente traduzione: se era accesa la spengo (tasti F7 liberi)
   if (p === 'ufficio' && typeof TT !== 'undefined' && TT && TT.acceso) { call('ttAccendi', false).then(() => { if (typeof ttRefresh === 'function') ttRefresh(); }); }
@@ -2844,14 +2847,14 @@ function paintLib(){
   const stores = [...new Set(vis.map(g => g.store))];
   if (LIBF !== 'all' && LIBF !== 'rec' && stores.indexOf(LIBF) < 0) LIBF = 'all';
   $('#libChips').innerHTML = [['all', _t('Tutti')], ['rec', _t('Recenti')]].concat(stores.map(x => [x, storeName(x)])).map(f => '<button class="chip' + (LIBF === f[0] ? ' on' : '') + '" data-lf="' + esc(f[0]) + '" aria-pressed="' + (LIBF === f[0]) + '">' + esc(f[1]) + '</button>').join('');
-  const list = sortedLib().filter(g => !g.hidden && (LIBF === 'all' || (LIBF === 'rec' ? g.played : g.store === LIBF)) && (!q || g.name.toLowerCase().includes(q)));
+  const list = sortedLib().filter(g => !g.hidden && (LIBF === 'all' || (LIBF === 'rec' ? isRecent(g) : g.store === LIBF)) && (!q || g.name.toLowerCase().includes(q)));
   $('#libCount').textContent = vis.length ? (list.length === 1 ? _t('1 gioco') : list.length + _t(' giochi')) + _t(' · i giocati di recente per primi, poi in ordine alfabetico. Tocca un gioco per aprire la sua pagina.') : '';
   if (!vis.length) { box.innerHTML = nHid ? _t('<span class="muted">Hai nascosto tutti i giochi.</span>') : _t('<span class="muted">Nessun gioco trovato. Se un gioco manca, premi "Aggiungi un gioco" e scegli il suo programma (.exe).</span>'); $('#libMsg').textContent = nHid ? '' : _t('Nessun gioco trovato.'); return; }
   if (!list.length) box.innerHTML = _t('<span class="muted">Nessun gioco con questo nome. Se manca, premi "Aggiungi un gioco" (o guarda tra i giochi nascosti).</span>');
   const now = Date.now() / 1000;
   list.forEach(g => {
     const m = S.gameMemo && S.gameMemo[g.id];
-    const badge = m && !m.skip && m.a ? _t('TRADOTTO') : (g.played && now - g.played < 14 * 86400) ? _t('RECENTE') : '';
+    const badge = m && !m.skip && m.a ? _t('TRADOTTO') : isRecent(g) ? _t('RECENTE') : '';
     const c = el('div', {class:'gcard', role:'button', tabindex:'0', 'data-gid': g.id, 'aria-label': g.name + ' · ' + storeName(g.store)}, '<div class="cover" style="color:' + (STORE_COL[g.store] || 'var(--a1)') + '"></div>' + (badge ? '<span class="gbadge">' + esc(badge) + '</span>' : '') + '<div class="gname"><b title="' + esc(g.name) + '">' + esc(g.name) + '</b><button class="ghost gmore" aria-label="' + esc(_t('Altre azioni')) + '" title="' + esc(_t('Altre azioni')) + '">⋯</button></div><span class="small muted">' + esc(storeName(g.store)) + (g.size ? ' · ' + fmtBytes(g.size) : '') + '</span>');
     putCover(c.querySelector('.cover'), g);
     c.querySelector('.gmore').onclick = (ev) => { ev.stopPropagation(); gameOptions(g); };
@@ -3387,7 +3390,7 @@ function paintTr(){
 }
 $('#trSw').onclick = async () => {
   const on = !(TT && TT.acceso);
-  if (on && TT && !TT.mozilla_ok) { toast(_t('Prima scarica il traduttore veloce in Giochi → Impostazioni.'), 'var(--a4)'); gTab('imp'); return; }
+  if (on && TT && !TT.mozilla_ok && !TT.mozilla_file) { toast(_t('Prima scarica il traduttore veloce in Giochi → Impostazioni.'), 'var(--a4)'); gTab('imp'); return; }
   const r = await ttc('ttAccendi', on); if (TT) TT.acceso = !!r; paintTr();
   toast(r ? _t('Traduzione accesa.') : _t('Traduzione spenta.'));
 };
@@ -3421,8 +3424,9 @@ async function paintTrSet(){
   a.innerHTML = opts(LANGS);
   da.value = st.lingua_da || 'auto'; a.value = st.lingua_a || 'it';
   const busy = !!st.scaricando;
-  $('#trMozTxt').textContent = st.mozilla_ok ? _t('Pronto: traduce sul tuo PC, senza internet.') : busy ? _t('Sto scaricando: aspetta che finisca.') : _t('Serve per tradurre. Si scarica una volta sola (circa 35 MB).');
-  $('#btnTrMoz').hidden = !!st.mozilla_ok; $('#btnTrMoz').disabled = busy;
+  const mozFail = !st.mozilla_ok && st.mozilla_file && st.mozilla_err;
+  $('#trMozTxt').textContent = st.mozilla_ok ? _t('Pronto: traduce sul tuo PC, senza internet.') : busy ? _t('Sto scaricando: aspetta che finisca.') : mozFail ? _t('Scaricato, ma non è partito: ') + tx(st.mozilla_err) + _t('. Premi Riprova.') : st.mozilla_file ? _t('Scaricato. Lo preparo appena serve (pochi secondi).') : _t('Serve per tradurre. Si scarica una volta sola (circa 35 MB).');
+  $('#btnTrMoz').hidden = !!st.mozilla_ok || (st.mozilla_file && !mozFail); $('#btnTrMoz').disabled = busy; $('#btnTrMoz').textContent = mozFail ? _t('Riprova') : _t('Scarica');
   $('#trIaTxt').textContent = st.ia_file ? (st.ia_pc_ok ? (st.ia_attiva ? _t('Accesa: ricontrolla le frasi e le rende naturali.') : _t('Installata: parte da sola quando la scheda video ha spazio. La accendi o spegni per ogni gioco, nella procedura a passi.')) : _t('Installata, ma su questo PC rallenterebbe il gioco: Tasso usa il traduttore veloce.')) : !st.ia_pc_ok ? _t('Non adatta a questo PC: ') + tx(st.ia_pc_motivo || '') : st.ia_offerta ? _t('Facoltativa. Circa 6 GB da scaricare una volta. Usa circa 5 GB della scheda video e lascia sempre spazio al gioco; se non basta, Tasso usa il traduttore veloce.') : _t('Non disponibile in questa versione.');
   $('#btnTrIa').hidden = !!st.ia_file || !st.ia_offerta || !st.ia_pc_ok; $('#btnTrIa').disabled = busy;
   const v = st.voci || {};
@@ -3457,7 +3461,7 @@ $('#btnTrVoci').onclick = async () => {
   if (!v.file) { $('#btnTrVoci').disabled = true; $('#trVociTxt').textContent = _t('Li sto scaricando…'); ttc('ttScaricaVoci'); return; }
   const r = await ttc('ttAccendiVoci', !v.accese); if (r && r.errore) toast(tx(r.errore), 'var(--a4)'); ttRefresh();
 };
-$('#trSwAuto').onclick = async () => { const r = await ttc('ttImpostaTuttoAuto', !(TT && TT.tutto_auto)); if (TT) TT.tutto_auto = !!r; setSw('#trSwAuto', !!r); toast(r ? _t('Tasso traduce da solo appena apre un gioco (con la traduzione accesa).') : _t('Tasso traduce da solo solo i giochi che hai preparato; per gli altri chiede.')); };
+$('#trSwAuto').onclick = async () => { const r = await ttc('ttImpostaTuttoAuto', !(TT && TT.tutto_auto)); if (TT) TT.tutto_auto = !!r; setSw('#trSwAuto', !!r); toast(r ? _t('Tasso traduce da solo appena apre un gioco (con la traduzione accesa).') : _t('Tasso traduce in automatico solo i giochi che hai preparato; per gli altri chiede.')); };
 $('#trSwEn').onclick = async () => { const on = !(TT && TT.mostra_en); await ttc('ttImpostaInglese', on); if (TT) TT.mostra_en = on; setSw('#trSwEn', on); };
 $('#trPos').onchange = async (e) => { const p = await ttc('ttImpostaPosizione', e.target.value); if (TT) TT.posizione = p; toast(_t('Salvato.'), 'var(--a3)'); };
 $('#trFont').oninput = (e) => { $('#trFontV').textContent = e.target.value + ' px'; };
@@ -3481,21 +3485,22 @@ $('#btnKeyChange').onclick = () => {
   const cap = $('#kCap');
   cap.onkeydown = async (e) => {
     if (['Control', 'Alt', 'Shift', 'AltGraph', 'Meta'].indexOf(e.key) >= 0) return;
+    if (!e.ctrlKey && !e.altKey && (e.key === 'Tab' || e.key === 'Escape')) return; // Tab passa oltre, Esc chiude la finestra
     e.preventDefault(); e.stopPropagation();
     const mod = (e.altKey ? 1 : 0) | (e.ctrlKey ? 2 : 0) | (e.shiftKey ? 4 : 0);
     const code = (mod << 16) | (e.keyCode & 0xFFFF);
-    const r = await ttc('ttImpostaTasto', $('#kSel').value, code) || {};
-    $('#kMsg').textContent = r.errore ? tx(r.errore) : _t('✓ Ora è ') + r.etichetta + '.'; $('#kMsg').style.color = r.errore ? 'var(--a4)' : 'var(--a3)';
+    const r = await ttc('ttImpostaTasto', $('#kSel').value, code) || {errore: _t('Tasso non ha risposto: riprova.')};
+    $('#kMsg').textContent = r.errore ? tx(r.errore) : _t('✓ Ora è ') + (r.etichetta || '') + '.'; $('#kMsg').style.color = r.errore ? 'var(--a4)' : 'var(--a3)';
     if (!r.errore) ttRefresh().then(paintKeys);
   };
   cap.focus();
 };
-$('#btnKeyReset').onclick = async () => { await ttc('ttTastiDiBase'); await ttRefresh(); paintKeys(); toast(_t('Tasti rimessi come all\'inizio.'), 'var(--a3)'); };
+$('#btnKeyReset').onclick = async () => { const r = await ttc('ttTastiDiBase'); await ttRefresh(); paintKeys(); const n = parseInt(String(r || '').replace('occupati:', ''), 10); if (r === 'ok') toast(_t('Tasti rimessi come all\'inizio.'), 'var(--a3)'); else if (n > 0) toast(_t('Tasti rimessi come all\'inizio, ma ') + n + _t(' sono già usati da un altro programma: cambiali qui sopra.'), 'var(--a4)'); else toast(_t('Non riuscito.'), 'var(--a4)'); };
 const DLN = {mozilla:_t('Traduttore veloce'), ia:_t('IA'), voci:_t('Voci'), chat:_t('Chat tradotta')};
-function ttRepaint(){ if (W && !$('#gwz').hidden && !W.busy) wzDraw(); if (GP_ID && !(W && !$('#gwz').hidden)) { const g = LIB.find(x => x.id === GP_ID); if (g) paintTools(g); } }
+function ttRepaint(){ if (W && !$('#gwz').hidden && !W.busy && wzStep() !== 'ok') wzDraw(); if (GP_ID && !(W && !$('#gwz').hidden)) { const g = LIB.find(x => x.id === GP_ID); if (g) paintGameTools(g); } }
 window.tt = {
   aggiorna(st){ if (st) { TT = st; paintTr(); ttRepaint(); } },
-  info(x){ if (x && x.testo) toast(tx(x.testo)); },
+  info(x){ if (x && x.testo && !document.body.classList.contains('office')) toast(tx(x.testo)); },
   avanzamento(x){
     if (!x) return; const pc = x.totale ? Math.round(x.fatti * 100 / x.totale) : 0;
     const t = (DLN[x.cosa] || x.cosa) + ': ' + pc + '%';
@@ -3504,8 +3509,8 @@ window.tt = {
     else if (x.cosa === 'voci') $('#trVociTxt').textContent = _t('Scarico… ') + pc + '%';
     else if (x.cosa === 'chat') $('#trChatTxt').textContent = _t('Scarico… ') + pc + '%';
   },
-  scaricato(x){ toast((DLN[x && x.cosa] || '') + _t(': scaricato.'), 'var(--a3)'); ttRefresh().then(ttRepaint); },
-  erroreScarica(x){ toast((DLN[x && x.cosa] ? DLN[x.cosa] + ': ' : '') + _t('scaricamento non riuscito: ') + tx((x && x.errore) || ''), 'var(--a4)'); ttRefresh().then(ttRepaint); },
+  scaricato(x){ if (!document.body.classList.contains('office')) toast((DLN[x && x.cosa] || '') + _t(': scaricato.'), 'var(--a3)'); ttRefresh().then(ttRepaint); },
+  erroreScarica(x){ if (!document.body.classList.contains('office')) toast((DLN[x && x.cosa] ? DLN[x.cosa] + ': ' : '') + _t('scaricamento non riuscito: ') + tx((x && x.errore) || ''), 'var(--a4)'); ttRefresh().then(ttRepaint); },
   guidata(x){ wzProgress(x); },
   verifica(x){ if (x && x.testo) { const v = $('#gwVer'); if (v && W && W.info && W.info.cartella === x.cartella) v.textContent = tx(x.testo); } },
   apriCronologia(){ if (document.body.classList.contains('office')) return; show('games'); gTab('cro'); },
@@ -3530,6 +3535,7 @@ function closeGame(){
 }
 async function openGame(id, quiet){
   const g = LIB.find(x => x.id === id); if (!g) { if (GP_ID) closeGame(); return; }
+  if (isOffice()) { if (GP_ID) closeGame(); return; } // in Ufficio niente giochi
   if (CURVIEW !== 'games') show('games');
   if (!quiet || GP_ID !== id) GPI = null;
   GP_ID = id;
@@ -3582,7 +3588,7 @@ function gameTools(g){
     {k:'fix', id:'opt', ic:'🗑️', t:_t('Nascondi o disinstalla'), d:_t('Con il programma ufficiale del negozio, che chiede conferma.'), s:'⋯'}
   ];
 }
-function paintTools(g){
+function paintGameTools(g){
   const box = $('#gpTools'); if (!box) return;
   const list = gameTools(g).filter(x => GP_TAB === 'all' || x.k === GP_TAB);
   $('#gpToolTabs').innerHTML = TOOL_TABS.map(t => '<button class="chip' + (GP_TAB === t[0] ? ' on' : '') + '" data-tt="' + t[0] + '" aria-pressed="' + (GP_TAB === t[0]) + '">' + esc(t[1]) + '</button>').join('');
@@ -3609,19 +3615,24 @@ async function prepTr(g){
   if (!m || m.skip || !m.a) return false;
   await ttc('ttImpostaLingue', m.da || 'auto', m.a);
   if (TT && TT.ia_file) await ttc('ttImpostaMotore', m.ia ? 'auto' : 'mozilla');
-  if ((!i || i.tradotto) && m.modo !== 'file' && TT && !TT.acceso && TT.mozilla_ok) { await ttc('ttAccendi', true); }
-  ttRefresh();
-  return true;
+  // 'on' solo se la traduzione è davvero pronta a partire; 'off' se manca qualcosa (lo dico)
+  if (m.modo === 'file' || (i && i.in_file)) { ttRefresh(); return 'on'; }
+  if (TT && !TT.acceso && (TT.mozilla_ok || TT.mozilla_file)) await ttc('ttAccendi', true);
+  await ttRefresh();
+  return TT && TT.acceso && (TT.mozilla_ok || TT.mozilla_file) ? 'on' : 'off';
 }
 async function playGame(g, out){
-  const tr = await prepTr(g);
+  let tr = await prepTr(g);
   const r = await call('goLaunchGame', g.id);
   const ok = r === 'ok';
   const cart = (GPI && GP_ID === g.id && GPI.cartella) || (W && W.g && W.g.id === g.id && W.info && W.info.cartella) || '';
-  if (ok && tr && cart) ttc('ttVerifica', cart);
-  const msg = ok ? (tr ? _t('Avvio ') + g.name + _t('… Ti dico io se la traduzione parte.') : _t('Avvio ') + g.name + '…') : tx(r || '');
+  const trOn = GPI && GP_ID === g.id && GPI.tradotto;
+  let ver = '';
+  if (ok && cart && (tr === 'on' || trOn)) ver = await ttc('ttVerifica', cart);
+  if (ver === 'spenta' && tr !== 'off') tr = 'off';
+  const msg = ok ? (tr === 'on' && ver === 'ok' ? _t('Avvio ') + g.name + _t('… Ti dico io se la traduzione parte.') : tr === 'off' ? _t('Avvio ') + g.name + _t('… La traduzione non è accesa: prima scarica il traduttore veloce in Giochi → Impostazioni.') : _t('Avvio ') + g.name + '…') : tx(r || '');
   if (out) out.textContent = msg; else toast(msg, ok ? 'var(--a3)' : 'var(--a4)');
-  const lg = LIB.find(x => x.id === g.id); if (ok && lg) { lg.played = Math.floor(Date.now() / 1000); paintRecent(); }
+  const lg = LIB.find(x => x.id === g.id); if (ok && lg) { lg.played = Math.floor(Date.now() / 1000); paintRecent(); if (typeof paintLib === 'function') paintLib(); }
   return ok;
 }
 function paintGame(g){
@@ -3631,23 +3642,23 @@ function paintGame(g){
   const st = TT || {};
   const trTxt = !i ? _t('Controllo il gioco…') : i.errore ? tx(i.errore) : i.tradotto ? (i.in_file ? _t('Tradotto dentro il gioco.') : st.acceso ? _t('Tradotto sullo schermo: nel gioco premi ') + keyName('pagina', 'F7') + '.' : _t('Tradotto sullo schermo. La traduzione dei giochi adesso è spenta: GIOCA la accende da sola; se apri il gioco da Steam, accendila prima.')) : i.anticheat ? _t('Non tradotto. Si può tradurre solo sullo schermo, per non rischiare con l\'anti-imbroglio.') : _t('Non tradotto.');
   const live = LIVE && LIVE.gpu && LIVE.gpu.temp != null ? Math.round(LIVE.gpu.temp) + '°' : '—';
-  const stats = [[i && i.traduzioni ? String(i.traduzioni) : '0', _t('Frasi già tradotte')], [pw ? POW[pw] : POW[''], _t('Potenza quando giochi')], [live, _t('Scheda video adesso')]];
+  const stats = [[i && i.traduzioni ? String(i.traduzioni) : '0', _t('Frasi già tradotte')], [pw ? POW[pw] : S.autoGame ? _t('Alta (Boost automatico)') : POW[''], _t('Potenza quando giochi')], [live, _t('Scheda video adesso')]];
   box.innerHTML = '<div class="gp"><div><button class="btn ghost" id="gpBack">← ' + esc(_t('Tutti i giochi')) + '</button></div>' +
     '<div class="card gp-hero"><div class="cover gp-cv"></div><div class="gp-tit"><div class="gp-store">' + esc(storeName(g.store)) + '</div><h2>' + esc(g.name) + '</h2><div>' + pills + '</div></div></div>' +
     '<div class="gp-grid"><div class="gp-main">' +
       (m ? '<div class="mem"><div><b>🧠 ' + esc(_t('Tasso si ricorda')) + '</b><span>' + esc(_t('Ultima volta')) + (m.when ? ' (' + esc(fmtDay(m.when)) + ')' : '') + ': ' + esc(memoTxt(m)) + '. ' + esc(_t('Premi GIOCA e uso le stesse impostazioni.')) + '</span></div><button class="btn ghost" data-act="wiz">' + esc(_t('Cambia')) + '</button></div>' : '') +
       '<div class="gp-stats">' + stats.map(s => '<div><b>' + esc(s[0]) + '</b><span>' + esc(s[1]) + '</span></div>').join('') + '</div>' +
-      '<div class="gp-acts"><button class="gp-big gplay" data-act="play"><b>▶ ' + esc(_t('GIOCA')) + '</b><span>' + esc(pw ? _t('Con ') + POW[pw] + _t('. A fine partita rimetto tutto com\'era.') : _t('Apre il gioco dal suo negozio.')) + '</span></button>' +
+      '<div class="gp-acts"><button class="gp-big gplay" data-act="play"><b>▶ ' + esc(_t('GIOCA')) + '</b><span>' + esc(pw ? _t('Con ') + POW[pw] + _t('. A fine partita rimetto tutto com\'era.') : S.autoGame ? _t('Con il Boost automatico. A fine partita rimetto tutto com\'era.') : _t('Apre il gioco dal suo negozio.')) + '</span></button>' +
       '<button class="gp-big gprep" data-act="wiz"><b>⚙ ' + esc(_t('PREPARA A PASSI')) + '</b><span>' + esc(_t('Traduzione, potenza e impostazioni consigliate, una cosa alla volta.')) + '</span></button></div>' +
       '<div class="card gp-sets">' +
-        '<div class="gp-line"><span><b>' + esc(_t('Potenza quando apri il gioco')) + '</b><small>' + esc(_t('Anche se lo apri da Steam. Quando lo chiudi rimetto tutto com\'era.')) + '</small></span><div class="seg" role="group" aria-label="' + esc(_t('Potenza quando apri il gioco')) + '">' + ['', 'gaming', 'max'].map(k => '<button data-pow="' + k + '" class="' + (pw === k ? 'on' : '') + '" aria-pressed="' + (pw === k) + '">' + esc(k === '' ? _t('Normale') : k === 'gaming' ? _t('Alta') : _t('Massima')) + '</button>').join('') + '</div></div>' +
+        '<div class="gp-line"><span><b>' + esc(_t('Potenza quando apri il gioco')) + '</b><small>' + esc(POW_FAIL[g.id] ? POW_FAIL[g.id] : _t('Anche se lo apri da Steam. Quando lo chiudi rimetto tutto com\'era.')) + '</small></span><div class="seg" role="group" aria-label="' + esc(_t('Potenza quando apri il gioco')) + '">' + ['', 'gaming', 'max'].map(k => '<button data-pow="' + k + '" class="' + (pw === k ? 'on' : '') + '" aria-pressed="' + (pw === k) + '"' + (POW_FAIL[g.id] && k !== pw ? ' disabled' : '') + '>' + esc(k === '' ? _t('Normale') : k === 'gaming' ? _t('Alta') : _t('Massima')) + '</button>').join('') + '</div></div>' +
         '<div class="gp-line"><span><b>' + esc(_t('Traduzione')) + '</b><small id="gpTrTxt">' + esc(trTxt) + '</small></span>' + (i && i.tradotto ? '<button class="btn ghost" data-act="trstop">' + esc(_t('Togli la traduzione')) + '</button>' : (i && !i.errore ? '<button class="btn ghost" data-act="wiz">' + esc(_t('Traduci')) + '</button>' : '')) + '</div>' +
         '<div class="gp-line" style="border-bottom:0"><span><b>' + esc(_t('Boost automatico')) + '</b><small>' + esc(_t('Per tutti i giochi: quando ne apri uno, Tasso fa il Boost da solo e a fine partita rimette tutto.')) + '</small></span><button class="sw' + (BST && BST.auto ? ' on' : '') + '" role="switch" aria-checked="' + !!(BST && BST.auto) + '" data-act="auto" aria-label="' + esc(_t('Boost automatico')) + '"><i></i></button></div>' +
       '</div>' +
     '</div><div class="card gp-side"><h3>' + esc(_t('Strumenti per questo gioco')) + '</h3><div class="row wrap" style="gap:6px" id="gpToolTabs"></div><span class="small muted">' + esc(_t('Tocca uno strumento per usarlo.')) + '</span><div id="gpTools"></div></div></div></div>';
   putCover(box.querySelector('.gp-cv'), g);
-  paintTools(g);
-  $('#gpToolTabs').onclick = (ev) => { const b = ev.target.closest('[data-tt]'); if (b) { GP_TAB = b.dataset.tt; paintTools(g); } };
+  paintGameTools(g);
+  $('#gpToolTabs').onclick = (ev) => { const b = ev.target.closest('[data-tt]'); if (b) { GP_TAB = b.dataset.tt; paintGameTools(g); } };
   $('#gpTools').onclick = (ev) => { const b = ev.target.closest('[data-tool]'); if (b && !b.disabled) toolClick(g, b.dataset.tool); };
   $('#gpBack').onclick = () => { closeGame(); const c = $('#libGrid [data-gid="' + CSS.escape(g.id) + '"]'); if (c) c.focus(); };
   box.querySelectorAll('[data-pow]').forEach(b => { b.onclick = async () => {
@@ -3655,7 +3666,7 @@ function paintGame(g){
     box.querySelectorAll('[data-pow]').forEach(x => { x.disabled = true; });
     const r = await setPower(g.id, k);
     if (r && r.ok) { toast(_t('Potenza per ') + g.name + ': ' + POW[k] + '.', 'var(--a3)'); if (m && m.pot) call('goGameMemo', g.id, Object.assign({}, m, {pot: k || 'normale'})).then(refreshS); }
-    else toast((r && r.error) || _t('Non sono riuscito a salvare.'), 'var(--a4)');
+    else { toast((r && r.error) || _t('Non sono riuscito a salvare.'), 'var(--a4)'); if (r && r.error && /programma|program/i.test(r.error)) POW_FAIL[g.id] = r.error; }
     if (GP_ID === g.id) paintGame(g);
   }; });
   box.querySelectorAll('[data-act]').forEach(b => { b.onclick = async () => {
@@ -3663,11 +3674,12 @@ function paintGame(g){
     if (a === 'play') { b.disabled = true; await playGame(g); b.disabled = false; }
     else if (a === 'wiz') wzOpen(g, 'prep');
     else if (a === 'auto') { const r = await call('goBoostAuto', !(BST && BST.auto)); if (r) toast(String(r).replace(/^ok:/, ''), 'var(--a3)'); await boostRefresh(); if (GP_ID === g.id) paintGame(g); }
-    else if (a === 'trstop') { const r = await ttc('ttFermaTraduzione', GPI.cartella); if (r === 'ok') toast(_t('Traduzione tolta: ') + g.name + _t(' torna com\'era.'), 'var(--a3)'); else toast(tx(r || _t('Non riuscito.')), 'var(--a4)'); GPI = null; openGame(g.id, true); }
+    else if (a === 'trstop') { const r = await ttc('ttFermaTraduzione', GPI.cartella); if (r === 'ok') { toast(_t('Traduzione tolta: ') + g.name + _t(' torna com\'era.'), 'var(--a3)'); const om = S.gameMemo && S.gameMemo[g.id]; if (om && om.a) { await call('goGameMemo', g.id, Object.assign({}, om, {da: '', a: '', modo: '', ia: false})); await refreshS(); } } else toast(tx(r || _t('Non riuscito.')), 'var(--a4)'); GPI = null; openGame(g.id, true); }
   }; });
 }
 // Potenza per un gioco: aspetto la risposta vera di Go (onGamePower).
 let POW_WAIT = null;
+const POW_FAIL = {}; // giochi a cui la potenza non si può mettere (es. Xbox: programma non raggiungibile)
 function setPower(id, k){
   return new Promise(res => {
     const done = (r) => { clearTimeout(t); if (POW_WAIT === done) POW_WAIT = null; res(r); };
@@ -3681,7 +3693,7 @@ function setPower(id, k){
 let W = null, WRUN = 0;
 async function wzOpen(g, kind){
   const st = await ttRefresh() || {}; await loadLangs();
-  W = {kind: kind || 'prep', g: null, info: {}, m: null, i: 0, da: st.lingua_da || 'auto', a: st.lingua_a || 'it', modo: 'schermo', skip: kind === 'boost', ia: !!st.ia_file, pot: '', tune: null, tuneSel: null, busy: false, err: '', msg: '', run: 0, q: '', f: 'all', ret: document.activeElement};
+  W = {kind: kind || 'prep', g: null, info: {}, m: null, i: 0, da: st.lingua_da || 'auto', a: st.lingua_a || 'it', modo: 'schermo', skip: kind === 'boost', ia: !!(st.ia_file && st.ia_pc_ok), pot: '', tune: null, tuneSel: null, busy: false, err: '', msg: '', run: 0, q: '', f: 'all', ret: document.activeElement};
   W.steps = W.kind === 'boost' ? ['pick', 'pot', 'cons', 'fine', 'ok'] : ['da', 'a', 'pot', 'cons', 'fine', 'ok'];
   if (g) await wzGame(g);
   $('#gwz').hidden = false; wzDraw(); const n = $('#gwzNext'); if (n) n.focus();
@@ -3709,7 +3721,7 @@ function wzClose(){
   if (ret && ret.focus && document.contains(ret)) ret.focus();
 }
 $('#gwzX').onclick = wzClose;
-document.addEventListener('keydown', (ev) => { if (ev.key === 'Escape' && W && !$('#gwz').hidden && !$('#modal').classList.contains('on')) wzClose(); });
+document.addEventListener('keydown', (ev) => { if (ev.key === 'Escape' && W && !$('#gwz').hidden && !$('#modal').classList.contains('on')) { if (ev.target && ev.target.id === 'gwQ' && ev.target.value) { ev.target.value = ''; W.q = ''; wzDraw(); const n = $('#gwQ'); if (n) n.focus(); return; } wzClose(); } });
 function canFile(){ const i = (W && W.info) || {}; return !!(i.file_ok && !i.anticheat); }
 function langBtns(list, cur, from){
   return list.map(l => {
@@ -3789,15 +3801,16 @@ function wzDraw(){
     const trTxt = W.kind === 'boost' ? _t('Non toccata') : W.skip ? _t('Non serve (saltata)') : langName(W.da) + ' → ' + langName(W.a) + ', ' + (W.modo === 'file' ? _t('dentro il gioco') : _t('sullo schermo')) + (W.ia && st.ia_file && st.ia_pc_ok ? _t(', con l\'IA') : '');
     const nT = W.tuneSel ? Object.keys(W.tuneSel).filter(k => W.tuneSel[k]).length : 0;
     h = P(_t('Tutto pronto')) + '<dl class="sum"><dt>' + esc(_t('Gioco')) + '</dt><dd>' + esc(g.name) + '</dd><dt>' + esc(_t('Traduzione')) + '</dt><dd>' + esc(trTxt) + '</dd><dt>' + esc(_t('Potenza')) + '</dt><dd>' + esc(POW[potKey(W.pot)]) + (BST && BST.auto ? esc(_t(' + Boost automatico')) : '') + '</dd><dt>' + esc(_t('Consigliate')) + '</dt><dd>' + esc(nT ? nT + _t(' da applicare') : _t('nessuna')) + '</dd></dl>' +
-      (W.kind !== 'boost' && !W.skip && !st.mozilla_ok ? '<div class="callout">' + esc(_t('Per tradurre serve il traduttore veloce (circa 35 MB, una volta sola).')) + ' <button class="btn ghost" id="gwMozGo"' + (st.scaricando ? ' disabled' : '') + '>' + esc(st.scaricando ? _t('Lo sto scaricando…') : _t('Scaricalo ora')) + '</button> <span id="gwMoz"></span></div>' : '') +
+      (W.kind !== 'boost' && !W.skip && !st.mozilla_ok && !st.mozilla_file ? '<div class="callout">' + esc(_t('Per tradurre serve il traduttore veloce (circa 35 MB, una volta sola).')) + ' <button class="btn ghost" id="gwMozGo"' + (st.scaricando ? ' disabled' : '') + '>' + esc(st.scaricando ? _t('Lo sto scaricando…') : _t('Scaricalo ora')) + '</button> <span id="gwMoz"></span></div>' : '') +
       '<div class="gwbar"><i id="gwBar"></i></div><p class="small" id="gwMsg" style="margin:0;color:' + (W.err ? 'var(--a4)' : 'var(--muted)') + '">' + esc(W.err ? W.err : _t('Premi Applica: Tasso fa tutto da solo.')) + '</p>';
   }
-  if (s === 'ok') h = '<div style="text-align:center;display:flex;flex-direction:column;gap:10px;align-items:center"><div style="font-size:40px;color:var(--a3)">✓</div><h3>' + esc(_t('Pronto')) + '</h3>' + (W.notes || []).map(n => '<p class="small" style="margin:0;color:' + (n[1] ? 'var(--a4)' : 'var(--muted)') + '">' + esc(n[0]) + '</p>').join('') + '<button class="btn primary" id="gwOpen" style="font-size:16px;padding:12px 22px">▶ ' + esc(_t('Apri il gioco')) + '</button><p class="small" id="gwVer" style="margin:0" role="status"></p></div>';
+  const nts = W.notes || [], allBad = nts.length > 0 && nts.every(n => n[1]), someBad = nts.some(n => n[1]);
+  if (s === 'ok') h = '<div style="text-align:center;display:flex;flex-direction:column;gap:10px;align-items:center"><div style="font-size:40px;color:' + (allBad ? 'var(--a4)' : 'var(--a3)') + '">' + (allBad ? '✕' : '✓') + '</div><h3>' + esc(allBad ? _t('Non è riuscito') : someBad ? _t('Fatto in parte') : _t('Pronto')) + '</h3>' + (W.notes || []).map(n => '<p class="small" style="margin:0;color:' + (n[1] ? 'var(--a4)' : 'var(--muted)') + '">' + esc(n[0]) + '</p>').join('') + '<button class="btn primary" id="gwOpen" style="font-size:16px;padding:12px 22px">▶ ' + esc(_t('Apri il gioco')) + '</button><p class="small" id="gwVer" style="margin:0" role="status"></p></div>';
   $('#gwzB').innerHTML = h;
   $('#gwzF').style.display = s === 'ok' ? 'none' : '';
   $('#gwzBack').style.visibility = W.i > 0 && !W.busy && !(W.noGame && s === 'pot') ? 'visible' : 'hidden';
   $('#gwzNext').textContent = s === 'fine' ? _t('Applica') : s === 'pick' ? _t('Sì, conferma') : _t('Avanti');
-  $('#gwzNext').disabled = !!W.busy || (s === 'pick' && !g) || (s === 'fine' && W.kind !== 'boost' && !W.skip && !st.mozilla_ok);
+  $('#gwzNext').disabled = !!W.busy || (s === 'pick' && !g) || (s === 'fine' && W.kind !== 'boost' && !W.skip && !st.mozilla_ok && !st.mozilla_file);
   if (s === 'pick') {
     const qi = $('#gwQ'); qi.oninput = () => { W.q = qi.value.toLowerCase().trim(); const pos = qi.selectionStart; wzDraw(); const n = $('#gwQ'); n.focus(); try { n.setSelectionRange(pos, pos); } catch (e) {} };
     $$('#gwzB [data-cv]').forEach(c => { const x = LIB.find(y => y.id === c.dataset.cv); if (x) putCover(c, x); });
@@ -3805,7 +3818,7 @@ function wzDraw(){
   const pv = $('#gwPrev'); if (pv) pv.onclick = () => { const m = W.m; W.skip = W.kind === 'boost' || !!m.skip || !m.a; if (!W.skip) { W.da = m.da || 'auto'; W.a = m.a; W.modo = m.modo === 'file' && canFile() ? 'file' : 'schermo'; W.ia = !!m.ia; } if (m.pot) W.pot = m.pot; W.i = W.steps.indexOf('cons'); wzDraw(); };
   const tn = $('#gwTune'); if (tn) tn.onclick = () => openTune(g);
   const oc = $('#gwOcr'); if (oc) oc.onclick = async () => { const r = await ttc('ttInstallaOCR', W.da); if (r) toast(tx(r), 'var(--a4)'); else toast(_t('Quando hai aggiunto la lingua torna qui: Tasso la vede da solo.')); LANGS = []; };
-  const mz = $('#gwMozGo'); if (mz) mz.onclick = () => { mz.disabled = true; mz.textContent = _t('Lo sto scaricando…'); ttc('ttScaricaMozilla'); };
+  const mz = $('#gwMozGo'); if (mz) mz.onclick = () => { mz.disabled = true; mz.textContent = _t('Lo sto scaricando…'); if (TT) TT.scaricando = true; ttc('ttScaricaMozilla'); };
   const op = $('#gwOpen'); if (op) op.onclick = async () => { op.disabled = true; const vb = $('#gwVer'); vb.textContent = _t('Apro ') + g.name + '…'; await playGame(g, vb); if (W && W.kind !== 'boost' && !W.skip && W.modo !== 'file') vb.textContent += ' ' + _t('Nel gioco premi ') + keyName('pagina', 'F7') + _t(' per tradurre lo schermo.'); op.disabled = false; };
 }
 $('#gwzB').addEventListener('click', (ev) => {
@@ -3853,13 +3866,13 @@ async function wzApply(){
   if (!W || W.run !== run) return;
   W.powOk = !!(pr && pr.ok);
   if (!W.powOk) W.notes.push([_t('Potenza non salvata: ') + ((pr && pr.error) || ''), true]);
-  else W.notes.push([potKey(W.pot) ? _t('Da ora, quando apri ') + g.name + _t(', Tasso mette ') + POW[potKey(W.pot)] + '.' : _t('Potenza normale: Tasso non cambia niente quando apri ') + g.name + '.', false]);
+  else W.notes.push([potKey(W.pot) ? _t('Da ora, quando apri ') + g.name + _t(', Tasso mette ') + POW[potKey(W.pot)] + '.' : (S.autoGame ? _t('Potenza normale per questo gioco: con il Boost automatico acceso, Tasso mette comunque la potenza alta quando apri ') + g.name + '.' : _t('Potenza normale: Tasso non cambia niente quando apri ') + g.name + '.'), false]);
   const sel = W.tuneSel || {}, t = W.tune;
   if (t && (sel.gpuHigh || sel.inGame || sel.priority || sel.noFso || (sel.noLimit && t.ini))) {
     msg(_t('Applico le impostazioni consigliate…')); bar(15);
     const rec = (t.recs[t.kind] || {}).opts || {};
-    const mode = potKey(W.pot) === 'max' ? 'fps' : potKey(W.pot) === 'gaming' ? 'gaming' : '';
-    const o = {gpuHigh: !!sel.gpuHigh, mode, inGame: !!sel.inGame, quality: rec.quality || 2, vsync: !!rec.vsync, fpsCap: sel.noLimit ? 0 : (t.hz || rec.fpsCap || 0), priority: !!sel.priority, noFso: !!sel.noFso};
+    // la potenza la salva già setPower: qui niente modalità, se no resterebbe un doppione
+    const o = {gpuHigh: !!sel.gpuHigh, mode: '', inGame: !!sel.inGame, quality: rec.quality || 2, vsync: !!rec.vsync, fpsCap: sel.noLimit ? 0 : (t.hz || rec.fpsCap || 0), priority: !!sel.priority, noFso: !!sel.noFso};
     const tr = await applyTune(g, o, t.kind);
     if (!W || W.run !== run) return;
     if (tr && tr.ok === false) W.notes.push([(tr.msgs || []).join(' ') || _t('Impostazioni consigliate non applicate.'), true]);
@@ -3873,6 +3886,7 @@ async function wzApply(){
   if (TT && TT.ia_file) await ttc('ttImpostaMotore', W.ia && TT.ia_pc_ok ? 'auto' : 'mozilla');
   W.armTimer = () => { clearTimeout(GW_T); GW_T = setTimeout(() => { if (W && W.run === run && W.busy) { W.busy = false; W.dead = run; W.err = _t('Il traduttore non ha risposto: riprova.'); wzDraw(); } }, 180000); };
   W.armTimer();
+  W.trRun = run; // da qui accetto 'fatto'/'errore' della traduzione per questo giro
   const r = await ttc('ttApplicaTraduzione', g.name, W.info.cartella, false, W.modo);
   if (r !== 'ok' && W && W.run === run) { clearTimeout(GW_T); W.busy = false; W.err = tx(r || _t('Non sono riuscito a partire.')); wzDraw(); }
 }
@@ -3880,7 +3894,7 @@ async function wzFinish(run, trOk){
   if (!W || W.run !== run) return;
   const g = W.g, keepTr = W.kind === 'boost';
   const old = (S.gameMemo && S.gameMemo[g.id]) || {};
-  const memo = keepTr ? {da: old.da || '', a: old.a || '', modo: old.modo || '', skip: !!old.skip, ia: !!old.ia} : (trOk && !W.skip ? {da: W.da, a: W.a, modo: W.modo, skip: false, ia: !!W.ia} : {da: '', a: '', modo: '', skip: !W.noGame && W.skip, ia: false});
+  const memo = keepTr ? {da: old.da || '', a: old.a || '', modo: old.modo || '', skip: !!old.skip, ia: !!old.ia} : (trOk && !W.skip ? {da: W.da, a: W.a, modo: W.modo, skip: false, ia: !!(W.ia && TT && TT.ia_file && TT.ia_pc_ok)} : W.noGame ? {da: old.da || '', a: old.a || '', modo: old.modo || '', skip: !!old.skip, ia: !!old.ia} : {da: '', a: '', modo: '', skip: !!W.skip, ia: false});
   memo.pot = W.powOk ? (W.pot || 'normale') : (old.pot || '');
   const r = await call('goGameMemo', g.id, memo);
   if (r !== 'ok') W.notes.push([_t('Non sono riuscito a ricordare le scelte: ') + tx(r || ''), true]);
@@ -3889,7 +3903,7 @@ async function wzFinish(run, trOk){
   W.busy = false; W.i = W.steps.indexOf('ok'); wzDraw(); ttRefresh();
 }
 function wzProgress(x){
-  if (!W || !x || !W.g || x.nome !== W.g.name || !W.busy || W.dead === W.run) return;
+  if (!W || !x || !W.g || x.nome !== W.g.name || !W.busy || W.dead === W.run || W.trRun !== W.run) return;
   const run = W.run;
   if (x.errore) { clearTimeout(GW_T); W.busy = false; W.err = tx(x.errore); wzDraw(); return; }
   if (x.fatto) { clearTimeout(GW_T); if (x.modo) W.modo = x.modo; W.notes.push([tx(x.testo || ''), false]); wzFinish(run, true); return; }
@@ -3900,6 +3914,8 @@ function wzProgress(x){
 
 // ---- libreria: giocati di recente per primi, filtri per negozio
 let LIBF = 'all';
+// recente = aperto negli ultimi 14 giorni (come il badge RECENTE)
+function isRecent(g){ return !!(g && g.played && Date.now() / 1000 - g.played < 14 * 86400); }
 function sortedLib(){ return LIB.slice().sort((a, b) => ((b.played || 0) - (a.played || 0)) || String(a.name).localeCompare(String(b.name))); }
 function paintRecent(){
   const box = $('#navRec'); if (!box) return;
@@ -3990,7 +4006,7 @@ Object.assign(window.tasso, {
     paintLib();
     if (TUNE_WAIT) { TUNE_WAIT(r); return; }
     if (W && !$('#gwz').hidden && !W.busy) { W.tune = null; W.tuneSel = null; call('goGameTune', W.g.id); wzDraw(); }
-    if (GP_ID) { const g = LIB.find(x => x.id === GP_ID); if (g) paintTools(g); }
+    if (GP_ID) { const g = LIB.find(x => x.id === GP_ID); if (g) paintGameTools(g); }
     modal('<h2>' + (r.ok === false ? _t('Non riuscito') : r.undo ? _t('Regolazione tolta') : _t('Fatto!')) + '</h2><ul>' + (r.msgs || []).map(m => '<li>' + esc(m) + '</li>').join('') + '</ul>', [{label:'Ok', cls:'primary'}]);
   }
 });

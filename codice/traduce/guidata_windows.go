@@ -53,15 +53,31 @@ func impostaGiocoTradotto(cartella string, si bool) {
 	}
 	if si {
 		imp.GiochiTradotti[nome] = true
-		if len(resto) < 500 {
-			resto = append(resto, pulita)
+		if len(resto) >= 500 {
+			resto = resto[len(resto)-499:] // pieno: tolgo le cartelle più vecchie
 		}
+		resto = append(resto, pulita)
 	} else {
 		delete(imp.GiochiTradotti, nome)
 	}
 	imp.CartelleTradotte = resto
 	muImp.Unlock()
 	salvaImp()
+}
+
+// ricordaCartellaTradotta: un gioco tradotto con una versione di prima (senza la sua cartella
+// nell'elenco) la aggiunge adesso, così viene riconosciuto anche fuori dai negozi.
+func ricordaCartellaTradotta(cartella string) {
+	pulita := strings.ToLower(filepath.Clean(cartella))
+	muImp.Lock()
+	for _, c := range imp.CartelleTradotte {
+		if c == pulita {
+			muImp.Unlock()
+			return
+		}
+	}
+	muImp.Unlock()
+	impostaGiocoTradotto(cartella, true)
 }
 
 // cartellaTradottaDi: se il programma del gioco sta dentro la cartella di un gioco tradotto,
@@ -169,7 +185,14 @@ func applicaTraduzione(nome, cartella string) {
 	passo(70, "Controllo il correttore IA…")
 	ia := "non installato: tradurrò con il traduttore veloce"
 	if iaPresenteSvelto() {
-		ia = "installato: migliorerà le traduzioni mentre giochi, se la scheda video ha spazio"
+		switch {
+		case leggiImp().Motore == "mozilla":
+			ia = "spento per questo gioco: traduco con il traduttore veloce"
+		case !iaAdattaPC():
+			ia = "installato, ma su questo PC rallenterebbe il gioco: traduco con il traduttore veloce"
+		default:
+			ia = "installato: migliorerà le traduzioni mentre giochi, se la scheda video ha spazio"
+		}
 	}
 	passo(85, "Ricordo che "+nome+" va tradotto…")
 	impostaGiocoTradotto(cartella, true)

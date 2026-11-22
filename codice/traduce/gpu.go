@@ -65,12 +65,12 @@ func sceltaCorrettore(g InfoGPU, ramGB float64, core int) ProfiloCorrettore {
 	libera := g.MemoriaGB - g.UsataGB
 	switch {
 	case ramGB < ramMinimaIA || core < coreMinimiIA:
-		return ProfiloCorrettore{"", 0, 0, fmt.Sprintf("Con %.0f GB di memoria e %d core l'IA rallenterebbe il gioco: uso solo il traduttore veloce.", ramGB, core)}
+		return ProfiloCorrettore{"", 0, 0, fmt.Sprintf("Con questo PC (%.0f GB di memoria, %d core) l'IA rallenterebbe il gioco: uso solo il traduttore veloce.", ramGB, core)}
 	case libera >= vramIntero+margineGiocoGB:
 		return ProfiloCorrettore{"scheda", -1, vramIntero, fmt.Sprintf("%.1f GB liberi sulla scheda video: il correttore lavora tutto lì (circa %.0f GB).", libera, vramIntero)}
 	case libera >= vramMeta+margineGiocoGB && core >= coreMinimiMeta:
 		return ProfiloCorrettore{"meta", stratiParziali, vramMeta, fmt.Sprintf("%.1f GB liberi: il correttore lavora in parte sulla scheda video (circa %.1f GB) e in parte sul processore, un po' più lento.", libera, vramMeta)}
 	default:
-		return ProfiloCorrettore{"", 0, 0, fmt.Sprintf("Solo %.1f GB liberi sulla scheda video: la lascio tutta al gioco e uso solo il traduttore veloce.", libera)}
+		return ProfiloCorrettore{"", 0, 0, fmt.Sprintf("Liberi sulla scheda video solo %.1f GB: la lascio tutta al gioco e uso solo il traduttore veloce.", libera)}
 	}
 }

@@ -288,7 +288,10 @@ func applicaModGioco(nome, cartella string) {
 	if tipo == "il2cpp" {
 		esito += "La prima volta il gioco ci mette qualche minuto in più a partire (prepara i file una volta sola). "
 	}
-	esito += "Le frasi migliorate dal correttore IA si vedono dalla volta dopo. Se Steam aggiorna il gioco, rifai Applica."
+	if iaPresenteSvelto() && leggiImp().Motore != "mozilla" && iaAdattaPC() {
+		esito += "Le frasi migliorate dal correttore IA si vedono dalla volta dopo. "
+	}
+	esito += "Se il gioco si aggiorna, rifai Applica."
 	emetti("guidata", map[string]any{"nome": nome, "percento": 100, "fatto": true, "modo": "file", "testo": esito})
 	emetti("aggiorna", stato())
 }

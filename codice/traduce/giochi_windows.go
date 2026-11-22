@@ -159,6 +159,9 @@ func VerificaDopoAvvio(cartella string) string {
 	if !ok {
 		return "no"
 	}
+	if !giocoInFile(cartella) && !acceso.Load() {
+		return "spenta" // tradotto sullo schermo ma la traduzione è spenta: niente attese a vuoto
+	}
 	avviaVerifica(g)
 	return "ok"
 }
@@ -180,7 +183,7 @@ func verificaTraduzione(g GiocoInstallato) {
 	inizio := time.Now()
 	for !inGioco() {
 		if time.Since(inizio) > 4*time.Minute {
-			dici(false, "Non ho visto partire "+g.Nome+": quando giochi, ti dico io se la traduzione funziona.")
+			dici(false, "Non ho visto partire il gioco ("+g.Nome+"): quando giochi, ti dico io se la traduzione funziona.")
 			return
 		}
 		time.Sleep(time.Second)
@@ -234,9 +237,13 @@ func InfoGioco(nome, piattaforma, cartella, avvio string) map[string]any {
 	giochiNoti[chiaveGioco(cartella)] = g
 	muGiochiNoti.Unlock()
 	fileOK, fileMotivo := ModPossibile(cartella)
+	tradotto := giocoTradotto(cartella)
+	if tradotto {
+		ricordaCartellaTradotta(cartella)
+	}
 	return map[string]any{
 		"nome": nome, "piattaforma": piattaforma, "cartella": cartella,
-		"tradotto":    giocoTradotto(cartella),
+		"tradotto":    tradotto,
 		"unity":       unityDi(cartella),
 		"in_file":     giocoInFile(cartella),
 		"file_ok":     fileOK,

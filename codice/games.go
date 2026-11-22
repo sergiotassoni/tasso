@@ -413,7 +413,6 @@ func launchGame(id string) string {
 	if !ok {
 		return "Gioco non trovato: aggiorna la libreria."
 	}
-	markPlayed(id)
 	if g.exe != "" {
 		// Sempre tramite collegamento (anche senza argomenti), così il gioco parte dalla sua cartella.
 		args := g.exeArgs
@@ -423,12 +422,14 @@ func launchGame(id string) string {
 		if !openUser(g.exe, args) {
 			return "Non riesco ad avviare " + g.Name + "."
 		}
+		markPlayed(id)
 		return "ok"
 	}
 	if g.launch == "" {
 		return "Non so come avviare " + g.Name + "."
 	}
 	openURL(g.launch)
+	markPlayed(id)
 	return "ok"
 }
 
@@ -778,7 +779,14 @@ func markPlayed(id string) {
 			s.GamePlayed = map[string]int64{}
 		}
 		if _, ok := s.GamePlayed[id]; !ok && len(s.GamePlayed) >= 500 {
-			return
+			// pieno: tolgo il gioco aperto meno di recente per fare spazio
+			old, oldT := "", int64(1<<62)
+			for k, t := range s.GamePlayed {
+				if t < oldT {
+					old, oldT = k, t
+				}
+			}
+			delete(s.GamePlayed, old)
 		}
 		s.GamePlayed[id] = now
 	})

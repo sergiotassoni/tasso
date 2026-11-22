@@ -213,7 +213,12 @@ func Chiudi() {
 
 // assicuraMotore apre (una volta sola) la finestra invisibile con il traduttore Mozilla.
 // Serve il traduttore già scaricato; altrimenti parte dopo lo scaricamento.
-var motoreUnaVolta sync.Once
+// motoreAvviato: il motore è aperto (o si sta aprendo). Se la finestra non parte torna false,
+// così il prossimo tentativo (scaricamento, interruttore) riprova invece di restare bloccato.
+var (
+	motoreAvviato atomic.Bool
+	motoreAvvioMu sync.Mutex
+)
 
 func assicuraMotore() {
 	if !avviato.Load() || !mozillaPresente() {
@@ -225,13 +230,27 @@ func assicuraMotore() {
 	if url == "" {
 		return
 	}
-	motoreUnaVolta.Do(func() {
+	motoreAvvioMu.Lock()
+	defer motoreAvvioMu.Unlock()
+	if motoreAvviato.Load() {
+		motoreMu.Lock()
+		m := motore
+		motoreMu.Unlock()
+		if m != nil && !mozOK.Load() {
+			// il motore c'è ma non era pronto (file mancanti o rovinati): ricarico la sua pagina
+			m.Dispatch(func() { m.Navigate(url) })
+		}
+		return
+	}
+	motoreAvviato.Store(true)
+	func() {
 		pronta := make(chan struct{})
 		go func() {
 			defer guard("motore")
 			runtime.LockOSThread() // la finestra del motore ha il suo giro di messaggi su questo filo
 			m := creaMotore()
 			if m == nil {
+				motoreAvviato.Store(false)
 				close(pronta)
 				mozillaPronto(false, "il traduttore non è partito (WebView2)")
 				emetti("aggiorna", stato())
@@ -252,9 +271,10 @@ func assicuraMotore() {
 			motoreMu.Lock()
 			motore = nil
 			motoreMu.Unlock()
+			motoreAvviato.Store(false)
 		}()
 		<-pronta
-	})
+	}()
 }
 
 // evalMotore esegue del codice nella pagina del motore (se c'è).
@@ -427,7 +447,14 @@ func emetti(nome string, dati interface{}) {
 }
 
 func collega(w webview2.WebView) {
-	_ = w.Bind("ttStato", func() map[string]interface{} { return stato() })
+	_ = w.Bind("ttStato", func() map[string]interface{} {
+		// la pagina Giochi è aperta e il traduttore è già scaricato: lo preparo, così
+		// l'interruttore e la procedura lo trovano pronto (e non chiedono di riscaricarlo)
+		if mozillaPresente() && !motoreAvviato.Load() {
+			go assicuraMotore()
+		}
+		return stato()
+	})
 	_ = w.Bind("ttScaricaMozilla", func() string { go scaricaMozilla(); return "ok" })
 	_ = w.Bind("ttAnalizzaPC", func() string {
 		go func() {
@@ -555,7 +582,9 @@ func collega(w webview2.WebView) {
 		muImp.Unlock()
 		salvaImp()
 		if acceso.Load() {
-			cambiaTasti(tastiCompleti(nil))
+			if n := cambiaTasti(tastiCompleti(nil)); n > 0 {
+				return fmt.Sprintf("occupati:%d", n)
+			}
 		}
 		return "ok"
 	})

@@ -5,6 +5,7 @@ package traduce
 import (
 	"runtime"
 	"sync"
+	"sync/atomic"
 	"unsafe"
 
 	"golang.org/x/sys/windows"
@@ -83,21 +84,42 @@ var (
 	pcOnce sync.Once
 	pcRAM  float64
 	pcCore int
+	pcGPU  atomic.Pointer[InfoGPU] // scheda video misurata una volta (nil = la sto ancora misurando)
 )
 
 func pcRisorse() (float64, int) {
-	pcOnce.Do(func() { pcRAM, pcCore = memoriaPC(), coreFisici() })
+	pcOnce.Do(func() {
+		pcRAM, pcCore = memoriaPC(), coreFisici()
+		go func() { // la misura della scheda video usa PowerShell (qualche secondo): non blocco la finestra
+			defer guard("misura-gpu")
+			g := controllaGPU()
+			pcGPU.Store(&g)
+			emetti("aggiorna", stato())
+		}()
+	})
 	return pcRAM, pcCore
 }
 
-// iaAdattaPC (3.1): l'IA su questo PC può partire? (memoria, processore e scheda video a riposo)
-func iaAdattaPC() bool {
+// profiloPC: la scelta del correttore per questo PC; ok=false finché la scheda non è misurata.
+func profiloPC() (ProfiloCorrettore, bool) {
 	ram, core := pcRisorse()
-	return sceltaCorrettore(InfoGPU{Nome: gpu.Nome, MemoriaGB: gpu.MemoriaGB}, ram, core).Nome != ""
+	g := pcGPU.Load()
+	if g == nil {
+		return ProfiloCorrettore{}, false
+	}
+	// conto la scheda a riposo: il gioco non è ancora aperto
+	return sceltaCorrettore(InfoGPU{Nome: g.Nome, MemoriaGB: g.MemoriaGB}, ram, core), true
+}
+
+// iaAdattaPC (3.1): l'IA su questo PC può partire? Finché non ho misurato la scheda dico di sì
+// (il pulsante resta; la scelta vera la rifà il correttore quando parte).
+func iaAdattaPC() bool {
+	p, ok := profiloPC()
+	return !ok || p.Nome != ""
 }
 
 // iaMotivoPC: perché sì o perché no, in una frase.
 func iaMotivoPC() string {
-	ram, core := pcRisorse()
-	return sceltaCorrettore(InfoGPU{Nome: gpu.Nome, MemoriaGB: gpu.MemoriaGB}, ram, core).Motivo
+	p, _ := profiloPC()
+	return p.Motivo
 }
