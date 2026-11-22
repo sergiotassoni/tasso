@@ -397,7 +397,6 @@ details.navmore[open]{display:flex;flex-direction:column;gap:2px}
     <button data-go="net"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 9a15 15 0 0 1 20 0M5.5 12.5a10 10 0 0 1 13 0M9 16a5 5 0 0 1 6 0"/><circle cx="12" cy="19.5" r="1"/></svg>Internet</button>
     <button data-go="hw"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="6" width="12" height="12" rx="2"/><rect x="9.5" y="9.5" width="5" height="5"/><path d="M9 2v4M15 2v4M9 18v4M15 18v4M2 9h4M2 15h4M18 9h4M18 15h4"/></svg>Hardware</button>
     <button data-go="vault"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="15" r="4"/><path d="M10.8 12.2L20 3M16 7l3 3M14 9l2 2"/></svg>Portachiavi</button>
-    <button data-go="tools"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg>Tutti gli strumenti</button>
     <button data-go="info"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5h.01"/></svg>Info e indice</button>
     </details>
     <button data-go="settings"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg>Impostazioni</button>
@@ -430,17 +429,13 @@ details.navmore[open]{display:flex;flex-direction:column;gap:2px}
       </button>
     </div>
   </div>
-  <div class="card homelv">
-    <h2>🧹 Tutte le pulizie</h2>
-    <div class="grid g5" id="levelCards"></div>
-  </div>
   <div class="quick q2" role="group" aria-label="Le cose principali">
     <button class="qk" id="btnHomeDetect"><span class="qi">🔎</span><b>Problemi</b><span>Tasso controlla il PC e ti dice cosa non va</span></button>
     <button class="qk gm" data-go2="games"><span class="qi">🚀</span><b>Gioca</b><span>Un tasto e il PC va al massimo per giocare</span></button>
     <button class="qk om" data-go2="fix"><span class="qi">🛠️</span><b>Risolvi un problema</b><span>Stampante, Word, Wi-Fi e tanti altri</span></button>
   </div>
   <details class="more" id="homeMore">
-    <summary>Mostra dettagli <span class="muted">· salute del PC, pulizia programmata, sensori</span></summary>
+    <summary>Mostra dettagli <span class="muted">· salute del PC, sensori</span></summary>
     <div class="morebox">
   <div class="card">
       <div class="facts">
@@ -458,17 +453,7 @@ details.navmore[open]{display:flex;flex-direction:column;gap:2px}
     <div class="list" id="hIssues"></div>
     <div class="small muted" id="hGood"></div>
   </div>
-  <div class="card" style="display:flex;flex-direction:column;gap:12px;padding-top:6px">
-      <button class="toggle" id="tgWeekly"><span><b style="font-size:16px">Pulizia programmata</b><span id="wkDesc">Tasso pulisce da solo ogni settimana o ogni due, senza che tu debba aprirlo.</span></span><span class="sw"><i></i></span></button>
-      <div class="row wrap" style="gap:12px" id="wkPlan">
-        <label class="acf">Giorno<select id="wkDay"><option value="1">Lunedì</option><option value="2">Martedì</option><option value="3">Mercoledì</option><option value="4">Giovedì</option><option value="5">Venerdì</option><option value="6">Sabato</option><option value="0">Domenica</option></select></label>
-        <label class="acf">Ora<select id="wkHour"></select></label>
-        <label class="acf">Pulizia<select id="wkLevel"><option value="1">Classica (1 min)</option><option value="2">Normale (pochi minuti)</option><option value="3">Media (con backup)</option><option value="4">Profonda (circa 50 min)</option><option value="5">Eccezionale (circa 1 ora e mezza)</option></select></label>
-        <label class="acf">Ogni<select id="wkEvery"><option value="1">settimana</option><option value="2">2 settimane</option></select></label>
-        <span class="small" id="wkLong" style="flex:1 1 100%;display:none;color:var(--a4)">È una pulizia lunga: scegli un giorno e un'ora in cui il PC resta acceso ma non lo usi, meglio con il caricatore attaccato. Aggiorna anche driver e Windows: se alla fine serve un riavvio Tasso non lo fa da solo, te lo dice.</span>
-        <span class="small muted" style="flex:1 1 220px;align-self:flex-end">Se a quell'ora il PC è spento, la fa appena lo riaccendi. Tasso si apre ridotto a icona e alla fine si richiude da solo. Funziona anche con il portatile a batteria.</span>
-      </div>
-  </div>
+
   <div class="grid g4" id="sensors"></div>
     </div>
   </details>
@@ -480,6 +465,21 @@ details.navmore[open]{display:flex;flex-direction:column;gap:2px}
     <div><h1 style="font-size:26px">Pulizia</h1><p class="sub">Scegli quanto a fondo pulire. Dalla Media in su viene fatto prima un backup automatico.</p></div>
     <div class="banner" id="offBanner" style="background:color-mix(in srgb,var(--a4) 12%,var(--panel));border-color:color-mix(in srgb,var(--a4) 45%,var(--line))"><span><b>Il PC si spegnerà tra 2 minuti.</b> <span class="muted">Salva quello che hai aperto.</span></span><button class="btn warn" id="btnNoOff">Annulla lo spegnimento</button></div>
     <div class="grid g5" id="levelCards2"></div>
+  <div class="card" style="display:flex;flex-direction:column;gap:12px;padding-top:6px" id="wkCard">
+      <button class="toggle" id="tgWeekly"><span><b style="font-size:16px">Pulizia programmata</b><span id="wkDesc">Tasso pulisce da solo ogni settimana o ogni due, senza che tu debba aprirlo.</span></span><span class="sw"><i></i></span></button>
+      <div class="row wrap" style="gap:12px" id="wkPlan">
+        <label class="acf">Giorno<select id="wkDay"><option value="1">Lunedì</option><option value="2">Martedì</option><option value="3">Mercoledì</option><option value="4">Giovedì</option><option value="5">Venerdì</option><option value="6">Sabato</option><option value="0">Domenica</option></select></label>
+        <label class="acf">Ora<select id="wkHour"></select></label>
+        <label class="acf">Pulizia<select id="wkLevel"><option value="1">Classica (1 min)</option><option value="2">Normale (pochi minuti)</option><option value="3">Media (con backup)</option><option value="4">Profonda (circa 50 min)</option><option value="5">Eccezionale (circa 1 ora e mezza)</option></select></label>
+        <label class="acf">Ogni<select id="wkEvery"><option value="1">settimana</option><option value="2">2 settimane</option></select></label>
+        <span class="small" id="wkLong" style="flex:1 1 100%;display:none;color:var(--a4)">È una pulizia lunga: scegli un giorno e un'ora in cui il PC resta acceso ma non lo usi, meglio con il caricatore attaccato. Aggiorna anche driver e Windows: se alla fine serve un riavvio Tasso non lo fa da solo, te lo dice.</span>
+        <span class="small muted" style="flex:1 1 220px;align-self:flex-end">Se a quell'ora il PC è spento, la fa appena lo riaccendi. Tasso si apre ridotto a icona e alla fine si richiude da solo. Funziona anche con il portatile a batteria.</span>
+      </div>
+  </div>
+    <details class="more" id="toolsMore">
+      <summary>🧰 Un passaggio alla volta <span class="muted">· ogni passaggio delle pulizie, da avviare da solo quando vuoi</span></summary>
+      <div class="morebox"><div class="grid g3" id="toolCards"></div></div>
+    </details>
     <div class="card" id="lastResult" style="display:none"></div>
     <div class="card" style="display:flex;flex-direction:column;gap:14px">
       <div class="row wrap" style="justify-content:space-between"><div><h2>Voto al PC</h2><p class="sub" style="margin:2px 0 0" id="bnMsg">Misura quanto va il PC in circa 20 secondi. Tutti i voti vanno da 1 a 100: la velocità dei pezzi, quanto è leggero Windows e il voto totale.</p></div><button class="btn primary" id="btnBench">Misura il voto</button></div>
@@ -828,10 +828,6 @@ details.navmore[open]{display:flex;flex-direction:column;gap:2px}
 </section>
 
 <!-- TOOLS -->
-<section class="view" id="v-tools">
-  <div><h1 style="font-size:26px">Tutti gli strumenti</h1><p class="sub">Ogni passaggio delle pulizie, da avviare da solo quando vuoi.</p></div>
-  <div class="grid g3" id="toolCards"></div>
-</section>
 
 <!-- PRESTAZIONI+ (overclock sicuro) -->
 <section class="view" id="v-perf">
@@ -1146,7 +1142,7 @@ function levelCard(L){
   b.onclick = () => confirmLevel(L.n);
   return b;
 }
-function renderLevels(){ ['#levelCards', '#levelCards2'].forEach(id => { const c = $(id); c.innerHTML = ''; LEVELS.forEach(L => c.appendChild(levelCard(L))); }); }
+function renderLevels(){ ['#levelCards', '#levelCards2'].forEach(id => { const c = $(id); if (!c) return; c.innerHTML = ''; LEVELS.forEach(L => c.appendChild(levelCard(L))); }); }
 
 /* ---------- navigation ---------- */
 const loaded = {};
