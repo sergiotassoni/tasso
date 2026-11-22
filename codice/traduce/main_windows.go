@@ -62,6 +62,9 @@ type Impostazioni struct {
 	// GiochiTradotti: giochi con la traduzione "applicata" dalla Traduzione gioco a passi:
 	// partono da soli quando li apri (nome del gioco come lo riconosco da Steam, Epic…)
 	GiochiTradotti map[string]bool `json:"giochi_tradotti"`
+	// CartelleTradotte (3.1): le cartelle dei giochi tradotti, per riconoscerli anche quando
+	// non sono nelle cartelle dei negozi che Traduce conosce (Xbox, Riot, aggiunti a mano…).
+	CartelleTradotte []string `json:"cartelle_tradotte,omitempty"`
 	// lingua del gioco ("auto" = la riconosco dalle scritte) e lingua in cui tradurre
 	LinguaDa string `json:"lingua_da"`
 	LinguaA  string `json:"lingua_a"`
@@ -470,6 +473,8 @@ func collega(w webview2.WebView) {
 		return "ok"
 	})
 	_ = w.Bind("ttInstallaOCR", func(codice string) string { return installaLetturaOCR(codice) })
+	// 3.1: dopo "Apri il gioco" di Tasso controllo se la traduzione parte davvero.
+	_ = w.Bind("ttVerifica", func(cartella string) string { return VerificaDopoAvvio(cartella) })
 	_ = w.Bind("ttApriGioco", func(cartella string) string {
 		assicuraMotore()
 		if !acceso.Load() {
@@ -489,7 +494,7 @@ func collega(w webview2.WebView) {
 	_ = w.Bind("ttScaricaVoci", func() string { go scaricaVoci(); return "ok" })
 	_ = w.Bind("ttAccendiVoci", func(on bool) map[string]string {
 		if on && !acceso.Load() {
-			return map[string]string{"errore": "Prima accendi Tasso Traduce con l'interruttore in alto."}
+			return map[string]string{"errore": "Prima accendi la traduzione dei giochi con l'interruttore in Giochi."}
 		}
 		go func() {
 			defer guard("voci-finestra")
@@ -561,7 +566,7 @@ func collega(w webview2.WebView) {
 		acceso.Store(on)
 		if on {
 			if n := cambiaTasti(tastiCompleti(leggiImp().Tasti)); n > 0 {
-				emetti("info", map[string]string{"testo": fmt.Sprintf("%d tasti rapidi sono già usati da un altro programma: cambiali in Impostazioni → Tasti.", n)})
+				emetti("info", map[string]string{"testo": fmt.Sprintf("%d tasti rapidi sono già usati da un altro programma: cambiali in Giochi → Impostazioni → Tasti nel gioco.", n)})
 			}
 		} else {
 			cambiaTasti(map[string]uint32{}) // spento: lascio liberi i tasti
@@ -684,6 +689,8 @@ func stato() map[string]interface{} {
 		"mozilla_err":     me,
 		"ia_file":         iaPresenteSvelto(),
 		"ia_offerta":      motoreIADisponibile(),
+		"ia_pc_ok":        iaAdattaPC(),
+		"ia_pc_motivo":    iaMotivoPC(),
 		"ia_attiva":       ia.Attivo(),
 		"ia_profilo":      profiloAttuale(),
 		"ia_corrette":     correzioniFatte(),
@@ -858,7 +865,7 @@ var acceso atomic.Bool
 
 func suTasto(id int) {
 	if !acceso.Load() && id != tastoCronologia {
-		emetti("info", map[string]string{"testo": "Tasso Traduce è spento: accendilo con l'interruttore in alto nella sua finestra."})
+		emetti("info", map[string]string{"testo": "La traduzione dei giochi è spenta: accendila con l'interruttore in Giochi."})
 		return
 	}
 	switch id {
@@ -1170,7 +1177,7 @@ func creaFinestra() (w webview2.WebView) {
 	defer func() {
 		if r := recover(); r != nil {
 			logErrore("finestra", r, debug.Stack())
-			finestraErrore("La finestra di Tasso Traduce non si è aperta (WebView2 di Windows non ha risposto). Chiudi e riapri Tasso Traduce; se succede ancora, riavvia il PC.")
+			finestraErrore("La finestra di Tasso Traduce non si è aperta (WebView2 di Windows non ha risposto). Chiudi e riapri Tasso; se succede ancora, riavvia il PC.")
 			w = nil
 		}
 	}()

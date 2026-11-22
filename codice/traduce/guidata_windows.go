@@ -44,13 +44,42 @@ func impostaGiocoTradotto(cartella string, si bool) {
 	if imp.GiochiTradotti == nil {
 		imp.GiochiTradotti = map[string]bool{}
 	}
+	pulita := strings.ToLower(filepath.Clean(cartella))
+	var resto []string
+	for _, c := range imp.CartelleTradotte {
+		if c != pulita {
+			resto = append(resto, c)
+		}
+	}
 	if si {
 		imp.GiochiTradotti[nome] = true
+		if len(resto) < 500 {
+			resto = append(resto, pulita)
+		}
 	} else {
 		delete(imp.GiochiTradotti, nome)
 	}
+	imp.CartelleTradotte = resto
 	muImp.Unlock()
 	salvaImp()
+}
+
+// cartellaTradottaDi: se il programma del gioco sta dentro la cartella di un gioco tradotto,
+// restituisce quella cartella (anche per i giochi che riconosciGioco non conosce).
+func cartellaTradottaDi(percorso string) string {
+	p := strings.ToLower(filepath.Clean(percorso))
+	if p == "" || p == "." {
+		return ""
+	}
+	muImp.Lock()
+	defer muImp.Unlock()
+	best := ""
+	for _, c := range imp.CartelleTradotte {
+		if strings.HasPrefix(p, c+`\`) && len(c) > len(best) {
+			best = c
+		}
+	}
+	return best
 }
 
 // applicaTraduzione: i passi veri, con l'avanzamento mandato alla finestra.
@@ -84,7 +113,7 @@ func applicaTraduzione(nome, cartella string) {
 	}
 	passo(5, "Controllo il traduttore veloce…")
 	if !mozillaPresente() || !mozOK.Load() {
-		fallito("Il traduttore veloce non è pronto: scaricalo dalla pagina iniziale e riprova.")
+		fallito("Il traduttore veloce non è pronto: scaricalo in Giochi → Impostazioni (o con il pulsante qui sopra) e riprova.")
 		return
 	}
 	// lingue scelte: scarico i modelli che mancano (il giocatore ha visto la dimensione al passo 3)
@@ -112,7 +141,7 @@ func applicaTraduzione(nome, cartella string) {
 		time.Sleep(4 * time.Second)
 	}
 	if _, ok := ocrPerLingua(da); !ok {
-		fallito("Windows su questo PC non sa ancora leggere il " + nomeLingua(da) + ": aggiungi la lingua nelle Impostazioni di Windows (pulsante al passo 2), poi riprova. Senza, la traduzione dello schermo non può funzionare.")
+		fallito("Windows su questo PC non sa ancora leggere il " + nomeLingua(da) + ": aggiungi la lingua nelle Impostazioni di Windows (pulsante al passo 1), poi riprova. Senza, la traduzione dello schermo non può funzionare.")
 		return
 	}
 	passo(25, "Preparo la libreria delle traduzioni di "+nome+"…")
@@ -133,7 +162,7 @@ func applicaTraduzione(nome, cartella string) {
 		}
 	}
 	if ok == 0 {
-		fallito("Il traduttore non risponde: chiudi e riapri Tasso Traduce, poi riprova.")
+		fallito("Il traduttore non risponde: chiudi e riapri Tasso, poi riprova.")
 		return
 	}
 	ms := time.Since(t0).Milliseconds() / int64(len(prove))

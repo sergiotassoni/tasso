@@ -340,7 +340,7 @@ func avvisaSchermoEsclusivo(h uintptr) {
 	if gia {
 		return
 	}
-	emetti("info", map[string]string{"testo": "Non riesco a vedere l'immagine di questo gioco: forse è a schermo intero esclusivo. Nelle impostazioni video del gioco scegli \"Finestra senza bordi\" (borderless) e Tasso Traduce funzionerà."})
+	emetti("info", map[string]string{"testo": "Non riesco a vedere l'immagine di questo gioco: forse è a schermo intero esclusivo. Nelle impostazioni video del gioco scegli \"Finestra senza bordi\" (borderless) e la traduzione funzionerà."})
 }
 
 var pGetWindow = user32.NewProc("GetWindow")

@@ -33,6 +33,7 @@ type gameEntry struct {
 	Icon      string `json:"icon,omitempty"` // 3.1: da dove prendere l'icona se non c'è copertina (exe o "dir:")
 	Hidden    bool   `json:"hidden,omitempty"`
 	Uninst    bool   `json:"uninst,omitempty"` // si può disinstallare da Tasso
+	Played    int64  `json:"played,omitempty"` // 3.1: ultima partita (secondi), da Steam o da "Gioca" di Tasso
 	uninstKey string // voce di "Programmi installati" (per disinstallare)
 	private   bool   // trovato in Desktop/Download o aggiunto a mano: il nome non va mandato a Steam
 	launch    string // indirizzo steam:// o com.epicgames.launcher://
@@ -122,9 +123,12 @@ func scanSteam() []gameEntry {
 			if strings.Contains(ln, "redistributable") || strings.Contains(ln, "steamvr") || strings.HasPrefix(ln, "proton") || strings.Contains(ln, "steam linux runtime") || strings.Contains(ln, "dedicated server") {
 				continue
 			}
-			var size int64
+			var size, played int64
 			if s := vdfValues(b, "SizeOnDisk"); len(s) > 0 {
 				fmt.Sscan(s[0], &size)
+			}
+			if s := vdfValues(b, "LastPlayed"); len(s) > 0 {
+				fmt.Sscan(s[0], &played)
 			}
 			img := ""
 			if coverBudget > 0 {
@@ -135,7 +139,7 @@ func scanSteam() []gameEntry {
 			if img == "" {
 				img = cdn + "library_600x900.jpg"
 			}
-			out = append(out, gameEntry{ID: "steam:" + ids[0], Name: n, Store: "Steam", Size: size, Img: img, ImgAlt: cdn + "header.jpg", launch: "steam://rungameid/" + ids[0], dir: gdir})
+			out = append(out, gameEntry{ID: "steam:" + ids[0], Name: n, Store: "Steam", Size: size, Played: played, Img: img, ImgAlt: cdn + "header.jpg", launch: "steam://rungameid/" + ids[0], dir: gdir})
 		}
 	}
 	return out
@@ -376,6 +380,10 @@ func publishLibrary(all []gameEntry) {
 	for _, c := range settings.CustomGames {
 		man["man:"+shortHash(c.Exe)] = true
 	}
+	played := map[string]int64{}
+	for k, v := range settings.GamePlayed {
+		played[k] = v
+	}
 	setMu.Unlock()
 	out := make([]gameEntry, 0, len(all))
 	for _, g := range all {
@@ -383,6 +391,9 @@ func publishLibrary(all []gameEntry) {
 			continue
 		}
 		g.Hidden = hidden[g.ID]
+		if p := played[g.ID]; p > g.Played {
+			g.Played = p
+		}
 		out = append(out, g)
 	}
 	libMu.Lock()
@@ -402,6 +413,7 @@ func launchGame(id string) string {
 	if !ok {
 		return "Gioco non trovato: aggiorna la libreria."
 	}
+	markPlayed(id)
 	if g.exe != "" {
 		// Sempre tramite collegamento (anche senza argomenti), così il gioco parte dalla sua cartella.
 		args := g.exeArgs
@@ -756,4 +768,24 @@ func windowsOfPids(pids []uint32) []uintptr {
 	winsOut = nil
 	pEnumWindows.Call(winsCb, 0)
 	return winsOut
+}
+
+// markPlayed (3.1): ricorda quando hai aperto il gioco da Tasso, per "Giocati di recente".
+func markPlayed(id string) {
+	now := time.Now().Unix()
+	updateSettings(func(s *Settings) {
+		if s.GamePlayed == nil {
+			s.GamePlayed = map[string]int64{}
+		}
+		if _, ok := s.GamePlayed[id]; !ok && len(s.GamePlayed) >= 500 {
+			return
+		}
+		s.GamePlayed[id] = now
+	})
+	libMu.Lock()
+	if g, ok := library[id]; ok {
+		g.Played = now
+		library[id] = g
+	}
+	libMu.Unlock()
 }

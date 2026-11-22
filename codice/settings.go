@@ -93,6 +93,8 @@ type Settings struct {
 	GameMemo map[string]*GameMemo `json:"gameMemo,omitempty"`
 	// 3.1 "Non chiudere mai anche": programmi che il Boost lascia sempre aperti (nomi .exe in minuscolo).
 	BoostKeep []string `json:"boostKeep,omitempty"`
+	// 3.1: quando hai aperto ogni gioco da Tasso (secondi), per "Giocati di recente".
+	GamePlayed map[string]int64 `json:"gamePlayed,omitempty"`
 	// Avvisi: cosa l'utente vuole che Tasso gli segnali (temperature, disco pieno, avvio, memoria, salute dischi).
 	Alerts map[string]bool `json:"alerts,omitempty"`
 	// Scrivici (3.0): la domanda dopo la prima pulizia si fa una volta sola; massimo 5 messaggi al giorno.

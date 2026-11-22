@@ -320,7 +320,7 @@ func accendiVociLocked(on bool) error {
 		return nil
 	}
 	if !vociPresenti() {
-		return errors.New("prima scarica il riconoscimento delle voci (150 MB) nella finestra di Tasso Traduce")
+		return errors.New("prima scarica il riconoscimento delle voci (150 MB) in Giochi → Impostazioni")
 	}
 	if err := sv.avvia(); err != nil {
 		return err
