@@ -148,6 +148,8 @@ func main() {
 	bindAll(w)
 	// Tasso Traduce (sezione Traduci): collegamenti prima di caricare la pagina; il resto parte
 	// in sottofondo e non legge lo schermo finché non accendi la traduzione.
+	traduce.Ospite.ApriComeUtente = openUser
+	traduce.Ospite.CartellaScript = scriptDir
 	traduce.Prepara(w, filepath.Join(appDir, "WebView2"))
 	if !scheduledRun.Load() {
 		go func() {

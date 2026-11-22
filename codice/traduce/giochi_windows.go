@@ -101,7 +101,16 @@ func apriGioco(cartella string) string {
 	if !ok {
 		return "Non trovo il gioco: aprilo tu dal suo negozio."
 	}
-	if g.Avvio != "" {
+	// dentro Tasso (amministratore) il gioco parte come utente normale, come con "Gioca"
+	if g.Avvio != "" && Ospite.ApriComeUtente != nil {
+		if !Ospite.ApriComeUtente(g.Avvio, "") {
+			return "Non riesco ad aprirlo da " + g.Piattaforma + ": aprilo tu."
+		}
+	} else if exe := exeGioco(g.Cartella); exe != "" && Ospite.ApriComeUtente != nil {
+		if !Ospite.ApriComeUtente(filepath.Join(g.Cartella, exe), "") {
+			return "Non riesco ad aprirlo: aprilo tu."
+		}
+	} else if g.Avvio != "" {
 		verbo, _ := windows.UTF16PtrFromString("open")
 		dove, _ := windows.UTF16PtrFromString(g.Avvio)
 		if err := windows.ShellExecute(0, verbo, dove, nil, nil, 1); err != nil {

@@ -48,10 +48,10 @@ else { [Console]::Out.WriteLine('{}') }
 const gb = 1024 * 1024 * 1024
 
 func psUnaVolta(script string, attesa time.Duration) (string, error) {
-	dir := filepath.Join(dirApp, "lavoro")
+	dir := cartellaScript()
 	_ = os.MkdirAll(dir, 0o755)
-	f := filepath.Join(dir, fmt.Sprintf("s%d.ps1", time.Now().UnixNano()))
-	if err := os.WriteFile(f, []byte("\uFEFF"+strings.ReplaceAll(script, "\n", "\r\n")), 0o644); err != nil {
+	f := filepath.Join(dir, fmt.Sprintf("tt_%d_%d.ps1", os.Getpid(), time.Now().UnixNano()))
+	if err := scriviNuovo(f, []byte("\uFEFF"+strings.ReplaceAll(script, "\n", "\r\n"))); err != nil {
 		return "", err
 	}
 	defer os.Remove(f)

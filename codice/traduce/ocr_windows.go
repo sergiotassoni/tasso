@@ -79,6 +79,7 @@ type LettoreOCR struct {
 	out    *bufio.Scanner
 	Lingua string
 	dir    string
+	script string // file .ps1 di questo avvio (tolto alla chiusura)
 	n      int
 }
 
@@ -120,11 +121,15 @@ func (l *LettoreOCR) avvia() error {
 	if err := os.MkdirAll(l.dir, 0o755); err != nil {
 		return err
 	}
-	script := filepath.Join(l.dir, "ocr.ps1")
+	// lo script va nella cartella protetta (Tasso gira come amministratore): un programma normale
+	// non può cambiarlo prima che parta. Nome nuovo a ogni avvio, file creato da zero.
+	_ = os.MkdirAll(cartellaScript(), 0o755)
+	script := filepath.Join(cartellaScript(), fmt.Sprintf("tt_ocr_%d_%d.ps1", os.Getpid(), time.Now().UnixNano()))
 	// UTF-8 con BOM: PowerShell 5.1 legge bene le lettere accentate
-	if err := os.WriteFile(script, []byte("\uFEFF"+strings.ReplaceAll(scriptOCR, "\n", "\r\n")), 0o644); err != nil {
+	if err := scriviNuovo(script, []byte("\uFEFF"+strings.ReplaceAll(scriptOCR, "\n", "\r\n"))); err != nil {
 		return err
 	}
+	l.script = script
 	cmd := exec.Command(sysExe("powershell.exe"), "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File", script)
 	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true, CreationFlags: 0x08000000}
 	cmd.Env = append(os.Environ(), "TASSO_OCR_LINGUA="+l.lingua)
@@ -260,6 +265,10 @@ func (l *LettoreOCR) chiudi() {
 		_, _ = l.cmd.Process.Wait()
 	}
 	l.cmd, l.in, l.out = nil, nil, nil
+	if l.script != "" {
+		_ = os.Remove(l.script)
+		l.script = ""
+	}
 }
 
 func (l *LettoreOCR) Chiudi() {
