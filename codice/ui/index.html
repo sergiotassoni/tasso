@@ -535,11 +535,6 @@ details.navmore[open]{display:flex;flex-direction:column;gap:2px}
     <p class="sub" style="margin:0">Da <b>Normale</b> a <b>Gaming</b> la potenza <b>sale per davvero</b>: il processore smette di "riposare" e resta sempre al massimo, Windows attiva la Modalità Gioco e mette in pausa le notifiche. <b>Le ventole non cambiano subito, ed è normale</b>: la velocità delle ventole la decide la scheda madre in base alla temperatura, non Windows — appena il gioco scalda, salgono da sole. Tasso di proposito non le forza, perché cambiare le curve delle ventole a mano è rischioso.</p>
     <div class="list" id="modeCompare"></div>
   </div>
-  <div class="card row wrap gm" style="justify-content:space-between">
-    <div class="row" style="gap:16px;flex:1 1 380px"><span class="tag" style="--c:var(--a4);width:52px;height:52px;flex-basis:52px;border-radius:15px"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg></span>
-      <div><h2>Turbo</h2><p class="sub" style="margin:2px 0 0">Chiude i programmi in background che non servono (OneDrive, Teams, Skype…) e libera memoria per il gioco. Si riaprono al prossimo avvio.</p></div></div>
-    <button class="btn warn" id="btnTurbo">Attiva Turbo</button>
-  </div>
   <div class="card" style="display:flex;flex-direction:column;gap:10px">
     <div class="row wrap" style="justify-content:space-between"><div><h2>Programmi all'avvio</h2><p class="sub" style="margin:2px 0 0">Spegni quelli che non ti servono appena accendi il PC: Windows parte più veloce. Tasso ti avvisa se se ne aggiunge uno nuovo.</p></div><button class="btn ghost" id="btnStartupReload">Aggiorna</button></div>
     <div class="list" id="startupList"><div class="li"><span class="muted">Lettura…</span></div></div>
@@ -716,23 +711,13 @@ details.navmore[open]{display:flex;flex-direction:column;gap:2px}
 <section class="view" id="v-games">
   <div><h1 style="font-size:26px">Gioca</h1><p class="sub">Premi il tasto e Tasso prepara il PC per giocare. Quando hai finito, rimette tutto com'era.</p></div>
   <div class="card boostcard" id="boostCard">
-    <div style="flex:1 1 320px;min-width:0"><div class="boostk">PRONTO A GIOCARE</div><h2 id="boostTitle">Il PC è in modalità normale</h2><p class="sub" id="boostSub" style="margin:0">Boost chiude i programmi inutili e mette il PC al massimo per giocare. Quando hai finito, rimette tutto com'era.</p><p class="small" style="margin:10px 0 0"><a href="#" id="boostUndo">↩️ Rimetti com'era</a></p></div>
+    <div style="flex:1 1 320px;min-width:0"><div class="boostk">PRONTO A GIOCARE</div><h2 id="boostTitle">Il PC è in modalità normale</h2><p class="sub" id="boostSub" style="margin:0">Boost chiude i programmi in background che non servono, mette il PC al massimo per giocare e misura gli FPS veri. Quando hai finito, rimette tutto com'era.</p><p class="small" style="margin:10px 0 0"><a href="#" id="boostUndo">↩️ Rimetti com'era</a> · <a href="#" id="boostFpsBtn">📊 Misura gli FPS</a> · <a href="#" id="boostCheckBtn">🔍 Controllo FPS</a></p><p class="small" style="margin:8px 0 0"><label style="cursor:pointer"><input type="checkbox" id="boostAuto"> Boost automatico: parte da solo quando apri un gioco e si spegne quando lo chiudi</label></p><div class="small" id="boostFps" style="margin-top:8px"></div></div>
     <button class="btn primary boostgo" id="btnBoost" aria-label="Boost: prepara il PC per giocare">🚀<br>BOOST</button>
   </div>
-  <div class="card" style="display:flex;flex-direction:column;gap:12px">
-    <div class="row wrap" style="justify-content:space-between"><div><h2>🕹️ La tua libreria</h2><p class="sub" style="margin:2px 0 0" id="libMsg">Tutti i tuoi giochi in un posto solo: Steam, Epic, GOG, EA, Ubisoft, Battle.net, Xbox, Riot e anche quelli installati a mano.</p></div><div class="row wrap" style="gap:8px"><input id="libSearch" type="search" placeholder="Cerca un gioco…" style="padding:9px 12px;border-radius:10px;border:1px solid var(--line);background:transparent;color:inherit;font:inherit;min-width:200px"><button class="btn ghost" id="btnAddGame">➕ Aggiungi un gioco</button><button class="btn ghost" id="btnLib">Aggiorna</button></div></div>
-    <div class="grid" id="libGrid" style="grid-template-columns:repeat(auto-fill,minmax(150px,1fr))"></div>
-    <p class="small muted" id="libHidden" style="margin:0;display:none"></p>
-    <p class="small muted" style="margin:0">Le copertine che mancano Tasso le cerca nel negozio di Steam, mandando solo il nome del gioco (mai quelli aggiunti a mano o presi da Desktop e Download).</p>
-  </div>
-
-
-
-  <details class="more" id="gamesMore">
-    <summary>⚙️ Altre opzioni <span class="muted">· profilo gioco, potenza per ogni gioco, comandi gaming, ottimizza prima di giocare, pannellino in gioco, autoclick</span></summary>
-    <div class="morebox">
-  <div class="card" id="gpCard" style="display:flex;flex-direction:column;gap:12px;border-color:var(--a1)">
+  <div class="card" id="fpsCheckCard" style="display:none"><div id="fpsCheck" role="status" aria-live="polite" style="display:flex;flex-direction:column;gap:8px"></div></div>
+  <div class="card" id="gpCard" style="display:none;flex-direction:column;gap:12px;border-color:var(--a1)">
     <div class="row wrap" style="justify-content:space-between;align-items:center"><div style="flex:1 1 300px"><h2>🎮 Profilo gioco</h2><p class="sub" style="margin:2px 0 0">Scegli una volta sola cosa ti serve per giocare, poi lo accendi e lo spegni con un interruttore. <b>Resta acceso anche se spegni o riavvii il PC</b>: si spegne solo quando lo spegni tu.</p></div><button class="sw" id="gpSwitch" style="border:0;transform:scale(1.35);margin-right:10px" aria-label="Profilo gioco"><i></i></button></div>
+    <div class="note" style="margin:0;border-color:var(--a4)">Il profilo gioco è stato sostituito dal <b>Boost</b>, qui sopra. Il tuo profilo è ancora acceso: spegnilo con l'interruttore e usa il Boost. Questa finestra poi sparisce.</div>
     <div class="note" id="gpState" style="margin:0"></div>
     <details id="gpDet"><summary style="cursor:pointer;font-weight:700">Cosa c'è nel profilo (tocca per cambiare)</summary>
       <div style="display:flex;flex-direction:column;gap:10px;margin-top:10px">
@@ -747,21 +732,24 @@ details.navmore[open]{display:flex;flex-direction:column;gap:2px}
         <div class="row wrap"><button class="btn ghost" id="gpSave">Salva le scelte</button></div>
       </div>
     </details>
-    <div style="display:flex;flex-direction:column;gap:8px;border-top:1px solid var(--line);padding-top:12px">
-      <b>⚡ Potenza per ogni gioco</b>
+    <span class="small muted">Come funziona, in parole semplici: quando accendi il profilo Tasso mette tutte le cose che hai scelto e si ricorda com'erano prima. A ogni accensione del PC controlla che sia ancora tutto così (a volte un aggiornamento di Windows o il programma del produttore del PC rimette il piano energetico normale) e rimette a posto quello che è cambiato. Quando lo spegni torna tutto com'era prima di accenderlo. Lo trovi anche in Impostazioni → Torna indietro.</span>
+  </div>
+  <details class="more" id="gamesMore">
+    <summary>⚙️ Altro per giocare <span class="muted">· potenza per ogni gioco, regolazioni una per una, pannellino in gioco, autoclick</span></summary>
+    <div class="morebox">
+    <div class="card" style="display:flex;flex-direction:column;gap:8px">
+      <h2>⚡ Potenza per ogni gioco</h2>
       <span class="small muted">Scegli un gioco e quanta potenza vuoi. Quando apri quel gioco Tasso la mette da solo, quando lo chiudi rimette com'era. Funziona anche con il profilo spento.<br><b>Potenza alta</b> = modalità Gaming (piano energetico al massimo, notifiche in pausa). <b>Massima potenza</b> = modalità FPS competitivo (in più mouse senza accelerazione, per mirare meglio).</span>
       <div class="row wrap" style="gap:8px"><select id="gwGame" style="min-width:220px"><option value="">Scegli un gioco…</option></select><select id="gwMode"><option value="gaming">Potenza alta</option><option value="max">Massima potenza</option></select><button class="btn primary" id="gwSave">Salva</button></div>
       <div class="list" id="gwList"></div>
     </div>
-    <span class="small muted">Come funziona, in parole semplici: quando accendi il profilo Tasso mette tutte le cose che hai scelto e si ricorda com'erano prima. A ogni accensione del PC controlla che sia ancora tutto così (a volte un aggiornamento di Windows o il programma del produttore del PC rimette il piano energetico normale) e rimette a posto quello che è cambiato. Quando lo spegni torna tutto com'era prima di accenderlo. Lo trovi anche in Impostazioni → Torna indietro.</span>
-  </div>
   <div class="card" style="display:flex;flex-direction:column;gap:12px">
-    <div class="row wrap" style="justify-content:space-between"><div><h2>Comandi gaming</h2><p class="sub" style="margin:2px 0 0">Le regolazioni di Windows che contano davvero per giocare, gratis e in un clic. Ogni comando ti spiega cosa fa, quando serve e se ci sono rischi. Restano accesi anche dopo il riavvio. Quando li spegni tornano esattamente com'erano prima di Tasso. Per accenderne tanti insieme usa il <b>Profilo gioco</b> qui sopra.</p></div><button class="btn ghost" id="btnGcReload">Aggiorna</button></div>
+    <div class="row wrap" style="justify-content:space-between"><div><h2>Regolazioni una per una</h2><p class="sub" style="margin:2px 0 0">Il <b>Boost</b> accende già quelle utili. Qui le puoi accendere o spegnere una per una: ogni comando ti spiega cosa fa e se ci sono rischi. Quando lo spegni torna com'era prima di Tasso.</p></div><button class="btn ghost" id="btnGcReload">Aggiorna</button></div>
     <div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(min(300px,100%),1fr));gap:10px" id="gcList"></div>
   </div>
 
   <div class="row wrap" style="align-items:stretch;gap:18px">
-    <div class="card" style="flex:1 1 380px;display:flex;flex-direction:column;gap:12px">
+    <div class="card" id="bsCard" style="flex:1 1 380px;display:none;flex-direction:column;gap:12px">
       <div class="row wrap" style="justify-content:space-between"><div><h2>Ottimizza prima di giocare</h2><p class="sub" style="margin:2px 0 0" id="bsMsg">Chiude i programmi pesanti che non servono, mette la modalità Gaming. A fine partita rimette tutto com'era e riapre i programmi chiusi.</p></div></div>
       <div class="list" id="bsList" style="max-height:300px"><div class="li"><span class="muted">Premi "Cerca programmi pesanti".</span></div></div>
       <div class="row wrap"><button class="btn ghost" id="btnBsScan">Cerca programmi pesanti</button><button class="btn primary" id="btnBsGo" disabled>Ottimizza e gioca</button><button class="btn ghost" id="btnBsEnd" style="display:none">Fine partita: rimetti tutto</button></div>
@@ -796,6 +784,15 @@ details.navmore[open]{display:flex;flex-direction:column;gap:2px}
   </div>
     </div>
   </details>
+  <div class="card" style="display:flex;flex-direction:column;gap:12px">
+    <div class="row wrap" style="justify-content:space-between"><div><h2>🕹️ La tua libreria</h2><p class="sub" style="margin:2px 0 0" id="libMsg">Tutti i tuoi giochi in un posto solo: Steam, Epic, GOG, EA, Ubisoft, Battle.net, Xbox, Riot e anche quelli installati a mano.</p></div><div class="row wrap" style="gap:8px"><input id="libSearch" type="search" placeholder="Cerca un gioco…" style="padding:9px 12px;border-radius:10px;border:1px solid var(--line);background:transparent;color:inherit;font:inherit;min-width:200px"><button class="btn ghost" id="btnAddGame">➕ Aggiungi un gioco</button><button class="btn ghost" id="btnLib">Aggiorna</button></div></div>
+    <div class="grid" id="libGrid" style="grid-template-columns:repeat(auto-fill,minmax(150px,1fr))"></div>
+    <p class="small muted" id="libHidden" style="margin:0;display:none"></p>
+    <p class="small muted" style="margin:0">Le copertine che mancano Tasso le cerca nel negozio di Steam, mandando solo il nome del gioco (mai quelli aggiunti a mano o presi da Desktop e Download).</p>
+  </div>
+
+
+
 </section>
 
 <section class="view" id="v-disk">
@@ -1300,7 +1297,7 @@ function runStep(id){ const s = STEP[id]; if (s) runSteps([id], s.name, s.desc, 
 $$('[data-step]').forEach(b => { b.onclick = () => runStep(b.dataset.step); });
 $$('[data-steps]').forEach(b => { b.onclick = () => { const ids = b.dataset.steps.split(','); const ss = ids.map(i => STEP[i]).filter(Boolean); runSteps(ids, ss.map(s => s.name).join(' + '), ss.map(s => s.desc).join(' '), ss.reduce((a, s) => a + s.minutes, 0)); }; });
 $('#bigGo').onclick = () => confirmLevel(RECOMMENDED);
-$('#btnTurbo').onclick = () => runStep('turbo');
+// Turbo (Velocità) tolto in 3.1: chiudere le app in background lo fa il Boost nella pagina Gioca.
 
 /* ---------- run events ---------- */
 const MSGS = [_t('Il computer sta lavorando per la pulizia finale…'), _t('Sto controllando che tutto funzioni bene…'), _t('Metto in ordine i file di Windows…'), _t('Ancora un attimo, sto finendo questo passaggio…'), _t('Niente paura: c\'è il backup se serve tornare indietro.'), _t('Il tasso sta scavando tra i file inutili…')];
@@ -1510,15 +1507,237 @@ function paintModes(){
   boostPaint();
 }
 /* ---------- Gioca: pulsante BOOST (3.1) ----------
-   Per ora usa "Ottimizza prima di giocare" (in Altre opzioni); la versione con FPS prima/dopo si collega qui. */
+   Logica in boost.go: Boost, Rimetti com'era, Boost automatico e misura FPS (PresentMon). */
 function boostPaint(){
   const t = $('#boostTitle'); if (!t) return;
   const cur = MODES.find(m => m.id === (S.mode || 'normale'));
   t.textContent = cur ? (EN ? 'The PC is in ' + cur.name + ' mode' : 'Il PC è in modalità ' + cur.name) : _t('Il PC ha le impostazioni originali di Windows');
+  if (typeof boostPaintState === 'function' && $('#boostAuto')) boostPaintState();
 }
-function boostOpenTools(){ const m = $('#gamesMore'); if (m) m.open = true; const c = $('#bsList'); if (c) c.scrollIntoView({behavior:'smooth', block:'center'}); }
-$('#btnBoost').onclick = () => { boostOpenTools(); $('#btnBsScan').click(); toast(_t('Cerco i programmi pesanti: spunta quelli da chiudere e premi "Ottimizza e gioca".')); };
-$('#boostUndo').onclick = (e) => { e.preventDefault(); const b = $('#btnBsEnd'); if (b && b.style.display !== 'none' && !b.disabled) { b.click(); toast(_t('Rimetto tutto com\'era…')); } else toast(_t('Non c\'è niente da rimettere: Boost non è acceso.')); };
+var BST = {};
+async function boostRefresh(){ BST = (await call('goBoostInfo')) || {}; boostPaint(); }
+function boostPaintState(){
+  const on = !!(BST.on || BST.game);
+  $('#btnBoost').classList.toggle('on', on);
+  $('#btnBoost').innerHTML = on ? _t('✅<br>ACCESO') : _t('🚀<br>BOOST');
+  const a = $('#boostAuto'); if (a) a.checked = !!BST.auto;
+  const k = $('#boostCard .boostk'); if (k) k.textContent = BST.game ? _t('BOOST AUTOMATICO: ') + BST.game : on ? _t('BOOST ACCESO') : _t('PRONTO A GIOCARE');
+}
+function fpsLine(r){
+  if (!r) return '';
+  return esc(r.game) + ': <b>' + Math.round(r.avg) + _t(' FPS medi</b>, cali (1% low) ') + Math.round(r.low1) + ', ' + r.stutterPm + _t(' scatti al minuto') + (r.boost ? _t(' · con Boost') : _t(' · senza Boost'));
+}
+function paintFps(r, summary){
+  const box = $('#boostFps'); if (!box) return;
+  if (!r) { box.innerHTML = ''; return; }
+  let h = '<div>' + fpsLine(r) + '</div>';
+  const e = summary && summary[String(r.game).toLowerCase()];
+  if (e && e.compare && e.compare.verdict) h += '<div style="margin-top:4px">' + esc(e.compare.verdict) + '</div>';
+  else if (!r.boost) h += '<div class="muted" style="margin-top:4px">' + _t('Ora premi BOOST, riapri il gioco e misura di nuovo nello stesso posto: ti dico la differenza vera.') + '</div>';
+  else h += '<div class="muted" style="margin-top:4px">' + _t('Per un confronto serve anche una misura senza Boost (premi "Rimetti com\'era", poi misura).') + '</div>';
+  h += '<div class="muted" style="margin-top:4px">' + _t('I fotogrammi creati dalla generazione di fotogrammi (frame generation) non sono contati.') + '</div>';
+  box.innerHTML = h;
+}
+$('#btnBoost').onclick = async () => {
+  if (BST.on) { toast(_t('Il Boost è già acceso. Per spegnerlo premi "Rimetti com\'era".')); return; }
+  const r = await call('goBoostAll'); if (r === 'busy') { toast(_t('Un attimo, sto ancora finendo.')); return; }
+  $('#btnBoost').disabled = true; toast(_t('Preparo il PC per giocare…'), 'var(--a3)');
+};
+$('#boostUndo').onclick = async (e) => {
+  e.preventDefault();
+  if (!BST.on && !BST.auto && !BST.gpuFix) { toast(_t('Non c\'è niente da rimettere: il Boost non è acceso.')); return; }
+  const r = await call('goBoostAllOff'); if (r === 'busy') { toast(_t('Un attimo, sto ancora finendo.')); return; }
+  toast(_t('Rimetto tutto com\'era…'));
+};
+$('#boostAuto').onchange = async (e) => {
+  const r = await call('goBoostAuto', e.target.checked);
+  if (r) toast(String(r).replace(/^ok:/, ''), 'var(--a3)');
+  setTimeout(boostRefresh, 1500);
+};
+$('#boostFpsBtn').onclick = async (e) => {
+  e.preventDefault();
+  const r = await call('goFpsMeasure');
+  if (r === 'busy') { toast(_t('C\'è già una misura in corso.')); return; }
+  $('#boostFps').textContent = _t('Torna nel gioco entro 10 secondi e gioca normalmente: misuro per 30 secondi. Un bip quando inizio, due quando ho finito.');
+};
+const FC_SEV = {big:'var(--a3)', mid:'var(--a2)', info:'var(--muted)'};
+function fcItem(f, i){
+  const lab = f.sev === 'big' ? _t('Guadagno grande') : _t('Guadagno medio');
+  const btn = f.action ? (f.action === 'hz' || f.action === 'gpu' ? _t('Sistemalo') : f.action === 'tune' ? _t('Apri la libreria') : f.action === 'driver:nvidia' || f.action === 'driver:amd' ? _t('Aggiorna il driver') : _t('Apri la pagina')) : '';
+  return '<div class="li" style="border-left:3px solid ' + (FC_SEV[f.sev] || 'var(--line)') + ';padding:8px 10px;display:block"><div class="small" style="font-weight:700;color:' + (FC_SEV[f.sev] || 'inherit') + '">' + lab + '</div><b>' + esc(f.title) + '</b><div class="small muted" style="margin-top:2px">' + esc(f.why) + '</div><div class="small" style="margin-top:4px">📈 ' + esc(f.gain) + '</div><div class="small" style="margin-top:4px">👉 ' + esc(f.fix) + '</div>' +
+    (btn ? '<button class="btn ghost" style="margin-top:6px" data-fc="' + i + '" aria-label="' + esc(btn + ': ' + f.title) + '">' + btn + '</button>' : '') + '</div>';
+}
+function paintCheck(r){
+  const box = $('#fpsCheck'); if (!box) return;
+  $('#fpsCheckCard').style.display = '';
+  const list = (r && Array.isArray(r.found)) ? r.found : [];
+  const auto = (r && Array.isArray(r.auto)) ? r.auto : [];
+  let h = '<h2 style="margin:0">' + _t('🔍 Controllo FPS') + '</h2>';
+  if (auto.length) h += '<div class="small">' + _t('✅ Sistemato da solo: ') + auto.map(esc).join(' · ') + '</div>';
+  if (!list.length) {
+    h += '<div class="small">' + _t('✅ Nessun problema grande trovato: il PC è già messo bene. Per guadagnare ancora molto resta la grafica del gioco: un livello più basso o DLSS/FSR su Qualità danno di solito +20–40%.') + (r && r.measured ? '' : ' ' + _t('Per un controllo completo misura prima gli FPS con il gioco aperto.')) + '</div>';
+    box.innerHTML = h; return;
+  }
+  h += '<div class="small"><b>' + list.length + _t(' cose da sistemare a mano') + '</b>' + (r.measured ? '' : ' · ' + _t('misura gli FPS con il gioco aperto per controllare anche limite, caldo e scheda video')) + '</div>';
+  h += list.slice(0, 3).map(fcItem).join('');
+  if (list.length > 3) h += '<details><summary class="small">' + _t('Altri ') + (list.length - 3) + '</summary><div style="display:flex;flex-direction:column;gap:8px;margin-top:8px">' + list.slice(3).map((f, j) => fcItem(f, j + 3)).join('') + '</div></details>';
+  box.innerHTML = h;
+  box.querySelectorAll('[data-fc]').forEach(b => { b.onclick = () => fcAction(list[Number(b.dataset.fc)], b); });
+}
+let HZ_MODAL = false, HZ_TICK = null;
+function hzModal(ch){
+  let left = 15; HZ_MODAL = true;
+  modal('<h2>' + _t('Lo schermo si vede bene?') + '</h2><p class="muted">' + esc(ch.join(', ')) + '. ' + _t('Se non premi "Tengo", torna com\'era tra ') + '<b id="hzLeft">15</b>' + _t(' secondi.') + '</p>',
+    [{label:_t('Tengo'), cls:'primary', fn: () => { HZ_MODAL = false; clearInterval(HZ_TICK); call('goFpsKeepHz'); }},
+     {label:_t('Torna com\'era'), fn: () => { HZ_MODAL = false; clearInterval(HZ_TICK); call('goFpsUndoHz'); }}]);
+  clearInterval(HZ_TICK);
+  HZ_TICK = setInterval(() => { left--; const e = $('#hzLeft'); if (e) e.textContent = Math.max(0, left); if (left <= 0) clearInterval(HZ_TICK); }, 1000);
+}
+async function fcAction(f, b){
+  if (!f) return;
+  if (f.action === 'hz') {
+    const r = await call('goFpsFixHz'); if (r === 'busy') toast(_t('Un attimo, sto ancora finendo.'));
+  } else if (f.action === 'gpu') {
+    const r = String(await call('goFpsFixGpu') || '');
+    const ok = r.indexOf('ok:') === 0; toast(r.replace(/^ok:/, ''), ok ? 'var(--a3)' : 'var(--a4)'); if (ok && b) b.disabled = true;
+  } else if (f.action === 'tune') {
+    const m = $('#libGrid'); if (m) m.scrollIntoView({behavior:'smooth', block:'center'});
+    toast(_t('Premi sul gioco nella libreria e poi "Regola con Tasso": ti dico la grafica giusta per il tuo PC.'));
+  } else if (f.action === 'driver:nvidia' || f.action === 'driver:amd') {
+    gpuDrvOpen();
+  } else if (f.action.indexOf('driver:') === 0) {
+    const r = await call('goFpsDriver', f.action.slice(7));
+    toast(r === 'ok' ? _t('Apro la pagina ufficiale del driver nel browser.') : _t('Non riesco ad aprire la pagina.'));
+  }
+}
+$('#boostCheckBtn').onclick = async (e) => {
+  e.preventDefault();
+  const r = await call('goFpsCheck'); if (r === 'busy') { toast(_t('Il controllo è già in corso.')); return; }
+  $('#fpsCheckCard').style.display = '';
+  $('#fpsCheck').innerHTML = '<div class="small muted">' + _t('Controllo schermo, scheda video, RAM, temperature e driver…') + '</div>';
+};
+Object.assign(window.tasso, {
+  onFpsCheck(r){ paintCheck(r); ((r && r.auto) || []).forEach(m => toast(m, 'var(--a3)')); },
+  onFpsHzTry(r){
+    const ch = (r && r.changed) || [];
+    if (ch.length) hzModal(ch); else toast((r && r.msg) || _t('Non sono riuscito a cambiare la frequenza dello schermo.'));
+  },
+  onFpsHz(r){
+    if (HZ_MODAL) { HZ_MODAL = false; clearInterval(HZ_TICK); closeModal(); }
+    toast(r && r.kept ? _t('Frequenza dello schermo tenuta.') : _t('Frequenza dello schermo rimessa com\'era.'));
+  },
+  onBoost(r){
+    $('#btnBoost').disabled = false;
+    (r && r.msgs || []).slice(0, 6).forEach(m => toast(m, 'var(--a3)'));
+    if (r && r.state) BST = r.state;
+    boostPaintState();
+    setTimeout(async () => { await refreshS(); paintModes(); }, 2500);
+  },
+  onFps(r){
+    if (!r || !r.ok) { $('#boostFps').textContent = (r && r.msg) || _t('Misura non riuscita: riprova.'); return; }
+    paintFps(r.result, r.summary);
+    call('goFpsCheck');
+  },
+  onFpsAuto(r){ if (r && r.result) call('goFpsSummary').then(s => paintFps(r.result, s)); }
+});
+call('goBoostInfo').then(b => { BST = b || {}; boostPaintState(); });
+
+// ---------- Driver NVIDIA dentro il Tasso (3.1, gpudriver.go) ----------
+let GD = {stage:'', info:null, last:null, t0:0};
+const GD_WORK = {download:1, verify:1, backup:1, install:1};
+function gdOurs(){ return $('#modal').classList.contains('on') && !!$('#gdMark'); }
+function gdFree(){ return !$('#modal').classList.contains('on') || gdOurs(); }
+function gdBox(inner, buttons){ modal('<span id="gdMark" hidden></span><h2>' + _t('🎮 Driver della scheda video') + '</h2>' + inner, buttons); GD.t0 = Date.now(); }
+// Mostra un risultato: nella finestra se è libera, altrimenti un avviso (non copro altre finestre).
+function gdShow(inner, buttons, short){ if (gdFree()) gdBox(inner, buttons); else toast(short, 'var(--a3)', {label:_t('Vedi'), fn: () => gdBox(inner, buttons)}); }
+function gdPaint(force){
+  const i = GD.info, st = GD.stage, l = GD.last || {};
+  if (GD_WORK[st]) {
+    const det = st === 'download' && l.pct >= 0, pct = det ? l.pct : 0;
+    const txt = st === 'download' ? _t('Scarico da NVIDIA: ') + (l.pct >= 0 ? l.pct + '%' : fmtBytes(l.done || 0)) : esc(l.msg || '');
+    if (!force && gdOurs()) {
+      const bar = $('#gdBar'); bar.style.width = (det ? pct : 100) + '%'; bar.parentNode.setAttribute('aria-valuenow', String(pct));
+      const t = $('#gdTxt'); if (t.innerHTML !== txt) t.innerHTML = txt; return;
+    }
+    gdBox('<div class="muted" style="margin-bottom:8px">' + esc(GD.from || '') + (GD.to ? ' → <b style="color:var(--a1)">' + esc(GD.to) + '</b>' : '') + '</div>' +
+      '<div class="bigbar" role="progressbar" aria-label="' + _t('Avanzamento') + '" aria-valuemin="0" aria-valuemax="100"' + (det ? ' aria-valuenow="' + pct + '"' : '') + '><i id="gdBar" style="width:' + (det || st !== 'download' ? (det ? pct : 100) : 0) + '%"></i></div>' +
+      '<div class="small" id="gdTxt" style="margin-top:8px">' + txt + '</div>' +
+      '<div class="small muted" role="status" aria-live="polite" style="margin-top:6px">' + (st === 'download' ? _t('Prima di installare controllo la firma digitale di NVIDIA e creo un punto di ripristino.') : esc(l.msg || '')) + '</div>',
+      st === 'install' || (GD.info && GD.info.vendor === 'amd') ? [{label:_t('Chiudi')}] : [{label:_t('Annulla'), fn: (box) => {
+        if (Date.now() - GD.t0 < 800) return 'keep'; // un doppio clic su "Aggiorna" non deve annullare
+        call('goGpuDrvCancel'); const b = [...box.querySelectorAll('button')].find(x => x.textContent === _t('Annulla')); if (b) { b.disabled = true; b.textContent = _t('Sto annullando…'); }
+        return 'keep'; }}, {label:_t('Continua in background')}]);
+    return;
+  }
+  if (st === 'check') { gdBox('<div class="muted" role="status">' + _t('Controllo se c\'è un driver nuovo…') + '</div>', [{label:_t('Chiudi'), fn: () => { GD.stage = ''; }}]); return; }
+  if (!i) return;
+  const g = i.gpu || {}, o = i.offer || {}, amd = i.vendor === 'amd';
+  const site = amd ? [{label:_t('Apri il sito AMD'), fn: () => { call('goVendorPage', 'amd'); }}] : i.gpu ? [{label:_t('Apri NVIDIA App'), fn: () => { call('goVendorPage', 'nvidia'); }}] : [];
+  if (i.error && !i.offer) {
+    gdBox('<div class="note">' + esc(i.error) + '</div>' + (i.canUndo ? gdUndoHtml(i) : ''), gdUndoBtns(i, site.concat([{label:_t('Chiudi')}])));
+    return;
+  }
+  if (amd && !i.newer) {
+    gdBox('<div><b>' + esc(g.name || '') + '</b><br><span class="muted">' + _t('Driver ') + esc(g.ver || '') + '</span></div><div class="note" style="border-color:var(--a1)">' + _t('✓ Windows Update non ha un driver AMD più nuovo per la tua scheda.') + '</div><div class="small muted">' + _t('Le versioni nuovissime escono prima sul sito AMD: se un gioco nuovo ti dà problemi, prendila da lì.') + '</div>', site.concat([{label:_t('Chiudi')}]));
+    return;
+  }
+  if (amd) {
+    gdBox('<div><b>' + esc(g.name || '') + '</b></div><div style="font-size:18px;margin:8px 0">' + esc(g.ver || '') + ' → <b style="color:var(--a1)">' + esc(o.ver || _t('nuovo')) + '</b></div>' +
+      (o.date ? '<div class="small muted">' + _t('Driver del ') + esc(o.date.split('-').reverse().join('/')) + '</div>' : '') +
+      '<ul class="small" style="line-height:1.6"><li>' + _t('Lo prendo da Windows Update: è il driver AMD certificato da Microsoft per la tua scheda.') + '</li><li>' + _t('Prima creo un punto di ripristino.') + '</li><li>' + _t('Può essere un po\' più vecchio di quello sul sito AMD, ma è il più sicuro.') + '</li><li>' + _t('Chiudi i giochi. Durante l\'installazione lo schermo può diventare nero per qualche secondo.') + '</li></ul>',
+      [{label:_t('Aggiorna il driver'), cls:'primary', fn: () => { gdStart(false, false); return 'keep'; }}].concat(site, [{label:_t('Non ora')}]));
+    return;
+  }
+  if (i.rebootFor) {
+    gdBox('<div><b>' + esc(g.name || '') + '</b></div><div class="note" style="border-color:var(--a4)">' + _t('Il driver ') + esc(i.rebootFor) + _t(' è installato ma serve un riavvio per finire. Riavvia il PC quando puoi.') + '</div>', [{label:_t('Chiudi')}]);
+    return;
+  }
+  if (!i.newer) {
+    gdBox('<div><b>' + esc(g.name || '') + '</b><br><span class="muted">' + _t('Driver ') + esc(g.ver || '') + '</span></div><div class="note" style="border-color:var(--a1)">' + _t('✓ Hai già il driver più nuovo di NVIDIA.') + '</div>' + (i.canUndo ? gdUndoHtml(i) : ''), gdUndoBtns(i, [{label:_t('Chiudi')}]));
+    return;
+  }
+  gdBox('<div><b>' + esc(g.name || '') + '</b></div><div style="font-size:20px;margin:8px 0">' + esc(g.ver || '') + ' → <b style="color:var(--a1)">' + esc(o.ver || '') + '</b></div>' +
+    '<ul class="small" style="line-height:1.6"><li>' + _t('Lo scarico solo dal sito di NVIDIA e controllo che sia firmato da NVIDIA.') + '</li><li>' + _t('Prima creo un punto di ripristino.') + '</li><li>' + _t('Non è un\'installazione pulita: di solito le impostazioni NVIDIA restano.') + '</li><li>' + _t('Chiudi i giochi. Durante l\'installazione lo schermo può diventare nero per qualche secondo.') + '</li></ul>',
+    [{label:_t('Aggiorna il driver'), cls:'primary', fn: () => { gdStart(false, false); return 'keep'; }}, {label:_t('Non ora')}]);
+}
+function gdUndoHtml(i){ return '<div class="small muted" style="margin-top:8px">' + _t('Prima avevi il driver ') + esc(i.prevVer || '') + (i.undoURL ? _t('. Se il nuovo ti dà problemi puoi tornare indietro.') : _t('. Quella versione non si può riscaricare da NVIDIA: per tornare indietro usa il punto di ripristino.')) + '</div>'; }
+function gdUndoBtns(i, b){ return i.canUndo && i.undoURL ? [{label:_t('Torna al driver di prima'), fn: () => { gdStart(true, false); return 'keep'; }}].concat(b) : b; }
+async function gdStart(undo, noBackup){
+  if (Date.now() - GD.t0 < 400) return; // doppio clic
+  const amd = GD.info && GD.info.vendor === 'amd';
+  GD.stage = amd ? 'backup' : 'download'; GD.last = amd ? {msg:_t('Preparo…')} : {pct:0}; GD.to = undo ? (GD.info && GD.info.prevVer) : (GD.info && GD.info.offer && GD.info.offer.ver); GD.from = GD.info && GD.info.gpu && GD.info.gpu.ver; gdPaint(true);
+  const r = await call('goGpuDrvInstall', !!undo, !!noBackup);
+  if (r !== 'ok' && GD.stage === (amd ? 'backup' : 'download') && ((GD.last || {}).pct === 0 || amd)) { GD.stage = ''; if (gdOurs()) closeModal(); toast(r === 'busy' ? _t('Un attimo, il Tasso sta finendo un\'altra cosa.') : _t('Non riesco ad avviare l\'aggiornamento: riprova.'), 'var(--a4)'); }
+}
+async function gpuDrvOpen(){
+  if (GD_WORK[GD.stage]) { gdPaint(true); return; }
+  GD.stage = 'check'; gdPaint();
+  const r = await call('goGpuDrvCheck');
+  if (r !== 'ok' && GD.stage === 'check') { GD.stage = ''; if (gdOurs()) closeModal(); toast(_t('Un attimo, sto ancora controllando.')); }
+}
+document.addEventListener('click', (e) => { const b = e.target.closest && e.target.closest('[data-gpudrv]'); if (b) { e.preventDefault(); gpuDrvOpen(); } });
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && GD.stage === 'check') GD.stage = ''; });
+Object.assign(window.tasso, {
+  onGpuDrvInfo(i){ GD.info = i || {}; if (GD.stage === 'check') { GD.stage = ''; if (gdFree()) gdPaint(); } },
+  onGpuDrv(m){
+    m = m || {}; const st = m.stage;
+    if (m.from) GD.from = m.from; if (m.to) GD.to = m.to;
+    if (GD_WORK[st]) {
+      const changed = GD.stage !== st; GD.stage = st; GD.last = m;
+      if (gdOurs()) gdPaint(changed);
+      return;
+    }
+    GD.stage = '';
+    if (st === 'nobackup') {
+      gdShow('<div class="note" style="border-color:var(--a4)">' + esc(m.msg || '') + '</div>' + (m.undoURL ? '<div class="small muted">' + _t('Senza punto di ripristino, se il driver nuovo dà problemi puoi comunque usare "Torna al driver di prima".') + '</div>' : '<div class="small muted">' + (m.vendor === 'amd' ? _t('Senza punto di ripristino, se il driver nuovo dà problemi usa Gestione dispositivi → scheda video → Ripristina driver.') : _t('Senza punto di ripristino, se il driver nuovo dà problemi dovrai reinstallare quello vecchio dal sito NVIDIA.')) + '</div>'),
+        [{label:_t('Installa lo stesso'), fn: () => { gdStart(!!m.undo, true); return 'keep'; }}, {label:_t('Annulla')}], m.msg || '');
+      return;
+    }
+    const ok = st === 'done';
+    gdShow('<div class="note" style="border-color:' + (ok ? 'var(--a1)' : 'var(--a4)') + '">' + (ok && !m.reboot ? '✅ ' : '') + esc(m.msg || '') + '</div>', [{label:_t('Chiudi')}], m.msg || '');
+    if (ok) setTimeout(() => call('goGpuDrvCheck'), 1500); // aggiorna in silenzio "Torna al driver di prima"
+  }
+});
 function askMode(m){
   const warn = [];
   const ramGB = HW && HW.ram && HW.ram.total ? HW.ram.total / 1073741824 : (LIVE && LIVE.ramTotal ? LIVE.ramTotal / 1073741824 : 16);
@@ -1909,7 +2128,7 @@ function paintWelcome(){
 $('#btnWelcome').onclick = async () => { const wb = $('#btnWelcome'); if (wb.disabled) return; wb.disabled = true; const r = await callBg('goSetProfile', chosen); wb.disabled = false; if (r !== 'ok') { toast(typeof r === 'string' && r ? r : _t('Non sono riuscito a salvare la scelta: riprova.'), 'var(--a4)'); return; } $('#welcome').classList.remove('on'); await refreshS(); applyLook(); repaintLook(); toast(chosen === 'ufficio' ? _t('Fatto! Tasso è pronto per il lavoro.') : _t('Fatto! Tasso è configurato per te.')); setTimeout(statsAsk, 4000); setTimeout(async () => { await refreshS(); paintModes(); paintSettings(); }, 3000); };
 
 /* ---------- 2.1: salute, internet, disco, gioco automatico ---------- */
-const H_ACTIONS = {clean:[_t('Pulisci'), () => confirmLevel(3)], startup:[_t('Apri l\'avvio'), () => show('speed')], recycle:[_t('Svuota'), () => runStep('recycle')], defender:[_t('Scansione'), () => runStep('defender')], winupdate:[_t('Aggiorna'), () => runStep('winupdate')], reboot:[_t('Riavvia'), () => modal(_t('<h2>Riavviare il PC?</h2><p class="muted" style="margin:0">Salva il lavoro aperto: il PC si riavvia tra 15 secondi.</p>'), [{label:_t('Annulla')}, {label:_t('Riavvia'), cls:'warn', fn: () => call('goRestart')}])], turbo:['Turbo', () => runStep('turbo')], diskmap:[_t('Mappa del disco'), () => show('disk')], disks:[_t('Vedi dischi'), () => runStep('disk_health')], security:[_t('Apri'), () => call('goOpenWin', 'firewall')], devices:[_t('Controlla'), () => runStep('devices')]};
+const H_ACTIONS = {clean:[_t('Pulisci'), () => confirmLevel(3)], startup:[_t('Apri l\'avvio'), () => show('speed')], recycle:[_t('Svuota'), () => runStep('recycle')], defender:[_t('Scansione'), () => runStep('defender')], winupdate:[_t('Aggiorna'), () => runStep('winupdate')], reboot:[_t('Riavvia'), () => modal(_t('<h2>Riavviare il PC?</h2><p class="muted" style="margin:0">Salva il lavoro aperto: il PC si riavvia tra 15 secondi.</p>'), [{label:_t('Annulla')}, {label:_t('Riavvia'), cls:'warn', fn: () => call('goRestart')}])], turbo:['Boost', () => show('games')], diskmap:[_t('Mappa del disco'), () => show('disk')], disks:[_t('Vedi dischi'), () => runStep('disk_health')], security:[_t('Apri'), () => call('goOpenWin', 'firewall')], devices:[_t('Controlla'), () => runStep('devices')]};
 function paintHealth(){
   const h = HEALTH; if (!h) return;
   const sc = Math.max(1, Math.min(100, Number(h.score) || 0));
@@ -2333,6 +2552,7 @@ Object.assign(window.tasso, {
     (r.msgs || []).slice(0, 6).forEach(m => toast(m, 'var(--a3)'));
     $('#btnBsGo').disabled = false; $('#btnBsEnd').disabled = false;
     $('#btnBsEnd').style.display = r.active ? '' : 'none';
+    $('#bsCard').style.display = r.active ? 'flex' : 'none'; // il vecchio "Ottimizza": solo per chiudere una partita già avviata
     $('#bsMsg').textContent = (r && r.ok === false) ? (((r.msgs || [])[0]) || _t('Non riuscito: riprova.')) : r.active ? _t('Pronto: modalità Gaming attiva. Buona partita! Quando hai finito premi "Fine partita".') : _t('Fatto: tutto com\'era prima.');
     if (!r.active) { BOOST = []; $('#bsList').innerHTML = _t('<div class="li"><span class="muted">Premi "Cerca programmi pesanti".</span></div>'); }
     setTimeout(async () => { await refreshS(); paintModes(); }, 2500);
@@ -2400,6 +2620,8 @@ function paintProfile(info){
   if (!GP) return;
   const p = GP.profile || {};
   $('#gpSwitch').classList.toggle('on', !!p.on);
+  // Il vecchio Profilo gioco ora lo fa il Boost: la card si vede solo se è ancora acceso, per poterlo spegnere.
+  $('#gpCard').style.display = p.on ? 'flex' : 'none';
   $$('input[name=gpMode]').forEach(x => x.checked = x.value === (p.mode || 'gaming'));
   const box = $('#gpCmds'); box.innerHTML = '';
   GAMING.filter(g => !g.act).forEach(g => {
@@ -2465,7 +2687,7 @@ function paintDrivers(d){
   const g = $('#drvGpu'); g.innerHTML = '';
   (d.gpus || []).forEach(x => {
     const age = drvAge(x.date), v = x.vendor;
-    const btns = v === 'nvidia' ? drvBtn('nvidia', _t('Apri NVIDIA App')) + drvBtn('nvidia_drv', _t('Driver NVIDIA')) : v === 'amd' ? drvBtn('amd', _t('Apri il sito AMD')) : v === 'intel' ? drvBtn('intel', _t('Apri Intel Assistant')) : '';
+    const btns = v === 'nvidia' ? '<button class="btn primary" data-gpudrv="1" style="min-height:34px;padding:5px 12px;font-size:12px">' + _t('Aggiorna con Tasso') + '</button>' + drvBtn('nvidia', _t('Apri NVIDIA App')) + drvBtn('nvidia_drv', _t('Driver NVIDIA')) : v === 'amd' ? '<button class="btn primary" data-gpudrv="1" style="min-height:34px;padding:5px 12px;font-size:12px">' + _t('Aggiorna con Tasso') + '</button>' + drvBtn('amd', _t('Apri il sito AMD')) : v === 'intel' ? drvBtn('intel', _t('Apri Intel Assistant')) : '';
     g.appendChild(el('div', {class:'li', style:'flex-wrap:wrap;gap:8px'}, '<span style="flex:1 1 260px"><b>🎮 ' + esc(x.name) + _t('</b><br><span class="small muted">Driver ') + esc(x.ver || '?') + (x.date ? _t(' del ') + esc(x.date.split('-').reverse().join('/')) : '') + (age >= 6 ? _t(' · <b style="color:var(--a4)">ha ') + age + _t(' mesi: conviene aggiornarlo</b>') : age ? _t(' · recente') : '') + _t('</span><br><span class="small muted">Il driver video più nuovo esce prima sul sito ') + (v === 'nvidia' ? 'NVIDIA' : v === 'amd' ? 'AMD' : v === 'intel' ? 'Intel' : _t('del produttore')) + _t(' che su Windows Update: per i giochi conviene prenderlo da lì.</span></span>') + btns));
   });
   // Programmi ufficiali per le periferiche trovate
