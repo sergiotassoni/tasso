@@ -3903,9 +3903,10 @@
   "Si apre Epic Games: lì scegli tu di disinstallarlo.": "Epic Games opens: there you choose to uninstall it.",
   " ti chiede conferma e lo toglie con il suo programma ufficiale.": " asks you to confirm and removes it with its official program.",
   " Prima di farlo, controlla che i tuoi salvataggi siano al sicuro (nel cloud o copiati).</p>": " Before doing it, make sure your saves are safe (in the cloud or copied).</p>",
-  "Boost chiude i programmi in background che non servono e mette il PC al massimo per giocare. Con \"Misura gli FPS\" vedi gli FPS veri. Quando hai finito, premi \"Rimetti com'era\" (con il Boost automatico lo fa da solo quando chiudi il gioco).": "Boost closes background programs you don't need and sets the PC to full power for gaming. With \"Measure FPS\" you see your real FPS. When you're done, press \"Put it back\" (with Auto Boost it does it by itself when you close the game).",
+  "Boost chiude i programmi in background che non servono e mette il PC al massimo per giocare. Con \"Misura gli FPS\" vedi gli FPS veri. Quando hai finito, premi \"Rimetti com'era\" (con il Boost automatico, quando chiudi il gioco riapre da solo i programmi chiusi e rimette la modalità di prima).": "Boost closes background programs you don't need and sets the PC to full power for gaming. With \"Measure FPS\" you see your real FPS. When you're done, press \"Put it back\" (with Auto Boost, when you close the game it reopens the closed programs and puts back your previous mode by itself).",
   "📊 Misura gli FPS": "📊 Measure FPS",
-  " Boost automatico: parte da solo quando apri un gioco e si spegne quando lo chiudi": " Auto Boost: starts by itself when you open a game and turns off when you close it",
+  " Boost automatico: parte da solo quando apri un gioco; quando lo chiudi riapre i programmi chiusi": " Auto Boost: starts by itself when you open a game; when you close it, it reopens the closed programs",
+  "Boost automatico: parte da solo quando apri un gioco; quando lo chiudi riapre i programmi chiusi": "Auto Boost: starts by itself when you open a game; when you close it, it reopens the closed programs",
   "Boost automatico: parte da solo quando apri un gioco e si spegne quando lo chiudi": "Auto Boost: starts by itself when you open a game and turns off when you close it",
   "✅<br>ACCESO": "✅<br>ON",
   "🚀<br>BOOST": "🚀<br>BOOST",
@@ -4012,6 +4013,6 @@
   "Boost nella pagina Gioca": "Boost on the Play page",
   ": mette lui la potenza massima e la toglie quando hai finito.": ": it sets full power and removes it when you're done.",
   "Boost automatico": "Auto Boost",
-  "Lo stesso interruttore della pagina Gioca: quando apri un gioco Tasso fa il Boost da solo e, quando lo chiudi, rimette tutto com'era.": "The same switch as on the Play page: when you open a game Tasso does the Boost by itself and, when you close it, puts everything back."
+  "Lo stesso interruttore della pagina Gioca: quando apri un gioco Tasso fa il Boost da solo e, quando lo chiudi, riapre i programmi chiusi e rimette la modalità di prima.": "The same switch as on the Play page: when you open a game Tasso does the Boost by itself and, when you close it, reopens the closed programs and puts back your previous mode."
  }
 }

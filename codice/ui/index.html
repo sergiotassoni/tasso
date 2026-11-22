@@ -707,7 +707,7 @@ details.navmore[open]{display:flex;flex-direction:column;gap:2px}
 <section class="view" id="v-games">
   <div><h1 style="font-size:26px">Gioca</h1><p class="sub">Premi il tasto e Tasso prepara il PC per giocare. Quando hai finito, premi "Rimetti com'era".</p></div>
   <div class="card boostcard" id="boostCard">
-    <div style="flex:1 1 320px;min-width:0"><div class="boostk">PRONTO A GIOCARE</div><h2 id="boostTitle">Il PC è in modalità normale</h2><p class="sub" id="boostSub" style="margin:0">Boost chiude i programmi in background che non servono e mette il PC al massimo per giocare. Con "Misura gli FPS" vedi gli FPS veri. Quando hai finito, premi "Rimetti com'era" (con il Boost automatico lo fa da solo quando chiudi il gioco).</p><p class="small" style="margin:10px 0 0"><a href="#" id="boostUndo">↩️ Rimetti com'era</a> · <a href="#" id="boostFpsBtn">📊 Misura gli FPS</a> · <a href="#" id="boostCheckBtn">🔍 Controllo FPS</a></p><p class="small" style="margin:8px 0 0"><label style="cursor:pointer"><input type="checkbox" id="boostAuto"> Boost automatico: parte da solo quando apri un gioco e si spegne quando lo chiudi</label></p><div class="small" id="boostFps" style="margin-top:8px"></div></div>
+    <div style="flex:1 1 320px;min-width:0"><div class="boostk">PRONTO A GIOCARE</div><h2 id="boostTitle">Il PC è in modalità normale</h2><p class="sub" id="boostSub" style="margin:0">Boost chiude i programmi in background che non servono e mette il PC al massimo per giocare. Con "Misura gli FPS" vedi gli FPS veri. Quando hai finito, premi "Rimetti com'era" (con il Boost automatico, quando chiudi il gioco riapre da solo i programmi chiusi e rimette la modalità di prima).</p><p class="small" style="margin:10px 0 0"><a href="#" id="boostUndo">↩️ Rimetti com'era</a> · <a href="#" id="boostFpsBtn">📊 Misura gli FPS</a> · <a href="#" id="boostCheckBtn">🔍 Controllo FPS</a></p><p class="small" style="margin:8px 0 0"><label style="cursor:pointer"><input type="checkbox" id="boostAuto"> Boost automatico: parte da solo quando apri un gioco; quando lo chiudi riapre i programmi chiusi</label></p><div class="small" id="boostFps" style="margin-top:8px"></div></div>
     <button class="btn primary boostgo" id="btnBoost" aria-label="Boost: prepara il PC per giocare">🚀<br>BOOST</button>
   </div>
   <div class="card" id="fpsCheckCard" style="display:none"><div id="fpsCheck" role="status" aria-live="polite" style="display:flex;flex-direction:column;gap:8px"></div></div>
@@ -917,7 +917,7 @@ details.navmore[open]{display:flex;flex-direction:column;gap:2px}
     <div class="card" style="flex:2 1 420px;padding:6px 22px">
       <button class="toggle" id="tgPaused"><span><b>Tasso acceso</b><span>Spento: non parte con Windows, niente pulizie automatiche né avvisi. Riaccendilo e Tasso riprende a funzionare come prima.</span></span><span class="sw"><i></i></span></button>
       <button class="toggle" id="tgAutostart"><span><b>Avvia con Windows</b><span>Tasso parte da solo, ridotto a icona, quando accendi il PC.</span></span><span class="sw"><i></i></span></button>
-      <button class="toggle gm" id="tgGame"><span><b>Boost automatico</b><span>Lo stesso interruttore della pagina Gioca: quando apri un gioco Tasso fa il Boost da solo e, quando lo chiudi, rimette tutto com'era.</span></span><span class="sw"><i></i></span></button>
+      <button class="toggle gm" id="tgGame"><span><b>Boost automatico</b><span>Lo stesso interruttore della pagina Gioca: quando apri un gioco Tasso fa il Boost da solo e, quando lo chiudi, riapre i programmi chiusi e rimette la modalità di prima.</span></span><span class="sw"><i></i></span></button>
       <div class="gm" style="padding:15px 0;border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:10px">
         <span><b style="font-size:15px">Stato del PC su Discord</b><br><span class="small muted">Tasso manda in un tuo canale Discord il report del PC: voto di salute, processore, scheda video, scheda madre, RAM, dischi, temperature e internet, con le <b style="color:var(--a1)">spunte verdi</b> per tutto quello che va bene. Arriva da solo ogni tot ore e dopo ogni pulizia. Da Discord si può solo leggere, non comandare il PC.</span></span>
         <details class="guide" id="dcGuide"><summary>📘 Come si collega (2 minuti)</summary>
@@ -1552,6 +1552,7 @@ $('#boostUndo').onclick = async (e) => {
 };
 $('#boostAuto').onchange = async (e) => {
   const r = await call('goBoostAuto', e.target.checked);
+  S.autoGame = e.target.checked; paintSettings();
   if (r) toast(String(r).replace(/^ok:/, ''), 'var(--a3)');
   setTimeout(boostRefresh, 1500);
 };
