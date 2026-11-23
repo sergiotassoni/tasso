@@ -31,3 +31,13 @@ func TestSeparaAttaccate(t *testing.T) {
 		t.Error("a capo")
 	}
 }
+
+func TestStabilizza(t *testing.T) {
+	v := []Blocco{{Testo: "The current season has been reset", Tradotto: "A", X: 10, Y: 10, W: 400, Righe: 1}}
+	n := []Blocco{{Testo: "The curmt season has been reset", Tradotto: "B", X: 11, Y: 9, W: 395, Righe: 1},
+		{Testo: "Options", Tradotto: "Opzioni", X: 10, Y: 300, W: 80, Righe: 1}}
+	stabilizza(n, v)
+	if n[0].Tradotto != "A" || n[1].Tradotto != "Opzioni" {
+		t.Error(n)
+	}
+}

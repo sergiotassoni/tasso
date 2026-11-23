@@ -1679,3 +1679,24 @@ func colonnePiccole(b []Blocco) {
 		}
 	}
 }
+
+// stabilizza: il gioco si muove (fumo, luci) e la schermata viene riletta spesso; l'OCR a volte
+// legge le stesse scritte piccole in modo un po' diverso. Se una scritta sta nello stesso posto
+// e il testo letto è quasi uguale, tengo la traduzione che è già sullo schermo: niente parole
+// che cambiano da sole sotto gli occhi.
+func stabilizza(nuovi, vecchi []Blocco) {
+	for i := range nuovi {
+		n := &nuovi[i]
+		for _, o := range vecchi {
+			if o.Tradotto == "" || max(1, o.Righe) != max(1, n.Righe) || abs(o.X-n.X) > 8 || abs(o.Y-n.Y) > 8 ||
+				abs(o.W-n.W)*5 > max(o.W, n.W) {
+				continue
+			}
+			lung := max(len([]rune(o.Testo)), len([]rune(n.Testo)))
+			if distanzaModifica(o.Testo, n.Testo)*10 <= lung*3 {
+				n.Tradotto = o.Tradotto
+			}
+			break
+		}
+	}
+}
