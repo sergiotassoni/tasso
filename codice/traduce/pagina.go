@@ -550,6 +550,49 @@ func armonizza(b []Blocco) {
 		}
 	}
 	for k := 0; k < g; k++ {
+		// voci centrate: se metà del gruppo è centrata, lo è tutto il menu
+		var cen, tot int
+		for i := range b {
+			if gruppo[i] == k {
+				tot++
+				if b[i].Centro {
+					cen++
+				}
+			}
+		}
+		if cen >= 2 && cen*2 >= tot {
+			for i := range b {
+				if gruppo[i] == k {
+					b[i].Centro = true
+				}
+			}
+		}
+		// colore letto al contrario (l'ombra scura presa per la lettera): se le altre voci sono
+		// chiare sul loro fondo e questa è scura, prende il colore delle altre
+		var chiare, scure []int
+		for i := range b {
+			if gruppo[i] != k {
+				continue
+			}
+			if luce(b[i].Inchiostro) > luce(b[i].Sfondo) {
+				chiare = append(chiare, i)
+			} else {
+				scure = append(scure, i)
+			}
+		}
+		magg, mino := chiare, scure
+		if len(scure) > len(chiare) {
+			magg, mino = scure, chiare
+		}
+		if len(magg) >= 2 && len(magg) >= 2*len(mino) {
+			for _, i := range mino {
+				j := magg[0]
+				b[i].Inchiostro = b[j].Inchiostro
+				b[i].HaContorno, b[i].Contorno = b[j].HaContorno, b[j].Contorno
+			}
+		}
+	}
+	for k := 0; k < g; k++ {
 		var em, tr []float64
 		var rr, gg, bb []int
 		for i := range b {
@@ -701,6 +744,36 @@ func fondoPreciso(b Blocco, x0, y0, x1, y1 int) (*image.RGBA, int, int) {
 				continue
 			}
 			mask[oy*w+ox] = true
+		}
+	}
+	// ombre e aloni del gioco attaccati alle lettere: vicino (3 pixel) a una lettera basta
+	// che il pixel sia un po' diverso dal fondo
+	if lettereChiare {
+		vicino := make([]bool, w*h)
+		for y := 0; y < h; y++ {
+			for x := 0; x < w; x++ {
+				if !mask[y*w+x] {
+					continue
+				}
+				for dy := -3; dy <= 3; dy++ {
+					for dx := -3; dx <= 3; dx++ {
+						if xx, yy := x+dx, y+dy; xx >= 0 && yy >= 0 && xx < w && yy < h {
+							vicino[yy*w+xx] = true
+						}
+					}
+				}
+			}
+		}
+		for y := 0; y < bh; y++ {
+			for x := 0; x < bw; x++ {
+				ox, oy := bx0+x-r.Min.X, by0+y-r.Min.Y
+				if ox < 0 || oy < 0 || ox >= w || oy >= h || mask[oy*w+ox] || !vicino[oy*w+ox] {
+					continue
+				}
+				if distanza(out.RGBAAt(ox, oy), stima.RGBAAt(x, y)) > soglia/2 {
+					mask[oy*w+ox] = true
+				}
+			}
 		}
 	}
 	// allargo di 1-2 pixel: i bordi sfumati delle lettere (antialias, alone)
@@ -1055,4 +1128,60 @@ func nomeGiocatore(s string) bool {
 		}
 	}
 	return cifre > 0 && lettere > 1
+}
+
+// componiTesto: i pixel (RGBA) del rettangolo r con la scritta sopra la pagina pulita. alfa è la
+// copertura delle lettere (0-255) per ogni pixel di r. Il bordino (sp pixel) o l'ombra prendono
+// i colori letti dal gioco. Dove non c'è niente da coprire metto il colore trasparente della
+// finestra (magenta), così si vede il gioco vero (anteprima=true: il gioco della cattura).
+func componiTesto(b Blocco, r image.Rectangle, alfa []uint8, sp int, anteprima bool) []byte {
+	w, h := r.Dx(), r.Dy()
+	at := func(x, y int) int {
+		if x < 0 || y < 0 || x >= w || y >= h {
+			return 0
+		}
+		return int(alfa[y*w+x])
+	}
+	out := make([]byte, w*h*4)
+	ombra := contrastante(b.Inchiostro)
+	for y := 0; y < h; y++ {
+		for x := 0; x < w; x++ {
+			gx, gy := r.Min.X+x, r.Min.Y+y
+			base := b.Pulita.RGBAAt(gx, gy)
+			ai := at(x, y)
+			ao, as := 0, 0
+			if b.HaContorno && !b.Ombra {
+				for dy := -sp; dy <= sp; dy++ {
+					for dx := -sp; dx <= sp; dx++ {
+						ao = max(ao, at(x-dx, y-dy))
+					}
+				}
+			}
+			if b.Ombra {
+				as = max(at(x-1, y-1), at(x-2, y-2)*3/4, at(x+1, y-1)/2, at(x-1, y+1)/2) * 3 / 4
+			}
+			i := (y*w + x) * 4
+			if ai == 0 && ao == 0 && as == 0 && base == b.Img.RGBAAt(gx, gy) && !anteprima {
+				out[i], out[i+1], out[i+2], out[i+3] = 0xFF, 0x00, 0xFF, 255 // trasparente
+				continue
+			}
+			c := [3]int{int(base.R), int(base.G), int(base.B)}
+			mescola := func(col color.RGBA, a int) {
+				if a <= 0 {
+					return
+				}
+				c[0] = (c[0]*(255-a) + int(col.R)*a) / 255
+				c[1] = (c[1]*(255-a) + int(col.G)*a) / 255
+				c[2] = (c[2]*(255-a) + int(col.B)*a) / 255
+			}
+			mescola(ombra, as)
+			mescola(b.Contorno, ao)
+			mescola(b.Inchiostro, ai)
+			out[i], out[i+1], out[i+2], out[i+3] = uint8(c[0]), uint8(c[1]), uint8(c[2]), 255
+			if out[i] == 0xFF && out[i+1] == 0 && out[i+2] == 0xFF {
+				out[i+2] = 0xFE // non deve diventare trasparente per caso
+			}
+		}
+	}
+	return out
 }

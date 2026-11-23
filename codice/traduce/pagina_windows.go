@@ -114,7 +114,7 @@ func fontPagina(px int32, grassetto bool) uintptr {
 		return f
 	}
 	face, _ := windows.UTF16PtrFromString("Segoe UI")
-	f, _, _ := pCreateFont.Call(uintptr(-px), 0, 0, 0, peso, 0, 0, 0, 1, 0, 0, 5, 0, uintptr(unsafe.Pointer(face)))
+	f, _, _ := pCreateFont.Call(uintptr(-px), 0, 0, 0, peso, 0, 0, 0, 1, 0, 0, 4, 0, uintptr(unsafe.Pointer(face))) // ANTIALIASED (grigi): niente frange colorate
 	pag.font[chiave] = f
 	return f
 }
@@ -221,7 +221,7 @@ func disegnaBlocco(hdc uintptr, b Blocco, fase int) {
 			if b.Centro && righe > 1 {
 				testo = image.Rect(int(x0), int(ty)-2, int(x1), int(ty+h)+2)
 			}
-			disegnaToppaPulita(hdc, b, image.Rect(int(x0), int(y0), int(x1), int(y1)).Union(testo), testo)
+			disegnaToppaPulita(hdc, b, image.Rect(int(x0), int(y0), int(x1), int(y1)).Union(testo), image.Rectangle{})
 			return
 		}
 		disegnaSfondo(hdc, b, x0, y0, x1, y1)
@@ -232,6 +232,14 @@ func disegnaBlocco(hdc uintptr, b Blocco, fase int) {
 	rt := rect{tx, ty, x1 - m, max(y1, ty+h+2)}
 	if b.Centro && righe > 1 {
 		rt, fl = rect{x0 + m, ty, x1 - m, y1}, dtWordBreak|dtNoPrefix|0x1 // DT_CENTER
+	}
+	if b.Pulita != nil {
+		sp := 1
+		if px >= 26 {
+			sp = 2
+		}
+		disegnaTestoComposto(hdc, font, b, t, rt, fl, sp)
+		return
 	}
 	if b.Ombra { // ombra morbida sotto le lettere, come nei menu dei giochi sopra le immagini
 		om := contrastante(b.Inchiostro)
@@ -499,4 +507,51 @@ func disegnaToppaPulita(hdc uintptr, b Blocco, r, testo image.Rectangle) {
 	bi.biSize = uint32(unsafe.Sizeof(bi))
 	pSetDIBitsToDevice.Call(hdc, uintptr(r.Min.X), uintptr(r.Min.Y), uintptr(w), uintptr(h), 0, 0, 0, uintptr(h),
 		uintptr(unsafe.Pointer(&bgra[0])), uintptr(unsafe.Pointer(&bi)), 0)
+}
+
+// disegnaTestoComposto: la scritta disegnata da me pixel per pixel sopra la pagina pulita. Dove
+// non ci sono lettere (né bordino, né ombra) la finestra resta trasparente e si vede il gioco
+// vero: niente rettangoli fermi sopra un gioco che si muove, niente frange attorno alle lettere.
+func disegnaTestoComposto(hdc, font uintptr, b Blocco, t []uint16, rt rect, fl uintptr, sp int) {
+	marg := int32(sp + 3)
+	r := image.Rect(int(rt.Left-marg), int(rt.Top-marg), int(rt.Right+marg), int(rt.Bottom+marg)).Intersect(b.Pulita.Bounds())
+	w, h := int32(r.Dx()), int32(r.Dy())
+	if w <= 0 || h <= 0 {
+		return
+	}
+	mem, _, _ := pCreateCompatDC.Call(hdc)
+	if mem == 0 {
+		return
+	}
+	defer pDeleteDC.Call(mem)
+	bmp, _, _ := pCreateCompatBmp.Call(hdc, uintptr(w), uintptr(h))
+	if bmp == 0 {
+		return
+	}
+	defer pDeleteObject.Call(bmp)
+	vecchio, _, _ := pSelectObject.Call(mem, bmp)
+	defer pSelectObject.Call(mem, vecchio)
+	nero, _, _ := pCreateBrush.Call(0)
+	tutto := rect{0, 0, w, h}
+	pFillRect.Call(mem, uintptr(unsafe.Pointer(&tutto)), nero)
+	pDeleteObject.Call(nero)
+	pSetBkMode.Call(mem, 1)
+	pSetTextColor.Call(mem, 0xFFFFFF)
+	pSelectObject.Call(mem, font)
+	r2 := rect{rt.Left - int32(r.Min.X), rt.Top - int32(r.Min.Y), rt.Right - int32(r.Min.X), rt.Bottom - int32(r.Min.Y)}
+	pDrawText.Call(mem, uintptr(unsafe.Pointer(&t[0])), uintptr(len(t)-1), uintptr(unsafe.Pointer(&r2)), fl)
+	bi := bitmapInfoHeader{biWidth: w, biHeight: -h, biPlanes: 1, biBitCount: 32}
+	bi.biSize = uint32(unsafe.Sizeof(bi))
+	buf := make([]byte, int(w*h)*4)
+	pGetDIBits.Call(mem, bmp, 0, uintptr(h), uintptr(unsafe.Pointer(&buf[0])), uintptr(unsafe.Pointer(&bi)), 0)
+	alfa := make([]uint8, int(w*h))
+	for i := range alfa {
+		alfa[i] = max(buf[i*4], buf[i*4+1], buf[i*4+2])
+	}
+	out := componiTesto(b, r, alfa, sp, inAnteprima)
+	for i := 0; i < len(out); i += 4 {
+		buf[i], buf[i+1], buf[i+2], buf[i+3] = out[i+2], out[i+1], out[i], 255 // RGBA -> BGRA
+	}
+	pSetDIBitsToDevice.Call(hdc, uintptr(r.Min.X), uintptr(r.Min.Y), uintptr(w), uintptr(h), 0, 0, 0, uintptr(h),
+		uintptr(unsafe.Pointer(&buf[0])), uintptr(unsafe.Pointer(&bi)), 0)
 }
