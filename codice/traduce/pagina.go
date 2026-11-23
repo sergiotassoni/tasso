@@ -54,6 +54,17 @@ type Blocco struct {
 // grassetto: lettere spesse come quelle in neretto dei giochi.
 func (b Blocco) grassetto() bool { return b.Tratto >= sogliaGrassetto }
 
+// pesoCarattere: lo spessore del carattere come quello del gioco (normale, semi-neretto, neretto).
+func (b Blocco) pesoCarattere() uintptr {
+	switch {
+	case b.Tratto >= sogliaGrassetto:
+		return 700
+	case b.Tratto >= 0.08:
+		return 600
+	}
+	return 400
+}
+
 const sogliaGrassetto = 0.135
 
 // segmenti spezza le righe dell'OCR dove c'è un grande spazio vuoto tra due parole (colonne

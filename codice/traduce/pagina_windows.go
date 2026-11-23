@@ -105,11 +105,8 @@ func NascondiPagina() {
 	}
 }
 
-func fontPagina(px int32, grassetto bool) uintptr {
-	chiave, peso := px, uintptr(500)
-	if grassetto { // come nel gioco: titoli e pulsanti in neretto restano in neretto
-		chiave, peso = -px, 700
-	}
+func fontPagina(px int32, peso uintptr) uintptr {
+	chiave := px*10 + int32(peso/100)
 	if f, ok := pag.font[chiave]; ok {
 		return f
 	}
@@ -166,7 +163,7 @@ func disegnaBlocco(hdc uintptr, b Blocco, fase int) {
 	// stessa grandezza del gioco; se l'italiano è più lungo uso lo spazio libero a destra,
 	// poi rimpicciolisco un po' (fino al 78%), e solo alla fine vado a capo
 	for prova := px; ; prova-- {
-		font = fontPagina(prova, b.grassetto())
+		font = fontPagina(prova, b.pesoCarattere())
 		if righe == 1 {
 			w, h = misuraTesto(hdc, font, b.Tradotto, 0, false)
 			if w <= maxLarg || prova <= minPx {
