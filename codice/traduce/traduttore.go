@@ -105,6 +105,16 @@ func (t *Traduttore) TraduciMessaggio(ctx context.Context, grezzo string) Risult
 	parlante, battuta := separaParlante(testo)
 	battuta = strings.ReplaceAll(battuta, "\n", " ")
 	ris := Risultato{Originale: testo, Parlante: parlante}
+	if soloSigle(battuta) { // "gg wp", "afk": i giocatori italiani le scrivono uguali
+		ris.Tradotto, ris.Motore = battuta, "catalogo"
+		ris.Millisec = time.Since(inizio).Milliseconds()
+		return ris
+	}
+	if v, ok := fraseMenuConNumero(battuta); ok { // frasi fatte ("Good game", "Nice shot")
+		ris.Tradotto, ris.Motore = v, "catalogo"
+		ris.Millisec = time.Since(inizio).Milliseconds()
+		return ris
+	}
 	if t.Coppia != nil {
 		if da, a := t.Coppia(); !(da == "en" && a == "it") {
 			r := t.traduciCoppia(ctx, battuta, da, a, inizio)
@@ -114,6 +124,7 @@ func (t *Traduttore) TraduciMessaggio(ctx context.Context, grezzo string) Risult
 	}
 	t.mu.Lock()
 	motori := append([]Motore(nil), t.motori...)
+	battuta = espandiAbbreviazioni(battuta) // "u r late" → "you are late": il traduttore capisce meglio
 	req := RichiestaTraduzione{Testo: battuta, Parlante: parlante, Glossario: t.glossarioPieno.trova(battuta)}
 	t.mu.Unlock()
 	var errori []string

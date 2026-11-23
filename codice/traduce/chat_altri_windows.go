@@ -305,7 +305,9 @@ func cicloChatAltri() {
 	var pausaFino time.Time // la lettura di Windows non è partita: riprovo più tardi
 	avvisato := false
 	for {
-		time.Sleep(2 * time.Second) // ogni 2 secondi: lascia spazio alla traduzione dei dialoghi
+		// ogni 0,6 secondi: un messaggio nuovo compare tradotto quasi subito. Se la chat non è
+		// cambiata il giro costa solo una piccola cattura (niente lettura del testo)
+		time.Sleep(600 * time.Millisecond)
 		i := leggiImp()
 		if !acceso.Load() || !i.ChatAltri || paginaAttiva.Load() {
 			nascondi()
@@ -366,7 +368,7 @@ func cicloChatAltri() {
 		}
 		avvisato = false
 		ultima = imp
-		lette := righeChat(grezzo)
+		lette := uniscriRigheChat(righeChat(grezzo))
 		if primo {
 			// la prima volta segno come già viste le righe vecchie: traduco solo quelle che arrivano dopo
 			righeNuoveChat(lette)
