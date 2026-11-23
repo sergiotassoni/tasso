@@ -136,11 +136,23 @@ func (t *Traduttore) TraduciMessaggio(ctx context.Context, grezzo string) Risult
 }
 
 func (t *Traduttore) traduci(ctx context.Context, grezzo string, dialogo bool) Risultato {
-	inizio := time.Now()
+	da, a := "en", "it"
 	if t.Coppia != nil {
-		if da, a := t.Coppia(); !(da == "en" && a == "it") {
-			return t.traduciCoppia(ctx, grezzo, da, a, inizio)
-		}
+		da, a = t.Coppia()
+	}
+	return t.traduciIn(ctx, grezzo, dialogo, da, a)
+}
+
+// TraduciPer: come Traduci (dialogo) o TraduciScritta, ma nella coppia di lingue data invece
+// di quella scelta adesso (la traduzione dentro un gioco usa le lingue con cui l'hai installata).
+func (t *Traduttore) TraduciPer(ctx context.Context, grezzo string, dialogo bool, da, a string) Risultato {
+	return t.traduciIn(ctx, grezzo, dialogo, da, a)
+}
+
+func (t *Traduttore) traduciIn(ctx context.Context, grezzo string, dialogo bool, da, a string) Risultato {
+	inizio := time.Now()
+	if !(da == "en" && a == "it") {
+		return t.traduciCoppia(ctx, grezzo, da, a, inizio)
 	}
 	testo := pulisci(grezzo)
 	if testo == "" {
@@ -164,7 +176,10 @@ func (t *Traduttore) traduci(ctx context.Context, grezzo string, dialogo bool) R
 	// prima le frasi curate (catalogo e traduzioni umane): un catalogo nuovo vince sulle
 	// vecchie traduzioni automatiche rimaste in memoria. Solo se nessuna parola del glossario
 	// dell'utente compare nella frase (lì decide lui).
-	if len(t.glossario.trova(battuta)) == 0 {
+	// Le frasi con parole fisse dell'utente non escono dalla libreria del gioco: le parole fisse
+	// possono essere cambiate dopo, e decide la memoria (svuotata a ogni cambio delle parole fisse).
+	conParoleFisse := len(t.glossario.trova(battuta)) > 0
+	if !conParoleFisse {
 		if v, ok := fraseMenu(battuta); ok {
 			t.mu.Unlock()
 			ris.Tradotto, ris.Motore = v, "catalogo"
@@ -180,7 +195,7 @@ func (t *Traduttore) traduci(ctx context.Context, grezzo string, dialogo bool) R
 			return ris
 		}
 	}
-	if v, ok := t.libreria[chiave]; ok {
+	if v, ok := t.libreria[chiave]; ok && !conParoleFisse {
 		t.mu.Unlock()
 		ris.Tradotto, ris.Motore = v, "libreria"
 		ris.Millisec = time.Since(inizio).Milliseconds()
@@ -197,12 +212,14 @@ func (t *Traduttore) traduci(ctx context.Context, grezzo string, dialogo bool) R
 		ricorda(battuta)
 		return ris
 	}
-	if v, ok := t.cercaQuasiUguale(parlante, battuta); ok {
-		t.mu.Unlock()
-		ris.Tradotto, ris.Motore = v, "libreria"
-		ris.Millisec = time.Since(inizio).Milliseconds()
-		ricorda(battuta)
-		return ris
+	if !conParoleFisse {
+		if v, ok := t.cercaQuasiUguale(parlante, battuta); ok {
+			t.mu.Unlock()
+			ris.Tradotto, ris.Motore = v, "libreria"
+			ris.Millisec = time.Since(inizio).Milliseconds()
+			ricorda(battuta)
+			return ris
+		}
 	}
 	motori := append([]Motore(nil), t.motori...)
 	req := RichiestaTraduzione{

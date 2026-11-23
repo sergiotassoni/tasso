@@ -5,8 +5,10 @@ package traduce
 // InIngleseTasso: Tasso è in inglese (lo imposta Tasso all'avvio), per le scritte disegnate da qui.
 var InIngleseTasso func() bool
 
+func inIngleseTasso() bool { return InIngleseTasso != nil && InIngleseTasso() }
+
 func testoTasso(it, en string) string {
-	if InIngleseTasso != nil && InIngleseTasso() {
+	if inIngleseTasso() {
 		return en
 	}
 	return it

@@ -3476,9 +3476,27 @@ function paintKeys(){
   const box = $('#trKeys'); if (!box) return;
   box.innerHTML = Object.keys(KEYN).map(k => '<div class="kk"><span>' + esc(KEYN[k]) + '</span><b>' + esc(keyName(k, KEYD[k])) + '</b></div>').join('');
 }
+// langMissing: MB dei modelli che mancano per tradurre da → a (-1 = c'è tutto). Si passa sempre dall'inglese.
+function langMissing(da, a){
+  const L = (c) => LANGS.find(x => x.codice === c) || {};
+  let mb = 0, miss = false;
+  if (da !== 'auto' && da !== 'en' && da !== a && !L(da).da_pronta) { miss = true; mb += L(da).mb_da || 0; }
+  if (a !== 'en' && a !== da && !L(a).a_pronta) { miss = true; mb += L(a).mb_a || 0; }
+  return miss ? mb : -1;
+}
+function paintLangMsg(r){
+  const box = $('#trLangMsg'), da = $('#trDa').value, a = $('#trA').value;
+  if (r !== 'ok') { box.textContent = r === 'uguali' ? _t('Le due lingue sono uguali: non serve tradurre.') : _t('Lingua non valida.'); return; }
+  const mb = langMissing(da, a);
+  if (mb < 0) { box.textContent = _t('✓ Salvato'); return; }
+  box.textContent = _t('✓ Salvato, ma mancano i modelli di queste lingue.') + ' ';
+  const b = document.createElement('button'); b.className = 'btn ghost'; b.textContent = _t('Scarica') + (mb > 0 ? ' (' + mb + ' MB)' : '');
+  b.onclick = async () => { b.disabled = true; const x = await ttc('ttScaricaLingue', da, a); if (x === 'occupato') { b.disabled = false; toast(_t('Un attimo: sto già scaricando un\'altra cosa.'), 'var(--a4)'); } else if (x === 'ok') box.textContent = _t('Inizio a scaricare…'); else { b.disabled = false; box.textContent = _t('Lingua non valida.'); } };
+  box.appendChild(b);
+}
 async function saveLangs(){
   const r = await ttc('ttImpostaLingue', $('#trDa').value, $('#trA').value);
-  $('#trLangMsg').textContent = r === 'ok' ? _t('✓ Salvato') : r === 'uguali' ? _t('Le due lingue sono uguali: non serve tradurre.') : _t('Lingua non valida.');
+  await loadLangs(); paintLangMsg(r);
   ttRefresh();
 }
 $('#trDa').onchange = saveLangs; $('#trA').onchange = saveLangs;
@@ -3529,13 +3547,13 @@ $('#btnKeyChange').onclick = () => {
     const mod = (e.altKey ? 1 : 0) | (e.ctrlKey ? 2 : 0) | (e.shiftKey ? 4 : 0);
     const code = (mod << 16) | (e.keyCode & 0xFFFF);
     const r = await ttc('ttImpostaTasto', $('#kSel').value, code) || {errore: _t('Tasso non ha risposto: riprova.')};
-    $('#kMsg').textContent = r.errore ? tx(r.errore) : _t('✓ Ora è ') + (r.etichetta || '') + '.'; $('#kMsg').style.color = r.errore ? 'var(--a4)' : 'var(--a3)';
+    $('#kMsg').textContent = r.errore ? tx(r.errore) : _t('✓ Ora è ') + (r.etichetta || '') + '.' + (r.avviso ? ' ' + tx(r.avviso) : ''); $('#kMsg').style.color = r.errore ? 'var(--a4)' : 'var(--a3)';
     if (!r.errore) ttRefresh().then(paintKeys);
   };
   cap.focus();
 };
 $('#btnKeyReset').onclick = async () => { const r = await ttc('ttTastiDiBase'); await ttRefresh(); paintKeys(); const n = parseInt(String(r || '').replace('occupati:', ''), 10); if (r === 'ok') toast(_t('Tasti rimessi come all\'inizio.'), 'var(--a3)'); else if (n > 0) toast(_t('Tasti rimessi come all\'inizio, ma ') + n + _t(' sono già usati da un altro programma: cambiali qui sopra.'), 'var(--a4)'); else toast(_t('Non riuscito.'), 'var(--a4)'); };
-const DLN = {mozilla:_t('Traduttore veloce'), ia:_t('IA'), voci:_t('Voci'), chat:_t('Chat tradotta')};
+const DLN = {mozilla:_t('Traduttore veloce'), ia:_t('IA'), voci:_t('Voci'), chat:_t('Chat tradotta'), lingue:_t('Lingue')};
 function ttRepaint(){ if (W && !$('#gwz').hidden && !W.busy && wzStep() !== 'ok') wzDraw(); if (GP_ID && !(W && !$('#gwz').hidden)) { const g = LIB.find(x => x.id === GP_ID); if (g) paintGameTools(g); } }
 window.tt = {
   aggiorna(st){ if (st) { TT = st; paintTr(); ttRepaint(); } },
@@ -3547,8 +3565,10 @@ window.tt = {
     else if (x.cosa === 'ia') $('#trIaTxt').textContent = _t('Scarico… ') + pc + '%';
     else if (x.cosa === 'voci') $('#trVociTxt').textContent = _t('Scarico… ') + pc + '%';
     else if (x.cosa === 'chat') $('#trChatTxt').textContent = _t('Scarico… ') + pc + '%';
+    else if (x.cosa === 'lingue') $('#trLangMsg').textContent = _t('Scarico… ') + pc + '%';
   },
-  scaricato(x){ if (!document.body.classList.contains('office')) toast((DLN[x && x.cosa] || '') + _t(': scaricato.'), 'var(--a3)'); ttRefresh().then(ttRepaint); },
+  scaricato(x){ if (!document.body.classList.contains('office')) toast((DLN[x && x.cosa] || '') + _t(': scaricato.'), 'var(--a3)'); if (x && x.cosa === 'lingue') $('#trLangMsg').textContent = _t('✓ Salvato'); ttRefresh().then(ttRepaint); },
+  lingue(x){ if (!Array.isArray(x)) return; LANGS = x; ttRepaint(); },
   erroreScarica(x){ if (!document.body.classList.contains('office')) toast((DLN[x && x.cosa] ? DLN[x.cosa] + ': ' : '') + _t('scaricamento non riuscito: ') + tx((x && x.errore) || ''), 'var(--a4)'); ttRefresh().then(ttRepaint); },
   guidata(x){ wzProgress(x); },
   verifica(x){ if (x && x.testo) { const v = $('#gwVer'); if (v && W && W.info && W.info.cartella === x.cartella) v.textContent = tx(x.testo); } },
@@ -3813,7 +3833,7 @@ function wzDraw(){
   }
   if (s === 'a') {
     const iaTxt = st.ia_file ? (st.ia_pc_ok ? _t('Installata. Accendila per questo gioco: ricontrolla le frasi e le rende naturali, si fa da parte se il gioco ha bisogno della scheda video.') : _t('Installata, ma su questo PC rallenterebbe il gioco: Tasso usa il traduttore veloce.')) : !st.ia_pc_ok ? _t('Non adatta a questo PC: ') + tx(st.ia_pc_motivo || '') : st.ia_offerta ? _t('Non scaricata. Si scarica una volta (circa 6 GB) in Giochi → Impostazioni. Senza, traduce il traduttore veloce.') : _t('Non disponibile: traduce il traduttore veloce.');
-    h = P(_t('In che lingua lo vuoi?')) + '<div class="opz">' + langBtns(LANGS.filter(l => l.codice !== W.da && !(W.da === 'auto' && l.codice === 'en')), W.a, false) + '</div>' +
+    h = P(_t('In che lingua lo vuoi?')) + '<div class="opz">' + langBtns(LANGS.filter(l => l.codice !== W.da), W.a, false) + '</div>' +
       '<h3>' + esc(_t('Come lo traduco?')) + '</h3><div class="opz"><button data-m="file" class="' + (W.modo === 'file' ? 'on' : '') + '" aria-pressed="' + (W.modo === 'file') + '"' + (canFile() ? '' : ' disabled') + '>' + esc(_t('Dentro il gioco')) + '<small>' + esc(canFile() ? _t('Le scritte del gioco, con copia di sicurezza') : i.anticheat ? _t('No: c\'è l\'anti-imbroglio') : tx(i.file_motivo || _t('Solo per alcuni giochi Unity'))) + '</small></button><button data-m="schermo" class="' + (W.modo === 'schermo' ? 'on' : '') + '" aria-pressed="' + (W.modo === 'schermo') + '">' + esc(_t('Sullo schermo')) + '<small>' + esc(_t('legge lo schermo, non tocca nessun file')) + '</small></button></div>' +
       '<label class="li check" style="align-items:flex-start"><input type="checkbox" id="gwIa"' + (W.ia && st.ia_file && st.ia_pc_ok ? ' checked' : '') + (st.ia_file && st.ia_pc_ok ? '' : ' disabled') + '> <span style="flex:1"><b>🧠 ' + esc(_t('Traduzione più precisa (IA)')) + '</b><br><span class="small muted">' + esc(iaTxt) + '</span></span></label>' +
       (i.anticheat ? '<div class="callout">🛡 ' + esc(_t('Per non rischiare con l\'anti-imbroglio, ')) + esc(g.name) + esc(_t(' viene tradotto sullo schermo.')) + '</div>' : '');
@@ -3866,7 +3886,7 @@ $('#gwzB').addEventListener('click', (ev) => {
   const pk = ev.target.closest('[data-pick]'); if (pk) { const x = LIB.find(y => y.id === pk.dataset.pick); if (x) { wzGame(x).then(() => { if (W) wzDraw(); }); wzDraw(); } return; }
   const f = ev.target.closest('[data-f]'); if (f) { W.f = f.dataset.f; wzDraw(); return; }
   const sk = ev.target.closest('[data-skip]'); if (sk) { W.skip = true; W.i = W.steps.indexOf('pot'); wzDraw(); return; }
-  const l = ev.target.closest('[data-l]'); if (l) { if (wzStep() === 'da') { W.da = l.dataset.l; W.skip = false; if (W.a === W.da || (W.da === 'auto' && W.a === 'en')) W.a = W.da === 'it' ? 'en' : 'it'; } else W.a = l.dataset.l; wzDraw(); return; }
+  const l = ev.target.closest('[data-l]'); if (l) { if (wzStep() === 'da') { W.da = l.dataset.l; W.skip = false; if (W.a === W.da) W.a = W.da === 'it' ? 'en' : 'it'; } else W.a = l.dataset.l; wzDraw(); return; }
   const mo = ev.target.closest('[data-m]'); if (mo && !mo.disabled) { W.modo = mo.dataset.m; wzDraw(); return; }
   const pw = ev.target.closest('[data-pw]'); if (pw) { W.pot = pw.dataset.pw; wzDraw(); }
 });
@@ -3881,8 +3901,8 @@ $('#gwzNext').onclick = async () => {
   if (!W || W.busy) return;
   const s = wzStep();
   if (s === 'pick') { if (!W.g) return; W.i++; wzDraw(); return; }
-  if (s === 'da') { W.skip = false; if (W.da === 'it' && W.a === 'it') W.a = 'en'; if (W.da === 'auto' && W.a === 'en') W.a = 'it'; if (!canFile()) W.modo = 'schermo'; W.i++; wzDraw(); return; }
-  if (s === 'a') { if (W.da === W.a || (W.da === 'auto' && W.a === 'en')) { toast(_t('Le due lingue sono uguali: non serve tradurre.'), 'var(--a4)'); return; } W.i++; wzDraw(); return; }
+  if (s === 'da') { W.skip = false; if (W.da === 'it' && W.a === 'it') W.a = 'en'; if (!canFile()) W.modo = 'schermo'; W.i++; wzDraw(); return; }
+  if (s === 'a') { if (W.da === W.a) { toast(_t('Le due lingue sono uguali: non serve tradurre.'), 'var(--a4)'); return; } W.i++; wzDraw(); return; }
   if (s === 'pot') { if (!W.pot) W.pot = powRec(); W.i++; wzDraw(); return; }
   if (s === 'cons') { W.i++; wzDraw(); return; }
   if (s === 'fine') wzApply();

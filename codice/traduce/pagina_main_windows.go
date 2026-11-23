@@ -32,6 +32,7 @@ var (
 	paginaGiocoA   atomic.Uintptr
 	paginaGiro     atomic.Int64
 	ultimeScritte  atomic.Int64 // quante scritte ho tradotto l'ultima volta
+	paginaRileggi  atomic.Bool  // F10: rileggi la schermata anche se non è cambiata
 )
 
 func attivaPagina() {
@@ -93,6 +94,9 @@ func cicloPagina(giro int64) {
 		}
 		if nascostaPerAltTab {
 			nascostaPerAltTab, prima = false, true // tornato nel gioco: rileggo
+		}
+		if paginaRileggi.Swap(false) {
+			prima = true
 		}
 		img, err := cattura(area)
 		if err == nil && catturaNera(img) {
@@ -196,19 +200,9 @@ func preparaPagina(area Zona, img, primaImg *image.RGBA, giro int64) (p *paginaP
 	}
 	defer occupato.Store(false)
 	t0 := time.Now()
-	if da, _ := coppiaAttiva(); ocr != nil {
-		if tag, _ := ocrPerLingua(da); tag != ocr.lingua {
-			ocr.Chiudi() // la lingua del gioco è cambiata: riparto con il lettore giusto
-			ocr = nil
-		}
-	}
-	if ocr == nil {
-		l, err := avviaOCR(filepath.Join(dirApp, "lavoro"))
-		if err != nil {
-			emetti("info", map[string]string{"testo": "La lettura del testo di Windows non parte: " + err.Error()})
-			return nil, false
-		}
-		ocr, ocrErr = l, ""
+	if err := assicuraOCR(); err != nil {
+		emetti("info", map[string]string{"testo": "La lettura del testo di Windows non parte: " + err.Error()})
+		return nil, false
 	}
 	var buf bytes.Buffer
 	f, err := preparaPaginaPerOCR(img, &buf)
@@ -289,6 +283,9 @@ func preparaPagina(area Zona, img, primaImg *image.RGBA, giro int64) (p *paginaP
 		}
 		b.Tradotto = r.Tradotto
 		pronti = append(pronti, b)
+		if len(pronti) <= 40 { // nella cronologia (F8) le scritte nuove, senza doppioni
+			aggiungiCronologia(r, true)
+		}
 	}
 	armonizza(pronti)
 	return &paginaPronta{area: area, img: img, pronti: pronti, nuove: nuove, t0: t0, tOCR: tOCR, tTrad: tTrad}, false
@@ -319,7 +316,9 @@ func mostraPaginaPronta(p *paginaPronta, giro int64) bool {
 			}
 			_ = salvaAnteprima(img, pronti, filepath.Join(dirApp, "logs", "pagina-anteprima.png"))
 		}()
-		emetti("info", map[string]string{"testo": fmt.Sprintf("Schermata tradotta: %d scritte in %.1f s · %s per tornare all'inglese", len(pronti), time.Since(t0).Seconds(), nomeTasto("pagina"))})
+		if len(pronti) > 0 {
+			emetti("info", map[string]string{"testo": fmt.Sprintf("Schermata tradotta: %d scritte in %.1f s · %s per tornare all'inglese", len(pronti), time.Since(t0).Seconds(), nomeTasto("pagina"))})
+		}
 	}
 	return true
 }

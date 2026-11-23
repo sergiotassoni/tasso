@@ -54,7 +54,7 @@ func etichettaTasto(codice uint32) string {
 		p = append(p, "Alt")
 	}
 	if mod&4 != 0 {
-		p = append(p, "Maiusc")
+		p = append(p, testoTasso("Maiusc", "Shift"))
 	}
 	var n string
 	switch {
@@ -68,14 +68,20 @@ func etichettaTasto(codice uint32) string {
 		nomi := map[uint32]string{0x2D: "Ins", 0x2E: "Canc", 0x24: "Home", 0x23: "Fine", 0x21: "Pag su", 0x22: "Pag giù",
 			0x13: "Pausa", 0x91: "Bloc Scorr", 0xC0: "ò", 0xDE: "à", 0xBA: "è", 0xBF: "ù", 0xDC: "\\", 0xBB: "+", 0xBD: "-",
 			0xBC: ",", 0xBE: ".", 0x20: "Spazio", 0x0D: "Invio", 0x09: "Tab"}
-		if s, ok := nomi[vk]; ok {
+		if s, ok := nomiTastiInglesi[vk]; ok && inIngleseTasso() {
+			n = s // solo il nome mostrato: il tasto si salva sempre col suo codice
+		} else if s, ok := nomi[vk]; ok {
 			n = s
 		} else {
-			n = fmt.Sprintf("tasto %d", vk)
+			n = fmt.Sprintf(testoTasso("tasto %d", "key %d"), vk)
 		}
 	}
 	return strings.Join(append(p, n), "+")
 }
+
+// nomiTastiInglesi: i nomi dei tasti che in inglese si chiamano diversamente.
+var nomiTastiInglesi = map[uint32]string{0x2E: "Del", 0x23: "End", 0x21: "PgUp", 0x22: "PgDn",
+	0x13: "Pause", 0x91: "Scroll Lock", 0x20: "Space", 0x0D: "Enter"}
 
 func tastiCompleti(t map[string]uint32) map[string]uint32 {
 	out := map[string]uint32{}

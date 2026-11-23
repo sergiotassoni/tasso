@@ -28,9 +28,17 @@ func linguaDa(codice string) (LinguaGioco, bool) {
 	return LinguaGioco{}, false
 }
 
+// arrivoDiBase: la lingua in cui tradurre finché non ne scegli una: quella di Tasso.
+func arrivoDiBase() string {
+	if inIngleseTasso() {
+		return "en"
+	}
+	return "it"
+}
+
 // nomeLingua: il nome della lingua da scrivere nei messaggi, nella lingua di Tasso.
 func nomeLingua(codice string) string {
-	if InIngleseTasso != nil && InIngleseTasso() {
+	if inIngleseTasso() {
 		if n, ok := nomiInglesi[codice]; ok { // stessi nomi del correttore IA (motore_ia.go)
 			return n
 		}

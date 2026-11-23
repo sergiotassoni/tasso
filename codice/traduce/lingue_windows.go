@@ -18,16 +18,16 @@ var (
 	linguaRilevata atomic.Value // codice della lingua vista sullo schermo (se "auto")
 	muOCRLingue    sync.Mutex
 	ocrLingue      map[string]bool // tag OCR installati in Windows (es. "it-IT")
+	ocrLetteAlle   time.Time       // quando ho letto ocrLingue
+	ocrRileggiFino time.Time       // dopo "Apri le Impostazioni di Windows": rileggo per qualche minuto
+	ocrInLettura   atomic.Bool     // lettura in sottofondo in corso
 	scaricandoLin  atomic.Bool
 )
 
 // coppiaAttiva: lingua del gioco e lingua di arrivo da usare adesso.
 func coppiaAttiva() (string, string) {
 	i := leggiImp()
-	da, a := i.LinguaDa, i.LinguaA
-	if a == "" {
-		a = "it"
-	}
+	da, a := i.LinguaDa, linguaArrivo(i)
 	if da == "" || da == "auto" {
 		da = "en"
 		if v, _ := linguaRilevata.Load().(string); v != "" {
@@ -35,6 +35,14 @@ func coppiaAttiva() (string, string) {
 		}
 	}
 	return da, a
+}
+
+// linguaArrivo: la lingua in cui tradurre (quella scelta, o quella di Tasso se non l'hai mai scelta).
+func linguaArrivo(i Impostazioni) string {
+	if i.LinguaA != "" {
+		return i.LinguaA
+	}
+	return arrivoDiBase()
 }
 
 func coppiaPronta(da, a string) bool {
@@ -92,34 +100,77 @@ func ricaricaMozilla() {
 
 // ---- lettura dello schermo nella lingua giusta
 
-// caricaLingueOCR: quali lingue sa leggere Windows su questo PC (una volta, in sottofondo).
+// leggiLingueOCR: chiede a Windows quali lingue sa leggere (PowerShell, al massimo 20 secondi).
+func leggiLingueOCR() map[string]bool {
+	ps := `$null = [Windows.Media.Ocr.OcrEngine, Windows.Foundation, ContentType = WindowsRuntime]; [Windows.Media.Ocr.OcrEngine]::AvailableRecognizerLanguages | ForEach-Object { $_.LanguageTag }`
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+	cmd := exec.CommandContext(ctx, sysExe("powershell.exe"), "-NoProfile", "-NonInteractive", "-Command", ps)
+	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true, CreationFlags: 0x08000000}
+	out, err := cmd.Output()
+	m := map[string]bool{}
+	if err == nil {
+		for _, t := range strings.Fields(string(out)) {
+			m[strings.ToLower(t)] = true
+		}
+	}
+	return m
+}
+
+// ocrDaRileggere: col lucchetto preso. Niente lista, o lista vecchia mentre stai installando
+// una lingua nelle Impostazioni di Windows.
+func ocrDaRileggere() bool {
+	return ocrLingue == nil || (time.Now().Before(ocrRileggiFino) && time.Since(ocrLetteAlle) > 15*time.Second)
+}
+
+// caricaLingueOCR: quali lingue sa leggere Windows su questo PC (aspetta la lettura, se serve).
 func caricaLingueOCR() map[string]bool {
 	muOCRLingue.Lock()
 	defer muOCRLingue.Unlock()
-	if ocrLingue != nil {
-		return ocrLingue
-	}
-	ocrLingue = map[string]bool{}
-	ps := `$null = [Windows.Media.Ocr.OcrEngine, Windows.Foundation, ContentType = WindowsRuntime]; [Windows.Media.Ocr.OcrEngine]::AvailableRecognizerLanguages | ForEach-Object { $_.LanguageTag }`
-	cmd := exec.Command(sysExe("powershell.exe"), "-NoProfile", "-NonInteractive", "-Command", ps)
-	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true, CreationFlags: 0x08000000}
-	out, err := cmd.Output()
-	if err == nil {
-		for _, t := range strings.Fields(string(out)) {
-			ocrLingue[strings.ToLower(t)] = true
-		}
+	if ocrDaRileggere() {
+		ocrLingue, ocrLetteAlle = leggiLingueOCR(), time.Now()
 	}
 	return ocrLingue
+}
+
+// lingueOCRSubito: per la finestra, senza aspettare PowerShell. Restituisce quello che so
+// (nil = non ancora letto) e, se serve, rilegge in sottofondo e poi aggiorna la finestra.
+func lingueOCRSubito() map[string]bool {
+	muOCRLingue.Lock()
+	m, rileggi := ocrLingue, ocrDaRileggere()
+	muOCRLingue.Unlock()
+	if rileggi {
+		caricaLingueOCRInSottofondo()
+	}
+	return m
+}
+
+// caricaLingueOCRInSottofondo: legge le lingue di Windows senza fermare nessuno e manda alla
+// finestra l'elenco aggiornato.
+func caricaLingueOCRInSottofondo() {
+	if !ocrInLettura.CompareAndSwap(false, true) {
+		return
+	}
+	go func() {
+		defer guard("lingue-ocr")
+		defer ocrInLettura.Store(false)
+		caricaLingueOCR()
+		emetti("lingue", elencoLingue())
+	}()
 }
 
 // ocrPerLingua: il tag OCR da usare per leggere una lingua, e se Windows lo ha.
 // Le lingue con l'alfabeto latino si leggono bene anche con il lettore italiano o inglese.
 func ocrPerLingua(codice string) (string, bool) {
+	return ocrPerLinguaIn(codice, caricaLingueOCR())
+}
+
+// ocrPerLinguaIn: come ocrPerLingua con l'elenco dato (nil = non so ancora: dico di sì).
+func ocrPerLinguaIn(codice string, inst map[string]bool) (string, bool) {
 	l, ok := linguaDa(codice)
-	if !ok {
+	if !ok || inst == nil {
 		return "", true
 	}
-	inst := caricaLingueOCR()
 	if inst[strings.ToLower(l.OCR)] {
 		return l.OCR, true
 	}
@@ -148,7 +199,9 @@ func installaLetturaOCR(codice string) string {
 		return "Non riesco ad aprire le Impostazioni di Windows."
 	}
 	muOCRLingue.Lock()
-	ocrLingue = nil // quando torni, rileggo cosa sa leggere Windows
+	// l'installazione della lingua può durare minuti: finché non torni rileggo cosa sa leggere
+	// Windows ogni volta che la finestra chiede l'elenco (al massimo ogni 15 secondi)
+	ocrRileggiFino = time.Now().Add(5 * time.Minute)
 	muOCRLingue.Unlock()
 	return ""
 }
@@ -156,8 +209,9 @@ func installaLetturaOCR(codice string) string {
 // elencoLingue: per la finestra, ogni lingua con cosa c'è già sul PC.
 func elencoLingue() []map[string]any {
 	var out []map[string]any
+	inst := lingueOCRSubito()
 	for _, l := range lingueGioco {
-		_, ocrOK := ocrPerLingua(l.Codice)
+		_, ocrOK := ocrPerLinguaIn(l.Codice, inst)
 		verso := l.Codice == "en" || presenteCoppia(l.Codice, "en")
 		dall := l.Codice == "en" || presenteCoppia("en", l.Codice)
 		mbDa, mbA := 0.0, 0.0
@@ -185,7 +239,12 @@ func segnaLinguaVista(cartella, nome, lingua string) bool {
 	segnaLingua(cartella, nome, lingua)
 	i := leggiImp()
 	if i.LinguaDa != "" && i.LinguaDa != "auto" {
-		return true // l'ha scelta il giocatore
+		// l'ha scelta il giocatore: serve che i modelli ci siano
+		if a := linguaArrivo(i); i.LinguaDa != a && !coppiaPronta(i.LinguaDa, a) {
+			dillaUnaVolta("modelli"+i.LinguaDa+a, "Lingue scelte: "+nomeLingua(i.LinguaDa)+" → "+nomeLingua(a)+". Mancano i modelli: scaricali in Giochi → Impostazioni, accanto alle lingue.")
+			return false
+		}
+		return true
 	}
 	prima, _ := linguaRilevata.Load().(string)
 	if lingua == "han" { // cinese senza caratteri che distinguono: resta quello di prima
@@ -194,10 +253,7 @@ func segnaLinguaVista(cartella, nome, lingua string) bool {
 			lingua = "zt"
 		}
 	}
-	a := i.LinguaA
-	if a == "" {
-		a = "it"
-	}
+	a := linguaArrivo(i)
 	if lingua == a {
 		return false // il gioco è già nella lingua che vuoi (non lo ricordo come lingua del gioco)
 	}

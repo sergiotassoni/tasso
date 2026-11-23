@@ -87,17 +87,30 @@ var (
 	pcGPU  atomic.Pointer[InfoGPU] // scheda video misurata una volta (nil = la sto ancora misurando)
 )
 
+// gpuMisura: la misura della scheda video è partita (una volta sola).
+var gpuMisura atomic.Bool
+
 func pcRisorse() (float64, int) {
 	pcOnce.Do(func() {
 		pcRAM, pcCore = memoriaPC(), coreFisici()
-		go func() { // la misura della scheda video usa PowerShell (qualche secondo): non blocco la finestra
+	})
+	// La misura della scheda video usa PowerShell (qualche secondo): la faccio solo quando serve
+	// (correttore IA offerto in questa versione) e mai mentre davanti c'è un gioco.
+	if pcGPU.Load() == nil && motoreIADisponibile() && !giocoDavanti() && gpuMisura.CompareAndSwap(false, true) {
+		go func() {
 			defer guard("misura-gpu")
 			g := controllaGPU()
 			pcGPU.Store(&g)
 			emetti("aggiorna", stato())
 		}()
-	})
+	}
 	return pcRAM, pcCore
+}
+
+// giocoDavanti: in primo piano c'è un altro programma (non Tasso, non il desktop).
+func giocoDavanti() bool {
+	fg, _, _ := pGetForeground.Call()
+	return fg != 0 && !eNostro(exeDiFinestra(fg))
 }
 
 // profiloPC: la scelta del correttore per questo PC; ok=false finché la scheda non è misurata.

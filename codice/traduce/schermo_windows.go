@@ -9,6 +9,8 @@ package traduce
 import (
 	"image"
 	"runtime"
+	"sort"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -723,7 +725,9 @@ func ovProc(hwnd, msg, wp, lp uintptr) uintptr {
 		if pag == nil {
 			return 0
 		}
-		return uintptr(registraTasti(hwnd, *pag))
+		f := registraTasti(hwnd, *pag)
+		tastiFalliti.Store(&f)
+		return uintptr(len(f))
 	case wmHotkey:
 		if f.tasti != nil {
 			go func(id int) {
@@ -898,9 +902,10 @@ var idTasti = map[string]uintptr{
 }
 
 // registraTasti (sul filo della finestrella): toglie i tasti vecchi e mette quelli nuovi.
-// Restituisce quanti non si sono potuti registrare (già presi da un altro programma).
-func registraTasti(h uintptr, t map[string]uint32) int {
-	falliti := 0
+// Restituisce le funzioni dei tasti che non si sono potuti registrare (già presi da un altro
+// programma), in ordine.
+func registraTasti(h uintptr, t map[string]uint32) []string {
+	var falliti []string
 	for nome, id := range idTasti {
 		pUnregisterHotKey.Call(h, id)
 		c := t[nome]
@@ -909,23 +914,45 @@ func registraTasti(h uintptr, t map[string]uint32) int {
 		}
 		mod, vk := uintptr(c>>16), uintptr(c&0xFFFF)
 		if ok, _, _ := pRegisterHotKey.Call(h, id, mod|0x4000, vk); ok == 0 { // 0x4000: MOD_NOREPEAT
-			falliti++
+			falliti = append(falliti, nome)
 		}
 	}
+	sort.Strings(falliti)
 	return falliti
 }
 
-// cambiaTasti: dal programma, chiede alla finestrella di usare questi tasti.
-func cambiaTasti(t map[string]uint32) int {
+// cambiaTasti: dal programma, chiede alla finestrella di usare questi tasti. Restituisce le
+// funzioni dei tasti già presi da un altro programma.
+var (
+	muCambiaTasti sync.Mutex
+	tastiFalliti  atomic.Pointer[[]string]
+)
+
+func cambiaTasti(t map[string]uint32) []string {
 	ov.mu.Lock()
 	h := ov.hwnd
 	ov.mu.Unlock()
 	if h == 0 {
-		return 0
+		return nil
 	}
+	muCambiaTasti.Lock() // una richiesta alla volta: il risultato è quello di questa richiesta
+	defer muCambiaTasti.Unlock()
 	tastiDaRegistrare.Store(&t)
-	r, _, _ := pSendMessage.Call(h, wmTasti, 0, 0)
-	return int(r)
+	tastiFalliti.Store(nil)
+	pSendMessage.Call(h, wmTasti, 0, 0)
+	if f := tastiFalliti.Load(); f != nil {
+		return *f
+	}
+	return nil
+}
+
+// nomiTasti: i tasti di queste funzioni ("F9, F10"), per dire quali sono occupati.
+func nomiTasti(funzioni []string, t map[string]uint32) string {
+	var p []string
+	for _, f := range funzioni {
+		p = append(p, etichettaTasto(t[f]))
+	}
+	return strings.Join(p, ", ")
 }
 
 // nascondiMotore porta la finestra del motore fuori dallo schermo, senza icona nella barra

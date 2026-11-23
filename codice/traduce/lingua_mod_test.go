@@ -69,3 +69,29 @@ func TestModPossibile(t *testing.T) {
 		t.Logf("Liar's Bar: %v %s", ok, motivo)
 	}
 }
+
+// Con Tasso in inglese ogni lingua dell'elenco ha il suo nome inglese nei messaggi.
+func TestNomiLingueInglesi(t *testing.T) {
+	vecchio := InIngleseTasso
+	defer func() { InIngleseTasso = vecchio }()
+	InIngleseTasso = func() bool { return true }
+	for _, l := range lingueGioco {
+		if _, ok := nomiInglesi[l.Codice]; !ok {
+			t.Errorf("manca il nome inglese di %s", l.Codice)
+		}
+	}
+	if nomeLingua("ja") != "Japanese" || arrivoDiBase() != "en" {
+		t.Errorf("nomi o arrivo sbagliati: %q %q", nomeLingua("ja"), arrivoDiBase())
+	}
+	InIngleseTasso = func() bool { return false }
+	if nomeLingua("ja") != "giapponese" || arrivoDiBase() != "it" {
+		t.Errorf("in italiano: %q %q", nomeLingua("ja"), arrivoDiBase())
+	}
+	if etichettaTasto(4<<16|0x2E) != "Maiusc+Canc" {
+		t.Errorf("tasto in italiano: %q", etichettaTasto(4<<16|0x2E))
+	}
+	InIngleseTasso = func() bool { return true }
+	if etichettaTasto(4<<16|0x2E) != "Shift+Del" {
+		t.Errorf("tasto in inglese: %q", etichettaTasto(4<<16|0x2E))
+	}
+}

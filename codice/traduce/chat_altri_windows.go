@@ -374,12 +374,7 @@ func cicloChatAltri() {
 			muChatAltri.Unlock()
 			nascosto = false
 			ovChat.Mostra(zona, testo, "", testoTasso("Chat degli altri · ", "Other players' chat · ")+ris.Motore)
-			muCronologia.Lock()
-			righe = append(righe, ris)
-			if len(righe) > 1000 {
-				righe = righe[len(righe)-1000:]
-			}
-			muCronologia.Unlock()
+			aggiungiCronologia(ris, false)
 			emetti("riga", ris)
 		}
 	}
@@ -388,12 +383,8 @@ func cicloChatAltri() {
 // leggiChat: OCR della zona della chat (stesso lettore di Windows della traduzione dello schermo).
 // Va chiamata con occupato preso.
 func leggiChat(img *image.RGBA) (string, bool) {
-	if ocr == nil {
-		l, err := avviaOCR(filepath.Join(dirApp, "lavoro"))
-		if err != nil {
-			return "", false
-		}
-		ocr, ocrErr = l, ""
+	if assicuraOCR() != nil {
+		return "", false
 	}
 	var buf bytes.Buffer
 	if err := preparaPerOCR(img, &buf); err != nil {

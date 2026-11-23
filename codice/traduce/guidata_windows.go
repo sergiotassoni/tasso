@@ -98,6 +98,42 @@ func cartellaTradottaDi(percorso string) string {
 	return best
 }
 
+// aspettaMotore: il traduttore veloce è pronto? Se è scaricato ma si sta ancora aprendo (pochi
+// secondi dopo l'avvio di Tasso o dopo lo scaricamento) aspetto fino a 20 secondi. "" = pronto,
+// altrimenti cosa dire: "non scaricato" e "scaricato ma non partito" sono due cose diverse.
+func aspettaMotore() string {
+	if !mozillaPresente() {
+		return "Il traduttore veloce non è ancora scaricato: scaricalo in Giochi → Impostazioni"
+	}
+	if mozOK.Load() {
+		return ""
+	}
+	assicuraMotore()
+	for t := time.Now(); !mozOK.Load() && time.Since(t) < 20*time.Second; time.Sleep(250 * time.Millisecond) {
+		if e, _ := mozErr.Load().(string); e != "" {
+			break
+		}
+	}
+	if mozOK.Load() {
+		return ""
+	}
+	return "Il traduttore veloce è scaricato ma non è partito: in Giochi → Impostazioni premi Riprova"
+}
+
+// aspettaCoppia: dopo aver scaricato dei modelli il motore li rilegge; aspetto che traduca
+// davvero da → a (al massimo 20 secondi) invece di un'attesa fissa.
+func aspettaCoppia(da, a string) bool {
+	for t := time.Now(); time.Since(t) < 20*time.Second; time.Sleep(500 * time.Millisecond) {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		_, err := moz.traduciCoppia(ctx, "Continue", da, a)
+		cancel()
+		if err == nil {
+			return true
+		}
+	}
+	return false
+}
+
 // applicaTraduzione: i passi veri, con l'avanzamento mandato alla finestra.
 // haAntiCheat: il gioco in questa cartella ha un sistema anti-imbroglio.
 func haAntiCheat(cartella string) bool {
@@ -128,31 +164,21 @@ func applicaTraduzione(nome, cartella string) {
 		emetti("guidata", map[string]any{"nome": nome, "errore": testo})
 	}
 	passo(5, "Controllo il traduttore veloce…")
-	if !mozillaPresente() {
-		fallito("Il traduttore veloce non è pronto: scaricalo in Giochi → Impostazioni (o con il pulsante qui sopra) e riprova.")
+	if e := aspettaMotore(); e != "" {
+		fallito(e + " (o con il pulsante qui sopra), poi rifai Applica.")
 		return
-	}
-	if !mozOK.Load() {
-		// scaricato ma il motore si sta ancora aprendo (pochi secondi dopo l'avvio di Tasso): aspetto
-		assicuraMotore()
-		for t := time.Now(); !mozOK.Load() && time.Since(t) < 20*time.Second; time.Sleep(250 * time.Millisecond) {
-			if e, _ := mozErr.Load().(string); e != "" {
-				break
-			}
-		}
-		if !mozOK.Load() {
-			fallito("Il traduttore veloce è scaricato ma non è partito: in Giochi → Impostazioni premi Riprova, poi rifai Applica.")
-			return
-		}
 	}
 	// lingue scelte: scarico i modelli che mancano (il giocatore ha visto la dimensione al passo 3)
 	i := leggiImp()
-	da, a := i.LinguaDa, i.LinguaA
-	if da == "" || da == "auto" {
+	da, a := i.LinguaDa, linguaArrivo(i)
+	riconosci := da == "" || da == "auto"
+	if riconosci {
 		da = "en"
 	}
-	if a == "" {
-		a = "it"
+	// prima la lettura: inutile scaricare decine di MB se Windows non sa leggere questa lingua
+	if _, ok := ocrPerLingua(da); !ok {
+		fallito("Windows su questo PC non sa ancora leggere il " + nomeLingua(da) + ": aggiungi la lingua nelle Impostazioni di Windows (pulsante al passo 1), poi riprova. Senza, la traduzione dello schermo non può funzionare.")
+		return
 	}
 	if !coppiaPronta(da, a) {
 		mb := byteCoppie(modelliServono(dirApp, da, a, presenteCoppia)) / 1048576
@@ -167,16 +193,12 @@ func applicaTraduzione(nome, cartella string) {
 			return
 		}
 		ricaricaMozilla()
-		time.Sleep(4 * time.Second)
-	}
-	if _, ok := ocrPerLingua(da); !ok {
-		fallito("Windows su questo PC non sa ancora leggere il " + nomeLingua(da) + ": aggiungi la lingua nelle Impostazioni di Windows (pulsante al passo 1), poi riprova. Senza, la traduzione dello schermo non può funzionare.")
-		return
+		aspettaCoppia(da, a) // il motore rilegge i modelli: aspetto che risponda (al massimo 20 s)
 	}
 	passo(25, "Preparo la libreria delle traduzioni di "+nome+"…")
 	dir := filepath.Join(dirApp, "librerie")
 	_ = os.MkdirAll(dir, 0o755)
-	file := fileLibreriaPer(dir, nome)
+	file := fileLibreriaGioco(cartella, nome, nomeRiconosciuto(cartella))
 	prima := ContaLibreria(file)
 	passo(45, "Provo il traduttore sulle scritte più comuni dei giochi…")
 	// prova vera: qualche scritta tipica, tradotta con lo stesso traduttore del gioco
@@ -210,7 +232,15 @@ func applicaTraduzione(nome, cartella string) {
 	passo(85, "Ricordo che "+nome+" va tradotto…")
 	impostaGiocoTradotto(cartella, true)
 	time.Sleep(300 * time.Millisecond)
-	esito := fmt.Sprintf("Pronto. Ora premi Apri il gioco: quando vedo scritte inglesi le traduco al loro posto e ti dico se funziona (%d ms a scritta). Correttore IA %s.", ms, ia)
+	var esito string
+	if riconosci {
+		esito = fmt.Sprintf(testoTasso("Pronto. Ora premi Apri il gioco: quando vedo scritte da tradurre le traduco al loro posto e ti dico se funziona (%d ms a scritta).",
+			"Ready. Now press Open the game: when I see text to translate I translate it in place and tell you if it works (%d ms per text)."), ms)
+	} else {
+		esito = fmt.Sprintf(testoTasso("Pronto. Ora premi Apri il gioco: quando vedo scritte in %s le traduco al loro posto e ti dico se funziona (%d ms a scritta).",
+			"Ready. Now press Open the game: when I see %s text I translate it in place and tell you if it works (%d ms per text)."), nomeLingua(da), ms)
+	}
+	esito += testoTasso(" Correttore IA ", " AI corrector ") + trTasso(ia) + "."
 	if prima > 0 {
 		esito += fmt.Sprintf(" Ho già %d traduzioni salvate di questo gioco.", prima)
 	}

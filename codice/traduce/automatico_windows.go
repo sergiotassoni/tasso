@@ -8,6 +8,7 @@ package traduce
 // quando torni riparte. F6 dentro il gioco mette in pausa / riprende per quel gioco.
 
 import (
+	"os"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -203,5 +204,56 @@ func apriLibreriaPer(h uintptr) {
 	if traduttore == nil || eNostro(exe) {
 		return
 	}
-	traduttore.ApriLibreria(fileLibreriaPer(filepath.Join(dirApp, "librerie"), nomeGioco(h)))
+	p := percorsoDiFinestra(h)
+	cart := cartellaTradottaDi(p)
+	if g, ok := riconosciGioco(p); ok {
+		cart = g.Cartella
+	}
+	traduttore.ApriLibreria(fileLibreriaGioco(cart, nomeGioco(h)))
+}
+
+// nomeRiconosciuto: il nome con cui la finestrella chiamava il gioco di questa cartella (per
+// ritrovare le librerie salvate col nome dalle versioni di prima).
+func nomeRiconosciuto(cartella string) string {
+	if cartella == "" {
+		return ""
+	}
+	if g, ok := riconosciGioco(filepath.Join(cartella, "x.exe")); ok {
+		return g.Nome
+	}
+	return ""
+}
+
+// fileLibreriaGioco: la libreria di un gioco, per cartella: lo stesso gioco ha nomi diversi in
+// Tasso, nei negozi e nel nome dell'exe, la cartella è una sola. Le librerie salvate col nome
+// (versioni di prima) si spostano qui la prima volta. Senza cartella: col nome, come prima.
+func fileLibreriaGioco(cartella string, nomi ...string) string {
+	dir := filepath.Join(dirApp, "librerie")
+	if cartella == "" {
+		nome := ""
+		if len(nomi) > 0 {
+			nome = nomi[0]
+		}
+		return fileLibreriaPer(dir, nome)
+	}
+	nuovo := filepath.Join(dir, "gioco-"+chiaveGioco(cartella)+".json")
+	if _, err := os.Stat(nuovo); err == nil {
+		return nuovo
+	}
+	for _, n := range nomi {
+		if n == "" {
+			continue
+		}
+		vecchio := fileLibreriaPer(dir, n)
+		if _, err := os.Stat(vecchio); err != nil {
+			continue
+		}
+		if os.Rename(vecchio, nuovo) != nil {
+			return vecchio
+		}
+		dubbi := func(f string) string { return strings.TrimSuffix(f, ".json") + "-da-controllare.json" }
+		_ = os.Rename(dubbi(vecchio), dubbi(nuovo))
+		return nuovo
+	}
+	return nuovo
 }
