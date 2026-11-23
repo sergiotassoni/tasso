@@ -1525,3 +1525,701 @@ Greed	Cupidigia
 Auto Loot	Raccolta automatica
 Dropped	Lasciato cadere
 Drop Rate	Probabilità di drop
+# --- sopravvivenza e costruzione
+Oxygen	Ossigeno
+Low Oxygen	Ossigeno basso
+Oxygen low	Ossigeno basso
+Out of oxygen	Ossigeno esaurito
+Oxygen depleted	Ossigeno esaurito
+Hunger	Fame
+Thirst	Sete
+Hungry	Affamato
+Thirsty	Assetato
+Starving	Stai morendo di fame
+Dehydrated	Disidratato
+You are hungry	Hai fame
+You are thirsty	Hai sete
+You are starving	Stai morendo di fame
+Temperature	Temperatura
+Too cold	Troppo freddo
+Too hot	Troppo caldo
+Freezing	Congelamento
+Overheating	Surriscaldamento
+Sanity	Sanità mentale
+Fatigue	Stanchezza
+Tired	Stanco
+Exhausted	Sfinito
+Sleep until morning	Dormi fino al mattino
+Depth	Profondità
+Max Depth	Profondità massima
+Crush Depth	Profondità di schiacciamento
+Hull Integrity	Integrità dello scafo
+Hull integrity low	Integrità dello scafo bassa
+Power	Energia
+Low Power	Energia bassa
+Power low	Energia bassa
+Out of power	Energia esaurita
+Battery	Batteria
+Battery Low	Batteria scarica
+Low Battery	Batteria scarica
+Battery depleted	Batteria esaurita
+Battery Charge	Carica della batteria
+Fuel	Carburante
+Low Fuel	Carburante basso
+Out of fuel	Carburante esaurito
+Refuel	Fai rifornimento
+Charge	Carica
+Charging	In carica
+Recharge	Ricarica
+Fabricator	Fabbricatore
+Fabricate	Fabbrica
+Workbench	Banco da lavoro
+Crafting Table	Banco da lavoro
+Crafting Station	Stazione di creazione
+Furnace	Fornace
+Forge	Forgia
+Smelt	Fondi
+Anvil	Incudine
+Campfire	Falò
+Bed	Letto
+Storage Box	Cassa
+Storage Container	Contenitore
+Chest	Forziere
+Base	Base
+Base Building	Costruzione della base
+Habitat	Habitat
+Habitat Builder	Costruttore di habitat
+Foundation	Fondamenta
+Floor	Pavimento
+Wall	Muro
+Walls	Muri
+Roof	Tetto
+Door	Porta
+Window	Finestra
+Stairs	Scale
+Ladder	Scala a pioli
+Fence	Recinto
+Gate	Cancello
+Pillar	Pilastro
+Beam	Trave
+Ramp	Rampa
+Furniture	Arredamento
+Decoration	Decorazione
+Decorations	Decorazioni
+Lighting	Illuminazione
+Cannot place here	Impossibile posizionare qui
+Can't build here	Non puoi costruire qui
+Cannot build here	Non puoi costruire qui
+Not enough space	Spazio insufficiente
+Not enough materials	Materiali insufficienti
+Missing materials	Materiali mancanti
+Requires	Richiede
+Required	Necessario
+Requirements	Requisiti
+Ingredients	Ingredienti
+Craft All	Crea tutto
+Crafting Queue	Coda di creazione
+Crafted	Creato
+Crafting complete	Creazione completata
+Harvest	Raccogli
+Gather	Raccogli
+Chop	Taglia
+Chop Tree	Abbatti l'albero
+Dig	Scava
+Plant	Pianta
+Fertilize	Concima
+Tame	Addomestica
+Ride	Cavalca
+Pet the animal	Accarezza l'animale
+Hunt	Caccia
+Butcher	Macella
+Cook Meat	Cuoci la carne
+Raw Meat	Carne cruda
+Cooked Meat	Carne cotta
+Fish	Pesce
+Wood	Legno
+Stone	Pietra
+Iron	Ferro
+Iron Ore	Minerale di ferro
+Copper Ore	Minerale di rame
+Gold Ore	Minerale d'oro
+Coal	Carbone
+Sulfur	Zolfo
+Fiber	Fibra
+Leather	Cuoio
+Cloth	Stoffa
+Rope	Corda
+Nails	Chiodi
+Scrap	Rottami
+Scrap Metal	Rottami di metallo
+Titanium	Titanio
+Quartz	Quarzo
+Salt	Sale
+Silicon	Silicio
+Glass	Vetro
+Plastic	Plastica
+Rubber	Gomma
+Seeds	Semi
+Berries	Bacche
+Mushroom	Fungo
+Mushrooms	Funghi
+Medkit	Kit medico
+First Aid Kit	Kit di pronto soccorso
+Bandage	Benda
+Bandages	Bende
+Painkillers	Antidolorifici
+Antibiotics	Antibiotici
+Heal	Cura
+Healing	Cura
+Scanner	Scanner
+Scan	Scansiona
+Scanning	Scansione in corso
+Scan complete	Scansione completata
+Analyzing	Analisi in corso
+Databank	Banca dati
+Database	Banca dati
+Encyclopedia	Enciclopedia
+Codex	Codice
+PDA	PDA
+Blueprint unlocked	Progetto sbloccato
+New blueprint acquired	Nuovo progetto acquisito
+Fragment	Frammento
+Fragments	Frammenti
+Vehicle	Veicolo
+Vehicles	Veicoli
+Submarine	Sottomarino
+Seaglide	Propulsore subacqueo
+Diving Suit	Muta da sub
+Rebreather	Respiratore
+Fins	Pinne
+Air Tank	Bombola d'aria
+Oxygen Tank	Bombola d'ossigeno
+Lifepod	Capsula di salvataggio
+Radio	Radio
+Distress Signal	Segnale di soccorso
+Signal	Segnale
+Beacon	Segnalatore
+Day	Giorno
+Night	Notte
+Morning	Mattino
+Evening	Sera
+Weather	Meteo
+Storm	Tempesta
+Storm incoming	Tempesta in arrivo
+A storm is approaching	Sta arrivando una tempesta
+Rain	Pioggia
+Snow	Neve
+Fog	Nebbia
+Wild	Selvatico
+Hostile	Ostile
+Neutral	Neutrale
+Friendly	Amichevole
+Aggressive	Aggressivo
+Tamed	Addomesticato
+# --- horror e investigazione
+Ghost	Fantasma
+Ghost Type	Tipo di fantasma
+Evidence	Prove
+Ghost Activity	Attività del fantasma
+Ghost Room	Stanza del fantasma
+Haunted	Infestato
+The ghost is hunting	Il fantasma sta cacciando
+Hiding Spot	Nascondiglio
+Hiding	Nascosto
+Fuse Box	Quadro elettrico
+Breaker	Interruttore generale
+Turn on the power	Accendi la corrente
+Turn off the power	Spegni la corrente
+Lights	Luci
+Light Switch	Interruttore della luce
+Candle	Candela
+Lighter	Accendino
+Crucifix	Crocifisso
+Incense	Incenso
+Thermometer	Termometro
+Freezing Temperatures	Temperature gelide
+Spirit Box	Spirit Box
+Ghost Writing	Scrittura fantasma
+Ghost Orb	Orb fantasma
+Fingerprints	Impronte digitali
+Ultraviolet	Ultravioletto
+EMF Level 5	EMF livello 5
+EMF Reader	Rilevatore EMF
+Video Camera	Videocamera
+Photo Camera	Fotocamera
+Sound Sensor	Sensore sonoro
+Motion Sensor	Sensore di movimento
+Parabolic Microphone	Microfono parabolico
+Head Gear	Casco
+Truck	Furgone
+Van	Furgone
+Contract	Contratto
+Contracts	Contratti
+Investigation	Indagine
+Clue	Indizio
+Clues	Indizi
+Note	Nota
+Notes	Note
+Document	Documento
+Documents	Documenti
+Letter	Lettera
+Diary	Diario
+Key	Chiave
+Keys	Chiavi
+Keycard	Tessera
+Access Card	Tessera d'accesso
+Access Denied	Accesso negato
+Access Granted	Accesso consentito
+Locked Door	Porta chiusa
+It's dark	È buio
+Something is watching you	Qualcosa ti sta osservando
+Don't look back	Non voltarti
+Stay quiet	Fai silenzio
+Be quiet	Fai silenzio
+Did you hear that?	Hai sentito?
+What was that?	Cos'è stato?
+Who's there?	Chi c'è?
+Is anyone there?	C'è qualcuno?
+Help me	Aiutami
+Get out!	Vattene!
+Survive the night	Sopravvivi alla notte
+# --- sparatutto
+Loadout Selection	Scelta equipaggiamento
+Select Loadout	Scegli equipaggiamento
+Lethal	Letale
+Tactical	Tattico
+Perks	Vantaggi
+Perk	Vantaggio
+Killstreak	Serie di uccisioni
+Killstreaks	Serie di uccisioni
+Scorestreak	Serie di punti
+Field Upgrade	Potenziamento sul campo
+Attachments	Accessori
+Attachment	Accessorio
+Optic	Ottica
+Scope	Mirino
+Sight	Mirino
+Muzzle	Volata
+Barrel	Canna
+Magazine	Caricatore
+Underbarrel	Sottocanna
+Laser	Laser
+Grip	Impugnatura
+Ammo	Munizioni
+Ammunition	Munizioni
+Ammo Box	Cassa di munizioni
+Armor Plate	Piastra corazzata
+Armor Plates	Piastre corazzate
+Body Armor	Giubbotto antiproiettile
+Assault Rifle	Fucile d'assalto
+Assault Rifles	Fucili d'assalto
+Battle Rifle	Fucile da battaglia
+Submachine Gun	Mitra
+SMG	Mitra
+Light Machine Gun	Mitragliatrice leggera
+LMG	Mitragliatrice leggera
+Sniper Rifle	Fucile di precisione
+Marksman Rifle	Fucile da tiratore scelto
+Shotgun	Fucile a pompa
+Pistol	Pistola
+Handgun	Pistola
+Launcher	Lanciarazzi
+Rocket Launcher	Lanciarazzi
+Knife	Coltello
+Frag Grenade	Granata a frammentazione
+Smoke Grenade	Granata fumogena
+Flashbang	Granata stordente
+Stun Grenade	Granata stordente
+Molotov	Molotov
+C4	C4
+Claymore	Claymore
+Damage Range	Portata del danno
+Fire Rate	Cadenza di fuoco
+Rate of Fire	Cadenza di fuoco
+Recoil	Rinculo
+Recoil Control	Controllo del rinculo
+Handling	Maneggevolezza
+Mobility	Mobilità
+Aim Down Sight Speed	Velocità di mira
+ADS Speed	Velocità di mira
+Bullet Velocity	Velocità del proiettile
+Reload Speed	Velocità di ricarica
+Magazine Size	Capacità del caricatore
+Hip Fire	Tiro dal fianco
+Hip Fire Accuracy	Precisione dal fianco
+Full Auto	Automatico
+Semi-Auto	Semiautomatico
+Burst	Raffica
+Team Deathmatch	Deathmatch a squadre
+Free for All	Tutti contro tutti
+Free-for-All	Tutti contro tutti
+Domination	Dominio
+Search and Destroy	Cerca e distruggi
+Hardpoint	Postazione
+Kill Confirmed	Uccisione confermata
+Battle Royale	Battle royale
+Resurgence	Resurgence
+Plunder	Bottino
+Last Man Standing	Ultimo superstite
+Gun Game	Gara di armi
+Squad Wipe	Squadra eliminata
+Squad Wiped	Squadra eliminata
+Squad eliminated	Squadra eliminata
+Team eliminated	Squadra eliminata
+You have been eliminated	Sei stato eliminato
+You were eliminated	Sei stato eliminato
+Eliminated	Eliminato
+Eliminated by	Eliminato da
+Killed by	Ucciso da
+Kill Cam	Kill cam
+Killcam	Kill cam
+Final Killcam	Kill cam finale
+Play of the Game	Azione della partita
+Best Play	Azione migliore
+Assist	Assist
+Reviving	Rianimazione in corso
+Being revived	Ti stanno rianimando
+Bleeding out	Stai morendo dissanguato
+Gulag	Gulag
+Redeploy	Rischieramento
+Redeploying	Rischieramento in corso
+Deploy	Schierati
+Deploying	Schieramento in corso
+Parachute	Paracadute
+Deploy Parachute	Apri il paracadute
+Cut Parachute	Sgancia il paracadute
+Drop Zone	Zona di lancio
+The circle is closing	Il cerchio si sta chiudendo
+The zone is closing	La zona si sta restringendo
+Zone closing	Zona in chiusura
+Gas is closing in	Il gas si avvicina
+Supply Drop	Rifornimento
+Supply Crate	Cassa di rifornimenti
+Airdrop	Lancio aereo
+Buy Station	Stazione di acquisto
+Loadout Drop	Lancio dell'equipaggiamento
+Contract Complete	Contratto completato
+UAV	UAV
+Enemy UAV	UAV nemico
+Enemy UAV detected	UAV nemico rilevato
+Airstrike	Attacco aereo
+Incoming	In arrivo
+Enemy incoming	Nemici in arrivo
+Enemies nearby	Nemici nelle vicinanze
+Under fire	Sotto il fuoco
+Taking fire	Sotto il fuoco
+Cover me	Coprimi
+Covering fire	Fuoco di copertura
+Need ammo	Mi servono munizioni
+Need healing	Mi serve una cura
+Enemy here	Nemico qui
+Going here	Vado qui
+Defend here	Difendi qui
+Attack here	Attacca qui
+Looting here	Raccolgo qui
+Attackers	Attaccanti
+Defenders	Difensori
+Plant the bomb	Piazza la bomba
+Defuse the bomb	Disinnesca la bomba
+Bomb planted	Bomba piazzata
+Bomb defused	Bomba disinnescata
+Planting	Piazzamento in corso
+Defusing	Disinnesco in corso
+Round Won	Round vinto
+Round Lost	Round perso
+Round Draw	Round pari
+Match Point	Match point
+Overtime	Supplementari
+Halftime	Intervallo
+Switching sides	Cambio di campo
+Buy Phase	Fase di acquisto
+Warmup	Riscaldamento
+Warm Up	Riscaldamento
+Match MVP	MVP della partita
+MVP	MVP
+Top 3	Primi 3
+Top 10	Primi 10
+Winner	Vincitore
+Champion	Campione
+Final Score	Punteggio finale
+Most Kills	Più uccisioni
+Longest Shot	Tiro più lungo
+Damage Dealt	Danni inflitti
+Damage Taken	Danni subiti
+Headshots	Colpi alla testa
+Shots Fired	Colpi sparati
+Shots Hit	Colpi a segno
+Friendly Fire	Fuoco amico
+Teamkill	Uccisione di un compagno
+Team Kill	Uccisione di un compagno
+Suicide	Suicidio
+Spawn Protection	Protezione alla rinascita
+Respawn in	Rinasci tra
+Respawn available	Rinascita disponibile
+Press F to revive	Premi F per rianimare
+Hold F to revive	Tieni premuto F per rianimare
+Hold E to revive	Tieni premuto E per rianimare
+Press E to revive	Premi E per rianimare
+Hold to revive	Tieni premuto per rianimare
+Hold to reload	Tieni premuto per ricaricare
+Hold to open	Tieni premuto per aprire
+Hold to interact	Tieni premuto per interagire
+Hold to pick up	Tieni premuto per raccogliere
+Hold to confirm	Tieni premuto per confermare
+Hold to cancel	Tieni premuto per annullare
+Hold to leave	Tieni premuto per uscire
+Hold to exit	Tieni premuto per uscire
+Hold to swap	Tieni premuto per scambiare
+Swap	Scambia
+Swap Weapon	Scambia arma
+Pick Up Weapon	Raccogli arma
+Drop Weapon	Lascia arma
+Open Door	Apri porta
+Close Door	Chiudi porta
+Open Crate	Apri cassa
+Loot Crate	Cassa del bottino
+Search Body	Perquisisci il corpo
+Searching	Ricerca in corso
+Extract	Estrai
+Extraction	Estrazione
+Extraction Point	Punto di estrazione
+Extract now	Estrai ora
+Extraction in	Estrazione tra
+Extraction successful	Estrazione riuscita
+Extracted	Estratto
+Missing in action	Disperso in azione
+Killed in action	Caduto in azione
+Raid Ended	Incursione terminata
+Raid Over	Incursione finita
+Survived	Sopravvissuto
+# --- frasi tipiche di interfaccia e dialogo
+Are you sure you want to continue?	Sei sicuro di voler continuare?
+Are you sure you want to leave?	Sei sicuro di voler uscire?
+Are you sure you want to delete this item?	Sei sicuro di voler eliminare questo oggetto?
+Are you sure you want to sell this item?	Sei sicuro di voler vendere questo oggetto?
+Are you sure you want to reset all settings?	Sei sicuro di voler ripristinare tutte le impostazioni?
+Are you sure you want to leave the party?	Sei sicuro di voler lasciare il gruppo?
+Are you sure you want to abandon this quest?	Sei sicuro di voler abbandonare questa missione?
+Are you sure you want to log out?	Sei sicuro di voler uscire dall'account?
+This action cannot be undone	Questa azione non può essere annullata
+This cannot be undone	Non si può annullare
+Changes saved	Modifiche salvate
+Settings saved	Impostazioni salvate
+You have unsaved changes	Hai modifiche non salvate
+Discard unsaved changes?	Scartare le modifiche non salvate?
+Save changes?	Salvare le modifiche?
+Saved	Salvato
+Processing...	Elaborazione...
+Downloading...	Download in corso...
+Installing...	Installazione...
+Updating...	Aggiornamento...
+Initializing...	Inizializzazione...
+Preparing...	Preparazione...
+Waiting...	In attesa...
+Success	Operazione riuscita
+Failed	Non riuscito
+Something went wrong	Qualcosa è andato storto
+Something went wrong. Please try again.	Qualcosa è andato storto. Riprova.
+An error occurred	Si è verificato un errore
+An error has occurred	Si è verificato un errore
+An unknown error occurred	Si è verificato un errore sconosciuto
+Unknown error	Errore sconosciuto
+Please try again	Riprova
+Please try again later	Riprova più tardi
+Try again later	Riprova più tardi
+Network error	Errore di rete
+No internet connection	Nessuna connessione a internet
+Check your internet connection	Controlla la connessione a internet
+Invalid code	Codice non valido
+Invalid name	Nome non valido
+Name already taken	Nome già in uso
+This name is already taken	Questo nome è già in uso
+Name is too short	Il nome è troppo corto
+Name is too long	Il nome è troppo lungo
+Name cannot be empty	Il nome non può essere vuoto
+Character limit reached	Limite di caratteri raggiunto
+Not available	Non disponibile
+Unavailable	Non disponibile
+New!	Nuovo!
+Popular	Popolare
+Recommended	Consigliato
+All	Tutti
+None	Nessuno
+Other	Altro
+Others	Altri
+More	Altro
+Less	Meno
+Show more	Mostra altro
+Show less	Mostra meno
+See more	Vedi altro
+See all	Vedi tutto
+View All	Vedi tutto
+View	Visualizza
+Details	Dettagli
+Info	Info
+Information	Informazioni
+Description	Descrizione
+Name	Nome
+Category	Categoria
+Categories	Categorie
+Amount	Quantità
+Quantity	Quantità
+Max	Max
+Min	Min
+Maximum	Massimo
+Minimum	Minimo
+Subtotal	Subtotale
+Remaining	Rimanente
+Duration	Durata
+Progress	Progresso
+Completed	Completato
+Complete	Completa
+Incomplete	Incompleto
+In Progress	In corso
+Not Started	Non iniziato
+Expired	Scaduto
+Inactive	Inattivo
+Available	Disponibile
+Equipped	Equipaggiato
+Selected	Selezionato
+Current	Attuale
+Previous Page	Pagina precedente
+Next Page	Pagina successiva
+Page	Pagina
+First	Primo
+Last	Ultimo
+Refresh	Aggiorna
+Retry Connection	Riprova la connessione
+Reconnect	Riconnetti
+Copy	Copia
+Paste	Incolla
+Copied to clipboard	Copiato negli appunti
+Share	Condividi
+Edit	Modifica
+Rename	Rinomina
+Remove	Rimuovi
+Add	Aggiungi
+Create	Crea
+Save	Salva
+Load	Carica
+Import	Importa
+Export	Esporta
+Upload	Carica
+Download	Scarica
+Install	Installa
+Uninstall	Disinstalla
+Update	Aggiorna
+Search for players	Cerca giocatori
+No results found	Nessun risultato
+No results	Nessun risultato
+Empty	Vuoto
+Empty Slot	Slot vuoto
+Slot	Slot
+New Save	Nuovo salvataggio
+Save Slot	Slot di salvataggio
+Load Save	Carica salvataggio
+Autosave	Salvataggio automatico
+Manual Save	Salvataggio manuale
+Quicksave	Salvataggio rapido
+Quick Save	Salvataggio rapido
+Quick Load	Caricamento rapido
+Last saved	Ultimo salvataggio
+Play Time	Tempo di gioco
+Date	Data
+Today	Oggi
+Yesterday	Ieri
+Tomorrow	Domani
+Minutes	Minuti
+Hours	Ore
+Days	Giorni
+Seconds	Secondi
+Week	Settimana
+Month	Mese
+Year	Anno
+Afternoon	Pomeriggio
+Monday	Lunedì
+Tuesday	Martedì
+Wednesday	Mercoledì
+Thursday	Giovedì
+Friday	Venerdì
+Saturday	Sabato
+Sunday	Domenica
+Spring	Primavera
+Summer	Estate
+Autumn	Autunno
+Winter	Inverno
+Easy	Facile
+Normal	Normale
+Hard	Difficile
+Very Hard	Molto difficile
+Nightmare	Incubo
+Insane	Folle
+Story	Storia
+Hardcore	Hardcore
+Beginner	Principiante
+Intermediate	Intermedio
+Expert	Esperto
+Veteran	Veterano
+Recruit	Recluta
+Regular	Normale
+Relaxed	Rilassato
+Peaceful	Pacifico
+Creative	Creativo
+Creative Mode	Modalità creativa
+Survival Mode	Modalità sopravvivenza
+Sandbox	Sandbox
+Sandbox Mode	Modalità sandbox
+Permadeath	Morte permanente
+World Settings	Impostazioni del mondo
+World Name	Nome del mondo
+Create World	Crea mondo
+Delete World	Elimina mondo
+Seed	Seme
+Random Seed	Seme casuale
+Map Size	Dimensioni della mappa
+Small	Piccolo
+Large	Grande
+Huge	Enorme
+Fast	Veloce
+Slow	Lento
+Short	Corto
+Long	Lungo
+Night Length	Durata della notte
+Enemy Difficulty	Difficoltà dei nemici
+Resource Rate	Frequenza delle risorse
+Loot Rate	Frequenza del bottino
+Experience Rate	Velocità di esperienza
+Allow PvP	Consenti PvP
+Friendly Fire On	Fuoco amico attivo
+Friendly Fire Off	Fuoco amico disattivo
+Drop items on death	Perdi gli oggetti alla morte
+Keep inventory on death	Mantieni l'inventario alla morte
+Join in progress	Entra in partita già iniziata
+Allow friends to join	Consenti agli amici di entrare
+Friends Only	Solo amici
+Invite Only	Solo su invito
+Private	Privato
+Public	Pubblico
+Visibility	Visibilità
+Owner	Proprietario
+Host	Host
+Admin	Amministratore
+Moderator	Moderatore
+Member	Membro
+Members	Membri
+Officer	Ufficiale
+Recruit Members	Recluta membri
+Message	Messaggio
+Messages	Messaggi
+Send	Invia
+Send Message	Invia messaggio
+Type a message	Scrivi un messaggio
+Press Enter to chat	Premi Invio per scrivere
+Chat	Chat
+Chat disabled	Chat disattivata
+You are muted	Sei silenziato
+Message sent	Messaggio inviato
+New message	Nuovo messaggio
+New Messages	Nuovi messaggi
+Unread	Non letto
+Mark all as read	Segna tutto come letto
