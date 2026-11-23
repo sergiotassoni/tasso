@@ -85,6 +85,7 @@ func main() {
 	defer windows.CloseHandle(h)
 
 	exePath, _ = os.Executable()
+	lockSelfExe()
 	appDir = filepath.Join(os.Getenv("LOCALAPPDATA"), "Tasso")
 	_ = os.MkdirAll(filepath.Join(appDir, "logs"), 0o755)
 	startCrashLog()
@@ -555,7 +556,7 @@ func bindAll(w webview2.WebView) {
 		return async("pwned", func() { r := pwnedCount(pw); r["id"] = ""; emit("onPwned", r) })
 	})
 	_ = w.Bind("goRestart", func() string {
-		runHidden("shutdown.exe", "/r", "/t", "15", "/c", "Tasso riavvia il PC tra 15 secondi per completare la manutenzione.")
+		runHidden("shutdown.exe", "/r", "/t", "15", "/c", trGo("Tasso riavvia il PC tra 15 secondi per completare la manutenzione."))
 		return "ok"
 	})
 }

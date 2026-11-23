@@ -101,6 +101,33 @@ func scegliZonaChat() {
 	ov.ApriSelezione()
 }
 
+// scegliZonaGioco: "Traduci solo una zona" da Tasso. Come per la chat: Tasso si toglie di mezzo,
+// così il riquadro si disegna sopra il gioco e non sopra Tasso.
+func scegliZonaGioco() {
+	defer guard("zona-gioco")
+	var h uintptr
+	if wv != nil {
+		h = uintptr(wv.Window())
+		pShowWindow.Call(h, 6) // SW_MINIMIZE
+	}
+	time.Sleep(3 * time.Second)
+	fg, _, _ := pGetForeground.Call()
+	if fg == 0 || eNostro(exeDiFinestra(fg)) {
+		if h != 0 {
+			pShowWindow.Call(h, 9) // SW_RESTORE
+			pSetForeground.Call(h)
+		}
+		emetti("info", map[string]string{"testo": "Apri prima il gioco, poi torna qui e premi di nuovo «Traduci solo una zona» (oppure premi F9 nel gioco)."})
+		return
+	}
+	if sel.hwnd.Load() != 0 {
+		return // la scelta è già aperta (per esempio F9 nei 3 secondi)
+	}
+	selPerChat.Store(false)
+	ov.RicordaGioco()
+	ov.ApriSelezione()
+}
+
 // zonaChatScelta: arriva dalla scelta col mouse quando selPerChat è acceso.
 func zonaChatScelta(z Zona) {
 	f := chatFinestra.Load()

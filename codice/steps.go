@@ -899,6 +899,21 @@ function Save-Prev {
     New-ItemProperty -Path $PrevKey -Name 'Ok' -Value 1 -PropertyType DWord -Force | Out-Null
   } catch {}
 }
+function Undo-FpsMouse {
+  # Uscendo da FPS competitivo verso Gaming/Film/Silenzioso: se il mouse è ancora senza
+  # accelerazione (messo da FPS) rimetto quello di prima. Il Boost acceso lo gestisce da sé.
+  if (-not $TassoFromFps -or [string]$TassoMousePrev) { return }
+  $p = Get-ItemProperty -Path $PrevKey -ErrorAction SilentlyContinue
+  if (-not $p -or -not $p.Ok -or -not $p.Mouse -or [string]$p.Mouse -eq '0,0,0') { return }
+  $mk = Get-ItemProperty -Path 'HKCU:\Control Panel\Mouse' -ErrorAction SilentlyContinue
+  if (-not $mk -or ([string]$mk.MouseSpeed).Trim() -ne '0') { return }
+  $mm = [int[]]@(([string]$p.Mouse).Split(',') | ForEach-Object { [int]$_ })
+  if ($mm.Count -eq 3) {
+    $sig = '[DllImport("user32.dll")] public static extern bool SystemParametersInfo(int a, int b, int[] c, int d);'
+    Add-Type -MemberDefinition $sig -Name SPI -Namespace TassoMouse -ErrorAction SilentlyContinue | Out-Null
+    [void][TassoMouse.SPI]::SystemParametersInfo(4, 0, $mm, 3)
+  }
+}
 function Restore-Prev {
   $p = Get-ItemProperty -Path $PrevKey -ErrorAction SilentlyContinue
   if (-not $p -or -not $p.Ok) {
@@ -944,6 +959,7 @@ else { Say 'Modalità Normale: equilibrio tra velocità e consumi, notifiche att
 `,
 	"gaming": modeBase + `
 Save-Prev
+Undo-FpsMouse
 Use-HighPerf
 Set-CpuMax 100
 Set-Toasts 0
@@ -961,6 +977,7 @@ Say 'Modalità FPS competitivo pronta. Consiglio: nel gioco usa la frequenza mas
 `,
 	"film": modeBase + `
 Save-Prev
+Undo-FpsMouse
 [void](Use-Plan $BAL)
 powercfg /overlaysetactive 00000000-0000-0000-0000-000000000000 2>$null | Out-Null
 Set-CpuMax 100
@@ -971,6 +988,7 @@ Say 'Modalità Film: niente notifiche, lo schermo non si spegne durante il film.
 `,
 	"silenzioso": modeBase + `
 Save-Prev
+Undo-FpsMouse
 if (-not (Use-Plan $SAVER)) { [void](Use-Plan $BAL); powercfg /overlaysetactive 961cc777-2547-4f9d-8174-7d86181b8a7a 2>$null | Out-Null }
 Set-CpuMax 70
 Set-Toasts 1

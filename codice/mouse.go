@@ -3,6 +3,8 @@ package main
 import (
 	"strings"
 	"unsafe"
+
+	"golang.org/x/sys/windows/registry"
 )
 
 // Mouse senza accelerazione ("Precisione puntatore migliorata" spenta) solo per sparatutto e
@@ -116,6 +118,13 @@ func mouseAccelRestore() string {
 	}
 	prev := *s.Mouse
 	if cur, ok := mouseGet(); ok && cur[2] != 0 { // l'hai già cambiata tu: la lascio come l'hai messa
+		s.Mouse = nil
+		saveBoost()
+		return ""
+	}
+	// Nel frattempo l'accelerazione è stata spenta per sempre (riparazione "mira non precisa" o
+	// modalità FPS competitivo): non la riaccendo.
+	if v, ok := regGet(registry.CURRENT_USER, `Control Panel\Mouse`, "MouseSpeed"); ok && strings.TrimSpace(v) == "0" {
 		s.Mouse = nil
 		saveBoost()
 		return ""

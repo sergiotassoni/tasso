@@ -819,7 +819,9 @@ func gameTuneApply(id, preset string, o tuneOpts) {
 			base := filepath.Base(e)
 			k, _, err := registry.CreateKey(registry.LOCAL_MACHINE, ifeoKey+base+`\PerfOptions`, registry.SET_VALUE|registry.QUERY_VALUE)
 			if err == nil {
-				if v, _, err2 := k.GetIntegerValue("CpuPriorityClass"); err2 == nil {
+				if _, done := prev["prio|"+base]; done {
+					// Stesso nome già visto (due exe del gioco con lo stesso nome): tengo il valore vero di prima.
+				} else if v, _, err2 := k.GetIntegerValue("CpuPriorityClass"); err2 == nil {
 					prev["prio|"+base] = "1" + strconv.FormatUint(v, 10)
 				} else {
 					prev["prio|"+base] = "0"
@@ -1037,8 +1039,22 @@ func restoreIniBackup(path string) bool {
 	return true
 }
 
+// gameTuneBusy: il gioco regolato è aperto e ha un file della grafica rimesso da Tasso. Se lo
+// rimettessi adesso, alla chiusura il gioco lo riscriverebbe e la copia di prima andrebbe persa.
+func gameTuneBusy(id string) bool {
+	setMu.Lock()
+	t := settings.GameTunes[id]
+	setMu.Unlock()
+	return t != nil && t.Ini != "" && exeRunning(t.Exes)
+}
+
 func gameTuneUndo(id string) {
 	msgs := []string{"Questo gioco non era regolato da Tasso."}
+	if gameTuneBusy(id) {
+		msgs = []string{"Il gioco è aperto: chiudilo e riprova, così le sue impostazioni tornano com'erano davvero."}
+		emit("onGameTuneDone", map[string]interface{}{"id": id, "ok": false, "undo": true, "msgs": msgs, "settings": getSettings()})
+		return
+	}
 	if gameTuneUndoQuiet(id, false) != "" {
 		msgs = []string{"✓ Regolazione tolta: impostazioni di Windows e file della grafica rimessi com'erano."}
 	}

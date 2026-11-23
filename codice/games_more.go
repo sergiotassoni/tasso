@@ -789,6 +789,11 @@ func steamHeaderFor(app string) string {
 	client := &http.Client{Timeout: 8 * time.Second}
 	resp, err := client.Get("https://store.steampowered.com/api/appdetails?appids=" + url.QueryEscape(app) + "&filters=basic")
 	if err != nil {
+		// Niente rete: riprovo tra un'ora.
+		coverMu.Lock()
+		loadCoverCache()
+		coverCache["#"+app] = coverHit{When: time.Now().Add(-7*24*time.Hour + time.Hour).Unix()}
+		coverMu.Unlock()
 		return ""
 	}
 	var r map[string]struct {
@@ -800,6 +805,11 @@ func steamHeaderFor(app string) string {
 	ok2 := resp.StatusCode == 200 && json.NewDecoder(io.LimitReader(resp.Body, 2<<20)).Decode(&r) == nil
 	resp.Body.Close()
 	if !ok2 {
+		// Steam occupato (429) o rete lenta: lo segno, così riprovo tra un'ora e non a ogni scansione.
+		coverMu.Lock()
+		loadCoverCache()
+		coverCache["#"+app] = coverHit{When: time.Now().Add(-7*24*time.Hour + time.Hour).Unix()}
+		coverMu.Unlock()
 		return ""
 	}
 	if d, ok := r[app]; ok && d.Success && steamHdrRe.MatchString(d.Data.Header) {
@@ -831,7 +841,7 @@ func fillCovers(all []gameEntry) bool {
 			return
 		}
 		if h, known := cachedHeader(app); known {
-			if h != "" {
+			if h != "" && g.ImgAlt != h {
 				g.ImgAlt = h
 				changed = true
 			}

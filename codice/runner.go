@@ -410,7 +410,7 @@ func startSteps(ids []string, level int, shutdownAfter bool) string {
 		shutdown := false
 		if shutdownAfter && !cancelled {
 			logLine("Spegnimento automatico: il PC si spegne tra 2 minuti (puoi annullarlo da Tasso).")
-			if _, err := runHidden("shutdown.exe", "/s", "/t", "120", "/c", "Tasso ha finito la manutenzione: il PC si spegne tra 2 minuti."); err == nil {
+			if _, err := runHidden("shutdown.exe", "/s", "/t", "120", "/c", trGo("Tasso ha finito la manutenzione: il PC si spegne tra 2 minuti.")); err == nil {
 				shutdown = true
 			}
 		}
@@ -458,6 +458,15 @@ func hardwareInfo() {
 	if r.JSON != "" {
 		_ = json.Unmarshal([]byte(r.JSON), &data)
 	}
+	// Risoluzione e Hz dello schermo principale: Windows li dà giusti per ogni schermo, mentre WMI
+	// ne dà uno solo per scheda video (spesso quello sbagliato con più monitor).
+	if data != nil {
+		for _, s := range screens() {
+			if s.Primary {
+				data["screen"] = map[string]interface{}{"res": fmt.Sprintf("%dx%d", s.W, s.H), "hz": s.Hz}
+			}
+		}
+	}
 	emit("onHardware", data)
 }
 
@@ -493,8 +502,13 @@ func setMode(id string) bool {
 		mousePrev = fmt.Sprintf("$TassoMousePrev = '%d,%d,%d'\n", m[0], m[1], m[2])
 	}
 	bMu.Unlock()
+	// Undo-FpsMouse rimette l'accelerazione solo uscendo da FPS competitivo (che l'aveva spenta).
+	fromFps := "$TassoFromFps = $false\n"
+	if prev == "fps" {
+		fromFps = "$TassoFromFps = $true\n"
+	}
 	var msgs []string
-	r := runPS(canSave+mousePrev+script, 2*time.Minute, func(m string) { msgs = append(msgs, m) })
+	r := runPS(canSave+mousePrev+fromFps+script, 2*time.Minute, func(m string) { msgs = append(msgs, m) })
 	if r.Err == nil {
 		updateSettings(func(s *Settings) { s.Mode = id })
 	}

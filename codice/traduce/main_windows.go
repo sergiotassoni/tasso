@@ -614,7 +614,7 @@ func collega(w webview2.WebView) {
 		}()
 		return "ok"
 	})
-	_ = w.Bind("ttScegliZona", func() string { selPerChat.Store(false); ov.DimenticaGioco(); ov.ApriSelezione(); return "ok" })
+	_ = w.Bind("ttScegliZona", func() string { go scegliZonaGioco(); return "ok" })
 	_ = w.Bind("ttScegliZonaChat", func() string { go scegliZonaChat(); return "ok" })
 	_ = w.Bind("ttImpostaChatAltri", func(on bool) string {
 		if on && !zonaChatPresente(leggiImp()) {

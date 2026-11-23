@@ -1475,6 +1475,7 @@ function renderLevels(){ ['#levelCards', '#levelCards2'].forEach(id => { const c
 const loaded = {};
 let CURVIEW='home', TUNE_REQ = null, DC_GUIDE_SHOWN = false;
 function show(v){ const prevView = CURVIEW; CURVIEW=v;
+  if (typeof acStopWait === 'function') acStopWait();
   // Fuori dalla pagina Giochi il tasto dell'autoclick (F6) torna alle altre app; in Ufficio sempre.
   if (prevView === 'games' && v !== 'games') call('goAutoClickDisarm', isOffice());
   const ae = document.activeElement;
@@ -1753,7 +1754,7 @@ window.tasso = {
   onShredProgress(m){ if (/^Chiedo|^Distruggo 1 di|^Asking|^Destroying 1 of/.test(m)) toast(m, 'var(--a3)'); },
   onShredDone(p){ toast(p.msg, p.ok ? 'var(--a1)' : 'var(--a4)'); },
   onUndoDone(p){ if (p.settings) S = p.settings; toast(p.msg, 'var(--a1)'); paintUndo(p.changes); paintModes(); if (loaded.startup) call('goStartupList'); if (loaded.games) { paintLib(); profileRefresh(); } },
-  onRestoreDone(p){ if (p.settings) S = p.settings; (p.msgs || []).forEach(m => toast(m, 'var(--a3)')); paintSettings(); paintModes(); toast(p.paused ? _t('Fatto: impostazioni rimesse com\'erano e Tasso è spento.') : _t('Fatto: impostazioni rimesse com\'erano.')); if (loaded.startup) call('goStartupList'); if (loaded.games) profileRefresh(); undoRefresh(); }
+  onRestoreDone(p){ if (p.settings) S = p.settings; (p.msgs || []).forEach(m => toast(m, 'var(--a3)')); paintSettings(); paintModes(); if (p.ok !== false) toast(p.paused ? _t('Fatto: impostazioni rimesse com\'erano e Tasso è spento.') : _t('Fatto: impostazioni rimesse com\'erano.')); if (loaded.startup) call('goStartupList'); if (loaded.games) profileRefresh(); undoRefresh(); }
 };
 $('#btnCancel').onclick = () => { call('goCancel'); $('#btnCancel').disabled = true; $('#btnCancel').textContent = _t('Mi fermo…'); };
 $('#btnNoOff').onclick = async () => { await call('goCancelShutdown'); $('#offBanner').classList.remove('on'); toast(_t('Spegnimento annullato.')); };
@@ -1915,7 +1916,8 @@ function paintHardware(){
   const kv = []; const add = (k, v) => { if (v) kv.push('<span>' + k + '</span><span>' + esc(v) + '</span>'); };
   const c = HW.cpu || {};
   add(_t('Processore'), (c.name || '') + (c.cores ? ' · ' + c.cores + _t(' core / ') + c.threads + _t(' thread') : ''));
-  (HW.gpus || []).forEach((g, i) => add(i ? _t('Scheda video ') + (i + 1) : _t('Scheda video'), g.name + (g.res ? ' · ' + g.res + (g.hz ? _t(' a ') + g.hz + ' Hz' : '') : '')));
+  (HW.gpus || []).forEach((g, i) => add(i ? _t('Scheda video ') + (i + 1) : _t('Scheda video'), g.name + (!HW.screen && g.res ? ' · ' + g.res + (g.hz ? _t(' a ') + g.hz + ' Hz' : '') : '')));
+  if (HW.screen && HW.screen.res) add(_t('Schermo principale'), HW.screen.res + (HW.screen.hz ? _t(' a ') + HW.screen.hz + ' Hz' : ''));
   const b = HW.board || {};
   add(_t('Scheda madre'), [b.maker, b.model].filter(Boolean).join(' '));
   add('BIOS', (b.bios || '') + (b.biosDate ? _t(' del ') + b.biosDate : ''));
@@ -2093,7 +2095,7 @@ Object.assign(window.tasso, {
     if (ch.length) hzModal(ch); else toast((r && r.msg) || _t('Non sono riuscito a cambiare la frequenza dello schermo.'));
   },
   onFpsHz(r){
-    if (HZ_MODAL) { HZ_MODAL = false; clearInterval(HZ_TICK); closeModal(); }
+    if (HZ_MODAL) { HZ_MODAL = false; clearInterval(HZ_TICK); if ($('#hzLeft')) closeModal(); }
     toast(r && r.kept ? _t('Frequenza dello schermo tenuta.') : _t('Frequenza dello schermo rimessa com\'era.'));
   },
   onBoost(r){
@@ -3116,6 +3118,10 @@ let AC_KEY_OK = true;
 function paintAcKey(){ $('#acKeyName').textContent = vkName(S.acVK || 117, S.acMods || 0) + (AC_KEY_OK ? '' : _t(' (già usato da un altro programma: cambialo)')); }
 let AC_WAITKEY = false;
 $('#acKeyChange').onclick = (e) => { if (e) e.preventDefault(); AC_WAITKEY = true; $('#acKeyName').textContent = _t('premi un tasto…'); };
+// Se clicchi altrove, cambi pagina o lasci la finestra, smetto di aspettare il tasto.
+function acStopWait(){ if (AC_WAITKEY) { AC_WAITKEY = false; paintAcKey(); } }
+document.addEventListener('mousedown', (e) => { if (AC_WAITKEY && !e.target.closest('#acKeyChange,#acKeyName')) acStopWait(); }, true);
+window.addEventListener('blur', acStopWait);
 document.addEventListener('keydown', async (e) => {
   if (!AC_WAITKEY) return;
   if ([16, 17, 18, 91, 92].includes(e.keyCode)) return; // aspetto il tasto vero, non solo Ctrl/Alt/Maiusc
@@ -3659,7 +3665,7 @@ $('#trSwEn').onclick = async () => { const on = !(TT && TT.mostra_en); await ttc
 $('#trPos').onchange = async (e) => { const p = await ttc('ttImpostaPosizione', e.target.value); if (TT) TT.posizione = p; toast(_t('Salvato.'), 'var(--a3)'); };
 $('#trFont').oninput = (e) => { $('#trFontV').textContent = e.target.value + ' px'; };
 $('#trFont').onchange = async (e) => { const px = await ttc('ttImpostaFont', +e.target.value); if (TT) TT.dim_font = px; $('#trFont').value = px; $('#trFontV').textContent = px + ' px'; };
-$('#btnTrZona').onclick = async () => { if (!(TT && TT.acceso)) { toast(_t('Prima accendi la traduzione dei giochi.'), 'var(--a4)'); return; } await ttc('ttScegliZona'); toast(_t('Disegna con il mouse il riquadro da tradurre. Esc per annullare.')); };
+$('#btnTrZona').onclick = async () => { if (!(TT && TT.acceso)) { toast(_t('Prima accendi la traduzione dei giochi.'), 'var(--a4)'); return; } await ttc('ttScegliZona'); toast(_t('Tasso si riduce a icona: tra 3 secondi, sopra il gioco, disegna con il mouse il riquadro da tradurre. Esc per annullare.')); };
 $('#btnTrWords').onclick = async () => {
   const gl = await ttc('ttGlossario') || {};
   const nt = (gl.non_tradurre || []).join('\n');

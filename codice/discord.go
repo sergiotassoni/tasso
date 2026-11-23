@@ -324,6 +324,12 @@ func buildReport(note string) map[string]interface{} {
 	gpuName := trGo("Scheda video")
 	if len(hwCache.GPUs) > 0 {
 		gpuName = shortName(hwCache.GPUs[0].Name)
+		for _, g := range hwCache.GPUs { // la scheda dedicata, come nella finestra (non l'integrata)
+			if discreteGPU(g.Name) {
+				gpuName = shortName(g.Name)
+				break
+			}
+		}
 	}
 	gpuIcon := "✅"
 	var gl []string

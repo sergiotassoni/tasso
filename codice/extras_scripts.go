@@ -150,7 +150,8 @@ $o = [pscustomobject]@{ hours = [math]::Round($up.TotalHours, 1); adapters = @($
 // Le reti Wi-Fi salvate con la loro password: si esportano in una cartella temporanea
 // (formato XML, uguale in tutte le lingue di Windows), si leggono e si cancellano subito.
 // 3.1: la cartella sta in Programmi\Tasso\lavoro ($A.base), dove i programmi normali non possono
-// leggere le password né preparare trappole; si cancella con Remove-Safe (non segue i collegamenti).
+// preparare trappole, e nasce già con permessi solo per SYSTEM e amministratori (lavoro eredita la
+// lettura per tutti da Programmi); si cancella con Remove-Safe (non segue i collegamenti).
 const wifiScript = `
 # Se una volta precedente (anche della 3.0, in TEMP) è stata interrotta, tolgo i file rimasti.
 foreach ($old in @([string]$A.base, [string]$env:TEMP)) {
@@ -160,7 +161,14 @@ foreach ($old in @([string]$A.base, [string]$env:TEMP)) {
 $base = [string]$A.base
 if (-not $base -or -not (Test-Path -LiteralPath $base)) { $base = $env:TEMP }
 $dir = Join-Path $base ('tasso_wifi_' + [guid]::NewGuid().ToString('N'))
-New-Item -ItemType Directory -Path $dir -Force | Out-Null
+try {
+  $sec = New-Object System.Security.AccessControl.DirectorySecurity
+  $sec.SetSecurityDescriptorSddlForm('D:P(A;OICI;FA;;;SY)(A;OICI;FA;;;BA)')
+  [void][System.IO.Directory]::CreateDirectory($dir, $sec)
+} catch {
+  # Senza permessi privati non esporto le password.
+  [Console]::Out.WriteLine('JSON []'); return
+}
 $list = New-Object System.Collections.ArrayList
 try {
   & netsh.exe wlan export profile key=clear ('folder=' + $dir) | Out-Null

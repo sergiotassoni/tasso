@@ -182,6 +182,20 @@ func setLang(l string) string {
 	if l != "it" && l != "en" {
 		return "no"
 	}
+	// Un cambio di modalità in corso deve finire prima del riavvio (se no Tasso perde quale modalità
+	// ha messo): tengo modeMu fino alla chiusura, come l'aggiornamento.
+	if !modeMu.TryLock() {
+		if l == "en" {
+			return "Tasso is busy right now: try again when it has finished."
+		}
+		return "Tasso sta lavorando: riprova quando ha finito."
+	}
+	locked := true
+	defer func() {
+		if locked {
+			modeMu.Unlock()
+		}
+	}()
 	if isRunning() || otherBusy("") {
 		if l == "en" {
 			return "Tasso is busy right now: try again when it has finished."
@@ -198,6 +212,7 @@ func setLang(l string) string {
 	if cmd.Start() != nil {
 		return "ok-manual"
 	}
+	locked = false // resta preso fino alla chiusura
 	go func() {
 		defer guard("i18n.go:201")
 		time.Sleep(300 * time.Millisecond)

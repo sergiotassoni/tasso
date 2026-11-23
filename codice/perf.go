@@ -49,6 +49,10 @@ const perfStateScript = `
 $scheme = ''
 try { $scheme = (powercfg /getactivescheme) | Out-String } catch {}
 $highOn = ($scheme -match '8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c') -or ($scheme -match 'Prestazioni elevate') -or ($scheme -match 'High performance') -or ($scheme -match 'Ultimate')
+# Su PC con il solo Bilanciato (o Ryzen X3D) Use-HighPerf mette la modalità "Prestazioni migliori":
+# conta come accesa, così il pulsante permette di tornare indietro.
+$ov = (Get-ItemProperty 'HKLM:\SYSTEM\CurrentControlSet\Control\Power\User\PowerSchemes' -Name 'ActiveOverlayAcPowerScheme' -ErrorAction SilentlyContinue).ActiveOverlayAcPowerScheme
+if ([string]$ov -match 'ded574b5-45a0-4f42-8737-46345c09c238') { $highOn = $true }
 [Console]::Out.WriteLine('JSON ' + (ConvertTo-Json -InputObject ([ordered]@{ high = [bool]$highOn }) -Compress))
 `
 
@@ -145,6 +149,8 @@ $xtu = Find-Tool @((Join-Path $pf 'Intel\Intel(R) Extreme Tuning Utility\Client\
 $scheme = ''
 try { $scheme = (powercfg /getactivescheme) | Out-String } catch {}
 $highOn = ($scheme -match '8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c') -or ($scheme -match 'Prestazioni elevate') -or ($scheme -match 'High performance') -or ($scheme -match 'Ultimate')
+$ov = (Get-ItemProperty 'HKLM:\SYSTEM\CurrentControlSet\Control\Power\User\PowerSchemes' -Name 'ActiveOverlayAcPowerScheme' -ErrorAction SilentlyContinue).ActiveOverlayAcPowerScheme
+if ([string]$ov -match 'ded574b5-45a0-4f42-8737-46345c09c238') { $highOn = $true }
 $o = [ordered]@{
   cpu = $cpuName; cpuVendor = $cpuVendor; gpu = $gpuName; gpuVendor = $gpuVendor;
   board = ((([string]$bb.Manufacturer).Trim() + ' ' + ([string]$bb.Product).Trim()).Trim());

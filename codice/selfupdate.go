@@ -176,7 +176,9 @@ func selfUpdate() {
 		return
 	}
 	_ = os.Remove(oldPath)
+	unlockSelfExe() // se no non potrei rinominarlo
 	if err := os.Rename(cur, oldPath); err != nil {
+		lockSelfExe()
 		_ = os.Remove(newPath)
 		updating.Store(false)
 		updMsg("error", "Non riesco a sostituire Tasso.exe. Scarica lo zip a mano da Info.")
@@ -184,9 +186,22 @@ func selfUpdate() {
 	}
 	if err := os.Rename(newPath, cur); err != nil {
 		_ = os.Rename(oldPath, cur) // rimetto com'era
+		lockSelfExe()
 		_ = os.Remove(newPath)
 		updating.Store(false)
 		updMsg("error", "Non riesco a sostituire Tasso.exe. Scarica lo zip a mano da Info.")
+		return
+	}
+	// Blocco subito il file nuovo e controllo che sia proprio quello scaricato e verificato: un
+	// programma senza privilegi non deve poterlo cambiare tra il controllo della firma e l'avvio.
+	lockSelfExe()
+	if b, err := readSelfExe(); err != nil || !bytes.Equal(b, exe) {
+		unlockSelfExe()
+		_ = os.Remove(cur)
+		_ = os.Rename(oldPath, cur)
+		lockSelfExe()
+		updating.Store(false)
+		updMsg("error", "Il file nuovo è cambiato durante l'aggiornamento: per sicurezza non lo apro. Scarica lo zip a mano da Info.")
 		return
 	}
 	// Anche la copia in Programmi (quella delle attività pianificate) passa alla versione nuova,
@@ -326,8 +341,13 @@ func isCertum(rdn []string) bool {
 
 // sigDecision: la regola, separata per poterla provare.
 func sigDecision(cur, nw sigInfo) string {
-	if cur.Status != "Valid" || cur.Subject == "" {
+	if cur.Subject == "" {
 		return "" // questo Tasso non è firmato (versione di prova): non c'è una firma da confrontare
+	}
+	if cur.Status != "Valid" {
+		// Firmato, ma Windows ora non riesce a verificare la firma (certificati non aggiornati):
+		// senza un controllo vero non installo niente.
+		return "Windows non riesce a verificare la firma di questo Tasso: per sicurezza non aggiorno da solo. Scarica lo zip a mano da Info."
 	}
 	if nw.Status != "Valid" {
 		return "Il nuovo Tasso non ha una firma digitale valida: per sicurezza non lo installo."

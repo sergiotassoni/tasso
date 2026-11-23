@@ -147,7 +147,7 @@ try {
     # Start-AsUser non restituisce il processo: aspetto finché quel programma resta aperto (al massimo un'ora).
     $end = $t0.AddHours(1); $seen = $false; $w = 0
     while ((Get-Date) -lt $end) {
-      $run = @(Get-Process -ErrorAction SilentlyContinue | Where-Object { $st = $null; try { $st = $_.StartTime } catch {}; $st -and $st -ge $t0 -and "$($_.Path)" -ieq $exe })
+      $run = @(Get-Process -ErrorAction SilentlyContinue | Where-Object { $st = $null; try { $st = $_.StartTime } catch {}; $st -and $st -ge $t0 -and $_.SessionId -ne 0 -and "$($_.Path)" -ieq $exe })
       if ($run.Count) { $seen = $true } elseif ($seen -or $w -ge 30) { break }
       Start-Sleep -Seconds 1; $w++
     }

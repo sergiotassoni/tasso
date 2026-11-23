@@ -144,7 +144,9 @@ func undoChange(kind, id string) {
 	case "profile":
 		msg = profileOffNow()
 	case "tune":
-		if gameTuneUndoQuiet(id, false) == "" {
+		if gameTuneBusy(id) {
+			msg = "Il gioco è aperto: chiudilo e riprova, così le sue impostazioni tornano com'erano davvero."
+		} else if gameTuneUndoQuiet(id, false) == "" {
 			msg = "Questo gioco non era regolato."
 		}
 	case "regfolder":

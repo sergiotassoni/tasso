@@ -96,6 +96,7 @@ type boostState struct {
 	PrevAG   *bool                   `json:"prevAutoGame,omitempty"`
 	GpuPrev  map[string]string       `json:"gpuPrev,omitempty"` // gioco -> scelta della scheda video di prima ("0" = nessuna)
 	Mouse    *[3]int32               `json:"mouse,omitempty"`   // accelerazione del mouse di prima (solo se l'ha tolta il Boost)
+	Closed   []string                `json:"closed,omitempty"`  // programmi chiusi da riaprire (anche se Tasso si riavvia)
 	History  map[string][]*fpsResult `json:"history,omitempty"` // per gioco, ultime misure
 }
 
@@ -109,7 +110,7 @@ var (
 	bOpMu   sync.Mutex // un'accensione/spegnimento alla volta, dall'inizio alla fine
 	fpsMu   sync.Mutex // una misura alla volta
 	bWatch  sync.Once
-	bClosed []string // programmi chiusi da riaprire (solo in memoria: mai letti da un file)
+	bClosed []string // programmi chiusi da riaprire (copia in boost.json, solo nomi ammessi in boostClosable)
 	bSkip   string   // gioco per cui hai premuto "Rimetti com'era": niente Boost automatico finché resta aperto
 	bGame   string   // gioco della partita col Boost automatico in corso
 	// bAutoFlag: copia di bState.Auto che si legge senza bMu (serve dentro updateSettings).
@@ -163,6 +164,16 @@ func loadBoost() *boostState {
 	if m := raw.Mouse; m != nil && m[0] >= 0 && m[0] <= 99 && m[1] >= 0 && m[1] <= 99 && m[2] >= 0 && m[2] <= 2 {
 		v := *m
 		s.Mouse = &v
+	}
+	// Programmi chiusi dal Boost: tengo solo percorsi completi di programmi dell'elenco boostClosable
+	// (vengono riaperti come utente normale tramite Esplora file).
+	for _, p := range raw.Closed {
+		if len(p) < 400 && filepath.IsAbs(p) && boostClosable[strings.ToLower(filepath.Base(p))] && !hasStr(s.Closed, p) && len(s.Closed) < len(boostClosable) {
+			s.Closed = append(s.Closed, p)
+		}
+	}
+	if len(bClosed) == 0 {
+		bClosed = append([]string(nil), s.Closed...)
 	}
 	for k, v := range raw.History {
 		if k == "" || k != strings.ToLower(safeName(k)) || len(v) > 10 {
@@ -334,7 +345,12 @@ func closeBackground() []string {
 		}
 		if len(pidsByExe(exe)) == 0 {
 			bMu.Lock()
-			bClosed = append(bClosed, path)
+			if !hasStr(bClosed, path) {
+				bClosed = append(bClosed, path)
+			}
+			st := loadBoost()
+			st.Closed = append([]string(nil), bClosed...)
+			saveBoost()
 			bMu.Unlock()
 			names = append(names, strings.TrimSuffix(filepath.Base(path), filepath.Ext(path)))
 		}
@@ -346,8 +362,13 @@ func closeBackground() []string {
 // normale tramite Esplora file.
 func reopenBackground() []string {
 	bMu.Lock()
+	st := loadBoost()
 	list := bClosed
 	bClosed = nil
+	if len(st.Closed) > 0 {
+		st.Closed = nil
+		saveBoost()
+	}
 	bMu.Unlock()
 	win, err := windows.GetSystemWindowsDirectory()
 	if err != nil {

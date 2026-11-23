@@ -730,7 +730,7 @@ func ovProc(hwnd, msg, wp, lp uintptr) uintptr {
 				// desktop o sopra un altro programma (il sottotitolo di una voce resta)
 				f.mu.Lock()
 				if f.gioco == g {
-					f.gioco, f.salvato = 0, nil
+					f.gioco, f.exeGioco, f.salvato = 0, "", nil
 					if !f.voce {
 						f.visibile = false
 					}

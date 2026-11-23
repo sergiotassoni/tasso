@@ -475,8 +475,18 @@ func gestisciParziale(audio []float32, ferma chan struct{}) {
 func gestisciBattuta(audio []float32, ferma chan struct{}, fineVoce time.Time) bool {
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 	defer cancel()
+	select {
+	case <-ferma: // già spente: non trascrivo e soprattutto non riavvio il riconoscimento
+		return false
+	default:
+	}
 	en, err := sv.trascrivi(ctx, audio)
 	if err != nil {
+		select {
+		case <-ferma: // spente mentre trascrivevo: il riconoscimento chiuso è voluto
+			return false
+		default:
+		}
 		// il riconoscimento si è chiuso da solo: lo riavvio (al massimo 3 volte)
 		if !sv.attivo() && riavviiVoci.Add(1) <= 3 {
 			if sv.avvia() == nil {

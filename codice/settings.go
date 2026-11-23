@@ -471,7 +471,7 @@ func taskExe() string {
 			return dst
 		}
 	}
-	src, err := os.ReadFile(exePath)
+	src, err := readSelfExe()
 	if err != nil {
 		return existingOr(dst)
 	}
