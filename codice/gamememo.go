@@ -15,6 +15,7 @@ type GameMemo struct {
 	A     string `json:"a,omitempty"`     // lingua voluta
 	Modo  string `json:"modo,omitempty"`  // "schermo" o "file"
 	IA    bool   `json:"ia,omitempty"`    // traduzione più precisa con l'IA
+	Liv   string `json:"liv,omitempty"`   // livello dell'IA: "auto", "grande", "media", "piccola"
 	Skip  bool   `json:"skip,omitempty"`  // "Non serve tradurre"
 	Pot   string `json:"pot,omitempty"`   // "normale", "gaming", "max"
 	Auto  bool   `json:"auto,omitempty"`  // Boost automatico per questo gioco
@@ -32,6 +33,9 @@ func cleanMemo(m GameMemo) GameMemo {
 	}
 	if m.Modo != "schermo" && m.Modo != "file" {
 		m.Modo = ""
+	}
+	if m.Liv != "auto" && m.Liv != "grande" && m.Liv != "media" && m.Liv != "piccola" {
+		m.Liv = ""
 	}
 	if m.Pot != "normale" && m.Pot != "gaming" && m.Pot != "max" {
 		m.Pot = ""

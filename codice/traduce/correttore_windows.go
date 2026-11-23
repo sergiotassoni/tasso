@@ -108,7 +108,7 @@ func sorvegliaIA() {
 				}
 			}
 			impostaGPU(valutaGPU(g))
-			pv := sceltaCorrettore(g, ram, core)
+			pv := sceltaLivello(g, ram, core, leggiImp().LivelloIA)
 			voluto = pv.Nome
 			if pv.Nome == "meta" && pv.Strati > 0 && (attuale != "meta" || !ia.Attivo()) {
 				stratiMeta.Store(int64(pv.Strati)) // si usa alla prossima accensione

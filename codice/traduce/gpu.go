@@ -142,3 +142,38 @@ func sceltaGrande(g InfoGPU, ramGB float64, core int) ProfiloCorrettore {
 		return ProfiloCorrettore{"", 0, 0, fmt.Sprintf("Liberi sulla scheda video solo %.1f GB: la lascio tutta al gioco e uso solo il traduttore veloce.", libera)}
 	}
 }
+
+// sceltaLivello: il livello dell'IA scelto dall'utente nella procedura a passi ("auto", "grande",
+// "media", "piccola"). Con un livello scelto Tasso non va mai sopra quello; se il gioco ha bisogno
+// di memoria scende al livello sotto e poi torna su da solo.
+func sceltaLivello(g InfoGPU, ramGB float64, core int, livello string) ProfiloCorrettore {
+	p := sceltaCorrettore(g, ramGB, core)
+	libera := g.MemoriaGB - g.UsataGB
+	ci := func(gb float64) bool {
+		return g.MemoriaGB > 0 && libera >= gb+margineGiocoGB && ramGB >= ramMinimaScorta && core >= coreMinimiIA
+	}
+	piccola := func() ProfiloCorrettore {
+		if conScorta && ci(vramPiccola) {
+			return ProfiloCorrettore{"piccola", -1, vramPiccola, fmt.Sprintf("Hai scelto l'IA piccola (circa %.0f GB della scheda video).", vramPiccola)}
+		}
+		return ProfiloCorrettore{"", 0, 0, "L'IA piccola non c'è o non ci sta adesso: uso il traduttore veloce."}
+	}
+	switch livello {
+	case "piccola":
+		return piccola()
+	case "media":
+		if p.Nome == "media" || p.Nome == "piccola" || p.Nome == "" || (p.Nome == "meta" && p.MemoriaGB <= vramMedia+0.01) {
+			return p
+		}
+		if conMedia && ci(vramMedia) {
+			return ProfiloCorrettore{"media", -1, vramMedia, fmt.Sprintf("Hai scelto l'IA media (circa %.1f GB della scheda video).", vramMedia)}
+		}
+		if !conMedia && ramGB >= ramMinimaIA && core >= coreMinimiMeta && ci(vramMeta) {
+			// l'IA media non è scaricata: l'IA grande, con sulla scheda solo la parte che sta nei GB della media
+			n := stratiPer(min(vramMedia, libera-margineGiocoGB))
+			return ProfiloCorrettore{"meta", n, vramStrati(n), fmt.Sprintf("Hai scelto l'IA media: uso l'IA grande con circa %.1f GB sulla scheda video.", vramStrati(n))}
+		}
+		return piccola()
+	}
+	return p
+}

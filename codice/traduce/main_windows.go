@@ -50,6 +50,7 @@ type Impostazioni struct {
 	Posizione string `json:"posizione"`
 	TuttoAuto bool   `json:"tutto_auto"` // traduce da solo tutte le scritte dei giochi
 	Motore    string `json:"motore"`     // "auto", "ia", "mozilla"
+	LivelloIA string `json:"livello_ia"` // "auto" (o vuoto), "grande", "media", "piccola": scelto nella procedura a passi
 	MozillaSi bool   `json:"mozilla_si"`
 	IASi      bool   `json:"ia_si"`
 	Glossario Glossario
@@ -706,6 +707,16 @@ func collega(w webview2.WebView) {
 		go preparaMotori()
 		return "ok"
 	})
+	_ = w.Bind("ttImpostaLivelloIA", func(l string) string {
+		if l != "auto" && l != "grande" && l != "media" && l != "piccola" {
+			return "no"
+		}
+		muImp.Lock()
+		imp.LivelloIA = l
+		muImp.Unlock()
+		salvaImp()
+		return "ok"
+	})
 	_ = w.Bind("ttCronologia", func() []Risultato { return cronologia() })
 	_ = w.Bind("ttSalvaCronologia", func() string { return salvaCronologia() })
 	_ = w.Bind("ttGlossario", func() Glossario { return leggiImp().Glossario })
@@ -807,6 +818,10 @@ func stato() map[string]interface{} {
 		"ia_pc_motivo":    iaMotivoPC(),
 		"ia_attiva":       ia.Attivo(),
 		"ia_profilo":      profiloAttuale(),
+		"ia_livello":      i.LivelloIA,
+		"ia_media":        mediaPresente(),
+		"ia_piccola":      scortaPresente(),
+		"ia_gb":           map[string]float64{"piccola": vramPiccola, "media": vramMedia, "grande": vramIntero},
 		"ia_corrette":     correzioniFatte(),
 		"gpu":             gpuAttuale(),
 		"motore_ora":      ma,

@@ -132,3 +132,18 @@ func TestMedia(t *testing.T) {
 		t.Errorf("8 GB usati: IA piccola, non %+v", p)
 	}
 }
+
+func TestLivelloScelto(t *testing.T) {
+	conScorta, conMedia = true, true
+	defer func() { conScorta, conMedia = false, false }()
+	g := InfoGPU{MemoriaGB: 12, UsataGB: 2}
+	for liv, vuole := range map[string]string{"auto": "scheda", "grande": "scheda", "media": "media", "piccola": "piccola"} {
+		if p := sceltaLivello(g, 48, 16, liv); p.Nome != vuole {
+			t.Errorf("%s: %+v", liv, p)
+		}
+	}
+	// media scelta ma il gioco pesa: scende alla piccola
+	if p := sceltaLivello(InfoGPU{MemoriaGB: 12, UsataGB: 7}, 48, 16, "media"); p.Nome != "piccola" {
+		t.Errorf("media con gioco pesante: %+v", p)
+	}
+}
