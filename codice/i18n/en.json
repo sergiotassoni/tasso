@@ -4942,6 +4942,9 @@
   "Impostazioni consigliate applicate in parte: ": "Recommended settings only partly applied: ",
   "Questo gioco ha un anti-cheat: Tasso non tocca i suoi file. La grafica la imposti tu dal menu del gioco (i valori giusti sono in \"Mostra i dettagli\").": "This game has anti-cheat: Tasso doesn't touch its files. Set the graphics yourself from the game's menu (the right values are in \"Show details\").",
   "Non per questo gioco: ha un anti-cheat.": "Not for this game: it has anti-cheat.",
-  "Grafica dentro il gioco: questo gioco ha un anti-cheat, quindi Tasso non tocca i suoi file. La grafica la imposti tu dal menu del gioco, con i valori consigliati qui sopra.": "In-game graphics: this game has anti-cheat, so Tasso doesn't touch its files. Set the graphics yourself from the game's menu, using the recommended values above."
+  "Grafica dentro il gioco: questo gioco ha un anti-cheat, quindi Tasso non tocca i suoi file. La grafica la imposti tu dal menu del gioco, con i valori consigliati qui sopra.": "In-game graphics: this game has anti-cheat, so Tasso doesn't touch its files. Set the graphics yourself from the game's menu, using the recommended values above.",
+  "La tolgo: il gioco torna com'era": "I'll remove it: the game goes back to how it was",
+  "Tolgo la traduzione…": "Removing the translation…",
+  "Traduzione non tolta: ": "Translation not removed: "
  }
 }
