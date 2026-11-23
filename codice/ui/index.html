@@ -2930,7 +2930,8 @@ async function setLook(p){
   if (p !== 'ufficio' && !S.showAll && CURVIEW === 'perf') show('home');
   const gameOn = !!(S.autoGame || S.boostAuto || S.overlayOn || (S.gameProfile && S.gameProfile.on));
   const paused = gameOn ? _t(' Le funzioni da gioco (Boost automatico, pannellino, Profilo gioco) restano in pausa finché torni a Gaming.') : '';
-  if (p === 'ufficio' && (S.mode === 'gaming' || S.mode === 'fps')) toast(_t('Modalità Ufficio attiva. Il PC però è ancora in modalità ') + (S.mode === 'fps' ? 'FPS' : 'Gaming') + _t(' (consuma di più).') + paused, 'var(--a3)', {label:_t('Metti Normale'), fn: () => { call('goSetMode', 'normale'); toast(_t('Metto la modalità Normale…')); }});
+  const boostOn = !!(typeof BST !== 'undefined' && BST && (BST.on || BST.game)); // la modalità la rimette Go spegnendo il Boost
+  if (p === 'ufficio' && !boostOn && (S.mode === 'gaming' || S.mode === 'fps')) toast(_t('Modalità Ufficio attiva. Il PC però è ancora in modalità ') + (S.mode === 'fps' ? 'FPS' : 'Gaming') + _t(' (consuma di più).') + paused, 'var(--a3)', {label:_t('Metti Normale'), fn: () => { call('goSetMode', 'normale'); toast(_t('Metto la modalità Normale…')); }});
   else if (p === 'ufficio') toast(_t('Modalità Ufficio: Tasso più semplice e tranquillo.') + paused, 'var(--a3)');
   else toast(_t('Modalità Gaming: solo le cose per giocare, con giochi, FPS e ping.'), 'var(--red)');
 }

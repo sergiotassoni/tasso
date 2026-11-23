@@ -453,7 +453,11 @@ func restoreBoostMode(prev string) bool {
 
 // boostOff ("Rimetti com'era"): spegne il Boost e anche il Boost automatico, e rimette solo
 // quello che il Boost ha cambiato.
-func boostOff(explicit bool) []string {
+func boostOff(explicit bool) []string { return boostOffOpt(explicit, false) }
+
+// boostOffOpt: con keepAuto (passaggio a Ufficio) annulla solo gli effetti del Boost e lascia la scelta
+// "Boost automatico" com'è, così tornando a Gaming riprende da solo.
+func boostOffOpt(explicit, keepAuto bool) []string {
 	bOpMu.Lock()
 	defer bOpMu.Unlock()
 	bMu.Lock()
@@ -464,9 +468,14 @@ func boostOff(explicit bool) []string {
 		gpuPrev = s.GpuPrev
 		s.GpuPrev = nil
 	}
-	s.On, s.Auto, s.PrevMode, s.PrevAG = false, false, "", nil
-	if bGame != "" {
-		bSkip = bGame
+	if keepAuto {
+		s.On, s.PrevMode = false, ""
+		auto = false // la modalità gioco automatica non si tocca: serve ancora al Boost automatico
+	} else {
+		s.On, s.Auto, s.PrevMode, s.PrevAG = false, false, "", nil
+		if bGame != "" {
+			bSkip = bGame
+		}
 	}
 	bGame = ""
 	saveBoost()
@@ -524,7 +533,7 @@ func boostOffForOffice() {
 	}
 	go func() {
 		defer guard("boost.go:office")
-		msgs := append([]string{"Modalità Ufficio: ho spento il Boost e rimesso com'era quello che aveva cambiato."}, boostOff(true)...)
+		msgs := append([]string{"Modalità Ufficio: ho spento il Boost e rimesso com'era quello che aveva cambiato."}, boostOffOpt(true, true)...)
 		emit("onBoost", map[string]interface{}{"msgs": msgs, "state": boostInfo()})
 	}()
 }
