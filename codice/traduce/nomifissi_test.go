@@ -51,3 +51,9 @@ func TestSchermataNellaCorrezione(t *testing.T) {
 		t.Error("la correzione deve vedere la schermata")
 	}
 }
+
+func TestEtichettaConMaiuscola(t *testing.T) {
+	if comeMaiuscola("Mouse", "mouse") != "Mouse" || comeMaiuscola("mouse", "mouse") != "mouse" {
+		t.Error("maiuscola")
+	}
+}

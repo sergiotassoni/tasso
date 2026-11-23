@@ -303,7 +303,7 @@ func (t *Traduttore) traduciEtichetta(ctx context.Context, s string, inizio time
 		return ris, true
 	}
 	if it, ok := t.termineEsatto(s); ok {
-		return finito(it, "glossario")
+		return finito(comeMaiuscola(s, it), "glossario")
 	}
 	if it, ok := t.oggettoDiMateriale(s); ok {
 		return finito(it, "glossario")
@@ -459,6 +459,17 @@ func (t *Traduttore) ricontrolla(ctx context.Context, chiave, battuta, v string,
 	g := t.glossarioPieno.trova(battuta)
 	t.mu.Unlock()
 	t.accodaCorrezione(chiave, battuta, v, g, schermataDa(ctx, dialogo))
+}
+
+// comeMaiuscola: una scritta da sola (titolo, voce di menu) che nel gioco inizia con la maiuscola
+// la tiene anche in italiano ("Mouse" → "Mouse", non "mouse" come dentro una frase).
+func comeMaiuscola(en, it string) string {
+	re, ri := []rune(strings.TrimSpace(en)), []rune(it)
+	if len(re) == 0 || len(ri) == 0 || !unicode.IsUpper(re[0]) || !unicode.IsLower(ri[0]) {
+		return it
+	}
+	ri[0] = unicode.ToUpper(ri[0])
+	return string(ri)
 }
 
 func contestoSe(si bool, c []string) []string {

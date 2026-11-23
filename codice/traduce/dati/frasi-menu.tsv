@@ -914,3 +914,614 @@ Right Trigger	Grilletto destro
 Left Bumper	Dorsale sinistro
 Right Bumper	Dorsale destro
 Touchpad	Touchpad
+Reset	Ripristina
+Space Bar	Barra spaziatrice
+# --- online, account, negozio
+Play	Gioca
+Play Now	Gioca ora
+Play Online	Gioca online
+Play Offline	Gioca offline
+Quick Play	Partita rapida
+Quick Match	Partita rapida
+Ranked	Classificata
+Ranked Match	Partita classificata
+Unranked	Non classificata
+Casual	Casual
+Competitive	Competitiva
+Matchmaking	Matchmaking
+Find Match	Cerca partita
+Find Game	Cerca partita
+Cancel Matchmaking	Annulla ricerca
+Cancel Search	Annulla ricerca
+Searching for players	Ricerca giocatori
+Estimated wait time	Tempo di attesa stimato
+Match starting	La partita sta per iniziare
+Match starting in	La partita inizia tra
+Game starting in	La partita inizia tra
+Lobby	Lobby
+Create Lobby	Crea lobby
+Join Lobby	Entra nella lobby
+Leave Lobby	Esci dalla lobby
+Private Lobby	Lobby privata
+Public Lobby	Lobby pubblica
+Private Match	Partita privata
+Create Server	Crea server
+Dedicated Server	Server dedicato
+Server Browser	Elenco server
+Server Name	Nome del server
+Server Password	Password del server
+Max Players	Giocatori massimi
+Players	Giocatori
+Player	Giocatore
+Region	Regione
+Server Region	Regione del server
+Latency	Latenza
+Packet Loss	Perdita di pacchetti
+Network	Rete
+Network Settings	Impostazioni di rete
+Connection	Connessione
+Connection failed	Connessione non riuscita
+Connection timed out	Connessione scaduta
+Unable to connect to server	Impossibile connettersi al server
+Failed to connect	Connessione non riuscita
+Server is full	Il server è pieno
+The server is full	Il server è pieno
+Server not responding	Il server non risponde
+Server maintenance	Manutenzione del server
+Servers are under maintenance	I server sono in manutenzione
+You have been disconnected	Sei stato disconnesso
+You have been kicked	Sei stato espulso
+You have been kicked from the server	Sei stato espulso dal server
+You have been banned	Sei stato bannato
+Kicked by host	Espulso dall'host
+Host left the game	L'host ha lasciato la partita
+Host migration	Cambio dell'host
+Player joined	Giocatore entrato
+Player left	Giocatore uscito
+has joined the game	è entrato in partita
+has left the game	ha lasciato la partita
+Version mismatch	Versione diversa
+Please update the game	Aggiorna il gioco
+A new update is available	È disponibile un nuovo aggiornamento
+Update available	Aggiornamento disponibile
+Update required	Aggiornamento necessario
+Downloading update	Download dell'aggiornamento
+Checking for updates	Controllo aggiornamenti
+Patch notes	Note sulla patch
+What's New	Novità
+Login	Accedi
+Log In	Accedi
+Sign In	Accedi
+Log Out	Esci
+Logout	Esci
+Sign Out	Esci
+Sign Up	Registrati
+Register	Registrati
+Create Account	Crea account
+Account	Account
+Username	Nome utente
+Password	Password
+Email	Email
+Forgot Password?	Password dimenticata?
+Forgot your password?	Hai dimenticato la password?
+Remember Me	Ricordami
+Stay signed in	Resta connesso
+Invalid username or password	Nome utente o password non validi
+Incorrect password	Password errata
+Logging in	Accesso in corso
+Authenticating	Autenticazione in corso
+Profile	Profilo
+Edit Profile	Modifica profilo
+Player Profile	Profilo giocatore
+Friends	Amici
+Friends List	Elenco amici
+Add Friend	Aggiungi amico
+Remove Friend	Rimuovi amico
+Friend Request	Richiesta di amicizia
+Friend Requests	Richieste di amicizia
+Pending	In attesa
+Online Friends	Amici online
+Block Player	Blocca giocatore
+Unblock	Sblocca
+Report Player	Segnala giocatore
+Report	Segnala
+Mute Player	Silenzia giocatore
+Invite	Invita
+Invite to Party	Invita nel gruppo
+Invite to Group	Invita nel gruppo
+Join Party	Entra nel gruppo
+Leave Party	Lascia il gruppo
+Party	Gruppo
+Party Leader	Capogruppo
+Kick from Party	Espelli dal gruppo
+Promote to Leader	Nomina capogruppo
+Squad	Squadra
+Team	Squadra
+Teammate	Compagno di squadra
+Teammates	Compagni di squadra
+Ally	Alleato
+Allies	Alleati
+Enemy	Nemico
+Enemies	Nemici
+Opponent	Avversario
+Spectate	Guarda
+Spectating	Stai guardando
+Spectator Mode	Modalità spettatore
+Store	Negozio
+Shop	Negozio
+In-Game Store	Negozio del gioco
+Item Shop	Negozio oggetti
+Purchase	Acquista
+Buy Now	Acquista ora
+Confirm Purchase	Conferma acquisto
+Purchase successful	Acquisto completato
+Purchase failed	Acquisto non riuscito
+Insufficient funds	Fondi insufficienti
+Not enough coins	Monete insufficienti
+Not enough gems	Gemme insufficienti
+Price	Prezzo
+Free	Gratis
+Owned	Posseduto
+Sold Out	Esaurito
+Limited Time	A tempo limitato
+Limited Time Offer	Offerta a tempo limitato
+Daily Deals	Offerte del giorno
+Featured	In evidenza
+Bundle	Pacchetto
+Bundles	Pacchetti
+Season Pass	Pass stagionale
+Battle Pass	Pass battaglia
+Premium Pass	Pass premium
+Free Pass	Pass gratuito
+Tier	Livello
+Tiers	Livelli
+Season	Stagione
+Season ends in	La stagione finisce tra
+Event ends in	L'evento finisce tra
+Ends in	Termina tra
+Starts in	Inizia tra
+Daily Rewards	Ricompense giornaliere
+Daily Login Reward	Ricompensa di accesso giornaliera
+Daily Challenges	Sfide giornaliere
+Weekly Challenges	Sfide settimanali
+Challenges	Sfide
+Challenge Complete	Sfida completata
+Missions	Missioni
+Daily Missions	Missioni giornaliere
+Weekly Missions	Missioni settimanali
+Events	Eventi
+Event	Evento
+Redeem	Riscatta
+Redeem Code	Riscatta codice
+Enter Code	Inserisci codice
+Gift	Regalo
+Send Gift	Invia regalo
+Mail	Posta
+Mailbox	Casella di posta
+Inbox	Posta in arrivo
+Collect	Raccogli
+Collect All	Raccogli tutto
+Claim All	Riscuoti tutto
+Claimed	Riscosso
+Leaderboard	Classifica
+Leaderboards	Classifiche
+Rankings	Classifiche
+Rank	Grado
+Rank Up	Promozione di grado
+Rank Down	Retrocessione di grado
+Stats	Statistiche
+Match History	Storico partite
+Career	Carriera
+Wins	Vittorie
+Losses	Sconfitte
+Kills	Uccisioni
+Deaths	Morti
+Assists	Assist
+K/D Ratio	Rapporto U/M
+Win Rate	Percentuale di vittorie
+Accuracy	Precisione
+Time Played	Tempo di gioco
+Playtime	Tempo di gioco
+Experience	Esperienza
+XP	PE
+Level	Livello
+Prestige	Prestigio
+Customize	Personalizza
+Customization	Personalizzazione
+Appearance	Aspetto
+Outfit	Completo
+Outfits	Completi
+Skins	Skin
+Cosmetics	Oggetti estetici
+Loadout	Equipaggiamento
+Loadouts	Equipaggiamenti
+Edit Loadout	Modifica equipaggiamento
+Collection	Collezione
+Locker	Armadietto
+Emote	Emote
+Banner	Stendardo
+Title	Titolo
+Titles	Titoli
+Badge	Distintivo
+Badges	Distintivi
+Avatar	Avatar
+Nickname	Soprannome
+Change Name	Cambia nome
+Language Settings	Impostazioni lingua
+Privacy Settings	Impostazioni privacy
+Notifications	Notifiche
+Terms of Service	Termini di servizio
+Privacy Policy	Informativa sulla privacy
+I agree	Accetto
+Agree	Accetto
+Help	Aiuto
+Contact Support	Contatta l'assistenza
+Feedback	Commenti
+Send Feedback	Invia un commento
+Tutorial	Tutorial
+Training	Allenamento
+Practice	Allenamento
+Practice Range	Poligono di tiro
+Firing Range	Poligono di tiro
+How to Play	Come si gioca
+Tips	Consigli
+Loading Tips	Consigli
+Did you know?	Lo sapevi?
+# --- MMORPG e gioco di ruolo
+Guild	Gilda
+Guilds	Gilde
+Create Guild	Crea gilda
+Join Guild	Entra nella gilda
+Leave Guild	Lascia la gilda
+Guild Master	Capo gilda
+Guild Leader	Capo gilda
+Guild Members	Membri della gilda
+Guild Chat	Chat di gilda
+Guild Bank	Banca della gilda
+Guild Hall	Sede della gilda
+Clan	Clan
+Alliance	Alleanza
+Faction	Fazione
+Factions	Fazioni
+Reputation	Reputazione
+Raid	Incursione
+Raids	Incursioni
+Raid Group	Gruppo d'incursione
+Dungeon	Dungeon
+Dungeons	Dungeon
+Dungeon Finder	Ricerca dungeon
+Group Finder	Ricerca gruppo
+Looking for Group	Cerco gruppo
+Ready Check	Controllo pronti
+Role	Ruolo
+Select Role	Scegli ruolo
+Tank	Tank
+Healer	Guaritore
+Damage	Danni
+DPS	DPS
+Boss	Boss
+World Boss	Boss del mondo
+Elite	Élite
+Rare	Raro
+Common	Comune
+Uncommon	Non comune
+Legendary	Leggendario
+Mythic	Mitico
+Artifact	Artefatto
+Unique	Unico
+Set Bonus	Bonus del set
+Item Level	Livello oggetto
+Required Level	Livello richiesto
+Requires Level	Richiede livello
+Level Required	Livello richiesto
+Soulbound	Vincolato
+Bind on Pickup	Si vincola alla raccolta
+Bind on Equip	Si vincola all'uso
+Account Bound	Vincolato all'account
+Tradable	Scambiabile
+Untradable	Non scambiabile
+Durability	Resistenza
+Weight	Peso
+Value	Valore
+Sell Price	Prezzo di vendita
+Buy Price	Prezzo di acquisto
+Auction House	Casa d'aste
+Marketplace	Mercato
+Market	Mercato
+Bid	Offerta
+Place Bid	Fai un'offerta
+Buyout	Compra subito
+Listings	Inserzioni
+Create Listing	Crea inserzione
+My Listings	Le mie inserzioni
+Bank	Banca
+Storage	Deposito
+Stash	Scorta
+Deposit	Deposita
+Withdraw	Preleva
+Deposit All	Deposita tutto
+Trade Request	Richiesta di scambio
+Accept Trade	Accetta scambio
+Cancel Trade	Annulla scambio
+Trade Window	Finestra di scambio
+Mounts	Cavalcature
+Pet	Mascotte
+Pets	Mascotte
+Companion	Compagno
+Companions	Compagni
+Class	Classe
+Classes	Classi
+Subclass	Sottoclasse
+Specialization	Specializzazione
+Talents	Talenti
+Talent Tree	Albero dei talenti
+Talent Points	Punti talento
+Skill Tree	Albero delle abilità
+Skill Points	Punti abilità
+Attribute Points	Punti attributo
+Abilities	Abilità
+Ability	Abilità
+Spells	Incantesimi
+Spellbook	Libro degli incantesimi
+Passive	Passiva
+Active	Attiva
+Ultimate	Suprema
+Cooldown	Ricarica
+On Cooldown	In ricarica
+Ability not ready	Abilità non pronta
+Not ready yet	Non ancora pronta
+Out of range	Fuori portata
+Target out of range	Bersaglio fuori portata
+Invalid target	Bersaglio non valido
+No target	Nessun bersaglio
+You need a target	Ti serve un bersaglio
+Cast Time	Tempo di lancio
+Instant	Istantaneo
+Channeled	Canalizzato
+Range	Portata
+Mana Cost	Costo di mana
+Energy	Energia
+Rage	Ira
+Focus	Concentrazione
+Health	Salute
+Mana	Mana
+Stamina	Vigore
+Strength	Forza
+Agility	Agilità
+Dexterity	Destrezza
+Intelligence	Intelligenza
+Wisdom	Saggezza
+Vitality	Vitalità
+Constitution	Costituzione
+Charisma	Carisma
+Luck	Fortuna
+Endurance	Resistenza
+Spirit	Spirito
+Willpower	Forza di volontà
+Armor	Armatura
+Defense	Difesa
+Attack	Attacco
+Attack Power	Potenza d'attacco
+Spell Power	Potenza magica
+Magic Damage	Danni magici
+Physical Damage	Danni fisici
+Critical Hit	Colpo critico
+Critical Chance	Probabilità di critico
+Crit Chance	Probabilità di critico
+Critical Damage	Danni critici
+Crit Damage	Danni critici
+Attack Speed	Velocità d'attacco
+Cast Speed	Velocità di lancio
+Movement Speed	Velocità di movimento
+Move Speed	Velocità di movimento
+Evasion	Evasione
+Dodge Chance	Probabilità di schivata
+Block Chance	Probabilità di parata
+Resistance	Resistenza
+Fire Resistance	Resistenza al fuoco
+Cold Resistance	Resistenza al freddo
+Lightning Resistance	Resistenza al fulmine
+Poison Resistance	Resistenza al veleno
+Health Regeneration	Rigenerazione salute
+Mana Regeneration	Rigenerazione mana
+Life Steal	Furto di vita
+Lifesteal	Furto di vita
+Damage Reduction	Riduzione danni
+Damage Bonus	Bonus danni
+Experience Bonus	Bonus esperienza
+Max Health	Salute massima
+Max HP	PV massimi
+Max Mana	Mana massimo
+Stun	Stordimento
+Stunned	Stordito
+Silenced	Silenziato
+Rooted	Immobilizzato
+Slowed	Rallentato
+Frozen	Congelato
+Burning	In fiamme
+Poisoned	Avvelenato
+Bleeding	Sanguinamento
+Cursed	Maledetto
+Blinded	Accecato
+Confused	Confuso
+Feared	Terrorizzato
+Invulnerable	Invulnerabile
+Immune	Immune
+Buff	Potenziamento
+Debuff	Penalità
+Buffs	Potenziamenti
+Debuffs	Penalità
+Weapon	Arma
+Weapons	Armi
+Armour	Armatura
+Helmet	Elmo
+Head	Testa
+Shoulders	Spalle
+Gloves	Guanti
+Hands	Mani
+Legs	Gambe
+Boots	Stivali
+Feet	Piedi
+Belt	Cintura
+Waist	Vita
+Cloak	Mantello
+Ring	Anello
+Rings	Anelli
+Necklace	Collana
+Amulet	Amuleto
+Trinket	Ninnolo
+Accessory	Accessorio
+Accessories	Accessori
+Shield	Scudo
+Off-hand	Mano secondaria
+Main Hand	Mano principale
+Two-Handed	A due mani
+One-Handed	A una mano
+Sword	Spada
+Axe	Ascia
+Mace	Mazza
+Dagger	Pugnale
+Bow	Arco
+Crossbow	Balestra
+Wand	Bacchetta
+Spear	Lancia
+Hammer	Martello
+Consumables	Consumabili
+Consumable	Consumabile
+Potion	Pozione
+Potions	Pozioni
+Health Potion	Pozione di salute
+Mana Potion	Pozione di mana
+Elixir	Elisir
+Food	Cibo
+Materials	Materiali
+Material	Materiale
+Crafting Materials	Materiali di creazione
+Resources	Risorse
+Quest Items	Oggetti della missione
+Quest Item	Oggetto della missione
+Key Items	Oggetti chiave
+Miscellaneous	Varie
+Junk	Cianfrusaglie
+Gold	Oro
+Silver	Argento
+Copper	Rame
+Coins	Monete
+Currency	Valuta
+Gems	Gemme
+Crystals	Cristalli
+Tokens	Gettoni
+Recipe	Ricetta
+Recipes	Ricette
+Blueprint	Progetto
+Blueprints	Progetti
+Profession	Professione
+Professions	Professioni
+Gathering	Raccolta
+Mining	Estrazione
+Herbalism	Erboristeria
+Fishing	Pesca
+Cooking	Cucina
+Smithing	Forgiatura
+Blacksmithing	Arte del fabbro
+Alchemy	Alchimia
+Enchanting	Incantamento
+Tailoring	Sartoria
+Leatherworking	Lavorazione del cuoio
+Jewelcrafting	Gioielleria
+Woodworking	Falegnameria
+Enchant	Incanta
+Enhance	Potenzia
+Enhancement	Potenziamento
+Refine	Raffina
+Socket	Incastonatura
+Empty Socket	Incastonatura vuota
+Reforge	Riforgia
+Transmog	Trasmogrificazione
+Main Quest	Missione principale
+Side Quest	Missione secondaria
+Side Quests	Missioni secondarie
+Main Story	Storia principale
+Story Quest	Missione della storia
+Daily Quest	Missione giornaliera
+Daily Quests	Missioni giornaliere
+Weekly Quest	Missione settimanale
+Bounty	Taglia
+Bounties	Taglie
+Quest Log	Registro missioni
+Quest Tracker	Segui missioni
+Active Quests	Missioni attive
+Completed Quests	Missioni completate
+Available Quests	Missioni disponibili
+Complete Quest	Completa missione
+Objectives	Obiettivi
+Objective	Obiettivo
+Optional	Facoltativo
+Optional Objective	Obiettivo facoltativo
+Reward	Ricompensa
+Quest Rewards	Ricompense della missione
+Choose a reward	Scegli una ricompensa
+Choose your reward	Scegli la tua ricompensa
+Talk to	Parla con
+Speak with	Parla con
+Return to	Torna da
+Go to	Vai a
+Travel to	Viaggia verso
+Kill	Uccidi
+Escort	Scorta
+Defend	Difendi
+Survive	Sopravvivi
+Explore	Esplora
+Find	Trova
+Investigate	Indaga
+Deliver	Consegna
+Waypoint	Punto di passaggio
+Set Waypoint	Imposta punto di passaggio
+Remove Waypoint	Rimuovi punto di passaggio
+Untrack Quest	Non seguire missione
+World Map	Mappa del mondo
+Local Map	Mappa locale
+Zone	Zona
+Region Map	Mappa della regione
+Discovered	Scoperto
+Undiscovered	Non scoperto
+Unexplored	Inesplorato
+Fast Travel Point	Punto di viaggio rapido
+Teleport	Teletrasporto
+Respawn	Rinasci
+Revive	Rianima
+Resurrect	Resuscita
+Release Spirit	Libera lo spirito
+Accept Resurrection	Accetta la resurrezione
+You have been revived	Sei stato rianimato
+Revive Teammate	Rianima compagno
+Downed	A terra
+Knocked Down	A terra
+PvP	PvP
+PvE	PvE
+Arena	Arena
+Battleground	Campo di battaglia
+Battlegrounds	Campi di battaglia
+Duel	Duello
+Challenge to a Duel	Sfida a duello
+Accept Duel	Accetta duello
+Decline Duel	Rifiuta duello
+Honor	Onore
+Conquest	Conquista
+Siege	Assedio
+Territory	Territorio
+Capture	Conquista
+Capture the Flag	Cattura la bandiera
+Point Captured	Punto conquistato
+Point Lost	Punto perso
+Objective Captured	Obiettivo conquistato
+Your team wins	La tua squadra vince
+Your team lost	La tua squadra ha perso
+Enemy team wins	Vince la squadra nemica
+Loot	Bottino
+Loot Roll	Tiro per il bottino
+Need	Necessità
+Greed	Cupidigia
+Auto Loot	Raccolta automatica
+Dropped	Lasciato cadere
+Drop Rate	Probabilità di drop
