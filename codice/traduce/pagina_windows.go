@@ -157,7 +157,7 @@ func disegnaBlocco(hdc uintptr, b Blocco, fase int) {
 	larg, maxLarg := int32(b.W), int32(max(b.LargMax, b.W))
 	if b.Centro && righe == 1 {
 		maxLarg = larg + 2*(maxLarg-larg) // centrata: cresce dai due lati
-		if b.Img != nil { // ma non oltre i bordi dello schermo
+		if b.Img != nil {                 // ma non oltre i bordi dello schermo
 			cx := int32(b.X + b.W/2)
 			maxLarg = min(maxLarg, 2*min(cx, int32(b.Img.Bounds().Dx())-cx)-16)
 		}
