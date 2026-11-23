@@ -41,6 +41,7 @@ func scriptDir() string {
 			d := filepath.Join(pf, "Tasso", "lavoro")
 			if os.MkdirAll(d, 0o755) == nil {
 				scriptDirPath = d
+				go pulisciScriptVecchi(d)
 				return
 			}
 		}
@@ -48,6 +49,18 @@ func scriptDir() string {
 		_ = os.MkdirAll(scriptDirPath, 0o755)
 	})
 	return scriptDirPath
+}
+
+// pulisciScriptVecchi: se Tasso è stato chiuso mentre uno script girava, il .ps1 resta in lavoro.
+// Tolgo solo i nostri (tasso_*.ps1) più vecchi di un giorno: nessuno script dura così tanto.
+func pulisciScriptVecchi(d string) {
+	defer guard("pulisciScriptVecchi")
+	l, _ := filepath.Glob(filepath.Join(d, "tasso_*.ps1"))
+	for _, f := range l {
+		if fi, err := os.Stat(f); err == nil && !fi.IsDir() && time.Since(fi.ModTime()) > 24*time.Hour {
+			_ = os.Remove(f)
+		}
+	}
 }
 
 // writeScript salva lo script come normale file .ps1 (UTF-8 con BOM, così PowerShell 5.1 legge bene le lettere accentate).
