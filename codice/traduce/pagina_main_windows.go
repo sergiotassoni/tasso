@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"image"
 	"image/draw"
+	"os"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -249,6 +250,13 @@ func preparaPagina(area Zona, img, primaImg *image.RGBA, giro int64) (p *paginaP
 		}
 	}
 	spazioLibero(blocchi, area.W)
+	if esisteVoce(filepath.Join(dirApp, "logs", "salva-anteprima")) { // controllo a mano: cosa ha letto
+		var sb strings.Builder
+		for _, b := range blocchi {
+			fmt.Fprintf(&sb, "%d,%d %dx%d righe=%d em=%.1f tradurre=%v affidabile=%v | %s\n", b.X, b.Y, b.W, b.H, b.Righe, b.Em, daTradurre(b.Testo), letturaAffidabile(b.Testo), b.Testo)
+		}
+		_ = os.WriteFile(filepath.Join(dirApp, "logs", "pagina-letto.txt"), []byte(sb.String()), 0o644)
+	}
 	nostra, ceNostra := nostraFinestraIn(area)
 	var pronti []Blocco
 	nuove := 0
@@ -309,6 +317,13 @@ func preparaPagina(area Zona, img, primaImg *image.RGBA, giro int64) (p *paginaP
 		if len(pronti) <= 40 { // nella cronologia (F8) le scritte nuove, senza doppioni
 			aggiungiCronologia(r, true)
 		}
+	}
+	if esisteVoce(filepath.Join(dirApp, "logs", "salva-anteprima")) {
+		var sb strings.Builder
+		for i, b := range da {
+			fmt.Fprintf(&sb, "%d,%d | %s => %s (%s)\n", b.X, b.Y, b.Testo, risultati[i].Tradotto, risultati[i].Motore)
+		}
+		_ = os.WriteFile(filepath.Join(dirApp, "logs", "pagina-tradotto.txt"), []byte(sb.String()), 0o644)
 	}
 	armonizza(pronti)
 	for i := range pronti { // titoli al centro dello schermo: la traduzione resta al centro

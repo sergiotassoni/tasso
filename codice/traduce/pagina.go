@@ -58,6 +58,15 @@ func (b Blocco) grassetto() bool { return b.Tratto >= sogliaGrassetto }
 
 // pesoCarattere: lo spessore del carattere come quello del gioco (normale, semi-neretto, neretto).
 func (b Blocco) pesoCarattere() uintptr {
+	if b.Em > 0 && b.Em < 20 { // lettere piccole: il tratto di 2 pixel non vuol dire grassetto
+		switch px := b.Tratto * b.Em; {
+		case px >= 3.2:
+			return 700
+		case px >= 2.6:
+			return 600
+		}
+		return 400
+	}
 	switch {
 	case b.Tratto >= sogliaGrassetto:
 		return 700
@@ -124,7 +133,7 @@ func segmentiRiga(p []ParolaOCR, fattore float64) []Blocco {
 	for i := 1; i <= len(p); i++ {
 		if i < len(p) {
 			buco := p[i].X - (p[i-1].X + p[i-1].W)
-			if buco < 1.1*hMed { // spazio tra parole ~0,3-0,5 volte l'altezza: oltre è un'altra colonna
+			if buco < max(1.1*hMed, 28*fattore) { // spazio tra parole ~0,3-0,5 volte l'altezza: oltre è un'altra colonna
 				continue
 			}
 		}
