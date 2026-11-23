@@ -44,3 +44,18 @@ func TestNomiIntatti(t *testing.T) {
 		t.Fatalf("%q", g)
 	}
 }
+
+func TestJoinTagliatoENome(t *testing.T) {
+	if g := correggiParole("in Multiplayer Game (Invite Code)"); g != "Join Multiplayer Game (Invite Code)" {
+		t.Fatal(g)
+	}
+	if g := correggiParole("in the house"); g != "in the house" {
+		t.Fatal(g)
+	}
+	if daTradurre("1LMESS1A (STEAM)") || daTradurre("XX4LEX") {
+		t.Fatal("nome tradotto")
+	}
+	if !daTradurre("Start Game") {
+		t.Fatal("menu non tradotto")
+	}
+}

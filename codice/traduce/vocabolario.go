@@ -107,6 +107,10 @@ func soloLettere(p string) bool {
 // correggiParole ripara le parole che non esistono in inglese. I nomi propri (maiuscola a metà
 // frase) e le sigle restano come sono.
 func correggiParole(r string) string {
+	// la "J" di "Join" spesso si perde sopra uno sfondo disegnato: "in Multiplayer Game"
+	if m := reJoinTagliato.FindStringSubmatchIndex(r); m != nil {
+		r = "Join" + r[m[2]:]
+	}
 	if vocabolario() == nil || len(vocLiv) == 0 {
 		return r
 	}
@@ -276,3 +280,5 @@ func staccaMaiuscola(p string) string {
 	}
 	return ""
 }
+
+var reJoinTagliato = regexp.MustCompile(`^(?:[JjIl1|]?[Oo0]?in|Oin)( (?:Multiplayer|Game|Server|Online|Party|Session|Lobby|a Game)\b)`)

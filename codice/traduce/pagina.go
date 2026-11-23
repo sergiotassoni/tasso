@@ -9,6 +9,7 @@ import (
 	"image"
 	"image/color"
 	"math"
+	"regexp"
 	"sort"
 	"strings"
 	"unicode"
@@ -370,6 +371,10 @@ func daTradurre(s string) bool {
 	// "S REPORT": l'OCR ha preso solo la coda di una parola tagliata; meglio lasciare l'originale
 	if w := strings.Fields(s); len(w) > 1 && len([]rune(w[0])) == 1 && unicode.IsUpper([]rune(w[0])[0]) &&
 		w[0] != "A" && w[0] != "I" && strings.ToUpper(s) == s {
+		return false
+	}
+	// nome del giocatore e piattaforma ("1LMESS1A (STEAM)"): un nome non si traduce
+	if nomeGiocatore(s) {
 		return false
 	}
 	if _, ok := fraseMenu(s); ok { // carica anche il glossario da gioco
@@ -1027,4 +1032,27 @@ func pulisciPagina(img *image.RGBA, bl []Blocco) *image.RGBA {
 		}
 	}
 	return out
+}
+
+var rePiattaforma = regexp.MustCompile(`(?i)\((steam|epic|xbox|psn|playstation|gog|ea|ubisoft|battle\.net)\)\s*$`)
+
+// nomeGiocatore: "NOME (STEAM)", oppure una sola parola tutta maiuscola con cifre in mezzo
+// ("1LMESS1A", "XX4LEX"): è un nome, non una scritta del gioco.
+func nomeGiocatore(s string) bool {
+	if rePiattaforma.MatchString(strings.TrimSpace(s)) {
+		return true
+	}
+	w := strings.Fields(s)
+	if len(w) != 1 || strings.ToUpper(w[0]) != w[0] {
+		return false
+	}
+	cifre, lettere := 0, 0
+	for _, c := range w[0] {
+		if unicode.IsDigit(c) {
+			cifre++
+		} else if unicode.IsLetter(c) {
+			lettere++
+		}
+	}
+	return cifre > 0 && lettere > 1
 }
