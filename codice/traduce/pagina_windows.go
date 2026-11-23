@@ -188,9 +188,9 @@ func disegnaBlocco(hdc uintptr, b Blocco, fase int) {
 			spazio = float64(b.W) * float64(righe) * 0.9
 		}
 		switch r := float64(wIng) / spazio; {
-		case r > 1.24:
+		case r > 1.45:
 			fam = 2
-		case r > 1.1:
+		case r > 1.32:
 			fam = 1
 		}
 	}
