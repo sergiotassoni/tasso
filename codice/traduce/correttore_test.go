@@ -8,10 +8,10 @@ func TestSceltaCorrettore(t *testing.T) {
 		core            int
 		vuole           string
 	}{
-		{12, 2, 48, 16, "scheda"}, // PC di Sergio, gioco leggero
+		{12, 2, 48, 16, "meta"},   // PC di Sergio: al massimo un terzo della scheda (regola 23/11)
 		{12, 6.5, 48, 16, "meta"}, // PC di Sergio, gioco pesante
 		{12, 9, 48, 16, ""},       // gioco pesantissimo: solo Mozilla
-		{8, 1, 16, 8, "scheda"},   // 8 GB quasi libera
+		{8, 1, 16, 8, ""},         // 8 GB: anche metà IA è più di un terzo della scheda (regola 23/11)
 		{8, 4, 16, 4, ""},         // processore piccolo: niente lavoro sul processore
 		{8, 1, 8, 8, ""},          // 8 GB di RAM: solo Mozilla
 		{4, 0, 32, 12, ""},        // scheda da 4 GB: troppo piccola
@@ -66,7 +66,7 @@ func TestConsiglioPC(t *testing.T) {
 		t.Errorf("PC vecchio: %+v", vecchio)
 	}
 	medio := consiglioPC(InfoGPU{Nome: "RTX 4060", MemoriaGB: 8, UsataGB: 1}, 16, 8, false)
-	if medio.Righe[len(medio.Righe)-1].Esito != "si" {
+	if medio.Righe[len(medio.Righe)-1].Esito != "no" { // regola 23/11: al massimo un terzo della scheda
 		t.Errorf("PC medio: %+v", medio)
 	}
 	debole := consiglioPC(InfoGPU{Nome: "RTX 3050", MemoriaGB: 8}, 8, 4, true)

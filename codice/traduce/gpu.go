@@ -61,8 +61,22 @@ const (
 	coreMinimiIA   = 4
 )
 
+// limiteIA: regola di Sergio (23/11): l'IA usa al massimo un terzo della memoria video
+// (4 GB su una scheda da 12), il resto è del gioco.
+func limiteIA(memoriaGB float64) float64 { return memoriaGB / 3 }
+
 func sceltaCorrettore(g InfoGPU, ramGB float64, core int) ProfiloCorrettore {
 	libera := g.MemoriaGB - g.UsataGB
+	if lim := limiteIA(g.MemoriaGB); g.MemoriaGB > 0 && lim < vramMeta && ramGB >= ramMinimaIA {
+		// scheda piccola (8 GB): anche metà IA prenderebbe più di un terzo. Il gioco prima di tutto
+		return ProfiloCorrettore{"", 0, 0, fmt.Sprintf("Con %.0f GB di scheda video l'IA prenderebbe più di un terzo della memoria del gioco: uso il traduttore veloce.", g.MemoriaGB)}
+	}
+	if lim := limiteIA(g.MemoriaGB); g.MemoriaGB > 0 && lim < vramIntero && lim >= vramMeta &&
+		ramGB >= ramMinimaIA && core >= coreMinimiMeta && libera >= vramMeta+margineGiocoGB {
+		// l'IA intera prenderebbe più di un terzo della scheda: ne metto lì solo una parte
+		// (circa 3,6 GB), il resto lavora sul processore
+		return ProfiloCorrettore{"meta", stratiParziali, vramMeta, fmt.Sprintf("L'IA usa al massimo un terzo della scheda video (circa %.1f GB su %.0f): il resto lo lascio al gioco.", vramMeta, g.MemoriaGB)}
+	}
 	switch {
 	case ramGB < ramMinimaIA || core < coreMinimiIA:
 		return ProfiloCorrettore{"", 0, 0, fmt.Sprintf("Con questo PC (%.0f GB di memoria, %d core) l'IA rallenterebbe il gioco: uso solo il traduttore veloce.", ramGB, core)}
