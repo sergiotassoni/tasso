@@ -88,20 +88,21 @@ type ovClass struct {
 }
 
 var (
-	ovTick         int
-	ovLastSig      string
-	pGetWindowLong = user32.NewProc("GetWindowLongW")
-	ovMu           sync.Mutex
-	ovHwnd         uintptr
-	ovInGame       bool
-	ovManual       bool // mostrato a mano (tasto in Tasso o Ctrl+Maiusc+F12)
-	ovSuppress     bool // nascosto a mano durante questa partita
-	ovShown        bool
-	ovFont         uintptr
-	ovKeyBrush     uintptr
-	ovCPUTemp      float64 = -1
-	ovOnce         sync.Once
-	ovTempStart    sync.Once
+	ovTick                 int
+	ovLastSig              string
+	pGetWindowLong         = user32.NewProc("GetWindowLongW")
+	pSetWndDisplayAffinity = user32.NewProc("SetWindowDisplayAffinity")
+	ovMu                   sync.Mutex
+	ovHwnd                 uintptr
+	ovInGame               bool
+	ovManual               bool // mostrato a mano (tasto in Tasso o Ctrl+Maiusc+F12)
+	ovSuppress             bool // nascosto a mano durante questa partita
+	ovShown                bool
+	ovFont                 uintptr
+	ovKeyBrush             uintptr
+	ovCPUTemp              float64 = -1
+	ovOnce                 sync.Once
+	ovTempStart            sync.Once
 )
 
 func startOverlay() {
@@ -124,6 +125,9 @@ func overlayThread() {
 		return
 	}
 	pSetLayeredAttr.Call(h, ovKey, 245, 1|2) // COLORKEY | ALPHA
+	// Come le finestre di Tasso Traduce: il pannellino non compare nelle catture dello schermo
+	// (Windows 10 2004+), così la traduzione dello schermo non legge i suoi numeri.
+	pSetWndDisplayAffinity.Call(h, 0x11) // WDA_EXCLUDEFROMCAPTURE
 	face, _ := windows.UTF16PtrFromString("Segoe UI")
 	ovFont, _, _ = pCreateFont.Call(19, 0, 0, 0, 700, 0, 0, 0, 1, 0, 0, 3, 0, uintptr(unsafe.Pointer(face)))
 	ovKeyBrush, _, _ = pCreateBrush.Call(ovKey)

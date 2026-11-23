@@ -31,16 +31,6 @@ var chatFinestra atomic.Uintptr
 // e segna come già viste le righe che ci sono (traduce solo quelle che arrivano dopo).
 var chatGen atomic.Int64
 
-// InIngleseTasso: Tasso è in inglese (lo imposta Tasso all'avvio), per le scritte disegnate da qui.
-var InIngleseTasso func() bool
-
-func testoTasso(it, en string) string {
-	if InIngleseTasso != nil && InIngleseTasso() {
-		return en
-	}
-	return it
-}
-
 const righeChatMostrate = 6
 
 var (
@@ -103,7 +93,7 @@ func scegliZonaChat() {
 		emetti("info", map[string]string{"testo": "Apri prima il gioco con la chat visibile, poi torna qui e premi di nuovo «Scegli dove sta la chat»."})
 		return
 	}
-	if sel.hwnd != 0 {
+	if sel.hwnd.Load() != 0 {
 		return // la scelta è già aperta (per esempio F9 nei 3 secondi): non la trasformo in quella della chat
 	}
 	chatFinestra.Store(fg)
@@ -135,6 +125,7 @@ func zonaChatScelta(z Zona) {
 	imp.ChatAltri = true
 	muImp.Unlock()
 	salvaImp()
+	accendiTraduzione() // la chat degli altri legge lo schermo solo con la traduzione accesa
 	chatGen.Add(1)
 	azzeraChatAltri()
 	emetti("aggiorna", stato())

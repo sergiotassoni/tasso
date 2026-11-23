@@ -41,12 +41,12 @@ func attivaPagina() {
 		paginaGiro.Add(1)
 		NascondiPagina()
 		impostaPausa(exeDiFinestra(paginaGiocoA.Load()), true) // il tutto automatico non riparte da solo su questo gioco
-		emetti("info", map[string]string{"testo": "In pausa: schermata di nuovo in inglese ("+nomeTasto("pagina")+" per riprendere)."})
+		emetti("info", map[string]string{"testo": "In pausa: schermata di nuovo in inglese (" + nomeTasto("pagina") + " per riprendere)."})
 		return
 	}
 	impostaPausa(exeDiFinestra(fg), false)
 	if wv != nil && fg == uintptr(wv.Window()) {
-		emetti("info", map[string]string{"testo": "Vai nel gioco e premi "+nomeTasto("pagina")+" lì: traduco tutte le scritte della sua finestra."})
+		emetti("info", map[string]string{"testo": "Vai nel gioco e premi " + nomeTasto("pagina") + " lì: traduco tutte le scritte della sua finestra."})
 		return
 	}
 	if _, ok := areaFinestra(fg); !ok {
@@ -62,7 +62,7 @@ func avviaPaginaSu(fg uintptr) {
 	paginaGiocoA.Store(fg)
 	apriLibreriaPer(fg)
 	paginaAttiva.Store(true)
-	ov.Nascondi() // la finestrella dei dialoghi non serve mentre traduco tutta la schermata
+	ov.Spegni() // la finestrella dei dialoghi non serve mentre traduco tutta la schermata
 	giro := paginaGiro.Add(1)
 	go cicloPagina(giro)
 }
@@ -111,11 +111,16 @@ func cicloPagina(giro int64) {
 			if prima || imp.cambiata(ultima) {
 				cambioVisto.Store(time.Now().UnixNano())
 				// lettura e traduzione partono subito, in anticipo, sulla prima immagine...
-				anticipo := make(chan *paginaPronta, 1)
+				type esitoPagina struct {
+					p        *paginaPronta
+					occupata bool
+				}
+				anticipo := make(chan esitoPagina, 1)
 				go func(img *image.RGBA) {
 					defer guard("pagina-anticipo")
-					p, _ := preparaPagina(area, img, img, giro)
-					anticipo <- p
+					var e esitoPagina
+					defer func() { anticipo <- e }() // anche dopo un errore fermato da guard
+					e.p, e.occupata = preparaPagina(area, img, img, giro)
 				}(img)
 				// ...intanto controllo che la schermata smetta di muoversi (menu che scorre, dissolvenza)
 				time.Sleep(80 * time.Millisecond)
@@ -124,14 +129,20 @@ func cicloPagina(giro int64) {
 					if imp2.differenza(imp) > 3*sogliaCambiato && !prima {
 						NascondiPagina() // cambio di scena: tolgo subito le scritte vecchie
 					}
-					pronta := <-anticipo
+					e := <-anticipo
+					pronta, occupata := e.p, e.occupata
 					if pronta == nil || imp2.cambiata(imp) {
 						// si muoveva ancora: rifaccio sull'immagine nuova. Anche se l'immagine si
 						// muove (video) traduco: le scritte sopra un video diventano una fascia scura
-						pronta, _ = preparaPagina(area, img2, img, giro)
+						pronta, occupata = preparaPagina(area, img2, img, giro)
 					}
 					if pronta != nil && mostraPaginaPronta(pronta, giro) {
 						ultima, ultimaColori, prima = imp2, imp2, false
+					} else if pronta == nil && occupata {
+						// la lettura serviva ai dialoghi o alla chat: non è "niente da tradurre",
+						// riprovo al giro dopo sulla stessa schermata
+						time.Sleep(150 * time.Millisecond)
+						continue
 					} else if pronta == nil {
 						// niente da tradurre qui (già nella lingua giusta, lingua non scaricata,
 						// nessuna scritta): tolgo le scritte vecchie e aspetto un cambio vero,
@@ -172,14 +183,16 @@ type paginaPronta struct {
 
 // traduciPagina: legge tutte le scritte con la loro posizione, le traduce e le disegna.
 func traduciPagina(area Zona, img, primaImg *image.RGBA, giro int64) bool {
-	p, ok := preparaPagina(area, img, primaImg, giro)
-	return ok && mostraPaginaPronta(p, giro)
+	p, _ := preparaPagina(area, img, primaImg, giro)
+	return p != nil && mostraPaginaPronta(p, giro)
 }
 
 // preparaPagina: legge tutte le scritte con la loro posizione e le traduce (senza disegnare).
-func preparaPagina(area Zona, img, primaImg *image.RGBA, giro int64) (*paginaPronta, bool) {
+// Senza niente da disegnare restituisce nil; occupata dice che la lettura del testo era presa
+// da un altro lavoro (dialoghi, chat degli altri) e conviene riprovare.
+func preparaPagina(area Zona, img, primaImg *image.RGBA, giro int64) (p *paginaPronta, occupata bool) {
 	if !occupato.CompareAndSwap(false, true) {
-		return nil, false
+		return nil, true
 	}
 	defer occupato.Store(false)
 	t0 := time.Now()
@@ -278,7 +291,7 @@ func preparaPagina(area Zona, img, primaImg *image.RGBA, giro int64) (*paginaPro
 		pronti = append(pronti, b)
 	}
 	armonizza(pronti)
-	return &paginaPronta{area: area, img: img, pronti: pronti, nuove: nuove, t0: t0, tOCR: tOCR, tTrad: tTrad}, true
+	return &paginaPronta{area: area, img: img, pronti: pronti, nuove: nuove, t0: t0, tOCR: tOCR, tTrad: tTrad}, false
 }
 
 // mostraPaginaPronta disegna le scritte tradotte sopra il gioco.

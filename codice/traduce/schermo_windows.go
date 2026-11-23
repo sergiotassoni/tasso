@@ -321,6 +321,11 @@ func avviaFinestrella(dimFont int, tasti func(int), selezione func(Zona)) {
 			// i tasti rapidi si registrano solo quando accendi Tasso Traduce (goAccendi):
 			// da spento F6…F11 restano liberi per gli altri programmi
 			creaFinestraPagina()
+			// traduzione accesa prima che la finestrella esistesse: cambiaTasti non ha potuto
+			// registrare i tasti, li registro adesso
+			if acceso.Load() {
+				registraTasti(h, tastiCompleti(leggiImp().Tasti))
+			}
 			// 3.1: secondo riquadro, per la chat degli altri (stessa classe, stesso disegno)
 			if hc, _, _ := pCreateWindowEx.Call(ex, uintptr(unsafe.Pointer(classe)), 0, 0x80000000, 0, 0, 420, 120, 0, 0, 0, 0); hc != 0 {
 				pSetLayeredAttr.Call(hc, 0, 228, 2)
@@ -432,9 +437,27 @@ func (f *finestrella) NascondiVoce() {
 	}
 }
 
+// Nascondi toglie il dialogo (anche quello salvato sotto una voce, così non torna più).
+// Se sta mostrando il sottotitolo di una voce, il sottotitolo resta fino alla sua fine.
 func (f *finestrella) Nascondi() {
 	f.mu.Lock()
+	f.salvato = nil
+	if f.voce {
+		f.mu.Unlock()
+		return
+	}
 	f.visibile = false
+	h := f.hwnd
+	f.mu.Unlock()
+	if h != 0 {
+		pPostMessage.Call(h, wmMostra, 0, 0)
+	}
+}
+
+// Spegni toglie tutto: dialogo, dialogo salvato e sottotitolo della voce.
+func (f *finestrella) Spegni() {
+	f.mu.Lock()
+	f.visibile, f.voce, f.salvato = false, false, nil
 	h := f.hwnd
 	f.mu.Unlock()
 	if h != 0 {
@@ -475,11 +498,40 @@ func (f *finestrella) ImpostaFont(px int) {
 // RicordaGioco: chiamata quando premi F9 mentre giochi, prima di aprire la scelta della zona.
 func (f *finestrella) RicordaGioco() {
 	fg, _, _ := pGetForeground.Call()
-	f.mu.Lock()
-	if fg != f.hwnd {
-		f.gioco = fg
+	f.impostaGioco(fg)
+}
+
+// impostaGioco: h diventa la finestra del gioco, se è davvero un altro programma (non il velo
+// della scelta, non le nostre finestre, non il desktop).
+func (f *finestrella) impostaGioco(h uintptr) bool {
+	if h == 0 || h == sel.hwnd.Load() || eNostro(exeDiFinestra(h)) {
+		return false
 	}
+	f.mu.Lock()
+	f.gioco = h
 	f.mu.Unlock()
+	return true
+}
+
+var (
+	pWindowFromPoint = user32.NewProc("WindowFromPoint")
+	pGetAncestor     = user32.NewProc("GetAncestor")
+)
+
+// finestraInZona: la finestra principale che sta sotto il centro della zona (per sapere di
+// quale gioco è la zona scelta col pulsante in Tasso, quando davanti c'era Tasso).
+func finestraInZona(z Zona) uintptr {
+	x, y := int32(z.X+z.W/2), int32(z.Y+z.H/2)
+	pt := uintptr(uint32(x)) | uintptr(uint32(y))<<32 // POINT passato per valore (64 bit)
+	h, _, _ := pWindowFromPoint.Call(pt)
+	if h == 0 {
+		return 0
+	}
+	r, _, _ := pGetAncestor.Call(h, 2) // GA_ROOT
+	if r != 0 {
+		h = r
+	}
+	return h
 }
 
 func (f *finestrella) giocoAttuale() uintptr {
@@ -643,7 +695,19 @@ func ovProc(hwnd, msg, wp, lp uintptr) uintptr {
 	case 0x0113: // WM_TIMER: se esci dal gioco (Alt+Tab) la finestrella si nasconde, quando torni riappare
 		fg, _, _ := pGetForeground.Call()
 		f.mu.Lock()
-		via := f.gioco != 0 && fg != f.gioco && fg != sel.hwnd
+		g := f.gioco
+		f.mu.Unlock()
+		chiuso := false
+		if g != 0 {
+			v, _, _ := pIsWindow.Call(g)
+			chiuso = v == 0 // il gioco è stato chiuso: la finestra ricordata non vale più
+		}
+		f.mu.Lock()
+		if chiuso && f.gioco == g {
+			f.gioco = 0
+		}
+		// il sottotitolo di una voce segue la finestra in primo piano: non lo nascondo
+		via := !f.voce && f.gioco != 0 && fg != f.gioco && fg != sel.hwnd.Load()
 		cambia := via != f.nascosta
 		f.nascosta = via
 		f.mu.Unlock()
@@ -687,7 +751,7 @@ func finDi(hwnd uintptr) *finestrella {
 // ---------------------------------------------------------------- scelta della zona
 
 var sel struct {
-	hwnd           uintptr
+	hwnd           atomic.Uintptr // letta anche da altri fili (timer, chat degli altri)
 	attivo         bool
 	x0, y0, x1, y1 int32
 	vx, vy         int32
@@ -698,7 +762,7 @@ var sel struct {
 // apriSelezione copre tutti gli schermi con un velo scuro: si trascina un rettangolo
 // sopra i dialoghi, Esc o tasto destro annulla. Gira nel thread della finestrella.
 func apriSelezione() {
-	if sel.hwnd != 0 {
+	if sel.hwnd.Load() != 0 {
 		return
 	}
 	classe, _ := windows.UTF16PtrFromString("TassoTraduceZona")
@@ -722,14 +786,13 @@ func apriSelezione() {
 	if h == 0 {
 		return
 	}
-	sel.hwnd = h
+	sel.hwnd.Store(h)
 	pSetLayeredAttr.Call(h, 0, 110, 2)
 	pSetForeground.Call(h)
 }
 
 func chiudiSelezione(z *Zona) {
-	h := sel.hwnd
-	sel.hwnd = 0
+	h := sel.hwnd.Swap(0)
 	pReleaseCapture.Call()
 	pDestroyWindow.Call(h)
 	if z == nil {
@@ -790,8 +853,7 @@ func selProc(hwnd, msg, wp, lp uintptr) uintptr {
 		pSetBkMode.Call(hdc, 1)
 		face, _ := windows.UTF16PtrFromString("Segoe UI")
 		font, _, _ := pCreateFont.Call(30, 0, 0, 0, 600, 0, 0, 0, 1, 0, 0, 5, 0, uintptr(unsafe.Pointer(face)))
-		disegna(hdc, font, 0x00FFFFFF, "Trascina un rettangolo sopra i dialoghi   ·   Esc o tasto destro per annullare",
-			rect{40, 40, r.Right - 40, 120})
+		disegna(hdc, font, 0x00FFFFFF, testoVelo(selPerChat.Load()), rect{40, 40, r.Right - 40, 120})
 		pDeleteObject.Call(font)
 		if sel.attivo {
 			a, b, c, d := sel.x0, sel.y0, sel.x1, sel.y1
@@ -811,6 +873,16 @@ func selProc(hwnd, msg, wp, lp uintptr) uintptr {
 	}
 	r, _, _ := pDefWindowProc.Call(hwnd, msg, wp, lp)
 	return r
+}
+
+// testoVelo: la scritta sul velo della scelta della zona (dialoghi o chat degli altri).
+func testoVelo(chat bool) string {
+	if chat {
+		return testoTasso("Trascina un rettangolo sopra la chat del gioco   ·   Esc o tasto destro per annullare",
+			"Drag a rectangle over the game chat   ·   Esc or right-click to cancel")
+	}
+	return testoTasso("Trascina un rettangolo sopra i dialoghi   ·   Esc o tasto destro per annullare",
+		"Drag a rectangle over the dialogue   ·   Esc or right-click to cancel")
 }
 
 var (

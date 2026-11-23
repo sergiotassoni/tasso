@@ -1,5 +1,8 @@
 {
  "go": {
+  "Sottotitoli delle voci spenti": "Voice subtitles off",
+  "Voci: ": "Voices: ",
+  "Inglese pronto, premi Ctrl+V: ": "English ready, press Ctrl+V: ",
   "\nGià a posto:\n": "\nAlready fine:\n",
   "   (dettaglio tecnico: ": "   (technical detail: ",
   "   Saltato: non sono riuscito a salvare com'era Windows, quindi non cambio la privacy.": "   Skipped: I couldn't save how Windows was set up, so I won't change the privacy settings.",
@@ -2674,6 +2677,7 @@
   "La protezione \"Accesso alle cartelle controllato\" non è in modo \"blocca\": non blocca i salvataggi.": "\"Controlled folder access\" isn't in \"block\" mode: it doesn't block saves."
  },
  "ui": {
+  "SPENTA (accendi la traduzione)": "OFF (turn on translation)",
   " (consuma di più).": " mode (uses more power).",
   " (già usato da un altro programma: cambialo)": " (already used by another program: change it)",
   " (lascia vuoto per non cambiarla)": " (leave empty to keep it)",

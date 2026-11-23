@@ -83,22 +83,23 @@ func suTastoChat() {
 	defer guard("chat")
 	it, err := leggiAppunti()
 	if err != nil || strings.TrimSpace(it) == "" {
-		avvisoBreve("Chat: scrivi in italiano nella chat del gioco, poi Ctrl+A e Ctrl+X, poi " + etichettaTasto(tastiCompleti(leggiImp().Tasti)["chat"]) + ".")
+		avvisoBreve(testoTasso("Chat: scrivi in italiano nella chat del gioco, poi Ctrl+A e Ctrl+X, poi ",
+			"Chat: write in Italian in the game chat, then Ctrl+A and Ctrl+X, then ") + etichettaTasto(tastiCompleti(leggiImp().Tasti)["chat"]) + ".")
 		return
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 	defer cancel()
 	en, err := traduciChat(ctx, it)
 	if err != nil {
-		avvisoBreve("Chat: " + err.Error())
+		avvisoBreve("Chat: " + trTasso(err.Error()))
 		return
 	}
 	if err := scriviAppunti(en); err != nil {
-		avvisoBreve("Chat: non riesco a scrivere negli appunti")
+		avvisoBreve(testoTasso("Chat: non riesco a scrivere negli appunti", "Chat: I can't write to the clipboard"))
 		return
 	}
 	ricordaMioMessaggio(en)
-	avvisoBreve("Inglese pronto, premi Ctrl+V: " + en)
+	avvisoBreve(testoTasso("Inglese pronto, premi Ctrl+V: ", "English ready, press Ctrl+V: ") + en)
 	emetti("chat", map[string]string{"it": it, "en": en})
 }
 
@@ -110,18 +111,26 @@ func avvisoBreve(testo string) {
 	if !ok || paginaAttiva.Load() {
 		return
 	}
-	em := 20.0
-	w := min(area.W-40, int(float64(len([]rune(testo)))*em*0.56)+24)
+	mostraAvviso(area, testo, 20, 24, 4*time.Second)
+}
+
+// giroAvviso cambia a ogni avviso nuovo: il timer di un avviso vecchio non toglie quello nuovo.
+var giroAvviso atomic.Int64
+
+// mostraAvviso: una riga in alto nell'area del gioco per la durata data.
+func mostraAvviso(area Zona, testo string, em float64, spazio int, durata time.Duration) {
+	w := min(area.W-40, int(float64(len([]rune(testo)))*em*0.56)+spazio)
 	if w <= 0 {
 		return
 	}
 	b := Blocco{X: (area.W - w) / 2, Y: 24, W: w, H: 34, Righe: 1, Em: em, LargMax: w,
 		Sfondo: coloreFascia, Inchiostro: coloreTestoFascia, Tradotto: testo}
 	MostraPagina(area, []Blocco{b})
+	g := giroAvviso.Add(1)
 	go func() {
-		defer guard("avviso-chat")
-		time.Sleep(4 * time.Second)
-		if !paginaAttiva.Load() {
+		defer guard("avviso")
+		time.Sleep(durata)
+		if giroAvviso.Load() == g && !paginaAttiva.Load() {
 			NascondiPagina()
 		}
 	}()

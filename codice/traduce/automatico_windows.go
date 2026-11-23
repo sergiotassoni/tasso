@@ -160,7 +160,7 @@ func cicloTuttoAutomatico() {
 		if g, ok := riconosciGioco(percorsoDiFinestra(fg)); ok {
 			nome = g.Nome + " (" + g.Piattaforma + ")"
 		}
-		emetti("info", map[string]string{"testo": "Gioco trovato: " + nome + ". Traduco tutto da solo. "+nomeTasto("pagina")+" nel gioco per mettere in pausa."})
+		emetti("info", map[string]string{"testo": "Gioco trovato: " + nome + ". Traduco tutto da solo. " + nomeTasto("pagina") + " nel gioco per mettere in pausa."})
 		muImp.Lock()
 		if imp.Profili == nil {
 			imp.Profili = map[string]Profilo{}
@@ -181,20 +181,12 @@ func proponiTraduzione(fg uintptr, nome string) {
 		return
 	}
 	tasto := etichettaTasto(tastiCompleti(leggiImp().Tasti)["pagina"])
-	testo := "Tasso: ho riconosciuto " + nome + ". Premi " + tasto + " per tradurlo in italiano."
-	em := 22.0
-	w := min(area.W-40, int(float64(len([]rune(testo)))*em*0.56)+20)
-	b := Blocco{X: (area.W - w) / 2, Y: 24, W: w, H: 34, Righe: 1, Em: em, LargMax: w,
-		Sfondo: coloreFascia, Inchiostro: coloreTestoFascia, Tradotto: testo}
-	MostraPagina(area, []Blocco{b})
-	emetti("info", map[string]string{"testo": "Ho riconosciuto " + nome + ": premi " + tasto + " nel gioco per tradurlo."})
-	go func() {
-		defer guard("avviso")
-		time.Sleep(6 * time.Second)
-		if !paginaAttiva.Load() {
-			NascondiPagina()
-		}
-	}()
+	_, a := coppiaAttiva()
+	testo := testoTasso("Tasso: ho riconosciuto "+nome+". Premi "+tasto+" per tradurlo in "+nomeLingua(a)+".",
+		"Tasso: I recognised "+nome+". Press "+tasto+" to translate it.")
+	mostraAvviso(area, testo, 22, 20, 6*time.Second)
+	emetti("info", map[string]string{"testo": testoTasso("Ho riconosciuto "+nome+": premi "+tasto+" nel gioco per tradurlo.",
+		"I recognised "+nome+": press "+tasto+" in the game to translate it.")})
 }
 
 // nomeGioco: nome vero (Steam/Epic…) se riconosciuto, altrimenti il nome dell'exe senza ".exe".

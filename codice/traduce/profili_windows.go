@@ -114,7 +114,15 @@ func controllaProfilo() {
 		profiloAttivo = exe
 	}
 	muProfilo.Unlock()
-	if !ok || gia {
+	if !ok {
+		return
+	}
+	// la finestra del gioco può essere nuova anche con lo stesso profilo (gioco chiuso e
+	// riaperto): la finestrella deve seguire quella di adesso
+	ov.mu.Lock()
+	ov.gioco = fg
+	ov.mu.Unlock()
+	if gia {
 		return
 	}
 	muImp.Lock()
@@ -128,9 +136,6 @@ func controllaProfilo() {
 	pos, font := imp.Posizione, imp.DimFont
 	muImp.Unlock()
 	salvaImp()
-	ov.mu.Lock()
-	ov.gioco = fg
-	ov.mu.Unlock()
 	ov.ImpostaPosizione(pos)
 	ov.ImpostaFont(font)
 	muImpronte.Lock()

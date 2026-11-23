@@ -5,7 +5,6 @@
 package traduce
 
 import (
-	"runtime"
 	"bytes"
 	"context"
 	"crypto/rand"
@@ -20,6 +19,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"runtime"
 	"runtime/debug"
 	"strings"
 	"sync"
@@ -76,7 +76,7 @@ type Impostazioni struct {
 // Profilo di un gioco: si carica da solo quando quel gioco è in primo piano.
 type Profilo struct {
 	Zona      Zona   `json:"zona"`
-	ZonaChat  Zona   `json:"zona_chat"`               // 3.1: dove sta la chat degli altri in questo gioco
+	ZonaChat  Zona   `json:"zona_chat"`           // 3.1: dove sta la chat degli altri in questo gioco
 	ChatDove  string `json:"chat_dove,omitempty"` // cartella del programma (per dire nella pagina del gioco se è scelta)
 	Posizione string `json:"posizione"`
 	DimFont   int    `json:"dim_font"`
@@ -475,11 +475,7 @@ func collega(w webview2.WebView) {
 	_ = w.Bind("ttScaricaIA", func() string { go scaricaIA(); return "ok" })
 	_ = w.Bind("ttScaricaChat", func() string { go scaricaChat(); return "ok" })
 	_ = w.Bind("ttApplicaTraduzione", func(nome, cartella string, _ bool, modo string) string {
-		assicuraMotore()
-		if !acceso.Load() {
-			acceso.Store(true)
-			cambiaTasti(tastiCompleti(leggiImp().Tasti))
-		}
+		accendiTraduzione()
 		if modo == "file" {
 			go applicaModGioco(nome, cartella)
 		} else {
@@ -512,11 +508,7 @@ func collega(w webview2.WebView) {
 	// 3.1: dopo "Apri il gioco" di Tasso controllo se la traduzione parte davvero.
 	_ = w.Bind("ttVerifica", func(cartella string) string { return VerificaDopoAvvio(cartella) })
 	_ = w.Bind("ttApriGioco", func(cartella string) string {
-		assicuraMotore()
-		if !acceso.Load() {
-			acceso.Store(true)
-			cambiaTasti(tastiCompleti(leggiImp().Tasti))
-		}
+		accendiTraduzione()
 		return apriGioco(cartella)
 	})
 	_ = w.Bind("ttFermaTraduzione", func(cartella string) string {
@@ -535,7 +527,7 @@ func collega(w webview2.WebView) {
 		go func() {
 			defer guard("voci-finestra")
 			if err := accendiVoci(on); err != nil {
-				emetti("info", map[string]string{"testo": "Voci: " + err.Error()})
+				emetti("info", map[string]string{"testo": testoTasso("Voci: ", "Voices: ") + trTasso(err.Error())})
 			}
 			emetti("aggiorna", stato())
 		}()
@@ -567,6 +559,9 @@ func collega(w webview2.WebView) {
 	_ = w.Bind("ttImpostaChatAltri", func(on bool) string {
 		if on && !zonaChatPresente(leggiImp()) {
 			return "zona" // prima va scelta la zona della chat
+		}
+		if on {
+			accendiTraduzione() // la chat degli altri legge lo schermo solo con la traduzione accesa
 		}
 		impostaChatAltri(on)
 		return "ok"
@@ -624,7 +619,8 @@ func collega(w webview2.WebView) {
 			paginaAttiva.Store(false)
 			paginaGiro.Add(1)
 			NascondiPagina()
-			ov.Nascondi()
+			ov.Spegni()
+			ovChat.Nascondi()
 		}
 		return on
 	})
@@ -912,6 +908,14 @@ func (p *ponteMozilla) fatto(id int64, testo, errore string) {
 // non lo accendi tu.
 var acceso atomic.Bool
 
+// accendiTraduzione accende la traduzione dei giochi (motore e tasti rapidi), se era spenta.
+func accendiTraduzione() {
+	assicuraMotore()
+	if acceso.CompareAndSwap(false, true) {
+		cambiaTasti(tastiCompleti(leggiImp().Tasti))
+	}
+}
+
 func suTasto(id int) {
 	if !acceso.Load() && id != tastoCronologia {
 		emetti("info", map[string]string{"testo": "La traduzione dei giochi è spenta: accendila con l'interruttore in Giochi."})
@@ -919,8 +923,11 @@ func suTasto(id int) {
 	}
 	switch id {
 	case tastoSeleziona:
+		if sel.hwnd.Load() != 0 {
+			return // la scelta è già aperta: il velo davanti non è il gioco
+		}
 		selPerChat.Store(false) // F9 sceglie sempre la zona dei dialoghi
-		ov.RicordaGioco() // F9 premuto mentre giochi: quella è la finestra del gioco
+		ov.RicordaGioco()       // F9 premuto mentre giochi: quella è la finestra del gioco
 		ov.ApriSelezione()
 	case tastoTraduci:
 		traduciOra(true)
@@ -943,11 +950,12 @@ func suTasto(id int) {
 			defer guard("commuta-voci")
 			on, err := commutaVoci()
 			if err != nil {
-				avvisoBreve("Voci: " + err.Error())
+				avvisoBreve(testoTasso("Voci: ", "Voices: ") + trTasso(err.Error()))
 			} else if on {
-				avvisoBreve("Sottotitoli delle voci accesi: ascolto l'audio del gioco (tutto resta sul PC)")
+				avvisoBreve(testoTasso("Sottotitoli delle voci accesi: ascolto l'audio del gioco (tutto resta sul PC)",
+					"Voice subtitles on: I'm listening to the game audio (everything stays on the PC)"))
 			} else {
-				avvisoBreve("Sottotitoli delle voci spenti")
+				avvisoBreve(testoTasso("Sottotitoli delle voci spenti", "Voice subtitles off"))
 			}
 			emetti("aggiorna", stato())
 		}()
@@ -965,6 +973,10 @@ func suZonaScelta(z Zona) {
 	if selPerChat.Swap(false) {
 		zonaChatScelta(z)
 		return
+	}
+	if ov.giocoAttuale() == 0 {
+		// zona scelta col pulsante in Tasso: il gioco è la finestra sotto il riquadro
+		ov.impostaGioco(finestraInZona(z))
 	}
 	muImp.Lock()
 	imp.Zona = z
@@ -984,7 +996,7 @@ func impostaAuto(on bool) {
 	muImp.Unlock()
 	salvaImp()
 	if !on {
-		ov.Nascondi()
+		ov.Spegni()
 	}
 	emetti("aggiorna", stato())
 }
@@ -1014,7 +1026,12 @@ func cicloAutomatico() {
 			continue
 		}
 		// davanti c'è Tasso Traduce stesso o il desktop: niente da tradurre, risparmio il PC
-		if fg, _, _ := pGetForeground.Call(); eNostro(exeDiFinestra(fg)) {
+		fg, _, _ := pGetForeground.Call()
+		if eNostro(exeDiFinestra(fg)) {
+			continue
+		}
+		// davanti c'è un altro programma (non il gioco della zona): stessa regola della finestrella
+		if g := ov.giocoAttuale(); g != 0 && fg != g {
 			continue
 		}
 		img, err := cattura(i.Zona)
@@ -1127,11 +1144,12 @@ func leggiETraduci(img *image.RGBA, impronta Impronta, forza bool) {
 	if r.Parlante != "" {
 		testo = r.Parlante + ": " + testo
 	}
-	auto := nomeTasto("auto") + " automatico: no"
+	auto := nomeTasto("auto") + testoTasso(" automatico: no", " automatic: off")
 	if leggiImp().Auto {
-		auto = "● Automatico"
+		auto = testoTasso("● Automatico", "● Automatic")
 	}
-	statoRiga := fmt.Sprintf("%s   ·   %s   ·   %.1f s   ·   %s ritraduci   ·   %s inglese", auto, r.Motore, float64(msOCR+r.Millisec)/1000, nomeTasto("traduci"), nomeTasto("inglese"))
+	statoRiga := fmt.Sprintf(testoTasso("%s   ·   %s   ·   %.1f s   ·   %s ritraduci   ·   %s inglese", "%s   ·   %s   ·   %.1f s   ·   %s translate again   ·   %s English"),
+		auto, r.Motore, float64(msOCR+r.Millisec)/1000, nomeTasto("traduci"), nomeTasto("inglese"))
 	ov.Mostra(z, testo, r.Originale, statoRiga)
 	muDialogo.Lock()
 	dialogoMostrato = mostratoDialogo{z, r.Parlante, r.Tradotto, r.Originale, statoRiga}
@@ -1182,7 +1200,7 @@ func correzioneArrivata(inglese, bozza, corretta string) {
 			testo = d.parlante + ": " + corretta
 		}
 		if !ov.staMostrandoVoce() {
-			ov.Mostra(d.z, testo, d.inglese, strings.Replace(d.stato, "Mozilla", "Mozilla + IA", 1))
+			ov.Mostra(d.z, testo, d.inglese, strings.Replace(d.stato, "Mozilla", testoTasso("Mozilla + IA", "Mozilla + AI"), 1))
 		}
 	}
 }

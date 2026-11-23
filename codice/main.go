@@ -151,6 +151,7 @@ func main() {
 	traduce.Ospite.ApriComeUtente = openUser
 	traduce.Ospite.CartellaScript = scriptDir
 	traduce.InIngleseTasso = isEN
+	traduce.TraduciTasso = trGo
 	traduce.Prepara(w, filepath.Join(appDir, "WebView2"))
 	if !scheduledRun.Load() {
 		go func() {

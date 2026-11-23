@@ -93,9 +93,10 @@ func sostituisciTraduzione(inglese, vecchio, nuovo string) bool {
 	return cambiate
 }
 
+// NascondiPagina toglie le scritte e le dimentica: un ricolora dopo non le rimette sullo schermo.
 func NascondiPagina() {
 	pag.mu.Lock()
-	pag.vis = false
+	pag.vis, pag.blocchi = false, nil
 	h := pag.hwnd
 	pag.mu.Unlock()
 	if h != 0 {
