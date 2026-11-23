@@ -37,6 +37,9 @@ type Blocco struct {
 	LargMax    int         // spazio libero a destra prima della scritta vicina
 	Fondo      *image.RGBA // sfondo ricostruito (sfumature del gioco), grande come il blocco +3 px per lato
 	Tratto     float64     // spessore medio delle lettere diviso la grandezza (grassetto se alto)
+	FondoX     int         // quanti pixel il Fondo parte a sinistra di X (di solito 3)
+	Centro     bool        // scritta centrata come le sue vicine (menu al centro): la traduzione resta centrata
+	Ombra      bool        // sfondo che si muove: la scritta ha un'ombra scura, come i testi dei giochi
 }
 
 // grassetto: lettere spesse come quelle in neretto dei giochi.
@@ -385,8 +388,9 @@ func formaPlausibile(b Blocco) bool {
 // colorato la toppa non si vede quasi (meglio di un rettangolo pieno).
 func fondoRicostruito(img *image.RGBA, b Blocco) *image.RGBA {
 	const m = 3
-	x0, y0 := b.X-m, b.Y-m
-	w, h := b.W+2*m, b.H+2*m
+	ml, mr := margineFondo(b)
+	x0, y0 := b.X-ml, b.Y-m
+	w, h := b.W+ml+mr, b.H+2*m
 	if w <= 0 || h <= 0 {
 		return nil
 	}
@@ -425,6 +429,20 @@ func fondoRicostruito(img *image.RGBA, b Blocco) *image.RGBA {
 		}
 	}
 	return p
+}
+
+// margineFondo: quanto sfondo ricostruire a sinistra e a destra della scritta inglese. La
+// traduzione italiana è spesso più lunga: per una scritta centrata cresce dai due lati, per una
+// allineata a sinistra verso destra (fino alla scritta vicina, LargMax).
+func margineFondo(b Blocco) (int, int) {
+	ml, mr := 3, 3
+	if b.Centro {
+		e := min(200, b.W/2+20)
+		ml, mr = ml+e, mr+e
+	} else if b.LargMax > b.W {
+		mr += min(300, b.LargMax-b.W)
+	}
+	return ml, mr
 }
 
 var (
@@ -472,6 +490,29 @@ func armonizza(b []Blocco) {
 			}
 		}
 		g++
+	}
+	// menu centrati (molti giochi): stesso centro ma inizio diverso. Le metto insieme lo stesso
+	// e la traduzione resta centrata sotto il centro dell'originale.
+	for i := range b {
+		if b[i].Em <= 0 {
+			continue
+		}
+		ci := b[i].X + b[i].W/2
+		for j := range b {
+			if j == i || b[j].Em <= 0 || (gruppo[i] == gruppo[j] && gruppo[i] >= 0) {
+				continue
+			}
+			cj := b[j].X + b[j].W/2
+			if abs(ci-cj) <= max(6, int(b[i].Em/2)) && abs(b[j].X-b[i].X) > 8 &&
+				b[j].Em/b[i].Em < 1.35 && b[i].Em/b[j].Em < 1.35 && abs(b[j].Y-b[i].Y) < 6*int(b[i].Em+1) {
+				b[i].Centro, b[j].Centro = true, true
+				if gruppo[j] >= 0 && contaGruppo(gruppo, gruppo[j]) == 1 {
+					gruppo[j] = gruppo[i]
+				} else if gruppo[i] >= 0 && contaGruppo(gruppo, gruppo[i]) == 1 {
+					gruppo[i] = gruppo[j]
+				}
+			}
+		}
 	}
 	for k := 0; k < g; k++ {
 		var em []float64
@@ -563,4 +604,14 @@ func spessoreTratto(img *image.RGBA, in image.Rectangle, ink, sf color.RGBA, em 
 	sort.Ints(corse)
 	// -1: il bordo sfumato delle lettere aggiunge circa un pixel a ogni tratto
 	return float64(corse[len(corse)/2]-1) / em
+}
+
+func contaGruppo(gruppo []int, k int) int {
+	n := 0
+	for _, g := range gruppo {
+		if g == k {
+			n++
+		}
+	}
+	return n
 }

@@ -178,39 +178,87 @@ func disegnaBlocco(hdc uintptr, b Blocco, fase int) {
 			}
 		}
 	}
-	x0, y0 := int32(b.X)-3, int32(b.Y)-3
-	x1 := x0 + max(larg, w) + 6
+	// dove va la traduzione: allineata a sinistra come l'originale, o centrata sullo stesso centro
+	tx := int32(b.X)
+	if b.Centro && righe == 1 {
+		tx = int32(b.X+b.W/2) - w/2
+	}
+	x0 := min(int32(b.X), tx) - 3
+	x1 := max(int32(b.X)+larg, tx+w) + 3
+	y0 := int32(b.Y) - 3
 	y1 := y0 + max(int32(b.H), h) + 6
+	if fase == 0 {
+		disegnaSfondo(hdc, b, x0, y0, x1, y1)
+		return
+	}
+	pSelectObject.Call(hdc, font)
+	t, _ := windows.UTF16FromString(b.Tradotto)
+	ty := int32(b.Y) + (int32(b.H)-h)/2*boolI(h < int32(b.H))
+	fl := uintptr(dtWordBreak | dtNoPrefix | dtLeft)
+	rt := rect{tx, ty, x1 - 3, y1}
+	if b.Centro && righe > 1 {
+		rt, fl = rect{x0 + 3, ty, x1 - 3, y1}, dtWordBreak|dtNoPrefix|0x1 // DT_CENTER
+	}
+	if b.Ombra { // ombra morbida sotto le lettere, come nei menu dei giochi sopra le immagini
+		om := contrastante(b.Inchiostro)
+		pSetTextColor.Call(hdc, colore([3]uint8{om.R, om.G, om.B}))
+		for _, d := range [][2]int32{{1, 1}, {2, 2}, {-1, 1}, {1, -1}} {
+			r2 := rect{rt.Left + d[0], rt.Top + d[1], rt.Right + d[0], rt.Bottom + d[1]}
+			pDrawText.Call(hdc, uintptr(unsafe.Pointer(&t[0])), uintptr(len(t)-1), uintptr(unsafe.Pointer(&r2)), fl)
+		}
+	}
+	pSetTextColor.Call(hdc, colore([3]uint8{b.Inchiostro.R, b.Inchiostro.G, b.Inchiostro.B}))
+	pDrawText.Call(hdc, uintptr(unsafe.Pointer(&t[0])), uintptr(len(t)-1), uintptr(unsafe.Pointer(&rt)), fl)
+}
+
+// disegnaSfondo copre l'inglese nel rettangolo x0..x1, y0..y1: con lo sfondo ricostruito dal
+// gioco (le sue sfumature) dove c'è, con il colore dello sfondo solo dove manca.
+func disegnaSfondo(hdc uintptr, b Blocco, x0, y0, x1, y1 int32) {
 	sf := [3]uint8{b.Sfondo.R, b.Sfondo.G, b.Sfondo.B}
 	if colore(sf) == chiaveTrsp {
 		sf[0]-- // non deve coincidere con il colore trasparente
 	}
-	if fase == 0 {
+	fx0, fy0, fw, fh := int32(0), int32(0), int32(0), int32(0)
+	if b.Fondo != nil {
+		fox := b.FondoX
+		if fox <= 0 {
+			fox = 3
+		}
+		fx0, fy0 = int32(b.X-fox), int32(b.Y)-3
+		fw, fh = int32(b.Fondo.Bounds().Dx()), int32(b.Fondo.Bounds().Dy())
+	}
+	// colore pieno solo dove il fondo ricostruito non arriva
+	if b.Fondo == nil || x0 < fx0 || x1 > fx0+fw || y0 < fy0 || y1 > fy0+fh {
 		pen, _, _ := pCreateBrush.Call(colore(sf))
 		r := rect{x0, y0, x1, y1}
 		pFillRect.Call(hdc, uintptr(unsafe.Pointer(&r)), pen)
 		pDeleteObject.Call(pen)
-		if b.Fondo != nil { // sopra il rettangolo pieno, lo sfondo ricostruito con le sfumature del gioco
-			fw, fh := b.Fondo.Bounds().Dx(), b.Fondo.Bounds().Dy()
-			bgra := make([]byte, fw*fh*4)
-			for i := 0; i < len(bgra); i += 4 {
-				bgra[i], bgra[i+1], bgra[i+2], bgra[i+3] = b.Fondo.Pix[i+2], b.Fondo.Pix[i+1], b.Fondo.Pix[i], 255
-				if uintptr(bgra[i+2])|uintptr(bgra[i+1])<<8|uintptr(bgra[i])<<16 == chiaveTrsp {
-					bgra[i+2]--
-				}
-			}
-			bi := bitmapInfoHeader{biWidth: int32(fw), biHeight: int32(-fh), biPlanes: 1, biBitCount: 32}
-			bi.biSize = uint32(unsafe.Sizeof(bi))
-			pSetDIBitsToDevice.Call(hdc, uintptr(x0), uintptr(y0), uintptr(fw), uintptr(fh), 0, 0, 0, uintptr(fh),
-				uintptr(unsafe.Pointer(&bgra[0])), uintptr(unsafe.Pointer(&bi)), 0)
-		}
+	}
+	if b.Fondo == nil {
 		return
 	}
-	pSelectObject.Call(hdc, font)
-	pSetTextColor.Call(hdc, colore([3]uint8{b.Inchiostro.R, b.Inchiostro.G, b.Inchiostro.B}))
-	t, _ := windows.UTF16FromString(b.Tradotto)
-	rt := rect{int32(b.X), int32(b.Y) + (int32(b.H)-h)/2*boolI(h < int32(b.H)), x1 - 3, y1}
-	pDrawText.Call(hdc, uintptr(unsafe.Pointer(&t[0])), uintptr(len(t)-1), uintptr(unsafe.Pointer(&rt)), dtWordBreak|dtNoPrefix|dtLeft)
+	// solo la parte che serve: il resto del fondo ricostruito coprirebbe il gioco per niente
+	cx0, cy0 := max(x0, fx0), max(y0, fy0)
+	cx1, cy1 := min(x1, fx0+fw), min(y1, fy0+fh)
+	cw, ch := cx1-cx0, cy1-cy0
+	if cw <= 0 || ch <= 0 {
+		return
+	}
+	bgra := make([]byte, int(cw*ch)*4)
+	for y := int32(0); y < ch; y++ {
+		for x := int32(0); x < cw; x++ {
+			c := b.Fondo.RGBAAt(int(cx0-fx0+x), int(cy0-fy0+y))
+			i := int(y*cw+x) * 4
+			bgra[i], bgra[i+1], bgra[i+2], bgra[i+3] = c.B, c.G, c.R, 255
+			if uintptr(c.R)|uintptr(c.G)<<8|uintptr(c.B)<<16 == chiaveTrsp {
+				bgra[i+2]--
+			}
+		}
+	}
+	bi := bitmapInfoHeader{biWidth: cw, biHeight: -ch, biPlanes: 1, biBitCount: 32}
+	bi.biSize = uint32(unsafe.Sizeof(bi))
+	pSetDIBitsToDevice.Call(hdc, uintptr(cx0), uintptr(cy0), uintptr(cw), uintptr(ch), 0, 0, 0, uintptr(ch),
+		uintptr(unsafe.Pointer(&bgra[0])), uintptr(unsafe.Pointer(&bi)), 0)
 }
 
 func boolI(b bool) int32 {

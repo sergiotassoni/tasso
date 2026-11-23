@@ -137,7 +137,12 @@ func correggiParole(r string) string {
 			b.WriteString(p)
 			continue
 		}
-		// 2) una lettera confusa: "Waitinq" -> "Waiting"
+		// 2) prima lettera sottile persa (J, I): "Oin Multiplayer" -> "Join Multiplayer"
+		if q := lettereIniziali(p); q != "" {
+			b.WriteString(q)
+			continue
+		}
+		// 3) una lettera confusa: "Waitinq" -> "Waiting"
 		if c := candidati(p); len(c) == 1 {
 			b.WriteString(c[0])
 			continue
@@ -178,4 +183,24 @@ func maiuscole(s string) bool {
 		}
 	}
 	return n >= 2
+}
+
+// lettereIniziali: la lettura di Windows a volte perde una J o una I all'inizio della parola
+// (lettere strette, spesso decorate nei caratteri dei giochi). Solo se la parola letta non esiste
+// e una sola delle due la rende una parola vera.
+func lettereIniziali(p string) string {
+	if !soloLettere(p) || !unicode.IsUpper(rune(p[0])) {
+		return ""
+	}
+	resto := strings.ToLower(p)
+	var trovate []string
+	for _, l := range []string{"J", "I"} {
+		if esiste(l + resto) {
+			trovate = append(trovate, l+resto)
+		}
+	}
+	if len(trovate) == 1 {
+		return trovate[0]
+	}
+	return ""
 }

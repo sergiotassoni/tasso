@@ -276,12 +276,10 @@ func preparaPagina(area Zona, img, primaImg *image.RGBA, giro int64) (p *paginaP
 		if r.Motore != "memoria" && r.Motore != "catalogo" && r.Motore != "libreria" {
 			nuove++
 		}
-		if sfondoInMovimento(primaImg, img, b) {
-			b.Sfondo, b.Inchiostro, b.Fondo = coloreFascia, coloreTestoFascia, nil
-		} else {
-			coloriBlocco(img, &b)
-			b.Fondo = fondoRicostruito(img, b)
-		}
+		// anche sopra uno sfondo che si muove niente fascia nera: sfondo ricostruito dal gioco e
+		// un'ombra sotto le lettere, così la scritta sembra del gioco e si legge lo stesso
+		coloriBlocco(img, &b)
+		b.Ombra = sfondoInMovimento(primaImg, img, b)
 		b.Tradotto = r.Tradotto
 		pronti = append(pronti, b)
 		if len(pronti) <= 40 { // nella cronologia (F8) le scritte nuove, senza doppioni
@@ -289,6 +287,10 @@ func preparaPagina(area Zona, img, primaImg *image.RGBA, giro int64) (p *paginaP
 		}
 	}
 	armonizza(pronti)
+	for i := range pronti { // dopo armonizza: le scritte centrate hanno bisogno di sfondo dai due lati
+		pronti[i].FondoX, _ = margineFondo(pronti[i])
+		pronti[i].Fondo = fondoRicostruito(img, pronti[i])
+	}
 	return &paginaPronta{area: area, img: img, pronti: pronti, nuove: nuove, t0: t0, tOCR: tOCR, tTrad: tTrad}, false
 }
 
