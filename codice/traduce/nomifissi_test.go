@@ -74,3 +74,15 @@ func TestPulisciPrefissoBozza(t *testing.T) {
 		t.Fatal(g)
 	}
 }
+
+func TestMenuConNumero(t *testing.T) {
+	if v, ok := fraseMenuConNumero("32 (Default)"); !ok || v != "32 (Predefinito)" {
+		t.Fatal(v, ok)
+	}
+	if _, ok := fraseMenuConNumero("32"); ok {
+		t.Fatal("solo numero")
+	}
+	if _, ok := fraseMenuConNumero("Default"); !ok {
+		t.Fatal("voce semplice")
+	}
+}

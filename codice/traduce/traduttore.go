@@ -179,7 +179,7 @@ func (t *Traduttore) traduciIn(ctx context.Context, grezzo string, dialogo bool,
 	// possono essere cambiate dopo, e decide la memoria (svuotata a ogni cambio delle parole fisse).
 	conParoleFisse := len(t.glossario.trova(battuta)) > 0
 	if !conParoleFisse {
-		if v, ok := fraseMenu(battuta); ok {
+		if v, ok := fraseMenuConNumero(battuta); ok {
 			t.mu.Unlock()
 			ris.Tradotto, ris.Motore = v, "catalogo"
 			ris.Millisec = time.Since(inizio).Milliseconds()
@@ -904,3 +904,31 @@ func distanzaLettere(a, b string) int {
 	}
 	return prec[len(rb)]
 }
+
+// fraseMenuConNumero: come fraseMenu, e in più le voci con un numero davanti o dietro, anche tra
+// parentesi: "32 (Default)" → "32 (Predefinito)", "Quality: 2" → "Qualità: 2". La libreria del
+// gioco aveva imparato "32 (Defeal)" (PC Cafe Simulator, 23/11): il catalogo ora vince.
+func fraseMenuConNumero(s string) (string, bool) {
+	if v, ok := fraseMenu(s); ok {
+		return v, true
+	}
+	m := reNumeroVoce.FindStringSubmatch(s)
+	if m == nil {
+		return "", false
+	}
+	pre, voce, post := m[1], m[2], m[3]
+	if strings.TrimSpace(pre) == "" && strings.TrimSpace(post) == "" {
+		return "", false
+	}
+	apri, chiudi := "", ""
+	if strings.HasPrefix(voce, "(") && strings.HasSuffix(voce, ")") {
+		apri, chiudi, voce = "(", ")", voce[1:len(voce)-1]
+	}
+	v, ok := fraseMenu(voce)
+	if !ok {
+		return "", false
+	}
+	return pre + apri + v + chiudi + post, true
+}
+
+var reNumeroVoce = regexp.MustCompile(`^([0-9][0-9.,%x×]*\s+)?(\(?[^0-9()]+\)?)(:?\s+[0-9][0-9.,%x×]*)?$`)
