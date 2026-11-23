@@ -10,6 +10,7 @@ import (
 	"regexp"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 	"unicode"
 )
@@ -855,15 +856,25 @@ func nomiIntatti(en, it string) string {
 // nomiFissiIntatti: i nomi del catalogo da non tradurre ("Hello Games", "No Man's Sky") che il
 // motore ha tradotto lo stesso dentro una frase: "Ciao Games" -> "Hello Games",
 // "Sky Forsaken di No Man" -> "No Man's Sky Forsaken".
+// nomeGiocoAttivo: il nome del gioco che si sta traducendo ("Liar's Bar"). Conta come un nome
+// fisso: "Liar's Bar DECK" non deve diventare "Il Ponte Bar di Liar" (visto il 23/11).
+var nomeGiocoAttivo atomic.Value
+
+func impostaNomeGiocoAttivo(n string) { nomeGiocoAttivo.Store(n) }
+
 func nomiFissiIntatti(en, it string) string {
 	caricaCataloghi()
-	for _, n := range nomiFissi {
+	nomi := nomiFissi
+	if g, _ := nomeGiocoAttivo.Load().(string); len(strings.Fields(g)) >= 2 {
+		nomi = append([]string{g}, nomiFissi...)
+	}
+	for _, n := range nomi {
 		if !strings.Contains(strings.ToLower(en), strings.ToLower(n)) || strings.Contains(it, n) {
 			continue
 		}
 		// "X's Y" diventa spesso "Y di X"
 		if x, y, ok := strings.Cut(n, "'s "); ok {
-			re, err := regexp.Compile(`\b` + regexp.QuoteMeta(y) + `((?:\s+\p{Lu}[\p{L}']*){0,3})\s+(?:di|del|dello|della|dei|degli)\s+` + regexp.QuoteMeta(x) + `\b`)
+			re, err := regexp.Compile(`(?i:\b(?:il|lo|la|l')\s*)?\b(?i:` + regexp.QuoteMeta(y) + `)((?:\s+\p{Lu}[\p{L}\p{N}']*){0,3})\s+(?i:di|del|dello|della|dei|degli)\s+` + regexp.QuoteMeta(x) + `\b`)
 			if err == nil && re.MatchString(it) {
 				it = re.ReplaceAllString(it, strings.ReplaceAll(n, "$", "$$")+"$1")
 				continue

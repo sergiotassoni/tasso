@@ -295,6 +295,7 @@ func preparaPagina(area Zona, img, primaImg *image.RGBA, giro int64) (p *paginaP
 		da = append(da, b)
 	}
 	if g, ok := riconosciGioco(percorsoDiFinestra(paginaGiocoA.Load())); ok {
+		impostaNomeGiocoAttivo(g.Nome) // il nome del gioco resta uguale anche dentro le frasi
 		var tenuti []Blocco
 		for i := range da { // "Lia (s Bar" letto dall'OCR -> "Liar's Bar": il nome del gioco resta giusto
 			da[i].Testo = correggiNomeGioco(da[i].Testo, g.Nome)

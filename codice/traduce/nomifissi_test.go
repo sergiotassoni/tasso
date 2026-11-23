@@ -86,3 +86,17 @@ func TestMenuConNumero(t *testing.T) {
 		t.Fatal("voce semplice")
 	}
 }
+
+func TestNomeGiocoAttivo(t *testing.T) {
+	impostaNomeGiocoAttivo("Liar's Bar")
+	defer impostaNomeGiocoAttivo("")
+	for en, it := range map[string]string{
+		"Liar's Bar Deck2":       "Il Bar Deck2 di Liar",
+		"Liar's Bar REMASTERED!": "Il Bar Di Liar RIMASTERIZZATO!",
+	} {
+		got := nomiFissiIntatti(en, it)
+		if !strings.HasPrefix(got, "Liar's Bar") {
+			t.Errorf("%q -> %q", it, got)
+		}
+	}
+}
