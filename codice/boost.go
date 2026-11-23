@@ -463,6 +463,7 @@ func boostOffOpt(explicit, keepAuto bool) []string {
 	bMu.Lock()
 	s := loadBoost()
 	prev, auto, prevAG := s.PrevMode, s.Auto, s.PrevAG
+	keepCmds := keepAuto && s.Auto // Ufficio col Boost automatico acceso: le regolazioni per giocare restano (come dice GIOCA)
 	var gpuPrev map[string]string
 	if explicit { // la scheda video per i giochi la rimette solo il pulsante "Rimetti com'era"
 		gpuPrev = s.GpuPrev
@@ -482,7 +483,7 @@ func boostOffOpt(explicit, keepAuto bool) []string {
 	bMu.Unlock()
 
 	var msgs []string
-	if boostCmdsOff() > 0 {
+	if !keepCmds && boostCmdsOff() > 0 {
 		msgs = append(msgs, "Regolazioni per giocare rimesse come prima.")
 	}
 	if len(gpuPrev) > 0 {
