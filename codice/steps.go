@@ -247,11 +247,15 @@ Say 'Creo il backup di Windows (punto di ripristino)...'
 try { Enable-ComputerRestore -Drive ($env:SystemDrive + '\') -ErrorAction Stop } catch {}
 $key = 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\SystemRestore'
 $oldFreq = (Get-ItemProperty -Path $key -Name 'SystemRestorePointCreationFrequency' -ErrorAction SilentlyContinue).SystemRestorePointCreationFrequency
+# Mi segno il valore di prima: se il passaggio viene interrotto, Tasso lo rimette al prossimo avvio.
+$mark = 'HKLM:\SOFTWARE\Tasso\PuntoRipristino'
+try { New-Item -Path $mark -Force | Out-Null; New-ItemProperty -Path $mark -Name 'Old' -Value $(if ($null -ne $oldFreq) { [string][int]$oldFreq } else { 'none' }) -PropertyType String -Force | Out-Null } catch {}
 New-ItemProperty -Path $key -Name 'SystemRestorePointCreationFrequency' -Value 0 -PropertyType DWord -Force | Out-Null
 $before = @(Get-ComputerRestorePoint).Count
 try { Checkpoint-Computer -Description 'Tasso - prima della manutenzione' -RestorePointType MODIFY_SETTINGS -ErrorAction Stop } catch { Say ('Backup non creato: ' + $_.Exception.Message) }
 $after = @(Get-ComputerRestorePoint).Count
 if ($null -ne $oldFreq) { New-ItemProperty -Path $key -Name 'SystemRestorePointCreationFrequency' -Value ([int]$oldFreq) -PropertyType DWord -Force | Out-Null } else { Remove-ItemProperty -Path $key -Name 'SystemRestorePointCreationFrequency' -ErrorAction SilentlyContinue }
+Remove-Item -Path $mark -Recurse -Force -ErrorAction SilentlyContinue
 if ($after -gt $before) { Say 'Backup creato. Se qualcosa non ti piace puoi tornare indietro da Ripristino configurazione di sistema.' }
 elseif ($after -gt 0) {
   $last = @(Get-ComputerRestorePoint | Sort-Object SequenceNumber)[-1]

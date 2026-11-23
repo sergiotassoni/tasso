@@ -318,7 +318,7 @@ func recommend(preset string, tier, hz int, vendor string) tuneRec {
 		r.Label = "Bilanciato: stabile e senza scatti"
 		q := []int{0, 1, 2, 2}[tier]
 		r.Opts = tuneOpts{GpuHigh: true, Mode: "gaming", InGame: true, Quality: q, VSync: false, FPSCap: hz}
-		upTxt := "spento"
+		upTxt := "spento (risoluzione nativa)"
 		if tier <= 1 {
 			upTxt = "FSR / DLSS / XeSS " + up[tier+1]
 		}

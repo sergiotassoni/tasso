@@ -350,7 +350,7 @@ func buildReport(note string) map[string]interface{} {
 		}
 	}
 	if len(gl) == 0 {
-		gl = append(gl, "funziona")
+		gl = append(gl, trGo("nessun problema"))
 	}
 
 	// Scheda madre
@@ -358,7 +358,7 @@ func buildReport(note string) map[string]interface{} {
 	if board == "" {
 		board = "Scheda madre"
 	}
-	boardLine := "funziona"
+	boardLine := trGo("nessun problema")
 	boardIcon := "✅"
 	if sens.Board != nil {
 		boardLine = fmt.Sprintf("%.0f °C", *sens.Board)
@@ -415,7 +415,7 @@ func buildReport(note string) map[string]interface{} {
 		netLine = fmt.Sprintf(trGo("✅ Connesso · %d ms"), ms)
 	}
 
-	lastTxt := "mai"
+	lastTxt := trGo("mai")
 	if lc != nil && lc.Date != "" {
 		lastTxt = lc.Date + " · " + fmtBytes(lc.Freed)
 	}
@@ -449,7 +449,7 @@ func buildReport(note string) map[string]interface{} {
 		if len(h.Issues) == 0 {
 			b.WriteString("Il PC è a posto 👍\n")
 		} else {
-			fmt.Fprintf(&b, "Da sistemare (%d):\n", len(h.Issues))
+			fmt.Fprintf(&b, trGo("Da sistemare (%d):\n"), len(h.Issues))
 			for i, it := range h.Issues {
 				if i >= 6 {
 					break
@@ -516,7 +516,7 @@ func sendDiscordStatus(note string) error {
 		return fmt.Errorf("Discord chiede di aspettare un po': riprova tra qualche minuto")
 	}
 	if resp.StatusCode >= 300 {
-		return fmt.Errorf("Discord ha rifiutato il messaggio (codice %d)", resp.StatusCode)
+		return fmt.Errorf(trGo("Discord ha rifiutato il messaggio (codice %d)"), resp.StatusCode)
 	}
 	updateSettings(func(s *Settings) { s.DiscordLast = time.Now().Format(time.RFC3339) })
 	return nil
@@ -625,7 +625,7 @@ func setDiscordBot(token string, on bool) {
 	_ = json.NewDecoder(io.LimitReader(resp.Body, 1<<20)).Decode(&me)
 	resp.Body.Close()
 	if resp.StatusCode != 200 && resp.StatusCode != 401 {
-		setBotState(map[string]interface{}{"ok": false, "msg": fmt.Sprintf("Discord ora non risponde bene (errore %d): riprova tra un minuto.", resp.StatusCode)})
+		setBotState(map[string]interface{}{"ok": false, "msg": fmt.Sprintf(trGo("Discord ora non risponde bene (errore %d): riprova tra un minuto."), resp.StatusCode)})
 		return
 	}
 	if resp.StatusCode == 401 || me.ID == "" {
@@ -809,7 +809,7 @@ func uptimeText() string {
 	d := time.Duration(r) * time.Millisecond
 	h := int(d.Hours())
 	if h >= 24 {
-		return fmt.Sprintf("%d g %d h", h/24, h%24)
+		return fmt.Sprintf(trGo("%d g %d h"), h/24, h%24)
 	}
 	return fmt.Sprintf("%d h %d min", h, int(d.Minutes())%60)
 }

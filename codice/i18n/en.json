@@ -1,5 +1,26 @@
 {
  "go": {
+  "Il gioco è aperto: chiudilo e riprova, così le sue impostazioni tornano com'erano davvero.": "The game is open: close it and try again, so its settings really go back to how they were.",
+  "Un gioco regolato è aperto: chiudilo e premi di nuovo per togliere anche la sua regolazione.": "A tuned game is open: close it and press again to remove its tuning too.",
+  "Prima di Tasso era spento.": "Before Tasso it was off.",
+  "Prima di Tasso era acceso.": "Before Tasso it was on.",
+  "nessun problema": "no problems",
+  "mai": "never",
+  "%d g %d h": "%d d %d h",
+  "Apri prima il gioco, poi torna qui e premi di nuovo «Traduci solo una zona» (oppure premi F9 nel gioco).": "First open the game, then come back here and press «Translate only one area» again (or press F9 in the game).",
+  "Windows non riesce a verificare la firma di questo Tasso: per sicurezza non aggiorno da solo. Scarica lo zip a mano da Info.": "Windows can't verify this Tasso's signature: to be safe I won't update by myself. Download the zip by hand from Info.",
+  "Il file nuovo è cambiato durante l'aggiornamento: per sicurezza non lo apro. Scarica lo zip a mano da Info.": "The new file changed during the update: to be safe I won't open it. Download the zip by hand from Info.",
+  "il gioco ha già una cartella ": "the game already has a folder ",
+  ": per sicurezza non lo tocco": ": to be safe I'm not touching it",
+  "il gioco ha già delle mod (": "the game already has mods (",
+  "non sono riuscito a togliere: ": "I couldn't remove: ",
+  " (il gioco è aperto?)": " (is the game open?)",
+  "non riesco a catturare lo schermo": "I can't capture the screen",
+  "nessuna uscita audio trovata (": "no audio output found (",
+  "formato audio sconosciuto (": "unknown audio format (",
+  "formato audio non gestito: ": "unsupported audio format: ",
+  "non riesco ad ascoltare l'audio (": "I can't listen to the audio (",
+  "avvio audio non riuscito (": "audio start failed (",
   "Il traduttore veloce non è ancora scaricato: scaricalo in Giochi → Impostazioni": "The fast translator isn't downloaded yet: download it in Games → Settings",
   "Il traduttore veloce è scaricato ma non è partito: in Giochi → Impostazioni premi Riprova": "The fast translator is downloaded but didn't start: in Games → Settings press Try again",
   " (o con il pulsante qui sopra), poi rifai Applica.": " (or with the button above), then do Apply again.",
@@ -1217,6 +1238,8 @@
   "• Grafica dentro il gioco: non sono riuscito a rimettere com'era il file delle impostazioni.": "• In-game graphics: I couldn't put the settings file back as it was."
  },
  "ps": {
+  " di ": " of ",
+  "Se ": "If ",
   "   non riuscita, prova a reinstallarla dal Microsoft Store.": "   failed, try reinstalling it from the Microsoft Store.",
   "   riparata.": "   repaired.",
   " \"versioni precedenti\" salvate: tasto destro sulla cartella dove era il file > Proprietà > Versioni precedenti.": " saved \"Previous versions\": right-click the folder where the file was > Properties > Previous Versions.",
@@ -2664,6 +2687,11 @@
   "La protezione \"Accesso alle cartelle controllato\" non è in modo \"blocca\": non blocca i salvataggi.": "\"Controlled folder access\" isn't in \"block\" mode: it doesn't block saves."
  },
  "ui": {
+  "Non riesco ad accendere la traduzione adesso: chiudi Tasso e riaprilo, poi riprova.": "I can't turn translation on right now: close Tasso and open it again, then try again.",
+  "Il PC si riavvia tra 15 secondi.": "The PC restarts in 15 seconds.",
+  "Riavvio annullato.": "Restart cancelled.",
+  "Schermo principale": "Main screen",
+  "Tasso si riduce a icona: tra 3 secondi, sopra il gioco, disegna con il mouse il riquadro da tradurre. Esc per annullare.": "Tasso minimizes itself: in 3 seconds, over the game, draw the box to translate with the mouse. Esc to cancel.",
   "✓ Salvato, ma mancano i modelli di queste lingue.": "✓ Saved, but the models for these languages are missing.",
   "Lingue": "Languages",
   "SPENTA (accendi la traduzione)": "OFF (turn on translation)",

@@ -640,7 +640,7 @@ func gpuDrvInstall(undo, noBackup bool) {
 			return
 		}
 		if st.PrevURL == "" {
-			fail("Il driver di prima (" + st.PrevVer + ") non si può riscaricare da NVIDIA. Per tornare indietro usa il punto di ripristino del " + st.When + ".")
+			fail(trGo("Il driver di prima (" + st.PrevVer + ") non si può riscaricare da NVIDIA. Per tornare indietro usa il punto di ripristino del " + st.When + ".")) // data con /: la traduco qui
 			return
 		}
 		ver, u = st.PrevVer, st.PrevURL

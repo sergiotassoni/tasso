@@ -586,6 +586,27 @@ dl.sum{display:grid;grid-template-columns:max-content 1fr;gap:6px 14px;margin:0}
 .ovprev span{position:absolute;font:700 12px var(--mono,monospace);color:#f5f5fa;text-shadow:0 0 2px #000,0 0 2px #000;white-space:nowrap}
 .ovprev i{font-style:normal;color:#bea0ff}.ovprev em{font-style:normal;color:#78ffbe}.ovprev u{text-decoration:none;color:#aaafbe}
 .ovprev.sx span{top:6px;left:8px}.ovprev.dx span{top:6px;right:8px}.ovprev.sxb span{bottom:6px;left:8px}.ovprev.dxb span{bottom:6px;right:8px}
+/* Ritocchi grafici (controllo del 23/11) */
+.gmore{background:var(--panel2);color:var(--text);border:1px solid var(--line);border-radius:10px;cursor:pointer}
+.gmore:hover{background:var(--hover)}
+.fixcard .big{font-size:26px;line-height:1}
+.g5 .lvl.best{padding:17px 15px}
+.lvl .f2{flex-direction:column;align-items:flex-start;gap:2px}
+.theme .badge{white-space:nowrap;flex:none}
+@media (max-height:760px){aside{padding:14px 12px;gap:10px} nav button{padding:6px 12px} .navsub button{padding:4px 10px} .brand svg{width:38px;height:38px}}
+.ofc{align-items:stretch}
+.ofc .ic{align-self:flex-start}
+.ofc .btn{margin-top:auto}
+.sensor .n{min-height:2.6em;line-height:1.3}
+.sensor .v{font-size:18px;white-space:nowrap}
+.sensor .meter{margin-top:auto}
+#hwLive{grid-template-columns:repeat(auto-fit,minmax(180px,1fr))}
+.navsub button{white-space:nowrap}
+.acf:has(#trFontV){display:grid;grid-template-columns:auto 1fr;column-gap:6px;align-items:baseline}
+.acf:has(#trFontV) input{grid-column:1/-1}
+.tl[data-tool="opt"] em{font-size:16px;letter-spacing:0;margin-top:-2px}
+.card .li:last-child{border-bottom:0}
+.gwz{align-items:flex-start;padding-top:max(16px,7vh);overflow-y:auto}
 </style>
 </head>
 <body>
@@ -1373,6 +1394,8 @@ const refreshS = async () => { const s = await call('goGetSettings'); if (s) S =
 
 function fmtBytes(b){ b = Number(b) || 0; if (b >= 1073741824) return (b / 1073741824).toFixed(1).replace('.', DEC) + ' GB'; if (b >= 1048576) return Math.round(b / 1048576) + ' MB'; return Math.round(b / 1024) + ' KB'; }
 function fmtMin(m){ m = Math.max(0, Math.round(m)); if (m < 1) return _t('meno di 1 min'); if (m < 60) return m + ' min'; return Math.floor(m / 60) + ' h ' + (m % 60) + ' min'; }
+// Dopo "Riavvia": 15 secondi per cambiare idea (shutdown /a annulla anche il riavvio).
+function restartToast(){ toast(_t('Il PC si riavvia tra 15 secondi.'), 'var(--a4)', {label:_t('Annulla'), fn: async () => { await call('goCancelShutdown'); toast(_t('Riavvio annullato.')); }}); }
 function toast(t, color, action){
   const d = el('div', {class:'toast'}, '<span>' + esc(t) + '</span>');
   if (color) d.style.borderLeftColor = color;
@@ -1727,7 +1750,7 @@ window.tasso = {
     $('#doneLog').textContent = $('#runLog').textContent;
     runUI(false); RUN = null;
     $('#offBanner').classList.toggle('on', !!p.shutdown);
-    const rb = $('#btnReboot'); if (rb) rb.onclick = () => modal(_t('<h2>Riavviare il PC?</h2><p class="muted" style="margin:0">Salva il lavoro aperto: il PC si riavvia tra 15 secondi.</p>'), [{label:_t('Annulla')}, {label:_t('Riavvia'), cls:'warn', fn: () => { call('goRestart'); }}]);
+    const rb = $('#btnReboot'); if (rb) rb.onclick = () => modal(_t('<h2>Riavviare il PC?</h2><p class="muted" style="margin:0">Salva il lavoro aperto: il PC si riavvia tra 15 secondi.</p>'), [{label:_t('Annulla')}, {label:_t('Riavvia'), cls:'warn', fn: () => { call('goRestart'); restartToast(); }}]);
     $('#btnLogs2').onclick = () => call('goOpenLogs');
     toast(p.cancelled ? _t('Interrotto.') : (p.freed > 0 ? _t('Finito: liberati ') + fmtBytes(p.freed) + '.' : _t('Finito.')));
     paintLast(); call('goAnalyze');
@@ -2325,7 +2348,7 @@ function orphanDone(p){
 }
 function paintBloat(){
   const box = $('#bloatList'); box.innerHTML = '';
-  if (!BLOAT || !BLOAT.length) { box.innerHTML = '<div class="li"><span class="muted">' + (BLOAT ? _t('Nessuna app inutile trovata. Ottimo!') : _t('Lettura…')) + '</span></div>'; $('#btnBloat').disabled = !!BLOAT; return; }
+  if (!BLOAT || !BLOAT.length) { box.innerHTML = '<div class="li"><span class="muted">' + (BLOAT ? _t('Nessuna app inutile trovata. Ottimo!') : _t('Lettura…')) + '</span></div>'; $('#btnBloat').disabled = true; return; }
   $('#btnBloat').disabled = false;
   BLOAT.forEach((b, i) => { box.appendChild(el('label', {class:'li check'}, '<input type="checkbox" data-b="' + i + '"' + (b.junk ? ' checked' : '') + '><span class="x"><b>' + esc(b.name) + '</b><span>' + (b.junk ? _t('inutile per quasi tutti') : _t('togli solo se non la usi')) + '</span></span>')); });
 }
@@ -2619,7 +2642,7 @@ function paintWelcome(){
 $('#btnWelcome').onclick = async () => { const wb = $('#btnWelcome'); if (wb.disabled) return; wb.disabled = true; const r = await callBg('goSetProfile', chosen); wb.disabled = false; if (r !== 'ok') { toast(typeof r === 'string' && r ? r : _t('Non sono riuscito a salvare la scelta: riprova.'), 'var(--a4)'); return; } $('#welcome').classList.remove('on'); await refreshS(); applyLook(); repaintLook(); toast(chosen === 'ufficio' ? _t('Fatto! Tasso è pronto per il lavoro.') : _t('Fatto! Tasso è configurato per te.')); setTimeout(statsAsk, 4000); setTimeout(async () => { await refreshS(); paintModes(); paintSettings(); }, 3000); };
 
 /* ---------- 2.1: salute, internet, disco, gioco automatico ---------- */
-const H_ACTIONS = {clean:[_t('Pulisci'), () => confirmLevel(3)], startup:[_t('Apri l\'avvio'), () => show('speed')], recycle:[_t('Svuota'), () => runStep('recycle')], defender:[_t('Scansione'), () => runStep('defender')], winupdate:[_t('Aggiorna'), () => runStep('winupdate')], reboot:[_t('Riavvia'), () => modal(_t('<h2>Riavviare il PC?</h2><p class="muted" style="margin:0">Salva il lavoro aperto: il PC si riavvia tra 15 secondi.</p>'), [{label:_t('Annulla')}, {label:_t('Riavvia'), cls:'warn', fn: () => call('goRestart')}])], turbo:['Boost', () => show('games')], diskmap:[_t('Mappa del disco'), () => show('disk')], disks:[_t('Vedi dischi'), () => runStep('disk_health')], security:[_t('Apri'), () => call('goOpenWin', 'firewall')], devices:[_t('Controlla'), () => runStep('devices')]};
+const H_ACTIONS = {clean:[_t('Pulisci'), () => confirmLevel(3)], startup:[_t('Apri l\'avvio'), () => show('speed')], recycle:[_t('Svuota'), () => runStep('recycle')], defender:[_t('Scansione'), () => runStep('defender')], winupdate:[_t('Aggiorna'), () => runStep('winupdate')], reboot:[_t('Riavvia'), () => modal(_t('<h2>Riavviare il PC?</h2><p class="muted" style="margin:0">Salva il lavoro aperto: il PC si riavvia tra 15 secondi.</p>'), [{label:_t('Annulla')}, {label:_t('Riavvia'), cls:'warn', fn: () => { call('goRestart'); restartToast(); }}])], turbo:['Boost', () => show('games')], diskmap:[_t('Mappa del disco'), () => show('disk')], disks:[_t('Vedi dischi'), () => runStep('disk_health')], security:[_t('Apri'), () => call('goOpenWin', 'firewall')], devices:[_t('Controlla'), () => runStep('devices')]};
 function paintHealth(){
   const h = HEALTH; if (!h) return;
   const sc = Math.max(1, Math.min(100, Number(h.score) || 0));
@@ -3554,7 +3577,8 @@ $('#trSw').onclick = async () => {
   const on = !(TT && TT.acceso);
   if (on && TT && !TT.mozilla_ok && !TT.mozilla_file) { toast(_t('Prima scarica il traduttore veloce in Giochi → Impostazioni.'), 'var(--a4)'); gTab('imp'); return; }
   const r = await ttc('ttAccendi', on); if (TT) TT.acceso = !!r; paintTr(); gpRepaintTr();
-  toast(r ? _t('Traduzione accesa.') : _t('Traduzione spenta.'));
+  if (on && !r) toast(_t('Non riesco ad accendere la traduzione adesso: chiudi Tasso e riaprilo, poi riprova.'), 'var(--a4)');
+  else toast(r ? _t('Traduzione accesa.') : _t('Traduzione spenta.'));
 };
 function gTab(t){
   if (GP_ID) closeGame();

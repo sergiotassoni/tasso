@@ -56,3 +56,12 @@ func readSelfExe() ([]byte, error) {
 	}
 	return io.ReadAll(io.NewSectionReader(selfExe, 0, fi.Size()))
 }
+
+// programFilesDir: la vera cartella Programmi. Non uso la variabile d'ambiente ProgramFiles, che
+// un programma senza privilegi può cambiare (HKCU\Environment) e che Tasso, da amministratore, erediterebbe.
+func programFilesDir() string {
+	if p, err := windows.KnownFolderPath(windows.FOLDERID_ProgramFiles, 0); err == nil && p != "" {
+		return p
+	}
+	return os.Getenv("ProgramFiles")
+}

@@ -456,7 +456,7 @@ const (
 // Accanto alla copia c'è VERSIONE: non rimetto mai una versione vecchia sopra una più nuova
 // (es. dopo un aggiornamento fatto dalla copia in Programmi).
 func taskExe() string {
-	pf := os.Getenv("ProgramFiles")
+	pf := programFilesDir()
 	if pf == "" || exePath == "" {
 		return ""
 	}

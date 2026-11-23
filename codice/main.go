@@ -8,12 +8,14 @@ import (
 	"os"
 	"path/filepath"
 	"runtime/debug"
+	"strconv"
 	"strings"
 	"time"
 	"unsafe"
 
 	webview2 "github.com/jchv/go-webview2"
 	"golang.org/x/sys/windows"
+	"golang.org/x/sys/windows/registry"
 
 	"tasso/traduce"
 )
@@ -172,6 +174,7 @@ func main() {
 	go func() {
 		defer guard("main.go:153")
 		cleanWipeTemp()
+		fixRestoreFreq()
 	}()
 	if profileIsOn() {
 		go func() {
@@ -579,7 +582,7 @@ func urlQuery(s string) string {
 
 func openGpuPanel(vendor string) string {
 	v := strings.ToLower(vendor)
-	pf := os.Getenv("ProgramFiles")
+	pf := programFilesDir()
 	switch {
 	case strings.Contains(v, "nvidia"):
 		app := filepath.Join(pf, "NVIDIA Corporation", "NVIDIA app", "CEF", "NVIDIA app.exe")
@@ -688,6 +691,30 @@ func openWinPage(id string) string {
 
 // cleanWipeTemp toglie la cartella di riempimento di cipher /w (C:\EFSTMPWP) rimasta da un
 // "Cancella lo spazio libero" interrotto: può occupare tutto lo spazio libero del disco.
+// fixRestoreFreq: se il passaggio "backup" è stato interrotto, rimetto il limite di Windows ai punti
+// di ripristino com'era (il passaggio lo toglie solo per un momento).
+func fixRestoreFreq() {
+	defer guard("fixRestoreFreq")
+	const mark = `SOFTWARE\Tasso\PuntoRipristino`
+	old, ok := regGet(registry.LOCAL_MACHINE, mark, "Old")
+	if !ok {
+		return
+	}
+	k, err := registry.OpenKey(registry.LOCAL_MACHINE, `SOFTWARE\Microsoft\Windows NT\CurrentVersion\SystemRestore`, registry.SET_VALUE)
+	if err != nil {
+		return
+	}
+	defer k.Close()
+	if old == "none" {
+		_ = k.DeleteValue("SystemRestorePointCreationFrequency")
+	} else if n, err := strconv.ParseUint(old, 10, 32); err == nil {
+		_ = k.SetDWordValue("SystemRestorePointCreationFrequency", uint32(n))
+	} else {
+		return
+	}
+	_ = registry.DeleteKey(registry.LOCAL_MACHINE, mark)
+}
+
 func cleanWipeTemp() {
 	if sd := os.Getenv("SystemDrive"); sd != "" {
 		p := filepath.Join(sd+`\`, "EFSTMPWP")

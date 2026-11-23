@@ -37,7 +37,7 @@ var (
 // Solo se non si può (caso raro) uso la cartella di Tasso in AppData, come prima.
 func scriptDir() string {
 	scriptDirOnce.Do(func() {
-		if pf := os.Getenv("ProgramFiles"); pf != "" {
+		if pf := programFilesDir(); pf != "" {
 			d := filepath.Join(pf, "Tasso", "lavoro")
 			if os.MkdirAll(d, 0o755) == nil {
 				scriptDirPath = d
@@ -332,7 +332,7 @@ func startSteps(ids []string, level int, shutdownAfter bool) string {
 			}
 		}()
 		logLine := func(s string) {
-			line := time.Now().Format("15:04:05") + "  " + s
+			line := time.Now().Format("15:04:05") + "  " + trGo(s) // il file di registro nella lingua di Tasso
 			if lf != nil {
 				fmt.Fprintln(lf, line)
 			}

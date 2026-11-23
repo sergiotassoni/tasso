@@ -109,7 +109,7 @@ func saveGuard(g vaultGuard) {
 func checkPIN(pin string) ([]vaultEntry, []byte, []byte, string) {
 	g := loadGuard()
 	if time.Now().Before(g.Until) {
-		return nil, nil, nil, fmt.Sprintf("Troppi tentativi: aspetta %d secondi.", int(time.Until(g.Until).Seconds())+1)
+		return nil, nil, nil, fmt.Sprintf(trGo("Troppi tentativi: aspetta %d secondi."), int(time.Until(g.Until).Seconds())+1)
 	}
 	items, key, salt, err := vaultRead(pin)
 	if err != nil {
@@ -122,7 +122,7 @@ func checkPIN(pin string) ([]vaultEntry, []byte, []byte, string) {
 					wait = 3600
 				}
 				g.Until = time.Now().Add(time.Duration(wait) * time.Second)
-				msg = fmt.Sprintf("PIN sbagliato %d volte: aspetta %d secondi.", g.Fails, wait)
+				msg = fmt.Sprintf(trGo("PIN sbagliato %d volte: aspetta %d secondi."), g.Fails, wait)
 			}
 			saveGuard(g)
 			return nil, nil, nil, msg
@@ -617,7 +617,7 @@ func pwnedCount(pw string) map[string]interface{} {
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != 200 {
-		return map[string]interface{}{"ok": false, "error": fmt.Sprintf("Il servizio di controllo ha risposto con un errore (%d).", resp.StatusCode)}
+		return map[string]interface{}{"ok": false, "error": fmt.Sprintf(trGo("Il servizio di controllo ha risposto con un errore (%d)."), resp.StatusCode)}
 	}
 	body, _ := io.ReadAll(io.LimitReader(resp.Body, 4<<20))
 	count := 0

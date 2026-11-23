@@ -415,7 +415,7 @@ func purgeStandby() string {
 	cmd := int32(4)                                                                      // MemoryPurgeStandbyList
 	r, _, _ := pNtSetSysInfo.Call(80, uintptr(unsafe.Pointer(&cmd)), unsafe.Sizeof(cmd)) // SystemMemoryListInformation
 	if r != 0 {
-		return fmt.Sprintf("Windows non ha accettato il comando (codice %#x).", r)
+		return fmt.Sprintf(trGo("Windows non ha accettato il comando (codice %#x)."), r)
 	}
 	return "ok:Memoria in standby svuotata. Se un gioco scattava dopo tanto tempo, ora dovrebbe andare più liscio."
 }
