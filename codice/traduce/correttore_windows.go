@@ -40,6 +40,8 @@ const (
 func rangoProfilo(n string) int {
 	switch n {
 	case "scheda":
+		return 4
+	case "media":
 		return 3
 	case "meta":
 		return 2
@@ -95,7 +97,7 @@ func sorvegliaIA() {
 	for {
 		voluto := ""
 		if acceso.Load() && iaPresente() && leggiImp().Motore != "mozilla" {
-			conScorta = scortaPresente()
+			conScorta, conMedia = scortaPresente(), mediaPresente()
 			g := controllaGPU()
 			attuale, _ := profiloIA.Load().(string)
 			if ia.Attivo() {
@@ -153,6 +155,8 @@ func memoriaProfilo(n string) float64 {
 		return vramIntero
 	case "piccola":
 		return vramPiccola
+	case "media":
+		return vramMedia
 	case "meta":
 		if n := int(stratiMeta.Load()); n > 0 {
 			return vramStrati(n)
@@ -176,8 +180,11 @@ func applicaProfiloIA(nome string, ram float64, core int) {
 		}
 		ia.impostaProfilo(p)
 		modello := fileModelloIA()
-		if nome == "piccola" {
+		switch nome {
+		case "piccola":
 			modello = fileScortaIA()
+		case "media":
+			modello = fileMediaIA()
 		}
 		if err := ia.Avvia(dirMotoreIA(), modello); err != nil {
 			falliteIA++

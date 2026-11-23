@@ -85,19 +85,27 @@ func limiteIA(memoriaGB float64) float64 { return memoriaGB * 0.44 }
 // IA di scorta (richiesta di Sergio 23/11 19:00): quando l'IA grande non ci sta tutta sulla scheda,
 // invece di dividerla (lenta) o spegnerla, Tasso usa un'IA piccola che ci sta tutta.
 // conScorta è vero solo se il modello piccolo è scaricato e verificato.
-var conScorta bool
+var conScorta, conMedia bool
 
 const (
 	vramPiccola     = 2.0 // EuroLLM-1.7B: da misurare sul PC di Sergio
+	vramMedia       = 4.8 // EuroLLM-9B Q3_K_M: da misurare sul PC di Sergio
 	ramMinimaScorta = 7.5
 )
 
 func sceltaCorrettore(g InfoGPU, ramGB float64, core int) ProfiloCorrettore {
 	p := sceltaGrande(g, ramGB, core)
-	if !conScorta || p.Nome == "scheda" {
+	if p.Nome == "scheda" {
 		return p
 	}
 	libera := g.MemoriaGB - g.UsataGB
+	if conMedia && g.MemoriaGB > 0 && limiteIA(g.MemoriaGB) >= vramMedia && libera >= vramMedia+margineGiocoGB &&
+		ramGB >= ramMinimaScorta && core >= coreMinimiIA {
+		return ProfiloCorrettore{"media", -1, vramMedia, fmt.Sprintf("%.1f GB liberi sulla scheda video: uso l'IA grande compressa (circa %.1f GB), tutta sulla scheda.", libera, vramMedia)}
+	}
+	if !conScorta {
+		return p
+	}
 	if g.MemoriaGB > 0 && limiteIA(g.MemoriaGB) >= vramPiccola && libera >= vramPiccola+margineGiocoGB &&
 		ramGB >= ramMinimaScorta && core >= coreMinimiIA {
 		return ProfiloCorrettore{"piccola", -1, vramPiccola, fmt.Sprintf("%.1f GB liberi sulla scheda video: l'IA grande non ci sta tutta, uso l'IA piccola (circa %.0f GB), veloce.", libera, vramPiccola)}

@@ -24,6 +24,9 @@ func scaricaIA() {
 	muImp.Unlock()
 	salvaImp()
 	files := []FileDaScaricare{risorseIA.Motore, risorseIA.Modello}
+	if risorseIA.Media.URL != "" && risorseIA.Media.SHA256 != "" {
+		files = append(files, risorseIA.Media) // IA grande compressa: quando il gioco lascia un po' meno memoria
+	}
 	if risorseIA.Scorta.URL != "" && risorseIA.Scorta.SHA256 != "" {
 		files = append(files, risorseIA.Scorta) // IA piccola per quando il gioco lascia poca memoria
 	}

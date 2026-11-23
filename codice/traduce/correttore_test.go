@@ -121,3 +121,14 @@ func TestScorta(t *testing.T) {
 		t.Errorf("Call of Duty: solo Mozilla, non %+v", p)
 	}
 }
+
+func TestMedia(t *testing.T) {
+	conScorta, conMedia = true, true
+	defer func() { conScorta, conMedia = false, false }()
+	if p := sceltaCorrettore(InfoGPU{MemoriaGB: 12, UsataGB: 5.5}, 48, 16); p.Nome != "media" {
+		t.Errorf("5,5 GB usati: IA compressa, non %+v", p)
+	}
+	if p := sceltaCorrettore(InfoGPU{MemoriaGB: 12, UsataGB: 8}, 48, 16); p.Nome != "piccola" {
+		t.Errorf("8 GB usati: IA piccola, non %+v", p)
+	}
+}
