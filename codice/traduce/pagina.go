@@ -8,6 +8,7 @@ package traduce
 import (
 	"image"
 	"image/color"
+	"math"
 	"sort"
 	"strings"
 	"unicode"
@@ -395,37 +396,57 @@ func fondoRicostruito(img *image.RGBA, b Blocco) *image.RGBA {
 		return nil
 	}
 	bd := img.Bounds()
-	yTop, yBot := clamp(y0-1, bd.Min.Y, bd.Max.Y-1), clamp(y0+h, bd.Min.Y, bd.Max.Y-1)
-	riga := func(y int) []color.RGBA {
-		out := make([]color.RGBA, w)
-		for i := 0; i < w; i++ {
-			var r, g, bl, n int
-			for k := -3; k <= 3; k++ { // media su 7 pixel: niente pezzi di lettere
-				x := clamp(x0+i+k, bd.Min.X, bd.Max.X-1)
-				c := img.RGBAAt(x, y)
-				if distanza(c, b.Inchiostro) < distanza(c, b.Sfondo) {
-					continue // pixel che sembra testo: non lo uso
-				}
-				r, g, bl, n = r+int(c.R), g+int(c.G), bl+int(c.B), n+1
+	// un punto del bordo: media dei pixel vicini lungo il bordo, saltando quelli che sembrano
+	// lettere. Media larga (13 pixel): niente strisce dovute a un solo pixel diverso.
+	media := func(x, y, dx, dy int) color.RGBA {
+		var r, g, bl, n int
+		for k := -6; k <= 6; k++ {
+			xx := clamp(x+k*dx, bd.Min.X, bd.Max.X-1)
+			yy := clamp(y+k*dy, bd.Min.Y, bd.Max.Y-1)
+			c := img.RGBAAt(xx, yy)
+			if distanza(c, b.Inchiostro) < distanza(c, b.Sfondo) {
+				continue // pixel che sembra testo: non lo uso
 			}
-			if n == 0 {
-				out[i] = b.Sfondo
-			} else {
-				out[i] = color.RGBA{uint8(r / n), uint8(g / n), uint8(bl / n), 255}
-			}
+			r, g, bl, n = r+int(c.R), g+int(c.G), bl+int(c.B), n+1
 		}
-		return out
+		if n == 0 {
+			return b.Sfondo
+		}
+		return color.RGBA{uint8(r / n), uint8(g / n), uint8(bl / n), 255}
 	}
-	sopra, sotto := riga(yTop), riga(yBot)
+	yTop, yBot := clamp(y0-1, bd.Min.Y, bd.Max.Y-1), clamp(y0+h, bd.Min.Y, bd.Max.Y-1)
+	xSx, xDx := clamp(x0-1, bd.Min.X, bd.Max.X-1), clamp(x0+w, bd.Min.X, bd.Max.X-1)
+	sopra, sotto := make([]color.RGBA, w), make([]color.RGBA, w)
+	for i := 0; i < w; i++ {
+		sopra[i], sotto[i] = media(x0+i, yTop, 1, 0), media(x0+i, yBot, 1, 0)
+	}
+	sx, dx := make([]color.RGBA, h), make([]color.RGBA, h)
+	for j := 0; j < h; j++ {
+		sx[j], dx[j] = media(xSx, y0+j, 0, 1), media(xDx, y0+j, 0, 1)
+	}
+	// superficie che unisce i quattro bordi (sopra, sotto, sinistra, destra): le sfumature in
+	// tutte le direzioni, senza le strisce verticali di prima
+	ang := [4][3]float64{}
+	for k, c := range []color.RGBA{sopra[0], sopra[w-1], sotto[0], sotto[w-1]} {
+		ang[k] = [3]float64{float64(c.R), float64(c.G), float64(c.B)}
+	}
 	p := image.NewRGBA(image.Rect(0, 0, w, h))
 	for y := 0; y < h; y++ {
-		t := float64(y) / float64(max(1, h-1))
+		v := float64(y) / float64(max(1, h-1))
 		for x := 0; x < w; x++ {
-			a, c := sopra[x], sotto[x]
-			p.SetRGBA(x, y, color.RGBA{
-				uint8(float64(a.R)*(1-t) + float64(c.R)*t),
-				uint8(float64(a.G)*(1-t) + float64(c.G)*t),
-				uint8(float64(a.B)*(1-t) + float64(c.B)*t), 255})
+			u := float64(x) / float64(max(1, w-1))
+			t, bo, l, r := sopra[x], sotto[x], sx[y], dx[y]
+			var out [3]float64
+			for c := 0; c < 3; c++ {
+				ct := float64([]uint8{t.R, t.G, t.B}[c])
+				cb := float64([]uint8{bo.R, bo.G, bo.B}[c])
+				cl := float64([]uint8{l.R, l.G, l.B}[c])
+				cr := float64([]uint8{r.R, r.G, r.B}[c])
+				out[c] = (1-v)*ct + v*cb + (1-u)*cl + u*cr -
+					((1-u)*(1-v)*ang[0][c] + u*(1-v)*ang[1][c] + (1-u)*v*ang[2][c] + u*v*ang[3][c])
+				out[c] = math.Max(0, math.Min(255, out[c]))
+			}
+			p.SetRGBA(x, y, color.RGBA{uint8(out[0] + 0.5), uint8(out[1] + 0.5), uint8(out[2] + 0.5), 255})
 		}
 	}
 	return p

@@ -42,7 +42,7 @@ func creaFinestraPagina() {
 	if h == 0 {
 		return
 	}
-	pSetLayeredAttr.Call(h, chiaveTrsp, 250, 1|2) // LWA_COLORKEY | LWA_ALPHA
+	pSetLayeredAttr.Call(h, chiaveTrsp, 255, 1|2) // LWA_COLORKEY | LWA_ALPHA: pieno, l'inglese sotto non deve trasparire
 	pSetDisplayAffin.Call(h, affinita())          // WDA_EXCLUDEFROMCAPTURE: non rileggo le mie scritte
 	k, _, _ := pCreateBrush.Call(chiaveTrsp)
 	pag.mu.Lock()
