@@ -1178,7 +1178,7 @@ dl.sum{display:grid;grid-template-columns:max-content 1fr;gap:6px 14px;margin:0}
   </div>
   <div class="card" style="display:flex;flex-direction:column;gap:12px">
     <div><h2>Lingua · Language</h2><p class="sub" style="margin:2px 0 0">Tasso si riapre nella lingua scelta. · Tasso reopens in the language you choose.</p></div>
-    <div class="row wrap" style="gap:8px"><button class="btn ghost langbtn" data-lang="it">Italiano</button><button class="btn ghost langbtn" data-lang="en">English</button></div>
+    <div class="row wrap" style="gap:8px"><button class="btn ghost langbtn" data-lang="it" lang="it" translate="no">Italiano</button><button class="btn ghost langbtn" data-lang="en">English</button></div>
   </div>
   <div class="card" id="fbCard" style="display:flex;flex-direction:column;gap:12px">
     <div><h2>💬 Scrivici</h2><p class="sub" style="margin:2px 0 0">Un'idea per migliorare Tasso, un problema da sistemare o due parole su come ti trovi. Puoi aggiungere fino a 2 foto. Leggo tutto.</p></div>
@@ -1267,7 +1267,7 @@ dl.sum{display:grid;grid-template-columns:max-content 1fr;gap:6px 14px;margin:0}
 <div class="welcome" id="welcome"><div class="in">
   <div class="row wrap" style="justify-content:space-between">
     <div class="brand" style="padding:0"><svg class="gm" width="42" height="42" viewBox="0 0 200 200" aria-hidden="true"><rect x="4" y="4" width="192" height="192" rx="48" fill="#141725"/><rect x="4" y="4" width="192" height="192" rx="48" fill="none" stroke="var(--a1)" stroke-opacity=".8" stroke-width="7"/><path d="M100 172 L34 94 L58 38 L142 38 L166 94 Z" fill="#F2F4F8"/><path d="M58 38 L86 38 L94 122 L76 132 L44 104 Z" fill="#07080D"/><path d="M142 38 L114 38 L106 122 L124 132 L156 104 Z" fill="#07080D"/><circle class="pup" cx="74" cy="98" r="9" fill="var(--a1)"/><circle class="pup" cx="126" cy="98" r="9" fill="var(--a1)"/></svg><svg class="om tassino" width="42" height="42" viewBox="0 0 200 200" aria-hidden="true"><rect x="4" y="4" width="192" height="192" rx="48" fill="#FFFFFF"/><rect x="4" y="4" width="192" height="192" rx="48" fill="none" stroke="#C9CDD4" stroke-width="6"/><g transform="translate(28 36) scale(0.6)"><path d="M44 22 H196 L226 104 L120 206 L14 104 Z" fill="#0A0B0D"/><path d="M80 22 H106 L108 142 L56 132 L36 98 Z" fill="#FFFFFF"/><path d="M160 22 H134 L132 142 L184 132 L204 98 Z" fill="#FFFFFF"/><circle class="pup" cx="82" cy="112" r="12" fill="var(--a1)"/><circle class="pup" cx="158" cy="112" r="12" fill="var(--a1)"/><path d="M100 164 H140 L120 190 Z" fill="#FFFFFF"/></g></svg><div><b>TASSO</b></div></div>
-    <span class="row" style="gap:6px"><button class="btn ghost langbtn" data-lang="it" style="padding:8px 14px">Italiano</button><button class="btn ghost langbtn" data-lang="en" style="padding:8px 14px">English</button></span>
+    <span class="row" style="gap:6px"><button class="btn ghost langbtn" data-lang="it" lang="it" translate="no" style="padding:8px 14px">Italiano</button><button class="btn ghost langbtn" data-lang="en" style="padding:8px 14px">English</button></span>
   </div>
   <div style="display:flex;flex-direction:column;align-items:center;gap:12px;text-align:center">
     <span style="font-size:12px;font-weight:800;letter-spacing:2px;color:var(--a2)">PRIMA CONFIGURAZIONE</span>
@@ -1329,7 +1329,7 @@ document.addEventListener('click', async (e) => {
 // Testi fissi della pagina: li traduco una volta all'apertura.
 function translateStatic(root){
   if (!EN) return;
-  const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, { acceptNode: n => (n.parentNode && /^(SCRIPT|STYLE)$/.test(n.parentNode.nodeName)) ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT });
+  const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, { acceptNode: n => (n.parentNode && (/^(SCRIPT|STYLE)$/.test(n.parentNode.nodeName) || (n.parentNode.closest && n.parentNode.closest('[translate="no"]')))) ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT });
   const list = []; while (w.nextNode()) list.push(w.currentNode);
   for (const n of list) { const raw = n.nodeValue, k = raw.trim(); if (!k) continue; const v = TD[k]; if (v !== undefined) n.nodeValue = raw.replace(k, v); }
   root.querySelectorAll('[placeholder],[title],[aria-label],[alt]').forEach(e => { for (const a of ['placeholder', 'title', 'aria-label', 'alt']) { const v = e.getAttribute(a); if (v && TD[v.trim()] !== undefined) e.setAttribute(a, TD[v.trim()]); } });
