@@ -44,6 +44,14 @@ var risorseIA = RisorseIA{
 		SHA256: "785a3b2883532381704ef74f866f822f179a931801d1ed1cf12e6deeb838806b",
 		Byte:   5582838496,
 	},
+	// Media: la stessa IA compressa di più. Prova 1000 frasi 23/11: 70,7 (Grande 71,6, Mozilla 68,1).
+	// Impronta controllata sul PC di Sergio il 23/11 (uguale a quella di bartowski su Hugging Face).
+	Media: FileDaScaricare{
+		URL:    "https://huggingface.co/bartowski/EuroLLM-9B-Instruct-GGUF/resolve/main/EuroLLM-9B-Instruct-Q3_K_M.gguf",
+		Nome:   "EuroLLM-9B-Instruct-Q3_K_M.gguf",
+		SHA256: "c4734729b75ec7eb157b9da0b5b7e946bd6ebb2b9c864b5ee1d37f399a89f8f7",
+		Byte:   4553136864,
+	},
 	Nome:    "EuroLLM-9B (progetto europeo UTTER)",
 	Licenza: "Apache-2.0",
 }

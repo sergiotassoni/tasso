@@ -111,8 +111,11 @@ func TestScorta(t *testing.T) {
 	if p := sceltaCorrettore(InfoGPU{MemoriaGB: 12, UsataGB: 2}, 48, 16); p.Nome != "scheda" {
 		t.Errorf("c'è posto: IA grande, non %+v", p)
 	}
-	if p := sceltaCorrettore(InfoGPU{MemoriaGB: 12, UsataGB: 8}, 48, 16); p.Nome != "piccola" {
+	if p := sceltaCorrettore(InfoGPU{MemoriaGB: 12, UsataGB: 7.5}, 48, 16); p.Nome != "piccola" || p.Strati != stratiPiccola {
 		t.Errorf("gioco pesante: IA piccola, non %+v", p)
+	}
+	if p := sceltaCorrettore(InfoGPU{MemoriaGB: 12, UsataGB: 7.5}, 8, 4); p.Nome == "piccola" {
+		t.Errorf("PC debole: la piccola lavora anche col processore, non va bene: %+v", p)
 	}
 	if p := sceltaCorrettore(InfoGPU{MemoriaGB: 8, UsataGB: 2}, 16, 8); p.Nome != "piccola" {
 		t.Errorf("scheda da 8: IA piccola, non %+v", p)
@@ -128,8 +131,8 @@ func TestMedia(t *testing.T) {
 	if p := sceltaCorrettore(InfoGPU{MemoriaGB: 12, UsataGB: 5.8}, 48, 16); p.Nome != "media" {
 		t.Errorf("5,8 GB usati: IA compressa, non %+v", p)
 	}
-	if p := sceltaCorrettore(InfoGPU{MemoriaGB: 12, UsataGB: 8}, 48, 16); p.Nome != "piccola" {
-		t.Errorf("8 GB usati: IA piccola, non %+v", p)
+	if p := sceltaCorrettore(InfoGPU{MemoriaGB: 12, UsataGB: 7.5}, 48, 16); p.Nome != "piccola" {
+		t.Errorf("7,5 GB usati: IA piccola, non %+v", p)
 	}
 }
 

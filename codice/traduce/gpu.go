@@ -82,14 +82,22 @@ func stratiPer(gb float64) int {
 // (Subnautica 2 al massimo 7 GB, Throne and Liberty 6 GB; Call of Duty 10 GB → l'IA si fa da parte).
 func limiteIA(memoriaGB float64) float64 { return memoriaGB * 0.44 }
 
-// IA di scorta (richiesta di Sergio 23/11 19:00): quando l'IA grande non ci sta tutta sulla scheda,
-// invece di dividerla (lenta) o spegnerla, Tasso usa un'IA piccola che ci sta tutta.
-// conScorta è vero solo se il modello piccolo è scaricato e verificato.
+// Tre livelli (richiesta di Sergio 23/11). Prova sulle 1000 frasi (23/11, RX 6700 XT, chrF++):
+//
+//	Mozilla da solo                68,1   0,02 s
+//	Grande  EuroLLM-9B Q4_K_M      71,6   0,36 s  (5,2 GB)
+//	Media   EuroLLM-9B Q3_K_M      70,7   0,37 s  (circa 4,4 GB)
+//	EuroLLM-1.7B (Q8_0 e Q4_K_M)   66,1 / 64,7: PEGGIORA Mozilla → scartato
+//
+// La Piccola quindi è la Media con solo una parte sulla scheda video (circa 3 GB), il resto sul
+// processore: più lenta ma migliora davvero la traduzione. conScorta = la Media è scaricata
+// e il PC è abbastanza forte (RAM e core) per lavorare anche col processore.
 var conScorta, conMedia bool
 
 const (
-	vramPiccola     = 2.0 // EuroLLM-1.7B: da misurare sul PC di Sergio
-	vramMedia       = 4.8 // EuroLLM-9B Q3_K_M: da misurare sul PC di Sergio
+	vramPiccola     = 3.0 // Media con stratiPiccola strati sulla scheda: da misurare
+	vramMedia       = 4.4 // EuroLLM-9B Q3_K_M (file 4,24 GB): da misurare
+	stratiPiccola   = 28
 	ramMinimaScorta = 7.5
 )
 
@@ -107,8 +115,8 @@ func sceltaCorrettore(g InfoGPU, ramGB float64, core int) ProfiloCorrettore {
 		return p
 	}
 	if g.MemoriaGB > 0 && limiteIA(g.MemoriaGB) >= vramPiccola && libera >= vramPiccola+margineGiocoGB &&
-		ramGB >= ramMinimaScorta && core >= coreMinimiIA {
-		return ProfiloCorrettore{"piccola", -1, vramPiccola, fmt.Sprintf("%.1f GB liberi sulla scheda video: l'IA grande non ci sta tutta, uso l'IA piccola (circa %.0f GB), veloce.", libera, vramPiccola)}
+		ramGB >= ramMinimaIA && core >= coreMinimiMeta {
+		return ProfiloCorrettore{"piccola", stratiPiccola, vramPiccola, fmt.Sprintf("%.1f GB liberi sulla scheda video: uso l'IA piccola (circa %.0f GB sulla scheda, il resto sul processore).", libera, vramPiccola)}
 	}
 	return p
 }
@@ -153,8 +161,8 @@ func sceltaLivello(g InfoGPU, ramGB float64, core int, livello string) ProfiloCo
 		return g.MemoriaGB > 0 && libera >= gb+margineGiocoGB && ramGB >= ramMinimaScorta && core >= coreMinimiIA
 	}
 	piccola := func() ProfiloCorrettore {
-		if conScorta && ci(vramPiccola) {
-			return ProfiloCorrettore{"piccola", -1, vramPiccola, fmt.Sprintf("Hai scelto l'IA piccola (circa %.0f GB della scheda video).", vramPiccola)}
+		if conScorta && ci(vramPiccola) && ramGB >= ramMinimaIA && core >= coreMinimiMeta {
+			return ProfiloCorrettore{"piccola", stratiPiccola, vramPiccola, fmt.Sprintf("Hai scelto l'IA piccola (circa %.0f GB della scheda video, il resto sul processore).", vramPiccola)}
 		}
 		return ProfiloCorrettore{"", 0, 0, "L'IA piccola non c'è o non ci sta adesso: uso il traduttore veloce."}
 	}

@@ -97,7 +97,8 @@ func sorvegliaIA() {
 	for {
 		voluto := ""
 		if acceso.Load() && iaPresente() && leggiImp().Motore != "mozilla" {
-			conScorta, conMedia = scortaPresente(), mediaPresente()
+			conMedia = mediaPresente()
+			conScorta = conMedia // la Piccola è la Media divisa tra scheda e processore
 			g := controllaGPU()
 			attuale, _ := profiloIA.Load().(string)
 			if ia.Attivo() {
@@ -172,6 +173,9 @@ func applicaProfiloIA(nome string, ram float64, core int) {
 	profiloIA.Store("")
 	if nome != "" {
 		p := ProfiloCorrettore{Nome: nome, Strati: -1}
+		if nome == "piccola" {
+			p.Strati = stratiPiccola
+		}
 		if nome == "meta" {
 			p.Strati = int(stratiMeta.Load())
 			if p.Strati <= 0 {
@@ -182,7 +186,7 @@ func applicaProfiloIA(nome string, ram float64, core int) {
 		modello := fileModelloIA()
 		switch nome {
 		case "piccola":
-			modello = fileScortaIA()
+			modello = fileMediaIA()
 		case "media":
 			modello = fileMediaIA()
 		}

@@ -4049,13 +4049,13 @@ function tuneRows(){
 function lvHtml(st, iaTxt){
   const okIa = !!(st.ia_file && st.ia_pc_ok);
   if (!okIa) return '<div class="lvcard"><b>🧠 ' + esc(_t('Traduzione più precisa (IA)')) + '</b><span class="small muted">' + esc(iaTxt) + '</span></div>';
-  const gbv = st.ia_gb || {piccola: 2, media: 4.6, grande: 5.2}, g = st.gpu || {}, tot = g.memoria_gb || 0, gioco = Math.max(0, g.usata_gb || 0), lib = tot - gioco;
+  const gbv = st.ia_gb || {piccola: 3, media: 4.4, grande: 5.2}, g = st.gpu || {}, tot = g.memoria_gb || 0, gioco = Math.max(0, g.usata_gb || 0), lib = tot - gioco;
   const n = (x) => String(Math.round(x * 10) / 10).replace('.', EN ? '.' : ',');
   const fit = (gb) => !tot || lib >= gb + 1.3;
   const L = [
     {k:'auto', t:_t('Automatica'), em:_t('Consigliata'), gb:null, d:_t('Tasso sceglie da solo il livello più intelligente che ci sta, gioco per gioco.'), v:0, ok:true},
-    {k:'piccola', t:_t('Piccola'), gb:gbv.piccola, d:_t('Rapidissima. Corregge gli errori più grossi.'), v:2, ok:!!st.ia_piccola},
-    {k:'media', t:_t('Media'), gb:gbv.media, d:_t('Veloce e molto precisa. L\'IA grande, compressa.'), v:4, ok:true},
+    {k:'piccola', t:_t('Piccola'), gb:gbv.piccola, d:_t('Per i giochi che usano tanta scheda video. Lavora anche con il processore: corregge più lenta.'), v:3, ok:!!st.ia_piccola},
+    {k:'media', t:_t('Media'), gb:gbv.media, d:_t('Veloce e quasi precisa come la Grande, con 1 GB in meno.'), v:4, ok:!!st.ia_media},
     {k:'grande', t:_t('Grande'), gb:gbv.grande, d:_t('La più intelligente. Per schede da 12 GB in su.'), v:5, ok:true}
   ];
   const cur = W.liv || 'auto';
