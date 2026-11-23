@@ -277,14 +277,18 @@ func giochiEpic(dirManifesti string) []GiocoInstallato {
 	return out
 }
 
-// conAntiCheat: il gioco ha un sistema anti-imbroglio (EasyAntiCheat, BattlEye, Vanguard di
-// Riot…). Guardo solo i nomi delle cartelle, senza aprire niente. Questi giochi non li
-// traduco in automatico: potrebbero non gradire una finestra sopra il gioco.
-func conAntiCheat(g GiocoRiconosciuto) bool {
+// ConAntiCheat: il gioco ha un sistema anti-imbroglio (EasyAntiCheat, BattlEye, Vanguard di
+// Riot…). Guardo solo i nomi di file e cartelle, senza aprire niente. Questi giochi non li
+// traduco in automatico (potrebbero non gradire una finestra sopra il gioco) e Tasso non tocca
+// i loro file né le loro impostazioni.
+func ConAntiCheat(g GiocoRiconosciuto) bool {
 	if g.Piattaforma == "Riot" {
 		return true
 	}
 	base := strings.ReplaceAll(g.Cartella, `\`, string(os.PathSeparator))
+	if base == "" {
+		return false
+	}
 	for _, d := range [][]string{{"EasyAntiCheat"}, {"EasyAntiCheat_EOS"}, {"BattlEye"}, {"Binaries", "Win64", "EasyAntiCheat"}} {
 		if st, err := os.Stat(filepath.Join(append([]string{base}, d...)...)); err == nil && st.IsDir() {
 			return true
@@ -293,11 +297,52 @@ func conAntiCheat(g GiocoRiconosciuto) bool {
 	// altri segni: lanciatori protetti e driver anti-imbroglio accanto all'exe
 	voci, _ := os.ReadDir(base)
 	for _, v := range voci {
-		n := strings.ToLower(v.Name())
-		for _, segno := range []string{"start_protected_game", "easyanticheat", "battleye", "beservice", "mhyprot", "xigncode", "gameguard", "npgamemon", "vgk", "faceit", "ace-", "anticheat"} {
-			if strings.Contains(n, segno) {
+		if segnoAntiCheat(v.Name(), segniAntiCheat) {
+			return true
+		}
+	}
+	// Sottocartelle tipiche (Binaries\Win64\EasyAntiCheat, Gioco\Binaries\Win64\BattlEye…), fino a
+	// 3 livelli sotto la cartella del gioco. Per non diventare lenta con i giochi enormi leggo al
+	// massimo 300 cartelle, prima quelle più in alto, e solo i nomi più sicuri.
+	type dir struct {
+		path  string
+		depth int
+	}
+	coda := []dir{}
+	for _, v := range voci {
+		if v.IsDir() {
+			coda = append(coda, dir{filepath.Join(base, v.Name()), 1})
+		}
+	}
+	for lette := 0; len(coda) > 0 && lette < 300; lette++ {
+		d := coda[0]
+		coda = coda[1:]
+		sotto, err := os.ReadDir(d.path)
+		if err != nil {
+			continue
+		}
+		for _, v := range sotto {
+			if segnoAntiCheat(v.Name(), segniAntiCheatSicuri) {
 				return true
 			}
+			if v.IsDir() && d.depth < 3 {
+				coda = append(coda, dir{filepath.Join(d.path, v.Name()), d.depth + 1})
+			}
+		}
+	}
+	return false
+}
+
+var (
+	segniAntiCheat       = []string{"start_protected_game", "easyanticheat", "battleye", "beservice", "mhyprot", "xigncode", "gameguard", "npgamemon", "vgk", "faceit", "ace-", "anticheat"}
+	segniAntiCheatSicuri = []string{"start_protected_game", "easyanticheat", "battleye", "beservice", "eaanticheat"}
+)
+
+func segnoAntiCheat(nome string, segni []string) bool {
+	n := strings.ToLower(nome)
+	for _, segno := range segni {
+		if strings.Contains(n, segno) {
+			return true
 		}
 	}
 	return false

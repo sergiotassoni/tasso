@@ -547,7 +547,7 @@ func fpsFindings(f pcFacts, scr []screenInfo, last *fpsResult, battery, gpuPrefH
 				Fix:  "Aggiungi un secondo banco identico (meglio comprare un kit da due). Sui portatili controlla prima che ci sia lo slot libero.", Action: ""})
 		}
 		if !f.Laptop && (ddr == 26 || ddr == 34) && conf > 0 && rated >= conf+200 {
-			add(fpsFinding{ID: "xmp", Sev: "mid", Title: "La RAM va a " + strconv.Itoa(conf) + " invece di " + strconv.Itoa(rated) + " (XMP/EXPO spento)",
+			add(fpsFinding{ID: "xmp", Sev: "mid", Title: "La RAM va a " + strconv.Itoa(conf) + " invece di " + strconv.Itoa(rated) + " (XMP o EXPO spento)",
 				Why:  "I tuoi banchi sono fatti per andare a " + strconv.Itoa(rated) + ", ma solo se nel BIOS è acceso XMP (Intel) o EXPO (AMD).",
 				Gain: "Di solito +5–15%, soprattutto nei cali di FPS.",
 				Fix:  "Nel BIOS (tasto Canc o F2 all'accensione) cerca XMP, D.O.C.P. o EXPO e scegli il Profilo 1. Con DDR5 il primo avvio può restare nero qualche minuto: aspetta. Se poi il PC si blocca o va in crash, rimetti XMP spento.", Action: ""})
@@ -613,15 +613,20 @@ func fpsSetGpu() string {
 		return "Prima misura gli FPS con il gioco aperto."
 	}
 	old, had := regGet(registry.CURRENT_USER, gpuPrefKey, last.path)
+	// Se l'aveva già cambiata "Regola con Tasso", il valore vero di prima è quello che si era segnato lei.
+	orig, known := gpuPrefOrig(last.path)
 	bMu.Lock()
 	s := loadBoost()
 	if s.GpuPrev == nil {
 		s.GpuPrev = map[string]string{}
 	}
 	if _, saved := s.GpuPrev[last.path]; !saved {
-		if had {
+		switch {
+		case known:
+			s.GpuPrev[last.path] = orig
+		case had:
 			s.GpuPrev[last.path] = "1" + old
-		} else {
+		default:
 			s.GpuPrev[last.path] = "0"
 		}
 	}
@@ -643,17 +648,14 @@ func fpsSetGpu() string {
 	return "ok:Fatto: " + last.Game + " userà la scheda video potente. Riavvia il gioco e misura di nuovo."
 }
 
-// gpuPrefRestore: rimette le preferenze della scheda video com'erano (da "Rimetti com'era").
+// gpuPrefRestore: rimette le preferenze della scheda video com'erano (da "Rimetti com'era"), solo
+// dove c'è ancora la scheda potente messa da Tasso.
 func gpuPrefRestore(prev map[string]string) {
 	for path, v := range prev {
-		if !strings.HasSuffix(strings.ToLower(path), ".exe") || v == "" {
+		if !strings.HasSuffix(strings.ToLower(path), ".exe") {
 			continue
 		}
-		if v[0] == '1' {
-			_ = regSet(registry.CURRENT_USER, gpuPrefKey, path, v[1:])
-		} else {
-			regDel(registry.CURRENT_USER, gpuPrefKey, path)
-		}
+		gpuPrefUndo(path, v)
 	}
 }
 

@@ -1912,7 +1912,7 @@ $('#boostNow').onclick = async (e) => {
 };
 $('#boostUndo').onclick = async (e) => {
   e.preventDefault();
-  if (!BST.on && !BST.auto && !BST.gpuFix) { toast(_t('Non c\'è niente da rimettere: il Boost non è acceso.')); return; }
+  if (!BST.on && !BST.auto && !BST.gpuFix && !BST.pending) { toast(_t('Non c\'è niente da rimettere: il Boost non è acceso.')); return; }
   const r = await call('goBoostAllOff'); if (r === 'busy') { toast(_t('Un attimo, sto ancora finendo.')); return; }
   toast(_t('Rimetto tutto com\'era…'));
 };
@@ -3566,6 +3566,9 @@ function memoTxt(m){
   return [tr, m.pot ? POW[potKey(m.pot)] : ''].filter(Boolean).join(' · ');
 }
 function gamePow(id){ return (GW && GW[id] && GW[id].mode) || ''; }
+// I giochi senza una loro potenza vanno in Gaming solo se il Boost automatico (o la modalità gioco
+// automatica per tutti i giochi) è acceso davvero: non se è accesa solo per le potenze dei singoli giochi.
+function autoAll(){ return !!((typeof BST !== 'undefined' && BST && BST.auto) || (S && S.autoGameAll)); }
 function closeGame(){
   GP_ID = ''; GPI = null; $('#gamePage').hidden = true; $('#gamePage').innerHTML = '';
   $('#gTabs').hidden = false; $('#trBar').hidden = false; $('#boostCard').hidden = false;
@@ -3682,13 +3685,13 @@ function paintGame(g){
   const st = TT || {};
   const trTxt = !i ? _t('Controllo il gioco…') : i.errore ? tx(i.errore) : i.tradotto ? (i.in_file ? _t('Tradotto dentro il gioco.') : st.acceso ? _t('Tradotto sullo schermo: nel gioco premi ') + keyName('pagina', 'F7') + '.' : _t('Tradotto sullo schermo. La traduzione dei giochi adesso è spenta: GIOCA la accende da sola; se apri il gioco da Steam, accendila prima.')) : i.anticheat ? _t('Non tradotto. Si può tradurre solo sullo schermo, per non rischiare con l\'anti-imbroglio.') : _t('Non tradotto.');
   const live = LIVE && LIVE.gpu && LIVE.gpu.temp != null ? Math.round(LIVE.gpu.temp) + '°' : '—';
-  const stats = [[i && i.traduzioni ? String(i.traduzioni) : '0', _t('Frasi già tradotte')], [pw ? POW[pw] : (S.autoGame || S.boostAuto) ? _t('Alta (Boost automatico)') : POW[''], _t('Potenza quando giochi')], [live, _t('Scheda video adesso')]];
+  const stats = [[i && i.traduzioni ? String(i.traduzioni) : '0', _t('Frasi già tradotte')], [pw ? POW[pw] : autoAll() ? _t('Alta (Boost automatico)') : POW[''], _t('Potenza quando giochi')], [live, _t('Scheda video adesso')]];
   box.innerHTML = '<div class="gp"><div><button class="btn ghost" id="gpBack">← ' + esc(_t('Tutti i giochi')) + '</button></div>' +
     '<div class="card gp-hero"><div class="cover gp-cv"></div><div class="gp-tit"><div class="gp-store">' + esc(storeName(g.store)) + '</div><h2>' + esc(g.name) + '</h2><div>' + pills + '</div></div></div>' +
     '<div class="gp-grid"><div class="gp-main">' +
       (m ? '<div class="mem"><div><b>🧠 ' + esc(_t('Tasso si ricorda')) + '</b><span>' + esc(_t('Ultima volta')) + (m.when ? ' (' + esc(fmtDay(m.when)) + ')' : '') + ': ' + esc(memoTxt(m)) + '. ' + esc(_t('Premi GIOCA e uso le stesse impostazioni.')) + '</span></div><button class="btn ghost" data-act="wiz">' + esc(_t('Cambia')) + '</button></div>' : '') +
       '<div class="gp-stats">' + stats.map(s => '<div><b>' + esc(s[0]) + '</b><span>' + esc(s[1]) + '</span></div>').join('') + '</div>' +
-      '<div class="gp-acts"><button class="gp-big gplay" data-act="play"><b>▶ ' + esc(_t('GIOCA')) + '</b><span>' + esc(pw ? _t('Con ') + POW[pw] + _t('. A fine partita rimetto tutto com\'era.') : (S.autoGame || S.boostAuto) ? _t('Con il Boost automatico. A fine partita rimetto tutto com\'era.') : _t('Apre il gioco dal suo negozio.')) + '</span></button>' +
+      '<div class="gp-acts"><button class="gp-big gplay" data-act="play"><b>▶ ' + esc(_t('GIOCA')) + '</b><span>' + esc(pw ? _t('Con ') + POW[pw] + _t('. A fine partita rimetto tutto com\'era.') : autoAll() ? _t('Con il Boost automatico. A fine partita rimetto tutto com\'era.') : _t('Apre il gioco dal suo negozio.')) + '</span></button>' +
       '<button class="gp-big gprep" data-act="wiz"><b>⚙ ' + esc(_t('PREPARA A PASSI')) + '</b><span>' + esc(_t('Traduzione, potenza e impostazioni consigliate, una cosa alla volta.')) + '</span></button></div>' +
       '<div class="card gp-sets">' +
         '<div class="gp-line"><span><b>' + esc(_t('Potenza quando apri il gioco')) + '</b><small>' + esc(POW_FAIL[g.id] ? POW_FAIL[g.id] : _t('Anche se lo apri da Steam. Quando lo chiudi rimetto tutto com\'era.')) + '</small></span><div class="seg" role="group" aria-label="' + esc(_t('Potenza quando apri il gioco')) + '">' + ['', 'gaming', 'max'].map(k => '<button data-pow="' + k + '" class="' + (pw === k ? 'on' : '') + '" aria-pressed="' + (pw === k) + '"' + (POW_FAIL[g.id] && k !== pw ? ' disabled' : '') + '>' + esc(k === '' ? _t('Normale') : k === 'gaming' ? _t('Alta') : _t('Massima')) + '</button>').join('') + '</div></div>' +
@@ -3782,9 +3785,9 @@ function tuneRows(){
     {k:'gpuHigh', on: !!o.gpuHigh, t:_t('Scheda video ad alte prestazioni'), d:_t('Il gioco usa la scheda video più potente, e Windows rende più fluidi i giochi in finestra.'), off: !t.hasExe},
   ];
   if (t.ini) rows.push({k:'inGame', on: !!o.inGame, t:_t('Grafica dentro il gioco: ') + (q[o.quality] || q[2]) + (o.vsync ? _t(', VSync acceso') : _t(', VSync spento')), d:_t('Solo per i giochi Unreal, con copia di sicurezza.')});
-  else rows.push({k:'info', t:_t('Grafica dentro il gioco'), d:_t('Questo gioco non ha un file che Tasso può cambiare in sicurezza: le impostazioni giuste te le dico in "Mostra i dettagli".'), off:true, on:false});
+  else rows.push({k:'info', t:_t('Grafica dentro il gioco'), d: t.anticheat ? _t('Questo gioco ha un anti-cheat: Tasso non tocca i suoi file. La grafica la imposti tu dal menu del gioco (i valori giusti sono in "Mostra i dettagli").') : _t('Questo gioco non ha un file che Tasso può cambiare in sicurezza: le impostazioni giuste te le dico in "Mostra i dettagli".'), off:true, on:false});
   if (t.ini) rows.push({k:'noLimit', on: !o.fpsCap, t:_t('Nessun limite agli FPS'), d: t.hz ? _t('Spuntata: il gioco fa tutti gli FPS che può. Tolta: il limite è uguale al tuo schermo (') + t.hz + _t(' FPS con ') + t.hz + _t(' Hz) e il PC scalda meno.') + _t(' Vale insieme a «Grafica dentro il gioco».') : _t('Spuntata: il gioco fa tutti gli FPS che può. Tolta: limite a ') + ((rec.opts || {}).fpsCap || 60) + _t(' FPS. Vale insieme a «Grafica dentro il gioco».')});
-  rows.push({k:'priority', on: !!o.priority, t:_t('Priorità alta del processore'), d:_t('Il processore serve prima il gioco. Con alcuni anti-imbroglio meglio lasciarla spenta.'), off: !t.hasExe});
+  rows.push({k:'priority', on: !!o.priority && !t.anticheat, t:_t('Priorità alta del processore'), d: t.anticheat ? _t('Non per questo gioco: ha un anti-cheat.') : _t('Il processore serve prima il gioco. Con alcuni anti-imbroglio meglio lasciarla spenta.'), off: !t.hasExe || !!t.anticheat});
   rows.push({k:'noFso', on: !!o.noFso, t:_t('Spegni le ottimizzazioni a schermo intero'), d:_t('Serve solo con alcuni giochi vecchi.'), off: !t.hasExe});
   return rows;
 }
@@ -3823,7 +3826,7 @@ function wzDraw(){
     const cb = (k, t, d) => '<button data-pw="' + k + '" class="' + (W.pot === k ? 'on' : '') + '" aria-pressed="' + (W.pot === k) + '"><em>' + (rc === k ? esc(_t('Consigliato')) : '') + '</em><b>' + esc(t) + '</b><span>' + esc(d) + '</span></button>';
     h = (W.noGame ? '<div class="callout">' + esc(tx(i.errore || '')) + ' ' + esc(_t('La traduzione si salta.')) + '</div>' : '') + P(_t('Quanta potenza?')) + '<p class="small muted" style="margin:0">' + esc(_t('Tasso la mette da solo quando apri ')) + esc(g.name) + esc(_t(' (anche da Steam) e rimette tutto quando lo chiudi.')) + '</p><div class="pw">' +
       cb('normale', _t('Normale'), _t('Il PC resta com\'è. Per giochi leggeri o il portatile a batteria.')) + cb('gaming', _t('Potenza alta'), _t('Piano energetico al massimo, notifiche in pausa. Va bene per tutti i giochi.')) + cb('max', _t('Massima potenza'), _t('Come Potenza alta, più mouse senza accelerazione. Per gli sparatutto.')) + '</div>' +
-      '<label class="li check" style="align-items:flex-start"><input type="checkbox" id="gwAuto"' + (BST && BST.auto ? ' checked' : '') + '> <span style="flex:1"><b>' + esc(_t('Boost automatico (per tutti i giochi)')) + '</b><br><span class="small muted">' + esc(_t('Quando apri un gioco Tasso fa il Boost da solo. A fine partita rimette tutto com\'era.')) + '</span></span></label>' +
+      '<label class="li check" style="align-items:flex-start"><input type="checkbox" id="gwAuto"' + (BST && BST.auto ? ' checked' : '') + '> <span style="flex:1"><b>' + esc(_t('Boost automatico (per tutti i giochi)')) + '</b><br><span class="small muted">' + esc(_t('Quando apri un gioco Tasso fa il Boost da solo. A fine partita riapre i programmi chiusi e rimette mouse e modalità; le regolazioni di Windows per giocare restano finché premi "Rimetti com\'era".')) + '</span></span></label>' +
       '<details class="small"><summary style="cursor:pointer;font-weight:700">' + esc(_t('Cosa chiude il Boost?')) + '</summary><p class="muted" style="margin:6px 0 0;line-height:1.5">' + esc(_t('Solo se sono aperti in sottofondo senza finestra: OneDrive, Dropbox, Google Drive, iCloud, Teams, Zoom, Skype. Li chiude con gentilezza e li riapre a fine partita. Non chiude mai Discord, OBS e i programmi per lo stream, Spotify, Steam e gli altri launcher, i browser, e niente che abbia una finestra aperta.')) + '</p></details>';
   }
   if (s === 'cons') {
@@ -3906,7 +3909,7 @@ async function wzApply(){
   if (!W || W.run !== run) return;
   W.powOk = !!(pr && pr.ok);
   if (!W.powOk) W.notes.push([_t('Potenza non salvata: ') + ((pr && pr.error) || ''), true]);
-  else W.notes.push([potKey(W.pot) ? _t('Da ora, quando apri ') + g.name + _t(', Tasso mette ') + POW[potKey(W.pot)] + '.' : ((S.autoGame || S.boostAuto) ? _t('Potenza normale per questo gioco: con il Boost automatico acceso, Tasso mette comunque la potenza alta quando apri ') + g.name + '.' : _t('Potenza normale: Tasso non cambia niente quando apri ') + g.name + '.'), false]);
+  else W.notes.push([potKey(W.pot) ? _t('Da ora, quando apri ') + g.name + _t(', Tasso mette ') + POW[potKey(W.pot)] + '.' : (autoAll() ? _t('Potenza normale per questo gioco: con il Boost automatico acceso, Tasso mette comunque la potenza alta quando apri ') + g.name + '.' : _t('Potenza normale: Tasso non cambia niente quando apri ') + g.name + '.'), false]);
   const sel = W.tuneSel || {}, t = W.tune;
   if (t && (sel.gpuHigh || sel.inGame || sel.priority || sel.noFso || false)) {
     msg(_t('Applico le impostazioni consigliate…')); bar(15);
@@ -3916,6 +3919,7 @@ async function wzApply(){
     const tr = await applyTune(g, o, t.kind);
     if (!W || W.run !== run) return;
     if (tr && tr.ok === false) W.notes.push([(tr.msgs || []).join(' ') || _t('Impostazioni consigliate non applicate.'), true]);
+    else if (tr && tr.partial) W.notes.push([_t('Impostazioni consigliate applicate in parte: ') + (tr.failed || []).join(' '), true]);
     else W.notes.push([_t('Impostazioni consigliate applicate (si tolgono da "Regola con Tasso").'), false]);
   }
   if (W.kind === 'boost' || W.skip) { wzFinish(run, true); return; }
@@ -4011,8 +4015,9 @@ function tuneOptsUI(o, t){
       _t('<div class="row wrap" style="gap:12px;padding-left:28px"><label class="acf">Qualità<select id="toQ">') + [_t('Basso'),_t('Medio'),_t('Alto'),'Ultra'].map((q, i) => '<option value="' + i + '"' + (o.quality === i ? ' selected' : '') + '>' + q + '</option>').join('') + '</select></label>' +
       _t('<label class="acf">Limite FPS<select id="toCap">') + caps.map(c => '<option value="' + c + '"' + (o.fpsCap === c ? ' selected' : '') + '>' + (c ? c + ' FPS' : _t('Nessun limite')) + '</option>').join('') + '</select></label>' +
       '<label class="check" style="align-self:flex-end;margin-bottom:8px"><input type="checkbox" id="toVs"' + (o.vsync ? ' checked' : '') + '> VSync</label></div>'
+      : t.anticheat ? '<div class="small muted">' + esc(_t('Grafica dentro il gioco: questo gioco ha un anti-cheat, quindi Tasso non tocca i suoi file. La grafica la imposti tu dal menu del gioco, con i valori consigliati qui sopra.')) + '</div>'
       : _t('<div class="small muted">Grafica dentro il gioco: ') + esc(t.name) + _t(' non ha un file di impostazioni che Tasso può cambiare in sicurezza (Tasso lo fa per i giochi Unreal Engine). Imposta i valori consigliati qui sopra dal menu Opzioni del gioco.</div>')) +
-    '<label class="check"><input type="checkbox" id="toPrio"' + (o.priority ? ' checked' : '') + dis + _t('> Priorità del processore un po\' più alta <span class="small muted">(con alcuni anti-cheat meglio lasciarla spenta)</span></label>') +
+    (t.anticheat ? '' : '<label class="check"><input type="checkbox" id="toPrio"' + (o.priority ? ' checked' : '') + dis + _t('> Priorità del processore un po\' più alta <span class="small muted">(con alcuni anti-cheat meglio lasciarla spenta)</span></label>')) +
     '<label class="check"><input type="checkbox" id="toFso"' + (o.noFso ? ' checked' : '') + dis + _t('> Spegni le ottimizzazioni a schermo intero <span class="small muted">(serve solo con giochi vecchi)</span></label>') +
     (t.hasExe ? _t('<span class="small muted">Programma del gioco: ') + esc((t.exes || []).join(', ')) + '</span>' : _t('<span class="small" style="color:var(--a4)">Non ho trovato il programma del gioco nella sua cartella: le impostazioni di Windows per questo gioco non si possono applicare.</span>'));
 }
@@ -4049,7 +4054,8 @@ Object.assign(window.tasso, {
     if (TUNE_WAIT) { TUNE_WAIT(r); return; }
     if (W && !$('#gwz').hidden && !W.busy) { W.tune = null; W.tuneSel = null; call('goGameTune', W.g.id); wzDraw(); }
     if (GP_ID) { const g = LIB.find(x => x.id === GP_ID); if (g) paintGameTools(g); }
-    modal('<h2>' + (r.ok === false ? _t('Non riuscito') : r.undo ? _t('Regolazione tolta') : _t('Fatto!')) + '</h2><ul>' + (r.msgs || []).map(m => '<li>' + esc(m) + '</li>').join('') + '</ul>', [{label:'Ok', cls:'primary'}]);
+    const bad = r.failed || [];
+    modal('<h2>' + (r.ok === false ? _t('Non riuscito') : r.undo ? _t('Regolazione tolta') : r.partial ? _t('Fatto in parte') : _t('Fatto!')) + '</h2><ul>' + (r.msgs || []).map(m => '<li' + (bad.indexOf(m) >= 0 ? ' style="color:var(--a4);font-weight:700"' : '') + '>' + esc(m) + '</li>').join('') + '</ul>', [{label:'Ok', cls:'primary'}]);
   }
 });
 

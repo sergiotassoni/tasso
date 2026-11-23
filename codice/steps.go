@@ -886,7 +886,9 @@ function Save-Prev {
     $v = Get-PowerIdx 'SUB_PROCESSOR' 'PROCTHROTTLEMAX'; if ($v) { New-ItemProperty -Path $PrevKey -Name 'CpuAc' -Value $v[0] -PropertyType DWord -Force | Out-Null; New-ItemProperty -Path $PrevKey -Name 'CpuDc' -Value $v[1] -PropertyType DWord -Force | Out-Null }
     $sig = '[DllImport("user32.dll")] public static extern bool SystemParametersInfo(int a, int b, int[] c, int d);'
     Add-Type -MemberDefinition $sig -Name SPI -Namespace TassoMouse -ErrorAction SilentlyContinue | Out-Null
-    $mm = [int[]](0, 0, 0); if ([TassoMouse.SPI]::SystemParametersInfo(3, 0, $mm, 0)) { New-ItemProperty -Path $PrevKey -Name 'Mouse' -Value ($mm -join ',') -PropertyType String -Force | Out-Null }
+    # $TassoMousePrev: il mouse di prima del Boost (che lo cambia solo finché giochi).
+    if ([string]$TassoMousePrev -match '^\d{1,2},\d{1,2},\d{1,2}$') { New-ItemProperty -Path $PrevKey -Name 'Mouse' -Value ([string]$TassoMousePrev) -PropertyType String -Force | Out-Null }
+    else { $mm = [int[]](0, 0, 0); if ([TassoMouse.SPI]::SystemParametersInfo(3, 0, $mm, 0)) { New-ItemProperty -Path $PrevKey -Name 'Mouse' -Value ($mm -join ',') -PropertyType String -Force | Out-Null } }
     $t = Get-ItemProperty -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\PushNotifications' -Name 'ToastEnabled' -ErrorAction SilentlyContinue
     $tv = 1; if ($t -and $null -ne $t.ToastEnabled) { $tv = [int]$t.ToastEnabled }
     New-ItemProperty -Path $PrevKey -Name 'Toasts' -Value $tv -PropertyType DWord -Force | Out-Null

@@ -82,7 +82,7 @@ func restoreOriginal() []string {
 		msgs = append(msgs, gamingResetAll()...)
 	}
 	for _, id := range tuned {
-		gameTuneUndoQuiet(id)
+		gameTuneUndoQuiet(id, false)
 	}
 	if len(tuned) > 0 {
 		msgs = append(msgs, "Regolazioni dei giochi tolte.")

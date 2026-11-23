@@ -450,17 +450,18 @@ func hardwareInfo() {
 
 var modeMu sync.Mutex
 
-func setMode(id string) {
+// setMode cambia modalità e dice se ci è riuscita.
+func setMode(id string) bool {
 	script, ok := modeScripts[id]
 	if !ok {
 		emit("onModeDone", map[string]interface{}{"id": id, "ok": false, "msgs": []string{"Modalità sconosciuta"}})
-		return
+		return false
 	}
 	modeMu.Lock()
 	defer modeMu.Unlock()
 	if !ensureSnapshot() {
 		emit("onModeDone", map[string]interface{}{"id": id, "ok": false, "msgs": []string{"Non riesco a salvare com'era Windows, quindi per sicurezza non cambio niente. Riprova tra poco."}})
-		return
+		return false
 	}
 	// Le impostazioni "tue" si salvano solo se adesso il PC è in Normale (o com'era):
 	// se è già in Gaming/FPS/Film salverei quelle messe da Tasso.
@@ -471,10 +472,19 @@ func setMode(id string) {
 	if prev == "" || prev == "normale" || prev == "originale" {
 		canSave = "$TassoCanSave = $true\n"
 	}
+	// Se il Boost ha tolto l'accelerazione del mouse (solo finché gioca), Save-Prev deve salvare
+	// quella di prima, non lo 0,0,0 di adesso: se no "Normale" la spegnerebbe per sempre.
+	mousePrev := "$TassoMousePrev = ''\n"
+	bMu.Lock()
+	if m := loadBoost().Mouse; m != nil {
+		mousePrev = fmt.Sprintf("$TassoMousePrev = '%d,%d,%d'\n", m[0], m[1], m[2])
+	}
+	bMu.Unlock()
 	var msgs []string
-	r := runPS(canSave+script, 2*time.Minute, func(m string) { msgs = append(msgs, m) })
+	r := runPS(canSave+mousePrev+script, 2*time.Minute, func(m string) { msgs = append(msgs, m) })
 	if r.Err == nil {
 		updateSettings(func(s *Settings) { s.Mode = id })
 	}
 	emit("onModeDone", map[string]interface{}{"id": id, "ok": r.Err == nil, "msgs": msgs, "settings": getSettings()})
+	return r.Err == nil
 }
