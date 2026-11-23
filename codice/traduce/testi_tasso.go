@@ -24,3 +24,24 @@ func trTasso(s string) string {
 	}
 	return s
 }
+
+// nomeMotore: chi ha tradotto, da scrivere sopra il gioco nella lingua di Tasso. Risultato.Motore
+// resta in italiano perché il codice lo confronta ("memoria", "libreria"...).
+func nomeMotore(m string) string {
+	if !inIngleseTasso() {
+		return m
+	}
+	switch m {
+	case "memoria":
+		return "memory"
+	case "libreria":
+		return "library"
+	case "catalogo":
+		return "catalogue"
+	case "libreria giochi liberi":
+		return "free games library"
+	case "IA":
+		return "AI"
+	}
+	return m
+}

@@ -220,11 +220,17 @@ func ovWndProc(hwnd, msg, wp, lp uintptr) uintptr {
 func ovApply(hwnd uintptr) {
 	setMu.Lock()
 	office := settings.Profile == "ufficio"
-	auto, pos := settings.OverlayOn && !settings.Paused && !office, settings.OverlayPos
+	paused := settings.Paused
+	auto, pos := settings.OverlayOn && !paused && !office, settings.OverlayPos
 	setMu.Unlock()
-	// Il tasto Ctrl+Maiusc+F12 è di Tasso solo quando serve: Gaming, pannellino acceso, non in pausa.
-	if auto != ovHotkey {
-		if auto {
+	ovMu.Lock()
+	manuale := ovManual
+	ovMu.Unlock()
+	// Il tasto Ctrl+Maiusc+F12 è di Tasso solo quando serve: pannellino acceso da solo o aperto a
+	// mano con "Mostra ora" (così si chiude anche dal gioco), mai in Ufficio né in pausa.
+	vuoleTasto := (auto || manuale) && !office && !paused
+	if vuoleTasto != ovHotkey {
+		if vuoleTasto {
 			r, _, _ := pRegisterHotKey.Call(hwnd, 1, 0x0002|0x0004|0x4000, 0x7B) // senza ripetizione
 			ovHotkey = r != 0
 		} else {

@@ -1056,7 +1056,7 @@ dl.sum{display:grid;grid-template-columns:max-content 1fr;gap:6px 14px;margin:0}
       <button role="switch" aria-checked="false" class="toggle" id="tgOverlay" style="padding:6px 0"><span><b>Mostralo da solo quando gioco</b><span>Appare quando apri un gioco e sparisce quando lo chiudi. Serve il "Boost automatico" acceso.</span></span><span class="sw"><i></i></span></button>
       <div><b style="font-size:14px">Cosa mostrare</b><div class="row wrap" id="ovItems" style="gap:6px;margin-top:6px"></div></div><div><b style="font-size:14px">Dove</b><div class="ovpos" id="ovPos" role="group" aria-label="Posizione del pannellino"><button data-pos="sx" class="btn ghost">↖ In alto a sinistra</button><button data-pos="dx" class="btn ghost">↗ In alto a destra</button><button data-pos="sxb" class="btn ghost">↙ In basso a sinistra</button><button data-pos="dxb" class="btn ghost">↘ In basso a destra</button></div></div><div><b style="font-size:14px">Anteprima</b> <span class="small muted">(numeri di esempio)</span><div class="ovprev" id="ovPrev"><span id="ovPrevTxt"></span></div></div>
       <div class="row wrap" style="gap:8px"><button class="btn ghost" id="btnOvShow">Mostra ora</button><button class="btn ghost" id="btnOvHide">Nascondi</button></div>
-      <span class="small muted">Durante il gioco: <b>Ctrl + Maiusc + F12</b> lo mostra o lo nasconde.<br><b>FPS</b>: Tasso non entra dentro i giochi (con gli anti-cheat si rischia il ban). Per gli FPS usa quelli ufficiali e sicuri: <b>Win + G</b> → Prestazioni (Windows) oppure <b>Alt + R</b> (NVIDIA). La temperatura del processore appare se Windows la fornisce, oppure se hai aperto LibreHardwareMonitor.</span>
+      <span class="small muted">Durante il gioco: <b>Ctrl + Maiusc + F12</b> lo mostra o lo nasconde.<br><b>FPS</b>: Tasso non entra dentro i giochi (con gli anti-cheat si rischia il ban). Per gli FPS usa quelli ufficiali e sicuri: <b>Win + G</b> → Prestazioni (Windows) oppure <b>Alt + R</b> (NVIDIA). La temperatura del processore appare solo se hai aperto LibreHardwareMonitor (gratuito).</span>
     </div>
   </div>
   <div class="card" style="display:flex;flex-direction:column;gap:12px">
@@ -3818,7 +3818,7 @@ function paintGameTools(g){
 async function toolClick(g, id){
   if (id === 'trs') { $('#trSw').click(); return; }
   if (id === 'voci') { const v = (TT && TT.voci) || {}; if (!v.file) { closeGame(); gTab('imp'); return; } const r = await ttc('ttAccendiVoci', !v.accese); if (r && r.errore) toast(tx(r.errore), 'var(--a4)'); ttRefresh(); return; }
-  if (id === 'chata') { if (!chatQui(GPI || {})) { toast(_t('Apri il gioco con la chat visibile: Tasso va a icona e tra 3 secondi disegni il riquadro della chat (Esc per annullare).')); ttc('ttScegliZonaChat'); return; } chatAltri(!(TT && TT.chat_altri)); return; }
+  if (id === 'chata') { if (!chatQui(GPI || {})) { toast(_t('Apri il gioco con la chat visibile: Tasso va a icona e tra 3 secondi disegni il riquadro della chat (Esc per annullare).')); ttc('ttScegliZonaChat'); return; } chatAltri(!(TT && TT.chat_altri && TT.acceso)); return; } // chat accesa ma traduzione spenta: il click accende
   if (id === 'chat') { if (!(TT && TT.chat_file)) { closeGame(); gTab('imp'); toast(_t('Scarica la chat tradotta qui, in Impostazioni.')); return; } toast(_t('Copia il testo in italiano e premi ') + keyName('chat', 'Ctrl+Alt+T') + _t(': negli appunti trovi la frase in inglese, da incollare nella chat.')); return; }
   if (id === 'cro') { gTab('cro'); return; }
   if (id === 'tune') { openTune(g); return; }

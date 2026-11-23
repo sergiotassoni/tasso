@@ -373,7 +373,7 @@ func cicloChatAltri() {
 			testo := strings.Join(chatMostrate, "\n")
 			muChatAltri.Unlock()
 			nascosto = false
-			ovChat.Mostra(zona, testo, "", testoTasso("Chat degli altri · ", "Other players' chat · ")+ris.Motore)
+			ovChat.Mostra(zona, testo, "", testoTasso("Chat degli altri · ", "Other players' chat · ")+nomeMotore(ris.Motore))
 			aggiungiCronologia(ris, false)
 			emetti("riga", ris)
 		}
