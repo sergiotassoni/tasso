@@ -890,6 +890,20 @@ func gameTuneApply(id, preset string, o tuneOpts) {
 			}
 		}
 	}
+	if !o.InGame && oldIni != "" {
+		// Questa volta "Grafica dentro il gioco" è tolta: rimetto il file com'era prima di Tasso.
+		switch {
+		case !fileExists(oldIni + ".tasso-backup"): // nessuna copia: non c'è niente da rimettere
+			oldIni = ""
+		case exeRunning(exes):
+			fail("• Grafica dentro il gioco: chiudi " + g.Name + " e premi di nuovo Applica per rimetterla com'era (con il gioco aperto verrebbe persa).")
+		case restoreIniBackup(oldIni):
+			msgs = append(msgs, "✓ Grafica dentro il gioco rimessa com'era.")
+			oldIni = ""
+		default:
+			fail("• Grafica dentro il gioco: non sono riuscito a rimettere com'era il file delle impostazioni.")
+		}
+	}
 	if ini == "" {
 		ini = oldIni
 	}
@@ -977,13 +991,8 @@ func gameTuneUndoQuiet(id string, reapply bool) string {
 		}
 		return ""
 	}
-	if t.Ini != "" && safeIniPath(t.Ini) {
-		bak := t.Ini + ".tasso-backup"
-		if b, err := os.ReadFile(bak); err == nil {
-			if os.WriteFile(t.Ini, b, 0o644) == nil {
-				_ = os.Remove(bak)
-			}
-		}
+	if t.Ini != "" {
+		restoreIniBackup(t.Ini)
 	}
 	updateSettings(func(s *Settings) {
 		for _, e := range t.Exes {
@@ -1007,6 +1016,25 @@ func autoGameTuneCleanup(s *Settings) {
 		}
 	}
 	s.AutoGame, s.AutoGameTune = false, false
+}
+
+// restoreIniBackup rimette il file della grafica dalla sua copia di sicurezza e la cancella.
+// 3.1: il percorso viene da settings.json, che un programma qualsiasi può cambiare: solo sul file
+// delle impostazioni del gioco, e mai attraverso collegamenti o giunzioni.
+func restoreIniBackup(path string) bool {
+	if !safeIniPath(path) {
+		return false
+	}
+	bak := path + ".tasso-backup"
+	b, err := os.ReadFile(bak)
+	if err != nil {
+		return false
+	}
+	if os.WriteFile(path, b, 0o644) != nil {
+		return false
+	}
+	_ = os.Remove(bak)
+	return true
 }
 
 func gameTuneUndo(id string) {

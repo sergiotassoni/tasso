@@ -1,6 +1,7 @@
 package traduce
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -83,6 +84,16 @@ func TestAntiCheat(t *testing.T) {
 	os.MkdirAll(filepath.Join(d3, "Gioco", "BattlEye"), 0o755)
 	if !ConAntiCheat(GiocoRiconosciuto{Cartella: d3, Piattaforma: "Steam"}) {
 		t.Error("BattlEye in sottocartella non visto")
+	}
+	// cartella Engine enorme: la salto, e Binaries viene guardata per prima
+	d5 := t.TempDir()
+	for i := 0; i < 400; i++ {
+		os.MkdirAll(filepath.Join(d5, "Engine", fmt.Sprintf("m%03d", i)), 0o755)
+		os.MkdirAll(filepath.Join(d5, "Altro", fmt.Sprintf("m%03d", i)), 0o755)
+	}
+	os.MkdirAll(filepath.Join(d5, "Zeta", "Binaries", "Win64", "EasyAntiCheat"), 0o755)
+	if !ConAntiCheat(GiocoRiconosciuto{Nome: "Zeta", Cartella: d5, Piattaforma: "Steam"}) {
+		t.Error("EasyAntiCheat non visto dietro una cartella enorme")
 	}
 	// troppo in basso (oltre 3 livelli) o con nomi comuni: niente
 	d4 := t.TempDir()

@@ -704,6 +704,7 @@ func lookChanged(office bool) {
 	if office {
 		autoClickStop()
 		acDisarm()
+		boostOffForOffice()
 	}
 	ovPost()
 }

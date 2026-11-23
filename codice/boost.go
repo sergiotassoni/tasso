@@ -498,14 +498,35 @@ func boostOff(explicit bool) []string {
 		msgs = append(msgs, m)
 	}
 	bMu.Lock()
-	left := len(loadBoost().Cmds)
+	left, gpuLeft := len(loadBoost().Cmds), len(loadBoost().GpuPrev) > 0
 	bMu.Unlock()
-	if left > 0 {
+	switch {
+	case left > 0:
 		msgs = append(msgs, "Qualcosa non si è potuto rimettere: premi di nuovo \"Rimetti com'era\".")
-	} else {
+	case gpuLeft: // Boost automatico spento: la scheda video scelta per i giochi resta
+		msgs = append(msgs, "Il resto è com'era prima del Boost. La scheda video scelta per i giochi la rimette \"Rimetti com'era\".")
+	default:
 		msgs = append(msgs, "Tutto com'era prima del Boost.")
 	}
 	return msgs
+}
+
+// boostOffForOffice: passando alla modalità Ufficio, se il Boost è acceso (o ha chiuso dei
+// programmi) lo spengo come con "Rimetti com'era", che in Ufficio non si vede: così OneDrive,
+// Teams e gli altri programmi chiusi tornano aperti.
+func boostOffForOffice() {
+	bMu.Lock()
+	s := loadBoost()
+	need := s.On || bGame != "" || len(bClosed) > 0
+	bMu.Unlock()
+	if !need {
+		return
+	}
+	go func() {
+		defer guard("boost.go:office")
+		msgs := append([]string{"Modalità Ufficio: ho spento il Boost e rimesso com'era quello che aveva cambiato."}, boostOff(true)...)
+		emit("onBoost", map[string]interface{}{"msgs": msgs, "state": boostInfo()})
+	}()
 }
 
 // ---------------- Boost automatico ----------------
