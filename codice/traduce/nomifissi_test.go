@@ -112,3 +112,14 @@ func TestRigaPresentazione(t *testing.T) {
 		t.Fatal("una voce di menu con i due punti resta", g)
 	}
 }
+
+func TestSuggerimentoTasto(t *testing.T) {
+	for en, it := range map[string]string{"HoldT skip": "Tieni premuto T: salta", "Hold T to skip": "Tieni premuto T: salta", "Q Hold": "Tieni premuto Q", "Press E": "E"} {
+		if g, ok := suggerimentoTasto(en); !ok || g != it {
+			t.Errorf("%q -> %q %v", en, g, ok)
+		}
+	}
+	if _, ok := suggerimentoTasto("Holding the line"); ok {
+		t.Error("frase normale")
+	}
+}

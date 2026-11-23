@@ -934,6 +934,9 @@ func fraseMenuConNumero(s string) (string, bool) {
 	if v, ok := fraseMenu(s); ok {
 		return v, true
 	}
+	if v, ok := suggerimentoTasto(s); ok {
+		return v, true
+	}
 	m := reNumeroVoce.FindStringSubmatch(s)
 	if m == nil {
 		return "", false
@@ -954,3 +957,39 @@ func fraseMenuConNumero(s string) (string, bool) {
 }
 
 var reNumeroVoce = regexp.MustCompile(`^([0-9][0-9.,%x×]*\s+)?(\(?[^0-9()]+\)?)(:?\s+[0-9][0-9.,%x×]*)?$`)
+
+// suggerimentoTasto: i suggerimenti dei tasti in basso nei giochi. "Hold T skip", "HoldT skip",
+// "Hold T to skip", "Press E to interact", "Q Hold" → "Tieni premuto T: salta", "E: interagisci",
+// "Tieni premuto Q" (PC Cafe Simulator, 23/11: restavano in inglese).
+func suggerimentoTasto(s string) (string, bool) {
+	s = strings.TrimSpace(s)
+	if m := reTastoDopo.FindStringSubmatch(s); m != nil { // "Q Hold"
+		return "Tieni premuto " + m[1], true
+	}
+	m := reTastoPrima.FindStringSubmatch(s)
+	if m == nil {
+		return "", false
+	}
+	tieni, tasto, azione := strings.EqualFold(m[1], "hold"), m[2], strings.TrimSpace(m[3])
+	pre := tasto
+	if tieni {
+		pre = "Tieni premuto " + tasto
+	}
+	if azione == "" {
+		return pre, true
+	}
+	it, ok := fraseMenu(azione)
+	if !ok {
+		it, ok = fraseMenu(strings.ToUpper(azione[:1]) + azione[1:])
+	}
+	if !ok {
+		return "", false // azione sconosciuta: ci pensa il traduttore
+	}
+	return pre + ": " + strings.ToLower(it[:1]) + it[1:], true
+}
+
+var (
+	nomiTastiGioco = `[A-Z0-9]|F[0-9]{1,2}|Space|Spacebar|Enter|Esc|Tab|Shift|Ctrl|Alt|LMB|RMB|Mouse[12]`
+	reTastoPrima   = regexp.MustCompile(`^(?i:(hold|press))\s*(` + nomiTastiGioco + `)\b\s*(?i:to\s+)?(.*)$`)
+	reTastoDopo    = regexp.MustCompile(`^(` + nomiTastiGioco + `)\s+(?i:hold)$`)
+)
