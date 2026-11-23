@@ -699,6 +699,8 @@ func ricolora(img *image.RGBA, bl []Blocco) ([]Blocco, bool) {
 		}
 		// la voce è cambiata nel gioco (mouse sopra, selezionata): rileggo colori, bordino e
 		// ombra da com'è adesso, così la traduzione reagisce come l'originale
+		riquadraDiNuovo(img, &c) // la voce può ingrandirsi (Palworld): stessa grandezza nuova
+		coloriBlocco(img, &c)
 		c.HaContorno, c.HaOmbraG = false, false
 		contornoLettere(img, &c)
 		ombraLettere(img, &c)
@@ -1336,4 +1338,66 @@ func ombraLettere(img *image.RGBA, b *Blocco) {
 	if luce(om) <= luce(b.Sfondo)-25 {
 		b.OmbraGioco, b.HaOmbraG = om, true
 	}
+}
+
+// riquadraDiNuovo: dopo un cambio (mouse sopra) le lettere inglesi possono essere più grandi o
+// spostate. Cerco dove sono adesso (pixel del colore delle lettere attorno al riquadro di prima)
+// e aggiorno riquadro e grandezza: la traduzione si ingrandisce come l'originale.
+func riquadraDiNuovo(img *image.RGBA, b *Blocco) {
+	ex, ey := max(4, b.W/4), max(4, b.H/2)
+	r := image.Rect(b.X-ex, b.Y-ey, b.X+b.W+ex, b.Y+b.H+ey).Intersect(img.Bounds())
+	if r.Empty() || b.H < 6 {
+		return
+	}
+	c := *b
+	coloriBlocco(img, &c)
+	if distanza(c.Inchiostro, c.Sfondo) < 120 {
+		return
+	}
+	// righe e colonne con abbastanza pixel "lettera"
+	rig := make([]int, r.Dy())
+	col := make([]int, r.Dx())
+	for y := r.Min.Y; y < r.Max.Y; y++ {
+		for x := r.Min.X; x < r.Max.X; x++ {
+			if distanza(img.RGBAAt(x, y), c.Inchiostro) < 70 {
+				rig[y-r.Min.Y]++
+				col[x-r.Min.X]++
+			}
+		}
+	}
+	// la fascia di righe che contiene il centro della scritta di prima
+	cy := b.Y + b.H/2 - r.Min.Y
+	if cy < 0 || cy >= len(rig) || rig[cy] == 0 {
+		return
+	}
+	y0, y1 := cy, cy
+	for y0 > 0 && rig[y0-1] > 0 {
+		y0--
+	}
+	for y1 < len(rig)-1 && rig[y1+1] > 0 {
+		y1++
+	}
+	nh := y1 - y0 + 1
+	if nh < b.H*8/10 || nh > b.H*16/10 || y0 == 0 || y1 == len(rig)-1 {
+		return // non sembra la stessa scritta: lascio com'era
+	}
+	x0, x1 := -1, -1
+	for x, n := range col {
+		if n > 0 {
+			if x0 < 0 {
+				x0 = x
+			}
+			x1 = x
+		}
+	}
+	if x0 <= 0 || x1 >= len(col)-1 {
+		return
+	}
+	nw := x1 - x0 + 1
+	if nw < b.W*8/10 || nw > b.W*16/10 {
+		return
+	}
+	k := float64(nh) / float64(b.H)
+	b.X, b.Y, b.W, b.H = r.Min.X+x0, r.Min.Y+y0, nw, nh
+	b.Em *= k
 }
