@@ -49,6 +49,7 @@ type Impostazioni struct {
 	DimFont   int    `json:"dim_font"`
 	Posizione string `json:"posizione"`
 	TuttoAuto bool   `json:"tutto_auto"` // traduce da solo tutte le scritte dei giochi
+	Acceso    bool   `json:"acceso"`     // l'interruttore Traduzione era acceso: lo riaccendo alla riapertura di Tasso
 	Motore    string `json:"motore"`     // "auto", "ia", "mozilla"
 	MozillaSi bool   `json:"mozilla_si"`
 	IASi      bool   `json:"ia_si"`
@@ -197,6 +198,10 @@ func Avvia() {
 	if !InUfficio.Load() && (leggiImp().TuttoAuto || len(leggiImp().GiochiTradotti) > 0) {
 		assicuraMotore() // traduzione "da sola" scelta dall'utente: il motore deve essere pronto
 	}
+	if !InUfficio.Load() && leggiImp().Acceso { // era accesa quando hai chiuso Tasso: la riaccendo
+		accendi(true, false)
+		emetti("aggiorna", stato())
+	}
 }
 
 // InUfficio: Tasso è in modalità Ufficio (niente giochi né traduzione). Lo imposta Tasso
@@ -209,10 +214,14 @@ func ImpostaUfficio(on bool) {
 	if InUfficio.Swap(on) == on || on || !avviato.Load() {
 		return
 	}
-	if leggiImp().TuttoAuto || len(leggiImp().GiochiTradotti) > 0 {
+	if leggiImp().TuttoAuto || len(leggiImp().GiochiTradotti) > 0 || leggiImp().Acceso {
 		go func() {
 			defer guard("motore-gaming")
 			assicuraMotore()
+			if leggiImp().Acceso && !InUfficio.Load() {
+				accendi(true, false)
+				emetti("aggiorna", stato())
+			}
 		}()
 	}
 }
@@ -638,34 +647,9 @@ func collega(w webview2.WebView) {
 		}
 		return "ok"
 	})
-	_ = w.Bind("ttAccendi", func(on bool) bool {
-		if on && !avviato.Load() {
-			return false // Tasso Traduce non è ancora partito (Tasso aperto dall'attività pianificata)
-		}
-		if on {
-			assicuraMotore()
-		}
-		acceso.Store(on)
-		if on {
-			t := tastiCompleti(leggiImp().Tasti)
-			if f := cambiaTasti(t); len(f) > 0 {
-				emetti("info", map[string]string{"testo": "Già usati da un altro programma: " + nomiTasti(f, t) + ". Cambiali in Giochi → Impostazioni → Tasti nel gioco."})
-			}
-		} else {
-			cambiaTasti(map[string]uint32{}) // spento: lascio liberi i tasti
-		}
-		if !on {
-			_ = accendiVoci(false) // spento: niente più ascolto dell'audio
-		}
-		if !on { // spento: tolgo subito ogni traduzione dallo schermo
-			paginaAttiva.Store(false)
-			paginaGiro.Add(1)
-			NascondiPagina()
-			ov.Spegni()
-			ovChat.Nascondi()
-		}
-		return on
-	})
+	_ = w.Bind("ttAccendi", func(on bool) bool { return accendi(on, true) })
+	// passando a Ufficio la traduzione si spegne, ma la scelta resta: tornando a Gaming si riaccende
+	_ = w.Bind("ttSpegniPerUfficio", func() bool { return accendi(false, false) })
 	_ = w.Bind("ttImpostaTuttoAuto", func(on bool) bool {
 		muImp.Lock()
 		imp.TuttoAuto = on
@@ -1373,3 +1357,39 @@ func etichetteTasti(t map[string]uint32) map[string]string {
 var nomeUnaCopia = "Local\\TassoTraduceUnaCopia"
 
 var cartellaWebView = "WebView2"
+
+// accendi: l'interruttore Traduzione. ricorda = salvo la scelta (l'utente l'ha toccato).
+func accendi(on, ricorda bool) bool {
+	if on && !avviato.Load() {
+		return false // Tasso Traduce non è ancora partito (Tasso aperto dall'attività pianificata)
+	}
+	if on {
+		assicuraMotore()
+	}
+	acceso.Store(on)
+	if ricorda {
+		muImp.Lock()
+		imp.Acceso = on
+		muImp.Unlock()
+		salvaImp()
+	}
+	if on {
+		t := tastiCompleti(leggiImp().Tasti)
+		if f := cambiaTasti(t); len(f) > 0 {
+			emetti("info", map[string]string{"testo": "Già usati da un altro programma: " + nomiTasti(f, t) + ". Cambiali in Giochi → Impostazioni → Tasti nel gioco."})
+		}
+	} else {
+		cambiaTasti(map[string]uint32{}) // spento: lascio liberi i tasti
+	}
+	if !on {
+		_ = accendiVoci(false) // spento: niente più ascolto dell'audio
+	}
+	if !on { // spento: tolgo subito ogni traduzione dallo schermo
+		paginaAttiva.Store(false)
+		paginaGiro.Add(1)
+		NascondiPagina()
+		ov.Spegni()
+		ovChat.Nascondi()
+	}
+	return on
+}

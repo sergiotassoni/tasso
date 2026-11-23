@@ -2941,7 +2941,7 @@ async function setLook(p){
   // 3.1: in Ufficio niente giochi e niente traduzione: se era accesa la spengo (tasti F7 liberi).
   // Il tasto dell'autoclick, il Boost automatico, la modalità gioco automatica, il pannellino e il
   // Profilo gioco li mette in pausa Tasso (goSetLook): tornando a Gaming riprendono come prima.
-  if (p === 'ufficio') { call('ttAccendi', false).then(() => { if (typeof ttRefresh === 'function') ttRefresh(); }); }
+  if (p === 'ufficio') { call('ttSpegniPerUfficio').then(() => { if (typeof ttRefresh === 'function') ttRefresh(); }); }
   if (p !== 'ufficio' && !S.showAll && CURVIEW === 'perf') show('home');
   const gameOn = !!(S.autoGame || S.boostAuto || S.overlayOn || (S.gameProfile && S.gameProfile.on));
   const paused = gameOn ? _t(' Le funzioni da gioco (Boost automatico, pannellino, Profilo gioco) restano in pausa finché torni a Gaming.') : '';
