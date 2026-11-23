@@ -36,6 +36,8 @@ func nomeMotore(m string) string {
 		return "memory"
 	case "libreria":
 		return "library"
+	case "libreria (IA)":
+		return "library (AI)"
 	case "catalogo":
 		return "catalogue"
 	case "libreria giochi liberi":

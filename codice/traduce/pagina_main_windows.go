@@ -333,7 +333,7 @@ func preparaPagina(area Zona, img, primaImg *image.RGBA, giro int64) (p *paginaP
 		if strings.TrimSpace(r.Tradotto) == "" || strings.EqualFold(strings.TrimSpace(r.Tradotto), strings.TrimSpace(b.Testo)) {
 			continue
 		}
-		if r.Motore != "memoria" && r.Motore != "catalogo" && r.Motore != "libreria" {
+		if r.Motore != "memoria" && r.Motore != "catalogo" && r.Motore != "libreria" && r.Motore != "libreria (IA)" {
 			nuove++
 		}
 		// anche sopra uno sfondo che si muove niente fascia nera: sfondo ricostruito dal gioco e

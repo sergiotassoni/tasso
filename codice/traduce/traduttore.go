@@ -21,6 +21,7 @@ type Motore interface {
 }
 
 type Traduttore struct {
+	corretteIA map[string]bool // frasi corrette dall'IA in questa sessione: nel registro escono come "libreria (IA)"
 	mu             sync.Mutex
 	motori         []Motore // in ordine di preferenza: IA, poi Mozilla
 	glossario      Glossario
@@ -211,6 +212,9 @@ func (t *Traduttore) traduciIn(ctx context.Context, grezzo string, dialogo bool,
 		t.mu.Unlock()
 		t.ricontrolla(ctx, chiave, battuta, v, dialogo)
 		ris.Tradotto, ris.Motore = v, "libreria"
+		if t.corretteIA[chiave] {
+			ris.Motore = "libreria (IA)"
+		}
 		ris.Millisec = time.Since(inizio).Milliseconds()
 		ricorda(battuta)
 		return ris

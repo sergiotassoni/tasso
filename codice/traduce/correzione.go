@@ -166,6 +166,10 @@ func (t *Traduttore) correggiUna(m Motore, l lavoroCorrezione) {
 			t.libreria[l.chiave] = corr
 		}
 	}
+	if t.corretteIA == nil {
+		t.corretteIA = map[string]bool{}
+	}
+	t.corretteIA[l.chiave] = true
 	t.mu.Unlock()
 	t.corr.mu.Lock()
 	f := t.corr.quando
