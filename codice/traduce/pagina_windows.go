@@ -151,6 +151,10 @@ func disegnaBlocco(hdc uintptr, b Blocco, fase int) {
 	larg, maxLarg := int32(b.W), int32(max(b.LargMax, b.W))
 	if b.Centro && righe == 1 {
 		maxLarg = larg + 2*(maxLarg-larg) // centrata: cresce dai due lati
+		if b.Img != nil { // ma non oltre i bordi dello schermo
+			cx := int32(b.X + b.W/2)
+			maxLarg = min(maxLarg, 2*min(cx, int32(b.Img.Bounds().Dx())-cx)-16)
+		}
 	}
 	minPx := max(10, px*78/100)
 	if righe == 1 {
@@ -183,6 +187,9 @@ func disegnaBlocco(hdc uintptr, b Blocco, fase int) {
 	tx := int32(b.X)
 	if b.Centro && righe == 1 {
 		tx = int32(b.X+b.W/2) - w/2
+	}
+	if b.Img != nil { // mai fuori dallo schermo
+		tx = max(4, min(tx, int32(b.Img.Bounds().Dx())-w-4))
 	}
 	m := int32(3)
 	if b.Img != nil && !b.Ombra { // toppa con i pixel veri: posso allargarla senza coprire nulla

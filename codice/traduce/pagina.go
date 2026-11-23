@@ -29,26 +29,28 @@ type RigaOCR struct {
 
 // Blocco: testo e rettangolo in pixel della cattura (non ingrandita).
 type Blocco struct {
-	Testo      string
-	X, Y, W, H int
-	Righe      int
-	Sfondo     color.RGBA
-	Inchiostro color.RGBA
-	Tradotto   string
-	Em         float64     // grandezza del carattere stimata dalle lettere (pixel)
-	LargMax    int         // spazio libero a destra prima della scritta vicina
-	Fondo      *image.RGBA // sfondo ricostruito (sfumature del gioco), grande come il blocco +3 px per lato
-	Tratto     float64     // spessore medio delle lettere diviso la grandezza (grassetto se alto)
-	FondoX     int         // quanti pixel il Fondo parte a sinistra di X (di solito 3)
-	Centro     bool        // scritta centrata come le sue vicine (menu al centro): la traduzione resta centrata
-	Ombra      bool        // sfondo che si muove: la scritta ha un'ombra scura, come i testi dei giochi
-	Img        *image.RGBA // la cattura del gioco: la toppa copia i suoi pixel veri
-	Contorno   color.RGBA  // colore del contorno delle lettere (scritte bordate dei giochi)
-	HaContorno bool
-	OmbraGioco color.RGBA // ombra scura che il gioco mette sotto le lettere (in basso a destra)
-	HaOmbraG   bool
-	Pulita     *image.RGBA // la cattura con TUTTE le scritte inglesi tradotte cancellate
-	Marg       int         // margine della toppa attorno all'inglese (0 = non calcolato): mai fino alla scritta vicina
+	Testo       string
+	X, Y, W, H  int
+	Righe       int
+	Sfondo      color.RGBA
+	Inchiostro  color.RGBA
+	Tradotto    string
+	Em          float64     // grandezza del carattere stimata dalle lettere (pixel)
+	LargMax     int         // spazio libero a destra prima della scritta vicina
+	Fondo       *image.RGBA // sfondo ricostruito (sfumature del gioco), grande come il blocco +3 px per lato
+	Tratto      float64     // spessore medio delle lettere diviso la grandezza (grassetto se alto)
+	FondoX      int         // quanti pixel il Fondo parte a sinistra di X (di solito 3)
+	Centro      bool        // scritta centrata come le sue vicine (menu al centro): la traduzione resta centrata
+	Ombra       bool        // sfondo che si muove: la scritta ha un'ombra scura, come i testi dei giochi
+	Img         *image.RGBA // la cattura del gioco: la toppa copia i suoi pixel veri
+	Contorno    color.RGBA  // colore del contorno delle lettere (scritte bordate dei giochi)
+	HaContorno  bool
+	OmbraGioco  color.RGBA // ombra scura che il gioco mette sotto le lettere (in basso a destra)
+	HaOmbraG    bool
+	Inchiostro2 color.RGBA // secondo colore delle lettere nella stessa riga (parole evidenziate)
+	Ha2         bool
+	Pulita      *image.RGBA // la cattura con TUTTE le scritte inglesi tradotte cancellate
+	Marg        int         // margine della toppa attorno all'inglese (0 = non calcolato): mai fino alla scritta vicina
 }
 
 // grassetto: lettere spesse come quelle in neretto dei giochi.
@@ -353,6 +355,7 @@ func coloriBlocco(img *image.RGBA, b *Blocco) {
 	}
 	b.Inchiostro = color.RGBA{uint8(ir / k), uint8(ig / k), uint8(ib / k), 255}
 	riempimentoEContorno(img, in, b)
+	secondoInchiostro(img, in, b)
 	b.Tratto = spessoreTratto(img, in, b.Inchiostro, b.Sfondo, b.Em)
 	if !b.HaContorno && distanza(b.Inchiostro, b.Sfondo) < 120 { // troppo simile: leggibilità prima di tutto
 		b.Inchiostro = contrastante(b.Sfondo)
@@ -851,6 +854,9 @@ func fondoPreciso(b Blocco, x0, y0, x1, y1 int) (*image.RGBA, int, int) {
 			// una lettera: cancello solo i pixel più vicini al colore delle lettere (o del loro
 			// bordino) che al fondo. Il resto del disegno del gioco resta com'è, nitido.
 			dInk := distanza(c, b.Inchiostro)
+			if b.Ha2 {
+				dInk = min(dInk, distanza(c, b.Inchiostro2))
+			}
 			if lettereChiare && !(dInk < dSf && dInk < 130) &&
 				!(b.HaContorno && distanza(c, b.Contorno) < dSf) {
 				continue
@@ -1400,4 +1406,125 @@ func riquadraDiNuovo(img *image.RGBA, b *Blocco) {
 	k := float64(nh) / float64(b.H)
 	b.X, b.Y, b.W, b.H = r.Min.X+x0, r.Min.Y+y0, nw, nh
 	b.Em *= k
+}
+
+// secondoInchiostro: una riga con parole di due colori (testo bianco con parole gialle
+// evidenziate): anche il secondo colore va cancellato.
+func secondoInchiostro(img *image.RGBA, in image.Rectangle, b *Blocco) {
+	b.Ha2 = false
+	var forti, n, sr, sg, sb int
+	for y := in.Min.Y; y < in.Max.Y; y++ {
+		for x := in.Min.X; x < in.Max.X; x++ {
+			c := img.RGBAAt(x, y)
+			if distanza(c, b.Sfondo) < 150 {
+				continue
+			}
+			forti++
+			if distanza(c, b.Inchiostro) > 150 && (!b.HaContorno || distanza(c, b.Contorno) > 150) {
+				n++
+				sr, sg, sb = sr+int(c.R), sg+int(c.G), sb+int(c.B)
+			}
+		}
+	}
+	if forti >= 40 && n*100 >= forti*8 {
+		b.Inchiostro2 = color.RGBA{uint8(sr / n), uint8(sg / n), uint8(sb / n), 255}
+		b.Ha2 = true
+	}
+}
+
+// rifinisci: la traduzione nella stessa forma dell'originale: TUTTA MAIUSCOLA se l'originale lo
+// è, senza il punto finale se l'originale non ce l'ha (pulsanti e titoli).
+func rifinisci(orig, trad string) string {
+	trad = strings.TrimSpace(trad)
+	lettere, maiusc := 0, 0
+	for _, r := range orig {
+		if unicode.IsLetter(r) {
+			lettere++
+			if unicode.IsUpper(r) {
+				maiusc++
+			}
+		}
+	}
+	if lettere >= 2 && maiusc == lettere {
+		trad = strings.ToUpper(trad)
+	}
+	o := strings.TrimSpace(orig)
+	if o != "" && !strings.ContainsAny(o[len(o)-1:], ".!?:;…") && strings.HasSuffix(trad, ".") && !strings.HasSuffix(trad, "...") {
+		trad = strings.TrimSuffix(trad, ".")
+	}
+	return trad
+}
+
+// correggiNomeGioco: il nome del gioco letto male dall'OCR ("Lia (s Bar", "Ilia (s Bar") torna
+// quello giusto, così il traduttore non lo storpia.
+func correggiNomeGioco(testo, nome string) string {
+	nw := strings.Fields(nome)
+	if len(nw) == 0 || len([]rune(nome)) < 4 {
+		return testo
+	}
+	soloLett := func(s string) string {
+		var b strings.Builder
+		for _, r := range strings.ToLower(s) {
+			if unicode.IsLetter(r) || unicode.IsDigit(r) {
+				b.WriteRune(r)
+			}
+		}
+		return b.String()
+	}
+	obiettivo := soloLett(nome)
+	if len(obiettivo) < 4 {
+		return testo
+	}
+	w := strings.Fields(testo)
+	for i := 0; i < len(w); i++ {
+		for k := len(nw) + 1; k >= max(1, len(nw)-1); k-- {
+			if i+k > len(w) {
+				continue
+			}
+			pezzo := soloLett(strings.Join(w[i:i+k], ""))
+			if pezzo == "" || pezzo == obiettivo && strings.Join(w[i:i+k], " ") == nome {
+				continue
+			}
+			lim := 1
+			if len(obiettivo) >= 7 {
+				lim = 2
+			}
+			if distanzaModifica(pezzo, obiettivo) <= lim {
+				// tengo la punteggiatura attaccata in fondo ("Bar," "Bar.")
+				fine := strings.TrimRightFunc(w[i+k-1], func(r rune) bool { return unicode.IsLetter(r) || unicode.IsDigit(r) })
+				coda := w[i+k-1][len(fine):]
+				_ = coda
+				resto := ""
+				ultima := w[i+k-1]
+				if j := strings.LastIndexFunc(ultima, func(r rune) bool { return unicode.IsLetter(r) || unicode.IsDigit(r) }); j >= 0 && j+1 < len(ultima) {
+					resto = ultima[j+1:]
+				}
+				nuove := append(append(append([]string{}, w[:i]...), nome+resto), w[i+k:]...)
+				w = nuove
+				break
+			}
+		}
+	}
+	return strings.Join(w, " ")
+}
+
+func distanzaModifica(a, b string) int {
+	ra, rb := []rune(a), []rune(b)
+	prec := make([]int, len(rb)+1)
+	cur := make([]int, len(rb)+1)
+	for j := range prec {
+		prec[j] = j
+	}
+	for i := 1; i <= len(ra); i++ {
+		cur[0] = i
+		for j := 1; j <= len(rb); j++ {
+			c := 1
+			if ra[i-1] == rb[j-1] {
+				c = 0
+			}
+			cur[j] = min(prec[j]+1, cur[j-1]+1, prec[j-1]+c)
+		}
+		prec, cur = cur, prec
+	}
+	return prec[len(rb)]
 }

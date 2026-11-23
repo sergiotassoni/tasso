@@ -65,3 +65,47 @@ func TestPalworldPulita(t *testing.T) {
 	png.Encode(o, p)
 	o.Close()
 }
+
+func carica(t *testing.T, p string) *image.RGBA {
+	f, err := os.Open(p)
+	if err != nil {
+		t.Skip()
+	}
+	src, _ := jpeg.Decode(f)
+	img := image.NewRGBA(src.Bounds())
+	draw.Draw(img, img.Bounds(), src, image.Point{}, draw.Src)
+	return img
+}
+
+func TestPalworldMouse(t *testing.T) {
+	img := carica(t, "/tmp/claude-0/pw/menu.jpg")
+	hov := carica(t, "/tmp/claude-0/pw/hover.jpg")
+	if img.Bounds() != hov.Bounds() {
+		t.Skip("grandezze diverse")
+	}
+	bl := []Blocco{
+		{Testo: "Global Palbox", X: 176, Y: 177, W: 144, H: 20, Em: 23},
+		{Testo: "Survival Guide", X: 173, Y: 213, W: 149, H: 24, Em: 23},
+		{Testo: "Options", X: 207, Y: 252, W: 82, H: 23, Em: 23},
+		{Testo: "News", X: 220, Y: 290, W: 56, H: 17, Em: 23},
+	}
+	for i := range bl {
+		coloriBlocco(img, &bl[i])
+		bl[i].Img = img
+	}
+	for i := range bl {
+		bl[i].Marg = margineToppa(bl[i], bl)
+	}
+	p := pulisciPagina(img, bl)
+	for i := range bl {
+		bl[i].Pulita = p
+	}
+	nuovi, ok := ricolora(hov, bl)
+	fmt.Println("cambiato", ok)
+	for i := range nuovi {
+		fmt.Println(nuovi[i].Testo, nuovi[i].X, nuovi[i].Y, nuovi[i].W, nuovi[i].H, nuovi[i].Em, nuovi[i].Inchiostro, nuovi[i].Sfondo)
+	}
+	o, _ := os.Create("/tmp/claude-0/pw/pulita-mouse.png")
+	png.Encode(o, nuovi[0].Pulita)
+	o.Close()
+}

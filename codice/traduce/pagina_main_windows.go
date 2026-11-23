@@ -250,6 +250,11 @@ func preparaPagina(area Zona, img, primaImg *image.RGBA, giro int64) (p *paginaP
 		}
 		da = append(da, b)
 	}
+	if g, ok := riconosciGioco(percorsoDiFinestra(paginaGiocoA.Load())); ok {
+		for i := range da { // "Lia (s Bar" letto dall'OCR -> "Liar's Bar": il nome del gioco resta giusto
+			da[i].Testo = correggiNomeGioco(da[i].Testo, g.Nome)
+		}
+	}
 	risultati := make([]Risultato, len(da))
 	var wg sync.WaitGroup
 	posti := make(chan struct{}, 8)
@@ -284,13 +289,19 @@ func preparaPagina(area Zona, img, primaImg *image.RGBA, giro int64) (p *paginaP
 		contornoLettere(img, &b)
 		ombraLettere(img, &b)
 		b.LargMax = liberoFinoAlBordo(img, b)
-		b.Tradotto = r.Tradotto
+		b.Tradotto = rifinisci(b.Testo, r.Tradotto)
 		pronti = append(pronti, b)
 		if len(pronti) <= 40 { // nella cronologia (F8) le scritte nuove, senza doppioni
 			aggiungiCronologia(r, true)
 		}
 	}
 	armonizza(pronti)
+	for i := range pronti { // titoli al centro dello schermo: la traduzione resta al centro
+		cx := pronti[i].X + pronti[i].W/2
+		if pronti[i].Righe <= 1 && abs(cx-img.Bounds().Dx()/2) <= max(10, img.Bounds().Dx()/100) && pronti[i].W < img.Bounds().Dx()*9/10 {
+			pronti[i].Centro = true
+		}
+	}
 	for i := range pronti { // dopo armonizza: le scritte centrate hanno bisogno di sfondo dai due lati
 		pronti[i].FondoX, _ = margineFondo(pronti[i])
 		pronti[i].Fondo = fondoRicostruito(img, pronti[i])
