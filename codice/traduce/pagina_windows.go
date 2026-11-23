@@ -152,6 +152,9 @@ func disegnaBlocco(hdc uintptr, b Blocco, fase int) {
 		px = 10
 	}
 	larg, maxLarg := int32(b.W), int32(max(b.LargMax, b.W))
+	if b.Centro && righe == 1 {
+		maxLarg = larg + 2*(maxLarg-larg) // centrata: cresce dai due lati
+	}
 	minPx := max(10, px*78/100)
 	if righe == 1 {
 		// una riga sola (voce di menu, etichetta): meglio un po' più piccola che andare a capo
@@ -200,12 +203,7 @@ func disegnaBlocco(hdc uintptr, b Blocco, fase int) {
 		// (copierebbe le sue lettere inglesi sopra la sua traduzione)
 		y1 = int32(b.Y+b.H) + m
 	}
-	if fase == 0 {
-		disegnaSfondo(hdc, b, x0, y0, x1, y1)
-		return
-	}
 	pSelectObject.Call(hdc, font)
-	t, _ := windows.UTF16FromString(b.Tradotto)
 	ty := int32(b.Y) + (int32(b.H)-h)/2*boolI(h < int32(b.H))
 	if righe == 1 && !(w > maxLarg) {
 		// stessa linea di base dell'originale (la cella del carattere ha spazio sopra le lettere)
@@ -215,6 +213,21 @@ func disegnaBlocco(hdc uintptr, b Blocco, fase int) {
 			ty = int32(lineaDiBase(b)) - asc
 		}
 	}
+	if fase == 0 {
+		if b.Pulita != nil {
+			// la toppa copre anche tutta la scritta nuova (gambe sotto comprese): niente bordi
+			// colorati attorno alle lettere
+			testo := image.Rect(int(tx)-2, int(ty)-2, int(tx+w)+2, int(ty+h)+2)
+			if b.Centro && righe > 1 {
+				testo = image.Rect(int(x0), int(ty)-2, int(x1), int(ty+h)+2)
+			}
+			disegnaToppaPulita(hdc, b, image.Rect(int(x0), int(y0), int(x1), int(y1)).Union(testo), testo)
+			return
+		}
+		disegnaSfondo(hdc, b, x0, y0, x1, y1)
+		return
+	}
+	t, _ := windows.UTF16FromString(b.Tradotto)
 	fl := uintptr(dtWordBreak | dtNoPrefix | dtLeft)
 	rt := rect{tx, ty, x1 - m, max(y1, ty+h+2)}
 	if b.Centro && righe > 1 {
@@ -322,6 +335,10 @@ type toppa struct {
 }
 
 var toppe = map[chiaveToppa]toppa{}
+
+// inAnteprima: sto disegnando la foto di prova (sopra la cattura, non sopra il gioco): niente
+// trasparenza, la cattura sotto è già il gioco. Solo con pag.mu preso.
+var inAnteprima bool
 
 func disegnaImmagine(hdc uintptr, f *image.RGBA, x, y int32) {
 	w, h := int32(f.Bounds().Dx()), int32(f.Bounds().Dy())
@@ -431,11 +448,13 @@ func salvaAnteprima(img *image.RGBA, blocchi []Blocco, percorso string) error {
 	pSetDIBits.Call(mem, bmp, 0, uintptr(h), uintptr(unsafe.Pointer(&buf[0])), uintptr(unsafe.Pointer(&bi)), 0)
 	pSetBkMode.Call(mem, 1)
 	pag.mu.Lock()
+	inAnteprima = true
 	for fase := 0; fase < 2; fase++ {
 		for _, b := range blocchi {
 			disegnaBlocco(mem, b, fase)
 		}
 	}
+	inAnteprima = false
 	pag.mu.Unlock()
 	pGetDIBits.Call(mem, bmp, 0, uintptr(h), uintptr(unsafe.Pointer(&buf[0])), uintptr(unsafe.Pointer(&bi)), 0)
 	out := image.NewRGBA(image.Rect(0, 0, w, h))
@@ -448,4 +467,36 @@ func salvaAnteprima(img *image.RGBA, blocchi []Blocco, percorso string) error {
 	}
 	defer f.Close()
 	return png.Encode(f, out)
+}
+
+// disegnaToppaPulita: copia dalla pagina "pulita" (tutte le scritte inglesi cancellate). Dove la
+// pagina pulita è uguale al gioco e non c'è la scritta nuova, la finestra resta trasparente: si
+// vede il gioco vero, che si muove. Coperto resta solo dove c'erano le lettere inglesi e dove va
+// la traduzione.
+func disegnaToppaPulita(hdc uintptr, b Blocco, r, testo image.Rectangle) {
+	r = r.Intersect(b.Pulita.Bounds())
+	w, h := int32(r.Dx()), int32(r.Dy())
+	if w <= 0 || h <= 0 {
+		return
+	}
+	bgra := make([]byte, int(w*h)*4)
+	i := 0
+	for y := r.Min.Y; y < r.Max.Y; y++ {
+		for x := r.Min.X; x < r.Max.X; x++ {
+			c := b.Pulita.RGBAAt(x, y)
+			if c == b.Img.RGBAAt(x, y) && !(image.Point{x, y}.In(testo)) && !inAnteprima {
+				bgra[i], bgra[i+1], bgra[i+2], bgra[i+3] = byte(chiaveTrsp>>16&0xFF), byte(chiaveTrsp>>8&0xFF), byte(chiaveTrsp&0xFF), 255
+			} else {
+				bgra[i], bgra[i+1], bgra[i+2], bgra[i+3] = c.B, c.G, c.R, 255
+				if uintptr(c.R)|uintptr(c.G)<<8|uintptr(c.B)<<16 == chiaveTrsp {
+					bgra[i+2]--
+				}
+			}
+			i += 4
+		}
+	}
+	bi := bitmapInfoHeader{biWidth: w, biHeight: -h, biPlanes: 1, biBitCount: 32}
+	bi.biSize = uint32(unsafe.Sizeof(bi))
+	pSetDIBitsToDevice.Call(hdc, uintptr(r.Min.X), uintptr(r.Min.Y), uintptr(w), uintptr(h), 0, 0, 0, uintptr(h),
+		uintptr(unsafe.Pointer(&bgra[0])), uintptr(unsafe.Pointer(&bi)), 0)
 }

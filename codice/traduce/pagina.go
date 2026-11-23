@@ -44,7 +44,8 @@ type Blocco struct {
 	Img        *image.RGBA // la cattura del gioco: la toppa copia i suoi pixel veri
 	Contorno   color.RGBA  // colore del contorno delle lettere (scritte bordate dei giochi)
 	HaContorno bool
-	Marg       int // margine della toppa attorno all'inglese (0 = non calcolato): mai fino alla scritta vicina
+	Pulita     *image.RGBA // la cattura con TUTTE le scritte inglesi tradotte cancellate
+	Marg       int         // margine della toppa attorno all'inglese (0 = non calcolato): mai fino alla scritta vicina
 }
 
 // grassetto: lettere spesse come quelle in neretto dei giochi.
@@ -690,7 +691,7 @@ func fondoPreciso(b Blocco, x0, y0, x1, y1 int) (*image.RGBA, int, int) {
 			// su un fondo disegnato (erba, cielo, rocce) non tutto ciò che è diverso dalla stima è
 			// una lettera: cancello solo i pixel più vicini al colore delle lettere (o del loro
 			// bordino) che al fondo. Il resto del disegno del gioco resta com'è, nitido.
-			if lettereChiare && distanza(c, b.Inchiostro) >= dSf &&
+			if lettereChiare && dSf < 150 && distanza(c, b.Inchiostro) >= dSf &&
 				!(b.HaContorno && distanza(c, b.Contorno) < dSf) {
 				continue
 			}
@@ -778,15 +779,38 @@ func coonsRiquadro(img *image.RGBA, b Blocco, x0, y0, w, h int) *image.RGBA {
 func liberoFinoAlBordo(img *image.RGBA, b Blocco) int {
 	lim := b.LargMax
 	bd := img.Bounds()
+	y0, y1 := max(b.Y, bd.Min.Y), min(b.Y+b.H, bd.Max.Y)
+	if y1-y0 < 3 {
+		return max(b.W, lim)
+	}
+	// un bordo vero (casella, cornice) è una linea dritta: stessa tinta dall'alto in basso e
+	// diversa dalla colonna accanto. Un disegno (erba, rocce, cielo) cambia di riga in riga: lì
+	// la traduzione può passare, come nel gioco.
 	for x := b.X + b.W + 2; x < b.X+b.LargMax && x < bd.Max.X; x++ {
-		diversi, n := 0, 0
-		for y := max(b.Y, bd.Min.Y); y < min(b.Y+b.H, bd.Max.Y); y++ {
-			n++
-			if distanza(img.RGBAAt(x, y), b.Sfondo) > 60 {
+		var col []color.RGBA
+		diversi := 0
+		for y := y0; y < y1; y++ {
+			c := img.RGBAAt(x, y)
+			col = append(col, c)
+			if distanza(c, b.Sfondo) > 60 {
 				diversi++
 			}
 		}
-		if n > 0 && diversi*2 > n {
+		n := len(col)
+		if diversi*10 < n*8 {
+			continue
+		}
+		m := col[n/2]
+		simili, salto := 0, 0
+		for i, c := range col {
+			if distanza(c, m) < 45 {
+				simili++
+			}
+			if x-2 >= bd.Min.X && distanza(c, img.RGBAAt(x-2, y0+i)) > 60 {
+				salto++
+			}
+		}
+		if simili*10 >= n*8 && salto*10 >= n*7 {
 			lim = x - b.X - 6
 			break
 		}
@@ -832,7 +856,7 @@ func contornoLettere(img *image.RGBA, b *Blocco) {
 	}
 	if ni > 20 && nc*10 > ni*3 {
 		b.Contorno = color.RGBA{uint8(sr / nc), uint8(sg / nc), uint8(sb / nc), 255}
-		b.HaContorno = true
+		b.HaContorno = contornoVero(b.Inchiostro, b.Contorno, b.Sfondo)
 	}
 }
 
@@ -916,14 +940,24 @@ func riempimentoEContorno(img *image.RGBA, in image.Rectangle, b *Blocco) {
 	}
 	r0 := float64(tocca[0]) / float64(n[0])
 	r1 := float64(tocca[1]) / float64(n[1])
-	if r0 < r1*0.7 {
-		b.Inchiostro, b.Contorno = c1, c2
-	} else if r1 < r0*0.7 {
-		b.Inchiostro, b.Contorno = c2, c1
-	} else {
+	ink, cont := c1, c2
+	if r1 < r0*0.7 {
+		ink, cont = c2, c1
+	} else if !(r0 < r1*0.7) {
 		return // non si capisce: lascio com'era
 	}
-	b.HaContorno = true
+	if contornoVero(ink, cont, b.Sfondo) {
+		b.Inchiostro, b.Contorno, b.HaContorno = ink, cont, true
+	}
+}
+
+func luce(c color.RGBA) int { return (int(c.R)*299 + int(c.G)*587 + int(c.B)*114) / 1000 }
+
+// contornoVero: un bordino è più scuro dello sfondo se le lettere sono più chiare (o il
+// contrario). Un colore a metà tra lettere e sfondo è solo il bordo sfumato delle lettere.
+func contornoVero(ink, cont, sf color.RGBA) bool {
+	li, lc, ls := luce(ink), luce(cont), luce(sf)
+	return (li > ls && ls-lc >= 30) || (li < ls && lc-ls >= 30)
 }
 
 // lineaDiBase: dove poggiano le lettere dell'originale (y). Il riquadro dell'OCR va dalla cima
@@ -964,4 +998,33 @@ func margineToppa(b Blocco, altri []Blocco) int {
 		}
 	}
 	return max(1, m)
+}
+
+// pulisciPagina: una copia della cattura con le lettere inglesi di tutte le scritte tradotte
+// cancellate (sfondo ricostruito sotto). Ogni toppa copia da qui: una toppa larga non riporta
+// mai le lettere inglesi della scritta vicina.
+func pulisciPagina(img *image.RGBA, bl []Blocco) *image.RGBA {
+	out := image.NewRGBA(img.Bounds())
+	copy(out.Pix, img.Pix)
+	for _, b := range bl {
+		b.Img = img
+		m := b.Marg
+		if m <= 0 {
+			m = max(2, int(b.Em*0.15+0.5))
+		}
+		// 3 pixel in più: l'anello esterno dà i colori veri da cui riempire
+		f, fx, fy := fondoPreciso(b, b.X-m-3, b.Y-m-3, b.X+b.W+m+3, b.Y+b.H+m+3)
+		if f == nil {
+			continue
+		}
+		fb := f.Bounds()
+		for y := 0; y < fb.Dy(); y++ {
+			for x := 0; x < fb.Dx(); x++ {
+				if c := f.RGBAAt(x, y); c != img.RGBAAt(fx+x, fy+y) { // solo i pixel cancellati
+					out.SetRGBA(fx+x, fy+y, c)
+				}
+			}
+		}
+	}
+	return out
 }

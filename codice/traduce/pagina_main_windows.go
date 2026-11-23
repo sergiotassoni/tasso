@@ -295,6 +295,10 @@ func preparaPagina(area Zona, img, primaImg *image.RGBA, giro int64) (p *paginaP
 		pronti[i].Fondo = fondoRicostruito(img, pronti[i])
 		pronti[i].Marg = margineToppa(pronti[i], blocchi)
 	}
+	pulita := pulisciPagina(img, pronti)
+	for i := range pronti {
+		pronti[i].Pulita = pulita
+	}
 	return &paginaPronta{area: area, img: img, pronti: pronti, nuove: nuove, t0: t0, tOCR: tOCR, tTrad: tTrad}, false
 }
 
