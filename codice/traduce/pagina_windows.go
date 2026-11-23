@@ -179,6 +179,9 @@ func disegnaBlocco(hdc uintptr, b Blocco, fase int) {
 	}
 	if b.PxColonna > 0 {
 		minPx = max(9, px*85/100) // tutta la colonna resta quasi della stessa grandezza
+		if righe > 1 {
+			minPx = max(9, px*78/100) // un paragrafo non deve uscire dal suo spazio
+		}
 	}
 	if righe == 1 {
 		// una riga sola (voce di menu, etichetta): meglio un po' più piccola che andare a capo

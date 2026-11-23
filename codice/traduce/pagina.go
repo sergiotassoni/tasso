@@ -1627,7 +1627,7 @@ func letturaAffidabile(s string) bool {
 	if tot < 4 {
 		return true
 	}
-	return buone*100 >= tot*85
+	return buone*100 >= tot*75
 }
 
 // lettereOCRStrane: nelle scritte inglesi piccole l'OCR di Windows legge "ch" come "å" e "sp"

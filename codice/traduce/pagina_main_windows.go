@@ -575,12 +575,29 @@ func rileggiZona(img *image.RGBA, righe []RigaOCR, f float64, zona image.Rectang
 			w.T = lettereOCRStrane(w.T)
 		}
 	}
+	var rettNuove []image.Rectangle
+	for _, r := range nuove {
+		x0, y0, x1, y1, _ := rettRiga(r, f)
+		rettNuove = append(rettNuove, image.Rect(x0, y0, x1, y1))
+	}
 	var out []RigaOCR
 	for _, r := range righe { // tengo le righe fuori dalla zona (e le grandi dentro: titoli)
 		x0, y0, x1, y1, h := rettRiga(r, f)
 		c := image.Pt((x0+x1)/2, (y0+y1)/2)
 		if c.In(zona) && h < 17 {
-			continue
+			// la seconda lettura a volte salta una riga intera: se nessuna riga nuova sta
+			// dove stava questa, tengo quella della prima lettura
+			vecchia, coperta := image.Rect(x0, y0, x1, y1), false
+			for _, n := range rettNuove {
+				in := vecchia.Intersect(n)
+				if in.Dx()*in.Dy()*10 >= vecchia.Dx()*vecchia.Dy()*3 {
+					coperta = true
+					break
+				}
+			}
+			if coperta {
+				continue
+			}
 		}
 		out = append(out, r)
 	}
