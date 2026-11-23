@@ -85,6 +85,7 @@ func cicloPagina(giro int64) {
 	prima := true
 	nascostaPerAltTab := false
 	nere := 0
+	mosse := 0 // giri di fila in cui la schermata si muoveva ancora
 	for paginaAttiva.Load() && paginaGiro.Load() == giro {
 		gioco := paginaGiocoA.Load()
 		if v, _, _ := pIsWindow.Call(gioco); v == 0 { // il gioco è stato chiuso
@@ -144,6 +145,19 @@ func cicloPagina(giro int64) {
 					if imp2.differenza(imp) > 3*sogliaCambiato && !prima {
 						NascondiPagina() // cambio di scena: tolgo subito le scritte vecchie
 					}
+					if imp2.cambiata(imp) && mosse < 12 {
+						// si muove ancora (rotella, menu che scorre): niente scritte finché non si
+						// ferma, così inglese e italiano non si sovrappongono mai. Se si muove
+						// sempre (video dietro al menu) dopo circa un secondo e mezzo traduco lo stesso
+						NascondiPagina()
+						mosse++
+						prima = true
+						<-anticipo
+						continue
+					}
+					if !imp2.cambiata(imp) {
+						mosse = 0
+					}
 					e := <-anticipo
 					pronta, occupata := e.p, e.occupata
 					if pronta == nil || imp2.cambiata(imp) {
@@ -169,7 +183,13 @@ func cicloPagina(giro int64) {
 				} else {
 					<-anticipo
 				}
-			} else if bl := blocchiPagina(); len(bl) > 0 && imp.differenza(ultimaColori) > 0.2 {
+			} else if bl := blocchiPagina(); len(bl) > 0 && imp.differenza(ultimaColori) > 0.2 && paginaSpostata(img, bl) {
+				// la rotella ha spostato le scritte: via subito le traduzioni (sarebbero nel posto
+				// sbagliato, sopra l'inglese) e rileggo appena la schermata si ferma
+				NascondiPagina()
+				prima = true
+				continue
+			} else if len(bl) > 0 && imp.differenza(ultimaColori) > 0.2 {
 				// piccolo cambio (mouse sopra un pulsante): aggiorno solo i colori. Se l'immagine
 				// è identica all'ultima volta non rifaccio il lavoro (il giro resta svelto)
 				ultimaColori = imp

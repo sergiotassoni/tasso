@@ -849,6 +849,36 @@ func ricolora(img *image.RGBA, bl []Blocco) ([]Blocco, bool) {
 	return out, true
 }
 
+// paginaSpostata: sotto le traduzioni le scritte inglesi sono cambiate su almeno 3 righe diverse.
+// Il mouse sopra una voce cambia una riga sola (anche se la riga ha due scritte, nome e valore);
+// la rotella sposta tutto l'elenco: le traduzioni vecchie sarebbero nel posto sbagliato,
+// sopra o sotto l'inglese (visto in PC Cafe Simulator, Impostazioni > Audio, 23/11).
+func paginaSpostata(img *image.RGBA, bl []Blocco) bool {
+	var righe []int // centro verticale delle righe cambiate
+	for _, b := range bl {
+		if b.Inchiostro == coloreTestoFascia && b.Sfondo == coloreFascia {
+			continue
+		}
+		if b.Img == nil || b.Img.Bounds() != img.Bounds() || !zonaCambiata(b.Img, img, b) {
+			continue
+		}
+		c, nuova := b.Y+b.H/2, true
+		for _, r := range righe {
+			if d := r - c; d < max(b.H, 6) && -d < max(b.H, 6) {
+				nuova = false
+				break
+			}
+		}
+		if nuova {
+			righe = append(righe, c)
+			if len(righe) >= 3 {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 // zonaCambiata: le lettere inglesi di b sono cambiate tra le due immagini (colore, alone,
 // riquadro di evidenziazione): differenza media sopra 18 nella zona della scritta.
 func zonaCambiata(a, b *image.RGBA, bl Blocco) bool {
