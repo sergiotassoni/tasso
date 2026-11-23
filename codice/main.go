@@ -656,7 +656,7 @@ func biosPage(boardMaker, boardModel, pcMaker, pcModel string, laptop bool) stri
 		}
 	}
 	if q == "" {
-		q = "scheda madre"
+		q = "motherboard"
 	}
 	openURL("https://www.google.com/search?q=" + urlQuery(q+" BIOS download"))
 	return "search:" + which

@@ -186,8 +186,13 @@ func profileOff(p *gameProfile) []string {
 	if p.Overlay && !p.PrevOverlay {
 		setOverlay(false, overlayPos())
 	}
-	if p.AutoGame && !p.PrevAuto && !autoGameNeeded() {
-		setAutoGame(false)
+	if p.AutoGame && !p.PrevAuto {
+		if autoGameNeeded() {
+			// La usano ancora la potenza per gioco, Regola con Tasso o il Boost automatico: resta accesa, ma solo per loro.
+			updateSettings(func(st *Settings) { st.AutoGameTune = true })
+		} else {
+			setAutoGame(false)
+		}
 	}
 	p.On, p.Added, p.Since, p.LastFix = false, nil, "", nil
 	saveProfile(p)
@@ -221,8 +226,13 @@ func profileSet(on bool, mode string, cmds []string, overlay, autoGame, standby 
 		if p.Overlay && !overlay && !p.PrevOverlay {
 			setOverlay(false, overlayPos())
 		}
-		if p.AutoGame && !autoGame && !p.PrevAuto && !autoGameNeeded() {
-			setAutoGame(false)
+		if p.AutoGame && !autoGame && !p.PrevAuto {
+			if autoGameNeeded() {
+				// La usano ancora la potenza per gioco, Regola con Tasso o il Boost automatico: resta accesa, ma solo per loro.
+				updateSettings(func(st *Settings) { st.AutoGameTune = true })
+			} else {
+				setAutoGame(false)
+			}
 		}
 	}
 	p.Mode, p.Cmds, p.Overlay, p.AutoGame, p.Standby = mode, newCmds, overlay, autoGame, standby

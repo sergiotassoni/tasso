@@ -546,8 +546,18 @@ func setBoostAuto(on bool) string {
 		bMu.Lock()
 		s := loadBoost()
 		s.Auto = false
+		prevAG := s.PrevAG
+		s.PrevAG = nil
 		saveBoost()
 		bMu.Unlock()
+		if prevAG != nil && !*prevAG {
+			// La modalità gioco automatica l'aveva accesa il Boost automatico: la tengo solo se serve ad altro.
+			if autoGameNeeded() {
+				updateSettings(func(st *Settings) { st.AutoGameTune = true })
+			} else {
+				setAutoGame(false)
+			}
+		}
 		return "ok:Boost automatico spento. Il Boost acceso a mano resta acceso."
 	}
 	setMu.Lock()

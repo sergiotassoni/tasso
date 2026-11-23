@@ -11,6 +11,7 @@ import (
 	"regexp"
 	"strings"
 	"sync"
+	"time"
 )
 
 type GiocoRiconosciuto struct {
@@ -289,6 +290,35 @@ func ConAntiCheat(g GiocoRiconosciuto) bool {
 	if base == "" {
 		return false
 	}
+	// Il risultato si ricorda per qualche minuto: il controllo legge fino a 300 cartelle
+	// e durante il gioco viene chiesto spesso (anche ogni secondo).
+	acMu.Lock()
+	if r, ok := acCache[base+"|"+g.Nome]; ok && time.Since(r.quando) < 5*time.Minute {
+		acMu.Unlock()
+		return r.si
+	}
+	acMu.Unlock()
+	si := conAntiCheatCartella(base, g.Nome)
+	acMu.Lock()
+	if len(acCache) > 500 {
+		acCache = map[string]acRisultato{}
+	}
+	acCache[base+"|"+g.Nome] = acRisultato{si: si, quando: time.Now()}
+	acMu.Unlock()
+	return si
+}
+
+type acRisultato struct {
+	si     bool
+	quando time.Time
+}
+
+var (
+	acMu    sync.Mutex
+	acCache = map[string]acRisultato{}
+)
+
+func conAntiCheatCartella(base, nome string) bool {
 	for _, d := range [][]string{{"EasyAntiCheat"}, {"EasyAntiCheat_EOS"}, {"BattlEye"}, {"Binaries", "Win64", "EasyAntiCheat"}} {
 		if st, err := os.Stat(filepath.Join(append([]string{base}, d...)...)); err == nil && st.IsDir() {
 			return true
@@ -309,7 +339,7 @@ func ConAntiCheat(g GiocoRiconosciuto) bool {
 		path  string
 		depth int
 	}
-	nomeGioco := nomePiatto(g.Nome)
+	nomeGioco := nomePiatto(nome)
 	var prima, dopo []dir
 	aggiungi := func(path, nome string, depth int) {
 		n := strings.ToLower(nome)
