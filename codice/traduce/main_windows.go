@@ -49,7 +49,6 @@ type Impostazioni struct {
 	DimFont   int    `json:"dim_font"`
 	Posizione string `json:"posizione"`
 	TuttoAuto bool   `json:"tutto_auto"` // traduce da solo tutte le scritte dei giochi
-	Acceso    bool   `json:"acceso"`     // l'interruttore Traduzione era acceso: lo riaccendo alla riapertura di Tasso
 	Motore    string `json:"motore"`     // "auto", "ia", "mozilla"
 	MozillaSi bool   `json:"mozilla_si"`
 	IASi      bool   `json:"ia_si"`
@@ -198,10 +197,9 @@ func Avvia() {
 	if !InUfficio.Load() && (leggiImp().TuttoAuto || len(leggiImp().GiochiTradotti) > 0) {
 		assicuraMotore() // traduzione "da sola" scelta dall'utente: il motore deve essere pronto
 	}
-	if !InUfficio.Load() && leggiImp().Acceso { // era accesa quando hai chiuso Tasso: la riaccendo
-		accendi(true, false)
-		emetti("aggiorna", stato())
-	}
+	// all'avvio la traduzione resta spenta (scelta di Sergio del 7/11: niente legge lo schermo da
+	// solo), ma F7 premuto nel gioco la accende
+	cambiaTasti(soloTastoAccendi())
 }
 
 // InUfficio: Tasso è in modalità Ufficio (niente giochi né traduzione). Lo imposta Tasso
@@ -214,14 +212,13 @@ func ImpostaUfficio(on bool) {
 	if InUfficio.Swap(on) == on || on || !avviato.Load() {
 		return
 	}
-	if leggiImp().TuttoAuto || len(leggiImp().GiochiTradotti) > 0 || leggiImp().Acceso {
+	if !acceso.Load() {
+		go cambiaTasti(soloTastoAccendi()) // di nuovo Gaming: F7 nel gioco accende la traduzione
+	}
+	if leggiImp().TuttoAuto || len(leggiImp().GiochiTradotti) > 0 {
 		go func() {
 			defer guard("motore-gaming")
 			assicuraMotore()
-			if leggiImp().Acceso && !InUfficio.Load() {
-				accendi(true, false)
-				emetti("aggiorna", stato())
-			}
 		}()
 	}
 }
@@ -647,9 +644,13 @@ func collega(w webview2.WebView) {
 		}
 		return "ok"
 	})
-	_ = w.Bind("ttAccendi", func(on bool) bool { return accendi(on, true) })
+	_ = w.Bind("ttAccendi", func(on bool) bool { return accendi(on) })
 	// passando a Ufficio la traduzione si spegne, ma la scelta resta: tornando a Gaming si riaccende
-	_ = w.Bind("ttSpegniPerUfficio", func() bool { return accendi(false, false) })
+	_ = w.Bind("ttSpegniPerUfficio", func() bool {
+		accendi(false)
+		cambiaTasti(map[string]uint32{}) // in Ufficio nessun tasto dei giochi
+		return false
+	})
 	_ = w.Bind("ttImpostaTuttoAuto", func(on bool) bool {
 		muImp.Lock()
 		imp.TuttoAuto = on
@@ -991,6 +992,11 @@ func accendiTraduzione() {
 }
 
 func suTasto(id int) {
+	if !acceso.Load() && id == tastoPagina && !InUfficio.Load() {
+		// gioco aperto fuori da Tasso (Steam, collegamento): F7 nel gioco accende la traduzione
+		accendi(true)
+		emetti("aggiorna", stato())
+	}
 	if !acceso.Load() && id != tastoCronologia {
 		emetti("info", map[string]string{"testo": "La traduzione dei giochi è spenta: accendila con l'interruttore in Giochi."})
 		return
@@ -1358,8 +1364,8 @@ var nomeUnaCopia = "Local\\TassoTraduceUnaCopia"
 
 var cartellaWebView = "WebView2"
 
-// accendi: l'interruttore Traduzione. ricorda = salvo la scelta (l'utente l'ha toccato).
-func accendi(on, ricorda bool) bool {
+// accendi: l'interruttore Traduzione (dalla finestra, da F7 nel gioco o spegnendo per Ufficio).
+func accendi(on bool) bool {
 	if on && !avviato.Load() {
 		return false // Tasso Traduce non è ancora partito (Tasso aperto dall'attività pianificata)
 	}
@@ -1367,19 +1373,13 @@ func accendi(on, ricorda bool) bool {
 		assicuraMotore()
 	}
 	acceso.Store(on)
-	if ricorda {
-		muImp.Lock()
-		imp.Acceso = on
-		muImp.Unlock()
-		salvaImp()
-	}
 	if on {
 		t := tastiCompleti(leggiImp().Tasti)
 		if f := cambiaTasti(t); len(f) > 0 {
 			emetti("info", map[string]string{"testo": "Già usati da un altro programma: " + nomiTasti(f, t) + ". Cambiali in Giochi → Impostazioni → Tasti nel gioco."})
 		}
 	} else {
-		cambiaTasti(map[string]uint32{}) // spento: lascio liberi i tasti
+		cambiaTasti(soloTastoAccendi()) // spento: libero i tasti, tranne quello che la riaccende dal gioco
 	}
 	if !on {
 		_ = accendiVoci(false) // spento: niente più ascolto dell'audio
@@ -1392,4 +1392,13 @@ func accendi(on, ricorda bool) bool {
 		ovChat.Nascondi()
 	}
 	return on
+}
+
+// soloTastoAccendi: a traduzione spenta resta solo il tasto della schermata (F7): premuto nel
+// gioco la accende, anche se il gioco non è stato aperto da Tasso. In Ufficio nessun tasto.
+func soloTastoAccendi() map[string]uint32 {
+	if InUfficio.Load() {
+		return map[string]uint32{}
+	}
+	return map[string]uint32{"pagina": tastiCompleti(leggiImp().Tasti)["pagina"]}
 }

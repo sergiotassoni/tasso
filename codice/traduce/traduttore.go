@@ -248,7 +248,7 @@ func (t *Traduttore) traduciIn(ctx context.Context, grezzo string, dialogo bool,
 			out, err = m.Traduci(ctx, req)
 		}
 		if err == nil && strings.TrimSpace(out) != "" {
-			ris.Tradotto, ris.Motore = sigleItaliane(correggiTerminiFrase(battuta, strings.TrimSpace(out)), req.Glossario), m.Nome()
+			ris.Tradotto, ris.Motore = nomiIntatti(battuta, sigleItaliane(correggiTerminiFrase(battuta, strings.TrimSpace(out)), req.Glossario)), m.Nome()
 			break
 		}
 		if err != nil {
@@ -735,4 +735,61 @@ func (t *Traduttore) traduciCoppia(ctx context.Context, grezzo, da, a string, in
 	}
 	ris.Millisec = time.Since(inizio).Milliseconds()
 	return ris
+}
+
+// nomiIntatti: i nomi inventati del gioco ("Palbox", "Eldenring") non sono parole inglesi e non
+// vanno tradotti; a volte il motore li storpia ("Palibox"). Se nella traduzione c'è una parola
+// quasi uguale al nome (1-2 lettere diverse, stessa iniziale) la rimetto com'era.
+func nomiIntatti(en, it string) string {
+	for _, w := range strings.FieldsFunc(en, func(r rune) bool { return !unicode.IsLetter(r) }) {
+		r := []rune(w)
+		if len(r) < 4 || !unicode.IsUpper(r[0]) || strings.ToUpper(w) == w || esiste(w) || strings.Contains(it, w) {
+			continue
+		}
+		if _, ok := termGiochi[w]; ok {
+			continue
+		}
+		parole := strings.FieldsFunc(it, func(r rune) bool { return !unicode.IsLetter(r) })
+		for _, v := range parole {
+			rv := []rune(v)
+			if len(rv) < 3 || unicode.ToLower(rv[0]) != unicode.ToLower(r[0]) || abs(len(rv)-len(r)) > 2 {
+				continue
+			}
+			if d := distanzaLettere(strings.ToLower(v), strings.ToLower(w)); d >= 1 && d <= 2 && d*4 <= len(r) {
+				it = sostituisciParola(it, v, w)
+				break
+			}
+		}
+	}
+	return it
+}
+
+func sostituisciParola(s, vecchia, nuova string) string {
+	re, err := regexp.Compile(`\b` + regexp.QuoteMeta(vecchia) + `\b`)
+	if err != nil {
+		return s
+	}
+	return re.ReplaceAllLiteralString(s, nuova)
+}
+
+// distanzaLettere: quante lettere aggiungere, togliere o cambiare per passare da a a b.
+func distanzaLettere(a, b string) int {
+	ra, rb := []rune(a), []rune(b)
+	prec := make([]int, len(rb)+1)
+	cur := make([]int, len(rb)+1)
+	for j := range prec {
+		prec[j] = j
+	}
+	for i := 1; i <= len(ra); i++ {
+		cur[0] = i
+		for j := 1; j <= len(rb); j++ {
+			c := 1
+			if ra[i-1] == rb[j-1] {
+				c = 0
+			}
+			cur[j] = min(prec[j]+1, cur[j-1]+1, prec[j-1]+c)
+		}
+		prec, cur = cur, prec
+	}
+	return prec[len(rb)]
 }

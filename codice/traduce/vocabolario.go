@@ -133,6 +133,16 @@ func correggiParole(r string) string {
 				continue
 			}
 		}
+		// 0a) accento spuntato dalla lettura italiana su una parola inglese: "Codë" -> "Code"
+		if q := senzaAccenti(p); q != p && !esiste(p) && esiste(q) {
+			b.WriteString(q)
+			continue
+		}
+		// 0b) due parole lette attaccate: "MultiplayerGame" -> "Multiplayer Game"
+		if q := staccaMaiuscola(p); q != "" {
+			b.WriteString(q)
+			continue
+		}
 		if esiste(p) || len(p) < 3 || maiuscole(p) || (!inizioFrase && unicode.IsUpper(rune(p[0])) && soloLettere(p)) {
 			b.WriteString(p)
 			continue
@@ -201,6 +211,68 @@ func lettereIniziali(p string) string {
 	}
 	if len(trovate) == 1 {
 		return trovate[0]
+	}
+	return ""
+}
+
+// senzaAccenti: toglie gli accenti dalle lettere latine (solo per confrontare con l'inglese).
+func senzaAccenti(p string) string {
+	var b strings.Builder
+	for _, c := range p {
+		if c < 0xC0 || c > 0xFF {
+			b.WriteRune(c)
+			continue
+		}
+		switch {
+		case strings.ContainsRune("àáâãäå", c):
+			c = 'a'
+		case strings.ContainsRune("ÀÁÂÃÄÅ", c):
+			c = 'A'
+		case strings.ContainsRune("èéêë", c):
+			c = 'e'
+		case strings.ContainsRune("ÈÉÊË", c):
+			c = 'E'
+		case strings.ContainsRune("ìíîï", c):
+			c = 'i'
+		case strings.ContainsRune("ÌÍÎÏ", c):
+			c = 'I'
+		case strings.ContainsRune("òóôõö", c):
+			c = 'o'
+		case strings.ContainsRune("ÒÓÔÕÖ", c):
+			c = 'O'
+		case strings.ContainsRune("ùúûü", c):
+			c = 'u'
+		case strings.ContainsRune("ÙÚÛÜ", c):
+			c = 'U'
+		}
+		b.WriteRune(c)
+	}
+	return b.String()
+}
+
+// marchiAttaccati: nomi scritti apposta con due maiuscole, da non staccare.
+var marchiAttaccati = map[string]bool{"playstation": true, "powerpoint": true,
+	"xbox": true, "teamspeak": true, "battlenet": true, "gamepass": true, "steamworks": true,
+	"onedrive": true, "whatsapp": true, "facetime": true, "blackjack": true, "deathmatch": true,
+	"firestorm": true, "nightmare": true}
+
+// staccaMaiuscola: "MultiplayerGame" non esiste, "Multiplayer" e "Game" sì: le stacco. Solo se
+// le due parti sono lunghe (4+ lettere) e la parola intera non è un nome scritto così apposta.
+func staccaMaiuscola(p string) string {
+	if !soloLettere(p) || esiste(p) || marchiAttaccati[strings.ToLower(p)] {
+		return ""
+	}
+	r := []rune(p)
+	for i := 4; i <= len(r)-4; i++ {
+		if unicode.IsLower(r[i-1]) && unicode.IsUpper(r[i]) {
+			a, z := string(r[:i]), string(r[i:])
+			if esiste(a) && esiste(z) && soloLettere(z) {
+				if rest := staccaMaiuscola(z); rest != "" {
+					z = rest
+				}
+				return a + " " + z
+			}
+		}
 	}
 	return ""
 }
