@@ -248,8 +248,13 @@ func num(v interface{}) (float64, bool) {
 	return 0, false
 }
 
+// gb: gigabyte con una cifra decimale (virgola in italiano, punto in inglese).
 func gb(b float64) string {
-	return strings.Replace(fmt.Sprintf("%.1f", b/(1<<30)), ".", ",", 1)
+	s := fmt.Sprintf("%.1f", b/(1<<30))
+	if isEN() {
+		return s
+	}
+	return strings.Replace(s, ".", ",", 1)
 }
 
 // buildReport prepara il messaggio: voto, elenco con spunte verdi (o avvisi) e una scheda per ogni componente.
@@ -308,7 +313,7 @@ func buildReport(note string) map[string]interface{} {
 	if cpuName == "" {
 		cpuName = "Processore"
 	}
-	cpuLine := fmt.Sprintf("Uso %d%%", int(cpuUse+0.5))
+	cpuLine := fmt.Sprintf(trGo("Uso %d%%"), int(cpuUse+0.5))
 	cpuIcon := "✅"
 	if sens.CPU != nil {
 		cpuLine += fmt.Sprintf(" · %.0f °C", *sens.CPU)
@@ -316,14 +321,14 @@ func buildReport(note string) map[string]interface{} {
 	}
 
 	// Scheda video
-	gpuName := "Scheda video"
+	gpuName := trGo("Scheda video")
 	if len(hwCache.GPUs) > 0 {
 		gpuName = shortName(hwCache.GPUs[0].Name)
 	}
 	gpuIcon := "✅"
 	var gl []string
 	if u, ok := num(gpu["util"]); ok {
-		gl = append(gl, fmt.Sprintf("Uso %d%%", int(u+0.5)))
+		gl = append(gl, fmt.Sprintf(trGo("Uso %d%%"), int(u+0.5)))
 	}
 	gt, okT := num(gpu["temp"])
 	if !okT && sens.GPU != nil {
@@ -375,7 +380,7 @@ func buildReport(note string) map[string]interface{} {
 	} else if dfP < 20 {
 		diskIcon = "⚠️"
 	}
-	diskLine := fmt.Sprintf("%s liberi (%d%%)", fmtBytes(int64(diskFree)), dfP)
+	diskLine := fmt.Sprintf(trGo("%s liberi (%d%%)"), fmtBytes(int64(diskFree)), dfP)
 	var dl []string
 	for i, d := range hwCache.Disks {
 		if i >= 3 {
@@ -394,14 +399,14 @@ func buildReport(note string) map[string]interface{} {
 			line += fmt.Sprintf(" · %.0f °C", *d.Temp)
 		}
 		if d.Wear != nil {
-			line += fmt.Sprintf(" · usura %.0f%%", *d.Wear)
+			line += fmt.Sprintf(trGo(" · usura %.0f%%"), *d.Wear)
 		}
 		dl = append(dl, line)
 	}
 
 	netLine := "❌ Non connesso"
 	if online {
-		netLine = fmt.Sprintf("✅ Connesso · %d ms", ms)
+		netLine = fmt.Sprintf(trGo("✅ Connesso · %d ms"), ms)
 	}
 
 	lastTxt := "mai"
@@ -418,12 +423,12 @@ func buildReport(note string) map[string]interface{} {
 		field(gpuIcon+" Scheda video", gpuName+"\n"+strings.Join(gl, " · ")),
 		field(boardIcon+" Scheda madre", board+"\n"+boardLine),
 		field(ramIcon+" RAM", ramLine),
-		field(diskIcon+" Disco "+strings.TrimSuffix(envOr("SystemDrive", "C:"), "\\"), diskLine),
+		field(diskIcon+" "+trGo("Disco ")+strings.TrimSuffix(envOr("SystemDrive", "C:"), "\\"), diskLine),
 		field("🌐 Internet", netLine),
 		field("⚙️ Modalità", modeName(mode)),
 		field("⏱️ Acceso da", uptimeText()),
 		field("🧹 Ultima pulizia", lastTxt),
-		field("🔁 Prossimo report", fmt.Sprintf("tra %d ore", discordEvery())),
+		field("🔁 Prossimo report", fmt.Sprintf(trGo("tra %d ore"), discordEvery())),
 	}
 	if len(dl) > 0 {
 		fields = append(fields, map[string]interface{}{"name": "💾 Dischi", "value": strings.Join(dl, "\n"), "inline": false})
