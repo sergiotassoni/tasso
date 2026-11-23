@@ -138,7 +138,6 @@ func zonaChatScelta(z Zona) {
 	chatGen.Add(1)
 	azzeraChatAltri()
 	emetti("aggiorna", stato())
-	emetti("info", map[string]string{"testo": "Chat degli altri accesa per " + exe + ": i messaggi nuovi compaiono in italiano accanto alla chat."})
 	avvisoBreve(testoTasso("Chat degli altri accesa: i messaggi nuovi compaiono tradotti accanto alla chat.", "Other players' chat on: new messages appear translated next to the chat."))
 }
 
