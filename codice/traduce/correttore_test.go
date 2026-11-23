@@ -92,3 +92,15 @@ func TestRipetitivaScartata(t *testing.T) {
 		t.Error("risposta incantata accettata")
 	}
 }
+
+func TestStratiSchedaDa12(t *testing.T) {
+	p := sceltaCorrettore(InfoGPU{MemoriaGB: 12, UsataGB: 2}, 48, 16)
+	if p.Strati != 35 || p.MemoriaGB > 4.5 {
+		t.Errorf("scheda da 12: %+v", p)
+	}
+	// gioco pesante (6,5 GB usati): ci stanno meno strati
+	q := sceltaCorrettore(InfoGPU{MemoriaGB: 12, UsataGB: 6.5}, 48, 16)
+	if q.Nome != "meta" || q.Strati != 33 {
+		t.Errorf("gioco pesante: %+v", q)
+	}
+}

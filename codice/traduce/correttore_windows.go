@@ -28,6 +28,7 @@ var (
 var (
 	falliteIA           int
 	prossimoTentativoIA time.Time
+	stratiMeta          atomic.Int64 // strati sulla scheda quando l'IA è divisa (dipende dalla scheda)
 )
 
 const (
@@ -102,7 +103,11 @@ func sorvegliaIA() {
 				}
 			}
 			impostaGPU(valutaGPU(g))
-			voluto = sceltaCorrettore(g, ram, core).Nome
+			pv := sceltaCorrettore(g, ram, core)
+			voluto = pv.Nome
+			if pv.Nome == "meta" && pv.Strati > 0 && (attuale != "meta" || !ia.Attivo()) {
+				stratiMeta.Store(int64(pv.Strati)) // si usa alla prossima accensione
+			}
 			if voluto == "meta" {
 				libera := ramLibera()
 				if attuale == "meta" && ia.Attivo() {
@@ -144,6 +149,9 @@ func memoriaProfilo(n string) float64 {
 	case "scheda":
 		return vramIntero
 	case "meta":
+		if n := int(stratiMeta.Load()); n > 0 {
+			return vramStrati(n)
+		}
 		return vramMeta
 	}
 	return 0
@@ -156,7 +164,10 @@ func applicaProfiloIA(nome string, ram float64, core int) {
 	if nome != "" {
 		p := ProfiloCorrettore{Nome: nome, Strati: -1}
 		if nome == "meta" {
-			p.Strati = stratiParziali
+			p.Strati = int(stratiMeta.Load())
+			if p.Strati <= 0 {
+				p.Strati = stratiParziali
+			}
 		}
 		ia.impostaProfilo(p)
 		if err := ia.Avvia(dirMotoreIA(), fileModelloIA()); err != nil {

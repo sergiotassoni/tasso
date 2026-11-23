@@ -61,21 +61,37 @@ const (
 	coreMinimiIA   = 4
 )
 
-// limiteIA: regola di Sergio (23/11): l'IA usa al massimo un terzo della memoria video
+// vramStrati: memoria video con n strati sulla scheda (retta tra le due misure: 28 → 3,6 GB, 42 → 5,2 GB).
+func vramStrati(n int) float64 {
+	per := (vramIntero - vramMeta) / float64(stratiModello-stratiParziali)
+	return vramMeta + float64(n-stratiParziali)*per
+}
+
+// stratiPer: quanti strati stanno in gb di memoria video (almeno stratiParziali, mai tutti).
+func stratiPer(gb float64) int {
+	per := (vramIntero - vramMeta) / float64(stratiModello-stratiParziali)
+	n := stratiParziali + int((gb-vramMeta)/per+1e-9)
+	return max(stratiParziali, min(n, stratiModello-1))
+}
+
+// limiteIA: regola di Sergio (23/11): l'IA usa al massimo 3/8 della memoria video (4,5 GB su 12)
 // (4 GB su una scheda da 12), il resto è del gioco.
-func limiteIA(memoriaGB float64) float64 { return memoriaGB / 3 }
+// Aggiornata 23/11 18:10 dopo i dati veri sui giochi pesanti: 4,5 GB su 12 vanno bene a Sergio
+// (Subnautica 2 al massimo 7 GB, Throne and Liberty 6 GB; Call of Duty 10 GB → l'IA si fa da parte).
+func limiteIA(memoriaGB float64) float64 { return memoriaGB * 0.375 }
 
 func sceltaCorrettore(g InfoGPU, ramGB float64, core int) ProfiloCorrettore {
 	libera := g.MemoriaGB - g.UsataGB
 	if lim := limiteIA(g.MemoriaGB); g.MemoriaGB > 0 && lim < vramMeta && ramGB >= ramMinimaIA {
-		// scheda piccola (8 GB): anche metà IA prenderebbe più di un terzo. Il gioco prima di tutto
-		return ProfiloCorrettore{"", 0, 0, fmt.Sprintf("Con %.0f GB di scheda video l'IA prenderebbe più di un terzo della memoria del gioco: uso il traduttore veloce.", g.MemoriaGB)}
+		// scheda piccola (8 GB): anche metà IA prenderebbe più di 3/8 della scheda. Il gioco prima di tutto
+		return ProfiloCorrettore{"", 0, 0, fmt.Sprintf("Con %.0f GB di scheda video l'IA toglierebbe troppa memoria al gioco: uso il traduttore veloce.", g.MemoriaGB)}
 	}
 	if lim := limiteIA(g.MemoriaGB); g.MemoriaGB > 0 && lim < vramIntero && lim >= vramMeta &&
 		ramGB >= ramMinimaIA && core >= coreMinimiMeta && libera >= vramMeta+margineGiocoGB {
-		// l'IA intera prenderebbe più di un terzo della scheda: ne metto lì solo una parte
+		// l'IA intera supererebbe il limite: ne metto sulla scheda solo la parte che ci sta
 		// (circa 3,6 GB), il resto lavora sul processore
-		return ProfiloCorrettore{"meta", stratiParziali, vramMeta, fmt.Sprintf("L'IA usa al massimo un terzo della scheda video (circa %.1f GB su %.0f): il resto lo lascio al gioco.", vramMeta, g.MemoriaGB)}
+		n := stratiPer(min(lim, libera-margineGiocoGB))
+		return ProfiloCorrettore{"meta", n, vramStrati(n), fmt.Sprintf("L'IA usa al massimo %.1f GB della scheda video (su %.0f): il resto lo lascio al gioco.", vramStrati(n), g.MemoriaGB)}
 	}
 	switch {
 	case ramGB < ramMinimaIA || core < coreMinimiIA:
