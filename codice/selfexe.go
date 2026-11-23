@@ -66,7 +66,11 @@ func readSelfExe() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	return io.ReadAll(io.NewSectionReader(selfExe, 0, fi.Size()))
+	b := make([]byte, fi.Size()) // misura esatta: niente buffer che raddoppiano (l'exe è ~40 MB)
+	if _, err := io.ReadFull(io.NewSectionReader(selfExe, 0, fi.Size()), b); err != nil {
+		return nil, err
+	}
+	return b, nil
 }
 
 // programFilesDir: la vera cartella Programmi. Non uso la variabile d'ambiente ProgramFiles, che

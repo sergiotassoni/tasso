@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime/debug"
 	"strings"
 	"sync"
 	"syscall"
@@ -455,7 +456,28 @@ const (
 // come amministratore un file che chiunque può sostituire.
 // Accanto alla copia c'è VERSIONE: non rimetto mai una versione vecchia sopra una più nuova
 // (es. dopo un aggiornamento fatto dalla copia in Programmi).
+// taskExeOK: in questa apertura di Tasso la copia in Programmi è già a posto (non la rileggo:
+// sono due file da ~40 MB ogni volta).
+var (
+	taskExeMu sync.Mutex
+	taskExeOK string
+)
+
 func taskExe() string {
+	taskExeMu.Lock()
+	defer taskExeMu.Unlock()
+	if taskExeOK != "" && fileExists(taskExeOK) {
+		return taskExeOK
+	}
+	r := taskExeCheck()
+	if r != "" {
+		taskExeOK = r
+	}
+	debug.FreeOSMemory() // restituisco subito a Windows la memoria usata per confrontare i file
+	return r
+}
+
+func taskExeCheck() string {
 	pf := programFilesDir()
 	if pf == "" || exePath == "" {
 		return ""
