@@ -226,7 +226,7 @@ func spazioLibero(b []Blocco, larghezza int) {
 				continue
 			}
 			if b[j].X < b[i].X+max(b[i].W, b[i].LargMax) && b[i].X < b[j].X+b[j].W {
-				giu = min(giu, b[j].Y-b[i].Y-max(4, b[i].H/(2*max(1, b[i].Righe))))
+				giu = min(giu, b[j].Y-b[i].Y-max(4, b[i].H/(4*max(1, b[i].Righe))))
 			}
 		}
 		b[i].AltMax = max(giu, b[i].H)
@@ -644,6 +644,10 @@ func armonizza(b []Blocco) {
 				continue
 			}
 			cj := b[j].X + b[j].W/2
+			// solo scritte corte (voci di menu): due frasi lunghe con lo stesso centro è un caso
+			if float64(b[i].W) > 20*b[i].Em || float64(b[j].W) > 20*b[j].Em {
+				continue
+			}
 			if abs(ci-cj) <= max(6, int(b[i].Em/2)) && abs(b[j].X-b[i].X) > 8 &&
 				b[j].Em/b[i].Em < 1.35 && b[i].Em/b[j].Em < 1.35 && abs(b[j].Y-b[i].Y) < 6*int(b[i].Em+1) {
 				b[i].Centro, b[j].Centro = true, true
