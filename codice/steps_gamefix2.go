@@ -77,7 +77,7 @@ if ($os -and $os.TotalVisibleMemorySize) {
 }
 $top = @(Get-Process -ErrorAction SilentlyContinue | Where-Object { $_.ProcessName -notmatch '^(Idle|System|Tasso|dwm|csrss|explorer|Registry|MemCompression|svchost)$' } | Sort-Object WorkingSet64 -Descending | Select-Object -First 3)
 if ($top.Count) { Say ('I programmi che usano più memoria adesso: ' + (($top | ForEach-Object { $_.ProcessName + ' (' + [math]::Round($_.WorkingSet64 / 1MB) + ' MB)' }) -join ', ') + '.') }
-Say 'Fatto. Altri consigli: nel gioco abbassa "Ombre" e "Risoluzione di rendering" (sono le opzioni che pesano di più) e usa "Regola con Tasso" in Giochi. Per tenere tutto così anche dopo il riavvio accendi il Profilo gioco.'
+Say 'Fatto. Altri consigli: nel gioco abbassa "Ombre" e "Risoluzione di rendering" (sono le opzioni che pesano di più) e usa "Prepara a passi" nella pagina del gioco in Giochi. Per tenere tutto così anche dopo il riavvio accendi il Profilo gioco.'
 `},
 	{ID: "fix_game_xbox", Name: "App Xbox e Game Pass non funzionano", Desc: "Riavvia i servizi Xbox di Windows e ripara l'app Xbox e lo Store. Utile quando i giochi Game Pass non si installano, non partono o chiedono sempre l'accesso.", Level: 0, Minutes: 1, Timeout: 10 * time.Minute, Script: `
 Say 'Chiudo l''app Xbox e lo Store...'

@@ -281,7 +281,7 @@ func startSteps(ids []string, level int, shutdownAfter bool) string {
 	running = true
 	runMu.Unlock()
 	runAuto.Store(takeAutoRun(level))
-	runSingle.Store(len(sel) == 1 && !shutdownAfter)
+	runSingle.Store((len(sel) == 1 || level == 0) && !shutdownAfter) // Risolvi (livello 0): si può chiedere/aprire come per un passaggio solo
 	cancelReq.Store(false)
 	newRunCtx()
 
@@ -298,6 +298,12 @@ func startSteps(ids []string, level int, shutdownAfter bool) string {
 			}
 		}()
 		defer func() {
+			for _, x := range sel {
+				if x.ID == "wipe_free" {
+					cleanWipeTemp() // anche se interrotto o scaduto: i file di riempimento non devono restare
+					break
+				}
+			}
 			endRunCtx()
 			runAuto.Store(false)
 			runSingle.Store(false)
@@ -325,7 +331,7 @@ func startSteps(ids []string, level int, shutdownAfter bool) string {
 			list = append(list, map[string]interface{}{"id": s.ID, "name": s.Name, "minutes": s.Minutes})
 		}
 		emit("onRunStart", map[string]interface{}{"level": level, "steps": list})
-		logLine(fmt.Sprintf("Tasso %s - inizio (%d passaggi)", appVersion, len(sel)))
+		logLine(fmt.Sprintf(trGo("Tasso %s - inizio (%d passaggi)"), appVersion, len(sel)))
 
 		snapOK := true
 		for _, s := range sel {
@@ -374,7 +380,7 @@ func startSteps(ids []string, level int, shutdownAfter bool) string {
 			emit("onStepDone", map[string]interface{}{"index": i, "freed": r.Freed})
 		}
 		dur := time.Since(start)
-		logLine(fmt.Sprintf("Fine: liberati %s in %s", fmtBytes(total), dur.Round(time.Second)))
+		logLine(fmt.Sprintf(trGo("Fine: liberati %s in %s"), fmtBytes(total), dur.Round(time.Second)))
 		if level > 0 && done == len(sel) {
 			updateSettings(func(st *Settings) {
 				st.LastClean = &LastClean{Date: time.Now().Format("2006-01-02"), Level: level, Freed: total}
@@ -384,7 +390,7 @@ func startSteps(ids []string, level int, shutdownAfter bool) string {
 		if benchOn && !cancelReq.Load() {
 			logLine("Voto al PC dopo la pulizia…")
 			after := runBench("dopo")
-			logLine(fmt.Sprintf("Leggerezza di Windows: %d → %d su 100. Velocità dei componenti: %d → %d su 100.", before.Light, after.Light, score100(before.Score), score100(after.Score)))
+			logLine(fmt.Sprintf(trGo("Leggerezza di Windows: %d → %d su 100. Velocità dei componenti: %d → %d su 100."), before.Light, after.Light, score100(before.Score), score100(after.Score)))
 			emit("onBench", map[string]interface{}{"result": after, "before": before, "history": benchHistory()})
 		}
 		cancelled := cancelReq.Load()

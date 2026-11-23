@@ -168,12 +168,7 @@ func main() {
 	// Resto di un "Cancella lo spazio libero" interrotto (per es. PC spento a metà): può occupare tanti GB.
 	go func() {
 		defer guard("main.go:153")
-		if sd := os.Getenv("SystemDrive"); sd != "" {
-			p := filepath.Join(sd+`\`, "EFSTMPWP")
-			if fi, err := os.Lstat(p); err == nil && fi.IsDir() && fi.Mode()&os.ModeSymlink == 0 && fi.Mode()&os.ModeIrregular == 0 {
-				_ = os.RemoveAll(p)
-			}
-		}
+		cleanWipeTemp()
 	}()
 	if profileIsOn() {
 		go func() {
@@ -603,4 +598,15 @@ func openWinPage(id string) string {
 	}
 	openURL(u)
 	return "ok"
+}
+
+// cleanWipeTemp toglie la cartella di riempimento di cipher /w (C:\EFSTMPWP) rimasta da un
+// "Cancella lo spazio libero" interrotto: può occupare tutto lo spazio libero del disco.
+func cleanWipeTemp() {
+	if sd := os.Getenv("SystemDrive"); sd != "" {
+		p := filepath.Join(sd+`\`, "EFSTMPWP")
+		if fi, err := os.Lstat(p); err == nil && fi.IsDir() && fi.Mode()&os.ModeSymlink == 0 && fi.Mode()&os.ModeIrregular == 0 {
+			_ = os.RemoveAll(p)
+		}
+	}
 }

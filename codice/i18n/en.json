@@ -1050,7 +1050,6 @@
   "Il PC si scalda troppo quando gioco": "My PC gets too hot when I play",
   "Legge le temperature di processore e scheda video, controlla se il PC sta già rallentando per il caldo e ti dice cosa fare. Non tocca le ventole.": "Reads processor and graphics card temperatures, checks whether the PC is already slowing down because of heat and tells you what to do. It doesn't touch the fans.",
   "Lo schermo va a 60 Hz invece di 144": "My screen runs at 60 Hz instead of 144",
-  "Controlla a quanti Hz va ogni schermo e, se può andare più veloce, lo mette al massimo che supporta. Se il massimo è 60 ti dice perché (cavo, porta sbagliata, driver).": "Checks how many Hz each screen runs at and, if it can go faster, sets it to the maximum it supports. If the maximum is 60 it tells you why (cable, wrong port, driver).",
   "Il portatile usa la scheda video sbagliata": "My laptop uses the wrong graphics card",
   "Sui portatili con due schede video (Intel o AMD integrata più NVIDIA o AMD dedicata) controlla quale usano i giochi, se lo schermo è collegato a quella giusta e se il PC risparmia energia. Ti dice come fissare la scheda potente per ogni gioco.": "On laptops with two graphics cards (integrated Intel or AMD plus dedicated NVIDIA or AMD) checks which one games use, whether the screen is connected to the right one and whether the PC is saving power. Tells you how to lock in the powerful card for each game.",
   "Programmi sopra al gioco che lo rallentano": "Programs on top of the game that slow it down",
@@ -1234,7 +1233,8 @@
   "Il nuovo Tasso non ha una firma digitale valida: per sicurezza non lo installo.": "The new Tasso doesn't have a valid digital signature: to be safe I won't install it.",
   "Il nuovo Tasso è firmato da qualcun altro: per sicurezza non lo installo.": "The new Tasso is signed by someone else: to be safe I won't install it.",
   "Non sono riuscito a misurare la scheda video.": "I couldn't measure the graphics card.",
-  "Chat degli altri: non riconosco il programma del gioco, riprova con il gioco davanti.": "Other players' chat: I can't recognise the game program, try again with the game in front."
+  "Chat degli altri: non riconosco il programma del gioco, riprova con il gioco davanti.": "Other players' chat: I can't recognise the game program, try again with the game in front.",
+  "Controlla a quanti Hz va ogni schermo e, se può andare più veloce, ti apre le impostazioni giuste e ti dice il numero da scegliere. Se il massimo è 60 ti dice perché (cavo, porta sbagliata, driver).": "Checks the Hz of each screen and, if it can go faster, opens the right settings and tells you which number to pick. If the maximum is 60 it tells you why (cable, wrong port, driver)."
  },
  "ps": {
   "   non riuscita, prova a reinstallarla dal Microsoft Store.": "   failed, try reinstalling it from the Microsoft Store.",
@@ -1435,7 +1435,6 @@
   ". Se vuoi davvero toglierli, cancellali tu da Esplora file sapendo che non si recuperano.": ". If you really want to remove them, delete them yourself in File Explorer, knowing they can't be recovered.",
   ". Segui le finestre che si aprono.": ". Follow the windows that open.",
   "1) Cestino: ci sono ": "1) Recycle Bin: there are ",
-  "1) In Tasso, Pulizia > livello Media o Profonda: toglie file temporanei, cache e (in Profonda) il vecchio Windows. Non tocca i tuoi documenti.": "1) In Tasso, Cleanup > Medium or Deep level: removes temporary files, caches and (with Deep) the old Windows. It doesn't touch your documents.",
   "1) Molti portatili hanno un tasto che lo spegne: cerca sui tasti F1-F12 il disegno di un rettangolo barrato e premilo (a volte insieme a Fn).": "1) Many laptops have a key that turns it off: look on the F1-F12 keys for a picture of a crossed-out rectangle and press it (sometimes together with Fn).",
   "1) accorcia i nomi delle cartelle (es. \"Documenti condivisi del reparto amministrazione 2026\" -> \"Amministrazione 2026\"); 2) sposta la cartella più in alto; 3) per le cartelle di Teams/SharePoint, sincronizza la sottocartella che ti serve invece di tutta la raccolta.": "1) shorten the folder names (e.g. \"Shared documents of the accounting department 2026\" -> \"Accounting 2026\"); 2) move the folder higher up; 3) for Teams/SharePoint folders, sync just the subfolder you need instead of the whole library.",
   "1) chiudi il programma con cui avevi aperto il file (anche dalla barra in basso o vicino all'orologio); 2) spegni il riquadro di anteprima in Esplora file (Alt + P); 3) riavvia il PC: libera sempre tutto.": "1) close the program you opened the file with (also check the taskbar and the icons near the clock); 2) turn off the preview pane in File Explorer (Alt + P); 3) restart the PC: it always frees everything.",
@@ -1719,7 +1718,6 @@
   "Fatto questo, chiudi Word ed Excel e premi di nuovo Risolvi entro un'ora: allora metto da parte la memoria.": "After that, close Word and Excel and click Fix again within an hour: then I'll set the cache aside.",
   "Fatto, con qualche programma da aggiornare a mano (codice ": "Done, with a few programs to update by hand (code ",
   "Fatto.": "Done.",
-  "Fatto. Altri consigli: nel gioco abbassa \"Ombre\" e \"Risoluzione di rendering\" (sono le opzioni che pesano di più) e usa \"Regola con Tasso\" in Giochi. Per tenere tutto così anche dopo il riavvio accendi il Profilo gioco.": "Done. More tips: in the game, lower \"Shadows\" and \"Render resolution\" (they're the heaviest options) and use \"Tune with Tasso\" in Games. To keep everything like this even after a restart, turn on the Game profile.",
   "Fatto. Con la VPN accesa riprova il sito dell'ufficio usando il suo nome completo (es. intranet.azienda.it). Se ancora non va, scollega e ricollega la VPN.": "Done. With the VPN on, try the office website again using its full name (e.g. intranet.company.com). If it still doesn't work, disconnect and reconnect the VPN.",
   "Fatto. I promemoria di appuntamenti futuri ricompaiono all'ora giusta.": "Done. Reminders for future appointments will show up again at the right time.",
   "Fatto. Ogni cartella si riapre con la vista normale; se ne vuoi una diversa (icone grandi, dettagli) la scegli da Visualizza e Windows la ricorda.": "Done. Every folder now opens with the normal view; if you want a different one (large icons, details), pick it from View and Windows will remember it.",
@@ -2524,7 +2522,6 @@
   "Trovato: è accesa la protezione di Windows \"Accesso alle cartelle controllato\". Blocca i programmi che non conosce quando scrivono in Documenti, ed è proprio lì che molti giochi salvano.": "Found: Windows protection \"Controlled folder access\" is on. It blocks programs it doesn't know when they write to Documents, and that's exactly where many games save.",
   "Non la spengo: è una protezione contro i virus che rubano i file. Ti apro la pagina giusta: premi \"Consenti un'app tramite Accesso alle cartelle controllato\" > \"Aggiungi un'app consentita\" e scegli il gioco.": "I won't turn it off: it protects against viruses that steal files. I'm opening the right page: press \"Allow an app through Controlled folder access\" > \"Add an allowed app\" and choose the game.",
   "Bloccato di recente: ": "Recently blocked: ",
-  "La protezione \"Accesso alle cartelle controllato\" è in modo \"solo controllo\": non blocca i salvataggi.": "\"Controlled folder access\" is in \"audit only\" mode: it doesn't block saves.",
   "La protezione \"Accesso alle cartelle controllato\" è spenta: non è lei a bloccare i salvataggi.": "\"Controlled folder access\" is off: it isn't what blocks your saves.",
   "La cartella Documenti è dentro OneDrive (": "The Documents folder is inside OneDrive (",
   "). Molti giochi salvano lì: se OneDrive è fermo, pieno o tiene i file \"solo online\", il gioco non riesce a salvare o perde i progressi.": "). Many games save there: if OneDrive is stopped, full or keeps files \"online-only\", the game can't save or loses progress.",
@@ -2543,7 +2540,6 @@
   "Temperatura della scheda video adesso: ": "Graphics card temperature now: ",
   "È aperto un programma per spingere la scheda video (overclock): ": "A program that pushes the graphics card (overclock) is open: ",
   ". Rimetti i valori di fabbrica (\"Reset\"): è la causa più comune di DEVICE_REMOVED.": ". Put back the factory values (\"Reset\"): it's the most common cause of DEVICE_REMOVED.",
-  "Cosa fare, in ordine: 1) aggiorna il driver video dalla pagina Driver di Tasso o dal sito di NVIDIA/AMD/Intel; 2) togli overclock e \"profili OC\" dai programmi della scheda video; 3) nel gioco abbassa un po' la grafica o metti un limite agli FPS; 4) se succede in tutti i giochi, controlla che i cavi di alimentazione della scheda video siano infilati bene.": "What to do, in order: 1) update the graphics driver from Tasso's Drivers page or the NVIDIA/AMD/Intel site; 2) remove overclocks and \"OC profiles\" from the graphics card programs; 3) lower the graphics a bit in the game or set an FPS limit; 4) if it happens in every game, check that the graphics card power cables are plugged in firmly.",
   "°C adesso. Troppo caldo: oltre 90°C rallenta da solo per proteggersi.": "°C now. Too hot: above 90°C it slows itself down to protect itself.",
   "°C adesso. Caldo, ma è normale se stai giocando; a PC fermo dovrebbe stare sotto i 60°C.": "°C now. Hot, but normal if you're playing; with the PC idle it should stay below 60°C.",
   "Scheda video: ": "Graphics card: ",
@@ -2566,14 +2562,12 @@
   "Se il tuo schermo è da 120, 144 Hz o più e qui vedi solo 60: 1) usa il cavo DisplayPort, o un HDMI 2.0 o più recente (quelli vecchi arrivano a 60 Hz); 2) collegalo alla scheda video, non alla presa della scheda madre; 3) aggiorna il driver video; 4) nel menu dello schermo controlla che sia attiva la modalità ad alta frequenza.": "If your screen is 120, 144 Hz or more and here you only see 60: 1) use a DisplayPort cable, or HDMI 2.0 or newer (old ones stop at 60 Hz); 2) plug it into the graphics card, not the motherboard socket; 3) update the graphics driver; 4) in the screen's menu check that the high refresh mode is on.",
   "Nei giochi controlla anche che nelle opzioni video la frequenza sia la più alta (alcuni giochi la tengono a 60).": "In games also check that the refresh rate in the video options is the highest (some games keep it at 60).",
   "Scheda video trovata: ": "Graphics card found: ",
-  "Non trovo una scheda video dedicata (NVIDIA o AMD). Se il portatile ne ha una, forse è spenta o senza driver: aggiorna i driver dalla pagina Driver di Tasso o dal sito del produttore.": "I can't find a dedicated graphics card (NVIDIA or AMD). If the laptop has one, it may be off or without a driver: update drivers from Tasso's Drivers page or the manufacturer's site.",
   "C'è solo la scheda video potente: i giochi usano già quella.": "There's only the powerful graphics card: games already use it.",
   " ha un problema di driver (codice ": " has a driver problem (code ",
   "): finché non si sistema i giochi usano quella integrata. Reinstalla il driver dal sito del produttore.": "): until it's fixed games use the integrated one. Reinstall the driver from the manufacturer's site.",
   "Questi programmi sono impostati sulla scheda \"a risparmio energetico\": ": "These programs are set to the \"power saving\" graphics card: ",
   ". Se sono giochi, cambiali in Impostazioni > Schermo > Grafica.": ". If they are games, change them in Settings > Display > Graphics.",
   "Stai andando a batteria: molti portatili spengono la scheda potente senza il caricatore. Gioca con il caricatore attaccato.": "You're on battery: many laptops turn off the powerful card without the charger. Play with the charger plugged in.",
-  "Come fissare la scheda potente: apri Giochi, tocca il gioco > \"Regola con Tasso\" e scegli la scheda video ad alte prestazioni. Oppure Impostazioni > Schermo > Grafica > scegli il gioco > \"Prestazioni elevate\".": "How to lock in the powerful card: open Games, tap the game > \"Tune with Tasso\" and choose the high-performance graphics card. Or Settings > Display > Graphics > choose the game > \"High performance\".",
   "Se il portatile ha la modalità \"MUX\" o \"solo scheda dedicata\" (nel programma del produttore: Armoury Crate, Legion Vantage, Omen, Alienware, MSI Center…), attivala per avere più FPS.": "If the laptop has a \"MUX\" or \"dedicated graphics only\" mode (in the manufacturer's program: Armoury Crate, Legion Vantage, Omen, Alienware, MSI Center…), turn it on for more FPS.",
   "Fatto: spenta la \"registrazione in sottofondo\" di Xbox Game Bar. Registrava sempre gli ultimi minuti di gioco e costava qualche FPS. Puoi ancora registrare a mano con Win + Alt + R.": "Done: turned off Xbox Game Bar \"background recording\". It always recorded the last minutes of play and cost a few FPS. You can still record manually with Win + Alt + R.",
   "La registrazione in sottofondo di Windows è già spenta.": "Windows background recording is already off.",
@@ -2671,7 +2665,13 @@
   "). Steam li riscarica se li riprendi.": "). Steam downloads them again if you resume them.",
   "Non sono riuscito a spegnere il risparmio energetico delle porte USB: fallo da Pannello di controllo > Opzioni risparmio energia > Modifica impostazioni avanzate > Impostazioni USB.": "I couldn't turn off USB port power saving: do it from Control Panel > Power Options > Change advanced settings > USB settings.",
   "Sensore di temperatura della scheda madre: ": "Motherboard temperature sensor: ",
-  "°C. Su molti PC non è il processore: per la temperatura vera del processore apri LibreHardwareMonitor e rifai il controllo.": "°C. On many PCs this isn't the processor: for the real processor temperature open LibreHardwareMonitor and run the check again."
+  "°C. Su molti PC non è il processore: per la temperatura vera del processore apri LibreHardwareMonitor e rifai il controllo.": "°C. On many PCs this isn't the processor: for the real processor temperature open LibreHardwareMonitor and run the check again.",
+  "Cosa fare, in ordine: 1) aggiorna il driver video da Risolvi un problema > \"Driver di tutto il PC\" o dal sito di NVIDIA/AMD/Intel; 2) togli overclock e \"profili OC\" dai programmi della scheda video; 3) nel gioco abbassa un po' la grafica o metti un limite agli FPS; 4) se succede in tutti i giochi, controlla che i cavi di alimentazione della scheda video siano infilati bene.": "What to do, in order: 1) update the graphics driver from Fix a problem > \"Drivers for the whole PC\" or the NVIDIA/AMD/Intel site; 2) remove overclocks and \"OC profiles\" from the graphics card programs; 3) lower the graphics a bit in the game or set an FPS limit; 4) if it happens in every game, check that the graphics card power cables are plugged in firmly.",
+  "Non trovo una scheda video dedicata (NVIDIA o AMD). Se il portatile ne ha una, forse è spenta o senza driver: aggiorna i driver da Risolvi un problema > \"Driver di tutto il PC\" o dal sito del produttore.": "I can't find a dedicated graphics card (NVIDIA or AMD). If the laptop has one, it may be off or without a driver: update drivers from Tasso's Drivers page or the manufacturer's site.",
+  "Come fissare la scheda potente: apri Giochi, tocca il gioco > \"Prepara a passi\" > impostazioni consigliate e scegli la scheda video ad alte prestazioni. Oppure Impostazioni > Schermo > Grafica > scegli il gioco > \"Prestazioni elevate\".": "How to lock in the powerful card: open Games, tap the game > \"Prepare step by step\" > recommended settings and choose the high-performance graphics card. Or Settings > Display > Graphics > choose the game > \"High performance\".",
+  "Fatto. Altri consigli: nel gioco abbassa \"Ombre\" e \"Risoluzione di rendering\" (sono le opzioni che pesano di più) e usa \"Prepara a passi\" nella pagina del gioco in Giochi. Per tenere tutto così anche dopo il riavvio accendi il Profilo gioco.": "Done. More tips: in the game, lower \"Shadows\" and \"Render resolution\" (they're the heaviest options) and use \"Prepare step by step\" on the game page in Games. To keep everything like this even after a restart, turn on the Game profile.",
+  "1) In Tasso, Pulizia > livello Media o Profonda: toglie file temporanei e cache. Non tocca i tuoi documenti.": "1) In Tasso, Cleanup > Medium or Deep level: removes temporary files and caches. It doesn't touch your documents.",
+  "La protezione \"Accesso alle cartelle controllato\" non è in modo \"blocca\": non blocca i salvataggi.": "\"Controlled folder access\" isn't in \"block\" mode: it doesn't block saves."
  },
  "ui": {
   " (consuma di più).": " mode (uses more power).",
@@ -4614,7 +4614,6 @@
   "Il PC si scalda troppo": "My PC gets too hot",
   "Legge le temperature di processore e scheda video, controlla se il PC rallenta per il caldo e ti dice come rinfrescarlo.": "Reads processor and graphics card temperatures, checks whether the PC slows down from heat and tells you how to cool it.",
   "Lo schermo va a 60 Hz invece di 144": "My screen runs at 60 Hz instead of 144",
-  "Mette ogni schermo al numero di Hz più alto che supporta. Se vede solo 60 ti dice perché (cavo, porta, driver).": "Sets each screen to the highest Hz it supports. If it only sees 60 it tells you why (cable, port, driver).",
   "Il portatile usa la scheda video sbagliata": "My laptop uses the wrong graphics card",
   "Sui portatili con due schede video controlla quale usano i giochi e ti dice come fissare quella potente.": "On laptops with two graphics cards checks which one games use and tells you how to lock in the powerful one.",
   "Programmi sopra al gioco che rallentano": "Programs on top of the game slow it down",
@@ -4908,6 +4907,9 @@
   "DA SCEGLIERE": "TO CHOOSE",
   "Zona scelta per: ": "Area chosen for: ",
   "Spenta.": "Off.",
-  "Aggiungi o cambia un gioco": "Add or change a game"
+  "Aggiungi o cambia un gioco": "Add or change a game",
+  "Controlla gli Hz di ogni schermo e ti dice il numero più alto da scegliere, aprendo le impostazioni giuste. Se vede solo 60 ti dice perché (cavo, porta, driver).": "Checks the Hz of each screen and tells you the highest number to pick, opening the right settings. If it only sees 60 it tells you why (cable, port, driver).",
+  "Finito: qui sotto cosa ho trovato e cosa ho fatto": "Done: below is what I found and what I did",
+  "Finito.": "Done."
  }
 }

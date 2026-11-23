@@ -909,7 +909,7 @@ dl.sum{display:grid;grid-template-columns:max-content 1fr;gap:6px 14px;margin:0}
     <div class="card fixcard" style="--c:var(--a1)"><span class="big">💾</span><h3>Il gioco non salva</h3><p class="sub" style="margin:0">Controlla se la protezione delle cartelle di Windows o OneDrive bloccano il salvataggio, e ti dice come consentire il gioco senza spegnere le protezioni.</p><button class="btn primary" data-step="fix_game_save" style="margin-top:auto">Risolvi</button></div>
     <div class="card fixcard" style="--c:var(--red)"><span class="big">💥</span><h3>Errore della scheda video (DEVICE_REMOVED)</h3><p class="sub" style="margin:0">Conta quante volte il driver video si è bloccato, controlla temperatura, driver e overclock, e ti dice cosa fare in ordine.</p><button class="btn primary" data-step="fix_game_gpucrash" style="margin-top:auto">Risolvi</button></div>
     <div class="card fixcard" style="--c:var(--a4)"><span class="big">🌡️</span><h3>Il PC si scalda troppo</h3><p class="sub" style="margin:0">Legge le temperature di processore e scheda video, controlla se il PC rallenta per il caldo e ti dice come rinfrescarlo.</p><button class="btn primary" data-step="fix_game_heat" style="margin-top:auto">Risolvi</button></div>
-    <div class="card fixcard" style="--c:var(--a3)"><span class="big">🖥️</span><h3>Lo schermo va a 60 Hz invece di 144</h3><p class="sub" style="margin:0">Mette ogni schermo al numero di Hz più alto che supporta. Se vede solo 60 ti dice perché (cavo, porta, driver).</p><button class="btn primary" data-step="fix_game_hz" style="margin-top:auto">Risolvi</button></div>
+    <div class="card fixcard" style="--c:var(--a3)"><span class="big">🖥️</span><h3>Lo schermo va a 60 Hz invece di 144</h3><p class="sub" style="margin:0">Controlla gli Hz di ogni schermo e ti dice il numero più alto da scegliere, aprendo le impostazioni giuste. Se vede solo 60 ti dice perché (cavo, porta, driver).</p><button class="btn primary" data-step="fix_game_hz" style="margin-top:auto">Risolvi</button></div>
     <div class="card fixcard" style="--c:var(--a2)"><span class="big">🔀</span><h3>Il portatile usa la scheda video sbagliata</h3><p class="sub" style="margin:0">Sui portatili con due schede video controlla quale usano i giochi e ti dice come fissare quella potente.</p><button class="btn primary" data-step="fix_game_gpuswitch" style="margin-top:auto">Risolvi</button></div>
     <div class="card fixcard" style="--c:var(--a4)"><span class="big">🧱</span><h3>Programmi sopra al gioco che rallentano</h3><p class="sub" style="margin:0">Spegne la registrazione in sottofondo di Windows e trova gli overlay che pesano (NVIDIA, Overwolf, Medal…).</p><button class="btn primary" data-step="fix_game_overlays" style="margin-top:auto">Risolvi</button></div>
     <div class="card fixcard" style="--c:var(--a1)"><span class="big">📦</span><h3>Non c'è spazio per installare</h3><p class="sub" style="margin:0">Ti dice lo spazio libero di ogni disco e i giochi che occupano di più, e svuota i download di Steam rimasti a metà.</p><button class="btn primary" data-step="fix_game_space" style="margin-top:auto">Risolvi</button></div>
@@ -1659,7 +1659,7 @@ window.tasso = {
     clearInterval(msgTimer); clearInterval(creepTimer);
     if (p.settings) S = p.settings;
     const box = $('#lastResult'); box.style.display = 'block';
-    const title = p.cancelled ? _t('Interrotto') : _t('Fatto! Il tuo PC è più in forma');
+    const lvl0 = !(RUN && RUN.level); const title = p.cancelled ? _t('Interrotto') : lvl0 ? _t('Finito: qui sotto cosa ho trovato e cosa ho fatto') : _t('Fatto! Il tuo PC è più in forma');
     box.innerHTML = '<div class="row wrap" style="justify-content:space-between;gap:16px"><div><h2 style="font-size:22px;color:var(--a1)">' + title + _t('</h2><p class="sub">Passaggi completati: ') + (Number(p.done) || 0) + _t(' di ') + (Number(p.total) || 0) + _t(' · durata ') + fmtMin(p.seconds / 60) + '</p></div>' +
       _t('<div class="row" style="gap:10px"><div class="stat" style="text-align:right"><div class="k">Spazio liberato</div><div class="v" style="color:var(--a1)">') + fmtBytes(p.freed) + '</div></div>' + ((LIVE && LIVE.diskFree) ? _t('<div class="stat" style="text-align:right"><div class="k">Spazio libero ora</div><div class="v">') + fmtBytes(LIVE.diskFree) + '</div></div>' : '') + '</div></div>' +
       '<div class="log" id="doneLog" style="margin-top:14px;height:180px"></div>' +
@@ -1670,7 +1670,7 @@ window.tasso = {
     $('#offBanner').classList.toggle('on', !!p.shutdown);
     const rb = $('#btnReboot'); if (rb) rb.onclick = () => modal(_t('<h2>Riavviare il PC?</h2><p class="muted" style="margin:0">Salva il lavoro aperto: il PC si riavvia tra 15 secondi.</p>'), [{label:_t('Annulla')}, {label:_t('Riavvia'), cls:'warn', fn: () => { call('goRestart'); }}]);
     $('#btnLogs2').onclick = () => call('goOpenLogs');
-    toast(p.cancelled ? _t('Interrotto.') : _t('Finito: liberati ') + fmtBytes(p.freed) + '.');
+    toast(p.cancelled ? _t('Interrotto.') : (p.freed > 0 ? _t('Finito: liberati ') + fmtBytes(p.freed) + '.' : _t('Finito.')));
     paintLast(); call('goAnalyze');
     try { fbAskOnce(p); } catch (e) {}
   },

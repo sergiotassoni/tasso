@@ -58,7 +58,7 @@ if ($cfa -eq 1) {
   Say 'Non la spengo: è una protezione contro i virus che rubano i file. Ti apro la pagina giusta: premi "Consenti un''app tramite Accesso alle cartelle controllato" > "Aggiungi un''app consentita" e scegli il gioco.'
   try { $ev = @(Get-WinEvent -FilterHashtable @{ LogName = 'Microsoft-Windows-Windows Defender/Operational'; Id = 1123 } -MaxEvents 5 -ErrorAction Stop); foreach ($e in $ev) { if ([string]$e.Message -match '([A-Za-z]:\\[^\r\n]+?\.exe)') { Say ('Bloccato di recente: ' + $Matches[1]) } } } catch {}
   Open-User 'windowsdefender://ransomwareprotection'
-} elseif ($cfa -eq 2 -or $cfa -eq 3 -or $cfa -eq 4) { Say 'La protezione "Accesso alle cartelle controllato" è in modo "solo controllo": non blocca i salvataggi.' }
+} elseif ($cfa -eq 2 -or $cfa -eq 3 -or $cfa -eq 4) { Say 'La protezione "Accesso alle cartelle controllato" non è in modo "blocca": non blocca i salvataggi.' }
 else { Say 'La protezione "Accesso alle cartelle controllato" è spenta: non è lei a bloccare i salvataggi.' }
 $docs = [Environment]::GetFolderPath('MyDocuments')
 $od = @(Get-OneDriveRoots)
@@ -93,7 +93,7 @@ foreach ($g in $v) {
 if ($gt) { if ($gt -ge 85) { Say ('La scheda video è a ' + $gt + '°C anche adesso: è molto calda. Il caldo è una causa frequente di questo errore: vedi "Il PC si scalda troppo".') } else { Say ('Temperatura della scheda video adesso: ' + $gt + '°C.') } }
 $oc = @(Get-Process -ErrorAction SilentlyContinue | Where-Object { $_.ProcessName -match '^(MSIAfterburner|EVGAPrecision.*|GPUTweak.*|TriXX|ZOTAC.*FireStorm)$' } | ForEach-Object { $_.ProcessName } | Select-Object -Unique)
 if ($oc.Count) { Say ('È aperto un programma per spingere la scheda video (overclock): ' + ($oc -join ', ') + '. Rimetti i valori di fabbrica ("Reset"): è la causa più comune di DEVICE_REMOVED.') }
-Say 'Cosa fare, in ordine: 1) aggiorna il driver video dalla pagina Driver di Tasso o dal sito di NVIDIA/AMD/Intel; 2) togli overclock e "profili OC" dai programmi della scheda video; 3) nel gioco abbassa un po'' la grafica o metti un limite agli FPS; 4) se succede in tutti i giochi, controlla che i cavi di alimentazione della scheda video siano infilati bene.'
+Say 'Cosa fare, in ordine: 1) aggiorna il driver video da Risolvi un problema > "Driver di tutto il PC" o dal sito di NVIDIA/AMD/Intel; 2) togli overclock e "profili OC" dai programmi della scheda video; 3) nel gioco abbassa un po'' la grafica o metti un limite agli FPS; 4) se succede in tutti i giochi, controlla che i cavi di alimentazione della scheda video siano infilati bene.'
 `)},
 	{ID: "fix_game_heat", Name: "Il PC si scalda troppo quando gioco", Desc: "Legge le temperature di processore e scheda video, controlla se il PC sta già rallentando per il caldo e ti dice cosa fare. Non tocca le ventole.", Level: 0, Minutes: 0.2, Timeout: 2 * time.Minute, Script: ofs2(cpuTempPS + gpuTempPS + `
 $any = $false
@@ -106,7 +106,7 @@ $lap = $false; try { $lap = [bool](Get-CimInstance Win32_Battery -ErrorAction St
 if ($lap) { Say 'È un portatile: tienilo su un piano rigido (non sul letto o sul cuscino), con le griglie di sotto libere. Una base con ventole aiuta molto.' }
 Say 'Cosa fare: 1) pulisci la polvere dalle griglie e dalle ventole (aria compressa, a PC spento); 2) metti un limite agli FPS uguale ai Hz dello schermo: la scheda video lavora meno e scalda meno; 3) se il PC ha più di 4-5 anni, la pasta termica sul processore va cambiata (da un tecnico).'
 `)},
-	{ID: "fix_game_hz", Name: "Lo schermo va a 60 Hz invece di 144", Desc: "Controlla a quanti Hz va ogni schermo e, se può andare più veloce, lo mette al massimo che supporta. Se il massimo è 60 ti dice perché (cavo, porta sbagliata, driver).", Level: 0, Minutes: 0.1, Timeout: time.Minute, Script: ofs2(`
+	{ID: "fix_game_hz", Name: "Lo schermo va a 60 Hz invece di 144", Desc: "Controlla a quanti Hz va ogni schermo e, se può andare più veloce, ti apre le impostazioni giuste e ti dice il numero da scegliere. Se il massimo è 60 ti dice perché (cavo, porta sbagliata, driver).", Level: 0, Minutes: 0.1, Timeout: time.Minute, Script: ofs2(`
 try {
   if (-not ('TassoHz' -as [type])) { Add-Type -ErrorAction Stop -TypeDefinition @'
 using System;
@@ -176,7 +176,7 @@ $v = @(Get-CimInstance Win32_VideoController -ErrorAction SilentlyContinue | Whe
 $dedicated = @($v | Where-Object { $_.Name -match 'NVIDIA|GeForce|RTX|GTX|Radeon RX|Radeon Pro|Arc(\(TM\))? [AB]\d' })
 $integrated = @($v | Where-Object { $_.Name -match 'Intel\(R\) (UHD|HD|Iris)|Intel.*Graphics|Radeon\(TM\) Graphics|Radeon Graphics|Radeon Vega' -and $_.Name -notmatch 'Arc(\(TM\))? [AB]\d' })
 foreach ($g in $v) { Say ('Scheda video trovata: ' + $g.Name + $(if ($g.Status -ne 'OK') { ' (stato: ' + $g.Status + ')' } else { '' })) }
-if (-not $dedicated.Count) { Say 'Non trovo una scheda video dedicata (NVIDIA o AMD). Se il portatile ne ha una, forse è spenta o senza driver: aggiorna i driver dalla pagina Driver di Tasso o dal sito del produttore.'; return }
+if (-not $dedicated.Count) { Say 'Non trovo una scheda video dedicata (NVIDIA o AMD). Se il portatile ne ha una, forse è spenta o senza driver: aggiorna i driver da Risolvi un problema > "Driver di tutto il PC" o dal sito del produttore.'; return }
 if (-not $integrated.Count) { Say 'C''è solo la scheda video potente: i giochi usano già quella.'; return }
 $bad = @($dedicated | Where-Object { $_.ConfigManagerErrorCode -and $_.ConfigManagerErrorCode -ne 0 })
 if ($bad.Count) { Say ('La scheda ' + $bad[0].Name + ' ha un problema di driver (codice ' + $bad[0].ConfigManagerErrorCode + '): finché non si sistema i giochi usano quella integrata. Reinstalla il driver dal sito del produttore.') }
@@ -185,7 +185,7 @@ $k = Get-Item -LiteralPath ('Registry::' + (Get-FullKey $pref)) -ErrorAction Sil
 $saving = @(); if ($k) { foreach ($n in $k.GetValueNames()) { if ($n -ne 'DirectXUserGlobalSettings' -and [string]$k.GetValue($n) -match 'GpuPreference=1;') { $saving += [IO.Path]::GetFileName($n) } } }
 if ($saving.Count) { Say ('Questi programmi sono impostati sulla scheda "a risparmio energetico": ' + (($saving | Select-Object -First 8) -join ', ') + '. Se sono giochi, cambiali in Impostazioni > Schermo > Grafica.') }
 if (Get-CimInstance Win32_Battery -ErrorAction SilentlyContinue | Where-Object { $_.BatteryStatus -eq 1 }) { Say 'Stai andando a batteria: molti portatili spengono la scheda potente senza il caricatore. Gioca con il caricatore attaccato.' }
-Say 'Come fissare la scheda potente: apri Giochi, tocca il gioco > "Regola con Tasso" e scegli la scheda video ad alte prestazioni. Oppure Impostazioni > Schermo > Grafica > scegli il gioco > "Prestazioni elevate".'
+Say 'Come fissare la scheda potente: apri Giochi, tocca il gioco > "Prepara a passi" > impostazioni consigliate e scegli la scheda video ad alte prestazioni. Oppure Impostazioni > Schermo > Grafica > scegli il gioco > "Prestazioni elevate".'
 Say 'Se il portatile ha la modalità "MUX" o "solo scheda dedicata" (nel programma del produttore: Armoury Crate, Legion Vantage, Omen, Alienware, MSI Center…), attivala per avere più FPS.'
 Open-User 'ms-settings:display-advancedgraphics'
 `)},

@@ -611,7 +611,7 @@ func shredFiles(paths []string) {
 	ok, ko := 0, 0
 	drives := map[string]bool{}
 	for i, p := range paths {
-		emit("onShredProgress", fmt.Sprintf("Distruggo %d di %d: %s", i+1, len(paths), filepath.Base(p)))
+		emit("onShredProgress", fmt.Sprintf(trGo("Distruggo %d di %d: %s"), i+1, len(paths), filepath.Base(p)))
 		if shredFile(p) {
 			ok++
 			drives[strings.ToUpper(filepath.VolumeName(p))] = true
@@ -632,9 +632,9 @@ func shredFiles(paths []string) {
 		emit("onShredProgress", "Chiedo al disco di cancellare davvero lo spazio liberato (TRIM)…")
 		runPSArgs(retrimScript, letters, 10*time.Minute, nil)
 	}
-	msg := fmt.Sprintf("Distrutti %d file: recuperarli ora è quasi impossibile (sugli SSD Windows fa anche la pulizia TRIM).", ok)
+	msg := fmt.Sprintf(trGo("Distrutti %d file: recuperarli ora è quasi impossibile (sugli SSD Windows fa anche la pulizia TRIM)."), ok)
 	if ko > 0 {
-		msg += fmt.Sprintf(" %d non distrutti: sono di sistema, aperti in un altro programma o spariti.", ko)
+		msg += fmt.Sprintf(trGo(" %d non distrutti: sono di sistema, aperti in un altro programma o spariti."), ko)
 	}
 	emit("onShredDone", map[string]interface{}{"ok": ok > 0 && ko == 0, "msg": msg})
 }

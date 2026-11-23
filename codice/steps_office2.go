@@ -372,7 +372,7 @@ $wo = Join-Path $env:SystemDrive 'Windows.old'; if (Test-Path -LiteralPath $wo) 
 $hib = Join-Path $env:SystemDrive 'hiberfil.sys'; if (Test-Path -LiteralPath $hib) { $rows += , @('Ibernazione (hiberfil.sys)', (Get-Item -LiteralPath $hib -Force).Length) }
 foreach ($r in ($rows | Sort-Object { [long]$_[1] } -Descending)) { if ([long]$r[1] -gt 200MB) { Say ('- ' + $r[0] + ': ' + (Fmt $r[1])) } }
 Say 'Cosa puoi fare in sicurezza:'
-Say '1) In Tasso, Pulizia > livello Media o Profonda: toglie file temporanei, cache e (in Profonda) il vecchio Windows. Non tocca i tuoi documenti.'
+Say '1) In Tasso, Pulizia > livello Media o Profonda: toglie file temporanei e cache. Non tocca i tuoi documenti.'
 Say '2) Download: è la cartella che cresce di più. In Tasso c''è "Riordino della cartella Download", oppure aprila e ordina per Dimensione.'
 if ((Get-OneDriveRoots).Count) { Say '3) OneDrive: usa "Libera spazio con OneDrive" qui in Risolvi un problema: i file vecchi restano online e smettono di occupare il disco.' }
 if ($rb -gt 1GB) { Say ('4) Il Cestino occupa ' + (Fmt $rb) + ': svuotalo se non ti serve niente.') }
