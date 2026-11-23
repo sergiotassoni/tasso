@@ -174,6 +174,13 @@ func cicloPagina(giro int64) {
 				ultimaColori = imp
 				if nuovi, ok := ricolora(img, bl); ok && paginaGiro.Load() == giro {
 					MostraPagina(area, nuovi)
+					if esisteVoce(filepath.Join(dirApp, "logs", "salva-anteprima")) { // controllo a mano: anche il mouse sopra
+						img2 := img
+						go func() {
+							defer guard("anteprima-mouse")
+							_ = salvaAnteprima(img2, nuovi, filepath.Join(dirApp, "logs", "pagina-anteprima-mouse.png"))
+						}()
+					}
 				}
 			}
 		}
