@@ -119,7 +119,7 @@ func cicloTuttoAutomatico() {
 		if !eGioco(fg, exe) || inPausa(exe) {
 			continue
 		}
-		if g, ok := riconosciGioco(percorsoDiFinestra(fg)); ok && conAntiCheat(g) && !avvisatoAntiCheat[exe] {
+		if g, ok := riconosciGioco(percorsoDiFinestra(fg)); ok && ConAntiCheat(g) && !avvisatoAntiCheat[exe] {
 			// la traduzione dello schermo non tocca il gioco: va bene anche con l'anti-imbroglio
 			avvisatoAntiCheat[exe] = true
 			emetti("info", map[string]string{"testo": messaggioAntiCheat(g.Nome)})
@@ -160,7 +160,7 @@ func cicloTuttoAutomatico() {
 		if g, ok := riconosciGioco(percorsoDiFinestra(fg)); ok {
 			nome = g.Nome + " (" + g.Piattaforma + ")"
 		}
-		emetti("info", map[string]string{"testo": "Gioco trovato: " + nome + ". Traduco tutto da solo. "+nomeTasto("pagina")+" nel gioco per mettere in pausa."})
+		emetti("info", map[string]string{"testo": "Gioco trovato: " + nome + ". Traduco tutto da solo. " + nomeTasto("pagina") + " nel gioco per mettere in pausa."})
 		muImp.Lock()
 		if imp.Profili == nil {
 			imp.Profili = map[string]Profilo{}

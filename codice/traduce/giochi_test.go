@@ -67,14 +67,32 @@ func TestGiochiSteamEpic(t *testing.T) {
 func TestAntiCheat(t *testing.T) {
 	d := t.TempDir()
 	os.MkdirAll(filepath.Join(d, "EasyAntiCheat"), 0o755)
-	if !conAntiCheat(GiocoRiconosciuto{Cartella: d, Piattaforma: "Steam"}) {
+	if !ConAntiCheat(GiocoRiconosciuto{Cartella: d, Piattaforma: "Steam"}) {
 		t.Error("EasyAntiCheat non visto")
 	}
-	if conAntiCheat(GiocoRiconosciuto{Cartella: t.TempDir(), Piattaforma: "Steam"}) {
+	if ConAntiCheat(GiocoRiconosciuto{Cartella: t.TempDir(), Piattaforma: "Steam"}) {
 		t.Error("niente anti-imbroglio")
 	}
+	// cartelle tipiche più in basso: Gioco\Binaries\Win64\EasyAntiCheat e BattlEye in una sottocartella
+	d2 := t.TempDir()
+	os.MkdirAll(filepath.Join(d2, "Gioco", "Binaries", "Win64", "EasyAntiCheat"), 0o755)
+	if !ConAntiCheat(GiocoRiconosciuto{Cartella: d2, Piattaforma: "Steam"}) {
+		t.Error("EasyAntiCheat in Gioco\\Binaries\\Win64 non visto")
+	}
+	d3 := t.TempDir()
+	os.MkdirAll(filepath.Join(d3, "Gioco", "BattlEye"), 0o755)
+	if !ConAntiCheat(GiocoRiconosciuto{Cartella: d3, Piattaforma: "Steam"}) {
+		t.Error("BattlEye in sottocartella non visto")
+	}
+	// troppo in basso (oltre 3 livelli) o con nomi comuni: niente
+	d4 := t.TempDir()
+	os.MkdirAll(filepath.Join(d4, "a", "b", "c", "d", "BattlEye"), 0o755)
+	os.MkdirAll(filepath.Join(d4, "Content", "Paks"), 0o755)
+	if ConAntiCheat(GiocoRiconosciuto{Cartella: d4, Piattaforma: "Steam"}) {
+		t.Error("anti-imbroglio visto troppo in basso")
+	}
 	g, ok := riconosciGioco(`C:\Riot Games\League of Legends\Game\League of Legends.exe`)
-	if !ok || !conAntiCheat(g) {
+	if !ok || !ConAntiCheat(g) {
 		t.Errorf("League: %+v %v", g, ok)
 	}
 	if _, ok := riconosciGioco(`C:\Riot Games\Riot Client\RiotClientServices.exe`); ok {

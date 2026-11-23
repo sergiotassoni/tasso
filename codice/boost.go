@@ -41,6 +41,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"syscall"
 	"time"
 	"unsafe"
@@ -111,6 +112,8 @@ var (
 	bClosed []string // programmi chiusi da riaprire (solo in memoria: mai letti da un file)
 	bSkip   string   // gioco per cui hai premuto "Rimetti com'era": niente Boost automatico finché resta aperto
 	bGame   string   // gioco della partita col Boost automatico in corso
+	// bAutoFlag: copia di bState.Auto che si legge senza bMu (serve dentro updateSettings).
+	bAutoFlag atomic.Bool
 )
 
 func boostFile() string { return filepath.Join(appDir, "boost.json") }
@@ -156,6 +159,11 @@ func loadBoost() *boostState {
 	if _, ok := modeScripts[raw.PrevMode]; ok {
 		s.PrevMode = raw.PrevMode
 	}
+	// Mouse di prima: se il Tasso si è chiuso a metà partita, all'avvio lo rimetto com'era.
+	if m := raw.Mouse; m != nil && m[0] >= 0 && m[0] <= 99 && m[1] >= 0 && m[1] <= 99 && m[2] >= 0 && m[2] <= 2 {
+		v := *m
+		s.Mouse = &v
+	}
 	for k, v := range raw.History {
 		if k == "" || k != strings.ToLower(safeName(k)) || len(v) > 10 {
 			continue
@@ -168,6 +176,7 @@ func loadBoost() *boostState {
 		}
 	}
 	bState = s
+	bAutoFlag.Store(s.Auto)
 	return s
 }
 
@@ -175,6 +184,7 @@ func saveBoost() {
 	if bState == nil {
 		return
 	}
+	bAutoFlag.Store(bState.Auto)
 	if b, err := json.MarshalIndent(bState, "", "  "); err == nil {
 		_ = os.WriteFile(boostFile(), b, 0o644)
 	}
@@ -184,7 +194,10 @@ func boostInfo() map[string]interface{} {
 	bMu.Lock()
 	defer bMu.Unlock()
 	s := loadBoost()
-	return map[string]interface{}{"on": s.On, "auto": s.Auto, "game": bGame, "battery": onBattery(), "gpuFix": len(s.GpuPrev) > 0}
+	// pending: è rimasto qualcosa da rimettere (regolazioni di Windows, modalità, scheda video, mouse,
+	// programmi chiusi), anche con il Boost spento: "Rimetti com'era" serve ancora.
+	pending := len(s.Cmds) > 0 || s.PrevMode != "" || len(s.GpuPrev) > 0 || s.Mouse != nil || len(bClosed) > 0
+	return map[string]interface{}{"on": s.On, "auto": s.Auto, "game": bGame, "battery": onBattery(), "gpuFix": len(s.GpuPrev) > 0, "pending": pending}
 }
 
 // onBattery: portatile senza caricatore. In quel caso niente piano energetico al massimo.
@@ -209,11 +222,17 @@ func removeStr(list []string, v string) []string {
 
 // ---------------- Parti del Boost ----------------
 
+// Come si chiamano, per te, i comandi del Boost.
+var boostCmdNames = map[string]string{
+	"gamedvr": "registrazione in background spenta", "mmcss": "priorità ai giochi",
+	"nagle": "rete più reattiva", "winopt": "giochi in finestra",
+}
+
 // boostCmdsOn accende i comandi spenti e si ricorda quali. Salvo PRIMA di cambiare: se il Tasso si
-// chiude a metà, "Rimetti com'era" sa comunque cosa rispegnere.
-func boostCmdsOn() int {
+// chiude a metà, "Rimetti com'era" sa comunque cosa rispegnere. Restituisce i comandi accesi.
+func boostCmdsOn() []string {
 	st := gamingState()
-	n := 0
+	var done []string
 	for _, id := range boostCmds {
 		if on, _ := st[id].(bool); on {
 			continue
@@ -223,13 +242,17 @@ func boostCmdsOn() int {
 		}
 		bMu.Lock()
 		s := loadBoost()
+		if !s.On && !s.Auto { // spento nel frattempo ("Rimetti com'era" o Boost automatico spento)
+			bMu.Unlock()
+			break
+		}
 		if !hasStr(s.Cmds, id) {
 			s.Cmds = append(s.Cmds, id)
 		}
 		saveBoost()
 		bMu.Unlock()
 		if strings.HasPrefix(gamingSet(id, true), "ok:") {
-			n++
+			done = append(done, id)
 		} else {
 			bMu.Lock()
 			s.Cmds = removeStr(s.Cmds, id)
@@ -237,7 +260,16 @@ func boostCmdsOn() int {
 			bMu.Unlock()
 		}
 	}
-	return n
+	return done
+}
+
+// boostCmdsText: "Accese le regolazioni per giocare (…)" con solo quelle accese davvero.
+func boostCmdsText(ids []string) string {
+	var names []string
+	for _, id := range ids {
+		names = append(names, boostCmdNames[id])
+	}
+	return "Accese le regolazioni per giocare (" + strings.Join(names, ", ") + "). Valgono dal prossimo avvio del gioco e restano finché premi \"Rimetti com'era\"."
 }
 
 // boostCmdsOff rispegne solo i comandi accesi dal Boost. Se uno non si spegne resta nell'elenco,
@@ -363,8 +395,8 @@ func boostOnOK() ([]string, bool) {
 	bMu.Unlock()
 
 	var msgs []string
-	if n := boostCmdsOn(); n > 0 {
-		msgs = append(msgs, "Accese le regolazioni per giocare (registrazione in background spenta, priorità ai giochi, rete, giochi in finestra). Valgono dal prossimo avvio del gioco.")
+	if ids := boostCmdsOn(); len(ids) > 0 {
+		msgs = append(msgs, boostCmdsText(ids))
 	}
 	if onBattery() {
 		msgs = append(msgs, "Sei a batteria: lascio il risparmio energetico. Collega il caricatore per avere tutta la potenza.")
@@ -377,8 +409,15 @@ func boostOnOK() ([]string, bool) {
 		s.PrevMode = prev
 		saveBoost()
 		bMu.Unlock()
-		setMode("gaming")
-		msgs = append(msgs, "Modalità Gaming: processore al massimo, notifiche in pausa.")
+		if setMode("gaming") {
+			msgs = append(msgs, "Modalità Gaming: processore al massimo, notifiche in pausa.")
+		} else {
+			bMu.Lock()
+			s.PrevMode = ""
+			saveBoost()
+			bMu.Unlock()
+			msgs = append(msgs, "Non sono riuscito a mettere la modalità Gaming: il resto del Boost è acceso.")
+		}
 	}
 	if names := closeBackground(); len(names) > 0 {
 		msgs = append(msgs, "Chiusi in background: "+strings.Join(names, ", ")+". Li riapro quando premi \"Rimetti com'era\".")
@@ -407,8 +446,7 @@ func restoreBoostMode(prev string) bool {
 		updateSettings(func(st *Settings) { st.ModeBeforeGame = prev })
 	}
 	if cur == "gaming" || (target != "" && cur == target) {
-		setMode(prev)
-		return true
+		return setMode(prev)
 	}
 	return false
 }
@@ -446,7 +484,12 @@ func boostOff(explicit bool) []string {
 		msgs = append(msgs, "Rimessa la modalità di prima.")
 	}
 	if auto && prevAG != nil && !*prevAG {
-		setAutoGame(false)
+		if autoGameNeeded() {
+			// La usano ancora la potenza per gioco o Regola con Tasso: resta accesa, ma solo per quei giochi.
+			updateSettings(func(st *Settings) { st.AutoGameTune = true })
+		} else {
+			setAutoGame(false)
+		}
 	}
 	if names := reopenBackground(); len(names) > 0 {
 		msgs = append(msgs, "Riaperti: "+strings.Join(names, ", ")+".")

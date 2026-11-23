@@ -354,6 +354,7 @@ func getSettings() map[string]interface{} {
 	_ = json.Unmarshal(b, &m)
 	// Il token del bot (anche se protetto) non va mai all'interfaccia: basta sapere se c'è.
 	m["discordBotSaved"] = settings.DiscordBot != ""
+	m["autoGameAll"] = autoGameForAll(&settings) // i giochi senza una loro potenza vanno in Gaming
 	delete(m, "discordBot")
 	delete(m, "vault")
 	return m

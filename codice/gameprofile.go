@@ -434,17 +434,7 @@ func setGamePower(id, mode string) map[string]interface{} {
 		}
 		if mode == "" {
 			delete(s.GamePower, id)
-			if s.AutoGameTune && !autoGameKept(s) {
-				used := false
-				for _, o := range s.GameTunes {
-					if o != nil && o.Opts.Mode != "" {
-						used = true
-					}
-				}
-				if !used {
-					s.AutoGame, s.AutoGameTune = false, false
-				}
-			}
+			autoGameTuneCleanup(s)
 			return
 		}
 		s.GamePower[id] = gamePower{Name: name, Mode: mode, Exes: exes}
@@ -472,11 +462,12 @@ func gamePowerFor(exe string) string {
 	return ""
 }
 
-// autoGameNeeded: qualcosa d'altro (potenza per gioco, Regola con Tasso) usa la modalità gioco automatica.
+// autoGameNeeded: qualcosa d'altro (potenza per gioco, Regola con Tasso, Boost automatico) usa la
+// modalità gioco automatica.
 func autoGameNeeded() bool {
 	setMu.Lock()
 	defer setMu.Unlock()
-	if len(settings.GamePower) > 0 {
+	if len(settings.GamePower) > 0 || bAutoFlag.Load() {
 		return true
 	}
 	for _, t := range settings.GameTunes {
@@ -487,8 +478,19 @@ func autoGameNeeded() bool {
 	return false
 }
 
-// autoGameKept: la Modalità gioco automatica serve ancora (potenza per un gioco o profilo gioco che la usa).
-// Va chiamata con le impostazioni già bloccate (dentro updateSettings).
+// autoGameKept: la Modalità gioco automatica serve ancora (potenza per un gioco, Boost automatico o
+// profilo gioco che la usa). Va chiamata con le impostazioni già bloccate (dentro updateSettings).
 func autoGameKept(s *Settings) bool {
-	return len(s.GamePower) > 0 || (s.GameProfile != nil && s.GameProfile.On && s.GameProfile.AutoGame)
+	return len(s.GamePower) > 0 || bAutoFlag.Load() || (s.GameProfile != nil && s.GameProfile.On && s.GameProfile.AutoGame)
+}
+
+// autoGameForAll: la modalità gioco automatica vale per tutti i giochi (accesa da te, dal Boost
+// automatico o dal profilo gioco), e non solo per i giochi con una loro potenza o regolazione.
+// In quel caso un gioco senza una sua scelta va in Gaming; altrimenti resta com'è.
+// Va chiamata con setMu preso.
+func autoGameForAll(s *Settings) bool {
+	if !s.AutoGame {
+		return false
+	}
+	return !s.AutoGameTune || bAutoFlag.Load() || (s.GameProfile != nil && s.GameProfile.On && s.GameProfile.AutoGame)
 }

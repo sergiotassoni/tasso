@@ -105,7 +105,7 @@ func haAntiCheat(cartella string) bool {
 	if !ok {
 		g = GiocoRiconosciuto{Cartella: cartella} // anche fuori dalle cartelle dei negozi
 	}
-	return conAntiCheat(g)
+	return ConAntiCheat(g)
 }
 
 // messaggioAntiCheat: con l'anti-imbroglio non tocco mai i file, traduco sullo schermo.

@@ -57,7 +57,7 @@ func elencoGiochi() []map[string]any {
 			"file_motivo": fileMotivo,
 			"avviabile":   g.Avvio != "" || exeGioco(g.Cartella) != "",
 			"traduzioni":  ContaLibreria(fileLibreriaPer(filepath.Join(dirApp, "librerie"), g.Nome)),
-			"anticheat":   conAntiCheat(GiocoRiconosciuto{Nome: g.Nome, Piattaforma: g.Piattaforma, Cartella: g.Cartella}),
+			"anticheat":   ConAntiCheat(GiocoRiconosciuto{Nome: g.Nome, Piattaforma: g.Piattaforma, Cartella: g.Cartella}),
 		})
 	}
 	return out
@@ -250,6 +250,6 @@ func InfoGioco(nome, piattaforma, cartella, avvio string) map[string]any {
 		"file_motivo": fileMotivo,
 		"avviabile":   g.Avvio != "" || exeGioco(cartella) != "",
 		"traduzioni":  ContaLibreria(fileLibreriaPer(filepath.Join(dirApp, "librerie"), nome)),
-		"anticheat":   conAntiCheat(GiocoRiconosciuto{Nome: nome, Piattaforma: piattaforma, Cartella: cartella}),
+		"anticheat":   ConAntiCheat(GiocoRiconosciuto{Nome: nome, Piattaforma: piattaforma, Cartella: cartella}),
 	}
 }

@@ -12,7 +12,9 @@ package main
 // permettono ad altri programmi di cambiarli, quindi Tasso dice esattamente cosa mettere e apre il pannello.
 
 import (
+	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -24,6 +26,8 @@ import (
 	"strings"
 	"time"
 	"unsafe"
+
+	"tasso/traduce"
 
 	"golang.org/x/sys/windows"
 	"golang.org/x/sys/windows/registry"
@@ -211,17 +215,40 @@ func gpuTier(name string) int {
 
 var tierLabel = []string{"base", "media", "alta", "top"}
 
+// screenHzNow: la frequenza dello schermo adesso (quello principale, o il più veloce), 0 se non si sa.
+// Gli Hz della scheda video in hwCache si leggono una volta sola: se nel frattempo hai cambiato
+// schermo o frequenza, il limite FPS consigliato sarebbe sbagliato.
+func screenHzNow() int {
+	hz := 0
+	for _, sc := range screens() {
+		if sc.Primary && sc.Hz > 1 {
+			return sc.Hz
+		}
+		if sc.Hz > hz {
+			hz = sc.Hz
+		}
+	}
+	if hz <= 1 { // 0 o 1 = "frequenza predefinita dell'hardware": non si sa
+		return 0
+	}
+	return hz
+}
+
 func pcTier() (int, string, int) {
 	hwOnce.Do(loadHwCache)
 	gpu := ""
-	hz := 0
+	hz := screenHzNow()
+	cacheHz := 0
 	for _, g := range hwCache.GPUs {
 		if gpu == "" || gpuTier(g.Name) > gpuTier(gpu) {
 			gpu = g.Name
 		}
-		if g.Hz > hz {
-			hz = g.Hz
+		if g.Hz > cacheHz {
+			cacheHz = g.Hz
 		}
+	}
+	if hz == 0 {
+		hz = cacheHz
 	}
 	t := gpuTier(gpu)
 	ramGB := int(hwCache.RAM.Total / (1 << 30))
@@ -424,16 +451,26 @@ func unrealIni(dir string) string {
 var sgKeys = []string{"sg.ViewDistanceQuality", "sg.AntiAliasingQuality", "sg.ShadowQuality", "sg.GlobalIlluminationQuality", "sg.ReflectionQuality", "sg.PostProcessQuality", "sg.TextureQuality", "sg.EffectsQuality", "sg.FoliageQuality", "sg.ShadingQuality"}
 
 // writeUnrealIni cambia solo qualità, VSync e limite FPS; tutto il resto del file resta uguale.
+// errIniUTF16: il file è scritto in UTF-16 (alcuni giochi lo fanno): non lo tocco, per non rovinarlo.
+var errIniUTF16 = errors.New("file UTF-16")
+
 func writeUnrealIni(path string, o tuneOpts) error {
 	b, err := os.ReadFile(path)
 	if err != nil {
 		return err
 	}
+	if len(b) >= 2 && ((b[0] == 0xFF && b[1] == 0xFE) || (b[0] == 0xFE && b[1] == 0xFF)) || bytes.IndexByte(b, 0) >= 0 {
+		return errIniUTF16
+	}
+	bom := bytes.HasPrefix(b, []byte{0xEF, 0xBB, 0xBF}) // UTF-8 con BOM: lo tolgo e lo rimetto alla fine
 	bak := path + ".tasso-backup"
 	if !fileExists(bak) {
 		if err := os.WriteFile(bak, b, 0o644); err != nil {
 			return err
 		}
+	}
+	if bom {
+		b = b[3:]
 	}
 	text := strings.ReplaceAll(string(b), "\r\n", "\n")
 	lines := strings.Split(text, "\n")
@@ -525,6 +562,9 @@ func writeUnrealIni(path string, o tuneOpts) error {
 		}
 	}
 	res := strings.Join(out, "\r\n")
+	if bom {
+		res = "\xEF\xBB\xBF" + res
+	}
 	tmp := path + ".tmp"
 	if err := os.WriteFile(tmp, []byte(res), 0o644); err != nil {
 		return err
@@ -588,6 +628,16 @@ func gameTuneInfo(id string) {
 	}
 	exes := gameExes(g.dir)
 	ini := unrealIni(g.dir)
+	// Giochi con anti-cheat: Tasso non tocca i loro file né le impostazioni (niente .ini, niente
+	// priorità del processore). La grafica la imposti tu dal menu del gioco.
+	ac := gameAntiCheat(g)
+	if ac {
+		ini = ""
+		for p, r := range recs {
+			r.Opts.InGame, r.Opts.Priority = false, false
+			recs[p] = r
+		}
+	}
 	setMu.Lock()
 	var cur *GameTune
 	if t, ok := settings.GameTunes[id]; ok && t != nil {
@@ -604,8 +654,58 @@ func gameTuneInfo(id string) {
 		"id": id, "name": g.Name, "kind": kind, "kindLabel": kindLabel[kind], "kindWhy": kindWhy,
 		"tier": tier, "tierLabel": tierLabel[tier], "tierWhy": tierWhy, "hz": hz, "vendor": vendor,
 		"recs": recs, "exes": names, "hasExe": len(exes) > 0, "ini": ini != "", "current": cur,
-		"autoGame": autoGame, "dir": g.dir != "",
+		"autoGame": autoGame, "dir": g.dir != "", "anticheat": ac,
 	})
+}
+
+// gameAntiCheat: il gioco ha un anti-cheat (guarda solo i nomi di file e cartelle).
+func gameAntiCheat(g gameEntry) bool {
+	return traduce.ConAntiCheat(traduce.GiocoRiconosciuto{Nome: g.Name, Piattaforma: g.Store, Cartella: g.dir})
+}
+
+// gpuPrefOrig: il valore di prima della scheda video per questo programma, se Tasso l'ha già
+// cambiato da un'altra parte (Boost o Regola con Tasso). Così il valore originale si ricorda una
+// volta sola e l'annullamento rimette quello vero, in qualunque ordine si annulli.
+// Va chiamata senza setMu e bMu presi.
+func gpuPrefOrig(path string) (string, bool) {
+	setMu.Lock()
+	for _, t := range settings.GameTunes {
+		if t == nil {
+			continue
+		}
+		for k, v := range t.Prev {
+			if strings.HasPrefix(k, "gpu|") && strings.EqualFold(k[4:], path) {
+				setMu.Unlock()
+				return v, true
+			}
+		}
+	}
+	setMu.Unlock()
+	bMu.Lock()
+	defer bMu.Unlock()
+	for k, v := range loadBoost().GpuPrev {
+		if strings.EqualFold(k, path) {
+			return v, true
+		}
+	}
+	return "", false
+}
+
+// gpuPrefUndo rimette il valore di prima ("1"+valore, oppure "0" = non c'era), ma solo se adesso
+// c'è ancora la scheda potente messa da Tasso: se l'hai cambiata tu, o l'ha già rimessa un'altra
+// parte di Tasso, non la tocco.
+func gpuPrefUndo(path, prev string) {
+	if prev == "" {
+		return
+	}
+	if cur, ok := regGet(registry.CURRENT_USER, gpuPrefKey, path); !ok || !strings.Contains(cur, "GpuPreference=2") {
+		return
+	}
+	if prev[0] == '1' {
+		_ = regSet(registry.CURRENT_USER, gpuPrefKey, path, prev[1:])
+	} else {
+		regDel(registry.CURRENT_USER, gpuPrefKey, path)
+	}
 }
 
 // ---------------- Applica / annulla ----------------
@@ -662,9 +762,17 @@ func gameTuneApply(id, preset string, o tuneOpts) {
 		o.Mode = ""
 	}
 	exes := gameExes(g.dir)
-	var msgs []string
-	// Se c'era già una regolazione, riparto dai valori originali.
-	gameTuneUndoQuiet(id)
+	var msgs, failed []string
+	fail := func(m string) { msgs, failed = append(msgs, m), append(failed, m) }
+	// Giochi con anti-cheat: niente file del gioco e niente priorità del processore.
+	ac := gameAntiCheat(g)
+	if ac && (o.InGame || o.Priority) {
+		o.InGame, o.Priority = false, false
+		msgs = append(msgs, "• Questo gioco ha un anti-cheat: Tasso non tocca i suoi file né la priorità del processore. La grafica la imposti tu dal menu del gioco.")
+	}
+	// Se c'era già una regolazione, riparto dai valori originali del registro. Il file della grafica
+	// no: la sua copia di sicurezza resta quella della prima volta.
+	oldIni := gameTuneUndoQuiet(id, true)
 	prev := map[string]string{}
 	remember := func(key string, root registry.Key, path, name string) {
 		if v, ok := regGet(root, path, name); ok {
@@ -674,13 +782,19 @@ func gameTuneApply(id, preset string, o tuneOpts) {
 		}
 	}
 	if len(exes) == 0 && (o.GpuHigh || o.Priority || o.NoFSO || o.Mode != "") {
-		msgs = append(msgs, "Non ho trovato il programma del gioco nella sua cartella: le impostazioni di Windows per questo gioco non si possono applicare.")
+		fail("Non ho trovato il programma del gioco nella sua cartella: le impostazioni di Windows per questo gioco non si possono applicare.")
 	}
 	for _, e := range exes {
 		if o.GpuHigh {
-			remember("gpu|"+e, registry.CURRENT_USER, gpuPrefKey, e)
+			if v, ok := gpuPrefOrig(e); ok { // l'aveva già cambiata il Boost: mi tengo il valore vero di prima
+				prev["gpu|"+e] = v
+			} else {
+				remember("gpu|"+e, registry.CURRENT_USER, gpuPrefKey, e)
+			}
 			if regSet(registry.CURRENT_USER, gpuPrefKey, e, "GpuPreference=2;SwapEffectUpgradeEnable=1;") == nil {
 				msgs = append(msgs, "✓ Scheda video ad alte prestazioni e ottimizzazioni per i giochi in finestra: "+filepath.Base(e))
+			} else {
+				fail("✗ Windows non mi ha lasciato cambiare la scheda video per " + filepath.Base(e) + ".")
 			}
 		}
 		if o.NoFSO {
@@ -697,6 +811,8 @@ func gameTuneApply(id, preset string, o tuneOpts) {
 			flags = append(flags, "DISABLEDXMAXIMIZEDWINDOWEDMODE")
 			if regSet(registry.CURRENT_USER, layersKey, e, "~ "+strings.Join(flags, " ")) == nil {
 				msgs = append(msgs, "✓ Ottimizzazioni a schermo intero spente: "+filepath.Base(e))
+			} else {
+				fail("✗ Windows non mi ha lasciato spegnere le ottimizzazioni a schermo intero per " + filepath.Base(e) + ".")
 			}
 		}
 		if o.Priority {
@@ -710,8 +826,12 @@ func gameTuneApply(id, preset string, o tuneOpts) {
 				}
 				if k.SetDWordValue("CpuPriorityClass", 6) == nil {
 					msgs = append(msgs, "✓ Priorità del processore sopra il normale: "+base)
+				} else {
+					fail("✗ Windows non mi ha lasciato cambiare la priorità del processore per " + base + ".")
 				}
 				k.Close()
+			} else {
+				fail("✗ Windows non mi ha lasciato cambiare la priorità del processore per " + base + ".")
 			}
 		}
 	}
@@ -720,6 +840,7 @@ func gameTuneApply(id, preset string, o tuneOpts) {
 		for _, e := range exes {
 			modeExes = append(modeExes, strings.ToLower(strings.TrimSuffix(filepath.Base(e), filepath.Ext(e))))
 		}
+		turnedOn := false
 		updateSettings(func(s *Settings) {
 			if s.GameModes == nil {
 				s.GameModes = map[string]string{}
@@ -729,53 +850,74 @@ func gameTuneApply(id, preset string, o tuneOpts) {
 			}
 			if !s.AutoGame {
 				s.AutoGame, s.AutoGameTune = true, true
+				turnedOn = true
 			}
 		})
-		msgs = append(msgs, "✓ Quando apri "+g.Name+" Tasso mette da solo la modalità "+modeName(o.Mode)+" (e la toglie quando chiudi). Ho acceso la Modalità gioco automatica.")
+		m := "✓ Quando apri " + g.Name + " Tasso mette da solo la modalità " + modeName(o.Mode) + " (e la toglie quando chiudi)."
+		if turnedOn {
+			m += " Ho acceso la Modalità gioco automatica."
+		}
+		msgs = append(msgs, m)
 	}
+	// ini: il file che "Annulla regolazione" rimette com'era. Se questa volta non lo scrivo, tengo
+	// quello della regolazione di prima (la sua copia di sicurezza è ancora quella originale).
 	ini := ""
 	if o.InGame {
 		ini = unrealIni(g.dir)
 		switch {
 		case ini == "":
-			msgs = append(msgs, "• Grafica dentro il gioco: questo gioco non usa un file di impostazioni che Tasso sa cambiare in sicurezza. Imposta i valori consigliati dal menu Opzioni del gioco (li trovi qui sopra).")
+			fail("• Grafica dentro il gioco: questo gioco non usa un file di impostazioni che Tasso sa cambiare in sicurezza. Imposta i valori consigliati dal menu Opzioni del gioco (li trovi qui sopra).")
 		case exeRunning(exes):
-			msgs = append(msgs, "• Grafica dentro il gioco: chiudi "+g.Name+" e premi di nuovo Applica (con il gioco aperto le modifiche verrebbero perse).")
+			fail("• Grafica dentro il gioco: chiudi " + g.Name + " e premi di nuovo Applica (con il gioco aperto le modifiche verrebbero perse).")
 			ini = ""
 		default:
-			if err := writeUnrealIni(ini, o); err != nil {
-				msgs = append(msgs, "• Grafica dentro il gioco: non sono riuscito a scrivere il file delle impostazioni.")
+			if err := writeUnrealIni(ini, o); errors.Is(err, errIniUTF16) {
+				fail("• Grafica dentro il gioco: il file delle impostazioni di questo gioco è in un formato (UTF-16) che Tasso non cambia, per non rovinarlo. Imposta i valori consigliati dal menu Opzioni del gioco.")
+				ini = ""
+			} else if err != nil {
+				fail("• Grafica dentro il gioco: non sono riuscito a scrivere il file delle impostazioni.")
 				ini = ""
 			} else {
-				cap := "nessun limite"
+				cap := "nessun limite FPS"
 				if o.FPSCap > 0 {
-					cap = strconv.Itoa(o.FPSCap) + " FPS"
+					cap = "limite " + strconv.Itoa(o.FPSCap) + " FPS"
 				}
-				vs := "spento"
+				vs := "VSync spento"
 				if o.VSync {
-					vs = "acceso"
+					vs = "VSync acceso"
 				}
-				msgs = append(msgs, "✓ Grafica dentro il gioco: qualità "+qualityNames[o.Quality]+", VSync "+vs+", limite "+cap+". Copia di sicurezza del file salvata. Alcuni giochi ricalcolano la grafica al primo avvio: se succede, controlla nel menu.")
+				msgs = append(msgs, "✓ Grafica dentro il gioco: "+qualityText[o.Quality]+", "+vs+", "+cap+". Copia di sicurezza del file salvata. Alcuni giochi ricalcolano la grafica al primo avvio: se succede, controlla nel menu.")
 			}
 		}
+	}
+	if ini == "" {
+		ini = oldIni
 	}
 	updateSettings(func(s *Settings) {
 		if s.GameTunes == nil {
 			s.GameTunes = map[string]*GameTune{}
 		}
 		s.GameTunes[id] = &GameTune{Name: g.Name, Preset: preset, Opts: o, Exes: exes, Prev: prev, Ini: ini, Applied: time.Now().Format("2006-01-02 15:04")}
+		autoGameTuneCleanup(s)
 	})
 	msgs = append(msgs, "• Anti-Lag, Boost e sincronizzazione si impostano nel pannello della scheda video: premi \"Apri il pannello\" e metti i valori indicati.")
-	emit("onGameTuneDone", map[string]interface{}{"id": id, "ok": true, "msgs": msgs, "settings": getSettings()})
+	// partial: qualcosa che hai chiesto non è stato fatto (le righe in failed).
+	emit("onGameTuneDone", map[string]interface{}{"id": id, "ok": true, "partial": len(failed) > 0, "failed": failed, "msgs": msgs, "settings": getSettings()})
 }
 
+// qualityText: "qualità Alto" ecc., intere, così si traducono anche in inglese.
+var qualityText = []string{"qualità Basso", "qualità Medio", "qualità Alto", "qualità Ultra"}
+
 // gameTuneUndoQuiet rimette com'era quello che Tasso aveva cambiato per questo gioco.
-func gameTuneUndoQuiet(id string) bool {
+// Con reapply (stai premendo di nuovo Applica) rimette solo il registro: il file della grafica e
+// la sua copia di sicurezza della prima volta restano come sono, e restituisce il percorso del
+// file da tenere per "Annulla regolazione". Senza reapply restituisce "x" se c'era una regolazione.
+func gameTuneUndoQuiet(id string, reapply bool) string {
 	setMu.Lock()
 	t := settings.GameTunes[id]
 	setMu.Unlock()
 	if t == nil {
-		return false
+		return ""
 	}
 	for key, v := range t.Prev {
 		parts := strings.SplitN(key, "|", 2)
@@ -788,11 +930,7 @@ func gameTuneUndoQuiet(id string) bool {
 		}
 		switch parts[0] {
 		case "gpu":
-			if had {
-				_ = regSet(registry.CURRENT_USER, gpuPrefKey, parts[1], old)
-			} else {
-				regDel(registry.CURRENT_USER, gpuPrefKey, parts[1])
-			}
+			gpuPrefUndo(parts[1], v)
 		case "fso":
 			if had {
 				_ = regSet(registry.CURRENT_USER, layersKey, parts[1], old)
@@ -822,6 +960,23 @@ func gameTuneUndoQuiet(id string) bool {
 	}
 	// 3.1: il percorso viene da settings.json, che un programma qualsiasi può cambiare: rimetto il backup
 	// solo sul file delle impostazioni del gioco, e mai attraverso collegamenti o giunzioni.
+	if reapply {
+		updateSettings(func(s *Settings) {
+			for _, e := range t.Exes {
+				delete(s.GameModes, strings.ToLower(strings.TrimSuffix(filepath.Base(e), filepath.Ext(e))))
+			}
+			// la regolazione resta, senza i valori del registro (già rimessi): la riscrive Applica
+			if cur := s.GameTunes[id]; cur != nil {
+				c := *cur
+				c.Prev = nil
+				s.GameTunes[id] = &c
+			}
+		})
+		if t.Ini != "" && safeIniPath(t.Ini) {
+			return t.Ini
+		}
+		return ""
+	}
 	if t.Ini != "" && safeIniPath(t.Ini) {
 		bak := t.Ini + ".tasso-backup"
 		if b, err := os.ReadFile(bak); err == nil {
@@ -835,25 +990,28 @@ func gameTuneUndoQuiet(id string) bool {
 			delete(s.GameModes, strings.ToLower(strings.TrimSuffix(filepath.Base(e), filepath.Ext(e))))
 		}
 		delete(s.GameTunes, id)
-		// Se la Modalità gioco automatica l'aveva accesa una regolazione, la spengo quando nessun gioco la usa più.
-		if s.AutoGameTune {
-			used := false
-			for _, o := range s.GameTunes {
-				if o != nil && o.Opts.Mode != "" {
-					used = true
-				}
-			}
-			if !used && !autoGameKept(s) {
-				s.AutoGame, s.AutoGameTune = false, false
-			}
-		}
+		autoGameTuneCleanup(s)
 	})
-	return true
+	return "x"
+}
+
+// autoGameTuneCleanup: se la Modalità gioco automatica l'aveva accesa una regolazione o una potenza
+// per gioco, la spengo quando nessuno la usa più. Va chiamata dentro updateSettings.
+func autoGameTuneCleanup(s *Settings) {
+	if !s.AutoGameTune || autoGameKept(s) {
+		return
+	}
+	for _, o := range s.GameTunes {
+		if o != nil && o.Opts.Mode != "" {
+			return
+		}
+	}
+	s.AutoGame, s.AutoGameTune = false, false
 }
 
 func gameTuneUndo(id string) {
 	msgs := []string{"Questo gioco non era regolato da Tasso."}
-	if gameTuneUndoQuiet(id) {
+	if gameTuneUndoQuiet(id, false) != "" {
 		msgs = []string{"✓ Regolazione tolta: impostazioni di Windows e file della grafica rimessi com'erano."}
 	}
 	emit("onGameTuneDone", map[string]interface{}{"id": id, "ok": true, "undo": true, "msgs": msgs, "settings": getSettings()})

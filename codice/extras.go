@@ -245,6 +245,7 @@ func startGameWatcher() {
 func gameTick() {
 	setMu.Lock()
 	on := settings.AutoGame && !settings.Paused
+	forAll := autoGameForAll(&settings)
 	prev := settings.Mode
 	left := settings.ModeBeforeGame
 	setMu.Unlock()
@@ -279,8 +280,9 @@ func gameTick() {
 			if m == "max" { // Massima potenza: FPS competitivo
 				target = "fps"
 			}
-			// Con una scelta per questo gioco la metto sempre; senza, non abbasso FPS a Gaming.
-			if (m != "" && prev != target) || (m == "" && prev != "gaming" && prev != "fps") {
+			// Con una scelta per questo gioco la metto sempre; senza, non abbasso FPS a Gaming, e non
+			// cambio niente se la modalità automatica è accesa solo per i giochi con una loro potenza.
+			if (m != "" && prev != target) || (m == "" && forAll && prev != "gaming" && prev != "fps") {
 				back := prev
 				if _, ok := modeScripts[back]; !ok {
 					back = "normale" // es. dopo "Rimetti com'era": non è una modalità da rimettere
@@ -290,7 +292,9 @@ func gameTick() {
 				go setMode(target)
 			}
 			overlayGameStarted()
-			emit("onGameMode", map[string]interface{}{"active": true, "game": name, "mode": target})
+			if m != "" || forAll { // senza una scelta per questo gioco non ho cambiato niente: niente avviso
+				emit("onGameMode", map[string]interface{}{"active": true, "game": name, "mode": target})
+			}
 			return
 		}
 		gameMu.Unlock()
