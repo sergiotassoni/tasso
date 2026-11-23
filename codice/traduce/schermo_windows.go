@@ -23,40 +23,39 @@ var (
 	user32 = windows.NewLazySystemDLL("user32.dll")
 	gdi32  = windows.NewLazySystemDLL("gdi32.dll")
 
-	pRegisterClassEx   = user32.NewProc("RegisterClassExW")
-	pCreateWindowEx    = user32.NewProc("CreateWindowExW")
-	pDefWindowProc     = user32.NewProc("DefWindowProcW")
-	pGetMessage        = user32.NewProc("GetMessageW")
-	pTranslateMsg      = user32.NewProc("TranslateMessage")
-	pDispatchMsg       = user32.NewProc("DispatchMessageW")
-	pPostMessage       = user32.NewProc("PostMessageW")
-	pSetLayeredAttr    = user32.NewProc("SetLayeredWindowAttributes")
-	pShowWindow        = user32.NewProc("ShowWindow")
-	pSetWindowPos      = user32.NewProc("SetWindowPos")
-	pGetWindowLongPtr  = user32.NewProc("GetWindowLongPtrW")
-	pSetWindowLongPtr  = user32.NewProc("SetWindowLongPtrW")
-	pInvalidateRect    = user32.NewProc("InvalidateRect")
-	pBeginPaint        = user32.NewProc("BeginPaint")
-	pEndPaint          = user32.NewProc("EndPaint")
-	pFillRect          = user32.NewProc("FillRect")
-	pFrameRect         = user32.NewProc("FrameRect")
-	pDrawText          = user32.NewProc("DrawTextW")
-	pGetSysMetrics     = user32.NewProc("GetSystemMetrics")
-	pRegisterHotKey    = user32.NewProc("RegisterHotKey")
-	pGetDC             = user32.NewProc("GetDC")
-	pReleaseDC         = user32.NewProc("ReleaseDC")
-	pSetCapture        = user32.NewProc("SetCapture")
-	pReleaseCapture    = user32.NewProc("ReleaseCapture")
-	pDestroyWindow     = user32.NewProc("DestroyWindow")
-	pSetForeground     = user32.NewProc("SetForegroundWindow")
-	pLoadCursor        = user32.NewProc("LoadCursorW")
-	pSetDisplayAffin   = user32.NewProc("SetWindowDisplayAffinity")
-	pSetDpiAwarenessCx = user32.NewProc("SetProcessDpiAwarenessContext")
-	pGetClientRect     = user32.NewProc("GetClientRect")
-	pGetForeground     = user32.NewProc("GetForegroundWindow")
-	pSetTimer          = user32.NewProc("SetTimer")
-	pClientToScreen    = user32.NewProc("ClientToScreen")
-	pIsWindow          = user32.NewProc("IsWindow")
+	pRegisterClassEx  = user32.NewProc("RegisterClassExW")
+	pCreateWindowEx   = user32.NewProc("CreateWindowExW")
+	pDefWindowProc    = user32.NewProc("DefWindowProcW")
+	pGetMessage       = user32.NewProc("GetMessageW")
+	pTranslateMsg     = user32.NewProc("TranslateMessage")
+	pDispatchMsg      = user32.NewProc("DispatchMessageW")
+	pPostMessage      = user32.NewProc("PostMessageW")
+	pSetLayeredAttr   = user32.NewProc("SetLayeredWindowAttributes")
+	pShowWindow       = user32.NewProc("ShowWindow")
+	pSetWindowPos     = user32.NewProc("SetWindowPos")
+	pGetWindowLongPtr = user32.NewProc("GetWindowLongPtrW")
+	pSetWindowLongPtr = user32.NewProc("SetWindowLongPtrW")
+	pInvalidateRect   = user32.NewProc("InvalidateRect")
+	pBeginPaint       = user32.NewProc("BeginPaint")
+	pEndPaint         = user32.NewProc("EndPaint")
+	pFillRect         = user32.NewProc("FillRect")
+	pFrameRect        = user32.NewProc("FrameRect")
+	pDrawText         = user32.NewProc("DrawTextW")
+	pGetSysMetrics    = user32.NewProc("GetSystemMetrics")
+	pRegisterHotKey   = user32.NewProc("RegisterHotKey")
+	pGetDC            = user32.NewProc("GetDC")
+	pReleaseDC        = user32.NewProc("ReleaseDC")
+	pSetCapture       = user32.NewProc("SetCapture")
+	pReleaseCapture   = user32.NewProc("ReleaseCapture")
+	pDestroyWindow    = user32.NewProc("DestroyWindow")
+	pSetForeground    = user32.NewProc("SetForegroundWindow")
+	pLoadCursor       = user32.NewProc("LoadCursorW")
+	pSetDisplayAffin  = user32.NewProc("SetWindowDisplayAffinity")
+	pGetClientRect    = user32.NewProc("GetClientRect")
+	pGetForeground    = user32.NewProc("GetForegroundWindow")
+	pSetTimer         = user32.NewProc("SetTimer")
+	pClientToScreen   = user32.NewProc("ClientToScreen")
+	pIsWindow         = user32.NewProc("IsWindow")
 
 	pCreateCompatDC    = gdi32.NewProc("CreateCompatibleDC")
 	pCreateCompatBmp   = gdi32.NewProc("CreateCompatibleBitmap")
@@ -143,17 +142,8 @@ const (
 	smCXVirtual = 78
 	smCYVirtual = 79
 
-	swpNoSize     = 0x1
-	swpNoMove     = 0x2
 	swpNoActivate = 0x10
 )
-
-// la scelta delle coordinate deve corrispondere ai pixel veri dello schermo
-func impostaDPI() {
-	if pSetDpiAwarenessCx.Find() == nil {
-		pSetDpiAwarenessCx.Call(^uintptr(3)) // DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2 = -4
-	}
-}
 
 // ---------------------------------------------------------------- cattura
 
@@ -563,12 +553,6 @@ func (f *finestrella) giocoAttuale() uintptr {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	return f.gioco
-}
-
-func (f *finestrella) DimenticaGioco() {
-	f.mu.Lock()
-	f.gioco, f.exeGioco = 0, ""
-	f.mu.Unlock()
 }
 
 func (f *finestrella) ApriSelezione() {

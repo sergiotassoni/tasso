@@ -57,13 +57,10 @@ type adlPMLogOut struct {
 
 // Posizioni dei sensori nella lista di ADL (ADL_PMLOG_SENSORS).
 const (
-	adlFanPct    = 15
-	adlTempEdge  = 8
-	adlActGfx    = 19
-	adlTempHot   = 27
-	adlTempMem   = 9
-	adlFanRPM    = 14
-	adlAsicPower = 23
+	adlFanPct   = 15
+	adlTempEdge = 8
+	adlActGfx   = 19
+	adlTempHot  = 27
 )
 
 func adlInit() bool {

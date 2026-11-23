@@ -54,12 +54,6 @@ func (t *Traduttore) QuandoCorretta(f func(inglese, bozza, corretta string)) {
 	t.corr.mu.Unlock()
 }
 
-func (t *Traduttore) correttoreAttivo() bool {
-	t.corr.mu.Lock()
-	defer t.corr.mu.Unlock()
-	return t.corr.motore != nil
-}
-
 // accodaCorrezione: chiamata dopo una traduzione nuova di Mozilla. Se la coda è piena, la frase
 // resta com'è (meglio una traduzione un po' meno precisa che rallentare il gioco).
 func (t *Traduttore) accodaCorrezioneCoppia(chiave, testo, bozza, da, a string) {

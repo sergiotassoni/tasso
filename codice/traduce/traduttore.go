@@ -30,7 +30,6 @@ type Traduttore struct {
 	libreria       map[string]string // traduzioni del gioco aperto, tenute per sempre
 	fileLibreria   string
 	dubbi          map[string]Dubbio // traduzioni che sembrano strane, da guardare insieme
-	Ultimo         string            // nome dell'ultimo motore usato
 	corr           correttoreSfondo  // IA che ricontrolla le frasi in sottofondo
 	// Coppia: lingua del gioco e lingua di arrivo scelte ("en","it" se nil). Per inglese →
 	// italiano c'è tutto (glossario, libreria, correttore IA); per le altre coppie Mozilla,

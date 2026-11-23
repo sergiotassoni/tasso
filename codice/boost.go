@@ -389,11 +389,6 @@ func reopenBackground() []string {
 
 // ---------------- Accendi / spegni (pulsante) ----------------
 
-func boostOn() []string {
-	msgs, _ := boostOnOK()
-	return msgs
-}
-
 // boostOnOK: come boostOn, e dice anche se il Boost è stato acceso adesso (false = rifiutato:
 // Tasso spento o Boost già acceso).
 func boostOnOK() ([]string, bool) {

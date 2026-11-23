@@ -185,12 +185,6 @@ type paginaPronta struct {
 	tOCR, tTrad time.Duration
 }
 
-// traduciPagina: legge tutte le scritte con la loro posizione, le traduce e le disegna.
-func traduciPagina(area Zona, img, primaImg *image.RGBA, giro int64) bool {
-	p, _ := preparaPagina(area, img, primaImg, giro)
-	return p != nil && mostraPaginaPronta(p, giro)
-}
-
 // preparaPagina: legge tutte le scritte con la loro posizione e le traduce (senza disegnare).
 // Senza niente da disegnare restituisce nil; occupata dice che la lettura del testo era presa
 // da un altro lavoro (dialoghi, chat degli altri) e conviene riprovare.

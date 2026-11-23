@@ -489,13 +489,6 @@ func collega(w webview2.WebView) {
 		return "ok"
 	})
 	_ = w.Bind("ttScaricaMozilla", func() string { go scaricaMozilla(); return "ok" })
-	_ = w.Bind("ttAnalizzaPC", func() string {
-		go func() {
-			defer guard("analisi")
-			emetti("analisi", analizzaPC())
-		}()
-		return "ok"
-	})
 	_ = w.Bind("ttScaricaIA", func() string { go scaricaIA(); return "ok" })
 	_ = w.Bind("ttScaricaChat", func() string { go scaricaChat(); return "ok" })
 	_ = w.Bind("ttApplicaTraduzione", func(nome, cartella string, _ bool, modo string) string {
@@ -567,10 +560,6 @@ func collega(w webview2.WebView) {
 	_ = w.Bind("ttInstallaOCR", func(codice string) string { return installaLetturaOCR(codice) })
 	// 3.1: dopo "Apri il gioco" di Tasso controllo se la traduzione parte davvero.
 	_ = w.Bind("ttVerifica", func(cartella string) string { return VerificaDopoAvvio(cartella) })
-	_ = w.Bind("ttApriGioco", func(cartella string) string {
-		accendiTraduzione()
-		return apriGioco(cartella)
-	})
 	_ = w.Bind("ttFermaTraduzione", func(cartella string) string {
 		if e := fermaModGioco(cartella); e != "" {
 			return e
@@ -595,25 +584,6 @@ func collega(w webview2.WebView) {
 	})
 	// le traduzioni passano da Mozilla dentro questa stessa pagina: se aspettassi qui bloccherei
 	// la pagina, quindi rispondo subito e mando il risultato con l'evento "chat"
-	_ = w.Bind("ttTraduciChat", func(testo string) string {
-		assicuraMotore()
-		go func() {
-			defer guard("chat-finestra")
-			ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
-			defer cancel()
-			en, err := traduciChat(ctx, testo)
-			if err != nil {
-				emetti("chat", map[string]string{"errore": err.Error()})
-				return
-			}
-			copiato := "si"
-			if scriviAppunti(en) != nil {
-				copiato = "no"
-			}
-			emetti("chat", map[string]string{"it": testo, "en": en, "copiato": copiato})
-		}()
-		return "ok"
-	})
 	_ = w.Bind("ttScegliZona", func() string { go scegliZonaGioco(); return "ok" })
 	_ = w.Bind("ttScegliZonaChat", func() string { go scegliZonaChat(); return "ok" })
 	_ = w.Bind("ttImpostaChatAltri", func(on bool) string {
@@ -626,8 +596,6 @@ func collega(w webview2.WebView) {
 		impostaChatAltri(on)
 		return "ok"
 	})
-	_ = w.Bind("ttTraduciOra", func() string { go traduciOra(true); return "ok" })
-	_ = w.Bind("ttImpostaAuto", func(on bool) string { impostaAuto(on); return "ok" })
 	_ = w.Bind("ttImpostaTasto", func(nome string, codice uint32) map[string]string {
 		muImp.Lock()
 		attuali := tastiCompleti(imp.Tasti)
@@ -698,7 +666,6 @@ func collega(w webview2.WebView) {
 		}
 		return on
 	})
-	_ = w.Bind("ttGiochi", func() []map[string]any { return elencoGiochi() })
 	_ = w.Bind("ttImpostaTuttoAuto", func(on bool) bool {
 		muImp.Lock()
 		imp.TuttoAuto = on
@@ -1399,25 +1366,6 @@ func etichetteTasti(t map[string]uint32) map[string]string {
 		out[k] = etichettaTasto(v)
 	}
 	return out
-}
-
-// creaFinestra: se WebView2 non parte (succede subito dopo l'avvio di Windows) lo dico invece
-// di chiudermi in silenzio.
-func creaFinestra() (w webview2.WebView) {
-	defer func() {
-		if r := recover(); r != nil {
-			logErrore("finestra", r, debug.Stack())
-			finestraErrore("La finestra di Tasso Traduce non si è aperta (WebView2 di Windows non ha risposto). Chiudi e riapri Tasso; se succede ancora, riavvia il PC.")
-			w = nil
-		}
-	}()
-	return webview2.NewWithOptions(webview2.WebViewOptions{
-		DataPath:  filepath.Join(dirApp, cartellaWebView),
-		AutoFocus: true,
-		WindowOptions: webview2.WindowOptions{
-			Title: "Tasso Traduce", Width: 960, Height: 680, Center: true,
-		},
-	})
 }
 
 // nomeUnaCopia: una sola copia di Tasso Traduce aperta (le prove ne usano un altro, così non

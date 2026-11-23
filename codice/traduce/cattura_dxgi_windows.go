@@ -32,7 +32,6 @@ var (
 
 const (
 	dxgiErrWaitTimeout = 0x887A0027
-	dxgiErrAccessLost  = 0x887A0026
 )
 
 func chiama(obj unsafe.Pointer, indice int, args ...uintptr) uint32 {

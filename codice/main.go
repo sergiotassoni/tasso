@@ -446,7 +446,6 @@ func bindAll(w webview2.WebView) {
 	_ = w.Bind("goDiscordEvery", func(h int) string { return setDiscordEvery(h) })
 	_ = w.Bind("goDiscordBot", func(token string, on bool) string { return async("discordbot", func() { setDiscordBot(token, on) }) })
 	_ = w.Bind("goDiscordBotState", func() map[string]interface{} { return getBotState() })
-	_ = w.Bind("goSetAutoGame", func(on bool) string { return setAutoGame(on) })
 	_ = w.Bind("goOverlaySet", func(on bool, pos string) string { return setOverlay(on, pos) })
 	_ = w.Bind("goOverlayShow", func(show bool) string { return overlayShow(show) })
 	_ = w.Bind("goOverlayItems", func(items []string) string { return setOverlayItems(items) })
@@ -554,9 +553,6 @@ func bindAll(w webview2.WebView) {
 	_ = w.Bind("goVaultGen", func(n int, sym bool) string { return genPassword(n, sym) })
 	_ = w.Bind("goVaultPwned", func(id string) string {
 		return async("pwned", func() { r := vaultPwned(id); r["id"] = id; emit("onPwned", r) })
-	})
-	_ = w.Bind("goPwnedCheck", func(pw string) string {
-		return async("pwned", func() { r := pwnedCount(pw); r["id"] = ""; emit("onPwned", r) })
 	})
 	_ = w.Bind("goRestart", func() string {
 		runHidden("shutdown.exe", "/r", "/t", "15", "/c", trGo("Tasso riavvia il PC tra 15 secondi per completare la manutenzione."))

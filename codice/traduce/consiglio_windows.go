@@ -75,11 +75,6 @@ func coreFisici() int {
 	return runtime.NumCPU()
 }
 
-func analizzaPC() AnalisiPC {
-	g := controllaGPU()
-	return consiglioPC(g, memoriaPC(), coreFisici(), motoreIADisponibile())
-}
-
 var (
 	pcOnce sync.Once
 	pcRAM  float64

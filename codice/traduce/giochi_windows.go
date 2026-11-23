@@ -3,65 +3,14 @@
 package traduce
 
 import (
-	"encoding/base64"
 	"os"
-	"os/exec"
 	"path/filepath"
-	"sort"
 	"strings"
 	"sync"
 	"time"
 
-	"golang.org/x/sys/windows"
-
 	"fmt"
-	"golang.org/x/sys/windows/registry"
 )
-
-// elencoGiochi: i giochi installati con Steam ed Epic (solo lettura dei file dei launcher).
-func elencoGiochi() []map[string]any {
-	var tutti []GiocoInstallato
-	if k, err := registry.OpenKey(registry.CURRENT_USER, `Software\Valve\Steam`, registry.QUERY_VALUE); err == nil {
-		if p, _, err := k.GetStringValue("SteamPath"); err == nil && p != "" {
-			tutti = append(tutti, giochiSteam(filepath.FromSlash(p))...)
-		}
-		k.Close()
-	}
-	tutti = append(tutti, giochiEpic(filepath.Join(os.Getenv("ProgramData"), "Epic", "EpicGamesLauncher", "Data", "Manifests"))...)
-	sort.Slice(tutti, func(i, j int) bool { return tutti[i].Nome < tutti[j].Nome })
-	out := make([]map[string]any, 0, len(tutti))
-	muGiochiNoti.Lock()
-	giochiNoti = map[string]GiocoInstallato{}
-	for _, g := range tutti {
-		giochiNoti[chiaveGioco(g.Cartella)] = g
-	}
-	muGiochiNoti.Unlock()
-	for _, g := range tutti {
-		fileOK, fileMotivo := ModPossibile(g.Cartella)
-		cop := ""
-		if g.Copertina != "" {
-			if b, err := os.ReadFile(g.Copertina); err == nil && len(b) < 4<<20 {
-				tipo := "image/jpeg"
-				if strings.HasSuffix(strings.ToLower(g.Copertina), ".png") {
-					tipo = "image/png"
-				}
-				cop = "data:" + tipo + ";base64," + base64.StdEncoding.EncodeToString(b)
-			}
-		}
-		out = append(out, map[string]any{
-			"nome": g.Nome, "piattaforma": g.Piattaforma, "copertina": cop, "cartella": g.Cartella,
-			"tradotto":    giocoTradotto(g.Cartella),
-			"unity":       unityDi(g.Cartella),
-			"in_file":     giocoInFile(g.Cartella),
-			"file_ok":     fileOK,
-			"file_motivo": fileMotivo,
-			"avviabile":   g.Avvio != "" || exeGioco(g.Cartella) != "",
-			"traduzioni":  ContaLibreria(fileLibreriaGioco(g.Cartella, g.Nome)),
-			"anticheat":   ConAntiCheat(GiocoRiconosciuto{Nome: g.Nome, Piattaforma: g.Piattaforma, Cartella: g.Cartella}),
-		})
-	}
-	return out
-}
 
 func unityDi(cartella string) string {
 	t, _ := TipoUnity(cartella)
@@ -89,43 +38,6 @@ func exeGioco(cartella string) string {
 		}
 		return v.Name()
 	}
-	return ""
-}
-
-// apriGioco avvia il gioco dal suo negozio (così Steam/Epic restano contenti) o, se non si può,
-// direttamente dall'exe. Poi controlla davvero se la traduzione parte.
-func apriGioco(cartella string) string {
-	muGiochiNoti.Lock()
-	g, ok := giochiNoti[chiaveGioco(cartella)]
-	muGiochiNoti.Unlock()
-	if !ok {
-		return "Non trovo il gioco: aprilo tu dal suo negozio."
-	}
-	// dentro Tasso (amministratore) il gioco parte come utente normale, come con "Gioca"
-	if g.Avvio != "" && Ospite.ApriComeUtente != nil {
-		if !Ospite.ApriComeUtente(g.Avvio, "") {
-			return "Non riesco ad aprirlo da " + g.Piattaforma + ": aprilo tu."
-		}
-	} else if exe := exeGioco(g.Cartella); exe != "" && Ospite.ApriComeUtente != nil {
-		if !Ospite.ApriComeUtente(filepath.Join(g.Cartella, exe), "") {
-			return "Non riesco ad aprirlo: aprilo tu."
-		}
-	} else if g.Avvio != "" {
-		verbo, _ := windows.UTF16PtrFromString("open")
-		dove, _ := windows.UTF16PtrFromString(g.Avvio)
-		if err := windows.ShellExecute(0, verbo, dove, nil, nil, 1); err != nil {
-			return "Non riesco ad aprirlo da " + g.Piattaforma + ": aprilo tu."
-		}
-	} else if exe := exeGioco(g.Cartella); exe != "" {
-		cmd := exec.Command(filepath.Join(g.Cartella, exe))
-		cmd.Dir = g.Cartella
-		if err := cmd.Start(); err != nil {
-			return "Non riesco ad aprirlo: aprilo tu."
-		}
-	} else {
-		return "Non trovo come aprirlo: aprilo tu."
-	}
-	avviaVerifica(g)
 	return ""
 }
 

@@ -220,14 +220,6 @@ var (
 	tempiVociProva []time.Time
 )
 
-func codaSecondi(dir string) float64 {
-	var s float64
-	if b, err := os.ReadFile(filepath.Join(dir, "coda.txt")); err == nil {
-		fmt.Sscan(strings.TrimSpace(string(b)), &s)
-	}
-	return s
-}
-
 var pPlaySound = windowsLazyWinmm.NewProc("PlaySoundW")
 
 // suona fa uscire un file WAV dalle casse (come farebbe il gioco) e aspetta che finisca.
