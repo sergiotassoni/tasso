@@ -178,7 +178,7 @@ func pulisciRisposta(s string) string {
 		s = s[i+len("</think>"):]
 	}
 	s = strings.TrimSpace(s)
-	for _, pre := range []string{"Traduzione:", "Traduzione italiana:", "Italiano:"} {
+	for _, pre := range []string{"Traduzione automatica:", "Traduzione corretta:", "Traduzione finale:", "Traduzione italiana:", "Traduzione:", "Italiano:"} {
 		if strings.HasPrefix(strings.ToLower(s), strings.ToLower(pre)) {
 			s = strings.TrimSpace(s[len(pre):])
 		}

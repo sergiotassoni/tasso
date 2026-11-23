@@ -68,3 +68,9 @@ func TestTokenMassimi(t *testing.T) {
 		t.Fatalf("frase lunga: %d", n)
 	}
 }
+
+func TestPulisciPrefissoBozza(t *testing.T) {
+	if g := pulisciRisposta("Traduzione automatica: Lingua dell'interfaccia"); g != "Lingua dell'interfaccia" {
+		t.Fatal(g)
+	}
+}
