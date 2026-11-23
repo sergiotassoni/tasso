@@ -326,6 +326,7 @@ func preparaPagina(area Zona, img, primaImg *image.RGBA, giro int64) (p *paginaP
 		_ = os.WriteFile(filepath.Join(dirApp, "logs", "pagina-tradotto.txt"), []byte(sb.String()), 0o644)
 	}
 	armonizza(pronti)
+	colonnePiccole(pronti)
 	for i := range pronti { // titoli al centro dello schermo: la traduzione resta al centro
 		cx := pronti[i].X + pronti[i].W/2
 		if pronti[i].Righe <= 1 && abs(cx-img.Bounds().Dx()/2) <= max(10, img.Bounds().Dx()/100) && pronti[i].W < img.Bounds().Dx()*9/10 {

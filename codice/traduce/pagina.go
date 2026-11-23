@@ -50,6 +50,10 @@ type Blocco struct {
 	Inchiostro2 color.RGBA // secondo colore delle lettere nella stessa riga (parole evidenziate)
 	Ha2         bool
 	Pulita      *image.RGBA // la cattura con TUTTE le scritte inglesi tradotte cancellate
+	PxColonna   int         // testo piccolo in colonna (notizie): stessa grandezza per tutte le righe
+	ColRif      string      // riga di riferimento della colonna, per scegliere il carattere
+	ColRifW     int         // sua larghezza nel gioco
+	ColLarg     int         // larghezza della colonna
 	Marg        int         // margine della toppa attorno all'inglese (0 = non calcolato): mai fino alla scritta vicina
 }
 
@@ -1633,4 +1637,45 @@ func lettereOCRStrane(s string) string {
 		return s
 	}
 	return strings.NewReplacer("å", "ch", "»", "sp").Replace(s)
+}
+
+// colonnePiccole: righe e paragrafi di testo piccolo allineati a sinistra uno sotto l'altro
+// (le notizie di Liar's Bar) diventano una colonna: stessa grandezza, stesso carattere e la
+// stessa larghezza per andare a capo, come nel gioco.
+func colonnePiccole(b []Blocco) {
+	usato := make([]bool, len(b))
+	for i := range b {
+		if usato[i] || b[i].Em <= 0 || b[i].Em >= 20 || b[i].Centro {
+			continue
+		}
+		gruppo := []int{i}
+		usato[i] = true
+		for j := i + 1; j < len(b); j++ {
+			if !usato[j] && b[j].Em > 0 && b[j].Em < 20 && !b[j].Centro && abs(b[j].X-b[i].X) <= 6 &&
+				math.Abs(b[j].Em-b[i].Em) <= 1.6 { // i titoletti (più grandi) fanno colonna a parte
+				gruppo = append(gruppo, j)
+				usato[j] = true
+			}
+		}
+		if len(gruppo) < 3 {
+			continue
+		}
+		var em []float64
+		destra, rif, rifW := 0, "", 0
+		for _, k := range gruppo {
+			em = append(em, b[k].Em)
+			destra = max(destra, b[k].X+b[k].W)
+			if b[k].Righe <= 1 && b[k].W > rifW {
+				rif, rifW = b[k].Testo, b[k].W
+			}
+		}
+		sort.Float64s(em)
+		px := int(em[len(em)/2] + 0.5)
+		for _, k := range gruppo {
+			b[k].PxColonna = px
+			b[k].ColRif, b[k].ColRifW = rif, rifW
+			b[k].ColLarg = destra - b[k].X
+			b[k].LargMax = max(b[k].LargMax, destra-b[k].X)
+		}
+	}
 }

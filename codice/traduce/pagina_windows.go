@@ -154,7 +154,13 @@ func disegnaBlocco(hdc uintptr, b Blocco, fase int) {
 	if px < 10 {
 		px = 10
 	}
+	if b.PxColonna > 0 {
+		px = int32(b.PxColonna)
+	}
 	larg, maxLarg := int32(b.W), int32(max(b.LargMax, b.W))
+	if b.PxColonna > 0 && b.ColLarg > 0 {
+		larg = int32(max(b.W, b.ColLarg)) // nella colonna si va a capo alla sua larghezza
+	}
 	if b.Centro && righe == 1 {
 		maxLarg = larg + 2*(maxLarg-larg) // centrata: cresce dai due lati
 		if b.Img != nil {                 // ma non oltre i bordi dello schermo
@@ -162,7 +168,7 @@ func disegnaBlocco(hdc uintptr, b Blocco, fase int) {
 			maxLarg = min(maxLarg, 2*min(cx, int32(b.Img.Bounds().Dx())-cx)-16)
 		}
 	}
-	if righe > 1 && b.Em < 20 {
+	if righe > 1 && b.Em < 20 && b.PxColonna == 0 {
 		// testo piccolo su più righe (notizie, descrizioni): la riga italiana non deve essere
 		// più alta di quella del gioco, se no il paragrafo esce dal suo spazio
 		px = min(px, max(9, altRiga*80/100))
@@ -170,6 +176,9 @@ func disegnaBlocco(hdc uintptr, b Blocco, fase int) {
 	minPx := max(10, px*78/100)
 	if righe > 1 && b.Em < 20 {
 		minPx = max(9, px*66/100)
+	}
+	if b.PxColonna > 0 {
+		minPx = max(9, px*85/100) // tutta la colonna resta quasi della stessa grandezza
 	}
 	if righe == 1 {
 		// una riga sola (voce di menu, etichetta): meglio un po' più piccola che andare a capo
@@ -181,10 +190,13 @@ func disegnaBlocco(hdc uintptr, b Blocco, fase int) {
 	// lettere del gioco strette? Misuro l'inglese con il carattere normale: se viene molto più
 	// largo dell'originale, uso un carattere stretto (stessa forma del gioco)
 	fam := 0
-	if b.Testo != "" && b.W > 0 {
-		wIng, _ := misuraTesto(hdc, fontPaginaF(px, b.pesoCarattere(), 0), b.Testo, 0, false)
-		spazio := float64(b.W)
-		if righe > 1 {
+	if testoRif, wRif := b.Testo, b.W; testoRif != "" && wRif > 0 {
+		if b.ColRif != "" && b.ColRifW > 0 { // colonna: lo stesso carattere per tutte le righe
+			testoRif, wRif = b.ColRif, b.ColRifW
+		}
+		wIng, _ := misuraTesto(hdc, fontPaginaF(px, b.pesoCarattere(), 0), testoRif, 0, false)
+		spazio := float64(wRif)
+		if righe > 1 && b.ColRif == "" {
 			spazio = float64(b.W) * float64(righe) * 0.9
 		}
 		switch r := float64(wIng) / spazio; {
