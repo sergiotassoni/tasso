@@ -74,16 +74,18 @@ func stratiPer(gb float64) int {
 	return max(stratiParziali, min(n, stratiModello-1))
 }
 
-// limiteIA: regola di Sergio (23/11): l'IA usa al massimo 3/8 della memoria video (4,5 GB su 12)
+// limiteIA: regola di Sergio (23/11): l'IA usa al massimo il 44% della memoria video (5,2 GB su 12:
+// l'IA intera, la più veloce)
 // (4 GB su una scheda da 12), il resto è del gioco.
-// Aggiornata 23/11 18:10 dopo i dati veri sui giochi pesanti: 4,5 GB su 12 vanno bene a Sergio
+// Dati veri sui giochi pesanti: Sergio accetta 4,5-5 GB su 12; con 4,5 GB l'IA divisa correggeva in
+// 0,7-1,8 s, intera in 0,3 s.
 // (Subnautica 2 al massimo 7 GB, Throne and Liberty 6 GB; Call of Duty 10 GB → l'IA si fa da parte).
-func limiteIA(memoriaGB float64) float64 { return memoriaGB * 0.375 }
+func limiteIA(memoriaGB float64) float64 { return memoriaGB * 0.44 }
 
 func sceltaCorrettore(g InfoGPU, ramGB float64, core int) ProfiloCorrettore {
 	libera := g.MemoriaGB - g.UsataGB
 	if lim := limiteIA(g.MemoriaGB); g.MemoriaGB > 0 && lim < vramMeta && ramGB >= ramMinimaIA {
-		// scheda piccola (8 GB): anche metà IA prenderebbe più di 3/8 della scheda. Il gioco prima di tutto
+		// scheda piccola (8 GB): anche metà IA supererebbe il limite. Il gioco prima di tutto
 		return ProfiloCorrettore{"", 0, 0, fmt.Sprintf("Con %.0f GB di scheda video l'IA toglierebbe troppa memoria al gioco: uso il traduttore veloce.", g.MemoriaGB)}
 	}
 	if lim := limiteIA(g.MemoriaGB); g.MemoriaGB > 0 && lim < vramIntero && lim >= vramMeta &&
@@ -99,7 +101,11 @@ func sceltaCorrettore(g InfoGPU, ramGB float64, core int) ProfiloCorrettore {
 	case libera >= vramIntero+margineGiocoGB:
 		return ProfiloCorrettore{"scheda", -1, vramIntero, fmt.Sprintf("%.1f GB liberi sulla scheda video: il correttore lavora tutto lì (circa %.0f GB).", libera, vramIntero)}
 	case libera >= vramMeta+margineGiocoGB && core >= coreMinimiMeta:
-		return ProfiloCorrettore{"meta", stratiParziali, vramMeta, fmt.Sprintf("%.1f GB liberi: il correttore lavora in parte sulla scheda video (circa %.1f GB) e in parte sul processore, un po' più lento.", libera, vramMeta)}
+		n := stratiPer(libera - margineGiocoGB)
+		if lim := limiteIA(g.MemoriaGB); g.MemoriaGB > 0 {
+			n = stratiPer(min(lim, libera-margineGiocoGB))
+		}
+		return ProfiloCorrettore{"meta", n, vramStrati(n), fmt.Sprintf("%.1f GB liberi: il correttore lavora in parte sulla scheda video (circa %.1f GB) e in parte sul processore, un po' più lento.", libera, vramStrati(n))}
 	default:
 		return ProfiloCorrettore{"", 0, 0, fmt.Sprintf("Liberi sulla scheda video solo %.1f GB: la lascio tutta al gioco e uso solo il traduttore veloce.", libera)}
 	}

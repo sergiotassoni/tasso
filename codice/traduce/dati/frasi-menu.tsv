@@ -517,5 +517,400 @@ Hit Customers & Passersby	Colpire clienti e passanti
 Start running a new PC cafe.	Inizia a gestire un nuovo PC cafe.
 Day Length	Durata della giornata
 No Rating	Nessuna valutazione
-Steam Discussions	Discussioni su Steam
-Direct Report	Segnalazione diretta
+Steam Discussions	Discussioni di Steam
+Report Directly	Segnala direttamente
+Bug Report	Segnalazione bug
+Report a Bug	Segnala un bug
+Reports are not posted publicly on Steam Discussions.	Le segnalazioni non vengono pubblicate nelle Discussioni di Steam.
+# === Lista frasi pronte 23/11 (scritte a mano per Tasso, GPL-3.0) ===
+# --- grafica
+Graphics Settings	Impostazioni grafiche
+Graphics Quality	Qualità grafica
+Video Settings	Impostazioni video
+Display Mode	Modalità schermo
+Window Mode	Modalità finestra
+Exclusive Fullscreen	Schermo intero esclusivo
+Windowed Fullscreen	Finestra a schermo intero
+Display Resolution	Risoluzione dello schermo
+Screen Resolution	Risoluzione dello schermo
+Render Resolution	Risoluzione di rendering
+Resolution Scale	Scala di risoluzione
+Render Scale	Scala di rendering
+Refresh Rate	Frequenza di aggiornamento
+Monitor	Monitor
+Aspect Ratio	Proporzioni
+Max FPS	FPS massimi
+Frame Rate	Frequenza dei fotogrammi
+Frame Rate Cap	Limite fotogrammi
+FPS Limit	Limite FPS
+Unlimited	Illimitato
+Show FPS	Mostra FPS
+Show FPS Counter	Mostra contatore FPS
+Performance Stats	Statistiche prestazioni
+Vertical Sync	Sincronizzazione verticale
+Triple Buffering	Triplo buffering
+Quality Preset	Preimpostazione qualità
+Graphics Preset	Preimpostazione grafica
+Preset	Preimpostazione
+Custom	Personalizzato
+Low	Basso
+Medium	Medio
+High	Alto
+Very High	Molto alto
+Ultra	Ultra
+Epic	Epico
+Cinematic	Cinematografico
+Off	Disattivato
+On	Attivato
+Enabled	Attivo
+Disabled	Disattivo
+Auto	Automatico
+Default	Predefinito
+Texture Quality	Qualità texture
+Texture Filtering	Filtro texture
+Anisotropic Filtering	Filtro anisotropico
+Shadow Quality	Qualità ombre
+Shadows	Ombre
+Shadow Resolution	Risoluzione ombre
+Shadow Distance	Distanza ombre
+Contact Shadows	Ombre di contatto
+Lighting Quality	Qualità illuminazione
+Global Illumination	Illuminazione globale
+Reflections	Riflessi
+Reflection Quality	Qualità riflessi
+Screen Space Reflections	Riflessi nello spazio schermo
+Ambient Occlusion	Occlusione ambientale
+Anti-Aliasing	Anti-aliasing
+Anti-Aliasing Quality	Qualità anti-aliasing
+Post Processing	Post-elaborazione
+Post-Processing Quality	Qualità post-elaborazione
+Effects Quality	Qualità effetti
+Visual Effects	Effetti visivi
+Particle Quality	Qualità particelle
+Volumetric Fog	Nebbia volumetrica
+Volumetric Clouds	Nuvole volumetriche
+Fog Quality	Qualità nebbia
+Foliage Quality	Qualità vegetazione
+Vegetation Quality	Qualità vegetazione
+Grass Density	Densità erba
+Grass Quality	Qualità erba
+View Distance	Distanza visiva
+Draw Distance	Distanza di disegno
+Level of Detail	Livello di dettaglio
+Model Quality	Qualità modelli
+Mesh Quality	Qualità modelli
+Terrain Quality	Qualità terreno
+Water Quality	Qualità acqua
+Sky Quality	Qualità cielo
+Motion Blur	Sfocatura di movimento
+Depth of Field	Profondità di campo
+Bloom	Bloom
+Lens Flare	Riflesso dell'obiettivo
+Chromatic Aberration	Aberrazione cromatica
+Film Grain	Grana della pellicola
+Vignette	Vignettatura
+Sharpening	Nitidezza
+Sharpness	Nitidezza
+Ray Tracing	Ray tracing
+Ray Traced Reflections	Riflessi in ray tracing
+Ray Traced Shadows	Ombre in ray tracing
+Upscaling	Upscaling
+Upscaling Method	Metodo di upscaling
+Upscaling Quality	Qualità upscaling
+Frame Generation	Generazione dei fotogrammi
+Dynamic Resolution	Risoluzione dinamica
+Low Latency Mode	Modalità bassa latenza
+HDR	HDR
+HDR Brightness	Luminosità HDR
+Contrast	Contrasto
+Saturation	Saturazione
+Color Blind Mode	Modalità daltonici
+Colorblind Mode	Modalità daltonici
+Colorblind Filter	Filtro per daltonici
+Protanopia	Protanopia
+Deuteranopia	Deuteranopia
+Tritanopia	Tritanopia
+UI Scale	Scala interfaccia
+HUD Scale	Scala HUD
+HUD Opacity	Opacità HUD
+Show HUD	Mostra HUD
+Hide HUD	Nascondi HUD
+Safe Zone	Area sicura
+Camera Shake	Tremolio della telecamera
+Screen Shake	Tremolio dello schermo
+Head Bob	Oscillazione della testa
+Camera Distance	Distanza della telecamera
+Camera Sensitivity	Sensibilità della telecamera
+First Person	Prima persona
+Third Person	Terza persona
+Graphics Card	Scheda video
+Video Memory	Memoria video
+VRAM Usage	Uso della VRAM
+Benchmark	Benchmark
+Run Benchmark	Avvia benchmark
+Restart required	Riavvio necessario
+Some changes require a restart	Alcune modifiche richiedono il riavvio
+Some settings will be applied after restarting the game	Alcune impostazioni saranno applicate dopo il riavvio del gioco
+Keep these settings?	Mantenere queste impostazioni?
+Keep changes	Mantieni modifiche
+Revert	Annulla modifiche
+Reverting in	Ripristino tra
+Advanced Settings	Impostazioni avanzate
+Advanced	Avanzate
+Basic	Base
+General	Generale
+Interface	Interfaccia
+Camera	Telecamera
+Video	Video
+Visuals	Grafica
+Performance	Prestazioni
+Quality	Qualità
+Balanced	Bilanciato
+Ultra Performance	Prestazioni massime
+Native	Nativa
+# --- audio
+Audio Settings	Impostazioni audio
+Sound Settings	Impostazioni audio
+Music	Musica
+Sound Effects	Effetti sonori
+SFX Volume	Volume effetti
+SFX	Effetti
+Ambient Volume	Volume ambiente
+Ambience	Ambiente
+UI Volume	Volume interfaccia
+Interface Volume	Volume interfaccia
+Voice Chat Volume	Volume chat vocale
+Voice Chat Mode	Modalità chat vocale
+Push to Talk	Premi per parlare
+Push-to-Talk	Premi per parlare
+Open Mic	Microfono aperto
+Voice Activation	Attivazione vocale
+Microphone	Microfono
+Microphone Volume	Volume microfono
+Input Device	Dispositivo di ingresso
+Output Device	Dispositivo di uscita
+Audio Device	Dispositivo audio
+Speaker Setup	Configurazione altoparlanti
+Speakers	Altoparlanti
+Headphones	Cuffie
+Stereo	Stereo
+Surround	Surround
+Mono Audio	Audio mono
+Dynamic Range	Gamma dinamica
+Mute	Muto
+Unmute	Riattiva audio
+Mute All	Silenzia tutto
+Mute when unfocused	Silenzia quando non in primo piano
+Mute in background	Silenzia in background
+Voice Language	Lingua delle voci
+Spoken Language	Lingua parlata
+Text Language	Lingua dei testi
+Subtitle Size	Dimensione sottotitoli
+Subtitle Background	Sfondo sottotitoli
+Subtitle Opacity	Opacità sottotitoli
+Show Speaker Name	Mostra chi parla
+Speaker Names	Nomi di chi parla
+Closed Captions	Sottotitoli per non udenti
+Text Size	Dimensione testo
+Font Size	Dimensione carattere
+Text to Speech	Sintesi vocale
+Speech to Text	Trascrizione vocale
+# --- comandi e tasti
+Controls Settings	Impostazioni comandi
+Keyboard	Tastiera
+Mouse	Mouse
+Controller	Controller
+Gamepad	Gamepad
+Keyboard and Mouse	Tastiera e mouse
+Keyboard & Mouse	Tastiera e mouse
+Controller Settings	Impostazioni controller
+Keybinds	Assegnazione tasti
+Keybindings	Assegnazione tasti
+Key Mapping	Mappatura tasti
+Button Mapping	Mappatura pulsanti
+Rebind	Riassegna
+Rebind Keys	Riassegna tasti
+Press a key	Premi un tasto
+Press a key to bind	Premi un tasto da assegnare
+Press any key to bind	Premi un tasto qualsiasi da assegnare
+Unbound	Non assegnato
+Not bound	Non assegnato
+Primary	Principale
+Secondary	Secondario
+Primary Key	Tasto principale
+Secondary Key	Tasto secondario
+This key is already in use	Questo tasto è già in uso
+Key already assigned	Tasto già assegnato
+Reset Bindings	Ripristina tasti
+Reset All Bindings	Ripristina tutti i tasti
+Reset to Defaults	Ripristina predefiniti
+Restore Default Settings	Ripristina impostazioni predefinite
+Reset All	Ripristina tutto
+Mouse Acceleration	Accelerazione del mouse
+Mouse Smoothing	Fluidità del mouse
+Raw Input	Input diretto
+Aim Sensitivity	Sensibilità di mira
+ADS Sensitivity	Sensibilità in mira
+Scope Sensitivity	Sensibilità con mirino
+Horizontal Sensitivity	Sensibilità orizzontale
+Vertical Sensitivity	Sensibilità verticale
+Look Sensitivity	Sensibilità visuale
+Invert X Axis	Inverti asse X
+Invert Y-Axis	Inverti asse Y
+Invert Look	Inverti visuale
+Vibration	Vibrazione
+Controller Vibration	Vibrazione del controller
+Rumble	Vibrazione
+Dead Zone	Zona morta
+Deadzone	Zona morta
+Left Stick Dead Zone	Zona morta levetta sinistra
+Right Stick Dead Zone	Zona morta levetta destra
+Aim Assist	Assistenza alla mira
+Auto Aim	Mira automatica
+Toggle Aim	Mira a interruttore
+Hold to Aim	Tieni premuto per mirare
+Toggle Crouch	Accovacciati a interruttore
+Hold to Crouch	Tieni premuto per accovacciarti
+Toggle Sprint	Scatto a interruttore
+Hold to Sprint	Tieni premuto per scattare
+Auto Sprint	Scatto automatico
+Auto Run	Corsa automatica
+Toggle Walk	Camminata a interruttore
+Double Tap	Doppio tocco
+Move Forward	Avanti
+Move Backward	Indietro
+Move Back	Indietro
+Move Left	Sinistra
+Move Right	Destra
+Strafe Left	Spostati a sinistra
+Strafe Right	Spostati a destra
+Turn Left	Gira a sinistra
+Turn Right	Gira a destra
+Look Up	Guarda in alto
+Look Down	Guarda in basso
+Lean Left	Sporgiti a sinistra
+Lean Right	Sporgiti a destra
+Prone	Sdraiati
+Slide	Scivolata
+Vault	Scavalca
+Mantle	Arrampicati
+Swim Up	Nuota su
+Swim Down	Nuota giù
+Ascend	Sali
+Descend	Scendi
+Fly	Vola
+Glide	Plana
+Roll	Rotolata
+Evade	Schiva
+Reload	Ricarica
+Switch Weapon	Cambia arma
+Next Weapon	Arma successiva
+Previous Weapon	Arma precedente
+Primary Weapon	Arma primaria
+Secondary Weapon	Arma secondaria
+Holster Weapon	Riponi l'arma
+Throw Grenade	Lancia granata
+Grenade	Granata
+Throw	Lancia
+Fire Mode	Modalità di fuoco
+Weapon Wheel	Ruota delle armi
+Item Wheel	Ruota degli oggetti
+Quick Slot	Slot rapido
+Quick Item	Oggetto rapido
+Use Item	Usa oggetto
+Flashlight	Torcia
+Toggle Flashlight	Accendi/spegni torcia
+Night Vision	Visione notturna
+Binoculars	Binocolo
+Zoom In	Ingrandisci
+Zoom Out	Riduci
+Ping	Segnala
+Mark	Segna
+Place Marker	Metti un segnalino
+Open Chat	Apri chat
+Team Chat	Chat di squadra
+All Chat	Chat generale
+Party Chat	Chat di gruppo
+Global Chat	Chat globale
+Whisper	Sussurra
+Emote Wheel	Ruota delle emote
+Photo Mode	Modalità foto
+Screenshot	Screenshot
+Take Screenshot	Fai uno screenshot
+Scoreboard	Tabellone
+Show Scoreboard	Mostra tabellone
+Open Map	Apri mappa
+Toggle Map	Mostra/nascondi mappa
+Minimap	Minimappa
+Open Inventory	Apri inventario
+Open Journal	Apri diario
+Open Menu	Apri menu
+Pause Menu	Menu di pausa
+Pause	Pausa
+Cycle Target	Cambia bersaglio
+Lock On	Aggancia bersaglio
+Lock-On	Aggancia bersaglio
+Target Lock	Aggancio bersaglio
+Interact / Use	Interagisci / Usa
+Accelerate	Accelera
+Brake	Frena
+Brake / Reverse	Frena / Retromarcia
+Reverse	Retromarcia
+Handbrake	Freno a mano
+Steer Left	Sterza a sinistra
+Steer Right	Sterza a destra
+Shift Up	Marcia su
+Shift Down	Marcia giù
+Gear Up	Marcia su
+Gear Down	Marcia giù
+Horn	Clacson
+Headlights	Fari
+Look Back	Guarda dietro
+Change Camera	Cambia telecamera
+Enter Vehicle	Sali sul veicolo
+Exit Vehicle	Scendi dal veicolo
+Enter / Exit Vehicle	Sali / scendi dal veicolo
+Mount	Monta in sella
+Dismount	Scendi dalla sella
+Call Mount	Chiama la cavalcatura
+Build Mode	Modalità costruzione
+Build Menu	Menu costruzione
+Rotate	Ruota
+Rotate Left	Ruota a sinistra
+Rotate Right	Ruota a destra
+Place	Posiziona
+Cancel Build	Annulla costruzione
+Demolish	Demolisci
+Move Object	Sposta oggetto
+Left Click	Clic sinistro
+Right Click	Clic destro
+Middle Click	Clic centrale
+Mouse Wheel	Rotellina del mouse
+Scroll Wheel	Rotellina
+Scroll Up	Rotellina su
+Scroll Down	Rotellina giù
+Left Mouse Button	Tasto sinistro del mouse
+Right Mouse Button	Tasto destro del mouse
+Spacebar	Barra spaziatrice
+Space	Spazio
+Left Shift	Maiusc sinistro
+Ctrl	Ctrl
+Left Ctrl	Ctrl sinistro
+Escape	Esc
+Backspace	Backspace
+Caps Lock	Bloc Maiusc
+Arrow Keys	Tasti freccia
+Up Arrow	Freccia su
+Down Arrow	Freccia giù
+Left Arrow	Freccia sinistra
+Right Arrow	Freccia destra
+Page Up	Pagina su
+Page Down	Pagina giù
+D-Pad	Croce direzionale
+Left Stick	Levetta sinistra
+Right Stick	Levetta destra
+Left Trigger	Grilletto sinistro
+Right Trigger	Grilletto destro
+Left Bumper	Dorsale sinistro
+Right Bumper	Dorsale destro
+Touchpad	Touchpad

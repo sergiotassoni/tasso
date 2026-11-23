@@ -1379,8 +1379,13 @@ func componiTesto(b Blocco, r image.Rectangle, alfa []uint8, sp int, anteprima b
 				as = max(at(x-d, y-d), at(x-d-1, y-d-1)/2)
 			}
 			i := (y*w + x) * 4
-			if ai == 0 && ao == 0 && as == 0 && base == b.Img.RGBAAt(gx, gy) && !anteprima {
-				out[i], out[i+1], out[i+2], out[i+3] = 0xFF, 0x00, 0xFF, 255 // trasparente
+			if ai == 0 && ao == 0 && as == 0 {
+				// niente lettere qui: alfa 0 = lascia quello che c'è già (la toppa di questo
+				// riquadro, o le lettere già scritte di una riga vicina che si toccano)
+				out[i], out[i+1], out[i+2], out[i+3] = base.R, base.G, base.B, 0
+				if base == b.Img.RGBAAt(gx, gy) && !anteprima {
+					out[i], out[i+1], out[i+2] = 0xFF, 0x00, 0xFF // trasparente
+				}
 				continue
 			}
 			c := [3]int{int(base.R), int(base.G), int(base.B)}

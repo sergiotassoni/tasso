@@ -610,7 +610,19 @@ func disegnaTestoComposto(hdc, font uintptr, b Blocco, t []uint16, rt rect, fl u
 		alfa[i] = max(buf[i*4], buf[i*4+1], buf[i*4+2])
 	}
 	out := componiTesto(b, r, alfa, sp, inAnteprima)
+	// quello che c'è già sullo schermo della finestra: dove la riga nuova non ha lettere resta così
+	// (prima la toppa di una riga copriva il fondo delle lettere della riga sopra, foto 23/11)
+	prima := make([]byte, len(buf))
+	if ok, _, _ := pBitBlt.Call(mem, 0, 0, uintptr(w), uintptr(h), hdc, uintptr(r.Min.X), uintptr(r.Min.Y), 0x00CC0020); ok != 0 { // SRCCOPY
+		pGetDIBits.Call(mem, bmp, 0, uintptr(h), uintptr(unsafe.Pointer(&prima[0])), uintptr(unsafe.Pointer(&bi)), 0)
+	} else {
+		prima = nil
+	}
 	for i := 0; i < len(out); i += 4 {
+		if out[i+3] == 0 && prima != nil {
+			buf[i], buf[i+1], buf[i+2], buf[i+3] = prima[i], prima[i+1], prima[i+2], 255
+			continue
+		}
 		buf[i], buf[i+1], buf[i+2], buf[i+3] = out[i+2], out[i+1], out[i], 255 // RGBA -> BGRA
 	}
 	pSetDIBitsToDevice.Call(hdc, uintptr(r.Min.X), uintptr(r.Min.Y), uintptr(w), uintptr(h), 0, 0, 0, uintptr(h),
