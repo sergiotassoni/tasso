@@ -101,7 +101,7 @@ func sorvegliaIA() {
 					g.UsataGB = 0
 				}
 			}
-			gpu = valutaGPU(g)
+			impostaGPU(valutaGPU(g))
 			voluto = sceltaCorrettore(g, ram, core).Nome
 			if voluto == "meta" {
 				libera := ramLibera()

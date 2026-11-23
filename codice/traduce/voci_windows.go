@@ -514,13 +514,8 @@ func gestisciBattuta(audio []float32, ferma chan struct{}, fineVoce time.Time) b
 	if suVoceProva != nil {
 		suVoceProva(riga)
 	}
-	muCronologia.Lock()
 	r.Millisec = riga.Ms
-	righe = append(righe, r)
-	if len(righe) > 1000 {
-		righe = righe[len(righe)-1000:]
-	}
-	muCronologia.Unlock()
+	aggiungiCronologia(r, false)
 	return true
 }
 

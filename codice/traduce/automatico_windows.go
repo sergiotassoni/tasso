@@ -8,6 +8,7 @@ package traduce
 // quando torni riparte. F6 dentro il gioco mette in pausa / riprende per quel gioco.
 
 import (
+	"os"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -181,20 +182,12 @@ func proponiTraduzione(fg uintptr, nome string) {
 		return
 	}
 	tasto := etichettaTasto(tastiCompleti(leggiImp().Tasti)["pagina"])
-	testo := "Tasso: ho riconosciuto " + nome + ". Premi " + tasto + " per tradurlo in italiano."
-	em := 22.0
-	w := min(area.W-40, int(float64(len([]rune(testo)))*em*0.56)+20)
-	b := Blocco{X: (area.W - w) / 2, Y: 24, W: w, H: 34, Righe: 1, Em: em, LargMax: w,
-		Sfondo: coloreFascia, Inchiostro: coloreTestoFascia, Tradotto: testo}
-	MostraPagina(area, []Blocco{b})
-	emetti("info", map[string]string{"testo": "Ho riconosciuto " + nome + ": premi " + tasto + " nel gioco per tradurlo."})
-	go func() {
-		defer guard("avviso")
-		time.Sleep(6 * time.Second)
-		if !paginaAttiva.Load() {
-			NascondiPagina()
-		}
-	}()
+	_, a := coppiaAttiva()
+	testo := testoTasso("Tasso: ho riconosciuto "+nome+". Premi "+tasto+" per tradurlo in "+nomeLingua(a)+".",
+		"Tasso: I recognised "+nome+". Press "+tasto+" to translate it.")
+	mostraAvviso(area, testo, 22, 20, 6*time.Second)
+	emetti("info", map[string]string{"testo": testoTasso("Ho riconosciuto "+nome+": premi "+tasto+" nel gioco per tradurlo.",
+		"I recognised "+nome+": press "+tasto+" in the game to translate it.")})
 }
 
 // nomeGioco: nome vero (Steam/Epic…) se riconosciuto, altrimenti il nome dell'exe senza ".exe".
@@ -211,5 +204,56 @@ func apriLibreriaPer(h uintptr) {
 	if traduttore == nil || eNostro(exe) {
 		return
 	}
-	traduttore.ApriLibreria(fileLibreriaPer(filepath.Join(dirApp, "librerie"), nomeGioco(h)))
+	p := percorsoDiFinestra(h)
+	cart := cartellaTradottaDi(p)
+	if g, ok := riconosciGioco(p); ok {
+		cart = g.Cartella
+	}
+	traduttore.ApriLibreria(fileLibreriaGioco(cart, nomeGioco(h)))
+}
+
+// nomeRiconosciuto: il nome con cui la finestrella chiamava il gioco di questa cartella (per
+// ritrovare le librerie salvate col nome dalle versioni di prima).
+func nomeRiconosciuto(cartella string) string {
+	if cartella == "" {
+		return ""
+	}
+	if g, ok := riconosciGioco(filepath.Join(cartella, "x.exe")); ok {
+		return g.Nome
+	}
+	return ""
+}
+
+// fileLibreriaGioco: la libreria di un gioco, per cartella: lo stesso gioco ha nomi diversi in
+// Tasso, nei negozi e nel nome dell'exe, la cartella è una sola. Le librerie salvate col nome
+// (versioni di prima) si spostano qui la prima volta. Senza cartella: col nome, come prima.
+func fileLibreriaGioco(cartella string, nomi ...string) string {
+	dir := filepath.Join(dirApp, "librerie")
+	if cartella == "" {
+		nome := ""
+		if len(nomi) > 0 {
+			nome = nomi[0]
+		}
+		return fileLibreriaPer(dir, nome)
+	}
+	nuovo := filepath.Join(dir, "gioco-"+chiaveGioco(cartella)+".json")
+	if _, err := os.Stat(nuovo); err == nil {
+		return nuovo
+	}
+	for _, n := range nomi {
+		if n == "" {
+			continue
+		}
+		vecchio := fileLibreriaPer(dir, n)
+		if _, err := os.Stat(vecchio); err != nil {
+			continue
+		}
+		if os.Rename(vecchio, nuovo) != nil {
+			return vecchio
+		}
+		dubbi := func(f string) string { return strings.TrimSuffix(f, ".json") + "-da-controllare.json" }
+		_ = os.Rename(dubbi(vecchio), dubbi(nuovo))
+		return nuovo
+	}
+	return nuovo
 }

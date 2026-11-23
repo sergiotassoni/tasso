@@ -152,6 +152,7 @@ func main() {
 	traduce.Ospite.CartellaScript = scriptDir
 	traduce.InIngleseTasso = isEN
 	traduce.InUfficio.Store(officeMode())
+	traduce.TraduciTasso = trGo
 	traduce.Prepara(w, filepath.Join(appDir, "WebView2"))
 	if !scheduledRun.Load() {
 		go func() {

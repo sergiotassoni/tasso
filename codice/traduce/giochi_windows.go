@@ -56,7 +56,7 @@ func elencoGiochi() []map[string]any {
 			"file_ok":     fileOK,
 			"file_motivo": fileMotivo,
 			"avviabile":   g.Avvio != "" || exeGioco(g.Cartella) != "",
-			"traduzioni":  ContaLibreria(fileLibreriaPer(filepath.Join(dirApp, "librerie"), g.Nome)),
+			"traduzioni":  ContaLibreria(fileLibreriaGioco(g.Cartella, g.Nome)),
 			"anticheat":   ConAntiCheat(GiocoRiconosciuto{Nome: g.Nome, Piattaforma: g.Piattaforma, Cartella: g.Cartella}),
 		})
 	}
@@ -249,7 +249,7 @@ func InfoGioco(nome, piattaforma, cartella, avvio string) map[string]any {
 		"file_ok":     fileOK,
 		"file_motivo": fileMotivo,
 		"avviabile":   g.Avvio != "" || exeGioco(cartella) != "",
-		"traduzioni":  ContaLibreria(fileLibreriaPer(filepath.Join(dirApp, "librerie"), nome)),
+		"traduzioni":  ContaLibreria(fileLibreriaGioco(cartella, nome, nomeRiconosciuto(cartella))),
 		"anticheat":   ConAntiCheat(GiocoRiconosciuto{Nome: nome, Piattaforma: piattaforma, Cartella: cartella}),
 	}
 }
