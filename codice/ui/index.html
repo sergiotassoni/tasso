@@ -2833,7 +2833,7 @@ Object.assign(window.tasso, {
       box.appendChild(row);
     });
   },
-  onGameMode(g){ if (g.active && AU_T && AU_T !== -1) { clearInterval(AU_T); AU_T = -1; closeModal(); } if (isOffice()) { setTimeout(async () => { await refreshS(); paintModes(); }, 3000); return; } if (g.active) toast(_t('Gioco aperto (') + g.game + _t('): modalità ') + (g.mode === 'fps' ? _t('FPS competitivo') : 'Gaming') + _t(' attivata.'), 'var(--a3)'); else toast(g.back ? _t('Gioco chiuso: rimessa la modalità di prima.') : _t('Gioco chiuso.'), 'var(--a3)'); setTimeout(async () => { await refreshS(); paintModes(); }, 3000); }
+  onGameMode(g){ if (g.active && $('#auCount') && $('#modal').classList.contains('on')) { clearInterval(AU_T); AU_T = null; closeModal(); auLater(AU_U); } if (isOffice()) { setTimeout(async () => { await refreshS(); paintModes(); }, 3000); return; } if (g.active) toast(_t('Gioco aperto (') + g.game + _t('): modalità ') + (g.mode === 'fps' ? _t('FPS competitivo') : 'Gaming') + _t(' attivata.'), 'var(--a3)'); else toast(g.back ? _t('Gioco chiuso: rimessa la modalità di prima.') : _t('Gioco chiuso.'), 'var(--a3)'); setTimeout(async () => { await refreshS(); paintModes(); }, 3000); }
 });
 
 const OFF_ART = '<svg width="112" height="112" viewBox="0 0 200 200" aria-hidden="true"><rect x="4" y="4" width="192" height="192" rx="48" fill="#FFFFFF"/><rect x="4" y="4" width="192" height="192" rx="48" fill="none" stroke="#C9CDD4" stroke-width="6"/><g transform="translate(28 36) scale(0.6)"><path d="M44 22 H196 L226 104 L120 206 L14 104 Z" fill="#0A0B0D"/><path d="M80 22 H106 L108 142 L56 132 L36 98 Z" fill="#FFFFFF"/><path d="M160 22 H134 L132 142 L184 132 L204 98 Z" fill="#FFFFFF"/><circle cx="82" cy="112" r="12" fill="var(--a1)"/><circle cx="158" cy="112" r="12" fill="var(--a1)"/><path d="M100 164 H140 L120 190 Z" fill="#FFFFFF"/></g></svg>';
@@ -3447,7 +3447,7 @@ Object.assign(window.tasso, { onUpdate(u){
 // Controllo silenzioso all'apertura (non durante le pulizie programmate).
 // 3.1: "Aggiorna Tasso da solo" (acceso di base): dopo il controllo silenzioso avviso e aggiorno.
 const chkAU = $('#chkAutoUpd'); if (chkAU) { chkAU.checked = !S.noAutoUpdate; chkAU.onchange = () => { S.noAutoUpdate = !chkAU.checked; call('goSetAutoUpdate', chkAU.checked); toast(chkAU.checked ? _t('Tasso si aggiornerà da solo.') : _t('Tasso ti avviserà quando esce una versione nuova, e aggiorni tu.'), 'var(--a3)'); }; }
-let AU_T = null;
+let AU_T = null, AU_U = null;
 // Solo un gioco aperto adesso (o il Boost acceso) ferma l'aggiornamento, non la modalità scelta.
 const auGioco = () => typeof BST !== 'undefined' && !!BST && !!(BST.on || BST.game);
 // auLater: adesso no (gioco aperto o altra finestra): riprovo tra 10 minuti invece di lasciar perdere.
@@ -3455,6 +3455,7 @@ const AU_RETRY = 10 * 60 * 1000;
 function auLater(u){ clearInterval(AU_T); clearTimeout(AU_T); AU_T = setTimeout(() => { AU_T = null; autoUpdate(u); }, AU_RETRY); }
 function autoUpdate(u){
   if (S.noAutoUpdate || UPD_SELF || AU_T) return;
+  AU_U = u;
   // Tasso aperto a icona (avvio con Windows): avviso solo quando lo guardi
   if (document.visibilityState === 'hidden') { const w = () => { if (document.visibilityState !== 'hidden') { document.removeEventListener('visibilitychange', w); autoUpdate(u); } }; document.addEventListener('visibilitychange', w); return; }
   if (auGioco() || $('#modal').classList.contains('on') || $('#welcome').classList.contains('on')) { auLater(u); return; } // stai giocando, stai facendo altro o sei nel benvenuto: riprovo più tardi
