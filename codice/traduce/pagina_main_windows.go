@@ -287,7 +287,11 @@ func preparaPagina(area Zona, img, primaImg *image.RGBA, giro int64) (p *paginaP
 	risultati := make([]Risultato, len(da))
 	var wg sync.WaitGroup
 	posti := make(chan struct{}, 8)
-	ctx := conLotto(context.Background())
+	var scritte []string
+	for _, b := range da {
+		scritte = append(scritte, b.Testo)
+	}
+	ctx := ConSchermata(conLotto(context.Background()), scritte)
 	for i := range da {
 		wg.Add(1)
 		posti <- struct{}{}

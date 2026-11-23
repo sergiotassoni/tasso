@@ -225,6 +225,7 @@ func (t *Traduttore) traduciIn(ctx context.Context, grezzo string, dialogo bool,
 		Testo:     battuta,
 		Parlante:  parlante,
 		Contesto:  contestoSe(dialogo, t.contesto),
+		Schermata: schermataDa(ctx, dialogo),
 		Glossario: t.glossarioPieno.trova(battuta),
 	}
 	t.mu.Unlock()
@@ -394,6 +395,37 @@ func (t *Traduttore) termineEsatto(s string) (string, bool) {
 		}
 	}
 	return "", false
+}
+
+type chiaveSchermata struct{}
+
+// ConSchermata: le scritte della schermata intera, da dare all'IA come contesto quando traduce
+// una scritta corta di un menu ("Mouse" vicino a "Shift" e "Ctrl" è il mouse, non il topo).
+func ConSchermata(ctx context.Context, scritte []string) context.Context {
+	var l []string
+	tot := 0
+	for _, s := range scritte {
+		s = strings.TrimSpace(strings.ReplaceAll(s, "\n", " "))
+		if s == "" || len(s) > 80 {
+			continue
+		}
+		if tot += len(s); tot > 500 || len(l) >= 14 {
+			break
+		}
+		l = append(l, s)
+	}
+	if len(l) < 2 {
+		return ctx
+	}
+	return context.WithValue(ctx, chiaveSchermata{}, l)
+}
+
+func schermataDa(ctx context.Context, dialogo bool) []string {
+	if dialogo || ctx == nil {
+		return nil
+	}
+	l, _ := ctx.Value(chiaveSchermata{}).([]string)
+	return l
 }
 
 func contestoSe(si bool, c []string) []string {

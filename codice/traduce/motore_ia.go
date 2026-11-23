@@ -30,6 +30,7 @@ type RichiestaTraduzione struct {
 	Testo     string        // testo inglese già pulito
 	Parlante  string        // nome di chi parla, se riconosciuto
 	Contesto  []string      // ultime battute inglesi (dalla più vecchia), per capire il discorso
+	Schermata []string      // le altre scritte della stessa schermata (menu): per capire di cosa si parla
 	Glossario []voceTrovata // voci del glossario presenti nel testo
 	Bozza     string        // modo correttore: traduzione già fatta da Mozilla, da correggere solo se sbagliata
 	Da, A     string        // coppia di lingue se non è inglese → italiano
@@ -65,6 +66,14 @@ func costruisciMessaggi(r RichiestaTraduzione) []messaggio {
 	if len(r.Contesto) > 0 {
 		b.WriteString("Battute precedenti (solo per capire il contesto, NON tradurle):\n")
 		for _, c := range r.Contesto {
+			b.WriteString("- " + c + "\n")
+		}
+		b.WriteString("\n")
+	}
+	if len(r.Schermata) > 0 {
+		// stessa lista per tutte le scritte della schermata: il motore riusa il lavoro già fatto
+		b.WriteString("Scritte che si vedono sulla stessa schermata del gioco (solo per capire di cosa si parla, NON tradurle):\n")
+		for _, c := range r.Schermata {
 			b.WriteString("- " + c + "\n")
 		}
 		b.WriteString("\n")

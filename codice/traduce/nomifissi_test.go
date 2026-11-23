@@ -1,6 +1,10 @@
 package traduce
 
-import "testing"
+import (
+	"context"
+	"strings"
+	"testing"
+)
 
 func TestNomiFissiIntatti(t *testing.T) {
 	casi := []struct{ en, it, vuoi string }{
@@ -26,5 +30,17 @@ func TestNomeGiocoNonMangiaParole(t *testing.T) {
 		if got := correggiNomeGioco(c.in, "No Man's Sky"); got != c.vuoi {
 			t.Errorf("%q -> %q, voglio %q", c.in, got, c.vuoi)
 		}
+	}
+}
+
+func TestSchermataNelPrompt(t *testing.T) {
+	ctx := ConSchermata(context.Background(), []string{"Sprint by Holding Shift", "Crouch with Ctrl", "Mouse"})
+	r := RichiestaTraduzione{Testo: "Mouse", Schermata: schermataDa(ctx, false)}
+	m := costruisciMessaggi(r)
+	if !strings.Contains(m[1].Content, "Crouch with Ctrl") || !strings.HasSuffix(m[1].Content, "Testo da tradurre:\nMouse") {
+		t.Fatalf("prompt senza schermata: %q", m[1].Content)
+	}
+	if schermataDa(ctx, true) != nil {
+		t.Fatal("nei dialoghi niente schermata")
 	}
 }
