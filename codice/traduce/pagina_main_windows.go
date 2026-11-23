@@ -274,9 +274,15 @@ func preparaPagina(area Zona, img, primaImg *image.RGBA, giro int64) (p *paginaP
 		da = append(da, b)
 	}
 	if g, ok := riconosciGioco(percorsoDiFinestra(paginaGiocoA.Load())); ok {
+		var tenuti []Blocco
 		for i := range da { // "Lia (s Bar" letto dall'OCR -> "Liar's Bar": il nome del gioco resta giusto
 			da[i].Testo = correggiNomeGioco(da[i].Testo, g.Nome)
+			if soloNome(da[i].Testo) == soloNome(g.Nome) {
+				continue // il titolo del gioco ("NO MAN'S SKY") non si traduce
+			}
+			tenuti = append(tenuti, da[i])
 		}
+		da = tenuti
 	}
 	risultati := make([]Risultato, len(da))
 	var wg sync.WaitGroup

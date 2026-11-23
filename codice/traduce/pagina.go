@@ -1700,3 +1700,14 @@ func stabilizza(nuovi, vecchi []Blocco) {
 		}
 	}
 }
+
+// soloNome: lettere e cifre minuscole, per confrontare un titolo letto con il nome del gioco.
+func soloNome(s string) string {
+	var b strings.Builder
+	for _, r := range strings.ToLower(s) {
+		if unicode.IsLetter(r) || unicode.IsDigit(r) {
+			b.WriteRune(r)
+		}
+	}
+	return b.String()
+}
