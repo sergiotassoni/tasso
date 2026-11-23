@@ -3783,7 +3783,7 @@ function tuneRows(){
   ];
   if (t.ini) rows.push({k:'inGame', on: !!o.inGame, t:_t('Grafica dentro il gioco: ') + (q[o.quality] || q[2]) + (o.vsync ? _t(', VSync acceso') : _t(', VSync spento')), d:_t('Solo per i giochi Unreal, con copia di sicurezza.')});
   else rows.push({k:'info', t:_t('Grafica dentro il gioco'), d:_t('Questo gioco non ha un file che Tasso può cambiare in sicurezza: le impostazioni giuste te le dico in "Mostra i dettagli".'), off:true, on:false});
-  if (t.ini) rows.push({k:'noLimit', on: !o.fpsCap, t:_t('Nessun limite agli FPS'), d: t.hz ? _t('Spuntata: il gioco fa tutti gli FPS che può. Tolta: il limite è uguale al tuo schermo (') + t.hz + _t(' FPS con ') + t.hz + _t(' Hz) e il PC scalda meno.') + _t(' Vale insieme a «Grafica dentro il gioco».') : _t('Spuntata: il gioco fa tutti gli FPS che può. Tolta: limite a ') + (rec.fpsCap || 60) + _t(' FPS. Vale insieme a «Grafica dentro il gioco».')});
+  if (t.ini) rows.push({k:'noLimit', on: !o.fpsCap, t:_t('Nessun limite agli FPS'), d: t.hz ? _t('Spuntata: il gioco fa tutti gli FPS che può. Tolta: il limite è uguale al tuo schermo (') + t.hz + _t(' FPS con ') + t.hz + _t(' Hz) e il PC scalda meno.') + _t(' Vale insieme a «Grafica dentro il gioco».') : _t('Spuntata: il gioco fa tutti gli FPS che può. Tolta: limite a ') + ((rec.opts || {}).fpsCap || 60) + _t(' FPS. Vale insieme a «Grafica dentro il gioco».')});
   rows.push({k:'priority', on: !!o.priority, t:_t('Priorità alta del processore'), d:_t('Il processore serve prima il gioco. Con alcuni anti-imbroglio meglio lasciarla spenta.'), off: !t.hasExe});
   rows.push({k:'noFso', on: !!o.noFso, t:_t('Spegni le ottimizzazioni a schermo intero'), d:_t('Serve solo con alcuni giochi vecchi.'), off: !t.hasExe});
   return rows;
@@ -3912,7 +3912,7 @@ async function wzApply(){
     msg(_t('Applico le impostazioni consigliate…')); bar(15);
     const rec = (t.recs[t.kind] || {}).opts || {};
     // la potenza la salva già setPower: qui niente modalità, se no resterebbe un doppione
-    const o = {gpuHigh: !!sel.gpuHigh, mode: '', inGame: !!sel.inGame, quality: rec.quality || 2, vsync: !!rec.vsync, fpsCap: sel.noLimit ? 0 : (t.hz || rec.fpsCap || 0), priority: !!sel.priority, noFso: !!sel.noFso};
+    const o = {gpuHigh: !!sel.gpuHigh, mode: '', inGame: !!sel.inGame, quality: rec.quality || 2, vsync: !!rec.vsync, fpsCap: sel.noLimit ? 0 : (t.hz || (rec.opts || {}).fpsCap || rec.fpsCap || 60), priority: !!sel.priority, noFso: !!sel.noFso};
     const tr = await applyTune(g, o, t.kind);
     if (!W || W.run !== run) return;
     if (tr && tr.ok === false) W.notes.push([(tr.msgs || []).join(' ') || _t('Impostazioni consigliate non applicate.'), true]);
