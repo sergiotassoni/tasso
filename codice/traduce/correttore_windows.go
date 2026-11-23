@@ -29,6 +29,7 @@ var (
 	falliteIA           int
 	prossimoTentativoIA time.Time
 	stratiMeta          atomic.Int64 // strati sulla scheda quando l'IA è divisa (dipende dalla scheda)
+	stratiPiccolaAtt    atomic.Int64 // strati della Piccola sulla scheda (si stringe con i giochi pesanti)
 )
 
 const (
@@ -121,6 +122,9 @@ func sorvegliaIA() {
 			impostaGPU(valutaGPU(g))
 			pv := sceltaLivello(g, ram, core, leggiImp().LivelloIA)
 			voluto = pv.Nome
+			if pv.Nome == "piccola" && pv.Strati > 0 && (attuale != "piccola" || !ia.Attivo()) {
+				stratiPiccolaAtt.Store(int64(pv.Strati))
+			}
 			if pv.Nome == "meta" && pv.Strati > 0 && (attuale != "meta" || !ia.Attivo()) {
 				stratiMeta.Store(int64(pv.Strati)) // si usa alla prossima accensione
 			}
@@ -170,6 +174,9 @@ func memoriaProfilo(n string) float64 {
 	case "scheda":
 		return vramIntero
 	case "piccola":
+		if n := int(stratiPiccolaAtt.Load()); n > 0 {
+			return vramPiccolaStrati(n)
+		}
 		return vramPiccola
 	case "media":
 		return vramMedia
@@ -189,7 +196,10 @@ func applicaProfiloIA(nome string, ram float64, core int) {
 	if nome != "" {
 		p := ProfiloCorrettore{Nome: nome, Strati: -1}
 		if nome == "piccola" {
-			p.Strati = stratiPiccola
+			p.Strati = int(stratiPiccolaAtt.Load())
+			if p.Strati <= 0 {
+				p.Strati = stratiPiccola
+			}
 		}
 		if nome == "meta" {
 			p.Strati = int(stratiMeta.Load())

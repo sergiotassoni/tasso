@@ -821,7 +821,7 @@ func stato() map[string]interface{} {
 		"ia_livello":      i.LivelloIA,
 		"ia_media":        mediaPresente(),
 		"ia_piccola":      mediaPresente(),
-		"ia_gb":           map[string]float64{"piccola": vramPiccola, "media": vramMedia, "grande": vramIntero},
+		"ia_gb":           map[string]float64{"piccola": vramPiccola, "piccola_min": vramPiccolaStrati(stratiPiccolaMin), "media": vramMedia, "grande": vramIntero},
 		"ia_corrette":     correzioniFatte(),
 		"gpu":             gpuAttuale(),
 		"motore_ora":      ma,

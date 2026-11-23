@@ -1,6 +1,9 @@
 package traduce
 
-import "fmt"
+import (
+	"fmt"
+	"math"
+)
 
 // InfoGPU: la scheda video più potente trovata.
 type InfoGPU struct {
@@ -95,11 +98,35 @@ func limiteIA(memoriaGB float64) float64 { return memoriaGB * 0.44 }
 var conScorta, conMedia bool
 
 const (
-	vramPiccola     = 3.0 // misurato 23/11: 28 strati della Media = 3,0 GB, 0,89 s a frase, 70,6
-	vramMedia       = 4.3 // misurato 23/11: 4,3 GB, 0,37 s a frase
-	stratiPiccola   = 28
-	ramMinimaScorta = 7.5
+	vramPiccola      = 3.0 // misurato 23/11: 28 strati della Media = 3,0 GB, 0,89 s a frase, 70,6
+	vramMedia        = 4.3 // misurato 23/11: 4,3 GB, 0,37 s a frase
+	stratiPiccola    = 28
+	stratiPiccolaMin = 16 // sotto, troppo lavoro sul processore: meglio solo Mozilla
+	ramMinimaScorta  = 7.5
 )
+
+// vramPiccolaStrati: memoria video della Media con n strati sulla scheda (retta tra le misure del
+// 23/11: 28 strati = 3,0 GB, 42 = 4,3 GB).
+func vramPiccolaStrati(n int) float64 {
+	per := (vramMedia - vramPiccola) / float64(stratiModello-stratiPiccola)
+	return vramPiccola + float64(n-stratiPiccola)*per
+}
+
+// profiloPiccola: la Piccola si stringe se il gioco lascia meno memoria (Liar's Bar si prende
+// 7,2 GB su 12: restano 3,5 GB, la Piccola da 3 GB più il margine per il gioco non ci stava).
+// Meno strati sulla scheda = più lenta, ma corregge lo stesso. Sotto 16 strati niente IA.
+func profiloPiccola(libera float64, motivo string) (ProfiloCorrettore, bool) {
+	per := (vramMedia - vramPiccola) / float64(stratiModello-stratiPiccola)
+	n := stratiPiccola + int(math.Floor((libera-margineGiocoGB-vramPiccola)/per+1e-9))
+	if n > stratiPiccola {
+		n = stratiPiccola
+	}
+	if n < stratiPiccolaMin {
+		return ProfiloCorrettore{}, false
+	}
+	gb := vramPiccolaStrati(n)
+	return ProfiloCorrettore{"piccola", n, gb, fmt.Sprintf(motivo, gb)}, true
+}
 
 func sceltaCorrettore(g InfoGPU, ramGB float64, core int) ProfiloCorrettore {
 	p := sceltaGrande(g, ramGB, core)
@@ -114,9 +141,10 @@ func sceltaCorrettore(g InfoGPU, ramGB float64, core int) ProfiloCorrettore {
 	if !conScorta {
 		return p
 	}
-	if g.MemoriaGB > 0 && limiteIA(g.MemoriaGB) >= vramPiccola && libera >= vramPiccola+margineGiocoGB &&
-		ramGB >= ramMinimaIA && core >= coreMinimiMeta {
-		return ProfiloCorrettore{"piccola", stratiPiccola, vramPiccola, fmt.Sprintf("%.1f GB liberi sulla scheda video: uso l'IA piccola (circa %.0f GB sulla scheda, il resto sul processore).", libera, vramPiccola)}
+	if g.MemoriaGB > 0 && limiteIA(g.MemoriaGB) >= vramPiccolaStrati(stratiPiccolaMin) && ramGB >= ramMinimaIA && core >= coreMinimiMeta {
+		if pp, ok := profiloPiccola(min(libera, limiteIA(g.MemoriaGB)+margineGiocoGB), fmt.Sprintf("%.1f GB liberi sulla scheda video: uso l'IA piccola (circa %%.1f GB sulla scheda, il resto sul processore).", libera)); ok {
+			return pp
+		}
 	}
 	return p
 }
@@ -161,8 +189,10 @@ func sceltaLivello(g InfoGPU, ramGB float64, core int, livello string) ProfiloCo
 		return g.MemoriaGB > 0 && libera >= gb+margineGiocoGB && ramGB >= ramMinimaScorta && core >= coreMinimiIA
 	}
 	piccola := func() ProfiloCorrettore {
-		if conScorta && ci(vramPiccola) && ramGB >= ramMinimaIA && core >= coreMinimiMeta {
-			return ProfiloCorrettore{"piccola", stratiPiccola, vramPiccola, fmt.Sprintf("Hai scelto l'IA piccola (circa %.0f GB della scheda video, il resto sul processore).", vramPiccola)}
+		if conScorta && g.MemoriaGB > 0 && ramGB >= ramMinimaIA && core >= coreMinimiMeta {
+			if pp, ok := profiloPiccola(libera, "Hai scelto l'IA piccola (circa %.1f GB della scheda video, il resto sul processore)."); ok {
+				return pp
+			}
 		}
 		return ProfiloCorrettore{"", 0, 0, "L'IA piccola non c'è o non ci sta adesso: uso il traduttore veloce."}
 	}

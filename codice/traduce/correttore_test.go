@@ -150,3 +150,17 @@ func TestLivelloScelto(t *testing.T) {
 		t.Errorf("media con gioco pesante: %+v", p)
 	}
 }
+
+func TestPiccolaSiStringe(t *testing.T) {
+	conScorta, conMedia = true, true
+	defer func() { conScorta, conMedia = false, false }()
+	// Liar's Bar: 8,5 GB usati su 12 → 3,5 liberi
+	p := sceltaLivello(InfoGPU{MemoriaGB: 12, UsataGB: 8.5}, 48, 16, "auto")
+	if p.Nome != "piccola" || p.Strati >= stratiPiccola || p.Strati < stratiPiccolaMin || p.MemoriaGB+margineGiocoGB > 3.5+1e-9 {
+		t.Fatalf("gioco pesante: %+v", p)
+	}
+	// Call of Duty: 10 GB usati → niente IA
+	if p := sceltaLivello(InfoGPU{MemoriaGB: 12, UsataGB: 10}, 48, 16, "auto"); p.Nome != "" {
+		t.Fatalf("troppo pesante: %+v", p)
+	}
+}
