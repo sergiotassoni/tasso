@@ -382,6 +382,16 @@ func mostraPaginaPronta(p *paginaPronta, giro int64) bool {
 			}
 			_ = salvaAnteprima(img, pronti, filepath.Join(dirApp, "logs", "pagina-anteprima.png"))
 		}()
+		if esisteVoce(filepath.Join(dirApp, "logs", "salva-anteprima")) { // controllo a mano: i tempi veri
+			visto := time.Unix(0, cambioVisto.Load())
+			riga := fmt.Sprintf("%s lettura=%dms traduzione=%dms totale=%dms dal-cambio=%dms scritte=%d nuove=%d\n",
+				time.Now().Format("15:04:05.000"), tOCR.Milliseconds(), tTrad.Milliseconds(), time.Since(t0).Milliseconds(),
+				time.Since(visto).Milliseconds(), len(pronti), nuove)
+			if f, err := os.OpenFile(filepath.Join(dirApp, "logs", "pagina-tempi.txt"), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644); err == nil {
+				_, _ = f.WriteString(riga)
+				_ = f.Close()
+			}
+		}
 		if len(pronti) > 0 {
 			emetti("info", map[string]string{"testo": fmt.Sprintf("Schermata tradotta: %d scritte in %.1f s · %s per tornare all'inglese", len(pronti), time.Since(t0).Seconds(), nomeTasto("pagina"))})
 		}
