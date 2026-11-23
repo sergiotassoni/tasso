@@ -302,21 +302,39 @@ func ConAntiCheat(g GiocoRiconosciuto) bool {
 		}
 	}
 	// Sottocartelle tipiche (Binaries\Win64\EasyAntiCheat, Gioco\Binaries\Win64\BattlEye…), fino a
-	// 3 livelli sotto la cartella del gioco. Per non diventare lenta con i giochi enormi leggo al
-	// massimo 300 cartelle, prima quelle più in alto, e solo i nomi più sicuri.
+	// 3 livelli sotto la cartella del gioco, solo con i nomi più sicuri. Per non diventare lenta con i
+	// giochi enormi leggo al massimo 300 cartelle: prima quelle con nomi utili (Binaries, Win64, il
+	// nome del gioco…), e salto quelle note pesanti e senza programmi (Engine, Content, Paks…).
 	type dir struct {
 		path  string
 		depth int
 	}
-	coda := []dir{}
-	for _, v := range voci {
-		if v.IsDir() {
-			coda = append(coda, dir{filepath.Join(base, v.Name()), 1})
+	nomeGioco := nomePiatto(g.Nome)
+	var prima, dopo []dir
+	aggiungi := func(path, nome string, depth int) {
+		n := strings.ToLower(nome)
+		if cartellePesanti[n] {
+			return
+		}
+		f := nomePiatto(n)
+		if cartelleUtili[n] || (len(f) >= 3 && nomeGioco != "" && (strings.Contains(nomeGioco, f) || strings.Contains(f, nomeGioco))) {
+			prima = append(prima, dir{path, depth})
+		} else {
+			dopo = append(dopo, dir{path, depth})
 		}
 	}
-	for lette := 0; len(coda) > 0 && lette < 300; lette++ {
-		d := coda[0]
-		coda = coda[1:]
+	for _, v := range voci {
+		if v.IsDir() {
+			aggiungi(filepath.Join(base, v.Name()), v.Name(), 1)
+		}
+	}
+	for lette := 0; (len(prima) > 0 || len(dopo) > 0) && lette < 300; lette++ {
+		var d dir
+		if len(prima) > 0 {
+			d, prima = prima[0], prima[1:]
+		} else {
+			d, dopo = dopo[0], dopo[1:]
+		}
 		sotto, err := os.ReadDir(d.path)
 		if err != nil {
 			continue
@@ -326,7 +344,7 @@ func ConAntiCheat(g GiocoRiconosciuto) bool {
 				return true
 			}
 			if v.IsDir() && d.depth < 3 {
-				coda = append(coda, dir{filepath.Join(d.path, v.Name()), d.depth + 1})
+				aggiungi(filepath.Join(d.path, v.Name()), v.Name(), d.depth+1)
 			}
 		}
 	}
@@ -337,6 +355,23 @@ var (
 	segniAntiCheat       = []string{"start_protected_game", "easyanticheat", "battleye", "beservice", "mhyprot", "xigncode", "gameguard", "npgamemon", "vgk", "faceit", "ace-", "anticheat"}
 	segniAntiCheatSicuri = []string{"start_protected_game", "easyanticheat", "battleye", "beservice", "eaanticheat"}
 )
+
+// Cartelle da guardare per prime e cartelle da saltare (grandi e senza programmi).
+var (
+	cartelleUtili   = map[string]bool{"binaries": true, "win64": true, "win32": true, "bin": true, "x64": true, "easyanticheat": true, "battleye": true, "game": true}
+	cartellePesanti = map[string]bool{"engine": true, "content": true, "paks": true, "movies": true, "localization": true, "_commonredist": true, "redist": true, "directx": true, "saved": true, "logs": true}
+)
+
+// nomePiatto: il nome in minuscolo, senza spazi e segni ("Dead by Daylight" -> "deadbydaylight").
+func nomePiatto(s string) string {
+	var b strings.Builder
+	for _, r := range strings.ToLower(s) {
+		if (r >= 'a' && r <= 'z') || (r >= '0' && r <= '9') {
+			b.WriteRune(r)
+		}
+	}
+	return b.String()
+}
 
 func segnoAntiCheat(nome string, segni []string) bool {
 	n := strings.ToLower(nome)

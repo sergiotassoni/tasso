@@ -884,11 +884,15 @@ function Save-Prev {
     $ov = (Get-ItemProperty 'HKLM:\SYSTEM\CurrentControlSet\Control\Power\User\PowerSchemes' -Name 'ActiveOverlayAcPowerScheme' -ErrorAction SilentlyContinue).ActiveOverlayAcPowerScheme
     if ($ov) { New-ItemProperty -Path $PrevKey -Name 'Overlay' -Value ([string]$ov) -PropertyType String -Force | Out-Null }
     $v = Get-PowerIdx 'SUB_PROCESSOR' 'PROCTHROTTLEMAX'; if ($v) { New-ItemProperty -Path $PrevKey -Name 'CpuAc' -Value $v[0] -PropertyType DWord -Force | Out-Null; New-ItemProperty -Path $PrevKey -Name 'CpuDc' -Value $v[1] -PropertyType DWord -Force | Out-Null }
-    $sig = '[DllImport("user32.dll")] public static extern bool SystemParametersInfo(int a, int b, int[] c, int d);'
-    Add-Type -MemberDefinition $sig -Name SPI -Namespace TassoMouse -ErrorAction SilentlyContinue | Out-Null
-    # $TassoMousePrev: il mouse di prima del Boost (che lo cambia solo finché giochi).
+    # $TassoMousePrev: il mouse di prima del Boost (che lo cambia solo finché giochi). Altrimenti
+    # leggo le impostazioni salvate di Windows: il Boost non le scrive mai, quindi anche se nel
+    # frattempo ha tolto l'accelerazione qui c'è ancora quella vera.
     if ([string]$TassoMousePrev -match '^\d{1,2},\d{1,2},\d{1,2}$') { New-ItemProperty -Path $PrevKey -Name 'Mouse' -Value ([string]$TassoMousePrev) -PropertyType String -Force | Out-Null }
-    else { $mm = [int[]](0, 0, 0); if ([TassoMouse.SPI]::SystemParametersInfo(3, 0, $mm, 0)) { New-ItemProperty -Path $PrevKey -Name 'Mouse' -Value ($mm -join ',') -PropertyType String -Force | Out-Null } }
+    else {
+      $mk = Get-ItemProperty -Path 'HKCU:\Control Panel\Mouse' -ErrorAction SilentlyContinue
+      $mv = (@([string]$mk.MouseThreshold1, [string]$mk.MouseThreshold2, [string]$mk.MouseSpeed) | ForEach-Object { $_.Trim() }) -join ','
+      if ($mk -and $mv -match '^\d{1,2},\d{1,2},\d{1,2}$') { New-ItemProperty -Path $PrevKey -Name 'Mouse' -Value $mv -PropertyType String -Force | Out-Null }
+    }
     $t = Get-ItemProperty -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\PushNotifications' -Name 'ToastEnabled' -ErrorAction SilentlyContinue
     $tv = 1; if ($t -and $null -ne $t.ToastEnabled) { $tv = [int]$t.ToastEnabled }
     New-ItemProperty -Path $PrevKey -Name 'Toasts' -Value $tv -PropertyType DWord -Force | Out-Null

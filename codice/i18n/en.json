@@ -1209,7 +1209,12 @@
   "Hai già questa versione.": "You already have this version.",
   "Controllo che il file sia quello giusto…": "Checking that the file is the right one…",
   "Il nuovo Tasso è firmato con un certificato di un'altra autorità: per sicurezza non lo installo.": "The new Tasso is signed with a certificate from a different authority: to be safe, I won't install it.",
-  "Non riesco a rileggere il piano energetico di Windows: controlla in Impostazioni → Sistema → Alimentazione.": "I can't read back the Windows power plan: check in Settings → System → Power."
+  "Non riesco a rileggere il piano energetico di Windows: controlla in Impostazioni → Sistema → Alimentazione.": "I can't read back the Windows power plan: check in Settings → System → Power.",
+  "Modalità Ufficio: ho spento il Boost e rimesso com'era quello che aveva cambiato.": "Office mode: I turned off Boost and put back what it had changed.",
+  "Il resto è com'era prima del Boost. La scheda video scelta per i giochi la rimette \"Rimetti com'era\".": "Everything else is as it was before Boost. The graphics card chosen for games goes back when you press \"Put it back\".",
+  " e premi di nuovo Applica per rimetterla com'era (con il gioco aperto verrebbe persa).": " and press Apply again to put it back as it was (with the game open the change would be lost).",
+  "✓ Grafica dentro il gioco rimessa com'era.": "✓ In-game graphics put back as they were.",
+  "• Grafica dentro il gioco: non sono riuscito a rimettere com'era il file delle impostazioni.": "• In-game graphics: I couldn't put the settings file back as it was."
  },
  "ps": {
   "   non riuscita, prova a reinstallarla dal Microsoft Store.": "   failed, try reinstalling it from the Microsoft Store.",
@@ -4821,7 +4826,7 @@
   "Tasso traduce in automatico solo i giochi che hai preparato; per gli altri chiede.": "Tasso translates automatically only the games you prepared; for the others it asks.",
   "Alta (Boost automatico)": "High (automatic Boost)",
   "Potenza normale per questo gioco: con il Boost automatico acceso, Tasso mette comunque la potenza alta quando apri ": "Normal power for this game: with automatic Boost on, Tasso still sets high power when you open ",
-  "Con il Boost automatico. A fine partita rimetto tutto com'era.": "With the automatic Boost. When you finish I put everything back.",
+  "Con il Boost automatico. A fine partita riapro i programmi chiusi e rimetto mouse e modalità; le regolazioni di Windows per giocare restano finché premi \"Rimetti com'era\".": "With the automatic Boost. When you finish I reopen the closed programs and put the mouse and mode back; the Windows gaming settings stay until you press \"Put it back\".",
   "Non è riuscito": "It didn't work",
   "Fatto in parte": "Partly done",
   "Tasti rimessi come all'inizio, ma ": "Keys reset to default, but ",
