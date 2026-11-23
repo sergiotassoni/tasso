@@ -102,6 +102,7 @@ var (
 	ovCPUTemp      float64 = -1
 	ovOnce         sync.Once
 	ovTempStart    sync.Once
+	ovHotkey       bool // Ctrl+Maiusc+F12 registrato (solo sul thread del pannellino)
 )
 
 func startOverlay() {
@@ -128,7 +129,7 @@ func overlayThread() {
 	ovFont, _, _ = pCreateFont.Call(19, 0, 0, 0, 700, 0, 0, 0, 1, 0, 0, 3, 0, uintptr(unsafe.Pointer(face)))
 	ovKeyBrush, _, _ = pCreateBrush.Call(ovKey)
 	pSetTimer.Call(h, 1, 1000, 0)
-	pRegisterHotKey.Call(h, 1, 0x0002|0x0004|0x4000, 0x7B) // Ctrl+Maiusc+F12 (senza ripetizione)
+	// Ctrl+Maiusc+F12 si registra in ovApply solo in Gaming con il pannellino acceso (in Word è Stampa).
 	// Il tasto dell'autoclick si registra solo quando apri la pagina Giochi (acArm), così non
 	// "ruba" F6 alle altre app se l'autoclick non lo usi.
 	ovMu.Lock()
@@ -214,9 +215,23 @@ func ovWndProc(hwnd, msg, wp, lp uintptr) uintptr {
 // ovApply decide se mostrare il pannellino e dove (sempre sul thread della finestra).
 func ovApply(hwnd uintptr) {
 	setMu.Lock()
-	auto, pos := settings.OverlayOn && !settings.Paused, settings.OverlayPos
+	office := settings.Profile == "ufficio"
+	auto, pos := settings.OverlayOn && !settings.Paused && !office, settings.OverlayPos
 	setMu.Unlock()
+	// Il tasto Ctrl+Maiusc+F12 è di Tasso solo quando serve: Gaming, pannellino acceso, non in pausa.
+	if auto != ovHotkey {
+		if auto {
+			r, _, _ := pRegisterHotKey.Call(hwnd, 1, 0x0002|0x0004|0x4000, 0x7B) // senza ripetizione
+			ovHotkey = r != 0
+		} else {
+			pUnregHotKey.Call(hwnd, 1)
+			ovHotkey = false
+		}
+	}
 	ovMu.Lock()
+	if office {
+		ovManual = false // in Ufficio niente pannellino, neanche chiesto a mano
+	}
 	show := ovManual || (auto && ovInGame && !ovSuppress && gameInFront())
 	ovShown = show
 	ovMu.Unlock()
@@ -523,7 +538,7 @@ func acRegister(hwnd uintptr) bool {
 // acArm registra il tasto dell'autoclick (pagina Giochi aperta). Restituisce false se è già usato da altri.
 func acArm() bool {
 	setMu.Lock()
-	paused := settings.Paused
+	paused := settings.Paused || settings.Profile == "ufficio" // in Ufficio F6 resta alle altre app
 	setMu.Unlock()
 	ovMu.Lock()
 	h := ovHwnd

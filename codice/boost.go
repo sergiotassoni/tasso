@@ -525,7 +525,7 @@ func startBoostWatcher() {
 				auto, game, skip := loadBoost().Auto, bGame, bSkip
 				bMu.Unlock()
 				setMu.Lock()
-				paused := settings.Paused
+				paused := settings.Paused || settings.Profile == "ufficio" // in Ufficio niente Boost automatico
 				setMu.Unlock()
 				name := ""
 				if auto && !paused {

@@ -111,10 +111,13 @@ func autoClickStart(fromHotkey bool) string {
 		return antiCheatMsg
 	}
 	setMu.Lock()
-	paused := settings.Paused
+	paused, office := settings.Paused, settings.Profile == "ufficio"
 	setMu.Unlock()
 	if paused {
 		return "Tasso è spento: riaccendilo per usare l'autoclick."
+	}
+	if office {
+		return "L'autoclick c'è solo in modalità Gaming."
 	}
 	acMu.Lock()
 	if acRunning {

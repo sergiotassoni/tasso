@@ -69,6 +69,10 @@ func rispondiAlGioco(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "no", http.StatusForbidden)
 		return
 	}
+	if InUfficio.Load() { // modalità Ufficio: niente traduzione dei giochi
+		http.Error(w, "ufficio", http.StatusServiceUnavailable)
+		return
+	}
 	parti := strings.Split(strings.TrimPrefix(r.URL.Path, "/gioco/"), "/")
 	if len(parti) != 2 {
 		http.Error(w, "no", http.StatusForbidden)

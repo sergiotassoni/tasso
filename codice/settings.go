@@ -128,6 +128,7 @@ func setPaused(on bool) string {
 	if on {
 		autoClickStop()
 		acDisarm()
+		ovPost() // in pausa niente Ctrl+Maiusc+F12
 		_, _ = runHidden("schtasks.exe", "/Delete", "/TN", taskAvvio, "/F")
 		_, _ = runHidden("schtasks.exe", "/Delete", "/TN", taskWeek, "/F")
 		_, _ = runHidden("schtasks.exe", "/Delete", "/TN", taskProfilo, "/F")
@@ -139,6 +140,7 @@ func setPaused(on bool) string {
 		return "ok"
 	}
 	updateSettings(func(s *Settings) { s.Paused = false })
+	ovPost()
 	if pa {
 		setAutostart(true)
 	}
@@ -235,6 +237,13 @@ func setLook(p string) string {
 		s.Profile = p
 	})
 	return "ok"
+}
+
+// officeMode: Tasso è in modalità Ufficio (niente giochi, Boost, pannellino né autoclick).
+func officeMode() bool {
+	setMu.Lock()
+	defer setMu.Unlock()
+	return settings.Profile == "ufficio"
 }
 
 func setSmartAlerts(on bool) string {
@@ -380,6 +389,7 @@ func setProfile(p string) string {
 		s.Onboarded = true
 		s.Profile = p
 	})
+	lookChanged(p == "ufficio")
 	switch p {
 	case "gioco":
 		go setMode("gaming")
