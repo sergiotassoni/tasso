@@ -95,8 +95,8 @@ func limiteIA(memoriaGB float64) float64 { return memoriaGB * 0.44 }
 var conScorta, conMedia bool
 
 const (
-	vramPiccola     = 3.0 // Media con stratiPiccola strati sulla scheda: da misurare
-	vramMedia       = 4.4 // EuroLLM-9B Q3_K_M (file 4,24 GB): da misurare
+	vramPiccola     = 3.0 // misurato 23/11: 28 strati della Media = 3,0 GB, 0,89 s a frase, 70,6
+	vramMedia       = 4.3 // misurato 23/11: 4,3 GB, 0,37 s a frase
 	stratiPiccola   = 28
 	ramMinimaScorta = 7.5
 )

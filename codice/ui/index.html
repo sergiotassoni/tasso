@@ -4049,7 +4049,7 @@ function tuneRows(){
 function lvHtml(st, iaTxt){
   const okIa = !!(st.ia_file && st.ia_pc_ok);
   if (!okIa) return '<div class="lvcard"><b>🧠 ' + esc(_t('Traduzione più precisa (IA)')) + '</b><span class="small muted">' + esc(iaTxt) + '</span></div>';
-  const gbv = st.ia_gb || {piccola: 3, media: 4.4, grande: 5.2}, g = st.gpu || {}, tot = g.memoria_gb || 0, gioco = Math.max(0, g.usata_gb || 0), lib = tot - gioco;
+  const gbv = st.ia_gb || {piccola: 3, media: 4.3, grande: 5.2}, g = st.gpu || {}, tot = g.memoria_gb || 0, gioco = Math.max(0, g.usata_gb || 0), lib = tot - gioco;
   const n = (x) => String(Math.round(x * 10) / 10).replace('.', EN ? '.' : ',');
   const fit = (gb) => !tot || lib >= gb + 1.3;
   const L = [
