@@ -361,11 +361,30 @@ func continuaFrase(sopra, sotto string) bool {
 	if strings.HasPrefix(sotto, "-") || strings.HasPrefix(sotto, "•") {
 		return false
 	}
+	// titolo tutto maiuscolo sopra una riga normale: sono due scritte diverse anche se l'OCR ha
+	// perso la maiuscola della seconda ("CRAFT MORE" / "reate additional...", No Man's Sky)
+	if tuttoMaiuscolo(sopra) && !tuttoMaiuscolo(sotto) {
+		return false
+	}
 	r := []rune(sotto)[0]
 	if unicode.IsLower(r) {
 		return true
 	}
 	return strings.HasSuffix(sopra, ",") || strings.HasSuffix(sopra, "-")
+}
+
+// tuttoMaiuscolo: almeno due lettere e nessuna minuscola.
+func tuttoMaiuscolo(s string) bool {
+	n := 0
+	for _, r := range s {
+		if unicode.IsLower(r) {
+			return false
+		}
+		if unicode.IsLetter(r) {
+			n++
+		}
+	}
+	return n >= 2
 }
 
 func abs(x int) int {

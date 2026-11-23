@@ -112,3 +112,12 @@ func TestTieniFerme(t *testing.T) {
 		t.Fatal("se l'inglese sotto è cambiato si usa la lettura nuova")
 	}
 }
+
+func TestTitoloMaiuscoloNonSiUnisce(t *testing.T) {
+	if continuaFrase("CRAFT MORE", "reate additional Microprocessor") {
+		t.Fatal("il titolo maiuscolo non continua nella riga sotto")
+	}
+	if !continuaFrase("Stack items, split stacks or move", "to other inventories") {
+		t.Fatal("una frase normale andata a capo deve unirsi")
+	}
+}
