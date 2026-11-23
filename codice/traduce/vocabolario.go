@@ -161,6 +161,11 @@ func correggiParole(r string) string {
 			b.WriteString(c[0])
 			continue
 		}
+		// 4) lettere perse o sbagliate nelle scritte piccole: "remining" -> "remaining"
+		if q := parolaVicina(p); q != "" {
+			b.WriteString(q)
+			continue
+		}
 		b.WriteString(p)
 	}
 	b.WriteString(r[ultimo:])
@@ -282,3 +287,71 @@ func staccaMaiuscola(p string) string {
 }
 
 var reJoinTagliato = regexp.MustCompile(`^(?:[JjIl1|]?[Oo0]?in|Oin)( (?:Multiplayer|Game|Server|Online|Party|Session|Lobby|a Game)\b)`)
+
+// parolaVicina: la parola vera più comune a una o due lettere di distanza ("remining" ->
+// "remaining", "playes" -> "players"). Solo se ce n'è una chiaramente più comune delle altre.
+func parolaVicina(p string) string {
+	v := vocabolario()
+	if len(v) == 0 || len(p) < 4 || !soloLettere(p) {
+		return ""
+	}
+	low := strings.ToLower(p)
+	scegli := func(cand map[string]bool) string {
+		best, bl, pari := "", int8(127), false
+		for c := range cand {
+			l, ok := v[c]
+			if !ok {
+				continue
+			}
+			switch {
+			case l < bl:
+				best, bl, pari = c, l, false
+			case l == bl:
+				pari = true
+			}
+		}
+		if best == "" || pari || bl > 45 {
+			return ""
+		}
+		return best
+	}
+	d1 := modifiche(low)
+	w := scegli(d1)
+	if w == "" && len(low) >= 6 {
+		d2 := map[string]bool{}
+		for c := range d1 {
+			for c2 := range modifiche(c) {
+				d2[c2] = true
+			}
+		}
+		w = scegli(d2)
+	}
+	if w == "" {
+		return ""
+	}
+	if unicode.IsUpper(rune(p[0])) {
+		w = strings.ToUpper(w[:1]) + w[1:]
+	}
+	return w
+}
+
+func modifiche(p string) map[string]bool {
+	const lettere = "abcdefghijklmnopqrstuvwxyz"
+	out := map[string]bool{}
+	for i := 0; i <= len(p); i++ {
+		a, b := p[:i], p[i:]
+		if len(b) > 0 {
+			out[a+b[1:]] = true // tolta
+			for _, c := range lettere {
+				out[a+string(c)+b[1:]] = true // cambiata
+			}
+		}
+		if len(b) > 1 {
+			out[a+string(b[1])+string(b[0])+b[2:]] = true // scambiate
+		}
+		for _, c := range lettere {
+			out[a+string(c)+b] = true // aggiunta
+		}
+	}
+	return out
+}

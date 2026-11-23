@@ -229,7 +229,7 @@ func preparaPagina(area Zona, img, primaImg *image.RGBA, giro int64) (p *paginaP
 	righe = rileggiPiccole(img, righe, f)
 	blocchi := segmenti(righe, f)
 	for i := range blocchi {
-		blocchi[i].Testo = separaAttaccate(blocchi[i].Testo)
+		blocchi[i].Testo = correggiParole(separaAttaccate(blocchi[i].Testo))
 	}
 	blocchi = unisciParagrafi(blocchi)
 	nostraL, ceNostraL := nostraFinestraIn(area)
