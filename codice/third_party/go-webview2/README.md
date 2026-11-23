@@ -21,6 +21,8 @@ go run ./cmd/demo
 This will use go-winloader to load an embedded copy of WebView2Loader.dll. If you want, you can also provide a newer version of WebView2Loader.dll in the DLL search path and it should be picked up instead. It can be acquired from the WebView2 SDK (which is permissively licensed.)
 
 ---
-Copia locale usata da Tasso (versione v0.0.0-20260205173254-56598839c808), con una sola modifica:
+Copia locale usata da Tasso (versione v0.0.0-20260205173254-56598839c808), con due modifiche:
 webviewloader/module.go carica WebView2Loader.dll solo da System32 (NewLazySystemDLL) invece che
 dalla cartella del programma, per evitare il caricamento di una DLL falsa messa accanto a Tasso.exe.
+In più webview.go (NewWithOptions) spegne i tasti da browser (F5, Ctrl+R, Ctrl+F, Ctrl+P, Alt+Freccia
+sinistra), lo zoom e il gesto Indietro, come già faceva con menu del tasto destro e DevTools.

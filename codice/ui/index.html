@@ -178,7 +178,7 @@ h3{margin:0;font-size:15px}
 .idx ul{margin:0;padding-left:18px;line-height:1.75;color:var(--soft)}
 .idx li b{color:var(--text)}
 /* WELCOME + MODAL + TOAST */
-.overlay{position:fixed;inset:0;background:rgba(5,6,10,.72);display:none;align-items:center;justify-content:center;z-index:50;padding:24px}
+.overlay{position:fixed;inset:0;background:rgba(5,6,10,.72);display:none;align-items:center;justify-content:center;z-index:65;padding:24px}
 .overlay.on{display:flex}
 .modal{width:100%;max-width:580px;background:var(--panel);border:1px solid var(--line);border-radius:22px;padding:24px;display:flex;flex-direction:column;gap:14px;max-height:90vh;overflow-y:auto;box-shadow:0 30px 80px rgba(0,0,0,.45)}
 .modal h2{font-size:22px}
@@ -385,11 +385,13 @@ details.ofg .ofgrid{padding:0 12px 12px}
   aside nav .navh{display:none}
   .hero{padding:22px 20px;gap:18px}.hero h1{font-size:30px;letter-spacing:-.5px;overflow-wrap:normal}.orb{transform:scale(.78);margin:-28px auto}
   aside nav button{gap:0}
-  aside .brand b,aside .brand small,.power b,.power span{display:none}
+  aside .brand b,aside .brand small,.power b,.power span:not(.dot){display:none}
   .power{justify-content:center;padding:11px 0}
   .g2,.g3,.g4{grid-template-columns:repeat(auto-fit,minmax(min(100%,250px),1fr))}
   #gwGame,#libSearch{min-width:0!important;max-width:100%}
   .row{flex-wrap:wrap}.card,.grid>*{min-width:0;overflow-wrap:anywhere}
+  #hIssues .li,#hGood{overflow-wrap:break-word}#hIssues .li>span:first-child{flex:1 1 60%!important}
+  .toasts{left:76px;right:12px;max-width:none}
 }
 .navh{display:block;font-size:10.5px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);opacity:.8;padding:10px 12px 3px}
 .boostcard{display:flex;align-items:center;gap:28px;flex-wrap:wrap;padding:28px;border-color:var(--a1)}
@@ -603,7 +605,7 @@ dl.sum{display:grid;grid-template-columns:max-content 1fr;gap:6px 14px;margin:0}
     <div class="navsub gm" data-sub="gio">
       <button data-gtab="lib"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="10" rx="5"/><path d="M7 12h3M8.5 10.5v3"/></svg>I miei giochi</button>
       <button data-gtab="cro"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Cronologia</button>
-      <button data-gtab="imp"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h16"/><circle cx="9" cy="6" r="2"/><circle cx="15" cy="12" r="2"/><circle cx="8" cy="18" r="2"/></svg>Impostazioni</button>
+      <button data-gtab="imp"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h16"/><circle cx="9" cy="6" r="2"/><circle cx="15" cy="12" r="2"/><circle cx="8" cy="18" r="2"/></svg>Impostazioni giochi</button>
       <div class="navrec" id="navRec"></div>
     </div>
     <button data-grp="rip" class="navgrp" aria-controls="navsub-rip"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.8 4.7 4.7 1.8-4.7 1.8L12 16l-1.8-4.7-4.7-1.8 4.7-1.8z"/><path d="M19 15l.8 2.2 2.2.8-2.2.8L19 21l-.8-2.2-2.2-.8 2.2-.8z"/></svg>Pulisci e ripara</button>
@@ -1334,6 +1336,22 @@ function translateStatic(root){
   if (EN) document.documentElement.lang = 'en';
 }
 translateStatic(document.body);
+// Menu stretto (≤760 px) = solo icone: il nome di ogni voce resta nel suggerimento al passaggio del mouse (già tradotto qui sopra).
+document.querySelectorAll('aside nav button').forEach(b => { const t = b.textContent.replace(/\s+/g, ' ').trim(); if (!t) return; if (!b.title) b.title = t; if (!b.hasAttribute('aria-label')) b.setAttribute('aria-label', t); });
+// Tasso non è un browser: niente Indietro (Alt+Freccia sinistra, tasto Indietro del mouse), Ricarica (F5, Ctrl+R),
+// Cerca, Stampa e zoom. Go li spegne già in WebView2; qui li blocco anche dal lato pagina, perché una pagina ricaricata
+// o tornata indietro resterebbe bianca. Copia, incolla e seleziona tutto nei campi di testo restano.
+(function(){
+  document.addEventListener('keydown', (e) => {
+    const k = e.key, c = e.ctrlKey || e.metaKey;
+    if (k === 'F5' || k === 'BrowserBack' || k === 'BrowserForward' || k === 'BrowserRefresh' || (e.altKey && !c && (k === 'ArrowLeft' || k === 'ArrowRight')) ||
+        (c && !e.altKey && /^[rpfgu]$/i.test(k)) || (c && (k === '+' || k === '-' || k === '=' || k === '0'))) e.preventDefault();
+  }, true);
+  window.addEventListener('wheel', (e) => { if (e.ctrlKey) e.preventDefault(); }, {passive: false});
+  const noNav = (e) => { if (e.button === 3 || e.button === 4) e.preventDefault(); };
+  window.addEventListener('mousedown', noNav); window.addEventListener('mouseup', noNav); window.addEventListener('auxclick', noNav);
+  try { history.pushState({tasso: 1}, ''); window.addEventListener('popstate', () => { try { history.pushState({tasso: 1}, ''); } catch (e) {} }); } catch (e) {}
+})();
 paintLang();
 const DEC = EN ? '.' : ',';
 let S = BOOT.settings || {};
@@ -1610,7 +1628,11 @@ function modal(html, buttons){
   const ti = box.querySelector('h1,h2,h3,h4') || box.firstElementChild;
   if (ti && ti !== row) { if (!ti.id) ti.id = 'modalT'; box.setAttribute('aria-labelledby', ti.id); } else box.removeAttribute('aria-labelledby');
   // 3.1: nelle domande pericolose il fuoco va su "Annulla", così un Invio di troppo non fa danni.
-  const fi = buttons.findIndex(bt => bt.focus); const f = fi >= 0 ? row.children[fi] : row.lastChild; if (f) f.focus();
+  // Pericolosa = un pulsante rosso/arancione (danger, warn) o segnato risky (pulizie, ripristino).
+  // "Annulla" = il primo pulsante che non fa niente (chiude soltanto), altrimenti il primo.
+  let fi = buttons.findIndex(bt => bt.focus);
+  if (fi < 0 && buttons.some(bt => bt.risky || /\b(danger|warn)\b/.test(bt.cls || ''))) { fi = buttons.findIndex(bt => !bt.fn); if (fi < 0) fi = 0; }
+  const f = fi >= 0 ? row.children[fi] : row.lastChild; if (f) f.focus();
 }
 let MODAL_BACK = null;
 function closeModal(){ $('#modal').classList.remove('on'); const b = MODAL_BACK; MODAL_BACK = null; if (b && b.isConnected && typeof b.focus === 'function') { try { b.focus(); } catch (e) {} } }
@@ -1637,13 +1659,13 @@ function confirmLevel(n){
   if (n >= 4) note += _t(' Questa pulizia aggiorna driver e Windows: alla fine potrebbe servire un riavvio.');
   const found = AN && AN.junk ? _t('<div class="note" style="border-color:color-mix(in srgb,var(--a1) 40%,var(--line))">Anteprima: Tasso ha trovato circa <b style="color:var(--a1t)">') + fmtBytes(AN.junk) + _t('</b> di file inutili (temporanei, cache, Cestino, aggiornamenti vecchi).</div>') : '';
   modal('<h2 style="color:' + L.c + _t('">Pulizia ') + L.name + _t('</h2><span class="muted">Durata stimata: circa ') + fmtMin(levelMinutes(n)) + '</span>' + found + '<ul>' + list + '</ul><div class="note">' + note + '</div>' + OFF_BOX,
-    [{label:_t('Annulla')}, {label:_t('Avvia pulizia ') + L.name, cls:'primary', fn: (box) => { const off = !!(box.querySelector('#chkOff') || {}).checked; startLevel(n, off); }}]);
+    [{label:_t('Annulla')}, {label:_t('Avvia pulizia ') + L.name, cls:'primary', risky:true, fn: (box) => { const off = !!(box.querySelector('#chkOff') || {}).checked; startLevel(n, off); }}]);
 }
 async function startLevel(n, off){ const r = await call('goStartLevel', n, !!off); if (r === 'busy') toast(_t('Una pulizia è già in corso.'), 'var(--a4)'); else { if (RUN === null) RUN = undefined; show('clean'); } }
 function runSteps(ids, title, desc, minutes){
   const long = minutes >= 10;
   modal('<h2>' + esc(title) + '</h2><p class="muted" style="margin:0;line-height:1.5">' + esc(desc) + _t('</p><span class="muted">Durata stimata: ') + fmtMin(minutes) + '</span>' + (long ? OFF_BOX : ''),
-    [{label:_t('Annulla')}, {label:_t('Avvia'), cls:'primary', fn: (box) => { const off = !!(box.querySelector('#chkOff') || {}).checked; call('goStartSteps', ids, off).then(r => { if (r === 'busy') toast(_t('Attendi la fine dell\'operazione in corso.'), 'var(--a4)'); else show('clean'); }); }}]);
+    [{label:_t('Annulla')}, {label:_t('Avvia'), cls:'primary', risky:true, fn: (box) => { const off = !!(box.querySelector('#chkOff') || {}).checked; call('goStartSteps', ids, off).then(r => { if (r === 'busy') toast(_t('Attendi la fine dell\'operazione in corso.'), 'var(--a4)'); else show('clean'); }); }}]);
 }
 function runStep(id){ const s = STEP[id]; if (s) runSteps([id], s.name, s.desc, s.minutes); }
 $$('[data-step]').forEach(b => { b.onclick = () => runStep(b.dataset.step); });
@@ -1745,6 +1767,17 @@ function paintLast(){
 function daysSince(dt){ if (!dt) return 999; return Math.floor((Date.now() - new Date(dt + 'T12:00:00').getTime()) / 86400000); }
 function paintHero(){
   if (!AN) return;
+  const okJunk = typeof AN.junk === 'number', okHealth = !!(HEALTH && HEALTH.score != null);
+  if (!okJunk && !okHealth) {
+    // Analisi e Salute del PC non riuscite: niente voto né numeri inventati (come la Home Gaming).
+    $('#scoreArc').setAttribute('stroke-dasharray', '641 641');
+    $('#scoreArc').setAttribute('stroke', 'var(--muted)');
+    $('#heroTitle').textContent = _t('Controllo non riuscito: riprova tra poco.');
+    $('#heroSub').textContent = '';
+    $('#fJunk').textContent = '—'; $('#fStart').textContent = typeof AN.startup === 'number' ? AN.startup : '—';
+    paintGHome(0);
+    return;
+  }
   const junk = AN.junk || 0, st = AN.startup || 0;
   let score = 100;
   if (junk > 5e9) score -= 15; else if (junk > 2e9) score -= 10; else if (junk > 5e8) score -= 5;
@@ -1760,13 +1793,13 @@ function paintHero(){
   $('#scoreArc').setAttribute('stroke-dasharray', (641 * score / 100).toFixed(0) + ' 641');
   $('#scoreArc').setAttribute('stroke', col);
   $('#heroTitle').innerHTML = (/^(8|11|8\d)$/.test(String(score)) ? _t('Il tuo PC è all\'') : _t('Il tuo PC è al ')) + '<span style="color:' + col + '">' + score + '%</span>.<br>' + (score >= 95 ? _t('In forma perfetta.') : _t('Portiamolo al 100.'));
-  const bits = [fmtBytes(junk) + _t(' di file inutili')];
+  const bits = okJunk ? [fmtBytes(junk) + _t(' di file inutili')] : [];
   if (st > 5) bits.push(st + _t(' programmi che rallentano l\'avvio'));
-  if (AN.badDevices > 0) bits.push(AN.badDevices + _t(' periferiche con problemi'));
+  if (AN.badDevices > 0) bits.push(AN.badDevices + (AN.badDevices === 1 ? _t(' periferica con problemi') : _t(' periferiche con problemi')));
   if (AN.diskWarnings > 0) bits.push(_t('un disco da tenere d\'occhio'));
   if (ds > 30) bits.push(ds >= 999 ? _t('nessuna pulizia fatta finora') : _t('ultima pulizia ') + ds + _t(' giorni fa'));
-  $('#heroSub').textContent = bits.join(', ') + '.';
-  $('#fJunk').textContent = fmtBytes(junk); $('#fStart').textContent = st;
+  $('#heroSub').textContent = bits.length ? bits.join(', ') + '.' : '';
+  $('#fJunk').textContent = okJunk ? fmtBytes(junk) : '—'; $('#fStart').textContent = typeof AN.startup === 'number' ? st : '—';
   paintGHome(score);
 }
 // Home Gaming (3.1): voto, numeri e stato. Colori fissi buono/medio/cattivo (non quelli del tema:
@@ -2520,6 +2553,7 @@ function paintSettings(){
   $('#powerBtn').classList.toggle('off', !!S.paused);
   $('#powerTitle').textContent = S.paused ? _t('Tasso è spento') : _t('Tasso è acceso');
   $('#powerSub').textContent = S.paused ? _t('Clicca per riaccenderlo') : _t('Clicca per spegnerlo');
+  $('#powerBtn').title = $('#powerTitle').textContent + '. ' + $('#powerSub').textContent; // col menu stretto si vede solo il pallino
   $('#pausedBanner').classList.toggle('on', !!S.paused);
   if (typeof gBoostPaint === 'function') gBoostPaint();
 }
@@ -2529,7 +2563,7 @@ async function setPaused(on){
     modal(_t('<h2>Spegnere Tasso?</h2><p class="muted" style="margin:0;line-height:1.5">Da spento Tasso non parte con Windows, non fa pulizie automatiche e non manda avvisi. Scegli cosa fare con le impostazioni di Windows che Tasso ha cambiato:</p>') + RESTORE_INFO,
       [{label:_t('Annulla')},
        {label:_t('Spegni e lascia tutto così'), cls:'ghost', fn: () => { callBg('goSetPaused', true).then(async (r) => { if (r !== 'ok') { toast(r || _t('Non riuscito, riprova.'), 'var(--red)'); return; } await refreshS(); paintSettings(); paintModes(); toast(_t('Tasso è spento. Le impostazioni restano come sono ora.'), 'var(--red)'); }); }},
-       {label:_t('Spegni e rimetti com\'era prima'), cls:'primary', fn: () => { call('goRestore', true).then(r => { if (r === 'busy') toast(_t('Sto già rimettendo le impostazioni…'), 'var(--a4)'); else toast(_t('Rimetto le impostazioni com\'erano…')); }); }}]);
+       {label:_t('Spegni e rimetti com\'era prima'), cls:'primary', risky:true, fn: () => { call('goRestore', true).then(r => { if (r === 'busy') toast(_t('Sto già rimettendo le impostazioni…'), 'var(--a4)'); else toast(_t('Rimetto le impostazioni com\'erano…')); }); }}]);
   } else {
     const r = await callBg('goSetPaused', false); if (r !== 'ok') { toast(r || _t('Non riuscito, riprova.'), 'var(--red)'); return; } await refreshS(); paintSettings(); toast(_t('Tasso è di nuovo acceso.'));
   }
@@ -2563,7 +2597,7 @@ $('#btnBackup').onclick = async () => { const r = await call('goBackup'); if (r 
 $('#btnShortcut').onclick = async () => { await call('goDesktopShortcut'); toast(_t('Collegamento a Tasso creato sul Desktop.')); };
 $('#btnLogs').onclick = () => call('goOpenLogs');
 $('#btnRestore').onclick = () => modal(_t('<h2>Rimettere le impostazioni com\'erano?</h2><p class="muted" style="margin:0;line-height:1.5">Tasso resta acceso, ma le impostazioni di Windows che ha cambiato tornano com\'erano prima di lui') + (S.snapshotAt ? _t(' (salvate il ') + esc(S.snapshotAt) + ')' : '') + '.</p>' + RESTORE_INFO,
-  [{label:_t('Annulla')}, {label:_t('Rimetti com\'era'), cls:'primary', fn: () => { call('goRestore', false).then(r => { if (r === 'busy') toast(_t('Sto già rimettendo le impostazioni…'), 'var(--a4)'); else toast(_t('Rimetto le impostazioni com\'erano…')); }); }}]);
+  [{label:_t('Annulla')}, {label:_t('Rimetti com\'era'), cls:'primary', risky:true, fn: () => { call('goRestore', false).then(r => { if (r === 'busy') toast(_t('Sto già rimettendo le impostazioni…'), 'var(--a4)'); else toast(_t('Rimetto le impostazioni com\'erano…')); }); }}]);
 $('#btnQuit').onclick = () => { if (RUN) { toast(_t('Aspetta la fine della pulizia prima di chiudere.'), 'var(--a4)'); return; } call('goQuit'); };
 
 /* ---------- welcome ---------- */
@@ -3423,7 +3457,7 @@ function autoUpdate(u){
   if (S.noAutoUpdate || UPD_SELF || AU_T) return;
   // Tasso aperto a icona (avvio con Windows): avviso solo quando lo guardi
   if (document.visibilityState === 'hidden') { const w = () => { if (document.visibilityState !== 'hidden') { document.removeEventListener('visibilitychange', w); autoUpdate(u); } }; document.addEventListener('visibilitychange', w); return; }
-  if (auGioco() || $('#modal').classList.contains('on')) { auLater(u); return; } // stai giocando o stai facendo altro: riprovo più tardi
+  if (auGioco() || $('#modal').classList.contains('on') || $('#welcome').classList.contains('on')) { auLater(u); return; } // stai giocando, stai facendo altro o sei nel benvenuto: riprovo più tardi
   let n = 30;
   const go = () => { clearInterval(AU_T); AU_T = null; if (UPD_SELF || S.noAutoUpdate) return; closeModal(); if (auGioco()) { auLater(u); return; } call('goSelfUpdateAuto').then(r => { if (r === 'game') { auLater(u); toast(_t('Hai un gioco aperto: aggiorno un\'altra volta.')); return; } if (r !== 'busy') UPD_SELF = true; }); };
   modal('<h2>' + esc(_t('Aggiorno Tasso')) + '</h2><p class="muted" style="margin:0;line-height:1.5">' + esc(_t('È uscita la versione ') + u.latest + _t('. Tasso la scarica, controlla la firma e si riapre da solo. Le impostazioni restano.')) + '</p><p style="margin:0" role="status"><b id="auCount">30</b> ' + esc(_t('secondi')) + '</p>',
@@ -3850,7 +3884,8 @@ function paintGame(g){
   paintGameTools(g);
   $('#gpToolTabs').onclick = (ev) => { const b = ev.target.closest('[data-tt]'); if (b) { GP_TAB = b.dataset.tt; paintGameTools(g); } };
   $('#gpTools').onclick = (ev) => { const b = ev.target.closest('[data-tool]'); if (b && !b.disabled) toolClick(g, b.dataset.tool); };
-  $('#gpBack').onclick = () => { closeGame(); const c = $('#libGrid [data-gid="' + CSS.escape(g.id) + '"]'); if (c) c.focus(); };
+  // "Tutti i giochi" torna sempre alla Libreria (anche se il gioco era stato aperto dai recenti stando in Cronologia o Impostazioni).
+  $('#gpBack').onclick = () => { gTab('lib'); const c = $('#libGrid [data-gid="' + CSS.escape(g.id) + '"]') || $('#libGrid [data-gid]') || $('#libGrid'); if (c) { if (!c.hasAttribute('tabindex') && c.id === 'libGrid') c.setAttribute('tabindex', '-1'); c.focus(); } };
   box.querySelectorAll('[data-pow]').forEach(b => { b.onclick = async () => {
     const k = b.dataset.pow; if (k === gamePow(g.id)) return;
     box.querySelectorAll('[data-pow]').forEach(x => { x.disabled = true; });
