@@ -678,6 +678,7 @@ var (
 type coverHit struct {
 	App  string `json:"a"`
 	When int64  `json:"t"`
+	Hdr  string `json:"h,omitempty"` // copertina orizzontale vera di Steam (indirizzo con il codice), per i giochi nuovi
 }
 
 func coverCacheFile() string { return filepath.Join(appDir, "copertine.json") }
@@ -765,13 +766,87 @@ func steamCDN(app string) (string, string) {
 	return cdn + "library_600x900.jpg", cdn + "header.jpg"
 }
 
+// steamHdrRe: solo immagini di Steam (niente indirizzi strani nella pagina).
+var steamHdrRe = regexp.MustCompile(`^https://(shared|cdn)\.(akamai|cloudflare|fastly)\.steamstatic\.com/store_item_assets/steam/apps/[0-9]+/[^\s"'<>]+\.(jpg|png)(\?t=[0-9]+)?$`)
+
+// cachedHeader: la copertina di riserva già nota per questo numero Steam (known=false se va chiesta).
+func cachedHeader(app string) (string, bool) {
+	coverMu.Lock()
+	defer coverMu.Unlock()
+	loadCoverCache()
+	h, ok := coverCache["#"+app]
+	if ok && (h.Hdr != "" || time.Since(time.Unix(h.When, 0)) < 7*24*time.Hour) {
+		return h.Hdr, true
+	}
+	return "", false
+}
+
+// steamHeaderFor: i giochi usciti da poco hanno le immagini di Steam solo in un indirizzo con un
+// codice dentro, quindi library_600x900.jpg e header.jpg "a mano" non esistono (404).
+// Chiedo a Steam l'indirizzo giusto dell'immagine orizzontale (manda solo il numero del gioco).
+func steamHeaderFor(app string) string {
+	hdr := ""
+	client := &http.Client{Timeout: 8 * time.Second}
+	resp, err := client.Get("https://store.steampowered.com/api/appdetails?appids=" + url.QueryEscape(app) + "&filters=basic")
+	if err != nil {
+		return ""
+	}
+	var r map[string]struct {
+		Success bool `json:"success"`
+		Data    struct {
+			Header string `json:"header_image"`
+		} `json:"data"`
+	}
+	ok2 := resp.StatusCode == 200 && json.NewDecoder(io.LimitReader(resp.Body, 2<<20)).Decode(&r) == nil
+	resp.Body.Close()
+	if !ok2 {
+		return ""
+	}
+	if d, ok := r[app]; ok && d.Success && steamHdrRe.MatchString(d.Data.Header) {
+		hdr = d.Data.Header
+	}
+	coverMu.Lock()
+	loadCoverCache()
+	coverCache["#"+app] = coverHit{Hdr: hdr, When: time.Now().Unix()}
+	if b, err := json.Marshal(coverCache); err == nil {
+		_ = os.WriteFile(coverCacheFile(), b, 0o644)
+	}
+	coverMu.Unlock()
+	return hdr
+}
+
 // fillCovers: copertine per chi non ce l'ha. Prima quelle già note (senza internet),
 // poi al massimo 40 ricerche nuove per volta, 4 alla volta. Desktop, Download e giochi aggiunti a mano: niente ricerca.
 func fillCovers(all []gameEntry) bool {
 	changed := false
 	var ask []*gameEntry
+	type hdrAsk struct {
+		g   *gameEntry
+		app string
+	}
+	var askHdr []hdrAsk
+	// needHdr: la copertina viene da internet (non dal PC): preparo quella di riserva giusta.
+	needHdr := func(g *gameEntry, app string) {
+		if !strings.HasPrefix(g.Img, "https://") {
+			return
+		}
+		if h, known := cachedHeader(app); known {
+			if h != "" {
+				g.ImgAlt = h
+				changed = true
+			}
+			return
+		}
+		if len(askHdr) < 40 {
+			askHdr = append(askHdr, hdrAsk{g, app})
+		}
+	}
 	for i := range all {
 		g := &all[i]
+		if g.Store == "Steam" && g.steamApp != "" {
+			needHdr(g, g.steamApp)
+			continue
+		}
 		if g.Img != "" || g.Store == "Steam" || g.private {
 			continue
 		}
@@ -779,6 +854,7 @@ func fillCovers(all []gameEntry) bool {
 			if app != "" {
 				g.Img, g.ImgAlt = steamCDN(app)
 				changed = true
+				needHdr(g, app)
 			}
 			continue
 		}
@@ -797,12 +873,34 @@ func fillCovers(all []gameEntry) bool {
 			defer func() { <-sem }()
 			defer guard("games_more.go:fillCovers")
 			if app := steamCoverFor(g.Name); app != "" {
+				h, known := cachedHeader(app)
+				if !known {
+					h = steamHeaderFor(app)
+				}
 				mu.Lock()
 				g.Img, g.ImgAlt = steamCDN(app)
+				if h != "" {
+					g.ImgAlt = h
+				}
 				changed = true
 				mu.Unlock()
 			}
 		}(g)
+	}
+	for _, a := range askHdr {
+		wg.Add(1)
+		sem <- struct{}{}
+		go func(a hdrAsk) {
+			defer wg.Done()
+			defer func() { <-sem }()
+			defer guard("games_more.go:fillCovers hdr")
+			if h := steamHeaderFor(a.app); h != "" {
+				mu.Lock()
+				a.g.ImgAlt = h
+				changed = true
+				mu.Unlock()
+			}
+		}(a)
 	}
 	wg.Wait()
 	return changed

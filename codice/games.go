@@ -40,6 +40,7 @@ type gameEntry struct {
 	exe       string // programma da avviare (Riot)
 	exeArgs   string
 	dir       string // cartella dove è installato (serve a "Regola con Tasso")
+	steamApp  string // numero Steam del gioco installato da Steam (per la copertina di riserva)
 }
 
 var (
@@ -139,7 +140,7 @@ func scanSteam() []gameEntry {
 			if img == "" {
 				img = cdn + "library_600x900.jpg"
 			}
-			out = append(out, gameEntry{ID: "steam:" + ids[0], Name: n, Store: "Steam", Size: size, Played: played, Img: img, ImgAlt: cdn + "header.jpg", launch: "steam://rungameid/" + ids[0], dir: gdir})
+			out = append(out, gameEntry{ID: "steam:" + ids[0], Name: n, Store: "Steam", Size: size, Played: played, Img: img, ImgAlt: cdn + "header.jpg", launch: "steam://rungameid/" + ids[0], dir: gdir, steamApp: ids[0]})
 		}
 	}
 	return out
@@ -218,7 +219,8 @@ func scanRiot() []gameEntry {
 func steamCover(root, id string) string {
 	lc := filepath.Join(root, "appcache", "librarycache")
 	var cands []string
-	for _, name := range []string{"library_600x900.jpg", "library_600x900_2x.jpg", "header.jpg"} {
+	// Steam nuovo: library_capsule.jpg (verticale) e library_header.jpg, dentro <appid>\<codice>\.
+	for _, name := range []string{"library_600x900.jpg", "library_600x900_2x.jpg", "library_capsule.jpg", "library_header.jpg", "header.jpg"} {
 		cands = append(cands, filepath.Join(lc, id+"_"+name), filepath.Join(lc, id, name))
 		if m, _ := filepath.Glob(filepath.Join(lc, id, "*", name)); len(m) > 0 {
 			cands = append(cands, m...)
