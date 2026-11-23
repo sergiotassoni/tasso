@@ -3731,7 +3731,7 @@ window.tt = {
     else if (x.cosa === 'lingue') $('#trLangMsg').textContent = _t('Scarico… ') + pc + '%';
   },
   scaricato(x){ if (!document.body.classList.contains('office')) toast((DLN[x && x.cosa] || '') + _t(': scaricato.'), 'var(--a3)'); if (x && x.cosa === 'lingue') $('#trLangMsg').textContent = _t('✓ Salvato'); ttRefresh().then(ttRepaint); },
-  lingue(x){ if (!Array.isArray(x)) return; LANGS = x; ttRepaint(); },
+  lingue(x){ if (!Array.isArray(x)) return; LANGS = x; ttRepaint(); if (typeof wzLingue === 'function') wzLingue(); },
   erroreScarica(x){ if (!document.body.classList.contains('office')) toast((DLN[x && x.cosa] ? DLN[x.cosa] + ': ' : '') + _t('scaricamento non riuscito: ') + tx((x && x.errore) || ''), 'var(--a4)'); ttRefresh().then(ttRepaint); },
   guidata(x){ wzProgress(x); },
   verifica(x){ if (x && x.testo) { const v = $('#gwVer'); if (v && W && W.info && W.info.cartella === x.cartella) v.textContent = tx(x.testo); } },
@@ -4001,6 +4001,10 @@ document.addEventListener('keydown', (ev) => {
   else if (!ev.shiftKey && i === f.length - 1) { ev.preventDefault(); f[0].focus(); }
 });
 function canFile(){ const i = (W && W.info) || {}; return !!(i.file_ok && !i.anticheat); }
+function ocrBtn(c, chip){
+  const l = LANGS.find(x => x.codice === c) || {}, busy = LANGS.some(x => x.ocr_in), nm = langName(c);
+  return '<button class="' + (chip ? 'chip' : 'btn ghost') + '" data-ocr="' + esc(c) + '"' + (busy ? ' disabled' : '') + '>' + (l.ocr_in ? '⏳ ' + esc(_t('Aggiungo ')) + esc(nm) + '…' : '+ ' + esc(chip ? nm : _t('Aggiungi ') + nm + _t(' a Windows'))) + '</button>';
+}
 function langBtns(list, cur, from){
   return list.map(l => {
     let sm = '';
@@ -4026,6 +4030,7 @@ function tuneRows(){
   rows.push({k:'noFso', on: !!o.noFso, t:_t('Spegni le ottimizzazioni a schermo intero'), d:_t('Serve solo con alcuni giochi vecchi.'), off: !t.hasExe});
   return rows;
 }
+function wzLingue(){ if (W && !$('#gwz').hidden && wzStep() === 'da') wzDraw(); }
 function wzDraw(){
   if (!W) return; const g = W.g, i = W.info || {}, st = TT || {}, s = wzStep();
   $('#gwzT').textContent = W.kind === 'boost' ? _t('Boost del gioco') : _t('Prepara ') + (g ? g.name : '');
@@ -4049,10 +4054,10 @@ function wzDraw(){
     const ok = LANGS.filter(l => l.ocr_ok), no = LANGS.filter(l => !l.ocr_ok);
     const ls = W.info && W.info.lingua_steam, lsBad = ls && W.info.lingua_steam_ok === false;
     h = P(_t('In che lingua è ') + g.name + '?') + memoBox +
-      (lsBad ? '<div class="callout">' + esc(_t('Su Steam ')) + esc(g.name) + esc(_t(' è impostato in ')) + esc(EN ? langName(ls) : langName(ls).toLowerCase()) + esc(_t(', ma Windows su questo PC non sa leggere questa lingua: la traduzione non funzionerebbe. Mettilo in inglese da Steam (tasto destro sul gioco → Proprietà → Lingua) e riapri questa procedura, oppure aggiungi la lingua in Windows.')) + ' <button class="btn ghost" id="gwOcr" data-ocr="' + esc(ls) + '">' + esc(_t('Apri le Impostazioni di Windows')) + '</button></div>' :
+      (lsBad ? '<div class="callout">' + esc(_t('Su Steam ')) + esc(g.name) + esc(_t(' è impostato in ')) + esc(EN ? langName(ls) : langName(ls).toLowerCase()) + esc(_t(', ma Windows su questo PC non sa leggere questa lingua: la traduzione non funzionerebbe. Mettilo in inglese da Steam (tasto destro sul gioco → Proprietà → Lingua) e riapri questa procedura, oppure aggiungi la lingua in Windows.')) + ' ' + ocrBtn(ls) + '</div>' :
         ls && W.da === ls ? '<p class="small" style="margin:0;color:var(--a1t)">✓ ' + esc(_t('Lingua presa da Steam: ')) + esc(langName(ls)) + '</p>' : '') +
       '<div class="opz"><button class="salta" data-skip="1"><b>' + esc(_t('Non serve tradurre')) + '</b><small>' + esc(_t('vai subito alla potenza →')) + '</small></button></div><p class="small muted" style="margin:0">' + esc(_t('Guarda nel menu del gioco. Se non lo sai, "Riconosci da solo".')) + '</p><div class="opz">' + langBtns([{codice:'auto'}].concat(ok), W.da, true) + '</div>' +
-      (no.length && !lsBad ? '<p class="small muted" style="margin:0">' + esc(_t('Windows su questo PC non sa ancora leggere: ')) + esc(no.map(l => EN ? langName(l.codice) : langName(l.codice).toLowerCase()).join(', ')) + esc(_t('. Per usarle aggiungi la lingua in Windows.')) + ' <button class="btn ghost" id="gwOcr" data-ocr="' + esc(no[0].codice) + '">' + esc(_t('Apri le Impostazioni di Windows')) + '</button></p>' : '');
+      (no.length && !lsBad ? '<p class="small muted" style="margin:0">' + esc(_t('Windows su questo PC non sa ancora leggere queste lingue. Premi su una per aggiungerla: Tasso la installa da solo (serve internet, qualche minuto).')) + '</p><div class="row wrap" style="gap:6px">' + no.map(l => ocrBtn(l.codice, true)).join('') + '</div>' : '');
   }
   if (s === 'a') {
     const iaTxt = st.ia_file ? (st.ia_pc_ok ? _t('Installata. Accendila per questo gioco: ricontrolla le frasi e le rende naturali, si fa da parte se il gioco ha bisogno della scheda video.') : _t('Installata, ma su questo PC rallenterebbe il gioco: Tasso usa il traduttore veloce.')) : !st.ia_pc_ok ? _t('Non adatta a questo PC: ') + tx(st.ia_pc_motivo || '') : st.ia_offerta ? _t('Non scaricata. Si scarica una volta (circa 6 GB) in Giochi → Impostazioni. Senza, traduce il traduttore veloce.') : _t('Non disponibile: traduce il traduttore veloce.');
@@ -4102,7 +4107,7 @@ function wzDraw(){
   }
   const pv = $('#gwPrev'); if (pv) pv.onclick = () => { const m = W.m; W.skip = W.kind === 'boost' || !!m.skip || !m.a; if (!W.skip) { W.da = m.da || 'auto'; W.a = m.a; W.modo = m.modo === 'file' && canFile() ? 'file' : 'schermo'; W.ia = !!m.ia; } if (m.pot) W.pot = m.pot; W.i = W.steps.indexOf('cons'); wzDraw(); };
   const tn = $('#gwTune'); if (tn) tn.onclick = () => openTune(g);
-  const oc = $('#gwOcr'); if (oc) oc.onclick = async () => { const r = await ttc('ttInstallaOCR', oc.dataset.ocr || W.da); if (r) toast(tx(r), 'var(--a4)'); else toast(_t('Quando hai aggiunto la lingua torna qui: Tasso la vede da solo.')); };
+  $$('#gwzB [data-ocr]').forEach(oc => oc.onclick = async () => { oc.disabled = true; const r = await ttc('ttInstallaOCR', oc.dataset.ocr); if (r) { toast(tx(r), 'var(--a4)'); oc.disabled = false; } else toast(_t('Sto aggiungendo la lingua a Windows: puoi aspettare qui, quando è pronta compare tra le lingue.')); });
   const mz = $('#gwMozGo'); if (mz) mz.onclick = () => { mz.disabled = true; mz.textContent = _t('Lo sto scaricando…'); if (TT) TT.scaricando = true; ttc('ttScaricaMozilla'); };
   const op = $('#gwOpen'); if (op) op.onclick = async () => { op.disabled = true; const vb = $('#gwVer'); vb.textContent = _t('Apro ') + g.name + '…'; const ok = await playGame(g, vb); if (ok && W && W.kind !== 'boost' && !W.skip && W.modo !== 'file') vb.textContent += ' ' + _t('Nel gioco premi ') + keyName('pagina', 'F7') + _t(' per tradurre lo schermo.'); op.disabled = false; };
 }

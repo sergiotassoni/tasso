@@ -1128,7 +1128,10 @@
   "Il resto è com'era prima del Boost. La scheda video scelta per i giochi la rimette \"Rimetti com'era\".": "Everything else is as it was before Boost. The graphics card chosen for games goes back when you press \"Put it back\".",
   " e premi di nuovo Applica per rimetterla com'era (con il gioco aperto verrebbe persa).": " and press Apply again to put it back as it was (with the game open the change would be lost).",
   "✓ Grafica dentro il gioco rimessa com'era.": "✓ In-game graphics put back as they were.",
-  "• Grafica dentro il gioco: non sono riuscito a rimettere com'era il file delle impostazioni.": "• In-game graphics: I couldn't put the settings file back as it was."
+  "• Grafica dentro il gioco: non sono riuscito a rimettere com'era il file delle impostazioni.": "• In-game graphics: I couldn't put the settings file back as it was.",
+  "Sto già aggiungendo un'altra lingua: aspetta che finisca.": "I'm already adding another language: wait for it to finish.",
+  "Fatto: ora Windows sa leggere questa lingua.": "Done: Windows can now read this language.",
+  "Windows non è riuscito ad aggiungerla da solo (serve internet). Ti ho aperto le Impostazioni: aggiungi la lingua da lì.": "Windows couldn't add it by itself (needs internet). I opened Settings for you: add the language there."
  },
  "ps": {
   " di ": " of ",
@@ -4702,6 +4705,11 @@
   "Temperatura alta: il disco ": "High temperature: the drive ",
   "Windows Update ha anche un driver per la scheda video: non lo installo da qui. Usa i pulsanti della tua scheda video qui sotto (\"Aggiorna con Tasso\" crea prima un punto di ripristino e controlla AMD Software).": "Windows Update also has a graphics card driver: I won't install it from here. Use the buttons for your graphics card below (\"Update with Tasso\" first creates a restore point and checks AMD Software).",
   "Windows ha tenuto il piano Bilanciato: Prestazioni elevate non è attivo.": "Windows kept the Balanced plan: High performance is not active.",
-  "letta alle ": "read at "
+  "letta alle ": "read at ",
+  "Windows su questo PC non sa ancora leggere queste lingue. Premi su una per aggiungerla: Tasso la installa da solo (serve internet, qualche minuto).": "Windows on this PC can't read these languages yet. Tap one to add it: Tasso installs it by itself (needs internet, a few minutes).",
+  "Aggiungo ": "Adding ",
+  "Aggiungi ": "Add ",
+  " a Windows": " to Windows",
+  "Sto aggiungendo la lingua a Windows: puoi aspettare qui, quando è pronta compare tra le lingue.": "Adding the language to Windows: you can wait here, it shows up in the list when ready."
  }
 }

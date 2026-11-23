@@ -187,29 +187,78 @@ func ocrPerLinguaIn(codice string, inst map[string]bool) (string, bool) {
 	return "", false
 }
 
-// installaLetturaOCR: apre le Impostazioni di Windows sulla pagina delle lingue, dove l'utente
-// aggiunge la lingua (con "Riconoscimento ottico dei caratteri"). Tasso non cambia niente da solo.
+// installaOCRIn: codice della lingua che Windows sta aggiungendo adesso ("" = nessuna).
+var installaOCRIn atomic.Value
+
+// scriptAggiungiOCR: aggiunge a Windows il lettore di una lingua (pacchetto "Riconoscimento ottico dei
+// caratteri", piccolo, da Windows Update). Tasso parte già come amministratore: nessuna altra
+// richiesta all'utente. Cerca il nome esatto del pacchetto invece di indovinarne la versione.
+const scriptAggiungiOCR = `$ErrorActionPreference = 'Stop'
+try {
+  $c = Get-WindowsCapability -Online | Where-Object { $_.Name -like 'Language.OCR~~~%TAG%~*' } | Select-Object -First 1
+  if (-not $c) { [Console]::Out.WriteLine('NONE'); exit }
+  if ($c.State -ne 'Installed') { $null = Add-WindowsCapability -Online -Name $c.Name }
+  [Console]::Out.WriteLine('OK')
+} catch { [Console]::Out.WriteLine('ERR') }
+`
+
+// pacchettoOCR: il tag della lingua come lo chiama il pacchetto di Windows.
+func pacchettoOCR(tag string) string {
+	switch tag {
+	case "zh-Hans-CN":
+		return "zh-CN"
+	case "zh-Hant-TW":
+		return "zh-TW"
+	}
+	return tag
+}
+
+// installaLetturaOCR: aggiunge da sola a Windows la lettura della lingua (in sottofondo, può
+// durare qualche minuto). Se Windows non riesce, apre le Impostazioni sulla pagina delle lingue.
 func installaLetturaOCR(codice string) string {
-	if _, ok := linguaDa(codice); !ok {
+	l, ok := linguaDa(codice)
+	if !ok || l.OCR == "" {
 		return "lingua sconosciuta"
 	}
+	if v, _ := installaOCRIn.Load().(string); v != "" {
+		return "Sto già aggiungendo un'altra lingua: aspetta che finisca."
+	}
+	installaOCRIn.Store(codice)
+	emetti("lingue", elencoLingue())
+	go func() {
+		defer guard("installa-ocr")
+		out, err := psUnaVolta(strings.ReplaceAll(scriptAggiungiOCR, "%TAG%", pacchettoOCR(l.OCR)), 20*time.Minute)
+		installaOCRIn.Store("")
+		muOCRLingue.Lock()
+		ocrLingue = nil // rileggo subito cosa sa leggere Windows
+		muOCRLingue.Unlock()
+		caricaLingueOCR()
+		if _, letta := ocrPerLingua(codice); err == nil && strings.Contains(out, "OK") && letta {
+			emetti("info", map[string]string{"testo": "Fatto: ora Windows sa leggere questa lingua."})
+		} else {
+			apriImpostazioniLingue()
+			emetti("info", map[string]string{"testo": "Windows non è riuscito ad aggiungerla da solo (serve internet). Ti ho aperto le Impostazioni: aggiungi la lingua da lì."})
+		}
+		emetti("lingue", elencoLingue())
+	}()
+	return ""
+}
+
+func apriImpostazioniLingue() {
 	verbo, _ := windows.UTF16PtrFromString("open")
 	dove, _ := windows.UTF16PtrFromString("ms-settings:regionlanguage")
-	if err := windows.ShellExecute(0, verbo, dove, nil, nil, 1); err != nil {
-		return "Non riesco ad aprire le Impostazioni di Windows."
+	if windows.ShellExecute(0, verbo, dove, nil, nil, 1) == nil {
+		muOCRLingue.Lock()
+		ocrRileggiFino = time.Now().Add(5 * time.Minute)
+		muOCRLingue.Unlock()
 	}
-	muOCRLingue.Lock()
-	// l'installazione della lingua può durare minuti: finché non torni rileggo cosa sa leggere
-	// Windows ogni volta che la finestra chiede l'elenco (al massimo ogni 15 secondi)
-	ocrRileggiFino = time.Now().Add(5 * time.Minute)
-	muOCRLingue.Unlock()
-	return ""
 }
 
 // elencoLingue: per la finestra, ogni lingua con cosa c'è già sul PC.
 func elencoLingue() []map[string]any {
 	var out []map[string]any
 	inst := lingueOCRSubito()
+	inCorso, _ := installaOCRIn.Load().(string)
 	for _, l := range lingueGioco {
 		_, ocrOK := ocrPerLinguaIn(l.Codice, inst)
 		verso := l.Codice == "en" || presenteCoppia(l.Codice, "en")
@@ -224,7 +273,7 @@ func elencoLingue() []map[string]any {
 		mb := mbDa + mbA
 		out = append(out, map[string]any{
 			"codice": l.Codice, "nome": l.Nome, "nativo": l.Nativo,
-			"da_pronta": verso, "a_pronta": dall, "mb": int(mb + 0.5), "mb_da": int(mbDa + 0.5), "mb_a": int(mbA + 0.5), "ocr_ok": ocrOK,
+			"da_pronta": verso, "a_pronta": dall, "mb": int(mb + 0.5), "mb_da": int(mbDa + 0.5), "mb_a": int(mbA + 0.5), "ocr_ok": ocrOK, "ocr_in": l.Codice == inCorso,
 		})
 	}
 	return out
