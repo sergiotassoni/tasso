@@ -133,7 +133,13 @@ func segmentiRiga(p []ParolaOCR, fattore float64) []Blocco {
 	for i := 1; i <= len(p); i++ {
 		if i < len(p) {
 			buco := p[i].X - (p[i-1].X + p[i-1].W)
-			if buco < max(1.1*hMed, 28*fattore) { // spazio tra parole ~0,3-0,5 volte l'altezza: oltre è un'altra colonna
+			soglia := max(1.1*hMed, 28*fattore)
+			if hMed < 17*fattore {
+				// scritte piccole: una parola saltata dall'OCR lascia un buco largo, ma una
+				// colonna vera è più lontana
+				soglia = max(soglia, 5*hMed)
+			}
+			if buco < soglia { // spazio tra parole ~0,3-0,5 volte l'altezza: oltre è un'altra colonna
 				continue
 			}
 		}

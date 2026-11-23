@@ -162,7 +162,15 @@ func disegnaBlocco(hdc uintptr, b Blocco, fase int) {
 			maxLarg = min(maxLarg, 2*min(cx, int32(b.Img.Bounds().Dx())-cx)-16)
 		}
 	}
+	if righe > 1 && b.Em < 20 {
+		// testo piccolo su più righe (notizie, descrizioni): la riga italiana non deve essere
+		// più alta di quella del gioco, se no il paragrafo esce dal suo spazio
+		px = min(px, max(9, altRiga*80/100))
+	}
 	minPx := max(10, px*78/100)
+	if righe > 1 && b.Em < 20 {
+		minPx = max(9, px*66/100)
+	}
 	if righe == 1 {
 		// una riga sola (voce di menu, etichetta): meglio un po' più piccola che andare a capo
 		// sopra la riga sotto (visto nelle foto del 22/11: colonne accavallate)
@@ -495,12 +503,18 @@ func salvaAnteprima(img *image.RGBA, blocchi []Blocco, percorso string) error {
 	for i := 0; i < len(buf); i += 4 {
 		out.Pix[i], out.Pix[i+1], out.Pix[i+2], out.Pix[i+3] = buf[i+2], buf[i+1], buf[i], 255
 	}
-	f, err := os.Create(percorso)
+	// prima in un file a parte, poi al suo posto: chi lo legge non trova mai un'immagine a metà
+	tmp := percorso + ".tmp"
+	f, err := os.Create(tmp)
 	if err != nil {
 		return err
 	}
-	defer f.Close()
-	return png.Encode(f, out)
+	if err := png.Encode(f, out); err != nil {
+		f.Close()
+		return err
+	}
+	f.Close()
+	return os.Rename(tmp, percorso)
 }
 
 // disegnaToppaPulita: copia dalla pagina "pulita" (tutte le scritte inglesi cancellate). Dove la
