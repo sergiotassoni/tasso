@@ -27,7 +27,8 @@ func TestPalworldColori(t *testing.T) {
 	} {
 		coloriBlocco(img, &b)
 		contornoLettere(img, &b)
-		fmt.Println(b.Testo, "sfondo", b.Sfondo, "ink", b.Inchiostro, "cont", b.HaContorno, b.Contorno, "tratto", b.Tratto)
+		ombraLettere(img, &b)
+		fmt.Println(b.HaOmbraG, b.OmbraGioco, b.Testo, "sfondo", b.Sfondo, "ink", b.Inchiostro, "cont", b.HaContorno, b.Contorno, "tratto", b.Tratto)
 	}
 }
 

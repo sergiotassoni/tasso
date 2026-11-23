@@ -282,6 +282,7 @@ func preparaPagina(area Zona, img, primaImg *image.RGBA, giro int64) (p *paginaP
 		b.Ombra = sfondoInMovimento(primaImg, img, b)
 		b.Img = img
 		contornoLettere(img, &b)
+		ombraLettere(img, &b)
 		b.LargMax = liberoFinoAlBordo(img, b)
 		b.Tradotto = r.Tradotto
 		pronti = append(pronti, b)

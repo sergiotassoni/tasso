@@ -45,6 +45,8 @@ type Blocco struct {
 	Img        *image.RGBA // la cattura del gioco: la toppa copia i suoi pixel veri
 	Contorno   color.RGBA  // colore del contorno delle lettere (scritte bordate dei giochi)
 	HaContorno bool
+	OmbraGioco color.RGBA // ombra scura che il gioco mette sotto le lettere (in basso a destra)
+	HaOmbraG   bool
 	Pulita     *image.RGBA // la cattura con TUTTE le scritte inglesi tradotte cancellate
 	Marg       int         // margine della toppa attorno all'inglese (0 = non calcolato): mai fino alla scritta vicina
 }
@@ -739,7 +741,8 @@ func fondoPreciso(b Blocco, x0, y0, x1, y1 int) (*image.RGBA, int, int) {
 			// su un fondo disegnato (erba, cielo, rocce) non tutto ciò che è diverso dalla stima è
 			// una lettera: cancello solo i pixel più vicini al colore delle lettere (o del loro
 			// bordino) che al fondo. Il resto del disegno del gioco resta com'è, nitido.
-			if lettereChiare && dSf < 150 && distanza(c, b.Inchiostro) >= dSf &&
+			dInk := distanza(c, b.Inchiostro)
+			if lettereChiare && !(dInk < dSf && dInk < 130) &&
 				!(b.HaContorno && distanza(c, b.Contorno) < dSf) {
 				continue
 			}
@@ -1159,6 +1162,9 @@ func componiTesto(b Blocco, r image.Rectangle, alfa []uint8, sp int, anteprima b
 			}
 			if b.Ombra {
 				as = max(at(x-1, y-1), at(x-2, y-2)*3/4, at(x+1, y-1)/2, at(x-1, y+1)/2) * 3 / 4
+			} else if b.HaOmbraG {
+				d := max(1, int(b.Em/14+0.5))
+				as = max(at(x-d, y-d), at(x-d-1, y-d-1)/2)
 			}
 			i := (y*w + x) * 4
 			if ai == 0 && ao == 0 && as == 0 && base == b.Img.RGBAAt(gx, gy) && !anteprima {
@@ -1174,7 +1180,11 @@ func componiTesto(b Blocco, r image.Rectangle, alfa []uint8, sp int, anteprima b
 				c[1] = (c[1]*(255-a) + int(col.G)*a) / 255
 				c[2] = (c[2]*(255-a) + int(col.B)*a) / 255
 			}
-			mescola(ombra, as)
+			if b.HaOmbraG && !b.Ombra {
+				mescola(b.OmbraGioco, as*3/4)
+			} else {
+				mescola(ombra, as)
+			}
 			mescola(b.Contorno, ao)
 			mescola(b.Inchiostro, ai)
 			out[i], out[i+1], out[i+2], out[i+3] = uint8(c[0]), uint8(c[1]), uint8(c[2]), 255
@@ -1184,4 +1194,39 @@ func componiTesto(b Blocco, r image.Rectangle, alfa []uint8, sp int, anteprima b
 		}
 	}
 	return out
+}
+
+// ombraLettere: molti giochi mettono sotto le lettere chiare un'ombra scura spostata in basso a
+// destra. La guardo 1-2 pixel sotto ogni lettera: se lì è più scuro del fondo, la rifaccio uguale.
+func ombraLettere(img *image.RGBA, b *Blocco) {
+	in := image.Rect(b.X, b.Y, b.X+b.W, b.Y+b.H).Intersect(img.Bounds())
+	if in.Empty() || b.HaContorno || luce(b.Inchiostro) <= luce(b.Sfondo)+40 {
+		return
+	}
+	d := max(1, int(b.Em/14+0.5))
+	var sr, sg, sb, n, ni int
+	for y := in.Min.Y; y < in.Max.Y; y++ {
+		for x := in.Min.X; x < in.Max.X; x++ {
+			if distanza(img.RGBAAt(x, y), b.Inchiostro) > 60 {
+				continue
+			}
+			ni++
+			q := image.Point{x + d, y + d}
+			if !q.In(img.Bounds()) {
+				continue
+			}
+			c := img.RGBAAt(q.X, q.Y)
+			if distanza(c, b.Inchiostro) < 100 {
+				continue // ancora lettera
+			}
+			sr, sg, sb, n = sr+int(c.R), sg+int(c.G), sb+int(c.B), n+1
+		}
+	}
+	if ni < 20 || n*5 < ni {
+		return
+	}
+	om := color.RGBA{uint8(sr / n), uint8(sg / n), uint8(sb / n), 255}
+	if luce(om) <= luce(b.Sfondo)-25 {
+		b.OmbraGioco, b.HaOmbraG = om, true
+	}
 }
