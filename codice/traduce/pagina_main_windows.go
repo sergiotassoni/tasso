@@ -43,6 +43,10 @@ func attivaPagina() {
 		NascondiPagina()
 		impostaPausa(exeDiFinestra(paginaGiocoA.Load()), true) // il tutto automatico non riparte da solo su questo gioco
 		emetti("info", map[string]string{"testo": "In pausa: schermata di nuovo in inglese (" + nomeTasto("pagina") + " per riprendere)."})
+		if area, ok := areaFinestra(paginaGiocoA.Load()); ok { // anche nel gioco: F7 non deve sembrare morto
+			mostraAvviso(area, testoTasso("Tasso: traduzione in pausa. "+nomeTasto("pagina")+" per riprendere.",
+				"Tasso: translation paused. "+nomeTasto("pagina")+" to resume."), 22, 20, 3*time.Second)
+		}
 		return
 	}
 	impostaPausa(exeDiFinestra(fg), false)
@@ -58,6 +62,9 @@ func attivaPagina() {
 }
 
 func avviaPaginaSu(fg uintptr) {
+	if linguaIlleggibile(fg) {
+		return
+	}
 	paginaAttiva.Store(false)
 	paginaGiro.Add(1)
 	paginaGiocoA.Store(fg)
@@ -394,3 +401,53 @@ func nostraFinestraIn(area Zona) (Zona, bool) {
 
 // salvaAnteprime: solo il programma di prova salva l'ultima schermata tradotta.
 var salvaAnteprime = false
+
+// linguaIlleggibile: se Steam dice che il gioco è in una lingua che Windows su questo PC non sa
+// leggere (es. coreano senza il suo pacchetto), lo dico dentro il gioco e non parto: senza
+// lettura non comparirebbe niente e sembrerebbe che Tasso non funzioni. Una volta per gioco e lingua.
+type linguaSteamLetta struct {
+	lingua string
+	quando time.Time
+}
+
+var (
+	muIlleggibile     sync.Mutex
+	linguaSteamVista  = map[string]linguaSteamLetta{}
+	avvisoIlleggibile = map[uintptr]time.Time{}
+)
+
+func linguaIlleggibile(fg uintptr) bool {
+	g, ok := riconosciGioco(percorsoDiFinestra(fg))
+	if !ok {
+		return false
+	}
+	muIlleggibile.Lock()
+	v, ok := linguaSteamVista[g.Cartella]
+	if !ok || time.Since(v.quando) > 20*time.Second { // il tutto automatico chiede ogni secondo
+		v = linguaSteamLetta{linguaSteam(g.Cartella), time.Now()}
+		linguaSteamVista[g.Cartella] = v
+	}
+	muIlleggibile.Unlock()
+	l := v.lingua
+	if l == "" || l == linguaArrivo(leggiImp()) {
+		return false
+	}
+	if _, ok := ocrPerLingua(l); ok {
+		return false
+	}
+	n := nomeLingua(l)
+	testo := testoTasso("Tasso: Windows non sa ancora leggere il "+n+". Aggiungilo in Impostazioni di Windows → Lingua, oppure metti il gioco in inglese.",
+		"Tasso: Windows can't read "+n+" yet. Add it in Windows Settings → Language, or set the game to English.")
+	muIlleggibile.Lock()
+	gia := time.Since(avvisoIlleggibile[fg]) < 2*time.Minute
+	if !gia {
+		avvisoIlleggibile[fg] = time.Now()
+	}
+	muIlleggibile.Unlock()
+	if area, ok := areaFinestra(fg); ok && !gia {
+		mostraAvviso(area, testo, 20, 20, 8*time.Second)
+	}
+	dillaUnaVolta("ocr-"+l+g.Cartella, testoTasso("Il gioco "+g.Nome+" è in "+n+", ma Windows su questo PC non sa ancora leggere questa lingua. Aggiungi la lingua nelle Impostazioni di Windows (con il riconoscimento del testo), oppure metti il gioco in inglese da Steam: Proprietà → Lingua.",
+		"The game "+g.Nome+" is in "+n+", but Windows on this PC can't read that language yet. Add it in Windows Settings (with text recognition), or switch the game to English in Steam: Properties → Language."))
+	return true
+}

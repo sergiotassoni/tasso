@@ -148,6 +148,10 @@ func InfoGioco(nome, piattaforma, cartella, avvio string) map[string]any {
 	}
 	giochiNoti[chiaveGioco(cartella)] = g
 	muGiochiNoti.Unlock()
+	lst, lstOK := linguaSteam(cartella), true
+	if lst != "" {
+		_, lstOK = ocrPerLingua(lst)
+	}
 	fileOK, fileMotivo := ModPossibile(cartella)
 	tradotto := giocoTradotto(cartella)
 	if tradotto {
@@ -163,5 +167,9 @@ func InfoGioco(nome, piattaforma, cartella, avvio string) map[string]any {
 		"avviabile":   g.Avvio != "" || exeGioco(cartella) != "",
 		"traduzioni":  ContaLibreria(fileLibreriaGioco(cartella, nome, nomeRiconosciuto(cartella))),
 		"anticheat":   ConAntiCheat(GiocoRiconosciuto{Nome: nome, Piattaforma: piattaforma, Cartella: cartella}),
+		// lingua scelta in Steam per il gioco, e se Windows su questo PC la sa leggere: la
+		// procedura lo dice PRIMA di partire, invece di scoprirlo nel gioco
+		"lingua_steam":    lst,
+		"lingua_steam_ok": lstOK,
 	}
 }

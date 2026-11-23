@@ -412,3 +412,46 @@ func segnoAntiCheat(nome string, segni []string) bool {
 	}
 	return false
 }
+
+var reAcfLingua = regexp.MustCompile(`(?i)"language"\s+"([a-z]+)"`)
+
+// lingueSteam: il nome che Steam usa per la lingua di un gioco → il nostro codice.
+var lingueSteam = map[string]string{
+	"english": "en", "italian": "it", "french": "fr", "german": "de", "spanish": "es", "latam": "es",
+	"portuguese": "pt", "brazilian": "pt", "polish": "pl", "russian": "ru", "japanese": "ja",
+	"koreana": "ko", "korean": "ko", "schinese": "zh", "tchinese": "zt", "danish": "da",
+	"finnish": "fi", "norwegian": "nb", "swedish": "sv", "turkish": "tr",
+}
+
+// linguaSteam: la lingua scelta in Steam (Proprietà → Lingua) per il gioco in questa cartella
+// (…\steamapps\common\<gioco>). Legge solo l'appmanifest di Steam, mai i file del gioco.
+// "" se non è un gioco Steam o la lingua non è nota.
+func linguaSteam(cartella string) string {
+	c := strings.ReplaceAll(cartella, `\`, "/")
+	i := strings.LastIndex(strings.ToLower(c), "/steamapps/common/")
+	if i < 0 {
+		return ""
+	}
+	dir := filepath.FromSlash(c[:i+len("/steamapps")])
+	gioco := c[i+len("/steamapps/common/"):]
+	gioco, _, _ = strings.Cut(gioco, "/")
+	file, _ := filepath.Glob(filepath.Join(dir, "appmanifest_*.acf"))
+	for _, f := range file {
+		st, err := os.Stat(f)
+		if err != nil || st.Size() > 1<<20 {
+			continue
+		}
+		b, err := os.ReadFile(f)
+		if err != nil {
+			continue
+		}
+		if d := reAcfDir.FindSubmatch(b); d == nil || !strings.EqualFold(string(d[1]), gioco) {
+			continue
+		}
+		if m := reAcfLingua.FindSubmatch(b); m != nil {
+			return lingueSteam[strings.ToLower(string(m[1]))]
+		}
+		return ""
+	}
+	return ""
+}

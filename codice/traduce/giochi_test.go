@@ -110,3 +110,19 @@ func TestAntiCheat(t *testing.T) {
 		t.Error("il client Riot non è un gioco")
 	}
 }
+
+func TestLinguaSteam(t *testing.T) {
+	d := t.TempDir()
+	sa := filepath.Join(d, "steamapps")
+	os.MkdirAll(filepath.Join(sa, "common", "Palworld"), 0o755)
+	os.WriteFile(filepath.Join(sa, "appmanifest_1623730.acf"), []byte("\"AppState\"\n{\n\t\"appid\"\t\t\"1623730\"\n\t\"installdir\"\t\t\"Palworld\"\n\t\"UserConfig\"\n\t{\n\t\t\"language\"\t\t\"koreana\"\n\t}\n}"), 0o644)
+	if l := linguaSteam(filepath.Join(sa, "common", "Palworld")); l != "ko" {
+		t.Fatalf("coreano: %q", l)
+	}
+	if l := linguaSteam(filepath.Join(sa, "common", "Altro")); l != "" {
+		t.Fatalf("gioco diverso: %q", l)
+	}
+	if l := linguaSteam(filepath.Join(d, "Giochi", "Palworld")); l != "" {
+		t.Fatalf("non Steam: %q", l)
+	}
+}
