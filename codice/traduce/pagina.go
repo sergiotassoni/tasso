@@ -226,7 +226,7 @@ func spazioLibero(b []Blocco, larghezza int) {
 				continue
 			}
 			if b[j].X < b[i].X+max(b[i].W, b[i].LargMax) && b[i].X < b[j].X+b[j].W {
-				giu = min(giu, b[j].Y-b[i].Y-max(4, b[i].H/(4*max(1, b[i].Righe))))
+				giu = min(giu, b[j].Y-b[i].Y-max(4, b[i].H/(3*max(1, b[i].Righe))))
 			}
 		}
 		b[i].AltMax = max(giu, b[i].H)

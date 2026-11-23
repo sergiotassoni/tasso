@@ -187,6 +187,11 @@ func disegnaBlocco(hdc uintptr, b Blocco, fase int) {
 		// una riga sola (voce di menu, etichetta): meglio un po' più piccola che andare a capo
 		// sopra la riga sotto (visto nelle foto del 22/11: colonne accavallate)
 		minPx = max(9, px*62/100)
+		if float64(b.W) > 20*b.Em && !b.Centro {
+			// frase lunga: resta quasi nel suo riquadro (non esce dal pannello del gioco verso
+			// destra); se serve rimpicciolisce un po'
+			maxLarg = min(maxLarg, larg*112/100)
+		}
 	}
 	var w, h int32
 	var font uintptr
