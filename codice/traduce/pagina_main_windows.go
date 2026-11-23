@@ -512,24 +512,43 @@ func rileggiPiccole(img *image.RGBA, righe []RigaOCR, f float64) []RigaOCR {
 	if f <= 0 {
 		f = 1
 	}
-	zona := image.Rectangle{}
-	piccole := 0
+	// zone separate (il pannello delle notizie, la scritta in basso...): ognuna letta da sola,
+	// così resta piccola e si può ingrandire 3 volte
+	var zone []image.Rectangle
 	for _, r := range righe {
 		x0, y0, x1, y1, h := rettRiga(r, f)
 		if h > 0 && h < 17 {
-			zona = zona.Union(image.Rect(x0, y0, x1, y1))
-			piccole++
+			zone = append(zone, image.Rect(x0-12, y0-8, x1+12, y1+8))
 		}
 	}
-	if piccole < 2 {
-		return righe
+	for cambiato := true; cambiato; {
+		cambiato = false
+		for i := 0; i < len(zone) && !cambiato; i++ {
+			for j := i + 1; j < len(zone); j++ {
+				a := zone[i]
+				vicina := image.Rect(a.Min.X-40, a.Min.Y-40, a.Max.X+40, a.Max.Y+40)
+				if vicina.Overlaps(zone[j]) {
+					zone[i] = a.Union(zone[j])
+					zone = append(zone[:j], zone[j+1:]...)
+					cambiato = true
+					break
+				}
+			}
+		}
 	}
-	zona = image.Rect(zona.Min.X-12, zona.Min.Y-8, zona.Max.X+12, zona.Max.Y+8).Intersect(img.Bounds())
+	out := righe
+	for _, z := range zone {
+		out = rileggiZona(img, out, f, z.Intersect(img.Bounds()))
+	}
+	return out
+}
+
+func rileggiZona(img *image.RGBA, righe []RigaOCR, f float64, zona image.Rectangle) []RigaOCR {
 	k := 3
 	if zona.Dx()*k > 4000 || zona.Dy()*k > 4000 {
 		k = 2
 	}
-	if zona.Dx()*k > 8000 || zona.Dy()*k > 8000 || zona.Empty() {
+	if zona.Dx()*k > 8000 || zona.Dy()*k > 8000 || zona.Dx() < 8 || zona.Dy() < 8 {
 		return righe
 	}
 	ritaglio := image.NewRGBA(image.Rect(0, 0, zona.Dx(), zona.Dy()))
@@ -552,6 +571,7 @@ func rileggiPiccole(img *image.RGBA, righe []RigaOCR, f float64) []RigaOCR {
 			w.Y = (w.Y/float64(k) + float64(zona.Min.Y)) * f
 			w.W = w.W / float64(k) * f
 			w.H = w.H / float64(k) * f
+			w.T = lettereOCRStrane(w.T)
 		}
 	}
 	var out []RigaOCR

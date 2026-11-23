@@ -1619,3 +1619,12 @@ func letturaAffidabile(s string) bool {
 	}
 	return buone*100 >= tot*85
 }
+
+// lettereOCRStrane: nelle scritte inglesi piccole l'OCR di Windows legge "ch" come "å" e "sp"
+// come "»" ("matåmaking", "di»lays").
+func lettereOCRStrane(s string) string {
+	if !strings.ContainsAny(s, "å»") {
+		return s
+	}
+	return strings.NewReplacer("å", "ch", "»", "sp").Replace(s)
+}
