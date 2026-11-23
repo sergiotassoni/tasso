@@ -90,6 +90,16 @@ func sorvegliaCPU() {
 	}
 }
 
+// svegliaIA: la traduzione è appena partita (F7 o gioco riconosciuto): controllo subito se accendere l'IA.
+var svegliaIA = make(chan struct{}, 1)
+
+func sveglia() {
+	select {
+	case svegliaIA <- struct{}{}:
+	default:
+	}
+}
+
 func sorvegliaIA() {
 	defer guard("sorveglia-ia")
 	ram, core := memoriaPC(), coreFisici()
@@ -139,14 +149,19 @@ func sorvegliaIA() {
 			applicaProfiloIA(voluto, ram, core)
 		case rangoProfilo(voluto) > rangoProfilo(attuale):
 			piu++
-			if piu >= controlliPerSalire || attuale == "" && piu >= 2 {
+			// da spenta parte subito (al primo controllo, cioè appena premi F7): prima servivano
+			// due controlli (30 s) e in una partita breve l'IA non arrivava mai a correggere
+			if piu >= controlliPerSalire || attuale == "" {
 				piu = 0
 				applicaProfiloIA(voluto, ram, core)
 			}
 		default:
 			piu = 0
 		}
-		time.Sleep(ogniControllo)
+		select {
+		case <-svegliaIA:
+		case <-time.After(ogniControllo):
+		}
 	}
 }
 

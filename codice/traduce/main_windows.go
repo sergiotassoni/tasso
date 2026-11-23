@@ -1389,6 +1389,7 @@ func accendi(on bool) bool {
 	}
 	acceso.Store(on)
 	if on {
+		sveglia() // l'IA si prepara subito
 		t := tastiCompleti(leggiImp().Tasti)
 		if f := cambiaTasti(t); len(f) > 0 {
 			emetti("info", map[string]string{"testo": "Già usati da un altro programma: " + nomiTasti(f, t) + ". Cambiali in Giochi → Impostazioni → Tasti nel gioco."})

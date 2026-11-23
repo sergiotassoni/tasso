@@ -66,6 +66,7 @@ func attivaPagina() {
 }
 
 func avviaPaginaSu(fg uintptr) {
+	sveglia() // l'IA si accende subito, non dopo 30 secondi
 	if linguaIlleggibile(fg) {
 		return
 	}
