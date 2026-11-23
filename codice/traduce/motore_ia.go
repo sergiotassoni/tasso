@@ -209,17 +209,42 @@ type ClientIA struct {
 }
 
 func (c *ClientIA) Traduci(ctx context.Context, r RichiestaTraduzione) (string, error) {
-	return c.Chat(ctx, costruisciMessaggi(r), temperatura(r))
+	return c.chat(ctx, costruisciMessaggi(r), temperatura(r), tokenMassimi(r))
+}
+
+// tokenMassimi: quanti pezzi di parola può scrivere al massimo l'IA. Una correzione più lunga di
+// 1,6 volte la bozza viene comunque scartata (correzioneAccettabile), quindi non serve aspettarla:
+// se l'IA si "incanta" si ferma subito invece di scrivere fino a 400 pezzi.
+func tokenMassimi(r RichiestaTraduzione) int {
+	base := len([]rune(r.Bozza))
+	if base == 0 {
+		base = len([]rune(r.Testo)) * 3 / 2
+	}
+	n := (base*16/10+10)/2 + 12 // in italiano un pezzo vale in media 3-4 lettere: qui ne contiamo 2, con margine
+	if n < 24 {
+		n = 24
+	}
+	if n > 400 {
+		n = 400
+	}
+	return n
 }
 
 // Chat: messaggi già pronti -> risposta pulita.
 func (c *ClientIA) Chat(ctx context.Context, msgs []messaggio, temp float64) (string, error) {
+	return c.chat(ctx, msgs, temp, 400)
+}
+
+func (c *ClientIA) chat(ctx context.Context, msgs []messaggio, temp float64, maxTok int) (string, error) {
 	corpo, _ := json.Marshal(map[string]interface{}{
 		"messages":    msgs,
 		"temperature": temp,
 		"top_p":       0.9,
-		"max_tokens":  400,
+		"max_tokens":  maxTok,
 		"stream":      false,
+		// riusa la parte iniziale già letta (istruzioni + scritte della stessa schermata):
+		// la seconda riga della stessa pagina parte quasi subito
+		"cache_prompt": true,
 		// niente ragionamenti lunghi: serve velocità
 		"chat_template_kwargs": map[string]interface{}{"enable_thinking": false},
 	})

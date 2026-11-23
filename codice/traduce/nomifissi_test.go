@@ -57,3 +57,14 @@ func TestEtichettaConMaiuscola(t *testing.T) {
 		t.Error("maiuscola")
 	}
 }
+
+func TestTokenMassimi(t *testing.T) {
+	if n := tokenMassimi(RichiestaTraduzione{Testo: "Apply", Bozza: "Applica"}); n != 24 {
+		t.Fatalf("etichetta corta: %d", n)
+	}
+	lunga := strings.Repeat("parola ", 40) // 280 lettere
+	n := tokenMassimi(RichiestaTraduzione{Testo: lunga, Bozza: lunga})
+	if n < 200 || n > 400 {
+		t.Fatalf("frase lunga: %d", n)
+	}
+}
