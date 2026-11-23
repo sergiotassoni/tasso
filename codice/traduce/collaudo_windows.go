@@ -63,6 +63,17 @@ func init() {
 }
 
 func avviaCollaudoSeServe() {
+	// --prova1000 "cartella" [--correttore] [--ngl N]: confronto dei modelli IA sulle frasi di
+	// prova. Parte qui, quando il traduttore veloce (Mozilla) è pronto: serve per le bozze.
+	for _, a := range os.Args {
+		if (a == "--prova100" || a == "--prova1000") && collaudoAvviato.CompareAndSwap(false, true) {
+			go func() {
+				defer guard("prova-modelli")
+				modalitaProva(os.Args)
+			}()
+			return
+		}
+	}
 	if provaFileSeServe() {
 		return
 	}
