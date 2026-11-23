@@ -15,3 +15,19 @@ func TestLetturaAffidabile(t *testing.T) {
 		}
 	}
 }
+
+func TestSeparaAttaccate(t *testing.T) {
+	for in, out := range map[string]string{
+		"displays thetime remaining": "displays the time remaining",
+		"Any player's Steam profile": "Any player's Steam profile",
+		"LEGENDS leaderboard.":       "LEGENDS leader board.",
+		"players fromeach completed": "players from each completed",
+	} {
+		if g := separaAttaccate(in); g != out {
+			t.Errorf("%q -> %q, atteso %q", in, g, out)
+		}
+	}
+	if !rigaAndataACapo("a new season will begin on the first day of", 470, Blocco{W: 60}) || rigaAndataACapo("Monthly Seasons", 80, Blocco{W: 470}) {
+		t.Error("a capo")
+	}
+}

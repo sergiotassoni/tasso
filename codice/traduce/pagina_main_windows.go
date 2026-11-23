@@ -219,7 +219,11 @@ func preparaPagina(area Zona, img, primaImg *image.RGBA, giro int64) (p *paginaP
 		return nil, false
 	}
 	righe = rileggiPiccole(img, righe, f)
-	blocchi := unisciParagrafi(segmenti(righe, f))
+	blocchi := segmenti(righe, f)
+	for i := range blocchi {
+		blocchi[i].Testo = separaAttaccate(blocchi[i].Testo)
+	}
+	blocchi = unisciParagrafi(blocchi)
 	nostraL, ceNostraL := nostraFinestraIn(area)
 	var testiLetti []string
 	for _, b := range blocchi {

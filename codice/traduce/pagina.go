@@ -221,6 +221,7 @@ func unisciParagrafi(b []Blocco) []Blocco {
 		cur := b[i]
 		usato[i] = true
 		hRiga := cur.H
+		ultimaW := cur.W
 		for {
 			trovato := -1
 			for j := i + 1; j < len(b); j++ {
@@ -235,7 +236,7 @@ func unisciParagrafi(b []Blocco) []Blocco {
 				if abs(n.X-cur.X) > hRiga || float64(n.H) > 1.4*float64(hRiga) || float64(n.H) < float64(hRiga)/1.4 {
 					continue
 				}
-				if continuaFrase(cur.Testo, n.Testo) {
+				if continuaFrase(cur.Testo, n.Testo) || rigaAndataACapo(cur.Testo, ultimaW, n) {
 					trovato = j
 				}
 				break
@@ -245,6 +246,7 @@ func unisciParagrafi(b []Blocco) []Blocco {
 			}
 			n := b[trovato]
 			usato[trovato] = true
+			ultimaW = n.W
 			x1, y1 := max(cur.X+cur.W, n.X+n.W), n.Y+n.H
 			cur.X = min(cur.X, n.X)
 			cur.W, cur.H = x1-cur.X, y1-cur.Y
@@ -258,6 +260,66 @@ func unisciParagrafi(b []Blocco) []Blocco {
 		out = append(out, cur)
 	}
 	return out
+}
+
+// rigaAndataACapo: testo lungo andato a capo ("...on the first day of" / "Each month."): la riga
+// sopra è piena (larga almeno quanto quella sotto) e non finisce con un punto. Un titolo corto
+// ("Monthly Seasons") sopra una riga lunga resta separato.
+func rigaAndataACapo(sopra string, larghSopra int, sotto Blocco) bool {
+	sopra = strings.TrimSpace(sopra)
+	if sopra == "" || strings.ContainsAny(sopra[len(sopra)-1:], ".!?:;") {
+		return false
+	}
+	if len(strings.Fields(sopra)) < 5 {
+		return false
+	}
+	return float64(larghSopra) >= 0.75*float64(sotto.W)
+}
+
+// separaAttaccate: con i caratteri stretti l'OCR attacca le parole ("thetime remaining"). Una
+// parola che non esiste ma si divide in due o tre parole vere viene separata.
+func separaAttaccate(s string) string {
+	campi := strings.Fields(s)
+	cambiato := false
+	for i, c := range campi {
+		nucleo := strings.TrimFunc(c, func(r rune) bool { return !unicode.IsLetter(r) && r != '\'' })
+		if len(nucleo) < 5 || esiste(nucleo) || termGiochi[nucleo] != "" || strings.ToUpper(nucleo) == nucleo || !unicode.IsLower([]rune(nucleo)[0]) {
+			continue // i nomi ("Palworld") non si toccano
+		}
+		if parti := dividiParola(nucleo, 3); parti != nil {
+			campi[i] = strings.Replace(c, nucleo, strings.Join(parti, " "), 1)
+			cambiato = true
+		}
+	}
+	if !cambiato {
+		return s
+	}
+	return strings.Join(campi, " ")
+}
+
+var paroleCorteVere = map[string]bool{"a": true, "i": true, "of": true, "to": true, "in": true, "on": true, "is": true, "be": true, "by": true, "at": true, "an": true, "or": true, "as": true, "it": true, "we": true, "no": true, "up": true, "my": true, "me": true, "do": true, "so": true, "if": true}
+
+func dividiParola(w string, maxParti int) []string {
+	if maxParti <= 0 {
+		return nil
+	}
+	if (len(w) >= 3 && esiste(w)) || paroleCorteVere[strings.ToLower(w)] {
+		return []string{w}
+	}
+	if maxParti == 1 {
+		return nil
+	}
+	// prima le divisioni con il primo pezzo più lungo: "thetime" -> "the time", non "th etime"
+	for k := len(w) - 1; k >= 1; k-- {
+		a := w[:k]
+		if !((len(a) >= 3 && esiste(a)) || paroleCorteVere[strings.ToLower(a)]) {
+			continue
+		}
+		if resto := dividiParola(w[k:], maxParti-1); resto != nil {
+			return append([]string{a}, resto...)
+		}
+	}
+	return nil
 }
 
 func continuaFrase(sopra, sotto string) bool {
