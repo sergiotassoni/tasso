@@ -214,6 +214,23 @@ func disegnaBlocco(hdc uintptr, b Blocco, fase int) {
 // disegnaSfondo copre l'inglese nel rettangolo x0..x1, y0..y1: con lo sfondo ricostruito dal
 // gioco (le sue sfumature) dove c'è, con il colore dello sfondo solo dove manca.
 func disegnaSfondo(hdc uintptr, b Blocco, x0, y0, x1, y1 int32) {
+	if b.Img != nil && !b.Ombra {
+		// pixel veri del gioco, cancellate solo le lettere inglesi: bordi e caselle restano intatti
+		k := chiaveToppa{b.Img, b.X, b.Y, b.W, b.H, x0, y0, x1, y1}
+		t, ok := toppe[k]
+		if !ok {
+			if len(toppe) > 400 {
+				toppe = map[chiaveToppa]toppa{}
+			}
+			t.f, t.x, t.y = fondoPreciso(b, int(x0), int(y0), int(x1), int(y1))
+			toppe[k] = t
+		}
+		f, fx, fy := t.f, t.x, t.y
+		if f != nil {
+			disegnaImmagine(hdc, f, int32(fx), int32(fy))
+			return
+		}
+	}
 	sf := [3]uint8{b.Sfondo.R, b.Sfondo.G, b.Sfondo.B}
 	if colore(sf) == chiaveTrsp {
 		sf[0]-- // non deve coincidere con il colore trasparente
@@ -258,6 +275,37 @@ func disegnaSfondo(hdc uintptr, b Blocco, x0, y0, x1, y1 int32) {
 	bi := bitmapInfoHeader{biWidth: cw, biHeight: -ch, biPlanes: 1, biBitCount: 32}
 	bi.biSize = uint32(unsafe.Sizeof(bi))
 	pSetDIBitsToDevice.Call(hdc, uintptr(cx0), uintptr(cy0), uintptr(cw), uintptr(ch), 0, 0, 0, uintptr(ch),
+		uintptr(unsafe.Pointer(&bgra[0])), uintptr(unsafe.Pointer(&bi)), 0)
+}
+
+// toppe già calcolate (la finestra si ridisegna spesso): si usano solo dal thread che disegna
+type chiaveToppa struct {
+	img            *image.RGBA
+	x, y, w, h     int
+	x0, y0, x1, y1 int32
+}
+type toppa struct {
+	f    *image.RGBA
+	x, y int
+}
+
+var toppe = map[chiaveToppa]toppa{}
+
+func disegnaImmagine(hdc uintptr, f *image.RGBA, x, y int32) {
+	w, h := int32(f.Bounds().Dx()), int32(f.Bounds().Dy())
+	if w <= 0 || h <= 0 {
+		return
+	}
+	bgra := make([]byte, int(w*h)*4)
+	for i := 0; i < len(bgra); i += 4 {
+		bgra[i], bgra[i+1], bgra[i+2], bgra[i+3] = f.Pix[i+2], f.Pix[i+1], f.Pix[i], 255
+		if uintptr(f.Pix[i])|uintptr(f.Pix[i+1])<<8|uintptr(f.Pix[i+2])<<16 == chiaveTrsp {
+			bgra[i+2]--
+		}
+	}
+	bi := bitmapInfoHeader{biWidth: w, biHeight: -h, biPlanes: 1, biBitCount: 32}
+	bi.biSize = uint32(unsafe.Sizeof(bi))
+	pSetDIBitsToDevice.Call(hdc, uintptr(x), uintptr(y), uintptr(w), uintptr(h), 0, 0, 0, uintptr(h),
 		uintptr(unsafe.Pointer(&bgra[0])), uintptr(unsafe.Pointer(&bi)), 0)
 }
 

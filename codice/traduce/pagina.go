@@ -41,6 +41,7 @@ type Blocco struct {
 	FondoX     int         // quanti pixel il Fondo parte a sinistra di X (di solito 3)
 	Centro     bool        // scritta centrata come le sue vicine (menu al centro): la traduzione resta centrata
 	Ombra      bool        // sfondo che si muove: la scritta ha un'ombra scura, come i testi dei giochi
+	Img        *image.RGBA // la cattura del gioco: la toppa copia i suoi pixel veri
 }
 
 // grassetto: lettere spesse come quelle in neretto dei giochi.
@@ -635,4 +636,136 @@ func contaGruppo(gruppo []int, k int) int {
 		}
 	}
 	return n
+}
+
+// fondoPreciso: la toppa sotto la traduzione, fatta come la farebbe un grafico: si copiano i
+// pixel veri del gioco (bordi delle caselle, sfumature, icone restano identici) e si cancellano
+// SOLO i pixel delle lettere inglesi, riempiendoli con i colori che li circondano. Il rettangolo
+// x0..x1, y0..y1 è quello che occupa la traduzione (può essere più largo dell'inglese).
+func fondoPreciso(b Blocco, x0, y0, x1, y1 int) (*image.RGBA, int, int) {
+	img := b.Img
+	r := image.Rect(x0, y0, x1, y1).Intersect(img.Bounds())
+	if r.Empty() {
+		return nil, 0, 0
+	}
+	w, h := r.Dx(), r.Dy()
+	out := image.NewRGBA(image.Rect(0, 0, w, h))
+	for y := 0; y < h; y++ {
+		copy(out.Pix[y*out.Stride:y*out.Stride+w*4], img.Pix[img.PixOffset(r.Min.X, r.Min.Y+y):img.PixOffset(r.Min.X, r.Min.Y+y)+w*4])
+	}
+	// stima dello sfondo liscio sotto la scritta inglese (dai quattro bordi del suo riquadro)
+	const pad = 2
+	bx0, by0 := b.X-pad, b.Y-pad
+	bw, bh := b.W+2*pad, b.H+2*pad
+	stima := coonsRiquadro(img, b, bx0, by0, bw, bh)
+	soglia := max(36, distanza(b.Inchiostro, b.Sfondo)/4)
+	mask := make([]bool, w*h)
+	for y := 0; y < bh; y++ {
+		for x := 0; x < bw; x++ {
+			gx, gy := bx0+x, by0+y
+			ox, oy := gx-r.Min.X, gy-r.Min.Y
+			if ox < 0 || oy < 0 || ox >= w || oy >= h {
+				continue
+			}
+			c := out.RGBAAt(ox, oy)
+			if distanza(c, stima.RGBAAt(x, y)) > soglia {
+				mask[oy*w+ox] = true
+			}
+		}
+	}
+	// allargo di 1-2 pixel: i bordi sfumati delle lettere (antialias, alone)
+	rag := 1
+	if b.Em >= 22 {
+		rag = 2
+	}
+	larga := make([]bool, w*h)
+	for y := 0; y < h; y++ {
+		for x := 0; x < w; x++ {
+			if !mask[y*w+x] {
+				continue
+			}
+			for dy := -rag; dy <= rag; dy++ {
+				for dx := -rag; dx <= rag; dx++ {
+					xx, yy := x+dx, y+dy
+					if xx >= 0 && yy >= 0 && xx < w && yy < h {
+						larga[yy*w+xx] = true
+					}
+				}
+			}
+		}
+	}
+	// riempio dall'esterno verso l'interno con la media dei vicini già buoni
+	noto := make([]bool, w*h)
+	for i := range noto {
+		noto[i] = !larga[i]
+	}
+	for giro := 0; giro < 80; giro++ {
+		var nuovi []int
+		var colori []color.RGBA
+		for y := 0; y < h; y++ {
+			for x := 0; x < w; x++ {
+				i := y*w + x
+				if noto[i] {
+					continue
+				}
+				var sr, sg, sb, n int
+				for _, d := range [8][2]int{{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {-1, -1}, {1, -1}, {-1, 1}, {1, 1}} {
+					xx, yy := x+d[0], y+d[1]
+					if xx < 0 || yy < 0 || xx >= w || yy >= h || !noto[yy*w+xx] {
+						continue
+					}
+					c := out.RGBAAt(xx, yy)
+					sr, sg, sb, n = sr+int(c.R), sg+int(c.G), sb+int(c.B), n+1
+				}
+				if n > 0 {
+					nuovi = append(nuovi, i)
+					colori = append(colori, color.RGBA{uint8(sr / n), uint8(sg / n), uint8(sb / n), 255})
+				}
+			}
+		}
+		if len(nuovi) == 0 {
+			break
+		}
+		for k, i := range nuovi {
+			out.SetRGBA(i%w, i/w, colori[k])
+			noto[i] = true
+		}
+	}
+	for i := range noto { // rimasti (caso raro): la stima liscia
+		if !noto[i] {
+			x, y := i%w, i/w
+			out.SetRGBA(x, y, stima.RGBAAt(clamp(x+r.Min.X-bx0, 0, bw-1), clamp(y+r.Min.Y-by0, 0, bh-1)))
+		}
+	}
+	return out, r.Min.X, r.Min.Y
+}
+
+// coonsRiquadro: sfondo liscio stimato dai quattro bordi del riquadro x0,y0,w,h.
+func coonsRiquadro(img *image.RGBA, b Blocco, x0, y0, w, h int) *image.RGBA {
+	bb := b
+	bb.X, bb.W, bb.Centro, bb.LargMax = x0+3, w-6, false, 0
+	bb.Y, bb.H = y0+3, h-6
+	return fondoRicostruito(img, bb)
+}
+
+// liberoFinoAlBordo: quanto può allargarsi a destra la traduzione prima di toccare un bordo,
+// un'icona o un'altra cosa disegnata dal gioco (colonna dove la maggior parte dei pixel non è
+// più lo sfondo della scritta). Così la scritta italiana non va sopra i contorni delle caselle.
+func liberoFinoAlBordo(img *image.RGBA, b Blocco) int {
+	lim := b.LargMax
+	bd := img.Bounds()
+	for x := b.X + b.W + 2; x < b.X+b.LargMax && x < bd.Max.X; x++ {
+		diversi, n := 0, 0
+		for y := max(b.Y, bd.Min.Y); y < min(b.Y+b.H, bd.Max.Y); y++ {
+			n++
+			if distanza(img.RGBAAt(x, y), b.Sfondo) > 60 {
+				diversi++
+			}
+		}
+		if n > 0 && diversi*2 > n {
+			lim = x - b.X - 6
+			break
+		}
+	}
+	return max(b.W, lim)
 }

@@ -280,6 +280,8 @@ func preparaPagina(area Zona, img, primaImg *image.RGBA, giro int64) (p *paginaP
 		// un'ombra sotto le lettere, così la scritta sembra del gioco e si legge lo stesso
 		coloriBlocco(img, &b)
 		b.Ombra = sfondoInMovimento(primaImg, img, b)
+		b.Img = img
+		b.LargMax = liberoFinoAlBordo(img, b)
 		b.Tradotto = r.Tradotto
 		pronti = append(pronti, b)
 		if len(pronti) <= 40 { // nella cronologia (F8) le scritte nuove, senza doppioni
