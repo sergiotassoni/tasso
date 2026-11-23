@@ -86,3 +86,9 @@ func TestMenuConNumero(t *testing.T) {
 		t.Fatal("voce semplice")
 	}
 }
+
+func TestRispostaOK(t *testing.T) {
+	if !rispostaOK(" OK.") || !rispostaOK("ok") || rispostaOK("Ok, andiamo") {
+		t.Fatal("ok")
+	}
+}

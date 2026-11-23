@@ -41,7 +41,7 @@ type RichiestaTraduzione struct {
 const promptCorrettore = `Sei un localizzatore professionista di videogiochi dall'inglese all'italiano.
 Ricevi una frase inglese di un gioco e una traduzione automatica fatta da un programma.
 Il tuo compito: restituire la traduzione italiana MIGLIORE, come in un gioco localizzato bene.
-- Se la traduzione automatica è già corretta e naturale, riscrivila identica.
+- Se la traduzione automatica è già corretta e naturale, rispondi solo: OK
 - Se sbaglia il senso, usa parole sbagliate per il contesto (es. "rivista" per "magazine" di un'arma), ha errori di grammatica, di genere o di accordo, o suona innaturale, correggila.
 - Espressioni idiomatiche e modi di dire: rendili con il modo di dire italiano equivalente, non parola per parola.
 - Mantieni tono e registro del personaggio (slang, battute, minacce). Dai del tu al giocatore.
@@ -209,7 +209,17 @@ type ClientIA struct {
 }
 
 func (c *ClientIA) Traduci(ctx context.Context, r RichiestaTraduzione) (string, error) {
-	return c.chat(ctx, costruisciMessaggi(r), temperatura(r), tokenMassimi(r))
+	out, err := c.chat(ctx, costruisciMessaggi(r), temperatura(r), tokenMassimi(r))
+	if err == nil && r.Bozza != "" && rispostaOK(out) {
+		// la bozza va già bene: l'IA scrive solo "OK" invece di ricopiarla tutta.
+		// Meno parole da scrivere = risposta molto più svelta (la velocità dipende da quante ne scrive)
+		return r.Bozza, nil
+	}
+	return out, err
+}
+
+func rispostaOK(s string) bool {
+	return strings.EqualFold(strings.Trim(strings.TrimSpace(s), ".!\"'«» "), "ok")
 }
 
 // tokenMassimi: quanti pezzi di parola può scrivere al massimo l'IA. Una correzione più lunga di
