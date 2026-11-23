@@ -76,7 +76,8 @@ type Impostazioni struct {
 // Profilo di un gioco: si carica da solo quando quel gioco è in primo piano.
 type Profilo struct {
 	Zona      Zona   `json:"zona"`
-	ZonaChat  Zona   `json:"zona_chat"` // 3.1: dove sta la chat degli altri in questo gioco
+	ZonaChat  Zona   `json:"zona_chat"`               // 3.1: dove sta la chat degli altri in questo gioco
+	ChatDove  string `json:"chat_dove,omitempty"` // cartella del programma (per dire nella pagina del gioco se è scelta)
 	Posizione string `json:"posizione"`
 	DimFont   int    `json:"dim_font"`
 }
@@ -728,6 +729,7 @@ func stato() map[string]interface{} {
 		"tutto_auto":      i.TuttoAuto,
 		"chat_altri":      i.ChatAltri,
 		"zona_chat_ok":    zonaChatPresente(i),
+		"chat_giochi":     giochiConChat(),
 		"acceso":          acceso.Load(),
 		"tasti":           etichetteTasti(i.Tasti),
 		"motore":          i.Motore,

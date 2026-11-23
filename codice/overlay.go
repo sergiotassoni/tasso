@@ -414,6 +414,14 @@ func cpuTempLoop() {
 		shown := ovShown
 		watch := time.Since(hwWatchAt) < 30*time.Second && !ovInGame
 		ovMu.Unlock()
+		if watch && !shown && time.Since(last) >= 15*time.Second {
+			bMu.Lock()
+			partita := bGame != ""
+			bMu.Unlock()
+			if partita || runningGame() != "" {
+				watch = false // un gioco è aperto: niente PowerShell per la pagina Hardware
+			}
+		}
 		if shown && !watch && !ovItems()["cputemp"] {
 			time.Sleep(2 * time.Second) // il pannellino non mostra la temperatura: niente PowerShell
 			continue
@@ -424,10 +432,10 @@ func cpuTempLoop() {
 			}
 		}
 		// Nel gioco ogni minuto (lanciare PowerShell più spesso darebbe piccoli scatti);
-		// sulla pagina Hardware ogni 10 secondi, così vedi la temperatura dal vivo.
+		// sulla pagina Hardware ogni 15 secondi, così vedi la temperatura dal vivo.
 		every := 60 * time.Second
-		if watch && !shown {
-			every = 15 * time.Second
+		if watch {
+			every = 15 * time.Second // la pagina Hardware è davanti: lettura fresca anche col pannellino acceso
 		}
 		if (shown || watch) && time.Since(last) >= every {
 			last = time.Now()

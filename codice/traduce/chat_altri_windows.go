@@ -59,6 +59,19 @@ func zonaChatDi(exe string) (Zona, bool) {
 	return z, z.Valida()
 }
 
+// giochiConChat: programma e cartella dei giochi con la zona della chat scelta (per la pagina del gioco).
+func giochiConChat() []map[string]string {
+	muImp.Lock()
+	defer muImp.Unlock()
+	out := []map[string]string{}
+	for exe, p := range imp.Profili {
+		if p.ZonaChat.Valida() {
+			out = append(out, map[string]string{"exe": exe, "dove": p.ChatDove})
+		}
+	}
+	return out
+}
+
 // zonaChatPresente: almeno un gioco ha la zona della chat scelta.
 func zonaChatPresente(i Impostazioni) bool {
 	muImp.Lock()
@@ -90,6 +103,9 @@ func scegliZonaChat() {
 		emetti("info", map[string]string{"testo": "Apri prima il gioco con la chat visibile, poi torna qui e premi di nuovo «Scegli dove sta la chat»."})
 		return
 	}
+	if sel.hwnd != 0 {
+		return // la scelta è già aperta (per esempio F9 nei 3 secondi): non la trasformo in quella della chat
+	}
 	chatFinestra.Store(fg)
 	selPerChat.Store(true)
 	ov.ApriSelezione()
@@ -97,19 +113,23 @@ func scegliZonaChat() {
 
 // zonaChatScelta: arriva dalla scelta col mouse quando selPerChat è acceso.
 func zonaChatScelta(z Zona) {
-	exe := exeDiFinestra(chatFinestra.Load())
+	f := chatFinestra.Load()
+	exe := exeDiFinestra(f)
 	if exe == "" || eNostro(exe) {
+		avvisoBreve(testoTasso("Chat degli altri: non riconosco il programma del gioco, riprova con il gioco davanti.", "Other players' chat: I can't recognise the game program, try again with the game in front."))
 		return
 	}
+	dove := strings.ToLower(filepath.Dir(percorsoDiFinestra(f)))
 	muImp.Lock()
 	if imp.Profili == nil {
 		imp.Profili = map[string]Profilo{}
 	}
 	pr, ok := imp.Profili[exe]
 	if !ok {
-		pr = Profilo{Posizione: imp.Posizione, DimFont: imp.DimFont}
+		// tengo la zona dei dialoghi di adesso: altrimenti caricando il profilo andrebbe persa
+		pr = Profilo{Zona: imp.Zona, Posizione: imp.Posizione, DimFont: imp.DimFont}
 	}
-	pr.ZonaChat = z
+	pr.ZonaChat, pr.ChatDove = z, dove
 	imp.Profili[exe] = pr
 	imp.ZonaChat = z
 	imp.ChatAltri = true
@@ -119,6 +139,7 @@ func zonaChatScelta(z Zona) {
 	azzeraChatAltri()
 	emetti("aggiorna", stato())
 	emetti("info", map[string]string{"testo": "Chat degli altri accesa per " + exe + ": i messaggi nuovi compaiono in italiano accanto alla chat."})
+	avvisoBreve(testoTasso("Chat degli altri accesa: i messaggi nuovi compaiono tradotti accanto alla chat.", "Other players' chat on: new messages appear translated next to the chat."))
 }
 
 func impostaChatAltri(on bool) {
@@ -211,8 +232,11 @@ func righeNuoveChat(righe []string) []string {
 		}
 		gia := false
 		if len(k) >= 10 {
+			chi, _ := separaParlante(r)
+			kc := chiaveRiga(chi)
 			for i := len(chatOrdine) - 1; i >= 0 && i >= len(chatOrdine)-50; i-- {
-				if distanzaMax(k, chatOrdine[i], 2) {
+				// solo righe dello stesso giocatore: "A: gg wp" e "B: gg wp" sono due messaggi
+				if strings.HasPrefix(chatOrdine[i], kc) && distanzaMax(k, chatOrdine[i], 2) {
 					gia = true
 					break
 				}
