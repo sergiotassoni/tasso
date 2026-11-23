@@ -1627,16 +1627,16 @@ func letturaAffidabile(s string) bool {
 	if tot < 4 {
 		return true
 	}
-	return buone*100 >= tot*75
+	return buone*100 >= tot*65
 }
 
 // lettereOCRStrane: nelle scritte inglesi piccole l'OCR di Windows legge "ch" come "å" e "sp"
 // come "»" ("matåmaking", "di»lays").
 func lettereOCRStrane(s string) string {
-	if !strings.ContainsAny(s, "å»") {
+	if !strings.ContainsAny(s, "å»ß") {
 		return s
 	}
-	return strings.NewReplacer("å", "ch", "»", "sp").Replace(s)
+	return strings.NewReplacer("å", "ch", "»", "sp", "ß", "cs").Replace(s)
 }
 
 // colonnePiccole: righe e paragrafi di testo piccolo allineati a sinistra uno sotto l'altro
