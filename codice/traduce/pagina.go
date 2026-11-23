@@ -685,21 +685,83 @@ func dentro(b Blocco, z Zona) bool {
 func ricolora(img *image.RGBA, bl []Blocco) ([]Blocco, bool) {
 	out := make([]Blocco, len(bl))
 	copy(out, bl)
-	cambiato := false
+	cambiati := make([]bool, len(out))
+	quanti := 0
 	for i, b := range out {
 		if b.Inchiostro == coloreTestoFascia && b.Sfondo == coloreFascia {
 			continue // fascia dei video: resta com'è
 		}
 		c := b
 		coloriBlocco(img, &c)
-		if distanza(c.Sfondo, b.Sfondo) > 40 || distanza(c.Inchiostro, b.Inchiostro) > 90 {
-			b.Sfondo, b.Inchiostro = c.Sfondo, c.Inchiostro
-			b.Fondo = fondoRicostruito(img, b)
-			out[i] = b
-			cambiato = true
+		mossa := b.Img != nil && b.Img.Bounds() == img.Bounds() && zonaCambiata(b.Img, img, b)
+		if !mossa && distanza(c.Sfondo, b.Sfondo) <= 40 && distanza(c.Inchiostro, b.Inchiostro) <= 90 {
+			continue
+		}
+		// la voce è cambiata nel gioco (mouse sopra, selezionata): rileggo colori, bordino e
+		// ombra da com'è adesso, così la traduzione reagisce come l'originale
+		c.HaContorno, c.HaOmbraG = false, false
+		contornoLettere(img, &c)
+		ombraLettere(img, &c)
+		c.Fondo = fondoRicostruito(img, c)
+		out[i] = c
+		cambiati[i] = true
+		quanti++
+	}
+	if quanti == 0 {
+		return out, false
+	}
+	// nuova pagina pulita: le voci cambiate cancellate sull'immagine nuova, le altre come prima
+	pul := image.NewRGBA(img.Bounds())
+	copy(pul.Pix, img.Pix)
+	var daRifare []Blocco
+	for i, b := range out {
+		if cambiati[i] || b.Pulita == nil || b.Img == nil || b.Pulita.Bounds() != img.Bounds() {
+			daRifare = append(daRifare, b)
+			continue
+		}
+		m := max(b.Marg, 2) + 3
+		r := image.Rect(b.X-m, b.Y-m, b.X+b.W+m, b.Y+b.H+m).Intersect(img.Bounds())
+		for y := r.Min.Y; y < r.Max.Y; y++ {
+			for x := r.Min.X; x < r.Max.X; x++ {
+				if c := b.Pulita.RGBAAt(x, y); c != b.Img.RGBAAt(x, y) {
+					pul.SetRGBA(x, y, c)
+				}
+			}
 		}
 	}
-	return out, cambiato
+	nuova := pulisciPagina(img, daRifare)
+	for _, b := range daRifare {
+		m := max(b.Marg, 2) + 3
+		r := image.Rect(b.X-m, b.Y-m, b.X+b.W+m, b.Y+b.H+m).Intersect(img.Bounds())
+		for y := r.Min.Y; y < r.Max.Y; y++ {
+			for x := r.Min.X; x < r.Max.X; x++ {
+				if c := nuova.RGBAAt(x, y); c != img.RGBAAt(x, y) {
+					pul.SetRGBA(x, y, c)
+				}
+			}
+		}
+	}
+	for i := range out {
+		out[i].Img, out[i].Pulita = img, pul
+	}
+	return out, true
+}
+
+// zonaCambiata: le lettere inglesi di b sono cambiate tra le due immagini (colore, alone,
+// riquadro di evidenziazione): differenza media sopra 18 nella zona della scritta.
+func zonaCambiata(a, b *image.RGBA, bl Blocco) bool {
+	r := image.Rect(bl.X, bl.Y, bl.X+bl.W, bl.Y+bl.H).Intersect(a.Bounds())
+	if r.Empty() {
+		return false
+	}
+	tot, n := 0, 0
+	for y := r.Min.Y; y < r.Max.Y; y += 2 {
+		for x := r.Min.X; x < r.Max.X; x += 2 {
+			tot += distanza(a.RGBAAt(x, y), b.RGBAAt(x, y))
+			n++
+		}
+	}
+	return n > 0 && tot/n > 18
 }
 
 // spessoreTratto: lunghezza mediana dei tratti orizzontali d'inchiostro, divisa per la
