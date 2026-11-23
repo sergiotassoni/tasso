@@ -4015,11 +4015,11 @@ function wzDraw(){
   if (s === 'pick') {
     const stores = [...new Set(LIB.filter(x => !x.hidden).map(x => x.store))];
     const fl = [['all', _t('Tutti')], ['rec', _t('Recenti')]].concat(stores.map(x => [x, storeName(x)]));
-    const list = sortedLib().filter(x => !x.hidden && (W.f === 'all' || (W.f === 'rec' ? x.played : x.store === W.f)) && (!W.q || x.name.toLowerCase().includes(W.q)));
+    const list = sortedLib().filter(x => !x.hidden && (W.f === 'all' || (W.f === 'rec' ? isRecent(x) : x.store === W.f)) && (!W.q || x.name.toLowerCase().includes(W.q)));
     h = P(_t('Quale gioco vuoi boostare?')) + (g ? '<p class="small" style="margin:0;color:var(--a1t)">✓ ' + esc(_t('Gioco scelto: ')) + esc(g.name) + esc(_t('. Premi "Sì, conferma".')) + '</p>' + memoBox : '<p class="small muted" style="margin:0">' + esc(_t('Tutti i giochi della libreria, anche quelli installati a mano. Scrivi il nome per trovarlo subito.')) + '</p>') +
       '<input id="gwQ" type="search" placeholder="' + esc(_t('Cerca un gioco…')) + '" value="' + esc(W.q) + '" class="gwq">' +
       '<div class="row wrap" style="gap:6px" id="gwF">' + fl.map(f => '<button class="chip' + (W.f === f[0] ? ' on' : '') + '" data-f="' + esc(f[0]) + '" aria-pressed="' + (W.f === f[0]) + '">' + esc(f[1]) + '</button>').join('') + '</div>' +
-      '<div class="gwpick">' + (list.length ? list.slice(0, 120).map(x => '<button data-pick="' + esc(x.id) + '" class="' + (g && g.id === x.id ? 'on' : '') + '" aria-pressed="' + !!(g && g.id === x.id) + '"><span class="cover" data-cv="' + esc(x.id) + '"></span><b>' + esc(x.name) + '</b><small>' + esc(storeName(x.store)) + (isRecent(x) ? ' · ' + esc(_t('recente')) : '') + '</small></button>').join('') : '<span class="muted">' + esc(LIB.length ? _t('Nessun gioco con questo nome.') : _t('Nessun gioco nella libreria: premi Aggiorna o Aggiungi un gioco.')) + '</span>') + '</div>';
+      '<div class="gwpick">' + (list.length ? list.slice(0, 120).map(x => '<button data-pick="' + esc(x.id) + '" class="' + (g && g.id === x.id ? 'on' : '') + '" aria-pressed="' + !!(g && g.id === x.id) + '"><span class="cover" data-cv="' + esc(x.id) + '"></span><b>' + esc(x.name) + '</b><small>' + esc(storeName(x.store)) + (isRecent(x) ? ' · ' + esc(_t('recente')) : '') + '</small></button>').join('') : '<span class="muted">' + esc(LIB.length ? ((W.f === 'rec' && !W.q) ? _t('Nessun gioco giocato negli ultimi 14 giorni.') : _t('Nessun gioco con questo nome.')) : _t('Nessun gioco nella libreria: premi Aggiorna o Aggiungi un gioco.')) + '</span>') + '</div>';
   }
   if (s === 'da') {
     const sel = LANGS.find(l => l.codice === W.da);
