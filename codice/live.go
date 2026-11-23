@@ -61,10 +61,15 @@ func sampleCPU() {
 	liveMu.Unlock()
 }
 
+// findNvidiaSmi: le cartelle vere chieste a Windows, non le variabili d'ambiente
+// (Tasso gira da amministratore: un percorso preso dall'ambiente potrebbe puntare altrove).
 func findNvidiaSmi() string {
-	cands := []string{
-		filepath.Join(os.Getenv("SystemRoot"), "System32", "nvidia-smi.exe"),
-		filepath.Join(os.Getenv("ProgramFiles"), "NVIDIA Corporation", "NVSMI", "nvidia-smi.exe"),
+	var cands []string
+	if sys, err := windows.GetSystemDirectory(); err == nil && sys != "" {
+		cands = append(cands, filepath.Join(sys, "nvidia-smi.exe"))
+	}
+	if pf, err := windows.KnownFolderPath(windows.FOLDERID_ProgramFiles, 0); err == nil && pf != "" {
+		cands = append(cands, filepath.Join(pf, "NVIDIA Corporation", "NVSMI", "nvidia-smi.exe"))
 	}
 	for _, c := range cands {
 		if fileExists(c) {
@@ -234,10 +239,19 @@ func sampleGPUPdh() {
 		return
 	}
 	items := unsafe.Slice((*pdhItem)(unsafe.Pointer(&buf[0])), count)
-	sum := 0.0
+	// Le istanze si chiamano "pid_123_luid_0x..._0x..._phys_0_eng_0_engtype_3D": sommo per scheda
+	// (luid) e tengo la scheda più usata, come Gestione attività per ogni scheda. Sommare tutte le
+	// schede insieme (integrata + dedicata) darebbe un numero che non è di nessuna delle due.
+	byLuid := map[string]float64{}
 	for _, it := range items {
 		if it.status == 0 || it.status == 1 { // PDH_CSTATUS_VALID_DATA / NEW_DATA
-			sum += it.value
+			byLuid[pdhLuid(windows.UTF16PtrToString(it.name))] += it.value
+		}
+	}
+	sum := 0.0
+	for _, v := range byLuid {
+		if v > sum {
+			sum = v
 		}
 	}
 	if sum > 100 {
@@ -254,6 +268,19 @@ func sampleGPUPdh() {
 	}
 	gpuAt = time.Now()
 	liveMu.Unlock()
+}
+
+// pdhLuid: la parte "luid_0x..._0x..." del nome dell'istanza ("" se manca).
+func pdhLuid(inst string) string {
+	i := strings.Index(inst, "luid_")
+	if i < 0 {
+		return ""
+	}
+	rest := inst[i:]
+	if j := strings.Index(rest, "_phys"); j > 0 {
+		return rest[:j]
+	}
+	return rest
 }
 
 // copyMap: chi legge i sensori riceve una copia, così nessuno legge la mappa mentre viene aggiornata.

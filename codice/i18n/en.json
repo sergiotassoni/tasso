@@ -1234,7 +1234,8 @@
   "Il nuovo Tasso è firmato da qualcun altro: per sicurezza non lo installo.": "The new Tasso is signed by someone else: to be safe I won't install it.",
   "Non sono riuscito a misurare la scheda video.": "I couldn't measure the graphics card.",
   "Chat degli altri: non riconosco il programma del gioco, riprova con il gioco davanti.": "Other players' chat: I can't recognise the game program, try again with the game in front.",
-  "Controlla a quanti Hz va ogni schermo e, se può andare più veloce, ti apre le impostazioni giuste e ti dice il numero da scegliere. Se il massimo è 60 ti dice perché (cavo, porta sbagliata, driver).": "Checks the Hz of each screen and, if it can go faster, opens the right settings and tells you which number to pick. If the maximum is 60 it tells you why (cable, wrong port, driver)."
+  "Controlla a quanti Hz va ogni schermo e, se può andare più veloce, ti apre le impostazioni giuste e ti dice il numero da scegliere. Se il massimo è 60 ti dice perché (cavo, porta sbagliata, driver).": "Checks the Hz of each screen and, if it can go faster, opens the right settings and tells you which number to pick. If the maximum is 60 it tells you why (cable, wrong port, driver).",
+  "Non riesco a rileggere il piano energetico di Windows: controlla in Impostazioni → Sistema → Alimentazione.": "I can't read back the Windows power plan: check in Settings → System → Power."
  },
  "ps": {
   "   non riuscita, prova a reinstallarla dal Microsoft Store.": "   failed, try reinstalling it from the Microsoft Store.",
@@ -4910,6 +4911,27 @@
   "Aggiungi o cambia un gioco": "Add or change a game",
   "Controlla gli Hz di ogni schermo e ti dice il numero più alto da scegliere, aprendo le impostazioni giuste. Se vede solo 60 ti dice perché (cavo, porta, driver).": "Checks the Hz of each screen and tells you the highest number to pick, opening the right settings. If it only sees 60 it tells you why (cable, port, driver).",
   "Finito: qui sotto cosa ho trovato e cosa ho fatto": "Done: below is what I found and what I did",
-  "Finito.": "Done."
+  "Finito.": "Done.",
+  " a rischio. Fai subito un backup dei tuoi file.": " at risk. Back up your files right away.",
+  " da tenere d'occhio. Conviene fare un backup dei tuoi file.": " worth keeping an eye on. It's a good idea to back up your files.",
+  " e apri la sezione BIOS.": " and open the BIOS section.",
+  " è a ": " is at ",
+  "Aggiornalo solo se risolve un problema che hai o se il produttore lo consiglia: se il PC si spegne a metà aggiornamento la scheda madre può bloccarsi. Tasso apre il sito di assistenza ufficiale della marca (se non la conosce, una ricerca, e te lo dice), l'aggiornamento lo fai tu seguendo le istruzioni del produttore.": "Only update it if it fixes a problem you have or if the manufacturer recommends it: if the PC shuts off in the middle of the update, the motherboard can stop working. Tasso opens the brand's official support site (if it doesn't know the brand, a search, and it tells you so); you do the update yourself following the manufacturer's instructions.",
+  "Apro il programma…": "Opening the program…",
+  "Cerca il modello ": "Search for the model ",
+  "Ho aperto il sito di assistenza ufficiale.": "I opened the official support site.",
+  "Il piano energetico è rimasto Prestazioni elevate.": "The power plan is still High performance.",
+  "Non conosco il sito di questa marca: ho aperto una ricerca su Google, non la pagina ufficiale. Scarica il BIOS solo dal sito del produttore.": "I don't know this brand's website: I opened a Google search, not the official page. Only download the BIOS from the manufacturer's website.",
+  "Non lo trovo sul PC: ho aperto la sua pagina ufficiale.": "It's not on your PC: I opened its official page.",
+  "Nuovo programma all'avvio": "New startup program",
+  "Pagina ufficiale:": "Official page:",
+  "Quando un programma si aggiunge a quelli che partono all'accensione del PC.": "When a program adds itself to the ones that start with the PC.",
+  "Salute dei dischi: ": "Drive health: ",
+  "Salute dei dischi: un disco dà segni di problemi. Conviene fare un backup dei tuoi file.": "Drive health: a drive is showing signs of problems. It's a good idea to back up your files.",
+  "Sensore scheda madre": "Motherboard sensor",
+  "Temperatura alta: il disco ": "High temperature: the drive ",
+  "Windows Update ha anche un driver per la scheda video: non lo installo da qui. Usa i pulsanti della tua scheda video qui sotto (\"Aggiorna con Tasso\" crea prima un punto di ripristino e controlla AMD Software).": "Windows Update also has a graphics card driver: I won't install it from here. Use the buttons for your graphics card below (\"Update with Tasso\" first creates a restore point and checks AMD Software).",
+  "Windows ha tenuto il piano Bilanciato: Prestazioni elevate non è attivo.": "Windows kept the Balanced plan: High performance is not active.",
+  "letta alle ": "read at "
  }
 }

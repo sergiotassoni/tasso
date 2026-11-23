@@ -1098,7 +1098,7 @@ dl.sum{display:grid;grid-template-columns:max-content 1fr;gap:6px 14px;margin:0}
   </div>
   <div class="row wrap" style="align-items:stretch;gap:16px">
     <div class="warnbox" style="flex:1 1 420px">
-      <div style="flex:1 1 300px"><h2 id="biosTitle">BIOS della scheda madre</h2><p>Aggiornalo solo se risolve un problema che hai o se il produttore lo consiglia: se il PC si spegne a metà aggiornamento la scheda madre può bloccarsi. Tasso trova la pagina ufficiale, l'aggiornamento lo fai tu seguendo le istruzioni del produttore.</p></div>
+      <div style="flex:1 1 300px"><h2 id="biosTitle">BIOS della scheda madre</h2><p>Aggiornalo solo se risolve un problema che hai o se il produttore lo consiglia: se il PC si spegne a metà aggiornamento la scheda madre può bloccarsi. Tasso apre il sito di assistenza ufficiale della marca (se non la conosce, una ricerca, e te lo dice), l'aggiornamento lo fai tu seguendo le istruzioni del produttore.</p></div>
       <button class="btn warn" id="btnBios">Cerca la pagina ufficiale</button>
     </div>
     <div class="card" style="flex:1 1 300px;display:flex;flex-direction:column;gap:8px">
@@ -1295,7 +1295,7 @@ const TF = EN ? (I18N.frags || []).filter(k => k.length >= 6 && TG[k] !== undefi
 // t: un testo scritto qui nella finestra.
 const _t = (s) => (EN && typeof s === 'string' && TD[s] !== undefined) ? TD[s] : s;
 // tx: i dati che arrivano da Go (messaggi, elenchi). Nomi, percorsi e codici non si toccano.
-const TX_SKIP = {id:1, ids:1, key:1, path:1, paths:1, exe:1, dir:1, mode:1, theme:1, themeOffice:1, profile:1, guid:1, url:1, icon:1, src:1, value:1, val:1, hook:1, token:1, webhook:1, discordWebhook:1, discordBot:1, kind_id:1, file:1, cmd:1, arg:1, lang:1, region:1, settings:1, snapshot:1, originale:1, tradotto:1, non_tradurre:1, termini:1, parlante:1, cartella:1};
+const TX_SKIP = {id:1, ids:1, key:1, path:1, paths:1, exe:1, dir:1, mode:1, theme:1, themeOffice:1, profile:1, guid:1, url:1, icon:1, src:1, value:1, val:1, hook:1, token:1, webhook:1, discordWebhook:1, discordBot:1, kind_id:1, file:1, cmd:1, arg:1, lang:1, region:1, settings:1, snapshot:1, originale:1, tradotto:1, non_tradurre:1, termini:1, parlante:1, cartella:1, cat:1};
 function tx(v, depth){
   if (!EN) return v;
   depth = depth || 0;
@@ -1447,7 +1447,8 @@ function show(v){ CURVIEW=v;
   navGroups(v);
   if (v === 'games' && typeof closeGame === 'function' && GP_ID && !(W && !$('#gwz').hidden)) closeGame();
   $('#main').scrollTop = 0;
-  if (v === 'hw' && !HW) call('goHardware');
+  // una lettura più vecchia di 5 minuti la rifaccio (le temperature dei dischi non sono più attuali)
+  if (v === 'hw' && (!HW || !hwFresh()) && !HW_LOADING) { HW_LOADING = true; call('goHardware'); }
   if (v === 'speed' && !loaded.startup) { loaded.startup = 1; call('goStartupList'); }
   if (v === 'net' && !loaded.net) { loaded.net = 1; call('goNetUsage'); }
   if (v === 'fix' && !loaded.drv) { loaded.drv = 1; $('#btnDrvScan').click(); }
@@ -1674,9 +1675,10 @@ window.tasso = {
     paintLast(); call('goAnalyze');
     try { fbAskOnce(p); } catch (e) {}
   },
-  onAnalysis(a){ AN = a || {}; paintHero(); },
-  onHardware(h){ HW = h || {}; paintHardware(); statsHW(HW); },
+  onAnalysis(a){ AN = a || {}; paintHero(); hwHealthAlert(); },
+  onHardware(h){ HW = h || {}; HW.at = Date.now(); HW_LOADING = false; paintHardware(); statsHW(HW); hwHealthAlert(); },
   onPerf(d){ PERF = d || {}; paintPerf(); },
+  onPerfMsgs(p){ PERF_MSGS = (p && p.msgs) || []; },
   onModeDone(p){ if (p.settings) S = p.settings; paintModes(); (p.msgs || []).forEach(m => toast(m, 'var(--a3)')); },
   onStartup(p){ STARTUP = p.items || []; paintStartup(); (alertOn('startup') ? (p.fresh || []) : []).forEach(n => alertSmart(_t('Nuovo programma all\'avvio: ') + n, {label:_t('Vedi'), fn: () => show('speed')})); },
   onPrograms(list){ PROGS = list || []; paintPrograms(); },
@@ -1774,7 +1776,27 @@ function sensorTile(name, value, pct, color){
   return '<div class="card sensor"><span class="n">' + name + '</span><span class="v">' + value + '</span><div class="meter"><i style="width:' + Math.max(2, Math.min(100, pct || 0)) + '%;background:' + color + '"></i></div></div>';
 }
 function tempColor(t){ return t >= 85 ? 'var(--red)' : t >= 70 ? 'var(--a4)' : 'var(--a1)'; }
-let diskAlerted = false, tempAlerted = false, ramAlerted = false;
+let diskAlerted = false, tempAlerted = false, ramAlerted = false, healthAlerted = false, HW_LOADING = false;
+const DISK_HOT_SENT = {}; // un avviso per disco per sessione
+// HW.at: quando ho letto i componenti. Le temperature dei dischi più vecchie di 5 minuti non sono attuali.
+function hwFresh(){ return !!(HW && HW.at && Date.now() - HW.at < 300000); }
+function hhmm(t){ const d = new Date(t); return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); }
+// Soglie dei dischi: i meccanici soffrono già sopra i 55 °C, SSD e NVMe reggono fino a 70.
+function diskHotLimit(d){ return String(d.type) === 'HDD' ? 55 : 70; }
+function diskColor(d, t){ const lim = diskHotLimit(d); return t >= lim ? 'var(--red)' : t >= lim - 8 ? 'var(--a4)' : 'var(--a1)'; }
+// La scheda video vera (NVIDIA, Radeon, Arc) prima di quella dentro il processore, come perfScript.
+function mainGpu(list){
+  list = (list || []).filter(g => g && g.name);
+  return list.find(g => /NVIDIA|GeForce|RTX|GTX|Radeon RX|Radeon Pro|Arc\(TM\) [AB]|Arc [AB]\d/i.test(g.name)) || list.find(g => /AMD|Radeon/i.test(g.name)) || list.find(g => !/Microsoft Basic|Basic Display/i.test(g.name)) || list[0] || null;
+}
+// Avviso "Salute dei dischi": una volta per sessione, se un disco dà segni di problemi.
+function hwHealthAlert(){
+  if (healthAlerted || !alertOn('health')) return;
+  const bad = ((HW && HW.disks) || []).filter(d => d.health === 'Warning' || d.health === 'Unhealthy');
+  if (!bad.length && (HW_LOADING || !(AN && AN.diskWarnings > 0))) return; // aspetto i nomi dei dischi se stanno arrivando
+  const txt = bad.length ? _t('Salute dei dischi: ') + bad.map(d => d.name).join(', ') + (bad.some(d => d.health === 'Unhealthy') ? _t(' a rischio. Fai subito un backup dei tuoi file.') : _t(' da tenere d\'occhio. Conviene fare un backup dei tuoi file.')) : _t('Salute dei dischi: un disco dà segni di problemi. Conviene fare un backup dei tuoi file.');
+  if (alertSmart(txt, {label:_t('Vedi'), fn: () => show('hw')})) healthAlerted = true;
+}
 let LAST_SENS='', LAST_HW='';
 function paintLive(){
   if (!LIVE) return;
@@ -1785,33 +1807,39 @@ function paintLive(){
   let tiles = sensorTile(_t('Processore in uso'), Math.round(LIVE.cpu || 0) + '%', LIVE.cpu, 'var(--a1)') +
     sensorTile(_t('RAM in uso'), fmtBytes(LIVE.ramUsed) + ' / ' + fmtBytes(LIVE.ramTotal), ramPct, 'var(--a2)') +
     sensorTile(_t('Disco di sistema pieno al'), Math.round(diskPct) + '%', diskPct, diskPct > 90 ? 'var(--red)' : 'var(--a3)');
-  if (g && g.temp != null) tiles += sensorTile(_t('Scheda video'), Math.round(g.temp) + '°C · ' + Math.round(g.util || 0) + '%', g.temp, tempColor(g.temp));
+  if (g && g.temp != null) tiles += sensorTile(_t('Scheda video'), Math.round(g.temp) + '°C · ' + (g.util != null ? Math.round(g.util) + '%' : '—'), g.temp, tempColor(g.temp));
   else if (g && g.util != null) tiles += sensorTile(_t('Scheda video in uso'), Math.round(g.util) + '%', g.util, 'var(--a3)');
   else tiles += sensorTile(_t('Scheda video'), HW ? _t('non leggibile') : '…', 0, 'var(--a3)');
   if (CURVIEW === 'home' && tiles !== LAST_SENS) { LAST_SENS = tiles; $('#sensors').innerHTML = tiles; }
   const cpuName = HW && HW.cpu && HW.cpu.name ? String(HW.cpu.name).replace(/\s+/g, ' ').trim() : '';
   const gpuName = (g && g.name) ? String(g.name) : (HW && HW.gpus && HW.gpus.length === 1 && HW.gpus[0].name ? HW.gpus[0].name : '');
+  // cpuTemp arriva solo da LibreHardwareMonitor (il processore vero); il sensore ACPI è quasi sempre la scheda madre.
   let hw = sensorTile(_t('Processore') + (cpuName ? ' · ' + esc(cpuName) : ''), Math.round(LIVE.cpu || 0) + '%' + (LIVE.cpuTemp ? ' · ' + Math.round(LIVE.cpuTemp) + '°C' : ''), LIVE.cpu, LIVE.cpuTemp ? tempColor(LIVE.cpuTemp) : 'var(--a1)') +
     (g && (g.temp != null || g.util != null) ? sensorTile(_t('Scheda video') + (gpuName ? ' · ' + esc(gpuName) : ''), (g.util != null ? Math.round(g.util) + '%' : '') + (g.temp != null ? (g.util != null ? ' · ' : '') + Math.round(g.temp) + '°C' : ''), g.util != null ? g.util : g.temp, g.temp != null ? tempColor(g.temp) : 'var(--a3)') : sensorTile(_t('Scheda video') + (gpuName ? ' · ' + esc(gpuName) : ''), HW ? _t('non leggibile') : '…', 0, 'var(--a3)')) +
     sensorTile(_t('RAM in uso'), fmtBytes(LIVE.ramUsed) + ' / ' + fmtBytes(LIVE.ramTotal), ramPct, 'var(--a2)') +
     sensorTile(_t('Disco di sistema pieno al'), Math.round(diskPct) + '%', diskPct, diskPct > 90 ? 'var(--red)' : 'var(--a3)');
   if (g && g.fan != null) hw += sensorTile(_t('Ventola scheda video'), Math.round(g.fan) + '%', g.fan, 'var(--a3)');
   if (g && g.memTot) hw += sensorTile(_t('Memoria video'), Math.round(g.memUsed) + ' / ' + Math.round(g.memTot) + ' MB', g.memUsed / g.memTot * 100, 'var(--a2)');
-  if (HW && HW.disks) HW.disks.forEach(d => { const dt = Number(d.temp) || 0; if (dt) hw += sensorTile(_t('Temperatura ') + esc(d.name), dt + '°C', dt, tempColor(dt + 15)); });
+  if (LIVE.boardTemp) hw += sensorTile(_t('Sensore scheda madre'), Math.round(LIVE.boardTemp) + '°C', LIVE.boardTemp, tempColor(LIVE.boardTemp));
+  const hwNew = hwFresh();
+  if (HW && HW.disks) HW.disks.forEach(d => { const dt = Number(d.temp) || 0; if (dt) hw += hwNew ? sensorTile(_t('Temperatura ') + esc(d.name), dt + '°C', dt, diskColor(d, dt)) : sensorTile(_t('Temperatura ') + esc(d.name), dt + '°C · ' + _t('letta alle ') + hhmm(HW.at), dt, 'var(--muted)'); });
   if (CURVIEW === 'hw' && hw !== LAST_HW) { LAST_HW = hw; $('#hwLive').innerHTML = hw; }
   if (CURVIEW === 'home' && AN) paintHero();
   if (alertOn('disk') && !diskAlerted && LIVE.diskTotal && LIVE.diskFree / LIVE.diskTotal < 0.1) { diskAlerted = true; alertSmart(_t('Il disco è quasi pieno: restano ') + fmtBytes(LIVE.diskFree) + '.', {label:_t('Pulisci ora'), fn: () => confirmLevel(3)}); }
-  let hotDisk = 0; if (HW && HW.disks) HW.disks.forEach(d => { if (d.temp && d.temp > hotDisk) hotDisk = d.temp; });
+  // Dischi: solo con una lettura di meno di 5 minuti fa, un avviso per disco per tutta la sessione.
+  if (alertOn('temp') && hwNew && HW.disks) HW.disks.forEach(d => { const dt = Number(d.temp) || 0, k = d.name + '|' + (d.size || ''); if (dt && dt >= diskHotLimit(d) && !DISK_HOT_SENT[k] && alertSmart(_t('Temperatura alta: il disco ') + d.name + _t(' è a ') + Math.round(dt) + '°C' + _t('. Chiudi qualche programma pesante o controlla le ventole.'))) DISK_HOT_SENT[k] = 1; });
   const hotGpu = (g && g.temp != null) ? g.temp : 0;
-  if (alertOn('temp') && !tempAlerted && (hotGpu >= 88 || hotDisk >= 62)) { tempAlerted = true; alertSmart(_t('Temperatura alta: ') + (hotGpu >= 88 ? _t('scheda video a ') + Math.round(hotGpu) + '°C' : _t('un disco a ') + Math.round(hotDisk) + '°C') + _t('. Chiudi qualche programma pesante o controlla le ventole.')); setTimeout(() => { tempAlerted = false; }, 120000); }
+  if (alertOn('temp') && !tempAlerted && hotGpu >= 88 && alertSmart(_t('Temperatura alta: ') + _t('scheda video a ') + Math.round(hotGpu) + '°C' + _t('. Chiudi qualche programma pesante o controlla le ventole.'))) { tempAlerted = true; setTimeout(() => { tempAlerted = false; }, 900000); }
+  hwHealthAlert();
   if (alertOn('ram') && !ramAlerted && ramPct >= 92) { ramAlerted = true; (isOffice() ? alertSmart(_t('Memoria quasi piena (') + Math.round(ramPct) + _t('%). Chiudi i programmi che non usi.')) : alertSmart(_t('Memoria quasi piena (') + Math.round(ramPct) + _t('%). Chiudi i programmi che non usi, o usa il Boost prima di giocare.'), {label:'Boost', fn: () => show('games')})); setTimeout(() => { ramAlerted = false; }, 120000); }
 }
 function alertSmart(text, action){
-  if (S.paused || S.smartAlerts === false) return;
-  if (S.mode === 'gaming' || S.mode === 'fps') return;
+  if (S.paused || S.smartAlerts === false) return false;
+  if (S.mode === 'gaming' || S.mode === 'fps') return false;
   toast(text, 'var(--a4)', action);
+  return true;
 }
-async function pollLive(){ try { const l = await call('goLive'); if (l) { if (CURVIEW === 'hw' && !document.hidden) { const w = await call('goHwWatch'); if (w) l.cpuTemp = w.cpuTemp; } LIVE = l; paintLive(); } } catch (e) {} }
+async function pollLive(){ try { const l = await call('goLive'); if (l) { if (CURVIEW === 'hw' && !document.hidden) { const w = await call('goHwWatch'); if (w) { l.cpuTemp = w.cpuTemp; l.boardTemp = w.boardTemp; } } LIVE = l; paintLive(); } } catch (e) {} }
 
 /* ---------- hardware ---------- */
 function paintHardware(){
@@ -1824,7 +1852,7 @@ function paintHardware(){
   add(_t('Scheda madre'), [b.maker, b.model].filter(Boolean).join(' '));
   add('BIOS', (b.bios || '') + (b.biosDate ? _t(' del ') + b.biosDate : ''));
   const r = HW.ram || {};
-  add(_t('Memoria RAM'), fmtBytes(r.total) + (r.modules ? ' · ' + r.modules + (r.modules > 1 ? _t(' moduli') : _t(' modulo')) : '') + (r.speed ? ' · ' + r.speed + ' MHz' : ''));
+  add(_t('Memoria RAM'), fmtBytes(r.total) + (r.modules ? ' · ' + r.modules + (r.modules > 1 ? _t(' moduli') : _t(' modulo')) : '') + (r.speed ? ' · ' + r.speed + ' MT/s' : ''));
   const pc = HW.pc || {};
   add('PC', [pc.maker, pc.model].filter(Boolean).join(' ') + (pc.laptop ? _t(' (portatile)') : ''));
   const o = HW.os || {};
@@ -1835,14 +1863,21 @@ function paintHardware(){
     return '<div style="padding:8px 0;border-bottom:1px solid var(--line)"><b style="color:var(--text)">' + esc(d.name) + '</b><br><span class="small">' + esc(d.type === 'SSD' ? 'SSD' : d.type === 'HDD' ? _t('Disco meccanico') : d.type) + ' · ' + fmtBytes(d.size) + ' · ' + h + (d.wear != null ? _t(' · usura ') + (Number(d.wear) || 0) + '%' : '') + '</span></div>';
   }).join('');
   $('#hwDisks').innerHTML = dk || _t('Nessun disco letto.');
-  const g0 = (HW.gpus || [])[0];
+  const g0 = mainGpu(HW.gpus);
   $('#gpuInfo').innerHTML = g0 ? '<b style="color:var(--text)">' + esc(g0.name) + '</b><br>Driver ' + esc(g0.driver) + (g0.driverDate ? _t(' del ') + esc(g0.driverDate) : '') : _t('Nessuna scheda video trovata.');
   $('#biosTitle').textContent = 'BIOS: ' + ((b.maker || '') + ' ' + (b.model || '')).trim() + (b.bios ? _t(' · versione ') + b.bios : '') + (b.biosDate ? ' (' + b.biosDate + ')' : '');
   paintLive();
 }
-$('#btnHwReload').onclick = () => { HW = null; $('#hwKv').innerHTML = _t('<span>Lettura…</span><span></span>'); call('goHardware'); };
-$('#btnBios').onclick = () => { const b = (HW && HW.board) || {}; call('goBiosSearch', ((b.maker || '') + ' ' + (b.model || '')).trim() || _t('scheda madre')); };
-$('#btnGpuPanel').onclick = async () => { const g = HW && HW.gpus && HW.gpus[0]; const r = await call('goGpuPanel', g ? g.name : ''); if (r === 'web') toast(_t('Ho aperto la pagina ufficiale del produttore della scheda video.'), 'var(--a3)'); if (r === 'none') toast(_t('Non ho riconosciuto la scheda video.'), 'var(--a4)'); };
+$('#btnHwReload').onclick = () => { HW = null; HW_LOADING = true; $('#hwKv').innerHTML = _t('<span>Lettura…</span><span></span>'); call('goHardware'); };
+$('#btnBios').onclick = async () => {
+  const b = (HW && HW.board) || {}, pc = (HW && HW.pc) || {};
+  const pcModel = [pc.family, pc.model].filter((x, i, a) => x && a.indexOf(x) === i && !/to be filled|system product name|default string/i.test(x)).join(' ');
+  const r = String(await call('goBiosSearch', String(b.maker || ''), String(b.model || ''), String(pc.maker || ''), pcModel, !!pc.laptop) || '');
+  const model = r.endsWith(':pc') ? pcModel : String(b.model || '');
+  if (r.startsWith('vendor:')) toast(_t('Ho aperto il sito di assistenza ufficiale.') + (model ? ' ' + _t('Cerca il modello ') + model + _t(' e apri la sezione BIOS.') : ''), 'var(--a3)');
+  else if (r.startsWith('search:')) toast(_t('Non conosco il sito di questa marca: ho aperto una ricerca su Google, non la pagina ufficiale. Scarica il BIOS solo dal sito del produttore.'), 'var(--a4)');
+};
+$('#btnGpuPanel').onclick = async () => { const g = HW && mainGpu(HW.gpus); const r = await call('goGpuPanel', g ? g.name : ''); if (r === 'web') toast(_t('Ho aperto la pagina ufficiale del produttore della scheda video.'), 'var(--a3)'); if (r === 'none') toast(_t('Non ho riconosciuto la scheda video.'), 'var(--a4)'); };
 
 /* ---------- modes ---------- */
 const MODES = [
@@ -2024,12 +2059,14 @@ function gdPaint(force){
     const txt = st === 'download' ? _t('Scarico da NVIDIA: ') + (l.pct >= 0 ? l.pct + '%' : fmtBytes(l.done || 0)) : esc(l.msg || '');
     if (!force && gdOurs()) {
       const bar = $('#gdBar'); bar.style.width = (det ? pct : 100) + '%'; bar.parentNode.setAttribute('aria-valuenow', String(pct));
-      const t = $('#gdTxt'); if (t.innerHTML !== txt) t.innerHTML = txt; return;
+      const t = $('#gdTxt'); if (t.innerHTML !== txt) t.innerHTML = txt; t.setAttribute('aria-live', st === 'download' ? 'off' : 'polite');
+      const n = $('#gdNote'); if (n) { const nt = st === 'download' ? _t('Prima di installare controllo la firma digitale di NVIDIA e creo un punto di ripristino.') : ''; if (n.textContent !== nt) n.textContent = nt; }
+      return;
     }
     gdBox('<div class="muted" style="margin-bottom:8px">' + esc(GD.from || '') + (GD.to ? ' → <b style="color:var(--a1)">' + esc(GD.to) + '</b>' : '') + '</div>' +
       '<div class="bigbar" role="progressbar" aria-label="' + _t('Avanzamento') + '" aria-valuemin="0" aria-valuemax="100"' + (det ? ' aria-valuenow="' + pct + '"' : '') + '><i id="gdBar" style="width:' + (det || st !== 'download' ? (det ? pct : 100) : 0) + '%"></i></div>' +
-      '<div class="small" id="gdTxt" style="margin-top:8px">' + txt + '</div>' +
-      '<div class="small muted" role="status" aria-live="polite" style="margin-top:6px">' + (st === 'download' ? _t('Prima di installare controllo la firma digitale di NVIDIA e creo un punto di ripristino.') : esc(l.msg || '')) + '</div>',
+      '<div class="small" id="gdTxt" role="status" aria-live="' + (st === 'download' ? 'off' : 'polite') + '" style="margin-top:8px">' + txt + '</div>' +
+      '<div class="small muted" id="gdNote" style="margin-top:6px">' + (st === 'download' ? _t('Prima di installare controllo la firma digitale di NVIDIA e creo un punto di ripristino.') : '') + '</div>',
       st === 'install' || (GD.info && GD.info.vendor === 'amd') ? [{label:_t('Continua in background')}] : [{label:_t('Annulla'), fn: (box) => {
         if (Date.now() - GD.t0 < 800) return 'keep'; // un doppio clic su "Aggiorna" non deve annullare
         call('goGpuDrvCancel'); const b = [...box.querySelectorAll('button')].find(x => x.textContent === _t('Annulla')); if (b) { b.disabled = true; b.textContent = _t('Sto annullando…'); }
@@ -2328,7 +2365,7 @@ function paintTools(){
     det.appendChild(body); box.appendChild(det);
   }
 }
-let PERF = null;
+let PERF = null, PERF_MSGS = [];
 function paintPerf(){
   const box = $('#perfBox'); if(!box) return;
   const d = PERF;
@@ -2343,11 +2380,11 @@ function paintPerf(){
   const hasCO = ryzSer ? (+ryzSer >= 5) : /Ryzen.*(7\d{2}0|9\d{2}0)/i.test(d.cpu || '');
   const x3d5000 = /Ryzen.*5\d00X3D/i.test(d.cpu || '');
   if(d.cpuVendor && d.laptop){ cpuGuide = _t('Sul tuo portatile (<b>') + esc(d.cpu) + _t('</b>) l\'undervolt di solito è bloccato dal produttore. Il consiglio onesto: lascia il processore com\'è e usa il <b>Profilo prestazioni</b> qui sopra, con il caricatore attaccato.'); }
-  else if(d.cpuVendor === 'amd' && x3d5000){ cpuTool = 'ryzen'; cpuBtn = (d.ryzen ? _t('Apri') : _t('Scarica')) + _t(' AMD Ryzen Master'); cpuGuide = _t('Il tuo <b>') + esc(d.cpu) + _t('</b> (X3D) è bloccato da AMD: niente overclock né Curve Optimizer, per proteggere la cache 3D. È normale e va già al massimo così. Ryzen Master serve solo per guardare temperature e frequenze.'); }
-  else if(d.cpuVendor === 'amd' && /X3D/i.test(d.cpu || '')){ cpuTool = 'ryzen'; cpuBtn = (d.ryzen ? _t('Apri') : _t('Scarica')) + _t(' AMD Ryzen Master'); cpuGuide = _t('Il tuo <b>') + esc(d.cpu) + _t('</b> (X3D) è già regolato bene dalla fabbrica: qui il guadagno è piccolo. Se vuoi provare, in Ryzen Master o nel BIOS c\'è il <b>Curve Optimizer</b>: parti piano (es. −10) e prova la stabilità.'); }
-  else if(d.cpuVendor === 'amd' && hasCO){ cpuTool = 'ryzen'; cpuBtn = (d.ryzen ? _t('Apri') : _t('Scarica')) + _t(' AMD Ryzen Master'); cpuGuide = _t('Sul tuo <b>') + esc(d.cpu) + _t('</b> il modo sicuro è il <b>Curve Optimizer</b> (nel BIOS o in Ryzen Master): abbassa un filo il voltaggio tenendo le frequenze → più fresco e spesso più veloce. Parti piano (es. −10) e prova la stabilità con un gioco o un test.'); }
-  else if(d.cpuVendor === 'amd'){ cpuTool = 'ryzen'; cpuBtn = (d.ryzen ? _t('Apri') : _t('Scarica')) + _t(' AMD Ryzen Master'); cpuGuide = _t('Sul tuo <b>') + esc(d.cpu) + _t('</b> il Curve Optimizer non c\'è (arriva dai Ryzen 5000 in poi). Il consiglio onesto: lascia il processore com\'è (PBO su Auto nel BIOS) e guadagna di più con la <b>RAM a EXPO/XMP</b> qui sopra. Ryzen Master serve solo per guardare temperature e frequenze.'); }
-  else if(d.cpuVendor === 'intel'){ cpuTool = 'xtu'; cpuBtn = (d.xtu ? _t('Apri') : _t('Scarica')) + _t(' Intel XTU'); cpuGuide = _t('Sul tuo <b>') + esc(d.cpu) + _t('</b> puoi provare con <b>Intel XTU</b> un leggero <b>undervolt</b>: stessa potenza, meno calore. Scendi a piccoli passi (es. −25 mV) e testa la stabilità. Attenzione: su molti Intel recenti (12ª generazione in poi) e sui portatili l\'undervolt è bloccato dal produttore: se XTU non te lo fa cambiare, è normale, lascia stare.'); }
+  else if(d.cpuVendor === 'amd' && x3d5000){ cpuTool = 'ryzen'; cpuBtn = (d.ryzen ? _t('Apri') : _t('Pagina ufficiale:')) + _t(' AMD Ryzen Master'); cpuGuide = _t('Il tuo <b>') + esc(d.cpu) + _t('</b> (X3D) è bloccato da AMD: niente overclock né Curve Optimizer, per proteggere la cache 3D. È normale e va già al massimo così. Ryzen Master serve solo per guardare temperature e frequenze.'); }
+  else if(d.cpuVendor === 'amd' && /X3D/i.test(d.cpu || '')){ cpuTool = 'ryzen'; cpuBtn = (d.ryzen ? _t('Apri') : _t('Pagina ufficiale:')) + _t(' AMD Ryzen Master'); cpuGuide = _t('Il tuo <b>') + esc(d.cpu) + _t('</b> (X3D) è già regolato bene dalla fabbrica: qui il guadagno è piccolo. Se vuoi provare, in Ryzen Master o nel BIOS c\'è il <b>Curve Optimizer</b>: parti piano (es. −10) e prova la stabilità.'); }
+  else if(d.cpuVendor === 'amd' && hasCO){ cpuTool = 'ryzen'; cpuBtn = (d.ryzen ? _t('Apri') : _t('Pagina ufficiale:')) + _t(' AMD Ryzen Master'); cpuGuide = _t('Sul tuo <b>') + esc(d.cpu) + _t('</b> il modo sicuro è il <b>Curve Optimizer</b> (nel BIOS o in Ryzen Master): abbassa un filo il voltaggio tenendo le frequenze → più fresco e spesso più veloce. Parti piano (es. −10) e prova la stabilità con un gioco o un test.'); }
+  else if(d.cpuVendor === 'amd'){ cpuTool = 'ryzen'; cpuBtn = (d.ryzen ? _t('Apri') : _t('Pagina ufficiale:')) + _t(' AMD Ryzen Master'); cpuGuide = _t('Sul tuo <b>') + esc(d.cpu) + _t('</b> il Curve Optimizer non c\'è (arriva dai Ryzen 5000 in poi). Il consiglio onesto: lascia il processore com\'è (PBO su Auto nel BIOS) e guadagna di più con la <b>RAM a EXPO/XMP</b> qui sopra. Ryzen Master serve solo per guardare temperature e frequenze.'); }
+  else if(d.cpuVendor === 'intel'){ cpuTool = 'xtu'; cpuBtn = (d.xtu ? _t('Apri') : _t('Pagina ufficiale:')) + _t(' Intel XTU'); cpuGuide = _t('Sul tuo <b>') + esc(d.cpu) + _t('</b> puoi provare con <b>Intel XTU</b> un leggero <b>undervolt</b>: stessa potenza, meno calore. Scendi a piccoli passi (es. −25 mV) e testa la stabilità. Attenzione: su molti Intel recenti (12ª generazione in poi) e sui portatili l\'undervolt è bloccato dal produttore: se XTU non te lo fa cambiare, è normale, lascia stare.'); }
   else { cpuGuide = _t('Processore <b>') + esc(d.cpu || '—') + _t('</b>: non riconosciuto come AMD o Intel, quindi resta sui profili sicuri qui sopra.'); }
   let pProf = '', pRam = '', pGpu = '', pCpu = '';
   pProf = '<div class="card" style="display:flex;flex-direction:column;gap:10px">'
@@ -2367,7 +2404,7 @@ function paintPerf(){
       : gpuAmd
       ? _t('<div class="row wrap" style="justify-content:space-between;align-items:center;gap:12px"><div><h2 style="margin:0">Scheda video — AMD Software</h2><p class="sub" style="margin:2px 0 0">') + esc(d.gpu || _t('Scheda video')) + '</p></div></div>'
         + _t('<p class="sub" style="margin:0">Per le Radeon lo strumento ufficiale è già sul tuo PC: tasto destro sul desktop → <b>AMD Software</b> → <b>Prestazioni</b> → <b>Ottimizzazione</b>. La cosa più sicura è scegliere <b>Overclock automatico GPU</b> o <b>Undervolt automatico GPU</b>: fa tutto lui. Se vuoi farlo a mano: ') + gpuSafe + '</p></div>'
-      : _t('<div class="row wrap" style="justify-content:space-between;align-items:center;gap:12px"><div><h2 style="margin:0">Scheda video — MSI Afterburner</h2><p class="sub" style="margin:2px 0 0">') + esc(d.gpu || _t('Scheda video')) + '</p></div><button class="btn primary" data-tool="afterburner">' + (d.afterburner ? _t('Apri') : _t('Scarica')) + _t(' Afterburner</button></div>')
+      : _t('<div class="row wrap" style="justify-content:space-between;align-items:center;gap:12px"><div><h2 style="margin:0">Scheda video — MSI Afterburner</h2><p class="sub" style="margin:2px 0 0">') + esc(d.gpu || _t('Scheda video')) + '</p></div><button class="btn primary" data-tool="afterburner">' + (d.afterburner ? _t('Apri') : _t('Pagina ufficiale:')) + _t(' Afterburner</button></div>')
         + _t('<p class="sub" style="margin:0">Afterburner (di MSI, gratuito) funziona con quasi tutte le schede NVIDIA. ') + gpuSafe + '</p></div>');
   pCpu = '<div class="card" style="display:flex;flex-direction:column;gap:10px">'
     + _t('<div class="row wrap" style="justify-content:space-between;align-items:center;gap:12px"><div><h2 style="margin:0">Processore — undervolt guidato</h2><p class="sub" style="margin:2px 0 0">') + esc(d.cpu || _t('Processore')) + '</p></div>' + (cpuTool ? '<button class="btn ghost" data-tool="' + cpuTool + '">' + esc(cpuBtn) + '</button>' : '') + '</div>'
@@ -2382,8 +2419,8 @@ function paintPerf(){
   html += head('2', _t('Gratis dal BIOS'), _t('Una volta sola all\'accensione del PC: è una velocità certificata dal produttore della RAM.')) + pRam;
   html += head('3', _t('Per esperti'), _t('Più potenza con programmi ufficiali, a piccoli passi. Se non sei sicuro, fermati ai punti 1 e 2.')) + pCpu + pGpu;
   box.innerHTML = html;
-  const bp = $('#btnPerfProf'); if(bp) bp.onclick = () => { const turnOn = !d.highPerf; bp.disabled = true; callBg('goPerfProfile', turnOn).then((r) => { bp.disabled = false; if (r !== 'ok') { toast(r === 'busy' ? _t('Un attimo: sto ancora leggendo il PC, riprova tra poco.') : (r || _t('Non riuscito, riprova.')), 'var(--red)'); return; } toast(turnOn ? _t('Prestazioni elevate attivate.') : _t('Tornato a Bilanciato.')); PERF.highPerf = turnOn; paintPerf(); }); };
-  box.querySelectorAll('[data-tool]').forEach(b => { b.onclick = () => { call('goPerfTool', b.dataset.tool); toast(_t('Apro lo strumento o la sua pagina ufficiale…')); }; });
+  const bp = $('#btnPerfProf'); if(bp) bp.onclick = () => { const turnOn = !d.highPerf; bp.disabled = true; PERF_MSGS = []; callBg('goPerfProfile', turnOn).then((r) => { bp.disabled = false; const m = /^ok([01])$/.exec(r || ''); if (!m) { toast(r === 'busy' ? _t('Un attimo: sto ancora leggendo il PC, riprova tra poco.') : (r || _t('Non riuscito, riprova.')), 'var(--red)'); return; } const high = m[1] === '1', msg = PERF_MSGS.join(' ').trim(); PERF.highPerf = high; if (high === turnOn) toast(turnOn ? _t('Prestazioni elevate attivate.') : _t('Tornato a Bilanciato.')); else toast(msg || (turnOn ? _t('Windows ha tenuto il piano Bilanciato: Prestazioni elevate non è attivo.') : _t('Il piano energetico è rimasto Prestazioni elevate.')), 'var(--a4)'); paintPerf(); }); };
+  box.querySelectorAll('[data-tool]').forEach(b => { b.onclick = async () => { const r = await call('goPerfTool', b.dataset.tool); toast(r === 'app' ? _t('Apro il programma…') : r === 'web' ? _t('Non lo trovo sul PC: ho aperto la sua pagina ufficiale.') : _t('Non riuscito, riprova.'), r === 'app' || r === 'web' ? 'var(--a3)' : 'var(--a4)'); }; });
 }
 const INDEX = [
   {t:_t('Pulizia'), c:'var(--a1)', i:[_t('<b>5 livelli</b>: Classica, Normale, Media, Profonda, Eccezionale, con anteprima di quanto c\'è da liberare'),_t('<b>File temporanei</b> tuoi e di Windows, <b>Cestino</b>, <b>anteprime</b>'),_t('<b>Cache dei browser</b> (Chrome, Edge, Brave, Opera, Firefox) senza toccare password e cookie'),_t('<b>Cache delle app</b>: Discord, Steam, Teams, Epic Games'),_t('<b>Cache della scheda video</b> e di <b>Windows Update</b>'),_t('<b>File di sistema inutili</b> (rapporti errori, dump, log vecchi) e <b>pulizia componenti</b> (DISM), senza finestre'),_t('<b>Resti dei driver</b> (C:\\AMD, C:\\NVIDIA), <b>driver video vecchi</b> e <b>cache dei launcher</b> (Battle.net, EA, Ubisoft, GOG, Riot, Steam, Spotify)'),_t('<b>Pulizia programmata</b> ogni 1 o 2 settimane (giorno, ora e livello li scegli tu) e <b>spegnimento automatico</b> a fine lavoro'),_t('<b>Voto al PC</b> prima e dopo la pulizia')]},
@@ -2411,7 +2448,7 @@ function setToggle(id, on, disabled){ const t = $(id); t.classList.toggle('on', 
 const ALERTS = [
   {k:'temp', name:_t('Temperature alte'), d:_t('Quando la scheda video o un disco si scaldano troppo.')},
   {k:'disk', name:_t('Disco quasi pieno'), d:_t('Quando lo spazio libero sta finendo.')},
-  {k:'startup', name:_t('Troppi programmi all\'avvio'), d:_t('Quando il PC parte lento per i programmi all\'accensione.')},
+  {k:'startup', name:_t('Nuovo programma all\'avvio'), d:_t('Quando un programma si aggiunge a quelli che partono all\'accensione del PC.')},
   {k:'ram', name:_t('Memoria quasi piena'), d:_t('Quando la RAM è quasi tutta occupata.')},
   {k:'health', name:_t('Salute dei dischi'), d:_t('Quando un disco dà segni di problemi (importante per i tuoi file).')}
 ];
@@ -2828,7 +2865,7 @@ const h = new Date().getHours();
 $('#hello').textContent = h < 6 ? _t('Buonanotte!') : h < 13 ? _t('Buongiorno!') : h < 18 ? _t('Buon pomeriggio!') : _t('Buonasera!');
 renderLevels(); paintModes(); paintTools(); paintIndex(); paintThemes(); paintSettings(); paintOffice(); paintFixPh();
 if (!S.onboarded && !BOOT.autoLevel) { paintWelcome(); $('#welcome').classList.add('on'); }
-call('goAnalyze'); call('goHardware'); setTimeout(() => call('goHealth'), 1500);
+call('goAnalyze'); HW_LOADING = true; call('goHardware'); setTimeout(() => call('goHealth'), 1500);
 if (S.onboarded) setTimeout(statsAsk, 3000);
 setTimeout(() => { loaded.startup = 1; call('goStartupList'); }, 4000);
 pollLive(); setInterval(pollLive, 2000);
@@ -3103,7 +3140,7 @@ function paintDrivers(d){
   devs.forEach(x => { const c = (x.err && x.err !== 22 && x.err !== 45) ? 'Con problemi' : x.cat; (by[c] = by[c] || []).push(x); });
   order.filter(c => by[c]).forEach(c => {
     const det = el('details', {class:'card', style:'padding:10px 14px'});
-    if (c === 'Con problemi' || c === _t('Scheda video') || c === 'Audio') det.open = true;
+    if (c === 'Con problemi' || c === 'Scheda video' || c === 'Audio') det.open = true;
     det.innerHTML = '<summary style="cursor:pointer;font-weight:700">' + DRV_CAT[c] + ' ' + esc(_t(c)) + ' <span class="small muted">(' + by[c].length + ')</span></summary>';
     const list = el('div', {class:'list', style:'margin-top:8px'});
     by[c].sort((a, b) => a.name.localeCompare(b.name)).forEach(x => {
@@ -3119,8 +3156,9 @@ function paintDrvUpdates(r){
   const b = $('#drvUpd'); b.style.display = 'flex'; b.innerHTML = ''; $('#btnDrvCheck').disabled = false; $('#btnDrvCheck').textContent = _t('Cerca driver nuovi');
   if (!r || !r.ok) { b.innerHTML = '<div class="note" style="margin:0;border-color:var(--a4)">' + esc((r && r.error) || _t('Ricerca non riuscita.')) + '</div>'; return; }
   const it = r.items || [];
-  if (!it.length) { b.innerHTML = _t('<div class="note" style="margin:0;border-color:var(--a1)"><b>✓ Windows Update non ha driver più nuovi per il tuo PC.</b> Per scheda video e periferiche da gaming guarda comunque i siti ufficiali qui sotto: lì escono prima.</div>'); return; }
-  let h = '<div class="note" style="margin:0;border-color:var(--a3)"><b>' + it.length + _t(' driver nuovi su Windows Update</b> (certificati da Microsoft). Spunta quelli da installare. <span class="small muted">"Facoltativo" vuol dire che Windows non lo mette da solo: installalo se quel pezzo ti dà problemi o se è un driver più nuovo di quello che hai.</span></div><div class="list">');
+  const vNote = r.video > 0 ? '<div class="note" style="margin:0;border-color:var(--a3)">' + _t('Windows Update ha anche un driver per la scheda video: non lo installo da qui. Usa i pulsanti della tua scheda video qui sotto ("Aggiorna con Tasso" crea prima un punto di ripristino e controlla AMD Software).') + '</div>' : '';
+  if (!it.length) { b.innerHTML = (r.video > 0 ? '' : _t('<div class="note" style="margin:0;border-color:var(--a1)"><b>✓ Windows Update non ha driver più nuovi per il tuo PC.</b> Per scheda video e periferiche da gaming guarda comunque i siti ufficiali qui sotto: lì escono prima.</div>')) + vNote; return; }
+  let h = vNote + '<div class="note" style="margin:0;border-color:var(--a3)"><b>' + it.length + _t(' driver nuovi su Windows Update</b> (certificati da Microsoft). Spunta quelli da installare. <span class="small muted">"Facoltativo" vuol dire che Windows non lo mette da solo: installalo se quel pezzo ti dà problemi o se è un driver più nuovo di quello che hai.</span></div><div class="list">');
   it.forEach(x => { h += '<label class="li check" style="gap:10px"><input type="checkbox" value="' + esc(x.id) + '"' + (x.optional ? '' : ' checked') + '> <span style="flex:1"><b>' + esc(x.title) + '</b><br><span class="small muted">' + esc([x.cls, x.maker, x.date ? x.date.split('-').reverse().join('/') : '', x.mb ? String(x.mb).replace('.', DEC) + ' MB' : '', x.optional ? _t('facoltativo') : _t('consigliato')].filter(Boolean).join(' · ')) + '</span></span></label>'; });
   h += _t('</div><div class="row wrap"><button class="btn primary" id="btnDrvInst">Installa i driver spuntati</button></div>');
   b.innerHTML = h;
