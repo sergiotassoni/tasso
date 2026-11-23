@@ -105,12 +105,18 @@ func NascondiPagina() {
 	}
 }
 
-func fontPagina(px int32, peso uintptr) uintptr {
-	chiave := px*10 + int32(peso/100)
+// famiglieFont: 0 normale; 1 e 2 strette, per i giochi che scrivono con lettere strette
+// (Liar's Bar): la traduzione ha la stessa forma e ci sta nello stesso spazio.
+var famiglieFont = []string{"Segoe UI", "Bahnschrift SemiCondensed", "Bahnschrift Condensed"}
+
+func fontPagina(px int32, peso uintptr) uintptr { return fontPaginaF(px, peso, 0) }
+
+func fontPaginaF(px int32, peso uintptr, fam int) uintptr {
+	chiave := (px*10+int32(peso/100))*4 + int32(fam)
 	if f, ok := pag.font[chiave]; ok {
 		return f
 	}
-	face, _ := windows.UTF16PtrFromString("Segoe UI")
+	face, _ := windows.UTF16PtrFromString(famiglieFont[fam])
 	f, _, _ := pCreateFont.Call(uintptr(-px), 0, 0, 0, peso, 0, 0, 0, 1, 0, 0, 4, 0, uintptr(unsafe.Pointer(face))) // ANTIALIASED (grigi): niente frange colorate
 	pag.font[chiave] = f
 	return f
@@ -164,10 +170,26 @@ func disegnaBlocco(hdc uintptr, b Blocco, fase int) {
 	}
 	var w, h int32
 	var font uintptr
+	// lettere del gioco strette? Misuro l'inglese con il carattere normale: se viene molto più
+	// largo dell'originale, uso un carattere stretto (stessa forma del gioco)
+	fam := 0
+	if b.Testo != "" && b.W > 0 {
+		wIng, _ := misuraTesto(hdc, fontPaginaF(px, b.pesoCarattere(), 0), b.Testo, 0, false)
+		spazio := float64(b.W)
+		if righe > 1 {
+			spazio = float64(b.W) * float64(righe) * 0.9
+		}
+		switch r := float64(wIng) / spazio; {
+		case r > 1.24:
+			fam = 2
+		case r > 1.1:
+			fam = 1
+		}
+	}
 	// stessa grandezza del gioco; se l'italiano è più lungo uso lo spazio libero a destra,
 	// poi rimpicciolisco un po' (fino al 78%), e solo alla fine vado a capo
 	for prova := px; ; prova-- {
-		font = fontPagina(prova, b.pesoCarattere())
+		font = fontPaginaF(prova, b.pesoCarattere(), fam)
 		if righe == 1 {
 			w, h = misuraTesto(hdc, font, b.Tradotto, 0, false)
 			if w <= maxLarg || prova <= minPx {

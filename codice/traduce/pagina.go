@@ -1528,3 +1528,23 @@ func distanzaModifica(a, b string) int {
 	}
 	return prec[len(rb)]
 }
+
+// letturaAffidabile: in una frase lunga quasi tutte le parole devono esistere. Se l'OCR ha
+// letto male ("La cucitura curmt", "Nkes e Repmts") meglio lasciare l'inglese del gioco che
+// mettere sopra una traduzione storpiata.
+func letturaAffidabile(s string) bool {
+	tot, buone := 0, 0
+	for _, w := range strings.FieldsFunc(s, func(r rune) bool { return !unicode.IsLetter(r) && r != '\'' }) {
+		if len([]rune(w)) < 3 {
+			continue
+		}
+		tot++
+		if esiste(w) || termGiochi[w] != "" || termGiochi[strings.ToLower(w)] != "" || unicode.IsUpper([]rune(w)[0]) && len(strings.Fields(s)) > 1 && !strings.EqualFold(w, strings.ToUpper(w)) {
+			buone++
+		}
+	}
+	if tot < 4 {
+		return true
+	}
+	return buone*100 >= tot*85
+}

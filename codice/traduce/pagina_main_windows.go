@@ -10,7 +10,10 @@ import (
 	"context"
 	"fmt"
 	"image"
+	"image/draw"
 	"path/filepath"
+	"sort"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -215,6 +218,7 @@ func preparaPagina(area Zona, img, primaImg *image.RGBA, giro int64) (p *paginaP
 		emetti("info", map[string]string{"testo": "Lettura del testo: " + err.Error()})
 		return nil, false
 	}
+	righe = rileggiPiccole(img, righe, f)
 	blocchi := unisciParagrafi(segmenti(righe, f))
 	nostraL, ceNostraL := nostraFinestraIn(area)
 	var testiLetti []string
@@ -242,7 +246,7 @@ func preparaPagina(area Zona, img, primaImg *image.RGBA, giro int64) (p *paginaP
 	// di scritte si traduce in una frazione del tempo che serviva una alla volta
 	var da []Blocco
 	for _, b := range blocchi {
-		if !daTradurre(b.Testo) || !formaPlausibile(b) {
+		if !daTradurre(b.Testo) || !formaPlausibile(b) || !letturaAffidabile(b.Testo) {
 			continue
 		}
 		if ceNostra && dentro(b, nostra) { // è la finestra di Tasso Traduce sopra il gioco: non la traduco
@@ -275,7 +279,7 @@ func preparaPagina(area Zona, img, primaImg *image.RGBA, giro int64) (p *paginaP
 	}
 	for i, b := range da {
 		r := risultati[i]
-		if r.Tradotto == "" || r.Tradotto == r.Originale {
+		if strings.TrimSpace(r.Tradotto) == "" || strings.EqualFold(strings.TrimSpace(r.Tradotto), strings.TrimSpace(b.Testo)) {
 			continue
 		}
 		if r.Motore != "memoria" && r.Motore != "catalogo" && r.Motore != "libreria" {
@@ -473,4 +477,88 @@ func linguaIlleggibile(fg uintptr) bool {
 	dillaUnaVolta("ocr-"+l+g.Cartella, testoTasso("Il gioco "+g.Nome+" è in "+n+", ma Windows su questo PC non sa ancora leggere questa lingua. Aggiungi la lingua nelle Impostazioni di Windows (con il riconoscimento del testo), oppure metti il gioco in inglese da Steam: Proprietà → Lingua.",
 		"The game "+g.Nome+" is in "+n+", but Windows on this PC can't read that language yet. Add it in Windows Settings (with text recognition), or switch the game to English in Steam: Properties → Language."))
 	return true
+}
+
+// rileggiPiccole: le scritte piccole (testo delle notizie, descrizioni: lettere alte 10-15 pixel)
+// l'OCR di Windows le legge male a grandezza naturale ("La cucitura curmt"). Ritaglio la zona
+// dove stanno, la ingrandisco 3 volte e la rileggo: le righe nuove prendono il posto di quelle.
+func rileggiPiccole(img *image.RGBA, righe []RigaOCR, f float64) []RigaOCR {
+	if f <= 0 {
+		f = 1
+	}
+	zona := image.Rectangle{}
+	piccole := 0
+	for _, r := range righe {
+		x0, y0, x1, y1, h := rettRiga(r, f)
+		if h > 0 && h < 17 {
+			zona = zona.Union(image.Rect(x0, y0, x1, y1))
+			piccole++
+		}
+	}
+	if piccole < 2 {
+		return righe
+	}
+	zona = image.Rect(zona.Min.X-12, zona.Min.Y-8, zona.Max.X+12, zona.Max.Y+8).Intersect(img.Bounds())
+	k := 3
+	if zona.Dx()*k > 4000 || zona.Dy()*k > 4000 {
+		k = 2
+	}
+	if zona.Dx()*k > 8000 || zona.Dy()*k > 8000 || zona.Empty() {
+		return righe
+	}
+	ritaglio := image.NewRGBA(image.Rect(0, 0, zona.Dx(), zona.Dy()))
+	draw.Draw(ritaglio, ritaglio.Bounds(), img, zona.Min, draw.Src)
+	g := ingrandisci(grigio(ritaglio), k)
+	contrasto(g)
+	var buf bytes.Buffer
+	if scriviBMP(&buf, g) != nil {
+		return righe
+	}
+	nuove, err := ocr.LeggiPosizioni(buf.Bytes())
+	if err != nil || len(nuove) == 0 {
+		return righe
+	}
+	// coordinate del ritaglio ingrandito -> coordinate della prima lettura (scala f)
+	for i := range nuove {
+		for j := range nuove[i].Parole {
+			w := &nuove[i].Parole[j]
+			w.X = (w.X/float64(k) + float64(zona.Min.X)) * f
+			w.Y = (w.Y/float64(k) + float64(zona.Min.Y)) * f
+			w.W = w.W / float64(k) * f
+			w.H = w.H / float64(k) * f
+		}
+	}
+	var out []RigaOCR
+	for _, r := range righe { // tengo le righe fuori dalla zona (e le grandi dentro: titoli)
+		x0, y0, x1, y1, h := rettRiga(r, f)
+		c := image.Pt((x0+x1)/2, (y0+y1)/2)
+		if c.In(zona) && h < 17 {
+			continue
+		}
+		out = append(out, r)
+	}
+	for _, r := range nuove {
+		_, _, _, _, h := rettRiga(r, f)
+		if h >= 17 { // le scritte grandi le aveva già lette bene la prima volta
+			continue
+		}
+		out = append(out, r)
+	}
+	return out
+}
+
+// rettRiga: rettangolo della riga e altezza mediana delle parole, in pixel della cattura.
+func rettRiga(r RigaOCR, f float64) (x0, y0, x1, y1 int, h float64) {
+	if len(r.Parole) == 0 {
+		return
+	}
+	a, b, c, d := 1e18, 1e18, -1e18, -1e18
+	var hs []float64
+	for _, w := range r.Parole {
+		a, b = min(a, w.X), min(b, w.Y)
+		c, d = max(c, w.X+w.W), max(d, w.Y+w.H)
+		hs = append(hs, w.H/f)
+	}
+	sort.Float64s(hs)
+	return int(a / f), int(b / f), int(c/f + 0.5), int(d/f + 0.5), hs[len(hs)/2]
 }
