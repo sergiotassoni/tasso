@@ -733,18 +733,30 @@ func gpuDrvInstall(undo, noBackup bool) {
 	if ee, ok := werr.(*exec.ExitError); ok {
 		code = ee.ExitCode()
 	}
-	// La prova vera: che versione c'è adesso? Il pacchetto a volte finisce prima dell'installazione
-	// vera, quindi aspetto fino a 15 minuti che Windows mostri la versione nuova.
+	// La prova vera: che versione c'è adesso? Con codice 0 il pacchetto a volte finisce prima
+	// dell'installazione vera, quindi aspetto fino a 15 minuti che Windows mostri la versione nuova.
+	// Con 1 o 3010 serve il riavvio: lo dico subito. Con un altro codice è andata male: al massimo
+	// un minuto (per sicurezza) e poi lo dico, senza far aspettare un quarto d'ora per niente.
+	wait := time.Minute
+	switch code {
+	case 0:
+		wait = 15 * time.Minute
+	case 1, 3010:
+		wait = 0
+	}
 	var now string
-	deadline := time.Now().Add(15 * time.Minute)
-	for time.Now().Before(deadline) {
-		time.Sleep(10 * time.Second)
+	deadline := time.Now().Add(wait)
+	for {
 		if g2, e := nvDetect(); e == nil {
 			now = g2.Ver
 			if now == ver {
 				break
 			}
 		}
+		if !time.Now().Before(deadline) {
+			break
+		}
+		time.Sleep(10 * time.Second)
 	}
 	_ = os.Remove(p)
 	if now == ver {

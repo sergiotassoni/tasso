@@ -421,18 +421,39 @@ func overlayShow(show bool) string {
 }
 
 // cpuTempLoop legge la temperatura del processore: ogni minuto mentre il pannellino è visibile,
-// ogni 15 secondi mentre la pagina Hardware è aperta davanti (mai con Tasso a icona o durante un gioco).
-// Windows non la dà sempre: se c'è LibreHardwareMonitor aperto uso quella (più precisa), altrimenti
-// il sensore ACPI; se nessuno dei due risponde, il pannellino mostra solo la percentuale.
+// ogni 15 secondi mentre la pagina Hardware è davanti (Tasso in primo piano, mai durante un gioco).
+// Windows non la dà sempre: se c'è LibreHardwareMonitor aperto uso quella (l'unica che è davvero il
+// processore); altrimenti il sensore ACPI, che di solito è la scheda madre: la pagina Hardware la mostra
+// come "Sensore scheda madre", il pannellino no. Dopo 3 letture vuote (o ACPI sempre uguale) smetto per
+// tutta la sessione: riprovo solo se si apre LibreHardwareMonitor (controllo i processi, senza PowerShell).
 func cpuTempLoop() {
-	var last time.Time
+	var last, lhmCheck time.Time
 	var acpiLast float64
-	acpiSame := 0
+	acpiSame, empty := 0, 0
+	stopped := false
+	lhmWas := false
+	src := ""
 	for {
 		ovMu.Lock()
 		shown := ovShown
 		watch := time.Since(hwWatchAt) < 30*time.Second && !ovInGame
 		ovMu.Unlock()
+		if stopped || src == "A" {
+			// niente letture inutili: controllo solo (ogni 10 secondi) se è comparso LibreHardwareMonitor
+			if time.Since(lhmCheck) >= 10*time.Second {
+				lhmCheck = time.Now()
+				lhm := exeRunning([]string{"LibreHardwareMonitor.exe"})
+				if lhm && !lhmWas {
+					stopped, empty, acpiSame, acpiLast, src = false, 0, 0, 0, ""
+					last = time.Time{}
+				}
+				lhmWas = lhm
+			}
+			if stopped {
+				time.Sleep(2 * time.Second)
+				continue
+			}
+		}
 		if watch && !shown && time.Since(last) >= 15*time.Second {
 			bMu.Lock()
 			partita := bGame != ""
@@ -441,14 +462,16 @@ func cpuTempLoop() {
 				watch = false // un gioco è aperto: niente PowerShell per la pagina Hardware
 			}
 		}
-		if shown && !watch && !ovItems()["cputemp"] {
-			time.Sleep(2 * time.Second) // il pannellino non mostra la temperatura: niente PowerShell
-			continue
-		}
-		if watch && !shown && wv != nil {
-			if r, _, _ := pIsIconic.Call(uintptr(wv.Window())); r != 0 {
-				watch = false // Tasso a icona: nessuno guarda la pagina Hardware
+		if watch && wv != nil {
+			if fg, _, _ := pGetFgWindow.Call(); fg != uintptr(wv.Window()) {
+				watch = false // Tasso non è in primo piano: nessuno guarda la pagina Hardware
 			}
+		}
+		if shown && !watch && (!ovItems()["cputemp"] || src == "A") {
+			// il pannellino non mostra la temperatura (o c'è solo il sensore della scheda madre,
+			// che lì non mostro come CPU): niente PowerShell
+			time.Sleep(2 * time.Second)
+			continue
 		}
 		// Nel gioco ogni minuto (lanciare PowerShell più spesso darebbe piccoli scatti);
 		// sulla pagina Hardware ogni 15 secondi, così vedi la temperatura dal vivo.
@@ -461,14 +484,17 @@ func cpuTempLoop() {
 			r := runPS(cpuTempScript, 30*time.Second, nil)
 			v := -1.0
 			raw := strings.TrimSpace(r.JSON)
-			acpi := strings.HasPrefix(raw, "A")
+			s := ""
+			if strings.HasPrefix(raw, "A") || strings.HasPrefix(raw, "L") {
+				s = raw[:1]
+			}
 			raw = strings.TrimLeft(raw, "AL")
 			if f, err := strconv.ParseFloat(raw, 64); err == nil && f > 15 && f < 115 {
 				v = f
 			}
 			// il sensore ACPI su molti PC è la scheda madre e dà sempre lo stesso numero:
-			// se resta identico per 3 letture di fila non è il processore, non lo mostro
-			if acpi && v > 0 {
+			// se resta identico per 3 letture di fila non è un sensore vero, non lo mostro
+			if s == "A" && v > 0 {
 				if v == acpiLast {
 					acpiSame++
 				} else {
@@ -480,8 +506,28 @@ func cpuTempLoop() {
 			} else {
 				acpiLast, acpiSame = 0, 0
 			}
+			if v > 0 {
+				empty = 0
+				src = s
+			} else {
+				empty++
+				src = ""
+				if empty >= 3 || acpiSame >= 3 {
+					stopped = true // 3 letture vuote o ferme: per questa sessione basta PowerShell
+					lhmWas = exeRunning([]string{"LibreHardwareMonitor.exe"})
+					lhmCheck = time.Now()
+				}
+			}
 			ovMu.Lock()
-			ovCPUTemp = v
+			ovCPUTemp = -1
+			ovCPUTempSrc = s
+			if s == "L" {
+				ovCPUTemp = v // solo LibreHardwareMonitor è davvero il processore
+			}
+			hwBoardTemp = -1
+			if s == "A" {
+				hwBoardTemp = v
+			}
 			ovCPUTempAt = time.Now()
 			ovMu.Unlock()
 		}
@@ -495,19 +541,31 @@ var hwWatchAt time.Time
 // ovCPUTempAt: quando è stata letta ovCPUTemp (una lettura vecchia non si mostra come attuale).
 var ovCPUTempAt time.Time
 
+// ovCPUTempSrc: da dove viene l'ultima lettura ("L" LibreHardwareMonitor, "A" sensore ACPI, "" nessuna).
+// hwBoardTemp: la temperatura del sensore ACPI (di solito la scheda madre, non il processore).
+var (
+	ovCPUTempSrc string
+	hwBoardTemp  float64 = -1
+)
+
 // hwWatch: la pagina Hardware è aperta, quindi leggo anche la temperatura del processore.
+// cpuTemp c'è solo se viene da LibreHardwareMonitor; il sensore ACPI arriva come boardTemp.
 func hwWatch() map[string]interface{} {
 	ovMu.Lock()
 	hwWatchAt = time.Now()
-	t := ovCPUTemp
+	t, b, src := ovCPUTemp, hwBoardTemp, ovCPUTempSrc
 	if time.Since(ovCPUTempAt) > 25*time.Second {
-		t = -1
+		t, b, src = -1, -1, ""
 	}
 	ovMu.Unlock()
 	ovTempStart.Do(func() { go cpuTempLoop() })
 	out := map[string]interface{}{}
-	if t > 0 {
+	if t > 0 && src == "L" {
 		out["cpuTemp"] = t
+		out["src"] = "L"
+	} else if b > 0 && src == "A" {
+		out["boardTemp"] = b
+		out["src"] = "A"
 	}
 	return out
 }

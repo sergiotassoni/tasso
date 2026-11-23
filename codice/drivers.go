@@ -209,13 +209,17 @@ try {
   try { $se.ServerSelection = 2 } catch {}
   $res = $se.Search("IsInstalled=0 and Type='Driver' and IsHidden=0")
   $out = New-Object System.Collections.ArrayList
+  $video = 0
   foreach ($u in $res.Updates) {
+    # I driver della scheda video non passano da qui: hanno il loro percorso (punto di ripristino,
+    # controllo di AMD Software) nel riquadro "Schede video".
+    if ([string]$u.DriverClass -eq 'Display') { $video++; continue }
     $d = ''; try { if ($u.DriverVerDate) { $d = ([datetime]$u.DriverVerDate).ToString('yyyy-MM-dd') } } catch {}
     $mb = 0; try { $mb = [math]::Round([double]$u.MaxDownloadSize / 1MB, 1) } catch {}
     [void]$out.Add([ordered]@{ id = [string]$u.Identity.UpdateID; title = [string]$u.Title; cls = [string]$u.DriverClass; model = [string]$u.DriverModel; maker = [string]$u.DriverManufacturer; date = $d; mb = $mb; optional = [bool]$u.BrowseOnly })
   }
   Say ('Driver nuovi trovati: ' + $out.Count)
-  [Console]::Out.WriteLine('JSON ' + (ConvertTo-Json -InputObject ([ordered]@{ ok = $true; items = @($out) }) -Compress -Depth 4))
+  [Console]::Out.WriteLine('JSON ' + (ConvertTo-Json -InputObject ([ordered]@{ ok = $true; items = @($out); video = $video }) -Compress -Depth 4))
 } catch {
   [Console]::Out.WriteLine('JSON ' + (ConvertTo-Json -InputObject ([ordered]@{ ok = $false; error = ('Windows Update non ha risposto: ' + $_.Exception.Message) }) -Compress))
 }
@@ -231,6 +235,7 @@ try {
   $want = @{}; foreach ($i in @($A.ids)) { $want[[string]$i] = 1 }
   $coll = New-Object -ComObject Microsoft.Update.UpdateColl
   foreach ($u in $res.Updates) {
+    if ([string]$u.DriverClass -eq 'Display') { continue } # scheda video: solo dal suo riquadro
     if (($A.all -and -not $u.BrowseOnly) -or $want[[string]$u.Identity.UpdateID]) {
       if (-not $u.EulaAccepted) { $u.AcceptEula() }
       [void]$coll.Add($u)

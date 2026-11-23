@@ -808,7 +808,7 @@ $o = [ordered]@{
   cpu = [ordered]@{ name = ($cpu.Name -replace '\s+', ' ').Trim(); cores = $cpu.NumberOfCores; threads = $cpu.NumberOfLogicalProcessors; mhz = $cpu.MaxClockSpeed }
   gpus = $gl
   board = [ordered]@{ maker = $board.Manufacturer; model = $board.Product; bios = $bios.SMBIOSBIOSVersion; biosDate = $(if ($bios.ReleaseDate) { $bios.ReleaseDate.ToString('dd/MM/yyyy') } else { '' }) }
-  pc = [ordered]@{ maker = $sys.Manufacturer; model = $sys.Model; laptop = ($bat.Count -gt 0) }
+  pc = [ordered]@{ maker = $sys.Manufacturer; model = $sys.Model; family = [string]$sys.SystemFamily; laptop = ($bat.Count -gt 0) }
   ram = [ordered]@{ total = [long]$sys.TotalPhysicalMemory; modules = $mem.Count; speed = $speed }
   os = [ordered]@{ name = $os.Caption; version = $os.Version; build = $os.BuildNumber; arch = $os.OSArchitecture }
   disks = $disks

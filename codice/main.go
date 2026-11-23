@@ -418,9 +418,8 @@ func bindAll(w webview2.WebView) {
 		}
 		return "ok"
 	})
-	_ = w.Bind("goBiosSearch", func(board string) string {
-		openURL("https://www.google.com/search?q=" + urlQuery(board+" BIOS download ufficiale"))
-		return "ok"
+	_ = w.Bind("goBiosSearch", func(boardMaker, boardModel, pcMaker, pcModel string, laptop bool) string {
+		return biosPage(boardMaker, boardModel, pcMaker, pcModel, laptop)
 	})
 	_ = w.Bind("goGpuPanel", func(vendor string) string { return openGpuPanel(vendor) })
 	_ = w.Bind("goHealth", func() string { return async("health", healthCheck) })
@@ -603,6 +602,64 @@ func openGpuPanel(vendor string) string {
 		return "web"
 	}
 	return "none"
+}
+
+// biosVendor riconosce la marca (solo quelle con la pagina ufficiale in vendorPages).
+func biosVendor(maker string) string {
+	m := strings.ToLower(strings.TrimSpace(maker))
+	switch {
+	case strings.Contains(m, "asus"):
+		return "asus"
+	case strings.Contains(m, "micro-star") || m == "msi" || strings.HasPrefix(m, "msi "):
+		return "msi"
+	case strings.Contains(m, "gigabyte"):
+		return "gigabyte"
+	case strings.Contains(m, "asrock"):
+		return "asrock"
+	case strings.Contains(m, "lenovo"):
+		return "lenovo"
+	case strings.Contains(m, "hewlett") || m == "hp" || strings.HasPrefix(m, "hp "):
+		return "hp"
+	case strings.Contains(m, "dell"):
+		return "dell"
+	case strings.Contains(m, "acer"):
+		return "acer"
+	}
+	return ""
+}
+
+// biosPage apre il sito di assistenza ufficiale della marca giusta: sui portatili e sui PC di marca
+// (Lenovo, HP, Dell, Acer) quella del PC, sui PC assemblati quella della scheda madre.
+// Risponde "vendor:pc"/"vendor:board" (pagina ufficiale, con il modello da cercare) oppure
+// "search:pc"/"search:board" se la marca non la conosco: allora, come ultima scelta, una ricerca Google.
+func biosPage(boardMaker, boardModel, pcMaker, pcModel string, laptop bool) string {
+	pk, bk := biosVendor(pcMaker), biosVendor(boardMaker)
+	oem := pk == "lenovo" || pk == "hp" || pk == "dell" || pk == "acer"
+	key, which := "", "board"
+	switch {
+	case pk != "" && (laptop || oem):
+		key, which = pk, "pc"
+	case bk != "":
+		key = bk
+	case pk != "":
+		key, which = pk, "pc"
+	}
+	if p, ok := vendorPages[key]; ok && key != "" {
+		openURL(p[1])
+		return "vendor:" + which
+	}
+	q := strings.TrimSpace(boardMaker + " " + boardModel)
+	which = "board"
+	if laptop || q == "" {
+		if pq := strings.TrimSpace(pcMaker + " " + pcModel); pq != "" {
+			q, which = pq, "pc"
+		}
+	}
+	if q == "" {
+		q = "scheda madre"
+	}
+	openURL("https://www.google.com/search?q=" + urlQuery(q+" BIOS download"))
+	return "search:" + which
 }
 
 func fileExists(p string) bool {
