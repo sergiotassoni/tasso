@@ -416,9 +416,8 @@ func mostraPaginaPronta(p *paginaPronta, giro int64) bool {
 				_ = f.Close()
 			}
 		}
-		if len(pronti) > 0 {
-			emetti("info", map[string]string{"testo": fmt.Sprintf("Schermata tradotta: %d scritte in %.1f s · %s per tornare all'inglese", len(pronti), time.Since(t0).Seconds(), nomeTasto("pagina"))})
-		}
+		// niente avviso di Windows a ogni schermata tradotta: nel gioco se ne accumulavano a decine
+		// (Sergio, No Man's Sky, 24/11). Le scritte italiane al loro posto bastano
 	}
 	return true
 }
