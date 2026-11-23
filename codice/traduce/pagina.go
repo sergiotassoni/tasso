@@ -44,6 +44,7 @@ type Blocco struct {
 	Img        *image.RGBA // la cattura del gioco: la toppa copia i suoi pixel veri
 	Contorno   color.RGBA  // colore del contorno delle lettere (scritte bordate dei giochi)
 	HaContorno bool
+	Marg       int // margine della toppa attorno all'inglese (0 = non calcolato): mai fino alla scritta vicina
 }
 
 // grassetto: lettere spesse come quelle in neretto dei giochi.
@@ -531,20 +532,24 @@ func armonizza(b []Blocco) {
 			if abs(ci-cj) <= max(6, int(b[i].Em/2)) && abs(b[j].X-b[i].X) > 8 &&
 				b[j].Em/b[i].Em < 1.35 && b[i].Em/b[j].Em < 1.35 && abs(b[j].Y-b[i].Y) < 6*int(b[i].Em+1) {
 				b[i].Centro, b[j].Centro = true, true
-				if gruppo[j] >= 0 && contaGruppo(gruppo, gruppo[j]) == 1 {
-					gruppo[j] = gruppo[i]
-				} else if gruppo[i] >= 0 && contaGruppo(gruppo, gruppo[i]) == 1 {
-					gruppo[i] = gruppo[j]
+				// stesso menu: unisco i due gruppi interi (non solo le voci rimaste sole)
+				if gi, gj := gruppo[i], gruppo[j]; gi >= 0 && gj >= 0 && gi != gj {
+					for k := range gruppo {
+						if gruppo[k] == gj {
+							gruppo[k] = gi
+						}
+					}
 				}
 			}
 		}
 	}
 	for k := 0; k < g; k++ {
-		var em []float64
+		var em, tr []float64
 		var rr, gg, bb []int
 		for i := range b {
 			if gruppo[i] == k {
 				em = append(em, b[i].Em)
+				tr = append(tr, b[i].Tratto)
 				rr, gg, bb = append(rr, int(b[i].Inchiostro.R)), append(gg, int(b[i].Inchiostro.G)), append(bb, int(b[i].Inchiostro.B))
 			}
 		}
@@ -552,6 +557,7 @@ func armonizza(b []Blocco) {
 			continue
 		}
 		sort.Float64s(em)
+		sort.Float64s(tr)
 		sort.Ints(rr)
 		sort.Ints(gg)
 		sort.Ints(bb)
@@ -559,6 +565,7 @@ func armonizza(b []Blocco) {
 		for i := range b {
 			if gruppo[i] == k {
 				b[i].Em = em[m]
+				b[i].Tratto = tr[m] // stesso spessore: niente voci in neretto e altre no
 				med := color.RGBA{uint8(rr[m]), uint8(gg[m]), uint8(bb[m]), 255}
 				// solo se il colore letto è vicino a quello della colonna: una scritta
 				// colorata apposta (verde, rossa…) resta del suo colore
@@ -657,11 +664,16 @@ func fondoPreciso(b Blocco, x0, y0, x1, y1 int) (*image.RGBA, int, int) {
 		copy(out.Pix[y*out.Stride:y*out.Stride+w*4], img.Pix[img.PixOffset(r.Min.X, r.Min.Y+y):img.PixOffset(r.Min.X, r.Min.Y+y)+w*4])
 	}
 	// stima dello sfondo liscio sotto la scritta inglese (dai quattro bordi del suo riquadro)
-	const pad = 2
+	// margine: ombre, bordini e lettere che l'OCR taglia (la "J" iniziale) stanno appena fuori
+	pad := max(2, int(b.Em*0.15+0.5))
+	if b.Marg > 0 {
+		pad = b.Marg
+	}
 	bx0, by0 := b.X-pad, b.Y-pad
 	bw, bh := b.W+2*pad, b.H+2*pad
 	stima := coonsRiquadro(img, b, bx0, by0, bw, bh)
 	soglia := max(36, distanza(b.Inchiostro, b.Sfondo)/4)
+	lettereChiare := distanza(b.Inchiostro, b.Sfondo) >= 120
 	mask := make([]bool, w*h)
 	for y := 0; y < bh; y++ {
 		for x := 0; x < bw; x++ {
@@ -671,9 +683,18 @@ func fondoPreciso(b Blocco, x0, y0, x1, y1 int) (*image.RGBA, int, int) {
 				continue
 			}
 			c := out.RGBAAt(ox, oy)
-			if distanza(c, stima.RGBAAt(x, y)) > soglia {
-				mask[oy*w+ox] = true
+			dSf := distanza(c, stima.RGBAAt(x, y))
+			if dSf <= soglia {
+				continue
 			}
+			// su un fondo disegnato (erba, cielo, rocce) non tutto ciò che è diverso dalla stima è
+			// una lettera: cancello solo i pixel più vicini al colore delle lettere (o del loro
+			// bordino) che al fondo. Il resto del disegno del gioco resta com'è, nitido.
+			if lettereChiare && distanza(c, b.Inchiostro) >= dSf &&
+				!(b.HaContorno && distanza(c, b.Contorno) < dSf) {
+				continue
+			}
+			mask[oy*w+ox] = true
 		}
 	}
 	// allargo di 1-2 pixel: i bordi sfumati delle lettere (antialias, alone)
@@ -903,4 +924,44 @@ func riempimentoEContorno(img *image.RGBA, in image.Rectangle, b *Blocco) {
 		return // non si capisce: lascio com'era
 	}
 	b.HaContorno = true
+}
+
+// lineaDiBase: dove poggiano le lettere dell'originale (y). Il riquadro dell'OCR va dalla cima
+// delle lettere al fondo: se ci sono lettere con la gamba sotto (g, p, y…) il fondo è più giù
+// della linea di base. La traduzione poggia sulla stessa linea: non "scende" di qualche pixel.
+func lineaDiBase(b Blocco) int {
+	sotto := false
+	for _, c := range b.Testo {
+		if strings.ContainsRune("gjpqy(),;", c) {
+			sotto = true
+			break
+		}
+	}
+	y := b.Y + b.H
+	if sotto && b.Em > 0 {
+		y -= int(b.Em*0.21 + 0.5)
+	}
+	return y
+}
+
+// margineToppa: quanto la toppa può uscire dal riquadro dell'inglese per prendere ombre, bordini e
+// lettere tagliate dall'OCR, senza arrivare alle scritte vicine (altri = tutte le scritte lette).
+func margineToppa(b Blocco, altri []Blocco) int {
+	m := max(2, int(b.Em*0.2+0.5))
+	for _, o := range altri {
+		if o.X == b.X && o.Y == b.Y && o.W == b.W && o.H == b.H {
+			continue
+		}
+		// distanza tra i due riquadri (0 se si toccano)
+		dx := max(0, max(o.X-(b.X+b.W), b.X-(o.X+o.W)))
+		dy := max(0, max(o.Y-(b.Y+b.H), b.Y-(o.Y+o.H)))
+		g := max(dx, dy)
+		if dx > 0 && dy > 0 {
+			continue // in diagonale: la toppa resta nel suo rettangolo
+		}
+		if lim := (g - 1) / 2; lim < m {
+			m = lim
+		}
+	}
+	return max(1, m)
 }

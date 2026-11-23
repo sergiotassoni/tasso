@@ -7,6 +7,7 @@ package traduce
 // rettangolo con il colore dello sfondo del gioco e la traduzione italiana con il colore del testo.
 
 import (
+	"encoding/binary"
 	"image"
 	"image/png"
 	"os"
@@ -183,10 +184,22 @@ func disegnaBlocco(hdc uintptr, b Blocco, fase int) {
 	if b.Centro && righe == 1 {
 		tx = int32(b.X+b.W/2) - w/2
 	}
-	x0 := min(int32(b.X), tx) - 3
-	x1 := max(int32(b.X)+larg, tx+w) + 3
-	y0 := int32(b.Y) - 3
-	y1 := y0 + max(int32(b.H), h) + 6
+	m := int32(3)
+	if b.Img != nil && !b.Ombra { // toppa con i pixel veri: posso allargarla senza coprire nulla
+		m = max(3, int32(b.Em*0.2+0.5))
+		if b.Marg > 0 {
+			m = int32(b.Marg)
+		}
+	}
+	x0 := min(int32(b.X), tx) - m
+	x1 := max(int32(b.X)+larg, tx+w) + m
+	y0 := int32(b.Y) - m
+	y1 := y0 + max(int32(b.H), h) + 2*m
+	if righe == 1 && b.Img != nil && !b.Ombra {
+		// solo l'altezza delle lettere inglesi: la toppa non deve arrivare sulla voce di sotto
+		// (copierebbe le sue lettere inglesi sopra la sua traduzione)
+		y1 = int32(b.Y+b.H) + m
+	}
 	if fase == 0 {
 		disegnaSfondo(hdc, b, x0, y0, x1, y1)
 		return
@@ -194,10 +207,18 @@ func disegnaBlocco(hdc uintptr, b Blocco, fase int) {
 	pSelectObject.Call(hdc, font)
 	t, _ := windows.UTF16FromString(b.Tradotto)
 	ty := int32(b.Y) + (int32(b.H)-h)/2*boolI(h < int32(b.H))
+	if righe == 1 && !(w > maxLarg) {
+		// stessa linea di base dell'originale (la cella del carattere ha spazio sopra le lettere)
+		var tm [60]byte // TEXTMETRICW: tmHeight, tmAscent…
+		if r, _, _ := pGetTextMetrics.Call(hdc, uintptr(unsafe.Pointer(&tm[0]))); r != 0 {
+			asc := int32(binary.LittleEndian.Uint32(tm[4:]))
+			ty = int32(lineaDiBase(b)) - asc
+		}
+	}
 	fl := uintptr(dtWordBreak | dtNoPrefix | dtLeft)
-	rt := rect{tx, ty, x1 - 3, y1}
+	rt := rect{tx, ty, x1 - m, max(y1, ty+h+2)}
 	if b.Centro && righe > 1 {
-		rt, fl = rect{x0 + 3, ty, x1 - 3, y1}, dtWordBreak|dtNoPrefix|0x1 // DT_CENTER
+		rt, fl = rect{x0 + m, ty, x1 - m, y1}, dtWordBreak|dtNoPrefix|0x1 // DT_CENTER
 	}
 	if b.Ombra { // ombra morbida sotto le lettere, come nei menu dei giochi sopra le immagini
 		om := contrastante(b.Inchiostro)

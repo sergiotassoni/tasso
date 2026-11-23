@@ -196,7 +196,7 @@ func (t *Traduttore) traduciIn(ctx context.Context, grezzo string, dialogo bool,
 	}
 	if v, ok := t.libreria[chiave]; ok && !conParoleFisse {
 		t.mu.Unlock()
-		ris.Tradotto, ris.Motore = v, "libreria"
+		ris.Tradotto, ris.Motore = nomiIntatti(battuta, v), "libreria"
 		ris.Millisec = time.Since(inizio).Milliseconds()
 		ricorda(battuta)
 		return ris
@@ -206,7 +206,7 @@ func (t *Traduttore) traduciIn(ctx context.Context, grezzo string, dialogo bool,
 			t.libreria[chiave] = v
 		}
 		t.mu.Unlock()
-		ris.Tradotto, ris.Motore = v, "memoria"
+		ris.Tradotto, ris.Motore = nomiIntatti(battuta, v), "memoria"
 		ris.Millisec = time.Since(inizio).Milliseconds()
 		ricorda(battuta)
 		return ris
@@ -214,7 +214,7 @@ func (t *Traduttore) traduciIn(ctx context.Context, grezzo string, dialogo bool,
 	if !conParoleFisse {
 		if v, ok := t.cercaQuasiUguale(parlante, battuta); ok {
 			t.mu.Unlock()
-			ris.Tradotto, ris.Motore = v, "libreria"
+			ris.Tradotto, ris.Motore = nomiIntatti(battuta, v), "libreria"
 			ris.Millisec = time.Since(inizio).Milliseconds()
 			ricorda(battuta)
 			return ris

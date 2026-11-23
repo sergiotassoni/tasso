@@ -293,6 +293,7 @@ func preparaPagina(area Zona, img, primaImg *image.RGBA, giro int64) (p *paginaP
 	for i := range pronti { // dopo armonizza: le scritte centrate hanno bisogno di sfondo dai due lati
 		pronti[i].FondoX, _ = margineFondo(pronti[i])
 		pronti[i].Fondo = fondoRicostruito(img, pronti[i])
+		pronti[i].Marg = margineToppa(pronti[i], blocchi)
 	}
 	return &paginaPronta{area: area, img: img, pronti: pronti, nuove: nuove, t0: t0, tOCR: tOCR, tTrad: tTrad}, false
 }

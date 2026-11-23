@@ -67,6 +67,7 @@ var (
 	pDeleteObject      = gdi32.NewProc("DeleteObject")
 	pDeleteDC          = gdi32.NewProc("DeleteDC")
 	pCreateFont        = gdi32.NewProc("CreateFontW")
+	pGetTextMetrics    = gdi32.NewProc("GetTextMetricsW")
 	pCreateBrush       = gdi32.NewProc("CreateSolidBrush")
 	pSetBkMode         = gdi32.NewProc("SetBkMode")
 	pSetTextColor      = gdi32.NewProc("SetTextColor")
