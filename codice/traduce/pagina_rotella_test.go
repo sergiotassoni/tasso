@@ -94,3 +94,21 @@ func TestScenaCambiata(t *testing.T) {
 		t.Fatal("tutto cambiato: scena nuova")
 	}
 }
+
+func TestTieniFerme(t *testing.T) {
+	a := image.NewRGBA(image.Rect(0, 0, 100, 100))
+	vecchio := Blocco{Testo: "CARGO", Tradotto: "CARICO", X: 10, Y: 10, W: 40, H: 12, Em: 11, Img: a}
+	nuovo := Blocco{Testo: "CARGO", Tradotto: "CARICO", X: 11, Y: 9, W: 41, H: 13, Em: 12, Img: a}
+	altro := Blocco{Testo: "Used for:", Tradotto: "Utilizzato per:", X: 10, Y: 50, W: 40, H: 12, Img: a}
+	out := tieniFerme([]Blocco{nuovo, altro}, []Blocco{vecchio}, a)
+	if out[0].X != 10 || out[0].Em != 11 || out[1].Testo != "Used for:" {
+		t.Fatalf("la scritta ferma deve restare identica: %+v", out[0])
+	}
+	b := image.NewRGBA(a.Bounds())
+	for i := range b.Pix {
+		b.Pix[i] = 220
+	}
+	if out := tieniFerme([]Blocco{nuovo}, []Blocco{vecchio}, b); out[0].X != 11 {
+		t.Fatal("se l'inglese sotto è cambiato si usa la lettura nuova")
+	}
+}

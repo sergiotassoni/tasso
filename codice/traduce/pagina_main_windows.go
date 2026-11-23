@@ -390,6 +390,7 @@ func mostraPaginaPronta(p *paginaPronta, giro int64) bool {
 		}()
 	}
 	if paginaAttiva.Load() && paginaGiro.Load() == giro {
+		pronti = tieniFerme(pronti, blocchiPagina(), img)
 		MostraPagina(area, pronti)
 		if !paginaAttiva.Load() || paginaGiro.Load() != giro {
 			NascondiPagina() // spento proprio adesso: niente scritte rimaste sullo schermo

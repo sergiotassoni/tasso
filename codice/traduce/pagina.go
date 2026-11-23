@@ -1860,3 +1860,33 @@ func soloNome(s string) string {
 	}
 	return b.String()
 }
+
+// tieniFerme: le scritte che erano già tradotte e sotto cui l'inglese non è cambiato restano
+// IDENTICHE a prima (stessa posizione, grandezza, toppa). Ogni rilettura dà posizioni che
+// variano di 1-2 pixel: ridisegnandole a ogni passaggio del mouse le scritte "tremavano"
+// (Sergio, No Man's Sky, inventario, 24/11). Cambiano solo quelle davvero nuove.
+func tieniFerme(nuovi, vecchi []Blocco, img *image.RGBA) []Blocco {
+	if len(vecchi) == 0 || img == nil {
+		return nuovi
+	}
+	vicino := func(a, b, d int) bool { return a-b <= d && b-a <= d }
+	usato := make([]bool, len(vecchi))
+	out := make([]Blocco, len(nuovi))
+	copy(out, nuovi)
+	for i, n := range out {
+		for j, o := range vecchi {
+			if usato[j] || o.Testo != n.Testo || o.Tradotto != n.Tradotto || o.Img == nil || o.Img.Bounds() != img.Bounds() {
+				continue
+			}
+			if !vicino(o.X, n.X, 4) || !vicino(o.Y, n.Y, 4) || !vicino(o.W, n.W, 8) || !vicino(o.H, n.H, 4) {
+				continue
+			}
+			if zonaCambiata(o.Img, img, o) {
+				continue
+			}
+			out[i], usato[j] = o, true
+			break
+		}
+	}
+	return out
+}
