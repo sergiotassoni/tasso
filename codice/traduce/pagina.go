@@ -37,6 +37,7 @@ type Blocco struct {
 	Tradotto    string
 	Em          float64     // grandezza del carattere stimata dalle lettere (pixel)
 	LargMax     int         // spazio libero a destra prima della scritta vicina
+	AltMax      int         // spazio libero in basso (dalla Y) prima della scritta sotto
 	Fondo       *image.RGBA // sfondo ricostruito (sfumature del gioco), grande come il blocco +3 px per lato
 	Tratto      float64     // spessore medio delle lettere diviso la grandezza (grassetto se alto)
 	FondoX      int         // quanti pixel il Fondo parte a sinistra di X (di solito 3)
@@ -218,6 +219,17 @@ func spazioLibero(b []Blocco, larghezza int) {
 			}
 		}
 		b[i].LargMax = max(lim, b[i].W)
+		// in basso: fino alla scritta sotto che sta nella stessa colonna
+		giu := b[i].H * 3
+		for j := range b {
+			if i == j || b[j].Y <= b[i].Y {
+				continue
+			}
+			if b[j].X < b[i].X+max(b[i].W, b[i].LargMax) && b[i].X < b[j].X+b[j].W {
+				giu = min(giu, b[j].Y-b[i].Y-max(4, b[i].H/(2*max(1, b[i].Righe))))
+			}
+		}
+		b[i].AltMax = max(giu, b[i].H)
 	}
 }
 

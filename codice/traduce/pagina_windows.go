@@ -223,7 +223,8 @@ func disegnaBlocco(hdc uintptr, b Blocco, fase int) {
 			}
 		} else {
 			w, h = misuraTesto(hdc, font, b.Tradotto, larg, true)
-			if h <= int32(b.H)*115/100 || prova <= minPx {
+			// stessa grandezza del gioco finché c'è posto sotto (prima di rimpicciolire)
+			if h <= max(int32(b.H)*115/100, int32(b.AltMax)) || prova <= minPx {
 				break
 			}
 		}
