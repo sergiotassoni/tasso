@@ -20,7 +20,7 @@ var (
 	pGetSystemTimes = windows.NewLazySystemDLL("kernel32.dll").NewProc("GetSystemTimes")
 	cpuOccupata     atomic.Bool
 	cpuGioco        atomic.Int64 // carico del processore senza l'IA, in millesimi
-	profiloIA       atomic.Value // string: "", "meta", "scheda"
+	profiloIA       atomic.Value // string: "", "piccola", "meta", "scheda"
 	avvioSorveglia  sync.Once
 )
 
@@ -40,8 +40,10 @@ const (
 func rangoProfilo(n string) int {
 	switch n {
 	case "scheda":
-		return 2
+		return 3
 	case "meta":
+		return 2
+	case "piccola":
 		return 1
 	}
 	return 0
@@ -93,6 +95,7 @@ func sorvegliaIA() {
 	for {
 		voluto := ""
 		if acceso.Load() && iaPresente() && leggiImp().Motore != "mozilla" {
+			conScorta = scortaPresente()
 			g := controllaGPU()
 			attuale, _ := profiloIA.Load().(string)
 			if ia.Attivo() {
@@ -148,6 +151,8 @@ func memoriaProfilo(n string) float64 {
 	switch n {
 	case "scheda":
 		return vramIntero
+	case "piccola":
+		return vramPiccola
 	case "meta":
 		if n := int(stratiMeta.Load()); n > 0 {
 			return vramStrati(n)
@@ -170,7 +175,11 @@ func applicaProfiloIA(nome string, ram float64, core int) {
 			}
 		}
 		ia.impostaProfilo(p)
-		if err := ia.Avvia(dirMotoreIA(), fileModelloIA()); err != nil {
+		modello := fileModelloIA()
+		if nome == "piccola" {
+			modello = fileScortaIA()
+		}
+		if err := ia.Avvia(dirMotoreIA(), modello); err != nil {
 			falliteIA++
 			attesa := time.Duration(1<<min(falliteIA, 5)) * time.Minute // 2, 4, 8, 16, 32 minuti
 			prossimoTentativoIA = time.Now().Add(attesa)

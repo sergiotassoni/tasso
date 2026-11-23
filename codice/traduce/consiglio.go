@@ -50,6 +50,10 @@ func consiglioPC(g InfoGPU, ramGB float64, core int, iaDisponibile bool) Analisi
 		ia = RigaAnalisi{"Correttore IA", p.Motivo + " Mentre giochi si adatta da solo: se il gioco ha bisogno di memoria, si fa da parte.", "si"}
 		a.Consiglio = "Usa il traduttore veloce con il correttore IA: traduzioni più precise, senza rallentare il gioco."
 		a.Verdetto = "Il tuo PC va benissimo: traduzione veloce e precisa."
+	case "piccola":
+		ia = RigaAnalisi{"Correttore IA", p.Motivo + " Se c'è più memoria libera, passa da solo all'IA grande.", "si"}
+		a.Consiglio = "Usa il traduttore veloce con il correttore IA: traduzioni più precise, senza togliere memoria al gioco."
+		a.Verdetto = "Il tuo PC va bene: traduzione veloce e corretta dall'IA."
 	case "meta":
 		if limiteIA(g.MemoriaGB) < vramIntero && g.MemoriaGB >= vramIntero+margineGiocoGB {
 			// scheda grande: l'IA è divisa solo per lasciare al gioco due terzi della scheda

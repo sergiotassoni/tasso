@@ -82,7 +82,31 @@ func stratiPer(gb float64) int {
 // (Subnautica 2 al massimo 7 GB, Throne and Liberty 6 GB; Call of Duty 10 GB → l'IA si fa da parte).
 func limiteIA(memoriaGB float64) float64 { return memoriaGB * 0.44 }
 
+// IA di scorta (richiesta di Sergio 23/11 19:00): quando l'IA grande non ci sta tutta sulla scheda,
+// invece di dividerla (lenta) o spegnerla, Tasso usa un'IA piccola che ci sta tutta.
+// conScorta è vero solo se il modello piccolo è scaricato e verificato.
+var conScorta bool
+
+const (
+	vramPiccola     = 2.0 // EuroLLM-1.7B: da misurare sul PC di Sergio
+	ramMinimaScorta = 7.5
+)
+
 func sceltaCorrettore(g InfoGPU, ramGB float64, core int) ProfiloCorrettore {
+	p := sceltaGrande(g, ramGB, core)
+	if !conScorta || p.Nome == "scheda" {
+		return p
+	}
+	libera := g.MemoriaGB - g.UsataGB
+	if g.MemoriaGB > 0 && limiteIA(g.MemoriaGB) >= vramPiccola && libera >= vramPiccola+margineGiocoGB &&
+		ramGB >= ramMinimaScorta && core >= coreMinimiIA {
+		return ProfiloCorrettore{"piccola", -1, vramPiccola, fmt.Sprintf("%.1f GB liberi sulla scheda video: l'IA grande non ci sta tutta, uso l'IA piccola (circa %.0f GB), veloce.", libera, vramPiccola)}
+	}
+	return p
+}
+
+// sceltaGrande: solo l'IA grande (intera, divisa o spenta).
+func sceltaGrande(g InfoGPU, ramGB float64, core int) ProfiloCorrettore {
 	libera := g.MemoriaGB - g.UsataGB
 	if lim := limiteIA(g.MemoriaGB); g.MemoriaGB > 0 && lim < vramMeta && ramGB >= ramMinimaIA {
 		// scheda piccola (8 GB): anche metà IA supererebbe il limite. Il gioco prima di tutto

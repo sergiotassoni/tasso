@@ -24,6 +24,9 @@ func scaricaIA() {
 	muImp.Unlock()
 	salvaImp()
 	files := []FileDaScaricare{risorseIA.Motore, risorseIA.Modello}
+	if risorseIA.Scorta.URL != "" && risorseIA.Scorta.SHA256 != "" {
+		files = append(files, risorseIA.Scorta) // IA piccola per quando il gioco lascia poca memoria
+	}
 	err := scaricaTutti(context.Background(), dirIA(), files, func(f, t int64) {
 		emetti("avanzamento", map[string]interface{}{"cosa": "ia", "fatti": f, "totale": t})
 	})

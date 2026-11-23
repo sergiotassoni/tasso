@@ -20,6 +20,7 @@ import (
 type RisorseIA struct {
 	Motore  FileDaScaricare // zip ufficiale di llama.cpp (Vulkan, Windows x64)
 	Modello FileDaScaricare // file .gguf
+	Scorta  FileDaScaricare // IA piccola di scorta (vuota finché non è verificata)
 	Nome    string          // nome del modello mostrato all'utente
 	Licenza string
 }
@@ -54,6 +55,13 @@ func motoreIADisponibile() bool {
 }
 
 func dirMotoreIA() string   { return filepath.Join(dirIA(), "llama") }
+func fileScortaIA() string  { return filepath.Join(dirIA(), risorseIA.Scorta.Nome) }
+
+// scortaPresente: l'IA piccola di scorta è scaricata e verificata.
+func scortaPresente() bool {
+	r := risorseIA.Scorta
+	return r.URL != "" && r.SHA256 != "" && presente(dirIA(), r)
+}
 func fileModelloIA() string { return filepath.Join(dirIA(), risorseIA.Modello.Nome) }
 
 func iaPresente() bool {

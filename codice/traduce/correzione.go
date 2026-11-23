@@ -23,7 +23,7 @@ type correttoreSfondo struct {
 	motore   Motore // nil = spento
 	coda     chan lavoroCorrezione
 	inCoda   map[string]bool
-	viste    map[string]bool // frasi già ricontrollate dall'IA in questa sessione
+	viste    map[string]bool                       // frasi già ricontrollate dall'IA in questa sessione
 	inPausa  func() bool                           // vero quando il gioco ha bisogno del PC (processore pieno)
 	quando   func(inglese, bozza, corretta string) // avvisata quando una frase è stata migliorata
 	fatte    atomic.Int64

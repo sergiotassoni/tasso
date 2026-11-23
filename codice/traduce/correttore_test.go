@@ -104,3 +104,20 @@ func TestStratiSchedaDa12(t *testing.T) {
 		t.Errorf("gioco pesante: %+v", q)
 	}
 }
+
+func TestScorta(t *testing.T) {
+	conScorta = true
+	defer func() { conScorta = false }()
+	if p := sceltaCorrettore(InfoGPU{MemoriaGB: 12, UsataGB: 2}, 48, 16); p.Nome != "scheda" {
+		t.Errorf("c'è posto: IA grande, non %+v", p)
+	}
+	if p := sceltaCorrettore(InfoGPU{MemoriaGB: 12, UsataGB: 8}, 48, 16); p.Nome != "piccola" {
+		t.Errorf("gioco pesante: IA piccola, non %+v", p)
+	}
+	if p := sceltaCorrettore(InfoGPU{MemoriaGB: 8, UsataGB: 2}, 16, 8); p.Nome != "piccola" {
+		t.Errorf("scheda da 8: IA piccola, non %+v", p)
+	}
+	if p := sceltaCorrettore(InfoGPU{MemoriaGB: 12, UsataGB: 10}, 48, 16); p.Nome != "" {
+		t.Errorf("Call of Duty: solo Mozilla, non %+v", p)
+	}
+}
