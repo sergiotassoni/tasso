@@ -2918,7 +2918,7 @@ function paintOverlay(){
   $('#tgOverlay').classList.toggle('on', !!S.overlayOn);
   const pos = ['sx', 'dx', 'sxb', 'dxb'].indexOf(S.overlayPos) >= 0 ? S.overlayPos : 'dx';
   $$('#ovPos [data-pos]').forEach(b => { const on = b.dataset.pos === pos; b.classList.toggle('primary', on); b.classList.toggle('ghost', !on); b.setAttribute('aria-pressed', on ? 'true' : 'false'); });
-  const it = (S.overlayItems && S.overlayItems.length) ? S.overlayItems : OV_ALL;
+  let it = (S.overlayItems || []).filter(k => OV_ALL.indexOf(k) >= 0); if (!it.length) it = OV_ALL; // come Go: voci sconosciute = tutto
   $('#ovItems').innerHTML = OV_ITEMS.map(x => '<label class="check" style="font-size:13px"><input type="checkbox" data-ovi="' + x[0] + '"' + (it.indexOf(x[0]) >= 0 ? ' checked' : '') + '> ' + esc(x[1]) + '</label>').join('');
   $$('#ovItems [data-ovi]').forEach(c => { c.onchange = saveOvItems; });
   const pv = $('#ovPrev'); pv.className = 'ovprev ' + pos;

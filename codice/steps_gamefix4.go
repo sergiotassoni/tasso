@@ -52,13 +52,13 @@ var gameFixSteps4 = []Step{
 	{ID: "fix_game_save", Name: "Il gioco non salva i progressi", Desc: "Controlla le due cause più comuni: la protezione di Windows \"Accesso alle cartelle controllato\" che blocca il gioco, e OneDrive che sposta o tiene solo online la cartella Documenti dove i giochi salvano. Non cambia le protezioni: ti dice dove consentire il gioco.", Level: 0, Minutes: 0.2, Timeout: 2 * time.Minute, Script: ofs2(`
 $found = $false
 $cfa = $null; try { $cfa = (Get-MpPreference -ErrorAction Stop).EnableControlledFolderAccess } catch {}
-if ($cfa -eq 1 -or $cfa -eq 3) {
+if ($cfa -eq 1) {
   $found = $true
   Say 'Trovato: è accesa la protezione di Windows "Accesso alle cartelle controllato". Blocca i programmi che non conosce quando scrivono in Documenti, ed è proprio lì che molti giochi salvano.'
   Say 'Non la spengo: è una protezione contro i virus che rubano i file. Ti apro la pagina giusta: premi "Consenti un''app tramite Accesso alle cartelle controllato" > "Aggiungi un''app consentita" e scegli il gioco.'
   try { $ev = @(Get-WinEvent -FilterHashtable @{ LogName = 'Microsoft-Windows-Windows Defender/Operational'; Id = 1123 } -MaxEvents 5 -ErrorAction Stop); foreach ($e in $ev) { if ([string]$e.Message -match '([A-Za-z]:\\[^\r\n]+?\.exe)') { Say ('Bloccato di recente: ' + $Matches[1]) } } } catch {}
   Open-User 'windowsdefender://ransomwareprotection'
-} elseif ($cfa -eq 2 -or $cfa -eq 4) { Say 'La protezione "Accesso alle cartelle controllato" è in modo "solo controllo": non blocca i salvataggi.' }
+} elseif ($cfa -eq 2 -or $cfa -eq 3 -or $cfa -eq 4) { Say 'La protezione "Accesso alle cartelle controllato" è in modo "solo controllo": non blocca i salvataggi.' }
 else { Say 'La protezione "Accesso alle cartelle controllato" è spenta: non è lei a bloccare i salvataggi.' }
 $docs = [Environment]::GetFolderPath('MyDocuments')
 $od = @(Get-OneDriveRoots)
@@ -220,7 +220,7 @@ foreach ($l in $libs) {
     $f = 0
     foreach ($g in @(Get-ChildItem -LiteralPath $dl -Directory -ErrorAction SilentlyContinue)) {
       $recent = @(Get-ChildItem -LiteralPath $g.FullName -Recurse -File -Force -ErrorAction SilentlyContinue | Where-Object { $_.LastWriteTime -gt (Get-Date).AddDays(-3) } | Select-Object -First 1)
-      if (-not $recent.Count) { $sz = Get-FolderSize $g.FullName; try { Remove-Item -LiteralPath $g.FullName -Recurse -Force -ErrorAction Stop; $f += $sz } catch {} }
+      if (-not $recent.Count) { $sz = Get-FolderSize $g.FullName; Remove-Safe $g.FullName; if (-not (Test-Path -LiteralPath $g.FullName)) { $f += $sz } }
     }
     if ($f -gt 0) { Freed $f; Say ('Svuotati i download di Steam rimasti a metà e fermi da più di 3 giorni (' + (Fmt $f) + '). Steam li riscarica se li riprendi.') }
   }
@@ -236,8 +236,8 @@ foreach ($s in @('iphlpsvc', 'SSDPSRV', 'upnphost', 'XblAuthManager', 'XboxNetAp
   if ($sv -and $sv.StartType -eq 'Automatic' -and $sv.Status -ne 'Running') { try { Start-Service -Name $s -ErrorAction Stop; Say ('Riacceso il servizio ' + $sv.DisplayName + ', che doveva essere acceso.') } catch {} }
   elseif ($sv -and $sv.StartType -eq 'Disabled') { try { Set-Service -Name $s -StartupType Manual -ErrorAction Stop; Start-Service -Name $s -ErrorAction SilentlyContinue; Say ('Il servizio ' + $sv.DisplayName + ' era disattivato da un programma: ora parte quando serve. Per tornare indietro: in un prompt dei comandi da amministratore scrivi  sc config ' + $s + ' start= disabled') } catch {} }
 }
-$t = (netsh.exe interface teredo show state 2>$null | Out-String)
-if ($t -match 'Type\s*:\s*disabled|Tipo\s*:\s*disabilitat|Tipo\s*:\s*disattivat') {
+$td = ''; try { $td = [string](Get-NetTeredoConfiguration -ErrorAction Stop).Type } catch { $td = '' }
+if ($td -eq 'Disabled') {
   & netsh.exe interface teredo set state type=default 2>$null | Out-Null
   if ($LASTEXITCODE -eq 0) { Say 'Riattivato "Teredo", il pezzo di Windows che serve alla party chat e al multigiocatore Xbox (era disattivato). Per tornare indietro: netsh interface teredo set state disabled' } else { Say 'Teredo, il pezzo di Windows per la party chat Xbox, è disattivato e Windows non mi lascia riattivarlo (forse lo blocca un criterio del PC di lavoro).' }
 }
@@ -260,7 +260,7 @@ if ($usb.Count -eq 2 -and $usb[0] -ne 0) {
   if ($usb2.Count -eq 2 -and $usb2[0] -ne 0) { Say 'Non sono riuscito a spegnere il risparmio energetico delle porte USB: fallo da Pannello di controllo > Opzioni risparmio energia > Modifica impostazioni avanzate > Impostazioni USB.' } else {
   Say 'Fatto: con il caricatore attaccato Windows non spegne più le porte USB per risparmiare. Era la causa più comune di scatti nell''audio di cuffie USB. Per tornare indietro: Pannello di controllo > Opzioni risparmio energia > Modifica impostazioni avanzate > Impostazioni USB.' }
 } else { Say 'Il risparmio energetico delle porte USB è già spento (o non c''è su questo PC).' }
-$bt = @(Get-CimInstance Win32_PnPEntity -ErrorAction SilentlyContinue | Where-Object { $_.PNPClass -eq 'AudioEndpoint' -and $_.Name -match 'Hands-Free|Vivavoce|Headset|Auricolare' -and ([string]$_.PNPDeviceID -match 'BTHENUM|BTHHFENUM|BTHLE') -and $_.Status -eq 'OK' })
+$bt = @(Get-CimInstance Win32_PnPEntity -ErrorAction SilentlyContinue | Where-Object { [string]$_.PNPDeviceID -match '^BTHHFENUM\\|^BTHENUM\\\{0000111E' -and $_.Status -eq 'OK' })
 if ($bt.Count) { Say 'Hai cuffie Bluetooth: quando usi il loro microfono passano in modalità "chiamata" e l''audio diventa basso e gracchiante. Nel gioco o in Windows scegli come uscita le cuffie "Stereo" e usa un altro microfono, oppure usa cuffie con il loro ricevitore USB.' }
 $heavy = @(Get-Process -ErrorAction SilentlyContinue | Where-Object { $_.ProcessName -match '^(Nahimic3|NahimicSvc64|SonicStudio3|RtkAudUService64|DolbyAccess|SteelSeriesGG)$' } | ForEach-Object { $_.ProcessName } | Select-Object -Unique)
 if ($heavy.Count) { Say ('Sono aperti programmi che "migliorano" l''audio: ' + ($heavy -join ', ') + '. Se gracchia ancora, spegni i loro effetti (in particolare Nahimic è noto per dare scatti nei giochi).') }
