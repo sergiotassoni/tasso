@@ -14,7 +14,8 @@ import (
 type lavoroCorrezione struct {
 	chiave, battuta, bozza string
 	glossario              []voceTrovata
-	da, a                  string // coppia di lingue se non è inglese → italiano
+	schermata              []string // le altre scritte della schermata: l'IA capisce di cosa si parla
+	da, a                  string   // coppia di lingue se non è inglese → italiano
 }
 
 type correttoreSfondo struct {
@@ -22,6 +23,7 @@ type correttoreSfondo struct {
 	motore   Motore // nil = spento
 	coda     chan lavoroCorrezione
 	inCoda   map[string]bool
+	viste    map[string]bool // frasi già ricontrollate dall'IA in questa sessione
 	inPausa  func() bool                           // vero quando il gioco ha bisogno del PC (processore pieno)
 	quando   func(inglese, bozza, corretta string) // avvisata quando una frase è stata migliorata
 	fatte    atomic.Int64
@@ -39,6 +41,7 @@ func (t *Traduttore) ImpostaCorrettore(m Motore, inPausa func() bool) {
 	if c.coda == nil {
 		c.coda = make(chan lavoroCorrezione, maxCodaCorrezioni)
 		c.inCoda = map[string]bool{}
+		c.viste = map[string]bool{}
 	}
 	c.mu.Unlock()
 	if m != nil {
@@ -74,15 +77,15 @@ func (t *Traduttore) accodaCorrezioneCoppia(chiave, testo, bozza, da, a string) 
 // (acceso solo se la prova sulle frasi FLORES dice che migliora).
 var CorrettoreCoppiaAttivo = true
 
-func (t *Traduttore) accodaCorrezione(chiave, battuta, bozza string, g []voceTrovata) {
+func (t *Traduttore) accodaCorrezione(chiave, battuta, bozza string, g []voceTrovata, schermata []string) {
 	c := &t.corr
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	if c.motore == nil || c.coda == nil || c.inCoda[chiave] {
+	if c.motore == nil || c.coda == nil || c.inCoda[chiave] || c.viste[chiave] {
 		return
 	}
 	select {
-	case c.coda <- lavoroCorrezione{chiave: chiave, battuta: battuta, bozza: bozza, glossario: g}:
+	case c.coda <- lavoroCorrezione{chiave: chiave, battuta: battuta, bozza: bozza, glossario: g, schermata: schermata}:
 		c.inCoda[chiave] = true
 	default:
 	}
@@ -101,6 +104,7 @@ func (t *Traduttore) unaCorrezione(l lavoroCorrezione) {
 		_ = recover()
 		t.corr.mu.Lock()
 		delete(t.corr.inCoda, l.chiave)
+		t.corr.viste[l.chiave] = true
 		t.corr.mu.Unlock()
 	}()
 	for {
@@ -123,7 +127,7 @@ func (t *Traduttore) correggiUna(m Motore, l lavoroCorrezione) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 	defer t.corr.fatte.Add(1)
-	corr, err := m.Traduci(ctx, RichiestaTraduzione{Testo: l.battuta, Glossario: l.glossario, Bozza: l.bozza, Da: l.da, A: l.a})
+	corr, err := m.Traduci(ctx, RichiestaTraduzione{Testo: l.battuta, Glossario: l.glossario, Schermata: l.schermata, Bozza: l.bozza, Da: l.da, A: l.a})
 	if err != nil {
 		return
 	}

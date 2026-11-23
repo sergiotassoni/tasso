@@ -44,3 +44,10 @@ func TestSchermataNelPrompt(t *testing.T) {
 		t.Fatal("nei dialoghi niente schermata")
 	}
 }
+
+func TestSchermataNellaCorrezione(t *testing.T) {
+	m := costruisciMessaggi(RichiestaTraduzione{Testo: "Steam Discussions", Bozza: "Discussioni a vapore", Schermata: []string{"Bug Report", "Steam Discussions"}})
+	if !strings.Contains(m[1].Content, "Bug Report") {
+		t.Error("la correzione deve vedere la schermata")
+	}
+}

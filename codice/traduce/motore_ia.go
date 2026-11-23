@@ -94,6 +94,13 @@ func costruisciMessaggi(r RichiestaTraduzione) []messaggio {
 
 func costruisciCorrezione(r RichiestaTraduzione) []messaggio {
 	var b strings.Builder
+	if len(r.Schermata) > 0 {
+		b.WriteString("Scritte che si vedono sulla stessa schermata del gioco (solo per capire di cosa si parla, NON tradurle):\n")
+		for _, c := range r.Schermata {
+			b.WriteString("- " + c + "\n")
+		}
+		b.WriteString("\n")
+	}
 	if len(r.Glossario) > 0 {
 		b.WriteString("Glossario da rispettare:\n")
 		for _, v := range r.Glossario {

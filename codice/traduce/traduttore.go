@@ -195,18 +195,24 @@ func (t *Traduttore) traduciIn(ctx context.Context, grezzo string, dialogo bool,
 		}
 	}
 	if v, ok := t.libreria[chiave]; ok && !conParoleFisse {
+		v = t.giaSalvataLocked(chiave, battuta, v)
 		t.mu.Unlock()
-		ris.Tradotto, ris.Motore = nomiIntatti(battuta, v), "libreria"
+		t.ricontrolla(ctx, chiave, battuta, v, dialogo)
+		ris.Tradotto, ris.Motore = v, "libreria"
 		ris.Millisec = time.Since(inizio).Milliseconds()
 		ricorda(battuta)
 		return ris
 	}
 	if v, ok := t.cache[chiave]; ok {
+		v = t.giaSalvataLocked(chiave, battuta, v)
 		if t.libreria != nil {
 			t.libreria[chiave] = v
 		}
 		t.mu.Unlock()
-		ris.Tradotto, ris.Motore = nomiIntatti(battuta, v), "memoria"
+		if !conParoleFisse {
+			t.ricontrolla(ctx, chiave, battuta, v, dialogo)
+		}
+		ris.Tradotto, ris.Motore = v, "memoria"
 		ris.Millisec = time.Since(inizio).Milliseconds()
 		ricorda(battuta)
 		return ris
@@ -274,7 +280,7 @@ func (t *Traduttore) traduciIn(ctx context.Context, grezzo string, dialogo bool,
 	}
 	t.mu.Unlock()
 	if ris.Motore == "Mozilla" {
-		t.accodaCorrezione(chiave, battuta, ris.Tradotto, req.Glossario)
+		t.accodaCorrezione(chiave, battuta, ris.Tradotto, req.Glossario, req.Schermata)
 	}
 	ricorda(battuta)
 	if dialogo {
@@ -426,6 +432,33 @@ func schermataDa(ctx context.Context, dialogo bool) []string {
 	}
 	l, _ := ctx.Value(chiaveSchermata{}).([]string)
 	return l
+}
+
+// giaSalvataLocked: la frase salvata con i nomi fissi rimessi a posto; se cambia, la salva così
+// (la correzione dell'IA confronta la bozza con quello che è salvato). Da chiamare con t.mu preso.
+func (t *Traduttore) giaSalvataLocked(chiave, battuta, v string) string {
+	n := nomiIntatti(battuta, v)
+	if n != v {
+		if _, ok := t.cache[chiave]; ok {
+			t.cache[chiave] = n
+		}
+		if t.libreria != nil {
+			if _, ok := t.libreria[chiave]; ok {
+				t.libreria[chiave] = n
+			}
+		}
+	}
+	return n
+}
+
+// ricontrolla: le frasi già salvate (anche da sessioni vecchie, magari solo con Mozilla) vengono
+// ricontrollate dall'IA una volta per sessione, con le altre scritte della schermata come aiuto.
+// Se l'IA trova di meglio, la scritta sullo schermo cambia subito (QuandoCorretta).
+func (t *Traduttore) ricontrolla(ctx context.Context, chiave, battuta, v string, dialogo bool) {
+	t.mu.Lock()
+	g := t.glossarioPieno.trova(battuta)
+	t.mu.Unlock()
+	t.accodaCorrezione(chiave, battuta, v, g, schermataDa(ctx, dialogo))
 }
 
 func contestoSe(si bool, c []string) []string {
