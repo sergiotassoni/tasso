@@ -230,7 +230,7 @@ C 'Controllo le impostazioni per i giochi…'
 try {
   if ((Get-RegValue 'HKCU\Control Panel\Desktop' 'ForegroundLockTimeout') -eq 0) { F 'fix_game_minimize' 'p' 'Un programma ha tolto la protezione che impedisce alle finestre di "rubare" il gioco: può ridursi a icona da solo.' }
   if ([string](Get-RegValue 'HKCU\Control Panel\Mouse' 'MouseSpeed') -eq '1') { F 'fix_game_mouse' 'c' 'L''accelerazione del mouse è accesa: la mira nei giochi è meno precisa.' }
-  if ((Get-RegValue 'HKCU\Software\Microsoft\Windows\CurrentVersion\GameDVR' 'HistoricalCaptureEnabled') -eq 1) { F 'fix_game_lag' 'c' 'La registrazione in background di Xbox è accesa: toglie qualche FPS.' }
+  if ((Get-RegValue 'HKCU\Software\Microsoft\Windows\CurrentVersion\GameDVR' 'HistoricalCaptureEnabled') -eq 1) { F 'fix_game_overlays' 'c' 'La registrazione in background di Xbox è accesa: toglie qualche FPS.' }
   $st = [string](Get-RegValue 'HKCU\Software\Valve\Steam' 'SteamPath')
   if ($st) { $cfg = Join-Path ($st -replace '/', '\') 'config\config.vdf'; if ((Get-Content -LiteralPath $cfg -Raw -ErrorAction SilentlyContinue) -match '"DownloadThrottleKbps"\s+"([1-9]\d*)"') { F 'fix_game_download' 'c' 'Steam ha un limite alla velocità dei download.' } }
 } catch {}

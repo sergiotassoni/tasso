@@ -2657,7 +2657,20 @@
   "Il disco ": "Disk ",
   "Riavviati ": "Restarted ",
   "È aperto ": "Open: ",
-  ": va bene.": ": fine."
+  ": va bene.": ": fine.",
+  "): va a ": "): runs at ",
+  " Hz ma può andare a ": " Hz but can go up to ",
+  " Hz. Ti apro le impostazioni: in \"Scegli una frequenza di aggiornamento\" metti ": " Hz. I'm opening the settings: in \"Choose a refresh rate\" pick ",
+  " Hz. Se lo schermo diventa nero non toccare niente: Windows torna com'era da solo dopo 15 secondi.": " Hz. If the screen goes black don't touch anything: Windows goes back by itself after 15 seconds.",
+  ", che doveva essere acceso.": ", which should have been running.",
+  " era disattivato da un programma: ora parte quando serve. Per tornare indietro: in un prompt dei comandi da amministratore scrivi  sc config ": " had been disabled by a program: now it starts when needed. To undo: in an administrator command prompt type  sc config ",
+  "Riattivato \"Teredo\", il pezzo di Windows che serve alla party chat e al multigiocatore Xbox (era disattivato). Per tornare indietro: netsh interface teredo set state disabled": "Re-enabled \"Teredo\", the part of Windows needed for Xbox party chat and multiplayer (it was disabled). To undo: netsh interface teredo set state disabled",
+  "Teredo, il pezzo di Windows per la party chat Xbox, è disattivato e Windows non mi lascia riattivarlo (forse lo blocca un criterio del PC di lavoro).": "Teredo, the part of Windows for Xbox party chat, is disabled and Windows won't let me turn it back on (maybe a work PC policy blocks it).",
+  "Svuotati i download di Steam rimasti a metà e fermi da più di 3 giorni (": "Cleared Steam downloads left halfway and idle for more than 3 days (",
+  "). Steam li riscarica se li riprendi.": "). Steam downloads them again if you resume them.",
+  "Non sono riuscito a spegnere il risparmio energetico delle porte USB: fallo da Pannello di controllo > Opzioni risparmio energia > Modifica impostazioni avanzate > Impostazioni USB.": "I couldn't turn off USB port power saving: do it from Control Panel > Power Options > Change advanced settings > USB settings.",
+  "Sensore di temperatura della scheda madre: ": "Motherboard temperature sensor: ",
+  "°C. Su molti PC non è il processore: per la temperatura vera del processore apri LibreHardwareMonitor e rifai il controllo.": "°C. On many PCs this isn't the processor: for the real processor temperature open LibreHardwareMonitor and run the check again."
  },
  "ui": {
   " (consuma di più).": " mode (uses more power).",

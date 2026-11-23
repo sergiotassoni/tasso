@@ -18,9 +18,9 @@ foreach ($smi in @((Join-Path $env:SystemRoot 'System32\nvidia-smi.exe'), (Join-
 
 // cpuTempPS: temperatura del processore (stesso metodo del pannellino), in $ct.
 const cpuTempPS = `
-$ct = $null
+$ct = $null; $ctAcpi = $false
 try { $s = Get-CimInstance -Namespace root/LibreHardwareMonitor -ClassName Sensor -ErrorAction Stop | Where-Object { $_.SensorType -eq 'Temperature' -and ($_.Name -match 'CPU Package|Core \(Tctl|Tctl|Tdie|CPU Total') } | Select-Object -First 1; if ($s) { $ct = [double]$s.Value } } catch {}
-if (-not $ct) { try { $z = Get-CimInstance -Namespace root/wmi -ClassName MSAcpi_ThermalZoneTemperature -ErrorAction Stop | Sort-Object -Property CurrentTemperature -Descending | Select-Object -First 1; if ($z) { $c = ([double]$z.CurrentTemperature / 10) - 273.15; if ($c -gt 28 -or $c -lt 27) { $ct = $c } } } catch {} }
+if (-not $ct) { try { $z = Get-CimInstance -Namespace root/wmi -ClassName MSAcpi_ThermalZoneTemperature -ErrorAction Stop | Sort-Object -Property CurrentTemperature -Descending | Select-Object -First 1; if ($z) { $c = ([double]$z.CurrentTemperature / 10) - 273.15; if ($c -gt 28 -or $c -lt 27) { $ct = $c; $ctAcpi = $true } } } catch {} }
 if ($ct -and ($ct -lt 15 -or $ct -gt 115)) { $ct = $null }
 `
 
@@ -52,13 +52,13 @@ var gameFixSteps4 = []Step{
 	{ID: "fix_game_save", Name: "Il gioco non salva i progressi", Desc: "Controlla le due cause più comuni: la protezione di Windows \"Accesso alle cartelle controllato\" che blocca il gioco, e OneDrive che sposta o tiene solo online la cartella Documenti dove i giochi salvano. Non cambia le protezioni: ti dice dove consentire il gioco.", Level: 0, Minutes: 0.2, Timeout: 2 * time.Minute, Script: ofs2(`
 $found = $false
 $cfa = $null; try { $cfa = (Get-MpPreference -ErrorAction Stop).EnableControlledFolderAccess } catch {}
-if ($cfa -eq 1) {
+if ($cfa -eq 1 -or $cfa -eq 3) {
   $found = $true
   Say 'Trovato: è accesa la protezione di Windows "Accesso alle cartelle controllato". Blocca i programmi che non conosce quando scrivono in Documenti, ed è proprio lì che molti giochi salvano.'
   Say 'Non la spengo: è una protezione contro i virus che rubano i file. Ti apro la pagina giusta: premi "Consenti un''app tramite Accesso alle cartelle controllato" > "Aggiungi un''app consentita" e scegli il gioco.'
   try { $ev = @(Get-WinEvent -FilterHashtable @{ LogName = 'Microsoft-Windows-Windows Defender/Operational'; Id = 1123 } -MaxEvents 5 -ErrorAction Stop); foreach ($e in $ev) { if ([string]$e.Message -match '([A-Za-z]:\\[^\r\n]+?\.exe)') { Say ('Bloccato di recente: ' + $Matches[1]) } } } catch {}
   Open-User 'windowsdefender://ransomwareprotection'
-} elseif ($cfa -eq 2) { Say 'La protezione "Accesso alle cartelle controllato" è in modo "solo controllo": non blocca i salvataggi.' }
+} elseif ($cfa -eq 2 -or $cfa -eq 4) { Say 'La protezione "Accesso alle cartelle controllato" è in modo "solo controllo": non blocca i salvataggi.' }
 else { Say 'La protezione "Accesso alle cartelle controllato" è spenta: non è lei a bloccare i salvataggi.' }
 $docs = [Environment]::GetFolderPath('MyDocuments')
 $od = @(Get-OneDriveRoots)
@@ -82,7 +82,7 @@ if (-not $found) { Say 'Non vedo blocchi da parte di Windows. Altre cause: il gi
 $since = (Get-Date).AddDays(-14)
 $tdr = @(); try { $tdr = @(Get-WinEvent -FilterHashtable @{ LogName = 'System'; Id = 4101; StartTime = $since } -ErrorAction Stop) } catch {}
 $lkd = @(); try { $lkd = @(Get-ChildItem -LiteralPath (Join-Path $env:SystemRoot 'LiveKernelReports\WATCHDOG') -Filter *.dmp -ErrorAction Stop | Where-Object { $_.LastWriteTime -gt $since }) } catch {}
-if ($tdr.Count -or $lkd.Count) { Say ('Negli ultimi 14 giorni il driver della scheda video si è bloccato e ripreso ' + ($tdr.Count + $lkd.Count) + ' volte. È la causa dell''errore del gioco.') }
+if ($tdr.Count -or $lkd.Count) { Say ('Negli ultimi 14 giorni il driver della scheda video si è bloccato e ripreso ' + [math]::Max($tdr.Count, $lkd.Count) + ' volte. È la causa dell''errore del gioco.') }
 else { Say 'Negli ultimi 14 giorni Windows non ha registrato blocchi del driver video: l''errore viene probabilmente dal gioco stesso (prova "Verifica integrità dei file" in Steam o "Ripara" in Epic).' }
 $v = @(Get-CimInstance Win32_VideoController -ErrorAction SilentlyContinue | Where-Object { $_.Name -notmatch 'Basic Display|Microsoft Remote|Virtual|Parsec|Meta' })
 foreach ($g in $v) {
@@ -97,7 +97,8 @@ Say 'Cosa fare, in ordine: 1) aggiorna il driver video dalla pagina Driver di Ta
 `)},
 	{ID: "fix_game_heat", Name: "Il PC si scalda troppo quando gioco", Desc: "Legge le temperature di processore e scheda video, controlla se il PC sta già rallentando per il caldo e ti dice cosa fare. Non tocca le ventole.", Level: 0, Minutes: 0.2, Timeout: 2 * time.Minute, Script: ofs2(cpuTempPS + gpuTempPS + `
 $any = $false
-if ($ct) { $any = $true; $r = [math]::Round($ct); if ($r -ge 90) { Say ('Processore: ' + $r + '°C adesso. Troppo caldo: oltre 90°C rallenta da solo per proteggersi.') } elseif ($r -ge 75) { Say ('Processore: ' + $r + '°C adesso. Caldo, ma è normale se stai giocando; a PC fermo dovrebbe stare sotto i 60°C.') } else { Say ('Processore: ' + $r + '°C adesso: va bene.') } }
+if ($ct -and $ctAcpi) { $any = $true; Say ('Sensore di temperatura della scheda madre: ' + [math]::Round($ct) + '°C. Su molti PC non è il processore: per la temperatura vera del processore apri LibreHardwareMonitor e rifai il controllo.') }
+elseif ($ct) { $any = $true; $r = [math]::Round($ct); if ($r -ge 90) { Say ('Processore: ' + $r + '°C adesso. Troppo caldo: oltre 90°C rallenta da solo per proteggersi.') } elseif ($r -ge 75) { Say ('Processore: ' + $r + '°C adesso. Caldo, ma è normale se stai giocando; a PC fermo dovrebbe stare sotto i 60°C.') } else { Say ('Processore: ' + $r + '°C adesso: va bene.') } }
 if ($gt) { $any = $true; if ($gt -ge 87) { Say ('Scheda video: ' + $gt + '°C adesso. Troppo calda: oltre 85-90°C rallenta.') } elseif ($gt -ge 75) { Say ('Scheda video: ' + $gt + '°C adesso. Calda, normale mentre giochi.') } else { Say ('Scheda video: ' + $gt + '°C adesso: va bene.') } }
 if (-not $any) { Say 'Su questo PC Windows non mi dà le temperature. Per vederle, prova la pagina Hardware di Tasso mentre giochi.' }
 try { $thr = @(Get-WinEvent -FilterHashtable @{ LogName = 'System'; ProviderName = 'Microsoft-Windows-Kernel-Processor-Power'; Id = 37; StartTime = (Get-Date).AddDays(-7) } -ErrorAction Stop); if ($thr.Count) { Say ('Negli ultimi 7 giorni il processore è stato rallentato dal sistema ' + $thr.Count + ' volte (di solito per il caldo o per il caricatore).') } } catch {}
@@ -147,14 +148,10 @@ public static class TassoHz {
       for (int m = 0; m < 2000; m++) {
         DEVMODE x = new DEVMODE(); x.dmSize = (short)Marshal.SizeOf(x);
         if (!EnumDisplaySettings(d.DeviceName, m, ref x)) break;
-        if (x.dmPelsWidth == cur.dmPelsWidth && x.dmPelsHeight == cur.dmPelsHeight && x.dmBitsPerPel == cur.dmBitsPerPel && x.dmDisplayFrequency > best && x.dmDisplayFrequency < 1000) best = x.dmDisplayFrequency;
+        if (x.dmPelsWidth == cur.dmPelsWidth && x.dmPelsHeight == cur.dmPelsHeight && x.dmBitsPerPel == cur.dmBitsPerPel && (x.dmDisplayFlags & 2) == 0 && x.dmDisplayFrequency > best && x.dmDisplayFrequency < 500) best = x.dmDisplayFrequency;
       }
       string res = "ok";
-      if (best > cur.dmDisplayFrequency) {
-        int was = cur.dmDisplayFrequency;
-        cur.dmDisplayFrequency = best; cur.dmFields = 0x400000;
-        if (ChangeDisplaySettingsEx(d.DeviceName, ref cur, IntPtr.Zero, 2, IntPtr.Zero) == 0 && ChangeDisplaySettingsEx(d.DeviceName, ref cur, IntPtr.Zero, 1, IntPtr.Zero) == 0) res = "alzato:" + was; else { res = "errore"; cur.dmDisplayFrequency = was; }
-      }
+      if (best > cur.dmDisplayFrequency) res = "puo";
       outp += n + "|" + cur.dmPelsWidth + " x " + cur.dmPelsHeight + "|" + cur.dmDisplayFrequency + "|" + best + "|" + res + "\n";
     }
     return outp;
@@ -164,20 +161,20 @@ public static class TassoHz {
 } catch { Say 'Non riesco a leggere gli schermi: ti apro le impostazioni. Schermo > Schermo avanzato > "Scegli una frequenza di aggiornamento" e metti il numero più alto.'; Open-User 'ms-settings:display-advanced'; return }
 $rows = @(([TassoHz]::Fix()) -split "\n" | Where-Object { $_ })
 if (-not $rows.Count) { Say 'Non trovo schermi accesi da controllare.'; return }
-$sixty = $false
+$sixty = $false; $up = $false
 foreach ($r in $rows) {
   $p = $r -split '\|'
-  if ($p[4] -like 'alzato:*') { Say ('Schermo ' + $p[0] + ' (' + $p[1] + '): andava a ' + ($p[4] -replace 'alzato:', '') + ' Hz, ora va a ' + $p[2] + ' Hz, il massimo che supporta. Lo vedi subito: il mouse è più fluido.') }
-  elseif ($p[4] -eq 'errore') { Say ('Schermo ' + $p[0] + ' (' + $p[1] + '): può andare a ' + $p[3] + ' Hz ma Windows non mi ha lasciato cambiarlo. Fallo da Impostazioni > Schermo > Schermo avanzato.'); Open-User 'ms-settings:display-advanced' }
+  if ($p[4] -eq 'puo') { $up = $true; Say ('Schermo ' + $p[0] + ' (' + $p[1] + '): va a ' + $p[2] + ' Hz ma può andare a ' + $p[3] + ' Hz. Ti apro le impostazioni: in "Scegli una frequenza di aggiornamento" metti ' + $p[3] + ' Hz. Se lo schermo diventa nero non toccare niente: Windows torna com''era da solo dopo 15 secondi.') }
   else { Say ('Schermo ' + $p[0] + ' (' + $p[1] + '): va già a ' + $p[2] + ' Hz, il massimo che Windows vede.'); if ([int]$p[3] -le 60) { $sixty = $true } }
 }
+if ($up) { Open-User 'ms-settings:display-advanced' }
 if ($sixty) { Say 'Se il tuo schermo è da 120, 144 Hz o più e qui vedi solo 60: 1) usa il cavo DisplayPort, o un HDMI 2.0 o più recente (quelli vecchi arrivano a 60 Hz); 2) collegalo alla scheda video, non alla presa della scheda madre; 3) aggiorna il driver video; 4) nel menu dello schermo controlla che sia attiva la modalità ad alta frequenza.' }
 Say 'Nei giochi controlla anche che nelle opzioni video la frequenza sia la più alta (alcuni giochi la tengono a 60).'
 `)},
 	{ID: "fix_game_gpuswitch", Name: "Il portatile usa la scheda video sbagliata", Desc: "Sui portatili con due schede video (Intel o AMD integrata più NVIDIA o AMD dedicata) controlla quale usano i giochi, se lo schermo è collegato a quella giusta e se il PC risparmia energia. Ti dice come fissare la scheda potente per ogni gioco.", Level: 0, Minutes: 0.1, Timeout: time.Minute, Script: ofs2(`
 $v = @(Get-CimInstance Win32_VideoController -ErrorAction SilentlyContinue | Where-Object { $_.Name -notmatch 'Basic Display|Microsoft Remote|Virtual|Parsec|Meta' })
-$dedicated = @($v | Where-Object { $_.Name -match 'NVIDIA|GeForce|RTX|GTX|Radeon RX|Radeon Pro|Arc A|Arc B' })
-$integrated = @($v | Where-Object { $_.Name -match 'Intel\(R\) (UHD|HD|Iris)|Intel.*Graphics|Radeon\(TM\) Graphics|Radeon Graphics|Radeon Vega' -and $_.Name -notmatch 'Arc A|Arc B' })
+$dedicated = @($v | Where-Object { $_.Name -match 'NVIDIA|GeForce|RTX|GTX|Radeon RX|Radeon Pro|Arc(\(TM\))? [AB]\d' })
+$integrated = @($v | Where-Object { $_.Name -match 'Intel\(R\) (UHD|HD|Iris)|Intel.*Graphics|Radeon\(TM\) Graphics|Radeon Graphics|Radeon Vega' -and $_.Name -notmatch 'Arc(\(TM\))? [AB]\d' })
 foreach ($g in $v) { Say ('Scheda video trovata: ' + $g.Name + $(if ($g.Status -ne 'OK') { ' (stato: ' + $g.Status + ')' } else { '' })) }
 if (-not $dedicated.Count) { Say 'Non trovo una scheda video dedicata (NVIDIA o AMD). Se il portatile ne ha una, forse è spenta o senza driver: aggiorna i driver dalla pagina Driver di Tasso o dal sito del produttore.'; return }
 if (-not $integrated.Count) { Say 'C''è solo la scheda video potente: i giochi usano già quella.'; return }
@@ -213,10 +210,19 @@ foreach ($d in @(Get-PSDrive -PSProvider FileSystem -ErrorAction SilentlyContinu
 $big = @()
 foreach ($l in $libs) {
   $common = Join-Path $l 'steamapps\common'
-  foreach ($g in @(Get-ChildItem -LiteralPath $common -Directory -ErrorAction SilentlyContinue)) { $big += [pscustomobject]@{ N = $g.Name; S = (Get-FolderSize $g.FullName) } }
+  foreach ($m in @(Get-ChildItem -LiteralPath (Join-Path $l 'steamapps') -Filter 'appmanifest_*.acf' -File -ErrorAction SilentlyContinue)) {
+    $txt = Get-Content -LiteralPath $m.FullName -Raw -ErrorAction SilentlyContinue
+    if ($txt -match '"name"\s+"([^"]+)"') { $nm = $Matches[1]; $sz = 0; if ($txt -match '"SizeOnDisk"\s+"(\d+)"') { $sz = [double]$Matches[1] }; if ($sz -gt 0) { $big += [pscustomobject]@{ N = $nm; S = $sz } } }
+  }
   $dl = Join-Path $l 'steamapps\downloading'
   if ((Test-Path -LiteralPath $dl) -and -not (Get-Process -Name steam -ErrorAction SilentlyContinue)) {
-    $f = Clear-Folder $dl 72; if ($f -gt 0) { Freed $f; Say ('Svuotati i resti di download di Steam fermi da più di 3 giorni (' + (Fmt $f) + ').') }
+    # solo download interi fermi da più di 3 giorni (tutta la cartella del gioco), mai un pezzo
+    $f = 0
+    foreach ($g in @(Get-ChildItem -LiteralPath $dl -Directory -ErrorAction SilentlyContinue)) {
+      $recent = @(Get-ChildItem -LiteralPath $g.FullName -Recurse -File -Force -ErrorAction SilentlyContinue | Where-Object { $_.LastWriteTime -gt (Get-Date).AddDays(-3) } | Select-Object -First 1)
+      if (-not $recent.Count) { $sz = Get-FolderSize $g.FullName; try { Remove-Item -LiteralPath $g.FullName -Recurse -Force -ErrorAction Stop; $f += $sz } catch {} }
+    }
+    if ($f -gt 0) { Freed $f; Say ('Svuotati i download di Steam rimasti a metà e fermi da più di 3 giorni (' + (Fmt $f) + '). Steam li riscarica se li riprendi.') }
   }
 }
 $big = @($big | Sort-Object S -Descending | Select-Object -First 5)
@@ -227,11 +233,14 @@ Say 'Se hai un secondo disco con spazio, installa lì il gioco: in Steam scegli 
 	{ID: "fix_game_nat", Name: "Chat vocale o partite con amici non funzionano (NAT)", Desc: "Per \"NAT rigido o moderato\", party chat di Xbox che non si collega o amici che non riescono a entrare: rimette a posto i servizi di rete che servono ai giochi, controlla la rete e il microfono, e ti dice cosa fare sul router.", Level: 0, Minutes: 0.4, Timeout: 3 * time.Minute, Script: ofs2(`
 foreach ($s in @('iphlpsvc', 'SSDPSRV', 'upnphost', 'XblAuthManager', 'XboxNetApiSvc')) {
   $sv = Get-Service -Name $s -ErrorAction SilentlyContinue
-  if ($sv -and $sv.StartType -ne 'Disabled' -and $sv.Status -ne 'Running') { try { Start-Service -Name $s -ErrorAction Stop; Say ('Riacceso il servizio ' + $sv.DisplayName + '.') } catch {} }
-  elseif ($sv -and $sv.StartType -eq 'Disabled') { try { Set-Service -Name $s -StartupType Manual -ErrorAction Stop; Start-Service -Name $s -ErrorAction SilentlyContinue; Say ('Il servizio ' + $sv.DisplayName + ' era spento da un programma: rimesso come di fabbrica (avvio quando serve).') } catch {} }
+  if ($sv -and $sv.StartType -eq 'Automatic' -and $sv.Status -ne 'Running') { try { Start-Service -Name $s -ErrorAction Stop; Say ('Riacceso il servizio ' + $sv.DisplayName + ', che doveva essere acceso.') } catch {} }
+  elseif ($sv -and $sv.StartType -eq 'Disabled') { try { Set-Service -Name $s -StartupType Manual -ErrorAction Stop; Start-Service -Name $s -ErrorAction SilentlyContinue; Say ('Il servizio ' + $sv.DisplayName + ' era disattivato da un programma: ora parte quando serve. Per tornare indietro: in un prompt dei comandi da amministratore scrivi  sc config ' + $s + ' start= disabled') } catch {} }
 }
 $t = (netsh.exe interface teredo show state 2>$null | Out-String)
-if ($t -match 'offline|disabled|disattivat') { [void](Run-Hidden 'netsh.exe' 'interface teredo set state type=default'); Say 'Rimesso come di fabbrica "Teredo", il pezzo di Windows che serve alla party chat e al multigiocatore Xbox.' }
+if ($t -match 'Type\s*:\s*disabled|Tipo\s*:\s*disabilitat|Tipo\s*:\s*disattivat') {
+  & netsh.exe interface teredo set state type=default 2>$null | Out-Null
+  if ($LASTEXITCODE -eq 0) { Say 'Riattivato "Teredo", il pezzo di Windows che serve alla party chat e al multigiocatore Xbox (era disattivato). Per tornare indietro: netsh interface teredo set state disabled' } else { Say 'Teredo, il pezzo di Windows per la party chat Xbox, è disattivato e Windows non mi lascia riattivarlo (forse lo blocca un criterio del PC di lavoro).' }
+}
 $pub = @(Get-NetConnectionProfile -ErrorAction SilentlyContinue | Where-Object { $_.NetworkCategory -eq 'Public' -and $_.IPv4Connectivity -eq 'Internet' })
 foreach ($p in $pub) { Say ('La rete "' + $p.Name + '" è segnata come Pubblica: per la rete di casa scegli "Privata" in Impostazioni > Rete e Internet > ' + $p.Name + '. Aiuta giochi e chat a collegarsi tra amici.') }
 $m = Get-Privacy 'microphone'
@@ -247,9 +256,11 @@ $usb = Get-PowerValue '2a737441-1930-4402-8d77-b2bebba308a3' '48e6b7a6-50f5-4782
 if ($usb.Count -eq 2 -and $usb[0] -ne 0) {
   [void](Run-Hidden 'powercfg.exe' '/setacvalueindex SCHEME_CURRENT 2a737441-1930-4402-8d77-b2bebba308a3 48e6b7a6-50f5-4782-a5d4-53bb8f07e226 0')
   [void](Run-Hidden 'powercfg.exe' '/setactive SCHEME_CURRENT')
-  Say 'Fatto: con il caricatore attaccato Windows non spegne più le porte USB per risparmiare. Era la causa più comune di scatti nell''audio di cuffie USB. Per tornare indietro: Pannello di controllo > Opzioni risparmio energia > Modifica impostazioni avanzate > Impostazioni USB.'
+  $usb2 = Get-PowerValue '2a737441-1930-4402-8d77-b2bebba308a3' '48e6b7a6-50f5-4782-a5d4-53bb8f07e226'
+  if ($usb2.Count -eq 2 -and $usb2[0] -ne 0) { Say 'Non sono riuscito a spegnere il risparmio energetico delle porte USB: fallo da Pannello di controllo > Opzioni risparmio energia > Modifica impostazioni avanzate > Impostazioni USB.' } else {
+  Say 'Fatto: con il caricatore attaccato Windows non spegne più le porte USB per risparmiare. Era la causa più comune di scatti nell''audio di cuffie USB. Per tornare indietro: Pannello di controllo > Opzioni risparmio energia > Modifica impostazioni avanzate > Impostazioni USB.' }
 } else { Say 'Il risparmio energetico delle porte USB è già spento (o non c''è su questo PC).' }
-$bt = @(Get-CimInstance Win32_PnPEntity -ErrorAction SilentlyContinue | Where-Object { $_.PNPClass -eq 'AudioEndpoint' -and $_.Name -match 'Hands-Free|Vivavoce|Headset|Auricolare' -and $_.Status -eq 'OK' })
+$bt = @(Get-CimInstance Win32_PnPEntity -ErrorAction SilentlyContinue | Where-Object { $_.PNPClass -eq 'AudioEndpoint' -and $_.Name -match 'Hands-Free|Vivavoce|Headset|Auricolare' -and ([string]$_.PNPDeviceID -match 'BTHENUM|BTHHFENUM|BTHLE') -and $_.Status -eq 'OK' })
 if ($bt.Count) { Say 'Hai cuffie Bluetooth: quando usi il loro microfono passano in modalità "chiamata" e l''audio diventa basso e gracchiante. Nel gioco o in Windows scegli come uscita le cuffie "Stereo" e usa un altro microfono, oppure usa cuffie con il loro ricevitore USB.' }
 $heavy = @(Get-Process -ErrorAction SilentlyContinue | Where-Object { $_.ProcessName -match '^(Nahimic3|NahimicSvc64|SonicStudio3|RtkAudUService64|DolbyAccess|SteelSeriesGG)$' } | ForEach-Object { $_.ProcessName } | Select-Object -Unique)
 if ($heavy.Count) { Say ('Sono aperti programmi che "migliorano" l''audio: ' + ($heavy -join ', ') + '. Se gracchia ancora, spegni i loro effetti (in particolare Nahimic è noto per dare scatti nei giochi).') }
@@ -285,7 +296,7 @@ try { $busy = (Get-CimInstance Win32_PerfFormattedData_PerfDisk_PhysicalDisk -Er
 Say 'La prima volta che apri un gioco dopo un aggiornamento è normale che carichi di più: prepara gli "shader" della grafica (lo fa una volta sola).'
 `)},
 	{ID: "fix_game_fullscreen", Name: "Il gioco non va a schermo intero", Desc: "Per giochi che restano in finestra, con bordi neri, tagliati o che escono dallo schermo intero: controlla il ridimensionamento di Windows e la Game Bar, e ti spiega i tasti per sistemarlo.", Level: 0, Minutes: 0.1, Timeout: time.Minute, Script: ofs2(`
-try { Add-Type -Namespace TassoDpi -Name D -MemberDefinition '[DllImport("user32.dll")] public static extern int GetDpiForSystem();' -ErrorAction Stop; $dpi = [TassoDpi.D]::GetDpiForSystem(); if ($dpi -gt 96) { Say ('Il ridimensionamento di Windows è al ' + [int]($dpi * 100 / 96) + '%. Alcuni giochi vecchi per questo escono tagliati o piccoli: tasto destro sul file del gioco > Proprietà > Compatibilità > Modifica impostazioni DPI elevati > spunta "Sostituisci comportamento ridimensionamento DPI" e scegli "Applicazione".') } else { Say 'Il ridimensionamento di Windows è al 100%: va bene per i giochi.' } } catch {}
+try { $dpi = [int](Get-RegValue 'HKCU\Control Panel\Desktop\WindowMetrics' 'AppliedDPI'); if (-not $dpi) { Add-Type -Namespace TassoDpi -Name D -MemberDefinition '[DllImport("user32.dll")] public static extern bool SetProcessDPIAware(); [DllImport("user32.dll")] public static extern int GetDpiForSystem();' -ErrorAction Stop; [void][TassoDpi.D]::SetProcessDPIAware(); $dpi = [TassoDpi.D]::GetDpiForSystem() }; if ($dpi -gt 96) { Say ('Il ridimensionamento di Windows è al ' + [int]($dpi * 100 / 96) + '%. Alcuni giochi vecchi per questo escono tagliati o piccoli: tasto destro sul file del gioco > Proprietà > Compatibilità > Modifica impostazioni DPI elevati > spunta "Sostituisci comportamento ridimensionamento DPI" e scegli "Applicazione".') } else { Say 'Il ridimensionamento di Windows è al 100%: va bene per i giochi.' } } catch {}
 $lay = 'HKCU\Software\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers'
 $k = Get-Item -LiteralPath ('Registry::' + (Get-FullKey $lay)) -ErrorAction SilentlyContinue
 $old = @(); if ($k) { foreach ($n in $k.GetValueNames()) { if ([string]$k.GetValue($n) -match '640X480|256COLOR|16BITCOLOR|WIN95|WIN98|WINXP') { $old += [IO.Path]::GetFileName($n) } } }
@@ -297,7 +308,7 @@ Say 'Se il gioco esce dallo schermo intero da solo: usa "Il gioco si riduce a ic
 	{ID: "fix_game_controller", Name: "Il controller non viene riconosciuto nel gioco", Desc: "Per controller Xbox, PlayStation e altri che Windows vede ma il gioco no (o che non si collegano): riavvia i controller bloccati e il Bluetooth, controlla i programmi che li \"rubano\" e ti dice come attivare Steam Input.", Level: 0, Minutes: 0.3, Timeout: 3 * time.Minute, Script: ofs2(`
 $n = Restart-BadDevices 'HIDClass|XnaComposite|XboxComposite|Bluetooth|USB'
 if ($n -gt 0) { Say ('Riavviati ' + $n + ' dispositivi bloccati. Stacca e riattacca il controller.') }
-$pads = @(Get-CimInstance Win32_PnPEntity -ErrorAction SilentlyContinue | Where-Object { $_.Name -match 'Xbox|Controller|Gamepad|DualSense|DualShock|Wireless Controller|8BitDo|Joy-Con|Pro Controller' -and $_.Status -eq 'OK' } | ForEach-Object { $_.Name } | Select-Object -Unique)
+$pads = @(Get-CimInstance Win32_PnPEntity -ErrorAction SilentlyContinue | Where-Object { $_.Name -match 'Xbox|Controller|Gamepad|DualSense|DualShock|Wireless Controller|8BitDo|Joy-Con|Pro Controller' -and $_.Name -notmatch 'Host|SATA|AHCI|Audio|NVM|Storage|PCI|SMBus|USB|Bluetooth|RAID|Ethernet|Network|Wi-?Fi|Thunderbolt' -and $_.Status -eq 'OK' } | ForEach-Object { $_.Name } | Select-Object -Unique)
 if ($pads.Count) { Say ('Windows vede: ' + (($pads | Select-Object -First 4) -join ', ') + '.') } else { Say 'Windows non vede nessun controller acceso. Prova un altro cavo (molti cavi servono solo a caricare e non portano i dati) o un''altra porta USB.' }
 $bt = Get-Service -Name bthserv -ErrorAction SilentlyContinue
 if ($bt -and $bt.Status -ne 'Running' -and $bt.StartType -ne 'Disabled') { Start-Service -Name bthserv -ErrorAction SilentlyContinue; Say 'Riacceso il servizio Bluetooth di Windows.' }
@@ -314,7 +325,7 @@ $ram = 0; if ($cs) { $ram = [double]$cs.TotalPhysicalMemory }
 if ($ram -gt 0) { Say ('RAM: ' + (Fmt $ram) + '.'); if ($ram -lt 15GB) { Say 'Con meno di 16 GB di RAM i giochi recenti possono bloccarsi nei caricamenti: chiudi browser e altri programmi prima di giocare (il Boost di Tasso lo fa per te).' } }
 if ($os) { $free = [double]$os.FreePhysicalMemory * 1KB; if ($free -lt 2GB) { Say ('Adesso sono liberi solo ' + (Fmt $free) + ' di RAM: qualcosa sta usando molta memoria.') } }
 $pf = @(Get-CimInstance Win32_PageFileUsage -ErrorAction SilentlyContinue)
-if ($cs -and -not $cs.AutomaticManagedPagefile -and -not $pf.Count) { Say 'Trovato: il file di paging è SPENTO. È la causa più comune dei giochi che si bloccano o si chiudono durante il caricamento. Rimettilo: Impostazioni > Sistema > Informazioni > Impostazioni di sistema avanzate > Prestazioni > Impostazioni > Avanzate > Memoria virtuale > Cambia > spunta "Gestisci automaticamente".'; [void](Run-Hidden 'SystemPropertiesPerformance.exe' '') }
+if ($cs -and -not $cs.AutomaticManagedPagefile -and -not $pf.Count) { Say 'Trovato: il file di paging è SPENTO. È la causa più comune dei giochi che si bloccano o si chiudono durante il caricamento. Rimettilo: Impostazioni > Sistema > Informazioni > Impostazioni di sistema avanzate > Prestazioni > Impostazioni > Avanzate > Memoria virtuale > Cambia > spunta "Gestisci automaticamente".'; Start-Process -FilePath 'SystemPropertiesPerformance.exe' -ErrorAction SilentlyContinue }
 elseif ($cs -and -not $cs.AutomaticManagedPagefile -and $pf.Count) { $tot = 0; foreach ($p in $pf) { $tot += [double]$p.AllocatedBaseSize * 1MB }; if ($tot -lt 8GB) { Say ('Il file di paging è impostato a mano a ' + (Fmt $tot) + ': per i giochi è poco. Meglio "Gestisci automaticamente" (Prestazioni > Avanzate > Memoria virtuale).') } else { Say ('File di paging impostato a mano a ' + (Fmt $tot) + ': va bene.') } }
 else { Say 'Il file di paging è gestito da Windows: va bene.' }
 $c = Get-PSDrive -Name ($env:SystemDrive.Trim(':')) -ErrorAction SilentlyContinue
