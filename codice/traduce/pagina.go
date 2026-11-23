@@ -595,6 +595,40 @@ func armonizza(b []Blocco) {
 		}
 	}
 	for k := 0; k < g; k++ {
+		// ombra e bordino uguali per tutte le voci: o tutte o nessuna (decide la maggioranza)
+		var tot, om, co int
+		var omC, coC color.RGBA
+		for i := range b {
+			if gruppo[i] != k {
+				continue
+			}
+			tot++
+			if b[i].HaOmbraG {
+				om++
+				omC = b[i].OmbraGioco
+			}
+			if b[i].HaContorno {
+				co++
+				coC = b[i].Contorno
+			}
+		}
+		if tot >= 2 {
+			for i := range b {
+				if gruppo[i] != k {
+					continue
+				}
+				b[i].HaOmbraG = om*2 > tot
+				if b[i].HaOmbraG && b[i].OmbraGioco.A == 0 {
+					b[i].OmbraGioco = omC
+				}
+				b[i].HaContorno = co*2 > tot
+				if b[i].HaContorno && b[i].Contorno.A == 0 {
+					b[i].Contorno = coC
+				}
+			}
+		}
+	}
+	for k := 0; k < g; k++ {
 		var em, tr []float64
 		var rr, gg, bb []int
 		for i := range b {
@@ -1181,7 +1215,7 @@ func componiTesto(b Blocco, r image.Rectangle, alfa []uint8, sp int, anteprima b
 				c[2] = (c[2]*(255-a) + int(col.B)*a) / 255
 			}
 			if b.HaOmbraG && !b.Ombra {
-				mescola(b.OmbraGioco, as*3/4)
+				mescola(b.OmbraGioco, as/2)
 			} else {
 				mescola(ombra, as)
 			}
