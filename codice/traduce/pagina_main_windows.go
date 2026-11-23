@@ -314,8 +314,9 @@ func mostraPaginaPronta(p *paginaPronta, giro int64) bool {
 		ultimeScritte.Store(int64(len(pronti)))
 		go func() {
 			defer guard("anteprima")
-			if !salvaAnteprime {
-				return // l'immagine del gioco non resta sul disco (privacy)
+			if !salvaAnteprime && !esisteVoce(filepath.Join(dirApp, "logs", "salva-anteprima")) {
+				return // l'immagine del gioco non resta sul disco (privacy); per un controllo si
+				// accende a mano creando il file logs\salva-anteprima
 			}
 			_ = salvaAnteprima(img, pronti, filepath.Join(dirApp, "logs", "pagina-anteprima.png"))
 		}()
