@@ -533,7 +533,7 @@ func boostOffForOffice() {
 	}
 	go func() {
 		defer guard("boost.go:office")
-		msgs := append([]string{"Modalità Ufficio: ho spento il Boost e rimesso com'era quello che aveva cambiato."}, boostOffOpt(true, true)...)
+		msgs := append([]string{"Modalità Ufficio: ho spento il Boost e rimesso com'era quello che aveva cambiato."}, boostOffOpt(false, true)...)
 		emit("onBoost", map[string]interface{}{"msgs": msgs, "state": boostInfo()})
 	}()
 }
