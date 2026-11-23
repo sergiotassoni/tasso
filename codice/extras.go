@@ -177,7 +177,7 @@ func netUsage() {
 
 func wifiList() {
 	r := runPSArgs(wifiScript, map[string]string{"base": scriptDir()}, 2*time.Minute, nil)
-	emit("onWifi", decodeJSON(r.JSON))
+	emitRaw("onWifi", decodeJSON(r.JSON)) // nomi delle reti e password: mai tradotti
 }
 
 // ---------------- Mappa del disco ----------------

@@ -110,7 +110,8 @@ function Test-UninstallOrphan($p, [string]$key) {
 }
 `
 
-const uninstallScript = orphanHelper + `
+// uninstallScript: ofHelpers serve per Start-AsUser (programmi installati solo per il tuo utente).
+const uninstallScript = ofHelpers + orphanHelper + `
 $kp = 'Registry::' + [string]$A.key
 $p = Get-ItemProperty -LiteralPath $kp -ErrorAction SilentlyContinue
 if (-not $p) { Say 'Programma non trovato: forse è già stato disinstallato.'; return }
@@ -135,10 +136,26 @@ if ($cmd -match '(?i)msiexec') {
 }
 $t0 = Get-Date
 $tempLong = $env:TEMP; try { $tempLong = (Get-Item -LiteralPath $env:TEMP -ErrorAction Stop).FullName } catch {}
+# Programma installato solo per il tuo utente (HKCU): il suo disinstallatore lo può cambiare qualunque
+# programma che gira col tuo account, quindi parte come utente normale, mai da amministratore.
+$asUser = ([string]$A.key) -match '(?i)^HKEY_CURRENT_USER\\'
 try {
-  # Aspetto solo il programma di disinstallazione, non le pagine web o i browser che apre lui.
-  if ($a2) { $up = Start-Process -FilePath $file -ArgumentList $a2 -PassThru -ErrorAction Stop } else { $up = Start-Process -FilePath $file -PassThru -ErrorAction Stop }
-  if ($up) { [void]$up.WaitForExit(3600000) }
+  if ($asUser) {
+    $exe = [Environment]::ExpandEnvironmentVariables($file).Trim('"')
+    if ($exe -notmatch '^[A-Za-z]:\\') { $exe = Join-Path $env:SystemRoot ('System32\' + $exe) }
+    if (-not (Start-AsUser $exe $a2)) { Say ('Non riesco ad avviare il programma di disinstallazione: ' + $exe); return }
+    # Start-AsUser non restituisce il processo: aspetto finché quel programma resta aperto (al massimo un'ora).
+    $end = $t0.AddHours(1); $seen = $false; $w = 0
+    while ((Get-Date) -lt $end) {
+      $run = @(Get-Process -ErrorAction SilentlyContinue | Where-Object { $st = $null; try { $st = $_.StartTime } catch {}; $st -and $st -ge $t0 -and "$($_.Path)" -ieq $exe })
+      if ($run.Count) { $seen = $true } elseif ($seen -or $w -ge 30) { break }
+      Start-Sleep -Seconds 1; $w++
+    }
+  } else {
+    # Aspetto solo il programma di disinstallazione, non le pagine web o i browser che apre lui.
+    if ($a2) { $up = Start-Process -FilePath $file -ArgumentList $a2 -PassThru -ErrorAction Stop } else { $up = Start-Process -FilePath $file -PassThru -ErrorAction Stop }
+    if ($up) { [void]$up.WaitForExit(3600000) }
+  }
 } catch {
   Say ('Non riesco ad avviare il programma di disinstallazione: ' + $_.Exception.Message)
   return

@@ -162,9 +162,13 @@ func (s *serverVoci) avvia() error {
 	// tutti i core per pochi decimi di secondo, a priorità più bassa del gioco: il gioco passa
 	// sempre davanti, ma quando il processore è libero la voce si capisce in un terzo di secondo
 	fili := max(2, min(8, coreFisici()))
+	// percorso segreto per questa sessione: whisper-server gira da amministratore e senza chiave
+	// qualunque programma o pagina web potrebbe chiamare /load o /inference
+	chiave := chiaveCasuale()
 	cmd := exec.Command(filepath.Join(dirMotoreVoci(), "whisper-server.exe"),
 		"-m", filepath.Join(dirVoci(), risorseVoci.Modello.Nome),
 		"--host", "127.0.0.1", "--port", fmt.Sprint(porta),
+		"--request-path", "/"+chiave,
 		"-t", fmt.Sprint(fili), "-l", "en", "-nt", "-sns",
 		"-ac", "384", "-nf", // contesto di 7,7 s (le battute sono al massimo 7 s): 1,1 s -> 0,33 s a battuta
 		"-bo", "1",
@@ -179,7 +183,7 @@ func (s *serverVoci) avvia() error {
 	}
 	jobChiudiConMe(cmd.Process.Pid)
 	s.cmd = cmd
-	s.url = fmt.Sprintf("http://127.0.0.1:%d", porta)
+	s.url = fmt.Sprintf("http://127.0.0.1:%d/%s", porta, chiave) // tutte le chiamate partono da qui
 	uscito := make(chan struct{})
 	go func() {
 		defer guard("server-voci")
