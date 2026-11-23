@@ -21,6 +21,9 @@ var (
 	catOnce    sync.Once
 	termGiochi map[string]string
 	frasiMenu  map[string]string
+	// nomiFissi: nomi di più parole che il catalogo lascia uguali ("Hello Games", "No Man's Sky"):
+	// anche dentro le frasi lunghe devono restare così.
+	nomiFissi []string
 )
 
 func leggiTSV(s string) map[string]string {
@@ -45,6 +48,9 @@ func caricaCataloghi() {
 		frasiMenu = map[string]string{}
 		for en, it := range leggiTSV(frasiMenuTSV) {
 			frasiMenu[chiaveFrase(en)] = it
+			if en == it && strings.Contains(en, " ") && len(strings.Fields(en)) <= 4 && unicode.IsUpper([]rune(en)[0]) && !strings.ContainsAny(en, ",.!?") {
+				nomiFissi = append(nomiFissi, en)
+			}
 		}
 	})
 }

@@ -741,6 +741,7 @@ func (t *Traduttore) traduciCoppia(ctx context.Context, grezzo, da, a string, in
 // vanno tradotti; a volte il motore li storpia ("Palibox"). Se nella traduzione c'è una parola
 // quasi uguale al nome (1-2 lettere diverse, stessa iniziale) la rimetto com'era.
 func nomiIntatti(en, it string) string {
+	it = nomiFissiIntatti(en, it)
 	for _, w := range strings.FieldsFunc(en, func(r rune) bool { return !unicode.IsLetter(r) }) {
 		r := []rune(w)
 		if len(r) < 4 || !unicode.IsUpper(r[0]) || strings.ToUpper(w) == w || esiste(w) || strings.Contains(it, w) {
@@ -759,6 +760,40 @@ func nomiIntatti(en, it string) string {
 				it = sostituisciParola(it, v, w)
 				break
 			}
+		}
+	}
+	return it
+}
+
+// nomiFissiIntatti: i nomi del catalogo da non tradurre ("Hello Games", "No Man's Sky") che il
+// motore ha tradotto lo stesso dentro una frase: "Ciao Games" -> "Hello Games",
+// "Sky Forsaken di No Man" -> "No Man's Sky Forsaken".
+func nomiFissiIntatti(en, it string) string {
+	caricaCataloghi()
+	for _, n := range nomiFissi {
+		if !strings.Contains(strings.ToLower(en), strings.ToLower(n)) || strings.Contains(it, n) {
+			continue
+		}
+		// "X's Y" diventa spesso "Y di X"
+		if x, y, ok := strings.Cut(n, "'s "); ok {
+			re, err := regexp.Compile(`\b` + regexp.QuoteMeta(y) + `((?:\s+\p{Lu}[\p{L}']*){0,3})\s+(?:di|del|dello|della|dei|degli)\s+` + regexp.QuoteMeta(x) + `\b`)
+			if err == nil && re.MatchString(it) {
+				it = re.ReplaceAllString(it, strings.ReplaceAll(n, "$", "$$")+"$1")
+				continue
+			}
+		}
+		// le ultime parole sono rimaste: cambio le prime ("Ciao Games" -> "Hello Games")
+		w := strings.Fields(n)
+		coda := strings.Join(w[1:], " ")
+		if len([]rune(coda)) < 4 {
+			continue
+		}
+		re, err := regexp.Compile(`(?:^|\b)[\p{L}']+\s+` + regexp.QuoteMeta(coda) + `\b`)
+		if err != nil {
+			continue
+		}
+		if loc := re.FindStringIndex(it); loc != nil {
+			it = it[:loc[0]] + n + it[loc[1]:]
 		}
 	}
 	return it

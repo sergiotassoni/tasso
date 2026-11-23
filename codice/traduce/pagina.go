@@ -1557,34 +1557,45 @@ func correggiNomeGioco(testo, nome string) string {
 		return testo
 	}
 	w := strings.Fields(testo)
+	lim := 1
+	if len(obiettivo) >= 7 {
+		lim = 2
+	}
 	for i := 0; i < len(w); i++ {
+		// la finestra di parole più vicina al nome (a pari distanza, quella con il numero di
+		// parole del nome): così "in No Man's Sky" non si mangia la "in".
+		bestK, bestD := 0, lim+1
 		for k := len(nw) + 1; k >= max(1, len(nw)-1); k-- {
 			if i+k > len(w) {
 				continue
 			}
 			pezzo := soloLett(strings.Join(w[i:i+k], ""))
-			if pezzo == "" || pezzo == obiettivo && strings.Join(w[i:i+k], " ") == nome {
+			if pezzo == "" {
 				continue
 			}
-			lim := 1
-			if len(obiettivo) >= 7 {
-				lim = 2
-			}
-			if distanzaModifica(pezzo, obiettivo) <= lim {
-				// tengo la punteggiatura attaccata in fondo ("Bar," "Bar.")
-				fine := strings.TrimRightFunc(w[i+k-1], func(r rune) bool { return unicode.IsLetter(r) || unicode.IsDigit(r) })
-				coda := w[i+k-1][len(fine):]
-				_ = coda
-				resto := ""
-				ultima := w[i+k-1]
-				if j := strings.LastIndexFunc(ultima, func(r rune) bool { return unicode.IsLetter(r) || unicode.IsDigit(r) }); j >= 0 && j+1 < len(ultima) {
-					resto = ultima[j+1:]
-				}
-				nuove := append(append(append([]string{}, w[:i]...), nome+resto), w[i+k:]...)
-				w = nuove
-				break
+			d := distanzaModifica(pezzo, obiettivo)
+			if d < bestD || d == bestD && abs(k-len(nw)) < abs(bestK-len(nw)) {
+				bestK, bestD = k, d
 			}
 		}
+		if bestK == 0 {
+			continue
+		}
+		k := bestK
+		if bestD == 0 && strings.TrimRightFunc(strings.Join(w[i:i+k], " "), unicode.IsPunct) == nome {
+			i += k - 1 // già giusto
+			continue
+		}
+		// la parola dopo o prima potrebbe essere già il nome giusto senza questa
+		if i+1 < len(w) && k > 1 && distanzaModifica(soloLett(strings.Join(w[i+1:min(len(w), i+1+len(nw))], "")), obiettivo) == 0 {
+			continue
+		}
+		resto := ""
+		ultima := w[i+k-1]
+		if j := strings.LastIndexFunc(ultima, func(r rune) bool { return unicode.IsLetter(r) || unicode.IsDigit(r) }); j >= 0 && j+1 < len(ultima) {
+			resto = ultima[j+1:]
+		}
+		w = append(append(append([]string{}, w[:i]...), nome+resto), w[i+k:]...)
 	}
 	return strings.Join(w, " ")
 }
