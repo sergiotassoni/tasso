@@ -151,6 +151,7 @@ func main() {
 	traduce.Ospite.ApriComeUtente = openUser
 	traduce.Ospite.CartellaScript = scriptDir
 	traduce.InIngleseTasso = isEN
+	traduce.InUfficio.Store(officeMode())
 	traduce.Prepara(w, filepath.Join(appDir, "WebView2"))
 	if !scheduledRun.Load() {
 		go func() {
@@ -332,7 +333,27 @@ func openPath(p string, args string) bool {
 func bindAll(w webview2.WebView) {
 	_ = w.Bind("goGetSettings", func() map[string]interface{} { return getSettings() })
 	_ = w.Bind("goSetProfile", func(id, p string) string { return bgCall("sched", id, func() string { return setProfile(p) }) })
-	_ = w.Bind("goSetLook", func(p string) string { return setLook(p) })
+	_ = w.Bind("goSetLook", func(p string) string {
+		r := setLook(p)
+		if r == "ok" {
+			lookChanged(p == "ufficio")
+		}
+		return r
+	})
+	_ = w.Bind("goAutoClickDisarm", func(stop bool) string {
+		// Uscendo dalla pagina Giochi (stop=false) libero il tasto solo se l'autoclick è fermo,
+		// così con l'autoclick in funzione lo stesso tasto lo ferma ancora.
+		acMu.Lock()
+		running := acRunning
+		acMu.Unlock()
+		if stop {
+			autoClickStop()
+		} else if running {
+			return "running"
+		}
+		acDisarm()
+		return "ok"
+	})
 	_ = w.Bind("goAnalyze", func() string { go analyze(); return "ok" })
 	_ = w.Bind("goHardware", func() string { go hardwareInfo(); return "ok" })
 	_ = w.Bind("goLive", func() map[string]interface{} { return liveStats() })
@@ -425,7 +446,13 @@ func bindAll(w webview2.WebView) {
 	_ = w.Bind("goOverlaySet", func(on bool, pos string) string { return setOverlay(on, pos) })
 	_ = w.Bind("goOverlayShow", func(show bool) string { return overlayShow(show) })
 	_ = w.Bind("goOverlayItems", func(items []string) string { return setOverlayItems(items) })
-	_ = w.Bind("goLibrary", func() string { return async("library", scanLibrary) })
+	_ = w.Bind("goLibrary", func() string {
+		if updating.Load() {
+			return "busy"
+		}
+		rescanLibrary() // anche mentre cerca le copertine: la ricerca riparte e la libreria arriva sempre
+		return "ok"
+	})
 	_ = w.Bind("goLaunchGame", func(id string) string { return launchGame(id) })
 	// 3.1: traduzione e "Tasso si ricorda" per ogni gioco della libreria
 	_ = w.Bind("goGameTr", func(id string) map[string]any { return gameTrInfo(id) })
@@ -609,4 +636,16 @@ func cleanWipeTemp() {
 			_ = os.RemoveAll(p)
 		}
 	}
+}
+
+// lookChanged: Tasso è passato a Ufficio (o a Gaming). In Ufficio niente traduzione, niente tasto
+// dell'autoclick, niente pannellino né Ctrl+Maiusc+F12; Boost automatico, modalità gioco
+// automatica e Profilo gioco si fermano da soli (guardano settings.Profile) e riprendono in Gaming.
+func lookChanged(office bool) {
+	traduce.ImpostaUfficio(office)
+	if office {
+		autoClickStop()
+		acDisarm()
+	}
+	ovPost()
 }

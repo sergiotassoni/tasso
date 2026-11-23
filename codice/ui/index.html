@@ -1438,7 +1438,9 @@ function renderLevels(){ ['#levelCards', '#levelCards2'].forEach(id => { const c
 /* ---------- navigation ---------- */
 const loaded = {};
 let CURVIEW='home', TUNE_REQ = null, DC_GUIDE_SHOWN = false;
-function show(v){ CURVIEW=v;
+function show(v){ const prevView = CURVIEW; CURVIEW=v;
+  // Fuori dalla pagina Giochi il tasto dell'autoclick (F6) torna alle altre app; in Ufficio sempre.
+  if (prevView === 'games' && v !== 'games') call('goAutoClickDisarm', isOffice());
   const ae = document.activeElement;
   $$('.view').forEach(x => x.classList.toggle('on', x.id === 'v-' + v));
   // La tastiera non resta su un pulsante della pagina appena nascosta: va al titolo della pagina nuova.
@@ -1452,7 +1454,7 @@ function show(v){ CURVIEW=v;
   if (v === 'net' && !loaded.net) { loaded.net = 1; call('goNetUsage'); }
   if (v === 'fix' && !loaded.drv) { loaded.drv = 1; $('#btnDrvScan').click(); }
   if (v === 'home' || v === 'hw') { LAST_SENS=''; LAST_HW=''; paintLive(); }
-  if (v === 'games') call('goAutoClickArm').then(ok => { AC_KEY_OK = ok !== false; paintAcKey(); });
+  if (v === 'games' && !isOffice()) call('goAutoClickArm').then(ok => { AC_KEY_OK = ok !== false; paintAcKey(); });
   if (v === 'games' && !loaded.games) { loaded.games = 1; call('goLibrary'); paintOverlay(); }
   if (v === 'games') paintGaming().then(profileRefresh);
   if (v === 'games' && !isOffice()) call('ttPrepara');
@@ -2516,7 +2518,8 @@ function paintHealth(){
   const box = $('#hIssues'); box.innerHTML = '';
   issues.slice(0, 5).forEach(it => {
     const a = (isOffice() && it.action === 'turbo') ? null : H_ACTIONS[it.action];
-    const row = el('div', {class:'li'}, '<span style="flex:1"><b>' + esc(it.title) + '</b><br><span class="small muted">' + esc(it.tip) + '</span></span><span class="small muted" style="margin-right:10px">−' + esc(it.pts) + '</span>');
+    const tip = (isOffice() && it.action === 'turbo') ? _t('Chiudi i programmi che non usi.') : it.tip; // in Ufficio niente Boost
+    const row = el('div', {class:'li'}, '<span style="flex:1"><b>' + esc(it.title) + '</b><br><span class="small muted">' + esc(tip) + '</span></span><span class="small muted" style="margin-right:10px">−' + esc(it.pts) + '</span>');
     if (a) { const b = el('button', {class:'btn ghost'}, a[0]); b.onclick = a[1]; row.appendChild(b); }
     box.appendChild(row);
   });
@@ -2720,7 +2723,7 @@ Object.assign(window.tasso, {
       box.appendChild(row);
     });
   },
-  onGameMode(g){ if (g.active && AU_T && AU_T !== -1) { clearInterval(AU_T); AU_T = -1; closeModal(); } if (g.active) toast(_t('Gioco aperto (') + g.game + _t('): modalità ') + (g.mode === 'fps' ? _t('FPS competitivo') : 'Gaming') + _t(' attivata.'), 'var(--a3)'); else toast(g.back ? _t('Gioco chiuso: rimessa la modalità di prima.') : _t('Gioco chiuso.'), 'var(--a3)'); setTimeout(async () => { await refreshS(); paintModes(); }, 3000); }
+  onGameMode(g){ if (g.active && AU_T && AU_T !== -1) { clearInterval(AU_T); AU_T = -1; closeModal(); } if (isOffice()) { setTimeout(async () => { await refreshS(); paintModes(); }, 3000); return; } if (g.active) toast(_t('Gioco aperto (') + g.game + _t('): modalità ') + (g.mode === 'fps' ? _t('FPS competitivo') : 'Gaming') + _t(' attivata.'), 'var(--a3)'); else toast(g.back ? _t('Gioco chiuso: rimessa la modalità di prima.') : _t('Gioco chiuso.'), 'var(--a3)'); setTimeout(async () => { await refreshS(); paintModes(); }, 3000); }
 });
 
 const OFF_ART = '<svg width="112" height="112" viewBox="0 0 200 200" aria-hidden="true"><rect x="4" y="4" width="192" height="192" rx="48" fill="#FFFFFF"/><rect x="4" y="4" width="192" height="192" rx="48" fill="none" stroke="#C9CDD4" stroke-width="6"/><g transform="translate(28 36) scale(0.6)"><path d="M44 22 H196 L226 104 L120 206 L14 104 Z" fill="#0A0B0D"/><path d="M80 22 H106 L108 142 L56 132 L36 98 Z" fill="#FFFFFF"/><path d="M160 22 H134 L132 142 L184 132 L204 98 Z" fill="#FFFFFF"/><circle cx="82" cy="112" r="12" fill="var(--a1)"/><circle cx="158" cy="112" r="12" fill="var(--a1)"/><path d="M100 164 H140 L120 190 Z" fill="#FFFFFF"/></g></svg>';
@@ -2799,18 +2802,27 @@ function repaintLook(){ paintModes(); paintTools(); paintIndex(); paintThemes();
 function paintFixPh(){ const i = $('#fixSearch'); if (i) i.placeholder = isOffice() ? _t('Scrivi il problema: stampante, Word, PDF, zip, Wi-Fi, lento…') : _t('Scrivi il problema: Wi-Fi, audio, lento, mouse…'); }
 async function setLook(p){
   if ((isOffice() ? 'ufficio' : 'gioco') === p && S.onboarded) return;
+  if (p === 'ufficio') {
+    // La procedura del gioco e le finestre aperte non restano sopra alla modalità Ufficio.
+    if (typeof W !== 'undefined' && W) { W.busy = false; wzClose(); }
+    if ($('#modal').classList.contains('on')) closeModal();
+  }
   const r = await call('goSetLook', p);
   if (r !== 'ok') { toast(_t('Non sono riuscito a cambiare modalità: riprova.'), 'var(--a4)'); return; }
   S.profile = p; S.onboarded = true;
   applyLook(); repaintLook();
   if (p === 'ufficio' && typeof GP_ID !== 'undefined' && GP_ID) closeGame();
   if (p === 'ufficio' && (CURVIEW === 'games' || CURVIEW === 'perf')) show('home');
-  // 3.1: in Ufficio niente giochi e niente traduzione: se era accesa la spengo (tasti F7 liberi)
+  // 3.1: in Ufficio niente giochi e niente traduzione: se era accesa la spengo (tasti F7 liberi).
+  // Il tasto dell'autoclick, il Boost automatico, la modalità gioco automatica, il pannellino e il
+  // Profilo gioco li mette in pausa Tasso (goSetLook): tornando a Gaming riprendono come prima.
   if (p === 'ufficio') { call('ttAccendi', false).then(() => { if (typeof ttRefresh === 'function') ttRefresh(); }); }
   if (p !== 'ufficio' && !S.showAll && CURVIEW === 'perf') show('home');
-  if (p === 'ufficio' && (S.mode === 'gaming' || S.mode === 'fps')) toast(_t('Modalità Ufficio attiva. Il PC però è ancora in modalità ') + (S.mode === 'fps' ? 'FPS' : 'Gaming') + _t(' (consuma di più).'), 'var(--a3)', {label:_t('Metti Normale'), fn: () => { call('goSetMode', 'normale'); toast(_t('Metto la modalità Normale…')); }});
-  else if (p === 'ufficio' && (S.autoGame || S.boostAuto || S.overlayOn)) toast(_t('Modalità Ufficio attiva. Sono ancora accese funzioni da gioco (') + [(S.autoGame || S.boostAuto) ? _t('Boost automatico') : '', S.overlayOn ? _t('pannellino in gioco') : ''].filter(Boolean).join(_t(' e ')) + ').', 'var(--a3)', {label:_t('Spegnile'), fn: async () => { if (S.boostAuto) await call('goBoostAuto', false); if (S.autoGame) await call('goSetAutoGame', false); if (S.overlayOn) await call('goOverlaySet', false, S.overlayPos || 'dx'); await refreshS(); paintSettings(); toast(_t('Funzioni da gioco spente.')); }});
-  else toast(p === 'ufficio' ? _t('Modalità Ufficio: Tasso più semplice e tranquillo.') : _t('Modalità Gaming: solo le cose per giocare, con giochi, FPS e ping.'), p === 'ufficio' ? 'var(--a3)' : 'var(--red)');
+  const gameOn = !!(S.autoGame || S.boostAuto || S.overlayOn || (S.gameProfile && S.gameProfile.on));
+  const paused = gameOn ? _t(' Le funzioni da gioco (Boost automatico, pannellino, Profilo gioco) restano in pausa finché torni a Gaming.') : '';
+  if (p === 'ufficio' && (S.mode === 'gaming' || S.mode === 'fps')) toast(_t('Modalità Ufficio attiva. Il PC però è ancora in modalità ') + (S.mode === 'fps' ? 'FPS' : 'Gaming') + _t(' (consuma di più).') + paused, 'var(--a3)', {label:_t('Metti Normale'), fn: () => { call('goSetMode', 'normale'); toast(_t('Metto la modalità Normale…')); }});
+  else if (p === 'ufficio') toast(_t('Modalità Ufficio: Tasso più semplice e tranquillo.') + paused, 'var(--a3)');
+  else toast(_t('Modalità Gaming: solo le cose per giocare, con giochi, FPS e ping.'), 'var(--red)');
 }
 function modeMenu(open){ const m = $('#lookSw'), b = $('#modeBtn'); if (!m || !b) return; m.hidden = !open; b.setAttribute('aria-expanded', open ? 'true' : 'false'); }
 $$('#lookSw button').forEach(b => { b.onclick = () => { modeMenu(false); $('#modeBtn').focus(); setLook(b.dataset.look); }; });
@@ -2854,7 +2866,7 @@ function paintLib(){
   const list = sortedLib().filter(g => !g.hidden && (LIBF === 'all' || (LIBF === 'rec' ? isRecent(g) : g.store === LIBF)) && (!q || g.name.toLowerCase().includes(q)));
   $('#libCount').textContent = vis.length ? (list.length === 1 ? _t('1 gioco') : list.length + _t(' giochi')) + _t(' · i giocati di recente per primi, poi in ordine alfabetico. Tocca un gioco per aprire la sua pagina.') : '';
   if (!vis.length) { box.innerHTML = nHid ? _t('<span class="muted">Hai nascosto tutti i giochi.</span>') : _t('<span class="muted">Nessun gioco trovato. Se un gioco manca, premi "Aggiungi un gioco" e scegli il suo programma (.exe).</span>'); $('#libMsg').textContent = nHid ? '' : _t('Nessun gioco trovato.'); return; }
-  if (!list.length) box.innerHTML = _t('<span class="muted">Nessun gioco con questo nome. Se manca, premi "Aggiungi un gioco" (o guarda tra i giochi nascosti).</span>');
+  if (!list.length) box.innerHTML = q ? _t('<span class="muted">Nessun gioco con questo nome. Se manca, premi "Aggiungi un gioco" (o guarda tra i giochi nascosti).</span>') : LIBF === 'rec' ? _t('<span class="muted">Nessun gioco giocato negli ultimi 14 giorni. Apri un gioco con GIOCA e lo trovi qui.</span>') : _t('<span class="muted">Nessun gioco in questo negozio.</span>');
   const now = Date.now() / 1000;
   list.forEach(g => {
     const m = S.gameMemo && S.gameMemo[g.id];
@@ -2871,14 +2883,15 @@ $('#libChips').onclick = (ev) => { const b = ev.target.closest('[data-lf]'); if 
 $('#btnAddGame').onclick = async () => {
   const r = await call('goAddGame');
   if (r === 'ok') { toast(_t('Gioco aggiunto alla libreria.'), 'var(--a3)'); $('#libMsg').textContent = _t('Cerco i giochi…'); }
-  else if (r && r !== 'cancel') toast(r, 'var(--a4)');
+  else if (typeof r === 'string' && r.indexOf('gia:') === 0) { toast(r.slice(4) + _t(' era già nella libreria: te lo faccio vedere di nuovo.'), 'var(--a3)'); $('#libMsg').textContent = _t('Cerco i giochi…'); }
+  else if (r && r !== 'cancel') toast(tx(r), 'var(--a4)');
 };
 // 3.1: opzioni del gioco (⋯): disinstalla con il programma ufficiale del launcher, che chiede conferma.
 function gameOptions(g){
   const man = String(g.id).indexOf('man:') === 0;
   const btns = [{label:_t('Chiudi')}, {label: man ? _t('Togli dalla libreria') : _t('🙈 Nascondi'), fn: async () => {
     const r = await call('goHideGame', g.id, true);
-    if (r === 'ok') { LIB.forEach(x => { if (x.id === g.id) x.hidden = true; }); if (man) LIB = LIB.filter(x => x.id !== g.id); paintLib(); toast(man ? _t('Tolto dalla libreria.') : _t('Nascosto. Lo rivedi con "Mostrali di nuovo" sotto la libreria.'), 'var(--a3)'); }
+    if (r === 'ok') { LIB.forEach(x => { if (x.id === g.id) x.hidden = true; }); if (man) LIB = LIB.filter(x => x.id !== g.id); if (GP_ID === g.id) closeGame(); paintLib(); paintRecent(); toast(man ? _t('Tolto dalla libreria.') : _t('Nascosto. Lo rivedi con "Mostrali di nuovo" sotto la libreria.'), 'var(--a3)'); }
     else toast(r || _t('Non sono riuscito a salvare.'), 'var(--a4)');
   }}];
   if (g.uninst) btns.push({label:_t('🗑️ Disinstalla'), cls:'danger', fn: () => { confirmGameUninstall(g); return 'keep'; }});
@@ -2897,7 +2910,7 @@ function confirmGameUninstall(g){
     }}]);
 }
 $('#libSearch').oninput = paintLib;
-$('#btnLib').onclick = () => { $('#libMsg').textContent = _t('Cerco i giochi…'); call('goLibrary'); };
+$('#btnLib').onclick = async () => { $('#libMsg').textContent = _t('Cerco i giochi…'); const r = await call('goLibrary'); if (r !== 'ok') { paintLib(); toast(_t('Tasso è occupato (per esempio con un aggiornamento): riprova tra poco.'), 'var(--a4)'); } };
 function paintBoost(){
   const box = $('#bsList'); box.innerHTML = '';
   if (!BOOST.length) { box.innerHTML = _t('<div class="li"><span class="muted">Nessun programma pesante aperto: il PC è già pronto per giocare.</span></div>'); $('#btnBsGo').disabled = false; return; }
@@ -3060,7 +3073,7 @@ Object.assign(window.tasso, {
       files: () => { const sp = $('#filesStatus'); if (sp) sp.style.display = 'none'; }}[k] || (() => {}))();
     toast((p && p.msg) || _t('Qualcosa non è andato: riprova.'), 'var(--red)');
   },
-  onProfileCheck(p){ (p.fixed || []).forEach(m => toast(_t('Profilo gioco: ') + m, 'var(--a1)')); profileRefresh(); }
+  onProfileCheck(p){ if (!isOffice()) (p.fixed || []).forEach(m => toast(_t('Profilo gioco: ') + m, 'var(--a1)')); profileRefresh(); }
 });
 
 // ---------- Driver ----------
@@ -3084,7 +3097,7 @@ function paintDrivers(d){
   (d.gpus || []).forEach(x => {
     const age = drvAge(x.date), v = x.vendor;
     const btns = v === 'nvidia' ? '<button class="btn primary" data-gpudrv="1" style="min-height:34px;padding:5px 12px;font-size:12px">' + _t('Aggiorna con Tasso') + '</button>' + drvBtn('nvidia', _t('Apri NVIDIA App')) + drvBtn('nvidia_drv', _t('Driver NVIDIA')) : v === 'amd' && !(d.gpus || []).some(z => z.vendor === 'nvidia') ? '<button class="btn primary" data-gpudrv="1" style="min-height:34px;padding:5px 12px;font-size:12px">' + _t('Aggiorna con Tasso') + '</button>' + drvBtn('amd', _t('Apri il sito AMD')) : v === 'intel' ? drvBtn('intel', _t('Apri Intel Assistant')) : '';
-    g.appendChild(el('div', {class:'li', style:'flex-wrap:wrap;gap:8px'}, '<span style="flex:1 1 260px"><b>🎮 ' + esc(x.name) + _t('</b><br><span class="small muted">Driver ') + esc(x.ver || '?') + (x.date ? _t(' del ') + esc(x.date.split('-').reverse().join('/')) : '') + (age >= 6 ? _t(' · <b style="color:var(--a4)">ha ') + age + _t(' mesi: conviene aggiornarlo</b>') : age ? _t(' · recente') : '') + _t('</span><br><span class="small muted">Il driver video più nuovo esce prima sul sito ') + (v === 'nvidia' ? 'NVIDIA' : v === 'amd' ? 'AMD' : v === 'intel' ? 'Intel' : _t('del produttore')) + _t(' che su Windows Update: per i giochi conviene prenderlo da lì.</span></span>') + btns));
+    g.appendChild(el('div', {class:'li', style:'flex-wrap:wrap;gap:8px'}, '<span style="flex:1 1 260px"><b>' + (isOffice() ? '🖥️ ' : '🎮 ') + esc(x.name) + _t('</b><br><span class="small muted">Driver ') + esc(x.ver || '?') + (x.date ? _t(' del ') + esc(x.date.split('-').reverse().join('/')) : '') + (age >= 6 ? _t(' · <b style="color:var(--a4)">ha ') + age + _t(' mesi: conviene aggiornarlo</b>') : age ? _t(' · recente') : '') + _t('</span><br><span class="small muted">Il driver video più nuovo esce prima sul sito ') + (v === 'nvidia' ? 'NVIDIA' : v === 'amd' ? 'AMD' : v === 'intel' ? 'Intel' : _t('del produttore')) + (isOffice() ? _t(' che su Windows Update: se Windows funziona bene, puoi anche aspettare.</span></span>') : _t(' che su Windows Update: per i giochi conviene prenderlo da lì.</span></span>')) + btns));
   });
   // Programmi ufficiali per le periferiche trovate
   const vend = {};
@@ -3404,7 +3417,7 @@ $('#btnGcReload').onclick = paintGaming;
 // ---------- 3.1 Giochi: traduzione, schede, pagina del gioco, procedura a passi ----------
 let TT = null, LANGS = [], GP_ID = '', GPI = null, GW_T = 0;
 const ttc = (n, ...a) => call(n, ...a);
-async function ttRefresh(){ await loadLangs(); const st = await ttc('ttStato'); if (st) { TT = st; paintTr(); } return TT; }
+async function ttRefresh(){ await loadLangs(); const st = await ttc('ttStato'); if (st) { TT = st; paintTr(); gpRepaintTr(); } return TT; }
 function keyName(k, def){ return (TT && TT.tasti && TT.tasti[k]) || def; }
 function langName(c){ if (c === 'auto') return _t('Riconosci da solo'); const l = LANGS.find(x => x.codice === c); return l ? _t(l.nome) : c; }
 function paintTr(){
@@ -3417,7 +3430,7 @@ function paintTr(){
 $('#trSw').onclick = async () => {
   const on = !(TT && TT.acceso);
   if (on && TT && !TT.mozilla_ok && !TT.mozilla_file) { toast(_t('Prima scarica il traduttore veloce in Giochi → Impostazioni.'), 'var(--a4)'); gTab('imp'); return; }
-  const r = await ttc('ttAccendi', on); if (TT) TT.acceso = !!r; paintTr();
+  const r = await ttc('ttAccendi', on); if (TT) TT.acceso = !!r; paintTr(); gpRepaintTr();
   toast(r ? _t('Traduzione accesa.') : _t('Traduzione spenta.'));
 };
 function gTab(t){
@@ -3542,7 +3555,14 @@ $('#btnKeyChange').onclick = () => {
 };
 $('#btnKeyReset').onclick = async () => { const r = await ttc('ttTastiDiBase'); await ttRefresh(); paintKeys(); const n = parseInt(String(r || '').replace('occupati:', ''), 10); if (r === 'ok') toast(_t('Tasti rimessi come all\'inizio.'), 'var(--a3)'); else if (n > 0) toast(_t('Tasti rimessi come all\'inizio, ma ') + n + _t(' sono già usati da un altro programma: cambiali qui sopra.'), 'var(--a4)'); else toast(_t('Non riuscito.'), 'var(--a4)'); };
 const DLN = {mozilla:_t('Traduttore veloce'), ia:_t('IA'), voci:_t('Voci'), chat:_t('Chat tradotta')};
-function ttRepaint(){ if (W && !$('#gwz').hidden && !W.busy && wzStep() !== 'ok') wzDraw(); if (GP_ID && !(W && !$('#gwz').hidden)) { const g = LIB.find(x => x.id === GP_ID); if (g) paintGameTools(g); } }
+function ttRepaint(){ if (W && !$('#gwz').hidden && !W.busy && wzStep() !== 'ok') wzDraw(); gpRepaintTr(); }
+// La pagina del gioco aperta segue lo stato della traduzione (strumenti e riga «Traduzione»).
+function gpRepaintTr(){
+  if (typeof GP_ID === 'undefined' || !GP_ID || (W && !$('#gwz').hidden)) return;
+  const g = LIB.find(x => x.id === GP_ID); if (!g) return;
+  paintGameTools(g);
+  const t = $('#gpTrTxt'); if (t) t.textContent = gpTrText();
+}
 window.tt = {
   aggiorna(st){ if (st) { TT = st; paintTr(); ttRepaint(); } },
   info(x){ if (x && x.testo && !document.body.classList.contains('office')) toast(tx(x.testo)); },
@@ -3640,8 +3660,10 @@ function gameTools(g){
 function paintGameTools(g){
   const box = $('#gpTools'); if (!box) return;
   const list = gameTools(g).filter(x => GP_TAB === 'all' || x.k === GP_TAB);
+  const ae = document.activeElement, fk = ae && box.contains(ae) && ae.dataset ? ae.dataset.tool : '';
   $('#gpToolTabs').innerHTML = TOOL_TABS.map(t => '<button class="chip' + (GP_TAB === t[0] ? ' on' : '') + '" data-tt="' + t[0] + '" aria-pressed="' + (GP_TAB === t[0]) + '">' + esc(t[1]) + '</button>').join('');
   box.innerHTML = list.map(x => '<button class="tl" data-tool="' + x.id + '"' + (x.off ? ' disabled' : '') + '><i aria-hidden="true">' + x.ic + '</i><span><b>' + esc(x.t) + '</b><small>' + esc(x.d) + '</small></span><em class="' + (x.ok ? 'ok' : '') + '">' + esc(x.s) + '</em></button>').join('');
+  if (fk) { const n = box.querySelector('[data-tool="' + fk + '"]'); if (n) n.focus({preventScroll:true}); }
 }
 async function toolClick(g, id){
   if (id === 'trs') { $('#trSw').click(); return; }
@@ -3684,18 +3706,21 @@ async function playGame(g, out){
   const lg = LIB.find(x => x.id === g.id); if (ok && lg) { lg.played = Math.floor(Date.now() / 1000); paintRecent(); if (typeof paintLib === 'function') paintLib(); }
   return ok;
 }
+function gpTrText(){
+  const i = GPI, st = TT || {};
+  return !i ? _t('Controllo il gioco…') : i.errore ? tx(i.errore) : i.tradotto ? (i.in_file ? _t('Tradotto dentro il gioco.') : st.acceso ? _t('Tradotto sullo schermo: nel gioco premi ') + keyName('pagina', 'F7') + '.' : _t('Tradotto sullo schermo. La traduzione dei giochi adesso è spenta: GIOCA la accende da sola; se apri il gioco da Steam, accendila prima.')) : i.anticheat ? _t('Non tradotto. Si può tradurre solo sullo schermo, per non rischiare con l\'anti-imbroglio.') : _t('Non tradotto.');
+}
 function paintGame(g){
   const box = $('#gamePage'), m = S.gameMemo && S.gameMemo[g.id], i = GPI;
   const pw = gamePow(g.id);
   const pills = '<span class="pill">' + esc(storeName(g.store)) + '</span>' + (i && i.anticheat ? '<span class="pill warn">' + esc(_t('Anti-imbroglio')) + '</span>' : '') + (i && i.unity ? '<span class="pill">Unity</span>' : '') + (i && i.tradotto ? '<span class="pill ok">' + esc(_t('Tradotto')) + '</span>' : '');
-  const st = TT || {};
-  const trTxt = !i ? _t('Controllo il gioco…') : i.errore ? tx(i.errore) : i.tradotto ? (i.in_file ? _t('Tradotto dentro il gioco.') : st.acceso ? _t('Tradotto sullo schermo: nel gioco premi ') + keyName('pagina', 'F7') + '.' : _t('Tradotto sullo schermo. La traduzione dei giochi adesso è spenta: GIOCA la accende da sola; se apri il gioco da Steam, accendila prima.')) : i.anticheat ? _t('Non tradotto. Si può tradurre solo sullo schermo, per non rischiare con l\'anti-imbroglio.') : _t('Non tradotto.');
+  const trTxt = gpTrText();
   const live = LIVE && LIVE.gpu && LIVE.gpu.temp != null ? Math.round(LIVE.gpu.temp) + '°' : '—';
   const stats = [[i && i.traduzioni ? String(i.traduzioni) : '0', _t('Frasi già tradotte')], [pw ? POW[pw] : autoAll() ? _t('Alta (Boost automatico)') : POW[''], _t('Potenza quando giochi')], [live, _t('Scheda video adesso')]];
   box.innerHTML = '<div class="gp"><div><button class="btn ghost" id="gpBack">← ' + esc(_t('Tutti i giochi')) + '</button></div>' +
     '<div class="card gp-hero"><div class="cover gp-cv"></div><div class="gp-tit"><div class="gp-store">' + esc(storeName(g.store)) + '</div><h2>' + esc(g.name) + '</h2><div>' + pills + '</div></div></div>' +
     '<div class="gp-grid"><div class="gp-main">' +
-      (m ? '<div class="mem"><div><b>🧠 ' + esc(_t('Tasso si ricorda')) + '</b><span>' + esc(_t('Ultima volta')) + (m.when ? ' (' + esc(fmtDay(m.when)) + ')' : '') + ': ' + esc(memoTxt(m)) + '. ' + esc(_t('Premi GIOCA e uso le stesse impostazioni.')) + '</span></div><button class="btn ghost" data-act="wiz">' + esc(_t('Cambia')) + '</button></div>' : '') +
+      (m && memoTxt(m) ? '<div class="mem"><div><b>🧠 ' + esc(_t('Tasso si ricorda')) + '</b><span>' + esc(_t('Ultima volta')) + (m.when ? ' (' + esc(fmtDay(m.when)) + ')' : '') + ': ' + esc(memoTxt(m)) + '. ' + esc(_t('Premi GIOCA e uso le stesse impostazioni.')) + '</span></div><button class="btn ghost" data-act="wiz">' + esc(_t('Cambia')) + '</button></div>' : '') +
       '<div class="gp-stats">' + stats.map(s => '<div><b>' + esc(s[0]) + '</b><span>' + esc(s[1]) + '</span></div>').join('') + '</div>' +
       '<div class="gp-acts"><button class="gp-big gplay" data-act="play"><b>▶ ' + esc(_t('GIOCA')) + '</b><span>' + esc(pw ? _t('Con ') + POW[pw] + _t('. A fine partita rimetto tutto com\'era.') : autoAll() ? _t('Con il Boost automatico. A fine partita rimetto tutto com\'era.') : _t('Apre il gioco dal suo negozio.')) + '</span></button>' +
       '<button class="gp-big gprep" data-act="wiz"><b>⚙ ' + esc(_t('PREPARA A PASSI')) + '</b><span>' + esc(_t('Traduzione, potenza e impostazioni consigliate, una cosa alla volta.')) + '</span></button></div>' +
@@ -3782,6 +3807,17 @@ $('#gwzX').onclick = wzClose;
 document.addEventListener('keydown', (ev) => { if (ev.key === 'Escape' && W && !$('#gwz').hidden && !$('#modal').classList.contains('on')) { if (ev.target && ev.target.id === 'gwQ' && ev.target.value) { ev.target.value = ''; W.q = ''; wzDraw(); const n = $('#gwQ'); if (n) n.focus(); return; } wzClose(); } });
 // "Non serve tradurre" su un gioco già tradotto: Applica toglie la traduzione
 function wzUntr(){ return !!(W && W.kind === 'prep' && W.skip && !W.noGame && W.info && W.info.tradotto && W.info.cartella); }
+// Il Tab resta dentro la procedura (dietro c'è il resto di Tasso, per esempio il cambio di modalità).
+document.addEventListener('keydown', (ev) => {
+  if (ev.key !== 'Tab' || !W || $('#gwz').hidden || $('#modal').classList.contains('on')) return;
+  const box = $('#gwz');
+  const f = [...box.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')].filter(x => !x.disabled && x.offsetParent !== null);
+  if (!f.length) { ev.preventDefault(); return; }
+  const a = document.activeElement, i = f.indexOf(a);
+  if (!box.contains(a) || i < 0) { ev.preventDefault(); (ev.shiftKey ? f[f.length - 1] : f[0]).focus(); return; }
+  if (ev.shiftKey && i === 0) { ev.preventDefault(); f[f.length - 1].focus(); }
+  else if (!ev.shiftKey && i === f.length - 1) { ev.preventDefault(); f[0].focus(); }
+});
 function canFile(){ const i = (W && W.info) || {}; return !!(i.file_ok && !i.anticheat); }
 function langBtns(list, cur, from){
   return list.map(l => {
@@ -3815,7 +3851,7 @@ function wzDraw(){
   $('#gwzSteps').innerHTML = vis.map((n, k) => '<i class="' + (k <= Math.min(W.i, vis.length - 1) ? 'on' : '') + '"></i>').join('');
   const num = Math.min(W.i, vis.length - 1) + 1;
   const P = (t) => '<h3>' + esc(_t('Passo ') + num + ' · ' + t) + '</h3>';
-  const memoBox = (g && W.m) ? '<div class="mem"><div><b>🧠 ' + esc(_t('Tasso si ricorda di ')) + esc(g.name) + '</b><span>' + esc(_t('L\'ultima volta')) + (W.m.when ? ' (' + esc(fmtDay(W.m.when)) + ')' : '') + ': ' + esc(memoTxt(W.m)) + '.</span></div><button class="btn ghost" id="gwPrev">' + esc(_t('Usa le stesse →')) + '</button></div>' : '';
+  const memoBox = (g && W.m && memoTxt(W.m)) ? '<div class="mem"><div><b>🧠 ' + esc(_t('Tasso si ricorda di ')) + esc(g.name) + '</b><span>' + esc(_t('L\'ultima volta')) + (W.m.when ? ' (' + esc(fmtDay(W.m.when)) + ')' : '') + ': ' + esc(memoTxt(W.m)) + '.</span></div><button class="btn ghost" id="gwPrev">' + esc(_t('Usa le stesse →')) + '</button></div>' : '';
   let h = '';
   if (s === 'pick') {
     const stores = [...new Set(LIB.filter(x => !x.hidden).map(x => x.store))];
@@ -3824,7 +3860,7 @@ function wzDraw(){
     h = P(_t('Quale gioco vuoi boostare?')) + (g ? '<p class="small" style="margin:0;color:var(--a1)">✓ ' + esc(_t('Gioco scelto: ')) + esc(g.name) + esc(_t('. Premi "Sì, conferma".')) + '</p>' + memoBox : '<p class="small muted" style="margin:0">' + esc(_t('Tutti i giochi della libreria, anche quelli installati a mano. Scrivi il nome per trovarlo subito.')) + '</p>') +
       '<input id="gwQ" type="search" placeholder="' + esc(_t('Cerca un gioco…')) + '" value="' + esc(W.q) + '" class="gwq">' +
       '<div class="row wrap" style="gap:6px" id="gwF">' + fl.map(f => '<button class="chip' + (W.f === f[0] ? ' on' : '') + '" data-f="' + esc(f[0]) + '" aria-pressed="' + (W.f === f[0]) + '">' + esc(f[1]) + '</button>').join('') + '</div>' +
-      '<div class="gwpick">' + (list.length ? list.slice(0, 120).map(x => '<button data-pick="' + esc(x.id) + '" class="' + (g && g.id === x.id ? 'on' : '') + '" aria-pressed="' + !!(g && g.id === x.id) + '"><span class="cover" data-cv="' + esc(x.id) + '"></span><b>' + esc(x.name) + '</b><small>' + esc(storeName(x.store)) + (x.played ? ' · ' + esc(_t('recente')) : '') + '</small></button>').join('') : '<span class="muted">' + esc(LIB.length ? _t('Nessun gioco con questo nome.') : _t('Nessun gioco nella libreria: premi Aggiorna o Aggiungi un gioco.')) + '</span>') + '</div>';
+      '<div class="gwpick">' + (list.length ? list.slice(0, 120).map(x => '<button data-pick="' + esc(x.id) + '" class="' + (g && g.id === x.id ? 'on' : '') + '" aria-pressed="' + !!(g && g.id === x.id) + '"><span class="cover" data-cv="' + esc(x.id) + '"></span><b>' + esc(x.name) + '</b><small>' + esc(storeName(x.store)) + (isRecent(x) ? ' · ' + esc(_t('recente')) : '') + '</small></button>').join('') : '<span class="muted">' + esc(LIB.length ? _t('Nessun gioco con questo nome.') : _t('Nessun gioco nella libreria: premi Aggiorna o Aggiungi un gioco.')) + '</span>') + '</div>';
   }
   if (s === 'da') {
     const sel = LANGS.find(l => l.codice === W.da);
@@ -3881,7 +3917,7 @@ function wzDraw(){
   const tn = $('#gwTune'); if (tn) tn.onclick = () => openTune(g);
   const oc = $('#gwOcr'); if (oc) oc.onclick = async () => { const r = await ttc('ttInstallaOCR', W.da); if (r) toast(tx(r), 'var(--a4)'); else toast(_t('Quando hai aggiunto la lingua torna qui: Tasso la vede da solo.')); };
   const mz = $('#gwMozGo'); if (mz) mz.onclick = () => { mz.disabled = true; mz.textContent = _t('Lo sto scaricando…'); if (TT) TT.scaricando = true; ttc('ttScaricaMozilla'); };
-  const op = $('#gwOpen'); if (op) op.onclick = async () => { op.disabled = true; const vb = $('#gwVer'); vb.textContent = _t('Apro ') + g.name + '…'; await playGame(g, vb); if (W && W.kind !== 'boost' && !W.skip && W.modo !== 'file') vb.textContent += ' ' + _t('Nel gioco premi ') + keyName('pagina', 'F7') + _t(' per tradurre lo schermo.'); op.disabled = false; };
+  const op = $('#gwOpen'); if (op) op.onclick = async () => { op.disabled = true; const vb = $('#gwVer'); vb.textContent = _t('Apro ') + g.name + '…'; const ok = await playGame(g, vb); if (ok && W && W.kind !== 'boost' && !W.skip && W.modo !== 'file') vb.textContent += ' ' + _t('Nel gioco premi ') + keyName('pagina', 'F7') + _t(' per tradurre lo schermo.'); op.disabled = false; };
 }
 $('#gwzB').addEventListener('click', (ev) => {
   if (!W || W.busy) return;
@@ -3989,7 +4025,7 @@ function isRecent(g){ return !!(g && g.played && Date.now() / 1000 - g.played < 
 function sortedLib(){ return LIB.slice().sort((a, b) => ((b.played || 0) - (a.played || 0)) || String(a.name).localeCompare(String(b.name))); }
 function paintRecent(){
   const box = $('#navRec'); if (!box) return;
-  const r = sortedLib().filter(g => !g.hidden && g.played).slice(0, 3);
+  const r = sortedLib().filter(g => !g.hidden && isRecent(g)).slice(0, 3); // come il filtro Recenti: ultimi 14 giorni
   box.innerHTML = r.length ? '<span class="navrech">' + esc(_t('Giocati di recente')) + '</span>' + r.map(g => '<button data-rg="' + esc(g.id) + '" title="' + esc(g.name) + '"><span class="cover navcv" data-ncv="' + esc(g.id) + '"></span><span class="navrn">' + esc(g.name) + '</span></button>').join('') : '';
   box.querySelectorAll('[data-ncv]').forEach(c => { const g = LIB.find(x => x.id === c.dataset.ncv); if (g) putCover(c, g); });
 }

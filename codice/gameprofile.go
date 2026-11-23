@@ -250,8 +250,9 @@ func profileCheck() []string {
 	p := profileCopy()
 	setMu.Lock()
 	on, paused, cur := p.On, settings.Paused, settings.Mode
+	office := settings.Profile == "ufficio"
 	setMu.Unlock()
-	if !on || paused {
+	if !on || paused || office { // in Ufficio il profilo resta salvato ma non si rimette: si riprende in Gaming
 		return nil
 	}
 	var fixed []string

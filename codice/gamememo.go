@@ -53,19 +53,44 @@ func setGameMemo(id string, m GameMemo) string {
 		return "Gioco non trovato: aggiorna la libreria."
 	}
 	c := cleanMemo(m)
-	res := "ok"
 	updateSettings(func(s *Settings) {
-		res = "ok" // updateSettings può ripetere la funzione
+		if memoEmpty(c) {
+			// Niente da ricordare (né traduzione né potenza): non salvo un ricordo vuoto.
+			delete(s.GameMemo, id)
+			return
+		}
 		if s.GameMemo == nil {
 			s.GameMemo = map[string]*GameMemo{}
 		}
-		if _, gia := s.GameMemo[id]; !gia && len(s.GameMemo) >= 500 {
-			res = "Troppi giochi ricordati."
-			return
+		if _, gia := s.GameMemo[id]; !gia {
+			// Al massimo 500 giochi: faccio spazio togliendo quelli ricordati da più tempo.
+			for len(s.GameMemo) >= 500 {
+				delete(s.GameMemo, oldestMemo(s.GameMemo))
+			}
 		}
 		s.GameMemo[id] = &c
 	})
-	return res
+	return "ok"
+}
+
+// memoEmpty: il ricordo non dice niente da mostrare o da rimettere.
+func memoEmpty(m GameMemo) bool {
+	return !m.Skip && m.A == "" && m.Pot == "" && !m.Auto && !m.NoLim
+}
+
+// oldestMemo: il gioco ricordato da più tempo (a pari data, il primo in ordine di nome).
+func oldestMemo(all map[string]*GameMemo) string {
+	old, when := "", ""
+	for id, m := range all {
+		w := ""
+		if m != nil {
+			w = m.When
+		}
+		if old == "" || w < when || (w == when && id < old) {
+			old, when = id, w
+		}
+	}
+	return old
 }
 
 // gameTrInfo prepara la traduzione per un gioco della libreria di Tasso (cartella e avvio).

@@ -244,7 +244,7 @@ func startGameWatcher() {
 
 func gameTick() {
 	setMu.Lock()
-	on := settings.AutoGame && !settings.Paused
+	on := settings.AutoGame && !settings.Paused && settings.Profile != "ufficio" // in Ufficio niente modalità gioco automatica
 	forAll := autoGameForAll(&settings)
 	prev := settings.Mode
 	left := settings.ModeBeforeGame

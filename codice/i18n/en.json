@@ -1261,7 +1261,8 @@
   " GB di RAM": " GB of RAM",
   " (XMP o EXPO spento)": " (XMP or EXPO off)",
   "nessun limite FPS": "no FPS limit",
-  "FPS competitivo": "competitive FPS"
+  "FPS competitivo": "competitive FPS",
+  "L'autoclick c'è solo in modalità Gaming.": "The autoclicker is only available in Gaming mode."
  },
  "ps": {
   "   non riuscita, prova a reinstallarla dal Microsoft Store.": "   failed, try reinstalling it from the Microsoft Store.",
@@ -4945,6 +4946,13 @@
   "Grafica dentro il gioco: questo gioco ha un anti-cheat, quindi Tasso non tocca i suoi file. La grafica la imposti tu dal menu del gioco, con i valori consigliati qui sopra.": "In-game graphics: this game has anti-cheat, so Tasso doesn't touch its files. Set the graphics yourself from the game's menu, using the recommended values above.",
   "La tolgo: il gioco torna com'era": "I'll remove it: the game goes back to how it was",
   "Tolgo la traduzione…": "Removing the translation…",
-  "Traduzione non tolta: ": "Translation not removed: "
+  "Traduzione non tolta: ": "Translation not removed: ",
+  " Le funzioni da gioco (Boost automatico, pannellino, Profilo gioco) restano in pausa finché torni a Gaming.": " Gaming features (automatic Boost, in-game panel, Game profile) stay paused until you switch back to Gaming.",
+  "Tasso è occupato (per esempio con un aggiornamento): riprova tra poco.": "Tasso is busy (for example with an update): try again in a moment.",
+  "<span class=\"muted\">Nessun gioco in questo negozio.</span>": "<span class=\"muted\">No games from this store.</span>",
+  " era già nella libreria: te lo faccio vedere di nuovo.": " was already in the library: I'm showing it again.",
+  "<span class=\"muted\">Nessun gioco giocato negli ultimi 14 giorni. Apri un gioco con GIOCA e lo trovi qui.</span>": "<span class=\"muted\">No games played in the last 14 days. Open a game with PLAY and you'll find it here.</span>",
+  "Chiudi i programmi che non usi.": "Close the programs you're not using.",
+  " che su Windows Update: se Windows funziona bene, puoi anche aspettare.</span></span>": " than on Windows Update: if Windows works fine, you can also wait.</span></span>"
  }
 }

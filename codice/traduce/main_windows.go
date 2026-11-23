@@ -5,7 +5,6 @@
 package traduce
 
 import (
-	"runtime"
 	"bytes"
 	"context"
 	"crypto/rand"
@@ -20,6 +19,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"runtime"
 	"runtime/debug"
 	"strings"
 	"sync"
@@ -76,7 +76,7 @@ type Impostazioni struct {
 // Profilo di un gioco: si carica da solo quando quel gioco è in primo piano.
 type Profilo struct {
 	Zona      Zona   `json:"zona"`
-	ZonaChat  Zona   `json:"zona_chat"`               // 3.1: dove sta la chat degli altri in questo gioco
+	ZonaChat  Zona   `json:"zona_chat"`           // 3.1: dove sta la chat degli altri in questo gioco
 	ChatDove  string `json:"chat_dove,omitempty"` // cartella del programma (per dire nella pagina del gioco se è scelta)
 	Posizione string `json:"posizione"`
 	DimFont   int    `json:"dim_font"`
@@ -188,8 +188,26 @@ func Avvia() {
 			traduttore.SalvaMemoria()
 		}
 	}()
-	if leggiImp().TuttoAuto || len(leggiImp().GiochiTradotti) > 0 {
+	if !InUfficio.Load() && (leggiImp().TuttoAuto || len(leggiImp().GiochiTradotti) > 0) {
 		assicuraMotore() // traduzione "da sola" scelta dall'utente: il motore deve essere pronto
+	}
+}
+
+// InUfficio: Tasso è in modalità Ufficio (niente giochi né traduzione). Lo imposta Tasso
+// all'avvio e a ogni cambio di modalità con ImpostaUfficio.
+var InUfficio atomic.Bool
+
+// ImpostaUfficio segna la modalità di Tasso. Tornando a Gaming riapre il motore se serve
+// (traduzione "da sola" o giochi tradotti dentro il gioco).
+func ImpostaUfficio(on bool) {
+	if InUfficio.Swap(on) == on || on || !avviato.Load() {
+		return
+	}
+	if leggiImp().TuttoAuto || len(leggiImp().GiochiTradotti) > 0 {
+		go func() {
+			defer guard("motore-gaming")
+			assicuraMotore()
+		}()
 	}
 }
 
@@ -920,7 +938,7 @@ func suTasto(id int) {
 	switch id {
 	case tastoSeleziona:
 		selPerChat.Store(false) // F9 sceglie sempre la zona dei dialoghi
-		ov.RicordaGioco() // F9 premuto mentre giochi: quella è la finestra del gioco
+		ov.RicordaGioco()       // F9 premuto mentre giochi: quella è la finestra del gioco
 		ov.ApriSelezione()
 	case tastoTraduci:
 		traduciOra(true)

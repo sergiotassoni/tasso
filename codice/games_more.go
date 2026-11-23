@@ -526,7 +526,7 @@ func isBroadDir(d string) bool {
 
 // addGame: finestra di Windows per scegliere il programma del gioco.
 func addGame() string {
-	p := pickFile(trGo("Scegli il programma del gioco (.exe)"), "Programmi\x00*.exe\x00\x00")
+	p := pickFile(trGo("Scegli il programma del gioco (.exe)"), trGo("Programmi")+"\x00*.exe\x00\x00")
 	if p == "" {
 		return "cancel"
 	}
@@ -537,18 +537,37 @@ func addGame() string {
 	if gn := filepath.Base(filepath.Dir(p)); len(gn) > 2 && !genericDirRe.MatchString(gn) && !isBroadDir(filepath.Dir(p)) {
 		name = niceName(gn)
 	}
+	// Già in libreria (trovato da Tasso o aggiunto prima, magari nascosto): lo rimostro e lo dico.
+	gia, giaID := "", ""
+	libMu.Lock()
+	for id, g := range library {
+		if g.exe != "" && strings.EqualFold(g.exe, p) {
+			gia, giaID = g.Name, id
+			break
+		}
+	}
+	libMu.Unlock()
 	updateSettings(func(s *Settings) {
+		if giaID != "" {
+			s.HiddenGames = withoutStr(s.HiddenGames, giaID)
+		}
+		s.HiddenGames = withoutStr(s.HiddenGames, "man:"+shortHash(p))
 		for _, c := range s.CustomGames {
 			if strings.EqualFold(c.Exe, p) {
+				if gia == "" {
+					gia = c.Name
+				}
 				return
 			}
 		}
-		if len(s.CustomGames) < 300 {
+		if gia == "" && len(s.CustomGames) < 300 {
 			s.CustomGames = append(s.CustomGames, CustomGame{Name: name, Exe: p})
 		}
-		s.HiddenGames = withoutStr(s.HiddenGames, "man:"+shortHash(p))
 	})
 	rescanLibrary()
+	if gia != "" {
+		return "gia:" + gia
+	}
 	return "ok"
 }
 
