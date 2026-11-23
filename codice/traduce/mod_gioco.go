@@ -99,10 +99,12 @@ type ManifestoMod struct {
 	Tipo       string    `json:"tipo"`
 	Exe        string    `json:"exe"`
 	Quando     time.Time `json:"quando"`
-	Aggiunti   []string  `json:"aggiunti"`   // percorsi relativi alla cartella del gioco (file e cartelle in cima)
-	Sostituiti []string  `json:"sostituiti"` // file che esistevano: l'originale è nella copia di sicurezza
-	Token      string    `json:"token"`      // segreto nell'indirizzo: solo questo gioco può chiedere traduzioni
-	Lingue     [2]string `json:"lingue"`     // da → a
+	Aggiunti   []string  `json:"aggiunti"`              // percorsi relativi alla cartella del gioco (file e cartelle in cima)
+	Sostituiti []string  `json:"sostituiti"`            // file che esistevano: l'originale è nella copia di sicurezza
+	Token      string    `json:"token"`                 // segreto nell'indirizzo: solo questo gioco può chiedere traduzioni
+	Lingue     [2]string `json:"lingue"`                // da → a
+	CreataMods bool      `json:"creata_mods,omitempty"` // Unreal: la cartella ~mods l'ha creata Tasso
+	AntiCheat  bool      `json:"anti_cheat,omitempty"`  // installata su un gioco con anti-cheat, per scelta dell'utente
 }
 
 func cartellaCopie(dirApp, chiave string) string {
@@ -341,6 +343,12 @@ func TogliModGioco(dirApp, chiave string) error {
 		return nil
 	}
 	copie := cartellaCopie(dirApp, chiave)
+	if m.Tipo == "unreal" {
+		if err := togliModUnreal(m); err != nil {
+			return err
+		}
+		return os.Remove(filepath.Join(copie, "manifesto.json"))
+	}
 	if tr := filepath.Join(m.Cartella, "BepInEx", "Translation"); esisteVoce(tr) {
 		_ = os.RemoveAll(filepath.Join(copie, "traduzioni"))
 		_ = copiaCartella(tr, filepath.Join(copie, "traduzioni"))
@@ -486,7 +494,10 @@ func ModPossibile(cartella string) (bool, string) {
 		}
 		return true, ""
 	}
-	return false, "solo giochi Unity, per ora"
+	if CartellaPaksUnreal(cartella) != "" {
+		return UnrealPossibile(cartella)
+	}
+	return false, "solo giochi Unity e Unreal"
 }
 
 // ModNonPartita: dal registro di BepInEx, la traduzione dentro il gioco non è partita.

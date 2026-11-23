@@ -195,7 +195,9 @@ var installaOCRIn atomic.Value
 // richiesta all'utente. Cerca il nome esatto del pacchetto invece di indovinarne la versione.
 const scriptAggiungiOCR = `$ErrorActionPreference = 'Stop'
 try {
-  $c = Get-WindowsCapability -Online | Where-Object { $_.Name -like 'Language.OCR~~~%TAG%~*' } | Select-Object -First 1
+  $tutti = Get-WindowsCapability -Online | Where-Object { $_.Name -like 'Language.OCR~~~*' }
+  $c = $tutti | Where-Object { $_.Name -like 'Language.OCR~~~%TAG%~*' } | Select-Object -First 1
+  if (-not $c) { $c = $tutti | Where-Object { $_.Name -like 'Language.OCR~~~%PRE%-*' } | Select-Object -First 1 }
   if (-not $c) { [Console]::Out.WriteLine('NONE'); exit }
   if ($c.State -ne 'Installed') { $null = Add-WindowsCapability -Online -Name $c.Name }
   [Console]::Out.WriteLine('OK')
@@ -227,13 +229,18 @@ func installaLetturaOCR(codice string) string {
 	emetti("lingue", elencoLingue())
 	go func() {
 		defer guard("installa-ocr")
-		out, err := psUnaVolta(strings.ReplaceAll(scriptAggiungiOCR, "%TAG%", pacchettoOCR(l.OCR)), 20*time.Minute)
+		tag := pacchettoOCR(l.OCR)
+		pre := strings.SplitN(tag, "-", 2)[0]
+		out, err := psUnaVolta(strings.NewReplacer("%TAG%", tag, "%PRE%", pre).Replace(scriptAggiungiOCR), 20*time.Minute)
 		installaOCRIn.Store("")
 		muOCRLingue.Lock()
 		ocrLingue = nil // rileggo subito cosa sa leggere Windows
 		muOCRLingue.Unlock()
-		caricaLingueOCR()
-		if _, letta := ocrPerLingua(codice); err == nil && strings.Contains(out, "OK") && letta {
+		letta := false
+		for t := range caricaLingueOCR() {
+			letta = letta || strings.HasPrefix(t, strings.ToLower(pre)+"-")
+		}
+		if err == nil && strings.Contains(out, "OK") && letta {
 			emetti("info", map[string]string{"testo": "Fatto: ora Windows sa leggere questa lingua."})
 		} else {
 			apriImpostazioniLingue()

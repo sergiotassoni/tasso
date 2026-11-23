@@ -70,7 +70,7 @@ func eseguiProvaFile() {
 	}
 	if _, ok := leggiManifesto(dirApp, chiaveGioco(provaFileCartella)); !ok {
 		t0 := time.Now()
-		applicaModGioco(provaFileNome, provaFileCartella)
+		applicaModGioco(provaFileNome, provaFileCartella, false)
 		_, ok := leggiManifesto(dirApp, chiaveGioco(provaFileCartella))
 		nota(fmt.Sprintf("installazione: %v in %.1f s", ok, time.Since(t0).Seconds()))
 		if !ok {

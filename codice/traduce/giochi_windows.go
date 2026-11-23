@@ -161,6 +161,7 @@ func InfoGioco(nome, piattaforma, cartella, avvio string) map[string]any {
 		"nome": nome, "piattaforma": piattaforma, "cartella": cartella,
 		"tradotto":    tradotto,
 		"unity":       unityDi(cartella),
+		"unreal":      CartellaPaksUnreal(cartella) != "",
 		"in_file":     giocoInFile(cartella),
 		"file_ok":     fileOK,
 		"file_motivo": fileMotivo,

@@ -1131,7 +1131,27 @@
   "• Grafica dentro il gioco: non sono riuscito a rimettere com'era il file delle impostazioni.": "• In-game graphics: I couldn't put the settings file back as it was.",
   "Sto già aggiungendo un'altra lingua: aspetta che finisca.": "I'm already adding another language: wait for it to finish.",
   "Fatto: ora Windows sa leggere questa lingua.": "Done: Windows can now read this language.",
-  "Windows non è riuscito ad aggiungerla da solo (serve internet). Ti ho aperto le Impostazioni: aggiungi la lingua da lì.": "Windows couldn't add it by itself (needs internet). I opened Settings for you: add the language there."
+  "Windows non è riuscito ad aggiungerla da solo (serve internet). Ti ho aperto le Impostazioni: aggiungi la lingua da lì.": "Windows couldn't add it by itself (needs internet). I opened Settings for you: add the language there.",
+  " e riprova: con il gioco aperto non posso aggiungere il file della traduzione.": " and try again: with the game open I can't add the translation file.",
+  "Non riesco a togliere la traduzione di prima: ": "I can't remove the previous translation: ",
+  "Leggo le scritte del gioco…": "Reading the game's text…",
+  "Non riesco a leggere le scritte del gioco: ": "I can't read the game's text: ",
+  "Traduco le scritte del gioco: ": "Translating the game's text: ",
+  " (mancano circa ": " (about ",
+  " min)": " min left)",
+  "Traduzione interrotta: il gioco è rimasto com'era.": "Translation stopped: the game is unchanged.",
+  "Non sono riuscito a tradurre le scritte: il gioco è rimasto com'era.": "I couldn't translate the text: the game is unchanged.",
+  "Aggiungo il file della traduzione (gli originali non si toccano)…": "Adding the translation file (the originals are never touched)…",
+  "Non riesco a salvare l'elenco dei file: ": "I can't save the file list: ",
+  "Non sono riuscito a scrivere il file: ": "I couldn't write the file: ",
+  " scritte tradotte. Premi Apri il gioco: lo vedrai in ": " texts translated. Press Open the game: you'll see it in ",
+  ", con le scritte del gioco. Se il gioco si aggiorna, rifai Applica.": ", with the game's own text. If the game updates, press Apply again.",
+  "non è un gioco Unreal": "not an Unreal game",
+  "i file del gioco sono chiusi a chiave": "the game's files are locked with a key",
+  "non riesco a leggere i file del gioco": "I can't read the game's files",
+  "solo giochi Unity e Unreal": "only Unity and Unreal games",
+  "nel gioco non c'è la lingua ": "the game doesn't have the language ",
+  "l'elenco dei file del gioco è cifrato": "the game's file list is encrypted"
  },
  "ps": {
   " di ": " of ",
@@ -4710,6 +4730,16 @@
   "Aggiungo ": "Adding ",
   "Aggiungi ": "Add ",
   " a Windows": " to Windows",
-  "Sto aggiungendo la lingua a Windows: puoi aspettare qui, quando è pronta compare tra le lingue.": "Adding the language to Windows: you can wait here, it shows up in the list when ready."
+  "Sto aggiungendo la lingua a Windows: puoi aspettare qui, quando è pronta compare tra le lingue.": "Adding the language to Windows: you can wait here, it shows up in the list when ready.",
+  "Ha l'anti-cheat: rischio di ban, scegli tu": "Has anti-cheat: ban risk, your choice",
+  "Scritte identiche all'originale, il gioco non viene toccato": "Text looks exactly like the original, the game isn't touched",
+  "Solo per alcuni giochi Unity e Unreal": "Only for some Unity and Unreal games",
+  "No: Windows non sa leggere questa lingua": "No: Windows can't read this language",
+  "Attenzione: ": "Warning: ",
+  " ha un anti-cheat.": " has anti-cheat.",
+  "Tasso aggiunge un file di lingua accanto a quelli del gioco, senza nascondersi e senza toccare l'anti-cheat. Alcuni anti-cheat possono comunque considerarlo una modifica e bloccare o bannare l'account. Se scegli di farlo, la responsabilità è tua. Più sicuro: \"Sullo schermo\".": "Tasso adds a language file next to the game's files, without hiding and without touching the anti-cheat. Some anti-cheats may still see it as a modification and block or ban the account. If you choose to do it, it's your responsibility. Safer: \"On screen\".",
+  "Ho capito il rischio di ban e scelgo io di tradurre dentro questo gioco": "I understand the ban risk and I choose to translate inside this game",
+  "Sullo schermo è la scelta sicura con l'anti-cheat: il gioco non viene toccato.": "On screen is the safe choice with anti-cheat: the game isn't touched.",
+  "Spunta \"Ho capito il rischio\" oppure scegli \"Sullo schermo\".": "Tick \"I understand the risk\" or choose \"On screen\"."
  }
 }

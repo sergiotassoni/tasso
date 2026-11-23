@@ -215,7 +215,9 @@ func processoAperto(exe string) bool {
 // applicaModGioco: passi veri della procedura "Traduzione gioco" quando si sceglie "dentro il gioco".
 var muInstalla sync.Mutex
 
-func applicaModGioco(nome, cartella string) {
+// rischioOK: per i giochi con anti-cheat l'utente ha letto l'avviso sul rischio di ban e ha
+// scelto lui di tradurre dentro il gioco (sempre spento se non lo sceglie, gioco per gioco).
+func applicaModGioco(nome, cartella string, rischioOK bool) {
 	defer func() {
 		if r := recover(); r != nil {
 			logErrore("applica-mod", r, debug.Stack())
@@ -234,6 +236,20 @@ func applicaModGioco(nome, cartella string) {
 		emetti("guidata", map[string]any{"nome": nome, "errore": testo})
 	}
 	passo(3, "Controllo il gioco…")
+	if tipo, _ := TipoUnity(cartella); tipo == "" && CartellaPaksUnreal(cartella) != "" {
+		ac := haAntiCheat(cartella)
+		if ac && !rischioOK {
+			applicaTraduzione(nome, cartella)
+			return
+		}
+		if ok, motivo := UnrealPossibile(cartella); !ok {
+			emetti("guidata", map[string]any{"nome": nome, "percento": 4, "testo": "Dentro il gioco non si può (" + motivo + "): lo traduco sullo schermo."})
+			applicaTraduzione(nome, cartella)
+			return
+		}
+		applicaModUnreal(nome, cartella, ac, passo, fallito)
+		return
+	}
 	if haAntiCheat(cartella) {
 		// mai file aggiunti a un gioco con l'anti-imbroglio: passo alla traduzione dello schermo
 		applicaTraduzione(nome, cartella)
@@ -378,6 +394,10 @@ func modDaUsare(cartella string, inPrimoPianoDa time.Duration, nome string) bool
 		return false
 	}
 	chiave := chiaveGioco(cartella)
+	if m, _ := leggiManifesto(dirApp, chiave); m.Tipo == "unreal" {
+		// Unreal: le scritte tradotte sono nel file aggiunto, il gioco non chiede niente a Tasso
+		return len(m.Aggiunti) > 0 && esisteVoce(filepath.Join(m.Cartella, m.Aggiunti[0]))
+	}
 	muRichiestePerGioco.Lock()
 	no := modNonFunziona[chiave]
 	muRichiestePerGioco.Unlock()
