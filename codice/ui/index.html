@@ -1661,7 +1661,7 @@ window.tasso = {
     const box = $('#lastResult'); box.style.display = 'block';
     const lvl0 = !(RUN && RUN.level); const title = p.cancelled ? _t('Interrotto') : lvl0 ? _t('Finito: qui sotto cosa ho trovato e cosa ho fatto') : _t('Fatto! Il tuo PC è più in forma');
     box.innerHTML = '<div class="row wrap" style="justify-content:space-between;gap:16px"><div><h2 style="font-size:22px;color:var(--a1)">' + title + _t('</h2><p class="sub">Passaggi completati: ') + (Number(p.done) || 0) + _t(' di ') + (Number(p.total) || 0) + _t(' · durata ') + fmtMin(p.seconds / 60) + '</p></div>' +
-      _t('<div class="row" style="gap:10px"><div class="stat" style="text-align:right"><div class="k">Spazio liberato</div><div class="v" style="color:var(--a1)">') + fmtBytes(p.freed) + '</div></div>' + ((LIVE && LIVE.diskFree) ? _t('<div class="stat" style="text-align:right"><div class="k">Spazio libero ora</div><div class="v">') + fmtBytes(LIVE.diskFree) + '</div></div>' : '') + '</div></div>' +
+      '<div class="row" style="gap:10px">' + ((lvl0 && !(p.freed > 0)) ? '' : _t('<div class="stat" style="text-align:right"><div class="k">Spazio liberato</div><div class="v" style="color:var(--a1)">') + fmtBytes(p.freed) + '</div></div>') + ((LIVE && LIVE.diskFree) ? _t('<div class="stat" style="text-align:right"><div class="k">Spazio libero ora</div><div class="v">') + fmtBytes(LIVE.diskFree) + '</div></div>' : '') + '</div></div>' +
       '<div class="log" id="doneLog" style="margin-top:14px;height:180px"></div>' +
       (p.reboot && !p.shutdown ? _t('<div class="note" style="margin-top:14px">Per completare aggiornamenti e riparazioni serve un riavvio.</div>') : '') +
       '<div class="row wrap" style="gap:10px;margin-top:14px">' + (p.reboot && !p.shutdown ? _t('<button class="btn warn" id="btnReboot">Riavvia ora</button>') : '') + _t('<button class="btn ghost" id="btnLogs2">Apri la cartella dei registri</button></div>');
@@ -1691,7 +1691,7 @@ window.tasso = {
   onFiles(p){ FILES = p.data || null; paintFiles(); },
   onScanFolder(p){ if (p.error) { toast(p.error, 'var(--a4)'); return; } if (!p.path) return; FS_EXTRA = p.path; paintFsExtra(); },
   onRecycleDone(p){ recycleDone(p); },
-  onShredProgress(m){ if (/^Chiedo|^Distruggo 1 di/.test(m)) toast(m, 'var(--a3)'); },
+  onShredProgress(m){ if (/^Chiedo|^Distruggo 1 di|^Asking|^Destroying 1 of/.test(m)) toast(m, 'var(--a3)'); },
   onShredDone(p){ toast(p.msg, p.ok ? 'var(--a1)' : 'var(--a4)'); },
   onUndoDone(p){ if (p.settings) S = p.settings; toast(p.msg, 'var(--a1)'); paintUndo(p.changes); paintModes(); if (loaded.startup) call('goStartupList'); if (loaded.games) { paintLib(); profileRefresh(); } },
   onRestoreDone(p){ if (p.settings) S = p.settings; (p.msgs || []).forEach(m => toast(m, 'var(--a3)')); paintSettings(); paintModes(); toast(p.paused ? _t('Fatto: impostazioni rimesse com\'erano e Tasso è spento.') : _t('Fatto: impostazioni rimesse com\'erano.')); if (loaded.startup) call('goStartupList'); if (loaded.games) profileRefresh(); undoRefresh(); }

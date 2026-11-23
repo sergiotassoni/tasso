@@ -518,7 +518,7 @@ elseif ($fixed -gt 0) { Say ('SFC ha trovato e riparato ' + $fixed + ' file di s
 else { Say 'File di sistema: nessun problema trovato.' }
 if ($needReboot -or $bad -gt 0 -or $fixed -gt 0) { [Console]::Out.WriteLine('REBOOT') }
 `},
-	{ID: "chkdsk", Name: "Controllo errori del disco", Desc: "Controlla il disco di sistema mentre usi il PC. Se trova errori gravi te lo dice; la riparazione al riavvio la prenota solo se avvii questo controllo da solo.", Level: 4, Minutes: 4, Timeout: 60 * time.Minute, Script: `
+	{ID: "chkdsk", Name: "Controllo errori del disco", Desc: "Controlla il disco di sistema mentre usi il PC. Se trova errori gravi te lo dice; la riparazione al riavvio la prenota solo se avvii il controllo da solo o da Risolvi un problema, mai dentro una pulizia.", Level: 4, Minutes: 4, Timeout: 60 * time.Minute, Script: `
 if (Skip-AutoOnBattery) { return }
 Say ('Controllo il disco ' + $env:SystemDrive + '...')
 $dl = $env:SystemDrive.TrimEnd(':')
