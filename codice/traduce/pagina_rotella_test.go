@@ -6,35 +6,91 @@ import (
 	"testing"
 )
 
-// La rotella sposta l'elenco: più righe cambiano sotto le traduzioni → pagina spostata.
-// Il mouse sopra una riga (nome e valore) cambia una riga sola → resta un semplice cambio di colore.
+// La rotella sposta l'elenco: le scritte si ritrovano più su → pagina spostata.
+// Mouse sopra una riga, riquadri illuminati, finestrella di descrizione: le scritte restano
+// ferme → solo cambio di colore, le traduzioni restano (No Man's Sky, inventario).
 func TestPaginaSpostata(t *testing.T) {
-	a := image.NewRGBA(image.Rect(0, 0, 400, 300))
-	for i := range a.Pix {
-		a.Pix[i] = 40
+	const W, H = 400, 300
+	// righe con "lettere" diverse: barrette chiare a posizioni diverse per ogni riga
+	disegna := func(off int) *image.RGBA {
+		img := image.NewRGBA(image.Rect(0, 0, W, H))
+		for i := range img.Pix {
+			img.Pix[i] = 40
+		}
+		for r := 0; r < 7; r++ {
+			y0 := 20 + r*40 - off
+			for y := y0 + 4; y < y0+16; y++ {
+				if y < 0 || y >= H {
+					continue
+				}
+				for x := 10; x < 360; x++ {
+					if (x*(r+3)+(y-y0)*(r%3+1))%11 < 4 {
+						img.SetRGBA(x, y, color.RGBA{230, 230, 230, 255})
+					}
+				}
+			}
+		}
+		return img
 	}
+	a := disegna(0)
 	var bl []Blocco
 	for r := 0; r < 5; r++ {
 		bl = append(bl, Blocco{X: 10, Y: 20 + r*40, W: 150, H: 20, Img: a})
 		bl = append(bl, Blocco{X: 250, Y: 20 + r*40, W: 100, H: 20, Img: a})
 	}
+	copia := func() *image.RGBA {
+		c := image.NewRGBA(a.Bounds())
+		copy(c.Pix, a.Pix)
+		return c
+	}
 	colora := func(img *image.RGBA, y0, y1 int) {
 		for y := y0; y < y1; y++ {
-			for x := 0; x < 400; x++ {
+			for x := 0; x < W; x++ {
 				img.SetRGBA(x, y, color.RGBA{220, 190, 60, 255})
 			}
 		}
 	}
-	mouse := image.NewRGBA(a.Bounds())
-	copy(mouse.Pix, a.Pix)
-	colora(mouse, 60, 80) // una riga evidenziata, due scritte
+	mouse := copia()
+	colora(mouse, 60, 80)
 	if paginaSpostata(mouse, bl) {
 		t.Fatal("il mouse sopra una riga non deve contare come rotella")
 	}
-	rot := image.NewRGBA(a.Bounds())
-	copy(rot.Pix, a.Pix)
-	colora(rot, 20, 140) // tre righe cambiate
-	if !paginaSpostata(rot, bl) {
-		t.Fatal("la rotella che sposta tre righe non è stata vista")
+	tante := copia()
+	colora(tante, 20, 140) // finestrella o riquadri illuminati su tre righe: le scritte non si spostano
+	if paginaSpostata(tante, bl) {
+		t.Fatal("una finestrella sopra tre righe non è una rotella")
+	}
+	luce := copia()
+	for i := 0; i < len(luce.Pix); i += 4 { // tutto più chiaro (sfondo animato)
+		luce.Pix[i] = min(255, luce.Pix[i]+30)
+	}
+	if paginaSpostata(luce, bl) {
+		t.Fatal("uno sfondo che cambia luce non è una rotella")
+	}
+	if !paginaSpostata(disegna(15), bl) {
+		t.Fatal("la rotella che sposta l'elenco di 15 pixel non è stata vista")
+	}
+	if !paginaSpostata(disegna(-40), bl) {
+		t.Fatal("la rotella in giù di una riga non è stata vista")
+	}
+}
+
+func TestScenaCambiata(t *testing.T) {
+	a := image.NewRGBA(image.Rect(0, 0, 100, 100))
+	bl := []Blocco{{X: 0, Y: 0, W: 50, H: 20, Img: a}, {X: 0, Y: 40, W: 50, H: 20, Img: a}, {X: 0, Y: 70, W: 50, H: 20, Img: a}}
+	b := image.NewRGBA(a.Bounds())
+	for y := 70; y < 90; y++ {
+		for x := 0; x < 50; x++ {
+			b.SetRGBA(x, y, color.RGBA{200, 200, 200, 255})
+		}
+	}
+	if scenaCambiata(b, bl) {
+		t.Fatal("una sola scritta cambiata non è una scena nuova")
+	}
+	for i := range b.Pix {
+		b.Pix[i] = 200
+	}
+	if !scenaCambiata(b, bl) {
+		t.Fatal("tutto cambiato: scena nuova")
 	}
 }

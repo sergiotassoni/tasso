@@ -143,13 +143,15 @@ func cicloPagina(giro int64) {
 				time.Sleep(80 * time.Millisecond)
 				if img2, err := cattura(area); err == nil {
 					imp2 := calcolaImpronta(img2)
-					if imp2.differenza(imp) > 3*sogliaCambiato && !prima {
+					if imp2.differenza(imp) > 3*sogliaCambiato && !prima && scenaCambiata(img2, blocchiPagina()) {
 						NascondiPagina() // cambio di scena: tolgo subito le scritte vecchie
 					}
-					if imp2.cambiata(imp) && mosse < 12 {
+					if bl := blocchiPagina(); imp2.cambiata(imp) && mosse < 12 && (len(bl) == 0 || paginaSpostata(img2, bl)) {
 						// si muove ancora (rotella, menu che scorre): niente scritte finché non si
 						// ferma, così inglese e italiano non si sovrappongono mai. Se si muove
-						// sempre (video dietro al menu) dopo circa un secondo e mezzo traduco lo stesso
+						// sempre (video dietro al menu) dopo circa un secondo e mezzo traduco lo stesso.
+						// Se le scritte sono ferme e cambia solo il resto (mouse sopra un oggetto,
+						// riquadro illuminato, sfondo animato) le traduzioni restano: niente sfarfallio
 						NascondiPagina()
 						mosse++
 						prima = true

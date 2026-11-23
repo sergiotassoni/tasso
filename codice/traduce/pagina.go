@@ -849,12 +849,23 @@ func ricolora(img *image.RGBA, bl []Blocco) ([]Blocco, bool) {
 	return out, true
 }
 
-// paginaSpostata: sotto le traduzioni le scritte inglesi sono cambiate su almeno 3 righe diverse.
-// Il mouse sopra una voce cambia una riga sola (anche se la riga ha due scritte, nome e valore);
-// la rotella sposta tutto l'elenco: le traduzioni vecchie sarebbero nel posto sbagliato,
-// sopra o sotto l'inglese (visto in PC Cafe Simulator, Impostazioni > Audio, 23/11).
+// paginaSpostata: le scritte inglesi sotto le traduzioni sono SCORSE in su o in giù (rotella,
+// elenco che scorre) su almeno 2 righe diverse, nello stesso verso. Cerco ogni scritta vecchia
+// poco più su o poco più giù nell'immagine nuova: se la ritrovo lì, si è spostata.
+// Il mouse sopra una voce, un riquadro che si illumina, una finestrella di descrizione o uno
+// sfondo animato cambiano i colori ma non spostano le scritte: non contano (visto in No Man's
+// Sky, inventario, 23/11: prima ogni passaggio del mouse toglieva e rileggeva tutto).
+// Rotella vista in PC Cafe Simulator, Impostazioni > Audio, 23/11.
 func paginaSpostata(img *image.RGBA, bl []Blocco) bool {
-	var righe []int // centro verticale delle righe cambiate
+	var su, giu []int // centro verticale delle righe scorse
+	conta := func(righe []int, c, h int) ([]int, bool) {
+		for _, r := range righe {
+			if d := r - c; d < max(h, 6) && -d < max(h, 6) {
+				return righe, false
+			}
+		}
+		return append(righe, c), true
+	}
 	for _, b := range bl {
 		if b.Inchiostro == coloreTestoFascia && b.Sfondo == coloreFascia {
 			continue
@@ -862,21 +873,97 @@ func paginaSpostata(img *image.RGBA, bl []Blocco) bool {
 		if b.Img == nil || b.Img.Bounds() != img.Bounds() || !zonaCambiata(b.Img, img, b) {
 			continue
 		}
-		c, nuova := b.Y+b.H/2, true
-		for _, r := range righe {
-			if d := r - c; d < max(b.H, 6) && -d < max(b.H, 6) {
-				nuova = false
-				break
-			}
+		dy := spostamentoScritta(b.Img, img, b)
+		if dy == 0 {
+			continue
 		}
-		if nuova {
-			righe = append(righe, c)
-			if len(righe) >= 3 {
-				return true
-			}
+		c := b.Y + b.H/2
+		if dy < 0 {
+			su, _ = conta(su, c, b.H)
+		} else {
+			giu, _ = conta(giu, c, b.H)
+		}
+		if len(su) >= 2 || len(giu) >= 2 {
+			return true
 		}
 	}
 	return false
+}
+
+// scenaCambiata: sotto più di metà delle traduzioni l'inglese non c'è più (schermata nuova).
+// Una finestrella di descrizione che si apre col mouse cambia solo la sua parte: le altre
+// traduzioni restano al loro posto senza sfarfallare (No Man's Sky, inventario, 23/11).
+func scenaCambiata(img *image.RGBA, bl []Blocco) bool {
+	tot, cambiate := 0, 0
+	for _, b := range bl {
+		if b.Inchiostro == coloreTestoFascia && b.Sfondo == coloreFascia {
+			continue
+		}
+		if b.Img == nil || b.Img.Bounds() != img.Bounds() {
+			return true
+		}
+		tot++
+		if zonaCambiata(b.Img, img, b) {
+			cambiate++
+		}
+	}
+	return tot == 0 || cambiate*2 > tot
+}
+
+// spostamentoScritta: di quanti pixel in verticale la scritta b (presa da vecchia) si ritrova
+// in nuova. 0 se non si ritrova (è cambiata sul posto: colore, evidenziazione, finestrella).
+func spostamentoScritta(vecchia, nuova *image.RGBA, b Blocco) int {
+	r := image.Rect(b.X, b.Y, b.X+b.W, b.Y+b.H).Intersect(vecchia.Bounds())
+	if r.Dx() < 4 || r.Dy() < 4 {
+		return 0
+	}
+	passo := max(2, r.Dy()/8)
+	media := func(dy int) int {
+		tot, n := 0, 0
+		for y := r.Min.Y; y < r.Max.Y; y += passo {
+			y2 := y + dy
+			if y2 < nuova.Rect.Min.Y || y2 >= nuova.Rect.Max.Y {
+				return 1 << 20
+			}
+			for x := r.Min.X; x < r.Max.X; x += 2 {
+				tot += distanza(vecchia.RGBAAt(x, y), nuova.RGBAAt(x, y2))
+				n++
+			}
+		}
+		if n == 0 {
+			return 1 << 20
+		}
+		return tot / n
+	}
+	// la scritta deve avere disegno (lettere), se no si "ritrova" ovunque su un fondo piatto
+	piatta := true
+	c0 := vecchia.RGBAAt(r.Min.X, r.Min.Y)
+	for y := r.Min.Y; y < r.Max.Y && piatta; y += passo {
+		for x := r.Min.X; x < r.Max.X; x += 2 {
+			if distanza(vecchia.RGBAAt(x, y), c0) > 40 {
+				piatta = false
+				break
+			}
+		}
+	}
+	if piatta {
+		return 0
+	}
+	d0 := media(0)
+	meglio, dyM := 1<<20, 0
+	lim := max(4*b.H, 24)
+	for dy := -lim; dy <= lim; dy++ {
+		if dy == 0 {
+			continue
+		}
+		if m := media(dy); m < meglio {
+			meglio, dyM = m, dy
+		}
+	}
+	if meglio <= 12 && meglio*3 < d0 {
+		return dyM
+	}
+	return 0
 }
 
 // zonaCambiata: le lettere inglesi di b sono cambiate tra le due immagini (colore, alone,
