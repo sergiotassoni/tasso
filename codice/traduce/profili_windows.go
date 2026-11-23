@@ -120,7 +120,7 @@ func controllaProfilo() {
 	// la finestra del gioco può essere nuova anche con lo stesso profilo (gioco chiuso e
 	// riaperto): la finestrella deve seguire quella di adesso
 	ov.mu.Lock()
-	ov.gioco = fg
+	ov.gioco, ov.exeGioco = fg, exe
 	ov.mu.Unlock()
 	if gia {
 		return

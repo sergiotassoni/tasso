@@ -1154,7 +1154,7 @@ func cicloAutomatico() {
 			continue
 		}
 		// davanti c'è un altro programma (non il gioco della zona): stessa regola della finestrella
-		if g := ov.giocoAttuale(); g != 0 && fg != g {
+		if !ov.giocoDavanti(fg) {
 			continue
 		}
 		img, err := cattura(i.Zona)
@@ -1294,7 +1294,7 @@ func leggiETraduci(img *image.RGBA, impronta Impronta, forza bool) {
 		auto = testoTasso("● Automatico", "● Automatic")
 	}
 	statoRiga := fmt.Sprintf(testoTasso("%s   ·   %s   ·   %.1f s   ·   %s ritraduci   ·   %s inglese", "%s   ·   %s   ·   %.1f s   ·   %s translate again   ·   %s English"),
-		auto, r.Motore, float64(msOCR+r.Millisec)/1000, nomeTasto("traduci"), nomeTasto("inglese"))
+		auto, nomeMotore(r.Motore), float64(msOCR+r.Millisec)/1000, nomeTasto("traduci"), nomeTasto("inglese"))
 	ov.Mostra(z, testo, r.Originale, statoRiga)
 	muDialogo.Lock()
 	dialogoMostrato = mostratoDialogo{z, r.Parlante, r.Tradotto, r.Originale, statoRiga}

@@ -274,6 +274,7 @@ type finestrella struct {
 	bordo     uintptr
 	zona      Zona
 	gioco     uintptr // finestra del gioco (quella in primo piano quando hai premuto F9)
+	exeGioco  string  // programma del gioco: vale anche per una finestra nuova dello stesso gioco
 	nascosta  bool    // nascosta perché sei uscito dal gioco (Alt+Tab)
 	voce      bool    // sta mostrando il sottotitolo di una voce (fascia in basso, senza stato)
 	salvato   *dialogoSalvato
@@ -506,11 +507,33 @@ func (f *finestrella) RicordaGioco() {
 // impostaGioco: h diventa la finestra del gioco, se è davvero un altro programma (non il velo
 // della scelta, non le nostre finestre, non il desktop).
 func (f *finestrella) impostaGioco(h uintptr) bool {
-	if h == 0 || h == sel.hwnd.Load() || eNostro(exeDiFinestra(h)) {
+	exe := exeDiFinestra(h)
+	if h == 0 || h == sel.hwnd.Load() || eNostro(exe) {
 		return false
 	}
 	f.mu.Lock()
-	f.gioco = h
+	f.gioco, f.exeGioco = h, exe
+	f.mu.Unlock()
+	return true
+}
+
+// giocoDavanti: fg è il gioco ricordato (la sua finestra, o un'altra finestra dello stesso
+// programma, per esempio il gioco chiuso e riaperto). Senza gioco ricordato vale qualsiasi
+// finestra. Una finestra nuova del gioco diventa quella ricordata.
+func (f *finestrella) giocoDavanti(fg uintptr) bool {
+	f.mu.Lock()
+	g, exe := f.gioco, f.exeGioco
+	f.mu.Unlock()
+	if exe == "" || (fg == g && g != 0) {
+		return true
+	}
+	if fg == 0 || exeDiFinestra(fg) != exe {
+		return false
+	}
+	f.mu.Lock()
+	if f.exeGioco == exe {
+		f.gioco = fg
+	}
 	f.mu.Unlock()
 	return true
 }
@@ -544,7 +567,7 @@ func (f *finestrella) giocoAttuale() uintptr {
 
 func (f *finestrella) DimenticaGioco() {
 	f.mu.Lock()
-	f.gioco = 0
+	f.gioco, f.exeGioco = 0, ""
 	f.mu.Unlock()
 }
 
@@ -701,16 +724,25 @@ func ovProc(hwnd, msg, wp, lp uintptr) uintptr {
 		f.mu.Unlock()
 		chiuso := false
 		if g != 0 {
-			v, _, _ := pIsWindow.Call(g)
-			chiuso = v == 0 // il gioco è stato chiuso: la finestra ricordata non vale più
+			if v, _, _ := pIsWindow.Call(g); v == 0 {
+				chiuso = true
+				// il gioco è stato chiuso: la sua ultima traduzione non deve ricomparire sul
+				// desktop o sopra un altro programma (il sottotitolo di una voce resta)
+				f.mu.Lock()
+				if f.gioco == g {
+					f.gioco, f.salvato = 0, nil
+					if !f.voce {
+						f.visibile = false
+					}
+				}
+				f.mu.Unlock()
+			}
 		}
+		davanti := fg == sel.hwnd.Load() || f.giocoDavanti(fg)
 		f.mu.Lock()
-		if chiuso && f.gioco == g {
-			f.gioco = 0
-		}
 		// il sottotitolo di una voce segue la finestra in primo piano: non lo nascondo
-		via := !f.voce && f.gioco != 0 && fg != f.gioco && fg != sel.hwnd.Load()
-		cambia := via != f.nascosta
+		via := !f.voce && !davanti
+		cambia := via != f.nascosta || chiuso
 		f.nascosta = via
 		f.mu.Unlock()
 		if cambia {
