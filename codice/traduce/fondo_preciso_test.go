@@ -44,3 +44,42 @@ func TestFondoPrecisoTieneIBordi(t *testing.T) {
 		}
 	}
 }
+
+func TestContornoLettere(t *testing.T) {
+	img := image.NewRGBA(image.Rect(0, 0, 100, 40))
+	for i := range img.Pix {
+		img.Pix[i] = 120
+		if i%4 == 3 {
+			img.Pix[i] = 255
+		}
+	}
+	for x := 10; x < 80; x += 7 { // lettere bianche con bordo nero
+		for y := 10; y < 30; y++ {
+			for dx := -1; dx <= 3; dx++ {
+				img.SetRGBA(x+dx, y, color.RGBA{10, 10, 10, 255})
+			}
+			img.SetRGBA(x, y, color.RGBA{250, 250, 250, 255})
+			img.SetRGBA(x+1, y, color.RGBA{250, 250, 250, 255})
+			img.SetRGBA(x+2, y, color.RGBA{250, 250, 250, 255})
+		}
+	}
+	b := Blocco{X: 8, Y: 9, W: 76, H: 22, Em: 18}
+	coloriBlocco(img, &b)
+	contornoLettere(img, &b)
+	if !b.HaContorno || distanza(b.Contorno, color.RGBA{10, 10, 10, 255}) > 30 {
+		t.Fatalf("contorno non visto: %v %v ink=%v sf=%v", b.HaContorno, b.Contorno, b.Inchiostro, b.Sfondo)
+	}
+	// testo semplice: niente contorno
+	img2 := image.NewRGBA(image.Rect(0, 0, 100, 40))
+	for x := 10; x < 80; x += 7 {
+		for y := 10; y < 30; y++ {
+			img2.SetRGBA(x, y, color.RGBA{250, 250, 250, 255})
+		}
+	}
+	b2 := Blocco{X: 8, Y: 9, W: 76, H: 22, Em: 18}
+	coloriBlocco(img2, &b2)
+	contornoLettere(img2, &b2)
+	if b2.HaContorno {
+		t.Fatal("contorno inventato")
+	}
+}

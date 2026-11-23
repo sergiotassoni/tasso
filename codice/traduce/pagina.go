@@ -42,6 +42,8 @@ type Blocco struct {
 	Centro     bool        // scritta centrata come le sue vicine (menu al centro): la traduzione resta centrata
 	Ombra      bool        // sfondo che si muove: la scritta ha un'ombra scura, come i testi dei giochi
 	Img        *image.RGBA // la cattura del gioco: la toppa copia i suoi pixel veri
+	Contorno   color.RGBA  // colore del contorno delle lettere (scritte bordate dei giochi)
+	HaContorno bool
 }
 
 // grassetto: lettere spesse come quelle in neretto dei giochi.
@@ -768,4 +770,46 @@ func liberoFinoAlBordo(img *image.RGBA, b Blocco) int {
 		}
 	}
 	return max(b.W, lim)
+}
+
+// contornoLettere: molti giochi scrivono lettere chiare con un bordino scuro (o il contrario).
+// Se l'inglese ce l'ha, anche la traduzione lo deve avere, dello stesso colore.
+func contornoLettere(img *image.RGBA, b *Blocco) {
+	in := image.Rect(b.X-1, b.Y-1, b.X+b.W+1, b.Y+b.H+1).Intersect(img.Bounds())
+	if in.Empty() || distanza(b.Inchiostro, b.Sfondo) < 120 {
+		return
+	}
+	inchiostro := func(x, y int) bool {
+		if !(image.Point{x, y}.In(in)) {
+			return false
+		}
+		return distanza(img.RGBAAt(x, y), b.Inchiostro) < 70
+	}
+	var sr, sg, sb, nc, ni int
+	for y := in.Min.Y; y < in.Max.Y; y++ {
+		for x := in.Min.X; x < in.Max.X; x++ {
+			c := img.RGBAAt(x, y)
+			if distanza(c, b.Inchiostro) < 70 {
+				ni++
+				continue
+			}
+			if distanza(c, b.Inchiostro) < 150 || distanza(c, b.Sfondo) < 90 {
+				continue
+			}
+			vicino := false
+			for _, d := range [4][2]int{{-1, 0}, {1, 0}, {0, -1}, {0, 1}} {
+				if inchiostro(x+d[0], y+d[1]) {
+					vicino = true
+					break
+				}
+			}
+			if vicino {
+				sr, sg, sb, nc = sr+int(c.R), sg+int(c.G), sb+int(c.B), nc+1
+			}
+		}
+	}
+	if ni > 20 && nc*10 > ni*3 {
+		b.Contorno = color.RGBA{uint8(sr / nc), uint8(sg / nc), uint8(sb / nc), 255}
+		b.HaContorno = true
+	}
 }

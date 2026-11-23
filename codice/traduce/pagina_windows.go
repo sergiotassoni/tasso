@@ -207,6 +207,17 @@ func disegnaBlocco(hdc uintptr, b Blocco, fase int) {
 			pDrawText.Call(hdc, uintptr(unsafe.Pointer(&t[0])), uintptr(len(t)-1), uintptr(unsafe.Pointer(&r2)), fl)
 		}
 	}
+	if b.HaContorno && !b.Ombra { // lettere bordate come nel gioco
+		pSetTextColor.Call(hdc, colore([3]uint8{b.Contorno.R, b.Contorno.G, b.Contorno.B}))
+		sp := int32(1)
+		if px >= 26 {
+			sp = 2
+		}
+		for _, d := range [8][2]int32{{-1, -1}, {0, -1}, {1, -1}, {-1, 0}, {1, 0}, {-1, 1}, {0, 1}, {1, 1}} {
+			r2 := rect{rt.Left + d[0]*sp, rt.Top + d[1]*sp, rt.Right + d[0]*sp, rt.Bottom + d[1]*sp}
+			pDrawText.Call(hdc, uintptr(unsafe.Pointer(&t[0])), uintptr(len(t)-1), uintptr(unsafe.Pointer(&r2)), fl)
+		}
+	}
 	pSetTextColor.Call(hdc, colore([3]uint8{b.Inchiostro.R, b.Inchiostro.G, b.Inchiostro.B}))
 	pDrawText.Call(hdc, uintptr(unsafe.Pointer(&t[0])), uintptr(len(t)-1), uintptr(unsafe.Pointer(&rt)), fl)
 }
