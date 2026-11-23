@@ -21,7 +21,7 @@ type Motore interface {
 }
 
 type Traduttore struct {
-	corretteIA map[string]bool // frasi corrette dall'IA in questa sessione: nel registro escono come "libreria (IA)"
+	corretteIA     map[string]bool // frasi corrette dall'IA in questa sessione: nel registro escono come "libreria (IA)"
 	mu             sync.Mutex
 	motori         []Motore // in ordine di preferenza: IA, poi Mozilla
 	glossario      Glossario
