@@ -194,8 +194,8 @@ func selfUpdate() {
 	}
 	// Blocco subito il file nuovo e controllo che sia proprio quello scaricato e verificato: un
 	// programma senza privilegi non deve poterlo cambiare tra il controllo della firma e l'avvio.
-	lockSelfExe()
-	if b, err := readSelfExe(); err != nil || !bytes.Equal(b, exe) {
+	locked := lockSelfExe()
+	if b, err := readSelfExe(); !locked || err != nil || !bytes.Equal(b, exe) {
 		unlockSelfExe()
 		_ = os.Remove(cur)
 		_ = os.Rename(oldPath, cur)

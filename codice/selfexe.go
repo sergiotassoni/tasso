@@ -1,9 +1,11 @@
 package main
 
 import (
+	"errors"
 	"io"
 	"os"
 	"sync"
+	"time"
 
 	"golang.org/x/sys/windows"
 )
@@ -16,21 +18,30 @@ var (
 	selfExe *os.File
 )
 
-func lockSelfExe() {
+// lockSelfExe blocca il file e dice se ci è riuscito (riprova per un secondo: un antivirus può
+// tenerlo aperto un attimo).
+func lockSelfExe() bool {
 	selfMu.Lock()
 	defer selfMu.Unlock()
-	if selfExe != nil || exePath == "" {
-		return
+	if selfExe != nil {
+		return true
+	}
+	if exePath == "" {
+		return false
 	}
 	p, err := windows.UTF16PtrFromString(exePath)
 	if err != nil {
-		return
+		return false
 	}
-	h, err := windows.CreateFile(p, windows.GENERIC_READ, windows.FILE_SHARE_READ, nil, windows.OPEN_EXISTING, windows.FILE_ATTRIBUTE_NORMAL, 0)
-	if err != nil {
-		return // niente blocco: si legge come prima
+	for i := 0; i < 5; i++ {
+		h, err := windows.CreateFile(p, windows.GENERIC_READ, windows.FILE_SHARE_READ, nil, windows.OPEN_EXISTING, windows.FILE_ATTRIBUTE_NORMAL, 0)
+		if err == nil {
+			selfExe = os.NewFile(uintptr(h), exePath)
+			return true
+		}
+		time.Sleep(200 * time.Millisecond)
 	}
-	selfExe = os.NewFile(uintptr(h), exePath)
+	return false
 }
 
 // unlockSelfExe: prima di sostituire Tasso.exe con l'aggiornamento.
@@ -43,12 +54,13 @@ func unlockSelfExe() {
 	}
 }
 
-// readSelfExe: i byte del Tasso.exe aperto (dal file bloccato, se c'è).
+// readSelfExe: i byte del Tasso.exe aperto, SOLO dal file bloccato. Senza blocco non leggo dal
+// disco: il file potrebbe essere stato sostituito, e da qui finisce in Programmi o viene avviato.
 func readSelfExe() ([]byte, error) {
 	selfMu.Lock()
 	defer selfMu.Unlock()
 	if selfExe == nil {
-		return os.ReadFile(exePath)
+		return nil, errors.New("Tasso.exe non bloccato")
 	}
 	fi, err := selfExe.Stat()
 	if err != nil {

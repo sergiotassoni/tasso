@@ -59,6 +59,7 @@ type gpuDrvState struct {
 	When    string `json:"when"`
 	Reboot  bool   `json:"reboot"`         // installato ma Windows aspetta un riavvio
 	Tick    uint64 `json:"tick,omitempty"` // millisecondi da quando è acceso Windows, quando è stato segnato Reboot
+	Mark    int64  `json:"mark,omitempty"` // quando è stato segnato Reboot (secondi Unix)
 }
 
 // upTick: millisecondi da quando si è acceso Windows. Riparte da zero a ogni riavvio e non cambia
@@ -339,12 +340,14 @@ func gpuDrvCheck() {
 	} else if st.Reboot && st.Tick == 0 {
 		// Stato di una versione di prima senza il tempo di accensione: lo segno ora, così l'avviso si
 		// toglie dopo il prossimo riavvio.
-		st.Tick = upTick()
+		st.Tick, st.Mark = upTick(), time.Now().Unix()
 		saveGpuDrvState(st)
-	} else if st.Reboot && upTick() < st.Tick {
+	} else if st.Reboot && (upTick() < st.Tick || (st.Mark > 0 && time.Since(time.Unix(st.Mark, 0)) > time.Duration(upTick())*time.Millisecond+time.Minute)) {
+		// Riavviato: il tempo di accensione è ripartito da zero, oppure da quando ho segnato l'avviso
+		// è passato più tempo di quanto Windows è acceso adesso.
 		// Il PC è stato riavviato ma il driver è ancora quello di prima: l'installazione non è
 		// andata davvero. Tolgo l'avviso "serve un riavvio", così si può riprovare.
-		st.Reboot, st.Tick = false, 0
+		st.Reboot, st.Tick, st.Mark = false, 0, 0
 		saveGpuDrvState(st)
 	}
 	gdMu.Lock()
@@ -788,7 +791,7 @@ func gpuDrvInstall(undo, noBackup bool) {
 		// Il programma NVIDIA dice che è andata, ma Windows mostra ancora la versione vecchia:
 		// di solito manca solo il riavvio.
 		cur := loadGpuDrvState()
-		cur.Reboot, cur.Tick = true, upTick()
+		cur.Reboot, cur.Tick, cur.Mark = true, upTick(), time.Now().Unix()
 		saveGpuDrvState(cur)
 		gdEmit("done", "Installazione finita, ma Windows mostra ancora il driver di prima. Riavvia il PC: poi controllo di nuovo.", map[string]interface{}{"reboot": true, "undo": undo})
 		return
