@@ -336,8 +336,9 @@ func coloriBlocco(img *image.RGBA, b *Blocco) {
 		ir, ig, ib = ir+int(p.c.R), ig+int(p.c.G), ib+int(p.c.B)
 	}
 	b.Inchiostro = color.RGBA{uint8(ir / k), uint8(ig / k), uint8(ib / k), 255}
+	riempimentoEContorno(img, in, b)
 	b.Tratto = spessoreTratto(img, in, b.Inchiostro, b.Sfondo, b.Em)
-	if distanza(b.Inchiostro, b.Sfondo) < 120 { // troppo simile: leggibilità prima di tutto
+	if !b.HaContorno && distanza(b.Inchiostro, b.Sfondo) < 120 { // troppo simile: leggibilità prima di tutto
 		b.Inchiostro = contrastante(b.Sfondo)
 	}
 }
@@ -776,7 +777,7 @@ func liberoFinoAlBordo(img *image.RGBA, b Blocco) int {
 // Se l'inglese ce l'ha, anche la traduzione lo deve avere, dello stesso colore.
 func contornoLettere(img *image.RGBA, b *Blocco) {
 	in := image.Rect(b.X-1, b.Y-1, b.X+b.W+1, b.Y+b.H+1).Intersect(img.Bounds())
-	if in.Empty() || distanza(b.Inchiostro, b.Sfondo) < 120 {
+	if b.HaContorno || in.Empty() || distanza(b.Inchiostro, b.Sfondo) < 120 {
 		return
 	}
 	inchiostro := func(x, y int) bool {
@@ -812,4 +813,94 @@ func contornoLettere(img *image.RGBA, b *Blocco) {
 		b.Contorno = color.RGBA{uint8(sr / nc), uint8(sg / nc), uint8(sb / nc), 255}
 		b.HaContorno = true
 	}
+}
+
+// riempimentoEContorno: lettere bianche con il bordino nero su un cielo chiaro (molti menu). Il
+// colore "più lontano dallo sfondo" è il bordino, non la lettera: divido i pixel diversi dallo
+// sfondo in due gruppi e la lettera è quello che tocca meno lo sfondo (il bordino lo tocca sempre).
+func riempimentoEContorno(img *image.RGBA, in image.Rectangle, b *Blocco) {
+	if in.Dx() < 4 || in.Dy() < 4 {
+		return
+	}
+	type pt struct {
+		x, y int
+		c    color.RGBA
+	}
+	var px []pt
+	for y := in.Min.Y; y < in.Max.Y; y++ {
+		for x := in.Min.X; x < in.Max.X; x++ {
+			c := img.RGBAAt(x, y)
+			if distanza(c, b.Sfondo) > 90 {
+				px = append(px, pt{x, y, c})
+			}
+		}
+	}
+	if len(px) < 30 {
+		return
+	}
+	// due centri: il più lontano dallo sfondo, e il più lontano da quello
+	c1 := px[0].c
+	for _, p := range px {
+		if distanza(p.c, b.Sfondo) > distanza(c1, b.Sfondo) {
+			c1 = p.c
+		}
+	}
+	c2 := c1
+	for _, p := range px {
+		if distanza(p.c, c1) > distanza(c2, c1) {
+			c2 = p.c
+		}
+	}
+	if distanza(c1, c2) < 150 {
+		return // un colore solo: niente bordino
+	}
+	gr := make([]int, len(px))
+	for it := 0; it < 6; it++ {
+		var s [2][4]int
+		for i, p := range px {
+			g := 0
+			if distanza(p.c, c2) < distanza(p.c, c1) {
+				g = 1
+			}
+			gr[i] = g
+			s[g][0] += int(p.c.R)
+			s[g][1] += int(p.c.G)
+			s[g][2] += int(p.c.B)
+			s[g][3]++
+		}
+		if s[0][3] == 0 || s[1][3] == 0 {
+			return
+		}
+		c1 = color.RGBA{uint8(s[0][0] / s[0][3]), uint8(s[0][1] / s[0][3]), uint8(s[0][2] / s[0][3]), 255}
+		c2 = color.RGBA{uint8(s[1][0] / s[1][3]), uint8(s[1][1] / s[1][3]), uint8(s[1][2] / s[1][3]), 255}
+	}
+	if distanza(c1, c2) < 150 {
+		return
+	}
+	var n, tocca [2]int
+	for i, p := range px {
+		g := gr[i]
+		n[g]++
+		for _, d := range [4][2]int{{-1, 0}, {1, 0}, {0, -1}, {0, 1}} {
+			q := image.Point{p.x + d[0], p.y + d[1]}
+			if q.In(in) && distanza(img.RGBAAt(q.X, q.Y), b.Sfondo) < 60 {
+				tocca[g]++
+				break
+			}
+		}
+	}
+	tot := n[0] + n[1]
+	if n[0]*100 < tot*12 || n[1]*100 < tot*12 {
+		return // uno dei due è solo rumore
+	}
+	r0 := float64(tocca[0]) / float64(n[0])
+	r1 := float64(tocca[1]) / float64(n[1])
+	if r0 < r1*0.7 {
+		b.Inchiostro, b.Contorno = c1, c2
+	} else if r1 < r0*0.7 {
+		b.Inchiostro, b.Contorno = c2, c1
+	} else {
+		return // non si capisce: lascio com'era
+	}
+	b.HaContorno = true
 }
