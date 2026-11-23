@@ -100,3 +100,15 @@ func TestNomeGiocoAttivo(t *testing.T) {
 		}
 	}
 }
+
+func TestRigaPresentazione(t *testing.T) {
+	if g := pulisciRisposta("Ecco la traduzione italiana MIGLIORE:"); g != "" {
+		t.Fatal(g)
+	}
+	if g := pulisciRisposta("Ecco la traduzione italiana migliorata:\nDurante le partite classificate puoi segnalare i giocatori."); g != "Durante le partite classificate puoi segnalare i giocatori." {
+		t.Fatal(g)
+	}
+	if g := pulisciRisposta("Opzioni:"); g != "Opzioni:" {
+		t.Fatal("una voce di menu con i due punti resta", g)
+	}
+}

@@ -121,6 +121,9 @@ func correzioneAccettabile(en, bozza, corretta string) bool {
 	if sembraStrana(en, corretta) != "" && sembraStrana(en, bozza) == "" {
 		return false
 	}
+	if rigaPresentazione(corretta) || (strings.HasSuffix(strings.TrimSpace(corretta), ":") && !strings.HasSuffix(strings.TrimSpace(en), ":")) {
+		return false // "Ecco la traduzione:" invece della traduzione
+	}
 	if copiaInglese(en, bozza, corretta) {
 		return false
 	}
@@ -178,6 +181,18 @@ func pulisciRisposta(s string) string {
 		s = s[i+len("</think>"):]
 	}
 	s = strings.TrimSpace(s)
+	// "Ecco la traduzione italiana MIGLIORE:" prima della traduzione vera (visto in Liar's Bar
+	// il 23/11 con l'IA piccola): via la riga di presentazione; se c'è solo quella, risposta vuota
+	for {
+		prima, resto, aCapo := strings.Cut(s, "\n")
+		if !rigaPresentazione(prima) {
+			break
+		}
+		if !aCapo {
+			return ""
+		}
+		s = strings.TrimSpace(resto)
+	}
 	for _, pre := range []string{"Traduzione automatica:", "Traduzione corretta:", "Traduzione finale:", "Traduzione italiana:", "Traduzione:", "Italiano:"} {
 		if strings.HasPrefix(strings.ToLower(s), strings.ToLower(pre)) {
 			s = strings.TrimSpace(s[len(pre):])
@@ -190,6 +205,16 @@ func pulisciRisposta(s string) string {
 		s = strings.TrimSuffix(strings.TrimPrefix(s, "«"), "»")
 	}
 	return strings.TrimSpace(s)
+}
+
+// rigaPresentazione: frasi che l'IA scrive a volte prima della risposta ("Ecco la traduzione:",
+// "Traduzione corretta:"). Finiscono con i due punti e parlano della traduzione stessa.
+func rigaPresentazione(r string) bool {
+	r = strings.ToLower(strings.TrimSpace(r))
+	if !strings.HasSuffix(r, ":") || len([]rune(r)) > 80 {
+		return false
+	}
+	return strings.HasPrefix(r, "ecco") || strings.Contains(r, "traduzione") || strings.Contains(r, "translation")
 }
 
 // temperatura: 0 nel modo correttore (sempre la stessa correzione per la stessa frase, niente
