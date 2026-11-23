@@ -279,7 +279,7 @@ func emit(name string, payload interface{}) {
 	wv.Dispatch(func() { wv.Eval(js) })
 }
 
-// emitRaw: come emit ma senza traduzione (nomi di giochi e programmi non vanno tradotti).
+// emitRaw: come emit ma senza traduzione (nomi di giochi e programmi, password del Wi-Fi: non vanno tradotti).
 func emitRaw(name string, payload interface{}) {
 	if wv == nil {
 		return

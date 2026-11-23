@@ -1278,7 +1278,11 @@
   " (XMP o EXPO spento)": " (XMP or EXPO off)",
   "nessun limite FPS": "no FPS limit",
   "FPS competitivo": "competitive FPS",
-  "L'autoclick c'è solo in modalità Gaming.": "The autoclicker is only available in Gaming mode."
+  "L'autoclick c'è solo in modalità Gaming.": "The autoclicker is only available in Gaming mode.",
+  "Nel file scaricato c'è un file troppo grande: non aggiorno.": "The downloaded file contains a file that's too big: not updating.",
+  "Hai già questa versione.": "You already have this version.",
+  "Controllo che il file sia quello giusto…": "Checking that the file is the right one…",
+  "Il nuovo Tasso è firmato con un certificato di un'altra autorità: per sicurezza non lo installo.": "The new Tasso is signed with a certificate from a different authority: to be safe, I won't install it."
  },
  "ps": {
   "   non riuscita, prova a reinstallarla dal Microsoft Store.": "   failed, try reinstalling it from the Microsoft Store.",

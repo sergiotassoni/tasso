@@ -165,8 +165,7 @@ func programsList() {
 }
 
 func uninstallProgram(key string) {
-	k := strings.ToUpper(key)
-	if !(strings.HasPrefix(k, "HKEY_LOCAL_MACHINE\\SOFTWARE\\") || strings.HasPrefix(k, "HKEY_CURRENT_USER\\SOFTWARE\\")) || !strings.Contains(k, "\\UNINSTALL\\") {
+	if !validUninstallKey(key) {
 		emit("onUninstallDone", map[string]interface{}{"ok": false, "msgs": []string{"Voce non valida."}})
 		return
 	}
@@ -178,9 +177,15 @@ func uninstallProgram(key string) {
 // uninstallKeyRe: solo una voce diretta di "Programmi installati" (HKLM o HKCU, anche WOW6432Node).
 var uninstallKeyRe = regexp.MustCompile(`(?i)^HKEY_(LOCAL_MACHINE|CURRENT_USER)\\SOFTWARE\\(WOW6432Node\\)?Microsoft\\Windows\\CurrentVersion\\Uninstall\\[^\\/\x00-\x1f]+$`)
 
+// validUninstallKey: la voce arriva dalla finestra, quindi accetto solo una voce diretta di
+// "Programmi installati" (niente "." o ".." per risalire ad altre chiavi).
+func validUninstallKey(key string) bool {
+	return uninstallKeyRe.MatchString(key) && !strings.HasSuffix(key, `\.`) && !strings.HasSuffix(key, `\..`)
+}
+
 // removeOrphanProgram (3.1): toglie dall'elenco un programma che risulta già disinstallato.
 func removeOrphanProgram(key string) {
-	if !uninstallKeyRe.MatchString(key) || strings.HasSuffix(key, `\.`) || strings.HasSuffix(key, `\..`) {
+	if !validUninstallKey(key) {
 		emit("onOrphanDone", map[string]interface{}{"ok": false, "msgs": []string{"Voce non valida."}})
 		return
 	}

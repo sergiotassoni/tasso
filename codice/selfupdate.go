@@ -9,6 +9,7 @@ import (
 	"archive/zip"
 	"bytes"
 	"crypto/sha256"
+	"debug/pe"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -97,18 +98,28 @@ func selfUpdate() {
 		updMsg("error", "Il file scaricato è rovinato: riprova.")
 		return
 	}
+	const maxFile = 80 << 20
 	files := map[string][]byte{}
 	for _, f := range zr.File {
 		name := filepath.Base(f.Name)
 		if name != "Tasso.exe" && !contains(updateExtras, name) {
 			continue
 		}
+		// Un file più grande del previsto non lo taglio (verrebbe un Tasso.exe a metà): rifiuto tutto.
+		if f.UncompressedSize64 > maxFile {
+			updMsg("error", "Nel file scaricato c'è un file troppo grande: non aggiorno.")
+			return
+		}
 		rc, err := f.Open()
 		if err != nil {
 			continue
 		}
-		b, err := io.ReadAll(io.LimitReader(rc, 80<<20))
+		b, err := io.ReadAll(io.LimitReader(rc, maxFile+1))
 		rc.Close()
+		if len(b) > maxFile {
+			updMsg("error", "Nel file scaricato c'è un file troppo grande: non aggiorno.")
+			return
+		}
 		if err == nil {
 			files[name] = b
 		}
@@ -117,6 +128,14 @@ func selfUpdate() {
 	if len(exe) < 1<<20 || !bytes.HasPrefix(exe, []byte("MZ")) {
 		updMsg("error", "Nel file scaricato manca Tasso.exe: non aggiorno.")
 		return
+	}
+	// Stesso identico Tasso.exe di quello aperto (es. versione pubblicata senza cambiare il numero
+	// dentro il programma): non lo reinstallo a ogni apertura.
+	if me, err := os.Executable(); err == nil {
+		if old, err := os.ReadFile(me); err == nil && sha256.Sum256(old) == sha256.Sum256(exe) {
+			updMsg("error", "Hai già questa versione.")
+			return
+		}
 	}
 	// Da qui in poi non deve partire nient'altro: tra poco Tasso si chiude.
 	updating.Store(true)
@@ -144,7 +163,12 @@ func selfUpdate() {
 	// Firma digitale: se questo Tasso è firmato, il nuovo deve essere firmato anche lui, con lo
 	// stesso nome. Così, anche se qualcuno entrasse nel progetto su GitHub e cambiasse zip e impronta,
 	// un Tasso finto non verrebbe mai installato.
-	updMsg("work", "Controllo la firma digitale…")
+	// Il controllo della firma vale solo se questo Tasso è firmato: altrimenti non lo dico.
+	if exeHasSignature(cur) {
+		updMsg("work", "Controllo la firma digitale…")
+	} else {
+		updMsg("work", "Controllo che il file sia quello giusto…")
+	}
 	if msg := checkUpdateSignature(cur, newPath); msg != "" {
 		_ = os.Remove(newPath)
 		updating.Store(false)
@@ -220,34 +244,84 @@ func cleanOldExe() {
 	}
 }
 
+// exeHasSignature: il file ha una firma Authenticode dentro (non dice se è valida: serve solo
+// per scegliere il messaggio giusto mentre controllo).
+func exeHasSignature(p string) bool {
+	f, err := pe.Open(p)
+	if err != nil {
+		return false
+	}
+	defer f.Close()
+	const security = 4 // IMAGE_DIRECTORY_ENTRY_SECURITY
+	switch h := f.OptionalHeader.(type) {
+	case *pe.OptionalHeader64:
+		return h.NumberOfRvaAndSizes > security && h.DataDirectory[security].Size > 0
+	case *pe.OptionalHeader32:
+		return h.NumberOfRvaAndSizes > security && h.DataDirectory[security].Size > 0
+	}
+	return false
+}
+
 type sigInfo struct {
 	Status  string `json:"status"`
 	Subject string `json:"subject"`
 }
 
+// sigFull: la firma più chi ha emesso il certificato (un pezzo del nome per riga).
+type sigFull struct {
+	sigInfo
+	Issuer []string `json:"issuer"`
+}
+
 const sigCheckScript = `
 function Sig([string]$p) {
   $s = Get-AuthenticodeSignature -LiteralPath $p -ErrorAction SilentlyContinue
-  if (-not $s) { return [ordered]@{ status = 'Error'; subject = '' } }
-  $sub = ''
-  if ($s.SignerCertificate) { $sub = [string]$s.SignerCertificate.Subject }
-  return [ordered]@{ status = [string]$s.Status; subject = $sub }
+  if (-not $s) { return [ordered]@{ status = 'Error'; subject = ''; issuer = @() } }
+  $sub = ''; $iss = @()
+  if ($s.SignerCertificate) {
+    $sub = [string]$s.SignerCertificate.Subject
+    # Un pezzo per riga (le virgole dentro le virgolette non contano): niente trucchi col nome.
+    $iss = @(($s.SignerCertificate.IssuerName.Decode([Security.Cryptography.X509Certificates.X500DistinguishedNameFlags]::UseNewLines)) -split "\r?\n" | Where-Object { $_ })
+  }
+  return [ordered]@{ status = [string]$s.Status; subject = $sub; issuer = $iss }
 }
 $o = [ordered]@{ cur = (Sig ([string]$A.cur)); new = (Sig ([string]$A.new)) }
-[Console]::Out.WriteLine('JSON ' + (ConvertTo-Json -InputObject $o -Compress -Depth 3))
+[Console]::Out.WriteLine('JSON ' + (ConvertTo-Json -InputObject $o -Compress -Depth 4))
 `
 
 // checkUpdateSignature restituisce "" se il nuovo Tasso.exe si può installare, altrimenti il motivo.
 func checkUpdateSignature(cur, newExe string) string {
 	r := runPSArgs(sigCheckScript, map[string]string{"cur": cur, "new": newExe}, 2*time.Minute, nil)
 	var res struct {
-		Cur sigInfo `json:"cur"`
-		New sigInfo `json:"new"`
+		Cur sigFull `json:"cur"`
+		New sigFull `json:"new"`
 	}
 	if r.JSON == "" || json.Unmarshal([]byte(r.JSON), &res) != nil {
 		return "Non riesco a controllare la firma digitale del nuovo Tasso: per sicurezza non aggiorno. Scarica lo zip a mano da Info."
 	}
-	return sigDecision(res.Cur, res.New)
+	if msg := sigDecision(res.Cur.sigInfo, res.New.sigInfo); msg != "" {
+		return msg
+	}
+	return issuerDecision(res.Cur.Issuer, res.New.Issuer)
+}
+
+// issuerDecision: se il certificato di questo Tasso è di Certum, anche quello del nuovo deve
+// esserlo (lo stesso nome con un certificato di un'altra autorità non basta). Se questo Tasso non
+// è firmato da Certum non aggiungo niente: decide sigDecision.
+func issuerDecision(cur, nw []string) string {
+	if !isCertum(cur) || isCertum(nw) {
+		return ""
+	}
+	return "Il nuovo Tasso è firmato con un certificato di un'altra autorità: per sicurezza non lo installo."
+}
+
+func isCertum(rdn []string) bool {
+	for _, x := range rdn {
+		if strings.HasPrefix(strings.ToLower(strings.TrimSpace(x)), "cn=certum") {
+			return true
+		}
+	}
+	return false
 }
 
 // sigDecision: la regola, separata per poterla provare.
