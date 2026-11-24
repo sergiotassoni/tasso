@@ -489,3 +489,29 @@ func controllaModInstallate() {
 		}
 	}
 }
+
+// TogliTutteLeTraduzioni (3.1, "Togli Tasso dal PC"): toglie le traduzioni messe dentro i giochi.
+// Restituisce i giochi sistemati e quelli dove non è riuscita (di solito perché il gioco è aperto).
+func TogliTutteLeTraduzioni() (tolti, falliti []string) {
+	voci, _ := os.ReadDir(filepath.Join(dirApp, "copie-giochi"))
+	for _, v := range voci {
+		m, ok := leggiManifesto(dirApp, v.Name())
+		if !ok {
+			continue
+		}
+		nome := m.Gioco
+		if nome == "" {
+			nome = v.Name()
+		}
+		if err := TogliModGioco(dirApp, v.Name()); err != nil {
+			falliti = append(falliti, nome)
+			continue
+		}
+		impostaGiocoTradotto(m.Cartella, false)
+		tolti = append(tolti, nome)
+	}
+	return tolti, falliti
+}
+
+// CartellaDati: la cartella dei dati di Tasso Traduce (modelli, memoria, copie dei giochi).
+func CartellaDati() string { return dirApp }

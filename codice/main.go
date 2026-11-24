@@ -373,6 +373,17 @@ func bindAll(w webview2.WebView) {
 	_ = w.Bind("goSetSmartAlerts", func(on bool) string { return setSmartAlerts(on) })
 	_ = w.Bind("goSetPaused", func(id string, on bool) string { return bgCall("sched", id, func() string { return setPaused(on) }) })
 	_ = w.Bind("goRestore", func(pause bool) string { return restoreAndMaybePause(pause) })
+	_ = w.Bind("goTogliTassoInfo", func() map[string]interface{} { return togliTassoInfo() })
+	_ = w.Bind("goTogliTasso", func(rimetti bool) string {
+		return async("uninstall-tasso", func() {
+			err := togliTasso(rimetti, func(i int, t string) { emit("onTogliTasso", map[string]interface{}{"step": i, "text": t}) })
+			emit("onTogliTasso", map[string]interface{}{"done": err == "", "error": err})
+			if err == "" {
+				time.Sleep(10 * time.Second)
+				wv.Dispatch(func() { wv.Terminate() })
+			}
+		})
+	})
 	_ = w.Bind("goQuit", func() string {
 		go func() {
 			defer guard("main.go:320")

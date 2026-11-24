@@ -344,3 +344,18 @@ func micInUso() bool {
 	}
 	return inUso(base) || inUso(base+`\NonPackaged`)
 }
+
+// officeSpegniTutto ("Togli Tasso dal PC"): spegne la Modalità riunione e il blocco automatico se
+// li aveva accesi Tasso, rimettendo com'era.
+func officeSpegniTutto() {
+	if _, err := os.Stat(filepath.Join(officeDir(), "riunione.json")); err == nil {
+		runPS(ofRiunioneFine+"\n[void](Fine-Riunione 'Tasso tolto dal PC')\n", time.Minute, nil)
+	}
+	if _, err := os.Stat(filepath.Join(officeDir(), "blocco.json")); err == nil {
+		for _, st := range allSteps {
+			if st.ID == "of_new_lock" { // il pulsante con blocco.json presente lo spegne e rimette com'era
+				runPS(st.Script, st.Timeout, nil)
+			}
+		}
+	}
+}
