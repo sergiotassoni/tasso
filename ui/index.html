@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<!-- Tasso PDF - Copyright (C) 2026 Sergio Tassoni - GPL-3.0-or-later -->
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' data: blob:; worker-src 'self' blob:; frame-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<title>Tasso PDF</title>
+<style>
+@font-face{font-family:'TassoArchivo';font-style:normal;font-weight:400 900;font-stretch:62% 125%;src:url(fonts/Archivo.woff2) format('woff2')}
+@font-face{font-family:'TassoOnest';font-style:normal;font-weight:400 700;src:url(fonts/Onest.woff2) format('woff2')}
+@font-face{font-family:'TassoMano';font-style:normal;font-weight:400 700;src:url(fonts/DancingScript.ttf) format('truetype')}
+:root{
+  --bg:#0A0B10;--head:#10121A;--panel:#13151F;--panel2:#181B27;--line:#23273A;--text:#F2F4F8;--muted:#8B91A7;--soft:#C3C7D4;
+  --blu:#4DA8FF;--viola:#A77BFF;--rosso:#FF6B5C;--verde:#2FF3A6;--giallo:#FFB547;
+  --display:'TassoArchivo','Bahnschrift','Segoe UI Variable Display','Segoe UI',sans-serif;
+  --body:'TassoOnest','Segoe UI Variable Text','Segoe UI',system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--text);font-family:var(--body);font-size:14px;overflow:hidden;user-select:none}
+button{font-family:inherit;cursor:pointer;color:inherit}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--verde);outline-offset:2px}
+input,select{font-family:inherit}
+.app{display:flex;flex-direction:column;height:100%}
+header{display:flex;align-items:center;gap:12px;padding:12px 24px;background:var(--head);border-bottom:1px solid var(--line);flex:0 0 auto}
+header img{width:34px;height:34px}
+.brand b{display:block;font-family:var(--display);font-weight:800;font-stretch:108%;font-size:18px;letter-spacing:-.01em}
+.brand small{color:var(--muted);font-size:12px}
+.spazio{flex:1}
+.lingue{display:flex;border:1px solid var(--line);border-radius:9px;overflow:hidden;background:var(--bg)}
+.lingue button{border:0;background:transparent;color:var(--soft);font-size:12px;font-weight:700;padding:7px 9px;min-width:34px}
+.lingue button:hover{background:var(--panel2)}
+.lingue button.on{background:var(--text);color:var(--bg)}
+.tondo{width:34px;height:34px;border-radius:50%;border:0;background:transparent;display:grid;place-items:center;color:var(--text)}
+.tondo:hover{background:var(--panel2)}
+main{flex:1;min-height:0;position:relative}
+.vista{position:absolute;inset:0;display:none;flex-direction:column;overflow:auto}
+.vista.on{display:flex}
+.contenuto{padding:40px 50px 40px;max-width:1240px;width:100%}
+h1{font-family:var(--display);font-weight:800;font-stretch:110%;letter-spacing:-.02em;font-size:32px;margin:0}
+h2{font-family:var(--display);font-weight:700;font-stretch:105%;font-size:20px;margin:0}
+.sub{color:var(--muted);margin:10px 0 0;line-height:1.5;font-size:15px}
+.schede{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:18px;margin-top:30px}
+.scheda{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:22px 22px 22px;display:flex;flex-direction:column;position:relative;overflow:hidden;min-height:285px}
+.scheda::before{content:"";position:absolute;left:0;right:0;top:0;height:4px;background:var(--c)}
+.scheda .ico{width:56px;height:56px;border-radius:13px;display:grid;place-items:center;background:color-mix(in srgb,var(--c) 16%,var(--panel));color:var(--c)}
+.scheda h3{font-family:var(--display);font-weight:800;font-stretch:105%;font-size:20px;margin:22px 0 10px}
+.scheda p{color:var(--soft);line-height:1.55;margin:0 0 22px;flex:1}
+.btn{border:0;border-radius:12px;padding:12px 18px;font-weight:700;font-size:15px;background:var(--panel2);color:var(--text);border:1px solid var(--line);display:inline-flex;align-items:center;justify-content:center;gap:8px}
+.btn:hover{filter:brightness(1.12)}
+.btn:disabled{opacity:.45;cursor:default;filter:none}
+.btn.prim{background:var(--rosso);color:#1A0805;border-color:transparent}
+.btn.grande{width:100%;padding:15px 18px}
+.btn.picc{padding:7px 12px;font-size:13px;border-radius:9px}
+/* barra delle viste di lavoro */
+.barra{display:flex;align-items:center;gap:10px;padding:10px 18px;background:var(--head);border-bottom:1px solid var(--line);flex:0 0 auto;flex-wrap:wrap}
+.barra .nome{font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:46vw}
+.barra .nome small{color:var(--muted);font-weight:500;margin-left:6px}
+.avviso{margin:0;padding:10px 18px;background:color-mix(in srgb,var(--giallo) 14%,var(--bg));color:#FFE2B0;border-bottom:1px solid color-mix(in srgb,var(--giallo) 30%,var(--bg));font-size:13px;line-height:1.45;display:flex;gap:10px;align-items:center}
+.avviso.rosso{background:color-mix(in srgb,var(--rosso) 14%,var(--bg));color:#FFD2CC;border-color:color-mix(in srgb,var(--rosso) 30%,var(--bg))}
+.hidden{display:none!important}
+#visore{flex:1;border:0;width:100%;background:#1d1f27}
+/* Unisci */
+.lista{display:flex;flex-direction:column;gap:10px;margin-top:22px}
+.voce{display:flex;align-items:center;gap:14px;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:10px 12px}
+.voce.trascina{opacity:.4}
+.voce.sopra{border-color:var(--viola);box-shadow:0 0 0 2px color-mix(in srgb,var(--viola) 40%,transparent)}
+.voce .maniglia{cursor:grab;color:var(--muted);padding:6px}
+.voce .min{width:64px;height:64px;flex:0 0 64px;display:grid;place-items:center;background:#fff;border-radius:6px;overflow:hidden}
+.voce .min img,.voce .min canvas{max-width:64px;max-height:64px;transition:transform .2s}
+.voce .testo{flex:1;min-width:0}
+.voce .testo b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.voce .testo small{color:var(--muted)}
+.voce .azioni{display:flex;gap:4px}
+.icobtn{width:36px;height:36px;border-radius:9px;border:1px solid var(--line);background:var(--panel2);display:grid;place-items:center;color:var(--soft)}
+.icobtn:hover{color:var(--text);filter:brightness(1.2)}
+.etic{display:inline-block;font-size:11px;font-weight:700;padding:2px 7px;border-radius:6px;background:var(--panel2);color:var(--soft);margin-left:6px}
+.etic.rossa{background:color-mix(in srgb,var(--rosso) 22%,var(--panel));color:#FFC4BC}
+.zona{margin-top:18px;border:2px dashed var(--line);border-radius:14px;padding:22px;text-align:center;color:var(--muted)}
+.piede{display:flex;gap:12px;align-items:center;margin-top:22px;flex-wrap:wrap}
+/* Firma */
+.firma-corpo{flex:1;min-height:0;display:flex}
+.attrezzi{width:290px;flex:0 0 290px;background:var(--head);border-right:1px solid var(--line);padding:18px;display:flex;flex-direction:column;gap:12px;overflow:auto}
+.attrezzi .btn{justify-content:flex-start}
+.attrezzi .sep{height:1px;background:var(--line);margin:4px 0}
+.attrezzi .piccolo{color:var(--muted);font-size:12.5px;line-height:1.45}
+.anteprimaFirma{background:#fff;border-radius:10px;height:80px;display:grid;place-items:center;overflow:hidden}
+.anteprimaFirma img{max-width:92%;max-height:72px}
+.scena{flex:1;min-width:0;overflow:auto;display:flex;flex-direction:column;align-items:center;padding:20px;background:#1a1c24}
+.navpag{display:flex;align-items:center;gap:10px;margin-bottom:12px;color:var(--soft)}
+.foglio{position:relative;box-shadow:0 6px 30px rgba(0,0,0,.5);background:#fff;flex:0 0 auto}
+.foglio canvas{display:block}
+.el{position:absolute;border:1.5px dashed transparent;cursor:move;touch-action:none}
+.el:hover,.el.sel{border-color:var(--viola);background:rgba(167,123,255,.08)}
+.el img{width:100%;height:100%;display:block;pointer-events:none}
+.el .ang{position:absolute;right:-8px;bottom:-8px;width:16px;height:16px;border-radius:50%;background:var(--viola);border:2px solid #fff;cursor:nwse-resize;display:none}
+.el.sel .ang,.el:hover .ang{display:block}
+.el .x{position:absolute;right:-10px;top:-10px;width:20px;height:20px;border-radius:50%;background:var(--rosso);color:#1A0805;border:0;font-weight:900;font-size:12px;line-height:20px;padding:0;display:none}
+.el.sel .x{display:block}
+.riga{display:flex;align-items:center;gap:8px}
+.riga label{display:flex;align-items:center;gap:8px;cursor:pointer}
+input[type=checkbox]{width:17px;height:17px;accent-color:var(--viola)}
+input[type=range]{accent-color:var(--viola)}
+.colori{display:flex;gap:8px}
+.colori button{width:28px;height:28px;border-radius:50%;border:2px solid var(--line)}
+.colori button.on{border-color:var(--text)}
+/* Sblocca */
+.box{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:22px;margin-top:22px;max-width:720px}
+.campo{display:flex;gap:8px;margin-top:12px}
+.campo input{flex:1;background:var(--bg);border:1px solid var(--line);border-radius:10px;color:var(--text);padding:11px 12px;font-size:15px;user-select:text}
+/* finestre */
+.velo{position:fixed;inset:0;background:rgba(3,4,8,.72);display:none;align-items:center;justify-content:center;z-index:50;padding:20px}
+.velo.on{display:flex}
+.dlg{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:24px;width:min(560px,100%);max-height:90vh;overflow:auto;box-shadow:0 20px 60px rgba(0,0,0,.6)}
+.dlg.largo{width:min(760px,100%)}
+.dlg h2{margin-bottom:10px}
+.dlg p{color:var(--soft);line-height:1.55;white-space:pre-line;margin:8px 0;user-select:text;word-break:break-word}
+.dlg .tasti{display:flex;gap:10px;justify-content:flex-end;margin-top:18px;flex-wrap:wrap}
+.schede-firma{display:flex;gap:4px;border-bottom:1px solid var(--line);margin:6px 0 14px}
+.schede-firma button{border:0;background:transparent;color:var(--soft);padding:9px 14px;font-weight:700;border-bottom:2px solid transparent}
+.schede-firma button.on{color:var(--text);border-bottom-color:var(--viola)}
+#tavola{background:#fff;border-radius:12px;width:100%;height:220px;touch-action:none;cursor:crosshair;display:block}
+#scrittaNome{font-family:'TassoMano',cursive;font-size:44px;color:#1a3ea8;background:#fff;border-radius:12px;padding:16px;min-height:96px;text-align:center;overflow:hidden;white-space:nowrap}
+#fotoAnteprima{background:#fff repeating-conic-gradient(#eee 0 25%,#fff 0 50%) 0 0/16px 16px;border-radius:12px;min-height:150px;display:grid;place-items:center;padding:10px}
+#fotoAnteprima img{max-width:100%;max-height:200px}
+.attesa{display:flex;flex-direction:column;align-items:center;gap:16px;color:var(--soft);font-size:16px}
+.ruota{width:44px;height:44px;border-radius:50%;border:4px solid var(--line);border-top-color:var(--rosso);animation:gira 1s linear infinite}
+@keyframes gira{to{transform:rotate(360deg)}}
+.toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:var(--panel2);border:1px solid var(--line);border-radius:14px;padding:12px 16px;display:none;align-items:center;gap:14px;z-index:60;box-shadow:0 10px 30px rgba(0,0,0,.5);max-width:90vw}
+.toast.on{display:flex}
+.toast span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:60vw}
+.toast .ok{color:var(--verde);font-weight:900}
+.trascinaVelo{position:fixed;inset:10px;border:3px dashed var(--verde);border-radius:20px;background:rgba(47,243,166,.06);display:none;z-index:40;pointer-events:none}
+.trascinaVelo.on{display:block}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <img src="logo.png" alt="">
+    <div class="brand"><b>Tasso PDF</b><small data-t="sottotitolo"></small></div>
+    <div class="spazio"></div>
+    <div class="lingue" id="lingue"></div>
+    <button class="tondo" id="btnInfo" data-tt="info"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-5M12 8h.01" stroke-linecap="round"/></svg></button>
+  </header>
+  <main>
+    <!-- HOME -->
+    <section class="vista on" id="v-home">
+      <div class="contenuto">
+        <h1 data-t="cosa"></h1>
+        <p class="sub" data-t="cosaSub"></p>
+        <div class="schede">
+          <div class="scheda" style="--c:var(--blu)">
+            <div class="ico"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><circle cx="11.5" cy="14.5" r="2.5"/><path d="M13.3 16.3 15 18"/></svg></div>
+            <h3 data-t="apriT"></h3><p data-t="apriD"></p>
+            <button class="btn prim grande" id="hApri" data-t="apriB"></button>
+          </div>
+          <div class="scheda" style="--c:var(--viola)">
+            <div class="ico"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="12" height="14" rx="2"/><rect x="9" y="7" width="12" height="14" rx="2"/><path d="M15 11v6M12 14h6"/></svg></div>
+            <h3 data-t="unisciT"></h3><p data-t="unisciD"></p>
+            <button class="btn prim grande" id="hUnisci" data-t="unisciB"></button>
+          </div>
+          <div class="scheda" style="--c:var(--rosso)">
+            <div class="ico"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17c2-4 4-8 5-8s-1 6 1 6 3-5 4-5-1 4 1 4 3-2 4-2"/><path d="M3 21h18"/></svg></div>
+            <h3 data-t="firmaT"></h3><p data-t="firmaD"></p>
+            <button class="btn prim grande" id="hFirma" data-t="firmaB"></button>
+          </div>
+          <div class="scheda" style="--c:var(--verde)">
+            <div class="ico"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 7.5-2"/><path d="M12 15v2"/></svg></div>
+            <h3 data-t="sbloccaT"></h3><p data-t="sbloccaD"></p>
+            <button class="btn prim grande" id="hSblocca" data-t="sbloccaB"></button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- APRI E LEGGI -->
+    <section class="vista" id="v-leggi">
+      <div class="barra">
+        <button class="btn picc" data-indietro data-t="indietro"></button>
+        <div class="nome" id="lNome"></div>
+        <div class="spazio"></div>
+        <button class="btn picc" id="lApri" data-t="apriB"></button>
+        <button class="btn picc" id="lCerca" data-t="cerca"></button>
+        <button class="btn picc" id="lStampa" data-t="stampa"></button>
+        <button class="btn picc" id="lRipara" data-t="ripara"></button>
+        <button class="btn picc prim" id="lSalva" data-t="salvaCopia"></button>
+      </div>
+      <p class="avviso hidden" id="lAvviso"></p>
+      <iframe id="visore" title="PDF"></iframe>
+    </section>
+
+    <!-- UNISCI -->
+    <section class="vista" id="v-unisci">
+      <div class="barra">
+        <button class="btn picc" data-indietro data-t="indietro"></button>
+        <div class="nome" data-t="unisciTitolo"></div>
+      </div>
+      <div class="contenuto">
+        <h1 data-t="unisciTitolo"></h1>
+        <p class="sub" data-t="unisciSub"></p>
+        <div class="lista" id="uLista"></div>
+        <div class="zona" id="uZona" data-t="unisciVuoto"></div>
+        <div class="piede">
+          <button class="btn" id="uAggiungi" data-t="aggiungi"></button>
+          <div class="spazio"></div>
+          <button class="btn prim" id="uSalva" data-t="unisciSalva"></button>
+        </div>
+      </div>
+    </section>
+
+    <!-- FIRMA -->
+    <section class="vista" id="v-firma">
+      <div class="barra">
+        <button class="btn picc" data-indietro data-t="indietro"></button>
+        <div class="nome" id="fNome"></div>
+        <div class="spazio"></div>
+        <button class="btn picc" id="fCambia" data-t="firmaB"></button>
+        <button class="btn picc prim" id="fSalva" data-t="firmaSalva"></button>
+      </div>
+      <p class="avviso"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex:0 0 18px"><path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg><span data-t="firmaAvviso"></span></p>
+      <div class="firma-corpo">
+        <div class="attrezzi">
+          <div class="anteprimaFirma" id="fAnteprima"></div>
+          <button class="btn" id="fCrea" data-t="creaFirma"></button>
+          <button class="btn prim" id="fUsa" data-t="usaFirma"></button>
+          <div class="sep"></div>
+          <button class="btn" id="fData" data-t="data"></button>
+          <button class="btn" id="fTesto" data-t="testo"></button>
+          <button class="btn" id="fSpunta" data-t="spunta"></button>
+          <div class="sep"></div>
+          <div class="riga"><span class="piccolo" data-t="colore"></span><div class="colori" id="fColori"><button data-c="#1a3ea8" class="on" style="background:#1a3ea8" data-tt="blu"></button><button data-c="#111111" style="background:#111" data-tt="nero"></button></div></div>
+          <div class="riga hidden" id="fTutteRiga"><label><input type="checkbox" id="fTutte"><span data-t="tuttePagine"></span></label></div>
+          <p class="piccolo" data-t="trascinaQui"></p>
+        </div>
+        <div class="scena" id="fScena">
+          <div class="navpag">
+            <button class="icobtn" id="fPrec">&#8249;</button>
+            <span id="fPagNum"></span>
+            <button class="icobtn" id="fSucc">&#8250;</button>
+          </div>
+          <div class="foglio" id="fFoglio"><canvas id="fCanvas"></canvas></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SBLOCCA -->
+    <section class="vista" id="v-sblocca">
+      <div class="barra">
+        <button class="btn picc" data-indietro data-t="indietro"></button>
+        <div class="nome" id="sNome"></div>
+      </div>
+      <div class="contenuto">
+        <h1 data-t="sbloccaTitolo"></h1>
+        <p class="sub" data-t="sbloccaSub"></p>
+        <p class="sub" style="color:#FFE2B0" data-t="sbloccaEtica"></p>
+        <div class="box">
+          <p id="sStato" style="margin:0;line-height:1.5"></p>
+          <div class="campo hidden" id="sCampo">
+            <input type="password" id="sPw" autocomplete="off" spellcheck="false">
+            <button class="btn" id="sMostra" data-t="mostraPw"></button>
+          </div>
+          <p id="sErrore" class="hidden" style="color:#FFB0A6;margin:10px 0 0"></p>
+          <div class="piede">
+            <button class="btn" id="sAltro" data-t="sbloccaB"></button>
+            <div class="spazio"></div>
+            <button class="btn prim" id="sVai" data-t="sbloccaBtn"></button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- finestre -->
+<div class="velo" id="dMsg"><div class="dlg"><h2 id="dMsgT"></h2><p id="dMsgP"></p><div class="tasti" id="dMsgTasti"></div></div></div>
+<div class="velo" id="dPw"><div class="dlg">
+  <h2 data-t="pwTitolo"></h2><p id="dPwP"></p>
+  <div class="campo"><input type="password" id="dPwIn" autocomplete="off" spellcheck="false"></div>
+  <p id="dPwErr" class="hidden" style="color:#FFB0A6"></p>
+  <div class="tasti"><button class="btn" id="dPwNo" data-t="annulla"></button><button class="btn prim" id="dPwOk" data-t="ok"></button></div>
+</div></div>
+<div class="velo" id="dTesto"><div class="dlg">
+  <h2 data-t="testo"></h2><p data-t="testoChiedi"></p>
+  <div class="campo"><input type="text" id="dTestoIn" maxlength="300" spellcheck="false"></div>
+  <div class="tasti"><button class="btn" id="dTestoNo" data-t="annulla"></button><button class="btn prim" id="dTestoOk" data-t="ok"></button></div>
+</div></div>
+<div class="velo" id="dFirma"><div class="dlg largo">
+  <h2 data-t="creaFirma"></h2>
+  <div class="schede-firma">
+    <button data-scheda="disegna" class="on" data-t="disegna"></button>
+    <button data-scheda="scrivi" data-t="scrivi"></button>
+    <button data-scheda="foto" data-t="daFoto"></button>
+  </div>
+  <div data-pannello="disegna">
+    <p data-t="disegnaSub"></p>
+    <canvas id="tavola"></canvas>
+    <div class="tasti" style="justify-content:flex-start;margin-top:10px"><button class="btn picc" id="tCancella" data-t="cancella"></button></div>
+  </div>
+  <div data-pannello="scrivi" class="hidden">
+    <p data-t="scriviSub"></p>
+    <div class="campo"><input type="text" id="tNome" maxlength="60" spellcheck="false"></div>
+    <div id="scrittaNome" style="margin-top:12px"></div>
+  </div>
+  <div data-pannello="foto" class="hidden">
+    <p data-t="fotoSub"></p>
+    <input type="file" id="tFotoFile" accept="image/png,image/jpeg" class="hidden">
+    <button class="btn picc" id="tFotoScegli" data-t="scegliFoto"></button>
+    <div class="riga" style="margin:12px 0"><span class="piccolo" data-t="sogliaSfondo"></span><input type="range" id="tSoglia" min="80" max="250" value="170" style="flex:1"></div>
+    <div id="fotoAnteprima"></div>
+  </div>
+  <div class="riga" style="margin-top:14px"><label><input type="checkbox" id="tRicorda"><span data-t="ricorda"></span></label></div>
+  <div class="tasti">
+    <button class="btn hidden" id="tDimentica" data-t="dimenticaFirma" style="margin-right:auto"></button>
+    <button class="btn" id="tNo" data-t="annulla"></button>
+    <button class="btn prim" id="tOk" data-t="firmaPronta"></button>
+  </div>
+</div></div>
+<div class="velo" id="dAttesa"><div class="attesa"><div class="ruota"></div><span id="dAttesaT"></span></div></div>
+<div class="toast" id="toast"><span class="ok">&#10003;</span><span id="toastT"></span><button class="btn picc" id="toastMostra" data-t="mostra"></button><button class="tondo" id="toastX">&#10005;</button></div>
+<div class="trascinaVelo" id="trascinaVelo"></div>
+
+<script type="module" src="app.js"></script>
+</body>
+</html>

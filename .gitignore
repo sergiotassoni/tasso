@@ -1,0 +1,3 @@
+# L'eseguibile si ricrea con strumenti/compila.sh (non va nel repository).
+/dist/
+*.test

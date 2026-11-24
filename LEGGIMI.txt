@@ -1,0 +1,85 @@
+TASSO PDF - Apri, unisci e firma i tuoi PDF
+Copyright (C) 2026 Sergio Tassoni - Software libero con licenza GNU GPL 3.0 (file LICENSE)
+Parte dell'ecosistema Tasso.
+
+==================================== ITALIANO ====================================
+
+COME SI USA
+Doppio clic su TassoPDF.exe. Non va installato e NON chiede permessi da amministratore.
+Puoi anche trascinare i file dentro la finestra.
+Serve Microsoft Edge WebView2 (già presente in Windows 10 e 11 aggiornati). Se manca,
+il programma lo dice e apre la pagina ufficiale Microsoft per installarlo.
+
+COSA FA
+- APRI E LEGGI: apre anche i PDF difficili: rovinati o scaricati a metà (prova a ripararli),
+  protetti da password (te la chiede), moduli da compilare, scansioni. Ingrandisci, cerca una
+  parola (Ctrl+F), stampa (Ctrl+P). "Salva una copia" salva anche i moduli compilati.
+- UNISCI: più PDF e foto del telefono (JPG, PNG; HEIC se Windows sa leggerle) in un PDF solo.
+  Cambi l'ordine trascinando i file o con le frecce, giri le pagine di ogni file.
+  Le foto del telefono vengono messe nel verso giusto (JPG) e su pagine A4.
+- FIRMA: crei la firma disegnandola col mouse (o dito/penna), scrivendo il nome con un carattere
+  "a mano", o da una foto della firma su un foglio (lo sfondo diventa trasparente).
+  La metti dove vuoi trascinandola sulla pagina, anche su tutte le pagine; puoi aggiungere la
+  data di oggi, un testo, una spunta.
+  ATTENZIONE: è una firma disegnata, come quella a penna. NON è una firma digitale certificata
+  (FEA/FEQ, CAdES/PAdES) e non ha il suo valore legale.
+  Se vuoi, la firma resta salvata su questo PC, protetta con DPAPI di Windows (solo il tuo
+  utente su questo PC può rileggerla), in %LOCALAPPDATA%\Tasso PDF\firma.dat.
+- SBLOCCA: toglie i blocchi (stampa, copia, modifica) da un PDF tuo e salva una copia libera.
+  Se il PDF ha una password te la chiede: se la sai, salvi una copia senza password.
+  Il programma NON prova mai a indovinare o forzare le password.
+  Usalo solo per i tuoi PDF o per quelli che hai il diritto di modificare.
+
+SICUREZZA
+- Il file originale non viene mai toccato: si salva sempre una copia con un nome nuovo
+  (es. "Contratto - firmato.pdf"). Se il file esiste già, Windows chiede prima di sostituirlo.
+  Se scegli proprio il file originale, il programma rifiuta e ti chiede un altro nome.
+- I PDF non possono avviare programmi: il JavaScript dei PDF è spento.
+- I collegamenti dentro i PDF si aprono nel browser solo se rispondi "sì".
+- Il programma non usa internet: tutto avviene sul tuo PC.
+
+DOVE TIENE I SUOI DATI
+%LOCALAPPDATA%\Tasso PDF : lingua scelta, firma salvata (protetta), dati di WebView2.
+Lingua: quella scelta in alto; altrimenti quella dell'installatore di Tasso
+(HKCU\Software\Tasso\Lingua); altrimenti quella di Windows.
+Lingue: italiano, inglese, spagnolo, francese, tedesco, portoghese, polacco.
+
+COSA NON FA (onestamente)
+- Non fa firme digitali certificate, non modifica il testo dei PDF, non fa OCR delle scansioni.
+- Le foto HEIC si leggono solo se Windows ha "Estensioni immagini HEIF" (e spesso
+  "Estensioni video HEVC"); per le HEIC il verso della foto non viene corretto in automatico
+  (puoi girarle con le frecce).
+- Nell'unione la rotazione vale per tutto il file (tutte le sue pagine), non pagina per pagina.
+- Un PDF molto rovinato può perdere delle parti nella riparazione.
+
+==================================== ENGLISH =====================================
+
+HOW TO USE
+Double-click TassoPDF.exe. No installation, NO administrator rights. You can drag files into
+the window. Requires Microsoft Edge WebView2 (included in up-to-date Windows 10 and 11).
+
+WHAT IT DOES
+- OPEN AND READ: opens even difficult PDFs: damaged or partly downloaded (tries to repair them),
+  password-protected (asks for it), forms, scans. Zoom, find (Ctrl+F), print (Ctrl+P).
+  "Save a copy" also saves filled-in forms.
+- MERGE: several PDFs and phone photos (JPG, PNG; HEIC if Windows can read it) into one PDF.
+  Reorder by dragging or with the arrows, rotate each file's pages.
+- SIGN: draw your signature, type your name in a handwriting font, or use a photo of your
+  signature (the background becomes transparent). Drag it anywhere on the page, also on all
+  pages; add today's date, text, a check mark.
+  NOTE: this is a drawn signature, NOT a certified digital signature (QES/AdES, PAdES).
+  If you wish, it is kept on this PC protected with Windows DPAPI in
+  %LOCALAPPDATA%\Tasso PDF\firma.dat.
+- UNLOCK: removes restrictions (printing, copying, editing) from your own PDF and saves a free
+  copy. If it has a password it asks for it; if you know it, you save a copy without password.
+  The program NEVER tries to guess or crack passwords.
+
+SAFETY
+The original is never changed (a copy with a new name is always saved; Windows asks before
+replacing an existing file); PDF JavaScript is off; links open only if you say yes; no internet.
+
+WHAT IT DOES NOT DO
+No certified digital signatures, no text editing, no OCR. HEIC needs Microsoft's HEIF/HEVC
+extensions and its orientation is not auto-corrected. Rotation in Merge applies to the whole file.
+
+Components and their licences: see LICENZE.txt.
