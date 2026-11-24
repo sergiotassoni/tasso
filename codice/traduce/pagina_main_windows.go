@@ -82,6 +82,7 @@ func avviaPaginaSu(fg uintptr) {
 
 func cicloPagina(giro int64) {
 	defer guard("pagina")
+	defer liberaCatturePronte() // pagina ferma: le immagini intere già pronte non restano in memoria
 	var ultima, ultimaColori Impronta
 	var ultimaImg *image.RGBA // la schermata dell'ultima lettura: per vedere se le scritte sono cambiate
 	// zone che si muovono da sole senza cambiare le scritte (personaggio animato accanto al menu,
@@ -93,10 +94,11 @@ func cicloPagina(giro int64) {
 	perche := "avvio" // perché prima è vero (solo per pagina-tempi.txt)
 	nascostaPerAltTab := false
 	nere := 0
-	mosse := 0         // giri di fila in cui la schermata si muoveva ancora
-	erroriOCR := 0     // letture fallite di fila (errore della lettura di Windows, non "niente da tradurre")
-	fermo := false     // il giro prima ha finito il suo lavoro sull'ultima cattura
-	var genCatt uint64 // fotogramma dell'ultima cattura (0 = non so)
+	mosse := 0                // giri di fila in cui la schermata si muoveva ancora
+	erroriOCR := 0            // letture fallite di fila (errore della lettura di Windows, non "niente da tradurre")
+	var fermoErrore time.Time // dopo tanti errori di fila non rileggo fino a qui
+	fermo := false            // il giro prima ha finito il suo lavoro sull'ultima cattura
+	var genCatt uint64        // fotogramma dell'ultima cattura (0 = non so)
 	var imgCatt *image.RGBA
 	var impCatt Impronta
 	tinteViste := map[[4]int][12]uint8{} // ultima tinta controllata di ogni scritta (vedi blocchiDaRicolorare)
@@ -141,6 +143,13 @@ func cicloPagina(giro int64) {
 		}
 		if paginaRileggi.Swap(false) {
 			prima, perche = true, "rileggi"
+			fermoErrore = time.Time{} // F10: riprovo subito anche dopo tanti errori
+		}
+		if time.Now().Before(fermoErrore) {
+			// la lettura di Windows continua a non funzionare: aspetto invece di riavviarla a
+			// ogni giro (ogni tentativo può far partire PowerShell)
+			time.Sleep(400 * time.Millisecond)
+			continue
 		}
 		img, gen, err := catturaGen(area, genCatt)
 		stesso := err == errStessoFotogramma
@@ -280,7 +289,8 @@ func cicloPagina(giro int64) {
 				}
 				e := <-anticipo
 				pronta, esito := e.p, e.esito
-				if rifare || (pronta == nil && esito != letturaNiente) {
+				if esito != letturaErrore && (rifare || (pronta == nil && esito != letturaNiente)) {
+					// (dopo un errore della lettura non rilancio subito: ci riprova il giro dopo)
 					// rifaccio sull'immagine nuova. Anche se l'immagine si muove (video) traduco:
 					// le scritte sopra un video diventano una fascia scura
 					pronta, esito = preparaPagina(area, img2, img, giro, nil)
@@ -307,6 +317,13 @@ func cicloPagina(giro int64) {
 					// la schermata (un po' più tardi a ogni errore di fila)
 					erroriOCR++
 					prima, perche = true, "errore-lettura"
+					if erroriOCR >= 4 {
+						// errore che non passa: riprovo tra 45 secondi (o subito con F10), non
+						// all'infinito ogni 3 secondi
+						fermoErrore = time.Now().Add(45 * time.Second)
+						erroriOCR = 2 // dopo l'attesa: altri 2 tentativi, poi di nuovo 45 secondi
+						continue
+					}
 					time.Sleep(min(time.Duration(erroriOCR)*300*time.Millisecond, 3*time.Second))
 					continue
 				default:

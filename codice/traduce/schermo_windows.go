@@ -975,9 +975,11 @@ func registraTasti(h uintptr, t map[string]uint32) []string {
 
 // Molti giochi leggono la tastiera direttamente (Raw Input, DirectInput): ricevono F7…F11 anche
 // se Tasso li ha registrati come tasti rapidi, e F9 in tanti giochi è il "caricamento rapido".
-// Mentre la traduzione è accesa e davanti c'è un gioco, un gancio della tastiera (WH_KEYBOARD_LL,
-// lo stesso che usano Discord e OBS per i loro tasti) ingoia SOLO i tasti di Tasso: il gioco non
-// li vede, e Tasso riceve il suo tasto rapido come sempre. Tutti gli altri tasti passano intatti.
+// Mentre davanti c'è un gioco, un gancio della tastiera (WH_KEYBOARD_LL, lo stesso che usano
+// Discord e OBS per i loro tasti) ingoia SOLO i tasti di Tasso: il gioco non li vede, e Tasso
+// riceve il suo tasto rapido come sempre. Tutti gli altri tasti passano intatti. Con la
+// traduzione spenta i tasti registrati sono solo quello che la accende: il gancio resta e ingoia
+// solo quello (prima F7 da spento arrivava anche al gioco).
 // Il gancio ha un filo tutto suo che non fa altro: risponde subito e non rallenta la tastiera.
 
 var (
@@ -987,19 +989,38 @@ var (
 	pGetAsyncKey    = user32.NewProc("GetAsyncKeyState")
 	pPostThreadMsg  = user32.NewProc("PostThreadMessageW")
 	pPeekMessage    = user32.NewProc("PeekMessageW")
+	pSetWinEvent    = user32.NewProc("SetWinEventHook")
+	pUnhookWinEvent = user32.NewProc("UnhookWinEvent")
 	pGetModuleHandl = windows.NewLazySystemDLL("kernel32.dll").NewProc("GetModuleHandleW")
 
-	tastiIngoiati atomic.Pointer[map[uint32]uintptr] // codice del tasto (come in tasti.go) -> id del tasto rapido
-	giocoInPrimo  atomic.Uintptr                     // la finestra in primo piano, se è un gioco (0 se no)
-	ovGancio      atomic.Uintptr                     // la finestrella che riceve i tasti rapidi
-	muGancio      sync.Mutex
-	filoGancio    uint32 // filo del gancio (0 = spento)
-	callbackGanc  = sync.OnceValue(func() uintptr { return windows.NewCallback(gancioTastiera) })
+	tastiIngoiati       atomic.Pointer[map[uint32]uintptr] // codice del tasto (come in tasti.go) -> id del tasto rapido
+	ovGancio            atomic.Uintptr                     // la finestrella che riceve i tasti rapidi
+	muGancio            sync.Mutex
+	gancioFilo          *istanzaGancio                // il gancio acceso (nil = spento), con muGancio
+	gancioOra           atomic.Pointer[istanzaGancio] // lo stesso, letto dal gancio senza bloccare
+	callbackGanc        = sync.OnceValue(func() uintptr { return windows.NewCallback(gancioTastiera) })
+	callbackDav         = sync.OnceValue(func() uintptr { return windows.NewCallback(finestraDavanti) })
+	finestreControllate atomic.Pointer[map[uintptr]finestraControllata] // finestre già controllate (solo seguiGiocoDavanti scrive)
+)
+
+// istanzaGancio: un gancio acceso, con il suo stato. Ogni accensione ne ha uno nuovo: un gancio
+// vecchio che si sta ancora spegnendo non tocca lo stato di quello nuovo.
+type istanzaGancio struct {
+	id           uint32         // filo del gancio
+	finito       chan struct{}  // chiuso quando il gancio è stato tolto davvero
+	giocoInPrimo atomic.Uintptr // la finestra in primo piano, se è un gioco (0 se no)
+	davanti      chan uintptr   // finestra nuova in primo piano (da finestraDavanti)
 
 	// solo dal filo del gancio
 	tastoGiu    [256]bool   // tasto di Tasso premuto e ingoiato: anche il suo rilascio va ingoiato
 	tastoQuando [256]uint32 // ora (ms) dell'ultima pressione ingoiata
-)
+}
+
+// finestraControllata: se una finestra è di un gioco, e quando l'ho controllato.
+type finestraControllata struct {
+	gioco  bool
+	quando int64 // UnixNano
+}
 
 // lpDalGancio: segno nel WM_HOTKEY mandato dal gancio (quelli di Windows hanno tasto e modificatori)
 const lpDalGancio = ^uintptr(0)
@@ -1009,10 +1030,10 @@ type kbdllHook struct {
 	extra                  uintptr
 }
 
-// aggiornaGancio (dal filo della finestrella): accende il gancio se ci sono tasti di Tasso e la
-// traduzione è accesa, se no lo spegne.
+// aggiornaGancio (dal filo della finestrella): accende il gancio se ci sono tasti di Tasso (anche
+// a traduzione spenta: allora c'è solo il tasto che la accende), se no lo spegne.
 func aggiornaGancio(h uintptr, presi map[uint32]uintptr) {
-	if len(presi) == 0 || !acceso.Load() {
+	if len(presi) == 0 {
 		tastiIngoiati.Store(nil)
 		fermaGancio()
 		return
@@ -1025,41 +1046,48 @@ func aggiornaGancio(h uintptr, presi map[uint32]uintptr) {
 func avviaGancio() {
 	muGancio.Lock()
 	defer muGancio.Unlock()
-	if filoGancio != 0 {
-		return
+	if g := gancioFilo; g != nil {
+		select {
+		case <-g.finito: // finito da solo: lo riaccendo
+			gancioFilo = nil
+			gancioOra.Store(nil)
+		default:
+			return // già acceso
+		}
 	}
+	g := &istanzaGancio{finito: make(chan struct{}), davanti: make(chan uintptr, 1)}
 	pronto := make(chan uint32, 1)
 	go func() {
+		defer close(g.finito) // per ultimo: dopo aver tolto il gancio
 		defer guard("gancio-tastiera")
-		var id uint32
 		inviato := false
 		defer func() {
 			if !inviato {
 				pronto <- 0 // anche dopo un errore: avviaGancio non resta ad aspettare
 			}
-			muGancio.Lock()
-			if id != 0 && filoGancio == id { // finito da solo: la prossima volta si riaccende
-				filoGancio = 0
-			}
-			muGancio.Unlock()
 		}()
 		runtime.LockOSThread() // il gancio risponde sul filo che lo ha messo: resta questo
 		ferma := make(chan struct{})
 		defer close(ferma)
 		var m msgW
 		pPeekMessage.Call(uintptr(unsafe.Pointer(&m)), 0, 0, 0, 0) // crea la coda dei messaggi del filo
-		id = windows.GetCurrentThreadId()
+		g.id = windows.GetCurrentThreadId()
 		mod, _, _ := pGetModuleHandl.Call(0)
-		tastoGiu = [256]bool{}
+		gancioOra.Store(g) // prima del gancio: il gancio lo legge da subito
 		gancio, _, _ := pSetHook.Call(13 /*WH_KEYBOARD_LL*/, callbackGanc(), mod, 0)
 		if gancio == 0 {
-			id = 0
+			gancioOra.CompareAndSwap(g, nil)
 			return // niente gancio: restano i tasti rapidi normali
 		}
 		defer pUnhook.Call(gancio)
-		go seguiGiocoDavanti(ferma)
+		// la finestra in primo piano cambia (Alt+Tab): lo so subito, non al controllo dopo.
+		// 3 = EVENT_SYSTEM_FOREGROUND, 2 = WINEVENT_SKIPOWNPROCESS (fuori dal processo, su questo filo)
+		if ev, _, _ := pSetWinEvent.Call(3, 3, 0, callbackDav(), 0, 0, 2); ev != 0 {
+			defer pUnhookWinEvent.Call(ev)
+		}
+		go seguiGiocoDavanti(g, ferma)
 		inviato = true
-		pronto <- id
+		pronto <- g.id
 		for {
 			r, _, _ := pGetMessage.Call(uintptr(unsafe.Pointer(&m)), 0, 0, 0)
 			if int32(r) <= 0 { // WM_QUIT da fermaGancio
@@ -1069,23 +1097,50 @@ func avviaGancio() {
 			pDispatchMsg.Call(uintptr(unsafe.Pointer(&m)))
 		}
 	}()
-	filoGancio = <-pronto
+	if <-pronto == 0 {
+		<-g.finito
+		return
+	}
+	gancioFilo = g
 }
 
+// fermaGancio: toglie il gancio e aspetta che sia tolto davvero. Prima non aspettava: F7
+// spento e riacceso in fretta poteva lasciare due ganci accesi (tasto eseguito due volte).
 func fermaGancio() {
 	muGancio.Lock()
 	defer muGancio.Unlock()
-	if filoGancio != 0 {
-		pPostThreadMsg.Call(uintptr(filoGancio), 0x0012 /*WM_QUIT*/, 0, 0)
-		filoGancio = 0
+	g := gancioFilo
+	if g == nil {
+		return
+	}
+	gancioFilo = nil
+	gancioOra.CompareAndSwap(g, nil) // da subito il gancio vecchio non ingoia più niente
+	pPostThreadMsg.Call(uintptr(g.id), 0x0012 /*WM_QUIT*/, 0, 0)
+	select {
+	case <-g.finito:
+	case <-time.After(2 * time.Second): // non deve mai succedere: non blocco la finestrella per sempre
 	}
 }
 
-// seguiGiocoDavanti: ogni 250 ms guarda se in primo piano c'è un gioco. Il controllo (percorso
-// del programma, giochi di Steam) si fa qui e non nel gancio, che deve rispondere subito.
-func seguiGiocoDavanti(ferma <-chan struct{}) {
+// finestraDavanti: chiamata da Windows (sul filo del gancio) quando cambia la finestra in primo
+// piano. Non fa nessun controllo qui (il gancio deve restare svelto): passa la finestra a
+// seguiGiocoDavanti, che la controlla subito.
+func finestraDavanti(hook, evento, hwnd, idObj, idFiglio, filo, tempo uintptr) uintptr {
+	if g := gancioOra.Load(); g != nil && evento == 3 {
+		select {
+		case g.davanti <- hwnd:
+		default: // ce n'è già una da controllare: seguiGiocoDavanti rilegge comunque la finestra davanti
+		}
+	}
+	return 0
+}
+
+// seguiGiocoDavanti: guarda se in primo piano c'è un gioco, subito a ogni cambio di finestra
+// (finestraDavanti) e comunque ogni 250 ms. Il controllo (percorso del programma, giochi di
+// Steam) si fa qui e non nel gancio, che deve rispondere subito.
+func seguiGiocoDavanti(g *istanzaGancio, ferma <-chan struct{}) {
 	defer guard("gioco-davanti")
-	defer giocoInPrimo.Store(0)
+	defer g.giocoInPrimo.Store(0)
 	var ultimo uintptr
 	var gioco bool
 	var quando time.Time
@@ -1095,18 +1150,60 @@ func seguiGiocoDavanti(ferma <-chan struct{}) {
 		fg, _, _ := pGetForeground.Call()
 		if fg != ultimo || time.Since(quando) > 5*time.Second {
 			ultimo, quando, gioco = fg, time.Now(), finestraDiGioco(fg)
+			ricordaGioco(fg, gioco, quando)
 		}
-		if gioco && acceso.Load() {
-			giocoInPrimo.Store(fg)
+		if gioco {
+			g.giocoInPrimo.Store(fg)
 		} else {
-			giocoInPrimo.Store(0)
+			g.giocoInPrimo.Store(0)
 		}
 		select {
 		case <-ferma:
 			return
+		case <-g.davanti:
 		case <-t.C:
 		}
 	}
+}
+
+// ricordaGioco: tiene da parte se la finestra h è un gioco, per il gancio (copia nuova della
+// mappa: il gancio la legge senza blocchi). Al massimo 64 finestre.
+func ricordaGioco(h uintptr, gioco bool, quando time.Time) {
+	if h == 0 {
+		return
+	}
+	vecchia := finestreControllate.Load()
+	if vecchia != nil {
+		if v, ok := (*vecchia)[h]; ok && v.gioco == gioco && quando.UnixNano()-v.quando < int64(time.Second) {
+			return // niente di nuovo: non rifaccio la mappa
+		}
+	}
+	nuova := map[uintptr]finestraControllata{}
+	if vecchia != nil && len(*vecchia) < 64 {
+		for k, v := range *vecchia {
+			nuova[k] = v
+		}
+	}
+	nuova[h] = finestraControllata{gioco, quando.UnixNano()}
+	finestreControllate.Store(&nuova)
+}
+
+// eGiocoDavanti (dal gancio, svelto): fg è il gioco in primo piano. Se seguiGiocoDavanti non ha
+// ancora visto il cambio di finestra (Alt+Tab appena fatto), uso quello che sapevo già di
+// questa finestra, se controllata negli ultimi 10 minuti.
+func eGiocoDavanti(g *istanzaGancio, fg uintptr) bool {
+	if fg == 0 {
+		return false
+	}
+	if fg == g.giocoInPrimo.Load() {
+		return true
+	}
+	if m := finestreControllate.Load(); m != nil {
+		if v, ok := (*m)[fg]; ok && v.gioco && time.Now().UnixNano()-v.quando < int64(10*time.Minute) {
+			return true
+		}
+	}
+	return false
 }
 
 // finestraDiGioco: la finestra h è di un gioco (riconosciuto, o quello che stai traducendo) e
@@ -1152,23 +1249,23 @@ func modificatoriPremuti() uint32 {
 
 // gancioTastiera: chiamato da Windows per ogni tasto, prima che arrivi a qualunque programma.
 func gancioTastiera(nCode, wp, lp uintptr) uintptr {
-	if int32(nCode) >= 0 && lp != 0 {
-		k := (*kbdllHook)(unsafe.Pointer(lp))
+	if g := gancioOra.Load(); g != nil && int32(nCode) >= 0 && lp != 0 {
+		k := *(**kbdllHook)(unsafe.Pointer(&lp)) // lp è un puntatore di Windows alla struttura del tasto
 		vk := k.vk & 0xFF
 		switch wp {
 		case 0x101, 0x105: // WM_KEYUP, WM_SYSKEYUP
-			if tastoGiu[vk] {
-				tastoGiu[vk] = false
+			if g.tastoGiu[vk] {
+				g.tastoGiu[vk] = false
 				return 1 // anche il rilascio non arriva al gioco
 			}
 		case 0x100, 0x104: // WM_KEYDOWN, WM_SYSKEYDOWN
-			if t := tastiIngoiati.Load(); t != nil && k.flags&0x10 == 0 && acceso.Load() { // 0x10: tasto simulato da un programma
-				if fg, _, _ := pGetForeground.Call(); fg != 0 && fg == giocoInPrimo.Load() {
+			if t := tastiIngoiati.Load(); t != nil && k.flags&0x10 == 0 { // 0x10: tasto simulato da un programma
+				if fg, _, _ := pGetForeground.Call(); eGiocoDavanti(g, fg) {
 					if id, ok := (*t)[modificatoriPremuti()<<16|vk]; ok {
 						// tenuto premuto: Windows ripete la pressione; il tasto rapido parte una
 						// volta sola (come MOD_NOREPEAT). Una pressione dopo più di un secondo è nuova
-						ripetuto := tastoGiu[vk] && k.tempo-tastoQuando[vk] < 1200
-						tastoGiu[vk], tastoQuando[vk] = true, k.tempo
+						ripetuto := g.tastoGiu[vk] && k.tempo-g.tastoQuando[vk] < 1200
+						g.tastoGiu[vk], g.tastoQuando[vk] = true, k.tempo
 						if !ripetuto {
 							pPostMessage.Call(ovGancio.Load(), wmHotkey, id, lpDalGancio)
 						}

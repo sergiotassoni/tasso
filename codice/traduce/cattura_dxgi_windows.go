@@ -29,10 +29,13 @@ var (
 	errDXGINonDisponibile = errors.New("duplicazione del desktop non disponibile")
 	errNessunFotogramma   = errors.New("nessun fotogramma ancora")
 	errStessoFotogramma   = errors.New("lo schermo non è cambiato dall'ultima cattura")
+	errDuplicazionePersa  = errors.New("duplicazione persa")
+	errAccessoPerso       = errors.New("duplicazione persa (cambio di schermo)")
 )
 
 const (
 	dxgiErrWaitTimeout = 0x887A0027
+	dxgiErrAccessLost  = 0x887A0026 // normale per qualche fotogramma al cambio schermo intero/HDR
 )
 
 func chiama(obj unsafe.Pointer, indice int, args ...uintptr) uint32 {
@@ -73,22 +76,78 @@ var (
 	dxgiFunziona atomic.Bool // almeno un fotogramma arrivato davvero
 	muDXGI       sync.Mutex
 	duplic       []*duplicatore // uno per monitor
-	dxgiNo       bool           // non riuscita: per 30 s uso BitBlt, poi riprovo
+	dxgiNo       bool           // non riuscita: per dxgiAttesa uso BitBlt, poi riprovo
 	dxgiQuando   time.Time
+	dxgiAttesa   time.Duration // quanto aspettare prima di riprovare: cresce da 0,5 s a 30 s
 	dxgiPron     bool
-	erroriDXGI   int // duplicazioni perse di fila
+	erroriDXGI   []time.Time // quando si è persa la duplicazione (solo gli ultimi 2 secondi)
+	dxgiPronta   time.Time   // primo preparaDXGI riuscito dopo l'ultimo fotogramma arrivato
 	dxgiGen      uint64
 	giaPronte    []catturaPronta // ultime immagini già convertite dell'ultimo fotogramma
+	pulizia      bool            // c'è già un controllo programmato che toglie le immagini vecchie
+)
+
+const (
+	finestraErroriDXGI = 2 * time.Second
+	maxErroriDXGI      = 5                       // più di 5 duplicazioni perse in 2 s: uso BitBlt per un po'
+	graziaDXGI         = 1500 * time.Millisecond // dopo una preparazione riuscita ACCESS_LOST è normale
+	vitaPronta         = 2 * time.Second         // un'immagine già pronta non usata da 2 s si butta
 )
 
 // catturaPronta: una zona dell'ultimo fotogramma già convertita. Finché Windows non manda un
 // fotogramma nuovo si riusa: prima ogni cattura riconvertiva tutta l'immagine (8-33 MB, 25 volte
 // al secondo) anche con lo schermo fermo.
 type catturaPronta struct {
-	d   *duplicatore
-	z   Zona
-	gen uint64
-	img *image.RGBA
+	d     *duplicatore
+	z     Zona
+	gen   uint64
+	img   *image.RGBA
+	usata time.Time // l'ultima volta che qualcuno l'ha chiesta
+}
+
+// spegniDXGIPerUnPo: per un po' uso la cattura classica. L'attesa raddoppia a ogni volta (0,5 s,
+// 1 s, 2 s… fino a 30 s) e torna a 0,5 s appena arriva un fotogramma buono: un cambio di
+// schermo intero o di HDR fa perdere la duplicazione per pochi fotogrammi, e prima bastava a
+// spegnerla per 30 s (BitBlt nero e falso avviso di schermo esclusivo).
+func spegniDXGIPerUnPo() {
+	if dxgiAttesa <= 0 {
+		dxgiAttesa = 500 * time.Millisecond
+	} else {
+		dxgiAttesa = min(dxgiAttesa*2, 30*time.Second)
+	}
+	dxgiNo, dxgiQuando = true, time.Now()
+	erroriDXGI = erroriDXGI[:0]
+}
+
+// togliPronteVecchie: butta le immagini già pronte che nessuno chiede da più di vitaPronta (in
+// 4K sono 33 MB l'una). Si chiama con muDXGI preso.
+func togliPronteVecchie(ora time.Time) {
+	tenute := giaPronte[:0]
+	for _, c := range giaPronte {
+		if ora.Sub(c.usata) <= vitaPronta {
+			tenute = append(tenute, c)
+		}
+	}
+	clear(giaPronte[len(tenute):])
+	giaPronte = tenute
+	if len(giaPronte) > 0 && !pulizia {
+		// se nessuno cattura più (traduzione spenta) le butto lo stesso, poco dopo
+		pulizia = true
+		time.AfterFunc(vitaPronta+500*time.Millisecond, func() {
+			muDXGI.Lock()
+			defer muDXGI.Unlock()
+			pulizia = false
+			togliPronteVecchie(time.Now())
+		})
+	}
+}
+
+// liberaCatturePronte: la pagina si ferma, le immagini già pronte non servono più.
+func liberaCatturePronte() {
+	muDXGI.Lock()
+	defer muDXGI.Unlock()
+	clear(giaPronte)
+	giaPronte = nil
 }
 
 func preparaDXGI() error {
@@ -162,8 +221,11 @@ func (d *duplicatore) aggiorna() (nuovo bool, err error) {
 		// fermo può riusare quella
 		return false, errNessunFotogramma
 	}
+	if r == dxgiErrAccessLost {
+		return false, errAccessoPerso
+	}
 	if r != 0 {
-		return false, errors.New("duplicazione persa")
+		return false, errDuplicazionePersa
 	}
 	defer chiama(d.dup, 14) // ReleaseFrame
 	defer lascia(risorsa)
@@ -218,18 +280,24 @@ func catturaDXGI(z Zona) (*image.RGBA, error) {
 func catturaDXGIGen(z Zona, ultimo uint64) (*image.RGBA, uint64, error) {
 	muDXGI.Lock()
 	defer muDXGI.Unlock()
-	if dxgiNo && time.Since(dxgiQuando) < 30*time.Second {
+	if dxgiNo && time.Since(dxgiQuando) < dxgiAttesa {
 		return nil, 0, errDXGINonDisponibile
 	}
+	ora := time.Now()
+	togliPronteVecchie(ora)
 	if !dxgiPron {
 		if err := preparaDXGI(); err != nil {
-			// Ctrl+Alt+Canc, blocco schermo, gioco a schermo intero esclusivo: riprovo tra 30 s
+			// Ctrl+Alt+Canc, blocco schermo, gioco a schermo intero esclusivo: riprovo tra poco,
+			// ogni volta un po' più tardi
 			chiudiDXGI()
-			dxgiNo, dxgiQuando = true, time.Now()
+			spegniDXGIPerUnPo()
 			return nil, 0, err
 		}
 		dxgiNo = false
 		dxgiPron = true
+		if dxgiPronta.IsZero() {
+			dxgiPronta = ora
+		}
 	}
 	var d *duplicatore
 	for _, c := range duplic {
@@ -242,20 +310,34 @@ func catturaDXGIGen(z Zona, ultimo uint64) (*image.RGBA, uint64, error) {
 		return nil, 0, errors.New("la zona sta su più monitor")
 	}
 	nuovo, err := d.aggiorna()
+	if err == nil {
+		// la duplicazione funziona (c'è un fotogramma buono): tutto torna normale
+		erroriDXGI = erroriDXGI[:0]
+		dxgiAttesa = 0
+		dxgiPronta = time.Time{}
+	}
 	if err != nil {
 		if err != errNessunFotogramma {
-			// risoluzione cambiata, gioco a schermo intero esclusivo, Ctrl+Alt+Canc…: ricreo tutto
-			// la volta dopo. Ma se succede tre volte di fila, per 30 s uso la cattura classica
-			// invece di ricreare tutto a ogni cattura
+			// risoluzione cambiata, schermo intero o HDR acceso, Ctrl+Alt+Canc…: ricreo tutto la
+			// volta dopo. ACCESS_LOST subito dopo una preparazione riuscita è normale per qualche
+			// fotogramma: non conta (al massimo per graziaDXGI dalla prima preparazione).
+			// Solo se si perde più di 5 volte in 2 secondi uso per un po' la cattura classica
 			chiudiDXGI()
-			erroriDXGI++
-			if erroriDXGI >= 3 {
-				dxgiNo, dxgiQuando, erroriDXGI = true, time.Now(), 0
+			if !(err == errAccessoPerso && ora.Sub(dxgiPronta) < graziaDXGI) {
+				tenuti := erroriDXGI[:0]
+				for _, t := range erroriDXGI {
+					if ora.Sub(t) <= finestraErroriDXGI {
+						tenuti = append(tenuti, t)
+					}
+				}
+				erroriDXGI = append(tenuti, ora)
+				if len(erroriDXGI) > maxErroriDXGI {
+					spegniDXGIPerUnPo()
+				}
 			}
 		}
 		return nil, 0, err
 	}
-	erroriDXGI = 0
 	if nuovo {
 		// fotogramma nuovo: le immagini già pronte di questo monitor non valgono più
 		tenute := giaPronte[:0]
@@ -267,8 +349,9 @@ func catturaDXGIGen(z Zona, ultimo uint64) (*image.RGBA, uint64, error) {
 		clear(giaPronte[len(tenute):]) // niente immagini vecchie tenute in vita dal fondo della lista
 		giaPronte = tenute
 	} else {
-		for _, c := range giaPronte {
+		for i, c := range giaPronte {
 			if c.d == d && c.z == z {
+				giaPronte[i].usata = ora
 				if ultimo != 0 && ultimo == c.gen {
 					return nil, c.gen, errStessoFotogramma
 				}
@@ -283,11 +366,21 @@ func catturaDXGIGen(z Zona, ultimo uint64) (*image.RGBA, uint64, error) {
 		return nil, 0, err
 	}
 	dxgiGen++
-	if len(giaPronte) >= 4 { // al massimo 4 zone (pagina, dialoghi, chat…)
+	// una zona sola per volta per ogni zona chiesta: la stessa zona presa di nuovo sostituisce la sua
+	tenute := giaPronte[:0]
+	for _, c := range giaPronte {
+		if c.d != d || c.z != z {
+			tenute = append(tenute, c)
+		}
+	}
+	clear(giaPronte[len(tenute):])
+	giaPronte = tenute
+	if len(giaPronte) >= 3 { // al massimo 3 zone (pagina, dialoghi, chat), solo quelle usate da poco
 		giaPronte[0] = catturaPronta{}
 		giaPronte = giaPronte[1:]
 	}
-	giaPronte = append(giaPronte, catturaPronta{d: d, z: z, gen: dxgiGen, img: img})
+	giaPronte = append(giaPronte, catturaPronta{d: d, z: z, gen: dxgiGen, img: img, usata: ora})
+	togliPronteVecchie(ora) // programma la pulizia se poi nessuno cattura più
 	return img, dxgiGen, nil
 }
 

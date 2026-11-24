@@ -160,9 +160,10 @@ func testoW(s string) []uint16 {
 }
 
 const (
-	dtSingleLine  = 0x20
-	dtEditControl = 0x2000 // non mostra un'ultima riga tagliata a metà
-	dtEndEllipsis = 0x8000 // "…" alla fine se non ci sta
+	dtSingleLine   = 0x20
+	dtEditControl  = 0x2000  // non mostra un'ultima riga tagliata a metà
+	dtEndEllipsis  = 0x8000  // "…" alla fine se non ci sta
+	dtWordEllipsis = 0x40000 // "…" alla fine di una parola che non ci sta nella larghezza
 )
 
 // misuraTesto: larghezza e altezza del testo (a capo dentro la larghezza larg se aCapo).
@@ -231,8 +232,8 @@ func impaginaCache(hdc uintptr, b Blocco) impaginazione {
 
 // impagina: grandezza, carattere e posto della traduzione. Regola del proprietario: la scritta
 // italiana resta SEMPRE dentro il riquadro dell'originale. Una riga sola non va mai a capo (finiva
-// sulla voce sotto: "Gear" → "Equipaggiamento"): prima rimpicciolisce un po', poi prova le
-// lettere strette, poi rimpicciolisce ancora, e solo alla fine mette i puntini. Un paragrafo
+// sulla voce sotto: "Gear" → "Equipaggiamento"): prima rimpicciolisce un po' (mai sotto il
+// 62% circa), poi prova le lettere strette, e solo alla fine mette i puntini. Un paragrafo
 // rimpicciolisce finché sta nel suo spazio in basso; se proprio non ci sta, viene tagliato
 // all'ultima riga intera.
 func impagina(hdc uintptr, b Blocco) impaginazione {
@@ -315,7 +316,7 @@ func impagina(hdc uintptr, b Blocco) impaginazione {
 	}
 	var w, h int32
 	var font uintptr
-	ellissi, aCapo := false, false
+	ellissi, aCapo, parolaLunga := false, false, false
 	limH := int32(0)
 	if righe == 1 && b.Img == nil {
 		// avviso di Tasso (non una scritta del gioco): un po' più piccolo, poi va a capo come
@@ -345,14 +346,13 @@ func impagina(hdc uintptr, b Blocco) impaginazione {
 				}
 			}
 		}
-		// ancora troppo lunga: le lettere più strette, sempre più piccole
-		for prova := minPx - 1; !trovato && prova >= pavimento; prova-- {
-			font = fontPaginaF(prova, peso, len(famiglieFont)-1)
-			w, h = misuraTesto(hdc, font, b.Tradotto, 0, false)
-			trovato = w <= maxLarg
-		}
-		if !trovato { // nemmeno così: i puntini alla fine, mai fuori dal riquadro
+		if !trovato {
+			// nemmeno così: i puntini alla fine, mai fuori dal riquadro. Con le lettere più
+			// strette alla grandezza più piccola provata (circa il 62%), non più piccole: prima
+			// scendeva fino al 45% e poi metteva i puntini lo stesso, con un carattere minuscolo
 			ellissi = true
+			font = fontPaginaF(minPx, peso, len(famiglieFont)-1)
+			_, h = misuraTesto(hdc, font, b.Tradotto, 0, false)
 			w = maxLarg
 		}
 	} else {
@@ -366,13 +366,20 @@ func impagina(hdc uintptr, b Blocco) impaginazione {
 		for prova := px; ; prova-- {
 			font = fontPaginaF(prova, peso, fam)
 			w, h = misuraTesto(hdc, font, b.Tradotto, larg, true)
-			if h <= limH || prova <= pavimento {
+			// anche la larghezza: una parola più lunga della colonna non va a capo e la
+			// allargherebbe (uscirebbe dal riquadro a destra). Per la sola larghezza non scendo
+			// sotto minPx: poi la parola finisce con i puntini
+			if (h <= limH && (w <= larg || prova <= minPx)) || prova <= pavimento {
 				break
 			}
 		}
 		if h > limH {
 			ellissi = true
 			h = limH
+		}
+		if w > larg { // la parola troppo lunga finisce con i puntini, dentro la colonna
+			parolaLunga = true
+			w = larg
 		}
 	}
 	// dove va la traduzione: allineata a sinistra come l'originale, o centrata sullo stesso centro
@@ -433,6 +440,10 @@ func impagina(hdc uintptr, b Blocco) impaginazione {
 	} else if ellissi {
 		fl |= dtEditControl // l'ultima riga che non ci sta tutta non si vede
 		rt.Bottom = ty + limH
+	}
+	if parolaLunga {
+		fl |= dtWordEllipsis
+		rt.Right = min(rt.Right, int32(b.X)+larg)
 	}
 	marg := 8 // bordino, ombra e margine della scritta composta
 	zona := toppa.Union(image.Rect(int(rt.Left)-marg, int(rt.Top)-marg, int(rt.Right)+marg, int(rt.Bottom)+marg))

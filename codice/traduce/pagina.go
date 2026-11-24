@@ -966,12 +966,23 @@ func blocchiDaRicolorare(img *image.RGBA, bl []Blocco, viste map[[4]int][12]uint
 // togliCambiate: le scritte sotto cui l'inglese è davvero cambiato (altre lettere, non solo un
 // altro colore) spariscono subito, appena lo vedo: la traduzione vecchia non resta sopra un
 // testo diverso mentre leggo quello nuovo. Restituisce le scritte che restano e quante ne ha tolte.
+//
+// Tolgo subito solo se la scritta è scorsa o se la sagoma delle lettere è cambiata davvero.
+// Il bagliore o il piccolo ingrandimento del pulsante sotto il mouse (Palworld) cambia i pixel
+// ma non la sagoma: quella scritta resta "da verificare" e decide la rilettura che parte subito
+// dopo (tieniFerme tiene la traduzione solo se il testo letto è lo stesso). Prima l'italiano
+// spariva per 200-600 ms a ogni passaggio del mouse: sfarfallio.
 func togliCambiate(img *image.RGBA, bl []Blocco) ([]Blocco, int) {
 	var resto []Blocco
 	tolte := 0
 	for _, b := range bl {
 		if b.Img != nil && !(b.Inchiostro == coloreTestoFascia && b.Sfondo == coloreFascia) {
-			if b.Img.Bounds() != img.Bounds() || (zonaCambiata(b.Img, img, b) && inchiostroCambiato(b.Img, img, b)) {
+			if b.Img.Bounds() != img.Bounds() {
+				tolte++
+				continue
+			}
+			if zonaCambiata(b.Img, img, b) && inchiostroCambiato(b.Img, img, b) &&
+				(spostamentoScritta(b.Img, img, b) != 0 || formaCambiata(b.Img, img, b)) {
 				tolte++
 				continue
 			}
@@ -979,6 +990,107 @@ func togliCambiate(img *image.RGBA, bl []Blocco) ([]Blocco, int) {
 		resto = append(resto, b)
 	}
 	return resto, tolte
+}
+
+// formaCambiata: la sagoma delle lettere di bl è diversa tra a e b, con una tolleranza di 1-2
+// pixel. Per ogni immagine separo l'inchiostro dallo sfondo con i suoi colori (così un cambio di
+// colore non conta) e cerco le lettere di un'immagine nell'altra, allargate di 1 pixel e
+// spostate fino a 2 pixel: se una buona parte non si ritrova, la scritta è un'altra. Conta solo
+// l'inchiostro pieno: l'alone di un bagliore attorno alle lettere non è una lettera nuova.
+func formaCambiata(a, b *image.RGBA, bl Blocco) bool {
+	return persiForma(a, b, bl) > sogliaForma
+}
+
+// sogliaForma: oltre questa parte di lettere che non si ritrovano, la scritta è un'altra.
+const sogliaForma = 0.2
+
+// persiForma: quanta parte delle lettere non si ritrova tra a e b (0 = tutte, 1 = nessuna), nel
+// verso peggiore (lettere sparite o lettere nuove).
+func persiForma(a, b *image.RGBA, bl Blocco) float64 {
+	r := image.Rect(bl.X, bl.Y, bl.X+bl.W, bl.Y+bl.H).Intersect(a.Bounds()).Intersect(b.Bounds())
+	w, h := r.Dx(), r.Dy()
+	if w < 4 || h < 4 {
+		return 0
+	}
+	// piena: inchiostro vero (vicino al colore delle lettere); larga: tutto quello che somiglia
+	// più all'inchiostro che allo sfondo (bordi sfumati, alone), allargato di 1 pixel a croce
+	maschere := func(img *image.RGBA) (piena, larga []bool) {
+		c := bl
+		coloriBlocco(img, &c)
+		contrasto := distanza(c.Inchiostro, c.Sfondo)
+		if contrasto < 30 { // niente contrasto: non si capisce la forma
+			return nil, nil
+		}
+		piena, simile := make([]bool, w*h), make([]bool, w*h)
+		for y := 0; y < h; y++ {
+			for x := 0; x < w; x++ {
+				p := img.RGBAAt(r.Min.X+x, r.Min.Y+y)
+				di := distanza(p, c.Inchiostro)
+				simile[y*w+x] = di < distanza(p, c.Sfondo)
+				piena[y*w+x] = di*3 < contrasto
+			}
+		}
+		larga = make([]bool, w*h)
+		for y := 0; y < h; y++ {
+			for x := 0; x < w; x++ {
+				i := y*w + x
+				larga[i] = simile[i] || (x > 0 && simile[i-1]) || (x+1 < w && simile[i+1]) ||
+					(y > 0 && simile[i-w]) || (y+1 < h && simile[i+w])
+			}
+		}
+		return piena, larga
+	}
+	pa, la := maschere(a)
+	pb, lb := maschere(b)
+	if pa == nil || pb == nil {
+		// prima c'erano lettere leggibili e adesso no (o il contrario): via. Se non si leggono
+		// in nessuna delle due decide la rilettura
+		if (pa == nil) != (pb == nil) {
+			return 1
+		}
+		return 0
+	}
+	// persi: parte dell'inchiostro pieno di m che non cade nella maschera larga l. La scritta è
+	// divisa in pezzi larghi circa quanto è alta, e ogni pezzo prova lo spostamento che va meglio
+	// (fino a 2 pixel in orizzontale e 1 in verticale): così anche un pulsante ingrandito di
+	// qualche percento attorno al centro (le lettere ai lati si spostano un po' di più) si ritrova
+	persi := func(m, l []bool) float64 {
+		ink, tot := 0, 0
+		pezzo := max(12, h)
+		for x0 := 0; x0 < w; x0 += pezzo {
+			x1 := min(w, x0+pezzo)
+			inkP, meglio := 0, -1
+			for dy := -1; dy <= 1; dy++ {
+				for dx := -2; dx <= 2; dx++ {
+					n, k := 0, 0
+					for y := 0; y < h; y++ {
+						y2 := y + dy
+						for x := x0; x < x1; x++ {
+							if !m[y*w+x] {
+								continue
+							}
+							k++
+							x2 := x + dx
+							if x2 < 0 || x2 >= w || y2 < 0 || y2 >= h || !l[y2*w+x2] {
+								n++
+							}
+						}
+					}
+					inkP = k
+					if meglio < 0 || n < meglio {
+						meglio = n
+					}
+				}
+			}
+			ink += inkP
+			tot += max(meglio, 0)
+		}
+		if ink == 0 {
+			return 0
+		}
+		return float64(tot) / float64(ink)
+	}
+	return max(persi(pa, lb), persi(pb, la))
 }
 
 // paginaSpostata: le scritte inglesi sotto le traduzioni sono SCORSE in su o in giù (rotella,
@@ -2007,8 +2119,7 @@ func stabilizza(nuovi, vecchi []Blocco) {
 				abs(o.W-n.W)*5 > max(o.W, n.W) {
 				continue
 			}
-			lung := max(len([]rune(o.Testo)), len([]rune(n.Testo)))
-			if distanzaModifica(o.Testo, n.Testo)*10 <= lung*3 {
+			if stessaScritta(o.Testo, n.Testo) {
 				// anche il testo letto prima: così tieniFerme la riconosce come la stessa scritta
 				// e la lascia identica (niente tremolio di 1-2 pixel a ogni rilettura)
 				n.Tradotto, n.Testo = o.Tradotto, o.Testo
@@ -2016,6 +2127,86 @@ func stabilizza(nuovi, vecchi []Blocco) {
 			break
 		}
 	}
+}
+
+// stessaScritta: due letture della stessa scritta che differiscono solo per gli errori tipici
+// dell'OCR. I numeri e i segni devono essere identici: "Level 5" → "Level 6" o "Volume 50" →
+// "Volume 80" è un cambio vero del gioco, non un errore di lettura. Nelle scritte corte (voci di
+// menu, valori) accetto solo le lettere che l'OCR confonde (l/I/1, O/0, rn/m) e gli spazi; nelle
+// frasi lunghe anche qualche lettera letta male ("curmt" al posto di "current"), fino al 30%.
+func stessaScritta(a, b string) bool {
+	if a == b {
+		return true
+	}
+	if numeriESegni(a) != numeriESegni(b) {
+		return false
+	}
+	la, lb := lettereConfuse(a), lettereConfuse(b)
+	if la == lb {
+		return true
+	}
+	if len(strings.Fields(a)) < 3 || len(strings.Fields(b)) < 3 {
+		return false
+	}
+	lung := max(len([]rune(a)), len([]rune(b)))
+	if lung < 15 {
+		return false
+	}
+	return distanzaModifica(la, lb)*10 <= lung*3
+}
+
+// numeriESegni: le cifre e i segni (+ - % / :) della scritta, in ordine. Dentro un numero la O
+// letta al posto dello 0 e la l/I letta al posto dell'1 contano come cifre ("1O0" = "100").
+// Dentro una parola invece una cifra è un errore dell'OCR ("0ptions", "Hel1o") e non conta,
+// tranne le cifre in fondo ("Level5": numero attaccato alla parola).
+func numeriESegni(s string) string {
+	var out []rune
+	for _, w := range strings.Fields(s) {
+		rw := []rune(w)
+		d, ultimaLettera := 0, -1
+		for i, r := range rw {
+			if unicode.IsDigit(r) {
+				d++
+			} else if unicode.IsLetter(r) {
+				ultimaLettera = i
+			}
+		}
+		// un numero: cifre, e al massimo le lettere che l'OCR scambia con le cifre ("1OO%")
+		numero := d > 0 && strings.IndexFunc(w, func(r rune) bool {
+			return unicode.IsLetter(r) && !strings.ContainsRune("OolI", r)
+		}) < 0
+		for i, r := range rw {
+			switch {
+			case unicode.IsDigit(r) && (numero || i > ultimaLettera):
+				out = append(out, r)
+			case numero && (r == 'O' || r == 'o'):
+				out = append(out, '0')
+			case numero && (r == 'l' || r == 'I' || r == '|'):
+				out = append(out, '1')
+			case strings.ContainsRune("+-%/:", r):
+				out = append(out, r)
+			}
+		}
+		out = append(out, ' ')
+	}
+	return strings.TrimSpace(string(out))
+}
+
+// lettereConfuse: la scritta senza spazi né segni, minuscola, con le lettere che l'OCR scambia
+// ridotte a una sola (l/I/1/| → l, O/0 → o, rn → m).
+func lettereConfuse(s string) string {
+	var b strings.Builder
+	for _, r := range strings.ToLower(s) {
+		switch {
+		case r == '1' || r == '|' || r == 'i':
+			b.WriteRune('l')
+		case r == '0':
+			b.WriteRune('o')
+		case unicode.IsLetter(r) || unicode.IsDigit(r):
+			b.WriteRune(r)
+		}
+	}
+	return strings.ReplaceAll(b.String(), "rn", "m")
 }
 
 // soloNome: lettere e cifre minuscole, per confrontare un titolo letto con il nome del gioco.

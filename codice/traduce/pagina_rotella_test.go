@@ -317,3 +317,109 @@ func TestLargConsentita(t *testing.T) {
 		t.Fatalf("mai oltre la scritta vicina: %d", l)
 	}
 }
+
+// Un numero o un segno cambiato è un cambio vero del gioco: la traduzione vecchia non resta
+// ("Level 5" → "Level 6" restava "Livello 5", "Volume 50" → "80" restava 50 per sempre). Le
+// lettere che l'OCR confonde (l/I/1, O/0, rn/m) e gli spazi invece sì.
+func TestStabilizzaNumeriESegni(t *testing.T) {
+	casi := []struct {
+		vecchio, nuovo string
+		tieni          bool
+	}{
+		{"Level 5", "Level 6", false},
+		{"Volume 50", "Volume 80", false},
+		{"HP +10", "HP -10", false},
+		{"Speed 100%", "Speed 1OO%", true}, // O letta al posto dello 0 dentro il numero
+		{"Options", "0ptions", true},
+		{"Modern", "Modem", true}, // rn letto come m
+		{"Fill", "FiII", true},
+		{"Show", "Snow", false}, // una lettera vera diversa in una scritta corta
+		{"Low", "Now", false},
+		{"Usedfor crafting", "Used for crafting", true},
+		{"The current season has been reset", "The curmt season has been reset", true},
+		{"You have 5 coins left in the bag", "You have 6 coins left in the bag", false},
+	}
+	for _, c := range casi {
+		v := []Blocco{{Testo: c.vecchio, Tradotto: "VECCHIA", X: 10, Y: 10, W: 200, Righe: 1}}
+		n := []Blocco{{Testo: c.nuovo, Tradotto: "NUOVA", X: 11, Y: 10, W: 201, Righe: 1}}
+		stabilizza(n, v)
+		if tenuta := n[0].Tradotto == "VECCHIA"; tenuta != c.tieni {
+			t.Errorf("%q → %q: tenuta=%v, attesa %v", c.vecchio, c.nuovo, tenuta, c.tieni)
+		}
+		if !c.tieni && n[0].Testo != c.nuovo {
+			t.Errorf("%q → %q: il testo nuovo non deve essere sostituito da quello vecchio", c.vecchio, c.nuovo)
+		}
+	}
+}
+
+// scrittaFinta: una riga di "lettere" (rettangolini diversi per ogni seme) su fondo scuro,
+// ingrandita di scala attorno al centro, con un alone attorno alle lettere se bagliore.
+func scrittaFinta(seme int, scala float64, bagliore bool, dy int) *image.RGBA {
+	const W, H = 300, 80
+	img := image.NewRGBA(image.Rect(0, 0, W, H))
+	for i := 0; i < len(img.Pix); i += 4 {
+		img.Pix[i], img.Pix[i+1], img.Pix[i+2], img.Pix[i+3] = 30, 30, 40, 255
+	}
+	inchiostro := func(x, y float64) bool {
+		if x < 40 || x >= 240 || y < 30 || y >= 50 {
+			return false
+		}
+		lettera := int(x-40) / 10
+		lx, ly := int(x-40)%10, int(y-30)
+		if lx >= 8 {
+			return false // spazio tra le lettere
+		}
+		f := (lettera*7 + seme*13) % 5
+		switch f {
+		case 0:
+			return lx < 2 || lx > 5 // H
+		case 1:
+			return ly < 2 || ly > 17 || lx < 2 // C
+		case 2:
+			return lx < 2 || ly > 17 // L
+		case 3:
+			return lx >= 3 && lx < 5 || ly < 2 // T
+		default:
+			return lx < 2 || lx > 5 || ly < 2 || ly > 17 // O
+		}
+	}
+	cx, cy := 140.0, 40.0
+	for y := 0; y < H; y++ {
+		for x := 0; x < W; x++ {
+			sx, sy := cx+(float64(x)-cx)/scala, cy+(float64(y-dy)-cy)/scala
+			if inchiostro(sx, sy) {
+				img.SetRGBA(x, y, color.RGBA{240, 240, 240, 255})
+				continue
+			}
+			if bagliore {
+				vicino := false
+				for d := 1.0; d <= 3 && !vicino; d++ {
+					vicino = inchiostro(sx-d, sy) || inchiostro(sx+d, sy) || inchiostro(sx, sy-d) || inchiostro(sx, sy+d)
+				}
+				if vicino {
+					img.SetRGBA(x, y, color.RGBA{110, 110, 90, 255})
+				}
+			}
+		}
+	}
+	return img
+}
+
+// Il pulsante sotto il mouse si illumina e si ingrandisce un po' (Palworld): la traduzione resta
+// (niente sfarfallio); decide la rilettura. Se le lettere cambiano davvero o la riga scorre,
+// la traduzione sparisce subito.
+func TestTogliCambiateBagliore(t *testing.T) {
+	a := scrittaFinta(1, 1, false, 0)
+	b := Blocco{Testo: "Start", Tradotto: "Inizia", X: 36, Y: 26, W: 210, H: 28, Righe: 1, Em: 20, Img: a}
+	coloriBlocco(a, &b)
+	bl := []Blocco{b}
+	if resto, tolte := togliCambiate(scrittaFinta(1, 1.05, true, 0), bl); tolte != 0 || len(resto) != 1 {
+		t.Fatalf("bagliore e ingrandimento del mouse: la traduzione deve restare (tolte %d)", tolte)
+	}
+	if _, tolte := togliCambiate(scrittaFinta(2, 1, false, 0), bl); tolte != 1 {
+		t.Fatal("lettere diverse: la traduzione doveva sparire subito")
+	}
+	if _, tolte := togliCambiate(scrittaFinta(1, 1, false, 9), bl); tolte != 1 {
+		t.Fatal("riga scorsa: la traduzione doveva sparire subito")
+	}
+}
