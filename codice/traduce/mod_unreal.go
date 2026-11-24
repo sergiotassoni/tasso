@@ -14,6 +14,8 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+	"sync"
+	"sync/atomic"
 	"time"
 	"unicode"
 
@@ -294,19 +296,49 @@ func TraduciLocres(files []LocresDaTradurre, traduci func(string) (string, bool)
 			}
 		}
 	}
-	ultimo := time.Now()
-	for i, s := range ordine {
-		if stop != nil && stop() {
-			return tradotte, errors.New("interrotto")
-		}
-		if t, ok := TraduciConPezziFissi(s, traduci); ok && t != "" {
-			uniche[s] = t
-			tradotte++
-		}
-		if avanzamento != nil && (time.Since(ultimo) > 500*time.Millisecond || i == len(ordine)-1) {
-			avanzamento(i+1, len(ordine))
-			ultimo = time.Now()
-		}
+	// più frasi insieme (come la traduzione dello schermo): con migliaia di frasi una alla
+	// volta servivano molti minuti (PC Cafe Simulator, 3.661 frasi, 24/11)
+	const insieme = 6
+	var (
+		mu       sync.Mutex
+		fatte    int
+		ultimo   = time.Now()
+		fermato  atomic.Bool
+		prossima atomic.Int64
+		wg       sync.WaitGroup
+	)
+	for w := 0; w < insieme; w++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for {
+				if stop != nil && stop() {
+					fermato.Store(true)
+					return
+				}
+				i := int(prossima.Add(1) - 1)
+				if i >= len(ordine) || fermato.Load() {
+					return
+				}
+				s := ordine[i]
+				t, ok := TraduciConPezziFissi(s, traduci)
+				mu.Lock()
+				if ok && t != "" {
+					uniche[s] = t
+					tradotte++
+				}
+				fatte++
+				if avanzamento != nil && (time.Since(ultimo) > 500*time.Millisecond || fatte == len(ordine)) {
+					avanzamento(fatte, len(ordine))
+					ultimo = time.Now()
+				}
+				mu.Unlock()
+			}
+		}()
+	}
+	wg.Wait()
+	if fermato.Load() {
+		return tradotte, errors.New("interrotto")
 	}
 	for _, f := range files {
 		for k, s := range f.L.Frasi {

@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync/atomic"
 	"testing"
 
 	"tasso/traduce/unreal"
@@ -98,13 +99,13 @@ func TestModUnrealCompleta(t *testing.T) {
 	if err != nil || len(files) != 1 {
 		t.Fatalf("%v %d", err, len(files))
 	}
-	chiamate := 0
+	var chiamate atomic.Int64
 	n, err := TraduciLocres(files, func(s string) (string, bool) {
-		chiamate++
+		chiamate.Add(1)
 		return strings.NewReplacer("Hello", "Ciao àè", "Level", "Livello").Replace(s), true
 	}, nil, nil)
-	if err != nil || n != 2 || chiamate != 2 {
-		t.Fatalf("tradotte %d, chiamate %d, %v", n, chiamate, err)
+	if err != nil || n != 2 || chiamate.Load() != 2 {
+		t.Fatalf("tradotte %d, chiamate %d, %v", n, chiamate.Load(), err)
 	}
 	rel, creata, err := ScriviModUnreal(gioco, paks, files)
 	if err != nil || !creata {
