@@ -979,7 +979,17 @@ window.open = () => null;
 
 $("#toastX").onclick = () => $("#toast").classList.remove("on");
 $("#toastMostra").onclick = () => { if (ultimoSalvato) go("goMostra", ultimoSalvato).catch(() => {}); };
-$("#btnInfo").onclick = () => avvisa(t("infoTesto", versione) + "\n\n" + t("infoSicurezza") + "\n\n" + t("infoComponenti"), "Tasso PDF " + versione);
+// Informazioni, con la riga degli aggiornamenti: li gestisce Tasso (Tasso PDF non usa internet).
+$("#btnInfo").onclick = async () => {
+  const vxy = versione.split(".").slice(0, 2).join(".");
+  const r = await chiedi("Tasso PDF " + versione, t("infoTesto", versione) + "\n\n" + t("aggVersione", vxy) + "\n\n" + t("infoSicurezza") + "\n\n" + t("infoComponenti"),
+    [[t("aggControlla"), "agg", false], [t("ok"), true, true]]);
+  if (r !== "agg") return;
+  const esito = await go("goControllaAggiornamenti").catch(() => "errore");
+  if (esito === "errore") { avvisa(t("aggNonAperto"), t("aggTitolo")); return; }
+  if (esito !== "nessuno") return;
+  if ((await chiedi(t("aggTitolo"), t("aggSenzaTasso"), [[t("annulla"), false, false], [t("aggApriPagina"), true, true]])) === true) go("goPaginaVersioni").catch(() => {});
+};
 
 // ---------------------------------------------------------------- avvio
 

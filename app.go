@@ -48,6 +48,7 @@ var piattaforma struct {
 	linguaSistema func() string
 	menuAttivo    func() bool
 	impostaMenu   func(on bool, lingua string) error
+	apriTassoAgg  func() string // apre Tasso su Impostazioni → Aggiornamenti (aggiornamenti.go)
 }
 
 // ---------------------------------------------------------------- Archivio dei file
@@ -786,6 +787,9 @@ func legami() map[string]interface{} {
 		"goFileAvvio":     goFileAvvio,
 		"goMenu":          goMenu,
 		"goImpostaMenu":   goImpostaMenu,
+		// aggiornamenti.go
+		"goControllaAggiornamenti": goControllaAggiornamenti,
+		"goPaginaVersioni":         goPaginaVersioni,
 	}
 }
 
