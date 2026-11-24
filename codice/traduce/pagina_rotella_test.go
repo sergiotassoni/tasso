@@ -121,3 +121,27 @@ func TestTitoloMaiuscoloNonSiUnisce(t *testing.T) {
 		t.Fatal("una frase normale andata a capo deve unirsi")
 	}
 }
+
+func TestBordiCambiati(t *testing.T) {
+	fai := func(luceFondo uint8, scritta int) *image.RGBA {
+		img := image.NewRGBA(image.Rect(0, 0, 640, 240))
+		for i := 0; i < len(img.Pix); i += 4 {
+			img.Pix[i], img.Pix[i+1], img.Pix[i+2], img.Pix[i+3] = luceFondo, luceFondo/2, 30, 255
+		}
+		for y := 100; y < 116; y++ { // una "parola": barrette verticali
+			for x := 50; x < 250; x++ {
+				if (x+scritta)%7 < 2 {
+					img.SetRGBA(x, y, color.RGBA{250, 250, 250, 255})
+				}
+			}
+		}
+		return img
+	}
+	a := fai(60, 0)
+	if bordiCambiati(a, fai(90, 0)) {
+		t.Fatal("solo lo sfondo più chiaro: le scritte sono le stesse")
+	}
+	if !bordiCambiati(a, fai(60, 3)) {
+		t.Fatal("scritta diversa: va riletta")
+	}
+}

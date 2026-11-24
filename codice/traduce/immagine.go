@@ -299,3 +299,50 @@ func stranezza(t string) float64 {
 	}
 	return float64(strani) / float64(n)
 }
+
+// bordiCambiati: i contorni netti (lettere, cornici) sono cambiati in almeno una zona dello
+// schermo. Uno sfondo sfocato che si muove (pianeta dietro il menu di No Man's Sky, fumo, luci)
+// cambia la luce ma quasi non ha contorni netti: senza questo controllo la pagina veniva riletta
+// ogni secondo anche a menu fermo (lettura 0,5 s di processore a vuoto, 24/11).
+func bordiCambiati(a, b *image.RGBA) bool {
+	if a == nil || b == nil || a.Bounds() != b.Bounds() {
+		return true
+	}
+	r := a.Bounds()
+	w, h := r.Dx(), r.Dy()
+	if w < 8 || h < 8 {
+		return true
+	}
+	const cx, cy = 32, 12
+	var diff, tot [cx * cy]int
+	luce := func(img *image.RGBA, x, y int) int {
+		i := img.PixOffset(r.Min.X+x, r.Min.Y+y)
+		return (299*int(img.Pix[i]) + 587*int(img.Pix[i+1]) + 114*int(img.Pix[i+2])) / 1000
+	}
+	bordo := func(img *image.RGBA, x, y int) bool {
+		d := luce(img, x+1, y) - luce(img, x-1, y)
+		if d < 0 {
+			d = -d
+		}
+		if d > 45 {
+			return true
+		}
+		d = luce(img, x, y+1) - luce(img, x, y-1)
+		return d > 45 || d < -45
+	}
+	for y := 1; y < h-1; y += 2 {
+		for x := 1; x < w-1; x += 2 {
+			c := (y*cy/h)*cx + x*cx/w
+			tot[c]++
+			if bordo(a, x, y) != bordo(b, x, y) {
+				diff[c]++
+			}
+		}
+	}
+	for c := range diff {
+		if diff[c] >= 8 && diff[c]*50 >= tot[c] { // almeno il 2% dei punti della zona
+			return true
+		}
+	}
+	return false
+}

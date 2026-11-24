@@ -83,6 +83,7 @@ func avviaPaginaSu(fg uintptr) {
 func cicloPagina(giro int64) {
 	defer guard("pagina")
 	var ultima, ultimaColori Impronta
+	var ultimaImg *image.RGBA // la schermata dell'ultima lettura: per vedere se le scritte sono cambiate
 	prima := true
 	nascostaPerAltTab := false
 	nere := 0
@@ -125,7 +126,11 @@ func cicloPagina(giro int64) {
 		nere = 0
 		if err == nil {
 			imp := calcolaImpronta(img)
-			if prima || imp.cambiata(ultima) {
+			// cambia solo la luce (sfondo animato e sfocato, scritta che si colora sotto il mouse):
+			// i contorni delle scritte sono gli stessi, niente rilettura, solo i colori. Il
+			// riferimento resta l'ultima lettura: un cambio lento che si somma viene visto lo stesso
+			soloLuce := !prima && imp.cambiata(ultima) && !bordiCambiati(img, ultimaImg)
+			if !soloLuce && (prima || imp.cambiata(ultima)) {
 				cambioVisto.Store(time.Now().UnixNano())
 				// lettura e traduzione partono subito, in anticipo, sulla prima immagine...
 				type esitoPagina struct {
@@ -169,7 +174,7 @@ func cicloPagina(giro int64) {
 						pronta, occupata = preparaPagina(area, img2, img, giro)
 					}
 					if pronta != nil && mostraPaginaPronta(pronta, giro) {
-						ultima, ultimaColori, prima = imp2, imp2, false
+						ultima, ultimaColori, prima, ultimaImg = imp2, imp2, false, img2
 					} else if pronta == nil && occupata {
 						// la lettura serviva ai dialoghi o alla chat: non è "niente da tradurre",
 						// riprovo al giro dopo sulla stessa schermata
@@ -180,7 +185,7 @@ func cicloPagina(giro int64) {
 						// nessuna scritta): tolgo le scritte vecchie e aspetto un cambio vero,
 						// invece di rileggere lo schermo all'infinito
 						NascondiPagina()
-						ultima, ultimaColori, prima = imp2, imp2, false
+						ultima, ultimaColori, prima, ultimaImg = imp2, imp2, false, img2
 						ultimeScritte.Store(0)
 					}
 				} else {
