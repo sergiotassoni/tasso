@@ -524,7 +524,8 @@ nav [data-sub="gio"] button{--ic:#FF4D6D}
 .kgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:6px 18px}
 .kk{display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px solid var(--line);font-size:14px}.kk b{font-family:var(--mono,monospace);color:var(--a1t)}
 .boostside{display:flex;flex-direction:column;align-items:center;gap:10px}
-.bdot{display:inline-block;width:8px;height:8px;border-radius:99px;background:var(--a1);margin-right:10px;vertical-align:middle;box-shadow:0 0 0 3px color-mix(in srgb,var(--a1) 25%,transparent)}
+.boostgo{position:relative}#boostSub{min-height:3.2em}.boostundo.nascosto{visibility:hidden;pointer-events:none}
+.bdot{position:absolute;left:18px;top:50%;margin-top:-4px;width:8px;height:8px;border-radius:99px;background:var(--a1);box-shadow:0 0 0 3px color-mix(in srgb,var(--a1) 25%,transparent)}
 .gptr{display:flex;flex-direction:column;gap:0;padding-top:6px;padding-bottom:6px}.gptr h3{margin:10px 0 2px}.gptr .gp-line small{display:block;line-height:1.6}.gptr .sw{border:0;cursor:pointer;flex:none}
 .boostundo{background:none;border:0;padding:4px 8px;border-radius:8px;font-size:12px;font-weight:500;color:var(--muted);display:inline-flex;align-items:center;gap:6px;cursor:pointer;transition:color .15s}.boostundo:hover,.boostundo:focus-visible{color:var(--text)}.boostundo[hidden]{display:none}
 .boostauto{display:flex;align-items:center;gap:12px;margin:14px 0 0;font-size:14px;cursor:pointer}.boostauto .sw{border:0;cursor:pointer;flex:none}
@@ -1022,7 +1023,7 @@ body nav button[data-go="games"].on{background:transparent;box-shadow:none}
   <div><h1 style="font-size:26px">Giochi</h1><p class="sub">I tuoi giochi, il Boost e la traduzione, in un posto solo.</p></div>
   <div class="card boostcard" id="boostCard">
     <div style="flex:1 1 320px;min-width:0"><div class="boostk">PRONTO A GIOCARE</div><h2 id="boostTitle">Il PC è in modalità normale</h2><p class="sub" id="boostSub" style="margin:0">Scegli il gioco e confermi: Tasso lo prepara con la potenza giusta. Da lì in poi lo fa da solo ogni volta che apri quel gioco.</p><label class="boostauto" for="boostAutoSw"><button class="sw" role="switch" aria-checked="false" id="boostAutoSw" aria-label="Boost automatico quando apri un gioco"><i></i></button><span>Boost automatico quando apri un gioco</span></label><input type="checkbox" id="boostAuto" hidden><span hidden><!-- non più nel riquadro (scelta di Sergio): il Boost senza scegliere il gioco resta nel menu dell'icona vicino all'orologio; la misura e il controllo FPS restano nel codice e partono da soli col Boost --><a href="#" id="boostNow"></a><a href="#" id="boostFpsBtn"></a><a href="#" id="boostCheckBtn"></a></span><div class="small" id="boostFps" style="margin-top:8px"></div></div>
-    <div class="boostside"><button class="btn primary boostgo" id="btnBoost" aria-label="Boost: scegli il gioco">BOOST</button><button class="boostundo" id="boostUndo" hidden title="Spegne il Boost (anche quello automatico), rimette le impostazioni di prima e riapre i programmi chiusi."><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>Rimetti com'era</button></div>
+    <div class="boostside"><button class="btn primary boostgo" id="btnBoost" aria-label="Boost: scegli il gioco">BOOST</button><button class="boostundo nascosto" id="boostUndo" tabindex="-1" aria-hidden="true" title="Spegne il Boost (anche quello automatico), rimette le impostazioni di prima e riapre i programmi chiusi."><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>Rimetti com'era</button></div>
   </div>
   <div class="card" id="fpsCheckCard" style="display:none"><div id="fpsCheck" role="status" aria-live="polite" style="display:flex;flex-direction:column;gap:8px"></div></div>
   <div class="card" id="gpCard" style="display:none;flex-direction:column;gap:12px;border-color:var(--a1)">
@@ -2050,8 +2051,15 @@ function boostPaintState(){
   const a = $('#boostAuto'); if (a) a.checked = !!BST.auto;
   const asw = $('#boostAutoSw'); if (asw) { asw.classList.toggle('on', !!BST.auto); asw.setAttribute('aria-checked', BST.auto ? 'true' : 'false'); }
   // «Rimetti com'era» piccolo sotto BOOST, solo quando c'è qualcosa da rimettere (come nel menu dell'icona)
-  const und = $('#boostUndo'); if (und) und.hidden = !(BST.on || BST.game || BST.pending || BST.gpuFix);
+  const und = $('#boostUndo'); if (und) { const vis = !!(BST.on || BST.game || BST.pending || BST.gpuFix); und.classList.toggle('nascosto', !vis); und.tabIndex = vis ? 0 : -1; und.setAttribute('aria-hidden', vis ? 'false' : 'true'); } // lo spazio resta sempre: la schermata non si muove
   const k = $('#boostCard .boostk'); if (k) k.textContent = BST.game ? _t('BOOST AUTOMATICO: ') + BST.game : on ? _t('BOOST ACCESO') : _t('PRONTO A GIOCARE');
+  // Boost acceso: titolo e testo dicono che il PC è potenziato (scelta di Sergio); spento tornano quelli di prima
+  const bt = $('#boostTitle'), bs = $('#boostSub');
+  if (bs && bs.dataset.base === undefined) bs.dataset.base = bs.textContent;
+  if (on) {
+    if (bt) bt.textContent = BST.game ? _t('Il PC è potenziato per ') + BST.game : _t('Il PC è potenziato');
+    if (bs) bs.textContent = _t('Ho chiuso i programmi che non servono e dato tutta la potenza al gioco. Quando hai finito, premi «Rimetti com\'era».');
+  } else if (bs && bs.dataset.base !== undefined) bs.textContent = bs.dataset.base;
   if (typeof gBoostPaint === 'function') gBoostPaint();
 }
 function fpsLine(r){
