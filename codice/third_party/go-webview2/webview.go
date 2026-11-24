@@ -58,7 +58,13 @@ type webview struct {
 	m          sync.Mutex
 	bindings   map[string]interface{}
 	dispatchq  []func()
+	codaOnce   sync.Once
+	coda       chan rpcMessage
 }
+
+// SuFinestra: funzioni legate con Bind che devono girare nel filo della finestra (aprono
+// finestre di Windows come "Scegli un file", che vogliono quel filo). Modifica di Tasso.
+var SuFinestra = map[string]bool{}
 
 type WindowOptions struct {
 	Title  string
@@ -147,13 +153,33 @@ type rpcMessage struct {
 
 func jsString(v interface{}) string { b, _ := json.Marshal(v); return string(b) }
 
+// msgcb: modifica di Tasso. Prima ogni pulsante girava nel filo della finestra: se il lavoro
+// durava (leggere un file, chiedere qualcosa a Windows) la finestra restava ferma e Tasso
+// sembrava lento ad aprirsi o bloccato. Ora le chiamate girano in un filo a parte, una alla
+// volta e nell'ordine in cui arrivano (come prima), e la finestra resta sempre libera.
+// Le risposte tornano alla pagina con Dispatch, come prima.
 func (w *webview) msgcb(msg string) {
 	d := rpcMessage{}
 	if err := json.Unmarshal([]byte(msg), &d); err != nil {
 		log.Printf("invalid RPC message: %v", err)
 		return
 	}
+	if SuFinestra[d.Method] {
+		w.rispondi(d)
+		return
+	}
+	w.codaOnce.Do(func() {
+		w.coda = make(chan rpcMessage, 4096)
+		go func() {
+			for d := range w.coda {
+				w.rispondi(d)
+			}
+		}()
+	})
+	w.coda <- d
+}
 
+func (w *webview) rispondi(d rpcMessage) {
 	id := strconv.Itoa(d.ID)
 	if res, err := w.callbinding(d); err != nil {
 		w.Dispatch(func() {

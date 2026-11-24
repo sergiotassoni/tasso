@@ -36,6 +36,9 @@ var (
 	pMsgBox  = user32.NewProc("MessageBoxW")
 )
 
+// avvioT0: quando è partito Tasso, per misurare quanto ci mette ad aprirsi (logs\avvio.txt).
+var avvioT0 = time.Now()
+
 func main() {
 	hardenProcess()
 	// Profilo gioco all'accensione del PC (Tasso non parte con Windows): rimetto il profilo e chiudo,
@@ -148,8 +151,15 @@ func main() {
 	}
 	wv = w
 	defer w.Destroy()
+	scriviAvvio("finestra creata")
 
+	// Le finestre "Scegli un file" vogliono il filo della finestra: tutte le altre chiamate
+	// girano in un filo a parte, così la finestra non si blocca mai (vedi third_party/go-webview2).
+	for _, n := range []string{"goPickFiles", "goFeedbackPhoto", "goAddGame"} {
+		webview2.SuFinestra[n] = true
+	}
 	bindAll(w)
+	_ = w.Bind("goPronto", func() string { scriviAvvio("pagina pronta"); return "ok" })
 	// Tasso Traduce (sezione Traduci): collegamenti prima di caricare la pagina; il resto parte
 	// in sottofondo e non legge lo schermo finché non accendi la traduzione.
 	traduce.Ospite.ApriComeUtente = openUser
@@ -198,10 +208,26 @@ func main() {
 	b, _ := json.Marshal(boot)
 	w.Init("window.__TASSO_BOOT__ = " + string(b) + "; window.__TASSO_I18N__ = " + uiDictJSON() + ";")
 	w.SetHtml(indexHTML)
+	scriviAvvio("pagina caricata nella finestra")
 	if minimized {
 		pShowWin.Call(uintptr(w.Window()), 6) // SW_MINIMIZE
 	}
 	w.Run()
+}
+
+// scriviAvvio: una riga in logs\avvio.txt con i secondi passati dall'apertura di Tasso.
+// Serve a capire cosa rende lenta l'apertura sul PC di chi lo usa (il file resta piccolo).
+func scriviAvvio(cosa string) {
+	p := filepath.Join(appDir, "logs", "avvio.txt")
+	if fi, err := os.Stat(p); err == nil && fi.Size() > 64<<10 {
+		_ = os.Remove(p)
+	}
+	f, err := os.OpenFile(p, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0o644)
+	if err != nil {
+		return
+	}
+	defer f.Close()
+	_, _ = fmt.Fprintf(f, "%s  %5.2f s  %s\r\n", time.Now().Format("02/01 15:04:05"), time.Since(avvioT0).Seconds(), cosa)
 }
 
 func newWindow() webview2.WebView {

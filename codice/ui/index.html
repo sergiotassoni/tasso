@@ -3030,6 +3030,7 @@ if (S.onboarded) setTimeout(statsAsk, 3000);
 setTimeout(() => { loaded.startup = 1; call('goStartupList'); }, 4000);
 pollLive(); setInterval(pollLive, 2000);
 call('goIsRunning').then(r => { if (r) show('clean'); });
+window.addEventListener('load', () => { setTimeout(() => call('goPronto'), 0); }); // misura dell'apertura (logs\avvio.txt)
 if (BOOT.autoLevel) setTimeout(() => startLevel(BOOT.autoLevel, false), 800);
 
 // ---------- Giochi ----------
