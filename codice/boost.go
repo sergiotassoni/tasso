@@ -893,7 +893,8 @@ func fpsMeasure(delay, secs int, boosted, beeps bool, prefer string) (*fpsResult
 	werr := cmd.Wait()
 	close(done)
 	fgMu.Lock()
-	fg[foregroundPid()]++ // ultimo controllo a misura finita (se PresentMon finisce presto ce n'è almeno uno)
+	durante := fgTot      // controlli fatti mentre misuravo
+	fg[foregroundPid()]++ // ultimo controllo a misura finita: solo un complemento
 	fgTot++
 	fgMu.Unlock()
 	hzAtEnd := gameScreenHz()
@@ -922,6 +923,10 @@ func fpsMeasure(delay, secs int, boosted, beeps bool, prefer string) (*fpsResult
 	}
 	front := fgTot > 0 && davanti*3 >= fgTot*2
 	fgMu.Unlock()
+	if durante < 3 {
+		// troppo pochi controlli per sapere chi era davanti: la misura non vale
+		return nil, errors.New("la misura è stata troppo breve per controllare che il gioco fosse davanti: riprova")
+	}
 	if !front {
 		return nil, errors.New("il gioco non era in primo piano durante la misura: tienilo davanti e riprova")
 	}

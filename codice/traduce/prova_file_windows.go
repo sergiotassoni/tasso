@@ -159,10 +159,13 @@ func copiaLinguaComeInglese(cartella, lin string) string {
 	if haAntiCheat(cartella) {
 		return "gioco con anti-cheat: niente file"
 	}
-	if m, _ := filepath.Glob(filepath.Join(CartellaPaksUnreal(cartella), "~mods", "*Tasso*")); len(m) > 0 {
+	paks := CartellaPaksUnreal(cartella)
+	if paks == "" {
+		return "non è un gioco Unreal (niente cartella Paks)"
+	}
+	if m, _ := filepath.Glob(filepath.Join(paks, "~mods", "*Tasso*")); len(m) > 0 {
 		return "c'è già una traduzione di Tasso: toglila prima"
 	}
-	paks := CartellaPaksUnreal(cartella)
 	files, err := leggiLocresLingua(paks, lin)
 	if err != nil {
 		return err.Error()

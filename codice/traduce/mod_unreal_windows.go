@@ -4,6 +4,7 @@ package traduce
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -82,6 +83,13 @@ func applicaModUnreal(nome, cartella string, antiCheat bool, passo func(int, str
 		passo(10+80*fatte/max(tot, 1), fmt.Sprintf("Traduco le scritte del gioco: %d/%d%s…", fatte, tot, resto))
 	}, fermaUnreal.Load)
 	traduttore.SalvaMemoria()
+	var ep *ErrorePanico
+	if errors.As(err, &ep) {
+		logErrore("traduci-locres", ep.Valore, ep.Stack)
+		passo(4, "Errore interno mentre traducevo le scritte del gioco: il gioco è rimasto com'era. Lo traduco sullo schermo.")
+		applicaTraduzione(nome, cartella)
+		return
+	}
 	if err != nil {
 		fallito("Traduzione interrotta: il gioco è rimasto com'era.")
 		return

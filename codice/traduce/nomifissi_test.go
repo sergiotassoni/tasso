@@ -123,3 +123,18 @@ func TestSuggerimentoTasto(t *testing.T) {
 		t.Error("frase normale")
 	}
 }
+
+func TestCopiaEsempio(t *testing.T) {
+	if !copiaEsempio("Reload the weapon.", "Ricarica il caricatore.") {
+		t.Error("copia dell'esempio non vista")
+	}
+	if copiaEsempio("Reload your magazine.", "Ricarica il caricatore.") {
+		t.Error("stessa frase dell'esempio: la risposta è giusta")
+	}
+	if copiaEsempio("Low health", "Vita bassa") {
+		t.Error("risposta diversa scartata")
+	}
+	if g := pulisciRisposta("Finale: Premi E"); g != "Premi E" {
+		t.Errorf("Finale: rimasto (%q)", g)
+	}
+}

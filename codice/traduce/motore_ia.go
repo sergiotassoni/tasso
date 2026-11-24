@@ -213,7 +213,7 @@ func pulisciRisposta(s string) string {
 		}
 		s = strings.TrimSpace(resto)
 	}
-	for _, pre := range []string{"Traduzione automatica:", "Traduzione corretta:", "Traduzione finale:", "Traduzione italiana:", "Traduzione:", "Italiano:"} {
+	for _, pre := range []string{"Traduzione automatica:", "Finale:", "Traduzione corretta:", "Traduzione finale:", "Traduzione italiana:", "Traduzione:", "Italiano:"} {
 		if strings.HasPrefix(strings.ToLower(s), strings.ToLower(pre)) {
 			s = strings.TrimSpace(s[len(pre):])
 		}
@@ -254,7 +254,12 @@ type ClientIA struct {
 }
 
 func (c *ClientIA) Traduci(ctx context.Context, r RichiestaTraduzione) (string, error) {
-	return c.chat(ctx, costruisciMessaggi(r), temperatura(r), tokenMassimi(r))
+	t, err := c.chat(ctx, costruisciMessaggi(r), temperatura(r), tokenMassimi(r))
+	if err == nil && r.Bozza != "" && copiaEsempio(r.Testo, t) {
+		// l'IA ha ricopiato la risposta di un esempio invece di correggere questa frase
+		return "", errors.New("motore IA: risposta copiata da un esempio")
+	}
+	return t, err
 }
 
 // tokenMassimi: quanti pezzi di parola può scrivere al massimo l'IA. Una correzione più lunga di
@@ -330,6 +335,21 @@ func (c *ClientIA) chat(ctx context.Context, msgs []messaggio, temp float64, max
 		return "", errors.New("motore IA: traduzione vuota")
 	}
 	return t, nil
+}
+
+// copiaEsempio: la risposta è il "Finale:" di un esempio fisso ma la frase inglese è un'altra.
+func copiaEsempio(inglese, risposta string) bool {
+	righe := strings.Split(esempiFissi, "\n")
+	for i, r := range righe {
+		fin, ok := strings.CutPrefix(r, "Finale: ")
+		if !ok || i < 2 || !strings.EqualFold(strings.TrimSpace(fin), strings.TrimSpace(risposta)) {
+			continue
+		}
+		if en, ok := strings.CutPrefix(righe[i-2], "Inglese: "); ok && !strings.EqualFold(strings.TrimSpace(en), strings.TrimSpace(inglese)) {
+			return true
+		}
+	}
+	return false
 }
 
 // Pronto controlla se llama-server ha finito di caricare il modello.

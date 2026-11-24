@@ -12,6 +12,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"runtime/debug"
 	"sort"
 	"strings"
 	"sync"
@@ -310,6 +311,14 @@ func stessiPezzi(a, b []string) bool {
 }
 
 // TraduciLocres: traduce tutte le frasi (le uguali una volta sola). avanzamento(fatte, totale).
+// ErrorePanico: una frase ha fatto andare in errore grave il traduttore (il lavoro si ferma, Tasso no).
+type ErrorePanico struct {
+	Valore any
+	Stack  []byte
+}
+
+func (e *ErrorePanico) Error() string { return fmt.Sprint("errore interno: ", e.Valore) }
+
 func TraduciLocres(files []LocresDaTradurre, traduci func(string) (string, bool), avanzamento func(int, int), stop func() bool) (tradotte int, err error) {
 	uniche := map[string]string{}
 	var ordine []string
@@ -329,6 +338,7 @@ func TraduciLocres(files []LocresDaTradurre, traduci func(string) (string, bool)
 		fatte    int
 		ultimo   = time.Now()
 		fermato  atomic.Bool
+		panico   atomic.Pointer[ErrorePanico]
 		prossima atomic.Int64
 		wg       sync.WaitGroup
 	)
@@ -339,6 +349,7 @@ func TraduciLocres(files []LocresDaTradurre, traduci func(string) (string, bool)
 			defer func() {
 				// un errore grave in una frase non deve chiudere Tasso: fermo il lavoro e lo dico
 				if r := recover(); r != nil {
+					panico.CompareAndSwap(nil, &ErrorePanico{Valore: r, Stack: debug.Stack()})
 					fermato.Store(true)
 				}
 			}()
@@ -353,21 +364,29 @@ func TraduciLocres(files []LocresDaTradurre, traduci func(string) (string, bool)
 				}
 				s := ordine[i]
 				t, ok := TraduciConPezziFissi(s, traduci)
+				// sotto il lucchetto solo i conti: avanzamento si chiama fuori, così un suo errore
+				// grave non lascia il lucchetto chiuso e gli altri fili non restano bloccati
 				mu.Lock()
 				if ok && t != "" {
 					uniche[s] = t
 					tradotte++
 				}
 				fatte++
+				avvisa, n := false, fatte
 				if avanzamento != nil && (time.Since(ultimo) > 500*time.Millisecond || fatte == len(ordine)) {
-					avanzamento(fatte, len(ordine))
-					ultimo = time.Now()
+					avvisa, ultimo = true, time.Now()
 				}
 				mu.Unlock()
+				if avvisa {
+					avanzamento(n, len(ordine))
+				}
 			}
 		}()
 	}
 	wg.Wait()
+	if e := panico.Load(); e != nil {
+		return tradotte, e
+	}
 	if fermato.Load() {
 		return tradotte, errors.New("interrotto")
 	}
