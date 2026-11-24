@@ -354,9 +354,6 @@ V-Sync	V-Sync
 Extras	Extra
 Box, box!	Ai box, ai box!
 Box box!	Ai box, ai box!
-Box, box	Ai box, ai box
-Achievement unlocked	Obiettivo sbloccato
-Trophy unlocked	Trofeo sbloccato
 Enemy sniper	Cecchino nemico
 # Modi di dire e slang dei giochi (7/11/2026)
 Good game	Bella partita
@@ -489,7 +486,6 @@ Truth Teller	Truth Teller
 Liar's Deck Remastered!	Liar's Deck Remastered!
 Liar's Deck 2	Liar's Deck 2
 Liar's Chaos 2	Liar's Chaos 2
-Voice Chat	Chat vocale
 Liar's Decr Remastered!	Liar's Decr Remastered!
 Hello Games	Hello Games
 Forsaken	Forsaken
@@ -2225,7 +2221,6 @@ Unread	Non letto
 Mark all as read	Segna tutto come letto
 Replay Tutorials	Rivedi i tutorial
 Replay Tutorial	Rivedi il tutorial
-Early Access	Accesso anticipato
 Cargo	Carico
 Freighter	Mercantile
 Multi-Tool	Multiattrezzo
@@ -2428,3 +2423,5739 @@ Return to title screen	Torna alla schermata del titolo
 Press to continue	Premi per continuare
 Under maintenance	In manutenzione
 Download complete	Download completato
+# === Frasi pronte aggiunte il 24/11/2026 (scritte a mano per Tasso, GPL-3.0) ===
+# --- menu principale, pausa e uscita
+Continue Game	Continua la partita
+Continue Playing	Continua a giocare
+Load Checkpoint	Carica checkpoint
+Load Autosave	Carica il salvataggio automatico
+New Game+	Nuova partita+
+Start New Game	Inizia una nuova partita
+Start a new game	Inizia una nuova partita
+Starting a new game will overwrite your current progress	Una nuova partita sovrascriverà i progressi attuali
+Title Screen	Schermata del titolo
+Return to Title	Torna al titolo
+Back to Title	Torna al titolo
+Quit to Title	Torna al titolo
+Exit to Title	Torna al titolo
+Exit Game	Esci dal gioco
+Exit to Menu	Torna al menu
+Quit to Menu	Torna al menu
+Back to Menu	Torna al menu
+Return to Game	Torna al gioco
+Back to Game	Torna al gioco
+Resume Playing	Riprendi a giocare
+Unpause	Riprendi
+Pause Game	Metti in pausa
+Game Menu	Menu di gioco
+System Menu	Menu di sistema
+System	Sistema
+Quit Application	Chiudi l'applicazione
+Close Game	Chiudi il gioco
+Leave	Esci
+Leave Session	Esci dalla sessione
+Leave World	Esci dal mondo
+Leave Server	Esci dal server
+Disconnect	Disconnetti
+Save and Quit to Desktop	Salva ed esci al desktop
+Save and Quit to Main Menu	Salva e torna al menu principale
+Save and Return to Menu	Salva e torna al menu
+Save & Quit	Salva ed esci
+Save & Exit	Salva ed esci
+Quit without saving	Esci senza salvare
+Exit without saving	Esci senza salvare
+Leave without saving	Esci senza salvare
+Don't Save	Non salvare
+Do not save	Non salvare
+Save and Continue	Salva e continua
+Return to main menu? Unsaved progress will be lost.	Tornare al menu principale? I progressi non salvati andranno persi.
+Are you sure you want to quit the game?	Vuoi davvero uscire dal gioco?
+Are you sure you want to exit the game?	Vuoi davvero uscire dal gioco?
+Are you sure you want to quit to desktop?	Vuoi davvero uscire al desktop?
+Are you sure you want to return to the main menu?	Vuoi davvero tornare al menu principale?
+Are you sure you want to restart?	Vuoi davvero ricominciare?
+Are you sure you want to restart the level?	Vuoi davvero ricominciare il livello?
+Are you sure you want to restart the mission?	Vuoi davvero ricominciare la missione?
+Are you sure you want to restart from the last checkpoint?	Vuoi davvero ricominciare dall'ultimo checkpoint?
+Are you sure you want to start a new game?	Vuoi davvero iniziare una nuova partita?
+Are you sure you want to overwrite this save?	Vuoi davvero sovrascrivere questo salvataggio?
+Are you sure you want to load this save?	Vuoi davvero caricare questo salvataggio?
+Are you sure you want to discard your changes?	Vuoi davvero annullare le modifiche?
+Are you sure you want to delete this character?	Vuoi davvero eliminare questo personaggio?
+Are you sure you want to delete this world?	Vuoi davvero eliminare questo mondo?
+Are you sure you want to leave the match?	Vuoi davvero abbandonare la partita?
+Are you sure you want to leave the lobby?	Vuoi davvero uscire dalla lobby?
+Are you sure you want to disconnect?	Vuoi davvero disconnetterti?
+Are you sure you want to buy this item?	Vuoi davvero comprare questo oggetto?
+Are you sure you want to drop this item?	Vuoi davvero lasciare questo oggetto?
+Are you sure you want to destroy this item?	Vuoi davvero distruggere questo oggetto?
+Are you sure you want to dismantle this item?	Vuoi davvero smontare questo oggetto?
+Are you sure you want to skip the tutorial?	Vuoi davvero saltare il tutorial?
+Are you sure you want to skip this cutscene?	Vuoi davvero saltare questo filmato?
+Are you sure you want to reset your progress?	Vuoi davvero azzerare i progressi?
+Are you sure you want to reset the controls?	Vuoi davvero ripristinare i comandi?
+Are you sure you want to reset to default settings?	Vuoi davvero ripristinare le impostazioni predefinite?
+Are you sure you want to surrender?	Vuoi davvero arrenderti?
+Are you sure you want to kick this player?	Vuoi davvero espellere questo giocatore?
+Are you sure you want to remove this friend?	Vuoi davvero rimuovere questo amico?
+Are you sure you want to block this player?	Vuoi davvero bloccare questo giocatore?
+Confirm Exit	Conferma uscita
+Confirm Quit	Conferma uscita
+Confirm Delete	Conferma eliminazione
+Confirm Deletion	Conferma eliminazione
+Confirm Changes	Conferma le modifiche
+Confirm Selection	Conferma la scelta
+Confirm Action	Conferma l'azione
+Confirmation	Conferma
+Yes, quit	Sì, esci
+Yes, delete	Sì, elimina
+No, go back	No, torna indietro
+Go Back	Torna indietro
+Cancel and go back	Annulla e torna indietro
+Not now	Non ora
+Later	Più tardi
+Maybe later	Magari più tardi
+Remind me later	Ricordamelo più tardi
+Never	Mai
+Always	Sempre
+Ask me later	Chiedimelo più tardi
+Don't show again	Non mostrare più
+Don't show this again	Non mostrare più
+Do not show again	Non mostrare più
+Do not show this message again	Non mostrare più questo messaggio
+Dismiss	Ignora
+I understand	Ho capito
+Understood	Capito
+Okay	OK
+Proceed	Procedi
+Continue anyway	Continua comunque
+Skip anyway	Salta comunque
+Quit anyway	Esci comunque
+Retry Now	Riprova ora
+Abort	Interrompi
+Ignore	Ignora
+Close Menu	Chiudi menu
+Close Window	Chiudi la finestra
+Open Settings	Apri impostazioni
+Open Options	Apri opzioni
+Main	Principale
+Home	Home
+Menu	Menu
+Play Game	Gioca
+Press any key to start	Premi un tasto qualsiasi per iniziare
+Press any button to start	Premi un pulsante qualsiasi per iniziare
+Press Enter to start	Premi Invio per iniziare
+Press Space to start	Premi Spazio per iniziare
+Click to start	Fai clic per iniziare
+Click anywhere to continue	Fai clic in un punto qualsiasi per continuare
+Tap anywhere to continue	Tocca in un punto qualsiasi per continuare
+Click to skip	Fai clic per saltare
+Press any key to skip	Premi un tasto qualsiasi per saltare
+Hold any key to skip	Tieni premuto un tasto qualsiasi per saltare
+Hold Space to skip	Tieni premuto Spazio per saltare
+Hold Esc to skip	Tieni premuto Esc per saltare
+Press Esc to return	Premi Esc per tornare indietro
+Press Esc to go back	Premi Esc per tornare indietro
+Press Esc to close	Premi Esc per chiudere
+Press Esc to cancel	Premi Esc per annullare
+Press Esc to pause	Premi Esc per mettere in pausa
+Press Enter to confirm	Premi Invio per confermare
+Press Enter to select	Premi Invio per selezionare
+Press Space to jump	Premi Spazio per saltare
+Press Tab to open the inventory	Premi Tab per aprire l'inventario
+Press M to open the map	Premi M per aprire la mappa
+Press J to open the journal	Premi J per aprire il diario
+Press I to open your inventory	Premi I per aprire l'inventario
+Press Tab to open your inventory	Premi Tab per aprire l'inventario
+Press F1 for help	Premi F1 per l'aiuto
+Skip Intro	Salta l'introduzione
+Skip Video	Salta il video
+Skip Dialogue	Salta il dialogo
+Skip Scene	Salta la scena
+Skip All	Salta tutto
+Skipping	Salto in corso
+Intro	Introduzione
+Prologue	Prologo
+Epilogue	Epilogo
+Act	Atto
+Episode	Episodio
+Episodes	Episodi
+Chapters	Capitoli
+Chapter Select	Selezione capitolo
+Select Chapter	Scegli il capitolo
+Level Select	Selezione livello
+Select Level	Scegli il livello
+Mission Select	Selezione missione
+Select Mission	Scegli la missione
+Stage Select	Selezione livello
+Select Stage	Scegli il livello
+Select World	Scegli il mondo
+Select Save	Scegli il salvataggio
+Select Save Slot	Scegli lo slot di salvataggio
+Select a save slot	Scegli uno slot di salvataggio
+Select Profile	Scegli il profilo
+Select Mode	Scegli la modalità
+Select Game Mode	Scegli la modalità di gioco
+Game Modes	Modalità di gioco
+Modes	Modalità
+Mode	Modalità
+Arcade	Arcade
+Arcade Mode	Modalità arcade
+Endless Mode	Modalità infinita
+Endless	Infinita
+Challenge Mode	Modalità sfida
+Time Trial	Prova a tempo
+Time Attack	Attacco al tempo
+Survival	Sopravvivenza
+Horde Mode	Modalità orda
+Versus	Sfida
+Local Multiplayer	Multigiocatore locale
+Online Multiplayer	Multigiocatore online
+Local Co-op	Cooperativa locale
+Online Co-op	Cooperativa online
+Split Screen	Schermo condiviso
+Split-Screen	Schermo condiviso
+Couch Co-op	Cooperativa locale
+Bonus	Bonus
+Bonus Content	Contenuti bonus
+Unlockables	Contenuti sbloccabili
+Gallery	Galleria
+Concept Art	Bozzetti
+Artwork	Illustrazioni
+Soundtrack	Colonna sonora
+Jukebox	Jukebox
+Music Player	Lettore musicale
+Cinematics	Filmati
+Cutscenes	Filmati
+Movies	Filmati
+Theater	Cinema
+Replays	Replay
+Replay	Replay
+Watch Replay	Guarda il replay
+Save Replay	Salva il replay
+Archives	Archivio
+Glossary	Glossario
+Lore	Storia del mondo
+Manual	Manuale
+Game Manual	Manuale di gioco
+Controls Guide	Guida ai comandi
+Controls Layout	Schema dei comandi
+Mods	Mod
+Mod Manager	Gestione mod
+Workshop	Workshop
+Steam Workshop	Workshop di Steam
+DLC	DLC
+Downloadable Content	Contenuti scaricabili
+Add-ons	Contenuti aggiuntivi
+Expansions	Espansioni
+Expansion	Espansione
+Community	Community
+Discord	Discord
+Social	Social
+Wishlist	Lista dei desideri
+Add to Wishlist	Aggiungi alla lista dei desideri
+Rate the Game	Valuta il gioco
+Leave a Review	Lascia una recensione
+Join our Discord	Unisciti al nostro Discord
+Follow us	Seguici
+Roadmap	Tabella di marcia
+Known Issues	Problemi noti
+Changelog	Registro delle modifiche
+Version History	Cronologia versioni
+Demo	Demo
+Full Version	Versione completa
+Buy Full Game	Compra il gioco completo
+Thank you for playing the demo	Grazie per aver giocato alla demo
+Thanks for playing the demo!	Grazie per aver giocato alla demo!
+The demo has ended	La demo è terminata
+End of Demo	Fine della demo
+Wishlist now on Steam	Aggiungilo alla lista desideri di Steam
+Beta	Beta
+Open Beta	Beta aperta
+Closed Beta	Beta chiusa
+Playtest	Playtest
+Work in progress	Lavori in corso
+Early Access Notice	Avviso di accesso anticipato
+This game is in Early Access	Questo gioco è in accesso anticipato
+Features may change	Le funzionalità potrebbero cambiare
+Disclaimer	Avvertenza
+Health Warning	Avvertenza per la salute
+Photosensitivity Warning	Avviso di fotosensibilità
+Epilepsy Warning	Avviso sull'epilessia
+Content Warning	Avviso sui contenuti
+This game contains flashing lights	Questo gioco contiene luci lampeggianti
+This game contains scenes of violence	Questo gioco contiene scene di violenza
+Viewer discretion is advised	Si consiglia la visione a un pubblico adulto
+This is a work of fiction	Questa è un'opera di fantasia
+# --- impostazioni grafiche: opzioni e valori
+Graphics Options	Opzioni grafiche
+Video Options	Opzioni video
+Display Settings	Impostazioni schermo
+Display Options	Opzioni schermo
+Screen	Schermo
+Screen Mode	Modalità schermo
+Fullscreen Mode	Modalità schermo intero
+Full Screen	Schermo intero
+Borderless Fullscreen	Schermo intero senza bordi
+Borderless Window	Finestra senza bordi
+Fullscreen Windowed	Finestra a schermo intero
+Windowed Mode	Modalità finestra
+Window Size	Dimensioni della finestra
+Window Resolution	Risoluzione della finestra
+Fullscreen Resolution	Risoluzione a schermo intero
+Native Resolution	Risoluzione nativa
+Output Resolution	Risoluzione di uscita
+Internal Resolution	Risoluzione interna
+Rendering Resolution	Risoluzione di rendering
+Resolution Scaling	Scala di risoluzione
+Resolution Scale Mode	Modalità scala di risoluzione
+Dynamic Resolution Scaling	Risoluzione dinamica
+Dynamic Resolution Target	Obiettivo risoluzione dinamica
+Target Frame Rate	Frequenza fotogrammi obiettivo
+Target FPS	FPS obiettivo
+Framerate Limit	Limite di fotogrammi
+Framerate Cap	Limite fotogrammi
+Frame Limiter	Limitatore di fotogrammi
+FPS Cap	Limite FPS
+Max Frame Rate	Frequenza massima dei fotogrammi
+Maximum FPS	FPS massimi
+Background FPS Limit	Limite FPS in background
+Menu FPS Limit	Limite FPS nei menu
+Limit FPS in Background	Limita FPS in background
+Limit FPS in Menus	Limita FPS nei menu
+Uncapped	Senza limite
+No Limit	Nessun limite
+Display Monitor	Monitor
+Primary Monitor	Monitor principale
+Display Adapter	Scheda video
+Display Device	Dispositivo di visualizzazione
+Graphics Adapter	Scheda video
+Graphics Device	Dispositivo grafico
+GPU	GPU
+CPU	CPU
+Graphics API	API grafica
+Rendering API	API di rendering
+Renderer	Renderer
+DirectX Version	Versione DirectX
+Refresh Rate (Hz)	Frequenza di aggiornamento (Hz)
+Screen Refresh Rate	Frequenza di aggiornamento
+VSync Mode	Modalità V-Sync
+V-Sync Mode	Modalità V-Sync
+Adaptive	Adattivo
+Adaptive VSync	V-Sync adattivo
+Adaptive Sync	Sincronizzazione adattiva
+Half Refresh Rate	Metà frequenza
+Fast Sync	Sincronizzazione veloce
+G-Sync	G-Sync
+FreeSync	FreeSync
+Variable Refresh Rate	Frequenza di aggiornamento variabile
+Tearing	Tearing
+Allow Tearing	Consenti il tearing
+Display Gamma	Gamma dello schermo
+Gamma Correction	Correzione gamma
+Adjust Brightness	Regola la luminosità
+Brightness Calibration	Calibrazione luminosità
+Calibrate	Calibra
+Calibration	Calibrazione
+Adjust the brightness until the image is barely visible	Regola la luminosità finché l'immagine non è appena visibile
+Adjust the slider until the logo is barely visible	Regola il cursore finché il logo non è appena visibile
+Adjust the brightness until the symbol on the left is barely visible	Regola la luminosità finché il simbolo a sinistra non è appena visibile
+HDR Settings	Impostazioni HDR
+HDR Calibration	Calibrazione HDR
+HDR Mode	Modalità HDR
+Enable HDR	Attiva HDR
+Peak Brightness	Luminosità massima
+Paper White	Bianco carta
+Black Level	Livello del nero
+White Point	Punto di bianco
+Max Luminance	Luminanza massima
+Min Luminance	Luminanza minima
+UI Brightness	Luminosità interfaccia
+HUD Brightness	Luminosità HUD
+Exposure	Esposizione
+Color Grading	Correzione colore
+Color Correction	Correzione colore
+Colour Blind Mode	Modalità daltonici
+Color Blindness	Daltonismo
+Color Filter	Filtro colore
+Color Space	Spazio colore
+Tone Mapping	Mappatura tonale
+Overall Quality	Qualità complessiva
+Overall Graphics Quality	Qualità grafica complessiva
+Graphics Quality Preset	Preimpostazione qualità grafica
+Presets	Preimpostazioni
+Recommended Settings	Impostazioni consigliate
+Use Recommended Settings	Usa le impostazioni consigliate
+Optimal Settings	Impostazioni ottimali
+Auto Detect	Rilevamento automatico
+Auto-Detect	Rilevamento automatico
+Detect Optimal Settings	Rileva impostazioni ottimali
+Autodetect Settings	Rileva le impostazioni
+Lowest	Minimo
+Highest	Massimo
+Extreme	Estremo
+Maximum Quality	Qualità massima
+Minimum Quality	Qualità minima
+Performance Mode	Modalità prestazioni
+Quality Mode	Modalità qualità
+Balanced Mode	Modalità bilanciata
+Fidelity Mode	Modalità fedeltà
+Favor Performance	Privilegia le prestazioni
+Favor Quality	Privilegia la qualità
+Prioritize Performance	Privilegia le prestazioni
+Prioritize Quality	Privilegia la qualità
+Texture Resolution	Risoluzione texture
+Texture Detail	Dettaglio texture
+Texture Streaming	Streaming delle texture
+Texture Pool Size	Dimensione pool texture
+Texture Budget	Budget texture
+High Resolution Textures	Texture ad alta risoluzione
+High-Res Textures	Texture ad alta risoluzione
+Texture Filtering Quality	Qualità filtro texture
+Anisotropic Filtering Level	Livello filtro anisotropico
+Bilinear	Bilineare
+Trilinear	Trilineare
+Shadow Detail	Dettaglio ombre
+Shadow Map Resolution	Risoluzione mappa delle ombre
+Shadow Cascades	Cascate delle ombre
+Shadow Filtering	Filtro ombre
+Soft Shadows	Ombre morbide
+Dynamic Shadows	Ombre dinamiche
+Character Shadows	Ombre dei personaggi
+Screen Space Shadows	Ombre nello spazio schermo
+Light Quality	Qualità illuminazione
+Lighting Detail	Dettaglio illuminazione
+Dynamic Lighting	Illuminazione dinamica
+Volumetric Lighting	Illuminazione volumetrica
+Volumetric Light	Luce volumetrica
+Volumetric Quality	Qualità volumetrica
+Volumetric Effects	Effetti volumetrici
+Light Shafts	Raggi di luce
+God Rays	Raggi crepuscolari
+Sun Shafts	Raggi del sole
+Reflection Detail	Dettaglio riflessi
+Screen Space Reflection	Riflessi nello spazio schermo
+SSR	SSR
+SSR Quality	Qualità SSR
+Planar Reflections	Riflessi planari
+Water Reflections	Riflessi dell'acqua
+Ambient Occlusion Quality	Qualità occlusione ambientale
+SSAO	SSAO
+HBAO+	HBAO+
+Global Illumination Quality	Qualità illuminazione globale
+Indirect Lighting	Illuminazione indiretta
+Subsurface Scattering	Dispersione sottosuperficiale
+Tessellation	Tassellatura
+Tessellation Quality	Qualità tassellatura
+Geometry Quality	Qualità geometria
+Geometry Detail	Dettaglio geometria
+Object Detail	Dettaglio oggetti
+Object Quality	Qualità oggetti
+Character Quality	Qualità personaggi
+Character Detail	Dettaglio personaggi
+Hair Quality	Qualità capelli
+Cloth Quality	Qualità tessuti
+Physics Quality	Qualità fisica
+Physics	Fisica
+Destruction Quality	Qualità distruzione
+Animation Quality	Qualità animazioni
+Crowd Density	Densità della folla
+NPC Density	Densità dei PNG
+Traffic Density	Densità del traffico
+Population Density	Densità della popolazione
+Vegetation Density	Densità vegetazione
+Foliage Density	Densità vegetazione
+Grass Distance	Distanza erba
+Foliage Distance	Distanza vegetazione
+Vegetation Distance	Distanza vegetazione
+Object Draw Distance	Distanza di disegno oggetti
+Object Distance	Distanza oggetti
+Character Draw Distance	Distanza di disegno personaggi
+Terrain Detail	Dettaglio terreno
+Terrain Draw Distance	Distanza di disegno del terreno
+Detail Distance	Distanza dei dettagli
+LOD	LOD
+LOD Bias	Bias LOD
+LOD Distance	Distanza LOD
+World Detail	Dettaglio del mondo
+Environment Quality	Qualità ambiente
+Environment Detail	Dettaglio ambiente
+Cloud Quality	Qualità nuvole
+Clouds	Nuvole
+Atmosphere Quality	Qualità atmosfera
+Weather Effects	Effetti meteo
+Water Detail	Dettaglio acqua
+Ocean Quality	Qualità oceano
+Water Simulation	Simulazione dell'acqua
+Fluid Simulation	Simulazione dei fluidi
+Particle Detail	Dettaglio particelle
+Particle Density	Densità particelle
+Particles	Particelle
+Effects Detail	Dettaglio effetti
+Decals	Decalcomanie
+Decal Quality	Qualità decalcomanie
+Blood	Sangue
+Gore	Violenza esplicita
+Blood Effects	Effetti del sangue
+Gore Effects	Effetti cruenti
+Debris	Detriti
+Post-Processing	Post-elaborazione
+Post Processing Quality	Qualità post-elaborazione
+Post Effects	Effetti di post-elaborazione
+Motion Blur Strength	Intensità sfocatura di movimento
+Motion Blur Intensity	Intensità sfocatura di movimento
+Motion Blur Quality	Qualità sfocatura di movimento
+Camera Motion Blur	Sfocatura di movimento della telecamera
+Object Motion Blur	Sfocatura di movimento degli oggetti
+Radial Blur	Sfocatura radiale
+Depth of Field Quality	Qualità profondità di campo
+DOF	DOF
+Bokeh	Bokeh
+Bloom Intensity	Intensità bloom
+Lens Effects	Effetti obiettivo
+Lens Distortion	Distorsione dell'obiettivo
+Lens Dirt	Sporco sull'obiettivo
+Film Grain Intensity	Intensità grana della pellicola
+Sharpening Strength	Intensità nitidezza
+Sharpening Intensity	Intensità nitidezza
+Image Sharpening	Nitidezza dell'immagine
+Sharpen	Nitidezza
+Anti-aliasing Mode	Modalità anti-aliasing
+Antialiasing	Anti-aliasing
+Anti Aliasing	Anti-aliasing
+AA Mode	Modalità AA
+AA Quality	Qualità AA
+FXAA	FXAA
+SMAA	SMAA
+TAA	TAA
+MSAA	MSAA
+TAAU	TAAU
+Temporal Anti-Aliasing	Anti-aliasing temporale
+Temporal AA	AA temporale
+Temporal Upscaling	Upscaling temporale
+Temporal Filtering	Filtro temporale
+Supersampling	Supersampling
+SSAA	SSAA
+Upscaler	Upscaler
+Upscaling Technique	Tecnica di upscaling
+Super Resolution	Super risoluzione
+Upscale Quality	Qualità upscaling
+Upscaling Mode	Modalità upscaling
+Upscaling Sharpness	Nitidezza upscaling
+NVIDIA DLSS	NVIDIA DLSS
+DLSS	DLSS
+DLSS Mode	Modalità DLSS
+DLSS Quality	DLSS Qualità
+DLSS Balanced	DLSS Bilanciato
+DLSS Performance	DLSS Prestazioni
+DLSS Ultra Performance	DLSS Prestazioni massime
+DLSS Sharpness	Nitidezza DLSS
+DLSS Frame Generation	Generazione fotogrammi DLSS
+DLSS Super Resolution	Super risoluzione DLSS
+DLSS Ray Reconstruction	Ricostruzione raggi DLSS
+Multi Frame Generation	Generazione multipla dei fotogrammi
+Ray Reconstruction	Ricostruzione dei raggi
+DLAA	DLAA
+AMD FSR	AMD FSR
+FSR	FSR
+FSR Mode	Modalità FSR
+FSR Quality	FSR Qualità
+FSR Balanced	FSR Bilanciato
+FSR Performance	FSR Prestazioni
+FSR Ultra Performance	FSR Prestazioni massime
+FSR Frame Generation	Generazione fotogrammi FSR
+FSR Sharpness	Nitidezza FSR
+FidelityFX	FidelityFX
+Intel XeSS	Intel XeSS
+XeSS	XeSS
+XeSS Mode	Modalità XeSS
+XeSS Quality	XeSS Qualità
+XeSS Balanced	XeSS Bilanciato
+XeSS Performance	XeSS Prestazioni
+Ultra Quality	Qualità ultra
+Ultra Quality Plus	Qualità ultra plus
+Native AA	AA nativo
+Native Resolution AA	AA a risoluzione nativa
+Frame Interpolation	Interpolazione dei fotogrammi
+NVIDIA Reflex	NVIDIA Reflex
+NVIDIA Reflex Low Latency	NVIDIA Reflex bassa latenza
+Reflex	Reflex
+Enabled + Boost	Attivo + Boost
+On + Boost	Attivato + Boost
+Anti-Lag	Anti-Lag
+Latency Reduction	Riduzione della latenza
+Low Latency	Bassa latenza
+Ray Tracing Quality	Qualità ray tracing
+Ray Traced Global Illumination	Illuminazione globale in ray tracing
+Ray Traced Ambient Occlusion	Occlusione ambientale in ray tracing
+Ray Traced Lighting	Illuminazione in ray tracing
+Ray-Traced Reflections	Riflessi in ray tracing
+Ray-Traced Shadows	Ombre in ray tracing
+Path Tracing	Path tracing
+Hardware Ray Tracing	Ray tracing hardware
+Software Ray Tracing	Ray tracing software
+Lumen	Lumen
+Nanite	Nanite
+RT Reflections	Riflessi RT
+RT Shadows	Ombre RT
+RTX	RTX
+Shader Quality	Qualità shader
+Shader Cache	Cache degli shader
+Compiling Shaders	Compilazione degli shader
+Shader compilation	Compilazione degli shader
+Shader compilation in progress	Compilazione degli shader in corso
+Preparing shaders	Preparazione degli shader
+Precompiling shaders	Precompilazione degli shader
+Building shader cache	Creazione della cache degli shader
+This may take a few minutes	L'operazione può richiedere alcuni minuti
+This may take several minutes	L'operazione può richiedere diversi minuti
+Async Compute	Calcolo asincrono
+Multithreaded Rendering	Rendering multithread
+Hardware Acceleration	Accelerazione hardware
+GPU Particles	Particelle su GPU
+Streaming Quality	Qualità streaming
+Asset Streaming	Streaming delle risorse
+Mesh Detail	Dettaglio modelli
+Field of View (FOV)	Campo visivo (FOV)
+FOV	FOV
+Vehicle FOV	FOV dei veicoli
+First Person FOV	FOV in prima persona
+Third Person FOV	FOV in terza persona
+Weapon FOV	FOV dell'arma
+ADS FOV	FOV in mira
+FOV Scaling	Scala del FOV
+Camera FOV	FOV della telecamera
+Horizontal FOV	FOV orizzontale
+Vertical FOV	FOV verticale
+Letterbox	Bande nere
+Black Bars	Bande nere
+Ultrawide Support	Supporto ultrawide
+Ultrawide	Ultrawide
+Aspect Ratio Correction	Correzione delle proporzioni
+Stretched	Allungato
+Letterboxed	Con bande nere
+Image Quality	Qualità dell'immagine
+Visual Quality	Qualità visiva
+Graphics Detail	Dettaglio grafico
+Detail Level	Livello di dettaglio
+Render Distance	Distanza di rendering
+Rendering Distance	Distanza di rendering
+Rendering	Rendering
+Rendering Quality	Qualità di rendering
+Display Statistics	Mostra statistiche
+Show Performance Stats	Mostra le statistiche delle prestazioni
+Performance Overlay	Sovrimpressione delle prestazioni
+Performance Metrics	Dati sulle prestazioni
+Show Frame Time	Mostra il tempo per fotogramma
+Frame Time	Tempo per fotogramma
+Frametime	Tempo per fotogramma
+Show Latency	Mostra la latenza
+Show Ping	Mostra il ping
+Show Network Stats	Mostra le statistiche di rete
+Net Graph	Grafico di rete
+GPU Usage	Uso della GPU
+CPU Usage	Uso della CPU
+GPU Temperature	Temperatura della GPU
+CPU Temperature	Temperatura della CPU
+Memory Usage	Uso della memoria
+VRAM	VRAM
+Estimated VRAM Usage	Uso stimato della VRAM
+Estimated Video Memory Usage	Uso stimato della memoria video
+Video Memory Usage	Uso della memoria video
+Exceeds available video memory	Supera la memoria video disponibile
+Not enough video memory	Memoria video insufficiente
+Your graphics card does not meet the minimum requirements	La tua scheda video non soddisfa i requisiti minimi
+Your system does not meet the minimum requirements	Il tuo sistema non soddisfa i requisiti minimi
+Unsupported graphics card	Scheda video non supportata
+Please update your graphics drivers	Aggiorna i driver della scheda video
+Graphics driver out of date	Driver della scheda video non aggiornato
+Outdated drivers detected	Rilevati driver non aggiornati
+Requires restart	Richiede il riavvio
+Requires a restart	Richiede il riavvio
+Restart Now	Riavvia ora
+Restart Later	Riavvia più tardi
+Restart Game	Riavvia il gioco
+Restart the game to apply changes	Riavvia il gioco per applicare le modifiche
+Changes will take effect after restarting the game	Le modifiche avranno effetto dopo il riavvio del gioco
+Changes will be applied after restart	Le modifiche saranno applicate dopo il riavvio
+The game must be restarted for changes to take effect	Il gioco deve essere riavviato per applicare le modifiche
+This setting requires a restart	Questa impostazione richiede il riavvio
+Display settings changed	Impostazioni dello schermo modificate
+Keep these display settings?	Mantenere queste impostazioni dello schermo?
+Do you want to keep these settings?	Vuoi mantenere queste impostazioni?
+Reverting to previous settings in	Ritorno alle impostazioni precedenti tra
+Revert Changes	Annulla modifiche
+Keep Settings	Mantieni le impostazioni
+Apply Settings	Applica le impostazioni
+Save Settings	Salva le impostazioni
+Discard Settings	Scarta le impostazioni
+Graphics settings have been reset	Impostazioni grafiche ripristinate
+Settings have been reset to default	Impostazioni ripristinate ai valori predefiniti
+Gamma Adjustment	Regolazione gamma
+Screen Brightness	Luminosità dello schermo
+Screen Effects	Effetti a schermo
+Screen Filter	Filtro dello schermo
+Screen Space Effects	Effetti nello spazio schermo
+Screen Flash	Lampi sullo schermo
+Reduce Flashing	Riduci i lampi
+Flashing Effects	Effetti lampeggianti
+Weapon Motion Blur	Sfocatura di movimento dell'arma
+Weapon Depth of Field	Profondità di campo dell'arma
+Distortion	Distorsione
+Heat Distortion	Distorsione da calore
+Refraction	Rifrazione
+Caustics	Caustiche
+Puddles	Pozzanghere
+Wetness	Effetto bagnato
+Snow Deformation	Deformazione della neve
+Footprints	Impronte
+Outline	Contorno
+Outlines	Contorni
+Cel Shading	Cel shading
+Pixel Art Filter	Filtro pixel art
+CRT Filter	Filtro CRT
+Scanlines	Linee di scansione
+Pixel Perfect	Pixel perfetti
+Integer Scaling	Scala intera
+Nearest Neighbor	Vicino più prossimo
+Point	Punto
+# --- audio
+Audio Options	Opzioni audio
+Sound Options	Opzioni audio
+Volume	Volume
+Main Volume	Volume generale
+Overall Volume	Volume generale
+Game Volume	Volume del gioco
+Sound Volume	Volume dei suoni
+Sound Effects Volume	Volume degli effetti sonori
+FX Volume	Volume effetti
+Menu Music	Musica dei menu
+Menu Music Volume	Volume della musica dei menu
+Ambient Sound	Suoni ambientali
+Ambient Sounds	Suoni ambientali
+Environment Volume	Volume ambiente
+Environmental Sounds	Suoni ambientali
+Dialog Volume	Volume dei dialoghi
+Voices	Voci
+Voice Over	Doppiaggio
+Voiceover	Doppiaggio
+Voice-Over Volume	Volume del doppiaggio
+Narrator	Narratore
+Narrator Volume	Volume del narratore
+Cinematic Volume	Volume dei filmati
+Cutscene Volume	Volume dei filmati
+Footsteps Volume	Volume dei passi
+Weapon Volume	Volume delle armi
+Vehicle Volume	Volume dei veicoli
+Engine Volume	Volume del motore
+Radio Volume	Volume della radio
+Announcer	Annunciatore
+Announcer Volume	Volume dell'annunciatore
+Announcer Voice	Voce dell'annunciatore
+Notification Sounds	Suoni delle notifiche
+Notification Volume	Volume delle notifiche
+UI Sounds	Suoni dell'interfaccia
+Menu Sounds	Suoni dei menu
+Hit Sounds	Suoni dei colpi
+Hitmarker Sound	Suono del colpo a segno
+Hit Marker Sound	Suono del colpo a segno
+Incoming Voice Volume	Volume voci in arrivo
+Outgoing Voice Volume	Volume voce in uscita
+Voice Chat Settings	Impostazioni chat vocale
+Enable Voice Chat	Attiva la chat vocale
+Disable Voice Chat	Disattiva la chat vocale
+Proximity Chat	Chat di prossimità
+Proximity Voice Chat	Chat vocale di prossimità
+Team Voice Chat	Chat vocale di squadra
+Party Voice Chat	Chat vocale di gruppo
+Push to Talk Key	Tasto per parlare
+Voice Activation Threshold	Soglia di attivazione vocale
+Voice Activity Detection	Rilevamento della voce
+Microphone Sensitivity	Sensibilità del microfono
+Microphone Threshold	Soglia del microfono
+Mic Volume	Volume microfono
+Mic Test	Prova microfono
+Test Microphone	Prova il microfono
+Microphone Test	Prova del microfono
+Noise Suppression	Soppressione del rumore
+Noise Cancellation	Cancellazione del rumore
+Echo Cancellation	Cancellazione dell'eco
+Mute Microphone	Disattiva il microfono
+Mute Mic	Disattiva microfono
+Microphone muted	Microfono disattivato
+Microphone unmuted	Microfono attivato
+No microphone detected	Nessun microfono rilevato
+Default Device	Dispositivo predefinito
+System Default	Predefinito di sistema
+Audio Output	Uscita audio
+Audio Input	Ingresso audio
+Output	Uscita
+Input	Ingresso
+Audio Output Device	Dispositivo di uscita audio
+Audio Input Device	Dispositivo di ingresso audio
+Sound Output	Uscita audio
+Audio Mode	Modalità audio
+Audio Quality	Qualità audio
+Sound Quality	Qualità del suono
+Audio Channels	Canali audio
+Audio Preset	Preimpostazione audio
+Speaker Configuration	Configurazione altoparlanti
+Speaker Mode	Modalità altoparlanti
+Headphone Mode	Modalità cuffie
+TV Speakers	Altoparlanti della TV
+Home Theater	Home theater
+Soundbar	Soundbar
+Night Mode	Modalità notturna
+Spatial Audio	Audio spaziale
+3D Audio	Audio 3D
+Binaural Audio	Audio binaurale
+HRTF	HRTF
+Dolby Atmos	Dolby Atmos
+Surround Sound	Audio surround
+5.1 Surround	Surround 5.1
+7.1 Surround	Surround 7.1
+Dynamic Range Compression	Compressione della gamma dinamica
+Wide Dynamic Range	Gamma dinamica ampia
+Narrow Dynamic Range	Gamma dinamica ridotta
+Audio Mix	Mix audio
+Equalizer	Equalizzatore
+Bass	Bassi
+Treble	Acuti
+Reverb	Riverbero
+Mono	Mono
+Play Sound in Background	Riproduci l'audio in background
+Audio in Background	Audio in background
+Mute Audio When Minimized	Silenzia l'audio quando ridotto a icona
+Mute on Focus Loss	Silenzia quando non in primo piano
+Tinnitus Effect	Effetto acufene
+Tinnitus Sound	Suono dell'acufene
+Hearing Damage Effect	Effetto di danno all'udito
+Subtitles Language	Lingua dei sottotitoli
+Subtitle Language	Lingua dei sottotitoli
+Subtitle Settings	Impostazioni sottotitoli
+Subtitle Color	Colore dei sottotitoli
+Subtitle Text Size	Dimensione del testo dei sottotitoli
+Subtitle Background Opacity	Opacità dello sfondo dei sottotitoli
+Subtitle Speaker Color	Colore di chi parla
+Subtitles Size	Dimensione sottotitoli
+Subtitle Style	Stile dei sottotitoli
+Dialogue Subtitles	Sottotitoli dei dialoghi
+Cutscene Subtitles	Sottotitoli dei filmati
+Gameplay Subtitles	Sottotitoli durante il gioco
+Show Speaker Names	Mostra chi parla
+Speaker Name	Nome di chi parla
+Captions	Sottotitoli
+Sound Captions	Sottotitoli dei suoni
+Closed Captioning	Sottotitoli per non udenti
+Show Captions	Mostra i sottotitoli
+Visualize Sound Effects	Visualizza gli effetti sonori
+Sound Visualization	Visualizzazione dei suoni
+Visual Sound Cues	Indicatori visivi dei suoni
+Audio Cues	Segnali audio
+Audio Description	Audiodescrizione
+Voice Pitch	Tono della voce
+Speech Rate	Velocità della voce
+Read Menus Aloud	Leggi i menu ad alta voce
+Menu Narration	Narrazione dei menu
+UI Narration	Narrazione dell'interfaccia
+Screen Reader	Lettore dello schermo
+# --- comandi, tasti e controller
+Controls Options	Opzioni comandi
+Control Settings	Impostazioni comandi
+Input Settings	Impostazioni di input
+Input Method	Metodo di input
+Input Device Type	Tipo di dispositivo di input
+Control Scheme	Schema dei comandi
+Control Layout	Schema dei comandi
+Controller Layout	Schema del controller
+Button Layout	Schema dei pulsanti
+Button Prompts	Indicazioni dei pulsanti
+Button Icons	Icone dei pulsanti
+Controller Icons	Icone del controller
+Controller Type	Tipo di controller
+Gamepad Settings	Impostazioni gamepad
+Keyboard Settings	Impostazioni tastiera
+Mouse Settings	Impostazioni mouse
+Keyboard Layout	Layout della tastiera
+Keyboard Controls	Comandi da tastiera
+Mouse Controls	Comandi del mouse
+Controller Controls	Comandi del controller
+Customize Controls	Personalizza i comandi
+Customize Keybinds	Personalizza i tasti
+Custom Controls	Comandi personalizzati
+Remap	Riassegna
+Remap Controls	Riassegna i comandi
+Remap Keys	Riassegna i tasti
+Remap Buttons	Riassegna i pulsanti
+Bind Key	Assegna tasto
+Assign Key	Assegna tasto
+Clear Binding	Cancella assegnazione
+Clear Key	Cancella tasto
+Unbind	Rimuovi assegnazione
+Press a key to assign	Premi un tasto da assegnare
+Press a button to assign	Premi un pulsante da assegnare
+Press a new key	Premi un nuovo tasto
+Press the key you want to assign	Premi il tasto che vuoi assegnare
+Press Esc to cancel binding	Premi Esc per annullare l'assegnazione
+Waiting for input	In attesa di input
+This key is already bound	Questo tasto è già assegnato
+This key is already assigned	Questo tasto è già assegnato
+This key cannot be bound	Questo tasto non si può assegnare
+Key Conflict	Conflitto di tasti
+Conflicting keybinds	Tasti in conflitto
+Swap bindings?	Scambiare le assegnazioni?
+Some actions are unbound	Alcune azioni non sono assegnate
+Reset Controls	Ripristina i comandi
+Reset to Default Controls	Ripristina i comandi predefiniti
+Restore Default Controls	Ripristina i comandi predefiniti
+Default Controls	Comandi predefiniti
+Default Layout	Schema predefinito
+Alternate	Alternativo
+Alternative	Alternativo
+Alternate Key	Tasto alternativo
+Action	Azione
+Actions	Azioni
+Binding	Assegnazione
+Bindings	Assegnazioni
+Button	Pulsante
+Buttons	Pulsanti
+Keyboard Key	Tasto della tastiera
+Mouse Button	Pulsante del mouse
+Mouse Sensitivity X	Sensibilità mouse X
+Mouse Sensitivity Y	Sensibilità mouse Y
+Mouse Speed	Velocità del mouse
+Mouse Invert	Inverti mouse
+Invert Mouse Y	Inverti asse Y del mouse
+Invert Mouse X	Inverti asse X del mouse
+Invert Mouse Y-Axis	Inverti asse Y del mouse
+Invert Y	Inverti Y
+Invert X	Inverti X
+Invert Vertical Look	Inverti visuale verticale
+Invert Horizontal Look	Inverti visuale orizzontale
+Invert Camera	Inverti telecamera
+Invert Camera Y	Inverti Y telecamera
+Invert Camera X	Inverti X telecamera
+Invert Flight Controls	Inverti comandi di volo
+Invert Aircraft Pitch	Inverti beccheggio
+Inverted	Invertito
+Mouse Aim Sensitivity	Sensibilità di mira del mouse
+Mouse ADS Sensitivity	Sensibilità mouse in mira
+Zoom Sensitivity	Sensibilità con zoom
+Scoped Sensitivity	Sensibilità con mirino
+Aim Down Sights Sensitivity	Sensibilità in mira
+Vehicle Sensitivity	Sensibilità dei veicoli
+Flight Sensitivity	Sensibilità di volo
+Sensitivity	Sensibilità
+Sensitivity X	Sensibilità X
+Sensitivity Y	Sensibilità Y
+Camera Speed	Velocità della telecamera
+Camera Rotation Speed	Velocità di rotazione della telecamera
+Look Speed	Velocità della visuale
+Horizontal Look Speed	Velocità visuale orizzontale
+Vertical Look Speed	Velocità visuale verticale
+Mouse Smoothing Factor	Fattore di fluidità del mouse
+Raw Mouse Input	Input diretto del mouse
+Enhanced Pointer Precision	Precisione puntatore avanzata
+DPI	DPI
+Mouse DPI	DPI del mouse
+Polling Rate	Frequenza di polling
+Response Curve	Curva di risposta
+Aim Response Curve	Curva di risposta della mira
+Linear	Lineare
+Exponential	Esponenziale
+Dynamic	Dinamico
+Classic	Classico
+Standard	Standard
+Precise	Preciso
+Acceleration	Accelerazione
+Look Acceleration	Accelerazione visuale
+Aim Acceleration	Accelerazione della mira
+Controller Dead Zone	Zona morta del controller
+Inner Dead Zone	Zona morta interna
+Outer Dead Zone	Zona morta esterna
+Trigger Dead Zone	Zona morta dei grilletti
+Left Trigger Dead Zone	Zona morta grilletto sinistro
+Right Trigger Dead Zone	Zona morta grilletto destro
+Stick Sensitivity	Sensibilità levette
+Left Stick Sensitivity	Sensibilità levetta sinistra
+Right Stick Sensitivity	Sensibilità levetta destra
+Swap Sticks	Scambia le levette
+Swap Thumbsticks	Scambia le levette
+Southpaw	Mancino
+Legacy Southpaw	Classico mancino
+Swap Triggers	Scambia i grilletti
+Swap Bumpers	Scambia i dorsali
+Swap Confirm and Cancel	Scambia conferma e annulla
+Swap A and B	Scambia A e B
+Adaptive Triggers	Grilletti adattivi
+Adaptive Trigger Effects	Effetti dei grilletti adattivi
+Trigger Effect	Effetto dei grilletti
+Trigger Effect Intensity	Intensità effetto dei grilletti
+Haptic Feedback	Feedback aptico
+Haptics	Feedback aptico
+Vibration Intensity	Intensità della vibrazione
+Vibration Strength	Intensità della vibrazione
+Controller Vibration Intensity	Intensità di vibrazione del controller
+Rumble Intensity	Intensità della vibrazione
+Controller Speaker	Altoparlante del controller
+Controller Speaker Volume	Volume altoparlante del controller
+Light Bar	Barra luminosa
+Light Bar Brightness	Luminosità della barra luminosa
+Gyro	Giroscopio
+Gyro Aiming	Mira giroscopica
+Gyro Controls	Comandi giroscopici
+Gyro Sensitivity	Sensibilità del giroscopio
+Motion Controls	Comandi di movimento
+Touchpad Controls	Comandi del touchpad
+Aim Assist Strength	Intensità assistenza alla mira
+Aim Assist Type	Tipo di assistenza alla mira
+Aim Slowdown	Rallentamento della mira
+Target Assist	Assistenza al bersaglio
+Aim Snap	Aggancio della mira
+Snap to Target	Aggancio al bersaglio
+Auto-Aim	Mira automatica
+Target Lock Mode	Modalità aggancio bersaglio
+Aim Mode	Modalità di mira
+ADS Mode	Modalità di mira
+Crouch Mode	Modalità accovacciata
+Sprint Mode	Modalità scatto
+Toggle	Interruttore
+Hold	Tieni premuto
+Tap	Tocca
+Press	Premi
+Double Press	Doppia pressione
+Long Press	Pressione prolungata
+Hold Duration	Durata della pressione
+Toggle Run	Corsa a interruttore
+Toggle Prone	Sdraiati a interruttore
+Toggle ADS	Mira a interruttore
+Toggle Zoom	Zoom a interruttore
+Hold to Zoom	Tieni premuto per lo zoom
+Hold to Run	Tieni premuto per correre
+Hold to Walk	Tieni premuto per camminare
+Hold Breath	Trattieni il respiro
+Hold to Hold Breath	Tieni premuto per trattenere il respiro
+Hold Breath Key	Tasto per trattenere il respiro
+Auto Walk	Camminata automatica
+Auto Forward	Avanzamento automatico
+Auto Mantle	Arrampicata automatica
+Auto Vault	Scavalcamento automatico
+Auto Pickup	Raccolta automatica
+Auto Pick Up	Raccolta automatica
+Auto Reload	Ricarica automatica
+Auto Equip	Equipaggiamento automatico
+Auto-Equip New Items	Equipaggia automaticamente i nuovi oggetti
+Auto Climb	Arrampicata automatica
+Auto Fire	Fuoco automatico
+Tap to Sprint	Tocca per scattare
+Tap to Interact	Tocca per interagire
+Double Tap to Sprint	Doppio tocco per scattare
+Double Tap to Dodge	Doppio tocco per schivare
+Movement	Movimento
+Combat	Combattimento
+Camera Controls	Comandi della telecamera
+Menu Controls	Comandi dei menu
+Interface Controls	Comandi dell'interfaccia
+Vehicle Controls	Comandi dei veicoli
+Flight Controls	Comandi di volo
+Driving Controls	Comandi di guida
+Ship Controls	Comandi della nave
+Building Controls	Comandi di costruzione
+Communication	Comunicazione
+Miscellaneous Controls	Comandi vari
+Look	Guarda
+Look Around	Guardati intorno
+Forward	Avanti
+Backward	Indietro
+Left	Sinistra
+Right	Destra
+Up	Su
+Down	Giù
+Move Up	Sali
+Move Down	Scendi
+Jump / Climb	Salta / arrampicati
+Crouch / Slide	Accovacciati / scivola
+Crouch / Prone	Accovacciati / sdraiati
+Walk / Run	Cammina / corri
+Sprint / Tactical Sprint	Scatto / scatto tattico
+Tactical Sprint	Scatto tattico
+Dive	Tuffati
+Dash	Balzo
+Double Jump	Doppio salto
+Wall Run	Corsa sui muri
+Grapple	Rampino
+Grappling Hook	Rampino
+Use Grappling Hook	Usa il rampino
+Wall Jump	Salto dal muro
+Climb Up	Arrampicati su
+Climb Down	Scendi
+Let Go	Lasciati andare
+Drop Down	Lasciati cadere
+Crawl	Striscia
+Stand Up	Alzati
+Get Up	Alzati
+Peek	Sporgiti
+Lean	Sporgiti
+Free Look	Visuale libera
+Freelook	Visuale libera
+Hold to Free Look	Tieni premuto per la visuale libera
+Switch Shoulder	Cambia spalla
+Swap Shoulder	Cambia spalla
+Shoulder Swap	Cambio spalla
+Switch Camera	Cambia telecamera
+Camera Mode	Modalità telecamera
+Center Camera	Centra la telecamera
+Reset Camera	Ripristina la telecamera
+Recenter Camera	Ricentra la telecamera
+Camera Zoom	Zoom della telecamera
+Zoom	Zoom
+Attack / Fire	Attacca / spara
+Primary Fire	Fuoco primario
+Secondary Fire	Fuoco secondario
+Alternate Fire	Fuoco alternativo
+Alt Fire	Fuoco alternativo
+Aim Down Sights	Mira di precisione
+ADS	Mira
+Fire Weapon	Spara
+Weapon Slot	Slot dell'arma
+Weapon Slot 1	Slot arma 1
+Weapon Slot 2	Slot arma 2
+Weapon Slot 3	Slot arma 3
+Sidearm	Arma secondaria
+Equip Sidearm	Equipaggia arma secondaria
+Equip Primary	Equipaggia arma primaria
+Equip Secondary	Equipaggia arma secondaria
+Equip Melee	Equipaggia arma da mischia
+Melee Attack	Attacco corpo a corpo
+Quick Melee	Corpo a corpo rapido
+Inspect Weapon	Esamina arma
+Weapon Inspect	Esamina arma
+Toggle Fire Mode	Cambia modalità di fuoco
+Change Fire Mode	Cambia modalità di fuoco
+Switch Fire Mode	Cambia modalità di fuoco
+Toggle Attachment	Attiva accessorio
+Toggle Laser	Attiva/disattiva laser
+Toggle Scope	Cambia mirino
+Use Equipment	Usa equipaggiamento
+Use Tactical	Usa tattico
+Use Lethal	Usa letale
+Use Ability	Usa abilità
+Use Ultimate	Usa suprema
+Ability 1	Abilità 1
+Ability 2	Abilità 2
+Ability 3	Abilità 3
+Quick Use	Uso rapido
+Use Consumable	Usa consumabile
+Use Healing Item	Usa oggetto curativo
+Heal Up	Curati
+Use Medkit	Usa kit medico
+Quick Heal	Cura rapida
+Interact / Pick Up	Interagisci / raccogli
+Interact / Reload	Interagisci / ricarica
+Use / Interact	Usa / interagisci
+Activate	Attiva
+Deactivate	Disattiva
+Toggle On	Attiva
+Toggle Off	Disattiva
+Toggle HUD	Mostra/nascondi HUD
+Toggle UI	Mostra/nascondi interfaccia
+Hide UI	Nascondi interfaccia
+Show UI	Mostra interfaccia
+Toggle Inventory	Apri/chiudi inventario
+Toggle Journal	Apri/chiudi diario
+Toggle Chat	Apri/chiudi chat
+Toggle Voice Chat	Attiva/disattiva chat vocale
+Push to Talk (Team)	Premi per parlare (squadra)
+Push to Talk (Party)	Premi per parlare (gruppo)
+Push to Talk (Proximity)	Premi per parlare (prossimità)
+Text Chat	Chat testuale
+Quick Chat	Chat rapida
+Communication Wheel	Ruota delle comunicazioni
+Comms Wheel	Ruota delle comunicazioni
+Ping Wheel	Ruota delle segnalazioni
+Ping Location	Segnala posizione
+Ping Enemy	Segnala nemico
+Ping Item	Segnala oggetto
+Mark Target	Segna il bersaglio
+Mark Enemy	Segna il nemico
+Open Map / Close Map	Apri / chiudi mappa
+Open Quest Log	Apri il registro missioni
+Open Skills	Apri le abilità
+Open Skill Tree	Apri l'albero delle abilità
+Open Crafting	Apri la creazione
+Open Character Menu	Apri il menu del personaggio
+Open Character Sheet	Apri la scheda del personaggio
+Open Equipment	Apri l'equipaggiamento
+Open Codex	Apri il codice
+Open Social	Apri il menu social
+Open Friends List	Apri l'elenco amici
+Open Store	Apri il negozio
+Open Build Menu	Apri il menu costruzione
+Quick Menu	Menu rapido
+Radial Menu	Menu radiale
+Quick Access	Accesso rapido
+Quick Access Menu	Menu di accesso rapido
+Hotbar	Barra rapida
+Hotbar Slot	Slot della barra rapida
+Quickbar	Barra rapida
+Action Bar	Barra delle azioni
+Next Item	Oggetto successivo
+Previous Item	Oggetto precedente
+Next Tab	Scheda successiva
+Previous Tab	Scheda precedente
+Next Category	Categoria successiva
+Previous Category	Categoria precedente
+Next Target	Bersaglio successivo
+Previous Target	Bersaglio precedente
+Navigate	Naviga
+Scroll	Scorri
+Select / Confirm	Seleziona / conferma
+Back / Cancel	Indietro / annulla
+Confirm / Interact	Conferma / interagisci
+Change Tab	Cambia scheda
+Switch Tab	Cambia scheda
+Change Page	Cambia pagina
+Change Category	Cambia categoria
+Move Cursor	Sposta il cursore
+Cursor	Cursore
+Cursor Speed	Velocità del cursore
+Virtual Cursor	Cursore virtuale
+Show Cursor	Mostra il cursore
+Mouse Cursor	Cursore del mouse
+Left Mouse	Tasto sinistro
+Right Mouse	Tasto destro
+Middle Mouse	Tasto centrale
+Middle Mouse Button	Tasto centrale del mouse
+Mouse Button 4	Pulsante 4 del mouse
+Mouse Button 5	Pulsante 5 del mouse
+Mouse Wheel Up	Rotellina su
+Mouse Wheel Down	Rotellina giù
+Wheel Up	Rotellina su
+Wheel Down	Rotellina giù
+Return Key	Tasto Invio
+Right Shift	Maiusc destro
+Right Ctrl	Ctrl destro
+Left Alt	Alt sinistro
+Right Alt	Alt destro
+Alt	Alt
+Tab	Tab
+Delete Key	Tasto Canc
+Home Key	Tasto Home
+End	Fine
+Num Lock	Bloc Num
+Scroll Lock	Bloc Scorr
+Print Screen	Stamp
+Pause/Break	Pausa/Interr
+Numpad	Tastierino numerico
+Numeric Keypad	Tastierino numerico
+Windows Key	Tasto Windows
+Function Key	Tasto funzione
+Any Key	Qualsiasi tasto
+Left Thumbstick	Levetta sinistra
+Right Thumbstick	Levetta destra
+Left Stick Click	Pressione levetta sinistra
+Right Stick Click	Pressione levetta destra
+L3	L3
+R3	R3
+Directional Pad	Croce direzionale
+D-Pad Up	Croce direzionale su
+D-Pad Down	Croce direzionale giù
+D-Pad Left	Croce direzionale sinistra
+D-Pad Right	Croce direzionale destra
+Face Buttons	Pulsanti frontali
+Shoulder Buttons	Pulsanti dorsali
+Triggers	Grilletti
+Bumpers	Dorsali
+View Button	Pulsante Visualizza
+Menu Button	Pulsante Menu
+Options Button	Pulsante Options
+Share Button	Pulsante Share
+Create Button	Pulsante Create
+Touchpad Button	Pulsante touchpad
+Guide Button	Pulsante Guida
+Controller Disconnected	Controller disconnesso
+Controller connected	Controller connesso
+Please reconnect your controller	Ricollega il controller
+Reconnect your controller to continue	Ricollega il controller per continuare
+Controller not detected	Controller non rilevato
+No controller detected	Nessun controller rilevato
+Press any button on your controller	Premi un pulsante qualsiasi del controller
+Wireless Controller	Controller wireless
+Xbox Controller	Controller Xbox
+PlayStation Controller	Controller PlayStation
+DualSense	DualSense
+DualShock 4	DualShock 4
+Steam Deck	Steam Deck
+Steam Input	Steam Input
+Keyboard / Mouse	Tastiera / mouse
+Mouse & Keyboard	Mouse e tastiera
+Mouse and Keyboard	Mouse e tastiera
+Both	Entrambi
+# --- accessibilità
+Accessibility Settings	Impostazioni di accessibilità
+Accessibility Options	Opzioni di accessibilità
+Accessibility Features	Funzioni di accessibilità
+Visual Accessibility	Accessibilità visiva
+Audio Accessibility	Accessibilità audio
+Motor Accessibility	Accessibilità motoria
+Cognitive Accessibility	Accessibilità cognitiva
+High Contrast	Contrasto elevato
+High Contrast Mode	Modalità contrasto elevato
+Contrast Mode	Modalità contrasto
+Large Text	Testo grande
+Text Scale	Scala del testo
+Text Scaling	Scala del testo
+Menu Text Size	Dimensione del testo dei menu
+UI Text Size	Dimensione testo interfaccia
+Font	Carattere
+Font Style	Stile del carattere
+Dyslexia Friendly Font	Carattere per dislessici
+Dyslexia-Friendly Font	Carattere per dislessici
+Text Background	Sfondo del testo
+Text Background Opacity	Opacità sfondo del testo
+Text Color	Colore del testo
+Text Speed	Velocità del testo
+Dialogue Speed	Velocità dei dialoghi
+Auto-Advance Dialogue	Avanzamento automatico dei dialoghi
+Auto Advance	Avanzamento automatico
+Auto Advance Dialogue	Avanzamento automatico dei dialoghi
+Auto-Play Dialogue	Dialoghi automatici
+Instant Text	Testo istantaneo
+Text Display Speed	Velocità di comparsa del testo
+Colorblind Intensity	Intensità filtro daltonici
+Colorblind Strength	Intensità filtro daltonici
+Color Blind Strength	Intensità filtro daltonici
+Color Blind Filter	Filtro per daltonici
+Achromatopsia	Acromatopsia
+Protanope	Protanopia
+Deuteranope	Deuteranopia
+Tritanope	Tritanopia
+Red-Green	Rosso-verde
+Blue-Yellow	Blu-giallo
+Monochrome	Monocromatico
+Enemy Highlight Color	Colore di evidenziazione dei nemici
+Enemy Color	Colore dei nemici
+Ally Color	Colore degli alleati
+Friendly Color	Colore degli alleati
+Highlight Color	Colore di evidenziazione
+Highlight Items	Evidenzia gli oggetti
+Highlight Interactables	Evidenzia gli oggetti interattivi
+Highlight Enemies	Evidenzia i nemici
+Crosshair Color	Colore del mirino
+Crosshair Style	Stile del mirino
+Crosshair Size	Dimensione del mirino
+Crosshair Opacity	Opacità del mirino
+Crosshair Thickness	Spessore del mirino
+Crosshair Gap	Distanza del mirino
+Center Dot	Punto centrale
+Show Center Dot	Mostra il punto centrale
+Hitmarkers	Indicatori di colpo
+Hit Markers	Indicatori di colpo
+Show Hit Markers	Mostra gli indicatori di colpo
+Damage Indicator	Indicatore dei danni
+Damage Indicators	Indicatori dei danni
+Directional Damage Indicator	Indicatore direzionale dei danni
+Reduce Motion	Riduci il movimento
+Reduced Motion	Movimento ridotto
+Motion Sickness	Cinetosi
+Motion Sickness Reduction	Riduzione della cinetosi
+Reduce Camera Shake	Riduci il tremolio della telecamera
+Camera Shake Intensity	Intensità del tremolio della telecamera
+Screen Shake Intensity	Intensità del tremolio dello schermo
+Weapon Bob	Oscillazione dell'arma
+Head Bobbing	Oscillazione della testa
+View Bobbing	Oscillazione della visuale
+Camera Bob	Oscillazione della telecamera
+Camera Sway	Ondeggiamento della telecamera
+Weapon Sway	Ondeggiamento dell'arma
+Screen Effects Intensity	Intensità effetti a schermo
+Low Health Effect	Effetto salute bassa
+Low Health Screen Effect	Effetto a schermo con salute bassa
+Blood Splatter	Schizzi di sangue
+Blood Screen Effect	Effetto sangue sullo schermo
+Simplified Controls	Comandi semplificati
+One-Handed Mode	Modalità a una mano
+Button Mashing	Pressione ripetuta
+Replace Button Mashing	Sostituisci la pressione ripetuta
+Quick Time Events	Eventi rapidi
+QTE	QTE
+Auto Complete QTE	Eventi rapidi automatici
+QTE Difficulty	Difficoltà eventi rapidi
+QTE Timing	Tempi eventi rapidi
+Puzzle Skip	Salta l'enigma
+Skip Puzzle	Salta l'enigma
+Skip Combat	Salta il combattimento
+Navigation Assist	Assistenza alla navigazione
+Traversal Assist	Assistenza agli spostamenti
+Ledge Guard	Protezione dai bordi
+Fall Protection	Protezione dalle cadute
+Invincibility	Invincibilità
+Invincibility Mode	Modalità invincibilità
+Infinite Ammo	Munizioni infinite
+Infinite Health	Salute infinita
+Infinite Stamina	Vigore infinito
+One-Hit Kills	Uccisioni con un colpo
+Combat Speed	Velocità del combattimento
+Game Speed	Velocità di gioco
+Slow Motion	Rallentatore
+Enemy Aggression	Aggressività dei nemici
+Enemy Damage	Danni dei nemici
+Enemy Health	Salute dei nemici
+Player Damage	Danni del giocatore
+Damage Taken Multiplier	Moltiplicatore danni subiti
+Damage Dealt Multiplier	Moltiplicatore danni inflitti
+Custom Difficulty	Difficoltà personalizzata
+Difficulty Settings	Impostazioni di difficoltà
+Difficulty Options	Opzioni di difficoltà
+Change Difficulty	Cambia difficoltà
+Difficulty can be changed at any time	La difficoltà si può cambiare in qualsiasi momento
+You can change the difficulty at any time in the settings	Puoi cambiare la difficoltà in qualsiasi momento nelle impostazioni
+You can change this later in the settings	Puoi cambiarlo più tardi nelle impostazioni
+These settings can be changed later	Queste impostazioni si possono cambiare più tardi
+Story Difficulty	Difficoltà storia
+Very Easy	Molto facile
+Casual Difficulty	Difficoltà casual
+Challenging	Impegnativo
+Brutal	Brutale
+Legendary Difficulty	Difficoltà leggendaria
+Ultimate Difficulty	Difficoltà suprema
+Survivor	Sopravvissuto
+Realistic	Realistico
+Realism	Realismo
+Realism Mode	Modalità realistica
+Ironman	Ironman
+Ironman Mode	Modalità Ironman
+One Life	Una sola vita
+Single Life	Una sola vita
+Assist Mode	Modalità assistita
+Assisted	Assistito
+Game Assists	Assistenze di gioco
+Gameplay Assists	Assistenze di gioco
+Driving Assists	Assistenze alla guida
+Steering Assist	Assistenza allo sterzo
+Braking Assist	Assistenza alla frenata
+Racing Line	Traiettoria ideale
+Show Racing Line	Mostra la traiettoria ideale
+Traction Control	Controllo della trazione
+Stability Control	Controllo della stabilità
+ABS	ABS
+Rewind	Riavvolgi
+# --- opzioni di gioco e interfaccia
+Gameplay Settings	Impostazioni di gioco
+Gameplay Options	Opzioni di gioco
+Game Settings	Impostazioni di gioco
+Game Options	Opzioni di gioco
+General Settings	Impostazioni generali
+Interface Settings	Impostazioni interfaccia
+Interface Options	Opzioni interfaccia
+UI Settings	Impostazioni interfaccia
+HUD Settings	Impostazioni HUD
+HUD Options	Opzioni HUD
+HUD	HUD
+HUD Layout	Disposizione HUD
+HUD Size	Dimensione HUD
+HUD Color	Colore HUD
+HUD Elements	Elementi dell'HUD
+HUD Mode	Modalità HUD
+HUD Visibility	Visibilità HUD
+Dynamic HUD	HUD dinamico
+Minimal HUD	HUD minimo
+Full HUD	HUD completo
+Immersive Mode	Modalità immersiva
+Immersive HUD	HUD immersivo
+UI Opacity	Opacità interfaccia
+UI Size	Dimensione interfaccia
+Interface Scale	Scala interfaccia
+Interface Size	Dimensione interfaccia
+Menu Scale	Scala dei menu
+Safe Area	Area sicura
+Adjust Safe Area	Regola l'area sicura
+Screen Margins	Margini dello schermo
+Adjust the screen boundaries	Regola i bordi dello schermo
+Show Tutorials	Mostra i tutorial
+Tutorial Hints	Suggerimenti del tutorial
+Tutorial Tips	Suggerimenti del tutorial
+Tutorials	Tutorial
+Gameplay Hints	Suggerimenti di gioco
+Gameplay Tips	Consigli di gioco
+Show Hints	Mostra i suggerimenti
+Button Hints	Suggerimenti dei pulsanti
+Show Button Prompts	Mostra le indicazioni dei pulsanti
+Control Hints	Suggerimenti dei comandi
+Show Control Hints	Mostra i suggerimenti dei comandi
+Interaction Prompts	Indicazioni di interazione
+Show Interaction Prompts	Mostra le indicazioni di interazione
+Objective Markers	Indicatori degli obiettivi
+Show Objective Markers	Mostra gli indicatori degli obiettivi
+Quest Markers	Indicatori delle missioni
+Show Quest Markers	Mostra gli indicatori delle missioni
+Waypoint Markers	Indicatori dei punti di passaggio
+Map Markers	Indicatori della mappa
+World Markers	Indicatori nel mondo
+Show Markers	Mostra gli indicatori
+Show Waypoints	Mostra i punti di passaggio
+Show Compass	Mostra la bussola
+Compass Display	Visualizzazione della bussola
+Minimap Rotation	Rotazione della minimappa
+Rotate Minimap	Ruota la minimappa
+Minimap Zoom	Zoom della minimappa
+Minimap Size	Dimensione della minimappa
+Minimap Shape	Forma della minimappa
+Show Health Bars	Mostra le barre della salute
+Enemy Health Bars	Barre della salute dei nemici
+Health Bars	Barre della salute
+Show Enemy Health	Mostra la salute dei nemici
+Show Damage	Mostra i danni
+Damage Text	Testo dei danni
+Floating Damage Numbers	Numeri dei danni fluttuanti
+Combat Text	Testo di combattimento
+Show Combat Text	Mostra il testo di combattimento
+Show Names	Mostra i nomi
+Player Names	Nomi dei giocatori
+Show Player Names	Mostra i nomi dei giocatori
+Show NPC Names	Mostra i nomi dei PNG
+Nameplates	Targhette dei nomi
+Name Tags	Targhette dei nomi
+Show Nameplates	Mostra le targhette dei nomi
+Show Teammates	Mostra i compagni di squadra
+Show Ammo Counter	Mostra il contatore delle munizioni
+Ammo Counter	Contatore delle munizioni
+Show Clock	Mostra l'orologio
+Show Time	Mostra l'ora
+Show Timer	Mostra il timer
+Timer	Timer
+Speedometer	Tachimetro
+Show Speedometer	Mostra il tachimetro
+Measurement Units	Unità di misura
+Unit System	Sistema di misura
+Metric	Metrico
+Imperial	Imperiale
+Kilometers	Chilometri
+Miles	Miglia
+Celsius	Celsius
+Fahrenheit	Fahrenheit
+Temperature Unit	Unità di temperatura
+Speed Unit	Unità di velocità
+Distance Unit	Unità di distanza
+Time Format	Formato dell'ora
+Date Format	Formato della data
+12-hour	12 ore
+24-hour	24 ore
+Clock Format	Formato dell'orologio
+Notifications Settings	Impostazioni delle notifiche
+Show Notifications	Mostra le notifiche
+Notification Duration	Durata delle notifiche
+Notification Position	Posizione delle notifiche
+Popup Notifications	Notifiche a comparsa
+Pop-ups	Finestre a comparsa
+Show Pop-ups	Mostra le finestre a comparsa
+Item Notifications	Notifiche degli oggetti
+Loot Notifications	Notifiche del bottino
+Quest Notifications	Notifiche delle missioni
+Achievement Notifications	Notifiche degli obiettivi
+Kill Feed	Feed delle uccisioni
+Killfeed	Feed delle uccisioni
+Show Kill Feed	Mostra il feed delle uccisioni
+Chat Settings	Impostazioni chat
+Chat Filter	Filtro chat
+Profanity Filter	Filtro delle volgarità
+Mature Language Filter	Filtro del linguaggio volgare
+Filter Profanity	Filtra le volgarità
+Chat Opacity	Opacità della chat
+Chat Size	Dimensione della chat
+Chat Font Size	Dimensione del testo della chat
+Chat Timestamps	Orario dei messaggi
+Show Chat	Mostra la chat
+Hide Chat	Nascondi la chat
+Chat Visibility	Visibilità della chat
+Streamer Mode	Modalità streamer
+Hide Names	Nascondi i nomi
+Hide Player Names	Nascondi i nomi dei giocatori
+Anonymous Mode	Modalità anonima
+Hide Personal Info	Nascondi i dati personali
+Copyrighted Music	Musica protetta da copyright
+Disable Copyrighted Music	Disattiva la musica protetta da copyright
+Streamer Safe Music	Musica sicura per lo streaming
+Cross-Play	Gioco multipiattaforma
+Crossplay	Gioco multipiattaforma
+Cross-Platform Play	Gioco multipiattaforma
+Cross-Platform	Multipiattaforma
+Crossplay Enabled	Gioco multipiattaforma attivo
+Crossplay Disabled	Gioco multipiattaforma disattivo
+Cross-Progression	Progressi multipiattaforma
+Cross Save	Salvataggi multipiattaforma
+Telemetry	Telemetria
+Send Usage Data	Invia dati di utilizzo
+Send Crash Reports	Invia rapporti sugli arresti anomali
+Data Collection	Raccolta dei dati
+Analytics	Analisi dei dati
+Share Gameplay Data	Condividi i dati di gioco
+Tooltips	Descrizioni
+Show Tooltips	Mostra le descrizioni
+Tooltip Delay	Ritardo delle descrizioni
+Detailed Tooltips	Descrizioni dettagliate
+Advanced Tooltips	Descrizioni avanzate
+Item Comparison	Confronto oggetti
+Compare Items	Confronta oggetti
+Auto Compare	Confronto automatico
+Camera Settings	Impostazioni della telecamera
+Camera Options	Opzioni della telecamera
+Camera Collision	Collisione della telecamera
+Camera Height	Altezza della telecamera
+Camera Offset	Spostamento della telecamera
+Camera Position	Posizione della telecamera
+Camera Angle	Angolazione della telecamera
+Camera Smoothing	Fluidità della telecamera
+Camera Auto-Center	Centratura automatica della telecamera
+Auto Center Camera	Centra automaticamente la telecamera
+Camera Follow	Telecamera che segue
+Combat Camera	Telecamera di combattimento
+Lock-On Camera	Telecamera con aggancio
+Over the Shoulder	Sopra la spalla
+Shoulder View	Visuale da sopra la spalla
+Default View	Visuale predefinita
+First Person View	Visuale in prima persona
+Third Person View	Visuale in terza persona
+First-Person	Prima persona
+Third-Person	Terza persona
+Top Down	Dall'alto
+Isometric	Isometrica
+Cinematic Camera	Telecamera cinematografica
+Vehicle Camera	Telecamera del veicolo
+Cockpit View	Visuale abitacolo
+Hood View	Visuale cofano
+Bumper View	Visuale paraurti
+Chase Camera	Telecamera esterna
+Interior View	Visuale interna
+Language Options	Opzioni lingua
+Game Language	Lingua del gioco
+Display Language	Lingua di visualizzazione
+Menu Language	Lingua dei menu
+Voice-Over Language	Lingua del doppiaggio
+Voiceover Language	Lingua del doppiaggio
+Dialogue Language	Lingua dei dialoghi
+Text and Subtitles	Testo e sottotitoli
+English	Inglese
+Italian	Italiano
+French	Francese
+German	Tedesco
+Spanish	Spagnolo
+Spanish (Spain)	Spagnolo (Spagna)
+Spanish (Latin America)	Spagnolo (America Latina)
+Portuguese	Portoghese
+Portuguese (Brazil)	Portoghese (Brasile)
+Brazilian Portuguese	Portoghese brasiliano
+Russian	Russo
+Polish	Polacco
+Japanese	Giapponese
+Korean	Coreano
+Chinese	Cinese
+Simplified Chinese	Cinese semplificato
+Traditional Chinese	Cinese tradizionale
+Chinese (Simplified)	Cinese (semplificato)
+Chinese (Traditional)	Cinese (tradizionale)
+Turkish	Turco
+Arabic	Arabo
+Dutch	Olandese
+Swedish	Svedese
+Norwegian	Norvegese
+Danish	Danese
+Finnish	Finlandese
+Czech	Ceco
+Hungarian	Ungherese
+Ukrainian	Ucraino
+Greek	Greco
+Thai	Tailandese
+Vietnamese	Vietnamita
+Indonesian	Indonesiano
+Romanian	Rumeno
+Hindi	Hindi
+Latin	Latino
+Language changed	Lingua cambiata
+The language will change after restarting the game	La lingua cambierà dopo il riavvio del gioco
+Region and Language	Area geografica e lingua
+# --- salvataggi e caricamento
+Save Files	File di salvataggio
+Save File	File di salvataggio
+Saves	Salvataggi
+Saved Games	Partite salvate
+Save Data	Dati di salvataggio
+Game Data	Dati di gioco
+Save Slots	Slot di salvataggio
+Empty Save Slot	Slot di salvataggio vuoto
+New Save Slot	Nuovo slot di salvataggio
+Create New Save	Crea un nuovo salvataggio
+Overwrite	Sovrascrivi
+Overwrite existing save?	Sovrascrivere il salvataggio esistente?
+Overwrite this save file?	Sovrascrivere questo file di salvataggio?
+Load this save?	Caricare questo salvataggio?
+Delete this save?	Eliminare questo salvataggio?
+Delete Save File	Elimina il file di salvataggio
+Delete Save Data	Elimina i dati di salvataggio
+Delete All Saves	Elimina tutti i salvataggi
+Delete Saved Game	Elimina la partita salvata
+Save deleted	Salvataggio eliminato
+Save file deleted	File di salvataggio eliminato
+Save Successful	Salvataggio riuscito
+Save complete	Salvataggio completato
+Game Saved Successfully	Partita salvata correttamente
+Progress Saved	Progressi salvati
+Your progress has been saved	I tuoi progressi sono stati salvati
+Saving progress	Salvataggio dei progressi
+Saving, please wait	Salvataggio, attendi
+Saving data	Salvataggio dei dati
+Do not turn off the system	Non spegnere il sistema
+Do not close the game	Non chiudere il gioco
+Do not close the game while saving	Non chiudere il gioco durante il salvataggio
+Do not turn off your computer while this icon is displayed	Non spegnere il computer mentre è visibile questa icona
+When this icon is displayed, the game is saving	Quando compare questa icona, il gioco sta salvando
+This icon indicates the game is saving	Questa icona indica che il gioco sta salvando
+Save Failed	Salvataggio non riuscito
+Failed to save	Impossibile salvare
+Failed to save game	Impossibile salvare la partita
+Unable to save	Impossibile salvare
+Unable to save game	Impossibile salvare la partita
+Cannot save right now	Non puoi salvare adesso
+You cannot save right now	Non puoi salvare adesso
+You cannot save during combat	Non puoi salvare durante un combattimento
+You can't save while enemies are nearby	Non puoi salvare con nemici nelle vicinanze
+Cannot save while in combat	Impossibile salvare durante il combattimento
+Saving is disabled	Salvataggio disattivato
+Not enough disk space	Spazio su disco insufficiente
+Not enough storage space	Spazio di archiviazione insufficiente
+Insufficient disk space	Spazio su disco insufficiente
+Failed to load	Caricamento non riuscito
+Failed to load save	Impossibile caricare il salvataggio
+Failed to load game	Impossibile caricare la partita
+Unable to load save file	Impossibile caricare il file di salvataggio
+Save file is corrupted	Il file di salvataggio è danneggiato
+The save file is corrupted	Il file di salvataggio è danneggiato
+Save data is corrupted	I dati di salvataggio sono danneggiati
+Corrupted Save	Salvataggio danneggiato
+Corrupted Data	Dati danneggiati
+Save data not found	Dati di salvataggio non trovati
+No save data found	Nessun dato di salvataggio trovato
+No saved games found	Nessuna partita salvata trovata
+No save files	Nessun file di salvataggio
+No saves found	Nessun salvataggio trovato
+Incompatible save	Salvataggio non compatibile
+This save is from an older version	Questo salvataggio è di una versione precedente
+This save file is not compatible	Questo file di salvataggio non è compatibile
+Loading save	Caricamento del salvataggio
+Loading world	Caricamento del mondo
+Loading level	Caricamento del livello
+Loading map	Caricamento della mappa
+Loading assets	Caricamento delle risorse
+Loading data	Caricamento dei dati
+Loading profile	Caricamento del profilo
+Loading, please wait	Caricamento in corso, attendi
+Now Loading	Caricamento
+Load Complete	Caricamento completato
+Loading complete	Caricamento completato
+Press any key to continue loading	Premi un tasto qualsiasi per continuare
+Generating world	Generazione del mondo
+Generating terrain	Generazione del terreno
+Creating world	Creazione del mondo
+Joining world	Accesso al mondo
+Entering world	Ingresso nel mondo
+Building navigation	Creazione della navigazione
+Spawning	Comparsa in corso
+Starting up	Avvio in corso
+Starting...	Avvio...
+Launching	Avvio in corso
+Shutting down	Chiusura in corso
+Exiting	Uscita in corso
+Quitting...	Uscita...
+One moment please	Un momento
+Just a moment	Un attimo
+Almost there	Ci siamo quasi
+Almost done	Quasi fatto
+Cloud Saves	Salvataggi nel cloud
+Cloud Sync	Sincronizzazione cloud
+Cloud Storage	Archiviazione cloud
+Syncing	Sincronizzazione in corso
+Sync complete	Sincronizzazione completata
+Sync failed	Sincronizzazione non riuscita
+Cloud sync failed	Sincronizzazione cloud non riuscita
+Cloud Save Conflict	Conflitto di salvataggio nel cloud
+Save Conflict	Conflitto di salvataggio
+Local Save	Salvataggio locale
+Cloud Save Data	Dati di salvataggio nel cloud
+Use Local Save	Usa il salvataggio locale
+Use Cloud Save	Usa il salvataggio nel cloud
+Keep Local	Mantieni locale
+Keep Cloud	Mantieni cloud
+Upload to Cloud	Carica nel cloud
+Download from Cloud	Scarica dal cloud
+Last Played	Ultima partita
+Last Save	Ultimo salvataggio
+Last Modified	Ultima modifica
+Date Created	Data di creazione
+Total Playtime	Tempo di gioco totale
+Total Play Time	Tempo di gioco totale
+Time Played Total	Tempo di gioco totale
+Location	Luogo
+Current Location	Posizione attuale
+Completion	Completamento
+Game Completion	Completamento del gioco
+Completion Rate	Percentuale di completamento
+Save Location	Luogo del salvataggio
+Save Name	Nome del salvataggio
+Rename Save	Rinomina il salvataggio
+Export Save	Esporta il salvataggio
+Import Save	Importa il salvataggio
+Backup	Backup
+Create Backup	Crea un backup
+Restore Backup	Ripristina il backup
+Restore	Ripristina
+Backup created	Backup creato
+Auto Save	Salvataggio automatico
+Auto-Save	Salvataggio automatico
+Autosave Frequency	Frequenza del salvataggio automatico
+Autosave Slots	Slot di salvataggio automatico
+Enable Autosave	Attiva il salvataggio automatico
+Autosave Enabled	Salvataggio automatico attivo
+Autosave Disabled	Salvataggio automatico disattivo
+Autosave failed	Salvataggio automatico non riuscito
+Autosaved	Salvato automaticamente
+Quicksaving	Salvataggio rapido
+Quicksave complete	Salvataggio rapido completato
+Quick Saved	Salvataggio rapido eseguito
+Quick Loading	Caricamento rapido
+No quicksave found	Nessun salvataggio rapido trovato
+Checkpoint Saved	Checkpoint salvato
+Last Checkpoint	Ultimo checkpoint
+Reload Checkpoint	Ricarica il checkpoint
+Restart from Last Checkpoint	Ricomincia dall'ultimo checkpoint
+Reload Last Save	Ricarica l'ultimo salvataggio
+Restart Chapter	Ricomincia il capitolo
+Restart Encounter	Ricomincia lo scontro
+Restart Area	Ricomincia l'area
+Restart Run	Ricomincia la run
+New Run	Nuova run
+Abandon Run	Abbandona la run
+End Run	Termina la run
+Run Complete	Run completata
+Run Failed	Run fallita
+Profile Settings	Impostazioni del profilo
+Select a profile	Scegli un profilo
+Create Profile	Crea un profilo
+Delete Profile	Elimina il profilo
+New Profile	Nuovo profilo
+Profile Name	Nome del profilo
+Guest	Ospite
+Play as Guest	Gioca come ospite
+# --- inventario e oggetti
+Backpack	Zaino
+Bag	Borsa
+Bags	Borse
+Pockets	Tasche
+Pouch	Borsello
+Rig	Gilet tattico
+Safe Pocket	Tasca sicura
+Secure Container	Contenitore sicuro
+Safe Pocket Slot	Slot della tasca sicura
+Inventory Slot	Slot dell'inventario
+Inventory Slots	Slot dell'inventario
+Inventory Space	Spazio nell'inventario
+Inventory Capacity	Capacità dell'inventario
+Expand Inventory	Espandi l'inventario
+Inventory Upgrade	Espansione dell'inventario
+Backpack Full	Zaino pieno
+Your backpack is full	Il tuo zaino è pieno
+Backpack is full	Lo zaino è pieno
+Bag is full	La borsa è piena
+Storage Full	Deposito pieno
+Storage is full	Il deposito è pieno
+Stash Full	Scorta piena
+Stash is full	La scorta è piena
+No space	Nessuno spazio
+No space left	Spazio esaurito
+No room in inventory	Non c'è spazio nell'inventario
+Not enough inventory space	Spazio insufficiente nell'inventario
+Inventory full. Item dropped.	Inventario pieno. Oggetto lasciato a terra.
+Some items could not be added	Non è stato possibile aggiungere alcuni oggetti
+Items sent to storage	Oggetti inviati al deposito
+Item sent to stash	Oggetto inviato alla scorta
+Too heavy	Troppo pesante
+Overburdened	Sovraccarico
+Encumbered	Appesantito
+Over-encumbered	Sovraccarico
+Overencumbered	Sovraccarico
+Carry Weight	Peso trasportabile
+Carry Capacity	Capacità di carico
+Max Weight	Peso massimo
+Max Carry Weight	Peso massimo trasportabile
+Weight Limit	Limite di peso
+Capacity	Capacità
+Slots	Slot
+Stack	Pila
+Stack Size	Dimensione della pila
+Max Stack	Pila massima
+Stack All	Impila tutto
+Stack Items	Impila gli oggetti
+Split Half	Dividi a metà
+Split One	Separa uno
+Take One	Prendi uno
+Take Half	Prendi metà
+Drop One	Lascia uno
+Drop Half	Lascia metà
+Drop Stack	Lascia la pila
+Drop Selected	Lascia i selezionati
+Discard Item	Scarta l'oggetto
+Discard All	Scarta tutto
+Discard Selected	Scarta i selezionati
+Destroy Item	Distruggi l'oggetto
+Delete Item	Elimina l'oggetto
+Throw Away	Butta via
+Move Item	Sposta l'oggetto
+Move All	Sposta tutto
+Move to Stash	Sposta nella scorta
+Move to Storage	Sposta nel deposito
+Move to Inventory	Sposta nell'inventario
+Move to Backpack	Sposta nello zaino
+Move to Container	Sposta nel contenitore
+Transfer	Trasferisci
+Transfer All	Trasferisci tutto
+Transfer Items	Trasferisci gli oggetti
+Send to Storage	Invia al deposito
+Send to Stash	Invia alla scorta
+Send to Inventory	Invia all'inventario
+Take Everything	Prendi tutto
+Store Item	Deposita l'oggetto
+Store Items	Deposita gli oggetti
+Store All Items	Deposita tutti gli oggetti
+Deposit Items	Deposita gli oggetti
+Deposit Materials	Deposita i materiali
+Deposit Resources	Deposita le risorse
+Withdraw All	Preleva tutto
+Retrieve	Recupera
+Retrieve All	Recupera tutto
+Unload	Scarica
+Unload All	Scarica tutto
+Unload Ammo	Scarica le munizioni
+Load Ammo	Carica le munizioni
+Equip Item	Equipaggia l'oggetto
+Unequip Item	Rimuovi l'oggetto
+Unequip All	Rimuovi tutto
+Equip All	Equipaggia tutto
+Equip Best	Equipaggia il migliore
+Auto Equip Best	Equipaggia automaticamente il migliore
+Equipped Items	Oggetti equipaggiati
+Currently Equipped	Attualmente equipaggiato
+Equip to Slot	Equipaggia nello slot
+Assign to Hotbar	Assegna alla barra rapida
+Assign to Quick Slot	Assegna allo slot rapido
+Add to Hotbar	Aggiungi alla barra rapida
+Remove from Hotbar	Rimuovi dalla barra rapida
+Quick Slots	Slot rapidi
+Consume Item	Consuma l'oggetto
+Eat Food	Mangia
+Drink Water	Bevi acqua
+Read Note	Leggi la nota
+Read Book	Leggi il libro
+Learn	Impara
+Learn Recipe	Impara la ricetta
+Learn Blueprint	Impara il progetto
+Already Known	Già conosciuto
+Already learned	Già imparato
+Recipe learned	Ricetta imparata
+Blueprint learned	Progetto imparato
+Inspect Item	Esamina l'oggetto
+Examine Item	Esamina l'oggetto
+Item Details	Dettagli dell'oggetto
+Item Info	Info sull'oggetto
+Item Description	Descrizione dell'oggetto
+Item Name	Nome dell'oggetto
+Item Type	Tipo di oggetto
+Item Stats	Statistiche dell'oggetto
+Item Power	Potere dell'oggetto
+Item Rarity	Rarità dell'oggetto
+Item Value	Valore dell'oggetto
+Mark as Favorite	Segna come preferito
+Unmark as Favorite	Togli dai preferiti
+Add to Favorites	Aggiungi ai preferiti
+Remove from Favorites	Rimuovi dai preferiti
+Favorites	Preferiti
+Favorited	Preferito
+Mark as New	Segna come nuovo
+Mark as Read	Segna come letto
+Unmark as Junk	Togli dalle cianfrusaglie
+Junk Items	Cianfrusaglie
+Sell Junk	Vendi le cianfrusaglie
+Sell All Junk	Vendi tutte le cianfrusaglie
+Lock Item	Blocca l'oggetto
+Unlock Item	Sblocca l'oggetto
+Item Locked	Oggetto bloccato
+Item Unlocked	Oggetto sbloccato
+Locked items cannot be sold	Gli oggetti bloccati non si possono vendere
+Cannot sell this item	Non puoi vendere questo oggetto
+This item cannot be sold	Questo oggetto non si può vendere
+This item cannot be dropped	Questo oggetto non si può lasciare
+This item cannot be destroyed	Questo oggetto non si può distruggere
+Cannot drop quest items	Non puoi lasciare gli oggetti delle missioni
+Cannot equip	Impossibile equipaggiare
+Cannot equip this item	Non puoi equipaggiare questo oggetto
+You cannot equip this item	Non puoi equipaggiare questo oggetto
+You cannot use this item	Non puoi usare questo oggetto
+Cannot use this item now	Non puoi usare questo oggetto adesso
+Cannot use	Impossibile usare
+Level too low	Livello troppo basso
+Your level is too low	Il tuo livello è troppo basso
+Requirements not met	Requisiti non soddisfatti
+Requirement not met	Requisito non soddisfatto
+Item Category	Categoria dell'oggetto
+All Items	Tutti gli oggetti
+Items	Oggetti
+Item	Oggetto
+Gear	Equipaggiamento
+Armor Pieces	Pezzi di armatura
+Clothing	Abbigliamento
+Clothes	Vestiti
+Apparel	Abbigliamento
+Headgear	Copricapo
+Mask	Maschera
+Face	Viso
+Glasses	Occhiali
+Goggles	Occhiali protettivi
+Eyewear	Occhiali
+Vest	Gilet
+Jacket	Giacca
+Shirt	Maglia
+Torso	Torso
+Chest Armor	Armatura del torso
+Chest Piece	Pettorale
+Body	Corpo
+Pants	Pantaloni
+Trousers	Pantaloni
+Shoes	Scarpe
+Footwear	Calzature
+Wrists	Polsi
+Bracers	Bracciali
+Bracelet	Bracciale
+Gauntlets	Guanti d'arme
+Earrings	Orecchini
+Back Item	Oggetto sulla schiena
+Cape	Mantello
+Relic	Reliquia
+Relics	Reliquie
+Charm	Talismano
+Charms	Talismani
+Talisman	Talismano
+Rune	Runa
+Runes	Rune
+Gem	Gemma
+Jewel	Gioiello
+Jewels	Gioielli
+Ammo Type	Tipo di munizioni
+Ammo Types	Tipi di munizioni
+Tools	Attrezzi
+Tool	Attrezzo
+Utility	Utilità
+Utilities	Utilità
+Throwables	Oggetti da lancio
+Throwable	Da lancio
+Gadgets	Gadget
+Gadget	Gadget
+Devices	Dispositivi
+Device	Dispositivo
+Medical	Medicinali
+Medical Supplies	Forniture mediche
+Meds	Medicine
+Healing Items	Oggetti curativi
+Drinks	Bevande
+Ingredient	Ingrediente
+Components	Componenti
+Component	Componente
+Parts	Parti
+Spare Parts	Pezzi di ricambio
+Valuables	Oggetti di valore
+Collectibles	Collezionabili
+Collectible	Collezionabile
+Trophies	Trofei
+Keys and Cards	Chiavi e tessere
+Special Items	Oggetti speciali
+Misc	Varie
+Other Items	Altri oggetti
+Trash	Spazzatura
+Garbage	Spazzatura
+Trinkets	Ninnoli
+Weapon Parts	Parti di armi
+Weapon Mods	Modifiche per armi
+Mod	Mod
+Modifications	Modifiche
+Upgrade Materials	Materiali di potenziamento
+Crafting Components	Componenti di creazione
+Ammo Crafting	Creazione munizioni
+Ammo Capacity	Capacità di munizioni
+Ammo Count	Numero di munizioni
+Current Ammo	Munizioni attuali
+Reserve Ammo	Munizioni di riserva
+New Gear	Nuovo equipaggiamento
+New Weapon	Nuova arma
+New Armor	Nuova armatura
+Item Obtained	Oggetto ottenuto
+Obtained	Ottenuto
+Received	Ricevuto
+You received	Hai ricevuto
+You obtained	Hai ottenuto
+You found	Hai trovato
+Picked up	Raccolto
+Added to inventory	Aggiunto all'inventario
+Added to stash	Aggiunto alla scorta
+Removed from inventory	Rimosso dall'inventario
+Item lost	Oggetto perso
+Items lost	Oggetti persi
+Item broken	Oggetto rotto
+Your item has broken	Il tuo oggetto si è rotto
+Your weapon has broken	La tua arma si è rotta
+Your weapon is about to break	La tua arma sta per rompersi
+Weapon broken	Arma rotta
+Armor broken	Armatura rotta
+Low Durability	Resistenza bassa
+Durability Low	Resistenza bassa
+Needs Repair	Da riparare
+Repaired	Riparato
+Repair Item	Ripara l'oggetto
+Repair Equipment	Ripara l'equipaggiamento
+Repair Equipped	Ripara l'equipaggiamento indossato
+Repair Kit	Kit di riparazione
+Repair Kits	Kit di riparazione
+Fully Repaired	Riparato completamente
+Condition	Condizione
+Pristine	Perfetto
+Worn	Usurato
+Well-Worn	Molto usurato
+Battle-Scarred	Segnato dalla battaglia
+Factory New	Nuovo di fabbrica
+Field-Tested	Testato sul campo
+Minimal Wear	Usura minima
+Ruined	Rovinato
+Degraded	Degradato
+Used	Usato
+Old	Vecchio
+Rusty	Arrugginito
+Fresh	Fresco
+Spoiled	Andato a male
+Rotten	Marcio
+Stale	Raffermo
+Cooked	Cotto
+Raw	Crudo
+Burnt	Bruciato
+Spoils in	Va a male tra
+Spoilage	Deterioramento
+# --- creazione, potenziamento e banchi
+Craft Item	Crea l'oggetto
+Craft Selected	Crea il selezionato
+Craft x1	Crea x1
+Craft x5	Crea x5
+Craft x10	Crea x10
+Craft Max	Crea il massimo
+Crafting Menu	Menu di creazione
+Crafting Recipes	Ricette di creazione
+Crafting Bench	Banco da lavoro
+Crafting Level	Livello di creazione
+Crafting Time	Tempo di creazione
+Crafting Cost	Costo di creazione
+Crafting Speed	Velocità di creazione
+Crafting in progress	Creazione in corso
+Crafting failed	Creazione non riuscita
+Crafting Successful	Creazione riuscita
+Cannot craft	Impossibile creare
+Cannot craft this item	Non puoi creare questo oggetto
+Not enough ingredients	Ingredienti insufficienti
+Missing ingredients	Ingredienti mancanti
+Missing Requirements	Requisiti mancanti
+Missing components	Componenti mancanti
+Insufficient materials	Materiali insufficienti
+Insufficient resources	Risorse insufficienti
+You don't have enough materials	Non hai abbastanza materiali
+You don't have enough resources	Non hai abbastanza risorse
+Requires workbench	Richiede un banco da lavoro
+Requires a workbench	Richiede un banco da lavoro
+Requires crafting station	Richiede una stazione di creazione
+Must be near a workbench	Devi essere vicino a un banco da lavoro
+Requires power	Richiede energia
+Requires fuel	Richiede carburante
+No power	Nessuna energia
+Not powered	Non alimentato
+Powered	Alimentato
+Unpowered	Non alimentato
+Power Required	Energia necessaria
+Power Usage	Consumo di energia
+Power Consumption	Consumo di energia
+Power Generation	Produzione di energia
+Power Output	Energia prodotta
+Power Grid	Rete elettrica
+Generator	Generatore
+Solar Panel	Pannello solare
+Wind Turbine	Turbina eolica
+Batteries	Batterie
+Wire	Cavo
+Wires	Cavi
+Cable	Cavo
+Connect	Collega
+Connected	Collegato
+Not connected	Non collegato
+Turn On	Accendi
+Turn Off	Spegni
+Switch On	Accendi
+Switch Off	Spegni
+Power On	Accendi
+Power Off	Spegni
+Start Crafting	Inizia la creazione
+Stop Crafting	Interrompi la creazione
+Cancel Crafting	Annulla la creazione
+Queue	Coda
+Add to Queue	Aggiungi alla coda
+Remove from Queue	Rimuovi dalla coda
+Clear Queue	Svuota la coda
+Queue Full	Coda piena
+Queue is full	La coda è piena
+In Queue	In coda
+Queued	In coda
+Ready to Collect	Pronto da ritirare
+Collect Items	Ritira gli oggetti
+Output Slot	Slot di uscita
+Input Slot	Slot di ingresso
+Fuel Slot	Slot del carburante
+Processed	Lavorato
+Processor	Processore
+Refinery	Raffineria
+Refiner	Raffinatore
+Portable Refiner	Raffinatore portatile
+Smelter	Fonderia
+Smelting	Fusione
+Refining	Raffinazione
+Refined	Raffinato
+Extractor	Estrattore
+Mineral Extractor	Estrattore di minerali
+Drill	Trivella
+Mining Drill	Trivella mineraria
+Pickaxe	Piccone
+Hatchet	Accetta
+Shovel	Pala
+Sickle	Falcetto
+Fishing Rod	Canna da pesca
+Hoe	Zappa
+Watering Can	Annaffiatoio
+Torch	Torcia
+Lantern	Lanterna
+Repair Bench	Banco di riparazione
+Repair Station	Stazione di riparazione
+Upgrade Station	Stazione di potenziamento
+Upgrade Bench	Banco di potenziamento
+Weapon Bench	Banco delle armi
+Weapons Bench	Banco delle armi
+Gunsmith	Armaiolo
+Armorer	Armaiolo
+Medical Station	Stazione medica
+Med Station	Stazione medica
+Cooking Pot	Pentola
+Cooking Station	Stazione di cucina
+Stove	Fornello
+Oven	Forno
+Grill	Griglia
+Kitchen	Cucina
+Alchemy Table	Tavolo alchemico
+Loom	Telaio
+Sawmill	Segheria
+Tanning Rack	Rastrelliera per conciare
+Upgrade Workbench	Potenzia il banco da lavoro
+Workbench Level	Livello del banco da lavoro
+Workbench Upgraded	Banco da lavoro potenziato
+Station Level	Livello della stazione
+Station Upgraded	Stazione potenziata
+Upgrade Item	Potenzia l'oggetto
+Upgrade Weapon	Potenzia l'arma
+Upgrade Armor	Potenzia l'armatura
+Upgrade Gear	Potenzia l'equipaggiamento
+Upgrade Cost	Costo di potenziamento
+Upgrade Level	Livello di potenziamento
+Upgrade Successful	Potenziamento riuscito
+Upgrade Failed	Potenziamento non riuscito
+Upgrade complete	Potenziamento completato
+Upgraded	Potenziato
+Fully Upgraded	Potenziato al massimo
+Max Upgrade	Potenziamento massimo
+Maximum level reached	Livello massimo raggiunto
+Cannot upgrade further	Non puoi potenziarlo ulteriormente
+Can't upgrade	Impossibile potenziare
+Next Level	Livello successivo
+Next Upgrade	Prossimo potenziamento
+Upgrade Preview	Anteprima del potenziamento
+Upgrade Path	Percorso di potenziamento
+Tier Up	Aumenta di grado
+Evolve	Evolvi
+Evolution	Evoluzione
+Ascend Item	Ascendi l'oggetto
+Ascension	Ascensione
+Awaken	Risveglia
+Awakening	Risveglio
+Infuse	Infondi
+Infusion	Infusione
+Imbue	Impregna
+Reroll	Rigenera
+Reroll Stats	Rigenera le statistiche
+Reroll Cost	Costo della rigenerazione
+Reroll All	Rigenera tutto
+Transmute	Trasmuta
+Transmutation	Trasmutazione
+Combine	Combina
+Merge	Unisci
+Fuse	Fondi
+Fusion	Fusione
+Disassemble	Smonta
+Scrap Item	Rottama l'oggetto
+Scrap All	Rottama tutto
+Recycle	Ricicla
+Recycler	Riciclatore
+Recycle All	Ricicla tutto
+Recycling	Riciclo
+Dismantle All	Smonta tutto
+Dismantle Item	Smonta l'oggetto
+Salvage All	Recupera tutto
+Salvage Item	Recupera l'oggetto
+Breakdown	Scomponi
+Break Down	Scomponi
+Deconstruct	Smantella
+You will receive	Riceverai
+You will get	Otterrai
+Yields	Produce
+Yield	Resa
+Results	Risultati
+Result	Risultato
+Craftable	Creabile
+Craftable Items	Oggetti creabili
+Can Craft	Creabile
+Show Craftable Only	Mostra solo i creabili
+Show only craftable	Mostra solo i creabili
+Unlocked Recipes	Ricette sbloccate
+Locked Recipes	Ricette bloccate
+Unknown Recipe	Ricetta sconosciuta
+Recipe Unknown	Ricetta sconosciuta
+Recipe Unlocked	Ricetta sbloccata
+Recipe Book	Libro delle ricette
+Schematic	Schema
+Schematics	Schemi
+Pattern	Modello
+Patterns	Modelli
+Plans	Progetti
+New Blueprint	Nuovo progetto
+New Recipe	Nuova ricetta
+Research Station	Stazione di ricerca
+Research Points	Punti ricerca
+Researching	Ricerca in corso
+Research Complete	Ricerca completata
+Start Research	Avvia la ricerca
+Research Cost	Costo della ricerca
+Research Time	Tempo di ricerca
+Unlock Cost	Costo di sblocco
+Unlock Requirements	Requisiti di sblocco
+Unlocks	Sblocca
+Unlocks at level	Si sblocca al livello
+Unlocked at level	Sbloccato al livello
+Requires rank	Richiede il grado
+Prerequisites	Prerequisiti
+Tech	Tecnologia
+Technologies	Tecnologie
+Technology Tree	Albero tecnologico
+Tech Level	Livello tecnologico
+Tech Points	Punti tecnologia
+Technology Points	Punti tecnologia
+Ancient Technology	Tecnologia antica
+Unlock Technology	Sblocca la tecnologia
+Technology Unlocked	Tecnologia sbloccata
+# --- negozio, valute, scambi
+Shop Inventory	Merce del negozio
+Buy Item	Compra l'oggetto
+Sell Item	Vendi l'oggetto
+Buy Items	Compra oggetti
+Sell Items	Vendi oggetti
+Buy Selected	Compra i selezionati
+Sell Selected	Vendi i selezionati
+Buy x1	Compra x1
+Buy x10	Compra x10
+Buy Max	Compra il massimo
+Sell Max	Vendi il massimo
+Sell Duplicates	Vendi i doppioni
+Buyback	Riacquista
+Sell Back	Rivendi
+Confirm Sale	Conferma la vendita
+Confirm Sell	Conferma la vendita
+Confirm Buy	Conferma l'acquisto
+Confirm Trade	Conferma lo scambio
+Sale	Vendita
+On Sale	In saldo
+Sales	Saldi
+Special Offer	Offerta speciale
+Special Offers	Offerte speciali
+Offers	Offerte
+Deals	Offerte
+Deal	Offerta
+Hot Deals	Offerte imperdibili
+Weekly Deals	Offerte della settimana
+Daily Offers	Offerte giornaliere
+Weekly Offers	Offerte settimanali
+Today's Offers	Offerte di oggi
+Featured Items	Oggetti in evidenza
+New Arrivals	Nuovi arrivi
+New in Store	Novità nel negozio
+Best Seller	Più venduto
+Best Sellers	Più venduti
+Best Value	Miglior rapporto qualità-prezzo
+Most Popular	Più popolare
+Limited Edition	Edizione limitata
+Limited Stock	Disponibilità limitata
+Limited	Limitato
+Exclusive	Esclusivo
+Exclusive Offer	Offerta esclusiva
+Starter Pack	Pacchetto iniziale
+Starter Bundle	Pacchetto iniziale
+Value Pack	Pacchetto convenienza
+Mega Pack	Mega pacchetto
+Pack	Pacchetto
+Packs	Pacchetti
+Open Pack	Apri il pacchetto
+Open All	Apri tutto
+Crate	Cassa
+Crates	Casse
+Chests	Forzieri
+Open Case	Apri la cassa
+Lootbox	Cassa premio
+Loot Box	Cassa premio
+Loot Boxes	Casse premio
+Drop Rates	Probabilità di drop
+View Drop Rates	Vedi le probabilità di drop
+Probability	Probabilità
+Odds	Probabilità
+Restock	Rifornimento
+Restocks in	Rifornimento tra
+Refreshes in	Si aggiorna tra
+Resets in	Si azzera tra
+Shop refreshes in	Il negozio si aggiorna tra
+New items in	Nuovi oggetti tra
+In Stock	Disponibile
+Stock	Scorte
+Supply	Scorte
+Demand	Domanda
+Price Range	Fascia di prezzo
+Total Price	Prezzo totale
+Total Cost	Costo totale
+Cost	Costo
+Costs	Costa
+Unit Price	Prezzo unitario
+Price per Unit	Prezzo per unità
+Base Price	Prezzo base
+Original Price	Prezzo originale
+Discounted	Scontato
+Discount Price	Prezzo scontato
+Free Item	Oggetto gratuito
+Free Reward	Ricompensa gratuita
+Get	Ottieni
+Get Now	Ottieni ora
+Get It Now	Ottienilo ora
+Unlock Now	Sblocca ora
+Upgrade Now	Potenzia ora
+Buy Again	Compra di nuovo
+Gift to Friend	Regala a un amico
+Gift Item	Regala l'oggetto
+Send as Gift	Invia come regalo
+Receive Gift	Ricevi il regalo
+Gifts	Regali
+Gift Received	Regalo ricevuto
+Gift Sent	Regalo inviato
+Add to Cart	Aggiungi al carrello
+Cart	Carrello
+Shopping Cart	Carrello
+Checkout	Pagamento
+Proceed to Checkout	Procedi al pagamento
+Payment	Pagamento
+Payment Method	Metodo di pagamento
+Payment failed	Pagamento non riuscito
+Payment successful	Pagamento completato
+Transaction	Transazione
+Transaction Complete	Transazione completata
+Transaction failed	Transazione non riuscita
+Transaction History	Cronologia delle transazioni
+Purchase History	Cronologia degli acquisti
+Purchase Complete	Acquisto completato
+Purchase Confirmed	Acquisto confermato
+Purchase Cancelled	Acquisto annullato
+Purchase Canceled	Acquisto annullato
+Thank you for your purchase	Grazie per l'acquisto
+Processing purchase	Elaborazione dell'acquisto
+Processing payment	Elaborazione del pagamento
+Already owned	Già posseduto
+You already own this item	Possiedi già questo oggetto
+Not Owned	Non posseduto
+Unowned	Non posseduto
+Owned Items	Oggetti posseduti
+You can't afford this	Non puoi permettertelo
+You cannot afford this	Non puoi permettertelo
+Can't afford	Non puoi permettertelo
+Cannot afford	Non puoi permettertelo
+Not enough credits	Crediti insufficienti
+Not enough currency	Valuta insufficiente
+Not enough funds	Fondi insufficienti
+Not enough cash	Contanti insufficienti
+Not enough silver	Argento insufficiente
+Not enough points	Punti insufficienti
+Not enough tokens	Gettoni insufficienti
+Not enough scrap	Rottami insufficienti
+Not enough XP	PE insufficienti
+Not enough skill points	Punti abilità insufficienti
+Get More	Ottieni altro
+Get more coins	Ottieni altre monete
+Buy Currency	Compra valuta
+Buy Coins	Compra monete
+Buy Gems	Compra gemme
+Buy Credits	Compra crediti
+Top Up	Ricarica
+Wallet	Portafoglio
+Balance	Saldo
+Your Balance	Il tuo saldo
+Credits Balance	Saldo dei crediti
+Funds	Fondi
+Money	Soldi
+Cash	Contanti
+Credit	Credito
+Coin	Moneta
+Gold Coins	Monete d'oro
+Silver Coins	Monete d'argento
+Copper Coins	Monete di rame
+Premium Currency	Valuta premium
+Premium	Premium
+Shards	Frammenti
+Shard	Frammento
+Essence	Essenza
+Souls	Anime
+Points	Punti
+Reward Points	Punti premio
+Loyalty Points	Punti fedeltà
+Season Points	Punti stagione
+Battle Pass Points	Punti del pass battaglia
+Earn	Guadagna
+Earned	Guadagnato
+Spent	Speso
+Spend	Spendi
+Exchange	Scambia
+Exchange Rate	Tasso di cambio
+Convert	Converti
+Conversion	Conversione
+Trade Offer	Offerta di scambio
+Trade Offers	Offerte di scambio
+Send Trade Request	Invia una richiesta di scambio
+Trade request sent	Richiesta di scambio inviata
+Trade request declined	Richiesta di scambio rifiutata
+Trade completed	Scambio completato
+Trade Complete	Scambio completato
+Trade cancelled	Scambio annullato
+Trade canceled	Scambio annullato
+Trade failed	Scambio non riuscito
+Trade Accepted	Scambio accettato
+Trade Declined	Scambio rifiutato
+Your Offer	La tua offerta
+Their Offer	La sua offerta
+Lock Offer	Blocca l'offerta
+Offer Locked	Offerta bloccata
+Waiting for other player	In attesa dell'altro giocatore
+Waiting for the other player to accept	In attesa che l'altro giocatore accetti
+Trader	Commerciante
+Traders	Commercianti
+Shopkeeper	Negoziante
+Blacksmith	Fabbro
+Alchemist	Alchimista
+Innkeeper	Locandiere
+Quartermaster	Quartiermastro
+Dealer	Rivenditore
+Arms Dealer	Trafficante d'armi
+Black Market	Mercato nero
+General Store	Emporio
+General Goods	Merci varie
+Goods	Merci
+Wares	Merci
+Commodities	Merci
+Trade Goods	Merci di scambio
+Sell Value	Valore di vendita
+Buy Value	Valore di acquisto
+Market Value	Valore di mercato
+Market Price	Prezzo di mercato
+Average Price	Prezzo medio
+Lowest Price	Prezzo più basso
+Highest Price	Prezzo più alto
+Galactic Market	Mercato galattico
+Trade Terminal	Terminale commerciale
+Trading Post	Avamposto commerciale
+Auction	Asta
+Auctions	Aste
+My Auctions	Le mie aste
+My Bids	Le mie offerte
+Current Bid	Offerta attuale
+Minimum Bid	Offerta minima
+Starting Bid	Offerta iniziale
+Buyout Price	Prezzo di acquisto immediato
+Listing Fee	Commissione di inserzione
+Fee	Commissione
+Tax	Tassa
+Taxes	Tasse
+Market Fee	Commissione di mercato
+Sell Order	Ordine di vendita
+Buy Order	Ordine di acquisto
+Cancel Listing	Annulla l'inserzione
+List Item	Metti in vendita
+List for Sale	Metti in vendita
+Put up for Sale	Metti in vendita
+Listed	In vendita
+Item listed	Oggetto messo in vendita
+Reputation Level	Livello di reputazione
+Reputation Rank	Grado di reputazione
+Standing	Reputazione
+Loyalty	Fedeltà
+Trust	Fiducia
+Trader Level	Livello del commerciante
+Unlocked at Loyalty Level	Si sblocca al livello di fedeltà
+Barter	Baratto
+Haggle	Contratta
+Bargain	Affare
+Pay	Paga
+Pay Now	Paga ora
+Paid	Pagato
+Unpaid	Non pagato
+Debt	Debito
+Loan	Prestito
+Interest	Interessi
+Income	Entrate
+Expenses	Spese
+Profit	Profitto
+Loss	Perdita
+Revenue	Ricavi
+Net Worth	Patrimonio
+Earnings	Guadagni
+Daily Income	Entrate giornaliere
+Salary	Stipendio
+Wage	Paga
+Wages	Paghe
+Bills	Bollette
+Rent	Affitto
+Budget	Budget
+# --- missioni e obiettivi
+Quest Started	Missione iniziata
+Quest Abandoned	Missione abbandonata
+New Quest Available	Nuova missione disponibile
+Quest Available	Missione disponibile
+Quests Available	Missioni disponibili
+Quest Giver	Committente
+Quest Details	Dettagli della missione
+Quest Description	Descrizione della missione
+Quest Objectives	Obiettivi della missione
+Quest Reward	Ricompensa della missione
+Quest Journal	Diario delle missioni
+Quest Line	Linea di missioni
+Questline	Linea di missioni
+Quest Chain	Catena di missioni
+Quest Step	Fase della missione
+Quest Progress	Progresso della missione
+Quest Location	Luogo della missione
+Track	Segui
+Tracked	Seguita
+Tracking	Monitoraggio
+Track Mission	Segui la missione
+Track Objective	Segui l'obiettivo
+Track Contract	Segui il contratto
+Tracked Quest	Missione seguita
+Tracked Quests	Missioni seguite
+Stop Tracking	Smetti di seguire
+Untrack Mission	Non seguire la missione
+Set as Active	Imposta come attiva
+Set Active	Imposta come attiva
+Make Active	Rendi attiva
+Active Quest	Missione attiva
+Active Mission	Missione attiva
+Active Missions	Missioni attive
+Active Contracts	Contratti attivi
+Active Objectives	Obiettivi attivi
+Current Objective	Obiettivo attuale
+Current Objectives	Obiettivi attuali
+Current Quest	Missione attuale
+Current Mission	Missione attuale
+Main Objective	Obiettivo principale
+Primary Objective	Obiettivo principale
+Secondary Objective	Obiettivo secondario
+Bonus Objective	Obiettivo bonus
+Optional Objectives	Obiettivi facoltativi
+Hidden Objective	Obiettivo nascosto
+Objective Failed	Obiettivo fallito
+Objectives Updated	Obiettivi aggiornati
+New Objectives	Nuovi obiettivi
+All objectives complete	Tutti gli obiettivi completati
+Return to quest giver	Torna dal committente
+Return to the quest giver	Torna dal committente
+Turn in quest	Consegna la missione
+Ready to turn in	Pronta per la consegna
+Hand In	Consegna
+Complete Mission	Completa la missione
+Mission Started	Missione iniziata
+Mission Updated	Missione aggiornata
+Mission Abandoned	Missione abbandonata
+Mission Briefing	Briefing della missione
+Briefing	Briefing
+Debriefing	Debriefing
+Mission Summary	Riepilogo della missione
+Mission Rewards	Ricompense della missione
+Mission Details	Dettagli della missione
+Mission Objectives	Obiettivi della missione
+Mission Log	Registro delle missioni
+Mission Board	Bacheca delle missioni
+Missions Board	Bacheca delle missioni
+Job Board	Bacheca dei lavori
+Bounty Board	Bacheca delle taglie
+Notice Board	Bacheca degli avvisi
+Contracts Board	Bacheca dei contratti
+Side Mission	Missione secondaria
+Side Missions	Missioni secondarie
+Main Mission	Missione principale
+Main Missions	Missioni principali
+Main Quests	Missioni principali
+Story Missions	Missioni della storia
+Story Mission	Missione della storia
+Faction Mission	Missione della fazione
+Faction Missions	Missioni della fazione
+Companion Quest	Missione del compagno
+Repeatable	Ripetibile
+Repeatable Quest	Missione ripetibile
+Daily	Giornaliera
+Weekly	Settimanale
+Monthly	Mensile
+Seasonal	Stagionale
+Daily Bounty	Taglia giornaliera
+Weekly Bounty	Taglia settimanale
+Bounty Complete	Taglia completata
+Bounty Target	Bersaglio della taglia
+Wanted	Ricercato
+Wanted Level	Livello di ricercato
+Contract Failed	Contratto fallito
+Contract Accepted	Contratto accettato
+Accept Contract	Accetta il contratto
+Accept Mission	Accetta la missione
+Decline Mission	Rifiuta la missione
+Start Mission	Avvia la missione
+Begin Mission	Inizia la missione
+Launch Mission	Avvia la missione
+Replay Mission	Rigioca la missione
+Replay Chapter	Rigioca il capitolo
+Abandon	Abbandona
+Abandon Contract	Abbandona il contratto
+Recommended Level	Livello consigliato
+Recommended Power	Potere consigliato
+Suggested Level	Livello consigliato
+Recommended Players	Giocatori consigliati
+Time Limit	Limite di tempo
+Time Bonus	Bonus tempo
+Deadline	Scadenza
+Expires in	Scade tra
+Progress Lost	Progressi persi
+Collect the items	Raccogli gli oggetti
+Find the key	Trova la chiave
+Find a way out	Trova una via d'uscita
+Find a way in	Trova un modo per entrare
+Find the exit	Trova l'uscita
+Find shelter	Trova un riparo
+Find food	Trova del cibo
+Find water	Trova dell'acqua
+Reach the extraction point	Raggiungi il punto di estrazione
+Reach the destination	Raggiungi la destinazione
+Reach the top	Raggiungi la cima
+Go to the marked location	Vai al luogo indicato
+Go to the marker	Vai all'indicatore
+Follow the marker	Segui l'indicatore
+Follow the path	Segui il sentiero
+Follow the road	Segui la strada
+Follow him	Seguilo
+Follow her	Seguila
+Follow them	Seguili
+Follow me	Seguimi
+Stay close	Resta vicino
+Wait here	Aspetta qui
+Talk to the merchant	Parla con il mercante
+Investigate the area	Indaga nella zona
+Search the area	Perquisisci la zona
+Explore the area	Esplora la zona
+Clear the area	Ripulisci la zona
+Area cleared	Zona ripulita
+Area Secured	Zona messa in sicurezza
+Secure the area	Metti in sicurezza la zona
+Defend the area	Difendi la zona
+Defend the base	Difendi la base
+Defend the objective	Difendi l'obiettivo
+Protect the target	Proteggi il bersaglio
+Escort the target	Scorta il bersaglio
+Eliminate all enemies	Elimina tutti i nemici
+Kill all enemies	Uccidi tutti i nemici
+Defeat all enemies	Sconfiggi tutti i nemici
+Defeat the boss	Sconfiggi il boss
+Defeat the enemies	Sconfiggi i nemici
+Survive the waves	Sopravvivi alle ondate
+Survive until extraction	Sopravvivi fino all'estrazione
+Destroy the target	Distruggi il bersaglio
+Destroy the generator	Distruggi il generatore
+Hack the terminal	Hackera il terminale
+Activate the terminal	Attiva il terminale
+Activate the beacon	Attiva il segnalatore
+Restore power	Ripristina la corrente
+Repair the generator	Ripara il generatore
+Gather resources	Raccogli risorse
+Collect resources	Raccogli risorse
+Build a shelter	Costruisci un riparo
+Build a base	Costruisci una base
+Craft a tool	Crea un attrezzo
+Upgrade your gear	Potenzia il tuo equipaggiamento
+Return to base	Torna alla base
+Return to the ship	Torna alla nave
+Return to your ship	Torna alla tua nave
+Get to safety	Mettiti al sicuro
+Get to the chopper	Raggiungi l'elicottero
+Stay hidden	Resta nascosto
+Stay out of sight	Non farti vedere
+Avoid detection	Evita di essere scoperto
+Don't get caught	Non farti prendere
+Wave	Ondata
+Waves	Ondate
+Wave Complete	Ondata completata
+Wave Cleared	Ondata superata
+Next Wave	Prossima ondata
+Next wave in	Prossima ondata tra
+Final Wave	Ultima ondata
+Incoming Wave	Ondata in arrivo
+Wave incoming	Ondata in arrivo
+Boss Fight	Scontro con il boss
+Boss Battle	Scontro con il boss
+Boss Defeated	Boss sconfitto
+Mini Boss	Mini boss
+Miniboss	Mini boss
+Elite Enemy	Nemico élite
+Elite Enemies	Nemici élite
+Champion Enemy	Nemico campione
+Enemy Defeated	Nemico sconfitto
+Enemies Defeated	Nemici sconfitti
+Enemies Remaining	Nemici rimanenti
+Enemies Left	Nemici rimasti
+Targets Remaining	Bersagli rimanenti
+Remaining Enemies	Nemici rimanenti
+Encounter	Scontro
+Encounters	Scontri
+Ambush	Imboscata
+Reinforcements	Rinforzi
+Reinforcements incoming	Rinforzi in arrivo
+Reinforcements arriving	Arrivano i rinforzi
+Enemy reinforcements	Rinforzi nemici
+Alarm	Allarme
+Alarm triggered	Allarme attivato
+Alarm Raised	Allarme dato
+You have been spotted	Sei stato scoperto
+You've been spotted	Sei stato scoperto
+You have been detected	Sei stato individuato
+Detected	Individuato
+Undetected	Non individuato
+Suspicious	Sospettoso
+Alerted	In allerta
+Searching for you	Ti stanno cercando
+Lost track	Traccia persa
+Stealth	Furtività
+Stealth Kill	Uccisione furtiva
+Takedown	Neutralizzazione
+Silent Takedown	Neutralizzazione silenziosa
+Sneak	Muoviti furtivamente
+Sneak Attack	Attacco furtivo
+Backstab	Pugnalata alle spalle
+Assassinate	Assassina
+Assassination	Assassinio
+Pickpocket	Borseggia
+Lockpick	Scassina
+Lockpicks	Grimaldelli
+Pick Lock	Scassina la serratura
+Pick the lock	Scassina la serratura
+Lockpicking	Scasso
+Hack	Hackera
+Hacking	Hackeraggio
+Hack successful	Hackeraggio riuscito
+Hack failed	Hackeraggio non riuscito
+Bypass	Aggira
+Unlocking...	Sblocco in corso...
+Opening...	Apertura in corso...
+Decrypting	Decrittazione
+Downloading Data	Download dei dati
+Uploading	Caricamento
+Upload complete	Caricamento completato
+Data Collected	Dati raccolti
+Intel	Informazioni
+Intel Collected	Informazioni raccolte
+Intel Found	Informazioni trovate
+Collectible Found	Collezionabile trovato
+Secret Found	Segreto trovato
+Secret Area	Area segreta
+Secret Area Found	Area segreta trovata
+Secrets	Segreti
+Secret	Segreto
+Hidden	Nascosto
+Treasure	Tesoro
+Treasure Map	Mappa del tesoro
+Treasure Chest	Forziere del tesoro
+Hidden Treasure	Tesoro nascosto
+Lore Entry	Voce della storia
+New Codex Entry	Nuova voce del codice
+Codex Entry	Voce del codice
+Codex Updated	Codice aggiornato
+Journal Updated	Diario aggiornato
+Journal Entry	Voce del diario
+New Journal Entry	Nuova voce del diario
+Database Updated	Banca dati aggiornata
+Encyclopedia Updated	Enciclopedia aggiornata
+New Entry	Nuova voce
+Entry Added	Voce aggiunta
+# --- mappa, marcatori e viaggio
+Map Legend	Legenda della mappa
+Map Filters	Filtri della mappa
+Show Legend	Mostra la legenda
+Hide Legend	Nascondi la legenda
+Center on Player	Centra sul giocatore
+Center Map	Centra la mappa
+Recenter	Ricentra
+Map Zoom	Zoom della mappa
+Full Map	Mappa completa
+Area Map	Mappa dell'area
+Galaxy Map	Mappa della galassia
+Star Map	Mappa stellare
+System Map	Mappa del sistema
+Planet Map	Mappa del pianeta
+City Map	Mappa della città
+Dungeon Map	Mappa del dungeon
+Map Fragment	Frammento di mappa
+Map Updated	Mappa aggiornata
+Map unlocked	Mappa sbloccata
+Region Discovered	Regione scoperta
+Region Unlocked	Regione sbloccata
+Area Discovered	Zona scoperta
+Area Unlocked	Zona sbloccata
+Zone Discovered	Zona scoperta
+Discovered Location	Luogo scoperto
+Undiscovered Location	Luogo non scoperto
+Unknown Location	Luogo sconosciuto
+Points of Interest	Punti di interesse
+Point of Interest	Punto di interesse
+Landmark	Punto di riferimento
+Landmarks	Punti di riferimento
+Marker	Indicatore
+Markers	Indicatori
+Custom Marker	Indicatore personalizzato
+Custom Markers	Indicatori personalizzati
+Add Marker	Aggiungi indicatore
+Remove Marker	Rimuovi indicatore
+Remove All Markers	Rimuovi tutti gli indicatori
+Clear Markers	Cancella gli indicatori
+Place Pin	Metti una puntina
+Remove Pin	Rimuovi la puntina
+Pin	Puntina
+Pins	Puntine
+Map Pin	Puntina sulla mappa
+Map Marker	Indicatore sulla mappa
+Set Marker	Imposta indicatore
+Set Destination	Imposta destinazione
+Clear Destination	Cancella destinazione
+Destination	Destinazione
+Destination Reached	Destinazione raggiunta
+You have arrived	Sei arrivato
+Arrived	Arrivato
+Arriving	In arrivo
+Route	Percorso
+Set Route	Imposta il percorso
+Clear Route	Cancella il percorso
+Plot Route	Traccia il percorso
+Plot Course	Traccia la rotta
+Course Plotted	Rotta tracciata
+Navigation	Navigazione
+GPS	GPS
+Custom Waypoint	Punto di passaggio personalizzato
+Place Waypoint	Metti un punto di passaggio
+Clear Waypoint	Cancella il punto di passaggio
+Waypoint Set	Punto di passaggio impostato
+Waypoint Removed	Punto di passaggio rimosso
+Waypoint reached	Punto di passaggio raggiunto
+Track on Map	Segui sulla mappa
+Show on Map	Mostra sulla mappa
+View on Map	Vedi sulla mappa
+Locate	Individua
+Locate on Map	Individua sulla mappa
+You Are Here	Sei qui
+Player Location	Posizione del giocatore
+Your Location	La tua posizione
+Teammate Location	Posizione del compagno
+Distance	Distanza
+North	Nord
+South	Sud
+East	Est
+West	Ovest
+Northeast	Nord-est
+Northwest	Nord-ovest
+Southeast	Sud-est
+Southwest	Sud-ovest
+Altitude	Altitudine
+Elevation	Altitudine
+Coordinates	Coordinate
+Latitude	Latitudine
+Longitude	Longitudine
+Fast Travel Unavailable	Viaggio rapido non disponibile
+You cannot fast travel right now	Non puoi usare il viaggio rapido adesso
+Cannot fast travel while in combat	Impossibile usare il viaggio rapido in combattimento
+You cannot fast travel when enemies are nearby	Non puoi usare il viaggio rapido con nemici nelle vicinanze
+Cannot fast travel while overencumbered	Impossibile usare il viaggio rapido se sei sovraccarico
+Fast travel to this location?	Viaggiare rapidamente in questo luogo?
+Travel Here	Viaggia qui
+Teleport Here	Teletrasportati qui
+Teleport to	Teletrasportati a
+Teleporter	Teletrasportatore
+Teleporting	Teletrasporto in corso
+Traveling	In viaggio
+Travelling...	In viaggio...
+Travel Time	Tempo di viaggio
+Travel Cost	Costo del viaggio
+Fast Travel Points	Punti di viaggio rapido
+Unlock Fast Travel	Sblocca il viaggio rapido
+Fast Travel Unlocked	Viaggio rapido sbloccato
+Shrine	Santuario
+Shrines	Santuari
+Campsite	Accampamento
+Camp	Accampamento
+Camps	Accampamenti
+Outpost	Avamposto
+Outposts	Avamposti
+Settlement	Insediamento
+Settlements	Insediamenti
+Village	Villaggio
+Town	Città
+City	Città
+Capital	Capitale
+Castle	Castello
+Fortress	Fortezza
+Fort	Forte
+Tower	Torre
+Ruins	Rovine
+Cave	Grotta
+Caves	Grotte
+Bunker	Bunker
+Facility	Struttura
+Laboratory	Laboratorio
+Lab	Laboratorio
+Hospital	Ospedale
+Factory	Fabbrica
+Warehouse	Magazzino
+Military Base	Base militare
+Checkpoint Area	Zona di controllo
+Harbor	Porto
+Docks	Moli
+Airport	Aeroporto
+Station	Stazione
+Space Station	Stazione spaziale
+Trading Station	Stazione commerciale
+Spaceport	Spazioporto
+Landing Pad	Piattaforma di atterraggio
+Landing Zone	Zona di atterraggio
+Hangar	Hangar
+Safe House	Rifugio
+Safehouse	Rifugio
+Hideout	Nascondiglio
+Shelter	Riparo
+Danger Zone	Zona pericolosa
+Restricted Area	Area riservata
+Hostile Territory	Territorio ostile
+Enemy Territory	Territorio nemico
+Enemy Base	Base nemica
+Enemy Camp	Accampamento nemico
+Dangerous Area	Zona pericolosa
+High Danger	Pericolo elevato
+Low Danger	Pericolo basso
+Danger	Pericolo
+Danger Level	Livello di pericolo
+Threat Level	Livello di minaccia
+Threat	Minaccia
+Hazard	Pericolo
+Hazards	Pericoli
+Environmental Hazard	Pericolo ambientale
+Biome	Bioma
+Biomes	Biomi
+Forest	Foresta
+Desert	Deserto
+Mountains	Montagne
+Swamp	Palude
+Tundra	Tundra
+Jungle	Giungla
+Ocean	Oceano
+Sea	Mare
+Lake	Lago
+River	Fiume
+Island	Isola
+Islands	Isole
+Beach	Spiaggia
+Volcano	Vulcano
+Plains	Pianure
+Grassland	Prateria
+Wasteland	Terra desolata
+Underground	Sottosuolo
+Underwater	Sott'acqua
+Surface	Superficie
+Planet	Pianeta
+Planets	Pianeti
+Moon	Luna
+Star System	Sistema stellare
+Solar System	Sistema solare
+Galaxy	Galassia
+Sector	Settore
+Orbit	Orbita
+Asteroid Field	Campo di asteroidi
+Asteroid	Asteroide
+Space Anomaly	Anomalia spaziale
+Anomaly	Anomalia
+Anomalies	Anomalie
+# --- statistiche da gioco di ruolo
+Character Stats	Statistiche del personaggio
+Character Sheet	Scheda del personaggio
+Character Info	Info sul personaggio
+Character Level	Livello del personaggio
+Player Level	Livello del giocatore
+Player Stats	Statistiche del giocatore
+Base Stats	Statistiche base
+Bonus Stats	Statistiche bonus
+Primary Stats	Statistiche primarie
+Secondary Stats	Statistiche secondarie
+Combat Stats	Statistiche di combattimento
+Offense	Attacco
+Offensive	Offensivo
+Defensive	Difensivo
+Core Stats	Statistiche principali
+Stat	Statistica
+Attribute	Attributo
+Attribute Point	Punto attributo
+Skill Point	Punto abilità
+Talent Point	Punto talento
+Perk Point	Punto vantaggio
+Perk Points	Punti vantaggio
+Ability Points	Punti abilità
+Unspent Points	Punti non spesi
+Unspent Skill Points	Punti abilità non spesi
+Unspent Attribute Points	Punti attributo non spesi
+Available Points	Punti disponibili
+Points Available	Punti disponibili
+Spend Points	Spendi i punti
+Assign Points	Assegna i punti
+Allocate Points	Assegna i punti
+Reset Points	Azzera i punti
+Respec	Ridistribuisci i punti
+Reset Skills	Azzera le abilità
+Reset Talents	Azzera i talenti
+Reset Attributes	Azzera gli attributi
+Refund	Rimborsa
+Refund Points	Rimborsa i punti
+Refund All	Rimborsa tutto
+Confirm Points	Conferma i punti
+Level Up Available	Aumento di livello disponibile
+Leveled Up	Livello aumentato
+Level Reached	Livello raggiunto
+New Level	Nuovo livello
+Current Level	Livello attuale
+Level Cap	Livello massimo
+Level Requirement	Requisito di livello
+Experience Points	Punti esperienza
+Total Experience	Esperienza totale
+Total XP	PE totali
+XP Bonus	Bonus PE
+XP Boost	Potenziamento PE
+Double XP	PE doppi
+Bonus XP	PE bonus
+XP Gained	PE ottenuti
+Experience Gained	Esperienza ottenuta
+XP to next level	PE per il prossimo livello
+Mastery	Maestria
+Mastery Level	Livello di maestria
+Proficiency	Competenza
+Skill Level	Livello dell'abilità
+Skill Unlocked	Abilità sbloccata
+Skill Upgraded	Abilità potenziata
+Skill Learned	Abilità imparata
+Learn Skill	Impara l'abilità
+Unlock Skill	Sblocca l'abilità
+Upgrade Skill	Potenzia l'abilità
+Skill Locked	Abilità bloccata
+Skills Menu	Menu delle abilità
+Passive Skills	Abilità passive
+Active Skills	Abilità attive
+Passive Skill	Abilità passiva
+Active Skill	Abilità attiva
+Passive Ability	Abilità passiva
+Active Ability	Abilità attiva
+Ultimate Ability	Abilità suprema
+Ultimate Ready	Suprema pronta
+Ultimate Charge	Carica della suprema
+Special Ability	Abilità speciale
+Special Attack	Attacco speciale
+Special	Speciale
+Combo	Combo
+Combos	Combo
+Combo Breaker	Interruzione della combo
+Combo Counter	Contatore delle combo
+Max Combo	Combo massima
+Charge Attack	Attacco caricato
+Charged Attack	Attacco caricato
+Power Attack	Attacco potente
+Finisher	Colpo di grazia
+Execution	Esecuzione
+Counterattack	Contrattacco
+Counter Attack	Contrattacco
+Perfect Dodge	Schivata perfetta
+Perfect Parry	Parata perfetta
+Perfect Block	Parata perfetta
+Parried	Parato
+Dodged	Schivato
+Missed	Mancato
+Miss	Mancato
+Evaded	Evitato
+Resisted	Resistito
+Absorbed	Assorbito
+Critical!	Critico!
+Crit	Critico
+Weak Point	Punto debole
+Weak Spot	Punto debole
+Weakness	Debolezza
+Weaknesses	Debolezze
+Resistances	Resistenze
+Vulnerable	Vulnerabile
+Vulnerability	Vulnerabilità
+Hit Points	Punti vita
+HP	PV
+MP	PM
+AP	PA
+Health Points	Punti salute
+Health Bar	Barra della salute
+Shields	Scudi
+Shield Strength	Potenza dello scudo
+Shield Capacity	Capacità dello scudo
+Shield Regeneration	Rigenerazione dello scudo
+Shield Recharge	Ricarica dello scudo
+Shield Broken	Scudo infranto
+Shield Down	Scudo abbattuto
+Shields Down	Scudi abbattuti
+Shield depleted	Scudo esaurito
+Shields Low	Scudi bassi
+Armor Rating	Valore di armatura
+Armor Value	Valore di armatura
+Armor Penetration	Penetrazione dell'armatura
+Armor Break	Rottura dell'armatura
+Toughness	Tenacia
+Poise	Equilibrio
+Stagger	Barcollamento
+Staggered	Barcollante
+Knockback	Contraccolpo
+Knockdown	Atterramento
+Interrupt	Interrompi
+Interrupted	Interrotto
+Stamina Cost	Costo di vigore
+Stamina Regeneration	Rigenerazione del vigore
+Max Stamina	Vigore massimo
+Energy Cost	Costo di energia
+Energy Regeneration	Rigenerazione dell'energia
+Max Energy	Energia massima
+Health Regen	Rigenerazione salute
+Mana Regen	Rigenerazione mana
+Stamina Regen	Rigenerazione vigore
+Regeneration	Rigenerazione
+Regen	Rigenerazione
+Healing Received	Cure ricevute
+Healing Done	Cure effettuate
+Healing Power	Potere curativo
+Healing Bonus	Bonus alle cure
+Damage Done	Danni inflitti
+Damage Per Second	Danni al secondo
+Damage Type	Tipo di danno
+Base Damage	Danni base
+Bonus Damage	Danni bonus
+Elemental Damage	Danni elementali
+Fire Damage	Danni da fuoco
+Ice Damage	Danni da ghiaccio
+Cold Damage	Danni da freddo
+Lightning Damage	Danni da fulmine
+Electric Damage	Danni elettrici
+Poison Damage	Danni da veleno
+Toxic Damage	Danni tossici
+Acid Damage	Danni da acido
+Holy Damage	Danni sacri
+Shadow Damage	Danni d'ombra
+Dark Damage	Danni oscuri
+Arcane Damage	Danni arcani
+Bleed Damage	Danni da sanguinamento
+Explosive Damage	Danni esplosivi
+Melee Damage	Danni in mischia
+Ranged Damage	Danni a distanza
+Area Damage	Danni ad area
+Splash Damage	Danni ad area
+True Damage	Danni puri
+Damage Over Time	Danni nel tempo
+Fall Damage	Danni da caduta
+Headshot Damage	Danni alla testa
+Headshot Multiplier	Moltiplicatore colpo alla testa
+Weak Spot Damage	Danni al punto debole
+Critical Hit Chance	Probabilità di colpo critico
+Critical Hit Damage	Danni del colpo critico
+Critical Strike	Colpo critico
+Critical Strike Chance	Probabilità di colpo critico
+Critical Multiplier	Moltiplicatore critico
+Attack Rating	Valore d'attacco
+Attack Damage	Danni d'attacco
+Ability Power	Potere delle abilità
+Ability Damage	Danni delle abilità
+Magic Power	Potere magico
+Magic Attack	Attacco magico
+Magic Defense	Difesa magica
+Magic Resistance	Resistenza magica
+Physical Defense	Difesa fisica
+Physical Attack	Attacco fisico
+Physical Resistance	Resistenza fisica
+Elemental Resistance	Resistenza elementale
+Ice Resistance	Resistenza al ghiaccio
+Frost Resistance	Resistenza al gelo
+Electric Resistance	Resistenza all'elettricità
+Shock Resistance	Resistenza allo shock
+Toxic Resistance	Resistenza alle tossine
+Radiation Resistance	Resistenza alle radiazioni
+Bleed Resistance	Resistenza al sanguinamento
+Heat Resistance	Resistenza al calore
+Hazard Protection	Protezione dai pericoli
+Cooldown Reduction	Riduzione della ricarica
+Ability Cooldown	Ricarica dell'abilità
+Ability Haste	Rapidità delle abilità
+Haste	Rapidità
+Accuracy Bonus	Bonus alla precisione
+Precision	Precisione
+Penetration	Penetrazione
+Range Bonus	Bonus alla portata
+Effective Range	Portata efficace
+Max Range	Portata massima
+Projectile Speed	Velocità del proiettile
+Reload Time	Tempo di ricarica
+Swap Speed	Velocità di cambio
+Equip Speed	Velocità di estrazione
+Stability	Stabilità
+Control	Controllo
+Spread	Dispersione
+Bullet Spread	Dispersione dei proiettili
+Sway	Ondeggiamento
+Zoom Level	Livello di zoom
+Magnification	Ingrandimento
+Noise	Rumore
+Noise Level	Livello di rumore
+Visibility Level	Livello di visibilità
+Detection	Rilevamento
+Detection Range	Raggio di rilevamento
+Stealth Bonus	Bonus alla furtività
+Carry Capacity Bonus	Bonus alla capacità di carico
+Jump Height	Altezza del salto
+Sprint Speed	Velocità di scatto
+Walk Speed	Velocità di camminata
+Swim Speed	Velocità di nuoto
+Climb Speed	Velocità di arrampicata
+Gathering Speed	Velocità di raccolta
+Mining Speed	Velocità di estrazione
+Work Speed	Velocità di lavoro
+Luck Bonus	Bonus fortuna
+Gold Find	Oro trovato
+Magic Find	Ricerca di oggetti magici
+Item Find	Ricerca di oggetti
+Loot Bonus	Bonus al bottino
+Power Level	Livello di potere
+Combat Power	Potenza di combattimento
+Combat Rating	Valore di combattimento
+Gear Score	Punteggio equipaggiamento
+Gear Level	Livello dell'equipaggiamento
+Total Power	Potere totale
+Rating	Valutazione
+Grade	Grado
+Class Level	Livello della classe
+Class Skills	Abilità della classe
+Change Class	Cambia classe
+Choose Class	Scegli la classe
+Choose Your Class	Scegli la tua classe
+Choose Specialization	Scegli la specializzazione
+Archetype	Archetipo
+Origin	Origine
+Traits	Tratti
+Trait	Tratto
+Personality	Personalità
+Alignment	Allineamento
+Evil	Malvagio
+Lawful	Legale
+Chaotic	Caotico
+Karma	Karma
+Morality	Moralità
+Warrior	Guerriero
+Fighter	Combattente
+Mage	Mago
+Wizard	Mago
+Sorcerer	Stregone
+Warlock	Warlock
+Priest	Sacerdote
+Cleric	Chierico
+Paladin	Paladino
+Rogue	Ladro
+Thief	Ladro
+Assassin	Assassino
+Ranger	Ranger
+Hunter	Cacciatore
+Archer	Arciere
+Druid	Druido
+Monk	Monaco
+Barbarian	Barbaro
+Bard	Bardo
+Necromancer	Negromante
+Knight	Cavaliere
+Berserker	Berserker
+Engineer	Ingegnere
+Medic	Medico
+Support	Supporto
+Sniper	Cecchino
+Scout	Esploratore
+Assault	Assalto
+Heavy	Pesante
+Recon	Ricognizione
+DPS Role	Ruolo da DPS
+Melee Class	Classe da mischia
+Ranged	A distanza
+Caster	Incantatore
+Summoner	Evocatore
+Summon	Evoca
+Summons	Evocazioni
+Minion	Servitore
+Minions	Servitori
+Familiar	Famiglio
+# --- stati ed effetti
+Status	Stato
+Status Effects	Effetti di stato
+Status Effect	Effetto di stato
+Active Effects	Effetti attivi
+Effects	Effetti
+Effect	Effetto
+Effect Duration	Durata dell'effetto
+Positive Effects	Effetti positivi
+Negative Effects	Effetti negativi
+Buff Duration	Durata del potenziamento
+Debuff Duration	Durata della penalità
+Expires	Scade
+Permanent	Permanente
+Temporary	Temporaneo
+Stacks	Accumuli
+Stackable	Cumulabile
+Non-stackable	Non cumulabile
+Max Stacks	Accumuli massimi
+Bleed	Sanguinamento
+Burn	Bruciatura
+Burned	Bruciato
+On Fire	In fiamme
+Poison	Veleno
+Toxic	Tossico
+Toxicity	Tossicità
+Venom	Veleno
+Freeze	Congelamento
+Chilled	Raffreddato
+Frostbite	Congelamento
+Frostbitten	Assiderato
+Shock	Shock
+Shocked	Folgorato
+Electrified	Elettrificato
+Paralyzed	Paralizzato
+Paralysis	Paralisi
+Petrified	Pietrificato
+Asleep	Addormentato
+Sleeping	Addormentato
+Drowsy	Assonnato
+Charmed	Ammaliato
+Taunted	Provocato
+Taunt	Provoca
+Fear	Paura
+Terrified	Terrorizzato
+Panic	Panico
+Panicked	In preda al panico
+Dazed	Stordito
+Disoriented	Disorientato
+Knocked Out	Svenuto
+Unconscious	Privo di sensi
+Incapacitated	Inabile
+Crippled	Azzoppato
+Weakened	Indebolito
+Weakness Applied	Debolezza applicata
+Exposed	Esposto
+Marked	Segnato
+Tagged	Segnalato
+Revealed	Rivelato
+Silence	Silenzio
+Disarmed	Disarmato
+Snared	Intrappolato
+Trapped	Intrappolato
+Grabbed	Afferrato
+Pinned	Bloccato
+Suppressed	Sotto pressione
+Blind	Cieco
+Deafened	Assordato
+Concussion	Commozione cerebrale
+Fracture	Frattura
+Broken Leg	Gamba rotta
+Broken Arm	Braccio rotto
+Light Bleeding	Sanguinamento leggero
+Heavy Bleeding	Sanguinamento grave
+Wounded	Ferito
+Injured	Ferito
+Injury	Ferita
+Injuries	Ferite
+Critically Injured	Gravemente ferito
+Sick	Malato
+Sickness	Malattia
+Disease	Malattia
+Infected	Infetto
+Infection	Infezione
+Food Poisoning	Intossicazione alimentare
+Nauseous	Nauseato
+Nausea	Nausea
+Hypothermia	Ipotermia
+Hyperthermia	Ipertermia
+Heatstroke	Colpo di calore
+Cold	Freddo
+Hot	Caldo
+Warm	Tiepido
+Wet	Bagnato
+Soaked	Fradicio
+Dirty	Sporco
+Clean	Pulisci
+Bloody	Insanguinato
+Irradiated	Irradiato
+Radiation Sickness	Malattia da radiazioni
+Radiation Level	Livello di radiazioni
+Contaminated	Contaminato
+Drunk	Ubriaco
+Intoxicated	Intossicato
+Well Fed	Ben nutrito
+Well Rested	Ben riposato
+Rested	Riposato
+Satiated	Sazio
+Full	Pieno
+Hydrated	Idratato
+Inspired	Ispirato
+Energized	Pieno di energia
+Empowered	Potenziato
+Enraged	Infuriato
+Berserk	Furia
+Frenzy	Frenesia
+Fury	Furia
+Hasted	Accelerato
+Haste Effect	Effetto rapidità
+Fortified	Fortificato
+Protected	Protetto
+Shielded	Schermato
+Invisible	Invisibile
+Invisibility	Invisibilità
+Cloaked	Occultato
+Camouflaged	Mimetizzato
+Regenerating	In rigenerazione
+Healing Over Time	Cura nel tempo
+Blessed	Benedetto
+Blessing	Benedizione
+Curse	Maledizione
+Hexed	Stregato
+Doomed	Condannato
+Overcharged	Sovraccaricato
+Overheated	Surriscaldato
+Cooling Down	In raffreddamento
+Recovering	In recupero
+Exhaustion	Sfinimento
+Out of Stamina	Vigore esaurito
+Low Stamina	Vigore basso
+Low HP	PV bassi
+Critical Health	Salute critica
+Health Critical	Salute critica
+Health Low	Salute bassa
+Full Health	Salute al massimo
+Health Full	Salute al massimo
+Healed	Curato
+Fully Healed	Completamente curato
+Revived	Rianimato
+Dead	Morto
+Alive	Vivo
+Dying	Morente
+Knocked	A terra
+Defeated	Sconfitto
+Killed	Ucciso
+Slain	Ucciso
+Destroyed	Distrutto
+Neutralized	Neutralizzato
+Captured	Catturato
+Escaped	Fuggito
+Rescued	Salvato
+Lost	Perso
+Found	Trovato
+# --- rarità e qualità degli oggetti
+Poor	Scadente
+Junk Quality	Qualità scadente
+Basic Quality	Qualità base
+Standard Quality	Qualità standard
+Superior	Superiore
+Masterwork	Capolavoro
+Masterpiece	Capolavoro
+Flawless	Impeccabile
+Perfect	Perfetto
+Excellent	Eccellente
+Great	Ottimo
+Good Quality	Buona qualità
+Decent	Discreto
+Mediocre	Mediocre
+Awful	Pessimo
+Crude	Grezzo
+Ancient	Antico
+Primal	Primordiale
+Divine	Divino
+Celestial	Celestiale
+Heroic	Eroico
+Mythical	Mitico
+Set Item	Oggetto del set
+Set Items	Oggetti del set
+Set Bonuses	Bonus del set
+Full Set	Set completo
+Full Set Bonus	Bonus del set completo
+Partial Set	Set parziale
+Rare Item	Oggetto raro
+Legendary Item	Oggetto leggendario
+Epic Item	Oggetto epico
+Unique Item	Oggetto unico
+Exotic Item	Oggetto esotico
+Very Rare	Molto raro
+Extremely Rare	Estremamente raro
+Ultra Rare	Ultra raro
+Super Rare	Super raro
+Rare Drop	Drop raro
+Common Item	Oggetto comune
+Quality Level	Livello di qualità
+Item Quality	Qualità dell'oggetto
+Star	Stella
+Stars	Stelle
+# --- multigiocatore, lobby, matchmaking
+Online Play	Gioco online
+Play with Friends	Gioca con gli amici
+Play Solo	Gioca da solo
+Solo	In solitario
+Duo	Duo
+Duos	Duo
+Trio	Trio
+Trios	Trio
+Squads	Squadre
+Quads	Squadre da quattro
+Solos	In solitario
+Squad Size	Dimensione della squadra
+Team Size	Dimensione della squadra
+Party Size	Dimensione del gruppo
+Fill Squad	Riempi la squadra
+Fill	Riempi
+No Fill	Non riempire
+Auto Fill	Riempimento automatico
+Squad Fill	Riempimento della squadra
+Find Teammates	Trova compagni di squadra
+Matchmaking Region	Regione del matchmaking
+Matchmaking Settings	Impostazioni del matchmaking
+Matchmaking Failed	Matchmaking non riuscito
+Matchmaking cancelled	Matchmaking annullato
+Matchmaking canceled	Matchmaking annullato
+In Matchmaking	In matchmaking
+Queue Time	Tempo in coda
+Time in Queue	Tempo in coda
+Average Wait Time	Tempo di attesa medio
+Estimated Wait	Attesa stimata
+Leave Queue	Esci dalla coda
+Join Queue	Entra in coda
+Queue Up	Mettiti in coda
+Searching for game	Ricerca della partita
+Searching for opponents	Ricerca degli avversari
+Searching for servers	Ricerca dei server
+Looking for players	Ricerca giocatori
+Finding match	Ricerca della partita
+Finding a match	Ricerca di una partita
+Game found	Partita trovata
+Accept Match	Accetta la partita
+Decline Match	Rifiuta la partita
+Match Accepted	Partita accettata
+Match declined	Partita rifiutata
+A player failed to accept	Un giocatore non ha accettato
+Returning to queue	Ritorno in coda
+Returning to lobby	Ritorno alla lobby
+Returning to main menu	Ritorno al menu principale
+Joining	Accesso in corso
+Joining game	Accesso alla partita
+Joining match	Accesso alla partita
+Joining lobby	Accesso alla lobby
+Joining server	Accesso al server
+Joining session	Accesso alla sessione
+Connecting to host	Connessione all'host
+Connecting to lobby	Connessione alla lobby
+Connecting to online services	Connessione ai servizi online
+Connected to server	Connesso al server
+Connection established	Connessione stabilita
+Connection lost. Reconnecting...	Connessione persa. Riconnessione...
+Connection interrupted	Connessione interrotta
+Connection error	Errore di connessione
+Connection refused	Connessione rifiutata
+Connection unstable	Connessione instabile
+Unstable connection	Connessione instabile
+Poor connection	Connessione scarsa
+Bad connection	Connessione scadente
+Network Issues	Problemi di rete
+Network Problem	Problema di rete
+Network issues detected	Rilevati problemi di rete
+High Latency	Latenza elevata
+High Ping	Ping elevato
+Packet loss detected	Rilevata perdita di pacchetti
+Reconnect to Game	Riconnettiti alla partita
+Rejoin	Rientra
+Rejoin Match	Rientra in partita
+Rejoin Game	Rientra in partita
+Rejoin Party	Rientra nel gruppo
+Reconnect failed	Riconnessione non riuscita
+Failed to reconnect	Impossibile riconnettersi
+Failed to join	Impossibile entrare
+Failed to join game	Impossibile entrare in partita
+Failed to join lobby	Impossibile entrare nella lobby
+Failed to join server	Impossibile entrare nel server
+Failed to join session	Impossibile entrare nella sessione
+Failed to create lobby	Impossibile creare la lobby
+Failed to create session	Impossibile creare la sessione
+Failed to host game	Impossibile ospitare la partita
+Unable to join	Impossibile entrare
+Unable to join game	Impossibile entrare in partita
+Unable to join session	Impossibile entrare nella sessione
+Unable to find a match	Impossibile trovare una partita
+No matches found	Nessuna partita trovata
+No servers found	Nessun server trovato
+No lobbies found	Nessuna lobby trovata
+No games found	Nessuna partita trovata
+No sessions found	Nessuna sessione trovata
+Session	Sessione
+Sessions	Sessioni
+Session Ended	Sessione terminata
+Session expired	Sessione scaduta
+Session Full	Sessione piena
+Session is full	La sessione è piena
+Session not found	Sessione non trovata
+Game not found	Partita non trovata
+Lobby not found	Lobby non trovata
+Lobby is full	La lobby è piena
+Lobby Full	Lobby piena
+The lobby is full	La lobby è piena
+The game is full	La partita è piena
+Game is full	La partita è piena
+Match is full	La partita è piena
+World is full	Il mondo è pieno
+Lobby closed	Lobby chiusa
+The lobby has been closed	La lobby è stata chiusa
+The host has left	L'host se n'è andato
+The host has left the game	L'host ha lasciato la partita
+The host has ended the session	L'host ha terminato la sessione
+Host disconnected	Host disconnesso
+Host has disconnected	L'host si è disconnesso
+Lost connection to host	Connessione all'host persa
+Waiting for host to start	In attesa che l'host avvii la partita
+Waiting for host to start the game	In attesa che l'host avvii la partita
+Waiting for the host	In attesa dell'host
+Waiting for more players	In attesa di altri giocatori
+Waiting for opponent	In attesa dell'avversario
+Waiting for server	In attesa del server
+Waiting for all players to be ready	In attesa che tutti i giocatori siano pronti
+Waiting for players to ready up	In attesa che i giocatori siano pronti
+All players ready	Tutti i giocatori sono pronti
+Everyone is ready	Tutti sono pronti
+Players Ready	Giocatori pronti
+Unready	Annulla pronto
+Mark as Ready	Segnati come pronto
+Cancel Ready	Annulla pronto
+Start When Ready	Inizia quando sei pronto
+Launch	Avvia
+Launch Game	Avvia la partita
+Start Session	Avvia la sessione
+End Session	Termina la sessione
+End Match	Termina la partita
+Host Session	Ospita una sessione
+Host a Game	Ospita una partita
+Host Server	Ospita un server
+Host Settings	Impostazioni dell'host
+Host Options	Opzioni dell'host
+You are the host	Sei l'host
+You are now the host	Ora sei l'host
+New host selected	Nuovo host scelto
+Migrating host	Cambio dell'host
+Lobby Settings	Impostazioni della lobby
+Lobby Name	Nome della lobby
+Lobby Code	Codice della lobby
+Lobby Type	Tipo di lobby
+Lobby Privacy	Privacy della lobby
+Lobby Browser	Elenco delle lobby
+Lobby Chat	Chat della lobby
+Lobby Leader	Capo della lobby
+Session Code	Codice della sessione
+Session Name	Nome della sessione
+Session Settings	Impostazioni della sessione
+Join Code	Codice d'accesso
+Room Code	Codice della stanza
+Enter Lobby Code	Inserisci il codice della lobby
+Enter Join Code	Inserisci il codice d'accesso
+Enter Room Code	Inserisci il codice della stanza
+Enter Session Code	Inserisci il codice della sessione
+Copy Code	Copia il codice
+Copy Invite Code	Copia il codice d'invito
+Copy Lobby Code	Copia il codice della lobby
+Code copied	Codice copiato
+Copy Link	Copia il link
+Copy Invite Link	Copia il link d'invito
+Link copied	Link copiato
+Invalid lobby code	Codice della lobby non valido
+Invalid invite code	Codice d'invito non valido
+Invalid join code	Codice d'accesso non valido
+Join by Code	Entra con un codice
+Join with Code	Entra con un codice
+Join via Code	Entra con un codice
+Join Session	Entra nella sessione
+Join Match	Entra in partita
+Join Room	Entra nella stanza
+Join Team	Unisciti alla squadra
+Join Squad	Unisciti alla squadra
+Join Game in Progress	Entra in una partita in corso
+Join Friends	Unisciti agli amici
+Join Friend's Game	Entra nella partita di un amico
+Create Game	Crea una partita
+Create Match	Crea una partita
+Create Session	Crea una sessione
+Create Room	Crea una stanza
+Create Private Lobby	Crea una lobby privata
+Create Private Match	Crea una partita privata
+Create Custom Game	Crea una partita personalizzata
+Custom Games	Partite personalizzate
+Custom Match	Partita personalizzata
+Custom Lobby	Lobby personalizzata
+Private Game	Partita privata
+Public Game	Partita pubblica
+Public Match	Partita pubblica
+Friends Only Game	Partita solo per amici
+Open Lobby	Lobby aperta
+Closed	Chiuso
+Open to Friends	Aperta agli amici
+Open to Public	Aperta a tutti
+Invite Only Lobby	Lobby solo su invito
+Password Required	Password necessaria
+Enter Password	Inserisci la password
+Wrong password	Password errata
+Max Players Reached	Numero massimo di giocatori raggiunto
+Player Limit	Limite di giocatori
+Player Count	Numero di giocatori
+Slots Available	Posti disponibili
+Open Slots	Posti liberi
+Open Slot	Posto libero
+Add Bot	Aggiungi un bot
+Remove Bot	Rimuovi il bot
+Bots	Bot
+Bot	Bot
+Bot Difficulty	Difficoltà dei bot
+Fill with Bots	Riempi con i bot
+AI Players	Giocatori IA
+AI	IA
+CPU Player	Giocatore CPU
+Human	Umano
+Humans	Umani
+Spectators	Spettatori
+Spectator	Spettatore
+Join as Spectator	Entra come spettatore
+Spectate Game	Guarda la partita
+Spectate Teammate	Guarda il compagno
+Spectate Player	Guarda il giocatore
+Stop Spectating	Smetti di guardare
+Now Spectating	Stai guardando
+Next Player	Giocatore successivo
+Previous Player	Giocatore precedente
+Switch Team	Cambia squadra
+Change Team	Cambia squadra
+Switch Sides	Cambia campo
+Auto Balance	Bilanciamento automatico
+Team Balance	Bilanciamento delle squadre
+Teams have been balanced	Le squadre sono state bilanciate
+Balance Teams	Bilancia le squadre
+Shuffle Teams	Mescola le squadre
+Random Team	Squadra casuale
+Team A	Squadra A
+Team B	Squadra B
+Red Team	Squadra rossa
+Blue Team	Squadra blu
+Green Team	Squadra verde
+Yellow Team	Squadra gialla
+Allied Team	Squadra alleata
+Friendly Team	Squadra alleata
+Choose Team	Scegli la squadra
+Select Team	Scegli la squadra
+Team Selection	Scelta della squadra
+Map Selection	Scelta della mappa
+Map Vote	Voto della mappa
+Vote	Vota
+Voting	Votazione
+Vote Map	Vota la mappa
+Vote for next map	Vota la prossima mappa
+Voting ends in	La votazione termina tra
+Vote Kick	Voto di espulsione
+Vote to Kick	Vota per espellere
+Vote passed	Votazione approvata
+Vote failed	Votazione respinta
+Yes Vote	Voto sì
+No Vote	Voto no
+Votes	Voti
+Next Map	Prossima mappa
+Random Map	Mappa casuale
+Map Rotation	Rotazione delle mappe
+Mode Rotation	Rotazione delle modalità
+Playlist	Playlist
+Playlists	Playlist
+Featured Playlist	Playlist in evidenza
+Limited Time Mode	Modalità a tempo limitato
+Limited-Time Mode	Modalità a tempo limitato
+Rotating Mode	Modalità a rotazione
+Party Up	Forma un gruppo
+Party Invite	Invito al gruppo
+Party Invites	Inviti al gruppo
+Party Members	Membri del gruppo
+Party Settings	Impostazioni del gruppo
+Party Privacy	Privacy del gruppo
+Party Full	Gruppo pieno
+Party is full	Il gruppo è pieno
+Party disbanded	Gruppo sciolto
+Disband Party	Sciogli il gruppo
+Disband	Sciogli
+Leave Group	Lascia il gruppo
+Kick	Espelli
+Kick from Lobby	Espelli dalla lobby
+Kick from Squad	Espelli dalla squadra
+Kick from Group	Espelli dal gruppo
+Promote	Promuovi
+Promote to Host	Nomina host
+Make Leader	Nomina capo
+Make Party Leader	Nomina capogruppo
+Group Leader	Capogruppo
+Squad Leader	Caposquadra
+Team Leader	Caposquadra
+You are now the party leader	Ora sei il capogruppo
+You are now the leader	Ora sei il capo
+You have been kicked from the party	Sei stato espulso dal gruppo
+You have been kicked from the lobby	Sei stato espulso dalla lobby
+You have been kicked from the game	Sei stato espulso dalla partita
+You were kicked	Sei stato espulso
+You have been removed from the party	Sei stato rimosso dal gruppo
+You left the party	Hai lasciato il gruppo
+You have left the party	Hai lasciato il gruppo
+You joined the party	Sei entrato nel gruppo
+You have joined the party	Sei entrato nel gruppo
+joined the party	è entrato nel gruppo
+left the party	ha lasciato il gruppo
+joined the game	è entrato in partita
+left the game	ha lasciato la partita
+joined the lobby	è entrato nella lobby
+left the lobby	ha lasciato la lobby
+has joined the lobby	è entrato nella lobby
+has left the lobby	ha lasciato la lobby
+has joined	è entrato
+has left	è uscito
+has disconnected	si è disconnesso
+was kicked	è stato espulso
+was banned	è stato bannato
+is now the host	ora è l'host
+is now the party leader	ora è il capogruppo
+is ready	è pronto
+is not ready	non è pronto
+is typing	sta scrivendo
+Invite Sent	Invito inviato
+Invitation sent	Invito inviato
+Invitation	Invito
+Invitations	Inviti
+Invites	Inviti
+Pending Invites	Inviti in sospeso
+Accept Invite	Accetta l'invito
+Decline Invite	Rifiuta l'invito
+Accept Invitation	Accetta l'invito
+Decline Invitation	Rifiuta l'invito
+Invite expired	Invito scaduto
+Invite declined	Invito rifiutato
+Invitation declined	Invito rifiutato
+Invite Player	Invita un giocatore
+Invite Players	Invita giocatori
+Invite to Lobby	Invita nella lobby
+Invite to Game	Invita in partita
+Invite to Squad	Invita nella squadra
+Invite to Session	Invita nella sessione
+Invite via Steam	Invita tramite Steam
+You have been invited	Hai ricevuto un invito
+invited you to a party	ti ha invitato in un gruppo
+invited you to join	ti ha invitato a unirti
+invited you to play	ti ha invitato a giocare
+wants to join	vuole unirsi
+Join Request	Richiesta di accesso
+Join Requests	Richieste di accesso
+Request to Join	Chiedi di unirti
+Request sent	Richiesta inviata
+Friend request sent	Richiesta di amicizia inviata
+Friend request accepted	Richiesta di amicizia accettata
+Friend request declined	Richiesta di amicizia rifiutata
+Accept Friend Request	Accetta la richiesta di amicizia
+Decline Friend Request	Rifiuta la richiesta di amicizia
+Send Friend Request	Invia una richiesta di amicizia
+Add Friends	Aggiungi amici
+Find Friends	Trova amici
+Search Friends	Cerca amici
+Search Players	Cerca giocatori
+Search by Name	Cerca per nome
+Player Search	Ricerca giocatori
+Recent Players	Giocatori recenti
+Recently Played With	Giocato di recente con
+Blocked Players	Giocatori bloccati
+Muted Players	Giocatori silenziati
+Blocked	Bloccato
+Muted	Silenziato
+Unmute Player	Riattiva l'audio del giocatore
+Unblock Player	Sblocca il giocatore
+Player blocked	Giocatore bloccato
+Player unblocked	Giocatore sbloccato
+Player muted	Giocatore silenziato
+Player unmuted	Audio del giocatore riattivato
+Player reported	Giocatore segnalato
+Report sent	Segnalazione inviata
+Report submitted	Segnalazione inviata
+Thank you for your report	Grazie per la segnalazione
+Thanks for your report	Grazie per la segnalazione
+Reason	Motivo
+Select a reason	Scegli un motivo
+Report Reason	Motivo della segnalazione
+Cheating	Imbrogli
+Harassment	Molestie
+Abusive Chat	Chat offensiva
+Offensive Language	Linguaggio offensivo
+Offensive Name	Nome offensivo
+Inappropriate Name	Nome inappropriato
+Toxic Behavior	Comportamento tossico
+Griefing	Sabotaggio
+Exploiting	Sfruttamento di bug
+Spam	Spam
+Spamming	Spam
+AFK	AFK
+Away From Keyboard	Lontano dalla tastiera
+Idle	Inattivo
+Inactivity	Inattività
+You will be kicked for inactivity	Sarai espulso per inattività
+Kicked for inactivity	Espulso per inattività
+You have been kicked for inactivity	Sei stato espulso per inattività
+You have been idle for too long	Sei rimasto inattivo troppo a lungo
+Are you still there?	Ci sei ancora?
+Still there?	Ci sei ancora?
+Leaver	Disertore
+Leaver Penalty	Penalità per abbandono
+Abandon Penalty	Penalità per abbandono
+Leaving now will result in a penalty	Se esci ora riceverai una penalità
+Leaving the match early may result in a penalty	Uscire prima dalla partita può comportare una penalità
+You will receive a penalty	Riceverai una penalità
+Matchmaking Ban	Ban dal matchmaking
+Matchmaking Cooldown	Attesa per il matchmaking
+Banned	Bannato
+Suspended	Sospeso
+Account Suspended	Account sospeso
+Account Banned	Account bannato
+Your account has been banned	Il tuo account è stato bannato
+Your account has been suspended	Il tuo account è stato sospeso
+Temporary Ban	Ban temporaneo
+Permanent Ban	Ban permanente
+Ban Reason	Motivo del ban
+Ban Duration	Durata del ban
+Anti-Cheat	Anti-cheat
+Anticheat	Anti-cheat
+Anti-cheat error	Errore dell'anti-cheat
+Anti-cheat not running	Anti-cheat non in esecuzione
+Easy Anti-Cheat	Easy Anti-Cheat
+BattlEye	BattlEye
+Cheat detected	Trucco rilevato
+Cheating detected	Rilevato l'uso di trucchi
+Unauthorized software detected	Rilevato software non autorizzato
+Integrity check failed	Controllo dell'integrità non riuscito
+Verify game files	Verifica i file di gioco
+Code of Conduct	Codice di condotta
+Fair Play	Fair play
+Sportsmanship	Sportività
+Commend	Elogia
+Commendation	Elogio
+Endorse	Raccomanda
+Endorsement	Raccomandazione
+Honor Player	Onora il giocatore
+Like	Mi piace
+Dislike	Non mi piace
+Thumbs Up	Pollice in su
+Upvote	Vota a favore
+Downvote	Vota contro
+Server Status	Stato dei server
+Server Info	Info sul server
+Server Settings	Impostazioni del server
+Server Rules	Regole del server
+Server Message	Messaggio del server
+Server Time	Ora del server
+Server Type	Tipo di server
+Server Version	Versione del server
+Server Location	Posizione del server
+Server Address	Indirizzo del server
+IP Address	Indirizzo IP
+Port Number	Numero di porta
+Direct Connect	Connessione diretta
+Connect to Server	Connettiti al server
+Add Server	Aggiungi un server
+Remove Server	Rimuovi il server
+Favorite Servers	Server preferiti
+Official Servers	Server ufficiali
+Official	Ufficiale
+Community Servers	Server della community
+Unofficial	Non ufficiale
+Modded	Con mod
+Vanilla	Originale
+Local Server	Server locale
+Private Server	Server privato
+Public Server	Server pubblico
+LAN	LAN
+LAN Game	Partita in LAN
+Internet	Internet
+Peer to Peer	Peer to peer
+P2P	P2P
+Refresh Servers	Aggiorna i server
+Refreshing	Aggiornamento in corso
+Server Online	Server online
+Server Offline	Server offline
+Servers Offline	Server offline
+Servers are offline	I server sono offline
+Servers are currently unavailable	I server non sono al momento disponibili
+The servers are currently down	I server sono al momento inattivi
+Scheduled Maintenance	Manutenzione programmata
+Maintenance	Manutenzione
+Down for maintenance	In manutenzione
+Server restarting	Riavvio del server
+Server restarting soon	Il server si riavvierà a breve
+Server will restart in	Il server si riavvierà tra
+Server shutting down	Spegnimento del server
+Server closed	Server chiuso
+Server is restarting	Il server si sta riavviando
+Server is shutting down	Il server si sta spegnendo
+Kicked from server	Espulso dal server
+Banned from server	Bannato dal server
+Server rejected connection	Il server ha rifiutato la connessione
+Server Unreachable	Server non raggiungibile
+Server timed out	Il server non risponde
+Timed out	Tempo scaduto
+Request timed out	Richiesta scaduta
+Lost connection to server	Connessione al server persa
+You have lost connection to the server	Hai perso la connessione al server
+Unable to reach the server	Impossibile raggiungere il server
+Could not connect to server	Impossibile connettersi al server
+Could not connect	Impossibile connettersi
+Online services unavailable	Servizi online non disponibili
+Online services are currently unavailable	I servizi online non sono al momento disponibili
+You are offline	Sei offline
+You are currently offline	Al momento sei offline
+Playing offline	Gioco offline
+Offline Mode	Modalità offline
+Online Mode	Modalità online
+Go Online	Vai online
+Go Offline	Vai offline
+Appear Offline	Mostrati offline
+Status Online	Stato online
+Online Status	Stato online
+Do Not Disturb	Non disturbare
+Invisible Status	Invisibile
+In Lobby	Nella lobby
+In Menu	Nei menu
+In Menus	Nei menu
+In Match	In partita
+In Party	In un gruppo
+Playing	In gioco
+Joinable	Accessibile
+Not Joinable	Non accessibile
+Last seen	Ultimo accesso
+Friend Online	Amico online
+Friends Online	Amici online
+is now online	è online
+is now offline	è offline
+No friends online	Nessun amico online
+Your friends list is empty	L'elenco degli amici è vuoto
+Region Select	Scelta della regione
+Select Region	Scegli la regione
+Best Region	Regione migliore
+Auto Region	Regione automatica
+Europe	Europa
+EU West	Europa occidentale
+EU East	Europa orientale
+North America	Nord America
+NA East	Nord America est
+NA West	Nord America ovest
+South America	Sud America
+Asia	Asia
+Oceania	Oceania
+Middle East	Medio Oriente
+Africa	Africa
+Japan	Giappone
+Korea	Corea
+Australia	Australia
+Brazil	Brasile
+Russia	Russia
+# --- azioni brevi (servono anche a "Press E to ...": E: azione)
+Open the door	Apri la porta
+Open the chest	Apri il forziere
+Open the crate	Apri la cassa
+Open container	Apri il contenitore
+Open Locker	Apri l'armadietto
+Open Gate	Apri il cancello
+Close Gate	Chiudi il cancello
+Open Shop	Apri il negozio
+Open Storage	Apri il deposito
+Open Stash	Apri la scorta
+Open Backpack	Apri lo zaino
+Open Box	Apri la scatola
+Open Bag	Apri la borsa
+Unlock Door	Sblocca la porta
+Lock Door	Chiudi a chiave
+Knock	Bussa
+Enter Building	Entra nell'edificio
+Exit Building	Esci dall'edificio
+Enter Ship	Sali sulla nave
+Exit Ship	Scendi dalla nave
+Board Ship	Sali sulla nave
+Disembark	Sbarca
+Get In	Sali
+Drive	Guida
+Pilot	Pilota
+Land	Atterra
+Dock	Attracca
+Undock	Sgancia
+Launch Ship	Decolla
+Pick Up Item	Raccogli l'oggetto
+Pick up all	Raccogli tutto
+Grab	Afferra
+Carry	Trasporta
+Carry Body	Trasporta il corpo
+Drop Body	Lascia il corpo
+Hide Body	Nascondi il corpo
+Push	Spingi
+Pull	Tira
+Lift	Solleva
+Kick Door	Sfonda la porta
+Smash	Distruggi
+Cut	Taglia
+Mine Resource	Estrai la risorsa
+Mine Ore	Estrai il minerale
+Collect Resource	Raccogli la risorsa
+Harvest Plant	Raccogli la pianta
+Pick Berries	Raccogli le bacche
+Gather Wood	Raccogli legna
+Water	Acqua
+Water Plants	Annaffia le piante
+Feed	Nutri
+Feed Animal	Nutri l'animale
+Shear	Tosa
+Capture Creature	Cattura la creatura
+Catch	Cattura
+Release	Libera
+Throw Sphere	Lancia la sfera
+Recall	Richiama
+Call	Chiama
+Whistle	Fischia
+Command	Comanda
+Talk to NPC	Parla con il PNG
+Speak	Parla
+Chat with	Parla con
+Listen	Ascolta
+Answer	Rispondi
+Ask	Chiedi
+Persuade	Persuadi
+Intimidate	Intimidisci
+Bribe	Corrompi
+Threaten	Minaccia
+Lie	Menti
+Flirt	Flirta
+Leave Conversation	Termina la conversazione
+End Conversation	Termina la conversazione
+Goodbye	Arrivederci
+Farewell	Addio
+Sit Down	Siediti
+Stand	Alzati
+Lie Down	Sdraiati
+Rest Here	Riposa qui
+Sleep Here	Dormi qui
+Wait for	Aspetta
+Sleep / Wait	Dormi / aspetta
+Save Here	Salva qui
+Light Fire	Accendi il fuoco
+Extinguish	Spegni
+Use Workbench	Usa il banco da lavoro
+Use Terminal	Usa il terminale
+Use Computer	Usa il computer
+Access Terminal	Accedi al terminale
+Access	Accedi
+Log In to Terminal	Accedi al terminale
+Toggle Light	Accendi/spegni la luce
+Toggle Lights	Accendi/spegni le luci
+Toggle Power	Accendi/spegni
+Flip Switch	Aziona l'interruttore
+Pull Lever	Tira la leva
+Lever	Leva
+Press Button	Premi il pulsante
+Activate Switch	Aziona l'interruttore
+Insert Key	Inserisci la chiave
+Insert Card	Inserisci la tessera
+Use Key	Usa la chiave
+Use Keycard	Usa la tessera
+Swipe Card	Passa la tessera
+Insert Battery	Inserisci la batteria
+Insert Fuse	Inserisci il fusibile
+Insert Item	Inserisci l'oggetto
+Place Item	Posiziona l'oggetto
+Place Object	Posiziona l'oggetto
+Pick Up Object	Raccogli l'oggetto
+Rotate Object	Ruota l'oggetto
+Inspect Object	Esamina l'oggetto
+Use Object	Usa l'oggetto
+Check	Controlla
+Look at	Guarda
+Read Sign	Leggi il cartello
+Read Letter	Leggi la lettera
+Take Photo	Scatta una foto
+Take Picture	Scatta una foto
+Photograph	Fotografa
+Scan Object	Scansiona l'oggetto
+Scan Area	Scansiona la zona
+Analyze	Analizza
+Identify	Identifica
+Install Upgrade	Installa il potenziamento
+Install Mod	Installa la modifica
+Remove Mod	Rimuovi la modifica
+Attach	Applica
+Detach	Stacca
+Repair Vehicle	Ripara il veicolo
+Refuel Vehicle	Fai rifornimento al veicolo
+Recharge Battery	Ricarica la batteria
+Charge Battery	Carica la batteria
+Fill Up	Fai il pieno
+Empty Container	Svuota il contenitore
+Pour	Versa
+Mix	Mescola
+Stir	Mescola
+Chop Wood	Taglia la legna
+Cook Food	Cucina
+Serve	Servi
+Clean Up	Pulisci
+Wash	Lava
+Pay Bill	Paga il conto
+Hire	Assumi
+Fire Employee	Licenzia
+Dismiss Companion	Congeda il compagno
+Recruit Companion	Recluta il compagno
+Revive Player	Rianima il giocatore
+Help Up	Aiuta a rialzarsi
+Heal Teammate	Cura il compagno
+Give	Dai
+Give Item	Dai l'oggetto
+Donate	Dona
+Offer Item	Offri l'oggetto
+Steal	Ruba
+Loot Body	Saccheggia il corpo
+Search Container	Perquisisci il contenitore
+Search Corpse	Perquisisci il cadavere
+Loot Container	Saccheggia il contenitore
+Hide Inside	Nasconditi dentro
+Exit Hiding Spot	Esci dal nascondiglio
+Peek Out	Sbircia
+Vault Over	Scavalca
+Climb Ladder	Sali sulla scala
+Climb Over	Scavalca
+Squeeze Through	Passa attraverso
+Crawl Through	Striscia attraverso
+Jump Over	Salta oltre
+Jump Down	Salta giù
+Zipline	Teleferica
+Use Zipline	Usa la teleferica
+Rappel	Calati
+Swim	Nuota
+Dive Down	Immergiti
+Ride Mount	Cavalca
+Summon Mount	Evoca la cavalcatura
+Mount Up	Monta in sella
+# --- tutorial e suggerimenti
+Tutorial Mode	Modalità tutorial
+Start Tutorial	Inizia il tutorial
+Play Tutorial	Gioca il tutorial
+Tutorial Completed	Tutorial completato
+Tutorial Skipped	Tutorial saltato
+Basic Training	Addestramento base
+Basics	Nozioni di base
+The Basics	Nozioni di base
+Getting Started	Primi passi
+First Steps	Primi passi
+Beginner's Guide	Guida per principianti
+Beginner Guide	Guida per principianti
+Guide	Guida
+Guides	Guide
+Help Menu	Menu di aiuto
+Help & Options	Aiuto e opzioni
+Help and Support	Aiuto e supporto
+Quick Tips	Consigli rapidi
+Pro Tip	Consiglio da esperto
+Important	Importante
+Reminder	Promemoria
+Remember	Ricorda
+Next Tip	Consiglio successivo
+Previous Tip	Consiglio precedente
+New Hint	Nuovo suggerimento
+New Tip	Nuovo consiglio
+Need help?	Ti serve aiuto?
+Need a hint?	Ti serve un suggerimento?
+Show Hint	Mostra il suggerimento
+Get Hint	Ottieni un suggerimento
+Use the mouse to look around	Usa il mouse per guardarti intorno
+Use WASD to move	Usa WASD per muoverti
+Use the left stick to move	Usa la levetta sinistra per muoverti
+Use the right stick to look around	Usa la levetta destra per guardarti intorno
+Use the mouse wheel to zoom	Usa la rotellina del mouse per lo zoom
+Scroll to zoom	Usa la rotellina per lo zoom
+Drag to rotate	Trascina per ruotare
+Drag to move	Trascina per spostare
+Click and drag	Fai clic e trascina
+Drag and drop	Trascina e rilascia
+Drag items here	Trascina qui gli oggetti
+Drop items here	Rilascia qui gli oggetti
+Right-click to use	Clic destro per usare
+Right click to use	Clic destro per usare
+Right-click to equip	Clic destro per equipaggiare
+Right click to equip	Clic destro per equipaggiare
+Right-click for options	Clic destro per le opzioni
+Left-click to select	Clic sinistro per selezionare
+Double-click to equip	Doppio clic per equipaggiare
+Double click to equip	Doppio clic per equipaggiare
+Double-click to use	Doppio clic per usare
+Shift-click to move	Maiusc+clic per spostare
+Shift + Click to split	Maiusc+clic per dividere
+Hold Shift to compare	Tieni premuto Maiusc per confrontare
+Hold Shift to sprint	Tieni premuto Shift per correre
+Hold Shift to run	Tieni premuto Shift per correre
+Press Space to jump over obstacles	Premi Spazio per saltare gli ostacoli
+Press C to crouch	Premi C per accovacciarti
+Press Ctrl to crouch	Premi Ctrl per accovacciarti
+Press R to reload your weapon	Premi R per ricaricare l'arma
+Press Q to use your ability	Premi Q per usare l'abilità
+Press G to throw a grenade	Premi G per lanciare una granata
+Press F to use	Premi F per usare
+Press E to use	Premi E per usare
+Press E to talk	Premi E per parlare
+Press E to enter	Premi E per entrare
+Press F to enter	Premi F per entrare
+Press E to exit	Premi E per uscire
+Press F to exit	Premi F per uscire
+Press E to search	Premi E per perquisire
+Press E to loot	Premi E per saccheggiare
+Press E to collect	Premi E per raccogliere
+Press E to harvest	Premi E per raccogliere
+Press E to sit	Premi E per sederti
+Press E to sleep	Premi E per dormire
+Press E to read	Premi E per leggere
+Press E to examine	Premi E per esaminare
+Press E to inspect	Premi E per esaminare
+Press E to repair	Premi E per riparare
+Press E to buy	Premi E per comprare
+Press E to trade	Premi E per commerciare
+Press E to activate	Premi E per attivare
+Press E to close	Premi E per chiudere
+Press E to unlock	Premi E per sbloccare
+Press E to mount	Premi E per montare in sella
+Press E to drive	Premi E per guidare
+Press E to place	Premi E per posizionare
+Press E to equip	Premi E per equipaggiare
+Press E to drink	Premi E per bere
+Press E to eat	Premi E per mangiare
+Press E to hide	Premi E per nasconderti
+Press F to open	Premi F per aprire
+Press F to pick up	Premi F per raccogliere
+Press F to talk	Premi F per parlare
+Press F to loot	Premi F per saccheggiare
+Press F to search	Premi F per perquisire
+Hold E to open	Tieni premuto E per aprire
+Hold E to pick up	Tieni premuto E per raccogliere
+Hold E to search	Tieni premuto E per perquisire
+Hold E to loot	Tieni premuto E per saccheggiare
+Hold E to repair	Tieni premuto E per riparare
+Hold E to activate	Tieni premuto E per attivare
+Hold E to collect	Tieni premuto E per raccogliere
+Hold E to harvest	Tieni premuto E per raccogliere
+Hold E to hack	Tieni premuto E per hackerare
+Hold E to extract	Tieni premuto E per estrarre
+Hold F to interact	Tieni premuto F per interagire
+Hold F to pick up	Tieni premuto F per raccogliere
+Hold F to open	Tieni premuto F per aprire
+Hold to search	Tieni premuto per perquisire
+Hold to loot	Tieni premuto per saccheggiare
+Hold to repair	Tieni premuto per riparare
+Hold to activate	Tieni premuto per attivare
+Hold to collect	Tieni premuto per raccogliere
+Hold to harvest	Tieni premuto per raccogliere
+Hold to hack	Tieni premuto per hackerare
+Hold to extract	Tieni premuto per estrarre
+Hold to use	Tieni premuto per usare
+Hold to build	Tieni premuto per costruire
+Hold to destroy	Tieni premuto per distruggere
+Hold to dismantle	Tieni premuto per smontare
+Hold to sell	Tieni premuto per vendere
+Hold to buy	Tieni premuto per comprare
+Hold to drop	Tieni premuto per lasciare
+Hold to equip	Tieni premuto per equipaggiare
+Hold to craft	Tieni premuto per creare
+Hold to upgrade	Tieni premuto per potenziare
+Hold to claim	Tieni premuto per riscattare
+Hold to deploy	Tieni premuto per schierare
+Hold to heal	Tieni premuto per curare
+Hold to charge	Tieni premuto per caricare
+Hold to throw	Tieni premuto per lanciare
+Hold to continue	Tieni premuto per continuare
+Hold to restart	Tieni premuto per ricominciare
+Hold to respawn	Tieni premuto per rinascere
+Hold to give up	Tieni premuto per arrenderti
+Hold to surrender	Tieni premuto per arrenderti
+Hold to skip cutscene	Tieni premuto per saltare il filmato
+Hold to quit	Tieni premuto per uscire
+Hold to close	Tieni premuto per chiudere
+Hold to talk	Tieni premuto per parlare
+Hold to delete	Tieni premuto per eliminare
+Hold to reset	Tieni premuto per ripristinare
+Hold to ping	Tieni premuto per segnalare
+Hold to mark	Tieni premuto per segnare
+Hold to scan	Tieni premuto per scansionare
+Hold to place	Tieni premuto per posizionare
+Hold to rotate	Tieni premuto per ruotare
+Hold to inspect	Tieni premuto per esaminare
+Hold to unlock	Tieni premuto per sbloccare
+Hold to plant	Tieni premuto per piazzare
+Hold to defuse	Tieni premuto per disinnescare
+Hold to capture	Tieni premuto per conquistare
+Press to interact	Premi per interagire
+Press to open	Premi per aprire
+Press to pick up	Premi per raccogliere
+Press to skip	Premi per saltare
+Press to start	Premi per iniziare
+Press to confirm	Premi per confermare
+Press to cancel	Premi per annullare
+Press to respawn	Premi per rinascere
+Press to revive	Premi per rianimare
+Press to equip	Premi per equipaggiare
+Press to use	Premi per usare
+Press to talk	Premi per parlare
+Press to reload	Premi per ricaricare
+Press to jump	Premi per saltare
+Press to retry	Premi per riprovare
+Press again to confirm	Premi di nuovo per confermare
+Press again to cancel	Premi di nuovo per annullare
+Press twice to confirm	Premi due volte per confermare
+Release to throw	Rilascia per lanciare
+Release to fire	Rilascia per sparare
+Release to cancel	Rilascia per annullare
+Click to interact	Fai clic per interagire
+Click to select	Fai clic per selezionare
+Click to equip	Fai clic per equipaggiare
+Click to buy	Fai clic per comprare
+Click to sell	Fai clic per vendere
+Click to claim	Fai clic per riscattare
+Click to open	Fai clic per aprire
+Click to close	Fai clic per chiudere
+Click to rebind	Fai clic per riassegnare
+Click to change	Fai clic per cambiare
+Click to edit	Fai clic per modificare
+Click to copy	Fai clic per copiare
+Click to view	Fai clic per visualizzare
+Click to expand	Fai clic per espandere
+Click to collapse	Fai clic per comprimere
+Click to upgrade	Fai clic per potenziare
+Click to place	Fai clic per posizionare
+Click to rotate	Fai clic per ruotare
+Click to retry	Fai clic per riprovare
+Click to return	Fai clic per tornare indietro
+Click here	Fai clic qui
+Click here to continue	Fai clic qui per continuare
+Tap to start	Tocca per iniziare
+Tap to skip	Tocca per saltare
+Tap to retry	Tocca per riprovare
+Tap to close	Tocca per chiudere
+Tap to collect	Tocca per raccogliere
+Mouse over for details	Passa il mouse per i dettagli
+Hover for details	Passa il mouse per i dettagli
+Hover over an item to see details	Passa il mouse su un oggetto per i dettagli
+Select an item	Scegli un oggetto
+Select an option	Scegli un'opzione
+Select a category	Scegli una categoria
+Select a target	Scegli un bersaglio
+Select a location	Scegli un luogo
+Select a slot	Scegli uno slot
+Select a recipe	Scegli una ricetta
+Select a character	Scegli un personaggio
+Select a map	Scegli una mappa
+Select a mode	Scegli una modalità
+Select a server	Scegli un server
+Select a weapon	Scegli un'arma
+Choose an option	Scegli un'opzione
+Choose wisely	Scegli con saggezza
+Choose your path	Scegli la tua strada
+Choose your loadout	Scegli il tuo equipaggiamento
+Choose your starting location	Scegli il punto di partenza
+Choose a name	Scegli un nome
+Choose an item	Scegli un oggetto
+Choose one	Scegline uno
+Pick one	Scegline uno
+Make a choice	Fai una scelta
+Your choice	La tua scelta
+Your choices matter	Le tue scelte contano
+This choice will have consequences	Questa scelta avrà delle conseguenze
+will remember that	se ne ricorderà
+Decision	Decisione
+Choice	Scelta
+Choices	Scelte
+Dialogue Options	Opzioni di dialogo
+Dialogue History	Cronologia dei dialoghi
+Dialogue Log	Registro dei dialoghi
+Conversation Log	Registro delle conversazioni
+Backlog	Registro
+Log	Registro
+Skip Line	Salta la battuta
+Next Line	Battuta successiva
+Fast Forward	Avanti veloce
+Auto Mode	Modalità automatica
+Hide Text Box	Nascondi il riquadro di testo
+Hide Dialogue	Nascondi il dialogo
+Text Box Opacity	Opacità del riquadro di testo
+Quick Save Here	Salvataggio rapido qui
+Movement Tutorial	Tutorial di movimento
+Combat Tutorial	Tutorial di combattimento
+Crafting Tutorial	Tutorial di creazione
+Building Tutorial	Tutorial di costruzione
+Learn how to play	Impara a giocare
+Learn more	Scopri di più
+Read more	Leggi di più
+Find out more	Scopri di più
+More Info	Altre info
+More Information	Ulteriori informazioni
+For more information	Per ulteriori informazioni
+See details	Vedi i dettagli
+View Details	Vedi i dettagli
+Show Details	Mostra i dettagli
+Hide Details	Nascondi i dettagli
+Expand	Espandi
+Expand All	Espandi tutto
+Collapse All	Comprimi tutto
+Minimize	Riduci a icona
+Maximize	Ingrandisci
+Toggle Fullscreen	Attiva/disattiva schermo intero
+# --- notifiche
+New Notification	Nuova notifica
+New Notifications	Nuove notifiche
+No new notifications	Nessuna nuova notifica
+No notifications	Nessuna notifica
+Clear All	Cancella tutto
+Clear Notifications	Cancella le notifiche
+View Notification	Vedi la notifica
+Notification	Notifica
+Alert	Avviso
+Alerts	Avvisi
+Announcement	Annuncio
+Announcements	Annunci
+News & Updates	Notizie e aggiornamenti
+Latest News	Ultime notizie
+Message of the Day	Messaggio del giorno
+Event Started	Evento iniziato
+Event Ended	Evento terminato
+New Event	Nuovo evento
+Event Rewards	Ricompense dell'evento
+Event Shop	Negozio dell'evento
+Event Pass	Pass dell'evento
+Event Progress	Progresso dell'evento
+Event Points	Punti evento
+Limited-Time Event	Evento a tempo limitato
+Limited Time Event	Evento a tempo limitato
+Seasonal Event	Evento stagionale
+Special Event	Evento speciale
+World Event	Evento mondiale
+Community Event	Evento della community
+Live Event	Evento dal vivo
+Upcoming Events	Prossimi eventi
+Upcoming	In arrivo
+Ongoing	In corso
+Season Rewards	Ricompense stagionali
+Season Ending	Fine della stagione
+Season Ended	Stagione terminata
+New Season	Nuova stagione
+Season Start	Inizio della stagione
+Season Level	Livello stagionale
+Season Rank	Grado stagionale
+Season Progress	Progresso stagionale
+Season Challenges	Sfide stagionali
+Battle Pass Level	Livello del pass battaglia
+Battle Pass Rewards	Ricompense del pass battaglia
+Battle Pass Tier	Livello del pass battaglia
+Unlock Battle Pass	Sblocca il pass battaglia
+Buy Battle Pass	Compra il pass battaglia
+Buy Tiers	Compra livelli
+Buy Levels	Compra livelli
+Free Track	Percorso gratuito
+Premium Track	Percorso premium
+Premium Rewards	Ricompense premium
+Free Rewards	Ricompense gratuite
+Tier Unlocked	Livello sbloccato
+Tier Reward	Ricompensa del livello
+Reward Unlocked	Ricompensa sbloccata
+Rewards Unlocked	Ricompense sbloccate
+Reward Claimed	Ricompensa riscattata
+Rewards Claimed	Ricompense riscattate
+Reward received	Ricompensa ricevuta
+Rewards received	Ricompense ricevute
+Rewards Earned	Ricompense ottenute
+New Reward	Nuova ricompensa
+New Rewards	Nuove ricompense
+Reward Available	Ricompensa disponibile
+Rewards Available	Ricompense disponibili
+Unclaimed Rewards	Ricompense non riscattate
+You have unclaimed rewards	Hai ricompense da riscattare
+Claim Now	Riscatta ora
+Claim Free Reward	Riscatta la ricompensa gratuita
+Already Claimed	Già riscattato
+Come back tomorrow	Torna domani
+Come back tomorrow for more rewards	Torna domani per altre ricompense
+Login Rewards	Ricompense di accesso
+Daily Login	Accesso giornaliero
+Daily Reward	Ricompensa giornaliera
+Daily Bonus	Bonus giornaliero
+Day 1	Giorno 1
+Streak	Serie
+Login Streak	Serie di accessi
+Win Streak	Serie di vittorie
+Losing Streak	Serie di sconfitte
+Kill Streak	Serie di uccisioni
+Daily Reset	Azzeramento giornaliero
+Weekly Reset	Azzeramento settimanale
+Resets daily	Si azzera ogni giorno
+Resets weekly	Si azzera ogni settimana
+New Challenges	Nuove sfide
+New Challenge	Nuova sfida
+Challenge Progress	Progresso della sfida
+Challenge Failed	Sfida fallita
+Challenge Unlocked	Sfida sbloccata
+Weekly Challenge	Sfida settimanale
+Daily Challenge	Sfida giornaliera
+Achievement Progress	Progresso degli obiettivi
+Achievements Unlocked	Obiettivi sbloccati
+Locked Achievement	Obiettivo bloccato
+Hidden Achievement	Obiettivo nascosto
+Secret Achievement	Obiettivo segreto
+View Achievements	Vedi gli obiettivi
+Trophies Unlocked	Trofei sbloccati
+Milestone	Traguardo
+Milestones	Traguardi
+Milestone Reached	Traguardo raggiunto
+Goal Reached	Obiettivo raggiunto
+Personal Best	Record personale
+New Personal Best	Nuovo record personale
+New High Score	Nuovo punteggio massimo
+New Best Time	Nuovo tempo migliore
+World Record	Record mondiale
+Record	Record
+Records	Record
+New Unlock	Nuovo sblocco
+New Unlocks	Nuovi sblocchi
+Unlock Progress	Progresso di sblocco
+Unlock Condition	Condizione di sblocco
+How to unlock	Come sbloccare
+Locked until	Bloccato fino a
+Available soon	Disponibile a breve
+Available Now	Disponibile ora
+Now Available	Ora disponibile
+Out Now	Disponibile ora
+Stay tuned	Restate sintonizzati
+New Content	Nuovi contenuti
+New Content Available	Nuovi contenuti disponibili
+New Update	Nuovo aggiornamento
+Update Now	Aggiorna ora
+Update Later	Aggiorna più tardi
+Update Game	Aggiorna il gioco
+Update Downloaded	Aggiornamento scaricato
+Update complete	Aggiornamento completato
+Update failed	Aggiornamento non riuscito
+Installing update	Installazione dell'aggiornamento
+Download Size	Dimensione del download
+Download Speed	Velocità di download
+Download failed	Download non riuscito
+Downloading content	Download dei contenuti
+Downloading files	Download dei file
+Download Progress	Avanzamento del download
+Verifying	Verifica in corso
+Verifying files	Verifica dei file
+Verifying game files	Verifica dei file di gioco
+Extracting files	Estrazione dei file
+Unpacking	Decompressione
+Unpacking files	Decompressione dei file
+Checking files	Controllo dei file
+No updates available	Nessun aggiornamento disponibile
+You are up to date	Sei aggiornato
+Game is up to date	Il gioco è aggiornato
+Your game is up to date	Il tuo gioco è aggiornato
+A new version is available	È disponibile una nuova versione
+New version available	Nuova versione disponibile
+Please restart the game	Riavvia il gioco
+Please restart the game to apply the update	Riavvia il gioco per applicare l'aggiornamento
+The game will now restart	Il gioco verrà riavviato
+The game needs to restart	Il gioco deve essere riavviato
+Your game version is out of date	La versione del gioco non è aggiornata
+Game version mismatch	Versione del gioco diversa
+Client version mismatch	Versione del client diversa
+Server version mismatch	Versione del server diversa
+Outdated version	Versione non aggiornata
+Outdated client	Client non aggiornato
+Incompatible version	Versione non compatibile
+Mod mismatch	Mod non corrispondenti
+Missing mods	Mod mancanti
+Missing DLC	DLC mancante
+DLC required	DLC necessario
+Requires DLC	Richiede un DLC
+DLC not installed	DLC non installato
+DLC Installed	DLC installato
+Content not available	Contenuto non disponibile
+Content unavailable	Contenuto non disponibile
+This content is not available	Questo contenuto non è disponibile
+This content is not available in your region	Questo contenuto non è disponibile nella tua regione
+This feature is not available	Questa funzione non è disponibile
+This feature is not yet available	Questa funzione non è ancora disponibile
+This feature is coming soon	Questa funzione arriverà presto
+Feature not available	Funzione non disponibile
+Feature locked	Funzione bloccata
+Not available yet	Non ancora disponibile
+Not yet available	Non ancora disponibile
+Not available in demo	Non disponibile nella demo
+Not available in this version	Non disponibile in questa versione
+Not available in offline mode	Non disponibile in modalità offline
+Requires an internet connection	Richiede una connessione a internet
+An internet connection is required	È necessaria una connessione a internet
+Internet connection required	Connessione a internet necessaria
+Online connection required	Connessione online necessaria
+You must be online to do this	Devi essere online per farlo
+You must be logged in	Devi aver effettuato l'accesso
+You must be signed in	Devi aver effettuato l'accesso
+Please log in	Effettua l'accesso
+Please sign in	Effettua l'accesso
+Signed in as	Accesso effettuato come
+Logged in as	Accesso effettuato come
+Not signed in	Accesso non effettuato
+Not logged in	Accesso non effettuato
+Signing in	Accesso in corso
+Signing out	Disconnessione in corso
+Login failed	Accesso non riuscito
+Sign in failed	Accesso non riuscito
+Authentication failed	Autenticazione non riuscita
+Authentication error	Errore di autenticazione
+Session timed out	Sessione scaduta
+Your session has expired	La tua sessione è scaduta
+Please log in again	Effettua di nuovo l'accesso
+Invalid email	Email non valida
+Invalid email address	Indirizzo email non valido
+Invalid password	Password non valida
+Invalid credentials	Credenziali non valide
+Password too short	Password troppo corta
+Passwords do not match	Le password non corrispondono
+Confirm Password	Conferma la password
+Reset Password	Reimposta la password
+Change Password	Cambia la password
+Show Password	Mostra la password
+Hide Password	Nascondi la password
+Email Address	Indirizzo email
+Verify Email	Verifica l'email
+Verification Code	Codice di verifica
+Enter verification code	Inserisci il codice di verifica
+Resend Code	Invia di nuovo il codice
+Two-Factor Authentication	Autenticazione a due fattori
+Link Account	Collega l'account
+Unlink Account	Scollega l'account
+Account Linked	Account collegato
+Linked Accounts	Account collegati
+Account Settings	Impostazioni dell'account
+Account Info	Info sull'account
+Account Name	Nome dell'account
+Account Level	Livello dell'account
+Delete Account	Elimina l'account
+Display Name	Nome visualizzato
+Player Name	Nome del giocatore
+Player ID	ID giocatore
+User ID	ID utente
+Friend Code	Codice amico
+Date of Birth	Data di nascita
+Age	Età
+Country	Paese
+Accept Terms	Accetta i termini
+I accept	Accetto
+I Decline	Rifiuto
+Decline All	Rifiuta tutto
+Accept All	Accetta tutto
+Terms and Conditions	Termini e condizioni
+Terms of Use	Condizioni d'uso
+End User License Agreement	Contratto di licenza con l'utente finale
+EULA	EULA
+License Agreement	Contratto di licenza
+User Agreement	Contratto d'uso
+Legal	Note legali
+Legal Notice	Note legali
+Legal Information	Informazioni legali
+Licenses	Licenze
+Third-Party Licenses	Licenze di terze parti
+Open Source Licenses	Licenze open source
+Cookie Policy	Informativa sui cookie
+Data Privacy	Privacy dei dati
+I have read and agree to the Terms of Service	Ho letto e accetto i Termini di servizio
+By continuing you agree to the Terms of Service	Continuando accetti i Termini di servizio
+Customer Support	Assistenza clienti
+Technical Support	Assistenza tecnica
+Contact Us	Contattaci
+FAQ	Domande frequenti
+Report a Problem	Segnala un problema
+Report an Issue	Segnala un problema
+Report Bug	Segnala un bug
+Submit	Invia
+Submit Report	Invia la segnalazione
+Submit Feedback	Invia un commento
+Give Feedback	Lascia un commento
+Rate Us	Valutaci
+# --- messaggi di sistema ed errori
+Error Code	Codice di errore
+Fatal Error	Errore irreversibile
+Critical Error	Errore critico
+Unexpected Error	Errore imprevisto
+An unexpected error occurred	Si è verificato un errore imprevisto
+An unexpected error has occurred	Si è verificato un errore imprevisto
+Internal Error	Errore interno
+Internal server error	Errore interno del server
+Error connecting to server	Errore di connessione al server
+Error loading data	Errore durante il caricamento dei dati
+Error loading save	Errore nel caricamento del salvataggio
+Error saving game	Errore durante il salvataggio
+Error saving settings	Errore nel salvataggio delle impostazioni
+Error loading	Errore di caricamento
+Loading Error	Errore di caricamento
+Loading failed	Caricamento non riuscito
+Operation failed	Operazione non riuscita
+Operation successful	Operazione riuscita
+Operation cancelled	Operazione annullata
+Operation canceled	Operazione annullata
+Action failed	Azione non riuscita
+Action not allowed	Azione non consentita
+Not allowed	Non consentito
+Permission denied	Autorizzazione negata
+You do not have permission	Non hai l'autorizzazione
+You don't have permission to do that	Non hai l'autorizzazione per farlo
+Invalid input	Input non valido
+Invalid value	Valore non valido
+Invalid selection	Selezione non valida
+Invalid action	Azione non valida
+Invalid request	Richiesta non valida
+Invalid characters	Caratteri non validi
+Invalid format	Formato non valido
+Invalid location	Posizione non valida
+Invalid placement	Posizionamento non valido
+Please enter a name	Inserisci un nome
+Please enter a valid name	Inserisci un nome valido
+Please enter a valid email	Inserisci un'email valida
+Please enter a valid value	Inserisci un valore valido
+Please select an option	Scegli un'opzione
+Please select an item	Scegli un oggetto
+Please wait a moment	Attendi un momento
+Please wait before trying again	Attendi prima di riprovare
+Please try again in a few minutes	Riprova tra qualche minuto
+Too many requests	Troppe richieste
+Too many attempts	Troppi tentativi
+Too many attempts. Please try again later.	Troppi tentativi. Riprova più tardi.
+Rate limit exceeded	Limite di richieste superato
+You are doing that too fast	Stai andando troppo veloce
+Slow down	Rallenta
+Not found	Non trovato
+File not found	File non trovato
+Missing file	File mancante
+Missing files	File mancanti
+Corrupted files	File danneggiati
+Corrupted file	File danneggiato
+Failed to load file	Impossibile caricare il file
+Failed to open file	Impossibile aprire il file
+Failed to write file	Impossibile scrivere il file
+Disk full	Disco pieno
+Out of memory	Memoria esaurita
+Not enough memory	Memoria insufficiente
+Low memory	Memoria scarsa
+Low disk space	Spazio su disco scarso
+The game has crashed	Il gioco si è chiuso in modo anomalo
+The game crashed	Il gioco si è chiuso in modo anomalo
+Crash Report	Rapporto sull'arresto anomalo
+Send Crash Report	Invia il rapporto sull'arresto anomalo
+Send Report	Invia il rapporto
+Don't Send	Non inviare
+The game stopped responding	Il gioco non risponde più
+Not responding	Non risponde
+Game is not responding	Il gioco non risponde
+The application will now close	L'applicazione verrà chiusa
+The game will now close	Il gioco verrà chiuso
+Restart Application	Riavvia l'applicazione
+Please contact support	Contatta l'assistenza
+If the problem persists, please contact support	Se il problema persiste, contatta l'assistenza
+If this problem persists, contact support	Se il problema persiste, contatta l'assistenza
+Please check your connection and try again	Controlla la connessione e riprova
+Please check your internet connection	Controlla la connessione a internet
+Check your connection	Controlla la connessione
+Unable to load	Impossibile caricare
+Unable to save settings	Impossibile salvare le impostazioni
+Unable to complete purchase	Impossibile completare l'acquisto
+Unable to process request	Impossibile elaborare la richiesta
+Unable to retrieve data	Impossibile recuperare i dati
+Unable to start game	Impossibile avviare il gioco
+Unable to launch game	Impossibile avviare il gioco
+Failed to start	Avvio non riuscito
+Failed to initialize	Inizializzazione non riuscita
+Failed to initialize graphics	Impossibile inizializzare la grafica
+Failed to initialize DirectX	Impossibile inizializzare DirectX
+Failed to create device	Impossibile creare il dispositivo
+Graphics device lost	Dispositivo grafico perso
+GPU crash	Arresto anomalo della GPU
+Device removed	Dispositivo rimosso
+Unsupported	Non supportato
+Not supported	Non supportato
+Unsupported resolution	Risoluzione non supportata
+Unsupported device	Dispositivo non supportato
+Unsupported hardware	Hardware non supportato
+Your hardware is not supported	Il tuo hardware non è supportato
+Minimum Requirements	Requisiti minimi
+Recommended Requirements	Requisiti consigliati
+System Requirements	Requisiti di sistema
+Below minimum requirements	Sotto i requisiti minimi
+Performance may be affected	Le prestazioni potrebbero risentirne
+Performance Warning	Avviso sulle prestazioni
+Low performance detected	Rilevate prestazioni basse
+Low framerate detected	Rilevata frequenza dei fotogrammi bassa
+Running in safe mode	Esecuzione in modalità provvisoria
+Safe Mode	Modalità provvisoria
+Start in Safe Mode	Avvia in modalità provvisoria
+Do you want to start in safe mode?	Vuoi avviare in modalità provvisoria?
+The game did not close properly	Il gioco non è stato chiuso correttamente
+The game did not shut down correctly	Il gioco non è stato chiuso correttamente
+Reset graphics settings?	Ripristinare le impostazioni grafiche?
+Press OK to continue	Premi OK per continuare
+Click OK to continue	Fai clic su OK per continuare
+Retrying	Nuovo tentativo
+Retrying in	Nuovo tentativo tra
+Attempt	Tentativo
+Attempts	Tentativi
+Attempts remaining	Tentativi rimasti
+No attempts remaining	Nessun tentativo rimasto
+Timeout	Tempo scaduto
+Request failed	Richiesta non riuscita
+Service unavailable	Servizio non disponibile
+Temporarily unavailable	Temporaneamente non disponibile
+Currently unavailable	Al momento non disponibile
+Back soon	Torniamo presto
+We'll be back soon	Torneremo presto
+We are experiencing technical difficulties	Stiamo riscontrando problemi tecnici
+We are aware of the issue	Siamo a conoscenza del problema
+Sorry for the inconvenience	Ci scusiamo per il disagio
+We apologize for the inconvenience	Ci scusiamo per il disagio
+Thank you for your patience	Grazie per la pazienza
+Thanks for your patience	Grazie per la pazienza
+Thank you for your understanding	Grazie per la comprensione
+Thank you	Grazie
+Thanks	Grazie
+Welcome	Benvenuto
+Welcome back	Bentornato
+Welcome to	Benvenuto a
+Good luck	Buona fortuna
+Have fun!	Divertiti!
+Enjoy!	Buon divertimento!
+Congratulations	Congratulazioni
+Congrats!	Complimenti!
+Well done	Ben fatto
+Good job	Bel lavoro
+Great job!	Ottimo lavoro!
+Amazing!	Fantastico!
+Nice!	Bello!
+Incredible!	Incredibile!
+Unbelievable!	Incredibile!
+Impressive!	Notevole!
+Oh no!	Oh no!
+Too bad!	Peccato!
+Too late!	Troppo tardi!
+Almost!	Quasi!
+So close!	Per un soffio!
+Better luck next time	Andrà meglio la prossima volta
+Keep trying	Continua a provare
+Don't give up	Non arrenderti
+You did it!	Ce l'hai fatta!
+You made it!	Ce l'hai fatta!
+You survived	Sei sopravvissuto
+You failed	Hai fallito
+You escaped	Sei fuggito
+You were caught	Ti hanno preso
+You were spotted	Sei stato scoperto
+You are being hunted	Ti stanno dando la caccia
+You were killed	Sei stato ucciso
+You were killed by	Sei stato ucciso da
+You killed	Hai ucciso
+You eliminated	Hai eliminato
+You knocked down	Hai atterrato
+You were knocked down	Sei stato atterrato
+You were knocked down by	Sei stato atterrato da
+You drowned	Sei annegato
+You starved to death	Sei morto di fame
+You died of thirst	Sei morto di sete
+You froze to death	Sei morto congelato
+You fell to your death	Sei morto per una caduta
+You bled out	Sei morto dissanguato
+You have fallen	Sei caduto
+Mission Over	Missione finita
+Insert Coin	Inserisci una moneta
+Insert Coins	Inserisci le monete
+Lives	Vite
+Life	Vita
+Extra Life	Vita extra
+1UP	1UP
+Lives Remaining	Vite rimaste
+Lives Left	Vite rimaste
+Last Life	Ultima vita
+No lives left	Nessuna vita rimasta
+Retries	Tentativi
+Retries Left	Tentativi rimasti
+# --- crediti
+Credits Roll	Titoli di coda
+End Credits	Titoli di coda
+Roll Credits	Titoli di coda
+View Credits	Vedi i riconoscimenti
+Show Credits	Mostra i riconoscimenti
+Skip Credits	Salta i titoli di coda
+Developed by	Sviluppato da
+Published by	Pubblicato da
+Produced by	Prodotto da
+Directed by	Diretto da
+Written by	Scritto da
+Created by	Creato da
+Designed by	Progettato da
+Music by	Musiche di
+Original Music by	Musiche originali di
+Original Soundtrack	Colonna sonora originale
+Story by	Storia di
+Art by	Grafica di
+Programming by	Programmazione di
+Presented by	Presentato da
+In association with	In collaborazione con
+In collaboration with	In collaborazione con
+Powered by	Basato su
+Made with	Realizzato con
+Made with Unity	Realizzato con Unity
+Made with Unreal Engine	Realizzato con Unreal Engine
+Special Thanks	Ringraziamenti speciali
+Special thanks to	Un ringraziamento speciale a
+Thanks to	Grazie a
+Acknowledgements	Ringraziamenti
+Acknowledgments	Ringraziamenti
+In Memory of	In memoria di
+Dedicated to	Dedicato a
+Game Director	Direttore del gioco
+Creative Director	Direttore creativo
+Art Director	Direttore artistico
+Technical Director	Direttore tecnico
+Audio Director	Direttore audio
+Executive Producer	Produttore esecutivo
+Producer	Produttore
+Associate Producer	Produttore associato
+Lead Designer	Progettista capo
+Game Designer	Game designer
+Level Designer	Level designer
+Lead Programmer	Programmatore capo
+Programmer	Programmatore
+Programmers	Programmatori
+Lead Artist	Artista capo
+Artist	Artista
+Artists	Artisti
+3D Artist	Artista 3D
+Concept Artist	Concept artist
+Animator	Animatore
+Animators	Animatori
+Composer	Compositore
+Sound Designer	Sound designer
+Sound Design	Sound design
+Voice Actors	Doppiatori
+Voice Cast	Cast vocale
+Cast	Cast
+Writer	Sceneggiatore
+Writers	Sceneggiatori
+Narrative Designer	Narrative designer
+Quality Assurance	Controllo qualità
+QA Testers	Tester QA
+Testers	Tester
+Localization	Localizzazione
+Localization Team	Team di localizzazione
+Italian Localization	Localizzazione italiana
+Translation	Traduzione
+Translators	Traduttori
+Marketing	Marketing
+Community Manager	Community manager
+Development Team	Team di sviluppo
+Dev Team	Team di sviluppo
+Team Members	Membri del team
+Studio	Studio
+Developer	Sviluppatore
+Developers	Sviluppatori
+Publisher	Editore
+Additional Art	Grafica aggiuntiva
+Additional Programming	Programmazione aggiuntiva
+Additional Music	Musiche aggiuntive
+Motion Capture	Motion capture
+Backers	Sostenitori
+Kickstarter Backers	Sostenitori di Kickstarter
+Patrons	Sostenitori
+Supporters	Sostenitori
+Playtesters	Playtester
+Beta Testers	Beta tester
+Fonts	Caratteri
+Third Party Software	Software di terze parti
+All rights reserved	Tutti i diritti riservati
+Trademarks belong to their respective owners	I marchi appartengono ai rispettivi proprietari
+All trademarks are property of their respective owners	Tutti i marchi sono proprietà dei rispettivi titolari
+Any resemblance to real persons is purely coincidental	Ogni riferimento a persone reali è puramente casuale
+Thank you for playing our game	Grazie per aver giocato al nostro gioco
+See you next time	Alla prossima
+See you soon	A presto
+# --- sopravvivenza ed estrazione (frasi generiche di genere)
+Raid Starting	Incursione in partenza
+Raid starting in	L'incursione inizia tra
+Raid Time	Durata dell'incursione
+Raid Timer	Timer dell'incursione
+Raid Summary	Riepilogo dell'incursione
+Raid Results	Risultati dell'incursione
+Raid Failed	Incursione fallita
+Raid Successful	Incursione riuscita
+Start Raid	Inizia l'incursione
+Deploy to Raid	Schierati nell'incursione
+Deploy Now	Schierati ora
+Ready to Deploy	Pronto allo schieramento
+Deployment	Schieramento
+Deployment Zone	Zona di schieramento
+Select Deployment	Scegli lo schieramento
+Insertion	Infiltrazione
+Insertion Point	Punto di infiltrazione
+Spawn Point	Punto di comparsa
+Spawn Location	Punto di comparsa
+Select Spawn Point	Scegli il punto di comparsa
+Extraction Points	Punti di estrazione
+Extraction Zone	Zona di estrazione
+Extraction Available	Estrazione disponibile
+Extraction Unavailable	Estrazione non disponibile
+Extraction Closed	Estrazione chiusa
+Extraction Open	Estrazione aperta
+Extraction Opening	Apertura dell'estrazione
+Extraction opening soon	L'estrazione aprirà a breve
+Extraction Failed	Estrazione fallita
+Extraction Complete	Estrazione completata
+Extraction Cancelled	Estrazione annullata
+Extraction Timer	Timer dell'estrazione
+Extracting	Estrazione in corso
+Call Extraction	Chiama l'estrazione
+Call Elevator	Chiama l'ascensore
+Elevator	Ascensore
+Elevator arriving	L'ascensore sta arrivando
+Board the elevator	Sali sull'ascensore
+Exfil	Esfiltrazione
+Exfiltration	Esfiltrazione
+Exfil Point	Punto di esfiltrazione
+Infil	Infiltrazione
+Head to extraction	Dirigiti all'estrazione
+Head to the extraction point	Dirigiti al punto di estrazione
+Reach extraction	Raggiungi l'estrazione
+Extract with your loot	Estrai con il tuo bottino
+You extracted	Sei stato estratto
+Successfully extracted	Estrazione riuscita
+Survived and extracted	Sopravvissuto ed estratto
+Failed to extract	Estrazione non riuscita
+MIA	Disperso
+KIA	Caduto
+Status: Survived	Stato: sopravvissuto
+Status: Killed	Stato: ucciso
+Loot Value	Valore del bottino
+Total Loot Value	Valore totale del bottino
+Loot Collected	Bottino raccolto
+Loot Lost	Bottino perso
+Items Recovered	Oggetti recuperati
+Gear Lost	Equipaggiamento perso
+All gear lost	Perso tutto l'equipaggiamento
+You lost all your gear	Hai perso tutto l'equipaggiamento
+Insured	Assicurato
+Insurance	Assicurazione
+Insure	Assicura
+Insure Item	Assicura l'oggetto
+Insure All	Assicura tutto
+Insurance Claim	Richiesta di risarcimento
+Insured items returned	Oggetti assicurati restituiti
+Found in Raid	Trovato nell'incursione
+Secure Slot	Slot sicuro
+Safe Slot	Slot sicuro
+Protected Slot	Slot protetto
+Items in this slot are kept on death	Gli oggetti in questo slot si conservano alla morte
+Kept on death	Si conserva alla morte
+Lost on death	Si perde alla morte
+Dropped on death	Si lascia alla morte
+Drop on death	Si lascia alla morte
+Your items were dropped	I tuoi oggetti sono stati lasciati a terra
+Recover your items	Recupera i tuoi oggetti
+Recover Body	Recupera il corpo
+Your body	Il tuo corpo
+Death Location	Luogo della morte
+Tombstone	Lapide
+Grave	Tomba
+Death Box	Cassa del caduto
+Loadout Value	Valore dell'equipaggiamento
+Kit	Kit
+Kits	Kit
+Free Kit	Kit gratuito
+Free Loadout	Equipaggiamento gratuito
+Random Loadout	Equipaggiamento casuale
+Starter Kit	Kit iniziale
+Starter Loadout	Equipaggiamento iniziale
+Augment	Potenziamento
+Augments	Potenziamenti
+Shield Recharger	Ricaricatore dello scudo
+Shield Charger	Ricaricatore dello scudo
+Shield Cell	Cella dello scudo
+Shield Cells	Celle dello scudo
+Energy Cell	Cella di energia
+Energy Cells	Celle di energia
+Power Cell	Cella di energia
+Fuel Cell	Cella a combustibile
+Ammo Crate	Cassa di munizioni
+Weapon Crate	Cassa delle armi
+Medical Crate	Cassa medica
+Supply Box	Cassa di rifornimenti
+Supply Cache	Deposito di rifornimenti
+Hidden Cache	Nascondiglio segreto
+Locked Room	Stanza chiusa
+Locked Container	Contenitore chiuso
+Locked Crate	Cassa chiusa
+Requires Key	Richiede una chiave
+Requires Keycard	Richiede una tessera
+Requires a key	Richiede una chiave
+Requires a keycard	Richiede una tessera
+Key Required	Chiave necessaria
+Keycard Required	Tessera necessaria
+Door Locked	Porta chiusa
+Door Unlocked	Porta sbloccata
+Door Opened	Porta aperta
+Door Closed	Porta chiusa
+Breach	Sfonda
+Breach Door	Sfonda la porta
+Breaching Charge	Carica da sfondamento
+Security Door	Porta di sicurezza
+Vault Door	Porta blindata
+Open Safe	Apri la cassaforte
+Crack Safe	Scassina la cassaforte
+Terminal	Terminale
+Terminals	Terminali
+Console	Console
+Control Panel	Pannello di controllo
+Security Terminal	Terminale di sicurezza
+Security Camera	Telecamera di sicurezza
+Security Cameras	Telecamere di sicurezza
+Security System	Sistema di sicurezza
+Security Level	Livello di sicurezza
+Alarm System	Sistema d'allarme
+Turret	Torretta
+Turrets	Torrette
+Sentry	Sentinella
+Sentry Gun	Torretta automatica
+Drone	Drone
+Drones	Droni
+Robot	Robot
+Robots	Robot
+Machine	Macchina
+Machines	Macchine
+Enemy Drone	Drone nemico
+Hostile Drone	Drone ostile
+Hostile Machine	Macchina ostile
+Hostiles	Ostili
+Hostile detected	Ostile rilevato
+Hostiles detected	Ostili rilevati
+Threat detected	Minaccia rilevata
+Danger nearby	Pericolo nelle vicinanze
+Enemy nearby	Nemico nelle vicinanze
+Players nearby	Giocatori nelle vicinanze
+Player nearby	Giocatore nelle vicinanze
+Other players nearby	Altri giocatori nelle vicinanze
+Footsteps	Passi
+Footsteps nearby	Passi nelle vicinanze
+Gunfire	Spari
+Gunshots	Spari
+Explosion	Esplosione
+Explosions	Esplosioni
+Noise detected	Rumore rilevato
+Patrol	Pattuglia
+Patrols	Pattuglie
+Guard	Guardia
+Guards	Guardie
+Sniper Nest	Nido del cecchino
+Ambush Zone	Zona di imboscata
+Proximity Mine	Mina di prossimità
+Mine Detected	Mina rilevata
+Landmine	Mina antiuomo
+Tripwire	Filo d'inciampo
+Trap	Trappola
+Traps	Trappole
+Bear Trap	Tagliola
+Set Trap	Piazza la trappola
+Disarm	Disinnesca
+Disarm Trap	Disinnesca la trappola
+Trap Disarmed	Trappola disinnescata
+Raider	Predone
+Raiders	Predoni
+Bandit	Bandito
+Bandits	Banditi
+Scavenger	Saccheggiatore
+Scavengers	Saccheggiatori
+Scavenge	Rovista
+Scavenging	Ricerca di risorse
+Survivor Camp	Campo dei sopravvissuti
+Survivors	Sopravvissuti
+Infected Zone	Zona infetta
+Quarantine Zone	Zona di quarantena
+Zombie	Zombi
+Zombies	Zombi
+Horde	Orda
+Horde incoming	Orda in arrivo
+Blood Moon	Luna di sangue
+Night Falls	Cala la notte
+Night is falling	Sta calando la notte
+Day Survived	Giorno superato
+Days Survived	Giorni sopravvissuti
+Nights Survived	Notti sopravvissute
+Time Survived	Tempo di sopravvivenza
+Survival Time	Tempo di sopravvivenza
+Dawn	Alba
+Dusk	Crepuscolo
+Midnight	Mezzanotte
+Noon	Mezzogiorno
+Sunrise	Alba
+Sunset	Tramonto
+Clear Weather	Sereno
+Clear Skies	Cielo sereno
+Cloudy	Nuvoloso
+Rainy	Piovoso
+Raining	Piove
+Snowing	Nevica
+Windy	Ventoso
+Thunderstorm	Temporale
+Blizzard	Bufera di neve
+Sandstorm	Tempesta di sabbia
+Heatwave	Ondata di calore
+Heat Wave	Ondata di calore
+Cold Snap	Ondata di freddo
+Acid Rain	Pioggia acida
+Toxic Storm	Tempesta tossica
+Radiation Storm	Tempesta radioattiva
+Extreme Weather	Clima estremo
+Extreme Heat	Caldo estremo
+Extreme Cold	Freddo estremo
+Storm Approaching	Tempesta in avvicinamento
+Seek shelter	Cerca un riparo
+Take shelter	Mettiti al riparo
+Shelter Protection	Protezione del riparo
+Hazard Protection Low	Protezione dai pericoli bassa
+Hazard Protection Depleted	Protezione dai pericoli esaurita
+Life Support	Supporto vitale
+Life Support Low	Supporto vitale basso
+Life Support Depleted	Supporto vitale esaurito
+Suit	Tuta
+Hazmat Suit	Tuta protettiva
+Suit Integrity	Integrità della tuta
+Suit Power	Energia della tuta
+Jetpack	Jetpack
+Jetpack Fuel	Carburante del jetpack
+Thrusters	Propulsori
+Boost	Turbo
+Boost Fuel	Carburante del turbo
+Pulse Drive	Motore a impulsi
+Pulse Engine	Motore a impulsi
+Hyperdrive	Iperpropulsore
+Warp	Curvatura
+Warp Drive	Motore a curvatura
+Warp Fuel	Carburante di curvatura
+Warp Cell	Cella di curvatura
+Launch Fuel	Carburante di decollo
+Launch Thrusters	Propulsori di decollo
+Starship	Astronave
+Spaceship	Astronave
+Ship	Nave
+Ships	Navi
+Your Ship	La tua nave
+Summon Ship	Chiama la nave
+Call Ship	Chiama la nave
+Ship Inventory	Inventario della nave
+Ship Upgrades	Potenziamenti della nave
+Ship Weapons	Armi della nave
+Ship Shields	Scudi della nave
+Ship Damaged	Nave danneggiata
+Ship Repaired	Nave riparata
+Repair Ship	Ripara la nave
+Landing	Atterraggio
+Taking off	Decollo
+Entering atmosphere	Ingresso nell'atmosfera
+Leaving atmosphere	Uscita dall'atmosfera
+Entering orbit	Ingresso in orbita
+Leaving Planet	Uscita dal pianeta
+Exploration	Esplorazione
+Discoveries	Scoperte
+Discovery	Scoperta
+New Discovery	Nuova scoperta
+Upload Discoveries	Carica le scoperte
+Discovery Uploaded	Scoperta caricata
+Discovered by	Scoperto da
+Rename Discovery	Rinomina la scoperta
+Creature	Creatura
+Creatures	Creature
+Fauna	Fauna
+Flora	Flora
+Minerals	Minerali
+Mineral	Minerale
+Ore	Minerale
+Ores	Minerali
+Rare Resource	Risorsa rara
+Rare Resources	Risorse rare
+Resource Deposit	Giacimento di risorse
+Deposit Found	Giacimento trovato
+Mineral Deposit	Giacimento minerale
+Resource Node	Nodo di risorse
+Resource Nodes	Nodi di risorse
+Gas	Gas
+Liquid	Liquido
+Organic	Organico
+Organic Material	Materiale organico
+Crystal	Cristallo
+Metal	Metallo
+Metals	Metalli
+Steel	Acciaio
+Aluminum	Alluminio
+Carbon	Carbonio
+Oxygen Capsule	Capsula di ossigeno
+Sodium	Sodio
+Copper Wire	Filo di rame
+Circuit Board	Scheda elettronica
+Electronics	Elettronica
+Electronic Components	Componenti elettronici
+Mechanical Parts	Parti meccaniche
+Mechanical Components	Componenti meccanici
+Gears	Ingranaggi
+Screws	Viti
+Bolts	Bulloni
+Duct Tape	Nastro adesivo
+Glue	Colla
+Wires and Cables	Fili e cavi
+Battery Pack	Pacco batteria
+Chemicals	Sostanze chimiche
+Fabric	Tessuto
+Animal Hide	Pelle animale
+Bone	Osso
+Bones	Ossa
+Feathers	Piume
+Wool	Lana
+Meat	Carne
+Egg	Uovo
+Eggs	Uova
+Wheat	Grano
+Flour	Farina
+Bread	Pane
+Water Bottle	Bottiglia d'acqua
+Clean Water	Acqua pulita
+Dirty Water	Acqua sporca
+Purified Water	Acqua purificata
+Purify Water	Purifica l'acqua
+Boil Water	Fai bollire l'acqua
+Canned Food	Cibo in scatola
+Snack	Spuntino
+Ration	Razione
+Rations	Razioni
+Energy Drink	Bevanda energetica
+Coffee	Caffè
+Herbs	Erbe
+Medicinal Herbs	Erbe medicinali
+Stim	Stimolante
+Stims	Stimolanti
+Stimulant	Stimolante
+Adrenaline	Adrenalina
+Morphine	Morfina
+Syringe	Siringa
+Splint	Stecca
+Tourniquet	Laccio emostatico
+Surgery Kit	Kit chirurgico
+Antidote	Antidoto
+Anti-Radiation Pills	Pillole antiradiazioni
+Pills	Pillole
+Vitamins	Vitamine
+Healing Salve	Unguento curativo
+Ointment	Unguento
+Hunger Level	Livello di fame
+Thirst Level	Livello di sete
+Food Level	Livello di cibo
+Water Level	Livello d'acqua
+Body Temperature	Temperatura corporea
+Comfort	Comfort
+Morale	Morale
+Happiness	Felicità
+Mood	Umore
+Stress	Stress
+Fear Level	Livello di paura
+Calories	Calorie
+Hydration	Idratazione
+Nutrition	Nutrizione
+Satiety	Sazietà
+Rest Level	Livello di riposo
+Sleepiness	Sonnolenza
+Insomnia	Insonnia
+Craving	Voglia
+Weight Capacity	Capacità di peso
+# --- creature, cattura e base
+Capture Rate	Probabilità di cattura
+Capture Chance	Probabilità di cattura
+Capture Failed	Cattura fallita
+Capture Successful	Cattura riuscita
+Tame Creature	Addomestica la creatura
+Taming	Addomesticamento
+Taming Progress	Progresso dell'addomesticamento
+Taming Complete	Addomesticamento completato
+Release Creature	Libera la creatura
+Release Pet	Libera la mascotte
+Rename Creature	Rinomina la creatura
+Creature Box	Box delle creature
+Breeding	Allevamento
+Breed	Alleva
+Breeding Farm	Allevamento
+Incubator	Incubatrice
+Incubate	Incuba
+Incubating	In incubazione
+Hatching	Schiusa
+Hatched	Schiuso
+Ready to hatch	Pronto alla schiusa
+Egg Hatched	Uovo schiuso
+Feed Box	Mangiatoia
+Feeding Trough	Mangiatoia
+Work Suitability	Attitudine al lavoro
+Assign Work	Assegna un lavoro
+Assigned	Assegnato
+Unassigned	Non assegnato
+Base Camp	Campo base
+Base Level	Livello della base
+Base Workers	Lavoratori della base
+Base Defense	Difesa della base
+Base Under Attack	Base sotto attacco
+Your base is under attack	La tua base è sotto attacco
+Base Raided	Base saccheggiata
+Raid Incoming	Incursione in arrivo
+Incoming Raid	Incursione in arrivo
+Build	Costruisci
+Building	Costruzione
+Buildings	Edifici
+Structures	Strutture
+Structure	Struttura
+Build Structure	Costruisci la struttura
+Building Materials	Materiali da costruzione
+Building Pieces	Elementi da costruzione
+Build Cost	Costo di costruzione
+Building Cost	Costo di costruzione
+Build Time	Tempo di costruzione
+Building Limit	Limite di costruzione
+Build limit reached	Limite di costruzione raggiunto
+Structure limit reached	Limite di strutture raggiunto
+Not enough room	Spazio insufficiente
+Obstructed	Ostruito
+Blocked by terrain	Bloccato dal terreno
+Placement Blocked	Posizionamento bloccato
+Invalid position	Posizione non valida
+Too close to another structure	Troppo vicino a un'altra struttura
+Too far away	Troppo lontano
+Too close	Troppo vicino
+Out of reach	Fuori portata
+Must be placed on foundation	Va posizionato sulle fondamenta
+Must be placed on the ground	Va posizionato a terra
+Requires foundation	Richiede le fondamenta
+Not supported here	Non supportato qui
+Unsupported structure	Struttura senza supporto
+Structural Integrity	Integrità strutturale
+Stability Low	Stabilità bassa
+Snap	Aggancia
+Snap to Grid	Aggancia alla griglia
+Grid	Griglia
+Free Placement	Posizionamento libero
+Rotate Structure	Ruota la struttura
+Move Structure	Sposta la struttura
+Copy Structure	Copia la struttura
+Delete Structure	Elimina la struttura
+Demolish Structure	Demolisci la struttura
+Repair Structure	Ripara la struttura
+Upgrade Structure	Potenzia la struttura
+Paint	Dipingi
+Paint Color	Colore della vernice
+Change Color	Cambia colore
+Colors	Colori
+Color	Colore
+Primary Color	Colore primario
+Secondary Color	Colore secondario
+Material Type	Tipo di materiale
+Wooden	Di legno
+Stone Wall	Muro di pietra
+Wooden Wall	Muro di legno
+Metal Wall	Muro di metallo
+Wooden Floor	Pavimento di legno
+Wooden Door	Porta di legno
+Metal Door	Porta di metallo
+Doorway	Vano porta
+Window Frame	Telaio della finestra
+Half Wall	Mezzo muro
+Triangle Foundation	Fondamenta triangolari
+Square Foundation	Fondamenta quadrate
+Ceiling	Soffitto
+Stairs Up	Scale in salita
+Railing	Ringhiera
+Wall Light	Lampada da parete
+Ceiling Light	Plafoniera
+Lamp	Lampada
+Chair	Sedia
+Table	Tavolo
+Shelf	Scaffale
+Cabinet	Armadio
+Locker Box	Armadietto
+Flag	Bandiera
+Banner Flag	Stendardo
+Base Computer	Computer della base
+Teleport Module	Modulo di teletrasporto
+Storage Unit	Unità di deposito
+Large Storage	Deposito grande
+Small Storage	Deposito piccolo
+Water Pump	Pompa dell'acqua
+Water Tank	Serbatoio d'acqua
+Farm	Fattoria
+Farm Plot	Appezzamento
+Crop	Coltura
+Crops	Colture
+Plant Seeds	Pianta i semi
+Harvestable	Raccoglibile
+Ready to harvest	Pronto per il raccolto
+Growing	In crescita
+Growth	Crescita
+Fertilizer	Fertilizzante
+Planter	Fioriera
+Greenhouse	Serra
