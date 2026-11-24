@@ -2306,3 +2306,123 @@ Corrupted save file	File di salvataggio danneggiato
 Cloud Save	Salvataggio nel cloud
 Sync	Sincronizza
 Version	Versione
+Not enough space in inventory	Spazio insufficiente nell'inventario
+Not enough energy	Energia insufficiente
+New recipe unlocked	Nuova ricetta sbloccata
+New area unlocked	Nuova zona sbloccata
+New items	Nuovi oggetti
+Items acquired	Oggetti ottenuti
+Item sold	Oggetto venduto
+Item purchased	Oggetto acquistato
+Item crafted	Oggetto creato
+Item equipped	Oggetto equipaggiato
+Item unequipped	Oggetto rimosso
+Item dropped	Oggetto lasciato cadere
+Drop all	Lascia cadere tutto
+Sort inventory	Riordina l'inventario
+Sort by name	Ordina per nome
+Sort by type	Ordina per tipo
+Sort by rarity	Ordina per rarità
+Sort by value	Ordina per valore
+Sort by weight	Ordina per peso
+Sort by level	Ordina per livello
+Sort by date	Ordina per data
+Filters	Filtri
+Clear filters	Azzera i filtri
+Hide all	Nascondi tutto
+Total weight	Peso totale
+Overweight	Sovraccarico
+Repair cost	Costo di riparazione
+Broken	Rotto
+Damaged	Danneggiato
+Exotic	Esotico
+Melee weapon	Arma da mischia
+Time elapsed	Tempo trascorso
+Round over	Round finito
+Match ended	Partita finita
+You have died	Sei morto
+Leave match	Abbandona la partita
+Leave game	Abbandona la partita
+Invite friend	Invita un amico
+Ready up	Preparati
+Server full	Server pieno
+Server error	Errore del server
+Unable to connect	Impossibile connettersi
+Players online	Giocatori online
+Quest	Missione
+Objective completed	Obiettivo completato
+Claim rewards	Riscatta le ricompense
+Challenge completed	Sfida completata
+Mini map	Minimappa
+Bestiary	Bestiario
+Characters	Personaggi
+Customize character	Personalizza il personaggio
+Attributes	Attributi
+Upgrades	Miglioramenti
+Upgrade available	Miglioramento disponibile
+Max level	Livello massimo
+Max level reached	Livello massimo raggiunto
+Required materials	Materiali necessari
+Cancel building	Annulla la costruzione
+Open chest	Apri il baule
+Store all	Deposita tutto
+Sit	Siediti
+Radiation	Radiazioni
+Discount	Sconto
+Trading	Scambio
+Offer	Offerta
+Decline trade	Rifiuta lo scambio
+Speed	Velocità
+Lap	Giro
+Laps	Giri
+Best lap	Giro migliore
+Position	Posizione
+Start race	Inizia la gara
+Restart race	Ricomincia la gara
+Tuning	Assetto
+Tires	Pneumatici
+Brakes	Freni
+Engine	Motore
+Manual transmission	Cambio manuale
+Automatic transmission	Cambio automatico
+Steering sensitivity	Sensibilità dello sterzo
+Teams	Squadre
+Your team	La tua squadra
+Enemy team	Squadra nemica
+Create party	Crea un gruppo
+Away	Assente
+Busy	Occupato
+In game	In gioco
+Last online	Ultimo accesso
+Resources gathered	Risorse raccolte
+Colony	Colonia
+Population	Popolazione
+Workers	Lavoratori
+Research	Ricerca
+Research completed	Ricerca completata
+Technology	Tecnologia
+Tech tree	Albero tecnologico
+Production	Produzione
+Construction	Costruzione
+Under construction	In costruzione
+Construction complete	Costruzione completata
+End turn	Fine turno
+Next turn	Turno successivo
+Your turn	Tocca a te
+Enemy turn	Turno del nemico
+Diplomacy	Diplomazia
+Economy	Economia
+Military	Esercito
+Units	Unità
+Difficulty level	Livello di difficoltà
+Hardcore mode	Modalità estrema
+Training mode	Modalità addestramento
+Free play	Gioco libero
+Chapter	Capitolo
+Mission	Missione
+Saving game	Salvataggio in corso
+Loading game	Caricamento della partita
+Return to title screen	Torna alla schermata del titolo
+Press to continue	Premi per continuare
+Under maintenance	In manutenzione
+Download complete	Download completato
