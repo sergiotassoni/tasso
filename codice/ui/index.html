@@ -891,12 +891,26 @@ body nav button[data-go="games"].on{background:transparent;box-shadow:none}
     <a href="#" class="small" id="vForgot" style="color:var(--muted);display:none">Ho dimenticato il PIN</a>
   </div>
   <div id="vOpen" style="display:none;flex-direction:column;gap:14px">
+    <div class="warnbox" id="vPickNote" style="display:none"><span class="small" style="flex:1 1 300px;line-height:1.5"></span><button class="btn ghost" id="vPickX" style="min-height:34px;padding:6px 11px;font-size:12px">Chiudi</button></div>
     <div class="card" style="display:flex;flex-direction:column;gap:10px">
       <input class="search" id="vSearch" placeholder="Cerca un sito o un nome utente…" aria-label="Cerca nel portachiavi">
       <div class="small muted" id="vSummary"></div>
       <div class="list" id="vList" style="max-height:none"></div>
     </div>
-    <span class="small muted">Con il PIN si chiude da solo dopo 5 minuti che non lo usi. Le password copiate non finiscono nella cronologia degli appunti (Win+V) e si cancellano dagli appunti dopo 30 secondi. "Controlla se è stata rubata" usa il servizio gratuito Have I Been Pwned: al sito arriva solo un pezzetto dell'impronta della password, mai la password.</span>
+    <div class="card" style="display:flex;flex-direction:column;gap:4px">
+      <h3 style="margin:0 0 4px">Compila da solo</h3>
+      <button role="switch" aria-checked="false" class="toggle" id="tgVSuggest" style="padding:8px 0"><span><b>Proponi gli account quando clicco su un campo di accesso</b><span>Clicchi nel campo utente o password di Steam, Google o di un altro sito: sotto il campo compare una finestrella di Tasso con i tuoi account di quel sito. Un clic e Tasso compila.</span></span><span class="sw"><i></i></span></button>
+      <label class="li" style="border-bottom:0;gap:12px;flex-wrap:wrap"><span class="x" style="flex:1 1 260px"><b>Scorciatoia da tastiera</b><span>Con la finestra di login davanti premi la scorciatoia: Tasso trova l'account giusto e compila.</span></span><select id="vFillKey" style="max-width:200px"><option value="0">Spenta</option><option value="196673">Ctrl+Alt+A</option><option value="196683">Ctrl+Alt+K</option><option value="196688">Ctrl+Alt+P</option></select></label>
+      <details class="guide"><summary>Come funziona e limiti</summary><div class="small muted" style="line-height:1.6;display:flex;flex-direction:column;gap:6px;margin-top:8px">
+        <span><b>Finestrella</b>: compare solo se nel portachiavi c'è un account di quel sito. Nei browser Tasso legge l'indirizzo della pagina e lo confronta con il sito vero: accounts.google.com va bene per Google, una pagina falsa come google.com.truffa.it no. Si chiude con Esc o cliccando altrove. Con il portachiavi chiuso dice "Sblocca il portachiavi".</span>
+        <span><b>Compila</b> (pulsante nell'elenco): Tasso si riduce a icona, torna sull'ultima finestra che usavi e scrive utente e password. Se quella finestra non è del sito giusto, prima ti chiede dove compilare.</span>
+        <span><b>Come scrive</b>: prima riempie i campi direttamente; se il programma non lo permette, scrive lettera per lettera e prima di ogni tasto controlla che la finestra sia ancora quella: se cambia si ferma subito. Puoi premere Esc per fermarlo.</span>
+        <span><b>Sequenza</b> (in Modifica): di base {UTENTE}{TAB}{PASSWORD}{INVIO}. Per i login in due pagine, come Google: {UTENTE}{INVIO}{ATTESA 2s}{PASSWORD}{INVIO}. Togli {INVIO} se vuoi premere tu "Accedi".</span>
+        <span><b>Limiti onesti</b>: Tasso non compila mai dentro i giochi (con l'anti-cheat rischi il ban), né nelle finestre di Tasso, né nella richiesta di permessi da amministratore di Windows (il "desktop protetto": lì Windows non lo permette a nessun programma). Alcuni programmi o giochi non fanno vedere i loro campi a Windows, e alcuni siti bloccano la compilazione automatica o la mettono dentro riquadri di altri siti: lì usa Copia utente e Copia password. Il codice a due fattori (SMS, app) lo scrivi tu. Controlla sempre l'indirizzo del sito prima di compilare.</span>
+        <span>Niente esce dal PC: Tasso non salva mai le password in chiaro, né nei file di registro.</span>
+      </div></details>
+    </div>
+    <span class="small muted">Con il PIN si chiude da solo dopo 5 minuti che non lo usi. Nome utente e password copiati non finiscono nella cronologia degli appunti (Win+V) né negli appunti sul cloud, e si cancellano dagli appunti dopo 20 secondi. "Controlla se è stata rubata" usa il servizio gratuito Have I Been Pwned: al sito arriva solo un pezzetto dell'impronta della password, mai la password.</span>
   </div>
 </section>
 
@@ -4452,7 +4466,7 @@ async function vaultRefresh(){
   }
   VAULT = await call('goVaultList');
   if (!VAULT || VAULT.locked) { VST.unlocked = false; return vaultRefresh(); }
-  paintVault();
+  paintVault(); vaultFillPaint();
 }
 function paintVault(){
   const q = ($('#vSearch').value || '').toLowerCase().trim();
@@ -4465,9 +4479,12 @@ function paintVault(){
   list.forEach(it => {
     const st = STRENGTH[it.strength] || STRENGTH[0];
     const row = el('div', {class:'li', style:'flex-wrap:wrap'}, '<span class="x" style="flex:1 1 240px"><b>' + esc(it.site) + '</b><span>' + esc(it.user || '—') + ' · <span style="color:' + st[1] + '">' + st[0] + '</span>' + (it.reused ? _t(' · <span style="color:var(--a4)">usata anche altrove</span>') : '') + (it.note ? ' · ' + esc(it.note) : '') + '</span><span class="pwv mono" style="display:none;color:var(--text);user-select:text"></span></span>');
-    const mk = (label, fn) => { const b = el('button', {class:'btn ghost', style:'min-height:34px;padding:6px 11px;font-size:12px'}, label); b.onclick = fn; row.appendChild(b); return b; };
-    if (it.user) mk(_t('Copia utente'), async () => { const r = await call('goVaultCopy', it.id, 'user'); vaultAns(r, _t('Nome utente copiato.')); });
-    mk(_t('Copia password'), async () => { const r = await call('goVaultCopy', it.id, 'pw'); vaultAns(r, _t('Password copiata: si cancella dagli appunti tra 30 secondi.')); });
+    const mk = (label, fn, cls) => { const b = el('button', {class:'btn ' + (cls || 'ghost'), style:'min-height:34px;padding:6px 11px;font-size:12px'}, label); b.onclick = fn; row.appendChild(b); return b; };
+    // Clic sul nome dell'account (o su Compila): Tasso compila utente e password nella finestra di login.
+    const nb = row.querySelector('.x b'); nb.style.cursor = 'pointer'; nb.title = _t('Compila utente e password nella finestra di login'); nb.onclick = () => vaultFill(it.id);
+    mk(_t('Compila'), () => vaultFill(it.id), 'primary');
+    if (it.user) mk(_t('Copia utente'), async () => { const r = await call('goVaultCopy', it.id, 'user'); vaultAns(r, _t('Nome utente copiato: si cancella dagli appunti tra 20 secondi.')); });
+    mk(_t('Copia password'), async () => { const r = await call('goVaultCopy', it.id, 'pw'); vaultAns(r, _t('Password copiata: si cancella dagli appunti tra 20 secondi.')); });
     const sh = mk(_t('Mostra'), async () => { const pv = row.querySelector('.pwv'); if (pv.style.display === 'none') { const pw = await call('goVaultReveal', it.id); if (!pw) { vaultRefresh(); return; } pv.textContent = pw; pv.style.display = ''; sh.textContent = _t('Nascondi'); setTimeout(() => { pv.textContent = ''; pv.style.display = 'none'; sh.textContent = _t('Mostra'); }, 20000); } else { pv.textContent = ''; pv.style.display = 'none'; sh.textContent = _t('Mostra'); } });
     mk(_t('Rubata?'), async () => { const r = await call('goVaultPwned', it.id); if (r === 'busy') toast(_t('Un controllo è già in corso.')); else toast(_t('Controllo in corso…')); });
     mk(_t('Modifica'), () => vaultEdit(it));
@@ -4475,6 +4492,40 @@ function paintVault(){
     box.appendChild(row);
   });
 }
+// ---------- Portachiavi > Compila ----------
+const FILL_WARN = 'Tasso scriverà utente e password nella finestra che hai davanti: controlla che sia quella giusta.';
+function vaultFillFirst(then){
+  modal('<h2>' + _t('Prima di compilare') + '</h2><p style="margin:0;line-height:1.55"><b>' + esc(_t(FILL_WARN)) + '</b></p><p class="muted" style="margin:0;line-height:1.55">' + esc(_t('Tasso si fa da parte, torna sulla finestra di login e scrive per te. Se nel frattempo cambi finestra si ferma subito. Non compila mai dentro i giochi né nella richiesta di permessi da amministratore di Windows.')) + '</p>',
+    [{label:_t('Annulla')}, {label:_t('Ho capito'), cls:'primary', fn: async () => { await call('goVaultFillAccept'); if (then) then(); }}]);
+}
+async function vaultFill(id){
+  const r = await call('goVaultFill', id);
+  if (r !== 'ok') vaultAns(r, '');
+}
+function vaultFillAsk(d){
+  const ws = (d && d.windows) || [];
+  if (!ws.length) { modal('<h2>' + _t('Nessuna finestra di login') + '</h2><p class="muted" style="margin:0;line-height:1.55">' + esc(_t('Apri la pagina o il programma dove vuoi accedere, poi torna qui e premi di nuovo Compila.')) + '</p>', [{label:'Ok', cls:'primary'}]); return; }
+  const anyMatch = ws.some(w => w.match);
+  const rows = ws.map((w, i) => '<button class="li" data-wi="' + i + '" style="width:100%;background:transparent;border:0;border-bottom:1px solid var(--line);text-align:left;cursor:pointer"><span class="x" style="flex:1"><b>' + esc(w.site || w.exe) + '</b><span>' + esc(w.host || w.exe) + (w.last ? ' · ' + esc(_t('ultima usata')) : '') + (w.match ? ' · <span style="color:var(--a1t)">✓ ' + esc(_t('sito giusto')) + '</span>' : '') + '</span></span></button>').join('');
+  modal('<h2>' + _t('Dove compilo?') + '</h2>' + (anyMatch ? '' : '<div class="callout" style="border-color:var(--a4)"><b>' + esc(_t('Nessuna finestra è del sito di questo account.')) + '</b> ' + esc(_t('Controlla bene l\'indirizzo: una pagina che imita un sito famoso può rubare la password.')) + '</div>') + '<p class="muted small" style="margin:0">' + esc(_t(FILL_WARN)) + '</p><div class="list" style="max-height:340px">' + rows + '</div>', [{label:_t('Annulla')}]);
+  $$('#modalBox [data-wi]').forEach(b => b.onclick = () => { const w = ws[+b.dataset.wi]; closeModal(); call('goVaultFillTo', d.id, w.id); });
+}
+async function vaultFillPaint(){
+  const c = await call('goVaultFillCfg'); if (!c) return;
+  setSw('#tgVSuggest', !!c.suggest);
+  const sel = $('#vFillKey'); const v = String(c.key || 0);
+  if (![...sel.options].some(o => o.value === v)) sel.appendChild(el('option', {value:v}, esc(c.keyLabel || v)));
+  sel.value = v;
+}
+$('#tgVSuggest').onclick = async () => { const on = !$('#tgVSuggest').classList.contains('on'); const r = await call('goVaultFillSuggest', on); if (r === 'ok') { setSw('#tgVSuggest', on); toast(on ? _t('Tasso ti proporrà gli account quando clicchi su un campo di accesso.') : _t('Finestrella degli account spenta.')); } };
+$('#vFillKey').onchange = async () => {
+  const sel = $('#vFillKey'), code = +sel.value;
+  const r = await call('goVaultFillKey', code);
+  if (r === 'ok') { toast(code ? _t('Scorciatoia attiva: ') + sel.options[sel.selectedIndex].text : _t('Scorciatoia spenta.')); return; }
+  if (r === 'first') { vaultFillPaint(); vaultFillFirst(async () => { const r2 = await call('goVaultFillKey', code); if (r2 === 'ok') toast(_t('Scorciatoia attiva: ') + sel.options[[...sel.options].findIndex(o => +o.value === code)].text); else toast(r2 || _t('Errore'), 'var(--red)'); vaultFillPaint(); }); return; }
+  toast(r || _t('Errore'), 'var(--red)'); vaultFillPaint();
+};
+$('#vPickX').onclick = () => { $('#vPickNote').style.display = 'none'; };
 function vaultAns(r, okMsg){ if (r === 'ok') toast(okMsg); else if (r === 'locked') { toast(_t('Il portachiavi si è chiuso: riaprilo.'), 'var(--a4)'); vaultRefresh(); } else toast(r || _t('Errore'), 'var(--red)'); }
 function vaultEdit(it){
   const e = it || {};
@@ -4483,9 +4534,16 @@ function vaultEdit(it){
     _t('<label class="acf">Nome utente o email<input id="veUser" value="') + esc(e.user || '') + '"></label>' +
     '<label class="acf">Password' + (it ? _t(' (lascia vuoto per non cambiarla)') : '') + _t('<span class="row" style="gap:6px"><input id="vePw" type="password" style="flex:1" autocomplete="off"><button class="btn ghost" id="veShow" type="button" style="min-height:38px">Mostra</button><button class="btn ghost" id="veGen" type="button" style="min-height:38px">Genera</button></span></label>') +
     '<span class="small" id="veStr"></span>' +
-    _t('<label class="acf">Nota (facoltativa)<input id="veNote" value="') + esc(e.note || '') + '"></label>',
+    _t('<label class="acf">Nota (facoltativa)<input id="veNote" value="') + esc(e.note || '') + '"></label>' +
+    '<details class="guide"' + (e.web || e.win || e.seq || e.keys ? ' open' : '') + '><summary>' + _t('Compila da solo (facoltativo)') + '</summary><div style="display:flex;flex-direction:column;gap:8px;margin-top:8px">' +
+    _t('<label class="acf">Indirizzo del sito o programma<input id="veWeb" value="') + esc(e.web || '') + _t('" placeholder="es. accounts.google.com oppure steam.exe"></label>') +
+    _t('<label class="acf">Titolo della finestra<input id="veWin" value="') + esc(e.win || '') + _t('" placeholder="es. Steam oppure Accedi*Google"></label>') +
+    _t('<label class="acf">Sequenza dei tasti<input id="veSeq" class="mono" value="') + esc(e.seq || '') + '" placeholder="{UTENTE}{TAB}{PASSWORD}{INVIO}"></label>' +
+    _t('<label class="check"><input type="checkbox" id="veKeys"') + (e.keys ? ' checked' : '') + _t('> <span>Scrivi lettera per lettera (per i siti o programmi che non accettano la compilazione diretta)</span></label>') +
+    _t('<span class="small muted" style="line-height:1.5">Per Steam, Google, Microsoft, Epic, Riot e altri siti famosi basta il nome in "Sito o programma". Il titolo della finestra serve per i programmi: va bene anche solo un pezzo, * vuol dire "qualsiasi testo". Nella sequenza: {UTENTE}, {TAB}, {PASSWORD}, {INVIO}, {ATTESA 2s}.</span>') +
+    '</div></details>',
     [{label:_t('Annulla')}, {label:_t('Salva'), cls:'primary', fn: (box) => {
-      const v = {id: e.id || '', site: box.querySelector('#veSite').value, user: box.querySelector('#veUser').value, pw: box.querySelector('#vePw').value, note: box.querySelector('#veNote').value};
+      const v = {id: e.id || '', site: box.querySelector('#veSite').value, user: box.querySelector('#veUser').value, pw: box.querySelector('#vePw').value, note: box.querySelector('#veNote').value, web: box.querySelector('#veWeb').value, win: box.querySelector('#veWin').value, seq: box.querySelector('#veSeq').value, keys: box.querySelector('#veKeys').checked};
       if (!v.site.trim()) { toast(_t('Scrivi almeno il nome del sito.')); return 'keep'; }
       if (!it && !v.pw) { toast(_t('Scrivi la password o premi Genera.')); return 'keep'; }
       call('goVaultSave', v).then(r => { vaultAns(r, _t('Salvata.')); vaultRefresh(); });
@@ -4552,6 +4610,19 @@ Object.assign(window.tasso, { onPwned(r){
   if (!r || !r.ok) { toast((r && r.error) || _t('Controllo non riuscito.'), 'var(--a4)'); return; }
   if (r.count > 0) toast(_t('⚠️ Questa password compare ') + Number(r.count).toLocaleString(EN ? 'en-US' : 'it-IT') + _t(' volte tra quelle rubate su internet. Cambiala subito dove la usi.'), 'var(--red)');
   else toast(_t('✓ Questa password non compare tra quelle rubate conosciute.'), 'var(--a1)');
+}, onVaultFill(d){
+  if (!d) return;
+  if (d.first) { vaultFillFirst(() => vaultFill(d.id)); return; }
+  if (d.ask) { vaultFillAsk(d); return; }
+  if (d.msg) toast(d.msg, 'var(--a4)');
+}, onVaultShow(){
+  show('vault');
+}, onVaultPick(d){
+  show('vault');
+  const n = $('#vPickNote');
+  n.querySelector('span').innerHTML = '<b>' + esc(_t('Scegli l\'account e premi Compila.')) + '</b> ' + esc(_t('Nel portachiavi non c\'è un account salvato per')) + ' <span class="mono">' + esc((d && d.ctx) || '?') + '</span>: ' + esc(_t('se usi un account di un altro sito, controlla bene l\'indirizzo. Una pagina che imita un sito famoso può rubare la password.'));
+  n.style.display = '';
+  setTimeout(() => { const q = $('#vSearch'); if (q && q.offsetParent) q.focus(); }, 80);
 }, onVaultLocked(){
   if (CURVIEW === 'vault') { const m = $('#modal'); if (m) m.classList.remove('on'); vaultRefresh(); if (!VST || !VST.noPin) toast(_t('Portachiavi chiuso da solo dopo 5 minuti.')); }
 }});

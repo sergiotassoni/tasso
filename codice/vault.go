@@ -31,6 +31,8 @@ import (
 	"unsafe"
 
 	"golang.org/x/sys/windows"
+
+	"tasso/autotipo"
 )
 
 type vaultEntry struct {
@@ -40,6 +42,12 @@ type vaultEntry struct {
 	Pw      string `json:"pw"`
 	Note    string `json:"note"`
 	Changed string `json:"changed"`
+	// Compila (vault_compila.go): indirizzi o programmi (es. "accounts.google.com steam.exe"),
+	// titolo della finestra facoltativo, sequenza dei tasti e "scrivi lettera per lettera".
+	Web  string `json:"web,omitempty"`
+	Win  string `json:"win,omitempty"`
+	Seq  string `json:"seq,omitempty"`
+	Keys bool   `json:"keys,omitempty"`
 }
 
 type vaultFile struct {
@@ -389,8 +397,10 @@ func vaultList() map[string]interface{} {
 		list = append(list, map[string]interface{}{
 			"id": e.ID, "site": e.Site, "user": e.User, "note": e.Note, "changed": e.Changed,
 			"strength": pwStrength(e.Pw), "reused": seen[e.Pw] > 1, "len": len([]rune(e.Pw)),
+			"web": e.Web, "win": e.Win, "seq": e.Seq, "keys": e.Keys,
 		})
 	}
+	vtMetaDa(vaultItems)
 	sort.Slice(list, func(i, j int) bool {
 		return strings.ToLower(fmt.Sprint(list[i]["site"])) < strings.ToLower(fmt.Sprint(list[j]["site"]))
 	})
@@ -408,11 +418,18 @@ func vaultFind(id string) int {
 
 func vaultSave(e vaultEntry) string {
 	e.Site, e.User, e.Note = strings.TrimSpace(e.Site), strings.TrimSpace(e.User), strings.TrimSpace(e.Note)
+	e.Web, e.Win, e.Seq = strings.TrimSpace(e.Web), strings.TrimSpace(e.Win), strings.TrimSpace(e.Seq)
 	if e.Site == "" {
 		return "Scrivi almeno il nome del sito o del programma."
 	}
-	if len(e.Site) > 200 || len(e.User) > 200 || len(e.Pw) > 500 || len(e.Note) > 2000 {
+	if len(e.Site) > 200 || len(e.User) > 200 || len(e.Pw) > 500 || len(e.Note) > 2000 || len(e.Web) > 500 || len(e.Win) > 200 || len(e.Seq) > 300 {
 		return "Testo troppo lungo."
+	}
+	if strings.ToUpper(strings.ReplaceAll(e.Seq, " ", "")) == autotipo.SequenzaBase {
+		e.Seq = "" // quella di base non la salvo: se un giorno cambia, vale anche per questa voce
+	}
+	if _, err := autotipo.LeggiSequenza(e.Seq); err != nil {
+		return err.Error()
 	}
 	vaultMu.Lock()
 	defer vaultMu.Unlock()
@@ -471,8 +488,8 @@ func vaultReveal(id string) string {
 	return ""
 }
 
-// vaultCopy copia utente o password negli appunti, fuori dalla cronologia di Win+V,
-// e la password si cancella da sola dopo 30 secondi (se nel frattempo non hai copiato altro).
+// vaultCopy copia utente o password negli appunti, fuori dalla cronologia di Win+V e dal cloud,
+// e si cancellano da soli dopo 20 secondi (se nel frattempo non hai copiato altro).
 func vaultCopy(id, what string) string {
 	vaultMu.Lock()
 	if vaultLocked() {
@@ -492,7 +509,9 @@ func vaultCopy(id, what string) string {
 	if txt == "" {
 		return "Vuoto."
 	}
-	return copySecret(txt, what == "pw")
+	// Nome utente e password restano negli appunti 20 secondi, poi si cancellano (se nel frattempo
+	// non hai copiato altro). Mai nella cronologia di Win+V né negli appunti sul cloud.
+	return copySecretFor(txt, 20*time.Second)
 }
 
 // copySecret copia fuori dalla cronologia di Win+V; con autoClear si cancella dopo 30 secondi

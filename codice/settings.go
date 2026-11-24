@@ -109,6 +109,12 @@ type Settings struct {
 	FeedbackDay   string `json:"feedbackDay,omitempty"`
 	FeedbackCount int    `json:"feedbackCount,omitempty"`
 	FeedbackSent  int    `json:"feedbackSent,omitempty"`
+	// Portachiavi > Compila (vault_compila.go): finestrella sui campi di login (0 accesa di base,
+	// 2 spenta), scorciatoia (modificatori<<16|tasto, 0 = spenta), avviso già letto, ci sono account.
+	VtSuggest  int    `json:"vtSuggest,omitempty"`
+	VtKey      uint32 `json:"vtKey,omitempty"`
+	VtFirstOK  bool   `json:"vtFirstOK,omitempty"`
+	VtHasItems bool   `json:"vtHasItems,omitempty"`
 	// Numeri anonimi (3.0): nil = non ancora chiesto. Partono solo se la persona ha detto sì.
 	Stats       *bool  `json:"stats"`
 	StatsDay    string `json:"statsDay,omitempty"`
