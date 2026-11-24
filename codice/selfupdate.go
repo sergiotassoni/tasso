@@ -68,6 +68,10 @@ func selfUpdate() {
 		updMsg("error", "Hai già l'ultima versione.")
 		return
 	}
+	if e, _ := u["eco"].(bool); e {
+		ecoSelfUpdate(u) // ecoupdate.go: Tasso, Tasso Zip e Tasso PDF con l'installatore
+		return
+	}
 	latest, _ := u["latest"].(string)
 	updMsg("work", "Scarico Tasso "+latest+"…")
 	sum, err := httpGet(shaURL, 200, 20*time.Second)
@@ -257,6 +261,10 @@ func selfUpdate() {
 // cleanOldExe toglie il Tasso.old.exe lasciato dall'aggiornamento (riprova per qualche secondo:
 // la copia vecchia potrebbe non essersi ancora chiusa del tutto).
 func cleanOldExe() {
+	go func() {
+		defer guard("cleanEcoSetup")
+		cleanEcoSetup() // ecoupdate.go: copie dell'installatore rimaste in Programmi
+	}()
 	cur, err := os.Executable()
 	if err != nil {
 		return

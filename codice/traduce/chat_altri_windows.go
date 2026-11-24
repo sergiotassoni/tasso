@@ -117,7 +117,7 @@ func scegliZonaGioco() {
 			pShowWindow.Call(h, 9) // SW_RESTORE
 			pSetForeground.Call(h)
 		}
-		emetti("info", map[string]string{"testo": "Apri prima il gioco, poi torna qui e premi di nuovo «Traduci solo una zona» (oppure premi F9 nel gioco)."})
+		emetti("info", map[string]string{"testo": "Apri prima il gioco, poi torna qui e premi di nuovo «Traduci solo una zona» (oppure premi " + nomeTasto("zona") + " nel gioco)."})
 		return
 	}
 	if sel.hwnd.Load() != 0 {

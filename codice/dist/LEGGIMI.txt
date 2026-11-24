@@ -47,6 +47,7 @@ NOVITÀ DELLA 3.1
   stesso posto, la stessa grandezza e lo stesso colore del gioco.
   Tasti: F7 accende e spegne, F9 sceglie una zona, F10 ritraduce, F11 automatico,
   F8 cronologia, Ctrl+Alt+I mostra l'inglese. I tasti non arrivano al gioco.
+  Sono i tasti di base: li cambi in Giochi > Impostazioni > Tasti rapidi.
   Funziona sul tuo PC, senza abbonamento: un'IA sulla tua scheda video corregge
   la traduzione (livello automatico, oppure Piccola, Media, Grande o Spenta).
   Tradotta anche la chat degli altri giocatori, accanto a quella del gioco.

@@ -523,6 +523,14 @@ nav [data-sub="gio"] button{--ic:#FF4D6D}
 @media (max-width:760px){.navrec{display:none}}
 .kgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:6px 18px}
 .kk{display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px solid var(--line);font-size:14px}.kk b{font-family:var(--mono,monospace);color:var(--a1t)}
+.boostside{display:flex;flex-direction:column;align-items:center;gap:10px}
+.bdot{display:inline-block;width:8px;height:8px;border-radius:99px;background:var(--a1);margin-right:10px;vertical-align:middle;box-shadow:0 0 0 3px color-mix(in srgb,var(--a1) 25%,transparent)}
+.gptr{display:flex;flex-direction:column;gap:0;padding-top:6px;padding-bottom:6px}.gptr h3{margin:10px 0 2px}.gptr .gp-line small{display:block;line-height:1.6}.gptr .sw{border:0;cursor:pointer;flex:none}
+.boostundo{background:none;border:0;padding:4px 8px;border-radius:8px;font-size:12px;font-weight:500;color:var(--muted);display:inline-flex;align-items:center;gap:6px;cursor:pointer;transition:color .15s}.boostundo:hover,.boostundo:focus-visible{color:var(--text)}.boostundo[hidden]{display:none}
+.boostauto{display:flex;align-items:center;gap:12px;margin:14px 0 0;font-size:14px;cursor:pointer}.boostauto .sw{border:0;cursor:pointer;flex:none}
+.kbd{display:inline-block;font:600 12px var(--mono,monospace);line-height:1.5;padding:0 7px;border:1px solid var(--line);border-bottom-width:2px;border-radius:6px;color:var(--text);background:var(--panel2);white-space:nowrap}
+body main a.trhint{display:inline-block;margin-top:4px;font-size:12px;color:var(--muted);text-decoration:none}body main a.trhint:hover{color:var(--text)}
+.hkrow .btn{font-family:var(--mono,monospace);min-width:150px;min-height:36px;padding:6px 14px}.hkrow .btn.wait{border-style:dashed;border-color:var(--a1);color:var(--muted);font-family:inherit}
 .kcap{border:2px dashed var(--line);border-radius:12px;padding:18px;text-align:center;color:var(--muted);cursor:pointer}.kcap:focus{border-color:var(--a1);color:var(--text);outline:none}
 #trSetCard textarea,#modalBox textarea{width:100%;border-radius:10px;border:1px solid var(--line);background:transparent;color:inherit;font:13px var(--mono,monospace);padding:8px}
 #trFont{width:200px;accent-color:var(--a1)}
@@ -1013,8 +1021,8 @@ body nav button[data-go="games"].on{background:transparent;box-shadow:none}
 <section class="view" id="v-games">
   <div><h1 style="font-size:26px">Giochi</h1><p class="sub">I tuoi giochi, il Boost e la traduzione, in un posto solo.</p></div>
   <div class="card boostcard" id="boostCard">
-    <div style="flex:1 1 320px;min-width:0"><div class="boostk">PRONTO A GIOCARE</div><h2 id="boostTitle">Il PC è in modalità normale</h2><p class="sub" id="boostSub" style="margin:0">Scegli il gioco e confermi: Tasso lo prepara con la potenza giusta, senza passare dalla traduzione. Da lì in poi lo fa da solo ogni volta che apri quel gioco.</p><p class="small" style="margin:10px 0 0"><a href="#" id="boostUndo">↩️ Rimetti com'era</a> · <a href="#" id="boostNow">⚡ Boost subito, senza scegliere</a> · <a href="#" id="boostFpsBtn">📊 Misura gli FPS</a> · <a href="#" id="boostCheckBtn">🔍 Controllo FPS</a></p><p class="small" style="margin:8px 0 0"><label style="cursor:pointer"><input type="checkbox" id="boostAuto"> Boost automatico: parte da solo quando apri un gioco</label></p><div class="small" id="boostFps" style="margin-top:8px"></div></div>
-    <button class="btn primary boostgo" id="btnBoost" aria-label="Boost: scegli il gioco">BOOST</button>
+    <div style="flex:1 1 320px;min-width:0"><div class="boostk">PRONTO A GIOCARE</div><h2 id="boostTitle">Il PC è in modalità normale</h2><p class="sub" id="boostSub" style="margin:0">Scegli il gioco e confermi: Tasso lo prepara con la potenza giusta. Da lì in poi lo fa da solo ogni volta che apri quel gioco.</p><label class="boostauto" for="boostAutoSw"><button class="sw" role="switch" aria-checked="false" id="boostAutoSw" aria-label="Boost automatico quando apri un gioco"><i></i></button><span>Boost automatico quando apri un gioco</span></label><input type="checkbox" id="boostAuto" hidden><span hidden><!-- non più nel riquadro (scelta di Sergio): il Boost senza scegliere il gioco resta nel menu dell'icona vicino all'orologio; la misura e il controllo FPS restano nel codice e partono da soli col Boost --><a href="#" id="boostNow"></a><a href="#" id="boostFpsBtn"></a><a href="#" id="boostCheckBtn"></a></span><div class="small" id="boostFps" style="margin-top:8px"></div></div>
+    <div class="boostside"><button class="btn primary boostgo" id="btnBoost" aria-label="Boost: scegli il gioco">BOOST</button><button class="boostundo" id="boostUndo" hidden title="Spegne il Boost (anche quello automatico), rimette le impostazioni di prima e riapre i programmi chiusi."><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>Rimetti com'era</button></div>
   </div>
   <div class="card" id="fpsCheckCard" style="display:none"><div id="fpsCheck" role="status" aria-live="polite" style="display:flex;flex-direction:column;gap:8px"></div></div>
   <div class="card" id="gpCard" style="display:none;flex-direction:column;gap:12px;border-color:var(--a1)">
@@ -1036,7 +1044,7 @@ body nav button[data-go="games"].on{background:transparent;box-shadow:none}
     </details>
     <span class="small muted">Come funziona, in parole semplici: quando accendi il profilo Tasso mette tutte le cose che hai scelto e si ricorda com'erano prima. A ogni accensione del PC controlla che sia ancora tutto così (a volte un aggiornamento di Windows o il programma del produttore del PC rimette il piano energetico normale) e rimette a posto quello che è cambiato. Quando lo spegni torna tutto com'era prima di accenderlo. Lo trovi anche in Impostazioni → Torna indietro.</span>
   </div>
-  <div class="card trbar" id="trBar"><div style="flex:1 1 260px;min-width:0"><b>🌐 Traduzione dei giochi</b><br><span class="small muted" id="trTxt">Spenta. Accendila e premi F7 nel gioco: le scritte diventano italiane.</span></div><button class="sw" role="switch" aria-checked="false" id="trSw" aria-label="Traduzione dei giochi"><i></i></button></div>
+  <div class="card trbar" id="trBar" style="display:none"><!-- non più in cima alla pagina (scelta di Sergio): la traduzione si accende dalla pagina del gioco; l'interruttore resta qui nascosto perché lo usa la pagina del gioco --><div style="flex:1 1 260px;min-width:0"><b>🌐 Traduzione dei giochi</b><br><span class="small muted" id="trTxt">Nel gioco premi <span class="kbd">F7</span> e le scritte diventano in italiano. Se il traduttore è spento, si accende da solo.</span><br><a href="#" class="trhint" id="trKeysLink">Tasti rapidi: si cambiano in Impostazioni</a></div><button class="sw" role="switch" aria-checked="false" id="trSw" aria-label="Traduzione dei giochi" title="Accende il traduttore di Tasso: lo prepara in sottofondo, senza toccare il gioco."><i></i></button></div>
   <div class="gtabs" role="tablist" id="gTabs" aria-label="Sezioni dei giochi"><button role="tab" data-gt="lib" aria-selected="true">🎮 I miei giochi</button><button role="tab" data-gt="cro" aria-selected="false">🕘 Cronologia</button><button role="tab" data-gt="imp" aria-selected="false">⚙️ Impostazioni</button></div>
   <div class="gpanel" data-gp="lib">
   <div class="card" style="display:flex;flex-direction:column;gap:12px">
@@ -1063,10 +1071,11 @@ body nav button[data-go="games"].on{background:transparent;box-shadow:none}
       <div class="row wrap" style="gap:14px;align-items:flex-end"><label class="acf">Dove mettere la traduzione<select id="trPos"><option value="sopra">Sopra la scritta</option><option value="sotto">Sotto la scritta</option><option value="copri">Al posto della scritta</option><option value="lato">Di lato</option><option value="sottotitoli">In basso, come sottotitoli</option></select></label><label class="acf">Grandezza del testo <span class="small muted" id="trFontV"></span><input type="range" id="trFont" min="14" max="48" step="1"></label></div>
       <div class="row wrap" style="gap:8px"><button class="btn ghost" id="btnTrZona">Traduci solo una zona</button><button class="btn ghost" id="btnTrWords">Parole fisse</button></div>
     </div>
-    <div class="card" style="display:flex;flex-direction:column;gap:10px">
-      <h2>⌨️ Tasti nel gioco</h2>
-      <div class="kgrid" id="trKeys"></div>
-      <div class="row wrap" style="gap:8px"><button class="btn ghost" id="btnKeyChange">Cambia un tasto</button><button class="btn ghost" id="btnKeyReset">Rimetti i tasti di base</button></div>
+    <div class="card" style="display:flex;flex-direction:column;gap:10px" id="hkCard">
+      <div><h2>⌨️ Tasti rapidi</h2><p class="sub" style="margin:2px 0 0">Funzionano anche dentro il gioco. Per cambiarne uno toccalo e premi la combinazione nuova: un tasto F da solo (F1–F24) oppure Ctrl, Alt, Maiusc o Win insieme a una lettera, un numero o un tasto F. Esc annulla.</p></div>
+      <div id="trKeys" style="display:flex;flex-direction:column"></div>
+      <p class="small" id="hkMsg" style="margin:0" role="status" aria-live="polite"></p>
+      <div class="row wrap" style="gap:8px"><button class="btn ghost" id="btnKeyReset">Ripristina i tasti di base</button></div>
     </div>
 
   <div class="card" style="display:flex;flex-direction:column;gap:12px">
@@ -1094,7 +1103,7 @@ body nav button[data-go="games"].on{background:transparent;box-shadow:none}
       <button role="switch" aria-checked="false" class="toggle" id="tgOverlay" style="padding:6px 0"><span><b>Mostralo da solo quando gioco</b><span>Appare quando apri un gioco e sparisce quando lo chiudi. Serve il "Boost automatico" acceso.</span></span><span class="sw"><i></i></span></button>
       <div><b style="font-size:14px">Cosa mostrare</b><div class="row wrap" id="ovItems" style="gap:6px;margin-top:6px"></div></div><div><b style="font-size:14px">Dove</b><div class="ovpos" id="ovPos" role="group" aria-label="Posizione del pannellino"><button data-pos="sx" class="btn ghost">↖ In alto a sinistra</button><button data-pos="dx" class="btn ghost">↗ In alto a destra</button><button data-pos="sxb" class="btn ghost">↙ In basso a sinistra</button><button data-pos="dxb" class="btn ghost">↘ In basso a destra</button></div></div><div><b style="font-size:14px">Anteprima</b> <span class="small muted">(numeri di esempio)</span><div class="ovprev" id="ovPrev"><span id="ovPrevTxt"></span></div></div>
       <div class="row wrap" style="gap:8px"><button class="btn ghost" id="btnOvShow">Mostra ora</button><button class="btn ghost" id="btnOvHide">Nascondi</button></div>
-      <span class="small muted">Durante il gioco: <b>Ctrl + Maiusc + F12</b> lo mostra o lo nasconde.<br><b>FPS</b>: Tasso non entra dentro i giochi (con gli anti-cheat si rischia il ban). Per gli FPS usa quelli ufficiali e sicuri: <b>Win + G</b> → Prestazioni (Windows) oppure <b>Alt + R</b> (NVIDIA). La temperatura del processore appare solo se hai aperto LibreHardwareMonitor (gratuito).</span>
+      <span class="small muted">Durante il gioco: <b id="ovKeyName">Ctrl+Maiusc+F12</b> lo mostra o lo nasconde (si cambia in Tasti rapidi).<br><b>FPS</b>: Tasso non entra dentro i giochi (con gli anti-cheat si rischia il ban). Per gli FPS usa quelli ufficiali e sicuri: <b>Win + G</b> → Prestazioni (Windows) oppure <b>Alt + R</b> (NVIDIA). La temperatura del processore appare solo se hai aperto LibreHardwareMonitor (gratuito).</span>
     </div>
   </div>
   <div class="card" style="display:flex;flex-direction:column;gap:12px">
@@ -1210,9 +1219,9 @@ body nav button[data-go="games"].on{background:transparent;box-shadow:none}
   <div><h1 style="font-size:26px">Impostazioni di Tasso</h1></div>
   <div class="card updcard" id="updCard">
     <div class="updicon">⬆️</div>
-    <div class="updtxt"><h2 style="margin:0">Aggiornamenti di Tasso</h2><p class="sub" style="margin:4px 0 0">Versione installata: <b id="verNum2"></b></p><p class="sub" style="margin:4px 0 0" id="appUpdMsg">Controlla se è uscita una versione più nuova: se c’è, Tasso si aggiorna da solo con un clic.</p></div>
+    <div class="updtxt"><h2 style="margin:0" id="updTit">Aggiornamenti di Tasso</h2><p class="sub" style="margin:4px 0 0" id="updVerRow">Versione installata: <b id="verNum2"></b></p><div id="updEco" style="display:none"></div><p class="sub" style="margin:4px 0 0" id="appUpdMsg">Controlla se è uscita una versione più nuova: se c’è, Tasso si aggiorna da solo con un clic.</p></div>
     <div class="updbtns"><button class="btn primary" id="btnUpd">Controlla aggiornamenti</button><button class="btn primary" id="btnUpdNow" style="display:none">Aggiorna ora</button><a href="#" class="small" id="lnkUpdZip" style="display:none">oppure scarica lo zip</a></div>
-    <label class="check autoupd" style="flex-basis:100%"><input type="checkbox" id="chkAutoUpd"> <span><b>Aggiorna Tasso da solo</b><br><span class="small muted">Quando esce una versione nuova Tasso la scarica, controlla che sia firmata da noi e si riapre. Prima ti avvisa e puoi dire "Non ora". Non lo fa mentre giochi o durante una pulizia.</span></span></label>
+    <label class="check autoupd" style="flex-basis:100%"><input type="checkbox" id="chkAutoUpd"> <span><b id="autoUpdTit">Aggiorna Tasso da solo</b><br><span class="small muted" id="autoUpdSub">Quando esce una versione nuova Tasso la scarica, controlla che sia firmata da noi e si riapre. Prima ti avvisa e puoi dire "Non ora". Non lo fa mentre giochi o durante una pulizia.</span></span></label>
   </div>
   <div class="card" style="display:flex;flex-direction:column;gap:12px">
     <div><h2>Lingua · Language</h2><p class="sub" style="margin:2px 0 0">Tasso si riapre nella lingua scelta. · Tasso reopens in the language you choose.</p></div>
@@ -2035,9 +2044,13 @@ function boostPaintState(){
   try { if (typeof S !== 'undefined' && S && S.modeBeforeBoost) { $('#bsCard').style.display = 'flex'; $('#btnBsEnd').style.display = ''; } } catch (e) {}
   const on = !!(BST.on || BST.game);
   if (typeof S !== 'undefined' && S && 'auto' in BST) { S.boostAuto = !!BST.auto; setToggle('#tgGame', !!BST.auto, S.paused); }
-  $('#btnBoost').classList.toggle('on', on);
-  $('#btnBoost').textContent = on ? _t('ACCESO') : _t('BOOST');
+  // il pulsante resta sempre il BOOST bianco: acceso si vede dal puntino verde e dalla scritta in alto (scelta di Sergio)
+  $('#btnBoost').innerHTML = (on ? '<i class="bdot" aria-hidden="true"></i>' : '') + esc(_t('BOOST'));
+  $('#btnBoost').setAttribute('aria-label', on ? _t('Boost acceso') : _t('Boost: scegli il gioco'));
   const a = $('#boostAuto'); if (a) a.checked = !!BST.auto;
+  const asw = $('#boostAutoSw'); if (asw) { asw.classList.toggle('on', !!BST.auto); asw.setAttribute('aria-checked', BST.auto ? 'true' : 'false'); }
+  // «Rimetti com'era» piccolo sotto BOOST, solo quando c'è qualcosa da rimettere (come nel menu dell'icona)
+  const und = $('#boostUndo'); if (und) und.hidden = !(BST.on || BST.game || BST.pending || BST.gpuFix);
   const k = $('#boostCard .boostk'); if (k) k.textContent = BST.game ? _t('BOOST AUTOMATICO: ') + BST.game : on ? _t('BOOST ACCESO') : _t('PRONTO A GIOCARE');
   if (typeof gBoostPaint === 'function') gBoostPaint();
 }
@@ -2069,6 +2082,7 @@ $('#boostUndo').onclick = async (e) => {
   const r = await call('goBoostAllOff'); if (r === 'busy') { toast(_t('Un attimo, sto ancora finendo.')); return; }
   toast(_t('Rimetto tutto com\'era…'));
 };
+$('#boostAutoSw').onclick = (e) => { e.preventDefault(); const a = $('#boostAuto'); a.checked = !a.checked; a.dispatchEvent(new Event('change')); };
 $('#boostAuto').onchange = async (e) => {
   const r = await call('goBoostAuto', e.target.checked);
   if (r) toast(String(r).replace(/^ok:/, ''), 'var(--a3)');
@@ -2092,13 +2106,13 @@ function paintCheck(r){
   $('#fpsCheckCard').style.display = '';
   const list = (r && Array.isArray(r.found)) ? r.found : [];
   const auto = (r && Array.isArray(r.auto)) ? r.auto : [];
-  let h = '<h2 style="margin:0">' + _t('🔍 Controllo FPS') + '</h2>';
+  let h = '<h2 style="margin:0">' + _t('Cosa rallenta il gioco') + '</h2>';
   if (auto.length) h += '<div class="small">' + _t('✅ Sistemato da solo: ') + auto.map(esc).join(' · ') + '</div>';
   if (!list.length) {
-    h += '<div class="small">' + _t('✅ Nessun problema grande trovato: il PC è già messo bene. Per guadagnare ancora molto resta la grafica del gioco: un livello più basso o DLSS/FSR su Qualità danno di solito +20–40%.') + (r && r.measured ? '' : ' ' + _t('Per un controllo completo misura prima gli FPS con il gioco aperto.')) + '</div>';
+    h += '<div class="small">' + _t('✅ Nessun problema grande trovato: il PC è già messo bene. Per guadagnare ancora molto resta la grafica del gioco: un livello più basso o DLSS/FSR su Qualità danno di solito +20–40%.') + (r && r.measured ? '' : ' ' + _t('Per un controllo completo gioca qualche minuto con il Boost automatico acceso: Tasso misura da solo.')) + '</div>';
     box.innerHTML = h; return;
   }
-  h += '<div class="small"><b>' + list.length + _t(' cose da sistemare a mano') + '</b>' + (r.measured ? '' : ' · ' + _t('misura gli FPS con il gioco aperto per controllare anche limite, caldo e scheda video')) + '</div>';
+  h += '<div class="small"><b>' + list.length + _t(' cose da sistemare a mano') + '</b>' + (r.measured ? '' : ' · ' + _t('con il Boost automatico, dopo qualche minuto di gioco, Tasso controlla anche limite, caldo e scheda video')) + '</div>';
   h += list.slice(0, 3).map(fcItem).join('');
   if (list.length > 3) h += '<details><summary class="small">' + _t('Altri ') + (list.length - 3) + '</summary><div style="display:flex;flex-direction:column;gap:8px;margin-top:8px">' + list.slice(3).map((f, j) => fcItem(f, j + 3)).join('') + '</div></details>';
   box.innerHTML = h;
@@ -3155,6 +3169,7 @@ $('#btnBsEnd').onclick = async () => { const r = await call('goBoostEnd'); if (r
 const OV_ALL = ['cpu', 'cputemp', 'gpu', 'gputemp', 'ram', 'ora'];
 const OV_ITEMS = [['cpu', _t('Processore (uso)')], ['cputemp', _t('Temperatura del processore')], ['gpu', _t('Scheda video (uso)')], ['gputemp', _t('Temperatura della scheda video')], ['ram', 'RAM'], ['ora', _t('Ora')]];
 function paintOverlay(){
+  if (typeof hkxRefresh === 'function') hkxRefresh();
   $('#tgOverlay').classList.toggle('on', !!S.overlayOn);
   const pos = ['sx', 'dx', 'sxb', 'dxb'].indexOf(S.overlayPos) >= 0 ? S.overlayPos : 'dx';
   $$('#ovPos [data-pos]').forEach(b => { const on = b.dataset.pos === pos; b.classList.toggle('primary', on); b.classList.toggle('ghost', !on); b.setAttribute('aria-pressed', on ? 'true' : 'false'); });
@@ -3225,7 +3240,7 @@ Object.assign(window.tasso, {
 const VK_NAMES = {8:'Backspace',9:'Tab',19:_t('Pausa'),20:_t('Bloc Maiusc'),32:_t('Spazio'),33:_t('Pag Su'),34:_t('Pag Giù'),35:_t('Fine'),36:'Home',37:_t('Freccia sinistra'),38:_t('Freccia su'),39:_t('Freccia destra'),40:_t('Freccia giù'),45:_t('Ins'),46:_t('Canc'),96:'Num 0',97:'Num 1',98:'Num 2',99:'Num 3',100:'Num 4',101:'Num 5',102:'Num 6',103:'Num 7',104:'Num 8',105:'Num 9',106:'Num *',107:'Num +',109:'Num -',110:'Num ,',111:'Num /',144:_t('Bloc Num'),145:_t('Bloc Scorr')};
 function vkName(vk, mods){
   let n = VK_NAMES[vk] || (vk >= 112 && vk <= 135 ? 'F' + (vk - 111) : (vk >= 48 && vk <= 90 ? String.fromCharCode(vk) : _t('Tasto ') + vk));
-  const m = []; if (mods & 2) m.push('Ctrl'); if (mods & 1) m.push('Alt'); if (mods & 4) m.push(_t('Maiusc'));
+  const m = []; if (mods & 8) m.push('Win'); if (mods & 2) m.push('Ctrl'); if (mods & 1) m.push('Alt'); if (mods & 4) m.push(_t('Maiusc'));
   return m.concat([n]).join(' + ');
 }
 let AC_KEY_OK = true;
@@ -3241,10 +3256,10 @@ document.addEventListener('keydown', async (e) => {
   if ([16, 17, 18, 91, 92].includes(e.keyCode)) return; // aspetto il tasto vero, non solo Ctrl/Alt/Maiusc
   e.preventDefault(); AC_WAITKEY = false;
   if (e.keyCode === 27) { paintAcKey(); return; }
-  const mods = (e.altKey ? 1 : 0) | (e.ctrlKey ? 2 : 0) | (e.shiftKey ? 4 : 0);
+  const mods = (e.altKey ? 1 : 0) | (e.ctrlKey ? 2 : 0) | (e.shiftKey ? 4 : 0) | (e.metaKey ? 8 : 0);
   const r = await call('goAutoClickKey', e.keyCode, mods);
   if (r === 'ok') { AC_KEY_OK = true; S.acVK = e.keyCode; S.acMods = mods; toast(_t('Tasto dell\'autoclick: ') + vkName(e.keyCode, mods)); } else toast(r || _t('Non riuscito, riprova.'));
-  paintAcKey();
+  paintAcKey(); if (typeof hkxRefresh === 'function') hkxRefresh().then(paintKeys);
 });
 paintAcKey();
 
@@ -3522,20 +3537,61 @@ function fbAskOnce(p){
 if ($('#verNum2')) $('#verNum2').textContent = BOOT.version || '';
 $('#lnkUpdSet').onclick = (e) => { e.preventDefault(); goUpdCard(); };
 function goUpdCard(){ show('settings'); setTimeout(() => { const c = $('#updCard'); if (c) c.scrollIntoView({block:'start', behavior:'smooth'}); }, 60); }
+// Ecosistema Tasso (ecoupdate.go): Tasso, Tasso Zip e Tasso PDF installati con l'installatore.
+// Stessa scheda e stesso stile: cambiano solo i testi e una riga per programma.
+function ecoNomi(cc){ return cc.map(c => c.nome); }
+function ecoTitolo(cc){
+  const n = ecoNomi(cc).join('|');
+  if (n === 'Tasso|Tasso Zip|Tasso PDF') return _t('Aggiornamenti di Tasso, Tasso Zip e Tasso PDF');
+  if (n === 'Tasso|Tasso Zip') return _t('Aggiornamenti di Tasso e Tasso Zip');
+  if (n === 'Tasso|Tasso PDF') return _t('Aggiornamenti di Tasso e Tasso PDF');
+  return _t('Aggiornamenti di Tasso');
+}
+function ecoRighe(cc){
+  if (!cc || !cc.length) return;
+  $('#updTit').textContent = ecoTitolo(cc);
+  $('#updVerRow').style.display = 'none';
+  const box = $('#updEco'); box.style.display = '';
+  box.innerHTML = cc.map(c => '<p class="sub" style="margin:4px 0 0">' + esc(c.nome) + ': ' + _t('installata ') + '<b>' + esc(c.installata || '?') + '</b>' +
+    (c.disponibile ? ' · ' + (c.nuova ? _t('disponibile ') + '<b>' + esc(c.disponibile) + '</b>' : _t('aggiornata')) : '') + '</p>').join('');
+  if (cc.length > 1) {
+    $('#autoUpdTit').textContent = _t('Aggiorna da solo Tasso, Tasso Zip e Tasso PDF');
+    $('#autoUpdSub').textContent = _t('Quando esce una versione nuova Tasso scarica l\'installatore, controlla che sia firmato da noi, aggiorna i programmi installati e si riapre. Prima ti avvisa e puoi dire "Non ora". Non lo fa mentre giochi, durante una pulizia o con Tasso Zip o Tasso PDF aperti.');
+  }
+}
+// "Tasso Zip 1.3, Tasso PDF 1.2": i programmi con una versione nuova.
+function ecoNuovi(cc){ return (cc || []).filter(c => c.nuova).map(c => c.nome + ' ' + c.disponibile).join(', '); }
+if (BOOT.eco && BOOT.eco.componenti) ecoRighe(BOOT.eco.componenti);
+let UPD_ECO = null;
 $('#btnUpd').onclick = async () => { $('#appUpdMsg').textContent = _t('Controllo in corso…'); const r = await call('goCheckUpdate'); if (r === 'busy') $('#appUpdMsg').textContent = _t('Controllo già in corso…'); };
 let UPD_SELF = false, UPD_URL = '';
 function selfUpd(){
   if (UPD_SELF) return;
+  if (UPD_ECO) { modal(_t('<h2>Aggiornare i programmi di Tasso?</h2><p class="muted" style="margin:0">Tasso scarica l\'installatore dalla pagina ufficiale, controlla che sia quello giusto e firmato, poi si chiude, aggiorna i programmi installati e si riapre da solo. Se Tasso Zip o Tasso PDF sono aperti si chiudono: salva prima il tuo lavoro. Le tue impostazioni restano.</p>'), [{label:_t('Non ora')}, {label:_t('Aggiorna'), cls:'primary', fn: () => { call('goSelfUpdate').then(r => { if (r === 'busy') toast(_t('Aspetta: sto già controllando.'), 'var(--a4)'); else UPD_SELF = true; }); }}]); return; }
   modal(_t('<h2>Aggiornare Tasso?</h2><p class="muted" style="margin:0">Tasso scarica la nuova versione dalla pagina ufficiale, controlla che il file sia quello giusto e si riapre da solo. Ci vuole meno di un minuto. Le tue impostazioni restano.</p>'), [{label:_t('Non ora')}, {label:_t('Aggiorna'), cls:'primary', fn: () => { call('goSelfUpdate').then(r => { if (r === 'busy') toast(_t('Aspetta: sto già controllando.'), 'var(--a4)'); else UPD_SELF = true; }); }}]);
 }
 $('#btnUpdNow').onclick = selfUpd;
 $('#lnkUpdZip').onclick = (e) => { e.preventDefault(); call('goOpenURL', UPD_URL || 'https://github.com/sergiotassoni/tasso/raw/main/Tasso.zip'); };
+// Tasso.exe --controlla-aggiornamenti (da Tasso Zip o Tasso PDF): apro Aggiornamenti e controllo.
+window.tasso.onControllaAgg = () => { goUpdCard(); if (!UPD_SELF) $('#btnUpd').click(); };
+if (BOOT.controllaAgg) setTimeout(() => window.tasso.onControllaAgg(), 1200);
 $('#btnUpdBanner').onclick = goUpdCard;
 let UPD_QUIET = false;
 Object.assign(window.tasso, { onUpdate(u){
   const m = $('#appUpdMsg'); const quiet = UPD_QUIET; UPD_QUIET = false;
   if (!u || u.error) { if (!quiet) m.textContent = (u && u.error) || _t('Controllo non riuscito.'); return; }
-  if (u.newer) {
+  if (u.componenti) ecoRighe(u.componenti);
+  UPD_ECO = u.eco ? u : null;
+  if (u.newer && u.eco) {
+    UPD_URL = u.download || '';
+    m.innerHTML = (u.tentata ? esc(_t('L\'ultimo aggiornamento non è riuscito: riprova con Aggiorna ora.')) + ' ' : '') + _t('🎉 Ci sono versioni nuove: <b>') + esc(ecoNuovi(u.componenti)) + _t('</b>. Premi <b>Aggiorna ora</b>: Tasso aggiorna i programmi e si riapre da solo.');
+    $('#lnkUpdZip').textContent = _t('oppure scarica l\'installatore');
+    $('#btnUpd').style.display = 'none'; $('#btnUpdNow').style.display = ''; $('#lnkUpdZip').style.display = '';
+    $('#updCard').classList.add('new');
+    $('#updBannerTxt').innerHTML = '<b>' + esc(_t('Versioni nuove: ') + ecoNuovi(u.componenti)) + '.</b> <span class="muted">' + esc(_t('Puoi aggiornare con un clic dalle Impostazioni.')) + '</span>';
+    $('#updBanner').classList.add('on');
+    if (quiet && !u.tentata) autoUpdate(u);
+  } else if (u.newer) {
     UPD_URL = u.download || '';
     m.innerHTML = _t('🎉 È uscita la versione <b>') + esc(u.latest) + _t('</b>. Premi <b>Aggiorna ora</b>: Tasso si aggiorna e si riapre da solo.');
     $('#btnUpd').style.display = 'none'; $('#btnUpdNow').style.display = ''; $('#lnkUpdZip').style.display = '';
@@ -3543,7 +3599,8 @@ Object.assign(window.tasso, { onUpdate(u){
     $('#updBannerTxt').innerHTML = _t('<b>È uscita Tasso ') + esc(u.latest) + _t('.</b> <span class="muted">Puoi aggiornarla con un clic dalle Impostazioni.</span>');
     $('#updBanner').classList.add('on');
     if (quiet) autoUpdate(u);
-  } else m.textContent = _t('Sei già aggiornato: hai l\'ultima versione (') + esc(u.current) + ').';
+  } else if (u.componenti && u.componenti.length > 1) m.textContent = _t('Sei già aggiornato: hai le ultime versioni.');
+  else m.textContent = _t('Sei già aggiornato: hai l\'ultima versione (') + esc(u.current) + ').';
 }, onSelfUpdate(u){
   const t = (u && u.msg) || '';
   $('#appUpdMsg').textContent = t; $('#updBannerTxt').textContent = t;
@@ -3566,8 +3623,10 @@ function autoUpdate(u){
   if (document.visibilityState === 'hidden') { const w = () => { if (document.visibilityState !== 'hidden') { document.removeEventListener('visibilitychange', w); autoUpdate(u); } }; document.addEventListener('visibilitychange', w); return; }
   if (auGioco() || $('#modal').classList.contains('on') || $('#welcome').classList.contains('on')) { auLater(u); return; } // stai giocando, stai facendo altro o sei nel benvenuto: riprovo più tardi
   let n = 30;
-  const go = () => { clearInterval(AU_T); AU_T = null; if (UPD_SELF || S.noAutoUpdate) return; closeModal(); if (auGioco()) { auLater(u); return; } call('goSelfUpdateAuto').then(r => { if (r === 'game') { auLater(u); toast(_t('Hai un gioco aperto: aggiorno un\'altra volta.')); return; } if (r !== 'busy') UPD_SELF = true; }); };
-  modal('<h2>' + esc(_t('Aggiorno Tasso')) + '</h2><p class="muted" style="margin:0;line-height:1.5">' + esc(_t('È uscita la versione ') + u.latest + _t('. Tasso la scarica, controlla la firma e si riapre da solo. Le impostazioni restano.')) + '</p><p style="margin:0" role="status"><b id="auCount">30</b> ' + esc(_t('secondi')) + '</p>',
+  const go = () => { clearInterval(AU_T); AU_T = null; if (UPD_SELF || S.noAutoUpdate) return; closeModal(); if (auGioco()) { auLater(u); return; } call('goSelfUpdateAuto').then(r => { if (r === 'game') { auLater(u); toast(_t('Hai un gioco aperto: aggiorno un\'altra volta.')); return; } if (r === 'apps') { auLater(u); return; } if (r !== 'busy') UPD_SELF = true; }); };
+  const auTesto = u.eco ? _t('Ci sono versioni nuove: ') + ecoNuovi(u.componenti) + _t('. Tasso scarica l\'installatore, controlla la firma, aggiorna i programmi e si riapre da solo. Le impostazioni restano.')
+    : _t('È uscita la versione ') + u.latest + _t('. Tasso la scarica, controlla la firma e si riapre da solo. Le impostazioni restano.');
+  modal('<h2>' + esc(_t(u.eco ? 'Aggiorno i programmi di Tasso' : 'Aggiorno Tasso')) + '</h2><p class="muted" style="margin:0;line-height:1.5">' + esc(auTesto) + '</p><p style="margin:0" role="status"><b id="auCount">30</b> ' + esc(_t('secondi')) + '</p>',
     [{label:_t('Non ora'), fn: () => { clearInterval(AU_T); AU_T = -1; toast(_t('Va bene: aggiorni tu dalle Impostazioni quando vuoi.')); }}, {label:_t('Aggiorna adesso'), cls:'primary', fn: () => { go(); return 'keep'; }}]);
   AU_T = setInterval(() => {
     const c = $('#auCount');
@@ -3646,7 +3705,10 @@ function paintTr(){
   const on = !!(TT && TT.acceso), sw = $('#trSw');
   sw.classList.toggle('on', on); sw.setAttribute('aria-checked', on ? 'true' : 'false');
   const a = TT && TT.lingua_a ? langName(TT.lingua_a) : _t('Italiano');
-  $('#trTxt').textContent = on ? _t('Accesa. Nel gioco premi ') + keyName('pagina', 'F7') + _t(': le scritte diventano in ') + (EN ? a : a.toLowerCase()) + '.' : _t('Spenta. Accendila e premi ') + keyName('pagina', 'F7') + _t(' nel gioco: le scritte diventano in ') + (EN ? a : a.toLowerCase()) + '.';
+  // interruttore = accende il traduttore (in sottofondo); il tasto nel gioco mostra/nasconde le scritte e, se serve, lo accende da solo
+  const k = '<span class="kbd">' + esc(keyName('pagina', 'F7')) + '</span>', lg = esc(EN ? a : a.toLowerCase());
+  $('#trTxt').innerHTML = (TT && !TT.mozilla_ok && !TT.mozilla_file) ? esc(_t('Prima scarica il traduttore veloce in Impostazioni giochi: poi nel gioco premi ')) + k + esc(_t(' e le scritte diventano in ')) + lg + '.'
+    : esc(_t('Nel gioco premi ')) + k + esc(_t(' e le scritte diventano in ')) + lg + '. ' + esc(_t('Se il traduttore è spento, si accende da solo.'));
   if (!$('[data-gp="imp"]').hidden) paintTrSet();
 }
 $('#trSw').onclick = async () => {
@@ -3656,6 +3718,7 @@ $('#trSw').onclick = async () => {
   if (on && !r) toast(_t('Non riesco ad accendere la traduzione adesso: chiudi Tasso e riaprilo, poi riprova.'), 'var(--a4)');
   else toast(r ? _t('Traduzione accesa.') : _t('Traduzione spenta.'));
 };
+$('#trKeysLink').onclick = (e) => { e.preventDefault(); gTab('imp'); const c = $('#hkCard'); if (c) c.scrollIntoView({behavior:'smooth', block:'start'}); };
 function gTab(t){
   if (GP_ID) closeGame();
   $$('#gTabs [data-gt]').forEach(b => b.setAttribute('aria-selected', b.dataset.gt === t ? 'true' : 'false'));
@@ -3709,15 +3772,45 @@ async function paintTrSet(){
   setSw('#trSwAuto', !!st.tutto_auto); setSw('#trSwEn', !!st.mostra_en);
   $('#trPos').value = st.posizione || 'sopra';
   $('#trFont').value = st.dim_font || 22; $('#trFontV').textContent = (st.dim_font || 22) + ' px';
-  paintKeys();
+  paintKeys(); hkxRefresh().then(paintKeys);
 }
 function setSw(sel, on){ const s = $(sel); if (s) { s.classList.toggle('on', on); s.setAttribute('aria-checked', on ? 'true' : 'false'); } }
-const KEYN = {pagina:_t('Traduci lo schermo'), cronologia:_t('Cronologia'), zona:_t('Solo una zona'), traduci:_t('Ritraduci'), auto:_t('Zona automatica'), inglese:_t('Mostra anche l\'inglese'), voci:_t('Voci'), chat:_t('Chat')};
+const KEYN = {pagina:_t('Mostra o nascondi le scritte in italiano'), cronologia:_t('Cronologia delle traduzioni'), zona:_t('Traduci solo una zona'), traduci:_t('Ritraduci adesso'), auto:_t('Zona automatica'), inglese:_t('Mostra anche l\'inglese'), voci:_t('Voci (sottotitoli)'), chat:_t('Chat tradotta')};
 const KEYD = {pagina:'F7', cronologia:'F8', zona:'F9', traduci:'F10', auto:'F11', inglese:'Ctrl+Alt+I', voci:'Ctrl+Alt+V', chat:'Ctrl+Alt+T'};
+// tasti di Tasso fuori dalla traduzione (tasti_rapidi.go): autoclick e pannellino in gioco
+const KEYX = {ac:_t('Autoclick: avvia e ferma'), ov:_t('Pannellino in gioco: mostra e nascondi')};
+var HKX = {acLabel:'F6', ovLabel:'Ctrl+Maiusc+F12'}, HK_WAIT = '';
+async function hkxRefresh(){ const r = await call('goTastiRapidi'); if (r) HKX = r; const o = $('#ovKeyName'); if (o) o.textContent = HKX.ovLabel || 'Ctrl+Maiusc+F12'; return HKX; }
+function hkLabel(k){ return k === 'ac' ? (HKX.acLabel || 'F6') : k === 'ov' ? (HKX.ovLabel || 'Ctrl+Maiusc+F12') : keyName(k, KEYD[k]); }
 function paintKeys(){
   const box = $('#trKeys'); if (!box) return;
-  box.innerHTML = Object.keys(KEYN).map(k => '<div class="kk"><span>' + esc(KEYN[k]) + '</span><b>' + esc(keyName(k, KEYD[k])) + '</b></div>').join('');
+  const all = Object.assign({}, KEYN, KEYX);
+  box.innerHTML = Object.keys(all).map(k => '<div class="li hkrow"><span style="flex:1;min-width:0">' + esc(all[k]) + '</span><button class="btn ghost' + (HK_WAIT === k ? ' wait' : '') + '" data-hk="' + k + '" aria-label="' + esc(all[k] + ': ' + hkLabel(k) + '. ' + _t('Tocca per cambiarlo')) + '">' + esc(HK_WAIT === k ? _t('Premi la combinazione…') : hkLabel(k)) + '</button></div>').join('');
+  box.querySelectorAll('[data-hk]').forEach(b => { b.onclick = () => { HK_WAIT = HK_WAIT === b.dataset.hk ? '' : b.dataset.hk; paintKeys(); const n = box.querySelector('[data-hk="' + b.dataset.hk + '"]'); if (n) n.focus(); }; });
 }
+function hkMsg(t, ok){ const m = $('#hkMsg'); if (!m) return; m.textContent = t; m.style.color = ok ? 'var(--a3)' : 'var(--a4)'; }
+function hkStop(){ if (HK_WAIT) { HK_WAIT = ''; paintKeys(); } }
+document.addEventListener('mousedown', (e) => { if (HK_WAIT && !(e.target.closest && e.target.closest('[data-hk]'))) hkStop(); }, true);
+window.addEventListener('blur', hkStop);
+document.addEventListener('keydown', async (e) => {
+  if (!HK_WAIT) return;
+  if ([16, 17, 18, 91, 92, 225].includes(e.keyCode)) return; // aspetto il tasto vero, non solo Ctrl/Alt/Maiusc/Win
+  e.preventDefault(); e.stopPropagation();
+  const k = HK_WAIT; HK_WAIT = '';
+  if (e.keyCode === 27 && !e.ctrlKey && !e.altKey && !e.shiftKey && !e.metaKey) { paintKeys(); hkMsg(''); return; }
+  const mod = (e.altKey ? 1 : 0) | (e.ctrlKey ? 2 : 0) | (e.shiftKey ? 4 : 0) | (e.metaKey ? 8 : 0);
+  const vk = e.keyCode & 0xFFFF, code = (mod << 16) | vk;
+  paintKeys();
+  let err = '', lab = '', warn = '';
+  if (k === 'ac') { const r = await call('goAutoClickKey', vk, mod); if (r === 'ok') { S.acVK = vk; S.acMods = mod; AC_KEY_OK = true; paintAcKey(); } else err = r || _t('Non riuscito, riprova.'); }
+  else if (k === 'ov') { const r = await call('goOverlayKey', code); if (r !== 'ok') err = r || _t('Non riuscito, riprova.'); }
+  else { const r = await ttc('ttImpostaTasto', k, code) || {errore: _t('Tasso non ha risposto: riprova.')}; if (r.errore) err = r.errore; else { lab = r.etichetta || ''; warn = r.avviso || ''; } }
+  if (k === 'ac' || k === 'ov') await hkxRefresh(); else await ttRefresh();
+  if (!lab) lab = hkLabel(k);
+  paintKeys();
+  if (err) { hkMsg(err, false); toast(err, 'var(--a4)'); }
+  else { const t = (Object.assign({}, KEYN, KEYX))[k] + ': ' + lab + '.' + (warn ? ' ' + warn : ''); hkMsg('✓ ' + t, !warn); toast(t, warn ? 'var(--a4)' : 'var(--a3)'); }
+}, true);
 // langMissing: MB dei modelli che mancano per tradurre da → a (-1 = c'è tutto). Si passa sempre dall'inglese.
 function langMissing(da, a){
   const L = (c) => LANGS.find(x => x.codice === c) || {};
@@ -3779,22 +3872,7 @@ $('#btnTrWords').onclick = async () => {
       ttc('ttSalvaGlossario', {non_tradurre: lines('#glNt'), termini}).then(r => toast(r === 'ok' ? _t('Parole fisse salvate.') : _t('Non sono riuscito a salvare.'), r === 'ok' ? 'var(--a3)' : 'var(--a4)'));
     }}]);
 };
-$('#btnKeyChange').onclick = () => {
-  modal('<h2>' + esc(_t('Cambia un tasto')) + '</h2><label class="acf">' + esc(_t('Quale funzione')) + '<select id="kSel">' + Object.keys(KEYN).map(k => '<option value="' + k + '">' + esc(KEYN[k]) + ' (' + esc(keyName(k, KEYD[k])) + ')</option>').join('') + '</select></label><div class="kcap" id="kCap" tabindex="0">' + esc(_t('Tocca qui, poi premi il tasto nuovo (anche con Ctrl o Alt).')) + '</div><p class="small" id="kMsg" style="margin:0" role="status"></p>', [{label:_t('Chiudi')}]);
-  const cap = $('#kCap');
-  cap.onkeydown = async (e) => {
-    if (['Control', 'Alt', 'Shift', 'AltGraph', 'Meta'].indexOf(e.key) >= 0) return;
-    if (!e.ctrlKey && !e.altKey && (e.key === 'Tab' || e.key === 'Escape')) return; // Tab passa oltre, Esc chiude la finestra
-    e.preventDefault(); e.stopPropagation();
-    const mod = (e.altKey ? 1 : 0) | (e.ctrlKey ? 2 : 0) | (e.shiftKey ? 4 : 0);
-    const code = (mod << 16) | (e.keyCode & 0xFFFF);
-    const r = await ttc('ttImpostaTasto', $('#kSel').value, code) || {errore: _t('Tasso non ha risposto: riprova.')};
-    $('#kMsg').textContent = r.errore ? tx(r.errore) : _t('✓ Ora è ') + (r.etichetta || '') + '.' + (r.avviso ? ' ' + tx(r.avviso) : ''); $('#kMsg').style.color = r.errore ? 'var(--a4)' : 'var(--a3)';
-    if (!r.errore) ttRefresh().then(paintKeys);
-  };
-  cap.focus();
-};
-$('#btnKeyReset').onclick = async () => { const r = await ttc('ttTastiDiBase'); await ttRefresh(); paintKeys(); const n = parseInt(String(r || '').replace('occupati:', ''), 10); if (r === 'ok') toast(_t('Tasti rimessi come all\'inizio.'), 'var(--a3)'); else if (n > 0) toast(_t('Tasti rimessi come all\'inizio, ma ') + n + _t(' sono già usati da un altro programma: cambiali qui sopra.'), 'var(--a4)'); else toast(_t('Non riuscito.'), 'var(--a4)'); };
+$('#btnKeyReset').onclick = async () => { HK_WAIT = ''; const r = await ttc('ttTastiDiBase'); await call('goAutoClickKey', 117, 0); await call('goOverlayKey', 0); S.acVK = 117; S.acMods = 0; paintAcKey(); await hkxRefresh(); await ttRefresh(); paintKeys(); hkMsg(''); const n = parseInt(String(r || '').replace('occupati:', ''), 10); if (r === 'ok') toast(_t('Tasti rimessi come all\'inizio.'), 'var(--a3)'); else if (n > 0) toast(_t('Tasti rimessi come all\'inizio, ma ') + n + _t(' sono già usati da un altro programma: cambiali qui sopra.'), 'var(--a4)'); else toast(_t('Non riuscito.'), 'var(--a4)'); };
 const DLN = {mozilla:_t('Traduttore veloce'), ia:_t('IA'), voci:_t('Voci'), chat:_t('Chat tradotta'), lingue:_t('Lingue')};
 function ttRepaint(){ if (W && !$('#gwz').hidden && !W.busy && wzStep() !== 'ok') wzDraw(); gpRepaintTr(); }
 // La pagina del gioco aperta segue lo stato della traduzione (strumenti e riga «Traduzione»).
@@ -3803,6 +3881,7 @@ function gpRepaintTr(){
   const g = LIB.find(x => x.id === GP_ID); if (!g) return;
   paintGameTools(g);
   const t = $('#gpTrTxt'); if (t) t.textContent = gpTrText();
+  const sw = $('#gamePage [data-act="trsw"]'); if (sw) { const on = gpTrOn(); sw.classList.toggle('on', on); sw.setAttribute('aria-checked', on ? 'true' : 'false'); }
 }
 window.tt = {
   aggiorna(st){ if (st) { TT = st; paintTr(); ttRepaint(); } },
@@ -3863,6 +3942,7 @@ async function openGame(id, quiet){
   const g = LIB.find(x => x.id === id); if (!g) { if (GP_ID) closeGame(); return; }
   if (isOffice()) { if (GP_ID) closeGame(); return; } // in Ufficio niente giochi
   if (CURVIEW !== 'games') show('games');
+  if (GP_ID !== id) GP_TAB = 'tr'; // gioco nuovo: si riparte dagli strumenti della traduzione
   if (!quiet || GP_ID !== id) GPI = null;
   GP_ID = id;
   $$('#v-games .gpanel').forEach(p => { p.hidden = true; }); $('#gTabs').hidden = true; $('#trBar').hidden = true; $('#boostCard').hidden = true;
@@ -3892,8 +3972,9 @@ function putCover(box, g){
   im.onload = () => { if (im.naturalWidth > im.naturalHeight * 1.2) im.className = 'wide'; };
   im.src = g.img; box.appendChild(im);
 }
-const TOOL_TABS = [['all',_t('Tutti')], ['tr',_t('Traduzione')], ['perf',_t('Prestazioni')], ['fix',_t('Ripara')]];
-let GP_TAB = 'all';
+// niente più «Tutti» (colonna troppo lunga, scelta di Sergio): una scheda alla volta, Traduzione per prima
+const TOOL_TABS = [['tr',_t('Traduzione')], ['perf',_t('Prestazioni')], ['fix',_t('Ripara')], ['altro',_t('Altro')]];
+let GP_TAB = 'tr';
 function gameTools(g){
   const st = TT || {}, v = st.voci || {}, i = GPI || {};
   const on = (b) => b ? _t('ACCESO') : _t('SPENTO');
@@ -3904,15 +3985,14 @@ function gameTools(g){
     {k:'tr', id:'chata', ic:'🗨️', t:_t('Chat degli altri'), d:_t('I messaggi degli altri giocatori in italiano, accanto alla chat.'), s: !chatQui(i) ? _t('DA SCEGLIERE') : !st.chat_altri ? _t('SPENTA') : st.acceso ? _t('ACCESA') : _t('SPENTA (accendi la traduzione)'), ok: !!(st.chat_altri && st.acceso) && chatQui(i)},
     {k:'tr', id:'cro', ic:'🕘', t:_t('Cronologia delle traduzioni'), d:_t('Le ultime scritte tradotte. Tasto ') + keyName('cronologia', 'F8') + '.', s:_t('APRI')},
     {k:'perf', id:'tune', ic:'🎛️', t:_t('Impostazioni consigliate'), d:_t('Calcolate per questo gioco e per il tuo PC.'), s: S.gameTunes && S.gameTunes[g.id] ? _t('FATTE') : _t('QUANDO VUOI'), ok: !!(S.gameTunes && S.gameTunes[g.id])},
-    {k:'perf', id:'fpsm', ic:'📊', t:_t('Misura gli FPS'), d:_t('Gioca 30 secondi: ti dico gli FPS veri e i cali.'), s:_t('QUANDO VUOI')},
-    {k:'perf', id:'fpsc', ic:'📈', t:_t('Controllo FPS'), d:_t('Trova cosa rallenta il gioco e sistema quello che si può.'), s:_t('QUANDO VUOI')},
+    // «Misura gli FPS» e «Controllo FPS» tolti dalla pagina (scelta di Sergio): il codice resta, il Boost li usa da solo
     {k:'perf', id:'ov', ic:'📟', t:_t('Pannellino in gioco'), d:_t('Processore, scheda video e RAM in un angolo mentre giochi.'), s: on(!!S.overlayOn), ok: !!S.overlayOn},
-    {k:'perf', id:'ac', ic:'🖲️', t:_t('Autoclick'), d:_t('Clicca da solo al posto tuo (non nei giochi con anti-imbroglio).'), s:_t('QUANDO VUOI')},
+    {k:'altro', id:'ac', ic:'🖲️', t:_t('Autoclick'), d:_t('Clicca da solo al posto tuo (non nei giochi con anti-imbroglio).'), s:_t('QUANDO VUOI')},
     {k:'fix', id:'start', ic:'🧩', t:_t('Non parte o mancano file'), d:_t('Rimette DirectX, Visual C++ e .NET dal sito Microsoft.'), s:_t('RIPARA')},
     {k:'fix', id:'lag', ic:'🎮', t:_t('Va a scatti'), d:_t('Modalità Gioco, energia e cosa rallenta.'), s:_t('RIPARA')},
     {k:'fix', id:'more', ic:'🛠️', t:_t('Altri problemi dei giochi'), d:_t('Tutti i problemi con un pulsante, in Risolvi un problema.'), s:_t('APRI')},
-    {k:'fix', id:'dir', ic:'📁', t:_t('Apri la cartella del gioco'), d: i.cartella ? i.cartella : _t('Cartella non trovata.'), s:_t('APRI'), off: !i.cartella},
-    {k:'fix', id:'opt', ic:'🗑️', t:_t('Nascondi o disinstalla'), d:_t('Con il programma ufficiale del negozio, che chiede conferma.'), s:'⋯'}
+    {k:'altro', id:'dir', ic:'📁', t:_t('Apri la cartella del gioco'), d: i.cartella ? i.cartella : _t('Cartella non trovata.'), s:_t('APRI'), off: !i.cartella},
+    {k:'altro', id:'opt', ic:'🗑️', t:_t('Nascondi o disinstalla'), d:_t('Con il programma ufficiale del negozio, che chiede conferma.'), s:'⋯'}
   ];
 }
 function paintGameTools(g){
@@ -3966,7 +4046,22 @@ async function playGame(g, out){
 }
 function gpTrText(){
   const i = GPI, st = TT || {};
-  return !i ? _t('Controllo il gioco…') : i.errore ? tx(i.errore) : i.tradotto ? (i.in_file ? _t('Tradotto dentro il gioco.') : st.acceso ? _t('Tradotto sullo schermo: nel gioco premi ') + keyName('pagina', 'F7') + '.' : _t('Tradotto sullo schermo. La traduzione dei giochi adesso è spenta: GIOCA la accende da sola; se apri il gioco da Steam, accendila prima.')) : i.anticheat ? _t('Non tradotto. Si può tradurre solo sullo schermo, per non rischiare con l\'anti-imbroglio.') : _t('Non tradotto.');
+  return !i ? _t('Controllo il gioco…') : i.errore ? tx(i.errore) : i.tradotto ? (i.in_file ? _t('Tradotto dentro il gioco.') : st.acceso ? _t('Tradotto sullo schermo: nel gioco premi ') + keyName('pagina', 'F7') + '.' : _t('Tradotto sullo schermo. Il traduttore adesso è spento: si accende da solo con GIOCA o premendo ') + keyName('pagina', 'F7') + _t(' nel gioco.')) : i.anticheat ? _t('Non tradotto. Si può tradurre solo sullo schermo, per non rischiare con l\'anti-imbroglio.') : _t('Non tradotto.');
+}
+// Traduzione del gioco (3.1, scelta di Sergio): è qui, nella pagina del gioco, e non più in cima a Giochi.
+// L'interruttore «Traduci questo gioco»: la prima volta apre i passaggi (lingue, IA), poi accende e
+// spegne il traduttore. Il tasto nel gioco funziona comunque: se il traduttore è spento lo accende.
+function gpTrOn(){ const i = GPI || {}, st = TT || {}; return !!(i.tradotto && (i.in_file || st.acceso)); }
+function gpTrCard(g){
+  const i = GPI, st = TT || {}, k = '<span class="kbd">' + esc(keyName('pagina', 'F7')) + '</span>', on = gpTrOn();
+  const a = st.lingua_a ? langName(st.lingua_a) : _t('Italiano'), lg = esc(EN ? a : a.toLowerCase());
+  const can = !!(i && !i.errore);
+  return '<div class="card gptr"><h3>🌐 ' + esc(_t('Traduzione')) + '</h3>' +
+    '<div class="gp-line"><span><b>' + esc(_t('Traduci questo gioco')) + '</b><small>' + esc(_t('Nel gioco premi ')) + k + esc(_t(' e le scritte diventano in ')) + lg + '. ' + esc(_t('Se il traduttore è spento, si accende da solo.')) + '</small></span>' +
+      (can ? '<button class="sw' + (on ? ' on' : '') + '" role="switch" aria-checked="' + on + '" data-act="trsw" aria-label="' + esc(_t('Traduci questo gioco')) + '" title="' + esc(_t('Accende il traduttore di Tasso: lo prepara in sottofondo, senza toccare il gioco.')) + '"><i></i></button>' : '') + '</div>' +
+    '<div class="gp-line" style="border-bottom:0"><span><b>' + esc(_t('Come lo traduco')) + '</b><small id="gpTrTxt">' + esc(gpTrText()) + '</small><a href="#" class="trhint" data-act="keys">' + esc(_t('Tasti rapidi: si cambiano in Impostazioni')) + '</a></span>' +
+      (can ? '<button class="btn ghost" data-act="wiz">' + esc(i.tradotto ? _t('Lingue e passaggi') : _t('Traduci')) + '</button>' : '') +
+      (i && i.tradotto ? '<button class="btn ghost" data-act="trstop">' + esc(_t('Togli la traduzione')) + '</button>' : '') + '</div></div>';
 }
 function paintGame(g){
   const box = $('#gamePage'), m = S.gameMemo && S.gameMemo[g.id], i = GPI;
@@ -3980,11 +4075,11 @@ function paintGame(g){
     '<div class="gp-grid"><div class="gp-main">' +
       (m && memoTxt(m) ? '<div class="mem"><div><b>🧠 ' + esc(_t('Tasso si ricorda')) + '</b><span>' + esc(_t('Ultima volta')) + (m.when ? ' (' + esc(fmtDay(m.when)) + ')' : '') + ': ' + esc(memoTxt(m)) + '. ' + esc(_t('Premi GIOCA e uso le stesse impostazioni.')) + '</span></div><button class="btn ghost" data-act="wiz">' + esc(_t('Cambia')) + '</button></div>' : '') +
       '<div class="gp-stats">' + stats.map(s => '<div><b>' + esc(s[0]) + '</b><span>' + esc(s[1]) + '</span></div>').join('') + '</div>' +
+      gpTrCard(g) +
       '<div class="gp-acts"><button class="gp-big gplay" data-act="play"><b>▶ ' + esc(_t('GIOCA')) + '</b><span>' + esc(pw ? _t('Con ') + POW[pw] + _t('. A fine partita rimetto tutto com\'era.') : autoAll() ? _t('Con il Boost automatico. A fine partita riapro i programmi chiusi e rimetto mouse e modalità; le regolazioni di Windows per giocare restano finché premi "Rimetti com\'era".') : _t('Apre il gioco dal suo negozio.')) + '</span></button>' +
       '<button class="gp-big gprep" data-act="wiz"><b>⚙ ' + esc(_t('PREPARA A PASSI')) + '</b><span>' + esc(_t('Traduzione, potenza e impostazioni consigliate, una cosa alla volta.')) + '</span></button></div>' +
       '<div class="card gp-sets">' +
         '<div class="gp-line"><span><b>' + esc(_t('Potenza quando apri il gioco')) + '</b><small>' + esc(POW_FAIL[g.id] ? POW_FAIL[g.id] : _t('Anche se lo apri da Steam. Quando lo chiudi rimetto tutto com\'era.')) + '</small></span><div class="seg" role="group" aria-label="' + esc(_t('Potenza quando apri il gioco')) + '">' + ['', 'gaming', 'max'].map(k => '<button data-pow="' + k + '" class="' + (pw === k ? 'on' : '') + '" aria-pressed="' + (pw === k) + '"' + (POW_FAIL[g.id] && k !== pw ? ' disabled' : '') + '>' + esc(k === '' ? _t('Normale') : k === 'gaming' ? _t('Alta') : _t('Massima')) + '</button>').join('') + '</div></div>' +
-        '<div class="gp-line"><span><b>' + esc(_t('Traduzione')) + '</b><small id="gpTrTxt">' + esc(trTxt) + '</small></span>' + (i && i.tradotto ? '<button class="btn ghost" data-act="trstop">' + esc(_t('Togli la traduzione')) + '</button>' : (i && !i.errore ? '<button class="btn ghost" data-act="wiz">' + esc(_t('Traduci')) + '</button>' : '')) + '</div>' +
         '<div class="gp-line" style="border-bottom:0"><span><b>' + esc(_t('Boost automatico')) + '</b><small>' + esc(_t('Per tutti i giochi: quando ne apri uno, Tasso fa il Boost da solo e a fine partita rimette tutto.')) + '</small></span><button class="sw' + (BST && BST.auto ? ' on' : '') + '" role="switch" aria-checked="' + !!(BST && BST.auto) + '" data-act="auto" aria-label="' + esc(_t('Boost automatico')) + '"><i></i></button></div>' +
       '</div>' +
     '</div><div class="card gp-side"><h3>' + esc(_t('Strumenti per questo gioco')) + '</h3><div class="row wrap" style="gap:6px" id="gpToolTabs"></div><span class="small muted">' + esc(_t('Tocca uno strumento per usarlo.')) + '</span><div id="gpTools"></div></div></div></div>';
@@ -4002,10 +4097,19 @@ function paintGame(g){
     else { toast((r && r.error) || _t('Non sono riuscito a salvare.'), 'var(--a4)'); if (r && r.error && /programma|program/i.test(r.error)) POW_FAIL[g.id] = r.error; }
     if (GP_ID === g.id) paintGame(g);
   }; });
-  box.querySelectorAll('[data-act]').forEach(b => { b.onclick = async () => {
+  box.querySelectorAll('[data-act]').forEach(b => { b.onclick = async (ev) => {
+    if (ev) ev.preventDefault();
     const a = b.dataset.act;
     if (a === 'play') { b.disabled = true; await playGame(g); b.disabled = false; }
     else if (a === 'wiz') wzOpen(g, 'prep');
+    else if (a === 'keys') { closeGame(); gTab('imp'); const c = $('#hkCard'); if (c) c.scrollIntoView({block:'start'}); }
+    else if (a === 'trsw') {
+      if (gpTrOn()) { if (GPI && GPI.in_file) { toast(_t('Questo gioco è tradotto dentro il gioco: per toglierla premi «Togli la traduzione».')); return; } const r = await ttc('ttAccendi', false); if (TT) TT.acceso = !!r; paintTr(); toast(_t('Traduttore spento.')); }
+      else if (TT && !TT.mozilla_ok && !TT.mozilla_file) { closeGame(); gTab('imp'); toast(_t('Prima scarica il traduttore veloce in Giochi → Impostazioni.'), 'var(--a4)'); return; }
+      else if (!(GPI && GPI.tradotto)) { wzOpen(g, 'prep'); return; }
+      else { const r = await ttc('ttAccendi', true); if (TT) TT.acceso = !!r; paintTr(); toast(r ? _t('Traduttore acceso: nel gioco premi ') + keyName('pagina', 'F7') + '.' : _t('Non riesco ad accendere la traduzione adesso: chiudi Tasso e riaprilo, poi riprova.'), r ? 'var(--a3)' : 'var(--a4)'); }
+      if (GP_ID === g.id) paintGame(g);
+    }
     else if (a === 'auto') { const r = await call('goBoostAuto', !(BST && BST.auto)); if (r) toast(String(r).replace(/^ok:/, ''), 'var(--a3)'); await boostRefresh(); if (GP_ID === g.id) paintGame(g); }
     else if (a === 'trstop') { const r = await ttc('ttFermaTraduzione', GPI.cartella); if (r === 'ok') { toast(_t('Traduzione tolta: ') + g.name + _t(' torna com\'era.'), 'var(--a3)'); const om = S.gameMemo && S.gameMemo[g.id]; if (om && om.a) { await call('goGameMemo', g.id, Object.assign({}, om, {da: '', a: '', modo: '', ia: false})); await refreshS(); } } else toast(tx(r || _t('Non riuscito.')), 'var(--a4)'); GPI = null; openGame(g.id, true); }
   }; });

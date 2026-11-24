@@ -368,8 +368,8 @@ func chiudiCopiaAperta() int {
 // tassoNonSiChiude: c'è un lavoro che non si deve interrompere (come la voce "Chiudi Tasso"
 // dell'icona vicino all'orologio). Dopo "Togli Tasso dal PC" finito si chiude sempre.
 func tassoNonSiChiude() bool {
-	if togliFinito.Load() {
-		return false
+	if togliFinito.Load() || chiusuraAgg.Load() {
+		return false // dopo "Togli Tasso dal PC", o Tasso si chiude per l'aggiornamento (ecoupdate.go)
 	}
 	busyMu.Lock()
 	togli := busy["uninstall-tasso"]

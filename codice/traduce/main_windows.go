@@ -634,21 +634,33 @@ func collega(w webview2.WebView) {
 		}
 		vecchio := attuali[nome]
 		attuali[nome] = codice
+		occupato := map[string]string{"errore": etichettaTasto(codice) + " lo usa già Windows o un altro programma: scegline un altro."}
 		var altri []string // altri tasti (non quello nuovo) presi da un altro programma
 		if acceso.Load() {
 			for _, f := range cambiaTasti(attuali) {
 				if f == nome { // il tasto nuovo è preso da un altro programma: rimetto com'era
 					attuali[nome] = vecchio
 					cambiaTasti(attuali)
-					return map[string]string{"errore": etichettaTasto(codice) + " lo usa già un altro programma: scegline un altro."}
+					return occupato
 				}
 				altri = append(altri, f)
+			}
+		} else if !InUfficio.Load() {
+			// traduzione spenta: provo lo stesso il tasto nuovo (un attimo), così dico subito se è
+			// già preso, poi rimetto solo il tasto che accende la traduzione dal gioco
+			f := cambiaTasti(map[string]uint32{nome: codice})
+			if len(f) > 0 {
+				cambiaTasti(soloTastoAccendi())
+				return occupato
 			}
 		}
 		muImp.Lock()
 		imp.Tasti = attuali
 		muImp.Unlock()
 		salvaImp()
+		if !acceso.Load() {
+			cambiaTasti(soloTastoAccendi()) // subito il tasto nuovo, senza riavviare
+		}
 		r := map[string]string{"etichetta": etichettaTasto(codice)}
 		if len(altri) > 0 {
 			r["avviso"] = "Già usati da un altro programma: " + nomiTasti(altri, attuali) + "."
@@ -664,6 +676,8 @@ func collega(w webview2.WebView) {
 			if f := cambiaTasti(tastiCompleti(nil)); len(f) > 0 {
 				return fmt.Sprintf("occupati:%d", len(f))
 			}
+		} else if f := cambiaTasti(soloTastoAccendi()); len(f) > 0 {
+			return "occupati:1"
 		}
 		return "ok"
 	})
@@ -1034,9 +1048,19 @@ func accendiTraduzione() {
 
 func suTasto(id int) {
 	if !acceso.Load() && id == tastoPagina && !InUfficio.Load() {
-		// gioco aperto fuori da Tasso (Steam, collegamento): F7 nel gioco accende la traduzione
-		accendi(true)
+		// traduttore spento (gioco aperto fuori da Tasso, o interruttore mai acceso): il tasto
+		// nel gioco lo accende da solo, se il traduttore è scaricato, e lo dice con un avviso
+		if !mozOK.Load() && !mozillaPresente() {
+			avvisoBreve(testoTasso("Tasso: prima scarica il traduttore in Tasso → Giochi → Impostazioni.",
+				"Tasso: first download the translator in Tasso → Games → Settings."))
+			return
+		}
+		if !accendi(true) {
+			emetti("info", map[string]string{"testo": "Non riesco ad accendere la traduzione adesso: chiudi Tasso e riaprilo, poi riprova."})
+			return
+		}
 		emetti("aggiorna", stato())
+		avvisoBreve(testoTasso("Tasso: traduttore acceso. Traduco le scritte…", "Tasso: translator on. Translating the text…"))
 	}
 	if !acceso.Load() && id != tastoCronologia {
 		emetti("info", map[string]string{"testo": "La traduzione dei giochi è spenta: accendila con l'interruttore in Giochi."})

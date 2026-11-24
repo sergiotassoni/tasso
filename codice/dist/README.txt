@@ -49,6 +49,7 @@ WHAT'S NEW IN 3.1
   same place, with the same size and colour as the game.
   Keys: F7 on/off, F9 pick an area, F10 translate again, F11 automatic,
   F8 history, Ctrl+Alt+I show the English. The keys never reach the game.
+  These are the default keys: change them in Games > Settings > Shortcut keys.
   It runs on your PC, no subscription: an AI on your graphics card polishes the
   translation (automatic level, or Small, Medium, Large or Off).
   Other players' chat is translated too, next to the game's chat.

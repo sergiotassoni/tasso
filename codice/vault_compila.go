@@ -32,6 +32,7 @@ import (
 	"golang.org/x/sys/windows"
 
 	"tasso/autotipo"
+	"tasso/traduce"
 )
 
 var (
@@ -168,14 +169,18 @@ func vtKeyCheck(c uint32) string {
 	if !(vk >= 'A' && vk <= 'Z' || vk >= '0' && vk <= '9') {
 		return "Scegli una lettera o un numero (per esempio Ctrl+Alt+A)."
 	}
-	if m&3 == 3 && strings.ContainsRune("ITVE", rune(vk)) {
+	if m&3 == 3 && vk == 'E' {
 		return "Questa scorciatoia la usa già Tasso (traduzione) o serve per scrivere €: scegline un'altra."
 	}
-	setMu.Lock()
-	acvk, acm := settings.AcVK, settings.AcMods
-	setMu.Unlock()
-	if acvk == vk && acm&7 == m {
-		return "Questa scorciatoia la usa già l'autoclick: scegline un'altra."
+	// i tasti della traduzione si possono cambiare: controllo quelli scelti adesso (tasti_rapidi.go)
+	if f := traduce.TastoGiaUsato(c, traduce.TastiTraduzione(), nomeTastoVault); f != "" {
+		if f == nomeTastoAc {
+			return "Questa scorciatoia la usa già l'autoclick: scegline un'altra."
+		}
+		if f == nomeTastoOv {
+			return "Questa scorciatoia la usa già il pannellino in gioco: scegline un'altra."
+		}
+		return "Questa scorciatoia la usa già Tasso (traduzione) o serve per scrivere €: scegline un'altra."
 	}
 	return ""
 }

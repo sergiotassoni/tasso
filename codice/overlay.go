@@ -211,6 +211,8 @@ func ovWndProc(hwnd, msg, wp, lp uintptr) uintptr {
 	case wmOvUpdate + 2: // libera il tasto dell'autoclick
 		pUnregHotKey.Call(hwnd, 2)
 		return 0
+	case wmOvUpdate + 3: // tasto del pannellino cambiato (tasti_rapidi.go)
+		return ovKeyRegister(hwnd)
 	}
 	r, _, _ := pDefWindowProc.Call(hwnd, msg, wp, lp)
 	return r
@@ -226,12 +228,14 @@ func ovApply(hwnd uintptr) {
 	ovMu.Lock()
 	manuale := ovManual
 	ovMu.Unlock()
-	// Il tasto Ctrl+Maiusc+F12 è di Tasso solo quando serve: pannellino acceso da solo o aperto a
+	// Il tasto Ctrl+Maiusc+F12 (o quello scelto) è di Tasso solo quando serve: pannellino acceso da solo o aperto a
 	// mano con "Mostra ora" (così si chiude anche dal gioco), mai in Ufficio né in pausa.
 	vuoleTasto := (auto || manuale) && !office && !paused
 	if vuoleTasto != ovHotkey {
 		if vuoleTasto {
-			r, _, _ := pRegisterHotKey.Call(hwnd, 1, 0x0002|0x0004|0x4000, 0x7B) // senza ripetizione
+			// di base Ctrl+Maiusc+F12 (tasti_rapidi.go)
+			c := ovKeyCode()
+			r, _, _ := pRegisterHotKey.Call(hwnd, 1, uintptr(c>>16)|0x4000, uintptr(c&0xFFFF)) // senza ripetizione
 			ovHotkey = r != 0
 		} else {
 			pUnregHotKey.Call(hwnd, 1)
@@ -614,7 +618,7 @@ func acRegister(hwnd uintptr) bool {
 	if vk == 0 {
 		vk = 0x75 // F6
 	}
-	r, _, _ := pRegisterHotKey.Call(hwnd, 2, uintptr(mods&0x7|0x4000), uintptr(vk))
+	r, _, _ := pRegisterHotKey.Call(hwnd, 2, uintptr(mods&0xF|0x4000), uintptr(vk))
 	return r != 0
 }
 
@@ -643,17 +647,18 @@ func acDisarm() {
 }
 
 func setAutoClickKey(vk, mods uint32) string {
-	if vk == 0 || vk > 0xFE || vk == 0x1B || vk == 0x0D || vk == 0x5B || vk == 0x5C { // niente Esc, Invio, tasto Windows
+	// stesse regole di tutti i tasti rapidi di Tasso (tasti_rapidi.go, traduce/tasti.go): niente
+	// Esc, lettere da sole, combinazioni di Windows, né un tasto già usato da un'altra funzione
+	if vk == 0x0D {
 		return "Questo tasto non si può usare: scegline un altro."
 	}
-	single := (vk >= 0x70 && vk <= 0x87) || vk == 0x13 || vk == 0x91 || vk == 0x2D // F1-F24, Pausa, Bloc Scorr, Ins
-	if mods&0x7 == 0 && !single {
-		return "Da solo questo tasto ti servirebbe nelle altre app: usa un tasto F (F1-F12) oppure aggiungi Ctrl, Alt o Maiusc."
+	if m := controllaTastoTasso((mods&0xF)<<16|vk, nomeTastoAc); m != "" {
+		return m
 	}
 	setMu.Lock()
 	oldVK, oldMods := settings.AcVK, settings.AcMods
 	setMu.Unlock()
-	updateSettings(func(s *Settings) { s.AcVK, s.AcMods = vk, mods&0x7 })
+	updateSettings(func(s *Settings) { s.AcVK, s.AcMods = vk, mods&0xF })
 	ovMu.Lock()
 	h := ovHwnd
 	ovMu.Unlock()

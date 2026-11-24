@@ -46,7 +46,15 @@ func verNewer(a, b string) bool {
 }
 
 func checkUpdate() map[string]interface{} {
+	// Ecosistema Tasso (ecoupdate.go): se c'è qualcosa di nuovo si aggiorna con TassoSetup.exe.
+	eco := checkEcoUpdate()
+	if n, _ := eco["newer"].(bool); n {
+		return eco
+	}
 	res := map[string]interface{}{"current": appVersion, "download": downloadURL}
+	if eco != nil {
+		res["componenti"] = eco["componenti"] // da mostrare; se c'è solo Tasso.zip più nuovo, vale quello
+	}
 	client := &http.Client{Timeout: 12 * time.Second, Transport: &http.Transport{Proxy: http.ProxyFromEnvironment}}
 	req, _ := http.NewRequest("GET", versionURL, nil)
 	req.Header.Set("Cache-Control", "no-cache")

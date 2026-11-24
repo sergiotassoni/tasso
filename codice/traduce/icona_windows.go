@@ -5,6 +5,12 @@ package traduce
 // Comandi per l'icona di Tasso vicino all'orologio (codice/tray.go): accende e spegne la
 // traduzione dei giochi come l'interruttore della pagina Giochi (ttAccendi) e aggiorna la pagina.
 
+// TastiTraduzione: i tasti della traduzione scelti adesso (funzione -> codice, vedi tasti.go).
+func TastiTraduzione() map[string]uint32 { return tastiCompleti(leggiImp().Tasti) }
+
+// NomeTasto: il tasto scelto adesso per una funzione della traduzione ("F7").
+func NomeTasto(funzione string) string { return nomeTasto(funzione) }
+
 // Accesa: la traduzione dei giochi è accesa.
 func Accesa() bool { return acceso.Load() }
 

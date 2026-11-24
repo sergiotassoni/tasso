@@ -66,8 +66,10 @@ type Settings struct {
 	// Pannellino in gioco: si mostra da solo quando parte un gioco; posizione "dx" o "sx".
 	OverlayOn bool `json:"overlayOn"`
 	// Tasto dell'autoclick (codice tasto di Windows e Ctrl/Alt/Maiusc); 0 = F6.
-	AcVK       uint32 `json:"acVK,omitempty"`
-	AcMods     uint32 `json:"acMods,omitempty"`
+	AcVK   uint32 `json:"acVK,omitempty"`
+	AcMods uint32 `json:"acMods,omitempty"`
+	// Tasto del pannellino in gioco (codice come in tasti_rapidi.go); 0 = Ctrl+Maiusc+F12.
+	OvKey      uint32 `json:"ovKey,omitempty"`
 	OverlayPos string `json:"overlayPos,omitempty"`
 	// 3.1: cosa mostra il pannellino (vuoto = tutto). Valori: cpu, cputemp, gpu, gputemp, ram, ora.
 	OverlayItems []string `json:"overlayItems,omitempty"`
@@ -84,6 +86,9 @@ type Settings struct {
 	ShowAll     bool         `json:"showAll,omitempty"` // 3.1: in Gaming mostra anche le funzioni nascoste
 	// 3.1: "Aggiorna Tasso da solo" è acceso di base; true = l'utente l'ha spento.
 	NoAutoUpdate bool `json:"noAutoUpdate,omitempty"`
+	// Ecosistema (ecoupdate.go): "<sha256 di TassoSetup.exe>|<ora unix>" dell'ultimo aggiornamento
+	// avviato, per non riprovarlo da solo per un giorno se non è andato.
+	EcoTentata string `json:"ecoTentata,omitempty"`
 	// 3.1: la X nasconde Tasso nell'icona vicino all'orologio (tray.go), acceso di base; true = l'utente l'ha spento.
 	NoCloseToTray bool `json:"noCloseToTray,omitempty"`
 	// 3.1: l'avviso "Tasso resta acceso qui" dall'icona è già stato mostrato (solo la prima volta).

@@ -75,9 +75,10 @@ func main() {
 		// Nessuna finestra: o Tasso si sta ancora aprendo, o è la copia veloce del Profilo gioco
 		// all'accensione. Aspetto (al massimo 2 minuti) che la finestra compaia o che l'altra copia finisca.
 		// Dopo un aggiornamento la copia vecchia si sta chiudendo: la aspetto e basta.
-		afterUpd, autoArg := false, ""
+		afterUpd, autoArg, controllaAgg := false, "", false
 		for _, a := range os.Args[1:] {
 			afterUpd = afterUpd || a == "--after-update" || a == "--restart"
+			controllaAgg = controllaAgg || a == argControllaAgg
 			if strings.HasPrefix(a, "--auto=") {
 				autoArg = strings.TrimPrefix(a, "--auto=")
 			}
@@ -90,6 +91,9 @@ func main() {
 					return
 				}
 			} else if !afterUpd && bringToFront() {
+				if controllaAgg {
+					segnalaControllaAgg() // ecoupdate.go: apre Impostazioni → Aggiornamenti e controlla
+				}
 				return
 			}
 			ev, _ := windows.WaitForSingleObject(h, 1000)
@@ -193,6 +197,7 @@ func main() {
 	traduce.InIngleseTasso = isEN
 	traduce.InUfficio.Store(officeMode())
 	traduce.TraduciTasso = trGo
+	traduce.AltriTasti = altriTastiTasso // tasti_rapidi.go: niente doppioni tra traduzione, autoclick e pannellino
 	traduce.Prepara(w, filepath.Join(appDir, "WebView2"))
 	if !scheduledRun.Load() {
 		go func() {
@@ -204,7 +209,8 @@ func main() {
 	// Icona vicino all'orologio (tray.go): la X nasconde Tasso lì. Si toglie alla chiusura vera.
 	startTray()
 	defer trayStop()
-	ascoltaChiudi() // ecosistema.go: Tasso.exe --chiudi
+	ascoltaChiudi()       // ecosistema.go: Tasso.exe --chiudi
+	ascoltaControllaAgg() // ecoupdate.go: Tasso.exe --controlla-aggiornamenti con Tasso già aperto
 	if profiloInstallatore != "" || modalitaCambiata {
 		go func() {
 			defer guard("profilo-installatore")
@@ -248,6 +254,15 @@ func main() {
 		"settings":  getSettings(),
 		"steps":     stepList(),
 		"modoFisso": modalitaFissa(), // ecosistema.go: "gioco"/"ufficio" = niente menu per cambiare modalità
+		"eco":       ecoInfo(),       // ecoupdate.go: Tasso, Zip e PDF installati con l'installatore (nil se no)
+		"controllaAgg": func() bool { // Tasso.exe --controlla-aggiornamenti (da Tasso Zip / Tasso PDF)
+			for _, a := range os.Args[1:] {
+				if a == argControllaAgg {
+					return true
+				}
+			}
+			return false
+		}(),
 	}
 	b, _ := json.Marshal(boot)
 	w.Init("window.__TASSO_BOOT__ = " + string(b) + "; window.__TASSO_I18N__ = " + uiDictJSON() + ";")
@@ -616,15 +631,18 @@ func bindAll(w webview2.WebView) {
 	_ = w.Bind("goAutoClickStart", func() string { return autoClickStart(false) })
 	_ = w.Bind("goAutoClickStop", func() string { return autoClickStop() })
 	_ = w.Bind("goAutoClickKey", func(vk, mods uint32) string { return setAutoClickKey(vk, mods) })
+	_ = w.Bind("goOverlayKey", func(c uint32) string { return setOverlayKey(c) })
+	_ = w.Bind("goTastiRapidi", func() map[string]interface{} { return tastiRapidiInfo() })
 	_ = w.Bind("goAutoClickArm", func() bool { return acArm() })
 	_ = w.Bind("goSelfUpdate", func() string { return async("update", selfUpdate) })
 	// 3.1 "Aggiorna Tasso da solo": mai mentre un gioco è aperto o c'è una partita col Boost.
+	// Con l'ecosistema, da solo non chiude mai Tasso Zip o Tasso PDF aperti: riprova più tardi ("apps").
 	_ = w.Bind("goSelfUpdateAuto", func() string {
-		bMu.Lock()
-		inPartita := bGame != ""
-		bMu.Unlock()
-		if inPartita || runningGame() != "" {
+		if giocoAperto() {
 			return "game"
+		}
+		if ecoAltriAperti() {
+			return "apps"
 		}
 		return async("update", selfUpdate)
 	})
