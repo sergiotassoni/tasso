@@ -41,7 +41,7 @@ var (
 func scriptDir() string {
 	scriptDirOnce.Do(func() {
 		if pf := programFilesDir(); pf != "" {
-			d := filepath.Join(pf, "Tasso", "lavoro")
+			d := filepath.Join(cartellaTasso(), "lavoro") // ecosistema.go: di base Programmi\Tasso
 			if os.MkdirAll(d, 0o755) == nil {
 				scriptDirPath = d
 				go pulisciScriptVecchi(d)

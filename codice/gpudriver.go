@@ -271,7 +271,7 @@ func gpuDrvDir() (string, error) {
 	if err != nil || pf == "" {
 		return "", errors.New("cartella Programmi non trovata")
 	}
-	return filepath.Join(pf, "Tasso", "driver"), nil
+	return filepath.Join(cartellaTasso(), "driver"), nil // ecosistema.go: di base Programmi\Tasso
 }
 
 func loadGpuDrvState() gpuDrvState {

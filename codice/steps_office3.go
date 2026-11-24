@@ -23,7 +23,7 @@ import (
 // dove scrivono solo gli amministratori (in AppData un programma qualsiasi potrebbe cambiarlo
 // o sostituire la cartella, e Tasso ci lavora da amministratore).
 const ofHelpers3 = `
-$OfState = Join-Path ([Environment]::GetFolderPath('ProgramFiles')) 'Tasso\lavoro\ufficio'
+$OfState = if ($TassoCartella) { Join-Path $TassoCartella 'lavoro\ufficio' } else { Join-Path ([Environment]::GetFolderPath('ProgramFiles')) 'Tasso\lavoro\ufficio' }
 if (-not (Test-Path -LiteralPath $OfState)) { New-Item -ItemType Directory -Path $OfState -Force | Out-Null }
 function Get-CapUse([string]$what) {
   # Programmi che hanno usato webcam o microfono (dato di Windows: Impostazioni > Privacy).
@@ -59,7 +59,7 @@ func ofs3(s string) string { return ofHelpers + ofHelpers3 + s }
 // che la spegne da sola a fine chiamata. Su disco c'è solo riunione.json, e ogni valore si controlla.
 const ofRiunioneFine = `
 function Fine-Riunione([string]$perche) {
-  $OfState = Join-Path ([Environment]::GetFolderPath('ProgramFiles')) 'Tasso\lavoro\ufficio'
+  $OfState = if ($TassoCartella) { Join-Path $TassoCartella 'lavoro\ufficio' } else { Join-Path ([Environment]::GetFolderPath('ProgramFiles')) 'Tasso\lavoro\ufficio' }
   $f = Join-Path $OfState 'riunione.json'
   if (-not (Test-Path -LiteralPath $f)) { return $false }
   try { $s = Get-Content -LiteralPath $f -Raw | ConvertFrom-Json } catch {
@@ -244,7 +244,7 @@ func officeStati() map[string]bool {
 	return map[string]bool{"of_new_meeting": ex("riunione.json"), "of_new_lock": ex("blocco.json")}
 }
 
-func officeDir() string { return filepath.Join(programFilesDir(), "Tasso", "lavoro", "ufficio") }
+func officeDir() string { return filepath.Join(cartellaTasso(), "lavoro", "ufficio") } // ecosistema.go
 
 // officeGuardia: gira dentro Tasso per tutta la sua vita. Se la Modalità riunione è accesa la
 // spegne da sola 3 minuti dopo che nessun programma usa più il microfono (dopo averlo usato),

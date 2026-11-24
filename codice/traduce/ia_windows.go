@@ -377,13 +377,21 @@ func (s *ServerIA) avviaProcesso(exe, dirAvvio string, args []string, nota strin
 }
 
 // cartellaProtettaIA: <Programmi>\Tasso\lavoro\ia. Programmi è quella vera (KnownFolderPath),
-// mai la variabile d'ambiente, che un programma senza privilegi può cambiare.
-func cartellaProtettaIA() (base, dest string, err error) {
+// mai la variabile d'ambiente, che un programma senza privilegi può cambiare. Dentro Tasso la
+// cartella di Tasso la dice Tasso (Ospite.CartellaTasso): un'altra cartella dentro Programmi se
+// l'installatore l'ha messo lì. Restituisce la cartella di Tasso e quella del motore.
+func cartellaProtettaIA() (tasso, dest string, err error) {
 	pf, err := windows.KnownFolderPath(windows.FOLDERID_ProgramFiles, 0)
 	if err != nil || pf == "" {
 		return "", "", errors.New("cartella Programmi non trovata")
 	}
-	return pf, filepath.Join(pf, "Tasso", "lavoro", "ia"), nil
+	tasso = filepath.Join(pf, "Tasso")
+	if Ospite.CartellaTasso != nil {
+		if d := Ospite.CartellaTasso(); d != "" && filepath.IsAbs(d) {
+			tasso = filepath.Clean(d)
+		}
+	}
+	return tasso, filepath.Join(tasso, "lavoro", "ia"), nil
 }
 
 // copiaMotoreProtetto: copia programma e librerie del motore (già controllati in dir) nella
@@ -391,7 +399,7 @@ func cartellaProtettaIA() (base, dest string, err error) {
 // le impronte. Così nessuno può cambiare i file tra il controllo e l'avvio. I file già giusti
 // non si ricopiano. Restituisce la cartella da cui avviare.
 func copiaMotoreProtetto(dir string, impronte map[string]string, exe string) (string, error) {
-	pf, dest, err := cartellaProtettaIA()
+	tasso, dest, err := cartellaProtettaIA()
 	if err != nil {
 		return "", err
 	}
@@ -399,7 +407,7 @@ func copiaMotoreProtetto(dir string, impronte map[string]string, exe string) (st
 		return "", err
 	}
 	// ogni pezzo del percorso dentro Programmi deve essere una cartella vera, non un collegamento
-	for _, d := range []string{filepath.Join(pf, "Tasso"), filepath.Join(pf, "Tasso", "lavoro"), dest} {
+	for _, d := range []string{tasso, filepath.Join(tasso, "lavoro"), dest} {
 		fi, err := os.Lstat(d)
 		if err != nil || fi.Mode().Type() != fs.ModeDir {
 			return "", fmt.Errorf("%s non è una cartella normale", d)

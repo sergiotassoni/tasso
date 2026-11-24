@@ -243,6 +243,9 @@ func setLook(p string) string {
 	if p != "gioco" && p != "ufficio" {
 		return "modalità sconosciuta"
 	}
+	if !modalitaPermessa(p) {
+		return trGo(msgModalitaFissa) // ecosistema.go: l'installatore ha messo solo l'altra modalità
+	}
 	updateSettings(func(s *Settings) {
 		s.Onboarded = true
 		s.Profile = p
@@ -397,11 +400,21 @@ func setProfile(p string) string {
 	default:
 		return "profilo sconosciuto"
 	}
+	if !modalitaPermessa(p) {
+		return trGo(msgModalitaFissa) // ecosistema.go: l'installatore ha messo solo l'altra modalità
+	}
 	updateSettings(func(s *Settings) {
 		s.Onboarded = true
 		s.Profile = p
 	})
 	lookChanged(p == "ufficio")
+	profiloPC(p)
+	return "ok"
+}
+
+// profiloPC: la parte di setProfile che regola il PC (modalità e pulizia settimanale). La usa
+// anche la prima apertura dopo l'installatore, che la scelta l'ha già fatta (ecosistema.go).
+func profiloPC(p string) {
 	switch p {
 	case "gioco":
 		go setMode("gaming")
@@ -413,7 +426,6 @@ func setProfile(p string) string {
 		go setMode("normale")
 		setWeekly(true)
 	}
-	return "ok"
 }
 
 // sysExe: i programmi di Windows (schtasks, powercfg, taskkill, shutdown, powershell...) li avvio
@@ -488,11 +500,10 @@ func taskExe() string {
 }
 
 func taskExeCheck() string {
-	pf := programFilesDir()
-	if pf == "" || exePath == "" {
+	if programFilesDir() == "" || exePath == "" {
 		return ""
 	}
-	dir := filepath.Join(pf, "Tasso")
+	dir := cartellaTasso() // C:\Program Files\Tasso, o la cartella dell'installatore dentro Programmi (ecosistema.go)
 	dst := filepath.Join(dir, "Tasso.exe")
 	if strings.EqualFold(filepath.Clean(exePath), dst) {
 		return dst

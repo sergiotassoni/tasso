@@ -220,7 +220,7 @@ func selfUpdate() {
 	// Anche la copia in Programmi (quella delle attività pianificate) passa alla versione nuova,
 	// così le due copie non si rimettono a vicenda la versione vecchia.
 	if pf := programFilesDir(); pf != "" {
-		pdir := filepath.Join(pf, "Tasso")
+		pdir := cartellaTasso() // ecosistema.go: di base Programmi\Tasso
 		if fileExists(filepath.Join(pdir, "Tasso.exe")) && !strings.EqualFold(filepath.Clean(dir), filepath.Clean(pdir)) {
 			_ = installProgramCopy(pdir, exe, latest)
 		} else if strings.EqualFold(filepath.Clean(dir), filepath.Clean(pdir)) {

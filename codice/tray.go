@@ -537,10 +537,7 @@ func trayComando(cmd int) {
 		}
 	case cmd == tmChiudi:
 		// come la X della finestra delle Impostazioni: non a metà di una pulizia o di Togli Tasso
-		busyMu.Lock()
-		togli := busy["uninstall-tasso"]
-		busyMu.Unlock()
-		if isRunning() || togli || updating.Load() {
+		if tassoNonSiChiude() { // ecosistema.go (lo stesso controllo di Tasso.exe --chiudi)
 			trayApri()
 			trayAvviso("Tasso", "Aspetta la fine della pulizia prima di chiudere.", false)
 			return

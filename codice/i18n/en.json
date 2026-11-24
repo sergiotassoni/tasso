@@ -1250,7 +1250,10 @@
   "Le attese in tutto non possono superare 30 secondi.": "Waits can't add up to more than 30 seconds.",
   "La sequenza è vuota.": "The sequence is empty.",
   "L'attesa va scritta così: {ATTESA 2s} (secondi) oppure {ATTESA 500ms}.": "Write the wait like this: {ATTESA 2s} (seconds) or {ATTESA 500ms}.",
-  "Un'attesa può durare al massimo 10 secondi.": "A wait can last at most 10 seconds."
+  "Un'attesa può durare al massimo 10 secondi.": "A wait can last at most 10 seconds.",
+  "Su questo PC è installata solo questa modalità di Tasso. Per avere anche l'altra riapri l'installatore di Tasso (Tasso Setup).": "Only this Tasso mode is installed on this PC. To get the other one too, open the Tasso installer (Tasso Setup) again.",
+  "Le cartelle di Tasso si cancellano appena Tasso si chiude. Poi si apre il disinstallatore di Tasso: lì togli il programma (Tasso Zip e Tasso PDF restano se non li spunti)": "Tasso's folders are deleted as soon as Tasso closes. Then the Tasso uninstaller opens: remove the program there (Tasso Zip and Tasso PDF stay unless you tick them)",
+  "Le cartelle e il file di Tasso si cancellano appena Tasso si chiude (Tasso Zip e Tasso PDF restano)": "Tasso's folders and file are deleted as soon as Tasso closes (Tasso Zip and Tasso PDF stay)"
  },
  "ps": {
   "echo Risparmio energetico delle porte USB rimesso come prima.": "echo USB port power saving put back as it was.",
@@ -5050,6 +5053,7 @@
   "Tasso ti proporrà gli account quando clicchi su un campo di accesso.": "Tasso will suggest accounts when you click on a sign-in field.",
   "se usi un account di un altro sito, controlla bene l'indirizzo. Una pagina che imita un sito famoso può rubare la password.": "if you use an account from another site, check the address carefully. A page imitating a well-known site can steal your password.",
   "sito giusto": "right site",
-  "ultima usata": "last used"
+  "ultima usata": "last used",
+  "Tasso si chiude tra pochi secondi e si apre il disinstallatore di Tasso: premi Disinstalla per togliere il programma. Se un giorno lo rivuoi, riapri l'installatore di Tasso.": "Tasso closes in a few seconds and the Tasso uninstaller opens: press Uninstall to remove the program. If you want it back one day, open the Tasso installer again."
  }
 }

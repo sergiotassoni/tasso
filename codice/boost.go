@@ -734,7 +734,7 @@ func presentMonDir() (string, error) {
 	if err != nil || pf == "" {
 		return "", errors.New("cartella Programmi non trovata")
 	}
-	return filepath.Join(pf, "Tasso", "strumenti"), nil
+	return filepath.Join(cartellaTasso(), "strumenti"), nil // ecosistema.go: di base Programmi\Tasso
 }
 
 // lockedPresentMon apre PresentMon bloccando scrittura, rinomina e cancellazione, controlla che sia

@@ -1801,7 +1801,7 @@ window.tasso = {
   onShredProgress(m){ if (/^Chiedo|^Distruggo 1 di|^Asking|^Destroying 1 of/.test(m)) toast(m, 'var(--a3)'); },
   onShredDone(p){ toast(p.msg, p.ok ? 'var(--a1)' : 'var(--a4)'); },
   onUndoDone(p){ if (p.settings) S = p.settings; toast(p.msg, 'var(--a1)'); paintUndo(p.changes); paintModes(); if (loaded.startup) call('goStartupList'); if (loaded.games) { paintLib(); profileRefresh(); } },
-  onTogliTasso(p){ if (!TOGLI) TOGLI = {passi: [], fatto: false, err: ''}; if (p.text) TOGLI.passi.push(p.text); if (p.done) TOGLI.fatto = true; if (p.error) TOGLI.err = p.error; togliDraw(); },
+  onTogliTasso(p){ if (!TOGLI) TOGLI = {passi: [], fatto: false, err: ''}; if (p.text) TOGLI.passi.push(p.text); if (p.done) TOGLI.fatto = true; if (p.eco) TOGLI.eco = true; if (p.error) TOGLI.err = p.error; togliDraw(); },
   onRestoreDone(p){ if (p.settings) S = p.settings; (p.msgs || []).forEach(m => toast(m, 'var(--a3)')); paintSettings(); paintModes(); if (p.ok !== false) toast(p.paused ? _t('Fatto: impostazioni rimesse com\'erano e Tasso è spento.') : _t('Fatto: impostazioni rimesse com\'erano.')); if (loaded.startup) call('goStartupList'); if (loaded.games) profileRefresh(); undoRefresh(); }
 };
 $('#btnCancel').onclick = () => { call('goCancel'); $('#btnCancel').disabled = true; $('#btnCancel').textContent = _t('Mi fermo…'); };
@@ -2662,7 +2662,7 @@ function togliDraw(){
   const righe = T.passi.map(x => '<li style="display:flex;gap:8px;align-items:flex-start"><span>✓</span><span>' + esc(x) + '</span></li>').join('');
   let h = '';
   if (T.err) h = '<h3>' + esc(_t('Tasso non è stato tolto del tutto')) + '</h3><ul style="list-style:none;padding:0;margin:0 0 8px">' + righe + '</ul><div class="callout" style="border-color:var(--a4)">' + esc(T.err) + '</div>';
-  else if (T.fatto) h = '<h3>' + esc(_t('Tasso è stato tolto')) + '</h3><ul style="list-style:none;padding:0;margin:0 0 8px">' + righe + '</ul><p class="small muted">' + esc(_t('Tasso si chiude tra pochi secondi e il suo file si cancella subito dopo. Se un giorno lo rivuoi, lo riscarichi gratis da sergiotassoni.github.io/tasso.')) + '</p>';
+  else if (T.fatto) h = '<h3>' + esc(_t('Tasso è stato tolto')) + '</h3><ul style="list-style:none;padding:0;margin:0 0 8px">' + righe + '</ul><p class="small muted">' + esc(T.eco ? _t('Tasso si chiude tra pochi secondi e si apre il disinstallatore di Tasso: premi Disinstalla per togliere il programma. Se un giorno lo rivuoi, riapri l\'installatore di Tasso.') : _t('Tasso si chiude tra pochi secondi e il suo file si cancella subito dopo. Se un giorno lo rivuoi, lo riscarichi gratis da sergiotassoni.github.io/tasso.')) + '</p>';
   else h = '<h3>' + esc(_t('Tolgo Tasso dal PC…')) + '</h3><ul style="list-style:none;padding:0;margin:0 0 8px">' + righe + '</ul><p class="small muted">' + esc(_t('Non spegnere il PC: ci vuole meno di un minuto.')) + '</p>';
   modal(h, T.err ? [{label:_t('Chiudi'), fn:() => { TOGLI = null; }}] : T.fatto ? [{label:_t('Chiudi adesso'), cls:'primary', fn:() => { call('goQuit'); }}] : []);
   if (!T.err && !T.fatto) { const b = $('#modalBox'); b.setAttribute('tabindex', '-1'); b.focus(); } // niente pulsanti: il fuoco non resta su "Togli Tasso" dietro
@@ -3053,6 +3053,9 @@ function prepPages(){
   [paintTools, paintIndex, paintThemes, paintSettings, paintOffice].forEach(f => { try { f(); } catch (e) { console.error(e); } });
 }
 applyLook();
+// Installato con Tasso Setup con una sola modalità (BOOT.modoFisso = 'gioco' o 'ufficio'): niente menu
+// per passare all'altra (solo nascosto; Go rifiuta comunque il cambio, vedi ecosistema.go).
+if (BOOT.modoFisso === 'gioco' || BOOT.modoFisso === 'ufficio') { ['#modeBtn', '#lookSw'].forEach(q => { const e = $(q); if (e) e.style.display = 'none'; }); const pb = $('#profBtns'); if (pb && pb.parentElement) pb.parentElement.style.display = 'none'; }
 const h = new Date().getHours();
 $('#hello').textContent = h < 6 ? _t('Buonanotte!') : h < 13 ? _t('Buongiorno!') : h < 18 ? _t('Buon pomeriggio!') : _t('Buonasera!');
 renderLevels(); paintModes(); paintFixPh(); ofStati();

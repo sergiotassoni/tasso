@@ -52,12 +52,16 @@ func systemLang() string {
 	return "en"
 }
 
-// curLang: la lingua scelta (o quella di Windows se non l'hai ancora scelta).
+// curLang: la lingua scelta nelle Impostazioni di Tasso; se non l'hai ancora scelta quella
+// dell'installatore (HKCU\Software\Tasso\Lingua, ecosistema.go), altrimenti quella di Windows.
 func curLang() string {
 	setMu.Lock()
 	l := settings.Lang
 	setMu.Unlock()
-	if l == "it" || l == "en" {
+	if linguaDisponibile(l) {
+		return l
+	}
+	if l := linguaInstallatore(); l != "" {
 		return l
 	}
 	return systemLang()
@@ -179,7 +183,7 @@ func uiDictJSON() string {
 
 // setLang cambia la lingua e riapre Tasso (i testi si caricano all'apertura).
 func setLang(l string) string {
-	if l != "it" && l != "en" {
+	if !linguaDisponibile(l) {
 		return "no"
 	}
 	// Un cambio di modalità in corso deve finire prima del riavvio (se no Tasso perde quale modalità

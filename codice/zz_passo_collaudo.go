@@ -61,7 +61,11 @@ $lnk = Join-Path ([Environment]::GetFolderPath('Desktop')) 'Tasso.lnk'
 if (Test-Path -LiteralPath $lnk) { Say ('collegamento Desktop -> ' + (New-Object -ComObject WScript.Shell).CreateShortcut($lnk).TargetPath) } else { Say 'collegamento Desktop: nessuno' }
 foreach ($k in 'HKCU:\Software\Tasso','HKLM:\SOFTWARE\Tasso') { Say ($k + ': ' + (Test-Path -LiteralPath $k)) }`, time.Minute, func(m string) { b.WriteString(m + "\n") })
 			_ = r
-			testo, err := scriptCancellazione()
+			piano := pianoTogliTasso()
+			dis, dirDis := disinstallatoreEcosistema()
+			fmt.Fprintf(&b, "\n--- ecosistema ---\ncartella di Tasso: %s\nmodalità dell'installatore: %q (fissa: %q)\nlingua dell'installatore: %q, lingua di Tasso: %s\ndisinstallatore: %q in %q\necosistema: %v\nintere: %q\nfile: %q\nse vuote: %q\n",
+				cartellaTasso(), modalitaInstallatore(), modalitaFissa(), linguaInstallatore(), curLang(), dis, dirDis, piano.eco, piano.intere, piano.file, piano.seVuote)
+			testo, err := scriptCancellazione(piano)
 			fmt.Fprintf(&b, "\n--- comando che girerebbe dopo la chiusura (errore: %v) ---\n%s", err, testo)
 			_ = os.MkdirAll(filepath.Join(appDir, "logs"), 0o755)
 			_ = os.WriteFile(filepath.Join(appDir, "logs", "prova-togli.txt"), []byte(b.String()), 0o644)

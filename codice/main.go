@@ -46,6 +46,13 @@ func main() {
 	if len(os.Args) > 1 && os.Args[1] == argCancellaSicura {
 		os.Exit(cancellaSicuraDaRiga(os.Args[2:]))
 	}
+	// Tasso.exe --chiudi (lo usa l'installatore): chiede al Tasso aperto di chiudersi bene ed esce
+	// (0 chiuso, 1 rifiutato o non chiuso in 20 secondi). Niente finestra. Vedi ecosistema.go.
+	for _, a := range os.Args[1:] {
+		if a == argChiudi {
+			os.Exit(chiudiCopiaAperta())
+		}
+	}
 	// Profilo gioco all'accensione del PC (Tasso non parte con Windows): rimetto il profilo e chiudo,
 	// senza finestra e senza tenere occupato Tasso, così se lo apri tu si apre normalmente.
 	for _, a := range os.Args[1:] {
@@ -104,6 +111,8 @@ func main() {
 	}
 	webview2.PanicHook = logPanic
 	loadSettings()
+	// Installato con Tasso Setup: modalità scelta nell'installatore (ecosistema.go).
+	profiloInstallatore, modalitaCambiata := applicaModalitaInstallatore()
 	go officeGuardia()
 
 	autoLevel := 0
@@ -180,6 +189,7 @@ func main() {
 	// in sottofondo e non legge lo schermo finché non accendi la traduzione.
 	traduce.Ospite.ApriComeUtente = openUser
 	traduce.Ospite.CartellaScript = scriptDir
+	traduce.Ospite.CartellaTasso = cartellaTasso // ecosistema.go
 	traduce.InIngleseTasso = isEN
 	traduce.InUfficio.Store(officeMode())
 	traduce.TraduciTasso = trGo
@@ -194,6 +204,20 @@ func main() {
 	// Icona vicino all'orologio (tray.go): la X nasconde Tasso lì. Si toglie alla chiusura vera.
 	startTray()
 	defer trayStop()
+	ascoltaChiudi() // ecosistema.go: Tasso.exe --chiudi
+	if profiloInstallatore != "" || modalitaCambiata {
+		go func() {
+			defer guard("profilo-installatore")
+			time.Sleep(3 * time.Second)
+			if profiloInstallatore != "" {
+				// come il pulsante "Continua" della prima apertura, con la scelta fatta nell'installatore
+				lookChanged(profiloInstallatore == "ufficio")
+				profiloPC(profiloInstallatore)
+			} else {
+				lookChanged(officeMode()) // come il menu delle modalità (Boost, autoclick, pannellino)
+			}
+		}()
+	}
 	startLiveMonitor()
 	startGameWatcher()
 	startOverlay()
@@ -223,6 +247,7 @@ func main() {
 		"cassetta":  strings.HasPrefix(cassettaURL, "https://"),
 		"settings":  getSettings(),
 		"steps":     stepList(),
+		"modoFisso": modalitaFissa(), // ecosistema.go: "gioco"/"ufficio" = niente menu per cambiare modalità
 	}
 	b, _ := json.Marshal(boot)
 	w.Init("window.__TASSO_BOOT__ = " + string(b) + "; window.__TASSO_I18N__ = " + uiDictJSON() + ";")
@@ -232,6 +257,7 @@ func main() {
 		pShowWin.Call(uintptr(w.Window()), 6) // SW_MINIMIZE
 	}
 	w.Run()
+	apriDisinstallatoreSeServe() // dopo "Togli Tasso dal PC" con l'installatore (uninstall.go)
 }
 
 // scriviAvvio: una riga in logs\avvio.txt con i secondi passati dall'apertura di Tasso.
@@ -452,12 +478,14 @@ func bindAll(w webview2.WebView) {
 	_ = w.Bind("goTogliTasso", func(rimetti bool) string {
 		return async("uninstall-tasso", func() {
 			err := togliTasso(rimetti, func(i int, t string) { emit("onTogliTasso", map[string]interface{}{"step": i, "text": t}) })
-			emit("onTogliTasso", map[string]interface{}{"done": err == "", "error": err})
+			eco, _ := disinstAllaChiusura.Load().(string)
+			emit("onTogliTasso", map[string]interface{}{"done": err == "", "error": err, "eco": err == "" && eco != ""})
 			if err == "" {
 				time.Sleep(10 * time.Second)
 				wv.Dispatch(func() { wv.Terminate() })
 				// se la finestra non si chiude, il comando che cancella aspetterebbe invano: esco comunque
 				time.Sleep(20 * time.Second)
+				apriDisinstallatoreSeServe()
 				os.Exit(0)
 			}
 		})

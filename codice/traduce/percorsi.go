@@ -30,6 +30,9 @@ func dirIA() string      { return filepath.Join(dirApp, "modelli", "ia") }
 var Ospite struct {
 	ApriComeUtente func(percorso, argomenti string) bool // apre un programma/indirizzo come utente normale
 	CartellaScript func() string                         // cartella protetta per gli script .ps1
+	// CartellaTasso: la cartella di Tasso in Programmi (di base C:\Program Files\Tasso; un'altra
+	// cartella dentro Programmi se l'installatore ha messo Tasso lì). nil = quella di base.
+	CartellaTasso func() string
 }
 
 // cartellaScript: la cartella protetta di Tasso se c'è, altrimenti quella di Tasso Traduce.

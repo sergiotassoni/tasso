@@ -99,7 +99,7 @@ func tempOriginale(c *cartelle, t string) string {
 		}
 		return ""
 	}
-	tassoTemp := filepath.Join(c.PF, "Tasso", "lavoro", "tmp")
+	tassoTemp := filepath.Join(cartellaTasso(), "lavoro", "tmp")
 	t = pulisci(t)
 	if t == "" || dentroDi(t, tassoTemp) || (c.Win != "" && dentroDi(t, filepath.Join(c.Win, "Temp"))) {
 		t = ""
@@ -237,7 +237,7 @@ func ambientePulito() {
 
 	// Temporanei: in Programmi\Tasso\lavoro\tmp, dove un programma normale non può scrivere né
 	// mettere file finti che poi un installatore da amministratore caricherebbe.
-	c.TempTasso = filepath.Join(c.PF, "Tasso", "lavoro", "tmp")
+	c.TempTasso = filepath.Join(cartellaTasso(), "lavoro", "tmp") // ecosistema.go: di base Programmi\Tasso
 	if os.MkdirAll(c.TempTasso, 0o755) != nil || !cartellaScrivibile(c.TempTasso) {
 		// Programmi non è scrivibile (caso raro, es. criteri dell'azienda): uso Windows\Temp, la
 		// cartella dei temporanei dei servizi di Windows. Lì un utente normale può creare file suoi
@@ -320,5 +320,6 @@ func psCartelle() string {
 		"\n$TassoTempUtente = " + psQuote(tu) +
 		"\n$TassoTempOriginale = " + psQuote(c.TempOriginale) +
 		"\n$TassoExe = " + psQuote(tassoExe()) +
+		"\n$TassoCartella = " + psQuote(cartellaTasso()) +
 		"\n$TassoSysDrive = " + psQuote(filepath.VolumeName(c.Win))
 }

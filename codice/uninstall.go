@@ -4,6 +4,15 @@ package main
 // persona. Ordine: prima le cose che si possono ancora annullare (impostazioni, giochi); se un gioco
 // tradotto è aperto mi fermo PRIMA di cancellare qualcosa. Alla fine le cartelle di Tasso e il
 // suo file si cancellano dopo che Tasso si è chiuso (mentre è aperto i file sono in uso).
+//
+// Con l'Ecosistema Tasso (installatore Tasso Setup, ecosistema.go) nella cartella di Tasso ci sono
+// anche Tasso Zip e Tasso PDF, che qui non si toccano MAI:
+//   - c'è il disinstallatore dell'installatore: Tasso toglie le sue cose (impostazioni, traduzioni,
+//     attività, cartelle di lavoro) e poi, chiudendosi, apre il disinstallatore con Tasso Gaming e
+//     Tasso Ufficio già spuntati: è lui che toglie Tasso.exe, i collegamenti e la voce in
+//     "Programmi e funzionalità" (e Zip e PDF solo se li spunti);
+//   - niente disinstallatore ma ci sono le cartelle Tasso Zip / Tasso PDF: tolgo solo i file e le
+//     cartelle di Tasso, e la cartella di Tasso resta se non è vuota.
 
 import (
 	"fmt"
@@ -22,25 +31,89 @@ import (
 	"tasso/traduce"
 )
 
-// cartelleTasso: le cartelle che Tasso crea e che si cancellano per intero. Solo questi tre
-// percorsi esatti, ricavati dalle cartelle di Windows (mai da un valore scritto su disco).
-func cartelleTasso() []string {
-	// cartella di Windows vera, non la variabile d'ambiente (che un programma qualsiasi può cambiare)
-	local, err := windows.KnownFolderPath(windows.FOLDERID_LocalAppData, 0)
-	if err != nil {
-		local = ""
-	}
-	var out []string
-	for _, d := range []string{filepath.Join(local, "Tasso"), filepath.Join(local, "TassoTraduce"), filepath.Join(programFilesDir(), "Tasso")} {
-		if local == "" && !strings.HasPrefix(d, programFilesDir()) {
-			continue
-		}
-		if filepath.IsAbs(d) && strings.EqualFold(filepath.Base(d)[:5], "Tasso") {
-			out = append(out, d)
-		}
-	}
-	return out
+// pianoTogli: cosa si cancella dopo la chiusura. Percorsi esatti ricavati dalle cartelle di Windows
+// e dalla cartella di Tasso (ecosistema.go), mai da un valore scritto su disco.
+type pianoTogli struct {
+	intere  []string // cartelle che si cancellano per intero
+	file    []string // file che si cancellano
+	seVuote []string // cartelle che si tolgono solo se restano vuote
+	disinst string   // disinstallatore dell'ecosistema da aprire alla chiusura ("" se non c'è)
+	eco     bool     // c'è l'ecosistema (disinstallatore o Tasso Zip / Tasso PDF): Zip e PDF restano
 }
+
+// nomeCartellaTasso: le cartelle che si cancellano per intero hanno un nome che comincia con
+// "Tasso" o sono le sottocartelle di lavoro di Tasso (lavoro, driver, strumenti).
+func nomeCartellaTasso(d string) bool {
+	b := strings.ToLower(filepath.Base(d))
+	return strings.HasPrefix(b, "tasso") || b == "lavoro" || b == "driver" || b == "strumenti"
+}
+
+func cartellaVera(p string) bool {
+	fi, err := os.Lstat(p)
+	return err == nil && fi.Mode().IsDir()
+}
+
+func pianoTogliTasso() pianoTogli {
+	var p pianoTogli
+	// cartella di Windows vera, non la variabile d'ambiente (che un programma qualsiasi può cambiare)
+	if local, err := windows.KnownFolderPath(windows.FOLDERID_LocalAppData, 0); err == nil && local != "" {
+		p.intere = append(p.intere, filepath.Join(local, "Tasso"), filepath.Join(local, "TassoTraduce"))
+	}
+	pf := programFilesDir()
+	base := cartellaTasso()
+	std := filepath.Join(pf, "Tasso")
+	disinst, dirInst := disinstallatoreEcosistema()
+	p.disinst = disinst
+	p.eco = disinst != "" || cartellaVera(filepath.Join(base, "Tasso Zip")) || cartellaVera(filepath.Join(base, "Tasso PDF"))
+	exe, _ := os.Executable()
+	if exe != "" {
+		exe, _ = filepath.Abs(exe)
+	}
+	if !p.eco && strings.EqualFold(base, std) {
+		p.intere = append(p.intere, base) // come prima: C:\Program Files\Tasso è solo di Tasso
+	} else {
+		// Solo le cose di Tasso: Tasso Zip, Tasso PDF, il disinstallatore e tasso-setup.json restano.
+		for _, d := range []string{"lavoro", "driver", "strumenti"} {
+			p.intere = append(p.intere, filepath.Join(base, d))
+		}
+		// copie a metà di un aggiornamento (installProgramCopy, selfupdate): non sono nell'elenco
+		// dell'installatore, e senza toglierle la cartella non resterebbe mai vuota
+		for _, f := range []string{"Tasso.exe.new", "Tasso.exe.old", "Tasso.new.exe", "Tasso.old.exe"} {
+			p.file = append(p.file, filepath.Join(base, f))
+		}
+		// Tasso.exe, VERSIONE e LICENSE: se li ha messi l'installatore li toglie il suo disinstallatore
+		if disinst == "" || !strings.EqualFold(base, dirInst) {
+			for _, f := range []string{"Tasso.exe", "VERSIONE", "LICENSE"} {
+				p.file = append(p.file, filepath.Join(base, f))
+			}
+		}
+		p.seVuote = append(p.seVuote, base)
+	}
+	// il file di Tasso che sta girando, se non lo toglie già qualcos'altro: il disinstallatore
+	// (è il suo Tasso.exe) o la cancellazione della cartella intera. Mai dentro Tasso Zip / Tasso PDF.
+	if exe != "" && reExeTasso.MatchString(filepath.Base(exe)) {
+		dir := filepath.Dir(exe)
+		suo := disinst != "" && strings.EqualFold(dir, dirInst)
+		zipPdf := false
+		for _, b := range []string{base, dirInst} {
+			if b != "" && (dentroDi(exe, filepath.Join(b, "Tasso Zip")) || dentroDi(exe, filepath.Join(b, "Tasso PDF"))) {
+				zipPdf = true
+			}
+		}
+		giaVia := !p.eco && strings.EqualFold(base, std) && dentroDi(exe, base)
+		gia := false
+		for _, f := range p.file {
+			gia = gia || strings.EqualFold(f, exe)
+		}
+		if !suo && !zipPdf && !giaVia && !gia {
+			p.file = append(p.file, exe)
+		}
+	}
+	return p
+}
+
+// cartelleTasso: le cartelle che si cancellano per intero (per la finestra di conferma).
+func cartelleTasso() []string { return pianoTogliTasso().intere }
 
 func dimensioneCartella(d string) int64 {
 	var n int64
@@ -124,19 +197,34 @@ try { $s = New-Object -ComObject Schedule.Service; $s.Connect(); $s.GetFolder('\
 
 	// 4. copie di sicurezza in Documenti (backup del registro, plugin dei giochi messi da parte)
 	salvaCopieDiSicurezza()
+	piano := pianoTogliTasso()
 	_ = registry.DeleteKey(registry.CURRENT_USER, `Software\Tasso\PrimaDelleModalita`)
-	_ = registry.DeleteKey(registry.CURRENT_USER, `Software\Tasso`)
 	_ = registry.DeleteKey(registry.LOCAL_MACHINE, `SOFTWARE\Tasso\PuntoRipristino`)
-	_ = registry.DeleteKey(registry.LOCAL_MACHINE, `SOFTWARE\Tasso`)
+	if piano.eco {
+		// Software\Tasso è anche dell'installatore (Lingua, Modalita, Cartella...: le leggono Zip,
+		// PDF e il disinstallatore): tolgo solo le cose di Tasso.
+		_ = registry.DeleteKey(registry.CURRENT_USER, `Software\Tasso\AudioUSB`)
+	} else {
+		_ = registry.DeleteKey(registry.CURRENT_USER, `Software\Tasso`)
+		_ = registry.DeleteKey(registry.LOCAL_MACHINE, `SOFTWARE\Tasso`)
+	}
 	togliCollegamentoDesktop()
 
 	// 5. cartelle e file di Tasso: dopo la chiusura
-	if err := cancellaDopoLaChiusura(); err != nil {
+	if err := cancellaDopoLaChiusura(piano); err != nil {
 		// il prefisso tradotto qui: con un percorso dentro, la finestra non traduce i pezzi
 		return trGo("Ho tolto tutto tranne le cartelle di Tasso: ") + err.Error()
 	}
-	passo(3, "Le cartelle e il file di Tasso si cancellano appena Tasso si chiude")
+	if piano.disinst != "" {
+		disinstAllaChiusura.Store(piano.disinst) // ecosistema.go: si apre quando la finestra si chiude
+		passo(3, "Le cartelle di Tasso si cancellano appena Tasso si chiude. Poi si apre il disinstallatore di Tasso: lì togli il programma (Tasso Zip e Tasso PDF restano se non li spunti)")
+	} else if piano.eco {
+		passo(3, "Le cartelle e il file di Tasso si cancellano appena Tasso si chiude (Tasso Zip e Tasso PDF restano)")
+	} else {
+		passo(3, "Le cartelle e il file di Tasso si cancellano appena Tasso si chiude")
+	}
 	trayStop() // tray.go: via l'icona vicino all'orologio (e da qui la X chiude davvero)
+	togliFinito.Store(true)
 	finito = true
 	return ""
 }
@@ -205,8 +293,8 @@ if (Test-Path -LiteralPath $lnk) {
 
 // cancellaDopoLaChiusura: un piccolo comando di Windows aspetta che Tasso sia chiuso e cancella
 // le sue cartelle e il suo file. Percorsi controllati qui, mai presi da file su disco.
-func cancellaDopoLaChiusura() error {
-	testo, err := scriptCancellazione()
+func cancellaDopoLaChiusura(piano pianoTogli) error {
+	testo, err := scriptCancellazione(piano)
 	if err != nil {
 		return err
 	}
@@ -244,12 +332,7 @@ func cancellaDopoLaChiusura() error {
 	return nil
 }
 
-func scriptCancellazione() (string, error) {
-	exe, err := os.Executable()
-	if err != nil {
-		return "", err
-	}
-	exe, _ = filepath.Abs(exe)
+func scriptCancellazione(piano pianoTogli) (string, error) {
 	var cmd strings.Builder
 	cmd.WriteString("@echo off\r\n")
 	// il file è in UTF-8: senza questo un nome utente con accenti (Nicolò) darebbe percorsi sbagliati
@@ -262,19 +345,44 @@ func scriptCancellazione() (string, error) {
 	}
 	tl, fd, pg := filepath.Join(sys, "tasklist.exe"), filepath.Join(sys, "find.exe"), filepath.Join(sys, "PING.EXE")
 	fmt.Fprintf(&cmd, "for /L %%%%i in (1,1,120) do (\"%s\" /FI \"PID eq %d\" | \"%s\" \"%d\" >nul || goto via & \"%s\" -n 2 127.0.0.1 >nul)\r\n(goto) 2>nul & del /f /q \"%%~f0\"\r\n:via\r\n", tl, os.Getpid(), fd, os.Getpid(), pg)
-	for _, d := range cartelleTasso() {
-		if strings.ContainsAny(d, "\"%&|<>^\r\n") {
+	strano := func(p string) bool {
+		return !filepath.IsAbs(p) || strings.HasPrefix(p, `\\`) || strings.ContainsAny(p, "\"%&|<>^\r\n")
+	}
+	for _, d := range piano.intere {
+		if strano(d) || !nomeCartellaTasso(d) || len(d) <= 3 {
 			return "", fmt.Errorf("percorso strano: %s", d)
+		}
+		// mai le cartelle di Tasso Zip e Tasso PDF né una cartella che le contiene
+		if cartellaVera(filepath.Join(d, "Tasso Zip")) || cartellaVera(filepath.Join(d, "Tasso PDF")) {
+			return "", fmt.Errorf("dentro ci sono Tasso Zip o Tasso PDF: %s", d)
 		}
 		// due tentativi: i programmi della traduzione possono chiudersi qualche secondo dopo
 		fmt.Fprintf(&cmd, "rmdir /s /q \"%s\" 2>nul\r\nif exist \"%s\" (\"%s\" -n 6 127.0.0.1 >nul & rmdir /s /q \"%s\" 2>nul)\r\n", d, d, pg, d)
 	}
-	if reExeTasso.MatchString(filepath.Base(exe)) && !strings.ContainsAny(exe, "\"%&|<>^\r\n") {
-		fmt.Fprintf(&cmd, "del /f /q \"%s\" 2>nul\r\n", exe)
+	for _, f := range piano.file {
+		if strano(f) || !fileTasso(filepath.Base(f)) {
+			return "", fmt.Errorf("percorso strano: %s", f)
+		}
+		fmt.Fprintf(&cmd, "if exist \"%s\" del /f /q \"%s\" 2>nul\r\n", f, f)
+	}
+	for _, d := range piano.seVuote {
+		if strano(d) || len(d) <= 3 {
+			return "", fmt.Errorf("percorso strano: %s", d)
+		}
+		fmt.Fprintf(&cmd, "rmdir \"%s\" 2>nul\r\n", d) // senza /s: solo se è vuota
 	}
 	// il comando si cancella da solo alla fine
 	cmd.WriteString("(goto) 2>nul & del /f /q \"%~f0\"\r\n")
 	return cmd.String(), nil
+}
+
+// fileTasso: i soli nomi di file che "Togli Tasso" cancella.
+func fileTasso(n string) bool {
+	switch strings.ToLower(n) {
+	case "versione", "license":
+		return true
+	}
+	return reExeTasso.MatchString(n) || strings.EqualFold(n, "Tasso.exe.new") || strings.EqualFold(n, "Tasso.exe.old")
 }
 
 // sistema32: la vera cartella System32 (chiesta a Windows, non presa da SystemRoot dell'ambiente).
