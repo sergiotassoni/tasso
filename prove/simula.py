@@ -92,6 +92,11 @@ window.addEventListener("load", async () => {
   if (s === "guida3") { document.getElementById("b-guida").click(); await pausa(50); document.querySelector('.opz[data-g="comprimi"]').click(); await guidaAggiungi([D + "\\Foto vacanze 2026"]); document.getElementById("g-avanti").click(); G.formato = "7z"; disegnaGuida(); }
   if (s === "guida3e") { document.getElementById("b-guida").click(); await pausa(50); document.querySelector('.opz[data-g="estrai"]').click(); await guidaAggiungi([D + "\\Backup documenti.7z"]); document.getElementById("g-avanti").click(); }
   if (s === "guida1") { document.getElementById("b-guida").click(); }
+  if (s === "comprimi") { await aggiungi([D + "\\Foto vacanze 2026", D + "\\Relazione finale.pdf", D + "\\Spese 2026.xlsx"]); }
+  if (s === "lavoro") { S.tipo = "comprimi"; inizioLavoro(t("lavoro_comprimo") || "", "Foto vacanze 2026\\Dolomiti\\video lago.mp4"); tz.avanza({ fatto: 62, totale: 100, nome: "Foto vacanze 2026\\Dolomiti\\video lago.mp4" }); }
+  if (s === "fatto") { mostraFatto({ tipo: "comprimi", file: 8, originale: 175363063, compresso: 98304000, percorso: D + "\\Foto vacanze 2026.7z", saltati: [] }, 0); }
+  if (s === "errore") { mostraErrore({ codice: "generico", percorso: D + "\\driver-stampante.rar", dettagli: "unexpected EOF" }); }
+  if (s === "password") { S.corrente = D + "\\Backup documenti.7z"; chiediPassword(true); }
   if (s === "avviso") { document.querySelector('#v-home .card.e').dataset.zona; S.dropDove = "estrai"; tz.trascinati([D + "\\note.txt"]); }
 });
 </script>
