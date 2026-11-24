@@ -182,3 +182,138 @@ func TestDialogoNonEMenu(t *testing.T) {
 		t.Fatal("menu non riconosciuto")
 	}
 }
+
+// fondoConScritte: sfondo scuro con due "voci di menu" chiare (barrette come lettere).
+func fondoConScritte(colore1 color.RGBA, forma2 int) *image.RGBA {
+	img := image.NewRGBA(image.Rect(0, 0, 400, 200))
+	for i := 0; i < len(img.Pix); i += 4 {
+		img.Pix[i], img.Pix[i+1], img.Pix[i+2], img.Pix[i+3] = 20, 24, 30, 255
+	}
+	for y := 40; y < 56; y++ {
+		for x := 30; x < 150; x++ {
+			if (x+y)%6 < 2 {
+				img.SetRGBA(x, y, colore1)
+			}
+		}
+	}
+	for y := 100; y < 116; y++ {
+		for x := 30; x < 150; x++ {
+			if (x*forma2+y)%7 < 2 {
+				img.SetRGBA(x, y, color.RGBA{235, 235, 235, 255})
+			}
+		}
+	}
+	return img
+}
+
+// Mouse sopra una voce: diventa dorata. Il resto dello schermo è identico, quindi l'impronta di
+// tutta la schermata cambia poco; la tinta della voce invece sì, e solo lei va ricolorata.
+func TestTintaMouseSopra(t *testing.T) {
+	bianco := color.RGBA{235, 235, 235, 255}
+	a := fondoConScritte(bianco, 1)
+	bl := []Blocco{
+		{Testo: "Gear", Tradotto: "Equipaggiamento", X: 30, Y: 40, W: 120, H: 16, Righe: 1, Em: 16, Img: a},
+		{Testo: "Options", Tradotto: "Opzioni", X: 30, Y: 100, W: 120, H: 16, Righe: 1, Em: 16, Img: a},
+	}
+	for i := range bl {
+		coloriBlocco(a, &bl[i])
+		bl[i].Tinta = tintaBlocco(a, bl[i])
+	}
+	bl[0].Pulita, bl[1].Pulita = pulisciPagina(a, bl), pulisciPagina(a, bl)
+	viste := map[[4]int][12]uint8{}
+	if _, n := blocchiDaRicolorare(a, bl, viste); n != 0 {
+		t.Fatal("niente è cambiato: niente da ricolorare")
+	}
+	oro := fondoConScritte(color.RGBA{240, 190, 60, 255}, 1)
+	solo, n := blocchiDaRicolorare(oro, bl, viste)
+	if n != 1 || !solo[0] || solo[1] {
+		t.Fatalf("solo la voce sotto il mouse va ricolorata: %v", solo)
+	}
+	nuovi, ok := ricoloraSolo(oro, bl, solo)
+	if !ok || distanza(nuovi[0].Inchiostro, color.RGBA{240, 190, 60, 255}) > 60 {
+		t.Fatalf("la traduzione non è diventata dorata: %v %v", ok, nuovi[0].Inchiostro)
+	}
+	if nuovi[1].Inchiostro != bl[1].Inchiostro || nuovi[1].Tinta != bl[1].Tinta {
+		t.Fatal("la voce non toccata deve restare identica")
+	}
+	if nuovi[0].Img != oro || nuovi[1].Img != oro || nuovi[0].Pulita != nuovi[1].Pulita {
+		t.Fatal("tutte le scritte devono puntare alla cattura nuova (le vecchie si liberano)")
+	}
+	// stessa immagine di nuovo: la tinta già vista non fa ricontrollare
+	nuovi[0].Tinta = [12]uint8{1}
+	if _, n := blocchiDaRicolorare(oro, nuovi, viste); n != 0 {
+		t.Fatal("tinta già controllata: niente da rifare")
+	}
+}
+
+// Una voce con altre lettere sparisce subito; una che ha cambiato solo colore resta.
+func TestTogliCambiate(t *testing.T) {
+	a := fondoConScritte(color.RGBA{235, 235, 235, 255}, 1)
+	bl := []Blocco{
+		{Testo: "Gear", Tradotto: "Equipaggiamento", X: 30, Y: 40, W: 120, H: 16, Righe: 1, Img: a},
+		{Testo: "Options", Tradotto: "Opzioni", X: 30, Y: 100, W: 120, H: 16, Righe: 1, Img: a},
+	}
+	b := fondoConScritte(color.RGBA{240, 190, 60, 255}, 3) // voce 1 dorata, voce 2 con altre lettere
+	resto, tolte := togliCambiate(b, bl)
+	if tolte != 1 || len(resto) != 1 || resto[0].Testo != "Gear" {
+		t.Fatalf("doveva togliere solo la voce con le lettere cambiate: %d %+v", tolte, resto)
+	}
+}
+
+// L'OCR legge la stessa scritta piccola in modo un po' diverso: stabilizza tiene la traduzione E
+// il testo di prima, così tieniFerme la lascia identica (niente tremolio).
+func TestStabilizzaPoiTieniFerme(t *testing.T) {
+	a := image.NewRGBA(image.Rect(0, 0, 300, 100))
+	vecchio := Blocco{Testo: "Used for crafting", Tradotto: "Usato per creare", X: 10, Y: 10, W: 120, H: 12, Righe: 1, Img: a}
+	nuovo := Blocco{Testo: "Usedfor crafting", Tradotto: "Usato per artigianato", X: 11, Y: 9, W: 121, H: 13, Righe: 1, Img: a}
+	n := []Blocco{nuovo}
+	stabilizza(n, []Blocco{vecchio})
+	out := tieniFerme(n, []Blocco{vecchio}, a)
+	if out[0].X != 10 || out[0].Y != 10 || out[0].Tradotto != "Usato per creare" {
+		t.Fatalf("la scritta doveva restare ferma: %+v", out[0])
+	}
+}
+
+// La scritta tenuta punta alla cattura nuova e la sua cancellatura passa nella pagina pulita nuova.
+func TestTieniFermePulitaNuova(t *testing.T) {
+	a := fondoConScritte(color.RGBA{235, 235, 235, 255}, 1)
+	vecchio := Blocco{Testo: "Gear", Tradotto: "Equipaggiamento", X: 30, Y: 40, W: 120, H: 16, Righe: 1, Em: 16, Img: a}
+	coloriBlocco(a, &vecchio)
+	vecchio.Pulita = pulisciPagina(a, []Blocco{vecchio})
+	b := image.NewRGBA(a.Bounds()) // cattura nuova, identica
+	copy(b.Pix, a.Pix)
+	pulNuova := image.NewRGBA(b.Bounds())
+	copy(pulNuova.Pix, b.Pix) // (la lettura nuova qui non ha cancellato niente)
+	nuovo := vecchio
+	nuovo.X, nuovo.Img, nuovo.Pulita = 31, b, pulNuova
+	out := tieniFerme([]Blocco{nuovo}, []Blocco{vecchio}, b)
+	if out[0].X != 30 || out[0].Img != b || out[0].Pulita != pulNuova {
+		t.Fatalf("doveva tenere la vecchia, puntata alle immagini nuove: %+v", out[0])
+	}
+	diversi := 0
+	for i := range pulNuova.Pix {
+		if pulNuova.Pix[i] != b.Pix[i] {
+			diversi++
+		}
+	}
+	if diversi == 0 {
+		t.Fatal("le lettere cancellate della scritta tenuta non sono passate nella pagina pulita nuova")
+	}
+}
+
+// La traduzione resta nel riquadro: senza bordo trovato poco più dell'inglese, mai fino alla
+// scritta vicina o al bordo dello schermo; con il bordo vero fino a lì.
+func TestLargConsentita(t *testing.T) {
+	b := Blocco{X: 100, W: 40, Em: 16, LargMax: 900}
+	if l := largConsentita(b); l > 40+40 || l < 60 {
+		t.Fatalf("senza bordo: %d", l)
+	}
+	b.Bordo, b.LargMax = true, 200
+	if l := largConsentita(b); l != 200 {
+		t.Fatalf("con il bordo del riquadro: %d", l)
+	}
+	b.Bordo, b.LargMax = false, 50
+	if l := largConsentita(b); l != 50 {
+		t.Fatalf("mai oltre la scritta vicina: %d", l)
+	}
+}

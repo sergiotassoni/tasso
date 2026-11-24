@@ -5,6 +5,10 @@ package traduce
 // Finestra della modalità "tutta la schermata" (F6): grande come la finestra del gioco,
 // trasparente, non cliccabile, esclusa dalle catture. Sopra ogni scritta inglese disegna un
 // rettangolo con il colore dello sfondo del gioco e la traduzione italiana con il colore del testo.
+//
+// Niente sfarfallio: tutto si disegna prima in un'immagine nascosta grande come la finestra
+// (fuori da WM_PAINT, e solo le scritte cambiate), poi WM_PAINT la copia sullo schermo con una
+// sola operazione. Sullo schermo non si vede mai una pagina a metà.
 
 import (
 	"encoding/binary"
@@ -13,6 +17,7 @@ import (
 	"os"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"unsafe"
 
 	"golang.org/x/sys/windows"
@@ -29,9 +34,20 @@ var pag struct {
 	area    Zona
 	blocchi []Blocco
 	vis     bool
-	font    map[int32]uintptr
 	chiave  uintptr
+	inCoda  atomic.Bool // c'è già un wmPagina in attesa: non ne mando un altro
 }
+
+var (
+	pUpdateWindow = user32.NewProc("UpdateWindow")
+	pCreateRgn    = gdi32.NewProc("CreateRectRgn")
+	pCombineRgn   = gdi32.NewProc("CombineRgn")
+	pSelectClip   = gdi32.NewProc("SelectClipRgn")
+)
+
+// muDisegno protegge tutto quello che serve per disegnare: caratteri, toppe, impaginazioni
+// già calcolate, l'immagine nascosta (tela) e inAnteprima.
+var muDisegno sync.Mutex
 
 func creaFinestraPagina() {
 	classe, _ := windows.UTF16PtrFromString("TassoTraducePagina")
@@ -47,11 +63,21 @@ func creaFinestraPagina() {
 	pSetDisplayAffin.Call(h, affinita())          // WDA_EXCLUDEFROMCAPTURE: non rileggo le mie scritte
 	k, _, _ := pCreateBrush.Call(chiaveTrsp)
 	pag.mu.Lock()
-	pag.hwnd, pag.chiave, pag.font = h, k, map[int32]uintptr{}
+	pag.hwnd, pag.chiave = h, k
 	pag.mu.Unlock()
 }
 
-// MostraPagina disegna le traduzioni (coordinate dei blocchi relative all'area).
+// chiediDisegno: chiede alla finestra di ridisegnarsi. Se una richiesta è già in coda basta
+// quella (legge i dati più nuovi quando arriva): niente ridisegni inutili uno dietro l'altro.
+func chiediDisegno(h uintptr) {
+	if h == 0 || !pag.inCoda.CompareAndSwap(false, true) {
+		return
+	}
+	if r, _, _ := pPostMessage.Call(h, wmPagina, 0, 0); r == 0 {
+		pag.inCoda.Store(false)
+	}
+}
+
 // blocchiPagina: copia delle scritte mostrate adesso.
 func blocchiPagina() []Blocco {
 	pag.mu.Lock()
@@ -59,14 +85,13 @@ func blocchiPagina() []Blocco {
 	return append([]Blocco(nil), pag.blocchi...)
 }
 
+// MostraPagina disegna le traduzioni (coordinate dei blocchi relative all'area).
 func MostraPagina(area Zona, b []Blocco) {
 	pag.mu.Lock()
 	pag.area, pag.blocchi, pag.vis = area, b, true
 	h := pag.hwnd
 	pag.mu.Unlock()
-	if h != 0 {
-		pPostMessage.Call(h, wmPagina, 0, 0)
-	}
+	chiediDisegno(h)
 }
 
 // sostituisciTraduzione: cambia il testo delle scritte già mostrate che dicono "vecchio"
@@ -88,8 +113,8 @@ func sostituisciTraduzione(inglese, vecchio, nuovo string) bool {
 	}
 	h := pag.hwnd
 	pag.mu.Unlock()
-	if cambiate && h != 0 {
-		pPostMessage.Call(h, wmPagina, 0, 0)
+	if cambiate {
+		chiediDisegno(h)
 	}
 	return cambiate
 }
@@ -100,51 +125,118 @@ func NascondiPagina() {
 	pag.vis, pag.blocchi = false, nil
 	h := pag.hwnd
 	pag.mu.Unlock()
-	if h != 0 {
-		pPostMessage.Call(h, wmPagina, 0, 0)
-	}
+	chiediDisegno(h)
 }
 
 // famiglieFont: 0 normale; 1 e 2 strette, per i giochi che scrivono con lettere strette
 // (Liar's Bar): la traduzione ha la stessa forma e ci sta nello stesso spazio.
 var famiglieFont = []string{"Segoe UI", "Bahnschrift SemiCondensed", "Bahnschrift Condensed"}
 
+var fontCache = map[int32]uintptr{} // solo con muDisegno preso
+
 func fontPagina(px int32, peso uintptr) uintptr { return fontPaginaF(px, peso, 0) }
 
 func fontPaginaF(px int32, peso uintptr, fam int) uintptr {
 	chiave := (px*10+int32(peso/100))*4 + int32(fam)
-	if f, ok := pag.font[chiave]; ok {
+	if f, ok := fontCache[chiave]; ok {
 		return f
 	}
 	face, _ := windows.UTF16PtrFromString(famiglieFont[fam])
 	f, _, _ := pCreateFont.Call(uintptr(-px), 0, 0, 0, peso, 0, 0, 0, 1, 0, 0, 4, 0, uintptr(unsafe.Pointer(face))) // ANTIALIASED (grigi): niente frange colorate
-	pag.font[chiave] = f
+	fontCache[chiave] = f
 	return f
 }
 
 func colore(c [3]uint8) uintptr { return uintptr(c[0]) | uintptr(c[1])<<8 | uintptr(c[2])<<16 }
 
-// misuraRiga: larghezza e altezza del testo (a capo dentro la larghezza larg se aCapo).
+// testoW: il testo per DrawText, sempre con almeno lo zero finale. Un carattere nullo dentro la
+// traduzione faceva fallire la conversione e chiudeva Tasso (&t[0] su una lista vuota).
+func testoW(s string) []uint16 {
+	t, err := windows.UTF16FromString(strings.ReplaceAll(s, "\x00", ""))
+	if err != nil || len(t) == 0 {
+		return []uint16{0}
+	}
+	return t
+}
+
+const (
+	dtSingleLine  = 0x20
+	dtEditControl = 0x2000 // non mostra un'ultima riga tagliata a metà
+	dtEndEllipsis = 0x8000 // "…" alla fine se non ci sta
+)
+
+// misuraTesto: larghezza e altezza del testo (a capo dentro la larghezza larg se aCapo).
 func misuraTesto(hdc, font uintptr, s string, larg int32, aCapo bool) (int32, int32) {
 	pSelectObject.Call(hdc, font)
 	r := rect{0, 0, larg, 0}
-	t, _ := windows.UTF16FromString(s)
+	t := testoW(s)
 	fl := uintptr(dtCalcRect | dtNoPrefix)
 	if aCapo {
 		fl |= dtWordBreak
 	} else {
-		fl |= 0x20 // DT_SINGLELINE
+		fl |= dtSingleLine
 	}
 	pDrawText.Call(hdc, uintptr(unsafe.Pointer(&t[0])), uintptr(len(t)-1), uintptr(unsafe.Pointer(&r)), fl)
 	return r.Right - r.Left, r.Bottom - r.Top
 }
 
-// fase 0: sfondo, fase 1: scritta. Prima tutti gli sfondi, poi tutte le scritte, così uno
-// sfondo non taglia le lettere della riga sopra.
-func disegnaBlocco(hdc uintptr, b Blocco, fase int) {
-	if b.Tradotto == "" {
-		return
+// impaginazione: dove e come va la traduzione di una scritta. Si calcola una volta sola per
+// scritta (le misure per tentativi costano) e si riusa a ogni ridisegno.
+type impaginazione struct {
+	font           uintptr
+	px             int32
+	w, h           int32
+	tx, ty         int32
+	m              int32
+	x0, y0, x1, y1 int32
+	toppa          image.Rectangle // quello che copre la toppa dalla pagina pulita
+	rt             rect            // rettangolo della scritta (DrawText non esce mai da qui)
+	fl             uintptr
+	zona           image.Rectangle // tutto quello che questa scritta può toccare sulla finestra
+}
+
+// chiaveDisegno: la scritta senza i puntatori alle immagini (cambiano a ogni lettura anche
+// quando il disegno è identico) e senza la tinta. Se la chiave non cambia, il disegno della
+// scritta non cambia (la cattura e la pagina pulita nuove hanno gli stessi pixel lì).
+type chiaveDisegno struct {
+	b           Blocco
+	img, pulita bool
+	imgW        int
+}
+
+func chiaveDi(b Blocco) chiaveDisegno {
+	k := chiaveDisegno{img: b.Img != nil, pulita: b.Pulita != nil}
+	if b.Img != nil {
+		k.imgW = b.Img.Bounds().Dx()
 	}
+	b.Img, b.Pulita, b.Tinta = nil, nil, [12]uint8{} // la tinta non cambia il disegno
+	k.b = b
+	return k
+}
+
+var impaginazioni = map[chiaveDisegno]impaginazione{} // solo con muDisegno preso
+
+func impaginaCache(hdc uintptr, b Blocco) impaginazione {
+	k := chiaveDi(b)
+	if l, ok := impaginazioni[k]; ok {
+		return l
+	}
+	if len(impaginazioni) > 600 {
+		impaginazioni = map[chiaveDisegno]impaginazione{}
+	}
+	l := impagina(hdc, b)
+	impaginazioni[k] = l
+	return l
+}
+
+// impagina: grandezza, carattere e posto della traduzione. Regola del proprietario: la scritta
+// italiana resta SEMPRE dentro il riquadro dell'originale. Una riga sola non va mai a capo (finiva
+// sulla voce sotto: "Gear" → "Equipaggiamento"): prima rimpicciolisce un po', poi prova le
+// lettere strette, poi rimpicciolisce ancora, e solo alla fine mette i puntini. Un paragrafo
+// rimpicciolisce finché sta nel suo spazio in basso; se proprio non ci sta, viene tagliato
+// all'ultima riga intera.
+func impagina(hdc uintptr, b Blocco) impaginazione {
+	var l impaginazione
 	righe := int32(max(1, b.Righe))
 	altRiga := int32(b.H) / righe
 	px := int32(b.Em + 0.5)
@@ -157,7 +249,11 @@ func disegnaBlocco(hdc uintptr, b Blocco, fase int) {
 	if b.PxColonna > 0 {
 		px = int32(b.PxColonna)
 	}
-	larg, maxLarg := int32(b.W), int32(max(b.LargMax, b.W))
+	imgW := int32(0)
+	if b.Img != nil {
+		imgW = int32(b.Img.Bounds().Dx())
+	}
+	larg, maxLarg := int32(b.W), int32(largConsentita(b))
 	if b.PxColonna > 0 && b.ColLarg > 0 {
 		larg = int32(max(b.W, b.ColLarg)) // nella colonna si va a capo alla sua larghezza
 	}
@@ -165,7 +261,7 @@ func disegnaBlocco(hdc uintptr, b Blocco, fase int) {
 		maxLarg = larg + 2*(maxLarg-larg) // centrata: cresce dai due lati
 		if b.Img != nil {                 // ma non oltre i bordi dello schermo
 			cx := int32(b.X + b.W/2)
-			maxLarg = min(maxLarg, 2*min(cx, int32(b.Img.Bounds().Dx())-cx)-16)
+			maxLarg = min(maxLarg, 2*min(cx, imgW-cx)-16)
 		}
 	}
 	if righe > 1 && b.Em < 20 && b.PxColonna == 0 {
@@ -193,8 +289,11 @@ func disegnaBlocco(hdc uintptr, b Blocco, fase int) {
 			maxLarg = min(maxLarg, larg*112/100)
 		}
 	}
-	var w, h int32
-	var font uintptr
+	maxLarg = max(maxLarg, 8)
+	minPx = min(minPx, px)
+	// sotto questa grandezza non si legge più: meglio i puntini o l'ultima riga tagliata
+	pavimento := min(minPx, max(7, px*45/100))
+	peso := b.pesoCarattere()
 	// lettere del gioco strette? Misuro l'inglese con il carattere normale: se viene molto più
 	// largo dell'originale, uso un carattere stretto (stessa forma del gioco)
 	fam := 0
@@ -202,7 +301,7 @@ func disegnaBlocco(hdc uintptr, b Blocco, fase int) {
 		if b.ColRif != "" && b.ColRifW > 0 { // colonna: lo stesso carattere per tutte le righe
 			testoRif, wRif = b.ColRif, b.ColRifW
 		}
-		wIng, _ := misuraTesto(hdc, fontPaginaF(px, b.pesoCarattere(), 0), testoRif, 0, false)
+		wIng, _ := misuraTesto(hdc, fontPaginaF(px, peso, 0), testoRif, 0, false)
 		spazio := float64(wRif)
 		if righe > 1 && b.ColRif == "" {
 			spazio = float64(b.W) * float64(righe) * 0.9
@@ -214,24 +313,66 @@ func disegnaBlocco(hdc uintptr, b Blocco, fase int) {
 			fam = 1
 		}
 	}
-	// stessa grandezza del gioco; se l'italiano è più lungo uso lo spazio libero a destra,
-	// poi rimpicciolisco un po' (fino al 78%), e solo alla fine vado a capo
-	for prova := px; ; prova-- {
-		font = fontPaginaF(prova, b.pesoCarattere(), fam)
-		if righe == 1 {
+	var w, h int32
+	var font uintptr
+	ellissi, aCapo := false, false
+	limH := int32(0)
+	if righe == 1 && b.Img == nil {
+		// avviso di Tasso (non una scritta del gioco): un po' più piccolo, poi va a capo come
+		// prima, così il messaggio si legge tutto
+		for prova := px; ; prova-- {
+			font = fontPaginaF(prova, peso, fam)
 			w, h = misuraTesto(hdc, font, b.Tradotto, 0, false)
 			if w <= maxLarg || prova <= minPx {
 				if w > maxLarg {
 					w, h = misuraTesto(hdc, font, b.Tradotto, maxLarg, true)
+					aCapo = true
 				}
 				break
 			}
-		} else {
+		}
+	} else if righe == 1 {
+		trovato := false
+		// stessa grandezza del gioco; se l'italiano è più lungo uso lo spazio libero a destra
+		// (solo dentro il riquadro), poi rimpicciolisco un po', poi lettere più strette
+		for f := fam; f < len(famiglieFont) && !trovato; f++ {
+			for prova := px; prova >= minPx; prova-- {
+				font = fontPaginaF(prova, peso, f)
+				w, h = misuraTesto(hdc, font, b.Tradotto, 0, false)
+				if w <= maxLarg {
+					trovato = true
+					break
+				}
+			}
+		}
+		// ancora troppo lunga: le lettere più strette, sempre più piccole
+		for prova := minPx - 1; !trovato && prova >= pavimento; prova-- {
+			font = fontPaginaF(prova, peso, len(famiglieFont)-1)
+			w, h = misuraTesto(hdc, font, b.Tradotto, 0, false)
+			trovato = w <= maxLarg
+		}
+		if !trovato { // nemmeno così: i puntini alla fine, mai fuori dal riquadro
+			ellissi = true
+			w = maxLarg
+		}
+	} else {
+		// stessa grandezza del gioco finché c'è posto sotto; poi rimpicciolisco finché il
+		// paragrafo sta nel suo spazio (mai sopra la scritta sotto)
+		limH = int32(b.AltMax)
+		if limH <= 0 {
+			limH = int32(b.H) * 115 / 100
+		}
+		limH = max(limH, int32(b.H))
+		for prova := px; ; prova-- {
+			font = fontPaginaF(prova, peso, fam)
 			w, h = misuraTesto(hdc, font, b.Tradotto, larg, true)
-			// stessa grandezza del gioco finché c'è posto sotto (prima di rimpicciolire)
-			if h <= max(int32(b.H)*115/100, int32(b.AltMax)) || prova <= minPx {
+			if h <= limH || prova <= pavimento {
 				break
 			}
+		}
+		if h > limH {
+			ellissi = true
+			h = limH
 		}
 	}
 	// dove va la traduzione: allineata a sinistra come l'originale, o centrata sullo stesso centro
@@ -240,7 +381,7 @@ func disegnaBlocco(hdc uintptr, b Blocco, fase int) {
 		tx = int32(b.X+b.W/2) - w/2
 	}
 	if b.Img != nil { // mai fuori dallo schermo
-		tx = max(4, min(tx, int32(b.Img.Bounds().Dx())-w-4))
+		tx = max(4, min(tx, imgW-w-4))
 	}
 	m := int32(3)
 	if b.Img != nil && !b.Ombra { // toppa con i pixel veri: posso allargarla senza coprire nulla
@@ -260,7 +401,7 @@ func disegnaBlocco(hdc uintptr, b Blocco, fase int) {
 	}
 	pSelectObject.Call(hdc, font)
 	ty := int32(b.Y) + (int32(b.H)-h)/2*boolI(h < int32(b.H))
-	if righe == 1 && !(w > maxLarg) {
+	if righe == 1 && !aCapo {
 		// stessa linea di base dell'originale (la cella del carattere ha spazio sopra le lettere)
 		var tm [60]byte // TEXTMETRICW: tmHeight, tmAscent…
 		if r, _, _ := pGetTextMetrics.Call(hdc, uintptr(unsafe.Pointer(&tm[0]))); r != 0 {
@@ -268,32 +409,62 @@ func disegnaBlocco(hdc uintptr, b Blocco, fase int) {
 			ty = int32(lineaDiBase(b)) - asc
 		}
 	}
-	if fase == 0 {
-		if b.Pulita != nil {
-			// la toppa copre anche tutta la scritta nuova (gambe sotto comprese): niente bordi
-			// colorati attorno alle lettere
-			testo := image.Rect(int(tx)-2, int(ty)-2, int(tx+w)+2, int(ty+h)+2)
-			if b.Centro && righe > 1 {
-				testo = image.Rect(int(x0), int(ty)-2, int(x1), int(ty+h)+2)
-			}
-			disegnaToppaPulita(hdc, b, image.Rect(int(x0), int(y0), int(x1), int(y1)).Union(testo), image.Rectangle{})
-			return
-		}
-		disegnaSfondo(hdc, b, x0, y0, x1, y1)
-		return
+	// la toppa copre anche tutta la scritta nuova (gambe sotto comprese): niente bordi colorati
+	// attorno alle lettere
+	testo := image.Rect(int(tx)-2, int(ty)-2, int(tx+w)+2, int(ty+h)+2)
+	if b.Centro && righe > 1 {
+		testo = image.Rect(int(x0), int(ty)-2, int(x1), int(ty+h)+2)
 	}
-	t, _ := windows.UTF16FromString(b.Tradotto)
+	toppa := image.Rect(int(x0), int(y0), int(x1), int(y1))
+	if b.Pulita != nil {
+		toppa = toppa.Union(testo)
+	}
 	fl := uintptr(dtWordBreak | dtNoPrefix | dtLeft)
 	rt := rect{tx, ty, x1 - m, max(y1, ty+h+2)}
 	if b.Centro && righe > 1 {
 		rt, fl = rect{x0 + m, ty, x1 - m, y1}, dtWordBreak|dtNoPrefix|0x1 // DT_CENTER
 	}
+	if righe == 1 && !aCapo {
+		fl = dtSingleLine | dtNoPrefix | dtLeft // una riga sola non va mai a capo
+		if ellissi {
+			fl |= dtEndEllipsis
+			rt.Right = tx + maxLarg
+		}
+	} else if ellissi {
+		fl |= dtEditControl // l'ultima riga che non ci sta tutta non si vede
+		rt.Bottom = ty + limH
+	}
+	marg := 8 // bordino, ombra e margine della scritta composta
+	zona := toppa.Union(image.Rect(int(rt.Left)-marg, int(rt.Top)-marg, int(rt.Right)+marg, int(rt.Bottom)+marg))
+	l = impaginazione{font: font, px: px, w: w, h: h, tx: tx, ty: ty, m: m, x0: x0, y0: y0, x1: x1, y1: y1,
+		toppa: toppa, rt: rt, fl: fl, zona: zona.Inset(-2)}
+	return l
+}
+
+// fase 0: sfondo, fase 1: scritta. Prima tutti gli sfondi, poi tutte le scritte, così uno
+// sfondo non taglia le lettere della riga sopra. Solo con muDisegno preso.
+func disegnaBlocco(hdc uintptr, b Blocco, fase int) {
+	if b.Tradotto == "" {
+		return
+	}
+	l := impaginaCache(hdc, b)
+	if fase == 0 {
+		if b.Pulita != nil {
+			disegnaToppaPulita(hdc, b, l.toppa, image.Rectangle{})
+			return
+		}
+		disegnaSfondo(hdc, b, l.x0, l.y0, l.x1, l.y1)
+		return
+	}
+	pSelectObject.Call(hdc, l.font)
+	t := testoW(b.Tradotto)
+	rt, fl := l.rt, l.fl
 	if b.Pulita != nil {
 		sp := 1
-		if px >= 26 {
+		if l.px >= 26 {
 			sp = 2
 		}
-		disegnaTestoComposto(hdc, font, b, t, rt, fl, sp)
+		disegnaTestoComposto(hdc, l.font, b, t, rt, fl, sp)
 		return
 	}
 	if b.Ombra { // ombra morbida sotto le lettere, come nei menu dei giochi sopra le immagini
@@ -307,7 +478,7 @@ func disegnaBlocco(hdc uintptr, b Blocco, fase int) {
 	if b.HaContorno && !b.Ombra { // lettere bordate come nel gioco
 		pSetTextColor.Call(hdc, colore([3]uint8{b.Contorno.R, b.Contorno.G, b.Contorno.B}))
 		sp := int32(1)
-		if px >= 26 {
+		if l.px >= 26 {
 			sp = 2
 		}
 		for _, d := range [8][2]int32{{-1, -1}, {0, -1}, {1, -1}, {-1, 0}, {1, 0}, {-1, 1}, {0, 1}, {1, 1}} {
@@ -355,9 +526,11 @@ func disegnaSfondo(hdc uintptr, b Blocco, x0, y0, x1, y1 int32) {
 	// colore pieno solo dove il fondo ricostruito non arriva
 	if b.Fondo == nil || x0 < fx0 || x1 > fx0+fw || y0 < fy0 || y1 > fy0+fh {
 		pen, _, _ := pCreateBrush.Call(colore(sf))
-		r := rect{x0, y0, x1, y1}
-		pFillRect.Call(hdc, uintptr(unsafe.Pointer(&r)), pen)
-		pDeleteObject.Call(pen)
+		if pen != 0 {
+			r := rect{x0, y0, x1, y1}
+			pFillRect.Call(hdc, uintptr(unsafe.Pointer(&r)), pen)
+			pDeleteObject.Call(pen)
+		}
 	}
 	if b.Fondo == nil {
 		return
@@ -386,7 +559,7 @@ func disegnaSfondo(hdc uintptr, b Blocco, x0, y0, x1, y1 int32) {
 		uintptr(unsafe.Pointer(&bgra[0])), uintptr(unsafe.Pointer(&bi)), 0)
 }
 
-// toppe già calcolate (la finestra si ridisegna spesso): si usano solo dal thread che disegna
+// toppe già calcolate (la finestra si ridisegna spesso): solo con muDisegno preso
 type chiaveToppa struct {
 	img            *image.RGBA
 	x, y, w, h     int
@@ -400,7 +573,7 @@ type toppa struct {
 var toppe = map[chiaveToppa]toppa{}
 
 // inAnteprima: sto disegnando la foto di prova (sopra la cattura, non sopra il gioco): niente
-// trasparenza, la cattura sotto è già il gioco. Solo con pag.mu preso.
+// trasparenza, la cattura sotto è già il gioco. Solo con muDisegno preso.
 var inAnteprima bool
 
 func disegnaImmagine(hdc uintptr, f *image.RGBA, x, y int32) {
@@ -428,43 +601,280 @@ func boolI(b bool) int32 {
 	return 0
 }
 
+// tela: l'immagine nascosta dove si prepara la pagina. Solo con muDisegno preso.
+var tela struct {
+	mem, bmp, vecchio uintptr
+	w, h              int32
+	zone              map[chiaveDisegno]image.Rectangle // le scritte disegnate adesso e dove (nil = da rifare tutta)
+	mostrata          bool
+}
+
+// preparaTela: l'immagine nascosta grande w×h (la rifà se la finestra ha cambiato grandezza).
+func preparaTela(w, h int32) bool {
+	if tela.mem != 0 && tela.w == w && tela.h == h {
+		return true
+	}
+	liberaTela()
+	if w <= 0 || h <= 0 {
+		return false
+	}
+	scr, _, _ := pGetDC.Call(0)
+	if scr == 0 {
+		return false
+	}
+	mem, _, _ := pCreateCompatDC.Call(scr)
+	var bmp uintptr
+	if mem != 0 {
+		bmp, _, _ = pCreateCompatBmp.Call(scr, uintptr(w), uintptr(h))
+	}
+	pReleaseDC.Call(0, scr)
+	if mem == 0 || bmp == 0 {
+		if mem != 0 {
+			pDeleteDC.Call(mem)
+		}
+		return false
+	}
+	tela.vecchio, _, _ = pSelectObject.Call(mem, bmp)
+	tela.mem, tela.bmp, tela.w, tela.h = mem, bmp, w, h
+	tela.zone = nil
+	pSetBkMode.Call(mem, 1)
+	return true
+}
+
+func liberaTela() {
+	if tela.mem != 0 {
+		pSelectObject.Call(tela.mem, tela.vecchio)
+		pDeleteDC.Call(tela.mem)
+	}
+	if tela.bmp != 0 {
+		pDeleteObject.Call(tela.bmp)
+	}
+	tela.mem, tela.bmp, tela.vecchio, tela.w, tela.h, tela.zone = 0, 0, 0, 0, 0, nil
+}
+
+// svuotaTela: tutta trasparente.
+func svuotaTela() {
+	r := rect{0, 0, tela.w, tela.h}
+	pFillRect.Call(tela.mem, uintptr(unsafe.Pointer(&r)), pag.chiave)
+	tela.zone = map[chiaveDisegno]image.Rectangle{}
+}
+
+// disegnaTela: prepara nella tela le scritte bl. Ridisegna solo le zone delle scritte cambiate
+// (nuove, tolte o con un disegno diverso); restituisce quelle zone, o tutto=true se è stata
+// rifatta tutta. Nessuna zona e tutto=false: niente da cambiare sullo schermo.
+func disegnaTela(bl []Blocco) (sporche []image.Rectangle, tutto bool) {
+	finito := false
+	defer func() {
+		if !finito {
+			tela.zone = nil // fermato a metà da un errore: la volta dopo la rifaccio tutta
+		}
+	}()
+	// le toppe di catture che nessuna scritta usa più: via, se no tengono in vita le immagini vecchie
+	vive := map[*image.RGBA]bool{}
+	for _, b := range bl {
+		vive[b.Img] = true
+	}
+	for k := range toppe {
+		if !vive[k.img] {
+			delete(toppe, k)
+		}
+	}
+	nuove := make(map[chiaveDisegno]image.Rectangle, len(bl))
+	var zoneBl []image.Rectangle // zona di ogni scritta di bl (vuota se non si disegna)
+	for _, b := range bl {
+		if b.Tradotto == "" {
+			zoneBl = append(zoneBl, image.Rectangle{})
+			continue
+		}
+		z := impaginaCache(tela.mem, b).zona
+		nuove[chiaveDi(b)] = z
+		zoneBl = append(zoneBl, z)
+	}
+	tutto = tela.zone == nil
+	if !tutto {
+		area := 0
+		for k, z := range nuove {
+			if _, ok := tela.zone[k]; !ok {
+				sporche = append(sporche, z)
+				area += z.Dx() * z.Dy()
+			}
+		}
+		for k, z := range tela.zone {
+			if _, ok := nuove[k]; !ok {
+				sporche = append(sporche, z)
+				area += z.Dx() * z.Dy()
+			}
+		}
+		if len(sporche) == 0 {
+			finito = true
+			return nil, false
+		}
+		// più di metà finestra, o tantissimi pezzi: si fa prima a rifare tutto
+		tutto = area*2 > int(tela.w)*int(tela.h) || len(sporche) > 200
+	}
+	if tutto {
+		svuotaTela()
+		for fase := 0; fase < 2; fase++ {
+			for _, b := range bl {
+				disegnaBlocco(tela.mem, b, fase)
+			}
+		}
+		tela.zone, finito = nuove, true
+		return nil, true
+	}
+	// solo le zone cambiate: tutto quello che disegno fuori da lì viene scartato da Windows
+	rgn, _, _ := pCreateRgn.Call(0, 0, 0, 0)
+	if rgn == 0 {
+		svuotaTela()
+		for fase := 0; fase < 2; fase++ {
+			for _, b := range bl {
+				disegnaBlocco(tela.mem, b, fase)
+			}
+		}
+		tela.zone, finito = nuove, true
+		return nil, true
+	}
+	for _, z := range sporche {
+		if r, _, _ := pCreateRgn.Call(uintptr(int32(z.Min.X)), uintptr(int32(z.Min.Y)), uintptr(int32(z.Max.X)), uintptr(int32(z.Max.Y))); r != 0 {
+			pCombineRgn.Call(rgn, rgn, r, 2) // RGN_OR
+			pDeleteObject.Call(r)
+		}
+	}
+	pSelectClip.Call(tela.mem, rgn) // Windows ne fa una copia
+	pDeleteObject.Call(rgn)
+	defer pSelectClip.Call(tela.mem, 0) // alla fine di nuovo tutta la tela (anche dopo un errore)
+	for _, z := range sporche {
+		r := rect{int32(z.Min.X), int32(z.Min.Y), int32(z.Max.X), int32(z.Max.Y)}
+		pFillRect.Call(tela.mem, uintptr(unsafe.Pointer(&r)), pag.chiave)
+	}
+	tocca := func(z image.Rectangle) bool {
+		for _, s := range sporche {
+			if z.Overlaps(s) {
+				return true
+			}
+		}
+		return false
+	}
+	for fase := 0; fase < 2; fase++ {
+		for i, b := range bl {
+			if tocca(zoneBl[i]) {
+				disegnaBlocco(tela.mem, b, fase)
+			}
+		}
+	}
+	tela.zone, finito = nuove, true
+	return sporche, false
+}
+
 func pagProc(hwnd, msg, wp, lp uintptr) uintptr {
 	switch msg {
 	case wmPaint:
 		var ps paintStruct
 		hdc, _, _ := pBeginPaint.Call(hwnd, uintptr(unsafe.Pointer(&ps)))
-		var r rect
-		pGetClientRect.Call(hwnd, uintptr(unsafe.Pointer(&r)))
-		pag.mu.Lock()
-		pFillRect.Call(hdc, uintptr(unsafe.Pointer(&r)), pag.chiave)
-		pSetBkMode.Call(hdc, 1)
-		for fase := 0; fase < 2; fase++ {
-			for _, b := range pag.blocchi {
-				disegnaBlocco(hdc, b, fase)
-			}
-		}
-		pag.mu.Unlock()
+		dipingi(hwnd, hdc, ps.rcPaint)
 		pEndPaint.Call(hwnd, uintptr(unsafe.Pointer(&ps)))
 		return 0
+	case 0x0014: // WM_ERASEBKGND: niente da cancellare, la tela copre tutto
+		return 1
 	case 0x0084: // WM_NCHITTEST: il mouse passa attraverso, il clic arriva al gioco
 		return ^uintptr(0) // HTTRANSPARENT (-1)
 	case 0x0021: // WM_MOUSEACTIVATE: non rubo il fuoco al gioco
 		return 3 // MA_NOACTIVATE
 	case wmPagina:
-		pag.mu.Lock()
-		a, vis := pag.area, pag.vis && len(pag.blocchi) > 0
-		pag.mu.Unlock()
-		if !vis {
-			pShowWindow.Call(hwnd, 0)
-			return 0
-		}
-		pSetWindowPos.Call(hwnd, ^uintptr(0), uintptr(int32(a.X)), uintptr(int32(a.Y)), uintptr(a.W), uintptr(a.H), swpNoActivate)
-		pShowWindow.Call(hwnd, 4)
-		pInvalidateRect.Call(hwnd, 0, 1)
+		aggiornaPagina(hwnd)
 		return 0
 	}
 	r, _, _ := pDefWindowProc.Call(hwnd, msg, wp, lp)
 	return r
+}
+
+// dipingi (WM_PAINT): una sola copia dalla tela allo schermo, niente cancellature in mezzo.
+func dipingi(hwnd, hdc uintptr, r rect) {
+	defer guard("pagina-dipingi")
+	muDisegno.Lock()
+	defer muDisegno.Unlock()
+	if tela.mem == 0 || r.Right > tela.w || r.Bottom > tela.h {
+		var tutta rect // fuori dalla tela (non dovrebbe succedere): trasparente
+		pGetClientRect.Call(hwnd, uintptr(unsafe.Pointer(&tutta)))
+		pFillRect.Call(hdc, uintptr(unsafe.Pointer(&tutta)), pag.chiave)
+	}
+	if tela.mem == 0 {
+		return
+	}
+	x0, y0 := max(r.Left, 0), max(r.Top, 0)
+	x1, y1 := min(r.Right, tela.w), min(r.Bottom, tela.h)
+	if x1 > x0 && y1 > y0 {
+		pBitBlt.Call(hdc, uintptr(x0), uintptr(y0), uintptr(x1-x0), uintptr(y1-y0), tela.mem, uintptr(x0), uintptr(y0), 0x00CC0020) // SRCCOPY
+	}
+}
+
+// aggiornaPagina (wmPagina): prepara la tela con le scritte di adesso e mostra solo quello che
+// è cambiato. Tutti i conti si fanno qui, non in WM_PAINT.
+func aggiornaPagina(hwnd uintptr) {
+	defer guard("pagina-aggiorna")
+	pag.inCoda.Store(false) // da qui in poi una richiesta nuova va rimessa in coda
+	pag.mu.Lock()
+	a, bl, vis := pag.area, append([]Blocco(nil), pag.blocchi...), pag.vis && len(pag.blocchi) > 0
+	pag.mu.Unlock()
+	if !vis {
+		// prima di nascondere la svuoto e la mostro vuota: quando ricompare non si vedono per
+		// un attimo le scritte vecchie rimaste nella finestra
+		svuota := func() bool {
+			muDisegno.Lock()
+			defer muDisegno.Unlock()
+			s := tela.mem != 0 && tela.mostrata
+			if s {
+				svuotaTela()
+			}
+			tela.mostrata = false
+			clear(toppe) // niente catture vecchie tenute in vita mentre non mostro niente
+			return s
+		}()
+		if v, _, _ := pIsWindowVisible.Call(hwnd); v != 0 {
+			if svuota {
+				pInvalidateRect.Call(hwnd, 0, 0)
+				pUpdateWindow.Call(hwnd)
+			}
+			pShowWindow.Call(hwnd, 0)
+		}
+		return
+	}
+	var sporche []image.Rectangle
+	var tutto, appena bool
+	pronta := func() bool {
+		muDisegno.Lock()
+		defer muDisegno.Unlock() // anche se il disegno si ferma per un errore
+		if !preparaTela(int32(a.W), int32(a.H)) {
+			return false
+		}
+		sporche, tutto = disegnaTela(bl)
+		appena = !tela.mostrata // era nascosta: va copiata tutta
+		tela.mostrata = true
+		return true
+	}()
+	if !pronta {
+		return
+	}
+	if v, _, _ := pIsWindowVisible.Call(hwnd); v == 0 {
+		appena = true
+	}
+	// sempre in cima (un gioco "sempre in primo piano" non mi copre) e al posto della finestra del gioco
+	pSetWindowPos.Call(hwnd, ^uintptr(0), uintptr(int32(a.X)), uintptr(int32(a.Y)), uintptr(a.W), uintptr(a.H), swpNoActivate)
+	if appena {
+		pShowWindow.Call(hwnd, 4) // SW_SHOWNOACTIVATE
+	}
+	switch {
+	case tutto || appena:
+		pInvalidateRect.Call(hwnd, 0, 0) // 0: senza cancellare prima
+	case len(sporche) > 0:
+		for _, z := range sporche {
+			r := rect{int32(z.Min.X), int32(z.Min.Y), int32(z.Max.X), int32(z.Max.Y)}
+			pInvalidateRect.Call(hwnd, uintptr(unsafe.Pointer(&r)), 0)
+		}
+	default:
+		return // stesse scritte di prima: lo schermo resta com'è
+	}
+	pUpdateWindow.Call(hwnd) // subito, senza aspettare che la coda dei messaggi si svuoti
 }
 
 // areaFinestra: la parte interna (senza bordi) della finestra in primo piano, in pixel dello schermo.
@@ -488,7 +898,13 @@ func areaFinestra(h uintptr) (Zona, bool) {
 // quindi questo è l'unico modo per controllare il risultato da una foto dello schermo.
 func salvaAnteprima(img *image.RGBA, blocchi []Blocco, percorso string) error {
 	w, h := img.Bounds().Dx(), img.Bounds().Dy()
+	if w <= 0 || h <= 0 {
+		return errCattura
+	}
 	scr, _, _ := pGetDC.Call(0)
+	if scr == 0 {
+		return errCattura
+	}
 	defer pReleaseDC.Call(0, scr)
 	mem, _, _ := pCreateCompatDC.Call(scr)
 	if mem == 0 {
@@ -501,7 +917,7 @@ func salvaAnteprima(img *image.RGBA, blocchi []Blocco, percorso string) error {
 	}
 	defer pDeleteObject.Call(bmp)
 	old, _, _ := pSelectObject.Call(mem, bmp)
-	defer pSelectObject.Call(mem, old)
+	defer pSelectObject.Call(mem, old) // (i defer vanno al contrario: prima questo, poi DeleteObject)
 	bi := bitmapInfoHeader{biWidth: int32(w), biHeight: int32(-h), biPlanes: 1, biBitCount: 32}
 	bi.biSize = uint32(unsafe.Sizeof(bi))
 	buf := make([]byte, w*h*4)
@@ -510,15 +926,17 @@ func salvaAnteprima(img *image.RGBA, blocchi []Blocco, percorso string) error {
 	}
 	pSetDIBits.Call(mem, bmp, 0, uintptr(h), uintptr(unsafe.Pointer(&buf[0])), uintptr(unsafe.Pointer(&bi)), 0)
 	pSetBkMode.Call(mem, 1)
-	pag.mu.Lock()
-	inAnteprima = true
-	for fase := 0; fase < 2; fase++ {
-		for _, b := range blocchi {
-			disegnaBlocco(mem, b, fase)
+	func() {
+		muDisegno.Lock()
+		defer muDisegno.Unlock()
+		inAnteprima = true
+		defer func() { inAnteprima = false }()
+		for fase := 0; fase < 2; fase++ {
+			for _, b := range blocchi {
+				disegnaBlocco(mem, b, fase)
+			}
 		}
-	}
-	inAnteprima = false
-	pag.mu.Unlock()
+	}()
 	pGetDIBits.Call(mem, bmp, 0, uintptr(h), uintptr(unsafe.Pointer(&buf[0])), uintptr(unsafe.Pointer(&bi)), 0)
 	out := image.NewRGBA(image.Rect(0, 0, w, h))
 	for i := 0; i < len(buf); i += 4 {
@@ -544,6 +962,9 @@ func salvaAnteprima(img *image.RGBA, blocchi []Blocco, percorso string) error {
 // la traduzione.
 func disegnaToppaPulita(hdc uintptr, b Blocco, r, testo image.Rectangle) {
 	r = r.Intersect(b.Pulita.Bounds())
+	if b.Img != nil {
+		r = r.Intersect(b.Img.Bounds())
+	}
 	w, h := int32(r.Dx()), int32(r.Dy())
 	if w <= 0 || h <= 0 {
 		return
@@ -553,7 +974,7 @@ func disegnaToppaPulita(hdc uintptr, b Blocco, r, testo image.Rectangle) {
 	for y := r.Min.Y; y < r.Max.Y; y++ {
 		for x := r.Min.X; x < r.Max.X; x++ {
 			c := b.Pulita.RGBAAt(x, y)
-			if c == b.Img.RGBAAt(x, y) && !(image.Point{x, y}.In(testo)) && !inAnteprima {
+			if b.Img != nil && c == b.Img.RGBAAt(x, y) && !(image.Point{x, y}.In(testo)) && !inAnteprima {
 				bgra[i], bgra[i+1], bgra[i+2], bgra[i+3] = byte(chiaveTrsp>>16&0xFF), byte(chiaveTrsp>>8&0xFF), byte(chiaveTrsp&0xFF), 255
 			} else {
 				bgra[i], bgra[i+1], bgra[i+2], bgra[i+3] = c.B, c.G, c.R, 255
@@ -574,8 +995,11 @@ func disegnaToppaPulita(hdc uintptr, b Blocco, r, testo image.Rectangle) {
 // non ci sono lettere (né bordino, né ombra) la finestra resta trasparente e si vede il gioco
 // vero: niente rettangoli fermi sopra un gioco che si muove, niente frange attorno alle lettere.
 func disegnaTestoComposto(hdc, font uintptr, b Blocco, t []uint16, rt rect, fl uintptr, sp int) {
+	if b.Img == nil {
+		return
+	}
 	marg := int32(sp + 3)
-	r := image.Rect(int(rt.Left-marg), int(rt.Top-marg), int(rt.Right+marg), int(rt.Bottom+marg)).Intersect(b.Pulita.Bounds())
+	r := image.Rect(int(rt.Left-marg), int(rt.Top-marg), int(rt.Right+marg), int(rt.Bottom+marg)).Intersect(b.Pulita.Bounds()).Intersect(b.Img.Bounds())
 	w, h := int32(r.Dx()), int32(r.Dy())
 	if w <= 0 || h <= 0 {
 		return
@@ -598,9 +1022,10 @@ func disegnaTestoComposto(hdc, font uintptr, b Blocco, t []uint16, rt rect, fl u
 	pDeleteObject.Call(nero)
 	pSetBkMode.Call(mem, 1)
 	pSetTextColor.Call(mem, 0xFFFFFF)
-	pSelectObject.Call(mem, font)
+	vecchioF, _, _ := pSelectObject.Call(mem, font)
 	r2 := rect{rt.Left - int32(r.Min.X), rt.Top - int32(r.Min.Y), rt.Right - int32(r.Min.X), rt.Bottom - int32(r.Min.Y)}
 	pDrawText.Call(mem, uintptr(unsafe.Pointer(&t[0])), uintptr(len(t)-1), uintptr(unsafe.Pointer(&r2)), fl)
+	pSelectObject.Call(mem, vecchioF)
 	bi := bitmapInfoHeader{biWidth: w, biHeight: -h, biPlanes: 1, biBitCount: 32}
 	bi.biSize = uint32(unsafe.Sizeof(bi))
 	buf := make([]byte, int(w*h)*4)
@@ -610,8 +1035,8 @@ func disegnaTestoComposto(hdc, font uintptr, b Blocco, t []uint16, rt rect, fl u
 		alfa[i] = max(buf[i*4], buf[i*4+1], buf[i*4+2])
 	}
 	out := componiTesto(b, r, alfa, sp, inAnteprima)
-	// quello che c'è già sullo schermo della finestra: dove la riga nuova non ha lettere resta così
-	// (prima la toppa di una riga copriva il fondo delle lettere della riga sopra, foto 23/11)
+	// quello che c'è già nella tela: dove la riga nuova non ha lettere resta così (prima la
+	// toppa di una riga copriva il fondo delle lettere della riga sopra, foto 23/11)
 	prima := make([]byte, len(buf))
 	if ok, _, _ := pBitBlt.Call(mem, 0, 0, uintptr(w), uintptr(h), hdc, uintptr(r.Min.X), uintptr(r.Min.Y), 0x00CC0020); ok != 0 { // SRCCOPY
 		pGetDIBits.Call(mem, bmp, 0, uintptr(h), uintptr(unsafe.Pointer(&prima[0])), uintptr(unsafe.Pointer(&bi)), 0)

@@ -141,10 +141,17 @@ func (l *LettoreOCR) avvia() error {
 	if err != nil {
 		return err
 	}
-	if logf, err := os.Create(filepath.Join(l.dir, "ocr-errori.txt")); err == nil {
+	logf, err := os.Create(filepath.Join(l.dir, "ocr-errori.txt"))
+	if err == nil {
 		cmd.Stderr = logf // i messaggi di errore di PowerShell, per capire cosa non va
 	}
-	if err := cmd.Start(); err != nil {
+	err = cmd.Start()
+	if logf != nil {
+		// PowerShell ha la sua copia del file: la mia si chiude subito (prima restava aperta
+		// a ogni riavvio della lettura)
+		logf.Close()
+	}
+	if err != nil {
 		return err
 	}
 	sc := bufio.NewScanner(out)

@@ -93,7 +93,30 @@ func cicloPagina(giro int64) {
 	perche := "avvio" // perché prima è vero (solo per pagina-tempi.txt)
 	nascostaPerAltTab := false
 	nere := 0
-	mosse := 0 // giri di fila in cui la schermata si muoveva ancora
+	mosse := 0         // giri di fila in cui la schermata si muoveva ancora
+	erroriOCR := 0     // letture fallite di fila (errore della lettura di Windows, non "niente da tradurre")
+	fermo := false     // il giro prima ha finito il suo lavoro sull'ultima cattura
+	var genCatt uint64 // fotogramma dell'ultima cattura (0 = non so)
+	var imgCatt *image.RGBA
+	var impCatt Impronta
+	tinteViste := map[[4]int][12]uint8{} // ultima tinta controllata di ogni scritta (vedi blocchiDaRicolorare)
+	impara := func(celle, sotto []bool) {
+		// zone che cambiano da sole: d'ora in poi non fanno rileggere. Mai quelle sotto le
+		// scritte (lì un cambio vero va sempre visto) e al massimo un quarto dello schermo:
+		// altrimenti una schermata nuova non verrebbe più riletta
+		quante := 0
+		for _, a := range animate {
+			if a {
+				quante++
+			}
+		}
+		for c, si := range celle {
+			if si && (sotto == nil || !sotto[c]) && !animate[c] && quante < len(animate)/4 {
+				animate[c] = true
+				quante++
+			}
+		}
+	}
 	for paginaAttiva.Load() && paginaGiro.Load() == giro {
 		gioco := paginaGiocoA.Load()
 		if v, _, _ := pIsWindow.Call(gioco); v == 0 { // il gioco è stato chiuso
@@ -109,6 +132,7 @@ func cicloPagina(giro int64) {
 				NascondiPagina()
 				nascostaPerAltTab = true
 			}
+			fermo = false
 			time.Sleep(400 * time.Millisecond)
 			continue
 		}
@@ -118,7 +142,22 @@ func cicloPagina(giro int64) {
 		if paginaRileggi.Swap(false) {
 			prima, perche = true, "rileggi"
 		}
-		img, err := cattura(area)
+		img, gen, err := catturaGen(area, genCatt)
+		stesso := err == errStessoFotogramma
+		if stesso {
+			if fermo && !prima {
+				// lo schermo non ha mandato fotogrammi nuovi: niente da rifare (prima a ogni giro
+				// convertivo e confrontavo di nuovo tutta la schermata)
+				time.Sleep(pausaPagina())
+				continue
+			}
+			img, err = imgCatt, nil
+			if img == nil {
+				img, gen, err = catturaGen(area, 0)
+				stesso = false
+			}
+		}
+		fermo = false
 		if err == nil && catturaNera(img) {
 			NascondiPagina() // scena scura: le traduzioni della schermata di prima non valgono più
 			prima, perche = true, "nera"
@@ -126,12 +165,17 @@ func cicloPagina(giro int64) {
 			if nere >= 3 { // tre di fila: non è una scena scura, Windows non mi lascia vedere il gioco
 				avvisaSchermoEsclusivo(paginaGiocoA.Load())
 			}
+			genCatt = 0
 			time.Sleep(1500 * time.Millisecond)
 			continue
 		}
 		nere = 0
 		if err == nil {
-			imp := calcolaImpronta(img)
+			imp := impCatt
+			if !stesso {
+				imp = calcolaImpronta(img)
+			}
+			genCatt, imgCatt, impCatt = gen, img, imp
 			// cambia solo la luce (sfondo animato e sfocato, scritta che si colora sotto il mouse):
 			// i contorni delle scritte sono gli stessi, niente rilettura, solo i colori. Il
 			// riferimento resta l'ultima lettura: un cambio lento che si somma viene visto lo stesso
@@ -177,127 +221,194 @@ func cicloPagina(giro int64) {
 			}
 			if !soloLuce && (prima || imp.cambiata(ultima)) {
 				cambioVisto.Store(time.Now().UnixNano())
-				// lettura e traduzione partono subito, in anticipo, sulla prima immagine...
-				type esitoPagina struct {
-					p        *paginaPronta
-					occupata bool
+				// subito, sulla prima immagine (uno scatto di rotella dura meno di un giro): righe
+				// scorse → via tutte le traduzioni; scritte cambiate sotto una traduzione → via
+				// quella. Così una traduzione vecchia non resta mai sopra una riga diversa
+				if !prima {
+					togliVecchie(area, img)
 				}
+				// lettura e traduzione partono subito, in anticipo, sulla prima immagine...
+				annulla := &atomic.Bool{}
 				anticipo := make(chan esitoPagina, 1)
 				go func(img *image.RGBA) {
 					defer guard("pagina-anticipo")
-					var e esitoPagina
+					e := esitoPagina{esito: letturaErrore}
 					defer func() { anticipo <- e }() // anche dopo un errore fermato da guard
-					e.p, e.occupata = preparaPagina(area, img, img, giro)
+					e.p, e.esito = preparaPagina(area, img, img, giro, annulla)
 				}(img)
 				// ...intanto controllo che la schermata smetta di muoversi (menu che scorre, dissolvenza)
 				time.Sleep(80 * time.Millisecond)
-				if img2, err := cattura(area); err == nil {
-					imp2 := calcolaImpronta(img2)
-					if imp2.differenza(imp) > 3*sogliaCambiato && !prima && scenaCambiata(img2, blocchiPagina()) {
-						NascondiPagina() // cambio di scena: tolgo subito le scritte vecchie
-					}
-					if bl := blocchiPagina(); imp2.cambiata(imp) && mosse < 12 && ((len(bl) == 0 && scritteMosse(img, img2, animate)) || paginaSpostata(img2, bl)) {
-						// si muove ancora (rotella, menu che scorre): niente scritte finché non si
-						// ferma, così inglese e italiano non si sovrappongono mai. Se si muove
-						// sempre (video dietro al menu) dopo circa un secondo e mezzo traduco lo stesso.
-						// Se le scritte sono ferme e cambia solo il resto (mouse sopra un oggetto,
-						// riquadro illuminato, sfondo animato) le traduzioni restano: niente sfarfallio
-						NascondiPagina()
-						mosse++
-						prima, perche = true, "mosse"
-						<-anticipo
-						continue
-					}
-					if !imp2.cambiata(imp) {
-						mosse = 0
-					}
-					e := <-anticipo
-					pronta, occupata := e.p, e.occupata
-					if pronta == nil || (imp2.cambiata(imp) && scritteMosse(img, img2, animate)) {
-						// si muoveva ancora: rifaccio sull'immagine nuova. Anche se l'immagine si
-						// muove (video) traduco: le scritte sopra un video diventano una fascia scura
-						pronta, occupata = preparaPagina(area, img2, img, giro)
-					}
-					if pronta != nil && celleUltime != nil && stesseScritte(blocchiPagina(), pronta.pronti) {
-						// riletto per niente: le zone cambiate si muovono da sole, d'ora in poi non contano.
-						// Mai le zone sotto le scritte (lì un cambio vero va sempre visto) e al massimo
-						// un quarto dello schermo: altrimenti una schermata nuova non verrebbe più riletta
-						sotto := celleDiBlocchi(pronta.pronti, img2.Bounds())
-						quante := 0
-						for _, a := range animate {
-							if a {
-								quante++
-							}
-						}
-						for c, si := range celleUltime {
-							if si && !sotto[c] && !animate[c] && quante < len(animate)/4 {
-								animate[c] = true
-								quante++
-							}
-						}
-					}
-					if pronta != nil && mostraPaginaPronta(pronta, giro) {
-						ultima, ultimaColori, prima, ultimaImg = imp2, imp2, false, img2
-					} else if pronta == nil && occupata {
-						// la lettura serviva ai dialoghi o alla chat: non è "niente da tradurre",
-						// riprovo al giro dopo sulla stessa schermata
-						time.Sleep(150 * time.Millisecond)
-						continue
-					} else if pronta == nil {
-						// niente da tradurre e le zone cambiate erano un'icona o un cursore che
-						// lampeggia: d'ora in poi non fanno rileggere (stesso tetto di un quarto)
-						if celleUltime != nil {
-							quante := 0
-							for _, a := range animate {
-								if a {
-									quante++
-								}
-							}
-							for c, si := range celleUltime {
-								if si && !animate[c] && quante < len(animate)/4 {
-									animate[c] = true
-									quante++
-								}
-							}
-						}
-						// niente da tradurre qui (già nella lingua giusta, lingua non scaricata,
-						// nessuna scritta): tolgo le scritte vecchie e aspetto un cambio vero,
-						// invece di rileggere lo schermo all'infinito
-						NascondiPagina()
-						ultima, ultimaColori, prima, ultimaImg = imp2, imp2, false, img2
-						ultimeScritte.Store(0)
-					}
-				} else {
-					<-anticipo
+				img2, gen2, err := catturaGen(area, genCatt)
+				imp2 := imp
+				switch {
+				case err == errStessoFotogramma: // fermo da 80 ms: è ancora la prima immagine
+					img2, err = img, nil
+				case err == nil:
+					imp2 = calcolaImpronta(img2)
+					genCatt, imgCatt, impCatt = gen2, img2, imp2
 				}
-			} else if bl := blocchiPagina(); len(bl) > 0 && imp.differenza(ultimaColori) > 0.2 && paginaSpostata(img, bl) {
-				// la rotella ha spostato le scritte: via subito le traduzioni (sarebbero nel posto
-				// sbagliato, sopra l'inglese) e rileggo appena la schermata si ferma
-				NascondiPagina()
-				prima, perche = true, "rotella"
-				continue
-			} else if len(bl) > 0 && imp.differenza(ultimaColori) > 0.2 {
-				// piccolo cambio (mouse sopra un pulsante): aggiorno solo i colori. Se l'immagine
-				// è identica all'ultima volta non rifaccio il lavoro (il giro resta svelto)
-				ultimaColori = imp
-				if nuovi, ok := ricolora(img, bl); ok && paginaGiro.Load() == giro {
-					MostraPagina(area, nuovi)
-					if esisteVoce(filepath.Join(dirApp, "logs", "salva-anteprima")) { // controllo a mano: anche il mouse sopra
-						img2 := img
-						go func() {
-							defer guard("anteprima-mouse")
-							_ = salvaAnteprima(img2, nuovi, filepath.Join(dirApp, "logs", "pagina-anteprima-mouse.png"))
-						}()
+				if err != nil {
+					annulla.Store(true)
+					<-anticipo
+					genCatt = 0
+					prima, perche = true, "cattura"
+					continue
+				}
+				if imp2.cambiata(imp) && !prima {
+					togliVecchie(area, img2) // cambiato ancora negli ultimi 80 ms
+				}
+				if bl := blocchiPagina(); imp2.cambiata(imp) && mosse < 12 && ((len(bl) == 0 && scritteMosse(img, img2, animate)) || paginaSpostata(img2, bl)) {
+					// si muove ancora (rotella, menu che scorre): niente scritte finché non si
+					// ferma, così inglese e italiano non si sovrappongono mai. Se si muove
+					// sempre (video dietro al menu) dopo circa un secondo e mezzo traduco lo stesso.
+					// Se le scritte sono ferme e cambia solo il resto (mouse sopra un oggetto,
+					// riquadro illuminato, sfondo animato) le traduzioni restano: niente sfarfallio.
+					// Il lavoro anticipato si ferma dopo la lettura: niente traduzioni sprecate
+					annulla.Store(true)
+					NascondiPagina()
+					mosse++
+					prima, perche = true, "mosse"
+					<-anticipo
+					continue
+				}
+				if !imp2.cambiata(imp) {
+					mosse = 0
+				}
+				rifare := imp2.cambiata(imp) && scritteMosse(img, img2, animate)
+				if rifare {
+					annulla.Store(true) // si muoveva ancora: la prima immagine non serve più
+				}
+				e := <-anticipo
+				pronta, esito := e.p, e.esito
+				if rifare || (pronta == nil && esito != letturaNiente) {
+					// rifaccio sull'immagine nuova. Anche se l'immagine si muove (video) traduco:
+					// le scritte sopra un video diventano una fascia scura
+					pronta, esito = preparaPagina(area, img2, img, giro, nil)
+				}
+				if pronta != nil && celleUltime != nil && stesseScritte(blocchiPagina(), pronta.pronti) {
+					// riletto per niente: le zone cambiate si muovono da sole, d'ora in poi non contano
+					impara(celleUltime, celleDiBlocchi(pronta.pronti, img2.Bounds()))
+				}
+				switch {
+				case pronta != nil:
+					if mostraPaginaPronta(pronta, giro) {
+						ultima, ultimaColori, prima, ultimaImg = imp2, imp2, false, img2
+						erroriOCR = 0
+						clear(tinteViste)
+					}
+				case esito == letturaOccupata || esito == letturaAnnullata:
+					// la lettura serviva ai dialoghi o alla chat: non è "niente da tradurre",
+					// riprovo al giro dopo sulla stessa schermata
+					time.Sleep(150 * time.Millisecond)
+					continue
+				case esito == letturaErrore:
+					// errore momentaneo della lettura di Windows: non vuol dire "niente da
+					// tradurre". Riprovo presto, senza imparare zone animate e senza dimenticare
+					// la schermata (un po' più tardi a ogni errore di fila)
+					erroriOCR++
+					prima, perche = true, "errore-lettura"
+					time.Sleep(min(time.Duration(erroriOCR)*300*time.Millisecond, 3*time.Second))
+					continue
+				default:
+					// niente da tradurre e le zone cambiate erano un'icona o un cursore che
+					// lampeggia: d'ora in poi non fanno rileggere (stesso tetto di un quarto)
+					erroriOCR = 0
+					if celleUltime != nil {
+						impara(celleUltime, nil)
+					}
+					// niente da tradurre qui (già nella lingua giusta, lingua non scaricata,
+					// nessuna scritta): tolgo le scritte vecchie e aspetto un cambio vero,
+					// invece di rileggere lo schermo all'infinito
+					NascondiPagina()
+					ultima, ultimaColori, prima, ultimaImg = imp2, imp2, false, img2
+					ultimeScritte.Store(0)
+				}
+			} else if bl := blocchiPagina(); len(bl) > 0 {
+				if imp.differenza(ultimaColori) > 0.2 && paginaSpostata(img, bl) {
+					// la rotella ha spostato le scritte: via subito le traduzioni (sarebbero nel posto
+					// sbagliato, sopra l'inglese) e rileggo appena la schermata si ferma
+					NascondiPagina()
+					prima, perche = true, "rotella"
+					continue
+				}
+				// mouse sopra un pulsante (diventa dorato), voce selezionata: ricoloro solo le
+				// scritte la cui tinta è cambiata, anche se il resto dello schermo è identico.
+				// Se niente è cambiato non rifaccio nessun lavoro (il giro resta svelto)
+				if solo, n := blocchiDaRicolorare(img, bl, tinteViste); n > 0 {
+					ultimaColori = imp
+					if nuovi, ok := ricoloraSolo(img, bl, solo); ok && paginaGiro.Load() == giro {
+						MostraPagina(area, nuovi)
+						if esisteVoce(filepath.Join(dirApp, "logs", "salva-anteprima")) { // controllo a mano: anche il mouse sopra
+							img2 := img
+							go func() {
+								defer guard("anteprima-mouse")
+								_ = salvaAnteprima(img2, nuovi, filepath.Join(dirApp, "logs", "pagina-anteprima-mouse.png"))
+							}()
+						}
 					}
 				}
 			}
+			fermo = true
 		}
-		if ultimeScritte.Load() == 0 {
-			time.Sleep(400 * time.Millisecond) // niente scritte (si sta giocando): controllo più di rado
-		} else {
-			time.Sleep(40 * time.Millisecond) // svelto: le schermate nuove e i pulsanti evidenziati cambiano subito
-		}
+		time.Sleep(pausaPagina())
 	}
+}
+
+// pausaPagina: quanto aspettare tra un giro e l'altro.
+func pausaPagina() time.Duration {
+	if ultimeScritte.Load() == 0 {
+		return 400 * time.Millisecond // niente scritte (si sta giocando): controllo più di rado
+	}
+	return 40 * time.Millisecond // svelto: le schermate nuove e i pulsanti evidenziati cambiano subito
+}
+
+// togliVecchie: appena vedo che la schermata è cambiata, prima ancora di rileggerla. Se le righe
+// sono scorse (rotella) tolgo tutte le traduzioni; se sotto qualche traduzione l'inglese è
+// diventato un altro, tolgo solo quella. Le altre restano ferme: niente sfarfallio.
+func togliVecchie(area Zona, img *image.RGBA) {
+	bl := blocchiPagina()
+	if len(bl) == 0 {
+		return
+	}
+	if paginaSpostata(img, bl) {
+		NascondiPagina()
+		return
+	}
+	resto, tolte := togliCambiate(img, bl)
+	switch {
+	case tolte == 0:
+	case len(resto) == 0:
+		NascondiPagina()
+	default:
+		MostraPagina(area, resto)
+	}
+}
+
+// esito di preparaPagina quando non c'è niente da disegnare
+type esitoLettura int
+
+const (
+	letturaFatta     esitoLettura = iota // scritte pronte
+	letturaNiente                        // letto, niente da tradurre
+	letturaOccupata                      // la lettura del testo era presa da un altro lavoro: riprovare
+	letturaErrore                        // la lettura di Windows non ha funzionato (riprovare presto)
+	letturaAnnullata                     // lo schermo si muoveva ancora: lavoro fermato
+)
+
+type esitoPagina struct {
+	p     *paginaPronta
+	esito esitoLettura
+}
+
+// avvisoLettura: un errore della lettura si dice al massimo ogni 30 secondi (si riprova spesso).
+var avvisoLettura atomic.Int64
+
+func avvisaErroreLettura(testo string) {
+	if t := avvisoLettura.Load(); time.Since(time.Unix(0, t)) < 30*time.Second {
+		return
+	}
+	avvisoLettura.Store(time.Now().UnixNano())
+	emetti("info", map[string]string{"testo": testo})
 }
 
 // paginaPronta: scritte lette e tradotte, da disegnare.
@@ -308,32 +419,40 @@ type paginaPronta struct {
 	nuove       int
 	t0          time.Time
 	tOCR, tTrad time.Duration
+	cron        []Risultato // da mettere nella cronologia (F8) quando la pagina si vede
 }
 
 // preparaPagina: legge tutte le scritte con la loro posizione e le traduce (senza disegnare).
-// Senza niente da disegnare restituisce nil; occupata dice che la lettura del testo era presa
-// da un altro lavoro (dialoghi, chat degli altri) e conviene riprovare.
-func preparaPagina(area Zona, img, primaImg *image.RGBA, giro int64) (p *paginaPronta, occupata bool) {
+// Senza niente da disegnare restituisce nil e il perché (esitoLettura). annulla (può essere nil):
+// se diventa vero, dopo la lettura il lavoro si ferma senza tradurre (lo schermo si muove ancora).
+func preparaPagina(area Zona, img, primaImg *image.RGBA, giro int64, annulla *atomic.Bool) (p *paginaPronta, esito esitoLettura) {
 	if !occupato.CompareAndSwap(false, true) {
-		return nil, true
+		return nil, letturaOccupata
 	}
 	defer occupato.Store(false)
+	fermato := func() bool { return annulla != nil && annulla.Load() }
 	t0 := time.Now()
 	if err := assicuraOCR(); err != nil {
-		emetti("info", map[string]string{"testo": "La lettura del testo di Windows non parte: " + err.Error()})
-		return nil, false
+		avvisaErroreLettura("La lettura del testo di Windows non parte: " + err.Error())
+		return nil, letturaErrore
 	}
 	var buf bytes.Buffer
 	f, err := preparaPaginaPerOCR(img, &buf)
 	if err != nil {
-		return nil, false
+		return nil, letturaErrore
 	}
 	righe, err := ocr.LeggiPosizioni(buf.Bytes())
 	if err != nil {
-		emetti("info", map[string]string{"testo": "Lettura del testo: " + err.Error()})
-		return nil, false
+		avvisaErroreLettura("Lettura del testo: " + err.Error())
+		return nil, letturaErrore
+	}
+	if fermato() {
+		return nil, letturaAnnullata
 	}
 	righe = rileggiPiccole(img, righe, f)
+	if fermato() {
+		return nil, letturaAnnullata
+	}
 	blocchi := segmenti(righe, f)
 	for i := range blocchi {
 		blocchi[i].Testo = correggiParole(separaAttaccate(blocchi[i].Testo))
@@ -353,7 +472,7 @@ func preparaPagina(area Zona, img, primaImg *image.RGBA, giro int64) (p *paginaP
 			cart, nome = g.Cartella, g.Nome
 		}
 		if !segnaLinguaVista(cart, nome, lingua) {
-			return nil, false // lingua che non so ancora tradurre, o già quella che vuoi
+			return nil, letturaNiente // lingua che non so ancora tradurre, o già quella che vuoi
 		}
 	}
 	spazioLibero(blocchi, area.W)
@@ -392,6 +511,9 @@ func preparaPagina(area Zona, img, primaImg *image.RGBA, giro int64) (p *paginaP
 		}
 		da = tenuti
 	}
+	if fermato() { // ultima occasione prima di tradurre: lo schermo si muove ancora
+		return nil, letturaAnnullata
+	}
 	risultati := make([]Risultato, len(da))
 	var wg sync.WaitGroup
 	posti := make(chan struct{}, 8)
@@ -412,8 +534,9 @@ func preparaPagina(area Zona, img, primaImg *image.RGBA, giro int64) (p *paginaP
 	wg.Wait()
 	tTrad := time.Since(t0) - tOCR
 	if !paginaAttiva.Load() || paginaGiro.Load() != giro {
-		return nil, false
+		return nil, letturaAnnullata
 	}
+	var cron []Risultato
 	for i, b := range da {
 		r := risultati[i]
 		if strings.TrimSpace(r.Tradotto) == "" || strings.EqualFold(strings.TrimSpace(r.Tradotto), strings.TrimSpace(b.Testo)) {
@@ -429,11 +552,11 @@ func preparaPagina(area Zona, img, primaImg *image.RGBA, giro int64) (p *paginaP
 		b.Img = img
 		contornoLettere(img, &b)
 		ombraLettere(img, &b)
-		b.LargMax = liberoFinoAlBordo(img, b)
+		b.LargMax, b.Bordo = liberoFinoAlBordoB(img, b)
 		b.Tradotto = rifinisci(b.Testo, r.Tradotto)
 		pronti = append(pronti, b)
-		if len(pronti) <= 40 { // nella cronologia (F8) le scritte nuove, senza doppioni
-			aggiungiCronologia(r, true)
+		if len(pronti) <= 40 { // nella cronologia (F8), ma solo quando la pagina si vede davvero
+			cron = append(cron, r)
 		}
 	}
 	if esisteVoce(filepath.Join(dirApp, "logs", "salva-anteprima")) {
@@ -460,8 +583,9 @@ func preparaPagina(area Zona, img, primaImg *image.RGBA, giro int64) (p *paginaP
 	pulita := pulisciPagina(img, pronti)
 	for i := range pronti {
 		pronti[i].Pulita = pulita
+		pronti[i].Tinta = tintaBlocco(img, pronti[i])
 	}
-	return &paginaPronta{area: area, img: img, pronti: pronti, nuove: nuove, t0: t0, tOCR: tOCR, tTrad: tTrad}, false
+	return &paginaPronta{area: area, img: img, pronti: pronti, nuove: nuove, t0: t0, tOCR: tOCR, tTrad: tTrad, cron: cron}, letturaFatta
 }
 
 // mostraPaginaPronta disegna le scritte tradotte sopra il gioco.
@@ -496,6 +620,9 @@ func mostraPaginaPronta(p *paginaPronta, giro int64) bool {
 			return false
 		}
 		paginaMostrata.Store(time.Now().UnixNano())
+		for _, r := range p.cron { // adesso la pagina si vede: le sue scritte vanno nella cronologia
+			aggiungiCronologia(r, true)
+		}
 		tempiPagina.Store(&TempiPagina{OCR: tOCR, Traduzione: tTrad, Totale: time.Since(t0), Visto: time.Unix(0, cambioVisto.Load()), Scritte: len(pronti), Nuove: nuove})
 		ultimeScritte.Store(int64(len(pronti)))
 		go func() {

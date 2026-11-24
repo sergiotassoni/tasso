@@ -56,6 +56,19 @@ type Blocco struct {
 	ColRifW     int         // sua larghezza nel gioco
 	ColLarg     int         // larghezza della colonna
 	Marg        int         // margine della toppa attorno all'inglese (0 = non calcolato): mai fino alla scritta vicina
+	Bordo       bool        // LargMax arriva al bordo vero del riquadro del gioco (casella, cornice)
+	Tinta       [12]uint8   // colore medio di 4 pezzi del riquadro inglese: se cambia, il gioco ha ricolorato la voce
+}
+
+// largConsentita: quanto può essere larga al massimo la traduzione di questa scritta. Fino al
+// bordo del riquadro del gioco se l'ho trovato (o alla larghezza della colonna); se no solo poco
+// più dell'inglese: mai fino alla scritta vicina o al bordo dello schermo, uscirebbe dal pulsante.
+func largConsentita(b Blocco) int {
+	lim := max(b.LargMax, b.W)
+	if b.Bordo || b.PxColonna > 0 {
+		return lim
+	}
+	return min(lim, b.W+max(int(2*b.Em+0.5), b.W*40/100, 8))
 }
 
 // grassetto: lettere spesse come quelle in neretto dei giochi.
@@ -801,12 +814,19 @@ func dentro(b Blocco, z Zona) bool {
 // ricolora: il gioco ha cambiato colore sotto qualche scritta (pulsante evidenziato dal
 // mouse, voce selezionata): rifaccio sfondo e colore solo di quelle, senza rileggere né
 // ritradurre. Così l'effetto del pulsante si vede anche sulla traduzione.
-func ricolora(img *image.RGBA, bl []Blocco) ([]Blocco, bool) {
+func ricolora(img *image.RGBA, bl []Blocco) ([]Blocco, bool) { return ricoloraSolo(img, bl, nil) }
+
+// ricoloraSolo: come ricolora, ma guarda solo le scritte segnate in solo (nil = tutte): quelle
+// la cui tinta è cambiata (blocchiDaRicolorare). Le altre non si ricalcolano.
+func ricoloraSolo(img *image.RGBA, bl []Blocco, solo []bool) ([]Blocco, bool) {
 	out := make([]Blocco, len(bl))
 	copy(out, bl)
 	cambiati := make([]bool, len(out))
 	quanti := 0
 	for i, b := range out {
+		if solo != nil && (i >= len(solo) || !solo[i]) {
+			continue
+		}
 		if b.Inchiostro == coloreTestoFascia && b.Sfondo == coloreFascia {
 			continue // fascia dei video: resta com'è
 		}
@@ -824,6 +844,7 @@ func ricolora(img *image.RGBA, bl []Blocco) ([]Blocco, bool) {
 		contornoLettere(img, &c)
 		ombraLettere(img, &c)
 		c.Fondo = fondoRicostruito(img, c)
+		c.Tinta = tintaBlocco(img, c)
 		out[i] = c
 		cambiati[i] = true
 		quanti++
@@ -831,41 +852,133 @@ func ricolora(img *image.RGBA, bl []Blocco) ([]Blocco, bool) {
 	if quanti == 0 {
 		return out, false
 	}
-	// nuova pagina pulita: le voci cambiate cancellate sull'immagine nuova, le altre come prima
+	// nuova pagina pulita sull'immagine nuova: le voci cambiate si cancellano da capo; delle
+	// altre copio solo i pixel già cancellati (le loro lettere inglesi) dalla loro pagina pulita,
+	// senza rifare i conti. Tutte puntano poi alle due immagini nuove: le vecchie si liberano
 	pul := image.NewRGBA(img.Bounds())
 	copy(pul.Pix, img.Pix)
 	var daRifare []Blocco
 	for i, b := range out {
-		if cambiati[i] || b.Pulita == nil || b.Img == nil || b.Pulita.Bounds() != img.Bounds() {
+		if cambiati[i] || b.Pulita == nil || b.Img == nil || b.Img.Bounds() != img.Bounds() {
 			daRifare = append(daRifare, b)
 			continue
 		}
-		m := max(b.Marg, 2) + 3
-		r := image.Rect(b.X-m, b.Y-m, b.X+b.W+m, b.Y+b.H+m).Intersect(img.Bounds())
-		for y := r.Min.Y; y < r.Max.Y; y++ {
-			for x := r.Min.X; x < r.Max.X; x++ {
-				if c := b.Pulita.RGBAAt(x, y); c != b.Img.RGBAAt(x, y) {
-					pul.SetRGBA(x, y, c)
-				}
-			}
-		}
+		copiaCancellati(pul, b)
 	}
-	nuova := pulisciPagina(img, daRifare)
-	for _, b := range daRifare {
-		m := max(b.Marg, 2) + 3
-		r := image.Rect(b.X-m, b.Y-m, b.X+b.W+m, b.Y+b.H+m).Intersect(img.Bounds())
-		for y := r.Min.Y; y < r.Max.Y; y++ {
-			for x := r.Min.X; x < r.Max.X; x++ {
-				if c := nuova.RGBAAt(x, y); c != img.RGBAAt(x, y) {
-					pul.SetRGBA(x, y, c)
-				}
-			}
-		}
-	}
+	cancellaInglese(pul, img, daRifare)
 	for i := range out {
 		out[i].Img, out[i].Pulita = img, pul
 	}
 	return out, true
+}
+
+// copiaCancellati: nella pagina pulita pul metto i pixel che la pagina pulita di b aveva
+// cancellato (dove era diversa dalla sua cattura), solo attorno a b.
+func copiaCancellati(pul *image.RGBA, b Blocco) {
+	if b.Pulita == nil || b.Img == nil {
+		return
+	}
+	m := max(b.Marg, int(b.Em*0.15+0.5), 2) + 3
+	r := image.Rect(b.X-m, b.Y-m, b.X+b.W+m, b.Y+b.H+m).Intersect(pul.Bounds()).Intersect(b.Pulita.Bounds()).Intersect(b.Img.Bounds())
+	for y := r.Min.Y; y < r.Max.Y; y++ {
+		for x := r.Min.X; x < r.Max.X; x++ {
+			if c := b.Pulita.RGBAAt(x, y); c != b.Img.RGBAAt(x, y) {
+				pul.SetRGBA(x, y, c)
+			}
+		}
+	}
+}
+
+// tintaBlocco: il colore medio di 4 pezzi (da sinistra a destra) del riquadro della scritta,
+// guardando un pixel su quattro. Costa poco: si può fare per ogni scritta a ogni giro. Se il
+// gioco ricolora la voce (mouse sopra: diventa dorata) la tinta cambia anche se il resto dello
+// schermo è identico.
+func tintaBlocco(img *image.RGBA, b Blocco) [12]uint8 {
+	var t [12]uint8
+	r := image.Rect(b.X, b.Y, b.X+b.W, b.Y+b.H).Intersect(img.Bounds())
+	if r.Dx() < 4 || r.Dy() < 2 {
+		return t
+	}
+	for k := 0; k < 4; k++ {
+		x0, x1 := r.Min.X+r.Dx()*k/4, r.Min.X+r.Dx()*(k+1)/4
+		var sr, sg, sb, n int
+		for y := r.Min.Y; y < r.Max.Y; y += 2 {
+			for x := x0; x < x1; x += 2 {
+				c := img.RGBAAt(x, y)
+				sr, sg, sb, n = sr+int(c.R), sg+int(c.G), sb+int(c.B), n+1
+			}
+		}
+		if n > 0 {
+			t[k*3], t[k*3+1], t[k*3+2] = uint8(sr/n), uint8(sg/n), uint8(sb/n)
+		}
+	}
+	return t
+}
+
+// tintaCambiata: almeno un pezzo ha cambiato colore più della soglia (su un canale).
+func tintaCambiata(a, b [12]uint8, soglia int) bool {
+	for i := range a {
+		if abs(int(a[i])-int(b[i])) > soglia {
+			return true
+		}
+	}
+	return false
+}
+
+// blocchiDaRicolorare: le scritte mostrate la cui tinta è cambiata nell'immagine nuova, da sole,
+// qualunque cosa faccia il resto dello schermo (prima contava solo l'impronta di tutto lo
+// schermo, e un pulsante che diventa giallo non bastava a superarla). viste ricorda l'ultima
+// tinta già controllata di ogni scritta: una scritta sopra uno sfondo che si muove non viene
+// ricontrollata a ogni giro, solo quando cambia di nuovo.
+func blocchiDaRicolorare(img *image.RGBA, bl []Blocco, viste map[[4]int][12]uint8) ([]bool, int) {
+	solo := make([]bool, len(bl))
+	n := 0
+	if len(viste) > 1000 {
+		clear(viste)
+	}
+	for i, b := range bl {
+		if b.Img == nil || b.Img.Bounds() != img.Bounds() || (b.Inchiostro == coloreTestoFascia && b.Sfondo == coloreFascia) {
+			continue
+		}
+		t := tintaBlocco(img, b)
+		k := [4]int{b.X, b.Y, b.W, b.H}
+		rif, ok := viste[k]
+		if !ok {
+			if b.Tinta == ([12]uint8{}) { // tinta mai calcolata: questa è il riferimento
+				viste[k] = t
+				continue
+			}
+			rif = b.Tinta
+		}
+		soglia := 6
+		if b.Ombra { // sfondo che si muove: solo un cambio forte
+			soglia = 24
+		}
+		if tintaCambiata(t, rif, soglia) {
+			solo[i] = true
+			n++
+			viste[k] = t
+		}
+	}
+	return solo, n
+}
+
+// togliCambiate: le scritte sotto cui l'inglese è davvero cambiato (altre lettere, non solo un
+// altro colore) spariscono subito, appena lo vedo: la traduzione vecchia non resta sopra un
+// testo diverso mentre leggo quello nuovo. Restituisce le scritte che restano e quante ne ha tolte.
+func togliCambiate(img *image.RGBA, bl []Blocco) ([]Blocco, int) {
+	var resto []Blocco
+	tolte := 0
+	for _, b := range bl {
+		if b.Img != nil && !(b.Inchiostro == coloreTestoFascia && b.Sfondo == coloreFascia) {
+			if b.Img.Bounds() != img.Bounds() || (zonaCambiata(b.Img, img, b) && inchiostroCambiato(b.Img, img, b)) {
+				tolte++
+				continue
+			}
+		}
+		resto = append(resto, b)
+	}
+	return resto, tolte
 }
 
 // paginaSpostata: le scritte inglesi sotto le traduzioni sono SCORSE in su o in giù (rotella,
@@ -1230,11 +1343,17 @@ func coonsRiquadro(img *image.RGBA, b Blocco, x0, y0, w, h int) *image.RGBA {
 // un'icona o un'altra cosa disegnata dal gioco (colonna dove la maggior parte dei pixel non è
 // più lo sfondo della scritta). Così la scritta italiana non va sopra i contorni delle caselle.
 func liberoFinoAlBordo(img *image.RGBA, b Blocco) int {
+	l, _ := liberoFinoAlBordoB(img, b)
+	return l
+}
+
+// liberoFinoAlBordoB: come liberoFinoAlBordo, e dice anche se ha trovato un bordo vero.
+func liberoFinoAlBordoB(img *image.RGBA, b Blocco) (int, bool) {
 	lim := b.LargMax
 	bd := img.Bounds()
 	y0, y1 := max(b.Y, bd.Min.Y), min(b.Y+b.H, bd.Max.Y)
 	if y1-y0 < 3 {
-		return max(b.W, lim)
+		return max(b.W, lim), false
 	}
 	// un bordo vero (casella, cornice) è una linea dritta: stessa tinta dall'alto in basso e
 	// diversa dalla colonna accanto. Un disegno (erba, rocce, cielo) cambia di riga in riga: lì
@@ -1264,11 +1383,10 @@ func liberoFinoAlBordo(img *image.RGBA, b Blocco) int {
 			}
 		}
 		if simili*10 >= n*8 && salto*10 >= n*7 {
-			lim = x - b.X - 6
-			break
+			return max(b.W, x-b.X-6), true
 		}
 	}
-	return max(b.W, lim)
+	return max(b.W, lim), false
 }
 
 // contornoLettere: molti giochi scrivono lettere chiare con un bordino scuro (o il contrario).
@@ -1459,6 +1577,12 @@ func margineToppa(b Blocco, altri []Blocco) int {
 func pulisciPagina(img *image.RGBA, bl []Blocco) *image.RGBA {
 	out := image.NewRGBA(img.Bounds())
 	copy(out.Pix, img.Pix)
+	cancellaInglese(out, img, bl)
+	return out
+}
+
+// cancellaInglese: in out (copia di img) cancella le lettere inglesi delle scritte bl.
+func cancellaInglese(out, img *image.RGBA, bl []Blocco) {
 	for _, b := range bl {
 		b.Img = img
 		m := b.Marg
@@ -1479,7 +1603,6 @@ func pulisciPagina(img *image.RGBA, bl []Blocco) *image.RGBA {
 			}
 		}
 	}
-	return out
 }
 
 var rePiattaforma = regexp.MustCompile(`(?i)\((steam|epic|xbox|psn|playstation|gog|ea|ubisoft|battle\.net)\)\s*$`)
@@ -1886,7 +2009,9 @@ func stabilizza(nuovi, vecchi []Blocco) {
 			}
 			lung := max(len([]rune(o.Testo)), len([]rune(n.Testo)))
 			if distanzaModifica(o.Testo, n.Testo)*10 <= lung*3 {
-				n.Tradotto = o.Tradotto
+				// anche il testo letto prima: così tieniFerme la riconosce come la stessa scritta
+				// e la lascia identica (niente tremolio di 1-2 pixel a ogni rilettura)
+				n.Tradotto, n.Testo = o.Tradotto, o.Testo
 			}
 			break
 		}
@@ -1908,6 +2033,9 @@ func soloNome(s string) string {
 // IDENTICHE a prima (stessa posizione, grandezza, toppa). Ogni rilettura dà posizioni che
 // variano di 1-2 pixel: ridisegnandole a ogni passaggio del mouse le scritte "tremavano"
 // (Sergio, No Man's Sky, inventario, 24/11). Cambiano solo quelle davvero nuove.
+//
+// La scritta tenuta punta poi alla cattura nuova e alla sua pagina pulita (dove ricopio le sue
+// lettere cancellate): così non tiene in memoria le immagini delle letture vecchie.
 func tieniFerme(nuovi, vecchi []Blocco, img *image.RGBA) []Blocco {
 	if len(vecchi) == 0 || img == nil {
 		return nuovi
@@ -1916,6 +2044,13 @@ func tieniFerme(nuovi, vecchi []Blocco, img *image.RGBA) []Blocco {
 	usato := make([]bool, len(vecchi))
 	out := make([]Blocco, len(nuovi))
 	copy(out, nuovi)
+	var pul *image.RGBA // la pagina pulita della lettura nuova
+	for _, n := range nuovi {
+		if n.Pulita != nil && n.Img == img && n.Pulita.Bounds() == img.Bounds() {
+			pul = n.Pulita
+			break
+		}
+	}
 	for i, n := range out {
 		for j, o := range vecchi {
 			if usato[j] || o.Testo != n.Testo || o.Tradotto != n.Tradotto || o.Img == nil || o.Img.Bounds() != img.Bounds() {
@@ -1926,6 +2061,15 @@ func tieniFerme(nuovi, vecchi []Blocco, img *image.RGBA) []Blocco {
 			}
 			if zonaCambiata(o.Img, img, o) {
 				continue
+			}
+			if o.Pulita == nil {
+				o.Img = img
+			} else if pul != nil {
+				copiaCancellati(pul, o)
+				o.Img, o.Pulita = img, pul
+			}
+			if o.Img == img {
+				o.Tinta = tintaBlocco(img, o)
 			}
 			out[i], usato[j] = o, true
 			break
