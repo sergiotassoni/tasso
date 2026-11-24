@@ -108,11 +108,12 @@ func leggiLingueOCR() map[string]bool {
 	cmd := exec.CommandContext(ctx, sysExe("powershell.exe"), "-NoProfile", "-NonInteractive", "-Command", ps)
 	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true, CreationFlags: 0x08000000}
 	out, err := cmd.Output()
+	if err != nil {
+		return nil // PowerShell lento o fermo: "non lo so" (si riprova), non "nessuna lingua"
+	}
 	m := map[string]bool{}
-	if err == nil {
-		for _, t := range strings.Fields(string(out)) {
-			m[strings.ToLower(t)] = true
-		}
+	for _, t := range strings.Fields(string(out)) {
+		m[strings.ToLower(t)] = true
 	}
 	return m
 }
@@ -120,7 +121,7 @@ func leggiLingueOCR() map[string]bool {
 // ocrDaRileggere: col lucchetto preso. Niente lista, o lista vecchia mentre stai installando
 // una lingua nelle Impostazioni di Windows.
 func ocrDaRileggere() bool {
-	return ocrLingue == nil || (time.Now().Before(ocrRileggiFino) && time.Since(ocrLetteAlle) > 15*time.Second)
+	return (ocrLingue == nil && time.Since(ocrLetteAlle) > time.Minute) || (time.Now().Before(ocrRileggiFino) && time.Since(ocrLetteAlle) > 15*time.Second)
 }
 
 // caricaLingueOCR: quali lingue sa leggere Windows su questo PC (aspetta la lettura, se serve).
@@ -222,10 +223,10 @@ func installaLetturaOCR(codice string) string {
 	if !ok || l.OCR == "" {
 		return "lingua sconosciuta"
 	}
-	if v, _ := installaOCRIn.Load().(string); v != "" {
+	// un solo scaricamento alla volta, anche con due clic di fila
+	if !installaOCRIn.CompareAndSwap(nil, codice) && !installaOCRIn.CompareAndSwap("", codice) {
 		return "Sto già aggiungendo un'altra lingua: aspetta che finisca."
 	}
-	installaOCRIn.Store(codice)
 	emetti("lingue", elencoLingue())
 	go func() {
 		defer guard("installa-ocr")

@@ -93,7 +93,7 @@ func togliTasso(rimetti bool, passo func(int, string)) string {
 		return "Chiudi " + strings.Join(falliti, ", ") + " e riprova: con il gioco aperto non posso togliere la traduzione. Tasso non è stato tolto."
 	}
 	if len(tolti) > 0 {
-		passo(1, fmt.Sprintf("Traduzioni tolte da %d giochi (%s)", len(tolti), strings.Join(tolti, ", ")))
+		passo(1, "Traduzioni tolte dai giochi: "+strings.Join(tolti, ", "))
 	} else {
 		passo(1, "Nessuna traduzione dentro i giochi da togliere")
 	}

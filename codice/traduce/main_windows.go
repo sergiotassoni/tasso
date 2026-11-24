@@ -646,7 +646,8 @@ func collega(w webview2.WebView) {
 		return "ok"
 	})
 	_ = w.Bind("ttAccendi", func(on bool) bool { return accendi(on) })
-	// passando a Ufficio la traduzione si spegne, ma la scelta resta: tornando a Gaming si riaccende
+	// passando a Ufficio la traduzione si spegne e i tasti dei giochi si tolgono; tornando a Gaming
+	// tornano i tasti (la traduzione la riaccendi tu con F7)
 	_ = w.Bind("ttSpegniPerUfficio", func() bool {
 		accendi(false)
 		cambiaTasti(map[string]uint32{}) // in Ufficio nessun tasto dei giochi

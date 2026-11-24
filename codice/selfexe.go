@@ -79,5 +79,5 @@ func programFilesDir() string {
 	if p, err := windows.KnownFolderPath(windows.FOLDERID_ProgramFiles, 0); err == nil && p != "" {
 		return p
 	}
-	return os.Getenv("ProgramFiles")
+	return `C:\Program Files` // mai la variabile d'ambiente (un programma senza privilegi la può cambiare)
 }

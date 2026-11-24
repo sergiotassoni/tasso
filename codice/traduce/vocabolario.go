@@ -109,7 +109,11 @@ func soloLettere(p string) bool {
 func correggiParole(r string) string {
 	// la "J" di "Join" spesso si perde sopra uno sfondo disegnato: "in Multiplayer Game"
 	if m := reJoinTagliato.FindStringSubmatchIndex(r); m != nil {
-		r = "Join" + r[m[2]:]
+		if m[2] >= 0 {
+			r = "Join" + r[m[2]:]
+		} else {
+			r = "Join" + r[m[4]:]
+		}
 	}
 	if vocabolario() == nil || len(vocLiv) == 0 {
 		return r
@@ -207,11 +211,19 @@ func maiuscole(s string) bool {
 // lettereIniziali: la lettura di Windows a volte perde una J o una I all'inizio della parola
 // (lettere strette, spesso decorate nei caratteri dei giochi). Solo se la parola letta non esiste
 // e una sola delle due la rende una parola vera.
+var inizialiPerse = map[string]bool{"oin": true, "ump": true, "ournal": true, "ournals": true, "nventory": true,
+	"tems": true, "tem": true, "nfo": true, "nvite": true, "nvites": true, "mport": true, "nstall": true,
+	"nteract": true, "nsert": true, "mprove": true, "ncrease": true}
+
 func lettereIniziali(p string) string {
 	if !soloLettere(p) || !unicode.IsUpper(rune(p[0])) {
 		return ""
 	}
 	resto := strings.ToLower(p)
+	// solo le scritte dei menu dove la J o la I si perdono davvero: "Ron" e "Ack" sono nomi
+	if !inizialiPerse[resto] {
+		return ""
+	}
 	var trovate []string
 	for _, l := range []string{"J", "I"} {
 		if esiste(l + resto) {
@@ -263,12 +275,15 @@ func senzaAccenti(p string) string {
 var marchiAttaccati = map[string]bool{"playstation": true, "powerpoint": true,
 	"xbox": true, "teamspeak": true, "battlenet": true, "gamepass": true, "steamworks": true,
 	"onedrive": true, "whatsapp": true, "facetime": true, "blackjack": true, "deathmatch": true,
-	"firestorm": true, "nightmare": true}
+	"firestorm": true, "nightmare": true, "starcraft": true, "maplestory": true, "gamestop": true,
+	"fromsoftware": true, "darksouls": true, "warcraft": true, "minecraft": true, "fortnite": true,
+	"youtube": true, "playstore": true, "applestore": true, "nintendo": true, "battlefield": true}
 
 // staccaMaiuscola: "MultiplayerGame" non esiste, "Multiplayer" e "Game" sì: le stacco. Solo se
 // le due parti sono lunghe (4+ lettere) e la parola intera non è un nome scritto così apposta.
 func staccaMaiuscola(p string) string {
-	if !soloLettere(p) || esiste(p) || marchiAttaccati[strings.ToLower(p)] {
+	if !soloLettere(p) || esiste(p) || marchiAttaccati[strings.ToLower(p)] || len(p) < 12 {
+		// sotto le 12 lettere sono quasi sempre nomi scritti così apposta (StarCraft, GameStop)
 		return ""
 	}
 	r := []rune(p)
@@ -286,13 +301,24 @@ func staccaMaiuscola(p string) string {
 	return ""
 }
 
-var reJoinTagliato = regexp.MustCompile(`^(?:[JjIl1|]?[Oo0]?in|Oin)( (?:Multiplayer|Game|Server|Online|Party|Session|Lobby|a Game)\b)`)
+// con "in" da solo solo "in Multiplayer Game" (Palworld, letto così sul PC di Sergio): "in Lobby",
+// "in a Game" possono essere scritte vere (stato di un amico)
+var reJoinTagliato = regexp.MustCompile(`^(?:(?:[JjIl1|][Oo0]?in|[Oo0]in)( (?:Multiplayer|Game|Server|Online|Party|Session|Lobby|a Game)\b)|in( Multiplayer Game\b))`)
+
+// parole dei giochi e della chat che non sono nel vocabolario ma sono giuste così
+var paroleGioco = map[string]bool{"poggers": true, "pogchamp": true, "unequip": true, "pickaxe": true,
+	"waypoint": true, "loadout": true, "respawn": true, "respawned": true, "lootbox": true, "noobs": true,
+	"griefer": true, "griefing": true, "nerfed": true, "buffed": true, "debuff": true, "debuffs": true,
+	"cooldown": true, "cooldowns": true, "hitbox": true, "speedrun": true, "smurfs": true, "camping": true,
+	"teamkill": true, "headshot": true, "headshots": true, "crafting": true, "unlocked": true, "minimap": true}
 
 // parolaVicina: la parola vera più comune a una o due lettere di distanza ("remining" ->
 // "remaining", "playes" -> "players"). Solo se ce n'è una chiaramente più comune delle altre.
 func parolaVicina(p string) string {
 	v := vocabolario()
-	if len(v) == 0 || len(p) < 4 || !soloLettere(p) {
+	// solo parole minuscole lunghe senza apostrofo: le corte, i nomi (maiuscola), le contrazioni
+	// ("can't", "o'clock") e le parole dei giochi (noob, regen, pickaxe) restano come sono
+	if len(v) == 0 || len(p) < 6 || !soloLettere(p) || strings.ContainsRune(p, '\'') || !unicode.IsLower(rune(p[0])) || paroleGioco[strings.ToLower(p)] {
 		return ""
 	}
 	low := strings.ToLower(p)
@@ -315,17 +341,8 @@ func parolaVicina(p string) string {
 		}
 		return best
 	}
-	d1 := modifiche(low)
-	w := scegli(d1)
-	if w == "" && len(low) >= 6 {
-		d2 := map[string]bool{}
-		for c := range d1 {
-			for c2 := range modifiche(c) {
-				d2[c2] = true
-			}
-		}
-		w = scegli(d2)
-	}
+	// una sola lettera di differenza: con due "pickaxe" diventava "package" e "unequip" "equip"
+	w := scegli(modifiche(low))
 	if w == "" {
 		return ""
 	}

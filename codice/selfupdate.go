@@ -18,6 +18,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -169,12 +170,24 @@ func selfUpdate() {
 	} else {
 		updMsg("work", "Controllo che il file sia quello giusto…")
 	}
-	if msg := checkUpdateSignature(cur, newPath); msg != "" {
+	// la firma la controllo su una copia in Programmi (solo gli amministratori ci scrivono): il file
+	// nella cartella di Tasso un altro programma potrebbe scambiarlo durante il controllo
+	verifica, err := copiaPerVerifica(exe)
+	if err != nil {
+		_ = os.Remove(newPath)
+		updating.Store(false)
+		updMsg("error", "Non riesco a preparare il controllo della firma: per sicurezza non aggiorno. Scarica lo zip a mano da Info.")
+		return
+	}
+	msg := checkUpdateSignature(cur, verifica)
+	_ = os.Remove(verifica)
+	if msg != "" {
 		_ = os.Remove(newPath)
 		updating.Store(false)
 		updMsg("error", msg)
 		return
 	}
+	vecchio, _ := readSelfExe() // per controllare, se torno indietro, che rimetto proprio questo
 	_ = os.Remove(oldPath)
 	unlockSelfExe() // se no non potrei rinominarlo
 	if err := os.Rename(cur, oldPath); err != nil {
@@ -189,7 +202,7 @@ func selfUpdate() {
 		lockSelfExe()
 		_ = os.Remove(newPath)
 		updating.Store(false)
-		updMsg("error", "Non riesco a sostituire Tasso.exe. Scarica lo zip a mano da Info.")
+		updMsg("error", rimessoMsg(vecchio, "Non riesco a sostituire Tasso.exe. Scarica lo zip a mano da Info."))
 		return
 	}
 	// Blocco subito il file nuovo e controllo che sia proprio quello scaricato e verificato: un
@@ -201,7 +214,7 @@ func selfUpdate() {
 		_ = os.Rename(oldPath, cur)
 		lockSelfExe()
 		updating.Store(false)
-		updMsg("error", "Il file nuovo è cambiato durante l'aggiornamento: per sicurezza non lo apro. Scarica lo zip a mano da Info.")
+		updMsg("error", rimessoMsg(vecchio, "Il file nuovo è cambiato durante l'aggiornamento: per sicurezza non lo apro. Scarica lo zip a mano da Info."))
 		return
 	}
 	// Anche la copia in Programmi (quella delle attività pianificate) passa alla versione nuova,
@@ -365,4 +378,36 @@ func contains(list []string, s string) bool {
 		}
 	}
 	return false
+}
+
+// copiaPerVerifica: il nuovo Tasso in un file di Programmi nuovo di zecca (O_EXCL), per la firma.
+func copiaPerVerifica(exe []byte) (string, error) {
+	pf := programFilesDir()
+	if pf == "" {
+		return "", os.ErrNotExist
+	}
+	p := filepath.Join(pf, "tasso-verifica-"+strconv.Itoa(os.Getpid())+".exe")
+	_ = os.Remove(p) // resto di un aggiornamento interrotto (in Programmi lo scrive solo un amministratore)
+	f, err := os.OpenFile(p, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o644)
+	if err != nil {
+		return "", err
+	}
+	_, err = f.Write(exe)
+	if e := f.Close(); err == nil {
+		err = e
+	}
+	if err != nil {
+		_ = os.Remove(p)
+		return "", err
+	}
+	return p, nil
+}
+
+// rimessoMsg: dopo aver rimesso il vecchio Tasso controllo che sia proprio quello di prima (la
+// cartella di Tasso può essere scrivibile da altri programmi).
+func rimessoMsg(vecchio []byte, msg string) string {
+	if b, err := readSelfExe(); len(vecchio) > 0 && (err != nil || !bytes.Equal(b, vecchio)) {
+		return "Aggiornamento non riuscito e il file di Tasso non è più quello di prima: chiudi Tasso e riscarica lo zip da sergiotassoni.github.io/tasso."
+	}
+	return msg
 }

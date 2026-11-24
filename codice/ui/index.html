@@ -1271,7 +1271,7 @@ body nav button[data-go="games"].on{background:transparent;box-shadow:none}
         <div class="row wrap" style="gap:8px"><button class="btn primary" id="btnRestore">Rimetti tutto com'era prima di Tasso</button><button class="btn ghost" data-undo="restorepoint">Punto di ripristino di Windows</button><button class="btn ghost" data-undo="recycle">Apri il Cestino</button><button class="btn ghost" data-undo="regfolder" id="btnRegBak" style="display:none">Backup del registro</button></div>
         <span class="small muted">I file cancellati si recuperano dal <b>Cestino</b> (se non l'hai svuotato). Per tornare indietro con tutto Windows c'è il <b>punto di ripristino</b> che Tasso crea prima delle pulizie Media, Profonda ed Eccezionale.</span>
       </div>
-      <div style="padding:15px 0" class="row wrap"><button class="btn ghost" id="btnLogs">Apri la cartella dei registri</button><button class="btn ghost" id="btnQuit">Chiudi Tasso</button></div>
+      <div style="padding:15px 0" class="row wrap"><button class="btn ghost" id="btnLogs">Apri la cartella dei registri</button><button class="btn ghost" id="btnQuit">Chiudi Tasso</button><button class="btn ghost" id="btnTogli" style="color:var(--red);border-color:color-mix(in srgb,var(--red) 45%,var(--line))">Togli Tasso dal PC</button></div>
     </div>
     <div style="flex:1 1 260px;display:flex;flex-direction:column;gap:14px">
       <div class="card" style="display:flex;flex-direction:column;gap:6px">
@@ -1783,6 +1783,7 @@ window.tasso = {
   onShredProgress(m){ if (/^Chiedo|^Distruggo 1 di|^Asking|^Destroying 1 of/.test(m)) toast(m, 'var(--a3)'); },
   onShredDone(p){ toast(p.msg, p.ok ? 'var(--a1)' : 'var(--a4)'); },
   onUndoDone(p){ if (p.settings) S = p.settings; toast(p.msg, 'var(--a1)'); paintUndo(p.changes); paintModes(); if (loaded.startup) call('goStartupList'); if (loaded.games) { paintLib(); profileRefresh(); } },
+  onTogliTasso(p){ if (!TOGLI) TOGLI = {passi: [], fatto: false, err: ''}; if (p.text) TOGLI.passi.push(p.text); if (p.done) TOGLI.fatto = true; if (p.error) TOGLI.err = p.error; togliDraw(); },
   onRestoreDone(p){ if (p.settings) S = p.settings; (p.msgs || []).forEach(m => toast(m, 'var(--a3)')); paintSettings(); paintModes(); if (p.ok !== false) toast(p.paused ? _t('Fatto: impostazioni rimesse com\'erano e Tasso è spento.') : _t('Fatto: impostazioni rimesse com\'erano.')); if (loaded.startup) call('goStartupList'); if (loaded.games) profileRefresh(); undoRefresh(); }
 };
 $('#btnCancel').onclick = () => { call('goCancel'); $('#btnCancel').disabled = true; $('#btnCancel').textContent = _t('Mi fermo…'); };
@@ -2629,6 +2630,35 @@ $('#btnShortcut').onclick = async () => { await call('goDesktopShortcut'); toast
 $('#btnLogs').onclick = () => call('goOpenLogs');
 $('#btnRestore').onclick = () => modal(_t('<h2>Rimettere le impostazioni com\'erano?</h2><p class="muted" style="margin:0;line-height:1.5">Tasso resta acceso, ma le impostazioni di Windows che ha cambiato tornano com\'erano prima di lui') + (S.snapshotAt ? _t(' (salvate il ') + esc(S.snapshotAt) + ')' : '') + '.</p>' + RESTORE_INFO,
   [{label:_t('Annulla')}, {label:_t('Rimetti com\'era'), cls:'primary', risky:true, fn: () => { call('goRestore', false).then(r => { if (r === 'busy') toast(_t('Sto già rimettendo le impostazioni…'), 'var(--a4)'); else toast(_t('Rimetto le impostazioni com\'erano…')); }); }}]);
+// 3.1: "Togli Tasso dal PC" (anteprima 7WB9K5TL): conferma, avanzamento, fine
+let TOGLI = null;
+function togliDraw(){
+  const T = TOGLI; if (!T) return;
+  const righe = T.passi.map(x => '<li style="display:flex;gap:8px;align-items:flex-start"><span>✓</span><span>' + esc(x) + '</span></li>').join('');
+  let h = '';
+  if (T.err) h = '<h3>' + esc(_t('Tasso non è stato tolto del tutto')) + '</h3><ul style="list-style:none;padding:0;margin:0 0 8px">' + righe + '</ul><div class="callout" style="border-color:var(--a4)">' + esc(T.err) + '</div>';
+  else if (T.fatto) h = '<h3>' + esc(_t('Tasso è stato tolto')) + '</h3><ul style="list-style:none;padding:0;margin:0 0 8px">' + righe + '</ul><p class="small muted">' + esc(_t('Tasso si chiude tra pochi secondi e il suo file si cancella subito dopo. Se un giorno lo rivuoi, lo riscarichi gratis da sergiotassoni.github.io/tasso.')) + '</p>';
+  else h = '<h3>' + esc(_t('Tolgo Tasso dal PC…')) + '</h3><ul style="list-style:none;padding:0;margin:0 0 8px">' + righe + '</ul><p class="small muted">' + esc(_t('Non spegnere il PC: ci vuole meno di un minuto.')) + '</p>';
+  modal(h, T.err ? [{label:_t('Chiudi'), fn:() => { TOGLI = null; }}] : T.fatto ? [{label:_t('Chiudi adesso'), cls:'primary', fn:() => { call('goQuit'); }}] : []);
+}
+$('#btnTogli').onclick = async () => {
+  if (RUN) { toast(_t('Aspetta la fine della pulizia prima di togliere Tasso.'), 'var(--a4)'); return; }
+  const info = (await call('goTogliTassoInfo')) || {};
+  const gb = info.bytes ? ' (' + fmtBytes(info.bytes) + ')' : '';
+  const h = '<h3>' + esc(_t('Togliere Tasso dal PC?')) + '</h3><p class="muted" style="margin:0 0 8px">' + esc(_t('Tasso toglie tutto quello che ha messo e poi si chiude. I tuoi file, i giochi e i salvataggi non si toccano.')) + '</p>' +
+    '<div class="callout"><b>' + esc(_t('Tasso toglie:')) + '</b><ul style="margin:6px 0 0;padding-left:20px"><li>' + esc(_t('la partenza con Windows e le pulizie automatiche')) + '</li><li>' + esc(_t('le traduzioni messe dentro i giochi (solo i file aggiunti da Tasso; gli originali sono intatti)')) + '</li><li>' + esc(_t('le sue cartelle: impostazioni, registri e modelli della traduzione')) + esc(gb) + '</li><li>' + esc(_t('il collegamento sul Desktop e il file di Tasso')) + '</li></ul></div>' +
+    '<label class="li check" style="align-items:flex-start;margin-top:8px"><input type="checkbox" id="tgRimetti" checked> <span>' + esc(_t('Rimetti anche le impostazioni di Windows com\'erano prima di Tasso')) + '<br><span class="small muted">' + esc(_t('Piano energetico, schermo, notifiche, mouse, programmi all\'avvio. I file cancellati dalle pulizie non tornano: per quelli c\'è il punto di ripristino di Windows.')) + '</span></span></label>' +
+    (info.vault ? '<div class="callout" style="border-color:var(--a4);margin-top:8px"><b>' + esc(_t('Hai il portachiavi di Tasso con delle password.')) + '</b> ' + esc(_t('Togliendo Tasso si cancellano e non si recuperano. Prima copiale altrove (Portachiavi > tocca una password > Copia).')) + '<label class="li check" style="margin-top:8px"><input type="checkbox" id="tgVault"> <span>' + esc(_t('Ho copiato le password che mi servono')) + '</span></label></div>' : '') +
+    '<p class="small muted" style="margin:8px 0 0">' + esc(_t('Restano: i punti di ripristino di Windows e i backup del registro fatti da Tasso, che sposto in Documenti > Tasso - copie di sicurezza.')) + '</p>';
+  modal(h, [{label:_t('Annulla')}, {label:_t('Togli Tasso'), cls:'danger', risky:true, fn:(box) => {
+    const v = box.querySelector('#tgVault');
+    if (v && !v.checked) { toast(_t('Prima copia le password e spunta "Ho copiato le password che mi servono".'), 'var(--a4)'); return 'keep'; }
+    const rimetti = !!(box.querySelector('#tgRimetti') || {}).checked;
+    TOGLI = {passi: [], fatto: false, err: ''};
+    setTimeout(togliDraw, 0);
+    call('goTogliTasso', rimetti);
+  }}]);
+};
 $('#btnQuit').onclick = () => { if (RUN) { toast(_t('Aspetta la fine della pulizia prima di chiudere.'), 'var(--a4)'); return; } call('goQuit'); };
 
 /* ---------- welcome ---------- */
@@ -4194,7 +4224,7 @@ $('#gwzNext').onclick = async () => {
     if (W.info && W.info.lingua_steam && W.info.lingua_steam_ok === false) { toast(_t('Prima metti il gioco in una lingua che Windows sa leggere (per esempio inglese), oppure scegli "Non serve tradurre".'), 'var(--a4)'); return; }
     const sl = LANGS.find(l => l.codice === W.da); if (sl && !sl.ocr_ok) { toast(_t('Windows su questo PC non sa leggere questa lingua: scegline un\'altra.'), 'var(--a4)'); return; }
     W.skip = false; if (W.da === 'it' && W.a === 'it') W.a = 'en'; if (!canFile()) W.modo = 'schermo'; W.i++; wzDraw(); return; }
-  if (s === 'a') { if (W.modo === 'file' && W.info && W.info.anticheat && !W.rischio) { toast(_t('Spunta "Ho capito il rischio" oppure scegli "Sullo schermo".'), 'var(--a4)'); return; } if (W.da === W.a) { toast(_t('Le due lingue sono uguali: non serve tradurre.'), 'var(--a4)'); return; } W.i++; wzDraw(); return; }
+  if (s === 'a') { if (W.modo === 'file' && W.info && W.info.anticheat && !W.rischio) { toast(soloFile() ? _t('Spunta "Ho capito il rischio" per tradurre dentro questo gioco, oppure torna indietro e salta la traduzione.') : _t('Spunta "Ho capito il rischio" oppure scegli "Sullo schermo".'), 'var(--a4)'); return; } if (W.da === W.a) { toast(_t('Le due lingue sono uguali: non serve tradurre.'), 'var(--a4)'); return; } W.i++; wzDraw(); return; }
   if (s === 'pot') { if (!W.pot) W.pot = powRec(); W.i++; wzDraw(); return; }
   if (s === 'cons') { W.i++; wzDraw(); return; }
   if (s === 'fine') wzApply();
@@ -4254,7 +4284,7 @@ async function wzFinish(run, trOk){
   if (!W || W.run !== run) return;
   const g = W.g, keepTr = W.kind === 'boost' || W.keepTrMemo;
   const old = (S.gameMemo && S.gameMemo[g.id]) || {};
-  const memo = keepTr ? {da: old.da || '', a: old.a || '', modo: old.modo || '', skip: !!old.skip, ia: !!old.ia, liv: old.liv || ''} : (trOk && !W.skip ? {da: W.da, a: W.a, modo: W.modo, skip: false, ia: !!(W.ia && W.liv !== 'off' && TT && TT.ia_file && TT.ia_pc_ok), liv: W.liv && W.liv !== 'off' ? W.liv : ''} : W.noGame ? {da: old.da || '', a: old.a || '', modo: old.modo || '', skip: !!old.skip, ia: !!old.ia} : {da: '', a: '', modo: '', skip: !!W.skip, ia: false});
+  const memo = keepTr ? {da: old.da || '', a: old.a || '', modo: old.modo || '', skip: !!old.skip, ia: !!old.ia, liv: old.liv || ''} : (trOk && !W.skip ? {da: W.da, a: W.a, modo: W.modo, skip: false, ia: !!(W.ia && W.liv !== 'off' && TT && TT.ia_file && TT.ia_pc_ok), liv: W.liv && W.liv !== 'off' ? W.liv : ''} : W.noGame ? {da: old.da || '', a: old.a || '', modo: old.modo || '', skip: !!old.skip, ia: !!old.ia, liv: old.liv || ''} : {da: '', a: '', modo: '', skip: !!W.skip, ia: false});
   memo.pot = W.powOk ? (W.pot || 'normale') : (old.pot || '');
   const r = await call('goGameMemo', g.id, memo);
   if (r !== 'ok') W.notes.push([_t('Non sono riuscito a ricordare le scelte: ') + tx(r || ''), true]);

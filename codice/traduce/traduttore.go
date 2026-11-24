@@ -112,7 +112,12 @@ func (t *Traduttore) TraduciMessaggio(ctx context.Context, grezzo string) Risult
 		ris.Millisec = time.Since(inizio).Milliseconds()
 		return ris
 	}
-	if v, ok := fraseMenuConNumero(battuta); ok { // frasi fatte ("Good game", "Nice shot")
+	versoItaliano := true
+	if t.Coppia != nil {
+		da, a := t.Coppia()
+		versoItaliano = da == "en" && a == "it"
+	}
+	if v, ok := fraseMenuConNumero(battuta); ok && versoItaliano { // frasi fatte ("Good game", "Nice shot"), in italiano
 		ris.Tradotto, ris.Motore = v, "catalogo"
 		ris.Millisec = time.Since(inizio).Milliseconds()
 		return ris
@@ -167,7 +172,17 @@ func soloEsatta(ctx context.Context) context.Context {
 }
 
 func (t *Traduttore) TraduciPer(ctx context.Context, grezzo string, dialogo bool, da, a string) Risultato {
-	return t.traduciIn(ctx, grezzo, dialogo, da, a)
+	return t.traduciIn(context.WithValue(ctx, chiaveFile{}, true), grezzo, dialogo, da, a)
+}
+
+// chiaveFile: testo preso dai file del gioco, già scritto giusto. Niente correzioni della lettura
+// dello schermo (cambierebbero nomi e parole inventate dei giochi), niente "Nome: battuta"
+// (in un file "Requisiti: ..." è una scritta intera, non qualcuno che parla).
+type chiaveFile struct{}
+
+func pulisciFile(s string) string {
+	s = strings.TrimSpace(strings.NewReplacer("\r", "", "‘", "'", "’", "'").Replace(s))
+	return reSpazi.ReplaceAllString(s, " ")
 }
 
 func (t *Traduttore) traduciIn(ctx context.Context, grezzo string, dialogo bool, da, a string) Risultato {
@@ -175,18 +190,24 @@ func (t *Traduttore) traduciIn(ctx context.Context, grezzo string, dialogo bool,
 	if !(da == "en" && a == "it") {
 		return t.traduciCoppia(ctx, grezzo, da, a, inizio)
 	}
-	testo := pulisci(grezzo)
+	daFile := ctx.Value(chiaveFile{}) != nil
+	testo := ""
+	if daFile {
+		testo = pulisciFile(grezzo)
+	} else {
+		testo = pulisci(grezzo)
+	}
 	if testo == "" {
 		return Risultato{}
 	}
 	parlante, battuta := "", strings.ReplaceAll(testo, "\n", " ")
-	if dialogo {
+	if dialogo && !daFile {
 		parlante, battuta = separaParlante(testo)
 	} else if r, ok := t.traduciEtichetta(ctx, battuta, inizio); ok {
 		return r
 	}
 	ricorda := func(b string) {
-		if dialogo {
+		if dialogo && !daFile {
 			t.ricorda(b)
 		}
 	}
@@ -218,10 +239,11 @@ func (t *Traduttore) traduciIn(ctx context.Context, grezzo string, dialogo bool,
 	}
 	if v, ok := t.libreria[chiave]; ok && !conParoleFisse {
 		v = t.giaSalvataLocked(chiave, battuta, v)
+		correttaIA := t.corretteIA[chiave] // letta col lucchetto: il correttore la scrive da un altro filo
 		t.mu.Unlock()
 		t.ricontrolla(ctx, chiave, battuta, v, dialogo)
 		ris.Tradotto, ris.Motore = v, "libreria"
-		if t.corretteIA[chiave] {
+		if correttaIA {
 			ris.Motore = "libreria (IA)"
 		}
 		ris.Millisec = time.Since(inizio).Milliseconds()

@@ -701,8 +701,6 @@ func openWinPage(id string) string {
 	return "ok"
 }
 
-// cleanWipeTemp toglie la cartella di riempimento di cipher /w (C:\EFSTMPWP) rimasta da un
-// "Cancella lo spazio libero" interrotto: può occupare tutto lo spazio libero del disco.
 // fixRestoreFreq: se il passaggio "backup" è stato interrotto, rimetto il limite di Windows ai punti
 // di ripristino com'era (il passaggio lo toglie solo per un momento).
 func fixRestoreFreq() {
@@ -727,6 +725,8 @@ func fixRestoreFreq() {
 	_ = registry.DeleteKey(registry.LOCAL_MACHINE, mark)
 }
 
+// cleanWipeTemp toglie la cartella di riempimento di cipher /w (C:\EFSTMPWP) rimasta da un
+// "Cancella lo spazio libero" interrotto: può occupare tutto lo spazio libero del disco.
 func cleanWipeTemp() {
 	if sd := os.Getenv("SystemDrive"); sd != "" {
 		p := filepath.Join(sd+`\`, "EFSTMPWP")

@@ -915,7 +915,7 @@ func fpsMeasure(delay, secs int, boosted, beeps bool, prefer string) (*fpsResult
 	}
 	pidN, _ := strconv.ParseUint(res.pid, 10, 32)
 	fgMu.Lock()
-	// davanti per almeno 2 controlli su 3: il gioco, o un suo processo con lo stesso nome
+	// davanti quasi sempre: il gioco, o un suo processo con lo stesso nome
 	// (alcuni giochi hanno un lanciatore e il gioco vero con due numeri diversi)
 	davanti := 0
 	for pid, n := range fg {
@@ -923,7 +923,9 @@ func fpsMeasure(delay, secs int, boosted, beeps bool, prefer string) (*fpsResult
 			davanti += n
 		}
 	}
-	front := fgTot > 0 && davanti*3 >= fgTot*2
+	// fuori al massimo 2 controlli (o un decimo nelle misure lunghe): con un terzo accettato un
+	// alt-tab di 9 secondi su 30 passava, e dietro molti giochi rallentano (misura sbagliata)
+	front := fgTot > 0 && fgTot-davanti <= max(2, fgTot/10)
 	fgMu.Unlock()
 	if durante < 3 {
 		// troppo pochi controlli per sapere chi era davanti: la misura non vale
