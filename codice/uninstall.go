@@ -25,7 +25,11 @@ import (
 // cartelleTasso: le cartelle che Tasso crea e che si cancellano per intero. Solo questi tre
 // percorsi esatti, ricavati dalle cartelle di Windows (mai da un valore scritto su disco).
 func cartelleTasso() []string {
-	local := os.Getenv("LOCALAPPDATA")
+	// cartella di Windows vera, non la variabile d'ambiente (che un programma qualsiasi può cambiare)
+	local, err := windows.KnownFolderPath(windows.FOLDERID_LocalAppData, 0)
+	if err != nil {
+		local = ""
+	}
 	var out []string
 	for _, d := range []string{filepath.Join(local, "Tasso"), filepath.Join(local, "TassoTraduce"), filepath.Join(programFilesDir(), "Tasso")} {
 		if local == "" && !strings.HasPrefix(d, programFilesDir()) {
@@ -192,7 +196,8 @@ func scriptCancellazione() (string, error) {
 	var cmd strings.Builder
 	cmd.WriteString("@echo off\r\n")
 	// aspetto la chiusura di Tasso (al massimo 2 minuti)
-	fmt.Fprintf(&cmd, "for /L %%%%i in (1,1,120) do (tasklist /FI \"PID eq %d\" | find \"%d\" >nul || goto via & ping -n 2 127.0.0.1 >nul)\r\n:via\r\n", os.Getpid(), os.Getpid())
+	// se dopo 2 minuti Tasso è ancora aperto non cancello niente (i file sarebbero in uso)
+	fmt.Fprintf(&cmd, "for /L %%%%i in (1,1,120) do (tasklist /FI \"PID eq %d\" | find \"%d\" >nul || goto via & ping -n 2 127.0.0.1 >nul)\r\n(goto) 2>nul & del /f /q \"%%~f0\"\r\n:via\r\n", os.Getpid(), os.Getpid())
 	for _, d := range cartelleTasso() {
 		if strings.ContainsAny(d, "\"%&|<>^\r\n") {
 			return "", fmt.Errorf("percorso strano: %s", d)
