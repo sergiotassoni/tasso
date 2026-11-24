@@ -36,10 +36,15 @@ COME FUNZIONA L'INSTALLAZIONE (atomica)
   PC spento a metà: alla volta dopo "Ripara" rimette i file vecchi al loro posto.
   Aggiornamento: se Tasso è già installato usa la stessa cartella, aggiorna i programmi
   spuntati e lascia com'è quello che non spunti. Prima chiede di chiudere Tasso / Zip / PDF
-  se sono aperti (li avvisa come allo spegnimento di Windows, così Tasso salva, poi li chiude).
+  se sono aperti. Tasso lo chiude con "Tasso.exe --chiudi": Tasso salva e si chiude da solo
+  (codice 0), oppure rifiuta se sta facendo una pulizia o un aggiornamento (codice 1: allora
+  NON lo chiudo a forza e chiedo di riprovare). Un Tasso vecchio senza --chiudi, Zip e PDF li
+  avvisa come allo spegnimento di Windows (così salvano), poi li chiude.
 
 DISINSTALLAZIONE ("Programmi e funzionalità" > Tasso > Disinstalla)
   Si sceglie cosa togliere. Toglie solo i file e i collegamenti scritti in tasso-setup.json.
+  "Disinstalla Tasso.exe --disinstalla --scegli=gaming,ufficio": parte con spuntati solo quelli
+  (lo usa "Togli Tasso dal PC" dentro Tasso, dopo aver tolto le sue impostazioni e cartelle).
   Gaming senza Ufficio: Tasso.exe resta e Modalita diventa "ufficio" (e viceversa).
   Con l'ultimo programma vanno via anche disinstallatore, voce di registro e cartella (se vuota).
 
@@ -61,7 +66,8 @@ COMPILARE (anche da Linux)
     cartelle dist/ vanno compilate prima) e il disinstallatore, e scrive elenco.json;
   - compila dist/TassoSetup.exe e controlla icona e manifest.
 
-  TASSO.EXE: adesso dentro c'è un SEGNAPOSTO, /tmp/tb7/Tasso.exe (build non firmata).
+  TASSO.EXE: adesso dentro c'è un SEGNAPOSTO, /tmp/tb8/Tasso.exe (build non firmata, con
+  --chiudi; compila.sh senza TASSO_EXE usa ancora /tmp/tb7/Tasso.exe, più vecchio).
   Per la versione da distribuire:
      TASSO_EXE=/percorso/Tasso-firmato.exe TASSO_VER=3.1 ./compila.sh
   e poi firma anche dist/TassoSetup.exe (signtool). La firma di Tasso.exe resta valida:

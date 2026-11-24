@@ -4,6 +4,7 @@ package main
 // programmi aperti, scelta della cartella, spazio libero, togliere il disinstallatore aperto.
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -332,10 +333,73 @@ func programmiAperti(base string, cc []installa.Componente) []aperto {
 	return out
 }
 
-// chiudiProgrammi: prima dice ai programmi che "Windows si sta spegnendo"
+// Esito di "Tasso.exe --chiudi".
+const (
+	tassoChiuso    = iota // si è chiuso bene (ha salvato)
+	tassoRifiuta          // sta lavorando (pulizia, aggiornamento): non va chiuso a forza
+	tassoNonCapito        // Tasso vecchio, senza --chiudi, o non partito: si chiude come gli altri
+)
+
+// chiudiTassoBene chiede al Tasso aperto di chiudersi da solo: "Tasso.exe --chiudi" esce con 0 se
+// Tasso si è chiuso (dopo aver salvato), con 1 se rifiuta perché sta lavorando o non si chiude
+// entro 20 secondi. Un Tasso vecchio non conosce --chiudi: porta davanti la sua finestra ed esce
+// con 0 senza chiudere niente; allora resta aperto e lo chiudo come gli altri programmi.
+func chiudiTassoBene(exe string, pid uint32) int {
+	ctx, annulla := context.WithTimeout(context.Background(), 30*time.Second)
+	defer annulla()
+	cmd := exec.CommandContext(ctx, exe, "--chiudi")
+	cmd.Dir = filepath.Dir(exe)
+	err := cmd.Run()
+	var ee *exec.ExitError
+	switch {
+	case err == nil:
+	case errors.As(err, &ee) && ee.ExitCode() == 1 && ctx.Err() == nil:
+		if ancoraAperto(pid) {
+			return tassoRifiuta
+		}
+		return tassoChiuso
+	default:
+		return tassoNonCapito
+	}
+	h, err := windows.OpenProcess(windows.SYNCHRONIZE, false, pid)
+	if err != nil {
+		return tassoChiuso // non c'è più
+	}
+	defer windows.CloseHandle(h)
+	if ev, _ := windows.WaitForSingleObject(h, 5000); ev == windows.WAIT_OBJECT_0 {
+		return tassoChiuso
+	}
+	return tassoNonCapito
+}
+
+// ancoraAperto: il processo pid gira ancora.
+func ancoraAperto(pid uint32) bool {
+	h, err := windows.OpenProcess(windows.SYNCHRONIZE, false, pid)
+	if err != nil {
+		return false
+	}
+	defer windows.CloseHandle(h)
+	ev, _ := windows.WaitForSingleObject(h, 0)
+	return ev == uint32(windows.WAIT_TIMEOUT)
+}
+
+// chiudiProgrammi: Tasso prima con "Tasso.exe --chiudi" (si chiude bene da solo, e se sta facendo
+// una pulizia o un aggiornamento rifiuta: allora non lo chiudo a forza e restituisco false).
+// Agli altri (e a un Tasso vecchio) prima dice che "Windows si sta spegnendo"
 // (WM_QUERYENDSESSION/WM_ENDSESSION: Tasso salva impostazioni e memoria), poi li chiude.
 func chiudiProgrammi(base string, cc []installa.Componente) bool {
-	lista := programmiAperti(base, cc)
+	var lista []aperto
+	for _, a := range programmiAperti(base, cc) {
+		if a.nome == "Tasso" {
+			switch chiudiTassoBene(filepath.Join(base, "Tasso.exe"), a.pid) {
+			case tassoChiuso:
+				continue
+			case tassoRifiuta:
+				return false
+			}
+		}
+		lista = append(lista, a)
+	}
 	for _, a := range lista {
 		pid := a.pid
 		cb := windows.NewCallback(func(hwnd uintptr, _ uintptr) uintptr {

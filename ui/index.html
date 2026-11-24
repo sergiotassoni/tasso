@@ -374,7 +374,9 @@ async function disinstalla(){
 (async () => {
   A = await call('goAvvio');
   L = A.lingua || 'it';
-  A.componenti.forEach(c => { scelti[c.id] = true; dis[c.id] = true; });
+  // disinstalla: tutti spuntati, o solo quelli chiesti con --scegli= (da "Togli Tasso dal PC")
+  const pre = (A.preScelti || []).filter(id => A.componenti.some(c => c.id === id));
+  A.componenti.forEach(c => { scelti[c.id] = true; dis[c.id] = pre.length ? pre.includes(c.id) : true; });
   $('#cartella').value = A.cartella || '';
   if (A.installata) { $('#cartella').readOnly = true; $('#sfoglia').hidden = true; } // aggiornamento: stessa cartella
   $('#versione').textContent = 'TASSO ' + (A.versione || '');

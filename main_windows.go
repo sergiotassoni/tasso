@@ -39,6 +39,9 @@ var (
 	reg        = registroWin{}
 	modoDisins bool
 	baseDisins string
+	// --scegli=gaming,ufficio: nel disinstallatore sono già spuntati solo questi (lo usa
+	// "Togli Tasso dal PC" dentro Tasso). Si possono sempre cambiare.
+	preScelti []installa.Componente
 )
 
 func L() string {
@@ -53,6 +56,11 @@ func main() {
 	for _, a := range os.Args[1:] {
 		if a == "--disinstalla" {
 			modoDisins = true
+		}
+		if v, ok := strings.CutPrefix(a, "--scegli="); ok {
+			if cc, err := installa.Normalizza(componenti(strings.Split(v, ","))); err == nil {
+				preScelti = cc
+			}
 		}
 	}
 	lingua.Store(testi.DaWindows(linguaWindows()))
@@ -234,8 +242,12 @@ func collega(w webview2.WebView) {
 		if modoDisins {
 			modo = "disinstalla"
 		}
+		pre := []installa.Componente{}
+		if modoDisins {
+			pre = append(pre, preScelti...)
+		}
 		return map[string]any{"modo": modo, "lingua": L(), "lingue": lingue, "testi": testi.Dizionario,
-			"componenti": comp, "cartella": cartella, "installata": installata, "versione": ver,
+			"componenti": comp, "cartella": cartella, "installata": installata, "versione": ver, "preScelti": pre,
 			"vuoto": !modoDisins && (elenco == nil || errElenco != nil)}
 	})
 	_ = w.Bind("goLingua", func(l string) bool {
