@@ -861,7 +861,10 @@ func fpsMeasure(delay, secs int, boosted, beeps bool, prefer string) (*fpsResult
 		}
 		temps <- readTemps()
 	}()
-	fg := map[uint32]bool{}
+	// chi è davanti, controllato ogni secondo durante la misura (prima solo due volte: bastava un
+	// attimo sbagliato per buttare una misura buona, visto con PC Cafe Simulator il 24/11)
+	fg := map[uint32]int{}
+	fgTot := 0
 	var fgMu sync.Mutex
 	go func() {
 		defer guard("boost.go:fg")
@@ -873,18 +876,23 @@ func fpsMeasure(delay, secs int, boosted, beeps bool, prefer string) (*fpsResult
 		if beeps {
 			beep(1) // inizia
 		}
-		fgMu.Lock()
-		fg[foregroundPid()] = true
-		fgMu.Unlock()
+		for {
+			fgMu.Lock()
+			fg[foregroundPid()]++
+			fgTot++
+			fgMu.Unlock()
+			select {
+			case <-done:
+				return
+			case <-time.After(time.Second):
+			}
+		}
 	}()
 	res, perr := parsePresentMon(bufio.NewReader(out), prefer)
 	_, _ = io.Copy(io.Discard, out)
 	werr := cmd.Wait()
 	close(done)
 	hzAtEnd := gameScreenHz()
-	fgMu.Lock()
-	fg[foregroundPid()] = true
-	fgMu.Unlock()
 	if beeps {
 		beep(2) // finita
 	}
@@ -900,7 +908,15 @@ func fpsMeasure(delay, secs int, boosted, beeps bool, prefer string) (*fpsResult
 	}
 	pidN, _ := strconv.ParseUint(res.pid, 10, 32)
 	fgMu.Lock()
-	front := fg[uint32(pidN)]
+	// davanti per almeno 2 controlli su 3: il gioco, o un suo processo con lo stesso nome
+	// (alcuni giochi hanno un lanciatore e il gioco vero con due numeri diversi)
+	davanti := 0
+	for pid, n := range fg {
+		if pid == uint32(pidN) || (pid != 0 && strings.EqualFold(safeName(strings.TrimSuffix(filepath.Base(processPath(pid)), ".exe")), res.Game)) {
+			davanti += n
+		}
+	}
+	front := fgTot > 0 && davanti*3 >= fgTot*2
 	fgMu.Unlock()
 	if !front {
 		return nil, errors.New("il gioco non era in primo piano durante la misura: tienilo davanti e riprova")
