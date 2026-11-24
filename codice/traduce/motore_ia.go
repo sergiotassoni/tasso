@@ -50,6 +50,25 @@ Il tuo compito: restituire la traduzione italiana MIGLIORE, come in un gioco loc
 - Usa le traduzioni del glossario quando indicate.
 Rispondi SOLO con la traduzione italiana finale.`
 
+// esempiFissi: quattro correzioni tipiche date all'IA prima di ogni frase. Prova del 24/11 sulle
+// 1000 frasi (EuroLLM-9B Q4, RX 6700 XT): +0,47 sulla metà di sviluppo e +0,36 sulla metà mai vista
+// (72,94 -> 73,30 chrF++), meno frasi peggiorate, stessa velocità (364 ms contro 361).
+const esempiFissi = `Esempi di correzioni giuste:
+Inglese: Reload your magazine.
+Traduzione automatica: Ricarica la tua rivista.
+Finale: Ricarica il caricatore.
+Inglese: Press E to loot the body.
+Traduzione automatica: Premere E per saccheggiare il corpo.
+Finale: Premi E per perquisire il corpo.
+Inglese: Low health!
+Traduzione automatica: Salute bassa!
+Finale: Salute bassa!
+Inglese: You've got some nerve coming back here.
+Traduzione automatica: Hai un po' di nervi a tornare qui.
+Finale: Hai un bel coraggio a tornare qui.
+
+`
+
 type messaggio struct {
 	Role    string `json:"role"`
 	Content string `json:"content"`
@@ -94,6 +113,7 @@ func costruisciMessaggi(r RichiestaTraduzione) []messaggio {
 
 func costruisciCorrezione(r RichiestaTraduzione) []messaggio {
 	var b strings.Builder
+	b.WriteString(esempiFissi)
 	if len(r.Schermata) > 0 {
 		b.WriteString("Scritte che si vedono sulla stessa schermata del gioco (solo per capire di cosa si parla, NON tradurle):\n")
 		for _, c := range r.Schermata {

@@ -50,7 +50,6 @@ Il tuo compito: restituire la traduzione italiana MIGLIORE, come in un gioco loc
 - Usa le traduzioni del glossario quando indicate.
 Rispondi SOLO con la traduzione italiana finale.`
 
-
 // 24/11: nuove prove per "più intelligenza" (voce 6 della lista).
 const sistemaV7 = `You are a professional video game localizer from English to Italian.
 You get an English line from a game and a machine translation into Italian.
@@ -63,22 +62,6 @@ Return the BEST Italian translation, as in a well localized game.
 - Do not add or remove information. Numbers, proper names and keys stay the same.
 - Use the glossary translations when given.
 Answer ONLY with the final Italian translation.`
-
-const esempiFissi = `Esempi di correzioni giuste:
-Inglese: Reload your magazine.
-Traduzione automatica: Ricarica la tua rivista.
-Finale: Ricarica il caricatore.
-Inglese: Press E to loot the body.
-Traduzione automatica: Premere E per saccheggiare il corpo.
-Finale: Premi E per perquisire il corpo.
-Inglese: Low health!
-Traduzione automatica: Salute bassa!
-Finale: Salute bassa!
-Inglese: You've got some nerve coming back here.
-Traduzione automatica: Hai un po' di nervi a tornare qui.
-Finale: Hai un bel coraggio a tornare qui.
-
-`
 
 const sistemaV9 = promptCorrettore + `
 Cambia il meno possibile: correggi solo le parole sbagliate e lascia uguale il resto della frase (stesse parole, stesso ordine, stessa punteggiatura).`
