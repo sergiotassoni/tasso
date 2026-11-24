@@ -1079,6 +1079,8 @@ func suZonaScelta(z Zona) {
 		paginaAttiva.Store(false)
 		paginaGiro.Add(1)
 		NascondiPagina()
+		// e il tutto automatico non la riaccende da solo su questo gioco (ci sarebbero di nuovo due traduzioni)
+		impostaPausa(exeDiFinestra(paginaGiocoA.Load()), true)
 	}
 	muImp.Lock()
 	imp.Zona = z
@@ -1324,6 +1326,16 @@ func traduciZonaMenu(img *image.RGBA, grezzo string) Risultato {
 	wg.Wait()
 	trad := map[string]string{}
 	motore := ""
+	errori := 0
+	for _, r := range tradotti {
+		if r.Errore != "" {
+			errori++
+		}
+	}
+	if errori == len(tradotti) {
+		// nessuna voce tradotta (motore spento o occupato): lo dico, invece di mostrare l'inglese
+		return Risultato{Originale: grezzo, Errore: tradotti[0].Errore, Millisec: time.Since(t0).Milliseconds()}
+	}
 	for i, b := range blocchi {
 		t := strings.TrimSpace(tradotti[i].Tradotto)
 		if t == "" {

@@ -1921,7 +1921,11 @@ func sembraMenu(grezzo string) bool {
 			righe = append(righe, r)
 		}
 	}
-	if len(righe) < 2 {
+	// almeno 3 voci; "NOME\nFrase" è un dialogo con chi parla, non un menu
+	if len(righe) < 3 {
+		return false
+	}
+	if t := strings.TrimSpace(righe[0]); tuttoMaiuscolo(t) && len(strings.Fields(t)) <= 3 && strings.ContainsAny(righe[1], ".!?") {
 		return false
 	}
 	parole := 0

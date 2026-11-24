@@ -170,3 +170,15 @@ func TestZonaMenu(t *testing.T) {
 		t.Fatalf("%+v", r)
 	}
 }
+
+func TestDialogoNonEMenu(t *testing.T) {
+	if sembraMenu("JOHN\nWe need to go now.") {
+		t.Fatal("nome + battuta preso per menu")
+	}
+	if sembraMenu("JOHN\nWe need to go.\nNow!") {
+		t.Fatal("dialogo su più righe preso per menu")
+	}
+	if !sembraMenu("Volume\nMusic\nSound Effects\nVoice") {
+		t.Fatal("menu non riconosciuto")
+	}
+}
