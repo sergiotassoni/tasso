@@ -27,3 +27,15 @@ func correggiNumeriOCR(s string) string {
 	s = strings.Join(parole, " ")
 	return rePercento96.ReplaceAllString(s, "$1 $2%")
 }
+
+// rePercento00: il segno "%" letto come "0/0" (o "o/o") attaccato alle cifre: "800/0" -> "80%",
+// "< 450/0 >" -> "< 45%". Una divisione per zero non è mai una scritta vera, quindi è sicuro.
+var rePercento00 = regexp.MustCompile(`(^|[^0-9A-Za-z/])([0-9]+(?:[.,][0-9]+)?)[0oO]/[0oO]($|[^0-9A-Za-z/])`)
+
+// correggiPercentuale: i "%" letti male dall'OCR nei numeri (tutti i giochi).
+func correggiPercentuale(s string) string {
+	if !strings.Contains(s, "/") {
+		return s
+	}
+	return rePercento00.ReplaceAllString(s, "$1$2%$3")
+}

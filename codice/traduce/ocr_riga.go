@@ -279,12 +279,13 @@ func valutaParole(s string) (tot int, false_ int, rare int) {
 // (vanno bene per tradurre, ma rendono sospetta la lettura quando c'è una frase pronta vicina).
 func valutaParoleN(s string) (tot int, false_ int, rare int, nomi int) {
 	tuttoMaiusc := tuttoMaiuscolo(s)
-	campi := strings.FieldsFunc(s, func(r rune) bool { return !unicode.IsLetter(r) && r != '\'' })
-	for i, w := range campi {
-		w = strings.Trim(w, "'")
+	campi := campiFrase(s)
+	etichetta := etichettaIniziale(campi)
+	for i, c := range campi {
+		w := strings.Trim(c.w, "'")
 		r := []rune(w)
-		if len(r) < 2 {
-			continue
+		if len(r) < 2 || i < etichetta {
+			continue // l'etichetta iniziale ("MARCUS:", "OLD MAN:") è un nome: non si giudica
 		}
 		tot++
 		if parolaValidaOCR(w) {
@@ -292,6 +293,9 @@ func valutaParoleN(s string) (tot int, false_ int, rare int, nomi int) {
 				rare++
 			}
 			continue
+		}
+		if parolaComposta(w) {
+			continue // "medkit", "headshot", "cooldown": due parole vere attaccate
 		}
 		// maiuscole e minuscole mescolate a caso dentro la parola: lettura sbagliata
 		mista := false
@@ -307,7 +311,8 @@ func valutaParoleN(s string) (tot int, false_ int, rare int, nomi int) {
 			if len(r) <= 3 {
 				continue
 			}
-		case !mista && unicode.IsUpper(r[0]) && (i > 0 || len(campi) == 1) && len(r) >= 3:
+		case !mista && unicode.IsUpper(r[0]) && (!c.inizio || len(campi) == 1) && len(r) >= 3:
+			// (a inizio frase, dopo ". " o ": ", la maiuscola non dice che è un nome: "FIP: Crojucning")
 			// nome proprio dentro una frase ("Palworld", "Kael"); da solo conta se è lungo
 			if len(campi) > 1 || len(r) >= 4 {
 				nomi++
@@ -321,10 +326,135 @@ func valutaParoleN(s string) (tot int, false_ int, rare int, nomi int) {
 	return
 }
 
+// campoFrase: una parola della riga e se inizia una frase (prima parola, o dopo . ! ? :).
+type campoFrase struct {
+	w           string
+	inizio      bool
+	dueDopo     bool // subito dopo la parola c'è ":" ("MARCUS:", "TIP:")
+	maiuscolaIn bool
+}
+
+// campiFrase: le parole (lettere e apostrofi) della riga con la punteggiatura che le separa.
+func campiFrase(s string) []campoFrase {
+	var out []campoFrase
+	var cur []rune
+	punto := true
+	chiudi := func() {
+		if len(cur) > 0 {
+			out = append(out, campoFrase{w: string(cur), inizio: punto, maiuscolaIn: unicode.IsUpper(cur[0])})
+			cur = cur[:0]
+			punto = false
+		}
+	}
+	for _, r := range s {
+		if unicode.IsLetter(r) || r == '\'' {
+			cur = append(cur, r)
+			continue
+		}
+		chiudi()
+		switch r {
+		case ':':
+			if n := len(out); n > 0 && !punto {
+				out[n-1].dueDopo = true
+			}
+			punto = true
+		case '.', '!', '?':
+			punto = true
+		}
+	}
+	chiudi()
+	return out
+}
+
+// etichettaIniziale: quante parole all'inizio sono un'etichetta con i due punti, cioè il nome di
+// chi parla o il tipo di scritta ("MARCUS:", "OLD MAN:", "Kael:"): una o due parole con la
+// maiuscola seguite da ":" e poi altro testo. 0 se non c'è.
+func etichettaIniziale(c []campoFrase) int {
+	for k := 0; k < 2 && k < len(c)-1; k++ {
+		if !c[k].maiuscolaIn {
+			return 0
+		}
+		if c[k].dueDopo {
+			return k + 1
+		}
+	}
+	return 0
+}
+
+// parolaComposta: parola sconosciuta fatta di due parole inglesi vere e comuni, di almeno 3
+// lettere ciascuna ("medkit" = med+kit, "headshot", "cooldown"): nei giochi è normale.
+func parolaComposta(w string) bool {
+	l := strings.ToLower(w)
+	r := []rune(l)
+	if len(r) < 6 || len(r) > 16 || !soloLettere(l) {
+		return false
+	}
+	for k := 3; k <= len(r)-3; k++ {
+		a, b := string(r[:k]), string(r[k:])
+		if esiste(a) && esiste(b) && !parolaRara(a) && !parolaRara(b) {
+			return true
+		}
+	}
+	return false
+}
+
+// sconosciutaPlausibile: la sola parola sconosciuta della riga ha la forma di una parola vera
+// (lettere minuscole, almeno 4, vocali e consonanti alternate in modo normale): un termine dei
+// giochi che il vocabolario non ha, non lettere a caso dell'OCR ("rnedklt", "Hxq").
+func sconosciutaPlausibile(s string) bool {
+	trovata := ""
+	for _, c := range campiFrase(s) {
+		w := strings.Trim(c.w, "'")
+		if len([]rune(w)) < 2 || parolaValidaOCR(w) || parolaComposta(w) {
+			continue
+		}
+		if trovata != "" {
+			return false
+		}
+		trovata = w
+	}
+	r := []rune(trovata)
+	if len(r) < 4 || len(r) > 14 {
+		return false
+	}
+	vocali, filaCons, maxCons := 0, 0, 0
+	for i, c := range r {
+		if !unicode.IsLetter(c) || (i > 0 && !unicode.IsLower(c)) {
+			return false
+		}
+		if strings.ContainsRune("aeiouyAEIOUY", c) {
+			vocali++
+			filaCons = 0
+		} else {
+			filaCons++
+			maxCons = max(maxCons, filaCons)
+		}
+		if i >= 2 && r[i] == r[i-1] && r[i] == r[i-2] {
+			return false
+		}
+	}
+	if vocali == 0 || vocali*100 < len(r)*20 || vocali*100 > len(r)*70 || maxCons > 3 {
+		return false
+	}
+	// lettere che l'OCR confonde ("rn" per "m", "vv" per "w"): se la parola corretta esiste, era
+	// una lettura sbagliata, non un termine nuovo
+	for _, k := range candidati(strings.ToLower(trovata)) {
+		if k != "" {
+			return false
+		}
+	}
+	return true
+}
+
+// reSegnoAttaccato: "health!find", "ready?Go": manca lo spazio dopo ! o ? tra due parole.
+var reSegnoAttaccato = regexp.MustCompile(`(\p{Ll}{2})([!?]+)(\p{L})`)
+
 // correggiRigaOCR: la riga letta corretta e quanto mi fido. Usata dalla traduzione di tutta la
 // schermata: una riga con voto letturaDubbia NON si traduce (resta l'inglese del gioco).
 func correggiRigaOCR(grezzo string) (string, int) {
 	s := strings.Join(strings.Fields(lettereOCRStrane(grezzo)), " ")
+	s = reSegnoAttaccato.ReplaceAllString(s, "$1$2 $3")
+	s = correggiPercentuale(s)
 	if s == "" || reSoloSimboli.MatchString(s) {
 		return s, letturaDubbia
 	}
@@ -357,15 +487,32 @@ func correggiRigaOCR(grezzo string) (string, int) {
 	if tot == 0 {
 		return s2, letturaDubbia
 	}
-	// riga corta (fino a 4 parole): ogni parola deve essere vera
+	// riga corta (fino a 4 parole): ogni parola deve essere vera; al massimo UNA parola che non
+	// conosco, se le altre (almeno due) sono vere e comuni e lei ha la forma di una parola
+	// ("Low health! Find a medkit": "medkit" non è nel vocabolario, ma la lettura è buona)
 	if tot <= 4 {
-		if false_ > 0 || doppie || (rare > 0 && tot <= 2) {
+		if doppie || (rare > 0 && tot <= 2) {
+			return s2, letturaDubbia
+		}
+		if false_ > 0 && !(false_ == 1 && tot >= 3 && rare == 0 && f1 <= 1 && sconosciutaPlausibile(s2)) {
 			return s2, letturaDubbia
 		}
 		return s2, letturaBuona
 	}
-	// frase lunga: al massimo una parola sospetta ogni 8, niente parole doppie
-	if doppie || (false_*2+rare)*100 > tot*25 {
+	// frase lunga: al massimo una parola sospetta ogni 8, niente parole doppie. Una sola parola
+	// sconosciuta ma con la forma di una parola vera (termine del gioco, errore del gioco stesso)
+	// pesa come una rara: non basta a scartare una frase per il resto giusta.
+	peso := false_ * 2
+	if false_ == 1 && sconosciutaPlausibile(s2) {
+		peso = 1
+	}
+	if doppie || (peso+rare)*100 > tot*25 {
+		return s2, letturaDubbia
+	}
+	// tante parole inventate nella lettura grezza (anche se il vocabolario ne ha "aggiustate"
+	// alcune) e almeno una ancora sbagliata: è spazzatura dell'OCR ("FIP: Crojucning rnakes 123,
+	// noise when enemies are earby"). Meglio l'inglese del gioco che una traduzione senza senso.
+	if f1 >= 3 && f1*100 > tot*30 && false_+rare > 0 {
 		return s2, letturaDubbia
 	}
 	return s2, letturaBuona
@@ -403,7 +550,11 @@ func init() {
 		come dove fine sole solo male idea area camera pane cane mare era ora data base porta carta
 		auto moto nord sud est ovest mini maxi super ultra media mega giga turbo pro ex
 		deluxe premium gold silver platinum diamond hardcore casual arcade survival horror action fantasy
-		sci-fi cyberpunk steampunk rpg mmo fps hud fov dlss fsr hdr vsync ui gui ai npc`) {
+		sci-fi cyberpunk steampunk rpg mmo fps hud fov dlss fsr hdr vsync ui gui ai npc
+		desktop lobby checkpoint volume default gameplay frame framerate ping lag bug patch mod combo perk
+		buff nerf build crash texture shader bloom blur preset ranked clan party emote trailer badge medkit
+		headshot cooldown v-sync anti-aliasing taa fxaa smaa msaa ssao xess gamma ray tracing widget
+		jumpscare speedrunner leaderboard matchmaking hub dungeon raid tier`) {
 		paroleUgualiIt[w] = true
 	}
 }
@@ -421,6 +572,7 @@ func rigaMezzaTradotta(en, it string) bool {
 	tuttoM := tuttoMaiuscolo(en)
 	campiEn := strings.FieldsFunc(en, divide)
 	nomi := map[string]bool{}
+	tastiEn := map[string]bool{} // nomi di tasti scritti nella frase ("the Shift key"): restano uguali
 	for i, w := range campiEn {
 		w = strings.Trim(w, "'-")
 		inglesi[strings.ToLower(w)] = true
@@ -428,6 +580,26 @@ func rigaMezzaTradotta(en, it string) bool {
 		// nomi propri: maiuscola iniziale dentro la frase, parola non inglese ("Palbox", "Kael")
 		if len(r) > 1 && unicode.IsUpper(r[0]) && !tuttoM && i > 0 && !esiste(w) {
 			nomi[strings.ToLower(w)] = true
+		}
+		if len(r) > 1 && unicode.IsUpper(r[0]) && nomiTastiParole[strings.ToUpper(w)] {
+			tastiEn[w] = true
+		}
+	}
+	// nomi di oggetti e missioni dopo un'etichetta: "Item collected: Rusty Key", "Quest completed:
+	// Old Friends" (tutte le parole con la maiuscola dopo i due punti, in una riga non tutta a
+	// maiuscole né tutta con le iniziali maiuscole prima dei due punti)
+	if prima, dopo, ok := strings.Cut(en, ":"); ok && !tuttoM && strings.ContainsFunc(prima, unicode.IsLower) {
+		campi := strings.FieldsFunc(dopo, divide)
+		titolo := len(campi) > 0
+		for _, w := range campi {
+			if r := []rune(w); len(r) > 3 && !unicode.IsUpper(r[0]) {
+				titolo = false
+			}
+		}
+		if titolo && !strings.ContainsAny(strings.TrimSpace(dopo), ".!?") {
+			for _, w := range campi {
+				nomi[strings.ToLower(strings.Trim(w, "'-"))] = true
+			}
 		}
 	}
 	caricaCataloghi()
@@ -439,7 +611,7 @@ func rigaMezzaTradotta(en, it string) bool {
 			continue
 		}
 		up := strings.ToUpper(w)
-		if nomiTastiFissi[up] || (nomiTastiParole[up] && w == up) || segnapostoTasto(w) {
+		if nomiTastiFissi[up] || (nomiTastiParole[up] && (w == up || tastiEn[w])) || segnapostoTasto(w) {
 			continue // tasti: restano uguali apposta
 		}
 		if it2, ok := termGiochi[w]; ok && strings.EqualFold(it2, w) {

@@ -237,7 +237,7 @@ func scriviReportBanco(dir string, esiti []esitoImmagine, instab []instabilita) 
 			tot++
 			if r.Scartata != "" {
 				scartate++
-				if r.Scartata != "non è testo da tradurre" {
+				if r.Scartata != "non è testo da tradurre" && r.Scartata != motivoUgualeIt {
 					peggiScartate = append(peggiScartate, caso{e.Nome, r})
 				}
 				continue

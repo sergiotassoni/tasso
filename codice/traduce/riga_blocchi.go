@@ -147,6 +147,65 @@ func spezzaSeparatori(b []Blocco) []Blocco {
 	return out
 }
 
+// frecce dei selettori delle impostazioni ("< On >", "◀ English ▶", "‹ High ›").
+var (
+	frecceSinistra = "<‹◀◄«←⟨"
+	frecceDestra   = ">›▶►»→⟩"
+)
+
+// togliFrecce: le frecce di un selettore ("< Off >", "◀ 1920 x 1080 ▶") non fanno parte della
+// scritta: tolte, resta il valore da tradurre ("Off" -> "Disattivato"). Il riquadro è quello del
+// valore: le frecce restano del gioco (se l'italiano è più lungo può coprirle, ma si legge tutto,
+// invece di rimpicciolirsi fino ai puntini tra due frecce vicine).
+func togliFrecce(b []Blocco) []Blocco {
+	var out []Blocco
+	for _, bl := range b {
+		p := bl.parole()
+		if max(1, bl.Righe) != 1 || len(p) == 0 {
+			out = append(out, bl)
+			continue
+		}
+		t := strings.TrimSpace(bl.Testo)
+		r := []rune(t)
+		if len(r) < 3 || !strings.ContainsRune(frecceSinistra, r[0]) || !strings.ContainsRune(frecceDestra, r[len(r)-1]) {
+			out = append(out, bl)
+			continue
+		}
+		parole := append([]ParolaOCR(nil), p...)
+		tolte := 0
+		// a sinistra: la parola "<" da sola, o il segno attaccato ("<No>")
+		if w := []rune(strings.TrimSpace(parole[0].T)); len(w) > 0 && strings.ContainsRune(frecceSinistra, w[0]) {
+			tolte++
+			if len(w) == 1 {
+				parole = parole[1:]
+			} else {
+				quota := 1 / float64(len(w))
+				parole[0].X += parole[0].W * quota
+				parole[0].W -= parole[0].W * quota
+				parole[0].T = string(w[1:])
+			}
+		}
+		if n := len(parole); n > 0 {
+			if w := []rune(strings.TrimSpace(parole[n-1].T)); len(w) > 0 && strings.ContainsRune(frecceDestra, w[len(w)-1]) {
+				tolte++
+				if len(w) == 1 {
+					parole = parole[:n-1]
+				} else {
+					quota := 1 / float64(len(w))
+					parole[n-1].W -= parole[n-1].W * quota
+					parole[n-1].T = string(w[:len(w)-1])
+				}
+			}
+		}
+		if len(parole) == 0 || tolte < 2 {
+			out = append(out, bl)
+			continue
+		}
+		out = append(out, bloccoDaPosizioni(parole, bl))
+	}
+	return out
+}
+
 // bloccoDaPosizioni: una scritta da parole già in pixel della cattura (copia grandezza e colori di base).
 func bloccoDaPosizioni(p []ParolaOCR, base Blocco) Blocco {
 	x0, y0, x1, y1 := 1e18, 1e18, -1e18, -1e18
@@ -201,42 +260,119 @@ func colonneInchiostro(img *image.RGBA, b *Blocco, x0, x1 int) []int {
 
 // scrittaContinua: accanto al riquadro (a sinistra o a destra) c'è un'altra parola che l'OCR non ha
 // letto ("JOIN" letto, "FRIEND" no; "GAME" letto, "QUIT" no). Allora la riga è incompleta.
+//
+// Conta solo l'inchiostro che sembra lettere: non i bordi dei riquadri (una linea che continua
+// sopra e sotto la scritta), non le zone piene dello stesso colore (cielo chiaro accanto a lettere
+// bianche, il contorno scuro che somiglia allo sfondo): lì finisce la riga, non manca una parola.
 func scrittaContinua(img *image.RGBA, b Blocco) bool {
+	// colori semplici (sfondo del bordo, inchiostro più lontano): qui serve solo distinguere le
+	// lettere dallo sfondo, anche quando il contorno o l'ombra confondono i colori del disegno
+	coloriBloccoSemplice(img, &b)
+	b.HaContorno = false
+	if !inchiostroCredibile(img, &b) {
+		return false // non so separare le lettere dallo sfondo: nessuna prova di una parola tagliata
+	}
 	em := b.Em
 	if em <= 0 {
 		em = float64(b.H) * 1.1
 	}
 	largo := int(1.3*em + 0.5)
 	minCol := max(2, b.H*15/100)   // una colonna "piena" ha inchiostro in almeno il 15% dell'altezza
-	minRun := max(2, int(em*0.12)) // e una lettera è larga almeno un ottavo di em
-	controlla := func(col []int, verso int) bool {
+	minRun := max(2, int(em*0.08)) // e una lettera è larga almeno un dodicesimo di em (anche i caratteri a pixel)
+	banda := max(1, b.H*85/100-b.H*15/100)
+	tutta := max(minCol, banda*90/100)            // colonna piena da cima a fondo della fascia
+	larghiPieni := max(minRun+1, int(em*0.6+0.5)) // nessuna lettera è piena per più di mezza em
+	controlla := func(col []int, x0, verso int) bool {
 		// verso>0: dalla scritta verso destra; <0: dalla scritta verso sinistra
 		n := len(col)
 		inizio := int(em*0.12 + 0.5) // i primi pixel possono essere coda delle lettere già lette
-		run, piene := 0, 0
-		for k := inizio; k < n; k++ {
+		piene, primo, tratti := 0, -1, 0
+		for k := inizio; k < n; {
 			i := k
 			if verso < 0 {
 				i = n - 1 - k
 			}
-			if col[i] >= minCol {
-				run++
-				piene++
-				if run >= minRun && piene*100 >= (k-inizio+1)*25 {
-					return true
+			if col[i] < minCol {
+				k++
+				continue
+			}
+			// un tratto di colonne con inchiostro: lettere, o bordo/zona piena?
+			run, intere, fuori := 0, 0, 0
+			for ; k < n; k++ {
+				i = k
+				if verso < 0 {
+					i = n - 1 - k
 				}
-			} else {
-				run = 0
+				if col[i] < minCol {
+					break
+				}
+				run++
+				if col[i] >= tutta {
+					intere++
+				}
+				if colonnaFuoriRiga(img, &b, x0+i) {
+					fuori++
+				}
+			}
+			if fuori*2 >= run || intere >= larghiPieni {
+				return false // bordo del riquadro o zona piena: la riga finisce qui
+			}
+			if primo < 0 {
+				primo = k - run
+			}
+			piene += run
+			// lettere: tratti fitti dalla prima colonna con inchiostro (lo spazio tra due parole
+			// non conta)
+			if run >= minRun && piene*100 >= (k-primo)*25 {
+				return true
+			}
+			// caratteri sottili (tratti di un pixel): tre aste separate entro una em sono lettere
+			if tratti++; tratti >= 3 && float64(k-primo) <= em {
+				return true
 			}
 		}
 		return false
 	}
 	dx := colonneInchiostro(img, &b, b.X+b.W, b.X+b.W+largo)
-	if controlla(dx, 1) {
+	if controlla(dx, b.X+b.W, 1) {
 		return true
 	}
 	sx := colonneInchiostro(img, &b, b.X-largo, b.X)
-	return controlla(sx, -1)
+	return controlla(sx, b.X-largo, -1)
+}
+
+// inchiostroCredibile: dentro il riquadro le lettere coprono una parte della fascia centrale, non
+// quasi tutto (se "inchiostro" è quasi ogni pixel, i colori sono sbagliati).
+func inchiostroCredibile(img *image.RGBA, b *Blocco) bool {
+	col := colonneInchiostro(img, b, b.X, b.X+b.W)
+	banda := max(1, b.Y+b.H*85/100-(b.Y+b.H*15/100))
+	tot := 0
+	for _, c := range col {
+		tot += c
+	}
+	return len(col) > 0 && tot*100 <= len(col)*banda*95
+}
+
+// colonnaFuoriRiga: nella colonna x l'inchiostro continua senza interruzioni sopra o sotto la
+// riga (per un terzo della sua altezza): è il bordo di un riquadro o una zona piena, non una lettera.
+func colonnaFuoriRiga(img *image.RGBA, b *Blocco, x int) bool {
+	bd := img.Bounds()
+	if x < bd.Min.X || x >= bd.Max.X {
+		return false
+	}
+	ext := max(3, b.H/3)
+	continua := func(y0, y1 int) bool {
+		if y0 < bd.Min.Y || y1 > bd.Max.Y {
+			return false
+		}
+		for y := y0; y < y1; y++ {
+			if !eInchiostro(img.RGBAAt(x, y), b) {
+				return false
+			}
+		}
+		return true
+	}
+	return continua(b.Y-ext, b.Y) || continua(b.Y+b.H, b.Y+b.H+ext)
 }
 
 // adattaAInchiostro: allarga il riquadro fin dove arrivano le lettere attaccate (effetti di colore,

@@ -329,10 +329,47 @@ func rigaAndataACapo(sopra string, larghSopra int, sotto Blocco) bool {
 	if sopra == "" || strings.ContainsAny(sopra[len(sopra)-1:], ".!?:;") {
 		return false
 	}
+	if c := campiFrase(sotto.Testo); inizioNuovaVoce(sotto.Testo) && !(len(c) > 0 && !c[0].dueDopo && etichettaIniziale(c) == 0 && finisceSospesa(sopra)) {
+		return false
+	}
 	if len(strings.Fields(sopra)) < 5 {
 		return false
 	}
 	return float64(larghSopra) >= 0.75*float64(sotto.W)
+}
+
+// paroleSospese: parole con cui una frase inglese non finisce mai ("...on the first day of").
+var paroleSospese = map[string]bool{"of": true, "the": true, "a": true, "an": true, "to": true, "in": true,
+	"on": true, "at": true, "for": true, "with": true, "and": true, "or": true, "but": true, "from": true,
+	"by": true, "your": true, "my": true, "our": true, "their": true, "his": true, "her": true, "its": true,
+	"is": true, "are": true, "was": true, "were": true, "be": true, "that": true, "than": true, "into": true}
+
+// finisceSospesa: la riga finisce con una parola che vuole il seguito: la riga sotto lo è anche
+// se comincia con la maiuscola ("...on the first day of" / "Each month.").
+func finisceSospesa(s string) bool {
+	w := strings.Fields(strings.ToLower(strings.TrimSpace(s)))
+	return len(w) > 0 && paroleSospese[w[len(w)-1]]
+}
+
+// inizioNuovaVoce: la riga comincia una scritta nuova, non continua quella sopra: un'etichetta
+// con i due punti ("Objective:", "TIP:", "MARCUS:") o una parola comune con la maiuscola
+// ("Something is moving...", "Press E to..."). Nelle liste fitte (missioni, pixel art) le
+// righe sono vicine come quelle di un paragrafo: unirle farebbe una frase sola senza senso.
+// Un nome proprio ("Marcus at the dock.") o "I" possono invece continuare la frase sopra.
+func inizioNuovaVoce(s string) bool {
+	c := campiFrase(strings.TrimSpace(s))
+	if len(c) > 1 && (c[0].dueDopo || etichettaIniziale(c) > 0) {
+		return true // (anche minuscola: l'OCR perde a volte la prima lettera, "elective:")
+	}
+	if len(c) == 0 || !c[0].maiuscolaIn {
+		return false
+	}
+	w := strings.ToLower(strings.Trim(c[0].w, "'"))
+	if len([]rune(w)) < 2 || w == "i" || strings.HasPrefix(w, "i'") {
+		return false
+	}
+	l, ok := vocabolario()[w]
+	return ok && l <= 35
 }
 
 // separaAttaccate: con i caratteri stretti l'OCR attacca le parole ("thetime remaining"). Una
@@ -394,11 +431,15 @@ func continuaFrase(sopra, sotto string) bool {
 	if tuttoMaiuscolo(sopra) && !tuttoMaiuscolo(sotto) {
 		return false
 	}
-	r := []rune(sotto)[0]
-	if unicode.IsLower(r) {
+	if strings.HasSuffix(sopra, ",") || strings.HasSuffix(sopra, "-") {
 		return true
 	}
-	return strings.HasSuffix(sopra, ",") || strings.HasSuffix(sopra, "-")
+	// la riga sotto comincia con un'etichetta ("Objective: ...", anche letta male "elective:"):
+	// è una voce nuova della lista, non il seguito della frase
+	if c := campiFrase(sotto); len(c) > 1 && c[0].dueDopo {
+		return false
+	}
+	return unicode.IsLower([]rune(sotto)[0])
 }
 
 // tuttoMaiuscolo: almeno due lettere e nessuna minuscola.
@@ -539,6 +580,30 @@ func daTradurre(s string) bool {
 	// almeno una parola inglese vera di 3+ lettere: scarta i pezzi di grafica letti come lettere
 	for _, w := range strings.FieldsFunc(s, func(r rune) bool { return !unicode.IsLetter(r) && r != '\'' }) {
 		if len(w) >= 3 && (esiste(w) || termGiochi[w] != "") {
+			return true
+		}
+	}
+	return false
+}
+
+// testoConNumeri: scritta con parole e numeri ("Ammo: 24 / 120", "Wave 3 of 10"): senza contare
+// cifre e spazi, quasi tutto è lettere, e c'è una parola di almeno 3 lettere.
+func testoConNumeri(s string) bool {
+	lettere, segni := 0, 0
+	for _, c := range s {
+		switch {
+		case unicode.IsLetter(c):
+			lettere++
+		case unicode.IsDigit(c) || unicode.IsSpace(c):
+		default:
+			segni++
+		}
+	}
+	if lettere < 3 || lettere*100 < (lettere+segni)*60 {
+		return false
+	}
+	for _, w := range strings.FieldsFunc(s, func(r rune) bool { return !unicode.IsLetter(r) }) {
+		if len([]rune(w)) >= 3 {
 			return true
 		}
 	}
@@ -2062,7 +2127,7 @@ func letturaAffidabile(s string) bool {
 			continue
 		}
 		tot++
-		if esiste(w) || termGiochi[w] != "" || termGiochi[strings.ToLower(w)] != "" || unicode.IsUpper([]rune(w)[0]) && len(strings.Fields(s)) > 1 && !strings.EqualFold(w, strings.ToUpper(w)) {
+		if parolaValidaOCR(w) || parolaComposta(w) || unicode.IsUpper([]rune(w)[0]) && len(strings.Fields(s)) > 1 && !strings.EqualFold(w, strings.ToUpper(w)) {
 			buone++
 		}
 	}

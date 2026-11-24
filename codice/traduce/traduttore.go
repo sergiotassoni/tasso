@@ -576,7 +576,9 @@ func (t *Traduttore) traduciEtichetta(ctx context.Context, s string, inizio time
 		return finito(it, "glossario")
 	}
 	if w := strings.Fields(s); len(w) == 1 && !esiste(strings.Trim(w[0], ".,:;!?")) && unicode.IsUpper([]rune(w[0])[0]) {
-		return finito(s, "nome") // nome proprio (luogo, creatura, personaggio): resta com'è
+		if _, pronta := fraseMenuConNumero(s); !pronta { // "English" -> "Inglese": la frase pronta vince
+			return finito(s, "nome") // nome proprio (luogo, creatura, personaggio): resta com'è
+		}
 	}
 	if len(strings.Fields(s)) > 8 {
 		return ris, false

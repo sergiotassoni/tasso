@@ -75,7 +75,7 @@ func sembraTesto(r string) bool {
 			lettere++
 		}
 	}
-	return lettere >= 2 && float64(lettere)/float64(tot) >= 0.4
+	return lettere >= 2 && (float64(lettere)/float64(tot) >= 0.4 || testoConNumeri(r))
 }
 
 // etichette dei menu che sembrano nomi ma vanno tradotte ("Warning: ...", "Quest updated: ...")

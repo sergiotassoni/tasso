@@ -96,7 +96,12 @@ func TestBancoProvaCartellaVera(t *testing.T) {
 	if dir == "" {
 		t.Skip("TASSO_BANCO non impostata")
 	}
-	tr := NuovoTraduttore(filepath.Join(t.TempDir(), "mem.json"), glossarioBase())
+	var motori []Motore
+	if os.Getenv("TASSO_BANCO_MOTORE") == "finto" {
+		motori = append(motori, motoreRovescio{}) // ogni parola "tradotta" (rovesciata): si vede cosa arriva al motore
+	}
+	tr := NuovoTraduttore(filepath.Join(t.TempDir(), "mem.json"), glossarioBase(), motori...)
+	var esiti []esitoImmagine
 	for _, p := range immaginiCartella(dir) {
 		o := opzioniBanco{leggi: leggiOCRFinto(p), tr: tr, disegna: disegnaCopertura}
 		img, err := apriImmagineRGBA(p)
@@ -106,5 +111,29 @@ func TestBancoProvaCartellaVera(t *testing.T) {
 		e, pronti := elaboraImmagine(img, filepath.Base(p), o)
 		_ = disegnaCopertura(img, pronti, strings.TrimSuffix(p, filepath.Ext(p))+"-tradotto.png")
 		t.Logf("%s: mostrate %d, in inglese %d, mezze disegnate %d", e.Nome, e.Mostrate, e.Scartate, e.MezzeMostrate)
+		esiti = append(esiti, e)
 	}
+	if err := scriviReportBanco(dir, esiti, nil); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// motoreRovescio: motore finto che "traduce" rovesciando ogni parola (nessuna parola resta inglese).
+type motoreRovescio struct{}
+
+func (motoreRovescio) Nome() string { return "Mozilla" }
+func (motoreRovescio) Traduci(_ context.Context, r RichiestaTraduzione) (string, error) {
+	var out []string
+	for _, w := range strings.Fields(r.Testo) {
+		if segnapostoTasto(w) {
+			out = append(out, w)
+			continue
+		}
+		c := []rune(w)
+		for i, j := 0, len(c)-1; i < j; i, j = i+1, j-1 {
+			c[i], c[j] = c[j], c[i]
+		}
+		out = append(out, string(c))
+	}
+	return strings.Join(out, " "), nil
 }

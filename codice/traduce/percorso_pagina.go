@@ -32,6 +32,7 @@ func blocchiLetti(img *image.RGBA, righe []RigaOCR, f float64, voti *votazione, 
 	}
 	bl = unisciStessaRiga(bl)
 	bl = spezzaSeparatori(bl)
+	bl = togliFrecce(bl)
 	for i := range bl {
 		if bl[i].Grezzo == "" {
 			bl[i].Grezzo = bl[i].Testo
@@ -108,6 +109,9 @@ func traduciTutte(ctx context.Context, tr *Traduttore, da []Blocco, veloce bool)
 	return risultati
 }
 
+// motivoUgualeIt: la scritta in italiano è identica (non c'è niente da coprire, non è un errore).
+const motivoUgualeIt = "uguale in italiano (va bene così)"
+
 // motivoScartaTraduzione: la traduzione non si mostra (vuota, uguale all'inglese, mezza inglese).
 func motivoScartaTraduzione(b Blocco, r Risultato) string {
 	t := strings.TrimSpace(r.Tradotto)
@@ -120,8 +124,12 @@ func motivoScartaTraduzione(b Blocco, r Risultato) string {
 		}
 		return "nessuna traduzione"
 	case strings.EqualFold(t, strings.TrimSpace(b.Testo)):
+		if r.Motore == "catalogo" || r.Motore == "glossario" || paroleUgualiIt[strings.ToLower(t)] {
+			return motivoUgualeIt // "Video", "Audio", "No", "TAA": in italiano si scrive così
+		}
 		return "uguale all'inglese"
-	case rigaMezzaTradotta(b.Testo, t):
+	case r.Motore != "catalogo" && rigaMezzaTradotta(b.Testo, t):
+		// (le frasi pronte sono scritte a mano: "Esci al desktop" è giusta così)
 		return "mezza in inglese: scartata"
 	}
 	return ""
