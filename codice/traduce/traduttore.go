@@ -42,21 +42,31 @@ type Traduttore struct {
 
 	// salvataggi su disco: si scrive solo se qualcosa è cambiato, da un filo a parte e con la
 	// copia fatta col lucchetto ma trasformata in testo fuori (così le traduzioni non aspettano)
-	ordineCache    []string // chiavi della memoria, dalla più vecchia: oltre il limite tolgo quelle
-	cacheModifiche int64    // cambi della memoria finora...
-	cacheSalvate   int64    // ...e quanti sono già sul disco
-	salvaInArrivo  bool     // un salvataggio della memoria è già programmato
-	libModifiche   int64    // come sopra, per la libreria del gioco
-	libSalvate     int64
-	libNonSalvare  bool                    // il file della libreria c'è ma non si legge: non lo sovrascrivo
-	perLunghezza   map[chiaveLung][]string // libreria divisa per lunghezza: il "quasi uguale" guarda poche frasi
+	usoCache        map[string]int64 // ultimo uso di ogni frase della memoria (numero che cresce): oltre il limite tolgo le meno usate
+	ultimoUso       int64
+	cacheModifiche  int64 // cambi della memoria finora...
+	cacheSalvate    int64 // ...e quanti sono già sul disco
+	salvaInArrivo   bool  // un salvataggio della memoria è già programmato
+	cacheNonSalvare bool  // il file della memoria c'è ma non si legge e non si sposta: non lo sovrascrivo
+	libModifiche    int64 // come sopra, per la libreria del gioco
+	libSalvate      int64
+	libByte         int64                   // grandezza più o meno del file della libreria
+	libNonSalvare   bool                    // il file della libreria c'è ma non si legge: non lo sovrascrivo
+	perLunghezza    map[chiaveLung][]string // libreria divisa per lunghezza: il "quasi uguale" guarda poche frasi
 }
 
 const (
-	maxCache          = 20000           // voci nella memoria: oltre, tolgo le più vecchie
+	maxCache          = 20000           // voci nella memoria: oltre, tolgo quelle usate meno di recente
 	ritardoSalvaCache = 7 * time.Second // la memoria va su disco qualche secondo dopo, tutta insieme
-	maxFileLibreria   = 256 << 20       // libreria più grande: non la leggo (la metto da parte)
+	// La libreria cresce fino a circa 64 MB: oltre, le frasi nuove non si aggiungono più (così i
+	// salvataggi restano veloci). Le librerie più grandi fatte dalle versioni di prima (fino a
+	// 256 MB) si leggono e si usano lo stesso; solo oltre 256 MB il file si mette da parte.
+	maxLibreriaCresce = 64 << 20
+	maxFileLibreria   = 256 << 20
 )
+
+// byteVoceLibreria: quanto occupa più o meno una frase nel file della libreria.
+func byteVoceLibreria(k, v string) int64 { return int64(len(k) + len(v) + 12) }
 
 // MotoreCoppie: un motore che sa tradurre fra coppie di lingue qualsiasi (Mozilla).
 type MotoreCoppie interface {
@@ -66,51 +76,110 @@ type MotoreCoppie interface {
 const maxContesto = 4
 
 func NuovoTraduttore(fileCache string, g Glossario, motori ...Motore) *Traduttore {
-	t := &Traduttore{motori: motori, glossario: g, glossarioPieno: g.conGiochi(), cache: map[string]string{}, fileCache: fileCache}
+	t := &Traduttore{motori: motori, glossario: g, glossarioPieno: g.conGiochi(), cache: map[string]string{}, usoCache: map[string]int64{}, fileCache: fileCache}
 	if fileCache != "" {
-		if b, err := os.ReadFile(fileCache); err == nil {
-			t.caricaCache(b)
-		}
+		t.leggiMemoria(fileCache)
 	}
 	return t
 }
 
-// caricaCache: la memoria su disco è una lista di coppie dalla più vecchia; i file delle versioni
-// di prima erano una mappa (senza ordine: le metto in ordine alfabetico, sempre uguale).
-func (t *Traduttore) caricaCache(b []byte) {
+// leggiMemoria: la memoria dal disco. Se il file c'è ma non si legge (rovinato) lo metto da
+// parte con un altro nome, come per la libreria, invece di sovrascriverlo con poche frasi; se non
+// riesco nemmeno a spostarlo, in questa sessione non ci scrivo sopra.
+func (t *Traduttore) leggiMemoria(file string) {
+	b, err := os.ReadFile(file)
+	if err != nil {
+		if !os.IsNotExist(err) {
+			t.cacheNonSalvare = true
+		}
+		return
+	}
+	if t.caricaCache(b) {
+		return
+	}
+	t.cache, t.usoCache = map[string]string{}, map[string]int64{}
+	da := strings.TrimSuffix(file, ".json") + "-illeggibile-" + time.Now().Format("20060102-150405") + ".json.bak"
+	if os.Rename(file, da) != nil {
+		t.cacheNonSalvare = true
+	}
+}
+
+// passaDaVecchiaMemoria: la prima volta con il file nuovo della memoria, prende le frasi dal file
+// delle versioni di prima. Il file vecchio resta com'è: le versioni di prima lo leggono come una
+// mappa, e se ci scrivessi il formato nuovo lo troverebbero illeggibile e lo sovrascriverebbero.
+func (t *Traduttore) passaDaVecchiaMemoria(vecchio string) {
+	if t.fileCache == "" || vecchio == "" || vecchio == t.fileCache {
+		return
+	}
+	if _, err := os.Stat(t.fileCache); !os.IsNotExist(err) {
+		return // il file nuovo c'è già (o non si legge): niente da passare
+	}
+	b, err := os.ReadFile(vecchio)
+	if err != nil {
+		return
+	}
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	if len(t.cache) > 0 {
+		return
+	}
+	if !t.caricaCache(b) {
+		t.cache, t.usoCache = map[string]string{}, map[string]int64{}
+		return
+	}
+	if len(t.cache) > 0 {
+		t.cacheCambiataLocked() // va sul file nuovo qualche secondo dopo
+	}
+}
+
+// caricaCache: la memoria su disco è una lista di coppie, dalla usata meno di recente; i file
+// delle versioni di prima erano una mappa (senza ordine: le metto in ordine alfabetico, sempre
+// uguale). false se il file non si legge.
+func (t *Traduttore) caricaCache(b []byte) bool {
 	var coppie [][2]string
 	if json.Unmarshal(b, &coppie) == nil {
 		for _, c := range coppie {
-			if _, c2 := t.cache[c[0]]; !c2 {
-				t.ordineCache = append(t.ordineCache, c[0])
-			}
 			t.cache[c[0]] = c[1]
+			t.segnaUsoLocked(c[0])
 		}
 	} else {
 		m := map[string]string{}
 		if json.Unmarshal(b, &m) != nil {
-			return
+			return false
 		}
+		chiavi := make([]string, 0, len(m))
 		for k, v := range m {
 			t.cache[k] = v
-			t.ordineCache = append(t.ordineCache, k)
+			chiavi = append(chiavi, k)
 		}
-		sort.Strings(t.ordineCache)
+		sort.Strings(chiavi)
+		for _, k := range chiavi {
+			t.segnaUsoLocked(k)
+		}
 	}
 	if len(t.cache) > maxCache {
 		t.togliVecchieLocked()
 	}
+	return true
+}
+
+// segnaUsoLocked: la frase è stata appena usata (trovata o messa nella memoria). Costa poco:
+// un numero in una mappa. Da chiamare con t.mu preso.
+func (t *Traduttore) segnaUsoLocked(chiave string) {
+	if t.usoCache == nil {
+		t.usoCache = map[string]int64{}
+	}
+	t.ultimoUso++
+	t.usoCache[chiave] = t.ultimoUso
 }
 
 // mettiInCacheLocked: una frase nella memoria. Con programma=false (righe dei file dei giochi)
 // non programma il salvataggio: va su disco con il prossimo. Da chiamare con t.mu preso.
 func (t *Traduttore) mettiInCacheLocked(chiave, v string, programma bool) {
 	vecchia, c := t.cache[chiave]
+	t.segnaUsoLocked(chiave)
 	if c && vecchia == v {
 		return
-	}
-	if !c {
-		t.ordineCache = append(t.ordineCache, chiave)
 	}
 	t.cache[chiave] = v
 	if len(t.cache) > maxCache {
@@ -124,17 +193,35 @@ func (t *Traduttore) mettiInCacheLocked(chiave, v string, programma bool) {
 }
 
 // togliVecchieLocked: la memoria non cresce all'infinito, ma invece di svuotarla tutta tolgo solo
-// le frasi più vecchie (un decimo), le altre restano. Da chiamare con t.mu preso.
+// le frasi usate meno di recente (un decimo), le altre restano. Si fa una volta ogni circa 2000
+// frasi nuove, quindi l'ordinamento non pesa sulle traduzioni. Da chiamare con t.mu preso.
 func (t *Traduttore) togliVecchieLocked() {
-	togli := len(t.ordineCache) - maxCache*9/10
+	togli := len(t.cache) - maxCache*9/10
 	if togli <= 0 {
 		return
 	}
-	for _, k := range t.ordineCache[:togli] {
+	chiavi := t.chiaviPerUsoLocked()
+	for _, k := range chiavi[:togli] {
 		delete(t.cache, k)
+		delete(t.usoCache, k)
 	}
-	t.ordineCache = append([]string(nil), t.ordineCache[togli:]...)
 	t.cacheModifiche++
+}
+
+// chiaviPerUsoLocked: le chiavi della memoria, dalla usata meno di recente. Da chiamare con t.mu preso.
+func (t *Traduttore) chiaviPerUsoLocked() []string {
+	chiavi := make([]string, 0, len(t.cache))
+	for k := range t.cache {
+		chiavi = append(chiavi, k)
+	}
+	sort.Slice(chiavi, func(i, j int) bool {
+		a, b := t.usoCache[chiavi[i]], t.usoCache[chiavi[j]]
+		if a != b {
+			return a < b
+		}
+		return chiavi[i] < chiavi[j]
+	})
+	return chiavi
 }
 
 // cacheCambiataLocked: la memoria è cambiata. Il salvataggio parte da solo qualche secondo dopo,
@@ -162,6 +249,14 @@ func (t *Traduttore) mettiInLibreriaLocked(chiave, v string) {
 	if c && vecchia == v {
 		return
 	}
+	if !c && t.libByte >= maxLibreriaCresce {
+		return // libreria piena: la frase resta nella memoria, il file non cresce più
+	}
+	if c {
+		t.libByte += int64(len(v) - len(vecchia))
+	} else {
+		t.libByte += byteVoceLibreria(chiave, v)
+	}
 	if !c {
 		if t.perLunghezza == nil {
 			t.perLunghezza = map[chiaveLung][]string{}
@@ -177,7 +272,7 @@ func (t *Traduttore) ImpostaGlossario(g Glossario) {
 	t.glossario = g
 	t.glossarioPieno = g.conGiochi()
 	t.cache = map[string]string{} // le traduzioni vecchie potrebbero non rispettare il glossario nuovo
-	t.ordineCache = nil
+	t.usoCache = map[string]int64{}
 	t.cacheCambiataLocked()
 	t.mu.Unlock()
 	t.salvaCache()
@@ -373,6 +468,7 @@ func (t *Traduttore) traduciIn(ctx context.Context, grezzo string, dialogo bool,
 		return ris
 	}
 	if v, ok := t.cache[chiave]; ok {
+		t.segnaUsoLocked(chiave) // usata adesso: non è tra le prime da togliere
 		v = t.giaSalvataLocked(chiave, battuta, v)
 		if t.libreria != nil {
 			t.mettiInLibreriaLocked(chiave, v)
@@ -448,7 +544,7 @@ func (t *Traduttore) traduciIn(ctx context.Context, grezzo string, dialogo bool,
 	t.mu.Lock()
 	// le righe dei file dei giochi vanno nella libreria del gioco, non nella memoria generale
 	// (un gioco con 100.000 righe la riempirebbe e la riscriverebbe di continuo)
-	if !daFile || t.libreria == nil {
+	if !daFile || t.libreria == nil || t.libByte >= maxLibreriaCresce {
 		t.mettiInCacheLocked(chiave, ris.Tradotto, !daFile)
 	}
 	if t.libreria != nil {
@@ -682,20 +778,43 @@ func (t *Traduttore) ApriLibreria(file string) {
 		return
 	}
 	t.mu.Unlock()
-	t.salvaLibreria()
+	// la nuova si legge senza lucchetto (con tante frasi ci vogliono secondi): nel frattempo le
+	// traduzioni vanno ancora nella vecchia, che si salva DOPO lo scambio, così non si perde niente
 	nuova, nonSalvare := leggiLibreria(file)
 	dubbi := map[string]Dubbio{}
 	if b, err := os.ReadFile(strings.TrimSuffix(file, ".json") + "-da-controllare.json"); err == nil && len(b) < 16<<20 {
 		_ = json.Unmarshal(b, &dubbi)
 	}
 	indice := map[chiaveLung][]string{}
-	for k := range nuova {
+	var dim int64
+	for k, v := range nuova {
 		indicizza(indice, k)
+		dim += byteVoceLibreria(k, v)
 	}
 	t.mu.Lock()
+	if file == t.fileLibreria { // un'altra chiamata l'ha già aperta
+		t.mu.Unlock()
+		return
+	}
+	vecchia := libreriaDaSalvare{file: t.fileLibreria, lib: t.libreria, dubbi: t.dubbi,
+		daSalvare: t.fileLibreria != "" && len(t.libreria) > 0 && !t.libNonSalvare && t.libModifiche != t.libSalvate}
 	t.libreria, t.fileLibreria, t.dubbi, t.perLunghezza = nuova, file, dubbi, indice
-	t.libModifiche, t.libSalvate, t.libNonSalvare = 0, 0, nonSalvare
+	t.libModifiche, t.libSalvate, t.libNonSalvare, t.libByte = 0, 0, nonSalvare, dim
 	t.mu.Unlock()
+	if vecchia.daSalvare {
+		// nessuno la usa più (non è più quella di t): si scrive senza copiarla
+		muFileCache.Lock()
+		scriviLibreria(vecchia.file, vecchia.lib, vecchia.dubbi)
+		muFileCache.Unlock()
+	}
+}
+
+// libreriaDaSalvare: la libreria del gioco di prima, tolta da t e ancora da scrivere su disco.
+type libreriaDaSalvare struct {
+	file      string
+	lib       map[string]string
+	dubbi     map[string]Dubbio
+	daSalvare bool
 }
 
 // leggiLibreria: la libreria di un gioco dal disco. Se il file c'è ma non si legge (rovinato o
@@ -743,12 +862,24 @@ func (t *Traduttore) salvaLibreria() {
 		}
 	}
 	t.mu.Unlock()
-	b, err := json.Marshal(copia)
+	if scriviLibreria(file, copia, dubbi) {
+		t.mu.Lock()
+		if t.fileLibreria == file {
+			t.libSalvate = n
+		}
+		t.mu.Unlock()
+	}
+}
+
+// scriviLibreria: libreria e frasi da controllare su disco (file nuovo accanto, poi al posto
+// giusto). Da chiamare con muFileCache preso e con mappe che nessuno cambia intanto.
+func scriviLibreria(file string, lib map[string]string, dubbi map[string]Dubbio) bool {
+	b, err := json.Marshal(lib)
 	if err != nil {
-		return
+		return false
 	}
 	_ = os.MkdirAll(filepath.Dir(file), 0o755)
-	if dubbi != nil {
+	if len(dubbi) > 0 {
 		if bd, err := json.MarshalIndent(dubbi, "", " "); err == nil {
 			dc := strings.TrimSuffix(file, ".json") + "-da-controllare.json"
 			if os.WriteFile(dc+".tmp", bd, 0o644) == nil {
@@ -757,13 +888,7 @@ func (t *Traduttore) salvaLibreria() {
 		}
 	}
 	tmp := file + ".tmp"
-	if os.WriteFile(tmp, b, 0o644) == nil && os.Rename(tmp, file) == nil {
-		t.mu.Lock()
-		if t.fileLibreria == file {
-			t.libSalvate = n
-		}
-		t.mu.Unlock()
-	}
+	return os.WriteFile(tmp, b, 0o644) == nil && os.Rename(tmp, file) == nil
 }
 
 // Dubbio: una traduzione da controllare a mano.
@@ -861,7 +986,7 @@ func fileLibreriaPer(dir, gioco string) string {
 	return filepath.Join(dir, nome+".json")
 }
 
-// salvaCache: la memoria su disco (lista di coppie, dalla più vecchia), solo se è cambiata.
+// salvaCache: la memoria su disco (lista di coppie, dalla usata meno di recente), solo se è cambiata.
 // Col lucchetto faccio solo la copia; la trasformazione in testo e la scrittura avvengono fuori,
 // così le traduzioni non aspettano il disco.
 func (t *Traduttore) salvaCache() {
@@ -872,15 +997,30 @@ func (t *Traduttore) salvaCache() {
 	defer muFileCache.Unlock()
 	t.mu.Lock()
 	n := t.cacheModifiche
-	if n == t.cacheSalvate {
+	if n == t.cacheSalvate || t.cacheNonSalvare {
 		t.mu.Unlock()
 		return
 	}
-	coppie := make([][2]string, 0, len(t.ordineCache))
-	for _, k := range t.ordineCache {
-		coppie = append(coppie, [2]string{k, t.cache[k]})
+	type voce struct {
+		k, v string
+		uso  int64
+	}
+	voci := make([]voce, 0, len(t.cache))
+	for k, v := range t.cache {
+		voci = append(voci, voce{k, v, t.usoCache[k]})
 	}
 	t.mu.Unlock()
+	// l'ordine (dalla usata meno di recente) si fa fuori dal lucchetto
+	sort.Slice(voci, func(i, j int) bool {
+		if voci[i].uso != voci[j].uso {
+			return voci[i].uso < voci[j].uso
+		}
+		return voci[i].k < voci[j].k
+	})
+	coppie := make([][2]string, len(voci))
+	for i, x := range voci {
+		coppie[i] = [2]string{x.k, x.v}
+	}
 	b, err := json.Marshal(coppie)
 	if err != nil {
 		return

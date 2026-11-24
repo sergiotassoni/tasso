@@ -6,6 +6,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -27,7 +28,7 @@ func TestMemoriaTogliePiuVecchie(t *testing.T) {
 	n := len(tr.cache)
 	_, primaC := tr.cache["\x00frase 0"]
 	_, ultimaC := tr.cache[fmt.Sprintf("\x00frase %d", maxCache)]
-	ordine := len(tr.ordineCache)
+	ordine := len(tr.usoCache)
 	tr.mu.Unlock()
 	if n == 0 || n > maxCache || primaC || !ultimaC || ordine != n {
 		t.Fatalf("memoria: %d voci (ordine %d), prima %v, ultima %v", n, ordine, primaC, ultimaC)
@@ -51,13 +52,13 @@ func TestMemoriaSuDiscoInOrdine(t *testing.T) {
 		t.Fatal("memoria riscritta senza modifiche")
 	}
 	tr2 := NuovoTraduttore(f, Glossario{})
-	if len(tr2.ordineCache) != 2 || !strings.Contains(tr2.ordineCache[0], "The merchant") {
-		t.Fatalf("ordine perso: %q", tr2.ordineCache)
+	if ch := tr2.chiaviPerUsoLocked(); len(ch) != 2 || !strings.Contains(ch[0], "The merchant") {
+		t.Fatalf("ordine perso: %q", ch)
 	}
 	// i file delle versioni di prima (mappa) si leggono ancora
 	vecchio := filepath.Join(t.TempDir(), "vecchia.json")
 	_ = os.WriteFile(vecchio, []byte(`{"\u0000Hello":"Ciao"}`), 0o644)
-	if tr3 := NuovoTraduttore(vecchio, Glossario{}); tr3.cache["\x00Hello"] != "Ciao" || len(tr3.ordineCache) != 1 {
+	if tr3 := NuovoTraduttore(vecchio, Glossario{}); tr3.cache["\x00Hello"] != "Ciao" || len(tr3.usoCache) != 1 {
 		t.Fatalf("formato vecchio non letto: %v", tr3.cache)
 	}
 }
@@ -281,5 +282,140 @@ func TestImprontaRicordataSuDisco(t *testing.T) {
 	_ = os.Chtimes(p, data.Add(time.Hour), data.Add(time.Hour))
 	if presente(dir, f) {
 		t.Fatal("file cambiato accettato senza controllo")
+	}
+}
+
+func TestMemoriaToglieMenoUsate(t *testing.T) {
+	tr := NuovoTraduttore("", Glossario{})
+	tr.mu.Lock()
+	for i := 0; i < maxCache; i++ {
+		tr.mettiInCacheLocked(fmt.Sprintf("\x00frase %d", i), "x", true)
+	}
+	tr.mu.Unlock()
+	// la prima frase inserita viene trovata di nuovo: non deve essere tra quelle tolte
+	tr.mu.Lock()
+	tr.cache["\x00frase 0"] = "Ciao"
+	tr.mu.Unlock()
+	if r := tr.TraduciScritta(context.Background(), "frase 0"); r.Motore != "memoria" {
+		t.Fatalf("frase non trovata in memoria: %+v", r)
+	}
+	tr.mu.Lock()
+	tr.mettiInCacheLocked("\x00una in più", "x", true)
+	_, prima := tr.cache["\x00frase 0"]
+	_, seconda := tr.cache["\x00frase 1"]
+	n := len(tr.cache)
+	tr.mu.Unlock()
+	if !prima || seconda || n > maxCache {
+		t.Fatalf("usata di recente tenuta %v, vecchia mai usata tolta %v, voci %d", prima, !seconda, n)
+	}
+}
+
+func TestMemoriaFileNuovoEVecchio(t *testing.T) {
+	d := t.TempDir()
+	vecchio := filepath.Join(d, "memoria-traduzioni.json")
+	nuovo := filepath.Join(d, "memoria-traduzioni-2.json")
+	_ = os.WriteFile(vecchio, []byte(`{"\u0000Hello":"Ciao"}`), 0o644)
+	tr := NuovoTraduttore(nuovo, Glossario{})
+	tr.passaDaVecchiaMemoria(vecchio)
+	tr.SalvaMemoria()
+	if b, _ := os.ReadFile(vecchio); string(b) != `{"\u0000Hello":"Ciao"}` {
+		t.Fatalf("file vecchio cambiato: %q", b)
+	}
+	tr2 := NuovoTraduttore(nuovo, Glossario{})
+	if tr2.cache["\x00Hello"] != "Ciao" {
+		t.Fatalf("frasi non passate al file nuovo: %v", tr2.cache)
+	}
+	// file nuovo rovinato: messo da parte, non sovrascritto; le frasi del file vecchio ripartono
+	_ = os.WriteFile(nuovo, []byte(`[["rotto`), 0o644)
+	tr3 := NuovoTraduttore(nuovo, Glossario{}, &motoreFinto{nome: "Mozilla"})
+	tr3.passaDaVecchiaMemoria(vecchio)
+	tr3.Traduci(context.Background(), "The bridge is broken.")
+	tr3.SalvaMemoria()
+	bak, _ := filepath.Glob(filepath.Join(d, "memoria-traduzioni-2-illeggibile-*.json.bak"))
+	if len(bak) != 1 {
+		t.Fatalf("copia della memoria rovinata: %v", bak)
+	}
+	if b, _ := os.ReadFile(bak[0]); string(b) != `[["rotto` {
+		t.Fatalf("copia cambiata: %q", b)
+	}
+	if tr4 := NuovoTraduttore(nuovo, Glossario{}); len(tr4.cache) != 2 || tr4.cache["\x00Hello"] != "Ciao" {
+		t.Fatalf("memoria nuova: %v", tr4.cache)
+	}
+}
+
+func TestApriLibreriaNonPerdeLeTraduzioni(t *testing.T) {
+	d := t.TempDir()
+	f1, f2 := filepath.Join(d, "uno.json"), filepath.Join(d, "due.json")
+	tr := NuovoTraduttore("", Glossario{}, &motoreFinto{nome: "Mozilla"})
+	tr.ApriLibreria(f1)
+	tr.TraduciScritta(context.Background(), "The bridge is broken.")
+	// una traduzione arriva nella vecchia mentre la nuova si sta leggendo: simulata mettendola
+	// subito prima dello scambio (la vecchia si salva dopo, quindi c'è)
+	tr.mu.Lock()
+	tr.mettiInLibreriaLocked("\x00Late line.", "Riga tardi.")
+	tr.mu.Unlock()
+	tr.ApriLibreria(f2)
+	if ContaLibreria(f1) != 2 {
+		t.Fatalf("libreria vecchia: %d frasi", ContaLibreria(f1))
+	}
+	tr.mu.Lock()
+	n := len(tr.libreria)
+	tr.mu.Unlock()
+	if n != 0 {
+		t.Fatalf("libreria nuova: %d", n)
+	}
+}
+
+func TestLibreriaPienaNonCresce(t *testing.T) {
+	tr := NuovoTraduttore("", Glossario{}, &motoreFinto{nome: "Mozilla"})
+	tr.ApriLibreria(filepath.Join(t.TempDir(), "g.json"))
+	tr.mu.Lock()
+	tr.libByte = maxLibreriaCresce
+	tr.mu.Unlock()
+	tr.TraduciScritta(context.Background(), "The bridge is broken.")
+	tr.mu.Lock()
+	nl, nc := len(tr.libreria), len(tr.cache)
+	tr.mu.Unlock()
+	if nl != 0 || nc != 1 {
+		t.Fatalf("libreria piena: libreria %d, memoria %d", nl, nc)
+	}
+}
+
+func TestImpronteProgrammiSempreControllate(t *testing.T) {
+	vecchia := dirApp
+	dirApp = t.TempDir()
+	defer func() { dirApp = vecchia }()
+	azzera := func() {
+		muVerificati.Lock()
+		verificati, verificatiDisco = map[string]bool{}, map[string]bool{}
+		muVerificati.Unlock()
+		caricaVerDisco = sync.Once{}
+	}
+	azzera()
+	defer azzera()
+	dir := t.TempDir()
+	p := filepath.Join(dir, "llama-server.exe")
+	_ = os.WriteFile(p, []byte("programma giusto"), 0o644)
+	h := sha256.Sum256([]byte("programma giusto"))
+	f := FileDaScaricare{Nome: "llama-server.exe", SHA256: hex.EncodeToString(h[:])}
+	data := time.Unix(1700000000, 0)
+	_ = os.Chtimes(p, data, data)
+	if !presente(dir, f) {
+		t.Fatal("programma giusto non riconosciuto")
+	}
+	// cambiato con la stessa dimensione e la stessa data, nella stessa sessione: si vede subito
+	_ = os.WriteFile(p, []byte("programma GIUSTO"), 0o644)
+	_ = os.Chtimes(p, data, data)
+	if presente(dir, f) {
+		t.Fatal("programma cambiato accettato per la memoria")
+	}
+	// un esito "giusto" scritto su disco (anche da un altro programma) non vale per .exe e .dll
+	azzera()
+	chiave := chiaveVerifica(p, 16, data.UnixNano(), f.SHA256)
+	b, _ := json.Marshal([]string{chiave})
+	_ = os.MkdirAll(filepath.Join(dirApp, "modelli"), 0o755)
+	_ = os.WriteFile(fileVerificati(), b, 0o644)
+	if presente(dir, f) {
+		t.Fatal("esito su disco usato per un programma")
 	}
 }

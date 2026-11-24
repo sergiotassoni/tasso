@@ -25,6 +25,7 @@ type correttoreSfondo struct {
 	motore   Motore // nil = spento
 	coda     chan lavoroCorrezione
 	inCoda   map[string]bool
+	daParte  []lavoroCorrezione                    // frasi arrivate col correttore spento (riavvio): tornano in coda quando si riaccende
 	viste    map[string]bool                       // frasi già ricontrollate dall'IA in questa sessione
 	errori   map[string]int                        // frasi per cui l'IA ha dato errore (dopo 3 basta)
 	inPausa  func() bool                           // vero quando il gioco ha bisogno del PC (processore pieno)
@@ -46,6 +47,17 @@ func (t *Traduttore) ImpostaCorrettore(m Motore, inPausa func() bool) {
 		c.inCoda = map[string]bool{}
 		c.viste = map[string]bool{}
 		c.errori = map[string]int{}
+	}
+	if m != nil && len(c.daParte) > 0 {
+		// il correttore si è riacceso: le frasi messe da parte tornano in coda
+		for _, l := range c.daParte {
+			select {
+			case c.coda <- l:
+			default:
+				delete(c.inCoda, l.chiave) // coda piena: la frase resta com'è
+			}
+		}
+		c.daParte = nil
 	}
 	c.mu.Unlock()
 	if m != nil {
@@ -103,9 +115,10 @@ func (t *Traduttore) lavoraCorrezioni() {
 
 // esito di una correzione: serve per sapere se la frase è stata davvero vista dall'IA
 const (
-	nonProvata = iota // motore spento (es. cambio di livello dell'IA): la frase tornerà in coda
-	conErrore         // il motore c'era ma non ha risposto (tempo scaduto...): riprovo, al massimo 3 volte
-	risposta          // l'IA ha risposto (corretta, uguale o scartata): non serve rifarla
+	nonProvata   = iota // motore spento (es. cambio di livello dell'IA): la frase tornerà in coda
+	messaDaParte        // motore spento: la frase aspetta da parte che il correttore si riaccenda
+	conErrore           // il motore c'era ma non ha risposto (tempo scaduto...): riprovo, al massimo 3 volte
+	risposta            // l'IA ha risposto (corretta, uguale o scartata): non serve rifarla
 )
 
 // errRispostaScartata: l'IA ha risposto, ma la risposta non va bene (tagliata, copiata da un
@@ -117,7 +130,9 @@ var errMotoreSpento = errors.New("motore IA spento")
 
 // unaCorrezione: un lavoro della coda. Un errore qui non ferma il correttore (prima bastava un
 // errore per bloccare la coda per sempre). La frase si segna "già vista" solo se l'IA ha
-// risposto: se il motore è spento (cambio di livello) tornerà in coda la prossima volta che compare.
+// risposto. Se il correttore è spento (riavvio dell'IA, cambio di livello) la frase non si
+// butta: va da parte e torna in coda quando il correttore si riaccende (prima la coda di 300
+// frasi si svuotava in un attimo a ogni riavvio).
 func (t *Traduttore) unaCorrezione(l lavoroCorrezione) {
 	esito := nonProvata
 	defer func() {
@@ -125,6 +140,9 @@ func (t *Traduttore) unaCorrezione(l lavoroCorrezione) {
 			esito = risposta // una frase che fa cadere il correttore non la riprovo
 		}
 		c := &t.corr
+		if esito == messaDaParte {
+			return // resta "in coda": è nelle frasi da parte
+		}
 		c.mu.Lock()
 		delete(c.inCoda, l.chiave)
 		switch esito {
@@ -139,18 +157,33 @@ func (t *Traduttore) unaCorrezione(l lavoroCorrezione) {
 		}
 		c.mu.Unlock()
 	}()
+	spente := 0
 	for {
 		t.corr.mu.Lock()
 		m, pausa := t.corr.motore, t.corr.inPausa
-		t.corr.mu.Unlock()
 		if m == nil {
+			// controllato col lucchetto: se il correttore si riaccende adesso, ImpostaCorrettore
+			// trova la frase già da parte e la rimette in coda
+			if len(t.corr.daParte) < maxCodaCorrezioni {
+				t.corr.daParte = append(t.corr.daParte, l)
+				esito = messaDaParte
+			}
+			t.corr.mu.Unlock()
 			return
 		}
+		t.corr.mu.Unlock()
 		if pausa != nil && pausa() {
 			time.Sleep(2 * time.Second)
 			continue
 		}
 		esito = t.correggiUna(m, l)
+		if esito == nonProvata && spente < 15 {
+			// il motore si è appena spento ma il correttore non ancora (succede durante un
+			// riavvio): riprovo tra poco, e se intanto si spegne la frase va da parte
+			spente++
+			time.Sleep(2 * time.Second)
+			continue
+		}
 		return
 	}
 }

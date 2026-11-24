@@ -164,3 +164,26 @@ func TestPiccolaSiStringe(t *testing.T) {
 		t.Fatalf("troppo pesante: %+v", p)
 	}
 }
+
+func TestCorrezioniDaParteColCorrettoreSpento(t *testing.T) {
+	tr := NuovoTraduttore("", Glossario{}, mozFinto{})
+	ia := &correttoreSpento{}
+	tr.ImpostaCorrettore(ia, func() bool { return true }) // in pausa: la coda non si svuota da sola
+	tr.accodaCorrezione("\x00Yes.", "Yes.", "Sì.", nil, nil)
+	tr.ImpostaCorrettore(nil, nil) // riavvio dell'IA
+	l := <-tr.corr.coda
+	tr.unaCorrezione(l)
+	tr.corr.mu.Lock()
+	daParte, inCoda := len(tr.corr.daParte), tr.corr.inCoda[l.chiave]
+	tr.corr.mu.Unlock()
+	if daParte != 1 || !inCoda {
+		t.Fatalf("con il correttore spento la frase va da parte: %d da parte, in coda %v", daParte, inCoda)
+	}
+	tr.ImpostaCorrettore(ia, func() bool { return true }) // riacceso: torna in coda
+	tr.corr.mu.Lock()
+	daParte = len(tr.corr.daParte)
+	tr.corr.mu.Unlock()
+	if daParte != 0 || len(tr.corr.coda) != 1 {
+		t.Fatalf("frase non rimessa in coda: %d da parte, %d in coda", daParte, len(tr.corr.coda))
+	}
+}

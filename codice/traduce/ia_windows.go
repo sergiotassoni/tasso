@@ -12,6 +12,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
+	"io/fs"
 	"net"
 	"os"
 	"os/exec"
@@ -232,11 +234,20 @@ func (s *ServerIA) Avvia(dirMotore, fileModello string) error {
 	if _, err := os.Stat(exe); err != nil {
 		return errors.New("motore IA non installato")
 	}
+	dirAvvio, notaCopia := dirMotore, ""
 	if dirMotore == dirMotoreIA() {
 		if err := verificaMotore(dirMotore, improntaLlama, "llama-server.exe"); err != nil {
 			return err
 		}
+		// la cartella dei modelli la può cambiare qualsiasi programma dell'utente: copio il motore
+		// controllato dove scrivono solo gli amministratori e lo avvio da lì (ricontrollato)
+		if d, err := copiaMotoreProtetto(dirMotore, improntaLlama, "llama-server.exe"); err == nil {
+			dirAvvio = d
+		} else {
+			notaCopia = "Copia nella cartella protetta non riuscita (" + err.Error() + "): avvio dalla cartella dei modelli.\r\n"
+		}
 	}
+	exe = filepath.Join(dirAvvio, "llama-server.exe")
 	nctx := s.Contesto
 	if nctx <= 0 {
 		nctx = 4096
@@ -263,9 +274,12 @@ func (s *ServerIA) Avvia(dirMotore, fileModello string) error {
 	// così né le pagine web né altri programmi del PC possono usare il motore
 	chiave := chiaveCasuale()
 	cmd.Env = append(os.Environ(), "LLAMA_API_KEY="+chiave)
-	cmd.Dir = dirMotore
+	cmd.Dir = dirAvvio
 	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true, CreationFlags: 0x08000000 | 0x00004000} // nessuna finestra, priorità sotto la normale
 	logf, _ := os.Create(filepath.Join(dirApp, "logs", "motore-ia.txt"))
+	if logf != nil && notaCopia != "" {
+		_, _ = logf.WriteString(notaCopia)
+	}
 	cmd.Stdout, cmd.Stderr = logf, logf
 	if err := cmd.Start(); err != nil {
 		if logf != nil {
@@ -321,6 +335,120 @@ func (s *ServerIA) Avvia(dirMotore, fileModello string) error {
 		case <-time.After(500 * time.Millisecond):
 		}
 	}
+}
+
+// cartellaProtettaIA: <Programmi>\Tasso\lavoro\ia. Programmi è quella vera (KnownFolderPath),
+// mai la variabile d'ambiente, che un programma senza privilegi può cambiare.
+func cartellaProtettaIA() (base, dest string, err error) {
+	pf, err := windows.KnownFolderPath(windows.FOLDERID_ProgramFiles, 0)
+	if err != nil || pf == "" {
+		return "", "", errors.New("cartella Programmi non trovata")
+	}
+	return pf, filepath.Join(pf, "Tasso", "lavoro", "ia"), nil
+}
+
+// copiaMotoreProtetto: copia programma e librerie del motore (già controllati in dir) nella
+// cartella protetta, dove solo gli amministratori possono scrivere, e ricontrolla la copia con
+// le impronte. Così nessuno può cambiare i file tra il controllo e l'avvio. I file già giusti
+// non si ricopiano. Restituisce la cartella da cui avviare.
+func copiaMotoreProtetto(dir string, impronte map[string]string, exe string) (string, error) {
+	pf, dest, err := cartellaProtettaIA()
+	if err != nil {
+		return "", err
+	}
+	if err := os.MkdirAll(dest, 0o755); err != nil {
+		return "", err
+	}
+	// ogni pezzo del percorso dentro Programmi deve essere una cartella vera, non un collegamento
+	for _, d := range []string{filepath.Join(pf, "Tasso"), filepath.Join(pf, "Tasso", "lavoro"), dest} {
+		fi, err := os.Lstat(d)
+		if err != nil || fi.Mode().Type() != fs.ModeDir {
+			return "", fmt.Errorf("%s non è una cartella normale", d)
+		}
+	}
+	if err := soloAmministratori(dest); err != nil {
+		return "", err
+	}
+	// file che non c'entrano (vecchie versioni, copie a metà): via
+	voci, err := os.ReadDir(dest)
+	if err != nil {
+		return "", err
+	}
+	for _, v := range voci {
+		if _, ok := impronte[v.Name()]; !ok && !v.IsDir() {
+			if err := os.Remove(filepath.Join(dest, v.Name())); err != nil {
+				return "", err
+			}
+		}
+	}
+	trovatoExe := false
+	for nome, h := range impronte {
+		f := FileDaScaricare{Nome: nome, SHA256: h}
+		if _, err := os.Stat(filepath.Join(dir, nome)); err != nil {
+			// non c'è nella cartella dei modelli: non deve restare nemmeno nella copia
+			if err := os.Remove(filepath.Join(dest, nome)); err != nil && !os.IsNotExist(err) {
+				return "", err
+			}
+			continue
+		}
+		if !presente(dest, f) { // presente ricalcola sempre l'impronta di .exe e .dll
+			if err := copiaFileIA(filepath.Join(dir, nome), filepath.Join(dest, nome)); err != nil {
+				return "", err
+			}
+			if !presente(dest, f) { // cambiato durante la copia: non lo uso
+				os.Remove(filepath.Join(dest, nome))
+				return "", fmt.Errorf("la copia di %s non è uguale all'originale", nome)
+			}
+		}
+		if nome == exe {
+			trovatoExe = true
+		}
+	}
+	if !trovatoExe {
+		return "", fmt.Errorf("manca %s", exe)
+	}
+	return dest, nil
+}
+
+// soloAmministratori: la cartella (e quello che contiene) la possono cambiare solo SYSTEM e gli
+// amministratori; gli utenti normali solo leggere. Senza ereditare i permessi da sopra.
+func soloAmministratori(d string) error {
+	sd, err := windows.SecurityDescriptorFromString("D:P(A;OICI;FA;;;SY)(A;OICI;FA;;;BA)(A;OICI;0x1200a9;;;BU)")
+	if err != nil {
+		return err
+	}
+	dacl, _, err := sd.DACL()
+	if err != nil {
+		return err
+	}
+	return windows.SetNamedSecurityInfo(d, windows.SE_FILE_OBJECT,
+		windows.DACL_SECURITY_INFORMATION|windows.PROTECTED_DACL_SECURITY_INFORMATION, nil, nil, dacl, nil)
+}
+
+// copiaFileIA: copia in un file nuovo accanto e poi lo mette al posto giusto.
+func copiaFileIA(da, a string) error {
+	in, err := os.Open(da)
+	if err != nil {
+		return err
+	}
+	defer in.Close()
+	tmp := a + ".copia"
+	_ = os.Remove(tmp)
+	out, err := os.OpenFile(tmp, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o644)
+	if err != nil {
+		return err
+	}
+	_, err = io.Copy(out, in)
+	if cerr := out.Close(); err == nil {
+		err = cerr
+	}
+	if err == nil {
+		err = os.Rename(tmp, a)
+	}
+	if err != nil {
+		os.Remove(tmp)
+	}
+	return err
 }
 
 // Ferma chiude il motore e aspetta (al massimo 5 secondi) che il processo sia uscito davvero:

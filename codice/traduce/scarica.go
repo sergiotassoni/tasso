@@ -39,22 +39,34 @@ var clientScarica = &http.Client{Timeout: 6 * time.Hour, CheckRedirect: func(req
 
 var errImprontaMancante = errors.New("impronta di sicurezza mancante: file non scaricato")
 
-// presente dice se il file c'è già ed è quello giusto.
-// presente controlla l'impronta del file. Il risultato viene ricordato finché il file non cambia
-// (stessa dimensione e data), così un modello da 5 GB non viene riletto a ogni controllo.
-// I controlli riusciti si ricordano anche su disco (un file piccolo): all'avvio di Tasso i modelli
-// da 10 GB non si rileggono tutti, solo se cambiano percorso, dimensione o data.
+// presente dice se il file c'è già ed è quello giusto (controllo dell'impronta SHA-256).
+//
+// Programmi e librerie (.exe, .dll): l'impronta si calcola davvero OGNI volta, senza ricordare
+// niente. Tasso li avvia da amministratore e la cartella dei modelli la può cambiare qualsiasi
+// programma dell'utente: anche dimensione e data si possono rimettere uguali, quindi ricordare
+// "era giusto" permetterebbe di saltare il controllo con un file cambiato.
+//
+// Modelli .gguf (anche 10 GB): il controllo riuscito si ricorda, anche su disco, finché il file
+// non cambia percorso, dimensione o data, così all'avvio non si rileggono tutti.
+// Gli altri file (dati del traduttore Mozilla, zip) si ricordano solo finché Tasso resta aperto.
 func presente(dir string, f FileDaScaricare) bool {
 	p := filepath.Join(dir, f.Nome)
 	st, err := os.Stat(p)
-	if err != nil || (f.Byte > 0 && st.Size() != f.Byte) {
+	if err != nil || !st.Mode().IsRegular() || (f.Byte > 0 && st.Size() != f.Byte) {
 		return false
 	}
+	if eseguibile(f.Nome) {
+		h, err := impronta(p)
+		return err == nil && strings.EqualFold(h, f.SHA256)
+	}
 	chiave := chiaveVerifica(p, st.Size(), st.ModTime().UnixNano(), f.SHA256)
-	caricaVerificati()
+	suDisco := ricordaSuDisco(p)
+	if suDisco {
+		caricaVerificati()
+	}
 	muVerificati.Lock()
 	ok, visto := verificati[chiave]
-	if !visto && verificatiDisco[chiave] {
+	if !visto && suDisco && verificatiDisco[chiave] {
 		ok, visto = true, true
 		verificati[chiave] = true
 	}
@@ -67,10 +79,21 @@ func presente(dir string, f FileDaScaricare) bool {
 	muVerificati.Lock()
 	verificati[chiave] = ok
 	muVerificati.Unlock()
-	if ok {
+	if ok && suDisco {
 		ricordaVerificato(p, chiave)
 	}
 	return ok
+}
+
+// eseguibile: programmi e librerie, che si controllano sempre per intero.
+func eseguibile(nome string) bool {
+	b := strings.ToLower(nome)
+	return strings.HasSuffix(b, ".exe") || strings.HasSuffix(b, ".dll")
+}
+
+// ricordaSuDisco: solo i modelli .gguf (grandi, e non sono programmi) si ricordano su disco.
+func ricordaSuDisco(p string) bool {
+	return strings.HasSuffix(strings.ToLower(p), ".gguf")
 }
 
 var (
@@ -109,7 +132,10 @@ func caricaVerificati() {
 		}
 		muVerificati.Lock()
 		for _, k := range l {
-			verificatiDisco[k] = true
+			// le voci di .exe e .dll scritte dalle versioni di prima non valgono più
+			if p, _, ok := strings.Cut(k, "|"); ok && ricordaSuDisco(p) {
+				verificatiDisco[k] = true
+			}
 		}
 		muVerificati.Unlock()
 	})

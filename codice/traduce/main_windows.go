@@ -171,7 +171,10 @@ func Avvia() {
 	motoreMu.Lock()
 	motoreURL = indirizzo
 	motoreMu.Unlock()
-	traduttore = NuovoTraduttore(filepath.Join(dirApp, "memoria-traduzioni.json"), leggiImp().Glossario, moz)
+	// memoria in un file nuovo (formato a lista): le versioni di prima leggono il vecchio come una
+	// mappa e lo sovrascriverebbero. Il vecchio resta, e la prima volta le sue frasi passano qui.
+	traduttore = NuovoTraduttore(filepath.Join(dirApp, "memoria-traduzioni-2.json"), leggiImp().Glossario, moz)
+	traduttore.passaDaVecchiaMemoria(filepath.Join(dirApp, "memoria-traduzioni.json"))
 	traduttore.QuandoCorretta(correzioneArrivata)
 	traduttore.Coppia = coppiaAttiva
 	avviaServerModGioco()
@@ -233,6 +236,11 @@ func Chiudi() {
 		traduttore.SalvaMemoria() // libreria del gioco e correzioni dell'IA: niente va perso all'uscita
 	}
 	ia.Ferma()
+	if traduttore != nil {
+		// una correzione dell'IA arrivata mentre il motore si chiudeva: salvo anche quella
+		// (salva solo se qualcosa è cambiato, quindi di solito non scrive niente)
+		traduttore.SalvaMemoria()
+	}
 	sv.ferma()
 	if ocr != nil {
 		ocr.Chiudi()

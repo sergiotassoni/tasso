@@ -29,6 +29,7 @@ var (
 var (
 	falliteIA           int
 	prossimoTentativoIA time.Time
+	livelloFallitoIA    string       // ultimo livello che non è partito o si è chiuso da solo
 	avviataIA           time.Time    // ultima accensione riuscita: dopo 10 minuti senza problemi i fallimenti si azzerano
 	mortiViste          int64        // chiusure da sole del motore già contate
 	stratiMeta          atomic.Int64 // strati sulla scheda quando l'IA è divisa (dipende dalla scheda)
@@ -42,6 +43,10 @@ const (
 	ogniControllo      = 15 * time.Second
 	controlliPerSalire = 4 // un minuto stabile prima di usare più memoria
 	sogliaCPU          = 0.85
+	// cambio degli strati sulla scheda senza cambiare livello: costa un riavvio dell'IA, quindi
+	// solo per differenze vere (almeno mezzo GB) e che durano, non per uno sbalzo del gioco
+	margineStratiGB       = 0.5
+	controlliPerStringere = 3 // 45 secondi di fila (2 se servono almeno 1 GB in più)
 )
 
 func rangoProfilo(n string) int {
@@ -111,6 +116,8 @@ func sorvegliaIA() {
 	defer guard("sorveglia-ia")
 	ram, core := memoriaPC(), coreFisici()
 	piu := 0
+	// strati: quanti controlli di fila chiedono meno (o più) strati, e quanti al massimo (o al minimo)
+	stretti, stratiStretti, larghi, stratiLarghi := 0, 0, 0, 0
 	for {
 		scelto := livelloCambiato.Swap(false)
 		if scelto {
@@ -131,6 +138,11 @@ func sorvegliaIA() {
 			}
 			impostaGPU(valutaGPU(g))
 			pv := sceltaLivello(g, ram, core, leggiImp().LivelloIA)
+			if !scelto && time.Now().Before(prossimoTentativoIA) {
+				// un livello ha fallito da poco: finché aspetto, solo i livelli sotto quello
+				// (così la Piccola che andava non resta spenta perché la Media non è partita)
+				pv = sottoIlFallito(pv, g, ram, core)
+			}
 			voluto, stratiVoluti = pv.Nome, pv.Strati
 			if pv.Nome == "piccola" && pv.Strati > 0 && (attuale != "piccola" || !ia.Attivo()) {
 				stratiPiccolaAtt.Store(int64(pv.Strati))
@@ -156,7 +168,7 @@ func sorvegliaIA() {
 			if morti != mortiViste {
 				// chiuso da solo (es. memoria video finita): conta come un fallimento, con un'attesa
 				// che cresce, invece di ricaricare 5 GB ogni 15 secondi e far scattare il gioco
-				fallitaIA("il motore IA si è chiuso da solo (forse la memoria video è finita)")
+				fallitaIA(attuale, "il motore IA si è chiuso da solo (forse la memoria video è finita)")
 			}
 			attuale = ""
 		}
@@ -164,22 +176,56 @@ func sorvegliaIA() {
 		if attuale != "" && falliteIA > 0 && time.Since(avviataIA) > 10*time.Minute {
 			falliteIA = 0 // regge da 10 minuti: i problemi di prima non contano più
 		}
-		if voluto != "" && time.Now().Before(prossimoTentativoIA) {
+		if voluto != "" && time.Now().Before(prossimoTentativoIA) && rangoProfilo(voluto) >= rangoProfilo(livelloFallitoIA) {
 			voluto = "" // ha fallito da poco: aspetto prima di riprovare
 		}
 		// stesso livello, ma il gioco ha preso altra memoria video: servono meno strati sulla
-		// scheda. Lo tratto come una discesa: riavvio con meno strati (uno in meno, di margine).
-		stringi := false
-		if voluto != "" && voluto == attuale && ia.Attivo() && stratiVoluti > 0 {
-			if ora, minimo := stratiDi(attuale); ora > 0 && stratiVoluti <= ora-2 {
-				if n := max(stratiVoluti-1, minimo); n < ora {
-					stringi = true
-					impostaStrati(attuale, n)
+		// scheda. Riavvio con meno strati (uno in meno, di margine) solo se servono almeno mezzo GB
+		// e per qualche controllo di fila: uno sbalzo normale del gioco non fa riavviare l'IA.
+		// Al contrario, se il gioco ne lascia di più per un minuto, gli strati risalgono.
+		stringi, allarga := false, false
+		ora, minimo, massimo := stratiDi(attuale)
+		if voluto != "" && voluto == attuale && ia.Attivo() && stratiVoluti > 0 && ora > 0 {
+			gbOra := memoriaStrati(attuale, ora)
+			switch {
+			case gbOra-memoriaStrati(attuale, stratiVoluti) >= margineStratiGB:
+				larghi = 0
+				if stretti == 0 || stratiVoluti > stratiStretti {
+					stratiStretti = stratiVoluti // conta il bisogno più piccolo visto di fila
 				}
+				stretti++
+				serve := controlliPerStringere
+				if gbOra-memoriaStrati(attuale, stratiStretti) >= 2*margineStratiGB {
+					serve = 2
+				}
+				if stretti >= serve {
+					if n := max(stratiStretti-1, minimo); n < ora {
+						stringi = true
+						impostaStrati(attuale, n)
+					}
+					stretti = 0
+				}
+			case memoriaStrati(attuale, min(stratiVoluti-1, massimo))-gbOra >= margineStratiGB:
+				stretti = 0
+				if larghi == 0 || stratiVoluti < stratiLarghi {
+					stratiLarghi = stratiVoluti // conta la memoria più piccola vista di fila
+				}
+				larghi++
+				if larghi >= controlliPerSalire {
+					if n := min(stratiLarghi-1, massimo); n > ora && memoriaStrati(attuale, n)-gbOra >= margineStratiGB {
+						allarga = true
+						impostaStrati(attuale, n)
+					}
+					larghi = 0
+				}
+			default:
+				stretti, larghi = 0, 0
 			}
+		} else {
+			stretti, larghi = 0, 0
 		}
 		switch {
-		case rangoProfilo(voluto) < rangoProfilo(attuale) || stringi:
+		case rangoProfilo(voluto) < rangoProfilo(attuale) || stringi || allarga:
 			piu = 0
 			applicaProfiloIA(voluto, ram, core)
 			mortiViste = ia.morti.Load() // le chiusure durante un avvio fallito le conta già applicaProfiloIA
@@ -223,15 +269,43 @@ func memoriaProfilo(n string) float64 {
 	return 0
 }
 
-// stratiDi: strati sulla scheda adesso e minimo, per i livelli che si possono stringere (0 se no).
-func stratiDi(nome string) (ora, minimo int) {
+// stratiDi: strati sulla scheda adesso, minimo e massimo, per i livelli che si possono stringere
+// (0 se no).
+func stratiDi(nome string) (ora, minimo, massimo int) {
 	switch nome {
 	case "piccola":
-		return int(stratiPiccolaAtt.Load()), stratiPiccolaMin
+		return int(stratiPiccolaAtt.Load()), stratiPiccolaMin, stratiPiccola
 	case "meta":
-		return int(stratiMeta.Load()), stratiParziali
+		return int(stratiMeta.Load()), stratiParziali, stratiModello - 1
 	}
-	return 0, 0
+	return 0, 0, 0
+}
+
+// memoriaStrati: memoria video del livello con n strati sulla scheda.
+func memoriaStrati(nome string, n int) float64 {
+	if nome == "piccola" {
+		return vramPiccolaStrati(n)
+	}
+	return vramStrati(n)
+}
+
+// sottoIlFallito: durante l'attesa dopo un fallimento, il livello scelto se è sotto quello che
+// ha fallito; altrimenti il primo livello più basso che ci sta (Media, poi Piccola); se non ce
+// n'è, niente IA (solo Mozilla) fino al prossimo tentativo.
+func sottoIlFallito(pv ProfiloCorrettore, g InfoGPU, ram float64, core int) ProfiloCorrettore {
+	r := rangoProfilo(livelloFallitoIA)
+	if r == 0 {
+		return ProfiloCorrettore{} // non so quale è fallito: aspetto, come prima
+	}
+	if rangoProfilo(pv.Nome) < r {
+		return pv
+	}
+	for _, l := range []string{"media", "piccola"} {
+		if p := sceltaLivello(g, ram, core, l); p.Nome != "" && rangoProfilo(p.Nome) < r {
+			return p
+		}
+	}
+	return ProfiloCorrettore{}
 }
 
 func impostaStrati(nome string, n int) {
@@ -243,10 +317,11 @@ func impostaStrati(nome string, n int) {
 	}
 }
 
-// fallitaIA: l'IA non è partita o si è chiusa da sola. Prima di riprovare aspetto sempre di più:
-// 2, 4, 8, 16, 32 minuti.
-func fallitaIA(motivo string) {
+// fallitaIA: l'IA (al livello dato) non è partita o si è chiusa da sola. Prima di riprovare
+// quel livello aspetto sempre di più: 2, 4, 8, 16, 32 minuti. I livelli sotto si possono usare.
+func fallitaIA(livello, motivo string) {
 	falliteIA++
+	livelloFallitoIA = livello
 	attesa := time.Duration(1<<min(falliteIA, 5)) * time.Minute
 	prossimoTentativoIA = time.Now().Add(attesa)
 	if falliteIA <= 2 {
@@ -281,7 +356,7 @@ func applicaProfiloIA(nome string, ram float64, core int) {
 			modello = fileMediaIA()
 		}
 		if err := ia.Avvia(dirMotoreIA(), modello); err != nil {
-			fallitaIA("non avviato (" + err.Error() + ")")
+			fallitaIA(nome, "non avviato ("+err.Error()+")")
 			return
 		}
 		// mentre il modello caricava (anche qualche minuto) la traduzione può essere stata spenta
