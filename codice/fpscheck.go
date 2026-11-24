@@ -125,7 +125,7 @@ func screens() []screenInfo {
 				break
 			}
 			if dm.PelsWidth == cur.PelsWidth && dm.PelsHeight == cur.PelsHeight && dm.BitsPerPel == cur.BitsPerPel &&
-				dm.DisplayFlags&0x2 == 0 && int(dm.DisplayFrequency) > s.MaxHz && dm.DisplayFrequency <= 500 {
+				dm.DisplayFlags&0x2 == 0 && int(dm.DisplayFrequency) > s.MaxHz && dm.DisplayFrequency <= 1000 { // anche 540 e 600 Hz
 				s.MaxHz = int(dm.DisplayFrequency)
 			}
 		}

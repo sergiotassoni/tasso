@@ -148,7 +148,7 @@ public static class TassoHz {
       for (int m = 0; m < 2000; m++) {
         DEVMODE x = new DEVMODE(); x.dmSize = (short)Marshal.SizeOf(x);
         if (!EnumDisplaySettings(d.DeviceName, m, ref x)) break;
-        if (x.dmPelsWidth == cur.dmPelsWidth && x.dmPelsHeight == cur.dmPelsHeight && x.dmBitsPerPel == cur.dmBitsPerPel && (x.dmDisplayFlags & 2) == 0 && x.dmDisplayFrequency > best && x.dmDisplayFrequency < 500) best = x.dmDisplayFrequency;
+        if (x.dmPelsWidth == cur.dmPelsWidth && x.dmPelsHeight == cur.dmPelsHeight && x.dmBitsPerPel == cur.dmBitsPerPel && (x.dmDisplayFlags & 2) == 0 && x.dmDisplayFrequency > best && x.dmDisplayFrequency <= 1000) best = x.dmDisplayFrequency;
       }
       string res = "ok";
       if (best > cur.dmDisplayFrequency) res = "puo";
