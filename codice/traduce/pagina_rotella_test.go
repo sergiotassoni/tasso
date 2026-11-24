@@ -157,3 +157,16 @@ func TestStesseScritte(t *testing.T) {
 		t.Fatal("finestrella di un altro oggetto: scritte diverse")
 	}
 }
+
+func TestZonaMenu(t *testing.T) {
+	if !sembraMenu("General Audio\nAudio Output Device System Default Device\nGame Volume") {
+		t.Fatal("impostazioni: righe corte")
+	}
+	if sembraMenu("I told you to bring the cargo back before the storm hits the outpost.\nNow we have nothing left.") {
+		t.Fatal("un dialogo non è un menu")
+	}
+	r := righeDiBlocchi([]Blocco{{Testo: "System Default Device", X: 900, Y: 52, H: 20}, {Testo: "General Audio", X: 400, Y: 10, H: 22}, {Testo: "Audio Output Device", X: 400, Y: 50, H: 20}})
+	if len(r) != 2 || r[1][0].Testo != "Audio Output Device" || r[1][1].Testo != "System Default Device" {
+		t.Fatalf("%+v", r)
+	}
+}

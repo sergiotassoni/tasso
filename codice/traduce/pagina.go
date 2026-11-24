@@ -1909,3 +1909,47 @@ func tieniFerme(nuovi, vecchi []Blocco, img *image.RGBA) []Blocco {
 	}
 	return out
 }
+
+// sembraMenu: il testo letto in una zona ha più righe corte (voci di menu, impostazioni,
+// nome e valore), non un dialogo. Allora le scritte si traducono una per una: unite in una
+// frase sola non avevano senso ("Dispositivo di uscita audio audio generale Sistema di volume
+// di gioco predefinito", PC Cafe Simulator, F9, 24/11).
+func sembraMenu(grezzo string) bool {
+	var righe []string
+	for _, r := range strings.Split(strings.ReplaceAll(grezzo, "\r", ""), "\n") {
+		if strings.TrimSpace(r) != "" {
+			righe = append(righe, r)
+		}
+	}
+	if len(righe) < 2 {
+		return false
+	}
+	parole := 0
+	for _, r := range righe {
+		parole += len(strings.Fields(r))
+	}
+	return float64(parole)/float64(len(righe)) <= 4.5
+}
+
+// righeDiBlocchi: le scritte raggruppate per riga (dall'alto in basso), ognuna da sinistra a
+// destra: "Audio Output Device" e "System Default Device" sulla stessa riga.
+func righeDiBlocchi(bl []Blocco) [][]Blocco {
+	b := append([]Blocco(nil), bl...)
+	sort.SliceStable(b, func(i, j int) bool { return b[i].Y+b[i].H/2 < b[j].Y+b[j].H/2 })
+	var out [][]Blocco
+	for _, x := range b {
+		c := x.Y + x.H/2
+		if n := len(out); n > 0 {
+			u := out[n-1][0]
+			if abs(c-(u.Y+u.H/2)) < max(u.H, x.H)/2+1 {
+				out[n-1] = append(out[n-1], x)
+				continue
+			}
+		}
+		out = append(out, []Blocco{x})
+	}
+	for _, r := range out {
+		sort.SliceStable(r, func(i, j int) bool { return r[i].X < r[j].X })
+	}
+	return out
+}

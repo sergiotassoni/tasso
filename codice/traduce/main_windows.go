@@ -1251,7 +1251,12 @@ func leggiETraduci(img *image.RGBA, impronta Impronta, forza bool) {
 	ultimoTesto = pulito
 	z := leggiImp().Zona
 	ov.Mostra(z, "…", pulito, "")
-	r := traduttore.Traduci(context.Background(), grezzo)
+	var r Risultato
+	if sembraMenu(grezzo) {
+		r = traduciZonaMenu(img, grezzo)
+	} else {
+		r = traduttore.Traduci(context.Background(), grezzo)
+	}
 	if r.Errore != "" {
 		ov.Mostra(z, testoTasso("Non riesco a tradurre adesso.", "I can't translate right now."), pulito, r.Errore)
 		emetti("info", map[string]string{"testo": "Traduzione non riuscita: " + r.Errore})
@@ -1274,6 +1279,64 @@ func leggiETraduci(img *image.RGBA, impronta Impronta, forza bool) {
 	r.Millisec += msOCR // tempo totale: lettura + traduzione
 	aggiungiCronologia(r, false)
 	emetti("riga", r)
+}
+
+// traduciZonaMenu: una zona con più voci (menu, impostazioni): rileggo le scritte con la loro
+// posizione e traduco ognuna da sola, una riga per riga di gioco (nome e valore con " — ").
+// Se la lettura con le posizioni non riesce, traduco il testo intero come prima.
+func traduciZonaMenu(img *image.RGBA, grezzo string) Risultato {
+	t0 := time.Now()
+	var buf bytes.Buffer
+	f, err := preparaPaginaPerOCR(img, &buf)
+	if err != nil {
+		return traduttore.Traduci(context.Background(), grezzo)
+	}
+	righeOCR, err := ocr.LeggiPosizioni(buf.Bytes())
+	if err != nil {
+		return traduttore.Traduci(context.Background(), grezzo)
+	}
+	blocchi := segmenti(righeOCR, f)
+	for i := range blocchi {
+		blocchi[i].Testo = correggiParole(separaAttaccate(blocchi[i].Testo))
+	}
+	blocchi = unisciParagrafi(blocchi)
+	if len(blocchi) < 2 {
+		return traduttore.Traduci(context.Background(), grezzo)
+	}
+	ctx := conLotto(context.Background())
+	tradotti := make([]Risultato, len(blocchi))
+	var wg sync.WaitGroup
+	for i := range blocchi {
+		wg.Add(1)
+		go func(i int) {
+			defer wg.Done()
+			defer guard("zona-voce")
+			tradotti[i] = traduttore.TraduciScritta(ctx, blocchi[i].Testo)
+		}(i)
+	}
+	wg.Wait()
+	trad := map[string]string{}
+	motore := ""
+	for i, b := range blocchi {
+		t := strings.TrimSpace(tradotti[i].Tradotto)
+		if t == "" {
+			t = b.Testo
+		} else if motore == "" {
+			motore = tradotti[i].Motore
+		}
+		trad[fmt.Sprint(b.X, ",", b.Y)] = t
+	}
+	var it, en []string
+	for _, riga := range righeDiBlocchi(blocchi) {
+		var a, b []string
+		for _, x := range riga {
+			a = append(a, trad[fmt.Sprint(x.X, ",", x.Y)])
+			b = append(b, x.Testo)
+		}
+		it = append(it, strings.Join(a, " — "))
+		en = append(en, strings.Join(b, " — "))
+	}
+	return Risultato{Originale: strings.Join(en, "\n"), Tradotto: strings.Join(it, "\n"), Motore: motore, Millisec: time.Since(t0).Milliseconds()}
 }
 
 // ultimo dialogo mostrato nella finestrella: serve per sostituirlo quando arriva la correzione
