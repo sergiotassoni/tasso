@@ -90,6 +90,7 @@ func cicloPagina(giro int64) {
 	animateDa := time.Now()
 	var celleUltime []bool // zone cambiate che hanno fatto partire l'ultima rilettura
 	prima := true
+	perche := "avvio" // perché prima è vero (solo per pagina-tempi.txt)
 	nascostaPerAltTab := false
 	nere := 0
 	mosse := 0 // giri di fila in cui la schermata si muoveva ancora
@@ -112,15 +113,15 @@ func cicloPagina(giro int64) {
 			continue
 		}
 		if nascostaPerAltTab {
-			nascostaPerAltTab, prima = false, true // tornato nel gioco: rileggo
+			nascostaPerAltTab, prima, perche = false, true, "alt-tab" // tornato nel gioco: rileggo
 		}
 		if paginaRileggi.Swap(false) {
-			prima = true
+			prima, perche = true, "rileggi"
 		}
 		img, err := cattura(area)
 		if err == nil && catturaNera(img) {
 			NascondiPagina() // scena scura: le traduzioni della schermata di prima non valgono più
-			prima = true
+			prima, perche = true, "nera"
 			nere++
 			if nere >= 3 { // tre di fila: non è una scena scura, Windows non mi lascia vedere il gioco
 				avvisaSchermoEsclusivo(paginaGiocoA.Load())
@@ -143,12 +144,16 @@ func cicloPagina(giro int64) {
 				}
 				soloLuce = true
 				celleUltime = celleBordiCambiate(img, ultimaImg)
+				nc := 0
 				for c, si := range celleUltime {
 					if si && !animate[c] {
 						soloLuce = false
-						break
+						nc++
 					}
 				}
+				motivoLettura.Store(fmt.Sprintf("zone=%d", nc))
+			} else if prima {
+				motivoLettura.Store("prima:" + perche)
 			}
 			if !soloLuce && (prima || imp.cambiata(ultima)) {
 				cambioVisto.Store(time.Now().UnixNano())
@@ -179,7 +184,7 @@ func cicloPagina(giro int64) {
 						// riquadro illuminato, sfondo animato) le traduzioni restano: niente sfarfallio
 						NascondiPagina()
 						mosse++
-						prima = true
+						prima, perche = true, "mosse"
 						<-anticipo
 						continue
 					}
@@ -188,7 +193,7 @@ func cicloPagina(giro int64) {
 					}
 					e := <-anticipo
 					pronta, occupata := e.p, e.occupata
-					if pronta == nil || imp2.cambiata(imp) {
+					if pronta == nil || (imp2.cambiata(imp) && scritteMosse(img, img2, animate)) {
 						// si muoveva ancora: rifaccio sull'immagine nuova. Anche se l'immagine si
 						// muove (video) traduco: le scritte sopra un video diventano una fascia scura
 						pronta, occupata = preparaPagina(area, img2, img, giro)
@@ -221,7 +226,7 @@ func cicloPagina(giro int64) {
 				// la rotella ha spostato le scritte: via subito le traduzioni (sarebbero nel posto
 				// sbagliato, sopra l'inglese) e rileggo appena la schermata si ferma
 				NascondiPagina()
-				prima = true
+				prima, perche = true, "rotella"
 				continue
 			} else if len(bl) > 0 && imp.differenza(ultimaColori) > 0.2 {
 				// piccolo cambio (mouse sopra un pulsante): aggiorno solo i colori. Se l'immagine
@@ -412,6 +417,21 @@ func preparaPagina(area Zona, img, primaImg *image.RGBA, giro int64) (p *paginaP
 }
 
 // mostraPaginaPronta disegna le scritte tradotte sopra il gioco.
+// scritteMosse: tra le due immagini i contorni netti sono cambiati fuori dalle zone che si
+// muovono da sole. Se cambia solo la luce dello sfondo la lettura già fatta va bene: prima la
+// pagina veniva letta due volte di fila nei menu con lo sfondo animato.
+func scritteMosse(a, b *image.RGBA, animate []bool) bool {
+	for c, si := range celleBordiCambiate(a, b) {
+		if si && (c >= len(animate) || !animate[c]) {
+			return true
+		}
+	}
+	return false
+}
+
+// motivoLettura: perché è partita l'ultima lettura (solo per pagina-tempi.txt, controllo a mano).
+var motivoLettura atomic.Value
+
 func mostraPaginaPronta(p *paginaPronta, giro int64) bool {
 	area, img, pronti, nuove, t0, tOCR, tTrad := p.area, p.img, p.pronti, p.nuove, p.t0, p.tOCR, p.tTrad
 	if nuove > 0 {
@@ -440,9 +460,10 @@ func mostraPaginaPronta(p *paginaPronta, giro int64) bool {
 		}()
 		if esisteVoce(filepath.Join(dirApp, "logs", "salva-anteprima")) { // controllo a mano: i tempi veri
 			visto := time.Unix(0, cambioVisto.Load())
-			riga := fmt.Sprintf("%s lettura=%dms traduzione=%dms totale=%dms dal-cambio=%dms scritte=%d nuove=%d\n",
+			motivo, _ := motivoLettura.Load().(string)
+			riga := fmt.Sprintf("%s lettura=%dms traduzione=%dms totale=%dms dal-cambio=%dms scritte=%d nuove=%d motivo=%s\n",
 				time.Now().Format("15:04:05.000"), tOCR.Milliseconds(), tTrad.Milliseconds(), time.Since(t0).Milliseconds(),
-				time.Since(visto).Milliseconds(), len(pronti), nuove)
+				time.Since(visto).Milliseconds(), len(pronti), nuove, motivo)
 			if f, err := os.OpenFile(filepath.Join(dirApp, "logs", "pagina-tempi.txt"), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644); err == nil {
 				_, _ = f.WriteString(riga)
 				_ = f.Close()
