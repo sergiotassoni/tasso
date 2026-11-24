@@ -29,3 +29,15 @@ func TestSottotitoloPronto(t *testing.T) {
 		t.Fatal("sottotitolo nuovo non tradotto")
 	}
 }
+
+func TestRigheSottotitolo(t *testing.T) {
+	if g := righeSottotitolo("o — c\nMARA: Keep your voice down."); g != "MARA: Keep your voice down." {
+		t.Errorf("pezzetti dello sfondo rimasti: %q", g)
+	}
+	if g := righeSottotitolo("No."); g != "No." {
+		t.Errorf("sottotitolo corto tolto: %q", g)
+	}
+	if g := righeSottotitolo("I never wanted any of this,\nbut we don't have a choice."); g != "I never wanted any of this,\nbut we don't have a choice." {
+		t.Errorf("riga vera tolta: %q", g)
+	}
+}

@@ -10,6 +10,7 @@ package traduce
 // ogni sottotitolo diverso, nessuna per i sottotitoli a metà e per le letture ripetute.
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -23,8 +24,8 @@ var cartellaSottotitoli string
 func init() {
 	for i, a := range os.Args {
 		if a == "--prova-sottotitoli" && i+1 < len(os.Args) {
+			// le finestre di Tasso restano escluse dalle catture, come per l'utente vero
 			cartellaSottotitoli = os.Args[i+1]
-			fotoVisibili = true
 		}
 	}
 }
@@ -74,6 +75,20 @@ func eseguiProvaSottotitoli() {
 		pShowWindow.Call(fin, 0)
 	}()
 	acceso.Store(true)
+	// prima di cominciare: lettura di Windows e traduttore pronti (la prima volta ci mettono
+	// qualche secondo), altrimenti le prime immagini passano senza traduzione
+	for i := 0; i < 60; i++ {
+		if c, err := cattura(zona); err == nil {
+			leggiETraduci(c, calcolaImpronta(c), true)
+		}
+		if ocr != nil && traduttore != nil {
+			break
+		}
+		time.Sleep(time.Second)
+	}
+	t0 := time.Now()
+	prova := traduttore.Traduci(context.Background(), "Hello there.")
+	scrivi("pronto: lettura %v, traduttore %q in %d ms (errore %q)", ocr != nil, prova.Tradotto, time.Since(t0).Milliseconds(), prova.Errore)
 	ultimoTesto, candidatoSub = "", ""
 	scrivi("finestra %v, zona sottotitoli %v, %d immagini", r, zona, len(scene))
 	time.Sleep(time.Second)
@@ -101,7 +116,7 @@ func eseguiProvaSottotitoli() {
 		nuove := append([]Risultato(nil), righe[n0:]...)
 		muCronologia.Unlock()
 		if len(nuove) == 0 {
-			scrivi("%s: niente di nuovo (ultimo tradotto: %q)", filepath.Base(s), ultimoTesto)
+			scrivi("%s: letto %q, niente di nuovo (ultimo tradotto: %q)", filepath.Base(s), ultimoGrezzo, ultimoTesto)
 		}
 		for _, x := range nuove {
 			tradotte++
