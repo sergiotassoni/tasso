@@ -301,12 +301,12 @@ func applicaModGioco(nome, cartella string, rischioOK bool) {
 	for _, z := range zips {
 		tot += z.Byte
 	}
-	passo(8, fmt.Sprintf("Scarico gli strumenti liberi BepInEx e XUnity AutoTranslator (%.0f MB, una volta sola)…", float64(tot)/1048576))
+	passo(8, fmt.Sprintf("Scarico gli strumenti della traduzione dentro il gioco (%.0f MB, una volta sola)…", float64(tot)/1048576))
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Minute)
 	defer cancel()
 	if err := scaricaTutti(ctx, dir, zips, func(fatti, totale int64) {
 		if totale > 0 {
-			passo(8+int(50*fatti/totale), fmt.Sprintf("Scarico BepInEx e XUnity AutoTranslator… %d%%", 100*fatti/totale))
+			passo(8+int(50*fatti/totale), fmt.Sprintf("Scarico la traduzione dentro il gioco… %d%%", 100*fatti/totale))
 		}
 	}); err != nil {
 		fallito("Scaricamento non riuscito: " + err.Error())

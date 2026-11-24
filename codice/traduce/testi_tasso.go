@@ -28,6 +28,9 @@ func trTasso(s string) string {
 // nomeMotore: chi ha tradotto, da scrivere sopra il gioco nella lingua di Tasso. Risultato.Motore
 // resta in italiano perché il codice lo confronta ("memoria", "libreria"...).
 func nomeMotore(m string) string {
+	if m == "Mozilla" { // nome interno del traduttore veloce: all'utente si mostra quello di Tasso
+		return testoTasso("Traduzione veloce", "Fast translation")
+	}
 	if !inIngleseTasso() {
 		return m
 	}

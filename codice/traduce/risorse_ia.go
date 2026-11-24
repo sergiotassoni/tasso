@@ -52,7 +52,7 @@ var risorseIA = RisorseIA{
 		SHA256: "c4734729b75ec7eb157b9da0b5b7e946bd6ebb2b9c864b5ee1d37f399a89f8f7",
 		Byte:   4553136864,
 	},
-	Nome:    "EuroLLM-9B (progetto europeo UTTER)",
+	Nome:    "IA di Tasso",
 	Licenza: "Apache-2.0",
 }
 
@@ -115,7 +115,7 @@ func estraiMotore(zipPath, dest string) error {
 		}
 	}
 	if !trovato {
-		return fmt.Errorf("nello zip non c'è llama-server.exe")
+		return fmt.Errorf("nello zip manca il motore dell'IA di Tasso")
 	}
 	return nil
 }

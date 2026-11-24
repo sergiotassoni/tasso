@@ -37,7 +37,7 @@ func consiglioPC(g InfoGPU, ramGB float64, core int, iaDisponibile bool) Analisi
 		esitoCpu = "forse"
 	}
 	a.Righe = append(a.Righe, RigaAnalisi{"Processore", fmt.Sprintf("%d core", core), esitoCpu})
-	a.Righe = append(a.Righe, RigaAnalisi{"Traduttore veloce (Mozilla)", "Va bene su questo PC. Traduce subito, non usa la scheda video.", "si"})
+	a.Righe = append(a.Righe, RigaAnalisi{"Traduzione veloce", "Va bene su questo PC. Traduce subito, non usa la scheda video.", "si"})
 
 	var ia RigaAnalisi
 	p := sceltaCorrettore(g, ramGB, core)
@@ -67,7 +67,7 @@ func consiglioPC(g InfoGPU, ramGB float64, core int, iaDisponibile bool) Analisi
 		a.Verdetto = "Il tuo PC va bene: traduzione veloce, e più precisa con i giochi leggeri."
 	default:
 		ia = RigaAnalisi{"Correttore IA", "Sconsigliato su questo PC: " + p.Motivo, "no"}
-		a.Consiglio = "Usa solo il traduttore veloce (Mozilla). È quello giusto per questo PC e non pesa sul gioco."
+		a.Consiglio = "Usa solo il traduttore veloce di Tasso. È quello giusto per questo PC e non pesa sul gioco."
 		a.Verdetto = "Il tuo PC va bene per la traduzione veloce. Lascia spenta la traduzione più precisa."
 	}
 	if !iaDisponibile {

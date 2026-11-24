@@ -299,7 +299,7 @@ func assicuraMotore() {
 			if m == nil {
 				motoreAvviato.Store(false)
 				close(pronta)
-				mozillaPronto(false, "il traduttore non è partito (WebView2)")
+				mozillaPronto(false, "la finestra nascosta del traduttore non si è aperta")
 				emetti("aggiorna", stato())
 				return
 			}
@@ -957,7 +957,7 @@ func (p *ponteMozilla) TraduciCoppia(ctx context.Context, testo, da, a string) (
 // traduciCoppia: Mozilla dentro WebView2, da una lingua all'altra ("en"→"it" o "it"→"en").
 func (p *ponteMozilla) traduciCoppia(ctx context.Context, testo, da, a string) (string, error) {
 	if !mozOK.Load() {
-		return "", errors.New("traduttore Mozilla non pronto")
+		return "", errors.New("traduttore veloce non pronto")
 	}
 	p.mu.Lock()
 	p.id++
@@ -974,7 +974,7 @@ func (p *ponteMozilla) traduciCoppia(ctx context.Context, testo, da, a string) (
 	lotto := ctx.Value(chiaveLotto{}) != nil
 	js := fmt.Sprintf("window.tt && window.tt.moz(%d, %s, %q, %q, %v);", id, b, da, a, lotto)
 	if !evalMotore(js) {
-		return "", errors.New("traduttore Mozilla non pronto")
+		return "", errors.New("traduttore veloce non pronto")
 	}
 	select {
 	case v := <-ch:
@@ -983,7 +983,7 @@ func (p *ponteMozilla) traduciCoppia(ctx context.Context, testo, da, a string) (
 		}
 		return v[0], nil
 	case <-time.After(15 * time.Second):
-		return "", errors.New("il traduttore Mozilla non risponde")
+		return "", errors.New("il traduttore veloce non risponde")
 	case <-ctx.Done():
 		return "", ctx.Err()
 	}
@@ -1453,7 +1453,7 @@ func correzioneArrivata(inglese, bozza, corretta string) {
 			testo = d.parlante + ": " + corretta
 		}
 		if !ov.staMostrandoVoce() {
-			ov.Mostra(d.z, testo, d.inglese, strings.Replace(d.stato, "Mozilla", testoTasso("Mozilla + IA", "Mozilla + AI"), 1))
+			ov.Mostra(d.z, testo, d.inglese, strings.Replace(d.stato, nomeMotore("Mozilla"), testoTasso("Traduzione veloce + IA", "Fast translation + AI"), 1))
 		}
 	}
 }

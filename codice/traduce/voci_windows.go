@@ -109,7 +109,7 @@ func estraiWhisper(zipPath, dest string) error {
 		}
 	}
 	if !trovato {
-		return errors.New("nello zip non c'è whisper-server.exe")
+		return errors.New("nello zip manca il riconoscimento della voce di Tasso")
 	}
 	return os.WriteFile(filepath.Join(dest, "LICENZE.txt"), []byte(licenzeVoci), 0o644)
 }
