@@ -9,6 +9,10 @@ GOOS=windows GOARCH=amd64 go vet ./...
 go test ./...
 mkdir -p dist
 # rsrc_windows_amd64.syso contiene icona e manifest (asInvoker: niente amministratore).
-# Per rifarlo: rsrc -manifest tassozip.manifest -ico assets/tasso.ico -arch amd64 -o rsrc_windows_amd64.syso
+# Per rifarlo (anche versione e nome prodotto): ./risorse.sh  (usa ../strumenti/risorse)
 GOOS=windows GOARCH=amd64 go build -trimpath -ldflags "-H windowsgui -s -w" -o dist/TassoZip.exe .
 ls -l dist/TassoZip.exe
+# controllo: l'exe contiene la nuova icona (byte per byte) e il manifest asInvoker
+if [ -d ../strumenti/risorse ]; then
+  (cd ../strumenti/risorse && go run . controlla -exe "$OLDPWD/dist/TassoZip.exe" -ico "$OLDPWD/assets/tasso.ico" -livello asInvoker)
+fi
