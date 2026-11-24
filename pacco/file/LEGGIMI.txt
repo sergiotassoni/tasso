@@ -1,0 +1,3 @@
+Qui strumenti/prepara (lanciato da compila.sh) copia i programmi da incorporare in
+TassoSetup.exe e scrive elenco.json con le impronte SHA-256. Questi file non vanno nel
+repository (vedi .gitignore): si rifanno a ogni compilazione.

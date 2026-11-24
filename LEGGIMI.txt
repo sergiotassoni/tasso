@@ -1,0 +1,74 @@
+TASSO SETUP - installatore unico dell'Ecosistema Tasso
+======================================================
+Un solo file, dist/TassoSetup.exe, che installa (tutti spuntati di base):
+  Tasso Gaming, Tasso Ufficio  -> C:\Program Files\Tasso\Tasso.exe (stesso programma, due modalità)
+  Tasso Zip                    -> C:\Program Files\Tasso\Tasso Zip\TassoZip.exe
+  Tasso PDF                    -> C:\Program Files\Tasso\Tasso PDF\TassoPDF.exe
+più C:\Program Files\Tasso\Disinstalla Tasso.exe e tasso-setup.json (cosa è installato).
+Niente internet: i programmi sono DENTRO l'exe (go:embed, cartella pacco/file).
+
+PAGINE
+  1 Lingua (it, en, es, fr, de, pt, pl; parte con quella di Windows, altrimenti inglese)
+  2 Programmi (caselle, tutte spuntate)
+  3 Cartella (Sfoglia, percorsi di Zip e PDF, spazio libero, collegamenti sul Desktop facoltativi)
+  4 Installazione (barra, Annulla) -> Fatto (caselle "Apri ...")
+Grafica di Tasso: nero #07080D, verde menta, caratteri Archivo/Onest/JetBrains Mono
+dentro la pagina, icone definitive con gli occhi animati.
+
+COSA SCRIVE
+  File: solo quelli dell'elenco; la cartella "lavoro" di Tasso e gli altri file non si toccano.
+  Collegamenti: menu Start di tutti (Tasso, Tasso Zip, Tasso PDF), Desktop pubblico se scelto.
+  HKLM\Software\Microsoft\Windows\CurrentVersion\Uninstall\Tasso
+      DisplayName "Tasso", Publisher "Sergio Tassoni", DisplayVersion, DisplayIcon
+      (Tasso.exe, o il disinstallatore se Tasso non c'è), InstallLocation, UninstallString,
+      InstallDate, EstimatedSize, NoModify, NoRepair
+  HKLM\Software\Tasso   Cartella, Componenti (es. "gaming,ufficio,zip,pdf"), Versione,
+                        Modalita = gioco | ufficio | entrambi   (DA LEGGERE IN TASSO, vedi sotto)
+  HKCU\Software\Tasso   Lingua (la leggono già Tasso Zip e Tasso PDF)
+
+COME FUNZIONA L'INSTALLAZIONE (atomica)
+  1. copia ogni file in <cartella>\.tasso-setup-nuovo, lo rilegge dal disco e controlla
+     l'SHA-256 con quello di elenco.json (qui si può Annullare: non è cambiato niente);
+  2. sposta i file vecchi in .tasso-setup-vecchio e mette i nuovi (solo rinomine);
+     se una non riesce rimette tutto com'era;
+  3. scrive tasso-setup.json e il registro (se il registro non riesce torna indietro);
+  4. collegamenti, poi cancella le cartelle temporanee.
+  PC spento a metà: alla volta dopo "Ripara" rimette i file vecchi al loro posto.
+  Aggiornamento: se Tasso è già installato usa la stessa cartella, aggiorna i programmi
+  spuntati e lascia com'è quello che non spunti. Prima chiede di chiudere Tasso / Zip / PDF
+  se sono aperti (li avvisa come allo spegnimento di Windows, così Tasso salva, poi li chiude).
+
+DISINSTALLAZIONE ("Programmi e funzionalità" > Tasso > Disinstalla)
+  Si sceglie cosa togliere. Toglie solo i file e i collegamenti scritti in tasso-setup.json.
+  Gaming senza Ufficio: Tasso.exe resta e Modalita diventa "ufficio" (e viceversa).
+  Con l'ultimo programma vanno via anche disinstallatore, voce di registro e cartella (se vuota).
+
+AMMINISTRATORE
+  TassoSetup.exe e il disinstallatore: requireAdministrator (scrivono in Programmi e HKLM).
+  Tasso Zip e Tasso PDF restano asInvoker e, dalla pagina finale, partono come utente normale.
+  Tasso ha già il suo manifest (requireAdministrator).
+
+WEBVIEW2
+  Se manca il Runtime: un messaggio di Windows lo spiega e chiede se aprire la pagina di
+  Microsoft (si apre solo rispondendo Sì). L'installatore non scarica niente.
+
+COMPILARE (anche da Linux)
+  ./compila.sh
+  - prova tutto (go vet anche GOOS=windows, go test), rifà rsrc_windows_amd64.syso con
+    ../strumenti/risorse (icona Tasso Gaming, manifest requireAdministrator, versione);
+  - compila build/Disinstalla Tasso.exe (go build -tags disinstallatore: niente programmi dentro);
+  - strumenti/prepara copia in pacco/file Tasso.exe, ../tassozip, ../tassopdf (le loro
+    cartelle dist/ vanno compilate prima) e il disinstallatore, e scrive elenco.json;
+  - compila dist/TassoSetup.exe e controlla icona e manifest.
+
+  TASSO.EXE: adesso dentro c'è un SEGNAPOSTO, /tmp/tb7/Tasso.exe (build non firmata).
+  Per la versione da distribuire:
+     TASSO_EXE=/percorso/Tasso-firmato.exe TASSO_VER=3.1 ./compila.sh
+  e poi firma anche dist/TassoSetup.exe (signtool). La firma di Tasso.exe resta valida:
+  il file viene copiato byte per byte (controllo SHA-256).
+
+PROVE
+  go test ./...   installa/ (componenti, cartelle, registro simulato, annulla, ritorno indietro,
+                  aggiornamento, disinstallazione selettiva), testi/ (7 lingue, stesse chiavi),
+                  ui/ (ogni testo usato dalla pagina esiste), pacco/ (installa i file veri in una
+                  cartella temporanea, se compila.sh li ha già preparati).

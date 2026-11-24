@@ -1,0 +1,5 @@
+/dist/
+/build/
+/pacco/file/*
+!/pacco/file/LEGGIMI.txt
+*.test

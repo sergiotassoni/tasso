@@ -1,0 +1,392 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<title>Tasso Setup</title>
+<style>
+/* Caratteri del sito di Tasso (Archivo, Onest, JetBrains Mono - SIL OFL 1.1), dentro la pagina: niente internet. */
+/*CARATTERI*/
+:root{
+  --bg:#07080D;--side:#0D0F16;--panel:#12141E;--line:#22263A;--text:#F2F4F8;--muted:#8B91A7;
+  --a1:#2FF3A6;--a2:#A77BFF;--a3:#4DA8FF;--a4:#FFB547;--ink:#04140D;--red:#FF6B5C;
+  --display:'TassoArchivo','Bahnschrift','Segoe UI Variable Display','Segoe UI',sans-serif;
+  --body:'TassoOnest','Segoe UI Variable Text','Segoe UI',system-ui,sans-serif;
+  --mono:'TassoMono','Cascadia Mono','Consolas',monospace;
+  --soft:color-mix(in srgb,var(--text) 72%,var(--bg));
+  --panel2:color-mix(in srgb,var(--panel) 80%,var(--text) 4%);
+  --hover:color-mix(in srgb,var(--panel) 85%,var(--text) 8%);
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--text);font-family:var(--body);font-size:14px;overflow:hidden;user-select:none}
+button{font-family:inherit;cursor:pointer;color:inherit}
+button:focus-visible,input:focus-visible,label:focus-within{outline:2px solid var(--a1);outline-offset:2px}
+input[type=checkbox]{width:18px;height:18px;accent-color:var(--a1);cursor:pointer;flex:0 0 18px;margin:0}
+.app{display:flex;height:100%}
+aside{width:236px;flex:0 0 236px;background:var(--side);border-right:1px solid var(--line);padding:26px 18px;display:flex;flex-direction:column;gap:26px}
+.brand{display:flex;flex-direction:column;gap:14px}
+.brand img{width:92px;height:92px;filter:drop-shadow(0 10px 28px color-mix(in srgb,var(--a1) 22%,transparent))}
+.brand b{font-family:var(--display);font-weight:800;font-stretch:112%;font-size:22px;letter-spacing:-.01em;display:block}
+.brand small{font:500 11px var(--mono);letter-spacing:.14em;color:var(--muted);text-transform:uppercase}
+ol.passi{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px}
+ol.passi li{display:flex;align-items:center;gap:12px;padding:9px 10px;border-radius:11px;color:var(--muted);font-weight:600}
+ol.passi li i{font:500 11px var(--mono);letter-spacing:.1em;font-style:normal;width:26px;height:26px;border-radius:8px;border:1px solid var(--line);display:grid;place-items:center}
+ol.passi li.on{background:var(--panel);color:var(--text);box-shadow:inset 3px 0 0 var(--a1)}
+ol.passi li.on i{border-color:var(--a1);color:var(--a1)}
+ol.passi li.fatto i{background:var(--a1);border-color:var(--a1);color:var(--ink)}
+.ver{margin-top:auto;font:500 11px var(--mono);letter-spacing:.12em;color:var(--muted)}
+main{flex:1;min-width:0;display:flex;flex-direction:column}
+.pagina{display:none;flex:1;padding:34px 38px 10px;flex-direction:column;gap:18px;overflow-y:auto}
+.pagina.on{display:flex}
+.pagina::-webkit-scrollbar{width:10px}.pagina::-webkit-scrollbar-thumb{background:var(--line);border-radius:10px;border:3px solid var(--bg)}
+.k{font:500 11px var(--mono);letter-spacing:.16em;color:var(--a1);text-transform:uppercase}
+h1{margin:0;font-family:var(--display);font-weight:800;font-stretch:110%;letter-spacing:-.02em;font-size:30px;line-height:1.1}
+.sub{color:var(--muted);margin:0;line-height:1.55;max-width:600px}
+.lingue{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-top:6px}
+.lingue button{display:flex;justify-content:space-between;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;font-size:15px;font-weight:700;text-align:left}
+.lingue button span{font:500 11px var(--mono);letter-spacing:.12em;color:var(--muted);text-transform:uppercase}
+.lingue button:hover{background:var(--hover)}
+.lingue button.on{border-color:var(--a1);box-shadow:0 0 0 1px var(--a1) inset}
+.lingue button.on span{color:var(--a1)}
+.comp{display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:12px}
+.carta{display:flex;gap:14px;align-items:flex-start;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;cursor:pointer;transition:border-color .15s,opacity .15s}
+.carta:hover{background:var(--hover)}
+.carta.no{opacity:.55}
+.carta.si{border-color:color-mix(in srgb,var(--a1) 55%,var(--line))}
+.carta img{width:54px;height:54px;flex:0 0 54px}
+.carta .t{flex:1;min-width:0}
+.carta b{display:block;font-family:var(--display);font-weight:700;font-stretch:105%;font-size:16px}
+.carta p{margin:4px 0 0;color:var(--muted);line-height:1.45;font-size:13px}
+.carta .badge{display:inline-block;margin-top:8px;font:500 10px var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--a3);border:1px solid var(--line);border-radius:6px;padding:3px 6px}
+.nota{border:1px solid var(--line);border-radius:12px;padding:12px 14px;color:var(--soft);line-height:1.5;font-size:13px}
+.nota.avviso{border-color:color-mix(in srgb,var(--a4) 55%,var(--line));color:var(--a4)}
+.nota.errore{border-color:color-mix(in srgb,var(--red) 60%,var(--line));color:var(--red)}
+.riga{display:flex;gap:10px;align-items:center}
+input[type=text]{flex:1;min-width:0;background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:12px;padding:12px 14px;font:500 13px var(--mono);user-select:text}
+input[type=text]:focus{outline:none;border-color:var(--a1)}
+.percorsi{display:flex;flex-direction:column;gap:8px}
+.percorsi div{display:flex;align-items:center;gap:12px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.percorsi img{width:26px;height:26px}
+.percorsi b{width:120px;flex:0 0 120px;font-size:13px}
+.percorsi code{font:500 12px var(--mono);color:var(--soft);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.spazio{font:500 12px var(--mono);color:var(--muted);letter-spacing:.04em}
+label.scelta{display:flex;gap:10px;align-items:center;color:var(--soft);cursor:pointer}
+label.scelta.fissa{cursor:default;opacity:.7}
+.barra{height:12px;border-radius:99px;background:var(--panel);border:1px solid var(--line);overflow:hidden;margin-top:10px}
+.barra i{display:block;height:100%;width:0;background:var(--a1);border-radius:99px;transition:width .2s;box-shadow:0 0 18px color-mix(in srgb,var(--a1) 60%,transparent)}
+.perc{font:800 52px var(--display);font-stretch:118%;letter-spacing:-.02em}
+.fase{color:var(--soft);font:500 12px var(--mono);letter-spacing:.06em;min-height:18px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.grande{display:flex;align-items:center;gap:22px}
+.grande img{width:120px;height:120px}
+.apri{display:flex;flex-direction:column;gap:10px}
+.piede{display:flex;justify-content:flex-end;align-items:center;gap:10px;padding:16px 38px 24px;border-top:1px solid var(--line)}
+.piede .msg{margin-right:auto;color:var(--red);font-size:13px}
+.btn{border:0;border-radius:12px;padding:10px 20px;font-weight:700;font-size:14px;min-height:42px}
+.btn.primary{background:var(--text);color:var(--bg)}
+.btn.primary:hover{background:#fff;box-shadow:0 0 0 3px color-mix(in srgb,var(--text) 18%,transparent)}
+.btn.primary:disabled{opacity:.4;cursor:default;box-shadow:none}
+.btn.ghost{background:var(--panel2);color:var(--text);border:1px solid var(--line)}
+.btn.ghost:hover{background:var(--hover)}
+.btn.ghost:disabled{opacity:.4;cursor:default}
+.velo{position:fixed;inset:0;background:color-mix(in srgb,var(--bg) 70%,transparent);display:none;place-items:center;z-index:9}
+.velo.on{display:grid}
+.finestra{width:min(520px,90vw);background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:22px;display:flex;flex-direction:column;gap:14px}
+.finestra h2{margin:0;font-family:var(--display);font-weight:700;font-size:19px}
+.finestra .riga{justify-content:flex-end}
+.toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 16px;display:none;z-index:10}
+.toast.on{display:block}
+@media (prefers-reduced-motion:reduce){.barra i{transition:none}}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside>
+    <div class="brand"><img id="faccia" src="{{ICONA:gaming}}" alt=""><div><b>TASSO</b><small id="sottoBrand">SETUP</small></div></div>
+    <ol class="passi" id="passi">
+      <li data-p="0"><i>01</i><span data-t="passo_lingua"></span></li>
+      <li data-p="1"><i>02</i><span data-t="passo_componenti"></span></li>
+      <li data-p="2"><i>03</i><span data-t="passo_cartella"></span></li>
+      <li data-p="3"><i>04</i><span data-t="passo_installa"></span></li>
+    </ol>
+    <div class="ver" id="versione"></div>
+  </aside>
+  <main>
+    <!-- 0. lingua -->
+    <section class="pagina" id="p0">
+      <div class="k">01 · <span data-t="passo_lingua"></span></div>
+      <h1 data-t="lingua_titolo"></h1>
+      <p class="sub" data-t="lingua_sotto"></p>
+      <div class="lingue" id="lingue"></div>
+    </section>
+    <!-- 1. componenti -->
+    <section class="pagina" id="p1">
+      <div class="k">02 · <span data-t="passo_componenti"></span></div>
+      <h1 data-t="comp_titolo"></h1>
+      <p class="sub" data-t="comp_sotto"></p>
+      <div class="comp" id="comp"></div>
+      <div class="nota" data-t="comp_nota_tasso"></div>
+      <div class="nota" id="notaAgg" hidden></div>
+    </section>
+    <!-- 2. cartella -->
+    <section class="pagina" id="p2">
+      <div class="k">03 · <span data-t="passo_cartella"></span></div>
+      <h1 data-t="cart_titolo"></h1>
+      <p class="sub" data-t="cart_sotto"></p>
+      <div class="riga"><input type="text" id="cartella" spellcheck="false" aria-label="Cartella"><button class="btn ghost" id="sfoglia" data-t="cart_sfoglia"></button></div>
+      <div class="nota errore" id="errCartella" hidden></div>
+      <div class="nota avviso" id="avvCartella" hidden data-t="cart_fuori_programmi"></div>
+      <div class="percorsi" id="percorsi"></div>
+      <div class="spazio" id="spazio"></div>
+      <label class="scelta fissa"><input type="checkbox" checked disabled><span data-t="coll_menu"></span></label>
+      <label class="scelta"><input type="checkbox" id="desktop"><span data-t="coll_desktop"></span></label>
+    </section>
+    <!-- 3. installazione -->
+    <section class="pagina" id="p3">
+      <div class="k">04 · <span data-t="passo_installa"></span></div>
+      <div class="perc" id="perc">0%</div>
+      <div class="barra"><i id="barra"></i></div>
+      <div class="fase" id="fase"></div>
+    </section>
+    <!-- 4. fine -->
+    <section class="pagina" id="p4">
+      <div class="grande"><img id="facciaFine" src="{{ICONA:gaming}}" alt=""><div><div class="k" data-t="passo_installa"></div><h1 data-t="fine_titolo"></h1><p class="sub" data-t="fine_sotto"></p></div></div>
+      <div class="nota avviso" id="avvColl" hidden data-t="fine_avviso_coll"></div>
+      <div class="apri" id="apri"></div>
+    </section>
+    <!-- 5. errore -->
+    <section class="pagina" id="p5">
+      <div class="k" data-t="err_titolo"></div>
+      <h1 data-t="err_titolo"></h1>
+      <div class="nota errore" id="errTesto"></div>
+    </section>
+    <!-- 6. disinstalla -->
+    <section class="pagina" id="p6">
+      <div class="k" data-t="dis_titolo"></div>
+      <h1 data-t="dis_titolo"></h1>
+      <p class="sub" data-t="dis_sotto"></p>
+      <div class="comp" id="compDis"></div>
+      <div class="nota" id="notaDis" data-t="dis_nota_tasso"></div>
+    </section>
+    <!-- 7. disinstallazione finita -->
+    <section class="pagina" id="p7">
+      <div class="grande"><img src="{{ICONA:gaming}}" alt=""><div><h1 data-t="fine_titolo"></h1><p class="sub" id="disEsito"></p></div></div>
+      <div class="nota avviso" id="disNonTolti" hidden></div>
+    </section>
+    <div class="piede">
+      <span class="msg" id="msg" role="alert"></span>
+      <button class="btn ghost" id="bIndietro" data-t="indietro"></button>
+      <button class="btn ghost" id="bAnnulla" data-t="annulla" hidden></button>
+      <button class="btn primary" id="bAvanti" data-t="avanti"></button>
+    </div>
+  </main>
+</div>
+<div class="velo" id="velo"><div class="finestra" role="dialog" aria-modal="true" aria-labelledby="veloTit">
+  <h2 id="veloTit" data-t="aperti_titolo"></h2>
+  <div id="veloTesto" class="sub"></div>
+  <div class="riga"><button class="btn ghost" id="veloNo" data-t="annulla"></button><button class="btn primary" id="veloSi" data-t="aperti_chiudi"></button></div>
+</div></div>
+<div class="toast" id="toast" role="status"></div>
+<script>
+'use strict';
+const $ = s => document.querySelector(s);
+const ICONE = {gaming:'{{ICONA:gaming}}', ufficio:'{{ICONA:ufficio}}', zip:'{{ICONA:zip}}', pdf:'{{ICONA:pdf}}'};
+const call = (n, ...a) => window[n](...a);
+let A = null;          // dati da Go (goAvvio)
+let L = 'it';          // lingua scelta
+let P = 0;             // pagina
+let scelti = {};       // componente -> spuntato
+let dis = {};          // disinstalla: componente -> spuntato
+let cart = null;       // ultimo controllo della cartella
+let lavoro = false;    // installazione in corso
+let fattoOk = null;    // esito installazione
+
+function T(k, ...v){ let s = (A && A.testi[L] && A.testi[L][k]) || (A && A.testi.it[k]) || k; v.forEach(x => { s = s.replace('%s', x); }); return s; }
+function traduci(){
+  document.documentElement.lang = L;
+  document.querySelectorAll('[data-t]').forEach(e => { e.textContent = T(e.dataset.t); });
+  document.title = T('titolo');
+}
+function dim(n){
+  const u = ['B','KB','MB','GB','TB']; let i = 0; n = Number(n) || 0;
+  while (n >= 1024 && i < u.length - 1) { n /= 1024; i++; }
+  return new Intl.NumberFormat(L, {maximumFractionDigits: i >= 3 ? 1 : 0}).format(n) + ' ' + u[i];
+}
+function toast(t){ const e = $('#toast'); e.textContent = t; e.classList.add('on'); clearTimeout(toast.t); toast.t = setTimeout(() => e.classList.remove('on'), 3500); }
+function msg(t){ $('#msg').textContent = t || ''; }
+const nomeComp = id => T('comp_' + id + '_nome');
+const compScelti = () => A.componenti.map(c => c.id).filter(id => scelti[id]);
+
+function vai(p){
+  P = p; msg('');
+  document.querySelectorAll('.pagina').forEach(e => e.classList.toggle('on', e.id === 'p' + p));
+  const passo = p <= 4 ? Math.min(p, 3) : (p === 5 ? 3 : -1);
+  document.querySelectorAll('#passi li').forEach(li => { const n = +li.dataset.p; li.classList.toggle('on', n === passo && p !== 4); li.classList.toggle('fatto', n < passo || p === 4); });
+  $('#passi').hidden = A.modo === 'disinstalla';
+  const ind = $('#bIndietro'), av = $('#bAvanti'), ann = $('#bAnnulla');
+  ind.hidden = !(p === 1 || p === 2); ann.hidden = true; av.hidden = false; av.disabled = false;
+  if (p === 0 || p === 1) av.textContent = T('avanti');
+  if (p === 2) { av.textContent = A.installata ? T('aggiorna') : T('installa'); controllaCartella(); }
+  if (p === 3) { av.hidden = true; ann.hidden = false; ann.disabled = false; }
+  if (p === 4 || p === 7) { av.textContent = T('chiudi'); }
+  if (p === 5) { av.textContent = T('riprova'); ann.hidden = false; ann.textContent = T('chiudi'); }
+  if (p === 6) { av.textContent = T('dis_bottone'); ann.hidden = false; ann.textContent = T('annulla'); }
+  $('#faccia').src = ICONE[p === 1 ? 'gaming' : (p === 2 ? 'zip' : (p === 3 ? 'pdf' : 'gaming'))];
+  const f = document.querySelector('.pagina.on h1'); if (f) f.setAttribute('tabindex', '-1');
+}
+
+function disegnaLingue(){
+  const box = $('#lingue'); box.innerHTML = '';
+  A.lingue.forEach(l => {
+    const b = document.createElement('button'); b.type = 'button';
+    b.className = l.codice === L ? 'on' : ''; b.setAttribute('aria-pressed', l.codice === L ? 'true' : 'false');
+    b.innerHTML = '<b></b><span></span>'; b.firstChild.textContent = l.nome; b.lastChild.textContent = l.codice;
+    b.onclick = () => { L = l.codice; call('goLingua', L); traduci(); disegnaLingue(); disegnaComp(); vai(P); };
+    box.appendChild(b);
+  });
+}
+
+function carta(c, mappa, testoExtra){
+  const lab = document.createElement('label'); lab.className = 'carta ' + (mappa[c.id] ? 'si' : 'no');
+  lab.innerHTML = '<img alt=""><div class="t"><b></b><p></p></div><input type="checkbox">';
+  lab.querySelector('img').src = ICONE[c.id];
+  lab.querySelector('b').textContent = nomeComp(c.id);
+  lab.querySelector('p').textContent = T('comp_' + c.id + '_desc');
+  if (testoExtra) { const s = document.createElement('span'); s.className = 'badge'; s.textContent = testoExtra; lab.querySelector('.t').appendChild(s); }
+  const cb = lab.querySelector('input'); cb.checked = !!mappa[c.id];
+  cb.setAttribute('aria-label', nomeComp(c.id));
+  cb.onchange = () => { mappa[c.id] = cb.checked; lab.className = 'carta ' + (cb.checked ? 'si' : 'no'); msg(''); };
+  return lab;
+}
+function disegnaComp(){
+  const box = $('#comp'); box.innerHTML = '';
+  A.componenti.forEach(c => box.appendChild(carta(c, scelti, c.installato ? T('comp_installato', c.installato) : '')));
+  const n = $('#notaAgg'); n.hidden = !A.installata; if (A.installata) n.textContent = T('agg_nota', A.installata.versione);
+  const d = $('#compDis'); d.innerHTML = '';
+  if (A.installata) A.componenti.filter(c => A.installata.componenti.includes(c.id)).forEach(c => d.appendChild(carta(c, dis, c.installato ? T('comp_installato', c.installato) : '')));
+}
+
+async function controllaCartella(){
+  const p = $('#cartella').value;
+  const r = await call('goControllaCartella', p, compScelti());
+  if (p !== $('#cartella').value) return; // l'utente ha già scritto altro
+  cart = r;
+  const e = $('#errCartella'); e.hidden = !r.errore; if (r.errore) e.textContent = T(r.errore);
+  $('#avvCartella').hidden = !!r.errore || !r.fuoriProgrammi;
+  const box = $('#percorsi'); box.innerHTML = '';
+  if (!r.errore) {
+    const righe = [];
+    if (scelti.gaming || scelti.ufficio) righe.push([scelti.gaming ? 'gaming' : 'ufficio', 'Tasso', r.percorsi.tasso]);
+    if (scelti.zip) righe.push(['zip', nomeComp('zip'), r.percorsi.zip]);
+    if (scelti.pdf) righe.push(['pdf', nomeComp('pdf'), r.percorsi.pdf]);
+    righe.forEach(x => { const d = document.createElement('div'); d.innerHTML = '<img alt=""><b></b><code></code>'; d.querySelector('img').src = ICONE[x[0]]; d.querySelector('b').textContent = x[1]; d.querySelector('code').textContent = x[2]; d.title = x[2]; box.appendChild(d); });
+  }
+  $('#spazio').textContent = r.errore ? '' : T('cart_spazio', dim(r.serve), r.libero > 0 ? dim(r.libero) : '?');
+  if (!r.errore && r.libero > 0 && r.libero < r.serve) { e.hidden = false; e.textContent = T('cart_poco_spazio'); }
+  $('#bAvanti').disabled = !!r.errore || (r.libero > 0 && r.libero < r.serve);
+}
+
+async function installa(){
+  const opz = {cartella: $('#cartella').value, componenti: compScelti(), desktop: $('#desktop').checked, lingua: L};
+  const aperti = await call('goProgrammiAperti', opz.cartella, opz.componenti);
+  if (aperti && aperti.length) {
+    const ok = await chiediChiusura(aperti);
+    if (!ok) return;
+    if (!await call('goChiudiProgrammi', opz.cartella, opz.componenti)) { msg(T('aperti_errore')); return; }
+  }
+  lavoro = true; fattoOk = null;
+  $('#barra').style.width = '0'; $('#perc').textContent = '0%'; $('#fase').textContent = T('fase_prepara');
+  vai(3);
+  const r = await call('goInstalla', opz);
+  if (r !== 'ok') { lavoro = false; mostraErrore(r); }
+}
+function chiediChiusura(nomi){
+  return new Promise(ok => {
+    $('#veloTesto').textContent = T('aperti_testo', nomi.join(', '));
+    $('#velo').classList.add('on'); $('#veloSi').focus();
+    $('#veloSi').onclick = () => { $('#velo').classList.remove('on'); ok(true); };
+    $('#veloNo').onclick = () => { $('#velo').classList.remove('on'); ok(false); };
+  });
+}
+function mostraErrore(r){
+  const t = r && r.codice ? (r.codice === 'err_generico' ? T('err_generico', r.dettagli || '') : T(r.codice)) : T('err_generico', String(r && r.dettagli || r));
+  $('#errTesto').textContent = t; vai(5);
+}
+
+// eventi da Go
+window.TS = {
+  avanza(a){
+    if (a.fase === 'fine') return;
+    const p = a.totale > 0 ? Math.min(100, Math.floor(a.fatto * 100 / a.totale)) : 0;
+    $('#barra').style.width = p + '%'; $('#perc').textContent = p + '%';
+    $('#fase').textContent = a.fase === 'copia' ? T('fase_copia', a.file || '') : T('fase_' + a.fase);
+    $('#bAnnulla').disabled = a.fase !== 'copia' && a.fase !== 'prepara';
+  },
+  finito(r){
+    lavoro = false;
+    if (!r.ok) { mostraErrore(r); return; }
+    fattoOk = r;
+    $('#avvColl').hidden = !r.avvisoCollegamenti;
+    const box = $('#apri'); box.innerHTML = '';
+    (r.apribili || []).forEach(id => {
+      const l = document.createElement('label'); l.className = 'scelta';
+      l.innerHTML = '<input type="checkbox"><span></span>';
+      l.querySelector('input').checked = id === r.apribili[0]; l.querySelector('input').dataset.id = id;
+      l.querySelector('span').textContent = T('fine_apri', id === 'tasso' ? 'Tasso' : nomeComp(id));
+      box.appendChild(l);
+    });
+    $('#barra').style.width = '100%'; $('#perc').textContent = '100%';
+    vai(4);
+  },
+  chiusura(){ toast(T('uscita_durante')); },
+};
+
+$('#bAvanti').onclick = async () => {
+  if (P === 0) { vai(1); return; }
+  if (P === 1) { if (!compScelti().length) { msg(T('comp_nessuno')); return; } vai(2); return; }
+  if (P === 2) { installa(); return; }
+  if (P === 4) { const ids = [...document.querySelectorAll('#apri input:checked')].map(i => i.dataset.id); await call('goApri', ids); call('goChiudi'); return; }
+  if (P === 5) { vai(2); return; }
+  if (P === 6) { disinstalla(); return; }
+  if (P === 7) { call('goChiudi'); }
+};
+$('#bIndietro').onclick = () => { if (P > 0) vai(P - 1); };
+$('#bAnnulla').onclick = () => { if (P === 3) { $('#bAnnulla').disabled = true; call('goAnnulla'); } else call('goChiudi'); };
+$('#sfoglia').onclick = async () => { const p = await call('goScegliCartella', $('#cartella').value, T('cart_scegli')); if (p) { $('#cartella').value = p; controllaCartella(); } };
+$('#cartella').oninput = () => { clearTimeout(controllaCartella.t); controllaCartella.t = setTimeout(controllaCartella, 250); };
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && $('#velo').classList.contains('on')) $('#veloNo').click(); });
+
+async function disinstalla(){
+  const ids = A.componenti.map(c => c.id).filter(id => dis[id]);
+  if (!ids.length) { msg(T('dis_nessuno')); return; }
+  const aperti = await call('goProgrammiAperti', A.cartella, ids);
+  if (aperti && aperti.length) {
+    if (!await chiediChiusura(aperti)) return;
+    if (!await call('goChiudiProgrammi', A.cartella, ids)) { msg(T('aperti_errore')); return; }
+  }
+  $('#bAvanti').disabled = true; $('#bAnnulla').disabled = true; msg(''); $('#msg').style.color = 'var(--muted)'; $('#msg').textContent = T('dis_in_corso');
+  const r = await call('goDisinstalla', ids);
+  $('#msg').style.color = '';
+  if (!r.ok) { $('#bAvanti').disabled = false; $('#bAnnulla').disabled = false; msg(T('err_generico', r.dettagli || '')); return; }
+  $('#disEsito').textContent = r.tuttoTolto ? T('dis_tutto') : T('dis_fatto');
+  const nt = $('#disNonTolti'); nt.hidden = !(r.nonTolti && r.nonTolti.length); if (!nt.hidden) nt.textContent = T('dis_non_tolti', r.nonTolti.join(', '));
+  vai(7);
+}
+
+(async () => {
+  A = await call('goAvvio');
+  L = A.lingua || 'it';
+  A.componenti.forEach(c => { scelti[c.id] = true; dis[c.id] = true; });
+  $('#cartella').value = A.cartella || '';
+  if (A.installata) { $('#cartella').readOnly = true; $('#sfoglia').hidden = true; } // aggiornamento: stessa cartella
+  $('#versione').textContent = 'TASSO ' + (A.versione || '');
+  traduci(); disegnaLingue(); disegnaComp();
+  if (A.modo === 'disinstalla') {
+    $('#sottoBrand').textContent = T('dis_bottone').toUpperCase();
+    if (!A.installata) { $('#errTesto').textContent = T('dis_niente'); vai(5); $('#bAvanti').hidden = true; return; }
+    vai(6); return;
+  }
+  if (A.vuoto) { $('#errTesto').textContent = T('err_vuoto'); vai(5); $('#bAvanti').hidden = true; return; }
+  vai(0);
+})();
+</script>
+</body>
+</html>
