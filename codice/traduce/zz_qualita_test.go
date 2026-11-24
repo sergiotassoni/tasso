@@ -6,6 +6,8 @@ package traduce
 // L'altra metà (id pari = "verifica") si usa una volta sola alla fine, per il numero vero.
 //   BASE=collaudo.json (uscite di Mozilla dal vivo)  MODELLO=file.gguf  MOTORE=cartella llama
 //   VARIANTI=v0,v1,...  META=sviluppo|verifica  NGL=99
+//   FRASI=1000|extra (facoltativo): solo le prime 1000 (id 1-1000) o solo le 1000 in più (id 1001-2000);
+//   senza, tutte quelle che ci sono in BASE. Per avere le 2000 in BASE: collaudo con TASSO_FRASI_PROVA=2000.
 //   go test -tags collaudo -run TestQualita -timeout 3h -v .
 
 import (
@@ -142,8 +144,12 @@ func TestQualita(t *testing.T) {
 		t.Fatal(err)
 	}
 	pari := os.Getenv("META") == "verifica"
+	quali := os.Getenv("FRASI")
 	var frasi []EsitoFrase
 	for _, f := range c.Mozilla.Frasi {
+		if (quali == "1000" && f.ID > 1000) || (quali == "extra" && f.ID <= 1000) {
+			continue
+		}
 		if (f.ID%2 == 0) == pari {
 			frasi = append(frasi, f)
 		}

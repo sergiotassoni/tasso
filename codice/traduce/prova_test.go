@@ -45,3 +45,22 @@ func TestEseguiProva(t *testing.T) {
 		t.Fatal("rapporto senza il motore")
 	}
 }
+
+func TestFrasiProva2000(t *testing.T) {
+	t.Setenv("TASSO_FRASI_PROVA", "2000")
+	frasi, err := caricaFrasiProva()
+	if err != nil || len(frasi) != 2000 {
+		t.Fatalf("frasi: %d %v", len(frasi), err)
+	}
+	visti := map[int]bool{}
+	for i, f := range frasi {
+		if f.ID != i+1 || visti[f.ID] || f.EN == "" || f.IT == "" || f.Genere == "" {
+			t.Fatalf("frase %d: %+v", i, f)
+		}
+		visti[f.ID] = true
+	}
+	t.Setenv("TASSO_FRASI_PROVA", "")
+	if frasi, _ := caricaFrasiProva(); len(frasi) != 1000 {
+		t.Fatalf("senza variabile: %d frasi", len(frasi))
+	}
+}

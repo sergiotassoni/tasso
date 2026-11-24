@@ -11,6 +11,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
+	"os"
 	"sort"
 	"strings"
 	"time"
@@ -19,6 +20,11 @@ import (
 
 //go:embed prova/test_1000.jsonl
 var frasiProva string
+
+// Altre 1000 frasi (id 1001-2000), stesso formato: si usano solo con TASSO_FRASI_PROVA=2000.
+//
+//go:embed prova/test_2000_extra.jsonl
+var frasiProvaExtra string
 
 //go:embed prova/mozilla_1000.json
 var risultatiMozilla string
@@ -47,9 +53,16 @@ type EsitoProva struct {
 	Note    string       `json:"note"`
 }
 
+// caricaFrasiProva: le 1000 frasi di sempre; con la variabile d'ambiente TASSO_FRASI_PROVA=2000
+// anche le 1000 in più di prova/test_2000_extra.jsonl (in coda, id 1001-2000). La metà "mai vista"
+// resta quella con id pari, come per le prime 1000.
 func caricaFrasiProva() ([]FraseProva, error) {
+	testo := frasiProva
+	if os.Getenv("TASSO_FRASI_PROVA") == "2000" {
+		testo += "\n" + frasiProvaExtra
+	}
 	var out []FraseProva
-	sc := bufio.NewScanner(strings.NewReader(frasiProva))
+	sc := bufio.NewScanner(strings.NewReader(testo))
 	for sc.Scan() {
 		if strings.TrimSpace(sc.Text()) == "" {
 			continue
@@ -215,7 +228,13 @@ func confronta(h, r map[string]float64) (m, th, tr float64) {
 // rapportoProva: tabella in Markdown con tutti i motori affiancati.
 func rapportoProva(esiti []EsitoProva) string {
 	var b strings.Builder
-	b.WriteString(fmt.Sprintf("# Prova delle %d frasi\n\n", len(esiti[0].Frasi)))
+	rif := esiti[0] // l'esito con più frasi (con 2000 frasi Mozilla registrato ne ha solo 1000)
+	for _, e := range esiti {
+		if len(e.Frasi) > len(rif.Frasi) {
+			rif = e
+		}
+	}
+	b.WriteString(fmt.Sprintf("# Prova delle %d frasi\n\n", len(rif.Frasi)))
 	b.WriteString("Qualità chrF++ (0-100, più alto è meglio) e tempo di traduzione per frase.\n\n")
 	b.WriteString("| Motore | Qualità chrF++ | Mediana | 90% sotto | Massimo |\n|---|---|---|---|---|\n")
 	for _, e := range esiti {
@@ -233,7 +252,7 @@ func rapportoProva(esiti []EsitoProva) string {
 	if len(esiti) == 0 {
 		return b.String()
 	}
-	for i, f := range esiti[0].Frasi {
+	for i, f := range rif.Frasi {
 		fmt.Fprintf(&b, "| %d | %s | %s |", f.ID, f.EN, f.IT)
 		for _, e := range esiti {
 			if i < len(e.Frasi) {
