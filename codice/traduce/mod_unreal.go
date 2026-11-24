@@ -112,11 +112,12 @@ func GiocoHaLingua(paks, lingua string) bool {
 			continue
 		}
 		for _, v := range p.Voci {
-			n := strings.ToLower(strings.TrimPrefix(v.Nome, "/"))
-			if strings.HasPrefix(n, "engine/") {
+			// percorso intero: un pak montato su ../../../Engine/ ha nomi senza "Engine/" davanti
+			n := "/" + strings.ToLower(strings.TrimLeft(strings.ReplaceAll(p.Montaggio+v.Nome, "\\", "/"), "./"))
+			if strings.HasPrefix(n, "/engine/") || strings.Contains(n, "/engine/") || strings.Contains(n, "/localization/engine/") {
 				continue
 			}
-			if locresDellaLingua(v.Nome, lingua) {
+			if locresDellaLingua(v.Nome, lingua) && v.Uncomp >= 4096 {
 				p.Chiudi()
 				return true
 			}
@@ -335,6 +336,12 @@ func TraduciLocres(files []LocresDaTradurre, traduci func(string) (string, bool)
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
+			defer func() {
+				// un errore grave in una frase non deve chiudere Tasso: fermo il lavoro e lo dico
+				if r := recover(); r != nil {
+					fermato.Store(true)
+				}
+			}()
 			for {
 				if stop != nil && stop() {
 					fermato.Store(true)

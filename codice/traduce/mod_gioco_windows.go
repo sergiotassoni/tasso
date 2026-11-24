@@ -247,8 +247,11 @@ func applicaModGioco(nome, cartella string, rischioOK bool) {
 			applicaTraduzione(nome, cartella)
 			return
 		}
-		if _, a := coppiaAttiva(); GiocoHaLingua(CartellaPaksUnreal(cartella), a) {
-			fallito(nome + " ha già la sua traduzione in " + strings.ToLower(nomeLingua(a)) + ", fatta dagli autori del gioco: sceglila nelle impostazioni del gioco (di solito Opzioni → Lingua). È la traduzione migliore e non serve aggiungere niente.")
+		if _, a := coppiaAttiva(); GiocoHaLingua(CartellaPaksUnreal(cartella), a) && os.Getenv("TASSO_FORZA_FILE") == "" {
+			// Il controllo può sbagliare (file della lingua quasi vuoti): lo dico, ma la traduzione
+			// dello schermo parte lo stesso, così non resti mai senza niente.
+			emetti("guidata", map[string]any{"nome": nome, "percento": 4, "testo": nome + " sembra avere già la sua traduzione in " + strings.ToLower(nomeLingua(a)) + ": prova a sceglierla nelle impostazioni del gioco (di solito Opzioni → Lingua). Intanto lo traduco sullo schermo."})
+			applicaTraduzione(nome, cartella)
 			return
 		}
 		if os.Getenv("TASSO_FILE_UNREAL") == "" {

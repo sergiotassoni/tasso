@@ -892,6 +892,10 @@ func fpsMeasure(delay, secs int, boosted, beeps bool, prefer string) (*fpsResult
 	_, _ = io.Copy(io.Discard, out)
 	werr := cmd.Wait()
 	close(done)
+	fgMu.Lock()
+	fg[foregroundPid()]++ // ultimo controllo a misura finita (se PresentMon finisce presto ce n'è almeno uno)
+	fgTot++
+	fgMu.Unlock()
 	hzAtEnd := gameScreenHz()
 	if beeps {
 		beep(2) // finita
@@ -912,7 +916,7 @@ func fpsMeasure(delay, secs int, boosted, beeps bool, prefer string) (*fpsResult
 	// (alcuni giochi hanno un lanciatore e il gioco vero con due numeri diversi)
 	davanti := 0
 	for pid, n := range fg {
-		if pid == uint32(pidN) || (pid != 0 && strings.EqualFold(safeName(strings.TrimSuffix(filepath.Base(processPath(pid)), ".exe")), res.Game)) {
+		if (pidN != 0 && pid == uint32(pidN)) || (pid != 0 && strings.EqualFold(safeName(strings.TrimSuffix(filepath.Base(processPath(pid)), ".exe")), res.Game)) {
 			davanti += n
 		}
 	}
