@@ -147,7 +147,7 @@ func NomeBaseArchivio(percorso string) string {
 		n = m[1]
 	}
 	l := strings.ToLower(n)
-	for _, e := range []string{".tar.gz", ".tar.bz2", ".tar.xz", ".tgz", ".tbz2", ".tbz", ".txz", ".zip", ".7z", ".rar", ".tar", ".gz", ".bz2", ".xz"} {
+	for _, e := range []string{".tar.gz", ".tar.bz2", ".tar.xz", ".tar.zst", ".tgz", ".tbz2", ".tbz", ".txz", ".tzst", ".zip", ".7z", ".rar", ".tar", ".gz", ".bz2", ".xz", ".zst"} {
 		if strings.HasSuffix(l, e) && len(n) > len(e) {
 			n = n[:len(n)-len(e)]
 			break

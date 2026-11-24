@@ -7,6 +7,7 @@ package archivio
 
 import (
 	"errors"
+	"unsafe"
 
 	"golang.org/x/sys/windows"
 )
@@ -52,3 +53,21 @@ func codePageOEM() int {
 }
 
 var procGetOEMCP = windows.NewLazySystemDLL("kernel32.dll").NewProc("GetOEMCP")
+
+// memoriaLibera: byte di RAM disponibili (0 se non si sa), con GlobalMemoryStatusEx.
+func memoriaLibera() int64 {
+	var m struct {
+		Length, MemoryLoad                  uint32
+		TotalPhys, AvailPhys, TotalPageFile uint64
+		AvailPageFile, TotalVirtual         uint64
+		AvailVirtual, AvailExtendedVirtual  uint64
+	}
+	m.Length = uint32(unsafe.Sizeof(m))
+	r, _, _ := procGlobalMemoryStatusEx.Call(uintptr(unsafe.Pointer(&m)))
+	if r == 0 || m.AvailPhys > 1<<62 {
+		return 0
+	}
+	return int64(m.AvailPhys)
+}
+
+var procGlobalMemoryStatusEx = windows.NewLazySystemDLL("kernel32.dll").NewProc("GlobalMemoryStatusEx")

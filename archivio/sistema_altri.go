@@ -18,3 +18,5 @@ func rinominaSeLibero(da, a string) error {
 func spazioLibero(cartella string) int64 { return -1 }
 
 func codePageOEM() int { return 437 }
+
+func memoriaLibera() int64 { return 0 }

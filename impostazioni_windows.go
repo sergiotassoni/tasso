@@ -16,13 +16,15 @@ import (
 	"golang.org/x/sys/windows"
 	"golang.org/x/sys/windows/registry"
 
+	"tassozip/archivio"
 	"tassozip/testi"
 )
 
 // impostazioni salvate in %LOCALAPPDATA%\Tasso Zip\impostazioni.json.
 type impostazioni struct {
 	Lingua  string `json:"lingua,omitempty"`  // scelta dall'utente in alto nella finestra ("" = automatica)
-	Formato string `json:"formato,omitempty"` // "tarxz" o "zip"
+	Formato string `json:"formato,omitempty"` // "7z", "zip", "tarzst" (o il vecchio "tarxz")
+	Livello string `json:"livello,omitempty"` // 7z: "veloce", "normale", "massima", "ultra"
 }
 
 var (
@@ -40,8 +42,12 @@ func caricaImpostazioni() {
 	if err == nil && len(b) < 64<<10 {
 		_ = json.Unmarshal(b, &imp)
 	}
-	if imp.Formato != "zip" && imp.Formato != "tarxz" {
-		imp.Formato = "zip"
+	// Il vecchio "tarxz" (Tasso Zip 1.0) diventa la super compressione .7z.
+	if imp.Formato == "tarxz" || !archivio.FormatoValido(imp.Formato) {
+		imp.Formato = "7z"
+	}
+	if !livelloValido(imp.Livello) {
+		imp.Livello = "massima"
 	}
 	imp.Lingua = testi.Normalizza(imp.Lingua)
 }
@@ -133,4 +139,12 @@ func registraErrore(formato string, args ...interface{}) {
 	}
 	defer f.Close()
 	_, _ = fmt.Fprintf(f, "%s  v%s  %s\r\n", time.Now().Format("2006-01-02 15:04:05"), Versione, fmt.Sprintf(formato, args...))
+}
+
+func livelloValido(l string) bool {
+	switch archivio.Livello(l) {
+	case archivio.LivelloVeloce, archivio.LivelloNormale, archivio.LivelloMassima, archivio.LivelloUltra:
+		return true
+	}
+	return false
 }

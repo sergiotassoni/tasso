@@ -162,9 +162,15 @@ details pre{white-space:pre-wrap;word-break:break-all;background:var(--panel);bo
       <div class="row"><button class="btn ghost" id="c-piu-file" data-t="aggiungi_file"></button><button class="btn ghost" id="c-piu-cartella" data-t="aggiungi_cartella"></button></div>
       <div><h2 data-t="formato_titolo" style="margin-bottom:12px"></h2>
         <div class="formati">
-          <button class="fmt" data-f="tarxz"><i class="pt"></i><div><b data-t="formato_max"></b><span data-t="formato_max_desc"></span></div></button>
+          <button class="fmt" data-f="7z"><i class="pt"></i><div><b data-t="formato_max"></b><span data-t="formato_max_desc"></span></div></button>
           <button class="fmt" data-f="zip"><i class="pt"></i><div><b data-t="formato_zip"></b><span data-t="formato_zip_desc"></span></div></button>
+          <button class="fmt" data-f="tarzst"><i class="pt"></i><div><b data-t="formato_zst"></b><span data-t="formato_zst_desc"></span></div></button>
         </div>
+        <div class="row" id="c-livello-riga" style="margin-top:12px;align-items:center;gap:10px"><label for="c-livello" data-t="livello"></label>
+          <select id="c-livello" style="background:var(--panel2);color:inherit;border:1.5px solid var(--line);border-radius:10px;padding:6px 10px;font:inherit">
+            <option value="veloce" data-t="livello_veloce"></option><option value="normale" data-t="livello_normale"></option>
+            <option value="massima" data-t="livello_massima"></option><option value="ultra" data-t="livello_ultra"></option>
+          </select></div>
       </div>
       <div class="campo"><label for="c-nome" data-t="nome_archivio"></label><input type="text" id="c-nome" maxlength="200" spellcheck="false"><div class="dove" id="c-dove"></div></div>
     </section>
@@ -306,8 +312,11 @@ function disegnaLista() {
   document.querySelectorAll(".fmt").forEach(b => b.classList.toggle("on", b.dataset.f === S.formato));
   aggiornaDove();
 }
+const ESTENSIONI = { "7z": ".7z", zip: ".zip", tarzst: ".tar.zst", tarxz: ".tar.xz" };
 function aggiornaDove() {
-  const est = S.formato === "tarxz" ? ".tar.xz" : ".zip";
+  const est = ESTENSIONI[S.formato] || ".zip";
+  $("c-livello-riga").style.display = S.formato === "7z" ? "" : "none";
+  $("c-livello").value = S.livello || "massima";
   const dove = S.lista.length ? S.lista[0].dove : "";
   $("c-dove").textContent = t("salva_in") + ": " + dove + "\\" + ($("c-nome").value.trim() || nomeProposto()) + est;
   $("c-dove").title = $("c-dove").textContent;
@@ -315,7 +324,7 @@ function aggiornaDove() {
 async function comprimi() {
   if (!S.lista.length) return;
   const nome = $("c-nome").value.trim();
-  const r = await goComprimi(S.lista.map(e => e.percorso), S.formato, nome === nomeProposto() && !$("c-nome").dataset.toccato ? "" : nome);
+  const r = await goComprimi(S.lista.map(e => e.percorso), S.formato, nome === nomeProposto() && !$("c-nome").dataset.toccato ? "" : nome, S.livello || "massima");
   if (r === "occupato") { toast(t("err_occupato")); return; }
   if (r !== "ok") return;
   S.tipo = "comprimi"; inizioLavoro(t("lavoro_comprimo"), "");
@@ -513,6 +522,7 @@ document.querySelectorAll(".fmt").forEach(b => b.onclick = () => {
   document.querySelectorAll(".fmt").forEach(x => x.classList.toggle("on", x === b));
   aggiornaDove();
 });
+$("c-livello").onchange = () => { S.livello = $("c-livello").value; goLivello(S.livello); };
 $("l-annulla").onclick = () => {
   S.coda = []; S.codaTot = 0;
   $("l-annulla").disabled = true; $("l-annulla").textContent = t("annullando");
@@ -545,7 +555,7 @@ window.addEventListener("popstate", () => history.pushState(null, "", location.h
 const INIZIO = window.__TZ_INIZIO__ || { modo: "", percorsi: [] };
 (async function avvio() {
   const a = await goAvvio();
-  S.lingua = a.lingua; S.testi = a.testi; S.lingue = a.lingue; S.formato = a.formato || "zip";
+  S.lingua = a.lingua; S.testi = a.testi; S.lingue = a.lingue; S.formato = a.formato || "7z"; S.livello = a.livello || "massima";
   const box = $("lingue");
   for (const l of S.lingue) {
     const b = document.createElement("button"); b.dataset.l = l; b.textContent = l.toUpperCase();

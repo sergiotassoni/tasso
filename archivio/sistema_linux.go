@@ -6,8 +6,11 @@
 package archivio
 
 import (
+	"bufio"
 	"errors"
 	"os"
+	"strconv"
+	"strings"
 
 	"golang.org/x/sys/unix"
 )
@@ -40,3 +43,21 @@ func spazioLibero(cartella string) int64 {
 }
 
 func codePageOEM() int { return 437 }
+
+// memoriaLibera: byte di RAM disponibili (0 se non si sa).
+func memoriaLibera() int64 {
+	f, err := os.Open("/proc/meminfo")
+	if err != nil {
+		return 0
+	}
+	defer f.Close()
+	sc := bufio.NewScanner(f)
+	for sc.Scan() {
+		c := strings.Fields(sc.Text())
+		if len(c) >= 2 && c[0] == "MemAvailable:" {
+			n, _ := strconv.ParseInt(c[1], 10, 64)
+			return n << 10
+		}
+	}
+	return 0
+}

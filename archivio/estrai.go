@@ -26,11 +26,12 @@ const (
 	TipoGz  Tipo = "gz"
 	TipoBz2 Tipo = "bz2"
 	TipoXz  Tipo = "xz"
+	TipoZst Tipo = "zst"
 )
 
 // estensioniArchivio: per capire al volo (senza aprire il file) se è un archivio.
 var estensioniArchivio = []string{
-	".zip", ".7z", ".rar", ".tar", ".gz", ".tgz", ".bz2", ".tbz2", ".tbz", ".xz", ".txz",
+	".zip", ".7z", ".rar", ".tar", ".gz", ".tgz", ".bz2", ".tbz2", ".tbz", ".xz", ".txz", ".zst", ".tzst",
 }
 
 // SembraArchivio: true se dal nome il file sembra un archivio che Tasso Zip sa aprire.
@@ -65,6 +66,8 @@ func riconosciDati(b []byte) (Tipo, bool) {
 		return TipoBz2, true
 	case bytes.HasPrefix(b, []byte{0xFD, '7', 'z', 'X', 'Z', 0x00}):
 		return TipoXz, true
+	case bytes.HasPrefix(b, []byte{0x28, 0xB5, 0x2F, 0xFD}):
+		return TipoZst, true
 	case sembraTar(b):
 		return TipoTar, true
 	}
@@ -242,7 +245,7 @@ func Estrai(ctx context.Context, percorso string, opz OpzioniEstrai) (ris Risult
 		err = l.setteZip()
 	case TipoRar:
 		err = l.rar(percorso)
-	case TipoTar, TipoGz, TipoBz2, TipoXz:
+	case TipoTar, TipoGz, TipoBz2, TipoXz, TipoZst:
 		l.flusso = true
 		err = l.flussoTar(tipo, percorso)
 	default:

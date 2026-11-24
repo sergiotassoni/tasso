@@ -15,9 +15,13 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
+	"tassozip/archivio/settezip"
+
 	"github.com/klauspost/compress/flate"
+	"github.com/klauspost/compress/zstd"
 	"github.com/ulikunitz/xz"
 )
 
@@ -29,23 +33,64 @@ const (
 	FormatoTarXz Formato = "tarxz"
 	// FormatoZip: compatibile con tutto (.zip, Deflate al livello massimo).
 	FormatoZip Formato = "zip"
+	// Formato7z: super compressione (.7z, LZMA2, solido, scritto da noi).
+	Formato7z Formato = "7z"
+	// FormatoTarZst: veloce (.tar.zst, Zstandard).
+	FormatoTarZst Formato = "tarzst"
 )
+
+// FormatoValido dice se il formato si sa scrivere.
+func FormatoValido(f string) bool {
+	switch Formato(f) {
+	case FormatoZip, Formato7z, FormatoTarZst, FormatoTarXz:
+		return true
+	}
+	return false
+}
 
 // Estensione del file creato.
 func (f Formato) Estensione() string {
-	if f == FormatoTarXz {
+	switch f {
+	case FormatoTarXz:
 		return ".tar.xz"
+	case Formato7z:
+		return ".7z"
+	case FormatoTarZst:
+		return ".tar.zst"
 	}
 	return ".zip"
+}
+
+// Livello di compressione per il 7z: "veloce", "normale", "massima", "ultra".
+type Livello string
+
+const (
+	LivelloVeloce  Livello = "veloce"
+	LivelloNormale Livello = "normale"
+	LivelloMassima Livello = "massima"
+	LivelloUltra   Livello = "ultra"
+)
+
+func (l Livello) settezip() settezip.Livello {
+	switch l {
+	case LivelloVeloce:
+		return settezip.Veloce
+	case LivelloNormale:
+		return settezip.Normale
+	case LivelloUltra:
+		return settezip.Ultra
+	}
+	return settezip.Massima
 }
 
 // OpzioniComprimi: come comprimere.
 type OpzioniComprimi struct {
 	Formato         Formato
-	Nome            string // nome dell'archivio senza estensione ("" = dal primo elemento)
-	NomeMultiplo    string // nome se scegli più elementi (es. "Archivio"); "" = "Archivio"
-	Cartella        string // dove salvarlo ("" = accanto al primo elemento)
-	CartellaRiserva string // se lì non si può scrivere (es. Desktop)
+	Livello         Livello // solo 7z ("" = massima)
+	Nome            string  // nome dell'archivio senza estensione ("" = dal primo elemento)
+	NomeMultiplo    string  // nome se scegli più elementi (es. "Archivio"); "" = "Archivio"
+	Cartella        string  // dove salvarlo ("" = accanto al primo elemento)
+	CartellaRiserva string  // se lì non si può scrivere (es. Desktop)
 	Avanzamento     FunzioneAvanzamento
 }
 
@@ -81,7 +126,7 @@ var estensioniGiaCompresse = map[string]bool{
 // Comprimi crea un archivio con i file e le cartelle scelti. Scrive prima un file
 // temporaneo accanto e lo rinomina solo alla fine (mai sovrascrivere: "Foto (2).zip").
 func Comprimi(ctx context.Context, sorgenti []string, opz OpzioniComprimi) (ris RisultatoComprimi, err error) {
-	if opz.Formato != FormatoTarXz {
+	if !FormatoValido(string(opz.Formato)) {
 		opz.Formato = FormatoZip
 	}
 	var puliti []string
@@ -181,15 +226,21 @@ func Comprimi(ctx context.Context, sorgenti []string, opz OpzioniComprimi) (ris 
 	}
 
 	c := &copiatore{ctx: ctx, totale: totale, avanzamento: opz.Avanzamento, buf: make([]byte, 256<<10)}
-	bw := bufio.NewWriterSize(out, 1<<20)
-	switch opz.Formato {
-	case FormatoTarXz:
-		err = scriviTarXz(c, bw, voci, &ris)
-	default:
-		err = scriviZip(c, bw, voci, &ris)
-	}
-	if err == nil {
-		err = bw.Flush()
+	if opz.Formato == Formato7z {
+		err = scrivi7z(ctx, c, out, dove, voci, opz.Livello, &ris)
+	} else {
+		bw := bufio.NewWriterSize(out, 1<<20)
+		switch opz.Formato {
+		case FormatoTarXz:
+			err = scriviTarXz(c, bw, voci, &ris)
+		case FormatoTarZst:
+			err = scriviTarZst(c, bw, voci, &ris)
+		default:
+			err = scriviZip(c, bw, voci, &ris)
+		}
+		if err == nil {
+			err = bw.Flush()
+		}
 	}
 	if err == nil {
 		err = out.Sync()
@@ -404,12 +455,70 @@ func scriviZip(c *copiatore, w io.Writer, voci []voce, ris *RisultatoComprimi) e
 	return zw.Close()
 }
 
+// scrivi7z: super compressione con il nostro writer 7z (più core insieme).
+func scrivi7z(ctx context.Context, c *copiatore, out *os.File, dove string, voci []voce, liv Livello, ris *RisultatoComprimi) error {
+	var mu sync.Mutex
+	sv := make([]settezip.Voce, len(voci))
+	for i, v := range voci {
+		p := v.percorso
+		sv[i] = settezip.Voce{Nome: v.nome, Cartella: v.cartella, Dim: v.dim, Quando: v.quando,
+			Apri: func() (io.ReadCloser, error) { return os.Open(p) }}
+	}
+	o := settezip.Opzioni{
+		Livello:   liv.settezip(),
+		RAMLibera: memoriaLibera(),
+		DirTemp:   dove,
+		Progresso: func(n int64, nome string) {
+			mu.Lock()
+			c.fatto += n
+			if c.fatto > c.totale {
+				c.totale = c.fatto
+			}
+			a := Avanzamento{Fatto: c.fatto, Totale: c.totale, Nome: nome}
+			mu.Unlock()
+			if c.avanzamento != nil {
+				c.avanzamento(a)
+			}
+		},
+		Saltato: func(nome string, _ error) {
+			mu.Lock()
+			ris.Saltati = append(ris.Saltati, nome+" (non leggibile)")
+			mu.Unlock()
+		},
+	}
+	r, err := settezip.Scrivi(ctx, out, sv, o)
+	if errors.Is(err, settezip.ErrAnnullato) {
+		return ErrAnnullato
+	}
+	ris.File, ris.Cartelle = r.File, r.Cartelle
+	return err
+}
+
+func scriviTarZst(c *copiatore, w io.Writer, voci []voce, ris *RisultatoComprimi) error {
+	zw, err := zstd.NewWriter(w, zstd.WithEncoderLevel(zstd.SpeedBetterCompression))
+	if err != nil {
+		return err
+	}
+	if err := scriviTar(c, zw, voci, ris); err != nil {
+		zw.Close()
+		return err
+	}
+	return zw.Close()
+}
+
 func scriviTarXz(c *copiatore, w io.Writer, voci []voce, ris *RisultatoComprimi) error {
 	cfg := xz.WriterConfig{DictCap: 32 << 20, CheckSum: xz.CRC64}
 	xw, err := cfg.NewWriter(w)
 	if err != nil {
 		return err
 	}
+	if err := scriviTar(c, xw, voci, ris); err != nil {
+		return err
+	}
+	return xw.Close()
+}
+
+func scriviTar(c *copiatore, xw io.Writer, voci []voce, ris *RisultatoComprimi) error {
 	tw := tar.NewWriter(xw)
 	for _, v := range voci {
 		if err := c.annullato(); err != nil {
@@ -449,8 +558,5 @@ func scriviTarXz(c *copiatore, w io.Writer, voci []voce, ris *RisultatoComprimi)
 		}
 		ris.File++
 	}
-	if err := tw.Close(); err != nil {
-		return err
-	}
-	return xw.Close()
+	return tw.Close()
 }

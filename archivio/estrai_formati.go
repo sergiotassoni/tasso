@@ -20,6 +20,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/bodgit/sevenzip"
+	"github.com/klauspost/compress/zstd"
 	"github.com/nwaples/rardecode/v2"
 	"github.com/ulikunitz/xz"
 	"golang.org/x/text/encoding"
@@ -272,6 +273,13 @@ func (l *lavoroEstrai) flussoTar(tipo Tipo, percorso string) error {
 			r = bzip2.NewReader(r)
 		case TipoXz:
 			r, err = xz.NewReader(r)
+		case TipoZst:
+			var zr *zstd.Decoder
+			zr, err = zstd.NewReader(r, zstd.WithDecoderConcurrency(1), zstd.WithDecoderMaxWindow(1<<30))
+			if err == nil {
+				defer zr.Close()
+				r = zr
+			}
 		}
 		if err != nil {
 			return l.erroreLettura(err)
@@ -328,7 +336,7 @@ func nomeDentro(percorso string) string {
 		n = m[1]
 	}
 	l := strings.ToLower(n)
-	for _, e := range []string{".gz", ".bz2", ".xz"} {
+	for _, e := range []string{".gz", ".bz2", ".xz", ".zst"} {
 		if strings.HasSuffix(l, e) && len(n) > len(e) {
 			return n[:len(n)-len(e)]
 		}

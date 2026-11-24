@@ -213,6 +213,7 @@ func collega(w webview2.WebView) {
 			"versione": Versione,
 			"menu":     menuAttivo(),
 			"formato":  impostazioniCopia().Formato,
+			"livello":  impostazioniCopia().Livello,
 			"desktop":  cartellaDesktop(),
 		}
 	})
@@ -224,7 +225,7 @@ func collega(w webview2.WebView) {
 	})
 	_ = w.Bind("goScegliArchivio", func() []string {
 		return scegli(testi.T(lingua(), "scegli_archivio"), false, true, []filtro{
-			{testi.T(lingua(), "estrai") + " (zip, 7z, rar, tar, gz, bz2, xz)", "*.zip;*.7z;*.rar;*.tar;*.gz;*.tgz;*.bz2;*.tbz2;*.tbz;*.xz;*.txz;*.001;*.r00"},
+			{testi.T(lingua(), "estrai") + " (zip, 7z, rar, tar, gz, bz2, xz, zst)", "*.zip;*.7z;*.rar;*.tar;*.gz;*.tgz;*.bz2;*.tbz2;*.tbz;*.xz;*.txz;*.zst;*.tzst;*.001;*.r00"},
 			{"*.*", "*.*"},
 		})
 	})
@@ -252,10 +253,17 @@ func collega(w webview2.WebView) {
 		return "ok"
 	})
 	_ = w.Bind("goFormato", func(f string) string {
-		if f != string(archivio.FormatoZip) && f != string(archivio.FormatoTarXz) {
+		if !archivio.FormatoValido(f) {
 			return "no"
 		}
 		modificaImpostazioni(func(s *impostazioni) { s.Formato = f })
+		return "ok"
+	})
+	_ = w.Bind("goLivello", func(l string) string {
+		if !livelloValido(l) {
+			return "no"
+		}
+		modificaImpostazioni(func(s *impostazioni) { s.Livello = l })
 		return "ok"
 	})
 	_ = w.Bind("goMenu", func(on bool) map[string]interface{} {
@@ -347,7 +355,7 @@ func erroreVersoPagina(tipo, percorso string, err error) {
 	manda("errore", map[string]interface{}{"tipo": tipo, "codice": c, "dettagli": err.Error(), "percorso": percorso})
 }
 
-func avviaComprimi(percorsi []string, formato, nome string) string {
+func avviaComprimi(percorsi []string, formato, nome, livello string) string {
 	if len(percorsi) == 0 {
 		return "vuoto"
 	}
@@ -365,6 +373,7 @@ func avviaComprimi(percorsi []string, formato, nome string) string {
 		}()
 		ris, err := archivio.Comprimi(ctx, percorsi, archivio.OpzioniComprimi{
 			Formato:         archivio.Formato(formato),
+			Livello:         archivio.Livello(livello),
 			Nome:            nome,
 			NomeMultiplo:    testi.T(lingua(), "nome_multiplo"),
 			CartellaRiserva: cartellaDesktop(),
