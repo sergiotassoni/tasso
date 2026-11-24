@@ -1073,6 +1073,13 @@ func suZonaScelta(z Zona) {
 		// zona scelta col pulsante in Tasso: il gioco è la finestra sotto il riquadro
 		ov.impostaGioco(finestraInZona(z))
 	}
+	if paginaAttiva.Load() {
+		// hai scelto una zona: traduco solo quella. La traduzione di tutta la schermata si ferma,
+		// se no c'erano due traduzioni una sopra l'altra (PC Cafe Simulator, 24/11)
+		paginaAttiva.Store(false)
+		paginaGiro.Add(1)
+		NascondiPagina()
+	}
 	muImp.Lock()
 	imp.Zona = z
 	muImp.Unlock()
