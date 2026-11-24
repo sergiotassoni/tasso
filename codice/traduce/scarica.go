@@ -8,12 +8,14 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -40,15 +42,22 @@ var errImprontaMancante = errors.New("impronta di sicurezza mancante: file non s
 // presente dice se il file c'è già ed è quello giusto.
 // presente controlla l'impronta del file. Il risultato viene ricordato finché il file non cambia
 // (stessa dimensione e data), così un modello da 5 GB non viene riletto a ogni controllo.
+// I controlli riusciti si ricordano anche su disco (un file piccolo): all'avvio di Tasso i modelli
+// da 10 GB non si rileggono tutti, solo se cambiano percorso, dimensione o data.
 func presente(dir string, f FileDaScaricare) bool {
 	p := filepath.Join(dir, f.Nome)
 	st, err := os.Stat(p)
 	if err != nil || (f.Byte > 0 && st.Size() != f.Byte) {
 		return false
 	}
-	chiave := fmt.Sprintf("%s|%d|%d|%s", p, st.Size(), st.ModTime().UnixNano(), f.SHA256)
+	chiave := chiaveVerifica(p, st.Size(), st.ModTime().UnixNano(), f.SHA256)
+	caricaVerificati()
 	muVerificati.Lock()
 	ok, visto := verificati[chiave]
+	if !visto && verificatiDisco[chiave] {
+		ok, visto = true, true
+		verificati[chiave] = true
+	}
 	muVerificati.Unlock()
 	if visto {
 		return ok
@@ -58,13 +67,86 @@ func presente(dir string, f FileDaScaricare) bool {
 	muVerificati.Lock()
 	verificati[chiave] = ok
 	muVerificati.Unlock()
+	if ok {
+		ricordaVerificato(p, chiave)
+	}
 	return ok
 }
 
 var (
-	muVerificati sync.Mutex
-	verificati   = map[string]bool{}
+	muVerificati     sync.Mutex
+	verificati       = map[string]bool{}
+	verificatiDisco  = map[string]bool{} // controlli riusciti nelle volte prima (dal file)
+	caricaVerDisco   sync.Once
+	muFileVerificati sync.Mutex
 )
+
+// chiaveVerifica: percorso, dimensione, data di modifica e impronta attesa del file.
+func chiaveVerifica(p string, dim, data int64, sha string) string {
+	return fmt.Sprintf("%s|%d|%d|%s", strings.ToLower(p), dim, data, strings.ToLower(sha))
+}
+
+func fileVerificati() string {
+	if dirApp == "" {
+		return ""
+	}
+	return filepath.Join(dirApp, "modelli", "impronte-controllate.json")
+}
+
+func caricaVerificati() {
+	caricaVerDisco.Do(func() {
+		f := fileVerificati()
+		if f == "" {
+			return
+		}
+		b, err := os.ReadFile(f)
+		if err != nil || len(b) > 1<<20 {
+			return
+		}
+		var l []string
+		if json.Unmarshal(b, &l) != nil {
+			return
+		}
+		muVerificati.Lock()
+		for _, k := range l {
+			verificatiDisco[k] = true
+		}
+		muVerificati.Unlock()
+	})
+}
+
+// ricordaVerificato: scrive su disco che il file p (con questa chiave) è stato controllato ed è
+// giusto. Le chiavi vecchie dello stesso file (dimensione o data diverse) si tolgono.
+func ricordaVerificato(p, chiave string) {
+	f := fileVerificati()
+	if f == "" {
+		return
+	}
+	muFileVerificati.Lock()
+	defer muFileVerificati.Unlock()
+	pre := strings.ToLower(p) + "|"
+	muVerificati.Lock()
+	for k := range verificatiDisco {
+		if strings.HasPrefix(k, pre) && k != chiave && strings.Count(k[len(pre):], "|") == 2 {
+			delete(verificatiDisco, k)
+		}
+	}
+	verificatiDisco[chiave] = true
+	l := make([]string, 0, len(verificatiDisco))
+	for k := range verificatiDisco {
+		l = append(l, k)
+	}
+	muVerificati.Unlock()
+	sort.Strings(l)
+	b, err := json.Marshal(l)
+	if err != nil {
+		return
+	}
+	_ = os.MkdirAll(filepath.Dir(f), 0o755)
+	if os.WriteFile(f+".tmp", b, 0o644) == nil {
+		_ = os.Rename(f+".tmp", f)
+	}
+}
 
 func impronta(p string) (string, error) {
 	fh, err := os.Open(p)

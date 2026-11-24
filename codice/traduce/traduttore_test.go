@@ -50,7 +50,8 @@ func TestRiservaCacheContesto(t *testing.T) {
 	if r3 := tr.Traduci(context.Background(), "Move, now!"); r3.Motore != "memoria" || moz.n != prima {
 		t.Fatalf("cache non usata: %+v", r3)
 	}
-	// la cache resta dopo la riapertura
+	// la cache resta dopo la riapertura (su disco va qualche secondo dopo, o subito con SalvaMemoria)
+	tr.SalvaMemoria()
 	tr2 := NuovoTraduttore(filepath.Join(dir, "cache.json"), glossarioBase())
 	if r4 := tr2.Traduci(context.Background(), "Move, now!"); r4.Tradotto != "IT:Move, now!" {
 		t.Fatalf("cache su disco non letta: %+v", r4)

@@ -8,6 +8,7 @@ package traduce
 // Se il processore è troppo occupato, le correzioni si mettono in pausa.
 
 import (
+	"fmt"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -28,9 +29,14 @@ var (
 var (
 	falliteIA           int
 	prossimoTentativoIA time.Time
+	avviataIA           time.Time    // ultima accensione riuscita: dopo 10 minuti senza problemi i fallimenti si azzerano
+	mortiViste          int64        // chiusure da sole del motore già contate
 	stratiMeta          atomic.Int64 // strati sulla scheda quando l'IA è divisa (dipende dalla scheda)
 	stratiPiccolaAtt    atomic.Int64 // strati della Piccola sulla scheda (si stringe con i giochi pesanti)
 )
+
+// livelloCambiato: l'utente ha appena cambiato livello dell'IA: si applica subito, anche salendo.
+var livelloCambiato atomic.Bool
 
 const (
 	ogniControllo      = 15 * time.Second
@@ -106,7 +112,11 @@ func sorvegliaIA() {
 	ram, core := memoriaPC(), coreFisici()
 	piu := 0
 	for {
-		voluto := ""
+		scelto := livelloCambiato.Swap(false)
+		if scelto {
+			prossimoTentativoIA = time.Time{} // scelta dell'utente: riprovo subito, anche dopo un fallimento
+		}
+		voluto, stratiVoluti := "", 0
 		if acceso.Load() && iaPresente() && leggiImp().Motore != "mozilla" {
 			conMedia = mediaPresente()
 			conScorta = conMedia // la Piccola è la Media divisa tra scheda e processore
@@ -121,7 +131,7 @@ func sorvegliaIA() {
 			}
 			impostaGPU(valutaGPU(g))
 			pv := sceltaLivello(g, ram, core, leggiImp().LivelloIA)
-			voluto = pv.Nome
+			voluto, stratiVoluti = pv.Nome, pv.Strati
 			if pv.Nome == "piccola" && pv.Strati > 0 && (attuale != "piccola" || !ia.Attivo()) {
 				stratiPiccolaAtt.Store(int64(pv.Strati))
 			}
@@ -139,25 +149,49 @@ func sorvegliaIA() {
 			}
 		}
 		attuale, _ := profiloIA.Load().(string)
-		if attuale != "" && !ia.Attivo() { // il motore si è chiuso da solo (es. memoria video finita)
+		morti := ia.morti.Load()
+		if attuale != "" && !ia.Attivo() { // il motore si è chiuso
 			profiloIA.Store("")
 			traduttore.ImpostaCorrettore(nil, nil)
+			if morti != mortiViste {
+				// chiuso da solo (es. memoria video finita): conta come un fallimento, con un'attesa
+				// che cresce, invece di ricaricare 5 GB ogni 15 secondi e far scattare il gioco
+				fallitaIA("il motore IA si è chiuso da solo (forse la memoria video è finita)")
+			}
 			attuale = ""
+		}
+		mortiViste = morti
+		if attuale != "" && falliteIA > 0 && time.Since(avviataIA) > 10*time.Minute {
+			falliteIA = 0 // regge da 10 minuti: i problemi di prima non contano più
 		}
 		if voluto != "" && time.Now().Before(prossimoTentativoIA) {
 			voluto = "" // ha fallito da poco: aspetto prima di riprovare
 		}
+		// stesso livello, ma il gioco ha preso altra memoria video: servono meno strati sulla
+		// scheda. Lo tratto come una discesa: riavvio con meno strati (uno in meno, di margine).
+		stringi := false
+		if voluto != "" && voluto == attuale && ia.Attivo() && stratiVoluti > 0 {
+			if ora, minimo := stratiDi(attuale); ora > 0 && stratiVoluti <= ora-2 {
+				if n := max(stratiVoluti-1, minimo); n < ora {
+					stringi = true
+					impostaStrati(attuale, n)
+				}
+			}
+		}
 		switch {
-		case rangoProfilo(voluto) < rangoProfilo(attuale):
+		case rangoProfilo(voluto) < rangoProfilo(attuale) || stringi:
 			piu = 0
 			applicaProfiloIA(voluto, ram, core)
+			mortiViste = ia.morti.Load() // le chiusure durante un avvio fallito le conta già applicaProfiloIA
 		case rangoProfilo(voluto) > rangoProfilo(attuale):
 			piu++
 			// da spenta parte subito (al primo controllo, cioè appena premi F7): prima servivano
-			// due controlli (30 s) e in una partita breve l'IA non arrivava mai a correggere
-			if piu >= controlliPerSalire || attuale == "" {
+			// due controlli (30 s) e in una partita breve l'IA non arrivava mai a correggere.
+			// Anche quando l'utente ha appena scelto il livello.
+			if piu >= controlliPerSalire || attuale == "" || scelto {
 				piu = 0
 				applicaProfiloIA(voluto, ram, core)
+				mortiViste = ia.morti.Load()
 			}
 		default:
 			piu = 0
@@ -189,6 +223,37 @@ func memoriaProfilo(n string) float64 {
 	return 0
 }
 
+// stratiDi: strati sulla scheda adesso e minimo, per i livelli che si possono stringere (0 se no).
+func stratiDi(nome string) (ora, minimo int) {
+	switch nome {
+	case "piccola":
+		return int(stratiPiccolaAtt.Load()), stratiPiccolaMin
+	case "meta":
+		return int(stratiMeta.Load()), stratiParziali
+	}
+	return 0, 0
+}
+
+func impostaStrati(nome string, n int) {
+	switch nome {
+	case "piccola":
+		stratiPiccolaAtt.Store(int64(n))
+	case "meta":
+		stratiMeta.Store(int64(n))
+	}
+}
+
+// fallitaIA: l'IA non è partita o si è chiusa da sola. Prima di riprovare aspetto sempre di più:
+// 2, 4, 8, 16, 32 minuti.
+func fallitaIA(motivo string) {
+	falliteIA++
+	attesa := time.Duration(1<<min(falliteIA, 5)) * time.Minute
+	prossimoTentativoIA = time.Now().Add(attesa)
+	if falliteIA <= 2 {
+		emetti("info", map[string]string{"testo": "Correttore IA: " + motivo + ". Continuo con il traduttore veloce e riprovo tra " + fmt.Sprint(int(attesa.Minutes())) + " minuti."})
+	}
+}
+
 func applicaProfiloIA(nome string, ram float64, core int) {
 	ia.Ferma()
 	traduttore.ImpostaCorrettore(nil, nil)
@@ -216,15 +281,17 @@ func applicaProfiloIA(nome string, ram float64, core int) {
 			modello = fileMediaIA()
 		}
 		if err := ia.Avvia(dirMotoreIA(), modello); err != nil {
-			falliteIA++
-			attesa := time.Duration(1<<min(falliteIA, 5)) * time.Minute // 2, 4, 8, 16, 32 minuti
-			prossimoTentativoIA = time.Now().Add(attesa)
-			if falliteIA <= 2 {
-				emetti("info", map[string]string{"testo": "Correttore IA non avviato: " + err.Error() + ". Continuo con il traduttore veloce."})
-			}
+			fallitaIA("non avviato (" + err.Error() + ")")
 			return
 		}
-		falliteIA = 0
+		// mentre il modello caricava (anche qualche minuto) la traduzione può essere stata spenta
+		// o l'utente può aver scelto solo Mozilla: allora lo spengo subito
+		if !acceso.Load() || leggiImp().Motore == "mozilla" {
+			ia.Ferma()
+			emetti("aggiorna", stato())
+			return
+		}
+		avviataIA = time.Now()
 		profiloIA.Store(nome)
 		traduttore.ImpostaCorrettore(motoreIA{ia}, cpuOccupata.Load)
 	}

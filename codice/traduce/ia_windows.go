@@ -18,6 +18,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"syscall"
 	"time"
 	"unsafe"
@@ -63,7 +64,20 @@ func psUnaVolta(script string, attesa time.Duration) (string, error) {
 	return strings.TrimSpace(strings.TrimPrefix(string(out), "\uFEFF")), err
 }
 
+// controllaGPU: nome e memoria della scheda video (letti una volta sola con PowerShell: non
+// cambiano) e memoria usata adesso. La memoria usata si legge con i contatori di Windows (PDH,
+// come Gestione attività), senza aprire PowerShell ogni 15 secondi mentre si gioca; se i
+// contatori non vanno, come prima con PowerShell.
 func controllaGPU() InfoGPU {
+	muGPU.Lock()
+	defer muGPU.Unlock()
+	if gpuFissa != nil {
+		if usata, ok := memoriaUsataPDH(); ok {
+			g := *gpuFissa
+			g.UsataGB = usata / gb
+			return valutaGPU(g)
+		}
+	}
 	out, err := psUnaVolta(scriptGPU, 30*time.Second)
 	var r struct {
 		Nome  string  `json:"nome"`
@@ -73,8 +87,92 @@ func controllaGPU() InfoGPU {
 	if err != nil || json.Unmarshal([]byte(out), &r) != nil || r.Nome == "" {
 		return InfoGPU{Motivo: "Non ho trovato una scheda video dedicata."}
 	}
+	gpuFissa = &InfoGPU{Nome: r.Nome, MemoriaGB: r.Mem / gb}
 	g := InfoGPU{Nome: r.Nome, MemoriaGB: r.Mem / gb, UsataGB: r.Usata / gb}
 	return valutaGPU(g)
+}
+
+// ---- memoria video usata con i contatori di Windows (PDH)
+
+var (
+	muGPU    sync.Mutex
+	gpuFissa *InfoGPU // nome e memoria totale della scheda, letti la prima volta
+
+	dllPdh             = windows.NewLazySystemDLL("pdh.dll")
+	pPdhApri           = dllPdh.NewProc("PdhOpenQueryW")
+	pPdhAggiungi       = dllPdh.NewProc("PdhAddEnglishCounterW")
+	pPdhRaccogli       = dllPdh.NewProc("PdhCollectQueryData")
+	pPdhValori         = dllPdh.NewProc("PdhGetFormattedCounterArrayW")
+	pdhMemQuery        uintptr
+	pdhMemContatore    uintptr
+	pdhMemStato        int // 0 = da preparare, 1 = pronto, -1 = non funziona su questo PC
+	pdhMemFalliteDiSeg int
+)
+
+// voce di PDH_FMT_COUNTERVALUE_ITEM_W con PDH_FMT_DOUBLE (64 bit): nome, stato, valore
+type pdhVoce struct {
+	nome   *uint16
+	stato  uint32
+	_      uint32
+	valore float64
+}
+
+// memoriaUsataPDH: byte di memoria video dedicata usati adesso (la scheda più piena), come il
+// contatore "\GPU Adapter Memory(*)\Dedicated Usage" letto prima con Get-Counter.
+// Da chiamare con muGPU preso.
+func memoriaUsataPDH() (float64, bool) {
+	if pdhMemStato < 0 {
+		return 0, false
+	}
+	if pdhMemStato == 0 {
+		pdhMemStato = -1
+		if pPdhApri.Find() != nil {
+			return 0, false
+		}
+		if r, _, _ := pPdhApri.Call(0, 0, uintptr(unsafe.Pointer(&pdhMemQuery))); r != 0 {
+			return 0, false
+		}
+		percorso, _ := windows.UTF16PtrFromString(`\GPU Adapter Memory(*)\Dedicated Usage`)
+		if r, _, _ := pPdhAggiungi.Call(pdhMemQuery, uintptr(unsafe.Pointer(percorso)), 0, uintptr(unsafe.Pointer(&pdhMemContatore))); r != 0 {
+			return 0, false
+		}
+		pdhMemStato = 1
+	}
+	if r, _, _ := pPdhRaccogli.Call(pdhMemQuery); r != 0 {
+		return 0, pdhSbagliato()
+	}
+	const pdhFmtDouble = 0x200
+	var dim, quante uint32
+	pPdhValori.Call(pdhMemContatore, pdhFmtDouble, uintptr(unsafe.Pointer(&dim)), uintptr(unsafe.Pointer(&quante)), 0)
+	if dim == 0 || dim > 1<<20 {
+		return 0, pdhSbagliato()
+	}
+	buf := make([]uint64, (dim+7)/8) // allineato a 8 byte per i numeri
+	if r, _, _ := pPdhValori.Call(pdhMemContatore, pdhFmtDouble, uintptr(unsafe.Pointer(&dim)), uintptr(unsafe.Pointer(&quante)), uintptr(unsafe.Pointer(&buf[0]))); r != 0 || quante == 0 {
+		return 0, pdhSbagliato()
+	}
+	voci := unsafe.Slice((*pdhVoce)(unsafe.Pointer(&buf[0])), quante)
+	usata, valide := 0.0, 0
+	for _, v := range voci {
+		if v.stato == 0 || v.stato == 1 { // PDH_CSTATUS_VALID_DATA / NEW_DATA
+			valide++
+			usata = max(usata, v.valore)
+		}
+	}
+	if valide == 0 {
+		return 0, pdhSbagliato()
+	}
+	pdhMemFalliteDiSeg = 0
+	return usata, true
+}
+
+// pdhSbagliato: una lettura non riuscita (si usa PowerShell); dopo 5 di fila i contatori non si
+// usano più in questa sessione. Restituisce sempre false.
+func pdhSbagliato() bool {
+	if pdhMemFalliteDiSeg++; pdhMemFalliteDiSeg >= 5 {
+		pdhMemStato = -1
+	}
+	return false
 }
 
 // ---------------------------------------------------------------- llama-server
@@ -98,7 +196,8 @@ func (s *ServerIA) impostaProfilo(p ProfiloCorrettore) {
 type ServerIA struct {
 	mu     sync.Mutex
 	cmd    *exec.Cmd
-	job    windows.Handle
+	uscito chan struct{} // si chiude quando il processo di adesso è uscito davvero
+	morti  atomic.Int64  // quante volte il motore si è chiuso da solo (non fermato da Tasso)
 	Client *ClientIA
 	// Strati: quanti strati del modello mettere sulla scheda video. 0 = tutti (valore di base);
 	// usare StratiNessuno per farlo girare solo sul processore.
@@ -169,24 +268,31 @@ func (s *ServerIA) Avvia(dirMotore, fileModello string) error {
 	logf, _ := os.Create(filepath.Join(dirApp, "logs", "motore-ia.txt"))
 	cmd.Stdout, cmd.Stderr = logf, logf
 	if err := cmd.Start(); err != nil {
+		if logf != nil {
+			logf.Close()
+		}
 		return err
 	}
-	s.job = jobChiudiConMe(cmd.Process.Pid)
-	s.cmd = cmd
-	client := &ClientIA{URL: fmt.Sprintf("http://127.0.0.1:%d", porta), Chiave: chiave}
+	job := jobChiudiConMe(cmd.Process.Pid)
 	uscito := make(chan struct{})
+	s.cmd, s.uscito = cmd, uscito
+	client := &ClientIA{URL: fmt.Sprintf("http://127.0.0.1:%d", porta), Chiave: chiave}
 	go func() {
 		defer guard("server-ia")
 		_ = cmd.Wait()
 		if logf != nil {
 			logf.Close()
 		}
-		close(uscito)
+		if job != 0 {
+			windows.CloseHandle(job) // la protezione "chiudi con Tasso" non serve più: niente handle lasciati aperti
+		}
 		s.mu.Lock()
-		if s.cmd == cmd {
-			s.cmd, s.Client = nil, nil
+		if s.cmd == cmd { // nessuno l'ha fermato: si è chiuso da solo
+			s.cmd, s.Client, s.uscito = nil, nil, nil
+			s.morti.Add(1)
 		}
 		s.mu.Unlock()
+		close(uscito)
 	}()
 	s.mu.Unlock() // non tengo il lucchetto mentre aspetto il caricamento
 	defer s.mu.Lock()
@@ -196,10 +302,14 @@ func (s *ServerIA) Avvia(dirMotore, fileModello string) error {
 	for {
 		if client.Pronto(ctx) {
 			s.mu.Lock()
-			if s.cmd == cmd {
+			mio := s.cmd == cmd
+			if mio {
 				s.Client = client
 			}
 			s.mu.Unlock()
+			if !mio {
+				return errors.New("motore IA fermato mentre si avviava")
+			}
 			return nil
 		}
 		select {
@@ -213,14 +323,23 @@ func (s *ServerIA) Avvia(dirMotore, fileModello string) error {
 	}
 }
 
+// Ferma chiude il motore e aspetta (al massimo 5 secondi) che il processo sia uscito davvero:
+// così il motore nuovo non parte mentre il vecchio tiene ancora la memoria video.
 func (s *ServerIA) Ferma() {
 	s.mu.Lock()
-	defer s.mu.Unlock()
-	if s.cmd != nil && s.cmd.Process != nil {
-		_ = s.cmd.Process.Kill()
+	cmd, uscito := s.cmd, s.uscito
+	s.cmd, s.Client, s.uscito = nil, nil, nil
+	s.mu.Unlock()
+	if cmd == nil || cmd.Process == nil {
+		return
 	}
-	s.cmd = nil
-	s.Client = nil
+	_ = cmd.Process.Kill()
+	if uscito != nil {
+		select {
+		case <-uscito:
+		case <-time.After(5 * time.Second):
+		}
+	}
 }
 
 // tempoProcessore: tempo di processore usato finora da llama-server (unità da 100 ns, come
@@ -278,7 +397,7 @@ func (m motoreIA) Traduci(ctx context.Context, r RichiestaTraduzione) (string, e
 	c := m.s.Client
 	m.s.mu.Unlock()
 	if c == nil {
-		return "", errors.New("motore IA spento")
+		return "", errMotoreSpento
 	}
 	ctx, cancel := context.WithTimeout(ctx, 20*time.Second)
 	defer cancel()

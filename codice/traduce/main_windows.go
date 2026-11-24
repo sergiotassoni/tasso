@@ -706,6 +706,7 @@ func collega(w webview2.WebView) {
 		muImp.Unlock()
 		salvaImp()
 		go preparaMotori()
+		sveglia() // l'IA si accende o si spegne subito, non al prossimo controllo
 		return "ok"
 	})
 	_ = w.Bind("ttImpostaLivelloIA", func(l string) string {
@@ -716,6 +717,8 @@ func collega(w webview2.WebView) {
 		imp.LivelloIA = l
 		muImp.Unlock()
 		salvaImp()
+		livelloCambiato.Store(true) // si applica subito, anche se è un livello più alto
+		sveglia()
 		return "ok"
 	})
 	_ = w.Bind("ttCronologia", func() []Risultato { return cronologia() })
@@ -1430,7 +1433,8 @@ func correzioneArrivata(inglese, bozza, corretta string) {
 	}
 	muDialogo.Lock()
 	d := dialogoMostrato
-	ok := d.tradotto != "" && d.tradotto == bozza
+	// anche la frase inglese deve essere la stessa: "Yes." e "Yeah." hanno la stessa bozza "Sì."
+	ok := d.tradotto != "" && d.tradotto == bozza && stessaFraseInglese(d.inglese, inglese)
 	if ok {
 		dialogoMostrato.tradotto = corretta
 	}

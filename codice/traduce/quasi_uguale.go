@@ -8,6 +8,7 @@ package traduce
 import (
 	"strings"
 	"unicode"
+	"unicode/utf8"
 )
 
 var negazioni = map[string]bool{
@@ -99,6 +100,14 @@ func quasiUguale(a, b string) bool {
 			continue
 		}
 		pa, pb := strings.Trim(wa[i], ".,!?;:\"'"), strings.Trim(wb[i], ".,!?;:\"'")
+		if pa == pb {
+			// cambia solo la punteggiatura ("village." / "village,"): prima il controllo dei prefissi
+			// la scartava sempre. Ma domanda e risposta non sono la stessa frase.
+			if strings.Contains(wa[i], "?") != strings.Contains(wb[i], "?") {
+				return false
+			}
+			continue
+		}
 		if negazioni[pa] || negazioni[pb] || pronomi[pa] || pronomi[pb] || distanzaTesti([]rune(pa), []rune(pb), 2) > 2 {
 			return false
 		}
@@ -116,25 +125,55 @@ func quasiUguale(a, b string) bool {
 	return distanzaTesti(ra, rb, tol) <= tol
 }
 
-// cercaQuasiUguale: nella libreria del gioco aperto, una frase quasi uguale già tradotta.
-// Va chiamata con t.mu preso.
-func (t *Traduttore) cercaQuasiUguale(parlante, battuta string) (string, bool) {
-	if t.libreria == nil || tolleranza(len([]rune(battuta))) == 0 {
-		return "", false
+// chiaveLung: indice della libreria per il "quasi uguale": chi parla e lunghezza della frase (in
+// byte). Così una frase nuova si confronta solo con quelle di lunghezza simile, non con tutte.
+type chiaveLung struct {
+	parlante string
+	n        int
+}
+
+// indicizza mette una chiave della libreria ("parlante\x00frase") nell'indice. Le frasi corte non
+// servono: per loro il "quasi uguale" non vale mai.
+func indicizza(indice map[chiaveLung][]string, chiave string) {
+	p, testo, ok := strings.Cut(chiave, "\x00")
+	if !ok || tolleranza(utf8.RuneCountInString(testo)) == 0 {
+		return
 	}
-	pre := parlante + "\x00"
+	k := chiaveLung{p, len(testo)}
+	indice[k] = append(indice[k], chiave)
+}
+
+type candidatoQuasi struct{ testo, tradotto string }
+
+// candidatiQuasiUgualiLocked: le frasi della libreria di lunghezza simile (stesso parlante).
+// Va chiamata con t.mu preso; il confronto vero (lento) si fa dopo, senza lucchetto.
+func (t *Traduttore) candidatiQuasiUgualiLocked(parlante, battuta string) []candidatoQuasi {
+	if t.libreria == nil || len(t.perLunghezza) == 0 || tolleranza(utf8.RuneCountInString(battuta)) == 0 {
+		return nil
+	}
+	var out []candidatoQuasi
 	n := len(battuta)
-	for k, v := range t.libreria {
-		if !strings.HasPrefix(k, pre) {
-			continue
-		}
-		testo := k[len(pre):]
-		if d := len(testo) - n; d > 6 || d < -6 {
-			continue
-		}
-		if quasiUguale(testo, battuta) {
-			return v, true
+	for d := -6; d <= 6; d++ {
+		for _, k := range t.perLunghezza[chiaveLung{parlante, n + d}] {
+			out = append(out, candidatoQuasi{k[len(parlante)+1:], t.libreria[k]})
 		}
 	}
-	return "", false
+	return out
+}
+
+// sceltaQuasiUguale: tra i candidati, la frase quasi uguale più vicina (meno lettere diverse; a
+// parità, la prima in ordine alfabetico): sempre la stessa scelta, qualunque sia l'ordine.
+func sceltaQuasiUguale(battuta string, cand []candidatoQuasi) (string, bool) {
+	rb := []rune(battuta)
+	meglio, dMeglio, trovata := candidatoQuasi{}, 0, false
+	for _, c := range cand {
+		if !quasiUguale(c.testo, battuta) {
+			continue
+		}
+		d := distanzaTesti([]rune(c.testo), rb, 3)
+		if !trovata || d < dMeglio || (d == dMeglio && c.testo < meglio.testo) {
+			meglio, dMeglio, trovata = c, d, true
+		}
+	}
+	return meglio.tradotto, trovata
 }

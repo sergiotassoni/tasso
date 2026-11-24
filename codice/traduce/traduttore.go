@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"sort"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -38,7 +39,24 @@ type Traduttore struct {
 	// passando dall'inglese se serve.
 	Coppia      func() (string, string)
 	altreCoppie map[string]string
+
+	// salvataggi su disco: si scrive solo se qualcosa è cambiato, da un filo a parte e con la
+	// copia fatta col lucchetto ma trasformata in testo fuori (così le traduzioni non aspettano)
+	ordineCache    []string // chiavi della memoria, dalla più vecchia: oltre il limite tolgo quelle
+	cacheModifiche int64    // cambi della memoria finora...
+	cacheSalvate   int64    // ...e quanti sono già sul disco
+	salvaInArrivo  bool     // un salvataggio della memoria è già programmato
+	libModifiche   int64    // come sopra, per la libreria del gioco
+	libSalvate     int64
+	libNonSalvare  bool                    // il file della libreria c'è ma non si legge: non lo sovrascrivo
+	perLunghezza   map[chiaveLung][]string // libreria divisa per lunghezza: il "quasi uguale" guarda poche frasi
 }
+
+const (
+	maxCache          = 20000           // voci nella memoria: oltre, tolgo le più vecchie
+	ritardoSalvaCache = 7 * time.Second // la memoria va su disco qualche secondo dopo, tutta insieme
+	maxFileLibreria   = 256 << 20       // libreria più grande: non la leggo (la metto da parte)
+)
 
 // MotoreCoppie: un motore che sa tradurre fra coppie di lingue qualsiasi (Mozilla).
 type MotoreCoppie interface {
@@ -51,10 +69,107 @@ func NuovoTraduttore(fileCache string, g Glossario, motori ...Motore) *Traduttor
 	t := &Traduttore{motori: motori, glossario: g, glossarioPieno: g.conGiochi(), cache: map[string]string{}, fileCache: fileCache}
 	if fileCache != "" {
 		if b, err := os.ReadFile(fileCache); err == nil {
-			_ = json.Unmarshal(b, &t.cache)
+			t.caricaCache(b)
 		}
 	}
 	return t
+}
+
+// caricaCache: la memoria su disco è una lista di coppie dalla più vecchia; i file delle versioni
+// di prima erano una mappa (senza ordine: le metto in ordine alfabetico, sempre uguale).
+func (t *Traduttore) caricaCache(b []byte) {
+	var coppie [][2]string
+	if json.Unmarshal(b, &coppie) == nil {
+		for _, c := range coppie {
+			if _, c2 := t.cache[c[0]]; !c2 {
+				t.ordineCache = append(t.ordineCache, c[0])
+			}
+			t.cache[c[0]] = c[1]
+		}
+	} else {
+		m := map[string]string{}
+		if json.Unmarshal(b, &m) != nil {
+			return
+		}
+		for k, v := range m {
+			t.cache[k] = v
+			t.ordineCache = append(t.ordineCache, k)
+		}
+		sort.Strings(t.ordineCache)
+	}
+	if len(t.cache) > maxCache {
+		t.togliVecchieLocked()
+	}
+}
+
+// mettiInCacheLocked: una frase nella memoria. Con programma=false (righe dei file dei giochi)
+// non programma il salvataggio: va su disco con il prossimo. Da chiamare con t.mu preso.
+func (t *Traduttore) mettiInCacheLocked(chiave, v string, programma bool) {
+	vecchia, c := t.cache[chiave]
+	if c && vecchia == v {
+		return
+	}
+	if !c {
+		t.ordineCache = append(t.ordineCache, chiave)
+	}
+	t.cache[chiave] = v
+	if len(t.cache) > maxCache {
+		t.togliVecchieLocked()
+	}
+	if programma {
+		t.cacheCambiataLocked()
+	} else {
+		t.cacheModifiche++
+	}
+}
+
+// togliVecchieLocked: la memoria non cresce all'infinito, ma invece di svuotarla tutta tolgo solo
+// le frasi più vecchie (un decimo), le altre restano. Da chiamare con t.mu preso.
+func (t *Traduttore) togliVecchieLocked() {
+	togli := len(t.ordineCache) - maxCache*9/10
+	if togli <= 0 {
+		return
+	}
+	for _, k := range t.ordineCache[:togli] {
+		delete(t.cache, k)
+	}
+	t.ordineCache = append([]string(nil), t.ordineCache[togli:]...)
+	t.cacheModifiche++
+}
+
+// cacheCambiataLocked: la memoria è cambiata. Il salvataggio parte da solo qualche secondo dopo,
+// da un filo a parte, una volta sola per tutte le frasi nuove arrivate nel frattempo.
+// Da chiamare con t.mu preso.
+func (t *Traduttore) cacheCambiataLocked() {
+	t.cacheModifiche++
+	if t.fileCache == "" || t.salvaInArrivo {
+		return
+	}
+	t.salvaInArrivo = true
+	time.AfterFunc(ritardoSalvaCache, func() {
+		defer func() { _ = recover() }()
+		t.mu.Lock()
+		t.salvaInArrivo = false
+		t.mu.Unlock()
+		t.salvaCache()
+	})
+}
+
+// mettiInLibreriaLocked: una frase nella libreria del gioco (anche nell'indice del "quasi uguale").
+// Da chiamare con t.mu preso e t.libreria != nil.
+func (t *Traduttore) mettiInLibreriaLocked(chiave, v string) {
+	vecchia, c := t.libreria[chiave]
+	if c && vecchia == v {
+		return
+	}
+	if !c {
+		if t.perLunghezza == nil {
+			t.perLunghezza = map[chiaveLung][]string{}
+		}
+		indicizza(t.perLunghezza, chiave)
+	}
+	t.libreria[chiave] = v
+	t.libModifiche++
 }
 
 func (t *Traduttore) ImpostaGlossario(g Glossario) {
@@ -62,6 +177,8 @@ func (t *Traduttore) ImpostaGlossario(g Glossario) {
 	t.glossario = g
 	t.glossarioPieno = g.conGiochi()
 	t.cache = map[string]string{} // le traduzioni vecchie potrebbero non rispettare il glossario nuovo
+	t.ordineCache = nil
+	t.cacheCambiataLocked()
 	t.mu.Unlock()
 	t.salvaCache()
 }
@@ -88,7 +205,7 @@ func (t *Traduttore) Traduci(ctx context.Context, grezzo string) Risultato {
 }
 
 // TraduciScritta: una scritta di un menu o di una schermata (modalità F6). Niente nome di chi
-// parla, niente contesto del dialogo, memoria salvata su disco solo alla fine (SalvaMemoria).
+// parla, niente contesto del dialogo. La memoria va su disco qualche secondo dopo, da un altro filo.
 func (t *Traduttore) TraduciScritta(ctx context.Context, grezzo string) Risultato {
 	return t.traduci(ctx, grezzo, false)
 }
@@ -124,7 +241,8 @@ func (t *Traduttore) TraduciMessaggio(ctx context.Context, grezzo string) Risult
 	}
 	if t.Coppia != nil {
 		if da, a := t.Coppia(); !(da == "en" && a == "it") {
-			r := t.traduciCoppia(ctx, battuta, da, a, inizio)
+			// salva=false: i messaggi dei giocatori non vanno in memoria né al correttore IA
+			r := t.traduciCoppia(ctx, battuta, da, a, inizio, false)
 			r.Originale, r.Parlante = testo, parlante
 			return r
 		}
@@ -188,7 +306,7 @@ func pulisciFile(s string) string {
 func (t *Traduttore) traduciIn(ctx context.Context, grezzo string, dialogo bool, da, a string) Risultato {
 	inizio := time.Now()
 	if !(da == "en" && a == "it") {
-		return t.traduciCoppia(ctx, grezzo, da, a, inizio)
+		return t.traduciCoppia(ctx, grezzo, da, a, inizio, true)
 	}
 	daFile := ctx.Value(chiaveFile{}) != nil
 	testo := ""
@@ -203,9 +321,12 @@ func (t *Traduttore) traduciIn(ctx context.Context, grezzo string, dialogo bool,
 	parlante, battuta := "", strings.ReplaceAll(testo, "\n", " ")
 	if dialogo && !daFile {
 		parlante, battuta = separaParlante(testo)
-	} else if r, ok := t.traduciEtichetta(ctx, battuta, inizio); ok && !daFile {
-		// (nei file no: l'etichetta si tradurrebbe nelle lingue di adesso, non in quelle del gioco)
-		return r
+	} else if !daFile {
+		// (nei file no: l'etichetta si tradurrebbe nelle lingue di adesso, non in quelle del gioco;
+		// il controllo va prima, altrimenti la traduzione a pezzi partirebbe per niente)
+		if r, ok := t.traduciEtichetta(ctx, battuta, inizio); ok {
+			return r
+		}
 	}
 	ricorda := func(b string) {
 		if dialogo && !daFile {
@@ -254,7 +375,7 @@ func (t *Traduttore) traduciIn(ctx context.Context, grezzo string, dialogo bool,
 	if v, ok := t.cache[chiave]; ok {
 		v = t.giaSalvataLocked(chiave, battuta, v)
 		if t.libreria != nil {
-			t.libreria[chiave] = v
+			t.mettiInLibreriaLocked(chiave, v)
 		}
 		t.mu.Unlock()
 		if !conParoleFisse {
@@ -265,13 +386,18 @@ func (t *Traduttore) traduciIn(ctx context.Context, grezzo string, dialogo bool,
 		ricorda(battuta)
 		return ris
 	}
-	if !conParoleFisse && ctx.Value(chiaveEsatta{}) == nil {
-		if v, ok := t.cercaQuasiUguale(parlante, battuta); ok {
+	// "quasi uguale" (errori di lettura dello schermo): mai per le righe dei file, già scritte giuste.
+	// Col lucchetto prendo solo le poche frasi di lunghezza simile; il confronto si fa fuori.
+	if !conParoleFisse && !daFile && ctx.Value(chiaveEsatta{}) == nil {
+		if cand := t.candidatiQuasiUgualiLocked(parlante, battuta); len(cand) > 0 {
 			t.mu.Unlock()
-			ris.Tradotto, ris.Motore = nomiIntatti(battuta, v), "libreria"
-			ris.Millisec = time.Since(inizio).Milliseconds()
-			ricorda(battuta)
-			return ris
+			if v, ok := sceltaQuasiUguale(battuta, cand); ok {
+				ris.Tradotto, ris.Motore = nomiIntatti(battuta, v), "libreria"
+				ris.Millisec = time.Since(inizio).Milliseconds()
+				ricorda(battuta)
+				return ris
+			}
+			t.mu.Lock()
 		}
 	}
 	motori := append([]Motore(nil), t.motori...)
@@ -320,14 +446,19 @@ func (t *Traduttore) traduciIn(ctx context.Context, grezzo string, dialogo bool,
 		return ris
 	}
 	t.mu.Lock()
-	t.cache[chiave] = ris.Tradotto
+	// le righe dei file dei giochi vanno nella libreria del gioco, non nella memoria generale
+	// (un gioco con 100.000 righe la riempirebbe e la riscriverebbe di continuo)
+	if !daFile || t.libreria == nil {
+		t.mettiInCacheLocked(chiave, ris.Tradotto, !daFile)
+	}
 	if t.libreria != nil {
-		t.libreria[chiave] = ris.Tradotto
+		t.mettiInLibreriaLocked(chiave, ris.Tradotto)
 		if perche := sembraStrana(battuta, ris.Tradotto); perche != "" {
 			if t.dubbi == nil {
 				t.dubbi = map[string]Dubbio{}
 			}
 			t.dubbi[chiave] = Dubbio{Inglese: battuta, Italiano: ris.Tradotto, Motore: ris.Motore, Perche: perche}
+			t.libModifiche++
 		}
 	}
 	t.mu.Unlock()
@@ -335,9 +466,6 @@ func (t *Traduttore) traduciIn(ctx context.Context, grezzo string, dialogo bool,
 		t.accodaCorrezione(chiave, battuta, ris.Tradotto, req.Glossario, req.Schermata)
 	}
 	ricorda(battuta)
-	if dialogo {
-		t.salvaCache()
-	}
 	return ris
 }
 
@@ -492,11 +620,11 @@ func (t *Traduttore) giaSalvataLocked(chiave, battuta, v string) string {
 	n := nomiIntatti(battuta, v)
 	if n != v {
 		if _, ok := t.cache[chiave]; ok {
-			t.cache[chiave] = n
+			t.mettiInCacheLocked(chiave, n, true)
 		}
 		if t.libreria != nil {
 			if _, ok := t.libreria[chiave]; ok {
-				t.libreria[chiave] = n
+				t.mettiInLibreriaLocked(chiave, n)
 			}
 		}
 	}
@@ -555,48 +683,86 @@ func (t *Traduttore) ApriLibreria(file string) {
 	}
 	t.mu.Unlock()
 	t.salvaLibreria()
-	nuova := map[string]string{}
-	if b, err := os.ReadFile(file); err == nil && len(b) < 64<<20 {
-		_ = json.Unmarshal(b, &nuova)
-	}
+	nuova, nonSalvare := leggiLibreria(file)
 	dubbi := map[string]Dubbio{}
 	if b, err := os.ReadFile(strings.TrimSuffix(file, ".json") + "-da-controllare.json"); err == nil && len(b) < 16<<20 {
 		_ = json.Unmarshal(b, &dubbi)
 	}
+	indice := map[chiaveLung][]string{}
+	for k := range nuova {
+		indicizza(indice, k)
+	}
 	t.mu.Lock()
-	t.libreria, t.fileLibreria, t.dubbi = nuova, file, dubbi
+	t.libreria, t.fileLibreria, t.dubbi, t.perLunghezza = nuova, file, dubbi, indice
+	t.libModifiche, t.libSalvate, t.libNonSalvare = 0, 0, nonSalvare
 	t.mu.Unlock()
 }
 
+// leggiLibreria: la libreria di un gioco dal disco. Se il file c'è ma non si legge (rovinato o
+// troppo grande) lo metto da parte con un altro nome invece di sovrascriverlo con poche frasi;
+// se non riesco nemmeno a spostarlo, nonSalvare dice di non scriverci sopra.
+func leggiLibreria(file string) (lib map[string]string, nonSalvare bool) {
+	lib = map[string]string{}
+	st, err := os.Stat(file)
+	if err != nil {
+		return lib, !os.IsNotExist(err)
+	}
+	if st.Size() < maxFileLibreria {
+		if b, err := os.ReadFile(file); err == nil && json.Unmarshal(b, &lib) == nil {
+			return lib, false
+		}
+	}
+	lib = map[string]string{}
+	da := strings.TrimSuffix(file, ".json") + "-illeggibile-" + time.Now().Format("20060102-150405") + ".json.bak"
+	if os.Rename(file, da) != nil {
+		return lib, true
+	}
+	return lib, false
+}
+
+// salvaLibreria: la libreria del gioco su disco, solo se è cambiata. La copia si fa col lucchetto,
+// la trasformazione in testo (lenta con tante frasi) fuori.
 func (t *Traduttore) salvaLibreria() {
+	muFileCache.Lock()
+	defer muFileCache.Unlock()
 	t.mu.Lock()
-	file := t.fileLibreria
-	if file == "" || len(t.libreria) == 0 {
+	file, n := t.fileLibreria, t.libModifiche
+	if file == "" || len(t.libreria) == 0 || t.libNonSalvare || n == t.libSalvate {
 		t.mu.Unlock()
 		return
 	}
-	b, err := json.Marshal(t.libreria)
-	var bd []byte
+	copia := make(map[string]string, len(t.libreria))
+	for k, v := range t.libreria {
+		copia[k] = v
+	}
+	var dubbi map[string]Dubbio
 	if len(t.dubbi) > 0 {
-		bd, _ = json.MarshalIndent(t.dubbi, "", " ")
+		dubbi = make(map[string]Dubbio, len(t.dubbi))
+		for k, v := range t.dubbi {
+			dubbi[k] = v
+		}
 	}
 	t.mu.Unlock()
+	b, err := json.Marshal(copia)
 	if err != nil {
 		return
 	}
-	if bd != nil {
-		_ = os.MkdirAll(filepath.Dir(file), 0o755)
-		dc := strings.TrimSuffix(file, ".json") + "-da-controllare.json"
-		if os.WriteFile(dc+".tmp", bd, 0o644) == nil {
-			_ = os.Rename(dc+".tmp", dc)
+	_ = os.MkdirAll(filepath.Dir(file), 0o755)
+	if dubbi != nil {
+		if bd, err := json.MarshalIndent(dubbi, "", " "); err == nil {
+			dc := strings.TrimSuffix(file, ".json") + "-da-controllare.json"
+			if os.WriteFile(dc+".tmp", bd, 0o644) == nil {
+				_ = os.Rename(dc+".tmp", dc)
+			}
 		}
 	}
-	muFileCache.Lock()
-	defer muFileCache.Unlock()
-	_ = os.MkdirAll(filepath.Dir(file), 0o755)
 	tmp := file + ".tmp"
-	if os.WriteFile(tmp, b, 0o644) == nil {
-		_ = os.Rename(tmp, file)
+	if os.WriteFile(tmp, b, 0o644) == nil && os.Rename(tmp, file) == nil {
+		t.mu.Lock()
+		if t.fileLibreria == file {
+			t.libSalvate = n
+		}
+		t.mu.Unlock()
 	}
 }
 
@@ -695,24 +861,35 @@ func fileLibreriaPer(dir, gioco string) string {
 	return filepath.Join(dir, nome+".json")
 }
 
+// salvaCache: la memoria su disco (lista di coppie, dalla più vecchia), solo se è cambiata.
+// Col lucchetto faccio solo la copia; la trasformazione in testo e la scrittura avvengono fuori,
+// così le traduzioni non aspettano il disco.
 func (t *Traduttore) salvaCache() {
 	if t.fileCache == "" {
 		return
 	}
+	muFileCache.Lock() // un salvataggio alla volta, e sempre la copia più nuova per ultima
+	defer muFileCache.Unlock()
 	t.mu.Lock()
-	if len(t.cache) > 20000 { // non la lascio crescere all'infinito
-		t.cache = map[string]string{}
+	n := t.cacheModifiche
+	if n == t.cacheSalvate {
+		t.mu.Unlock()
+		return
 	}
-	b, err := json.Marshal(t.cache)
+	coppie := make([][2]string, 0, len(t.ordineCache))
+	for _, k := range t.ordineCache {
+		coppie = append(coppie, [2]string{k, t.cache[k]})
+	}
 	t.mu.Unlock()
+	b, err := json.Marshal(coppie)
 	if err != nil {
 		return
 	}
-	muFileCache.Lock()
-	defer muFileCache.Unlock()
 	tmp := t.fileCache + ".tmp"
-	if os.WriteFile(tmp, b, 0o644) == nil {
-		_ = os.Rename(tmp, t.fileCache)
+	if os.WriteFile(tmp, b, 0o644) == nil && os.Rename(tmp, t.fileCache) == nil {
+		t.mu.Lock()
+		t.cacheSalvate = n
+		t.mu.Unlock()
 	}
 }
 
@@ -810,7 +987,8 @@ func (t *Traduttore) oggettoDiMateriale(s string) (string, bool) {
 
 // traduciCoppia: lingue diverse da inglese → italiano. Mozilla (con l'inglese in mezzo se non
 // c'è il modello diretto) e una memoria delle frasi già tradotte.
-func (t *Traduttore) traduciCoppia(ctx context.Context, grezzo, da, a string, inizio time.Time) Risultato {
+// Con salva=false (messaggi della chat) la frase non va in memoria né al correttore IA.
+func (t *Traduttore) traduciCoppia(ctx context.Context, grezzo, da, a string, inizio time.Time, salva bool) Risultato {
 	testo := strings.TrimSpace(strings.Join(strings.Fields(strings.ReplaceAll(grezzo, "\n", " ")), " "))
 	ris := Risultato{Originale: testo}
 	if testo == "" || da == a {
@@ -849,6 +1027,9 @@ func (t *Traduttore) traduciCoppia(ctx context.Context, grezzo, da, a string, in
 			continue
 		}
 		ris.Tradotto, ris.Motore, ris.Errore = strings.TrimSpace(out), m.Nome(), ""
+		if !salva {
+			break
+		}
 		t.mu.Lock()
 		if t.altreCoppie == nil || len(t.altreCoppie) > 20000 {
 			t.altreCoppie = map[string]string{}

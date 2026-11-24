@@ -14,6 +14,7 @@ import (
 	"net/http"
 	"strings"
 	"time"
+	"unicode"
 )
 
 // istruzioni fisse per il modello: traduttore di videogiochi, solo la traduzione in uscita
@@ -257,7 +258,7 @@ func (c *ClientIA) Traduci(ctx context.Context, r RichiestaTraduzione) (string, 
 	t, err := c.chat(ctx, costruisciMessaggi(r), temperatura(r), tokenMassimi(r))
 	if err == nil && r.Bozza != "" && copiaEsempio(r.Testo, t) {
 		// l'IA ha ricopiato la risposta di un esempio invece di correggere questa frase
-		return "", errors.New("motore IA: risposta copiata da un esempio")
+		return "", fmt.Errorf("%w: copiata da un esempio", errRispostaScartata)
 	}
 	return t, err
 }
@@ -265,12 +266,19 @@ func (c *ClientIA) Traduci(ctx context.Context, r RichiestaTraduzione) (string, 
 // tokenMassimi: quanti pezzi di parola può scrivere al massimo l'IA. Una correzione più lunga di
 // 1,6 volte la bozza viene comunque scartata (correzioneAccettabile), quindi non serve aspettarla:
 // se l'IA si "incanta" si ferma subito invece di scrivere fino a 400 pezzi.
+// Una risposta che arriva al limite è tagliata e viene scartata (chat legge il motivo di fine).
 func tokenMassimi(r RichiestaTraduzione) int {
+	testo := r.Bozza
 	base := len([]rune(r.Bozza))
 	if base == 0 {
+		testo = r.Testo
 		base = len([]rune(r.Testo)) * 3 / 2
 	}
 	n := (base*16/10+10)/2 + 12 // in italiano un pezzo vale in media 3-4 lettere: qui ne contiamo 2, con margine
+	if nonLatina(testo) {
+		// russo, giapponese, cinese, coreano...: un pezzo vale circa una lettera (o meno)
+		n = base*16/10 + 24
+	}
 	if n < 24 {
 		n = 24
 	}
@@ -278,6 +286,21 @@ func tokenMassimi(r RichiestaTraduzione) int {
 		n = 400
 	}
 	return n
+}
+
+// nonLatina: più di un quarto delle lettere non è dell'alfabeto latino (cirillico, ideogrammi...).
+func nonLatina(s string) bool {
+	lettere, altre := 0, 0
+	for _, r := range s {
+		if !unicode.IsLetter(r) {
+			continue
+		}
+		lettere++
+		if !unicode.Is(unicode.Latin, r) {
+			altre++
+		}
+	}
+	return lettere > 0 && altre*4 > lettere
 }
 
 // Chat: messaggi già pronti -> risposta pulita.
@@ -321,14 +344,20 @@ func (c *ClientIA) chat(ctx context.Context, msgs []messaggio, temp float64, max
 	}
 	var out struct {
 		Choices []struct {
-			Message messaggio `json:"message"`
+			Message      messaggio `json:"message"`
+			FinishReason string    `json:"finish_reason"`
 		} `json:"choices"`
+		StopType string `json:"stop_type"` // risposta nativa di llama.cpp: "limit" = tagliata
 	}
 	if err := json.Unmarshal(dati, &out); err != nil {
 		return "", err
 	}
 	if len(out.Choices) == 0 {
 		return "", errors.New("motore IA: risposta vuota")
+	}
+	if out.Choices[0].FinishReason == "length" || out.StopType == "limit" {
+		// arrivata al limite di pezzi: la frase è tagliata a metà, meglio la bozza di Mozilla
+		return "", fmt.Errorf("%w: tagliata dal limite di lunghezza", errRispostaScartata)
 	}
 	t := pulisciRisposta(out.Choices[0].Message.Content)
 	if t == "" {

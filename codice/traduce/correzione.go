@@ -6,6 +6,8 @@ package traduce
 
 import (
 	"context"
+	"errors"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -24,6 +26,7 @@ type correttoreSfondo struct {
 	coda     chan lavoroCorrezione
 	inCoda   map[string]bool
 	viste    map[string]bool                       // frasi già ricontrollate dall'IA in questa sessione
+	errori   map[string]int                        // frasi per cui l'IA ha dato errore (dopo 3 basta)
 	inPausa  func() bool                           // vero quando il gioco ha bisogno del PC (processore pieno)
 	quando   func(inglese, bozza, corretta string) // avvisata quando una frase è stata migliorata
 	fatte    atomic.Int64
@@ -42,6 +45,7 @@ func (t *Traduttore) ImpostaCorrettore(m Motore, inPausa func() bool) {
 		c.coda = make(chan lavoroCorrezione, maxCodaCorrezioni)
 		c.inCoda = map[string]bool{}
 		c.viste = map[string]bool{}
+		c.errori = map[string]int{}
 	}
 	c.mu.Unlock()
 	if m != nil {
@@ -97,15 +101,43 @@ func (t *Traduttore) lavoraCorrezioni() {
 	}
 }
 
+// esito di una correzione: serve per sapere se la frase è stata davvero vista dall'IA
+const (
+	nonProvata = iota // motore spento (es. cambio di livello dell'IA): la frase tornerà in coda
+	conErrore         // il motore c'era ma non ha risposto (tempo scaduto...): riprovo, al massimo 3 volte
+	risposta          // l'IA ha risposto (corretta, uguale o scartata): non serve rifarla
+)
+
+// errRispostaScartata: l'IA ha risposto, ma la risposta non va bene (tagliata, copiata da un
+// esempio). Ripetere darebbe lo stesso risultato: la frase conta come vista.
+var errRispostaScartata = errors.New("motore IA: risposta scartata")
+
+// errMotoreSpento: il motore IA non è acceso (spento o in riavvio): la frase non conta come vista.
+var errMotoreSpento = errors.New("motore IA spento")
+
 // unaCorrezione: un lavoro della coda. Un errore qui non ferma il correttore (prima bastava un
-// errore per bloccare la coda per sempre).
+// errore per bloccare la coda per sempre). La frase si segna "già vista" solo se l'IA ha
+// risposto: se il motore è spento (cambio di livello) tornerà in coda la prossima volta che compare.
 func (t *Traduttore) unaCorrezione(l lavoroCorrezione) {
+	esito := nonProvata
 	defer func() {
-		_ = recover()
-		t.corr.mu.Lock()
-		delete(t.corr.inCoda, l.chiave)
-		t.corr.viste[l.chiave] = true
-		t.corr.mu.Unlock()
+		if recover() != nil {
+			esito = risposta // una frase che fa cadere il correttore non la riprovo
+		}
+		c := &t.corr
+		c.mu.Lock()
+		delete(c.inCoda, l.chiave)
+		switch esito {
+		case risposta:
+			c.viste[l.chiave] = true
+			delete(c.errori, l.chiave)
+		case conErrore:
+			if c.errori[l.chiave]++; c.errori[l.chiave] >= 3 {
+				c.viste[l.chiave] = true
+				delete(c.errori, l.chiave)
+			}
+		}
+		c.mu.Unlock()
 	}()
 	for {
 		t.corr.mu.Lock()
@@ -118,24 +150,31 @@ func (t *Traduttore) unaCorrezione(l lavoroCorrezione) {
 			time.Sleep(2 * time.Second)
 			continue
 		}
-		t.correggiUna(m, l)
+		esito = t.correggiUna(m, l)
 		return
 	}
 }
 
-func (t *Traduttore) correggiUna(m Motore, l lavoroCorrezione) {
+func (t *Traduttore) correggiUna(m Motore, l lavoroCorrezione) int {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
-	defer t.corr.fatte.Add(1)
 	corr, err := m.Traduci(ctx, RichiestaTraduzione{Testo: l.battuta, Glossario: l.glossario, Schermata: l.schermata, Bozza: l.bozza, Da: l.da, A: l.a})
-	if err != nil {
-		return
+	switch {
+	case errors.Is(err, errMotoreSpento):
+		return nonProvata
+	case errors.Is(err, errRispostaScartata):
+		t.corr.fatte.Add(1)
+		return risposta
+	case err != nil:
+		t.corr.fatte.Add(1)
+		return conErrore
 	}
+	t.corr.fatte.Add(1)
 	if l.da != "" {
 		// altre lingue: niente regole fatte per l'italiano
 		corr = pulisciRisposta(corr)
 		if corr == l.bozza || !correzioneAccettabileCoppia(l.battuta, l.bozza, corr) {
-			return
+			return risposta
 		}
 		t.corr.cambiate.Add(1)
 		t.mu.Lock()
@@ -149,21 +188,21 @@ func (t *Traduttore) correggiUna(m Motore, l lavoroCorrezione) {
 		if f != nil {
 			f(l.battuta, l.bozza, corr)
 		}
-		return
+		return risposta
 	}
 	corr = sigleItaliane(correggiTerminiFrase(l.battuta, corr), l.glossario)
 	if corr == l.bozza || !correzioneAccettabile(l.battuta, l.bozza, corr) {
-		return
+		return risposta
 	}
 	t.corr.cambiate.Add(1)
 	t.mu.Lock()
 	// solo se nel frattempo nessuno ha cambiato la frase (es. l'utente con il glossario)
 	if v, ok := t.cache[l.chiave]; ok && v == l.bozza {
-		t.cache[l.chiave] = corr
+		t.mettiInCacheLocked(l.chiave, corr, true)
 	}
 	if t.libreria != nil {
 		if v, ok := t.libreria[l.chiave]; ok && v == l.bozza {
-			t.libreria[l.chiave] = corr
+			t.mettiInLibreriaLocked(l.chiave, corr)
 		}
 	}
 	if t.corretteIA == nil {
@@ -177,6 +216,23 @@ func (t *Traduttore) correggiUna(m Motore, l lavoroCorrezione) {
 	if f != nil {
 		f(l.battuta, l.bozza, corr)
 	}
+	return risposta
+}
+
+// stessaFraseInglese: la frase inglese del dialogo mostrato (originale, con l'eventuale "Nome:"
+// davanti e gli a capo) è quella corretta dall'IA? Confrontare solo la bozza non basta: "Yes." e
+// "Yeah." hanno tutte e due la bozza "Sì." e la correzione di una finiva sull'altra.
+func stessaFraseInglese(originale, inglese string) bool {
+	norm := func(s string) string { return strings.Join(strings.Fields(s), " ") }
+	e := norm(inglese)
+	if e == "" {
+		return false
+	}
+	if norm(originale) == e {
+		return true
+	}
+	_, battuta := separaParlante(originale)
+	return norm(battuta) == e
 }
 
 // StatoCorrezioni: frasi ricontrollate e frasi migliorate dall'avvio.
