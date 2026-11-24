@@ -102,6 +102,30 @@ func LeggiLocresUnreal(paks, gioco string) ([]LocresDaTradurre, string, error) {
 	return files, sorg, nil
 }
 
+// GiocoHaLingua: il gioco ha già i suoi testi (non solo quelli del motore Unreal) nella lingua
+// voluta. Allora non serve nessun file: basta sceglierla nelle impostazioni del gioco, ed è la
+// traduzione fatta da persone (PC Cafe Simulator ha l'italiano ufficiale, 24/11).
+func GiocoHaLingua(paks, lingua string) bool {
+	for _, pp := range pakOriginali(paks) {
+		p, err := unreal.ApriPak(pp)
+		if err != nil {
+			continue
+		}
+		for _, v := range p.Voci {
+			n := strings.ToLower(strings.TrimPrefix(v.Nome, "/"))
+			if strings.HasPrefix(n, "engine/") {
+				continue
+			}
+			if locresDellaLingua(v.Nome, lingua) {
+				p.Chiudi()
+				return true
+			}
+		}
+		p.Chiudi()
+	}
+	return false
+}
+
 // cartellaLinguaNelPak: il nome esatto della cartella della lingua nei pak (es. "ko", "zh-Hans").
 func cartellaLinguaNelPak(paks, lingua string) (string, bool) {
 	for _, pp := range pakOriginali(paks) {

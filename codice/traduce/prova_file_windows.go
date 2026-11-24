@@ -68,7 +68,11 @@ func eseguiProvaFile() {
 		note = append(note, time.Now().Format("15:04:05")+" "+s)
 		_ = os.WriteFile(filepath.Join(provaFileUscita, "prova.txt"), []byte(strings.Join(note, "\r\n")+"\r\n"), 0o644)
 	}
-	if _, ok := leggiManifesto(dirApp, chiaveGioco(provaFileCartella)); !ok {
+	if lin := os.Getenv("TASSO_COPIA_LINGUA"); lin != "" {
+		// diagnosi: metto nel file aggiunto i testi ufficiali di un'altra lingua del gioco al
+		// posto dell'inglese. Se il gioco (in inglese) li mostra, il file aggiunto viene caricato
+		nota("copia lingua " + lin + " al posto dell'inglese: " + copiaLinguaComeInglese(provaFileCartella, lin))
+	} else if _, ok := leggiManifesto(dirApp, chiaveGioco(provaFileCartella)); !ok {
 		t0 := time.Now()
 		applicaModGioco(provaFileNome, provaFileCartella, false)
 		_, ok := leggiManifesto(dirApp, chiaveGioco(provaFileCartella))
@@ -148,4 +152,38 @@ func avvioSteamDi(cartella string) string {
 		}
 	}
 	return ""
+}
+
+func copiaLinguaComeInglese(cartella, lin string) string {
+	paks := CartellaPaksUnreal(cartella)
+	files, err := leggiLocresLingua(paks, lin)
+	if err != nil {
+		return err.Error()
+	}
+	var tenuti []LocresDaTradurre
+	for _, f := range files {
+		if strings.HasPrefix(strings.ToLower(f.Nome), "engine/") {
+			continue
+		}
+		parti := strings.Split(f.Nome, "/")
+		parti[len(parti)-2] = "en"
+		f.Nome = strings.Join(parti, "/")
+		tenuti = append(tenuti, f)
+	}
+	m := ManifestoMod{Gioco: provaFileNome, Cartella: cartella, Tipo: "unreal", Exe: exeGioco(cartella), Quando: time.Now(), Lingue: [2]string{"en", lin}}
+	rel, _ := filepath.Rel(cartella, filepath.Join(paks, "~mods", nomeModUnreal))
+	m.Aggiunti = []string{rel}
+	m.CreataMods = !esisteVoce(filepath.Join(paks, "~mods"))
+	if err := scriviManifesto(dirApp, chiaveGioco(cartella), m); err != nil {
+		return err.Error()
+	}
+	if _, _, err := ScriviModUnreal(cartella, paks, tenuti); err != nil {
+		_ = TogliModGioco(dirApp, chiaveGioco(cartella))
+		return err.Error()
+	}
+	var nomi []string
+	for _, f := range tenuti {
+		nomi = append(nomi, f.Nome)
+	}
+	return "ok: " + strings.Join(nomi, ", ")
 }
