@@ -155,6 +155,13 @@ func avvioSteamDi(cartella string) string {
 }
 
 func copiaLinguaComeInglese(cartella, lin string) string {
+	// anche in collaudo: mai file in un gioco con anti-cheat, mai sopra una traduzione già messa
+	if haAntiCheat(cartella) {
+		return "gioco con anti-cheat: niente file"
+	}
+	if m, _ := filepath.Glob(filepath.Join(CartellaPaksUnreal(cartella), "~mods", "*Tasso*")); len(m) > 0 {
+		return "c'è già una traduzione di Tasso: toglila prima"
+	}
 	paks := CartellaPaksUnreal(cartella)
 	files, err := leggiLocresLingua(paks, lin)
 	if err != nil {
