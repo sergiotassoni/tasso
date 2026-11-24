@@ -170,7 +170,7 @@ func main() {
 	// lavoro lento, così il tasto Ferma funziona sempre e i numeri dal vivo non si bloccano.
 	// Anche i tasti "Ferma" del driver video e del clic automatico e "Spegni tutto il Boost": sono
 	// protetti dai loro lucchetti (gdMu, acMu, e async per il Boost), quindi possono partire subito.
-	for _, n := range []string{"goCancel", "goIsRunning", "goLive", "goHwWatch", "goGpuDrvCancel", "goAutoClickStop", "goBoostAllOff"} {
+	for _, n := range []string{"goCancel", "goIsRunning", "goLive", "goHwWatch", "goGpuDrvCancel", "goAutoClickStop", "goBoostAllOff", "goPronto"} {
 		webview2.Subito[n] = true
 	}
 	bindAll(w)

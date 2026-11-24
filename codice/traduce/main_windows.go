@@ -180,6 +180,8 @@ func Avvia() {
 	avviaServerModGioco()
 	go func() { // le librerie pronte prima della prima scritta
 		defer guard("librerie")
+		// Qualche secondo dopo: così all'avvio il processore resta libero per aprire la finestra di Tasso.
+		time.Sleep(4 * time.Second)
 		caricaCataloghi()
 		caricaLiberi()
 	}()
