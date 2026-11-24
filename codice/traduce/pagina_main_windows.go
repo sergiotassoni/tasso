@@ -84,6 +84,11 @@ func cicloPagina(giro int64) {
 	defer guard("pagina")
 	var ultima, ultimaColori Impronta
 	var ultimaImg *image.RGBA // la schermata dell'ultima lettura: per vedere se le scritte sono cambiate
+	// zone che si muovono da sole senza cambiare le scritte (personaggio animato accanto al menu,
+	// pianeta che gira): imparate quando una rilettura trova le stesse scritte, poi non contano
+	animate := make([]bool, celleBordiX*celleBordiY)
+	animateDa := time.Now()
+	var celleUltime []bool // zone cambiate che hanno fatto partire l'ultima rilettura
 	prima := true
 	nascostaPerAltTab := false
 	nere := 0
@@ -129,7 +134,22 @@ func cicloPagina(giro int64) {
 			// cambia solo la luce (sfondo animato e sfocato, scritta che si colora sotto il mouse):
 			// i contorni delle scritte sono gli stessi, niente rilettura, solo i colori. Il
 			// riferimento resta l'ultima lettura: un cambio lento che si somma viene visto lo stesso
-			soloLuce := !prima && imp.cambiata(ultima) && !bordiCambiati(img, ultimaImg)
+			soloLuce := false
+			celleUltime = nil
+			if !prima && imp.cambiata(ultima) {
+				if time.Since(animateDa) > 20*time.Second { // ogni tanto ricomincio da capo
+					clear(animate)
+					animateDa = time.Now()
+				}
+				soloLuce = true
+				celleUltime = celleBordiCambiate(img, ultimaImg)
+				for c, si := range celleUltime {
+					if si && !animate[c] {
+						soloLuce = false
+						break
+					}
+				}
+			}
 			if !soloLuce && (prima || imp.cambiata(ultima)) {
 				cambioVisto.Store(time.Now().UnixNano())
 				// lettura e traduzione partono subito, in anticipo, sulla prima immagine...
@@ -172,6 +192,12 @@ func cicloPagina(giro int64) {
 						// si muoveva ancora: rifaccio sull'immagine nuova. Anche se l'immagine si
 						// muove (video) traduco: le scritte sopra un video diventano una fascia scura
 						pronta, occupata = preparaPagina(area, img2, img, giro)
+					}
+					if pronta != nil && celleUltime != nil && stesseScritte(blocchiPagina(), pronta.pronti) {
+						// riletto per niente: le zone cambiate si muovono da sole, d'ora in poi non contano
+						for c, si := range celleUltime {
+							animate[c] = animate[c] || si
+						}
 					}
 					if pronta != nil && mostraPaginaPronta(pronta, giro) {
 						ultima, ultimaColori, prima, ultimaImg = imp2, imp2, false, img2

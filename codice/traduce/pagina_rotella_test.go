@@ -145,3 +145,15 @@ func TestBordiCambiati(t *testing.T) {
 		t.Fatal("scritta diversa: va riletta")
 	}
 }
+
+func TestStesseScritte(t *testing.T) {
+	a := []Blocco{{Testo: "CARGO"}, {Testo: "Used for:"}, {Testo: "DISCARD"}, {Testo: "Units"}, {Testo: "Entity"}}
+	b := []Blocco{{Testo: "CARGO"}, {Testo: "Used for:"}, {Testo: "DISCARD"}, {Testo: "Units"}, {Testo: "Quicksilver"}}
+	if !stesseScritte(a, b) {
+		t.Fatal("una scritta su cinque diversa: stessa pagina")
+	}
+	c := []Blocco{{Testo: "SODIUM"}, {Testo: "Used for:"}, {Testo: "A common element"}, {Testo: "Units"}, {Testo: "Entity"}}
+	if stesseScritte(a, c) {
+		t.Fatal("finestrella di un altro oggetto: scritte diverse")
+	}
+}

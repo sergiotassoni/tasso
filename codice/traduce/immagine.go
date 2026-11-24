@@ -300,20 +300,34 @@ func stranezza(t string) float64 {
 	return float64(strani) / float64(n)
 }
 
+// celleBordi: quante zone dello schermo dividiamo per il controllo dei contorni.
+const celleBordiX, celleBordiY = 32, 12
+
 // bordiCambiati: i contorni netti (lettere, cornici) sono cambiati in almeno una zona dello
 // schermo. Uno sfondo sfocato che si muove (pianeta dietro il menu di No Man's Sky, fumo, luci)
 // cambia la luce ma quasi non ha contorni netti: senza questo controllo la pagina veniva riletta
 // ogni secondo anche a menu fermo (lettura 0,5 s di processore a vuoto, 24/11).
 func bordiCambiati(a, b *image.RGBA) bool {
-	if a == nil || b == nil || a.Bounds() != b.Bounds() {
-		return true
+	for _, c := range celleBordiCambiate(a, b) {
+		if c {
+			return true
+		}
+	}
+	return false
+}
+
+// celleBordiCambiate: per ogni zona, se i contorni netti sono cambiati (almeno il 2% dei punti).
+func celleBordiCambiate(a, b *image.RGBA) []bool {
+	out := make([]bool, celleBordiX*celleBordiY)
+	if a == nil || b == nil || a.Bounds() != b.Bounds() || a.Bounds().Dx() < 8 || a.Bounds().Dy() < 8 {
+		for i := range out {
+			out[i] = true
+		}
+		return out
 	}
 	r := a.Bounds()
 	w, h := r.Dx(), r.Dy()
-	if w < 8 || h < 8 {
-		return true
-	}
-	const cx, cy = 32, 12
+	const cx, cy = celleBordiX, celleBordiY
 	var diff, tot [cx * cy]int
 	luce := func(img *image.RGBA, x, y int) int {
 		i := img.PixOffset(r.Min.X+x, r.Min.Y+y)
@@ -321,10 +335,7 @@ func bordiCambiati(a, b *image.RGBA) bool {
 	}
 	bordo := func(img *image.RGBA, x, y int) bool {
 		d := luce(img, x+1, y) - luce(img, x-1, y)
-		if d < 0 {
-			d = -d
-		}
-		if d > 45 {
+		if d > 45 || d < -45 {
 			return true
 		}
 		d = luce(img, x, y+1) - luce(img, x, y-1)
@@ -340,9 +351,27 @@ func bordiCambiati(a, b *image.RGBA) bool {
 		}
 	}
 	for c := range diff {
-		if diff[c] >= 8 && diff[c]*50 >= tot[c] { // almeno il 2% dei punti della zona
-			return true
+		out[c] = diff[c] >= 8 && diff[c]*50 >= tot[c]
+	}
+	return out
+}
+
+// stesseScritte: le due letture hanno (quasi) le stesse scritte inglesi: al massimo una su
+// cinque diversa (l'OCR legge a volte in modo diverso una scritta piccola).
+func stesseScritte(a, b []Blocco) bool {
+	if len(a) == 0 || len(b) == 0 {
+		return len(a) == len(b)
+	}
+	conta := map[string]int{}
+	for _, x := range a {
+		conta[x.Testo]++
+	}
+	uguali := 0
+	for _, x := range b {
+		if conta[x.Testo] > 0 {
+			conta[x.Testo]--
+			uguali++
 		}
 	}
-	return false
+	return uguali*5 >= max(len(a), len(b))*4
 }
