@@ -50,7 +50,50 @@ Il tuo compito: restituire la traduzione italiana MIGLIORE, come in un gioco loc
 - Usa le traduzioni del glossario quando indicate.
 Rispondi SOLO con la traduzione italiana finale.`
 
+
+// 24/11: nuove prove per "più intelligenza" (voce 6 della lista).
+const sistemaV7 = `You are a professional video game localizer from English to Italian.
+You get an English line from a game and a machine translation into Italian.
+Return the BEST Italian translation, as in a well localized game.
+- If the machine translation is already correct and natural, copy it unchanged.
+- Fix wrong meaning, wrong word for the game context, grammar, gender or agreement errors, unnatural phrasing.
+- Idioms: use the equivalent Italian idiom, not word for word.
+- Keep the character's tone and register. Address the player with "tu".
+- Menus and commands: short, imperative ("Premi", "Tieni premuto").
+- Do not add or remove information. Numbers, proper names and keys stay the same.
+- Use the glossary translations when given.
+Answer ONLY with the final Italian translation.`
+
+const esempiFissi = `Esempi di correzioni giuste:
+Inglese: Reload your magazine.
+Traduzione automatica: Ricarica la tua rivista.
+Finale: Ricarica il caricatore.
+Inglese: Press E to loot the body.
+Traduzione automatica: Premere E per saccheggiare il corpo.
+Finale: Premi E per perquisire il corpo.
+Inglese: Low health!
+Traduzione automatica: Salute bassa!
+Finale: Salute bassa!
+Inglese: You've got some nerve coming back here.
+Traduzione automatica: Hai un po' di nervi a tornare qui.
+Finale: Hai un bel coraggio a tornare qui.
+
+`
+
+const sistemaV9 = promptCorrettore + `
+Cambia il meno possibile: correggi solo le parole sbagliate e lascia uguale il resto della frase (stesse parole, stesso ordine, stessa punteggiatura).`
+
 var variantiIA = map[string]varianteIA{
+	"v7": {nome: "istruzioni in inglese", sistema: sistemaV7, utente: func(en, bozza string, g []voceTrovata, _ []string) string {
+		return glossarioTesto(g) + "Inglese:\n" + en + "\n\nTraduzione automatica:\n" + bozza
+	}},
+	"v8": {nome: "prompt di oggi + 4 esempi fissi di errori tipici", sistema: promptCorrettore, utente: func(en, bozza string, g []voceTrovata, _ []string) string {
+		return esempiFissi + glossarioTesto(g) + "Inglese:\n" + en + "\n\nTraduzione automatica:\n" + bozza
+	}},
+	"v9": {nome: "prompt di oggi + cambia il meno possibile", sistema: sistemaV9, utente: func(en, bozza string, g []voceTrovata, _ []string) string {
+		return glossarioTesto(g) + "Inglese:\n" + en + "\n\nTraduzione automatica:\n" + bozza
+	}},
+
 	"v0": {nome: "prompt di oggi", sistema: promptCorrettore, utente: func(en, bozza string, g []voceTrovata, _ []string) string {
 		return glossarioTesto(g) + "Inglese:\n" + en + "\n\nTraduzione automatica:\n" + bozza
 	}},
