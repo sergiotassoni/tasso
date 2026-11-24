@@ -233,6 +233,13 @@ var gameTarget atomic.Value
 var gameResumeDone atomic.Bool
 
 func startGameWatcher() {
+	// Poco dopo l'avvio cerco i giochi in sottofondo (senza copertine e senza toccare la finestra):
+	// così riconosco i giochi della libreria anche se non apri la pagina Giochi.
+	go func() {
+		defer guard("extras.go:startGameWatcher libreria")
+		time.Sleep(20 * time.Second)
+		scanLibraryQuiet()
+	}()
 	go func() {
 		defer guard("extras.go:230")
 		t := time.NewTicker(10 * time.Second)
@@ -436,7 +443,8 @@ func isGamePath(path, exe string, libDirs []string, libExes map[string]bool) boo
 
 // libraryGamePaths: le cartelle (in minuscolo, con \ finale) e i programmi dei giochi della
 // libreria. Le cartelle troppo larghe (Desktop, Download, Program Files...) non contano: lì
-// conta solo il programma esatto del gioco.
+// conta solo il programma esatto del gioco. Per i giochi aggiunti a mano conta sempre e solo il
+// programma esatto: la loro cartella può contenere altri programmi normali.
 func libraryGamePaths() ([]string, map[string]bool) {
 	var dirs []string
 	exes := map[string]bool{}
@@ -449,11 +457,11 @@ func libraryGamePaths() ([]string, map[string]bool) {
 		if g.exe != "" && !notGameExe[strings.ToLower(filepath.Base(g.exe))] {
 			exes[strings.ToLower(filepath.Clean(g.exe))] = true
 		}
-		if g.dir == "" {
+		if g.dir == "" || strings.HasPrefix(g.ID, "man:") {
 			continue
 		}
 		d := strings.ToLower(strings.TrimRight(filepath.Clean(g.dir), `\`))
-		if len(d) <= 3 || !filepath.IsAbs(d) {
+		if len(d) <= 3 || !filepath.IsAbs(d) || isBroadDir(d) {
 			continue
 		}
 		dirs = append(dirs, d+`\`)

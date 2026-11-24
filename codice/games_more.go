@@ -502,6 +502,8 @@ func customGames() []gameEntry {
 		if isBroadDir(dir) {
 			dir = "" // niente "Regola con Tasso" su cartelle come Download o Desktop
 		}
+		// Nota: per riconoscere un gioco aggiunto a mano conta solo il suo programma esatto, mai la
+		// cartella (vedi libraryGamePaths).
 		out = append(out, gameEntry{ID: "man:" + shortHash(c.Exe), Name: c.Name, Store: "Mano", exe: c.Exe, dir: dir, Icon: c.Exe, private: true})
 	}
 	return out
@@ -509,19 +511,71 @@ func customGames() []gameEntry {
 
 var genericDirRe = regexp.MustCompile(`(?i)^(bin|binaries|win64|win32|x64|x86|game|games|giochi|downloads|download|desktop|documents|documenti|program files.*|programs)$`)
 
-// isBroadDir: cartelle troppo grandi per "Regola con Tasso" (Desktop, Download, Program Files, radice del disco, Windows).
+// isBroadDir: cartelle troppo grandi per "Regola con Tasso" e per riconoscere un gioco dalla
+// cartella (Desktop, Download, Documenti anche se sono in OneDrive o su un altro disco, Desktop
+// pubblico, radici di OneDrive, Program Files, radice del disco, Windows, AppData). Anche le
+// cartelle "generiche" appena sotto la radice di un disco (D:\Download, D:\Portable, D:\Programmi...).
 func isBroadDir(d string) bool {
+	if d == "" {
+		return true
+	}
 	d = strings.ToLower(strings.TrimRight(filepath.Clean(d), `\`))
 	if len(d) <= 3 {
 		return true
 	}
-	for _, x := range []string{os.Getenv("USERPROFILE"), filepath.Join(os.Getenv("USERPROFILE"), "Desktop"), filepath.Join(os.Getenv("USERPROFILE"), "Downloads"),
-		filepath.Join(os.Getenv("USERPROFILE"), "Documents"), os.Getenv("ProgramFiles"), os.Getenv("ProgramFiles(x86)"), os.Getenv("SystemRoot"), os.Getenv("LOCALAPPDATA"), os.Getenv("APPDATA")} {
-		if x != "" && d == strings.ToLower(strings.TrimRight(filepath.Clean(x), `\`)) {
-			return true
-		}
+	if broadDirSet()[d] {
+		return true
 	}
-	return strings.HasPrefix(d, strings.ToLower(os.Getenv("SystemRoot"))+`\`)
+	if parent := filepath.Dir(d); len(strings.TrimRight(parent, `\`)) <= 2 && topGenericDirRe.MatchString(filepath.Base(d)) {
+		return true
+	}
+	win := strings.ToLower(winDir())
+	return win != "" && strings.HasPrefix(d, win+`\`)
+}
+
+// topGenericDirRe: nomi di cartelle che, subito sotto la radice di un disco, contengono di solito tanti programmi diversi.
+var topGenericDirRe = regexp.MustCompile(`(?i)^(downloads?|desktop|documents|documenti|scaricati|portable|portatili|programs|programmi|program files.*|apps|applicazioni|software|tools|strumenti|utility|utilities|users|utenti|onedrive.*)$`)
+
+var (
+	broadOnce sync.Once
+	broadDirs map[string]bool
+)
+
+// broadDirSet: le cartelle "larghe" vere, chieste a Windows una volta sola (non dalle variabili d'ambiente).
+func broadDirSet() map[string]bool {
+	broadOnce.Do(func() {
+		m := map[string]bool{}
+		add := func(p string) {
+			if p != "" {
+				m[strings.ToLower(strings.TrimRight(filepath.Clean(p), `\`))] = true
+			}
+		}
+		for _, id := range []*windows.KNOWNFOLDERID{windows.FOLDERID_Profile, windows.FOLDERID_Desktop, windows.FOLDERID_Downloads,
+			windows.FOLDERID_Documents, windows.FOLDERID_PublicDesktop, windows.FOLDERID_PublicDownloads, windows.FOLDERID_PublicDocuments,
+			windows.FOLDERID_Public, windows.FOLDERID_OneDrive, windows.FOLDERID_ProgramFiles, windows.FOLDERID_ProgramFilesX86,
+			windows.FOLDERID_ProgramData, windows.FOLDERID_LocalAppData, windows.FOLDERID_RoamingAppData, windows.FOLDERID_Windows} {
+			add(cartellaNota(id))
+		}
+		// tutte le radici di OneDrive (personale e lavoro), come le scrive OneDrive nel registro
+		if k, err := registry.OpenKey(registry.CURRENT_USER, `Software\Microsoft\OneDrive\Accounts`, registry.ENUMERATE_SUB_KEYS); err == nil {
+			names, _ := k.ReadSubKeyNames(50)
+			k.Close()
+			for _, n := range names {
+				if a, err := registry.OpenKey(registry.CURRENT_USER, `Software\Microsoft\OneDrive\Accounts\`+n, registry.QUERY_VALUE); err == nil {
+					if v, _, err := a.GetStringValue("UserFolder"); err == nil && filepath.IsAbs(v) {
+						add(v)
+						// Desktop, Documenti e Download dentro OneDrive (anche se Windows non li ha spostati lì)
+						for _, sub := range []string{"Desktop", "Documents", "Documenti", "Downloads"} {
+							add(filepath.Join(v, sub))
+						}
+					}
+					a.Close()
+				}
+			}
+		}
+		broadDirs = m
+	})
+	return broadDirs
 }
 
 // addGame: finestra di Windows per scegliere il programma del gioco.
@@ -576,11 +630,15 @@ func hideGame(id string, on bool) string {
 	if len(id) > 200 {
 		return "Gioco non valido."
 	}
+	libMu.Lock()
 	if strings.HasPrefix(id, "man:") && on {
-		libMu.Lock()
 		delete(library, id)
-		libMu.Unlock()
+	} else if g, ok := library[id]; ok {
+		// anche nella libreria in memoria: un gioco nascosto non conta più come gioco
+		g.Hidden = on
+		library[id] = g
 	}
+	libMu.Unlock()
 	updateSettings(func(s *Settings) {
 		if strings.HasPrefix(id, "man:") && on {
 			out := s.CustomGames[:0]

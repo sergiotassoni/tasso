@@ -4,9 +4,12 @@ import (
 	"encoding/json"
 	"math"
 	"regexp"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
+
+	"golang.org/x/sys/windows/registry"
 )
 
 var snapMu sync.Mutex
@@ -81,6 +84,7 @@ func restoreOriginal() (msgs []string, ok bool) {
 	if hasCmds {
 		msgs = append(msgs, gamingResetAll()...)
 	}
+	msgs = append(msgs, restoreUsbAudio()...)
 	busy := 0
 	for _, id := range tuned {
 		if gameTuneBusy(id) {
@@ -129,6 +133,56 @@ func restoreOriginal() (msgs []string, ok bool) {
 		s.StartupOrig = nil
 	})
 	return msgs, snapOK && busy == 0
+}
+
+// Risparmio energetico delle porte USB cambiato da "L'audio gracchia": il valore di prima sta in
+// HKCU\Software\Tasso\AudioUSB (nome = GUID del piano energetico, valore = numero di prima).
+const (
+	usbAudioKey = `Software\Tasso\AudioUSB`
+	usbSubGUID  = "2a737441-1930-4402-8d77-b2bebba308a3"
+	usbSetGUID  = "48e6b7a6-50f5-4782-a5d4-53bb8f07e226"
+)
+
+// restoreUsbAudio rimette il risparmio energetico delle porte USB com'era prima di Tasso.
+// Il registro dell'utente lo può scrivere chiunque: accetto solo GUID veri e i valori 0 o 1.
+func restoreUsbAudio() []string {
+	k, err := registry.OpenKey(registry.CURRENT_USER, usbAudioKey, registry.QUERY_VALUE|registry.SET_VALUE)
+	if err != nil {
+		return nil
+	}
+	names, _ := k.ReadValueNames(50)
+	done, failed := 0, 0
+	for _, n := range names {
+		v, _, err := k.GetIntegerValue(n)
+		if err != nil || !snapGUID.MatchString(n) || v > 1 {
+			_ = k.DeleteValue(n) // valore strano: non lo uso
+			continue
+		}
+		if _, err := runHidden("powercfg.exe", "/query", n); err != nil {
+			_ = k.DeleteValue(n) // il piano energetico non c'è più
+			continue
+		}
+		if _, err := runHidden("powercfg.exe", "/setacvalueindex", n, usbSubGUID, usbSetGUID, strconv.FormatUint(v, 10)); err != nil {
+			failed++ // lo tengo salvato per riprovare
+			continue
+		}
+		_ = k.DeleteValue(n)
+		done++
+	}
+	rest, _ := k.ReadValueNames(1)
+	k.Close()
+	if len(rest) == 0 {
+		_ = registry.DeleteKey(registry.CURRENT_USER, usbAudioKey)
+	}
+	var msgs []string
+	if done > 0 {
+		_, _ = runHidden("powercfg.exe", "/setactive", "SCHEME_CURRENT")
+		msgs = append(msgs, "Risparmio energetico delle porte USB: rimesso com'era.")
+	}
+	if failed > 0 {
+		msgs = append(msgs, "Non sono riuscito a rimettere il risparmio energetico delle porte USB: riprova.")
+	}
+	return msgs
 }
 
 // runRestoreScript rimette la foto delle impostazioni e dice se lo script è arrivato davvero alla fine.

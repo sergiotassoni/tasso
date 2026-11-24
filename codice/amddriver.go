@@ -270,7 +270,7 @@ func amdVerOf(pnp string) string {
 func amdInstall(noBackup bool) {
 	fail := func(msg string) { gdEmit("error", msg, map[string]interface{}{"vendor": "amd"}) }
 	if !claimRun() {
-		fail("Sta girando una pulizia o un aggiornamento del Tasso: aspetta che finisca.")
+		fail("Sta girando una pulizia o un aggiornamento di Tasso: aspetta che finisca.")
 		return
 	}
 	defer releaseRun()

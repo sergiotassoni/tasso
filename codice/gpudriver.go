@@ -622,7 +622,7 @@ func gpuDrvInstall(undo, noBackup bool) {
 	// Occupo il posto delle pulizie: nessuna pulizia (che tocca C:\NVIDIA e i driver vecchi)
 	// può partire mentre installo, e viceversa.
 	if !claimRun() {
-		fail("Sta girando una pulizia o un aggiornamento del Tasso: aspetta che finisca.")
+		fail("Sta girando una pulizia o un aggiornamento di Tasso: aspetta che finisca.")
 		return
 	}
 	defer releaseRun()

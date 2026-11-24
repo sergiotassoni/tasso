@@ -1,5 +1,8 @@
 {
  "go": {
+  "Non sono riuscito a spegnere la Modalità riunione o il blocco del PC dell'Ufficio: spegnili dalla sezione Ufficio di Tasso e riprova. Tasso non è stato tolto.": "I couldn't turn off Meeting Mode or the Office PC lock: turn them off from Tasso's Office section and try again. Tasso was not removed.",
+  "Risparmio energetico delle porte USB: rimesso com'era.": "USB port power saving: put back as it was.",
+  "Non sono riuscito a rimettere il risparmio energetico delle porte USB: riprova.": "I couldn't put back USB port power saving: try again.",
   ", un nome troppo comune (lo usano anche altri programmi): Tasso non la cambia.": ", a name that's too common (other programs use it too): Tasso doesn't change it.",
   "• Priorità del processore: il programma si chiama ": "• Processor priority: the program is called ",
   "Il pannellino non è ancora pronto: riprova tra poco.": "The overlay isn't ready yet: try again in a moment.",
@@ -886,7 +889,7 @@
   "Non riesco a salvare il file: forse il disco è pieno.": "I can't save the file: maybe the disk is full.",
   "Windows aspetta un riavvio per finire un aggiornamento: riavvia il PC e poi aggiorna il driver.": "Windows is waiting for a restart to finish an update: restart the PC and then update the driver.",
   "Windows sta installando degli aggiornamenti proprio adesso: riprova tra un po'.": "Windows is installing updates right now: try again in a while.",
-  "Sta girando una pulizia o un aggiornamento del Tasso: aspetta che finisca.": "A cleanup or a Tasso update is running: wait for it to finish.",
+  "Sta girando una pulizia o un aggiornamento di Tasso: aspetta che finisca.": "A cleanup or a Tasso update is running: wait for it to finish.",
   "Il driver di prima (": "The previous driver (",
   ") non si può riscaricare da NVIDIA. Per tornare indietro usa il punto di ripristino del ": ") can't be downloaded again from NVIDIA. To go back use the restore point from ",
   "Il driver ": "Driver ",

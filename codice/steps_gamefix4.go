@@ -262,10 +262,21 @@ if ($usb.Count -eq 2 -and $usb[0] -ne 0) {
       $d = Join-Path $env:LOCALAPPDATA 'Tasso\backup-registro'
       New-Item -ItemType Directory -Path $d -Force -ErrorAction Stop | Out-Null
       $f = Join-Path $d ('usb-audio_' + (Get-Date -Format 'yyyyMMdd_HHmmss') + '.cmd')
-      $lines = @('@echo off', ('powercfg.exe /setacvalueindex ' + $plan + ' 2a737441-1930-4402-8d77-b2bebba308a3 48e6b7a6-50f5-4782-a5d4-53bb8f07e226 ' + [int64]$usb[0]), 'powercfg.exe /setactive SCHEME_CURRENT', 'echo Risparmio energetico delle porte USB rimesso come prima.', 'pause')
+      $lines = @('@echo off', ('"%SystemRoot%\System32\powercfg.exe" /setacvalueindex ' + $plan + ' 2a737441-1930-4402-8d77-b2bebba308a3 48e6b7a6-50f5-4782-a5d4-53bb8f07e226 ' + [int64]$usb[0]), '"%SystemRoot%\System32\powercfg.exe" /setactive SCHEME_CURRENT', 'echo Risparmio energetico delle porte USB rimesso come prima.', 'pause')
       [IO.File]::WriteAllLines($f, [string[]]$lines, [Text.Encoding]::ASCII)
       if (Test-Path -LiteralPath $f) { $u = $f }
     } catch { $u = '' }
+  }
+  # Salvo il valore di prima anche per "Rimetti com'era" di Tasso: un valore per ogni piano
+  # energetico, solo la prima volta (così resta quello vero di prima di Tasso).
+  if ($u) {
+    try {
+      $tk = 'HKCU:\Software\Tasso\AudioUSB'
+      if (-not (Test-Path -LiteralPath $tk)) { New-Item -Path $tk -Force -ErrorAction Stop | Out-Null }
+      if ((Get-Item -LiteralPath $tk -ErrorAction Stop).GetValue($plan.ToLower(), $null) -eq $null) {
+        New-ItemProperty -LiteralPath $tk -Name $plan.ToLower() -Value ([int]$usb[0]) -PropertyType DWord -Force -ErrorAction Stop | Out-Null
+      }
+    } catch { Remove-Item -LiteralPath $u -Force -ErrorAction SilentlyContinue; $u = '' }
   }
   if (-not $u) { Say 'Non sono riuscito a salvare il valore di prima del risparmio energetico delle porte USB, quindi non lo cambio. Se vuoi spegnerlo tu: Pannello di controllo > Opzioni risparmio energia > Modifica impostazioni avanzate > Impostazioni USB.' } else {
   [void](Run-Hidden 'powercfg.exe' ('/setacvalueindex ' + $plan + ' 2a737441-1930-4402-8d77-b2bebba308a3 48e6b7a6-50f5-4782-a5d4-53bb8f07e226 0'))

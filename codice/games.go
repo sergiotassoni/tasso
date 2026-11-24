@@ -261,6 +261,34 @@ func scanLibrary() {
 			scanLibMu.Unlock()
 		}
 	}()
+	all := collectLibrary()
+	gen := libGen.Add(1)
+	publishLibrary(all)
+	scanLibMu.Unlock()
+	locked = false
+	// poi le copertine che mancano, da Steam (se c'è internet), senza tenere ferma la libreria
+	if fillCovers(all) && libGen.Load() == gen {
+		publishLibrary(all)
+	}
+}
+
+// libReady: la libreria è già stata cercata almeno una volta (dalla pagina Giochi o in sottofondo).
+var libReady atomic.Bool
+
+// scanLibraryQuiet: cerca i giochi in sottofondo, senza copertine e senza mandare niente alla
+// finestra. Serve solo a riconoscere i giochi della libreria (Battle.net, GOG, C:\Games, aggiunti
+// a mano...) anche se non hai ancora aperto la pagina Giochi. Se la libreria c'è già, non fa niente.
+func scanLibraryQuiet() {
+	scanLibMu.Lock()
+	defer scanLibMu.Unlock()
+	if libReady.Load() {
+		return
+	}
+	storeLibrary(collectLibrary())
+}
+
+// collectLibrary: cerca tutti i giochi del PC (launcher, Programmi installati, cartelle, aggiunti a mano).
+func collectLibrary() []gameEntry {
 	deadline := time.Now().Add(12 * time.Second)
 	un := readUninstall()
 	all := append(append(scanSteam(), scanEpic()...), scanRiot()...)
@@ -358,14 +386,7 @@ func scanLibrary() {
 		}
 	}
 	sort.Slice(all, func(i, j int) bool { return strings.ToLower(all[i].Name) < strings.ToLower(all[j].Name) })
-	gen := libGen.Add(1)
-	publishLibrary(all)
-	scanLibMu.Unlock()
-	locked = false
-	// poi le copertine che mancano, da Steam (se c'è internet), senza tenere ferma la libreria
-	if fillCovers(all) && libGen.Load() == gen {
-		publishLibrary(all)
-	}
+	return all
 }
 
 var libGen atomic.Int64
@@ -373,6 +394,12 @@ var libGen atomic.Int64
 // publishLibrary: manda la libreria alla finestra, rileggendo ogni volta nascosti e giochi aggiunti a mano
 // (così un gioco nascosto mentre arrivavano le copertine non ricompare).
 func publishLibrary(all []gameEntry) {
+	emitRaw("onLibrary", storeLibrary(all))
+}
+
+// storeLibrary: mette i giochi trovati nella libreria di Tasso (con nascosti e giochi aggiunti a
+// mano riletti dalle impostazioni) e restituisce la lista da mostrare.
+func storeLibrary(all []gameEntry) []gameEntry {
 	setMu.Lock()
 	hidden := map[string]bool{}
 	for _, h := range settings.HiddenGames {
@@ -404,7 +431,8 @@ func publishLibrary(all []gameEntry) {
 		library[g.ID] = g
 	}
 	libMu.Unlock()
-	emitRaw("onLibrary", out)
+	libReady.Store(true)
+	return out
 }
 
 // launchGame avvia solo un gioco trovato dalla scansione (niente indirizzi arbitrari dalla pagina).

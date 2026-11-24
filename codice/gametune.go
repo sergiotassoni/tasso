@@ -413,10 +413,15 @@ var skipExe = regexp.MustCompile(`(?i)^(unins|uninst|setup|install|redist|vcredi
 // così vince il gioco vero, ma se c'è solo lui (es. CrashBandicoot.exe) resta.
 var toolWords = []string{"crash", "report", "launcher", "helper", "update", "patch", "config", "settings", "overlay", "benchmark", "uploader", "cleanup", "cef", "webhelper", "server", "editor", "tool", "anticheat"}
 
+// setupWords: installatori e disinstallatori con il nome in mezzo (UplayInstaller.exe, GameSetup.exe,
+// Gioco_uninstall.exe, Touchup.exe). Tolgono più punti: restano sotto zero anche se il nome
+// somiglia alla cartella del gioco.
+var setupWords = []string{"install", "setup", "uninst", "redist", "touchup"}
+
 // gameExes trova i programmi veri del gioco (al massimo 3), saltando installatori e programmi di servizio.
 // I giochi Unity hanno un avviatore piccolo (circa 650 KB) con accanto UnityPlayer.dll o la cartella
-// <nome>_Data: li accetto anche se sono piccoli. Gli altri programmi sotto 1 MB li prendo solo se
-// nella cartella non c'è nient'altro.
+// <nome>_Data: li accetto anche se sono piccoli, come quelli con il nome simile alla cartella del
+// gioco. Gli altri programmi sotto 1 MB li prendo solo se nella cartella non c'è nient'altro.
 func gameExes(dir string) []string {
 	if dir == "" || !dirExists(dir) {
 		return nil
@@ -425,7 +430,7 @@ func gameExes(dir string) []string {
 		path  string
 		size  int64
 		score int
-		ok    bool // grande, oppure avviatore Unity
+		ok    bool // grande, avviatore Unity o con il nome simile alla cartella
 	}
 	var list []cand
 	folder := normTitle(filepath.Base(filepath.Clean(dir)))
@@ -439,7 +444,8 @@ func gameExes(dir string) []string {
 				return filepath.SkipDir
 			}
 			ln := strings.ToLower(d.Name())
-			if ln == "redist" || ln == "_commonredist" || ln == "directx" || ln == "support" || ln == "easyanticheat" || ln == "battleye" {
+			if ln == "redist" || ln == "_commonredist" || ln == "directx" || ln == "support" || ln == "easyanticheat" || ln == "battleye" ||
+				ln == "__installer" || ln == "_redist" || ln == "prerequisites" { // cartelle degli installatori
 				return filepath.SkipDir
 			}
 			return nil
@@ -457,6 +463,7 @@ func gameExes(dir string) []string {
 		pdir := filepath.Dir(p)
 		unity := fileExists(filepath.Join(pdir, "UnityPlayer.dll")) || dirExists(filepath.Join(pdir, stem+"_Data"))
 		sc := 0
+		similar := false
 		if unity {
 			sc += 4
 		}
@@ -470,17 +477,27 @@ func gameExes(dir string) []string {
 		// nome simile alla cartella del gioco (CrashBandicoot.exe in "Crash Bandicoot N. Sane Trilogy")
 		if n := normTitle(stem); len(n) >= 4 && len(folder) >= 4 && (strings.Contains(folder, n) || strings.Contains(n, folder)) {
 			sc += 6
+			similar = true
 		}
 		for _, w := range toolWords {
 			if strings.Contains(ls, w) {
 				sc -= 5
+				similar = false // un programma d'appoggio piccolo non conta come "buono" per il nome
 				break
 			}
 		}
-		list = append(list, cand{p, info.Size(), sc, unity || info.Size() >= 1<<20})
+		for _, w := range setupWords {
+			if strings.Contains(ls, w) {
+				sc -= 10
+				similar = false
+				break
+			}
+		}
+		list = append(list, cand{p, info.Size(), sc, unity || similar || info.Size() >= 1<<20})
 		return nil
 	})
-	// I programmi piccoli e non Unity contano solo se non c'è nessun altro candidato.
+	// I programmi piccoli (non Unity e con un nome diverso dalla cartella) contano solo se non c'è
+	// nessun altro candidato.
 	good := list[:0:0]
 	for _, c := range list {
 		if c.ok {

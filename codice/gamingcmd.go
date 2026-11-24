@@ -35,6 +35,16 @@ func regDword(root registry.Key, path, name string) (uint32, bool) {
 	return uint32(v), err == nil
 }
 
+// regKeyExists: la chiave del registro c'è già (la apro e basta, senza crearla).
+func regKeyExists(root registry.Key, path string) bool {
+	k, err := registry.OpenKey(root, path, registry.QUERY_VALUE)
+	if err != nil {
+		return false
+	}
+	k.Close()
+	return true
+}
+
 func setDword(root registry.Key, path, name string, v uint32) error {
 	k, _, err := registry.CreateKey(root, path, registry.SET_VALUE)
 	if err != nil {
@@ -174,6 +184,10 @@ func gamingRestore(id string) bool {
 		// acceso (una scheda spenta o staccata resterebbe cambiata): rimetto i due valori su
 		// qualunque scheda di rete salvata, purché il percorso sia proprio quello di una scheda.
 		if !allowed[regPrevKey(p)] && !(id == "nagle" && nagleRestoreOK(p)) {
+			continue
+		}
+		// Scheda di rete tolta dal PC: la sua chiave non c'è più e non va ricreata (setDword la creerebbe).
+		if id == "nagle" && nagleRestoreOK(p) && !regKeyExists(rootOf(p.HKLM), p.Path) {
 			continue
 		}
 		switch p.Kind {
