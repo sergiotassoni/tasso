@@ -13,8 +13,8 @@ func TestDXGIDebug(t *testing.T) {
 	for i, d := range duplic {
 		for k := 0; k < 5; k++ {
 			t0 := time.Now()
-			e := d.aggiorna()
-			t.Logf("monitor %d %dx%d tentativo %d: %v (%v)", i, d.w, d.h, k, e, time.Since(t0))
+			nuovo, e := d.aggiorna()
+			t.Logf("monitor %d %dx%d tentativo %d: nuovo=%v %v (%v)", i, d.w, d.h, k, nuovo, e, time.Since(t0))
 		}
 	}
 }
