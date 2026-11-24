@@ -137,7 +137,7 @@ func cicloPagina(giro int64) {
 			soloLuce := false
 			celleUltime = nil
 			if !prima && imp.cambiata(ultima) {
-				if time.Since(animateDa) > 20*time.Second { // ogni tanto ricomincio da capo
+				if time.Since(animateDa) > 60*time.Second { // ogni tanto ricomincio da capo
 					clear(animate)
 					animateDa = time.Now()
 				}

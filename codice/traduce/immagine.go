@@ -9,6 +9,7 @@ import (
 	"image/png"
 	"io"
 	"strings"
+	"sync"
 )
 
 // grigio converte in scala di grigi.
@@ -317,6 +318,8 @@ func bordiCambiati(a, b *image.RGBA) bool {
 }
 
 // celleBordiCambiate: per ogni zona, se i contorni netti sono cambiati (almeno il 2% dei punti).
+// I contorni dell'immagine di riferimento si calcolano una volta sola (il controllo gira ogni
+// 40 ms: deve costare poco processore).
 func celleBordiCambiate(a, b *image.RGBA) []bool {
 	out := make([]bool, celleBordiX*celleBordiY)
 	if a == nil || b == nil || a.Bounds() != b.Bounds() || a.Bounds().Dx() < 8 || a.Bounds().Dy() < 8 {
@@ -325,35 +328,62 @@ func celleBordiCambiate(a, b *image.RGBA) []bool {
 		}
 		return out
 	}
-	r := a.Bounds()
-	w, h := r.Dx(), r.Dy()
-	const cx, cy = celleBordiX, celleBordiY
-	var diff, tot [cx * cy]int
-	luce := func(img *image.RGBA, x, y int) int {
-		i := img.PixOffset(r.Min.X+x, r.Min.Y+y)
-		return (299*int(img.Pix[i]) + 587*int(img.Pix[i+1]) + 114*int(img.Pix[i+2])) / 1000
-	}
-	bordo := func(img *image.RGBA, x, y int) bool {
-		d := luce(img, x+1, y) - luce(img, x-1, y)
-		if d > 45 || d < -45 {
-			return true
-		}
-		d = luce(img, x, y+1) - luce(img, x, y-1)
-		return d > 45 || d < -45
-	}
-	for y := 1; y < h-1; y += 2 {
-		for x := 1; x < w-1; x += 2 {
-			c := (y*cy/h)*cx + x*cx/w
-			tot[c]++
-			if bordo(a, x, y) != bordo(b, x, y) {
-				diff[c]++
-			}
+	ma, mb := bordiDi(a), bordiDi(b)
+	var diff, tot [celleBordiX * celleBordiY]int
+	for k, c := range ma.cella {
+		tot[c]++
+		if ma.bordo[k] != mb.bordo[k] {
+			diff[c]++
 		}
 	}
 	for c := range diff {
-		out[c] = diff[c] >= 8 && diff[c]*50 >= tot[c]
+		out[c] = diff[c] >= 6 && diff[c]*50 >= tot[c]
 	}
 	return out
+}
+
+type mappaBordi struct {
+	bordo []bool
+	cella []uint16
+}
+
+var (
+	muBordi    sync.Mutex
+	bordiCache = map[*image.RGBA]mappaBordi{}
+)
+
+// bordiDi: dove l'immagine ha contorni netti, un punto ogni 3 pixel. Tengo in memoria le ultime
+// due immagini viste (quella di riferimento e quella nuova).
+func bordiDi(img *image.RGBA) mappaBordi {
+	muBordi.Lock()
+	if m, ok := bordiCache[img]; ok {
+		muBordi.Unlock()
+		return m
+	}
+	muBordi.Unlock()
+	r := img.Bounds()
+	w, h := r.Dx(), r.Dy()
+	luce := func(x, y int) int {
+		i := img.PixOffset(r.Min.X+x, r.Min.Y+y)
+		return (299*int(img.Pix[i]) + 587*int(img.Pix[i+1]) + 114*int(img.Pix[i+2])) / 1000
+	}
+	var m mappaBordi
+	for y := 1; y < h-1; y += 3 {
+		cy := (y * celleBordiY / h) * celleBordiX
+		for x := 1; x < w-1; x += 3 {
+			d1 := luce(x+1, y) - luce(x-1, y)
+			d2 := luce(x, y+1) - luce(x, y-1)
+			m.bordo = append(m.bordo, d1 > 45 || d1 < -45 || d2 > 45 || d2 < -45)
+			m.cella = append(m.cella, uint16(cy+x*celleBordiX/w))
+		}
+	}
+	muBordi.Lock()
+	if len(bordiCache) >= 3 {
+		clear(bordiCache)
+	}
+	bordiCache[img] = m
+	muBordi.Unlock()
+	return m
 }
 
 // stesseScritte: le due letture hanno (quasi) le stesse scritte inglesi: al massimo una su
