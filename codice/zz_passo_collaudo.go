@@ -11,12 +11,33 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 )
 
 func init() {
 	for _, a := range os.Args[1:] {
+		if strings.HasPrefix(a, "--guardia=") {
+			// --guardia=6: fa girare la guardia della Modalità riunione per 6 minuti senza finestra
+			// (anche con un altro Tasso aperto) e scrive ogni 30 s se riunione.json c'è ancora
+			min, _ := strconv.Atoi(strings.TrimPrefix(a, "--guardia="))
+			dir := filepath.Join(os.Getenv("LOCALAPPDATA"), "Tasso", "logs")
+			_ = os.MkdirAll(dir, 0o755)
+			f, err := os.Create(filepath.Join(dir, "guardia.txt"))
+			if err != nil {
+				os.Exit(2)
+			}
+			go officeGuardia()
+			fine := time.Now().Add(time.Duration(min) * time.Minute)
+			for time.Now().Before(fine) {
+				_, e := os.Stat(filepath.Join(officeDir(), "riunione.json"))
+				fmt.Fprintf(f, "%s  riunione.json: %v  microfono in uso: %v\n", time.Now().Format("15:04:05"), e == nil, micInUso())
+				time.Sleep(30 * time.Second)
+			}
+			f.Close()
+			os.Exit(0)
+		}
 		if !strings.HasPrefix(a, "--passo=") {
 			continue
 		}
