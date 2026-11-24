@@ -2887,6 +2887,7 @@ const OFFICE_CHECK = {of_new_call:1, of_new_camlog:1, of_outlook_mail:1, of_outl
 // Novità 3.1: interruttori (Modalità riunione, Blocco automatico) e "Ripara adesso" dopo la prova della videochiamata.
 const OFFICE_TOGGLE = {of_new_meeting:1, of_new_lock:1};
 let OF_STATI = {}, RIPARA = [];
+setInterval(() => { if (isOffice() && !document.hidden) ofStati(); }, 30000); // la guardia può spegnere la riunione da sola
 function ofStati(){ call('goOfficeStati').then(r => { OF_STATI = r || {}; $$('[data-tg]').forEach(b => { if (b.dataset.tg) b.textContent = OF_STATI[b.dataset.tg] ? _t('Spegni') : _t('Accendi'); }); }).catch(() => {}); }
 function ofCard(id, ic, c){
   const s = STEP[id]; if (!s) return null;

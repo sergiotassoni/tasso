@@ -111,3 +111,20 @@ func TestLuminoso(t *testing.T) {
 		t.Error("lo sfondo deve diventare bianco")
 	}
 }
+
+func TestCelleDiBlocchi(t *testing.T) {
+	r := image.Rect(0, 0, 3200, 1200) // 100x100 px per zona
+	c := celleDiBlocchi([]Blocco{{X: 150, Y: 250, W: 100, H: 30}}, r)
+	n := 0
+	for _, v := range c {
+		if v {
+			n++
+		}
+	}
+	if n != 2 || !c[2*celleBordiX+1] || !c[2*celleBordiX+2] {
+		t.Fatalf("zone sotto la scritta sbagliate: %d", n)
+	}
+	if c2 := celleDiBlocchi(nil, image.Rect(0, 0, 4, 4)); len(c2) != celleBordiX*celleBordiY {
+		t.Fatal("lunghezza")
+	}
+}

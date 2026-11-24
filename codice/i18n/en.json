@@ -1157,9 +1157,9 @@
   "Modalità riunione": "Meeting mode",
   "Premi prima di una chiamata: niente notifiche, OneDrive e aggiornamenti di Windows in pausa, PC al massimo. A fine chiamata si spegne da sola e rimette tutto com'era. Premi di nuovo per spegnerla subito.": "Press before a call: no notifications, OneDrive and Windows updates paused, PC at full power. When the call ends it turns itself off and puts everything back. Press again to turn it off right away.",
   "Chi ha usato webcam e microfono": "Who used the webcam and microphone",
-  "Ti fa vedere quali programmi hanno usato la webcam e il microfono negli ultimi 30 giorni e quando, e chi li sta usando adesso. Così scopri se qualcuno ti guarda o ascolta. Controlla e spiega.": "Shows which programs used the webcam and microphone in the last 30 days and when, and who is using them right now. So you find out if someone is watching or listening. Checks and explains.",
   "Blocca il PC quando ti alzi": "Lock the PC when you get up",
-  "Accende il blocco automatico: dopo 5 minuti senza toccare mouse e tastiera lo schermo si blocca e per rientrare serve il PIN o la password. Premi di nuovo per rimettere com'era.": "Turns on the automatic lock: after 5 minutes without touching mouse and keyboard the screen locks and you need your PIN or password to get back in. Press again to put it back as it was."
+  "Accende il blocco automatico: dopo 5 minuti senza toccare mouse e tastiera lo schermo si blocca e per rientrare serve il PIN o la password. Premi di nuovo per rimettere com'era.": "Turns on the automatic lock: after 5 minutes without touching mouse and keyboard the screen locks and you need your PIN or password to get back in. Press again to put it back as it was.",
+  "Ti fa vedere quali programmi hanno usato la webcam e il microfono negli ultimi 30 giorni (con l'ultima volta di ciascuno) e chi li sta usando adesso. Così scopri se qualcuno ti guarda o ascolta. Controlla e spiega.": "Shows which programs used the webcam and microphone in the last 30 days (with the last time for each) and who is using them right now. So you find out if someone is watching or listening. Checks and explains."
  },
  "ps": {
   " di ": " of ",
@@ -2638,14 +2638,16 @@
   "Aggiornamenti di Windows: in pausa (al massimo 1 giorno, poi ripartono da soli).": "Windows updates: paused (1 day at most, then they resume on their own).",
   "OneDrive: in pausa (riparte da solo a fine riunione; i file restano tutti).": "OneDrive: paused (it restarts on its own after the meeting; all files stay).",
   "OneDrive: non era acceso.": "OneDrive: wasn't running.",
-  "Modalità riunione ACCESA. Si spegne da sola 3 minuti dopo la fine della chiamata (quando nessun programma usa più il microfono), al massimo dopo 4 ore. Per spegnerla prima premi di nuovo il pulsante.": "Meeting mode ON. It turns itself off 3 minutes after the call ends (when no program is using the microphone), after 4 hours at most. To turn it off sooner, press the button again.",
   ": nessun programma negli ultimi 30 giorni.": ": no programs in the last 30 days.",
   " programmi):": " programs):",
-  "Se vedi un programma che non conosci, puoi togliergli il permesso in Impostazioni > Privacy e sicurezza > Fotocamera (o Microfono), oppure premi \"Controllo dei programmi sospetti\" qui sotto.": "If you see a program you don't know, you can take away its permission in Settings > Privacy & security > Camera (or Microphone), or press \"Check for suspicious programs\" below.",
   "Blocco automatico SPENTO: rimesso come prima.": "Automatic lock OFF: back as before.",
   "Su questo PC il blocco dello schermo lo decide l'ufficio (criteri di gruppo): Tasso non lo cambia. Puoi sempre bloccare al volo con Windows + L.": "On this PC the screen lock is set by your workplace (group policy): Tasso doesn't change it. You can always lock right away with Windows + L.",
   "Blocco automatico ACCESO: dopo 5 minuti senza toccare niente lo schermo diventa nero e per rientrare serve il PIN o la password. Nessun documento si chiude.": "Automatic lock ON: after 5 minutes without touching anything the screen goes black and you need your PIN or password to get back in. No document gets closed.",
-  "Quando ti alzi puoi bloccare subito con Windows + L. Se il telefono è abbinato via Bluetooth, in Impostazioni > Account > Opzioni di accesso c'è anche \"Blocco dinamico\": il PC si blocca quando ti allontani col telefono.": "When you get up you can lock right away with Windows + L. If your phone is paired via Bluetooth, Settings > Accounts > Sign-in options also has \"Dynamic lock\": the PC locks when you walk away with your phone."
+  "Quando ti alzi puoi bloccare subito con Windows + L. Se il telefono è abbinato via Bluetooth, in Impostazioni > Account > Opzioni di accesso c'è anche \"Blocco dinamico\": il PC si blocca quando ti allontani col telefono.": "When you get up you can lock right away with Windows + L. If your phone is paired via Bluetooth, Settings > Accounts > Sign-in options also has \"Dynamic lock\": the PC locks when you walk away with your phone.",
+  "Modalità riunione ACCESA. Si spegne da sola 3 minuti dopo la fine della chiamata (quando nessun programma usa più il microfono), al massimo dopo 4 ore (se riavvii il PC, la spegne Tasso alla prossima apertura). Per spegnerla prima premi di nuovo il pulsante.": "Meeting mode ON. It turns itself off 3 minutes after the call ends (when no program is using the microphone), after 4 hours at most (if you restart the PC, Tasso turns it off next time it opens). To turn it off sooner, press the button again.",
+  "Se vedi un programma che non conosci, puoi togliergli il permesso in Impostazioni > Privacy e sicurezza > Fotocamera (o Microfono), oppure usa \"Controllo dei programmi sospetti\" in Risolvi un problema.": "If you see a program you don't know, you can take away its permission in Settings > Privacy & security > Camera (or Microphone), or use \"Check for suspicious programs\" in Fix a problem.",
+  "Microfono": "Microphone",
+  "Webcam": "Webcam"
  },
  "ui": {
   "Non riesco ad accendere la traduzione adesso: chiudi Tasso e riaprilo, poi riprova.": "I can't turn translation on right now: close Tasso and open it again, then try again.",

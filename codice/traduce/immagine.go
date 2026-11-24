@@ -317,6 +317,28 @@ func bordiCambiati(a, b *image.RGBA) bool {
 	return false
 }
 
+// celleDiBlocchi: le zone del controllo dei contorni coperte dalle scritte tradotte.
+func celleDiBlocchi(bl []Blocco, r image.Rectangle) []bool {
+	out := make([]bool, celleBordiX*celleBordiY)
+	w, h := r.Dx(), r.Dy()
+	if w < 8 || h < 8 {
+		return out
+	}
+	for _, b := range bl {
+		x0, y0 := max(0, b.X-r.Min.X), max(0, b.Y-r.Min.Y)
+		x1, y1 := min(w-1, b.X-r.Min.X+b.W), min(h-1, b.Y-r.Min.Y+b.H)
+		if x1 < x0 || y1 < y0 {
+			continue
+		}
+		for cy := y0 * celleBordiY / h; cy <= y1*celleBordiY/h && cy < celleBordiY; cy++ {
+			for cx := x0 * celleBordiX / w; cx <= x1*celleBordiX/w && cx < celleBordiX; cx++ {
+				out[cy*celleBordiX+cx] = true
+			}
+		}
+	}
+	return out
+}
+
 // celleBordiCambiate: per ogni zona, se i contorni netti sono cambiati (almeno il 2% dei punti).
 // I contorni dell'immagine di riferimento si calcolano una volta sola (il controllo gira ogni
 // 40 ms: deve costare poco processore).

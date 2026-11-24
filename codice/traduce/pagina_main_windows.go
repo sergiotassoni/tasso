@@ -144,15 +144,20 @@ func cicloPagina(giro int64) {
 				}
 				soloLuce = true
 				celleUltime = celleBordiCambiate(img, ultimaImg)
-				nc := 0
+				bl0 := blocchiPagina()
+				sottoScritte := celleDiBlocchi(bl0, img.Bounds())
+				nc, tocca := 0, false
 				for c, si := range celleUltime {
 					if si && !animate[c] {
 						nc++
+						tocca = tocca || sottoScritte[c]
 					}
 				}
 				// una zona sola che cambia (lucina che lampeggia, icona animata) non basta: le
-				// scritte nuove, le finestrelle e le righe di dialogo occupano almeno due zone
-				soloLuce = nc < 2
+				// scritte nuove, le finestrelle e le righe di dialogo occupano almeno due zone.
+				// Ma se cambiano i contorni sotto una scritta tradotta ("On" → "Off", descrizione
+				// nuova) o compare qualcosa dove non c'era niente da tradurre, rileggo sempre.
+				soloLuce = nc < 2 && !tocca && !(nc == 1 && len(bl0) == 0)
 				motivoLettura.Store(fmt.Sprintf("zone=%d", nc))
 			} else if prima {
 				motivoLettura.Store("prima:" + perche)
@@ -201,9 +206,21 @@ func cicloPagina(giro int64) {
 						pronta, occupata = preparaPagina(area, img2, img, giro)
 					}
 					if pronta != nil && celleUltime != nil && stesseScritte(blocchiPagina(), pronta.pronti) {
-						// riletto per niente: le zone cambiate si muovono da sole, d'ora in poi non contano
+						// riletto per niente: le zone cambiate si muovono da sole, d'ora in poi non contano.
+						// Mai le zone sotto le scritte (lì un cambio vero va sempre visto) e al massimo
+						// un quarto dello schermo: altrimenti una schermata nuova non verrebbe più riletta
+						sotto := celleDiBlocchi(pronta.pronti, img2.Bounds())
+						quante := 0
+						for _, a := range animate {
+							if a {
+								quante++
+							}
+						}
 						for c, si := range celleUltime {
-							animate[c] = animate[c] || si
+							if si && !sotto[c] && !animate[c] && quante < len(animate)/4 {
+								animate[c] = true
+								quante++
+							}
 						}
 					}
 					if pronta != nil && mostraPaginaPronta(pronta, giro) {
