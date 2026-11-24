@@ -79,13 +79,28 @@ func eseguiProvaFile() {
 	}
 	m, _ := leggiManifesto(dirApp, chiaveGioco(provaFileCartella))
 	nota("aggiunti: " + strings.Join(m.Aggiunti, ", ") + " | sostituiti: " + strings.Join(m.Sostituiti, ", "))
-	cmd := exec.Command(filepath.Join(m.Cartella, m.Exe))
-	cmd.Dir = m.Cartella
-	if err := cmd.Start(); err != nil {
-		nota("avvio gioco: " + err.Error())
-		return
+	// i giochi Steam si aprono da Steam: lanciando l'exe Steam chiede conferma con una finestra
+	// "parametri personalizzati" che aspetta un clic (visto con PC Cafe Simulator, 24/11)
+	if url := avvioSteamDi(m.Cartella); url != "" {
+		if err := exec.Command("rundll32", "url.dll,FileProtocolHandler", url).Start(); err != nil {
+			nota("avvio gioco: " + err.Error())
+			return
+		}
+		nota("gioco avviato da Steam: " + url)
+	} else {
+		cmd := exec.Command(filepath.Join(m.Cartella, m.Exe))
+		cmd.Dir = m.Cartella
+		if err := cmd.Start(); err != nil {
+			nota("avvio gioco: " + err.Error())
+			return
+		}
+		nota("gioco avviato")
 	}
-	nota("gioco avviato")
+	shipping := ""
+	if sh, _ := filepath.Glob(filepath.Join(m.Cartella, "*", "Binaries", "Win64", "*-Shipping.exe")); len(sh) > 0 {
+		shipping = filepath.Base(sh[0])
+	}
+	aperto := func() bool { return processoAperto(m.Exe) || (shipping != "" && processoAperto(shipping)) }
 	inizio := time.Now()
 	n := 0
 	for time.Since(inizio) < time.Duration(provaFileSecondi)*time.Second {
@@ -96,12 +111,15 @@ func eseguiProvaFile() {
 		if err == nil {
 			salvaPNG(img, filepath.Join(provaFileUscita, fmt.Sprintf("gioco-%03ds.png", int(time.Since(inizio).Seconds()))))
 		}
-		nota(fmt.Sprintf("%3.0f s: richieste di traduzione dal gioco %d, gioco aperto %v", time.Since(inizio).Seconds(), modRichieste.Load(), processoAperto(m.Exe)))
-		if !processoAperto(m.Exe) && time.Since(inizio) > 60*time.Second {
+		nota(fmt.Sprintf("%3.0f s: richieste di traduzione dal gioco %d, gioco aperto %v", time.Since(inizio).Seconds(), modRichieste.Load(), aperto()))
+		if !aperto() && time.Since(inizio) > 60*time.Second {
 			break
 		}
 	}
 	_ = exec.Command("taskkill", "/IM", m.Exe, "/T", "/F").Run()
+	if shipping != "" {
+		_ = exec.Command("taskkill", "/IM", shipping, "/T", "/F").Run()
+	}
 	nota("gioco chiuso")
 	time.Sleep(3 * time.Second)
 }
@@ -110,4 +128,24 @@ func dimensioniSchermo() (int, int) {
 	w, _, _ := pGetSysMetrics.Call(0)
 	h, _, _ := pGetSysMetrics.Call(1)
 	return int(w), int(h)
+}
+
+// avvioSteamDi: "steam://rungameid/<id>" se la cartella è un gioco di Steam (steamapps\common\X).
+func avvioSteamDi(cartella string) string {
+	common := filepath.Dir(cartella)
+	if !strings.EqualFold(filepath.Base(common), "common") {
+		return ""
+	}
+	acf, _ := filepath.Glob(filepath.Join(filepath.Dir(common), "appmanifest_*.acf"))
+	for _, f := range acf {
+		b, err := os.ReadFile(f)
+		if err != nil {
+			continue
+		}
+		d, id := reAcfDir.FindSubmatch(b), reAcfID.FindSubmatch(b)
+		if d != nil && id != nil && strings.EqualFold(string(d[1]), filepath.Base(cartella)) {
+			return "steam://rungameid/" + string(id[1])
+		}
+	}
+	return ""
 }

@@ -157,6 +157,15 @@ func (t *Traduttore) traduci(ctx context.Context, grezzo string, dialogo bool) R
 
 // TraduciPer: come Traduci (dialogo) o TraduciScritta, ma nella coppia di lingue data invece
 // di quella scelta adesso (la traduzione dentro un gioco usa le lingue con cui l'hai installata).
+type chiaveEsatta struct{}
+
+// soloEsatta: per i file di lingua dei giochi. Le frasi lette dai file sono già giuste: niente
+// "quasi uguale" (serve per gli errori di lettura dello schermo), altrimenti "Remove item" e
+// "Remove items" avrebbero la stessa traduzione. Ed era lento: ogni frase guardava tutta la libreria.
+func soloEsatta(ctx context.Context) context.Context {
+	return context.WithValue(ctx, chiaveEsatta{}, true)
+}
+
 func (t *Traduttore) TraduciPer(ctx context.Context, grezzo string, dialogo bool, da, a string) Risultato {
 	return t.traduciIn(ctx, grezzo, dialogo, da, a)
 }
@@ -233,7 +242,7 @@ func (t *Traduttore) traduciIn(ctx context.Context, grezzo string, dialogo bool,
 		ricorda(battuta)
 		return ris
 	}
-	if !conParoleFisse {
+	if !conParoleFisse && ctx.Value(chiaveEsatta{}) == nil {
 		if v, ok := t.cercaQuasiUguale(parlante, battuta); ok {
 			t.mu.Unlock()
 			ris.Tradotto, ris.Motore = nomiIntatti(battuta, v), "libreria"

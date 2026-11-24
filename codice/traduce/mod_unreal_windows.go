@@ -57,6 +57,8 @@ func applicaModUnreal(nome, cartella string, antiCheat bool, passo func(int, str
 	traduci := func(s string) (string, bool) {
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
+		// traduttore "a gruppi" (più fili insieme) e solo frasi esatte dalla libreria
+		ctx = soloEsatta(conLotto(ctx))
 		dialogo := len([]rune(s)) >= 40 || strings.Contains(s, ". ")
 		r := traduttore.TraduciPer(ctx, s, dialogo, sorg, a)
 		return r.Tradotto, r.Errore == "" && r.Tradotto != ""
