@@ -14,6 +14,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"golang.org/x/sys/windows/registry"
 )
 
 func init() {
@@ -35,6 +37,37 @@ func init() {
 				fmt.Fprintf(f, "%s  riunione.json: %v  microfono in uso: %v\n", time.Now().Format("15:04:05"), e == nil, micInUso())
 				time.Sleep(30 * time.Second)
 			}
+			f.Close()
+			os.Exit(0)
+		}
+		if a == "--prova-mouse" {
+			// mouse senza accelerazione per uno sparatutto (cs2) e poi rimesso com'era, con le
+			// chiamate vere di Windows; il registro non deve cambiare
+			appDir = filepath.Join(os.Getenv("LOCALAPPDATA"), "Tasso") // come in main (boost.json)
+			dir := filepath.Join(appDir, "logs")
+			_ = os.MkdirAll(dir, 0o755)
+			f, err := os.Create(filepath.Join(dir, "prova-mouse.txt"))
+			if err != nil {
+				os.Exit(2)
+			}
+			reg := func() string {
+				var out []string
+				for _, n := range []string{"MouseSpeed", "MouseThreshold1", "MouseThreshold2"} {
+					v, _ := regGet(registry.CURRENT_USER, `Control Panel\Mouse`, n)
+					out = append(out, n+"="+v)
+				}
+				return strings.Join(out, " ")
+			}
+			m0, ok := mouseGet()
+			fmt.Fprintf(f, "prima: mouse %v (letto %v), registro %s, boost.mouse %v\n", m0, ok, reg(), mouseAccelActive())
+			fmt.Fprintf(f, "spengo per cs2: %q\n", mouseAccelOff("cs2"))
+			m1, _ := mouseGet()
+			fmt.Fprintf(f, "durante: mouse %v, registro %s, boost.mouse %v\n", m1, reg(), mouseAccelActive())
+			fmt.Fprintf(f, "gioco non competitivo (nomanssky): %q\n", mouseAccelOff("nomanssky"))
+			fmt.Fprintf(f, "rimetto: %q\n", mouseAccelRestore())
+			m2, _ := mouseGet()
+			fmt.Fprintf(f, "dopo: mouse %v, registro %s, boost.mouse %v\n", m2, reg(), mouseAccelActive())
+			fmt.Fprintf(f, "esito: %v\n", m2 == m0 && !mouseAccelActive())
 			f.Close()
 			os.Exit(0)
 		}
