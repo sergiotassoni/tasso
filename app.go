@@ -258,6 +258,10 @@ func goLingua(l string) error {
 	if p == "" {
 		return nil
 	}
+	// Le voci del menu del tasto destro seguono la lingua scelta.
+	if goMenu() && piattaforma.impostaMenu != nil {
+		_ = piattaforma.impostaMenu(true, l)
+	}
 	imp := leggiImpostazioni()
 	imp.Lingua = l
 	b, _ := json.Marshal(imp)

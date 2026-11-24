@@ -734,9 +734,9 @@ function pComprimi(box) {
       salvaB.classList.add("hidden");
     }
   });
+  box.insertBefore(ris, a);
   a.appendChild(salvaB);
   salvaB.onclick = async () => { if (ultimo) await salva(ultimo.id, nomeCon(D.att.nome, t("suffCompresso"))); };
-  box.appendChild(ris);
 }
 
 function pEsporta(box) {
@@ -767,7 +767,7 @@ async function esportaImmagini(pp, fmt, scala) {
   await consolida();
   const v = corrente(D.att);
   let tok;
-  try { tok = await go("goSerieInizio", v.voce.id, nomeCon(D.att.nome, t("suffPagina")).replace(/\.pdf$/i, "." + fmt), t("titoloEsporta"), fmt); }
+  try { tok = await go("goSerieInizio", v.voce.id, D.att.nome.replace(/\.pdf$/i, "") + "." + fmt, t("titoloEsporta"), fmt); }
   catch (e) { return avvisaErrore(e); }
   if (!tok) return;
   let ultimo = "";
@@ -872,7 +872,7 @@ function misuraTesto(testo, font, dimPt) {
   const x = document.createElement("canvas").getContext("2d");
   x.font = `${grassetto(font) ? "700" : "400"} ${dimPt}px ${famiglia(font)}`;
   const righe = testo.split("\n");
-  return { w: Math.max(...righe.map(r => x.measureText(r).width), 1) + 1, h: righe.length * dimPt * 1.2 };
+  return { w: Math.max(...righe.map(r => x.measureText(r).width), 1) + dimPt * 0.3, h: righe.length * dimPt * 1.2 };
 }
 
 // elementoTesto: testo vero se possibile, altrimenti immagine nello stesso posto.
