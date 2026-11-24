@@ -37,41 +37,83 @@ New-ItemProperty -LiteralPath $key -Name ([string]$A.name) -Value $b -PropertyTy
 Say 'Fatto.'
 `
 
-const programsListScript = `
+// arpHelper (3.1): leggo le voci di "Programmi installati" come le legge Windows.
+// Get-RegText: il testo si ferma al primo carattere nullo (come in Programmi e funzionalità) e perde i
+// caratteri invisibili: una voce rovinata da un disinstallatore (nome fatto solo di caratteri nulli o
+// invisibili) si vedeva in Tasso come una riga bianca, senza nome e senza icona, che non si poteva togliere.
+const arpHelper = `
+function Get-RegText($v) {
+  if ($null -eq $v) { return '' }
+  $s = [string]$v
+  $i = $s.IndexOf([char]0); if ($i -ge 0) { $s = $s.Substring(0, $i) }
+  $s = [regex]::Replace($s, '\p{Cf}', '')
+  $s = [regex]::Replace($s, '[\p{Cc}\s]+', ' ')
+  return $s.Trim()
+}
+# Nome mostrabile: almeno una lettera o una cifra, altrimenti Windows non la mostra e Tasso neanche.
+function Test-ShownName([string]$n) { return [bool]($n -and $n -match '[\p{L}\p{N}]') }
+# Nomi del tipo "@C:\...\file.dll,-101": il testo vero sta nel file, come fa Windows.
+$script:TassoInd = 0
+function Resolve-RegText([string]$s) {
+  if (-not $s.StartsWith('@')) { return $s }
+  if (-not $script:TassoInd) {
+    $script:TassoInd = 2
+    try { if (-not ('TassoArp.Ind' -as [type])) { Add-Type -Namespace TassoArp -Name Ind -MemberDefinition '[DllImport("shlwapi.dll", CharSet = CharSet.Unicode)] public static extern int SHLoadIndirectString(string src, System.Text.StringBuilder buf, int cch, IntPtr r);' -ErrorAction Stop }; $script:TassoInd = 1 } catch {}
+  }
+  if ($script:TassoInd -eq 1) {
+    try { $sb = New-Object System.Text.StringBuilder 1024; if ([TassoArp.Ind]::SHLoadIndirectString($s, $sb, 1024, [IntPtr]::Zero) -eq 0) { $r = Get-RegText $sb.ToString(); if ($r) { return $r } } } catch {}
+  }
+  return $s
+}
+# Codice "compresso" del prodotto MSI usato da Windows Installer nel registro.
+function Get-PackedGuid([string]$g) {
+  $m = [regex]::Match($g, '^\{([0-9A-Fa-f]{8})-([0-9A-Fa-f]{4})-([0-9A-Fa-f]{4})-([0-9A-Fa-f]{4})-([0-9A-Fa-f]{12})\}$')
+  if (-not $m.Success) { return '' }
+  $rev = { param($s) -join ($s.ToCharArray()[($s.Length - 1)..0]) }
+  $pair = { param($s) -join (0..($s.Length / 2 - 1) | ForEach-Object { '' + $s[2 * $_ + 1] + $s[2 * $_] }) }
+  return ((& $rev $m.Groups[1].Value) + (& $rev $m.Groups[2].Value) + (& $rev $m.Groups[3].Value) + (& $pair $m.Groups[4].Value) + (& $pair $m.Groups[5].Value)).ToUpper()
+}
+`
+
+const programsListScript = arpHelper + `
 $keys = @('HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall', 'HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall', 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall')
 $seen = @{}
 $out = New-Object System.Collections.ArrayList
 foreach ($k in $keys) {
   Get-ChildItem -LiteralPath $k -ErrorAction SilentlyContinue | ForEach-Object {
+    # La PowerShell usa "/" come separatore: una voce con "/" nel nome non si potrebbe toccare.
+    if ($_.PSChildName -match '[/\x00-\x1f]') { return }
     $p = Get-ItemProperty -LiteralPath $_.PSPath -ErrorAction SilentlyContinue
     if (-not $p) { return }
-    $name = [string]$p.DisplayName
-    if (-not $name -or $p.SystemComponent -eq 1 -or $p.ParentKeyName -or ([string]$p.ReleaseType -match 'Update|Hotfix') -or -not $p.UninstallString) { return }
+    # Nascoste come in Programmi e funzionalità: senza nome, componenti di sistema, aggiornamenti.
+    $name = Resolve-RegText (Get-RegText $p.DisplayName)
+    if (-not (Test-ShownName $name) -or [string]$p.SystemComponent -eq '1' -or (Get-RegText $p.ParentKeyName) -or ((Get-RegText $p.ReleaseType) -match 'Update|Hotfix')) { return }
+    $uninst = Get-RegText $p.UninstallString
+    if (-not $uninst) { $uninst = Get-RegText $p.QuietUninstallString }
+    if (-not $uninst) { return }
     if ($seen.ContainsKey($name)) { return }
     $seen[$name] = $true
-    $size = [long]0; if ($p.EstimatedSize) { $size = [long]$p.EstimatedSize * 1024 }
+    $size = [long]0; try { if ($p.EstimatedSize) { $size = [long]$p.EstimatedSize * 1024 } } catch {}
     # Icona: DisplayIcon, poi l'icona del pacchetto MSI, poi la cartella del programma, poi il disinstallatore.
-    $ico = [string]$p.DisplayIcon
-    if (-not $ico -and $_.PSChildName -match '^\{([0-9A-Fa-f]{8})-([0-9A-Fa-f]{4})-([0-9A-Fa-f]{4})-([0-9A-Fa-f]{4})-([0-9A-Fa-f]{12})\}$') {
-      $g = $Matches
-      $rev = { param($s) -join ($s.ToCharArray()[($s.Length - 1)..0]) }
-      $pair = { param($s) -join (0..($s.Length / 2 - 1) | ForEach-Object { '' + $s[2 * $_ + 1] + $s[2 * $_] }) }
-      $packed = (& $rev $g[1]) + (& $rev $g[2]) + (& $rev $g[3]) + (& $pair $g[4]) + (& $pair $g[5])
-      try { $ico = [string](Get-ItemProperty -LiteralPath ('HKLM:\SOFTWARE\Classes\Installer\Products\' + $packed) -Name ProductIcon -ErrorAction Stop).ProductIcon } catch {}
+    $ico = Get-RegText $p.DisplayIcon
+    if (-not $ico) {
+      $pg = Get-PackedGuid $_.PSChildName
+      if ($pg) { try { $ico = Get-RegText (Get-ItemProperty -LiteralPath ('HKLM:\SOFTWARE\Classes\Installer\Products\' + $pg) -Name ProductIcon -ErrorAction Stop).ProductIcon } catch {} }
     }
-    [void]$out.Add([ordered]@{ key = $_.Name; name = $name; publisher = [string]$p.Publisher; version = [string]$p.DisplayVersion; size = $size; date = [string]$p.InstallDate; icon = $ico; loc = [string]$p.InstallLocation; uninst = [string]$p.UninstallString })
+    [void]$out.Add([ordered]@{ key = $_.Name; name = $name; publisher = (Get-RegText $p.Publisher); version = (Get-RegText $p.DisplayVersion); size = $size; date = (Get-RegText $p.InstallDate); icon = $ico; loc = (Get-RegText $p.InstallLocation); uninst = $uninst })
   }
 }
 $sorted = @($out | Sort-Object { $_.name })
 [Console]::Out.WriteLine('JSON ' + (ConvertTo-Json -InputObject $sorted -Compress -Depth 3))
 `
 
-// orphanHelper (3.1): una voce è "orfana" se il suo programma di disinstallazione non c'è più
-// (come il Pannello di controllo: "potrebbe essere già stato disinstallato").
-// msiexec non lo giudico: è Windows stesso a dire se il prodotto c'è ancora.
-const orphanHelper = `
+// orphanHelper (3.1): una voce è "orfana" se il programma non c'è più davvero: il suo programma di
+// disinstallazione manca E la cartella del programma non c'è (o sono rimasti solo file che non sono
+// programmi, tipo impostazioni e registri). Per i pacchetti MSI decide Windows Installer.
+// Come il Pannello di controllo: "potrebbe essere già stato disinstallato, vuoi toglierlo dall'elenco?".
+const orphanHelper = arpHelper + `
 function Get-UninstallFile([string]$cmd) {
-  $cmd = ([string]$cmd).Trim()
+  $cmd = [Environment]::ExpandEnvironmentVariables((Get-RegText $cmd))
   if (-not $cmd) { return '' }
   if ($cmd.StartsWith('"')) { $i = $cmd.IndexOf('"', 1); if ($i -gt 1) { return $cmd.Substring(1, $i - 1) } else { return '' } }
   $m = [regex]::Match($cmd, '(?i)^([A-Z]:\\[^"]*?\.(exe|com|bat|cmd))(?=\s|$)')
@@ -92,21 +134,74 @@ function Test-FileThere([string]$f, [bool]$wow) {
   foreach ($x in $c) { if (Test-Path -LiteralPath $x -PathType Leaf) { return $true } }
   return $false
 }
-# Orfana SOLO se sono sicuro: nel dubbio (comandi tipo rundll32, cmd, msiexec, dischi scollegati) no.
+# La cartella del programma c'è ancora con dentro dei programmi? Nel dubbio (disco scollegato,
+# cartelle generiche come C:\ o C:\Program Files) rispondo di sì.
+function Test-ProgramDir([string]$loc) {
+  $d = [Environment]::ExpandEnvironmentVariables((Get-RegText $loc)).Trim().Trim('"').TrimEnd('\')
+  if (-not $d) { return $false }
+  if ($d -notmatch '^[A-Za-z]:\\.') { return $true }
+  if (-not (Test-Path -LiteralPath ($d.Substring(0, 3)))) { return $true }
+  foreach ($g in @($env:ProgramFiles, ${env:ProgramFiles(x86)}, $env:ProgramW6432, $env:ProgramData, $env:windir, $env:LOCALAPPDATA, $env:APPDATA, $env:USERPROFILE, $env:PUBLIC, (Split-Path -Parent $env:USERPROFILE), $env:CommonProgramFiles, ${env:CommonProgramFiles(x86)})) {
+    if ($g -and $d -ieq $g.TrimEnd('\')) { return $true }
+  }
+  if ($env:LOCALAPPDATA -and $d -ieq (Join-Path $env:LOCALAPPDATA 'Programs')) { return $true }
+  if (-not (Test-Path -LiteralPath $d -PathType Container)) { return $false }
+  # Cerco un file di programma (al massimo 5000 elementi, senza seguire i collegamenti di cartella).
+  $todo = New-Object System.Collections.Queue; $todo.Enqueue($d); $n = 0
+  while ($todo.Count -gt 0) {
+    $cur = $todo.Dequeue()
+    foreach ($e in @(Get-ChildItem -LiteralPath $cur -Force -ErrorAction SilentlyContinue)) {
+      if (++$n -gt 5000) { return $true }
+      if ($e.PSIsContainer) { if (-not ($e.Attributes -band [IO.FileAttributes]::ReparsePoint)) { $todo.Enqueue($e.FullName) } }
+      elseif ($e.Extension -match '(?i)^\.(exe|dll|sys|msi|com|jar|bat|cmd|ps1)$') { return $true }
+    }
+  }
+  return $false
+}
+# MSI: orfana solo se Windows Installer dice che il prodotto non esiste e non ne trovo traccia.
+function Test-MsiGone([string]$cmd, [string]$key) {
+  $guid = [regex]::Match($cmd, '\{[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}\}').Value
+  if (-not $guid) { $guid = [regex]::Match(($key -replace '^.*\\', ''), '^\{[0-9A-Fa-f-]{36}\}$').Value }
+  $pg = Get-PackedGuid $guid
+  if (-not $pg) { return $false }
+  try { $wi = New-Object -ComObject WindowsInstaller.Installer; $st = [int]$wi.GetType().InvokeMember('ProductState', 'GetProperty', $null, $wi, @($guid)) } catch { return $false }
+  if ($st -ne -1) { return $false }
+  if (Test-Path -LiteralPath ('HKLM:\SOFTWARE\Classes\Installer\Products\' + $pg)) { return $false }
+  if (Test-Path -LiteralPath ('HKCU:\Software\Microsoft\Installer\Products\' + $pg)) { return $false }
+  foreach ($u in @(Get-ChildItem -LiteralPath 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Installer\UserData' -ErrorAction SilentlyContinue)) {
+    if (Test-Path -LiteralPath ($u.PSPath + '\Products\' + $pg)) { return $false }
+  }
+  return $true
+}
+function Test-MsiCmd([string]$x) { return $x -match '(?i)(^|[\\"\s])msiexec(\.exe)?("|\s|$)' }
+# Orfana SOLO se sono sicuro: nel dubbio (comandi tipo rundll32, cmd, dischi scollegati) no.
 function Test-UninstallOrphan($p, [string]$key) {
-  if ([int]$p.SystemComponent -eq 1 -or [string]$p.ParentKeyName) { return $false }
+  if ([string]$p.SystemComponent -eq '1' -or (Get-RegText $p.ParentKeyName)) { return $false }
   $wow = $key -match '(?i)\\WOW6432Node\\|^HKEY_CURRENT_USER\\'
-  $loc = [string]$p.InstallLocation
-  if ($loc -and (Test-Path -LiteralPath ([Environment]::ExpandEnvironmentVariables($loc).Trim('"')) -PathType Container)) { return $false }
-  $cmd = ([string]$p.UninstallString).Trim(); $q = ([string]$p.QuietUninstallString).Trim()
-  if (-not $cmd -and -not $q) { return -not [string]$p.WindowsInstaller }
+  if (Test-ProgramDir $p.InstallLocation) { return $false }
+  $cmd = Get-RegText $p.UninstallString; $q = Get-RegText $p.QuietUninstallString
+  if (-not $cmd -and -not $q) {
+    if ([string]$p.WindowsInstaller -eq '1') { return (Test-MsiGone '' $key) }
+    return $true
+  }
   foreach ($x in @($cmd, $q)) {
     if (-not $x) { continue }
+    if (Test-MsiCmd $x) { if (Test-MsiGone $x $key) { continue } else { return $false } }
     $f = Get-UninstallFile $x
     if (-not $f) { return $false }
     if (Test-FileThere $f $wow) { return $false }
   }
   return $true
+}
+# La voce si vede ancora nell'elenco? (Una chiave rimasta senza nome Windows non la mostra più.)
+function Test-StillListed([string]$kp) {
+  if (-not (Test-Path -LiteralPath $kp)) { return $false }
+  $x = Get-ItemProperty -LiteralPath $kp -ErrorAction SilentlyContinue
+  if (-not $x) { return $false }
+  return (Test-ShownName (Get-RegText $x.DisplayName))
+}
+function Out-Orphan([string]$name, [string]$key) {
+  [Console]::Out.WriteLine('JSON ' + (ConvertTo-Json -InputObject ([pscustomobject]@{ orphan = $true; name = $name; key = $key }) -Compress))
 }
 `
 
@@ -115,25 +210,45 @@ const uninstallScript = ofHelpers + orphanHelper + `
 $kp = 'Registry::' + [string]$A.key
 $p = Get-ItemProperty -LiteralPath $kp -ErrorAction SilentlyContinue
 if (-not $p) { Say 'Programma non trovato: forse è già stato disinstallato.'; return }
-$name = [string]$p.DisplayName
-$cmd = ([string]$p.UninstallString).Trim()
-if (Test-UninstallOrphan $p ([string]$A.key)) {
-  [Console]::Out.WriteLine('JSON ' + (ConvertTo-Json -InputObject ([pscustomobject]@{ orphan = $true; name = $name; key = [string]$A.key }) -Compress))
-  return
-}
-Say ('Avvio la disinstallazione di ' + $name + '. Segui le finestre che si aprono.')
-$file = ''; $a2 = ''
-if ($cmd -match '(?i)msiexec') {
-  $guid = [regex]::Match($cmd, '\{[0-9A-Fa-f-]{36}\}').Value
-  $file = 'msiexec.exe'
+$name = Resolve-RegText (Get-RegText $p.DisplayName)
+if (-not (Test-ShownName $name)) { $name = [string]$A.key -replace '^.*\\', '' }
+$cmd = Get-RegText $p.UninstallString
+if (-not $cmd) { $cmd = Get-RegText $p.QuietUninstallString }
+if (Test-UninstallOrphan $p ([string]$A.key)) { Out-Orphan $name ([string]$A.key); return }
+if (-not $cmd) { Say ('Questo programma non ha un programma di disinstallazione. Prova da Impostazioni > App di Windows.'); return }
+$file = ''; $a2 = ''; $isMsi = $false
+if (Test-MsiCmd $cmd) {
+  # Come Windows: per i pacchetti MSI sempre "disinstalla" (/x), anche se la voce dice /i (che apre "modifica").
+  $isMsi = $true
+  $guid = [regex]::Match($cmd, '\{[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}\}').Value
+  $file = Join-Path $TassoSys32 'msiexec.exe'
   if ($guid) { $a2 = '/x ' + $guid } else { $a2 = ($cmd -replace '(?i)^.*?msiexec(\.exe)?"?\s*', '') }
 } elseif ($cmd.StartsWith('"')) {
   $i = $cmd.IndexOf('"', 1)
   if ($i -gt 1) { $file = $cmd.Substring(1, $i - 1); $a2 = $cmd.Substring($i + 1).Trim() } else { $file = $cmd.Trim('"') }
 } else {
-  $m = [regex]::Match($cmd, '(?i)^(.+?\.exe)(.*)$')
-  if ($m.Success) { $file = $m.Groups[1].Value; $a2 = $m.Groups[2].Value.Trim() } else { $file = $cmd }
+  # Percorso senza virgolette, anche con spazi: prendo il primo file .exe che esiste davvero.
+  $ms = @([regex]::Matches($cmd, '(?i)\.(exe|com|bat|cmd)(?=\s|$)'))
+  if ($ms.Count) {
+    $file = $cmd.Substring(0, $ms[0].Index + $ms[0].Length); $a2 = $cmd.Substring($ms[0].Index + $ms[0].Length).Trim()
+    foreach ($mm in $ms) {
+      $cand = $cmd.Substring(0, $mm.Index + $mm.Length)
+      if (Test-Path -LiteralPath ([Environment]::ExpandEnvironmentVariables($cand)) -PathType Leaf) { $file = $cand; $a2 = $cmd.Substring($mm.Index + $mm.Length).Trim(); break }
+    }
+  } else {
+    # Senza estensione (es. "RunDll32 C:\...\file.dll,Funzione"): il programma è la prima parola.
+    $sp = $cmd.IndexOf(' '); if ($sp -gt 0) { $file = $cmd.Substring(0, $sp); $a2 = $cmd.Substring($sp + 1).Trim() } else { $file = $cmd }
+  }
 }
+# Le variabili come %ProgramFiles% le scrivo per esteso, e i comandi di Windows (rundll32...) li prendo da System32.
+$file = [Environment]::ExpandEnvironmentVariables($file).Trim().Trim('"')
+if ($file -and $file -notmatch '^[A-Za-z]:\\|^\\\\') { $sysF = Join-Path $TassoSys32 $file; if (-not $sysF.EndsWith('.exe', [StringComparison]::OrdinalIgnoreCase) -and (Test-Path -LiteralPath ($sysF + '.exe'))) { $sysF += '.exe' }; if (Test-Path -LiteralPath $sysF -PathType Leaf) { $file = $sysF } }
+# Il programma di disinstallazione non c'è più e nemmeno il programma: come Windows, propongo di toglierlo dall'elenco.
+if (-not $isMsi -and $file -match '^[A-Za-z]:\\' -and -not (Test-FileThere $file (([string]$A.key) -match '(?i)\\WOW6432Node\\|^HKEY_CURRENT_USER\\'))) {
+  if (-not (Test-ProgramDir $p.InstallLocation)) { Out-Orphan $name ([string]$A.key); return }
+  Say ('Il programma di disinstallazione non c''è più: ' + $file + '. La cartella del programma però c''è ancora: prova a reinstallarlo e poi a disinstallarlo.'); return
+}
+Say ('Avvio la disinstallazione di ' + $name + '. Segui le finestre che si aprono.')
 $t0 = Get-Date
 # Cartelle temporanee dove i disinstallatori fanno la copia di sé: quella di Tasso ($env:TEMP, per quelli
 # avviati da amministratore) e quella vera dell'utente (per quelli avviati come utente normale): di
@@ -162,7 +277,16 @@ try {
   } else {
     # Aspetto solo il programma di disinstallazione, non le pagine web o i browser che apre lui.
     if ($a2) { $up = Start-Process -FilePath $file -ArgumentList $a2 -PassThru -ErrorAction Stop } else { $up = Start-Process -FilePath $file -PassThru -ErrorAction Stop }
-    if ($up) { [void]$up.WaitForExit(3600000) }
+    if ($up) {
+      $null = $up.Handle  # senza questo, a volte la PowerShell non sa più il codice d'uscita
+      [void]$up.WaitForExit(3600000)
+      # 1605: Windows Installer dice che il prodotto non è installato. Se la voce è rimasta, è orfana.
+      $ec = $null; try { $ec = $up.ExitCode } catch {}
+      if ($isMsi -and $ec -eq 1605 -and (Test-Path -LiteralPath $kp)) {
+        $p2 = Get-ItemProperty -LiteralPath $kp -ErrorAction SilentlyContinue
+        if ($p2 -and (Test-UninstallOrphan $p2 ([string]$A.key))) { Out-Orphan $name ([string]$A.key); return }
+      }
+    }
   }
 } catch {
   Say ('Non riesco ad avviare il programma di disinstallazione: ' + $_.Exception.Message)
@@ -171,7 +295,7 @@ try {
 # Molti disinstallatori (NSIS, Inno) fanno una copia di sé nella cartella temporanea e chiudono subito
 # il primo programma: finché quella copia è aperta (la finestra dove scegli) continuo ad aspettare.
 $t = 0; $idle = 0
-while ((Test-Path -LiteralPath $kp) -and $t -lt 900 -and $idle -lt 45) {
+while ((Test-StillListed $kp) -and $t -lt 900 -and $idle -lt 45) {
   Start-Sleep -Seconds 2; $t++
   $helpers = @(Get-Process -ErrorAction SilentlyContinue | Where-Object {
     $st = $null; try { $st = $_.StartTime } catch {}
@@ -180,7 +304,9 @@ while ((Test-Path -LiteralPath $kp) -and $t -lt 900 -and $idle -lt 45) {
   })
   if ($helpers.Count -gt 0) { $idle = 0 } else { $idle++ }
 }
-$removed = -not (Test-Path -LiteralPath $kp)
+$removed = -not (Test-StillListed $kp)
+# Alcuni disinstallatori tolgono la voce un attimo dopo aver chiuso la finestra: ricontrollo per qualche secondo.
+for ($r = 0; -not $removed -and $r -lt 5; $r++) { Start-Sleep -Seconds 2; $removed = -not (Test-StillListed $kp) }
 if ($removed) { Say ($name + ' è stato disinstallato.') } else { Say 'La disinstallazione non risulta completata (forse l''hai annullata).' }
 Say 'Cerco i resti lasciati nel PC e nel registro...'
 $pub = ([string]$p.Publisher).Trim()
@@ -428,11 +554,11 @@ if (-not $p) { Say 'Fatto: non era più nell''elenco.'; [Console]::Out.WriteLine
 if (-not (Test-UninstallOrphan $p $k)) { Say 'Questo programma sembra ancora installato: non lo tolgo dall''elenco. Prova a disinstallarlo.'; [Console]::Out.WriteLine('JSON {"ok":false}'); return }
 $dir = [string]$A.dir
 try { [void][IO.Directory]::CreateDirectory($dir) } catch {}
-$safe = (([string]$p.DisplayName + '_' + ($k -replace '^.*\\', '')) -replace '[^A-Za-z0-9]+', '_').Trim('_'); if ($safe.Length -gt 80) { $safe = $safe.Substring(0, 80) }
+$safe = (((Get-RegText $p.DisplayName) + '_' + ($k -replace '^.*\\', '')) -replace '[^A-Za-z0-9]+', '_').Trim('_'); if ($safe.Length -gt 80) { $safe = $safe.Substring(0, 80) }
 $bak = Join-Path $dir ('programma_tolto_' + (Get-Date -Format 'yyyyMMdd_HHmmss') + '_' + $safe + '.reg')
 $rc = 1
 try { & (Join-Path $TassoSys32 'reg.exe') export $k $bak /y 2>$null | Out-Null; $rc = $LASTEXITCODE } catch {}
 if ($rc -ne 0 -or -not (Test-Path -LiteralPath $bak) -or (Get-Item -LiteralPath $bak).Length -lt 20) { Say 'Non l''ho tolto: non sono riuscito a farne una copia di sicurezza.'; [Console]::Out.WriteLine('JSON {"ok":false}'); return }
-try { Remove-Item -LiteralPath $kp -Recurse -Force -ErrorAction Stop; Say ('Tolto dall''elenco: ' + [string]$p.DisplayName + '. La copia di sicurezza è nella cartella backup di Tasso.'); [Console]::Out.WriteLine('JSON {"ok":true}') }
+try { Remove-Item -LiteralPath $kp -Recurse -Force -ErrorAction Stop; Say ('Tolto dall''elenco: ' + (Get-RegText $p.DisplayName) + '. La copia di sicurezza è nella cartella backup di Tasso.'); [Console]::Out.WriteLine('JSON {"ok":true}') }
 catch { Say 'Non sono riuscito a toglierlo dall''elenco.'; [Console]::Out.WriteLine('JSON {"ok":false}') }
 `

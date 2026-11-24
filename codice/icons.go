@@ -133,6 +133,7 @@ func iconPNG(hicon uintptr) string {
 		mask, _, _ = readBits(hdc, ii.hbmMask)
 	}
 	img := image.NewNRGBA(image.Rect(0, 0, w, h))
+	visible, white := 0, 0
 	for y := 0; y < h; y++ {
 		for x := 0; x < w; x++ {
 			i := (y*w + x) * 4
@@ -143,8 +144,19 @@ func iconPNG(hicon uintptr) string {
 					a = 0
 				}
 			}
+			if a > 16 {
+				visible++
+				if px[i] > 245 && px[i+1] > 245 && px[i+2] > 245 {
+					white++
+				}
+			}
 			img.SetNRGBA(x, y, color.NRGBA{px[i+2], px[i+1], px[i], a})
 		}
+	}
+	// Icona vuota (tutta trasparente) o tutta bianca: si vedrebbe un riquadro bianco. Meglio
+	// l'iniziale colorata del programma (la mette l'interfaccia quando l'icona manca).
+	if visible == 0 || white == visible {
+		return ""
 	}
 	var b bytes.Buffer
 	if png.Encode(&b, img) != nil {
