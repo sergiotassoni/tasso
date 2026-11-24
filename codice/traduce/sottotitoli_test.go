@@ -23,6 +23,20 @@ func TestSottotitoloPronto(t *testing.T) {
 	if giro("We have to 1eave before the storm") || giro("We have to leave before the storm") {
 		t.Fatal("ritradotto lo stesso sottotitolo")
 	}
+	// letture vere della prova del 24/11 (sfondo che si muove): stesso sottotitolo
+	for _, l := range []string{"Welhave to leave before the storm hits.", "We have to leave'before thestorm hits.", "VVe have to leave before the storm hits."} {
+		if giro(l) {
+			t.Fatalf("ritradotto per un errore di lettura: %q", l)
+		}
+	}
+	ultimo, cand = "", ""
+	giro("I never wanted any of'thjs;\nbut we don't have mChoice.")
+	if !giro("I never wanted any of this,\nO but we don't have a.choice.") {
+		t.Fatal("due letture dello stesso sottotitolo (con errori) non tradotte")
+	}
+	if stessoSottotitolo("I'm here.", "I'm there.") {
+		t.Error("frasi corte diverse prese per uguali")
+	}
 	// una negazione cambia il senso: è un sottotitolo nuovo
 	giro("We do not have to leave before the storm")
 	if !giro("We do not have to leave before the storm") {

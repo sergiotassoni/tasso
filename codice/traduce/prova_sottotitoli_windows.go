@@ -88,7 +88,7 @@ func eseguiProvaSottotitoli() {
 	}
 	t0 := time.Now()
 	prova := traduttore.Traduci(context.Background(), "Hello there.")
-	scrivi("pronto: lettura %v, traduttore %q in %d ms (errore %q)", ocr != nil, prova.Tradotto, time.Since(t0).Milliseconds(), prova.Errore)
+	scrivi("pronto: lettura %v, prova del traduttore in %d ms: %+v", ocr != nil, time.Since(t0).Milliseconds(), prova)
 	ultimoTesto, candidatoSub = "", ""
 	scrivi("finestra %v, zona sottotitoli %v, %d immagini", r, zona, len(scene))
 	time.Sleep(time.Second)

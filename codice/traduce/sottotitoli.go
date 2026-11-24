@@ -6,20 +6,59 @@ import (
 )
 
 // sottotitoloPronto: con la zona dei sottotitoli il testo si legge ogni mezzo secondo.
-//   - Nei video lo sfondo si muove e l'OCR sbaglia una lettera ogni tanto: se è lo stesso
-//     sottotitolo di prima non lo ritraduco (la traduzione cambiava o lampeggiava sotto gli occhi).
+//   - Nei video lo sfondo si muove e l'OCR sbaglia qualche lettera a ogni lettura ("Welhave",
+//     "thestorm", prova del 24/11): se è lo stesso sottotitolo di prima non lo ritraduco.
 //   - Un sottotitolo che sta comparendo (dissolvenza, parole una alla volta) si legge a metà:
-//     traduco solo quando due letture di fila dicono la stessa cosa.
+//     traduco quando due letture di fila dicono (quasi) la stessa cosa.
 //
 // Restituisce se tradurre adesso e la lettura da tenere come candidata per il giro dopo.
 func sottotitoloPronto(letto, ultimo, candidato string) (bool, string) {
-	if ultimo != "" && (letto == ultimo || quasiUguale(letto, ultimo)) {
+	if ultimo != "" && stessoSottotitolo(letto, ultimo) {
 		return false, candidato
 	}
-	if letto != candidato && !quasiUguale(letto, candidato) {
+	if !stessoSottotitolo(letto, candidato) {
 		return false, letto
 	}
 	return true, letto
+}
+
+// stessoSottotitolo: le due letture sono lo stesso sottotitolo letto con qualche errore.
+// Conto solo lettere e cifre (spazi e punteggiatura l'OCR li sbaglia spesso); i numeri e le
+// negazioni devono essere uguali; le frasi corte devono essere identiche (lì una lettera
+// cambia il senso: "I'm here" / "I'm there").
+func stessoSottotitolo(a, b string) bool {
+	if a == b {
+		return a != ""
+	}
+	if a == "" || b == "" || cifre(a) != cifre(b) || negazioniDi(a) != negazioniDi(b) {
+		return false
+	}
+	na, nb := lettereCifre(a), lettereCifre(b)
+	l := max(len(na), len(nb))
+	if l < 12 {
+		return string(na) == string(nb)
+	}
+	return distanzaTesti(na, nb, l/5) <= l/5
+}
+
+func lettereCifre(s string) []rune {
+	var out []rune
+	for _, r := range strings.ToLower(s) {
+		if unicode.IsLetter(r) || unicode.IsDigit(r) {
+			out = append(out, r)
+		}
+	}
+	return out
+}
+
+func negazioniDi(s string) string {
+	var out []string
+	for _, w := range strings.Fields(strings.ToLower(s)) {
+		if w = strings.Trim(w, ".,!?;:\"'"); negazioni[w] || strings.HasSuffix(w, "n't") {
+			out = append(out, w)
+		}
+	}
+	return strings.Join(out, " ")
 }
 
 // righeSottotitolo: nei video l'OCR legge a volte pezzetti dello sfondo ("o — c") sopra il

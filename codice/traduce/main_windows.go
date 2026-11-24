@@ -1230,10 +1230,13 @@ func leggiETraduci(img *image.RGBA, impronta Impronta, forza bool) {
 	}
 	// lettura dubbia (simboli strani o quasi niente): riprovo tenendo solo le scritte chiare
 	// o colorate, e tengo la lettura più sensata
-	if stranezza(grezzo) > 0.02 {
+	// Sottotitoli: lettere chiare col bordo scuro sopra un video che si muove; la lettura "solo
+	// scritte chiare" è quasi sempre la migliore (prova del 24/11), quindi la faccio sempre
+	sub := leggiImp().Posizione == "sottotitoli"
+	if stranezza(grezzo) > 0.02 || sub {
 		var buf2 bytes.Buffer
 		if preparaLuminosoPerOCR(img, &buf2) == nil {
-			if g2, err2 := ocr.Leggi(buf2.Bytes()); err2 == nil && stranezza(g2) < stranezza(grezzo) {
+			if g2, err2 := ocr.Leggi(buf2.Bytes()); err2 == nil && (stranezza(g2) < stranezza(grezzo) || (sub && stranezza(g2) == stranezza(grezzo))) {
 				grezzo = g2
 			}
 		}
@@ -1245,7 +1248,6 @@ func leggiETraduci(img *image.RGBA, impronta Impronta, forza bool) {
 		apriLibreriaPer(fg)
 	}
 	pulito := pulisci(grezzo)
-	sub := leggiImp().Posizione == "sottotitoli"
 	if sub {
 		pulito = righeSottotitolo(pulito)
 		grezzo = righeSottotitolo(grezzo)
