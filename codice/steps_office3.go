@@ -62,7 +62,11 @@ function Fine-Riunione([string]$perche) {
   $OfState = Join-Path ([Environment]::GetFolderPath('ProgramFiles')) 'Tasso\lavoro\ufficio'
   $f = Join-Path $OfState 'riunione.json'
   if (-not (Test-Path -LiteralPath $f)) { return $false }
-  try { $s = Get-Content -LiteralPath $f -Raw | ConvertFrom-Json } catch { Remove-Item -LiteralPath $f -Force -ErrorAction SilentlyContinue; return $false }
+  try { $s = Get-Content -LiteralPath $f -Raw | ConvertFrom-Json } catch {
+    # illeggibile: non so cosa rimettere. Non lo cancello: lo metto da parte (per capire cosa è successo)
+    Move-Item -LiteralPath $f -Destination (Join-Path $OfState ('riunione-illeggibile-' + (Get-Date).ToString('yyyyMMdd-HHmmss') + '.json')) -Force -ErrorAction SilentlyContinue
+    return $false
+  }
   $n = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Notifications\Settings'
   $t = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\PushNotifications'
   if ([string]$s.noc -match '^[01]$') { Set-ItemProperty -LiteralPath $n -Name 'NOC_GLOBAL_SETTING_TOASTS_ENABLED' -Value ([int]$s.noc) -Type DWord -ErrorAction SilentlyContinue } else { Remove-ItemProperty -LiteralPath $n -Name 'NOC_GLOBAL_SETTING_TOASTS_ENABLED' -ErrorAction SilentlyContinue }
@@ -159,7 +163,11 @@ if ($s.plan -and $s.plan -ne $hp) {
   if ($now -eq $hp) { Say 'Alimentazione: al massimo (prestazioni elevate).' } else { Say 'Alimentazione: questo PC non ha il piano "Prestazioni elevate", resta com''è.' }
 } else { Say 'Alimentazione: già al massimo.' }
 $u = 'HKLM:\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings'
-$already = $false; try { $ex = [string](Get-ItemProperty -LiteralPath $u -Name 'PauseUpdatesExpiryTime' -ErrorAction Stop).PauseUpdatesExpiryTime; $already = ([DateTime]::Parse($ex).ToUniversalTime() -gt (Get-Date).ToUniversalTime()) } catch {}
+# una pausa qualsiasi già messa (tutti gli aggiornamenti, solo le funzionalità o solo i mensili): non la tocco
+$already = $false
+foreach ($nm in 'PauseUpdatesExpiryTime','PauseFeatureUpdatesEndTime','PauseQualityUpdatesEndTime') {
+  try { $ex = [string](Get-ItemProperty -LiteralPath $u -Name $nm -ErrorAction Stop).$nm; if ($ex -and ([DateTime]::Parse($ex).ToUniversalTime() -gt (Get-Date).ToUniversalTime())) { $already = $true } } catch {}
+}
 if ($already) { Say 'Aggiornamenti di Windows: erano già in pausa, li lascio come sono.' }
 else {
   $a = (Get-Date).ToUniversalTime(); $b = $a.AddDays(1)
@@ -167,6 +175,8 @@ else {
   if (-not (Test-Path -LiteralPath $u)) { New-Item -Path $u -ErrorAction SilentlyContinue | Out-Null }
   foreach ($kv in @(@('PauseUpdatesStartTime', $sa), @('PauseUpdatesExpiryTime', $sb), @('PauseFeatureUpdatesStartTime', $sa), @('PauseFeatureUpdatesEndTime', $sb), @('PauseQualityUpdatesStartTime', $sa), @('PauseQualityUpdatesEndTime', $sb))) { Set-ItemProperty -LiteralPath $u -Name $kv[0] -Value $kv[1] -Type String }
   $s.wu = $true; $s.wufine = $sb
+  # subito su disco: se qualcosa si interrompe adesso, a fine riunione la pausa si toglie lo stesso
+  $s | ConvertTo-Json | Set-Content -LiteralPath $f -Encoding UTF8
   Say 'Aggiornamenti di Windows: in pausa (al massimo 1 giorno, poi ripartono da soli).'
 }
 $od = Get-Process -Name OneDrive -ErrorAction SilentlyContinue | Select-Object -First 1

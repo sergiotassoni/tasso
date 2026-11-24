@@ -77,8 +77,15 @@ func togliTasso(rimetti bool, passo func(int, string)) string {
 		if !ok {
 			return "Non ho finito di rimettere le impostazioni: " + strings.Join(msgs, " ") + " Non ho tolto niente: riprova."
 		}
+		passo(0, "Impostazioni di Windows rimesse com'erano")
+	} else {
+		passo(0, "Boost, clic automatico e modalità dell'Ufficio spenti (le altre impostazioni restano come sono)")
 	}
-	passo(0, "Impostazioni di Windows rimesse com'erano")
+	// da qui nessuna pulizia programmata deve partire (restoreOriginal ha già preso e lasciato il posto)
+	if !claimRun() {
+		return "Tasso sta facendo un altro lavoro (pulizia o aggiornamento): aspetta che finisca e riprova. Tasso non è stato tolto."
+	}
+	defer releaseRun()
 
 	// 2. traduzioni dentro i giochi: se un gioco è aperto mi fermo qui
 	tolti, falliti := traduce.TogliTutteLeTraduzioni()
@@ -136,6 +143,10 @@ func salvaCopieDiSicurezza() {
 		}
 	}
 	sposta(filepath.Join(appDir, "backup"), filepath.Join(dest, "backup del registro"))
+	// backup fatti dalle voci dell'Ufficio (stessa cartella di Windows, non la variabile d'ambiente)
+	if local, e := windows.KnownFolderPath(windows.FOLDERID_LocalAppData, 0); e == nil && local != "" {
+		sposta(filepath.Join(local, "Tasso", "backup-registro"), filepath.Join(dest, "backup del registro - ufficio"))
+	}
 	// copie dei giochi: tutto quello che resta (plugin messi da parte, originali di giochi che non
 	// ho potuto sistemare perché disinstallati o su un disco staccato, elenchi illeggibili)
 	copie := filepath.Join(traduce.CartellaDati(), "copie-giochi")
@@ -180,11 +191,30 @@ func cancellaDopoLaChiusura() error {
 	if err != nil {
 		return err
 	}
-	bat := filepath.Join(os.TempDir(), "togli-tasso-"+strconv.Itoa(os.Getpid())+".cmd")
-	if err := os.WriteFile(bat, []byte(testo), 0o644); err != nil {
+	// il comando gira da amministratore: lo scrivo in Programmi (solo gli amministratori ci possono
+	// scrivere), mai nella cartella temporanea dell'utente dove un altro programma potrebbe cambiarlo
+	// prima che parta. O_EXCL: se c'è già un file con quel nome non lo riuso.
+	pf := programFilesDir()
+	if pf == "" {
+		return fmt.Errorf("non trovo la cartella Programmi")
+	}
+	bat := filepath.Join(pf, "togli-tasso-"+strconv.Itoa(os.Getpid())+".cmd")
+	f, err := os.OpenFile(bat, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o644)
+	if err != nil {
 		return err
 	}
-	c := exec.Command(filepath.Join(os.Getenv("SystemRoot"), "System32", "cmd.exe"), "/d", "/c", bat)
+	_, err = f.WriteString(testo)
+	if e := f.Close(); err == nil {
+		err = e
+	}
+	if err != nil {
+		_ = os.Remove(bat)
+		return err
+	}
+	sys := sistema32()
+	c := exec.Command(filepath.Join(sys, "cmd.exe"), "/d", "/c", bat)
+	c.Dir = sys
+	c.Env = []string{"SystemRoot=" + filepath.Dir(sys), "PATH=" + sys, "PATHEXT=.COM;.EXE"}
 	c.SysProcAttr = &syscall.SysProcAttr{HideWindow: true, CreationFlags: 0x00000008 | 0x00000200} // DETACHED_PROCESS | NEW_PROCESS_GROUP
 	return c.Start()
 }
@@ -199,13 +229,18 @@ func scriptCancellazione() (string, error) {
 	cmd.WriteString("@echo off\r\n")
 	// aspetto la chiusura di Tasso (al massimo 2 minuti)
 	// se dopo 2 minuti Tasso è ancora aperto non cancello niente (i file sarebbero in uso)
-	fmt.Fprintf(&cmd, "for /L %%%%i in (1,1,120) do (tasklist /FI \"PID eq %d\" | find \"%d\" >nul || goto via & ping -n 2 127.0.0.1 >nul)\r\n(goto) 2>nul & del /f /q \"%%~f0\"\r\n:via\r\n", os.Getpid(), os.Getpid())
+	sys := sistema32()
+	if strings.ContainsAny(sys, "\"%&|<>^\r\n") {
+		return "", fmt.Errorf("percorso strano: %s", sys)
+	}
+	tl, fd, pg := filepath.Join(sys, "tasklist.exe"), filepath.Join(sys, "find.exe"), filepath.Join(sys, "PING.EXE")
+	fmt.Fprintf(&cmd, "for /L %%%%i in (1,1,120) do (\"%s\" /FI \"PID eq %d\" | \"%s\" \"%d\" >nul || goto via & \"%s\" -n 2 127.0.0.1 >nul)\r\n(goto) 2>nul & del /f /q \"%%~f0\"\r\n:via\r\n", tl, os.Getpid(), fd, os.Getpid(), pg)
 	for _, d := range cartelleTasso() {
 		if strings.ContainsAny(d, "\"%&|<>^\r\n") {
 			return "", fmt.Errorf("percorso strano: %s", d)
 		}
 		// due tentativi: i programmi della traduzione possono chiudersi qualche secondo dopo
-		fmt.Fprintf(&cmd, "rmdir /s /q \"%s\" 2>nul\r\nif exist \"%s\" (ping -n 6 127.0.0.1 >nul & rmdir /s /q \"%s\" 2>nul)\r\n", d, d, d)
+		fmt.Fprintf(&cmd, "rmdir /s /q \"%s\" 2>nul\r\nif exist \"%s\" (\"%s\" -n 6 127.0.0.1 >nul & rmdir /s /q \"%s\" 2>nul)\r\n", d, d, pg, d)
 	}
 	if reExeTasso.MatchString(filepath.Base(exe)) && !strings.ContainsAny(exe, "\"%&|<>^\r\n") {
 		fmt.Fprintf(&cmd, "del /f /q \"%s\" 2>nul\r\n", exe)
@@ -213,4 +248,12 @@ func scriptCancellazione() (string, error) {
 	// il comando si cancella da solo alla fine
 	cmd.WriteString("(goto) 2>nul & del /f /q \"%~f0\"\r\n")
 	return cmd.String(), nil
+}
+
+// sistema32: la vera cartella System32 (chiesta a Windows, non presa da SystemRoot dell'ambiente).
+func sistema32() string {
+	if d, err := windows.GetSystemDirectory(); err == nil && d != "" {
+		return d
+	}
+	return `C:\Windows\System32`
 }

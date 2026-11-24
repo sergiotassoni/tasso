@@ -381,6 +381,9 @@ func bindAll(w webview2.WebView) {
 			if err == "" {
 				time.Sleep(10 * time.Second)
 				wv.Dispatch(func() { wv.Terminate() })
+				// se la finestra non si chiude, il comando che cancella aspetterebbe invano: esco comunque
+				time.Sleep(20 * time.Second)
+				os.Exit(0)
 			}
 		})
 	})
