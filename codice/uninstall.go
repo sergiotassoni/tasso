@@ -95,6 +95,9 @@ func togliTasso(rimetti bool, passo func(int, string)) string {
 
 	// 2. traduzioni dentro i giochi: se un gioco è aperto mi fermo qui
 	tolti, falliti := traduce.TogliTutteLeTraduzioni()
+	if len(falliti) == 1 && falliti[0] == "INSTALLA" {
+		return "Tasso sta installando una traduzione in un gioco: aspetta che finisca e riprova. Tasso non è stato tolto."
+	}
 	if len(falliti) > 0 {
 		return "Chiudi " + strings.Join(falliti, ", ") + " e riprova: con il gioco aperto non posso togliere la traduzione. Tasso non è stato tolto."
 	}

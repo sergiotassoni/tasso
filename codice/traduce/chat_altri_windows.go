@@ -143,7 +143,6 @@ func zonaChatScelta(z Zona) {
 	}
 	pr, ok := imp.Profili[exe]
 	if !ok {
-		// tengo la zona dei dialoghi di adesso: altrimenti caricando il profilo andrebbe persa
 		// profilo nuovo: solo la chat. La zona dei dialoghi di adesso può essere di un altro gioco
 		pr = Profilo{Posizione: imp.Posizione, DimFont: imp.DimFont}
 	}

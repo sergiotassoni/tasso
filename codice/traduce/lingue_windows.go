@@ -235,7 +235,7 @@ func installaLetturaOCR(codice string) string {
 		out, err := psUnaVolta(strings.NewReplacer("%TAG%", tag, "%PRE%", pre).Replace(scriptAggiungiOCR), 20*time.Minute)
 		installaOCRIn.Store("")
 		muOCRLingue.Lock()
-		ocrLingue = nil // rileggo subito cosa sa leggere Windows
+		ocrLingue, ocrLetteAlle = nil, time.Time{} // rileggo subito cosa sa leggere Windows
 		muOCRLingue.Unlock()
 		letta := false
 		for t := range caricaLingueOCR() {

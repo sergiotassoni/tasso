@@ -15,3 +15,18 @@ func TestCorrezioniNonRovinano(t *testing.T) {
 		t.Errorf("Oin: %q", g)
 	}
 }
+
+func TestCorrezioniCheServono(t *testing.T) {
+	for in, want := range map[string]string{"Settigns": "Settings", "Contiune": "Continue", "Remaning Time": "Remaining Time",
+		"Conecting to server": "Connecting to server", "recieve the item": "receive the item", "LoadGame": "Load Game",
+		"JoinServer": "Join Server", "MultiplayerGame": "Multiplayer Game", "Tems": "Items"} {
+		if g := correggiParole(in); g != want {
+			t.Errorf("%q -> %q, atteso %q", in, g, want)
+		}
+	}
+	for _, s := range []string{"despawned", "smurfing", "Kratos", "Tarkov", "GameStop", "DarkSouls"} {
+		if g := correggiParole(s); g != s {
+			t.Errorf("%q -> %q", s, g)
+		}
+	}
+}

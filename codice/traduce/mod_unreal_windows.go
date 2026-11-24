@@ -59,7 +59,10 @@ func applicaModUnreal(nome, cartella string, antiCheat bool, passo func(int, str
 		return
 	}
 	traduttore.ApriLibreria(fileLibreriaGioco(cartella, nome, nomeRiconosciuto(cartella)))
-	fermaUnreal.Store(false)
+	if fermaUnreal.Load() {
+		fallito("Traduzione fermata: il gioco resta com'era.")
+		return
+	}
 	traduci := func(s string) (string, bool) {
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()

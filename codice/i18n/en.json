@@ -1174,7 +1174,10 @@
   "Traduzioni tolte dai giochi: ": "Translations removed from games: ",
   "Non ho finito di rimettere le impostazioni: ": "I didn't finish putting the settings back: ",
   " Non ho tolto niente: riprova.": " Nothing was removed: try again.",
-  " e riprova: con il gioco aperto non posso togliere la traduzione. Tasso non è stato tolto.": " and try again: with the game open I can't remove the translation. Tasso was not removed."
+  " e riprova: con il gioco aperto non posso togliere la traduzione. Tasso non è stato tolto.": " and try again: with the game open I can't remove the translation. Tasso was not removed.",
+  "Sto installando una traduzione: aspetta che finisca, poi premi di nuovo per toglierla.": "I'm installing a translation: wait for it to finish, then press again to remove it.",
+  "Tasso sta installando una traduzione in un gioco: aspetta che finisca e riprova. Tasso non è stato tolto.": "Tasso is installing a translation in a game: wait for it to finish and try again. Tasso was not removed.",
+  "Traduzione fermata: il gioco resta com'era.": "Translation stopped: the game stays as it was."
  },
  "ps": {
   " di ": " of ",
@@ -4881,6 +4884,9 @@
   "Ho tolto tutto tranne le cartelle di Tasso: ": "I removed everything except Tasso's folders: ",
   "Tasso sta facendo un altro lavoro (pulizia o aggiornamento): aspetta che finisca e riprova. Tasso non è stato tolto.": "Tasso is doing another job (cleanup or update): wait for it to finish and try again. Tasso was not removed.",
   "lingua sconosciuta": "unknown language",
-  "Non sono riuscito a cominciare: Tasso non è stato tolto. Riprova.": "I couldn't start: Tasso was not removed. Try again."
+  "Non sono riuscito a cominciare: Tasso non è stato tolto. Riprova.": "I couldn't start: Tasso was not removed. Try again.",
+  "Sto installando una traduzione: aspetta che finisca, poi premi di nuovo per toglierla.": "I'm installing a translation: wait for it to finish, then press again to remove it.",
+  "Tasso sta installando una traduzione in un gioco: aspetta che finisca e riprova. Tasso non è stato tolto.": "Tasso is installing a translation in a game: wait for it to finish and try again. Tasso was not removed.",
+  "Traduzione fermata: il gioco resta com'era.": "Translation stopped: the game stays as it was."
  }
 }

@@ -211,7 +211,7 @@ func maiuscole(s string) bool {
 // lettereIniziali: la lettura di Windows a volte perde una J o una I all'inizio della parola
 // (lettere strette, spesso decorate nei caratteri dei giochi). Solo se la parola letta non esiste
 // e una sola delle due la rende una parola vera.
-var inizialiPerse = map[string]bool{"oin": true, "ump": true, "ournal": true, "ournals": true, "nventory": true,
+var inizialiPerse = map[string]bool{"oin": true, "ournal": true, "ournals": true, "nventory": true,
 	"tems": true, "tem": true, "nfo": true, "nvite": true, "nvites": true, "mport": true, "nstall": true,
 	"nteract": true, "nsert": true, "mprove": true, "ncrease": true}
 
@@ -281,16 +281,21 @@ var marchiAttaccati = map[string]bool{"playstation": true, "powerpoint": true,
 
 // staccaMaiuscola: "MultiplayerGame" non esiste, "Multiplayer" e "Game" sì: le stacco. Solo se
 // le due parti sono lunghe (4+ lettere) e la parola intera non è un nome scritto così apposta.
+var finaliMenu = map[string]bool{"game": true, "games": true, "menu": true, "server": true, "servers": true,
+	"online": true, "settings": true, "options": true, "mode": true, "party": true, "lobby": true, "match": true}
+
 func staccaMaiuscola(p string) string {
-	if !soloLettere(p) || esiste(p) || marchiAttaccati[strings.ToLower(p)] || len(p) < 12 {
-		// sotto le 12 lettere sono quasi sempre nomi scritti così apposta (StarCraft, GameStop)
+	if !soloLettere(p) || esiste(p) || marchiAttaccati[strings.ToLower(p)] {
 		return ""
 	}
+	// sotto le 12 lettere sono quasi sempre nomi scritti così apposta (StarCraft, GameStop):
+	// stacco solo le scritte dei menu ("LoadGame", "JoinServer")
+	corta := len(p) < 12
 	r := []rune(p)
 	for i := 4; i <= len(r)-4; i++ {
 		if unicode.IsLower(r[i-1]) && unicode.IsUpper(r[i]) {
 			a, z := string(r[:i]), string(r[i:])
-			if esiste(a) && esiste(z) && soloLettere(z) {
+			if esiste(a) && esiste(z) && soloLettere(z) && (!corta || finaliMenu[strings.ToLower(z)]) {
 				if rest := staccaMaiuscola(z); rest != "" {
 					z = rest
 				}
@@ -310,7 +315,10 @@ var paroleGioco = map[string]bool{"poggers": true, "pogchamp": true, "unequip": 
 	"waypoint": true, "loadout": true, "respawn": true, "respawned": true, "lootbox": true, "noobs": true,
 	"griefer": true, "griefing": true, "nerfed": true, "buffed": true, "debuff": true, "debuffs": true,
 	"cooldown": true, "cooldowns": true, "hitbox": true, "speedrun": true, "smurfs": true, "camping": true,
-	"teamkill": true, "headshot": true, "headshots": true, "crafting": true, "unlocked": true, "minimap": true}
+	"teamkill": true, "headshot": true, "headshots": true, "crafting": true, "minimap": true, "minimaps": true,
+	"despawn": true, "despawns": true, "despawned": true, "inting": true, "afking": true, "smurfing": true,
+	"smurfed": true, "nerfing": true, "debuffed": true, "glitched": true, "queueing": true, "respawns": true,
+	"respawning": true, "griefed": true, "camped": true, "farming": true, "ganked": true, "ganking": true}
 
 // parolaVicina: la parola vera più comune a una o due lettere di distanza ("remining" ->
 // "remaining", "playes" -> "players"). Solo se ce n'è una chiaramente più comune delle altre.
@@ -318,7 +326,7 @@ func parolaVicina(p string) string {
 	v := vocabolario()
 	// solo parole minuscole lunghe senza apostrofo: le corte, i nomi (maiuscola), le contrazioni
 	// ("can't", "o'clock") e le parole dei giochi (noob, regen, pickaxe) restano come sono
-	if len(v) == 0 || len(p) < 6 || !soloLettere(p) || strings.ContainsRune(p, '\'') || !unicode.IsLower(rune(p[0])) || paroleGioco[strings.ToLower(p)] {
+	if len(v) == 0 || len(p) < 6 || !soloLettere(p) || strings.ContainsRune(p, '\'') || (!unicode.IsLower(rune(p[0])) && len(p) < 7) || paroleGioco[strings.ToLower(p)] {
 		return ""
 	}
 	low := strings.ToLower(p)

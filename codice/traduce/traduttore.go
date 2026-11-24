@@ -203,7 +203,8 @@ func (t *Traduttore) traduciIn(ctx context.Context, grezzo string, dialogo bool,
 	parlante, battuta := "", strings.ReplaceAll(testo, "\n", " ")
 	if dialogo && !daFile {
 		parlante, battuta = separaParlante(testo)
-	} else if r, ok := t.traduciEtichetta(ctx, battuta, inizio); ok {
+	} else if r, ok := t.traduciEtichetta(ctx, battuta, inizio); ok && !daFile {
+		// (nei file no: l'etichetta si tradurrebbe nelle lingue di adesso, non in quelle del gioco)
 		return r
 	}
 	ricorda := func(b string) {
@@ -277,7 +278,7 @@ func (t *Traduttore) traduciIn(ctx context.Context, grezzo string, dialogo bool,
 	req := RichiestaTraduzione{
 		Testo:     battuta,
 		Parlante:  parlante,
-		Contesto:  contestoSe(dialogo, t.contesto),
+		Contesto:  contestoSe(dialogo && !daFile, t.contesto), // le frasi dei file non prendono il contesto dello schermo
 		Schermata: schermataDa(ctx, dialogo),
 		Glossario: t.glossarioPieno.trova(battuta),
 	}

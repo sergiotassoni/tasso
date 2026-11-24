@@ -1283,6 +1283,9 @@ func leggiETraduci(img *image.RGBA, impronta Impronta, forza bool) {
 			return
 		}
 	}
+	if !acceso.Load() || paginaAttiva.Load() {
+		return // spenta mentre leggevo: niente "…" rimasto sullo schermo
+	}
 	ultimoTesto = pulito
 	z := leggiImp().Zona
 	ov.Mostra(z, "…", pulito, "")
@@ -1293,7 +1296,11 @@ func leggiETraduci(img *image.RGBA, impronta Impronta, forza bool) {
 		r = traduttore.Traduci(context.Background(), grezzo)
 	}
 	if !acceso.Load() || paginaAttiva.Load() {
-		return // spenta o passata alla schermata intera mentre traducevo: non rimostro niente
+		ultimoTesto = "" // tornando alla traduzione normale questo dialogo si rimostra
+		if !acceso.Load() {
+			ov.Nascondi() // via anche il "…" (la schermata intera invece non la tocco)
+		}
+		return
 	}
 	if r.Errore != "" {
 		ultimoTesto = "" // alla prossima lettura ci riprovo (il traduttore può essere ancora in partenza)

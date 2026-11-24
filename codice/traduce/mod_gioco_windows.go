@@ -229,6 +229,7 @@ func applicaModGioco(nome, cartella string, rischioOK bool) {
 		return
 	}
 	defer muInstalla.Unlock()
+	fermaUnreal.Store(false) // un "Ferma" vale solo per l'installazione partita dopo di lui
 	passo := func(p int, testo string) {
 		emetti("guidata", map[string]any{"nome": nome, "percento": p, "testo": testo})
 	}
@@ -349,9 +350,9 @@ func applicaModGioco(nome, cartella string, rischioOK bool) {
 // fermaModGioco: toglie tutto e rimette il gioco com'era.
 func fermaModGioco(cartella string) string {
 	if !muInstalla.TryLock() {
-		// sta installando adesso: la fermo (niente file aggiunti dopo che hai detto Ferma)
+		// sta installando adesso: i giochi Unreal si fermano a metà, gli altri finiscono il lavoro
 		fermaUnreal.Store(true)
-		return "Fermo la traduzione che si sta installando: il gioco resta com'era. Riprova tra qualche secondo."
+		return "Sto installando una traduzione: aspetta che finisca, poi premi di nuovo per toglierla."
 	}
 	defer muInstalla.Unlock()
 	m, ok := leggiManifesto(dirApp, chiaveGioco(cartella))
@@ -501,7 +502,7 @@ func controllaModInstallate() {
 func TogliTutteLeTraduzioni() (tolti, falliti []string) {
 	if !muInstalla.TryLock() { // una traduzione si sta installando adesso
 		fermaUnreal.Store(true)
-		return nil, []string{"la traduzione che si sta installando (aspetta che si fermi)"}
+		return nil, []string{"INSTALLA"}
 	}
 	defer muInstalla.Unlock()
 	voci, _ := os.ReadDir(filepath.Join(dirApp, "copie-giochi"))
