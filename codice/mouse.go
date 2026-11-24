@@ -98,6 +98,8 @@ func mouseAccelOff(game string) string {
 	}
 	prev := cur
 	s.Mouse = &prev
+	s.MouseReg, _ = regGet(registry.CURRENT_USER, `Control Panel\Mouse`, "MouseSpeed")
+	s.MouseReg = strings.TrimSpace(s.MouseReg)
 	saveBoost() // prima mi segno com'era, poi cambio
 	if !mouseSet([3]int32{0, 0, 0}) {
 		s.Mouse = nil
@@ -123,8 +125,9 @@ func mouseAccelRestore() string {
 		return ""
 	}
 	// Nel frattempo l'accelerazione è stata spenta per sempre (riparazione "mira non precisa" o
-	// modalità FPS competitivo): non la riaccendo.
-	if v, ok := regGet(registry.CURRENT_USER, `Control Panel\Mouse`, "MouseSpeed"); ok && strings.TrimSpace(v) == "0" {
+	// modalità FPS competitivo): non la riaccendo. Solo se in Windows era salvata accesa quando
+	// il Boost l'ha tolta (se era accesa solo per questa sessione, prova del 24/11, la rimetto).
+	if v, ok := regGet(registry.CURRENT_USER, `Control Panel\Mouse`, "MouseSpeed"); ok && strings.TrimSpace(v) == "0" && s.MouseReg != "0" {
 		s.Mouse = nil
 		saveBoost()
 		return ""
@@ -132,7 +135,7 @@ func mouseAccelRestore() string {
 	if !mouseSet(prev) {
 		return ""
 	}
-	s.Mouse = nil
+	s.Mouse, s.MouseReg = nil, ""
 	saveBoost()
 	return "Mouse rimesso com'era."
 }

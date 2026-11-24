@@ -94,10 +94,11 @@ type boostState struct {
 	Cmds     []string                `json:"cmds"`     // comandi accesi dal Boost (da rispegnere)
 	PrevMode string                  `json:"prevMode"` // modalità da rimettere ("" = non l'ha cambiata il Boost)
 	PrevAG   *bool                   `json:"prevAutoGame,omitempty"`
-	GpuPrev  map[string]string       `json:"gpuPrev,omitempty"` // gioco -> scelta della scheda video di prima ("0" = nessuna)
-	Mouse    *[3]int32               `json:"mouse,omitempty"`   // accelerazione del mouse di prima (solo se l'ha tolta il Boost)
-	Closed   []string                `json:"closed,omitempty"`  // programmi chiusi da riaprire (anche se Tasso si riavvia)
-	History  map[string][]*fpsResult `json:"history,omitempty"` // per gioco, ultime misure
+	GpuPrev  map[string]string       `json:"gpuPrev,omitempty"`  // gioco -> scelta della scheda video di prima ("0" = nessuna)
+	Mouse    *[3]int32               `json:"mouse,omitempty"`    // accelerazione del mouse di prima (solo se l'ha tolta il Boost)
+	MouseReg string                  `json:"mouseReg,omitempty"` // MouseSpeed salvato in Windows quando il Boost l'ha tolta
+	Closed   []string                `json:"closed,omitempty"`   // programmi chiusi da riaprire (anche se Tasso si riavvia)
+	History  map[string][]*fpsResult `json:"history,omitempty"`  // per gioco, ultime misure
 }
 
 var (
@@ -164,6 +165,7 @@ func loadBoost() *boostState {
 	if m := raw.Mouse; m != nil && m[0] >= 0 && m[0] <= 99 && m[1] >= 0 && m[1] <= 99 && m[2] >= 0 && m[2] <= 2 {
 		v := *m
 		s.Mouse = &v
+		s.MouseReg = raw.MouseReg
 	}
 	// Programmi chiusi dal Boost: tengo solo percorsi completi di programmi dell'elenco boostClosable
 	// (vengono riaperti come utente normale tramite Esplora file).
