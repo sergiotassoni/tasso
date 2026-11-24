@@ -66,7 +66,26 @@ Answer ONLY with the final Italian translation.`
 const sistemaV9 = promptCorrettore + `
 Cambia il meno possibile: correggi solo le parole sbagliate e lascia uguale il resto della frase (stesse parole, stesso ordine, stessa punteggiatura).`
 
+// 24/11, secondo giro: più esempi (menu e accordo) ed esempi nelle istruzioni di sistema.
+const esempiAltri = `Inglese: Your stamina is depleted.
+Traduzione automatica: La tua stamina è esaurita.
+Finale: La tua resistenza è esaurita.
+Inglese: Quit to Main Menu
+Traduzione automatica: Esci al menu principale
+Finale: Esci al menu principale
+Inglese: She's been taken by the raiders!
+Traduzione automatica: È stato preso dai predoni!
+Finale: L'hanno presa i predoni!
+
+`
+
 var variantiIA = map[string]varianteIA{
+	"v10": {nome: "7 esempi fissi (4 + menu, accordo, resistenza)", sistema: promptCorrettore, utente: func(en, bozza string, g []voceTrovata, _ []string) string {
+		return esempiFissi + esempiAltri + glossarioTesto(g) + "Inglese:\n" + en + "\n\nTraduzione automatica:\n" + bozza
+	}},
+	"v11": {nome: "4 esempi fissi nelle istruzioni di sistema", sistema: promptCorrettore + "\n\n" + esempiFissi, utente: func(en, bozza string, g []voceTrovata, _ []string) string {
+		return glossarioTesto(g) + "Inglese:\n" + en + "\n\nTraduzione automatica:\n" + bozza
+	}},
 	"v7": {nome: "istruzioni in inglese", sistema: sistemaV7, utente: func(en, bozza string, g []voceTrovata, _ []string) string {
 		return glossarioTesto(g) + "Inglese:\n" + en + "\n\nTraduzione automatica:\n" + bozza
 	}},
