@@ -136,10 +136,12 @@ func salvaCopieDiSicurezza() {
 		}
 	}
 	sposta(filepath.Join(appDir, "backup"), filepath.Join(dest, "backup del registro"))
+	// copie dei giochi: tutto quello che resta (plugin messi da parte, originali di giochi che non
+	// ho potuto sistemare perché disinstallati o su un disco staccato, elenchi illeggibili)
 	copie := filepath.Join(traduce.CartellaDati(), "copie-giochi")
 	voci, _ := os.ReadDir(copie)
 	for _, v := range voci {
-		sposta(filepath.Join(copie, v.Name(), "plugin-utente"), filepath.Join(dest, "plugin dei giochi", v.Name()))
+		sposta(filepath.Join(copie, v.Name()), filepath.Join(dest, "giochi", v.Name()))
 	}
 }
 

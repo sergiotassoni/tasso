@@ -481,6 +481,7 @@ func togliModUnreal(m ManifestoMod) error {
 			continue
 		}
 		p := filepath.Join(m.Cartella, a)
+		_ = os.Remove(p + ".tmp") // rimasto se Tasso si era chiuso mentre lo scriveva
 		if err := os.Remove(p); err != nil && !os.IsNotExist(err) {
 			return fmt.Errorf("non sono riuscito a togliere %s (il gioco è aperto?)", nomeModUnreal)
 		}

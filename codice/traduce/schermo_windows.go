@@ -715,7 +715,9 @@ func ovProc(hwnd, msg, wp, lp uintptr) uintptr {
 				// desktop o sopra un altro programma (il sottotitolo di una voce resta)
 				f.mu.Lock()
 				if f.gioco == g {
-					f.gioco, f.exeGioco, f.salvato = 0, "", nil
+					// tengo il nome del programma: se riapri il gioco la traduzione torna, ma sopra
+					// un altro programma no (con exeGioco vuoto giocoDavanti direbbe sì a tutti)
+					f.gioco, f.salvato = 0, nil
 					if !f.voce {
 						f.visibile = false
 					}

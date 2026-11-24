@@ -1110,8 +1110,10 @@ var (
 	ultimaImp    Impronta // impronta dell'ultima zona letta
 	precedente   Impronta // cattura del giro prima (per aspettare che il testo smetta di scorrere)
 	ultimoTesto  string
-	candidatoSub string // sottotitoli: ultima lettura, in attesa di una seconda uguale
-	ultimoGrezzo string // ultima lettura dell'OCR (per le prove)
+	candidatoSub string      // sottotitoli: ultima lettura, in attesa di una seconda uguale
+	ultimoGrezzo string      // ultima lettura dell'OCR (per le prove)
+	erroreSub    time.Time   // sottotitoli: ultimo errore di traduzione (non riprovo a raffica)
+	rileggi      atomic.Bool // traduzione riaccesa: il testo di adesso va rimostrato
 	muCronologia sync.Mutex
 	righe        []Risultato
 )
@@ -1253,6 +1255,9 @@ func leggiETraduci(img *image.RGBA, impronta Impronta, forza bool) {
 		grezzo = righeSottotitolo(grezzo)
 	}
 	ultimoGrezzo = grezzo
+	if rileggi.Swap(false) {
+		ultimoTesto, candidatoSub = "", ""
+	}
 	if pulito == "" {
 		candidatoSub = ""
 		// il dialogo o il sottotitolo è sparito: tolgo anche la traduzione
@@ -1269,6 +1274,9 @@ func leggiETraduci(img *image.RGBA, impronta Impronta, forza bool) {
 		return
 	}
 	if !forza && sub {
+		if time.Since(erroreSub) < 5*time.Second {
+			return // il traduttore ha appena dato errore: riprovo tra poco, non due volte al secondo
+		}
 		var ok bool
 		if ok, candidatoSub = sottotitoloPronto(pulito, ultimoTesto, candidatoSub); !ok {
 			return
@@ -1283,8 +1291,14 @@ func leggiETraduci(img *image.RGBA, impronta Impronta, forza bool) {
 	} else {
 		r = traduttore.Traduci(context.Background(), grezzo)
 	}
+	if !acceso.Load() || paginaAttiva.Load() {
+		return // spenta o passata alla schermata intera mentre traducevo: non rimostro niente
+	}
 	if r.Errore != "" {
 		ultimoTesto = "" // alla prossima lettura ci riprovo (il traduttore può essere ancora in partenza)
+		if sub {
+			erroreSub = time.Now()
+		}
 		ov.Mostra(z, testoTasso("Non riesco a tradurre adesso.", "I can't translate right now."), pulito, r.Errore)
 		emetti("info", map[string]string{"testo": "Traduzione non riuscita: " + r.Errore})
 		return
@@ -1496,7 +1510,8 @@ func accendi(on bool) bool {
 	}
 	acceso.Store(on)
 	if on {
-		sveglia() // l'IA si prepara subito
+		rileggi.Store(true) // il dialogo di adesso si rimostra anche se è lo stesso di prima
+		sveglia()           // l'IA si prepara subito
 		t := tastiCompleti(leggiImp().Tasti)
 		if f := cambiaTasti(t); len(f) > 0 {
 			emetti("info", map[string]string{"testo": "Già usati da un altro programma: " + nomiTasti(f, t) + ". Cambiali in Giochi → Impostazioni → Tasti nel gioco."})

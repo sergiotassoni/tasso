@@ -495,6 +495,11 @@ func ModPossibile(cartella string) (bool, string) {
 		return true, ""
 	}
 	if CartellaPaksUnreal(cartella) != "" {
+		if os.Getenv("TASSO_FILE_UNREAL") == "" {
+			// spento finché non funziona in un gioco vero (24/11): non leggo l'indice dei pak, che
+			// nei giochi grandi (Palworld, 39 GB) pesa centinaia di MB
+			return false, "per i giochi Unreal per ora traduco sullo schermo"
+		}
 		return UnrealPossibile(cartella)
 	}
 	return false, "solo giochi Unity e Unreal"

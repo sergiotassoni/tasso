@@ -1161,7 +1161,8 @@
   "Accende il blocco automatico: dopo 5 minuti senza toccare mouse e tastiera lo schermo si blocca e per rientrare serve il PIN o la password. Premi di nuovo per rimettere com'era.": "Turns on the automatic lock: after 5 minutes without touching mouse and keyboard the screen locks and you need your PIN or password to get back in. Press again to put it back as it was.",
   "Ti fa vedere quali programmi hanno usato la webcam e il microfono negli ultimi 30 giorni (con l'ultima volta di ciascuno) e chi li sta usando adesso. Così scopri se qualcuno ti guarda o ascolta. Controlla e spiega.": "Shows which programs used the webcam and microphone in the last 30 days (with the last time for each) and who is using them right now. So you find out if someone is watching or listening. Checks and explains.",
   "la misura è stata troppo breve per controllare che il gioco fosse davanti: riprova": "the measurement was too short to check that the game was in front: try again",
-  "Errore interno mentre traducevo le scritte del gioco: il gioco è rimasto com'era. Lo traduco sullo schermo.": "Internal error while translating the game's text: the game is unchanged. I'll translate it on screen."
+  "Errore interno mentre traducevo le scritte del gioco: il gioco è rimasto com'era. Lo traduco sullo schermo.": "Internal error while translating the game's text: the game is unchanged. I'll translate it on screen.",
+  "Fermo la traduzione che si sta installando: il gioco resta com'era. Riprova tra qualche secondo.": "Stopping the translation being installed: the game stays as it was. Try again in a few seconds."
  },
  "ps": {
   " di ": " of ",

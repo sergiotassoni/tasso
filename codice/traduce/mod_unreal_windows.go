@@ -90,7 +90,7 @@ func applicaModUnreal(nome, cartella string, antiCheat bool, passo func(int, str
 		applicaTraduzione(nome, cartella)
 		return
 	}
-	if err != nil {
+	if err != nil || fermaUnreal.Load() {
 		fallito("Traduzione interrotta: il gioco è rimasto com'era.")
 		return
 	}

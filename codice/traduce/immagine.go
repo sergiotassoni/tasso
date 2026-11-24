@@ -10,6 +10,7 @@ import (
 	"io"
 	"strings"
 	"sync"
+	"time"
 )
 
 // grigio converte in scala di grigi.
@@ -365,8 +366,9 @@ func celleBordiCambiate(a, b *image.RGBA) []bool {
 }
 
 type mappaBordi struct {
-	bordo []bool
-	cella []uint16
+	bordo  []bool
+	cella  []uint16
+	quando time.Time // quando è stata calcolata (per togliere la più vecchia)
 }
 
 var (
@@ -401,8 +403,16 @@ func bordiDi(img *image.RGBA) mappaBordi {
 	}
 	muBordi.Lock()
 	if len(bordiCache) >= 3 {
-		clear(bordiCache)
+		// tolgo solo la più vecchia: l'immagine di riferimento serve ancora al giro dopo
+		var vecchia *image.RGBA
+		for k, v := range bordiCache {
+			if vecchia == nil || v.quando.Before(bordiCache[vecchia].quando) {
+				vecchia = k
+			}
+		}
+		delete(bordiCache, vecchia)
 	}
+	m.quando = time.Now()
 	bordiCache[img] = m
 	muBordi.Unlock()
 	return m

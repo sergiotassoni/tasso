@@ -348,6 +348,12 @@ func applicaModGioco(nome, cartella string, rischioOK bool) {
 
 // fermaModGioco: toglie tutto e rimette il gioco com'era.
 func fermaModGioco(cartella string) string {
+	if !muInstalla.TryLock() {
+		// sta installando adesso: la fermo (niente file aggiunti dopo che hai detto Ferma)
+		fermaUnreal.Store(true)
+		return "Fermo la traduzione che si sta installando: il gioco resta com'era. Riprova tra qualche secondo."
+	}
+	defer muInstalla.Unlock()
 	m, ok := leggiManifesto(dirApp, chiaveGioco(cartella))
 	if !ok {
 		return ""
@@ -493,15 +499,28 @@ func controllaModInstallate() {
 // TogliTutteLeTraduzioni (3.1, "Togli Tasso dal PC"): toglie le traduzioni messe dentro i giochi.
 // Restituisce i giochi sistemati e quelli dove non è riuscita (di solito perché il gioco è aperto).
 func TogliTutteLeTraduzioni() (tolti, falliti []string) {
+	if !muInstalla.TryLock() { // una traduzione si sta installando adesso
+		fermaUnreal.Store(true)
+		return nil, []string{"la traduzione che si sta installando (aspetta che si fermi)"}
+	}
+	defer muInstalla.Unlock()
 	voci, _ := os.ReadDir(filepath.Join(dirApp, "copie-giochi"))
 	for _, v := range voci {
 		m, ok := leggiManifesto(dirApp, v.Name())
 		if !ok {
-			continue
+			continue // senza elenco non tocco il gioco: la cartella delle copie va in Documenti
 		}
 		nome := m.Gioco
 		if nome == "" {
 			nome = v.Name()
+		}
+		if st, err := os.Stat(m.Cartella); err != nil || !st.IsDir() {
+			// gioco disinstallato o disco staccato: non ricreo la cartella; le copie vanno in Documenti
+			continue
+		}
+		if processoAperto(m.Exe) {
+			falliti = append(falliti, nome)
+			continue
 		}
 		if err := TogliModGioco(dirApp, v.Name()); err != nil {
 			falliti = append(falliti, nome)
