@@ -176,7 +176,7 @@ func cicloPagina(giro int64) {
 					if imp2.differenza(imp) > 3*sogliaCambiato && !prima && scenaCambiata(img2, blocchiPagina()) {
 						NascondiPagina() // cambio di scena: tolgo subito le scritte vecchie
 					}
-					if bl := blocchiPagina(); imp2.cambiata(imp) && mosse < 12 && (len(bl) == 0 || paginaSpostata(img2, bl)) {
+					if bl := blocchiPagina(); imp2.cambiata(imp) && mosse < 12 && ((len(bl) == 0 && scritteMosse(img, img2, animate)) || paginaSpostata(img2, bl)) {
 						// si muove ancora (rotella, menu che scorre): niente scritte finché non si
 						// ferma, così inglese e italiano non si sovrappongono mai. Se si muove
 						// sempre (video dietro al menu) dopo circa un secondo e mezzo traduco lo stesso.
