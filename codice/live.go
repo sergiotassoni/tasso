@@ -307,5 +307,6 @@ func gpuWatched() bool {
 		return false
 	}
 	r, _, _ := pIsIconic.Call(uintptr(wv.Window()))
-	return r == 0
+	v, _, _ := pIsWindowVisible.Call(uintptr(wv.Window())) // nascosta nell'icona vicino all'orologio (tray.go)
+	return r == 0 && v != 0
 }

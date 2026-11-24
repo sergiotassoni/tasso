@@ -84,6 +84,10 @@ type Settings struct {
 	ShowAll     bool         `json:"showAll,omitempty"` // 3.1: in Gaming mostra anche le funzioni nascoste
 	// 3.1: "Aggiorna Tasso da solo" è acceso di base; true = l'utente l'ha spento.
 	NoAutoUpdate bool `json:"noAutoUpdate,omitempty"`
+	// 3.1: la X nasconde Tasso nell'icona vicino all'orologio (tray.go), acceso di base; true = l'utente l'ha spento.
+	NoCloseToTray bool `json:"noCloseToTray,omitempty"`
+	// 3.1: l'avviso "Tasso resta acceso qui" dall'icona è già stato mostrato (solo la prima volta).
+	TrayTipShown bool `json:"trayTipShown,omitempty"`
 	// Comandi gaming accesi da Tasso (per poterli rimettere com'erano) e riavvio richiesto per la GPU.
 	GamingCmds  map[string]bool      `json:"gamingCmds,omitempty"`
 	PingRegion  string               `json:"pingRegion,omitempty"`

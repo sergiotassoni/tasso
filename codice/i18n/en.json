@@ -1,5 +1,21 @@
 {
  "go": {
+  "Apri Tasso": "Open Tasso",
+  "Rimetti com'era": "Restore original",
+  "Traduzione dei giochi": "Game translation",
+  "Modalità del PC": "PC mode",
+  "Chiudi Tasso": "Close Tasso",
+  "Tasso resta acceso qui": "Tasso stays on here",
+  "Clic sull'icona per riaprirlo, clic destro per chiuderlo.": "Click the icon to open it again, right-click to close it.",
+  "Modalità attivata: ": "Mode on: ",
+  "Traduzione accesa.": "Translation on.",
+  "Traduzione spenta.": "Translation off.",
+  "Non riuscito, riprova.": "Didn't work, try again.",
+  "Aspetta la fine della pulizia prima di chiudere.": "Wait for the cleanup to finish before closing.",
+  "Tasso sta lavorando: riprova quando ha finito.": "Tasso is busy right now: try again when it has finished.",
+  "In modalità Ufficio la traduzione dei giochi è spenta.": "In Office mode game translation is off.",
+  "Non riesco ad accendere la traduzione adesso: chiudi Tasso e riaprilo, poi riprova.": "I can't turn translation on right now: close Tasso and open it again, then try again.",
+  "Prima scarica il traduttore veloce in Giochi → Impostazioni.": "First download the fast translator in Games → Settings.",
   "Non sono riuscito a spegnere la Modalità riunione o il blocco del PC dell'Ufficio: spegnili dalla sezione Ufficio di Tasso e riprova. Tasso non è stato tolto.": "I couldn't turn off Meeting Mode or the Office PC lock: turn them off from Tasso's Office section and try again. Tasso was not removed.",
   "Risparmio energetico delle porte USB: rimesso com'era.": "USB port power saving: put back as it was.",
   "Non sono riuscito a rimettere il risparmio energetico delle porte USB: riprova.": "I couldn't put back USB port power saving: try again.",
@@ -2681,6 +2697,10 @@
   "Non riesco a leggere com'era prima: non tocco lo screensaver. Controllalo in Impostazioni > Personalizzazione > Schermata di blocco > Screensaver.": "I can't read how it was before: I'm not touching the screen saver. Check it in Settings > Personalization > Lock screen > Screen saver."
  },
  "ui": {
+  "Resta acceso vicino all'orologio": "Stay on next to the clock",
+  "Con la X Tasso si nasconde nell'icona in basso a destra, vicino all'orologio, e resta acceso. Per chiuderlo davvero: clic destro sull'icona → Chiudi Tasso.": "With the X, Tasso hides in the icon at the bottom right, next to the clock, and stays on. To really close it: right-click the icon → Close Tasso.",
+  "Con la X Tasso resta acceso vicino all'orologio.": "With the X, Tasso stays on next to the clock.",
+  "Con la X Tasso si chiude.": "With the X, Tasso closes.",
   "Non sono riuscito a creare il collegamento.": "I couldn't create the shortcut.",
   "Un attimo, Tasso sta finendo un'altra cosa.": "One moment, Tasso is finishing something else.",
   "Solo se sono aperti in sottofondo senza finestra: OneDrive, Dropbox, Google Drive, iCloud, Teams (versione classica), Zoom, Skype. Li chiude con gentilezza e li riapre a fine partita. Non chiude mai Discord, OBS e i programmi per lo stream, Spotify, Steam e gli altri launcher, i browser, e niente che abbia una finestra aperta.": "Only if they're running in the background without a window: OneDrive, Dropbox, Google Drive, iCloud, Teams (classic version), Zoom, Skype. It closes them gently and reopens them when you finish. It never closes Discord, OBS and streaming programs, Spotify, Steam and the other launchers, browsers, or anything with an open window.",

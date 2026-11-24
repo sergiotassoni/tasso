@@ -136,6 +136,7 @@ try { $s = New-Object -ComObject Schedule.Service; $s.Connect(); $s.GetFolder('\
 		return trGo("Ho tolto tutto tranne le cartelle di Tasso: ") + err.Error()
 	}
 	passo(3, "Le cartelle e il file di Tasso si cancellano appena Tasso si chiude")
+	trayStop() // tray.go: via l'icona vicino all'orologio (e da qui la X chiude davvero)
 	finito = true
 	return ""
 }

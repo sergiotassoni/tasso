@@ -26,3 +26,6 @@ webviewloader/module.go carica WebView2Loader.dll solo da System32 (NewLazySyste
 dalla cartella del programma, per evitare il caricamento di una DLL falsa messa accanto a Tasso.exe.
 In più webview.go (NewWithOptions) spegne i tasti da browser (F5, Ctrl+R, Ctrl+F, Ctrl+P, Alt+Freccia
 sinistra), lo zoom e il gesto Indietro, come già faceva con menu del tasto destro e DevTools.
+Modifica di Tasso (3.1): ChiusuraHook in webview.go. Se impostato e risponde true, WM_CLOSE (la X,
+Alt+F4) non distrugge la finestra: Tasso la nasconde nell'icona vicino all'orologio. Destroy() chiude
+sempre davvero.

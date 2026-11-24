@@ -250,6 +250,7 @@ func selfUpdate() {
 		updMsg("error", "Aggiornato, ma non riesco a riaprirlo: chiudi Tasso e riaprilo tu.")
 		return
 	}
+	trayStop() // tray.go: tolgo l'icona vicino all'orologio, la rimette la copia nuova
 	wv.Dispatch(func() { wv.Terminate() })
 }
 

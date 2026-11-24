@@ -11,6 +11,7 @@ import (
 	"runtime"
 	"strconv"
 	"sync"
+	"sync/atomic"
 	"unsafe"
 
 	"github.com/jchv/go-webview2/internal/w32"
@@ -65,6 +66,8 @@ type webview struct {
 	codaEvento windows.Handle // segnala al filo della coda che è arrivata una chiamata (o che deve chiudere)
 	codaAvvio  bool           // il filo della coda è partito
 	codaChiusa bool           // la WebView è stata chiusa: niente più chiamate, il filo esce
+	// Modifica di Tasso: 1 dopo Destroy(), così la chiusura chiesta dal programma non passa da ChiusuraHook.
+	chiusuraVera int32
 }
 
 // Funzioni di Windows per far girare i messaggi nel filo della coda (non sono in internal/w32).
@@ -332,6 +335,12 @@ func (w *webview) rispondi(d rpcMessage) {
 // Modifica di Tasso: un errore in un solo pulsante non deve chiudere tutto il programma.
 var PanicHook func(method string, r interface{}, stack []byte)
 
+// ChiusuraHook: modifica di Tasso. Se c'è e risponde true, la X della finestra (WM_CLOSE: X, Alt+F4,
+// "Chiudi finestra" della barra) non chiude il programma: ci pensa la funzione (Tasso nasconde la
+// finestra nell'icona vicino all'orologio). Gira nel filo della finestra: deve essere veloce.
+// Destroy() chiude sempre davvero, senza chiedere.
+var ChiusuraHook func() bool
+
 func (w *webview) callbinding(d rpcMessage) (res0 interface{}, err0 error) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -419,6 +428,10 @@ func wndproc(hwnd, msg, wp, lp uintptr) uintptr {
 				w.browser.Focus()
 			}
 		case w32.WMClose:
+			// Modifica di Tasso: la X può nascondere la finestra invece di chiuderla (vedi ChiusuraHook).
+			if atomic.LoadInt32(&w.chiusuraVera) == 0 && ChiusuraHook != nil && ChiusuraHook() {
+				break
+			}
 			_, _, _ = w32.User32DestroyWindow.Call(hwnd)
 		case w32.WMDestroy:
 			w.Terminate()
@@ -526,7 +539,8 @@ func (w *webview) CreateWithOptions(opts WindowOptions) bool {
 }
 
 func (w *webview) Destroy() {
-	w.chiudiCoda() // modifica di Tasso: la coda dei pulsanti si chiude con la WebView
+	w.chiudiCoda()                        // modifica di Tasso: la coda dei pulsanti si chiude con la WebView
+	atomic.StoreInt32(&w.chiusuraVera, 1) // modifica di Tasso: chiusura vera, non passa da ChiusuraHook
 	_, _, _ = w32.User32PostMessageW.Call(w.hwnd, w32.WMClose, 0, 0)
 }
 

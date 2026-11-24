@@ -174,6 +174,7 @@ func main() {
 		webview2.Subito[n] = true
 	}
 	bindAll(w)
+	bindTray(w) // tray.go: interruttore "Resta acceso vicino all'orologio"
 	_ = w.Bind("goPronto", func() string { scriviAvvio("pagina pronta"); return "ok" })
 	// Tasso Traduce (sezione Traduci): collegamenti prima di caricare la pagina; il resto parte
 	// in sottofondo e non legge lo schermo finché non accendi la traduzione.
@@ -190,6 +191,9 @@ func main() {
 		}()
 	}
 	defer traduce.Chiudi()
+	// Icona vicino all'orologio (tray.go): la X nasconde Tasso lì. Si toglie alla chiusura vera.
+	startTray()
+	defer trayStop()
 	startLiveMonitor()
 	startGameWatcher()
 	startOverlay()
@@ -350,11 +354,20 @@ func bringToFront() bool {
 	t, _ := windows.UTF16PtrFromString("Tasso")
 	hwnd, _, _ := pFindWin.Call(uintptr(unsafe.Pointer(c)), uintptr(unsafe.Pointer(t)))
 	if hwnd != 0 {
-		pShowWin.Call(hwnd, 9) // SW_RESTORE
-		pSetFg.Call(hwnd)
+		mostraFinestra(hwnd) // tray.go: anche se è nascosta nell'icona vicino all'orologio
 		return true
 	}
 	return false
+}
+
+// chiudiTasso: la chiusura vera, da "Chiudi Tasso" delle Impostazioni e dall'icona vicino all'orologio.
+func chiudiTasso() {
+	go func() {
+		defer guard("main.go:320")
+		time.Sleep(150 * time.Millisecond)
+		trayStop()
+		wv.Dispatch(func() { wv.Terminate() })
+	}()
 }
 
 func messageBox(text, title string) {
@@ -434,11 +447,7 @@ func bindAll(w webview2.WebView) {
 		})
 	})
 	_ = w.Bind("goQuit", func() string {
-		go func() {
-			defer guard("main.go:320")
-			time.Sleep(150 * time.Millisecond)
-			wv.Dispatch(func() { wv.Terminate() })
-		}()
+		chiudiTasso()
 		return "ok"
 	})
 	_ = w.Bind("goStartupList", func() string { return async("startup", startupList) })
