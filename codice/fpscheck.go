@@ -291,8 +291,8 @@ type tempRead struct {
 	throttle       bool
 }
 
-// readTemps: temperature e memoria video lette verso la fine della misura (in parallelo, così la
-// misura non si allunga). 0 = non disponibile.
+// readTemps: temperature e memoria video, lette subito dopo la fine della misura (mai durante:
+// PowerShell e nvidia-smi sporcherebbero l'1% low). 0 = non disponibile.
 func readTemps() tempRead {
 	var t tempRead
 	r := runPS(cpuTempLHMScript, 8*time.Second, nil)

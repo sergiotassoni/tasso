@@ -254,11 +254,26 @@ Say 'Riavvio l''audio di Windows (si sente un attimo di silenzio)...'
 Restart-Service -Name Audiosrv -Force -ErrorAction SilentlyContinue
 $usb = Get-PowerValue '2a737441-1930-4402-8d77-b2bebba308a3' '48e6b7a6-50f5-4782-a5d4-53bb8f07e226'
 if ($usb.Count -eq 2 -and $usb[0] -ne 0) {
-  [void](Run-Hidden 'powercfg.exe' '/setacvalueindex SCHEME_CURRENT 2a737441-1930-4402-8d77-b2bebba308a3 48e6b7a6-50f5-4782-a5d4-53bb8f07e226 0')
+  # Prima di cambiarlo salvo il valore di prima in un file: con un doppio clic torna com'era.
+  $plan = [regex]::Match((@(powercfg.exe /getactivescheme 2>$null) -join ' '), '[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}').Value
+  $u = ''
+  if ($plan) {
+    try {
+      $d = Join-Path $env:LOCALAPPDATA 'Tasso\backup-registro'
+      New-Item -ItemType Directory -Path $d -Force -ErrorAction Stop | Out-Null
+      $f = Join-Path $d ('usb-audio_' + (Get-Date -Format 'yyyyMMdd_HHmmss') + '.cmd')
+      $lines = @('@echo off', ('powercfg.exe /setacvalueindex ' + $plan + ' 2a737441-1930-4402-8d77-b2bebba308a3 48e6b7a6-50f5-4782-a5d4-53bb8f07e226 ' + [int64]$usb[0]), 'powercfg.exe /setactive SCHEME_CURRENT', 'echo Risparmio energetico delle porte USB rimesso come prima.', 'pause')
+      [IO.File]::WriteAllLines($f, [string[]]$lines, [Text.Encoding]::ASCII)
+      if (Test-Path -LiteralPath $f) { $u = $f }
+    } catch { $u = '' }
+  }
+  if (-not $u) { Say 'Non sono riuscito a salvare il valore di prima del risparmio energetico delle porte USB, quindi non lo cambio. Se vuoi spegnerlo tu: Pannello di controllo > Opzioni risparmio energia > Modifica impostazioni avanzate > Impostazioni USB.' } else {
+  [void](Run-Hidden 'powercfg.exe' ('/setacvalueindex ' + $plan + ' 2a737441-1930-4402-8d77-b2bebba308a3 48e6b7a6-50f5-4782-a5d4-53bb8f07e226 0'))
   [void](Run-Hidden 'powercfg.exe' '/setactive SCHEME_CURRENT')
   $usb2 = Get-PowerValue '2a737441-1930-4402-8d77-b2bebba308a3' '48e6b7a6-50f5-4782-a5d4-53bb8f07e226'
-  if ($usb2.Count -eq 2 -and $usb2[0] -ne 0) { Say 'Non sono riuscito a spegnere il risparmio energetico delle porte USB: fallo da Pannello di controllo > Opzioni risparmio energia > Modifica impostazioni avanzate > Impostazioni USB.' } else {
-  Say 'Fatto: con il caricatore attaccato Windows non spegne più le porte USB per risparmiare. Era la causa più comune di scatti nell''audio di cuffie USB. Per tornare indietro: Pannello di controllo > Opzioni risparmio energia > Modifica impostazioni avanzate > Impostazioni USB.' }
+  if ($usb2.Count -eq 2 -and $usb2[0] -ne 0) { Remove-Item -LiteralPath $u -Force -ErrorAction SilentlyContinue; Say 'Non sono riuscito a spegnere il risparmio energetico delle porte USB: fallo da Pannello di controllo > Opzioni risparmio energia > Modifica impostazioni avanzate > Impostazioni USB.' } else {
+  Say 'Fatto: con il caricatore attaccato Windows non spegne più le porte USB per risparmiare. Era la causa più comune di scatti nell''audio di cuffie USB.'; Say-Undo $u }
+  }
 } else { Say 'Il risparmio energetico delle porte USB è già spento (o non c''è su questo PC).' }
 $bt = @(Get-CimInstance Win32_PnPEntity -ErrorAction SilentlyContinue | Where-Object { [string]$_.PNPDeviceID -match '^BTHHFENUM\\|^BTHENUM\\\{0000111E' -and $_.Status -eq 'OK' })
 if ($bt.Count) { Say 'Hai cuffie Bluetooth: quando usi il loro microfono passano in modalità "chiamata" e l''audio diventa basso e gracchiante. Nel gioco o in Windows scegli come uscita le cuffie "Stereo" e usa un altro microfono, oppure usa cuffie con il loro ricevitore USB.' }

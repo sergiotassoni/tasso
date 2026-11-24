@@ -10,6 +10,7 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"path/filepath"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -268,18 +269,38 @@ func gameTick() {
 	gameMu.Lock()
 	if name != "" {
 		gameMissing = 0
+		if gameActive && !strings.EqualFold(name, gameName) {
+			// Hai cambiato gioco senza passare un minuto senza giochi: metto la modalità scelta per
+			// il nuovo gioco. La modalità "di prima" resta quella di quando hai aperto il primo.
+			gameName = name
+			gameMu.Unlock()
+			target, m := gameModeTarget(name)
+			if m == "" {
+				return // il nuovo gioco non ha una sua scelta: lascio quella che c'è
+			}
+			setMu.Lock()
+			before := settings.ModeBeforeGame
+			setMu.Unlock()
+			if prev != target {
+				back := before
+				if back == "" { // il primo gioco non aveva cambiato niente: ricordo la modalità di adesso
+					back = prev
+					if _, ok := modeScripts[back]; !ok {
+						back = "normale"
+					}
+				}
+				updateSettings(func(s *Settings) { s.ModeBeforeGame, s.GameTarget = back, target })
+				gameTarget.Store(target)
+				go setMode(target)
+			}
+			emit("onGameMode", map[string]interface{}{"active": true, "game": name, "mode": target})
+			return
+		}
 		if !gameActive {
 			gameActive, gameName = true, name
 			gameMu.Unlock()
 			// Modalità scelta per questo gioco (Potenza per ogni gioco o Regola con Tasso), altrimenti Gaming.
-			target := "gaming"
-			m := gameModeFor(name)
-			if m == "fps" || m == "gaming" {
-				target = m
-			}
-			if m == "max" { // Massima potenza: FPS competitivo
-				target = "fps"
-			}
+			target, m := gameModeTarget(name)
 			// Con una scelta per questo gioco la metto sempre; senza, non abbasso FPS a Gaming, e non
 			// cambio niente se la modalità automatica è accesa solo per i giochi con una loro potenza.
 			if (m != "" && prev != target) || (m == "" && forAll && prev != "gaming" && prev != "fps") {
@@ -310,6 +331,19 @@ func gameTick() {
 		}
 	}
 	gameMu.Unlock()
+}
+
+// gameModeTarget: la modalità da mettere per questo gioco e la scelta salvata per lui ("" = nessuna).
+func gameModeTarget(name string) (target, m string) {
+	target = "gaming"
+	m = gameModeFor(name)
+	if m == "fps" || m == "gaming" {
+		target = m
+	}
+	if m == "max" { // Massima potenza: FPS competitivo
+		target = "fps"
+	}
+	return target, m
 }
 
 // endGameMode rimette la modalità di prima, ma solo se nel frattempo non l'hai cambiata tu.
@@ -350,6 +384,7 @@ var gamePid atomic.Uint32
 
 func runningGame() string {
 	withWin := pidsWithBigWindow()
+	libDirs, libExes := libraryGamePaths()
 	snap, err := windows.CreateToolhelp32Snapshot(windows.TH32CS_SNAPPROCESS, 0)
 	if err != nil {
 		return ""
@@ -366,26 +401,64 @@ func runningGame() string {
 		if path == "" {
 			continue
 		}
-		for _, d := range gameDirs {
-			if strings.Contains(path, d) {
-				if d == `\windowsapps\` && !knownGameExe[exe] {
-					break
-				}
-				skip := false
-				for _, nd := range notGameDirs {
-					if strings.Contains(path, nd) {
-						skip = true
-					}
-				}
-				if skip {
-					break
-				}
-				gamePid.Store(pe.ProcessID)
-				return strings.TrimSuffix(windows.UTF16ToString(pe.ExeFile[:]), ".exe")
-			}
+		if isGamePath(path, exe, libDirs, libExes) {
+			gamePid.Store(pe.ProcessID)
+			return strings.TrimSuffix(windows.UTF16ToString(pe.ExeFile[:]), ".exe")
 		}
 	}
 	return ""
+}
+
+// isGamePath: il programma (percorso e nome in minuscolo) è un gioco? Sì se sta in una cartella
+// tipica dei giochi, oppure nella cartella di un gioco della libreria di Tasso (Battle.net in
+// Program Files, C:\Games, GOG, giochi aggiunti a mano...). Mai nelle cartelle di servizio.
+func isGamePath(path, exe string, libDirs []string, libExes map[string]bool) bool {
+	for _, nd := range notGameDirs {
+		if strings.Contains(path, nd) {
+			return false
+		}
+	}
+	if libExes[path] {
+		return true
+	}
+	for _, d := range libDirs {
+		if strings.HasPrefix(path, d) {
+			return true
+		}
+	}
+	for _, d := range gameDirs {
+		if strings.Contains(path, d) {
+			return d != `\windowsapps\` || knownGameExe[exe]
+		}
+	}
+	return false
+}
+
+// libraryGamePaths: le cartelle (in minuscolo, con \ finale) e i programmi dei giochi della
+// libreria. Le cartelle troppo larghe (Desktop, Download, Program Files...) non contano: lì
+// conta solo il programma esatto del gioco.
+func libraryGamePaths() ([]string, map[string]bool) {
+	var dirs []string
+	exes := map[string]bool{}
+	libMu.Lock()
+	defer libMu.Unlock()
+	for _, g := range library {
+		if g.Hidden {
+			continue
+		}
+		if g.exe != "" && !notGameExe[strings.ToLower(filepath.Base(g.exe))] {
+			exes[strings.ToLower(filepath.Clean(g.exe))] = true
+		}
+		if g.dir == "" {
+			continue
+		}
+		d := strings.ToLower(strings.TrimRight(filepath.Clean(g.dir), `\`))
+		if len(d) <= 3 || !filepath.IsAbs(d) {
+			continue
+		}
+		dirs = append(dirs, d+`\`)
+	}
+	return dirs, exes
 }
 
 func processPath(pid uint32) string {

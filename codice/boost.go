@@ -853,16 +853,6 @@ func fpsMeasure(delay, secs int, boosted, beeps bool, prefer string) (*fpsResult
 		return nil, errors.New("non riesco ad avviare la misura degli FPS")
 	}
 	done := make(chan struct{})
-	temps := make(chan tempRead, 1)
-	go func() {
-		defer guard("boost.go:temps")
-		// Verso la fine della misura, mentre il gioco lavora ancora.
-		select {
-		case <-done:
-		case <-time.After(time.Duration(delay+secs-8) * time.Second):
-		}
-		temps <- readTemps()
-	}()
 	// chi è davanti, controllato ogni secondo durante la misura (prima solo due volte: bastava un
 	// attimo sbagliato per buttare una misura buona, visto con PC Cafe Simulator il 24/11)
 	fg := map[uint32]int{}
@@ -944,11 +934,11 @@ func fpsMeasure(delay, secs int, boosted, beeps bool, prefer string) (*fpsResult
 		res.path = pp
 	}
 	res.Hz = hzAtEnd
-	select {
-	case t := <-temps:
-		res.CpuTemp, res.GpuTemp, res.Throttle, res.VramPct = t.cpu, t.gpu, t.throttle, t.vram
-	case <-time.After(10 * time.Second):
-	}
+	// Temperature e memoria video: le leggo subito DOPO la fine della registrazione (il gioco è
+	// ancora aperto e caldo). Prima partivano 8 secondi prima della fine: PowerShell e nvidia-smi
+	// rubavano tempo al processore e sporcavano l'1% low.
+	t := readTemps()
+	res.CpuTemp, res.GpuTemp, res.Throttle, res.VramPct = t.cpu, t.gpu, t.throttle, t.vram
 	setLastFps(res)
 	bMu.Lock()
 	s := loadBoost()

@@ -70,7 +70,7 @@ var gameKinds = []struct {
 var kindLabel = map[string]string{
 	"competitivo":   "Sparatutto / competitivo",
 	"grafico":       "Grafico / avventura",
-	"prestazionale": "Prestazionale (simulazione, sopravvivenza, strategia)",
+	"prestazionale": "Prestazionale: simulazione, sopravvivenza, strategia",
 }
 
 func steamGenres(appid string) (genres, cats []string) {
@@ -367,9 +367,19 @@ func recommend(preset string, tier, hz int, vendor string) tuneRec {
 
 // ---------------- Programmi del gioco e file di impostazioni ----------------
 
-var skipExe = regexp.MustCompile(`(?i)(unins|setup|install|redist|vcredist|dxsetup|dxweb|crash|report|launcher|anticheat|easyanticheat|battleye|^eac|prereq|dotnet|helper|update|patch|cef|webhelper|overlay|benchmark|config|settings|uploader|bugsplat|sentry|cleanup|vc_redist|unitycrash|ue4|ue5prereq)`)
+// Programmi da saltare sempre: installatori e programmi di servizio, riconosciuti dall'INIZIO del
+// nome (o dal nome intero), non da una parola in mezzo. Prima una parola qualsiasi bastava:
+// CrashBandicoot.exe ("crash") e Dispatch.exe ("patch") venivano scartati.
+var skipExe = regexp.MustCompile(`(?i)^(unins|uninst|setup|install|redist|vcredist|vc_redist|dxsetup|dxweb|directx|dotnet|ndp\d|oalinst|physx|prereq|ue4prereq|ue5prereq|easyanticheat|eac(launcher|setup)?\.exe$|battleye|beservice|unitycrashhandler|crashreportclient|crashhandler|crashpad|crashsender|start_protected_game|bugsplat|sentry|steamwebhelper|cefsharp|unrealcefsubprocess|quicksfv|dxwebsetup|epiconlineservices)`)
+
+// toolWords: parole tipiche dei programmi d'appoggio. Non scartano il programma: gli tolgono punti,
+// così vince il gioco vero, ma se c'è solo lui (es. CrashBandicoot.exe) resta.
+var toolWords = []string{"crash", "report", "launcher", "helper", "update", "patch", "config", "settings", "overlay", "benchmark", "uploader", "cleanup", "cef", "webhelper", "server", "editor", "tool", "anticheat"}
 
 // gameExes trova i programmi veri del gioco (al massimo 3), saltando installatori e programmi di servizio.
+// I giochi Unity hanno un avviatore piccolo (circa 650 KB) con accanto UnityPlayer.dll o la cartella
+// <nome>_Data: li accetto anche se sono piccoli. Gli altri programmi sotto 1 MB li prendo solo se
+// nella cartella non c'è nient'altro.
 func gameExes(dir string) []string {
 	if dir == "" || !dirExists(dir) {
 		return nil
@@ -378,8 +388,10 @@ func gameExes(dir string) []string {
 		path  string
 		size  int64
 		score int
+		ok    bool // grande, oppure avviatore Unity
 	}
 	var list []cand
+	folder := normTitle(filepath.Base(filepath.Clean(dir)))
 	base := strings.Count(filepath.Clean(dir), string(os.PathSeparator))
 	_ = filepath.WalkDir(dir, func(p string, d os.DirEntry, err error) error {
 		if err != nil {
@@ -400,31 +412,81 @@ func gameExes(dir string) []string {
 			return nil
 		}
 		info, err := d.Info()
-		if err != nil || info.Size() < 1<<20 {
+		if err != nil || info.Size() < 64<<10 {
 			return nil
 		}
+		stem := strings.TrimSuffix(name, filepath.Ext(name))
+		ls := strings.ToLower(stem)
+		pdir := filepath.Dir(p)
+		unity := fileExists(filepath.Join(pdir, "UnityPlayer.dll")) || dirExists(filepath.Join(pdir, stem+"_Data"))
 		sc := 0
+		if unity {
+			sc += 4
+		}
 		lp := strings.ToLower(p)
 		if strings.Contains(lp, `\binaries\win64\`) {
 			sc += 2
 		}
-		if strings.Contains(strings.ToLower(name), "shipping") {
+		if strings.Contains(ls, "shipping") {
 			sc += 3
 		}
-		list = append(list, cand{p, info.Size(), sc})
+		// nome simile alla cartella del gioco (CrashBandicoot.exe in "Crash Bandicoot N. Sane Trilogy")
+		if n := normTitle(stem); len(n) >= 4 && len(folder) >= 4 && (strings.Contains(folder, n) || strings.Contains(n, folder)) {
+			sc += 6
+		}
+		for _, w := range toolWords {
+			if strings.Contains(ls, w) {
+				sc -= 5
+				break
+			}
+		}
+		list = append(list, cand{p, info.Size(), sc, unity || info.Size() >= 1<<20})
 		return nil
 	})
+	// I programmi piccoli e non Unity contano solo se non c'è nessun altro candidato.
+	good := list[:0:0]
+	for _, c := range list {
+		if c.ok {
+			good = append(good, c)
+		}
+	}
+	if len(good) > 0 {
+		list = good
+	}
 	sort.Slice(list, func(i, j int) bool {
 		if list[i].score != list[j].score {
 			return list[i].score > list[j].score
 		}
 		return list[i].size > list[j].size
 	})
+	// Prima i programmi senza punti in meno; quelli "d'appoggio" solo se non c'è altro (ne basta uno).
 	var out []string
-	for i := 0; i < len(list) && i < 3; i++ {
-		out = append(out, list[i].path)
+	for i := 0; i < len(list) && len(out) < 3; i++ {
+		if list[i].score >= 0 {
+			out = append(out, list[i].path)
+		}
+	}
+	if len(out) == 0 && len(list) > 0 {
+		out = append(out, list[0].path)
 	}
 	return out
+}
+
+// gameExesFor: i programmi del gioco nella sua cartella; se non ne trovo, uso il programma che
+// Tasso già conosce per quel gioco (es. aggiunto a mano o trovato da GOG), ma solo se sta dentro
+// la cartella del gioco.
+func gameExesFor(g gameEntry) []string {
+	if exes := gameExes(g.dir); len(exes) > 0 {
+		return exes
+	}
+	if g.exe == "" || g.dir == "" || !strings.EqualFold(filepath.Ext(g.exe), ".exe") || !fileExists(g.exe) {
+		return nil
+	}
+	d := strings.ToLower(strings.TrimRight(filepath.Clean(g.dir), `\`)) + `\`
+	if strings.HasPrefix(strings.ToLower(filepath.Clean(g.exe)), d) {
+		return []string{g.exe}
+	}
+	return nil
 }
 
 // unrealIni cerca il file GameUserSettings.ini di un gioco Unreal Engine.
@@ -626,7 +688,7 @@ func gameTuneInfo(id string) {
 	for _, p := range []string{"competitivo", "grafico", "prestazionale"} {
 		recs[p] = recommend(p, tier, hz, vendor)
 	}
-	exes := gameExes(g.dir)
+	exes := gameExesFor(g)
 	ini := unrealIni(g.dir)
 	// Giochi con anti-cheat: Tasso non tocca i loro file né le impostazioni (niente .ini, niente
 	// priorità del processore). La grafica la imposti tu dal menu del gioco.
@@ -761,7 +823,7 @@ func gameTuneApply(id, preset string, o tuneOpts) {
 	if o.Mode != "gaming" && o.Mode != "fps" {
 		o.Mode = ""
 	}
-	exes := gameExes(g.dir)
+	exes := gameExesFor(g)
 	var msgs, failed []string
 	fail := func(m string) { msgs, failed = append(msgs, m), append(failed, m) }
 	// Giochi con anti-cheat: niente file del gioco e niente priorità del processore.
@@ -817,6 +879,21 @@ func gameTuneApply(id, preset string, o tuneOpts) {
 		}
 		if o.Priority {
 			base := filepath.Base(e)
+			if !ifeoNameOK(base) {
+				// La priorità di Windows vale per il NOME del programma, in tutto il PC: con un nome
+				// generico (Game.exe, nw.exe...) cambierebbe anche altri programmi.
+				fail("• Priorità del processore: il programma si chiama " + base + ", un nome troppo comune (lo usano anche altri programmi): Tasso non la cambia.")
+				continue
+			}
+			// Ricordo se la chiave del programma l'ho creata io: all'annullamento la tolgo se è vuota.
+			if _, done := prev["ifeo|"+base]; !done {
+				if ek, err := registry.OpenKey(registry.LOCAL_MACHINE, ifeoKey+base, registry.QUERY_VALUE); err == nil {
+					ek.Close()
+					prev["ifeo|"+base] = "1"
+				} else {
+					prev["ifeo|"+base] = "0"
+				}
+			}
 			k, _, err := registry.CreateKey(registry.LOCAL_MACHINE, ifeoKey+base+`\PerfOptions`, registry.SET_VALUE|registry.QUERY_VALUE)
 			if err == nil {
 				if _, done := prev["prio|"+base]; done {
@@ -921,6 +998,39 @@ func gameTuneApply(id, preset string, o tuneOpts) {
 	emit("onGameTuneDone", map[string]interface{}{"id": id, "ok": true, "partial": len(failed) > 0, "failed": failed, "msgs": msgs, "settings": getSettings()})
 }
 
+// deleteKeyIfEmpty cancella una chiave di HKLM solo se non ha più né valori né sottochiavi.
+func deleteKeyIfEmpty(path string) {
+	k, err := registry.OpenKey(registry.LOCAL_MACHINE, path, registry.QUERY_VALUE)
+	if err != nil {
+		return
+	}
+	st, err := k.Stat()
+	k.Close()
+	if err == nil && st.ValueCount == 0 && st.SubKeyCount == 0 {
+		_ = registry.DeleteKey(registry.LOCAL_MACHINE, path)
+	}
+}
+
+// genericExe: nomi di programmi usati da tanti giochi e programmi diversi (motori, avviatori).
+var genericExe = map[string]bool{
+	"game": true, "nw": true, "main": true, "start": true, "launch": true, "launcher": true, "play": true,
+	"client": true, "app": true, "application": true, "run": true, "runtime": true, "player": true,
+	"java": true, "javaw": true, "python": true, "pythonw": true, "node": true, "electron": true,
+	"godot": true, "love": true, "dosbox": true, "scummvm": true, "retroarch": true, "server": true,
+	"bootstrap": true, "game64": true, "gamex64": true, "game_x64": true, "win64": true, "x64": true,
+	"unity": true, "unityplayer": true, "renpy": true, "lib": true, "bin": true, "setup": true,
+}
+
+// ifeoNameOK: il nome del programma è abbastanza particolare per cambiargli la priorità
+// (vale per tutti i programmi con quel nome): almeno 5 lettere, non generico, niente percorsi.
+func ifeoNameOK(base string) bool {
+	if base == "" || strings.ContainsAny(base, `\/`) || !strings.EqualFold(filepath.Ext(base), ".exe") {
+		return false
+	}
+	stem := strings.ToLower(strings.TrimSuffix(base, filepath.Ext(base)))
+	return len([]rune(stem)) >= 5 && !genericExe[stem]
+}
+
 // qualityText: "qualità Alto" ecc., intere, così si traducono anche in inglese.
 var qualityText = []string{"qualità Basso", "qualità Medio", "qualità Alto", "qualità Ultra"}
 
@@ -964,13 +1074,11 @@ func gameTuneUndoQuiet(id string, reapply bool) string {
 			} else {
 				regDel(registry.LOCAL_MACHINE, path, "CpuPriorityClass")
 				// La chiave si cancella solo se è rimasta davvero vuota (altri programmi possono usarla).
-				if k, err := registry.OpenKey(registry.LOCAL_MACHINE, path, registry.QUERY_VALUE); err == nil {
-					st, err := k.Stat()
-					k.Close()
-					if err == nil && st.ValueCount == 0 && st.SubKeyCount == 0 {
-						_ = registry.DeleteKey(registry.LOCAL_MACHINE, path)
-					}
-				}
+				deleteKeyIfEmpty(path)
+			}
+			// IFEO\<nome>.exe: la tolgo solo se l'aveva creata Tasso ed è rimasta vuota.
+			if t.Prev["ifeo|"+parts[1]] == "0" && !strings.ContainsAny(parts[1], `\/`) {
+				deleteKeyIfEmpty(ifeoKey + parts[1])
 			}
 		}
 	}

@@ -428,7 +428,7 @@ func setGamePower(id, mode string) map[string]interface{} {
 	name := old.Name
 	if ok {
 		name = g.Name
-		for _, e := range gameExes(g.dir) {
+		for _, e := range gameExesFor(g) {
 			exes = append(exes, strings.ToLower(strings.TrimSuffix(filepath.Base(e), filepath.Ext(e))))
 		}
 	} else if had {

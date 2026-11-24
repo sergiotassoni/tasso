@@ -170,7 +170,10 @@ func gamingRestore(id string) bool {
 		allowed[regPrevKey(t)] = true
 	}
 	for _, p := range prev {
-		if !allowed[regPrevKey(p)] {
+		// Rete: le schede che hanno un indirizzo adesso possono non essere quelle di quando l'hai
+		// acceso (una scheda spenta o staccata resterebbe cambiata): rimetto i due valori su
+		// qualunque scheda di rete salvata, purché il percorso sia proprio quello di una scheda.
+		if !allowed[regPrevKey(p)] && !(id == "nagle" && nagleRestoreOK(p)) {
 			continue
 		}
 		switch p.Kind {
@@ -325,6 +328,42 @@ func gamingSet(id string, on bool) string {
 		}
 	})
 	return "ok:" + msg
+}
+
+// nagleRestoreOK: il valore salvato è TcpAckFrequency o TCPNoDelay di una scheda di rete
+// (Interfaces\{GUID}, niente altro sotto). settings.json si può cambiare senza essere
+// amministratore: così "Rimetti com'era" non può toccare altre chiavi del registro.
+func nagleRestoreOK(p regPrev) bool {
+	if !p.HKLM || (!strings.EqualFold(p.Name, "TcpAckFrequency") && !strings.EqualFold(p.Name, "TCPNoDelay")) {
+		return false
+	}
+	pre := strings.ToLower(tcpIfaceKey) + `\`
+	lp := strings.ToLower(p.Path)
+	if !strings.HasPrefix(lp, pre) {
+		return false
+	}
+	return isGUIDKey(lp[len(pre):])
+}
+
+// isGUIDKey: "{xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx}" con sole cifre esadecimali.
+func isGUIDKey(s string) bool {
+	if len(s) != 38 || s[0] != '{' || s[37] != '}' {
+		return false
+	}
+	for i := 1; i < 37; i++ {
+		c := s[i]
+		switch i {
+		case 9, 14, 19, 24:
+			if c != '-' {
+				return false
+			}
+		default:
+			if !(c >= '0' && c <= '9' || c >= 'a' && c <= 'f' || c >= 'A' && c <= 'F') {
+				return false
+			}
+		}
+	}
+	return true
 }
 
 // nagleIfaces: le schede di rete che hanno un indirizzo.
