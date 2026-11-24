@@ -10,3 +10,8 @@ GOOS=windows GOARCH=amd64 go vet .
 GOOS=windows GOARCH=amd64 go build -trimpath -ldflags "-H windowsgui -s -w" -o dist/TassoPDF.exe .
 cp LEGGIMI.txt LICENSE LICENZE.txt dist/ 2>/dev/null || true
 ls -la dist/TassoPDF.exe
+# icona e manifest: rsrc_windows_amd64.syso, si rifà con strumenti/risorse.sh.
+# Controllo: l'exe contiene la nuova icona (byte per byte) e il manifest asInvoker.
+if [ -d ../strumenti/risorse ]; then
+  (cd ../strumenti/risorse && go run . controlla -exe "$OLDPWD/dist/TassoPDF.exe" -ico "$OLDPWD/risorse/TassoPDF.ico" -livello asInvoker)
+fi
