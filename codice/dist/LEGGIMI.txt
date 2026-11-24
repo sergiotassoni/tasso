@@ -1,4 +1,4 @@
-TASSO 3.0
+TASSO 3.1
 Pulisce, ripara e spinge il tuo PC. In un clic.
 =================================================
 
@@ -12,8 +12,8 @@ COME SI APRE
    Se sul PC non sei amministratore, Windows ti chiede la password di un amministratore.
 3. Se compare la schermata blu "PC protetto da Windows":
    clicca "Ulteriori informazioni" e poi "Esegui comunque".
-   Questa versione non ha ancora la firma digitale, e Windows mostra questo
-   avviso con i programmi nuovi senza firma. Non vuol dire che Tasso sia un virus.
+   Tasso ha la firma digitale (Open Source Developer Sergio Tassoni): l'avviso
+   compare solo finché Windows non conosce bene il programma. Non è un virus.
 
 SERVE
 - Windows 10 o Windows 11 a 64 bit.
@@ -38,12 +38,45 @@ L'elenco rapido delle funzioni è nel file INDICE.txt e dentro Tasso,
 alla voce "Info e indice".
 
 ------------------------------------------------------------
+NOVITÀ DELLA 3.1
+------------------------------------------------------------
+- Menu nuovo e più semplice: Home, Giochi, Pulisci e ripara, Impostazioni.
+  In alto scegli Gaming o Ufficio: ognuno mostra solo quello che serve.
+- TASSO TRADUCE: i giochi in inglese tradotti in italiano sullo schermo.
+  Premi F7 nel gioco: le scritte inglesi vengono coperte dalla traduzione, con lo
+  stesso posto, la stessa grandezza e lo stesso colore del gioco.
+  Tasti: F7 accende e spegne, F9 sceglie una zona, F10 ritraduce, F11 automatico,
+  F8 cronologia, Ctrl+Alt+I mostra l'inglese. I tasti non arrivano al gioco.
+  Funziona sul tuo PC, senza abbonamento: un'IA sulla tua scheda video corregge
+  la traduzione (livello automatico, oppure Piccola, Media, Grande o Spenta).
+  Tradotta anche la chat degli altri giocatori, accanto a quella del gioco.
+  Nei giochi con anti-cheat Tasso traduce solo lo schermo e non tocca i file.
+- Pagina Giochi: la tua libreria, la pagina di ogni gioco e "Prepara il gioco",
+  una procedura a passi che regola il gioco e la traduzione.
+- Boost più onesto: dice cosa fa davvero, misura gli FPS veri e con
+  "Rimetti com'era" torna tutto come prima.
+- Frequenza dello schermo: Tasso propone solo quelle che il monitor dichiara
+  (fino a 1000 Hz) e se non confermi entro 15 secondi torna indietro da solo.
+- Hardware dal vivo: nome dei pezzi e temperatura del processore.
+- Pannellino in gioco a scelta: cosa mostrare e in quale angolo.
+- 14 problemi dei giochi in più in Risolvi un problema.
+- UFFICIO, novità in Pulisci e ripara > Risolvi un problema:
+  "Pronto per la videochiamata?" prova webcam, microfono, casse e internet;
+  "Modalità riunione" spegne notifiche, OneDrive e aggiornamenti durante la
+  chiamata e rimette tutto com'era alla fine; "Chi ha usato webcam e microfono";
+  "Blocca il PC quando ti alzi".
+- Temi chiari e morbidi per l'Ufficio (Impostazioni > Aspetto).
+- "Aggiorna Tasso da solo": quando esce una versione nuova Tasso avvisa e si
+  aggiorna, mai con un gioco aperto.
+- Tante correzioni dai controlli severi: sicurezza, inglese, accessibilità.
+
+------------------------------------------------------------
 NOVITÀ DELLA 3.0
 ------------------------------------------------------------
 - Più sicuro: i programmi di Windows che Tasso usa partono sempre dalla cartella
   di sistema.
 - Se Tasso si chiudesse per un errore grave, il motivo resta scritto in
-  %LOCALAPPDATA%\Tasso\logs\crash.txt: mandalo su Discord e lo correggo.
+  %LOCALAPPDATA%\Tasso\logs\crash.txt: mandalo a tasso.services@proton.me e lo correggo.
 - Scrivici (Impostazioni e Info): mandi un'idea, un problema o un commento,
   con fino a 2 foto. Li leggo tutti.
 - Se vuoi, numeri anonimi per migliorare Tasso: lo chiede una volta, e puoi

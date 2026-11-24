@@ -94,6 +94,12 @@ func async(kind string, f func()) string {
 func startupList() {
 	r := runPS(startupListScript, 2*time.Minute, nil)
 	list, _ := decodeJSON(r.JSON).([]interface{})
+	if list == nil {
+		// Lettura non riuscita: non cancello l'elenco dei programmi già visti, se no la volta dopo
+		// conterebbe come "prima volta" e i programmi nuovi all'avvio non verrebbero segnalati.
+		emit("onStartup", map[string]interface{}{"items": []interface{}{}, "fresh": []string{}})
+		return
+	}
 	setMu.Lock()
 	known := map[string]bool{}
 	for _, k := range settings.KnownStartup {
@@ -159,14 +165,41 @@ func programsList() {
 }
 
 func uninstallProgram(key string) {
-	k := strings.ToUpper(key)
-	if !(strings.HasPrefix(k, "HKEY_LOCAL_MACHINE\\SOFTWARE\\") || strings.HasPrefix(k, "HKEY_CURRENT_USER\\SOFTWARE\\")) || !strings.Contains(k, "\\UNINSTALL\\") {
+	if !validUninstallKey(key) {
 		emit("onUninstallDone", map[string]interface{}{"ok": false, "msgs": []string{"Voce non valida."}})
 		return
 	}
 	var msgs []string
 	r := runPSArgs(uninstallScript, map[string]interface{}{"key": key}, 60*time.Minute, func(m string) { msgs = append(msgs, m) })
 	emit("onUninstallDone", map[string]interface{}{"ok": true, "msgs": msgs, "result": decodeJSON(r.JSON)})
+}
+
+// uninstallKeyRe: solo una voce diretta di "Programmi installati" (HKLM o HKCU, anche WOW6432Node).
+var uninstallKeyRe = regexp.MustCompile(`(?i)^HKEY_(LOCAL_MACHINE|CURRENT_USER)\\SOFTWARE\\(WOW6432Node\\)?Microsoft\\Windows\\CurrentVersion\\Uninstall\\[^\\/\x00-\x1f]+$`)
+
+// validUninstallKey: la voce arriva dalla finestra, quindi accetto solo una voce diretta di
+// "Programmi installati" (niente "." o ".." per risalire ad altre chiavi).
+func validUninstallKey(key string) bool {
+	return uninstallKeyRe.MatchString(key) && !strings.HasSuffix(key, `\.`) && !strings.HasSuffix(key, `\..`)
+}
+
+// removeOrphanProgram (3.1): toglie dall'elenco un programma che risulta già disinstallato.
+func removeOrphanProgram(key string) {
+	if !validUninstallKey(key) {
+		emit("onOrphanDone", map[string]interface{}{"ok": false, "msgs": []string{"Voce non valida."}})
+		return
+	}
+	var msgs []string
+	bdir := filepath.Join(appDir, "backup")
+	r := runPSArgs(removeOrphanScript, map[string]interface{}{"key": key, "dir": bdir}, 2*time.Minute, func(m string) { msgs = append(msgs, m) })
+	ok := false
+	if m, _ := decodeJSON(r.JSON).(map[string]interface{}); m != nil {
+		ok, _ = m["ok"].(bool)
+	}
+	if len(msgs) == 0 {
+		msgs = []string{"Non sono riuscito a toglierlo dall'elenco."}
+	}
+	emit("onOrphanDone", map[string]interface{}{"ok": ok, "msgs": msgs})
 }
 
 var leftoverBlock = map[string]bool{
@@ -583,7 +616,7 @@ func shredFiles(paths []string) {
 	ok, ko := 0, 0
 	drives := map[string]bool{}
 	for i, p := range paths {
-		emit("onShredProgress", fmt.Sprintf("Distruggo %d di %d: %s", i+1, len(paths), filepath.Base(p)))
+		emit("onShredProgress", fmt.Sprintf(trGo("Distruggo %d di %d: %s"), i+1, len(paths), filepath.Base(p)))
 		if shredFile(p) {
 			ok++
 			drives[strings.ToUpper(filepath.VolumeName(p))] = true
@@ -604,9 +637,9 @@ func shredFiles(paths []string) {
 		emit("onShredProgress", "Chiedo al disco di cancellare davvero lo spazio liberato (TRIM)…")
 		runPSArgs(retrimScript, letters, 10*time.Minute, nil)
 	}
-	msg := fmt.Sprintf("Distrutti %d file: recuperarli ora è quasi impossibile (sugli SSD Windows fa anche la pulizia TRIM).", ok)
+	msg := fmt.Sprintf(trGo("Distrutti %d file: recuperarli ora è quasi impossibile (sugli SSD Windows fa anche la pulizia TRIM)."), ok)
 	if ko > 0 {
-		msg += fmt.Sprintf(" %d non distrutti: sono di sistema, aperti in un altro programma o spariti.", ko)
+		msg += fmt.Sprintf(trGo(" %d non distrutti: sono di sistema, aperti in un altro programma o spariti."), ko)
 	}
 	emit("onShredDone", map[string]interface{}{"ok": ok > 0 && ko == 0, "msg": msg})
 }

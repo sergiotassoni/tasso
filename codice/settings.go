@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime/debug"
 	"strings"
 	"sync"
 	"syscall"
@@ -58,6 +59,8 @@ type Settings struct {
 	DiscordLastMsg string `json:"discordLastMsg,omitempty"`
 	// Modalità da rimettere quando si chiude il gioco (modalità gioco automatica).
 	ModeBeforeGame string `json:"modeBeforeGame,omitempty"`
+	// Modalità messa da Tasso all'apertura del gioco (3.1: salvata, così vale anche dopo uno spegnimento in partita).
+	GameTarget string `json:"gameTarget,omitempty"`
 	// Modalità da rimettere a fine partita dopo "Ottimizza prima di giocare".
 	ModeBeforeBoost string `json:"modeBeforeBoost,omitempty"`
 	// Pannellino in gioco: si mostra da solo quando parte un gioco; posizione "dx" o "sx".
@@ -66,6 +69,8 @@ type Settings struct {
 	AcVK       uint32 `json:"acVK,omitempty"`
 	AcMods     uint32 `json:"acMods,omitempty"`
 	OverlayPos string `json:"overlayPos,omitempty"`
+	// 3.1: cosa mostra il pannellino (vuoto = tutto). Valori: cpu, cputemp, gpu, gputemp, ram, ora.
+	OverlayItems []string `json:"overlayItems,omitempty"`
 	// Snapshot: le impostazioni di Windows com'erano prima che Tasso le cambiasse la prima volta.
 	Snapshot    json.RawMessage `json:"snapshot,omitempty"`
 	SnapshotAt  string          `json:"snapshotAt,omitempty"`
@@ -73,6 +78,12 @@ type Settings struct {
 	// "Regola con Tasso": regolazioni per gioco e modalità del PC da mettere quando parte quel gioco.
 	GameTunes map[string]*GameTune `json:"gameTunes,omitempty"`
 	GameModes map[string]string    `json:"gameModes,omitempty"`
+	// 3.1: giochi aggiunti a mano e giochi nascosti dalla libreria.
+	CustomGames []CustomGame `json:"customGames,omitempty"`
+	HiddenGames []string     `json:"hiddenGames,omitempty"`
+	ShowAll     bool         `json:"showAll,omitempty"` // 3.1: in Gaming mostra anche le funzioni nascoste
+	// 3.1: "Aggiorna Tasso da solo" è acceso di base; true = l'utente l'ha spento.
+	NoAutoUpdate bool `json:"noAutoUpdate,omitempty"`
 	// Comandi gaming accesi da Tasso (per poterli rimettere com'erano) e riavvio richiesto per la GPU.
 	GamingCmds  map[string]bool      `json:"gamingCmds,omitempty"`
 	PingRegion  string               `json:"pingRegion,omitempty"`
@@ -81,6 +92,12 @@ type Settings struct {
 	HagsReboot  string               `json:"hagsReboot,omitempty"`
 	GameProfile *gameProfile         `json:"gameProfile,omitempty"`
 	GamePower   map[string]gamePower `json:"gamePower,omitempty"`
+	// 3.1 "Tasso si ricorda": cosa hai scelto l'ultima volta nella procedura a passi di ogni gioco.
+	GameMemo map[string]*GameMemo `json:"gameMemo,omitempty"`
+	// 3.1 "Non chiudere mai anche": programmi che il Boost lascia sempre aperti (nomi .exe in minuscolo).
+	BoostKeep []string `json:"boostKeep,omitempty"`
+	// 3.1: quando hai aperto ogni gioco da Tasso (secondi), per "Giocati di recente".
+	GamePlayed map[string]int64 `json:"gamePlayed,omitempty"`
 	// Avvisi: cosa l'utente vuole che Tasso gli segnali (temperature, disco pieno, avvio, memoria, salute dischi).
 	Alerts map[string]bool `json:"alerts,omitempty"`
 	// Scrivici (3.0): la domanda dopo la prima pulizia si fa una volta sola; massimo 5 messaggi al giorno.
@@ -96,6 +113,8 @@ type Settings struct {
 	StatsRuns   int    `json:"statsRuns,omitempty"`
 	StatsRunDay string `json:"statsRunDay,omitempty"`
 	StatsErr    int    `json:"statsErr,omitempty"`
+	// Rileva i problemi (3.1): problemi che la persona ha scelto di ignorare (id del passaggio Risolvi).
+	DetIgnored []string `json:"detIgnored,omitempty"`
 }
 
 // setPaused spegne o riaccende Tasso: da spento non parte con Windows, non fa pulizie
@@ -110,6 +129,7 @@ func setPaused(on bool) string {
 	if on {
 		autoClickStop()
 		acDisarm()
+		ovPost() // in pausa niente Ctrl+Maiusc+F12
 		_, _ = runHidden("schtasks.exe", "/Delete", "/TN", taskAvvio, "/F")
 		_, _ = runHidden("schtasks.exe", "/Delete", "/TN", taskWeek, "/F")
 		_, _ = runHidden("schtasks.exe", "/Delete", "/TN", taskProfilo, "/F")
@@ -121,6 +141,7 @@ func setPaused(on bool) string {
 		return "ok"
 	}
 	updateSettings(func(s *Settings) { s.Paused = false })
+	ovPost()
 	if pa {
 		setAutostart(true)
 	}
@@ -131,7 +152,7 @@ func setPaused(on bool) string {
 	return "ok"
 }
 
-var validThemes = map[string]bool{"tasso": true, "aurora": true, "lava": true, "neon": true, "carbonio": true, "belva": true, "ghiaccio": true, "sabbia": true, "ufficio": true, "carta": true, "notte": true, "salvia": true, "lavanda": true, "ardesia": true}
+var validThemes = map[string]bool{"tasso": true, "aurora": true, "lava": true, "neon": true, "carbonio": true, "belva": true, "ghiaccio": true, "sabbia": true, "ufficio": true, "carta": true, "notte": true, "salvia": true, "lavanda": true, "ardesia": true, "perla": true}
 
 // Avvisi: cosa l'utente vuole che Tasso gli segnali. Se non impostato, sono tutti attivi.
 var alertKeys = []string{"temp", "disk", "startup", "ram", "health"}
@@ -163,6 +184,33 @@ func setAlert(key string, on bool) string {
 	return "ok"
 }
 
+// setDetIgnored mette o toglie un problema dalla lista "Problemi ignorati" di Rileva i problemi.
+func setDetIgnored(id string, on bool) string {
+	known := false
+	for _, st := range allSteps {
+		if st.ID == id {
+			known = true
+			break
+		}
+	}
+	if !known {
+		return "problema sconosciuto"
+	}
+	updateSettings(func(s *Settings) {
+		out := make([]string, 0, len(s.DetIgnored)+1)
+		for _, x := range s.DetIgnored {
+			if x != id {
+				out = append(out, x)
+			}
+		}
+		if on {
+			out = append(out, id)
+		}
+		s.DetIgnored = out
+	})
+	return "ok"
+}
+
 func setTheme(id, look string) string {
 	if !validThemes[id] {
 		return "tema sconosciuto"
@@ -190,6 +238,13 @@ func setLook(p string) string {
 		s.Profile = p
 	})
 	return "ok"
+}
+
+// officeMode: Tasso è in modalità Ufficio (niente giochi, Boost, pannellino né autoclick).
+func officeMode() bool {
+	setMu.Lock()
+	defer setMu.Unlock()
+	return settings.Profile == "ufficio"
 }
 
 func setSmartAlerts(on bool) string {
@@ -309,6 +364,7 @@ func getSettings() map[string]interface{} {
 	_ = json.Unmarshal(b, &m)
 	// Il token del bot (anche se protetto) non va mai all'interfaccia: basta sapere se c'è.
 	m["discordBotSaved"] = settings.DiscordBot != ""
+	m["autoGameAll"] = autoGameForAll(&settings) // i giochi senza una loro potenza vanno in Gaming
 	delete(m, "discordBot")
 	delete(m, "vault")
 	return m
@@ -335,6 +391,7 @@ func setProfile(p string) string {
 		s.Onboarded = true
 		s.Profile = p
 	})
+	lookChanged(p == "ufficio")
 	switch p {
 	case "gioco":
 		go setMode("gaming")
@@ -399,8 +456,29 @@ const (
 // come amministratore un file che chiunque può sostituire.
 // Accanto alla copia c'è VERSIONE: non rimetto mai una versione vecchia sopra una più nuova
 // (es. dopo un aggiornamento fatto dalla copia in Programmi).
+// taskExeOK: in questa apertura di Tasso la copia in Programmi è già a posto (non la rileggo:
+// sono due file da ~40 MB ogni volta).
+var (
+	taskExeMu sync.Mutex
+	taskExeOK string
+)
+
 func taskExe() string {
-	pf := os.Getenv("ProgramFiles")
+	taskExeMu.Lock()
+	defer taskExeMu.Unlock()
+	if taskExeOK != "" && fileExists(taskExeOK) {
+		return taskExeOK
+	}
+	r := taskExeCheck()
+	if r != "" {
+		taskExeOK = r
+	}
+	debug.FreeOSMemory() // restituisco subito a Windows la memoria usata per confrontare i file
+	return r
+}
+
+func taskExeCheck() string {
+	pf := programFilesDir()
 	if pf == "" || exePath == "" {
 		return ""
 	}
@@ -415,7 +493,7 @@ func taskExe() string {
 			return dst
 		}
 	}
-	src, err := os.ReadFile(exePath)
+	src, err := readSelfExe()
 	if err != nil {
 		return existingOr(dst)
 	}

@@ -37,10 +37,11 @@ var (
 // Solo se non si può (caso raro) uso la cartella di Tasso in AppData, come prima.
 func scriptDir() string {
 	scriptDirOnce.Do(func() {
-		if pf := os.Getenv("ProgramFiles"); pf != "" {
+		if pf := programFilesDir(); pf != "" {
 			d := filepath.Join(pf, "Tasso", "lavoro")
 			if os.MkdirAll(d, 0o755) == nil {
 				scriptDirPath = d
+				go pulisciScriptVecchi(d)
 				return
 			}
 		}
@@ -48,6 +49,18 @@ func scriptDir() string {
 		_ = os.MkdirAll(scriptDirPath, 0o755)
 	})
 	return scriptDirPath
+}
+
+// pulisciScriptVecchi: se Tasso è stato chiuso mentre uno script girava, il .ps1 resta in lavoro.
+// Tolgo solo i nostri (tasso_*.ps1) più vecchi di un giorno: nessuno script dura così tanto.
+func pulisciScriptVecchi(d string) {
+	defer guard("pulisciScriptVecchi")
+	l, _ := filepath.Glob(filepath.Join(d, "tasso_*.ps1"))
+	for _, f := range l {
+		if fi, err := os.Stat(f); err == nil && !fi.IsDir() && time.Since(fi.ModTime()) > 24*time.Hour {
+			_ = os.Remove(f)
+		}
+	}
 }
 
 // writeScript salva lo script come normale file .ps1 (UTF-8 con BOM, così PowerShell 5.1 legge bene le lettere accentate).
@@ -153,6 +166,24 @@ var (
 	running   bool
 	cancelReq atomic.Bool
 )
+
+// claimRun prende il "posto" della pulizia per un lavoro lungo che cambia Windows (Rimetti com'era,
+// Torna indietro): così una pulizia programmata non può partire nel mezzo. false = c'è già qualcosa.
+func claimRun() bool {
+	runMu.Lock()
+	defer runMu.Unlock()
+	if running || updating.Load() {
+		return false
+	}
+	running = true
+	return true
+}
+
+func releaseRun() {
+	runMu.Lock()
+	running = false
+	runMu.Unlock()
+}
 
 func isRunning() bool {
 	runMu.Lock()
@@ -263,7 +294,7 @@ func startSteps(ids []string, level int, shutdownAfter bool) string {
 	running = true
 	runMu.Unlock()
 	runAuto.Store(takeAutoRun(level))
-	runSingle.Store(len(sel) == 1 && !shutdownAfter)
+	runSingle.Store((len(sel) == 1 || level == 0) && !shutdownAfter) // Risolvi (livello 0): si può chiedere/aprire come per un passaggio solo
 	cancelReq.Store(false)
 	newRunCtx()
 
@@ -280,6 +311,12 @@ func startSteps(ids []string, level int, shutdownAfter bool) string {
 			}
 		}()
 		defer func() {
+			for _, x := range sel {
+				if x.ID == "wipe_free" {
+					cleanWipeTemp() // anche se interrotto o scaduto: i file di riempimento non devono restare
+					break
+				}
+			}
 			endRunCtx()
 			runAuto.Store(false)
 			runSingle.Store(false)
@@ -295,7 +332,7 @@ func startSteps(ids []string, level int, shutdownAfter bool) string {
 			}
 		}()
 		logLine := func(s string) {
-			line := time.Now().Format("15:04:05") + "  " + s
+			line := time.Now().Format("15:04:05") + "  " + trGo(s) // il file di registro nella lingua di Tasso
 			if lf != nil {
 				fmt.Fprintln(lf, line)
 			}
@@ -307,7 +344,7 @@ func startSteps(ids []string, level int, shutdownAfter bool) string {
 			list = append(list, map[string]interface{}{"id": s.ID, "name": s.Name, "minutes": s.Minutes})
 		}
 		emit("onRunStart", map[string]interface{}{"level": level, "steps": list})
-		logLine(fmt.Sprintf("Tasso %s - inizio (%d passaggi)", appVersion, len(sel)))
+		logLine(fmt.Sprintf(trGo("Tasso %s - inizio (%d passaggi)"), appVersion, len(sel)))
 
 		snapOK := true
 		for _, s := range sel {
@@ -356,7 +393,7 @@ func startSteps(ids []string, level int, shutdownAfter bool) string {
 			emit("onStepDone", map[string]interface{}{"index": i, "freed": r.Freed})
 		}
 		dur := time.Since(start)
-		logLine(fmt.Sprintf("Fine: liberati %s in %s", fmtBytes(total), dur.Round(time.Second)))
+		logLine(fmt.Sprintf(trGo("Fine: liberati %s in %s"), fmtBytes(total), dur.Round(time.Second)))
 		if level > 0 && done == len(sel) {
 			updateSettings(func(st *Settings) {
 				st.LastClean = &LastClean{Date: time.Now().Format("2006-01-02"), Level: level, Freed: total}
@@ -366,14 +403,14 @@ func startSteps(ids []string, level int, shutdownAfter bool) string {
 		if benchOn && !cancelReq.Load() {
 			logLine("Voto al PC dopo la pulizia…")
 			after := runBench("dopo")
-			logLine(fmt.Sprintf("Leggerezza di Windows: %d → %d su 100. Velocità dei componenti: %d → %d su 100.", before.Light, after.Light, score100(before.Score), score100(after.Score)))
+			logLine(fmt.Sprintf(trGo("Leggerezza di Windows: %d → %d su 100. Velocità dei componenti: %d → %d su 100."), before.Light, after.Light, score100(before.Score), score100(after.Score)))
 			emit("onBench", map[string]interface{}{"result": after, "before": before, "history": benchHistory()})
 		}
 		cancelled := cancelReq.Load()
 		shutdown := false
 		if shutdownAfter && !cancelled {
 			logLine("Spegnimento automatico: il PC si spegne tra 2 minuti (puoi annullarlo da Tasso).")
-			if _, err := runHidden("shutdown.exe", "/s", "/t", "120", "/c", "Tasso ha finito la manutenzione: il PC si spegne tra 2 minuti."); err == nil {
+			if _, err := runHidden("shutdown.exe", "/s", "/t", "120", "/c", trGo("Tasso ha finito la manutenzione: il PC si spegne tra 2 minuti.")); err == nil {
 				shutdown = true
 			}
 		}
@@ -421,22 +458,32 @@ func hardwareInfo() {
 	if r.JSON != "" {
 		_ = json.Unmarshal([]byte(r.JSON), &data)
 	}
+	// Risoluzione e Hz dello schermo principale: Windows li dà giusti per ogni schermo, mentre WMI
+	// ne dà uno solo per scheda video (spesso quello sbagliato con più monitor).
+	if data != nil {
+		for _, s := range screens() {
+			if s.Primary {
+				data["screen"] = map[string]interface{}{"res": fmt.Sprintf("%dx%d", s.W, s.H), "hz": s.Hz}
+			}
+		}
+	}
 	emit("onHardware", data)
 }
 
 var modeMu sync.Mutex
 
-func setMode(id string) {
+// setMode cambia modalità e dice se ci è riuscita.
+func setMode(id string) bool {
 	script, ok := modeScripts[id]
 	if !ok {
 		emit("onModeDone", map[string]interface{}{"id": id, "ok": false, "msgs": []string{"Modalità sconosciuta"}})
-		return
+		return false
 	}
 	modeMu.Lock()
 	defer modeMu.Unlock()
 	if !ensureSnapshot() {
 		emit("onModeDone", map[string]interface{}{"id": id, "ok": false, "msgs": []string{"Non riesco a salvare com'era Windows, quindi per sicurezza non cambio niente. Riprova tra poco."}})
-		return
+		return false
 	}
 	// Le impostazioni "tue" si salvano solo se adesso il PC è in Normale (o com'era):
 	// se è già in Gaming/FPS/Film salverei quelle messe da Tasso.
@@ -447,10 +494,24 @@ func setMode(id string) {
 	if prev == "" || prev == "normale" || prev == "originale" {
 		canSave = "$TassoCanSave = $true\n"
 	}
+	// Se il Boost ha tolto l'accelerazione del mouse (solo finché gioca), Save-Prev deve salvare
+	// quella di prima, non lo 0,0,0 di adesso: se no "Normale" la spegnerebbe per sempre.
+	mousePrev := "$TassoMousePrev = ''\n"
+	bMu.Lock()
+	if m := loadBoost().Mouse; m != nil {
+		mousePrev = fmt.Sprintf("$TassoMousePrev = '%d,%d,%d'\n", m[0], m[1], m[2])
+	}
+	bMu.Unlock()
+	// Undo-FpsMouse rimette l'accelerazione solo uscendo da FPS competitivo (che l'aveva spenta).
+	fromFps := "$TassoFromFps = $false\n"
+	if prev == "fps" {
+		fromFps = "$TassoFromFps = $true\n"
+	}
 	var msgs []string
-	r := runPS(canSave+script, 2*time.Minute, func(m string) { msgs = append(msgs, m) })
+	r := runPS(canSave+mousePrev+fromFps+script, 2*time.Minute, func(m string) { msgs = append(msgs, m) })
 	if r.Err == nil {
 		updateSettings(func(s *Settings) { s.Mode = id })
 	}
 	emit("onModeDone", map[string]interface{}{"id": id, "ok": r.Err == nil, "msgs": msgs, "settings": getSettings()})
+	return r.Err == nil
 }

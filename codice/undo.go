@@ -49,7 +49,7 @@ func changesList() map[string]interface{} {
 	var items []map[string]interface{}
 	if p := profileCopy(); p.On {
 		items = append(items, map[string]interface{}{"kind": "profile", "id": "", "title": "Profilo gioco acceso",
-			"detail": "Acceso dal " + p.Since + ". Spegnendolo rimetto la modalità e i comandi gaming com'erano prima."})
+			"detail": trGo("Acceso dal " + p.Since + ". Spegnendolo rimetto la modalità e i comandi gaming com'erano prima.")}) // con la data (/) la finestra non tradurrebbe la frase
 	}
 	if hasSnap {
 		items = append(items, map[string]interface{}{"kind": "windows", "id": "", "title": "Impostazioni di Windows",
@@ -71,11 +71,11 @@ func changesList() map[string]interface{} {
 				name = name[:i]
 			}
 		}
-		was := "spento"
+		was := "Prima di Tasso era spento."
 		if orig[id] {
-			was = "acceso"
+			was = "Prima di Tasso era acceso."
 		}
-		items = append(items, map[string]interface{}{"kind": "startup", "id": id, "title": "All'avvio: " + name, "detail": "Prima di Tasso era " + was + "."})
+		items = append(items, map[string]interface{}{"kind": "startup", "id": id, "title": "All'avvio: " + name, "detail": was})
 	}
 	sort.Strings(cmds)
 	for _, id := range cmds {
@@ -105,13 +105,14 @@ func undoChange(kind, id string) {
 			msg = "Non c'è niente da rimettere."
 			break
 		}
-		if isRunning() {
+		if !claimRun() {
 			msg = "Sta girando una pulizia: aspetta che finisca, poi riprova."
 			break
 		}
 		modeMu.Lock()
 		ok := runRestoreScript(snap, nil)
 		modeMu.Unlock()
+		releaseRun()
 		if !ok {
 			msg = "Non sono riuscito a rimettere le impostazioni di Windows: le tengo salvate, riprova tra poco."
 			break
@@ -143,7 +144,9 @@ func undoChange(kind, id string) {
 	case "profile":
 		msg = profileOffNow()
 	case "tune":
-		if !gameTuneUndoQuiet(id) {
+		if gameTuneBusy(id) {
+			msg = "Il gioco è aperto: chiudilo e riprova, così le sue impostazioni tornano com'erano davvero."
+		} else if gameTuneUndoQuiet(id, false) == "" {
 			msg = "Questo gioco non era regolato."
 		}
 	case "regfolder":

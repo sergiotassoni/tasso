@@ -88,20 +88,22 @@ type ovClass struct {
 }
 
 var (
-	ovTick         int
-	ovLastSig      string
-	pGetWindowLong = user32.NewProc("GetWindowLongW")
-	ovMu           sync.Mutex
-	ovHwnd         uintptr
-	ovInGame       bool
-	ovManual       bool // mostrato a mano (tasto in Tasso o Ctrl+Maiusc+F12)
-	ovSuppress     bool // nascosto a mano durante questa partita
-	ovShown        bool
-	ovFont         uintptr
-	ovKeyBrush     uintptr
-	ovCPUTemp      float64 = -1
-	ovOnce         sync.Once
-	ovTempStart    sync.Once
+	ovTick                 int
+	ovLastSig              string
+	pGetWindowLong         = user32.NewProc("GetWindowLongW")
+	pSetWndDisplayAffinity = user32.NewProc("SetWindowDisplayAffinity")
+	ovMu                   sync.Mutex
+	ovHwnd                 uintptr
+	ovInGame               bool
+	ovManual               bool // mostrato a mano (tasto in Tasso o Ctrl+Maiusc+F12)
+	ovSuppress             bool // nascosto a mano durante questa partita
+	ovShown                bool
+	ovFont                 uintptr
+	ovKeyBrush             uintptr
+	ovCPUTemp              float64 = -1
+	ovOnce                 sync.Once
+	ovTempStart            sync.Once
+	ovHotkey               bool // Ctrl+Maiusc+F12 registrato (solo sul thread del pannellino)
 )
 
 func startOverlay() {
@@ -124,11 +126,14 @@ func overlayThread() {
 		return
 	}
 	pSetLayeredAttr.Call(h, ovKey, 245, 1|2) // COLORKEY | ALPHA
+	// Come le finestre di Tasso Traduce: il pannellino non compare nelle catture dello schermo
+	// (Windows 10 2004+), così la traduzione dello schermo non legge i suoi numeri.
+	pSetWndDisplayAffinity.Call(h, 0x11) // WDA_EXCLUDEFROMCAPTURE
 	face, _ := windows.UTF16PtrFromString("Segoe UI")
 	ovFont, _, _ = pCreateFont.Call(19, 0, 0, 0, 700, 0, 0, 0, 1, 0, 0, 3, 0, uintptr(unsafe.Pointer(face)))
 	ovKeyBrush, _, _ = pCreateBrush.Call(ovKey)
 	pSetTimer.Call(h, 1, 1000, 0)
-	pRegisterHotKey.Call(h, 1, 0x0002|0x0004|0x4000, 0x7B) // Ctrl+Maiusc+F12 (senza ripetizione)
+	// Ctrl+Maiusc+F12 si registra in ovApply solo in Gaming con il pannellino acceso (in Word è Stampa).
 	// Il tasto dell'autoclick si registra solo quando apri la pagina Giochi (acArm), così non
 	// "ruba" F6 alle altre app se l'autoclick non lo usi.
 	ovMu.Lock()
@@ -214,9 +219,29 @@ func ovWndProc(hwnd, msg, wp, lp uintptr) uintptr {
 // ovApply decide se mostrare il pannellino e dove (sempre sul thread della finestra).
 func ovApply(hwnd uintptr) {
 	setMu.Lock()
-	auto, pos := settings.OverlayOn && !settings.Paused, settings.OverlayPos
+	office := settings.Profile == "ufficio"
+	paused := settings.Paused
+	auto, pos := settings.OverlayOn && !paused && !office, settings.OverlayPos
 	setMu.Unlock()
 	ovMu.Lock()
+	manuale := ovManual
+	ovMu.Unlock()
+	// Il tasto Ctrl+Maiusc+F12 è di Tasso solo quando serve: pannellino acceso da solo o aperto a
+	// mano con "Mostra ora" (così si chiude anche dal gioco), mai in Ufficio né in pausa.
+	vuoleTasto := (auto || manuale) && !office && !paused
+	if vuoleTasto != ovHotkey {
+		if vuoleTasto {
+			r, _, _ := pRegisterHotKey.Call(hwnd, 1, 0x0002|0x0004|0x4000, 0x7B) // senza ripetizione
+			ovHotkey = r != 0
+		} else {
+			pUnregHotKey.Call(hwnd, 1)
+			ovHotkey = false
+		}
+	}
+	ovMu.Lock()
+	if office {
+		ovManual = false // in Ufficio niente pannellino, neanche chiesto a mano
+	}
 	show := ovManual || (auto && ovInGame && !ovSuppress && gameInFront())
 	ovShown = show
 	ovMu.Unlock()
@@ -225,12 +250,17 @@ func ovApply(hwnd uintptr) {
 		return
 	}
 	sw, _, _ := pGetSysMetrics.Call(0) // larghezza dello schermo principale
+	sh, _, _ := pGetSysMetrics.Call(1) // altezza
 	x := int32(sw) - ovW - 14
-	if pos == "sx" {
+	if ovLeft(pos) {
 		x = 14
 	}
-	pSetWindowPos.Call(hwnd, ^uintptr(0), uintptr(x), 8, ovW, ovH, 0x10|0x40) // NOACTIVATE|SHOWWINDOW
-	pShowWin.Call(hwnd, 4)                                                    // SW_SHOWNOACTIVATE
+	y := int32(8)
+	if ovBottom(pos) {
+		y = int32(sh) - ovH - 8
+	}
+	pSetWindowPos.Call(hwnd, ^uintptr(0), uintptr(x), uintptr(y), ovW, ovH, 0x10|0x40) // NOACTIVATE|SHOWWINDOW
+	pShowWin.Call(hwnd, 4)                                                             // SW_SHOWNOACTIVATE
 	pInvalidateRect.Call(hwnd, 0, 1)
 	ovTempStart.Do(func() { go cpuTempLoop() })
 }
@@ -254,35 +284,61 @@ func tempColor(t float64, warn, hot float64) uint32 {
 
 func ovSegments() []ovSeg {
 	ls := liveStats()
-	white := rgb(245, 245, 250)
+	white, lab := rgb(245, 245, 250), rgb(190, 160, 255)
+	on := ovItems()
 	var segs []ovSeg
-	cpu, _ := ls["cpu"].(float64)
-	segs = append(segs, ovSeg{"CPU ", rgb(190, 160, 255)}, ovSeg{fmt.Sprintf("%d%%", int(cpu+0.5)), white})
-	ovMu.Lock()
-	ct := ovCPUTemp
-	ovMu.Unlock()
-	if ct > 0 {
-		segs = append(segs, ovSeg{fmt.Sprintf(" %d°", int(ct+0.5)), tempColor(ct, 80, 90)})
-	}
-	if g, ok := ls["gpu"].(map[string]interface{}); ok && g != nil {
-		segs = append(segs, ovSeg{"    GPU ", rgb(190, 160, 255)})
-		if u, ok := g["util"].(float64); ok {
-			segs = append(segs, ovSeg{fmt.Sprintf("%d%%", int(u+0.5)), white})
-		}
-		if t, ok := g["temp"].(float64); ok {
-			segs = append(segs, ovSeg{fmt.Sprintf(" %d°", int(t+0.5)), tempColor(t, 78, 86)})
+	sep := func() {
+		if len(segs) > 0 {
+			segs = append(segs, ovSeg{"    ", white})
 		}
 	}
-	if tot, _ := ls["ramTotal"].(uint64); tot > 0 {
+	if on["cpu"] || on["cputemp"] {
+		ovMu.Lock()
+		ct := ovCPUTemp
+		ovMu.Unlock()
+		if on["cpu"] || ct > 0 {
+			sep()
+			segs = append(segs, ovSeg{"CPU ", lab})
+		}
+		if on["cpu"] {
+			cpu, _ := ls["cpu"].(float64)
+			segs = append(segs, ovSeg{fmt.Sprintf("%d%%", int(cpu+0.5)), white})
+		}
+		if on["cputemp"] && ct > 0 {
+			segs = append(segs, ovSeg{strings.Repeat(" ", b2i(on["cpu"])) + fmt.Sprintf("%d°", int(ct+0.5)), tempColor(ct, 80, 90)})
+		}
+	}
+	if g, ok := ls["gpu"].(map[string]interface{}); ok && g != nil && (on["gpu"] || on["gputemp"]) {
+		u, uok := g["util"].(float64)
+		t, tok := g["temp"].(float64)
+		if (on["gpu"] && uok) || (on["gputemp"] && tok) {
+			sep()
+			segs = append(segs, ovSeg{"GPU ", lab})
+			if on["gpu"] && uok {
+				segs = append(segs, ovSeg{fmt.Sprintf("%d%%", int(u+0.5)), white})
+			}
+			if on["gputemp"] && tok {
+				segs = append(segs, ovSeg{strings.Repeat(" ", b2i(on["gpu"])) + fmt.Sprintf("%d°", int(t+0.5)), tempColor(t, 78, 86)})
+			}
+		}
+	}
+	if tot, _ := ls["ramTotal"].(uint64); tot > 0 && on["ram"] {
 		used, _ := ls["ramUsed"].(uint64)
 		p := float64(used) * 100 / float64(tot)
 		c := white
 		if p >= 90 {
 			c = rgb(255, 196, 70)
 		}
-		segs = append(segs, ovSeg{"    RAM ", rgb(190, 160, 255)}, ovSeg{fmt.Sprintf("%d%%", int(p+0.5)), c})
+		sep()
+		segs = append(segs, ovSeg{"RAM ", lab}, ovSeg{fmt.Sprintf("%d%%", int(p+0.5)), c})
 	}
-	segs = append(segs, ovSeg{"    " + time.Now().Format("15:04"), rgb(170, 175, 190)})
+	if on["ora"] {
+		sep()
+		segs = append(segs, ovSeg{time.Now().Format("15:04"), rgb(170, 175, 190)})
+	}
+	if len(segs) == 0 {
+		segs = append(segs, ovSeg{"Tasso", lab})
+	}
 	return segs
 }
 
@@ -307,7 +363,7 @@ func ovPaintNow(hwnd uintptr) {
 		total += sz.cx
 	}
 	setMu.Lock()
-	left := settings.OverlayPos == "sx"
+	left := ovLeft(settings.OverlayPos)
 	setMu.Unlock()
 	x := cr.Right - total - 6
 	if left {
@@ -351,7 +407,7 @@ func overlayGameEnded() {
 }
 
 func setOverlay(on bool, pos string) string {
-	if pos != "sx" {
+	if pos != "sx" && pos != "sxb" && pos != "dxb" {
 		pos = "dx"
 	}
 	updateSettings(func(s *Settings) { s.OverlayOn = on; s.OverlayPos = pos })
@@ -370,41 +426,169 @@ func overlayShow(show bool) string {
 	return "ok"
 }
 
-// cpuTempLoop legge la temperatura del processore ogni 20 secondi, solo mentre il pannellino è visibile.
-// Windows non la dà sempre: se c'è LibreHardwareMonitor aperto uso quella (più precisa), altrimenti
-// il sensore ACPI; se nessuno dei due risponde, il pannellino mostra solo la percentuale.
+// cpuTempLoop legge la temperatura del processore: ogni minuto mentre il pannellino è visibile,
+// ogni 15 secondi mentre la pagina Hardware è davanti (Tasso in primo piano, mai durante un gioco).
+// Windows non la dà sempre: se c'è LibreHardwareMonitor aperto uso quella (l'unica che è davvero il
+// processore); altrimenti il sensore ACPI, che di solito è la scheda madre: la pagina Hardware la mostra
+// come "Sensore scheda madre", il pannellino no. Dopo 3 letture vuote (o ACPI sempre uguale) smetto per
+// tutta la sessione: riprovo solo se si apre LibreHardwareMonitor (controllo i processi, senza PowerShell).
 func cpuTempLoop() {
+	var last, lhmCheck time.Time
+	var acpiLast float64
+	acpiSame, empty := 0, 0
+	stopped := false
+	lhmWas := false
+	src := ""
 	for {
 		ovMu.Lock()
 		shown := ovShown
+		watch := time.Since(hwWatchAt) < 30*time.Second && !ovInGame
 		ovMu.Unlock()
-		if shown {
+		if stopped || src == "A" {
+			// niente letture inutili: controllo solo (ogni 10 secondi) se è comparso LibreHardwareMonitor
+			if time.Since(lhmCheck) >= 10*time.Second {
+				lhmCheck = time.Now()
+				lhm := exeRunning([]string{"LibreHardwareMonitor.exe"})
+				if lhm && !lhmWas {
+					stopped, empty, acpiSame, acpiLast, src = false, 0, 0, 0, ""
+					last = time.Time{}
+				}
+				lhmWas = lhm
+			}
+			if stopped {
+				time.Sleep(2 * time.Second)
+				continue
+			}
+		}
+		if watch && !shown && time.Since(last) >= 15*time.Second {
+			bMu.Lock()
+			partita := bGame != ""
+			bMu.Unlock()
+			if partita || runningGame() != "" {
+				watch = false // un gioco è aperto: niente PowerShell per la pagina Hardware
+			}
+		}
+		if watch && wv != nil {
+			if fg, _, _ := pGetFgWindow.Call(); fg != uintptr(wv.Window()) {
+				watch = false // Tasso non è in primo piano: nessuno guarda la pagina Hardware
+			}
+		}
+		if shown && !watch && (!ovItems()["cputemp"] || src == "A") {
+			// il pannellino non mostra la temperatura (o c'è solo il sensore della scheda madre,
+			// che lì non mostro come CPU): niente PowerShell
+			time.Sleep(2 * time.Second)
+			continue
+		}
+		// Nel gioco ogni minuto (lanciare PowerShell più spesso darebbe piccoli scatti);
+		// sulla pagina Hardware ogni 15 secondi, così vedi la temperatura dal vivo.
+		every := 60 * time.Second
+		if watch {
+			every = 15 * time.Second // la pagina Hardware è davanti: lettura fresca anche col pannellino acceso
+		}
+		if (shown || watch) && time.Since(last) >= every {
+			last = time.Now()
 			r := runPS(cpuTempScript, 30*time.Second, nil)
 			v := -1.0
-			if f, err := strconv.ParseFloat(strings.TrimSpace(r.JSON), 64); err == nil && f > 15 && f < 115 {
+			raw := strings.TrimSpace(r.JSON)
+			s := ""
+			if strings.HasPrefix(raw, "A") || strings.HasPrefix(raw, "L") {
+				s = raw[:1]
+			}
+			raw = strings.TrimLeft(raw, "AL")
+			if f, err := strconv.ParseFloat(raw, 64); err == nil && f > 15 && f < 115 {
 				v = f
 			}
+			// il sensore ACPI su molti PC è la scheda madre e dà sempre lo stesso numero:
+			// se resta identico per 3 letture di fila non è un sensore vero, non lo mostro
+			if s == "A" && v > 0 {
+				if v == acpiLast {
+					acpiSame++
+				} else {
+					acpiLast, acpiSame = v, 1
+				}
+				if acpiSame >= 3 {
+					v = -1
+				}
+			} else {
+				acpiLast, acpiSame = 0, 0
+			}
+			if v > 0 {
+				empty = 0
+				src = s
+			} else {
+				empty++
+				src = ""
+				if empty >= 3 || acpiSame >= 3 {
+					stopped = true // 3 letture vuote o ferme: per questa sessione basta PowerShell
+					lhmWas = exeRunning([]string{"LibreHardwareMonitor.exe"})
+					lhmCheck = time.Now()
+				}
+			}
 			ovMu.Lock()
-			ovCPUTemp = v
+			ovCPUTemp = -1
+			ovCPUTempSrc = s
+			if s == "L" {
+				ovCPUTemp = v // solo LibreHardwareMonitor è davvero il processore
+			}
+			hwBoardTemp = -1
+			if s == "A" {
+				hwBoardTemp = v
+			}
+			ovCPUTempAt = time.Now()
 			ovMu.Unlock()
 		}
-		time.Sleep(60 * time.Second) // ogni minuto: lanciare PowerShell più spesso darebbe piccoli scatti nel gioco
+		time.Sleep(2 * time.Second)
 	}
+}
+
+// hwWatchAt: l'ultima volta che la pagina Hardware era aperta (per leggere la temperatura del processore).
+var hwWatchAt time.Time
+
+// ovCPUTempAt: quando è stata letta ovCPUTemp (una lettura vecchia non si mostra come attuale).
+var ovCPUTempAt time.Time
+
+// ovCPUTempSrc: da dove viene l'ultima lettura ("L" LibreHardwareMonitor, "A" sensore ACPI, "" nessuna).
+// hwBoardTemp: la temperatura del sensore ACPI (di solito la scheda madre, non il processore).
+var (
+	ovCPUTempSrc string
+	hwBoardTemp  float64 = -1
+)
+
+// hwWatch: la pagina Hardware è aperta, quindi leggo anche la temperatura del processore.
+// cpuTemp c'è solo se viene da LibreHardwareMonitor; il sensore ACPI arriva come boardTemp.
+func hwWatch() map[string]interface{} {
+	ovMu.Lock()
+	hwWatchAt = time.Now()
+	t, b, src := ovCPUTemp, hwBoardTemp, ovCPUTempSrc
+	if time.Since(ovCPUTempAt) > 25*time.Second {
+		t, b, src = -1, -1, ""
+	}
+	ovMu.Unlock()
+	ovTempStart.Do(func() { go cpuTempLoop() })
+	out := map[string]interface{}{}
+	if t > 0 && src == "L" {
+		out["cpuTemp"] = t
+		out["src"] = "L"
+	} else if b > 0 && src == "A" {
+		out["boardTemp"] = b
+		out["src"] = "A"
+	}
+	return out
 }
 
 const cpuTempScript = `
 $t = $null
 try {
   $s = Get-CimInstance -Namespace root/LibreHardwareMonitor -ClassName Sensor -ErrorAction Stop | Where-Object { $_.SensorType -eq 'Temperature' -and ($_.Name -match 'CPU Package|Core \(Tctl|Tctl|Tdie|CPU Total') } | Select-Object -First 1
-  if ($s) { $t = [double]$s.Value }
+  if ($s) { $t = [double]$s.Value; $src = 'L' }
 } catch {}
 if (-not $t) {
   try {
     $z = Get-CimInstance -Namespace root/wmi -ClassName MSAcpi_ThermalZoneTemperature -ErrorAction Stop | Sort-Object -Property CurrentTemperature -Descending | Select-Object -First 1
-    if ($z) { $c = ([double]$z.CurrentTemperature / 10) - 273.15; if ($c -gt 28 -or $c -lt 27) { $t = $c } }
+    if ($z) { $c = ([double]$z.CurrentTemperature / 10) - 273.15; if ($c -gt 28 -or $c -lt 27) { $t = $c; $src = 'A' } }
   } catch {}
 }
-if ($t) { [Console]::Out.WriteLine('JSON ' + ([math]::Round($t, 1)).ToString([Globalization.CultureInfo]::InvariantCulture)) }
+if ($t) { [Console]::Out.WriteLine('JSON ' + $src + ([math]::Round($t, 1)).ToString([Globalization.CultureInfo]::InvariantCulture)) }
 `
 
 // acRegister registra il tasto scelto per l'autoclick (di base F6). Va chiamata sul thread del pannellino.
@@ -422,7 +606,7 @@ func acRegister(hwnd uintptr) bool {
 // acArm registra il tasto dell'autoclick (pagina Giochi aperta). Restituisce false se è già usato da altri.
 func acArm() bool {
 	setMu.Lock()
-	paused := settings.Paused
+	paused := settings.Paused || settings.Profile == "ufficio" // in Ufficio F6 resta alle altre app
 	setMu.Unlock()
 	ovMu.Lock()
 	h := ovHwnd
@@ -498,4 +682,11 @@ func ovSig() string {
 		b.WriteString(s.text)
 	}
 	return b.String()
+}
+
+func b2i(b bool) int {
+	if b {
+		return 1
+	}
+	return 0
 }

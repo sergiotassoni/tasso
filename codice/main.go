@@ -8,18 +8,22 @@ import (
 	"os"
 	"path/filepath"
 	"runtime/debug"
+	"strconv"
 	"strings"
 	"time"
 	"unsafe"
 
 	webview2 "github.com/jchv/go-webview2"
 	"golang.org/x/sys/windows"
+	"golang.org/x/sys/windows/registry"
+
+	"tasso/traduce"
 )
 
 //go:embed ui/index.html
 var indexHTML string
 
-const appVersion = "3.0"
+const appVersion = "3.1"
 
 var (
 	wv       webview2.WebView
@@ -83,11 +87,13 @@ func main() {
 	defer windows.CloseHandle(h)
 
 	exePath, _ = os.Executable()
+	lockSelfExe()
 	appDir = filepath.Join(os.Getenv("LOCALAPPDATA"), "Tasso")
 	_ = os.MkdirAll(filepath.Join(appDir, "logs"), 0o755)
 	startCrashLog()
 	webview2.PanicHook = logPanic
 	loadSettings()
+	go officeGuardia()
 
 	autoLevel := 0
 	minimized := false
@@ -144,6 +150,21 @@ func main() {
 	defer w.Destroy()
 
 	bindAll(w)
+	// Tasso Traduce (sezione Traduci): collegamenti prima di caricare la pagina; il resto parte
+	// in sottofondo e non legge lo schermo finché non accendi la traduzione.
+	traduce.Ospite.ApriComeUtente = openUser
+	traduce.Ospite.CartellaScript = scriptDir
+	traduce.InIngleseTasso = isEN
+	traduce.InUfficio.Store(officeMode())
+	traduce.TraduciTasso = trGo
+	traduce.Prepara(w, filepath.Join(appDir, "WebView2"))
+	if !scheduledRun.Load() {
+		go func() {
+			defer guard("traduce")
+			traduce.Avvia()
+		}()
+	}
+	defer traduce.Chiudi()
 	startLiveMonitor()
 	startGameWatcher()
 	startOverlay()
@@ -153,12 +174,8 @@ func main() {
 	// Resto di un "Cancella lo spazio libero" interrotto (per es. PC spento a metà): può occupare tanti GB.
 	go func() {
 		defer guard("main.go:153")
-		if sd := os.Getenv("SystemDrive"); sd != "" {
-			p := filepath.Join(sd+`\`, "EFSTMPWP")
-			if fi, err := os.Lstat(p); err == nil && fi.IsDir() && fi.Mode()&os.ModeSymlink == 0 && fi.Mode()&os.ModeIrregular == 0 {
-				_ = os.RemoveAll(p)
-			}
-		}
+		cleanWipeTemp()
+		fixRestoreFreq()
 	}()
 	if profileIsOn() {
 		go func() {
@@ -267,6 +284,19 @@ func emit(name string, payload interface{}) {
 	wv.Dispatch(func() { wv.Eval(js) })
 }
 
+// emitRaw: come emit ma senza traduzione (nomi di giochi e programmi, password del Wi-Fi: non vanno tradotti).
+func emitRaw(name string, payload interface{}) {
+	if wv == nil {
+		return
+	}
+	b, err := json.Marshal(payload)
+	if err != nil {
+		return
+	}
+	js := "window.tasso && window.tasso." + name + " && window.tasso." + name + "(" + string(b) + ");"
+	wv.Dispatch(func() { wv.Eval(js) })
+}
+
 func bringToFront() bool {
 	// Cerco la finestra di Tasso per classe ("webview") e titolo, così non confondo
 	// la finestra di Esplora file della cartella "Tasso".
@@ -309,10 +339,31 @@ func openPath(p string, args string) bool {
 func bindAll(w webview2.WebView) {
 	_ = w.Bind("goGetSettings", func() map[string]interface{} { return getSettings() })
 	_ = w.Bind("goSetProfile", func(id, p string) string { return bgCall("sched", id, func() string { return setProfile(p) }) })
-	_ = w.Bind("goSetLook", func(p string) string { return setLook(p) })
+	_ = w.Bind("goSetLook", func(p string) string {
+		r := setLook(p)
+		if r == "ok" {
+			lookChanged(p == "ufficio")
+		}
+		return r
+	})
+	_ = w.Bind("goAutoClickDisarm", func(stop bool) string {
+		// Uscendo dalla pagina Giochi (stop=false) libero il tasto solo se l'autoclick è fermo,
+		// così con l'autoclick in funzione lo stesso tasto lo ferma ancora.
+		acMu.Lock()
+		running := acRunning
+		acMu.Unlock()
+		if stop {
+			autoClickStop()
+		} else if running {
+			return "running"
+		}
+		acDisarm()
+		return "ok"
+	})
 	_ = w.Bind("goAnalyze", func() string { go analyze(); return "ok" })
 	_ = w.Bind("goHardware", func() string { go hardwareInfo(); return "ok" })
 	_ = w.Bind("goLive", func() map[string]interface{} { return liveStats() })
+	_ = w.Bind("goHwWatch", func() map[string]interface{} { return hwWatch() })
 	_ = w.Bind("goStartLevel", func(level int, off bool) string { return startLevel(level, off) })
 	_ = w.Bind("goStartSteps", func(ids []string, off bool) string { return startSteps(ids, 0, off) })
 	_ = w.Bind("goCancelShutdown", func() string { return cancelShutdown() })
@@ -322,6 +373,20 @@ func bindAll(w webview2.WebView) {
 	_ = w.Bind("goSetSmartAlerts", func(on bool) string { return setSmartAlerts(on) })
 	_ = w.Bind("goSetPaused", func(id string, on bool) string { return bgCall("sched", id, func() string { return setPaused(on) }) })
 	_ = w.Bind("goRestore", func(pause bool) string { return restoreAndMaybePause(pause) })
+	_ = w.Bind("goTogliTassoInfo", func() map[string]interface{} { return togliTassoInfo() })
+	_ = w.Bind("goTogliTasso", func(rimetti bool) string {
+		return async("uninstall-tasso", func() {
+			err := togliTasso(rimetti, func(i int, t string) { emit("onTogliTasso", map[string]interface{}{"step": i, "text": t}) })
+			emit("onTogliTasso", map[string]interface{}{"done": err == "", "error": err})
+			if err == "" {
+				time.Sleep(10 * time.Second)
+				wv.Dispatch(func() { wv.Terminate() })
+				// se la finestra non si chiude, il comando che cancella aspetterebbe invano: esco comunque
+				time.Sleep(20 * time.Second)
+				os.Exit(0)
+			}
+		})
+	})
 	_ = w.Bind("goQuit", func() string {
 		go func() {
 			defer guard("main.go:320")
@@ -336,6 +401,7 @@ func bindAll(w webview2.WebView) {
 	})
 	_ = w.Bind("goPrograms", func() string { return async("programs", programsList) })
 	_ = w.Bind("goUninstall", func(key string) string { return async("uninstall", func() { uninstallProgram(key) }) })
+	_ = w.Bind("goRemoveOrphan", func(key string) string { return async("uninstall", func() { removeOrphanProgram(key) }) })
 	_ = w.Bind("goRemoveLeftovers", func(paths []string, keys []string) string {
 		return async("leftovers", func() { removeLeftovers(paths, keys) })
 	})
@@ -365,19 +431,20 @@ func bindAll(w webview2.WebView) {
 		return bgCall("sched", id, func() string { return setWeeklyPlan(day, hour, level, every) })
 	})
 	_ = w.Bind("goOpenLogs", func() string { openPath(filepath.Join(appDir, "logs"), ""); return "ok" })
+	_ = w.Bind("goOfficeStati", func() map[string]bool { return officeStati() })
 	_ = w.Bind("goOpenURL", func(u string) string {
 		if strings.HasPrefix(u, "https://") {
 			openURL(u)
 		}
 		return "ok"
 	})
-	_ = w.Bind("goBiosSearch", func(board string) string {
-		openURL("https://www.google.com/search?q=" + urlQuery(board+" BIOS download ufficiale"))
-		return "ok"
+	_ = w.Bind("goBiosSearch", func(boardMaker, boardModel, pcMaker, pcModel string, laptop bool) string {
+		return biosPage(boardMaker, boardModel, pcMaker, pcModel, laptop)
 	})
 	_ = w.Bind("goGpuPanel", func(vendor string) string { return openGpuPanel(vendor) })
 	_ = w.Bind("goHealth", func() string { return async("health", healthCheck) })
 	_ = w.Bind("goDetect", func() string { return async("detect", detectProblems) })
+	_ = w.Bind("goDetIgnore", func(id string, on bool) string { return setDetIgnored(id, on) })
 	_ = w.Bind("goSpeedTest", func() string { return async("speed", speedTest) })
 	_ = w.Bind("goUpdatesList", func() string { return async("updates", updatesList) })
 	_ = w.Bind("goUpdatesApply", func(ids []string) string { return async("updates", func() { updatesApply(ids) }) })
@@ -395,11 +462,28 @@ func bindAll(w webview2.WebView) {
 	_ = w.Bind("goDiscordEvery", func(h int) string { return setDiscordEvery(h) })
 	_ = w.Bind("goDiscordBot", func(token string, on bool) string { return async("discordbot", func() { setDiscordBot(token, on) }) })
 	_ = w.Bind("goDiscordBotState", func() map[string]interface{} { return getBotState() })
-	_ = w.Bind("goSetAutoGame", func(on bool) string { return setAutoGame(on) })
 	_ = w.Bind("goOverlaySet", func(on bool, pos string) string { return setOverlay(on, pos) })
 	_ = w.Bind("goOverlayShow", func(show bool) string { return overlayShow(show) })
-	_ = w.Bind("goLibrary", func() string { return async("library", scanLibrary) })
+	_ = w.Bind("goOverlayItems", func(items []string) string { return setOverlayItems(items) })
+	_ = w.Bind("goLibrary", func() string {
+		if updating.Load() {
+			return "busy"
+		}
+		rescanLibrary() // anche mentre cerca le copertine: la ricerca riparte e la libreria arriva sempre
+		return "ok"
+	})
 	_ = w.Bind("goLaunchGame", func(id string) string { return launchGame(id) })
+	// 3.1: traduzione e "Tasso si ricorda" per ogni gioco della libreria
+	_ = w.Bind("goGameTr", func(id string) map[string]any { return gameTrInfo(id) })
+	_ = w.Bind("goGameMemo", func(id string, m GameMemo) string { return setGameMemo(id, m) })
+	_ = w.Bind("goBoostKeep", func() map[string]interface{} { return boostKeepInfo() })
+	_ = w.Bind("goSetBoostKeep", func(list []string) string { return setBoostKeep(list) })
+	_ = w.Bind("goUninstallGame", func(id string) string { return uninstallGame(id) })
+	_ = w.Bind("goAddGame", func() string { return addGame() })
+	_ = w.Bind("goHideGame", func(id string, on bool) string { return hideGame(id, on) })
+	_ = w.Bind("goUnhideGames", func() string { return unhideAllGames() })
+	_ = w.Bind("goSetShowAll", func(on bool) string { updateSettings(func(s *Settings) { s.ShowAll = on }); return "ok" })
+	_ = w.Bind("goSetAutoUpdate", func(on bool) string { updateSettings(func(s *Settings) { s.NoAutoUpdate = !on }); return "ok" })
 	_ = w.Bind("goGamePower", func() map[string]interface{} { return gamePowerList() })
 	_ = w.Bind("goSetGamePower", func(id, mode string) string {
 		return async("gpower", func() { emit("onGamePower", setGamePower(id, mode)) })
@@ -426,12 +510,24 @@ func bindAll(w webview2.WebView) {
 	_ = w.Bind("goBoostScan", func() string { return async("boostscan", boostScan) })
 	_ = w.Bind("goBoostStart", func(names []string) string { return async("boost", func() { boostStart(names) }) })
 	_ = w.Bind("goBoostEnd", func() string { return async("boost", boostEnd) })
+	bindBoost(w)  // Boost 3.1 (boost.go)
+	bindGpuDrv(w) // driver NVIDIA dentro il Tasso (gpudriver.go)
 	_ = w.Bind("goAutoClickSet", func(c acConfig) string { return autoClickSet(c) })
 	_ = w.Bind("goAutoClickStart", func() string { return autoClickStart(false) })
 	_ = w.Bind("goAutoClickStop", func() string { return autoClickStop() })
 	_ = w.Bind("goAutoClickKey", func(vk, mods uint32) string { return setAutoClickKey(vk, mods) })
 	_ = w.Bind("goAutoClickArm", func() bool { return acArm() })
 	_ = w.Bind("goSelfUpdate", func() string { return async("update", selfUpdate) })
+	// 3.1 "Aggiorna Tasso da solo": mai mentre un gioco è aperto o c'è una partita col Boost.
+	_ = w.Bind("goSelfUpdateAuto", func() string {
+		bMu.Lock()
+		inPartita := bGame != ""
+		bMu.Unlock()
+		if inPartita || runningGame() != "" {
+			return "game"
+		}
+		return async("update", selfUpdate)
+	})
 	_ = w.Bind("goCheckUpdate", func() string { return async("update", func() { emit("onUpdate", checkUpdate()) }) })
 	_ = w.Bind("goOpenDiscord", func() string { openURL(discordURL); return "ok" })
 	_ = w.Bind("goFeedbackPhoto", func() map[string]interface{} { return pickFeedbackPhoto() })
@@ -474,11 +570,8 @@ func bindAll(w webview2.WebView) {
 	_ = w.Bind("goVaultPwned", func(id string) string {
 		return async("pwned", func() { r := vaultPwned(id); r["id"] = id; emit("onPwned", r) })
 	})
-	_ = w.Bind("goPwnedCheck", func(pw string) string {
-		return async("pwned", func() { r := pwnedCount(pw); r["id"] = ""; emit("onPwned", r) })
-	})
 	_ = w.Bind("goRestart", func() string {
-		runHidden("shutdown.exe", "/r", "/t", "15", "/c", "Tasso riavvia il PC tra 15 secondi per completare la manutenzione.")
+		runHidden("shutdown.exe", "/r", "/t", "15", "/c", trGo("Tasso riavvia il PC tra 15 secondi per completare la manutenzione."))
 		return "ok"
 	})
 }
@@ -501,7 +594,7 @@ func urlQuery(s string) string {
 
 func openGpuPanel(vendor string) string {
 	v := strings.ToLower(vendor)
-	pf := os.Getenv("ProgramFiles")
+	pf := programFilesDir()
 	switch {
 	case strings.Contains(v, "nvidia"):
 		app := filepath.Join(pf, "NVIDIA Corporation", "NVIDIA app", "CEF", "NVIDIA app.exe")
@@ -527,6 +620,64 @@ func openGpuPanel(vendor string) string {
 	return "none"
 }
 
+// biosVendor riconosce la marca (solo quelle con la pagina ufficiale in vendorPages).
+func biosVendor(maker string) string {
+	m := strings.ToLower(strings.TrimSpace(maker))
+	switch {
+	case strings.Contains(m, "asus"):
+		return "asus"
+	case strings.Contains(m, "micro-star") || m == "msi" || strings.HasPrefix(m, "msi "):
+		return "msi"
+	case strings.Contains(m, "gigabyte"):
+		return "gigabyte"
+	case strings.Contains(m, "asrock"):
+		return "asrock"
+	case strings.Contains(m, "lenovo"):
+		return "lenovo"
+	case strings.Contains(m, "hewlett") || m == "hp" || strings.HasPrefix(m, "hp "):
+		return "hp"
+	case strings.Contains(m, "dell"):
+		return "dell"
+	case strings.Contains(m, "acer"):
+		return "acer"
+	}
+	return ""
+}
+
+// biosPage apre il sito di assistenza ufficiale della marca giusta: sui portatili e sui PC di marca
+// (Lenovo, HP, Dell, Acer) quella del PC, sui PC assemblati quella della scheda madre.
+// Risponde "vendor:pc"/"vendor:board" (pagina ufficiale, con il modello da cercare) oppure
+// "search:pc"/"search:board" se la marca non la conosco: allora, come ultima scelta, una ricerca Google.
+func biosPage(boardMaker, boardModel, pcMaker, pcModel string, laptop bool) string {
+	pk, bk := biosVendor(pcMaker), biosVendor(boardMaker)
+	oem := pk == "lenovo" || pk == "hp" || pk == "dell" || pk == "acer"
+	key, which := "", "board"
+	switch {
+	case pk != "" && (laptop || oem):
+		key, which = pk, "pc"
+	case bk != "":
+		key = bk
+	case pk != "":
+		key, which = pk, "pc"
+	}
+	if p, ok := vendorPages[key]; ok && key != "" {
+		openURL(p[1])
+		return "vendor:" + which
+	}
+	q := strings.TrimSpace(boardMaker + " " + boardModel)
+	which = "board"
+	if laptop || q == "" {
+		if pq := strings.TrimSpace(pcMaker + " " + pcModel); pq != "" {
+			q, which = pq, "pc"
+		}
+	}
+	if q == "" {
+		q = "motherboard"
+	}
+	openURL("https://www.google.com/search?q=" + urlQuery(q+" BIOS download"))
+	return "search:" + which
+}
+
 func fileExists(p string) bool {
 	st, err := os.Stat(p)
 	return err == nil && !st.IsDir()
@@ -548,4 +699,52 @@ func openWinPage(id string) string {
 	}
 	openURL(u)
 	return "ok"
+}
+
+// fixRestoreFreq: se il passaggio "backup" è stato interrotto, rimetto il limite di Windows ai punti
+// di ripristino com'era (il passaggio lo toglie solo per un momento).
+func fixRestoreFreq() {
+	defer guard("fixRestoreFreq")
+	const mark = `SOFTWARE\Tasso\PuntoRipristino`
+	old, ok := regGet(registry.LOCAL_MACHINE, mark, "Old")
+	if !ok {
+		return
+	}
+	k, err := registry.OpenKey(registry.LOCAL_MACHINE, `SOFTWARE\Microsoft\Windows NT\CurrentVersion\SystemRestore`, registry.SET_VALUE)
+	if err != nil {
+		return
+	}
+	defer k.Close()
+	if old == "none" {
+		_ = k.DeleteValue("SystemRestorePointCreationFrequency")
+	} else if n, err := strconv.ParseUint(old, 10, 32); err == nil {
+		_ = k.SetDWordValue("SystemRestorePointCreationFrequency", uint32(n))
+	} else {
+		return
+	}
+	_ = registry.DeleteKey(registry.LOCAL_MACHINE, mark)
+}
+
+// cleanWipeTemp toglie la cartella di riempimento di cipher /w (C:\EFSTMPWP) rimasta da un
+// "Cancella lo spazio libero" interrotto: può occupare tutto lo spazio libero del disco.
+func cleanWipeTemp() {
+	if sd := os.Getenv("SystemDrive"); sd != "" {
+		p := filepath.Join(sd+`\`, "EFSTMPWP")
+		if fi, err := os.Lstat(p); err == nil && fi.IsDir() && fi.Mode()&os.ModeSymlink == 0 && fi.Mode()&os.ModeIrregular == 0 {
+			_ = os.RemoveAll(p)
+		}
+	}
+}
+
+// lookChanged: Tasso è passato a Ufficio (o a Gaming). In Ufficio niente traduzione, niente tasto
+// dell'autoclick, niente pannellino né Ctrl+Maiusc+F12; Boost automatico, modalità gioco
+// automatica e Profilo gioco si fermano da soli (guardano settings.Profile) e riprendono in Gaming.
+func lookChanged(office bool) {
+	traduce.ImpostaUfficio(office)
+	if office {
+		autoClickStop()
+		acDisarm()
+		boostOffForOffice()
+	}
+	ovPost()
 }

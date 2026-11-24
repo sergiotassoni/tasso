@@ -74,7 +74,8 @@ function Remove-Old([string]$p, [datetime]$limit) {
   }
   if ($it.PSIsContainer) {
     Get-ChildItem -LiteralPath $it.FullName -Force -ErrorAction SilentlyContinue | ForEach-Object { Remove-Old $_.FullName $limit }
-    if (-not (Get-ChildItem -LiteralPath $it.FullName -Force -ErrorAction SilentlyContinue | Select-Object -First 1)) { Remove-Item -LiteralPath $it.FullName -Force -ErrorAction SilentlyContinue }
+    # Solo cartelle vuote e create da tempo: una cartella appena creata da un installatore resta lì (3.1).
+    if ($it.CreationTime -lt $limit -and -not (Get-ChildItem -LiteralPath $it.FullName -Force -ErrorAction SilentlyContinue | Select-Object -First 1)) { Remove-Item -LiteralPath $it.FullName -Force -ErrorAction SilentlyContinue }
   } elseif ($it.LastWriteTime -lt $limit -and $it.CreationTime -lt $limit) {
     # Anche la data di creazione: un file appena estratto da uno zip può avere una data di modifica vecchia.
     Remove-Item -LiteralPath $it.FullName -Force -ErrorAction SilentlyContinue
@@ -246,11 +247,15 @@ Say 'Creo il backup di Windows (punto di ripristino)...'
 try { Enable-ComputerRestore -Drive ($env:SystemDrive + '\') -ErrorAction Stop } catch {}
 $key = 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\SystemRestore'
 $oldFreq = (Get-ItemProperty -Path $key -Name 'SystemRestorePointCreationFrequency' -ErrorAction SilentlyContinue).SystemRestorePointCreationFrequency
+# Mi segno il valore di prima: se il passaggio viene interrotto, Tasso lo rimette al prossimo avvio.
+$mark = 'HKLM:\SOFTWARE\Tasso\PuntoRipristino'
+try { New-Item -Path $mark -Force | Out-Null; New-ItemProperty -Path $mark -Name 'Old' -Value $(if ($null -ne $oldFreq) { [string][int]$oldFreq } else { 'none' }) -PropertyType String -Force | Out-Null } catch {}
 New-ItemProperty -Path $key -Name 'SystemRestorePointCreationFrequency' -Value 0 -PropertyType DWord -Force | Out-Null
 $before = @(Get-ComputerRestorePoint).Count
 try { Checkpoint-Computer -Description 'Tasso - prima della manutenzione' -RestorePointType MODIFY_SETTINGS -ErrorAction Stop } catch { Say ('Backup non creato: ' + $_.Exception.Message) }
 $after = @(Get-ComputerRestorePoint).Count
 if ($null -ne $oldFreq) { New-ItemProperty -Path $key -Name 'SystemRestorePointCreationFrequency' -Value ([int]$oldFreq) -PropertyType DWord -Force | Out-Null } else { Remove-ItemProperty -Path $key -Name 'SystemRestorePointCreationFrequency' -ErrorAction SilentlyContinue }
+Remove-Item -Path $mark -Recurse -Force -ErrorAction SilentlyContinue
 if ($after -gt $before) { Say 'Backup creato. Se qualcosa non ti piace puoi tornare indietro da Ripristino configurazione di sistema.' }
 elseif ($after -gt 0) {
   $last = @(Get-ComputerRestorePoint | Sort-Object SequenceNumber)[-1]
@@ -350,7 +355,7 @@ foreach ($p in $GpuCaches) { if (Test-Path -LiteralPath $p) { $f += Clear-Folder
 Freed $f; Say ('Liberati ' + (Fmt $f))
 `},
 	{ID: "wu_cache", Name: "Cache di Windows Update", Desc: "File degli aggiornamenti già scaricati. Se ne serve ancora uno, Windows lo riscarica da solo.", Level: 2, Minutes: 1, Timeout: 15 * time.Minute, Script: `
-if (Get-Process -Name TiWorker -ErrorAction SilentlyContinue) { Say 'Windows sta installando degli aggiornamenti proprio adesso: salto, per non disturbarlo. Rifallo più tardi.'; return }
+if ((Get-Process -Name TiWorker, MoUsoCoreWorker, TrustedInstaller -ErrorAction SilentlyContinue) -or (Test-Path -LiteralPath 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\RebootRequired')) { Say 'Windows sta installando degli aggiornamenti proprio adesso: salto, per non disturbarlo. Rifallo più tardi.'; return }
 Stop-Service -Name wuauserv, bits -Force -ErrorAction SilentlyContinue
 $f = Clear-Folder (Join-Path $env:windir 'SoftwareDistribution\Download')
 Start-Service -Name wuauserv, bits -ErrorAction SilentlyContinue
@@ -434,7 +439,7 @@ $on = @($all | Where-Object { $_.enabled })
 $off = @($all | Where-Object { -not $_.enabled })
 Say ('Programmi che partono all''accensione: ' + $on.Count + ' (altri ' + $off.Count + ' sono già spenti)')
 foreach ($s in $on) { Say (' - ' + $s.name) }
-if ($on.Count -gt 5) { Say 'Consiglio: Tasso > Velocità > Programmi all''avvio > spegni quelli che non usi.' }
+if ($on.Count -gt 5) { Say 'Consiglio: Tasso > Pulisci e ripara > Avvio del PC > spegni quelli che non usi.' }
 `},
 	{ID: "disk_health", Name: "Salute dei dischi", Desc: "Controlla stato, usura e temperatura di SSD e dischi.", Level: 3, Minutes: 0.3, Timeout: 5 * time.Minute, Script: `
 Get-PhysicalDisk | ForEach-Object {
@@ -467,8 +472,12 @@ else {
 }
 `},
 	{ID: "programs", Name: "Controllo di ogni programma", Desc: "Ripara le app di Windows danneggiate e trova i programmi rotti.", Level: 4, Minutes: 3, Timeout: 30 * time.Minute, Script: `
-$badApps = @(Get-AppxPackage -AllUsers -ErrorAction SilentlyContinue | Where-Object { [string]$_.Status -ne 'Ok' })
-if ($badApps.Count -eq 0) { Say 'App di Windows: tutte a posto.' }
+# 3.1: solo le app di questo account e solo quelle rotte davvero (non quelle che si stanno aggiornando);
+# nella pulizia programmata non le tocco, perché Windows potrebbe aggiornarle proprio in quel momento.
+$badApps = @()
+if (-not $TassoAuto) { $badApps = @(Get-AppxPackage -ErrorAction SilentlyContinue | Where-Object { [string]$_.Status -match 'NeedsRemediation|Modified|Tampered|LicenseIssue' -and $_.InstallLocation }) }
+if ($TassoAuto) { Say 'App di Windows: nella pulizia programmata non le controllo (lo faccio quando la avvii tu).' }
+elseif ($badApps.Count -eq 0) { Say 'App di Windows: tutte a posto.' }
 foreach ($p in $badApps) {
   Say ('Riparo: ' + $p.Name)
   try { Add-AppxPackage -DisableDevelopmentMode -Register (Join-Path $p.InstallLocation 'AppxManifest.xml') -ErrorAction Stop; Say '   riparata.' } catch { Say '   non riuscita, prova a reinstallarla dal Microsoft Store.' }
@@ -513,7 +522,7 @@ elseif ($fixed -gt 0) { Say ('SFC ha trovato e riparato ' + $fixed + ' file di s
 else { Say 'File di sistema: nessun problema trovato.' }
 if ($needReboot -or $bad -gt 0 -or $fixed -gt 0) { [Console]::Out.WriteLine('REBOOT') }
 `},
-	{ID: "chkdsk", Name: "Controllo errori del disco", Desc: "Controlla il disco di sistema mentre usi il PC. Se trova errori gravi te lo dice; la riparazione al riavvio la prenota solo se avvii questo controllo da solo.", Level: 4, Minutes: 4, Timeout: 60 * time.Minute, Script: `
+	{ID: "chkdsk", Name: "Controllo errori del disco", Desc: "Controlla il disco di sistema mentre usi il PC. Se trova errori gravi te lo dice; la riparazione al riavvio la prenota solo se avvii il controllo da solo o da Risolvi un problema, mai dentro una pulizia.", Level: 4, Minutes: 4, Timeout: 60 * time.Minute, Script: `
 if (Skip-AutoOnBattery) { return }
 Say ('Controllo il disco ' + $env:SystemDrive + '...')
 $dl = $env:SystemDrive.TrimEnd(':')
@@ -759,7 +768,7 @@ $junk = [long]0
 $junk += Get-FolderSize $env:TEMP
 $junk += Get-FolderSize (Join-Path $env:windir 'Temp')
 $junk += Get-FolderSize (Join-Path $env:windir 'SoftwareDistribution\Download')
-foreach ($p in $GpuCaches) { $junk += Get-FolderSize $p }
+# Le cache della scheda video (shader) non si contano: nessun livello di pulizia le toglie (solo il passaggio a mano gpu_cache).
 foreach ($b in $BrowserRoots) {
   if (-not (Test-Path -LiteralPath $b.Root)) { continue }
   Get-ChildItem -LiteralPath $b.Root -Directory -Force -ErrorAction SilentlyContinue | ForEach-Object {
@@ -803,7 +812,7 @@ $o = [ordered]@{
   cpu = [ordered]@{ name = ($cpu.Name -replace '\s+', ' ').Trim(); cores = $cpu.NumberOfCores; threads = $cpu.NumberOfLogicalProcessors; mhz = $cpu.MaxClockSpeed }
   gpus = $gl
   board = [ordered]@{ maker = $board.Manufacturer; model = $board.Product; bios = $bios.SMBIOSBIOSVersion; biosDate = $(if ($bios.ReleaseDate) { $bios.ReleaseDate.ToString('dd/MM/yyyy') } else { '' }) }
-  pc = [ordered]@{ maker = $sys.Manufacturer; model = $sys.Model; laptop = ($bat.Count -gt 0) }
+  pc = [ordered]@{ maker = $sys.Manufacturer; model = $sys.Model; family = [string]$sys.SystemFamily; laptop = ($bat.Count -gt 0) }
   ram = [ordered]@{ total = [long]$sys.TotalPhysicalMemory; modules = $mem.Count; speed = $speed }
   os = [ordered]@{ name = $os.Caption; version = $os.Version; build = $os.BuildNumber; arch = $os.OSArchitecture }
   disks = $disks
@@ -879,14 +888,35 @@ function Save-Prev {
     $ov = (Get-ItemProperty 'HKLM:\SYSTEM\CurrentControlSet\Control\Power\User\PowerSchemes' -Name 'ActiveOverlayAcPowerScheme' -ErrorAction SilentlyContinue).ActiveOverlayAcPowerScheme
     if ($ov) { New-ItemProperty -Path $PrevKey -Name 'Overlay' -Value ([string]$ov) -PropertyType String -Force | Out-Null }
     $v = Get-PowerIdx 'SUB_PROCESSOR' 'PROCTHROTTLEMAX'; if ($v) { New-ItemProperty -Path $PrevKey -Name 'CpuAc' -Value $v[0] -PropertyType DWord -Force | Out-Null; New-ItemProperty -Path $PrevKey -Name 'CpuDc' -Value $v[1] -PropertyType DWord -Force | Out-Null }
-    $sig = '[DllImport("user32.dll")] public static extern bool SystemParametersInfo(int a, int b, int[] c, int d);'
-    Add-Type -MemberDefinition $sig -Name SPI -Namespace TassoMouse -ErrorAction SilentlyContinue | Out-Null
-    $mm = [int[]](0, 0, 0); if ([TassoMouse.SPI]::SystemParametersInfo(3, 0, $mm, 0)) { New-ItemProperty -Path $PrevKey -Name 'Mouse' -Value ($mm -join ',') -PropertyType String -Force | Out-Null }
+    # $TassoMousePrev: il mouse di prima del Boost (che lo cambia solo finché giochi). Altrimenti
+    # leggo le impostazioni salvate di Windows: il Boost non le scrive mai, quindi anche se nel
+    # frattempo ha tolto l'accelerazione qui c'è ancora quella vera.
+    if ([string]$TassoMousePrev -match '^\d{1,2},\d{1,2},\d{1,2}$') { New-ItemProperty -Path $PrevKey -Name 'Mouse' -Value ([string]$TassoMousePrev) -PropertyType String -Force | Out-Null }
+    else {
+      $mk = Get-ItemProperty -Path 'HKCU:\Control Panel\Mouse' -ErrorAction SilentlyContinue
+      $mv = (@([string]$mk.MouseThreshold1, [string]$mk.MouseThreshold2, [string]$mk.MouseSpeed) | ForEach-Object { $_.Trim() }) -join ','
+      if ($mk -and $mv -match '^\d{1,2},\d{1,2},\d{1,2}$') { New-ItemProperty -Path $PrevKey -Name 'Mouse' -Value $mv -PropertyType String -Force | Out-Null }
+    }
     $t = Get-ItemProperty -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\PushNotifications' -Name 'ToastEnabled' -ErrorAction SilentlyContinue
     $tv = 1; if ($t -and $null -ne $t.ToastEnabled) { $tv = [int]$t.ToastEnabled }
     New-ItemProperty -Path $PrevKey -Name 'Toasts' -Value $tv -PropertyType DWord -Force | Out-Null
     New-ItemProperty -Path $PrevKey -Name 'Ok' -Value 1 -PropertyType DWord -Force | Out-Null
   } catch {}
+}
+function Undo-FpsMouse {
+  # Uscendo da FPS competitivo verso Gaming/Film/Silenzioso: se il mouse è ancora senza
+  # accelerazione (messo da FPS) rimetto quello di prima. Il Boost acceso lo gestisce da sé.
+  if (-not $TassoFromFps -or [string]$TassoMousePrev) { return }
+  $p = Get-ItemProperty -Path $PrevKey -ErrorAction SilentlyContinue
+  if (-not $p -or -not $p.Ok -or -not $p.Mouse -or [string]$p.Mouse -eq '0,0,0') { return }
+  $mk = Get-ItemProperty -Path 'HKCU:\Control Panel\Mouse' -ErrorAction SilentlyContinue
+  if (-not $mk -or ([string]$mk.MouseSpeed).Trim() -ne '0') { return }
+  $mm = [int[]]@(([string]$p.Mouse).Split(',') | ForEach-Object { [int]$_ })
+  if ($mm.Count -eq 3) {
+    $sig = '[DllImport("user32.dll")] public static extern bool SystemParametersInfo(int a, int b, int[] c, int d);'
+    Add-Type -MemberDefinition $sig -Name SPI -Namespace TassoMouse -ErrorAction SilentlyContinue | Out-Null
+    [void][TassoMouse.SPI]::SystemParametersInfo(4, 0, $mm, 3)
+  }
 }
 function Restore-Prev {
   $p = Get-ItemProperty -Path $PrevKey -ErrorAction SilentlyContinue
@@ -933,6 +963,7 @@ else { Say 'Modalità Normale: equilibrio tra velocità e consumi, notifiche att
 `,
 	"gaming": modeBase + `
 Save-Prev
+Undo-FpsMouse
 Use-HighPerf
 Set-CpuMax 100
 Set-Toasts 0
@@ -950,6 +981,7 @@ Say 'Modalità FPS competitivo pronta. Consiglio: nel gioco usa la frequenza mas
 `,
 	"film": modeBase + `
 Save-Prev
+Undo-FpsMouse
 [void](Use-Plan $BAL)
 powercfg /overlaysetactive 00000000-0000-0000-0000-000000000000 2>$null | Out-Null
 Set-CpuMax 100
@@ -960,6 +992,7 @@ Say 'Modalità Film: niente notifiche, lo schermo non si spegne durante il film.
 `,
 	"silenzioso": modeBase + `
 Save-Prev
+Undo-FpsMouse
 if (-not (Use-Plan $SAVER)) { [void](Use-Plan $BAL); powercfg /overlaysetactive 961cc777-2547-4f9d-8174-7d86181b8a7a 2>$null | Out-Null }
 Set-CpuMax 70
 Set-Toasts 1

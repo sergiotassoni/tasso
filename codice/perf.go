@@ -4,7 +4,13 @@ package main
 // su misura, SENZA toccare da solo frequenze o voltaggi. Apre gli strumenti ufficiali
 // e spiega come fare restando sotto i limiti del produttore.
 
-import "time"
+import (
+	"encoding/json"
+	"path/filepath"
+	"time"
+
+	"golang.org/x/sys/windows"
+)
 
 func perfScan() {
 	r := runPS(perfScript, 2*time.Minute, nil)
@@ -13,30 +19,90 @@ func perfScan() {
 
 // setPerfProfile attiva il piano energetico "Prestazioni elevate" (on) o "Bilanciato" (off).
 // È reversibile e non modifica l'hardware: cambia solo come Windows gestisce la CPU.
+// Dopo rilegge il piano attivo: risponde "ok1" (Prestazioni elevate attivo) o "ok0" (no) e manda prima
+// i messaggi dello script (onPerfMsgs), così la finestra dice cosa è successo davvero (per esempio sui Ryzen X3D
+// resta Bilanciato di proposito, o il PC ha solo il piano Bilanciato).
 func setPerfProfile(on bool) string {
 	modeMu.Lock()
 	defer modeMu.Unlock()
 	if !ensureSnapshot() {
 		return "Non riesco a salvare com'era Windows, quindi per sicurezza non cambio niente. Riprova tra poco."
 	}
-	runPS(perfProfileScript(on), time.Minute, nil)
-	return "ok"
+	var msgs []string
+	r := runPS(perfProfileScript(on)+perfStateScript, time.Minute, func(m string) { msgs = append(msgs, m) })
+	var st struct {
+		High *bool `json:"high"`
+	}
+	if r.JSON == "" || json.Unmarshal([]byte(r.JSON), &st) != nil || st.High == nil {
+		return "Non riesco a rileggere il piano energetico di Windows: controlla in Impostazioni → Sistema → Alimentazione."
+	}
+	// i messaggi vanno a parte (ognuno si traduce da solo), prima della risposta
+	emit("onPerfMsgs", map[string]interface{}{"msgs": msgs})
+	if *st.High {
+		return "ok1"
+	}
+	return "ok0"
 }
 
-// openPerfTool apre lo strumento ufficiale se installato, altrimenti la sua pagina di download.
+// perfStateScript rilegge il piano energetico attivo (stesso controllo di perfScript).
+const perfStateScript = `
+$scheme = ''
+try { $scheme = (powercfg /getactivescheme) | Out-String } catch {}
+$highOn = ($scheme -match '8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c') -or ($scheme -match 'Prestazioni elevate') -or ($scheme -match 'High performance') -or ($scheme -match 'Ultimate')
+# Su PC con il solo Bilanciato (o Ryzen X3D) Use-HighPerf mette la modalità "Prestazioni migliori":
+# conta come accesa, così il pulsante permette di tornare indietro.
+$ov = (Get-ItemProperty 'HKLM:\SYSTEM\CurrentControlSet\Control\Power\User\PowerSchemes' -Name 'ActiveOverlayAcPowerScheme' -ErrorAction SilentlyContinue).ActiveOverlayAcPowerScheme
+if ([string]$ov -match 'ded574b5-45a0-4f42-8737-46345c09c238') { $highOn = $true }
+[Console]::Out.WriteLine('JSON ' + (ConvertTo-Json -InputObject ([ordered]@{ high = [bool]$highOn }) -Compress))
+`
+
+// perfToolPaths: dove si installano gli strumenti ufficiali (le stesse cartelle che controlla perfScript).
+func perfToolPaths(id string) []string {
+	var pf, pf86 string
+	if p, err := windows.KnownFolderPath(windows.FOLDERID_ProgramFiles, 0); err == nil {
+		pf = p
+	}
+	if p, err := windows.KnownFolderPath(windows.FOLDERID_ProgramFilesX86, 0); err == nil {
+		pf86 = p
+	}
+	var out []string
+	add := func(base string, rel ...string) {
+		if base != "" {
+			out = append(out, filepath.Join(append([]string{base}, rel...)...))
+		}
+	}
+	switch id {
+	case "afterburner":
+		add(pf86, "MSI Afterburner", "MSIAfterburner.exe")
+		add(pf, "MSI Afterburner", "MSIAfterburner.exe")
+	case "ryzen":
+		add(pf, "AMD", "RyzenMaster", "bin", "AMDRyzenMasterx64.exe")
+		add(pf, "AMD", "RyzenMasterMonitoringSDK", "bin", "AMDRyzenMasterx64.exe")
+	case "xtu":
+		add(pf, "Intel", "Intel(R) Extreme Tuning Utility", "Client", "PerfTune.exe")
+		add(pf86, "Intel", "Intel(R) Extreme Tuning Utility", "Client", "PerfTune.exe")
+	}
+	return out
+}
+
+// openPerfTool apre lo strumento ufficiale se installato ("app"), altrimenti la sua pagina ufficiale ("web").
 func openPerfTool(id string) string {
-	paths := map[string]string{}
 	urls := map[string]string{
 		"afterburner": "https://www.msi.com/Landing/afterburner/graphics-cards",
 		"ryzen":       "https://www.amd.com/en/products/software/ryzen-master.html",
 		"xtu":         "https://www.intel.com/content/www/us/en/download/17881/intel-extreme-tuning-utility-intel-xtu.html",
 	}
-	_ = paths
-	if u, ok := urls[id]; ok {
-		openURL(u)
-		return "ok"
+	u, ok := urls[id]
+	if !ok {
+		return "no"
 	}
-	return "no"
+	for _, p := range perfToolPaths(id) {
+		if fileExists(p) && openPath(p, "") {
+			return "app"
+		}
+	}
+	openURL(u)
+	return "web"
 }
 
 func perfProfileScript(on bool) string {
@@ -83,6 +149,8 @@ $xtu = Find-Tool @((Join-Path $pf 'Intel\Intel(R) Extreme Tuning Utility\Client\
 $scheme = ''
 try { $scheme = (powercfg /getactivescheme) | Out-String } catch {}
 $highOn = ($scheme -match '8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c') -or ($scheme -match 'Prestazioni elevate') -or ($scheme -match 'High performance') -or ($scheme -match 'Ultimate')
+$ov = (Get-ItemProperty 'HKLM:\SYSTEM\CurrentControlSet\Control\Power\User\PowerSchemes' -Name 'ActiveOverlayAcPowerScheme' -ErrorAction SilentlyContinue).ActiveOverlayAcPowerScheme
+if ([string]$ov -match 'ded574b5-45a0-4f42-8737-46345c09c238') { $highOn = $true }
 $o = [ordered]@{
   cpu = $cpuName; cpuVendor = $cpuVendor; gpu = $gpuName; gpuVendor = $gpuVendor;
   board = ((([string]$bb.Manufacturer).Trim() + ' ' + ([string]$bb.Product).Trim()).Trim());

@@ -74,7 +74,7 @@ $pf86 = ${env:ProgramFiles(x86)}
 $apps = @(
   @{ Label = 'Battle.net';      Proc = 'Battle.net';     Age = 0;   Paths = @((Join-Path $env:LOCALAPPDATA 'Battle.net\Cache'), (Join-Path $env:LOCALAPPDATA 'Battle.net\BrowserCaches')) },
   @{ Label = 'EA app';          Proc = 'EADesktop';      Age = 0;   Paths = @((Join-Path $env:LOCALAPPDATA 'Electronic Arts\EA Desktop\CEF\BrowserCache')) },
-  @{ Label = 'Ubisoft Connect'; Proc = 'UbisoftConnect'; Age = 0;   Paths = @((Join-Path $pf86 'Ubisoft\Ubisoft Game Launcher\cache\http'), (Join-Path $pf86 'Ubisoft\Ubisoft Game Launcher\cache\assets')) },
+  @{ Label = 'Ubisoft Connect'; Proc = @('UbisoftConnect', 'upc'); Age = 0;   Paths = @((Join-Path $pf86 'Ubisoft\Ubisoft Game Launcher\cache\http'), (Join-Path $pf86 'Ubisoft\Ubisoft Game Launcher\cache\assets')) },
   @{ Label = 'GOG Galaxy';      Proc = 'GalaxyClient';   Age = 0;   Paths = @((Join-Path $env:ProgramData 'GOG.com\Galaxy\webcache')) },
   @{ Label = 'Riot (registri)'; Proc = '';               Age = 48;  Paths = @((Join-Path $env:LOCALAPPDATA 'Riot Games\Riot Client\Logs')) },
   @{ Label = 'Spotify';         Proc = 'Spotify';        Age = 0;   Paths = @((Join-Path $env:LOCALAPPDATA 'Spotify\Data')) }

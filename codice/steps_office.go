@@ -476,7 +476,7 @@ Say 'Se usi il "nuovo Outlook" la ricerca è fatta sul server: lì basta chiuder
 	{ID: "of_outlook_mail", Name: "Le email non arrivano o non partono", Desc: "Controlla internet, i server di posta Microsoft e lo spazio su disco e ti dice dov'è il problema. Le impostazioni dell'account le cambi tu.", Level: 0, Minutes: 0.3, Timeout: 3 * time.Minute, Script: ofs(`
 Say 'Controllo la connessione...'
 $net = Test-Internet
-if (-not $net) { Say 'Internet NON funziona: per questo la posta non va. Usa "Internet non va" qui in Risolvi problemi.'; return }
+if (-not $net) { Say 'Internet NON funziona: per questo la posta non va. Usa "Internet non va" qui in Risolvi un problema.'; return }
 Say 'Internet: funziona.'
 $m365 = Test-Tcp 'outlook.office365.com' 443
 if ($m365) { Say 'Server di posta Microsoft (Outlook, Microsoft 365, Hotmail): raggiungibili.' } else { Say 'Il server di posta Microsoft non risponde: può essere un blocco della rete dell''ufficio o un problema di Microsoft (guarda status.cloud.microsoft).' }
@@ -949,7 +949,7 @@ $names = @{}; foreach ($e in $slow) { try { $x = [xml]$e.ToXml(); $fn = ($x.Even
 if ($names.Count) { Say ('Programmi che Windows ha visto rallentare l''accensione: ' + (($names.Keys | Select-Object -First 6) -join ', ') + '.') }
 $st = @(Get-TassoStartup | Where-Object { $_.enabled })
 Say ('Programmi che partono da soli: ' + $st.Count + '.')
-if ($st.Count -gt 8) { Say 'Sono tanti: in Velocità > Programmi all''avvio spegni quelli che non ti servono subito (Spotify, Steam, Skype, aggiornatori...). Antivirus, OneDrive e il programma della VPN lasciali accesi.' }
+if ($st.Count -gt 8) { Say 'Sono tanti: in Pulisci e ripara > Avvio del PC spegni quelli che non ti servono subito (Spotify, Steam, Skype, aggiornatori...). Antivirus, OneDrive e il programma della VPN lasciali accesi.' }
 $sys = Get-PSDrive -Name ($env:SystemDrive.Trim(':')) -ErrorAction SilentlyContinue
 if ($sys -and $sys.Free -lt 10GB) { Say ('Il disco C: ha solo ' + (Fmt $sys.Free) + ' liberi: anche questo rallenta. Fai una pulizia.') }
 $sd = Get-Partition -DriveLetter ($env:SystemDrive.Trim(':')) -ErrorAction SilentlyContinue | Get-Disk -ErrorAction SilentlyContinue

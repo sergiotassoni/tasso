@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"strings"
 	"sync/atomic"
+	"tasso/traduce"
 	"time"
 
 	"golang.org/x/sys/windows"
@@ -143,6 +144,17 @@ func listenAutoRequests() {
 	}()
 }
 
+// diventaNormale: la sessione aperta dall'attività pianificata diventa un Tasso normale.
+// Tasso Traduce all'avvio era stato saltato: parte adesso (Avvia parte una volta sola).
+func diventaNormale() {
+	if scheduledRun.Swap(false) {
+		go func() {
+			defer guard("traduce")
+			traduce.Avvia()
+		}()
+	}
+}
+
 // maybeAutoExit: se Tasso l'ha aperto l'attività pianificata e nessuno l'ha guardato
 // (finestra ancora ridotta a icona), a fine pulizia si chiude da solo.
 func maybeAutoExit() {
@@ -151,13 +163,13 @@ func maybeAutoExit() {
 	}
 	time.Sleep(45 * time.Second)
 	if r, _, _ := pIsIconic.Call(uintptr(wv.Window())); r == 0 {
-		scheduledRun.Store(false) // l'hai aperto tu: da ora è un Tasso normale, non si chiude da solo
+		diventaNormale() // l'hai aperto tu: da ora è un Tasso normale, non si chiude da solo
 		return
 	}
 	// Se c'è ancora un lavoro in corso riprovo ogni minuto (al massimo mezz'ora).
 	for i := 0; i < 30; i++ {
 		if r, _, _ := pIsIconic.Call(uintptr(wv.Window())); r == 0 {
-			scheduledRun.Store(false)
+			diventaNormale()
 			return
 		}
 		busyMu.Lock()
@@ -172,5 +184,5 @@ func maybeAutoExit() {
 		}
 		time.Sleep(time.Minute)
 	}
-	scheduledRun.Store(false)
+	diventaNormale()
 }

@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="it"><head><meta charset="utf-8"><title>Tasso Traduce (motore)</title></head>
+<body>
+<!-- Pagina invisibile: qui gira solo il traduttore Mozilla (WebAssembly) usato da Tasso Traduce.
+     L'interfaccia è nella finestra di Tasso. -->
+<script type="module">
+import {LatencyOptimisedTranslator, BatchTranslator} from './bergamot/translator.js';
+const base = new URL('.', location.href).href;
+// ---------- motore Mozilla dentro questa pagina
+let moz = null, mozLotto = null, codaMoz = Promise.resolve();
+async function avviaMozilla(){
+  try{
+    // pivotLanguage 'en': fra due lingue senza modello diretto si passa dall'inglese
+    moz = new LatencyOptimisedTranslator({registryUrl: base+'modelli/registry.json', pivotLanguage:'en'});
+    await moz.translate({from:'en',to:'it',text:'Hello.',html:false}); // carica il modello
+    // per le schermate piene di scritte: più traduttori insieme, a gruppi (molto più svelto
+    // che una scritta alla volta)
+    try {
+      const fili = Math.max(2, Math.min(4, Math.floor((navigator.hardwareConcurrency||4)/4)));
+      mozLotto = new BatchTranslator({registryUrl: base+'modelli/registry.json', pivotLanguage:'en', workers: fili, batchSize: 8});
+      await Promise.all(Array.from({length: fili}, ()=>mozLotto.translate({from:'en',to:'it',text:'Hello.',html:false})));
+    } catch(e) { mozLotto = null; }
+    await window.goMozillaPronto(true, '');
+  }catch(e){
+    moz = null;
+    await window.goMozillaPronto(false, String(e && e.message || e));
+  }
+}
+
+window.tt = {
+  // dopo aver scaricato una lingua: nuovi traduttori che rileggono l'elenco dei modelli
+  async ricaricaModelli(){
+    try {
+      const nuovo = new LatencyOptimisedTranslator({registryUrl: base+'modelli/registry.json?'+Date.now(), pivotLanguage:'en'});
+      await nuovo.translate({from:'en',to:'it',text:'Hello.',html:false});
+      const vecchio = moz; moz = nuovo; setTimeout(()=>{ try { vecchio && vecchio.delete && vecchio.delete(); } catch(e) {} }, 30000);
+      const fili = Math.max(2, Math.min(4, Math.floor((navigator.hardwareConcurrency||4)/4)));
+      const lotto = new BatchTranslator({registryUrl: base+'modelli/registry.json?'+Date.now(), pivotLanguage:'en', workers: fili, batchSize: 8});
+      const vl = mozLotto; mozLotto = lotto; setTimeout(()=>{ try { vl && vl.delete && vl.delete(); } catch(e) {} }, 30000);
+    } catch(e) { console.error('Ricarico i modelli', e); }
+  },
+  async moz(id, testo, da, a, lotto){
+    da = da || 'en'; a = a || 'it';
+    if(!moz){ window.goMozFatto(id,'','traduttore non caricato'); return; }
+    if (lotto && mozLotto) {
+      try {
+        const parti = testo.split('\n');
+        const out = await Promise.all(parti.map(p => p.trim() ? mozLotto.translate({from:da,to:a,text:p,html:false}).then(r=>r.target.text) : ''));
+        window.goMozFatto(id, out.join('\n'), '');
+      } catch(e){ window.goMozFatto(id,'',String(e && e.message || e)); }
+      return;
+    }
+    try{
+      // frase per frase su righe separate, così il motore non le mescola
+      const parti = testo.split('\n');
+      const out = [];
+      // un traduttore "a una richiesta" annulla quella di prima: le faccio passare una alla volta
+      const t = moz;
+      const lavoro = codaMoz.then(async ()=>{ const o = []; for (const p of parti){ o.push(p.trim() ? (await t.translate({from:da,to:a,text:p,html:false})).target.text : ''); } return o; });
+      codaMoz = lavoro.catch(()=>{});
+      out.push(...await lavoro);
+      window.goMozFatto(id, out.join('\n'), '');
+    }catch(e){ window.goMozFatto(id,'',String(e && e.message || e)); }
+  },
+};
+avviaMozilla();
+</script>
+</body></html>

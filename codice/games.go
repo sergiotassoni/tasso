@@ -13,6 +13,7 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 	"unsafe"
 
@@ -23,16 +24,23 @@ import (
 // ---------------- Libreria giochi ----------------
 
 type gameEntry struct {
-	ID      string `json:"id"`
-	Name    string `json:"name"`
-	Store   string `json:"store"`
-	Size    int64  `json:"size"`
-	Img     string `json:"img,omitempty"`  // copertina: file locale (in base64) o indirizzo https
-	ImgAlt  string `json:"img2,omitempty"` // seconda scelta se la prima non si carica
-	launch  string // indirizzo steam:// o com.epicgames.launcher://
-	exe     string // programma da avviare (Riot)
-	exeArgs string
-	dir     string // cartella dove è installato (serve a "Regola con Tasso")
+	ID        string `json:"id"`
+	Name      string `json:"name"`
+	Store     string `json:"store"`
+	Size      int64  `json:"size"`
+	Img       string `json:"img,omitempty"`  // copertina: file locale (in base64) o indirizzo https
+	ImgAlt    string `json:"img2,omitempty"` // seconda scelta se la prima non si carica
+	Icon      string `json:"icon,omitempty"` // 3.1: da dove prendere l'icona se non c'è copertina (exe o "dir:")
+	Hidden    bool   `json:"hidden,omitempty"`
+	Uninst    bool   `json:"uninst,omitempty"` // si può disinstallare da Tasso
+	Played    int64  `json:"played,omitempty"` // 3.1: ultima partita (secondi), da Steam o da "Gioca" di Tasso
+	uninstKey string // voce di "Programmi installati" (per disinstallare)
+	private   bool   // trovato in Desktop/Download o aggiunto a mano: il nome non va mandato a Steam
+	launch    string // indirizzo steam:// o com.epicgames.launcher://
+	exe       string // programma da avviare (Riot)
+	exeArgs   string
+	dir       string // cartella dove è installato (serve a "Regola con Tasso")
+	steamApp  string // numero Steam del gioco installato da Steam (per la copertina di riserva)
 }
 
 var (
@@ -116,9 +124,12 @@ func scanSteam() []gameEntry {
 			if strings.Contains(ln, "redistributable") || strings.Contains(ln, "steamvr") || strings.HasPrefix(ln, "proton") || strings.Contains(ln, "steam linux runtime") || strings.Contains(ln, "dedicated server") {
 				continue
 			}
-			var size int64
+			var size, played int64
 			if s := vdfValues(b, "SizeOnDisk"); len(s) > 0 {
 				fmt.Sscan(s[0], &size)
+			}
+			if s := vdfValues(b, "LastPlayed"); len(s) > 0 {
+				fmt.Sscan(s[0], &played)
 			}
 			img := ""
 			if coverBudget > 0 {
@@ -129,7 +140,7 @@ func scanSteam() []gameEntry {
 			if img == "" {
 				img = cdn + "library_600x900.jpg"
 			}
-			out = append(out, gameEntry{ID: "steam:" + ids[0], Name: n, Store: "Steam", Size: size, Img: img, ImgAlt: cdn + "header.jpg", launch: "steam://rungameid/" + ids[0], dir: gdir})
+			out = append(out, gameEntry{ID: "steam:" + ids[0], Name: n, Store: "Steam", Size: size, Played: played, Img: img, ImgAlt: cdn + "header.jpg", launch: "steam://rungameid/" + ids[0], dir: gdir, steamApp: ids[0]})
 		}
 	}
 	return out
@@ -208,7 +219,8 @@ func scanRiot() []gameEntry {
 func steamCover(root, id string) string {
 	lc := filepath.Join(root, "appcache", "librarycache")
 	var cands []string
-	for _, name := range []string{"library_600x900.jpg", "library_600x900_2x.jpg", "header.jpg"} {
+	// Steam nuovo: library_capsule.jpg (verticale) e library_header.jpg, dentro <appid>\<codice>\.
+	for _, name := range []string{"library_600x900.jpg", "library_600x900_2x.jpg", "library_capsule.jpg", "library_header.jpg", "header.jpg"} {
 		cands = append(cands, filepath.Join(lc, id+"_"+name), filepath.Join(lc, id, name))
 		if m, _ := filepath.Glob(filepath.Join(lc, id, "*", name)); len(m) > 0 {
 			cands = append(cands, m...)
@@ -239,16 +251,160 @@ func dirExists(p string) bool {
 	return err == nil && st.IsDir()
 }
 
+var scanLibMu sync.Mutex
+
 func scanLibrary() {
+	scanLibMu.Lock()
+	locked := true
+	defer func() {
+		if locked { // anche se qualcosa va storto a metà, la libreria non resta bloccata
+			scanLibMu.Unlock()
+		}
+	}()
+	deadline := time.Now().Add(12 * time.Second)
+	un := readUninstall()
 	all := append(append(scanSteam(), scanEpic()...), scanRiot()...)
+	all = append(all, scanGOG(un)...)
+	all = append(all, scanUbisoft(un)...)
+	all = append(all, scanXbox()...)
+	// cartelle già prese dai launcher: non le ricontrollo
+	known := map[string]bool{}
+	addKnown := func(d string) {
+		if d != "" {
+			known[strings.ToLower(strings.TrimRight(filepath.Clean(d), `\`))] = true
+		}
+	}
+	for _, g := range all {
+		addKnown(g.dir)
+	}
+	// EA, Battle.net, Rockstar, Amazon e i giochi che si riconoscono dal motore, da "Programmi installati"
+	for _, e := range un {
+		store, launch := storeFromUninstall(e)
+		loc := strings.TrimRight(filepath.Clean(e.loc), `\`)
+		if time.Now().After(deadline) {
+			break
+		}
+		if e.loc == "" || len(loc) <= 3 || isBroadDir(loc) || !dirExists(loc) || known[strings.ToLower(loc)] || insideKnown(strings.ToLower(loc), known) || notGameNameRe.MatchString(e.name) {
+			continue
+		}
+		if strings.HasPrefix(strings.ToLower(e.key[strings.LastIndex(e.key, `\`)+1:]), "steam app ") || strings.HasPrefix(strings.ToLower(e.key[strings.LastIndex(e.key, `\`)+1:]), "uplay install ") {
+			continue
+		}
+		if store == "" {
+			if !looksLikeGame(loc) {
+				continue
+			}
+			store = "Altro"
+		}
+		g := gameEntry{ID: "reg:" + shortHash(e.key), Name: e.name, Store: store, Size: e.size, launch: launch, dir: loc, uninstKey: e.key}
+		if launch == "" {
+			g.exe = gameDirExe(loc)
+			if g.exe == "" {
+				continue
+			}
+		}
+		g.Icon = g.exe
+		if e.icon != "" {
+			g.Icon = e.icon
+		}
+		all = append(all, g)
+		addKnown(loc)
+	}
+	all = append(all, scanFolders(known, deadline)...)
+	custom := customGames()
+	for _, c := range custom {
+		dup := false
+		for _, g := range all {
+			if strings.EqualFold(g.exe, c.exe) {
+				dup = true
+			}
+		}
+		if !dup {
+			all = append(all, c)
+		}
+	}
+	// copertine di Epic già sul PC
+	if ec := epicCovers(); len(ec) > 0 {
+		for i := range all {
+			if all[i].Store == "Epic" && all[i].Img == "" {
+				if c, ok := ec[strings.TrimPrefix(all[i].ID, "epic:")]; ok {
+					all[i].Img, all[i].ImgAlt = c[0], c[1]
+					if all[i].Img == "" {
+						all[i].Img = c[1]
+					}
+				}
+			}
+		}
+	}
+	// niente doppioni (stesso gioco trovato due volte)
+	uniq := all[:0]
+	ids := map[string]bool{}
+	for _, g := range all {
+		if !ids[g.ID] {
+			ids[g.ID] = true
+			uniq = append(uniq, g)
+		}
+	}
+	all = uniq
+	for i := range all {
+		if isBroadDir(all[i].dir) {
+			all[i].dir = ""
+		}
+		switch all[i].Store {
+		case "Steam", "Riot", "Epic", "Xbox":
+			all[i].Uninst = true
+		default:
+			all[i].Uninst = all[i].uninstKey != ""
+		}
+	}
 	sort.Slice(all, func(i, j int) bool { return strings.ToLower(all[i].Name) < strings.ToLower(all[j].Name) })
+	gen := libGen.Add(1)
+	publishLibrary(all)
+	scanLibMu.Unlock()
+	locked = false
+	// poi le copertine che mancano, da Steam (se c'è internet), senza tenere ferma la libreria
+	if fillCovers(all) && libGen.Load() == gen {
+		publishLibrary(all)
+	}
+}
+
+var libGen atomic.Int64
+
+// publishLibrary: manda la libreria alla finestra, rileggendo ogni volta nascosti e giochi aggiunti a mano
+// (così un gioco nascosto mentre arrivavano le copertine non ricompare).
+func publishLibrary(all []gameEntry) {
+	setMu.Lock()
+	hidden := map[string]bool{}
+	for _, h := range settings.HiddenGames {
+		hidden[h] = true
+	}
+	man := map[string]bool{}
+	for _, c := range settings.CustomGames {
+		man["man:"+shortHash(c.Exe)] = true
+	}
+	played := map[string]int64{}
+	for k, v := range settings.GamePlayed {
+		played[k] = v
+	}
+	setMu.Unlock()
+	out := make([]gameEntry, 0, len(all))
+	for _, g := range all {
+		if strings.HasPrefix(g.ID, "man:") && !man[g.ID] {
+			continue
+		}
+		g.Hidden = hidden[g.ID]
+		if p := played[g.ID]; p > g.Played {
+			g.Played = p
+		}
+		out = append(out, g)
+	}
 	libMu.Lock()
 	library = map[string]gameEntry{}
-	for _, g := range all {
+	for _, g := range out {
 		library[g.ID] = g
 	}
 	libMu.Unlock()
-	emit("onLibrary", all)
+	emitRaw("onLibrary", out)
 }
 
 // launchGame avvia solo un gioco trovato dalla scansione (niente indirizzi arbitrari dalla pagina).
@@ -260,16 +416,77 @@ func launchGame(id string) string {
 		return "Gioco non trovato: aggiorna la libreria."
 	}
 	if g.exe != "" {
-		if !openUser(g.exe, g.exeArgs) {
+		// Sempre tramite collegamento (anche senza argomenti), così il gioco parte dalla sua cartella.
+		args := g.exeArgs
+		if args == "" {
+			args = " "
+		}
+		if !openUser(g.exe, args) {
 			return "Non riesco ad avviare " + g.Name + "."
 		}
+		markPlayed(id)
 		return "ok"
 	}
 	if g.launch == "" {
 		return "Non so come avviare " + g.Name + "."
 	}
 	openURL(g.launch)
+	markPlayed(id)
 	return "ok"
+}
+
+// uninstallGame (3.1): disinstalla un gioco della libreria con il programma ufficiale del suo launcher,
+// che chiede sempre conferma. Per gli altri negozi e i giochi installati a mano usa il loro disinstallatore
+// da "Programmi installati": quelli dell'utente (HKCU) partono come utente normale.
+// Risposta: "ok:<messaggio>" se è partito, altrimenti il messaggio d'errore.
+func uninstallGame(id string) string {
+	libMu.Lock()
+	g, ok := library[id]
+	libMu.Unlock()
+	if !ok {
+		return "Gioco non trovato: aggiorna la libreria."
+	}
+	switch g.Store {
+	case "Steam":
+		appid := strings.TrimPrefix(g.ID, "steam:")
+		if appid == "" || strings.Trim(appid, "0123456789") != "" {
+			return "Non riesco a trovare il gioco in Steam."
+		}
+		openURL("steam://uninstall/" + appid)
+		return "ok:Steam ti chiede conferma: premi Disinstalla nella sua finestra."
+	case "Riot":
+		prod := strings.TrimPrefix(g.ID, "riot:")
+		if g.exe == "" || prod == "" || strings.Trim(prod, "abcdefghijklmnopqrstuvwxyz_") != "" {
+			return "Non trovo il programma di Riot."
+		}
+		if !openUser(g.exe, "--uninstall-product="+prod+" --uninstall-patchline=live") {
+			return "Non riesco ad aprire il programma di Riot."
+		}
+		return "ok:Si apre Riot: conferma la disinstallazione nella sua finestra."
+	case "Xbox":
+		openURL("ms-settings:appsfeatures")
+		return "ok:Si aprono le Impostazioni di Windows: cerca " + g.Name + " nell'elenco e premi Disinstalla."
+	case "Epic":
+		openURL("com.epicgames.launcher://store/library")
+		return "ok:Si apre Epic Games. Nella Libreria clicca i tre puntini (…) sotto il gioco e scegli Disinstalla."
+	}
+	if g.uninstKey != "" && uninstallKeyRe.MatchString(g.uninstKey) {
+		// Voci dell'utente (HKCU): il disinstallatore parte come utente normale, mai da amministratore.
+		if strings.HasPrefix(strings.ToUpper(g.uninstKey), `HKEY_CURRENT_USER\`) {
+			if exe, args := userUninstallCmd(g.uninstKey); exe != "" && openUser(exe, args) {
+				return "ok:Si apre il programma di disinstallazione del gioco: segui le sue finestre."
+			}
+			return "Non riesco ad aprire il programma di disinstallazione del gioco."
+		}
+		if async("uninstall", func() { uninstallProgram(g.uninstKey) }) == "busy" {
+			return "Aspetta che finisca la disinstallazione in corso."
+		}
+		return "ok:Si apre il programma di disinstallazione del gioco: segui le sue finestre."
+	}
+	if !g.Uninst {
+		return "Questo gioco non ha un programma di disinstallazione: puoi toglierlo dalla libreria con \"Nascondi\"."
+	}
+	return "Non so come disinstallare " + g.Name + "."
 }
 
 // ---------------- Ottimizza prima di giocare ----------------
@@ -554,4 +771,31 @@ func windowsOfPids(pids []uint32) []uintptr {
 	winsOut = nil
 	pEnumWindows.Call(winsCb, 0)
 	return winsOut
+}
+
+// markPlayed (3.1): ricorda quando hai aperto il gioco da Tasso, per "Giocati di recente".
+func markPlayed(id string) {
+	now := time.Now().Unix()
+	updateSettings(func(s *Settings) {
+		if s.GamePlayed == nil {
+			s.GamePlayed = map[string]int64{}
+		}
+		if _, ok := s.GamePlayed[id]; !ok && len(s.GamePlayed) >= 500 {
+			// pieno: tolgo il gioco aperto meno di recente per fare spazio
+			old, oldT := "", int64(1<<62)
+			for k, t := range s.GamePlayed {
+				if t < oldT {
+					old, oldT = k, t
+				}
+			}
+			delete(s.GamePlayed, old)
+		}
+		s.GamePlayed[id] = now
+	})
+	libMu.Lock()
+	if g, ok := library[id]; ok {
+		g.Played = now
+		library[id] = g
+	}
+	libMu.Unlock()
 }

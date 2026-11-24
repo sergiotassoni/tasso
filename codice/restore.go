@@ -54,10 +54,12 @@ func rememberStartup(scope, name string, newState bool) {
 }
 
 // restoreOriginal rimette le impostazioni di Windows com'erano prima di Tasso.
-func restoreOriginal() []string {
-	if isRunning() {
-		return []string{"Sta girando una pulizia: aspetta che finisca, poi rimetti com'era."}
+// ok = false se non ha potuto rimettere tutto (Tasso occupato o script non arrivato alla fine).
+func restoreOriginal() (msgs []string, ok bool) {
+	if !claimRun() {
+		return []string{"Sta girando una pulizia: aspetta che finisca, poi rimetti com'era."}, false
 	}
+	defer releaseRun()
 	profileForget()
 	modeMu.Lock()
 	defer modeMu.Unlock()
@@ -69,7 +71,6 @@ func restoreOriginal() []string {
 	}
 	setMu.Unlock()
 
-	var msgs []string
 	setMu.Lock()
 	var tuned []string
 	for id := range settings.GameTunes {
@@ -80,17 +81,25 @@ func restoreOriginal() []string {
 	if hasCmds {
 		msgs = append(msgs, gamingResetAll()...)
 	}
+	busy := 0
 	for _, id := range tuned {
-		gameTuneUndoQuiet(id)
+		if gameTuneBusy(id) {
+			busy++
+			continue
+		}
+		gameTuneUndoQuiet(id, false)
 	}
-	if len(tuned) > 0 {
+	if len(tuned) > busy {
 		msgs = append(msgs, "Regolazioni dei giochi tolte.")
+	}
+	if busy > 0 {
+		msgs = append(msgs, "Un gioco regolato è aperto: chiudilo e premi di nuovo per togliere anche la sua regolazione.")
 	}
 	if len(snap) == 0 && len(orig) == 0 {
 		if len(msgs) > 0 {
-			return msgs
+			return msgs, busy == 0
 		}
-		return []string{"Tasso non ha ancora cambiato impostazioni di Windows: non c'è niente da rimettere."}
+		return []string{"Tasso non ha ancora cambiato impostazioni di Windows: non c'è niente da rimettere."}, true
 	}
 	snapOK := true
 	if len(snap) > 0 {
@@ -119,7 +128,7 @@ func restoreOriginal() []string {
 		}
 		s.StartupOrig = nil
 	})
-	return msgs
+	return msgs, snapOK && busy == 0
 }
 
 // runRestoreScript rimette la foto delle impostazioni e dice se lo script è arrivato davvero alla fine.
@@ -143,11 +152,13 @@ func runRestoreScript(snap json.RawMessage, onMsg func(string)) bool {
 
 func restoreAndMaybePause(pause bool) string {
 	return async("restore", func() {
-		msgs := restoreOriginal()
-		if pause {
+		msgs, ok := restoreOriginal()
+		// Se non ha rimesso tutto, Tasso resta acceso: spento non potrebbe più avvisarti.
+		paused := pause && ok
+		if paused {
 			setPaused(true)
 		}
-		emit("onRestoreDone", map[string]interface{}{"msgs": msgs, "paused": pause, "settings": getSettings()})
+		emit("onRestoreDone", map[string]interface{}{"msgs": msgs, "ok": ok, "paused": paused, "settings": getSettings()})
 	})
 }
 

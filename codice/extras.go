@@ -176,8 +176,8 @@ func netUsage() {
 }
 
 func wifiList() {
-	r := runPS(wifiScript, 2*time.Minute, nil)
-	emit("onWifi", decodeJSON(r.JSON))
+	r := runPSArgs(wifiScript, map[string]string{"base": scriptDir()}, 2*time.Minute, nil)
+	emitRaw("onWifi", decodeJSON(r.JSON)) // nomi delle reti e password: mai tradotti
 }
 
 // ---------------- Mappa del disco ----------------
@@ -227,6 +227,10 @@ var (
 // gameTarget: la modalità che Tasso ha messo da solo all'apertura del gioco.
 var gameTarget atomic.Value
 
+// gameResumeDone: al primo giro dopo l'avvio controllo se era rimasta in sospeso una partita
+// (PC spento in gioco): in quel caso rimetto la modalità di prima.
+var gameResumeDone atomic.Bool
+
 func startGameWatcher() {
 	go func() {
 		defer guard("extras.go:230")
@@ -240,9 +244,15 @@ func startGameWatcher() {
 
 func gameTick() {
 	setMu.Lock()
-	on := settings.AutoGame && !settings.Paused
+	on := settings.AutoGame && !settings.Paused && settings.Profile != "ufficio" // in Ufficio niente modalità gioco automatica
+	forAll := autoGameForAll(&settings)
 	prev := settings.Mode
+	left := settings.ModeBeforeGame
 	setMu.Unlock()
+	if !gameResumeDone.Swap(true) && left != "" && runningGame() == "" {
+		endGameMode()
+		return
+	}
 	if !on {
 		// Automatico spento (o Tasso in pausa) a partita in corso: rimetto la modalità di prima.
 		gameMu.Lock()
@@ -270,18 +280,21 @@ func gameTick() {
 			if m == "max" { // Massima potenza: FPS competitivo
 				target = "fps"
 			}
-			// Con una scelta per questo gioco la metto sempre; senza, non abbasso FPS a Gaming.
-			if (m != "" && prev != target) || (m == "" && prev != "gaming" && prev != "fps") {
+			// Con una scelta per questo gioco la metto sempre; senza, non abbasso FPS a Gaming, e non
+			// cambio niente se la modalità automatica è accesa solo per i giochi con una loro potenza.
+			if (m != "" && prev != target) || (m == "" && forAll && prev != "gaming" && prev != "fps") {
 				back := prev
 				if _, ok := modeScripts[back]; !ok {
 					back = "normale" // es. dopo "Rimetti com'era": non è una modalità da rimettere
 				}
-				updateSettings(func(s *Settings) { s.ModeBeforeGame = back })
+				updateSettings(func(s *Settings) { s.ModeBeforeGame, s.GameTarget = back, target })
 				gameTarget.Store(target)
 				go setMode(target)
 			}
 			overlayGameStarted()
-			emit("onGameMode", map[string]interface{}{"active": true, "game": name, "mode": target})
+			if m != "" || forAll { // senza una scelta per questo gioco non ho cambiato niente: niente avviso
+				emit("onGameMode", map[string]interface{}{"active": true, "game": name, "mode": target})
+			}
 			return
 		}
 		gameMu.Unlock()
@@ -304,11 +317,15 @@ func endGameMode() {
 	setMu.Lock()
 	back := settings.ModeBeforeGame
 	cur := settings.Mode
+	saved := settings.GameTarget
 	setMu.Unlock()
 	restored := ""
 	if back != "" {
-		updateSettings(func(s *Settings) { s.ModeBeforeGame = "" })
+		updateSettings(func(s *Settings) { s.ModeBeforeGame, s.GameTarget = "", "" })
 		t, _ := gameTarget.Load().(string)
+		if t == "" {
+			t = saved
+		}
 		if cur == "gaming" || (t != "" && cur == t) {
 			restored = back
 			go setMode(back)

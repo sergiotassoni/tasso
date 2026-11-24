@@ -126,6 +126,15 @@ func NewWithOptions(options WebViewOptions) WebView {
 	if err != nil {
 		log.Fatal(err)
 	}
+	// Tasso: niente tasti da browser (F5/Ctrl+R ricarica e lascia la pagina bianca, Ctrl+F, Ctrl+P,
+	// Alt+Freccia sinistra, zoom da tastiera). Secondo Microsoft restano attivi i tasti di modifica
+	// del testo (Ctrl+C, Ctrl+V, Ctrl+X, Ctrl+A, Ctrl+Z) e di movimento (Home, Fine, Pagina su/giù).
+	// Niente zoom con Ctrl+rotellina (Indietro bloccato in JS con popstate). Senza log.Fatal:
+	// una versione vecchia di WebView2 che non li conosce non deve impedire a Tasso di aprirsi.
+	if !options.Debug {
+		_ = settings.PutAreBrowserAcceleratorKeysEnabled(false)
+		_ = settings.PutIsZoomControlEnabled(false)
+	}
 
 	return w
 }

@@ -66,12 +66,61 @@ $sorted = @($out | Sort-Object { $_.name })
 [Console]::Out.WriteLine('JSON ' + (ConvertTo-Json -InputObject $sorted -Compress -Depth 3))
 `
 
-const uninstallScript = `
+// orphanHelper (3.1): una voce è "orfana" se il suo programma di disinstallazione non c'è più
+// (come il Pannello di controllo: "potrebbe essere già stato disinstallato").
+// msiexec non lo giudico: è Windows stesso a dire se il prodotto c'è ancora.
+const orphanHelper = `
+function Get-UninstallFile([string]$cmd) {
+  $cmd = ([string]$cmd).Trim()
+  if (-not $cmd) { return '' }
+  if ($cmd.StartsWith('"')) { $i = $cmd.IndexOf('"', 1); if ($i -gt 1) { return $cmd.Substring(1, $i - 1) } else { return '' } }
+  $m = [regex]::Match($cmd, '(?i)^([A-Z]:\\[^"]*?\.(exe|com|bat|cmd))(?=\s|$)')
+  if ($m.Success) { return $m.Groups[1].Value }
+  return ''
+}
+function Test-FileThere([string]$f, [bool]$wow) {
+  if (-not $f) { return $true }
+  $f = [Environment]::ExpandEnvironmentVariables($f)
+  if ($f -notmatch '^[A-Za-z]:\\') { return $true }
+  if (-not (Test-Path -LiteralPath ($f.Substring(0, 3)))) { return $true }
+  $c = @($f)
+  if ($wow) {
+    $c += ($f -ireplace '\\System32\\', '\SysWOW64\')
+    $pf = [Environment]::GetEnvironmentVariable('ProgramFiles'); $px = [Environment]::GetEnvironmentVariable('ProgramFiles(x86)')
+    if ($pf -and $px -and $f.StartsWith($pf + '\', [StringComparison]::OrdinalIgnoreCase)) { $c += ($px + $f.Substring($pf.Length)) }
+  }
+  foreach ($x in $c) { if (Test-Path -LiteralPath $x -PathType Leaf) { return $true } }
+  return $false
+}
+# Orfana SOLO se sono sicuro: nel dubbio (comandi tipo rundll32, cmd, msiexec, dischi scollegati) no.
+function Test-UninstallOrphan($p, [string]$key) {
+  if ([int]$p.SystemComponent -eq 1 -or [string]$p.ParentKeyName) { return $false }
+  $wow = $key -match '(?i)\\WOW6432Node\\|^HKEY_CURRENT_USER\\'
+  $loc = [string]$p.InstallLocation
+  if ($loc -and (Test-Path -LiteralPath ([Environment]::ExpandEnvironmentVariables($loc).Trim('"')) -PathType Container)) { return $false }
+  $cmd = ([string]$p.UninstallString).Trim(); $q = ([string]$p.QuietUninstallString).Trim()
+  if (-not $cmd -and -not $q) { return -not [string]$p.WindowsInstaller }
+  foreach ($x in @($cmd, $q)) {
+    if (-not $x) { continue }
+    $f = Get-UninstallFile $x
+    if (-not $f) { return $false }
+    if (Test-FileThere $f $wow) { return $false }
+  }
+  return $true
+}
+`
+
+// uninstallScript: ofHelpers serve per Start-AsUser (programmi installati solo per il tuo utente).
+const uninstallScript = ofHelpers + orphanHelper + `
 $kp = 'Registry::' + [string]$A.key
 $p = Get-ItemProperty -LiteralPath $kp -ErrorAction SilentlyContinue
 if (-not $p) { Say 'Programma non trovato: forse è già stato disinstallato.'; return }
 $name = [string]$p.DisplayName
 $cmd = ([string]$p.UninstallString).Trim()
+if (Test-UninstallOrphan $p ([string]$A.key)) {
+  [Console]::Out.WriteLine('JSON ' + (ConvertTo-Json -InputObject ([pscustomobject]@{ orphan = $true; name = $name; key = [string]$A.key }) -Compress))
+  return
+}
 Say ('Avvio la disinstallazione di ' + $name + '. Segui le finestre che si aprono.')
 $file = ''; $a2 = ''
 if ($cmd -match '(?i)msiexec') {
@@ -87,11 +136,30 @@ if ($cmd -match '(?i)msiexec') {
 }
 $t0 = Get-Date
 $tempLong = $env:TEMP; try { $tempLong = (Get-Item -LiteralPath $env:TEMP -ErrorAction Stop).FullName } catch {}
+# Programma installato solo per il tuo utente (HKCU): il suo disinstallatore lo può cambiare qualunque
+# programma che gira col tuo account, quindi parte come utente normale, mai da amministratore.
+$asUser = ([string]$A.key) -match '(?i)^HKEY_CURRENT_USER\\'
 try {
-  # Aspetto solo il programma di disinstallazione, non le pagine web o i browser che apre lui.
-  if ($a2) { $up = Start-Process -FilePath $file -ArgumentList $a2 -PassThru -ErrorAction Stop } else { $up = Start-Process -FilePath $file -PassThru -ErrorAction Stop }
-  if ($up) { [void]$up.WaitForExit(3600000) }
-} catch { Say ('Non riesco ad avviare il programma di disinstallazione: ' + $_.Exception.Message); return }
+  if ($asUser) {
+    $exe = [Environment]::ExpandEnvironmentVariables($file).Trim('"')
+    if ($exe -notmatch '^[A-Za-z]:\\') { $exe = Join-Path $env:SystemRoot ('System32\' + $exe) }
+    if (-not (Start-AsUser $exe $a2)) { Say ('Non riesco ad avviare il programma di disinstallazione: ' + $exe); return }
+    # Start-AsUser non restituisce il processo: aspetto finché quel programma resta aperto (al massimo un'ora).
+    $end = $t0.AddHours(1); $seen = $false; $w = 0
+    while ((Get-Date) -lt $end) {
+      $run = @(Get-Process -ErrorAction SilentlyContinue | Where-Object { $st = $null; try { $st = $_.StartTime } catch {}; $st -and $st -ge $t0 -and $_.SessionId -ne 0 -and "$($_.Path)" -ieq $exe })
+      if ($run.Count) { $seen = $true } elseif ($seen -or $w -ge 30) { break }
+      Start-Sleep -Seconds 1; $w++
+    }
+  } else {
+    # Aspetto solo il programma di disinstallazione, non le pagine web o i browser che apre lui.
+    if ($a2) { $up = Start-Process -FilePath $file -ArgumentList $a2 -PassThru -ErrorAction Stop } else { $up = Start-Process -FilePath $file -PassThru -ErrorAction Stop }
+    if ($up) { [void]$up.WaitForExit(3600000) }
+  }
+} catch {
+  Say ('Non riesco ad avviare il programma di disinstallazione: ' + $_.Exception.Message)
+  return
+}
 # Molti disinstallatori (NSIS, Inno) fanno una copia di sé nella cartella temporanea e chiudono subito
 # il primo programma: finché quella copia è aperta (la finestra dove scegli) continuo ad aspettare.
 $t = 0; $idle = 0
@@ -336,4 +404,26 @@ $p = ''
 if ($f) { try { $p = [string]$f.Self.Path } catch {} }
 if ($p -and -not (Test-Path -LiteralPath $p -PathType Container)) { $p = '' }
 [Console]::Out.WriteLine('JSON ' + (ConvertTo-Json -InputObject ([ordered]@{ path = $p }) -Compress))
+`
+
+// removeOrphanScript (3.1): toglie dall'elenco una voce orfana, solo se è ancora orfana,
+// dopo averne salvato una copia .reg nella cartella dei backup (doppio clic per rimetterla).
+const removeOrphanScript = orphanHelper + `
+$k = [string]$A.key
+$kp = 'Registry::' + $k
+$i = $k.LastIndexOf('\'); $leaf = $k.Substring($i + 1)
+$names = @(Get-ChildItem -LiteralPath ('Registry::' + $k.Substring(0, $i)) -ErrorAction SilentlyContinue | ForEach-Object { $_.PSChildName })
+if ($names -cnotcontains $leaf) { Say 'Fatto: non era più nell''elenco.'; [Console]::Out.WriteLine('JSON {"ok":true}'); return }
+$p = Get-ItemProperty -LiteralPath $kp -ErrorAction SilentlyContinue
+if (-not $p) { Say 'Fatto: non era più nell''elenco.'; [Console]::Out.WriteLine('JSON {"ok":true}'); return }
+if (-not (Test-UninstallOrphan $p $k)) { Say 'Questo programma sembra ancora installato: non lo tolgo dall''elenco. Prova a disinstallarlo.'; [Console]::Out.WriteLine('JSON {"ok":false}'); return }
+$dir = [string]$A.dir
+try { [void][IO.Directory]::CreateDirectory($dir) } catch {}
+$safe = (([string]$p.DisplayName + '_' + ($k -replace '^.*\\', '')) -replace '[^A-Za-z0-9]+', '_').Trim('_'); if ($safe.Length -gt 80) { $safe = $safe.Substring(0, 80) }
+$bak = Join-Path $dir ('programma_tolto_' + (Get-Date -Format 'yyyyMMdd_HHmmss') + '_' + $safe + '.reg')
+$rc = 1
+try { & (Join-Path $env:SystemRoot 'System32\reg.exe') export $k $bak /y 2>$null | Out-Null; $rc = $LASTEXITCODE } catch {}
+if ($rc -ne 0 -or -not (Test-Path -LiteralPath $bak) -or (Get-Item -LiteralPath $bak).Length -lt 20) { Say 'Non l''ho tolto: non sono riuscito a farne una copia di sicurezza.'; [Console]::Out.WriteLine('JSON {"ok":false}'); return }
+try { Remove-Item -LiteralPath $kp -Recurse -Force -ErrorAction Stop; Say ('Tolto dall''elenco: ' + [string]$p.DisplayName + '. La copia di sicurezza è nella cartella backup di Tasso.'); [Console]::Out.WriteLine('JSON {"ok":true}') }
+catch { Say 'Non sono riuscito a toglierlo dall''elenco.'; [Console]::Out.WriteLine('JSON {"ok":false}') }
 `

@@ -259,7 +259,7 @@ func gamePing(region string) {
 	}
 	updateSettings(func(s *Settings) { s.PingRegion = region })
 	targets, valveNote := pingTargetsFor(region)
-	emit("onPingProgress", fmt.Sprintf("Misuro %d server…", len(targets)))
+	emit("onPingProgress", fmt.Sprintf(trGo("Misuro %d server…"), len(targets)))
 	res := make([]pingResult, len(targets))
 	sem := make(chan struct{}, 6)
 	var wg sync.WaitGroup

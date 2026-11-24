@@ -248,8 +248,13 @@ func num(v interface{}) (float64, bool) {
 	return 0, false
 }
 
+// gb: gigabyte con una cifra decimale (virgola in italiano, punto in inglese).
 func gb(b float64) string {
-	return strings.Replace(fmt.Sprintf("%.1f", b/(1<<30)), ".", ",", 1)
+	s := fmt.Sprintf("%.1f", b/(1<<30))
+	if isEN() {
+		return s
+	}
+	return strings.Replace(s, ".", ",", 1)
 }
 
 // buildReport prepara il messaggio: voto, elenco con spunte verdi (o avvisi) e una scheda per ogni componente.
@@ -308,7 +313,7 @@ func buildReport(note string) map[string]interface{} {
 	if cpuName == "" {
 		cpuName = "Processore"
 	}
-	cpuLine := fmt.Sprintf("Uso %d%%", int(cpuUse+0.5))
+	cpuLine := fmt.Sprintf(trGo("Uso %d%%"), int(cpuUse+0.5))
 	cpuIcon := "✅"
 	if sens.CPU != nil {
 		cpuLine += fmt.Sprintf(" · %.0f °C", *sens.CPU)
@@ -316,14 +321,20 @@ func buildReport(note string) map[string]interface{} {
 	}
 
 	// Scheda video
-	gpuName := "Scheda video"
+	gpuName := trGo("Scheda video")
 	if len(hwCache.GPUs) > 0 {
 		gpuName = shortName(hwCache.GPUs[0].Name)
+		for _, g := range hwCache.GPUs { // la scheda dedicata, come nella finestra (non l'integrata)
+			if discreteGPU(g.Name) {
+				gpuName = shortName(g.Name)
+				break
+			}
+		}
 	}
 	gpuIcon := "✅"
 	var gl []string
 	if u, ok := num(gpu["util"]); ok {
-		gl = append(gl, fmt.Sprintf("Uso %d%%", int(u+0.5)))
+		gl = append(gl, fmt.Sprintf(trGo("Uso %d%%"), int(u+0.5)))
 	}
 	gt, okT := num(gpu["temp"])
 	if !okT && sens.GPU != nil {
@@ -339,7 +350,7 @@ func buildReport(note string) map[string]interface{} {
 		}
 	}
 	if len(gl) == 0 {
-		gl = append(gl, "funziona")
+		gl = append(gl, trGo("nessun problema"))
 	}
 
 	// Scheda madre
@@ -347,7 +358,7 @@ func buildReport(note string) map[string]interface{} {
 	if board == "" {
 		board = "Scheda madre"
 	}
-	boardLine := "funziona"
+	boardLine := trGo("nessun problema")
 	boardIcon := "✅"
 	if sens.Board != nil {
 		boardLine = fmt.Sprintf("%.0f °C", *sens.Board)
@@ -375,7 +386,7 @@ func buildReport(note string) map[string]interface{} {
 	} else if dfP < 20 {
 		diskIcon = "⚠️"
 	}
-	diskLine := fmt.Sprintf("%s liberi (%d%%)", fmtBytes(int64(diskFree)), dfP)
+	diskLine := fmt.Sprintf(trGo("%s liberi (%d%%)"), fmtBytes(int64(diskFree)), dfP)
 	var dl []string
 	for i, d := range hwCache.Disks {
 		if i >= 3 {
@@ -394,17 +405,17 @@ func buildReport(note string) map[string]interface{} {
 			line += fmt.Sprintf(" · %.0f °C", *d.Temp)
 		}
 		if d.Wear != nil {
-			line += fmt.Sprintf(" · usura %.0f%%", *d.Wear)
+			line += fmt.Sprintf(trGo(" · usura %.0f%%"), *d.Wear)
 		}
 		dl = append(dl, line)
 	}
 
 	netLine := "❌ Non connesso"
 	if online {
-		netLine = fmt.Sprintf("✅ Connesso · %d ms", ms)
+		netLine = fmt.Sprintf(trGo("✅ Connesso · %d ms"), ms)
 	}
 
-	lastTxt := "mai"
+	lastTxt := trGo("mai")
 	if lc != nil && lc.Date != "" {
 		lastTxt = lc.Date + " · " + fmtBytes(lc.Freed)
 	}
@@ -418,12 +429,12 @@ func buildReport(note string) map[string]interface{} {
 		field(gpuIcon+" Scheda video", gpuName+"\n"+strings.Join(gl, " · ")),
 		field(boardIcon+" Scheda madre", board+"\n"+boardLine),
 		field(ramIcon+" RAM", ramLine),
-		field(diskIcon+" Disco "+strings.TrimSuffix(envOr("SystemDrive", "C:"), "\\"), diskLine),
+		field(diskIcon+" "+trGo("Disco ")+strings.TrimSuffix(envOr("SystemDrive", "C:"), "\\"), diskLine),
 		field("🌐 Internet", netLine),
 		field("⚙️ Modalità", modeName(mode)),
 		field("⏱️ Acceso da", uptimeText()),
 		field("🧹 Ultima pulizia", lastTxt),
-		field("🔁 Prossimo report", fmt.Sprintf("tra %d ore", discordEvery())),
+		field("🔁 Prossimo report", fmt.Sprintf(trGo("tra %d ore"), discordEvery())),
 	}
 	if len(dl) > 0 {
 		fields = append(fields, map[string]interface{}{"name": "💾 Dischi", "value": strings.Join(dl, "\n"), "inline": false})
@@ -438,7 +449,7 @@ func buildReport(note string) map[string]interface{} {
 		if len(h.Issues) == 0 {
 			b.WriteString("Il PC è a posto 👍\n")
 		} else {
-			fmt.Fprintf(&b, "Da sistemare (%d):\n", len(h.Issues))
+			fmt.Fprintf(&b, trGo("Da sistemare (%d):\n"), len(h.Issues))
 			for i, it := range h.Issues {
 				if i >= 6 {
 					break
@@ -505,7 +516,7 @@ func sendDiscordStatus(note string) error {
 		return fmt.Errorf("Discord chiede di aspettare un po': riprova tra qualche minuto")
 	}
 	if resp.StatusCode >= 300 {
-		return fmt.Errorf("Discord ha rifiutato il messaggio (codice %d)", resp.StatusCode)
+		return fmt.Errorf(trGo("Discord ha rifiutato il messaggio (codice %d)"), resp.StatusCode)
 	}
 	updateSettings(func(s *Settings) { s.DiscordLast = time.Now().Format(time.RFC3339) })
 	return nil
@@ -614,7 +625,7 @@ func setDiscordBot(token string, on bool) {
 	_ = json.NewDecoder(io.LimitReader(resp.Body, 1<<20)).Decode(&me)
 	resp.Body.Close()
 	if resp.StatusCode != 200 && resp.StatusCode != 401 {
-		setBotState(map[string]interface{}{"ok": false, "msg": fmt.Sprintf("Discord ora non risponde bene (errore %d): riprova tra un minuto.", resp.StatusCode)})
+		setBotState(map[string]interface{}{"ok": false, "msg": fmt.Sprintf(trGo("Discord ora non risponde bene (errore %d): riprova tra un minuto."), resp.StatusCode)})
 		return
 	}
 	if resp.StatusCode == 401 || me.ID == "" {
@@ -798,7 +809,7 @@ func uptimeText() string {
 	d := time.Duration(r) * time.Millisecond
 	h := int(d.Hours())
 	if h >= 24 {
-		return fmt.Sprintf("%d g %d h", h/24, h%24)
+		return fmt.Sprintf(trGo("%d g %d h"), h/24, h%24)
 	}
 	return fmt.Sprintf("%d h %d min", h, int(d.Minutes())%60)
 }

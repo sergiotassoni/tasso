@@ -1,0 +1,652 @@
+# Glossario da gioco inglese -> italiano. Scritto per Tasso Traduce (GPL-3.0), nessuna fonte esterna.
+# Formato: inglese<TAB>italiano. Righe con # sono commenti. "=" come italiano = non tradurre.
+# --- generali e interfaccia
+HP	PV
+MP	PM
+XP	PE
+EXP	PE
+SP	PA
+NPC	PNG
+NPCs	PNG
+Health	Salute
+Health bar	Barra della salute
+Stamina	Resistenza
+Energy	Energia
+Shield	Scudo
+Shields	Scudi
+Armor	Armatura
+Armour	Armatura
+Level up	Aumento di livello
+Level Up	Aumento di livello
+Experience	Esperienza
+Skill	Abilità
+Skills	Abilità
+Skill point	Punto abilità
+Skill points	Punti abilità
+Skill tree	Albero delle abilità
+Perk	Vantaggio
+Perks	Vantaggi
+Talent	Talento
+Talents	Talenti
+Ability	Abilità
+Abilities	Abilità
+Buff	Potenziamento
+Buffs	Potenziamenti
+Debuff	Penalità
+Debuffs	Penalità
+Strength	Forza
+Dexterity	Destrezza
+Agility	Agilità
+Intelligence	Intelligenza
+Wisdom	Saggezza
+Charisma	Carisma
+Constitution	Costituzione
+Endurance	Resistenza
+Luck	Fortuna
+Vitality	Vitalità
+Critical hit	Colpo critico
+Critical damage	Danno critico
+Crit chance	Probabilità di critico
+Damage	Danno
+Damage over time	Danno nel tempo
+Attack	Attacco
+Defense	Difesa
+Defence	Difesa
+Dodge	Schivata
+Parry	Parata
+Inventory	Inventario
+Backpack	Zaino
+Stash	Deposito
+Loot	Bottino
+Gear	Equipaggiamento
+Equipment	Equipaggiamento
+Unequip	Rimuovi
+Consumable	Consumabile
+Consumables	Consumabili
+Potion	Pozione
+Health potion	Pozione di salute
+Mana potion	Pozione di mana
+Elixir	Elisir
+Scroll	Pergamena
+Crafting	Creazione
+Resources	Risorse
+Upgrade	Potenziamento
+Upgrades	Potenziamenti
+Rarity	Rarità
+Legendary	Leggendario
+Mythic	Mitico
+Coins	Monete
+Currency	Valuta
+Merchant	Mercante
+Vendor	Venditore
+Blacksmith	Fabbro
+Innkeeper	Locandiere
+Tavern	Taverna
+Inn	Locanda
+Quest	Missione
+Quests	Missioni
+Quest log	Diario delle missioni
+Quest Log	Diario delle missioni
+Main quest	Missione principale
+Main Quest	Missione principale
+Side quest	Missione secondaria
+Side Quest	Missione secondaria
+Bounty	Taglia
+Objective	Obiettivo
+Objectives	Obiettivi
+Optional objective	Obiettivo facoltativo
+Waypoint	Punto di riferimento
+Fast travel	Viaggio rapido
+Map	Mappa
+World map	Mappa del mondo
+Minimap	Minimappa
+Journal	Diario
+Codex	Codice
+Achievement	Obiettivo
+Achievements	Obiettivi
+Trophy	Trofeo
+Trophies	Trofei
+Checkpoint	Checkpoint
+Autosave	Salvataggio automatico
+Quicksave	Salvataggio rapido
+Quickload	Caricamento rapido
+Save slot	Slot di salvataggio
+Save game	Salva partita
+Save Game	Salva partita
+Load game	Carica partita
+Load Game	Carica partita
+New game	Nuova partita
+New Game	Nuova partita
+New Game+	Nuova partita+
+Main menu	Menu principale
+Main Menu	Menu principale
+Pause menu	Menu di pausa
+Settings	Impostazioni
+Options	Opzioni
+Controls	Comandi
+Key bindings	Assegnazione tasti
+Keybindings	Assegnazione tasti
+Graphics	Grafica
+Subtitles	Sottotitoli
+Difficulty	Difficoltà
+Nightmare	Incubo
+Permadeath	Morte permanente
+Respawn	Rinascita
+Game over	Partita finita
+Game Over	Partita finita
+Cutscene	Filmato
+Loading	Caricamento
+Boss fight	Scontro con il boss
+Miniboss	Mini boss
+Guild	Gilda
+Teammate	Compagno di squadra
+Teammates	Compagni di squadra
+Companion	Compagno
+Companions	Compagni
+Follower	Seguace
+Followers	Seguaci
+Healer	Guaritore
+Multiplayer	Multigiocatore
+Single player	Giocatore singolo
+Co-op	Cooperativa
+Matchmaking	Ricerca partita
+Leaderboard	Classifica
+Leaderboards	Classifiche
+Battle pass	Pass battaglia
+Loadout	Equipaggiamento
+Respec	Riassegna punti
+# --- fantasy
+Spell	Incantesimo
+Spells	Incantesimi
+Spellbook	Libro degli incantesimi
+Enchantment	Incantamento
+Rune	Runa
+Runes	Rune
+Sorcerer	Stregone
+Sorceress	Maga
+Wizard	Mago
+Mage	Mago
+Warlock	Warlock
+Necromancer	Negromante
+Paladin	Paladino
+Cleric	Chierico
+Rogue	Ladro
+Ranger	Ranger
+Druid	Druido
+Bard	Bardo
+Monk	Monaco
+Barbarian	Barbaro
+Knight	Cavaliere
+Squire	Scudiero
+My lord	Mio signore
+Milord	Mio signore
+My lady	Mia signora
+Your Majesty	Vostra Maestà
+Your Grace	Vostra Grazia
+Sire	Sire
+Kingdom	Regno
+Realm	Reame
+Throne	Trono
+Stronghold	Roccaforte
+Outpost	Avamposto
+Ruins	Rovine
+Crypt	Cripta
+Tomb	Tomba
+Shrine	Santuario
+Altar	Altare
+Portal	Portale
+Undead	Non morti
+Skeleton	Scheletro
+Ghoul	Ghoul
+Wraith	Spettro
+Dragon	Drago
+Goblin	Goblin
+Orc	Orco
+Troll	Troll
+Elf	Elfo
+Elves	Elfi
+Dwarf	Nano
+Dwarves	Nani
+Halfling	Halfling
+Sword	Spada
+Greatsword	Spadone
+Dagger	Pugnale
+Axe	Ascia
+Mace	Mazza
+Hammer	Martello
+Spear	Lancia
+Crossbow	Balestra
+Arrow	Freccia
+Arrows	Frecce
+Wand	Bacchetta
+Helmet	Elmo
+Gauntlets	Guanti d'arme
+Boots	Stivali
+Amulet	Amuleto
+# --- sparatutto / militare
+Headshot	Colpo alla testa
+Sniper	Cecchino
+Sniper rifle	Fucile di precisione
+Assault rifle	Fucile d'assalto
+Shotgun	Fucile a pompa
+SMG	Mitraglietta
+Submachine gun	Mitraglietta
+Machine gun	Mitragliatrice
+LMG	Mitragliatrice leggera
+Pistol	Pistola
+Handgun	Pistola
+Revolver	Revolver
+Rocket launcher	Lanciarazzi
+Grenade	Granata
+Grenades	Granate
+Frag grenade	Granata a frammentazione
+Flashbang	Granata stordente
+Smoke grenade	Fumogeno
+Ammo	Munizioni
+Ammunition	Munizioni
+Magazine	Caricatore
+Reload	Ricarica
+Reloading	Ricarica in corso
+Iron sights	Mire metalliche
+Aim down sights	Mira con il mirino
+Recoil	Rinculo
+Hostiles	Ostili
+Tango	Bersaglio
+Tangos	Bersagli
+Enemy contact	Contatto nemico
+All clear	Via libera
+Copy that	Ricevuto
+Roger	Ricevuto
+Roger that	Ricevuto
+Affirmative	Affermativo
+Over and out	Passo e chiudo
+Stand by	In attesa
+Standing by	In attesa
+Cover me	Coprimi
+Covering fire	Fuoco di copertura
+Take cover	Al riparo
+Get down	Giù
+Fall back	Ripiegare
+Move out	Andiamo
+Hold position	Mantenete la posizione
+Extraction	Estrazione
+Extraction point	Punto di estrazione
+Exfil	Esfiltrazione
+LZ	Zona di atterraggio
+Landing zone	Zona di atterraggio
+Rendezvous	Punto d'incontro
+Intel	Informazioni
+Recon	Ricognizione
+Airstrike	Attacco aereo
+UAV	Drone
+Killstreak	Serie di uccisioni
+Revive	Rianima
+Medkit	Kit medico
+Med kit	Kit medico
+Body armor	Giubbotto antiproiettile
+Squad leader	Caposquadra
+Sergeant	Sergente
+Commander	Comandante
+Captain	Capitano
+Lieutenant	Tenente
+Colonel	Colonnello
+HQ	Comando
+Mission	Missione
+Mission failed	Missione fallita
+Mission complete	Missione completata
+# --- fantascienza
+Hull	Scafo
+Hull integrity	Integrità dello scafo
+Shields down	Scudi abbassati
+Engine room	Sala macchine
+Cargo bay	Stiva
+Airlock	Camera stagna
+Hyperdrive	Iperguida
+Warp	Curvatura
+Jump drive	Motore di salto
+Thrusters	Propulsori
+Reactor	Reattore
+Fuel	Carburante
+Oxygen	Ossigeno
+Vessel	Nave
+Starship	Astronave
+Spaceship	Astronave
+Space station	Stazione spaziale
+Hailing	Chiamata in corso
+Being hailed	Riceviamo una chiamata
+Docking	Attracco
+Sensors	Sensori
+Android	Androide
+# --- corse
+Lap	Giro
+Laps	Giri
+Final lap	Ultimo giro
+Pit stop	Pit stop
+Pit lane	Corsia dei box
+Pole position	Pole position
+Starting grid	Griglia di partenza
+Overtake	Sorpasso
+Nitro	Nitro
+Tires	Gomme
+Tyres	Gomme
+Hairpin	Tornante
+Chicane	Chicane
+Braking	Frenata
+Throttle	Acceleratore
+Gearbox	Cambio
+Best lap	Giro migliore
+Lap time	Tempo sul giro
+Time trial	Prova a tempo
+Championship	Campionato
+Finish line	Traguardo
+# --- strategia / gestione
+Troops	Truppe
+Infantry	Fanteria
+Cavalry	Cavalleria
+Archers	Arcieri
+Siege	Assedio
+Siege weapons	Macchine d'assedio
+Barracks	Caserma
+Town hall	Municipio
+Workers	Lavoratori
+Supplies	Rifornimenti
+Population	Popolazione
+Research	Ricerca
+Tech tree	Albero tecnologico
+Diplomacy	Diplomazia
+Alliance	Alleanza
+Ceasefire	Cessate il fuoco
+End turn	Fine turno
+Scouts	Esploratori
+# --- horror / investigazione
+Sanity	Sanità mentale
+Clue	Indizio
+Clues	Indizi
+Safe room	Stanza sicura
+Flashlight	Torcia
+Batteries	Batterie
+Key card	Tessera magnetica
+Keycard	Tessera magnetica
+Lockpick	Grimaldello
+Lockpicking	Scasso
+Stealth	Furtività
+Detective	Detective
+# --- sopravvivenza / statistiche
+Regen	Rigenerazione
+Health Regen	Rigenerazione della salute
+Stamina Regen	Rigenerazione della resistenza
+Mana Regen	Rigenerazione del mana
+Blood Regen	Rigenerazione del sangue
+Bleed	Sanguinamento
+Bleeding	Sanguinamento
+Bleed Resist	Resistenza al sanguinamento
+Fracture	Frattura
+Fracture Regen	Rigenerazione delle fratture
+Fracture Resist	Resistenza alle fratture
+Poison	Veleno
+Poison Resist	Resistenza al veleno
+Fire Resist	Resistenza al fuoco
+Cold Resist	Resistenza al freddo
+Resist	Resistenza
+Resistance	Resistenza
+Hunger	Fame
+Thirst	Sete
+Growth	Crescita
+Growth Rate	Velocità di crescita
+Mating Status	Stato di accoppiamento
+Bite Force	Forza del morso
+Max Speed	Velocità massima
+Carnivore	Carnivoro
+Herbivore	Erbivoro
+Omnivore	Onnivoro
+Biome	Bioma
+Biomes	Biomi
+Grassland	Prateria
+Grasslands	Praterie
+Highland	Altopiano
+Highlands	Altopiani
+Jungles	Giungle
+Wetlands	Paludi
+Nest	Nido
+Status Report	Rapporto di stato
+Preferred Food	Cibo preferito
+Skin Code	Codice skin
+Profile Data	Dati del profilo
+Hit Points	Punti vita
+Movement Speed	Velocità di movimento
+Attack Speed	Velocità d'attacco
+Carry Weight	Peso trasportabile
+# --- statistiche e schede creatura (aggiunte 7/11)
+Locked Health Regen	Rigenerazione della salute bloccata
+Asset Location	Posizione
+Asset Sex	Sesso
+Asset Age	Età
+Located	Si trova
+Boar	Cinghiale
+Deer	Cervo
+Chicken	Pollo
+Eggs Gestated	Uova in gestazione
+# --- equipaggiamento (aggiunte 7/11, scritte per Tasso Traduce)
+Helm	Elmo
+Hood	Cappuccio
+Hat	Cappello
+Crown	Corona
+Circlet	Diadema
+Mask	Maschera
+Chestplate	Corazza
+Breastplate	Pettorale
+Cuirass	Corazza
+Chainmail	Cotta di maglia
+Chain Mail	Cotta di maglia
+Plate Armor	Armatura a piastre
+Light Armor	Armatura leggera
+Heavy Armor	Armatura pesante
+Medium Armor	Armatura media
+Robe	Tunica
+Robes	Vesti
+Tunic	Tunica
+Jacket	Giacca
+Cloak	Mantello
+Cape	Mantello
+Gloves	Guanti
+Bracers	Bracciali
+Vambraces	Bracciali
+Belt	Cintura
+Pants	Pantaloni
+Trousers	Pantaloni
+Leggings	Gambali
+Greaves	Schinieri
+Shoes	Scarpe
+Sandals	Sandali
+Ring	Anello
+Necklace	Collana
+Pendant	Ciondolo
+Earring	Orecchino
+Trinket	Ninnolo
+Talisman	Talismano
+Bow	Arco
+Longbow	Arco lungo
+Shortbow	Arco corto
+Bolts	Dardi
+Quiver	Faretra
+Staff	Bastone
+Halberd	Alabarda
+Trident	Tridente
+Scythe	Falce
+Sickle	Falcetto
+Flail	Mazzafrusto
+Warhammer	Martello da guerra
+Battleaxe	Ascia da battaglia
+Battle Axe	Ascia da battaglia
+Hatchet	Accetta
+Knife	Coltello
+Rapier	Stocco
+Scimitar	Scimitarra
+Katana	Katana
+Claymore	Spadone
+Longsword	Spada lunga
+Shortsword	Spada corta
+Short Sword	Spada corta
+Long Sword	Spada lunga
+Buckler	Brocchiere
+Tower Shield	Scudo a torre
+Pickaxe	Piccone
+Shovel	Pala
+Fishing Rod	Canna da pesca
+Torch	Torcia
+Lantern	Lanterna
+Rope	Corda
+Bandage	Benda
+Bandages	Bende
+# --- materiali e oggetti da raccogliere
+Ore	Minerale
+Iron Ore	Minerale di ferro
+Copper Ore	Minerale di rame
+Gold Ore	Minerale d'oro
+Silver Ore	Minerale d'argento
+Ingot	Lingotto
+Iron Ingot	Lingotto di ferro
+Steel Ingot	Lingotto d'acciaio
+Gold Ingot	Lingotto d'oro
+Planks	Assi
+Sticks	Bastoncini
+Flint	Selce
+Coal	Carbone
+Charcoal	Carbonella
+Pelt	Pelliccia
+Fur	Pelliccia
+Fiber	Fibra
+Fibers	Fibre
+Cloth	Stoffa
+Linen	Lino
+Silk	Seta
+Feather	Piuma
+Feathers	Piume
+Gem	Gemma
+Gems	Gemme
+Gemstone	Pietra preziosa
+Ruby	Rubino
+Emerald	Smeraldo
+Sapphire	Zaffiro
+Diamond	Diamante
+Amethyst	Ametista
+Crystal	Cristallo
+Herb	Erba
+Herbs	Erbe
+Mushroom	Fungo
+Mushrooms	Funghi
+Berries	Bacche
+Berry	Bacca
+Seeds	Semi
+Raw Meat	Carne cruda
+Cooked Meat	Carne cotta
+Meat	Carne
+Raw Fish	Pesce crudo
+Cooked Fish	Pesce cotto
+Bread	Pane
+Cheese	Formaggio
+Apple	Mela
+Egg	Uovo
+Eggs	Uova
+Fresh Water	Acqua dolce
+Sugar	Zucchero
+Wine	Vino
+Ale	Birra
+Mead	Idromele
+Stew	Stufato
+Soup	Zuppa
+Key	Chiave
+Keys	Chiavi
+Treasure Chest	Forziere
+Gold Coins	Monete d'oro
+Silver Coins	Monete d'argento
+Quest Item	Oggetto della missione
+Quest Items	Oggetti della missione
+Key Items	Oggetti chiave
+Key Item	Oggetto chiave
+Materials	Materiali
+Ingredients	Ingredienti
+Weapons	Armi
+Weapon	Arma
+Armors	Armature
+Accessories	Accessori
+Accessory	Accessorio
+Tools	Attrezzi
+Miscellaneous	Varie
+Food	Cibo
+Drinks	Bevande
+Recipes	Ricette
+Recipe	Ricetta
+Blueprint	Progetto
+Blueprints	Progetti
+# --- statistiche
+Attack Power	Potenza d'attacco
+Magic Power	Potere magico
+Spell Power	Potere degli incantesimi
+Physical Damage	Danno fisico
+Magic Damage	Danno magico
+Fire Damage	Danno da fuoco
+Ice Damage	Danno da ghiaccio
+Lightning Damage	Danno da fulmine
+Poison Damage	Danno da veleno
+Armor Rating	Valore armatura
+Block Chance	Probabilità di parata
+Critical Chance	Probabilità di critico
+Crit Damage	Danno critico
+Health Regeneration	Rigenerazione della salute
+Mana Regeneration	Rigenerazione del mana
+Stamina Regeneration	Rigenerazione della resistenza
+Max Health	Salute massima
+Max Stamina	Resistenza massima
+Max Mana	Mana massimo
+Mana	Mana
+Durability	Durabilità
+Weight	Peso
+Price	Prezzo
+Quantity	Quantità
+Rank	Grado
+Tier	Livello
+Requires Level	Livello richiesto
+Required Level	Livello richiesto
+Item Level	Livello oggetto
+Cooldown	Ricarica
+Accuracy	Precisione
+Fire Rate	Cadenza di fuoco
+Rate of Fire	Cadenza di fuoco
+Handling	Maneggevolezza
+Mobility	Mobilità
+Stability	Stabilità
+Reload Speed	Velocità di ricarica
+Magazine Size	Capacità caricatore
+Top Speed	Velocità massima
+Acceleration	Accelerazione
+Common	Comune
+Uncommon	Non comune
+Rare	Raro
+Epic	Epico
+Exotic	Esotico
+Unique	Unico
+Set Item	Oggetto del set
+# --- stati e condizioni
+Burning	In fiamme
+Frozen	Congelato
+Stunned	Stordito
+Poisoned	Avvelenato
+Slowed	Rallentato
+Weakened	Indebolito
+Blinded	Accecato
+Silenced	Silenziato
+Exhausted	Esausto
+Starving	Affamato
+Dehydrated	Disidratato
+Overencumbered	Sovraccarico
+Encumbered	Appesantito
+Wounded	Ferito
+Achievement Unlocked	Obiettivo sbloccato
+Enemy sniper	Cecchino nemico
+Group	Gruppo
+Mutations	Mutazioni
+Nest	Nido
+Invite Code	codice d'invito
+Mouse	mouse
+Steam	Steam

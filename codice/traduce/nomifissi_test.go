@@ -1,0 +1,140 @@
+package traduce
+
+import (
+	"context"
+	"strings"
+	"testing"
+)
+
+func TestNomiFissiIntatti(t *testing.T) {
+	casi := []struct{ en, it, vuoi string }{
+		{"Hello Games has been hard at work.", "Ciao Games è stato al lavoro.", "Hello Games è stato al lavoro."},
+		{"construct an eerie corvette in No Man's Sky Forsaken.", "costruisci una corvetta inquietante Sky Forsaken di No Man.", "costruisci una corvetta inquietante No Man's Sky Forsaken."},
+		{"expand No Man's Sky.", "espandere No Man's Sky.", "espandere No Man's Sky."},
+		{"Nothing here.", "Ciao Games.", "Ciao Games."},
+	}
+	for _, c := range casi {
+		if got := nomiFissiIntatti(c.en, c.it); got != c.vuoi {
+			t.Errorf("%q -> %q, voglio %q", c.it, got, c.vuoi)
+		}
+	}
+}
+
+func TestNomeGiocoNonMangiaParole(t *testing.T) {
+	casi := []struct{ in, vuoi string }{
+		{"construct an eerie corvette in No Man's Sky Forsaken.", "construct an eerie corvette in No Man's Sky Forsaken."},
+		{"expand No Man's Sky. We hope you enjoy.", "expand No Man's Sky. We hope you enjoy."},
+		{"expand No Mans Sky. We hope", "expand No Man's Sky. We hope"},
+	}
+	for _, c := range casi {
+		if got := correggiNomeGioco(c.in, "No Man's Sky"); got != c.vuoi {
+			t.Errorf("%q -> %q, voglio %q", c.in, got, c.vuoi)
+		}
+	}
+}
+
+func TestSchermataNelPrompt(t *testing.T) {
+	ctx := ConSchermata(context.Background(), []string{"Sprint by Holding Shift", "Crouch with Ctrl", "Mouse"})
+	r := RichiestaTraduzione{Testo: "Mouse", Schermata: schermataDa(ctx, false)}
+	m := costruisciMessaggi(r)
+	if !strings.Contains(m[1].Content, "Crouch with Ctrl") || !strings.HasSuffix(m[1].Content, "Testo da tradurre:\nMouse") {
+		t.Fatalf("prompt senza schermata: %q", m[1].Content)
+	}
+	if schermataDa(ctx, true) != nil {
+		t.Fatal("nei dialoghi niente schermata")
+	}
+}
+
+func TestSchermataNellaCorrezione(t *testing.T) {
+	m := costruisciMessaggi(RichiestaTraduzione{Testo: "Steam Discussions", Bozza: "Discussioni a vapore", Schermata: []string{"Bug Report", "Steam Discussions"}})
+	if !strings.Contains(m[1].Content, "Bug Report") {
+		t.Error("la correzione deve vedere la schermata")
+	}
+}
+
+func TestEtichettaConMaiuscola(t *testing.T) {
+	if comeMaiuscola("Mouse", "mouse") != "Mouse" || comeMaiuscola("mouse", "mouse") != "mouse" {
+		t.Error("maiuscola")
+	}
+}
+
+func TestTokenMassimi(t *testing.T) {
+	if n := tokenMassimi(RichiestaTraduzione{Testo: "Apply", Bozza: "Applica"}); n != 24 {
+		t.Fatalf("etichetta corta: %d", n)
+	}
+	lunga := strings.Repeat("parola ", 40) // 280 lettere
+	n := tokenMassimi(RichiestaTraduzione{Testo: lunga, Bozza: lunga})
+	if n < 200 || n > 400 {
+		t.Fatalf("frase lunga: %d", n)
+	}
+}
+
+func TestPulisciPrefissoBozza(t *testing.T) {
+	if g := pulisciRisposta("Traduzione automatica: Lingua dell'interfaccia"); g != "Lingua dell'interfaccia" {
+		t.Fatal(g)
+	}
+}
+
+func TestMenuConNumero(t *testing.T) {
+	if v, ok := fraseMenuConNumero("32 (Default)"); !ok || v != "32 (Predefinito)" {
+		t.Fatal(v, ok)
+	}
+	if _, ok := fraseMenuConNumero("32"); ok {
+		t.Fatal("solo numero")
+	}
+	if _, ok := fraseMenuConNumero("Default"); !ok {
+		t.Fatal("voce semplice")
+	}
+}
+
+func TestNomeGiocoAttivo(t *testing.T) {
+	impostaNomeGiocoAttivo("Liar's Bar")
+	defer impostaNomeGiocoAttivo("")
+	for en, it := range map[string]string{
+		"Liar's Bar Deck2":       "Il Bar Deck2 di Liar",
+		"Liar's Bar REMASTERED!": "Il Bar Di Liar RIMASTERIZZATO!",
+	} {
+		got := nomiFissiIntatti(en, it)
+		if !strings.HasPrefix(got, "Liar's Bar") {
+			t.Errorf("%q -> %q", it, got)
+		}
+	}
+}
+
+func TestRigaPresentazione(t *testing.T) {
+	if g := pulisciRisposta("Ecco la traduzione italiana MIGLIORE:"); g != "" {
+		t.Fatal(g)
+	}
+	if g := pulisciRisposta("Ecco la traduzione italiana migliorata:\nDurante le partite classificate puoi segnalare i giocatori."); g != "Durante le partite classificate puoi segnalare i giocatori." {
+		t.Fatal(g)
+	}
+	if g := pulisciRisposta("Opzioni:"); g != "Opzioni:" {
+		t.Fatal("una voce di menu con i due punti resta", g)
+	}
+}
+
+func TestSuggerimentoTasto(t *testing.T) {
+	for en, it := range map[string]string{"HoldT skip": "Tieni premuto T: salta", "Hold T to skip": "Tieni premuto T: salta", "Q Hold": "Tieni premuto Q", "Press E": "E"} {
+		if g, ok := suggerimentoTasto(en); !ok || g != it {
+			t.Errorf("%q -> %q %v", en, g, ok)
+		}
+	}
+	if _, ok := suggerimentoTasto("Holding the line"); ok {
+		t.Error("frase normale")
+	}
+}
+
+func TestCopiaEsempio(t *testing.T) {
+	if !copiaEsempio("Reload the weapon.", "Ricarica il caricatore.") {
+		t.Error("copia dell'esempio non vista")
+	}
+	if copiaEsempio("Reload your magazine.", "Ricarica il caricatore.") {
+		t.Error("stessa frase dell'esempio: la risposta è giusta")
+	}
+	if copiaEsempio("Low health", "Vita bassa") {
+		t.Error("risposta diversa scartata")
+	}
+	if g := pulisciRisposta("Finale: Premi E"); g != "Premi E" {
+		t.Errorf("Finale: rimasto (%q)", g)
+	}
+}

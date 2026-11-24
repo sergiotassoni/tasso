@@ -1,4 +1,4 @@
-﻿TASSO 3.0 - INDICE DELLE FUNZIONI
+﻿TASSO 3.1 - INDICE DELLE FUNZIONI
 =================================
 
 1. PULIZIA
@@ -23,7 +23,6 @@
 2. VELOCITÀ
    - Modalità: Normale, Gaming, FPS competitivo, Film, Silenzioso
      (con avviso se il PC non è adatto: portatile, poca RAM)
-   - Turbo: chiude i programmi in background inutili mentre giochi
    - Programmi all'avvio: interruttore acceso/spento per ognuno
    - Guardiano dell'avvio: avvisa se si aggiunge un programma nuovo
    - Deframmentazione (dischi meccanici) e TRIM (SSD)
@@ -192,12 +191,29 @@
 7. IMPOSTAZIONI
    - Modalità di Tasso: Gaming o Ufficio (pulsante in alto a sinistra, cambia solo l'aspetto)
    - Temi Gaming: Tasso, Aurora, Lava, Neon, Carbonio, Belva, Ghiaccio, Sabbia
-   - Temi Ufficio: Ufficio, Carta, Salvia, Lavanda, Notte, Ardesia, Ghiaccio, Sabbia
+   - Temi Ufficio: Azzurro, Salvia, Carta, Lavanda, Perla, Ardesia
    - Tasso acceso / spento
    - Torna indietro: l'elenco di tutto quello che Tasso ha cambiato, un pulsante per ogni
      cosa e uno per tutto. Spegnere o riavviare il PC non rimette niente da solo
    - Avvio con Windows
    - Avvisi intelligenti (mai in modalità Gaming o FPS)
+
+NOVITÀ DELLA 3.1
+   - Menu nuovo: Home, Giochi, Pulisci e ripara, Impostazioni; in alto Gaming o Ufficio
+   - Tasso Traduce: giochi in inglese tradotti in italiano sullo schermo (F7), stesso posto,
+     grandezza e colore del gioco; F9 zona, F10 ritraduci, F11 automatico, F8 cronologia,
+     Ctrl+Alt+I inglese; IA sul tuo PC (Automatica, Piccola, Media, Grande, Spenta);
+     chat degli altri giocatori tradotta; nei giochi con anti-cheat solo lo schermo
+   - Pagina Giochi: libreria, pagina di ogni gioco, procedura "Prepara il gioco"
+   - Boost onesto con FPS veri misurati e "Rimetti com'era"
+   - Frequenze dello schermo fino a 1000 Hz, solo quelle dichiarate dal monitor
+   - Hardware dal vivo con nome dei pezzi e temperatura del processore
+   - Pannellino in gioco a scelta (cosa mostrare, 4 angoli)
+   - 14 problemi dei giochi in più
+   - Ufficio: Pronto per la videochiamata?, Modalità riunione, Chi ha usato webcam e
+     microfono, Blocca il PC quando ti alzi
+   - Aggiorna Tasso da solo (mai con un gioco aperto)
+   - Il Turbo non c'è più: chiudere i programmi in background lo fa il Boost
 
 NOVITÀ DELLA 2.6
    - Rileva i problemi (in cima al menu con Risolvi problemi, e pulsante in Home): controlla 58 problemi
@@ -273,7 +289,6 @@ COSA TASSO NON FA, APPOSTA
    - Overclock e aggiornamento automatico del BIOS: troppo rischiosi
 
 IN ARRIVO
-   - Firma digitale (serve un certificato a pagamento)
    - Lettore video e musica con sottotitoli, convertitori di file
    - Registratore degli ultimi 30 secondi di gioco, statistiche delle ore giocate
-   - Blocco pubblicità, controllo webcam e microfono
+   - Blocco pubblicità

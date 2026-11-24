@@ -1,4 +1,4 @@
-﻿TASSO 3.0 - FEATURE INDEX
+﻿TASSO 3.1 - FEATURE INDEX
 =================================
 
 1. CLEANUP
@@ -23,7 +23,6 @@
 2. SPEED
    - Modes: Normal, Gaming, Competitive FPS, Movie, Quiet
      (with a warning if the PC isn't suited: laptop, little RAM)
-   - Turbo: closes useless background programs while you play
    - Startup apps: an on/off switch for each one
    - Startup guard: lets you know if a new program adds itself
    - Defragmentation (hard drives) and TRIM (SSDs)
@@ -195,13 +194,30 @@
    - Tasso mode: Gaming or Office (button at the top left; it only changes how Tasso
      looks)
    - Gaming themes: Tasso, Aurora, Lava, Neon, Carbon, Beast, Ice, Sand
-   - Office themes: Office, Paper, Sage, Lavender, Night, Slate, Ice, Sand
+   - Office themes: Light blue, Sage, Paper, Lavender, Pearl, Slate
    - Tasso on / off
    - Undo: the list of everything Tasso has changed, a button for each thing and
      one for everything. Turning off or restarting the PC doesn't put anything back
      by itself
    - Start with Windows
    - Smart alerts (never in Gaming or FPS mode)
+
+WHAT'S NEW IN 3.1
+   - New menu: Home, Games, Clean & fix, Settings; Gaming or Office at the top
+   - Tasso Translate: games translated on screen (F7), same place, size and colour as
+     the game; F9 area, F10 translate again, F11 automatic, F8 history, Ctrl+Alt+I English;
+     AI on your PC (Automatic, Small, Medium, Large, Off); other players' chat translated;
+     in games with anti-cheat only the screen
+   - Games page: library, a page for every game, "Prepare the game" guide
+   - Honest Boost with real measured FPS and "Restore original"
+   - Refresh rates up to 1000 Hz, only the ones your monitor declares
+   - Live hardware with part names and CPU temperature
+   - In-game overlay your way (what to show, 4 corners)
+   - 14 more game problems
+   - Office: Ready for the video call?, Meeting mode, Who used the webcam and microphone,
+     Lock the PC when you get up
+   - Update Tasso by itself (never while a game is open)
+   - Turbo is gone: the Boost closes background programs now
 
 WHAT'S NEW IN 2.6
    - Detect problems (at the top of the menu with Fix problems, and as a button in Home):
@@ -290,7 +306,6 @@ WHAT TASSO DOESN'T DO, ON PURPOSE
    - Overclocking and automatic BIOS updates: too risky
 
 COMING SOON
-   - Digital signature (it needs a paid certificate)
    - Video and music player with subtitles, file converters
    - Recorder for the last 30 seconds of gameplay, stats on hours played
-   - Ad blocking, webcam and microphone control
+   - Ad blocking
