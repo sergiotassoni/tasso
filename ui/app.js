@@ -14,6 +14,8 @@ const OPZ_PDFJS = {
   cMapUrl: "/pdfjs/web/cmaps/", cMapPacked: true,
   standardFontDataUrl: "/pdfjs/web/standard_fonts/", wasmUrl: "/pdfjs/web/wasm/", iccUrl: "/pdfjs/web/iccs/",
   enableXfa: false, isEvalSupported: false, disableAutoFetch: false,
+  // CMap, caratteri e wasm li scarica la pagina (non il worker): così passano sempre dal programma.
+  useWorkerFetch: false,
 };
 
 // ---------------------------------------------------------------- lingua
@@ -316,7 +318,7 @@ async function apriLeggi(voce, riparato = false) {
   let app;
   try {
     app = await preparaVisore();
-    await app.open({ url: "/file/" + voce.id });
+    await app.open({ url: "/file/" + voce.id, useWorkerFetch: false, isEvalSupported: false });
   } catch (e) {
     if (riparato) {
       mostraAvvisoLeggi(t("nonRiparabile"), true);
