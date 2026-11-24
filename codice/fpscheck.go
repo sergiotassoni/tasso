@@ -458,7 +458,7 @@ func fpsFindings(f pcFacts, scr []screenInfo, last *fpsResult, battery, gpuPrefH
 		add(fpsFinding{ID: "gpu", Sev: "mid", Title: last.Game + " potrebbe partire sulla scheda video integrata",
 			Why:  "Questo portatile ha due schede video e Windows non ha una preferenza salvata per questo gioco. Molti giochi scelgono da soli quella potente, ma non tutti.",
 			Gain: "Solo se ora usa quella integrata: anche il doppio degli FPS.",
-			Fix:  "Premi Sistemalo: il Tasso dice a Windows di usare la scheda video potente per questo gioco. Poi riavvia il gioco e misura di nuovo.", Action: "gpu"})
+			Fix:  "Premi Sistemalo: Tasso dice a Windows di usare la scheda video potente per questo gioco. Poi riavvia il gioco e misura di nuovo.", Action: "gpu"})
 	}
 	// 3, 4 e altri: dalla misura.
 	if last != nil && last.Avg > 0 {
@@ -566,9 +566,9 @@ func fpsFindings(f pcFacts, scr []screenInfo, last *fpsResult, battery, gpuPrefH
 			if v := gpuVendorPage(g.Name); v != "" {
 				fix := "Premi Apri: si apre la pagina ufficiale per scaricare il driver giusto."
 				if v == "nvidia" {
-					fix = "Premi Aggiorna il driver: il Tasso scarica il driver ufficiale da NVIDIA, controlla la firma digitale, crea un punto di ripristino e lo installa."
+					fix = "Premi Aggiorna il driver: Tasso scarica il driver ufficiale da NVIDIA, controlla la firma digitale, crea un punto di ripristino e lo installa."
 				} else if v == "amd" {
-					fix = "Premi Aggiorna il driver: il Tasso prende da Windows Update il driver AMD certificato, crea un punto di ripristino e lo installa."
+					fix = "Premi Aggiorna il driver: Tasso prende da Windows Update il driver AMD certificato, crea un punto di ripristino e lo installa."
 				}
 				if f.Laptop && v == "intel" {
 					fix += " Se il sito non accetta il driver per il tuo portatile, usa quello del produttore del portatile."

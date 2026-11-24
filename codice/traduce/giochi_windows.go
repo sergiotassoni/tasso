@@ -150,7 +150,7 @@ func InfoGioco(nome, piattaforma, cartella, avvio string) map[string]any {
 	muGiochiNoti.Unlock()
 	lst, lstOK := linguaSteam(cartella), true
 	if lst != "" {
-		_, lstOK = ocrPerLingua(lst)
+		_, lstOK = ocrPerLinguaIn(lst, lingueOCRSubito()) // senza aspettare PowerShell: nil = non so ancora, dico di sì
 	}
 	fileOK, fileMotivo := ModPossibile(cartella)
 	tradotto := giocoTradotto(cartella)

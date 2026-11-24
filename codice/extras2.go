@@ -21,8 +21,15 @@ func desktopShortcut() string {
 	if err != nil || exe == "" {
 		return "no"
 	}
-	runPSArgs(desktopShortcutScript, map[string]interface{}{"exe": exe}, time.Minute, nil)
-	return "ok"
+	var last string
+	r := runPSArgs(desktopShortcutScript, map[string]interface{}{"exe": exe}, time.Minute, func(m string) { last = m })
+	if r.JSON == "ok" {
+		return "ok"
+	}
+	if last == "" {
+		last = "Non sono riuscito a creare il collegamento."
+	}
+	return last
 }
 
 const backupScript = `
@@ -65,6 +72,8 @@ try {
   $s.IconLocation = $exe + ',0'
   $s.Description = 'Tasso - pulisce, ripara e velocizza il PC'
   $s.Save()
+  if (-not (Test-Path -LiteralPath $lnk)) { throw 'no' }
   Say 'Collegamento a Tasso creato sul Desktop.'
+  [Console]::Out.WriteLine('JSON ok')
 } catch { Say 'Non sono riuscito a creare il collegamento.' }
 `

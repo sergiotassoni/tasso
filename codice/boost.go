@@ -609,7 +609,7 @@ func setBoostAuto(on bool) string {
 		bOpMu.Unlock()
 	}()
 	startBoostWatcher()
-	return "ok:Boost automatico acceso: quando apri un gioco il Tasso prepara il PC da solo e misura gli FPS."
+	return "ok:Boost automatico acceso: quando apri un gioco Tasso prepara il PC da solo e misura gli FPS."
 }
 
 // startBoostWatcher: guarda ogni 10 secondi se c'è un gioco aperto.

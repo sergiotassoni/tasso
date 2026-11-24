@@ -73,6 +73,40 @@ var kindLabel = map[string]string{
 	"prestazionale": "Prestazionale: simulazione, sopravvivenza, strategia",
 }
 
+// kindUnknownLabel: gioco che Tasso non riconosce. Usa la regolazione "prestazionale", che nei
+// pulsanti si chiama "Bilanciato": stesso nome, così la scritta e il pulsante "Automatico (Bilanciato)" tornano.
+const kindUnknownLabel = "Bilanciato, tipo non riconosciuto"
+
+// steamGenreIT: i generi più comuni del negozio di Steam (che li dà in inglese) detti in italiano.
+// Quelli che non sono qui non si mostrano a chi usa Tasso in italiano.
+var steamGenreIT = map[string]string{
+	"action":                "azione",
+	"adventure":             "avventura",
+	"casual":                "casual",
+	"indie":                 "indie",
+	"massively multiplayer": "multigiocatore di massa",
+	"racing":                "corse",
+	"rpg":                   "gioco di ruolo",
+	"simulation":            "simulazione",
+	"sports":                "sport",
+	"strategy":              "strategia",
+	"early access":          "accesso anticipato",
+	"free to play":          "gratuito",
+}
+
+// steamGenresShown: i generi di Steam da mostrare, nella lingua di Tasso.
+func steamGenresShown(genres []string) string {
+	var out []string
+	for _, g := range genres {
+		if isEN() {
+			out = append(out, g)
+		} else if it, ok := steamGenreIT[g]; ok {
+			out = append(out, it)
+		}
+	}
+	return strings.Join(out, ", ")
+}
+
 func steamGenres(appid string) (genres, cats []string) {
 	client := &http.Client{Timeout: 6 * time.Second}
 	resp, err := client.Get("https://store.steampowered.com/api/appdetails?appids=" + appid + "&filters=genres,categories&l=english")
@@ -125,10 +159,13 @@ func gameKind(g gameEntry) (string, string) {
 		case (has(genres, "rpg") || has(genres, "adventure")) && !has(genres, "indie") && !has(genres, "casual"):
 			return "grafico", "dal negozio di Steam: avventura / gioco di ruolo"
 		case len(genres) > 0:
-			return "prestazionale", "dal negozio di Steam: " + strings.Join(genres, ", ")
+			if list := steamGenresShown(genres); list != "" {
+				return "prestazionale", "dal negozio di Steam: " + list
+			}
+			return "prestazionale", "dal negozio di Steam"
 		}
 	}
-	return "prestazionale", "tipo non riconosciuto: Tasso usa una regolazione bilanciata"
+	return "prestazionale", "" // tipo non riconosciuto: vedi kindUnknownLabel
 }
 
 // ---------------- Potenza del PC ----------------
@@ -260,7 +297,7 @@ func pcTier() (int, string, int) {
 		why += fmt.Sprintf(", %d GB di RAM", ramGB+1)
 		if ramGB < 15 && t > 0 {
 			t-- // poca RAM: un gradino sotto
-			why += " (poca RAM: un gradino sotto)"
+			why += ", poca RAM: un gradino sotto"
 		}
 	}
 	return t, why, hz
@@ -682,6 +719,10 @@ func gameTuneInfo(id string) {
 		return
 	}
 	kind, kindWhy := gameKind(g)
+	kLabel := kindLabel[kind]
+	if kindWhy == "" {
+		kLabel = kindUnknownLabel
+	}
 	tier, tierWhy, hz := pcTier()
 	vendor := gpuVendor()
 	recs := map[string]tuneRec{}
@@ -713,7 +754,7 @@ func gameTuneInfo(id string) {
 		names = append(names, filepath.Base(e))
 	}
 	emit("onGameTune", map[string]interface{}{
-		"id": id, "name": g.Name, "kind": kind, "kindLabel": kindLabel[kind], "kindWhy": kindWhy,
+		"id": id, "name": g.Name, "kind": kind, "kindLabel": kLabel, "kindWhy": kindWhy,
 		"tier": tier, "tierLabel": tierLabel[tier], "tierWhy": tierWhy, "hz": hz, "vendor": vendor,
 		"recs": recs, "exes": names, "hasExe": len(exes) > 0, "ini": ini != "", "current": cur,
 		"autoGame": autoGame, "dir": g.dir != "", "anticheat": ac,

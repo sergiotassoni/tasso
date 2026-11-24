@@ -416,6 +416,21 @@ func setOverlay(on bool, pos string) string {
 }
 
 func overlayShow(show bool) string {
+	if show {
+		// Stessi controlli di ovApply: in Ufficio il pannellino non si mostra, neanche a mano.
+		setMu.Lock()
+		office := settings.Profile == "ufficio"
+		setMu.Unlock()
+		if office {
+			return "In modalità Ufficio il pannellino non si mostra."
+		}
+		ovMu.Lock()
+		pronto := ovHwnd != 0
+		ovMu.Unlock()
+		if !pronto {
+			return "Il pannellino non è ancora pronto: riprova tra poco."
+		}
+	}
 	ovMu.Lock()
 	ovManual = show
 	if !show {
