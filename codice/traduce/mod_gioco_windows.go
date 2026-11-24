@@ -247,6 +247,17 @@ func applicaModGioco(nome, cartella string, rischioOK bool) {
 			applicaTraduzione(nome, cartella)
 			return
 		}
+		if _, a := coppiaAttiva(); GiocoHaLingua(CartellaPaksUnreal(cartella), a) {
+			fallito(nome + " ha già la sua traduzione in " + strings.ToLower(nomeLingua(a)) + ", fatta dagli autori del gioco: sceglila nelle impostazioni del gioco (di solito Opzioni → Lingua). È la traduzione migliore e non serve aggiungere niente.")
+			return
+		}
+		if os.Getenv("TASSO_FILE_UNREAL") == "" {
+			// 24/11: provato dal vivo su PC Cafe Simulator (Unreal 5 con IoStore): il gioco non
+			// carica il file aggiunto in Paks\~mods, nemmeno con i suoi testi ufficiali dentro.
+			// Finché non funziona in un gioco vero resta spento: traduco sullo schermo
+			applicaTraduzione(nome, cartella)
+			return
+		}
 		applicaModUnreal(nome, cartella, ac, passo, fallito)
 		return
 	}
