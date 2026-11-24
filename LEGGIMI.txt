@@ -1,4 +1,4 @@
-TASSO ZIP 1.1 - Ecosistema Tasso
+TASSO ZIP 1.2 - Ecosistema Tasso
 ================================
 Comprime ed estrae i tuoi file. In un clic.
 (English below)
@@ -8,6 +8,51 @@ COME SI USA
 Doppio clic su TassoZip.exe. Non va installato e NON chiede i permessi da amministratore.
 Serve Windows 10 o 11 a 64 bit con Microsoft Edge WebView2 (c'è già in Windows 11 e quasi
 sempre in Windows 10; se manca, Tasso Zip apre la pagina ufficiale Microsoft per installarlo).
+
+TRASCINARE I FILE
+  Nella schermata iniziale, mentre trascini dei file sopra la finestra, la scheda sotto il
+  cursore (Comprimi o Estrai) si illumina: lasciali lì e parte quell'azione. Un archivio su
+  Comprimi va in un archivio nuovo; file normali su Estrai: Tasso Zip te lo dice e propone
+  di comprimerli.
+
+ESPLORA I FILE (nuovo nella 1.2)
+  Pulsante "Esplora i file" nella schermata iniziale: una vista come i classici gestori di
+  archivi. Parte dalla cartella Download (o dall'ultima che hai usato).
+  - Barra in alto: Comprimi, Estrai in... (scegli la cartella), Verifica (prova l'archivio
+    senza estrarre: legge tutti i dati e controlla le somme di controllo), Apri, Trova (per
+    nome qui e nelle sottocartelle, anche con * e ?; si ferma a 500 risultati, 20.000
+    cartelle o 15 secondi), Info (dimensioni, numero di file, formato, metodo, rapporto di
+    compressione), Ripara (solo per gli zip), Elimina, Assistente, Inizio.
+  - Freccia su, indirizzo che puoi scrivere o incollare (Invio), a sinistra Desktop,
+    Download, Documenti, Immagini, la tua cartella e i dischi.
+  - Elenco con Nome / Dimensione / Tipo / Modificato il: clic sulle colonne per ordinare,
+    Ctrl e Maiusc per scegliere più file, Ctrl+A tutti, Canc = Elimina, Backspace = su.
+    Doppio clic: cartella = entra; archivio = lo apri e ci entri dentro come in una
+    cartella; file = si apre con il suo programma (per programmi e script chiede prima).
+  - Tasto destro sull'elenco: le stesse azioni e "Mostra in Esplora file".
+  - In basso: totale dei file e della selezione; "Mostra i file nascosti" (spento: i file
+    nascosti e di sistema di Windows non si vedono).
+  - Cartelle enormi: mostra le prime 20.000 voci; una cartella lenta (rete) si ferma dopo
+    pochi secondi con quello che ha letto. La finestra non si blocca mai.
+  - ELIMINA manda i file nel Cestino di Windows (si possono rimettere a posto), sempre dopo
+    una conferma; mai cancellazione definitiva in silenzio: se un file non può andare nel
+    Cestino (per es. su una chiavetta) è Windows a chiederlo prima. Non tocca mai i dischi
+    interi e le cartelle importanti (Desktop, Documenti, Windows, Programmi...). Dentro gli
+    archivi non si elimina niente.
+  - RIPARA (zip): se la fine dello zip è rovinata (download interrotto...), Tasso Zip legge
+    lo zip dall'inizio, ritrova i file uno per uno, controlla il CRC di ognuno e crea uno zip
+    NUOVO "Nome (riparato).zip" con un indice nuovo. L'originale non si tocca. I file con i
+    dati rovinati non si possono salvare e vengono elencati. Per 7z e rar non c'è.
+
+PROCEDURA GUIDATA (nuovo nella 1.2)
+  "Procedura guidata" nella schermata iniziale (o "Assistente" in Esplora), 3 passaggi:
+  1) Comprimere o estrarre; 2) i file (trascinali o "Sfoglia...", con l'elenco e "Togli");
+  3) per comprimere: formato, nome, dove salvarlo, livello; per estrarre: dove (accanto o in
+  un'altra cartella) e come (cartella nuova, cartella col nome dell'archivio, direttamente).
+  Poi avanzamento con Annulla e "Fatto!" con "Apri la cartella".
+  Formati che Tasso Zip sa CREARE: .zip, .7z, .tar, .tar.gz, .tar.xz, .tar.bz2, .tar.zst
+  (ognuno riletto byte per byte nei test). RAR: si può solo estrarre (formato chiuso, la
+  licenza non permette di crearlo). Password: per ora non crea archivi con password.
 
 COMPRIMI
   1. "Scegli i file" o "Scegli una cartella" (oppure trascinali nella finestra, a sinistra).
@@ -64,13 +109,13 @@ ESTRAI
 TASTO DESTRO DEL MOUSE (come WinZip)
   In basso nella finestra c'è l'interruttore "Aggiungi Tasso Zip al tasto destro del mouse".
   Acceso, compare il sottomenu "Tasso Zip" con la sua icona:
-  - su file e cartelle: "Comprimi con Tasso Zip..." (apre la finestra), "Comprimi in .zip
+  - su file e cartelle: "Aggiungi all'archivio..." (apre la finestra), "Comprimi in .zip
     (compatibile con tutti)", "Comprimi in .7z (super compressione)": questi due partono
     subito con una piccola finestra di avanzamento; più file scelti insieme diventano un
     archivio solo, col nome della loro cartella;
   - sugli archivi: "Apri con Tasso Zip", "Estrai qui" (i file vanno nella cartella
     dell'archivio; i nomi già presenti diventano "(2)"), "Estrai in una cartella col suo
-    nome", "Comprimi con Tasso Zip...".
+    nome", "Estrai in..." (scegli tu la cartella), "Aggiungi all'archivio...".
   Le voci sono solo per il tuo utente (HKEY_CURRENT_USER\Software\Classes): niente
   amministratore. Funziona su Windows 10 e su Windows 11 sotto "Mostra altre opzioni".
   Limiti: il menu nuovo e corto di Windows 11 accetta solo programmi con un'estensione COM
@@ -116,6 +161,7 @@ RIGA DI COMANDO
   TassoZip.exe --estrai "archivio" ...            estrae subito in una cartella nuova
   TassoZip.exe --estrai-qui "archivio" ...        estrae subito nella cartella dell'archivio
   TassoZip.exe --estrai-cartella "archivio" ...   estrae subito in una cartella col suo nome
+  TassoZip.exe --estrai-in "archivio" ...         chiede la cartella e poi estrae lì
   TassoZip.exe "file" ...                          (o trascinati sull'icona) sceglie da solo
   TassoZip.exe --lingua=en                         lingua solo per questa volta
 
@@ -140,7 +186,7 @@ LICENZA
 
 
 =====================================================================================
-TASSO ZIP 1.1 - Tasso Ecosystem  (English)
+TASSO ZIP 1.2 - Tasso Ecosystem  (English)
 =====================================================================================
 Compresses and extracts your files. In one click.
 
@@ -148,6 +194,24 @@ HOW TO USE
   Double-click TassoZip.exe. No installation, and it does NOT ask for administrator rights.
   Needs 64-bit Windows 10 or 11 with Microsoft Edge WebView2 (already in Windows 11 and almost
   always in Windows 10; if missing, Tasso Zip opens the official Microsoft page to install it).
+
+DRAG AND DROP
+  On the start screen, while you drag files over the window, the card under the cursor
+  (Compress or Extract) lights up: drop them there to start that action.
+
+BROWSE FILES (new in 1.2)
+  "Browse files" opens a classic archive-manager view (starts in Downloads or the last folder
+  used): toolbar with Compress, Extract to..., Test (checks every byte and checksum without
+  extracting), Open, Find (by name, with limits), Info, Repair (zip only), Delete (always to
+  the Windows Recycle Bin, after a confirmation), Wizard; up arrow, editable address, special
+  folders and drives, sortable columns, multiple selection, right-click menu, status bar.
+  Double-click a folder to enter, an archive to browse inside it, a file to open it.
+  REPAIR (zip): rebuilds a new "Name (repaired).zip" from the local headers, checking each
+  file's CRC; the original is never touched; damaged files are listed.
+
+WIZARD (new in 1.2)
+  3 steps: compress or extract, choose files, options. Formats Tasso Zip can CREATE: .zip,
+  .7z, .tar, .tar.gz, .tar.xz, .tar.bz2, .tar.zst. RAR can only be extracted (closed format).
 
 COMPRESS
   1. "Choose files" or "Choose a folder" (or drag them into the window, left side).
@@ -191,7 +255,8 @@ RIGHT-CLICK MENU (like WinZip)
   The switch "Add Tasso Zip to the right-click menu" adds a "Tasso Zip" submenu with icon:
   on files/folders "Compress with Tasso Zip...", "Compress to .zip", "Compress to .7z"
   (the last two start right away with a small progress window); on archives "Open with
-  Tasso Zip", "Extract here", "Extract to a folder with its name". Only for your user
+  Tasso Zip", "Extract here", "Extract to a folder with its name", "Extract to..." (choose the
+  folder). On files and folders the first entry is now "Add to archive...". Only for your user
   (HKEY_CURRENT_USER\Software\Classes), no administrator. Windows 10, and Windows 11 under
   "Show more options". The new short Windows 11 menu requires a COM extension and a
   signed MSIX package: not done, and for the same reason the entries cannot show the file
