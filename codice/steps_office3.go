@@ -11,8 +11,11 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
+	"unsafe"
 
+	"golang.org/x/sys/windows"
 	"golang.org/x/sys/windows/registry"
 )
 
@@ -286,9 +289,32 @@ func officeGuardia() {
 }
 
 // micInUso: un programma sta usando il microfono adesso (dato di Windows: Privacy > Microfono).
+// Windows a volte lascia voci "mai finite" (programma chiuso di colpo o aggiornato mentre usava il
+// microfono: due vecchi Discord di settembre sul PC di Sergio, 24/11). Conta solo una voce iniziata
+// dopo l'ultima accensione del PC e, per i programmi normali, con il programma ancora aperto.
 func micInUso() bool {
 	base := `Software\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\microphone`
+	// avvio del PC in FILETIME (100 ns dal 1601), come LastUsedTimeStart
+	avvio := uint64(time.Now().Add(-time.Duration(windows.DurationSinceBoot())).UnixNano()/100) + 116444736000000000
+	var aperti map[string]bool
+	aperto := func(exe string) bool {
+		if aperti == nil {
+			aperti = map[string]bool{}
+			if snap, err := windows.CreateToolhelp32Snapshot(windows.TH32CS_SNAPPROCESS, 0); err == nil {
+				var pe windows.ProcessEntry32
+				pe.Size = uint32(unsafe.Sizeof(pe))
+				for e := windows.Process32First(snap, &pe); e == nil; e = windows.Process32Next(snap, &pe) {
+					if pp := processPath(pe.ProcessID); pp != "" {
+						aperti[strings.ToLower(pp)] = true
+					}
+				}
+				windows.CloseHandle(snap)
+			}
+		}
+		return aperti[strings.ToLower(exe)]
+	}
 	inUso := func(path string) bool {
+		normali := strings.HasSuffix(path, "NonPackaged")
 		k, err := registry.OpenKey(registry.CURRENT_USER, path, registry.READ)
 		if err != nil {
 			return false
@@ -306,9 +332,13 @@ func micInUso() bool {
 			start, _, e1 := sk.GetIntegerValue("LastUsedTimeStart")
 			stop, _, e2 := sk.GetIntegerValue("LastUsedTimeStop")
 			sk.Close()
-			if e1 == nil && e2 == nil && start > 0 && stop == 0 {
-				return true
+			if e1 != nil || e2 != nil || start == 0 || stop != 0 || start < avvio {
+				continue
 			}
+			if normali && !aperto(strings.ReplaceAll(n, "#", `\`)) {
+				continue
+			}
+			return true
 		}
 		return false
 	}
