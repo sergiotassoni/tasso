@@ -170,9 +170,23 @@ if (Test-Path -LiteralPath $lnk) {
 // cancellaDopoLaChiusura: un piccolo comando di Windows aspetta che Tasso sia chiuso e cancella
 // le sue cartelle e il suo file. Percorsi controllati qui, mai presi da file su disco.
 func cancellaDopoLaChiusura() error {
-	exe, err := os.Executable()
+	testo, err := scriptCancellazione()
 	if err != nil {
 		return err
+	}
+	bat := filepath.Join(os.TempDir(), "togli-tasso-"+strconv.Itoa(os.Getpid())+".cmd")
+	if err := os.WriteFile(bat, []byte(testo), 0o644); err != nil {
+		return err
+	}
+	c := exec.Command(filepath.Join(os.Getenv("SystemRoot"), "System32", "cmd.exe"), "/d", "/c", bat)
+	c.SysProcAttr = &syscall.SysProcAttr{HideWindow: true, CreationFlags: 0x00000008 | 0x00000200} // DETACHED_PROCESS | NEW_PROCESS_GROUP
+	return c.Start()
+}
+
+func scriptCancellazione() (string, error) {
+	exe, err := os.Executable()
+	if err != nil {
+		return "", err
 	}
 	exe, _ = filepath.Abs(exe)
 	var cmd strings.Builder
@@ -181,7 +195,7 @@ func cancellaDopoLaChiusura() error {
 	fmt.Fprintf(&cmd, "for /L %%%%i in (1,1,120) do (tasklist /FI \"PID eq %d\" | find \"%d\" >nul || goto via & ping -n 2 127.0.0.1 >nul)\r\n:via\r\n", os.Getpid(), os.Getpid())
 	for _, d := range cartelleTasso() {
 		if strings.ContainsAny(d, "\"%&|<>^\r\n") {
-			return fmt.Errorf("percorso strano: %s", d)
+			return "", fmt.Errorf("percorso strano: %s", d)
 		}
 		// due tentativi: i programmi della traduzione possono chiudersi qualche secondo dopo
 		fmt.Fprintf(&cmd, "rmdir /s /q \"%s\" 2>nul\r\nif exist \"%s\" (ping -n 6 127.0.0.1 >nul & rmdir /s /q \"%s\" 2>nul)\r\n", d, d, d)
@@ -189,13 +203,7 @@ func cancellaDopoLaChiusura() error {
 	if reExeTasso.MatchString(filepath.Base(exe)) && !strings.ContainsAny(exe, "\"%&|<>^\r\n") {
 		fmt.Fprintf(&cmd, "del /f /q \"%s\" 2>nul\r\n", exe)
 	}
-	bat := filepath.Join(os.TempDir(), "togli-tasso-"+strconv.Itoa(os.Getpid())+".cmd")
 	// il comando si cancella da solo alla fine
 	cmd.WriteString("(goto) 2>nul & del /f /q \"%~f0\"\r\n")
-	if err := os.WriteFile(bat, []byte(cmd.String()), 0o644); err != nil {
-		return err
-	}
-	c := exec.Command(filepath.Join(os.Getenv("SystemRoot"), "System32", "cmd.exe"), "/d", "/c", bat)
-	c.SysProcAttr = &syscall.SysProcAttr{HideWindow: true, CreationFlags: 0x00000008 | 0x00000200} // DETACHED_PROCESS | NEW_PROCESS_GROUP
-	return c.Start()
+	return cmd.String(), nil
 }

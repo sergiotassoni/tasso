@@ -40,6 +40,33 @@ func init() {
 			f.Close()
 			os.Exit(0)
 		}
+		if a == "--prova-togli" {
+			// "Togli Tasso dal PC" a secco: scrive cosa toglierebbe, senza toccare niente
+			appDir = filepath.Join(os.Getenv("LOCALAPPDATA"), "Tasso")
+			var b strings.Builder
+			for _, d := range cartelleTasso() {
+				fmt.Fprintf(&b, "cartella: %s (%.1f MB)\n", d, float64(dimensioneCartella(d))/1e6)
+			}
+			fmt.Fprintf(&b, "portachiavi presente: %v\n", vaultExists())
+			copie := filepath.Join(os.Getenv("LOCALAPPDATA"), "TassoTraduce", "copie-giochi")
+			voci, _ := os.ReadDir(copie)
+			for _, v := range voci {
+				m, _ := os.ReadFile(filepath.Join(copie, v.Name(), "manifesto.json"))
+				fmt.Fprintf(&b, "traduzione in un gioco: %s manifesto=%v plugin-utente=%v\n", v.Name(), len(m) > 0, func() bool { _, e := os.Stat(filepath.Join(copie, v.Name(), "plugin-utente")); return e == nil }())
+			}
+			bk, _ := os.ReadDir(filepath.Join(appDir, "backup"))
+			fmt.Fprintf(&b, "backup del registro da spostare in Documenti: %d file\n", len(bk))
+			r := runPS(`Get-ScheduledTask -TaskPath '\Tasso\' -ErrorAction SilentlyContinue | ForEach-Object { Say ('attività: ' + $_.TaskName) }
+$lnk = Join-Path ([Environment]::GetFolderPath('Desktop')) 'Tasso.lnk'
+if (Test-Path -LiteralPath $lnk) { Say ('collegamento Desktop -> ' + (New-Object -ComObject WScript.Shell).CreateShortcut($lnk).TargetPath) } else { Say 'collegamento Desktop: nessuno' }
+foreach ($k in 'HKCU:\Software\Tasso','HKLM:\SOFTWARE\Tasso') { Say ($k + ': ' + (Test-Path -LiteralPath $k)) }`, time.Minute, func(m string) { b.WriteString(m + "\n") })
+			_ = r
+			testo, err := scriptCancellazione()
+			fmt.Fprintf(&b, "\n--- comando che girerebbe dopo la chiusura (errore: %v) ---\n%s", err, testo)
+			_ = os.MkdirAll(filepath.Join(appDir, "logs"), 0o755)
+			_ = os.WriteFile(filepath.Join(appDir, "logs", "prova-togli.txt"), []byte(b.String()), 0o644)
+			os.Exit(0)
+		}
 		if a == "--prova-mouse" {
 			// mouse senza accelerazione per uno sparatutto (cs2) e poi rimesso com'era, con le
 			// chiamate vere di Windows; il registro non deve cambiare
