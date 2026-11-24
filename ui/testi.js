@@ -566,3 +566,6 @@ export const TESTI = {
     e_pezzo: "Problem z plikiem nr {0} ({1}): {2}",
   },
 };
+
+import { TESTI_DOC } from "./testi_doc.js";
+for (const l of LINGUE) Object.assign(TESTI[l], TESTI_DOC[l]);

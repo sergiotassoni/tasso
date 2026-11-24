@@ -139,7 +139,18 @@ func scegliFileWin(multi, soloPDF bool, titolo string) ([]string, error) {
 	return out, nil
 }
 
-func salvaFileWin(nome, cartella, titolo string) (string, error) {
+// filtriSalva: il filtro della finestra "Salva con nome" per ogni tipo di file.
+var filtriSalva = map[string]string{
+	"pdf": "PDF (*.pdf)\x00*.pdf\x00\x00",
+	"txt": "Testo (*.txt)\x00*.txt\x00\x00",
+	"png": "PNG (*.png)\x00*.png\x00\x00",
+	"jpg": "JPG (*.jpg)\x00*.jpg\x00\x00",
+}
+
+func salvaFileWin(nome, cartella, titolo, tipo string) (string, error) {
+	if _, ok := filtriSalva[tipo]; !ok {
+		tipo = "pdf"
+	}
 	buf := make([]uint16, 32768)
 	copy(buf, utf16.Encode([]rune(nome)))
 	t, _ := windows.UTF16PtrFromString(titolo)
@@ -147,10 +158,10 @@ func salvaFileWin(nome, cartella, titolo string) (string, error) {
 		cartella = cartellaDocumenti()
 	}
 	dir, _ := windows.UTF16PtrFromString(cartella)
-	ext, _ := windows.UTF16PtrFromString("pdf")
+	ext, _ := windows.UTF16PtrFromString(tipo)
 	ofn := openFileName{
 		hwndOwner:       hwndPrincipale,
-		lpstrFilter:     filtro("PDF (*.pdf)\x00*.pdf\x00\x00"),
+		lpstrFilter:     filtro(filtriSalva[tipo]),
 		lpstrFile:       &buf[0],
 		nMaxFile:        uint32(len(buf)),
 		lpstrTitle:      t,
@@ -390,4 +401,3 @@ func init() {
 	piattaforma.linguaSistema = linguaSistemaWin
 	decodificaHEIC = decodificaHEICWin
 }
-

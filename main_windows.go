@@ -90,6 +90,27 @@ func main() {
 	}()
 	webview2.PanicHook = func(m string, r interface{}, st []byte) { scriviErrore(m, r, st) }
 
+	// File dalla riga di comando (doppio clic su un PDF, menu del tasto destro). Windows avvia
+	// una copia per ogni file scelto: la prima raccoglie quelli delle altre, che si chiudono.
+	modo, percorsi := leggiArgomenti(os.Args[1:])
+	if modo != "" {
+		primo, chiudi := sonoIlPrimo(modo)
+		if !primo {
+			passaAlPrimo(modo, percorsi)
+			return
+		}
+		defer chiudi()
+		percorsi = raccogliCoda(modo, percorsi, 450*time.Millisecond)
+		avvio.modo, avvio.percorsi = modo, percorsi
+		go ascoltaCoda(modo)
+	}
+	// Se il menu del tasto destro è attivo ma l'exe è stato spostato, aggiorno i percorsi.
+	if menuAttivoWin() {
+		if exe, err := os.Executable(); err == nil && !menuPuntaA(exe) {
+			_ = attivaMenu(linguaIniziale())
+		}
+	}
+
 	w := nuovaFinestra()
 	if w == nil {
 		testo := "Tasso PDF needs Microsoft Edge WebView2 (a free Windows component).\nPress OK to open the official Microsoft page, then start Tasso PDF again."
@@ -118,4 +139,3 @@ func main() {
 	w.Navigate(indirizzoBase + "index.html")
 	w.Run()
 }
-

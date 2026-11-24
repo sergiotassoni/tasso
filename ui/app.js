@@ -3,14 +3,15 @@
 
 import { LINGUE, TESTI } from "./testi.js";
 import * as pdfjsLib from "./pdfjs/build/pdf.mjs";
+import { apriDocumento, initDocumento, linguaDocumento, documentiAperti, __doc } from "./documento.js";
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = "/pdfjs/build/pdf.worker.mjs";
 
-const $ = (s, r = document) => r.querySelector(s);
-const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+export const $ = (s, r = document) => r.querySelector(s);
+export const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 
 // Opzioni comuni di PDF.js per anteprime e firma: niente JavaScript dei PDF, tutto in locale.
-const OPZ_PDFJS = {
+export const OPZ_PDFJS = {
   cMapUrl: "/pdfjs/web/cmaps/", cMapPacked: true,
   standardFontDataUrl: "/pdfjs/web/standard_fonts/", wasmUrl: "/pdfjs/web/wasm/", iccUrl: "/pdfjs/web/iccs/",
   enableXfa: false, isEvalSupported: false, disableAutoFetch: false,
@@ -20,11 +21,11 @@ const OPZ_PDFJS = {
 
 // ---------------------------------------------------------------- lingua
 
-let lingua = "it";
+export let lingua = "it";
 let versione = "";
 let firmaSalvataEsiste = false;
 
-function t(k, ...a) {
+export function t(k, ...a) {
   let s = (TESTI[lingua] && TESTI[lingua][k]) ?? TESTI.en[k] ?? TESTI.it[k] ?? k;
   a.forEach((v, i) => { s = s.split("{" + i + "}").join(String(v)); });
   return s;
@@ -41,9 +42,11 @@ function applicaLingua() {
   if (stato.vista === "unisci") disegnaLista();
   if (stato.vista === "firma" && firma.doc) aggiornaNavPagina();
   if (stato.vista === "sblocca") aggiornaSblocca();
+  if (stato.vista === "firma") $("#fSalva").textContent = t(firma.alFine ? "firmaApplica" : "firmaSalva");
+  linguaDocumento();
 }
 
-function localePdfjs() {
+export function localePdfjs() {
   return { it: "it", en: "en-US", es: "es-ES", fr: "fr", de: "de", pt: "pt-PT", pl: "pl" }[lingua] || "en-US";
 }
 
@@ -62,7 +65,7 @@ class ErrGo extends Error {
   }
 }
 
-async function go(nome, ...args) {
+export async function go(nome, ...args) {
   const f = window[nome];
   if (typeof f !== "function") throw new ErrGo("generico|" + nome + " non disponibile");
   try {
@@ -72,7 +75,7 @@ async function go(nome, ...args) {
   }
 }
 
-function testoErrore(e, nomi) {
+export function testoErrore(e, nomi) {
   if (!(e instanceof ErrGo)) return t("e_generico", e && e.message ? e.message : String(e));
   let base = TESTI.it["e_" + e.codice] ? t("e_" + e.codice, e.dettaglio) : t("e_generico", e.dettaglio);
   if (e.pezzo >= 0) base = t("e_pezzo", e.pezzo + 1, (nomi && nomi[e.pezzo]) || "", base);
@@ -81,16 +84,16 @@ function testoErrore(e, nomi) {
 
 // ---------------------------------------------------------------- finestre, attesa, avvisi
 
-function finestra(id, on) { $("#" + id).classList.toggle("on", on); }
+export function finestra(id, on) { $("#" + id).classList.toggle("on", on); }
 
 let contaAttesa = 0;
-function attesa(on, testo) {
+export function attesa(on, testo) {
   contaAttesa = Math.max(0, contaAttesa + (on ? 1 : -1));
   if (on) $("#dAttesaT").textContent = testo || t("lavoro");
   finestra("dAttesa", contaAttesa > 0);
 }
 
-function chiedi(titolo, testo, tasti) {
+export function chiedi(titolo, testo, tasti) {
   return new Promise(ok => {
     $("#dMsgT").textContent = titolo;
     $("#dMsgP").textContent = testo;
@@ -108,10 +111,10 @@ function chiedi(titolo, testo, tasti) {
   });
 }
 
-const avvisa = (testo, titolo = "Tasso PDF") => chiedi(titolo, testo, [[t("ok"), true, true]]);
-const avvisaErrore = (e, nomi) => avvisa(testoErrore(e, nomi));
+export const avvisa = (testo, titolo = "Tasso PDF") => chiedi(titolo, testo, [[t("ok"), true, true]]);
+export const avvisaErrore = (e, nomi) => avvisa(testoErrore(e, nomi));
 
-function chiediPassword(nome, sbagliata) {
+export function chiediPassword(nome, sbagliata) {
   return new Promise(ok => {
     $("#dPwP").textContent = t("pwTesto", nome);
     $("#dPwErr").textContent = t("pwSbagliata");
@@ -142,7 +145,7 @@ function chiediTesto() {
 
 let ultimoSalvato = "";
 let timerToast = 0;
-function toast(percorso) {
+export function toast(percorso) {
   ultimoSalvato = percorso;
   $("#toastT").textContent = t("salvato", percorso);
   $("#toastT").title = percorso;
@@ -153,15 +156,15 @@ function toast(percorso) {
 
 // ---------------------------------------------------------------- file
 
-const stato = { vista: "home" };
+export const stato = { vista: "home" };
 
 // nomeCon("Contratto.pdf", "firmato") = "Contratto - firmato.pdf"
-function nomeCon(nome, suffisso) {
+export function nomeCon(nome, suffisso) {
   const base = String(nome || "documento").replace(/\.(pdf|jpe?g|png|heic|heif)$/i, "");
   return base + " - " + suffisso + ".pdf";
 }
 
-function base64DaBytes(u8) {
+export function base64DaBytes(u8) {
   let s = "";
   const passo = 0x8000;
   for (let i = 0; i < u8.length; i += passo) s += String.fromCharCode.apply(null, u8.subarray(i, i + passo));
@@ -179,10 +182,10 @@ async function caricaBytes(leggiPezzo, dim, nome) {
   return await go("goCaricaFine", id);
 }
 
-const caricaFile = f => caricaBytes(async (a, b) => new Uint8Array(await f.slice(a, b).arrayBuffer()), f.size, f.name);
-const caricaArray = (u8, nome) => caricaBytes(async (a, b) => u8.subarray(a, b), u8.length, nome);
+export const caricaFile = f => caricaBytes(async (a, b) => new Uint8Array(await f.slice(a, b).arrayBuffer()), f.size, f.name);
+export const caricaArray = (u8, nome) => caricaBytes(async (a, b) => u8.subarray(a, b), u8.length, nome);
 
-async function scegli(multi, soloPDF, titolo) {
+export async function scegli(multi, soloPDF, titolo) {
   try {
     return (await go("goScegli", multi, soloPDF, titolo)) || [];
   } catch (e) {
@@ -191,7 +194,7 @@ async function scegli(multi, soloPDF, titolo) {
   }
 }
 
-async function salva(id, nomeSuggerito) {
+export async function salva(id, nomeSuggerito) {
   try {
     const p = await go("goSalva", id, nomeSuggerito, t("titoloSalva"));
     if (p) toast(p);
@@ -204,193 +207,45 @@ async function salva(id, nomeSuggerito) {
 
 // ---------------------------------------------------------------- viste
 
-function vista(nome) {
+export function vista(nome) {
+  if (nome === "home" || nome === "doc") stato.ritorno = nome;
   stato.vista = nome;
   $$(".vista").forEach(v => v.classList.toggle("on", v.id === "v-" + nome));
 }
 
-$$("[data-indietro]").forEach(b => b.addEventListener("click", () => vista("home")));
+// Indietro: al documento, se si è arrivati da lì; altrimenti alla schermata iniziale.
+$$("[data-indietro]").forEach(b => b.addEventListener("click", () => {
+  if (stato.ritorno === "doc" && documentiAperti()) vista("doc"); else vista("home");
+}));
 
-// ---------------------------------------------------------------- APRI E LEGGI (PDF.js di Mozilla)
+// ---------------------------------------------------------------- collegamenti e apertura
 
-const leggi = { voce: null, riparato: false };
-let visorePronto = null;
-let visoreLingua = "";
-
-// Prima che il visualizzatore parta: niente JavaScript dei PDF, niente preferenze salvate,
-// tema scuro, niente strumenti di modifica, la lingua scelta.
-document.addEventListener("webviewerloaded", e => {
-  const src = e.detail && e.detail.source;
-  if (!src || src !== $("#visore").contentWindow) return;
-  const O = src.PDFViewerApplicationOptions;
-  const imposta = (k, v) => { try { O.set(k, v); } catch { /* opzione non presente in questa versione */ } };
-  imposta("disablePreferences", true);
-  imposta("defaultUrl", "");
-  imposta("enableScripting", false);
-  imposta("viewerCssTheme", 2);
-  imposta("annotationEditorMode", -1);
-  imposta("disableHistory", true);
-  imposta("localeProperties", { lang: localePdfjs() });
-  imposta("enableAltTextModelDownload", false);
-  imposta("enableGuessAltText", false);
-  imposta("enableSignatureEditor", false);
-  imposta("enableComment", false);
-  imposta("externalLinkTarget", 0);
-  imposta("supportsDownloading", false);
-});
-
-function preparaVisore() {
-  if (visorePronto && visoreLingua === lingua) return visorePronto;
-  visoreLingua = lingua;
-  const ifr = $("#visore");
-  visorePronto = new Promise((ok, ko) => {
-    ifr.onload = async () => {
-      try {
-        const w = ifr.contentWindow;
-        const app = w.PDFViewerApplication;
-        await app.initializedPromise;
-        sistemaVisore(w);
-        ok(app);
-      } catch (e) { ko(e); }
-    };
-    ifr.src = "/pdfjs/web/viewer.html";
-  });
-  return visorePronto;
-}
-
-// sistemaVisore: toglie i pulsanti che non servono, intercetta collegamenti, tasti e trascinamenti.
-function sistemaVisore(w) {
-  const d = w.document;
-  const st = d.createElement("style");
-  st.textContent = `
-    #secondaryOpenFile,#downloadButton,#secondaryDownload,#editorModeButtons,#viewsManagerAddFileButton,
-    #presentationMode,#viewBookmark,#secondaryViewBookmark{display:none!important}
-    :root{--main-color:#F2F4F8;--body-bg-color:#1d1f27;--toolbar-bg-color:#13151F;--sidebar-toolbar-bg-color:#13151F;--toolbar-border-color:#23273A}
-  `;
-  d.head.appendChild(st);
-  // Niente finestre nuove dal visualizzatore.
-  try { w.open = () => null; } catch { /* */ }
-  // Collegamenti: quelli dentro il documento funzionano; quelli verso fuori si aprono solo se l'utente dice sì.
-  d.addEventListener("click", e => {
-    const a = e.target && e.target.closest && e.target.closest("a[href]");
-    if (!a) return;
-    const href = a.getAttribute("href") || "";
-    if (href.startsWith("#") || (a.href.startsWith(location.origin + "/pdfjs/") && a.href.includes("#"))) return;
-    e.preventDefault();
-    e.stopImmediatePropagation();
-    if (/^(https?:|mailto:)/i.test(a.href)) chiediLink(a.href);
-  }, true);
-  // Tasti: Ctrl+O apre con il programma, Ctrl+S salva una copia (mai sopra l'originale).
-  w.addEventListener("keydown", e => {
-    if (!(e.ctrlKey || e.metaKey)) return;
-    const k = e.key.toLowerCase();
-    if (k === "o") { e.preventDefault(); e.stopImmediatePropagation(); apriDaDialogo(); }
-    if (k === "s") { e.preventDefault(); e.stopImmediatePropagation(); salvaCopiaLeggi(); }
-  }, true);
-  // File trascinati sul visualizzatore: li gestisce il programma.
-  w.addEventListener("dragover", e => { e.preventDefault(); e.stopImmediatePropagation(); }, true);
-  w.addEventListener("drop", e => {
-    e.preventDefault(); e.stopImmediatePropagation();
-    if (e.dataTransfer && e.dataTransfer.files.length) gestisciFileTrascinati([...e.dataTransfer.files]);
-  }, true);
-}
-
-async function chiediLink(url) {
+export async function chiediLink(url) {
   const si = await chiedi(t("linkT"), t("linkD", url), [[t("annulla"), false], [t("linkApri"), true, true]]);
   if (si) {
     try { await go("goApriLink", url); } catch (e) { avvisaErrore(e); }
   }
 }
 
-function mostraAvvisoLeggi(testo, rosso) {
-  const a = $("#lAvviso");
-  a.textContent = testo || "";
-  a.classList.toggle("hidden", !testo);
-  a.classList.toggle("rosso", !!rosso);
-}
-
-async function apriLeggi(voce, riparato = false) {
-  vista("leggi");
-  leggi.voce = voce;
-  leggi.riparato = riparato;
-  $("#lNome").textContent = voce.nome;
-  mostraAvvisoLeggi(riparato ? t("riparato") : "");
-  let app;
-  try {
-    app = await preparaVisore();
-    await app.open({ url: "/file/" + voce.id, useWorkerFetch: false, isEvalSupported: false });
-  } catch (e) {
-    if (riparato) {
-      mostraAvvisoLeggi(t("nonRiparabile"), true);
-      return;
-    }
-    await riparaEApri(voce, "");
-  }
-}
-
-async function riparaEApri(voce, pw) {
-  attesa(true, t("riparando"));
-  try {
-    const r = await go("goRipara", voce.id, pw);
-    attesa(false);
-    r.nome = voce.nome;
-    await apriLeggi(r, true);
-  } catch (e) {
-    attesa(false);
-    if (e.codice === "password") {
-      const p = await chiediPassword(voce.nome, pw !== "");
-      if (p !== null) return riparaEApri(voce, p);
-      return;
-    }
-    mostraAvvisoLeggi(t("nonRiparabile"), true);
-  }
-}
-
 async function apriDaDialogo() {
-  const vv = await scegli(false, true, t("titoloApri"));
-  if (vv.length) apriLeggi(vv[0]);
+  const vv = await scegli(true, true, t("titoloApri"));
+  for (const v of vv) await apriDocumento(v);
 }
-
-async function salvaCopiaLeggi() {
-  if (!leggi.voce) return;
-  const app = await visorePronto;
-  const doc = app && app.pdfDocument;
-  try {
-    if (doc && doc.annotationStorage && doc.annotationStorage.size > 0) {
-      // Moduli compilati: salvo il PDF con i campi riempiti.
-      attesa(true);
-      let v;
-      try {
-        const bytes = await doc.saveDocument();
-        v = await caricaArray(bytes, leggi.voce.nome);
-      } finally { attesa(false); }
-      await salva(v.id, nomeCon(leggi.voce.nome, t("suffCompilato")));
-      return;
-    }
-  } catch (e) { avvisaErrore(e); return; }
-  await salva(leggi.voce.id, nomeCon(leggi.voce.nome, leggi.riparato ? t("suffRiparato") : t("suffCopia")));
-}
-
-$("#lApri").onclick = apriDaDialogo;
-$("#lSalva").onclick = salvaCopiaLeggi;
-$("#lRipara").onclick = () => leggi.voce && riparaEApri(leggi.voce, "");
-$("#lCerca").onclick = async () => { const app = await visorePronto; app && app.findBar && app.findBar.open(); };
-$("#lStampa").onclick = async () => { const app = await visorePronto; app && app.pdfDocument && app.triggerPrinting(); };
 
 // ---------------------------------------------------------------- UNISCI
 
 const unisci = { voci: [] }; // { voce, rot, pw, pagine, protetto }
 
-async function aggiungiAUnisci(voci) {
+async function aggiungiAUnisci(voci, pwNoto) {
   for (const v of voci) {
     if (!["pdf", "jpg", "png", "heic"].includes(v.tipo)) {
       await avvisa(t("e_formato") + "\n" + v.nome);
       continue;
     }
-    const it = { voce: v, rot: 0, pw: "", pagine: 1, protetto: false };
+    const it = { voce: v, rot: 0, pw: pwNoto || "", pagine: 1, protetto: false };
     if (v.tipo === "pdf") {
       try {
-        let inf = await go("goInfo", v.id, "");
+        let inf = await go("goInfo", v.id, it.pw);
         it.protetto = inf.cifrato;
         let sbagliata = false;
         while (inf.servePassword && !inf.passwordGiusta) {
@@ -518,9 +373,12 @@ function azioneVoce(i, a) {
   disegnaLista();
 }
 
-async function apriUnisci(voci) {
+export async function apriUnisci(voci, daDoc, pw) {
+  if (!daDoc) stato.ritorno = "home";
+  unisci.voci = [];
+  miniature.clear();
   vista("unisci");
-  if (voci && voci.length) await aggiungiAUnisci(voci);
+  if (voci && voci.length) await aggiungiAUnisci(voci, pw);
   else disegnaLista();
 }
 
@@ -542,13 +400,17 @@ $("#uSalva").onclick = async () => {
 
 // ---------------------------------------------------------------- FIRMA
 
-const firma = { voce: null, pw: "", doc: null, n: 0, pag: 1, elementi: [], sel: null, colore: "#1a3ea8", png: "", dimPag: null, conta: 0 };
+const firma = { alFine: null, voce: null, pw: "", doc: null, n: 0, pag: 1, elementi: [], sel: null, colore: "#1a3ea8", png: "", dimPag: null, conta: 0 };
 
-async function apriFirma(voce) {
+// apriFirmaDaDocumento: la firma va sul documento aperto; alla fine il risultato torna lì.
+export function apriFirmaDaDocumento(voce, pw, alFine) { return apriFirma(voce, pw, alFine); }
+
+async function apriFirma(voce, pwNoto, alFine) {
   if (voce.tipo !== "pdf") return avvisa(t("e_non_pdf"));
-  let pw = "";
+  if (!alFine) stato.ritorno = "home";
+  let pw = pwNoto || "";
   try {
-    let inf = await go("goInfo", voce.id, "");
+    let inf = await go("goInfo", voce.id, pw);
     let sbagliata = false;
     while (inf.servePassword && !inf.passwordGiusta) {
       const p = await chiediPassword(voce.nome, sbagliata);
@@ -576,7 +438,9 @@ async function apriFirma(voce) {
     }
   } finally { attesa(false); }
   if (firma.doc) firma.doc.destroy();
-  Object.assign(firma, { voce, pw, doc, n: doc.numPages, pag: 1, elementi: [], sel: null });
+  Object.assign(firma, { voce, pw, doc, n: doc.numPages, pag: 1, elementi: [], sel: null, alFine: alFine || null });
+  $("#fSalva").textContent = t(alFine ? "firmaApplica" : "firmaSalva");
+  $("#fCambia").classList.toggle("hidden", !!alFine);
   $("#fNome").textContent = voce.nome;
   vista("firma");
   if (!firma.png && firmaSalvataEsiste) {
@@ -719,7 +583,7 @@ async function aggiungiElemento(tipo, png, larghezzaPt, extra = {}) {
 }
 
 // PNG di un testo (data o testo libero), disegnato in alta risoluzione con il carattere del programma.
-async function pngTesto(testo, colore) {
+export async function pngTesto(testo, colore) {
   await document.fonts.load("64px TassoOnest");
   const fs = 96;
   const c = document.createElement("canvas");
@@ -748,7 +612,7 @@ function pngSpunta(colore) {
   return c.toDataURL("image/png");
 }
 
-function oggi() {
+export function oggi() {
   try { return new Intl.DateTimeFormat(lingua === "en" ? "en-GB" : lingua, { day: "2-digit", month: "2-digit", year: "numeric" }).format(new Date()); }
   catch { return new Date().toLocaleDateString(); }
 }
@@ -781,6 +645,7 @@ $("#fSalva").onclick = async () => {
   try { r = await go("goFirma", firma.voce.id, firma.pw, timbri); }
   catch (e) { attesa(false); return avvisaErrore(e); }
   attesa(false);
+  if (firma.alFine) { const f = firma.alFine; firma.alFine = null; return f(r); }
   await salva(r.id, nomeCon(firma.voce.nome, t("suffFirmato")));
   go("goDimentica", r.id).catch(() => {});
 };
@@ -974,8 +839,9 @@ $("#tOk").onclick = async () => {
 
 const sblocca = { voce: null, info: null };
 
-async function apriSblocca(voce) {
+export async function apriSblocca(voce, daDoc) {
   if (voce.tipo !== "pdf") return avvisa(t("e_non_pdf"));
+  if (!daDoc) stato.ritorno = "home";
   try {
     attesa(true);
     sblocca.info = await go("goInfo", voce.id, "");
@@ -1029,51 +895,83 @@ $("#hUnisci").onclick = async () => { const vv = await scegli(true, false, t("ti
 $("#hFirma").onclick = async () => { const vv = await scegli(false, true, t("titoloApri")); if (vv.length) apriFirma(vv[0]); };
 $("#hSblocca").onclick = async () => { const vv = await scegli(false, true, t("titoloApri")); if (vv.length) apriSblocca(vv[0]); };
 
-async function gestisciFileTrascinati(files) {
-  if (!files.length) return;
+// azione: cosa fare con dei file (da una scheda della schermata iniziale, dal menu del tasto destro...).
+async function azione(nome, voci) {
+  const pdf = voci.filter(v => v.tipo === "pdf");
+  const ok = voci.filter(v => ["pdf", "jpg", "png", "heic"].includes(v.tipo));
+  if (!ok.length) return avvisa(t("e_formato"));
+  switch (nome) {
+    case "unisci": return apriUnisci(ok);
+    case "firma": return pdf.length ? apriFirma(pdf[0]) : avvisa(t("e_non_pdf"));
+    case "sblocca": return pdf.length ? apriSblocca(pdf[0]) : avvisa(t("e_non_pdf"));
+    case "comprimi":
+      if (!pdf.length) return avvisa(t("e_non_pdf"));
+      for (const v of pdf) await apriDocumento(v);
+      return __doc.usaStrumento("comprimi");
+    case "apri":
+      if (!pdf.length) return apriUnisci(ok);
+      for (const v of pdf) await apriDocumento(v);
+      return;
+    default:
+      if (pdf.length && pdf.length === ok.length) { for (const v of pdf) await apriDocumento(v); return; }
+      return apriUnisci(ok);
+  }
+}
+
+async function caricaTrascinati(files) {
   const voci = [];
   attesa(true, t("caricamento"));
   try {
     for (const f of files) voci.push(await caricaFile(f));
   } catch (e) {
     attesa(false);
-    return avvisaErrore(e);
+    avvisaErrore(e);
+    return null;
   }
   attesa(false);
-  const pdf = voci.filter(v => v.tipo === "pdf");
+  return voci;
+}
+
+async function gestisciFileTrascinati(files, sullaScheda) {
+  if (!files.length) return;
+  const voci = await caricaTrascinati(files);
+  if (!voci) return;
   const ok = voci.filter(v => ["pdf", "jpg", "png", "heic"].includes(v.tipo));
   if (!ok.length) return avvisa(t("e_formato"));
+  const pdf = ok.filter(v => v.tipo === "pdf");
   switch (stato.vista) {
     case "unisci": return aggiungiAUnisci(ok);
-    case "firma": return pdf.length ? apriFirma(pdf[0]) : avvisa(t("e_non_pdf"));
-    case "sblocca": return pdf.length ? apriSblocca(pdf[0]) : avvisa(t("e_non_pdf"));
-    case "leggi": return pdf.length ? apriLeggi(pdf[0]) : apriUnisci(ok);
-    default:
-      if (ok.length === 1 && pdf.length === 1) return apriLeggi(pdf[0]);
-      return apriUnisci(ok);
+    case "firma": return pdf.length ? apriFirma(pdf[0], "", firma.alFine) : avvisa(t("e_non_pdf"));
+    case "sblocca": return pdf.length ? apriSblocca(pdf[0], stato.ritorno === "doc") : avvisa(t("e_non_pdf"));
+    case "doc": return azione("auto", ok);
+    default: return azione(sullaScheda || "auto", ok);
   }
 }
 
+// Trascinando dei file sulla schermata iniziale, la scheda sotto il cursore si illumina nel suo
+// colore: rilasciando lì parte quella azione.
 let contaTrascina = 0;
 const conFile = e => e.dataTransfer && [...e.dataTransfer.types].includes("Files");
-window.addEventListener("dragenter", e => { if (conFile(e)) { contaTrascina++; $("#trascinaVelo").classList.add("on"); } });
-window.addEventListener("dragleave", e => { if (conFile(e) && --contaTrascina <= 0) { contaTrascina = 0; $("#trascinaVelo").classList.remove("on"); } });
-window.addEventListener("dragover", e => { e.preventDefault(); });
+const schedaSotto = e => (stato.vista === "home" && e.target && e.target.closest) ? e.target.closest(".scheda[data-azione]") : null;
+function illumina(sch) { $$(".scheda[data-azione]").forEach(x => x.classList.toggle("bersaglio", x === sch)); }
+window.addEventListener("dragenter", e => { if (conFile(e)) { contaTrascina++; $("#trascinaVelo").classList.add("on"); illumina(schedaSotto(e)); } });
+window.addEventListener("dragleave", e => { if (conFile(e) && --contaTrascina <= 0) { contaTrascina = 0; $("#trascinaVelo").classList.remove("on"); illumina(null); } });
+window.addEventListener("dragover", e => {
+  e.preventDefault();
+  if (conFile(e)) { const sch = schedaSotto(e); illumina(sch); if (e.dataTransfer) e.dataTransfer.dropEffect = "copy"; }
+});
 window.addEventListener("drop", e => {
   e.preventDefault();
+  const sch = schedaSotto(e);
   contaTrascina = 0;
   $("#trascinaVelo").classList.remove("on");
-  if (conFile(e) && e.dataTransfer.files.length) gestisciFileTrascinati([...e.dataTransfer.files]);
+  illumina(null);
+  if (conFile(e) && e.dataTransfer.files.length) gestisciFileTrascinati([...e.dataTransfer.files], sch ? sch.dataset.azione : "");
 });
 
-document.addEventListener("keydown", async e => {
+document.addEventListener("keydown", e => {
   if (!(e.ctrlKey || e.metaKey)) return;
-  const k = e.key.toLowerCase();
-  if (k === "o") { e.preventDefault(); apriDaDialogo(); return; }
-  if (stato.vista !== "leggi" || !visorePronto) return;
-  if (k === "f") { e.preventDefault(); const app = await visorePronto; app.findBar && app.findBar.open(); }
-  if (k === "p") { e.preventDefault(); const app = await visorePronto; app.pdfDocument && app.triggerPrinting(); }
-  if (k === "s") { e.preventDefault(); salvaCopiaLeggi(); }
+  if (e.key.toLowerCase() === "o") { e.preventDefault(); apriDaDialogo(); }
 });
 // Nessuna navigazione indietro con il tasto o il mouse.
 window.addEventListener("keydown", e => { if (e.altKey && (e.key === "ArrowLeft" || e.key === "ArrowRight")) e.preventDefault(); });
@@ -1099,10 +997,33 @@ $("#btnInfo").onclick = () => avvisa(t("infoTesto", versione) + "\n\n" + t("info
     lingua = LINGUE.includes(a.lingua) ? a.lingua : "en";
     versione = a.versione || "";
     firmaSalvataEsiste = !!a.firma;
+    $("#hMenu").classList.toggle("hidden", !a.windows);
+    $("#hMenuIn").checked = !!a.menu;
   } catch { /* */ }
+  initDocumento();
   applicaLingua();
   window.__tassoPronto = true;
+  // File dell'avvio (doppio clic su un PDF, menu del tasto destro) e quelli che arrivano subito dopo.
+  let primo = true;
+  for (let i = 0; i < 48; i++) {
+    let fa = null;
+    try { fa = await go("goFileAvvio"); } catch { break; }
+    if (fa && fa.file && fa.file.length) {
+      const modo = fa.modo || "apri";
+      if (primo || modo === "apri" || modo === "comprimi") await azione(modo, fa.file);
+      else if (stato.vista === "unisci") await aggiungiAUnisci(fa.file);
+      else await azione(modo, fa.file);
+      primo = false;
+    } else if (!fa || !fa.modo) break;
+    await new Promise(ok => setTimeout(ok, 250));
+  }
 })();
 
+$("#hMenuIn").onchange = async () => {
+  const on = $("#hMenuIn").checked;
+  try { $("#hMenuIn").checked = await go("goImpostaMenu", on); if (on) avvisa(t("menuFatto")); }
+  catch (e) { $("#hMenuIn").checked = !on; avvisaErrore(e); }
+};
+
 // per le prove automatiche
-window.__tasso = { stato, unisci, firma, leggi, sblocca, gestisciFileTrascinati, apriLeggi, apriFirma, apriSblocca, apriUnisci, aggiungiElemento, impostaFirma, pngTesto };
+window.__tasso = { stato, unisci, firma, sblocca, gestisciFileTrascinati, apriDocumento, apriDaDialogo, apriFirma, apriSblocca, apriUnisci, aggiungiElemento, impostaFirma, pngTesto, azione, doc: __doc };

@@ -38,7 +38,7 @@ const maxFile = 1 << 30 // 1 GB
 // piattaforma: le cose che dipendono dal sistema (finestre di Windows, DPAPI, registro...).
 var piattaforma struct {
 	scegliFile    func(multi bool, soloPDF bool, titolo string) ([]string, error)
-	salvaFile     func(nomeSuggerito, cartella, titolo string) (string, error)
+	salvaFile     func(nomeSuggerito, cartella, titolo, ext string) (string, error)
 	apriLink      func(u string) error
 	mostraFile    func(p string) error
 	proteggi      func([]byte) ([]byte, error)
@@ -46,6 +46,8 @@ var piattaforma struct {
 	cartellaDati  func() string
 	linguaTasso   func() string // HKCU\Software\Tasso\Lingua (scritta dall'installatore dell'ecosistema)
 	linguaSistema func() string
+	menuAttivo    func() bool
+	impostaMenu   func(on bool, lingua string) error
 }
 
 // ---------------------------------------------------------------- Archivio dei file
@@ -188,6 +190,8 @@ type Avvio struct {
 	Lingua   string `json:"lingua"`
 	Versione string `json:"versione"`
 	Firma    bool   `json:"firma"` // c'è una firma salvata
+	Menu     bool   `json:"menu"`  // le voci nel menu del tasto destro di Windows sono attive
+	Windows  bool   `json:"windows"`
 }
 
 type impostazioni struct {
@@ -243,7 +247,7 @@ func linguaIniziale() string {
 }
 
 func goAvvio() Avvio {
-	return Avvio{Lingua: linguaIniziale(), Versione: versione, Firma: fileFirmaEsiste()}
+	return Avvio{Lingua: linguaIniziale(), Versione: versione, Firma: fileFirmaEsiste(), Menu: goMenu(), Windows: piattaforma.impostaMenu != nil}
 }
 
 func goLingua(l string) error {
@@ -455,25 +459,44 @@ func eUnOriginale(p string) bool {
 // goSalva: la finestra di Windows "Salva con nome" (che chiede prima di sostituire un file
 // esistente) e poi la scrittura. Restituisce il percorso, o "" se l'utente annulla.
 func goSalva(id, nomeSuggerito, titolo string) (string, error) {
-	v, err := prendiVoce(id)
-	if err != nil {
-		return "", perPagina(err)
+	return goSalvaTipo(id, nomeSuggerito, titolo, "pdf")
+}
+
+// estensioniSalvabili: i tipi di file che il programma scrive.
+var estensioniSalvabili = map[string]bool{"pdf": true, "txt": true, "png": true, "jpg": true}
+
+// chiediDove: la finestra "Salva con nome" per un file di tipo ext; mai sopra un originale.
+func chiediDove(nomeSuggerito, cartella, titolo, ext string) (string, error) {
+	if !estensioniSalvabili[ext] {
+		return "", errc("generico", nil)
 	}
 	if piattaforma.salvaFile == nil {
-		return "", perPagina(errc("dialogo", nil))
+		return "", errc("dialogo", nil)
 	}
-	p, err := piattaforma.salvaFile(nomeValido(nomeSuggerito), v.cartella(), titolo)
+	p, err := piattaforma.salvaFile(nomeValido(nomeSuggerito), cartella, titolo, ext)
 	if err != nil {
-		return "", perPagina(errc("dialogo", err))
+		return "", errc("dialogo", err)
 	}
 	if p == "" {
 		return "", nil
 	}
-	if !strings.EqualFold(filepath.Ext(p), ".pdf") {
-		p += ".pdf"
+	if !strings.EqualFold(filepath.Ext(p), "."+ext) {
+		p += "." + ext
 	}
 	if eUnOriginale(p) {
-		return "", perPagina(errc("originale", nil))
+		return "", errc("originale", nil)
+	}
+	return p, nil
+}
+
+func goSalvaTipo(id, nomeSuggerito, titolo, ext string) (string, error) {
+	v, err := prendiVoce(id)
+	if err != nil {
+		return "", perPagina(err)
+	}
+	p, err := chiediDove(nomeSuggerito, v.cartella(), titolo, ext)
+	if err != nil || p == "" {
+		return "", perPagina(err)
 	}
 	b, err := v.contenuto()
 	if err != nil {
@@ -516,6 +539,10 @@ func scriviSicuro(p string, b []byte) error {
 
 // nomeValido: toglie dal nome i caratteri che Windows non accetta.
 func nomeValido(n string) string {
+	ext := strings.ToLower(filepath.Ext(n))
+	if !estensioniSalvabili[strings.TrimPrefix(ext, ".")] {
+		ext = ".pdf"
+	}
 	n = strings.Map(func(r rune) rune {
 		if r < 32 || strings.ContainsRune(`<>:"/\|?*`, r) {
 			return '_'
@@ -524,10 +551,10 @@ func nomeValido(n string) string {
 	}, n)
 	n = strings.TrimSpace(strings.TrimRight(n, ". "))
 	if n == "" {
-		n = "documento.pdf"
+		n = "documento" + ext
 	}
 	if len([]rune(n)) > 180 {
-		n = string([]rune(n)[:176]) + ".pdf"
+		n = string([]rune(n)[:176]) + ext
 	}
 	return n
 }
@@ -740,12 +767,26 @@ func legami() map[string]interface{} {
 		"goSalvaFirma":    goSalvaFirma,
 		"goCaricaFirma":   goCaricaFirma,
 		"goCancellaFirma": goCancellaFirma,
+		"goSalvaTipo":     goSalvaTipo,
+		"goOrganizza":     goOrganizza,
+		"goDisegna":       goDisegna,
+		"goCollegamenti":  goCollegamenti,
+		"goOscura":        goOscura,
+		"goProteggi":      goProteggi,
+		"goComprimi":      goComprimi,
+		"goTestoAdatto":   goTestoAdatto,
+		"goCaricaTesto":   goCaricaTesto,
+		"goSerieInizio":   goSerieInizio,
+		"goSerieScrivi":   goSerieScrivi,
+		"goSerieFine":     goSerieFine,
+		"goFileAvvio":     goFileAvvio,
+		"goMenu":          goMenu,
+		"goImpostaMenu":   goImpostaMenu,
 	}
 }
 
 // Funzioni che aprono finestre di Windows: devono girare nel filo della finestra.
-var legamiSuFinestra = []string{"goScegli", "goSalva"}
+var legamiSuFinestra = []string{"goScegli", "goSalva", "goSalvaTipo", "goSerieInizio"}
 
 // Funzioni veloci che non devono aspettare in coda dietro un lavoro lungo.
-var legamiSubito = []string{"goCaricaPezzo", "goDimentica"}
-
+var legamiSubito = []string{"goCaricaPezzo", "goDimentica", "goFileAvvio", "goTestoAdatto"}

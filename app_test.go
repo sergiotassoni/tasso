@@ -91,7 +91,7 @@ func TestSalvaNonSovrascriveOriginale(t *testing.T) {
 	defer func() { piattaforma.salvaFile = vecchio }()
 
 	var cartellaProposta, nomeProposto string
-	piattaforma.salvaFile = func(nome, cartella, titolo string) (string, error) {
+	piattaforma.salvaFile = func(nome, cartella, titolo, ext string) (string, error) {
 		cartellaProposta, nomeProposto = cartella, nome
 		return orig, nil // l'utente sceglie proprio l'originale
 	}
@@ -106,7 +106,7 @@ func TestSalvaNonSovrascriveOriginale(t *testing.T) {
 	}
 	// nome nuovo: salva, senza toccare l'originale
 	nuovo := filepath.Join(dir, "Contratto - firmato")
-	piattaforma.salvaFile = func(nome, cartella, titolo string) (string, error) { return nuovo, nil }
+	piattaforma.salvaFile = func(nome, cartella, titolo, ext string) (string, error) { return nuovo, nil }
 	p, err := goSalva(res.ID, "Contratto - firmato.pdf", "Salva")
 	if err != nil || p != nuovo+".pdf" {
 		t.Fatalf("salvataggio: %q %v", p, err)
@@ -118,7 +118,7 @@ func TestSalvaNonSovrascriveOriginale(t *testing.T) {
 		t.Fatal("l'originale è stato modificato!")
 	}
 	// annullato
-	piattaforma.salvaFile = func(nome, cartella, titolo string) (string, error) { return "", nil }
+	piattaforma.salvaFile = func(nome, cartella, titolo, ext string) (string, error) { return "", nil }
 	if p, err := goSalva(res.ID, "x.pdf", "Salva"); p != "" || err != nil {
 		t.Fatal("annullamento")
 	}

@@ -42,7 +42,7 @@ func main() {
 		}
 		return pp, nil
 	}
-	piattaforma.salvaFile = func(nome, cartella, titolo string) (string, error) {
+	piattaforma.salvaFile = func(nome, cartella, titolo, ext string) (string, error) {
 		d := os.Getenv("TASSOPDF_SALVA")
 		if d == "" {
 			d = filepath.Join(os.TempDir(), "tassopdf-salvati")
