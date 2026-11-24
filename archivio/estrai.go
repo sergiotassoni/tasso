@@ -1,0 +1,305 @@
+// Tasso Zip - comprime ed estrae i tuoi file.
+// Copyright (C) 2026 Sergio Tassoni. Licenza GPL-3.0 (vedi LICENSE).
+
+package archivio
+
+import (
+	"archive/zip"
+	"bytes"
+	"context"
+	"errors"
+	"fmt"
+	"io/fs"
+	"os"
+	"path/filepath"
+	"strings"
+)
+
+// Tipo di archivio.
+type Tipo string
+
+const (
+	TipoZip Tipo = "zip"
+	Tipo7z  Tipo = "7z"
+	TipoRar Tipo = "rar"
+	TipoTar Tipo = "tar"
+	TipoGz  Tipo = "gz"
+	TipoBz2 Tipo = "bz2"
+	TipoXz  Tipo = "xz"
+)
+
+// estensioniArchivio: per capire al volo (senza aprire il file) se è un archivio.
+var estensioniArchivio = []string{
+	".zip", ".7z", ".rar", ".tar", ".gz", ".tgz", ".bz2", ".tbz2", ".tbz", ".xz", ".txz",
+}
+
+// SembraArchivio: true se dal nome il file sembra un archivio che Tasso Zip sa aprire.
+func SembraArchivio(percorso string) bool {
+	n := minuscolo(percorso)
+	if m := reNumero3.FindStringSubmatch(n); m != nil {
+		return true // nome.001, nome.7z.002...
+	}
+	if reVecchiaRar.MatchString(n) {
+		return true // nome.r00
+	}
+	for _, e := range estensioniArchivio {
+		if strings.HasSuffix(n, e) {
+			return true
+		}
+	}
+	return false
+}
+
+// riconosciDati capisce il tipo dai primi byte.
+func riconosciDati(b []byte) (Tipo, bool) {
+	switch {
+	case bytes.HasPrefix(b, []byte("7z\xBC\xAF\x27\x1C")):
+		return Tipo7z, true
+	case bytes.HasPrefix(b, []byte("Rar!\x1A\x07")):
+		return TipoRar, true
+	case bytes.HasPrefix(b, []byte("PK\x03\x04")), bytes.HasPrefix(b, []byte("PK\x05\x06")):
+		return TipoZip, true
+	case bytes.HasPrefix(b, []byte{0x1F, 0x8B}):
+		return TipoGz, true
+	case bytes.HasPrefix(b, []byte("BZh")):
+		return TipoBz2, true
+	case bytes.HasPrefix(b, []byte{0xFD, '7', 'z', 'X', 'Z', 0x00}):
+		return TipoXz, true
+	case sembraTar(b):
+		return TipoTar, true
+	}
+	return "", false
+}
+
+// sembraTar: intestazione tar valida (con "ustar" o con la somma di controllo giusta).
+func sembraTar(b []byte) bool {
+	if len(b) < 512 {
+		return false
+	}
+	if bytes.Equal(b[257:262], []byte("ustar")) {
+		return true
+	}
+	// vecchi tar senza "ustar": controllo la somma
+	campo := strings.Trim(string(b[148:156]), " \x00")
+	if campo == "" {
+		return false
+	}
+	var atteso int64
+	for _, c := range campo {
+		if c < '0' || c > '7' {
+			return false
+		}
+		atteso = atteso*8 + int64(c-'0')
+	}
+	var somma int64
+	for i := 0; i < 512; i++ {
+		if i >= 148 && i < 156 {
+			somma += ' '
+		} else {
+			somma += int64(b[i])
+		}
+	}
+	return somma == atteso && b[0] != 0
+}
+
+// OpzioniEstrai: come estrarre.
+type OpzioniEstrai struct {
+	Password        string
+	Limiti          *Limiti // nil = LimitiPredefiniti()
+	Avanzamento     FunzioneAvanzamento
+	CartellaRiserva string // dove estrarre se accanto all'archivio non si può scrivere (es. Desktop)
+}
+
+// RisultatoEstrai: cosa è stato fatto.
+type RisultatoEstrai struct {
+	Cartella   string   // la cartella nuova con i file
+	File       int      // file estratti
+	Rinominati int      // nomi doppi a cui ho aggiunto " (2)"
+	Saltati    []string // voci non estratte, con il motivo (collegamenti, nomi pericolosi...)
+	Riserva    bool     // true se ho usato CartellaRiserva
+}
+
+// lavoroEstrai: tutto quello che serve durante un'estrazione.
+type lavoroEstrai struct {
+	ctx      context.Context
+	opz      OpzioniEstrai
+	parti    []string
+	vol      *volumi
+	d        *destinazione
+	fatto    int64
+	totale   int64
+	flusso   bool // avanzamento in base ai byte letti dall'archivio (tar, gz, bz2, xz)
+	multipli bool
+}
+
+func (l *lavoroEstrai) avanza(nome string, n int64) {
+	if l.opz.Avanzamento == nil {
+		return
+	}
+	l.fatto += n
+	a := Avanzamento{Fatto: l.fatto, Totale: l.totale, Nome: nome}
+	if l.flusso && l.vol != nil {
+		a.Fatto = l.vol.letti.Load()
+		a.Totale = l.vol.Size()
+	}
+	l.opz.Avanzamento(a)
+}
+
+// Estrai estrae l'archivio in una cartella NUOVA accanto all'archivio.
+// Lavora in una cartella temporanea e la rinomina solo alla fine: se annulli o qualcosa
+// va storto non resta niente a metà.
+func Estrai(ctx context.Context, percorso string, opz OpzioniEstrai) (ris RisultatoEstrai, err error) {
+	percorso, err = filepath.Abs(percorso)
+	if err != nil {
+		return ris, err
+	}
+	fi, err := os.Stat(percorso)
+	if err != nil {
+		return ris, err
+	}
+	if !fi.Mode().IsRegular() {
+		return ris, ErrFormato
+	}
+	limiti := LimitiPredefiniti()
+	if opz.Limiti != nil {
+		limiti = *opz.Limiti
+	}
+	l := &lavoroEstrai{ctx: ctx, opz: opz}
+
+	n := minuscolo(percorso)
+	if strings.HasSuffix(n, ".z01") || (strings.HasSuffix(n, ".zip") && esisteParteZip(percorso)) {
+		return ris, ErrZipDiviso
+	}
+
+	// Le parti: "nome.part1.rar"... (le apre la libreria rar), oppure "nome.001", "nome.002"...
+	tipo := Tipo("")
+	if reParteRarN.MatchString(filepath.Base(percorso)) || reVecchiaRar.MatchString(n) {
+		p, e := primaParteRar(percorso)
+		if e != nil {
+			return ris, e
+		}
+		percorso, tipo = p, TipoRar
+		l.parti = []string{p}
+	} else {
+		parti, multi, e := partiNumerate(percorso)
+		if e != nil {
+			return ris, e
+		}
+		l.parti, l.multipli = parti, multi
+	}
+
+	l.vol, err = apriVolumi(l.parti)
+	if err != nil {
+		return ris, err
+	}
+	defer l.vol.Close()
+
+	if tipo == "" {
+		testa := make([]byte, 1024)
+		k, _ := l.vol.ReadAt(testa, 0)
+		testa = testa[:k]
+		var ok bool
+		tipo, ok = riconosciDati(testa)
+		if !ok {
+			if bytes.HasPrefix(testa, []byte("PK\x07\x08")) {
+				return ris, ErrZipDiviso
+			}
+			// zip con qualcosa davanti (es. autoestraente): lo riconosce la lettura dalla fine
+			if _, e := zip.NewReader(l.vol, l.vol.Size()); e == nil || errors.Is(e, zip.ErrInsecurePath) {
+				tipo = TipoZip
+			} else {
+				return ris, ErrFormato
+			}
+		}
+	}
+	l.vol.letti.Store(0)
+
+	// Cartella di lavoro accanto all'archivio (o nella cartella di riserva).
+	dove := filepath.Dir(l.parti[0])
+	tmp, err := creaCartellaTemporanea(dove)
+	if err != nil && opz.CartellaRiserva != "" {
+		dove = opz.CartellaRiserva
+		ris.Riserva = true
+		tmp, err = creaCartellaTemporanea(dove)
+	}
+	if err != nil {
+		return ris, fmt.Errorf("%w: %v", ErrNonScrivibile, err)
+	}
+	finito := false
+	defer func() {
+		if !finito {
+			_ = os.RemoveAll(tmp) // annullato o errore: non lascio niente a metà
+		}
+	}()
+
+	l.d = nuovaDestinazione(ctx, tmp, limiti, l.vol.Size())
+	l.d.avanzamento = l.avanza
+
+	switch tipo {
+	case TipoZip:
+		err = l.zip()
+	case Tipo7z:
+		err = l.setteZip()
+	case TipoRar:
+		err = l.rar(percorso)
+	case TipoTar, TipoGz, TipoBz2, TipoXz:
+		l.flusso = true
+		err = l.flussoTar(tipo, percorso)
+	default:
+		err = ErrFormato
+	}
+	if err == nil {
+		err = l.d.annullato()
+	}
+	if err != nil {
+		if errors.Is(err, context.Canceled) {
+			err = ErrAnnullato
+		}
+		return ris, err
+	}
+
+	finale, err := l.d.concludi(dove, NomeBaseArchivio(percorso))
+	if err != nil {
+		return ris, err
+	}
+	finito = true
+	ris.Cartella = finale
+	ris.File = l.d.file
+	ris.Rinominati = l.d.rinominati
+	ris.Saltati = l.d.saltati
+	return ris, nil
+}
+
+// esisteParteZip: c'è "nome.z01" accanto a "nome.zip"? Allora è uno zip diviso.
+func esisteParteZip(percorso string) bool {
+	base := strings.TrimSuffix(percorso, filepath.Ext(percorso))
+	for _, e := range []string{".z01", ".Z01"} {
+		if _, err := os.Stat(base + e); err == nil {
+			return true
+		}
+	}
+	return false
+}
+
+// erroreLettura: trasforma gli errori di lettura in messaggi chiari.
+func (l *lavoroEstrai) erroreLettura(err error) error {
+	if err == nil {
+		return nil
+	}
+	for _, e := range []error{ErrAnnullato, ErrBomba, ErrSpazio, ErrTroppeVoci, ErrPassword, ErrPasswordSbagliata, ErrZipCifrato} {
+		if errors.Is(err, e) {
+			return err
+		}
+	}
+	if errors.Is(err, context.Canceled) {
+		return ErrAnnullato
+	}
+	var pe *fs.PathError
+	if errors.As(err, &pe) && pe.Op != "read" {
+		return err // errore del disco su cui scrivo (permessi, disco pieno...)
+	}
+	if l.multipli {
+		return fmt.Errorf("%w (%v)", ErrParteMancante, err)
+	}
+	return fmt.Errorf("%w (%v)", ErrRovinato, err)
+}

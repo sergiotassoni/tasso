@@ -1,0 +1,172 @@
+TASSO ZIP 1.0 - Ecosistema Tasso
+================================
+Comprime ed estrae i tuoi file. In un clic.
+(English below)
+
+COME SI USA
+-----------
+Doppio clic su TassoZip.exe. Non va installato e NON chiede i permessi da amministratore.
+Serve Windows 10 o 11 a 64 bit con Microsoft Edge WebView2 (c'è già in Windows 11 e quasi
+sempre in Windows 10; se manca, Tasso Zip apre la pagina ufficiale Microsoft per installarlo).
+
+COMPRIMI
+  1. "Scegli i file" o "Scegli una cartella" (oppure trascinali nella finestra, a sinistra).
+  2. Scegli come lo vuoi:
+     - "Compressione massima (.tar.xz)": il file più piccolo. Usa LZMA2, lo stesso metodo di
+       compressione del 7z. Si apre con Tasso Zip, 7-Zip, WinRAR, PeaZip e con le versioni
+       recenti di Windows 11.
+     - "Compatibile (.zip)": si apre ovunque (Windows, Mac, telefoni), un po' più grande.
+       Foto, video e archivi dentro lo zip vengono messi così come sono (non si comprimono più).
+  3. Premi Comprimi. L'archivio nasce accanto ai file scelti.
+
+  Perché non crea file .7z? Per scrivere un .7z da Go non esiste oggi una libreria libera e
+  affidabile (le librerie Go libere sanno solo LEGGERE i .7z). Piuttosto che prometterlo e fare
+  file rovinati, Tasso Zip crea un .tar.xz, che comprime più o meno come un .7z.
+  I .7z li ESTRAE senza problemi.
+
+ESTRAI
+  "Scegli l'archivio" (o trascinalo nella finestra, a destra). Tasso Zip apre:
+  zip, 7z, rar (anche RAR5), tar, gz/tgz, bz2/tbz2, xz/txz.
+  - Archivi divisi in parti: .7z.001/.002..., .part1.rar/.part2.rar..., .rar/.r00/.r01...,
+    e anche .zip.001, .tar.001... Puoi scegliere una parte qualunque: si parte dalla prima.
+  - Password: per i 7z e i rar con password, Tasso Zip te la chiede.
+  - I file escono sempre in una cartella NUOVA accanto all'archivio. Se dentro l'archivio c'è
+    una sola cartella, viene usata quella (niente "Foto\Foto\...").
+  - Puoi scegliere più archivi insieme: li estrae uno dopo l'altro.
+
+  Cosa NON sa fare (per ora):
+  - zip con password (ZipCrypto/AES): usa 7-Zip;
+  - zip divisi in parti .z01, .z02... (zip "spanned"): usa 7-Zip;
+  - creare .7z, .rar o archivi divisi in parti;
+  - collegamenti simbolici e collegamenti fisici dentro gli archivi: non li crea mai (li salta
+    e te lo dice), per sicurezza.
+
+TASTO DESTRO DEL MOUSE
+  In basso nella finestra c'è l'interruttore "Aggiungi Tasso Zip al tasto destro del mouse".
+  Acceso: compaiono "Comprimi con Tasso Zip" (su file e cartelle) ed "Estrai con Tasso Zip"
+  (sugli archivi). Spento: le voci spariscono. Le voci sono solo per il tuo utente
+  (HKEY_CURRENT_USER\Software\Classes): niente amministratore.
+  Su Windows 11 le trovi sotto "Mostra altre opzioni".
+  Se scegli più file insieme (fino a 15, limite di Windows) si apre una sola finestra con tutti.
+  Se sposti TassoZip.exe, alla prima apertura le voci si aggiornano da sole.
+
+SICUREZZA
+  - Non sovrascrive mai niente: se un nome c'è già, usa "nome (2)", "nome (3)"...
+  - Non tocca i file originali.
+  - Protezione dai percorsi che escono dalla cartella ("zip slip": nomi con .., nomi assoluti
+    come C:\... o \\server\..., nomi riservati di Windows come CON o NUL).
+  - Non crea mai collegamenti simbolici.
+  - Limiti contro le "zip bomb": si ferma se l'archivio si espande più di 1000 volte la sua
+    dimensione (sopra gli 8 GB), oltre 1 milione di file, o se il disco sta per riempirsi
+    (lascia sempre almeno 512 MB liberi).
+  - Se annulli, chiudi la finestra o qualcosa va storto, non resta niente a metà: lavora in un
+    file/cartella temporaneo accanto (".tassozip-....tmp") e lo rinomina solo alla fine.
+  - Niente internet: Tasso Zip non si collega mai a niente (l'unica eccezione è la pagina
+    Microsoft di WebView2, solo se WebView2 manca e solo se premi OK).
+  - Impostazioni e registro errori: %LOCALAPPDATA%\Tasso Zip
+    (impostazioni.json, errori.txt; la cartella WebView2 è della finestra).
+
+LINGUA
+  Italiano, English, Español, Français, Deutsch, Português, Polski: scegli in alto (IT EN ...).
+  Se non scegli, Tasso Zip usa in quest'ordine:
+    1. --lingua=xx sulla riga di comando;
+    2. la lingua scelta in alto nella finestra (salvata in impostazioni.json);
+    3. HKEY_CURRENT_USER\Software\Tasso, valore stringa "Lingua" (es. "it", "en", "pt-BR"):
+       la lingua dell'Ecosistema Tasso, scritta dal suo installatore;
+    4. la lingua di Windows; 5. inglese.
+  Per l'installatore: per far seguire a Tasso Zip la lingua dell'ecosistema basta scrivere il
+  valore "Lingua" e, se serve, togliere "lingua" da %LOCALAPPDATA%\Tasso Zip\impostazioni.json.
+
+RIGA DI COMANDO
+  TassoZip.exe --comprimi "file o cartella" ...   apre la finestra con i file pronti da comprimere
+  TassoZip.exe --estrai "archivio" ...            estrae subito
+  TassoZip.exe "file" ...                          (o trascinati sull'icona) sceglie da solo
+  TassoZip.exe --lingua=en                         lingua solo per questa volta
+
+PER TOGLIERLO
+  Spegni l'interruttore del tasto destro, poi cancella TassoZip.exe e la cartella
+  %LOCALAPPDATA%\Tasso Zip.
+
+PER CHI SVILUPPA
+  Codice in Go. ./compila.sh fa go vet, i test (girano anche su Linux) e crea dist\TassoZip.exe.
+  archivio/  comprime ed estrae (con tutti i controlli di sicurezza) - ha i test
+  testi/     testi dell'interfaccia nelle 7 lingue (testi.json)
+  ui/        la finestra (HTML/CSS/JS in WebView2)
+  *_windows.go  finestra, menu del tasto destro, finestre "Apri", impostazioni
+  third_party/  librerie (copie locali, vedi third_party/LEGGIMI.txt)
+
+LICENZA
+  Tasso Zip (c) 2026 Sergio Tassoni. Software libero, licenza GNU GPL versione 3 (file LICENSE).
+  Licenze dei componenti usati: LICENZE.txt.
+
+
+=====================================================================================
+TASSO ZIP 1.0 - Tasso Ecosystem  (English)
+=====================================================================================
+Compresses and extracts your files. In one click.
+
+HOW TO USE
+  Double-click TassoZip.exe. No installation, and it does NOT ask for administrator rights.
+  Needs 64-bit Windows 10 or 11 with Microsoft Edge WebView2 (already in Windows 11 and almost
+  always in Windows 10; if missing, Tasso Zip opens the official Microsoft page to install it).
+
+COMPRESS
+  1. "Choose files" or "Choose a folder" (or drag them into the window, left side).
+  2. Choose a format:
+     - "Maximum compression (.tar.xz)": smallest file. Uses LZMA2, the same compression method
+       as 7z. Opens with Tasso Zip, 7-Zip, WinRAR, PeaZip and recent versions of Windows 11.
+     - "Compatible (.zip)": opens everywhere (Windows, Mac, phones), a little bigger.
+  3. Press Compress. The archive is created next to the chosen files.
+
+  Why no .7z? Today there is no free and reliable Go library that can WRITE .7z files (free Go
+  libraries can only READ them). Instead of promising it and producing broken files, Tasso Zip
+  creates a .tar.xz, which compresses about as well as a .7z. It EXTRACTS .7z files just fine.
+
+EXTRACT
+  "Choose the archive" (or drag it into the window, right side). Tasso Zip opens:
+  zip, 7z, rar (including RAR5), tar, gz/tgz, bz2/tbz2, xz/txz.
+  - Split archives: .7z.001/.002..., .part1.rar/.part2.rar..., .rar/.r00/.r01..., and also
+    .zip.001, .tar.001... You can pick any part: it always starts from the first one.
+  - Passwords: for password-protected 7z and rar, Tasso Zip asks you for it.
+  - Files always go into a NEW folder next to the archive. If the archive contains just one
+    folder, that folder is used (no "Photos\Photos\...").
+  - You can pick several archives: they are extracted one after another.
+
+  What it can NOT do (yet):
+  - password-protected zip (ZipCrypto/AES): use 7-Zip;
+  - zip split into .z01, .z02... parts ("spanned" zip): use 7-Zip;
+  - create .7z, .rar or split archives;
+  - symbolic links and hard links inside archives: never created (skipped and reported), for safety.
+
+RIGHT-CLICK MENU
+  At the bottom of the window, the switch "Add Tasso Zip to the right-click menu" adds or removes
+  "Compress with Tasso Zip" (files and folders) and "Extract with Tasso Zip" (archives), only for
+  your user (HKEY_CURRENT_USER\Software\Classes), no administrator needed.
+  On Windows 11 they are under "Show more options".
+
+SAFETY
+  - Never overwrites anything: if a name exists it uses "name (2)", "name (3)"...
+  - Never touches the original files.
+  - Protection against paths escaping the folder ("zip slip": .., absolute names, C:\..., \\server\...,
+    reserved Windows names such as CON or NUL).
+  - Never creates symbolic links.
+  - "Zip bomb" limits: stops if the archive expands more than 1000 times its size (above 8 GB),
+    has more than 1 million entries, or the disk is about to fill up (always keeps 512 MB free).
+  - If you cancel, close the window or something goes wrong, nothing is left half-done: it works in
+    a temporary file/folder next to the target (".tassozip-....tmp") and renames it only at the end.
+  - No internet: Tasso Zip never connects to anything (only exception: the Microsoft WebView2
+    page, only if WebView2 is missing and only if you press OK).
+  - Settings and error log: %LOCALAPPDATA%\Tasso Zip
+
+LANGUAGE
+  Italian, English, Spanish, French, German, Portuguese, Polish: choose at the top.
+  Otherwise, in this order: the --lingua=xx command line option, the language chosen in the
+  window, HKEY_CURRENT_USER\Software\Tasso value "Lingua" (written by the Tasso Ecosystem
+  installer), the Windows language, English.
+
+TO REMOVE IT
+  Turn off the right-click switch, then delete TassoZip.exe and %LOCALAPPDATA%\Tasso Zip.
+
+LICENSE
+  Tasso Zip (c) 2026 Sergio Tassoni. Free software, GNU GPL version 3 (file LICENSE).
+  Third-party licenses: LICENZE.txt.

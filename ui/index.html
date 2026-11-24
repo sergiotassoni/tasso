@@ -1,0 +1,563 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<title>Tasso Zip</title>
+<style>
+/* Caratteri Archivo e Onest dentro il programma (funzionano senza internet). Licenza SIL OFL 1.1. */
+/*CARATTERI*/
+:root{
+  --bg:#07080D;--side:#0D0F16;--panel:#12141E;--line:#22263A;--text:#F2F4F8;--muted:#8B91A7;
+  --a1:#2FF3A6;--a2:#A77BFF;--a3:#4DA8FF;--a4:#FFB547;--ink:#04140D;--red:#FF6B5C;
+  --display:'TassoArchivo','Bahnschrift','Segoe UI Variable Display','Segoe UI',sans-serif;
+  --body:'TassoOnest','Segoe UI Variable Text','Segoe UI',system-ui,sans-serif;
+  --soft:color-mix(in srgb,var(--text) 72%,var(--bg));
+  --panel2:color-mix(in srgb,var(--panel) 80%,var(--text) 4%);
+  --hover:color-mix(in srgb,var(--panel) 85%,var(--text) 8%);
+  --track:color-mix(in srgb,var(--line) 75%,var(--bg));
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--text);font-family:var(--body);font-size:14px;overflow:hidden;user-select:none}
+button{font-family:inherit;cursor:pointer;color:inherit}
+button:focus-visible,input:focus-visible,label.sw:focus-within{outline:2px solid var(--a3);outline-offset:2px}
+.app{display:flex;flex-direction:column;height:100%}
+header{display:flex;align-items:center;gap:14px;padding:16px 28px;border-bottom:1px solid var(--line);background:var(--side)}
+header .tit b{display:block;font-family:var(--display);font-weight:700;font-size:21px;letter-spacing:.2px}
+header .tit small{color:var(--muted);font-size:12.5px}
+.lingue{margin-left:auto;display:flex;background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:3px;gap:2px}
+.lingue button{border:0;background:transparent;color:var(--soft);font-weight:700;font-size:12px;letter-spacing:.4px;padding:6px 9px;border-radius:8px;min-width:34px}
+.lingue button:hover{background:var(--hover);color:var(--text)}
+.lingue button.on{background:var(--a3);color:#06121F}
+main{flex:1;min-height:0;overflow-y:auto;padding:30px 36px 24px;position:relative}
+main::-webkit-scrollbar{width:10px}main::-webkit-scrollbar-thumb{background:var(--line);border-radius:10px;border:3px solid var(--bg)}
+.view{display:none;flex-direction:column;gap:22px;max-width:980px;margin:0 auto}
+.view.on{display:flex}
+.view.stretto{gap:16px}
+.view.stretto h1{font-size:30px}
+h1{margin:0;font-family:var(--display);font-weight:700;font-size:34px;letter-spacing:-.4px}
+h2{margin:0;font-family:var(--display);font-size:21px;font-weight:700}
+.sub{color:var(--muted);margin:6px 0 0;line-height:1.5}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:18px}
+.card{position:relative;overflow:hidden;background:var(--panel);border:1px solid var(--line);border-radius:22px;padding:26px}
+.card .glow{position:absolute;right:-60px;top:-70px;width:220px;height:220px;border-radius:50%;filter:blur(30px);opacity:.38;pointer-events:none}
+.card.c .glow{background:radial-gradient(circle,var(--a3),transparent 70%)}
+.card.e .glow{background:radial-gradient(circle,var(--a1),transparent 70%)}
+.ico{width:64px;height:64px;border-radius:16px;display:grid;place-items:center;margin-bottom:22px}
+.card.c .ico{background:color-mix(in srgb,var(--a3) 18%,var(--panel))}
+.card.e .ico{background:color-mix(in srgb,var(--a1) 15%,var(--panel))}
+.card h2{margin-bottom:12px}
+.card p{margin:0 0 22px;color:var(--soft);line-height:1.6;font-size:14.5px;max-width:440px}
+.row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.btn{border:0;border-radius:12px;padding:11px 18px;font-weight:700;font-size:14.5px;min-height:46px;transition:filter .15s,background .15s;font-family:var(--display)}
+.btn.blu{background:var(--a3);color:#04101C}
+.btn.verde{background:var(--a1);color:var(--ink)}
+.btn.blu:hover,.btn.verde:hover{filter:brightness(1.08)}
+.btn.ghost{background:var(--panel2);color:var(--text);border:1px solid var(--line)}
+.btn.ghost:hover{background:var(--hover)}
+.btn.rosso{background:color-mix(in srgb,var(--red) 18%,var(--panel));color:var(--text);border:1px solid color-mix(in srgb,var(--red) 50%,var(--line))}
+.btn:disabled{opacity:.45;cursor:default}
+.nota{display:flex;align-items:center;gap:14px;border:1.5px dashed var(--line);border-radius:18px;padding:18px 22px;color:var(--soft);line-height:1.5}
+.nota svg{flex:none}
+footer{display:flex;align-items:center;gap:12px;padding:12px 28px;border-top:1px solid var(--line);background:var(--side);min-height:58px}
+footer .eco{margin-left:auto;color:var(--a3);font-weight:700;font-family:var(--display)}
+footer .ver{color:var(--muted);font-size:12.5px}
+footer .lbl{color:var(--soft)}
+footer .lbl small{display:block;color:var(--muted);font-size:11.5px}
+label.sw{position:relative;display:inline-block;width:42px;height:24px;flex:none;border-radius:99px;cursor:pointer}
+label.sw input{position:absolute;opacity:0;width:100%;height:100%;margin:0;cursor:pointer;z-index:1}
+label.sw span{position:absolute;inset:0;background:var(--track);border:1px solid var(--line);border-radius:99px;transition:background .2s}
+label.sw span::after{content:"";position:absolute;left:3px;top:3px;width:16px;height:16px;border-radius:50%;background:#fff;transition:transform .2s}
+label.sw input:checked+span{background:var(--a3);border-color:var(--a3)}
+label.sw input:checked+span::after{transform:translateX(18px)}
+/* lista dei file scelti */
+.lista{display:flex;flex-direction:column;gap:6px;max-height:172px;overflow-y:auto;padding-right:4px}
+.lista::-webkit-scrollbar{width:8px}.lista::-webkit-scrollbar-thumb{background:var(--line);border-radius:8px}
+.el{display:flex;align-items:center;gap:12px;background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:9px 12px}
+.el .n{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
+.el .d{color:var(--muted);font-size:12.5px;white-space:nowrap}
+.el button{border:0;background:transparent;color:var(--muted);font-size:12.5px;padding:4px 8px;border-radius:8px}
+.el button:hover{background:var(--hover);color:var(--text)}
+.formati{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
+.fmt{display:flex;gap:12px;align-items:flex-start;text-align:left;background:var(--panel2);border:1.5px solid var(--line);border-radius:16px;padding:13px 15px}
+.fmt:hover{background:var(--hover)}
+.fmt.on{border-color:var(--a3);background:color-mix(in srgb,var(--a3) 10%,var(--panel))}
+.fmt .pt{width:18px;height:18px;border-radius:50%;border:2px solid var(--muted);flex:none;margin-top:2px}
+.fmt.on .pt{border-color:var(--a3);box-shadow:inset 0 0 0 4px var(--panel),inset 0 0 0 10px var(--a3)}
+.fmt b{display:block;font-family:var(--display);font-size:15px;margin-bottom:4px}
+.fmt span{color:var(--muted);font-size:13px;line-height:1.45}
+.campo{display:flex;flex-direction:column;gap:6px}
+.campo label{color:var(--muted);font-size:12.5px;font-weight:600}
+input[type=text],input[type=password]{background:var(--bg);border:1px solid var(--line);border-radius:12px;color:var(--text);font:inherit;font-size:15px;padding:11px 14px;min-height:46px;width:100%;user-select:text}
+input[type=text]:focus,input[type=password]:focus{outline:none;border-color:var(--a3)}
+.dove{color:var(--muted);font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* lavoro */
+.centro{align-items:center;text-align:center;padding-top:30px}
+.barra{width:min(560px,100%);height:14px;background:var(--track);border-radius:99px;overflow:hidden;border:1px solid var(--line)}
+.barra i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--a3),var(--a1));border-radius:99px;transition:width .15s}
+.barra.indef i{width:30%!important;animation:va 1.2s ease-in-out infinite}
+@keyframes va{0%{margin-left:-30%}100%{margin-left:100%}}
+.perc{font-family:var(--display);font-size:44px;font-weight:700}
+.corrente{color:var(--muted);max-width:560px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-height:20px}
+.grande{width:84px;height:84px;border-radius:24px;display:grid;place-items:center}
+.grande.ok{background:color-mix(in srgb,var(--a1) 16%,var(--panel))}
+.grande.ko{background:color-mix(in srgb,var(--red) 16%,var(--panel))}
+.grande.pw{background:color-mix(in srgb,var(--a4) 16%,var(--panel))}
+.percorso{font-size:13px;color:var(--soft);background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 14px;max-width:640px;word-break:break-all;user-select:text}
+details{max-width:640px;width:100%;text-align:left;color:var(--muted);font-size:12.5px}
+details summary{cursor:pointer;color:var(--soft)}
+details pre{white-space:pre-wrap;word-break:break-all;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px;max-height:150px;overflow:auto;user-select:text;font-family:'Cascadia Mono',Consolas,monospace}
+.avviso{color:var(--a4);font-size:13px;max-width:640px}
+.errpw{color:var(--red);font-weight:600;min-height:20px}
+.pwbox{display:flex;gap:8px;width:min(460px,100%)}
+/* trascinamento */
+#drop{position:fixed;inset:0;display:none;grid-template-columns:1fr 1fr;gap:16px;padding:18px;background:rgba(7,8,13,.95);backdrop-filter:blur(6px);z-index:50}
+#drop.on{display:grid}
+#drop.solo{grid-template-columns:1fr}
+#drop.solo .de{display:none}
+#drop div{background:var(--panel);border:2.5px dashed var(--line);border-radius:24px;display:grid;place-items:center;font-family:var(--display);font-size:22px;font-weight:700;color:var(--soft);text-align:center;padding:20px}
+#drop div.sopra.dc{border-color:var(--a3);color:var(--a3);background:color-mix(in srgb,var(--a3) 8%,transparent)}
+#drop div.sopra.de{border-color:var(--a1);color:var(--a1);background:color-mix(in srgb,var(--a1) 8%,transparent)}
+#toast{position:fixed;left:50%;bottom:74px;transform:translateX(-50%) translateY(20px);background:var(--panel2);border:1px solid var(--line);color:var(--text);padding:11px 18px;border-radius:12px;opacity:0;transition:all .25s;pointer-events:none;z-index:60;max-width:80%;text-align:center}
+#toast.on{opacity:1;transform:translateX(-50%)}
+@media (max-height:640px){main{padding-top:18px}h1{font-size:28px}.ico{width:52px;height:52px;margin-bottom:14px}.card{padding:20px}}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <svg width="46" height="46" viewBox="0 0 200 200" aria-hidden="true"><rect x="4" y="4" width="192" height="192" rx="48" fill="#141725"/><rect x="4" y="4" width="192" height="192" rx="48" fill="none" stroke="#4DA8FF" stroke-opacity=".9" stroke-width="7"/><path d="M100 172 L34 94 L58 38 L142 38 L166 94 Z" fill="#F2F4F8"/><path d="M58 38 L86 38 L94 122 L76 132 L44 104 Z" fill="#07080D"/><path d="M142 38 L114 38 L106 122 L124 132 L156 104 Z" fill="#07080D"/><circle cx="74" cy="98" r="9" fill="#4DA8FF"/><circle cx="126" cy="98" r="9" fill="#4DA8FF"/></svg>
+    <div class="tit"><b>Tasso Zip</b><small data-t="sottotitolo"></small></div>
+    <div class="lingue" id="lingue" role="group"></div>
+  </header>
+
+  <main>
+    <!-- HOME -->
+    <section class="view on" id="v-home">
+      <div><h1 data-t="domanda"></h1><p class="sub" data-t="domanda_sub"></p></div>
+      <div class="grid2">
+        <div class="card c">
+          <div class="glow"></div>
+          <div class="ico"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#4DA8FF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg></div>
+          <h2 data-t="comprimi"></h2>
+          <p data-t="comprimi_desc"></p>
+          <div class="row"><button class="btn blu" id="b-file" data-t="scegli_file"></button><button class="btn ghost" id="b-cartella" data-t="scegli_cartella"></button></div>
+        </div>
+        <div class="card e">
+          <div class="glow"></div>
+          <div class="ico"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#2FF3A6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3"/><path d="m7 8 5-5 5 5"/><path d="M5 21h14"/></svg></div>
+          <h2 data-t="estrai"></h2>
+          <p data-t="estrai_desc"></p>
+          <div class="row"><button class="btn verde" id="b-archivio" data-t="scegli_archivio"></button></div>
+        </div>
+      </div>
+      <div class="nota"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#8B91A7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="m8 12 3 3 5-6"/></svg><span data-t="nota_sicurezza"></span></div>
+    </section>
+
+    <!-- COMPRIMI: file scelti e formato -->
+    <section class="view stretto" id="v-comprimi">
+      <div class="row" style="justify-content:space-between;align-items:flex-end"><div><h1 data-t="scelti_titolo"></h1><p class="sub" id="c-conta"></p></div>
+        <div class="row"><button class="btn ghost" id="c-indietro" data-t="indietro"></button><button class="btn blu" id="c-vai" data-t="avvia_comprimi"></button></div></div>
+      <div class="lista" id="c-lista"></div>
+      <div class="row"><button class="btn ghost" id="c-piu-file" data-t="aggiungi_file"></button><button class="btn ghost" id="c-piu-cartella" data-t="aggiungi_cartella"></button></div>
+      <div><h2 data-t="formato_titolo" style="margin-bottom:12px"></h2>
+        <div class="formati">
+          <button class="fmt" data-f="tarxz"><i class="pt"></i><div><b data-t="formato_max"></b><span data-t="formato_max_desc"></span></div></button>
+          <button class="fmt" data-f="zip"><i class="pt"></i><div><b data-t="formato_zip"></b><span data-t="formato_zip_desc"></span></div></button>
+        </div>
+      </div>
+      <div class="campo"><label for="c-nome" data-t="nome_archivio"></label><input type="text" id="c-nome" maxlength="200" spellcheck="false"><div class="dove" id="c-dove"></div></div>
+    </section>
+
+    <!-- LAVORO -->
+    <section class="view centro" id="v-lavoro">
+      <h1 id="l-titolo"></h1>
+      <p class="sub" id="l-coda"></p>
+      <div class="perc" id="l-perc">0%</div>
+      <div class="barra" id="l-barra"><i></i></div>
+      <div class="corrente" id="l-nome"></div>
+      <button class="btn rosso" id="l-annulla" data-t="annulla"></button>
+    </section>
+
+    <!-- FATTO -->
+    <section class="view centro" id="v-fatto">
+      <div class="grande ok"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#2FF3A6" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5 9-10"/></svg></div>
+      <h1 id="f-titolo"></h1>
+      <p class="sub" id="f-dettagli"></p>
+      <div class="percorso" id="f-percorso"></div>
+      <div class="avviso" id="f-avvisi"></div>
+      <details id="f-saltati-box"><summary id="f-saltati-tit"></summary><pre id="f-saltati"></pre></details>
+      <div class="row"><button class="btn verde" id="f-apri"></button><button class="btn ghost" id="f-ok" data-t="nuovo"></button></div>
+    </section>
+
+    <!-- PASSWORD -->
+    <section class="view centro" id="v-password">
+      <div class="grande pw"><svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="#FFB547" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="16" height="11" rx="2.5"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg></div>
+      <h1 data-t="password_titolo"></h1>
+      <p class="sub" id="p-nome"></p>
+      <p class="sub" data-t="password_testo"></p>
+      <div class="pwbox"><input type="password" id="p-campo" autocomplete="off" spellcheck="false"><button class="btn ghost" id="p-mostra" data-t="mostra_password"></button></div>
+      <div class="errpw" id="p-errore"></div>
+      <div class="row"><button class="btn ghost" id="p-annulla" data-t="annulla"></button><button class="btn verde" id="p-vai" data-t="estrai_btn"></button></div>
+    </section>
+
+    <!-- ERRORE -->
+    <section class="view centro" id="v-errore">
+      <div class="grande ko"><svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="#FF6B5C" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v6"/><path d="M12 16.5v.5"/></svg></div>
+      <h1 data-t="errore_titolo" id="e-titolo"></h1>
+      <p class="sub" id="e-testo" style="max-width:600px"></p>
+      <details id="e-box"><summary data-t="err_dettagli"></summary><pre id="e-dettagli"></pre></details>
+      <div class="row"><button class="btn ghost" id="e-ok">OK</button></div>
+    </section>
+  </main>
+
+  <footer>
+    <label class="sw" title=""><input type="checkbox" id="menu"><span></span></label>
+    <div class="lbl"><span data-t="menu_tasto_destro"></span><small id="menu-nota" data-t="menu_nota_w11" hidden></small></div>
+    <span class="eco" data-t="ecosistema"></span><span class="ver" id="ver"></span>
+  </footer>
+</div>
+
+<div id="drop"><div class="dc" data-t="lascia_comprimi"></div><div class="de" data-t="lascia_estrai"></div></div>
+<div id="toast"></div>
+
+<script>
+"use strict";
+const $ = id => document.getElementById(id);
+const S = {
+  lingua: "it", testi: {}, lingue: [], formato: "zip",
+  lista: [],          // file e cartelle da comprimere
+  coda: [], codaTot: 0, codaFatti: 0, ultimoEstratto: null,
+  corrente: null,     // archivio che sto estraendo
+  tipo: "",           // "comprimi" o "estrai" (lavoro in corso)
+  dropDove: "auto", vista: "home", occupato: false,
+};
+
+function t(k, v) {
+  let s = (S.testi[S.lingua] || {})[k] ?? (S.testi.en || {})[k] ?? (S.testi.it || {})[k] ?? k;
+  if (v) for (const [a, b] of Object.entries(v)) s = s.split("{" + a + "}").join(b);
+  return s;
+}
+function applicaTesti() {
+  document.documentElement.lang = S.lingua;
+  document.querySelectorAll("[data-t]").forEach(e => { e.textContent = t(e.dataset.t); });
+  document.querySelectorAll("#lingue button").forEach(b => b.classList.toggle("on", b.dataset.l === S.lingua));
+  $("lingue").setAttribute("aria-label", t("lingua"));
+  if (S.vista === "comprimi") disegnaLista();
+}
+function dim(n) {
+  const f = new Intl.NumberFormat(S.lingua, { maximumFractionDigits: 1 });
+  if (n < 1024) return f.format(n) + " B";
+  const u = ["KB", "MB", "GB", "TB"]; let i = -1;
+  do { n /= 1024; i++; } while (n >= 1024 && i < u.length - 1);
+  return f.format(n) + " " + u[i];
+}
+function vista(v) {
+  S.vista = v;
+  document.querySelectorAll(".view").forEach(e => e.classList.toggle("on", e.id === "v-" + v));
+  document.querySelector("main").scrollTop = 0;
+}
+let toastT = 0;
+function toast(s) {
+  const e = $("toast"); e.textContent = s; e.classList.add("on");
+  clearTimeout(toastT); toastT = setTimeout(() => e.classList.remove("on"), 3200);
+}
+function nomeFile(p) { return p.split(/[\\/]/).filter(Boolean).pop() || p; }
+function cartellaDi(p) { const i = Math.max(p.lastIndexOf("\\"), p.lastIndexOf("/")); return i > 0 ? p.slice(0, i) : p; }
+
+// ---------- COMPRIMI ----------
+async function aggiungi(percorsi) {
+  if (!percorsi || !percorsi.length) return;
+  const info = await goInfo(percorsi);
+  const visti = new Set(S.lista.map(e => e.percorso.toLowerCase()));
+  for (const e of info || []) if (!visti.has(e.percorso.toLowerCase())) { S.lista.push(e); visti.add(e.percorso.toLowerCase()); }
+  if (!S.lista.length) return;
+  $("c-nome").dataset.toccato = $("c-nome").dataset.toccato || "";
+  vista("comprimi");
+  disegnaLista();
+}
+function nomeProposto() {
+  if (S.lista.length === 1) {
+    const e = S.lista[0];
+    if (e.cartella) return e.nome;
+    const n = e.nome.replace(/\.(tar\.(gz|bz2|xz)|[^.]{1,12})$/i, "");
+    return n || e.nome;
+  }
+  return t("nome_multiplo");
+}
+function disegnaLista() {
+  const l = $("c-lista"); l.textContent = "";
+  let tot = 0;
+  S.lista.forEach((e, i) => {
+    tot += e.dim || 0;
+    const r = document.createElement("div"); r.className = "el";
+    r.innerHTML = e.cartella
+      ? '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FFB547" stroke-width="2"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>'
+      : '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8B91A7" stroke-width="2"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></svg>';
+    const n = document.createElement("span"); n.className = "n"; n.textContent = e.nome; n.title = e.percorso;
+    const d = document.createElement("span"); d.className = "d"; d.textContent = e.cartella ? "" : dim(e.dim);
+    const b = document.createElement("button"); b.textContent = t("togli");
+    b.onclick = () => { S.lista.splice(i, 1); if (!S.lista.length) { vista("home"); return; } disegnaLista(); };
+    r.append(n, d, b); l.append(r);
+  });
+  const n = S.lista.length;
+  $("c-conta").textContent = (n === 1 ? t("scelti_1") : t("scelti_n", { n })) + (tot ? " · " + dim(tot) : "");
+  if (!$("c-nome").dataset.toccato) $("c-nome").value = nomeProposto();
+  document.querySelectorAll(".fmt").forEach(b => b.classList.toggle("on", b.dataset.f === S.formato));
+  aggiornaDove();
+}
+function aggiornaDove() {
+  const est = S.formato === "tarxz" ? ".tar.xz" : ".zip";
+  const dove = S.lista.length ? S.lista[0].dove : "";
+  $("c-dove").textContent = t("salva_in") + ": " + dove + "\\" + ($("c-nome").value.trim() || nomeProposto()) + est;
+  $("c-dove").title = $("c-dove").textContent;
+}
+async function comprimi() {
+  if (!S.lista.length) return;
+  const nome = $("c-nome").value.trim();
+  const r = await goComprimi(S.lista.map(e => e.percorso), S.formato, nome === nomeProposto() && !$("c-nome").dataset.toccato ? "" : nome);
+  if (r === "occupato") { toast(t("err_occupato")); return; }
+  if (r !== "ok") return;
+  S.tipo = "comprimi"; inizioLavoro(t("lavoro_comprimo"), "");
+}
+
+// ---------- ESTRAI ----------
+function estraiTutti(percorsi) {
+  const nuovi = (percorsi || []).filter(Boolean);
+  if (!nuovi.length) return;
+  if (S.occupato && S.tipo === "estrai") { S.coda.push(...nuovi); S.codaTot += nuovi.length; aggiornaCoda(); return; }
+  if (S.occupato) { toast(t("err_occupato")); return; }
+  S.coda = nuovi.slice(); S.codaTot = nuovi.length; S.codaFatti = 0; S.ultimoEstratto = null;
+  prossimo();
+}
+function aggiornaCoda() {
+  $("l-coda").textContent = S.codaTot > 1 ? t("lavoro_coda", { i: Math.min(S.codaFatti + 1, S.codaTot), n: S.codaTot }) : "";
+}
+async function prossimo(password) {
+  if (password === undefined) {
+    if (!S.coda.length) { finisciCoda(); return; }
+    S.corrente = S.coda.shift();
+  }
+  const r = await goEstrai(S.corrente, password || "");
+  if (r === "occupato") { toast(t("err_occupato")); return; }
+  S.tipo = "estrai";
+  inizioLavoro(t("lavoro_estraggo"), nomeFile(S.corrente));
+  aggiornaCoda();
+}
+function finisciCoda() {
+  S.occupato = false;
+  const r = S.ultimoEstratto;
+  if (!r) { vista("home"); return; }
+  mostraFatto(r, S.codaFatti > 1 ? S.codaFatti : 0);
+}
+
+// ---------- LAVORO ----------
+function inizioLavoro(titolo, nome) {
+  S.occupato = true;
+  $("l-titolo").textContent = titolo;
+  $("l-perc").textContent = "0%";
+  $("l-barra").classList.add("indef");
+  $("l-barra").querySelector("i").style.width = "0";
+  $("l-nome").textContent = nome || "";
+  $("l-annulla").disabled = false; $("l-annulla").textContent = t("annulla");
+  if (S.tipo !== "estrai") $("l-coda").textContent = "";
+  vista("lavoro");
+}
+const tz = window.tz = {
+  avanza(a) {
+    if (S.vista !== "lavoro") return;
+    if (a.totale > 0) {
+      const p = Math.max(0, Math.min(100, Math.floor(a.fatto * 100 / a.totale)));
+      $("l-barra").classList.remove("indef");
+      $("l-barra").querySelector("i").style.width = p + "%";
+      $("l-perc").textContent = p + "%";
+    }
+    if (a.nome) $("l-nome").textContent = a.nome;
+  },
+  fine(r) {
+    if (r.tipo === "estrai") {
+      S.codaFatti++; S.ultimoEstratto = r;
+      if (S.coda.length) { prossimo(); return; }
+      finisciCoda(); return;
+    }
+    S.occupato = false;
+    S.lista = []; $("c-nome").dataset.toccato = "";
+    mostraFatto(r, 0);
+  },
+  errore(e) {
+    if (e.tipo === "estrai" && (e.codice === "password" || e.codice === "password_sbagliata")) {
+      chiediPassword(e.codice === "password_sbagliata"); return;
+    }
+    S.occupato = e.tipo === "estrai" && S.coda.length > 0;
+    mostraErrore(e);
+  },
+  trascinati(p) { arrivati(p, S.dropDove); },
+  aggiunti(p) { arrivati(p, INIZIO.modo || "auto"); },
+};
+function mostraFatto(r, quanti) {
+  $("f-titolo").textContent = r.tipo === "comprimi" ? t("fatto_comprimi") : t("fatto_estrai");
+  if (r.tipo === "comprimi") {
+    const perc = r.originale > 0 ? Math.max(0, Math.round((1 - r.compresso / r.originale) * 100)) : 0;
+    $("f-dettagli").textContent = t("fatto_dettagli_c", { file: r.file, orig: dim(r.originale), comp: dim(r.compresso), perc: perc + "%" });
+    $("f-apri").textContent = t("mostra_file");
+  } else {
+    $("f-dettagli").textContent = quanti ? t("fatto_coda", { n: quanti }) : t("fatto_dettagli_e", { file: r.file });
+    $("f-apri").textContent = t("apri_cartella");
+  }
+  $("f-percorso").textContent = r.percorso;
+  const avvisi = [];
+  if (r.rinominati) avvisi.push(t("rinominati", { n: r.rinominati }));
+  if (r.riserva) avvisi.push(t("riserva"));
+  $("f-avvisi").textContent = avvisi.join(" ");
+  const s = r.saltati || [];
+  $("f-saltati-box").hidden = !s.length;
+  $("f-saltati-tit").textContent = t("saltati", { n: s.length });
+  $("f-saltati").textContent = s.join("\n");
+  $("f-apri").onclick = () => goApri(r.percorso);
+  vista("fatto");
+}
+function mostraErrore(e) {
+  const chiave = "err_" + (e.codice || "generico");
+  const testo = t(chiave) === chiave ? t("err_generico") : t(chiave);
+  $("e-titolo").textContent = e.codice === "annullato" ? t("annulla") : t("errore_titolo");
+  $("e-testo").textContent = (e.percorso ? nomeFile(e.percorso) + ": " : "") + testo;
+  $("e-dettagli").textContent = e.dettagli || "";
+  $("e-box").hidden = !e.dettagli || e.codice === "annullato";
+  $("e-ok").onclick = () => {
+    if (e.tipo === "estrai" && S.coda.length) { prossimo(); return; }
+    S.occupato = false;
+    if (e.tipo === "estrai" && S.ultimoEstratto) { finisciCoda(); return; }
+    if (e.tipo === "comprimi" && S.lista.length) { vista("comprimi"); disegnaLista(); return; }
+    vista("home");
+  };
+  vista("errore");
+}
+function chiediPassword(sbagliata) {
+  $("p-nome").textContent = nomeFile(S.corrente || "");
+  $("p-errore").textContent = sbagliata ? t("password_sbagliata") : "";
+  $("p-campo").value = ""; $("p-campo").type = "password";
+  vista("password");
+  setTimeout(() => $("p-campo").focus(), 50);
+}
+
+// ---------- file arrivati (trascinati o dal tasto destro) ----------
+async function arrivati(percorsi, dove) {
+  if (!percorsi || !percorsi.length) return;
+  if (S.vista === "comprimi") { aggiungi(percorsi); return; }
+  if (S.occupato && !(S.tipo === "estrai" && dove !== "comprimi")) { toast(t("err_occupato")); return; }
+  if (dove === "comprimi") { aggiungi(percorsi); return; }
+  const info = await goInfo(percorsi);
+  const archivi = (info || []).filter(e => e.archivio).map(e => e.percorso);
+  if (dove === "estrai") {
+    if (!archivi.length) { toast(t("solo_archivi")); return; }
+    estraiTutti(archivi); return;
+  }
+  // automatico: se sono tutti archivi li estraggo, altrimenti li comprimo
+  if (archivi.length && archivi.length === (info || []).length) estraiTutti(archivi);
+  else aggiungi(percorsi);
+}
+
+// ---------- trascinamento nella finestra ----------
+let dentro = 0;
+function haFile(e) { return e.dataTransfer && Array.from(e.dataTransfer.types || []).includes("Files"); }
+function zonaDrop(e) {
+  const solo = S.vista === "comprimi";
+  $("drop").classList.toggle("solo", solo);
+  if (solo) return "comprimi";
+  return e.clientX < window.innerWidth / 2 ? "comprimi" : "estrai";
+}
+document.addEventListener("dragenter", e => {
+  if (!haFile(e)) return; e.preventDefault(); dentro++;
+  if (S.vista === "lavoro" || S.vista === "password") return;
+  $("drop").classList.add("on");
+});
+document.addEventListener("dragover", e => {
+  if (!haFile(e)) return; e.preventDefault();
+  if (!$("drop").classList.contains("on")) { e.dataTransfer.dropEffect = "none"; return; }
+  e.dataTransfer.dropEffect = "copy";
+  const z = zonaDrop(e);
+  document.querySelector("#drop .dc").classList.toggle("sopra", z === "comprimi");
+  document.querySelector("#drop .de").classList.toggle("sopra", z === "estrai");
+});
+document.addEventListener("dragleave", e => {
+  if (!haFile(e)) return;
+  dentro = Math.max(0, dentro - 1);
+  if (dentro === 0) $("drop").classList.remove("on");
+});
+document.addEventListener("drop", e => {
+  e.preventDefault(); dentro = 0;
+  const attivo = $("drop").classList.contains("on");
+  $("drop").classList.remove("on");
+  if (!attivo || !haFile(e)) return;
+  S.dropDove = zonaDrop(e);
+  const files = [];
+  if (e.dataTransfer.items) { for (const it of e.dataTransfer.items) if (it.kind === "file") { const f = it.getAsFile(); if (f) files.push(f); } }
+  else for (const f of e.dataTransfer.files) files.push(f);
+  if (files.length && window.chrome && chrome.webview && chrome.webview.postMessageWithAdditionalObjects) {
+    chrome.webview.postMessageWithAdditionalObjects("tassozip:drop", files);
+  }
+});
+
+// ---------- pulsanti ----------
+$("b-file").onclick = async () => aggiungi(await goScegliFile());
+$("b-cartella").onclick = async () => aggiungi(await goScegliCartella());
+$("c-piu-file").onclick = async () => aggiungi(await goScegliFile());
+$("c-piu-cartella").onclick = async () => aggiungi(await goScegliCartella());
+$("b-archivio").onclick = async () => estraiTutti(await goScegliArchivio());
+$("c-indietro").onclick = () => { S.lista = []; $("c-nome").dataset.toccato = ""; vista("home"); };
+$("c-vai").onclick = comprimi;
+$("c-nome").oninput = () => { $("c-nome").dataset.toccato = "1"; aggiornaDove(); };
+$("c-nome").onkeydown = e => { if (e.key === "Enter") comprimi(); };
+document.querySelectorAll(".fmt").forEach(b => b.onclick = () => {
+  S.formato = b.dataset.f; goFormato(S.formato);
+  document.querySelectorAll(".fmt").forEach(x => x.classList.toggle("on", x === b));
+  aggiornaDove();
+});
+$("l-annulla").onclick = () => {
+  S.coda = []; S.codaTot = 0;
+  $("l-annulla").disabled = true; $("l-annulla").textContent = t("annullando");
+  goAnnulla();
+};
+$("f-ok").onclick = () => { S.ultimoEstratto = null; vista("home"); };
+$("p-mostra").onclick = () => { const c = $("p-campo"); c.type = c.type === "password" ? "text" : "password"; c.focus(); };
+$("p-vai").onclick = () => { const pw = $("p-campo").value; if (!pw) { $("p-campo").focus(); return; } prossimo(pw); };
+$("p-campo").onkeydown = e => { if (e.key === "Enter") $("p-vai").click(); if (e.key === "Escape") $("p-annulla").click(); };
+$("p-annulla").onclick = () => {
+  if (S.coda.length) { prossimo(); return; }
+  S.occupato = false;
+  if (S.ultimoEstratto) { finisciCoda(); return; }
+  vista("home");
+};
+$("menu").onchange = async () => {
+  const voglio = $("menu").checked;
+  $("menu").disabled = true;
+  const r = await goMenu(voglio);
+  $("menu").disabled = false;
+  $("menu").checked = !!(r && r.on);
+  $("menu-nota").hidden = !$("menu").checked;
+  toast(r && r.ok ? (voglio ? t("menu_attivo") : t("menu_tolto")) : t("menu_errore"));
+};
+// niente "Indietro" del browser
+history.pushState(null, "", location.href);
+window.addEventListener("popstate", () => history.pushState(null, "", location.href));
+
+// ---------- avvio ----------
+const INIZIO = window.__TZ_INIZIO__ || { modo: "", percorsi: [] };
+(async function avvio() {
+  const a = await goAvvio();
+  S.lingua = a.lingua; S.testi = a.testi; S.lingue = a.lingue; S.formato = a.formato || "zip";
+  const box = $("lingue");
+  for (const l of S.lingue) {
+    const b = document.createElement("button"); b.dataset.l = l; b.textContent = l.toUpperCase();
+    b.onclick = async () => { if ((await goLingua(l)) === "ok") { S.lingua = l; applicaTesti(); } };
+    box.append(b);
+  }
+  $("menu").checked = !!a.menu; $("menu-nota").hidden = !a.menu;
+  $("ver").textContent = "v" + String(a.versione).split(".").slice(0, 2).join(".");
+  applicaTesti();
+  const p = INIZIO.percorsi || [];
+  if (p.length) arrivati(p, INIZIO.modo === "comprimi" ? "comprimi" : INIZIO.modo === "estrai" ? "estrai" : "auto");
+})();
+</script>
+</body>
+</html>

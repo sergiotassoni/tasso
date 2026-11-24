@@ -1,0 +1,8 @@
+File di prova per i test di Tasso Zip.
+
+- t2.7z, t4.7z, lzma2.7z, multi.7z.001-006: dai test di github.com/bodgit/sevenzip (BSD-3-Clause,
+  Copyright (c) 2020, Matt Dainty). Password di t2.7z e t4.7z: "password".
+- test.part01.rar, test.part02.rar, symlinks.zip, gnu-hardlinks.tar: dai test di
+  github.com/mholt/archives (MIT, Copyright (c) 2016 Matthew Holt).
+- unarr-test.rar: test.rar dai test di github.com/gen2brain/go-unarr (zlib, Copyright (C) 2017 Milan Nikolic).
+- nota.txt.bz2, cartella.tar.bz2: creati per Tasso Zip.
