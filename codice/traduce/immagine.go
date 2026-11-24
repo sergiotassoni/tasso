@@ -326,7 +326,7 @@ func celleDiBlocchi(bl []Blocco, r image.Rectangle) []bool {
 	}
 	for _, b := range bl {
 		x0, y0 := max(0, b.X-r.Min.X), max(0, b.Y-r.Min.Y)
-		x1, y1 := min(w-1, b.X-r.Min.X+b.W), min(h-1, b.Y-r.Min.Y+b.H)
+		x1, y1 := min(w-1, b.X-r.Min.X+b.W-1), min(h-1, b.Y-r.Min.Y+b.H-1)
 		if x1 < x0 || y1 < y0 {
 			continue
 		}

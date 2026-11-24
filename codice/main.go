@@ -93,7 +93,7 @@ func main() {
 	startCrashLog()
 	webview2.PanicHook = logPanic
 	loadSettings()
-	go func() { defer guard("ufficio-recupera"); officeRecupera() }()
+	go officeGuardia()
 
 	autoLevel := 0
 	minimized := false

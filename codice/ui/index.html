@@ -1761,6 +1761,7 @@ window.tasso = {
     paintLast(); call('goAnalyze');
     try { fbAskOnce(p); } catch (e) {}
   },
+  onOfficeStati(p){ OF_STATI = p || {}; $$('[data-tg]').forEach(b => { if (b.dataset.tg) b.textContent = OF_STATI[b.dataset.tg] ? _t('Spegni') : _t('Accendi'); }); },
   onAnalysis(a){ AN = a || {}; paintHero(); hwHealthAlert(); },
   onHardware(h){ HW = h || {}; HW.at = Date.now(); HW_LOADING = false; paintHardware(); statsHW(HW); hwHealthAlert(); },
   onPerf(d){ PERF = d || {}; paintPerf(); },

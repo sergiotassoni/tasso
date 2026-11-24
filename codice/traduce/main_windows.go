@@ -1327,14 +1327,21 @@ func traduciZonaMenu(img *image.RGBA, grezzo string) Risultato {
 	trad := map[string]string{}
 	motore := ""
 	errori := 0
+	primoErrore := ""
 	for _, r := range tradotti {
-		if r.Errore != "" {
+		if r.Errore != "" || strings.TrimSpace(r.Tradotto) == "" {
 			errori++
+			if primoErrore == "" {
+				primoErrore = r.Errore
+			}
 		}
 	}
 	if errori == len(tradotti) {
 		// nessuna voce tradotta (motore spento o occupato): lo dico, invece di mostrare l'inglese
-		return Risultato{Originale: grezzo, Errore: tradotti[0].Errore, Millisec: time.Since(t0).Milliseconds()}
+		if primoErrore == "" {
+			primoErrore = "Non riesco a tradurre adesso: riprova tra poco."
+		}
+		return Risultato{Originale: grezzo, Errore: primoErrore, Millisec: time.Since(t0).Milliseconds()}
 	}
 	for i, b := range blocchi {
 		t := strings.TrimSpace(tradotti[i].Tradotto)

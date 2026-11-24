@@ -987,6 +987,30 @@ func spostamentoScritta(vecchia, nuova *image.RGBA, b Blocco) int {
 
 // zonaCambiata: le lettere inglesi di b sono cambiate tra le due immagini (colore, alone,
 // riquadro di evidenziazione): differenza media sopra 18 nella zona della scritta.
+// inchiostroCambiato: la FORMA delle lettere è cambiata ("On" → "Off", descrizione nuova).
+// Col mouse sopra inchiostro e sfondo cambiano colore insieme ma la forma resta: niente rilettura.
+func inchiostroCambiato(a, b *image.RGBA, bl Blocco) bool {
+	ca, cb := bl, bl
+	coloriBlocco(a, &ca)
+	coloriBlocco(b, &cb)
+	r := image.Rect(bl.X, bl.Y, bl.X+bl.W, bl.Y+bl.H).Intersect(a.Bounds()).Intersect(b.Bounds())
+	diff, ink := 0, 0
+	for y := r.Min.Y; y < r.Max.Y; y += 2 {
+		for x := r.Min.X; x < r.Max.X; x += 2 {
+			pa, pb := a.RGBAAt(x, y), b.RGBAAt(x, y)
+			ia := distanza(pa, ca.Inchiostro) < distanza(pa, ca.Sfondo)
+			ib := distanza(pb, cb.Inchiostro) < distanza(pb, cb.Sfondo)
+			if ia || ib {
+				ink++
+			}
+			if ia != ib {
+				diff++
+			}
+		}
+	}
+	return ink > 0 && diff*100 > ink*15
+}
+
 func zonaCambiata(a, b *image.RGBA, bl Blocco) bool {
 	r := image.Rect(bl.X, bl.Y, bl.X+bl.W, bl.Y+bl.H).Intersect(a.Bounds())
 	if r.Empty() {
@@ -1925,7 +1949,7 @@ func sembraMenu(grezzo string) bool {
 	if len(righe) < 3 {
 		return false
 	}
-	if t := strings.TrimSpace(righe[0]); tuttoMaiuscolo(t) && len(strings.Fields(t)) <= 3 && strings.ContainsAny(righe[1], ".!?") {
+	if t := strings.TrimSpace(righe[0]); tuttoMaiuscolo(t) && len(strings.Fields(t)) <= 3 && strings.ContainsAny(strings.TrimSpace(righe[len(righe)-1])[len(strings.TrimSpace(righe[len(righe)-1]))-1:], ".!?") {
 		return false
 	}
 	parole := 0

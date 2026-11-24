@@ -7,15 +7,21 @@ package main
 // rimette com'era premendo di nuovo lo stesso pulsante.
 
 import (
+	"bytes"
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"time"
+
+	"golang.org/x/sys/windows/registry"
 )
 
-// ofHelpers3: stato delle novità (cartella in AppData dell'utente) e "chi usa adesso".
+// ofHelpers3: stato delle novità e "chi usa adesso". Lo stato sta in Programmi\Tasso\lavoro\ufficio,
+// dove scrivono solo gli amministratori (in AppData un programma qualsiasi potrebbe cambiarlo
+// o sostituire la cartella, e Tasso ci lavora da amministratore).
 const ofHelpers3 = `
-$OfState = Join-Path $env:LOCALAPPDATA 'Tasso\ufficio'
-New-Item -ItemType Directory -Path $OfState -Force | Out-Null
+$OfState = Join-Path ([Environment]::GetFolderPath('ProgramFiles')) 'Tasso\lavoro\ufficio'
+if (-not (Test-Path -LiteralPath $OfState)) { New-Item -ItemType Directory -Path $OfState -Force | Out-Null }
 function Get-CapUse([string]$what) {
   # Programmi che hanno usato webcam o microfono (dato di Windows: Impostazioni > Privacy).
   $out = @()
@@ -46,13 +52,11 @@ function Fmt-When([DateTime]$t) {
 
 func ofs3(s string) string { return ofHelpers + ofHelpers3 + s }
 
-// Fine della Modalità riunione: la usano il pulsante (spegni), la guardia che la spegne da sola a
-// fine chiamata e Tasso all'avvio se la guardia non c'è più (PC riavviato durante la riunione).
-// Niente file .ps1 su disco: in AppData l'utente li potrebbe cambiare e Tasso li eseguirebbe da
-// amministratore. Su disco resta solo riunione.json, e ogni valore letto si controlla.
+// Fine della Modalità riunione: la usano il pulsante (spegni) e la guardia di Tasso (officeGuardia)
+// che la spegne da sola a fine chiamata. Su disco c'è solo riunione.json, e ogni valore si controlla.
 const ofRiunioneFine = `
 function Fine-Riunione([string]$perche) {
-  $OfState = Join-Path $env:LOCALAPPDATA 'Tasso\ufficio'
+  $OfState = Join-Path ([Environment]::GetFolderPath('ProgramFiles')) 'Tasso\lavoro\ufficio'
   $f = Join-Path $OfState 'riunione.json'
   if (-not (Test-Path -LiteralPath $f)) { return $false }
   try { $s = Get-Content -LiteralPath $f -Raw | ConvertFrom-Json } catch { Remove-Item -LiteralPath $f -Force -ErrorAction SilentlyContinue; return $false }
@@ -62,8 +66,12 @@ function Fine-Riunione([string]$perche) {
   if ([string]$s.toast -match '^[01]$') { Set-ItemProperty -LiteralPath $t -Name 'ToastEnabled' -Value ([int]$s.toast) -Type DWord -ErrorAction SilentlyContinue } else { Remove-ItemProperty -LiteralPath $t -Name 'ToastEnabled' -ErrorAction SilentlyContinue }
   if ([string]$s.plan -match '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$') { & (Join-Path $env:SystemRoot 'System32\powercfg.exe') /setactive ([string]$s.plan) | Out-Null }
   if ($s.wu -eq $true) {
+    # tolgo la pausa solo se è ancora quella messa da Tasso (se nel frattempo l'hai cambiata tu, resta)
     $u = 'HKLM:\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings'
-    foreach ($v in 'PauseUpdatesStartTime','PauseUpdatesExpiryTime','PauseFeatureUpdatesStartTime','PauseFeatureUpdatesEndTime','PauseQualityUpdatesStartTime','PauseQualityUpdatesEndTime') { Remove-ItemProperty -LiteralPath $u -Name $v -ErrorAction SilentlyContinue }
+    $ex = ''; try { $ex = [string](Get-ItemProperty -LiteralPath $u -Name 'PauseUpdatesExpiryTime' -ErrorAction Stop).PauseUpdatesExpiryTime } catch {}
+    if ($ex -and $ex -eq [string]$s.wufine) {
+      foreach ($v in 'PauseUpdatesStartTime','PauseUpdatesExpiryTime','PauseFeatureUpdatesStartTime','PauseFeatureUpdatesEndTime','PauseQualityUpdatesStartTime','PauseQualityUpdatesEndTime') { Remove-ItemProperty -LiteralPath $u -Name $v -ErrorAction SilentlyContinue }
+    }
   }
   $od = [string]$s.od
   if ($od -and (Split-Path $od -Leaf) -ieq 'OneDrive.exe' -and (Test-Path -LiteralPath $od) -and -not (Get-Process -Name OneDrive -ErrorAction SilentlyContinue)) {
@@ -73,50 +81,9 @@ function Fine-Riunione([string]$perche) {
   Add-Content -LiteralPath (Join-Path $OfState 'riunione.log') -Value ((Get-Date).ToString('yyyy-MM-dd HH:mm') + ' spenta (' + $perche + ')') -ErrorAction SilentlyContinue
   # per ultimo: se qualcosa si interrompe a metà, al prossimo giro si rimette tutto di nuovo
   Remove-Item -LiteralPath $f -Force -ErrorAction SilentlyContinue
-  Remove-Item -LiteralPath (Join-Path $OfState 'riunione.vivo') -Force -ErrorAction SilentlyContinue
   return $true
 }
 `
-
-// Guardia: si accorge da sola della fine della chiamata (il microfono non è più usato da nessun
-// programma per 3 minuti) e rimette tutto com'era. Al massimo dopo 4 ore si spegne comunque.
-// IDGUARDIA lo cambia lo script: se riaccendi la modalità, la guardia vecchia vede un altro id ed esce.
-const ofRiunioneGuardia = `
-$ErrorActionPreference = 'SilentlyContinue'
-$OfState = Join-Path $env:LOCALAPPDATA 'Tasso\ufficio'
-$f = Join-Path $OfState 'riunione.json'
-$vivo = Join-Path $OfState 'riunione.vivo'
-$mio = 'IDGUARDIA'
-function MicInUse {
-  $b = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\microphone'
-  $keys = @(Get-ChildItem -LiteralPath $b -ErrorAction SilentlyContinue | Where-Object { $_.PSChildName -ne 'NonPackaged' }) + @(Get-ChildItem -LiteralPath ($b + '\NonPackaged') -ErrorAction SilentlyContinue)
-  foreach ($k in $keys) { $p = Get-ItemProperty -LiteralPath $k.PSPath; if ($p -and [long]$p.LastUsedTimeStart -gt 0 -and [long]$p.LastUsedTimeStop -eq 0) { return $true } }
-  return $false
-}
-$start = Get-Date; $seen = $false; $quiet = 0
-while ($true) {
-  if (-not (Test-Path -LiteralPath $f)) { return }
-  try { if ([string](Get-Content -LiteralPath $f -Raw | ConvertFrom-Json).id -ne $mio) { return } } catch { return }
-  Set-Content -LiteralPath $vivo -Value (Get-Date).ToString('o')
-  Start-Sleep -Seconds 30
-  if (MicInUse) { $seen = $true; $quiet = 0 } elseif ($seen) { $quiet++ }
-  if ($quiet -ge 6) { [void](Fine-Riunione 'fine chiamata'); return }
-  if (((Get-Date) - $start).TotalHours -ge 4) { [void](Fine-Riunione '4 ore'); return }
-}
-`
-
-// officeRecupera: all'avvio di Tasso, se la Modalità riunione è rimasta accesa ma la guardia non
-// c'è più (PC riavviato o spento durante la riunione), rimette tutto com'era.
-func officeRecupera() {
-	d := filepath.Join(os.Getenv("LOCALAPPDATA"), "Tasso", "ufficio")
-	if _, err := os.Stat(filepath.Join(d, "riunione.json")); err != nil {
-		return
-	}
-	if fi, err := os.Stat(filepath.Join(d, "riunione.vivo")); err == nil && time.Since(fi.ModTime()) < 3*time.Minute {
-		return // la guardia gira ancora
-	}
-	runPS(ofRiunioneFine+"\n[void](Fine-Riunione 'Tasso riaperto')\n", time.Minute, nil)
-}
 
 var officeSteps3 = []Step{
 	{ID: "of_new_call", Name: "Pronto per la videochiamata?", Desc: "Prova in pochi secondi webcam, microfono, casse o cuffie e internet. Ti dice cosa va e cosa no e, se serve, ti propone la riparazione con un pulsante. Controlla e spiega.", Level: 0, Minutes: 0.2, Timeout: 90 * time.Second, Script: ofs3(`
@@ -161,7 +128,7 @@ if (-not $bad) { Say 'Tutto pronto per la videochiamata.' }
 elseif ($fix.Count) { Say ('Da sistemare: ' + $bad + '. Premi "Ripara adesso" qui sotto. [ripara:' + (($fix | Select-Object -Unique) -join ',') + ']') }
 else { Say 'Niente da riparare in automatico: segui il consiglio qui sopra.' }
 `)},
-	{ID: "of_new_meeting", Name: "Modalità riunione", Desc: "Premi prima di una chiamata: niente notifiche, OneDrive e aggiornamenti di Windows in pausa, PC al massimo. A fine chiamata si spegne da sola e rimette tutto com'era. Premi di nuovo per spegnerla subito.", Level: 0, Minutes: 0.4, Timeout: 2 * time.Minute, Script: ofs3(`
+	{ID: "of_new_meeting", Name: "Modalità riunione", Desc: "Premi prima di una chiamata: niente notifiche, OneDrive e aggiornamenti di Windows in pausa, PC al massimo. A fine chiamata (con Tasso aperto) si spegne da sola e rimette tutto com'era. Premi di nuovo per spegnerla subito.", Level: 0, Minutes: 0.4, Timeout: 2 * time.Minute, Script: ofs3(`
 $f = Join-Path $OfState 'riunione.json'
 ` + ofRiunioneFine + `
 if (Test-Path -LiteralPath $f) {
@@ -171,7 +138,7 @@ if (Test-Path -LiteralPath $f) {
 }
 $n = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Notifications\Settings'
 $t = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\PushNotifications'
-$s = @{ noc = ''; toast = ''; plan = ''; wu = $false; od = ''; at = (Get-Date).ToString('o'); id = [guid]::NewGuid().ToString('N') }
+$s = @{ noc = ''; toast = ''; plan = ''; wu = $false; wufine = ''; od = ''; at = (Get-Date).ToUniversalTime().ToString('o'); id = [guid]::NewGuid().ToString('N') }
 try { $s.noc = [string](Get-ItemProperty -LiteralPath $n -Name 'NOC_GLOBAL_SETTING_TOASTS_ENABLED' -ErrorAction Stop).NOC_GLOBAL_SETTING_TOASTS_ENABLED } catch {}
 try { $s.toast = [string](Get-ItemProperty -LiteralPath $t -Name 'ToastEnabled' -ErrorAction Stop).ToastEnabled } catch {}
 $m = [regex]::Match((& powercfg.exe /getactivescheme | Out-String), '[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}')
@@ -196,7 +163,7 @@ else {
   $sa = $a.ToString('yyyy-MM-ddTHH:mm:ssZ'); $sb = $b.ToString('yyyy-MM-ddTHH:mm:ssZ')
   if (-not (Test-Path -LiteralPath $u)) { New-Item -Path $u -ErrorAction SilentlyContinue | Out-Null }
   foreach ($kv in @(@('PauseUpdatesStartTime', $sa), @('PauseUpdatesExpiryTime', $sb), @('PauseFeatureUpdatesStartTime', $sa), @('PauseFeatureUpdatesEndTime', $sb), @('PauseQualityUpdatesStartTime', $sa), @('PauseQualityUpdatesEndTime', $sb))) { Set-ItemProperty -LiteralPath $u -Name $kv[0] -Value $kv[1] -Type String }
-  $s.wu = $true
+  $s.wu = $true; $s.wufine = $sb
   Say 'Aggiornamenti di Windows: in pausa (al massimo 1 giorno, poi ripartono da soli).'
 }
 $od = Get-Process -Name OneDrive -ErrorAction SilentlyContinue | Select-Object -First 1
@@ -209,13 +176,7 @@ if ($od -and $od.Path) {
   Say 'OneDrive: in pausa (riparte da solo a fine riunione; i file restano tutti).'
 } else { Say 'OneDrive: non era acceso.' }
 $s | ConvertTo-Json | Set-Content -LiteralPath $f -Encoding UTF8
-$codice = @'
-` + ofRiunioneFine + ofRiunioneGuardia + `
-'@
-$codice = $codice.Replace('IDGUARDIA', $s.id)
-$enc = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($codice))
-Start-Process -FilePath (Join-Path $PSHOME 'powershell.exe') -WindowStyle Hidden -ArgumentList ('-NoProfile -ExecutionPolicy Bypass -EncodedCommand ' + $enc)
-Say 'Modalità riunione ACCESA. Si spegne da sola 3 minuti dopo la fine della chiamata (quando nessun programma usa più il microfono), al massimo dopo 4 ore (se riavvii il PC, la spegne Tasso alla prossima apertura). Per spegnerla prima premi di nuovo il pulsante.'
+Say 'Modalità riunione ACCESA. Con Tasso aperto si spegne da sola 3 minuti dopo la fine della chiamata (quando nessun programma usa più il microfono), al massimo dopo 4 ore; se chiudi Tasso o riavvii il PC, la spegne Tasso alla prossima apertura se la chiamata è finita. Per spegnerla prima premi di nuovo il pulsante.'
 `)},
 	{ID: "of_new_camlog", Name: "Chi ha usato webcam e microfono", Desc: "Ti fa vedere quali programmi hanno usato la webcam e il microfono negli ultimi 30 giorni (con l'ultima volta di ciascuno) e chi li sta usando adesso. Così scopri se qualcuno ti guarda o ascolta. Controlla e spiega.", Level: 0, Minutes: 0.1, Timeout: time.Minute, Script: ofs3(`
 $lim = (Get-Date).AddDays(-30); $tot = 0
@@ -235,7 +196,12 @@ function G([string]$nm) { try { return [string](Get-ItemProperty -LiteralPath $k
 function Apply([int]$to, [int]$act, [int]$sec) { [void][TassoSpi]::SystemParametersInfo(15, [uint32]$to, [IntPtr]::Zero, 3); [void][TassoSpi]::SystemParametersInfo(17, [uint32]$act, [IntPtr]::Zero, 3); [void][TassoSpi]::SystemParametersInfo(119, [uint32]$sec, [IntPtr]::Zero, 3) }
 $pol = 'HKCU:\Software\Policies\Microsoft\Windows\Control Panel\Desktop'
 if (Test-Path -LiteralPath $f) {
-  $p = Get-Content -LiteralPath $f -Raw | ConvertFrom-Json
+  $p = $null; try { $p = Get-Content -LiteralPath $f -Raw | ConvertFrom-Json } catch {}
+  if (-not $p -or [string]$p.to -notmatch '^\d{0,6}$' -or [string]$p.act -notmatch '^[01]?$' -or [string]$p.sec -notmatch '^[01]?$' -or ([string]$p.exe -and [string]$p.exe -notmatch '\.scr$')) {
+    Remove-Item -LiteralPath $f -Force -ErrorAction SilentlyContinue
+    Say 'Non riesco a leggere com''era prima: non tocco lo screensaver. Controllalo in Impostazioni > Personalizzazione > Schermata di blocco > Screensaver.'
+    return
+  }
   Apply ([int]('0' + $p.to)) ([int]('0' + $p.act)) ([int]('0' + $p.sec))
   foreach ($kv in @(@('ScreenSaveTimeOut', $p.to), @('ScreenSaveActive', $p.act), @('ScreenSaverIsSecure', $p.sec), @('SCRNSAVE.EXE', $p.exe))) { if ([string]$kv[1] -eq '') { Remove-ItemProperty -LiteralPath $k -Name $kv[0] -ErrorAction SilentlyContinue } else { Set-ItemProperty -LiteralPath $k -Name $kv[0] -Value ([string]$kv[1]) } }
   Remove-Item -LiteralPath $f -Force
@@ -260,7 +226,91 @@ func init() {
 // officeStati: dice alla finestra se Modalità riunione e Blocco automatico sono accesi
 // (così il pulsante scrive Accendi o Spegni).
 func officeStati() map[string]bool {
-	d := filepath.Join(os.Getenv("LOCALAPPDATA"), "Tasso", "ufficio")
+	d := officeDir()
 	ex := func(n string) bool { _, err := os.Stat(filepath.Join(d, n)); return err == nil }
 	return map[string]bool{"of_new_meeting": ex("riunione.json"), "of_new_lock": ex("blocco.json")}
+}
+
+func officeDir() string { return filepath.Join(programFilesDir(), "Tasso", "lavoro", "ufficio") }
+
+// officeGuardia: gira dentro Tasso per tutta la sua vita. Se la Modalità riunione è accesa la
+// spegne da sola 3 minuti dopo che nessun programma usa più il microfono (dopo averlo usato),
+// oppure dopo 4 ore. Fatta in Go e non con un PowerShell nascosto: gli antivirus d'ufficio
+// bloccano volentieri i PowerShell nascosti da amministratore.
+func officeGuardia() {
+	defer guard("ufficio-guardia")
+	// file della versione di prova (24/11): script in AppData che nessuno deve più eseguire
+	vecchia := filepath.Join(os.Getenv("LOCALAPPDATA"), "Tasso", "ufficio")
+	for _, n := range []string{"riunione-fine.ps1", "riunione-guardia.ps1"} {
+		_ = os.Remove(filepath.Join(vecchia, n))
+	}
+	f := filepath.Join(officeDir(), "riunione.json")
+	id, seen, quiet := "", false, 0
+	for {
+		b, err := os.ReadFile(f)
+		if err != nil {
+			id, seen, quiet = "", false, 0
+			time.Sleep(30 * time.Second)
+			continue
+		}
+		var st struct {
+			ID string `json:"id"`
+			At string `json:"at"`
+		}
+		_ = json.Unmarshal(bytes.TrimPrefix(b, []byte("\xef\xbb\xbf")), &st)
+		at, errAt := time.Parse(time.RFC3339Nano, st.At)
+		if st.ID != id {
+			// riunione nuova: ricomincio a contare. Se era già accesa da più di 5 minuti (Tasso
+			// riaperto, PC riavviato) conto come se la chiamata ci fosse stata: se il microfono resta
+			// libero per 3 minuti la spengo, invece di aspettare le 4 ore
+			id, seen, quiet = st.ID, errAt == nil && time.Since(at) > 5*time.Minute, 0
+		}
+		if micInUso() {
+			seen, quiet = true, 0
+		} else if seen {
+			quiet++
+		}
+		perche := ""
+		if quiet >= 6 {
+			perche = "fine chiamata"
+		} else if errAt != nil || time.Since(at) > 4*time.Hour {
+			perche = "4 ore"
+		}
+		if perche != "" {
+			runPS(ofRiunioneFine+"\n[void](Fine-Riunione '"+perche+"')\n", time.Minute, nil)
+			emit("onOfficeStati", officeStati())
+			id, seen, quiet = "", false, 0
+		}
+		time.Sleep(30 * time.Second)
+	}
+}
+
+// micInUso: un programma sta usando il microfono adesso (dato di Windows: Privacy > Microfono).
+func micInUso() bool {
+	base := `Software\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\microphone`
+	inUso := func(path string) bool {
+		k, err := registry.OpenKey(registry.CURRENT_USER, path, registry.READ)
+		if err != nil {
+			return false
+		}
+		defer k.Close()
+		nomi, _ := k.ReadSubKeyNames(-1)
+		for _, n := range nomi {
+			if n == "NonPackaged" {
+				continue
+			}
+			sk, err := registry.OpenKey(k, n, registry.QUERY_VALUE)
+			if err != nil {
+				continue
+			}
+			start, _, e1 := sk.GetIntegerValue("LastUsedTimeStart")
+			stop, _, e2 := sk.GetIntegerValue("LastUsedTimeStop")
+			sk.Close()
+			if e1 == nil && e2 == nil && start > 0 && stop == 0 {
+				return true
+			}
+		}
+		return false
+	}
+	return inUso(base) || inUso(base+`\NonPackaged`)
 }

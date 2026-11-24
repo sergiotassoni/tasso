@@ -145,12 +145,25 @@ func cicloPagina(giro int64) {
 				soloLuce = true
 				celleUltime = celleBordiCambiate(img, ultimaImg)
 				bl0 := blocchiPagina()
-				sottoScritte := celleDiBlocchi(bl0, img.Bounds())
-				nc, tocca := 0, false
+				nc := 0
 				for c, si := range celleUltime {
 					if si && !animate[c] {
 						nc++
-						tocca = tocca || sottoScritte[c]
+					}
+				}
+				// sotto una scritta tradotta conta la forma delle lettere, non i contorni della zona
+				// (il riquadro illuminato dal mouse cambia i contorni ma non le lettere)
+				tocca := false
+				for _, b := range bl0 {
+					sotto := celleDiBlocchi([]Blocco{b}, img.Bounds())
+					for c, si := range celleUltime {
+						if si && sotto[c] {
+							tocca = inchiostroCambiato(ultimaImg, img, b)
+							break
+						}
+					}
+					if tocca {
+						break
 					}
 				}
 				// una zona sola che cambia (lucina che lampeggia, icona animata) non basta: le
@@ -231,6 +244,22 @@ func cicloPagina(giro int64) {
 						time.Sleep(150 * time.Millisecond)
 						continue
 					} else if pronta == nil {
+						// niente da tradurre e le zone cambiate erano un'icona o un cursore che
+						// lampeggia: d'ora in poi non fanno rileggere (stesso tetto di un quarto)
+						if celleUltime != nil {
+							quante := 0
+							for _, a := range animate {
+								if a {
+									quante++
+								}
+							}
+							for c, si := range celleUltime {
+								if si && !animate[c] && quante < len(animate)/4 {
+									animate[c] = true
+									quante++
+								}
+							}
+						}
 						// niente da tradurre qui (già nella lingua giusta, lingua non scaricata,
 						// nessuna scritta): tolgo le scritte vecchie e aspetto un cambio vero,
 						// invece di rileggere lo schermo all'infinito
