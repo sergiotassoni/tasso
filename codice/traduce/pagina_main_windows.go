@@ -147,10 +147,12 @@ func cicloPagina(giro int64) {
 				nc := 0
 				for c, si := range celleUltime {
 					if si && !animate[c] {
-						soloLuce = false
 						nc++
 					}
 				}
+				// una zona sola che cambia (lucina che lampeggia, icona animata) non basta: le
+				// scritte nuove, le finestrelle e le righe di dialogo occupano almeno due zone
+				soloLuce = nc < 2
 				motivoLettura.Store(fmt.Sprintf("zone=%d", nc))
 			} else if prima {
 				motivoLettura.Store("prima:" + perche)
