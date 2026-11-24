@@ -162,8 +162,8 @@ details pre{white-space:pre-wrap;word-break:break-all;background:var(--panel);bo
       <div class="row"><button class="btn ghost" id="c-piu-file" data-t="aggiungi_file"></button><button class="btn ghost" id="c-piu-cartella" data-t="aggiungi_cartella"></button></div>
       <div><h2 data-t="formato_titolo" style="margin-bottom:12px"></h2>
         <div class="formati">
-          <button class="fmt" data-f="7z"><i class="pt"></i><div><b data-t="formato_max"></b><span data-t="formato_max_desc"></span></div></button>
           <button class="fmt" data-f="zip"><i class="pt"></i><div><b data-t="formato_zip"></b><span data-t="formato_zip_desc"></span></div></button>
+          <button class="fmt" data-f="7z"><i class="pt"></i><div><b data-t="formato_max"></b><span data-t="formato_max_desc"></span></div></button>
           <button class="fmt" data-f="tarzst"><i class="pt"></i><div><b data-t="formato_zst"></b><span data-t="formato_zst_desc"></span></div></button>
         </div>
         <div class="row" id="c-livello-riga" style="margin-top:12px;align-items:center;gap:10px"><label for="c-livello" data-t="livello"></label>
@@ -555,7 +555,7 @@ window.addEventListener("popstate", () => history.pushState(null, "", location.h
 const INIZIO = window.__TZ_INIZIO__ || { modo: "", percorsi: [] };
 (async function avvio() {
   const a = await goAvvio();
-  S.lingua = a.lingua; S.testi = a.testi; S.lingue = a.lingue; S.formato = a.formato || "7z"; S.livello = a.livello || "massima";
+  S.lingua = a.lingua; S.testi = a.testi; S.lingue = a.lingue; S.formato = a.formato || "zip"; S.livello = a.livello || "massima";
   const box = $("lingue");
   for (const l of S.lingue) {
     const b = document.createElement("button"); b.dataset.l = l; b.textContent = l.toUpperCase();

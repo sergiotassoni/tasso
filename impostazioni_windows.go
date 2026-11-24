@@ -43,8 +43,11 @@ func caricaImpostazioni() {
 		_ = json.Unmarshal(b, &imp)
 	}
 	// Il vecchio "tarxz" (Tasso Zip 1.0) diventa la super compressione .7z.
-	if imp.Formato == "tarxz" || !archivio.FormatoValido(imp.Formato) {
+	// Se non c'è niente (o è strano) si parte da .zip, il più compatibile.
+	if imp.Formato == "tarxz" {
 		imp.Formato = "7z"
+	} else if !archivio.FormatoValido(imp.Formato) {
+		imp.Formato = "zip"
 	}
 	if !livelloValido(imp.Livello) {
 		imp.Livello = "massima"
