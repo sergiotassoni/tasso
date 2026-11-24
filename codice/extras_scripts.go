@@ -30,6 +30,7 @@ try {
 
 # File temporanei
 $t = [long](Get-FolderSize $TassoTempUtente) + [long](Get-FolderSize (Join-Path $TassoWin 'Temp'))
+if ($TassoTempOriginale) { $t += [long](Get-FolderSize $TassoTempOriginale) }  # i temporanei spostati altrove (es. D:\Temp)
 if ($t -gt 2GB) { Bad 10 ('File temporanei: ' + (Fmt $t)) 'La pulizia Normale li toglie in un paio di minuti.' 'clean' }
 elseif ($t -gt 500MB) { Bad 5 ('File temporanei: ' + (Fmt $t)) 'Una pulizia Normale li toglie.' 'clean' }
 else { Good 'File temporanei: pochi' }

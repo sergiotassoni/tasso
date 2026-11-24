@@ -33,66 +33,127 @@ function Get-FolderSize([string]$p) {
   $s = (Get-ChildItem -LiteralPath $p -Recurse -Force -File -ErrorAction SilentlyContinue | Measure-Object -Property Length -Sum).Sum
   if ($s) { return [long]$s } else { return [long]0 }
 }
-function Test-SafeTarget([string]$p) {
+function In-Dir([string]$p, [string]$base) {
+  # $p è $base o sta dentro $base (senza badare a maiuscole e minuscole né alla \ finale).
+  if (-not $p -or -not $base) { return $false }
+  $p = $p.TrimEnd('\'); $base = $base.TrimEnd('\')
+  if (-not $p -or -not $base) { return $false }
+  return ($p -ieq $base -or $p.StartsWith($base + '\', [StringComparison]::OrdinalIgnoreCase))
+}
+function Get-SafeRoot([string]$p) {
   # Si svuotano solo cartelle DENTRO quelle che Tasso pulisce davvero (AppData, temporanei, cache di
   # Windows Update, Programmi e ProgramData per le cache dei launcher, C:\AMD, C:\NVIDIA...).
   # Le cartelle vere arrivano da Tasso ($TassoWin, $TassoLocal...), non dalle variabili d'ambiente.
-  if ([string]::IsNullOrWhiteSpace($p) -or $p.StartsWith('\\')) { return $false }  # niente \\?\ né cartelle di rete
-  try { $full = [IO.Path]::GetFullPath($p).TrimEnd('\') } catch { return $false }
-  if ($full.Length -le 3) { return $false }  # mai una radice come C:\
+  # Restituisce la "radice fidata" più vicina che contiene $p ('' = non si tocca): sotto la radice
+  # niente giunzioni; la radice stessa la controlla Tasso (cancella_sicura.go).
+  if ([string]::IsNullOrWhiteSpace($p) -or $p.StartsWith('\\')) { return '' }  # niente \\?\ né cartelle di rete
+  try { $full = [IO.Path]::GetFullPath($p).TrimEnd('\') } catch { return '' }
+  if ($full.Length -le 3) { return '' }  # mai una radice come C:\
   $deny = @($TassoWin, $TassoProfilo, $TassoPF, $TassoPF86, $TassoPD, $TassoRoaming, $TassoLocal) | Where-Object { $_ } | ForEach-Object { $_.TrimEnd('\') }
-  foreach ($d in $deny) { if ($full -ieq $d) { return $false } }
+  foreach ($d in $deny) { if ($full -ieq $d) { return '' } }
   # "Foglie": si possono svuotare loro stesse (es. la cartella dei temporanei).
-  $leaf = @($TassoTempUtente)
+  $leaf = @($TassoTempUtente, $TassoTempOriginale)
   if ($TassoWin) { $leaf += @(($TassoWin + '\Temp'), ($TassoWin + '\SoftwareDistribution\Download'), ($TassoWin + '\Minidump'), ($TassoWin + '\LiveKernelReports'), ($TassoWin + '\ServiceProfiles\LocalService\AppData\Local\Temp'), ($TassoWin + '\ServiceProfiles\NetworkService\AppData\Local\Temp')) }
   if ($TassoSysDrive) { $leaf += @(($TassoSysDrive + '\AMD'), ($TassoSysDrive + '\NVIDIA')) }
   # "Contenitori": solo le cartelle che ci sono dentro, mai loro.
   $cont = @($TassoLocal, $TassoRoaming, $TassoPD, $TassoPF, $TassoPF86)
   if ($TassoSysDrive) { $cont += ($TassoSysDrive + '\Intel') }
-  # Steam può stare su un altro disco (es. D:\Steam): la sua cartella vale come contenitore, mai dentro Windows.
-  $st = ''; try { $st = ([string](Get-ItemProperty -LiteralPath 'HKCU:\Software\Valve\Steam' -Name SteamPath -ErrorAction Stop).SteamPath) -replace '/', '\' } catch {}
-  if ($st) { try { $st = [IO.Path]::GetFullPath($st).TrimEnd('\') } catch { $st = '' } }
-  if ($st -and $st.Length -gt 3 -and -not ($TassoWin -and ($st -ieq $TassoWin.TrimEnd('\') -or $st.StartsWith($TassoWin.TrimEnd('\') + '\', [StringComparison]::OrdinalIgnoreCase)))) { $cont += $st }
+  # Steam può stare su un altro disco (es. D:\Steam): la sua cartella vale come contenitore, mai dentro
+  # Windows. Il percorso viene da HKLM (lo scrive l'installatore di Steam da amministratore), non da
+  # HKCU che qualunque programma può cambiare, e lì dentro deve esserci steam.exe.
+  $st = ''; try { $st = [string](Get-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\WOW6432Node\Valve\Steam' -Name InstallPath -ErrorAction Stop).InstallPath } catch {}
+  if ($st) { try { $st = [IO.Path]::GetFullPath(($st -replace '/', '\')).TrimEnd('\') } catch { $st = '' } }
+  if ($st -and ($st.Length -le 3 -or -not (Test-Path -LiteralPath (Join-Path $st 'steam.exe') -PathType Leaf))) { $st = '' }
+  if ($st -and $TassoWin -and (In-Dir $st $TassoWin)) { $st = '' }
+  # Mai una cartella che contiene quelle dell'utente o di sistema (es. C:\Users), mai il profilo di un altro utente.
+  foreach ($d in $deny) { if ($st -and (In-Dir $d $st)) { $st = '' } }
+  if ($st -and $TassoProfilo) { $u = Split-Path $TassoProfilo -Parent; if ((In-Dir $st $u) -and -not (In-Dir $st $TassoProfilo)) { $st = '' } }
+  if ($st) { $cont += $st }
+  $best = ''
   foreach ($r in $leaf) {
     if (-not $r) { continue }
     $r = ([string]$r).TrimEnd('\'); if ($r.Length -le 3) { continue }
-    if ($full -ieq $r -or $full.StartsWith($r + '\', [StringComparison]::OrdinalIgnoreCase)) { return $true }
+    if ((In-Dir $full $r) -and $r.Length -gt $best.Length) { $best = $r }
   }
   foreach ($r in $cont) {
     if (-not $r) { continue }
     $r = ([string]$r).TrimEnd('\'); if ($r.Length -le 3) { continue }
-    if ($full.StartsWith($r + '\', [StringComparison]::OrdinalIgnoreCase)) { return $true }
+    if ($full.StartsWith($r + '\', [StringComparison]::OrdinalIgnoreCase) -and $r.Length -gt $best.Length) { $best = $r }
   }
-  return $false
+  return $best
 }
-function Test-NoReparse([string]$p) {
-  # La cartella e tutte quelle sopra non devono essere giunzioni o collegamenti: C:\NVIDIA potrebbe
-  # puntare a System32, o una cartella in AppData a un'altra cartella del PC.
+function Test-SafeTarget([string]$p) { return [bool](Get-SafeRoot $p) }
+function Test-NoReparse([string]$p, [string]$root = '') {
+  # Le cartelle fra la radice fidata $root (esclusa) e $p (compresa) non devono essere giunzioni o
+  # collegamenti: C:\NVIDIA potrebbe puntare a System32, o una cartella in AppData a un'altra cartella
+  # del PC. SOPRA la radice invece una giunzione va bene (C:\Users spostato su D:, Steam su un altro
+  # disco): lì decide Tasso, che guarda dove porta davvero la radice. Senza $root guarda solo $p.
+  # È solo un primo controllo veloce: quello che conta lo rifà Tasso un attimo prima di cancellare.
   try { $cur = [IO.Path]::GetFullPath($p).TrimEnd('\') } catch { return $false }
-  while ($cur) {
+  $r = ''
+  if ($root) { try { $r = [IO.Path]::GetFullPath($root).TrimEnd('\') } catch { return $false } }
+  if ($r -and -not (In-Dir $cur $r)) { return $false }
+  while ($cur -and -not ($r -and $cur -ieq $r)) {
     try { $a = [IO.File]::GetAttributes($cur) } catch { return $false }
     if ($a -band [IO.FileAttributes]::ReparsePoint) { return $false }
+    if (-not $r) { break }
     $up = [IO.Path]::GetDirectoryName($cur)
     if (-not $up -or $up -eq $cur) { break }
     $cur = $up.TrimEnd('\')
-    if ($cur.Length -le 2) { break }  # la radice del disco (C:\) non si controlla
   }
   return $true
 }
+$TassoRifiuto = ''
+function Invoke-TassoCancella([string[]]$a) {
+  # La cancellazione vera la fa Tasso (cancella_sicura.go): apre ogni cartella partendo da quella
+  # sopra, già aperta, senza mai seguire giunzioni o collegamenti, e controlla dove si trova davvero.
+  # Così un programma che sostituisce una cartella con una giunzione mentre pulisco non mi porta in
+  # System32. Restituisce i byte liberati, o $null se Tasso ha rifiutato (non ha toccato niente).
+  $script:TassoRifiuto = ''
+  if (-not $TassoExe -or -not [IO.File]::Exists($TassoExe)) { $script:TassoRifiuto = 'non trovo Tasso.exe'; return $null }
+  $out = ''
+  try {
+    $psi = New-Object System.Diagnostics.ProcessStartInfo
+    $psi.FileName = $TassoExe
+    $psi.Arguments = '--cancella-sicura ' + ((@($a) | ForEach-Object { '"' + ([string]$_).Replace('"', '').TrimEnd('\') + '"' }) -join ' ')
+    $psi.UseShellExecute = $false
+    $psi.CreateNoWindow = $true
+    $psi.RedirectStandardOutput = $true
+    $psi.RedirectStandardError = $true
+    $pr = [System.Diagnostics.Process]::Start($psi)
+    $er = $pr.StandardError.ReadToEndAsync()
+    $out = $pr.StandardOutput.ReadToEnd()
+    $pr.WaitForExit()
+  } catch { $script:TassoRifiuto = $_.Exception.Message; return $null }
+  foreach ($l in @($out -split "\r?\n")) {
+    if ($l -match '^LIBERATI (\d+)\s*$') { return [long]$Matches[1] }
+    if ($l -match '^RIFIUTO (.*)$') { $script:TassoRifiuto = $Matches[1].Trim(); return $null }
+  }
+  $script:TassoRifiuto = 'nessuna risposta'
+  return $null
+}
 function Remove-Safe([string]$p) {
-  # Non segue mai collegamenti/giunzioni: cancella solo il collegamento, mai i file a cui punta.
-  $it = Get-Item -LiteralPath $p -Force -ErrorAction SilentlyContinue
-  if (-not $it) { return }
-  if ($it.Attributes -band [IO.FileAttributes]::ReparsePoint) {
-    try { if ($it.PSIsContainer) { [IO.Directory]::Delete($it.FullName, $false) } else { [IO.File]::Delete($it.FullName) } } catch {}
-    return
+  # Toglie $p (un file, o una cartella con tutto dentro) senza mai seguire collegamenti o giunzioni:
+  # un collegamento si toglie lui, mai i file a cui punta. Il lavoro lo fa Tasso (Invoke-TassoCancella).
+  if ([string]::IsNullOrWhiteSpace($p)) { return }
+  try { $full = [IO.Path]::GetFullPath($p) } catch { return }
+  [void](Invoke-TassoCancella @('togli', $full, '0'))
+}
+function Get-Winget {
+  # winget vero: quello del pacchetto Microsoft "Programma di installazione app", in
+  # Programmi\WindowsApps (scrivibile solo da Windows). Mai quello trovato nel PATH: il suo alias
+  # sta in AppData\Local\Microsoft\WindowsApps, dove può scrivere qualunque programma dell'utente,
+  # e Tasso lo farebbe partire da amministratore. '' se non c'è.
+  if (-not $TassoPF) { return '' }
+  $base = (Join-Path $TassoPF 'WindowsApps').TrimEnd('\') + '\'
+  $pk = @(Get-AppxPackage -Name 'Microsoft.DesktopAppInstaller' -ErrorAction SilentlyContinue)
+  if (-not $pk.Count) { $pk = @(Get-AppxPackage -AllUsers -Name 'Microsoft.DesktopAppInstaller' -ErrorAction SilentlyContinue) }
+  foreach ($x in @($pk | Where-Object { $_.PublisherId -eq '8wekyb3d8bbwe' -and $_.InstallLocation } | Sort-Object { try { [version]$_.Version } catch { [version]'0.0' } } -Descending)) {
+    try { $exe = [IO.Path]::GetFullPath((Join-Path ([string]$x.InstallLocation) 'winget.exe')) } catch { continue }
+    if (-not $exe.StartsWith($base, [StringComparison]::OrdinalIgnoreCase)) { continue }
+    if ([IO.File]::Exists($exe)) { return $exe }
   }
-  if ($it.PSIsContainer) {
-    Get-ChildItem -LiteralPath $it.FullName -Force -ErrorAction SilentlyContinue | ForEach-Object { Remove-Safe $_.FullName }
-    Remove-Item -LiteralPath $it.FullName -Force -ErrorAction SilentlyContinue
-  } else {
-    Remove-Item -LiteralPath $it.FullName -Force -ErrorAction SilentlyContinue
-  }
+  return ''
 }
 function On-Battery {
   # Chiedo a Windows se il caricatore è attaccato (Offline = a batteria). Un PC fisso risponde Online.
@@ -104,35 +165,26 @@ function Skip-AutoOnBattery {
   return $false
 }
 function Remove-Old([string]$p, [datetime]$limit) {
-  # Come Remove-Safe, ma dentro le cartelle toglie solo i file vecchi: una cartella con file nuovi resta.
-  $it = Get-Item -LiteralPath $p -Force -ErrorAction SilentlyContinue
-  if (-not $it) { return }
-  if ($it.Attributes -band [IO.FileAttributes]::ReparsePoint) {
-    if ($it.LastWriteTime -lt $limit) { try { if ($it.PSIsContainer) { [IO.Directory]::Delete($it.FullName, $false) } else { [IO.File]::Delete($it.FullName) } } catch {} }
-    return
-  }
-  if ($it.PSIsContainer) {
-    Get-ChildItem -LiteralPath $it.FullName -Force -ErrorAction SilentlyContinue | ForEach-Object { Remove-Old $_.FullName $limit }
-    # Solo cartelle vuote e create da tempo: una cartella appena creata da un installatore resta lì (3.1).
-    if ($it.CreationTime -lt $limit -and -not (Get-ChildItem -LiteralPath $it.FullName -Force -ErrorAction SilentlyContinue | Select-Object -First 1)) { Remove-Item -LiteralPath $it.FullName -Force -ErrorAction SilentlyContinue }
-  } elseif ($it.LastWriteTime -lt $limit -and $it.CreationTime -lt $limit) {
-    # Anche la data di creazione: un file appena estratto da uno zip può avere una data di modifica vecchia.
-    Remove-Item -LiteralPath $it.FullName -Force -ErrorAction SilentlyContinue
-  }
+  # Come Remove-Safe, ma dentro le cartelle toglie solo i file vecchi (modificati e creati prima di
+  # $limit): una cartella con file nuovi resta, una cartella vuota va via solo se creata da tempo.
+  if ([string]::IsNullOrWhiteSpace($p)) { return }
+  try { $full = [IO.Path]::GetFullPath($p) } catch { return }
+  $h = [math]::Max(0.001, ((Get-Date) - $limit).TotalHours)
+  [void](Invoke-TassoCancella @('togli', $full, ([string]$h)))
 }
 function Clear-Folder([string]$p, [double]$minAgeHours = 0) {
-  if (-not (Test-SafeTarget $p)) { return [long]0 }
-  if (-not (Test-Path -LiteralPath $p)) { return [long]0 }
-  if (-not (Test-NoReparse $p)) { return [long]0 }  # giunzione: non la svuoto (finirei nella cartella a cui punta)
-  $b = Get-FolderSize $p
-  $limit = (Get-Date).AddHours(-$minAgeHours)
-  if ($minAgeHours -le 0) {
-    Get-ChildItem -LiteralPath $p -Force -ErrorAction SilentlyContinue | ForEach-Object { Remove-Safe $_.FullName }
-  } else {
-    Get-ChildItem -LiteralPath $p -Force -ErrorAction SilentlyContinue | ForEach-Object { Remove-Old $_.FullName $limit }
-  }
-  $a = Get-FolderSize $p
-  return [long][math]::Max(0, $b - $a)
+  # Svuota la cartella $p (lei resta). Restituisce i byte liberati. Se non la tocco, in $TassoRifiuto
+  # c'è il perché (vuoto = tutto normale, anche se non c'era niente da togliere).
+  $script:TassoRifiuto = ''
+  $root = Get-SafeRoot $p
+  if (-not $root) { $script:TassoRifiuto = 'non è fra le cartelle che Tasso pulisce'; return [long]0 }
+  $full = [IO.Path]::GetFullPath($p).TrimEnd('\')
+  if (-not (Test-Path -LiteralPath $full)) { return [long]0 }
+  if (-not (Test-NoReparse $full $root)) { $script:TassoRifiuto = 'c''è una giunzione o un collegamento'; return [long]0 }  # finirei nella cartella a cui punta
+  if ($minAgeHours -lt 0) { $minAgeHours = 0 }
+  $r = Invoke-TassoCancella @('svuota', $root, $full, ([string]$minAgeHours))
+  if ($null -eq $r) { return [long]0 }
+  return [long]$r
 }
 function Run-Hidden([string]$file, [string]$argline) {
   # Nessuna finestra: processo senza console, output letto in background per non bloccarsi.
@@ -323,6 +375,8 @@ else { Say 'ATTENZIONE: il Ripristino configurazione di sistema sembra disattiva
 # La cartella temporanea vera dell'utente (AppData\Local\Temp, passata da Tasso): $env:TEMP qui
 # è quella di Tasso in Programmi, e una variabile d'ambiente non decide mai cosa si svuota.
 $f = Clear-Folder $TassoTempUtente 24
+# Se avevi spostato i temporanei altrove (es. D:\Temp), Tasso passa anche quella ($TassoTempOriginale).
+if ($TassoTempOriginale) { $f += Clear-Folder $TassoTempOriginale 24 }
 Freed $f; Say ('Liberati ' + (Fmt $f))
 `},
 	{ID: "temp_win", Name: "File temporanei di Windows", Desc: "Svuota C:\\Windows\\Temp (solo i file più vecchi di un giorno).", Level: 1, Minutes: 0.5, Timeout: 10 * time.Minute, Script: `
@@ -474,10 +528,10 @@ Get-ChildItem -LiteralPath $dl -File -ErrorAction SilentlyContinue | ForEach-Obj
 Say ('Riordinati ' + $moved + ' file nella cartella Download.')
 `},
 	{ID: "apps", Name: "Aggiornamento programmi", Desc: "Aggiorna i programmi installati con winget. Attenzione: alcune app (Discord, Claude, Proton...) dopo l'aggiornamento chiedono di rifare l'accesso.", Level: 0, Minutes: 6, Timeout: 60 * time.Minute, Script: `
-$wg = Get-Command winget.exe -ErrorAction SilentlyContinue
+$wg = Get-Winget
 if (-not $wg) { Say 'winget non è disponibile su questo PC: salto.'; return }
 Say 'Aggiorno i programmi (alcuni minuti)...'
-$code = Run-Hidden $wg.Source 'upgrade --all --silent --accept-source-agreements --accept-package-agreements --disable-interactivity'
+$code = Run-Hidden $wg 'upgrade --all --silent --accept-source-agreements --accept-package-agreements --disable-interactivity'
 if ($code -eq 0) { Say 'Programmi aggiornati.' } else { Say ('Fatto, con qualche programma da aggiornare a mano (codice ' + $code + ').') }
 `},
 	{ID: "drivers", Name: "Aggiornamento driver", Desc: "Driver certificati da Microsoft tramite Windows Update.", Level: 3, Minutes: 6, Timeout: 90 * time.Minute, Script: `
@@ -777,12 +831,13 @@ if ($code -eq 0) { Say 'Fatto: i file cancellati in passato non sono più recupe
 	{ID: "recover", Name: "Recupera file cancellati", Desc: "Apre il Cestino e lo strumento gratuito di Microsoft per recuperare foto e documenti cancellati.", Level: 0, Minutes: 1, Timeout: 20 * time.Minute, Script: `
 Say 'Prima guarda nel Cestino: lo apro adesso.'
 Start-Process 'explorer.exe' 'shell:RecycleBinFolder'
-$w = Get-Command winfr.exe -ErrorAction SilentlyContinue
+# Windows File Recovery è un'app dello Store: la cerco fra le app installate (il suo alias non è nel PATH di Tasso).
+$w = @(Get-AppxPackage -Name 'Microsoft.WindowsFileRecovery' -ErrorAction SilentlyContinue).Count -gt 0
 if (-not $w) {
-  $wg = Get-Command winget.exe -ErrorAction SilentlyContinue
+  $wg = Get-Winget
   if ($wg) {
     Say 'Installo Windows File Recovery (strumento gratuito di Microsoft)...'
-    [void](Run-Hidden $wg.Source 'install --id 9N26S50LN705 --source msstore --accept-source-agreements --accept-package-agreements --silent')
+    [void](Run-Hidden $wg 'install --id 9N26S50LN705 --source msstore --accept-source-agreements --accept-package-agreements --silent')
   }
 }
 Start-Process -FilePath "$TassoWin\explorer.exe" -ArgumentList 'https://support.microsoft.com/it-it/windows/recuperare-file-persi-in-windows-10-61f5b28a-f5b8-3cc2-0f8e-a63cb4e1d4c4'
@@ -821,6 +876,7 @@ Say 'Impostazioni di privacy rimesse come di fabbrica.'
 const analyzeScript = `
 $junk = [long]0
 $junk += Get-FolderSize $TassoTempUtente
+if ($TassoTempOriginale) { $junk += Get-FolderSize $TassoTempOriginale }
 $junk += Get-FolderSize (Join-Path $TassoWin 'Temp')
 $junk += Get-FolderSize (Join-Path $TassoWin 'SoftwareDistribution\Download')
 # Le cache della scheda video (shader) non si contano: nessun livello di pulizia le toglie (solo il passaggio a mano gpu_cache).

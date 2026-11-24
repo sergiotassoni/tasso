@@ -544,12 +544,34 @@ Say 'Fatto. I promemoria di appuntamenti futuri ricompaiono all''ora giusta.'
 $p = @(Get-Process -Name 'ms-teams', 'Teams', 'msteams', 'MSTeams' -ErrorAction SilentlyContinue)
 if ($p.Count) { Say 'Chiudo Teams...'; $p | Stop-Process -Force -ErrorAction SilentlyContinue; Start-Sleep -Seconds 3 }
 $f = [long]0; $any = $false
+# "Svuotata" solo se ho liberato qualcosa o se la cartella adesso è vuota: Clear-Folder può rifiutare
+# (per esempio AppData su una cartella di rete, o una giunzione), e allora lo dico.
+function Test-TeamsSvuotata([string]$d, [long]$lib) {
+  if ($lib -gt 0) { return $true }
+  return -not (Get-ChildItem -LiteralPath $d -Force -ErrorAction SilentlyContinue | Select-Object -First 1)
+}
 $new = Join-Path $env:LOCALAPPDATA 'Packages\MSTeams_8wekyb3d8bbwe\LocalCache\Microsoft\MSTeams'
-if (Test-Path -LiteralPath $new) { $f += Clear-Folder $new; $any = $true; Say 'Cache del nuovo Teams svuotata.' }
+if (Test-Path -LiteralPath $new) {
+  $any = $true
+  $x = Clear-Folder $new; $f += $x
+  if (Test-TeamsSvuotata $new $x) { Say 'Cache del nuovo Teams svuotata.' }
+  elseif ($TassoRifiuto) { Say ('Non ho svuotato la cache del nuovo Teams: la cartella non è sul disco del PC o non è sicura da pulire (' + $TassoRifiuto + '). Se il tuo profilo è in rete (PC dell''ufficio), chiedi all''assistenza.') }
+  else { Say 'Non sono riuscito a svuotare la cache del nuovo Teams: qualche file è ancora in uso. Riavvia il PC e riprova.' }
+}
 $old = Join-Path $env:APPDATA 'Microsoft\Teams'
 if (Test-Path -LiteralPath $old) {
-  foreach ($s in @('application cache\cache', 'blob_storage', 'Cache', 'Code Cache', 'databases', 'GPUCache', 'IndexedDB', 'Local Storage', 'tmp')) { $d = Join-Path $old $s; if (Test-Path -LiteralPath $d) { $f += Clear-Folder $d; $any = $true } }
-  Say 'Cache di Teams classico svuotata.'
+  $okOld = $true; $why = ''
+  foreach ($s in @('application cache\cache', 'blob_storage', 'Cache', 'Code Cache', 'databases', 'GPUCache', 'IndexedDB', 'Local Storage', 'tmp')) {
+    $d = Join-Path $old $s
+    if (Test-Path -LiteralPath $d) {
+      $any = $true
+      $x = Clear-Folder $d; $f += $x
+      if (-not (Test-TeamsSvuotata $d $x)) { $okOld = $false; if ($TassoRifiuto) { $why = $TassoRifiuto } }
+    }
+  }
+  if ($okOld) { Say 'Cache di Teams classico svuotata.' }
+  elseif ($why) { Say ('Non ho svuotato del tutto la cache di Teams classico: la cartella non è sul disco del PC o non è sicura da pulire (' + $why + '). Se il tuo profilo è in rete (PC dell''ufficio), chiedi all''assistenza.') }
+  else { Say 'Ho svuotato solo in parte la cache di Teams classico: qualche file è ancora in uso. Riavvia il PC e riprova.' }
 }
 Freed $f
 if (-not $any) { Say 'Non trovo Teams su questo PC.'; return }

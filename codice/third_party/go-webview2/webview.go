@@ -59,9 +59,20 @@ type webview struct {
 	m          sync.Mutex
 	bindings   map[string]interface{}
 	dispatchq  []func()
-	codaOnce   sync.Once
-	coda       chan rpcMessage
+	// La coda delle chiamate dei pulsanti (modifica di Tasso, vedi msgcb e lavoraCoda).
+	codaMu     sync.Mutex
+	codaLista  []rpcMessage
+	codaEvento windows.Handle // segnala al filo della coda che è arrivata una chiamata (o che deve chiudere)
+	codaAvvio  bool           // il filo della coda è partito
+	codaChiusa bool           // la WebView è stata chiusa: niente più chiamate, il filo esce
 }
+
+// Funzioni di Windows per far girare i messaggi nel filo della coda (non sono in internal/w32).
+var (
+	user32Coda                      = windows.NewLazySystemDLL("user32.dll")
+	user32MsgWaitForMultipleObjects = user32Coda.NewProc("MsgWaitForMultipleObjectsEx")
+	user32PeekMessageW              = user32Coda.NewProc("PeekMessageW")
+)
 
 // SuFinestra: funzioni legate con Bind che devono girare nel filo della finestra (aprono
 // finestre di Windows come "Scegli un file", che vogliono quel filo). Modifica di Tasso.
@@ -178,21 +189,113 @@ func (w *webview) msgcb(msg string) {
 		go w.rispondiSicuro(d)
 		return
 	}
-	w.codaOnce.Do(func() {
-		w.coda = make(chan rpcMessage, 4096)
+	w.codaMu.Lock()
+	defer w.codaMu.Unlock()
+	if w.codaChiusa {
+		return // la finestra è chiusa: nessuno aspetta più la risposta
+	}
+	if !w.codaAvvio {
+		ev, err := windows.CreateEvent(nil, 0, 0, nil) // si azzera da solo quando il filo si sveglia
+		if err != nil {
+			// Caso rarissimo: senza evento non posso svegliare il filo. Rispondo in un filo a parte,
+			// meglio che lasciare il pulsante senza risposta.
+			go w.rispondiSicuro(d)
+			return
+		}
+		w.codaEvento = ev
+		w.codaAvvio = true
 		go w.lavoraCoda()
-	})
-	w.coda <- d
+	}
+	w.codaLista = append(w.codaLista, d)
+	_ = windows.SetEvent(w.codaEvento)
 }
 
-// lavoraCoda: il filo dove girano, una alla volta, le chiamate dei pulsanti. Molte usano COM
-// (WMI, Esplora file, collegamenti), che va preparato per il filo: il filo resta sempre lo stesso
-// (LockOSThread) e COM si prepara una volta sola, come nel filo della finestra.
+// chiudiCoda: la WebView è stata chiusa: la coda non accetta più chiamate e il suo filo esce.
+func (w *webview) chiudiCoda() {
+	w.codaMu.Lock()
+	defer w.codaMu.Unlock()
+	if w.codaChiusa {
+		return
+	}
+	w.codaChiusa = true
+	w.codaLista = nil
+	if w.codaAvvio {
+		_ = windows.SetEvent(w.codaEvento) // sveglio il filo, che vede la coda chiusa ed esce
+	}
+}
+
+// prossimaChiamata: la prima chiamata in coda. fine = la coda è chiusa e il filo deve uscire.
+func (w *webview) prossimaChiamata() (d rpcMessage, ok, fine bool) {
+	w.codaMu.Lock()
+	defer w.codaMu.Unlock()
+	if w.codaChiusa {
+		return d, false, true
+	}
+	if len(w.codaLista) == 0 {
+		return d, false, false
+	}
+	d = w.codaLista[0]
+	w.codaLista[0] = rpcMessage{}
+	w.codaLista = w.codaLista[1:]
+	if len(w.codaLista) == 0 {
+		w.codaLista = nil // libero la memoria della lista vecchia
+	}
+	return d, true, false
+}
+
+// lavoraCoda: il filo dove girano, una alla volta e nell'ordine di arrivo, le chiamate dei pulsanti.
+// Molte usano COM (WMI, Esplora file, collegamenti), che va preparato per il filo: il filo resta
+// sempre lo stesso (LockOSThread) e COM si prepara una volta sola, come nel filo della finestra.
+// Un filo con COM "a filo singolo" deve far girare i messaggi di Windows (COM li usa per le sue
+// chiamate e per le finestre nascoste che crea): quando non c'è niente da fare aspetto con
+// MsgWaitForMultipleObjectsEx sia una nuova chiamata sia un messaggio, e servo i messaggi.
 func (w *webview) lavoraCoda() {
 	runtime.LockOSThread()
-	_ = windows.CoInitializeEx(0, windows.COINIT_APARTMENTTHREADED) // il filo vive quanto Tasso: niente CoUninitialize
-	for d := range w.coda {
-		w.rispondiSicuro(d)
+	comOK := windows.CoInitializeEx(0, windows.COINIT_APARTMENTTHREADED) == nil
+	defer func() {
+		if comOK {
+			windows.CoUninitialize()
+		}
+		w.codaMu.Lock()
+		_ = windows.CloseHandle(w.codaEvento)
+		w.codaEvento = 0
+		w.codaMu.Unlock()
+		runtime.UnlockOSThread()
+	}()
+	const (
+		qsAllInput         = 0x04FF // QS_ALLINPUT
+		mwmoInputAvailable = 0x0004 // MWMO_INPUTAVAILABLE: si sveglia anche per messaggi già visti ma non ancora tolti
+		attesaInfinita     = 0xFFFFFFFF
+	)
+	for {
+		pompaMessaggi()
+		d, ok, fine := w.prossimaChiamata()
+		if fine {
+			return
+		}
+		if ok {
+			w.rispondiSicuro(d)
+			continue
+		}
+		ev := w.codaEvento
+		_, _, _ = user32MsgWaitForMultipleObjects.Call(1, uintptr(unsafe.Pointer(&ev)), attesaInfinita, qsAllInput, mwmoInputAvailable)
+	}
+}
+
+// pompaMessaggi: serve i messaggi di Windows arrivati al filo della coda, senza aspettare.
+func pompaMessaggi() {
+	const pmRemove = 0x0001
+	var msg w32.Msg
+	for i := 0; i < 1000; i++ { // un limite, per non restare qui se arrivano messaggi senza sosta
+		r, _, _ := user32PeekMessageW.Call(uintptr(unsafe.Pointer(&msg)), 0, 0, 0, pmRemove)
+		if r == 0 {
+			return
+		}
+		if msg.Message == w32.WMQuit {
+			continue // la chiusura di Tasso passa dal filo della finestra, non da qui
+		}
+		_, _, _ = w32.User32TranslateMessage.Call(uintptr(unsafe.Pointer(&msg)))
+		_, _, _ = w32.User32DispatchMessageW.Call(uintptr(unsafe.Pointer(&msg)))
 	}
 }
 
@@ -423,6 +526,7 @@ func (w *webview) CreateWithOptions(opts WindowOptions) bool {
 }
 
 func (w *webview) Destroy() {
+	w.chiudiCoda() // modifica di Tasso: la coda dei pulsanti si chiude con la WebView
 	_, _, _ = w32.User32PostMessageW.Call(w.hwnd, w32.WMClose, 0, 0)
 }
 
@@ -457,6 +561,7 @@ func (w *webview) Run() {
 }
 
 func (w *webview) Terminate() {
+	w.chiudiCoda() // modifica di Tasso: la coda dei pulsanti si chiude con la WebView
 	_, _, _ = w32.User32PostQuitMessage.Call(0)
 }
 

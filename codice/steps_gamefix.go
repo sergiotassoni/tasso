@@ -21,7 +21,7 @@ Say 'Le cache della grafica le lascio: servono proprio a non scattare. Solo se g
 Say 'Altre cause frequenti: il gioco installato su un disco meccanico (meglio un SSD), un programma che registra in sottofondo, o il portatile a batteria.'
 `},
 	{ID: "fix_game_start", Name: "Il gioco non parte o si chiude da solo", Desc: "Installa o ripara i componenti che servono ai giochi (Visual C++, DirectX, .NET) dal sito ufficiale Microsoft.", Level: 0, Minutes: 4, Timeout: 30 * time.Minute, Script: `
-$wg = Get-Command winget.exe -ErrorAction SilentlyContinue
+$wg = Get-Winget
 if (-not $wg) {
   Say 'winget non c''è su questo PC: ti apro la pagina ufficiale Microsoft dei componenti Visual C++.'
   Start-Process -FilePath "$env:SystemRoot\explorer.exe" -ArgumentList 'https://learn.microsoft.com/it-it/cpp/windows/latest-supported-vc-redist'
@@ -36,7 +36,7 @@ $pk = @(
 $ok = 0
 foreach ($p in $pk) {
   Say ('Controllo ' + $p[1] + '...')
-  $code = Run-Hidden $wg.Source ('install --id "' + $p[0] + '" --exact --silent --force --accept-source-agreements --accept-package-agreements --disable-interactivity')
+  $code = Run-Hidden $wg ('install --id "' + $p[0] + '" --exact --silent --force --accept-source-agreements --accept-package-agreements --disable-interactivity')
   if (@(0, -1978335189, -1978335135, -1978334963, -1978334967) -contains $code) { $ok++; Say ('A posto: ' + $p[1]) } else { Say ('Non sono riuscito a sistemare ' + $p[1] + ' (codice ' + $code + ').') }
 }
 Say ('Componenti dei giochi a posto: ' + $ok + ' su ' + $pk.Count + '.')

@@ -41,6 +41,11 @@ var avvioT0 = time.Now()
 
 func main() {
 	hardenProcess()
+	// Cancellazione sicura chiesta da uno script di pulizia (cancella_sicura.go): niente finestra,
+	// niente copia unica, fa il lavoro e chiude.
+	if len(os.Args) > 1 && os.Args[1] == argCancellaSicura {
+		os.Exit(cancellaSicuraDaRiga(os.Args[2:]))
+	}
 	// Profilo gioco all'accensione del PC (Tasso non parte con Windows): rimetto il profilo e chiudo,
 	// senza finestra e senza tenere occupato Tasso, così se lo apri tu si apre normalmente.
 	for _, a := range os.Args[1:] {
@@ -163,7 +168,9 @@ func main() {
 	}
 	// Chiamate veloci di sola lettura (e "Ferma"): partono subito, senza aspettare in coda dietro un
 	// lavoro lento, così il tasto Ferma funziona sempre e i numeri dal vivo non si bloccano.
-	for _, n := range []string{"goCancel", "goIsRunning", "goLive", "goHwWatch"} {
+	// Anche i tasti "Ferma" del driver video e del clic automatico e "Spegni tutto il Boost": sono
+	// protetti dai loro lucchetti (gdMu, acMu, e async per il Boost), quindi possono partire subito.
+	for _, n := range []string{"goCancel", "goIsRunning", "goLive", "goHwWatch", "goGpuDrvCancel", "goAutoClickStop", "goBoostAllOff"} {
 		webview2.Subito[n] = true
 	}
 	bindAll(w)

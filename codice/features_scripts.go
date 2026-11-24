@@ -136,9 +136,10 @@ if ($cmd -match '(?i)msiexec') {
 }
 $t0 = Get-Date
 # Cartelle temporanee dove i disinstallatori fanno la copia di sé: quella di Tasso ($env:TEMP, per quelli
-# avviati da amministratore) e quella vera dell'utente (per quelli avviati come utente normale).
+# avviati da amministratore) e quella vera dell'utente (per quelli avviati come utente normale): di
+# solito AppData\Local\Temp, oppure quella dove l'utente ha spostato i temporanei ($TassoTempOriginale).
 $tempDirs = @()
-foreach ($td in @($env:TEMP, $TassoTempUtente)) {
+foreach ($td in @($env:TEMP, $TassoTempUtente, $TassoTempOriginale)) {
   if (-not $td) { continue }
   $tempDirs += $td.TrimEnd('\') + '\'
   try { $tempDirs += (Get-Item -LiteralPath $td -ErrorAction Stop).FullName.TrimEnd('\') + '\' } catch {}
