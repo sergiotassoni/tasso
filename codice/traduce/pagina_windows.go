@@ -210,7 +210,7 @@ func chiaveDi(b Blocco) chiaveDisegno {
 	if b.Img != nil {
 		k.imgW = b.Img.Bounds().Dx()
 	}
-	b.Img, b.Pulita, b.Tinta = nil, nil, [12]uint8{} // la tinta non cambia il disegno
+	b.Img, b.Pulita, b.Tinta, b.Pos = nil, nil, [12]uint8{}, nil // la tinta (e le parole lette) non cambiano il disegno
 	k.b = b
 	return k
 }
@@ -422,7 +422,9 @@ func impagina(hdc uintptr, b Blocco) impaginazione {
 	if b.Centro && righe > 1 {
 		testo = image.Rect(int(x0), int(ty)-2, int(x1), int(ty+h)+2)
 	}
-	toppa := image.Rect(int(x0), int(y0), int(x1), int(y1))
+	// riquadro della toppa (riga_blocchi.go, provato nei test): l'inglese più il margine, e tutta la
+	// scritta italiana
+	toppa := calcolaToppa(b, image.Rect(int(tx)-2, int(ty)-2, int(tx+w)+2, int(ty+h)+2), int(larg), int(m), righe == 1 && b.Img != nil && !b.Ombra)
 	if b.Pulita != nil {
 		toppa = toppa.Union(testo)
 	}

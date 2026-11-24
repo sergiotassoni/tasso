@@ -193,7 +193,16 @@ func main() {
 	// in sottofondo e non legge lo schermo finché non accendi la traduzione.
 	traduce.Ospite.ApriComeUtente = openUser
 	traduce.Ospite.CartellaScript = scriptDir
-	traduce.Ospite.CartellaTasso = cartellaTasso // ecosistema.go
+	traduce.Ospite.CartellaTasso = cartellaTasso               // ecosistema.go
+	traduce.Ospite.GiocoDiTasso = func(percorso string) bool { // extras.go: libreria di Tasso e cartelle dei giochi
+		p := strings.ToLower(percorso)
+		exe := filepath.Base(p)
+		if p == "" || notGameExe[exe] {
+			return false
+		}
+		dirs, exes := libraryGamePaths()
+		return isGamePath(p, exe, dirs, exes)
+	}
 	traduce.InIngleseTasso = isEN
 	traduce.InUfficio.Store(officeMode())
 	traduce.TraduciTasso = trGo

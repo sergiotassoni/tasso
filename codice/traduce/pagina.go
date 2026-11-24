@@ -50,14 +50,25 @@ type Blocco struct {
 	HaOmbraG    bool
 	Inchiostro2 color.RGBA // secondo colore delle lettere nella stessa riga (parole evidenziate)
 	Ha2         bool
-	Pulita      *image.RGBA // la cattura con TUTTE le scritte inglesi tradotte cancellate
-	PxColonna   int         // testo piccolo in colonna (notizie): stessa grandezza per tutte le righe
-	ColRif      string      // riga di riferimento della colonna, per scegliere il carattere
-	ColRifW     int         // sua larghezza nel gioco
-	ColLarg     int         // larghezza della colonna
-	Marg        int         // margine della toppa attorno all'inglese (0 = non calcolato): mai fino alla scritta vicina
-	Bordo       bool        // LargMax arriva al bordo vero del riquadro del gioco (casella, cornice)
-	Tinta       [12]uint8   // colore medio di 4 pezzi del riquadro inglese: se cambia, il gioco ha ricolorato la voce
+	Pulita      *image.RGBA  // la cattura con TUTTE le scritte inglesi tradotte cancellate
+	PxColonna   int          // testo piccolo in colonna (notizie): stessa grandezza per tutte le righe
+	ColRif      string       // riga di riferimento della colonna, per scegliere il carattere
+	ColRifW     int          // sua larghezza nel gioco
+	ColLarg     int          // larghezza della colonna
+	Marg        int          // margine della toppa attorno all'inglese (0 = non calcolato): mai fino alla scritta vicina
+	Bordo       bool         // LargMax arriva al bordo vero del riquadro del gioco (casella, cornice)
+	Tinta       [12]uint8    // colore medio di 4 pezzi del riquadro inglese: se cambia, il gioco ha ricolorato la voce
+	Pos         *[]ParolaOCR // le parole lette con il loro rettangolo (pixel della cattura): per dividere e unire le righe (puntatore: Blocco resta confrontabile)
+	Grezzo      string       // il testo come l'ha letto l'OCR, prima delle correzioni (per il banco di prova)
+	Affid       int          // quanto mi fido della lettura (letturaDubbia/Buona/Catalog, vedi ocr_riga.go)
+}
+
+// parole: le parole lette della scritta, con il loro rettangolo (nil se non le so).
+func (b Blocco) parole() []ParolaOCR {
+	if b.Pos == nil {
+		return nil
+	}
+	return *b.Pos
 }
 
 // largConsentita: quanto può essere larga al massimo la traduzione di questa scritta. Fino al
@@ -170,15 +181,17 @@ func segmentiRiga(p []ParolaOCR, fattore float64) []Blocco {
 func bloccoDaParole(p []ParolaOCR, f float64) Blocco {
 	x0, y0, x1, y1 := 1e18, 1e18, -1e18, -1e18
 	var parole []string
+	pos := make([]ParolaOCR, 0, len(p))
 	for _, w := range p {
 		x0, y0 = min(x0, w.X), min(y0, w.Y)
 		x1, y1 = max(x1, w.X+w.W), max(y1, w.Y+w.H)
 		parole = append(parole, w.T)
+		pos = append(pos, ParolaOCR{T: w.T, X: w.X / f, Y: w.Y / f, W: w.W / f, H: w.H / f})
 	}
 	return Blocco{
 		Testo: strings.Join(parole, " "),
 		X:     int(x0 / f), Y: int(y0 / f), W: int((x1-x0)/f + 0.5), H: int((y1-y0)/f + 0.5), Righe: 1,
-		Em: emParole(p) / f,
+		Em: emParole(p) / f, Pos: &pos,
 	}
 }
 
@@ -299,6 +312,8 @@ func unisciParagrafi(b []Blocco) []Blocco {
 			} else {
 				cur.Testo += " " + n.Testo
 			}
+			unite := append(append([]ParolaOCR(nil), cur.parole()...), n.parole()...)
+			cur.Pos = &unite
 			cur.Righe++
 		}
 		out = append(out, cur)

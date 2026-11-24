@@ -57,15 +57,6 @@ func percorsoDiFinestra(h uintptr) string {
 
 // programmi che non sono mai giochi: niente profilo, niente "Profilo caricato" (strumenti di
 // Windows, browser, app di lavoro). Si aggiungono a nonGiochi e nonGiochiNegozi.
-var maiProfilo = map[string]bool{
-	"claude.exe": true, "snippingtool.exe": true, "screenclippinghost.exe": true, "screensketch.exe": true,
-	"mspaint.exe": true, "notepad++.exe": true, "cmd.exe": true, "powershell.exe": true, "pwsh.exe": true,
-	"windowsterminal.exe": true, "wt.exe": true, "conhost.exe": true, "mmc.exe": true, "control.exe": true,
-	"systemsettings.exe": true, "textinputhost.exe": true, "searchapp.exe": true, "widgets.exe": true,
-	"onedrive.exe": true, "outlook.exe": true, "olk.exe": true, "slack.exe": true, "zoom.exe": true,
-	"whatsapp.exe": true, "telegram.exe": true, "spotify.exe": true, "iexplore.exe": true, "vivaldi.exe": true,
-	"chatgpt.exe": true, "photos.exe": true, "calculatorapp.exe": true, "msteams.exe": true, "regedit.exe": true,
-}
 
 // nonGiocoMai: true per i programmi a cui non si dà mai un profilo: i nostri, quelli in elenco e
 // quelli che stanno nella cartella di Windows (C:\Windows\...).
@@ -172,4 +163,33 @@ func controllaProfilo() {
 	muImpronte.Unlock()
 	emetti("aggiorna", stato())
 	emetti("info", map[string]string{"testo": "Profilo caricato: " + exe})
+}
+
+// finestraPerTradurre: in primo piano c'è un gioco da tradurre (gioco_davanti.go decide).
+func finestraPerTradurre(h uintptr) bool {
+	if h == 0 {
+		return false
+	}
+	exe := exeDiFinestra(h)
+	p := strings.ToLower(percorsoDiFinestra(h))
+	f := infoFinestra{Exe: exe, Percorso: p, Nostra: eNostro(exe) || h == sel.hwnd.Load()}
+	if wv != nil && h == uintptr(wv.Window()) {
+		f.Nostra = true
+	}
+	if w := strings.ToLower(os.Getenv("SystemRoot")); w != "" && strings.HasPrefix(p, strings.TrimRight(w, `\`)+`\`) {
+		f.DiWindows = true
+	}
+	_, f.DaNegozio = riconosciGioco(p)
+	if strings.Contains(p, `\windowsapps\microsoft.`) && !f.DaNegozio {
+		f.DiWindows = true
+	}
+	muImp.Lock()
+	_, f.Profilo = imp.Profili[exe]
+	muImp.Unlock()
+	if Ospite.GiocoDiTasso != nil {
+		f.DiTasso = Ospite.GiocoDiTasso(p)
+	}
+	f.Tradotto = paginaAttiva.Load() && h == paginaGiocoA.Load() && !paginaUnaVolta.Load()
+	f.SchermoIntero = aSchermoIntero(h)
+	return decidiGioco(f)
 }

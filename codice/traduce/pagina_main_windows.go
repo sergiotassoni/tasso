@@ -13,7 +13,6 @@ import (
 	"image/draw"
 	"os"
 	"path/filepath"
-	"sort"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -39,7 +38,27 @@ var (
 	paginaRileggi  atomic.Bool  // F10: rileggi la schermata anche se non è cambiata
 )
 
-func attivaPagina() {
+// muAttiva: un F7 alla volta. Prima ogni pressione partiva su un filo suo: due F7 vicini
+// potevano accendere due volte o lasciare lo stato a metà (e il terzo F7 sembrava non fare niente).
+var (
+	muAttiva       sync.Mutex
+	ultimoF7       time.Time
+	paginaUnaVolta atomic.Bool // la schermata tradotta è di una finestra che non è un gioco (a richiesta)
+)
+
+func attivaPagina() { attivaPaginaCome(false) }
+
+// attivaPaginaCome: F7 accende o mette in pausa la traduzione della schermata. aRichiesta (tasto
+// "ritraduci"): anche fuori da un gioco, ma una volta sola.
+func attivaPaginaCome(aRichiesta bool) {
+	muAttiva.Lock()
+	defer muAttiva.Unlock()
+	// rimbalzo del tasto (gancio + tasto rapido di Windows, o tasto premuto due volte di fila
+	// per sbaglio): una pressione entro 250 ms dalla precedente non conta
+	if time.Since(ultimoF7) < 250*time.Millisecond {
+		return
+	}
+	ultimoF7 = time.Now()
 	fg, _, _ := pGetForeground.Call()
 	if paginaAttiva.Load() {
 		paginaAttiva.Store(false)
@@ -47,10 +66,7 @@ func attivaPagina() {
 		NascondiPagina()
 		impostaPausa(exeDiFinestra(paginaGiocoA.Load()), true) // il tutto automatico non riparte da solo su questo gioco
 		emetti("info", map[string]string{"testo": "In pausa: schermata di nuovo in inglese (" + nomeTasto("pagina") + " per riprendere)."})
-		if area, ok := areaFinestra(paginaGiocoA.Load()); ok { // anche nel gioco: F7 non deve sembrare morto
-			mostraAvviso(area, testoTasso("Tasso: traduzione in pausa. "+nomeTasto("pagina")+" per riprendere.",
-				"Tasso: translation paused. "+nomeTasto("pagina")+" to resume."), 22, 20, 3*time.Second)
-		}
+		badgeStato(statoBadgeSpento) // anche nel gioco: F7 non deve sembrare morto
 		return
 	}
 	impostaPausa(exeDiFinestra(fg), false)
@@ -62,6 +78,15 @@ func attivaPagina() {
 		emetti("info", map[string]string{"testo": "Non trovo la finestra del gioco: mettilo in finestra o a schermo intero senza bordi e riprova."})
 		return
 	}
+	gioco := finestraPerTradurre(fg)
+	if !gioco && !aRichiesta {
+		// desktop, browser, YouTube, programmi di lavoro: la traduzione dello schermo è solo per i
+		// giochi (lì resta pronta ma non legge niente). Per tradurre qui una volta: il tasto zona o "ritraduci"
+		emetti("info", map[string]string{"testo": "Qui non c'è un gioco: la traduzione dello schermo parte solo nei giochi. Per tradurre questa finestra una volta usa " + nomeTasto("traduci") + " o scegli una zona con " + nomeTasto("zona") + "."})
+		badgeStato(statoBadgeNonGioco)
+		return
+	}
+	paginaUnaVolta.Store(!gioco)
 	avviaPaginaSu(fg)
 }
 
@@ -74,9 +99,11 @@ func avviaPaginaSu(fg uintptr) {
 	paginaGiro.Add(1)
 	paginaGiocoA.Store(fg)
 	apriLibreriaPer(fg)
+	votiPagina.svuota() // gioco nuovo (o ripartito): le letture vecchie non contano
 	paginaAttiva.Store(true)
 	ov.Spegni() // la finestrella dei dialoghi non serve mentre traduco tutta la schermata
 	giro := paginaGiro.Add(1)
+	badgeStato(statoBadgeTraduco)
 	go cicloPagina(giro)
 }
 
@@ -102,6 +129,10 @@ func cicloPagina(giro int64) {
 	var imgCatt *image.RGBA
 	var impCatt Impronta
 	tinteViste := map[[4]int][12]uint8{} // ultima tinta controllata di ogni scritta (vedi blocchiDaRicolorare)
+	var riprovaDopo time.Time            // rileggere a quest'ora (scritte rimaste senza traduzione)
+	riprove := 0
+	unaVolta := paginaUnaVolta.Load() // finestra che non è un gioco: una traduzione sola, a richiesta
+	mostrataUnaVolta := false
 	impara := func(celle, sotto []bool) {
 		// zone che cambiano da sole: d'ora in poi non fanno rileggere. Mai quelle sotto le
 		// scritte (lì un cambio vero va sempre visto) e al massimo un quarto dello schermo:
@@ -144,6 +175,10 @@ func cicloPagina(giro int64) {
 		if paginaRileggi.Swap(false) {
 			prima, perche = true, "rileggi"
 			fermoErrore = time.Time{} // F10: riprovo subito anche dopo tanti errori
+		}
+		if !riprovaDopo.IsZero() && time.Now().After(riprovaDopo) {
+			riprovaDopo = time.Time{}
+			prima, perche = true, "traduttore-pronto"
 		}
 		if time.Now().Before(fermoErrore) {
 			// la lettura di Windows continua a non funzionare: aspetto invece di riavviarla a
@@ -228,6 +263,12 @@ func cicloPagina(giro int64) {
 			} else if prima {
 				motivoLettura.Store("prima:" + perche)
 			}
+			if unaVolta && mostrataUnaVolta && !prima && imp.cambiata(ultima) && !soloLuce {
+				// traduzione a richiesta fuori da un gioco: la schermata è cambiata, finita qui
+				paginaAttiva.Store(false)
+				NascondiPagina()
+				return
+			}
 			if !soloLuce && (prima || imp.cambiata(ultima)) {
 				cambioVisto.Store(time.Now().UnixNano())
 				// subito, sulla prima immagine (uno scatto di rotella dura meno di un giro): righe
@@ -243,7 +284,12 @@ func cicloPagina(giro int64) {
 					defer guard("pagina-anticipo")
 					e := esitoPagina{esito: letturaErrore}
 					defer func() { anticipo <- e }() // anche dopo un errore fermato da guard
-					e.p, e.esito = preparaPagina(area, img, img, giro, annulla)
+					// le scritte già pronte (frasi pronte, memoria) si vedono subito, prima del traduttore
+					e.p, e.esito = preparaPaginaCon(area, img, img, giro, annulla, func(p *paginaPronta) {
+						if !annulla.Load() {
+							mostraPaginaPronta(p, giro)
+						}
+					})
 				}(img)
 				// ...intanto controllo che la schermata smetta di muoversi (menu che scorre, dissolvenza)
 				time.Sleep(80 * time.Millisecond)
@@ -305,6 +351,18 @@ func cicloPagina(giro int64) {
 						ultima, ultimaColori, prima, ultimaImg = imp2, imp2, false, img2
 						erroriOCR = 0
 						clear(tinteViste)
+						if pronta.mancanti > 0 && riprove < 25 {
+							// il traduttore non era ancora pronto per qualche scritta (appena acceso,
+							// motore che si carica): riprovo presto invece di aspettare un cambio di schermata
+							riprove++
+							riprovaDopo = time.Now().Add(time.Duration(min(riprove, 6)) * 400 * time.Millisecond)
+						} else if pronta.mancanti == 0 {
+							riprove = 0
+						}
+						if unaVolta {
+							mostrataUnaVolta = true
+						}
+						badgeStato(statoBadgeAttivo)
 					}
 				case esito == letturaOccupata || esito == letturaAnnullata:
 					// la lettura serviva ai dialoghi o alla chat: non è "niente da tradurre",
@@ -339,6 +397,7 @@ func cicloPagina(giro int64) {
 					NascondiPagina()
 					ultima, ultimaColori, prima, ultimaImg = imp2, imp2, false, img2
 					ultimeScritte.Store(0)
+					badgeStato(statoBadgeAttivo) // acceso, anche se qui non c'è niente da tradurre
 				}
 			} else if bl := blocchiPagina(); len(bl) > 0 {
 				if imp.differenza(ultimaColori) > 0.2 && paginaSpostata(img, bl) {
@@ -437,12 +496,21 @@ type paginaPronta struct {
 	t0          time.Time
 	tOCR, tTrad time.Duration
 	cron        []Risultato // da mettere nella cronologia (F8) quando la pagina si vede
+	parziale    bool        // solo le scritte già pronte (frasi pronte, memoria): le altre arrivano dopo
+	mancanti    int         // scritte senza traduzione perché il traduttore non era pronto: riprovare
 }
 
 // preparaPagina: legge tutte le scritte con la loro posizione e le traduce (senza disegnare).
 // Senza niente da disegnare restituisce nil e il perché (esitoLettura). annulla (può essere nil):
 // se diventa vero, dopo la lettura il lavoro si ferma senza tradurre (lo schermo si muove ancora).
 func preparaPagina(area Zona, img, primaImg *image.RGBA, giro int64, annulla *atomic.Bool) (p *paginaPronta, esito esitoLettura) {
+	return preparaPaginaCon(area, img, primaImg, giro, annulla, nil)
+}
+
+// preparaPaginaCon: come preparaPagina; anteprima (può essere nil) riceve subito le scritte già
+// pronte dalle frasi pronte e dalla memoria, prima che il traduttore finisca le altre: dopo F7
+// le scritte conosciute compaiono subito, senza aspettare il motore (o l'IA che si sta caricando).
+func preparaPaginaCon(area Zona, img, primaImg *image.RGBA, giro int64, annulla *atomic.Bool, anteprima func(*paginaPronta)) (p *paginaPronta, esito esitoLettura) {
 	if !occupato.CompareAndSwap(false, true) {
 		return nil, letturaOccupata
 	}
@@ -453,12 +521,7 @@ func preparaPagina(area Zona, img, primaImg *image.RGBA, giro int64, annulla *at
 		avvisaErroreLettura("La lettura del testo di Windows non parte: " + err.Error())
 		return nil, letturaErrore
 	}
-	var buf bytes.Buffer
-	f, err := preparaPaginaPerOCR(img, &buf)
-	if err != nil {
-		return nil, letturaErrore
-	}
-	righe, err := ocr.LeggiPosizioni(buf.Bytes())
+	righe, f, err := leggiPaginaOCR(img)
 	if err != nil {
 		avvisaErroreLettura("Lettura del testo: " + err.Error())
 		return nil, letturaErrore
@@ -466,15 +529,12 @@ func preparaPagina(area Zona, img, primaImg *image.RGBA, giro int64, annulla *at
 	if fermato() {
 		return nil, letturaAnnullata
 	}
-	righe = rileggiPiccole(img, righe, f)
+	// letture incerte rilette ingrandite, con il contrasto giusto (chiaro su scuro e viceversa)
+	righe = rileggiIncerte(img, righe, f)
 	if fermato() {
 		return nil, letturaAnnullata
 	}
-	blocchi := segmenti(righe, f)
-	for i := range blocchi {
-		blocchi[i].Testo = correggiParole(separaAttaccate(blocchi[i].Testo))
-	}
-	blocchi = unisciParagrafi(blocchi)
+	blocchi := blocchiLetti(img, righe, f, votiPagina, time.Now())
 	nostraL, ceNostraL := nostraFinestraIn(area)
 	var testiLetti []string
 	for _, b := range blocchi {
@@ -493,23 +553,20 @@ func preparaPagina(area Zona, img, primaImg *image.RGBA, giro int64, annulla *at
 		}
 	}
 	spazioLibero(blocchi, area.W)
-	if esisteVoce(filepath.Join(dirApp, "logs", "salva-anteprima")) { // controllo a mano: cosa ha letto
+	controllo := esisteVoce(filepath.Join(dirApp, "logs", "salva-anteprima"))
+	if controllo { // controllo a mano: cosa ha letto
 		var sb strings.Builder
 		for _, b := range blocchi {
-			fmt.Fprintf(&sb, "%d,%d %dx%d righe=%d em=%.1f tradurre=%v affidabile=%v | %s\n", b.X, b.Y, b.W, b.H, b.Righe, b.Em, daTradurre(b.Testo), letturaAffidabile(b.Testo), b.Testo)
+			fmt.Fprintf(&sb, "%d,%d %dx%d righe=%d em=%.1f affid=%d motivo=%q | %s | letto: %s\n", b.X, b.Y, b.W, b.H, b.Righe, b.Em, b.Affid, motivoNonTradurre(b), b.Testo, b.Grezzo)
 		}
 		_ = os.WriteFile(filepath.Join(dirApp, "logs", "pagina-letto.txt"), []byte(sb.String()), 0o644)
 	}
 	nostra, ceNostra := nostraFinestraIn(area)
-	var pronti []Blocco
-	nuove := 0
 	tOCR := time.Since(t0)
-	// tutte le scritte insieme (8 alla volta): con il traduttore "a gruppi" una schermata piena
-	// di scritte si traduce in una frazione del tempo che serviva una alla volta
 	var da []Blocco
 	for _, b := range blocchi {
-		if !daTradurre(b.Testo) || !formaPlausibile(b) || !letturaAffidabile(b.Testo) {
-			continue
+		if motivoNonTradurre(b) != "" {
+			continue // lettura incerta: resta l'inglese del gioco, pulito
 		}
 		if ceNostra && dentro(b, nostra) { // è la finestra di Tasso Traduce sopra il gioco: non la traduco
 			continue
@@ -528,81 +585,104 @@ func preparaPagina(area Zona, img, primaImg *image.RGBA, giro int64, annulla *at
 		}
 		da = tenuti
 	}
+	// colori, riquadro fino alle lettere vere, e righe incomplete (parola accanto non letta)
+	completi := da[:0]
+	for i := range da {
+		if controllaCompleta(img, &da[i]) != "" {
+			continue
+		}
+		completi = append(completi, da[i])
+	}
+	da = completi
 	if fermato() { // ultima occasione prima di tradurre: lo schermo si muove ancora
 		return nil, letturaAnnullata
 	}
-	risultati := make([]Risultato, len(da))
-	var wg sync.WaitGroup
-	posti := make(chan struct{}, 8)
-	var scritte []string
-	for _, b := range da {
-		scritte = append(scritte, b.Testo)
+	ctx := conLotto(context.Background())
+	// primo giro: solo frasi pronte e memoria (subito); poi il traduttore per le altre
+	risultati := traduciTutte(ctx, traduttore, da, true)
+	var daMotore []int
+	for i, r := range risultati {
+		if r.Errore == errSoloVeloce {
+			daMotore = append(daMotore, i)
+		}
 	}
-	ctx := ConSchermata(conLotto(context.Background()), scritte)
-	for i := range da {
-		wg.Add(1)
-		posti <- struct{}{}
-		go func(i int) {
-			defer func() { <-posti; wg.Done() }()
-			defer guard("pagina-scritta")
-			risultati[i] = traduttore.TraduciScritta(ctx, da[i].Testo)
-		}(i)
+	costruisci := func(ris []Risultato) (pronti []Blocco, nuove, mancanti int, cron []Risultato) {
+		for i, b := range da {
+			r := ris[i]
+			if motivoScartaTraduzione(b, r) != "" {
+				if strings.TrimSpace(r.Tradotto) == "" && r.Errore != "" && r.Errore != errSoloVeloce {
+					mancanti++ // traduttore non pronto o errore: riprovo appena possibile
+				}
+				continue
+			}
+			if r.Motore != "memoria" && r.Motore != "catalogo" && r.Motore != "libreria" && r.Motore != "libreria (IA)" {
+				nuove++
+			}
+			pronti = append(pronti, preparaScritta(img, primaImg, b, r))
+			if len(pronti) <= 40 { // nella cronologia (F8), ma solo quando la pagina si vede davvero
+				cron = append(cron, r)
+			}
+		}
+		stabilizza(pronti, blocchiPagina())
+		rifinisciPagina(img, pronti, blocchi)
+		return
 	}
-	wg.Wait()
+	if len(daMotore) > 0 && anteprima != nil && len(daMotore) < len(da) && !fermato() &&
+		paginaAttiva.Load() && paginaGiro.Load() == giro {
+		if pr, n, _, _ := costruisci(risultati); len(pr) > 0 {
+			anteprima(&paginaPronta{area: area, img: img, pronti: pr, nuove: n, t0: t0, tOCR: tOCR, tTrad: time.Since(t0) - tOCR, parziale: true})
+		}
+	}
+	if len(daMotore) > 0 {
+		sotto := make([]Blocco, len(daMotore))
+		for k, i := range daMotore {
+			sotto[k] = da[i]
+		}
+		r2 := traduciTutte(ctx, traduttore, sotto, false)
+		for k, i := range daMotore {
+			risultati[i] = r2[k]
+		}
+	}
 	tTrad := time.Since(t0) - tOCR
 	if !paginaAttiva.Load() || paginaGiro.Load() != giro {
 		return nil, letturaAnnullata
 	}
-	var cron []Risultato
-	for i, b := range da {
-		r := risultati[i]
-		if strings.TrimSpace(r.Tradotto) == "" || strings.EqualFold(strings.TrimSpace(r.Tradotto), strings.TrimSpace(b.Testo)) {
-			continue
-		}
-		if r.Motore != "memoria" && r.Motore != "catalogo" && r.Motore != "libreria" && r.Motore != "libreria (IA)" {
-			nuove++
-		}
-		// anche sopra uno sfondo che si muove niente fascia nera: sfondo ricostruito dal gioco e
-		// un'ombra sotto le lettere, così la scritta sembra del gioco e si legge lo stesso
-		coloriBlocco(img, &b)
-		b.Ombra = sfondoInMovimento(primaImg, img, b)
-		b.Img = img
-		contornoLettere(img, &b)
-		ombraLettere(img, &b)
-		b.LargMax, b.Bordo = liberoFinoAlBordoB(img, b)
-		b.Tradotto = rifinisci(b.Testo, r.Tradotto)
-		pronti = append(pronti, b)
-		if len(pronti) <= 40 { // nella cronologia (F8), ma solo quando la pagina si vede davvero
-			cron = append(cron, r)
-		}
-	}
-	if esisteVoce(filepath.Join(dirApp, "logs", "salva-anteprima")) {
+	pronti, nuove, mancanti, cron := costruisci(risultati)
+	if controllo {
 		var sb strings.Builder
 		for i, b := range da {
-			fmt.Fprintf(&sb, "%d,%d | %s => %s (%s)\n", b.X, b.Y, b.Testo, risultati[i].Tradotto, risultati[i].Motore)
+			fmt.Fprintf(&sb, "%d,%d | %s => %s (%s) %s\n", b.X, b.Y, b.Testo, risultati[i].Tradotto, risultati[i].Motore, motivoScartaTraduzione(b, risultati[i]))
 		}
 		_ = os.WriteFile(filepath.Join(dirApp, "logs", "pagina-tradotto.txt"), []byte(sb.String()), 0o644)
 	}
-	stabilizza(pronti, blocchiPagina())
-	armonizza(pronti)
-	colonnePiccole(pronti)
-	for i := range pronti { // titoli al centro dello schermo: la traduzione resta al centro
-		cx := pronti[i].X + pronti[i].W/2
-		if pronti[i].Righe <= 1 && abs(cx-img.Bounds().Dx()/2) <= max(10, img.Bounds().Dx()/100) && pronti[i].W < img.Bounds().Dx()*9/10 {
-			pronti[i].Centro = true
+	return &paginaPronta{area: area, img: img, pronti: pronti, nuove: nuove, t0: t0, tOCR: tOCR, tTrad: tTrad, cron: cron, mancanti: mancanti}, letturaFatta
+}
+
+// rileggiIncerte: le righe lette male rilette ingrandite e preparate in tre modi, con una sola
+// chiamata all'OCR di Windows (rilettura.go).
+func rileggiIncerte(img *image.RGBA, righe []RigaOCR, f float64) []RigaOCR {
+	return rileggiIncerteCon(img, righe, f, func(g *image.Gray, _ []image.Rectangle) ([]RigaOCR, error) {
+		var buf bytes.Buffer
+		if err := scriviBMP(&buf, g); err != nil {
+			return nil, err
 		}
+		return ocr.LeggiPosizioni(buf.Bytes())
+	})
+}
+
+// leggiPaginaOCR: tutta la schermata letta dall'OCR di Windows (scala f), più le scritte piccole
+// rilette ingrandite.
+func leggiPaginaOCR(img *image.RGBA) ([]RigaOCR, float64, error) {
+	var buf bytes.Buffer
+	f, err := preparaPaginaPerOCR(img, &buf)
+	if err != nil {
+		return nil, 0, err
 	}
-	for i := range pronti { // dopo armonizza: le scritte centrate hanno bisogno di sfondo dai due lati
-		pronti[i].FondoX, _ = margineFondo(pronti[i])
-		pronti[i].Fondo = fondoRicostruito(img, pronti[i])
-		pronti[i].Marg = margineToppa(pronti[i], blocchi)
+	righe, err := ocr.LeggiPosizioni(buf.Bytes())
+	if err != nil {
+		return nil, 0, err
 	}
-	pulita := pulisciPagina(img, pronti)
-	for i := range pronti {
-		pronti[i].Pulita = pulita
-		pronti[i].Tinta = tintaBlocco(img, pronti[i])
-	}
-	return &paginaPronta{area: area, img: img, pronti: pronti, nuove: nuove, t0: t0, tOCR: tOCR, tTrad: tTrad, cron: cron}, letturaFatta
+	return rileggiPiccole(img, righe, f), f, nil
 }
 
 // mostraPaginaPronta disegna le scritte tradotte sopra il gioco.
@@ -630,7 +710,9 @@ func mostraPaginaPronta(p *paginaPronta, giro int64) bool {
 		}()
 	}
 	if paginaAttiva.Load() && paginaGiro.Load() == giro {
-		pronti = tieniFerme(pronti, blocchiPagina(), img)
+		vecchi := blocchiPagina()
+		pronti = tieniFerme(pronti, vecchi, img)
+		pronti = recuperaPerse(pronti, vecchi, img) // scritte saltate dalla lettura ma ancora lì: restano
 		MostraPagina(area, pronti)
 		if !paginaAttiva.Load() || paginaGiro.Load() != giro {
 			NascondiPagina() // spento proprio adesso: niente scritte rimaste sullo schermo
@@ -898,20 +980,4 @@ func rileggiZona(img *image.RGBA, righe []RigaOCR, f float64, zona image.Rectang
 		out = append(out, r)
 	}
 	return out
-}
-
-// rettRiga: rettangolo della riga e altezza mediana delle parole, in pixel della cattura.
-func rettRiga(r RigaOCR, f float64) (x0, y0, x1, y1 int, h float64) {
-	if len(r.Parole) == 0 {
-		return
-	}
-	a, b, c, d := 1e18, 1e18, -1e18, -1e18
-	var hs []float64
-	for _, w := range r.Parole {
-		a, b = min(a, w.X), min(b, w.Y)
-		c, d = max(c, w.X+w.W), max(d, w.Y+w.H)
-		hs = append(hs, w.H/f)
-	}
-	sort.Float64s(hs)
-	return int(a / f), int(b / f), int(c/f + 0.5), int(d/f + 0.5), hs[len(hs)/2]
 }

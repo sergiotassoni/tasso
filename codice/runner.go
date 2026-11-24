@@ -55,11 +55,15 @@ func scriptDir() string {
 	return scriptDirPath
 }
 
-// pulisciScriptVecchi: se Tasso è stato chiuso mentre uno script girava, il .ps1 resta in lavoro.
-// Tolgo solo i nostri (tasso_*.ps1) più vecchi di un giorno: nessuno script dura così tanto.
+// pulisciScriptVecchi: se Tasso è stato chiuso mentre uno script girava (o Windows non ha lasciato
+// cancellare il file subito), il .ps1 resta in lavoro. Tolgo i nostri più vecchi di un giorno:
+// tasso_*.ps1 (passaggi), tt_*.ps1 e tt_ocr_*.ps1 (traduzione: lettura del testo, scheda video).
+// Prima toglievo solo tasso_*.ps1 e i tt_ si accumulavano a decine.
 func pulisciScriptVecchi(d string) {
 	defer guard("pulisciScriptVecchi")
 	l, _ := filepath.Glob(filepath.Join(d, "tasso_*.ps1"))
+	l2, _ := filepath.Glob(filepath.Join(d, "tt_*.ps1"))
+	l = append(l, l2...)
 	for _, f := range l {
 		if fi, err := os.Stat(f); err == nil && !fi.IsDir() && time.Since(fi.ModTime()) > 24*time.Hour {
 			_ = os.Remove(f)
@@ -124,7 +128,9 @@ func runPSOpt(parent context.Context, script string, timeout time.Duration, onMs
 		res.Err = err
 		return res
 	}
-	defer os.Remove(path)
+	// dopo l'uso: subito, e se Windows lo tiene ancora aperto (antivirus che lo controlla, PowerShell
+	// appena chiuso) riprovo per qualche secondo invece di lasciarlo lì
+	defer togliScript(path)
 	ctx, cancel := context.WithTimeout(parent, timeout)
 	defer cancel()
 	// L'uscita la leggo da una pipe mia: se un programma aperto dallo script (dism, sfc...) restasse
@@ -732,3 +738,22 @@ func setMode(id string) bool {
 	emit("onModeDone", map[string]interface{}{"id": id, "ok": r.Err == nil, "msgs": msgs, "settings": getSettings()})
 	return r.Err == nil
 }
+
+// togliScript: cancella lo script; se il file è ancora aperto da qualcuno riprova in sottofondo
+// (fino a circa un minuto). Quelli che restano li toglie pulisciScriptVecchi al prossimo avvio.
+func togliScript(p string) {
+	if os.Remove(p) == nil || !esisteFile(p) {
+		return
+	}
+	go func() {
+		defer guard("togliScript")
+		for i := 0; i < 12; i++ {
+			time.Sleep(time.Duration(250*(i+1)) * time.Millisecond)
+			if os.Remove(p) == nil || !esisteFile(p) {
+				return
+			}
+		}
+	}()
+}
+
+func esisteFile(p string) bool { _, err := os.Stat(p); return err == nil }

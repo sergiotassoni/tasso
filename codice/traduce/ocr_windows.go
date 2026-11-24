@@ -167,6 +167,11 @@ func (l *LettoreOCR) avvia() error {
 		return errors.New(r.Errore)
 	}
 	l.Lingua = r.Lingua
+	// PowerShell ha già letto tutto lo script (lo legge intero prima di partire): il file non
+	// serve più. Prima restava fino alla chiusura di Tasso, e con Tasso chiuso di colpo restava
+	// per sempre (decine di tt_ocr_*.ps1 in Programmi\Tasso\lavoro)
+	togliScriptTT(l.script)
+	l.script = ""
 	return nil
 }
 
@@ -273,7 +278,7 @@ func (l *LettoreOCR) chiudi() {
 	}
 	l.cmd, l.in, l.out = nil, nil, nil
 	if l.script != "" {
-		_ = os.Remove(l.script)
+		togliScriptTT(l.script)
 		l.script = ""
 	}
 }

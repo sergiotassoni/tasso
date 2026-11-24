@@ -168,6 +168,10 @@ func Avvia() {
 		return
 	}
 	srvLocale = srv
+	go func() { // script della traduzione rimasti da sessioni vecchie (più di un giorno)
+		defer guard("pulisci-script")
+		pulisciScriptTT(cartellaScript(), time.Now())
+	}()
 	motoreMu.Lock()
 	motoreURL = indirizzo
 	motoreMu.Unlock()
@@ -912,6 +916,10 @@ func mozillaPronto(ok bool, errore string) {
 	if ok {
 		go preparaMotori()
 		avviaCollaudoSeServe()
+		if paginaAttiva.Load() {
+			// le scritte rimaste in inglese aspettando il traduttore si traducono adesso
+			paginaRileggi.Store(true)
+		}
 	}
 }
 
@@ -964,14 +972,6 @@ type ponteMozilla struct {
 var moz = &ponteMozilla{attesa: map[int64]chan [2]string{}}
 
 func (p *ponteMozilla) Nome() string { return "Mozilla" }
-
-type chiaveLotto struct{}
-
-// conLotto: le traduzioni fatte con questo contesto vanno al traduttore "a gruppi" (più fili
-// insieme), usato per le schermate con tante scritte tradotte tutte insieme.
-func conLotto(ctx context.Context) context.Context {
-	return context.WithValue(ctx, chiaveLotto{}, true)
-}
 
 func (p *ponteMozilla) Traduci(ctx context.Context, r RichiestaTraduzione) (string, error) {
 	return p.traduciCoppia(ctx, r.Testo, "en", "it")
@@ -1060,7 +1060,8 @@ func suTasto(id int) {
 			return
 		}
 		emetti("aggiorna", stato())
-		avvisoBreve(testoTasso("Tasso: traduttore acceso. Traduco le scritte…", "Tasso: translator on. Translating the text…"))
+		// niente fascia nera: il badge in alto al centro dice "Traduco…" appena parte la schermata
+		emetti("info", map[string]string{"testo": testoTasso("Traduttore acceso: traduco le scritte del gioco.", "Translator on: translating the game text.")})
 	}
 	if !acceso.Load() && id != tastoCronologia {
 		emetti("info", map[string]string{"testo": "La traduzione dei giochi è spenta: accendila con l'interruttore in Giochi."})
@@ -1245,7 +1246,7 @@ func traduciOra(forza bool) {
 			return
 		}
 		// nessuna zona scelta: traduco tutto lo schermo del gioco (quello dove sta la sua finestra)
-		attivaPagina()
+		attivaPaginaCome(true) // a richiesta: anche fuori da un gioco, una volta sola
 		return
 	}
 	img, err := cattura(i.Zona)
@@ -1570,6 +1571,7 @@ func accendi(on bool) bool {
 	if on {
 		rileggi.Store(true) // il dialogo di adesso si rimostra anche se è lo stesso di prima
 		sveglia()           // l'IA si prepara subito
+		go preparaOCR()     // la lettura di Windows parte adesso: il primo F7 non aspetta PowerShell
 		t := tastiCompleti(leggiImp().Tasti)
 		if f := cambiaTasti(t); len(f) > 0 {
 			emetti("info", map[string]string{"testo": "Già usati da un altro programma: " + nomiTasti(f, t) + ". Cambiali in Giochi → Impostazioni → Tasti nel gioco."})
@@ -1597,4 +1599,17 @@ func soloTastoAccendi() map[string]uint32 {
 		return map[string]uint32{}
 	}
 	return map[string]uint32{"pagina": tastiCompleti(leggiImp().Tasti)["pagina"]}
+}
+
+// preparaOCR: accende la lettura del testo di Windows in sottofondo (PowerShell + WinRT impiegano
+// qualche secondo la prima volta). Se è già occupata da una lettura non fa niente.
+func preparaOCR() {
+	defer guard("prepara-ocr")
+	if !occupato.CompareAndSwap(false, true) {
+		return
+	}
+	defer occupato.Store(false)
+	if err := assicuraOCR(); err != nil {
+		impostaOcrErr(err.Error())
+	}
 }

@@ -3,6 +3,7 @@ package traduce
 import (
 	"os"
 	"path/filepath"
+	"time"
 )
 
 // dirApp: %LOCALAPPDATA%\TassoTraduce (impostata all'avvio)
@@ -33,6 +34,9 @@ var Ospite struct {
 	// CartellaTasso: la cartella di Tasso in Programmi (di base C:\Program Files\Tasso; un'altra
 	// cartella dentro Programmi se l'installatore ha messo Tasso lì). nil = quella di base.
 	CartellaTasso func() string
+	// GiocoDiTasso: il programma (percorso completo) è un gioco della libreria di Tasso o sta in una
+	// cartella di giochi. nil = Tasso Traduce da solo (allora contano negozi e profili).
+	GiocoDiTasso func(percorso string) bool
 }
 
 // cartellaScript: la cartella protetta di Tasso se c'è, altrimenti quella di Tasso Traduce.
@@ -56,4 +60,35 @@ func scriviNuovo(p string, b []byte) error {
 		err = cerr
 	}
 	return err
+}
+
+// togliScriptTT: cancella uno script .ps1 della traduzione; se Windows lo tiene ancora aperto
+// (antivirus che lo controlla, PowerShell appena chiuso) riprova in sottofondo per circa un minuto.
+func togliScriptTT(p string) {
+	if p == "" || os.Remove(p) == nil || !esisteFile(p) {
+		return
+	}
+	go func() {
+		for i := 0; i < 12; i++ {
+			time.Sleep(time.Duration(250*(i+1)) * time.Millisecond)
+			if os.Remove(p) == nil || !esisteFile(p) {
+				return
+			}
+		}
+	}()
+}
+
+// pulisciScriptTT: all'avvio, gli script della traduzione (tt_*.ps1, tt_ocr_*.ps1) rimasti da
+// sessioni vecchie (Tasso chiuso di colpo, PC spento) e più vecchi di un giorno.
+func pulisciScriptTT(dir string, adesso time.Time) int {
+	l, _ := filepath.Glob(filepath.Join(dir, "tt_*.ps1"))
+	n := 0
+	for _, f := range l {
+		if fi, err := os.Stat(f); err == nil && !fi.IsDir() && adesso.Sub(fi.ModTime()) > 24*time.Hour {
+			if os.Remove(f) == nil {
+				n++
+			}
+		}
+	}
+	return n
 }

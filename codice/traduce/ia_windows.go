@@ -57,7 +57,7 @@ func psUnaVolta(script string, attesa time.Duration) (string, error) {
 	if err := scriviNuovo(f, []byte("\uFEFF"+strings.ReplaceAll(script, "\n", "\r\n"))); err != nil {
 		return "", err
 	}
-	defer os.Remove(f)
+	defer togliScriptTT(f) // anche se Windows lo tiene aperto ancora per un attimo
 	ctx, cancel := context.WithTimeout(context.Background(), attesa)
 	defer cancel()
 	cmd := exec.CommandContext(ctx, sysExe("powershell.exe"), "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File", f)

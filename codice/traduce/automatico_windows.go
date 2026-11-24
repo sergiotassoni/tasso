@@ -52,15 +52,6 @@ type monitorInfo struct {
 }
 
 // programmi che non sono giochi anche se a schermo intero
-var nonGiochi = map[string]bool{
-	"chrome.exe": true, "msedge.exe": true, "firefox.exe": true, "brave.exe": true, "opera.exe": true,
-	"discord.exe": true, "code.exe": true, "notepad.exe": true, "explorer.exe": true, "teams.exe": true,
-	"ms-teams.exe": true, "obs64.exe": true, "steamwebhelper.exe": true, "steam.exe": true,
-	"epicgameslauncher.exe": true, "applicationframehost.exe": true, "searchhost.exe": true,
-	"startmenuexperiencehost.exe": true, "shellexperiencehost.exe": true, "lockapp.exe": true,
-	"taskmgr.exe": true, "winword.exe": true, "excel.exe": true, "powerpnt.exe": true, "acrobat.exe": true,
-	"vlc.exe": false, // i video player vanno bene: i sottotitoli si traducono
-}
 
 // aSchermoIntero: la finestra copre tutto il suo monitor (gioco a schermo intero o senza bordi).
 func aSchermoIntero(h uintptr) bool {
@@ -117,7 +108,7 @@ func cicloTuttoAutomatico() {
 			continue
 		}
 		exe := exeDiFinestra(fg)
-		if !eGioco(fg, exe) || inPausa(exe) {
+		if !finestraPerTradurre(fg) || inPausa(exe) {
 			continue
 		}
 		if g, ok := riconosciGioco(percorsoDiFinestra(fg)); ok && ConAntiCheat(g) && !avvisatoAntiCheat[exe] {
@@ -156,6 +147,7 @@ func cicloTuttoAutomatico() {
 			}
 			continue
 		}
+		paginaUnaVolta.Store(false)
 		avviaPaginaSu(fg)
 		nome := exe
 		if g, ok := riconosciGioco(percorsoDiFinestra(fg)); ok {

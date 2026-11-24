@@ -506,24 +506,15 @@ func (t *Traduttore) traduciIn(ctx context.Context, grezzo string, dialogo bool,
 	}
 	t.mu.Unlock()
 
+	if ctx.Value(chiaveSoloVeloce{}) != nil {
+		// primo giro della schermata: solo frasi pronte e memoria, il motore dopo (vedi preparaPagina)
+		ris.Errore = errSoloVeloce
+		ris.Millisec = time.Since(inizio).Milliseconds()
+		return ris
+	}
 	var errori []string
 	for _, m := range motori {
-		var out string
-		var err error
-		if m.Nome() == "Mozilla" {
-			if bloccato, mappa := bloccaTermini(req.Testo, req.Glossario); mappa != nil {
-				r2 := req
-				r2.Testo = bloccato
-				if o, e := m.Traduci(ctx, r2); e == nil {
-					if s, ok := sbloccaTermini(o, mappa); ok {
-						out = s
-					}
-				}
-			}
-		}
-		if out == "" {
-			out, err = m.Traduci(ctx, req)
-		}
+		out, err := traduciConMotore(ctx, m, req)
 		if err == nil && strings.TrimSpace(out) != "" {
 			ris.Tradotto, ris.Motore = nomiIntatti(battuta, sigleItaliane(correggiTerminiFrase(battuta, strings.TrimSpace(out)), req.Glossario)), m.Nome()
 			break
@@ -624,11 +615,9 @@ func (t *Traduttore) traduciEtichetta(ctx context.Context, s string, inizio time
 		a := t.traduciElenco(ctx, k) // "Boar, Located" -> "Cinghiale, Si trova"
 		b := t.traduciElenco(ctx, v)
 		ta, tb := a.Tradotto, b.Tradotto
-		if ta == "" {
-			ta = k
-		}
-		if tb == "" {
-			tb = v
+		if ta == "" || tb == "" {
+			// un pezzo non tradotto: niente "Stato: Error" mezzo inglese, provo la scritta intera
+			return ris, false
 		}
 		return finito(ta+": "+tb, a.Motore)
 	}
@@ -651,7 +640,7 @@ func (t *Traduttore) traduciElenco(ctx context.Context, v string) Risultato {
 	for _, x := range voci {
 		r := t.traduci(ctx, x, false)
 		if r.Tradotto == "" {
-			r.Tradotto = x
+			return t.traduci(ctx, v, false) // una voce non tradotta: tutto l'elenco insieme, mai mezzo
 		}
 		out = append(out, r.Tradotto)
 		if motore == "" {
@@ -1354,3 +1343,49 @@ var (
 	reTastoPrima   = regexp.MustCompile(`^(?i:(hold|press))\s*(` + nomiTastiGioco + `)\b\s*(?i:to\s+)?(.*)$`)
 	reTastoDopo    = regexp.MustCompile(`^(` + nomiTastiGioco + `)\s+(?i:hold)$`)
 )
+
+// chiaveSoloVeloce: nel contesto, la traduzione usa solo frasi pronte, librerie e memoria (niente
+// motore). Serve al primo giro della schermata: quello che è già pronto si vede subito.
+type chiaveSoloVeloce struct{}
+
+func soloVeloce(ctx context.Context) context.Context {
+	return context.WithValue(ctx, chiaveSoloVeloce{}, true)
+}
+
+const errSoloVeloce = "da tradurre col motore"
+
+// traduciConMotore: una richiesta a un motore, con i tasti (CONTROL, WASD, E, "left mouse")
+// messi da parte come segnaposti e poi rimessi, e i termini del glossario bloccati (Mozilla).
+// Se il motore perde un segnaposto si rifà senza, poi i tasti storpiati tornano come nel gioco.
+func traduciConMotore(ctx context.Context, m Motore, req RichiestaTraduzione) (string, error) {
+	prova := func(r RichiestaTraduzione) (string, error) {
+		if m.Nome() == "Mozilla" {
+			if bloccato, mappa := bloccaTermini(r.Testo, r.Glossario); mappa != nil {
+				r2 := r
+				r2.Testo = bloccato
+				if o, e := m.Traduci(ctx, r2); e == nil {
+					if s, ok := sbloccaTermini(o, mappa); ok {
+						return s, nil
+					}
+				}
+			}
+		}
+		return m.Traduci(ctx, r)
+	}
+	if protetto, tasti := proteggiTasti(req.Testo); tasti != nil {
+		r2 := req
+		r2.Testo = protetto
+		if o, err := prova(r2); err == nil {
+			if s, ok := ripristinaTasti(o, tasti); ok {
+				return s, nil
+			}
+		} else if ctx.Err() != nil {
+			return "", err
+		}
+	}
+	out, err := prova(req)
+	if err != nil {
+		return "", err
+	}
+	return tastiIntatti(req.Testo, out), nil
+}
