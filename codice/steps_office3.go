@@ -172,11 +172,11 @@ if ($already) { Say 'Aggiornamenti di Windows: erano già in pausa, li lascio co
 else {
   $a = (Get-Date).ToUniversalTime(); $b = $a.AddDays(1)
   $sa = $a.ToString('yyyy-MM-ddTHH:mm:ssZ'); $sb = $b.ToString('yyyy-MM-ddTHH:mm:ssZ')
+  # prima su disco, poi nel registro: se qualcosa si interrompe, a fine riunione la pausa si toglie
+  $s.wu = $true; $s.wufine = $sb
+  $s | ConvertTo-Json | Set-Content -LiteralPath $f -Encoding UTF8
   if (-not (Test-Path -LiteralPath $u)) { New-Item -Path $u -ErrorAction SilentlyContinue | Out-Null }
   foreach ($kv in @(@('PauseUpdatesStartTime', $sa), @('PauseUpdatesExpiryTime', $sb), @('PauseFeatureUpdatesStartTime', $sa), @('PauseFeatureUpdatesEndTime', $sb), @('PauseQualityUpdatesStartTime', $sa), @('PauseQualityUpdatesEndTime', $sb))) { Set-ItemProperty -LiteralPath $u -Name $kv[0] -Value $kv[1] -Type String }
-  $s.wu = $true; $s.wufine = $sb
-  # subito su disco: se qualcosa si interrompe adesso, a fine riunione la pausa si toglie lo stesso
-  $s | ConvertTo-Json | Set-Content -LiteralPath $f -Encoding UTF8
   Say 'Aggiornamenti di Windows: in pausa (al massimo 1 giorno, poi ripartono da soli).'
 }
 $od = Get-Process -Name OneDrive -ErrorAction SilentlyContinue | Select-Object -First 1

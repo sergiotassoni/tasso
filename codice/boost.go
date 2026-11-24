@@ -925,7 +925,11 @@ func fpsMeasure(delay, secs int, boosted, beeps bool, prefer string) (*fpsResult
 	}
 	// fuori al massimo 2 controlli (o un decimo nelle misure lunghe): con un terzo accettato un
 	// alt-tab di 9 secondi su 30 passava, e dietro molti giochi rallentano (misura sbagliata)
-	front := fgTot > 0 && fgTot-davanti <= max(2, fgTot/10)
+	tolti := max(2, fgTot/10)
+	if fgTot < 10 {
+		tolti = 1 // misura fermata presto: con 4 controlli, 2 fuori sarebbe metà misura
+	}
+	front := fgTot > 0 && fgTot-davanti <= tolti
 	fgMu.Unlock()
 	if durante < 3 {
 		// troppo pochi controlli per sapere chi era davanti: la misura non vale

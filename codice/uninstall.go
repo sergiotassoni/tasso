@@ -82,7 +82,13 @@ func togliTasso(rimetti bool, passo func(int, string)) string {
 	if !claimRun() {
 		return "Tasso sta facendo un altro lavoro (pulizia o aggiornamento): aspetta che finisca e riprova. Tasso non è stato tolto."
 	}
-	defer releaseRun()
+	// il posto resta preso fino alla chiusura se va tutto bene (nessuna pulizia nei 10 secondi finali)
+	finito := false
+	defer func() {
+		if !finito {
+			releaseRun()
+		}
+	}()
 	autoClickStop()
 	boostOff(true) // come "Rimetti com'era" del Boost (se non era acceso non fa niente)
 	officeSpegniTutto()
@@ -120,6 +126,7 @@ try { $s = New-Object -ComObject Schedule.Service; $s.Connect(); $s.GetFolder('\
 		return trGo("Ho tolto tutto tranne le cartelle di Tasso: ") + err.Error()
 	}
 	passo(3, "Le cartelle e il file di Tasso si cancellano appena Tasso si chiude")
+	finito = true
 	return ""
 }
 
@@ -200,6 +207,7 @@ func cancellaDopoLaChiusura() error {
 		return fmt.Errorf("non trovo la cartella Programmi")
 	}
 	bat := filepath.Join(pf, "togli-tasso-"+strconv.Itoa(os.Getpid())+".cmd")
+	_ = os.Remove(bat) // resto di un tentativo interrotto (in Programmi scrive solo un amministratore)
 	f, err := os.OpenFile(bat, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o644)
 	if err != nil {
 		return err
@@ -216,8 +224,13 @@ func cancellaDopoLaChiusura() error {
 	c := exec.Command(filepath.Join(sys, "cmd.exe"), "/d", "/c", bat)
 	c.Dir = sys
 	c.Env = []string{"SystemRoot=" + filepath.Dir(sys), "PATH=" + sys, "PATHEXT=.COM;.EXE"}
-	c.SysProcAttr = &syscall.SysProcAttr{HideWindow: true, CreationFlags: 0x00000008 | 0x00000200} // DETACHED_PROCESS | NEW_PROCESS_GROUP
-	return c.Start()
+	// CREATE_NO_WINDOW (non DETACHED: tasklist, find e ping aprirebbero ognuno una finestra) | NEW_PROCESS_GROUP
+	c.SysProcAttr = &syscall.SysProcAttr{HideWindow: true, CreationFlags: 0x08000000 | 0x00000200}
+	if err := c.Start(); err != nil {
+		_ = os.Remove(bat)
+		return err
+	}
+	return nil
 }
 
 func scriptCancellazione() (string, error) {
@@ -228,6 +241,8 @@ func scriptCancellazione() (string, error) {
 	exe, _ = filepath.Abs(exe)
 	var cmd strings.Builder
 	cmd.WriteString("@echo off\r\n")
+	// il file è in UTF-8: senza questo un nome utente con accenti (Nicolò) darebbe percorsi sbagliati
+	fmt.Fprintf(&cmd, "\"%s\" 65001 >nul\r\n", filepath.Join(sistema32(), "chcp.com"))
 	// aspetto la chiusura di Tasso (al massimo 2 minuti)
 	// se dopo 2 minuti Tasso è ancora aperto non cancello niente (i file sarebbero in uso)
 	sys := sistema32()

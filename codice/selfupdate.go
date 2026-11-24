@@ -406,7 +406,9 @@ func copiaPerVerifica(exe []byte) (string, error) {
 // rimessoMsg: dopo aver rimesso il vecchio Tasso controllo che sia proprio quello di prima (la
 // cartella di Tasso può essere scrivibile da altri programmi).
 func rimessoMsg(vecchio []byte, msg string) string {
-	if b, err := readSelfExe(); len(vecchio) > 0 && (err != nil || !bytes.Equal(b, vecchio)) {
+	if b, err := readSelfExe(); len(vecchio) == 0 || err != nil || !bytes.Equal(b, vecchio) {
+		// non mi fido del file: lo sblocco, così readSelfExe fallisce e non viene mai copiato in Programmi
+		unlockSelfExe()
 		return "Aggiornamento non riuscito e il file di Tasso non è più quello di prima: chiudi Tasso e riscarica lo zip da sergiotassoni.github.io/tasso."
 	}
 	return msg
