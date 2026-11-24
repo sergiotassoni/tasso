@@ -6,7 +6,7 @@ export const LINGUE = ["it", "en", "es", "fr", "de", "pt", "pl"];
 
 export const TESTI = {
   it: {
-    sottotitolo: "Apri, unisci e firma i tuoi PDF",
+    sottotitolo: "Apri, modifica, unisci e firma i tuoi PDF",
     cosa: "Cosa vuoi fare?",
     cosaSub: "Scegli qui sotto. Puoi anche trascinare i file dentro questa finestra.",
     apriT: "Apri e leggi", apriD: "Leggi, ingrandisci, cerca una parola e stampa qualsiasi PDF.", apriB: "Apri un PDF",

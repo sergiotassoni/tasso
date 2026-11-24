@@ -1,4 +1,4 @@
-TASSO PDF - Apri, unisci e firma i tuoi PDF
+TASSO PDF - Apri, modifica, unisci e firma i tuoi PDF
 Copyright (C) 2026 Sergio Tassoni - Software libero con licenza GNU GPL 3.0 (file LICENSE)
 Parte dell'ecosistema Tasso.
 
@@ -30,6 +30,42 @@ COSA FA
   Il programma NON prova mai a indovinare o forzare le password.
   Usalo solo per i tuoi PDF o per quelli che hai il diritto di modificare.
 
+LA VISTA DOCUMENTO (quando apri un PDF)
+- In alto le schede dei file aperti (anche più di uno; "+" per aprirne un altro), il tasto
+  Casa per tornare alla schermata iniziale, Cerca (Ctrl+F), Stampa (Ctrl+P), Salva una copia.
+- Sotto: Tutti gli strumenti, Modifica, Converti, Firma. A sinistra l'elenco degli strumenti
+  (il pannello si può chiudere); accanto la barra rapida: seleziona e scorri, seleziona testo,
+  nota, evidenziatore, penna, firma, istantanea (un'area della pagina negli appunti).
+- A destra le miniature delle pagine, il numero di pagina, su/giù, gira la vista, zoom.
+- Ogni modifica crea una nuova versione in memoria: "Annulla l'ultima modifica" torna indietro.
+  Niente viene scritto su disco finché non premi "Salva una copia" (mai sopra l'originale).
+STRUMENTI
+- Organizza pagine: trascina per riordinare, gira, elimina, estrai, inserisci pagine da un
+  altro PDF o pagine bianche. Scorciatoie: Ruota, Inserisci, Elimina, Estrai pagine.
+- Aggiungi testo (carattere, dimensione, colore), Aggiungi immagine (JPG, PNG), Intestazione e
+  piè di pagina (con "Pagina 1 di N" e la data), Filigrana (testo o immagine, opacità,
+  inclinazione, anche dietro al testo), Link (verso una pagina o un sito).
+  Il testo usa i caratteri standard del PDF (Helvetica, Times, Courier): resta testo vero.
+  Le lettere che quei caratteri non hanno (per esempio ł, ą, ę del polacco) vengono messe come
+  immagine: si vedono uguali ma non si possono cercare o copiare (il programma lo dice).
+- Note, evidenziazioni e disegni della barra rapida si salvano come annotazioni vere del PDF.
+- Proteggi: password per aprire (AES a 256 bit) e/o blocchi di stampa, copia, modifica.
+  Ricordati la password: se la perdi nessuno può più aprire il file.
+- Comprimi: leggera (riordina il file, qualità identica) o forte (rende più leggere le foto
+  grandi, in JPEG). Mostra "da X MB a Y MB"; se non si riesce a ridurlo, lo dice.
+- Oscura: copri con rettangoli neri le parti da nascondere. La pagina viene ricostruita come
+  immagine: il testo coperto sparisce davvero dal file (anche i campi dei moduli e le note di
+  quella pagina). Su quella pagina il testo non si potrà più selezionare o cercare.
+- Esporta / Converti: PDF in immagini PNG o JPG (una per pagina), PDF in testo (.txt),
+  immagini in PDF (Crea PDF), Combina file (Unisci).
+
+MENU DEL TASTO DESTRO (facoltativo)
+In basso nella schermata iniziale: "Aggiungi Tasso PDF al tasto destro del mouse". Sui PDF
+compare il sottomenu "Tasso PDF" con Apri, Unisci, Firma, Sblocca, Comprimi (sulle foto JPG e
+PNG: Unisci). Se scegli più file, si apre una sola finestra con tutti. Le voci stanno in
+HKEY_CURRENT_USER\Software\Classes (niente permessi da amministratore) e si tolgono
+spegnendo l'interruttore. Su Windows 11 sono sotto "Mostra altre opzioni".
+
 SICUREZZA
 - Il file originale non viene mai toccato: si salva sempre una copia con un nome nuovo
   (es. "Contratto - firmato.pdf"). Se il file esiste già, Windows chiede prima di sostituirlo.
@@ -45,7 +81,9 @@ Lingua: quella scelta in alto; altrimenti quella dell'installatore di Tasso
 Lingue: italiano, inglese, spagnolo, francese, tedesco, portoghese, polacco.
 
 COSA NON FA (onestamente)
-- Non fa firme digitali certificate, non modifica il testo dei PDF, non fa OCR delle scansioni.
+- Non fa firme digitali certificate, non modifica il testo che c'è già nei PDF, non fa OCR
+  delle scansioni, non converte in Word o Excel (non si riesce a farlo bene senza internet).
+- Non crea moduli compilabili nuovi (compila quelli che ci sono già).
 - Le foto HEIC si leggono solo se Windows ha "Estensioni immagini HEIF" (e spesso
   "Estensioni video HEVC"); per le HEIC il verso della foto non viene corretto in automatico
   (puoi girarle con le frecce).
@@ -78,8 +116,21 @@ SAFETY
 The original is never changed (a copy with a new name is always saved; Windows asks before
 replacing an existing file); PDF JavaScript is off; links open only if you say yes; no internet.
 
+DOCUMENT VIEW AND TOOLS
+Opening a PDF shows a full editor: file tabs, Home, Find, Print, Save a copy; sections All
+tools / Edit / Convert / Sign; quick bar (select, text select, note, highlighter, pen,
+signature, snapshot); page thumbnails and zoom. Tools: Organize pages (reorder, rotate,
+delete, extract, insert from another PDF or blank pages), Add text, Add image, Header and
+footer with page numbers, Watermark, Links, Protect (256-bit AES password and/or
+permissions), Compress, Redact (the page is rebuilt as an image so the covered text really
+disappears), Export to PNG/JPG images or .txt text. Every change is a new version in memory
+("Undo last change"); nothing is written until "Save a copy". Letters missing from the
+standard PDF fonts (e.g. Polish ł) are added as an image. Optional right-click menu
+("Tasso PDF" submenu, per-user, no admin rights).
+
 WHAT IT DOES NOT DO
-No certified digital signatures, no text editing, no OCR. HEIC needs Microsoft's HEIF/HEVC
+No certified digital signatures, no editing of existing text, no OCR, no Word/Excel
+conversion, no creation of new fillable forms. HEIC needs Microsoft's HEIF/HEVC
 extensions and its orientation is not auto-corrected. Rotation in Merge applies to the whole file.
 
 Components and their licences: see LICENZE.txt.

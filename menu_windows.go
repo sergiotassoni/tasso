@@ -121,7 +121,9 @@ func leggiComandoMenu() string {
 func menuAttivoWin() bool { return leggiComandoMenu() != "" }
 
 // menuPuntaA: le voci avviano proprio questo exe?
-func menuPuntaA(exe string) bool { return strings.EqualFold(leggiComandoMenu(), comandoMenu(exe, "apri")) }
+func menuPuntaA(exe string) bool {
+	return strings.EqualFold(leggiComandoMenu(), comandoMenu(exe, "apri"))
+}
 
 func impostaMenuWin(on bool, l string) error {
 	if on {
