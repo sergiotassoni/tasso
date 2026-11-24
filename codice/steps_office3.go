@@ -71,7 +71,7 @@ function Fine-Riunione([string]$perche) {
   $t = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\PushNotifications'
   if ([string]$s.noc -match '^[01]$') { Set-ItemProperty -LiteralPath $n -Name 'NOC_GLOBAL_SETTING_TOASTS_ENABLED' -Value ([int]$s.noc) -Type DWord -ErrorAction SilentlyContinue } else { Remove-ItemProperty -LiteralPath $n -Name 'NOC_GLOBAL_SETTING_TOASTS_ENABLED' -ErrorAction SilentlyContinue }
   if ([string]$s.toast -match '^[01]$') { Set-ItemProperty -LiteralPath $t -Name 'ToastEnabled' -Value ([int]$s.toast) -Type DWord -ErrorAction SilentlyContinue } else { Remove-ItemProperty -LiteralPath $t -Name 'ToastEnabled' -ErrorAction SilentlyContinue }
-  if ([string]$s.plan -match '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$') { & (Join-Path $env:SystemRoot 'System32\powercfg.exe') /setactive ([string]$s.plan) | Out-Null }
+  if ([string]$s.plan -match '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$') { & (Join-Path $TassoSys32 'powercfg.exe') /setactive ([string]$s.plan) | Out-Null }
   if ($s.wu -eq $true) {
     # tolgo la pausa solo se è ancora quella messa da Tasso (se nel frattempo l'hai cambiata tu, resta)
     $u = 'HKLM:\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings'
@@ -83,7 +83,7 @@ function Fine-Riunione([string]$perche) {
   $od = [string]$s.od
   if ($od -and (Split-Path $od -Leaf) -ieq 'OneDrive.exe' -and (Test-Path -LiteralPath $od) -and -not (Get-Process -Name OneDrive -ErrorAction SilentlyContinue)) {
     # Esplora file lo fa partire come utente normale (OneDrive non va mai da amministratore)
-    Start-Process -FilePath (Join-Path $env:SystemRoot 'explorer.exe') -ArgumentList ('"' + $od + '"')
+    Start-Process -FilePath (Join-Path $TassoWin 'explorer.exe') -ArgumentList ('"' + $od + '"')
   }
   Add-Content -LiteralPath (Join-Path $OfState 'riunione.log') -Value ((Get-Date).ToString('yyyy-MM-dd HH:mm') + ' spenta (' + $perche + ')') -ErrorAction SilentlyContinue
   # per ultimo: se qualcosa si interrompe a metà, al prossimo giro si rimette tutto di nuovo
@@ -224,7 +224,7 @@ if (Test-Path -LiteralPath $f) {
 if (Test-Path -LiteralPath $pol) { Say 'Su questo PC il blocco dello schermo lo decide l''ufficio (criteri di gruppo): Tasso non lo cambia. Puoi sempre bloccare al volo con Windows + L.'; return }
 @{ to = (G 'ScreenSaveTimeOut'); act = (G 'ScreenSaveActive'); sec = (G 'ScreenSaverIsSecure'); exe = (G 'SCRNSAVE.EXE') } | ConvertTo-Json | Set-Content -LiteralPath $f -Encoding UTF8
 $exe = G 'SCRNSAVE.EXE'
-if (-not $exe -or -not (Test-Path -LiteralPath $exe)) { Set-ItemProperty -LiteralPath $k -Name 'SCRNSAVE.EXE' -Value (Join-Path $env:SystemRoot 'System32\scrnsave.scr') }
+if (-not $exe -or -not (Test-Path -LiteralPath $exe)) { Set-ItemProperty -LiteralPath $k -Name 'SCRNSAVE.EXE' -Value (Join-Path $TassoSys32 'scrnsave.scr') }
 Apply 300 1 1
 Set-ItemProperty -LiteralPath $k -Name 'ScreenSaveTimeOut' -Value '300'; Set-ItemProperty -LiteralPath $k -Name 'ScreenSaveActive' -Value '1'; Set-ItemProperty -LiteralPath $k -Name 'ScreenSaverIsSecure' -Value '1'
 Say 'Blocco automatico ACCESO: dopo 5 minuti senza toccare niente lo schermo diventa nero e per rientrare serve il PIN o la password. Nessun documento si chiude.'
@@ -253,9 +253,11 @@ func officeDir() string { return filepath.Join(programFilesDir(), "Tasso", "lavo
 func officeGuardia() {
 	defer guard("ufficio-guardia")
 	// file della versione di prova (24/11): script in AppData che nessuno deve più eseguire
-	vecchia := filepath.Join(os.Getenv("LOCALAPPDATA"), "Tasso", "ufficio")
-	for _, n := range []string{"riunione-fine.ps1", "riunione-guardia.ps1"} {
-		_ = os.Remove(filepath.Join(vecchia, n))
+	if la := cartellaNota(windows.FOLDERID_LocalAppData); la != "" {
+		vecchia := filepath.Join(la, "Tasso", "ufficio")
+		for _, n := range []string{"riunione-fine.ps1", "riunione-guardia.ps1"} {
+			_ = os.Remove(filepath.Join(vecchia, n))
+		}
 	}
 	f := filepath.Join(officeDir(), "riunione.json")
 	id, seen, quiet := "", false, 0

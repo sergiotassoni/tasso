@@ -38,7 +38,7 @@ func insertStepAfter(id string, steps ...Step) {
 
 var extraSteps = []Step{
 	{ID: "driver_leftovers", Name: "Resti dei driver video", Desc: "Cartelle che AMD, NVIDIA e Intel lasciano dopo aver installato i driver (C:\\AMD, C:\\NVIDIA...). Spesso sono vari GB.", Level: 2, Minutes: 0.4, Timeout: 10 * time.Minute, Script: `
-$drvRoots = @((Join-Path ($env:SystemDrive + '\') 'AMD\'), (Join-Path ($env:SystemDrive + '\') 'NVIDIA\'))
+$drvRoots = @((Join-Path ($TassoSysDrive + '\') 'AMD\'), (Join-Path ($TassoSysDrive + '\') 'NVIDIA\'))
 $busy = $false
 foreach ($pr in @(Get-Process -ErrorAction SilentlyContinue)) {
   if ($pr.ProcessName -match 'AMDSoftwareInstaller|AMDInstallManager|AMDCleanupUtility|NVIDIA.*Install|Intel.*Install|igxpin') { $busy = $true; break }
@@ -47,7 +47,7 @@ foreach ($pr in @(Get-Process -ErrorAction SilentlyContinue)) {
   if ($busy) { break }
 }
 if ($busy) { Say 'Un programma di installazione dei driver è aperto: salto questo passaggio.'; return }
-$sd = $env:SystemDrive + '\'
+$sd = $TassoSysDrive + '\'
 $f = [long]0
 $list = @(
   @{ Label = 'AMD (C:\AMD)';               Path = (Join-Path $sd 'AMD') },
@@ -101,9 +101,9 @@ Freed $f; Say ('Liberati ' + (Fmt $f))
 	{ID: "extra_junk", Name: "Altri file inutili di Windows", Desc: "Rapporti di blocco del kernel, temporanei dei servizi di Windows, vecchia cache internet e registri vecchi degli aggiornamenti.", Level: 2, Minutes: 0.5, Timeout: 10 * time.Minute, Script: `
 $f = [long]0
 $list = @(
-  @{ Label = 'Rapporti di blocco (LiveKernelReports)'; Path = (Join-Path $env:windir 'LiveKernelReports'); Age = 72 },
-  @{ Label = 'Temporanei dei servizi (LocalService)';  Path = (Join-Path $env:windir 'ServiceProfiles\LocalService\AppData\Local\Temp'); Age = 24 },
-  @{ Label = 'Temporanei dei servizi (NetworkService)'; Path = (Join-Path $env:windir 'ServiceProfiles\NetworkService\AppData\Local\Temp'); Age = 24 },
+  @{ Label = 'Rapporti di blocco (LiveKernelReports)'; Path = (Join-Path $TassoWin 'LiveKernelReports'); Age = 72 },
+  @{ Label = 'Temporanei dei servizi (LocalService)';  Path = (Join-Path $TassoWin 'ServiceProfiles\LocalService\AppData\Local\Temp'); Age = 24 },
+  @{ Label = 'Temporanei dei servizi (NetworkService)'; Path = (Join-Path $TassoWin 'ServiceProfiles\NetworkService\AppData\Local\Temp'); Age = 24 },
   # Solo IE e Low: in Content.Outlook, Content.MSO e Content.Word ci sono allegati e documenti di Office
   # aperti e modificati, che a volte sono l'unica copia. Quelli non li tocco mai.
   @{ Label = 'Vecchia cache internet (INetCache)';     Path = (Join-Path $env:LOCALAPPDATA 'Microsoft\Windows\INetCache\IE'); Age = 24 },
@@ -116,7 +116,7 @@ foreach ($it in $list) {
   if ($x -gt 0) { Say ($it.Label + ': ' + (Fmt $x)) }
 }
 # Installazione precedente di Windows: è protetta e serve per tornare indietro, quindi la segnalo e basta.
-$old = Join-Path $env:SystemDrive 'Windows.old'
+$old = Join-Path $TassoSysDrive 'Windows.old'
 if (Test-Path -LiteralPath $old) {
   $s = Get-FolderSize $old
   Say ('C''è una copia della versione precedente di Windows (Windows.old, ' + (Fmt $s) + '). Se Windows funziona bene da più di 10 giorni puoi toglierla da Impostazioni > Sistema > Archiviazione > File temporanei > "Installazione precedente di Windows".')

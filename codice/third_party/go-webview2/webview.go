@@ -8,6 +8,7 @@ import (
 	"errors"
 	"log"
 	"reflect"
+	"runtime"
 	"strconv"
 	"sync"
 	"unsafe"
@@ -65,6 +66,11 @@ type webview struct {
 // SuFinestra: funzioni legate con Bind che devono girare nel filo della finestra (aprono
 // finestre di Windows come "Scegli un file", che vogliono quel filo). Modifica di Tasso.
 var SuFinestra = map[string]bool{}
+
+// Subito: funzioni veloci e di sola lettura (es. "Ferma", "sta lavorando?", i numeri dal vivo) che
+// girano subito in un filo tutto loro, senza aspettare in coda dietro un lavoro lento.
+// Modifica di Tasso: si impostano prima di aprire la pagina, come SuFinestra.
+var Subito = map[string]bool{}
 
 type WindowOptions struct {
 	Title  string
@@ -168,15 +174,38 @@ func (w *webview) msgcb(msg string) {
 		w.rispondi(d)
 		return
 	}
+	if Subito[d.Method] {
+		go w.rispondiSicuro(d)
+		return
+	}
 	w.codaOnce.Do(func() {
 		w.coda = make(chan rpcMessage, 4096)
-		go func() {
-			for d := range w.coda {
-				w.rispondi(d)
-			}
-		}()
+		go w.lavoraCoda()
 	})
 	w.coda <- d
+}
+
+// lavoraCoda: il filo dove girano, una alla volta, le chiamate dei pulsanti. Molte usano COM
+// (WMI, Esplora file, collegamenti), che va preparato per il filo: il filo resta sempre lo stesso
+// (LockOSThread) e COM si prepara una volta sola, come nel filo della finestra.
+func (w *webview) lavoraCoda() {
+	runtime.LockOSThread()
+	_ = windows.CoInitializeEx(0, windows.COINIT_APARTMENTTHREADED) // il filo vive quanto Tasso: niente CoUninitialize
+	for d := range w.coda {
+		w.rispondiSicuro(d)
+	}
+}
+
+// rispondiSicuro: come rispondi, ma un errore grave non ferma la coda (le altre chiamate continuano).
+func (w *webview) rispondiSicuro(d rpcMessage) {
+	defer func() {
+		if r := recover(); r != nil {
+			if PanicHook != nil {
+				PanicHook(d.Method, r, debug.Stack())
+			}
+		}
+	}()
+	w.rispondi(d)
 }
 
 func (w *webview) rispondi(d rpcMessage) {

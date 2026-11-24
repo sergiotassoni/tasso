@@ -29,7 +29,7 @@ try {
 } catch {}
 
 # File temporanei
-$t = [long](Get-FolderSize $env:TEMP) + [long](Get-FolderSize (Join-Path $env:windir 'Temp'))
+$t = [long](Get-FolderSize $TassoTempUtente) + [long](Get-FolderSize (Join-Path $TassoWin 'Temp'))
 if ($t -gt 2GB) { Bad 10 ('File temporanei: ' + (Fmt $t)) 'La pulizia Normale li toglie in un paio di minuti.' 'clean' }
 elseif ($t -gt 500MB) { Bad 5 ('File temporanei: ' + (Fmt $t)) 'Una pulizia Normale li toglie.' 'clean' }
 else { Good 'File temporanei: pochi' }

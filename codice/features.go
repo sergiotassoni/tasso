@@ -216,7 +216,8 @@ func safeLeftover(p string) bool {
 	if !filepath.IsAbs(p) || strings.Contains(p, "..") {
 		return false
 	}
-	roots := []string{os.Getenv("ProgramFiles"), os.Getenv("ProgramFiles(x86)"), os.Getenv("LOCALAPPDATA"), os.Getenv("APPDATA"), os.Getenv("ProgramData")}
+	// Le cartelle vere chieste a Windows, non le variabili d'ambiente (cambiabili senza permessi).
+	roots := []string{programFilesDir(), cartellaNota(windows.FOLDERID_ProgramFilesX86), cartellaNota(windows.FOLDERID_LocalAppData), cartellaNota(windows.FOLDERID_RoamingAppData), cartellaNota(windows.FOLDERID_ProgramData)}
 	lp := strings.ToLower(p)
 	for _, r := range roots {
 		if r == "" {
@@ -440,10 +441,13 @@ func safeUserPath(p string) bool {
 		return false
 	}
 	lp := strings.ToLower(p)
-	roots := []string{
-		os.Getenv("USERPROFILE"),
-		filepath.Join(os.Getenv("PUBLIC"), "Desktop"),
-		filepath.Join(os.Getenv("ProgramData"), "Microsoft", "Windows", "Start Menu"),
+	// Le cartelle vere chieste a Windows, non le variabili d'ambiente (cambiabili senza permessi).
+	roots := []string{cartellaNota(windows.FOLDERID_Profile)}
+	if pub := cartellaNota(windows.FOLDERID_Public); pub != "" {
+		roots = append(roots, filepath.Join(pub, "Desktop"))
+	}
+	if pd := cartellaNota(windows.FOLDERID_ProgramData); pd != "" {
+		roots = append(roots, filepath.Join(pd, "Microsoft", "Windows", "Start Menu"))
 	}
 	blocked := []string{"appdata", "desktop", "documents", "pictures", "videos", "music", "downloads", "onedrive"}
 	for _, r := range roots {
@@ -602,7 +606,7 @@ func shredAllowed(p string) bool {
 		return false
 	}
 	lp := strings.ToLower(filepath.Clean(p))
-	for _, r := range []string{os.Getenv("SystemRoot"), os.Getenv("ProgramFiles"), os.Getenv("ProgramFiles(x86)"), os.Getenv("ProgramData")} {
+	for _, r := range []string{winDir(), programFilesDir(), cartellaNota(windows.FOLDERID_ProgramFilesX86), cartellaNota(windows.FOLDERID_ProgramData)} {
 		if r != "" && strings.HasPrefix(lp, strings.ToLower(filepath.Clean(r))+"\\") {
 			return false
 		}

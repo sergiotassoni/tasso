@@ -361,15 +361,15 @@ Say 'Fatto: da ora Esplora file (Win + E) si apre su Questo PC.'
 Say-Undo $u
 `)},
 	{ID: "of_disk_full", Name: "Il disco C: è pieno", Desc: "Ti dice cosa occupa più spazio (Download, Desktop, Documenti, Cestino, OneDrive, vecchio Windows) e cosa puoi liberare in sicurezza. Non cancella niente da solo. Controlla e spiega.", Level: 0, Minutes: 1, Timeout: 8 * time.Minute, Script: ofs2(`
-$c = Get-PSDrive -Name ($env:SystemDrive.Trim(':')) -ErrorAction SilentlyContinue
+$c = Get-PSDrive -Name ($TassoSysDrive.Trim(':')) -ErrorAction SilentlyContinue
 if ($c) { $tot = $c.Used + $c.Free; Say ('Disco C: liberi ' + (Fmt $c.Free) + ' su ' + (Fmt $tot) + ' (' + [int]($c.Free * 100 / [math]::Max(1, $tot)) + '%).') }
 Say 'Misuro le cartelle più grandi (un minuto)...'
 $rows = @()
 foreach ($x in @(@('Download', (Get-DownloadsPath)), @('Desktop', [Environment]::GetFolderPath('Desktop')), @('Documenti', [Environment]::GetFolderPath('MyDocuments')), @('Immagini', [Environment]::GetFolderPath('MyPictures')), @('Video', [Environment]::GetFolderPath('MyVideos')))) { $rows += , @($x[0], (Get-LocalSize $x[1])) }
 foreach ($r in Get-OneDriveRoots) { $rows += , @(('OneDrive (' + (Split-Path $r -Leaf) + ', solo i file scaricati)'), (Get-LocalSize $r)) }
-$rb = Get-FolderSize (Join-Path $env:SystemDrive '$Recycle.Bin'); $rows += , @('Cestino', $rb)
-$wo = Join-Path $env:SystemDrive 'Windows.old'; if (Test-Path -LiteralPath $wo) { $rows += , @('Windows.old (il Windows di prima)', (Get-FolderSize $wo)) }
-$hib = Join-Path $env:SystemDrive 'hiberfil.sys'; if (Test-Path -LiteralPath $hib) { $rows += , @('Ibernazione (hiberfil.sys)', (Get-Item -LiteralPath $hib -Force).Length) }
+$rb = Get-FolderSize (Join-Path $TassoSysDrive '$Recycle.Bin'); $rows += , @('Cestino', $rb)
+$wo = Join-Path $TassoSysDrive 'Windows.old'; if (Test-Path -LiteralPath $wo) { $rows += , @('Windows.old (il Windows di prima)', (Get-FolderSize $wo)) }
+$hib = Join-Path $TassoSysDrive 'hiberfil.sys'; if (Test-Path -LiteralPath $hib) { $rows += , @('Ibernazione (hiberfil.sys)', (Get-Item -LiteralPath $hib -Force).Length) }
 foreach ($r in ($rows | Sort-Object { [long]$_[1] } -Descending)) { if ([long]$r[1] -gt 200MB) { Say ('- ' + $r[0] + ': ' + (Fmt $r[1])) } }
 Say 'Cosa puoi fare in sicurezza:'
 Say '1) In Tasso, Pulizia > livello Media o Profonda: toglie file temporanei e cache. Non tocca i tuoi documenti.'
@@ -413,7 +413,7 @@ $dir = Join-Path $env:LOCALAPPDATA 'Microsoft\Outlook'
 $ost = @(Get-ChildItem -LiteralPath $dir -Filter '*.ost' -File -ErrorAction SilentlyContinue)
 if (-not $ost.Count) { Say 'Non ci sono file .ost: il tuo account usa un file .pst (POP), dove le mail sono solo sul PC. In quel caso non tocco niente: usa "Outlook non si apre" o "Outlook lento: la casella è troppo grande".'; return }
 $tot = ($ost | Measure-Object -Property Length -Sum).Sum
-$c = Get-PSDrive -Name ($env:SystemDrive.Trim(':')) -ErrorAction SilentlyContinue
+$c = Get-PSDrive -Name ($TassoSysDrive.Trim(':')) -ErrorAction SilentlyContinue
 if ($c -and $c.Free -lt $tot) { Say ('Per riscaricare la posta servono circa ' + (Fmt $tot) + ' liberi e sul disco ce ne sono ' + (Fmt $c.Free) + ': prima libera spazio.'); return }
 $stamp = Get-Date -Format 'yyyyMMdd_HHmm'
 $n = 0
@@ -574,7 +574,7 @@ foreach ($m in ($mru | Select-Object -First 3)) {
 Say 'Se resta lo schermo nero dopo il collegamento: premi Ctrl + Alt + Fine, poi Annulla: di solito ricompare. Se è lento: nelle opzioni del Desktop remoto > Esperienza, scegli una connessione più lenta.'
 `)},
 	{ID: "of_hosts", Name: "Un sito di lavoro è bloccato senza motivo", Desc: "Controlla il file \"hosts\" di Windows, dove virus o vecchi programmi possono bloccare o deviare siti come Microsoft, Google o la banca. Mette da parte solo le righe sospette, con copia di sicurezza.", Level: 0, Minutes: 0.1, Timeout: time.Minute, Script: ofs2(`
-$hp = Join-Path $env:SystemRoot 'System32\drivers\etc\hosts'
+$hp = Join-Path $TassoSys32 'drivers\etc\hosts'
 if (-not (Test-Path -LiteralPath $hp)) { Say 'Il file hosts non c''è: va bene così.'; return }
 $lines = @(Get-Content -LiteralPath $hp -ErrorAction SilentlyContinue)
 $act = @($lines | Where-Object { $_ -match '^\s*[0-9a-fA-F:.]+\s+\S' -and $_ -notmatch '^\s*(127\.0\.0\.1|::1)\s+localhost\s*$' })

@@ -151,13 +151,13 @@ func undoChange(kind, id string) {
 		}
 	case "regfolder":
 		_ = os.MkdirAll(filepath.Join(appDir, "backup"), 0o755)
-		openPath(filepath.Join(os.Getenv("SystemRoot"), "explorer.exe"), "\""+filepath.Join(appDir, "backup")+"\"")
+		openPath(explorerExe(), "\""+filepath.Join(appDir, "backup")+"\"")
 		return
 	case "restorepoint":
-		openPath(filepath.Join(os.Getenv("SystemRoot"), "System32", "rstrui.exe"), "")
+		openPath(filepath.Join(sistema32(), "rstrui.exe"), "")
 		return
 	case "recycle":
-		openPath(filepath.Join(os.Getenv("SystemRoot"), "explorer.exe"), "shell:RecycleBinFolder")
+		openPath(explorerExe(), "shell:RecycleBinFolder")
 		return
 	default:
 		return

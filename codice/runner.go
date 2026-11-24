@@ -42,6 +42,7 @@ func scriptDir() string {
 			if os.MkdirAll(d, 0o755) == nil {
 				scriptDirPath = d
 				go pulisciScriptVecchi(d)
+				go pulisciTempTasso() // lavoro\tmp: i temporanei dei programmi avviati da Tasso (ambiente.go)
 				return
 			}
 		}
@@ -77,7 +78,8 @@ func writeScript(script string) (string, error) {
 	} else {
 		auto += "\n$TassoSingle = $false"
 	}
-	body := "\uFEFF" + strings.ReplaceAll(trPS(psPrelude+"\n"+auto+"\n"+script), "\n", "\r\n")
+	// Le cartelle vere vanno per prime (fuori dalla traduzione: sono percorsi, non frasi).
+	body := "\uFEFF" + strings.ReplaceAll(psCartelle()+"\n"+trPS(psPrelude+"\n"+auto+"\n"+script), "\n", "\r\n")
 	f, err := os.OpenFile(p, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o644)
 	if err != nil {
 		return "", err

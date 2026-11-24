@@ -21,6 +21,7 @@ func stepList() []map[string]interface{} {
 }
 
 const psPrelude = `
+$env:PSModulePath = (Join-Path ([Environment]::SystemDirectory) 'WindowsPowerShell\v1.0\Modules') + ';' + (Join-Path ([Environment]::GetFolderPath('ProgramFiles')) 'WindowsPowerShell\Modules')
 $ErrorActionPreference = 'SilentlyContinue'
 $ProgressPreference = 'SilentlyContinue'
 [Console]::OutputEncoding = New-Object System.Text.UTF8Encoding($false)
@@ -33,11 +34,49 @@ function Get-FolderSize([string]$p) {
   if ($s) { return [long]$s } else { return [long]0 }
 }
 function Test-SafeTarget([string]$p) {
-  if ([string]::IsNullOrWhiteSpace($p)) { return $false }
+  # Si svuotano solo cartelle DENTRO quelle che Tasso pulisce davvero (AppData, temporanei, cache di
+  # Windows Update, Programmi e ProgramData per le cache dei launcher, C:\AMD, C:\NVIDIA...).
+  # Le cartelle vere arrivano da Tasso ($TassoWin, $TassoLocal...), non dalle variabili d'ambiente.
+  if ([string]::IsNullOrWhiteSpace($p) -or $p.StartsWith('\\')) { return $false }  # niente \\?\ né cartelle di rete
   try { $full = [IO.Path]::GetFullPath($p).TrimEnd('\') } catch { return $false }
   if ($full.Length -le 3) { return $false }  # mai una radice come C:\
-  $deny = @($env:windir, $env:USERPROFILE, $env:ProgramFiles, ${env:ProgramFiles(x86)}, $env:ProgramData, $env:APPDATA, $env:LOCALAPPDATA) | Where-Object { $_ } | ForEach-Object { $_.TrimEnd('\') }
+  $deny = @($TassoWin, $TassoProfilo, $TassoPF, $TassoPF86, $TassoPD, $TassoRoaming, $TassoLocal) | Where-Object { $_ } | ForEach-Object { $_.TrimEnd('\') }
   foreach ($d in $deny) { if ($full -ieq $d) { return $false } }
+  # "Foglie": si possono svuotare loro stesse (es. la cartella dei temporanei).
+  $leaf = @($TassoTempUtente)
+  if ($TassoWin) { $leaf += @(($TassoWin + '\Temp'), ($TassoWin + '\SoftwareDistribution\Download'), ($TassoWin + '\Minidump'), ($TassoWin + '\LiveKernelReports'), ($TassoWin + '\ServiceProfiles\LocalService\AppData\Local\Temp'), ($TassoWin + '\ServiceProfiles\NetworkService\AppData\Local\Temp')) }
+  if ($TassoSysDrive) { $leaf += @(($TassoSysDrive + '\AMD'), ($TassoSysDrive + '\NVIDIA')) }
+  # "Contenitori": solo le cartelle che ci sono dentro, mai loro.
+  $cont = @($TassoLocal, $TassoRoaming, $TassoPD, $TassoPF, $TassoPF86)
+  if ($TassoSysDrive) { $cont += ($TassoSysDrive + '\Intel') }
+  # Steam può stare su un altro disco (es. D:\Steam): la sua cartella vale come contenitore, mai dentro Windows.
+  $st = ''; try { $st = ([string](Get-ItemProperty -LiteralPath 'HKCU:\Software\Valve\Steam' -Name SteamPath -ErrorAction Stop).SteamPath) -replace '/', '\' } catch {}
+  if ($st) { try { $st = [IO.Path]::GetFullPath($st).TrimEnd('\') } catch { $st = '' } }
+  if ($st -and $st.Length -gt 3 -and -not ($TassoWin -and ($st -ieq $TassoWin.TrimEnd('\') -or $st.StartsWith($TassoWin.TrimEnd('\') + '\', [StringComparison]::OrdinalIgnoreCase)))) { $cont += $st }
+  foreach ($r in $leaf) {
+    if (-not $r) { continue }
+    $r = ([string]$r).TrimEnd('\'); if ($r.Length -le 3) { continue }
+    if ($full -ieq $r -or $full.StartsWith($r + '\', [StringComparison]::OrdinalIgnoreCase)) { return $true }
+  }
+  foreach ($r in $cont) {
+    if (-not $r) { continue }
+    $r = ([string]$r).TrimEnd('\'); if ($r.Length -le 3) { continue }
+    if ($full.StartsWith($r + '\', [StringComparison]::OrdinalIgnoreCase)) { return $true }
+  }
+  return $false
+}
+function Test-NoReparse([string]$p) {
+  # La cartella e tutte quelle sopra non devono essere giunzioni o collegamenti: C:\NVIDIA potrebbe
+  # puntare a System32, o una cartella in AppData a un'altra cartella del PC.
+  try { $cur = [IO.Path]::GetFullPath($p).TrimEnd('\') } catch { return $false }
+  while ($cur) {
+    try { $a = [IO.File]::GetAttributes($cur) } catch { return $false }
+    if ($a -band [IO.FileAttributes]::ReparsePoint) { return $false }
+    $up = [IO.Path]::GetDirectoryName($cur)
+    if (-not $up -or $up -eq $cur) { break }
+    $cur = $up.TrimEnd('\')
+    if ($cur.Length -le 2) { break }  # la radice del disco (C:\) non si controlla
+  }
   return $true
 }
 function Remove-Safe([string]$p) {
@@ -84,6 +123,7 @@ function Remove-Old([string]$p, [datetime]$limit) {
 function Clear-Folder([string]$p, [double]$minAgeHours = 0) {
   if (-not (Test-SafeTarget $p)) { return [long]0 }
   if (-not (Test-Path -LiteralPath $p)) { return [long]0 }
+  if (-not (Test-NoReparse $p)) { return [long]0 }  # giunzione: non la svuoto (finirei nella cartella a cui punta)
   $b = Get-FolderSize $p
   $limit = (Get-Date).AddHours(-$minAgeHours)
   if ($minAgeHours -le 0) {
@@ -244,12 +284,25 @@ try {
 var allSteps = []Step{
 	{ID: "backup", Name: "Backup (punto di ripristino)", Desc: "Crea un punto di ripristino: se qualcosa non va torni indietro.", Level: 2, Minutes: 1.5, Timeout: 10 * time.Minute, Script: `
 Say 'Creo il backup di Windows (punto di ripristino)...'
-try { Enable-ComputerRestore -Drive ($env:SystemDrive + '\') -ErrorAction Stop } catch {}
+try { Enable-ComputerRestore -Drive ($TassoSysDrive + '\') -ErrorAction Stop } catch {}
 $key = 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\SystemRestore'
 $oldFreq = (Get-ItemProperty -Path $key -Name 'SystemRestorePointCreationFrequency' -ErrorAction SilentlyContinue).SystemRestorePointCreationFrequency
 # Mi segno il valore di prima: se il passaggio viene interrotto, Tasso lo rimette al prossimo avvio.
+# Se il segno c'è già (un backup di prima interrotto e non ancora rimesso), il valore vero è quello
+# segnato allora: adesso c'è lo 0 messo da Tasso. Non lo riscrivo e non ricreo mai la chiave
+# (New-Item -Force su una chiave che c'è la svuota).
 $mark = 'HKLM:\SOFTWARE\Tasso\PuntoRipristino'
-try { New-Item -Path $mark -Force | Out-Null; New-ItemProperty -Path $mark -Name 'Old' -Value $(if ($null -ne $oldFreq) { [string][int]$oldFreq } else { 'none' }) -PropertyType String -Force | Out-Null } catch {}
+try {
+  $prev = ''
+  if (Test-Path -LiteralPath $mark) { $prev = [string](Get-ItemProperty -LiteralPath $mark -Name 'Old' -ErrorAction SilentlyContinue).Old }
+  if ($prev -eq 'none') { $oldFreq = $null }
+  elseif ($prev -match '^\d{1,10}$') { $oldFreq = [int]$prev }
+  else {
+    if (-not (Test-Path -LiteralPath 'HKLM:\SOFTWARE\Tasso')) { New-Item -Path 'HKLM:\SOFTWARE\Tasso' -ErrorAction Stop | Out-Null }
+    if (-not (Test-Path -LiteralPath $mark)) { New-Item -Path $mark -ErrorAction Stop | Out-Null }
+    New-ItemProperty -LiteralPath $mark -Name 'Old' -Value $(if ($null -ne $oldFreq) { [string][int]$oldFreq } else { 'none' }) -PropertyType String -Force | Out-Null
+  }
+} catch {}
 New-ItemProperty -Path $key -Name 'SystemRestorePointCreationFrequency' -Value 0 -PropertyType DWord -Force | Out-Null
 $before = @(Get-ComputerRestorePoint).Count
 try { Checkpoint-Computer -Description 'Tasso - prima della manutenzione' -RestorePointType MODIFY_SETTINGS -ErrorAction Stop } catch { Say ('Backup non creato: ' + $_.Exception.Message) }
@@ -267,11 +320,13 @@ elseif ($after -gt 0) {
 else { Say 'ATTENZIONE: il Ripristino configurazione di sistema sembra disattivato su questo PC.' }
 `},
 	{ID: "temp_user", Name: "File temporanei", Desc: "Svuota i file temporanei del tuo account più vecchi di un giorno (quelli in uso restano).", Level: 1, Minutes: 0.5, Timeout: 10 * time.Minute, Script: `
-$f = Clear-Folder $env:TEMP 24
+# La cartella temporanea vera dell'utente (AppData\Local\Temp, passata da Tasso): $env:TEMP qui
+# è quella di Tasso in Programmi, e una variabile d'ambiente non decide mai cosa si svuota.
+$f = Clear-Folder $TassoTempUtente 24
 Freed $f; Say ('Liberati ' + (Fmt $f))
 `},
 	{ID: "temp_win", Name: "File temporanei di Windows", Desc: "Svuota C:\\Windows\\Temp (solo i file più vecchi di un giorno).", Level: 1, Minutes: 0.5, Timeout: 10 * time.Minute, Script: `
-$f = Clear-Folder (Join-Path $env:windir 'Temp') 24
+$f = Clear-Folder ($TassoWin + '\Temp') 24
 Freed $f; Say ('Liberati ' + (Fmt $f))
 `},
 	{ID: "recycle", Name: "Cestino", Desc: "Svuota il Cestino di tutte le unità. Nella pulizia programmata toglie solo quello che è nel Cestino da più di 7 giorni.", Level: 1, Minutes: 0.3, Timeout: 5 * time.Minute, Script: `
@@ -357,7 +412,7 @@ Freed $f; Say ('Liberati ' + (Fmt $f))
 	{ID: "wu_cache", Name: "Cache di Windows Update", Desc: "File degli aggiornamenti già scaricati. Se ne serve ancora uno, Windows lo riscarica da solo.", Level: 2, Minutes: 1, Timeout: 15 * time.Minute, Script: `
 if ((Get-Process -Name TiWorker, MoUsoCoreWorker, TrustedInstaller -ErrorAction SilentlyContinue) -or (Test-Path -LiteralPath 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\RebootRequired')) { Say 'Windows sta installando degli aggiornamenti proprio adesso: salto, per non disturbarlo. Rifallo più tardi.'; return }
 Stop-Service -Name wuauserv, bits -Force -ErrorAction SilentlyContinue
-$f = Clear-Folder (Join-Path $env:windir 'SoftwareDistribution\Download')
+$f = Clear-Folder (Join-Path $TassoWin 'SoftwareDistribution\Download')
 Start-Service -Name wuauserv, bits -ErrorAction SilentlyContinue
 Freed $f; Say ('Liberati ' + (Fmt $f))
 `},
@@ -368,22 +423,22 @@ foreach ($d in @((Join-Path $pd 'Microsoft\Windows\WER\ReportArchive'), (Join-Pa
   if (Test-Path -LiteralPath $d) { $f += Clear-Folder $d }
 }
 # I rapporti delle schermate blu degli ultimi 14 giorni restano: servono per capire cosa non va.
-$md = Join-Path $env:windir 'Minidump'
+$md = Join-Path $TassoWin 'Minidump'
 if (Test-Path -LiteralPath $md) { $f += Clear-Folder $md 336 }
-$dmp = Join-Path $env:windir 'MEMORY.DMP'
+$dmp = Join-Path $TassoWin 'MEMORY.DMP'
 if ((Test-Path -LiteralPath $dmp) -and (Get-Item -LiteralPath $dmp -Force).LastWriteTime -lt (Get-Date).AddDays(-14)) { $len = (Get-Item -LiteralPath $dmp -Force).Length; Remove-Item -LiteralPath $dmp -Force -ErrorAction SilentlyContinue; if (-not (Test-Path -LiteralPath $dmp)) { $f += $len } }
 $old = (Get-Date).AddDays(-14)
-foreach ($d in @((Join-Path $env:windir 'Logs\CBS'), (Join-Path $env:windir 'Logs\DISM'), (Join-Path $env:windir 'Logs\WindowsUpdate'), (Join-Path $env:windir 'Panther'))) {
+foreach ($d in @((Join-Path $TassoWin 'Logs\CBS'), (Join-Path $TassoWin 'Logs\DISM'), (Join-Path $TassoWin 'Logs\WindowsUpdate'), (Join-Path $TassoWin 'Panther'))) {
   if (-not (Test-Path -LiteralPath $d)) { continue }
   Get-ChildItem -LiteralPath $d -File -Force -ErrorAction SilentlyContinue | Where-Object { $_.LastWriteTime -lt $old -and $_.Extension -in @('.log','.cab','.etl','.txt') } | ForEach-Object {
     $len = $_.Length; Remove-Item -LiteralPath $_.FullName -Force -ErrorAction SilentlyContinue; if (-not (Test-Path -LiteralPath $_.FullName)) { $f += $len }
   }
 }
 try {
-  $drive = Get-PSDrive -Name ($env:SystemDrive.TrimEnd(':'))
+  $drive = Get-PSDrive -Name ($TassoSysDrive.TrimEnd(':'))
   $before = [long]$drive.Free
   Delete-DeliveryOptimizationCache -Force -ErrorAction Stop | Out-Null
-  $after = [long](Get-PSDrive -Name ($env:SystemDrive.TrimEnd(':'))).Free
+  $after = [long](Get-PSDrive -Name ($TassoSysDrive.TrimEnd(':'))).Free
   $f += [math]::Max(0, $after - $before)
 } catch {}
 Freed $f; Say ('Liberati ' + (Fmt $f))
@@ -453,12 +508,12 @@ Get-PhysicalDisk | ForEach-Object {
 `},
 	{ID: "dism_cleanup", Name: "Pulizia componenti di Windows", Desc: "Rimuove le versioni vecchie dei componenti di sistema.", Level: 3, Minutes: 10, Timeout: 90 * time.Minute, Script: `
 if (Skip-AutoOnBattery) { return }
-$drive = Get-PSDrive -Name ($env:SystemDrive.TrimEnd(':'))
+$drive = Get-PSDrive -Name ($TassoSysDrive.TrimEnd(':'))
 $before = [long]$drive.Free
 if (Test-Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\RebootPending') { Say 'Windows sta aspettando un riavvio per finire un aggiornamento: adesso questo passaggio non funzionerebbe bene. Riavvia il PC e poi rifallo.'; [Console]::Out.WriteLine('REBOOT'); return }
 Say 'Pulizia componenti in corso (5-20 minuti)...'
 $code = Run-Hidden 'dism.exe' '/Online /Cleanup-Image /StartComponentCleanup'
-$after = [long](Get-PSDrive -Name ($env:SystemDrive.TrimEnd(':'))).Free
+$after = [long](Get-PSDrive -Name ($TassoSysDrive.TrimEnd(':'))).Free
 $f = [math]::Max(0, $after - $before)
 Freed $f; Say ('Fatto (codice ' + $code + '), liberati ' + (Fmt $f))
 `},
@@ -508,7 +563,7 @@ $c2 = Run-Hidden 'sfc.exe' '/scannow'
 # SFC non dice il risultato con il codice: lo leggo dal suo registro (solo le righe scritte adesso).
 $bad = 0; $fixed = 0; $seen = @{}
 try {
-  foreach ($l in @(Get-Content -LiteralPath (Join-Path $env:windir 'Logs\CBS\CBS.log') -Tail 40000 -ErrorAction Stop)) {
+  foreach ($l in @(Get-Content -LiteralPath (Join-Path $TassoWin 'Logs\CBS\CBS.log') -Tail 40000 -ErrorAction Stop)) {
     if ($l -notmatch '\[SR\]') { continue }
     if ($l -match '^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})') { try { if ([datetime]::ParseExact($Matches[1], 'yyyy-MM-dd HH:mm:ss', [Globalization.CultureInfo]::InvariantCulture) -lt $t0.AddMinutes(-1)) { continue } } catch {} }
     # Lo stesso file compare in più righe: lo conto una volta sola.
@@ -524,8 +579,8 @@ if ($needReboot -or $bad -gt 0 -or $fixed -gt 0) { [Console]::Out.WriteLine('REB
 `},
 	{ID: "chkdsk", Name: "Controllo errori del disco", Desc: "Controlla il disco di sistema mentre usi il PC. Se trova errori gravi te lo dice; la riparazione al riavvio la prenota solo se avvii il controllo da solo o da Risolvi un problema, mai dentro una pulizia.", Level: 4, Minutes: 4, Timeout: 60 * time.Minute, Script: `
 if (Skip-AutoOnBattery) { return }
-Say ('Controllo il disco ' + $env:SystemDrive + '...')
-$dl = $env:SystemDrive.TrimEnd(':')
+Say ('Controllo il disco ' + $TassoSysDrive + '...')
+$dl = $TassoSysDrive.TrimEnd(':')
 $r = $null
 try { $r = Repair-Volume -DriveLetter $dl -Scan -ErrorAction Stop } catch { Say 'Il controllo del disco non è riuscito adesso (forse Windows sta già controllando il disco). Riprova più tardi.'; return }
 switch ([string]$r) {
@@ -538,7 +593,7 @@ switch ([string]$r) {
     Say 'ATTENZIONE: il disco ha errori che si riparano solo al riavvio. Prima di tutto fai una copia dei tuoi file importanti (chiavetta, disco esterno o OneDrive).'
     if ($TassoAuto -or -not $TassoSingle) { Say 'Non prenoto la riparazione dentro una pulizia: prima fai il backup, poi avvia da solo "Controllo errori del disco".'; return }
     $sched = $false; try { [void](Repair-Volume -DriveLetter $dl -OfflineScanAndFix -ErrorAction Stop); $sched = $true } catch {}
-    if ($sched) { Say ('Ho prenotato la riparazione: Windows la fa al prossimo riavvio (può metterci qualche minuto, non spegnere il PC). Se vuoi annullarla per fare prima il backup, nel Prompt dei comandi come amministratore scrivi: chkntfs /x ' + $env:SystemDrive); [Console]::Out.WriteLine('REBOOT') }
+    if ($sched) { Say ('Ho prenotato la riparazione: Windows la fa al prossimo riavvio (può metterci qualche minuto, non spegnere il PC). Se vuoi annullarla per fare prima il backup, nel Prompt dei comandi come amministratore scrivi: chkntfs /x ' + $TassoSysDrive); [Console]::Out.WriteLine('REBOOT') }
     else { Say ('Non sono riuscito a prenotare la riparazione. Dopo il backup, apri il Prompt dei comandi come amministratore e scrivi: chkdsk ' + $dl + ': /f') }
   }
   default { Say ('Controllo finito (risultato: ' + $r + ').') }
@@ -664,7 +719,7 @@ Say 'Per completare il ripristino serve un riavvio.'
 	{ID: "fix_print", Name: "Risolvi problemi di stampa", Desc: "Riavvia il servizio di stampa (spooler) e svuota la coda bloccata. Utile quando la stampante non stampa.", Level: 0, Minutes: 0.3, Timeout: 3 * time.Minute, Script: `
 Say 'Fermo il servizio di stampa...'
 Stop-Service -Name Spooler -Force -ErrorAction SilentlyContinue
-$q = Join-Path $env:windir 'System32\spool\PRINTERS'
+$q = Join-Path $TassoWin 'System32\spool\PRINTERS'
 if (Test-Path -LiteralPath $q) { Get-ChildItem -LiteralPath $q -Force -ErrorAction SilentlyContinue | ForEach-Object { Remove-Item -LiteralPath $_.FullName -Force -ErrorAction SilentlyContinue }; Say 'Coda di stampa svuotata.' }
 Start-Service -Name Spooler -ErrorAction SilentlyContinue
 Say 'Servizio di stampa riavviato. Riprova a stampare.'
@@ -690,8 +745,8 @@ Say 'Fatto: ricerca e menu Start riavviati (si ricaricano da soli in qualche sec
 $svcs = @('wuauserv', 'bits', 'cryptsvc', 'msiserver')
 Say 'Fermo i servizi di Windows Update...'
 foreach ($s in $svcs) { Stop-Service -Name $s -Force -ErrorAction SilentlyContinue }
-$sd = Join-Path $env:windir 'SoftwareDistribution'
-$cr = Join-Path $env:windir 'System32\catroot2'
+$sd = Join-Path $TassoWin 'SoftwareDistribution'
+$cr = Join-Path $TassoWin 'System32\catroot2'
 $wuFail = $false
 foreach ($p in @($sd, $cr)) {
   $old = $p + '.old'
@@ -711,12 +766,12 @@ else { Say 'Windows Update ripristinato: riprova ad aggiornare da Impostazioni >
 `},
 	{ID: "wipe_free", Name: "Cancella lo spazio libero", Desc: "Sovrascrive lo spazio libero del disco così i file già cancellati non si recuperano più. Può durare ore.", Level: 0, Minutes: 90, Timeout: 8 * time.Hour, Script: `
 $ssd = $false
-try { $pn = (Get-Partition -DriveLetter ($env:SystemDrive.TrimEnd(':')) -ErrorAction Stop | Get-Disk -ErrorAction Stop).Number; $ssd = [string](Get-PhysicalDisk -ErrorAction Stop | Where-Object { [string]$_.DeviceId -eq [string]$pn } | Select-Object -First 1).MediaType -eq 'SSD' } catch {}
+try { $pn = (Get-Partition -DriveLetter ($TassoSysDrive.TrimEnd(':')) -ErrorAction Stop | Get-Disk -ErrorAction Stop).Number; $ssd = [string](Get-PhysicalDisk -ErrorAction Stop | Where-Object { [string]$_.DeviceId -eq [string]$pn } | Select-Object -First 1).MediaType -eq 'SSD' } catch {}
 if ($ssd) { Say 'Nota onesta: il tuo disco è un SSD. Sugli SSD Windows cancella già i file per davvero da solo (TRIM), quindi questo passaggio serve poco e consuma un po'' il disco. Lo faccio lo stesso, visto che l''hai chiesto.' }
-Say ('Sovrascrivo lo spazio libero di ' + $env:SystemDrive + ' (può durare molto, puoi usare il PC nel frattempo)...')
-$code = Run-Hidden 'cipher.exe' ('/w:' + $env:SystemDrive + '\')
+Say ('Sovrascrivo lo spazio libero di ' + $TassoSysDrive + ' (può durare molto, puoi usare il PC nel frattempo)...')
+$code = Run-Hidden 'cipher.exe' ('/w:' + $TassoSysDrive + '\')
 # Se cipher si ferma a metà lascia una cartella enorme: la tolgo sempre.
-Remove-Safe (Join-Path ($env:SystemDrive + '\') 'EFSTMPWP')
+Remove-Safe (Join-Path ($TassoSysDrive + '\') 'EFSTMPWP')
 if ($code -eq 0) { Say 'Fatto: i file cancellati in passato non sono più recuperabili.' } else { Say ('Terminato con codice ' + $code) }
 `},
 	{ID: "recover", Name: "Recupera file cancellati", Desc: "Apre il Cestino e lo strumento gratuito di Microsoft per recuperare foto e documenti cancellati.", Level: 0, Minutes: 1, Timeout: 20 * time.Minute, Script: `
@@ -730,7 +785,7 @@ if (-not $w) {
     [void](Run-Hidden $wg.Source 'install --id 9N26S50LN705 --source msstore --accept-source-agreements --accept-package-agreements --silent')
   }
 }
-Start-Process -FilePath "$env:SystemRoot\explorer.exe" -ArgumentList 'https://support.microsoft.com/it-it/windows/recuperare-file-persi-in-windows-10-61f5b28a-f5b8-3cc2-0f8e-a63cb4e1d4c4'
+Start-Process -FilePath "$TassoWin\explorer.exe" -ArgumentList 'https://support.microsoft.com/it-it/windows/recuperare-file-persi-in-windows-10-61f5b28a-f5b8-3cc2-0f8e-a63cb4e1d4c4'
 Say 'Ho aperto la guida ufficiale Microsoft: spiega passo passo come recuperare i file.'
 Say 'Consiglio: non salvare nuovi file sul disco finché non hai recuperato quelli che ti servono.'
 `},
@@ -765,9 +820,9 @@ Say 'Impostazioni di privacy rimesse come di fabbrica.'
 
 const analyzeScript = `
 $junk = [long]0
-$junk += Get-FolderSize $env:TEMP
-$junk += Get-FolderSize (Join-Path $env:windir 'Temp')
-$junk += Get-FolderSize (Join-Path $env:windir 'SoftwareDistribution\Download')
+$junk += Get-FolderSize $TassoTempUtente
+$junk += Get-FolderSize (Join-Path $TassoWin 'Temp')
+$junk += Get-FolderSize (Join-Path $TassoWin 'SoftwareDistribution\Download')
 # Le cache della scheda video (shader) non si contano: nessun livello di pulizia le toglie (solo il passaggio a mano gpu_cache).
 foreach ($b in $BrowserRoots) {
   if (-not (Test-Path -LiteralPath $b.Root)) { continue }
@@ -778,9 +833,9 @@ foreach ($b in $BrowserRoots) {
 $rb = [long]0
 try { $s = ((New-Object -ComObject Shell.Application).Namespace(0xA).Items() | Measure-Object -Property Size -Sum).Sum; if ($s) { $rb = [long]$s } } catch {}
 $junk += $rb
-foreach ($p in @((Join-Path ($env:SystemDrive + '\') 'AMD'), (Join-Path ($env:SystemDrive + '\') 'NVIDIA'), (Join-Path $env:ProgramData 'NVIDIA Corporation\Downloader'))) { $junk += Get-FolderSize $p }
+foreach ($p in @((Join-Path ($TassoSysDrive + '\') 'AMD'), (Join-Path ($TassoSysDrive + '\') 'NVIDIA'), (Join-Path $env:ProgramData 'NVIDIA Corporation\Downloader'))) { $junk += Get-FolderSize $p }
 # LiveKernelReports: la pulizia toglie solo i rapporti più vecchi di 3 giorni, quindi conto solo quelli.
-try { $old = (Get-Date).AddHours(-72); $junk += [long](@(Get-ChildItem -LiteralPath (Join-Path $env:windir 'LiveKernelReports') -Recurse -File -Force -ErrorAction SilentlyContinue | Where-Object { $_.LastWriteTime -lt $old }) | Measure-Object Length -Sum).Sum } catch {}
+try { $old = (Get-Date).AddHours(-72); $junk += [long](@(Get-ChildItem -LiteralPath (Join-Path $TassoWin 'LiveKernelReports') -Recurse -File -Force -ErrorAction SilentlyContinue | Where-Object { $_.LastWriteTime -lt $old }) | Measure-Object Length -Sum).Sum } catch {}
 $startup = @(Get-TassoStartup | Where-Object { $_.enabled }).Count
 $badDev = @(Get-CimInstance Win32_PnPEntity -ErrorAction SilentlyContinue | Where-Object { $_.ConfigManagerErrorCode -ne 0 -and $_.ConfigManagerErrorCode -ne 22 -and $_.ConfigManagerErrorCode -ne 45 }).Count
 $diskWarn = @(Get-PhysicalDisk -ErrorAction SilentlyContinue | Where-Object { [string]$_.HealthStatus -ne 'Healthy' }).Count

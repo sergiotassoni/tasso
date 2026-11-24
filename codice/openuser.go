@@ -10,7 +10,8 @@ import (
 	"time"
 )
 
-func explorerExe() string { return filepath.Join(os.Getenv("SystemRoot"), "explorer.exe") }
+// explorerExe: Esplora file dalla vera cartella di Windows (chiesta a Windows, non presa da SystemRoot).
+func explorerExe() string { return filepath.Join(winDir(), "explorer.exe") }
 
 // isWebURL: indirizzi che si possono aprire con il browser (o con il launcher del gioco).
 func isWebURL(u string) bool {

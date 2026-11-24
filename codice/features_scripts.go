@@ -135,14 +135,21 @@ if ($cmd -match '(?i)msiexec') {
   if ($m.Success) { $file = $m.Groups[1].Value; $a2 = $m.Groups[2].Value.Trim() } else { $file = $cmd }
 }
 $t0 = Get-Date
-$tempLong = $env:TEMP; try { $tempLong = (Get-Item -LiteralPath $env:TEMP -ErrorAction Stop).FullName } catch {}
+# Cartelle temporanee dove i disinstallatori fanno la copia di sé: quella di Tasso ($env:TEMP, per quelli
+# avviati da amministratore) e quella vera dell'utente (per quelli avviati come utente normale).
+$tempDirs = @()
+foreach ($td in @($env:TEMP, $TassoTempUtente)) {
+  if (-not $td) { continue }
+  $tempDirs += $td.TrimEnd('\') + '\'
+  try { $tempDirs += (Get-Item -LiteralPath $td -ErrorAction Stop).FullName.TrimEnd('\') + '\' } catch {}
+}
 # Programma installato solo per il tuo utente (HKCU): il suo disinstallatore lo può cambiare qualunque
 # programma che gira col tuo account, quindi parte come utente normale, mai da amministratore.
 $asUser = ([string]$A.key) -match '(?i)^HKEY_CURRENT_USER\\'
 try {
   if ($asUser) {
     $exe = [Environment]::ExpandEnvironmentVariables($file).Trim('"')
-    if ($exe -notmatch '^[A-Za-z]:\\') { $exe = Join-Path $env:SystemRoot ('System32\' + $exe) }
+    if ($exe -notmatch '^[A-Za-z]:\\') { $exe = Join-Path $TassoSys32 $exe }
     if (-not (Start-AsUser $exe $a2)) { Say ('Non riesco ad avviare il programma di disinstallazione: ' + $exe); return }
     # Start-AsUser non restituisce il processo: aspetto finché quel programma resta aperto (al massimo un'ora).
     $end = $t0.AddHours(1); $seen = $false; $w = 0
@@ -167,7 +174,8 @@ while ((Test-Path -LiteralPath $kp) -and $t -lt 900 -and $idle -lt 45) {
   Start-Sleep -Seconds 2; $t++
   $helpers = @(Get-Process -ErrorAction SilentlyContinue | Where-Object {
     $st = $null; try { $st = $_.StartTime } catch {}
-    $st -and $st -ge $t0 -and ("$($_.Path)" -like ($env:TEMP + '*') -or "$($_.Path)" -like ($tempLong + '*') -or $_.ProcessName -match '(?i)uninst|^au_$|^un_|^unins|^_iu')
+    $pp = "$($_.Path)"
+    $st -and $st -ge $t0 -and (@($tempDirs | Where-Object { $pp.StartsWith($_, [StringComparison]::OrdinalIgnoreCase) }).Count -gt 0 -or $_.ProcessName -match '(?i)uninst|^au_$|^un_|^unins|^_iu')
   })
   if ($helpers.Count -gt 0) { $idle = 0 } else { $idle++ }
 }
@@ -422,7 +430,7 @@ try { [void][IO.Directory]::CreateDirectory($dir) } catch {}
 $safe = (([string]$p.DisplayName + '_' + ($k -replace '^.*\\', '')) -replace '[^A-Za-z0-9]+', '_').Trim('_'); if ($safe.Length -gt 80) { $safe = $safe.Substring(0, 80) }
 $bak = Join-Path $dir ('programma_tolto_' + (Get-Date -Format 'yyyyMMdd_HHmmss') + '_' + $safe + '.reg')
 $rc = 1
-try { & (Join-Path $env:SystemRoot 'System32\reg.exe') export $k $bak /y 2>$null | Out-Null; $rc = $LASTEXITCODE } catch {}
+try { & (Join-Path $TassoSys32 'reg.exe') export $k $bak /y 2>$null | Out-Null; $rc = $LASTEXITCODE } catch {}
 if ($rc -ne 0 -or -not (Test-Path -LiteralPath $bak) -or (Get-Item -LiteralPath $bak).Length -lt 20) { Say 'Non l''ho tolto: non sono riuscito a farne una copia di sicurezza.'; [Console]::Out.WriteLine('JSON {"ok":false}'); return }
 try { Remove-Item -LiteralPath $kp -Recurse -Force -ErrorAction Stop; Say ('Tolto dall''elenco: ' + [string]$p.DisplayName + '. La copia di sicurezza è nella cartella backup di Tasso.'); [Console]::Out.WriteLine('JSON {"ok":true}') }
 catch { Say 'Non sono riuscito a toglierlo dall''elenco.'; [Console]::Out.WriteLine('JSON {"ok":false}') }

@@ -92,6 +92,13 @@ func togliTasso(rimetti bool, passo func(int, string)) string {
 	autoClickStop()
 	boostOff(true) // come "Rimetti com'era" del Boost (se non era acceso non fa niente)
 	officeSpegniTutto()
+	// Se la Modalità riunione o il blocco dell'Ufficio sono ancora accesi, le loro impostazioni di
+	// prima stanno in quei file: cancellando le cartelle non si potrebbero più rimettere. Mi fermo qui.
+	for _, n := range []string{"riunione.json", "blocco.json"} {
+		if _, err := os.Stat(filepath.Join(officeDir(), n)); err == nil {
+			return "Non sono riuscito a spegnere la Modalità riunione o il blocco del PC dell'Ufficio: spegnili dalla sezione Ufficio di Tasso e riprova. Tasso non è stato tolto."
+		}
+	}
 
 	// 2. traduzioni dentro i giochi: se un gioco è aperto mi fermo qui
 	tolti, falliti := traduce.TogliTutteLeTraduzioni()

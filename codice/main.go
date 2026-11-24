@@ -94,6 +94,9 @@ func main() {
 	appDir = filepath.Join(os.Getenv("LOCALAPPDATA"), "Tasso")
 	_ = os.MkdirAll(filepath.Join(appDir, "logs"), 0o755)
 	startCrashLog()
+	if cartelleVere.TempTassoNota != "" {
+		scriviAvvio(cartelleVere.TempTassoNota) // ambiente.go: temporanei non in Programmi\Tasso\lavoro\tmp
+	}
 	webview2.PanicHook = logPanic
 	loadSettings()
 	go officeGuardia()
@@ -157,6 +160,11 @@ func main() {
 	// girano in un filo a parte, così la finestra non si blocca mai (vedi third_party/go-webview2).
 	for _, n := range []string{"goPickFiles", "goFeedbackPhoto", "goAddGame"} {
 		webview2.SuFinestra[n] = true
+	}
+	// Chiamate veloci di sola lettura (e "Ferma"): partono subito, senza aspettare in coda dietro un
+	// lavoro lento, così il tasto Ferma funziona sempre e i numeri dal vivo non si bloccano.
+	for _, n := range []string{"goCancel", "goIsRunning", "goLive", "goHwWatch"} {
+		webview2.Subito[n] = true
 	}
 	bindAll(w)
 	_ = w.Bind("goPronto", func() string { scriviAvvio("pagina pronta"); return "ok" })
@@ -251,7 +259,11 @@ var dllSafe bool
 //   - le DLL si caricano solo da System32, mai dalla cartella di Tasso.exe (es. Download), dove
 //     qualcuno potrebbe aver messo una DLL falsa;
 //   - le variabili WEBVIEW2_* dell'utente (cambiabili senza permessi) potrebbero aprire la finestra
-//     di Tasso ad altri programmi o farle usare un browser finto: le tolgo prima di aprirla.
+//     di Tasso ad altri programmi o farle usare un browser finto: le tolgo prima di aprirla;
+//   - le altre variabili importanti (TEMP, SystemRoot, PSModulePath, COR_*...) tornano ai valori
+//     veri chiesti a Windows, per Tasso e per tutti i programmi che fa partire (ambiente.go).
+//
+// Va chiamata per prima in main, prima di qualsiasi goroutine.
 func hardenProcess() {
 	dllSafe = windows.SetDefaultDllDirectories(windows.LOAD_LIBRARY_SEARCH_SYSTEM32) == nil
 	for _, kv := range os.Environ() {
@@ -259,6 +271,7 @@ func hardenProcess() {
 			_ = os.Unsetenv(kv[:i])
 		}
 	}
+	ambientePulito()
 }
 
 // startCrashLog: se Tasso si chiude per un errore grave, Go scrive il motivo in logs\crash.txt
