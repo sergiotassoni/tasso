@@ -913,6 +913,7 @@ $cs = Get-CimInstance Win32_ComputerSystem -ErrorAction SilentlyContinue
 $aad = ((dsregcmd.exe /status 2>$null) -join [char]10) -match 'AzureAdJoined\s*:\s*YES'
 $who = [Security.Principal.WindowsIdentity]::GetCurrent().Name
 $isDom = $cs.PartOfDomain -and ($who -split '\\')[0] -ne $env:COMPUTERNAME
+$cambia = $isDom -or $aad
 if ($isDom) {
   $o = @(net.exe user $env:USERNAME /domain 2>$null)
   $line = @($o | Where-Object { $_ -match '^(Scadenza password|Password expires)' })
@@ -925,10 +926,10 @@ if ($isDom) {
   $u = Get-LocalUser -Name $env:USERNAME -ErrorAction SilentlyContinue
   if ($u -and [string]$u.PrincipalSource -eq 'MicrosoftAccount') { Say 'Entri con un account Microsoft: la password non scade. Si cambia su account.microsoft.com > Sicurezza.'; Say 'Consiglio: usa il PIN per entrare in Windows (più comodo e sicuro): Impostazioni > Account > Opzioni di accesso.' }
   elseif ($u) {
-    if ($u.PasswordExpires) { Say ('La password del tuo account scade il ' + $u.PasswordExpires.ToString('dd/MM/yyyy') + '. Per cambiarla: Ctrl + Alt + Canc > Cambia password.') } else { Say 'La password del tuo account di Windows non scade.' }
+    if ($u.PasswordExpires) { $cambia = $true; Say ('La password del tuo account scade il ' + $u.PasswordExpires.ToString('dd/MM/yyyy') + '. Per cambiarla: Ctrl + Alt + Canc > Cambia password.') } else { Say 'La password del tuo account di Windows non scade.' }
   } else { Say 'Non riesco a leggere i dati del tuo account.' }
 }
-Say 'Dopo averla cambiata, aggiorna la password salvata anche sul telefono (posta) e in Outlook se te la chiede: usa "Outlook chiede sempre la password".'
+if ($cambia) { Say 'Dopo averla cambiata, aggiorna la password salvata anche sul telefono (posta) e in Outlook se te la chiede: usa "Outlook chiede sempre la password".' }
 `)},
 	{ID: "of_bitlocker", Name: "Il PC chiede la chiave di ripristino BitLocker", Desc: "Controlla se i dischi sono protetti con BitLocker e ti dice dove trovare la chiave di ripristino (account Microsoft o dell'ufficio) prima che serva. Tasso non mostra né salva la chiave. Controlla e spiega.", Level: 0, Minutes: 0.2, Timeout: 2 * time.Minute, Script: ofs2(`
 if (-not (Get-Command Get-BitLockerVolume -ErrorAction SilentlyContinue)) { $o = (manage-bde.exe -status 2>$null) -join [char]10; if ($o -match '(?i)(Crittografia completata|Fully Encrypted|Crittografia in corso|Encryption in Progress)') { Say 'Almeno un disco è cifrato con BitLocker.' } else { Say 'Non riesco a controllare BitLocker su questa versione di Windows (Home senza BitLocker non cifra i dischi).' }; Say 'La chiave di ripristino è su aka.ms/myrecoverykey (account Microsoft) o la ha l''assistenza (PC dell''ufficio).'; return }

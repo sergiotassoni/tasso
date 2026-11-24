@@ -60,6 +60,14 @@ func init() {
 			}
 			m0, ok := mouseGet()
 			fmt.Fprintf(f, "prima: mouse %v (letto %v), registro %s, boost.mouse %v\n", m0, ok, reg(), mouseAccelActive())
+			originale := m0
+			if ok && m0[2] == 0 {
+				// accelerazione spenta: la accendo solo per questa sessione (niente registro) per
+				// provare il caso vero, e alla fine la rimetto spenta
+				mouseSet([3]int32{6, 10, 1})
+				m0, _ = mouseGet()
+				fmt.Fprintf(f, "accesa per la prova (solo sessione): mouse %v, registro %s\n", m0, reg())
+			}
 			fmt.Fprintf(f, "spengo per cs2: %q\n", mouseAccelOff("cs2"))
 			m1, _ := mouseGet()
 			fmt.Fprintf(f, "durante: mouse %v, registro %s, boost.mouse %v\n", m1, reg(), mouseAccelActive())
@@ -68,6 +76,11 @@ func init() {
 			m2, _ := mouseGet()
 			fmt.Fprintf(f, "dopo: mouse %v, registro %s, boost.mouse %v\n", m2, reg(), mouseAccelActive())
 			fmt.Fprintf(f, "esito: %v\n", m2 == m0 && !mouseAccelActive())
+			if originale != m2 {
+				mouseSet(originale)
+				m3, _ := mouseGet()
+				fmt.Fprintf(f, "rimesso come all'inizio: mouse %v, registro %s\n", m3, reg())
+			}
 			f.Close()
 			os.Exit(0)
 		}
