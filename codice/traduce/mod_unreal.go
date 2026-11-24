@@ -128,6 +128,28 @@ func GiocoHaLingua(paks, lingua string) bool {
 	return false
 }
 
+// lingueUfficialiNote: giochi che hanno la lingua nei loro file ma non nei .locres di Unreal
+// (testi in tabelle interne), quindi GiocoHaLingua non la vede. Dalla pagina Steam del gioco.
+// Palworld (24/11): italiano ufficiale per interfaccia e sottotitoli, testi dentro il pak da 39 GB.
+var lingueUfficialiNote = map[string][]string{
+	"palworld": {"it", "fr", "de", "es", "pt", "ru", "ja", "ko", "zh", "zt", "pl", "tr", "vi", "th", "id"},
+}
+
+// LinguaUfficialeNota: il gioco in questa cartella ha di sicuro la lingua (elenco qui sopra).
+func LinguaUfficialeNota(cartella, lingua string) bool {
+	n := nomePiatto(filepath.Base(cartella))
+	for g, l := range lingueUfficialiNote {
+		if n == g {
+			for _, x := range l {
+				if x == lingua {
+					return true
+				}
+			}
+		}
+	}
+	return false
+}
+
 // cartellaLinguaNelPak: il nome esatto della cartella della lingua nei pak (es. "ko", "zh-Hans").
 func cartellaLinguaNelPak(paks, lingua string) (string, bool) {
 	for _, pp := range pakOriginali(paks) {

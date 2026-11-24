@@ -170,7 +170,8 @@ func InfoGioco(nome, piattaforma, cartella, avvio string) map[string]any {
 		"anticheat":   ConAntiCheat(GiocoRiconosciuto{Nome: nome, Piattaforma: piattaforma, Cartella: cartella}),
 		// lingua scelta in Steam per il gioco, e se Windows su questo PC la sa leggere: la
 		// procedura lo dice PRIMA di partire, invece di scoprirlo nel gioco
-		"lingua_steam":    lst,
-		"lingua_steam_ok": lstOK,
+		"lingua_steam":     lst,
+		"lingue_ufficiali": lingueUfficialiNote[nomePiatto(filepath.Base(cartella))],
+		"lingua_steam_ok":  lstOK,
 	}
 }
