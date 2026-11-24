@@ -25,6 +25,9 @@ type impostazioni struct {
 	Lingua  string `json:"lingua,omitempty"`  // scelta dall'utente in alto nella finestra ("" = automatica)
 	Formato string `json:"formato,omitempty"` // "7z", "zip", "tarzst" (o il vecchio "tarxz")
 	Livello string `json:"livello,omitempty"` // 7z: "veloce", "normale", "massima", "ultra"
+	// Esplora: l'ultima cartella aperta nella vista "Esplora i file"; Nascosti: mostra i file nascosti.
+	Esplora  string `json:"esplora,omitempty"`
+	Nascosti bool   `json:"nascosti,omitempty"`
 }
 
 var (

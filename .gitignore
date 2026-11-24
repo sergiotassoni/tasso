@@ -1,3 +1,4 @@
 # l'exe compilato non va nel codice (si rifà con compila.sh)
 /dist/
 *.exe
+prove/_pagina.html

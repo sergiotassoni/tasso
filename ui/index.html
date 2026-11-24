@@ -164,6 +164,146 @@ body.mini .grande svg{width:28px;height:28px}
 body.mini .centro{padding-top:6px}
 body.mini .percorso{font-size:12px;padding:8px 10px}
 footer .sep{width:1px;height:28px;background:var(--line);margin:0 6px}
+/* schede della schermata iniziale illuminate mentre trascini */
+.card{transition:border-color .2s,background-color .2s,transform .22s cubic-bezier(.2,.8,.3,1.2),box-shadow .22s,opacity .2s}
+.card .lascia{position:absolute;left:26px;right:26px;bottom:26px;min-height:46px;display:none;align-items:center;justify-content:center;gap:10px;border-radius:12px;border:2px dashed var(--line);color:var(--soft);font-family:var(--display);font-weight:700;font-size:15px}
+body.trascino .card .row{visibility:hidden}
+body.trascino .card .lascia{display:flex}
+body.trascino .card{border-style:dashed}
+body.trascino .card:not(.accesa){opacity:.62}
+body.trascino .card.accesa{border-style:solid}
+.card.c.accesa{--k:var(--a3)}.card.e.accesa{--k:var(--a1)}
+.card.accesa{border:1.5px solid var(--k);background:color-mix(in srgb,var(--k) 11%,var(--panel));transform:translateY(-4px) scale(1.012);box-shadow:0 0 0 4px color-mix(in srgb,var(--k) 20%,transparent),0 22px 60px -18px color-mix(in srgb,var(--k) 60%,transparent)}
+.card.accesa .glow{opacity:.8;animation:respiro 1.6s ease-in-out infinite}
+.card.accesa .ico{background:color-mix(in srgb,var(--k) 26%,var(--panel));animation:salto 1s ease-in-out infinite}
+.card.accesa .lascia{border-style:solid;border-color:var(--k);background:var(--k);color:#04101C}
+@keyframes respiro{0%,100%{transform:scale(1)}50%{transform:scale(1.18)}}
+@keyframes salto{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+@media (prefers-reduced-motion:reduce){.card.accesa,.card.accesa .glow,.card.accesa .ico{animation:none;transform:none}}
+/* due strumenti in più nella schermata iniziale */
+.tile{display:flex;gap:14px;align-items:center;text-align:left;background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:14px 18px;transition:border-color .15s,background .15s}
+.tile:hover{border-color:color-mix(in srgb,var(--a4) 55%,var(--line));background:var(--hover)}
+.tile .ti{width:46px;height:46px;border-radius:13px;background:color-mix(in srgb,var(--a4) 15%,var(--panel));display:grid;place-items:center;flex:none}
+.tile b{display:block;font-family:var(--display);font-size:16px;margin-bottom:3px}
+.tile span{color:var(--muted);font-size:13px;line-height:1.4}
+.tile .fr{margin-left:auto;color:var(--muted);font-size:20px}
+/* vista Esplora */
+main.pieno{padding:14px 18px 12px;overflow:hidden}
+main.pieno .view.on{height:100%}
+#v-esplora{max-width:none;gap:10px}
+.attrezzi{display:flex;gap:2px;align-items:stretch;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:5px;overflow-x:auto;flex:none}
+.attrezzi::-webkit-scrollbar{height:6px}.attrezzi::-webkit-scrollbar-thumb{background:var(--line);border-radius:6px}
+.attrezzi button{border:0;background:transparent;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;padding:7px 8px;border-radius:11px;min-width:74px;color:var(--soft);font-size:12.5px;font-weight:600;white-space:nowrap;transition:background .12s,color .12s}
+.attrezzi button svg{width:26px;height:26px;stroke:var(--a4);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.attrezzi button.rischio svg{stroke:var(--red)}
+.attrezzi button:hover:not(:disabled){background:var(--hover);color:var(--text)}
+.attrezzi button:disabled{opacity:.33;cursor:default}
+.attrezzi .sep{width:1px;background:var(--line);margin:8px 5px;flex:none}
+.attrezzi .spazio{flex:1}
+.indirizzo{display:flex;gap:8px;align-items:center;flex:none}
+.tondo{width:40px;height:40px;border-radius:11px;border:1px solid var(--line);background:var(--panel2);display:grid;place-items:center;flex:none;padding:0}
+.tondo:hover:not(:disabled){background:var(--hover)}
+.tondo:disabled{opacity:.35;cursor:default}
+.tondo svg{width:19px;height:19px;stroke:var(--soft);fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.campo-ico{position:relative;display:flex;align-items:center}
+.campo-ico svg{position:absolute;left:12px;width:16px;height:16px;stroke:var(--muted);fill:none;stroke-width:2.2;pointer-events:none}
+#x-indirizzo{flex:1;min-height:40px;padding:7px 12px 7px 38px;font-size:14px;border-radius:11px}
+#x-trova{width:250px;min-height:40px;padding:7px 12px 7px 36px;font-size:14px;border-radius:11px}
+.esp-corpo{flex:1;min-height:0;display:grid;grid-template-columns:188px minmax(0,1fr);gap:10px}
+.luoghi{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:6px;overflow-y:auto}
+.luoghi h3{font-size:11px;letter-spacing:.7px;text-transform:uppercase;color:var(--muted);margin:10px 9px 5px;font-weight:700}
+.luoghi h3:first-child{margin-top:4px}
+.luoghi button{display:flex;align-items:center;gap:9px;width:100%;border:0;background:transparent;padding:7px 9px;border-radius:9px;text-align:left;color:var(--soft);font-size:13.5px;min-width:0}
+.luoghi button span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.luoghi button small{color:var(--muted);font-size:11.5px;margin-left:auto;flex:none}
+.luoghi button:hover{background:var(--hover);color:var(--text)}
+.luoghi button.on{background:color-mix(in srgb,var(--a4) 14%,var(--panel));color:var(--text)}
+.luoghi svg{width:17px;height:17px;flex:none}
+.esp-lista{display:flex;flex-direction:column;min-height:0;gap:8px}
+.tab.esp{flex:1;min-height:0}
+.tab.esp .rg{grid-template-columns:minmax(0,1fr) 104px 150px 142px;gap:10px;padding:0 14px}
+.tab.esp .corpo{flex:1;max-height:none;outline:none}
+.tab.esp .r{min-height:34px}
+.tab.esp .r.sel{background:color-mix(in srgb,var(--a4) 15%,var(--panel))}
+.tab.esp .r.sel.fuoco{box-shadow:inset 3px 0 0 var(--a4)}
+.tab.esp .tp{color:var(--muted);font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tab.esp .r.nasc{opacity:.6}
+.th button .fr{margin-left:4px;font-size:10px;color:var(--a4)}
+.banner{display:flex;align-items:center;gap:12px;background:color-mix(in srgb,var(--a4) 9%,var(--panel));border:1px solid color-mix(in srgb,var(--a4) 35%,var(--line));border-radius:12px;padding:7px 8px 7px 14px;font-size:13.5px;color:var(--soft);flex:none}
+.banner b{color:var(--text)}
+.banner .btn{min-height:32px;padding:5px 12px;font-size:13px;margin-left:auto;border-radius:9px}
+.stato{display:flex;gap:16px;align-items:center;color:var(--muted);font-size:12.5px;padding:0 4px;flex:none;min-height:22px}
+.stato b{color:var(--soft);font-weight:600}
+.stato label{margin-left:auto;display:flex;align-items:center;gap:7px;cursor:pointer}
+.stato input{accent-color:var(--a4);margin:0}
+.giro{width:14px;height:14px;border:2px solid var(--line);border-top-color:var(--a4);border-radius:50%;animation:gira .8s linear infinite;display:inline-block;vertical-align:-2px}
+@keyframes gira{to{transform:rotate(360deg)}}
+/* menu del tasto destro nell'elenco */
+#ctx{position:fixed;z-index:80;background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:5px;min-width:220px;box-shadow:0 18px 44px rgba(0,0,0,.55);display:none}
+#ctx.on{display:block}
+#ctx button{display:flex;align-items:center;gap:10px;width:100%;border:0;background:transparent;padding:8px 10px;border-radius:8px;text-align:left;font-size:13.5px;color:var(--text)}
+#ctx button:hover:not(:disabled){background:var(--hover)}
+#ctx button:disabled{opacity:.35;cursor:default}
+#ctx button svg{width:17px;height:17px;stroke:var(--a4);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
+#ctx button.rischio svg{stroke:var(--red)}
+#ctx hr{border:0;border-top:1px solid var(--line);margin:4px 6px}
+/* finestra Info */
+.dati{display:grid;grid-template-columns:auto 1fr;gap:7px 18px;font-size:14px;margin:0}
+.dati dt{color:var(--muted)}
+.dati dd{margin:0;color:var(--text);word-break:break-all;user-select:text}
+#modale .box{min-width:min(440px,90vw)}
+#m-ico{width:52px;height:52px;border-radius:15px;display:none;place-items:center}
+#m-ico.on{display:grid}
+#m-ico.ok{background:color-mix(in srgb,var(--a1) 16%,var(--panel))}
+#m-ico.ko{background:color-mix(in srgb,var(--red) 16%,var(--panel))}
+#m-ico.am{background:color-mix(in srgb,var(--a4) 16%,var(--panel))}
+.btn.ambra{background:var(--a4);color:#1A1206}
+.btn.ambra:hover{filter:brightness(1.07)}
+/* procedura guidata */
+#v-guida{gap:14px;max-width:940px}
+#v-guida h1{font-size:28px}
+.g-area{flex:1;min-height:0;overflow-y:auto;padding:2px 6px 4px 2px;margin-right:-6px}
+.g-area::-webkit-scrollbar{width:10px}.g-area::-webkit-scrollbar-thumb{background:var(--line);border-radius:10px;border:3px solid var(--bg)}
+.passi{display:flex;gap:8px}
+.passo{flex:1;display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:12px;background:var(--panel);border:1px solid var(--line);color:var(--muted);font-weight:600;font-size:13.5px;min-width:0}
+.passo span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.passo i{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:var(--track);font-style:normal;font-weight:700;flex:none;font-size:13px}
+.passo.on{border-color:var(--a4);color:var(--text)}
+.passo.on i{background:var(--a4);color:#1A1206}
+.passo.fatto i{background:color-mix(in srgb,var(--a4) 30%,var(--panel));color:var(--text)}
+.g-passo{display:none;flex-direction:column;gap:16px}
+.g-passo.on{display:flex}
+.opzioni2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.opz{display:flex;gap:16px;align-items:flex-start;text-align:left;background:var(--panel);border:1.5px solid var(--line);border-radius:18px;padding:20px}
+.opz:hover{background:var(--hover)}
+.opz .ico{margin:0;width:54px;height:54px;flex:none}
+.opz b{display:block;font-family:var(--display);font-size:19px;margin-bottom:6px}
+.opz span{color:var(--muted);font-size:13.5px;line-height:1.5}
+.opz.c .ico{background:color-mix(in srgb,var(--a3) 18%,var(--panel))}
+.opz.e .ico{background:color-mix(in srgb,var(--a1) 15%,var(--panel))}
+.opz.c.on{border-color:var(--a3);background:color-mix(in srgb,var(--a3) 10%,var(--panel))}
+.opz.e.on{border-color:var(--a1);background:color-mix(in srgb,var(--a1) 9%,var(--panel))}
+.zona-drop{border:2px dashed var(--line);border-radius:18px;padding:18px 20px;display:flex;align-items:center;gap:16px;transition:border-color .15s,background .15s}
+.zona-drop.sopra{border-color:var(--a4);background:color-mix(in srgb,var(--a4) 8%,transparent)}
+.zona-drop p{margin:0;color:var(--soft);flex:1;line-height:1.5}
+.zona-drop svg{flex:none}
+#g-lista{max-height:220px}
+.g-vuota{color:var(--muted);text-align:center;padding:16px;border:1px solid var(--line);border-radius:12px;background:var(--panel)}
+.formati.g{grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:8px}
+.formati.g .fmt{padding:9px 12px;gap:10px}
+.formati.g .fmt b{font-size:14.5px;margin-bottom:2px}
+.formati.g .fmt span{font-size:12.5px}
+.scelte{display:flex;flex-direction:column;gap:8px}
+.scelta{display:flex;align-items:center;gap:10px;color:var(--soft);cursor:pointer;font-size:14.5px}
+.scelta input{accent-color:var(--a4);width:17px;height:17px;margin:0}
+.scelta .dove{flex:1;min-width:0}
+.riga2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.g-nota{color:var(--muted);font-size:13px;line-height:1.5;display:flex;gap:9px;align-items:flex-start}
+.g-nota svg{flex:none;margin-top:1px}
+select.sel{background:var(--panel2);color:inherit;border:1.5px solid var(--line);border-radius:10px;padding:7px 10px;font:inherit}
+.g-piede{display:flex;align-items:center;gap:10px;border-top:1px solid var(--line);padding-top:12px;flex:none}
+.g-piede .sp{flex:1}
+@media (max-height:780px){main{padding-top:22px}#v-home{gap:16px}#v-home h1{font-size:30px}#v-home .card{padding:22px 24px}#v-home .ico{width:54px;height:54px;margin-bottom:14px}#v-home .card h2{margin-bottom:8px}#v-home .card p{margin-bottom:18px}.card .lascia{left:24px;right:24px;bottom:22px}.tile{padding:10px 16px}.tile .ti{width:42px;height:42px}#v-home .nota{padding:11px 18px;font-size:13.5px}}
 @media (max-height:640px){main{padding-top:18px}h1{font-size:28px}.ico{width:52px;height:52px;margin-bottom:14px}.card{padding:20px}}
 </style>
 </head>
@@ -180,20 +320,26 @@ footer .sep{width:1px;height:28px;background:var(--line);margin:0 6px}
     <section class="view on" id="v-home">
       <div><h1 data-t="domanda"></h1><p class="sub" data-t="domanda_sub"></p></div>
       <div class="grid2">
-        <div class="card c">
+        <div class="card c" data-zona="comprimi">
           <div class="glow"></div>
           <div class="ico"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#4DA8FF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg></div>
           <h2 data-t="comprimi"></h2>
           <p data-t="comprimi_desc"></p>
           <div class="row"><button class="btn blu" id="b-file" data-t="scegli_file"></button><button class="btn ghost" id="b-cartella" data-t="scegli_cartella"></button></div>
+          <div class="lascia"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg><span data-t="lascia_comprimi"></span></div>
         </div>
-        <div class="card e">
+        <div class="card e" data-zona="estrai">
           <div class="glow"></div>
           <div class="ico"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#2FF3A6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3"/><path d="m7 8 5-5 5 5"/><path d="M5 21h14"/></svg></div>
           <h2 data-t="estrai"></h2>
           <p data-t="estrai_desc"></p>
           <div class="row"><button class="btn verde" id="b-archivio" data-t="scegli_archivio"></button><button class="btn ghost" id="b-guarda" data-t="guarda_dentro"></button></div>
+          <div class="lascia"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3"/><path d="m7 8 5-5 5 5"/><path d="M5 21h14"/></svg><span data-t="lascia_estrai"></span></div>
         </div>
+      </div>
+      <div class="grid2">
+        <button class="tile" id="b-esplora"><div class="ti"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#FFB547" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v3"/><path d="M3 7v10a2 2 0 0 0 2 2h6"/><circle cx="17" cy="16" r="3"/><path d="m21 20-1.8-1.8"/></svg></div><div><b data-t="esplora_titolo"></b><span data-t="esplora_desc"></span></div><i class="fr">›</i></button>
+        <button class="tile" id="b-guida"><div class="ti"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#FFB547" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="6" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="18" r="2"/><path d="M7 7.2 10.2 10.6"/><path d="m13.8 13.4 3.4 3.4"/></svg></div><div><b data-t="guida_titolo"></b><span data-t="guida_desc"></span></div><i class="fr">›</i></button>
       </div>
       <div class="nota"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#8B91A7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="m8 12 3 3 5-6"/></svg><span data-t="nota_sicurezza"></span></div>
     </section>
@@ -230,6 +376,94 @@ footer .sep{width:1px;height:28px;background:var(--line);margin:0 6px}
         <div class="corpo" id="a-corpo"></div>
       </div>
       <p class="sub piccolo" data-t="vista_aiuto"></p>
+    </section>
+
+    <!-- ESPLORA I FILE -->
+    <section class="view" id="v-esplora">
+      <div class="attrezzi" id="x-attrezzi">
+        <button id="x-comprimi" data-a="comprimi"><svg viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2.5"/><path d="M12 3v2M12 7v2M12 11v2"/><rect x="10" y="14" width="4" height="4" rx="1"/></svg><span data-t="x_comprimi"></span></button>
+        <button id="x-estrai" data-a="estrai"><svg viewBox="0 0 24 24"><path d="M3 8a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M12 11v6"/><path d="m9 14 3 3 3-3"/></svg><span data-t="x_estrai"></span></button>
+        <button id="x-verifica" data-a="verifica"><svg viewBox="0 0 24 24"><path d="M12 3 4.5 6v5.5c0 4.5 3.2 8.2 7.5 9.5 4.3-1.3 7.5-5 7.5-9.5V6z"/><path d="m8.5 12 2.5 2.5 4.5-5"/></svg><span data-t="x_verifica"></span></button>
+        <button id="x-apri" data-a="apri"><svg viewBox="0 0 24 24"><path d="M2.5 12S6 5 12 5s9.5 7 9.5 7-3.5 7-9.5 7-9.5-7-9.5-7z"/><circle cx="12" cy="12" r="3"/></svg><span data-t="x_apri"></span></button>
+        <button id="x-trova-b" data-a="trova"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/></svg><span data-t="x_trova"></span></button>
+        <button id="x-info" data-a="info"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6"/><path d="M12 7.5v.5"/></svg><span data-t="x_info"></span></button>
+        <button id="x-ripara" data-a="ripara"><svg viewBox="0 0 24 24"><path d="M14.5 6.5a4 4 0 0 0 5 5L21 13l-1.5 1.5-1.4-1.4"/><path d="M14.5 6.5 13 5l1.5-1.5L16 5a4 4 0 0 0-1.5 1.5z"/><path d="m13.5 10.5-9 9a1.6 1.6 0 0 1-2.2-2.2l9-9"/></svg><span data-t="x_ripara"></span></button>
+        <button id="x-elimina" data-a="elimina" class="rischio"><svg viewBox="0 0 24 24"><path d="M4 7h16"/><path d="M9 7V4.5h6V7"/><path d="M6 7l1 13h10l1-13"/><path d="M10 11v6M14 11v6"/></svg><span data-t="x_elimina"></span></button>
+        <span class="sep"></span>
+        <button id="x-guida" data-a="guida"><svg viewBox="0 0 24 24"><circle cx="5" cy="6" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="18" r="2"/><path d="M7 7.2 10.2 10.6"/><path d="m13.8 13.4 3.4 3.4"/></svg><span data-t="x_guida"></span></button>
+        <span class="spazio"></span>
+        <button id="x-casa" data-a="casa"><svg viewBox="0 0 24 24"><path d="m3 11 9-7 9 7"/><path d="M5 10v10h14V10"/></svg><span data-t="x_casa"></span></button>
+      </div>
+      <div class="indirizzo">
+        <button class="tondo" id="x-su" data-tt="x_su"><svg viewBox="0 0 24 24"><path d="M12 19V5"/><path d="m5 12 7-7 7 7"/></svg></button>
+        <button class="tondo" id="x-aggiorna" data-tt="x_aggiorna"><svg viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 5v6h-6"/></svg></button>
+        <div class="campo-ico" style="flex:1"><svg viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg><input type="text" id="x-indirizzo" spellcheck="false" autocomplete="off" style="width:100%"></div>
+        <div class="campo-ico"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/></svg><input type="text" id="x-trova" data-tp="x_trova_qui" spellcheck="false" autocomplete="off"></div>
+      </div>
+      <div class="esp-corpo">
+        <nav class="luoghi" id="x-luoghi"></nav>
+        <div class="esp-lista">
+          <div class="banner" id="x-banner" hidden><span id="x-banner-t"></span><button class="btn ghost" id="x-banner-b"></button></div>
+          <div class="tab esp">
+            <div class="rg th"><button data-o="nome"><span data-t="col_nome"></span><i class="fr"></i></button><button data-o="dim" style="text-align:right"><span data-t="col_dim"></span><i class="fr"></i></button><button data-o="tipo"><span data-t="col_tipo"></span><i class="fr"></i></button><button data-o="quando"><span data-t="col_modificato"></span><i class="fr"></i></button></div>
+            <div class="corpo" id="x-corpo" tabindex="0"></div>
+          </div>
+        </div>
+      </div>
+      <div class="stato"><span id="x-totale"></span><span id="x-sel"></span><label><input type="checkbox" id="x-nascosti"><span data-t="x_nascosti"></span></label></div>
+    </section>
+
+    <!-- PROCEDURA GUIDATA -->
+    <section class="view" id="v-guida">
+      <div><h1 data-t="guida_titolo"></h1><p class="sub" data-t="guida_sub"></p></div>
+      <div class="passi"><div class="passo" data-p="1"><i>1</i><span data-t="g_passo1"></span></div><div class="passo" data-p="2"><i>2</i><span data-t="g_passo2"></span></div><div class="passo" data-p="3"><i>3</i><span data-t="g_passo3"></span></div></div>
+
+      <div class="g-area">
+      <div class="g-passo" data-p="1">
+        <h2 data-t="domanda"></h2>
+        <div class="opzioni2">
+          <button class="opz c" data-g="comprimi"><div class="ico"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#4DA8FF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg></div><div><b data-t="comprimi"></b><span data-t="comprimi_desc"></span></div></button>
+          <button class="opz e" data-g="estrai"><div class="ico"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#2FF3A6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3"/><path d="m7 8 5-5 5 5"/><path d="M5 21h14"/></svg></div><div><b data-t="estrai"></b><span data-t="g_estrai_desc"></span></div></button>
+        </div>
+      </div>
+
+      <div class="g-passo" data-p="2">
+        <h2 id="g2-tit"></h2>
+        <div class="zona-drop" id="g-zona"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#FFB547" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V4"/><path d="m8 8 4-4 4 4"/><path d="M4 14v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4"/></svg><p id="g-zona-t"></p>
+          <div class="row"><button class="btn ghost" id="g-sfoglia-f"></button><button class="btn ghost" id="g-sfoglia-c" data-t="g_sfoglia_cartella"></button></div></div>
+        <div class="lista" id="g-lista"></div>
+        <p class="sub piccolo" id="g-conta"></p>
+      </div>
+
+      <div class="g-passo" data-p="3" id="g3c">
+        <h2 data-t="g_formato"></h2>
+        <div class="formati g" id="g-formati"></div>
+        <div class="riga2">
+          <div class="campo"><label for="g-nome" data-t="nome_archivio"></label><input type="text" id="g-nome" maxlength="200" spellcheck="false"></div>
+          <div class="campo" id="g-livello-box"><label for="g-livello" data-t="livello"></label>
+            <select id="g-livello" class="sel" style="min-height:46px"><option value="veloce" data-t="livello_veloce"></option><option value="normale" data-t="livello_normale"></option><option value="massima" data-t="livello_massima"></option><option value="ultra" data-t="livello_ultra"></option></select></div>
+        </div>
+        <div class="campo"><label data-t="g_dove_salvo"></label>
+          <div class="scelte"><label class="scelta"><input type="radio" name="g-dove-c" value="accanto" checked><span data-t="g_accanto_file"></span></label>
+            <label class="scelta"><input type="radio" name="g-dove-c" value="altra"><span data-t="g_altra_cartella"></span><span class="dove" id="g-dove-c-t"></span><button class="btn ghost" id="g-dove-c-b" data-t="g_scegli" style="min-height:34px;padding:5px 12px;font-size:13px"></button></label></div></div>
+        <div class="g-nota"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#8B91A7" stroke-width="2" stroke-linecap="round"><rect x="4" y="10" width="16" height="11" rx="2.5"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg><span data-t="g_password_nota"></span></div>
+        <div class="g-nota"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#8B91A7" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v6"/><path d="M12 7.5v.5"/></svg><span data-t="g_rar_nota"></span></div>
+      </div>
+
+      <div class="g-passo" data-p="3" id="g3e">
+        <div class="campo"><label data-t="g_dove_estraggo"></label>
+          <div class="scelte"><label class="scelta"><input type="radio" name="g-dove-e" value="accanto" checked><span data-t="g_accanto_archivio"></span></label>
+            <label class="scelta"><input type="radio" name="g-dove-e" value="altra"><span data-t="g_altra_cartella"></span><span class="dove" id="g-dove-e-t"></span><button class="btn ghost" id="g-dove-e-b" data-t="g_scegli" style="min-height:34px;padding:5px 12px;font-size:13px"></button></label></div></div>
+        <div class="campo"><label data-t="g_come"></label>
+          <div class="scelte"><label class="scelta"><input type="radio" name="g-modo" value="" checked><span data-t="g_cartella_nuova"></span></label>
+            <label class="scelta"><input type="radio" name="g-modo" value="cartella"><span data-t="g_cartella_nome"></span></label>
+            <label class="scelta"><input type="radio" name="g-modo" value="qui"><span data-t="g_direttamente"></span></label></div></div>
+        <div class="g-nota"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#2FF3A6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="m8 12 3 3 5-6"/></svg><span data-t="g_mai_sovrascrivo"></span></div>
+        <div class="g-nota"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#8B91A7" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v6"/><path d="M12 7.5v.5"/></svg><span data-t="g_formati_estrai"></span></div>
+      </div>
+
+      </div>
+      <div class="g-piede"><button class="btn ghost" id="g-esci" data-t="annulla"></button><span class="sp"></span><button class="btn ghost" id="g-indietro" data-t="indietro"></button><button class="btn ambra" id="g-avanti"></button></div>
     </section>
 
     <!-- LAVORO -->
@@ -286,7 +520,8 @@ footer .sep{width:1px;height:28px;background:var(--line);margin:0 6px}
 
 <div id="drop"><div class="dc" data-t="lascia_comprimi"></div><div class="de" data-t="lascia_estrai"></div></div>
 <div id="toast"></div>
-<div id="modale"><div class="box"><h2 id="m-titolo"></h2><p id="m-testo"></p><div class="row" style="justify-content:flex-end"><button class="btn ghost" id="m-no" data-t="annulla"></button><button class="btn blu" id="m-si"></button></div></div></div>
+<div id="modale"><div class="box"><div id="m-ico"></div><h2 id="m-titolo"></h2><p id="m-testo"></p><dl class="dati" id="m-dati" hidden></dl><div class="row" style="justify-content:flex-end"><button class="btn ghost" id="m-no" data-t="annulla"></button><button class="btn blu" id="m-si"></button></div></div></div>
+<div id="ctx"></div>
 
 <script>
 "use strict";
@@ -302,7 +537,10 @@ const S = {
   riprova: null,      // cosa rifare quando arriva la password
   daVista: false,     // il lavoro è partito dalla vista dell'archivio
   modoEstrai: "",     // "", "qui", "cartella"
+  destinazione: "",   // "Estrai in...": la cartella scelta ("" = accanto all'archivio)
   pwElenco: "",
+  ritorno: "",        // da dove sono partito: "esplora", "guida" o "" (schermata iniziale)
+  formati: ["zip", "7z"],
 };
 
 function t(k, v) {
@@ -319,6 +557,9 @@ function applicaTesti() {
   document.querySelectorAll("#lingue button").forEach(b => b.classList.toggle("on", b.dataset.l === S.lingua));
   $("lingue").setAttribute("aria-label", t("lingua"));
   if (S.vista === "comprimi") disegnaLista();
+  document.querySelectorAll("[data-tt]").forEach(e => { e.title = t(e.dataset.tt); e.setAttribute("aria-label", t(e.dataset.tt)); });
+  if (X.el) { disegnaLuoghi(); disegnaEsplora(); }
+  if (S.vista === "guida") disegnaGuida();
 }
 function dim(n) {
   const f = new Intl.NumberFormat(S.lingua, { maximumFractionDigits: 1 });
@@ -329,6 +570,9 @@ function dim(n) {
 }
 function vista(v) {
   S.vista = v;
+  if (v === "home") S.ritorno = "";
+  document.querySelector("main").classList.toggle("pieno", v === "esplora" || v === "guida");
+  chiudiCtx();
   document.querySelectorAll(".view").forEach(e => e.classList.toggle("on", e.id === "v-" + v));
   document.querySelector("main").scrollTop = 0;
 }
@@ -378,7 +622,7 @@ function disegnaLista() {
   const n = S.lista.length;
   $("c-conta").textContent = (n === 1 ? t("scelti_1") : t("scelti_n", { n })) + (tot ? " · " + dim(tot) : "");
   if (!$("c-nome").dataset.toccato) $("c-nome").value = nomeProposto();
-  document.querySelectorAll(".fmt").forEach(b => b.classList.toggle("on", b.dataset.f === S.formato));
+  document.querySelectorAll("#v-comprimi .fmt").forEach(b => b.classList.toggle("on", b.dataset.f === S.formato));
   aggiornaDove();
 }
 const ESTENSIONI = { "7z": ".7z", zip: ".zip", tarzst: ".tar.zst", tarxz: ".tar.xz" };
@@ -393,7 +637,7 @@ function aggiornaDove() {
 async function comprimi() {
   if (!S.lista.length) return;
   const nome = $("c-nome").value.trim();
-  const r = await goComprimi(S.lista.map(e => e.percorso), S.formato, nome === nomeProposto() && !$("c-nome").dataset.toccato ? "" : nome, S.livello || "massima");
+  const r = await goComprimi(S.lista.map(e => e.percorso), S.formato, nome === nomeProposto() && !$("c-nome").dataset.toccato ? "" : nome, S.livello || "massima", "");
   if (r === "occupato") { toast(t("err_occupato")); return; }
   if (r !== "ok") return;
   S.daVista = false;
@@ -401,12 +645,14 @@ async function comprimi() {
 }
 
 // ---------- ESTRAI ----------
-function estraiTutti(percorsi) {
+function estraiTutti(percorsi, dest, modo) {
   const nuovi = (percorsi || []).filter(Boolean);
   if (!nuovi.length) return;
   if (S.occupato && S.tipo === "estrai") { S.coda.push(...nuovi); S.codaTot += nuovi.length; aggiornaCoda(); return; }
   if (S.occupato) { toast(t("err_occupato")); return; }
   S.coda = nuovi.slice(); S.codaTot = nuovi.length; S.codaFatti = 0; S.ultimoEstratto = null; S.daVista = false;
+  S.destinazione = dest || "";
+  if (modo !== undefined) S.modoEstrai = modo || "";
   prossimo();
 }
 function aggiornaCoda() {
@@ -418,7 +664,8 @@ async function prossimo(password) {
     S.corrente = S.coda.shift();
   }
   S.riprova = pw => prossimo(pw);
-  const r = await goEstrai(S.corrente, password || "", S.modoEstrai || "");
+  const r = S.destinazione ? await goEstraiIn(S.corrente, password || "", S.destinazione, S.modoEstrai || "")
+                           : await goEstrai(S.corrente, password || "", S.modoEstrai || "");
   if (r === "occupato") { toast(t("err_occupato")); return; }
   S.tipo = "estrai";
   inizioLavoro(t("lavoro_estraggo"), nomeFile(S.corrente));
@@ -427,7 +674,7 @@ async function prossimo(password) {
 function finisciCoda() {
   S.occupato = false;
   const r = S.ultimoEstratto;
-  if (!r) { vista("home"); return; }
+  if (!r) { if (S.ritorno === "esplora") tornaEsplora(); else if (S.ritorno === "guida") vista("guida"); else vista("home"); return; }
   mostraFatto(r, S.codaFatti > 1 ? S.codaFatti : 0);
 }
 
@@ -486,10 +733,17 @@ const tz = window.tz = {
     vista("archivio");
     toast(t("aperto", { nome: nomeFile(r.nome) }));
   },
+  cartella(r) { esploraArrivata(r); },
+  trovati(r) { trovaArrivata(r); },
+  info(r) { infoArrivata(r); },
+  verificato(r) { verificaArrivata(r); },
 };
 function mostraFatto(r, quanti) {
-  $("f-titolo").textContent = r.tipo === "comprimi" ? t("fatto_comprimi") : t("fatto_estrai");
-  if (r.tipo === "comprimi") {
+  $("f-titolo").textContent = r.tipo === "comprimi" ? t("fatto_comprimi") : r.tipo === "ripara" ? t("fatto_ripara") : t("fatto_estrai");
+  if (r.tipo === "ripara") {
+    $("f-dettagli").textContent = t("fatto_ripara_d", { n: r.file });
+    $("f-apri").textContent = t("mostra_file");
+  } else if (r.tipo === "comprimi") {
     const perc = r.originale > 0 ? Math.max(0, Math.round((1 - r.compresso / r.originale) * 100)) : 0;
     $("f-dettagli").textContent = t("fatto_dettagli_c", { file: r.file, orig: dim(r.originale), comp: dim(r.compresso), perc: perc + "%" });
     $("f-apri").textContent = t("mostra_file");
@@ -498,7 +752,8 @@ function mostraFatto(r, quanti) {
     $("f-apri").textContent = t("apri_cartella");
   }
   if (r.tipo === "estrai" && r.qui && !quanti) $("f-dettagli").textContent = t("fatto_dettagli_q", { file: r.file });
-  $("f-ok").textContent = INIZIO.mini ? t("chiudi") : (S.daVista && S.arch ? t("torna_archivio") : t("nuovo"));
+  $("f-ok").textContent = INIZIO.mini ? t("chiudi") : (S.daVista && S.arch ? t("torna_archivio") : S.ritorno === "esplora" ? t("torna_esplora") : t("nuovo"));
+  if (S.ritorno === "guida") $("f-apri").textContent = t("apri_cartella");
   $("f-percorso").textContent = r.percorso;
   const avvisi = [];
   if (r.rinominati) avvisi.push(t("rinominati", { n: r.rinominati }));
@@ -506,7 +761,7 @@ function mostraFatto(r, quanti) {
   $("f-avvisi").textContent = avvisi.join(" ");
   const s = r.saltati || [];
   $("f-saltati-box").hidden = !s.length;
-  $("f-saltati-tit").textContent = t("saltati", { n: s.length });
+  $("f-saltati-tit").textContent = r.tipo === "ripara" ? t("ripara_persi", { n: s.length }) : t("saltati", { n: s.length });
   $("f-saltati").textContent = s.join("\n");
   $("f-apri").onclick = () => goApri(r.percorso);
   vista("fatto");
@@ -524,7 +779,9 @@ function mostraErrore(e) {
     if ((e.tipo === "apri" || e.tipo === "estrai") && S.daVista && S.arch) { vista("archivio"); return; }
     if (INIZIO.mini && !(e.tipo === "estrai" && S.ultimoEstratto)) { goChiudi(); return; }
     if (e.tipo === "estrai" && S.ultimoEstratto) { finisciCoda(); return; }
+    if (S.ritorno === "guida") { vista("guida"); disegnaGuida(); return; }
     if (e.tipo === "comprimi" && S.lista.length) { vista("comprimi"); disegnaLista(); return; }
+    if (S.ritorno === "esplora") { tornaEsplora(); return; }
     vista("home");
   };
   vista("errore");
@@ -541,6 +798,12 @@ function chiediPassword(sbagliata) {
 async function arrivati(percorsi, dove) {
   if (!percorsi || !percorsi.length) return;
   if (S.vista === "comprimi") { aggiungi(percorsi); return; }
+  if (S.vista === "guida" && dove !== "estrai-in") { guidaAggiungi(percorsi); return; }
+  if (dove === "estrai-in") {
+    const d = await goScegliDestinazione();
+    if (!d || !d.length) { if (INIZIO.mini) goChiudi(); return; }
+    estraiTutti(percorsi, d[0], ""); return;
+  }
   if (S.occupato && !(S.tipo === "estrai" && dove !== "comprimi")) { toast(t("err_occupato")); return; }
   if (dove === "comprimi") { aggiungi(percorsi); return; }
   if (dove === "zip" || dove === "7z") { comprimiDiretto(percorsi, dove); return; }
@@ -549,18 +812,24 @@ async function arrivati(percorsi, dove) {
   const info = await goInfo(percorsi);
   const archivi = (info || []).filter(e => e.archivio).map(e => e.percorso);
   if (dove === "estrai") {
-    if (!archivi.length) { toast(t("solo_archivi")); return; }
-    estraiTutti(archivi); return;
+    const altri = (info || []).filter(e => !e.archivio).map(e => e.percorso);
+    if (!archivi.length) {
+      // Niente archivi sulla scheda Estrai: lo dico con gentilezza e propongo di comprimerli.
+      if (await avviso(t("non_archivi_tit"), t("non_archivi_testo"), { ico: "am", si: t("comprimili"), no: true })) aggiungi(altri);
+      return;
+    }
+    if (altri.length) toast(t("non_archivi_alcuni", { n: altri.length }));
+    estraiTutti(archivi, ""); return;
   }
   // automatico: se sono tutti archivi li estraggo, altrimenti li comprimo
-  if (archivi.length && archivi.length === (info || []).length) estraiTutti(archivi);
+  if (archivi.length && archivi.length === (info || []).length) estraiTutti(archivi, "", S.modoEstrai);
   else aggiungi(percorsi);
 }
 
 // ---------- dal tasto destro: comprimi subito ----------
 async function comprimiDiretto(percorsi, formato) {
   if (S.occupato) { toast(t("err_occupato")); return; }
-  const r = await goComprimi(percorsi, formato, "", S.livello || "massima");
+  const r = await goComprimi(percorsi, formato, "", S.livello || "massima", "");
   if (r === "occupato") { toast(t("err_occupato")); return; }
   if (r !== "ok") return;
   S.daVista = false;
@@ -663,7 +932,7 @@ function disegnaArchivio() {
     let acc = "";
     for (const p of A.cartella.split("/")) { acc = acc ? acc + "/" + p : p; const i = document.createElement("i"); i.textContent = "›"; b.append(i); btn(p, acc); }
   }
-  document.querySelectorAll(".tab .th button").forEach(x => x.classList.toggle("on", x.dataset.o === A.ordine));
+  document.querySelectorAll("#v-archivio .tab .th button").forEach(x => x.classList.toggle("on", x.dataset.o === A.ordine));
   const corpo = $("a-corpo"); corpo.textContent = "";
   const righe = righeArchivio();
   const frag = document.createDocumentFragment();
@@ -736,11 +1005,27 @@ async function estraiDaVista(selezionati) {
   S.tipo = "estrai"; inizioLavoro(t("lavoro_estraggo"), nomeFile(A.percorso));
 }
 let modaleRisolvi = null;
-function conferma(titolo, testo, si) {
-  $("m-titolo").textContent = titolo; $("m-testo").textContent = testo; $("m-si").textContent = si;
+function conferma(titolo, testo, si, opz) {
+  opz = opz || {};
+  $("m-titolo").textContent = titolo; $("m-testo").textContent = testo || ""; $("m-testo").hidden = !testo; $("m-si").textContent = si;
+  $("m-no").hidden = opz.no === false;
+  $("m-si").className = "btn " + (opz.colore || "blu");
+  const ico = $("m-ico"); ico.className = opz.ico ? "on " + opz.ico : ""; ico.innerHTML = opz.ico ? ICONE_MODALE[opz.ico] : "";
+  const dl = $("m-dati"); dl.textContent = ""; dl.hidden = !opz.dati;
+  for (const [k, v] of opz.dati || []) { const a = document.createElement("dt"); a.textContent = k; const b = document.createElement("dd"); b.textContent = v; dl.append(a, b); }
   $("modale").classList.add("on");
   setTimeout(() => $("m-no").focus(), 30);
   return new Promise(ok => { modaleRisolvi = ok; });
+}
+const ICONE_MODALE = {
+  ok: '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#2FF3A6" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5 9-10"/></svg>',
+  ko: '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#FF6B5C" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v6"/><path d="M12 16.5v.5"/></svg>',
+  am: '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#FFB547" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v6"/><path d="M12 7.5v.5"/></svg>',
+};
+// avviso: come conferma, ma di solito con un solo pulsante (OK).
+function avviso(titolo, testo, opz) {
+  opz = Object.assign({ no: false, colore: "ambra" }, opz || {});
+  return conferma(titolo, testo, opz.si || "OK", opz);
 }
 function chiudiModale(v) { $("modale").classList.remove("on"); if (modaleRisolvi) { const f = modaleRisolvi; modaleRisolvi = null; f(v); } }
 $("m-si").onclick = () => chiudiModale(true);
@@ -757,49 +1042,77 @@ $("a-tutti").onclick = () => {
   for (const v of righeArchivio()) { if (on) S.arch.sel.add(v.percorso); else S.arch.sel.delete(v.percorso); }
   disegnaArchivio();
 };
-document.querySelectorAll(".tab .th button").forEach(x => x.onclick = () => {
+document.querySelectorAll("#v-archivio .tab .th button").forEach(x => x.onclick = () => {
   const A = S.arch; if (!A) return;
   if (A.ordine === x.dataset.o) A.dir = -A.dir; else { A.ordine = x.dataset.o; A.dir = x.dataset.o === "nome" ? 1 : -1; }
   disegnaArchivio();
 });
 $("a-tutto").onclick = () => estraiDaVista(false);
 $("a-sel").onclick = () => estraiDaVista(true);
-$("a-chiudi").onclick = () => { S.arch = null; S.daVista = false; vista("home"); };
+$("a-chiudi").onclick = () => { S.arch = null; S.daVista = false; if (S.ritorno === "esplora") tornaEsplora(); else vista("home"); };
 $("b-guarda").onclick = async () => { const p = await goScegliArchivio(); if (p && p.length) apriArchivio(p[0]); };
 
 // ---------- trascinamento nella finestra ----------
+// Nella schermata iniziale si illumina la scheda sotto il cursore (Comprimi o Estrai) e,
+// lasciando lì i file, parte quell'azione. Nella procedura guidata i file vanno nell'elenco.
+// Altrove: il riquadro diviso a metà (sinistra comprimi, destra estrai).
+// I percorsi veri li legge Go (edge.DropHook) dal messaggio "tassozip:drop".
 let dentro = 0;
 function haFile(e) { return e.dataTransfer && Array.from(e.dataTransfer.types || []).includes("Files"); }
+function schedaSotto(e) {
+  const el = document.elementFromPoint(e.clientX, e.clientY);
+  const c = el && el.closest ? el.closest("#v-home .card") : null;
+  return c ? c.dataset.zona : "";
+}
+function illumina(z) {
+  document.querySelectorAll("#v-home .card").forEach(c => c.classList.toggle("accesa", c.dataset.zona === z));
+}
 function zonaDrop(e) {
+  if (S.vista === "home") return schedaSotto(e) || "auto";
+  if (S.vista === "guida") return "guida";
   const solo = S.vista === "comprimi";
   $("drop").classList.toggle("solo", solo);
   if (solo) return "comprimi";
   return e.clientX < window.innerWidth / 2 ? "comprimi" : "estrai";
 }
+function fineTrascino() {
+  dentro = 0;
+  $("drop").classList.remove("on");
+  document.body.classList.remove("trascino");
+  illumina("");
+  $("g-zona").classList.remove("sopra");
+}
+function puoiLasciare() { return !(S.vista === "lavoro" || S.vista === "password" || $("modale").classList.contains("on")); }
 document.addEventListener("dragenter", e => {
   if (!haFile(e)) return; e.preventDefault(); dentro++;
-  if (S.vista === "lavoro" || S.vista === "password") return;
-  $("drop").classList.add("on");
+  if (!puoiLasciare()) return;
+  if (S.vista === "home") document.body.classList.add("trascino");
+  else if (S.vista === "guida") $("g-zona").classList.add("sopra");
+  else $("drop").classList.add("on");
 });
 document.addEventListener("dragover", e => {
   if (!haFile(e)) return; e.preventDefault();
-  if (!$("drop").classList.contains("on")) { e.dataTransfer.dropEffect = "none"; return; }
+  if (!puoiLasciare()) { e.dataTransfer.dropEffect = "none"; return; }
   e.dataTransfer.dropEffect = "copy";
   const z = zonaDrop(e);
+  if (S.vista === "home") { illumina(z); return; }
+  if (S.vista === "guida") return;
   document.querySelector("#drop .dc").classList.toggle("sopra", z === "comprimi");
   document.querySelector("#drop .de").classList.toggle("sopra", z === "estrai");
 });
 document.addEventListener("dragleave", e => {
   if (!haFile(e)) return;
   dentro = Math.max(0, dentro - 1);
-  if (dentro === 0) $("drop").classList.remove("on");
+  if (dentro === 0) fineTrascino();
 });
 document.addEventListener("drop", e => {
-  e.preventDefault(); dentro = 0;
-  const attivo = $("drop").classList.contains("on");
-  $("drop").classList.remove("on");
-  if (!attivo || !haFile(e)) return;
-  S.dropDove = zonaDrop(e);
+  e.preventDefault();
+  const ok = haFile(e) && puoiLasciare();
+  const z = ok ? zonaDrop(e) : "";
+  fineTrascino();
+  if (!ok) return;
+  S.dropDove = z;
+  if (S.vista === "home") S.ritorno = "";
   const files = [];
   if (e.dataTransfer.items) { for (const it of e.dataTransfer.items) if (it.kind === "file") { const f = it.getAsFile(); if (f) files.push(f); } }
   else for (const f of e.dataTransfer.files) files.push(f);
@@ -808,19 +1121,597 @@ document.addEventListener("drop", e => {
   }
 });
 
+// ---------- ESPLORA I FILE ----------
+// Stato della vista: cartella aperta, voci, selezione, ordinamento, ricerca.
+const X = {
+  el: null, voci: [], sel: new Set(), ancora: -1, fuoco: -1, ordine: "nome", dir: 1,
+  id: 0, nascosti: false, luoghi: [], trova: null, cercando: false, carico: false, infoId: 0,
+};
+const SVG = (d, c) => '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="' + c + '" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="flex:none">' + d + '</svg>';
+const ICONE_TIPO = {
+  cartella: '<svg width="18" height="18" viewBox="0 0 24 24" style="flex:none"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" fill="#FFB547" fill-opacity=".22" stroke="#FFB547" stroke-width="1.9" stroke-linejoin="round"/></svg>',
+  archivio: SVG('<rect x="5" y="3" width="14" height="18" rx="2.5" fill="#FFB547" fill-opacity=".16"/><path d="M12 3v2M12 7v2M12 11v2"/><rect x="10" y="14" width="4" height="4" rx="1"/>', "#FFB547"),
+  immagine: SVG('<rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><circle cx="9" cy="10" r="1.7"/><path d="m20.5 16-5-5-9 8.5"/>', "#4DA8FF"),
+  video: SVG('<rect x="3" y="5.5" width="13" height="13" rx="2.5"/><path d="m16 10 5-3v10l-5-3"/>', "#A77BFF"),
+  audio: SVG('<path d="M9 18V6l11-2v12"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="17.5" cy="16" r="2.5"/>', "#FF7EB6"),
+  documento: SVG('<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M9 13h6M9 17h4"/>', "#C9CEDB"),
+  eseguibile: SVG('<rect x="3" y="4" width="18" height="16" rx="2.5"/><path d="M3 8.5h18"/><path d="m8 13 2 2-2 2M12.5 17h3.5"/>', "#2FF3A6"),
+  file: SVG('<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/>', "#8B91A7"),
+};
+const ICONE_LUOGO = {
+  desktop: SVG('<rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/>', "#FFB547"),
+  download: SVG('<path d="M12 4v11"/><path d="m7 10 5 5 5-5"/><path d="M5 20h14"/>', "#FFB547"),
+  documenti: SVG('<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/>', "#FFB547"),
+  immagini: SVG('<rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><circle cx="9" cy="10" r="1.7"/><path d="m20.5 16-5-5-9 8.5"/>', "#FFB547"),
+  home: SVG('<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>', "#FFB547"),
+  disco: SVG('<rect x="3" y="6" width="18" height="12" rx="2.5"/><path d="M7 14h.01M11 14h6"/>', "#8B91A7"),
+  rimovibile: SVG('<path d="M7 3h10v7H7z"/><rect x="5" y="10" width="14" height="11" rx="2"/><path d="M10 6h1M13 6h1"/>', "#8B91A7"),
+  rete: SVG('<rect x="3" y="4" width="18" height="7" rx="2"/><path d="M12 11v5M5 20h14M12 16v4"/>', "#8B91A7"),
+  cd: SVG('<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="2.5"/>', "#8B91A7"),
+};
+const MAX_RIGHE_X = 5000;
+
+function tornaEsplora(ricarica) {
+  S.ritorno = "esplora";
+  vista("esplora");
+  if (ricarica || !X.el) apriCartella(X.el ? X.el.percorso : "");
+  setTimeout(() => $("x-corpo").focus(), 30);
+}
+async function apriEsplora() {
+  S.ritorno = "esplora";
+  vista("esplora");
+  if (!X.luoghi.length) {
+    const l = await goLuoghi();
+    X.luoghi = (l && l.luoghi) || [];
+    X.nascosti = !!(l && l.nascosti);
+    $("x-nascosti").checked = X.nascosti;
+    disegnaLuoghi();
+    if (!X.el) { apriCartella((l && l.iniziale) || ""); return; }
+  }
+  if (!X.el) apriCartella(""); else { disegnaEsplora(); $("x-corpo").focus(); }
+}
+function apriCartella(p, selezionaNome) {
+  X.id++; X.carico = true; X.selDopo = selezionaNome || "";
+  $("x-totale").innerHTML = '<span class="giro"></span> ' + t("x_carico");
+  goEsplora(X.id, p || "", X.nascosti);
+}
+function esploraArrivata(r) {
+  if (r.id !== X.id) return; // risposta vecchia (ho già cambiato cartella)
+  X.carico = false;
+  if (r.codice) {
+    const msg = r.codice === "non_trovato" ? t("x_err_non_trovato") : r.codice === "permessi" ? t("x_err_permessi") : r.codice === "non_cartella" ? t("x_err_non_cartella") : t("x_err_cartella");
+    toast(msg);
+    $("x-indirizzo").value = X.el ? X.el.percorso : "";
+    aggiornaStato();
+    return;
+  }
+  chiudiTrova(true);
+  X.el = r.el; X.voci = (r.el.voci || []).slice(); X.sel.clear(); X.ancora = -1; X.fuoco = -1;
+  ordinaVoci();
+  if (X.selDopo) {
+    const i = X.voci.findIndex(v => v.nome.toLowerCase() === X.selDopo.toLowerCase());
+    if (i >= 0) { X.sel.add(X.voci[i].percorso); X.fuoco = X.ancora = i; }
+  }
+  $("x-indirizzo").value = X.el.percorso;
+  disegnaLuoghi(); disegnaEsplora();
+  if (X.fuoco >= 0) mostraRiga(X.fuoco);
+  else $("x-corpo").scrollTop = 0;
+}
+function ordinaVoci() {
+  const coll = new Intl.Collator(S.lingua, { numeric: true, sensitivity: "base" });
+  const k = X.ordine, d = X.dir;
+  X.voci.sort((a, b) => {
+    if (a.cartella !== b.cartella) return a.cartella ? -1 : 1;
+    let c = 0;
+    if (k === "dim") c = (a.dim || 0) - (b.dim || 0);
+    else if (k === "quando") c = String(a.quando).localeCompare(String(b.quando));
+    else if (k === "tipo") c = tipoDi(a).localeCompare(tipoDi(b), S.lingua);
+    return (c || coll.compare(a.nome, b.nome)) * d;
+  });
+}
+function tipoDi(v) {
+  if (v.cartella) return t("tipo_cartella");
+  const e = (v.ext || "").toUpperCase();
+  const k = { archivio: "tipo_archivio", immagine: "tipo_immagine", video: "tipo_video", audio: "tipo_audio", documento: "tipo_documento", eseguibile: "tipo_programma" }[v.cat];
+  if (k) return t(k) + (e ? " " + e : "");
+  return e ? t("tipo_file", { ext: e }) : t("tipo_file_generico");
+}
+function nomeLuogo(l) {
+  if (l.chiave) return l.chiave === "home" ? (l.nome || t("luogo_home")) : t("luogo_" + l.chiave);
+  const lettera = l.percorso.replace(/\\$/, "");
+  return (l.nome ? l.nome : t("disco_" + l.tipo)) + " (" + lettera + ")";
+}
+function disegnaLuoghi() {
+  const n = $("x-luoghi"); n.textContent = "";
+  const cur = X.el ? X.el.percorso.toLowerCase() : "";
+  const gruppo = (titolo, lista) => {
+    if (!lista.length) return;
+    const h = document.createElement("h3"); h.textContent = titolo; n.append(h);
+    for (const l of lista) {
+      const b = document.createElement("button");
+      b.innerHTML = l.chiave ? ICONE_LUOGO[l.chiave] || ICONE_LUOGO.home : ICONE_LUOGO[l.tipo === "fisso" ? "disco" : l.tipo] || ICONE_LUOGO.disco;
+      const sp = document.createElement("span"); sp.textContent = nomeLuogo(l); b.append(sp);
+      b.title = l.percorso;
+      b.classList.toggle("on", cur === l.percorso.toLowerCase().replace(/\\$/, "") || cur === l.percorso.toLowerCase());
+      b.onclick = () => apriCartella(l.percorso);
+      n.append(b);
+    }
+  };
+  gruppo(t("luoghi_cartelle"), X.luoghi.filter(l => l.chiave));
+  gruppo(t("luoghi_dischi"), X.luoghi.filter(l => !l.chiave));
+}
+function righeEsplora() { return X.trova ? X.trova.voci : X.voci; }
+function disegnaEsplora() {
+  if (!X.el) return;
+  const corpo = $("x-corpo"); corpo.textContent = "";
+  const righe = righeEsplora();
+  const frag = document.createDocumentFragment();
+  righe.slice(0, MAX_RIGHE_X).forEach((v, i) => {
+    const r = document.createElement("div");
+    r.className = "rg r" + (X.sel.has(v.percorso) ? " sel" : "") + (i === X.fuoco ? " fuoco" : "") + (v.nascosto ? " nasc" : "");
+    r.dataset.i = i;
+    const n = document.createElement("div"); n.className = "n"; n.innerHTML = ICONE_TIPO[v.cartella ? "cartella" : v.cat] || ICONE_TIPO.file;
+    const sp = document.createElement("span"); sp.textContent = v.nome; sp.title = v.percorso; n.append(sp);
+    if (X.trova && v.dove) { const sm = document.createElement("small"); sm.textContent = v.dove; sp.append(sm); }
+    const d1 = document.createElement("div"); d1.className = "num"; d1.textContent = v.cartella ? "" : dim(v.dim || 0);
+    const d2 = document.createElement("div"); d2.className = "tp"; d2.textContent = tipoDi(v);
+    const d3 = document.createElement("div"); d3.className = "dt"; d3.textContent = data(v.quando);
+    r.append(n, d1, d2, d3);
+    frag.append(r);
+  });
+  corpo.append(frag);
+  if (!righe.length) { const x = document.createElement("div"); x.className = "vuoto"; x.textContent = X.trova ? t("x_niente_trovato") : t("x_vuota"); corpo.append(x); }
+  if (righe.length > MAX_RIGHE_X) { const x = document.createElement("div"); x.className = "vuoto"; x.textContent = t("vista_troppi", { n: MAX_RIGHE_X }); corpo.append(x); }
+  if (!X.trova && X.el.troppi) { const x = document.createElement("div"); x.className = "vuoto"; x.textContent = t("x_troppi", { n: X.voci.length }); corpo.append(x); }
+  document.querySelectorAll("#v-esplora .th button").forEach(b => {
+    b.classList.toggle("on", b.dataset.o === X.ordine);
+    b.querySelector(".fr").textContent = b.dataset.o === X.ordine ? (X.dir > 0 ? "▲" : "▼") : "";
+  });
+  $("x-su").disabled = !!X.trova || !X.el.padre;
+  aggiornaStato();
+}
+function selezionate() { const r = righeEsplora(); return r.filter(v => X.sel.has(v.percorso)); }
+function aggiornaStato() {
+  if (!X.el) return;
+  const righe = righeEsplora();
+  let nf = 0, nc = 0, b = 0;
+  for (const v of righe) { if (v.cartella) nc++; else { nf++; b += v.dim || 0; } }
+  let tot = t("x_totale", { file: nf, dim: dim(b) });
+  if (nc) tot = t("x_totale_c", { c: nc }) + " · " + tot;
+  if (!X.trova && X.el.nascosti && !X.nascosti) tot += " · " + t("x_nascosti_n", { n: X.el.nascosti });
+  $("x-totale").textContent = tot;
+  const s = selezionate();
+  let sb = 0; for (const v of s) sb += v.cartella ? 0 : v.dim || 0;
+  $("x-sel").innerHTML = "";
+  if (s.length) { const x = document.createElement("b"); x.textContent = t("x_selezione", { n: s.length, dim: dim(sb) }); $("x-sel").append(x); }
+  aggiornaAttrezzi();
+}
+function aggiornaAttrezzi() {
+  const s = selezionate();
+  const arch = s.filter(v => v.archivio);
+  $("x-comprimi").disabled = !s.length;
+  $("x-estrai").disabled = !arch.length;
+  $("x-verifica").disabled = arch.length !== 1 || s.length !== 1;
+  $("x-apri").disabled = s.length !== 1;
+  $("x-info").disabled = !s.length;
+  $("x-ripara").disabled = !(s.length === 1 && s[0].ext === "zip");
+  $("x-elimina").disabled = !s.length;
+}
+function scegliIndice(i, e) {
+  const righe = righeEsplora(); const v = righe[i]; if (!v) return;
+  if (e && e.shiftKey && X.ancora >= 0) {
+    if (!e.ctrlKey) X.sel.clear();
+    const [a, b] = X.ancora < i ? [X.ancora, i] : [i, X.ancora];
+    for (let k = a; k <= b; k++) X.sel.add(righe[k].percorso);
+  } else if (e && e.ctrlKey) {
+    if (X.sel.has(v.percorso)) X.sel.delete(v.percorso); else X.sel.add(v.percorso);
+    X.ancora = i;
+  } else {
+    X.sel.clear(); X.sel.add(v.percorso); X.ancora = i;
+  }
+  X.fuoco = i;
+  ridisegnaSelezione();
+}
+function ridisegnaSelezione() {
+  const righe = righeEsplora();
+  $("x-corpo").querySelectorAll(".r").forEach(r => {
+    const i = +r.dataset.i;
+    r.classList.toggle("sel", X.sel.has(righe[i].percorso));
+    r.classList.toggle("fuoco", i === X.fuoco);
+  });
+  aggiornaStato();
+}
+function mostraRiga(i) {
+  const r = $("x-corpo").querySelector('.r[data-i="' + i + '"]');
+  if (r) r.scrollIntoView({ block: "nearest" });
+}
+async function apriVoceEsplora(v) {
+  if (!v) return;
+  if (v.cartella) { apriCartella(v.percorso); return; }
+  if (v.archivio) { apriArchivio(v.percorso); return; }
+  let r = await goApriFile(v.percorso, false);
+  if (r === "conferma") {
+    if (!(await conferma(t("pericoloso_tit"), t("pericoloso_disco", { nome: v.nome }), t("apri_comunque")))) return;
+    r = await goApriFile(v.percorso, true);
+  }
+  if (r === "ok") toast(t("aperto", { nome: v.nome }));
+}
+async function azione(a) {
+  chiudiCtx();
+  const s = selezionate();
+  switch (a) {
+    case "comprimi":
+      if (!s.length) return;
+      S.ritorno = "esplora"; S.lista = []; $("c-nome").dataset.toccato = "";
+      aggiungi(s.map(v => v.percorso)); return;
+    case "estrai": {
+      const arch = s.filter(v => v.archivio).map(v => v.percorso);
+      if (!arch.length) { toast(t("solo_archivi")); return; }
+      const d = await goScegliDestinazione();
+      if (!d || !d.length) return;
+      S.ritorno = "esplora"; estraiTutti(arch, d[0], ""); return;
+    }
+    case "verifica": {
+      const v = s.find(x => x.archivio); if (!v) return;
+      avviaVerificaUI(v.percorso, ""); return;
+    }
+    case "apri": apriVoceEsplora(s[0]); return;
+    case "trova": $("x-trova").focus(); $("x-trova").select(); return;
+    case "info": if (s.length) mostraInfo(s); return;
+    case "ripara": {
+      const v = s[0]; if (!v || v.ext !== "zip") return;
+      if (!(await conferma(t("ripara_tit"), t("ripara_testo", { nome: v.nome }), t("x_ripara"), { ico: "am", colore: "ambra" }))) return;
+      const r = await goRipara(v.percorso);
+      if (r === "occupato") { toast(t("err_occupato")); return; }
+      S.ritorno = "esplora"; S.daVista = false; S.tipo = "ripara"; S.corrente = v.percorso;
+      inizioLavoro(t("lavoro_riparo"), v.nome); return;
+    }
+    case "elimina": {
+      if (!s.length) return;
+      const testo = s.length === 1 ? t("elimina_1", { nome: s[0].nome }) : t("elimina_n", { n: s.length });
+      if (!(await conferma(t("elimina_tit"), testo + " " + t("elimina_cestino"), t("elimina_si"), { colore: "rosso" }))) return;
+      const r = await goCestino(s.map(v => v.percorso));
+      if (r && r.ok) { toast(t("eliminati", { n: r.n })); apriCartella(X.el.percorso); }
+      else if (r && r.codice === "protetto") avviso(t("elimina_tit"), t("elimina_protetto", { nome: r.nome || "" }), { ico: "am" });
+      else if (r && r.codice !== "annullato") toast(t("elimina_errore"));
+      else apriCartella(X.el.percorso);
+      return;
+    }
+    case "mostra": if (s[0]) goApri(s[0].percorso); return;
+    case "guida": apriGuida(); G.daEsplora = true; return;
+    case "casa": vista("home"); return;
+  }
+}
+// ----- Verifica -----
+async function avviaVerificaUI(percorso, password) {
+  if (S.occupato) { toast(t("err_occupato")); return; }
+  const r = await goVerifica(percorso, password);
+  if (r === "occupato") { toast(t("err_occupato")); return; }
+  S.corrente = percorso; S.daVista = false;
+  S.riprova = pw => avviaVerificaUI(percorso, pw);
+  if (!S.ritorno) S.ritorno = "esplora";
+  S.tipo = "verifica"; inizioLavoro(t("lavoro_verifico"), nomeFile(percorso));
+}
+async function verificaArrivata(r) {
+  S.occupato = false; S.riprova = null;
+  if (S.ritorno === "esplora") { vista("esplora"); } else vista("home");
+  if (r.ok) {
+    const v = r.ris || {};
+    avviso(t("verifica_ok_tit"), t("verifica_ok", { n: v.file, dim: dim(v.byte || 0) }), { ico: "ok", colore: "verde" });
+  } else {
+    const chiave = "err_" + (r.codice || "generico");
+    const testo = t(chiave) === chiave ? t("err_rovinato") : t(chiave);
+    const zip = /\.zip$/i.test(r.percorso || "");
+    const si = await conferma(t("verifica_ko_tit"), nomeFile(r.percorso) + ": " + testo + (zip ? " " + t("verifica_ko_zip") : ""), zip ? t("x_ripara") : "OK", { ico: "ko", colore: zip ? "ambra" : "blu", no: zip });
+    if (si && zip) {
+      const p = r.percorso;
+      const rr = await goRipara(p);
+      if (rr === "ok") { S.tipo = "ripara"; S.corrente = p; inizioLavoro(t("lavoro_riparo"), nomeFile(p)); }
+    }
+  }
+}
+// ----- Info -----
+function mostraInfo(s) {
+  X.infoId++;
+  avviso(t("info_tit"), "", { ico: "am", dati: [[t("info_calcolo"), "…"]] });
+  goInfoPercorsi(X.infoId, s.map(v => v.percorso));
+  X.infoSel = s;
+}
+function infoArrivata(r) {
+  if (r.id !== X.infoId || !$("modale").classList.contains("on")) return;
+  const s = X.infoSel || [];
+  const righe = [];
+  const m = r.misura || {};
+  if (s.length === 1) {
+    righe.push([t("col_nome"), s[0].nome], [t("info_dove"), cartellaDi(s[0].percorso)], [t("col_tipo"), tipoDi(s[0])]);
+    if (s[0].quando) righe.push([t("col_modificato"), data(s[0].quando)]);
+  } else righe.push([t("info_elementi"), String(s.length)]);
+  righe.push([t("info_dimensione"), dim(m.byte || 0) + (m.fermata ? " +" : "")]);
+  if (m.cartelle || s.some(v => v.cartella)) righe.push([t("info_contiene"), t("info_contiene_v", { file: m.file || 0, c: m.cartelle || 0 }) + (m.fermata ? " +" : "")]);
+  const a = r.archivio;
+  if (a) {
+    righe.push([t("info_formato"), String(a.tipo || "").toUpperCase() + (a.solido ? " · " + t("info_solido") : "")]);
+    if (a.metodo) righe.push([t("info_metodo"), a.metodo]);
+    righe.push([t("info_dentro"), t("info_contiene_v", { file: a.file, c: a.cartelle })]);
+    righe.push([t("info_originale"), dim(a.orig || 0)]);
+    righe.push([t("info_compresso"), dim(a.comp || 0)]);
+    if (a.orig > 0) {
+      const perc = Math.round(a.comp * 100 / a.orig);
+      righe.push([t("info_rapporto"), perc + "% " + t("info_rapporto_v", { perc: Math.max(0, 100 - perc) + "%" })]);
+    }
+    if (a.cifrato) righe.push([t("info_password"), t("si")]);
+  } else if (r.codice && s.length === 1 && s[0].archivio) {
+    righe.push([t("info_formato"), t("err_" + r.codice) === "err_" + r.codice ? t("err_generico") : t("err_" + r.codice)]);
+  }
+  const dl = $("m-dati"); dl.textContent = "";
+  for (const [k, v] of righe) { const x = document.createElement("dt"); x.textContent = k; const y = document.createElement("dd"); y.textContent = v; dl.append(x, y); }
+}
+// ----- Trova -----
+function avviaTrova() {
+  const q = $("x-trova").value.trim();
+  if (!q || !X.el) { chiudiTrova(); return; }
+  X.id++; X.cercando = true; X.trova = { voci: [], cerca: q };
+  X.sel.clear(); X.fuoco = X.ancora = -1;
+  $("x-banner").hidden = false;
+  $("x-banner-t").innerHTML = '<span class="giro"></span> ';
+  $("x-banner-t").append(t("x_cerco", { q }));
+  $("x-banner-b").textContent = t("x_ferma");
+  disegnaEsplora();
+  goTrova(X.id, X.el.percorso, q, X.nascosti);
+}
+function trovaArrivata(r) {
+  if (r.id !== X.id || !X.trova) return;
+  X.cercando = false;
+  X.trova = { voci: (r.ris && r.ris.voci) || [], cerca: r.ris ? r.ris.cerca : "" };
+  const n = X.trova.voci.length;
+  const b = document.createElement("b"); b.textContent = "“" + X.trova.cerca + "”";
+  $("x-banner-t").textContent = "";
+  $("x-banner-t").append(t("x_risultati", { n }) + " ", b, r.ris && (r.ris.troppi || r.ris.fermata) ? " · " + t("x_ricerca_limite") : "");
+  $("x-banner-b").textContent = t("x_chiudi_ricerca");
+  disegnaEsplora();
+}
+function chiudiTrova(silenzio) {
+  if (X.cercando) goFermaTrova();
+  X.cercando = false;
+  const c = !!X.trova;
+  X.trova = null; $("x-banner").hidden = true;
+  if (!silenzio) { $("x-trova").value = ""; if (c) { X.sel.clear(); X.fuoco = X.ancora = -1; disegnaEsplora(); } }
+}
+// ----- menu del tasto destro -----
+function chiudiCtx() { const c = $("ctx"); if (c) c.classList.remove("on"); }
+function apriCtx(x, y) {
+  const s = selezionate();
+  const c = $("ctx"); c.textContent = "";
+  const voce = (a, k, dis, rischio) => {
+    const b = document.createElement("button");
+    const src = document.querySelector('#x-attrezzi [data-a="' + a + '"] svg');
+    b.innerHTML = src ? src.outerHTML : "";
+    const sp = document.createElement("span"); sp.textContent = t(k); b.append(sp);
+    b.disabled = !!dis; if (rischio) b.classList.add("rischio");
+    b.onclick = () => azione(a);
+    c.append(b);
+  };
+  const arch = s.filter(v => v.archivio);
+  voce("apri", s[0] && s[0].cartella ? "x_entra" : "x_apri", s.length !== 1);
+  c.append(document.createElement("hr"));
+  voce("comprimi", "x_comprimi_ctx", !s.length);
+  voce("estrai", "x_estrai", !arch.length);
+  voce("verifica", "x_verifica", arch.length !== 1 || s.length !== 1);
+  if (s.length === 1 && s[0].ext === "zip") voce("ripara", "x_ripara");
+  voce("info", "x_info", !s.length);
+  c.append(document.createElement("hr"));
+  const b = document.createElement("button");
+  b.innerHTML = '<svg viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M14 13h-5M11.5 10.5 14 13l-2.5 2.5"/></svg>';
+  const sp = document.createElement("span"); sp.textContent = t("x_mostra"); b.append(sp);
+  b.disabled = s.length !== 1; b.onclick = () => azione("mostra"); c.append(b);
+  voce("elimina", "x_elimina_ctx", !s.length, true);
+  c.classList.add("on");
+  const w = c.offsetWidth, h = c.offsetHeight;
+  c.style.left = Math.min(x, window.innerWidth - w - 8) + "px";
+  c.style.top = Math.min(y, window.innerHeight - h - 8) + "px";
+}
+// ----- eventi della vista -----
+$("x-corpo").addEventListener("mousedown", e => {
+  const r = e.target.closest(".r"); if (!r) return;
+  const i = +r.dataset.i;
+  if (e.button === 2) { if (!X.sel.has(righeEsplora()[i].percorso)) scegliIndice(i, null); return; }
+  if (e.button === 0) scegliIndice(i, e);
+});
+$("x-corpo").addEventListener("dblclick", e => {
+  const r = e.target.closest(".r"); if (!r) return;
+  apriVoceEsplora(righeEsplora()[+r.dataset.i]);
+});
+$("x-corpo").addEventListener("contextmenu", e => {
+  e.preventDefault();
+  if (!e.target.closest(".r")) { X.sel.clear(); ridisegnaSelezione(); }
+  apriCtx(e.clientX, e.clientY);
+});
+$("x-corpo").addEventListener("click", e => { if (!e.target.closest(".r")) { X.sel.clear(); X.fuoco = -1; ridisegnaSelezione(); } });
+document.addEventListener("mousedown", e => { if (!e.target.closest("#ctx")) chiudiCtx(); });
+window.addEventListener("blur", chiudiCtx);
+$("x-corpo").addEventListener("keydown", e => {
+  const righe = righeEsplora();
+  const muovi = n => {
+    if (!righe.length) return;
+    const i = Math.max(0, Math.min(righe.length - 1, (X.fuoco < 0 ? -1 : X.fuoco) + n));
+    if (e.shiftKey) { X.fuoco = i; X.sel.clear(); const [a, b] = X.ancora < i ? [Math.max(0, X.ancora), i] : [i, X.ancora]; for (let k = a; k <= b; k++) X.sel.add(righe[k].percorso); ridisegnaSelezione(); }
+    else scegliIndice(i, null);
+    mostraRiga(i); e.preventDefault();
+  };
+  if (e.key === "ArrowDown") muovi(1);
+  else if (e.key === "ArrowUp" && !e.altKey) muovi(-1);
+  else if (e.key === "PageDown") muovi(15);
+  else if (e.key === "PageUp") muovi(-15);
+  else if (e.key === "Home") muovi(-1e9);
+  else if (e.key === "End") muovi(1e9);
+  else if (e.key === "Enter") { if (X.sel.size === 1) apriVoceEsplora(selezionate()[0]); e.preventDefault(); }
+  else if (e.key === "Delete") { azione("elimina"); e.preventDefault(); }
+  else if (e.key === "Backspace" || (e.key === "ArrowUp" && e.altKey)) { $("x-su").click(); e.preventDefault(); }
+  else if ((e.key === "a" || e.key === "A") && e.ctrlKey) { for (const v of righe) X.sel.add(v.percorso); ridisegnaSelezione(); e.preventDefault(); }
+  else if (e.key === "F5") { apriCartella(X.el.percorso); e.preventDefault(); }
+  else if (e.key === "ContextMenu") { const r = $("x-corpo").querySelector(".r.fuoco") || $("x-corpo"); const b = r.getBoundingClientRect(); apriCtx(b.left + 40, b.top + 20); e.preventDefault(); }
+});
+document.querySelectorAll("#v-esplora .th button").forEach(b => b.onclick = () => {
+  if (X.ordine === b.dataset.o) X.dir = -X.dir; else { X.ordine = b.dataset.o; X.dir = b.dataset.o === "nome" || b.dataset.o === "tipo" ? 1 : -1; }
+  const sel = new Set(X.sel);
+  if (X.trova) {
+    const tmp = X.voci; X.voci = X.trova.voci; ordinaVoci(); X.trova.voci = X.voci; X.voci = tmp;
+  } else ordinaVoci();
+  X.sel = sel; X.fuoco = X.ancora = -1; disegnaEsplora();
+});
+document.querySelectorAll("#x-attrezzi button").forEach(b => b.onclick = () => azione(b.dataset.a));
+$("x-su").onclick = () => {
+  if (X.trova) { chiudiTrova(); return; }
+  if (X.el && X.el.padre) apriCartella(X.el.padre, nomeFile(X.el.percorso));
+};
+$("x-aggiorna").onclick = () => { if (X.el) apriCartella(X.el.percorso); };
+$("x-indirizzo").onkeydown = e => {
+  if (e.key === "Enter") { const p = $("x-indirizzo").value.trim(); if (p) apriCartella(p); e.preventDefault(); }
+  if (e.key === "Escape") { $("x-indirizzo").value = X.el ? X.el.percorso : ""; $("x-corpo").focus(); }
+};
+$("x-indirizzo").onfocus = () => $("x-indirizzo").select();
+$("x-trova").onkeydown = e => {
+  if (e.key === "Enter") { avviaTrova(); e.preventDefault(); }
+  if (e.key === "Escape") { chiudiTrova(); $("x-corpo").focus(); }
+};
+$("x-banner-b").onclick = () => chiudiTrova();
+$("x-nascosti").onchange = () => { X.nascosti = $("x-nascosti").checked; if (X.el) apriCartella(X.el.percorso); };
+$("b-esplora").onclick = apriEsplora;
+
+// ---------- PROCEDURA GUIDATA ----------
+const G = { passo: 1, cosa: "", lista: [], formato: "zip", livello: "massima", doveC: "", doveE: "", nomeToccato: false };
+const LIVELLO_FORMATI = { "7z": 1, targz: 1, tarbz2: 1, tarxz: 1, tarzst: 1 };
+function apriGuida() {
+  S.ritorno = "guida";
+  G.passo = 1; G.cosa = ""; G.lista = []; G.formato = "zip"; G.doveC = ""; G.doveE = ""; G.nomeToccato = false;
+  $("g-nome").value = "";
+  document.querySelector('input[name="g-dove-c"][value="accanto"]').checked = true;
+  document.querySelector('input[name="g-dove-e"][value="accanto"]').checked = true;
+  document.querySelector('input[name="g-modo"][value=""]').checked = true;
+  $("g-livello").value = S.livello || "massima";
+  vista("guida"); disegnaGuida();
+}
+function nomeGuida() {
+  if (G.lista.length === 1) { const e = G.lista[0]; return e.cartella ? e.nome : (e.nome.replace(/\.(tar\.(gz|bz2|xz|zst)|[^.]{1,12})$/i, "") || e.nome); }
+  return t("nome_multiplo");
+}
+function disegnaGuida() {
+  document.querySelectorAll(".passo").forEach(p => { const n = +p.dataset.p; p.classList.toggle("on", n === G.passo); p.classList.toggle("fatto", n < G.passo); });
+  document.querySelectorAll(".g-passo").forEach(p => p.classList.remove("on"));
+  if (G.passo === 3) $(G.cosa === "estrai" ? "g3e" : "g3c").classList.add("on");
+  else document.querySelector('.g-passo[data-p="' + G.passo + '"]').classList.add("on");
+  document.querySelectorAll(".opz").forEach(o => o.classList.toggle("on", o.dataset.g === G.cosa));
+  // passo 2
+  const est = G.cosa === "estrai";
+  $("g2-tit").textContent = est ? t("g_scegli_archivi") : t("g_scegli_file");
+  $("g-zona-t").textContent = est ? t("g_trascina_archivi") : t("g_trascina_file");
+  $("g-sfoglia-f").textContent = est ? t("g_sfoglia_archivi") : t("g_sfoglia_file");
+  $("g-sfoglia-c").hidden = est;
+  const l = $("g-lista"); l.textContent = "";
+  let tot = 0;
+  G.lista.forEach((e, i) => {
+    tot += e.dim || 0;
+    const r = document.createElement("div"); r.className = "el";
+    r.innerHTML = e.cartella ? ICONE_TIPO.cartella : e.archivio ? ICONE_TIPO.archivio : ICONE_TIPO.file;
+    const n = document.createElement("span"); n.className = "n"; n.textContent = e.nome; n.title = e.percorso;
+    const d = document.createElement("span"); d.className = "d"; d.textContent = e.cartella ? "" : dim(e.dim);
+    const b = document.createElement("button"); b.textContent = t("togli");
+    b.onclick = () => { G.lista.splice(i, 1); disegnaGuida(); };
+    r.append(n, d, b); l.append(r);
+  });
+  if (!G.lista.length) { const v = document.createElement("div"); v.className = "g-vuota"; v.textContent = t("g_niente"); l.append(v); }
+  $("g-conta").textContent = G.lista.length ? (G.lista.length === 1 ? t("scelti_1") : t("scelti_n", { n: G.lista.length })) + (tot ? " · " + dim(tot) : "") : "";
+  // passo 3 comprimi
+  const box = $("g-formati");
+  if (!box.children.length || box.dataset.lingua !== S.lingua) {
+    box.textContent = ""; box.dataset.lingua = S.lingua;
+    for (const f of S.formati) {
+      const b = document.createElement("button"); b.className = "fmt"; b.dataset.f = f;
+      b.innerHTML = '<i class="pt"></i><div><b></b><span></span></div>';
+      b.querySelector("b").textContent = t("gf_" + f); b.querySelector("span").textContent = t("gf_" + f + "_d");
+      b.onclick = () => { G.formato = f; disegnaGuida(); };
+      box.append(b);
+    }
+  }
+  box.querySelectorAll(".fmt").forEach(b => b.classList.toggle("on", b.dataset.f === G.formato));
+  $("g-livello-box").style.visibility = LIVELLO_FORMATI[G.formato] ? "" : "hidden";
+  if (!G.nomeToccato) $("g-nome").value = G.lista.length ? nomeGuida() : "";
+  $("g-dove-c-t").textContent = G.doveC; $("g-dove-c-t").title = G.doveC;
+  $("g-dove-e-t").textContent = G.doveE; $("g-dove-e-t").title = G.doveE;
+  // piede
+  $("g-indietro").hidden = G.passo === 1;
+  $("g-avanti").textContent = G.passo === 3 ? (est ? t("g_prosegui_e") : t("g_prosegui_c")) : t("g_avanti");
+  $("g-avanti").disabled = (G.passo === 1 && !G.cosa) || (G.passo === 2 && !G.lista.length);
+}
+async function guidaAggiungi(percorsi) {
+  if (!percorsi || !percorsi.length) return;
+  if (G.passo === 1) { G.cosa = G.cosa || "comprimi"; G.passo = 2; }
+  const info = await goInfo(percorsi) || [];
+  const visti = new Set(G.lista.map(e => e.percorso.toLowerCase()));
+  let scartati = 0;
+  for (const e of info) {
+    if (G.cosa === "estrai" && !e.archivio) { scartati++; continue; }
+    if (!visti.has(e.percorso.toLowerCase())) { G.lista.push(e); visti.add(e.percorso.toLowerCase()); }
+  }
+  if (scartati) toast(t("non_archivi_alcuni", { n: scartati }));
+  disegnaGuida();
+}
+async function guidaProsegui() {
+  if (G.passo < 3) { G.passo++; disegnaGuida(); return; }
+  if (S.occupato) { toast(t("err_occupato")); return; }
+  const p = G.lista.map(e => e.percorso);
+  if (G.cosa === "estrai") {
+    const altra = document.querySelector('input[name="g-dove-e"]:checked').value === "altra";
+    if (altra && !G.doveE) { await scegliDoveG("e"); if (!G.doveE) return; }
+    const modo = document.querySelector('input[name="g-modo"]:checked').value;
+    S.ritorno = "guida";
+    estraiTutti(p, altra ? G.doveE : "", modo);
+    return;
+  }
+  const altra = document.querySelector('input[name="g-dove-c"]:checked').value === "altra";
+  if (altra && !G.doveC) { await scegliDoveG("c"); if (!G.doveC) return; }
+  const nome = $("g-nome").value.trim();
+  const r = await goComprimi(p, G.formato, G.nomeToccato || nome !== nomeGuida() ? nome : "", $("g-livello").value, altra ? G.doveC : "");
+  if (r === "occupato") { toast(t("err_occupato")); return; }
+  if (r !== "ok") return;
+  S.ritorno = "guida"; S.daVista = false; S.lista = [];
+  S.tipo = "comprimi"; inizioLavoro(t("lavoro_comprimo"), "");
+}
+async function scegliDoveG(k) {
+  const d = await goScegliDestinazione();
+  if (d && d.length) {
+    if (k === "c") G.doveC = d[0]; else G.doveE = d[0];
+    document.querySelector('input[name="g-dove-' + k + '"][value="altra"]').checked = true;
+  }
+  disegnaGuida();
+}
+document.querySelectorAll(".opz").forEach(o => o.onclick = () => {
+  if (G.cosa !== o.dataset.g) G.lista = [];
+  G.cosa = o.dataset.g; G.passo = 2; disegnaGuida();
+});
+$("g-avanti").onclick = guidaProsegui;
+$("g-indietro").onclick = () => { if (G.passo > 1) { G.passo--; disegnaGuida(); } };
+$("g-esci").onclick = () => { if (X.el && G.daEsplora) { S.ritorno = "esplora"; tornaEsplora(); } else vista("home"); };
+$("g-sfoglia-f").onclick = async () => guidaAggiungi(G.cosa === "estrai" ? await goScegliArchivio() : await goScegliFile());
+$("g-sfoglia-c").onclick = async () => guidaAggiungi(await goScegliCartella());
+$("g-nome").oninput = () => { G.nomeToccato = true; };
+$("g-dove-c-b").onclick = () => scegliDoveG("c");
+$("g-dove-e-b").onclick = () => scegliDoveG("e");
+$("b-guida").onclick = () => { apriGuida(); G.daEsplora = false; };
+
 // ---------- pulsanti ----------
 $("b-file").onclick = async () => aggiungi(await goScegliFile());
 $("b-cartella").onclick = async () => aggiungi(await goScegliCartella());
 $("c-piu-file").onclick = async () => aggiungi(await goScegliFile());
 $("c-piu-cartella").onclick = async () => aggiungi(await goScegliCartella());
-$("b-archivio").onclick = async () => estraiTutti(await goScegliArchivio());
-$("c-indietro").onclick = () => { S.lista = []; $("c-nome").dataset.toccato = ""; vista("home"); };
+$("b-archivio").onclick = async () => estraiTutti(await goScegliArchivio(), "", "");
+$("c-indietro").onclick = () => { S.lista = []; $("c-nome").dataset.toccato = ""; if (S.ritorno === "esplora") tornaEsplora(); else vista("home"); };
 $("c-vai").onclick = comprimi;
 $("c-nome").oninput = () => { $("c-nome").dataset.toccato = "1"; aggiornaDove(); };
 $("c-nome").onkeydown = e => { if (e.key === "Enter") comprimi(); };
-document.querySelectorAll(".fmt").forEach(b => b.onclick = () => {
+document.querySelectorAll("#v-comprimi .fmt").forEach(b => b.onclick = () => {
   S.formato = b.dataset.f; goFormato(S.formato);
-  document.querySelectorAll(".fmt").forEach(x => x.classList.toggle("on", x === b));
+  document.querySelectorAll("#v-comprimi .fmt").forEach(x => x.classList.toggle("on", x === b));
   aggiornaDove();
 });
 $("c-livello").onchange = () => { S.livello = $("c-livello").value; goLivello(S.livello); };
@@ -833,6 +1724,8 @@ $("f-ok").onclick = () => {
   S.ultimoEstratto = null;
   if (INIZIO.mini) { goChiudi(); return; }
   if (S.daVista && S.arch) { vista("archivio"); return; }
+  if (S.ritorno === "esplora") { tornaEsplora(true); return; }
+  if (S.ritorno === "guida") { G.passo = 1; G.lista = []; if (G.daEsplora && X.el) { tornaEsplora(true); return; } }
   vista("home");
 };
 $("p-mostra").onclick = () => { const c = $("p-campo"); c.type = c.type === "password" ? "text" : "password"; c.focus(); };
@@ -844,6 +1737,8 @@ $("p-annulla").onclick = () => {
   if (S.daVista && S.arch && S.tipo !== "elenco") { vista("archivio"); return; }
   if (INIZIO.mini && !S.ultimoEstratto) { goChiudi(); return; }
   if (S.ultimoEstratto) { finisciCoda(); return; }
+  if (S.ritorno === "esplora") { tornaEsplora(); return; }
+  if (S.ritorno === "guida") { vista("guida"); return; }
   vista("home");
 };
 $("menu").onchange = async () => {
@@ -873,7 +1768,8 @@ const INIZIO = window.__TZ_INIZIO__ || { modo: "", percorsi: [] };
 (async function avvio() {
   const a = await goAvvio();
   S.lingua = a.lingua; S.testi = a.testi; S.lingue = a.lingue; S.livello = a.livello || "massima";
-  S.formato = a.formato === "7z" ? "7z" : "zip"; // nel menu solo .zip e .7z (gli altri formati si estraggono)
+  S.formato = a.formato === "7z" ? "7z" : "zip"; // qui solo .zip e .7z; tutti gli altri nella procedura guidata
+  if (a.formati && a.formati.length) S.formati = a.formati;
   if (INIZIO.mini) document.body.classList.add("mini");
   const box = $("lingue");
   for (const l of S.lingue) {
@@ -886,7 +1782,7 @@ const INIZIO = window.__TZ_INIZIO__ || { modo: "", percorsi: [] };
   $("ver").textContent = "v" + String(a.versione).split(".").slice(0, 2).join(".");
   applicaTesti();
   const p = INIZIO.percorsi || [];
-  const modi = ["comprimi", "estrai", "zip", "7z", "apri", "estrai-qui", "estrai-cartella"];
+  const modi = ["comprimi", "estrai", "zip", "7z", "apri", "estrai-qui", "estrai-cartella", "estrai-in"];
   if (p.length) arrivati(p, modi.includes(INIZIO.modo) ? INIZIO.modo : "auto");
 })();
 </script>

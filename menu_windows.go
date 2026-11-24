@@ -11,8 +11,10 @@ package main
 // nuovo di Windows 11 accetta solo programmi con un'estensione COM firmata e un pacchetto
 // MSIX: Tasso Zip non lo fa).
 //
-// Sui file e sulle cartelle:  Comprimi con Tasso Zip... / Comprimi in .zip / Comprimi in .7z
-// Sugli archivi:              Apri con Tasso Zip / Estrai qui / Estrai in una cartella / Comprimi...
+// Sui file e sulle cartelle:  Aggiungi all'archivio... / Comprimi in .zip / Comprimi in .7z
+// Sugli archivi:              Apri con Tasso Zip / Estrai qui / Estrai in una cartella col suo nome /
+//                             Estrai in... (scegli la cartella) / Aggiungi all'archivio...
+// Windows mette le voci del sottomenu in ordine di nome della chiave: per questo i numeri davanti.
 //
 // I nomi delle voci non possono contenere il nome del file scelto ("Comprimi in Foto.zip"):
 // per quello Windows vuole un'estensione COM. Le voci dicono quindi ".zip" e ".7z".
@@ -53,7 +55,8 @@ func vociArchivio(l string) []voceMenu {
 		{"1apri", testi.T(l, "menu_apri"), "--apri"},
 		{"2qui", testi.T(l, "menu_estrai_qui"), "--estrai-qui"},
 		{"3cartella", testi.T(l, "menu_estrai_cartella"), "--estrai-cartella"},
-		{"4comprimi", testi.T(l, "menu_comprimi_con"), "--comprimi"},
+		{"4in", testi.T(l, "menu_estrai_in"), "--estrai-in"},
+		{"5comprimi", testi.T(l, "menu_comprimi_con"), "--comprimi"},
 	}
 }
 
@@ -166,7 +169,11 @@ func cancellaAlbero(base registry.Key, percorso string) error {
 }
 
 func leggiComando() string {
-	k, err := registry.OpenKey(registry.CURRENT_USER, `Software\Classes\*\shell\`+verboMenu+`\shell\1comprimi\command`, registry.QUERY_VALUE)
+	return leggiComandoDi(`Software\Classes\*\shell\` + verboMenu + `\shell\1comprimi\command`)
+}
+
+func leggiComandoDi(chiave string) string {
+	k, err := registry.OpenKey(registry.CURRENT_USER, chiave, registry.QUERY_VALUE)
 	if err != nil {
 		return ""
 	}
@@ -187,9 +194,12 @@ func menuVecchio() bool {
 
 func menuAttivo() bool { return leggiComando() != "" || menuVecchio() }
 
-// menuPuntaA: le voci del menu avviano proprio questo exe (e sono quelle nuove)?
+// menuPuntaA: le voci del menu avviano proprio questo exe (e sono quelle nuove, con
+// "Estrai in...")? Se no, all'avvio Tasso Zip le riscrive da solo.
 func menuPuntaA(exe string) bool {
-	return strings.EqualFold(leggiComando(), comando(exe, "--comprimi")) && !menuVecchio()
+	nuova := leggiComandoDi(`Software\Classes\SystemFileAssociations\.zip\shell\` + verboMenu + `\shell\4in\command`)
+	return strings.EqualFold(leggiComando(), comando(exe, "--comprimi")) && !menuVecchio() &&
+		strings.EqualFold(nuova, comando(exe, "--estrai-in"))
 }
 
 var procSHChangeNotify = windows.NewLazySystemDLL("shell32.dll").NewProc("SHChangeNotify")

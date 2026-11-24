@@ -151,12 +151,14 @@ func main() {
 	finestra = w
 	defer w.Destroy()
 	webview2.PanicHook = func(m string, r interface{}, st []byte) { registraErrore("errore in %s: %v\n%s", m, r, st) }
-	for _, n := range []string{"goScegliFile", "goScegliCartella", "goScegliArchivio"} {
+	for _, n := range []string{"goScegliFile", "goScegliCartella", "goScegliArchivio", "goScegliDestinazione", "goCestino"} {
 		webview2.SuFinestra[n] = true
 	}
 	webview2.Subito["goAnnulla"] = true
+	webview2.Subito["goFermaTrova"] = true
 	edge.DropHook = func(p []string) { manda("trascinati", p) }
 	collega(w)
+	collegaEsplora()
 
 	iniziali := map[string]interface{}{"modo": modo, "percorsi": percorsi, "mini": mini}
 	if modo == "" && len(percorsi) > 0 {
@@ -188,11 +190,11 @@ func main() {
 // modiRiga: i modi che si possono chiedere dalla riga di comando (e dal tasto destro).
 var modiRiga = map[string]bool{
 	"comprimi": true, "zip": true, "7z": true,
-	"estrai": true, "estrai-qui": true, "estrai-cartella": true, "apri": true,
+	"estrai": true, "estrai-qui": true, "estrai-cartella": true, "estrai-in": true, "apri": true,
 }
 
 // modiMini: lavori diretti dal tasto destro, con la finestrella di avanzamento.
-var modiMini = map[string]bool{"zip": true, "7z": true, "estrai-qui": true, "estrai-cartella": true}
+var modiMini = map[string]bool{"zip": true, "7z": true, "estrai-qui": true, "estrai-cartella": true, "estrai-in": true}
 
 func nuovaFinestra(mini bool) webview2.WebView {
 	scala := 1.0
@@ -248,6 +250,7 @@ func collega(w webview2.WebView) {
 			"formato":  impostazioniCopia().Formato,
 			"livello":  impostazioniCopia().Livello,
 			"desktop":  cartellaDesktop(),
+			"formati":  archivio.FormatiCreabili,
 		}
 	})
 	_ = w.Bind("goScegliFile", func() []string {
@@ -414,7 +417,7 @@ func erroreVersoPagina(tipo, percorso string, err error) {
 	manda("errore", map[string]interface{}{"tipo": tipo, "codice": c, "dettagli": err.Error(), "percorso": percorso})
 }
 
-func avviaComprimi(percorsi []string, formato, nome, livello string) string {
+func avviaComprimi(percorsi []string, formato, nome, livello, dove string) string {
 	if len(percorsi) == 0 {
 		return "vuoto"
 	}
@@ -442,6 +445,7 @@ func avviaComprimi(percorsi []string, formato, nome, livello string) string {
 			Livello:         archivio.Livello(livello),
 			Nome:            nome,
 			NomeMultiplo:    multiplo,
+			Cartella:        dove,
 			CartellaRiserva: cartellaDesktop(),
 			Avanzamento:     avanzamento,
 		})
