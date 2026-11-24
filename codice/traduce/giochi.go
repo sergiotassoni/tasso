@@ -286,6 +286,15 @@ func ConAntiCheat(g GiocoRiconosciuto) bool {
 	if g.Piattaforma == "Riot" {
 		return true
 	}
+	// giochi con un anti-cheat che non lascia segni riconoscibili nella cartella (driver installato a parte)
+	if n := nomePiatto(g.Nome + " " + filepath.Base(g.Cartella)); n != "" {
+		for _, k := range giochiConAntiCheat {
+			// nomi corti ("rust", "dayz"): solo all'inizio, non dentro un'altra parola ("Trust")
+			if (len(k) > 4 && strings.Contains(n, k)) || strings.HasPrefix(n, k) {
+				return true
+			}
+		}
+	}
 	base := strings.ReplaceAll(g.Cartella, `\`, string(os.PathSeparator))
 	if base == "" {
 		return false
@@ -383,12 +392,16 @@ func conAntiCheatCartella(base, nome string) bool {
 
 var (
 	segniAntiCheat       = []string{"start_protected_game", "easyanticheat", "battleye", "beservice", "mhyprot", "xigncode", "gameguard", "npgamemon", "vgk", "faceit", "ace-", "anticheat"}
-	segniAntiCheatSicuri = []string{"start_protected_game", "easyanticheat", "battleye", "beservice", "eaanticheat"}
+	segniAntiCheatSicuri = []string{"start_protected_game", "easyanticheat", "battleye", "beservice", "eaanticheat", "anticheatinstaller", "denuvo-anticheat", "denuvoanticheat"}
 )
+
+// giochiConAntiCheat: nomi (senza spazi) di giochi noti con anti-cheat (ARC Raiders: Denuvo
+// Anti-Cheat, visto il 24/11 sul PC di Sergio con il solo installatore in Installers\).
+var giochiConAntiCheat = []string{"arcraiders", "valorant", "fortnite", "apexlegends", "pubg", "battlegrounds", "callofduty", "warzone", "rainbowsix", "escapefromtarkov", "thefinals", "deltaforce", "marvelrivals", "counterstrike", "overwatch", "destiny2", "battlefield", "huntshowdown", "deadbydaylight", "rust", "dayz"}
 
 // Cartelle da guardare per prime e cartelle da saltare (grandi e senza programmi).
 var (
-	cartelleUtili   = map[string]bool{"binaries": true, "win64": true, "win32": true, "bin": true, "x64": true, "easyanticheat": true, "battleye": true, "game": true}
+	cartelleUtili   = map[string]bool{"binaries": true, "win64": true, "win32": true, "bin": true, "x64": true, "easyanticheat": true, "battleye": true, "game": true, "installers": true}
 	cartellePesanti = map[string]bool{"engine": true, "content": true, "paks": true, "movies": true, "localization": true, "_commonredist": true, "redist": true, "directx": true, "saved": true, "logs": true}
 )
 

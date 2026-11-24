@@ -126,3 +126,25 @@ func TestLinguaSteam(t *testing.T) {
 		t.Fatalf("non Steam: %q", l)
 	}
 }
+
+func TestAntiCheatArcRaiders(t *testing.T) {
+	d := t.TempDir()
+	g := filepath.Join(d, "Arc Raiders")
+	_ = os.MkdirAll(filepath.Join(g, "Installers"), 0o755)
+	_ = os.WriteFile(filepath.Join(g, "Installers", "AntiCheatInstaller.exe"), []byte("x"), 0o644)
+	if !ConAntiCheat(GiocoRiconosciuto{Nome: "Arc Raiders", Cartella: g}) {
+		t.Error("ARC Raiders (Denuvo Anti-Cheat) non riconosciuto")
+	}
+	// solo l'installatore, nome qualsiasi
+	h := filepath.Join(d, "Gioco X")
+	_ = os.MkdirAll(filepath.Join(h, "Installers"), 0o755)
+	_ = os.WriteFile(filepath.Join(h, "Installers", "AntiCheatInstaller.exe"), []byte("x"), 0o644)
+	if !ConAntiCheat(GiocoRiconosciuto{Nome: "Gioco X", Cartella: h}) {
+		t.Error("installatore dell'anti-cheat non visto")
+	}
+	k := filepath.Join(d, "Trust Issues")
+	_ = os.MkdirAll(k, 0o755)
+	if ConAntiCheat(GiocoRiconosciuto{Nome: "Trust Issues", Cartella: k}) {
+		t.Error("\"Trust\" preso per Rust")
+	}
+}
