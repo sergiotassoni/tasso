@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"hash/crc32"
 	"io"
 	"math/rand"
 	"os"
@@ -52,7 +53,7 @@ func scrivi(t *testing.T, casi []caso, o Opzioni) (string, Risultato) {
 	var voci []Voce
 	for _, c := range casi {
 		c := c
-		voci = append(voci, Voce{Nome: c.nome, Cartella: c.cartella, Dim: int64(len(c.dati)), Quando: quando,
+		voci = append(voci, Voce{Nome: c.nome, Cartella: c.cartella, Dim: int64(len(c.dati)), Quando: quando, GiaCompresso: strings.HasSuffix(c.nome, ".jpg"),
 			Apri: func() (io.ReadCloser, error) { return io.NopCloser(bytes.NewReader(c.dati)), nil }})
 	}
 	o.DirTemp = filepath.Dir(p)
@@ -130,6 +131,9 @@ func insiemeMisto() []caso {
 		{nome: "日本語/ファイル.txt", dati: generaTesto(5000, 3)},
 		{nome: "日本語", cartella: true},
 		{nome: "altro vuoto"},
+		{nome: "Foto/mare.jpg", dati: casuale(3*65536+123, 4)},
+		{nome: "Foto/piccola.jpg", dati: casuale(10, 5)},
+		{nome: "Foto/esatta.jpg", dati: casuale(65536, 6)},
 	}
 }
 
@@ -140,7 +144,7 @@ func TestMistoLivelli(t *testing.T) {
 				t.Run(fmt.Sprintf("l%d_b%d_t%d", liv, blocco, th), func(t *testing.T) {
 					casi := insiemeMisto()
 					p, ris := scrivi(t, casi, Opzioni{Livello: liv, Blocco: blocco, Thread: th})
-					if ris.File != 6 || ris.Cartelle != 6 {
+					if ris.File != 9 || ris.Cartelle != 6 {
 						t.Fatalf("conteggi %+v", ris)
 					}
 					verifica(t, p, casi)
@@ -220,4 +224,32 @@ func leggiNum(b []byte) (uint64, int) {
 		mask >>= 1
 	}
 	return v, 9
+}
+
+func TestCrc32Combina(t *testing.T) {
+	for _, n := range []int{0, 1, 7, 100, 4096, 1 << 20} {
+		a, b := casuale(n/2+3, int64(n)), casuale(n, int64(n+1))
+		atteso := crc32.ChecksumIEEE(append(append([]byte{}, a...), b...))
+		if got := crc32Combina(crc32.ChecksumIEEE(a), crc32.ChecksumIEEE(b), int64(len(b))); got != atteso {
+			t.Fatalf("n=%d: %08x invece di %08x", n, got, atteso)
+		}
+	}
+}
+
+// Segmenti piccoli: i file vengono divisi fra più segmenti compressi in parallelo
+// (a cavallo dei file), e il flusso LZMA2 unito deve restare valido.
+func TestSegmentiParalleli(t *testing.T) {
+	casi := insiemeMisto()
+	casi = append(casi, caso{nome: "grande testo.txt", dati: generaTesto(3<<20, 9)}, caso{nome: "grande casuale.bin", dati: casuale(1<<20+17, 10)})
+	for _, seg := range []int64{1 << 16, 100003, 1 << 20} {
+		for _, th := range []int{2, 4} {
+			for _, blocco := range []int64{0, -1} {
+				p, ris := scrivi(t, casi, Opzioni{Livello: Normale, Segmento: seg, Thread: th, Blocco: blocco})
+				if ris.Thread < 2 {
+					t.Fatalf("thread: %+v", ris)
+				}
+				verifica(t, p, casi)
+			}
+		}
+	}
 }

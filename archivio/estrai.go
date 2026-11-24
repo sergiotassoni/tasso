@@ -111,7 +111,31 @@ type OpzioniEstrai struct {
 	Limiti          *Limiti // nil = LimitiPredefiniti()
 	Avanzamento     FunzioneAvanzamento
 	CartellaRiserva string // dove estrarre se accanto all'archivio non si può scrivere (es. Desktop)
+
+	// Modo: dove finiscono i file.
+	//   ModoNormale (""): cartella nuova accanto all'archivio (se dentro c'è una sola
+	//                     cartella, si usa quella);
+	//   ModoQui:          direttamente nella cartella (i nomi già presenti diventano "(2)");
+	//   ModoCartella:     sempre in una cartella col nome dell'archivio.
+	Modo ModoEstrai
+	// Destinazione: la cartella in cui estrarre ("" = quella dell'archivio).
+	Destinazione string
+	// Selezione: solo queste voci (nomi come li dà Elenca; una cartella vale con tutto
+	// quello che contiene). Vuota = tutto.
+	Selezione []string
+	// TogliPrefisso: cartella dell'archivio da togliere davanti ai nomi (es. "Foto/2024":
+	// "Foto/2024/mare.jpg" esce come "mare.jpg").
+	TogliPrefisso string
 }
+
+// ModoEstrai: dove finiscono i file estratti.
+type ModoEstrai string
+
+const (
+	ModoNormale  ModoEstrai = ""
+	ModoQui      ModoEstrai = "qui"
+	ModoCartella ModoEstrai = "cartella"
+)
 
 // RisultatoEstrai: cosa è stato fatto.
 type RisultatoEstrai struct {
@@ -120,6 +144,8 @@ type RisultatoEstrai struct {
 	Rinominati int      // nomi doppi a cui ho aggiunto " (2)"
 	Saltati    []string // voci non estratte, con il motivo (collegamenti, nomi pericolosi...)
 	Riserva    bool     // true se ho usato CartellaRiserva
+	// UltimoFile: percorso finale dell'ultimo file estratto (per aprirlo subito).
+	UltimoFile string
 }
 
 // lavoroEstrai: tutto quello che serve durante un'estrazione.
@@ -168,57 +194,17 @@ func Estrai(ctx context.Context, percorso string, opz OpzioniEstrai) (ris Risult
 		limiti = *opz.Limiti
 	}
 	l := &lavoroEstrai{ctx: ctx, opz: opz}
-
-	n := minuscolo(percorso)
-	if strings.HasSuffix(n, ".z01") || (strings.HasSuffix(n, ".zip") && esisteParteZip(percorso)) {
-		return ris, ErrZipDiviso
-	}
-
-	// Le parti: "nome.part1.rar"... (le apre la libreria rar), oppure "nome.001", "nome.002"...
-	tipo := Tipo("")
-	if reParteRarN.MatchString(filepath.Base(percorso)) || reVecchiaRar.MatchString(n) {
-		p, e := primaParteRar(percorso)
-		if e != nil {
-			return ris, e
-		}
-		percorso, tipo = p, TipoRar
-		l.parti = []string{p}
-	} else {
-		parti, multi, e := partiNumerate(percorso)
-		if e != nil {
-			return ris, e
-		}
-		l.parti, l.multipli = parti, multi
-	}
-
-	l.vol, err = apriVolumi(l.parti)
+	percorso, tipo, err := l.apri(percorso)
 	if err != nil {
 		return ris, err
 	}
 	defer l.vol.Close()
 
-	if tipo == "" {
-		testa := make([]byte, 1024)
-		k, _ := l.vol.ReadAt(testa, 0)
-		testa = testa[:k]
-		var ok bool
-		tipo, ok = riconosciDati(testa)
-		if !ok {
-			if bytes.HasPrefix(testa, []byte("PK\x07\x08")) {
-				return ris, ErrZipDiviso
-			}
-			// zip con qualcosa davanti (es. autoestraente): lo riconosce la lettura dalla fine
-			if _, e := zip.NewReader(l.vol, l.vol.Size()); e == nil || errors.Is(e, zip.ErrInsecurePath) {
-				tipo = TipoZip
-			} else {
-				return ris, ErrFormato
-			}
-		}
-	}
-	l.vol.letti.Store(0)
-
 	// Cartella di lavoro accanto all'archivio (o nella cartella di riserva).
 	dove := filepath.Dir(l.parti[0])
+	if opz.Destinazione != "" {
+		dove = opz.Destinazione
+	}
 	tmp, err := creaCartellaTemporanea(dove)
 	if err != nil && opz.CartellaRiserva != "" {
 		dove = opz.CartellaRiserva
@@ -237,6 +223,7 @@ func Estrai(ctx context.Context, percorso string, opz OpzioniEstrai) (ris Risult
 
 	l.d = nuovaDestinazione(ctx, tmp, limiti, l.vol.Size())
 	l.d.avanzamento = l.avanza
+	l.d.filtro = filtroSelezione(opz.Selezione, opz.TogliPrefisso)
 
 	switch tipo {
 	case TipoZip:
@@ -261,16 +248,72 @@ func Estrai(ctx context.Context, percorso string, opz OpzioniEstrai) (ris Risult
 		return ris, err
 	}
 
-	finale, err := l.d.concludi(dove, NomeBaseArchivio(percorso))
+	finale, ultimo, err := l.d.concludi(dove, NomeBaseArchivio(percorso), opz.Modo)
 	if err != nil {
 		return ris, err
 	}
 	finito = true
 	ris.Cartella = finale
+	ris.UltimoFile = ultimo
 	ris.File = l.d.file
 	ris.Rinominati = l.d.rinominati
 	ris.Saltati = l.d.saltati
 	return ris, nil
+}
+
+// apri trova le parti dell'archivio, le apre e ne riconosce il tipo dai primi byte.
+// Restituisce il percorso da usare (per i rar divisi: la prima parte).
+func (l *lavoroEstrai) apri(percorso string) (string, Tipo, error) {
+	n := minuscolo(percorso)
+	if strings.HasSuffix(n, ".z01") || (strings.HasSuffix(n, ".zip") && esisteParteZip(percorso)) {
+		return "", "", ErrZipDiviso
+	}
+
+	// Le parti: "nome.part1.rar"... (le apre la libreria rar), oppure "nome.001", "nome.002"...
+	tipo := Tipo("")
+	if reParteRarN.MatchString(filepath.Base(percorso)) || reVecchiaRar.MatchString(n) {
+		p, e := primaParteRar(percorso)
+		if e != nil {
+			return "", "", e
+		}
+		percorso, tipo = p, TipoRar
+		l.parti = []string{p}
+	} else {
+		parti, multi, e := partiNumerate(percorso)
+		if e != nil {
+			return "", "", e
+		}
+		l.parti, l.multipli = parti, multi
+	}
+
+	var err error
+	l.vol, err = apriVolumi(l.parti)
+	if err != nil {
+		return "", "", err
+	}
+
+	if tipo == "" {
+		testa := make([]byte, 1024)
+		k, _ := l.vol.ReadAt(testa, 0)
+		testa = testa[:k]
+		var ok bool
+		tipo, ok = riconosciDati(testa)
+		if !ok {
+			if bytes.HasPrefix(testa, []byte("PK\x07\x08")) {
+				l.vol.Close()
+				return "", "", ErrZipDiviso
+			}
+			// zip con qualcosa davanti (es. autoestraente): lo riconosce la lettura dalla fine
+			if _, e := zip.NewReader(l.vol, l.vol.Size()); e == nil || errors.Is(e, zip.ErrInsecurePath) {
+				tipo = TipoZip
+			} else {
+				l.vol.Close()
+				return "", "", ErrFormato
+			}
+		}
+	}
+	l.vol.letti.Store(0)
+	return percorso, tipo, nil
 }
 
 // esisteParteZip: c'è "nome.z01" accanto a "nome.zip"? Allora è uno zip diviso.

@@ -462,7 +462,8 @@ func scrivi7z(ctx context.Context, c *copiatore, out *os.File, dove string, voci
 	for i, v := range voci {
 		p := v.percorso
 		sv[i] = settezip.Voce{Nome: v.nome, Cartella: v.cartella, Dim: v.dim, Quando: v.quando,
-			Apri: func() (io.ReadCloser, error) { return os.Open(p) }}
+			GiaCompresso: estensioniGiaCompresse[strings.ToLower(filepath.Ext(v.nome))],
+			Apri:         func() (io.ReadCloser, error) { return os.Open(p) }}
 	}
 	o := settezip.Opzioni{
 		Livello:   liv.settezip(),

@@ -124,6 +124,69 @@ type destinazione struct {
 	avanzamento func(nome string, n int64)
 	prossimoCtl int64 // quando ricontrollare lo spazio libero
 	buf         []byte
+	// filtro: nil = tutto; altrimenti dice se la voce va estratta e con che nome.
+	filtro func(nome string) (string, bool)
+	ultimo string // percorso relativo (alla radice) dell'ultimo file scritto
+}
+
+// NormalizzaNome: il nome di una voce come lo mostra Tasso Zip ("/" come separatore,
+// niente "/" all'inizio o alla fine, niente pezzi "." o vuoti).
+func NormalizzaNome(n string) string {
+	n = strings.ReplaceAll(n, `\`, "/")
+	var pezzi []string
+	for _, p := range strings.Split(n, "/") {
+		if p == "" || p == "." {
+			continue
+		}
+		pezzi = append(pezzi, p)
+	}
+	return strings.Join(pezzi, "/")
+}
+
+// filtroSelezione: solo le voci scelte (e quello che c'è dentro le cartelle scelte),
+// togliendo il prefisso indicato.
+func filtroSelezione(sel []string, prefisso string) func(string) (string, bool) {
+	prefisso = NormalizzaNome(prefisso)
+	if len(sel) == 0 && prefisso == "" {
+		return nil
+	}
+	scelti := make([]string, 0, len(sel))
+	for _, x := range sel {
+		if x = NormalizzaNome(x); x != "" {
+			scelti = append(scelti, x)
+		}
+	}
+	return func(nome string) (string, bool) {
+		n := NormalizzaNome(nome)
+		if len(scelti) > 0 {
+			ok := false
+			for _, x := range scelti {
+				if n == x || strings.HasPrefix(n, x+"/") {
+					ok = true
+					break
+				}
+			}
+			if !ok {
+				return "", false
+			}
+		}
+		if prefisso != "" {
+			if !strings.HasPrefix(n, prefisso+"/") {
+				return "", false
+			}
+			n = n[len(prefisso)+1:]
+		}
+		return n, n != ""
+	}
+}
+
+// vuole: la voce va estratta? (per non aprire nemmeno quelle da saltare)
+func (d *destinazione) vuole(nome string) bool {
+	if d.filtro == nil {
+		return true
+	}
+	_, ok := d.filtro(nome)
+	return ok
 }
 
 func nuovaDestinazione(ctx context.Context, radice string, limiti Limiti, dimArchivio int64) *destinazione {
@@ -231,6 +294,13 @@ func (d *destinazione) cartella(pezzi []string) (string, error) {
 
 // creaCartella: voce "cartella" dell'archivio.
 func (d *destinazione) creaCartella(nome string, quando time.Time) error {
+	if d.filtro != nil {
+		n, ok := d.filtro(nome)
+		if !ok {
+			return d.annullato()
+		}
+		nome = n
+	}
 	if err := d.nuovaVoce(); err != nil {
 		return err
 	}
@@ -245,6 +315,13 @@ func (d *destinazione) creaCartella(nome string, quando time.Time) error {
 
 // creaFile: voce "file" dell'archivio. Non sovrascrive mai: se il nome c'è già usa "(2)".
 func (d *destinazione) creaFile(nome string, r io.Reader, quando time.Time) error {
+	if d.filtro != nil {
+		n, ok := d.filtro(nome)
+		if !ok {
+			return d.annullato()
+		}
+		nome = n
+	}
 	if err := d.nuovaVoce(); err != nil {
 		return err
 	}
@@ -288,6 +365,9 @@ func (d *destinazione) creaFile(nome string, r io.Reader, quando time.Time) erro
 	if !quando.IsZero() && quando.Year() > 1980 && quando.Year() < 2200 {
 		_ = os.Chtimes(percorso, quando, quando)
 	}
+	if rel, e := filepath.Rel(d.radice, percorso); e == nil {
+		d.ultimo = rel
+	}
 	d.file++
 	return nil
 }
@@ -328,21 +408,62 @@ func (d *destinazione) copia(w io.Writer, r io.Reader, nome string) (int64, erro
 	}
 }
 
-// concludi sposta il risultato dalla cartella di lavoro alla cartella finale accanto
-// all'archivio. Se dentro c'è una sola cartella, uso quella (niente "Foto\Foto\...").
-func (d *destinazione) concludi(dove, nomeBase string) (string, error) {
+// concludi sposta il risultato dalla cartella di lavoro alla cartella finale.
+// Restituisce la cartella (o, in ModoQui, la cartella di destinazione) e il percorso
+// finale dell'ultimo file scritto.
+//
+//	ModoNormale:  se dentro c'è una sola cartella, uso quella (niente "Foto\Foto\...");
+//	ModoCartella: cartella col nome dell'archivio (se dentro c'è solo una cartella con
+//	              lo stesso nome, uso quella);
+//	ModoQui:      ogni elemento va direttamente in "dove" (mai sovrascrivere: "(2)").
+func (d *destinazione) concludi(dove, nomeBase string, modo ModoEstrai) (string, string, error) {
 	voci, err := os.ReadDir(d.radice)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
-	if len(voci) == 1 && voci[0].IsDir() && voci[0].Type()&fs.ModeSymlink == 0 {
+	primo, resto := "", ""
+	if d.ultimo != "" {
+		pz := strings.SplitN(d.ultimo, string(filepath.Separator), 2)
+		primo = pz[0]
+		if len(pz) == 2 {
+			resto = pz[1]
+		}
+	}
+	unaCartella := len(voci) == 1 && voci[0].IsDir() && voci[0].Type()&fs.ModeSymlink == 0
+	if modo == ModoQui {
+		ultimo := ""
+		for _, v := range voci {
+			fin, err := spostaConNomeLibero(filepath.Join(d.radice, v.Name()), dove, v.Name(), v.IsDir())
+			if err != nil {
+				return "", "", err
+			}
+			if v.Name() == primo {
+				ultimo = filepath.Join(fin, resto)
+			}
+		}
+		_ = os.Remove(d.radice)
+		return dove, ultimo, nil
+	}
+	if unaCartella && (modo == ModoNormale || strings.EqualFold(voci[0].Name(), nomeBase)) {
 		dentro := filepath.Join(d.radice, voci[0].Name())
 		finale, err := spostaConNomeLibero(dentro, dove, voci[0].Name(), true)
 		if err != nil {
-			return "", err
+			return "", "", err
 		}
 		_ = os.Remove(d.radice) // ora è vuota
-		return finale, nil
+		ultimo := ""
+		if d.ultimo != "" {
+			ultimo = filepath.Join(finale, resto)
+		}
+		return finale, ultimo, nil
 	}
-	return spostaConNomeLibero(d.radice, dove, nomeBase, true)
+	finale, err := spostaConNomeLibero(d.radice, dove, nomeBase, true)
+	if err != nil {
+		return "", "", err
+	}
+	ultimo := ""
+	if d.ultimo != "" {
+		ultimo = filepath.Join(finale, d.ultimo)
+	}
+	return finale, ultimo, nil
 }

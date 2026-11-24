@@ -15,6 +15,7 @@ import (
 	"context"
 	"encoding/binary"
 	"errors"
+	"fmt"
 	"hash/crc32"
 	"io"
 	"os"
@@ -43,6 +44,10 @@ type Voce struct {
 	Dim       int64 // dimensione prevista (0 = file vuoto)
 	Quando    time.Time
 	Attributi uint32 // attributi di Windows; 0 = automatici
+	// GiaCompresso: foto, video, archivi... non si comprimono più: vanno in un blocco a
+	// parte, messi così come sono (sempre LZMA2, con i "pezzi non compressi" previsti dal
+	// formato), senza perdere tempo.
+	GiaCompresso bool
 	// Apri apre il contenuto (solo per i file con Dim > 0).
 	Apri func() (io.ReadCloser, error)
 }
@@ -53,6 +58,7 @@ type Opzioni struct {
 	Dizionario int   // byte; 0 = secondo il livello e la RAM libera
 	Thread     int   // 0 = secondo i core e la RAM
 	Blocco     int64 // dimensione di un blocco solido; 0 = secondo il livello; <0 = non solido (un file per blocco)
+	Segmento   int64 // byte compressi da un core per volta; 0 = DimSegmento(dizionario)
 	RAMLibera  int64 // byte di RAM libera (0 = non si sa)
 	DirTemp    string
 	// Progresso riceve i byte letti (può essere chiamata da più goroutine insieme).
@@ -150,71 +156,170 @@ func Parametri(o Opzioni, totale int64) (diz int, thread int, blocco int64) {
 	if o.Blocco != 0 {
 		blocco = o.Blocco
 	}
-	// Con più core: blocchi più piccoli per usarli tutti (ma mai sotto 4 volte il dizionario).
-	if blocco > 0 && thread > 1 && totale > 0 {
-		per := totale / int64(thread)
-		if min := int64(diz) * 4; per < min {
-			per = min
-		}
-		if per < blocco {
-			blocco = per
-		}
-	}
+	// Con più core non servono blocchi più piccoli: ogni blocco grande si divide in
+	// segmenti compressi in parallelo (vedi DimSegmento).
 	return
 }
 
 // cartella (folder) del 7z: un blocco solido.
 type blocco struct {
-	voci      []int // indici in voci
+	voci      []int // indici in voci (tutti i file del blocco, nell'ordine)
 	impacc    int64 // byte compressi
 	scompatto int64
-	dimFile   []int64  // dimensione reale di ogni file entrato
+	dimFile   []int64  // dimensione di ogni file entrato
 	crcFile   []uint32 // CRC32 di ogni file entrato
 	entrati   []int    // indici dei file entrati davvero
-	tmp       string   // file temporaneo (compressione in parallelo)
-	err       error
+	segmenti  []*segmento
+	copia     bool // dati già compressi: LZMA2 con soli pezzi non compressi
 }
 
+// segmento: un pezzo del flusso di un blocco, compresso per conto suo (anche in parallelo).
+// Il flusso LZMA2 del blocco è l'unione dei segmenti: ognuno comincia azzerando il
+// dizionario (come fa 7-Zip con più core), e solo l'ultimo ha il byte finale 0x00.
+type segmento struct {
+	copia  bool
+	pezzi  []pezzo
+	crc    []uint32 // CRC32 di ogni pezzo
+	impacc int64    // byte compressi, compreso lo 0x00 finale
+	tmp    string   // file temporaneo (compressione in parallelo)
+	err    error
+}
+
+// pezzo: byte [da, a) del file voci[voce].
+type pezzo struct {
+	voce  int
+	da, a int64
+}
+
+// ErrCambiato: un file è cambiato (più corto) mentre lo comprimevo.
+var ErrCambiato = errors.New("un file è cambiato mentre lo comprimevo")
+
 type contatore struct {
-	w io.Writer
-	n int64
+	w   io.Writer
+	n   int64
+	err error // il primo errore di scrittura (l'encoder LZMA2 a volte lo perde in Close)
 }
 
 func (c *contatore) Write(p []byte) (int, error) {
 	n, err := c.w.Write(p)
 	c.n += int64(n)
+	if err != nil && c.err == nil {
+		c.err = err
+	}
 	return n, err
+}
+
+// DimSegmento: quanti byte (non compressi) comprime ogni core per volta. Più grande =
+// compressione un po' migliore; più piccolo = più core al lavoro sullo stesso file.
+func DimSegmento(diz int) int64 {
+	s := int64(diz) * 2
+	if s < 32<<20 {
+		s = 32 << 20
+	}
+	return s
 }
 
 // Scrivi crea l'archivio .7z in f (deve essere vuoto, all'inizio).
 func Scrivi(ctx context.Context, f *os.File, voci []Voce, o Opzioni) (ris Risultato, err error) {
+	// Prima controllo che ogni file si possa aprire: quelli bloccati (es. aperti da un altro
+	// programma) restano fuori e lo dico.
+	fuori := map[int]bool{}
 	var totale int64
-	for _, v := range voci {
-		if !v.Cartella {
-			totale += v.Dim
-		}
-	}
-	diz, thread, dimBlocco := Parametri(o, totale)
-	ris.Dizionario, ris.Thread = diz, thread
-
-	// I blocchi solidi: i file non vuoti in ordine, divisi per dimensione.
-	var blocchi []*blocco
-	var cur *blocco
-	var curDim int64
 	for i, v := range voci {
 		if v.Cartella || v.Dim <= 0 {
 			continue
 		}
-		if cur == nil || dimBlocco < 0 || (curDim > 0 && curDim+v.Dim > dimBlocco) {
-			cur = &blocco{}
-			blocchi = append(blocchi, cur)
-			curDim = 0
+		if ctx.Err() != nil {
+			return ris, ErrAnnullato
 		}
-		cur.voci = append(cur.voci, i)
-		curDim += v.Dim
+		r, e := v.Apri()
+		if e != nil {
+			fuori[i] = true
+			if o.Saltato != nil {
+				o.Saltato(v.Nome, e)
+			}
+			continue
+		}
+		r.Close()
+		totale += v.Dim
 	}
-	if thread > len(blocchi) {
-		thread = len(blocchi)
+	diz, thread, dimBlocco := Parametri(o, totale)
+	seg := o.Segmento
+	if seg <= 0 {
+		seg = DimSegmento(diz)
+	}
+	ris.Dizionario = diz
+
+	// I blocchi solidi: i file non vuoti in ordine, divisi per dimensione; prima quelli da
+	// comprimere, poi quelli già compressi.
+	var blocchi []*blocco
+	var daComprimere int64
+	for _, copia := range []bool{false, true} {
+		var cur *blocco
+		var curDim int64
+		for i, v := range voci {
+			if v.Cartella || v.Dim <= 0 || fuori[i] || v.GiaCompresso != copia {
+				continue
+			}
+			if cur == nil || dimBlocco < 0 || (curDim > 0 && curDim+v.Dim > dimBlocco) {
+				cur = &blocco{copia: copia}
+				blocchi = append(blocchi, cur)
+				curDim = 0
+			}
+			cur.voci = append(cur.voci, i)
+			curDim += v.Dim
+			if !copia {
+				daComprimere += v.Dim
+			}
+		}
+	}
+	// Con più core e pochi dati, segmenti più piccoli perché lavorino tutti.
+	if o.Segmento <= 0 && thread > 1 {
+		if per := (daComprimere + int64(thread) - 1) / int64(thread); per < seg {
+			seg = per
+			if seg < 4<<20 {
+				seg = 4 << 20
+			}
+		}
+	}
+	// I segmenti di ogni blocco (con un core solo: un segmento per blocco, compressione migliore).
+	var lavori []*segmento
+	for _, b := range blocchi {
+		var tot int64
+		for _, i := range b.voci {
+			tot += voci[i].Dim
+		}
+		n := int64(1)
+		if thread > 1 && tot > seg && !b.copia {
+			n = (tot + seg - 1) / seg
+		}
+		per := (tot + n - 1) / n
+		s := &segmento{copia: b.copia}
+		var dentro int64
+		for _, i := range b.voci {
+			var da int64
+			for da < voci[i].Dim {
+				k := voci[i].Dim - da
+				if spazio := per - dentro; k > spazio {
+					k = spazio
+				}
+				s.pezzi = append(s.pezzi, pezzo{voce: i, da: da, a: da + k})
+				da += k
+				dentro += k
+				if dentro >= per {
+					b.segmenti = append(b.segmenti, s)
+					s = &segmento{copia: b.copia}
+					dentro = 0
+				}
+			}
+		}
+		if len(s.pezzi) > 0 {
+			b.segmenti = append(b.segmenti, s)
+		}
+		lavori = append(lavori, b.segmenti...)
+	}
+	if thread > len(lavori) {
+		thread = len(lavori)
 	}
 	if thread < 1 {
 		thread = 1
@@ -229,89 +334,104 @@ func Scrivi(ctx context.Context, f *os.File, voci []Voce, o Opzioni) (ris Risult
 		return ris, err
 	}
 
-	comprimi := func(b *blocco, w io.Writer) {
+	comprimi := func(s *segmento, w io.Writer) {
 		cw := &contatore{w: w}
-		lw, e := cfg.NewWriter2(cw)
-		if e != nil {
-			b.err = e
-			return
-		}
-		buf := make([]byte, 256<<10)
-		for _, i := range b.voci {
-			v := voci[i]
-			if ctx.Err() != nil {
-				b.err = ErrAnnullato
+		var lw io.WriteCloser
+		if s.copia {
+			lw = &scrittoreCopia{w: cw}
+		} else {
+			l2, e := cfg.NewWriter2(cw)
+			if e != nil {
+				s.err = e
 				return
 			}
+			lw = l2
+		}
+		buf := make([]byte, 256<<10)
+		for _, p := range s.pezzi {
+			v := voci[p.voce]
 			r, e := v.Apri()
 			if e != nil {
-				if o.Saltato != nil {
-					o.Saltato(v.Nome, e)
-				}
-				continue
+				s.err = fmt.Errorf("%s: %w", v.Nome, e)
+				return
 			}
-			h := crc32.NewIEEE()
-			var n int64
-			for {
-				if ctx.Err() != nil {
+			if p.da > 0 {
+				if sk, ok := r.(io.Seeker); ok {
+					_, e = sk.Seek(p.da, io.SeekStart)
+				} else {
+					_, e = io.CopyN(io.Discard, r, p.da)
+				}
+				if e != nil {
 					r.Close()
-					b.err = ErrAnnullato
+					s.err = fmt.Errorf("%s: %w", v.Nome, ErrCambiato)
 					return
 				}
-				k, eL := r.Read(buf)
+			}
+			h := crc32.NewIEEE()
+			resta := p.a - p.da
+			for resta > 0 {
+				if ctx.Err() != nil {
+					r.Close()
+					s.err = ErrAnnullato
+					return
+				}
+				b := buf
+				if int64(len(b)) > resta {
+					b = b[:resta]
+				}
+				k, eL := r.Read(b)
 				if k > 0 {
-					if _, e := lw.Write(buf[:k]); e != nil {
+					if _, e := lw.Write(b[:k]); e != nil {
 						r.Close()
-						b.err = e
+						s.err = e
 						return
 					}
-					h.Write(buf[:k])
-					n += int64(k)
+					h.Write(b[:k])
+					resta -= int64(k)
 					if o.Progresso != nil {
 						o.Progresso(int64(k), v.Nome)
 					}
 				}
-				if eL == io.EOF {
-					break
-				}
-				if eL != nil {
+				if eL == io.EOF && resta > 0 {
 					r.Close()
-					b.err = eL
+					s.err = fmt.Errorf("%s: %w", v.Nome, ErrCambiato)
+					return
+				}
+				if eL != nil && eL != io.EOF {
+					r.Close()
+					s.err = fmt.Errorf("%s: %w", v.Nome, eL)
 					return
 				}
 			}
 			r.Close()
-			if n == 0 {
-				// Il file è diventato vuoto: lo segno come file vuoto (niente flusso).
-				voci[i].Dim = 0
-				continue
-			}
-			b.entrati = append(b.entrati, i)
-			b.dimFile = append(b.dimFile, n)
-			b.crcFile = append(b.crcFile, h.Sum32())
-			b.scompatto += n
+			s.crc = append(s.crc, h.Sum32())
 		}
 		if e := lw.Close(); e != nil {
-			b.err = e
+			s.err = e
 			return
 		}
-		b.impacc = cw.n
+		if cw.err != nil {
+			s.err = cw.err
+			return
+		}
+		s.impacc = cw.n
 	}
 
 	out := bufio.NewWriterSize(f, 1<<20)
 	if thread <= 1 {
-		for _, b := range blocchi {
-			comprimi(b, out)
-			if b.err != nil {
-				return ris, b.err
+		// Un core: ogni blocco ha un segmento solo, scritto direttamente nell'archivio.
+		for _, s := range lavori {
+			comprimi(s, out)
+			if s.err != nil {
+				return ris, s.err
 			}
 		}
 	} else {
-		// In parallelo: ogni blocco in un file temporaneo, poi li unisco in ordine.
+		// In parallelo: ogni segmento in un file temporaneo, poi li unisco in ordine.
 		defer func() {
-			for _, b := range blocchi {
-				if b.tmp != "" {
-					os.Remove(b.tmp)
+			for _, s := range lavori {
+				if s.tmp != "" {
+					os.Remove(s.tmp)
 				}
 			}
 		}()
@@ -321,33 +441,33 @@ func Scrivi(ctx context.Context, f *os.File, voci []Voce, o Opzioni) (ris Risult
 		defer ferma()
 		ctxOrig := ctx
 		ctx = cctx
-		for _, b := range blocchi {
-			b := b
-			wg.Add(1)
+		for _, s := range lavori {
+			s := s
 			sem <- struct{}{}
+			if ctx.Err() != nil {
+				<-sem
+				break
+			}
+			wg.Add(1)
 			go func() {
 				defer wg.Done()
 				defer func() { <-sem }()
-				if ctx.Err() != nil {
-					b.err = ErrAnnullato
-					return
-				}
 				t, e := os.CreateTemp(o.DirTemp, ".tassozip-*.tmp")
 				if e != nil {
-					b.err = e
+					s.err = e
 					ferma()
 					return
 				}
-				b.tmp = t.Name()
+				s.tmp = t.Name()
 				bw := bufio.NewWriterSize(t, 1<<20)
-				comprimi(b, bw)
-				if b.err == nil {
-					b.err = bw.Flush()
+				comprimi(s, bw)
+				if s.err == nil {
+					s.err = bw.Flush()
 				}
-				if e := t.Close(); b.err == nil {
-					b.err = e
+				if e := t.Close(); s.err == nil {
+					s.err = e
 				}
-				if b.err != nil {
+				if s.err != nil {
 					ferma()
 				}
 			}()
@@ -357,30 +477,66 @@ func Scrivi(ctx context.Context, f *os.File, voci []Voce, o Opzioni) (ris Risult
 		if ctx.Err() != nil {
 			return ris, ErrAnnullato
 		}
-		for _, b := range blocchi {
-			if b.err != nil {
-				return ris, b.err
+		for _, s := range lavori {
+			if s.err != nil && !errors.Is(s.err, ErrAnnullato) {
+				return ris, s.err
+			}
+		}
+		for _, s := range lavori {
+			if s.err != nil || s.tmp == "" {
+				return ris, ErrAnnullato
 			}
 		}
 		for _, b := range blocchi {
-			t, e := os.Open(b.tmp)
-			if e != nil {
-				return ris, e
-			}
-			n, e := io.Copy(out, t)
-			t.Close()
-			os.Remove(b.tmp)
-			b.tmp = ""
-			if e != nil {
-				return ris, e
-			}
-			if n != b.impacc {
-				return ris, errors.New("blocco temporaneo incompleto")
+			for k, s := range b.segmenti {
+				t, e := os.Open(s.tmp)
+				if e != nil {
+					return ris, e
+				}
+				n := s.impacc
+				if k < len(b.segmenti)-1 {
+					n-- // tolgo lo 0x00 finale: il flusso continua col segmento dopo
+				}
+				_, e = io.CopyN(out, t, n)
+				if e == nil && k < len(b.segmenti)-1 {
+					var fine [1]byte
+					if _, e = io.ReadFull(t, fine[:]); e == nil && fine[0] != 0 {
+						e = errors.New("segmento LZMA2 senza fine")
+					}
+				}
+				t.Close()
+				os.Remove(s.tmp)
+				s.tmp = ""
+				if e != nil {
+					return ris, e
+				}
 			}
 		}
 	}
 	if ctx.Err() != nil {
 		return ris, ErrAnnullato
+	}
+	// Dimensioni e CRC di ogni file (un file può essere diviso fra più segmenti).
+	for _, b := range blocchi {
+		for k, s := range b.segmenti {
+			b.impacc += s.impacc
+			if k < len(b.segmenti)-1 {
+				b.impacc--
+			}
+			for j, p := range s.pezzi {
+				n := p.a - p.da
+				if p.da == 0 {
+					b.entrati = append(b.entrati, p.voce)
+					b.dimFile = append(b.dimFile, n)
+					b.crcFile = append(b.crcFile, s.crc[j])
+				} else {
+					u := len(b.crcFile) - 1
+					b.crcFile[u] = crc32Combina(b.crcFile[u], s.crc[j], n)
+					b.dimFile[u] += n
+				}
+				b.scompatto += n
+			}
+		}
 	}
 
 	// File dell'archivio: tutte le cartelle, i file entrati e i file vuoti.
@@ -515,8 +671,12 @@ func scriviHeader(diz int, voci []Voce, elenco []int, entrato map[int]bool, bloc
 		w.byte(kFolder)
 		w.num(uint64(len(blocchi)))
 		w.byte(0)
-		for range blocchi {
-			scriviCoder(&w, diz)
+		for _, b := range blocchi {
+			if b.copia {
+				scriviCoder(&w, 1<<20)
+			} else {
+				scriviCoder(&w, diz)
+			}
 		}
 		w.byte(kCodersUnPackSize)
 		for _, b := range blocchi {
@@ -660,4 +820,123 @@ func (w *bufWriter) num(v uint64) {
 	for j := 0; j < i; j++ {
 		w.b = append(w.b, byte(v>>(8*uint(j))))
 	}
+}
+
+// crc32Combina: il CRC32 di A+B sapendo crc(A), crc(B) e la lunghezza di B
+// (lo stesso calcolo di crc32_combine di zlib).
+func crc32Combina(crc1, crc2 uint32, len2 int64) uint32 {
+	if len2 <= 0 {
+		return crc1
+	}
+	var pari, dispari [32]uint32
+	dispari[0] = 0xedb88320 // polinomio CRC-32 (IEEE), rovesciato
+	riga := uint32(1)
+	for n := 1; n < 32; n++ {
+		dispari[n] = riga
+		riga <<= 1
+	}
+	quadrato(&pari, &dispari) // operatore per 2 bit a zero
+	quadrato(&dispari, &pari) // per 4 bit a zero
+	for {
+		quadrato(&pari, &dispari)
+		if len2&1 != 0 {
+			crc1 = perMatrice(&pari, crc1)
+		}
+		len2 >>= 1
+		if len2 == 0 {
+			break
+		}
+		quadrato(&dispari, &pari)
+		if len2&1 != 0 {
+			crc1 = perMatrice(&dispari, crc1)
+		}
+		len2 >>= 1
+		if len2 == 0 {
+			break
+		}
+	}
+	return crc1 ^ crc2
+}
+
+func perMatrice(m *[32]uint32, v uint32) uint32 {
+	var s uint32
+	for i := 0; v != 0; i++ {
+		if v&1 != 0 {
+			s ^= m[i]
+		}
+		v >>= 1
+	}
+	return s
+}
+
+func quadrato(q, m *[32]uint32) {
+	for n := 0; n < 32; n++ {
+		q[n] = perMatrice(m, m[n])
+	}
+}
+
+// scrittoreCopia scrive un flusso LZMA2 fatto solo di pezzi non compressi (al massimo
+// 64 KB ciascuno, 3 byte di intestazione): è LZMA2 standard, lo legge ogni programma, e
+// non spreca tempo a comprimere dati che non si comprimono.
+type scrittoreCopia struct {
+	w     io.Writer
+	buf   []byte
+	primo bool // il primo pezzo è già stato scritto
+	err   error
+}
+
+const pezzoCopia = 1 << 16
+
+func (c *scrittoreCopia) Write(p []byte) (int, error) {
+	if c.err != nil {
+		return 0, c.err
+	}
+	n := len(p)
+	for len(p) > 0 {
+		if c.buf == nil {
+			c.buf = make([]byte, 0, pezzoCopia)
+		}
+		k := pezzoCopia - len(c.buf)
+		if k > len(p) {
+			k = len(p)
+		}
+		c.buf = append(c.buf, p[:k]...)
+		p = p[k:]
+		if len(c.buf) == pezzoCopia {
+			if err := c.svuota(); err != nil {
+				return n - len(p), err
+			}
+		}
+	}
+	return n, nil
+}
+
+func (c *scrittoreCopia) svuota() error {
+	if len(c.buf) == 0 {
+		return nil
+	}
+	ctl := byte(0x02) // pezzo non compresso, senza azzerare il dizionario
+	if !c.primo {
+		ctl = 0x01 // il primo azzera il dizionario
+		c.primo = true
+	}
+	k := len(c.buf) - 1
+	if _, err := c.w.Write([]byte{ctl, byte(k >> 8), byte(k)}); err != nil {
+		c.err = err
+		return err
+	}
+	if _, err := c.w.Write(c.buf); err != nil {
+		c.err = err
+		return err
+	}
+	c.buf = c.buf[:0]
+	return nil
+}
+
+func (c *scrittoreCopia) Close() error {
+	if err := c.svuota(); err != nil {
+		return err
+	}
+	_, err := c.w.Write([]byte{0})
+	return err
 }

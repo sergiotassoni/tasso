@@ -68,7 +68,7 @@ func (l *lavoroEstrai) zip() error {
 		if f.Flags&1 != 0 {
 			return ErrZipCifrato
 		}
-		if f.UncompressedSize64 < 1<<62 {
+		if f.UncompressedSize64 < 1<<62 && l.d.vuole(decodificaNomeZip(f.Name)) {
 			totale += int64(f.UncompressedSize64)
 		}
 	}
@@ -78,6 +78,9 @@ func (l *lavoroEstrai) zip() error {
 	l.totale = totale
 	for _, f := range r.File {
 		nome := decodificaNomeZip(f.Name)
+		if !l.d.vuole(nome) {
+			continue
+		}
 		m := f.Mode()
 		switch {
 		case m&fs.ModeSymlink != 0:
@@ -132,7 +135,7 @@ func (l *lavoroEstrai) setteZip() error {
 	}
 	var totale int64
 	for _, f := range r.File {
-		if f.UncompressedSize < 1<<62 {
+		if f.UncompressedSize < 1<<62 && l.d.vuole(f.Name) {
 			totale += int64(f.UncompressedSize)
 		}
 	}
@@ -141,6 +144,9 @@ func (l *lavoroEstrai) setteZip() error {
 	}
 	l.totale = totale
 	for _, f := range r.File {
+		if !l.d.vuole(f.Name) {
+			continue
+		}
 		m := f.Mode()
 		switch {
 		case m&fs.ModeSymlink != 0:
