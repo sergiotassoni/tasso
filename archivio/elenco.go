@@ -11,9 +11,11 @@ import (
 	"compress/gzip"
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/bodgit/sevenzip"
@@ -39,6 +41,43 @@ type ElencoArchivio struct {
 	Voci    []VoceArchivio `json:"voci"`
 	Cifrato bool           `json:"cifrato"` // almeno una voce con password
 	Saltate int            `json:"saltate"` // voci troppo numerose (oltre il limite) non elencate
+	Metodo  string         `json:"metodo"`  // metodi di compressione usati (es. "Deflate, Store")
+	Solido  bool           `json:"solido"`  // 7z/rar "solido": i file sono compressi tutti insieme
+}
+
+// nomeMetodoZip: il nome del metodo di compressione di una voce zip.
+func nomeMetodoZip(m uint16) string {
+	switch m {
+	case 0:
+		return "Store"
+	case 8:
+		return "Deflate"
+	case 9:
+		return "Deflate64"
+	case 12:
+		return "BZip2"
+	case 14:
+		return "LZMA"
+	case 93:
+		return "Zstandard"
+	case 95:
+		return "XZ"
+	case 98:
+		return "PPMd"
+	case 99:
+		return "AES"
+	}
+	return fmt.Sprintf("#%d", m)
+}
+
+func uniscoMetodi(visti map[string]bool, ordine []string) string {
+	var out []string
+	for _, m := range ordine {
+		if visti[m] {
+			out = append(out, m)
+		}
+	}
+	return strings.Join(out, ", ")
 }
 
 // MaxVociElenco: oltre, l'elenco si ferma (la vista resta veloce; l'estrazione le prende tutte).
@@ -87,7 +126,16 @@ func Elenca(ctx context.Context, percorso, password string) (el ElencoArchivio, 
 		if e != nil && !errors.Is(e, zip.ErrInsecurePath) {
 			return el, l.erroreLettura(e)
 		}
+		visti := map[string]bool{}
+		var ordine []string
+		defer func() {
+			el.Metodo = uniscoMetodi(visti, ordine)
+		}()
 		for _, f := range r.File {
+			if n := nomeMetodoZip(f.Method); !visti[n] && !(f.Method == 0 && hasSlash(f.Name)) {
+				visti[n] = true
+				ordine = append(ordine, n)
+			}
 			m := f.Mode()
 			v := VoceArchivio{Nome: decodificaNomeZip(f.Name), Cartella: m.IsDir() || hasSlash(f.Name),
 				Dim: int64(f.UncompressedSize64), Compresso: int64(f.CompressedSize64), Quando: f.Modified, Cifrato: f.Flags&1 != 0}
@@ -100,7 +148,15 @@ func Elenca(ctx context.Context, percorso, password string) (el ElencoArchivio, 
 		if e != nil {
 			return el, l.errore7z(e)
 		}
+		el.Metodo = "7z"
+		flussi := map[int]int{}
 		for _, f := range r.File {
+			if !f.Mode().IsDir() && f.UncompressedSize > 0 {
+				flussi[f.Stream]++
+				if flussi[f.Stream] > 1 {
+					el.Solido = true
+				}
+			}
 			v := VoceArchivio{Nome: f.Name, Cartella: f.Mode().IsDir(), Dim: int64(f.UncompressedSize), Compresso: -1, Quando: f.Modified}
 			if !aggiungi(v) {
 				return el, ErrAnnullato
@@ -115,7 +171,11 @@ func Elenca(ctx context.Context, percorso, password string) (el ElencoArchivio, 
 		if e != nil {
 			return el, l.erroreRar(e, false)
 		}
+		el.Metodo = "RAR"
 		for _, f := range lista {
+			if f.Solid {
+				el.Solido = true
+			}
 			v := VoceArchivio{Nome: f.Name, Cartella: f.IsDir, Dim: f.UnPackedSize, Compresso: f.PackedSize, Quando: f.ModificationTime, Cifrato: f.Encrypted}
 			if f.UnKnownSize {
 				v.Dim = 0
@@ -125,6 +185,7 @@ func Elenca(ctx context.Context, percorso, password string) (el ElencoArchivio, 
 			}
 		}
 	case TipoTar, TipoGz, TipoBz2, TipoXz, TipoZst:
+		el.Metodo = map[Tipo]string{TipoTar: "tar", TipoGz: "gzip", TipoBz2: "bzip2", TipoXz: "xz (LZMA2)", TipoZst: "Zstandard"}[tipo]
 		if e := l.elencaFlusso(tipo, percorso, aggiungi); e != nil {
 			return el, e
 		}

@@ -127,6 +127,10 @@ type destinazione struct {
 	// filtro: nil = tutto; altrimenti dice se la voce va estratta e con che nome.
 	filtro func(nome string) (string, bool)
 	ultimo string // percorso relativo (alla radice) dell'ultimo file scritto
+	// prova: "Verifica". Legge e controlla tutti i dati (somme di controllo comprese) ma non
+	// scrive niente sul disco.
+	prova         bool
+	cartelleProva int
 }
 
 // NormalizzaNome: il nome di una voce come lo mostra Tasso Zip ("/" come separatore,
@@ -211,6 +215,9 @@ func chiave(s string) string {
 func (d *destinazione) controllaDichiarato(totale int64, voci int) error {
 	if d.limiti.MaxVoci > 0 && voci > d.limiti.MaxVoci {
 		return ErrTroppeVoci
+	}
+	if d.prova {
+		return nil // niente scritto sul disco: niente limiti di spazio
 	}
 	if totale > d.consentito {
 		return ErrBomba
@@ -309,6 +316,10 @@ func (d *destinazione) creaCartella(nome string, quando time.Time) error {
 		d.salta(nome, "percorso non sicuro")
 		return nil
 	}
+	if d.prova {
+		d.cartelleProva++
+		return nil
+	}
 	_, err := d.cartella(pezzi)
 	return err
 }
@@ -326,8 +337,16 @@ func (d *destinazione) creaFile(nome string, r io.Reader, quando time.Time) erro
 		return err
 	}
 	pezzi, ok := NomeSicuro(nome)
-	if !ok {
+	if !ok && !d.prova {
 		d.salta(nome, "percorso non sicuro")
+		return nil
+	}
+	// In prova i dati si controllano anche con un nome strano (non scrivo niente: nessun danno).
+	if d.prova {
+		if _, err := d.copia(io.Discard, r, nome); err != nil {
+			return err
+		}
+		d.file++
 		return nil
 	}
 	dir, err := d.cartella(pezzi[:len(pezzi)-1])
@@ -382,10 +401,10 @@ func (d *destinazione) copia(w io.Writer, r io.Reader, nome string) (int64, erro
 		n, errL := r.Read(d.buf)
 		if n > 0 {
 			d.scritti += int64(n)
-			if d.scritti > d.consentito {
+			if d.scritti > d.consentito && !d.prova {
 				return tot, ErrBomba
 			}
-			if d.scritti >= d.prossimoCtl {
+			if d.scritti >= d.prossimoCtl && !d.prova {
 				d.prossimoCtl = d.scritti + 64<<20
 				if lib := spazioLibero(d.radice); lib >= 0 && lib < d.limiti.MargineDisco {
 					return tot, ErrSpazio

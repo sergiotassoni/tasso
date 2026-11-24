@@ -13,7 +13,7 @@ import (
 	"testing"
 )
 
-var tuttiIFormati = []Formato{FormatoZip, Formato7z, FormatoTarXz, FormatoTarZst}
+var tuttiIFormati = FormatiCreabili
 
 func creaEsempio(t *testing.T, f Formato) (dir, arch string) {
 	t.Helper()

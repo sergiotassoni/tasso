@@ -4,6 +4,7 @@ go 1.25.0
 
 require (
 	github.com/bodgit/sevenzip v1.6.5
+	github.com/dsnet/compress v0.0.2-0.20230904184137-39efe44ab707
 	github.com/jchv/go-webview2 v0.0.0-20260205173254-56598839c808
 	github.com/klauspost/compress v1.19.0
 	github.com/nwaples/rardecode/v2 v2.4.6
@@ -32,6 +33,7 @@ replace (
 	github.com/bodgit/plumbing => ./third_party/plumbing
 	github.com/bodgit/sevenzip => ./third_party/sevenzip
 	github.com/bodgit/windows => ./third_party/bodgit-windows
+	github.com/dsnet/compress => ./third_party/dsnet-compress
 	github.com/hashicorp/golang-lru/v2 => ./third_party/golang-lru
 	github.com/jchv/go-webview2 => ./third_party/go-webview2
 	github.com/jchv/go-winloader => ./third_party/go-winloader

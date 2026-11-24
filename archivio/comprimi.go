@@ -7,6 +7,7 @@ import (
 	"archive/tar"
 	"archive/zip"
 	"bufio"
+	"compress/gzip"
 	"context"
 	"errors"
 	"fmt"
@@ -20,6 +21,7 @@ import (
 
 	"tassozip/archivio/settezip"
 
+	"github.com/dsnet/compress/bzip2"
 	"github.com/klauspost/compress/flate"
 	"github.com/klauspost/compress/zstd"
 	"github.com/ulikunitz/xz"
@@ -37,13 +39,25 @@ const (
 	Formato7z Formato = "7z"
 	// FormatoTarZst: veloce (.tar.zst, Zstandard).
 	FormatoTarZst Formato = "tarzst"
+	// FormatoTar: tar senza compressione (.tar), per Linux e Mac.
+	FormatoTar Formato = "tar"
+	// FormatoTarGz: tar con gzip (.tar.gz), il classico di Linux e Mac.
+	FormatoTarGz Formato = "targz"
+	// FormatoTarBz2: tar con bzip2 (.tar.bz2).
+	FormatoTarBz2 Formato = "tarbz2"
 )
+
+// FormatiCreabili: tutti i formati che Tasso Zip sa scrivere (in formato standard, con i test
+// che li rileggono byte per byte), nell'ordine in cui li propone. Il RAR no: è un formato
+// proprietario e la sua licenza non permette di crearlo.
+var FormatiCreabili = []Formato{FormatoZip, Formato7z, FormatoTar, FormatoTarGz, FormatoTarXz, FormatoTarBz2, FormatoTarZst}
 
 // FormatoValido dice se il formato si sa scrivere.
 func FormatoValido(f string) bool {
-	switch Formato(f) {
-	case FormatoZip, Formato7z, FormatoTarZst, FormatoTarXz:
-		return true
+	for _, x := range FormatiCreabili {
+		if string(x) == f {
+			return true
+		}
 	}
 	return false
 }
@@ -57,8 +71,23 @@ func (f Formato) Estensione() string {
 		return ".7z"
 	case FormatoTarZst:
 		return ".tar.zst"
+	case FormatoTar:
+		return ".tar"
+	case FormatoTarGz:
+		return ".tar.gz"
+	case FormatoTarBz2:
+		return ".tar.bz2"
 	}
 	return ".zip"
+}
+
+// HaLivello: il livello (Veloce...Ultra) cambia qualcosa per questo formato?
+func (f Formato) HaLivello() bool {
+	switch f {
+	case Formato7z, FormatoTarGz, FormatoTarBz2, FormatoTarZst, FormatoTarXz:
+		return true
+	}
+	return false
 }
 
 // Livello di compressione per il 7z: "veloce", "normale", "massima", "ultra".
@@ -86,7 +115,7 @@ func (l Livello) settezip() settezip.Livello {
 // OpzioniComprimi: come comprimere.
 type OpzioniComprimi struct {
 	Formato         Formato
-	Livello         Livello // solo 7z ("" = massima)
+	Livello         Livello // 7z, tar.gz, tar.bz2, tar.xz, tar.zst ("" = massima); vedi HaLivello
 	Nome            string  // nome dell'archivio senza estensione ("" = dal primo elemento)
 	NomeMultiplo    string  // nome se scegli più elementi (es. "Archivio"); "" = "Archivio"
 	Cartella        string  // dove salvarlo ("" = accanto al primo elemento)
@@ -232,9 +261,15 @@ func Comprimi(ctx context.Context, sorgenti []string, opz OpzioniComprimi) (ris 
 		bw := bufio.NewWriterSize(out, 1<<20)
 		switch opz.Formato {
 		case FormatoTarXz:
-			err = scriviTarXz(c, bw, voci, &ris)
+			err = scriviTarXz(c, bw, voci, opz.Livello, &ris)
 		case FormatoTarZst:
-			err = scriviTarZst(c, bw, voci, &ris)
+			err = scriviTarZst(c, bw, voci, opz.Livello, &ris)
+		case FormatoTar:
+			err = scriviTar(c, bw, voci, &ris)
+		case FormatoTarGz:
+			err = scriviTarGz(c, bw, voci, opz.Livello, &ris)
+		case FormatoTarBz2:
+			err = scriviTarBz2(c, bw, voci, opz.Livello, &ris)
 		default:
 			err = scriviZip(c, bw, voci, &ris)
 		}
@@ -495,8 +530,17 @@ func scrivi7z(ctx context.Context, c *copiatore, out *os.File, dove string, voci
 	return err
 }
 
-func scriviTarZst(c *copiatore, w io.Writer, voci []voce, ris *RisultatoComprimi) error {
-	zw, err := zstd.NewWriter(w, zstd.WithEncoderLevel(zstd.SpeedBetterCompression))
+func scriviTarZst(c *copiatore, w io.Writer, voci []voce, liv Livello, ris *RisultatoComprimi) error {
+	lz := zstd.SpeedBetterCompression
+	switch liv {
+	case LivelloVeloce:
+		lz = zstd.SpeedFastest
+	case LivelloNormale:
+		lz = zstd.SpeedDefault
+	case LivelloUltra:
+		lz = zstd.SpeedBestCompression
+	}
+	zw, err := zstd.NewWriter(w, zstd.WithEncoderLevel(lz))
 	if err != nil {
 		return err
 	}
@@ -507,8 +551,20 @@ func scriviTarZst(c *copiatore, w io.Writer, voci []voce, ris *RisultatoComprimi
 	return zw.Close()
 }
 
-func scriviTarXz(c *copiatore, w io.Writer, voci []voce, ris *RisultatoComprimi) error {
-	cfg := xz.WriterConfig{DictCap: 32 << 20, CheckSum: xz.CRC64}
+func scriviTarXz(c *copiatore, w io.Writer, voci []voce, liv Livello, ris *RisultatoComprimi) error {
+	dict := 32 << 20
+	switch liv {
+	case LivelloVeloce:
+		dict = 4 << 20
+	case LivelloNormale:
+		dict = 16 << 20
+	case LivelloUltra:
+		dict = 64 << 20
+	}
+	if m := memoriaLibera(); m > 0 && int64(dict)*12 > m {
+		dict = 8 << 20 // poca memoria libera: dizionario più piccolo
+	}
+	cfg := xz.WriterConfig{DictCap: dict, CheckSum: xz.CRC64}
 	xw, err := cfg.NewWriter(w)
 	if err != nil {
 		return err
@@ -517,6 +573,44 @@ func scriviTarXz(c *copiatore, w io.Writer, voci []voce, ris *RisultatoComprimi)
 		return err
 	}
 	return xw.Close()
+}
+
+func scriviTarGz(c *copiatore, w io.Writer, voci []voce, liv Livello, ris *RisultatoComprimi) error {
+	l := gzip.BestCompression
+	switch liv {
+	case LivelloVeloce:
+		l = gzip.BestSpeed
+	case LivelloNormale:
+		l = gzip.DefaultCompression
+	}
+	gw, err := gzip.NewWriterLevel(w, l)
+	if err != nil {
+		return err
+	}
+	if err := scriviTar(c, gw, voci, ris); err != nil {
+		gw.Close()
+		return err
+	}
+	return gw.Close()
+}
+
+func scriviTarBz2(c *copiatore, w io.Writer, voci []voce, liv Livello, ris *RisultatoComprimi) error {
+	l := bzip2.BestCompression
+	switch liv {
+	case LivelloVeloce:
+		l = bzip2.BestSpeed
+	case LivelloNormale:
+		l = bzip2.DefaultCompression
+	}
+	bw, err := bzip2.NewWriter(w, &bzip2.WriterConfig{Level: l})
+	if err != nil {
+		return err
+	}
+	if err := scriviTar(c, bw, voci, ris); err != nil {
+		bw.Close()
+		return err
+	}
+	return bw.Close()
 }
 
 func scriviTar(c *copiatore, xw io.Writer, voci []voce, ris *RisultatoComprimi) error {

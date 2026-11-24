@@ -135,7 +135,7 @@ func esempio(t *testing.T, radice string) string {
 // ---------- comprimi ed estrai ----------
 
 func TestComprimiEstrai(t *testing.T) {
-	for _, f := range []Formato{FormatoZip, FormatoTarXz, Formato7z, FormatoTarZst} {
+	for _, f := range FormatiCreabili {
 		t.Run(string(f), func(t *testing.T) {
 			dir := t.TempDir()
 			src := esempio(t, dir)
@@ -152,7 +152,7 @@ func TestComprimiEstrai(t *testing.T) {
 			if filepath.Base(ris.Archivio) != "Progetto"+f.Estensione() {
 				t.Fatalf("nome archivio: %s", ris.Archivio)
 			}
-			if ris.File != 3 || ris.Compresso <= 0 || ris.Compresso >= ris.Originale {
+			if ris.File != 3 || ris.Compresso <= 0 || (ris.Compresso >= ris.Originale && f != FormatoTar) {
 				t.Fatalf("risultato strano: %+v", ris)
 			}
 			if ultimi.Totale != ris.Originale || ultimi.Fatto != ultimi.Totale {
@@ -590,7 +590,7 @@ func TestAnnulla(t *testing.T) {
 	scrivi(t, filepath.Join(src, "a.bin"), string(casuale))
 	scrivi(t, filepath.Join(src, "b.bin"), string(casuale))
 
-	for _, f := range []Formato{FormatoZip, FormatoTarXz, Formato7z, FormatoTarZst} {
+	for _, f := range FormatiCreabili {
 		ctx, annulla := context.WithCancel(context.Background())
 		_, err := Comprimi(ctx, []string{src}, OpzioniComprimi{Formato: f, Avanzamento: func(a Avanzamento) {
 			if a.Fatto > 1<<20 {
@@ -691,7 +691,7 @@ func TestDate(t *testing.T) {
 	scrivi(t, filepath.Join(src, "vecchio.txt"), "x")
 	quando := time.Date(2020, 5, 17, 10, 30, 0, 0, time.UTC)
 	os.Chtimes(filepath.Join(src, "vecchio.txt"), quando, quando)
-	for _, f := range []Formato{FormatoZip, FormatoTarXz, Formato7z, FormatoTarZst} {
+	for _, f := range FormatiCreabili {
 		ris, err := Comprimi(context.Background(), []string{src}, OpzioniComprimi{Formato: f, Cartella: dir})
 		if err != nil {
 			t.Fatal(err)
