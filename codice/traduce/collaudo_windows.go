@@ -80,6 +80,9 @@ func avviaCollaudoSeServe() {
 	if provaLingueSeServe() {
 		return
 	}
+	if provaSottotitoliSeServe() {
+		return
+	}
 	if cartellaFoto != "" && collaudoAvviato.CompareAndSwap(false, true) {
 		go eseguiFoto()
 		return
