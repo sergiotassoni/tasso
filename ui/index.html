@@ -70,6 +70,7 @@ footer{display:flex;align-items:center;gap:10px;padding:6px 24px;border-top:1px 
 footer .eco{margin-left:auto;color:var(--soft);font-weight:500;font-size:12px}
 footer .eco::before{content:"";display:inline-block;width:5px;height:5px;border-radius:50%;background:var(--a4);margin-right:7px;vertical-align:2px}
 footer .ver{color:var(--muted);font-size:11.5px;font-variant-numeric:tabular-nums}
+footer .ver[role=button]{cursor:pointer}footer .ver[role=button]:hover{color:var(--soft)}
 footer .lbl{color:var(--soft);line-height:1.3}
 footer .lbl small{display:block;color:var(--muted);font-size:10.5px}
 label.sw{position:relative;display:inline-block;width:28px;height:16px;flex:none;border-radius:99px;cursor:pointer}
@@ -535,7 +536,7 @@ select.sel,#c-livello{background:var(--bg);color:inherit;border:1px solid var(--
     <span class="sep"></span>
     <label class="sw" title=""><input type="checkbox" id="assoc"><span></span></label>
     <div class="lbl"><span data-t="assoc_interruttore"></span></div>
-    <span class="eco" data-t="ecosistema"></span><span class="ver" id="ver"></span>
+    <span class="eco" data-t="ecosistema"></span><span class="ver" id="ver" role="button" tabindex="0"></span>
   </footer>
 </div>
 
@@ -1801,6 +1802,17 @@ const INIZIO = window.__TZ_INIZIO__ || { modo: "", percorsi: [] };
   $("menu").checked = !!a.menu; $("menu-nota").hidden = !a.menu;
   $("assoc").checked = !!a.assoc;
   $("ver").textContent = "v" + String(a.versione).split(".").slice(0, 2).join(".");
+  // Versione e aggiornamenti: li gestisce Tasso (Tasso Zip non usa internet).
+  const vxy = String(a.versione).split(".").slice(0, 2).join(".");
+  $("ver").title = t("agg_versione", { v: vxy });
+  $("ver").onclick = async () => {
+    if (!(await conferma("Tasso Zip", t("agg_versione", { v: vxy }), t("agg_controlla"), { ico: "am" }))) return;
+    const r = await goControllaAggiornamenti();
+    if (r === "errore") { avviso(t("agg_titolo"), t("agg_non_aperto"), { ico: "am" }); return; }
+    if (r !== "nessuno") return;
+    if (await conferma(t("agg_titolo"), t("agg_senza_tasso"), t("agg_apri_pagina"), { ico: "am" })) goPaginaVersioni();
+  };
+  $("ver").onkeydown = e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); $("ver").click(); } };
   applicaTesti();
   const p = INIZIO.percorsi || [];
   const modi = ["comprimi", "estrai", "zip", "7z", "apri", "estrai-qui", "estrai-cartella", "estrai-in"];

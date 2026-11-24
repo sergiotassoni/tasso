@@ -239,6 +239,7 @@ func manda(nome string, dati interface{}) {
 }
 
 func collega(w webview2.WebView) {
+	collegaAggiornamenti(w) // aggiornamenti_windows.go
 	_ = w.Bind("goAvvio", func() map[string]interface{} {
 		return map[string]interface{}{
 			"lingua":   lingua(),
