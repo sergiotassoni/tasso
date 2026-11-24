@@ -12,6 +12,7 @@ package settezip
 
 import (
 	"bufio"
+	"compress/flate"
 	"context"
 	"encoding/binary"
 	"errors"
@@ -74,6 +75,7 @@ type Risultato struct {
 	Blocchi        int
 	Dizionario     int
 	Thread         int
+	Copiati        int64 // byte messi senza comprimerli (già compressi)
 }
 
 const (
@@ -102,8 +104,8 @@ const (
 	epocaFiletime         = 116444736000000000
 	minDizionario         = 1 << 20
 	maxDizionarioPredefin = 64 << 20
-	maxDizionarioUltra    = 128 << 20
-	memoriaPerByteDiz     = 3 // stima: memoria dell'encoder ~ 3 volte il dizionario
+	maxDizionarioUltra    = 64 << 20 // come Massima: Ultra cambia i segmenti (vedi Scrivi)
+	memoriaPerByteDiz     = 3        // stima: memoria dell'encoder ~ 3 volte il dizionario
 	memoriaFissaEncoder   = 48 << 20
 )
 
@@ -240,6 +242,11 @@ func Scrivi(ctx context.Context, f *os.File, voci []Voce, o Opzioni) (ris Risult
 			}
 			continue
 		}
+		// Nome sconosciuto ma dati già compressi (o cifrati)? Una prova veloce lo dice:
+		// LZMA2 su dati così è lentissimo e non guadagna niente.
+		if !v.GiaCompresso && v.Dim >= minCampione && sembraGiaCompresso(r, v.Dim) {
+			voci[i].GiaCompresso = true
+		}
 		r.Close()
 		totale += v.Dim
 	}
@@ -247,6 +254,9 @@ func Scrivi(ctx context.Context, f *os.File, voci []Voce, o Opzioni) (ris Risult
 	seg := o.Segmento
 	if seg <= 0 {
 		seg = DimSegmento(diz)
+		if o.Livello == Ultra {
+			seg = 4 * int64(diz) // segmenti grandi: un po' più piccolo, più lento
+		}
 	}
 	ris.Dizionario = diz
 
@@ -270,11 +280,13 @@ func Scrivi(ctx context.Context, f *os.File, voci []Voce, o Opzioni) (ris Risult
 			curDim += v.Dim
 			if !copia {
 				daComprimere += v.Dim
+			} else {
+				ris.Copiati += v.Dim
 			}
 		}
 	}
 	// Con più core e pochi dati, segmenti più piccoli perché lavorino tutti.
-	if o.Segmento <= 0 && thread > 1 {
+	if o.Segmento <= 0 && thread > 1 && o.Livello != Ultra {
 		if per := (daComprimere + int64(thread) - 1) / int64(thread); per < seg {
 			seg = per
 			if seg < 4<<20 {
@@ -939,4 +951,35 @@ func (c *scrittoreCopia) Close() error {
 	}
 	_, err := c.w.Write([]byte{0})
 	return err
+}
+
+// minCampione: sotto questa dimensione non vale la pena provare.
+const minCampione = 1 << 20
+
+// sembraGiaCompresso prova a comprimere con Deflate (veloce) due pezzi da 128 KB del file
+// (inizio e metà): se non scendono almeno del 4%, i dati sono già compressi o cifrati.
+func sembraGiaCompresso(r io.Reader, dim int64) bool {
+	const pezzo = 128 << 10
+	buf := make([]byte, 0, 2*pezzo)
+	b := make([]byte, pezzo)
+	n, _ := io.ReadFull(r, b)
+	buf = append(buf, b[:n]...)
+	if sk, ok := r.(io.Seeker); ok && dim > 4*pezzo {
+		if _, err := sk.Seek(dim/2, io.SeekStart); err == nil {
+			n, _ = io.ReadFull(r, b)
+			buf = append(buf, b[:n]...)
+		}
+	}
+	if len(buf) < pezzo/2 {
+		return false
+	}
+	var c contatore
+	c.w = io.Discard
+	fw, err := flate.NewWriter(&c, flate.BestSpeed)
+	if err != nil {
+		return false
+	}
+	fw.Write(buf)
+	fw.Close()
+	return c.n*100 >= int64(len(buf))*96
 }

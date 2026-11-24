@@ -5,7 +5,13 @@ Ogni cartella è la copia del tag ufficiale su GitHub indicato in go.mod (righe 
 Per tenere piccolo il codice ho tolto: cartelle .git, test (*_test.go), testdata e i pacchetti
 che Tasso Zip non usa. Nei go.mod di sevenzip, plumbing, brotli, go4 e x/text ho tolto le
 dipendenze usate solo dai loro test o da pacchetti non usati (testify, randomstring, cloud...).
-Il codice delle librerie non è cambiato, tranne go-webview2 (vedi go-webview2/README.md).
+Il codice delle librerie non è cambiato, tranne go-webview2 (vedi go-webview2/README.md) e
+una piccola modifica a xz/lzma/hashtable.go (encoder, non tocca la lettura):
+  - maxMatches da 16 a 64: l'encoder guarda più possibili ripetizioni (file circa 5-7% più
+    piccoli, un po' più lento);
+  - prova anche le 4 distanze ripetute (rep0..rep3).
+L'uscita resta LZMA/LZMA2 standard: i test riaprono ogni archivio con bodgit/sevenzip e
+(a mano) con libarchive. Per tornare all'originale basta ricopiare il file dal tag v0.5.15.
 
 Le licenze sono in ogni cartella e, tutte insieme, in ../LICENZE.txt.
 

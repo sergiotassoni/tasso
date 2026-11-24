@@ -1,4 +1,4 @@
-TASSO ZIP 1.0 - Ecosistema Tasso
+TASSO ZIP 1.1 - Ecosistema Tasso
 ================================
 Comprime ed estrae i tuoi file. In un clic.
 (English below)
@@ -12,21 +12,41 @@ sempre in Windows 10; se manca, Tasso Zip apre la pagina ufficiale Microsoft per
 COMPRIMI
   1. "Scegli i file" o "Scegli una cartella" (oppure trascinali nella finestra, a sinistra).
   2. Scegli come lo vuoi:
-     - "Compressione massima (.tar.xz)": il file più piccolo. Usa LZMA2, lo stesso metodo di
-       compressione del 7z. Si apre con Tasso Zip, 7-Zip, WinRAR, PeaZip e con le versioni
-       recenti di Windows 11.
-     - "Compatibile (.zip)": si apre ovunque (Windows, Mac, telefoni), un po' più grande.
-       Foto, video e archivi dentro lo zip vengono messi così come sono (non si comprimono più).
-  3. Premi Comprimi. L'archivio nasce accanto ai file scelti.
+     - "Compatibile con tutti (.zip)" (la scelta di partenza): si apre ovunque, anche con un
+       doppio clic in Esplora file di Windows 10/11, sul Mac e sui telefoni. Zip standard:
+       Deflate, nomi in UTF-8 (con il segnale 0x800 che dice "questi nomi sono UTF-8"),
+       ZIP64 solo per file oltre 4 GB, date giuste, cartelle con "/". Foto, video e archivi
+       dentro lo zip vengono messi così come sono (non si comprimono più).
+     - "Super compressione (.7z)": il più piccolo. Archivio 7z SCRITTO DA NOI (pacchetto
+       archivio/settezip, dalla descrizione pubblica del formato 7z), solo metodo LZMA2,
+       solido. Si apre con 7-Zip, WinRAR, Tasso Zip, PeaZip, NanaZip, Keka (Mac) e con
+       Windows 11 aggiornato (Esplora file legge i .7z dal 2023). Livelli: Veloce, Normale,
+       Massima, Ultra (dizionario fino a 64 MB, ridotto da solo se c'è poca RAM).
+       Usa tutti i core del processore. Foto, video e archivi già compressi vanno in un
+       blocco a parte senza perdere tempo a ricomprimerli.
+  3. Premi Comprimi. L'archivio nasce accanto ai file scelti. Alla fine vedi per esempio
+     "da 120 MB a 31 MB (-74%)".
 
-  Perché non crea file .7z? Per scrivere un .7z da Go non esiste oggi una libreria libera e
-  affidabile (le librerie Go libere sanno solo LEGGERE i .7z). Piuttosto che prometterlo e fare
-  file rovinati, Tasso Zip crea un .tar.xz, che comprime più o meno come un .7z.
-  I .7z li ESTRAE senza problemi.
+APRI UN ARCHIVIO (come WinZip)
+  "Guarda dentro" (o doppio clic su un archivio, se l'hai scelto, o tasto destro >
+  Tasso Zip > Apri con Tasso Zip). Vedi nome, dimensione, compresso e data di ogni file,
+  entri nelle cartelle con un doppio clic, cerchi, ordini cliccando sulle colonne.
+  - Spunta i file e premi "Estrai selezionati", oppure "Estrai tutto".
+  - Doppio clic su un file: Tasso Zip lo mette in una cartella temporanea
+    (%LOCALAPPDATA%\Tasso Zip\Temp, pulita da sola dopo un giorno) e lo apre col suo
+    programma. Per programmi e script (.exe .bat .cmd .ps1 .vbs .js .msi .lnk ...) chiede
+    prima di aprirli. Se l'archivio viene da internet, anche il file aperto lo "sa"
+    (marchio del web: Windows fa i suoi controlli).
+  - Interruttore in basso "Apri gli archivi con doppio clic con Tasso Zip": acceso,
+    .zip .7z .rar .tar .gz .tgz .bz2 .xz .zst si aprono con Tasso Zip (solo per il tuo
+    utente, HKCU, tipo TassoZip.Archivio). Chiede conferma; spento, tutto torna com'era.
+    Windows 10/11 non lasciano a nessun programma cambiare da solo una scelta fatta con
+    "Apri con > Usa sempre": in quel caso tasto destro > Apri con > Scegli un'altra app >
+    Tasso Zip > Sempre.
 
 ESTRAI
   "Scegli l'archivio" (o trascinalo nella finestra, a destra). Tasso Zip apre:
-  zip, 7z, rar (anche RAR5), tar, gz/tgz, bz2/tbz2, xz/txz.
+  zip, 7z, rar (anche RAR5), tar, gz/tgz, bz2/tbz2, xz/txz, zst/tzst.
   - Archivi divisi in parti: .7z.001/.002..., .part1.rar/.part2.rar..., .rar/.r00/.r01...,
     e anche .zip.001, .tar.001... Puoi scegliere una parte qualunque: si parte dalla prima.
   - Password: per i 7z e i rar con password, Tasso Zip te la chiede.
@@ -35,20 +55,29 @@ ESTRAI
   - Puoi scegliere più archivi insieme: li estrae uno dopo l'altro.
 
   Cosa NON sa fare (per ora):
-  - zip con password (ZipCrypto/AES): usa 7-Zip;
+  - zip con password (ZipCrypto/AES) e creare archivi con password: usa 7-Zip;
   - zip divisi in parti .z01, .z02... (zip "spanned"): usa 7-Zip;
-  - creare .7z, .rar o archivi divisi in parti;
+  - creare .rar o archivi divisi in parti;
   - collegamenti simbolici e collegamenti fisici dentro gli archivi: non li crea mai (li salta
     e te lo dice), per sicurezza.
 
-TASTO DESTRO DEL MOUSE
+TASTO DESTRO DEL MOUSE (come WinZip)
   In basso nella finestra c'è l'interruttore "Aggiungi Tasso Zip al tasto destro del mouse".
-  Acceso: compaiono "Comprimi con Tasso Zip" (su file e cartelle) ed "Estrai con Tasso Zip"
-  (sugli archivi). Spento: le voci spariscono. Le voci sono solo per il tuo utente
-  (HKEY_CURRENT_USER\Software\Classes): niente amministratore.
-  Su Windows 11 le trovi sotto "Mostra altre opzioni".
-  Se scegli più file insieme (fino a 15, limite di Windows) si apre una sola finestra con tutti.
-  Se sposti TassoZip.exe, alla prima apertura le voci si aggiornano da sole.
+  Acceso, compare il sottomenu "Tasso Zip" con la sua icona:
+  - su file e cartelle: "Comprimi con Tasso Zip..." (apre la finestra), "Comprimi in .zip
+    (compatibile con tutti)", "Comprimi in .7z (super compressione)": questi due partono
+    subito con una piccola finestra di avanzamento; più file scelti insieme diventano un
+    archivio solo, col nome della loro cartella;
+  - sugli archivi: "Apri con Tasso Zip", "Estrai qui" (i file vanno nella cartella
+    dell'archivio; i nomi già presenti diventano "(2)"), "Estrai in una cartella col suo
+    nome", "Comprimi con Tasso Zip...".
+  Le voci sono solo per il tuo utente (HKEY_CURRENT_USER\Software\Classes): niente
+  amministratore. Funziona su Windows 10 e su Windows 11 sotto "Mostra altre opzioni".
+  Limiti: il menu nuovo e corto di Windows 11 accetta solo programmi con un'estensione COM
+  e un pacchetto MSIX firmato: Tasso Zip non lo fa (resta in "Mostra altre opzioni").
+  Per lo stesso motivo le voci non possono contenere il nome del file ("Comprimi in
+  Foto.zip"): dicono ".zip" e ".7z". Windows passa al massimo 15 file per volta al menu.
+  Se sposti TassoZip.exe, alla prima apertura voci e associazioni si aggiornano da sole.
 
 SICUREZZA
   - Non sovrascrive mai niente: se un nome c'è già, usa "nome (2)", "nome (3)"...
@@ -61,6 +90,7 @@ SICUREZZA
     (lascia sempre almeno 512 MB liberi).
   - Se annulli, chiudi la finestra o qualcosa va storto, non resta niente a metà: lavora in un
     file/cartella temporaneo accanto (".tassozip-....tmp") e lo rinomina solo alla fine.
+  - Se un file cambia mentre lo comprime in .7z, si ferma e lo dice (niente archivi rovinati).
   - Niente internet: Tasso Zip non si collega mai a niente (l'unica eccezione è la pagina
     Microsoft di WebView2, solo se WebView2 manca e solo se premi OK).
   - Impostazioni e registro errori: %LOCALAPPDATA%\Tasso Zip
@@ -78,21 +108,30 @@ LINGUA
   valore "Lingua" e, se serve, togliere "lingua" da %LOCALAPPDATA%\Tasso Zip\impostazioni.json.
 
 RIGA DI COMANDO
+  TassoZip.exe "archivio.7z"                      apre la vista dell'archivio
+  TassoZip.exe --apri "archivio"                  idem
   TassoZip.exe --comprimi "file o cartella" ...   apre la finestra con i file pronti da comprimere
-  TassoZip.exe --estrai "archivio" ...            estrae subito
+  TassoZip.exe --zip "file o cartella" ...        comprime subito in .zip (finestrella)
+  TassoZip.exe --7z "file o cartella" ...         comprime subito in .7z (finestrella)
+  TassoZip.exe --estrai "archivio" ...            estrae subito in una cartella nuova
+  TassoZip.exe --estrai-qui "archivio" ...        estrae subito nella cartella dell'archivio
+  TassoZip.exe --estrai-cartella "archivio" ...   estrae subito in una cartella col suo nome
   TassoZip.exe "file" ...                          (o trascinati sull'icona) sceglie da solo
   TassoZip.exe --lingua=en                         lingua solo per questa volta
 
 PER TOGLIERLO
-  Spegni l'interruttore del tasto destro, poi cancella TassoZip.exe e la cartella
-  %LOCALAPPDATA%\Tasso Zip.
+  Spegni i due interruttori in basso (tasto destro e doppio clic), poi cancella TassoZip.exe
+  e la cartella %LOCALAPPDATA%\Tasso Zip.
 
 PER CHI SVILUPPA
   Codice in Go. ./compila.sh fa go vet, i test (girano anche su Linux) e crea dist\TassoZip.exe.
   archivio/  comprime ed estrae (con tutti i controlli di sicurezza) - ha i test
+  archivio/settezip/  il nostro writer .7z (LZMA2 con l'encoder di ulikunitz/xz) - ha i test:
+             ogni .7z dei test viene riaperto ed estratto byte per byte con bodgit/sevenzip
+             (TASSOZIP_GRANDE=1 aggiunge il file da 200 MB)
   testi/     testi dell'interfaccia nelle 7 lingue (testi.json)
   ui/        la finestra (HTML/CSS/JS in WebView2)
-  *_windows.go  finestra, menu del tasto destro, finestre "Apri", impostazioni
+  *_windows.go  finestra, menu del tasto destro, associazioni, finestre "Apri", impostazioni
   third_party/  librerie (copie locali, vedi third_party/LEGGIMI.txt)
 
 LICENZA
@@ -101,7 +140,7 @@ LICENZA
 
 
 =====================================================================================
-TASSO ZIP 1.0 - Tasso Ecosystem  (English)
+TASSO ZIP 1.1 - Tasso Ecosystem  (English)
 =====================================================================================
 Compresses and extracts your files. In one click.
 
@@ -113,36 +152,50 @@ HOW TO USE
 COMPRESS
   1. "Choose files" or "Choose a folder" (or drag them into the window, left side).
   2. Choose a format:
-     - "Maximum compression (.tar.xz)": smallest file. Uses LZMA2, the same compression method
-       as 7z. Opens with Tasso Zip, 7-Zip, WinRAR, PeaZip and recent versions of Windows 11.
-     - "Compatible (.zip)": opens everywhere (Windows, Mac, phones), a little bigger.
-  3. Press Compress. The archive is created next to the chosen files.
+     - "Compatible with everything (.zip)" (default): opens everywhere, including a double
+       click in Windows 10/11 File Explorer, on Macs and phones. Standard zip: Deflate,
+       UTF-8 names with the 0x800 flag, ZIP64 only when needed, correct dates.
+     - "Super compression (.7z)": smallest. A 7z writer of our own (archivio/settezip),
+       LZMA2 only, solid. Opens with 7-Zip, WinRAR, Tasso Zip, PeaZip, NanaZip, Keka and
+       up-to-date Windows 11. Levels Fast/Normal/Maximum/Ultra (dictionary up to 64 MB,
+       reduced automatically on low RAM). Uses all CPU cores.
+  3. Press Compress. The archive is created next to the chosen files; at the end you see
+     e.g. "from 120 MB to 31 MB (-74%)".
 
-  Why no .7z? Today there is no free and reliable Go library that can WRITE .7z files (free Go
-  libraries can only READ them). Instead of promising it and producing broken files, Tasso Zip
-  creates a .tar.xz, which compresses about as well as a .7z. It EXTRACTS .7z files just fine.
+OPEN AN ARCHIVE (like WinZip)
+  "Look inside" (or double-click an archive if you turned that on, or right-click >
+  Tasso Zip > Open with Tasso Zip): name, size, packed size and date of every file,
+  folders, search, sorting, "Extract selected", "Extract all". Double-clicking a file
+  extracts it to %LOCALAPPDATA%\Tasso Zip\Temp and opens it with its program; programs
+  and scripts (.exe .bat .cmd .ps1 .vbs .js .msi .lnk ...) need a confirmation first.
+  The switch "Open archives with Tasso Zip on double click" registers the
+  TassoZip.Archivio file type in HKCU (with confirmation; turning it off restores
+  everything).
 
 EXTRACT
   "Choose the archive" (or drag it into the window, right side). Tasso Zip opens:
-  zip, 7z, rar (including RAR5), tar, gz/tgz, bz2/tbz2, xz/txz.
+  zip, 7z, rar (including RAR5), tar, gz/tgz, bz2/tbz2, xz/txz, zst/tzst.
   - Split archives: .7z.001/.002..., .part1.rar/.part2.rar..., .rar/.r00/.r01..., and also
     .zip.001, .tar.001... You can pick any part: it always starts from the first one.
   - Passwords: for password-protected 7z and rar, Tasso Zip asks you for it.
   - Files always go into a NEW folder next to the archive. If the archive contains just one
     folder, that folder is used (no "Photos\Photos\...").
-  - You can pick several archives: they are extracted one after another.
 
   What it can NOT do (yet):
-  - password-protected zip (ZipCrypto/AES): use 7-Zip;
+  - password-protected zip (ZipCrypto/AES), creating password-protected archives: use 7-Zip;
   - zip split into .z01, .z02... parts ("spanned" zip): use 7-Zip;
-  - create .7z, .rar or split archives;
-  - symbolic links and hard links inside archives: never created (skipped and reported), for safety.
+  - create .rar or split archives;
+  - symbolic links and hard links inside archives: never created (skipped and reported).
 
-RIGHT-CLICK MENU
-  At the bottom of the window, the switch "Add Tasso Zip to the right-click menu" adds or removes
-  "Compress with Tasso Zip" (files and folders) and "Extract with Tasso Zip" (archives), only for
-  your user (HKEY_CURRENT_USER\Software\Classes), no administrator needed.
-  On Windows 11 they are under "Show more options".
+RIGHT-CLICK MENU (like WinZip)
+  The switch "Add Tasso Zip to the right-click menu" adds a "Tasso Zip" submenu with icon:
+  on files/folders "Compress with Tasso Zip...", "Compress to .zip", "Compress to .7z"
+  (the last two start right away with a small progress window); on archives "Open with
+  Tasso Zip", "Extract here", "Extract to a folder with its name". Only for your user
+  (HKEY_CURRENT_USER\Software\Classes), no administrator. Windows 10, and Windows 11 under
+  "Show more options". The new short Windows 11 menu requires a COM extension and a
+  signed MSIX package: not done, and for the same reason the entries cannot show the file
+  name ("Compress to Photos.zip").
 
 SAFETY
   - Never overwrites anything: if a name exists it uses "name (2)", "name (3)"...
@@ -165,7 +218,7 @@ LANGUAGE
   installer), the Windows language, English.
 
 TO REMOVE IT
-  Turn off the right-click switch, then delete TassoZip.exe and %LOCALAPPDATA%\Tasso Zip.
+  Turn off both switches at the bottom, then delete TassoZip.exe and %LOCALAPPDATA%\Tasso Zip.
 
 LICENSE
   Tasso Zip (c) 2026 Sergio Tassoni. Free software, GNU GPL version 3 (file LICENSE).

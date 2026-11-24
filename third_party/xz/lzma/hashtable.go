@@ -18,7 +18,7 @@ import (
 
 // maxMatches limits the number of matches requested from the Matches
 // function. This controls the speed of the overall encoding.
-const maxMatches = 16
+const maxMatches = 64
 
 // shortDists defines the number of short distances supported by the
 // implementation.
@@ -60,7 +60,7 @@ type hashTable struct {
 	hr hash.Roller
 	// preallocated slices
 	p         [maxMatches]int64
-	distances [maxMatches + shortDists]int
+	distances [maxMatches + shortDists + 4]int
 }
 
 // hashTableExponent derives the hash table exponent from the dictionary
@@ -253,6 +253,12 @@ func (t *hashTable) NextOp(rep [4]uint32) operation {
 	// convert positions in potential distances
 	head := t.dict.head
 	dists := append(t.distances[:0], 1, 2, 3, 4, 5, 6, 7, 8)
+	// Tasso Zip: anche le distanze ripetute (costano poco da codificare).
+	for _, r := range rep {
+		if d := int(r) + minDistance; d > shortDists {
+			dists = append(dists, d)
+		}
+	}
 	for _, pos := range p {
 		dis := int(head - pos)
 		if dis > shortDists {

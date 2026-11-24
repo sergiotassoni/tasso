@@ -248,6 +248,10 @@ func TestSegmentiParalleli(t *testing.T) {
 				if ris.Thread < 2 {
 					t.Fatalf("thread: %+v", ris)
 				}
+				// "grande casuale.bin" (nome sconosciuto) va fra i già compressi, con le foto.
+				if ris.Copiati != int64(1<<20+17+3*65536+123+10+65536) {
+					t.Fatalf("copiati: %+v", ris)
+				}
 				verifica(t, p, casi)
 			}
 		}

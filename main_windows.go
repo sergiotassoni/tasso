@@ -575,7 +575,11 @@ func avviaApriVoce(percorso, password, nome string, confermato bool) string {
 			return
 		}
 		copiaZona(percorso, ris.UltimoFile)
-		apriFile(ris.UltimoFile)
+		// ShellExecute nel filo della finestra (COM già pronto lì, come vuole Windows).
+		file := ris.UltimoFile
+		if w := finestra; w != nil && !chiusa.Load() {
+			w.Dispatch(func() { apriFile(file) })
+		}
 		manda("aperto", map[string]interface{}{"nome": nome, "percorso": ris.UltimoFile})
 	}()
 	return "ok"

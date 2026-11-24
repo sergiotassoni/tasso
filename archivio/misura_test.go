@@ -33,7 +33,11 @@ func TestMisura(t *testing.T) {
 		{"tarxz", FormatoTarXz, ""},
 		{"tarzst", FormatoTarZst, ""},
 	}
+	solo := os.Getenv("TASSOZIP_SOLO") // es. "7z-massima"
 	for _, c := range casi {
+		if solo != "" && c.nome != solo {
+			continue
+		}
 		inizio := time.Now()
 		r, err := Comprimi(context.Background(), []string{src}, OpzioniComprimi{Formato: c.f, Livello: c.l, Nome: c.nome, Cartella: dest})
 		if err != nil {
