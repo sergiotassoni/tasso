@@ -1110,6 +1110,7 @@ var (
 	ultimaImp    Impronta // impronta dell'ultima zona letta
 	precedente   Impronta // cattura del giro prima (per aspettare che il testo smetta di scorrere)
 	ultimoTesto  string
+	candidatoSub string // sottotitoli: ultima lettura, in attesa di una seconda uguale
 	muCronologia sync.Mutex
 	righe        []Risultato
 )
@@ -1244,6 +1245,7 @@ func leggiETraduci(img *image.RGBA, impronta Impronta, forza bool) {
 	}
 	pulito := pulisci(grezzo)
 	if pulito == "" {
+		candidatoSub = ""
 		// il dialogo o il sottotitolo è sparito: tolgo anche la traduzione
 		if ultimoTesto != "" {
 			ultimoTesto = ""
@@ -1256,6 +1258,12 @@ func leggiETraduci(img *image.RGBA, impronta Impronta, forza bool) {
 	}
 	if pulito == ultimoTesto && !forza {
 		return
+	}
+	if !forza && leggiImp().Posizione == "sottotitoli" {
+		var ok bool
+		if ok, candidatoSub = sottotitoloPronto(pulito, ultimoTesto, candidatoSub); !ok {
+			return
+		}
 	}
 	ultimoTesto = pulito
 	z := leggiImp().Zona
