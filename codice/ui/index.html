@@ -1729,7 +1729,7 @@ window.tasso = {
   onBg(p){ const f = BG_WAIT[p.id]; if (f) { delete BG_WAIT[p.id]; f(p.r); } },
   onRunStart(p){
     const lv = LEVELS[(p.level || 0) - 1];
-    RUN = {level:p.level, steps:p.steps || [], cur:0, creep:0, freed:0, freedBy:{}};
+    RUN = {level:p.level, steps:p.steps || [], cur:0, creep:0, freed:0, freedBy:{}}; RIPARA = [];
     $('#runTitle').textContent = lv ? _t('Pulizia ') + lv.name + _t(' in corso') : (RUN.steps.length === 1 ? RUN.steps[0].name : _t('Passaggi in corso'));
     $('#runLog').textContent = ''; $('#btnCancel').disabled = false; $('#btnCancel').textContent = _t('Interrompi');
     runUI(true); paintRun();
@@ -1739,7 +1739,7 @@ window.tasso = {
   onStepStart(p){ if (!RUN) return; RUN.cur = p.index; RUN.creep = 0; paintRun(); },
   onStepDone(p){ if (!RUN) return; RUN.freed += p.freed || 0; RUN.freedBy[p.index] = p.freed || 0; RUN.cur = p.index + 1; RUN.creep = 0; paintRun(); },
   // Una riga in più senza riscrivere tutto il registro (con migliaia di righe la finestra si bloccava); al massimo 4000 righe a schermo, il registro completo resta nel file.
-  onLog(t){ const l = $('#runLog'); l.appendChild(document.createTextNode(t + '\n')); while (l.childNodes.length > 4000) l.removeChild(l.firstChild); if (!LOG_RAF) LOG_RAF = requestAnimationFrame(() => { LOG_RAF = 0; l.scrollTop = l.scrollHeight; }); },
+  onLog(t){ const rm = /\s*\[ripara:([a-z_,]+)\]\s*$/.exec(t); if (rm) { RIPARA = rm[1].split(',').filter(x => STEP[x]); t = t.slice(0, rm.index); } const l = $('#runLog'); l.appendChild(document.createTextNode(t + '\n')); while (l.childNodes.length > 4000) l.removeChild(l.firstChild); if (!LOG_RAF) LOG_RAF = requestAnimationFrame(() => { LOG_RAF = 0; l.scrollTop = l.scrollHeight; }); },
   onRunDone(p){
     clearInterval(msgTimer); clearInterval(creepTimer);
     if (p.settings) S = p.settings;
@@ -1755,6 +1755,8 @@ window.tasso = {
     $('#offBanner').classList.toggle('on', !!p.shutdown);
     const rb = $('#btnReboot'); if (rb) rb.onclick = () => modal(_t('<h2>Riavviare il PC?</h2><p class="muted" style="margin:0">Salva il lavoro aperto: il PC si riavvia tra 15 secondi.</p>'), [{label:_t('Annulla')}, {label:_t('Riavvia'), cls:'warn', fn: () => { call('goRestart'); restartToast(); }}]);
     $('#btnLogs2').onclick = () => call('goOpenLogs');
+    if (RIPARA.length && !p.cancelled) { const ids = RIPARA.slice(), rp = el('button', {class:'btn primary'}, _t('Ripara adesso')); rp.onclick = () => { const ss = ids.map(i => STEP[i]); runSteps(ids, ss.map(s => s.name).join(' + '), ss.map(s => s.desc).join(' '), ss.reduce((a, s) => a + s.minutes, 0)); }; $('#btnLogs2').before(rp); }
+    RIPARA = []; ofStati();
     toast(p.cancelled ? _t('Interrotto.') : (p.freed > 0 ? _t('Finito: liberati ') + fmtBytes(p.freed) + '.' : _t('Finito.')));
     paintLast(); call('goAnalyze');
     try { fbAskOnce(p); } catch (e) {}
@@ -2868,6 +2870,7 @@ const OFF_ART = '<svg width="112" height="112" viewBox="0 0 200 200" aria-hidden
 
 /* ---------- 2.6: modalità Gaming / Ufficio e i 100 problemi dell'ufficio ---------- */
 const OFFICE = [
+  {t:_t('Novità'), e:'✨', c:'var(--a1)', ids:[['of_new_call','🎥'],['of_new_meeting','🤫'],['of_new_camlog','👁️'],['of_new_lock','🔒']]},
   {t:_t('Stampa e scanner'), e:'🖨️', c:'var(--a3)', ids:[['of_print_offline','🖨️'],['of_print_default','📌'],['of_print_pdf','📄'],['of_print_find','🔎'],['of_print_usb','🔌'],['of_scan','📠']]},
   {t:_t('Word, Excel, Office e Adobe'), e:'📝', c:'var(--a1)', ids:[['of_office_repair','🛠️'],['of_office_update','⬆️'],['of_office_lost','🛟'],['of_office_crash','💥'],['of_office_login','🔑'],['of_office_addins','🧩'],['of_office_gpu','🌫️'],['of_office_cache','☁️'],['of_office_protected','🟨'],['of_excel_locked','🔒'],['of_regional','📅'],['of_adobe','📕']]},
   {t:_t('Outlook e posta'), e:'📧', c:'var(--a2)', ids:[['of_outlook_open','📬'],['of_outlook_search','🔍'],['of_outlook_mail','✉️'],['of_outlook_size','📦'],['of_outlook_pwd','🔒'],['of_outlook_attach','📎'],['of_outlook_reminders','⏰'],['of_outlook_ost','🔄'],['of_outlook_classic','↩️'],['of_links','🔗'],['of_mailto','📨']]},
@@ -2880,12 +2883,17 @@ const OFFICE = [
   {t:_t('Ora, OneDrive, account e sicurezza'), e:'🔐', c:'var(--red)', ids:[['of_time','🕒'],['of_onedrive','☁️'],['of_onedrive_space','🪶'],['of_onedrive_conflict','👯'],['of_suspicious','🕵️'],['of_activation','🪪'],['of_temp_profile','👤'],['of_pwd_expire','🔑'],['of_bitlocker','🗝️']]}
 ];
 // Quelli che controllano e spiegano (non si possono sistemare da soli in automatico): il pulsante lo dice.
-const OFFICE_CHECK = {of_outlook_mail:1, of_outlook_size:1, of_netpwd:1, of_slow_boot:1, of_sleep:1, of_office_protected:1, of_open_with:1, of_deleted:1, of_disk_full:1, of_links:1, of_cam_busy:1, of_net_slow:1, of_battery:1, of_slow_now:1, of_onedrive_conflict:1, of_activation:1, of_temp_profile:1, of_pwd_expire:1, of_bitlocker:1};
+const OFFICE_CHECK = {of_new_call:1, of_new_camlog:1, of_outlook_mail:1, of_outlook_size:1, of_netpwd:1, of_slow_boot:1, of_sleep:1, of_office_protected:1, of_open_with:1, of_deleted:1, of_disk_full:1, of_links:1, of_cam_busy:1, of_net_slow:1, of_battery:1, of_slow_now:1, of_onedrive_conflict:1, of_activation:1, of_temp_profile:1, of_pwd_expire:1, of_bitlocker:1};
+// Novità 3.1: interruttori (Modalità riunione, Blocco automatico) e "Ripara adesso" dopo la prova della videochiamata.
+const OFFICE_TOGGLE = {of_new_meeting:1, of_new_lock:1};
+let OF_STATI = {}, RIPARA = [];
+function ofStati(){ call('goOfficeStati').then(r => { OF_STATI = r || {}; $$('[data-tg]').forEach(b => { if (b.dataset.tg) b.textContent = OF_STATI[b.dataset.tg] ? _t('Spegni') : _t('Accendi'); }); }).catch(() => {}); }
 function ofCard(id, ic, c){
   const s = STEP[id]; if (!s) return null;
   const d = el('div', {class:'ofc', 'data-id': id, style:'--c:' + c, 'data-q': (s.name + ' ' + s.desc).toLowerCase()},
     '<span class="ic">' + ic + '</span><span class="x"><b>' + esc(s.name) + '</b><span>' + esc(s.desc) + '</span></span>');
-  const b = el('button', {class:'btn ' + (OFFICE_CHECK[id] ? 'ghost' : 'primary')}, OFFICE_CHECK[id] ? _t('Controlla') : _t('Risolvi'));
+  const tg = OFFICE_TOGGLE[id];
+  const b = el('button', {class:'btn ' + (OFFICE_CHECK[id] ? 'ghost' : 'primary'), 'data-tg': tg ? id : ''}, tg ? (OF_STATI[id] ? _t('Spegni') : _t('Accendi')) : OFFICE_CHECK[id] ? _t('Controlla') : _t('Risolvi'));
   b.onclick = () => runStep(id);
   d.querySelector('.x').appendChild(b);
   return d;
@@ -2977,7 +2985,7 @@ Object.assign(TAGS, {fix_game_save:['SAVE','--a1'], fix_game_gpucrash:['GPU','--
 applyLook();
 const h = new Date().getHours();
 $('#hello').textContent = h < 6 ? _t('Buonanotte!') : h < 13 ? _t('Buongiorno!') : h < 18 ? _t('Buon pomeriggio!') : _t('Buonasera!');
-renderLevels(); paintModes(); paintTools(); paintIndex(); paintThemes(); paintSettings(); paintOffice(); paintFixPh();
+renderLevels(); paintModes(); paintTools(); paintIndex(); paintThemes(); paintSettings(); paintOffice(); paintFixPh(); ofStati();
 if (!S.onboarded && !BOOT.autoLevel) { paintWelcome(); $('#welcome').classList.add('on'); }
 call('goAnalyze'); HW_LOADING = true; call('goHardware'); setTimeout(() => call('goHealth'), 1500);
 if (S.onboarded) setTimeout(statsAsk, 3000);

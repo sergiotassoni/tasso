@@ -416,6 +416,7 @@ func bindAll(w webview2.WebView) {
 		return bgCall("sched", id, func() string { return setWeeklyPlan(day, hour, level, every) })
 	})
 	_ = w.Bind("goOpenLogs", func() string { openPath(filepath.Join(appDir, "logs"), ""); return "ok" })
+	_ = w.Bind("goOfficeStati", func() map[string]bool { return officeStati() })
 	_ = w.Bind("goOpenURL", func(u string) string {
 		if strings.HasPrefix(u, "https://") {
 			openURL(u)
