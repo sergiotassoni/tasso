@@ -2640,15 +2640,18 @@ function togliDraw(){
   else if (T.fatto) h = '<h3>' + esc(_t('Tasso è stato tolto')) + '</h3><ul style="list-style:none;padding:0;margin:0 0 8px">' + righe + '</ul><p class="small muted">' + esc(_t('Tasso si chiude tra pochi secondi e il suo file si cancella subito dopo. Se un giorno lo rivuoi, lo riscarichi gratis da sergiotassoni.github.io/tasso.')) + '</p>';
   else h = '<h3>' + esc(_t('Tolgo Tasso dal PC…')) + '</h3><ul style="list-style:none;padding:0;margin:0 0 8px">' + righe + '</ul><p class="small muted">' + esc(_t('Non spegnere il PC: ci vuole meno di un minuto.')) + '</p>';
   modal(h, T.err ? [{label:_t('Chiudi'), fn:() => { TOGLI = null; }}] : T.fatto ? [{label:_t('Chiudi adesso'), cls:'primary', fn:() => { call('goQuit'); }}] : []);
+  if (!T.err && !T.fatto) { const b = $('#modalBox'); b.setAttribute('tabindex', '-1'); b.focus(); } // niente pulsanti: il fuoco non resta su "Togli Tasso" dietro
 }
+function togliInCorso(){ return !!(TOGLI && !TOGLI.fatto && !TOGLI.err); }
 $('#btnTogli').onclick = async () => {
+  if (togliInCorso()) { togliDraw(); return; }
   if (RUN) { toast(_t('Aspetta la fine della pulizia prima di togliere Tasso.'), 'var(--a4)'); return; }
-  const info = (await call('goTogliTassoInfo')) || {};
+  const info = (await call('goTogliTassoInfo')) || {vault: true}; // se non so, avviso del portachiavi lo stesso
   const gb = info.bytes ? ' (' + fmtBytes(info.bytes) + ')' : '';
   const h = '<h3>' + esc(_t('Togliere Tasso dal PC?')) + '</h3><p class="muted" style="margin:0 0 8px">' + esc(_t('Tasso toglie tutto quello che ha messo e poi si chiude. I tuoi file, i giochi e i salvataggi non si toccano.')) + '</p>' +
     '<div class="callout"><b>' + esc(_t('Tasso toglie:')) + '</b><ul style="margin:6px 0 0;padding-left:20px"><li>' + esc(_t('la partenza con Windows e le pulizie automatiche')) + '</li><li>' + esc(_t('le traduzioni messe dentro i giochi (solo i file aggiunti da Tasso; gli originali sono intatti)')) + '</li><li>' + esc(_t('le sue cartelle: impostazioni, registri e modelli della traduzione')) + esc(gb) + '</li><li>' + esc(_t('il collegamento sul Desktop e il file di Tasso')) + '</li></ul></div>' +
-    '<label class="li check" style="align-items:flex-start;margin-top:8px"><input type="checkbox" id="tgRimetti" checked> <span>' + esc(_t('Rimetti anche le impostazioni di Windows com\'erano prima di Tasso')) + '<br><span class="small muted">' + esc(_t('Piano energetico, schermo, notifiche, mouse, programmi all\'avvio. I file cancellati dalle pulizie non tornano: per quelli c\'è il punto di ripristino di Windows.')) + '</span></span></label>' +
-    (info.vault ? '<div class="callout" style="border-color:var(--a4);margin-top:8px"><b>' + esc(_t('Hai il portachiavi di Tasso con delle password.')) + '</b> ' + esc(_t('Togliendo Tasso si cancellano e non si recuperano. Prima copiale altrove (Portachiavi > tocca una password > Copia).')) + '<label class="li check" style="margin-top:8px"><input type="checkbox" id="tgVault"> <span>' + esc(_t('Ho copiato le password che mi servono')) + '</span></label></div>' : '') +
+    '<label class="li check" style="align-items:flex-start;margin-top:8px;border-bottom:0;min-height:0"><input type="checkbox" id="tgRimetti" checked> <span>' + esc(_t('Rimetti anche le impostazioni di Windows com\'erano prima di Tasso')) + '<br><span class="small muted">' + esc(_t('Piano energetico, schermo, notifiche, mouse, programmi all\'avvio. I file cancellati dalle pulizie non tornano: per quelli c\'è il punto di ripristino di Windows.')) + '</span></span></label>' +
+    (info.vault ? '<div class="callout" style="border-color:var(--a4);margin-top:8px"><b>' + esc(_t('Hai il portachiavi di Tasso con delle password.')) + '</b> ' + esc(_t('Togliendo Tasso si cancellano e non si recuperano. Prima copiale altrove (Portachiavi > tocca una password > Copia).')) + '<label class="li check" style="margin-top:8px;border-bottom:0;min-height:0"><input type="checkbox" id="tgVault"> <span>' + esc(_t('Ho copiato le password che mi servono')) + '</span></label></div>' : '') +
     '<p class="small muted" style="margin:8px 0 0">' + esc(_t('Restano: i punti di ripristino di Windows e i backup del registro fatti da Tasso, che sposto in Documenti > Tasso - copie di sicurezza.')) + '</p>';
   modal(h, [{label:_t('Annulla')}, {label:_t('Togli Tasso'), cls:'danger', risky:true, fn:(box) => {
     const v = box.querySelector('#tgVault');
@@ -2656,10 +2659,10 @@ $('#btnTogli').onclick = async () => {
     const rimetti = !!(box.querySelector('#tgRimetti') || {}).checked;
     TOGLI = {passi: [], fatto: false, err: ''};
     setTimeout(togliDraw, 0);
-    call('goTogliTasso', rimetti);
+    call('goTogliTasso', rimetti).then(r => { if (r !== 'ok' && togliInCorso()) { TOGLI.err = r === 'busy' ? _t('Tasso sta facendo un altro lavoro (pulizia o aggiornamento): aspetta che finisca e riprova. Tasso non è stato tolto.') : _t('Non sono riuscito a cominciare: Tasso non è stato tolto. Riprova.'); togliDraw(); } });
   }}]);
 };
-$('#btnQuit').onclick = () => { if (RUN) { toast(_t('Aspetta la fine della pulizia prima di chiudere.'), 'var(--a4)'); return; } call('goQuit'); };
+$('#btnQuit').onclick = () => { if (togliInCorso()) { togliDraw(); return; } if (RUN) { toast(_t('Aspetta la fine della pulizia prima di chiudere.'), 'var(--a4)'); return; } call('goQuit'); };
 
 /* ---------- welcome ---------- */
 let chosen = S.profile === 'ufficio' ? 'ufficio' : 'gioco';

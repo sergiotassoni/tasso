@@ -69,9 +69,6 @@ var reExeTasso = regexp.MustCompile(`(?i)^tasso[\w .-]*\.exe$`)
 // tutto bene (e Tasso si chiude da solo), altrimenti il motivo per cui si è fermato.
 func togliTasso(rimetti bool, passo func(int, string)) string {
 	// 1. impostazioni di Windows e cose accese da Tasso
-	autoClickStop()
-	boostOff(true) // come "Rimetti com'era" del Boost (se non era acceso non fa niente)
-	officeSpegniTutto()
 	if rimetti {
 		msgs, ok := restoreOriginal()
 		if !ok {
@@ -86,6 +83,9 @@ func togliTasso(rimetti bool, passo func(int, string)) string {
 		return "Tasso sta facendo un altro lavoro (pulizia o aggiornamento): aspetta che finisca e riprova. Tasso non è stato tolto."
 	}
 	defer releaseRun()
+	autoClickStop()
+	boostOff(true) // come "Rimetti com'era" del Boost (se non era acceso non fa niente)
+	officeSpegniTutto()
 
 	// 2. traduzioni dentro i giochi: se un gioco è aperto mi fermo qui
 	tolti, falliti := traduce.TogliTutteLeTraduzioni()
@@ -93,7 +93,7 @@ func togliTasso(rimetti bool, passo func(int, string)) string {
 		return "Chiudi " + strings.Join(falliti, ", ") + " e riprova: con il gioco aperto non posso togliere la traduzione. Tasso non è stato tolto."
 	}
 	if len(tolti) > 0 {
-		passo(1, "Traduzioni tolte dai giochi: "+strings.Join(tolti, ", "))
+		passo(1, trGo("Traduzioni tolte dai giochi: ")+strings.Join(tolti, ", "))
 	} else {
 		passo(1, "Nessuna traduzione dentro i giochi da togliere")
 	}
@@ -116,7 +116,8 @@ try { $s = New-Object -ComObject Schedule.Service; $s.Connect(); $s.GetFolder('\
 
 	// 5. cartelle e file di Tasso: dopo la chiusura
 	if err := cancellaDopoLaChiusura(); err != nil {
-		return "Ho tolto tutto tranne le cartelle di Tasso: " + err.Error()
+		// il prefisso tradotto qui: con un percorso dentro, la finestra non traduce i pezzi
+		return trGo("Ho tolto tutto tranne le cartelle di Tasso: ") + err.Error()
 	}
 	passo(3, "Le cartelle e il file di Tasso si cancellano appena Tasso si chiude")
 	return ""
