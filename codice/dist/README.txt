@@ -1,4 +1,4 @@
-TASSO 3.0
+TASSO 3.1
 Cleans, repairs and boosts your PC. In one click.
 =================================================
 
@@ -12,8 +12,8 @@ HOW TO OPEN IT
    If you're not an administrator on this PC, Windows asks for an administrator's password.
 3. If the blue "Windows protected your PC" screen shows up:
    click "More info" and then "Run anyway".
-   This version doesn't have a digital signature yet, and Windows shows this
-   warning for new unsigned programs. It doesn't mean Tasso is a virus.
+   Tasso is digitally signed (Open Source Developer Sergio Tassoni): the warning
+   only shows until Windows gets to know the program. It isn't a virus.
 
 WHAT YOU NEED
 - 64-bit Windows 10 or Windows 11.
@@ -40,11 +40,44 @@ The quick list of features is in the file INDEX.txt and inside Tasso,
 under "Info & index".
 
 ------------------------------------------------------------
+WHAT'S NEW IN 3.1
+------------------------------------------------------------
+- New, simpler menu: Home, Games, Clean & fix, Settings.
+  At the top you pick Gaming or Office: each one shows only what you need.
+- TASSO TRANSLATE: games translated on screen.
+  Press F7 in the game: the English text is covered by the translation, in the
+  same place, with the same size and colour as the game.
+  Keys: F7 on/off, F9 pick an area, F10 translate again, F11 automatic,
+  F8 history, Ctrl+Alt+I show the English. The keys never reach the game.
+  It runs on your PC, no subscription: an AI on your graphics card polishes the
+  translation (automatic level, or Small, Medium, Large or Off).
+  Other players' chat is translated too, next to the game's chat.
+  In games with anti-cheat Tasso only translates the screen and never touches files.
+- Games page: your library, a page for every game and "Prepare the game",
+  a step-by-step guide that tunes the game and the translation.
+- A more honest Boost: it says what it really does, measures real FPS, and
+  "Restore original" puts back everything.
+- Refresh rate: Tasso only offers the rates your monitor declares (up to
+  1000 Hz) and goes back on its own if you don't confirm within 15 seconds.
+- Live hardware: part names and CPU temperature.
+- In-game overlay your way: what to show and in which corner.
+- 14 more game problems in Fix a problem.
+- OFFICE, new in Clean & fix > Fix a problem:
+  "Ready for the video call?" tests webcam, microphone, speakers and internet;
+  "Meeting mode" turns off notifications, OneDrive and updates during the call
+  and puts everything back afterwards; "Who used the webcam and microphone";
+  "Lock the PC when you get up".
+- Light, soft themes for Office (Settings > Appearance).
+- "Update Tasso by itself": when a new version is out Tasso tells you and
+  updates, never while a game is open.
+- Lots of fixes from strict reviews: security, English, accessibility.
+
+------------------------------------------------------------
 WHAT'S NEW IN 3.0
 ------------------------------------------------------------
 - Safer: the Windows programs Tasso uses always start from the system folder.
 - If Tasso ever closes because of a serious error, the reason is saved in
-  %LOCALAPPDATA%\Tasso\logs\crash.txt: send it on Discord and I'll fix it.
+  %LOCALAPPDATA%\Tasso\logs\crash.txt: send it to tasso.services@proton.me and I'll fix it.
 - Write to us (Settings and Info): send an idea, a problem or a comment, with
   up to 2 photos. I read them all.
 - If you like, anonymous numbers to help improve Tasso: it asks once, and you
