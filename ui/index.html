@@ -120,6 +120,50 @@ details pre{white-space:pre-wrap;word-break:break-all;background:var(--panel);bo
 #drop div.sopra.de{border-color:var(--a1);color:var(--a1);background:color-mix(in srgb,var(--a1) 8%,transparent)}
 #toast{position:fixed;left:50%;bottom:74px;transform:translateX(-50%) translateY(20px);background:var(--panel2);border:1px solid var(--line);color:var(--text);padding:11px 18px;border-radius:12px;opacity:0;transition:all .25s;pointer-events:none;z-index:60;max-width:80%;text-align:center}
 #toast.on{opacity:1;transform:translateX(-50%)}
+/* vista dell'archivio */
+.view.largo{max-width:1200px;gap:14px}
+.tronca{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#v-archivio h1{font-size:26px}
+.briciole{display:flex;flex-wrap:wrap;align-items:center;gap:2px;flex:1;min-width:0}
+.briciole button{border:0;background:transparent;color:var(--soft);font-weight:600;padding:5px 8px;border-radius:8px;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.briciole button:hover{background:var(--hover);color:var(--text)}
+.briciole button:last-child{color:var(--text)}
+.briciole i{color:var(--muted);font-style:normal}
+#a-cerca{width:280px;min-height:38px;padding:7px 12px;font-size:14px}
+.tab{border:1px solid var(--line);border-radius:14px;overflow:hidden;background:var(--panel);display:flex;flex-direction:column;min-height:200px}
+.tab .rg{display:grid;grid-template-columns:34px minmax(0,1fr) 110px 110px 150px;align-items:center;gap:8px;padding:0 12px;min-height:36px}
+.tab .th{background:var(--panel2);border-bottom:1px solid var(--line);color:var(--muted);font-size:12.5px;font-weight:700}
+.tab .th button{border:0;background:transparent;color:inherit;font:inherit;text-align:left;padding:8px 0;cursor:pointer}
+.tab .th button.on{color:var(--text)}
+.tab .corpo{overflow-y:auto;max-height:calc(100vh - 330px);min-height:120px}
+.tab .corpo::-webkit-scrollbar{width:10px}.tab .corpo::-webkit-scrollbar-thumb{background:var(--line);border-radius:10px;border:3px solid var(--panel)}
+.tab .r{border-bottom:1px solid color-mix(in srgb,var(--line) 55%,transparent);cursor:default}
+.tab .r:hover{background:var(--hover)}
+.tab .r.sel{background:color-mix(in srgb,var(--a3) 14%,var(--panel))}
+.tab .r .n{display:flex;align-items:center;gap:9px;min-width:0}
+.tab .r .n span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tab .r .n small{color:var(--muted);margin-left:6px}
+.tab .num{text-align:right;color:var(--soft);font-size:13px;white-space:nowrap}
+.tab .dt{color:var(--muted);font-size:12.5px;white-space:nowrap}
+.tab input[type=checkbox]{width:16px;height:16px;accent-color:var(--a3);margin:0}
+.tab .vuoto{padding:30px;text-align:center;color:var(--muted)}
+.piccolo{font-size:12.5px;margin:0}
+/* finestra di conferma */
+#modale{position:fixed;inset:0;background:rgba(7,8,13,.78);display:none;place-items:center;z-index:70;padding:20px}
+#modale.on{display:grid}
+#modale .box{background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:24px 26px;max-width:520px;display:flex;flex-direction:column;gap:14px}
+#modale p{margin:0;color:var(--soft);line-height:1.55}
+/* finestrella dal tasto destro */
+body.mini header,body.mini footer,body.mini #v-home{display:none!important}
+body.mini main{padding:18px 22px}
+body.mini .view{gap:12px}
+body.mini h1{font-size:22px}
+body.mini .perc{font-size:32px}
+body.mini .grande{width:56px;height:56px;border-radius:16px}
+body.mini .grande svg{width:28px;height:28px}
+body.mini .centro{padding-top:6px}
+body.mini .percorso{font-size:12px;padding:8px 10px}
+footer .sep{width:1px;height:28px;background:var(--line);margin:0 6px}
 @media (max-height:640px){main{padding-top:18px}h1{font-size:28px}.ico{width:52px;height:52px;margin-bottom:14px}.card{padding:20px}}
 </style>
 </head>
@@ -148,7 +192,7 @@ details pre{white-space:pre-wrap;word-break:break-all;background:var(--panel);bo
           <div class="ico"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#2FF3A6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3"/><path d="m7 8 5-5 5 5"/><path d="M5 21h14"/></svg></div>
           <h2 data-t="estrai"></h2>
           <p data-t="estrai_desc"></p>
-          <div class="row"><button class="btn verde" id="b-archivio" data-t="scegli_archivio"></button></div>
+          <div class="row"><button class="btn verde" id="b-archivio" data-t="scegli_archivio"></button><button class="btn ghost" id="b-guarda" data-t="guarda_dentro"></button></div>
         </div>
       </div>
       <div class="nota"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#8B91A7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="m8 12 3 3 5-6"/></svg><span data-t="nota_sicurezza"></span></div>
@@ -164,7 +208,6 @@ details pre{white-space:pre-wrap;word-break:break-all;background:var(--panel);bo
         <div class="formati">
           <button class="fmt" data-f="zip"><i class="pt"></i><div><b data-t="formato_zip"></b><span data-t="formato_zip_desc"></span></div></button>
           <button class="fmt" data-f="7z"><i class="pt"></i><div><b data-t="formato_max"></b><span data-t="formato_max_desc"></span></div></button>
-          <button class="fmt" data-f="tarzst"><i class="pt"></i><div><b data-t="formato_zst"></b><span data-t="formato_zst_desc"></span></div></button>
         </div>
         <div class="row" id="c-livello-riga" style="margin-top:12px;align-items:center;gap:10px"><label for="c-livello" data-t="livello"></label>
           <select id="c-livello" style="background:var(--panel2);color:inherit;border:1.5px solid var(--line);border-radius:10px;padding:6px 10px;font:inherit">
@@ -173,6 +216,20 @@ details pre{white-space:pre-wrap;word-break:break-all;background:var(--panel);bo
           </select></div>
       </div>
       <div class="campo"><label for="c-nome" data-t="nome_archivio"></label><input type="text" id="c-nome" maxlength="200" spellcheck="false"><div class="dove" id="c-dove"></div></div>
+    </section>
+
+    <!-- ARCHIVIO APERTO (come WinZip) -->
+    <section class="view largo" id="v-archivio">
+      <div class="row" style="justify-content:space-between;align-items:flex-end;flex-wrap:nowrap">
+        <div style="min-width:0;flex:1"><h1 id="a-nome" class="tronca"></h1><p class="sub tronca" id="a-info"></p></div>
+        <div class="row" style="flex:none"><button class="btn ghost" id="a-chiudi" data-t="indietro"></button><button class="btn ghost" id="a-sel"></button><button class="btn verde" id="a-tutto" data-t="estrai_tutto"></button></div>
+      </div>
+      <div class="row" style="flex-wrap:nowrap"><div class="briciole" id="a-bric"></div><input type="text" id="a-cerca" data-tp="cerca" spellcheck="false" autocomplete="off"></div>
+      <div class="tab">
+        <div class="rg th"><input type="checkbox" id="a-tutti"><button data-o="nome" data-t="col_nome"></button><button data-o="dim" data-t="col_dim" style="text-align:right"></button><button data-o="comp" data-t="col_comp" style="text-align:right"></button><button data-o="quando" data-t="col_data"></button></div>
+        <div class="corpo" id="a-corpo"></div>
+      </div>
+      <p class="sub piccolo" data-t="vista_aiuto"></p>
     </section>
 
     <!-- LAVORO -->
@@ -220,12 +277,16 @@ details pre{white-space:pre-wrap;word-break:break-all;background:var(--panel);bo
   <footer>
     <label class="sw" title=""><input type="checkbox" id="menu"><span></span></label>
     <div class="lbl"><span data-t="menu_tasto_destro"></span><small id="menu-nota" data-t="menu_nota_w11" hidden></small></div>
+    <span class="sep"></span>
+    <label class="sw" title=""><input type="checkbox" id="assoc"><span></span></label>
+    <div class="lbl"><span data-t="assoc_interruttore"></span></div>
     <span class="eco" data-t="ecosistema"></span><span class="ver" id="ver"></span>
   </footer>
 </div>
 
 <div id="drop"><div class="dc" data-t="lascia_comprimi"></div><div class="de" data-t="lascia_estrai"></div></div>
 <div id="toast"></div>
+<div id="modale"><div class="box"><h2 id="m-titolo"></h2><p id="m-testo"></p><div class="row" style="justify-content:flex-end"><button class="btn ghost" id="m-no" data-t="annulla"></button><button class="btn blu" id="m-si"></button></div></div></div>
 
 <script>
 "use strict";
@@ -237,6 +298,11 @@ const S = {
   corrente: null,     // archivio che sto estraendo
   tipo: "",           // "comprimi" o "estrai" (lavoro in corso)
   dropDove: "auto", vista: "home", occupato: false,
+  arch: null,         // archivio aperto nella vista
+  riprova: null,      // cosa rifare quando arriva la password
+  daVista: false,     // il lavoro è partito dalla vista dell'archivio
+  modoEstrai: "",     // "", "qui", "cartella"
+  pwElenco: "",
 };
 
 function t(k, v) {
@@ -247,6 +313,9 @@ function t(k, v) {
 function applicaTesti() {
   document.documentElement.lang = S.lingua;
   document.querySelectorAll("[data-t]").forEach(e => { e.textContent = t(e.dataset.t); });
+  document.querySelectorAll("[data-tp]").forEach(e => { e.placeholder = t(e.dataset.tp); });
+  if (S.vista === "archivio") disegnaArchivio();
+  if (INIZIO.mini) $("f-ok").textContent = t("chiudi");
   document.querySelectorAll("#lingue button").forEach(b => b.classList.toggle("on", b.dataset.l === S.lingua));
   $("lingue").setAttribute("aria-label", t("lingua"));
   if (S.vista === "comprimi") disegnaLista();
@@ -327,6 +396,7 @@ async function comprimi() {
   const r = await goComprimi(S.lista.map(e => e.percorso), S.formato, nome === nomeProposto() && !$("c-nome").dataset.toccato ? "" : nome, S.livello || "massima");
   if (r === "occupato") { toast(t("err_occupato")); return; }
   if (r !== "ok") return;
+  S.daVista = false;
   S.tipo = "comprimi"; inizioLavoro(t("lavoro_comprimo"), "");
 }
 
@@ -336,7 +406,7 @@ function estraiTutti(percorsi) {
   if (!nuovi.length) return;
   if (S.occupato && S.tipo === "estrai") { S.coda.push(...nuovi); S.codaTot += nuovi.length; aggiornaCoda(); return; }
   if (S.occupato) { toast(t("err_occupato")); return; }
-  S.coda = nuovi.slice(); S.codaTot = nuovi.length; S.codaFatti = 0; S.ultimoEstratto = null;
+  S.coda = nuovi.slice(); S.codaTot = nuovi.length; S.codaFatti = 0; S.ultimoEstratto = null; S.daVista = false;
   prossimo();
 }
 function aggiornaCoda() {
@@ -347,7 +417,8 @@ async function prossimo(password) {
     if (!S.coda.length) { finisciCoda(); return; }
     S.corrente = S.coda.shift();
   }
-  const r = await goEstrai(S.corrente, password || "");
+  S.riprova = pw => prossimo(pw);
+  const r = await goEstrai(S.corrente, password || "", S.modoEstrai || "");
   if (r === "occupato") { toast(t("err_occupato")); return; }
   S.tipo = "estrai";
   inizioLavoro(t("lavoro_estraggo"), nomeFile(S.corrente));
@@ -394,7 +465,7 @@ const tz = window.tz = {
     mostraFatto(r, 0);
   },
   errore(e) {
-    if (e.tipo === "estrai" && (e.codice === "password" || e.codice === "password_sbagliata")) {
+    if (S.riprova && (e.codice === "password" || e.codice === "password_sbagliata")) {
       chiediPassword(e.codice === "password_sbagliata"); return;
     }
     S.occupato = e.tipo === "estrai" && S.coda.length > 0;
@@ -402,6 +473,19 @@ const tz = window.tz = {
   },
   trascinati(p) { arrivati(p, S.dropDove); },
   aggiunti(p) { arrivati(p, INIZIO.modo || "auto"); },
+  elenco(r) {
+    S.occupato = false;
+    const el = r.elenco || {};
+    S.arch = { percorso: r.percorso, password: S.pwElenco || "", el, albero: costruisciAlbero(el.voci || []),
+      cartella: "", sel: new Set(), ordine: "nome", dir: 1, cerca: "" };
+    $("a-cerca").value = "";
+    vista("archivio"); disegnaArchivio();
+  },
+  aperto(r) {
+    S.occupato = false;
+    vista("archivio");
+    toast(t("aperto", { nome: nomeFile(r.nome) }));
+  },
 };
 function mostraFatto(r, quanti) {
   $("f-titolo").textContent = r.tipo === "comprimi" ? t("fatto_comprimi") : t("fatto_estrai");
@@ -413,6 +497,8 @@ function mostraFatto(r, quanti) {
     $("f-dettagli").textContent = quanti ? t("fatto_coda", { n: quanti }) : t("fatto_dettagli_e", { file: r.file });
     $("f-apri").textContent = t("apri_cartella");
   }
+  if (r.tipo === "estrai" && r.qui && !quanti) $("f-dettagli").textContent = t("fatto_dettagli_q", { file: r.file });
+  $("f-ok").textContent = INIZIO.mini ? t("chiudi") : (S.daVista && S.arch ? t("torna_archivio") : t("nuovo"));
   $("f-percorso").textContent = r.percorso;
   const avvisi = [];
   if (r.rinominati) avvisi.push(t("rinominati", { n: r.rinominati }));
@@ -435,6 +521,8 @@ function mostraErrore(e) {
   $("e-ok").onclick = () => {
     if (e.tipo === "estrai" && S.coda.length) { prossimo(); return; }
     S.occupato = false;
+    if ((e.tipo === "apri" || e.tipo === "estrai") && S.daVista && S.arch) { vista("archivio"); return; }
+    if (INIZIO.mini && !(e.tipo === "estrai" && S.ultimoEstratto)) { goChiudi(); return; }
     if (e.tipo === "estrai" && S.ultimoEstratto) { finisciCoda(); return; }
     if (e.tipo === "comprimi" && S.lista.length) { vista("comprimi"); disegnaLista(); return; }
     vista("home");
@@ -455,6 +543,9 @@ async function arrivati(percorsi, dove) {
   if (S.vista === "comprimi") { aggiungi(percorsi); return; }
   if (S.occupato && !(S.tipo === "estrai" && dove !== "comprimi")) { toast(t("err_occupato")); return; }
   if (dove === "comprimi") { aggiungi(percorsi); return; }
+  if (dove === "zip" || dove === "7z") { comprimiDiretto(percorsi, dove); return; }
+  if (dove === "apri") { apriArchivio(percorsi[0]); return; }
+  if (dove === "estrai-qui" || dove === "estrai-cartella") { S.modoEstrai = dove === "estrai-qui" ? "qui" : "cartella"; dove = "estrai"; }
   const info = await goInfo(percorsi);
   const archivi = (info || []).filter(e => e.archivio).map(e => e.percorso);
   if (dove === "estrai") {
@@ -465,6 +556,216 @@ async function arrivati(percorsi, dove) {
   if (archivi.length && archivi.length === (info || []).length) estraiTutti(archivi);
   else aggiungi(percorsi);
 }
+
+// ---------- dal tasto destro: comprimi subito ----------
+async function comprimiDiretto(percorsi, formato) {
+  if (S.occupato) { toast(t("err_occupato")); return; }
+  const r = await goComprimi(percorsi, formato, "", S.livello || "massima");
+  if (r === "occupato") { toast(t("err_occupato")); return; }
+  if (r !== "ok") return;
+  S.daVista = false;
+  S.tipo = "comprimi"; inizioLavoro(t("lavoro_comprimo"), "");
+}
+
+// ---------- vista dell'archivio (come WinZip) ----------
+function apriArchivio(percorso) {
+  if (!percorso) return;
+  if (S.occupato) { toast(t("err_occupato")); return; }
+  S.pwElenco = ""; S.corrente = percorso; S.daVista = true;
+  const vai = async () => {
+    S.riprova = pw => { S.pwElenco = pw; vai(); };
+    const r = await goElenca(percorso, S.pwElenco);
+    if (r === "occupato") { toast(t("err_occupato")); return; }
+    S.tipo = "elenco"; inizioLavoro(t("lavoro_apro"), nomeFile(percorso));
+  };
+  vai();
+}
+function costruisciAlbero(voci) {
+  const nuovo = (nome, percorso) => ({ nome, percorso, cartella: true, dirs: new Map(), files: [], dim: 0, comp: 0, quando: "" });
+  const rad = nuovo("", "");
+  const prendi = path => {
+    let n = rad, acc = "";
+    for (const p of path.split("/")) {
+      acc = acc ? acc + "/" + p : p;
+      let d = n.dirs.get(p);
+      if (!d) { d = nuovo(p, acc); n.dirs.set(p, d); }
+      n = d;
+    }
+    return n;
+  };
+  for (const v of voci) {
+    if (v.cartella) { prendi(v.nome).quando = v.quando; continue; }
+    const i = v.nome.lastIndexOf("/");
+    const padre = i > 0 ? prendi(v.nome.slice(0, i)) : rad;
+    padre.files.push({ nome: v.nome.slice(i + 1), percorso: v.nome, dim: v.dim, comp: v.compresso, quando: v.quando });
+  }
+  const somma = d => {
+    let s = 0, c = 0, ok = true, n = 0;
+    for (const f of d.files) { s += f.dim; n++; if (f.comp >= 0) c += f.comp; else ok = false; }
+    for (const x of d.dirs.values()) { somma(x); s += x.dim; n += x.n; if (x.comp >= 0) c += x.comp; else ok = false; }
+    d.dim = s; d.comp = ok ? c : -1; d.n = n;
+  };
+  somma(rad);
+  return rad;
+}
+function nodoArchivio(percorso) {
+  let n = S.arch.albero;
+  if (!percorso) return n;
+  for (const p of percorso.split("/")) { n = n.dirs.get(p); if (!n) return S.arch.albero; }
+  return n;
+}
+function data(q) {
+  if (!q || q.startsWith("0001-")) return "";
+  const d = new Date(q);
+  if (isNaN(d) || d.getFullYear() < 1981) return "";
+  return new Intl.DateTimeFormat(S.lingua, { dateStyle: "short", timeStyle: "short" }).format(d);
+}
+const MAX_RIGHE = 3000;
+function righeArchivio() {
+  const A = S.arch, q = A.cerca.trim().toLowerCase();
+  const r = [];
+  if (q) {
+    const vai = d => {
+      for (const x of d.dirs.values()) { if (x.nome.toLowerCase().includes(q)) r.push(x); vai(x); }
+      for (const f of d.files) if (f.nome.toLowerCase().includes(q)) r.push(f);
+    };
+    vai(A.albero);
+  } else {
+    const n = nodoArchivio(A.cartella);
+    for (const x of n.dirs.values()) r.push(x);
+    for (const f of n.files) r.push(f);
+  }
+  const k = A.ordine, dir = A.dir;
+  const coll = new Intl.Collator(S.lingua, { numeric: true, sensitivity: "base" });
+  r.sort((a, b) => {
+    if (!!a.cartella !== !!b.cartella) return a.cartella ? -1 : 1;
+    let c = 0;
+    if (k === "nome") c = coll.compare(a.nome, b.nome);
+    else if (k === "quando") c = String(a.quando || "").localeCompare(String(b.quando || ""));
+    else c = (a[k] || 0) - (b[k] || 0);
+    return (c || coll.compare(a.nome, b.nome)) * dir;
+  });
+  return r;
+}
+const ICONA_CARTELLA = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FFB547" stroke-width="2" style="flex:none"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>';
+const ICONA_FILE = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8B91A7" stroke-width="2" style="flex:none"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></svg>';
+function disegnaArchivio() {
+  const A = S.arch;
+  if (!A) return;
+  $("a-nome").textContent = nomeFile(A.percorso); $("a-nome").title = A.percorso;
+  const tipo = String(A.el.tipo || "").toUpperCase();
+  $("a-info").textContent = t("vista_info", { n: A.albero.n, orig: dim(A.albero.dim) }) + (tipo ? " · " + tipo : "") + " · " + dim(A.el.dim || 0);
+  // briciole
+  const b = $("a-bric"); b.textContent = "";
+  const btn = (testo, perc) => { const x = document.createElement("button"); x.textContent = testo; x.onclick = () => { A.cartella = perc; A.cerca = ""; $("a-cerca").value = ""; A.sel.clear(); disegnaArchivio(); }; b.append(x); };
+  btn(nomeFile(A.percorso), "");
+  if (A.cartella) {
+    let acc = "";
+    for (const p of A.cartella.split("/")) { acc = acc ? acc + "/" + p : p; const i = document.createElement("i"); i.textContent = "›"; b.append(i); btn(p, acc); }
+  }
+  document.querySelectorAll(".tab .th button").forEach(x => x.classList.toggle("on", x.dataset.o === A.ordine));
+  const corpo = $("a-corpo"); corpo.textContent = "";
+  const righe = righeArchivio();
+  const frag = document.createDocumentFragment();
+  for (const v of righe.slice(0, MAX_RIGHE)) {
+    const r = document.createElement("div"); r.className = "rg r" + (A.sel.has(v.percorso) ? " sel" : "");
+    const c = document.createElement("input"); c.type = "checkbox"; c.checked = A.sel.has(v.percorso);
+    c.onclick = e => { e.stopPropagation(); scegliRiga(v, r, c.checked); };
+    const n = document.createElement("div"); n.className = "n"; n.innerHTML = v.cartella ? ICONA_CARTELLA : ICONA_FILE;
+    const sp = document.createElement("span"); sp.textContent = v.nome; sp.title = v.percorso; n.append(sp);
+    if (A.cerca.trim() && v.percorso.includes("/")) { const sm = document.createElement("small"); sm.textContent = v.percorso.slice(0, v.percorso.lastIndexOf("/")); sp.append(sm); }
+    const d1 = document.createElement("div"); d1.className = "num"; d1.textContent = dim(v.dim || 0);
+    const d2 = document.createElement("div"); d2.className = "num"; d2.textContent = v.comp >= 0 && !(v.cartella && !v.n) ? dim(v.comp) : "—";
+    const d3 = document.createElement("div"); d3.className = "dt"; d3.textContent = data(v.quando);
+    r.append(c, n, d1, d2, d3);
+    r.onclick = () => { c.checked = !c.checked; scegliRiga(v, r, c.checked); };
+    r.ondblclick = e => { e.preventDefault(); apriRiga(v); };
+    frag.append(r);
+  }
+  corpo.append(frag);
+  if (!righe.length) { const x = document.createElement("div"); x.className = "vuoto"; x.textContent = t("vista_vuota"); corpo.append(x); }
+  if (righe.length > MAX_RIGHE) { const x = document.createElement("div"); x.className = "vuoto"; x.textContent = t("vista_troppi", { n: MAX_RIGHE }); corpo.append(x); }
+  $("a-tutti").checked = righe.length > 0 && righe.every(v => A.sel.has(v.percorso));
+  aggiornaSelezione();
+}
+function scegliRiga(v, r, on) {
+  if (on) S.arch.sel.add(v.percorso); else S.arch.sel.delete(v.percorso);
+  r.classList.toggle("sel", on);
+  aggiornaSelezione();
+}
+function aggiornaSelezione() {
+  const n = S.arch ? S.arch.sel.size : 0;
+  $("a-sel").textContent = t("estrai_selezionati", { n });
+  $("a-sel").disabled = n === 0;
+}
+function apriRiga(v) {
+  const A = S.arch;
+  if (v.cartella) { A.cartella = v.percorso; A.cerca = ""; $("a-cerca").value = ""; A.sel.clear(); disegnaArchivio(); $("a-corpo").scrollTop = 0; return; }
+  apriVoce(v, false);
+}
+function iniziaDaVista() {
+  S.coda = []; S.codaTot = 1; S.codaFatti = 0; S.ultimoEstratto = null;
+  S.daVista = true; S.corrente = S.arch.percorso; S.modoEstrai = "";
+}
+async function apriVoce(v, confermato) {
+  const A = S.arch;
+  if (S.occupato) { toast(t("err_occupato")); return; }
+  let r = await goApriVoce(A.percorso, A.password, v.percorso, confermato);
+  if (r === "conferma") {
+    if (!(await conferma(t("pericoloso_tit"), t("pericoloso", { nome: v.nome }), t("apri_comunque")))) return;
+    confermato = true;
+    r = await goApriVoce(A.percorso, A.password, v.percorso, true);
+  }
+  if (r === "occupato") { toast(t("err_occupato")); return; }
+  if (r !== "ok") return;
+  iniziaDaVista();
+  S.riprova = pw => { A.password = pw; apriVoce(v, confermato); };
+  S.tipo = "apri"; inizioLavoro(t("lavoro_apro_file"), v.nome);
+}
+async function estraiDaVista(selezionati) {
+  const A = S.arch;
+  if (S.occupato) { toast(t("err_occupato")); return; }
+  const sel = selezionati ? [...A.sel] : [];
+  if (selezionati && !sel.length) return;
+  const r = selezionati ? await goEstraiSelezione(A.percorso, A.password, sel, A.cerca.trim() ? "" : A.cartella)
+                        : await goEstrai(A.percorso, A.password, "");
+  if (r === "occupato") { toast(t("err_occupato")); return; }
+  if (r !== "ok") return;
+  iniziaDaVista();
+  S.riprova = pw => { A.password = pw; estraiDaVista(selezionati); };
+  S.tipo = "estrai"; inizioLavoro(t("lavoro_estraggo"), nomeFile(A.percorso));
+}
+let modaleRisolvi = null;
+function conferma(titolo, testo, si) {
+  $("m-titolo").textContent = titolo; $("m-testo").textContent = testo; $("m-si").textContent = si;
+  $("modale").classList.add("on");
+  setTimeout(() => $("m-no").focus(), 30);
+  return new Promise(ok => { modaleRisolvi = ok; });
+}
+function chiudiModale(v) { $("modale").classList.remove("on"); if (modaleRisolvi) { const f = modaleRisolvi; modaleRisolvi = null; f(v); } }
+$("m-si").onclick = () => chiudiModale(true);
+$("m-no").onclick = () => chiudiModale(false);
+document.addEventListener("keydown", e => {
+  if ($("modale").classList.contains("on") && e.key === "Escape") chiudiModale(false);
+  if (S.vista === "archivio" && e.key === "Backspace" && document.activeElement !== $("a-cerca") && S.arch && S.arch.cartella) {
+    const c = S.arch.cartella; S.arch.cartella = c.includes("/") ? c.slice(0, c.lastIndexOf("/")) : ""; S.arch.sel.clear(); disegnaArchivio();
+  }
+});
+$("a-cerca").oninput = () => { S.arch.cerca = $("a-cerca").value; S.arch.sel.clear(); disegnaArchivio(); };
+$("a-tutti").onclick = () => {
+  const on = $("a-tutti").checked;
+  for (const v of righeArchivio()) { if (on) S.arch.sel.add(v.percorso); else S.arch.sel.delete(v.percorso); }
+  disegnaArchivio();
+};
+document.querySelectorAll(".tab .th button").forEach(x => x.onclick = () => {
+  const A = S.arch; if (!A) return;
+  if (A.ordine === x.dataset.o) A.dir = -A.dir; else { A.ordine = x.dataset.o; A.dir = x.dataset.o === "nome" ? 1 : -1; }
+  disegnaArchivio();
+});
+$("a-tutto").onclick = () => estraiDaVista(false);
+$("a-sel").onclick = () => estraiDaVista(true);
+$("a-chiudi").onclick = () => { S.arch = null; S.daVista = false; vista("home"); };
+$("b-guarda").onclick = async () => { const p = await goScegliArchivio(); if (p && p.length) apriArchivio(p[0]); };
 
 // ---------- trascinamento nella finestra ----------
 let dentro = 0;
@@ -528,13 +829,20 @@ $("l-annulla").onclick = () => {
   $("l-annulla").disabled = true; $("l-annulla").textContent = t("annullando");
   goAnnulla();
 };
-$("f-ok").onclick = () => { S.ultimoEstratto = null; vista("home"); };
+$("f-ok").onclick = () => {
+  S.ultimoEstratto = null;
+  if (INIZIO.mini) { goChiudi(); return; }
+  if (S.daVista && S.arch) { vista("archivio"); return; }
+  vista("home");
+};
 $("p-mostra").onclick = () => { const c = $("p-campo"); c.type = c.type === "password" ? "text" : "password"; c.focus(); };
-$("p-vai").onclick = () => { const pw = $("p-campo").value; if (!pw) { $("p-campo").focus(); return; } prossimo(pw); };
+$("p-vai").onclick = () => { const pw = $("p-campo").value; if (!pw) { $("p-campo").focus(); return; } (S.riprova || prossimo)(pw); };
 $("p-campo").onkeydown = e => { if (e.key === "Enter") $("p-vai").click(); if (e.key === "Escape") $("p-annulla").click(); };
 $("p-annulla").onclick = () => {
   if (S.coda.length) { prossimo(); return; }
   S.occupato = false;
+  if (S.daVista && S.arch && S.tipo !== "elenco") { vista("archivio"); return; }
+  if (INIZIO.mini && !S.ultimoEstratto) { goChiudi(); return; }
   if (S.ultimoEstratto) { finisciCoda(); return; }
   vista("home");
 };
@@ -547,6 +855,15 @@ $("menu").onchange = async () => {
   $("menu-nota").hidden = !$("menu").checked;
   toast(r && r.ok ? (voglio ? t("menu_attivo") : t("menu_tolto")) : t("menu_errore"));
 };
+$("assoc").onchange = async () => {
+  const voglio = $("assoc").checked;
+  if (voglio && !(await conferma(t("assoc_conferma_tit"), t("assoc_conferma"), t("si")))) { $("assoc").checked = false; return; }
+  $("assoc").disabled = true;
+  const r = await goAssocia(voglio);
+  $("assoc").disabled = false;
+  $("assoc").checked = !!(r && r.on);
+  toast(r && r.ok ? (voglio ? t("assoc_attivo") : t("assoc_tolto")) : t("assoc_errore"));
+};
 // niente "Indietro" del browser
 history.pushState(null, "", location.href);
 window.addEventListener("popstate", () => history.pushState(null, "", location.href));
@@ -555,7 +872,9 @@ window.addEventListener("popstate", () => history.pushState(null, "", location.h
 const INIZIO = window.__TZ_INIZIO__ || { modo: "", percorsi: [] };
 (async function avvio() {
   const a = await goAvvio();
-  S.lingua = a.lingua; S.testi = a.testi; S.lingue = a.lingue; S.formato = a.formato || "zip"; S.livello = a.livello || "massima";
+  S.lingua = a.lingua; S.testi = a.testi; S.lingue = a.lingue; S.livello = a.livello || "massima";
+  S.formato = a.formato === "7z" ? "7z" : "zip"; // nel menu solo .zip e .7z (gli altri formati si estraggono)
+  if (INIZIO.mini) document.body.classList.add("mini");
   const box = $("lingue");
   for (const l of S.lingue) {
     const b = document.createElement("button"); b.dataset.l = l; b.textContent = l.toUpperCase();
@@ -563,10 +882,12 @@ const INIZIO = window.__TZ_INIZIO__ || { modo: "", percorsi: [] };
     box.append(b);
   }
   $("menu").checked = !!a.menu; $("menu-nota").hidden = !a.menu;
+  $("assoc").checked = !!a.assoc;
   $("ver").textContent = "v" + String(a.versione).split(".").slice(0, 2).join(".");
   applicaTesti();
   const p = INIZIO.percorsi || [];
-  if (p.length) arrivati(p, INIZIO.modo === "comprimi" ? "comprimi" : INIZIO.modo === "estrai" ? "estrai" : "auto");
+  const modi = ["comprimi", "estrai", "zip", "7z", "apri", "estrai-qui", "estrai-cartella"];
+  if (p.length) arrivati(p, modi.includes(INIZIO.modo) ? INIZIO.modo : "auto");
 })();
 </script>
 </body>

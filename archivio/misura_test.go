@@ -5,6 +5,7 @@ package archivio
 
 import (
 	"context"
+	"encoding/json"
 	"os"
 	"testing"
 	"time"
@@ -41,5 +42,23 @@ func TestMisura(t *testing.T) {
 		d := time.Since(inizio)
 		t.Logf("%-11s %9.2f MB -> %8.2f MB (-%4.1f%%) in %6.1fs  [%s]", c.nome, float64(r.Originale)/1e6, float64(r.Compresso)/1e6,
 			100*(1-float64(r.Compresso)/float64(r.Originale)), d.Seconds(), r.Archivio)
+	}
+}
+
+// TestEsportaElenco scrive in JSON l'elenco di un archivio (per provare la vista nel browser).
+//
+//	TASSOZIP_ELENCA=archivio.7z TASSOZIP_JSON=uscita.json go test -run TestEsportaElenco ./archivio/
+func TestEsportaElenco(t *testing.T) {
+	a, j := os.Getenv("TASSOZIP_ELENCA"), os.Getenv("TASSOZIP_JSON")
+	if a == "" || j == "" {
+		t.Skip("serve TASSOZIP_ELENCA e TASSOZIP_JSON")
+	}
+	el, err := Elenca(context.Background(), a, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	b, _ := json.Marshal(el)
+	if err := os.WriteFile(j, b, 0o644); err != nil {
+		t.Fatal(err)
 	}
 }

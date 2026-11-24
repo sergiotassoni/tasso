@@ -33,7 +33,7 @@ import (
 )
 
 // Versione di Tasso Zip.
-const Versione = "1.0.0"
+const Versione = "1.1.0"
 
 //go:embed ui/index.html
 var paginaHTML string
@@ -50,7 +50,7 @@ var (
 	lavoroMu    sync.Mutex
 	lavoroStop  context.CancelFunc // non nil mentre comprime o estrae
 	ultimoAgg   time.Time
-	codaModo    string // "comprimi" o "estrai" se aperto dal menu del tasto destro
+	codaModo    string // il modo, se aperto dal menu del tasto destro (vedi modiRiga)
 	codaVisti   = map[string]bool{}
 	codaVistiMu sync.Mutex
 )
@@ -79,12 +79,13 @@ func main() {
 	}()
 	caricaImpostazioni()
 
-	// Argomenti: --comprimi <file...>, --estrai <file...>, --lingua=xx, oppure file trascinati sull'icona.
+	// Argomenti: --comprimi, --zip, --7z, --estrai, --estrai-qui, --estrai-cartella, --apri
+	// seguiti dai file; --lingua=xx; oppure file trascinati sull'icona.
 	modo := ""
 	var percorsi []string
 	for _, a := range os.Args[1:] {
 		switch {
-		case a == "--comprimi" || a == "--estrai":
+		case modiRiga[strings.TrimPrefix(a, "--")] && strings.HasPrefix(a, "--"):
 			modo = strings.TrimPrefix(a, "--")
 		case strings.HasPrefix(a, "--lingua="):
 			linguaRiga = testi.Normalizza(strings.TrimPrefix(a, "--lingua="))
@@ -97,9 +98,21 @@ func main() {
 		}
 	}
 
+	// Un archivio solo, senza altro (doppio clic, "Apri con", trascinato sull'icona): la vista.
+	if modo == "" && len(percorsi) == 1 && archivio.SembraArchivio(percorsi[0]) {
+		if fi, err := os.Stat(percorsi[0]); err == nil && !fi.IsDir() {
+			modo = "apri"
+		}
+	}
+	if modo == "apri" && len(percorsi) > 1 {
+		percorsi = percorsi[:1]
+	}
+	go pulisciTemp()
+
 	// Dal menu del tasto destro Windows apre un Tasso Zip per ogni file scelto: il primo
 	// raccoglie tutti gli altri (che gli passano i loro file e si chiudono subito).
-	if modo != "" && len(percorsi) > 0 {
+	// "Apri" no: ogni archivio ha la sua finestra.
+	if modo != "" && modo != "apri" && len(percorsi) > 0 {
 		primo, chiudi := sonoIlPrimo(modo)
 		if !primo {
 			passaAlPrimo(modo, percorsi)
@@ -116,13 +129,19 @@ func main() {
 			_ = attivaMenu(lingua())
 		}
 	}
+	if associazioniAttive() {
+		if exe, err := os.Executable(); err == nil && !associazioniPuntanoA(exe) {
+			_, _ = attivaAssociazioni(lingua())
+		}
+	}
 
-	w := nuovaFinestra()
+	mini := modiMini[modo] && len(percorsi) > 0
+	w := nuovaFinestra(mini)
 	if w == nil {
 		// Caso raro: con la ricerca DLL solo in System32 la finestra non si apre. Riprovo con
 		// la ricerca sicura standard di Windows (come fa Tasso).
 		_ = windows.SetDefaultDllDirectories(windows.LOAD_LIBRARY_SEARCH_DEFAULT_DIRS)
-		w = nuovaFinestra()
+		w = nuovaFinestra(mini)
 	}
 	if w == nil {
 		messaggio(testi.T(lingua(), "webview_manca"), "Tasso Zip")
@@ -139,7 +158,7 @@ func main() {
 	edge.DropHook = func(p []string) { manda("trascinati", p) }
 	collega(w)
 
-	iniziali := map[string]interface{}{"modo": modo, "percorsi": percorsi}
+	iniziali := map[string]interface{}{"modo": modo, "percorsi": percorsi, "mini": mini}
 	if modo == "" && len(percorsi) > 0 {
 		iniziali["modo"] = "auto"
 	}
@@ -166,26 +185,39 @@ func main() {
 	}
 }
 
-func nuovaFinestra() webview2.WebView {
+// modiRiga: i modi che si possono chiedere dalla riga di comando (e dal tasto destro).
+var modiRiga = map[string]bool{
+	"comprimi": true, "zip": true, "7z": true,
+	"estrai": true, "estrai-qui": true, "estrai-cartella": true, "apri": true,
+}
+
+// modiMini: lavori diretti dal tasto destro, con la finestrella di avanzamento.
+var modiMini = map[string]bool{"zip": true, "7z": true, "estrai-qui": true, "estrai-cartella": true}
+
+func nuovaFinestra(mini bool) webview2.WebView {
 	scala := 1.0
 	if procGetDpiForSys.Find() == nil {
 		if dpi, _, _ := procGetDpiForSys.Call(); dpi >= 96 {
 			scala = float64(dpi) / 96
 		}
 	}
+	larg, alt, minL, minA := 1000.0, 720.0, 760.0, 560.0
+	if mini {
+		larg, alt, minL, minA = 560, 400, 460, 340
+	}
 	w := webview2.NewWithOptions(webview2.WebViewOptions{
 		DataPath:  filepath.Join(cartella, "WebView2"),
 		AutoFocus: true,
 		WindowOptions: webview2.WindowOptions{
 			Title:  "Tasso Zip",
-			Width:  uint(1000 * scala),
-			Height: uint(720 * scala),
+			Width:  uint(larg * scala),
+			Height: uint(alt * scala),
 			IconId: 2,
 			Center: true,
 		},
 	})
 	if w != nil {
-		w.SetSize(int(760*scala), int(560*scala), webview2.HintMin)
+		w.SetSize(int(minL*scala), int(minA*scala), webview2.HintMin)
 	}
 	return w
 }
@@ -212,6 +244,7 @@ func collega(w webview2.WebView) {
 			"testi":    testi.Tutti(),
 			"versione": Versione,
 			"menu":     menuAttivo(),
+			"assoc":    associazioniAttive(),
 			"formato":  impostazioniCopia().Formato,
 			"livello":  impostazioniCopia().Livello,
 			"desktop":  cartellaDesktop(),
@@ -231,7 +264,30 @@ func collega(w webview2.WebView) {
 	})
 	_ = w.Bind("goInfo", info)
 	_ = w.Bind("goComprimi", avviaComprimi)
-	_ = w.Bind("goEstrai", avviaEstrai)
+	_ = w.Bind("goEstrai", func(percorso, password, modo string) string {
+		return avviaEstrai(percorso, archivio.OpzioniEstrai{Password: password, Modo: modoEstrai(modo)}, "estrai")
+	})
+	_ = w.Bind("goEstraiSelezione", func(percorso, password string, sel []string, prefisso string) string {
+		return avviaEstrai(percorso, archivio.OpzioniEstrai{Password: password, Selezione: sel, TogliPrefisso: prefisso}, "estrai")
+	})
+	_ = w.Bind("goElenca", avviaElenca)
+	_ = w.Bind("goApriVoce", avviaApriVoce)
+	_ = w.Bind("goChiudi", func() string {
+		finestra.Dispatch(func() { finestra.Terminate() })
+		return "ok"
+	})
+	_ = w.Bind("goAssocia", func(on bool) map[string]interface{} {
+		var err error
+		if on {
+			_, err = attivaAssociazioni(lingua())
+		} else {
+			err = togliAssociazioni()
+		}
+		if err != nil {
+			registraErrore("associazioni: %v", err)
+		}
+		return map[string]interface{}{"ok": err == nil, "on": associazioniAttive()}
+	})
 	_ = w.Bind("goAnnulla", func() string {
 		lavoroMu.Lock()
 		defer lavoroMu.Unlock()
@@ -249,6 +305,9 @@ func collega(w webview2.WebView) {
 		modificaImpostazioni(func(s *impostazioni) { s.Lingua = l })
 		if menuAttivo() {
 			_ = attivaMenu(l) // anche le voci del tasto destro nella lingua nuova
+		}
+		if associazioniAttive() {
+			_, _ = attivaAssociazioni(l)
 		}
 		return "ok"
 	})
@@ -359,6 +418,13 @@ func avviaComprimi(percorsi []string, formato, nome, livello string) string {
 	if len(percorsi) == 0 {
 		return "vuoto"
 	}
+	multiplo := testi.T(lingua(), "nome_multiplo")
+	if codaModo == "zip" || codaModo == "7z" {
+		// Dal tasto destro con più file: l'archivio prende il nome della loro cartella.
+		if d := filepath.Base(filepath.Dir(percorsi[0])); d != "" && d != "." && !strings.HasSuffix(d, `\`) && !strings.HasSuffix(d, ":") {
+			multiplo = d
+		}
+	}
 	ctx, _ := inizia()
 	if ctx == nil {
 		return "occupato"
@@ -375,7 +441,7 @@ func avviaComprimi(percorsi []string, formato, nome, livello string) string {
 			Formato:         archivio.Formato(formato),
 			Livello:         archivio.Livello(livello),
 			Nome:            nome,
-			NomeMultiplo:    testi.T(lingua(), "nome_multiplo"),
+			NomeMultiplo:    multiplo,
 			CartellaRiserva: cartellaDesktop(),
 			Avanzamento:     avanzamento,
 		})
@@ -391,7 +457,46 @@ func avviaComprimi(percorsi []string, formato, nome, livello string) string {
 	return "ok"
 }
 
-func avviaEstrai(percorso, password string) string {
+func modoEstrai(m string) archivio.ModoEstrai {
+	switch m {
+	case "qui":
+		return archivio.ModoQui
+	case "cartella":
+		return archivio.ModoCartella
+	}
+	return archivio.ModoNormale
+}
+
+func avviaEstrai(percorso string, opz archivio.OpzioniEstrai, tipo string) string {
+	ctx, _ := inizia()
+	if ctx == nil {
+		return "occupato"
+	}
+	opz.Avanzamento = avanzamento
+	opz.CartellaRiserva = cartellaDesktop()
+	go func() {
+		defer finisci()
+		defer func() {
+			if r := recover(); r != nil {
+				registraErrore("estrai: %v\n%s", r, debug.Stack())
+				manda("errore", map[string]interface{}{"tipo": tipo, "codice": "generico", "dettagli": fmt.Sprint(r), "percorso": percorso})
+			}
+		}()
+		ris, err := archivio.Estrai(ctx, percorso, opz)
+		if err != nil {
+			erroreVersoPagina(tipo, percorso, err)
+			return
+		}
+		manda("fine", map[string]interface{}{
+			"tipo": tipo, "percorso": ris.Cartella, "file": ris.File, "rinominati": ris.Rinominati,
+			"saltati": ris.Saltati, "riserva": ris.Riserva, "archivio": percorso, "qui": opz.Modo == archivio.ModoQui,
+		})
+	}()
+	return "ok"
+}
+
+// avviaElenca legge l'elenco dell'archivio (per i tar compressi può volerci un po').
+func avviaElenca(percorso, password string) string {
 	ctx, _ := inizia()
 	if ctx == nil {
 		return "occupato"
@@ -400,25 +505,107 @@ func avviaEstrai(percorso, password string) string {
 		defer finisci()
 		defer func() {
 			if r := recover(); r != nil {
-				registraErrore("estrai: %v\n%s", r, debug.Stack())
-				manda("errore", map[string]interface{}{"tipo": "estrai", "codice": "generico", "dettagli": fmt.Sprint(r), "percorso": percorso})
+				registraErrore("elenca: %v\n%s", r, debug.Stack())
+				manda("errore", map[string]interface{}{"tipo": "elenco", "codice": "generico", "dettagli": fmt.Sprint(r), "percorso": percorso})
 			}
 		}()
-		ris, err := archivio.Estrai(ctx, percorso, archivio.OpzioniEstrai{
-			Password:        password,
-			Avanzamento:     avanzamento,
-			CartellaRiserva: cartellaDesktop(),
-		})
+		el, err := archivio.Elenca(ctx, percorso, password)
 		if err != nil {
-			erroreVersoPagina("estrai", percorso, err)
+			erroreVersoPagina("elenco", percorso, err)
 			return
 		}
-		manda("fine", map[string]interface{}{
-			"tipo": "estrai", "percorso": ris.Cartella, "file": ris.File, "rinominati": ris.Rinominati,
-			"saltati": ris.Saltati, "riserva": ris.Riserva, "archivio": percorso,
-		})
+		manda("elenco", map[string]interface{}{"percorso": percorso, "elenco": el})
 	}()
 	return "ok"
+}
+
+// estensioniPericolose: programmi e script. Prima di aprirli con un doppio clic chiedo.
+var estensioniPericolose = map[string]bool{
+	".exe": true, ".com": true, ".bat": true, ".cmd": true, ".ps1": true, ".psm1": true, ".psd1": true,
+	".vbs": true, ".vbe": true, ".js": true, ".jse": true, ".wsf": true, ".wsh": true, ".hta": true,
+	".msi": true, ".msp": true, ".msix": true, ".msixbundle": true, ".appx": true, ".appxbundle": true,
+	".appinstaller": true, ".application": true, ".lnk": true, ".url": true, ".scr": true, ".pif": true,
+	".cpl": true, ".reg": true, ".inf": true, ".jar": true, ".chm": true, ".gadget": true, ".dll": true,
+	".sys": true, ".scf": true, ".settingcontent-ms": true, ".library-ms": true, ".iso": true, ".img": true, ".vhd": true, ".vhdx": true,
+}
+
+func pericoloso(nome string) bool {
+	return estensioniPericolose[strings.ToLower(filepath.Ext(strings.TrimRight(nome, ". ")))]
+}
+
+// avviaApriVoce estrae una voce in una cartella temporanea di Tasso Zip e la apre con il
+// programma predefinito. Per programmi e script serve la conferma (confermato=true).
+func avviaApriVoce(percorso, password, nome string, confermato bool) string {
+	if pericoloso(nome) && !confermato {
+		return "conferma"
+	}
+	ctx, _ := inizia()
+	if ctx == nil {
+		return "occupato"
+	}
+	go func() {
+		defer finisci()
+		defer func() {
+			if r := recover(); r != nil {
+				registraErrore("apri voce: %v\n%s", r, debug.Stack())
+				manda("errore", map[string]interface{}{"tipo": "apri", "codice": "generico", "dettagli": fmt.Sprint(r), "percorso": percorso})
+			}
+		}()
+		base := filepath.Join(cartella, "Temp")
+		_ = os.MkdirAll(base, 0o755)
+		dir, err := os.MkdirTemp(base, "apri-")
+		if err != nil {
+			erroreVersoPagina("apri", percorso, err)
+			return
+		}
+		prefisso := ""
+		if i := strings.LastIndex(nome, "/"); i > 0 {
+			prefisso = nome[:i]
+		}
+		ris, err := archivio.Estrai(ctx, percorso, archivio.OpzioniEstrai{
+			Password: password, Selezione: []string{nome}, TogliPrefisso: prefisso,
+			Modo: archivio.ModoQui, Destinazione: dir, Avanzamento: avanzamento,
+		})
+		if err == nil && ris.UltimoFile == "" {
+			err = archivio.ErrRovinato
+		}
+		if err != nil {
+			_ = os.RemoveAll(dir)
+			erroreVersoPagina("apri", percorso, err)
+			return
+		}
+		copiaZona(percorso, ris.UltimoFile)
+		apriFile(ris.UltimoFile)
+		manda("aperto", map[string]interface{}{"nome": nome, "percorso": ris.UltimoFile})
+	}()
+	return "ok"
+}
+
+// copiaZona: se l'archivio viene da internet (ha il "marchio del web", Zone.Identifier),
+// lo metto anche sul file aperto, così Windows fa i suoi controlli (SmartScreen, Office).
+func copiaZona(archivioPath, file string) {
+	b, err := os.ReadFile(archivioPath + ":Zone.Identifier")
+	if err != nil || len(b) == 0 || len(b) > 64<<10 {
+		return
+	}
+	_ = os.WriteFile(file+":Zone.Identifier", b, 0o644)
+}
+
+// pulisciTemp toglie i file aperti dagli archivi più di un giorno fa.
+func pulisciTemp() {
+	base := filepath.Join(cartella, "Temp")
+	voci, err := os.ReadDir(base)
+	if err != nil {
+		return
+	}
+	for _, v := range voci {
+		if !v.IsDir() || !strings.HasPrefix(v.Name(), "apri-") {
+			continue
+		}
+		if fi, err := v.Info(); err == nil && time.Since(fi.ModTime()) > 24*time.Hour {
+			_ = os.RemoveAll(filepath.Join(base, v.Name()))
+		}
+	}
 }
 
 // ---------------- Windows: piccoli aiuti ----------------
@@ -429,14 +616,30 @@ func messaggio(testo, titolo string) {
 	procMessageBoxW.Call(0, uintptr(unsafe.Pointer(t)), uintptr(unsafe.Pointer(c)), 0x40)
 }
 
-func shellExecute(file, parametri string) {
-	verbo, _ := windows.UTF16PtrFromString("open")
+func shellExecute(file, parametri string) uintptr {
+	return shellExecuteVerbo("open", file, parametri)
+}
+
+func shellExecuteVerbo(verbo, file, parametri string) uintptr {
+	var v *uint16
+	if verbo != "" {
+		v, _ = windows.UTF16PtrFromString(verbo)
+	}
 	f, _ := windows.UTF16PtrFromString(file)
 	var p *uint16
 	if parametri != "" {
 		p, _ = windows.UTF16PtrFromString(parametri)
 	}
-	procShellExecute.Call(0, uintptr(unsafe.Pointer(verbo)), uintptr(unsafe.Pointer(f)), uintptr(unsafe.Pointer(p)), 0, 1)
+	r, _, _ := procShellExecute.Call(0, uintptr(unsafe.Pointer(v)), uintptr(unsafe.Pointer(f)), uintptr(unsafe.Pointer(p)), 0, 1)
+	return r
+}
+
+// apriFile apre un file con il suo programma predefinito; se non ce n'è uno, Windows
+// mostra "Come vuoi aprire questo file?".
+func apriFile(p string) {
+	if r := shellExecuteVerbo("", p, ""); r <= 32 {
+		shellExecuteVerbo("openas", p, "")
+	}
 }
 
 // apriURL: solo la pagina ufficiale Microsoft di WebView2 (Tasso Zip non usa internet).

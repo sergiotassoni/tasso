@@ -5,9 +5,17 @@
 
 package main
 
-// Voci "Comprimi con Tasso Zip" ed "Estrai con Tasso Zip" nel menu del tasto destro.
+// Il sottomenu "Tasso Zip" nel menu del tasto destro, come WinZip.
 // Tutto in HKEY_CURRENT_USER\Software\Classes: vale solo per l'utente e NON servono i
-// permessi da amministratore. Su Windows 11 le voci compaiono sotto "Mostra altre opzioni".
+// permessi da amministratore. Su Windows 11 compare sotto "Mostra altre opzioni" (il menu
+// nuovo di Windows 11 accetta solo programmi con un'estensione COM firmata e un pacchetto
+// MSIX: Tasso Zip non lo fa).
+//
+// Sui file e sulle cartelle:  Comprimi con Tasso Zip... / Comprimi in .zip / Comprimi in .7z
+// Sugli archivi:              Apri con Tasso Zip / Estrai qui / Estrai in una cartella / Comprimi...
+//
+// I nomi delle voci non possono contenere il nome del file scelto ("Comprimi in Foto.zip"):
+// per quello Windows vuole un'estensione COM. Le voci dicono quindi ".zip" e ".7z".
 
 import (
 	"errors"
@@ -20,57 +28,88 @@ import (
 	"tassozip/testi"
 )
 
-const (
-	verboComprimi = "TassoZip.Comprimi"
-	verboEstrai   = "TassoZip.Estrai"
-)
+const verboMenu = "TassoZip"
 
-// estensioniMenu: i file su cui compare "Estrai con Tasso Zip".
-var estensioniMenu = []string{".zip", ".7z", ".rar", ".tar", ".gz", ".tgz", ".bz2", ".tbz2", ".tbz", ".xz", ".txz", ".001"}
+// Voci di Tasso Zip 1.0 (da togliere quando si accende il menu nuovo).
+var verbiVecchi = []string{"TassoZip.Comprimi", "TassoZip.Estrai"}
 
-// chiaviMenu: tutte le chiavi che Tasso Zip crea (verbo -> argomento della riga di comando).
-func chiaviMenu() map[string]string {
-	m := map[string]string{
-		`Software\Classes\*\shell\` + verboComprimi:         "--comprimi",
-		`Software\Classes\Directory\shell\` + verboComprimi: "--comprimi",
+// estensioniMenu: i file su cui compare il sottomenu degli archivi.
+var estensioniMenu = []string{".zip", ".7z", ".rar", ".tar", ".gz", ".tgz", ".bz2", ".tbz2", ".tbz", ".xz", ".txz", ".zst", ".tzst", ".001"}
+
+type voceMenu struct {
+	nome, testo, arg string
+}
+
+func vociFile(l string) []voceMenu {
+	return []voceMenu{
+		{"1comprimi", testi.T(l, "menu_comprimi_con"), "--comprimi"},
+		{"2zip", testi.T(l, "menu_comprimi_zip"), "--zip"},
+		{"3settezip", testi.T(l, "menu_comprimi_7z"), "--7z"},
 	}
+}
+
+func vociArchivio(l string) []voceMenu {
+	return []voceMenu{
+		{"1apri", testi.T(l, "menu_apri"), "--apri"},
+		{"2qui", testi.T(l, "menu_estrai_qui"), "--estrai-qui"},
+		{"3cartella", testi.T(l, "menu_estrai_cartella"), "--estrai-cartella"},
+		{"4comprimi", testi.T(l, "menu_comprimi_con"), "--comprimi"},
+	}
+}
+
+// radiciMenu: dove sta il sottomenu e con quali voci.
+func radiciMenu(l string) map[string][]voceMenu {
+	m := map[string][]voceMenu{
+		`Software\Classes\*\shell\` + verboMenu:         vociFile(l),
+		`Software\Classes\Directory\shell\` + verboMenu: vociFile(l),
+	}
+	// Stesso nome del verbo: per gli archivi Windows usa questo al posto di quello di "*".
 	for _, e := range estensioniMenu {
-		m[`Software\Classes\SystemFileAssociations\`+e+`\shell\`+verboEstrai] = "--estrai"
+		m[`Software\Classes\SystemFileAssociations\`+e+`\shell\`+verboMenu] = vociArchivio(l)
 	}
 	return m
 }
 
 func comando(exe, arg string) string { return `"` + exe + `" ` + arg + ` "%1"` }
 
-// attivaMenu crea (o aggiorna) le voci nella lingua indicata.
+// attivaMenu crea (o aggiorna) il sottomenu nella lingua indicata.
 func attivaMenu(l string) error {
 	exe, err := os.Executable()
 	if err != nil {
 		return err
 	}
+	togliVecchie()
 	var errs []error
-	for chiave, arg := range chiaviMenu() {
-		etichetta := testi.T(l, "menu_comprimi")
-		if arg == "--estrai" {
-			etichetta = testi.T(l, "menu_estrai")
-		}
-		k, _, err := registry.CreateKey(registry.CURRENT_USER, chiave, registry.SET_VALUE)
+	for radice, voci := range radiciMenu(l) {
+		_ = cancellaAlbero(registry.CURRENT_USER, radice) // niente voci rimaste da una versione prima
+		k, _, err := registry.CreateKey(registry.CURRENT_USER, radice, registry.SET_VALUE)
 		if err != nil {
 			errs = append(errs, err)
 			continue
 		}
-		_ = k.SetStringValue("MUIVerb", etichetta)
+		_ = k.SetStringValue("MUIVerb", "Tasso Zip")
 		_ = k.SetStringValue("Icon", `"`+exe+`",0`)
+		_ = k.SetStringValue("SubCommands", "") // le voci sono nella sottochiave "shell"
 		k.Close()
-		c, _, err := registry.CreateKey(registry.CURRENT_USER, chiave+`\command`, registry.SET_VALUE)
-		if err != nil {
-			errs = append(errs, err)
-			continue
+		for _, v := range voci {
+			c, _, err := registry.CreateKey(registry.CURRENT_USER, radice+`\shell\`+v.nome, registry.SET_VALUE)
+			if err != nil {
+				errs = append(errs, err)
+				continue
+			}
+			_ = c.SetStringValue("MUIVerb", v.testo)
+			_ = c.SetStringValue("Icon", `"`+exe+`",0`)
+			c.Close()
+			c, _, err = registry.CreateKey(registry.CURRENT_USER, radice+`\shell\`+v.nome+`\command`, registry.SET_VALUE)
+			if err != nil {
+				errs = append(errs, err)
+				continue
+			}
+			if err := c.SetStringValue("", comando(exe, v.arg)); err != nil {
+				errs = append(errs, err)
+			}
+			c.Close()
 		}
-		if err := c.SetStringValue("", comando(exe, arg)); err != nil {
-			errs = append(errs, err)
-		}
-		c.Close()
 	}
 	avvisaExplorer()
 	return errors.Join(errs...)
@@ -79,19 +118,55 @@ func attivaMenu(l string) error {
 // togliMenu cancella solo le chiavi create da Tasso Zip.
 func togliMenu() error {
 	var errs []error
-	for chiave := range chiaviMenu() {
-		for _, k := range []string{chiave + `\command`, chiave} {
-			if err := registry.DeleteKey(registry.CURRENT_USER, k); err != nil && !errors.Is(err, registry.ErrNotExist) && !errors.Is(err, windows.ERROR_FILE_NOT_FOUND) {
-				errs = append(errs, err)
-			}
+	togliVecchie()
+	for radice := range radiciMenu("it") {
+		if err := cancellaAlbero(registry.CURRENT_USER, radice); err != nil {
+			errs = append(errs, err)
 		}
 	}
 	avvisaExplorer()
 	return errors.Join(errs...)
 }
 
+// togliVecchie: le voci "Comprimi con Tasso Zip" / "Estrai con Tasso Zip" di Tasso Zip 1.0.
+func togliVecchie() {
+	var radici []string
+	for _, v := range verbiVecchi {
+		radici = append(radici, `Software\Classes\*\shell\`+v, `Software\Classes\Directory\shell\`+v)
+		for _, e := range estensioniMenu {
+			radici = append(radici, `Software\Classes\SystemFileAssociations\`+e+`\shell\`+v)
+		}
+	}
+	for _, r := range radici {
+		_ = cancellaAlbero(registry.CURRENT_USER, r)
+	}
+}
+
+// cancellaAlbero cancella una chiave con tutte le sue sottochiavi (non esiste: va bene).
+func cancellaAlbero(base registry.Key, percorso string) error {
+	k, err := registry.OpenKey(base, percorso, registry.ENUMERATE_SUB_KEYS)
+	if err != nil {
+		if errors.Is(err, registry.ErrNotExist) || errors.Is(err, windows.ERROR_FILE_NOT_FOUND) {
+			return nil
+		}
+		return err
+	}
+	figli, _ := k.ReadSubKeyNames(-1)
+	k.Close()
+	for _, f := range figli {
+		if err := cancellaAlbero(base, percorso+`\`+f); err != nil {
+			return err
+		}
+	}
+	err = registry.DeleteKey(base, percorso)
+	if err != nil && !errors.Is(err, registry.ErrNotExist) && !errors.Is(err, windows.ERROR_FILE_NOT_FOUND) {
+		return err
+	}
+	return nil
+}
+
 func leggiComando() string {
-	k, err := registry.OpenKey(registry.CURRENT_USER, `Software\Classes\*\shell\`+verboComprimi+`\command`, registry.QUERY_VALUE)
+	k, err := registry.OpenKey(registry.CURRENT_USER, `Software\Classes\*\shell\`+verboMenu+`\shell\1comprimi\command`, registry.QUERY_VALUE)
 	if err != nil {
 		return ""
 	}
@@ -100,11 +175,21 @@ func leggiComando() string {
 	return s
 }
 
-func menuAttivo() bool { return leggiComando() != "" }
+// menuVecchio: c'è ancora il menu di Tasso Zip 1.0?
+func menuVecchio() bool {
+	k, err := registry.OpenKey(registry.CURRENT_USER, `Software\Classes\*\shell\`+verbiVecchi[0]+`\command`, registry.QUERY_VALUE)
+	if err != nil {
+		return false
+	}
+	k.Close()
+	return true
+}
 
-// menuPuntaA: le voci del menu avviano proprio questo exe?
+func menuAttivo() bool { return leggiComando() != "" || menuVecchio() }
+
+// menuPuntaA: le voci del menu avviano proprio questo exe (e sono quelle nuove)?
 func menuPuntaA(exe string) bool {
-	return strings.EqualFold(leggiComando(), comando(exe, "--comprimi"))
+	return strings.EqualFold(leggiComando(), comando(exe, "--comprimi")) && !menuVecchio()
 }
 
 var procSHChangeNotify = windows.NewLazySystemDLL("shell32.dll").NewProc("SHChangeNotify")
