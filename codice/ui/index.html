@@ -2661,6 +2661,9 @@ $('#btnTogli').onclick = async () => {
     setTimeout(togliDraw, 0);
     call('goTogliTasso', rimetti).then(r => { if (r !== 'ok' && togliInCorso()) { TOGLI.err = r === 'busy' ? _t('Tasso sta facendo un altro lavoro (pulizia o aggiornamento): aspetta che finisca e riprova. Tasso non è stato tolto.') : _t('Non sono riuscito a cominciare: Tasso non è stato tolto. Riprova.'); togliDraw(); } });
   }}]);
+  // come nell'anteprima: "Togli Tasso" resta grigio finché non spunti "Ho copiato le password"
+  const v = $('#tgVault'), bt = $('#modalBox .row .btn.danger');
+  if (v && bt) { bt.disabled = true; v.onchange = () => { bt.disabled = !v.checked; }; }
 };
 $('#btnQuit').onclick = () => { if (togliInCorso()) { togliDraw(); return; } if (RUN) { toast(_t('Aspetta la fine della pulizia prima di chiudere.'), 'var(--a4)'); return; } call('goQuit'); };
 
