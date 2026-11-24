@@ -525,7 +525,9 @@ nav [data-sub="gio"] button{--ic:#FF4D6D}
 .kk{display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px solid var(--line);font-size:14px}.kk b{font-family:var(--mono,monospace);color:var(--a1t)}
 .boostside{display:flex;flex-direction:column;align-items:center;gap:10px}
 .boostgo{position:relative}#boostSub{min-height:3.2em}.boostundo.nascosto{visibility:hidden;pointer-events:none}
-.bdot{position:absolute;left:18px;top:50%;margin-top:-4px;width:8px;height:8px;border-radius:99px;background:var(--a1);box-shadow:0 0 0 3px color-mix(in srgb,var(--a1) 25%,transparent)}
+.bdot{position:absolute;left:18px;top:50%;margin-top:-4px;width:8px;height:8px;border-radius:99px;background:var(--a1);box-shadow:0 0 0 3px color-mix(in srgb,var(--a1) 25%,transparent);animation:bdotPulse 1.6s ease-in-out infinite}
+@keyframes bdotPulse{0%,100%{opacity:1;box-shadow:0 0 0 3px color-mix(in srgb,var(--a1) 30%,transparent)}50%{opacity:.45;box-shadow:0 0 0 6px color-mix(in srgb,var(--a1) 0%,transparent)}}
+@media (prefers-reduced-motion:reduce){.bdot{animation:none}}
 .gptr{display:flex;flex-direction:column;gap:0;padding-top:6px;padding-bottom:6px}.gptr h3{margin:10px 0 2px}.gptr .gp-line small{display:block;line-height:1.6}.gptr .sw{border:0;cursor:pointer;flex:none}
 .boostundo{background:none;border:0;padding:4px 8px;border-radius:8px;font-size:12px;font-weight:500;color:var(--muted);display:inline-flex;align-items:center;gap:6px;cursor:pointer;transition:color .15s}.boostundo:hover,.boostundo:focus-visible{color:var(--text)}.boostundo[hidden]{display:none}
 .boostauto{display:flex;align-items:center;gap:12px;margin:14px 0 0;font-size:14px;cursor:pointer}.boostauto .sw{border:0;cursor:pointer;flex:none}
@@ -1022,8 +1024,8 @@ body nav button[data-go="games"].on{background:transparent;box-shadow:none}
 <section class="view" id="v-games">
   <div><h1 style="font-size:26px">Giochi</h1><p class="sub">I tuoi giochi, il Boost e la traduzione, in un posto solo.</p></div>
   <div class="card boostcard" id="boostCard">
-    <div style="flex:1 1 320px;min-width:0"><div class="boostk">PRONTO A GIOCARE</div><h2 id="boostTitle">Il PC è in modalità normale</h2><p class="sub" id="boostSub" style="margin:0">Scegli il gioco e confermi: Tasso lo prepara con la potenza giusta. Da lì in poi lo fa da solo ogni volta che apri quel gioco.</p><label class="boostauto" for="boostAutoSw"><button class="sw" role="switch" aria-checked="false" id="boostAutoSw" aria-label="Boost automatico quando apri un gioco"><i></i></button><span>Boost automatico quando apri un gioco</span></label><input type="checkbox" id="boostAuto" hidden><span hidden><!-- non più nel riquadro (scelta di Sergio): il Boost senza scegliere il gioco resta nel menu dell'icona vicino all'orologio; la misura e il controllo FPS restano nel codice e partono da soli col Boost --><a href="#" id="boostNow"></a><a href="#" id="boostFpsBtn"></a><a href="#" id="boostCheckBtn"></a></span><div class="small" id="boostFps" style="margin-top:8px"></div></div>
-    <div class="boostside"><button class="btn primary boostgo" id="btnBoost" aria-label="Boost: scegli il gioco">BOOST</button><button class="boostundo nascosto" id="boostUndo" tabindex="-1" aria-hidden="true" title="Spegne il Boost (anche quello automatico), rimette le impostazioni di prima e riapre i programmi chiusi."><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>Rimetti com'era</button></div>
+    <div style="flex:1 1 320px;min-width:0"><div class="boostk">PRONTO A GIOCARE</div><h2 id="boostTitle">Il PC è in modalità normale</h2><p class="sub" id="boostSub" style="margin:0">Premi BOOST: Tasso chiude i programmi che non servono e dà tutta la potenza ai giochi. Poi scegli il gioco qui sotto. Si spegne da solo quando smetti di giocare.</p><span hidden><!-- 3.1 (scelta di Sergio): BOOST accende subito il Boost per tutto il PC, senza scegliere il gioco; il "Boost automatico" non è più nella finestra (il codice resta in boost.go); la misura e il controllo FPS restano nel codice e partono da soli col Boost --><a href="#" id="boostNow"></a><a href="#" id="boostFpsBtn"></a><a href="#" id="boostCheckBtn"></a></span><div class="small" id="boostFps" style="margin-top:8px"></div></div>
+    <div class="boostside"><button class="btn primary boostgo" id="btnBoost" aria-label="Boost: accendi">BOOST</button><button class="boostundo nascosto" id="boostUndo" tabindex="-1" aria-hidden="true" title="Spegne il Boost, rimette le impostazioni di prima e riapre i programmi chiusi."><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>Rimetti com'era</button></div>
   </div>
   <div class="card" id="fpsCheckCard" style="display:none"><div id="fpsCheck" role="status" aria-live="polite" style="display:flex;flex-direction:column;gap:8px"></div></div>
   <div class="card" id="gpCard" style="display:none;flex-direction:column;gap:12px;border-color:var(--a1)">
@@ -1086,10 +1088,11 @@ body nav button[data-go="games"].on{background:transparent;box-shadow:none}
 
   <div class="card" id="bkCard" style="display:flex;flex-direction:column;gap:10px">
     <h2>🛑 Cosa chiude il Boost</h2>
-    <p class="sub" style="margin:0">Chiude solo i programmi di sincronizzazione e chat <b>aperti in sottofondo, senza finestra</b>, con gentilezza, e li riapre a fine partita. <b>Non chiude mai</b> Discord, OBS e i programmi per lo stream, Spotify, Steam e gli altri launcher, i browser, e niente che abbia una finestra aperta.</p>
+    <p class="sub" style="margin:0">Chiude solo i programmi di sincronizzazione e chat <b>aperti in sottofondo, senza finestra</b>, con gentilezza, e li riapre quando il Boost si spegne. <b>Non chiude mai</b> Discord, OBS e i programmi per lo stream, Spotify, Steam e gli altri launcher, i browser, e niente che abbia una finestra aperta.</p>
     <b>Non chiudere mai anche</b>
     <div class="row wrap" id="bkList" style="gap:8px"></div>
     <span class="small muted">Tocca un programma: con la ✓ il Boost lo lascia sempre aperto.</span>
+    <span class="small muted">⏱ <span id="bkOffTxt">Il Boost si spegne da solo dopo 15 minuti senza giochi aperti.</span></span>
   </div>
   <div class="row wrap" style="align-items:stretch;gap:18px">
     <div class="card" id="bsCard" style="flex:1 1 380px;display:none;flex-direction:column;gap:12px">
@@ -1101,7 +1104,7 @@ body nav button[data-go="games"].on{background:transparent;box-shadow:none}
     <div class="card" style="flex:1 1 320px;display:flex;flex-direction:column;gap:12px">
       <h2>Pannellino in gioco</h2>
       <p class="sub" style="margin:0">Una scritta piccola e trasparente in un angolo dello schermo. Scegli tu cosa mostrare: <b>CPU</b>, <b>scheda video</b>, <b>temperature</b>, <b>RAM</b> e l'ora. Non si può cliccare e non disturba. Si vede nei giochi in finestra o "schermo intero senza bordi".</p>
-      <button role="switch" aria-checked="false" class="toggle" id="tgOverlay" style="padding:6px 0"><span><b>Mostralo da solo quando gioco</b><span>Appare quando apri un gioco e sparisce quando lo chiudi. Serve il "Boost automatico" acceso.</span></span><span class="sw"><i></i></span></button>
+      <button role="switch" aria-checked="false" class="toggle" id="tgOverlay" style="padding:6px 0"><span><b>Mostralo da solo quando gioco</b><span>Appare quando apri un gioco e sparisce quando lo chiudi.</span></span><span class="sw"><i></i></span></button>
       <div><b style="font-size:14px">Cosa mostrare</b><div class="row wrap" id="ovItems" style="gap:6px;margin-top:6px"></div></div><div><b style="font-size:14px">Dove</b><div class="ovpos" id="ovPos" role="group" aria-label="Posizione del pannellino"><button data-pos="sx" class="btn ghost">↖ In alto a sinistra</button><button data-pos="dx" class="btn ghost">↗ In alto a destra</button><button data-pos="sxb" class="btn ghost">↙ In basso a sinistra</button><button data-pos="dxb" class="btn ghost">↘ In basso a destra</button></div></div><div><b style="font-size:14px">Anteprima</b> <span class="small muted">(numeri di esempio)</span><div class="ovprev" id="ovPrev"><span id="ovPrevTxt"></span></div></div>
       <div class="row wrap" style="gap:8px"><button class="btn ghost" id="btnOvShow">Mostra ora</button><button class="btn ghost" id="btnOvHide">Nascondi</button></div>
       <span class="small muted">Durante il gioco: <b id="ovKeyName">Ctrl+Maiusc+F12</b> lo mostra o lo nasconde (si cambia in Tasti rapidi).<br><b>FPS</b>: Tasso non entra dentro i giochi (con gli anti-cheat si rischia il ban). Per gli FPS usa quelli ufficiali e sicuri: <b>Win + G</b> → Prestazioni (Windows) oppure <b>Alt + R</b> (NVIDIA). La temperatura del processore appare solo se hai aperto LibreHardwareMonitor (gratuito).</span>
@@ -1256,7 +1259,7 @@ body nav button[data-go="games"].on{background:transparent;box-shadow:none}
       <button role="switch" aria-checked="false" class="toggle" id="tgPaused"><span><b>Tasso acceso</b><span>Spento: non parte con Windows, niente pulizie automatiche né avvisi. Riaccendilo e Tasso riprende a funzionare come prima.</span></span><span class="sw"><i></i></span></button>
       <button role="switch" aria-checked="false" class="toggle" id="tgAutostart"><span><b>Avvia con Windows</b><span>Tasso parte da solo, ridotto a icona, quando accendi il PC.</span></span><span class="sw"><i></i></span></button>
       <button role="switch" aria-checked="false" class="toggle" id="tgTray"><span><b>Resta acceso vicino all'orologio</b><span>Con la X Tasso si nasconde nell'icona in basso a destra, vicino all'orologio, e resta acceso. Per chiuderlo davvero: clic destro sull'icona → Chiudi Tasso.</span></span><span class="sw"><i></i></span></button>
-      <button role="switch" aria-checked="false" class="toggle gm" id="tgGame"><span><b>Boost automatico</b><span>Lo stesso interruttore della pagina Giochi: quando apri un gioco Tasso fa il Boost da solo e, quando lo chiudi, riapre i programmi chiusi e rimette la modalità di prima.</span></span><span class="sw"><i></i></span></button>
+      <button role="switch" aria-checked="false" class="toggle gm" id="tgGame" hidden style="display:none" tabindex="-1" aria-hidden="true"><span><b>Boost automatico</b><span>Lo stesso interruttore della pagina Giochi: quando apri un gioco Tasso fa il Boost da solo e, quando lo chiudi, riapre i programmi chiusi e rimette la modalità di prima.</span></span><span class="sw"><i></i></span></button>
       <div class="gm" style="padding:15px 0;border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:10px">
         <span><b style="font-size:15px">Stato del PC su Discord</b><br><span class="small muted">Tasso manda in un tuo canale Discord il report del PC: voto di salute, processore, scheda video, scheda madre, RAM, dischi, temperature e internet, con le <b style="color:var(--a1t)">spunte verdi</b> per tutto quello che va bene. Arriva da solo ogni tot ore e dopo ogni pulizia. Da Discord si può solo leggere, non comandare il PC.</span></span>
         <details class="guide" id="dcGuide"><summary>📘 Come si collega (2 minuti)</summary>
@@ -2036,9 +2039,11 @@ function boostPaint(){
   const t = $('#boostTitle'); if (!t) return;
   const cur = MODES.find(m => m.id === (S.mode || 'normale'));
   t.textContent = cur ? (EN ? 'The PC is in ' + cur.name + ' mode' : 'Il PC è in modalità ' + cur.name) : _t('Il PC ha le impostazioni originali di Windows');
-  if (typeof boostPaintState === 'function' && $('#boostAuto')) boostPaintState();
+  if (typeof boostPaintState === 'function' && $('#btnBoost')) boostPaintState();
 }
 var BST = {};
+// minuti senza giochi dopo cui il Boost si spegne da solo: li decide Go (boostSpegniDopo in boost.go)
+function boostOffMin(){ return (BST && BST.offMin > 0) ? BST.offMin : 15; }
 async function boostRefresh(){ BST = (await call('goBoostInfo')) || {}; boostPaint(); }
 function boostPaintState(){
   // Partita avviata col vecchio "Ottimizza prima di giocare" (prima della 3.1): mostro il tasto per chiuderla.
@@ -2047,7 +2052,7 @@ function boostPaintState(){
   if (typeof S !== 'undefined' && S && 'auto' in BST) { S.boostAuto = !!BST.auto; setToggle('#tgGame', !!BST.auto, S.paused); }
   // il pulsante resta sempre il BOOST bianco: acceso si vede dal puntino verde e dalla scritta in alto (scelta di Sergio)
   $('#btnBoost').innerHTML = (on ? '<i class="bdot" aria-hidden="true"></i>' : '') + esc(_t('BOOST'));
-  $('#btnBoost').setAttribute('aria-label', on ? _t('Boost acceso') : _t('Boost: scegli il gioco'));
+  $('#btnBoost').setAttribute('aria-label', on ? _t('Boost acceso') : _t('Boost: accendi'));
   const a = $('#boostAuto'); if (a) a.checked = !!BST.auto;
   const asw = $('#boostAutoSw'); if (asw) { asw.classList.toggle('on', !!BST.auto); asw.setAttribute('aria-checked', BST.auto ? 'true' : 'false'); }
   // «Rimetti com'era» piccolo sotto BOOST, solo quando c'è qualcosa da rimettere (come nel menu dell'icona)
@@ -2058,8 +2063,9 @@ function boostPaintState(){
   if (bs && bs.dataset.base === undefined) bs.dataset.base = bs.textContent;
   if (on) {
     if (bt) bt.textContent = BST.game ? _t('Il PC è potenziato per ') + BST.game : _t('Il PC è potenziato');
-    if (bs) bs.textContent = _t('Ho chiuso i programmi che non servono e dato tutta la potenza al gioco. Quando hai finito, premi «Rimetti com\'era».');
+    if (bs) bs.textContent = _t('Ho chiuso i programmi che non servono e dato tutta la potenza ai giochi. Ora scegli il gioco qui sotto e premi GIOCA. Si spegne da solo dopo ') + boostOffMin() + _t(' minuti senza giochi aperti.');
   } else if (bs && bs.dataset.base !== undefined) bs.textContent = bs.dataset.base;
+  const bo = $('#bkOffTxt'); if (bo) bo.textContent = _t('Il Boost si spegne da solo dopo ') + boostOffMin() + _t(' minuti senza giochi aperti.');
   if (typeof gBoostPaint === 'function') gBoostPaint();
 }
 function fpsLine(r){
@@ -2077,24 +2083,21 @@ function paintFps(r, summary){
   h += '<div class="muted" style="margin-top:4px">' + _t('I fotogrammi creati dalla generazione di fotogrammi (frame generation) non sono contati.') + '</div>';
   box.innerHTML = h;
 }
-$('#btnBoost').onclick = () => { if (BST.on || BST.game) { toast(_t('Il Boost è già acceso. Per spegnerlo premi "Rimetti com\'era".')); return; } wzOpen(null, 'boost'); };
-$('#boostNow').onclick = async (e) => {
-  e.preventDefault();
+// BOOST accende subito il Boost per tutto il PC (come la voce Boost del menu dell'icona): il gioco si
+// sceglie dopo, dalla libreria qui sotto. Potenza e impostazioni del singolo gioco restano nella sua pagina.
+async function boostAccendi(e){
+  if (e) e.preventDefault();
   if (BST.on || BST.game) { toast(_t('Il Boost è già acceso. Per spegnerlo premi "Rimetti com\'era".')); return; }
   const r = await call('goBoostAll'); if (r === 'busy') { toast(_t('Un attimo, sto ancora finendo.')); return; }
   $('#btnBoost').disabled = true; toast(_t('Preparo il PC per giocare…'), 'var(--a3)');
-};
+}
+$('#btnBoost').onclick = boostAccendi;
+$('#boostNow').onclick = boostAccendi;
 $('#boostUndo').onclick = async (e) => {
   e.preventDefault();
   if (!BST.on && !BST.auto && !BST.gpuFix && !BST.pending) { toast(_t('Non c\'è niente da rimettere: il Boost non è acceso.')); return; }
   const r = await call('goBoostAllOff'); if (r === 'busy') { toast(_t('Un attimo, sto ancora finendo.')); return; }
   toast(_t('Rimetto tutto com\'era…'));
-};
-$('#boostAutoSw').onclick = (e) => { e.preventDefault(); const a = $('#boostAuto'); a.checked = !a.checked; a.dispatchEvent(new Event('change')); };
-$('#boostAuto').onchange = async (e) => {
-  const r = await call('goBoostAuto', e.target.checked);
-  if (r) toast(String(r).replace(/^ok:/, ''), 'var(--a3)');
-  boostRefresh(); setTimeout(boostRefresh, 1500);
 };
 $('#boostFpsBtn').onclick = async (e) => {
   e.preventDefault();
@@ -2117,10 +2120,10 @@ function paintCheck(r){
   let h = '<h2 style="margin:0">' + _t('Cosa rallenta il gioco') + '</h2>';
   if (auto.length) h += '<div class="small">' + _t('✅ Sistemato da solo: ') + auto.map(esc).join(' · ') + '</div>';
   if (!list.length) {
-    h += '<div class="small">' + _t('✅ Nessun problema grande trovato: il PC è già messo bene. Per guadagnare ancora molto resta la grafica del gioco: un livello più basso o DLSS/FSR su Qualità danno di solito +20–40%.') + (r && r.measured ? '' : ' ' + _t('Per un controllo completo gioca qualche minuto con il Boost automatico acceso: Tasso misura da solo.')) + '</div>';
+    h += '<div class="small">' + _t('✅ Nessun problema grande trovato: il PC è già messo bene. Per guadagnare ancora molto resta la grafica del gioco: un livello più basso o DLSS/FSR su Qualità danno di solito +20–40%.') + (r && r.measured ? '' : ' ' + _t('Per un controllo completo gioca qualche minuto con il Boost acceso: Tasso misura da solo.')) + '</div>';
     box.innerHTML = h; return;
   }
-  h += '<div class="small"><b>' + list.length + _t(' cose da sistemare a mano') + '</b>' + (r.measured ? '' : ' · ' + _t('con il Boost automatico, dopo qualche minuto di gioco, Tasso controlla anche limite, caldo e scheda video')) + '</div>';
+  h += '<div class="small"><b>' + list.length + _t(' cose da sistemare a mano') + '</b>' + (r.measured ? '' : ' · ' + _t('con il Boost acceso, dopo qualche minuto di gioco, Tasso controlla anche limite, caldo e scheda video')) + '</div>';
   h += list.slice(0, 3).map(fcItem).join('');
   if (list.length > 3) h += '<details><summary class="small">' + _t('Altri ') + (list.length - 3) + '</summary><div style="display:flex;flex-direction:column;gap:8px;margin-top:8px">' + list.slice(3).map((f, j) => fcItem(f, j + 3)).join('') + '</div></details>';
   box.innerHTML = h;
@@ -3050,7 +3053,7 @@ async function setLook(p){
   if (p === 'ufficio') { call('ttSpegniPerUfficio').then(() => { if (typeof ttRefresh === 'function') ttRefresh(); }); }
   if (p !== 'ufficio' && !S.showAll && CURVIEW === 'perf') show('home');
   const gameOn = !!(S.autoGame || S.boostAuto || S.overlayOn || (S.gameProfile && S.gameProfile.on));
-  const paused = gameOn ? _t(' Le funzioni da gioco (Boost automatico, pannellino, Profilo gioco) restano in pausa finché torni a Gaming.') : '';
+  const paused = gameOn ? _t(' Le funzioni da gioco (pannellino, Profilo gioco) restano in pausa finché torni a Gaming.') : '';
   const boostOn = !!(typeof BST !== 'undefined' && BST && (BST.on || BST.game)); // la modalità la rimette Go spegnendo il Boost
   if (p === 'ufficio' && !boostOn && (S.mode === 'gaming' || S.mode === 'fps')) toast(_t('Modalità Ufficio attiva. Il PC però è ancora in modalità ') + (S.mode === 'fps' ? 'FPS' : 'Gaming') + _t(' (consuma di più).') + paused, 'var(--a3)', {label:_t('Metti Normale'), fn: () => { call('goSetMode', 'normale'); toast(_t('Metto la modalità Normale…')); }});
   else if (p === 'ufficio') toast(_t('Modalità Ufficio: Tasso più semplice e tranquillo.') + paused, 'var(--a3)');
@@ -3193,7 +3196,7 @@ function paintOverlay(){
   $('#ovPrevTxt').innerHTML = seg.join('&nbsp;&nbsp;&nbsp;');
 }
 async function setOv(on, pos){ await call('goOverlaySet', on, pos); S.overlayOn = on; S.overlayPos = pos; paintOverlay(); }
-$('#tgOverlay').onclick = async () => { const on = !S.overlayOn; await setOv(on, S.overlayPos || 'dx'); toast(on ? ((S.autoGame || S.boostAuto) ? _t('Pannellino acceso: appare quando giochi.') : _t('Pannellino acceso. Accendi anche il Boost automatico nella pagina Giochi.')) : _t('Pannellino spento.')); };
+$('#tgOverlay').onclick = async () => { const on = !S.overlayOn; await setOv(on, S.overlayPos || 'dx'); toast(on ? _t('Pannellino acceso: appare quando giochi.') : _t('Pannellino spento.')); };
 $$('#ovPos [data-pos]').forEach(b => { b.onclick = () => setOv(!!S.overlayOn, b.dataset.pos); });
 async function saveOvItems(){
   const list = $$('#ovItems [data-ovi]').filter(c => c.checked).map(c => c.dataset.ovi);
@@ -3946,6 +3949,7 @@ function focusByKey(k){
   if (!e || e.disabled || !e.getClientRects().length) return false;
   e.focus({preventScroll:true}); return document.activeElement === e;
 }
+function gpTop(){ const m = $('#main'); if (m) m.scrollTop = 0; const v = $('#v-games'); if (v && v.scrollTop) v.scrollTop = 0; }
 async function openGame(id, quiet){
   const g = LIB.find(x => x.id === id); if (!g) { if (GP_ID) closeGame(); return; }
   if (isOffice()) { if (GP_ID) closeGame(); return; } // in Ufficio niente giochi
@@ -3956,7 +3960,9 @@ async function openGame(id, quiet){
   $$('#v-games .gpanel').forEach(p => { p.hidden = true; }); $('#gTabs').hidden = true; $('#trBar').hidden = true; $('#boostCard').hidden = true;
   const box = $('#gamePage'); box.hidden = false;
   paintGame(g);
-  if (!quiet) { const h = box.querySelector('h2'); if (h) { h.tabIndex = -1; h.focus({preventScroll:true}); } $('#main').scrollTop = 0; box.scrollIntoView({block:'start'}); }
+  // Pagina del gioco appena aperta: sempre dall'alto, con il titolo "Giochi" e "← Tutti i giochi" in vista
+  // (prima scrollIntoView la portava sotto il titolo e restava tagliata in alto).
+  if (!quiet) { const h = box.querySelector('h2'); if (h) { h.tabIndex = -1; h.focus({preventScroll:true}); } gpTop(); requestAnimationFrame(gpTop); }
   if (!GPI) {
     const info = await ttc('goGameTr', id); if (GP_ID !== id) return;
     GPI = info || {errore:_t('Non riesco a leggere il gioco.')};
@@ -4084,11 +4090,10 @@ function paintGame(g){
       (m && memoTxt(m) ? '<div class="mem"><div><b>🧠 ' + esc(_t('Tasso si ricorda')) + '</b><span>' + esc(_t('Ultima volta')) + (m.when ? ' (' + esc(fmtDay(m.when)) + ')' : '') + ': ' + esc(memoTxt(m)) + '. ' + esc(_t('Premi GIOCA e uso le stesse impostazioni.')) + '</span></div><button class="btn ghost" data-act="wiz">' + esc(_t('Cambia')) + '</button></div>' : '') +
       '<div class="gp-stats">' + stats.map(s => '<div><b>' + esc(s[0]) + '</b><span>' + esc(s[1]) + '</span></div>').join('') + '</div>' +
       gpTrCard(g) +
-      '<div class="gp-acts"><button class="gp-big gplay" data-act="play"><b>▶ ' + esc(_t('GIOCA')) + '</b><span>' + esc(pw ? _t('Con ') + POW[pw] + _t('. A fine partita rimetto tutto com\'era.') : autoAll() ? _t('Con il Boost automatico. A fine partita riapro i programmi chiusi e rimetto mouse e modalità; le regolazioni di Windows per giocare restano finché premi "Rimetti com\'era".') : _t('Apre il gioco dal suo negozio.')) + '</span></button>' +
+      '<div class="gp-acts"><button class="gp-big gplay" data-act="play"><b>▶ ' + esc(_t('GIOCA')) + '</b><span>' + esc(pw ? _t('Con ') + POW[pw] + _t('. A fine partita rimetto tutto com\'era.') : (BST && BST.on) ? _t('Il Boost è acceso: il PC è già pronto per giocare.') : autoAll() ? _t('Con il Boost automatico. A fine partita riapro i programmi chiusi e rimetto mouse e modalità; le regolazioni di Windows per giocare restano finché premi "Rimetti com\'era".') : _t('Apre il gioco dal suo negozio.')) + '</span></button>' +
       '<button class="gp-big gprep" data-act="wiz"><b>⚙ ' + esc(_t('PREPARA A PASSI')) + '</b><span>' + esc(_t('Traduzione, potenza e impostazioni consigliate, una cosa alla volta.')) + '</span></button></div>' +
       '<div class="card gp-sets">' +
-        '<div class="gp-line"><span><b>' + esc(_t('Potenza quando apri il gioco')) + '</b><small>' + esc(POW_FAIL[g.id] ? POW_FAIL[g.id] : _t('Anche se lo apri da Steam. Quando lo chiudi rimetto tutto com\'era.')) + '</small></span><div class="seg" role="group" aria-label="' + esc(_t('Potenza quando apri il gioco')) + '">' + ['', 'gaming', 'max'].map(k => '<button data-pow="' + k + '" class="' + (pw === k ? 'on' : '') + '" aria-pressed="' + (pw === k) + '"' + (POW_FAIL[g.id] && k !== pw ? ' disabled' : '') + '>' + esc(k === '' ? _t('Normale') : k === 'gaming' ? _t('Alta') : _t('Massima')) + '</button>').join('') + '</div></div>' +
-        '<div class="gp-line" style="border-bottom:0"><span><b>' + esc(_t('Boost automatico')) + '</b><small>' + esc(_t('Per tutti i giochi: quando ne apri uno, Tasso fa il Boost da solo e a fine partita rimette tutto.')) + '</small></span><button class="sw' + (BST && BST.auto ? ' on' : '') + '" role="switch" aria-checked="' + !!(BST && BST.auto) + '" data-act="auto" aria-label="' + esc(_t('Boost automatico')) + '"><i></i></button></div>' +
+        '<div class="gp-line" style="border-bottom:0"><span><b>' + esc(_t('Potenza quando apri il gioco')) + '</b><small>' + esc(POW_FAIL[g.id] ? POW_FAIL[g.id] : _t('Anche se lo apri da Steam. Quando lo chiudi rimetto tutto com\'era.')) + '</small></span><div class="seg" role="group" aria-label="' + esc(_t('Potenza quando apri il gioco')) + '">' + ['', 'gaming', 'max'].map(k => '<button data-pow="' + k + '" class="' + (pw === k ? 'on' : '') + '" aria-pressed="' + (pw === k) + '"' + (POW_FAIL[g.id] && k !== pw ? ' disabled' : '') + '>' + esc(k === '' ? _t('Normale') : k === 'gaming' ? _t('Alta') : _t('Massima')) + '</button>').join('') + '</div></div>' +
       '</div>' +
     '</div><div class="card gp-side"><h3>' + esc(_t('Strumenti per questo gioco')) + '</h3><div class="row wrap" style="gap:6px" id="gpToolTabs"></div><span class="small muted">' + esc(_t('Tocca uno strumento per usarlo.')) + '</span><div id="gpTools"></div></div></div></div>';
   putCover(box.querySelector('.gp-cv'), g);
@@ -4303,8 +4308,7 @@ function wzDraw(){
     const cb = (k, t, d) => '<button data-pw="' + k + '" class="' + (cur === k ? 'on' : '') + '" aria-pressed="' + (cur === k) + '"><em>' + (rc === k ? esc(_t('Consigliato')) : '') + '</em><b>' + esc(t) + '</b><span>' + esc(d) + '</span></button>';
     h = (W.noGame ? '<div class="callout">' + esc(tx(i.errore || '')) + ' ' + esc(_t('La traduzione si salta.')) + '</div>' : '') + P(_t('Quanta potenza?')) + '<p class="small muted" style="margin:0">' + esc(_t('Tasso la mette da solo quando apri ')) + esc(g.name) + esc(_t(' (anche da Steam) e rimette tutto quando lo chiudi.')) + '</p><div class="pw">' +
       cb('normale', _t('Normale'), _t('Il PC resta com\'è. Per giochi leggeri o il portatile a batteria.')) + cb('gaming', _t('Potenza alta'), _t('Piano energetico al massimo, notifiche in pausa. Va bene per tutti i giochi.')) + cb('max', _t('Massima potenza'), _t('Come Potenza alta, più mouse senza accelerazione. Per gli sparatutto.')) + '</div>' +
-      '<label class="li check" style="align-items:flex-start"><input type="checkbox" id="gwAuto"' + (BST && BST.auto ? ' checked' : '') + '> <span style="flex:1"><b>' + esc(_t('Boost automatico (per tutti i giochi)')) + '</b><br><span class="small muted">' + esc(_t('Quando apri un gioco Tasso fa il Boost da solo. A fine partita riapre i programmi chiusi e rimette mouse e modalità; le regolazioni di Windows per giocare restano finché premi "Rimetti com\'era".')) + '</span></span></label>' +
-      '<details class="small"><summary style="cursor:pointer;font-weight:700">' + esc(_t('Cosa chiude il Boost?')) + '</summary><p class="muted" style="margin:6px 0 0;line-height:1.5">' + esc(_t('Solo se sono aperti in sottofondo senza finestra: OneDrive, Dropbox, Google Drive, iCloud, Teams (versione classica), Zoom, Skype. Li chiude con gentilezza e li riapre a fine partita. Non chiude mai Discord, OBS e i programmi per lo stream, Spotify, Steam e gli altri launcher, i browser, e niente che abbia una finestra aperta.')) + '</p></details>';
+      '<details class="small"><summary style="cursor:pointer;font-weight:700">' + esc(_t('Cosa chiude il Boost?')) + '</summary><p class="muted" style="margin:6px 0 0;line-height:1.5">' + esc(_t('Solo se sono aperti in sottofondo senza finestra: OneDrive, Dropbox, Google Drive, iCloud, Teams (versione classica), Zoom, Skype. Li chiude con gentilezza e li riapre quando il Boost si spegne. Non chiude mai Discord, OBS e i programmi per lo stream, Spotify, Steam e gli altri launcher, i browser, e niente che abbia una finestra aperta.')) + '</p></details>';
   }
   if (s === 'cons') {
     const t = W.tune;

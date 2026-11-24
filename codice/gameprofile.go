@@ -478,7 +478,7 @@ func gamePowerFor(exe string) string {
 func autoGameNeeded() bool {
 	setMu.Lock()
 	defer setMu.Unlock()
-	if len(settings.GamePower) > 0 || bAutoFlag.Load() {
+	if len(settings.GamePower) > 0 || bAutoFlag.Load() || settings.OverlayOn {
 		return true
 	}
 	for _, t := range settings.GameTunes {
@@ -492,7 +492,7 @@ func autoGameNeeded() bool {
 // autoGameKept: la Modalità gioco automatica serve ancora (potenza per un gioco, Boost automatico o
 // profilo gioco che la usa). Va chiamata con le impostazioni già bloccate (dentro updateSettings).
 func autoGameKept(s *Settings) bool {
-	return len(s.GamePower) > 0 || bAutoFlag.Load() || (s.GameProfile != nil && s.GameProfile.On && s.GameProfile.AutoGame)
+	return len(s.GamePower) > 0 || bAutoFlag.Load() || s.OverlayOn || (s.GameProfile != nil && s.GameProfile.On && s.GameProfile.AutoGame)
 }
 
 // autoGameForAll: la modalità gioco automatica vale per tutti i giochi (accesa da te, dal Boost

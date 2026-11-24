@@ -111,14 +111,39 @@ var (
 	bOpMu   sync.Mutex // un'accensione/spegnimento alla volta, dall'inizio alla fine
 	fpsMu   sync.Mutex // una misura alla volta
 	bWatch  sync.Once
-	bClosed []string // programmi chiusi da riaprire (copia in boost.json, solo nomi ammessi in boostClosable)
-	bSkip   string   // gioco per cui hai premuto "Rimetti com'era": niente Boost automatico finché resta aperto
-	bGame   string   // gioco della partita col Boost automatico in corso
+	bClosed []string  // programmi chiusi da riaprire (copia in boost.json, solo nomi ammessi in boostClosable)
+	bSkip   string    // gioco per cui hai premuto "Rimetti com'era": niente Boost automatico finché resta aperto
+	bGame   string    // gioco della partita col Boost automatico in corso
+	bOnAt   time.Time // quando è stato acceso a mano il Boost (per lo spegnimento automatico)
 	// bAutoFlag: copia di bState.Auto che si legge senza bMu (serve dentro updateSettings).
 	bAutoFlag atomic.Bool
 )
 
 func boostFile() string { return filepath.Join(appDir, "boost.json") }
+
+// boostSpegniDopo: il Boost acceso a mano si spegne da solo ("Rimetti com'era") dopo questo tempo
+// di fila senza giochi aperti. È l'unico punto dove si sceglie: i testi della finestra lo leggono da
+// boostInfo ("offMin").
+const boostSpegniDopo = 15 * time.Minute
+
+// boostDaSpegnere decide se il Boost acceso a mano va spento da solo. Il conteggio parte
+// dall'accensione (accesoAlle) e si azzera ogni volta che c'è un gioco aperto (ultimoGioco = l'ultima
+// volta che ne ho visto uno). Mai durante una pulizia o un aggiornamento (occupato): aspetta la fine.
+func boostDaSpegnere(acceso, giocoAperto, occupato bool, accesoAlle, ultimoGioco, adesso time.Time) bool {
+	if !acceso || giocoAperto || occupato {
+		return false
+	}
+	da := accesoAlle
+	if ultimoGioco.After(da) {
+		da = ultimoGioco
+	}
+	return !da.IsZero() && adesso.Sub(da) >= boostSpegniDopo
+}
+
+// boostSpentoTesto: l'avviso quando il Boost si spegne da solo.
+func boostSpentoTesto() string {
+	return "Boost spento da solo: nessun gioco aperto da " + strconv.Itoa(int(boostSpegniDopo/time.Minute)) + " minuti. Il PC è tornato com'era."
+}
 
 // safeName: i nomi dei giochi arrivano da fuori (nome del programma): tengo solo caratteri semplici.
 func safeName(s string) string {
@@ -210,7 +235,7 @@ func boostInfo() map[string]interface{} {
 	// pending: è rimasto qualcosa da rimettere (regolazioni di Windows, modalità, scheda video, mouse,
 	// programmi chiusi), anche con il Boost spento: "Rimetti com'era" serve ancora.
 	pending := len(s.Cmds) > 0 || s.PrevMode != "" || len(s.GpuPrev) > 0 || s.Mouse != nil || len(bClosed) > 0
-	return map[string]interface{}{"on": s.On, "auto": s.Auto, "game": bGame, "battery": onBattery(), "gpuFix": len(s.GpuPrev) > 0, "pending": pending}
+	return map[string]interface{}{"on": s.On, "auto": s.Auto, "game": bGame, "battery": onBattery(), "gpuFix": len(s.GpuPrev) > 0, "pending": pending, "offMin": int(boostSpegniDopo / time.Minute)}
 }
 
 // onBattery: portatile senza caricatore. In quel caso niente piano energetico al massimo.
@@ -409,8 +434,10 @@ func boostOnOK() ([]string, bool) {
 		return []string{"Il Boost è già acceso."}, false
 	}
 	s.On = true
+	bOnAt = time.Now() // da qui parte il conteggio dello spegnimento automatico
 	saveBoost()
 	bMu.Unlock()
+	startBoostWatcher() // guarda i giochi aperti e spegne il Boost dopo boostSpegniDopo senza giochi
 
 	var msgs []string
 	if ids := boostCmdsOn(); len(ids) > 0 {
@@ -441,8 +468,7 @@ func boostOnOK() ([]string, bool) {
 		msgs = append(msgs, "Chiusi in background: "+strings.Join(names, ", ")+". Li riapro quando premi \"Rimetti com'era\".")
 	}
 	if m := mouseAccelOff(safeName(runningGame())); m != "" {
-		msgs = append(msgs, m)
-		startBoostWatcher() // serve per rimettere il mouse quando chiudi il gioco
+		msgs = append(msgs, m) // il watcher rimette il mouse quando chiudi il gioco
 	}
 	if len(msgs) == 0 {
 		msgs = append(msgs, "Il PC era già pronto per giocare: non c'era niente da cambiare.")
@@ -612,6 +638,33 @@ func setBoostAuto(on bool) string {
 	return "ok:Boost automatico acceso: quando apri un gioco Tasso prepara il PC da solo e misura gli FPS."
 }
 
+// boostAutoMigra (3.1, scelta di Sergio): il "Boost automatico" non si vede più nella finestra. Chi
+// l'aveva acceso lo trova spento, senza avvisi, così non resta attivo senza che si veda. Il codice
+// dell'automatico resta (setBoostAuto), ma nessun pulsante lo accende più. Le regolazioni per
+// giocare già accese restano: le rimette "Rimetti com'era", che si vede finché c'è da rimettere.
+func boostAutoMigra() {
+	bMu.Lock()
+	s := loadBoost()
+	if !s.Auto {
+		bMu.Unlock()
+		return
+	}
+	s.Auto = false
+	prevAG := s.PrevAG
+	s.PrevAG = nil
+	saveBoost()
+	bMu.Unlock()
+	if prevAG != nil && !*prevAG {
+		// La modalità gioco automatica l'aveva accesa il Boost automatico: resta solo se serve ad altro
+		// (potenza per gioco, Regola con Tasso, pannellino in gioco), e solo per quello.
+		if autoGameNeeded() {
+			updateSettings(func(st *Settings) { st.AutoGameTune = true })
+		} else {
+			setAutoGame(false)
+		}
+	}
+}
+
 // startBoostWatcher: guarda ogni 10 secondi se c'è un gioco aperto.
 func startBoostWatcher() {
 	bWatch.Do(func() {
@@ -620,18 +673,98 @@ func startBoostWatcher() {
 			var missing int
 			var measured string
 			var since time.Time
+			var ultimoGioco time.Time // Boost a mano: l'ultima volta che ho visto un gioco aperto
+			var manGame string        // Boost a mano: gioco aperto adesso
 			t := time.NewTicker(10 * time.Second)
 			defer t.Stop()
 			for range t.C {
 				bMu.Lock()
-				auto, game, skip := loadBoost().Auto, bGame, bSkip
+				st := loadBoost()
+				auto, game, skip, manual := st.Auto, bGame, bSkip, st.On
+				if manual && bOnAt.IsZero() { // acceso prima che Tasso ripartisse: conto da adesso
+					bOnAt = time.Now()
+				}
+				onAt := bOnAt
 				bMu.Unlock()
 				setMu.Lock()
 				paused := settings.Paused || settings.Profile == "ufficio" // in Ufficio niente Boost automatico
 				setMu.Unlock()
+				cur := "" // gioco aperto adesso (lo cerco solo se serve)
+				if manual || (auto && !paused) || mouseAccelActive() {
+					cur = safeName(runningGame())
+				}
 				name := ""
 				if auto && !paused {
-					name = safeName(runningGame())
+					name = cur
+				}
+				// Boost acceso a mano: vale per qualunque gioco apri. Quando ne apri uno chiudo di nuovo i
+				// programmi in background (se nel frattempo sono ripartiti), tolgo l'accelerazione del
+				// mouse agli sparatutto e misuro gli FPS una volta, dopo 2 minuti.
+				if manual && game == "" {
+					if cur != "" {
+						ultimoGioco = time.Now()
+						if !strings.EqualFold(cur, manGame) {
+							manGame, measured, since = cur, "", time.Now()
+							var msgs []string
+							if bOpMu.TryLock() { // se sto accendendo o spegnendo il Boost, salto
+								if closed := closeBackground(); len(closed) > 0 {
+									msgs = append(msgs, "Chiusi in background: "+strings.Join(closed, ", ")+". Li riapro quando premi \"Rimetti com'era\".")
+								}
+								bOpMu.Unlock()
+							}
+							if m := mouseAccelOff(cur); m != "" {
+								msgs = append(msgs, m)
+							}
+							if len(msgs) > 0 {
+								emit("onBoost", map[string]interface{}{"msgs": msgs, "state": boostInfo(), "auto": true})
+							}
+						}
+						if measured != cur && time.Since(since) > 2*time.Minute {
+							measured = cur
+							go func(g string) {
+								defer guard("boost.go:manmeasure")
+								if r, err := fpsMeasure(0, 60, true, false, g); err == nil {
+									emit("onFpsAuto", map[string]interface{}{"game": g, "result": r})
+									fpsAutoFix(false)
+								}
+							}(cur)
+						}
+					} else {
+						manGame = ""
+					}
+					// Spegnimento automatico: nessun gioco aperto da boostSpegniDopo, e niente pulizia o
+					// aggiornamento in corso. Fa "Rimetti com'era" (anche programmi riaperti e mouse).
+					if boostDaSpegnere(manual, cur != "", isRunning() || updating.Load(), onAt, ultimoGioco, time.Now()) {
+						if async("boostoff", func() {
+							bMu.Lock()
+							still := loadBoost().On && bOnAt.Equal(onAt) // nel frattempo non l'hai spento o riacceso tu
+							bMu.Unlock()
+							if !still {
+								return
+							}
+							msgs := []string{boostSpentoTesto()}
+							failed := ""
+							for _, m := range boostOff(true) {
+								if m == "Tutto com'era prima del Boost." {
+									continue // lo dice già l'avviso
+								}
+								if strings.HasPrefix(m, "Qualcosa non si è potuto rimettere") {
+									failed = m
+								}
+								msgs = append(msgs, m)
+							}
+							emit("onBoost", map[string]interface{}{"msgs": msgs, "state": boostInfo(), "auto": true, "autoOff": true})
+							if failed != "" { // finestra di Tasso (se aperta) + avviso vicino all'orologio
+								trayAvvisoMsgs("Boost", []string{boostSpentoTesto(), failed})
+							} else {
+								trayAvviso("Boost", boostSpentoTesto(), false)
+							}
+						}) == "ok" {
+							ultimoGioco, manGame = time.Time{}, ""
+						}
+					}
+				} else if !manual {
+					ultimoGioco, manGame = time.Time{}, ""
 				}
 				if name == "" && skip != "" {
 					bMu.Lock()
@@ -639,7 +772,7 @@ func startBoostWatcher() {
 					bMu.Unlock()
 				}
 				// Boost a mano (senza automatico): il mouse torna com'era appena chiudi lo sparatutto.
-				if game == "" && mouseAccelActive() && !competitiveGame(safeName(runningGame())) {
+				if game == "" && mouseAccelActive() && !competitiveGame(cur) {
 					if m := mouseAccelRestore(); m != "" {
 						emit("onBoost", map[string]interface{}{"msgs": []string{m}, "state": boostInfo(), "auto": true})
 					}
@@ -1182,8 +1315,10 @@ func bindBoost(w webview2.WebView) {
 		}
 		return openVendorPage(id)
 	})
+	boostAutoMigra() // il Boost automatico non c'è più nella finestra: se era acceso lo spengo, in silenzio
 	bMu.Lock()
-	auto := loadBoost().Auto
+	st := loadBoost()
+	auto, manual := st.Auto, st.On
 	bMu.Unlock()
 	// Il Tasso si era chiuso con il mouse ancora senza accelerazione: lo rimetto com'era.
 	if !competitiveGame(safeName(runningGame())) {
@@ -1191,7 +1326,7 @@ func bindBoost(w webview2.WebView) {
 	} else {
 		startBoostWatcher()
 	}
-	if auto {
+	if auto || manual { // Boost acceso a mano: serve anche per lo spegnimento automatico
 		startBoostWatcher()
 	}
 }

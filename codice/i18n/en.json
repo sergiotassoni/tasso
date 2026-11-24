@@ -1279,7 +1279,10 @@
   "Traduzione accesa. Nel gioco premi ": "Translation on. In the game press ",
   " per vedere le scritte in italiano.": " to see the translated text.",
   "Apri prima il gioco, poi torna qui e premi di nuovo «Traduci solo una zona» (oppure premi ": "First open the game, then come back here and press «Translate only one area» again (or press ",
-  " nel gioco).": " in the game)."
+  " nel gioco).": " in the game).",
+  "Boost spento da solo: nessun gioco aperto da 15 minuti. Il PC è tornato com'era.": "Boost turned itself off: no game open for 15 minutes. The PC is back as it was.",
+  "Boost spento da solo: nessun gioco aperto da ": "Boost turned itself off: no game open for ",
+  " minuti. Il PC è tornato com'era.": " minutes. The PC is back as it was."
  },
  "ps": {
   "echo Risparmio energetico delle porte USB rimesso come prima.": "echo USB port power saving put back as it was.",
@@ -5132,6 +5135,20 @@
   "Traduttore acceso: nel gioco premi ": "Translator on: in the game press ",
   "Il PC è potenziato per ": "The PC is boosted for ",
   "Il PC è potenziato": "The PC is boosted",
-  "Ho chiuso i programmi che non servono e dato tutta la potenza al gioco. Quando hai finito, premi «Rimetti com'era».": "I closed the programs you don't need and gave all the power to the game. When you're done, press «Restore original»."
+  "Ho chiuso i programmi che non servono e dato tutta la potenza al gioco. Quando hai finito, premi «Rimetti com'era».": "I closed the programs you don't need and gave all the power to the game. When you're done, press «Restore original».",
+  "Premi BOOST: Tasso chiude i programmi che non servono e dà tutta la potenza ai giochi. Poi scegli il gioco qui sotto. Si spegne da solo quando smetti di giocare.": "Press BOOST: Tasso closes the programs you don't need and gives all the power to your games. Then pick the game below. It turns itself off when you stop playing.",
+  "Boost: accendi": "Boost: turn on",
+  "Spegne il Boost, rimette le impostazioni di prima e riapre i programmi chiusi.": "Turns off the Boost, puts back the previous settings and reopens the closed programs.",
+  "Ho chiuso i programmi che non servono e dato tutta la potenza ai giochi. Ora scegli il gioco qui sotto e premi GIOCA. Si spegne da solo dopo ": "I closed the programs you don't need and gave all the power to your games. Now pick the game below and press PLAY. It turns itself off after ",
+  " minuti senza giochi aperti.": " minutes with no game open.",
+  "Il Boost si spegne da solo dopo ": "Boost turns itself off after ",
+  "Il Boost si spegne da solo dopo 15 minuti senza giochi aperti.": "Boost turns itself off after 15 minutes with no game open.",
+  "Per un controllo completo gioca qualche minuto con il Boost acceso: Tasso misura da solo.": "For a full check, play a few minutes with Boost on: Tasso measures by itself.",
+  "con il Boost acceso, dopo qualche minuto di gioco, Tasso controlla anche limite, caldo e scheda video": "with Boost on, after a few minutes of play, Tasso also checks limits, heat and graphics card",
+  "Appare quando apri un gioco e sparisce quando lo chiudi.": "It appears when you open a game and disappears when you close it.",
+  " Le funzioni da gioco (pannellino, Profilo gioco) restano in pausa finché torni a Gaming.": " Gaming features (in-game panel, Game profile) stay paused until you switch back to Gaming.",
+  ", con gentilezza, e li riapre quando il Boost si spegne.": ", gently, and reopens them when Boost turns off.",
+  "Solo se sono aperti in sottofondo senza finestra: OneDrive, Dropbox, Google Drive, iCloud, Teams (versione classica), Zoom, Skype. Li chiude con gentilezza e li riapre quando il Boost si spegne. Non chiude mai Discord, OBS e i programmi per lo stream, Spotify, Steam e gli altri launcher, i browser, e niente che abbia una finestra aperta.": "Only if they're running in the background without a window: OneDrive, Dropbox, Google Drive, iCloud, Teams (classic version), Zoom, Skype. It closes them gently and reopens them when Boost turns off. It never closes Discord, OBS and streaming programs, Spotify, Steam and the other launchers, browsers, or anything with an open window.",
+  "Il Boost è acceso: il PC è già pronto per giocare.": "Boost is on: the PC is already ready to play."
  }
 }

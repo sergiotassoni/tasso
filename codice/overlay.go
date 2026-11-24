@@ -414,7 +414,19 @@ func setOverlay(on bool, pos string) string {
 	if pos != "sx" && pos != "sxb" && pos != "dxb" {
 		pos = "dx"
 	}
-	updateSettings(func(s *Settings) { s.OverlayOn = on; s.OverlayPos = pos })
+	updateSettings(func(s *Settings) {
+		s.OverlayOn = on
+		s.OverlayPos = pos
+		// Il pannellino appare da solo quando la modalità gioco automatica vede un gioco aperto. Prima
+		// la accendeva il Boost automatico (tolto dalla finestra in 3.1): la accendo qui solo per
+		// guardare i giochi (AutoGameTune: non cambia la modalità dei giochi senza una loro potenza).
+		if on && !s.AutoGame {
+			s.AutoGame, s.AutoGameTune = true, true
+		}
+		if !on {
+			autoGameTuneCleanup(s)
+		}
+	})
 	ovPost()
 	return "ok"
 }
