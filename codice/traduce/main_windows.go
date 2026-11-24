@@ -1284,6 +1284,7 @@ func leggiETraduci(img *image.RGBA, impronta Impronta, forza bool) {
 		r = traduttore.Traduci(context.Background(), grezzo)
 	}
 	if r.Errore != "" {
+		ultimoTesto = "" // alla prossima lettura ci riprovo (il traduttore può essere ancora in partenza)
 		ov.Mostra(z, testoTasso("Non riesco a tradurre adesso.", "I can't translate right now."), pulito, r.Errore)
 		emetti("info", map[string]string{"testo": "Traduzione non riuscita: " + r.Errore})
 		return

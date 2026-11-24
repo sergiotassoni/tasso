@@ -290,6 +290,10 @@ func (t *Traduttore) traduciIn(ctx context.Context, grezzo string, dialogo bool,
 	ris.Millisec = time.Since(inizio).Milliseconds()
 	if ris.Tradotto == "" {
 		ris.Errore = strings.Join(errori, " · ")
+		if ris.Errore == "" {
+			// nessun motore pronto, o risposte vuote: è un errore, non una traduzione vuota
+			ris.Errore = "nessun traduttore pronto"
+		}
 		return ris
 	}
 	t.mu.Lock()

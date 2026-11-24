@@ -34,6 +34,9 @@ func TestSottotitoloPronto(t *testing.T) {
 	if !giro("I never wanted any of this,\nO but we don't have a.choice.") {
 		t.Fatal("due letture dello stesso sottotitolo (con errori) non tradotte")
 	}
+	if !stessoSottotitolo(pulisci("I never wanted any of this,\nbut we donlt have a choice."), pulisci("I never wanted any of this,\nO but we don't have a.choice.")) {
+		t.Error("\"donlt\" letto male: sottotitolo preso per diverso")
+	}
 	if stessoSottotitolo("I'm here.", "I'm there.") {
 		t.Error("frasi corte diverse prese per uguali")
 	}

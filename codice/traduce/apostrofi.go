@@ -13,6 +13,7 @@ import (
 var (
 	rePuntinoApostrofo = regexp.MustCompile(`([A-Za-z])[•·](s|t|re|ve|ll|d|m)\b`)
 	reContrazioneL     = regexp.MustCompile(`\b(?i:(we|you|they|who|what|there|that|it|he|she))[l|1](re|ve|ll|d|s)\b`)
+	reNegazioneL       = regexp.MustCompile(`\b(?i:(don|didn|doesn|isn|wasn|aren|weren|can|won|couldn|wouldn|shouldn|haven|hasn|hadn|mustn|needn))[l|1I]t\b`)
 	reIoSbagliato      = regexp.MustCompile(`(^|[^A-Za-z'])(?:[Il|1]{1,2}[l'|]?|l)(m|ve|ll|d)\b`)
 	reIoLim            = regexp.MustCompile(`(^|[^A-Za-z'])(?:lim|Iim|lIm|llm|IIm|1m)\b`)
 	reIdue             = regexp.MustCompile(`(^|[^A-Za-z'])[Il]'(m|ve|ll|d)\b`)
@@ -39,6 +40,7 @@ var parolaComune = map[string]bool{
 func correggiOCRInglese(r string) string {
 	r = rePuntinoApostrofo.ReplaceAllString(r, "$1'$2")
 	r = reContrazioneL.ReplaceAllString(r, "$1'$2")
+	r = reNegazioneL.ReplaceAllString(r, "$1't") // "donlt" → "don't" (sottotitoli, 24/11)
 	r = strings.ReplaceAll(r, "itis ", "it's ")
 	r = reIoLim.ReplaceAllString(r, "${1}I'm")
 	r = reIdue.ReplaceAllString(r, "${1}I'$2")
