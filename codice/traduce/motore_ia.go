@@ -17,6 +17,63 @@ import (
 	"unicode"
 )
 
+// ---- opzioni di velocità di llama-server (DA MISURARE sul PC: prova delle 1000 frasi e tempi)
+//
+// Per spegnerne una basta cambiare la costante qui sotto. Per provarle sul PC senza ricompilare:
+// variabili d'ambiente TASSO_IA_FA (on, off, auto), TASSO_IA_KV (f16, q8_0, q4_0) e
+// TASSO_IA_NGRAM (1 = acceso, 0 = spento). Valori diversi da questi non contano.
+// Nomi e valori controllati nelle librerie delle build b12380 e b12189 (llama-common.dll).
+const (
+	// iaFlashAttention: "-fa on|off|auto" (= --flash-attn). "" = non passarlo (la build sceglie: auto).
+	iaFlashAttention = "on"
+	// iaCacheKV: "-ctk/-ctv": memoria di lavoro del modello compressa (q8_0: circa metà di f16,
+	// perdita di qualità di solito invisibile). "" o "f16" = come prima. Con flash attention spenta
+	// non si usa (llama.cpp vuole la flash attention per comprimere la parte V).
+	iaCacheKV = "q8_0"
+	// iaNgram: speculative decoding "n-gram" senza un secondo modello: quando l'IA riscrive pezzi
+	// già presenti nella richiesta (nel correttore la bozza di Mozilla spesso resta quasi uguale)
+	// li propone in blocco e il modello li controlla in un colpo solo. SPENTO finché non è misurato.
+	iaNgram = false
+	// pezzi uguali da cercare (n piccolo) e quanti pezzi proporre dopo
+	iaNgramN = 3
+	iaNgramM = 8
+)
+
+// opzioniVelociIA: gli argomenti in più per llama-server secondo le costanti (e le variabili
+// d'ambiente di prova). getenv di solito è os.Getenv.
+func opzioniVelociIA(getenv func(string) string) []string {
+	fa, kv, ngram := iaFlashAttention, iaCacheKV, iaNgram
+	switch v := strings.ToLower(strings.TrimSpace(getenv("TASSO_IA_FA"))); v {
+	case "on", "off", "auto":
+		fa = v
+	}
+	switch v := strings.ToLower(strings.TrimSpace(getenv("TASSO_IA_KV"))); v {
+	case "f16", "q8_0", "q4_0":
+		kv = v
+	}
+	switch strings.TrimSpace(getenv("TASSO_IA_NGRAM")) {
+	case "1":
+		ngram = true
+	case "0":
+		ngram = false
+	}
+	var a []string
+	if fa != "" {
+		a = append(a, "-fa", fa)
+	}
+	if kv != "" && kv != "f16" && fa != "off" {
+		a = append(a, "-ctk", kv, "-ctv", kv)
+	}
+	if ngram {
+		a = append(a, "--spec-type", "ngram-simple",
+			"--spec-ngram-simple-size-n", fmt.Sprint(iaNgramN),
+			"--spec-ngram-simple-size-m", fmt.Sprint(iaNgramM),
+			"--spec-ngram-simple-min-hits", "1",
+			"--spec-draft-n-max", fmt.Sprint(iaNgramM))
+	}
+	return a
+}
+
 // istruzioni fisse per il modello: traduttore di videogiochi, solo la traduzione in uscita
 const promptSistema = `Sei un traduttore professionista di videogiochi dall'inglese all'italiano.
 Regole:

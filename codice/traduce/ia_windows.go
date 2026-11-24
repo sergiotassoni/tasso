@@ -223,6 +223,13 @@ func portaLibera() (int, error) {
 	return l.Addr().(*net.TCPAddr).Port, nil
 }
 
+// opzioniVelociKO: in questa sessione il motore non è partito con le opzioni di velocità
+// (opzioniVelociIA): da qui in poi si avvia senza, come prima.
+var opzioniVelociKO atomic.Bool
+
+// errChiusoAllAvvio: il processo è uscito da solo mentre caricava il modello.
+var errChiusoAllAvvio = errors.New("il motore IA si è chiuso all'avvio (vedi logs\\motore-ia.txt)")
+
 // Avvia llama-server con il modello. Solo indirizzo locale, niente interfaccia web.
 func (s *ServerIA) Avvia(dirMotore, fileModello string) error {
 	s.mu.Lock()
@@ -236,12 +243,14 @@ func (s *ServerIA) Avvia(dirMotore, fileModello string) error {
 	}
 	dirAvvio, notaCopia := dirMotore, ""
 	if dirMotore == dirMotoreIA() {
-		if err := verificaMotore(dirMotore, improntaLlama, "llama-server.exe"); err != nil {
+		// la build nuova o quella di prima (riserva): tutti i file devono essere della stessa
+		impronte := impronteLlamaDi(dirMotore)
+		if err := verificaMotore(dirMotore, impronte, "llama-server.exe"); err != nil {
 			return err
 		}
 		// la cartella dei modelli la può cambiare qualsiasi programma dell'utente: copio il motore
 		// controllato dove scrivono solo gli amministratori e lo avvio da lì (ricontrollato)
-		if d, err := copiaMotoreProtetto(dirMotore, improntaLlama, "llama-server.exe"); err == nil {
+		if d, err := copiaMotoreProtetto(dirMotore, impronte, "llama-server.exe"); err == nil {
 			dirAvvio = d
 		} else {
 			notaCopia = "Copia nella cartella protetta non riuscita (" + err.Error() + "): avvio dalla cartella dei modelli.\r\n"
@@ -259,34 +268,61 @@ func (s *ServerIA) Avvia(dirMotore, fileModello string) error {
 	case s.Strati > 0:
 		ngl = fmt.Sprint(s.Strati)
 	}
+	base := []string{
+		"-m", fileModello,
+		"-ngl", ngl,
+		"-c", fmt.Sprint(nctx), "-np", "1",
+		"--no-webui", "--no-slots",
+	}
+	var veloci []string
+	if !opzioniVelociKO.Load() {
+		veloci = opzioniVelociIA(os.Getenv)
+	}
+	err := s.avviaProcesso(exe, dirAvvio, append(base, veloci...), notaCopia, false)
+	if errors.Is(err, errChiusoAllAvvio) && len(veloci) > 0 && s.cmd == nil {
+		// forse la scheda (o il driver) non regge flash attention o la memoria compressa:
+		// riprovo subito come prima, e in questa sessione non le uso più
+		opzioniVelociKO.Store(true)
+		nota := "\r\n---- chiuso all'avvio con " + strings.Join(veloci, " ") + ": riprovo senza.\r\n"
+		err = s.avviaProcesso(exe, dirAvvio, base, nota, true)
+	}
+	return err
+}
+
+// avviaProcesso avvia llama-server con gli argomenti dati e aspetta che il modello sia caricato.
+// Si chiama con s.mu preso e torna con s.mu preso (lo lascia mentre aspetta il caricamento).
+// aggiungi: il registro continua quello di prima invece di ricominciare.
+func (s *ServerIA) avviaProcesso(exe, dirAvvio string, args []string, nota string, aggiungi bool) error {
 	porta, err := portaLibera()
 	if err != nil {
 		return err
 	}
-	cmd := exec.Command(exe,
-		"-m", fileModello,
-		"--host", "127.0.0.1", "--port", fmt.Sprint(porta),
-		"-ngl", ngl,
-		"-c", fmt.Sprint(nctx), "-np", "1",
-		"--no-webui", "--no-slots",
-	)
+	tutti := append([]string{"--host", "127.0.0.1", "--port", fmt.Sprint(porta)}, args...)
+	cmd := exec.Command(exe, tutti...)
 	// chiave segreta per questa sessione (variabile d'ambiente, non visibile nella riga di comando):
 	// così né le pagine web né altri programmi del PC possono usare il motore
 	chiave := chiaveCasuale()
 	cmd.Env = append(os.Environ(), "LLAMA_API_KEY="+chiave)
 	cmd.Dir = dirAvvio
 	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true, CreationFlags: 0x08000000 | 0x00004000} // nessuna finestra, priorità sotto la normale
-	logf, _ := os.Create(filepath.Join(dirApp, "logs", "motore-ia.txt"))
-	if logf != nil && notaCopia != "" {
-		_, _ = logf.WriteString(notaCopia)
+	modo := os.O_WRONLY | os.O_CREATE | os.O_TRUNC
+	if aggiungi {
+		modo = os.O_WRONLY | os.O_CREATE | os.O_APPEND
 	}
-	cmd.Stdout, cmd.Stderr = logf, logf
+	logf, _ := os.OpenFile(filepath.Join(dirApp, "logs", "motore-ia.txt"), modo, 0o644)
+	if logf != nil && nota != "" {
+		_, _ = logf.WriteString(nota)
+	}
+	if logf != nil {
+		cmd.Stdout, cmd.Stderr = logf, logf
+	}
 	if err := cmd.Start(); err != nil {
 		if logf != nil {
 			logf.Close()
 		}
 		return err
 	}
+	morti0 := s.morti.Load()
 	job := jobChiudiConMe(cmd.Process.Pid)
 	uscito := make(chan struct{})
 	s.cmd, s.uscito = cmd, uscito
@@ -328,7 +364,10 @@ func (s *ServerIA) Avvia(dirMotore, fileModello string) error {
 		}
 		select {
 		case <-uscito:
-			return errors.New("il motore IA si è chiuso all'avvio (vedi logs\\motore-ia.txt)")
+			if s.morti.Load() == morti0 { // fermato da Tasso (Ferma), non chiuso da solo
+				return errors.New("motore IA fermato mentre si avviava")
+			}
+			return errChiusoAllAvvio
 		case <-ctx.Done():
 			_ = cmd.Process.Kill()
 			return errors.New("il motore IA ci mette troppo ad avviarsi")
