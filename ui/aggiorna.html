@@ -1,0 +1,46 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Tasso Setup</title>
+<style>
+/* Finestrella dell'aggiornamento silenzioso: solo la barra, con la grafica dell'installatore. */
+/*CARATTERI*/
+:root{--bg:#07080D;--panel:#12141E;--line:#22263A;--text:#F2F4F8;--muted:#8B91A7;--a1:#2FF3A6;--red:#FF6B5C;
+  --display:'TassoArchivo','Bahnschrift','Segoe UI Variable Display','Segoe UI',sans-serif;
+  --body:'TassoOnest','Segoe UI Variable Text','Segoe UI',system-ui,sans-serif;--mono:'TassoMono','Cascadia Mono','Consolas',monospace}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--text);font-family:var(--body);font-size:14px;overflow:hidden;user-select:none;cursor:default}
+.box{height:100%;display:flex;flex-direction:column;justify-content:center;gap:8px;padding:18px 24px}
+b{font-family:var(--display);font-weight:800;font-stretch:112%;font-size:17px}
+.riga{display:flex;justify-content:space-between;gap:12px;color:var(--muted);font-size:12.5px}
+#testo{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#perc{font:500 12px var(--mono)}
+.barra{height:10px;border-radius:99px;background:var(--panel);border:1px solid var(--line);overflow:hidden}
+.barra i{display:block;height:100%;width:0;background:var(--a1);border-radius:99px;transition:width .2s}
+.ko .barra i{background:var(--red)}
+@media (prefers-reduced-motion:reduce){.barra i{transition:none}}
+</style>
+</head>
+<body>
+<div class="box" id="box">
+  <b>{{TITOLO}}</b>
+  <div class="riga"><span id="testo" role="status">{{TESTO}}</span><span id="perc"></span></div>
+  <div class="barra"><i id="barra"></i></div>
+</div>
+<script>
+"use strict";
+window.TS = {
+  avanza(a){
+    document.getElementById('testo').textContent = a.testo || '';
+    document.getElementById('box').classList.toggle('ko', !!a.errore);
+    if (a.perc >= 0) {
+      document.getElementById('barra').style.width = a.perc + '%';
+      document.getElementById('perc').textContent = a.perc + '%';
+    }
+  }
+};
+document.addEventListener('contextmenu', e => e.preventDefault());
+</script>
+</body>
+</html>

@@ -4,12 +4,13 @@ package ui
 import (
 	"embed"
 	"encoding/base64"
+	"html"
 	"regexp"
 	"sort"
 	"strings"
 )
 
-//go:embed index.html caratteri.css icone/*.svg
+//go:embed index.html aggiorna.html caratteri.css icone/*.svg
 var file embed.FS
 
 // Icone animate (occhi che si muovono) di ogni componente.
@@ -26,6 +27,17 @@ func Pagina() string {
 		s = strings.ReplaceAll(s, "{{ICONA:"+n+"}}", "data:image/svg+xml;base64,"+base64.StdEncoding.EncodeToString(svg))
 	}
 	return s
+}
+
+// PaginaAggiorna: la finestrella con la barra dell'aggiornamento silenzioso
+// (TassoSetup.exe --aggiorna-silenzioso). Titolo e primo testo arrivano già tradotti.
+func PaginaAggiorna(titolo, testo string) string {
+	b, _ := file.ReadFile("aggiorna.html")
+	s := string(b)
+	css, _ := file.ReadFile("caratteri.css")
+	s = strings.Replace(s, "/*CARATTERI*/", string(css), 1)
+	s = strings.Replace(s, "{{TITOLO}}", html.EscapeString(titolo), 1)
+	return strings.Replace(s, "{{TESTO}}", html.EscapeString(testo), 1)
 }
 
 var (

@@ -41,3 +41,16 @@ func TestPaginaCompleta(t *testing.T) {
 		t.Fatalf("pagina troppo grande per NavigateToString: %d byte", len(p))
 	}
 }
+
+func TestPaginaAggiorna(t *testing.T) {
+	p := PaginaAggiorna("Aggiorno <Tasso>", "Chiudo & aggiorno")
+	if strings.Contains(p, "{{") || strings.Contains(p, "/*CARATTERI*/") || !strings.Contains(p, "TassoArchivo") {
+		t.Fatal("segnaposto rimasti o caratteri mancanti")
+	}
+	if !strings.Contains(p, "Aggiorno &lt;Tasso&gt;") || !strings.Contains(p, "Chiudo &amp; aggiorno") {
+		t.Fatal("testi non messi o non protetti")
+	}
+	if strings.Contains(p, "https://") {
+		t.Fatal("la finestrella carica qualcosa da internet")
+	}
+}

@@ -36,4 +36,7 @@ go run ./strumenti/prepara -versione "$ECO_VER" \
 # 3. l'installatore
 GOOS=windows GOARCH=amd64 go build -trimpath -ldflags "-H windowsgui -s -w" -o dist/TassoSetup.exe .
 (cd ../strumenti/risorse && go run . controlla -exe "$QUI/dist/TassoSetup.exe" -ico "$QUI/../icone/gaming/definitiva/tasso-gaming.ico" -livello requireAdministrator)
-ls -l dist/TassoSetup.exe
+# 4. TassoSetup.sha256 per l'aggiornamento da Tasso (DOPO la firma di TassoSetup.exe va rifatto:
+#    go run ./strumenti/impronta)
+go run ./strumenti/impronta
+ls -l dist/TassoSetup.exe dist/TassoSetup.sha256

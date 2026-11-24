@@ -53,6 +53,22 @@ func L() string {
 
 func main() {
 	modoDisins = !pacco.Pieno
+	lingua.Store(testi.DaWindows(linguaWindows()))
+	// Aggiornamento silenzioso chiesto da Tasso (aggiorna_windows.go): niente pagine, esce con 0/1/2.
+	silenzioso, solo, riapri := false, false, false
+	for _, a := range os.Args[1:] {
+		switch a {
+		case argAggiornaSilenzioso:
+			silenzioso = true
+		case argSoloControlla:
+			solo = true
+		case argRiapriTasso:
+			riapri = true
+		}
+	}
+	if silenzioso {
+		os.Exit(aggiornaSilenzioso(solo, riapri))
+	}
 	for _, a := range os.Args[1:] {
 		if a == "--disinstalla" {
 			modoDisins = true

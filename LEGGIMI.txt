@@ -41,6 +41,34 @@ COME FUNZIONA L'INSTALLAZIONE (atomica)
   NON lo chiudo a forza e chiedo di riprovare). Un Tasso vecchio senza --chiudi, Zip e PDF li
   avvisa come allo spegnimento di Windows (così salvano), poi li chiude.
 
+AGGIORNAMENTO SILENZIOSO (lo usa Tasso: Impostazioni > Aggiornamenti)
+  TassoSetup.exe --aggiorna-silenzioso [--riapri-tasso] [--solo-controlla]
+  - legge tasso-setup.json della cartella installata (HKLM\Software\Tasso\Cartella) e aggiorna
+    SOLO i programmi già installati e SOLO quelli che in questo installatore sono più nuovi
+    (versione per versione, "3.10" > "3.9"; per Tasso vale anche il file VERSIONE): mai indietro.
+    Stessa cartella, stesse caselle (Gaming/Ufficio), stessa lingua, collegamenti sul Desktop
+    solo se c'erano già. Il disinstallatore non si sostituisce con uno di un ecosistema più vecchio.
+  - nessuna pagina: solo una finestrella con la barra (senza WebView2 lavora senza finestra);
+  - chiude i programmi da aggiornare come l'installazione normale (Tasso con --chiudi);
+    --riapri-tasso: Tasso l'ha avviato e si sta chiudendo da solo, lo aspetta (max 1 minuto);
+    alla fine riapre Tasso se era aperto ("Tasso.exe --after-update");
+  - --solo-controlla: nessuna finestra, nessuna modifica, dice solo se c'è qualcosa da fare.
+  Codici d'uscita: 0 aggiornato (con --solo-controlla: c'è da aggiornare), 1 errore (non è
+  cambiato niente), 2 niente da fare (non installato, o versioni uguali o più vecchie).
+
+PUBBLICARE L'AGGIORNAMENTO (progetto sergiotassoni/tasso su GitHub, ramo main, accanto a
+Tasso.zip, Tasso.sha256 e VERSION; Tasso li scarica da github.com/.../raw/main/)
+  TassoSetup.exe     l'installatore FIRMATO (stesso certificato di Tasso.exe)
+  TassoSetup.sha256  scritto da compila.sh (go run ./strumenti/impronta): DOPO la firma rifallo,
+                     perché la firma cambia l'impronta. Righe:
+                       <sha256>  TassoSetup.exe  <versione ecosistema>
+                       tasso <versione>
+                       zip <versione>
+                       pdf <versione>
+  Tasso controlla impronta e firma (Certum, "Open Source Developer, Sergio Tassoni", come per
+  Tasso.exe; un Tasso di prova non firmato accetta un installatore non firmato), poi prova
+  "--solo-controlla" e solo se risponde 0 si chiude e lancia l'aggiornamento.
+
 DISINSTALLAZIONE ("Programmi e funzionalità" > Tasso > Disinstalla)
   Si sceglie cosa togliere. Toglie solo i file e i collegamenti scritti in tasso-setup.json.
   "Disinstalla Tasso.exe --disinstalla --scegli=gaming,ufficio": parte con spuntati solo quelli

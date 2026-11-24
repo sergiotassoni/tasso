@@ -60,6 +60,9 @@ type Opzioni struct {
 	Lingua          string       // it, en, es, fr, de, pt, pl
 	CartellaMenu    string       // menu Start di tutti gli utenti
 	CartellaDesktop string       // Desktop pubblico
+	// TieniDisinstallatore: non sostituire "Disinstalla Tasso.exe" (aggiornamento silenzioso con un
+	// installatore di una versione dell'ecosistema più vecchia di quella installata).
+	TieniDisinstallatore bool
 }
 
 func (in *Installatore) rinomina(a, b string) error {
@@ -162,7 +165,7 @@ func (in *Installatore) Installa(ctx context.Context, o Opzioni) (*Stato, error)
 			return nil, fmt.Errorf("il programma %q non è dentro questo installatore", id)
 		}
 	}
-	if in.Elenco.Prog(ProgSetup) != nil {
+	if in.Elenco.Prog(ProgSetup) != nil && !o.TieniDisinstallatore {
 		progs = append(progs, ProgSetup)
 	}
 
@@ -228,6 +231,9 @@ func (in *Installatore) Installa(ctx context.Context, o Opzioni) (*Stato, error)
 			st.Programmi[k] = v
 		}
 		st.Collegamenti = vecchio.Collegamenti
+		if o.TieniDisinstallatore {
+			st.Versione = Maggiore(vecchio.Versione, st.Versione) // mai una versione dell'ecosistema più vecchia
+		}
 	}
 	st.Componenti = Unione(st.Componenti, scelti)
 	for _, id := range progs {
