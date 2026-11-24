@@ -55,6 +55,35 @@ func percorsoDiFinestra(h uintptr) string {
 	return windows.UTF16ToString(buf[:n])
 }
 
+// programmi che non sono mai giochi: niente profilo, niente "Profilo caricato" (strumenti di
+// Windows, browser, app di lavoro). Si aggiungono a nonGiochi e nonGiochiNegozi.
+var maiProfilo = map[string]bool{
+	"claude.exe": true, "snippingtool.exe": true, "screenclippinghost.exe": true, "screensketch.exe": true,
+	"mspaint.exe": true, "notepad++.exe": true, "cmd.exe": true, "powershell.exe": true, "pwsh.exe": true,
+	"windowsterminal.exe": true, "wt.exe": true, "conhost.exe": true, "mmc.exe": true, "control.exe": true,
+	"systemsettings.exe": true, "textinputhost.exe": true, "searchapp.exe": true, "widgets.exe": true,
+	"onedrive.exe": true, "outlook.exe": true, "olk.exe": true, "slack.exe": true, "zoom.exe": true,
+	"whatsapp.exe": true, "telegram.exe": true, "spotify.exe": true, "iexplore.exe": true, "vivaldi.exe": true,
+	"chatgpt.exe": true, "photos.exe": true, "calculatorapp.exe": true, "msteams.exe": true, "regedit.exe": true,
+}
+
+// nonGiocoMai: true per i programmi a cui non si dà mai un profilo: i nostri, quelli in elenco e
+// quelli che stanno nella cartella di Windows (C:\Windows\...).
+func nonGiocoMai(h uintptr, exe string) bool {
+	if eNostro(exe) || maiProfilo[exe] || nonGiochi[exe] || nonGiochiNegozi[exe] {
+		return true
+	}
+	p := strings.ToLower(percorsoDiFinestra(h))
+	if w := strings.ToLower(os.Getenv("SystemRoot")); w != "" && strings.HasPrefix(p, strings.TrimRight(w, `\`)+`\`) {
+		return true
+	}
+	if !strings.Contains(p, `\windowsapps\microsoft.`) {
+		return false
+	}
+	_, gioco := riconosciGioco(p) // app di Windows dallo Store (Strumento di cattura...), ma non i giochi Xbox
+	return !gioco
+}
+
 func eNostro(exe string) bool {
 	return exe == "" || exe == "tassotraduce.exe" || exe == nostroExe() || exe == "explorer.exe" || exe == "msedgewebview2.exe"
 }
@@ -74,7 +103,7 @@ func ricordaProfilo() {
 	g := ov.gioco
 	ov.mu.Unlock()
 	exe := exeDiFinestra(g)
-	if eNostro(exe) {
+	if nonGiocoMai(g, exe) {
 		return
 	}
 	muImp.Lock()
@@ -102,7 +131,7 @@ func controllaProfilo() {
 		return
 	}
 	exe := exeDiFinestra(fg)
-	if eNostro(exe) {
+	if nonGiocoMai(fg, exe) {
 		return
 	}
 	muImp.Lock()

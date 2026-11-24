@@ -360,6 +360,22 @@ func bringToFront() bool {
 	return false
 }
 
+// salvaAlloSpegnimento: Windows si spegne o l'utente si disconnette (WM_QUERYENDSESSION /
+// WM_ENDSESSION, arrivano alla finestra nascosta di tray.go). Salvo impostazioni e memoria delle
+// traduzioni: dopo Windows può chiudere Tasso senza passare dalla chiusura normale.
+func salvaAlloSpegnimento() {
+	defer guard("salvaAlloSpegnimento")
+	for i := 0; i < 40; i++ { // aspetto al massimo 2 secondi che le impostazioni siano libere
+		if setMu.TryLock() {
+			saveSettings()
+			setMu.Unlock()
+			break
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+	traduce.SalvaAdesso()
+}
+
 // chiudiTasso: la chiusura vera, da "Chiudi Tasso" delle Impostazioni e dall'icona vicino all'orologio.
 func chiudiTasso() {
 	go func() {

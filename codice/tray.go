@@ -370,6 +370,14 @@ func trayWndProc(hwnd, msg, wp, lp uintptr) uintptr {
 			pKillTimer.Call(hwnd, trayTimerAdd)
 		}
 		return 0
+	case msg == 0x0011: // WM_QUERYENDSESSION: Windows si spegne o ci si disconnette
+		salvaAlloSpegnimento()
+		return 1 // Tasso non blocca mai lo spegnimento
+	case msg == 0x0016: // WM_ENDSESSION
+		if wp != 0 {
+			salvaAlloSpegnimento()
+		}
+		return 0
 	case msg == wmDestroyMsg:
 		pPostQuitMessageTray.Call(0)
 		return 0

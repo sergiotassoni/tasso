@@ -229,6 +229,18 @@ func ImpostaUfficio(on bool) {
 	}
 }
 
+// SalvaAdesso: impostazioni e memoria delle traduzioni su disco, senza fermare niente.
+// Serve quando Windows si spegne o si disconnette (lì Tasso può essere chiuso senza Chiudi).
+func SalvaAdesso() {
+	if !avviato.Load() {
+		return
+	}
+	salvaImp()
+	if traduttore != nil {
+		traduttore.SalvaMemoria()
+	}
+}
+
 // Chiudi salva tutto quando Tasso si chiude.
 func Chiudi() {
 	if !avviato.Load() {

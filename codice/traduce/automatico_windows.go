@@ -79,7 +79,7 @@ func aSchermoIntero(h uintptr) bool {
 }
 
 func eGioco(h uintptr, exe string) bool {
-	if eNostro(exe) || nonGiochi[exe] || nonGiochiNegozi[exe] {
+	if nonGiocoMai(h, exe) {
 		return false
 	}
 	muImp.Lock()
