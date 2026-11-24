@@ -79,6 +79,28 @@ func (in *Installatore) Disinstalla(base string, togli []Componente) (*Risultato
 	}
 	st.Collegamenti = restColl
 
+	// Tasso resta ma cambia modalità (es. tolto Gaming, resta Ufficio): il collegamento cambia nome
+	if progDopo[ProgTasso] && in.CreaCollegamento != nil {
+		oNuove := Opzioni{Componenti: restano}
+		nuovoNome := nomeCollegamento(ProgTasso, oNuove)
+		for i, c := range st.Collegamenti {
+			if c.Programma != ProgTasso || !strings.EqualFold(filepath.Ext(c.Percorso), ".lnk") ||
+				strings.EqualFold(filepath.Base(c.Percorso), nuovoNome) {
+				continue
+			}
+			nuovo := filepath.Join(filepath.Dir(c.Percorso), nuovoNome)
+			dest, ok := percorsoFile(CartellaDi(base, ProgTasso), "Tasso.exe")
+			if !ok {
+				continue
+			}
+			if err := in.CreaCollegamento(Collegamento{Percorso: nuovo, Destinazione: dest,
+				Cartella: CartellaDi(base, ProgTasso), Descrizione: "Tasso", Programma: ProgTasso}); err == nil {
+				_ = in.togli(c.Percorso)
+				st.Collegamenti[i].Percorso = nuovo
+			}
+		}
+	}
+
 	for _, id := range via {
 		p, ok := st.Programmi[id]
 		if !ok {

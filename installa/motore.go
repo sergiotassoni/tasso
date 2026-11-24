@@ -90,8 +90,9 @@ func (in *Installatore) avanza(a Avanzamento) {
 }
 
 // NomiCollegamento: il nome del .lnk di ogni programma.
+// Per Tasso il nome dipende dalle modalità scelte: vedi nomeCollegamento.
 var NomiCollegamento = map[Programma]string{
-	ProgTasso: "Tasso.lnk",
+	ProgTasso: "Tasso Gaming.lnk",
 	ProgZip:   "Tasso Zip.lnk",
 	ProgPDF:   "Tasso PDF.lnk",
 }
@@ -101,7 +102,7 @@ func (in *Installatore) CollegamentiPer(pp []Programma, o Opzioni) []Collegament
 	var out []Collegamento
 	for _, id := range pp {
 		p := in.Elenco.Prog(id)
-		nome := NomiCollegamento[id]
+		nome := nomeCollegamento(id, o)
 		if p == nil || p.Avvio == "" || nome == "" {
 			continue
 		}
@@ -123,6 +124,14 @@ func (in *Installatore) CollegamentiPer(pp []Programma, o Opzioni) []Collegament
 		}
 	}
 	return out
+}
+
+// nomeCollegamento: "Tasso Gaming" se c'è la parte Gaming, "Tasso Ufficio" se c'è solo Ufficio.
+func nomeCollegamento(id Programma, o Opzioni) string {
+	if id == ProgTasso && ModalitaTasso(o.Componenti) == ModalitaUfficio {
+		return "Tasso Ufficio.lnk"
+	}
+	return NomiCollegamento[id]
 }
 
 // mossa: un file spostato durante la fase finale (per tornare indietro se qualcosa va storto).
@@ -325,7 +334,24 @@ func (in *Installatore) Installa(ctx context.Context, o Opzioni) (*Stato, error)
 		for _, c := range st.Collegamenti {
 			gia[strings.ToLower(c.Percorso)] = true
 		}
-		for _, c := range in.CollegamentiPer(ProgrammiPer(scelti), o) {
+		nuoviColl := in.CollegamentiPer(ProgrammiPer(scelti), o)
+		voluti := map[string]bool{}
+		for _, c := range nuoviColl {
+			voluti[strings.ToLower(c.Percorso)] = true
+		}
+		// collegamenti di Tasso con un nome vecchio (es. "Tasso.lnk" delle versioni precedenti): li tolgo
+		tenuti := st.Collegamenti[:0]
+		for _, c := range st.Collegamenti {
+			if c.Programma == ProgTasso && !voluti[strings.ToLower(c.Percorso)] &&
+				strings.EqualFold(filepath.Ext(c.Percorso), ".lnk") {
+				_ = in.togli(c.Percorso)
+				delete(gia, strings.ToLower(c.Percorso))
+				continue
+			}
+			tenuti = append(tenuti, c)
+		}
+		st.Collegamenti = tenuti
+		for _, c := range nuoviColl {
 			if err := in.CreaCollegamento(c); err != nil {
 				errColl = err
 				continue

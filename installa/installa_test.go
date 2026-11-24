@@ -423,8 +423,8 @@ func TestDisinstallaSelettiva(t *testing.T) {
 	if err != nil || r.TuttoTolto {
 		t.Fatal(err)
 	}
-	if !esiste(filepath.Join(p.base, "Tasso.exe")) || !esiste(filepath.Join(p.menu, "Tasso.lnk")) {
-		t.Fatal("Tasso doveva restare (c'è ancora Ufficio)")
+	if !esiste(filepath.Join(p.base, "Tasso.exe")) || !esiste(filepath.Join(p.menu, "Tasso Ufficio.lnk")) || esiste(filepath.Join(p.menu, "Tasso Gaming.lnk")) {
+		t.Fatal("Tasso doveva restare (c'è ancora Ufficio) col collegamento \"Tasso Ufficio\"")
 	}
 	if m, _ := p.reg.LeggiTesto(HKLM, ChiaveTasso, "Modalita"); m != "ufficio" {
 		t.Fatalf("modalità %q", m)
