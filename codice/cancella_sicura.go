@@ -50,7 +50,7 @@ func cancellaSicuraDaRiga(args []string) (codice int) {
 	if len(args) < 1 {
 		return rifiuta("comando mancante")
 	}
-	c := &cancellatore{}
+	c := &cancellatore{fine: scadenzaDaAmbiente()}
 	ore := func(s string) bool {
 		h, err := strconv.ParseFloat(strings.TrimSpace(s), 64)
 		if err != nil || h < 0 || h > 24*365*20 {
@@ -86,6 +86,27 @@ func cancellaSicuraDaRiga(args []string) (codice int) {
 type cancellatore struct {
 	limite   time.Time // zero: si cancella tutto
 	liberati int64
+	fine     time.Time // zero: nessuna scadenza; passata, mi fermo e dico quanto ho liberato fin lì
+}
+
+// scadenzaDaAmbiente: TASSO_FINE (secondi Unix) lo mette lo script del passaggio, così con cartelle
+// enormi (milioni di file di cache) mi fermo prima che il passaggio venga chiuso per il tempo.
+// Fermarsi prima toglie solo meno roba: non può mai far cancellare qualcosa in più.
+func scadenzaDaAmbiente() time.Time {
+	v := strings.TrimSpace(os.Getenv("TASSO_FINE"))
+	if v == "" {
+		return time.Time{}
+	}
+	n, err := strconv.ParseInt(v, 10, 64)
+	if err != nil || n <= 0 {
+		return time.Time{}
+	}
+	return time.Unix(n, 0)
+}
+
+// scaduto: è passata la scadenza (controllo leggero, fatto per ogni elemento).
+func (c *cancellatore) scaduto() bool {
+	return !c.fine.IsZero() && time.Now().After(c.fine)
 }
 
 type errCS string
@@ -381,6 +402,9 @@ func (c *cancellatore) vecchio(t windows.Filetime) bool {
 // svuota: toglie quello che c'è dentro la cartella aperta (lei resta).
 func (c *cancellatore) svuota(dir windows.Handle, prof int) {
 	for _, v := range elenca(dir) {
+		if c.scaduto() {
+			return
+		}
 		if nomeValido(v.nome) {
 			c.togli(dir, v.nome, prof)
 		}

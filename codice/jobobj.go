@@ -34,12 +34,14 @@ func newKillJob(pid int) *killJob {
 	return j
 }
 
-func (j *killJob) kill() {
+// kill chiude tutto il gruppo; false = non c'è un gruppo (Windows non l'aveva accettato) o non è riuscito.
+func (j *killJob) kill() bool {
 	j.mu.Lock()
 	defer j.mu.Unlock()
 	if j.h != 0 {
-		_ = windows.TerminateJobObject(j.h, 1)
+		return windows.TerminateJobObject(j.h, 1) == nil
 	}
+	return false
 }
 
 // close libera l'handle senza chiudere niente.

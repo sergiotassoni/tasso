@@ -37,7 +37,7 @@ func insertStepAfter(id string, steps ...Step) {
 }
 
 var extraSteps = []Step{
-	{ID: "driver_leftovers", Name: "Resti dei driver video", Desc: "Cartelle che AMD, NVIDIA e Intel lasciano dopo aver installato i driver (C:\\AMD, C:\\NVIDIA...). Spesso sono vari GB.", Level: 2, Minutes: 0.4, Timeout: 10 * time.Minute, Script: `
+	{ID: "driver_leftovers", Name: "Resti dei driver video", Desc: "Cartelle che AMD, NVIDIA e Intel lasciano dopo aver installato i driver (C:\\AMD, C:\\NVIDIA...). Spesso sono vari GB.", Level: 2, Minutes: 0.4, Timeout: 8 * time.Minute, Script: `
 $drvRoots = @((Join-Path ($TassoSysDrive + '\') 'AMD\'), (Join-Path ($TassoSysDrive + '\') 'NVIDIA\'))
 $busy = $false
 foreach ($pr in @(Get-Process -ErrorAction SilentlyContinue)) {
@@ -67,7 +67,7 @@ foreach ($it in $list) {
 if (-not $any) { Say 'Nessun resto di installazione dei driver trovato.' }
 Freed $f; Say ('Liberati ' + (Fmt $f))
 `},
-	{ID: "game_cache", Name: "Cache di launcher e app", Desc: "Battle.net, EA app, Ubisoft Connect, GOG, Riot, Steam (registri e dump) e Spotify: solo cache e registri vecchi. Giochi, salvataggi e accessi restano.", Level: 2, Minutes: 0.5, Timeout: 10 * time.Minute, Script: `
+	{ID: "game_cache", Name: "Cache di launcher e app", Desc: "Battle.net, EA app, Ubisoft Connect, GOG, Riot, Steam (registri e dump) e Spotify: solo cache e registri vecchi. Giochi, salvataggi e accessi restano.", Level: 2, Minutes: 0.5, Timeout: 8 * time.Minute, Script: `
 $steam = ''
 try { $steam = [string](Get-ItemProperty -LiteralPath 'HKCU:\Software\Valve\Steam' -ErrorAction Stop).SteamPath; $steam = $steam -replace '/', '\' } catch {}
 $pf86 = ${env:ProgramFiles(x86)}
@@ -98,7 +98,7 @@ foreach ($a in $apps) {
 if (-not $any) { Say 'Nessuno di questi launcher trovato.' }
 Freed $f; Say ('Liberati ' + (Fmt $f))
 `},
-	{ID: "extra_junk", Name: "Altri file inutili di Windows", Desc: "Rapporti di blocco del kernel, temporanei dei servizi di Windows, vecchia cache internet e registri vecchi degli aggiornamenti.", Level: 2, Minutes: 0.5, Timeout: 10 * time.Minute, Script: `
+	{ID: "extra_junk", Name: "Altri file inutili di Windows", Desc: "Rapporti di blocco del kernel, temporanei dei servizi di Windows, vecchia cache internet e registri vecchi degli aggiornamenti.", Level: 2, Minutes: 0.5, Timeout: 8 * time.Minute, Script: `
 $f = [long]0
 $list = @(
   @{ Label = 'Rapporti di blocco (LiveKernelReports)'; Path = (Join-Path $TassoWin 'LiveKernelReports'); Age = 72 },
@@ -118,21 +118,30 @@ foreach ($it in $list) {
 # Installazione precedente di Windows: è protetta e serve per tornare indietro, quindi la segnalo e basta.
 $old = Join-Path $TassoSysDrive 'Windows.old'
 if (Test-Path -LiteralPath $old) {
-  $s = Get-FolderSize $old
-  Say ('C''è una copia della versione precedente di Windows (Windows.old, ' + (Fmt $s) + '). Se Windows funziona bene da più di 10 giorni puoi toglierla da Impostazioni > Sistema > Archiviazione > File temporanei > "Installazione precedente di Windows".')
+  # Windows.old ha centinaia di migliaia di file: la misuro al massimo per 30 secondi.
+  $s = Get-FolderSizeQuick $old 30
+  if ($s -lt 0) { Say 'C''è una copia della versione precedente di Windows (Windows.old, molto grande). Se Windows funziona bene da più di 10 giorni puoi toglierla da Impostazioni > Sistema > Archiviazione > File temporanei > "Installazione precedente di Windows".' }
+  else { Say ('C''è una copia della versione precedente di Windows (Windows.old, ' + (Fmt $s) + '). Se Windows funziona bene da più di 10 giorni puoi toglierla da Impostazioni > Sistema > Archiviazione > File temporanei > "Installazione precedente di Windows".') }
 }
 Freed $f; Say ('Liberati ' + (Fmt $f))
 `},
-	{ID: "old_drivers", Name: "Driver video vecchi", Desc: "Toglie dall'archivio di Windows le versioni vecchie dei driver della scheda video che non sono più in uso (spesso 1-3 GB). Quello in uso e quello prima restano sempre.", Level: 3, Minutes: 1.5, Timeout: 20 * time.Minute, Script: `
+	{ID: "old_drivers", Name: "Driver video vecchi", Desc: "Toglie dall'archivio di Windows le versioni vecchie dei driver della scheda video che non sono più in uso (spesso 1-3 GB). Quello in uso e quello prima restano sempre.", Level: 3, Minutes: 1.5, Timeout: 15 * time.Minute, Script: `
 if ((Test-Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\RebootPending') -or (Test-Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\RebootRequired')) { Say 'Windows aspetta un riavvio (forse per un driver nuovo): salto, così non tolgo niente che serve. Rifallo dopo il riavvio.'; return }
 Say 'Leggo i driver salvati in Windows...'
-try { $drv = @(Get-WindowsDriver -Online -ErrorAction Stop | Where-Object { [string]$_.ClassName -eq 'Display' }) } catch { Say 'Non riesco a leggere i driver: salto.'; return }
+# Su alcuni PC la lettura dei driver resta appesa: al massimo 4 minuti, poi salto (senza togliere niente).
+$drv = Invoke-Limited { try { @(Get-WindowsDriver -Online -ErrorAction Stop | Where-Object { [string]$_.ClassName -eq 'Display' }) } catch { 'ERR' } } 240 'Lettura dei driver'
+if ($TassoLento -or $null -eq $drv -or (@($drv) -contains 'ERR')) { Say 'Non riesco a leggere i driver: salto.'; return }
+$drv = @($drv | Where-Object { $_ })
+$used = Invoke-Limited { @(Get-CimInstance Win32_PnPSignedDriver -ErrorAction SilentlyContinue | ForEach-Object { [string]$_.InfName }) } 120
+# Senza l'elenco dei driver in uso non so cosa è sicuro togliere: salto.
+if ($TassoLento -or $null -eq $used -or @($used | Where-Object { $_ }).Count -eq 0) { Say 'Non riesco a leggere i driver in uso: salto, senza togliere niente.'; return }
 $inUse = @{}
-foreach ($d in @(Get-CimInstance Win32_PnPSignedDriver -ErrorAction SilentlyContinue)) { if ($d.InfName) { $inUse[([string]$d.InfName).ToLower()] = $true } }
+foreach ($d in @($used)) { if ($d) { $inUse[([string]$d).ToLower()] = $true } }
 # Per ogni marca (AMD, NVIDIA, Intel) restano sempre le 2 versioni più nuove (per poter tornare indietro), più tutte quelle in uso.
 $groups = $drv | Group-Object { ([string]$_.ProviderName).ToLower() }
-$f = [long]0; $n = 0
+$f = [long]0; $n = 0; $stop = $false
 foreach ($g in $groups) {
+  if ($stop) { break }
   if ($g.Count -lt 3) { continue }
   $sorted = @($g.Group | Sort-Object { try { [version]([string]$_.Version) } catch { [version]'0.0' } } -Descending)
   for ($i = 2; $i -lt $sorted.Count; $i++) {
@@ -141,14 +150,15 @@ foreach ($g in $groups) {
     if (-not $inf -or $inUse.ContainsKey($inf)) { continue }
     $dir = Split-Path -Parent ([string]$d.OriginalFileName)
     $size = Get-FolderSize $dir
-    $code = Run-Hidden 'pnputil.exe' ('/delete-driver ' + $inf)
+    $code = Run-Watch 'pnputil.exe' ('/delete-driver ' + $inf) '' 120
+    if ($TassoLento) { Say 'Windows ci metteva troppo a togliere un driver vecchio: mi fermo qui.'; $stop = $true; break }
     if (($code -eq 0 -or $code -eq 3010) -and -not (Test-Path -LiteralPath $dir)) { $f += $size; $n++; Say ('Tolto: ' + $d.ProviderName + ' versione ' + $d.Version + ' (' + (Fmt $size) + ')') }
   }
 }
 if ($n -eq 0) { Say 'Nessun driver video vecchio da togliere.' }
 Freed $f; Say ('Liberati ' + (Fmt $f))
 `},
-	{ID: "sec_check", Name: "Controllo sicurezza", Desc: "Firewall, antivirus, controllo account, SmartScreen, Avvio protetto, TPM, Desktop remoto, SMBv1 e account Guest. Tasso controlla e ti dice cosa sistemare, senza cambiare niente.", Level: 3, Minutes: 0.4, Timeout: 5 * time.Minute, Script: `
+	{ID: "sec_check", Name: "Controllo sicurezza", Desc: "Firewall, antivirus, controllo account, SmartScreen, Avvio protetto, TPM, Desktop remoto, SMBv1 e account Guest. Tasso controlla e ti dice cosa sistemare, senza cambiare niente.", Level: 3, Minutes: 0.4, Timeout: 4 * time.Minute, Script: `
 $ok = 0; $warn = 0
 function Ok([string]$m) { $script:ok++; Say ('OK  ' + $m) }
 function Warn([string]$m) { $script:warn++; Say ('DA SISTEMARE  ' + $m) }
@@ -175,12 +185,12 @@ try { $ss = [string](Get-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\Microsoft\Win
 try { if (Confirm-SecureBootUEFI -ErrorAction Stop) { Ok 'Avvio protetto (Secure Boot) acceso' } else { Warn 'Avvio protetto (Secure Boot) spento: si accende dal BIOS. Alcuni giochi con anti-cheat (Valorant, Battlefield 6) lo richiedono.' } } catch { Say 'INFO  Avvio protetto: non disponibile su questo PC (BIOS vecchio stile).' }
 try { $t = Get-Tpm -ErrorAction Stop; if ($t.TpmPresent -and $t.TpmReady) { Ok 'Chip di sicurezza TPM pronto' } elseif ($t.TpmPresent) { Warn 'Il chip TPM c''è ma non è pronto: attivalo dal BIOS (fTPM per AMD, PTT per Intel).' } else { Warn 'Chip TPM non trovato o spento nel BIOS.' } } catch {}
 try { $rd = (Get-ItemProperty -LiteralPath 'HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server' -ErrorAction Stop).fDenyTSConnections; if ($rd -eq 0) { Warn 'Desktop remoto acceso: se non lo usi spegnilo da Impostazioni > Sistema > Desktop remoto.' } else { Ok 'Desktop remoto spento' } } catch {}
-try { $smb = Get-WindowsOptionalFeature -Online -FeatureName SMB1Protocol -ErrorAction Stop; if ([string]$smb.State -eq 'Enabled') { Warn 'Il vecchio protocollo di rete SMBv1 è acceso: è insicuro (lo usava WannaCry). Spegnilo da "Attiva o disattiva funzionalità di Windows".' } else { Ok 'Protocollo insicuro SMBv1 spento' } } catch {}
+try { $smb = @(Invoke-Limited { Get-WindowsOptionalFeature -Online -FeatureName SMB1Protocol -ErrorAction Stop } 90)[0]; if (-not $smb) { throw 'lento' }; if ([string]$smb.State -eq 'Enabled') { Warn 'Il vecchio protocollo di rete SMBv1 è acceso: è insicuro (lo usava WannaCry). Spegnilo da "Attiva o disattiva funzionalità di Windows".' } else { Ok 'Protocollo insicuro SMBv1 spento' } } catch {}
 try { $g = Get-LocalUser -ErrorAction Stop | Where-Object { [string]$_.SID -match '-501$' } | Select-Object -First 1; if ($g -and $g.Enabled) { Warn 'L''account Guest (ospite) è attivo: chiunque può entrare senza password.' } else { Ok 'Account Guest spento' } } catch {}
 try { $hv = (Get-ItemProperty -LiteralPath 'HKLM:\SYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios\HypervisorEnforcedCodeIntegrity' -ErrorAction Stop).Enabled; if ($hv -eq 1) { Say 'INFO  Isolamento core (integrità della memoria) acceso: più sicuro, nei giochi costa pochissimi FPS.' } else { Say 'INFO  Isolamento core (integrità della memoria) spento.' } } catch {}
 Say ('Risultato: ' + $ok + ' cose a posto, ' + $warn + ' da sistemare.')
 `},
-	{ID: "stability", Name: "Controllo stabilità", Desc: "Guarda gli ultimi 30 giorni: spegnimenti improvvisi, schermate blu, errori hardware (spesso RAM o overclock), errori del disco, driver video che si bloccano e programmi che si chiudono da soli.", Level: 4, Minutes: 0.5, Timeout: 5 * time.Minute, Script: `
+	{ID: "stability", Name: "Controllo stabilità", Desc: "Guarda gli ultimi 30 giorni: spegnimenti improvvisi, schermate blu, errori hardware (spesso RAM o overclock), errori del disco, driver video che si bloccano e programmi che si chiudono da soli.", Level: 4, Minutes: 0.5, Timeout: 4 * time.Minute, Script: `
 $since = (Get-Date).AddDays(-30)
 function Count-Ev([string]$log, [string]$prov, [int[]]$ids) {
   $h = @{ LogName = $log; ProviderName = $prov; StartTime = $since }

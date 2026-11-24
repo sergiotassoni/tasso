@@ -16,13 +16,16 @@ import (
 	"sync/atomic"
 	"syscall"
 	"time"
+
+	"golang.org/x/sys/windows"
 )
 
 type psResult struct {
-	Freed  int64
-	Reboot bool
-	JSON   string
-	Err    error
+	Freed   int64
+	Reboot  bool
+	JSON    string
+	Err     error
+	TooSlow bool // fermato (tutto o in parte) perché superava il tempo massimo
 }
 
 var scriptSeq atomic.Int64
@@ -92,14 +95,31 @@ func writeScript(script string) (string, error) {
 }
 
 // runPS esegue uno script PowerShell nascosto. Le righe "MSG ..." vanno nel registro,
-// "FREED n" sommano lo spazio liberato, "REBOOT" segnala un riavvio, "JSON ..." restituisce dati.
+// "FREED n" sommano lo spazio liberato, "REBOOT" segnala un riavvio, "JSON ..." restituisce dati,
+// "PROG x" (da 0 a 1) dice a che punto è il passaggio (per la barra).
 func runPS(script string, timeout time.Duration, onMsg func(string)) psResult {
 	return runPSCtx(context.Background(), script, timeout, onMsg)
 }
 
 func runPSCtx(parent context.Context, script string, timeout time.Duration, onMsg func(string)) psResult {
+	return runPSOpt(parent, script, timeout, onMsg, nil, false)
+}
+
+// psDeadline: la riga che dice allo script quanti secondi ha (Time-Left in steps.go): così i comandi
+// lunghi dentro lo script si fermano da soli un po' prima che Tasso debba chiudere tutto.
+func psDeadline(timeout time.Duration) string {
+	s := int(timeout / time.Second)
+	if s < 1 {
+		s = 1
+	}
+	return "$TassoSecondi = " + strconv.Itoa(s) + "\n"
+}
+
+// runPSOpt: come runPSCtx; onProg riceve l'avanzamento (PROG), heartbeat=true scrive nel registro
+// "sto ancora lavorando" quando il passaggio resta in silenzio a lungo (così non sembra fermo).
+func runPSOpt(parent context.Context, script string, timeout time.Duration, onMsg func(string), onProg func(float64), heartbeat bool) psResult {
 	res := psResult{}
-	path, err := writeScript(script)
+	path, err := writeScript(psDeadline(timeout) + script)
 	if err != nil {
 		res.Err = err
 		return res
@@ -107,34 +127,64 @@ func runPSCtx(parent context.Context, script string, timeout time.Duration, onMs
 	defer os.Remove(path)
 	ctx, cancel := context.WithTimeout(parent, timeout)
 	defer cancel()
-	cmd := exec.CommandContext(ctx, sysExe("powershell.exe"), "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File", path)
-	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true, CreationFlags: 0x08000000}
-	out, err := cmd.StdoutPipe()
+	// L'uscita la leggo da una pipe mia: se un programma aperto dallo script (dism, sfc...) restasse
+	// vivo tenendola aperta, smetto di aspettarla appena PowerShell è finito o è stato fermato.
+	pr, pw, err := os.Pipe()
 	if err != nil {
 		res.Err = err
 		return res
 	}
+	cmd := exec.Command(sysExe("powershell.exe"), "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File", path)
+	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true, CreationFlags: 0x08000000}
+	cmd.Stdout = pw
 	if err := cmd.Start(); err != nil {
+		pw.Close()
+		pr.Close()
 		res.Err = err
 		return res
 	}
+	pw.Close() // la mia copia: la tiene solo PowerShell (e i suoi figli)
 	// Job Object: se il passaggio va fermato (tempo scaduto o tasto Ferma) chiudo anche
 	// tutti i programmi che PowerShell ha aperto (dism, sfc, defrag...), non solo PowerShell.
 	job := newKillJob(cmd.Process.Pid)
-	stopWatch := make(chan struct{})
+	defer job.close()
+	pid := cmd.Process.Pid
+	// Una maniglia mia su PowerShell: finché è aperta Windows non riusa il suo numero (PID), così
+	// taskkill (solo se il Job Object non c'è) non può mai colpire un altro programma.
+	ph, _ := windows.OpenProcess(windows.SYNCHRONIZE|windows.PROCESS_QUERY_LIMITED_INFORMATION, false, uint32(pid))
+	if ph != 0 {
+		defer windows.CloseHandle(ph)
+	}
+
+	lines := make(chan string, 256)
+	readDone := make(chan struct{})
+	quit := make(chan struct{}) // chiuso all'uscita: la lettura non resta appesa su una coda piena
+	defer close(quit)
 	go func() {
-		defer guard("runner.go:109")
-		select {
-		case <-ctx.Done():
-			job.kill()
-		case <-stopWatch:
+		defer guard("runner.go:lettura")
+		defer close(readDone)
+		sc := bufio.NewScanner(pr)
+		sc.Buffer(make([]byte, 64*1024), 8*1024*1024)
+		for sc.Scan() {
+			select {
+			case lines <- sc.Text():
+			case <-quit:
+				return
+			}
+		}
+		if sc.Err() != nil {
+			// Riga troppo lunga: svuoto il resto, altrimenti PowerShell resta bloccato sulla scrittura.
+			_, _ = io.Copy(io.Discard, pr)
 		}
 	}()
-	defer func() { close(stopWatch); job.close() }()
-	sc := bufio.NewScanner(out)
-	sc.Buffer(make([]byte, 64*1024), 8*1024*1024)
-	for sc.Scan() {
-		line := strings.TrimPrefix(strings.TrimRight(sc.Text(), "\r"), "\uFEFF")
+	procDone := make(chan error, 1)
+	go func() {
+		defer guard("runner.go:attesa")
+		procDone <- cmd.Wait()
+	}()
+
+	handle := func(raw string) {
+		line := strings.TrimPrefix(strings.TrimRight(raw, "\r"), "\uFEFF")
 		switch {
 		case strings.HasPrefix(line, "MSG "):
 			if onMsg != nil {
@@ -146,21 +196,131 @@ func runPSCtx(parent context.Context, script string, timeout time.Duration, onMs
 			}
 		case line == "REBOOT":
 			res.Reboot = true
+		case line == "SLOW": // una parte lunga del passaggio è stata fermata perché troppo lenta
+			res.TooSlow = true
 		case strings.HasPrefix(line, "JSON "):
 			res.JSON = strings.TrimPrefix(line, "JSON ")
+		case strings.HasPrefix(line, "PROG "):
+			if f, e := strconv.ParseFloat(strings.TrimSpace(strings.TrimPrefix(line, "PROG ")), 64); e == nil && onProg != nil && f >= 0 && f <= 1 {
+				onProg(f)
+			}
 		}
 	}
-	if sc.Err() != nil {
-		// Riga troppo lunga: svuoto il resto, altrimenti PowerShell resta bloccato fino al tempo massimo.
-		_, _ = io.Copy(io.Discard, out)
+
+	start := time.Now()
+	lastOut := start
+	tick := time.NewTicker(15 * time.Second)
+	defer tick.Stop()
+	stopped := false // fermato da me (tempo scaduto o Ferma)
+	var waitErr error
+	exited := false
+	ctxDone := ctx.Done()
+loop:
+	for {
+		select {
+		case l := <-lines:
+			lastOut = time.Now()
+			handle(l)
+		case <-readDone:
+			// Fine dell'uscita: aspetto PowerShell (al massimo 30 s, poi lo chiudo io).
+			for !exited {
+				select {
+				case waitErr = <-procDone:
+					exited = true
+				case <-ctxDone:
+					ctxDone = nil
+					stopped = true
+					killTree(job, pid, ph, cmd)
+				case <-time.After(30 * time.Second):
+					killTree(job, pid, ph, cmd)
+				}
+			}
+			break loop
+		case waitErr = <-procDone:
+			exited = true
+			// PowerShell è finito: leggo quello che resta, ma non aspetto per sempre un nipote che
+			// tiene aperta la pipe (lo chiudo solo se il passaggio era già da fermare).
+			grace := time.After(5 * time.Second)
+		drain:
+			for {
+				select {
+				case l := <-lines:
+					handle(l)
+				case <-readDone:
+					break drain
+				case <-grace:
+					break drain
+				}
+			}
+			break loop
+		case <-ctxDone:
+			ctxDone = nil
+			stopped = true
+			killTree(job, pid, ph, cmd)
+		case <-tick.C:
+			if stopped {
+				// Chiuso ma ancora qui dopo 15 s: riprovo a chiudere l'albero.
+				killTree(job, pid, ph, cmd)
+				continue
+			}
+			if heartbeat && onMsg != nil && time.Since(lastOut) >= 90*time.Second {
+				lastOut = time.Now()
+				el := int(time.Since(start).Minutes())
+				mx := int(timeout.Minutes())
+				onMsg(fmt.Sprintf(trGo("… sto ancora lavorando su questo passaggio (%d min su un massimo di %d, poi lo salto)."), el, mx))
+			}
+		}
 	}
-	res.Err = cmd.Wait()
-	if ctx.Err() == context.DeadlineExceeded && onMsg != nil {
-		onMsg("Questo passaggio ci metteva troppo: l'ho fermato e vado avanti.")
-	} else if ctx.Err() == context.Canceled && onMsg != nil {
-		onMsg("Passaggio fermato.")
+	// Le righe già arrivate e non ancora lette (la lettura le mette in coda prima di finire).
+	for more := true; more; {
+		select {
+		case l := <-lines:
+			handle(l)
+		default:
+			more = false
+		}
+	}
+	_ = pr.Close() // se un nipote la tiene aperta, la lettura in sospeso finisce da sola quando lui esce
+	res.Err = waitErr
+	if stopped || ctx.Err() != nil {
+		if ctx.Err() == context.DeadlineExceeded {
+			res.TooSlow = true
+			if onMsg != nil {
+				onMsg(fmt.Sprintf(trGo("Saltato perché troppo lento: dopo %d minuti l'ho fermato e vado avanti con il prossimo."), int(timeout.Minutes()+0.5)))
+			}
+		} else if onMsg != nil {
+			onMsg("Passaggio fermato.")
+		}
 	}
 	return res
+}
+
+// killTree chiude PowerShell e tutti i programmi che ha aperto. Prima il Job Object (prende anche i
+// nipoti); se Windows non l'aveva accettato, taskkill /T sul PID di PowerShell (solo il suo albero).
+func killTree(job *killJob, pid int, ph windows.Handle, cmd *exec.Cmd) {
+	if job.kill() {
+		return
+	}
+	// taskkill solo se PowerShell è ancora vivo (e la mia maniglia tiene fermo il suo PID).
+	if ph == 0 {
+		_ = cmd.Process.Kill()
+		return
+	}
+	if ev, _ := windows.WaitForSingleObject(ph, 0); ev != uint32(windows.WAIT_TIMEOUT) {
+		return
+	}
+	tk := exec.Command(sysExe("taskkill.exe"), "/T", "/F", "/PID", strconv.Itoa(pid))
+	tk.SysProcAttr = &syscall.SysProcAttr{HideWindow: true, CreationFlags: 0x08000000}
+	if tk.Start() == nil {
+		done := make(chan struct{})
+		go func() { _ = tk.Wait(); close(done) }()
+		select {
+		case <-done:
+		case <-time.After(15 * time.Second):
+			_ = tk.Process.Kill()
+		}
+	}
+	_ = cmd.Process.Kill()
 }
 
 var (
@@ -365,6 +525,8 @@ func startSteps(ids []string, level int, shutdownAfter bool) string {
 		}
 		start := time.Now()
 		var total int64
+		slow := 0 // passaggi saltati perché troppo lenti
+		freePrima := spazioLiberoDischi()
 		reboot := false
 		done := 0
 		var doneNames []string
@@ -382,7 +544,17 @@ func startSteps(ids []string, level int, shutdownAfter bool) string {
 				emit("onStepDone", map[string]interface{}{"index": i, "freed": 0})
 				continue
 			}
-			r := runPSCtx(runCtx(), s.Script, s.Timeout, func(m string) { logLine("   " + m) })
+			idx := i
+			lastProg := -1.0
+			r := runPSOpt(runCtx(), s.Script, s.Timeout, func(m string) { logLine("   " + m) }, func(f float64) {
+				if f-lastProg >= 0.01 || f >= 1 { // al massimo 100 aggiornamenti per passaggio
+					lastProg = f
+					emit("onStepProgress", map[string]interface{}{"index": idx, "frac": f})
+				}
+			}, true)
+			if r.TooSlow {
+				slow++
+			}
 			if r.Err != nil && !cancelReq.Load() && r.Freed == 0 {
 				logLine("   (dettaglio tecnico: " + r.Err.Error() + ")")
 			}
@@ -393,6 +565,25 @@ func startSteps(ids []string, level int, shutdownAfter bool) string {
 			done++
 			doneNames = append(doneNames, s.Name)
 			emit("onStepDone", map[string]interface{}{"index": i, "freed": r.Freed})
+		}
+		// Spazio liberato onesto: oltre alla somma di quello che i passaggi dicono di aver tolto,
+		// misuro lo spazio libero dei dischi prima e dopo (DISM, Ottimizzazione recapito, punti di
+		// ripristino e Windows stesso liberano spazio che i passaggi non sanno contare). Aspetto un
+		// attimo perché Windows finisca di liberarlo. Mai un numero negativo (spazioOnesto).
+		somma := total
+		if len(freePrima) > 0 {
+			select {
+			case <-runCtx().Done():
+			case <-time.After(5 * time.Second):
+			}
+			reale := diffSpazioLibero(freePrima, spazioLiberoDischi())
+			total = spazioOnesto(somma, reale)
+			if total != somma {
+				logLine(fmt.Sprintf(trGo("Spazio liberato: i passaggi ne hanno contato %s, sui dischi ne è tornato libero %s: ti dico quello vero dei dischi."), fmtBytes(somma), fmtBytes(reale)))
+			}
+		}
+		if slow > 0 {
+			logLine(fmt.Sprintf(trGo("Passaggi fermati prima della fine perché troppo lenti: %d (li puoi rifare da soli più tardi)."), slow))
 		}
 		dur := time.Since(start)
 		logLine(fmt.Sprintf(trGo("Fine: liberati %s in %s"), fmtBytes(total), dur.Round(time.Second)))
@@ -431,6 +622,30 @@ func startSteps(ids []string, level int, shutdownAfter bool) string {
 		go maybeAutoExit()
 	}()
 	return "ok"
+}
+
+// spazioLiberoDischi: lo spazio libero di ogni disco fisso (C:, D:...), per lettera.
+func spazioLiberoDischi() map[string]uint64 {
+	out := map[string]uint64{}
+	mask, err := windows.GetLogicalDrives()
+	if err != nil {
+		return out
+	}
+	for i := 0; i < 26; i++ {
+		if mask&(1<<uint(i)) == 0 {
+			continue
+		}
+		root := string(rune('A'+i)) + `:\`
+		rp, err := windows.UTF16PtrFromString(root)
+		if err != nil || windows.GetDriveType(rp) != windows.DRIVE_FIXED {
+			continue
+		}
+		var free, tot, totFree uint64
+		if windows.GetDiskFreeSpaceEx(rp, &free, &tot, &totFree) == nil {
+			out[root] = totFree
+		}
+	}
+	return out
 }
 
 func fmtBytes(b int64) string {

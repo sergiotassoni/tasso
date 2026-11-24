@@ -1736,10 +1736,12 @@ window.tasso = {
     $('#runLog').textContent = ''; $('#btnCancel').disabled = false; $('#btnCancel').textContent = _t('Interrompi');
     runUI(true); paintRun();
     let k = 0; clearInterval(msgTimer); msgTimer = setInterval(() => { $('#runMsg').textContent = MSGS[++k % MSGS.length]; }, 4000);
-    clearInterval(creepTimer); creepTimer = setInterval(() => { if (!RUN) return; const m = RUN.steps[RUN.cur] ? RUN.steps[RUN.cur].minutes : 1; RUN.creep = Math.min(0.92, RUN.creep + (2 / (Math.max(0.1, m) * 60)) * (1 - RUN.creep) * 1.6); paintRun(); }, 2000);
+    clearInterval(creepTimer); creepTimer = setInterval(() => { if (!RUN || RUN.prog) return; const m = RUN.steps[RUN.cur] ? RUN.steps[RUN.cur].minutes : 1; RUN.creep = Math.min(0.92, RUN.creep + (2 / (Math.max(0.1, m) * 60)) * (1 - RUN.creep) * 1.6); paintRun(); }, 2000);
   },
-  onStepStart(p){ if (!RUN) return; RUN.cur = p.index; RUN.creep = 0; paintRun(); },
-  onStepDone(p){ if (!RUN) return; RUN.freed += p.freed || 0; RUN.freedBy[p.index] = p.freed || 0; RUN.cur = p.index + 1; RUN.creep = 0; paintRun(); },
+  onStepStart(p){ if (!RUN) return; RUN.cur = p.index; RUN.creep = 0; RUN.prog = false; paintRun(); },
+  // Avanzamento vero del passaggio lungo (es. DISM 37%): la barra segue quello invece della stima.
+  onStepProgress(p){ if (!RUN || p.index !== RUN.cur) return; const f = Number(p.frac); if (!(f >= 0)) return; RUN.prog = true; RUN.creep = Math.max(RUN.creep, Math.min(0.99, f)); paintRun(); },
+  onStepDone(p){ if (!RUN) return; RUN.freed += p.freed || 0; RUN.freedBy[p.index] = p.freed || 0; RUN.cur = p.index + 1; RUN.creep = 0; RUN.prog = false; paintRun(); },
   // Una riga in più senza riscrivere tutto il registro (con migliaia di righe la finestra si bloccava); al massimo 4000 righe a schermo, il registro completo resta nel file.
   onLog(t){ const rm = /\s*\[ripara:([a-z_,]+)\]\s*$/.exec(t); if (rm) { RIPARA = rm[1].split(',').filter(x => STEP[x]); t = t.slice(0, rm.index); } const l = $('#runLog'); l.appendChild(document.createTextNode(t + '\n')); while (l.childNodes.length > 4000) l.removeChild(l.firstChild); if (!LOG_RAF) LOG_RAF = requestAnimationFrame(() => { LOG_RAF = 0; l.scrollTop = l.scrollHeight; }); },
   onRunDone(p){
@@ -2287,7 +2289,9 @@ const ICONS = {}, ICON_ASKED = {};
 function picHTML(k, name){
   const c = ICONS[k];
   const hue = [...String(name || '?')].reduce((a, ch) => (a * 31 + ch.charCodeAt(0)) % 360, 7);
-  return '<span class="pic" data-ik="' + esc(k) + '" style="--h:' + hue + '">' + (c ? '<img src="' + c + '" alt="">' : esc(String(name || '?').trim().charAt(0).toUpperCase() || '?')) + '</span>';
+  // Iniziale: la prima lettera o cifra vera (non uno spazio o un carattere invisibile, che darebbe un riquadro vuoto).
+  const ini = (String(name || '').match(/[\p{L}\p{N}]/u) || ['?'])[0].toUpperCase();
+  return '<span class="pic" data-ik="' + esc(k) + '" style="--h:' + hue + '">' + (c ? '<img src="' + c + '" alt="">' : esc(ini)) + '</span>';
 }
 function askIcons(req){
   const need = {};
@@ -2305,7 +2309,8 @@ window.tasso.onIcons = (m) => {
 function paintPrograms(){
   const q = ($('#progSearch').value || '').toLowerCase();
   const box = $('#progList'); box.innerHTML = '';
-  const list = (PROGS || []).filter(p => !q || (p.name + ' ' + p.publisher).toLowerCase().indexOf(q) >= 0);
+  // Voci senza un nome vero (rovinate da un disinstallatore): Windows non le mostra, Tasso neanche.
+  const list = (PROGS || []).filter(p => /[\p{L}\p{N}]/u.test(String(p.name || '')) && (!q || (p.name + ' ' + p.publisher).toLowerCase().indexOf(q) >= 0));
   $('#progCount').textContent = PROGS ? '(' + PROGS.length + ')' : '';
   if (!list.length) { box.innerHTML = '<div class="li"><span class="muted">' + (PROGS ? _t('Nessun programma trovato.') : _t('Lettura…')) + '</span></div>'; return; }
   list.slice(0, 400).forEach(p => {
@@ -2324,6 +2329,8 @@ function uninstallDone(p){
   (p.msgs || []).forEach(m => toast(m, 'var(--a3)'));
   if (res && res.orphan) { askOrphan(res); return; }
   call('goPrograms');
+  // Alcuni disinstallatori finiscono di togliere la voce dopo un po': rileggo l'elenco ancora una volta.
+  if (!res || !res.removed) setTimeout(() => call('goPrograms'), 20000);
   const folders = (res && res.leftovers) || [];
   const regs = (res && res.regleft) || [];
   if (!res || !res.removed || (!folders.length && !regs.length)) return;

@@ -28,6 +28,181 @@ $ProgressPreference = 'SilentlyContinue'
 function Say([string]$m) { [Console]::Out.WriteLine('MSG ' + $m); [Console]::Out.Flush() }
 function Freed([long]$b) { [Console]::Out.WriteLine('FREED ' + $b); [Console]::Out.Flush() }
 function Fmt([double]$b) { if ($b -ge 1GB) { return ('{0:N2} GB' -f ($b / 1GB)) } elseif ($b -ge 1MB) { return ('{0:N1} MB' -f ($b / 1MB)) } else { return ('{0:N0} KB' -f ($b / 1KB)) } }
+$TassoInizio = [DateTime]::UtcNow
+$TassoLento = $false
+function Time-Left {
+  # Secondi che restano a questo passaggio prima che Tasso lo fermi ($TassoSecondi lo scrive Tasso).
+  if (-not $TassoSecondi) { return 86400 }
+  return [math]::Max(0, [double]$TassoSecondi - ([DateTime]::UtcNow - $TassoInizio).TotalSeconds)
+}
+function Get-Limit([int]$maxSec) {
+  # Il tempo massimo per un comando: quello chiesto, ma sempre un po' prima della fine del passaggio.
+  $lim = [int](Time-Left) - 20
+  if ($maxSec -gt 0 -and $maxSec -lt $lim) { $lim = $maxSec }
+  if ($lim -lt 10) { $lim = 10 }
+  return $lim
+}
+function Stop-Tree([int]$id) {
+  # Chiude il programma $id e quelli che ha aperto lui (solo il suo albero, niente altro).
+  $tk = ''
+  if ($TassoSys32) { $tk = Join-Path $TassoSys32 'taskkill.exe' }
+  if (-not $tk -or -not [IO.File]::Exists($tk)) { $tk = 'taskkill.exe' }
+  try {
+    $k = New-Object System.Diagnostics.ProcessStartInfo
+    $k.FileName = $tk; $k.Arguments = '/T /F /PID ' + $id; $k.UseShellExecute = $false; $k.CreateNoWindow = $true
+    $kp = [System.Diagnostics.Process]::Start($k); [void]$kp.WaitForExit(15000)
+  } catch {}
+  try { Stop-Process -Id $id -Force -ErrorAction SilentlyContinue } catch {}
+}
+function Run-Watch([string]$file, [string]$argline, [string]$label = '', [int]$maxSec = 0, [double]$progFrom = 0, [double]$progTo = 1) {
+  # Come Run-Hidden, ma legge l'uscita mentre il programma lavora: la percentuale (DISM 37%, SFC,
+  # defrag) va nella barra di Tasso e ogni tanto nel registro; se passa il tempo massimo chiude il
+  # programma con tutti i suoi figli e restituisce -2 ($TassoLento = $true). -1 = non partito.
+  $script:TassoLento = $false
+  $lim = Get-Limit $maxSec
+  if (-not [IO.Path]::IsPathRooted($file) -and $TassoSys32) { $c = Join-Path $TassoSys32 $file; if ([IO.File]::Exists($c)) { $file = $c } }
+  try {
+    $psi = New-Object System.Diagnostics.ProcessStartInfo
+    $psi.FileName = $file
+    $psi.Arguments = $argline
+    $psi.UseShellExecute = $false
+    $psi.CreateNoWindow = $true
+    $psi.WindowStyle = [System.Diagnostics.ProcessWindowStyle]::Hidden
+    $psi.RedirectStandardOutput = $true
+    $psi.RedirectStandardError = $true
+    $psi.RedirectStandardInput = $true
+    $p = [System.Diagnostics.Process]::Start($psi)
+  } catch { return -1 }
+  try { $p.StandardInput.Close() } catch {}  # niente domande: chi chiede una risposta la trova vuota
+  $er = $p.StandardError.ReadToEndAsync()
+  $sr = $p.StandardOutput
+  $buf = New-Object char[] 4096
+  $t0 = [DateTime]::UtcNow; $lastSay = $t0; $lastPc = -1; $tail = ''; $eof = $false; $exitAt = $null
+  $rd = $sr.ReadAsync($buf, 0, $buf.Length)
+  while ($true) {
+    if (-not $eof) {
+      $got = $false
+      try { $got = $rd.Wait(1000) } catch { $eof = $true }
+      if ($got) {
+        $n = 0; try { $n = [int]$rd.Result } catch { $n = 0 }
+        if ($n -le 0) { $eof = $true }
+        else {
+          # SFC scrive in UTF-16: tolgo gli zeri, restano le cifre.
+          $tail = ($tail + [string]::new($buf, 0, $n)).Replace([string][char]0, '')
+          if ($tail.Length -gt 600) { $tail = $tail.Substring($tail.Length - 600) }
+          $ms = [regex]::Matches($tail, '(\d{1,3})(?:[.,]\d+)?\s?%')
+          if ($ms.Count) {
+            $pc = [int]$ms[$ms.Count - 1].Groups[1].Value
+            if ($pc -ge 0 -and $pc -le 100 -and $pc -ne $lastPc) {
+              $lastPc = $pc
+              $fr = $progFrom + ($progTo - $progFrom) * $pc / 100
+              [Console]::Out.WriteLine('PROG ' + $fr.ToString('0.000', [Globalization.CultureInfo]::InvariantCulture)); [Console]::Out.Flush()
+              if ($label -and ([DateTime]::UtcNow - $lastSay).TotalSeconds -ge 60) { $lastSay = [DateTime]::UtcNow; Say ($label + ': ' + $pc + '%') }
+            }
+          }
+          $rd = $sr.ReadAsync($buf, 0, $buf.Length)
+        }
+      }
+    } else { if ($p.WaitForExit(1000)) { break } }
+    if (-not $eof -and $p.HasExited) {
+      # Finito, ma un programma aperto da lui tiene ancora aperta l'uscita: non lo aspetto.
+      if (-not $exitAt) { $exitAt = [DateTime]::UtcNow } elseif (([DateTime]::UtcNow - $exitAt).TotalSeconds -ge 5) { break }
+    }
+    $el = ([DateTime]::UtcNow - $t0).TotalSeconds
+    if ($el -ge $lim) {
+      Stop-Tree $p.Id
+      $script:TassoLento = $true
+      if ($label) { Say ('{0}: troppo lento, l''ho fermato dopo {1} minuti e vado avanti.' -f $label, [int][math]::Round($el / 60)); [Console]::Out.WriteLine('SLOW') }
+      return -2
+    }
+    if ($label -and ([DateTime]::UtcNow - $lastSay).TotalSeconds -ge 90) { $lastSay = [DateTime]::UtcNow; Say ('{0}: ancora al lavoro ({1} min, al massimo {2}).' -f $label, [int][math]::Floor($el / 60), [int][math]::Ceiling($lim / 60)) }
+  }
+  try { return $p.ExitCode } catch { return -1 }
+}
+function Invoke-Limited([scriptblock]$sb, [int]$maxSec, [string]$label = '', $arg = $null) {
+  # Esegue $sb (comandi di Windows che a volte restano appesi: dischi, servizi, punti di ripristino)
+  # a parte, con un tempo massimo. Dentro, il valore passato è $A. Restituisce quello che $sb
+  # produce, oppure $null se ci metteva troppo ($TassoLento = $true: l'ho lasciato perdere).
+  $script:TassoLento = $false
+  $lim = Get-Limit $maxSec
+  $ps = $null
+  try {
+    $rs = [runspacefactory]::CreateRunspace()
+    $rs.Open()
+    $rs.SessionStateProxy.SetVariable('A', $arg)
+    $rs.SessionStateProxy.SetVariable('ErrorActionPreference', 'SilentlyContinue')
+    $rs.SessionStateProxy.SetVariable('ProgressPreference', 'SilentlyContinue')
+    $rs.SessionStateProxy.SetVariable('ConfirmPreference', 'None')
+    $ps = [powershell]::Create()
+    $ps.Runspace = $rs
+    [void]$ps.AddScript($sb.ToString())
+    $h = $ps.BeginInvoke()
+  } catch { return $null }
+  $t0 = [DateTime]::UtcNow; $last = $t0
+  while (-not $h.AsyncWaitHandle.WaitOne(1000)) {
+    $el = ([DateTime]::UtcNow - $t0).TotalSeconds
+    if ($el -ge $lim) {
+      $script:TassoLento = $true
+      try { [void]$ps.BeginStop($null, $null) } catch {}
+      if ($label) { Say ('{0}: troppo lento, l''ho fermato dopo {1} minuti e vado avanti.' -f $label, [int][math]::Round($el / 60)); [Console]::Out.WriteLine('SLOW') }
+      return $null
+    }
+    if ($label -and ([DateTime]::UtcNow - $last).TotalSeconds -ge 90) { $last = [DateTime]::UtcNow; Say ('{0}: ancora al lavoro ({1} min, al massimo {2}).' -f $label, [int][math]::Floor($el / 60), [int][math]::Ceiling($lim / 60)) }
+  }
+  $r = $null
+  try { $r = $ps.EndInvoke($h) } catch {}
+  try { $ps.Dispose(); $rs.Dispose() } catch {}
+  return ,@($r)
+}
+function Stop-ServiceLimited([string[]]$names, [int]$sec = 45) {
+  # Ferma i servizi aspettando al massimo $sec secondi ciascuno (Stop-Service aspetterebbe per
+  # sempre un servizio bloccato). $true = tutti fermi.
+  $ok = $true
+  foreach ($n in $names) {
+    $s = Get-Service -Name $n -ErrorAction SilentlyContinue
+    if (-not $s) { continue }
+    try {
+      if ([string]$s.Status -ne 'Stopped') {
+        if ([string]$s.Status -ne 'StopPending') { $s.Stop() }
+        $s.WaitForStatus('Stopped', [TimeSpan]::FromSeconds($sec))
+      }
+    } catch { $ok = $false }
+  }
+  return $ok
+}
+function Start-ServiceQuick([string[]]$names, [int]$sec = 20) {
+  # Riaccende i servizi senza restare appeso: aspetta al massimo $sec secondi ciascuno.
+  foreach ($n in $names) {
+    $s = Get-Service -Name $n -ErrorAction SilentlyContinue
+    if (-not $s) { continue }
+    try { if ([string]$s.Status -eq 'Stopped') { $s.Start() }; $s.WaitForStatus('Running', [TimeSpan]::FromSeconds($sec)) } catch {}
+  }
+}
+function Get-FolderSizeQuick([string]$p, [int]$maxSec = 30) {
+  # Come Get-FolderSize ma senza seguire giunzioni e al massimo per $maxSec secondi: -1 = non ha finito.
+  if (-not (Test-Path -LiteralPath $p)) { return [long]0 }
+  $t0 = [DateTime]::UtcNow; $tot = [long]0
+  $st = New-Object System.Collections.Stack
+  try { $st.Push((New-Object IO.DirectoryInfo($p))) } catch { return [long]0 }
+  while ($st.Count) {
+    if (([DateTime]::UtcNow - $t0).TotalSeconds -ge $maxSec) { return [long]-1 }
+    $d = $st.Pop()
+    try { foreach ($f in $d.EnumerateFiles()) { $tot += $f.Length } } catch {}
+    try { foreach ($s in $d.EnumerateDirectories()) { if (-not ($s.Attributes -band [IO.FileAttributes]::ReparsePoint)) { $st.Push($s) } } } catch {}
+  }
+  return $tot
+}
+function Wait-Servicing([int]$maxSec = 120) {
+  # Se Windows sta installando aggiornamenti (TiWorker), DISM resterebbe ad aspettarlo: aspetto al
+  # massimo $maxSec secondi. $true = libero, si può partire.
+  $t0 = [DateTime]::UtcNow; $said = $false
+  while (Get-Process -Name TiWorker -ErrorAction SilentlyContinue) {
+    if (([DateTime]::UtcNow - $t0).TotalSeconds -ge $maxSec) { return $false }
+    if (-not $said) { Say 'Windows sta installando aggiornamenti: aspetto che finisca (al massimo 2 minuti)...'; $said = $true }
+    Start-Sleep -Seconds 5
+  }
+  return $true
+}
 function Get-FolderSize([string]$p) {
   if (-not (Test-Path -LiteralPath $p)) { return [long]0 }
   $s = (Get-ChildItem -LiteralPath $p -Recurse -Force -File -ErrorAction SilentlyContinue | Measure-Object -Property Length -Sum).Sum
@@ -120,6 +295,9 @@ function Invoke-TassoCancella([string[]]$a) {
     $psi.CreateNoWindow = $true
     $psi.RedirectStandardOutput = $true
     $psi.RedirectStandardError = $true
+    # Tasso si ferma da solo un po' prima della fine del passaggio (cartelle con milioni di file) e
+    # dice quanto ha liberato fin lì: così il passaggio finisce e lo spazio viene contato.
+    $psi.EnvironmentVariables['TASSO_FINE'] = [string][long]([DateTimeOffset]::UtcNow.ToUnixTimeSeconds() + [math]::Max(5, (Time-Left) - 30))
     $pr = [System.Diagnostics.Process]::Start($psi)
     $er = $pr.StandardError.ReadToEndAsync()
     $out = $pr.StandardOutput.ReadToEnd()
@@ -200,7 +378,9 @@ function Run-Hidden([string]$file, [string]$argline) {
     $p = [System.Diagnostics.Process]::Start($psi)
     $o = $p.StandardOutput.ReadToEndAsync()
     $e = $p.StandardError.ReadToEndAsync()
-    $p.WaitForExit()
+    # Mai per sempre: al massimo fino a poco prima della fine del passaggio, poi chiudo lui e i suoi figli.
+    $script:TassoLento = $false
+    if (-not $p.WaitForExit((Get-Limit 0) * 1000)) { Stop-Tree $p.Id; $script:TassoLento = $true; return -2 }
     return $p.ExitCode
   } catch { return -1 }
 }
@@ -306,35 +486,75 @@ $GpuCaches = @(
 `
 
 const windowsUpdateScript = `
+# Windows Update a volte resta appeso per ore (ricerca che non finisce, download fermo). Lo faccio
+# lavorare a parte e guardo da qui: ogni fase ha un tempo massimo; se lo supera la lascio perdere
+# (Windows Update la può finire da solo più tardi) e la pulizia va avanti.
+$wuSt = [hashtable]::Synchronized(@{ Fase = 'cerca'; Da = [DateTime]::UtcNow; Fine = $false })
+$wuLim = @{ cerca = 900; scarica = 1500; installa = 2100 }
+$wuNomi = @{ cerca = 'ricerca degli aggiornamenti'; scarica = 'download'; installa = 'installazione' }
+$wuProg = @{ cerca = 0.02; scarica = 0.2; installa = 0.6 }
+$wuRs = $null; $wuPs = $null; $wuH = $null
 try {
-  $session = New-Object -ComObject Microsoft.Update.Session
-  $searcher = $session.CreateUpdateSearcher()
-  Say 'Cerco su Windows Update...'
-  $res = $searcher.Search($Criteria)
-  $coll = New-Object -ComObject Microsoft.Update.UpdateColl
-  foreach ($u in $res.Updates) {
-    if (-not $u.EulaAccepted) { $u.AcceptEula() }
-    [void]$coll.Add($u)
-    Say ('Trovato: ' + $u.Title)
+  $wuRs = [runspacefactory]::CreateRunspace()
+  $wuRs.ApartmentState = [Threading.ApartmentState]::STA
+  $wuRs.Open()
+  $wuRs.SessionStateProxy.SetVariable('A', @{ St = $wuSt; Criteria = $Criteria; NothingMsg = $NothingMsg })
+  $wuRs.SessionStateProxy.SetVariable('ErrorActionPreference', 'SilentlyContinue')
+  $wuPs = [powershell]::Create(); $wuPs.Runspace = $wuRs
+  [void]$wuPs.AddScript({
+    function Say([string]$m) { [Console]::Out.WriteLine('MSG ' + $m); [Console]::Out.Flush() }
+    $St = $A.St
+    try {
+      $session = New-Object -ComObject Microsoft.Update.Session
+      $searcher = $session.CreateUpdateSearcher()
+      Say 'Cerco su Windows Update...'
+      $res = $searcher.Search($A.Criteria)
+      $coll = New-Object -ComObject Microsoft.Update.UpdateColl
+      foreach ($u in $res.Updates) {
+        if (-not $u.EulaAccepted) { $u.AcceptEula() }
+        [void]$coll.Add($u)
+        Say ('Trovato: ' + $u.Title)
+      }
+      if ($coll.Count -eq 0) { Say $A.NothingMsg; $St.Fine = $true; return }
+      Say ('Scarico ' + $coll.Count + ' aggiornamenti...')
+      $St.Fase = 'scarica'; $St.Da = [DateTime]::UtcNow
+      $dl = $session.CreateUpdateDownloader(); $dl.Updates = $coll; [void]$dl.Download()
+      Say 'Installo...'
+      $St.Fase = 'installa'; $St.Da = [DateTime]::UtcNow
+      $inst = $session.CreateUpdateInstaller(); $inst.Updates = $coll
+      $r = $inst.Install()
+      $names = @{ 2 = 'installato'; 3 = 'installato con avvisi'; 4 = 'NON riuscito'; 5 = 'annullato' }
+      for ($i = 0; $i -lt $coll.Count; $i++) {
+        $c = [int]$r.GetUpdateResult($i).ResultCode
+        $t = $names[$c]; if (-not $t) { $t = 'esito ' + $c }
+        Say ($coll.Item($i).Title + ' -> ' + $t)
+      }
+      if ($r.RebootRequired) { Say 'Serve un riavvio per completare.'; [Console]::Out.WriteLine('REBOOT') }
+    } catch { Say ('Windows Update non ha risposto: ' + $_.Exception.Message) }
+    $St.Fine = $true
+  }.ToString())
+  $wuH = $wuPs.BeginInvoke()
+} catch { Say ('Windows Update non ha risposto: ' + $_.Exception.Message); return }
+$wuFase = ''; $wuLast = [DateTime]::UtcNow
+while (-not $wuH.AsyncWaitHandle.WaitOne(1000)) {
+  $f = [string]$wuSt.Fase
+  if ($f -ne $wuFase) { $wuFase = $f; [Console]::Out.WriteLine('PROG ' + ([double]$wuProg[$f]).ToString('0.000', [Globalization.CultureInfo]::InvariantCulture)); [Console]::Out.Flush() }
+  $el = ([DateTime]::UtcNow - [datetime]$wuSt.Da).TotalSeconds
+  $lim = [math]::Min([double]$wuLim[$f], (Time-Left) - 20)
+  if ($el -ge $lim) {
+    try { [void]$wuPs.BeginStop($null, $null) } catch {}
+    Say ('Windows Update ({0}) ci mette troppo: lo lascio perdere dopo {1} minuti e vado avanti. Windows può finire da solo più tardi.' -f $wuNomi[$f], [int][math]::Round($el / 60))
+    # Windows Update resta appeso dentro Windows: chiudo subito questo PowerShell, senza aspettarlo.
+    [Console]::Out.WriteLine('SLOW'); [Console]::Out.Flush()
+    [Environment]::Exit(0)
   }
-  if ($coll.Count -eq 0) { Say $NothingMsg; return }
-  Say ('Scarico ' + $coll.Count + ' aggiornamenti...')
-  $dl = $session.CreateUpdateDownloader(); $dl.Updates = $coll; [void]$dl.Download()
-  Say 'Installo...'
-  $inst = $session.CreateUpdateInstaller(); $inst.Updates = $coll
-  $r = $inst.Install()
-  $names = @{ 2 = 'installato'; 3 = 'installato con avvisi'; 4 = 'NON riuscito'; 5 = 'annullato' }
-  for ($i = 0; $i -lt $coll.Count; $i++) {
-    $c = [int]$r.GetUpdateResult($i).ResultCode
-    $t = $names[$c]; if (-not $t) { $t = 'esito ' + $c }
-    Say ($coll.Item($i).Title + ' -> ' + $t)
-  }
-  if ($r.RebootRequired) { Say 'Serve un riavvio per completare.'; [Console]::Out.WriteLine('REBOOT') }
-} catch { Say ('Windows Update non ha risposto: ' + $_.Exception.Message) }
+  if (([DateTime]::UtcNow - $wuLast).TotalSeconds -ge 90) { $wuLast = [DateTime]::UtcNow; Say ('Windows Update ({0}): ancora al lavoro ({1} min, al massimo {2}).' -f $wuNomi[$f], [int][math]::Floor($el / 60), [int][math]::Ceiling($lim / 60)) }
+}
+try { [void]$wuPs.EndInvoke($wuH); $wuPs.Dispose(); $wuRs.Dispose() } catch {}
 `
 
 var allSteps = []Step{
-	{ID: "backup", Name: "Backup (punto di ripristino)", Desc: "Crea un punto di ripristino: se qualcosa non va torni indietro.", Level: 2, Minutes: 1.5, Timeout: 10 * time.Minute, Script: `
+	{ID: "backup", Name: "Backup (punto di ripristino)", Desc: "Crea un punto di ripristino: se qualcosa non va torni indietro.", Level: 2, Minutes: 1.5, Timeout: 8 * time.Minute, Script: `
 Say 'Creo il backup di Windows (punto di ripristino)...'
 try { Enable-ComputerRestore -Drive ($TassoSysDrive + '\') -ErrorAction Stop } catch {}
 $key = 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\SystemRestore'
@@ -357,7 +577,10 @@ try {
 } catch {}
 New-ItemProperty -Path $key -Name 'SystemRestorePointCreationFrequency' -Value 0 -PropertyType DWord -Force | Out-Null
 $before = @(Get-ComputerRestorePoint).Count
-try { Checkpoint-Computer -Description 'Tasso - prima della manutenzione' -RestorePointType MODIFY_SETTINGS -ErrorAction Stop } catch { Say ('Backup non creato: ' + $_.Exception.Message) }
+# Windows a volte resta appeso a creare il punto (copie shadow): al massimo 5 minuti, poi vado avanti.
+$cp = Invoke-Limited { try { Checkpoint-Computer -Description 'Tasso - prima della manutenzione' -RestorePointType MODIFY_SETTINGS -ErrorAction Stop; 'ok' } catch { 'ERR ' + $_.Exception.Message } } 300 'Backup'
+if ($TassoLento) { Say 'Il punto di ripristino ci metteva troppo: non lo aspetto (Windows lo può finire da solo).' }
+elseif ($cp -and ([string]@($cp)[0]).StartsWith('ERR ')) { Say ('Backup non creato: ' + ([string]@($cp)[0]).Substring(4)) }
 $after = @(Get-ComputerRestorePoint).Count
 if ($null -ne $oldFreq) { New-ItemProperty -Path $key -Name 'SystemRestorePointCreationFrequency' -Value ([int]$oldFreq) -PropertyType DWord -Force | Out-Null } else { Remove-ItemProperty -Path $key -Name 'SystemRestorePointCreationFrequency' -ErrorAction SilentlyContinue }
 Remove-Item -Path $mark -Recurse -Force -ErrorAction SilentlyContinue
@@ -371,7 +594,7 @@ elseif ($after -gt 0) {
 }
 else { Say 'ATTENZIONE: il Ripristino configurazione di sistema sembra disattivato su questo PC.' }
 `},
-	{ID: "temp_user", Name: "File temporanei", Desc: "Svuota i file temporanei del tuo account più vecchi di un giorno (quelli in uso restano).", Level: 1, Minutes: 0.5, Timeout: 10 * time.Minute, Script: `
+	{ID: "temp_user", Name: "File temporanei", Desc: "Svuota i file temporanei del tuo account più vecchi di un giorno (quelli in uso restano).", Level: 1, Minutes: 0.5, Timeout: 8 * time.Minute, Script: `
 # La cartella temporanea vera dell'utente (AppData\Local\Temp, passata da Tasso): $env:TEMP qui
 # è quella di Tasso in Programmi, e una variabile d'ambiente non decide mai cosa si svuota.
 $f = Clear-Folder $TassoTempUtente 24
@@ -379,7 +602,7 @@ $f = Clear-Folder $TassoTempUtente 24
 if ($TassoTempOriginale) { $f += Clear-Folder $TassoTempOriginale 24 }
 Freed $f; Say ('Liberati ' + (Fmt $f))
 `},
-	{ID: "temp_win", Name: "File temporanei di Windows", Desc: "Svuota C:\\Windows\\Temp (solo i file più vecchi di un giorno).", Level: 1, Minutes: 0.5, Timeout: 10 * time.Minute, Script: `
+	{ID: "temp_win", Name: "File temporanei di Windows", Desc: "Svuota C:\\Windows\\Temp (solo i file più vecchi di un giorno).", Level: 1, Minutes: 0.5, Timeout: 8 * time.Minute, Script: `
 $f = Clear-Folder ($TassoWin + '\Temp') 24
 Freed $f; Say ('Liberati ' + (Fmt $f))
 `},
@@ -410,7 +633,7 @@ try { $s = ((New-Object -ComObject Shell.Application).Namespace(0xA).Items() | M
 Clear-RecycleBin -Force -ErrorAction SilentlyContinue
 Freed $size; Say ('Cestino svuotato: ' + (Fmt $size))
 `},
-	{ID: "thumbs", Name: "Cache delle anteprime", Desc: "Elimina le miniature di Esplora file (si ricreano da sole).", Level: 1, Minutes: 0.2, Timeout: 5 * time.Minute, Script: `
+	{ID: "thumbs", Name: "Cache delle anteprime", Desc: "Elimina le miniature di Esplora file (si ricreano da sole).", Level: 1, Minutes: 0.2, Timeout: 3 * time.Minute, Script: `
 $dir = Join-Path $env:LOCALAPPDATA 'Microsoft\Windows\Explorer'
 $f = [long]0
 Get-ChildItem -LiteralPath $dir -Filter 'thumbcache_*.db' -Force -ErrorAction SilentlyContinue | ForEach-Object {
@@ -420,7 +643,7 @@ Get-ChildItem -LiteralPath $dir -Filter 'thumbcache_*.db' -Force -ErrorAction Si
 }
 Freed $f; Say ('Liberati ' + (Fmt $f))
 `},
-	{ID: "browser", Name: "Cache dei browser", Desc: "Chrome, Edge, Brave, Opera, Firefox: solo la cache. Password e cookie restano.", Level: 1, Minutes: 0.8, Timeout: 15 * time.Minute, Script: `
+	{ID: "browser", Name: "Cache dei browser", Desc: "Chrome, Edge, Brave, Opera, Firefox: solo la cache. Password e cookie restano.", Level: 1, Minutes: 0.8, Timeout: 10 * time.Minute, Script: `
 foreach ($b in $BrowserRoots) {
   if (-not (Test-Path -LiteralPath $b.Root)) { continue }
   # Conta solo se ha una finestra aperta: Edge e Chrome spesso restano accesi in background senza finestre.
@@ -436,10 +659,10 @@ foreach ($b in $BrowserRoots) {
 }
 `},
 	{ID: "dns", Name: "Cache DNS", Desc: "Utile se qualche sito non si apre bene.", Level: 1, Minutes: 0.1, Timeout: 2 * time.Minute, Script: `
-Clear-DnsClientCache
-Say 'Cache DNS svuotata.'
+[void](Invoke-Limited { Clear-DnsClientCache } 60)
+if ($TassoLento) { Say 'Il servizio DNS non risponde: salto, non è importante.' } else { Say 'Cache DNS svuotata.' }
 `},
-	{ID: "app_cache", Name: "Cache delle app", Desc: "Discord, Steam, Teams ed Epic Games: solo la cache, accessi e impostazioni restano.", Level: 2, Minutes: 0.5, Timeout: 10 * time.Minute, Script: `
+	{ID: "app_cache", Name: "Cache delle app", Desc: "Discord, Steam, Teams ed Epic Games: solo la cache, accessi e impostazioni restano.", Level: 2, Minutes: 0.5, Timeout: 8 * time.Minute, Script: `
 $apps = @(
   @{ Label = 'Discord';    Proc = 'Discord';           Paths = @((Join-Path $env:APPDATA 'discord\Cache'), (Join-Path $env:APPDATA 'discord\Code Cache'), (Join-Path $env:APPDATA 'discord\GPUCache')) },
   @{ Label = 'Steam';      Proc = 'steamwebhelper';    Paths = @((Join-Path $env:LOCALAPPDATA 'Steam\htmlcache\Cache'), (Join-Path $env:LOCALAPPDATA 'Steam\htmlcache\Code Cache'), (Join-Path $env:LOCALAPPDATA 'Steam\htmlcache\GPUCache')) },
@@ -463,14 +686,15 @@ $f = [long]0
 foreach ($p in $GpuCaches) { if (Test-Path -LiteralPath $p) { $f += Clear-Folder $p } }
 Freed $f; Say ('Liberati ' + (Fmt $f))
 `},
-	{ID: "wu_cache", Name: "Cache di Windows Update", Desc: "File degli aggiornamenti già scaricati. Se ne serve ancora uno, Windows lo riscarica da solo.", Level: 2, Minutes: 1, Timeout: 15 * time.Minute, Script: `
+	{ID: "wu_cache", Name: "Cache di Windows Update", Desc: "File degli aggiornamenti già scaricati. Se ne serve ancora uno, Windows lo riscarica da solo.", Level: 2, Minutes: 1, Timeout: 8 * time.Minute, Script: `
 if ((Get-Process -Name TiWorker, MoUsoCoreWorker, TrustedInstaller -ErrorAction SilentlyContinue) -or (Test-Path -LiteralPath 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\RebootRequired')) { Say 'Windows sta installando degli aggiornamenti proprio adesso: salto, per non disturbarlo. Rifallo più tardi.'; return }
-Stop-Service -Name wuauserv, bits -Force -ErrorAction SilentlyContinue
+# Stop-Service aspetterebbe per sempre un servizio bloccato: al massimo 45 secondi ciascuno.
+if (-not (Stop-ServiceLimited @('wuauserv', 'bits') 45)) { Start-ServiceQuick @('wuauserv', 'bits'); Say 'Windows Update non si ferma (forse sta lavorando): salto, rifallo più tardi.'; return }
 $f = Clear-Folder (Join-Path $TassoWin 'SoftwareDistribution\Download')
-Start-Service -Name wuauserv, bits -ErrorAction SilentlyContinue
+Start-ServiceQuick @('wuauserv', 'bits')
 Freed $f; Say ('Liberati ' + (Fmt $f))
 `},
-	{ID: "cleanmgr", Name: "Pulizia file di sistema", Desc: "Rapporti errori, file di dump, log vecchi e cache di Ottimizzazione recapito. Senza finestre.", Level: 2, Minutes: 1, Timeout: 20 * time.Minute, Script: `
+	{ID: "cleanmgr", Name: "Pulizia file di sistema", Desc: "Rapporti errori, file di dump, log vecchi e cache di Ottimizzazione recapito. Senza finestre.", Level: 2, Minutes: 1, Timeout: 10 * time.Minute, Script: `
 $f = [long]0
 $pd = $env:ProgramData
 foreach ($d in @((Join-Path $pd 'Microsoft\Windows\WER\ReportArchive'), (Join-Path $pd 'Microsoft\Windows\WER\ReportQueue'), (Join-Path $pd 'Microsoft\Windows\WER\Temp'), (Join-Path $env:LOCALAPPDATA 'Microsoft\Windows\WER'), (Join-Path $env:LOCALAPPDATA 'CrashDumps'))) {
@@ -491,7 +715,7 @@ foreach ($d in @((Join-Path $TassoWin 'Logs\CBS'), (Join-Path $TassoWin 'Logs\DI
 try {
   $drive = Get-PSDrive -Name ($TassoSysDrive.TrimEnd(':'))
   $before = [long]$drive.Free
-  Delete-DeliveryOptimizationCache -Force -ErrorAction Stop | Out-Null
+  [void](Invoke-Limited { Delete-DeliveryOptimizationCache -Force -ErrorAction Stop | Out-Null } 120 'Ottimizzazione recapito')
   $after = [long](Get-PSDrive -Name ($TassoSysDrive.TrimEnd(':'))).Free
   $f += [math]::Max(0, $after - $before)
 } catch {}
@@ -534,11 +758,11 @@ Say 'Aggiorno i programmi (alcuni minuti)...'
 $code = Run-Hidden $wg 'upgrade --all --silent --accept-source-agreements --accept-package-agreements --disable-interactivity'
 if ($code -eq 0) { Say 'Programmi aggiornati.' } else { Say ('Fatto, con qualche programma da aggiornare a mano (codice ' + $code + ').') }
 `},
-	{ID: "drivers", Name: "Aggiornamento driver", Desc: "Driver certificati da Microsoft tramite Windows Update.", Level: 3, Minutes: 6, Timeout: 90 * time.Minute, Script: `
+	{ID: "drivers", Name: "Aggiornamento driver", Desc: "Driver certificati da Microsoft tramite Windows Update.", Level: 3, Minutes: 6, Timeout: 30 * time.Minute, Script: `
 $Criteria = "IsInstalled=0 and Type='Driver' and IsHidden=0 and BrowseOnly=0"
 $NothingMsg = 'I driver risultano già aggiornati.'
 ` + windowsUpdateScript},
-	{ID: "winupdate", Name: "Aggiornamenti di Windows", Desc: "Installa gli aggiornamenti di sicurezza e di sistema.", Level: 3, Minutes: 12, Timeout: 120 * time.Minute, Script: `
+	{ID: "winupdate", Name: "Aggiornamenti di Windows", Desc: "Installa gli aggiornamenti di sicurezza e di sistema.", Level: 3, Minutes: 12, Timeout: 60 * time.Minute, Script: `
 $Criteria = "IsInstalled=0 and Type='Software' and IsHidden=0 and BrowseOnly=0"
 $NothingMsg = 'Windows è già aggiornato.'
 ` + windowsUpdateScript},
@@ -550,26 +774,33 @@ Say ('Programmi che partono all''accensione: ' + $on.Count + ' (altri ' + $off.C
 foreach ($s in $on) { Say (' - ' + $s.name) }
 if ($on.Count -gt 5) { Say 'Consiglio: Tasso > Pulisci e ripara > Avvio del PC > spegni quelli che non usi.' }
 `},
-	{ID: "disk_health", Name: "Salute dei dischi", Desc: "Controlla stato, usura e temperatura di SSD e dischi.", Level: 3, Minutes: 0.3, Timeout: 5 * time.Minute, Script: `
-Get-PhysicalDisk | ForEach-Object {
-  $r = $_ | Get-StorageReliabilityCounter
+	{ID: "disk_health", Name: "Salute dei dischi", Desc: "Controlla stato, usura e temperatura di SSD e dischi.", Level: 3, Minutes: 0.3, Timeout: 3 * time.Minute, Script: `
+# Un disco esterno o un lettore difettoso può far restare appesa la lettura: al massimo 90 secondi.
+$disks = Invoke-Limited { Get-PhysicalDisk | ForEach-Object { [pscustomobject]@{ D = $_; R = ($_ | Get-StorageReliabilityCounter) } } } 90 'Salute dei dischi'
+if ($TassoLento) { Say 'Windows non risponde sulla salute dei dischi: salto, riprova più tardi.'; return }
+foreach ($x in @($disks)) {
+  if (-not $x) { continue }
+  $r = $x.R; $d = $x.D
   $t = ''; if ($r.Temperature) { $t = ', ' + $r.Temperature + ' gradi' }
   $w = ''; if ($r.Wear -ne $null) { $w = ', usura ' + $r.Wear + '%' }
-  $h = [string]$_.HealthStatus
+  $h = [string]$d.HealthStatus
   if ($h -eq 'Healthy') { $h = 'in salute' } elseif ($h -eq 'Warning') { $h = 'ATTENZIONE, da tenere d''occhio' } elseif ($h -eq 'Unhealthy') { $h = 'A RISCHIO: fai subito un backup dei tuoi file' }
-  Say ($_.FriendlyName + ' (' + $_.MediaType + '): ' + $h + $w + $t)
+  Say ($d.FriendlyName + ' (' + $d.MediaType + '): ' + $h + $w + $t)
 }
 `},
-	{ID: "dism_cleanup", Name: "Pulizia componenti di Windows", Desc: "Rimuove le versioni vecchie dei componenti di sistema.", Level: 3, Minutes: 10, Timeout: 90 * time.Minute, Script: `
+	{ID: "dism_cleanup", Name: "Pulizia componenti di Windows", Desc: "Rimuove le versioni vecchie dei componenti di sistema.", Level: 3, Minutes: 10, Timeout: 40 * time.Minute, Script: `
 if (Skip-AutoOnBattery) { return }
 $drive = Get-PSDrive -Name ($TassoSysDrive.TrimEnd(':'))
 $before = [long]$drive.Free
 if (Test-Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\RebootPending') { Say 'Windows sta aspettando un riavvio per finire un aggiornamento: adesso questo passaggio non funzionerebbe bene. Riavvia il PC e poi rifallo.'; [Console]::Out.WriteLine('REBOOT'); return }
+if (-not (Wait-Servicing 120)) { Say 'Windows sta ancora installando aggiornamenti: salto la pulizia dei componenti, rifalla più tardi.'; return }
 Say 'Pulizia componenti in corso (5-20 minuti)...'
-$code = Run-Hidden 'dism.exe' '/Online /Cleanup-Image /StartComponentCleanup'
+$code = Run-Watch 'dism.exe' '/Online /English /Cleanup-Image /StartComponentCleanup' 'DISM' 2280
 $after = [long](Get-PSDrive -Name ($TassoSysDrive.TrimEnd(':'))).Free
 $f = [math]::Max(0, $after - $before)
-Freed $f; Say ('Fatto (codice ' + $code + '), liberati ' + (Fmt $f))
+Freed $f
+if ($TassoLento) { Say ('Pulizia componenti fermata perché troppo lenta: liberati comunque ' + (Fmt $f) + '. Windows la rifà da solo quando il PC è inattivo.') }
+else { Say ('Fatto (codice ' + $code + '), liberati ' + (Fmt $f)) }
 `},
 	{ID: "devices", Name: "Controllo periferiche", Desc: "Verifica che audio, rete, video e USB funzionino.", Level: 4, Minutes: 0.2, Timeout: 3 * time.Minute, Script: `
 $bad = @(Get-CimInstance Win32_PnPEntity -ErrorAction SilentlyContinue | Where-Object { $_.ConfigManagerErrorCode -ne 0 -and $_.ConfigManagerErrorCode -ne 22 -and $_.ConfigManagerErrorCode -ne 45 })
@@ -580,7 +811,7 @@ else {
   Say 'Per queste conviene scaricare il driver dal sito del produttore.'
 }
 `},
-	{ID: "programs", Name: "Controllo di ogni programma", Desc: "Ripara le app di Windows danneggiate e trova i programmi rotti.", Level: 4, Minutes: 3, Timeout: 30 * time.Minute, Script: `
+	{ID: "programs", Name: "Controllo di ogni programma", Desc: "Ripara le app di Windows danneggiate e trova i programmi rotti.", Level: 4, Minutes: 3, Timeout: 15 * time.Minute, Script: `
 # 3.1: solo le app di questo account e solo quelle rotte davvero (non quelle che si stanno aggiornando);
 # nella pulizia programmata non le tocco, perché Windows potrebbe aggiornarle proprio in quel momento.
 $badApps = @()
@@ -589,7 +820,9 @@ if ($TassoAuto) { Say 'App di Windows: nella pulizia programmata non le controll
 elseif ($badApps.Count -eq 0) { Say 'App di Windows: tutte a posto.' }
 foreach ($p in $badApps) {
   Say ('Riparo: ' + $p.Name)
-  try { Add-AppxPackage -DisableDevelopmentMode -Register (Join-Path $p.InstallLocation 'AppxManifest.xml') -ErrorAction Stop; Say '   riparata.' } catch { Say '   non riuscita, prova a reinstallarla dal Microsoft Store.' }
+  # Al massimo 2 minuti per app: a volte Windows resta ad aspettare un'app aperta o un aggiornamento.
+  $ok = Invoke-Limited { try { Add-AppxPackage -DisableDevelopmentMode -Register $A -ErrorAction Stop; 'ok' } catch { 'no' } } 120 '' (Join-Path $p.InstallLocation 'AppxManifest.xml')
+  if ($TassoLento) { Say '   ci metteva troppo: la salto.' } elseif ([string]@($ok)[0] -eq 'ok') { Say '   riparata.' } else { Say '   non riuscita, prova a reinstallarla dal Microsoft Store.' }
 }
 $keys = @('HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*', 'HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*', 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*')
 $progs = @(Get-ItemProperty $keys -ErrorAction SilentlyContinue | Where-Object { $_.DisplayName -and -not $_.SystemComponent })
@@ -604,16 +837,21 @@ if ($broken.Count -gt 0) {
   Say 'Puoi toglierli da Impostazioni > App > App installate.'
 } else { Say 'Nessun programma rotto trovato.' }
 `},
-	{ID: "repair", Name: "Riparazione di Windows", Desc: "DISM RestoreHealth + SFC: ripara i file di sistema danneggiati.", Level: 4, Minutes: 25, Timeout: 120 * time.Minute, Script: `
+	{ID: "repair", Name: "Riparazione di Windows", Desc: "DISM RestoreHealth + SFC: ripara i file di sistema danneggiati.", Level: 4, Minutes: 25, Timeout: 60 * time.Minute, Script: `
 if (Skip-AutoOnBattery) { return }
 if (Test-Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\RebootPending') { Say 'Windows sta aspettando un riavvio per finire un aggiornamento: adesso questo passaggio non funzionerebbe bene. Riavvia il PC e poi rifallo.'; [Console]::Out.WriteLine('REBOOT'); return }
 Say 'Controllo e riparo l''immagine di Windows (DISM, 10-30 minuti)...'
-$c1 = Run-Hidden 'dism.exe' '/Online /Cleanup-Image /RestoreHealth'
+if (-not (Wait-Servicing 120)) { Say 'Windows sta ancora installando aggiornamenti: salto la riparazione, rifalla più tardi (meglio dopo un riavvio).'; return }
+# DISM al massimo 35 minuti, SFC al massimo 22: la barra segue la loro percentuale.
+$c1 = Run-Watch 'dism.exe' '/Online /English /Cleanup-Image /RestoreHealth' 'DISM' 2100 0 0.55
 $needReboot = $false
-if ($c1 -eq 0) { Say 'Immagine di Windows a posto.' } elseif ($c1 -eq 3010) { Say 'Immagine di Windows riparata: serve un riavvio per finire.'; $needReboot = $true } else { Say ('DISM non è riuscito a finire (codice ' + $c1 + '). Spesso succede senza internet: riprova con la connessione attiva.') }
+if ($TassoLento) { Say 'DISM era troppo lento (spesso è internet lenta): l''ho fermato. Passo al controllo dei file.' }
+elseif ($c1 -eq 0) { Say 'Immagine di Windows a posto.' } elseif ($c1 -eq 3010) { Say 'Immagine di Windows riparata: serve un riavvio per finire.'; $needReboot = $true } else { Say ('DISM non è riuscito a finire (codice ' + $c1 + '). Spesso succede senza internet: riprova con la connessione attiva.') }
 Say 'Controllo i file di sistema (SFC, 10-20 minuti)...'
 $t0 = Get-Date
-$c2 = Run-Hidden 'sfc.exe' '/scannow'
+$c2 = Run-Watch 'sfc.exe' '/scannow' 'SFC' 1320 0.55 1
+$sfcSlow = $TassoLento
+if ($sfcSlow) { Say 'SFC era troppo lento: l''ho fermato. Rifai la riparazione da sola quando non ti serve il PC.' }
 # SFC non dice il risultato con il codice: lo leggo dal suo registro (solo le righe scritte adesso).
 $bad = 0; $fixed = 0; $seen = @{}
 try {
@@ -628,20 +866,24 @@ try {
 } catch {}
 if ($bad -gt 0) { Say ('SFC ha trovato file rovinati che non è riuscito a riparare (' + $bad + '). Riavvia e rifai la riparazione; se resta così, conviene Ripristina Windows mantenendo i file.') }
 elseif ($fixed -gt 0) { Say ('SFC ha trovato e riparato ' + $fixed + ' file di sistema. Riavvia il PC per finire.') }
-else { Say 'File di sistema: nessun problema trovato.' }
+elseif (-not $sfcSlow) { Say 'File di sistema: nessun problema trovato.' }
 if ($needReboot -or $bad -gt 0 -or $fixed -gt 0) { [Console]::Out.WriteLine('REBOOT') }
 `},
-	{ID: "chkdsk", Name: "Controllo errori del disco", Desc: "Controlla il disco di sistema mentre usi il PC. Se trova errori gravi te lo dice; la riparazione al riavvio la prenota solo se avvii il controllo da solo o da Risolvi un problema, mai dentro una pulizia.", Level: 4, Minutes: 4, Timeout: 60 * time.Minute, Script: `
+	{ID: "chkdsk", Name: "Controllo errori del disco", Desc: "Controlla il disco di sistema mentre usi il PC. Se trova errori gravi te lo dice; la riparazione al riavvio la prenota solo se avvii il controllo da solo o da Risolvi un problema, mai dentro una pulizia.", Level: 4, Minutes: 4, Timeout: 30 * time.Minute, Script: `
 if (Skip-AutoOnBattery) { return }
 Say ('Controllo il disco ' + $TassoSysDrive + '...')
 $dl = $TassoSysDrive.TrimEnd(':')
 $r = $null
-try { $r = Repair-Volume -DriveLetter $dl -Scan -ErrorAction Stop } catch { Say 'Il controllo del disco non è riuscito adesso (forse Windows sta già controllando il disco). Riprova più tardi.'; return }
+$rr = Invoke-Limited { try { [string](Repair-Volume -DriveLetter $A -Scan -ErrorAction Stop) } catch { 'ERR' } } 1500 'Controllo del disco' $dl
+if ($TassoLento) { Say 'Il controllo del disco ci metteva troppo: l''ho lasciato perdere. Riprova da solo quando non ti serve il PC.'; return }
+$r = [string]@($rr)[0]
+if (-not $r -or $r -eq 'ERR') { Say 'Il controllo del disco non è riuscito adesso (forse Windows sta già controllando il disco). Riprova più tardi.'; return }
 switch ([string]$r) {
   'NoErrorsFound' { Say 'Nessun errore sul disco.' }
   'SpotFixNeeded' {
     Say 'Trovati piccoli errori: li sistemo subito (pochi secondi, senza riavviare)...'
-    try { $f = Repair-Volume -DriveLetter $dl -SpotFix -ErrorAction Stop; if ([string]$f -eq 'NoErrorsFound') { Say 'Errori del disco sistemati.' } else { Say 'Errori segnati: Windows li sistema al prossimo riavvio.'; [Console]::Out.WriteLine('REBOOT') } } catch { Say 'Errori segnati: Windows li sistema al prossimo riavvio.'; [Console]::Out.WriteLine('REBOOT') }
+    $f = [string]@(Invoke-Limited { try { [string](Repair-Volume -DriveLetter $A -SpotFix -ErrorAction Stop) } catch { 'ERR' } } 300 '' $dl)[0]
+    if ($f -eq 'NoErrorsFound') { Say 'Errori del disco sistemati.' } else { Say 'Errori segnati: Windows li sistema al prossimo riavvio.'; [Console]::Out.WriteLine('REBOOT') }
   }
   'FullRepairNeeded' {
     Say 'ATTENZIONE: il disco ha errori che si riparano solo al riavvio. Prima di tutto fai una copia dei tuoi file importanti (chiavetta, disco esterno o OneDrive).'
@@ -653,30 +895,39 @@ switch ([string]$r) {
   default { Say ('Controllo finito (risultato: ' + $r + ').') }
 }
 `},
-	{ID: "optimize", Name: "Deframmentazione / TRIM", Desc: "Deframmenta i dischi meccanici, ottimizza gli SSD.", Level: 3, Minutes: 5, Timeout: 120 * time.Minute, Script: `
+	{ID: "optimize", Name: "Deframmentazione / TRIM", Desc: "Deframmenta i dischi meccanici, ottimizza gli SSD.", Level: 3, Minutes: 5, Timeout: 30 * time.Minute, Script: `
 if (Skip-AutoOnBattery) { return }
 Say 'Ottimizzo i dischi (sui dischi meccanici può volerci un po'')...'
 # Solo i dischi interni fissi (niente chiavette, dischi esterni o di rete).
-$vols = @(Get-Volume -ErrorAction SilentlyContinue | Where-Object { $_.DriveType -eq 'Fixed' -and $_.DriveLetter -and $_.FileSystem -match 'NTFS|ReFS' })
-$usb = @{}
-try { foreach ($d in @(Get-Disk -ErrorAction Stop | Where-Object { [string]$_.BusType -eq 'USB' })) { foreach ($pp in @(Get-Partition -DiskNumber $d.Number -ErrorAction SilentlyContinue)) { if ($pp.DriveLetter) { $usb[[string]$pp.DriveLetter] = $true } } } } catch {}
-$n = 0
-foreach ($v in $vols) {
-  if ($usb.ContainsKey([string]$v.DriveLetter)) { continue }
-  $code = Run-Hidden 'defrag.exe' ([string]$v.DriveLetter + ': /O')
-  $n++
-  Say ('Disco ' + $v.DriveLetter + ': ottimizzato (codice ' + $code + ').')
+# L'elenco dei dischi può restare appeso con dischi difettosi: al massimo 90 secondi.
+$letters = Invoke-Limited {
+  $vols = @(Get-Volume -ErrorAction SilentlyContinue | Where-Object { $_.DriveType -eq 'Fixed' -and $_.DriveLetter -and $_.FileSystem -match 'NTFS|ReFS' })
+  $usb = @{}
+  try { foreach ($d in @(Get-Disk -ErrorAction Stop | Where-Object { [string]$_.BusType -eq 'USB' })) { foreach ($pp in @(Get-Partition -DiskNumber $d.Number -ErrorAction SilentlyContinue)) { if ($pp.DriveLetter) { $usb[[string]$pp.DriveLetter] = $true } } } } catch {}
+  foreach ($v in $vols) { if (-not $usb.ContainsKey([string]$v.DriveLetter)) { [string]$v.DriveLetter } }
+} 90
+if ($TassoLento) { Say 'Windows non risponde sull''elenco dei dischi: salto, riprova più tardi.'; return }
+$letters = @($letters | Where-Object { $_ })
+$n = 0; $i = 0
+foreach ($l in $letters) {
+  # Ogni disco al massimo 20 minuti (un disco meccanico molto pieno può metterci ore): /U per la percentuale.
+  $code = Run-Watch 'defrag.exe' ($l + ': /O /U') ('Disco ' + $l) 1200 ($i / $letters.Count) (($i + 1) / $letters.Count)
+  $i++; $n++
+  if ($TassoLento) { Say ('Disco ' + $l + ': fermato perché troppo lento, lo finisce Windows da solo con la sua ottimizzazione automatica.') }
+  else { Say ('Disco ' + $l + ': ottimizzato (codice ' + $code + ').') }
+  if ((Time-Left) -lt 60) { break }
 }
 if ($n -eq 0) { Say 'Nessun disco interno da ottimizzare.' }
 `},
-	{ID: "defender", Name: "Scansione antivirus", Desc: "Scansione rapida con Microsoft Defender.", Level: 3, Minutes: 4, Timeout: 60 * time.Minute, Script: `
+	{ID: "defender", Name: "Scansione antivirus", Desc: "Scansione rapida con Microsoft Defender.", Level: 3, Minutes: 4, Timeout: 20 * time.Minute, Script: `
 $mp = Join-Path $env:ProgramFiles 'Windows Defender\MpCmdRun.exe'
 if (-not (Test-Path -LiteralPath $mp)) { Say 'Microsoft Defender non trovato: salto.'; return }
 Say 'Scansione rapida in corso...'
-$code = Run-Hidden $mp '-Scan -ScanType 1'
+$code = Run-Watch $mp '-Scan -ScanType 1' 'Antivirus' 1080
+if ($TassoLento) { Say 'La scansione ci metteva troppo: l''ho fermata. Defender continua comunque a proteggerti in tempo reale.'; return }
 if ($code -eq 0) { Say 'Nessuna minaccia trovata.' } elseif ($code -eq 2) { Say 'ATTENZIONE: trovate minacce. Apri Sicurezza di Windows per i dettagli.' } else { Say 'Scansione terminata. Se usi un altro antivirus, Defender potrebbe essere spento.' }
 `},
-	{ID: "browser_ext", Name: "Controllo estensioni dei browser", Desc: "Elenca le estensioni di Chrome, Edge e Brave: se non ne riconosci una, toglila.", Level: 3, Minutes: 0.3, Timeout: 5 * time.Minute, Script: `
+	{ID: "browser_ext", Name: "Controllo estensioni dei browser", Desc: "Elenca le estensioni di Chrome, Edge e Brave: se non ne riconosci una, toglila.", Level: 3, Minutes: 0.3, Timeout: 3 * time.Minute, Script: `
 function Get-ExtName([string]$dir) {
   $man = Join-Path $dir 'manifest.json'
   if (-not (Test-Path -LiteralPath $man)) { return $null }
