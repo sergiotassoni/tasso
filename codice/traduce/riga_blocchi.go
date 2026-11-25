@@ -102,6 +102,9 @@ func chiedeSeguito(t string) bool {
 	if len(w) == 1 && verbiTasto[strings.ToLower(w[0])] {
 		return true // "Press" | [icona del tasto] | "to reveal the HUD": il comando continua dopo l'icona
 	}
+	if comandoAperto(t) {
+		return true // "…throw the item. Hold" | [icona] | "to aim.": anche in fondo a una frase
+	}
 	u := w[len(w)-1]
 	if strings.HasSuffix(u, ",") {
 		return len(w) >= 2
@@ -151,7 +154,11 @@ func pezziDiUnaFrase(a, c Blocco) bool {
 		em = float64(min(a.H, c.H)) * 1.1
 	}
 	buco := c.X - (a.X + a.W)
-	return buco >= -max(a.H, c.H) && float64(buco) <= 3*em
+	limite := 3 * em
+	if seguitoDelComando(a.Testo, c.Testo) {
+		limite = 4 * em // "…Hold" | [icona del tasto con il suo riquadro] | "Q to aim."
+	}
+	return buco >= -max(a.H, c.H) && float64(buco) <= limite
 }
 
 // pezzoTroncato: l'OCR ha spezzato una parola tra i due pezzi ("...enemies ar" | "Ire nearby."):

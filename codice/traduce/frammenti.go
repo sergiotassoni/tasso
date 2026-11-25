@@ -117,6 +117,13 @@ func senzaSegnoIcona(bl Blocco) Blocco {
 		return bl
 	}
 	cambiata := false
+	// "/ Back": il segno dell'icona letto come una parola a sé davanti alla voce
+	if len(p) >= 2 && (p[0].T == "/" || p[0].T == "\\") {
+		if r := []rune(p[1].T); len(r) >= 2 && unicode.IsLetter(r[0]) {
+			p = p[1:]
+			cambiata = true
+		}
+	}
 	if r := []rune(p[0].T); len(r) >= 3 && unicode.IsLetter(r[1]) && segnoSpaiato(bl.Testo, r[0], true) {
 		taglio := p[0].W / float64(len(r))
 		p[0].T = string(r[1:])
@@ -192,7 +199,8 @@ func comandoTasto(t string) bool {
 //   - "Press"/"Hold" da solo, senza il seguito tradotto sulla stessa riga.
 func pezzoSenzaTesta(p Blocco, tenute []Blocco) bool {
 	t := strings.TrimSpace(p.Testo)
-	if comandoTasto(t) && len(strings.Fields(t)) == 1 {
+	if comandoTasto(t) && len(strings.Fields(t)) == 1 && !strings.EqualFold(t, "use") {
+		// ("Use" da solo accanto all'icona è la voce intera di un'azione: "[E] Use")
 		for _, q := range tenute {
 			if q.X > p.X && righeSchermo(q) == 1 && lineaSimile(p, q) && iniziaMinuscola(q.Testo) && q.X-(p.X+p.W) <= 6*max(p.H, q.H) {
 				return false

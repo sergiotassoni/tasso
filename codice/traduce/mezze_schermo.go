@@ -27,12 +27,15 @@ import (
 func ingleseVisibile(motivo string) bool {
 	switch {
 	case motivo == "", motivo == "non è testo da tradurre", motivo == motivoUgualeIt,
-		motivo == "uguale all'inglese", motivo == "forma strana",
+		motivo == "uguale all'inglese", motivo == "forma strana", motivo == motivoNomeCodice,
 		strings.HasPrefix(motivo, "nome di un veicolo"):
 		return false
 	}
 	return true
 }
+
+// motivoNomeCodice: nome di un posto con un codice ("1S4V1 POINT"): resta in inglese.
+const motivoNomeCodice = "nome con un codice (resta uguale)"
 
 // motivoMezzaRiga: il motivo scritto nel banco per le scritte tolte da questo controllo.
 const motivoMezzaRiga = "pezzo di una frase rimasta in inglese (mai mezza riga tradotta)"
@@ -88,17 +91,18 @@ func stessaFraseSchermo(p, e Blocco) bool {
 	}
 	// stessa riga
 	if righeSchermo(p) == 1 && righeSchermo(e) == 1 && lineaSimile(p, e) {
-		sx, dx := p, e
-		if e.X < p.X {
-			sx, dx = e, p
+		return stessaLineaSchermo(p, e)
+	}
+	// una riga di un paragrafo e un pezzo sulla stessa linea ("Press [E] to shoot… Hold" /
+	// "for a powerful shot." in inglese, "E while aiming" tradotto accanto alla prima riga)
+	if righeSchermo(p) > 1 || righeSchermo(e) > 1 {
+		for _, rp := range righeDelBlocco(p) {
+			for _, re := range righeDelBlocco(e) {
+				if lineaSimile(rp, re) && stessaLineaSchermo(rp, re) {
+					return true
+				}
+			}
 		}
-		if dx.X < sx.X+sx.W {
-			return true // accavallati sulla stessa linea
-		}
-		if fratelli(sx, dx) && !vociSeparate(sx, dx) {
-			return true
-		}
-		return false
 	}
 	// riga sopra o sotto della stessa frase
 	sopra, sotto := p, e
@@ -109,6 +113,23 @@ func stessaFraseSchermo(p, e Blocco) bool {
 }
 
 func righeSchermo(b Blocco) int { return max(1, b.Righe) }
+
+// stessaLineaSchermo: p ed e, sulla stessa linea, sono pezzi della stessa frase: accavallati,
+// fratelli vicini che non sono due voci di una fila, o pezzi che si continuano anche con l'icona
+// di un tasto in mezzo o con altezze diverse ("…Hold" | "Q to aim.", "…one we" | "lost...").
+func stessaLineaSchermo(p, e Blocco) bool {
+	sx, dx := p, e
+	if e.X < p.X {
+		sx, dx = e, p
+	}
+	if dx.X < sx.X+sx.W {
+		return true // accavallati sulla stessa linea
+	}
+	if fratelli(sx, dx) && !vociSeparate(sx, dx) {
+		return true
+	}
+	return pezziStessaLinea(sx, dx)
+}
 
 // seguitoSotto: la scritta sotto continua la frase di quella sopra: subito sotto (fino a una
 // riga e mezza di buco con l'interlinea larga dei dialoghi, se sotto comincia minuscola), stessa grandezza, in colonna (stesso inizio, stesso centro o
@@ -141,6 +162,9 @@ func seguitoSotto(sopra, sotto Blocco) bool {
 	t := strings.TrimSpace(sopra.Testo)
 	if fineFraseTesto(t) {
 		return false
+	}
+	if len(nomeChiParla(sotto.Testo)) > 0 {
+		return false // "Brodie: The cable's stuck.": chi parla comincia una battuta nuova
 	}
 	// una parola sola chiusa dal punto sotto una riga non finita ("…while I'm" / "Here.")
 	pezzo := parolaSolaChiusa(sotto.Testo) && !tuttoMaiuscolo(t)

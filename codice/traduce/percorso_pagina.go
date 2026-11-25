@@ -48,6 +48,7 @@ func blocchiLetti(img *image.RGBA, righe []RigaOCR, f float64, voti *votazione, 
 			bl[i].Testo, bl[i].Affid = voti.scegli(img, bl[i], bl[i].Testo, bl[i].Affid, adesso)
 		}
 	}
+	bl = spezzaIconeInMezzo(bl) // "Press t to sprint.": la "t" è la freccia dell'icona del tasto
 	bl = unisciParagrafi(bl)
 	for i := range bl {
 		if bl[i].Righe > 1 {
@@ -79,6 +80,10 @@ func motivoNonTradurre(b Blocco) string {
 		return "lettura incerta" // logo o nome del canale letto male
 	case parolacciaDubbia(b.Testo):
 		return "lettura incerta" // parolaccia che può essere un errore dell'OCR
+	case parolaSenzaVocali(b.Testo):
+		return "lettura incerta" // "rm son'" al posto di "I'm sorry"
+	case nomeConCodice(b.Testo):
+		return motivoNomeCodice
 	}
 	return ""
 }
@@ -102,6 +107,13 @@ func controllaCompleta(img *image.RGBA, b *Blocco, tutte []Blocco) string {
 		return m
 	}
 	if b.Righe <= 1 && b.Affid != letturaCatalog && scrittaContinuaTra(img, *b, tutte) && !fraseConPocoAccanto(img, *b, tutte) {
+		return "riga incompleta (parola accanto non letta)"
+	}
+	// una parola maiuscola del catalogo con lettere scure su un fondo più chiaro e altre lettere
+	// uguali accanto non lette ("CLUMP [WEIGHT]" sulla targa gialla di una macchina): è una
+	// parola di un cartello del mondo letto a metà, non una voce dell'interfaccia
+	if b.Righe <= 1 && b.Affid == letturaCatalog && len(strings.Fields(b.Testo)) == 1 && tuttoMaiuscolo(b.Testo) &&
+		luce(b.Inchiostro)+40 < luce(b.Sfondo) && scrittaContinuaTra(img, *b, tutte) && !fraseConPocoAccanto(img, *b, tutte) {
 		return "riga incompleta (parola accanto non letta)"
 	}
 	adattaAInchiostro(img, b)

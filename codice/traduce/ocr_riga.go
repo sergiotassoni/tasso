@@ -318,6 +318,9 @@ func valutaParolePos(s string) (tot int, false_ int, rare int, nomi int, posFals
 			continue // l'etichetta iniziale ("MARCUS:", "OLD MAN:") è un nome: non si giudica
 		}
 		tot++
+		if i+1 < len(campi) && len(r) <= 3 && balbettata(s, w, campi[i+1].w) {
+			continue // "wh-what", "I-I": la parola balbettata
+		}
 		if parolaValidaOCR(w) {
 			if parolaRara(w) {
 				rare++
@@ -350,6 +353,11 @@ func valutaParolePos(s string) (tot int, false_ int, rare int, nomi int, posFals
 			}
 		case strings.ToUpper(w) == w && len(r) <= 4 && !tuttoMaiusc:
 			continue // sigla in una frase normale ("XP", "DLSS")
+		case !tuttoMaiusc && nomeChiamato(w, c.virgolaDopo):
+			// "Caz, don't let me die…", "Koby's Capabilities", "Mr McCleary": anche a inizio
+			// frase la parola è un nome (chiamato con la virgola, con il possessivo, "Mc…")
+			nomi++
+			continue
 		}
 		false_++
 		if !(nomeProprio(w) && len(r) >= 4) { // "Farah. Barkov's soldiers…": nomi a inizio frase, non spazzatura
@@ -359,11 +367,34 @@ func valutaParolePos(s string) (tot int, false_ int, rare int, nomi int, posFals
 	return
 }
 
+// balbettata: la parola w è l'inizio della parola dopo ripetuto con il trattino ("wh-what").
+func balbettata(s, w, dopo string) bool {
+	lw, ld := strings.ToLower(w), strings.ToLower(dopo)
+	return len(ld) > len(lw) && strings.HasPrefix(ld, lw) && strings.Contains(strings.ToLower(s), lw+"-"+ld)
+}
+
+// nomeChiamato: la parola sconosciuta con la maiuscola è un nome anche a inizio frase: seguita
+// dalla virgola ("Caz,"), con il possessivo ("Koby's") o un cognome "Mc…"/"Mac…" ("McCleary").
+func nomeChiamato(w string, virgola bool) bool {
+	base := strings.TrimSuffix(strings.TrimSuffix(w, "'s"), "’s")
+	if len([]rune(base)) < 3 {
+		return false
+	}
+	if strings.HasPrefix(base, "Mc") && nomeProprio(base[2:]) {
+		return true
+	}
+	if strings.HasPrefix(base, "Mac") && nomeProprio(base[3:]) {
+		return true
+	}
+	return nomeProprio(base) && (virgola || base != w)
+}
+
 // campoFrase: una parola della riga e se inizia una frase (prima parola, o dopo . ! ? :).
 type campoFrase struct {
 	w           string
 	inizio      bool
 	dueDopo     bool // subito dopo la parola c'è ":" ("MARCUS:", "TIP:")
+	virgolaDopo bool // subito dopo la parola c'è "," ("Caz, don't…": il nome di chi viene chiamato)
 	maiuscolaIn bool
 }
 
@@ -393,6 +424,10 @@ func campiFrase(s string) []campoFrase {
 			punto = true
 		case '.', '!', '?':
 			punto = true
+		case ',':
+			if n := len(out); n > 0 && !punto {
+				out[n-1].virgolaDopo = true
+			}
 		}
 	}
 	chiudi()
