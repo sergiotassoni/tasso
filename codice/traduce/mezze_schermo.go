@@ -48,7 +48,7 @@ func senzaMezzeRighe(pronti, inglesi []Blocco) (tenute, tolte []Blocco) {
 	for {
 		via := -1
 		for i, p := range tenute {
-			if conIngleseAccanto(p, ingl) || pezzoSenzaTesta(p, tenute) {
+			if conIngleseAccanto(p, ingl) || pezzoSenzaTesta(p, tenute) || sceltaConIngleseInColonna(p, ingl) {
 				via = i
 				break
 			}
@@ -173,6 +173,50 @@ func seguitoSotto(sopra, sotto Blocco) bool {
 	}
 	return iniziaMinuscola(sotto.Testo) || pezzo || strings.HasSuffix(t, ",") || strings.HasSuffix(t, "-") ||
 		strings.HasSuffix(t, "—") || chiedeSeguito(t)
+}
+
+// sceltaConIngleseInColonna: p è una voce di un elenco di scelte una sotto l'altra ("I'll buy!" /
+// "Never mind.") e una voce vicina della stessa colonna resta in inglese. Le scelte sono un
+// gruppo: tutte tradotte o tutte in inglese, mai "I'll buy!" accanto a "Non importa.". Si
+// ripete in senzaMezzeRighe, così la voce tolta fa togliere anche quella dopo.
+func sceltaConIngleseInColonna(p Blocco, inglesi []Blocco) bool {
+	if !voceCorta(p) {
+		return false
+	}
+	for _, e := range inglesi {
+		if e.X == p.X && e.Y == p.Y && e.W == p.W && e.H == p.H {
+			continue
+		}
+		if voceCorta(e) && stessaColonnaVoci(p, e) {
+			return true
+		}
+	}
+	return false
+}
+
+// voceCorta: una riga sola, poche parole, non una battuta con chi parla ("Caz: Yes.").
+func voceCorta(b Blocco) bool {
+	t := strings.TrimSpace(b.Testo)
+	return righeSchermo(b) == 1 && b.H > 0 && t != "" && len(t) <= 40 && len(strings.Fields(t)) <= 6 &&
+		len(nomeChiParla(t)) == 0
+}
+
+// stessaColonnaVoci: a e b sono due voci una sotto l'altra della stessa colonna: stessa
+// grandezza, buco piccolo (al massimo una riga) e allineate a sinistra o al centro.
+func stessaColonnaVoci(a, b Blocco) bool {
+	h := min(a.H, b.H)
+	if float64(max(a.H, b.H)) > 1.35*float64(h) {
+		return false
+	}
+	sopra, sotto := a, b
+	if b.Y < a.Y {
+		sopra, sotto = b, a
+	}
+	buco := sotto.Y - (sopra.Y + sopra.H)
+	if buco < -h/4 || buco > h {
+		return false
+	}
+	return abs(a.X-b.X) <= h || abs((a.X+a.W/2)-(b.X+b.W/2)) <= h
 }
 
 // mezzeDisegnate: quante scritte pronte toccano una scritta della stessa frase rimasta in
