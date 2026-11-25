@@ -27,7 +27,7 @@ type Settings struct {
 	Profile      string        `json:"profile"`
 	Mode         string        `json:"mode"`
 	Theme        string        `json:"theme"`
-	Lang         string        `json:"lang,omitempty"`        // "it" o "en" (2.6.2): lingua di Tasso
+	Lang         string        `json:"lang,omitempty"`        // "it", "en", "es", "fr" o "de": lingua di Tasso
 	ThemeOffice  string        `json:"themeOffice,omitempty"` // tema scelto nella modalità Ufficio (2.6)
 	Autostart    bool          `json:"autostart"`
 	Weekly       bool          `json:"weekly"`

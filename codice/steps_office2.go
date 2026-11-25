@@ -202,8 +202,8 @@ Say 'Se il collega l''ha già chiuso e il messaggio resta: nella stessa cartella
 	{ID: "of_regional", Name: "Date, decimali o file CSV sbagliati in Excel", Desc: "Rimette i formati italiani di Windows che usa Excel: date giorno/mese/anno, virgola per i decimali, punto e virgola nei file CSV (così non finisce tutto in una colonna). Puoi tornare indietro.", Level: 0, Minutes: 0.1, Timeout: time.Minute, Script: ofs2(`
 $k = 'HKCU\Control Panel\International'
 $loc = [string](Get-RegValue $k 'LocaleName')
-if ($TassoLang -eq 'en') {
-  # In inglese non metto i formati italiani: mostro quelli di adesso e apro le impostazioni.
+if ($TassoLang -ne 'it') {
+  # Non in italiano: non metto i formati italiani: mostro quelli di adesso e apro le impostazioni.
   $d = [string](Get-RegValue $k 'sDecimal'); $l = [string](Get-RegValue $k 'sList'); $sd = [string](Get-RegValue $k 'sShortDate')
   Say ('Your Windows formats: ' + $loc + ' (date ' + $sd + ', decimal separator "' + $d + '", list separator "' + $l + '").')
   Say 'Excel uses these formats. If dates or decimals look wrong, choose your country in the window I am opening (Settings > Time & language > Language & region > Regional format).'

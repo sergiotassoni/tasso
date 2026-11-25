@@ -203,7 +203,8 @@ func main() {
 		dirs, exes := libraryGamePaths()
 		return isGamePath(p, exe, dirs, exes)
 	}
-	traduce.InIngleseTasso = isEN
+	traduce.InIngleseTasso = traduciTasso // es/fr/de: le scritte sopra il gioco che non sono nel dizionario restano in inglese
+	traduce.LinguaTasso = curLang
 	traduce.InUfficio.Store(officeMode())
 	traduce.TraduciTasso = trGo
 	traduce.AltriTasti = altriTastiTasso // tasti_rapidi.go: niente doppioni tra traduzione, autoclick e pannellino

@@ -2805,7 +2805,15 @@
   "{0}: ancora al lavoro ({1} min, al massimo {2}).": "{0}: still working ({1} min, at most {2}).",
   "{0}: troppo lento, l'ho fermato dopo {1} minuti e vado avanti.": "{0}: too slow, I stopped it after {1} minutes and I'm moving on.",
   "Windows Update ({0}) ci mette troppo: lo lascio perdere dopo {1} minuti e vado avanti. Windows può finire da solo più tardi.": "Windows Update ({0}) is taking too long: I'm giving up on it after {1} minutes and moving on. Windows can finish by itself later.",
-  "Windows Update ({0}): ancora al lavoro ({1} min, al massimo {2}).": "Windows Update ({0}): still working ({1} min, at most {2})."
+  "Windows Update ({0}): ancora al lavoro ({1} min, al massimo {2}).": "Windows Update ({0}): still working ({1} min, at most {2}).",
+  "Default keyboard set to the first one of ": "Default keyboard set to the first one of ",
+  "I could not read your keyboards: add or pick one in Settings > Time & language > Language & region (I am opening it).": "I could not read your keyboards: add or pick one in Settings > Time & language > Language & region (I am opening it).",
+  "Your Windows formats: ": "Your Windows formats: ",
+  " (date ": " (date ",
+  ", decimal separator \"": ", decimal separator \"",
+  "\", list separator \"": "\", list separator \"",
+  "Excel uses these formats. If dates or decimals look wrong, choose your country in the window I am opening (Settings > Time & language > Language & region > Regional format).": "Excel uses these formats. If dates or decimals look wrong, choose your country in the window I am opening (Settings > Time & language > Language & region > Regional format).",
+  "If a CSV file ends up all in one column: in Excel use Data > From Text/CSV and pick the separator. If a date stays reversed, the column is formatted as text: select it > Data > Text to Columns > Finish.": "If a CSV file ends up all in one column: in Excel use Data > From Text/CSV and pick the separator. If a date stays reversed, the column is formatted as text: select it > Data > Text to Columns > Finish."
  },
  "ui": {
   "Resta acceso vicino all'orologio": "Stay on next to the clock",
@@ -5149,6 +5157,7 @@
   " Le funzioni da gioco (pannellino, Profilo gioco) restano in pausa finché torni a Gaming.": " Gaming features (in-game panel, Game profile) stay paused until you switch back to Gaming.",
   ", con gentilezza, e li riapre quando il Boost si spegne.": ", gently, and reopens them when Boost turns off.",
   "Solo se sono aperti in sottofondo senza finestra: OneDrive, Dropbox, Google Drive, iCloud, Teams (versione classica), Zoom, Skype. Li chiude con gentilezza e li riapre quando il Boost si spegne. Non chiude mai Discord, OBS e i programmi per lo stream, Spotify, Steam e gli altri launcher, i browser, e niente che abbia una finestra aperta.": "Only if they're running in the background without a window: OneDrive, Dropbox, Google Drive, iCloud, Teams (classic version), Zoom, Skype. It closes them gently and reopens them when Boost turns off. It never closes Discord, OBS and streaming programs, Spotify, Steam and the other launchers, browsers, or anything with an open window.",
-  "Il Boost è acceso: il PC è già pronto per giocare.": "Boost is on: the PC is already ready to play."
+  "Il Boost è acceso: il PC è già pronto per giocare.": "Boost is on: the PC is already ready to play.",
+  "Il PC è in modalità ": "The PC is in mode: "
  }
 }

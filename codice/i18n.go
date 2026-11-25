@@ -1,11 +1,12 @@
 package main
 
-// Lingue di Tasso: italiano (quella "vera", scritta nel codice) e inglese.
-// Le traduzioni stanno in i18n/en.json: "ui" per i testi della finestra, "go" per i messaggi
-// di Go e "ps" per i testi degli script PowerShell. In italiano non si traduce niente.
+// Lingue di Tasso: italiano (quella "vera", scritta nel codice), inglese, spagnolo, francese e tedesco.
+// Le traduzioni stanno in i18n/<lingua>.json (en, es, fr, de, tutti con le stesse chiavi):
+// "ui" per i testi della finestra, "go" per i messaggi di Go e "ps" per i testi degli script
+// PowerShell. In italiano non si traduce niente. Se in es/fr/de manca un testo, si usa l'inglese.
 
 import (
-	_ "embed"
+	"embed"
 	"encoding/json"
 	"os"
 	"os/exec"
@@ -16,40 +17,98 @@ import (
 	"time"
 )
 
-//go:embed i18n/en.json
-var enJSON []byte
+//go:embed i18n/en.json i18n/es.json i18n/fr.json i18n/de.json
+var i18nFS embed.FS
 
-var (
-	i18nOnce sync.Once
-	enDict   struct {
-		UI map[string]string `json:"ui"`
-		Go map[string]string `json:"go"`
-		PS map[string]string `json:"ps"`
-	}
-	goFrags []string // pezzi dei messaggi di Go, dal più lungo al più corto
-)
-
-var pUILang = kernel32.NewProc("GetUserDefaultUILanguage")
-
-func loadI18n() {
-	i18nOnce.Do(func() {
-		_ = json.Unmarshal(enJSON, &enDict)
-		for k := range enDict.Go {
-			if len(k) >= 6 {
-				goFrags = append(goFrags, k)
-			}
-		}
-		sort.Slice(goFrags, func(i, j int) bool { return len(goFrags[i]) > len(goFrags[j]) })
-	})
+type dizionario struct {
+	UI    map[string]string `json:"ui"`
+	Go    map[string]string `json:"go"`
+	PS    map[string]string `json:"ps"`
+	frags []string          // pezzi dei messaggi di Go, dal più lungo al più corto
 }
 
-// systemLang: la lingua di Windows (italiano se Windows è in italiano, altrimenti inglese).
-func systemLang() string {
-	r, _, _ := pUILang.Call()
-	if r&0x3ff == 0x10 { // LANG_ITALIAN
+var (
+	i18nMu   sync.Mutex
+	i18nDiz  = map[string]*dizionario{}
+	pUILang  = kernel32.NewProc("GetUserDefaultUILanguage")
+)
+
+// leggiDiz: il file i18n/<l>.json così com'è (nil se non c'è).
+func leggiDiz(l string) *dizionario {
+	b, err := i18nFS.ReadFile("i18n/" + l + ".json")
+	if err != nil {
+		return nil
+	}
+	d := &dizionario{}
+	if json.Unmarshal(b, d) != nil {
+		return nil
+	}
+	return d
+}
+
+// dizLingua: il dizionario della lingua (inglese sotto, per i testi che mancano). nil in italiano.
+func dizLingua(l string) *dizionario {
+	if l == "it" || !linguaDisponibile(l) {
+		return nil
+	}
+	i18nMu.Lock()
+	defer i18nMu.Unlock()
+	if d, ok := i18nDiz[l]; ok {
+		return d
+	}
+	d := leggiDiz("en")
+	if d == nil {
+		d = &dizionario{}
+	}
+	if l != "en" {
+		if x := leggiDiz(l); x != nil {
+			unisci := func(dst *map[string]string, src map[string]string) {
+				if *dst == nil {
+					*dst = map[string]string{}
+				}
+				for k, v := range src {
+					if v != "" {
+						(*dst)[k] = v
+					}
+				}
+			}
+			unisci(&d.UI, x.UI)
+			unisci(&d.Go, x.Go)
+			unisci(&d.PS, x.PS)
+		}
+	}
+	for k := range d.Go {
+		if len(k) >= 6 {
+			d.frags = append(d.frags, k)
+		}
+	}
+	sort.Slice(d.frags, func(i, j int) bool { return len(d.frags[i]) > len(d.frags[j]) })
+	i18nDiz[l] = d
+	return d
+}
+
+// curDiz: il dizionario della lingua di adesso (nil in italiano).
+func curDiz() *dizionario { return dizLingua(curLang()) }
+
+// linguaDaLangID: la lingua di Tasso per una lingua di Windows (LANGID); le altre diventano inglese.
+func linguaDaLangID(id uint16) string {
+	switch id & 0x3ff {
+	case 0x10:
 		return "it"
+	case 0x0a:
+		return "es"
+	case 0x0c:
+		return "fr"
+	case 0x07:
+		return "de"
 	}
 	return "en"
+}
+
+// systemLang: la lingua di Windows, se Tasso ce l'ha (it, en, es, fr, de), altrimenti inglese.
+func systemLang() string {
+	r, _, _ := pUILang.Call()
+	return linguaDaLangID(uint16(r))
 }
 
 // curLang: la lingua scelta nelle Impostazioni di Tasso; se non l'hai ancora scelta quella
@@ -67,25 +126,32 @@ func curLang() string {
 	return systemLang()
 }
 
+// isEN: Tasso è proprio in inglese (per numeri col punto, generi di Steam in inglese...).
 func isEN() bool { return curLang() == "en" }
+
+// traduciTasso: Tasso non è in italiano, quindi i testi passano dal dizionario.
+func traduciTasso() bool { return curLang() != "it" }
 
 // trGo traduce un messaggio di Go: prima tutto intero, poi pezzo per pezzo
 // (per i messaggi con dentro numeri o nomi).
 func trGo(s string) string {
-	if s == "" || !isEN() {
+	if s == "" {
 		return s
 	}
-	loadI18n()
-	if v, ok := enDict.Go[s]; ok {
+	d := curDiz()
+	if d == nil {
+		return s
+	}
+	if v, ok := d.Go[s]; ok {
 		return v
 	}
-	if v, ok := enDict.PS[s]; ok {
+	if v, ok := d.PS[s]; ok {
 		return v
 	}
 	out := s
-	for _, k := range goFrags {
+	for _, k := range d.frags {
 		if strings.Contains(out, k) {
-			out = strings.ReplaceAll(out, k, enDict.Go[k])
+			out = strings.ReplaceAll(out, k, d.Go[k])
 		}
 	}
 	return out
@@ -94,11 +160,8 @@ func trGo(s string) string {
 // trPS traduce i testi tra apici singoli di uno script PowerShell ('...'), solo quelli
 // che sono nel dizionario: percorsi, nomi e codici non ci sono e restano uguali.
 func trPS(script string) string {
-	if !isEN() {
-		return script
-	}
-	loadI18n()
-	if len(enDict.PS) == 0 {
+	d := curDiz()
+	if d == nil || len(d.PS) == 0 {
 		return script
 	}
 	var b strings.Builder
@@ -147,7 +210,7 @@ func trPS(script string) string {
 				return b.String()
 			}
 			lit := strings.ReplaceAll(s[i+1:j], "''", "'")
-			if v, ok := enDict.PS[lit]; ok {
+			if v, ok := d.PS[lit]; ok {
 				b.WriteByte('\'')
 				b.WriteString(strings.ReplaceAll(v, "'", "''"))
 				b.WriteByte('\'')
@@ -166,18 +229,18 @@ func trPS(script string) string {
 // uiDictJSON: tutto il dizionario per la finestra (testi della finestra + messaggi di Go e
 // degli script, che la finestra traduce quando li riceve).
 func uiDictJSON() string {
-	if !isEN() {
+	d := curDiz()
+	if d == nil {
 		return "null"
 	}
-	loadI18n()
 	g := map[string]string{}
-	for k, v := range enDict.PS {
+	for k, v := range d.PS {
 		g[k] = v
 	}
-	for k, v := range enDict.Go {
+	for k, v := range d.Go {
 		g[k] = v
 	}
-	b, _ := json.Marshal(map[string]interface{}{"t": enDict.UI, "g": g, "frags": goFrags})
+	b, _ := json.Marshal(map[string]interface{}{"t": d.UI, "g": g, "frags": d.frags, "lang": curLang()})
 	return string(b)
 }
 
@@ -189,10 +252,7 @@ func setLang(l string) string {
 	// Un cambio di modalità in corso deve finire prima del riavvio (se no Tasso perde quale modalità
 	// ha messo): tengo modeMu fino alla chiusura, come l'aggiornamento.
 	if !modeMu.TryLock() {
-		if l == "en" {
-			return "Tasso is busy right now: try again when it has finished."
-		}
-		return "Tasso sta lavorando: riprova quando ha finito."
+		return occupatoIn(l)
 	}
 	locked := true
 	defer func() {
@@ -201,12 +261,10 @@ func setLang(l string) string {
 		}
 	}()
 	if isRunning() || otherBusy("") {
-		if l == "en" {
-			return "Tasso is busy right now: try again when it has finished."
-		}
-		return "Tasso sta lavorando: riprova quando ha finito."
+		return occupatoIn(l)
 	}
 	updateSettings(func(s *Settings) { s.Lang = l })
+	scriviLinguaEcosistema(l) // ecosistema.go: Tasso Zip e Tasso PDF seguono la lingua di Tasso
 	exe, err := os.Executable()
 	if err != nil {
 		return "ok-manual"
@@ -223,6 +281,17 @@ func setLang(l string) string {
 		wv.Dispatch(func() { wv.Terminate() })
 	}()
 	return "ok"
+}
+
+// occupatoIn: "Tasso sta lavorando" nella lingua appena scelta (quella di adesso può essere un'altra).
+func occupatoIn(l string) string {
+	const it = "Tasso sta lavorando: riprova quando ha finito."
+	if d := dizLingua(l); d != nil {
+		if v, ok := d.Go[it]; ok {
+			return v
+		}
+	}
+	return it
 }
 
 // trAnyGo traduce tutti i testi dentro mappe ed elenchi (per il report su Discord).

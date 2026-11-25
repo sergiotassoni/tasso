@@ -111,9 +111,10 @@ func applicaModalitaInstallatore() (pc string, cambiata bool) {
 // ---------------- Lingua scelta nell'installatore ----------------
 
 // lingueDisponibili: le lingue di Tasso. "it" è quella scritta nel codice, le altre hanno il loro
-// file i18n/<codice>.json. Per aggiungerne una: il file i18n/xx.json (stesse chiavi di en.json),
-// il suo codice qui e il caricamento del file in i18n.go (oggi c'è solo en.json).
-func lingueDisponibili() []string { return []string{"it", "en"} }
+// file i18n/<codice>.json. Per aggiungerne una: il file i18n/xx.json (stesse chiavi di en.json,
+// lo controlla i18n_lingue_test.go), il suo codice qui, in go:embed di i18n.go, in linguaDaLangID
+// (i18n.go) e il bottone nella finestra (data-lang in ui/index.html).
+func lingueDisponibili() []string { return []string{"it", "en", "es", "fr", "de"} }
 
 func linguaDisponibile(l string) bool {
 	for _, x := range lingueDisponibili() {
@@ -130,7 +131,7 @@ var (
 )
 
 // linguaInstallatore: HKCU\Software\Tasso\Lingua portata a una lingua di Tasso: se Tasso ce l'ha
-// quella, altrimenti l'inglese (es. "de" → "en" finché non c'è i18n/de.json). "" se non c'è.
+// quella, altrimenti l'inglese (es. "pt" → "en" finché non c'è i18n/pt.json). "" se non c'è.
 func linguaInstallatore() string {
 	linguaInstOnce.Do(func() {
 		k, err := registry.OpenKey(registry.CURRENT_USER, chiaveEcosistema, registry.QUERY_VALUE)
@@ -156,6 +157,18 @@ func linguaInstallatore() string {
 		}
 	})
 	return linguaInst
+}
+
+// scriviLinguaEcosistema: la lingua scelta nelle Impostazioni di Tasso va anche in
+// HKCU\Software\Tasso\Lingua, così Tasso Zip e Tasso PDF la seguono (se lì non ne hai scelta
+// un'altra) e il prossimo aggiornamento dell'installatore parla la stessa lingua.
+func scriviLinguaEcosistema(l string) {
+	k, _, err := registry.CreateKey(registry.CURRENT_USER, chiaveEcosistema, registry.SET_VALUE)
+	if err != nil {
+		return
+	}
+	defer k.Close()
+	_ = k.SetStringValue("Lingua", l)
 }
 
 // ---------------- Cartella di Tasso in Programmi ----------------

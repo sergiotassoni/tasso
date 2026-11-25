@@ -622,6 +622,14 @@ body nav button[data-go="games"].on{background:transparent;box-shadow:none}
 .tl[data-tool="opt"] em{font-size:16px;letter-spacing:0;margin-top:-2px}
 .card .li:last-child{border-bottom:0}
 .gwz{align-items:flex-start;padding-top:max(16px,7vh);overflow-y:auto}
+/* Lingue con parole lunghe (tedesco, francese, spagnolo): i testi vanno a capo (con il trattino, grazie a <html lang>)
+   o finiscono con "…" invece di uscire dai bottoni e dal menu. Il nome intero resta nel suggerimento al passaggio del mouse. */
+.btn{max-width:100%;overflow-wrap:break-word;hyphens:auto}
+nav button{min-width:0;max-width:100%;overflow-wrap:break-word;hyphens:auto}
+.navsub button{overflow:hidden;text-overflow:ellipsis}
+.gtabs button{flex:0 0 auto}
+.langbtn{white-space:nowrap}
+.k,.badge,.tag{overflow-wrap:break-word}
 </style>
 </head>
 <body>
@@ -1229,7 +1237,7 @@ body nav button[data-go="games"].on{background:transparent;box-shadow:none}
   </div>
   <div class="card" style="display:flex;flex-direction:column;gap:12px">
     <div><h2>Lingua · Language</h2><p class="sub" style="margin:2px 0 0">Tasso si riapre nella lingua scelta. · Tasso reopens in the language you choose.</p></div>
-    <div class="row wrap" style="gap:8px"><button class="btn ghost langbtn" data-lang="it" lang="it" translate="no">Italiano</button><button class="btn ghost langbtn" data-lang="en">English</button></div>
+    <div class="row wrap" style="gap:8px"><button class="btn ghost langbtn" data-lang="it" lang="it" translate="no">Italiano</button><button class="btn ghost langbtn" data-lang="en" lang="en" translate="no">English</button><button class="btn ghost langbtn" data-lang="es" lang="es" translate="no">Español</button><button class="btn ghost langbtn" data-lang="fr" lang="fr" translate="no">Français</button><button class="btn ghost langbtn" data-lang="de" lang="de" translate="no">Deutsch</button></div>
   </div>
   <div class="card" id="fbCard" style="display:flex;flex-direction:column;gap:12px">
     <div><h2>💬 Scrivici</h2><p class="sub" style="margin:2px 0 0">Un'idea per migliorare Tasso, un problema da sistemare o due parole su come ti trovi. Puoi aggiungere fino a 2 foto. Leggo tutto.</p></div>
@@ -1319,7 +1327,7 @@ body nav button[data-go="games"].on{background:transparent;box-shadow:none}
 <div class="welcome" id="welcome"><div class="in">
   <div class="row wrap" style="justify-content:space-between">
     <div class="brand" style="padding:0"><svg class="gm" width="42" height="42" viewBox="0 0 200 200" aria-hidden="true"><rect x="4" y="4" width="192" height="192" rx="48" fill="#141725"/><rect x="4" y="4" width="192" height="192" rx="48" fill="none" stroke="var(--a1)" stroke-opacity=".8" stroke-width="7"/><path d="M100 172 L34 94 L58 38 L142 38 L166 94 Z" fill="#F2F4F8"/><path d="M58 38 L86 38 L94 122 L76 132 L44 104 Z" fill="#07080D"/><path d="M142 38 L114 38 L106 122 L124 132 L156 104 Z" fill="#07080D"/><circle class="pup" cx="74" cy="98" r="9" fill="var(--a1)"/><circle class="pup" cx="126" cy="98" r="9" fill="var(--a1)"/></svg><svg class="om tassino" width="42" height="42" viewBox="0 0 200 200" aria-hidden="true"><rect x="4" y="4" width="192" height="192" rx="48" fill="#FFFFFF"/><rect x="4" y="4" width="192" height="192" rx="48" fill="none" stroke="#C9CDD4" stroke-width="6"/><g transform="translate(28 36) scale(0.6)"><path d="M44 22 H196 L226 104 L120 206 L14 104 Z" fill="#0A0B0D"/><path d="M80 22 H106 L108 142 L56 132 L36 98 Z" fill="#FFFFFF"/><path d="M160 22 H134 L132 142 L184 132 L204 98 Z" fill="#FFFFFF"/><circle class="pup" cx="82" cy="112" r="12" fill="#2F6FEB"/><circle class="pup" cx="158" cy="112" r="12" fill="#2F6FEB"/><path d="M100 164 H140 L120 190 Z" fill="#FFFFFF"/></g></svg><div><b>TASSO</b></div></div>
-    <span class="row" style="gap:6px"><button class="btn ghost langbtn" data-lang="it" lang="it" translate="no" style="padding:8px 14px">Italiano</button><button class="btn ghost langbtn" data-lang="en" style="padding:8px 14px">English</button></span>
+    <span class="row" style="gap:6px"><button class="btn ghost langbtn" data-lang="it" lang="it" translate="no" style="padding:8px 14px">Italiano</button><button class="btn ghost langbtn" data-lang="en" lang="en" translate="no" style="padding:8px 14px">English</button><button class="btn ghost langbtn" data-lang="es" lang="es" translate="no" style="padding:8px 14px">Español</button><button class="btn ghost langbtn" data-lang="fr" lang="fr" translate="no" style="padding:8px 14px">Français</button><button class="btn ghost langbtn" data-lang="de" lang="de" translate="no" style="padding:8px 14px">Deutsch</button></span>
   </div>
   <div style="display:flex;flex-direction:column;align-items:center;gap:12px;text-align:center">
     <span style="font-size:12px;font-weight:800;letter-spacing:2px;color:var(--a2)">PRIMA CONFIGURAZIONE</span>
@@ -1341,9 +1349,14 @@ body nav button[data-go="games"].on{background:transparent;box-shadow:none}
 (function(){
 'use strict';
 const BOOT = window.__TASSO_BOOT__ || {};
-// ---------- Lingua (2.6.2): l'italiano è nel codice; in inglese Go passa il dizionario ----------
+// ---------- Lingua: l'italiano è nel codice; nelle altre lingue (en, es, fr, de) Go passa il dizionario ----------
 const I18N = window.__TASSO_I18N__ || null;
+// EN: la finestra NON è in italiano (i testi passano dal dizionario). LANG: la lingua vera.
 const EN = !!(I18N && I18N.t);
+const LANG = BOOT.lang || (I18N && I18N.lang) || (EN ? 'en' : 'it');
+const LOC = ({it:'it-IT', en:'en-GB', es:'es-ES', fr:'fr-FR', de:'de-DE'})[LANG] || 'en-GB';
+// Nomi delle lingue col minuscolo dentro le frasi (italiano, spagnolo, francese); inglese e tedesco col maiuscolo.
+const LOWNAMES = LANG === 'it' || LANG === 'es' || LANG === 'fr';
 const TD = EN ? I18N.t : {};
 const TG = EN ? (I18N.g || {}) : {};
 const TF = EN ? (I18N.frags || []).filter(k => k.length >= 6 && TG[k] !== undefined) : [];
@@ -1367,15 +1380,16 @@ function tx(v, depth){
   return v;
 }
 window.__tx = tx;
-function paintLang(){ const cur = BOOT.lang || (EN ? 'en' : 'it'); document.querySelectorAll('.langbtn').forEach(b => { const on = b.dataset.lang === cur; b.classList.toggle('primary', on); b.classList.toggle('ghost', !on); b.setAttribute('aria-pressed', on ? 'true' : 'false'); }); }
+let LANGSEL = LANG; // la lingua scelta (se Tasso non si è riaperto da solo, vale dal prossimo avvio)
+function paintLang(){ const cur = LANGSEL; document.querySelectorAll('.langbtn').forEach(b => { const on = b.dataset.lang === cur; b.classList.toggle('primary', on); b.classList.toggle('ghost', !on); b.setAttribute('aria-pressed', on ? 'true' : 'false'); }); }
 document.addEventListener('click', async (e) => {
   const b = e.target.closest && e.target.closest('.langbtn'); if (!b) return;
-  const l = b.dataset.lang; if (l === (BOOT.lang || (EN ? 'en' : 'it'))) return;
+  const l = b.dataset.lang; if (l === LANGSEL) return;
   document.querySelectorAll('.langbtn').forEach(x => x.disabled = true);
   const r = await call('goSetLang', l);
   if (r === 'ok') return; // Tasso si riapre da solo
   document.querySelectorAll('.langbtn').forEach(x => x.disabled = false);
-  if (r === 'ok-manual') { BOOT.lang = l; paintLang(); toast(l === 'en' ? 'Saved: close Tasso and open it again.' : 'Salvato: chiudi Tasso e riaprilo.'); }
+  if (r === 'ok-manual') { LANGSEL = l; paintLang(); toast(({en:'Saved: close Tasso and open it again.', es:'Guardado: cierra Tasso y vuelve a abrirlo.', fr:'Enregistré : fermez Tasso et rouvrez-le.', de:'Gespeichert: Schließe Tasso und öffne es erneut.'})[l] || 'Salvato: chiudi Tasso e riaprilo.'); }
   else if (r) toast(r);
 });
 // Testi fissi della pagina: li traduco una volta all'apertura.
@@ -1385,7 +1399,7 @@ function translateStatic(root){
   const list = []; while (w.nextNode()) list.push(w.currentNode);
   for (const n of list) { const raw = n.nodeValue, k = raw.trim(); if (!k) continue; const v = TD[k]; if (v !== undefined) n.nodeValue = raw.replace(k, v); }
   root.querySelectorAll('[placeholder],[title],[aria-label],[alt]').forEach(e => { for (const a of ['placeholder', 'title', 'aria-label', 'alt']) { const v = e.getAttribute(a); if (v && TD[v.trim()] !== undefined) e.setAttribute(a, TD[v.trim()]); } });
-  if (EN) document.documentElement.lang = 'en';
+  document.documentElement.lang = LANG;
 }
 translateStatic(document.body);
 // Menu stretto (≤760 px) = solo icone: il nome di ogni voce resta nel suggerimento al passaggio del mouse (già tradotto qui sopra).
@@ -1405,7 +1419,7 @@ document.querySelectorAll('aside nav button').forEach(b => { const t = b.textCon
   try { history.pushState({tasso: 1}, ''); window.addEventListener('popstate', () => { try { history.pushState({tasso: 1}, ''); } catch (e) {} }); } catch (e) {}
 })();
 paintLang();
-const DEC = EN ? '.' : ',';
+const DEC = LANG === 'en' ? '.' : ',';
 let S = BOOT.settings || {};
 if (EN && BOOT.steps) BOOT.steps = tx(BOOT.steps);
 let HEALTH = null;
@@ -1884,7 +1898,7 @@ function paintGHome(score){
   g('gDot').style.background = col; g('gDot').style.boxShadow = '0 0 12px ' + col;
   g('gState').textContent = score >= 80 ? _t('PC in forma') : score >= 60 ? _t('PC da sistemare un po\'') : _t('Il PC ha bisogno di una mano');
 }
-function gDatePaint(){ const d = document.getElementById('gDate'); if (d) { try { d.textContent = new Date().toLocaleDateString((BOOT.lang || (EN ? 'en' : 'it')) === 'en' ? 'en-GB' : 'it-IT', {weekday:'long', day:'numeric', month:'long'}); } catch (e) {} } }
+function gDatePaint(){ const d = document.getElementById('gDate'); if (d) { try { d.textContent = new Date().toLocaleDateString(LOC, {weekday:'long', day:'numeric', month:'long'}); } catch (e) {} } }
 gDatePaint();
 // Il BOOST della Home è lo stesso del BOOST in Gioca: mostra se è acceso, e con Tasso spento spiega perché non parte.
 function gBoostPaint(){
@@ -2038,7 +2052,7 @@ function paintModes(){
 function boostPaint(){
   const t = $('#boostTitle'); if (!t) return;
   const cur = MODES.find(m => m.id === (S.mode || 'normale'));
-  t.textContent = cur ? (EN ? 'The PC is in ' + cur.name + ' mode' : 'Il PC è in modalità ' + cur.name) : _t('Il PC ha le impostazioni originali di Windows');
+  t.textContent = cur ? (LANG === 'en' ? 'The PC is in ' + cur.name + ' mode' : _t('Il PC è in modalità ') + cur.name) : _t('Il PC ha le impostazioni originali di Windows');
   if (typeof boostPaintState === 'function' && $('#btnBoost')) boostPaintState();
 }
 var BST = {};
@@ -2813,7 +2827,7 @@ function paintDiscord(){
   [3, 6, 12, 24].forEach(h => { const b = el('button', {class:'chip' + (h === every ? ' on' : '')}, h + _t(' ore')); b.onclick = async () => { const r = await call('goDiscordEvery', h); if (r === 'ok') { S.discordEvery = h; paintDiscord(); toast(_t('Report ogni ') + h + _t(' ore.')); } }; eb.appendChild(b); });
   if (!S.discordWebhook) { st.textContent = _t('Spento. Segui i 4 passi della guida qui sopra.'); if (!DC_GUIDE_SHOWN) { DC_GUIDE_SHOWN = true; $('#dcGuide').open = true; } }
   else if (!S.discordOn) st.textContent = _t('Webhook salvato, invio automatico spento.');
-  else st.textContent = _t('Acceso: un report ogni ') + every + _t(' ore e dopo ogni pulizia') + (S.discordLast ? _t('. Ultimo invio: ') + new Date(S.discordLast).toLocaleString('it-IT', {day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit'}) : '') + '.';
+  else st.textContent = _t('Acceso: un report ogni ') + every + _t(' ore e dopo ogni pulizia') + (S.discordLast ? _t('. Ultimo invio: ') + new Date(S.discordLast).toLocaleString(LOC, {day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit'}) : '') + '.';
   const bs = $('#dcBotState');
   if (!BOT_MSG) bs.textContent = S.discordBotSaved ? (S.discordBotOn ? _t('Bot collegato: scrivi !stato nel canale per ricevere il report.') : _t('Token salvato (protetto da Windows), bot spento.')) : _t('Il token viene salvato protetto da Windows: si può leggere solo dal tuo account su questo PC.');
 }
@@ -3717,7 +3731,7 @@ function paintTr(){
   sw.classList.toggle('on', on); sw.setAttribute('aria-checked', on ? 'true' : 'false');
   const a = TT && TT.lingua_a ? langName(TT.lingua_a) : _t('Italiano');
   // interruttore = accende il traduttore (in sottofondo); il tasto nel gioco mostra/nasconde le scritte e, se serve, lo accende da solo
-  const k = '<span class="kbd">' + esc(keyName('pagina', 'F7')) + '</span>', lg = esc(EN ? a : a.toLowerCase());
+  const k = '<span class="kbd">' + esc(keyName('pagina', 'F7')) + '</span>', lg = esc(LOWNAMES ? a.toLowerCase() : a);
   $('#trTxt').innerHTML = (TT && !TT.mozilla_ok && !TT.mozilla_file) ? esc(_t('Prima scarica il traduttore veloce in Impostazioni giochi: poi nel gioco premi ')) + k + esc(_t(' e le scritte diventano in ')) + lg + '.'
     : esc(_t('Nel gioco premi ')) + k + esc(_t(' e le scritte diventano in ')) + lg + '. ' + esc(_t('Se il traduttore è spento, si accende da solo.'));
   if (!$('[data-gp="imp"]').hidden) paintTrSet();
@@ -3918,7 +3932,7 @@ window.tt = {
 // ---- pagina del gioco (come nell'esempio approvato)
 const POW = {'':_t('Normale'), gaming:_t('Potenza alta'), max:_t('Massima potenza')};
 const potKey = (p) => p === 'normale' ? '' : (p || '');
-function fmtDay(d){ if (!d) return ''; const t = new Date(d + 'T12:00:00'); if (isNaN(t)) return d; const days = Math.round((new Date().setHours(12, 0, 0, 0) - t.getTime()) / 864e5); if (days <= 0) return _t('oggi'); if (days === 1) return _t('ieri'); if (days < 7) return days + _t(' giorni fa'); try { return t.toLocaleDateString(EN ? 'en-GB' : 'it-IT', {day:'numeric', month:'long'}); } catch (e) { return d; } }
+function fmtDay(d){ if (!d) return ''; const t = new Date(d + 'T12:00:00'); if (isNaN(t)) return d; const days = Math.round((new Date().setHours(12, 0, 0, 0) - t.getTime()) / 864e5); if (days <= 0) return _t('oggi'); if (days === 1) return _t('ieri'); if (days < 7) return days + _t(' giorni fa'); try { return t.toLocaleDateString(LOC, {day:'numeric', month:'long'}); } catch (e) { return d; } }
 function memoTxt(m){
   if (!m) return '';
   const tr = m.skip ? _t('senza traduzione') : (m.a ? langName(m.da || 'auto') + ' → ' + langName(m.a) + ', ' + (m.modo === 'file' ? _t('dentro il gioco') : _t('sullo schermo')) + (m.ia ? _t(', con l\'IA') : '') : '');
@@ -4068,7 +4082,7 @@ function gpTrText(){
 function gpTrOn(){ const i = GPI || {}, st = TT || {}; return !!(i.tradotto && (i.in_file || st.acceso)); }
 function gpTrCard(g){
   const i = GPI, st = TT || {}, k = '<span class="kbd">' + esc(keyName('pagina', 'F7')) + '</span>', on = gpTrOn();
-  const a = st.lingua_a ? langName(st.lingua_a) : _t('Italiano'), lg = esc(EN ? a : a.toLowerCase());
+  const a = st.lingua_a ? langName(st.lingua_a) : _t('Italiano'), lg = esc(LOWNAMES ? a.toLowerCase() : a);
   const can = !!(i && !i.errore);
   return '<div class="card gptr"><h3>🌐 ' + esc(_t('Traduzione')) + '</h3>' +
     '<div class="gp-line"><span><b>' + esc(_t('Traduci questo gioco')) + '</b><small>' + esc(_t('Nel gioco premi ')) + k + esc(_t(' e le scritte diventano in ')) + lg + '. ' + esc(_t('Se il traduttore è spento, si accende da solo.')) + '</small></span>' +
@@ -4144,7 +4158,7 @@ let W = null, WRUN = 0;
 async function wzOpen(g, kind){
   const from = document.activeElement, fromKey = focusKey(from);
   const st = await ttRefresh() || {}; await loadLangs();
-  W = {kind: kind || 'prep', g: null, info: {}, m: null, i: 0, da: st.lingua_da || 'auto', a: st.lingua_a || 'it', modo: 'schermo', skip: kind === 'boost', ia: !!(st.ia_file && st.ia_pc_ok), liv: (st.ia_file && st.ia_pc_ok) ? (st.ia_livello || 'auto') : 'off', pot: '', tune: null, tuneSel: null, busy: false, err: '', msg: '', run: 0, q: '', f: 'all', ret: from, retKey: fromKey};
+  W = {kind: kind || 'prep', g: null, info: {}, m: null, i: 0, da: st.lingua_da || 'auto', a: st.lingua_a || LANG, modo: 'schermo', skip: kind === 'boost', ia: !!(st.ia_file && st.ia_pc_ok), liv: (st.ia_file && st.ia_pc_ok) ? (st.ia_livello || 'auto') : 'off', pot: '', tune: null, tuneSel: null, busy: false, err: '', msg: '', run: 0, q: '', f: 'all', ret: from, retKey: fromKey};
   W.steps = W.kind === 'boost' ? ['pick', 'pot', 'cons', 'fine', 'ok'] : ['da', 'a', 'pot', 'cons', 'fine', 'ok'];
   if (g) await wzGame(g);
   $('#gwz').hidden = false; wzDraw(); const n = $('#gwzNext'); if (n) n.focus();
@@ -4240,7 +4254,7 @@ function lvHtml(st, iaTxt){
   const okIa = !!(st.ia_file && st.ia_pc_ok);
   if (!okIa) return '<div class="lvcard"><b>🧠 ' + esc(_t('Traduzione più precisa (IA)')) + '</b><span class="small muted">' + esc(iaTxt) + '</span></div>';
   const gbv = st.ia_gb || {piccola: 3, media: 4.3, grande: 5.2}, g = st.gpu || {}, tot = g.memoria_gb || 0, gioco = Math.max(0, g.usata_gb || 0), lib = tot - gioco;
-  const n = (x) => String(Math.round(x * 10) / 10).replace('.', EN ? '.' : ',');
+  const n = (x) => String(Math.round(x * 10) / 10).replace('.', DEC);
   const fit = (gb) => !tot || lib >= Math.min(gb, gb === gbv.piccola ? (gbv.piccola_min || gb) : gb) + 1.3; // la Piccola si stringe fino a piccola_min
   const L = [
     {k:'auto', t:_t('Automatica'), em:_t('Consigliata'), gb:null, d:_t('Tasso sceglie da solo il livello più intelligente che ci sta, gioco per gioco.'), v:0, ok:true},
@@ -4288,7 +4302,7 @@ function wzDraw(){
     const ok = canFile() ? LANGS : LANGS.filter(l => l.ocr_ok), no = canFile() ? [] : LANGS.filter(l => !l.ocr_ok);
     const ls = W.info && W.info.lingua_steam, lsBad = ls && W.info.lingua_steam_ok === false && !canFile();
     h = P(_t('In che lingua è ') + g.name + '?') + memoBox +
-      (lsBad ? '<div class="callout">' + esc(_t('Su Steam ')) + esc(g.name) + esc(_t(' è impostato in ')) + esc(EN ? langName(ls) : langName(ls).toLowerCase()) + esc(_t(', ma Windows su questo PC non sa leggere questa lingua: la traduzione non funzionerebbe. Mettilo in inglese da Steam (tasto destro sul gioco → Proprietà → Lingua) e riapri questa procedura, oppure aggiungi la lingua in Windows.')) + ' ' + ocrBtn(ls) + '</div>' :
+      (lsBad ? '<div class="callout">' + esc(_t('Su Steam ')) + esc(g.name) + esc(_t(' è impostato in ')) + esc(LOWNAMES ? langName(ls).toLowerCase() : langName(ls)) + esc(_t(', ma Windows su questo PC non sa leggere questa lingua: la traduzione non funzionerebbe. Mettilo in inglese da Steam (tasto destro sul gioco → Proprietà → Lingua) e riapri questa procedura, oppure aggiungi la lingua in Windows.')) + ' ' + ocrBtn(ls) + '</div>' :
         ls && W.da === ls ? '<p class="small" style="margin:0;color:var(--a1t)">✓ ' + esc(_t('Lingua presa da Steam: ')) + esc(langName(ls)) + '</p>' : '') +
       '<div class="opz"><button class="salta" data-skip="1"><b>' + esc(_t('Non serve tradurre')) + '</b><small>' + esc(_t('vai subito alla potenza →')) + '</small></button></div><p class="small muted" style="margin:0">' + esc(_t('Guarda nel menu del gioco. Se non lo sai, "Riconosci da solo".')) + '</p><div class="opz">' + langBtns([{codice:'auto'}].concat(ok), W.da, true) + '</div>' +
       (no.length && !lsBad ? '<p class="small muted" style="margin:0">' + esc(_t('Windows su questo PC non sa ancora leggere queste lingue. Premi su una per aggiungerla: Tasso la installa da solo (serve internet, qualche minuto).')) + '</p><div class="row wrap" style="gap:6px">' + no.map(l => ocrBtn(l.codice, true)).join('') + '</div>' : '');
@@ -4351,7 +4365,7 @@ $('#gwzB').addEventListener('click', (ev) => {
   const pk = ev.target.closest('[data-pick]'); if (pk) { const x = LIB.find(y => y.id === pk.dataset.pick); if (x) { wzGame(x).then(() => { if (W) wzDraw(); }); wzDraw(); } return; }
   const f = ev.target.closest('[data-f]'); if (f) { W.f = f.dataset.f; wzDraw(); return; }
   const sk = ev.target.closest('[data-skip]'); if (sk) { W.skip = true; W.i = W.steps.indexOf('pot'); wzDraw(); return; }
-  const l = ev.target.closest('[data-l]'); if (l) { if (wzStep() === 'da') { W.da = l.dataset.l; W.skip = false; if (W.a === W.da) W.a = W.da === 'it' ? 'en' : 'it'; } else W.a = l.dataset.l; wzDraw(); return; }
+  const l = ev.target.closest('[data-l]'); if (l) { if (wzStep() === 'da') { W.da = l.dataset.l; W.skip = false; if (W.a === W.da) W.a = W.da === LANG ? (LANG === 'en' ? 'it' : 'en') : LANG; } else W.a = l.dataset.l; wzDraw(); return; }
   const mo = ev.target.closest('[data-m]'); if (mo && !mo.disabled) { W.modo = mo.dataset.m; wzDraw(); return; }
   const lv = ev.target.closest('[data-lv]'); if (lv && !lv.disabled) { W.liv = lv.dataset.lv; W.ia = W.liv !== 'off'; wzDraw(); return; }
   const pw = ev.target.closest('[data-pw]'); if (pw) { W.pot = pw.dataset.pw; wzDraw(); }
@@ -4727,7 +4741,7 @@ $('#btnVPin').onclick = () => modal('<h2>' + (VST.noPin ? _t('Metti un PIN') : _
 $('#vForgot').onclick = (e) => { e.preventDefault(); modal(_t('<h2>PIN dimenticato?</h2><p class="muted" style="margin:0;line-height:1.5">Onestamente: senza PIN le password non si possono recuperare, nemmeno da Tasso. È proprio questo che le rende sicure. Puoi solo <b>cancellare il portachiavi</b> e crearne uno nuovo (le password dentro andranno perse).</p>'), [{label:_t('Annulla')}, {label:_t('Cancella il portachiavi'), cls:'danger', fn: async () => { const r = await call('goVaultReset'); if (r === 'ok') toast(_t('Portachiavi cancellato.')); else toast(r || _t('Errore'), 'var(--red)'); vaultRefresh(); }}]); };
 Object.assign(window.tasso, { onPwned(r){
   if (!r || !r.ok) { toast((r && r.error) || _t('Controllo non riuscito.'), 'var(--a4)'); return; }
-  if (r.count > 0) toast(_t('⚠️ Questa password compare ') + Number(r.count).toLocaleString(EN ? 'en-US' : 'it-IT') + _t(' volte tra quelle rubate su internet. Cambiala subito dove la usi.'), 'var(--red)');
+  if (r.count > 0) toast(_t('⚠️ Questa password compare ') + Number(r.count).toLocaleString(LOC) + _t(' volte tra quelle rubate su internet. Cambiala subito dove la usi.'), 'var(--red)');
   else toast(_t('✓ Questa password non compare tra quelle rubate conosciute.'), 'var(--a1)');
 }, onVaultFill(d){
   if (!d) return;

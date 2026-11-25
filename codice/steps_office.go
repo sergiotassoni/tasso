@@ -826,8 +826,8 @@ Open-User 'ms-settings:display'
 $langs = @(Get-WinUserLanguageList -ErrorAction SilentlyContinue)
 $tips = @(); foreach ($l in $langs) { foreach ($t in $l.InputMethodTips) { $tips += [string]$t } }
 Say ('Tastiere installate: ' + ((($langs | ForEach-Object { $_.LanguageTag }) -join ', ')) + '.')
-if ($TassoLang -eq 'en') {
-  # In inglese: la tastiera "giusta" è la prima della tua lingua principale di Windows.
+if ($TassoLang -ne 'it') {
+  # Non in italiano: la tastiera "giusta" è la prima della tua lingua principale di Windows.
   $first = ''; if ($langs.Count -gt 0 -and @($langs[0].InputMethodTips).Count -gt 0) { $first = [string]@($langs[0].InputMethodTips)[0] }
   if ($first) { Set-WinDefaultInputMethodOverride -InputTip $first -ErrorAction SilentlyContinue; Say ('Default keyboard set to the first one of ' + $langs[0].LanguageTag + '.') }
   else { Say 'I could not read your keyboards: add or pick one in Settings > Time & language > Language & region (I am opening it).'; Open-User 'ms-settings:regionlanguage' }

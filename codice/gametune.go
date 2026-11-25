@@ -98,7 +98,7 @@ var steamGenreIT = map[string]string{
 func steamGenresShown(genres []string) string {
 	var out []string
 	for _, g := range genres {
-		if isEN() {
+		if traduciTasso() { // fuori dall'italiano: i nomi di Steam, in inglese
 			out = append(out, g)
 		} else if it, ok := steamGenreIT[g]; ok {
 			out = append(out, it)

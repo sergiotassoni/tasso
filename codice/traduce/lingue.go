@@ -29,8 +29,12 @@ func linguaDa(codice string) (LinguaGioco, bool) {
 }
 
 // arrivoDiBase: la lingua in cui tradurre finché non ne scegli una: quella di Tasso.
+// In spagnolo, francese o tedesco è quella lingua (i modelli si scaricano al primo uso, come l'italiano).
 func arrivoDiBase() string {
-	if inIngleseTasso() {
+	if l := linguaTasso(); l != "it" {
+		if _, ok := linguaDa(l); ok {
+			return l
+		}
 		return "en"
 	}
 	return "it"
