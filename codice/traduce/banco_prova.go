@@ -84,6 +84,7 @@ func elaboraImmagine(img *image.RGBA, nome string, o opzioniBanco) (esitoImmagin
 	if o.dopo != nil {
 		ris = o.dopo(da, ris)
 	}
+	da, ris = riprovaFile(ctx, o.tr, img, da, ris, blocchi) // file di pulsanti lette come una riga
 	var pronti []Blocco
 	for i, b := range da {
 		r := ris[i]

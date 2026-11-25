@@ -643,6 +643,8 @@ func preparaPaginaCon(area Zona, img, primaImg *image.RGBA, giro int64, annulla 
 			risultati[i] = r2[k]
 		}
 	}
+	// file di pulsanti lette come una riga e scartate come mezze: ogni voce per conto suo
+	da, risultati = riprovaFile(ctx, traduttore, img, da, risultati, blocchi)
 	tTrad := time.Since(t0) - tOCR
 	if !paginaAttiva.Load() || paginaGiro.Load() != giro {
 		return nil, letturaAnnullata

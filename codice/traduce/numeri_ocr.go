@@ -39,3 +39,27 @@ func correggiPercentuale(s string) string {
 	}
 	return rePercento00.ReplaceAllString(s, "$1$2%$3")
 }
+
+// reBarraTraNumeri: la barra dei contatori ("24 / 120", "3/10") letta come "I", "l", "|" o "\"
+// tra due numeri. Una lettera sola tra due numeri non è mai una parola: è la barra.
+var reBarraTraNumeri = regexp.MustCompile(`(^|[^0-9A-Za-z])([0-9]+)(\s*)[Il|\\](\s*)([0-9]+)($|[^0-9A-Za-z])`)
+
+// reCifraConO: "12O", "1O0" (la O letta al posto dello zero dentro un numero di 2+ cifre).
+var reCifraConO = regexp.MustCompile(`\b([0-9]+[O][0-9O]*|[0-9]*[O][0-9]+[0-9O]*)\b`)
+
+// correggiContatori: i contatori dei giochi letti male ("24 I 120" -> "24 / 120", "12O" -> "120").
+func correggiContatori(s string) string {
+	if !strings.ContainsAny(s, "0123456789") {
+		return s
+	}
+	s = reCifraConO.ReplaceAllStringFunc(s, func(t string) string {
+		if !strings.ContainsAny(t, "0123456789") {
+			return t
+		}
+		return strings.ReplaceAll(t, "O", "0")
+	})
+	return reBarraTraNumeri.ReplaceAllStringFunc(s, func(t string) string {
+		m := reBarraTraNumeri.FindStringSubmatch(t)
+		return m[1] + m[2] + m[3] + "/" + m[4] + m[5] + m[6]
+	})
+}

@@ -7,6 +7,7 @@ package traduce
 import (
 	"context"
 	"image"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -79,7 +80,7 @@ func controllaCompleta(img *image.RGBA, b *Blocco, tutte []Blocco) string {
 		return ""
 	}
 	coloriBlocco(img, b)
-	if b.Righe <= 1 && b.Affid != letturaCatalog && scrittaContinuaTra(img, *b, tutte) {
+	if b.Righe <= 1 && b.Affid != letturaCatalog && scrittaContinuaTra(img, *b, tutte) && !fraseConPocoAccanto(img, *b, tutte) {
 		return "riga incompleta (parola accanto non letta)"
 	}
 	adattaAInchiostro(img, b)
@@ -182,4 +183,93 @@ type chiaveLotto struct{}
 // insieme), usato per le schermate con tante scritte tradotte tutte insieme.
 func conLotto(ctx context.Context) context.Context {
 	return context.WithValue(ctx, chiaveLotto{}, true)
+}
+
+// vociDiUnaFila: una riga scartata come "mezza in inglese" che è in realtà una fila di voci con
+// le iniziali maiuscole ("Apply Reset to Default Back": tre pulsanti, tradotti insieme mescolano
+// le voci). La divido dove una parola con la maiuscola segue una parola che chiude una voce e lo
+// spazio tra le due è più largo dello spazio normale della riga (1,5 volte la mediana dei buchi):
+// "Apply" | "Reset to Default" | "Back". Solo righe senza punteggiatura da frase, con tutte le
+// parole con la maiuscola (o parole di legame come "to", "of"). nil = non è una fila di voci.
+func vociDiUnaFila(b Blocco) []Blocco {
+	p := append([]ParolaOCR(nil), b.parole()...)
+	if max(1, b.Righe) != 1 || len(p) < 3 || strings.ContainsAny(b.Testo, ".!?,;") {
+		return nil
+	}
+	sort.SliceStable(p, func(i, j int) bool { return p[i].X < p[j].X })
+	for _, w := range p {
+		t := strings.Trim(strings.TrimSpace(w.T), "\"'()[]")
+		if t == "" {
+			return nil
+		}
+		if !inizioVoce(t) && !paroleSospese[strings.ToLower(t)] {
+			return nil // frase normale, non una fila di voci
+		}
+	}
+	buchi := make([]float64, len(p)-1)
+	for i := 1; i < len(p); i++ {
+		buchi[i-1] = p[i].X - (p[i-1].X + p[i-1].W)
+	}
+	ord := append([]float64(nil), buchi...)
+	sort.Float64s(ord)
+	normale := ord[(len(ord)-1)/2]
+	var gruppi [][]ParolaOCR
+	cur := []ParolaOCR{p[0]}
+	for i := 1; i < len(p); i++ {
+		if buchi[i-1] > 0 && buchi[i-1] >= 1.5*normale && inizioVoce(p[i].T) && fineVoce(p[i-1].T) {
+			gruppi = append(gruppi, cur)
+			cur = nil
+		}
+		cur = append(cur, p[i])
+	}
+	gruppi = append(gruppi, cur)
+	if len(gruppi) < 2 {
+		return nil
+	}
+	out := make([]Blocco, 0, len(gruppi))
+	for _, g := range gruppi {
+		n := bloccoDaPosizioni(g, b)
+		n.Testo, n.Affid = correggiRigaOCR(n.Grezzo)
+		out = append(out, n)
+	}
+	return out
+}
+
+// riprovaFile: le righe scartate come "mezza in inglese" che sono file di voci (vociDiUnaFila)
+// tornano divise: ogni voce si controlla, si traduce e si copre per conto suo. Le altre righe
+// restano come sono. Lo usano la traduzione vera (F7) e il banco di prova.
+func riprovaFile(ctx context.Context, tr *Traduttore, img *image.RGBA, da []Blocco, ris []Risultato, tutte []Blocco) ([]Blocco, []Risultato) {
+	var nuoveDa []Blocco
+	var nuoveRis []Risultato
+	cambiato := false
+	for i, b := range da {
+		if !strings.HasPrefix(motivoScartaTraduzione(b, ris[i]), "mezza") {
+			nuoveDa, nuoveRis = append(nuoveDa, b), append(nuoveRis, ris[i])
+			continue
+		}
+		voci := vociDiUnaFila(b)
+		if len(voci) == 0 {
+			nuoveDa, nuoveRis = append(nuoveDa, b), append(nuoveRis, ris[i])
+			continue
+		}
+		vicine := append(append([]Blocco(nil), tutte...), voci...)
+		var tenute []Blocco
+		for _, v := range voci {
+			if motivoNonTradurre(v) != "" || controllaCompleta(img, &v, vicine) != "" {
+				continue
+			}
+			tenute = append(tenute, v)
+		}
+		if len(tenute) == 0 {
+			nuoveDa, nuoveRis = append(nuoveDa, b), append(nuoveRis, ris[i])
+			continue
+		}
+		cambiato = true
+		r := traduciTutte(ctx, tr, tenute, false)
+		nuoveDa, nuoveRis = append(nuoveDa, tenute...), append(nuoveRis, r...)
+	}
+	if !cambiato {
+		return da, ris
+	}
+	return nuoveDa, nuoveRis
 }

@@ -454,7 +454,7 @@ var reSegnoAttaccato = regexp.MustCompile(`(\p{Ll}{2})([!?]+)(\p{L})`)
 func correggiRigaOCR(grezzo string) (string, int) {
 	s := strings.Join(strings.Fields(lettereOCRStrane(grezzo)), " ")
 	s = reSegnoAttaccato.ReplaceAllString(s, "$1$2 $3")
-	s = correggiPercentuale(s)
+	s = correggiContatori(correggiPercentuale(s))
 	if s == "" || reSoloSimboli.MatchString(s) {
 		return s, letturaDubbia
 	}
@@ -601,6 +601,9 @@ func rigaMezzaTradotta(en, it string) bool {
 				nomi[strings.ToLower(strings.Trim(w, "'-"))] = true
 			}
 		}
+	}
+	for _, w := range nomeChiParla(en) {
+		nomi[strings.ToLower(w)] = true // "MARCUS: ..." il nome di chi parla resta com'è
 	}
 	caricaCataloghi()
 	titolo, nomeTitolo := titoloCorto(en), ""
@@ -847,4 +850,56 @@ func tastiIntatti(en, it string) string {
 		}
 	}
 	return it
+}
+
+// nomeChiParla: le parole del nome di chi parla all'inizio di un sottotitolo o di un dialogo
+// ("MARCUS: I don't trust him.", "OLD MAN: The bridge...", "Kael: Follow me."). Il nome resta
+// com'è nella traduzione e non rende la riga "mezza in inglese". Il nome: da 1 a 3 parole tutte
+// maiuscole, o una parola sola con la maiuscola che non è una parola inglese (un nome proprio);
+// dopo i due punti una frase vera (con le minuscole, almeno due parole).
+func nomeChiParla(en string) []string {
+	if n, _ := separaParlante(strings.TrimSpace(en)); n != "" {
+		return strings.Fields(n) // lo stesso nome che il traduttore lascia com'è
+	}
+	prima, dopo, ok := strings.Cut(strings.TrimSpace(en), ":")
+	if !ok || !strings.ContainsFunc(dopo, unicode.IsLower) || len(strings.Fields(dopo)) < 2 {
+		return nil
+	}
+	campi := strings.Fields(prima)
+	if len(campi) == 0 || len(campi) > 3 {
+		return nil
+	}
+	tutteMaiuscole := true
+	for _, w := range campi {
+		r := []rune(w)
+		lettere := 0
+		for _, c := range r {
+			switch {
+			case unicode.IsLetter(c):
+				lettere++
+				if unicode.IsLower(c) {
+					tutteMaiuscole = false
+				}
+			case c == '\'' || c == '-' || c == '.':
+			default:
+				return nil
+			}
+		}
+		if lettere == 0 {
+			return nil
+		}
+	}
+	if tutteMaiuscole {
+		if len([]rune(strings.Join(campi, ""))) < 2 {
+			return nil
+		}
+		return campi
+	}
+	if len(campi) == 1 {
+		r := []rune(campi[0])
+		if len(r) >= 2 && unicode.IsUpper(r[0]) && !esiste(campi[0]) {
+			return campi
+		}
+	}
+	return nil
 }

@@ -58,6 +58,11 @@ func variantiRiga(rit *image.RGBA, k int) []*image.Gray {
 	if b.W > 4 && b.H > 4 {
 		coloriBloccoSemplice(rit, &b)
 	}
+	if bianche := lettereBianche(rit, b); bianche != nil {
+		// lettere bianche con il bordino scuro su un fondo chiaro (sottotitoli): il colore "più
+		// lontano dal fondo" è il bordino, non le lettere. Tengo solo il bianco.
+		return []*image.Gray{g, inv, ingrandisci(bianche, k)}
+	}
 	sol := image.NewGray(rit.Bounds())
 	for y := riquadro.Min.Y; y < riquadro.Max.Y; y++ {
 		for x := riquadro.Min.X; x < riquadro.Max.X; x++ {
@@ -241,6 +246,9 @@ func pezziDaRileggere(img *image.RGBA, righe []RigaOCR, f float64, maxPezzi int)
 		if h < 6 || h > 120 {
 			continue
 		}
+		// la parola letta male all'inizio o alla fine è spesso letta solo a metà ("nettling" per
+		// "Something"): il riquadro si allarga sull'inchiostro attaccato, se non tocca altre righe
+		x0, x1 = allargaSuInchiostro(img, righe, i, f, x0, x1)
 		mx, my := int(h*0.6+0.5), int(h*0.35+0.5)
 		rett := image.Rect(x0-mx, y0-my, x1+mx, y1+my).Intersect(img.Bounds())
 		if rett.Empty() {
@@ -451,4 +459,76 @@ func rettRiga(r RigaOCR, f float64) (x0, y0, x1, y1 int, h float64) {
 	}
 	sort.Float64s(hs)
 	return int(a / f), int(b / f), int(c/f + 0.5), int(d/f + 0.5), hs[len(hs)/2]
+}
+
+// lettereBianche: per le lettere bianche con il bordino (o l'ombra) scuro su un fondo chiaro: il
+// fondo è chiaro, l'"inchiostro" trovato è scuro (il bordino) e ci sono pixel quasi bianchi e
+// senza colore (le lettere) in una parte credibile del ritaglio. Restituisce le lettere nere su
+// bianco (nil se non è questo caso: il ritaglio si prepara come sempre).
+func lettereBianche(rit *image.RGBA, b Blocco) *image.Gray {
+	lum := func(c color.RGBA) int { return (int(c.R)*299 + int(c.G)*587 + int(c.B)*114) / 1000 }
+	if lum(b.Sfondo) < 120 || lum(b.Inchiostro) > 90 {
+		return nil
+	}
+	r := rit.Bounds()
+	bianco := func(c color.RGBA) bool {
+		mx := max(c.R, c.G, c.B)
+		mn := min(c.R, c.G, c.B)
+		return lum(c) >= 228 && int(mx)-int(mn) <= 30
+	}
+	n := 0
+	for y := r.Min.Y; y < r.Max.Y; y++ {
+		for x := r.Min.X; x < r.Max.X; x++ {
+			if bianco(rit.RGBAAt(x, y)) {
+				n++
+			}
+		}
+	}
+	tot := r.Dx() * r.Dy()
+	if tot == 0 || n*100 < tot*3 || n*100 > tot*40 {
+		return nil
+	}
+	out := image.NewGray(r)
+	for y := r.Min.Y; y < r.Max.Y; y++ {
+		for x := r.Min.X; x < r.Max.X; x++ {
+			v := uint8(255)
+			if bianco(rit.RGBAAt(x, y)) {
+				v = 0
+			}
+			out.SetGray(x, y, color.Gray{Y: v})
+		}
+	}
+	return out
+}
+
+// allargaSuInchiostro: x0..x1 della riga i allargati fin dove arriva l'inchiostro attaccato
+// (estendiSuInchiostro), al massimo 4 em per lato e senza entrare in un'altra riga letta.
+func allargaSuInchiostro(img *image.RGBA, righe []RigaOCR, i int, f float64, x0, x1 int) (int, int) {
+	b := bloccoDaParole(righe[i].Parole, f)
+	if b.W <= 0 || b.H <= 0 {
+		return x0, x1
+	}
+	em := b.Em
+	if em <= 0 {
+		em = float64(b.H) * 1.1
+	}
+	lim := int(4*em + 0.5)
+	n0, n1 := estendiSuInchiostro(img, b)
+	n0, n1 = max(n0, x0-lim), min(n1, x1+lim)
+	for j, r := range righe {
+		if j == i || len(r.Parole) == 0 {
+			continue
+		}
+		rx0, ry0, rx1, ry1, _ := rettRiga(r, f)
+		if ry1 <= b.Y || ry0 >= b.Y+b.H { // non sulla stessa linea
+			continue
+		}
+		if rx1 <= x0 && rx1 > n0 { // riga a sinistra dentro l'allargamento
+			n0 = rx1 + 2
+		}
+		if rx0 >= x1 && rx0 < n1 { // riga a destra dentro l'allargamento
+			n1 = rx0 - 2
+		}
+	}
+	return min(x0, n0), max(x1, n1)
 }

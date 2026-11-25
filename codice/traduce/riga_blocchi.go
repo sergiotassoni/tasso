@@ -240,16 +240,34 @@ func spezzaPulsanti(b []Blocco) []Blocco {
 			buchi[i-1] = p[i].X - (p[i-1].X + p[i-1].W)
 		}
 		soglia := 1.2 * hMed // due parole sole: più di un'altezza intera
+		sogliaFrase := soglia
 		if len(buchi) >= 2 {
 			ord := append([]float64(nil), buchi...)
 			sort.Float64s(ord)
 			normale := math.Max(ord[(len(ord)-1)/2], 0.15*hMed) // spazio normale tra due parole
 			soglia = math.Max(2.5*normale, 0.6*hMed)
+			sogliaFrase = soglia
+			// buchi di due grandezze nettamente diverse (le parole di Windows sono strette sulle
+			// lettere: "Apply" 23 px "Reset" 8 "to" 10 "Default" 23 "Back"): i buchi piccoli sono
+			// gli spazi della riga, quelli grandi (almeno 1,8 volte il più grande dei piccoli e
+			// più di metà altezza) dividono le voci, anche se con poche parole la mediana dei buchi
+			// cade già su un buco grande.
+			for k := 0; k+1 < len(ord); k++ {
+				piccolo := math.Max(ord[k], 0.15*hMed)
+				if ord[k+1] >= 1.8*piccolo && ord[k+1] >= 0.6*hMed {
+					soglia = math.Min(soglia, ord[k+1])
+					break
+				}
+			}
 		}
 		var gruppi [][]ParolaOCR
 		cur := []ParolaOCR{p[0]}
 		for i := 1; i < len(p); i++ {
-			if buchi[i-1] >= soglia && inizioVoce(p[i].T) && fineVoce(p[i-1].T) {
+			s := soglia
+			if fineFrase(p[i-1].T) {
+				s = sogliaFrase // dopo il punto lo spazio è spesso più largo: due frasi, non due voci
+			}
+			if buchi[i-1] >= s && inizioVoce(p[i].T) && fineVoce(p[i-1].T) {
 				gruppi = append(gruppi, cur)
 				cur = nil
 			}
@@ -660,4 +678,101 @@ func calcolaToppa(b Blocco, testo image.Rectangle, larg, m int, unaRiga bool) im
 		r = r.Union(testo)
 	}
 	return r
+}
+
+// fineFrase: la parola chiude una frase (".", "!", "?", anche dentro le virgolette).
+func fineFrase(w string) bool {
+	t := strings.TrimRight(strings.TrimSpace(w), "\"'»”’)")
+	return strings.HasSuffix(t, ".") || strings.HasSuffix(t, "!") || strings.HasSuffix(t, "?") || strings.HasSuffix(t, "…")
+}
+
+// fraseCompleta: una frase intera (maiuscola all'inizio, punto, "!" o "?" alla fine, almeno tre parole).
+func fraseCompleta(t string) bool {
+	t = strings.TrimSpace(t)
+	if len(strings.Fields(t)) < 3 || !fineFrase(t) {
+		return false
+	}
+	for _, c := range t {
+		if unicode.IsLetter(c) {
+			return unicode.IsUpper(c)
+		}
+		if unicode.IsDigit(c) {
+			return false
+		}
+	}
+	return false
+}
+
+// fraseConPocoAccanto: la scritta è una frase intera e l'inchiostro non letto accanto è corto
+// (al massimo ~4 lettere, poi niente): un'etichetta come "TIP:" su un fondo che l'OCR non ha letto,
+// un'icona, un numero. Si traduce e si copre solo la frase letta (l'etichetta resta del gioco):
+// meglio della frase intera lasciata in inglese. Se accanto continua una parola lunga o altre
+// parole, la riga resta incompleta.
+func fraseConPocoAccanto(img *image.RGBA, b Blocco, altri []Blocco) bool {
+	if !fraseCompleta(b.Testo) {
+		return false
+	}
+	coloriBloccoSemplice(img, &b)
+	b.HaContorno = false
+	sx, dx := fasceLati(b)
+	for _, l := range []struct {
+		f     Blocco
+		verso int
+	}{{sx, -1}, {dx, 1}} {
+		if latoContinua(img, l.f, altri, b, l.verso) && !inchiostroCorto(img, l.f, b, altri, l.verso) {
+			return false
+		}
+	}
+	return true
+}
+
+// inchiostroCorto: dal bordo della scritta verso un lato, l'inchiostro attaccato è un gruppo corto
+// (largo al massimo 2,6 em) seguito da almeno 0,9 em vuoti (o dal bordo dell'immagine).
+func inchiostroCorto(img *image.RGBA, f, tutta Blocco, altri []Blocco, verso int) bool {
+	em := f.Em
+	if em <= 0 {
+		em = float64(f.H) * 1.1
+	}
+	largo := int(5*em + 0.5)
+	x0 := f.X + f.W
+	if verso < 0 {
+		x0 = f.X - largo
+	}
+	bd := img.Bounds()
+	col := colonneInchiostro(img, &f, x0, x0+largo)
+	togliAltreScritte(col, x0, f, tutta, altri)
+	minCol := max(2, f.H*15/100)
+	vuotoFine := int(0.9*em + 0.5)
+	primo, ultimo, vuote := -1, -1, 0
+	for k := 0; k < len(col); k++ {
+		i := k
+		if verso < 0 {
+			i = len(col) - 1 - k
+		}
+		if x := x0 + i; x < bd.Min.X || x >= bd.Max.X {
+			if primo < 0 {
+				return false
+			}
+			break // bordo dell'immagine: il gruppo finisce qui
+		}
+		if col[i] >= minCol {
+			if primo < 0 {
+				primo = k
+			}
+			ultimo, vuote = k, 0
+			continue
+		}
+		if primo >= 0 {
+			if vuote++; vuote >= vuotoFine {
+				break
+			}
+		}
+	}
+	if primo < 0 {
+		return true
+	}
+	if vuote < vuotoFine && ultimo >= len(col)-1-vuotoFine {
+		return false // l'inchiostro continua fino al limite: non è un gruppo corto
+	}
+	return float64(ultimo-primo+1) <= math.Min(2.6*em, 2.4*float64(f.H))
 }
