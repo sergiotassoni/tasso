@@ -495,6 +495,11 @@ func correggiRigaOCR(grezzo string) (string, int) {
 	if iniziaMinuscola(s) && (false_ > 0 || f1 > 0) {
 		return s2, letturaDubbia
 	}
+	// parola spezzata in due dall'OCR in mezzo alla riga ("enemies ar Ire nearby."): un pezzo che
+	// non esiste seguito da un pezzetto con la maiuscola che non è una parola comune
+	if parolaSpezzata(s) {
+		return s2, letturaDubbia
+	}
 	// due parole inventate nella lettura grezza e una rimasta anche dopo la correzione ("arepe
 	// earby" -> "arepe ear by"): la riga è storpiata, anche se lunga
 	if f1 >= 2 && false_ >= 1 && f1*100 > tot*15 {
@@ -926,4 +931,16 @@ func nomeChiParla(en string) []string {
 		}
 	}
 	return nil
+}
+
+// parolaSpezzata: nella riga c'è una parola letta in due pezzi ("ar Ire"): il primo è di sole
+// minuscole e non esiste, il secondo è un pezzetto con la maiuscola (iniziaConFrammento).
+func parolaSpezzata(s string) bool {
+	w := strings.Fields(s)
+	for i := 0; i+1 < len(w); i++ {
+		if finisceConFrammento(w[i]) && iniziaConFrammento(w[i+1]) {
+			return true
+		}
+	}
+	return false
 }

@@ -137,7 +137,7 @@ func pezziDiUnaFrase(a, c Blocco) bool {
 	if c.X < a.X || !lineaSimile(a, c) {
 		return false
 	}
-	if !chiedeSeguito(a.Testo) && !iniziaMinuscola(c.Testo) {
+	if !chiedeSeguito(a.Testo) && !iniziaMinuscola(c.Testo) && !pezzoTroncato(a.Testo, c.Testo) {
 		return false
 	}
 	em := math.Max(a.Em, c.Em)
@@ -146,6 +146,138 @@ func pezziDiUnaFrase(a, c Blocco) bool {
 	}
 	buco := c.X - (a.X + a.W)
 	return buco >= -max(a.H, c.H) && float64(buco) <= 3*em
+}
+
+// pezzoTroncato: l'OCR ha spezzato una parola tra i due pezzi ("...enemies ar" | "Ire nearby."):
+// a finisce con un pezzo di parola che non esiste o c comincia con un pezzetto con la maiuscola
+// che non è una parola comune, e tra i due non c'è la fine di una frase (. ! ? :).
+func pezzoTroncato(a, c string) bool {
+	w := strings.Fields(strings.TrimSpace(a))
+	if len(w) == 0 || strings.TrimSpace(c) == "" {
+		return false
+	}
+	u := strings.TrimRight(w[len(w)-1], "\"'»”’)")
+	if fineFrase(u) || strings.HasSuffix(u, ":") || strings.HasSuffix(u, ";") {
+		return false
+	}
+	return finisceConFrammento(a) || iniziaConFrammento(c)
+}
+
+// finisceConFrammento: l'ultima parola del pezzo è di sole lettere minuscole e non esiste ("ar").
+func finisceConFrammento(t string) bool {
+	w := strings.Fields(strings.TrimSpace(t))
+	if len(w) == 0 {
+		return false
+	}
+	u := []rune(strings.Trim(w[len(w)-1], "\"'"))
+	if len(u) == 0 {
+		return false
+	}
+	for _, c := range u {
+		if !unicode.IsLetter(c) || !unicode.IsLower(c) {
+			return false
+		}
+	}
+	return !esiste(string(u))
+}
+
+// paroleCorteNote: parole corte con la maiuscola che stanno bene all'inizio di una scritta anche
+// se nel vocabolario sono rare.
+var paroleCorteNote = map[string]bool{"ok": true, "yes": true, "no": true, "new": true, "off": true, "on": true}
+
+// iniziaConFrammento: il pezzo comincia con un pezzetto di 2-3 lettere con la maiuscola e il resto
+// minuscolo ("Ire") che non è una parola comune né una sigla: la fine di una parola spezzata.
+func iniziaConFrammento(t string) bool {
+	w := strings.Fields(strings.TrimSpace(t))
+	if len(w) == 0 {
+		return false
+	}
+	r := []rune(strings.TrimRight(w[0], ".,;:!?"))
+	if len(r) < 2 || len(r) > 3 || !unicode.IsUpper(r[0]) {
+		return false
+	}
+	for _, c := range r[1:] {
+		if !unicode.IsLetter(c) || !unicode.IsLower(c) {
+			return false // "HP", "XP", "4K": sigle, non pezzi di parola
+		}
+	}
+	l := strings.ToLower(string(r))
+	if paroleCorteNote[l] {
+		return false
+	}
+	if n, ok := vocabolario()[l]; ok && n <= 20 {
+		return false // "The", "Are", "You": parole comuni
+	}
+	return true
+}
+
+// motivoFratello: la scritta b è un pezzo di una frase letta in più pezzi sulla stessa linea
+// (fratelli: stessa altezza, stessa linea, vicini o sovrapposti) e un fratello resta in inglese
+// perché letto male, o b comincia con un pezzetto di parola spezzata ("Ire nearby.") con un
+// fratello a sinistra: mai tradurre un fratello da solo (si vedrebbe mezza frase sopra
+// l'inglese). Le voci vere di una fila di pulsanti (buco largo, maiuscola) restano separate.
+func motivoFratello(b Blocco, tutte []Blocco) string {
+	for _, s := range tutte {
+		if s.X == b.X && s.Y == b.Y && s.W == b.W && s.H == b.H {
+			continue // b stessa
+		}
+		sx, dx := s, b
+		if s.X > b.X {
+			sx, dx = b, s
+		}
+		if sx.X+sx.W >= dx.X+dx.W || !fratelli(sx, dx) {
+			continue // uno contiene l'altro (la riga intera da cui vengono le voci) o lontani
+		}
+		if dx.X == b.X && iniziaConFrammento(b.Testo) {
+			return "pezzo di una parola spezzata"
+		}
+		if vociSeparate(sx, dx) {
+			continue
+		}
+		if motivoNonTradurre(s) == "lettura incerta" {
+			return "pezzo di una frase rimasta in inglese"
+		}
+	}
+	return ""
+}
+
+// fratelli: sx (a sinistra) e dx sono sulla stessa linea con la stessa altezza (±25%), i centri
+// entro 0,4 em, e vicini (al massimo 3 em di buco) o sovrapposti.
+func fratelli(sx, dx Blocco) bool {
+	if max(1, sx.Righe) != 1 || max(1, dx.Righe) != 1 || sx.H <= 0 || dx.H <= 0 {
+		return false
+	}
+	hMin, hMax := min(sx.H, dx.H), max(sx.H, dx.H)
+	if float64(hMax) > 1.25*float64(hMin) {
+		return false
+	}
+	em := math.Max(sx.Em, dx.Em)
+	if em <= 0 {
+		em = float64(hMax) * 1.1
+	}
+	if math.Abs(float64((sx.Y+sx.H/2)-(dx.Y+dx.H/2))) > 0.4*em {
+		return false
+	}
+	buco := dx.X - (sx.X + sx.W)
+	return buco >= -2*hMax && float64(buco) <= 3*em
+}
+
+// vociSeparate: due voci di una fila di pulsanti, non pezzi di una frase: c'è un buco vero tra le
+// due (almeno mezzo em), la seconda comincia con la maiuscola o un numero, e niente fa pensare a
+// una frase spezzata (parola che vuole il seguito, minuscola, pezzo di parola).
+func vociSeparate(sx, dx Blocco) bool {
+	em := math.Max(sx.Em, dx.Em)
+	if em <= 0 {
+		em = float64(max(sx.H, dx.H)) * 1.1
+	}
+	if float64(dx.X-(sx.X+sx.W)) < 0.5*em {
+		return false
+	}
+	w := strings.Fields(dx.Testo)
+	if len(w) == 0 || !inizioVoce(w[0]) {
+		return false
+	}
+	return !chiedeSeguito(sx.Testo) && !iniziaMinuscola(dx.Testo) && !pezzoTroncato(sx.Testo, dx.Testo)
 }
 
 // lineaSimile: come stessaLinea ma con l'altezza più libera (un pezzo riletto ingrandito o con

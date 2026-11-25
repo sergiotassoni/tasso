@@ -76,6 +76,9 @@ func motivoNonTradurre(b Blocco) string {
 // tutte: tutte le scritte lette della schermata (l'inchiostro di un'altra scritta letta accanto,
 // come il pulsante vicino di una fila, non è una parola persa); può essere nil.
 func controllaCompleta(img *image.RGBA, b *Blocco, tutte []Blocco) string {
+	if m := motivoFratello(*b, tutte); m != "" {
+		return m
+	}
 	if img == nil {
 		return ""
 	}
