@@ -66,6 +66,12 @@ func TestTerminiMenu(t *testing.T) {
 	casi := [][3]string{
 		{"Autosave in progress. Do not turn off your console.", "Autosvegliere in corso. Non spegnere la console.", "Salvataggio automatico in corso. Non spegnere la console."},
 		{"Hold Shift to sprint.", "Tieni premuto il cambio per sprint.", "Tieni premuto Maiusc per scattare."},
+		{"Press to sprint.", "Premi per sprint.", "Premi per scattare."},
+		{"Hold to sprint", "Tieni premuto per fare sprint", "Tieni premuto per scattare"},
+		{"Press t to sprint.", "Premi t per sprint.", "Premi t per scattare."},
+		{"Tap Shift to sprint while running", "Tocca Maiusc per sprintare mentre corri", "Tocca Maiusc per scattare mentre corri"},
+		{"Hold Shift: Sprint", "Tieni premuto Maiusc: Sprint", "Tieni premuto Maiusc: Scatto"},
+		{"Sprint Mode", "Modalità Sprint", "Modalità Sprint"}, // non è un comando: resta com'è
 		{"The night shift starts at ten.", "Il cambio notturno inizia alle dieci.", "Il cambio notturno inizia alle dieci."},
 	}
 	for _, c := range casi {

@@ -98,6 +98,9 @@ var regoleTermini = []regolaTermine{
 	{inglese: rx(`(?i)\bauto-?sav(e|ing)\b`), da: rx(`(?i)\b(auto-?sv\pL*|autosalva\pL*|autosave)\b`), a: "salvataggio automatico"},
 	{inglese: rx(`(?i)\b(press|hold|tap|release|use)\b[^.!?]*\bshift\b`), da: rx(`(?i)\b(il )?(tasto )?cambio\b`), a: "Maiusc"},
 	{inglese: rx(`(?i)\bshift\b[^.!?]*\bto (sprint|run)\b`), da: rx(`(?i)\bper sprint\b`), a: "per scattare"},
+	// "Press [icona] to sprint", "Hold to sprint": il motore lascia "sprint" in inglese
+	{inglese: rx(`(?i)\bto sprint\b`), da: rx(`(?i)\bper (?:lo |fare (?:lo |uno )?)?sprint(?:are)?\b`), a: "per scattare"},
+	{inglese: rx(`(?i)\b(press|hold|tap|click|toggle)\b[^.!?]*\bsprint\b`), da: rx(`(?i)\bsprint\b`), a: "scatto"},
 	// comandi di combattimento
 	{inglese: rx(`(?i)\btake cover\b`), da: rx(`(?i)\bprenditi copertura\b`), a: "mettiti al riparo"},
 	{inglese: rx(`(?i)\bfast travel\b`), da: rx(`(?i)\bviaggiare velocemente\b`), a: "usare il viaggio rapido"},

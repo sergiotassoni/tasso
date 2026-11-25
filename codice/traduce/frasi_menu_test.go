@@ -59,3 +59,19 @@ func TestFrasiMenuEsempi(t *testing.T) {
 		}
 	}
 }
+
+// "sprint" nei suggerimenti dei comandi esce in italiano dalle frasi pronte (non resta inglese).
+func TestFrasiMenuSprint(t *testing.T) {
+	for in, atteso := range map[string]string{
+		"Press to sprint":       "Premi per scattare",
+		"Hold to sprint":        "Tieni premuto per scattare",
+		"to sprint.":            "per scattare.",
+		"Press Shift to sprint": "Premi Shift per correre",
+		"Hold Shift to sprint":  "Tieni premuto Shift per correre",
+		"Sprint (Hold)":         "Scatto (tieni premuto)",
+	} {
+		if got, ok := fraseMenuConNumero(in); !ok || got != atteso {
+			t.Errorf("%q -> %q %v, atteso %q", in, got, ok, atteso)
+		}
+	}
+}
