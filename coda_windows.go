@@ -59,13 +59,17 @@ func passaAlPrimo(modo string, percorsi []string) {
 
 // leggiCoda prende i percorsi in coda e svuota il file.
 func leggiCoda(modo string) []string {
+	// Prima la sposto (se un altro Tasso Zip la sta scrivendo proprio adesso Windows dice di
+	// no e riprovo al giro dopo): così nessun percorso scritto fra lettura e svuotamento va perso.
 	p := fileCoda(modo)
-	b, err := os.ReadFile(p)
-	if err != nil || len(b) == 0 {
+	presa := p + ".lettura"
+	if err := os.Rename(p, presa); err != nil {
 		return nil
 	}
-	if fi, err := os.Stat(p); err == nil && fi.Size() == int64(len(b)) {
-		_ = os.Truncate(p, 0)
+	b, err := os.ReadFile(presa)
+	_ = os.Remove(presa)
+	if err != nil || len(b) == 0 {
+		return nil
 	}
 	var out []string
 	codaVistiMu.Lock()
