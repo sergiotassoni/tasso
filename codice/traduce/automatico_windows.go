@@ -69,21 +69,6 @@ func aSchermoIntero(h uintptr) bool {
 	return r.Left <= m.Left && r.Top <= m.Top && r.Right >= m.Right && r.Bottom >= m.Bottom
 }
 
-func eGioco(h uintptr, exe string) bool {
-	if nonGiocoMai(h, exe) {
-		return false
-	}
-	muImp.Lock()
-	_, conosciuto := imp.Profili[exe]
-	muImp.Unlock()
-	if conosciuto || aSchermoIntero(h) {
-		return true
-	}
-	// installato da Steam, Epic, GOG, Xbox…: è un gioco anche se gira in finestra
-	_, daNegozio := riconosciGioco(percorsoDiFinestra(h))
-	return daNegozio
-}
-
 // cicloTuttoAutomatico guarda ogni secondo quale finestra è in primo piano.
 var (
 	avvisatoAntiCheat = map[string]bool{}

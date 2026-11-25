@@ -134,8 +134,6 @@ var famiglieFont = []string{"Segoe UI", "Bahnschrift SemiCondensed", "Bahnschrif
 
 var fontCache = map[int32]uintptr{} // solo con muDisegno preso
 
-func fontPagina(px int32, peso uintptr) uintptr { return fontPaginaF(px, peso, 0) }
-
 func fontPaginaF(px int32, peso uintptr, fam int) uintptr {
 	chiave := (px*10+int32(peso/100))*4 + int32(fam)
 	if f, ok := fontCache[chiave]; ok {

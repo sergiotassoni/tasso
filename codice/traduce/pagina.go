@@ -1531,16 +1531,6 @@ func spessoreTratto(img *image.RGBA, in image.Rectangle, ink, sf color.RGBA, em 
 	return float64(corse[len(corse)/2]-1) / em
 }
 
-func contaGruppo(gruppo []int, k int) int {
-	n := 0
-	for _, g := range gruppo {
-		if g == k {
-			n++
-		}
-	}
-	return n
-}
-
 // fondoPreciso: la toppa sotto la traduzione, fatta come la farebbe un grafico: si copiano i
 // pixel veri del gioco (bordi delle caselle, sfumature, icone restano identici) e si cancellano
 // SOLO i pixel delle lettere inglesi, riempiendoli con i colori che li circondano. Il rettangolo

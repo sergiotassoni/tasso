@@ -21,12 +21,10 @@ var (
 	pSysAllocString     = oleaut32.NewProc("SysAllocString")
 	pSysFreeString      = oleaut32.NewProc("SysFreeString")
 	pSysStringLen       = oleaut32.NewProc("SysStringLen")
-	pVariantClear       = oleaut32.NewProc("VariantClear")
 	clsidCUIAutomation  = windows.GUID{Data1: 0xFF48DBA4, Data2: 0x60EF, Data3: 0x4201, Data4: [8]byte{0xAA, 0x87, 0x54, 0x10, 0x3E, 0xEF, 0x59, 0x4E}}
 	iidIUIAutomation    = windows.GUID{Data1: 0x30CBE57D, Data2: 0xD9D0, Data3: 0x452A, Data4: [8]byte{0xAB, 0x13, 0x7A, 0xC5, 0xAC, 0x48, 0x25, 0xEE}}
 	iidIUIValuePattern  = windows.GUID{Data1: 0xA94CD8B1, Data2: 0x0844, Data3: 0x4CD6, Data4: [8]byte{0x9D, 0x2D, 0x64, 0x05, 0x37, 0xAB, 0x39, 0xE9}}
 	uiaValuePatternID   = uintptr(10002)
-	uiaControlTypeProp  = uintptr(30003)
 	uiaIsPasswordProp   = uintptr(30019)
 	uiaControlEdit      = int32(50004)
 	uiaControlDocument  = int32(50030)
@@ -178,16 +176,8 @@ func elName(e comObj) string     { return elStr(e, 23) }
 func elHasFocus(e comObj) bool   { return elInt(e, 26) != 0 }
 func elEnabled(e comObj) bool    { return elInt(e, 28) != 0 }
 func elAutoID(e comObj) string   { return elStr(e, 29) }
-func elClass(e comObj) string    { return elStr(e, 30) }
 func elIsPassword(e comObj) bool { return elInt(e, 35) != 0 }
 func elOffscreen(e comObj) bool  { return elInt(e, 38) != 0 }
-func elNativeHwnd(e comObj) uintptr {
-	var h uintptr
-	if e == 0 || !hrOK(e.call(36, uintptr(unsafe.Pointer(&h)))) {
-		return 0
-	}
-	return h
-}
 
 func elRect(e comObj) (rect, bool) {
 	var r rect // RECT in pixel veri dello schermo

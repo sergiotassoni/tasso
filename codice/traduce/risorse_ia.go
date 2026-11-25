@@ -94,8 +94,7 @@ func motoreIADisponibile() bool {
 	return licenzaLibera && r.Motore.URL != "" && r.Motore.SHA256 != "" && r.Modello.URL != "" && r.Modello.SHA256 != ""
 }
 
-func dirMotoreIA() string  { return filepath.Join(dirIA(), "llama") }
-func fileScortaIA() string { return filepath.Join(dirIA(), risorseIA.Scorta.Nome) }
+func dirMotoreIA() string { return filepath.Join(dirIA(), "llama") }
 
 // fileDaUsare: il file nuovo; se non c'è (ancora) ma c'è quello di riserva verificato, quello.
 func fileDaUsare(nuovo, riserva FileDaScaricare) FileDaScaricare {
