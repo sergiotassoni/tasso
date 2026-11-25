@@ -59,7 +59,7 @@ func blocchiLetti(img *image.RGBA, righe []RigaOCR, f float64, voti *votazione, 
 // motivoNonTradurre: perché questa scritta non va tradotta ("" = va tradotta).
 func motivoNonTradurre(b Blocco) string {
 	switch {
-	case !daTradurre(b.Testo):
+	case !daTradurre(b.Testo), soloParoleVuote(b.Testo):
 		return "non è testo da tradurre"
 	case !formaPlausibile(b):
 		return "forma strana"
@@ -275,4 +275,24 @@ func riprovaFile(ctx context.Context, tr *Traduttore, img *image.RGBA, da []Bloc
 		return da, ris
 	}
 	return nuoveDa, nuoveRis
+}
+
+// soloParoleVuote: la scritta è fatta solo di parole che da sole non dicono niente ("the", "to a",
+// "and"): è un pezzo di una frase letta male. Tradotta da sola ("il") sarebbe un frammento sullo
+// schermo, quindi resta com'è.
+func soloParoleVuote(s string) bool {
+	parole := strings.Fields(strings.ToLower(s))
+	if len(parole) == 0 || len(parole) > 3 {
+		return false
+	}
+	for _, p := range parole {
+		p = strings.Trim(p, ".,;:!?\"'()[]-…")
+		if p == "" {
+			continue
+		}
+		if !paroleSospese[p] && !paroleSeguito[p] {
+			return false
+		}
+	}
+	return true
 }
