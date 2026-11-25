@@ -454,7 +454,7 @@ func scriviZip(c *copiatore, w io.Writer, voci []voce, ris *RisultatoComprimi) e
 		if err := c.annullato(); err != nil {
 			return err
 		}
-		h := &zip.FileHeader{Name: v.nome, Modified: v.quando}
+		h := &zip.FileHeader{Name: v.nome, Modified: orarioZip(v.quando)}
 		if v.cartella {
 			h.Name += "/"
 			h.SetMode(fs.ModeDir | 0o755)
@@ -488,6 +488,24 @@ func scriviZip(c *copiatore, w io.Writer, voci []voce, ris *RisultatoComprimi) e
 		ris.File++
 	}
 	return zw.Close()
+}
+
+// orarioZip: la data che lo zip sa scrivere. Il formato (data MS-DOS) va solo dal 1980 al
+// 2107: una data fuori (es. un file del 1970) diventerebbe un anno assurdo come 2103 in
+// Esplora file. Fuori dai limiti metto il limite più vicino.
+func orarioZip(t time.Time) time.Time {
+	if t.IsZero() {
+		return time.Now()
+	}
+	min := time.Date(1980, 1, 1, 0, 0, 0, 0, t.Location())
+	max := time.Date(2106, 12, 31, 23, 59, 58, 0, t.Location()) // anche la data Unix a 32 bit
+	if t.Before(min) {
+		return min
+	}
+	if t.After(max) {
+		return max
+	}
+	return t
 }
 
 // scrivi7z: super compressione con il nostro writer 7z (più core insieme).

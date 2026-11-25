@@ -88,12 +88,14 @@ func pulisciPezzo(p string) string {
 		p = "_" + p
 	}
 	if len(p) > 240 {
-		// nomi lunghissimi: li accorcio senza spezzare le lettere
-		taglio := 240
+		// nomi lunghissimi: li accorcio senza spezzare le lettere e tenendo l'estensione
+		// (".pdf", ".jpg"...), così il file si apre ancora col suo programma
+		_, ext := DividiNome(p, false)
+		taglio := 240 - len(ext)
 		for taglio > 0 && !utf8.RuneStart(p[taglio]) {
 			taglio--
 		}
-		p = p[:taglio]
+		p = strings.TrimRight(p[:taglio], ". ") + ext
 	}
 	return p
 }

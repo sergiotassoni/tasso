@@ -19,6 +19,7 @@ import (
 	"strings"
 	"testing"
 	"time"
+	"unicode/utf8"
 
 	"github.com/ulikunitz/xz"
 )
@@ -707,5 +708,53 @@ func TestDate(t *testing.T) {
 		if d := fi.ModTime().Sub(quando); d > 2*time.Second || d < -2*time.Second {
 			t.Errorf("%s: data %v invece di %v", f, fi.ModTime(), quando)
 		}
+	}
+}
+
+// Un file con una data prima del 1980 (es. 1975): nello zip la data MS-DOS non può andare
+// sotto il 1980; prima diventava 2103 in Esplora file.
+func TestZipDatePrimaDel1980(t *testing.T) {
+	dir := t.TempDir()
+	src := filepath.Join(dir, "d")
+	scrivi(t, filepath.Join(src, "antico.txt"), "x")
+	quando := time.Date(1975, 1, 1, 12, 0, 0, 0, time.UTC)
+	os.Chtimes(filepath.Join(src, "antico.txt"), quando, quando)
+	ris, err := Comprimi(context.Background(), []string{src}, OpzioniComprimi{Formato: FormatoZip, Cartella: dir})
+	if err != nil {
+		t.Fatal(err)
+	}
+	zr, err := zip.OpenReader(ris.Archivio)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer zr.Close()
+	for _, f := range zr.File {
+		dos := msDosAnno(f.ModifiedDate)
+		if dos < 1980 || dos > 2030 || f.Modified.Year() < 1980 || f.Modified.Year() > 2030 {
+			t.Errorf("%s: anno MS-DOS %d, data %v", f.Name, dos, f.Modified)
+		}
+	}
+	if g := orarioZip(time.Date(2200, 1, 1, 0, 0, 0, 0, time.UTC)); g.Year() != 2106 {
+		t.Errorf("2200 -> %v", g)
+	}
+	if g := orarioZip(quando.AddDate(50, 0, 0)); !g.Equal(quando.AddDate(50, 0, 0)) {
+		t.Errorf("data normale cambiata: %v", g)
+	}
+}
+
+func msDosAnno(d uint16) int { return int(d>>9) + 1980 }
+
+// Nomi lunghissimi: accorciati sotto il limite di Windows (255) tenendo l'estensione.
+func TestNomeLunghissimoTieneEstensione(t *testing.T) {
+	lungo := strings.Repeat("è", 200) + ".pdf" // 404 byte
+	p := pulisciPezzo(lungo)
+	if len(p) > 240 || !strings.HasSuffix(p, ".pdf") || !utf8.ValidString(p) {
+		t.Fatalf("%d byte, %q", len(p), p[len(p)-10:])
+	}
+	if p := pulisciPezzo(strings.Repeat("a", 300)); len(p) != 240 {
+		t.Fatalf("senza estensione: %d", len(p))
+	}
+	if p := pulisciPezzo(strings.Repeat("a", 238) + "    " + strings.Repeat("c", 10)); strings.HasSuffix(p, " ") || strings.HasSuffix(p, ".") {
+		t.Fatalf("finisce con spazio o punto: %q", p)
 	}
 }
