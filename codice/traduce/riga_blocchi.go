@@ -262,14 +262,17 @@ func motivoFratello(b Blocco, tutte []Blocco) string {
 	return ""
 }
 
-// fratelli: sx (a sinistra) e dx sono sulla stessa linea con la stessa altezza (±25%), i centri
+// fratelli: sx (a sinistra) e dx sono sulla stessa linea con la stessa altezza (±25%, o lo stesso
+// carattere), i centri
 // entro 0,4 em, e vicini (al massimo 3 em di buco) o sovrapposti.
 func fratelli(sx, dx Blocco) bool {
 	if max(1, sx.Righe) != 1 || max(1, dx.Righe) != 1 || sx.H <= 0 || dx.H <= 0 {
 		return false
 	}
 	hMin, hMax := min(sx.H, dx.H), max(sx.H, dx.H)
-	if float64(hMax) > 1.25*float64(hMin) {
+	// (con la grandezza del carattere uguale l'altezza può cambiare di più: "Q to aim." non ha
+	// gambe sotto, "…throw the item. Hold" sì)
+	if float64(hMax) > 1.25*float64(hMin) && !(sx.Em > 0 && dx.Em > 0 && math.Max(sx.Em, dx.Em) <= 1.2*math.Min(sx.Em, dx.Em) && float64(hMax) <= 1.6*float64(hMin)) {
 		return false
 	}
 	em := math.Max(sx.Em, dx.Em)

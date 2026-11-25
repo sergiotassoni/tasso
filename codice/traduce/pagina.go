@@ -339,7 +339,7 @@ func unisciParagrafi(b []Blocco) []Blocco {
 				sinistra := abs(n.X-cur.X) <= hRiga
 				// sottotitoli e riquadri centrati: le righe hanno lo stesso centro, non lo stesso inizio
 				centrata := !sinistra && abs((n.X+n.W/2)-(ultimoX+ultimaW/2)) <= hRiga
-				if (!sinistra && !centrata) || float64(n.H) > 1.4*float64(hRiga) || float64(n.H) < float64(hRiga)/1.4 {
+				if (!sinistra && !centrata) || !altezzeSimili(cur, n, hRiga) {
 					continue
 				}
 				if lontana {
@@ -385,6 +385,17 @@ func unisciParagrafi(b []Blocco) []Blocco {
 	return out
 }
 
+// altezzeSimili: la riga n ha la grandezza della riga sopra (alta hRiga). Le parole di Windows
+// sono strette sulle lettere: "here." o "area." (senza gambe sopra o sotto) sono molto più basse
+// di una riga con "probably", ma la grandezza del carattere (Em, stimata dalla forma delle
+// lettere) è la stessa.
+func altezzeSimili(cur, n Blocco, hRiga int) bool {
+	if float64(n.H) <= 1.4*float64(hRiga) && float64(n.H) >= float64(hRiga)/1.4 {
+		return true
+	}
+	return cur.Em > 0 && n.Em > 0 && math.Max(cur.Em, n.Em) <= 1.3*math.Min(cur.Em, n.Em)
+}
+
 // righeStessoSottotitolo: due righe centrate una sotto l'altra sono lo stesso sottotitolo (una frase
 // che va a capo): almeno una delle due è una frase lunga (4+ parole, con minuscole), la seconda non
 // comincia una voce nuova ("MUIR: …", "Objective: …") e non sono voci di un menu centrato.
@@ -413,7 +424,13 @@ func rigaAndataACapo(sopra string, larghSopra int, sotto Blocco) bool {
 	if sopra == "" || strings.ContainsAny(sopra[len(sopra)-1:], ".!?:;") {
 		return false
 	}
-	if c := campiFrase(sotto.Testo); inizioNuovaVoce(sotto.Testo) && !(len(c) > 0 && !c[0].dueDopo && etichettaIniziale(c) == 0 && finisceSospesa(sopra)) {
+	// "…to track" / "Secrets. Look for…": la riga sotto comincia con una parola sola chiusa dal
+	// punto o dalla virgola: è la fine della frase di sopra, non una voce nuova
+	primaChiusa := false
+	if w := strings.Fields(sotto.Testo); len(w) > 1 && (strings.HasSuffix(w[0], ".") || strings.HasSuffix(w[0], ",")) && len([]rune(w[0])) > 3 {
+		primaChiusa = true
+	}
+	if c := campiFrase(sotto.Testo); !primaChiusa && inizioNuovaVoce(sotto.Testo) && !(len(c) > 0 && !c[0].dueDopo && etichettaIniziale(c) == 0 && finisceSospesa(sopra)) {
 		return false
 	}
 	if len(strings.Fields(sopra)) < 5 {

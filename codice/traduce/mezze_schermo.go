@@ -45,7 +45,7 @@ func senzaMezzeRighe(pronti, inglesi []Blocco) (tenute, tolte []Blocco) {
 	for {
 		via := -1
 		for i, p := range tenute {
-			if conIngleseAccanto(p, ingl) {
+			if conIngleseAccanto(p, ingl) || pezzoSenzaTesta(p, tenute) {
 				via = i
 				break
 			}
@@ -117,8 +117,16 @@ func righeSchermo(b Blocco) int { return max(1, b.Righe) }
 func seguitoSotto(sopra, sotto Blocco) bool {
 	hs := float64(sopra.H) / float64(righeSchermo(sopra))
 	hb := float64(sotto.H) / float64(righeSchermo(sotto))
-	if hs <= 0 || hb <= 0 || math.Max(hs, hb) > 1.35*math.Min(hs, hb) {
+	if hs <= 0 || hb <= 0 {
 		return false
+	}
+	if math.Max(hs, hb) > 1.35*math.Min(hs, hb) {
+		// le parole senza gambe ("area.", "here.") sono più basse: conta la grandezza del carattere
+		if !(righeSchermo(sopra) == 1 && righeSchermo(sotto) == 1 && sopra.Em > 0 && sotto.Em > 0 &&
+			math.Max(sopra.Em, sotto.Em) <= 1.3*math.Min(sopra.Em, sotto.Em)) {
+			return false
+		}
+		hs, hb = sopra.Em*0.8, sotto.Em*0.8
 	}
 	buco := float64(sotto.Y - (sopra.Y + sopra.H))
 	if buco < -0.5*math.Min(hs, hb) || buco > 1.5*math.Max(hs, hb) {
@@ -134,10 +142,12 @@ func seguitoSotto(sopra, sotto Blocco) bool {
 	if fineFraseTesto(t) {
 		return false
 	}
+	// una parola sola chiusa dal punto sotto una riga non finita ("…while I'm" / "Here.")
+	pezzo := parolaSolaChiusa(sotto.Testo) && !tuttoMaiuscolo(t)
 	if lontana {
-		return iniziaMinuscola(sotto.Testo)
+		return iniziaMinuscola(sotto.Testo) || pezzo
 	}
-	return iniziaMinuscola(sotto.Testo) || strings.HasSuffix(t, ",") || strings.HasSuffix(t, "-") ||
+	return iniziaMinuscola(sotto.Testo) || pezzo || strings.HasSuffix(t, ",") || strings.HasSuffix(t, "-") ||
 		strings.HasSuffix(t, "—") || chiedeSeguito(t)
 }
 

@@ -151,7 +151,9 @@ func correggiParole(r string) string {
 			b.WriteString(q)
 			continue
 		}
-		if esiste(p) || len(p) < 3 || maiuscole(p) || (!inizioFrase && unicode.IsUpper(rune(p[0])) && soloLettere(p)) {
+		// nome di chi parla in testa ("Raffs: (screaming)"): è un nome, non una parola sbagliata
+		parlante := n == 0 && unicode.IsUpper(rune(p[0])) && strings.HasPrefix(r[z:], ": ") && len(strings.TrimSpace(r[z+1:])) > 0
+		if esiste(p) || len(p) < 3 || maiuscole(p) || parlante || (!inizioFrase && unicode.IsUpper(rune(p[0])) && soloLettere(p)) {
 			b.WriteString(p)
 			continue
 		}

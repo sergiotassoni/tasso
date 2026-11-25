@@ -38,6 +38,7 @@ func blocchiLetti(img *image.RGBA, righe []RigaOCR, f float64, voti *votazione, 
 	bl = spezzaPulsanti(bl)
 	bl = togliFrecce(bl)
 	bl = togliIconeTasti(bl) // "Swing Sword O": l'icona del pulsante resta del gioco
+	bl = togliSegniIcona(bl) // "/Back", "'Close", "[Shipwreck": il segno è dell'icona
 	for i := range bl {
 		if bl[i].Grezzo == "" {
 			bl[i].Grezzo = bl[i].Testo
@@ -74,6 +75,10 @@ func motivoNonTradurre(b Blocco) string {
 		return "lettura incerta"
 	case !letturaAffidabile(b.Testo):
 		return "lettura incerta"
+	case logoLettoMale(b.Testo):
+		return "lettura incerta" // logo o nome del canale letto male
+	case parolacciaDubbia(b.Testo):
+		return "lettura incerta" // parolaccia che può essere un errore dell'OCR
 	}
 	return ""
 }

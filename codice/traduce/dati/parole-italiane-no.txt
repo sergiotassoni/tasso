@@ -1,0 +1,3 @@
+# Parole che NON sono italiane anche se compaiono nei commenti del codice (errori del traduttore
+# veloce citati come esempio). Restano fuori dall'elenco delle parole italiane.
+playgrmjnd litüe custoetore custocaio inestare punci svogliamento propriettario zatteri urlente indietto nitina autosvegliere introdutrò impazzindo lingitti piacimo

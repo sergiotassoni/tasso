@@ -454,7 +454,7 @@ func (t *Traduttore) traduciIn(ctx context.Context, grezzo string, dialogo bool,
 			return ris
 		}
 	}
-	if v, ok := t.libreria[chiave]; ok && !conParoleFisse {
+	if v, ok := t.libreria[chiave]; ok && !conParoleFisse && !italianoInventato(battuta, v) {
 		v = t.giaSalvataLocked(chiave, battuta, v)
 		correttaIA := t.corretteIA[chiave] // letta col lucchetto: il correttore la scrive da un altro filo
 		t.mu.Unlock()
@@ -467,7 +467,8 @@ func (t *Traduttore) traduciIn(ctx context.Context, grezzo string, dialogo bool,
 		ricorda(battuta)
 		return ris
 	}
-	if v, ok := t.cache[chiave]; ok {
+	// (una traduzione con parole inventate salvata da una versione di prima non si usa più: si rifà)
+	if v, ok := t.cache[chiave]; ok && !italianoInventato(battuta, v) {
 		t.segnaUsoLocked(chiave) // usata adesso: non è tra le prime da togliere
 		v = t.giaSalvataLocked(chiave, battuta, v)
 		if t.libreria != nil {
@@ -489,7 +490,7 @@ func (t *Traduttore) traduciIn(ctx context.Context, grezzo string, dialogo bool,
 	if !conParoleFisse && !daFile && ctx.Value(chiaveEsatta{}) == nil {
 		if cand := t.candidatiQuasiUgualiLocked(parlante, battuta); len(cand) > 0 {
 			t.mu.Unlock()
-			if v, ok := sceltaQuasiUguale(battuta, cand); ok {
+			if v, ok := sceltaQuasiUguale(battuta, cand); ok && !italianoInventato(battuta, v) {
 				ris.Tradotto, ris.Motore = nomiIntatti(battuta, v), "libreria"
 				ris.Millisec = time.Since(inizio).Milliseconds()
 				ricorda(battuta)
@@ -518,7 +519,18 @@ func (t *Traduttore) traduciIn(ctx context.Context, grezzo string, dialogo bool,
 	for _, m := range motori {
 		out, err := traduciConMotore(ctx, m, req)
 		if err == nil && strings.TrimSpace(out) != "" {
-			ris.Tradotto, ris.Motore = nomiIntatti(battuta, sigleItaliane(correggiTerminiFrase(battuta, strings.TrimSpace(out)), req.Glossario)), m.Nome()
+			it := nomiIntatti(battuta, sigleItaliane(correggiTerminiFrase(battuta, strings.TrimSpace(out)), req.Glossario))
+			if italianoInventato(battuta, it) {
+				// parole che in italiano non esistono ("PUNCI DI SVOGLIAMENTO"): riprovo con le
+				// maiuscole diverse (le scritte TUTTE MAIUSCOLE confondono il traduttore), se no
+				// meglio l'inglese del gioco
+				it = t.riprovaMaiuscole(ctx, m, req, battuta)
+				if it == "" {
+					errori = append(errori, m.Nome()+": "+errParoleInventate)
+					continue
+				}
+			}
+			ris.Tradotto, ris.Motore = it, m.Nome()
 			break
 		}
 		if err != nil {
@@ -556,6 +568,75 @@ func (t *Traduttore) traduciIn(ctx context.Context, grezzo string, dialogo bool,
 	}
 	ricorda(battuta)
 	return ris
+}
+
+// errParoleInventate: la traduzione aveva parole che in italiano non esistono (resta l'inglese).
+const errParoleInventate = "traduzione con parole inventate"
+
+// italianoInventato: la traduzione it di en ha parole italiane inventate (vedi italiano.go).
+func italianoInventato(en, it string) bool {
+	si, _ := traduzioneInventata(en, it)
+	return si
+}
+
+// riprovaMaiuscole: traduce di nuovo la scritta con le maiuscole cambiate ("TURNING POINTS" →
+// "Turning points", poi "Turning Points"; "Shop Owner" → "Shop owner") e rimette le maiuscole
+// com'erano. "" = anche così ci sono parole inventate.
+func (t *Traduttore) riprovaMaiuscole(ctx context.Context, m Motore, req RichiestaTraduzione, battuta string) string {
+	var varianti []string
+	frase := func(s string) string { // solo la prima lettera maiuscola
+		r := []rune(strings.ToLower(s))
+		if len(r) > 0 {
+			r[0] = unicode.ToUpper(r[0])
+		}
+		return string(r)
+	}
+	tutto := tuttoMaiuscolo(battuta)
+	switch {
+	case tutto:
+		varianti = []string{frase(battuta), titoloDi(battuta)}
+	case titoloMaiuscole(battuta) && len(strings.Fields(battuta)) > 1:
+		varianti = []string{frase(battuta)}
+	default:
+		return ""
+	}
+	for _, v := range varianti {
+		if v == battuta {
+			continue
+		}
+		r := req
+		r.Testo = v
+		out, err := traduciConMotore(ctx, m, r)
+		if err != nil || strings.TrimSpace(out) == "" {
+			continue
+		}
+		it := nomiIntatti(v, sigleItaliane(correggiTerminiFrase(v, strings.TrimSpace(out)), req.Glossario))
+		if italianoInventato(v, it) {
+			continue
+		}
+		switch {
+		case tutto:
+			it = strings.ToUpper(it)
+		default: // l'iniziale maiuscola, come la scritta del gioco
+			if rr := []rune(it); len(rr) > 0 {
+				rr[0] = unicode.ToUpper(rr[0])
+				it = string(rr)
+			}
+		}
+		return it
+	}
+	return ""
+}
+
+// titoloDi: "TURNING POINTS" → "Turning Points".
+func titoloDi(s string) string {
+	w := strings.Fields(strings.ToLower(s))
+	for i, x := range w {
+		r := []rune(x)
+		r[0] = unicode.ToUpper(r[0])
+		w[i] = string(r)
+	}
+	return strings.Join(w, " ")
 }
 
 // traduciEtichetta: scritte dei menu fatte a pezzi ("- Bleed Resist", "Mating Status: Error",
@@ -616,6 +697,14 @@ func (t *Traduttore) traduciEtichetta(ctx context.Context, s string, inizio time
 		}
 	}
 	if k, v, ok := strings.Cut(s, ": "); ok && !strings.Contains(v, ": ") && strings.TrimSpace(k) != "" && strings.TrimSpace(v) != "" {
+		// chi parla e cosa fa: "Rafts: (screaming)" → il nome resta com'è ("zatteri" no)
+		if n, _ := separaParlante(s); n != "" && strings.HasPrefix(strings.TrimSpace(v), "(") {
+			b := t.traduci(ctx, strings.TrimSpace(v), false)
+			if b.Tradotto == "" {
+				return ris, false
+			}
+			return finito(k+": "+b.Tradotto, b.Motore)
+		}
 		a := t.traduciElenco(ctx, k) // "Boar, Located" -> "Cinghiale, Si trova"
 		b := t.traduciElenco(ctx, v)
 		ta, tb := a.Tradotto, b.Tradotto

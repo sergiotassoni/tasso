@@ -485,7 +485,7 @@ var reSegnoAttaccato = regexp.MustCompile(`(\p{Ll}{2})([!?]+)(\p{L})`)
 // correggiRigaOCR: la riga letta corretta e quanto mi fido. Usata dalla traduzione di tutta la
 // schermata: una riga con voto letturaDubbia NON si traduce (resta l'inglese del gioco).
 func correggiRigaOCR(grezzo string) (string, int) {
-	s := strings.Join(strings.Fields(lettereOCRStrane(grezzo)), " ")
+	s := strings.Join(strings.Fields(maiuscolaConfusa(lettereOCRStrane(grezzo))), " ")
 	s = reSegnoAttaccato.ReplaceAllString(s, "$1$2 $3")
 	s = correggiContatori(correggiPercentuale(s))
 	if s == "" || reSoloSimboli.MatchString(s) {
@@ -567,6 +567,39 @@ func correggiRigaOCR(grezzo string) (string, int) {
 		return s2, letturaDubbia
 	}
 	return s2, letturaBuona
+}
+
+// maiuscolaConfusa: parola tutta maiuscola con l'ultima lettera letta minuscola perché le due
+// forme si somigliano ("MAp", "BOx", "SAVe"): torna tutta maiuscola.
+func maiuscolaConfusa(s string) string {
+	campi := strings.Fields(s)
+	cambiata := false
+	for i, w := range campi {
+		r := []rune(w)
+		n := len(r)
+		for n > 0 && !unicode.IsLetter(r[n-1]) {
+			n--
+		}
+		if n < 3 || !strings.ContainsRune("cklopsuvwxz", r[n-1]) {
+			continue
+		}
+		tutte := true
+		for _, c := range r[:n-1] {
+			if unicode.IsLetter(c) && !unicode.IsUpper(c) {
+				tutte = false
+				break
+			}
+		}
+		if tutte && unicode.IsUpper(r[0]) && unicode.IsUpper(r[1]) {
+			r[n-1] = unicode.ToUpper(r[n-1])
+			campi[i] = string(r)
+			cambiata = true
+		}
+	}
+	if !cambiata {
+		return s
+	}
+	return strings.Join(campi, " ")
 }
 
 // letteraSolaIniziale: la riga comincia con una lettera sola minuscola (non "a") seguita da una
