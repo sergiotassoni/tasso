@@ -124,3 +124,48 @@ func TestNomiTasso(t *testing.T) {
 		}
 	}
 }
+
+// I testi fissi della pagina Impostazioni cambiano lingua: ogni pezzo di testo scritto nella
+// pagina (tra un tag e l'altro, come li traduce translateStatic) ha la sua traduzione in tutte
+// le lingue. Restano fuori solo i nomi delle lingue, i nomi dei pulsanti di Discord (che su
+// Discord sono in inglese) e il comando !stato.
+func TestImpostazioniTradotte(t *testing.T) {
+	b, err := os.ReadFile("../ui/index.html")
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := string(b)
+	a := strings.Index(s, `<section class="view" id="v-settings">`)
+	if a < 0 {
+		t.Fatal("pagina Impostazioni non trovata")
+	}
+	f := strings.Index(s[a:], "</section>")
+	pag := s[a : a+f]
+	fuori := map[string]bool{"Lingua · Language": true, "!stato": true, "TASSO": true,
+		"Italiano": true, "English": true, "Español": true, "Français": true, "Deutsch": true,
+		"New Application": true, "Create": true, "Bot": true, "Reset Token": true, "Copy": true,
+		"Message Content Intent": true, "Save Changes": true}
+	lettere := regexp.MustCompile(`[A-Za-zÀ-ÿ]`)
+	tutte := map[string]diz{"en": leggi(t, "en")}
+	for _, l := range lingue {
+		tutte[l] = leggi(t, l)
+	}
+	for _, pezzo := range regexp.MustCompile(`<[^>]*>`).Split(pag, -1) {
+		k := strings.TrimSpace(pezzo)
+		if k == "" || !lettere.MatchString(k) || fuori[k] {
+			continue
+		}
+		for l, d := range tutte {
+			if _, ok := d["ui"][k]; !ok {
+				t.Errorf("%s.json/ui: manca il testo delle Impostazioni %q", l, k)
+			}
+		}
+	}
+	// Il sottotitolo della lingua: in ogni lingua c'è la frase nella lingua stessa, non l'italiano.
+	k := "Tasso si riapre nella lingua scelta. · Tasso reopens in the language you choose."
+	for l, d := range tutte {
+		if v := d["ui"][k]; v == "" || strings.Contains(v, "si riapre") {
+			t.Errorf("%s.json/ui: il sottotitolo della lingua è ancora in italiano: %q", l, v)
+		}
+	}
+}
