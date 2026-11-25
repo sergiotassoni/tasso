@@ -388,7 +388,10 @@ func collega(w webview2.WebView) {
 			return map[string]any{"ok": false, "dettagli": "…"}
 		}
 		defer inCorso.Store(false)
-		in := &installa.Installatore{Registro: reg, TogliFile: togliFile}
+		// CreaCollegamento serve anche qui: se resta Tasso con un'altra modalità (es. tolto
+		// Gaming, resta Ufficio) il collegamento "Tasso Gaming" diventa "Tasso Ufficio".
+		in := &installa.Installatore{Registro: reg, TogliFile: togliFile, CreaCollegamento: creaCollegamento,
+			CartellaDatiUtente: datiLocaliUtente}
 		r, err := in.Disinstalla(baseDisins, componenti(cc))
 		aggiornaIcone()
 		if err != nil {

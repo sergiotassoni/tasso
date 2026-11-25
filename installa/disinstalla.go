@@ -120,6 +120,8 @@ func (in *Installatore) Disinstalla(base string, togli []Componente) (*Risultato
 		if dir != base {
 			_ = os.Remove(dir) // solo se vuota
 		}
+		// menu del tasto destro, "Apri con" e dati in %LOCALAPPDATA% messi dal programma
+		ris.NonTolti = append(ris.NonTolti, in.togliTracceUtente(base, id)...)
 		delete(st.Programmi, id)
 	}
 	st.Componenti = restano

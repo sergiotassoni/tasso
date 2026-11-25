@@ -85,6 +85,24 @@ func (registroWin) TogliChiave(r installa.Radice, chiave string) error {
 	return err
 }
 
+func (registroWin) TogliAlbero(r installa.Radice, chiave string) error {
+	k, err := registry.OpenKey(radice(r), chiave, registry.ENUMERATE_SUB_KEYS|registry.WOW64_64KEY)
+	if errors.Is(err, registry.ErrNotExist) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	figli, _ := k.ReadSubKeyNames(-1)
+	k.Close()
+	for _, f := range figli {
+		if err := (registroWin{}).TogliAlbero(r, chiave+`\`+f); err != nil {
+			return err
+		}
+	}
+	return (registroWin{}).TogliChiave(r, chiave)
+}
+
 func (registroWin) Vuota(r installa.Radice, chiave string) bool {
 	k, err := registry.OpenKey(radice(r), chiave, registry.QUERY_VALUE|registry.ENUMERATE_SUB_KEYS|registry.WOW64_64KEY)
 	if err != nil {
@@ -96,6 +114,9 @@ func (registroWin) Vuota(r installa.Radice, chiave string) bool {
 }
 
 // ---------------- cartelle di Windows ----------------
+
+// datiLocaliUtente: %LOCALAPPDATA% dell'utente (dalla cartella nota, non dalla variabile).
+func datiLocaliUtente() string { return cartellaNota(windows.FOLDERID_LocalAppData, "") }
 
 func cartellaNota(id *windows.KNOWNFOLDERID, riserva string) string {
 	if p, err := windows.KnownFolderPath(id, 0); err == nil && p != "" {

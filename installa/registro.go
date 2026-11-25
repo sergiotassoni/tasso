@@ -31,6 +31,8 @@ type Registro interface {
 	TogliValore(r Radice, chiave, nome string) error
 	// TogliChiave toglie la chiave con i suoi valori (senza sottochiavi). Se non c'è va bene.
 	TogliChiave(r Radice, chiave string) error
+	// TogliAlbero toglie la chiave con tutte le sottochiavi. Se non c'è va bene.
+	TogliAlbero(r Radice, chiave string) error
 	// Vuota dice se la chiave non ha valori né sottochiavi (o non esiste).
 	Vuota(r Radice, chiave string) bool
 }
@@ -126,6 +128,23 @@ func (m *RegistroMemoria) TogliChiave(r Radice, chiave string) error {
 		}
 	}
 	delete(m.chiavi, nomeChiave(r, chiave))
+	return nil
+}
+
+func (m *RegistroMemoria) TogliAlbero(r Radice, chiave string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if m.Sbaglia != nil {
+		if err := m.Sbaglia("togli", chiave, ""); err != nil {
+			return err
+		}
+	}
+	k := nomeChiave(r, chiave)
+	for altra := range m.chiavi {
+		if altra == k || strings.HasPrefix(altra, k+`\`) {
+			delete(m.chiavi, altra)
+		}
+	}
 	return nil
 }
 
