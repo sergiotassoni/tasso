@@ -88,6 +88,13 @@ func TestBancoProvaCartellaFinta(t *testing.T) {
 	if !strings.Contains(string(txt), "Righe mezze tradotte DISEGNATE: 0") {
 		t.Errorf("riepilogo: %s", txt)
 	}
+	// "Open the vault" aveva una traduzione (mezza): compare tra le traduzioni scartate, col perché
+	if !strings.Contains(string(txt), "=== TRADUZIONI SCARTATE") || !strings.Contains(string(txt), "\"Open the vault\" -> ") {
+		t.Errorf("manca l'elenco delle traduzioni scartate: %s", txt)
+	}
+	if h, _ := os.ReadFile(filepath.Join(dir, "banco-prova.html")); !strings.Contains(string(h), "Traduzioni scartate") {
+		t.Error("manca l'elenco delle traduzioni scartate nell'HTML")
+	}
 }
 
 // TASSO_BANCO=<cartella> go test -run TestBancoProvaCartellaVera: il banco su una cartella di

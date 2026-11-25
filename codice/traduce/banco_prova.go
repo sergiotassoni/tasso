@@ -333,7 +333,7 @@ func scriviReportBanco(dir string, esiti []esitoImmagine, instab []instabilita) 
 		nome string
 		r    infoRiga
 	}
-	var peggiScartate, peggiCorrette []caso
+	var peggiScartate, peggiCorrette, rifiutate []caso
 	for _, e := range esiti {
 		msTot += e.MsTot
 		msOCR += e.MsOCR
@@ -344,6 +344,9 @@ func scriviReportBanco(dir string, esiti []esitoImmagine, instab []instabilita) 
 			tot++
 			if r.Scartata != "" {
 				scartate++
+				if strings.TrimSpace(r.Tradotto) != "" {
+					rifiutate = append(rifiutate, caso{e.Nome, r}) // c'era una traduzione, ma non si è disegnata
+				}
 				if r.Scartata != "non è testo da tradurre" && r.Scartata != motivoUgualeIt {
 					peggiScartate = append(peggiScartate, caso{e.Nome, r})
 				}
@@ -404,6 +407,16 @@ func scriviReportBanco(dir string, esiti []esitoImmagine, instab []instabilita) 
 			fmt.Fprintf(&t, "  %s: %q (%s)\r\n", c.nome, c.r.Grezzo, c.r.Scartata)
 		}
 	}
+	if len(rifiutate) > 0 {
+		fmt.Fprintf(&t, "\r\n=== TRADUZIONI SCARTATE (c'era una traduzione ma è rimasto l'inglese, e perché): %d\r\n", len(rifiutate))
+		for i, c := range rifiutate {
+			if i >= 200 {
+				fmt.Fprintf(&t, "  ... e altre %d\r\n", len(rifiutate)-i)
+				break
+			}
+			fmt.Fprintf(&t, "  %s: %q -> %q  (%s)\r\n         perché: %s\r\n", c.nome, c.r.Corretto, c.r.Tradotto, c.r.Fonte, c.r.Scartata)
+		}
+	}
 	if len(peggiCorrette) > 0 {
 		sort.SliceStable(peggiCorrette, func(i, j int) bool {
 			return distanzaLettere(peggiCorrette[i].r.Grezzo, peggiCorrette[i].r.Corretto) > distanzaLettere(peggiCorrette[j].r.Grezzo, peggiCorrette[j].r.Corretto)
@@ -428,6 +441,15 @@ th{color:#9aa6b8}.no{color:#ff9a7a}.si{color:#3ee6b0}.r{background:#1b2030;paddi
 </style></head><body><h1>Banco di prova della traduzione</h1><div class="r"><pre>`)
 	h.WriteString(html.EscapeString(strings.SplitN(t.String(), "\r\n\r\n", 3)[1]))
 	h.WriteString("</pre></div>")
+	if len(rifiutate) > 0 {
+		fmt.Fprintf(&h, "<h2>Traduzioni scartate (%d)</h2><p>C'era una traduzione, ma sullo schermo è rimasto l'inglese. Qui il perché, da ricontrollare.</p>", len(rifiutate))
+		h.WriteString("<table><tr><th>schermata</th><th>inglese</th><th>traduzione scartata</th><th>fonte</th><th>perché</th></tr>")
+		for _, c := range rifiutate {
+			fmt.Fprintf(&h, `<tr><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td class="no">%s</td></tr>`,
+				html.EscapeString(c.nome), html.EscapeString(c.r.Corretto), html.EscapeString(c.r.Tradotto), html.EscapeString(c.r.Fonte), html.EscapeString(c.r.Scartata))
+		}
+		h.WriteString("</table>")
+	}
 	for _, e := range esiti {
 		fmt.Fprintf(&h, "<h2>%s</h2><p>lettura %d ms, totale %d ms, mostrate %d, in inglese %d%s</p>", html.EscapeString(e.Nome), e.MsOCR, e.MsTot, e.Mostrate, e.Scartate, html.EscapeString(testoErrore(e.Errore)))
 		if _, err := os.Stat(filepath.Join(dir, e.Nome+"-tradotto.png")); err == nil {
