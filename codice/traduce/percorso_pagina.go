@@ -216,7 +216,7 @@ func vociDiUnaFila(b Blocco) []Blocco {
 	var gruppi [][]ParolaOCR
 	cur := []ParolaOCR{p[0]}
 	for i := 1; i < len(p); i++ {
-		if buchi[i-1] > 0 && buchi[i-1] >= 1.5*normale && inizioVoce(p[i].T) && fineVoce(p[i-1].T) {
+		if buchi[i-1] > 0 && buchi[i-1] >= 1.5*normale && inizioVoce(p[i].T) && fineVoce(p[i-1].T) && !chiedeSeguito(testoParole(cur)) {
 			gruppi = append(gruppi, cur)
 			cur = nil
 		}

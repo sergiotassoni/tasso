@@ -461,6 +461,9 @@ func correggiRigaOCR(grezzo string) (string, int) {
 	if _, ok := fraseMenuConNumero(s); ok {
 		return s, letturaCatalog // già esatta (anche "progess", se il gioco la scrive così)
 	}
+	if letteraSolaIniziale(s) {
+		return s, letturaDubbia // "s noise when…": la riga ripresa da metà parola, un pezzo
+	}
 	s1 := unisciFrammenti(s)
 	s2 := correggiParole(separaAttaccate(s1))
 	if s2 != s1 {
@@ -485,6 +488,16 @@ func correggiRigaOCR(grezzo string) (string, int) {
 		return conPunteggiatura(best, s2), letturaCatalog
 	}
 	if tot == 0 {
+		return s2, letturaDubbia
+	}
+	// pezzo di frase (comincia minuscolo) con una parola che non esiste: è un seguito letto male,
+	// meglio l'inglese del gioco che mezza frase storpiata
+	if iniziaMinuscola(s) && (false_ > 0 || f1 > 0) {
+		return s2, letturaDubbia
+	}
+	// due parole inventate nella lettura grezza e una rimasta anche dopo la correzione ("arepe
+	// earby" -> "arepe ear by"): la riga è storpiata, anche se lunga
+	if f1 >= 2 && false_ >= 1 && f1*100 > tot*15 {
 		return s2, letturaDubbia
 	}
 	// riga corta (fino a 4 parole): ogni parola deve essere vera; al massimo UNA parola che non
@@ -516,6 +529,17 @@ func correggiRigaOCR(grezzo string) (string, int) {
 		return s2, letturaDubbia
 	}
 	return s2, letturaBuona
+}
+
+// letteraSolaIniziale: la riga comincia con una lettera sola minuscola (non "a") seguita da una
+// parola minuscola: "s noise when enemies…" è la fine di una parola tagliata, non una frase.
+func letteraSolaIniziale(s string) bool {
+	w := strings.Fields(s)
+	if len(w) < 2 {
+		return false
+	}
+	r := []rune(w[0])
+	return len(r) == 1 && r[0] != 'a' && unicode.IsLower(r[0]) && iniziaMinuscola(w[1])
 }
 
 // conPunteggiatura: la frase del catalogo con la punteggiatura finale e le maiuscole della

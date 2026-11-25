@@ -62,12 +62,18 @@ func unisciStessaRiga(b []Blocco) []Blocco {
 					continue
 				}
 				a, c := out[i], out[j]
-				if c.X < a.X || !stessaLinea(a, c) {
+				if c.X < a.X {
 					continue
 				}
 				buco := c.X - (a.X + a.W)
-				if buco < -min(a.H, c.H)/2 || buco > sogliaParole(a, c) {
-					continue
+				if !stessaLinea(a, c) || buco < -min(a.H, c.H)/2 || buco > sogliaParole(a, c) {
+					// pezzi di UNA frase (il primo vuole il seguito o il secondo comincia
+					// minuscolo): uniti anche un po' più lontani o sovrapposti (l'OCR ha perso
+					// o letto due volte una parola in mezzo), e la riga intera si giudica insieme
+					if !pezziDiUnaFrase(a, c) {
+						continue
+					}
+					c = senzaLetteraDoppia(a, c)
 				}
 				out[i] = unisciDue(a, c)
 				out = append(out[:j], out[j+1:]...)
@@ -77,6 +83,111 @@ func unisciStessaRiga(b []Blocco) []Blocco {
 		}
 	}
 	return out
+}
+
+// paroleSeguito: parole che a fine pezzo vogliono quasi sempre il seguito sulla stessa riga
+// (oltre a paroleSospese): comparativi, ausiliari, congiunzioni. "less" e "more" chiudono anche
+// pulsanti corti ("Show more"): contano solo nei pezzi di almeno tre parole.
+var paroleSeguito = map[string]bool{"less": true, "more": true, "than": true, "very": true, "so": true,
+	"too": true, "as": true, "not": true, "can": true, "will": true, "would": true, "could": true,
+	"should": true, "must": true, "if": true, "when": true, "while": true, "because": true, "these": true,
+	"those": true, "each": true, "every": true, "some": true, "has": true, "have": true, "had": true}
+
+// chiedeSeguito: il pezzo finisce con una parola che vuole il seguito ("...makes less", "...of the").
+func chiedeSeguito(t string) bool {
+	w := strings.Fields(strings.TrimSpace(t))
+	if len(w) == 0 {
+		return false
+	}
+	u := w[len(w)-1]
+	if strings.HasSuffix(u, ",") {
+		return len(w) >= 2
+	}
+	u = strings.ToLower(strings.Trim(u, "\"'"))
+	if paroleSospese[u] {
+		return true
+	}
+	return paroleSeguito[u] && len(w) >= 3
+}
+
+// iniziaMinuscola: il pezzo comincia con una parola di sole lettere minuscola ("s noise…",
+// "noise when…"): è il seguito di una frase, non una scritta a sé ("x2", "4K" non contano).
+func iniziaMinuscola(t string) bool {
+	w := strings.Fields(strings.TrimSpace(t))
+	if len(w) == 0 {
+		return false
+	}
+	p := strings.TrimRight(w[0], ".,;:!?")
+	r := []rune(p)
+	if len(r) == 0 || !unicode.IsLower(r[0]) {
+		return false
+	}
+	for _, c := range r {
+		if !unicode.IsLetter(c) && c != '\'' && c != '-' {
+			return false
+		}
+	}
+	return true
+}
+
+// pezziDiUnaFrase: a (a sinistra) e c sulla stessa linea sono due pezzi della stessa frase: a
+// vuole il seguito o c comincia minuscolo, e tra i due c'è al massimo lo spazio di una parola
+// persa (3 em) o si sovrappongono di poco.
+func pezziDiUnaFrase(a, c Blocco) bool {
+	if c.X < a.X || !lineaSimile(a, c) {
+		return false
+	}
+	if !chiedeSeguito(a.Testo) && !iniziaMinuscola(c.Testo) {
+		return false
+	}
+	em := math.Max(a.Em, c.Em)
+	if em <= 0 {
+		em = float64(min(a.H, c.H)) * 1.1
+	}
+	buco := c.X - (a.X + a.W)
+	return buco >= -max(a.H, c.H) && float64(buco) <= 3*em
+}
+
+// lineaSimile: come stessaLinea ma con l'altezza più libera (un pezzo riletto ingrandito o con
+// lettere solo basse, "s noise", può avere il riquadro un po' più basso o più alto).
+func lineaSimile(a, b Blocco) bool {
+	if max(1, a.Righe) != 1 || max(1, b.Righe) != 1 || a.H <= 0 || b.H <= 0 {
+		return false
+	}
+	hMin, hMax := min(a.H, b.H), max(a.H, b.H)
+	if hMax > 2*hMin {
+		return false
+	}
+	if abs((a.Y+a.H/2)-(b.Y+b.H/2))*2 > hMin {
+		return false
+	}
+	sopra := min(a.Y+a.H, b.Y+b.H) - max(a.Y, b.Y)
+	return sopra*10 >= hMin*6
+}
+
+// senzaLetteraDoppia: "less" + "s noise": la lettera sola minuscola all'inizio di c è la fine
+// dell'ultima parola di a letta due volte (l'OCR ha ripreso la riga da metà parola): la tolgo.
+func senzaLetteraDoppia(a, c Blocco) Blocco {
+	pa, pc := a.parole(), c.parole()
+	wc := strings.Fields(c.Testo)
+	wa := strings.Fields(a.Testo)
+	if len(pc) < 2 || len(wc) < 2 || len(wa) == 0 {
+		return c
+	}
+	l := strings.TrimSpace(pc[0].T)
+	ultima := strings.ToLower(strings.Trim(wa[len(wa)-1], ".,;:!?\"'"))
+	if len([]rune(l)) != 1 || l == "a" || !unicode.IsLower([]rune(l)[0]) || !strings.HasSuffix(ultima, l) || !esiste(ultima) {
+		return c
+	}
+	if len(pa) > 0 {
+		u := pa[len(pa)-1]
+		if pc[0].X > u.X+u.W+0.6*u.H { // lontana dalla parola: non è la stessa lettera
+			return c
+		}
+	}
+	n := bloccoDaPosizioni(pc[1:], c)
+	n.Grezzo = n.Testo
+	return n
 }
 
 // unisciEtichette: un'etichetta letta a parte ("TIP:", "Objective:", "MARCUS:") e la frase dopo
@@ -267,7 +378,7 @@ func spezzaPulsanti(b []Blocco) []Blocco {
 			if fineFrase(p[i-1].T) {
 				s = sogliaFrase // dopo il punto lo spazio è spesso più largo: due frasi, non due voci
 			}
-			if buchi[i-1] >= s && inizioVoce(p[i].T) && fineVoce(p[i-1].T) {
+			if buchi[i-1] >= s && inizioVoce(p[i].T) && fineVoce(p[i-1].T) && !chiedeSeguito(testoParole(cur)) {
 				gruppi = append(gruppi, cur)
 				cur = nil
 			}
