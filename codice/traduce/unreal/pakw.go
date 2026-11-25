@@ -1,5 +1,7 @@
 package unreal
 
+// Scrittura dei file .pak di Unreal Engine (la traduzione da mettere dentro il gioco).
+
 import (
 	"bytes"
 	"crypto/sha1"

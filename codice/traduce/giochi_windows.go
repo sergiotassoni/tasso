@@ -2,6 +2,8 @@
 
 package traduce
 
+// Giochi installati: cartella, eseguibile, informazioni e verifica che la traduzione dentro il gioco funzioni.
+
 import (
 	"os"
 	"path/filepath"

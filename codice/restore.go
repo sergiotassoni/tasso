@@ -1,5 +1,7 @@
 package main
 
+// Ripristino: la foto di come era il PC prima di Tasso e il modo di rimettere tutto com'era.
+
 import (
 	"encoding/json"
 	"math"

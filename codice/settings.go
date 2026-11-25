@@ -1,5 +1,7 @@
 package main
 
+// Impostazioni di Tasso: lettura, salvataggio e le funzioni che le cambiano dalla pagina.
+
 import (
 	"bytes"
 	"context"

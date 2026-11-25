@@ -2,6 +2,8 @@
 
 package traduce
 
+// Quanto è potente il PC (memoria, processori, scheda video): serve a consigliare il correttore IA.
+
 import (
 	"runtime"
 	"sync"

@@ -2,6 +2,8 @@
 
 package traduce
 
+// Mette la traduzione dentro i giochi Unreal (file .pak in ~mods), passo dopo passo.
+
 import (
 	"context"
 	"errors"

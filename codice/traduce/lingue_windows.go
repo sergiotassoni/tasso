@@ -2,6 +2,8 @@
 
 package traduce
 
+// Lingue del traduttore: coppia attiva, scaricamento dei modelli e lettura (OCR) per lingua.
+
 import (
 	"context"
 

@@ -1,5 +1,7 @@
 package main
 
+// Numeri dal vivo del PC (processore, memoria, scheda video) per la pagina principale.
+
 import (
 	"os"
 	"path/filepath"

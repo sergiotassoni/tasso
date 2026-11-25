@@ -1,5 +1,7 @@
 package main
 
+// I passaggi di pulizia e regolazione: l'elenco con nome, descrizione e script di ognuno.
+
 import "time"
 
 type Step struct {

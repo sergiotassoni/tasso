@@ -1,5 +1,7 @@
 package main
 
+// Esecuzione degli script PowerShell: file temporanei, tempi massimi, messaggi di avanzamento.
+
 import (
 	"bufio"
 	"context"

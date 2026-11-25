@@ -1,5 +1,8 @@
 package main
 
+// Funzioni di base usate da molte pagine: avvio degli script PowerShell, programmi che partono
+// con Windows, programmi installati e lavori lunghi in sottofondo.
+
 import (
 	"crypto/rand"
 	"encoding/json"

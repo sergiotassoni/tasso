@@ -1,5 +1,7 @@
 package main
 
+// Gli script PowerShell usati da features.go (programmi all'avvio, programmi installati).
+
 const startupListScript = `
 $out = Get-TassoStartup
 [Console]::Out.WriteLine('JSON ' + (ConvertTo-Json -InputObject @($out) -Compress -Depth 3))

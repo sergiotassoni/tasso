@@ -1,5 +1,7 @@
 package main
 
+// Il file Tasso.exe stesso: lo tiene bloccato mentre gira e lo rilegge per copiarlo in Programmi.
+
 import (
 	"errors"
 	"io"
