@@ -86,12 +86,19 @@ var SuFinestra = map[string]bool{}
 // Modifica di Tasso: si impostano prima di aprire la pagina, come SuFinestra.
 var Subito = map[string]bool{}
 
+// SetLayeredWindowAttributes, per le finestre Nascosta (modifica di Tasso).
+var user32SetLayered = windows.NewLazySystemDLL("user32.dll").NewProc("SetLayeredWindowAttributes")
+
 type WindowOptions struct {
 	Title  string
 	Width  uint
 	Height uint
 	IconId uint
 	Center bool
+	// Nascosta (modifica di Tasso): finestra di lavoro che non si vede e non si tocca mai.
+	// Nasce già fuori dallo schermo, trasparente ai clic (LAYERED|TRANSPARENT, alfa 0),
+	// senza pulsante nella barra delle applicazioni (TOOLWINDOW) e senza prendere il fuoco.
+	Nascosta bool
 }
 
 type WebViewOptions struct {
@@ -511,11 +518,18 @@ func (w *webview) CreateWithOptions(opts WindowOptions) bool {
 		posY = w32.CW_USEDEFAULT
 	}
 
+	exStyle, style := uintptr(0), uintptr(0xCF0000) // WS_OVERLAPPEDWINDOW
+	if opts.Nascosta {
+		// modifica di Tasso: LAYERED|TRANSPARENT|TOOLWINDOW|NOACTIVATE, WS_POPUP, fuori dallo schermo
+		exStyle, style = 0x80000|0x20|0x80|0x08000000, 0x80000000
+		fuori := int32(-32000)
+		posX, posY = uint(uintptr(fuori)), uint(uintptr(fuori))
+	}
 	w.hwnd, _, _ = w32.User32CreateWindowExW.Call(
-		0,
+		exStyle,
 		uintptr(unsafe.Pointer(className)),
 		uintptr(unsafe.Pointer(windowName)),
-		0xCF0000, // WS_OVERLAPPEDWINDOW
+		style,
 		uintptr(posX),
 		uintptr(posY),
 		uintptr(windowWidth),
@@ -527,9 +541,14 @@ func (w *webview) CreateWithOptions(opts WindowOptions) bool {
 	)
 	setWindowContext(w.hwnd, w)
 
-	_, _, _ = w32.User32ShowWindow.Call(w.hwnd, w32.SWShow)
-	_, _, _ = w32.User32UpdateWindow.Call(w.hwnd)
-	_, _, _ = w32.User32SetFocus.Call(w.hwnd)
+	if opts.Nascosta {
+		_, _, _ = user32SetLayered.Call(w.hwnd, 0, 0, 2) // LWA_ALPHA, alfa 0: invisibile anche se finisse sullo schermo
+		_, _, _ = w32.User32ShowWindow.Call(w.hwnd, 4)   // SW_SHOWNOACTIVATE: "visibile" per WebView2, senza fuoco
+	} else {
+		_, _, _ = w32.User32ShowWindow.Call(w.hwnd, w32.SWShow)
+		_, _, _ = w32.User32UpdateWindow.Call(w.hwnd)
+		_, _, _ = w32.User32SetFocus.Call(w.hwnd)
+	}
 
 	if !w.browser.Embed(w.hwnd) {
 		return false

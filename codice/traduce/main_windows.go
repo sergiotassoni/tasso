@@ -303,6 +303,7 @@ func assicuraMotore() {
 			// il motore c'è ma ha detto che non è pronto (file mancanti o rovinati): ricarico la sua pagina
 			mozErr.Store("") // l'errore vecchio non vale più: aspetto la risposta della pagina ricaricata
 			m.Dispatch(func() { m.Navigate(url) })
+			rinascondiMotore(m)
 		}
 		return
 	}
@@ -322,6 +323,8 @@ func assicuraMotore() {
 				return
 			}
 			_ = m.Bind("goMozillaPronto", func(ok bool, errore string) string {
+				h := uintptr(m.Window())
+				m.Dispatch(func() { nascondiMotore(h) }) // pagina caricata: la rimetto via, per sicurezza
 				mozillaPronto(ok, errore)
 				emetti("aggiorna", stato())
 				return "ok"
@@ -332,6 +335,7 @@ func assicuraMotore() {
 			motoreMu.Unlock()
 			close(pronta)
 			m.Navigate(url)
+			rinascondiMotore(m)
 			m.Run()
 			motoreMu.Lock()
 			motore = nil
@@ -363,11 +367,16 @@ func creaMotore() (w webview2.WebView) {
 			w = nil
 		}
 	}()
+	// la finestra è fuori dallo schermo: Edge non deve crederla coperta e rallentare la pagina
+	if os.Getenv("WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS") == "" {
+		_ = os.Setenv("WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS", "--disable-features=CalculateNativeWinOcclusion --disable-background-timer-throttling --disable-renderer-backgrounding --disable-backgrounding-occluded-windows")
+	}
 	w = webview2.NewWithOptions(webview2.WebViewOptions{
 		DataPath:  motoreDati,
 		AutoFocus: false,
 		WindowOptions: webview2.WindowOptions{
 			Title: "Tasso Traduce (motore)", Width: 320, Height: 240,
+			Nascosta: true, // nasce già fuori dallo schermo, trasparente ai clic e senza pulsante nella barra
 		},
 	})
 	if w == nil {
@@ -375,6 +384,26 @@ func creaMotore() (w webview2.WebView) {
 	}
 	nascondiMotore(uintptr(w.Window()))
 	return w
+}
+
+// rinascondiMotore ripete nascondiMotore nel filo della finestra (subito e dopo 0,5, 2 e 5
+// secondi): WebView2 a volte rimette a posto la finestra mentre si avvia o carica la pagina.
+func rinascondiMotore(m webview2.WebView) {
+	if m == nil {
+		return
+	}
+	h := uintptr(m.Window())
+	m.Dispatch(func() { nascondiMotore(h) })
+	for _, d := range []time.Duration{500 * time.Millisecond, 2 * time.Second, 5 * time.Second} {
+		time.AfterFunc(d, func() {
+			motoreMu.Lock()
+			ancora := motore == m
+			motoreMu.Unlock()
+			if ancora {
+				m.Dispatch(func() { nascondiMotore(h) })
+			}
+		})
+	}
 }
 
 func finestraErrore(testo string) {

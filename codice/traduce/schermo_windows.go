@@ -1314,18 +1314,29 @@ func nomiTasti(funzioni []string, t map[string]uint32) string {
 }
 
 // nascondiMotore porta la finestra del motore fuori dallo schermo, senza icona nella barra
-// delle applicazioni e senza che prenda il fuoco.
+// delle applicazioni e senza che prenda il fuoco. Per sicurezza è anche trasparente ai clic e
+// invisibile (LAYERED con alfa 0 + TRANSPARENT): se Windows o WebView2 la riportassero sullo
+// schermo, non coprirebbe niente e non si prenderebbe i clic. Si può chiamare più volte.
 func nascondiMotore(h uintptr) {
 	if h == 0 {
 		return
 	}
 	const gwlExStyle = ^uintptr(19) // -20
 	ex, _, _ := pGetWindowLongPtr.Call(h, gwlExStyle)
-	ex = (ex | 0x80 | 0x08000000) &^ 0x40000 // TOOLWINDOW | NOACTIVATE, niente APPWINDOW
-	pSetWindowLongPtr.Call(h, gwlExStyle, ex)
+	// LAYERED | TRANSPARENT | TOOLWINDOW | NOACTIVATE, niente APPWINDOW
+	nuovo := (ex | 0x80000 | 0x20 | 0x80 | 0x08000000) &^ 0x40000
+	cambiato := nuovo != ex
+	if cambiato {
+		pSetWindowLongPtr.Call(h, gwlExStyle, nuovo)
+	}
+	pSetLayeredAttr.Call(h, 0, 0, 2) // LWA_ALPHA, alfa 0
 	// SWP_NOSIZE|SWP_NOZORDER|SWP_NOACTIVATE|SWP_FRAMECHANGED
 	fuori := int32(-32000)
 	pSetWindowPos.Call(h, 0, uintptr(fuori), uintptr(fuori), 0, 0, 0x1|0x4|0x10|0x20)
+	if cambiato {
+		// la barra delle applicazioni toglie il pulsante solo se la finestra si nasconde e riappare
+		pShowWindow.Call(h, 0) // SW_HIDE
+	}
 	pShowWindow.Call(h, 4) // SW_SHOWNOACTIVATE: visibile per WebView2, ma fuori dallo schermo
 }
 
