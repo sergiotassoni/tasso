@@ -231,13 +231,28 @@ func motivoFratello(b Blocco, tutte []Blocco) string {
 		if s.X > b.X {
 			sx, dx = b, s
 		}
-		if sx.X+sx.W >= dx.X+dx.W || !fratelli(sx, dx) {
-			continue // uno contiene l'altro (la riga intera da cui vengono le voci) o lontani
+		if sx.X+sx.W >= dx.X+dx.W {
+			// uno contiene l'altro: la riga intera da cui vengono le voci va bene, ma se b sta
+			// dentro un'altra lettura della stessa riga rimasta in inglese perché letta male, b è
+			// un pezzo di quella riga: tradotto da solo sarebbe mezza riga italiana sopra
+			// l'inglese ("'e your information, I will make sure to" dentro "No, I lc nit. Je
+			// has gone missing… I ill make", Directive 8020)
+			if s.X <= b.X && s.X+s.W >= b.X+b.W && !(s.X == b.X && s.W == b.W) && lineaSimile(s, b) &&
+				motivoNonTradurre(s) == "lettura incerta" {
+				return "pezzo di una riga rimasta in inglese"
+			}
+			continue
+		}
+		// accavallati: due letture della stessa riga che si sovrappongono (anche per molto più
+		// delle due altezze che fratelli accetta): pezzi della stessa riga
+		accavallati := dx.X < sx.X+sx.W && lineaSimile(sx, dx)
+		if !fratelli(sx, dx) && !accavallati {
+			continue // lontani
 		}
 		if dx.X == b.X && iniziaConFrammento(b.Testo) {
 			return "pezzo di una parola spezzata"
 		}
-		if vociSeparate(sx, dx) {
+		if !accavallati && vociSeparate(sx, dx) {
 			continue
 		}
 		if motivoNonTradurre(s) == "lettura incerta" {

@@ -60,16 +60,16 @@ func TestRecuperaPerse(t *testing.T) {
 	vecchia := Blocco{X: 50, Y: 50, W: fine - 50, H: 24, Testo: "Settings", Tradotto: "Impostazioni", Img: img}
 	img2 := immagineFinta(600, 200, sf)
 	parolaFinta(img2, 50, 50, 8, 12, 24, ink)
-	if out := recuperaPerse(nil, []Blocco{vecchia}, img2); len(out) != 1 || out[0].Tradotto != "Impostazioni" {
+	if out := recuperaPerse(nil, []Blocco{vecchia}, img2, nil); len(out) != 1 || out[0].Tradotto != "Impostazioni" {
 		t.Fatalf("scritta uguale persa: %+v", out)
 	}
 	img3 := immagineFinta(600, 200, sf) // la scritta è sparita
-	if out := recuperaPerse(nil, []Blocco{vecchia}, img3); len(out) != 0 {
+	if out := recuperaPerse(nil, []Blocco{vecchia}, img3, nil); len(out) != 0 {
 		t.Fatalf("scritta sparita ma traduzione rimasta")
 	}
 	// c'è già una scritta nuova in quel posto: vince la nuova
 	nuova := Blocco{X: 52, Y: 50, W: 80, H: 24, Testo: "Options", Tradotto: "Opzioni"}
-	if out := recuperaPerse([]Blocco{nuova}, []Blocco{vecchia}, img2); len(out) != 1 || out[0].Tradotto != "Opzioni" {
+	if out := recuperaPerse([]Blocco{nuova}, []Blocco{vecchia}, img2, nil); len(out) != 1 || out[0].Tradotto != "Opzioni" {
 		t.Fatalf("doppione: %+v", out)
 	}
 }

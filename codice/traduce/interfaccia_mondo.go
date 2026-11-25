@@ -137,6 +137,12 @@ func senzaIcone(bl Blocco) Blocco {
 		return bl
 	}
 	n2 := bloccoDaPosizioni(p[da:a], bl)
+	if a < n { // l'icona tolta a destra: la traduzione non deve andarci sopra
+		n2.IconaDx = int(p[a].X)
+	}
+	if da > 0 {
+		n2.IconaSx = int(p[da-1].X + p[da-1].W + 0.5)
+	}
 	return n2
 }
 

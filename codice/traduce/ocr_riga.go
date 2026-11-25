@@ -288,6 +288,26 @@ func valutaParole(s string) (tot int, false_ int, rare int) {
 // valutaParoleN: come valutaParole, e in più quante parole sconosciute ho preso per nomi propri
 // (vanno bene per tradurre, ma rendono sospetta la lettura quando c'è una frase pronta vicina).
 func valutaParoleN(s string) (tot int, false_ int, rare int, nomi int) {
+	tot, false_, rare, nomi, _ = valutaParolePos(s)
+	return
+}
+
+// falseVicine: due parole inventate con al massimo una parola in mezzo ("No, I lc nit. Je has
+// gone missing…"): lì la riga è storpiata, anche se il resto della frase è lungo e giusto.
+// Tradotta verrebbe una frase senza senso.
+func falseVicine(s string) bool {
+	_, _, _, _, pos := valutaParolePos(s)
+	for i := 1; i < len(pos); i++ {
+		if pos[i]-pos[i-1] <= 2 {
+			return true
+		}
+	}
+	return false
+}
+
+// valutaParolePos: come valutaParoleN, e in più la posizione (indice della parola) di ogni
+// parola inventata.
+func valutaParolePos(s string) (tot int, false_ int, rare int, nomi int, posFalse []int) {
 	tuttoMaiusc := tuttoMaiuscolo(s)
 	campi := campiFrase(s)
 	etichetta := etichettaIniziale(campi)
@@ -332,6 +352,9 @@ func valutaParoleN(s string) (tot int, false_ int, rare int, nomi int) {
 			continue // sigla in una frase normale ("XP", "DLSS")
 		}
 		false_++
+		if !(nomeProprio(w) && len(r) >= 4) { // "Farah. Barkov's soldiers…": nomi a inizio frase, non spazzatura
+			posFalse = append(posFalse, i)
+		}
 	}
 	return
 }
@@ -475,7 +498,7 @@ func correggiRigaOCR(grezzo string) (string, int) {
 		return s, letturaDubbia // "s noise when…": la riga ripresa da metà parola, un pezzo
 	}
 	s1 := unisciFrammenti(s)
-	s2 := correggiParole(separaAttaccate(s1))
+	s2 := verboFinale(correggiParole(separaAttaccate(s1)))
 	if s2 != s1 {
 		// la correzione delle parole ha unito pezzi veri o diviso parole: ricontrollo i frammenti
 		s2 = unisciFrammenti(s2)
@@ -534,7 +557,7 @@ func correggiRigaOCR(grezzo string) (string, int) {
 	if false_ == 1 && sconosciutaPlausibile(s2) {
 		peso = 1
 	}
-	if doppie || (peso+rare)*100 > tot*25 {
+	if doppie || (peso+rare)*100 > tot*25 || falseVicine(s2) {
 		return s2, letturaDubbia
 	}
 	// tante parole inventate nella lettura grezza (anche se il vocabolario ne ha "aggiustate"
@@ -955,4 +978,69 @@ func parolaSpezzata(s string) bool {
 		}
 	}
 	return false
+}
+
+// verbiFinali: verbi comunissimi che chiudono una frase subito dopo il soggetto ("…that you
+// have!", "Do you know?", "I can!").
+var verbiFinali = map[string]bool{"have": true, "do": true, "did": true, "does": true, "are": true,
+	"were": true, "am": true, "was": true, "can": true, "could": true, "will": true, "would": true,
+	"should": true, "know": true, "see": true, "want": true, "need": true, "like": true, "mean": true,
+	"think": true, "say": true, "said": true, "go": true, "went": true, "come": true, "came": true,
+	"got": true, "get": true, "had": true, "may": true, "might": true, "must": true, "love": true,
+	"hate": true, "made": true, "make": true, "take": true, "took": true, "saw": true, "told": true,
+	"try": true, "care": true, "remember": true, "forget": true, "understand": true, "agree": true,
+	"wish": true, "promise": true, "swear": true, "hope": true, "guess": true, "suppose": true}
+
+var reVerboFinale = regexp.MustCompile(`\b(I|[Yy]ou|[Ww]e|[Tt]hey)\s+([A-Za-z]+)\s*([!?.]+["'”’)]*)(\s|$)`)
+
+// verboFinale: dopo il soggetto, in fondo alla frase, l'OCR ha letto una parola vera ma fuori
+// posto al posto di un verbo comunissimo: "that you hay !" (have!), "you nave?". La parola letta
+// è meno comune (livello del vocabolario 20 o più) e c'è UN SOLO verbo comune a una lettera di
+// distanza per una confusione tipica dell'OCR (y/v, c/e, rn/m… anche con la "e" finale persa:
+// hay → hav → have): si usa quello. Se i verbi possibili
+// sono due o più, o la parola è comune ("I bet!", "you too!"), resta com'è.
+func verboFinale(s string) string {
+	v := vocabolario()
+	if len(v) == 0 || !strings.ContainsAny(s, "!?.") {
+		return s
+	}
+	return reVerboFinale.ReplaceAllStringFunc(s, func(m string) string {
+		p := reVerboFinale.FindStringSubmatch(m)
+		w := strings.ToLower(p[2])
+		if verbiFinali[w] || p[2] != w {
+			return m // già un verbo, o maiuscole (nome, sigla)
+		}
+		if l, ok := v[w]; ok && l < 20 {
+			return m // parola comune: la frase può essere giusta così
+		}
+		trovati := map[string]bool{}
+		for _, c := range append(varianteConfuse(w), w) {
+			for _, x := range []string{c, c + "e"} {
+				if verbiFinali[x] && x != w {
+					trovati[x] = true
+				}
+			}
+		}
+		if len(trovati) != 1 {
+			return m
+		}
+		for x := range trovati {
+			return p[1] + " " + x + p[3] + p[4]
+		}
+		return m
+	})
+}
+
+// varianteConfuse: la parola con UNA confusione tipica dell'OCR (tabella confusioni), anche se
+// la variante non esiste (la "e" finale si aggiunge dopo).
+func varianteConfuse(w string) []string {
+	var out []string
+	for _, c := range confusioni {
+		for i := 0; i+len(c[0]) <= len(w); i++ {
+			if w[i:i+len(c[0])] == c[0] {
+				out = append(out, w[:i]+c[1]+w[i+len(c[0]):])
+			}
+		}
+	}
+	return out
 }

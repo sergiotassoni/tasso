@@ -150,7 +150,10 @@ func (v *votazione) svuota() {
 
 // recuperaPerse: le scritte già tradotte che la nuova lettura non ha trovato (l'OCR le ha saltate)
 // restano, se sotto i pixel non sono cambiati: niente ritorno all'inglese a testo uguale.
-func recuperaPerse(nuovi, vecchi []Blocco, img *image.RGBA) []Blocco {
+// inglesi: le scritte lette adesso che restano in inglese. Se la lettura nuova ha trovato una
+// scritta lì (e la lascia in inglese), la scritta non è stata saltata: la traduzione vecchia non
+// torna sopra (sarebbe "Chiedi" disegnato su "Fine. I'll ask him. Wait here…" ancora inglese).
+func recuperaPerse(nuovi, vecchi []Blocco, img *image.RGBA, inglesi []Blocco) []Blocco {
 	if img == nil {
 		return nuovi
 	}
@@ -168,7 +171,7 @@ func recuperaPerse(nuovi, vecchi []Blocco, img *image.RGBA) []Blocco {
 		}
 		ro := image.Rect(o.X, o.Y, o.X+o.W, o.Y+o.H)
 		coperta := false
-		for _, n := range nuovi {
+		for _, n := range append(append([]Blocco(nil), nuovi...), inglesi...) {
 			if ro.Overlaps(image.Rect(n.X, n.Y, n.X+n.W, n.Y+n.H)) {
 				coperta = true
 				break

@@ -242,6 +242,9 @@ func impaginaCache(hdc uintptr, b Blocco) impaginazione {
 // all'ultima riga intera.
 func impagina(hdc uintptr, b Blocco) impaginazione {
 	var l impaginazione
+	if b.IconaDx > b.X || b.IconaSx > 0 {
+		b.Centro = false // con l'icona del tasto accanto non cresce dai due lati (andrebbe sopra l'icona)
+	}
 	righe := int32(max(1, b.Righe))
 	altRiga := int32(b.H) / righe
 	px := int32(b.Em + 0.5)
@@ -258,7 +261,7 @@ func impagina(hdc uintptr, b Blocco) impaginazione {
 	if b.Img != nil {
 		imgW = int32(b.Img.Bounds().Dx())
 	}
-	larg, maxLarg := int32(b.W), int32(largConsentita(b))
+	larg, maxLarg := int32(b.W), int32(largConIcona(b))
 	if b.PxColonna > 0 && b.ColLarg > 0 {
 		larg = int32(max(b.W, b.ColLarg)) // nella colonna si va a capo alla sua larghezza
 	}
@@ -402,6 +405,8 @@ func impagina(hdc uintptr, b Blocco) impaginazione {
 	tx := int32(b.X)
 	if b.Centro && righe == 1 {
 		tx = int32(b.X+b.W/2) - w/2
+	} else if righe == 1 && !aCapo {
+		tx = int32(inizioConIcona(b, int(w))) // icona del tasto a destra: cresce verso sinistra
 	}
 	if b.Img != nil { // mai fuori dallo schermo
 		tx = max(4, min(tx, imgW-w-4))

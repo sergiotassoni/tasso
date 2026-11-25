@@ -31,6 +31,7 @@ func blocchiLetti(img *image.RGBA, righe []RigaOCR, f float64, voti *votazione, 
 	for i := range bl {
 		bl[i].Grezzo = bl[i].Testo
 	}
+	bl = unisciLettureDoppie(bl) // la stessa riga letta due volte in pezzi accavallati: una riga sola
 	bl = unisciStessaRiga(bl)
 	bl = unisciEtichette(img, bl)
 	bl = spezzaSeparatori(bl)
@@ -187,6 +188,12 @@ func preparaScritta(img, primaImg *image.RGBA, b Blocco, r Risultato) Blocco {
 	b.Img = img
 	contornoLettere(img, &b)
 	ombraLettere(img, &b)
+	if x := iconaAccanto(img, b); x > 0 && (b.IconaDx <= b.X || x < b.IconaDx) {
+		b.IconaDx = x // icona del tasto non letta dall'OCR: la traduzione si ferma prima
+	}
+	if b.IconaDx > b.X {
+		b.LargMax = min(b.LargMax, max(b.W, b.IconaDx-b.X-max(4, b.H/4)))
+	}
 	b.LargMax, b.Bordo = liberoFinoAlBordoB(img, b)
 	b.Tradotto = rifinisci(b.Testo, r.Tradotto)
 	return b

@@ -62,6 +62,11 @@ type Blocco struct {
 	Grezzo      string       // il testo come l'ha letto l'OCR, prima delle correzioni (per il banco di prova)
 	Affid       int          // quanto mi fido della lettura (letturaDubbia/Buona/Catalog, vedi ocr_riga.go)
 	Mossa       bool         // la stessa scritta pochi secondi fa era altrove (si muove con la scena: scritta del mondo)
+	// IconaDx / IconaSx: dove comincia l'icona del tasto tolta a destra della scritta ("Swing
+	// Sword (Y)") e dove finisce quella tolta a sinistra (0 = nessuna). La traduzione non ci va
+	// mai sopra: con l'icona a destra cresce verso sinistra (SpazioSx: spazio libero a sinistra).
+	IconaDx, IconaSx int
+	SpazioSx         int
 }
 
 // parole: le parole lette della scritta, con il loro rettangolo (nil se non le so).
@@ -81,6 +86,28 @@ func largConsentita(b Blocco) int {
 		return lim
 	}
 	return min(lim, b.W+max(int(2*b.Em+0.5), b.W*40/100, 8))
+}
+
+// largConIcona: con l'icona del tasto a destra, quanto può essere larga la traduzione: fino
+// all'icona (largConsentita, che non la supera) più lo spazio libero a sinistra, come per
+// l'inglese (al massimo 2 em o il 40% in più). Senza icona: largConsentita.
+func largConIcona(b Blocco) int {
+	l := largConsentita(b)
+	if b.IconaDx <= b.X || b.SpazioSx <= 0 {
+		return l
+	}
+	return l + min(b.SpazioSx, max(int(2*b.Em+0.5), b.W*40/100, 8))
+}
+
+// inizioConIcona: dove comincia una traduzione larga w. Allineata a sinistra come l'inglese; con
+// l'icona del tasto a destra, se non ci sta prima dell'icona, si sposta a sinistra quanto serve
+// (finisce dove poteva finire, mai sopra l'icona).
+func inizioConIcona(b Blocco, w int) int {
+	if b.IconaDx <= b.X {
+		return b.X
+	}
+	destra := b.X + largConsentita(b)
+	return min(b.X, destra-w)
 }
 
 // grassetto: lettere spesse come quelle in neretto dei giochi.
@@ -245,6 +272,20 @@ func spazioLibero(b []Blocco, larghezza int) {
 				lim = min(lim, b[j].X-b[i].X-10)
 			}
 		}
+		if b[i].IconaDx > b[i].X { // l'icona del tasto a destra: la traduzione si ferma prima
+			lim = min(lim, b[i].IconaDx-b[i].X-max(4, b[i].H/4))
+		}
+		// spazio libero a sinistra (serve se un'icona a destra la ferma: cresce di là)
+		sx := b[i].X - 4
+		for j := range b {
+			if i != j && b[j].X+b[j].W <= b[i].X && b[j].Y < b[i].Y+b[i].H && b[i].Y < b[j].Y+b[j].H {
+				sx = min(sx, b[i].X-(b[j].X+b[j].W)-10)
+			}
+		}
+		if b[i].IconaSx > 0 {
+			sx = min(sx, b[i].X-b[i].IconaSx-max(4, b[i].H/4))
+		}
+		b[i].SpazioSx = max(0, sx)
 		b[i].LargMax = max(lim, b[i].W)
 		// in basso: fino alla scritta sotto che sta nella stessa colonna
 		giu := b[i].H * 3
@@ -289,7 +330,10 @@ func unisciParagrafi(b []Blocco) []Blocco {
 				}
 				n := b[j]
 				gap := n.Y - (cur.Y + cur.H)
-				if gap < -hRiga/2 || gap > hRiga {
+				// righe più spaziate (riquadri dei dialoghi con l'interlinea larga): fino a una
+				// riga e mezza, ma solo se la frase continua davvero (vedi sotto)
+				lontana := gap > hRiga
+				if gap < -hRiga/2 || gap > hRiga*3/2 {
 					continue
 				}
 				sinistra := abs(n.X-cur.X) <= hRiga
@@ -297,6 +341,15 @@ func unisciParagrafi(b []Blocco) []Blocco {
 				centrata := !sinistra && abs((n.X+n.W/2)-(ultimoX+ultimaW/2)) <= hRiga
 				if (!sinistra && !centrata) || float64(n.H) > 1.4*float64(hRiga) || float64(n.H) < float64(hRiga)/1.4 {
 					continue
+				}
+				if lontana {
+					// "Oh, you haven't seen him yet...because Mido is" / "blocking the path?"
+					// (Zelda): la riga sopra non finisce la frase e quella sotto la continua
+					if continuaFrase(cur.Testo, n.Testo) && !fineFraseTesto(cur.Testo) && cur.Righe <= 3 {
+						trovato = j
+						centro = centro || centrata
+					}
+					break
 				}
 				if continuaFrase(cur.Testo, n.Testo) || rigaAndataACapo(cur.Testo, ultimaW, n) ||
 					(centrata && gap <= hRiga*4/5 && righeStessoSottotitolo(cur.Testo, n.Testo)) {
@@ -789,6 +842,9 @@ func margineFondo(b Blocco) (int, int) {
 		ml, mr = ml+e, mr+e
 	} else if b.LargMax > b.W {
 		mr += min(300, b.LargMax-b.W)
+	}
+	if b.IconaDx > b.X && b.SpazioSx > 0 { // con l'icona a destra la traduzione cresce a sinistra
+		ml += min(300, b.SpazioSx)
 	}
 	return ml, mr
 }
@@ -1626,6 +1682,66 @@ func coonsRiquadro(img *image.RGBA, b Blocco, x0, y0, w, h int) *image.RGBA {
 	return fondoRicostruito(img, bb)
 }
 
+// iconaAccanto: subito a destra della scritta (dopo un piccolo buco, entro un em e mezzo) c'è un
+// disegno del colore delle lettere che l'OCR non ha letto: l'icona di un tasto ("Swing Sword
+// (Y)", il cerchio bianco con la lettera). Restituisce la x dove comincia (0 = niente). La
+// traduzione non deve andarci sopra.
+func iconaAccanto(img *image.RGBA, b Blocco) int {
+	if img == nil || max(1, b.Righe) != 1 || b.H < 6 || distanza(b.Inchiostro, b.Sfondo) < 120 {
+		return 0
+	}
+	bd := img.Bounds()
+	em := b.Em
+	if em <= 0 {
+		em = float64(b.H) * 1.1
+	}
+	y0, y1 := max(b.Y, bd.Min.Y), min(b.Y+b.H, bd.Max.Y)
+	if y1-y0 < 4 {
+		return 0
+	}
+	colonna := func(x int) int {
+		n := 0
+		for y := y0; y < y1; y++ {
+			c := img.RGBAAt(x, y)
+			if distanza(c, b.Inchiostro) < 70 && distanza(c, b.Sfondo) > 90 {
+				n++
+			}
+		}
+		return n
+	}
+	n := y1 - y0
+	fine := min(b.X+b.W+int(1.5*em+0.5), b.X+max(b.W, b.LargMax), bd.Max.X)
+	buco, serveBuco := 0, max(2, int(em/5))
+	for x := b.X + b.W + 1; x < fine; x++ {
+		if colonna(x)*10 < n {
+			buco++
+			continue
+		}
+		if buco < serveBuco {
+			buco = 0 // ancora la coda delle lettere: non è un'icona
+			continue
+		}
+		// un'icona è un disegno largo almeno un terzo di em (colonne con inchiostro senza buchi;
+		// dentro il cerchio la lettera scura del tasto lascia poco inchiostro, ma non zero), pieno
+		// in qualche colonna per buona parte dell'altezza
+		larga, piena := 0, 0
+		for k := x; k < min(x+int(2*em), bd.Max.X); k++ {
+			c := colonna(k)
+			if c*10 < n {
+				break
+			}
+			larga++
+			piena = max(piena, c)
+		}
+		if float64(larga) >= em/3 && piena*10 >= n*5 {
+			return x
+		}
+		buco = 0
+		x += larga
+	}
+	return 0
+}
+
 // liberoFinoAlBordo: quanto può allargarsi a destra la traduzione prima di toccare un bordo,
 // un'icona o un'altra cosa disegnata dal gioco (colonna dove la maggior parte dei pixel non è
 // più lo sfondo della scritta). Così la scritta italiana non va sopra i contorni delle caselle.
@@ -2217,12 +2333,13 @@ func distanzaModifica(a, b string) int {
 // mettere sopra una traduzione storpiata.
 func letturaAffidabile(s string) bool {
 	tot, buone := 0, 0
-	for _, w := range strings.FieldsFunc(s, func(r rune) bool { return !unicode.IsLetter(r) && r != '\'' }) {
+	for _, m := range reParolaLettere.FindAllStringIndex(s, -1) {
+		w := s[m[0]:m[1]]
 		if len([]rune(w)) < 3 {
 			continue
 		}
 		tot++
-		if parolaValidaOCR(w) || parolaComposta(w) || unicode.IsUpper([]rune(w)[0]) && len(strings.Fields(s)) > 1 && !strings.EqualFold(w, strings.ToUpper(w)) {
+		if parolaValidaOCR(w) || parolaComposta(w) || nomeDiChiParla(s, m[0], m[1]) {
 			buone++
 		}
 	}
@@ -2230,6 +2347,39 @@ func letturaAffidabile(s string) bool {
 		return true
 	}
 	return buone*100 >= tot*65
+}
+
+var reParolaLettere = regexp.MustCompile(`[\p{L}']+`)
+
+// nomeDiChiParla: la parola s[a:z] è un nome proprio (maiuscola e poi minuscole) nel posto dove
+// i dialoghi mettono i nomi: chi parla ("Caz:") o chi viene chiamato, dopo una virgola e prima
+// della fine della frase ("…do you need, Scoob?", "…alright, Caz."). Lì un nome che il
+// vocabolario non conosce non è una lettura sbagliata. Altrove una parola sconosciuta con la
+// maiuscola ("VII Igok at") resta sospetta.
+func nomeDiChiParla(s string, a, z int) bool {
+	if !nomeProprio(s[a:z]) {
+		return false
+	}
+	dopo := strings.TrimLeft(s[z:], " ")
+	prima := strings.TrimRight(s[:a], " ")
+	if strings.HasPrefix(dopo, ":") {
+		return true
+	}
+	return strings.HasSuffix(prima, ",") && (dopo == "" || strings.ContainsAny(dopo[:1], ".?!,"))
+}
+
+// nomeProprio: maiuscola e poi solo minuscole ("Scoob", "Caz"): nome di una persona o di un posto.
+func nomeProprio(w string) bool {
+	r := []rune(strings.Trim(w, "'"))
+	if len(r) < 2 || !unicode.IsUpper(r[0]) {
+		return false
+	}
+	for _, c := range r[1:] {
+		if !unicode.IsLower(c) && c != '\'' {
+			return false
+		}
+	}
+	return true
 }
 
 // lettereOCRStrane: nelle scritte inglesi piccole l'OCR di Windows legge "ch" come "å" e "sp"

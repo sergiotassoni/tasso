@@ -55,6 +55,10 @@ type esitoImmagine struct {
 	Scartate      int
 	Mezze         int // traduzioni mezze in inglese trovate (scartate): il disegno deve averne 0
 	MezzeMostrate int // righe mezze tradotte DISEGNATE: deve essere sempre 0
+	// Fratelli: scritte pronte tolte perché toccano un pezzo della stessa frase rimasto in
+	// inglese (senzaMezzeRighe), anche quelle rimaste dal fotogramma prima. Contano tra le mezze
+	// trovate e scartate.
+	Fratelli int
 }
 
 // elaboraImmagine: il percorso completo su una schermata. Restituisce l'esito e le scritte disegnate.
@@ -70,6 +74,7 @@ func elaboraImmagine(img *image.RGBA, nome string, o opzioniBanco) (esitoImmagin
 	blocchi := blocchiLetti(img, righe, f, o.voti, time.Now())
 	spazioLibero(blocchi, img.Bounds().Dx())
 	var da []Blocco
+	var inglesi []Blocco // le scritte che restano in inglese con parole vere (per senzaMezzeRighe)
 	for _, b := range blocchi {
 		info := infoRiga{Grezzo: b.Grezzo, Corretto: b.Testo, Affid: b.Affid, X: b.X, Y: b.Y, W: b.W, H: b.H}
 		if b.Grezzo == "" {
@@ -78,11 +83,17 @@ func elaboraImmagine(img *image.RGBA, nome string, o opzioniBanco) (esitoImmagin
 		if m := motivoNonTradurre(b); m != "" {
 			info.Scartata = m
 			e.Righe = append(e.Righe, info)
+			if ingleseVisibile(m) {
+				inglesi = append(inglesi, b)
+			}
 			continue
 		}
 		if m := controllaCompleta(img, &b, blocchi); m != "" {
 			info.Scartata = m
 			e.Righe = append(e.Righe, info)
+			if ingleseVisibile(m) {
+				inglesi = append(inglesi, b)
+			}
 			continue
 		}
 		da = append(da, b)
@@ -108,6 +119,9 @@ func elaboraImmagine(img *image.RGBA, nome string, o opzioniBanco) (esitoImmagin
 				e.Mezze++
 			}
 			e.Righe = append(e.Righe, info)
+			if ingleseVisibile(m) {
+				inglesi = append(inglesi, b)
+			}
 			continue
 		}
 		p := preparaScritta(img, img, b, r)
@@ -118,8 +132,8 @@ func elaboraImmagine(img *image.RGBA, nome string, o opzioniBanco) (esitoImmagin
 		info.Tradotto = p.Tradotto
 		e.Righe = append(e.Righe, info)
 	}
-	// mai due traduzioni una sopra l'altra (restano in inglese tutte e due)
-	if tenute := senzaSovrapposte(pronti); len(tenute) != len(pronti) {
+	// segna come scartate (con il motivo) le righe delle scritte pronte che non sono più in tenute
+	segnaTolte := func(tenute []Blocco, motivo string) {
 		for i := range e.Righe {
 			r := &e.Righe[i]
 			if r.Scartata != "" {
@@ -133,9 +147,25 @@ func elaboraImmagine(img *image.RGBA, nome string, o opzioniBanco) (esitoImmagin
 				}
 			}
 			if !resta {
-				r.Scartata = "traduzioni sovrapposte"
+				r.Scartata = motivo
 			}
 		}
+	}
+	// mai due traduzioni una sopra l'altra (restano in inglese tutte e due)
+	if tenute := senzaSovrapposte(pronti); len(tenute) != len(pronti) {
+		segnaTolte(tenute, "traduzioni sovrapposte")
+		for _, p := range pronti {
+			if !contieneBlocco(tenute, p) {
+				inglesi = append(inglesi, p)
+			}
+		}
+		pronti = tenute
+	}
+	// mai una scritta tradotta accanto a un pezzo della stessa frase rimasto in inglese
+	if tenute, tolte := senzaMezzeRighe(pronti, inglesi); len(tolte) > 0 {
+		segnaTolte(tenute, motivoMezzaRiga)
+		e.Fratelli += len(tolte)
+		inglesi = append(inglesi, tolte...)
 		pronti = tenute
 	}
 	if o.stato != nil { // come nel gioco: la traduzione già mostrata nello stesso posto resta quella
@@ -154,8 +184,25 @@ func elaboraImmagine(img *image.RGBA, nome string, o opzioniBanco) (esitoImmagin
 	if o.stato != nil {
 		n := len(pronti)
 		pronti = tieniFerme(pronti, o.stato.vecchi, img)
-		pronti = recuperaPerse(pronti, o.stato.vecchi, img) // saltate dalla lettura ma ancora lì
-		for _, p := range pronti[n:] {
+		pronti = recuperaPerse(pronti, o.stato.vecchi, img, inglesi) // saltate dalla lettura ma ancora lì
+		recuperate := append([]Blocco(nil), pronti[n:]...)
+		// le traduzioni tenute o recuperate dal fotogramma prima passano lo stesso controllo
+		if tenute, tolte := senzaMezzeRighe(pronti, inglesi); len(tolte) > 0 {
+			e.Fratelli += len(tolte)
+			for _, t := range tolte {
+				for i := range e.Righe {
+					r := &e.Righe[i]
+					if r.Scartata == "" && r.X == t.X && r.Y == t.Y && r.W == t.W && r.H == t.H {
+						r.Scartata = motivoMezzaRiga
+					}
+				}
+			}
+			pronti = tenute
+		}
+		for _, p := range recuperate {
+			if !contieneBlocco(pronti, p) {
+				continue
+			}
 			rp := image.Rect(p.X, p.Y, p.X+p.W, p.Y+p.H)
 			for i := range e.Righe {
 				r := &e.Righe[i]
@@ -166,6 +213,10 @@ func elaboraImmagine(img *image.RGBA, nome string, o opzioniBanco) (esitoImmagin
 		}
 		o.stato.vecchi = pronti
 	}
+	// controllo finale sul disegno: nessuna scritta tradotta accanto a un pezzo della stessa
+	// frase rimasto in inglese, nessuna traduzione mezza inglese (devono essere 0)
+	e.MezzeMostrate += mezzeDisegnate(pronti, inglesi)
+	e.Mezze += e.Fratelli
 	for _, r := range e.Righe {
 		if r.Scartata == "" {
 			e.Mostrate++
@@ -276,7 +327,7 @@ func confrontaFotogrammi(a, b esitoImmagine) []instabilita {
 
 // scriviReportBanco: report HTML (con le immagini) e testo, con il riepilogo e i casi peggiori.
 func scriviReportBanco(dir string, esiti []esitoImmagine, instab []instabilita) error {
-	var tot, mostrate, scartate, mezze, mezzeMostrate, catalogo, veloce, ia, correzioni int
+	var tot, mostrate, scartate, mezze, mezzeMostrate, fratelli, catalogo, veloce, ia, correzioni int
 	var msTot, msOCR int64
 	type caso struct {
 		nome string
@@ -288,6 +339,7 @@ func scriviReportBanco(dir string, esiti []esitoImmagine, instab []instabilita) 
 		msOCR += e.MsOCR
 		mezze += e.Mezze
 		mezzeMostrate += e.MezzeMostrate
+		fratelli += e.Fratelli
 		for _, r := range e.Righe {
 			tot++
 			if r.Scartata != "" {
@@ -317,7 +369,7 @@ func scriviReportBanco(dir string, esiti []esitoImmagine, instab []instabilita) 
 	fmt.Fprintf(&t, "BANCO DI PROVA DELLA TRADUZIONE  (%s)\r\n\r\n", time.Now().Format("02/01/2006 15:04"))
 	fmt.Fprintf(&t, "Schermate: %d   righe lette: %d   tradotte e mostrate: %d   lasciate in inglese: %d\r\n", len(esiti), tot, mostrate, scartate)
 	fmt.Fprintf(&t, "Fonti: frasi pronte %d, traduttore veloce/memoria %d, IA %d   righe corrette dall'OCR: %d\r\n", catalogo, veloce, ia, correzioni)
-	fmt.Fprintf(&t, "Righe mezze tradotte DISEGNATE: %d (deve essere 0)   mezze trovate e scartate: %d\r\n", mezzeMostrate, mezze)
+	fmt.Fprintf(&t, "Righe mezze tradotte DISEGNATE: %d (deve essere 0)   mezze trovate e scartate: %d (di cui accanto a un pezzo inglese della stessa frase, anche dal fotogramma prima: %d)\r\n", mezzeMostrate, mezze, fratelli)
 	fmt.Fprintf(&t, "Tempo medio per schermata: %d ms (lettura %d ms)\r\n", msTot/int64(n), msOCR/int64(n))
 	if instab != nil {
 		fmt.Fprintf(&t, "Instabilità tra fotogrammi di fila: %d\r\n", len(instab))
@@ -453,4 +505,14 @@ func disegnaCopertura(img *image.RGBA, pronti []Blocco, percorso string) error {
 	}
 	defer f.Close()
 	return png.Encode(f, out)
+}
+
+// contieneBlocco: lo stesso riquadro è nella lista.
+func contieneBlocco(l []Blocco, b Blocco) bool {
+	for _, x := range l {
+		if x.X == b.X && x.Y == b.Y && x.W == b.W && x.H == b.H {
+			return true
+		}
+	}
+	return false
 }

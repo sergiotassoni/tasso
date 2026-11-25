@@ -498,6 +498,7 @@ type paginaPronta struct {
 	cron        []Risultato // da mettere nella cronologia (F8) quando la pagina si vede
 	parziale    bool        // solo le scritte già pronte (frasi pronte, memoria): le altre arrivano dopo
 	mancanti    int         // scritte senza traduzione perché il traduttore non era pronto: riprovare
+	inglesi     []Blocco    // scritte lette che restano in inglese con parole vere (senzaMezzeRighe)
 }
 
 // preparaPagina: legge tutte le scritte con la loro posizione e le traduce (senza disegnare).
@@ -564,12 +565,16 @@ func preparaPaginaCon(area Zona, img, primaImg *image.RGBA, giro int64, annulla 
 	nostra, ceNostra := nostraFinestraIn(area)
 	tOCR := time.Since(t0)
 	var da []Blocco
+	var inglesi []Blocco // restano in inglese con parole vere: niente traduzioni accanto (mezze righe)
 	for _, b := range blocchi {
-		if motivoNonTradurre(b) != "" {
-			continue // lettura incerta: resta l'inglese del gioco, pulito
-		}
 		if ceNostra && dentro(b, nostra) { // è la finestra di Tasso Traduce sopra il gioco: non la traduco
 			continue
+		}
+		if m := motivoNonTradurre(b); m != "" {
+			if ingleseVisibile(m) {
+				inglesi = append(inglesi, b)
+			}
+			continue // lettura incerta: resta l'inglese del gioco, pulito
 		}
 		da = append(da, b)
 	}
@@ -588,7 +593,10 @@ func preparaPaginaCon(area Zona, img, primaImg *image.RGBA, giro int64, annulla 
 	// colori, riquadro fino alle lettere vere, e righe incomplete (parola accanto non letta)
 	completi := da[:0]
 	for i := range da {
-		if controllaCompleta(img, &da[i], blocchi) != "" {
+		if m := controllaCompleta(img, &da[i], blocchi); m != "" {
+			if ingleseVisibile(m) {
+				inglesi = append(inglesi, da[i])
+			}
 			continue
 		}
 		completi = append(completi, da[i])
@@ -606,10 +614,14 @@ func preparaPaginaCon(area Zona, img, primaImg *image.RGBA, giro int64, annulla 
 			daMotore = append(daMotore, i)
 		}
 	}
-	costruisci := func(ris []Risultato) (pronti []Blocco, nuove, mancanti int, cron []Risultato) {
+	costruisci := func(ris []Risultato) (pronti []Blocco, nuove, mancanti int, cron []Risultato, ingl []Blocco) {
+		ingl = append([]Blocco(nil), inglesi...)
 		for i, b := range da {
 			r := ris[i]
-			if motivoScartaTraduzione(b, r) != "" {
+			if m := motivoScartaTraduzione(b, r); m != "" {
+				if ingleseVisibile(m) { // anche "in attesa del traduttore": per ora si vede l'inglese
+					ingl = append(ingl, b)
+				}
 				if strings.TrimSpace(r.Tradotto) == "" && r.Errore != "" && r.Errore != errSoloVeloce {
 					mancanti++ // traduttore non pronto o errore: riprovo appena possibile
 				}
@@ -623,15 +635,23 @@ func preparaPaginaCon(area Zona, img, primaImg *image.RGBA, giro int64, annulla 
 				cron = append(cron, r)
 			}
 		}
-		pronti = senzaSovrapposte(pronti) // mai due traduzioni una sopra l'altra
+		tenute := senzaSovrapposte(pronti) // mai due traduzioni una sopra l'altra
+		for _, p := range pronti {
+			if !contieneBlocco(tenute, p) {
+				ingl = append(ingl, p)
+			}
+		}
+		// mai una scritta tradotta accanto a un pezzo della stessa frase rimasto in inglese
+		pronti, tolte := senzaMezzeRighe(tenute, ingl)
+		ingl = append(ingl, tolte...)
 		stabilizza(pronti, blocchiPagina())
 		rifinisciPagina(img, pronti, blocchi)
 		return
 	}
 	if len(daMotore) > 0 && anteprima != nil && len(daMotore) < len(da) && !fermato() &&
 		paginaAttiva.Load() && paginaGiro.Load() == giro {
-		if pr, n, _, _ := costruisci(risultati); len(pr) > 0 {
-			anteprima(&paginaPronta{area: area, img: img, pronti: pr, nuove: n, t0: t0, tOCR: tOCR, tTrad: time.Since(t0) - tOCR, parziale: true})
+		if pr, n, _, _, ingl := costruisci(risultati); len(pr) > 0 {
+			anteprima(&paginaPronta{area: area, img: img, pronti: pr, nuove: n, t0: t0, tOCR: tOCR, tTrad: time.Since(t0) - tOCR, parziale: true, inglesi: ingl})
 		}
 	}
 	if len(daMotore) > 0 {
@@ -650,7 +670,7 @@ func preparaPaginaCon(area Zona, img, primaImg *image.RGBA, giro int64, annulla 
 	if !paginaAttiva.Load() || paginaGiro.Load() != giro {
 		return nil, letturaAnnullata
 	}
-	pronti, nuove, mancanti, cron := costruisci(risultati)
+	pronti, nuove, mancanti, cron, ingl := costruisci(risultati)
 	if controllo {
 		var sb strings.Builder
 		for i, b := range da {
@@ -658,7 +678,7 @@ func preparaPaginaCon(area Zona, img, primaImg *image.RGBA, giro int64, annulla 
 		}
 		_ = os.WriteFile(filepath.Join(dirApp, "logs", "pagina-tradotto.txt"), []byte(sb.String()), 0o644)
 	}
-	return &paginaPronta{area: area, img: img, pronti: pronti, nuove: nuove, t0: t0, tOCR: tOCR, tTrad: tTrad, cron: cron, mancanti: mancanti}, letturaFatta
+	return &paginaPronta{area: area, img: img, pronti: pronti, nuove: nuove, t0: t0, tOCR: tOCR, tTrad: tTrad, cron: cron, mancanti: mancanti, inglesi: ingl}, letturaFatta
 }
 
 // rileggiIncerte: le righe lette male rilette ingrandite e preparate in tre modi, con una sola
@@ -715,7 +735,10 @@ func mostraPaginaPronta(p *paginaPronta, giro int64) bool {
 	if paginaAttiva.Load() && paginaGiro.Load() == giro {
 		vecchi := blocchiPagina()
 		pronti = tieniFerme(pronti, vecchi, img)
-		pronti = recuperaPerse(pronti, vecchi, img) // scritte saltate dalla lettura ma ancora lì: restano
+		pronti = recuperaPerse(pronti, vecchi, img, p.inglesi) // scritte saltate dalla lettura ma ancora lì: restano
+		// anche le traduzioni rimaste dalla lettura prima: mai accanto a un pezzo della stessa
+		// frase che adesso resta in inglese
+		pronti, _ = senzaMezzeRighe(pronti, p.inglesi)
 		MostraPagina(area, pronti)
 		if !paginaAttiva.Load() || paginaGiro.Load() != giro {
 			NascondiPagina() // spento proprio adesso: niente scritte rimaste sullo schermo
