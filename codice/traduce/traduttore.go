@@ -477,7 +477,9 @@ func (t *Traduttore) traduciIn(ctx context.Context, grezzo string, dialogo bool,
 		if !conParoleFisse {
 			t.ricontrolla(ctx, chiave, battuta, v, dialogo)
 		}
-		ris.Tradotto, ris.Motore = v, "memoria"
+		// le regole dei termini valgono anche per le traduzioni già in memoria (salvate prima che
+		// la regola ci fosse: "una svolta più nitina")
+		ris.Tradotto, ris.Motore = correggiTerminiFrase(battuta, v), "memoria"
 		ris.Millisec = time.Since(inizio).Milliseconds()
 		ricorda(battuta)
 		return ris

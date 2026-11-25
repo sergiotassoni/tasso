@@ -101,6 +101,10 @@ var regoleTermini = []regolaTermine{
 	// comandi di combattimento
 	{inglese: rx(`(?i)\btake cover\b`), da: rx(`(?i)\bprenditi copertura\b`), a: "mettiti al riparo"},
 	{inglese: rx(`(?i)\bfast travel\b`), da: rx(`(?i)\bviaggiare velocemente\b`), a: "usare il viaggio rapido"},
+	// guida (banco sui video, 25/11: "a sharper turn" -> "una svolta più nitina", "un giro più Sharp")
+	{inglese: rx(`(?i)\bsharper turns?\b`), da: rx(`(?i)\b(una|la) (svolta|curva|virata) più (nitida|nitina|netta|affilata|acuta|sharp)\b`), a: "${1} curva più stretta"},
+	{inglese: rx(`(?i)\bsharper turns?\b`), da: rx(`(?i)\b(un|il) giro più (nitido|nitino|netto|affilato|acuto|sharp)\b`), a: "una curva più stretta"},
+	{inglese: rx(`(?i)\bwhile steering\b`), da: rx(`(?i)\bmentre si guida\b`), a: "mentre si sterza"},
 }
 
 // correggiTerminiFrase applica le regole a una traduzione di una frase inglese.

@@ -194,6 +194,10 @@ type impaginazione struct {
 	rt             rect            // rettangolo della scritta (DrawText non esce mai da qui)
 	fl             uintptr
 	zona           image.Rectangle // tutto quello che questa scritta può toccare sulla finestra
+	// salta: la traduzione non ci sta nemmeno alla grandezza più piccola (finirebbe con i
+	// puntini "…" o tagliata): non si disegna niente, resta l'inglese del gioco. Una traduzione
+	// mozzata dice meno dell'originale (regola del 25/11, banco sui video).
+	salta bool
 }
 
 // chiaveDisegno: la scritta senza i puntatori alle immagini (cambiano a ogni lettura anche
@@ -346,6 +350,18 @@ func impagina(hdc uintptr, b Blocco) impaginazione {
 				}
 			}
 		}
+		if !trovato && b.Img != nil && paroleFrase(b.Testo) && b.AltMax >= 2*b.H {
+			// frase lunga (sottotitolo, battuta) con spazio libero sotto: va a capo su due righe
+			// invece di essere tagliata
+			for prova := px; prova >= minPx; prova-- {
+				font = fontPaginaF(prova, peso, fam)
+				w, h = misuraTesto(hdc, font, b.Tradotto, maxLarg, true)
+				if h <= int32(b.AltMax) && w <= maxLarg {
+					trovato, aCapo = true, true
+					break
+				}
+			}
+		}
 		if !trovato {
 			// nemmeno così: i puntini alla fine, mai fuori dal riquadro. Con le lettere più
 			// strette alla grandezza più piccola provata (circa il 62%), non più piccole: prima
@@ -450,7 +466,7 @@ func impagina(hdc uintptr, b Blocco) impaginazione {
 	marg := 8 // bordino, ombra e margine della scritta composta
 	zona := toppa.Union(image.Rect(int(rt.Left)-marg, int(rt.Top)-marg, int(rt.Right)+marg, int(rt.Bottom)+marg))
 	l = impaginazione{font: font, px: px, w: w, h: h, tx: tx, ty: ty, m: m, x0: x0, y0: y0, x1: x1, y1: y1,
-		toppa: toppa, rt: rt, fl: fl, zona: zona.Inset(-2)}
+		toppa: toppa, rt: rt, fl: fl, zona: zona.Inset(-2), salta: b.Img != nil && (ellissi || parolaLunga)}
 	return l
 }
 
@@ -461,6 +477,9 @@ func disegnaBlocco(hdc uintptr, b Blocco, fase int) {
 		return
 	}
 	l := impaginaCache(hdc, b)
+	if l.salta {
+		return // non ci sta: meglio l'inglese intero che l'italiano con i puntini
+	}
 	if fase == 0 {
 		if b.Pulita != nil {
 			disegnaToppaPulita(hdc, b, l.toppa, image.Rectangle{})

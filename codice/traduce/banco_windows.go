@@ -156,7 +156,8 @@ func EseguiBancoSchermo(dir string, durata, ogni time.Duration, larg int, ferma 
 		return err
 	}
 	o := opzioniBancoVere()
-	o.voti = &votazione{} // come nel gioco: stabilità tra un fotogramma e l'altro
+	o.voti = &votazione{}   // come nel gioco: stabilità tra un fotogramma e l'altro
+	o.stato = &statoBanco{} // e le scritte già mostrate restano ferme
 	fine := time.Now().Add(durata)
 	var esiti []esitoImmagine
 	var instab []instabilita

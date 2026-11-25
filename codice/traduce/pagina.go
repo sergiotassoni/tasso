@@ -61,6 +61,7 @@ type Blocco struct {
 	Pos         *[]ParolaOCR // le parole lette con il loro rettangolo (pixel della cattura): per dividere e unire le righe (puntatore: Blocco resta confrontabile)
 	Grezzo      string       // il testo come l'ha letto l'OCR, prima delle correzioni (per il banco di prova)
 	Affid       int          // quanto mi fido della lettura (letturaDubbia/Buona/Catalog, vedi ocr_riga.go)
+	Mossa       bool         // la stessa scritta pochi secondi fa era altrove (si muove con la scena: scritta del mondo)
 }
 
 // parole: le parole lette della scritta, con il loro rettangolo (nil se non le so).
@@ -278,7 +279,8 @@ func unisciParagrafi(b []Blocco) []Blocco {
 		cur := b[i]
 		usato[i] = true
 		hRiga := cur.H
-		ultimaW := cur.W
+		ultimaW, ultimoX := cur.W, cur.X
+		centro := false
 		for {
 			trovato := -1
 			for j := i + 1; j < len(b); j++ {
@@ -290,11 +292,16 @@ func unisciParagrafi(b []Blocco) []Blocco {
 				if gap < -hRiga/2 || gap > hRiga {
 					continue
 				}
-				if abs(n.X-cur.X) > hRiga || float64(n.H) > 1.4*float64(hRiga) || float64(n.H) < float64(hRiga)/1.4 {
+				sinistra := abs(n.X-cur.X) <= hRiga
+				// sottotitoli e riquadri centrati: le righe hanno lo stesso centro, non lo stesso inizio
+				centrata := !sinistra && abs((n.X+n.W/2)-(ultimoX+ultimaW/2)) <= hRiga
+				if (!sinistra && !centrata) || float64(n.H) > 1.4*float64(hRiga) || float64(n.H) < float64(hRiga)/1.4 {
 					continue
 				}
-				if continuaFrase(cur.Testo, n.Testo) || rigaAndataACapo(cur.Testo, ultimaW, n) {
+				if continuaFrase(cur.Testo, n.Testo) || rigaAndataACapo(cur.Testo, ultimaW, n) ||
+					(centrata && gap <= hRiga*4/5 && righeStessoSottotitolo(cur.Testo, n.Testo)) {
 					trovato = j
+					centro = centro || centrata
 				}
 				break
 			}
@@ -302,6 +309,7 @@ func unisciParagrafi(b []Blocco) []Blocco {
 				break
 			}
 			n := b[trovato]
+			ultimoX = n.X
 			usato[trovato] = true
 			ultimaW = n.W
 			x1, y1 := max(cur.X+cur.W, n.X+n.W), n.Y+n.H
@@ -316,9 +324,32 @@ func unisciParagrafi(b []Blocco) []Blocco {
 			cur.Pos = &unite
 			cur.Righe++
 		}
+		if centro {
+			cur.Centro = true // la traduzione resta centrata come il sottotitolo
+		}
 		out = append(out, cur)
 	}
 	return out
+}
+
+// righeStessoSottotitolo: due righe centrate una sotto l'altra sono lo stesso sottotitolo (una frase
+// che va a capo): almeno una delle due è una frase lunga (4+ parole, con minuscole), la seconda non
+// comincia una voce nuova ("MUIR: …", "Objective: …") e non sono voci di un menu centrato.
+func righeStessoSottotitolo(sopra, sotto string) bool {
+	if tuttoMaiuscolo(sopra) || tuttoMaiuscolo(sotto) {
+		return false
+	}
+	ws, wt := strings.Fields(sopra), strings.Fields(sotto)
+	if len(ws) < 4 && len(wt) < 4 {
+		return false
+	}
+	if !strings.ContainsFunc(sopra+sotto, unicode.IsLower) {
+		return false
+	}
+	// una nuova frase dello stesso sottotitolo ("The basement can be…") resta unita; un altro
+	// personaggio che parla ("MUIR: …") no
+	c := campiFrase(strings.TrimSpace(sotto))
+	return !(len(c) > 1 && (c[0].dueDopo || etichettaIniziale(c) > 0))
 }
 
 // rigaAndataACapo: testo lungo andato a capo ("...on the first day of" / "Each month."): la riga

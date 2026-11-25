@@ -99,6 +99,9 @@ func chiedeSeguito(t string) bool {
 	if len(w) == 0 {
 		return false
 	}
+	if len(w) == 1 && verbiTasto[strings.ToLower(w[0])] {
+		return true // "Press" | [icona del tasto] | "to reveal the HUD": il comando continua dopo l'icona
+	}
 	u := w[len(w)-1]
 	if strings.HasSuffix(u, ",") {
 		return len(w) >= 2
@@ -114,6 +117,9 @@ func chiedeSeguito(t string) bool {
 // "noise when…"): è il seguito di una frase, non una scritta a sé ("x2", "4K" non contano).
 func iniziaMinuscola(t string) bool {
 	w := strings.Fields(strings.TrimSpace(t))
+	if len(w) > 1 && segnoIcona(w[0]) {
+		w = w[1:] // "• to reveal…": l'icona di un tasto letta come un segno, poi la frase continua
+	}
 	if len(w) == 0 {
 		return false
 	}
@@ -445,11 +451,26 @@ func spezzaSeparatori(b []Blocco) []Blocco {
 		if len(cur) > 0 {
 			gruppi = append(gruppi, cur)
 		}
+		// "Press • to reveal the HUD": il segno è l'icona di un tasto dentro una frase (prima un
+		// comando che vuole il seguito, dopo una parola minuscola): la frase resta intera
 		if len(gruppi) < 2 {
 			out = append(out, bl)
 			continue
 		}
-		for _, g := range gruppi {
+		uniti := [][]ParolaOCR{gruppi[0]}
+		for _, g := range gruppi[1:] {
+			u := uniti[len(uniti)-1]
+			if chiedeSeguito(testoParole(u)) || iniziaMinuscola(testoParole(g)) {
+				uniti[len(uniti)-1] = append(append([]ParolaOCR(nil), u...), g...)
+				continue
+			}
+			uniti = append(uniti, g)
+		}
+		if len(uniti) < 2 {
+			out = append(out, bloccoDaPosizioni(uniti[0], bl)) // senza il segno dell'icona
+			continue
+		}
+		for _, g := range uniti {
 			out = append(out, bloccoDaPosizioni(g, bl))
 		}
 	}

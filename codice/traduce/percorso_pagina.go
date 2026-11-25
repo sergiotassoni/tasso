@@ -36,6 +36,7 @@ func blocchiLetti(img *image.RGBA, righe []RigaOCR, f float64, voti *votazione, 
 	bl = spezzaSeparatori(bl)
 	bl = spezzaPulsanti(bl)
 	bl = togliFrecce(bl)
+	bl = togliIconeTasti(bl) // "Swing Sword O": l'icona del pulsante resta del gioco
 	for i := range bl {
 		if bl[i].Grezzo == "" {
 			bl[i].Grezzo = bl[i].Testo
@@ -52,6 +53,9 @@ func blocchiLetti(img *image.RGBA, righe []RigaOCR, f float64, voti *votazione, 
 			t, a := correggiRigaOCR(bl[i].Testo)
 			bl[i].Testo, bl[i].Affid = t, a
 		}
+		if voti != nil {
+			bl[i].Mossa = voti.mossa(bl[i], adesso) // si muove con la telecamera?
+		}
 	}
 	return bl
 }
@@ -61,6 +65,8 @@ func motivoNonTradurre(b Blocco) string {
 	switch {
 	case !daTradurre(b.Testo), soloParoleVuote(b.Testo):
 		return "non è testo da tradurre"
+	case letturaSpazzatura(b.Testo) != "":
+		return letturaSpazzatura(b.Testo)
 	case !formaPlausibile(b):
 		return "forma strana"
 	case b.Affid == letturaDubbia:
@@ -82,7 +88,13 @@ func controllaCompleta(img *image.RGBA, b *Blocco, tutte []Blocco) string {
 	if img == nil {
 		return ""
 	}
+	if m := motivoMondo(img, *b, tutte); m != "" {
+		return m // insegna, cartello, nome sulla mappa: resta del gioco
+	}
 	coloriBlocco(img, b)
+	if m := rigaVicinaMancante(img, *b, tutte); m != "" {
+		return m
+	}
 	if b.Righe <= 1 && b.Affid != letturaCatalog && scrittaContinuaTra(img, *b, tutte) && !fraseConPocoAccanto(img, *b, tutte) {
 		return "riga incompleta (parola accanto non letta)"
 	}

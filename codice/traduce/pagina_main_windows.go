@@ -623,6 +623,7 @@ func preparaPaginaCon(area Zona, img, primaImg *image.RGBA, giro int64, annulla 
 				cron = append(cron, r)
 			}
 		}
+		pronti = senzaSovrapposte(pronti) // mai due traduzioni una sopra l'altra
 		stabilizza(pronti, blocchiPagina())
 		rifinisciPagina(img, pronti, blocchi)
 		return

@@ -137,11 +137,21 @@ func unisciFrammenti(s string) string {
 var doppieVere = map[string]bool{"that": true, "had": true, "very": true, "no": true, "go": true, "bye": true, "ha": true, "knock": true, "run": true, "now": true}
 
 func paroleDoppie(s string) bool {
-	w := strings.FieldsFunc(strings.ToLower(s), func(r rune) bool { return !unicode.IsLetter(r) && r != '\'' })
-	for i := 1; i < len(w); i++ {
-		if w[i] == w[i-1] && len(w[i]) >= 3 && !doppieVere[w[i]] {
-			return true
+	// la ripetizione voluta ha la punteggiatura in mezzo ("I am sick, sick to the…", "No… no"):
+	// quella non è l'OCR che legge due volte la stessa zona
+	campi := strings.Fields(strings.ToLower(s))
+	nuda := func(c string) string {
+		return strings.TrimFunc(c, func(r rune) bool { return !unicode.IsLetter(r) && r != '\'' })
+	}
+	for i := 1; i < len(campi); i++ {
+		a, b := nuda(campi[i-1]), nuda(campi[i])
+		if a != b || len(b) < 3 || doppieVere[b] {
+			continue
 		}
+		if fine := strings.TrimRightFunc(campi[i-1], func(r rune) bool { return !unicode.IsLetter(r) }); fine != campi[i-1] {
+			continue // "sick, sick": c'è un segno dopo la prima
+		}
+		return true
 	}
 	return false
 }
@@ -583,7 +593,9 @@ func init() {
 		desktop lobby checkpoint volume default gameplay frame framerate ping lag bug patch mod combo perk
 		buff nerf build crash texture shader bloom blur preset ranked clan party emote trailer badge medkit
 		headshot cooldown v-sync anti-aliasing taa fxaa smaa msaa ssao xess gamma ray tracing widget
-		jumpscare speedrunner leaderboard matchmaking hub dungeon raid tier`) {
+		jumpscare speedrunner leaderboard matchmaking hub dungeon raid tier
+		signora signore signor signorina piazza villa opera studio piano ciao bravo brava maestro nonna nonno
+		padre madre fresco pasta pizza mafia vendetta`) {
 		paroleUgualiIt[w] = true
 	}
 }

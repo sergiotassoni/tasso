@@ -34,6 +34,15 @@ type opzioniBanco struct {
 	// dopo: facoltativa, dopo la prima traduzione (es. aspetta il correttore IA e ritraduce)
 	dopo func(da []Blocco, ris []Risultato) []Risultato
 	voti *votazione // per i fotogrammi di un video: la stabilità nel tempo come nel gioco
+	// stato: per i fotogrammi di un video, le scritte mostrate nel fotogramma prima (come
+	// blocchiPagina nel gioco: stessa traduzione tenuta ferma, scritte saltate dalla lettura
+	// recuperate). nil = ogni immagine per conto suo.
+	stato *statoBanco
+}
+
+// statoBanco: quello che il gioco ricorda tra una lettura e l'altra.
+type statoBanco struct {
+	vecchi []Blocco
 }
 
 // esitoImmagine: una schermata del banco.
@@ -109,8 +118,53 @@ func elaboraImmagine(img *image.RGBA, nome string, o opzioniBanco) (esitoImmagin
 		info.Tradotto = p.Tradotto
 		e.Righe = append(e.Righe, info)
 	}
+	// mai due traduzioni una sopra l'altra (restano in inglese tutte e due)
+	if tenute := senzaSovrapposte(pronti); len(tenute) != len(pronti) {
+		for i := range e.Righe {
+			r := &e.Righe[i]
+			if r.Scartata != "" {
+				continue
+			}
+			resta := false
+			for _, p := range tenute {
+				if p.X == r.X && p.Y == r.Y && p.W == r.W && p.H == r.H {
+					resta = true
+					break
+				}
+			}
+			if !resta {
+				r.Scartata = "traduzioni sovrapposte"
+			}
+		}
+		pronti = tenute
+	}
+	if o.stato != nil { // come nel gioco: la traduzione già mostrata nello stesso posto resta quella
+		stabilizza(pronti, o.stato.vecchi)
+		for i := range e.Righe {
+			for _, p := range pronti {
+				if p.X == e.Righe[i].X && p.Y == e.Righe[i].Y && p.W == e.Righe[i].W && p.H == e.Righe[i].H && e.Righe[i].Scartata == "" {
+					e.Righe[i].Tradotto = p.Tradotto
+				}
+			}
+		}
+	}
 	if len(pronti) > 0 {
 		rifinisciPagina(img, pronti, blocchi)
+	}
+	if o.stato != nil {
+		n := len(pronti)
+		pronti = tieniFerme(pronti, o.stato.vecchi, img)
+		pronti = recuperaPerse(pronti, o.stato.vecchi, img) // saltate dalla lettura ma ancora lì
+		for _, p := range pronti[n:] {
+			rp := image.Rect(p.X, p.Y, p.X+p.W, p.Y+p.H)
+			for i := range e.Righe {
+				r := &e.Righe[i]
+				if r.Scartata != "" && sovrapposti(rp, image.Rect(r.X, r.Y, r.X+r.W, r.Y+r.H)) {
+					r.Scartata, r.Tradotto, r.Fonte = "", p.Tradotto, "fotogramma prima"
+				}
+			}
+		}
+		o.stato.vecchi = pronti
 	}
 	for _, r := range e.Righe {
 		if r.Scartata == "" {

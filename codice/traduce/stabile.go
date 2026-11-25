@@ -26,8 +26,9 @@ type votoScritta struct {
 }
 
 type votazione struct {
-	mu   sync.Mutex
-	voci []*votoScritta
+	mu    sync.Mutex
+	voci  []*votoScritta
+	posti []postoScritta // dove erano le scritte nei fotogrammi passati (interfaccia_mondo.go)
 }
 
 var votiPagina = &votazione{}
@@ -104,7 +105,7 @@ func (v *votazione) scegli(img *image.RGBA, b Blocco, testo string, affid int, a
 	}
 	v.voci = tieni
 	for _, x := range v.voci {
-		if sovrapposti(x.rett, r) {
+		if sovrapposti(x.rett, r) && stessaMisura(x.rett, r) {
 			e = x
 			break
 		}
@@ -143,7 +144,7 @@ func (v *votazione) scegli(img *image.RGBA, b Blocco, testo string, affid int, a
 
 func (v *votazione) svuota() {
 	v.mu.Lock()
-	v.voci = nil
+	v.voci, v.posti = nil, nil
 	v.mu.Unlock()
 }
 
@@ -185,4 +186,12 @@ func recuperaPerse(nuovi, vecchi []Blocco, img *image.RGBA) []Blocco {
 		out = append(out, o)
 	}
 	return out
+}
+
+// stessaMisura: due riquadri della stessa scritta hanno quasi la stessa grandezza (±30%). Una
+// lettura di due righe insieme ("Hold while steering to perform a sharper turn.") non è la stessa
+// scritta della sola prima riga: il suo testo, messo nel riquadro di una riga, lascerebbe la
+// seconda riga inglese scoperta sotto la traduzione.
+func stessaMisura(a, b image.Rectangle) bool {
+	return abs(a.Dx()-b.Dx())*10 <= 3*max(a.Dx(), b.Dx()) && abs(a.Dy()-b.Dy())*10 <= 3*max(a.Dy(), b.Dy())
 }
