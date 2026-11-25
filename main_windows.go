@@ -246,7 +246,9 @@ func collega(w webview2.WebView) {
 		}
 		var installata any
 		if st != nil {
-			installata = map[string]any{"versione": st.Versione, "componenti": st.Componenti}
+			// aggiornamento: la casella del Desktop parte spuntata se i collegamenti lì ci sono già
+			installata = map[string]any{"versione": st.Versione, "componenti": st.Componenti,
+				"desktop": installa.DesktopUsato(st, desktopPubblico())}
 		}
 		ver := ""
 		if elenco != nil {
@@ -324,7 +326,9 @@ func collega(w webview2.WebView) {
 		Cartella   string   `json:"cartella"`
 		Componenti []string `json:"componenti"`
 		Desktop    bool     `json:"desktop"`
-		Lingua     string   `json:"lingua"`
+		// la casella era spuntata perché c'erano già i collegamenti sul Desktop e l'hai tolta tu
+		DesktopTogli bool   `json:"desktopTogli"`
+		Lingua       string `json:"lingua"`
 	}) any {
 		if modoDisins || elenco == nil {
 			return map[string]any{"codice": "err_vuoto"}
@@ -343,7 +347,7 @@ func collega(w webview2.WebView) {
 			l = L()
 		}
 		opz := installa.Opzioni{Base: filepath.Clean(o.Cartella), Componenti: componenti(o.Componenti), Desktop: o.Desktop,
-			Lingua: l, CartellaMenu: menuStart(), CartellaDesktop: desktopPubblico()}
+			DesktopTogli: o.DesktopTogli && !o.Desktop, Lingua: l, CartellaMenu: menuStart(), CartellaDesktop: desktopPubblico()}
 		ctx, annulla := context.WithCancel(context.Background())
 		annullaMu.Lock()
 		annullaFn = annulla

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -65,7 +66,7 @@ func TestAggiornamentoSilenzioso(t *testing.T) {
 		t.Fatalf("programmi da aggiornare: %+v", piano.Programmi)
 	}
 	op := piano.Opzioni
-	if TestoComponenti(op.Componenti) != "ufficio" || op.Base != p.base || op.Lingua != "de" || !op.Desktop || op.TieniDisinstallatore {
+	if TestoComponenti(op.Componenti) != "ufficio" || op.Base != p.base || op.Lingua != "de" || op.Desktop || op.DesktopTogli || op.TieniDisinstallatore {
 		t.Fatalf("opzioni: %+v", op)
 	}
 	p.in.Sorgente, p.in.Elenco = src, e
@@ -176,5 +177,87 @@ func TestAggiornamentoSilenziosoTieneDisinstallatore(t *testing.T) {
 	}
 	if v, _ := p.reg.LeggiTesto(HKLM, ChiaveDisinstalla, "DisplayVersion"); v != "3.1" {
 		t.Fatalf("DisplayVersion %q", v)
+	}
+}
+
+// Silenzioso: i collegamenti sul Desktop restano esattamente quelli che c'erano (per programma).
+func TestAggiornamentoSilenziosoDesktopPerProgramma(t *testing.T) {
+	p := nuovaProva(t, "3.1")
+	o := p.opzioni(Gaming, Zip, PDF)
+	o.Desktop = true
+	if _, err := p.in.Installa(context.Background(), o); err != nil {
+		t.Fatal(err)
+	}
+	os.Remove(filepath.Join(p.desk, "Tasso Zip.lnk")) // Zip sul Desktop l'hai tolto tu
+	st, _ := LeggiStato(p.base)
+	if es := DesktopEsistenti(st, p.desk); !es[ProgTasso] || es[ProgZip] || !es[ProgPDF] || !DesktopUsato(st, p.desk) {
+		t.Fatalf("esistenti: %v", es)
+	}
+	src, e := pacchetto(t, "3.2")
+	piano, err := PreparaAggiornamento(st, e, "", p.menu, p.desk)
+	if err != nil {
+		t.Fatal(err)
+	}
+	p.in.Sorgente, p.in.Elenco = src, e
+	if _, err := p.in.Installa(context.Background(), piano.Opzioni); err != nil {
+		t.Fatal(err)
+	}
+	if !esiste(filepath.Join(p.desk, "Tasso Gaming.lnk")) || !esiste(filepath.Join(p.desk, "Tasso PDF.lnk")) ||
+		esiste(filepath.Join(p.desk, "Tasso Zip.lnk")) {
+		t.Fatal("Desktop cambiato dall'aggiornamento silenzioso")
+	}
+	if !strings.Contains(p.coll[filepath.Join(p.desk, "Tasso Gaming.lnk")].Destinazione, "Tasso.exe") {
+		t.Fatal("collegamento sul Desktop non rifatto")
+	}
+}
+
+// Aggiornamento con le pagine e la casella del Desktop non spuntata (come nella prova vera):
+// il "Tasso Gaming" che c'era sul Desktop resta, e non se ne aggiungono altri.
+func TestAggiornamentoDesktopNonSpuntatoTiene(t *testing.T) {
+	p := nuovaProva(t, "3.1")
+	if _, err := p.in.Installa(context.Background(), p.opzioni(Gaming, Zip)); err != nil {
+		t.Fatal(err)
+	}
+	// collegamento messo sul Desktop (anche solo il file, non scritto in tasso-setup.json)
+	os.WriteFile(filepath.Join(p.desk, "Tasso Gaming.lnk"), []byte("x"), 0o644)
+	st, _ := LeggiStato(p.base)
+	if !DesktopUsato(st, p.desk) {
+		t.Fatal("la casella del Desktop deve partire spuntata")
+	}
+	src, e := pacchetto(t, "3.2")
+	p.in.Sorgente, p.in.Elenco = src, e
+	if _, err := p.in.Installa(context.Background(), p.opzioni(Gaming, Zip)); err != nil {
+		t.Fatal(err)
+	}
+	if !esiste(filepath.Join(p.desk, "Tasso Gaming.lnk")) || esiste(filepath.Join(p.desk, "Tasso Zip.lnk")) {
+		t.Fatal("Desktop: doveva restare solo Tasso Gaming")
+	}
+	// spuntata: si aggiunge anche Zip
+	o := p.opzioni(Gaming, Zip)
+	o.Desktop = true
+	if _, err := p.in.Installa(context.Background(), o); err != nil {
+		t.Fatal(err)
+	}
+	if !esiste(filepath.Join(p.desk, "Tasso Gaming.lnk")) || !esiste(filepath.Join(p.desk, "Tasso Zip.lnk")) {
+		t.Fatal("Desktop spuntato: mancano collegamenti")
+	}
+	// tolta la spunta da te: via quelli dei programmi scelti (solo Zip), Tasso resta
+	o = p.opzioni(Zip)
+	o.DesktopTogli = true
+	if _, err := p.in.Installa(context.Background(), o); err != nil {
+		t.Fatal(err)
+	}
+	if !esiste(filepath.Join(p.desk, "Tasso Gaming.lnk")) || esiste(filepath.Join(p.desk, "Tasso Zip.lnk")) ||
+		!esiste(filepath.Join(p.menu, "Tasso Zip.lnk")) {
+		t.Fatal("DesktopTogli su Zip")
+	}
+	o = p.opzioni(Gaming, Zip)
+	o.DesktopTogli = true
+	st2, err := p.in.Installa(context.Background(), o)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if esiste(filepath.Join(p.desk, "Tasso Gaming.lnk")) || !esiste(filepath.Join(p.menu, "Tasso Gaming.lnk")) || DesktopUsato(st2, p.desk) {
+		t.Fatal("DesktopTogli: il Desktop doveva restare vuoto")
 	}
 }

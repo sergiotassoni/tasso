@@ -285,7 +285,8 @@ async function controllaCartella(){
 }
 
 async function installa(){
-  const opz = {cartella: $('#cartella').value, componenti: compScelti(), desktop: $('#desktop').checked, lingua: L};
+  const opz = {cartella: $('#cartella').value, componenti: compScelti(), desktop: $('#desktop').checked,
+    desktopTogli: !!(A.installata && A.installata.desktop) && !$('#desktop').checked, lingua: L};
   const aperti = await call('goProgrammiAperti', opz.cartella, opz.componenti);
   if (aperti && aperti.length) {
     const ok = await chiediChiusura(aperti);
@@ -379,6 +380,7 @@ async function disinstalla(){
   A.componenti.forEach(c => { scelti[c.id] = true; dis[c.id] = pre.length ? pre.includes(c.id) : true; });
   $('#cartella').value = A.cartella || '';
   if (A.installata) { $('#cartella').readOnly = true; $('#sfoglia').hidden = true; } // aggiornamento: stessa cartella
+  $('#desktop').checked = !!(A.installata && A.installata.desktop); // aggiornamento: il Desktop resta com'era
   $('#versione').textContent = 'TASSO ' + (A.versione || '');
   traduci(); disegnaLingue(); disegnaComp();
   if (A.modo === 'disinstalla') {

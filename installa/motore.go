@@ -57,12 +57,16 @@ type Installatore struct {
 
 // Opzioni scelte nelle pagine dell'installatore.
 type Opzioni struct {
-	Base            string       // C:\Program Files\Tasso
-	Componenti      []Componente // caselle spuntate
-	Desktop         bool         // collegamenti anche sul Desktop
-	Lingua          string       // it, en, es, fr, de, pt, pl
-	CartellaMenu    string       // menu Start di tutti gli utenti
-	CartellaDesktop string       // Desktop pubblico
+	Base       string       // C:\Program Files\Tasso
+	Componenti []Componente // caselle spuntate
+	Desktop    bool         // collegamenti anche sul Desktop (per tutti i programmi scelti)
+	// DesktopTogli: la casella del Desktop era spuntata (c'erano già i collegamenti) e l'hai tolta tu:
+	// via i collegamenti sul Desktop dei programmi scelti. Senza Desktop e senza DesktopTogli i
+	// collegamenti che sono già sul Desktop restano (e si rifanno), ma non se ne aggiungono altri.
+	DesktopTogli    bool
+	Lingua          string // it, en, es, fr, de, pt, pl
+	CartellaMenu    string // menu Start di tutti gli utenti
+	CartellaDesktop string // Desktop pubblico
 	// TieniDisinstallatore: non sostituire "Disinstalla Tasso.exe" (aggiornamento silenzioso con un
 	// installatore di una versione dell'ecosistema più vecchia di quella installata).
 	TieniDisinstallatore bool
@@ -358,7 +362,22 @@ func (in *Installatore) Installa(ctx context.Context, o Opzioni) (*Stato, error)
 		oNomi := o
 		oNomi.Componenti = st.Componenti
 		progScelti := ProgrammiPer(scelti)
-		nuoviColl := in.CollegamentiPer(progScelti, oNomi)
+		// Desktop: con la casella spuntata per tutti; altrimenti solo per i programmi che lì ce
+		// l'hanno già (mai toglierli se non l'hai chiesto tu)
+		var sulDesktop map[Programma]bool
+		if !o.Desktop && !o.DesktopTogli {
+			sulDesktop = DesktopEsistenti(st, o.CartellaDesktop)
+		}
+		oNomi.Desktop = true
+		desk := filepath.Clean(o.CartellaDesktop)
+		var nuoviColl []Collegamento
+		for _, c := range in.CollegamentiPer(progScelti, oNomi) {
+			if o.CartellaDesktop != "" && strings.EqualFold(filepath.Dir(c.Percorso), desk) &&
+				!o.Desktop && !sulDesktop[c.Programma] {
+				continue
+			}
+			nuoviColl = append(nuoviColl, c)
+		}
 		voluti := map[string]bool{}
 		tassoOra := false
 		for _, id := range progScelti {
@@ -369,10 +388,17 @@ func (in *Installatore) Installa(ctx context.Context, o Opzioni) (*Stato, error)
 		}
 		// collegamenti di Tasso con un nome vecchio (es. "Tasso.lnk" delle versioni precedenti): li
 		// tolgo, ma solo se adesso installo anche Tasso (se aggiorno solo Zip, quelli di Tasso restano)
+		// Con DesktopTogli via anche quelli sul Desktop dei programmi scelti.
+		scelto := map[Programma]bool{}
+		for _, id := range progScelti {
+			scelto[id] = true
+		}
 		tenuti := st.Collegamenti[:0]
 		for _, c := range st.Collegamenti {
-			if tassoOra && c.Programma == ProgTasso && !voluti[strings.ToLower(c.Percorso)] &&
-				strings.EqualFold(filepath.Ext(c.Percorso), ".lnk") {
+			vecchioNome := tassoOra && c.Programma == ProgTasso && !voluti[strings.ToLower(c.Percorso)]
+			togliDesk := o.DesktopTogli && o.CartellaDesktop != "" && scelto[c.Programma] &&
+				!voluti[strings.ToLower(c.Percorso)] && strings.EqualFold(filepath.Dir(filepath.Clean(c.Percorso)), desk)
+			if (vecchioNome || togliDesk) && strings.EqualFold(filepath.Ext(c.Percorso), ".lnk") {
 				_ = in.togli(c.Percorso)
 				delete(gia, strings.ToLower(c.Percorso))
 				continue

@@ -3,7 +3,7 @@ package installa
 // Aggiornamento silenzioso ("TassoSetup.exe --aggiorna-silenzioso", lo avvia Tasso dalle sue
 // Impostazioni → Aggiornamenti): si aggiornano SOLO i programmi già installati e solo se questo
 // installatore ne ha una versione più nuova. Stessa cartella, stesse caselle, stessa lingua,
-// collegamenti sul Desktop solo se c'erano già. Mai tornare a una versione più vecchia.
+// collegamenti sul Desktop solo quelli che c'erano già. Mai tornare a una versione più vecchia.
 
 import (
 	"errors"
@@ -119,7 +119,7 @@ func PreparaAggiornamento(st *Stato, e *Elenco, versioneTasso, menu, desktop str
 	piano.Opzioni = Opzioni{
 		Base:            st.Cartella,
 		Componenti:      scelti,
-		Desktop:         desktopUsato(st, desktop),
+		Desktop:         false, // il Desktop resta com'è: solo i collegamenti che ci sono già
 		Lingua:          st.Lingua,
 		CartellaMenu:    menu,
 		CartellaDesktop: desktop,
@@ -129,22 +129,44 @@ func PreparaAggiornamento(st *Stato, e *Elenco, versioneTasso, menu, desktop str
 	return piano, nil
 }
 
-// desktopUsato: c'era già almeno un collegamento sul Desktop (e c'è ancora: se l'hai tolto tu,
-// non lo rimetto).
-func desktopUsato(st *Stato, desktop string) bool {
-	if desktop == "" {
-		return false
+// DesktopUsato: c'è ancora almeno un collegamento sul Desktop di un programma installato (per
+// la casella "Metti i collegamenti anche sul Desktop" quando si aggiorna: parte spuntata).
+func DesktopUsato(st *Stato, desktop string) bool {
+	return len(DesktopEsistenti(st, desktop)) > 0
+}
+
+// DesktopEsistenti: i programmi che hanno ancora un collegamento sul Desktop (se l'hai tolto tu,
+// non conta). Vale sia quello scritto in tasso-setup.json sia un .lnk col nome dei nostri.
+func DesktopEsistenti(st *Stato, desktop string) map[Programma]bool {
+	out := map[Programma]bool{}
+	if st == nil || desktop == "" {
+		return out
 	}
 	d := filepath.Clean(desktop)
+	file := func(p string) bool {
+		fi, err := os.Lstat(p)
+		return err == nil && fi.Mode().IsRegular()
+	}
 	for _, c := range st.Collegamenti {
-		if !strings.EqualFold(filepath.Dir(filepath.Clean(c.Percorso)), d) {
+		if c.Programma == "" || !strings.EqualFold(filepath.Dir(filepath.Clean(c.Percorso)), d) {
 			continue
 		}
-		if fi, err := os.Lstat(c.Percorso); err == nil && fi.Mode().IsRegular() {
-			return true
+		if file(c.Percorso) {
+			out[c.Programma] = true
 		}
 	}
-	return false
+	for id := range st.Programmi {
+		nomi := []string{NomiCollegamento[id]}
+		if id == ProgTasso {
+			nomi = append(nomi, "Tasso Ufficio.lnk")
+		}
+		for _, n := range nomi {
+			if n != "" && file(filepath.Join(d, n)) {
+				out[id] = true
+			}
+		}
+	}
+	return out
 }
 
 // Codici d'uscita di "TassoSetup.exe --aggiorna-silenzioso".

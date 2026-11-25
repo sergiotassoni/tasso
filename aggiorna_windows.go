@@ -5,7 +5,7 @@ package main
 //	TassoSetup.exe --aggiorna-silenzioso [--riapri-tasso] [--solo-controlla]
 //
 // Aggiorna SOLO i programmi già installati (stessa cartella, stesse caselle, stessa lingua, il
-// Desktop solo se c'erano già i collegamenti) e solo quelli che in questo installatore sono più
+// Desktop solo i collegamenti che c'erano già) e solo quelli che in questo installatore sono più
 // nuovi: mai una versione più vecchia. Nessuna pagina dell'installatore: solo una finestrella con
 // la barra. Prima chiude bene i programmi da aggiornare (Tasso con "Tasso.exe --chiudi", Zip e
 // PDF come allo spegnimento di Windows); alla fine riapre Tasso se era aperto.
