@@ -318,6 +318,7 @@ var reObj = regexp.MustCompile(`(?m)(?:^|[\r\n\s])(\d{1,10})\s+(\d{1,5})\s+obj\b
 var reCatalog = regexp.MustCompile(`/Type\s*/Catalog\b`)
 var rePagina = regexp.MustCompile(`/Type\s*/Page\b`)
 var rePagesRef = regexp.MustCompile(`/Pages\s+\d+\s+\d+\s+R`)
+var reParentRef = regexp.MustCompile(`/Parent\s+\d+\s+\d+\s+R`)
 
 // ricostruisci: per i PDF scaricati a metà o con l'indice rotto. Cerca tutti gli oggetti
 // "N G obj ... endobj" nel file, toglie un eventuale oggetto finale tagliato a metà, e scrive in
@@ -377,10 +378,12 @@ func ricostruisci(data []byte, nuovoAlbero bool) ([]byte, error) {
 	}
 	if nuovoAlbero {
 		var kids []string
+		var tenute []int
 		visto := map[int]bool{}
 		for _, n := range ordinePagine {
 			if _, ok := trovati[n]; ok && !visto[n] {
 				visto[n] = true
+				tenute = append(tenute, n)
 				kids = append(kids, fmt.Sprintf("%d %d R", n, trovati[n].gen))
 			}
 		}
@@ -391,6 +394,23 @@ func ricostruisci(data []byte, nuovoAlbero bool) ([]byte, error) {
 		trovati[pagesNum] = pos{off: b.Len()}
 		fmt.Fprintf(&b, "%d 0 obj\n<< /Type /Pages /Kids [%s] /Count %d /MediaBox [0 0 595.28 841.89] >>\nendobj\n",
 			pagesNum, strings.Join(kids, " "), len(kids))
+		// Ogni pagina deve dire che il suo "genitore" è il nuovo elenco (/Parent): riscrivo una
+		// copia di ciascuna in fondo, e l'indice punta alla copia. Senza, i lettori pignoli
+		// (e il controllo rigoroso) dicono che il file è rovinato.
+		nuovoParent := fmt.Sprintf("/Parent %d 0 R", pagesNum)
+		for _, n := range tenute {
+			p := trovati[n]
+			corpo := string(data[p.inizioCorpo:p.fineCorpo])
+			if reParentRef.MatchString(corpo) {
+				corpo = reParentRef.ReplaceAllLiteralString(corpo, nuovoParent)
+			} else if i := strings.Index(corpo, "<<"); i >= 0 {
+				corpo = corpo[:i+2] + " " + nuovoParent + " " + corpo[i+2:]
+			} else {
+				continue
+			}
+			trovati[n] = pos{off: b.Len(), gen: p.gen}
+			fmt.Fprintf(&b, "%d %d obj\n%s\nendobj\n", n, p.gen, strings.TrimSpace(corpo))
+		}
 		rc := trovati[root]
 		cat := string(data[rc.inizioCorpo:rc.fineCorpo])
 		nuovoRif := fmt.Sprintf("/Pages %d 0 R", pagesNum)
