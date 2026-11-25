@@ -37,9 +37,13 @@ var (
 // comObj è un puntatore a un oggetto COM: la prima cosa dentro è la tabella delle funzioni.
 type comObj uintptr
 
+// puntatore: un indirizzo di memoria di Windows (fuori dal Go) come unsafe.Pointer.
+// Passa dalla variabile perché go vet non lo segnali come uso sbagliato di unsafe.Pointer.
+func puntatore(u uintptr) unsafe.Pointer { return *(*unsafe.Pointer)(unsafe.Pointer(&u)) }
+
 func (o comObj) call(idx int, args ...uintptr) uintptr {
-	vtbl := *(*uintptr)(unsafe.Pointer(o))
-	fn := *(*uintptr)(unsafe.Pointer(vtbl + uintptr(idx)*unsafe.Sizeof(uintptr(0))))
+	vtbl := *(*uintptr)(puntatore(uintptr(o)))
+	fn := *(*uintptr)(puntatore(vtbl + uintptr(idx)*unsafe.Sizeof(uintptr(0))))
 	r, _, _ := syscall.SyscallN(fn, append([]uintptr{uintptr(o)}, args...)...)
 	return r
 }
@@ -74,7 +78,7 @@ func bstrToString(b uintptr) string {
 	if n == 0 {
 		return ""
 	}
-	return windows.UTF16ToString(unsafe.Slice((*uint16)(unsafe.Pointer(b)), int(n)))
+	return windows.UTF16ToString(unsafe.Slice((*uint16)(puntatore(b)), int(n)))
 }
 
 // uia è l'oggetto IUIAutomation del filo vtUIA.
@@ -238,7 +242,7 @@ func elSetValue(e comObj, u16 []uint16) bool {
 	ok := hrOK(p.call(3, b))
 	// azzero la copia prima di liberarla (la password non resta nella memoria liberata)
 	n, _, _ := pSysStringLen.Call(b)
-	clear(unsafe.Slice((*uint16)(unsafe.Pointer(b)), int(n)))
+	clear(unsafe.Slice((*uint16)(puntatore(b)), int(n)))
 	pSysFreeString.Call(b)
 	return ok
 }

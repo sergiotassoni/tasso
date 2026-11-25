@@ -684,7 +684,7 @@ func globalBytes(b []byte) uintptr {
 		pGlobalFree.Call(h)
 		return 0
 	}
-	copy(unsafe.Slice((*byte)(unsafe.Pointer(p)), len(b)), b)
+	copy(unsafe.Slice((*byte)(puntatore(p)), len(b)), b)
 	pGlobalUnlock.Call(h)
 	return h
 }

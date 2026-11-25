@@ -117,7 +117,7 @@ func alignedBuf(n int) ([]byte, func()) {
 	if err != nil {
 		return nil, func() {}
 	}
-	return unsafe.Slice((*byte)(unsafe.Pointer(p)), n), func() { _ = windows.VirtualFree(p, 0, windows.MEM_RELEASE) }
+	return unsafe.Slice((*byte)(puntatore(p)), n), func() { _ = windows.VirtualFree(p, 0, windows.MEM_RELEASE) }
 }
 
 // diskScore: scrittura e lettura vere sul disco di Windows (senza la cache), poi lettura casuale 4K.

@@ -28,9 +28,9 @@ type dizionario struct {
 }
 
 var (
-	i18nMu   sync.Mutex
-	i18nDiz  = map[string]*dizionario{}
-	pUILang  = kernel32.NewProc("GetUserDefaultUILanguage")
+	i18nMu  sync.Mutex
+	i18nDiz = map[string]*dizionario{}
+	pUILang = kernel32.NewProc("GetUserDefaultUILanguage")
 )
 
 // leggiDiz: il file i18n/<l>.json così com'è (nil se non c'è).
