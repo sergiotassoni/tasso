@@ -5158,6 +5158,14 @@
   ", con gentilezza, e li riapre quando il Boost si spegne.": ", con cuidado, y los vuelve a abrir cuando el Boost se apaga.",
   "Solo se sono aperti in sottofondo senza finestra: OneDrive, Dropbox, Google Drive, iCloud, Teams (versione classica), Zoom, Skype. Li chiude con gentilezza e li riapre quando il Boost si spegne. Non chiude mai Discord, OBS e i programmi per lo stream, Spotify, Steam e gli altri launcher, i browser, e niente che abbia una finestra aperta.": "Solo si funcionan en segundo plano sin ventana: OneDrive, Dropbox, Google Drive, iCloud, Teams (versión clásica), Zoom, Skype. Los cierra con cuidado y los vuelve a abrir cuando el Boost se apaga. Nunca cierra Discord, OBS y los programas de streaming, Spotify, Steam y los demás launchers, los navegadores ni nada con una ventana abierta.",
   "Il Boost è acceso: il PC è già pronto per giocare.": "El Boost está activo: el PC ya está listo para jugar.",
-  "Il PC è in modalità ": "El PC está en modo: "
+  "Il PC è in modalità ": "El PC está en modo: ",
+  "Sto scaricando": "Descargando",
+  "{0} di {1} MB": "{0} de {1} MB",
+  "{0} di {1} GB": "{0} de {1} GB",
+  "Scaricamento non riuscito": "La descarga ha fallado",
+  "Non sono riuscito a scaricare.": "No he podido descargarlo.",
+  "Controlla che il PC sia collegato a internet e premi Riprova.": "Comprueba que el PC está conectado a internet y pulsa Reintentar.",
+  "Pronto: funziona senza internet.": "Listo: funciona sin internet.",
+  "Si scarica una volta sola. Poi funziona senza internet.": "Se descarga una sola vez. Luego funciona sin internet."
  }
 }

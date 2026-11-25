@@ -62,10 +62,11 @@ func presenteCoppia(da, a string) bool {
 	return coppiaPresente(dirApp, da, a)
 }
 
-// scaricaLingue: scarica i modelli che mancano per da → a. avanz riceve la percentuale.
+// scaricaLingue: scarica i modelli che mancano per da → a. avanz riceve i byte scaricati e quelli
+// da scaricare in tutto (per la barra con i MB nella finestrella dello scaricamento).
 var muScaricaLingue sync.Mutex
 
-func scaricaLingue(ctx context.Context, da, a string, avanz func(int)) error {
+func scaricaLingue(ctx context.Context, da, a string, avanz func(fatti, totale int64)) error {
 	muScaricaLingue.Lock() // due scaricamenti insieme scriverebbero lo stesso file
 	defer muScaricaLingue.Unlock()
 	serve := modelliServono(dirApp, da, a, presenteCoppia)
@@ -82,7 +83,7 @@ func scaricaLingue(ctx context.Context, da, a string, avanz func(int)) error {
 		base := fatti
 		err := scaricaTutti(ctx, dir, files, func(f, t int64) {
 			if tot > 0 {
-				avanz(int(100 * (base + f) / tot))
+				avanz(min(base+f, tot), tot)
 			}
 		})
 		if err != nil {

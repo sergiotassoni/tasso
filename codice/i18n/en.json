@@ -5158,6 +5158,14 @@
   ", con gentilezza, e li riapre quando il Boost si spegne.": ", gently, and reopens them when Boost turns off.",
   "Solo se sono aperti in sottofondo senza finestra: OneDrive, Dropbox, Google Drive, iCloud, Teams (versione classica), Zoom, Skype. Li chiude con gentilezza e li riapre quando il Boost si spegne. Non chiude mai Discord, OBS e i programmi per lo stream, Spotify, Steam e gli altri launcher, i browser, e niente che abbia una finestra aperta.": "Only if they're running in the background without a window: OneDrive, Dropbox, Google Drive, iCloud, Teams (classic version), Zoom, Skype. It closes them gently and reopens them when Boost turns off. It never closes Discord, OBS and streaming programs, Spotify, Steam and the other launchers, browsers, or anything with an open window.",
   "Il Boost è acceso: il PC è già pronto per giocare.": "Boost is on: the PC is already ready to play.",
-  "Il PC è in modalità ": "The PC is in mode: "
+  "Il PC è in modalità ": "The PC is in mode: ",
+  "Sto scaricando": "Downloading",
+  "{0} di {1} MB": "{0} of {1} MB",
+  "{0} di {1} GB": "{0} of {1} GB",
+  "Scaricamento non riuscito": "Download failed",
+  "Non sono riuscito a scaricare.": "I couldn't download it.",
+  "Controlla che il PC sia collegato a internet e premi Riprova.": "Check that the PC is connected to the internet and press Try again.",
+  "Pronto: funziona senza internet.": "Ready: it works without the internet.",
+  "Si scarica una volta sola. Poi funziona senza internet.": "It downloads only once. Then it works without the internet."
  }
 }

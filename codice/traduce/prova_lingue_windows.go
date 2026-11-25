@@ -103,7 +103,7 @@ func eseguiProvaLingue() {
 			continue
 		}
 		t0 := time.Now()
-		err := scaricaLingue(context.Background(), c[0], c[1], func(int) {})
+		err := scaricaLingue(context.Background(), c[0], c[1], func(int64, int64) {})
 		nota(fmt.Sprintf("scaricato %s→%s in %.0f s, errore: %v", c[0], c[1], time.Since(t0).Seconds(), err))
 	}
 	ricaricaMozilla()

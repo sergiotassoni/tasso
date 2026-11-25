@@ -5158,6 +5158,14 @@
   ", con gentilezza, e li riapre quando il Boost si spegne.": ", behutsam, und öffnet sie wieder, wenn der Boost ausgeht.",
   "Solo se sono aperti in sottofondo senza finestra: OneDrive, Dropbox, Google Drive, iCloud, Teams (versione classica), Zoom, Skype. Li chiude con gentilezza e li riapre quando il Boost si spegne. Non chiude mai Discord, OBS e i programmi per lo stream, Spotify, Steam e gli altri launcher, i browser, e niente che abbia una finestra aperta.": "Nur wenn sie ohne Fenster im Hintergrund laufen: OneDrive, Dropbox, Google Drive, iCloud, Teams (klassische Version), Zoom, Skype. Es schließt sie behutsam und öffnet sie wieder, wenn der Boost ausgeht. Es schließt nie Discord, OBS und Streaming-Programme, Spotify, Steam und die anderen Launcher, Browser oder etwas mit offenem Fenster.",
   "Il Boost è acceso: il PC è già pronto per giocare.": "Der Boost ist an: Der PC ist schon bereit zum Spielen.",
-  "Il PC è in modalità ": "Der PC ist im Modus: "
+  "Il PC è in modalità ": "Der PC ist im Modus: ",
+  "Sto scaricando": "Wird heruntergeladen",
+  "{0} di {1} MB": "{0} von {1} MB",
+  "{0} di {1} GB": "{0} von {1} GB",
+  "Scaricamento non riuscito": "Download fehlgeschlagen",
+  "Non sono riuscito a scaricare.": "Ich konnte es nicht herunterladen.",
+  "Controlla che il PC sia collegato a internet e premi Riprova.": "Prüfe, ob der PC mit dem Internet verbunden ist, und drücke Erneut versuchen.",
+  "Pronto: funziona senza internet.": "Fertig: Es funktioniert ohne Internet.",
+  "Si scarica una volta sola. Poi funziona senza internet.": "Wird nur einmal heruntergeladen. Danach funktioniert es ohne Internet."
  }
 }

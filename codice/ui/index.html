@@ -631,6 +631,19 @@ nav button{min-width:0;max-width:100%;overflow-wrap:break-word;hyphens:auto}
 html:not([lang="it"]) .navsub button{padding-right:4px;gap:8px}
 .langbtn{white-space:nowrap}
 .k,.badge,.tag{overflow-wrap:break-word}
+/* 3.1: finestrella dello scaricamento (anteprima scaricamento-1..3) */
+#modalBox.dlsmall{max-width:440px}
+.dlw{display:flex;flex-direction:column;gap:12px}
+.dlw .dlhead{display:flex;align-items:center;gap:14px}
+.dlw .dlhead svg{flex:0 0 52px}
+.dlw .dlk{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--a1t)}
+.dlw.err .dlk{color:var(--a4)}
+.dlw h2{font-size:22px;overflow-wrap:anywhere}
+.dlw .dlnum{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.dlw .dlnum b{font:700 20px var(--mono,monospace)}
+.dlw .bigbar.ok i{background-color:var(--a1);background-image:none;animation:none}
+.dlw .pup{animation:tlook 5s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
+@media (prefers-reduced-motion:reduce){.dlw .pup{animation:none}}
 </style>
 </head>
 <body>
@@ -1691,7 +1704,7 @@ $('#fixToDetect').onclick = (e) => { e.preventDefault(); show('scan'); };
 /* ---------- modal ---------- */
 function modal(html, buttons){
   if (!$('#modal').classList.contains('on')) MODAL_BACK = document.activeElement;
-  const box = $('#modalBox'); box.innerHTML = html;
+  const box = $('#modalBox'); box.innerHTML = html; box.classList.toggle('dlsmall', html.indexOf('id="dlMark"') >= 0);
   const row = el('div', {class:'row wrap', style:'justify-content:flex-end;gap:10px;margin-top:6px'});
   buttons.forEach(bt => { const b = el('button', {class:'btn ' + (bt.cls || 'ghost')}, esc(bt.label)); b.onclick = () => { const keep = bt.fn ? bt.fn(box) : null; if (keep !== 'keep') closeModal(); }; row.appendChild(b); });
   box.appendChild(row); $('#modal').classList.add('on');
@@ -3852,7 +3865,9 @@ function paintLangMsg(r){
   if (mb < 0) { box.textContent = _t('✓ Salvato'); return; }
   box.textContent = _t('✓ Salvato, ma mancano i modelli di queste lingue.') + ' ';
   const b = document.createElement('button'); b.className = 'btn ghost'; b.textContent = _t('Scarica') + (mb > 0 ? ' (' + mb + ' MB)' : '');
-  b.onclick = async () => { b.disabled = true; const x = await ttc('ttScaricaLingue', da, a); if (x === 'occupato') { b.disabled = false; toast(_t('Un attimo: sto già scaricando un\'altra cosa.'), 'var(--a4)'); } else if (x === 'ok') box.textContent = _t('Inizio a scaricare…'); else { b.disabled = false; box.textContent = _t('Lingua non valida.'); } };
+  const nome = dlwLangName(da, a);
+  const go = async () => { b.disabled = true; const x = await ttc('ttScaricaLingue', da, a); if (x === 'occupato') { b.disabled = false; if (dlwOurs()) closeModal(); DLW = null; toast(_t('Un attimo: sto già scaricando un\'altra cosa.'), 'var(--a4)'); } else if (x === 'ok') { box.textContent = _t('Inizio a scaricare…'); dlwOpen('lingue', nome, go); } else { b.disabled = false; if (dlwOurs()) closeModal(); DLW = null; box.textContent = _t('Lingua non valida.'); } };
+  b.onclick = go;
   box.appendChild(b);
 }
 async function saveLangs(){
@@ -3861,13 +3876,13 @@ async function saveLangs(){
   ttRefresh();
 }
 $('#trDa').onchange = saveLangs; $('#trA').onchange = saveLangs;
-function dlStart(btn, txt, fn){ if (TT && TT.scaricando) { toast(_t('Un attimo: sto già scaricando un\'altra cosa.'), 'var(--a4)'); return; } btn.disabled = true; $(txt).textContent = _t('Inizio a scaricare…'); ttc(fn); if (TT) TT.scaricando = true; }
+function dlStart(btn, txt, fn){ if (TT && TT.scaricando) { toast(_t('Un attimo: sto già scaricando un\'altra cosa.'), 'var(--a4)'); return; } btn.disabled = true; $(txt).textContent = _t('Inizio a scaricare…'); ttc(fn); if (TT) TT.scaricando = true; dlwOpen(fn === 'ttScaricaIA' ? 'ia' : 'mozilla', '', () => { if (TT) TT.scaricando = false; dlStart(btn, txt, fn); }); }
 $('#btnTrMoz').onclick = () => dlStart($('#btnTrMoz'), '#trMozTxt', 'ttScaricaMozilla');
 $('#btnTrIa').onclick = () => dlStart($('#btnTrIa'), '#trIaTxt', 'ttScaricaIA');
-$('#btnTrChat').onclick = () => { $('#btnTrChat').disabled = true; $('#trChatTxt').textContent = _t('Inizio a scaricare…'); ttc('ttScaricaChat'); };
+$('#btnTrChat').onclick = () => { $('#btnTrChat').disabled = true; $('#trChatTxt').textContent = _t('Inizio a scaricare…'); ttc('ttScaricaChat'); dlwOpen('chat', '', () => $('#btnTrChat').onclick()); };
 $('#btnTrVoci').onclick = async () => {
   const v = (TT && TT.voci) || {};
-  if (!v.file) { $('#btnTrVoci').disabled = true; $('#trVociTxt').textContent = _t('Li sto scaricando…'); ttc('ttScaricaVoci'); return; }
+  if (!v.file) { $('#btnTrVoci').disabled = true; $('#trVociTxt').textContent = _t('Li sto scaricando…'); ttc('ttScaricaVoci'); dlwOpen('voci', '', () => { if (TT && TT.voci) TT.voci.file = false; $('#btnTrVoci').onclick(); }); return; }
   const r = await ttc('ttAccendiVoci', !v.accese); if (r && r.errore) toast(tx(r.errore), 'var(--a4)'); ttRefresh();
 };
 $('#trSwAuto').onclick = async () => { const r = await ttc('ttImpostaTuttoAuto', !(TT && TT.tutto_auto)); if (TT) TT.tutto_auto = !!r; setSw('#trSwAuto', !!r); toast(r ? _t('Tasso traduce da solo appena apre un gioco (con la traduzione accesa).') : _t('Tasso traduce in automatico solo i giochi che hai preparato; per gli altri chiede.')); };
@@ -3900,6 +3915,60 @@ $('#btnTrWords').onclick = async () => {
 };
 $('#btnKeyReset').onclick = async () => { HK_WAIT = ''; const r = await ttc('ttTastiDiBase'); await call('goAutoClickKey', 117, 0); await call('goOverlayKey', 0); S.acVK = 117; S.acMods = 0; paintAcKey(); await hkxRefresh(); await ttRefresh(); paintKeys(); hkMsg(''); const n = parseInt(String(r || '').replace('occupati:', ''), 10); if (r === 'ok') toast(_t('Tasti rimessi come all\'inizio.'), 'var(--a3)'); else if (n > 0) toast(_t('Tasti rimessi come all\'inizio, ma ') + n + _t(' sono già usati da un altro programma: cambiali qui sopra.'), 'var(--a4)'); else toast(_t('Non riuscito.'), 'var(--a4)'); };
 const DLN = {mozilla:_t('Traduttore veloce'), ia:_t('IA'), voci:_t('Voci'), chat:_t('Chat tradotta'), lingue:_t('Lingue')};
+// 3.1: finestrella dello scaricamento (anteprima scaricamento-1..3): barra con % e MB, "Nascondi"
+// (lo scaricamento continua e resta la scritta), "Fatto!" per 1,5 secondi, e "Riprova" se non va.
+let DLW = null; // {cosa, nome, fatti, totale, stato: '' | 'fatto' | 'errore', err, vista, nascosta, riprova}
+const DLW_EMB = '<svg width="52" height="52" viewBox="0 0 200 200" aria-hidden="true"><rect x="4" y="4" width="192" height="192" rx="48" fill="#141725"/><rect x="4" y="4" width="192" height="192" rx="48" fill="none" stroke="var(--a1)" stroke-opacity=".75" stroke-width="7"/><path d="M100 172 L34 94 L58 38 L142 38 L166 94 Z" fill="#F2F4F8"/><path d="M58 38 L86 38 L94 122 L76 132 L44 104 Z" fill="#07080D"/><path d="M142 38 L114 38 L106 122 L124 132 L156 104 Z" fill="#07080D"/><circle class="pup" cx="74" cy="98" r="9" fill="var(--a1)"/><circle class="pup" cx="126" cy="98" r="9" fill="var(--a1)"/></svg>';
+function dlwOurs(){ return $('#modal').classList.contains('on') && !!$('#dlMark'); }
+// dlwOpen: si apre dopo il clic su Scarica; se è già aperta un'altra finestra non la copro (resta la scritta).
+function dlwOpen(cosa, nome, riprova){
+  if (document.body.classList.contains('office')) return;
+  DLW = {cosa, nome: nome || ({ia:_t('Traduzione più precisa (IA)'), voci:_t('Voci in italiano (sottotitoli)')})[cosa] || DLN[cosa] || cosa, fatti: 0, totale: 0, stato: '', err: '', vista: false, nascosta: false, riprova};
+  if ($('#modal').classList.contains('on') && !dlwOurs()) { DLW.nascosta = true; return; }
+  dlwDraw();
+}
+function dlwSize(f, t){
+  if (!t) return _t('Inizio a scaricare…');
+  if (t >= 1073741824) { const g = (b) => (b / 1073741824).toFixed(1).replace('.', DEC); return _t('{0} di {1} GB').replace('{0}', g(f)).replace('{1}', g(t)); }
+  return _t('{0} di {1} MB').replace('{0}', Math.round(f / 1048576)).replace('{1}', Math.max(1, Math.round(t / 1048576)));
+}
+function dlwDraw(){
+  const D = DLW; if (!D || D.nascosta) return;
+  if (D.vista && !dlwOurs()) { D.nascosta = true; return; } // chiusa con Esc: come "Nascondi"
+  const ok = D.stato === 'fatto', err = D.stato === 'errore';
+  const pc = ok ? 100 : D.totale ? Math.max(0, Math.min(100, Math.floor(D.fatti * 100 / D.totale))) : 0;
+  const f = ok && D.totale ? D.totale : D.fatti;
+  if (dlwOurs() && $('#dlMark').dataset.st === D.stato) {
+    const bar = $('#dlBar'); bar.style.width = pc + '%'; bar.parentNode.setAttribute('aria-valuenow', String(pc));
+    $('#dlPct').textContent = pc + '%'; $('#dlMb').textContent = dlwSize(f, D.totale);
+    return;
+  }
+  const head = '<div class="dlhead">' + DLW_EMB + '<div style="min-width:0"><div class="dlk">' + esc(ok || err ? D.nome : _t('Sto scaricando')) + '</div><h2>' + esc(ok ? _t('Fatto!') : err ? _t('Scaricamento non riuscito') : D.nome) + '</h2></div></div>';
+  const bar = '<div class="bigbar' + (ok ? ' ok' : '') + '" role="progressbar" aria-label="' + esc(_t('Avanzamento')) + '" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + pc + '"><i id="dlBar" style="width:' + pc + '%"></i></div>' +
+    '<div class="dlnum"><b id="dlPct">' + pc + '%</b><span class="small muted" id="dlMb">' + esc(dlwSize(f, D.totale)) + '</span></div>';
+  const body = err ? '<div class="callout" style="border-color:var(--a4)" role="alert">' + esc(D.err || _t('Non sono riuscito a scaricare.')) + '</div><p class="small muted" style="margin:0">' + esc(_t('Controlla che il PC sia collegato a internet e premi Riprova.')) + '</p>'
+    : bar + '<p class="small muted" style="margin:0" role="status">' + esc(ok ? _t('Pronto: funziona senza internet.') : _t('Si scarica una volta sola. Poi funziona senza internet.')) + '</p>';
+  modal('<span id="dlMark" data-st="' + D.stato + '" hidden></span><div class="dlw' + (err ? ' err' : '') + '">' + head + body + '</div>',
+    err ? [{label:_t('Chiudi'), fn: () => { DLW = null; }}, {label:_t('Riprova'), cls:'primary', fn: () => { if (D.riprova) D.riprova(); else DLW = null; return D.riprova ? 'keep' : null; }}]
+      : ok ? [] : [{label:_t('Nascondi'), fn: () => { D.nascosta = true; }}]);
+  D.vista = true;
+  if (ok) setTimeout(() => { if (DLW === D) { if (dlwOurs()) closeModal(); DLW = null; } }, 1500);
+}
+function dlwEvent(x, stato){
+  const D = DLW; if (!D || !x || x.cosa !== D.cosa) return false;
+  if (stato === 'fatto' || stato === 'errore') { D.stato = stato; D.err = stato === 'errore' ? tx(x.errore || '') : ''; }
+  else { D.fatti = Number(x.fatti) || 0; D.totale = Number(x.totale) || 0; }
+  const vis = !D.nascosta;
+  if (vis) dlwDraw(); else if (stato) DLW = null;
+  return vis && !D.nascosta;
+}
+// nome per le lingue: quelle che mancano davvero (come langMissing)
+function dlwLangName(da, a){
+  const L = (c) => LANGS.find(x => x.codice === c) || {}, n = [];
+  if (da !== 'auto' && da !== 'en' && da !== a && !L(da).da_pronta) n.push(langName(da));
+  if (a !== 'en' && a !== da && !L(a).a_pronta) n.push(langName(a));
+  return n.length ? n.join(' + ') : langName(a);
+}
 function ttRepaint(){ if (W && !$('#gwz').hidden && !W.busy && wzStep() !== 'ok') wzDraw(); gpRepaintTr(); }
 // La pagina del gioco aperta segue lo stato della traduzione (strumenti e riga «Traduzione»).
 function gpRepaintTr(){
@@ -3913,7 +3982,7 @@ window.tt = {
   aggiorna(st){ if (st) { TT = st; paintTr(); ttRepaint(); } },
   info(x){ if (x && x.testo && !document.body.classList.contains('office')) toast(tx(x.testo)); },
   avanzamento(x){
-    if (!x) return; const pc = x.totale ? Math.round(x.fatti * 100 / x.totale) : 0;
+    if (!x) return; dlwEvent(x, ''); const pc = x.totale ? Math.round(x.fatti * 100 / x.totale) : 0;
     const t = (DLN[x.cosa] || x.cosa) + ': ' + pc + '%';
     if (x.cosa === 'mozilla') { $('#trMozTxt').textContent = _t('Scarico… ') + pc + '%'; const w = $('#gwMoz'); if (w) w.textContent = t; }
     else if (x.cosa === 'ia') $('#trIaTxt').textContent = _t('Scarico… ') + pc + '%';
@@ -3921,9 +3990,9 @@ window.tt = {
     else if (x.cosa === 'chat') $('#trChatTxt').textContent = _t('Scarico… ') + pc + '%';
     else if (x.cosa === 'lingue') $('#trLangMsg').textContent = _t('Scarico… ') + pc + '%';
   },
-  scaricato(x){ if (!document.body.classList.contains('office')) toast((DLN[x && x.cosa] || '') + _t(': scaricato.'), 'var(--a3)'); if (x && x.cosa === 'lingue') $('#trLangMsg').textContent = _t('✓ Salvato'); ttRefresh().then(ttRepaint); },
+  scaricato(x){ if (!dlwEvent(x, 'fatto') && !document.body.classList.contains('office')) toast((DLN[x && x.cosa] || '') + _t(': scaricato.'), 'var(--a3)'); if (x && x.cosa === 'lingue') $('#trLangMsg').textContent = _t('✓ Salvato'); ttRefresh().then(ttRepaint); },
   lingue(x){ if (!Array.isArray(x)) return; LANGS = x; ttRepaint(); if (typeof wzLingue === 'function') wzLingue(); },
-  erroreScarica(x){ if (!document.body.classList.contains('office')) toast((DLN[x && x.cosa] ? DLN[x.cosa] + ': ' : '') + _t('scaricamento non riuscito: ') + tx((x && x.errore) || ''), 'var(--a4)'); ttRefresh().then(ttRepaint); },
+  erroreScarica(x){ if (!dlwEvent(x, 'errore') && !document.body.classList.contains('office')) toast((DLN[x && x.cosa] ? DLN[x.cosa] + ': ' : '') + _t('scaricamento non riuscito: ') + tx((x && x.errore) || ''), 'var(--a4)'); ttRefresh().then(ttRepaint); },
   guidata(x){ wzProgress(x); },
   verifica(x){ if (x && x.testo) { const v = $('#gwVer'); if (v && W && W.info && W.info.cartella === x.cartella) v.textContent = tx(x.testo); } },
   apriCronologia(){ if (document.body.classList.contains('office')) return; show('games'); gTab('cro'); },

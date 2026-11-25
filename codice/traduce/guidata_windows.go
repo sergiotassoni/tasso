@@ -184,7 +184,8 @@ func applicaTraduzione(nome, cartella string) {
 		mb := byteCoppie(modelliServono(dirApp, da, a, presenteCoppia)) / 1048576
 		passo(8, fmt.Sprintf("Scarico i modelli liberi per %s → %s (%d MB)…", nomeLingua(da), nomeLingua(a), mb))
 		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Hour)
-		err := scaricaLingue(ctx, da, a, func(p int) {
+		err := scaricaLingue(ctx, da, a, func(f, t int64) {
+			p := int(100 * f / max(t, 1))
 			passo(8+p*15/100, fmt.Sprintf("Scarico i modelli liberi per %s → %s… %d%%", nomeLingua(da), nomeLingua(a), p))
 		})
 		cancel()

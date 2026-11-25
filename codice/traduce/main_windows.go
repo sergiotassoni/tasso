@@ -602,8 +602,8 @@ func collega(w webview2.WebView) {
 			defer scaricandoLin.Store(false)
 			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Hour)
 			defer cancel()
-			err := scaricaLingue(ctx, da, a, func(p int) {
-				emetti("avanzamento", map[string]interface{}{"cosa": "lingue", "fatti": p, "totale": 100})
+			err := scaricaLingue(ctx, da, a, func(f, t int64) {
+				emetti("avanzamento", map[string]interface{}{"cosa": "lingue", "fatti": f, "totale": t})
 			})
 			if err != nil {
 				emetti("erroreScarica", map[string]string{"cosa": "lingue", "errore": err.Error()})
