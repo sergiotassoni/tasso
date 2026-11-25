@@ -57,6 +57,9 @@ func leggiArgomentiCollaudo(args []string) {
 }
 
 func init() {
+	// Senza questa chiamata --collaudo, --anche-meta, --solo-nuove e --voci-prova non
+	// facevano niente: la funzione c'era ma nessuno la chiamava.
+	leggiArgomentiCollaudo(os.Args)
 	salvaAnteprime = true
 	cartellaWebView = "WebView2-prova"
 	nomeUnaCopia = "Local\\TassoTraduceProva"
