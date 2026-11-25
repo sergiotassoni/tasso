@@ -19,11 +19,27 @@ import (
 
 // pezzoRilettura: una riga incerta da rileggere.
 type pezzoRilettura struct {
-	riga   int             // indice della riga nell'elenco dell'OCR
+	riga   int             // indice della riga nell'elenco dell'OCR (-1: zona non letta)
 	rett   image.Rectangle // dove sta nella cattura (con un po' di margine)
 	k      int             // ingrandimento
 	chiave string          // impronta dei pixel (per la memoria delle riletture)
+	tipo   int             // pezzoIncerto, pezzoIncompleto, pezzoNonLetto (seconda_lettura.go)
+	ingoia []int           // righe lette a parte sulla stessa linea, dentro il riquadro allargato
 }
+
+// tipi di pezzi da rileggere
+const (
+	pezzoIncerto    = iota // riga letta male: vince la lettura più affidabile
+	pezzoIncompleto        // riga con una parola non letta accanto: rilettura allargata
+	pezzoNonLetto          // zona con la forma di una scritta dove l'OCR non ha letto niente
+)
+
+// massimi della seconda lettura per schermata (il mosaico resta una chiamata sola all'OCR)
+const (
+	maxPezziIncerti    = 8
+	maxPezziIncompleti = 4
+	maxZoneNonLette    = 3
+)
 
 // variantiRiga: le tre preparazioni del ritaglio (già in grigio), ingrandite k volte.
 func variantiRiga(rit *image.RGBA, k int) []*image.Gray {
@@ -249,19 +265,55 @@ func rileggiIncerteCon(img *image.RGBA, righe []RigaOCR, f float64, leggi func(*
 	if f <= 0 {
 		f = 1
 	}
-	pezzi := pezziDaRileggere(img, righe, f, 8)
+	pezzi := pezziDaRileggere(img, righe, f, maxPezziIncerti)
+	gia := map[int]bool{}
+	for _, p := range pezzi {
+		gia[p.riga] = true
+	}
+	inc := pezziIncompleti(img, righe, f, gia, maxPezziIncompleti)
+	pezzi = append(pezzi, inc...)
+	for _, z := range zoneTestoNonLetto(img, righe, f, maxZoneNonLette) {
+		sovrapposta := false
+		for _, p := range inc {
+			if s := z.Intersect(p.rett); s.Dx()*s.Dy()*2 >= z.Dx()*z.Dy() {
+				sovrapposta = true
+			}
+		}
+		if sovrapposta {
+			continue
+		}
+		k := clamp(int(48/float64(max(1, z.Dy()*6/10))+0.99), 2, 4)
+		for k > 1 && z.Dx()*k > 3800 {
+			k--
+		}
+		pezzi = append(pezzi, pezzoRilettura{riga: -1, rett: z, k: k, chiave: "zona" + improntaRiga(img, z), tipo: pezzoNonLetto})
+	}
 	if len(pezzi) == 0 {
 		return righe
 	}
 	out := append([]RigaOCR(nil), righe...)
+	var nuove []RigaOCR // righe trovate nelle zone non lette
+	applica := func(p pezzoRilettura, parole []ParolaOCR) {
+		if len(parole) == 0 {
+			return
+		}
+		r := rigaDaRilette(parole, p, f)
+		switch p.tipo {
+		case pezzoNonLetto:
+			nuove = append(nuove, r)
+		default:
+			out[p.riga] = r
+			for _, j := range p.ingoia {
+				out[j] = RigaOCR{} // ora fa parte della riga riletta
+			}
+		}
+	}
 	var daLeggere []pezzoRilettura
 	var immagini []*image.Gray
 	muRiletture.Lock()
 	for _, p := range pezzi {
 		if parole, ok := riletture[p.chiave]; ok {
-			if len(parole) > 0 {
-				out[p.riga] = rigaDaRilette(parole, p, f)
-			}
+			applica(p, parole)
 			continue
 		}
 		daLeggere = append(daLeggere, p)
@@ -287,38 +339,89 @@ func rileggiIncerteCon(img *image.RGBA, righe []RigaOCR, f float64, leggi func(*
 		scelti = append(scelti, p)
 	}
 	if len(scelti) == 0 {
-		return out
+		return conNuove(out, nuove)
 	}
 	mosaico, dove := componiMosaico(immagini)
+	if osservaPezzi != nil {
+		osservaPezzi(scelti)
+	}
 	lette, err := leggi(mosaico, dove)
 	if err != nil {
-		return out
+		return conNuove(out, nuove)
 	}
 	perPezzo := assegnaMosaico(lette, dove)
 	for n, p := range scelti {
-		letture := []string{testoParole(righe[p.riga].Parole)}
 		var candidati [][]ParolaOCR
 		for v := 0; v < 3; v++ {
-			parole := perPezzo[n*3+v]
-			candidati = append(candidati, parole)
-			letture = append(letture, testoParole(parole))
+			candidati = append(candidati, perPezzo[n*3+v])
 		}
-		best := migliorLettura(letture)
-		var tieni []ParolaOCR
-		if best > 0 {
-			tieni = candidati[best-1]
-		}
+		tieni := sceltaRilettura(p, righe, candidati)
 		muRiletture.Lock()
 		if len(riletture) > 600 {
 			riletture = map[string][]ParolaOCR{}
 		}
 		riletture[p.chiave] = tieni // anche "niente di meglio" (vuoto): non rileggo a ogni giro
 		muRiletture.Unlock()
-		if len(tieni) > 0 {
-			out[p.riga] = rigaDaRilette(tieni, p, f)
-		}
+		applica(p, tieni)
 	}
-	return out
+	return conNuove(out, nuove)
+}
+
+// osservaPezzi: solo per i test e il banco senza Windows (sapere quali pezzi sono nel mosaico).
+var osservaPezzi func([]pezzoRilettura)
+
+// conNuove: le righe con quelle trovate nelle zone non lette in fondo (le righe inglobate in
+// una riga riletta restano vuote: non contano).
+func conNuove(out, nuove []RigaOCR) []RigaOCR {
+	return append(out, nuove...)
+}
+
+// sceltaRilettura: tra le tre letture del pezzo, quella da tenere (nil = niente di meglio).
+func sceltaRilettura(p pezzoRilettura, righe []RigaOCR, candidati [][]ParolaOCR) []ParolaOCR {
+	switch p.tipo {
+	case pezzoIncompleto:
+		// la prima lettura: la riga e i pezzi inglobati, da sinistra a destra
+		var prima []ParolaOCR
+		prima = append(prima, righe[p.riga].Parole...)
+		for _, j := range p.ingoia {
+			prima = append(prima, righe[j].Parole...)
+		}
+		sort.SliceStable(prima, func(a, b int) bool { return prima[a].X < prima[b].X })
+		vecchia := testoParole(prima)
+		letture := []string{""}
+		var buoni [][]ParolaOCR
+		for _, c := range candidati {
+			if t := testoParole(c); letturaPiuCompleta(vecchia, t) {
+				letture = append(letture, t)
+				buoni = append(buoni, c)
+			}
+		}
+		if len(buoni) == 0 {
+			return nil
+		}
+		return buoni[max(0, migliorLettura(letture)-1)]
+	case pezzoNonLetto:
+		letture := []string{""}
+		var buoni [][]ParolaOCR
+		for _, c := range candidati {
+			if t := testoParole(c); letturaNuovaBuona(t) {
+				letture = append(letture, t)
+				buoni = append(buoni, c)
+			}
+		}
+		if len(buoni) == 0 {
+			return nil
+		}
+		return buoni[max(0, migliorLettura(letture)-1)]
+	}
+	letture := []string{testoParole(righe[p.riga].Parole)}
+	for _, c := range candidati {
+		letture = append(letture, testoParole(c))
+	}
+	if best := migliorLettura(letture); best > 0 {
+		return candidati[best-1]
+	}
+	return nil
 }
 
 // rigaDaRilette: le parole rilette (pixel del pezzo ingrandito) nelle coordinate della prima

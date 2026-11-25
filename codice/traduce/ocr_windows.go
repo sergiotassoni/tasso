@@ -63,8 +63,11 @@ while ($null -ne ($p = [Console]::In.ReadLine())) {
     $pos = @($r.Lines | ForEach-Object {
       @{ p = @($_.Words | ForEach-Object { $q = $_.BoundingRect; @{ t = $_.Text; x = [math]::Round($q.X,1); y = [math]::Round($q.Y,1); w = [math]::Round($q.Width,1); h = [math]::Round($q.Height,1) } }) }
     })
+    $bw = $b.PixelWidth; $bh = $b.PixelHeight
+    $ang = 0.0
+    try { if ($null -ne $r.TextAngle) { $ang = [double]$r.TextAngle } } catch { $ang = 0.0 }
     $b.Dispose(); $s.Dispose(); $d = $null; $f = $null
-    [Console]::Out.WriteLine((ConvertTo-Json -Compress -Depth 5 @{ ok = $true; righe = $righe; pos = $pos }))
+    [Console]::Out.WriteLine((ConvertTo-Json -Compress -Depth 5 @{ ok = $true; righe = $righe; pos = $pos; a = $ang; bw = $bw; bh = $bh }))
   } catch {
     [Console]::Out.WriteLine((ConvertTo-Json -Compress @{ ok = $false; errore = $_.Exception.Message }))
   }
@@ -99,6 +102,12 @@ type rispostaOCR struct {
 	Righe  []string  `json:"righe"`
 	Pos    []RigaOCR `json:"pos"`
 	Errore string    `json:"errore"`
+	// Angolo: la rotazione del testo trovata da Windows (gradi, senso orario). Con il testo un po'
+	// storto Windows dà i rettangoli delle parole nell'immagine RADDRIZZATA: vanno riportati
+	// nell'immagine vera (raddrizzaParole), se no tutte le scritte sono spostate.
+	Angolo float64 `json:"a"`
+	LargB  int     `json:"bw"`
+	AltB   int     `json:"bh"`
 }
 
 func sysExe(nome string) string {
@@ -234,7 +243,7 @@ func (l *LettoreOCR) LeggiPosizioni(png []byte) ([]RigaOCR, error) {
 	if err != nil {
 		return nil, err
 	}
-	return r.Pos, nil
+	return raddrizzaParole(r.Pos, r.Angolo, r.LargB, r.AltB), nil
 }
 
 func (l *LettoreOCR) leggiTutto(png []byte) (rispostaOCR, error) {

@@ -385,12 +385,76 @@ func separaAttaccate(s string) string {
 		if parti := dividiParola(nucleo, 3); parti != nil {
 			campi[i] = strings.Replace(c, nucleo, strings.Join(parti, " "), 1)
 			cambiato = true
+		} else if parti := dividiConfusa(nucleo); parti != nil {
+			campi[i] = strings.Replace(c, nucleo, strings.Join(parti, " "), 1)
+			cambiato = true
 		}
 	}
 	if !cambiato {
 		return s
 	}
 	return strings.Join(campi, " ")
+}
+
+// confusioniAttaccate: lettere che l'OCR scambia quando attacca due parole ("trusthifn" =
+// "trust him": "m" letta "fn"; "rn" per "m", "n" per "m" e viceversa, "li" per "h"...).
+var confusioniAttaccate = [][2]string{{"fn", "m"}, {"rn", "m"}, {"in", "m"}, {"ni", "m"}, {"n", "m"}, {"m", "n"},
+	{"m", "rn"}, {"ri", "n"}, {"li", "h"}, {"lt", "k"}, {"cl", "d"}, {"vv", "w"}, {"f", "t"}, {"t", "f"},
+	{"l", "i"}, {"i", "l"}, {"c", "e"}, {"e", "c"}, {"h", "b"}, {"b", "h"}, {"u", "n"}, {"n", "u"}, {"o", "a"}, {"a", "o"}}
+
+// dividiConfusa: una parola inventata che, cambiando UNA confusione tipica dell'OCR, si divide in
+// due o tre parole vere e comunissime ("trusthifn" -> "trust him"). Le parti poco comuni non
+// contano (troppo facile trovare parole rare in qualsiasi spazzatura: "baser" non diventa "has err").
+func dividiConfusa(w string) []string {
+	if !isLower(w) || len(w) < 6 || len(w) > 24 {
+		return nil
+	}
+	// è UNA parola letta male ("baserr" = "baser" con una lettera doppia, "waitinq"): non si divide
+	if len(candidati(w)) > 0 {
+		return nil
+	}
+	for i := 1; i < len(w); i++ {
+		if w[i] == w[i-1] && esiste(w[:i]+w[i+1:]) {
+			return nil
+		}
+	}
+	var meglio []string
+	for _, c := range confusioniAttaccate {
+		for i := 0; ; {
+			j := strings.Index(w[i:], c[0])
+			if j < 0 {
+				break
+			}
+			k := i + j
+			v := w[:k] + c[1] + w[k+len(c[0]):]
+			i = k + 1
+			if esiste(v) {
+				continue // è una parola sola corretta: ci pensa correggiParole
+			}
+			if parolaValidaOCR(v) || paroleUgualiIt[v] {
+				return []string{v} // parola dei giochi letta male ("rnedkit" -> "medkit"): resta una
+			}
+			parti := dividiParola(v, 3)
+			if len(parti) < 2 || (meglio != nil && len(parti) >= len(meglio)) {
+				continue
+			}
+			buone := true
+			for _, p := range parti {
+				if parolaRara(p) || (len(p) < 3 && !paroleCorteVere[p]) {
+					buone = false
+					break
+				}
+				if l, ok := vocabolario()[p]; ok && l > 20 {
+					buone = false // parola poco comune: non mi fido
+					break
+				}
+			}
+			if buone {
+				meglio = parti
+			}
+		}
+	}
+	return meglio
 }
 
 var paroleCorteVere = map[string]bool{"a": true, "i": true, "of": true, "to": true, "in": true, "on": true, "is": true, "be": true, "by": true, "at": true, "an": true, "or": true, "as": true, "it": true, "we": true, "no": true, "up": true, "my": true, "me": true, "do": true, "so": true, "if": true}

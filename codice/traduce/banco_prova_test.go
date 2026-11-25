@@ -3,6 +3,7 @@ package traduce
 import (
 	"context"
 	"encoding/json"
+	"image"
 	"image/color"
 	"image/png"
 	"os"
@@ -104,6 +105,12 @@ func TestBancoProvaCartellaVera(t *testing.T) {
 	var esiti []esitoImmagine
 	for _, p := range immaginiCartella(dir) {
 		o := opzioniBanco{leggi: leggiOCRFinto(p), tr: tr, disegna: disegnaCopertura}
+		if gt := os.Getenv("TASSO_BANCO_RILEGGI"); gt != "" {
+			// seconda lettura SIMULATA: i ritagli si "rileggono" con le parole vere della cartella
+			// gt (stesso nome .ocr.json). Dice cosa farebbe la seconda lettura se l'OCR di Windows
+			// leggesse giusto il ritaglio: un massimo, non una misura.
+			o.leggi = leggiConRiletturaSimulata(p, filepath.Join(gt, filepath.Base(p)))
+		}
 		img, err := apriImmagineRGBA(p)
 		if err != nil {
 			t.Fatal(err)
@@ -133,7 +140,52 @@ func (motoreRovescio) Traduci(_ context.Context, r RichiestaTraduzione) (string,
 		for i, j := 0, len(c)-1; i < j; i, j = i+1, j-1 {
 			c[i], c[j] = c[j], c[i]
 		}
+		if r := string(c); strings.EqualFold(r, w) && len(c) >= 3 {
+			c = append(c, 'z') // parole palindrome ("did"): non devono sembrare rimaste in inglese
+		}
 		out = append(out, string(c))
 	}
 	return strings.Join(out, " "), nil
+}
+
+// leggiConRiletturaSimulata: OCR finto (prima lettura) + seconda lettura con le parole vere.
+func leggiConRiletturaSimulata(p, gtImg string) func(img *image.RGBA) ([]RigaOCR, float64, error) {
+	prima := leggiOCRFinto(p)
+	vere := leggiOCRFinto(gtImg)
+	return func(img *image.RGBA) ([]RigaOCR, float64, error) {
+		righe, f, err := prima(img)
+		if err != nil {
+			return righe, f, err
+		}
+		gt, _, err := vere(img)
+		if err != nil {
+			return righe, f, nil
+		}
+		var pezzi []pezzoRilettura
+		osservaPezzi = func(s []pezzoRilettura) { pezzi = s }
+		defer func() { osservaPezzi = nil }()
+		out := rileggiIncerteCon(img, righe, f, func(_ *image.Gray, dove []image.Rectangle) ([]RigaOCR, error) {
+			var res []RigaOCR
+			for n, pz := range pezzi {
+				d := dove[n*3]
+				k := float64(pz.k)
+				var r RigaOCR
+				for _, g := range gt {
+					for _, w := range g.Parole {
+						cx, cy := w.X+w.W/2, w.Y+w.H/2
+						if cx < float64(pz.rett.Min.X) || cx >= float64(pz.rett.Max.X) || cy < float64(pz.rett.Min.Y) || cy >= float64(pz.rett.Max.Y) {
+							continue
+						}
+						r.Parole = append(r.Parole, ParolaOCR{T: w.T, X: (w.X-float64(pz.rett.Min.X))*k + float64(d.Min.X),
+							Y: (w.Y-float64(pz.rett.Min.Y))*k + float64(d.Min.Y), W: w.W * k, H: w.H * k})
+					}
+				}
+				if len(r.Parole) > 0 {
+					res = append(res, r)
+				}
+			}
+			return res, nil
+		})
+		return out, f, nil
+	}
 }

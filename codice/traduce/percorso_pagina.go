@@ -31,7 +31,9 @@ func blocchiLetti(img *image.RGBA, righe []RigaOCR, f float64, voti *votazione, 
 		bl[i].Grezzo = bl[i].Testo
 	}
 	bl = unisciStessaRiga(bl)
+	bl = unisciEtichette(img, bl)
 	bl = spezzaSeparatori(bl)
+	bl = spezzaPulsanti(bl)
 	bl = togliFrecce(bl)
 	for i := range bl {
 		if bl[i].Grezzo == "" {
@@ -70,12 +72,14 @@ func motivoNonTradurre(b Blocco) string {
 
 // controllaCompleta: colori della scritta, riquadro adattato alle lettere vere, e se accanto c'è
 // una parola non letta (riga incompleta: non si traduce). Restituisce il motivo per scartarla.
-func controllaCompleta(img *image.RGBA, b *Blocco) string {
+// tutte: tutte le scritte lette della schermata (l'inchiostro di un'altra scritta letta accanto,
+// come il pulsante vicino di una fila, non è una parola persa); può essere nil.
+func controllaCompleta(img *image.RGBA, b *Blocco, tutte []Blocco) string {
 	if img == nil {
 		return ""
 	}
 	coloriBlocco(img, b)
-	if b.Righe <= 1 && b.Affid != letturaCatalog && scrittaContinua(img, *b) {
+	if b.Righe <= 1 && b.Affid != letturaCatalog && scrittaContinuaTra(img, *b, tutte) {
 		return "riga incompleta (parola accanto non letta)"
 	}
 	adattaAInchiostro(img, b)

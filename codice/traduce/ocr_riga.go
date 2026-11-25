@@ -603,6 +603,7 @@ func rigaMezzaTradotta(en, it string) bool {
 		}
 	}
 	caricaCataloghi()
+	titolo, nomeTitolo := titoloCorto(en), ""
 	for _, w := range strings.FieldsFunc(it, divide) {
 		w = strings.Trim(w, "'-")
 		r := []rune(w)
@@ -634,9 +635,66 @@ func rigaMezzaTradotta(en, it string) bool {
 			}
 			return true
 		}
+		if titolo && nomeTitolo == "" && parolaDaNome(w) {
+			nomeTitolo = low // "EMBER KINGDOM" -> "REGNO DI EMBER": nome di fantasia del titolo
+			continue
+		}
 		return true // parola inglese vera rimasta in inglese
 	}
+	if nomeTitolo != "" {
+		// il nome resta solo se il resto del titolo è stato tradotto davvero
+		for _, w := range strings.FieldsFunc(it, divide) {
+			if l := strings.ToLower(strings.Trim(w, "'-")); len([]rune(l)) >= 3 && !inglesi[l] {
+				return false
+			}
+		}
+		return true
+	}
 	return false
+}
+
+// titoloCorto: un titolo (di gioco, di capitolo, di luogo): al massimo 4 parole, tutte con la
+// maiuscola (o tutto maiuscolo), senza punteggiatura da frase.
+func titoloCorto(en string) bool {
+	if strings.ContainsAny(en, ".!?,;:") {
+		return false
+	}
+	campi := strings.Fields(en)
+	if len(campi) < 2 || len(campi) > 4 {
+		return false
+	}
+	for _, w := range campi {
+		r := []rune(w)
+		if !unicode.IsUpper(r[0]) && !paroleSospese[strings.ToLower(w)] {
+			return false
+		}
+	}
+	return true
+}
+
+// parolaDaNome: parola inglese poco comune (livello 35 o più nel vocabolario, anche al singolare)
+// scritta con la maiuscola: in un titolo è quasi sempre un nome di fantasia ("Ember", "Raven",
+// "Thorn") che il traduttore lascia giustamente com'è. Le parole comuni ("Game", "Shadow",
+// "Iron") restano errori: andavano tradotte.
+func parolaDaNome(w string) bool {
+	r := []rune(w)
+	if len(r) < 3 || !unicode.IsUpper(r[0]) {
+		return false
+	}
+	low := strings.ToLower(w)
+	v := vocabolario()
+	liv, ok := v[low]
+	if !ok {
+		return false
+	}
+	for _, suf := range []string{"es", "s"} {
+		if b := strings.TrimSuffix(low, suf); b != low {
+			if l2, ok2 := v[b]; ok2 && l2 < liv {
+				liv = l2
+			}
+		}
+	}
+	return liv >= 35
 }
 
 // ---------------------------------------------------------------- tasti come segnaposti

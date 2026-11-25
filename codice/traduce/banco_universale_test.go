@@ -81,7 +81,10 @@ func TestAffidabilitaLettureBanco(t *testing.T) {
 		{"nettling is rnoving in the baserr ent.", "", false},
 		{"FELS", "", false},
 		{"Hold| to opel tie aoc", "", false},
-		{"Find a rnedkit", "", false}, // "rn" per "m": lettura sbagliata, non una parola nuova
+		{"Find a rnedkit", "Find a medkit", false}, // "rn" per "m": riparata, ma corta con una parola sconosciuta (come prima)
+		{"Find a rnedklt", "", false},              // due confusioni: lettura sbagliata, non una parola nuova
+		// parole attaccate dall'OCR con una lettera confusa ("m" letta "fn"): riparate, la frase è buona
+		{"MARCUS: I don't trusthifn. He knows more than he's telling us.", "MARCUS: I don't trust him. He knows more than he's telling us.", true},
 	} {
 		got, v := correggiRigaOCR(c.letto)
 		if c.corretto != "" && got != c.corretto {

@@ -19,6 +19,7 @@ import (
 	"math"
 	"sort"
 	"strings"
+	"unicode"
 )
 
 // stessaLinea: due scritte di una riga sola sulla stessa linea e della stessa grandezza.
@@ -76,6 +77,71 @@ func unisciStessaRiga(b []Blocco) []Blocco {
 		}
 	}
 	return out
+}
+
+// unisciEtichette: un'etichetta letta a parte ("TIP:", "Objective:", "MARCUS:") e la frase dopo
+// sulla stessa linea, un po' più lontane di due parole (fino a 2,5 em), tornano una scritta sola
+// se tra le due non c'è inchiostro (nessuna parola persa in mezzo): si traduce la frase intera.
+// Senza immagine non unisco niente (non posso sapere se in mezzo manca una parola).
+func unisciEtichette(img *image.RGBA, b []Blocco) []Blocco {
+	if img == nil {
+		return b
+	}
+	out := append([]Blocco(nil), b...)
+	for cambiato := true; cambiato; {
+		cambiato = false
+		for i := 0; i < len(out) && !cambiato; i++ {
+			a := out[i]
+			t := strings.TrimSpace(a.Testo)
+			if !strings.HasSuffix(t, ":") || len(strings.Fields(t)) > 2 || !inizioVoce(t) {
+				continue
+			}
+			for j := range out {
+				c := out[j]
+				if j == i || c.X <= a.X || !stessaLinea(a, c) || !inizioVoce(c.Testo) {
+					continue
+				}
+				em := math.Max(a.Em, c.Em)
+				if em <= 0 {
+					em = float64(min(a.H, c.H)) * 1.1
+				}
+				buco := c.X - (a.X + a.W)
+				if buco <= sogliaParole(a, c) || float64(buco) > 2.5*em || !bucoVuoto(img, a, c) {
+					continue
+				}
+				out[i] = unisciDue(a, c)
+				out = append(out[:j], out[j+1:]...)
+				cambiato = true
+				break
+			}
+		}
+	}
+	return out
+}
+
+// bucoVuoto: tra la fine di a e l'inizio di c (stessa linea) nessuna colonna ha inchiostro di lettere.
+func bucoVuoto(img *image.RGBA, a, c Blocco) bool {
+	coloriBloccoSemplice(img, &a)
+	a.HaContorno = false
+	if !inchiostroCredibile(img, &a) {
+		return false
+	}
+	em := a.Em
+	if em <= 0 {
+		em = float64(a.H) * 1.1
+	}
+	bordo := int(em*0.12 + 0.5) // le code delle lettere già lette
+	x0, x1 := a.X+a.W+bordo, c.X-bordo
+	if x1 <= x0 {
+		return true
+	}
+	minCol := max(2, a.H*15/100)
+	for _, n := range colonneInchiostro(img, &a, x0, x1) {
+		if n >= minCol {
+			return false
+		}
+	}
+	return true
 }
 
 func unisciDue(a, c Blocco) Blocco {
@@ -145,6 +211,84 @@ func spezzaSeparatori(b []Blocco) []Blocco {
 		}
 	}
 	return out
+}
+
+// spezzaPulsanti: una fila di pulsanti, di schede o di comandi in fondo allo schermo letta come
+// una riga sola ("Apply   Reset to Default   Back"): dove lo spazio tra due parole è molto più
+// grande dello spazio normale della riga, e il pezzo dopo comincia con la maiuscola o un numero,
+// sono voci diverse. Ognuna si traduce e si copre per conto suo (una frase tradotta tutta insieme
+// mescolerebbe le voci, e con le voci che restano uguali verrebbe scartata come mezza inglese).
+// Con un solo spazio (due parole) serve un buco più largo di un'altezza intera: i titoli con le
+// lettere spaziate ("IRON   HARBOR") restano uniti.
+func spezzaPulsanti(b []Blocco) []Blocco {
+	var out []Blocco
+	for _, bl := range b {
+		p := append([]ParolaOCR(nil), bl.parole()...)
+		if max(1, bl.Righe) != 1 || len(p) < 2 {
+			out = append(out, bl)
+			continue
+		}
+		sort.SliceStable(p, func(i, j int) bool { return p[i].X < p[j].X })
+		hs := make([]float64, 0, len(p))
+		for _, w := range p {
+			hs = append(hs, w.H)
+		}
+		sort.Float64s(hs)
+		hMed := hs[len(hs)/2]
+		buchi := make([]float64, len(p)-1)
+		for i := 1; i < len(p); i++ {
+			buchi[i-1] = p[i].X - (p[i-1].X + p[i-1].W)
+		}
+		soglia := 1.2 * hMed // due parole sole: più di un'altezza intera
+		if len(buchi) >= 2 {
+			ord := append([]float64(nil), buchi...)
+			sort.Float64s(ord)
+			normale := math.Max(ord[(len(ord)-1)/2], 0.15*hMed) // spazio normale tra due parole
+			soglia = math.Max(2.5*normale, 0.6*hMed)
+		}
+		var gruppi [][]ParolaOCR
+		cur := []ParolaOCR{p[0]}
+		for i := 1; i < len(p); i++ {
+			if buchi[i-1] >= soglia && inizioVoce(p[i].T) && fineVoce(p[i-1].T) {
+				gruppi = append(gruppi, cur)
+				cur = nil
+			}
+			cur = append(cur, p[i])
+		}
+		gruppi = append(gruppi, cur)
+		if len(gruppi) < 2 {
+			out = append(out, bl)
+			continue
+		}
+		for _, g := range gruppi {
+			n := bloccoDaPosizioni(g, bl)
+			n.Grezzo = n.Testo
+			out = append(out, n)
+		}
+	}
+	return out
+}
+
+// inizioVoce: la parola può essere l'inizio di un pulsante o di una scheda (maiuscola o numero).
+func inizioVoce(w string) bool {
+	for _, c := range w {
+		if unicode.IsLetter(c) || unicode.IsDigit(c) {
+			return unicode.IsUpper(c) || unicode.IsDigit(c)
+		}
+		if !strings.ContainsRune("[(<\"'«", c) {
+			return false
+		}
+	}
+	return false
+}
+
+// fineVoce: la parola può chiudere una voce (non "of", "the", "to" o una virgola: lì la frase continua).
+func fineVoce(w string) bool {
+	t := strings.TrimSpace(w)
+	if strings.HasSuffix(t, ",") || strings.HasSuffix(t, "-") || strings.HasSuffix(t, ":") {
+		return false // dopo un'etichetta ("TIP:") la frase continua
+	}
+	return !paroleSospese[strings.ToLower(strings.Trim(t, ".:;!?\"'"))]
 }
 
 // frecce dei selettori delle impostazioni ("< On >", "◀ English ▶", "‹ High ›").
@@ -265,6 +409,16 @@ func colonneInchiostro(img *image.RGBA, b *Blocco, x0, x1 int) []int {
 // sopra e sotto la scritta), non le zone piene dello stesso colore (cielo chiaro accanto a lettere
 // bianche, il contorno scuro che somiglia allo sfondo): lì finisce la riga, non manca una parola.
 func scrittaContinua(img *image.RGBA, b Blocco) bool {
+	return scrittaContinuaTra(img, b, nil)
+}
+
+// scrittaContinuaTra: come scrittaContinua, ma l'inchiostro che sta dentro un'altra scritta già
+// letta sulla stessa linea (altri) non è una parola "non letta": i pulsanti di una fila
+// ("Apply", "Reset to Default", "Back"), "TIP:" letto a parte prima della frase. Per i lati si
+// guarda la fascia della prima e dell'ultima parola (non di tutta la riga): una scritta un po'
+// storta (cartello ruotato) ha le parole a altezze diverse, e la fascia di tutta la riga
+// prenderebbe il bordo della targa sopra o sotto le lettere.
+func scrittaContinuaTra(img *image.RGBA, b Blocco, altri []Blocco) bool {
 	// colori semplici (sfondo del bordo, inchiostro più lontano): qui serve solo distinguere le
 	// lettere dallo sfondo, anche quando il contorno o l'ombra confondono i colori del disegno
 	coloriBloccoSemplice(img, &b)
@@ -272,6 +426,51 @@ func scrittaContinua(img *image.RGBA, b Blocco) bool {
 	if !inchiostroCredibile(img, &b) {
 		return false // non so separare le lettere dallo sfondo: nessuna prova di una parola tagliata
 	}
+	bSx, bDx := fasceLati(b)
+	return latoContinua(img, bDx, altri, b, 1) || latoContinua(img, bSx, altri, b, -1)
+}
+
+// fasceLati: il riquadro da usare per guardare a sinistra e a destra: la riga con l'altezza e la
+// posizione verticale della prima (sinistra) e dell'ultima parola (destra), alte almeno quanto la
+// mediana delle parole (le minuscole corte "us." non restringono la fascia).
+func fasceLati(b Blocco) (sx, dx Blocco) {
+	sx, dx = b, b
+	p := b.parole()
+	if len(p) < 2 || max(1, b.Righe) != 1 {
+		return
+	}
+	hs := make([]float64, 0, len(p))
+	for _, w := range p {
+		hs = append(hs, w.H)
+	}
+	sort.Float64s(hs)
+	hMed := hs[len(hs)/2]
+	if hMed < 4 || hMed*1.15 >= float64(b.H) {
+		return // parole alte come la riga: niente da guadagnare
+	}
+	primo, ultimo := p[0], p[0]
+	for _, w := range p {
+		if w.X < primo.X {
+			primo = w
+		}
+		if w.X+w.W > ultimo.X+ultimo.W {
+			ultimo = w
+		}
+	}
+	fascia := func(w ParolaOCR, r *Blocco) {
+		h := math.Max(w.H, hMed)
+		cy := w.Y + w.H/2
+		r.Y = int(cy - h/2 + 0.5)
+		r.H = max(4, int(h+0.5))
+	}
+	fascia(primo, &sx)
+	fascia(ultimo, &dx)
+	return
+}
+
+// latoContinua: dal bordo della scritta verso destra (verso>0) o sinistra (<0), c'è una parola
+// non letta? (b: la fascia del lato; tutta: la scritta intera, per riconoscerla tra gli altri)
+func latoContinua(img *image.RGBA, b Blocco, altri []Blocco, tutta Blocco, verso int) bool {
 	em := b.Em
 	if em <= 0 {
 		em = float64(b.H) * 1.1
@@ -280,7 +479,7 @@ func scrittaContinua(img *image.RGBA, b Blocco) bool {
 	minCol := max(2, b.H*15/100)   // una colonna "piena" ha inchiostro in almeno il 15% dell'altezza
 	minRun := max(2, int(em*0.08)) // e una lettera è larga almeno un dodicesimo di em (anche i caratteri a pixel)
 	banda := max(1, b.H*85/100-b.H*15/100)
-	tutta := max(minCol, banda*90/100)            // colonna piena da cima a fondo della fascia
+	piena := max(minCol, banda*90/100)            // colonna piena da cima a fondo della fascia
 	larghiPieni := max(minRun+1, int(em*0.6+0.5)) // nessuna lettera è piena per più di mezza em
 	controlla := func(col []int, x0, verso int) bool {
 		// verso>0: dalla scritta verso destra; <0: dalla scritta verso sinistra
@@ -307,7 +506,7 @@ func scrittaContinua(img *image.RGBA, b Blocco) bool {
 					break
 				}
 				run++
-				if col[i] >= tutta {
+				if col[i] >= piena {
 					intere++
 				}
 				if colonnaFuoriRiga(img, &b, x0+i) {
@@ -333,12 +532,30 @@ func scrittaContinua(img *image.RGBA, b Blocco) bool {
 		}
 		return false
 	}
-	dx := colonneInchiostro(img, &b, b.X+b.W, b.X+b.W+largo)
-	if controlla(dx, b.X+b.W, 1) {
-		return true
+	x0 := b.X + b.W
+	if verso < 0 {
+		x0 = b.X - largo
 	}
-	sx := colonneInchiostro(img, &b, b.X-largo, b.X)
-	return controlla(sx, b.X-largo, -1)
+	col := colonneInchiostro(img, &b, x0, x0+largo)
+	togliAltreScritte(col, x0, b, tutta, altri)
+	return controlla(col, x0, verso)
+}
+
+// togliAltreScritte: le colonne che cadono dentro un'altra scritta letta sulla stessa linea non
+// contano come inchiostro (è una scritta letta, non una parola persa).
+func togliAltreScritte(col []int, x0 int, b, tutta Blocco, altri []Blocco) {
+	for _, a := range altri {
+		if a.X == tutta.X && a.Y == tutta.Y && a.W == tutta.W && a.H == tutta.H && a.Testo == tutta.Testo {
+			continue
+		}
+		sopra := min(a.Y+a.H, b.Y+b.H) - max(a.Y, b.Y)
+		if sopra*2 < min(a.H, b.H) {
+			continue
+		}
+		for x := max(a.X-1, x0); x < min(a.X+a.W+1, x0+len(col)); x++ {
+			col[x-x0] = 0
+		}
+	}
 }
 
 // inchiostroCredibile: dentro il riquadro le lettere coprono una parte della fascia centrale, non

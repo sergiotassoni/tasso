@@ -71,7 +71,7 @@ func elaboraImmagine(img *image.RGBA, nome string, o opzioniBanco) (esitoImmagin
 			e.Righe = append(e.Righe, info)
 			continue
 		}
-		if m := controllaCompleta(img, &b); m != "" {
+		if m := controllaCompleta(img, &b, blocchi); m != "" {
 			info.Scartata = m
 			e.Righe = append(e.Righe, info)
 			continue

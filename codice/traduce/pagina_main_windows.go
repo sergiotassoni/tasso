@@ -588,7 +588,7 @@ func preparaPaginaCon(area Zona, img, primaImg *image.RGBA, giro int64, annulla 
 	// colori, riquadro fino alle lettere vere, e righe incomplete (parola accanto non letta)
 	completi := da[:0]
 	for i := range da {
-		if controllaCompleta(img, &da[i]) != "" {
+		if controllaCompleta(img, &da[i], blocchi) != "" {
 			continue
 		}
 		completi = append(completi, da[i])
