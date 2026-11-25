@@ -367,16 +367,17 @@ func creaMotore() (w webview2.WebView) {
 			w = nil
 		}
 	}()
-	// la finestra è fuori dallo schermo: Edge non deve crederla coperta e rallentare la pagina
-	if os.Getenv("WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS") == "" {
-		_ = os.Setenv("WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS", "--disable-features=CalculateNativeWinOcclusion --disable-background-timer-throttling --disable-renderer-backgrounding --disable-backgrounding-occluded-windows")
-	}
+	// Niente WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS: il motore usa la stessa cartella dati della
+	// finestra di Tasso, e WebView2 rifiuta di creare l'ambiente se gli argomenti sono diversi
+	// (il motore non partiva più e il traduttore veloce restava "non pronto", 25/11/2026).
 	w = webview2.NewWithOptions(webview2.WebViewOptions{
 		DataPath:  motoreDati,
 		AutoFocus: false,
 		WindowOptions: webview2.WindowOptions{
 			Title: "Tasso Traduce (motore)", Width: 320, Height: 240,
-			Nascosta: true, // nasce già fuori dallo schermo, trasparente ai clic e senza pulsante nella barra
+			// Niente Nascosta: con la finestra creata gia nascosta (WS_POPUP/TOOLWINDOW fuori schermo) WebView2
+			// non creava il suo ambiente e il traduttore veloce non partiva (prove del 26/11/2026). La finestra
+			// nasce normale e nascondiMotore/rinascondiMotore la portano subito fuori dallo schermo.
 		},
 	})
 	if w == nil {
