@@ -86,8 +86,7 @@ var SuFinestra = map[string]bool{}
 // Modifica di Tasso: si impostano prima di aprire la pagina, come SuFinestra.
 var Subito = map[string]bool{}
 
-// SetLayeredWindowAttributes, per le finestre Nascosta (modifica di Tasso).
-var user32SetLayered = windows.NewLazySystemDLL("user32.dll").NewProc("SetLayeredWindowAttributes")
+var _ = 0 // (SetLayeredWindowAttributes non serve più: WebView2 non funziona in una finestra LAYERED)
 
 type WindowOptions struct {
 	Title  string
@@ -96,7 +95,7 @@ type WindowOptions struct {
 	IconId uint
 	Center bool
 	// Nascosta (modifica di Tasso): finestra di lavoro che non si vede e non si tocca mai.
-	// Nasce già fuori dallo schermo, trasparente ai clic (LAYERED|TRANSPARENT, alfa 0),
+	// Nasce già fuori dallo schermo, (niente LAYERED: con LAYERED WebView2 non parte),
 	// senza pulsante nella barra delle applicazioni (TOOLWINDOW) e senza prendere il fuoco.
 	Nascosta bool
 }
@@ -521,7 +520,7 @@ func (w *webview) CreateWithOptions(opts WindowOptions) bool {
 	exStyle, style := uintptr(0), uintptr(0xCF0000) // WS_OVERLAPPEDWINDOW
 	if opts.Nascosta {
 		// modifica di Tasso: LAYERED|TRANSPARENT|TOOLWINDOW|NOACTIVATE, WS_POPUP, fuori dallo schermo
-		exStyle, style = 0x80000|0x20|0x80|0x08000000, 0x80000000
+		exStyle, style = 0x80|0x08000000, 0x80000000 // TOOLWINDOW|NOACTIVATE (niente LAYERED: WebView2 non funziona in una finestra LAYERED)
 		fuori := int32(-32000)
 		posX, posY = uint(uintptr(fuori)), uint(uintptr(fuori))
 	}
@@ -542,8 +541,7 @@ func (w *webview) CreateWithOptions(opts WindowOptions) bool {
 	setWindowContext(w.hwnd, w)
 
 	if opts.Nascosta {
-		_, _, _ = user32SetLayered.Call(w.hwnd, 0, 0, 2) // LWA_ALPHA, alfa 0: invisibile anche se finisse sullo schermo
-		_, _, _ = w32.User32ShowWindow.Call(w.hwnd, 4)   // SW_SHOWNOACTIVATE: "visibile" per WebView2, senza fuoco
+				_, _, _ = w32.User32ShowWindow.Call(w.hwnd, 4)   // SW_SHOWNOACTIVATE: "visibile" per WebView2, senza fuoco
 	} else {
 		_, _, _ = w32.User32ShowWindow.Call(w.hwnd, w32.SWShow)
 		_, _, _ = w32.User32UpdateWindow.Call(w.hwnd)

@@ -1324,12 +1324,11 @@ func nascondiMotore(h uintptr) {
 	const gwlExStyle = ^uintptr(19) // -20
 	ex, _, _ := pGetWindowLongPtr.Call(h, gwlExStyle)
 	// LAYERED | TRANSPARENT | TOOLWINDOW | NOACTIVATE, niente APPWINDOW
-	nuovo := (ex | 0x80000 | 0x20 | 0x80 | 0x08000000) &^ 0x40000
+	nuovo := (ex | 0x80 | 0x08000000) &^ (0x40000 | 0x80000 | 0x20) // TOOLWINDOW|NOACTIVATE; niente APPWINDOW e niente LAYERED/TRANSPARENT (con LAYERED il motore WebView2 non partiva)
 	cambiato := nuovo != ex
 	if cambiato {
 		pSetWindowLongPtr.Call(h, gwlExStyle, nuovo)
 	}
-	pSetLayeredAttr.Call(h, 0, 0, 2) // LWA_ALPHA, alfa 0
 	// SWP_NOSIZE|SWP_NOZORDER|SWP_NOACTIVATE|SWP_FRAMECHANGED
 	fuori := int32(-32000)
 	pSetWindowPos.Call(h, 0, uintptr(fuori), uintptr(fuori), 0, 0, 0x1|0x4|0x10|0x20)
