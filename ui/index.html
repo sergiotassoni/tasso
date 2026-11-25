@@ -386,7 +386,7 @@ select.sel,#c-livello{background:var(--bg);color:inherit;border:1px solid var(--
       <div class="campo"><label for="c-nome" data-t="nome_archivio"></label><input type="text" id="c-nome" maxlength="200" spellcheck="false"><div class="dove" id="c-dove"></div></div>
     </section>
 
-    <!-- ARCHIVIO APERTO (come WinZip) -->
+    <!-- ARCHIVIO APERTO -->
     <section class="view largo" id="v-archivio">
       <div class="row" style="justify-content:space-between;align-items:flex-end;flex-wrap:nowrap">
         <div style="min-width:0;flex:1"><h1 id="a-nome" class="tronca"></h1><p class="sub tronca" id="a-info"></p></div>
@@ -858,7 +858,7 @@ async function comprimiDiretto(percorsi, formato) {
   S.tipo = "comprimi"; inizioLavoro(t("lavoro_comprimo"), "");
 }
 
-// ---------- vista dell'archivio (come WinZip) ----------
+// ---------- vista dell'archivio ----------
 function apriArchivio(percorso) {
   if (!percorso) return;
   if (S.occupato) { toast(t("err_occupato")); return; }

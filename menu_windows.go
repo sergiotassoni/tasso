@@ -5,7 +5,7 @@
 
 package main
 
-// Il sottomenu "Tasso Zip" nel menu del tasto destro, come WinZip.
+// Il sottomenu "Tasso Zip" nel menu del tasto destro.
 // Tutto in HKEY_CURRENT_USER\Software\Classes: vale solo per l'utente e NON servono i
 // permessi da amministratore. Su Windows 11 compare sotto "Mostra altre opzioni" (il menu
 // nuovo di Windows 11 accetta solo programmi con un'estensione COM firmata e un pacchetto

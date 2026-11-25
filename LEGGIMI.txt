@@ -72,7 +72,7 @@ COMPRIMI
   3. Premi Comprimi. L'archivio nasce accanto ai file scelti. Alla fine vedi per esempio
      "da 120 MB a 31 MB (-74%)".
 
-APRI UN ARCHIVIO (come WinZip)
+APRI UN ARCHIVIO
   "Guarda dentro" (o doppio clic su un archivio, se l'hai scelto, o tasto destro >
   Tasso Zip > Apri con Tasso Zip). Vedi nome, dimensione, compresso e data di ogni file,
   entri nelle cartelle con un doppio clic, cerchi, ordini cliccando sulle colonne.
@@ -106,7 +106,7 @@ ESTRAI
   - collegamenti simbolici e collegamenti fisici dentro gli archivi: non li crea mai (li salta
     e te lo dice), per sicurezza.
 
-TASTO DESTRO DEL MOUSE (come WinZip)
+TASTO DESTRO DEL MOUSE
   In basso nella finestra c'è l'interruttore "Aggiungi Tasso Zip al tasto destro del mouse".
   Acceso, compare il sottomenu "Tasso Zip" con la sua icona:
   - su file e cartelle: "Aggiungi all'archivio..." (apre la finestra), "Comprimi in .zip
@@ -226,7 +226,7 @@ COMPRESS
   3. Press Compress. The archive is created next to the chosen files; at the end you see
      e.g. "from 120 MB to 31 MB (-74%)".
 
-OPEN AN ARCHIVE (like WinZip)
+OPEN AN ARCHIVE
   "Look inside" (or double-click an archive if you turned that on, or right-click >
   Tasso Zip > Open with Tasso Zip): name, size, packed size and date of every file,
   folders, search, sorting, "Extract selected", "Extract all". Double-clicking a file
@@ -251,7 +251,7 @@ EXTRACT
   - create .rar or split archives;
   - symbolic links and hard links inside archives: never created (skipped and reported).
 
-RIGHT-CLICK MENU (like WinZip)
+RIGHT-CLICK MENU
   The switch "Add Tasso Zip to the right-click menu" adds a "Tasso Zip" submenu with icon:
   on files/folders "Compress with Tasso Zip...", "Compress to .zip", "Compress to .7z"
   (the last two start right away with a small progress window); on archives "Open with
