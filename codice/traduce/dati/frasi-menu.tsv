@@ -763,22 +763,22 @@ Left Stick Dead Zone	Zona morta levetta sinistra
 Right Stick Dead Zone	Zona morta levetta destra
 Aim Assist	Assistenza alla mira
 Auto Aim	Mira automatica
-Toggle Aim	Mira a interruttore
+Toggle Aim	Alterna mira
 Hold to Aim	Tieni premuto per mirare
-Toggle Crouch	Accovacciati a interruttore
+Toggle Crouch	Alterna accovacciamento
 Hold to Crouch	Tieni premuto per accovacciarti
-Toggle Sprint	Scatto a interruttore
+Toggle Sprint	Alterna scatto
 Hold to Sprint	Tieni premuto per scattare
 Press to Sprint	Premi per scattare
 Click to Sprint	Fai clic per scattare
 to sprint	per scattare
 Sprint (Hold)	Scatto (tieni premuto)
-Sprint (Toggle)	Scatto (a interruttore)
+Sprint (Toggle)	Scatto (alterna)
 Hold Sprint	Tieni premuto per scattare
 Release to stop sprinting	Rilascia per smettere di scattare
 Auto Sprint	Scatto automatico
 Auto Run	Corsa automatica
-Toggle Walk	Camminata a interruttore
+Toggle Walk	Alterna camminata
 Double Tap	Doppio tocco
 Move Forward	Avanti
 Move Backward	Indietro
@@ -3424,19 +3424,19 @@ Auto-Aim	Mira automatica
 Target Lock Mode	Modalità aggancio bersaglio
 Aim Mode	Modalità di mira
 ADS Mode	Modalità di mira
-Crouch Mode	Modalità accovacciata
+Crouch Mode	Modalità accovacciamento
 Sprint Mode	Modalità scatto
-Toggle	Interruttore
+Toggle	Alterna
 Hold	Tieni premuto
 Tap	Tocca
 Press	Premi
 Double Press	Doppia pressione
 Long Press	Pressione prolungata
 Hold Duration	Durata della pressione
-Toggle Run	Corsa a interruttore
-Toggle Prone	Sdraiati a interruttore
-Toggle ADS	Mira a interruttore
-Toggle Zoom	Zoom a interruttore
+Toggle Run	Alterna corsa
+Toggle Prone	Alterna posizione prona
+Toggle ADS	Alterna mira
+Toggle Zoom	Alterna zoom
 Hold to Zoom	Tieni premuto per lo zoom
 Hold to Run	Tieni premuto per correre
 Hold to Walk	Tieni premuto per camminare
@@ -8218,3 +8218,6 @@ Steer	Sterza
 Look Behind	Guarda indietro
 Change View	Cambia visuale
 Quick Turn	Giravolta rapida
+Hold your fire	Non sparare
+Hold on	Aspetta
+Hold Shift	Tieni premuto Shift

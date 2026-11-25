@@ -43,7 +43,13 @@ type opzioniBanco struct {
 // statoBanco: quello che il gioco ricorda tra una lettura e l'altra.
 type statoBanco struct {
 	vecchi []Blocco
+	fisse  *traduzioniFisse // traduzioni già mostrate: la stessa scritta esce sempre uguale
+	ist    *isteresi        // niente sfarfallio tra un fotogramma e l'altro
+	ora    time.Time        // orologio finto: ogni fotogramma è un giro di rilettura del gioco
 }
+
+// passoBanco: quanto tempo passa tra due fotogrammi del banco (come un giro di rilettura nel gioco).
+const passoBanco = 250 * time.Millisecond
 
 // esitoImmagine: una schermata del banco.
 type esitoImmagine struct {
@@ -100,7 +106,15 @@ func elaboraImmagine(img *image.RGBA, nome string, o opzioniBanco) (esitoImmagin
 	}
 	ctx := conLotto(context.Background())
 	tTrad := time.Now()
-	ris := traduciTutte(ctx, o.tr, da, false)
+	var fisse *traduzioniFisse
+	if o.stato != nil {
+		if o.stato.fisse == nil {
+			o.stato.fisse, o.stato.ist, o.stato.ora = &traduzioniFisse{}, &isteresi{}, time.Unix(1_000_000, 0)
+		}
+		o.stato.ora = o.stato.ora.Add(passoBanco)
+		fisse = o.stato.fisse
+	}
+	ris := traduciTutteFisse(ctx, o.tr, da, false, fisse)
 	if o.dopo != nil {
 		ris = o.dopo(da, ris)
 	}
@@ -125,6 +139,13 @@ func elaboraImmagine(img *image.RGBA, nome string, o opzioniBanco) (esitoImmagin
 			continue
 		}
 		p := preparaScritta(img, img, b, r)
+		if m := adattaAlRiquadro(&p); m != "" { // suggerimento di un tasto che non ci sta nel suo riquadro
+			info.Scartata = m
+			e.Righe = append(e.Righe, info)
+			inglesi = append(inglesi, b)
+			continue
+		}
+		fisse.fissa(coppiaDi(o.tr), b.Testo, r.Tradotto)
 		if rigaMezzaTradotta(p.Testo, p.Tradotto) {
 			e.MezzeMostrate++
 		}
@@ -182,6 +203,21 @@ func elaboraImmagine(img *image.RGBA, nome string, o opzioniBanco) (esitoImmagin
 		rifinisciPagina(img, pronti, blocchi)
 	}
 	if o.stato != nil {
+		prima := append([]Blocco(nil), pronti...)
+		pronti, inglesi = o.stato.ist.applica(pronti, o.stato.vecchi, inglesi, img, o.stato.ora)
+		// le righe del report: quelle tenute dall'isteresi dicono la traduzione mostrata davvero
+		for _, p := range pronti {
+			if contieneBlocco(prima, p) {
+				continue
+			}
+			rp := rettBlocco(p)
+			for i := range e.Righe {
+				r := &e.Righe[i]
+				if sovrapposti(rp, image.Rect(r.X, r.Y, r.X+r.W, r.Y+r.H)) {
+					r.Scartata, r.Tradotto, r.Fonte = "", p.Tradotto, "fotogramma prima"
+				}
+			}
+		}
 		n := len(pronti)
 		pronti = tieniFerme(pronti, o.stato.vecchi, img)
 		pronti = recuperaPerse(pronti, o.stato.vecchi, img, inglesi) // saltate dalla lettura ma ancora lì

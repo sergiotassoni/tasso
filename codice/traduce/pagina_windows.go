@@ -295,6 +295,11 @@ func impagina(hdc uintptr, b Blocco) impaginazione {
 			maxLarg = min(maxLarg, larg*112/100)
 		}
 	}
+	if b.Img != nil && etichettaComando(b) {
+		// suggerimento di un tasto ("Hold", "Skip" sopra l'icona del tasto): mai fuori dal suo
+		// riquadro, nemmeno centrato (riquadro.go). Se non ci sta, salta: resta l'inglese
+		maxLarg = min(maxLarg, int32(limiteComando(b)))
+	}
 	maxLarg = max(maxLarg, 8)
 	minPx = min(minPx, px)
 	// sotto questa grandezza non si legge più: meglio i puntini o l'ultima riga tagliata

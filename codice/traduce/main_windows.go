@@ -1499,7 +1499,9 @@ var (
 // schermata o finestrella dei dialoghi) la cambio subito.
 func correzioneArrivata(inglese, bozza, corretta string) {
 	modCorretta(inglese, bozza, corretta)
-	if paginaAttiva.Load() {
+	// la traduzione già mostrata di una scritta dello schermo resta quella per tutta la sessione
+	// (fisse.go): la correzione vale per le scritte non ancora viste
+	if paginaAttiva.Load() && !fissePagina.fissata(coppiaDi(traduttore), inglese) {
 		sostituisciTraduzione(inglese, bozza, corretta)
 	}
 	if ov.staMostrandoVoce() {

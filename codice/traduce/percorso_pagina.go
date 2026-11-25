@@ -123,7 +123,21 @@ func controllaCompleta(img *image.RGBA, b *Blocco, tutte []Blocco) string {
 // traduciTutte: traduce le scritte (8 alla volta). veloce=true: solo frasi pronte, librerie e
 // memoria (il primo giro, che si mostra subito); le altre restano con l'errore errSoloVeloce.
 func traduciTutte(ctx context.Context, tr *Traduttore, da []Blocco, veloce bool) []Risultato {
+	return traduciTutteFisse(ctx, tr, da, veloce, nil)
+}
+
+// traduciTutteFisse: come traduciTutte, ma le scritte che hanno già una traduzione fissa
+// (fisse.go: già mostrate in questa sessione) escono subito con quella, senza traduttore.
+func traduciTutteFisse(ctx context.Context, tr *Traduttore, da []Blocco, veloce bool, f *traduzioniFisse) []Risultato {
 	risultati := make([]Risultato, len(da))
+	coppia := coppiaDi(tr)
+	fatte := make([]bool, len(da))
+	for i := range da {
+		if v, ok := f.cerca(coppia, da[i].Testo); ok {
+			risultati[i] = Risultato{Originale: da[i].Testo, Tradotto: v, Motore: "memoria"}
+			fatte[i] = true
+		}
+	}
 	var wg sync.WaitGroup
 	posti := make(chan struct{}, 8)
 	var scritte []string
@@ -135,6 +149,9 @@ func traduciTutte(ctx context.Context, tr *Traduttore, da []Blocco, veloce bool)
 		ctx = soloVeloce(ctx)
 	}
 	for i := range da {
+		if fatte[i] {
+			continue
+		}
 		wg.Add(1)
 		posti <- struct{}{}
 		go func(i int) {

@@ -100,6 +100,7 @@ func avviaPaginaSu(fg uintptr) {
 	paginaGiocoA.Store(fg)
 	apriLibreriaPer(fg)
 	votiPagina.svuota() // gioco nuovo (o ripartito): le letture vecchie non contano
+	isteresiPagina.svuota()
 	paginaAttiva.Store(true)
 	ov.Spegni() // la finestrella dei dialoghi non serve mentre traduco tutta la schermata
 	giro := paginaGiro.Add(1)
@@ -393,13 +394,27 @@ func cicloPagina(giro int64) {
 					}
 					// niente da tradurre qui (già nella lingua giusta, lingua non scaricata,
 					// nessuna scritta): tolgo le scritte vecchie e aspetto un cambio vero,
-					// invece di rileggere lo schermo all'infinito
-					NascondiPagina()
+					// invece di rileggere lo schermo all'infinito. Restano solo quelle con le
+					// lettere inglesi ancora lì, uguali: un fotogramma letto male (l'OCR non ha
+					// trovato niente) non fa sparire tutto per un giro (sfarfallio, 26/11)
+					resta := ancoraLi(img2, blocchiPagina())
+					if len(resta) > 0 {
+						MostraPagina(area, resta)
+					} else {
+						NascondiPagina()
+					}
 					ultima, ultimaColori, prima, ultimaImg = imp2, imp2, false, img2
-					ultimeScritte.Store(0)
+					ultimeScritte.Store(int64(len(resta)))
 					badgeStato(statoBadgeAttivo) // acceso, anche se qui non c'è niente da tradurre
 				}
 			} else if bl := blocchiPagina(); len(bl) > 0 {
+				if imp.differenza(ultimaColori) > 0.2 {
+					// scritte spostate che si ritrovano poco più in là: la traduzione le segue
+					if seguite, n := seguiScritte(img, bl); n > 0 {
+						bl = seguite
+						MostraPagina(area, bl)
+					}
+				}
 				if imp.differenza(ultimaColori) > 0.2 && paginaSpostata(img, bl) {
 					// la rotella ha spostato le scritte: via subito le traduzioni (sarebbero nel posto
 					// sbagliato, sopra l'inglese) e rileggo appena la schermata si ferma
@@ -446,6 +461,9 @@ func togliVecchie(area Zona, img *image.RGBA) {
 	if len(bl) == 0 {
 		return
 	}
+	// le scritte spostate (pagina che scorre, visuale che si sposta) che si ritrovano poco più
+	// in là: la traduzione le segue invece di sparire e ricomparire dopo la lettura
+	bl, seguite := seguiScritte(img, bl)
 	if paginaSpostata(img, bl) {
 		NascondiPagina()
 		return
@@ -453,6 +471,9 @@ func togliVecchie(area Zona, img *image.RGBA) {
 	resto, tolte := togliCambiate(img, bl)
 	switch {
 	case tolte == 0:
+		if seguite > 0 {
+			MostraPagina(area, bl)
+		}
 	case len(resto) == 0:
 		NascondiPagina()
 	default:
@@ -607,7 +628,7 @@ func preparaPaginaCon(area Zona, img, primaImg *image.RGBA, giro int64, annulla 
 	}
 	ctx := conLotto(context.Background())
 	// primo giro: solo frasi pronte e memoria (subito); poi il traduttore per le altre
-	risultati := traduciTutte(ctx, traduttore, da, true)
+	risultati := traduciTutteFisse(ctx, traduttore, da, true, fissePagina)
 	var daMotore []int
 	for i, r := range risultati {
 		if r.Errore == errSoloVeloce {
@@ -627,10 +648,19 @@ func preparaPaginaCon(area Zona, img, primaImg *image.RGBA, giro int64, annulla 
 				}
 				continue
 			}
+			sc := preparaScritta(img, primaImg, b, r)
+			// suggerimenti dei tasti: la traduzione sta nel suo riquadro (più piccola o più
+			// corta), se no resta l'inglese (riquadro.go)
+			if m := adattaAlRiquadro(&sc); m != "" {
+				ingl = append(ingl, b)
+				continue
+			}
+			// da adesso questa scritta si traduce sempre così (fisse.go)
+			fissePagina.fissa(coppiaDi(traduttore), b.Testo, r.Tradotto)
 			if r.Motore != "memoria" && r.Motore != "catalogo" && r.Motore != "libreria" && r.Motore != "libreria (IA)" {
 				nuove++
 			}
-			pronti = append(pronti, preparaScritta(img, primaImg, b, r))
+			pronti = append(pronti, sc)
 			if len(pronti) <= 40 { // nella cronologia (F8), ma solo quando la pagina si vede davvero
 				cron = append(cron, r)
 			}
@@ -659,7 +689,7 @@ func preparaPaginaCon(area Zona, img, primaImg *image.RGBA, giro int64, annulla 
 		for k, i := range daMotore {
 			sotto[k] = da[i]
 		}
-		r2 := traduciTutte(ctx, traduttore, sotto, false)
+		r2 := traduciTutteFisse(ctx, traduttore, sotto, false, fissePagina)
 		for k, i := range daMotore {
 			risultati[i] = r2[k]
 		}
@@ -734,11 +764,14 @@ func mostraPaginaPronta(p *paginaPronta, giro int64) bool {
 	}
 	if paginaAttiva.Load() && paginaGiro.Load() == giro {
 		vecchi := blocchiPagina()
+		// isteresi (isteresi.go): una traduzione già mostrata non sparisce e non cambia per una
+		// sola lettura peggiore; un'altra traduzione nello stesso posto solo se confermata
+		pronti, ingl := isteresiPagina.applica(pronti, vecchi, p.inglesi, img, time.Now())
 		pronti = tieniFerme(pronti, vecchi, img)
-		pronti = recuperaPerse(pronti, vecchi, img, p.inglesi) // scritte saltate dalla lettura ma ancora lì: restano
+		pronti = recuperaPerse(pronti, vecchi, img, ingl) // scritte saltate dalla lettura ma ancora lì: restano
 		// anche le traduzioni rimaste dalla lettura prima: mai accanto a un pezzo della stessa
 		// frase che adesso resta in inglese
-		pronti, _ = senzaMezzeRighe(pronti, p.inglesi)
+		pronti, _ = senzaMezzeRighe(pronti, ingl)
 		MostraPagina(area, pronti)
 		if !paginaAttiva.Load() || paginaGiro.Load() != giro {
 			NascondiPagina() // spento proprio adesso: niente scritte rimaste sullo schermo
