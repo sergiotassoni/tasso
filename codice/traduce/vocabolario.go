@@ -162,13 +162,21 @@ func correggiParole(r string) string {
 			b.WriteString(q)
 			continue
 		}
+		// Una parola con la maiuscola (a inizio frase) che non esiste è spesso un nome ("Raffs"):
+		// si corregge solo verso una parola comune ("Waitinq" -> "Waiting", "Crowth" -> "Growth"),
+		// non verso una rara ("Raffs" -> "Rafts" -> "zattere" no).
+		forseNome := unicode.IsUpper(rune(p[0])) && soloLettere(p)
 		// 3) una lettera confusa: "Waitinq" -> "Waiting"
 		if c := candidati(p); len(c) == 1 {
-			b.WriteString(c[0])
+			if !forseNome || parolaFrequente(c[0]) {
+				b.WriteString(c[0])
+			} else {
+				b.WriteString(p)
+			}
 			continue
 		}
 		// 4) lettere perse o sbagliate nelle scritte piccole: "remining" -> "remaining"
-		if q := parolaVicina(p); q != "" {
+		if q := parolaVicina(p); q != "" && (!forseNome || parolaFrequente(q)) {
 			b.WriteString(q)
 			continue
 		}
@@ -176,6 +184,12 @@ func correggiParole(r string) string {
 	}
 	b.WriteString(r[ultimo:])
 	return b.String()
+}
+
+// parolaFrequente: la parola è tra le più usate dell'inglese (livello 10 o 20 del vocabolario).
+func parolaFrequente(p string) bool {
+	l, ok := vocabolario()[strings.ToLower(p)]
+	return ok && l <= 20
 }
 
 // due parole vere che unite ne fanno una comune e molto più probabile ("hai led" no, "with out" no)

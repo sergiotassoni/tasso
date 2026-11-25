@@ -88,3 +88,19 @@ func TestConfusioneCG(t *testing.T) {
 		t.Errorf("%q", g)
 	}
 }
+
+// Un nome letto a inizio frase ("Raffs") non diventa una parola rara ("Rafts" -> "zattere"):
+// con la maiuscola si corregge solo verso le parole comuni.
+func TestNomiNonCorretti(t *testing.T) {
+	for in, atteso := range map[string]string{
+		"Raffs":                        "Raffs",
+		"Raffs, get over here!":        "Raffs, get over here!",
+		"Hey. Raffs is waiting.":       "Hey. Raffs is waiting.",
+		"Waitinq for other players...": "Waiting for other players...",
+		"Crowth Rate Increased":        "Growth Rate Increased",
+	} {
+		if got := correggiParole(in); got != atteso {
+			t.Errorf("%q -> %q, atteso %q", in, got, atteso)
+		}
+	}
+}
