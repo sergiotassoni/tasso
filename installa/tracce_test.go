@@ -84,8 +84,8 @@ func TestDisinstallaToglieTracceUtente(t *testing.T) {
 	if v, _ := r.LeggiTesto(HKCU, cl+`SystemFileAssociations\.pdf\shell\TassoPDF\shell\1apri\command`, ""); v != altroPDF {
 		t.Fatal("tolto il menu di un'altra copia di Tasso PDF")
 	}
-	if esiste(filepath.Join(locale, "Tasso PDF")) {
-		t.Error("cartella dei dati di Tasso PDF rimasta")
+	if !esiste(filepath.Join(locale, "Tasso PDF")) {
+		t.Error("tolta la cartella dei dati di Tasso PDF (dentro c'è la firma salvata dall'utente)")
 	}
 	if _, ok := r.LeggiTesto(HKCU, cl+`SystemFileAssociations\.png\shell\Altro\command`, ""); !ok {
 		t.Error("tolta una voce non nostra su .png")
