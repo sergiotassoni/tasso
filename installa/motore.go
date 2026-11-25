@@ -50,6 +50,9 @@ type Installatore struct {
 	Rinomina         func(da, a string) error
 	Avanzamento      func(Avanzamento)
 	Adesso           func() time.Time
+	// CartellaDatiUtente: %LOCALAPPDATA% dell'utente (lì Tasso Zip e Tasso PDF tengono
+	// impostazioni e file temporanei). nil o "" = non toccare niente.
+	CartellaDatiUtente func() string
 }
 
 // Opzioni scelte nelle pagine dell'installatore.
@@ -77,6 +80,15 @@ func (in *Installatore) togli(p string) error {
 		return in.TogliFile(p)
 	}
 	return os.Remove(p)
+}
+
+// togliCartella toglie una cartella con tutto quello che c'è dentro (se non c'è va bene).
+func (in *Installatore) togliCartella(p string) error {
+	_ = os.RemoveAll(p)
+	if _, err := os.Lstat(p); err == nil {
+		return fmt.Errorf("%s: non tolta del tutto (un file è aperto?)", p)
+	}
+	return nil
 }
 
 func (in *Installatore) adesso() time.Time {
@@ -340,15 +352,26 @@ func (in *Installatore) Installa(ctx context.Context, o Opzioni) (*Stato, error)
 		for _, c := range st.Collegamenti {
 			gia[strings.ToLower(c.Percorso)] = true
 		}
-		nuoviColl := in.CollegamentiPer(ProgrammiPer(scelti), o)
+		// Il nome del collegamento di Tasso ("Tasso Gaming" o "Tasso Ufficio") dipende da tutto
+		// quello che sarà installato, non solo da quello scelto adesso (es. reinstallo solo Ufficio
+		// ma Gaming c'è già: resta "Tasso Gaming").
+		oNomi := o
+		oNomi.Componenti = st.Componenti
+		progScelti := ProgrammiPer(scelti)
+		nuoviColl := in.CollegamentiPer(progScelti, oNomi)
 		voluti := map[string]bool{}
+		tassoOra := false
+		for _, id := range progScelti {
+			tassoOra = tassoOra || id == ProgTasso
+		}
 		for _, c := range nuoviColl {
 			voluti[strings.ToLower(c.Percorso)] = true
 		}
-		// collegamenti di Tasso con un nome vecchio (es. "Tasso.lnk" delle versioni precedenti): li tolgo
+		// collegamenti di Tasso con un nome vecchio (es. "Tasso.lnk" delle versioni precedenti): li
+		// tolgo, ma solo se adesso installo anche Tasso (se aggiorno solo Zip, quelli di Tasso restano)
 		tenuti := st.Collegamenti[:0]
 		for _, c := range st.Collegamenti {
-			if c.Programma == ProgTasso && !voluti[strings.ToLower(c.Percorso)] &&
+			if tassoOra && c.Programma == ProgTasso && !voluti[strings.ToLower(c.Percorso)] &&
 				strings.EqualFold(filepath.Ext(c.Percorso), ".lnk") {
 				_ = in.togli(c.Percorso)
 				delete(gia, strings.ToLower(c.Percorso))

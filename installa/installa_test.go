@@ -551,3 +551,36 @@ func TestElencoCattivo(t *testing.T) {
 		t.Error("elenco mancante accettato")
 	}
 }
+
+// Installare (o aggiornare in silenzio) solo Zip non deve togliere il collegamento di Tasso;
+// reinstallare solo Ufficio con Gaming già presente lascia "Tasso Gaming".
+func TestCollegamentoTassoRestaInstallandoAltro(t *testing.T) {
+	p := nuovaProva(t, "3.1")
+	if _, err := p.in.Installa(context.Background(), p.opzioni(TuttiComponenti...)); err != nil {
+		t.Fatal(err)
+	}
+	gaming := filepath.Join(p.menu, "Tasso Gaming.lnk")
+	if !esiste(gaming) {
+		t.Fatal("manca Tasso Gaming")
+	}
+	if _, err := p.in.Installa(context.Background(), p.opzioni(Zip)); err != nil {
+		t.Fatal(err)
+	}
+	if !esiste(gaming) {
+		t.Fatal("collegamento di Tasso tolto installando solo Zip")
+	}
+	st, _ := LeggiStato(p.base)
+	trovato := false
+	for _, c := range st.Collegamenti {
+		trovato = trovato || strings.EqualFold(c.Percorso, gaming)
+	}
+	if !trovato {
+		t.Fatal("collegamento di Tasso sparito da tasso-setup.json")
+	}
+	if _, err := p.in.Installa(context.Background(), p.opzioni(Ufficio)); err != nil {
+		t.Fatal(err)
+	}
+	if !esiste(gaming) || esiste(filepath.Join(p.menu, "Tasso Ufficio.lnk")) {
+		t.Fatal("con Gaming installato il collegamento deve restare \"Tasso Gaming\"")
+	}
+}
