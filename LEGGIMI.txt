@@ -21,14 +21,23 @@ COSA FA
   "a mano", o da una foto della firma su un foglio (lo sfondo diventa trasparente).
   La metti dove vuoi trascinandola sulla pagina, anche su tutte le pagine; puoi aggiungere la
   data di oggi, un testo, una spunta.
-  ATTENZIONE: è una firma disegnata, come quella a penna. NON è una firma digitale certificata
-  (FEA/FEQ, CAdES/PAdES) e non ha il suo valore legale.
+  ATTENZIONE: è un'immagine della tua firma, come una firma a penna scansionata: è una firma
+  elettronica semplice. NON è una firma elettronica avanzata o qualificata (FEA/FEQ) né una
+  firma digitale. Se un ufficio o un contratto chiede la firma digitale, usa il tuo kit di
+  firma digitale.
+  Se il PDF contiene già una firma digitale (per esempio un documento della PA o un contratto
+  firmato con PAdES), il programma avvisa: nella copia modificata quella firma non sarà più
+  valida (l'originale resta com'era: conservalo).
+  Se il PDF si apriva con una password, prima di salvare la copia firmata (o unita) il
+  programma propone di proteggerla con la stessa password.
   Se vuoi, la firma resta salvata su questo PC, protetta con DPAPI di Windows (solo il tuo
   utente su questo PC può rileggerla), in %LOCALAPPDATA%\Tasso PDF\firma.dat.
 - SBLOCCA: toglie i blocchi (stampa, copia, modifica) da un PDF tuo e salva una copia libera.
   Se il PDF ha una password te la chiede: se la sai, salvi una copia senza password.
   Il programma NON prova mai a indovinare o forzare le password.
-  Usalo solo per i tuoi PDF o per quelli che hai il diritto di modificare.
+  Prima di sbloccare devi spuntare "Confermo che il PDF è mio o che ho il diritto di
+  sbloccarlo": i blocchi li ha messi chi ha creato il file. Usalo solo per i tuoi PDF o per
+  quelli che hai il diritto di modificare.
 
 LA VISTA DOCUMENTO (quando apri un PDF)
 - In alto le schede dei file aperti (anche più di uno; "+" per aprirne un altro), il tasto
@@ -62,14 +71,17 @@ STRUMENTI
 MENU DEL TASTO DESTRO (facoltativo)
 In basso nella schermata iniziale: "Aggiungi Tasso PDF al tasto destro del mouse". Sui PDF
 compare il sottomenu "Tasso PDF" con Apri, Unisci, Firma, Sblocca, Comprimi (sulle foto JPG e
-PNG: Unisci). Se scegli più file, si apre una sola finestra con tutti. Le voci stanno in
-HKEY_CURRENT_USER\Software\Classes (niente permessi da amministratore) e si tolgono
+PNG: Unisci). Se scegli più file (anche più di 15), si apre una sola finestra con tutti, in
+ordine di nome. Le voci stanno in HKEY_CURRENT_USER\Software\Classes (niente permessi da amministratore) e si tolgono
 spegnendo l'interruttore. Su Windows 11 sono sotto "Mostra altre opzioni".
 
 SICUREZZA
 - Il file originale non viene mai toccato: si salva sempre una copia con un nome nuovo
   (es. "Contratto - firmato.pdf"). Se il file esiste già, Windows chiede prima di sostituirlo.
   Se scegli proprio il file originale, il programma rifiuta e ti chiede un altro nome.
+  Le immagini esportate non sostituiscono mai un file che c'è già (usano "(2)").
+- Se il PDF viene da internet (Windows lo "marca" quando lo scarichi), anche le copie salvate
+  restano marcate: così Windows e il lettore di PDF continuano a fare i loro controlli.
 - I PDF non possono avviare programmi: il JavaScript dei PDF è spento.
 - I collegamenti dentro i PDF si aprono nel browser solo se rispondi "sì".
 - Il programma non usa internet: tutto avviene sul tuo PC.
@@ -85,8 +97,8 @@ COSA NON FA (onestamente)
   delle scansioni, non converte in Word o Excel (non si riesce a farlo bene senza internet).
 - Non crea moduli compilabili nuovi (compila quelli che ci sono già).
 - Le foto HEIC si leggono solo se Windows ha "Estensioni immagini HEIF" (e spesso
-  "Estensioni video HEVC"); per le HEIC il verso della foto non viene corretto in automatico
-  (puoi girarle con le frecce).
+  "Estensioni video HEVC"). Il verso delle foto HEIC dell'iPhone viene corretto in automatico;
+  se una foto resta storta puoi girarla con le frecce.
 - Nell'unione la rotazione vale per tutto il file (tutte le sue pagine), non pagina per pagina.
 - Un PDF molto rovinato può perdere delle parti nella riparazione.
 
@@ -105,16 +117,22 @@ WHAT IT DOES
 - SIGN: draw your signature, type your name in a handwriting font, or use a photo of your
   signature (the background becomes transparent). Drag it anywhere on the page, also on all
   pages; add today's date, text, a check mark.
-  NOTE: this is a drawn signature, NOT a certified digital signature (QES/AdES, PAdES).
+  NOTE: this is an image of your signature, like a scanned pen signature: a simple electronic
+  signature. It is NOT an advanced or qualified electronic signature (AdES/QES) nor a digital
+  signature. If the PDF already has a digital signature (PAdES), the program warns you that the
+  edited copy will no longer have it valid; for password-protected PDFs it offers to protect
+  the signed or merged copy with the same password.
   If you wish, it is kept on this PC protected with Windows DPAPI in
   %LOCALAPPDATA%\Tasso PDF\firma.dat.
 - UNLOCK: removes restrictions (printing, copying, editing) from your own PDF and saves a free
   copy. If it has a password it asks for it; if you know it, you save a copy without password.
-  The program NEVER tries to guess or crack passwords.
+  The program NEVER tries to guess or crack passwords. Before unlocking you must tick "I confirm
+  that the PDF is mine or that I have the right to unlock it".
 
 SAFETY
 The original is never changed (a copy with a new name is always saved; Windows asks before
-replacing an existing file); PDF JavaScript is off; links open only if you say yes; no internet.
+replacing an existing file); copies of PDFs downloaded from the internet keep Windows' "mark of
+the web"; PDF JavaScript is off; links open only if you say yes; no internet.
 
 DOCUMENT VIEW AND TOOLS
 Opening a PDF shows a full editor: file tabs, Home, Find, Print, Save a copy; sections All
@@ -129,8 +147,8 @@ standard PDF fonts (e.g. Polish ł) are added as an image. Optional right-click 
 ("Tasso PDF" submenu, per-user, no admin rights).
 
 WHAT IT DOES NOT DO
-No certified digital signatures, no editing of existing text, no OCR, no Word/Excel
+No digital (advanced/qualified) signatures, no editing of existing text, no OCR, no Word/Excel
 conversion, no creation of new fillable forms. HEIC needs Microsoft's HEIF/HEVC
-extensions and its orientation is not auto-corrected. Rotation in Merge applies to the whole file.
+extensions (iPhone orientation is corrected automatically). Rotation in Merge applies to the whole file.
 
 Components and their licences: see LICENZE.txt.

@@ -24,6 +24,9 @@ export const OPZ_PDFJS = {
 export let lingua = "it";
 let versione = "";
 let firmaSalvataEsiste = false;
+// modoSblocco: "B" = spunta "il PDF è mio" obbligatoria; "A" = per i blocchi serve la password
+// del proprietario. Lo decide il programma (pdfops.go, costante modoSblocco).
+let modoSblocco = "B";
 
 export function t(k, ...a) {
   let s = (TESTI[lingua] && TESTI[lingua][k]) ?? TESTI.en[k] ?? TESTI.it[k] ?? k;
@@ -63,6 +66,12 @@ class ErrGo extends Error {
     this.codice = i > 0 ? s.slice(0, i) : "generico";
     this.dettaglio = i > 0 ? s.slice(i + 1) : s;
   }
+}
+
+// chiudiDocPdf: libera un documento di PDF.js. Da PDF.js 6 la chiusura sta nel "loadingTask"
+// (doc.destroy() non c'è più: aprire una seconda firma dava errore).
+export function chiudiDocPdf(d) {
+  try { const p = (d && d.loadingTask) || d; if (p && p.destroy) p.destroy(); } catch { /* */ }
 }
 
 export async function go(nome, ...args) {
@@ -205,6 +214,25 @@ export async function salva(id, nomeSuggerito) {
   }
 }
 
+// proteggiCopia: la copia nuova (firmata, unita) di un PDF protetto. Se l'originale si apriva
+// con una password, propone di rimetterla uguale; se aveva solo blocchi, lo dice.
+// Restituisce la voce da salvare (quella protetta, se l'utente ha detto sì).
+export async function proteggiCopia(r, nome, pwApertura, soloBlocchi) {
+  if (pwApertura) {
+    const si = await chiedi(t("protettoTit"), t("protettoTesto", nome), [[t("protettoNo"), false], [t("protettoSi"), true, true]]);
+    if (!si) return r;
+    attesa(true);
+    try {
+      const p = await go("goProteggi", r.id, "", { apertura: pwApertura, permessi: "", blocca: false, stampa: false, copia: false, modifica: false });
+      go("goDimentica", r.id).catch(() => {});
+      return p;
+    } catch (e) { avvisaErrore(e); return r; }
+    finally { attesa(false); }
+  }
+  if (soloBlocchi) await avvisa(t("protettoSoloBlocchi", nome), t("protettoTit"));
+  return r;
+}
+
 // ---------------------------------------------------------------- viste
 
 export function vista(nome) {
@@ -257,6 +285,7 @@ async function aggiungiAUnisci(voci, pwNoto) {
         }
         if (it.saltato) continue;
         it.pagine = inf.pagine || 1;
+        it.conPassword = !!inf.conPassword; // si apriva solo con la password (it.pw)
       } catch (e) {
         await avvisa(testoErrore(e) + "\n" + v.nome);
         continue;
@@ -296,7 +325,7 @@ function miniatura(it) {
         const vp = pag.getViewport({ scale: sc });
         el.width = Math.ceil(vp.width); el.height = Math.ceil(vp.height);
         await pag.render({ canvasContext: el.getContext("2d"), viewport: vp }).promise;
-        doc.destroy();
+        chiudiDocPdf(doc);
       } catch { /* miniatura non disponibile */ }
     })();
   } else {
@@ -394,6 +423,11 @@ $("#uSalva").onclick = async () => {
     return avvisaErrore(e, unisci.voci.map(it => it.voce.nome));
   }
   attesa(false);
+  // Un file con password: la copia unita si aprirebbe senza. Propongo la stessa password.
+  const conPw = unisci.voci.find(it => it.protetto && it.conPassword && it.pw);
+  const conBlocchi = unisci.voci.find(it => it.protetto && !it.conPassword);
+  if (conPw) r = await proteggiCopia(r, conPw.voce.nome, conPw.pw, false);
+  else if (conBlocchi) r = await proteggiCopia(r, conBlocchi.voce.nome, "", true);
   await salva(r.id, nomeCon(unisci.voci[0].voce.nome, t("suffUnito")));
   go("goDimentica", r.id).catch(() => {});
 };
@@ -409,8 +443,9 @@ async function apriFirma(voce, pwNoto, alFine) {
   if (voce.tipo !== "pdf") return avvisa(t("e_non_pdf"));
   if (!alFine) stato.ritorno = "home";
   let pw = pwNoto || "";
+  let inf;
   try {
-    let inf = await go("goInfo", voce.id, pw);
+    inf = await go("goInfo", voce.id, pw);
     let sbagliata = false;
     while (inf.servePassword && !inf.passwordGiusta) {
       const p = await chiediPassword(voce.nome, sbagliata);
@@ -437,8 +472,11 @@ async function apriFirma(voce, pwNoto, alFine) {
       return avvisa(t("nonRiparabile"));
     }
   } finally { attesa(false); }
-  if (firma.doc) firma.doc.destroy();
-  Object.assign(firma, { voce, pw, doc, n: doc.numPages, pag: 1, elementi: [], sel: null, alFine: alFine || null });
+  if (firma.doc) chiudiDocPdf(firma.doc);
+  Object.assign(firma, { voce, pw, doc, n: doc.numPages, pag: 1, elementi: [], sel: null, alFine: alFine || null,
+    protetto: !!(inf && inf.cifrato), pwApertura: inf && inf.conPassword ? pw : "", nomeOrig: voce.nome });
+  // Firma digitale (PAdES) già presente: con la firma disegnata la copia non la avrà più valida.
+  $("#fAvvisoDig").classList.toggle("hidden", !(inf && inf.firmatoDigitalmente));
   $("#fSalva").textContent = t(alFine ? "firmaApplica" : "firmaSalva");
   $("#fCambia").classList.toggle("hidden", !!alFine);
   $("#fNome").textContent = voce.nome;
@@ -646,6 +684,7 @@ $("#fSalva").onclick = async () => {
   catch (e) { attesa(false); return avvisaErrore(e); }
   attesa(false);
   if (firma.alFine) { const f = firma.alFine; firma.alFine = null; return f(r); }
+  if (firma.protetto) r = await proteggiCopia(r, firma.nomeOrig || firma.voce.nome, firma.pwApertura, !firma.pwApertura);
   await salva(r.id, nomeCon(firma.voce.nome, t("suffFirmato")));
   go("goDimentica", r.id).catch(() => {});
 };
@@ -851,6 +890,7 @@ export async function apriSblocca(voce, daDoc) {
   sblocca.voce = voce;
   $("#sNome").textContent = voce.nome;
   $("#sPw").value = "";
+  $("#sConferma").checked = false;
   $("#sErrore").classList.add("hidden");
   vista("sblocca");
   aggiornaSblocca();
@@ -863,10 +903,16 @@ function aggiornaSblocca() {
   let s = t("haBlocchi");
   if (!inf.cifrato) s = t("nonProtetto");
   else if (inf.servePassword) s = t("serveLaPassword");
+  // Modo A: per togliere i blocchi serve la password del proprietario (il campo compare anche
+  // se il PDF si apre senza password). Modo B: spunta obbligatoria.
+  const serveCampo = inf.servePassword || (modoSblocco === "A" && inf.bloccato);
+  if (modoSblocco === "A" && inf.bloccato && !inf.servePassword) s += " " + t("serveProprietario");
   $("#sStato").textContent = s;
-  $("#sCampo").classList.toggle("hidden", !inf.servePassword);
-  $("#sVai").disabled = !inf.cifrato;
+  $("#sCampo").classList.toggle("hidden", !serveCampo);
+  $("#sConfermaRiga").classList.toggle("hidden", modoSblocco !== "B" || !inf.cifrato);
+  $("#sVai").disabled = !inf.cifrato || (modoSblocco === "B" && !$("#sConferma").checked);
 }
+$("#sConferma").onchange = () => aggiornaSblocca();
 
 $("#sMostra").onclick = () => { const i = $("#sPw"); i.type = i.type === "password" ? "text" : "password"; };
 $("#sAltro").onclick = async () => { const vv = await scegli(false, true, t("titoloApri")); if (vv.length) apriSblocca(vv[0]); };
@@ -876,10 +922,12 @@ $("#sVai").onclick = async () => {
   $("#sErrore").classList.add("hidden");
   attesa(true);
   let r;
-  try { r = await go("goSblocca", sblocca.voce.id, sblocca.info.servePassword ? $("#sPw").value : ""); }
+  const inf = sblocca.info;
+  const conPw = inf.servePassword || (modoSblocco === "A" && inf.bloccato);
+  try { r = await go("goSblocca", sblocca.voce.id, conPw ? $("#sPw").value : "", $("#sConferma").checked); }
   catch (e) {
     attesa(false);
-    $("#sErrore").textContent = e.codice === "password" ? t("pwSbagliata") : testoErrore(e);
+    $("#sErrore").textContent = e.codice === "password" ? t("pwSbagliata") : e.codice === "password_proprietario" ? t("serveProprietario") : testoErrore(e);
     $("#sErrore").classList.remove("hidden");
     return;
   }
@@ -1007,6 +1055,7 @@ $("#btnInfo").onclick = async () => {
     lingua = LINGUE.includes(a.lingua) ? a.lingua : "en";
     versione = a.versione || "";
     firmaSalvataEsiste = !!a.firma;
+    if (a.sblocco === "A" || a.sblocco === "B") modoSblocco = a.sblocco;
     $("#hMenu").classList.toggle("hidden", !a.windows);
     $("#hMenuIn").checked = !!a.menu;
   } catch { /* */ }

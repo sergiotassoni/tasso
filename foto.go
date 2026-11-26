@@ -209,3 +209,187 @@ func FotoInPDF(data []byte) ([]byte, error) {
 	}
 	return ruota(out.Bytes(), rot)
 }
+
+// ---------------------------------------------------------------- HEIC: verso della foto
+
+// Le foto HEIC (iPhone) salvano il verso nelle proprietà "irot" (rotazione in senso antiorario,
+// a passi di 90°) e "imir" (specchio) dell'immagine principale. Il decodificatore di Windows
+// dà i pixel così come sono, senza girarli: lo facciamo noi, nell'ordine in cui le proprietà
+// sono elencate (come chiede lo standard HEIF).
+
+// opHEIC: una trasformazione: rot = passi di 90° in senso antiorario; specchio = 0 (asse
+// verticale: destra<->sinistra) o 1 (asse orizzontale: alto<->basso); -1 = nessuno.
+type opHEIC struct {
+	rot      int
+	specchio int
+}
+
+// scatola: un "box" ISOBMFF (tipo, contenuto).
+type scatola struct {
+	tipo string
+	dati []byte
+}
+
+// scatole: i box uno dopo l'altro in b (si ferma al primo rovinato).
+func scatole(b []byte) []scatola {
+	var out []scatola
+	for len(b) >= 8 && len(out) < 10000 {
+		dim := uint64(binary.BigEndian.Uint32(b[0:4]))
+		tipo := string(b[4:8])
+		testa := uint64(8)
+		switch dim {
+		case 1:
+			if len(b) < 16 {
+				return out
+			}
+			dim, testa = binary.BigEndian.Uint64(b[8:16]), 16
+		case 0:
+			dim = uint64(len(b))
+		}
+		if dim < testa || dim > uint64(len(b)) {
+			return out
+		}
+		out = append(out, scatola{tipo, b[testa:dim]})
+		b = b[dim:]
+	}
+	return out
+}
+
+func trova(bb []scatola, tipo string) []byte {
+	for _, s := range bb {
+		if s.tipo == tipo {
+			return s.dati
+		}
+	}
+	return nil
+}
+
+// trasformazioniHEIC: le trasformazioni (irot, imir) dell'immagine principale di un file HEIC.
+func trasformazioniHEIC(data []byte) []opHEIC {
+	meta := trova(scatole(data), "meta")
+	if len(meta) < 4 {
+		return nil
+	}
+	mb := scatole(meta[4:]) // meta è un "full box": 4 byte di versione e flag
+	pitm := trova(mb, "pitm")
+	if len(pitm) < 6 {
+		return nil
+	}
+	var primario uint32
+	if pitm[0] == 0 {
+		primario = uint32(binary.BigEndian.Uint16(pitm[4:6]))
+	} else if len(pitm) >= 8 {
+		primario = binary.BigEndian.Uint32(pitm[4:8])
+	}
+	iprp := scatole(trova(mb, "iprp"))
+	proprieta := scatole(trova(iprp, "ipco"))
+	ipma := trova(iprp, "ipma")
+	if len(ipma) < 8 {
+		return nil
+	}
+	ver, flag := ipma[0], ipma[3]
+	n := binary.BigEndian.Uint32(ipma[4:8])
+	p := ipma[8:]
+	for i := uint32(0); i < n && i < 100000; i++ {
+		var id uint32
+		if ver < 1 {
+			if len(p) < 3 {
+				return nil
+			}
+			id, p = uint32(binary.BigEndian.Uint16(p[0:2])), p[2:]
+		} else {
+			if len(p) < 5 {
+				return nil
+			}
+			id, p = binary.BigEndian.Uint32(p[0:4]), p[4:]
+		}
+		quante := int(p[0])
+		p = p[1:]
+		var indici []int
+		for k := 0; k < quante; k++ {
+			if flag&1 != 0 {
+				if len(p) < 2 {
+					return nil
+				}
+				indici = append(indici, int(binary.BigEndian.Uint16(p[0:2])&0x7fff))
+				p = p[2:]
+			} else {
+				if len(p) < 1 {
+					return nil
+				}
+				indici = append(indici, int(p[0]&0x7f))
+				p = p[1:]
+			}
+		}
+		if id != primario {
+			continue
+		}
+		var ops []opHEIC
+		for _, ix := range indici {
+			if ix < 1 || ix > len(proprieta) {
+				continue
+			}
+			pr := proprieta[ix-1]
+			switch {
+			case pr.tipo == "irot" && len(pr.dati) >= 1:
+				if r := int(pr.dati[0] & 3); r != 0 {
+					ops = append(ops, opHEIC{rot: r, specchio: -1})
+				}
+			case pr.tipo == "imir" && len(pr.dati) >= 1:
+				ops = append(ops, opHEIC{specchio: int(pr.dati[0] & 1)})
+			}
+		}
+		return ops
+	}
+	return nil
+}
+
+// applicaHEIC: gira e specchia i pixel come dicono le trasformazioni.
+func applicaHEIC(img image.Image, ops []opHEIC) image.Image {
+	for _, op := range ops {
+		b := img.Bounds()
+		w, h := b.Dx(), b.Dy()
+		var dst *image.RGBA
+		if op.specchio >= 0 {
+			dst = image.NewRGBA(image.Rect(0, 0, w, h))
+			for y := 0; y < h; y++ {
+				for x := 0; x < w; x++ {
+					c := img.At(b.Min.X+x, b.Min.Y+y)
+					if op.specchio == 0 {
+						dst.Set(w-1-x, y, c)
+					} else {
+						dst.Set(x, h-1-y, c)
+					}
+				}
+			}
+			img = dst
+			continue
+		}
+		for r := 0; r < op.rot; r++ { // 90° in senso antiorario, op.rot volte
+			b = img.Bounds()
+			w, h = b.Dx(), b.Dy()
+			dst = image.NewRGBA(image.Rect(0, 0, h, w))
+			for y := 0; y < h; y++ {
+				for x := 0; x < w; x++ {
+					dst.Set(y, w-1-x, img.At(b.Min.X+x, b.Min.Y+y))
+				}
+			}
+			img = dst
+		}
+	}
+	return img
+}
+
+// conVersoHEIC: un decodificatore HEIC che restituisce la foto già nel verso giusto.
+func conVersoHEIC(dec func([]byte) (image.Image, error)) func([]byte) (image.Image, error) {
+	return func(b []byte) (image.Image, error) {
+		img, err := dec(b)
+		if err != nil {
+			return nil, err
+		}
+		if ops := trasformazioniHEIC(b); len(ops) > 0 {
+			img = applicaHEIC(img, ops)
+		}
+		return img, nil
+	}
+}

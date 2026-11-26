@@ -14,7 +14,6 @@ import (
 	"image"
 	"image/draw"
 	"image/jpeg"
-	"io"
 	"math"
 	"net/url"
 	"sort"
@@ -666,17 +665,11 @@ func Organizza(fonti [][]byte, seq []PaginaSeq) ([]byte, error) {
 	if len(parti) == 1 {
 		unito = parti[0]
 	} else {
-		var rss []io.ReadSeeker
-		for _, b := range parti {
-			rss = append(rss, bytes.NewReader(b))
+		u, err := unisciParti(parti)
+		if err != nil {
+			return nil, err
 		}
-		var out bytes.Buffer
-		conf := confBase("")
-		conf.CreateBookmarks = false
-		if err := api.MergeRaw(bg, rss, &out, false, conf); err != nil {
-			return nil, classifica(err)
-		}
-		unito = out.Bytes()
+		unito = u
 	}
 	// Nuova sequenza (pdfcpu "collect": ordine libero, anche ripetute).
 	ctx, _, err := leggi(unito, "")

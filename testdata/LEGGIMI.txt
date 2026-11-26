@@ -1,0 +1,3 @@
+xref-stream.pdf: PDF di 3 pagine scritto da reportlab e poi riscritto da qpdf con
+"--object-streams=generate": indice compresso (/Type /XRef) e catalogo dentro un object
+stream, come i PDF di Word, Chrome e degli scanner recenti. Serve a TestRiparaPDFConXRefStream.

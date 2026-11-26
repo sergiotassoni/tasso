@@ -555,6 +555,7 @@ input[type=range].pRange{width:100%;accent-color:var(--rosso)}
         <button class="btn picc prim" id="fSalva" data-t="firmaSalva"></button>
       </div>
       <p class="avviso"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex:0 0 18px"><path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg><span data-t="firmaAvviso"></span></p>
+      <p class="avviso hidden" id="fAvvisoDig"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex:0 0 18px"><path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg><span data-t="firmaDigitaleAvviso"></span></p>
       <div class="firma-corpo">
         <div class="attrezzi">
           <div class="anteprimaFirma" id="fAnteprima"></div>
@@ -596,6 +597,7 @@ input[type=range].pRange{width:100%;accent-color:var(--rosso)}
             <input type="password" id="sPw" autocomplete="off" spellcheck="false">
             <button class="btn" id="sMostra" data-t="mostraPw"></button>
           </div>
+          <div class="riga hidden" id="sConfermaRiga" style="margin-top:12px"><label><input type="checkbox" id="sConferma"><span data-t="sbloccaConferma"></span></label></div>
           <p id="sErrore" class="hidden" style="color:#FFB0A6;margin:10px 0 0"></p>
           <div class="piede">
             <button class="btn" id="sAltro" data-t="sbloccaB"></button>

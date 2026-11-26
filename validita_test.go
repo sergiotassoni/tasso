@@ -114,7 +114,7 @@ func TestOgniOperazioneDaPDFValido(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	s, err := Sblocca(p, "Apri-789")
+	s, err := Sblocca(p, "Apri-789", true)
 	if err != nil {
 		t.Fatal(err)
 	}

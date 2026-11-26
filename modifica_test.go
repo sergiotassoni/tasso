@@ -144,7 +144,7 @@ func TestProteggiEApri(t *testing.T) {
 		t.Fatalf("password uguali: %v", err)
 	}
 	// e si può risbloccare con la password giusta
-	if _, err := Sblocca(out, "Apri-789"); err != nil {
+	if _, err := Sblocca(out, "Apri-789", true); err != nil {
 		t.Fatal(err)
 	}
 }

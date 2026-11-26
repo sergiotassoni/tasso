@@ -101,6 +101,7 @@ func main() {
 		}
 		defer chiudi()
 		percorsi = raccogliCoda(modo, percorsi, 450*time.Millisecond)
+		ordinaPerNome(percorsi) // Windows avvia una copia per file, in ordine casuale
 		avvio.modo, avvio.percorsi = modo, percorsi
 		go ascoltaCoda(modo)
 	}

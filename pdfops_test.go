@@ -135,14 +135,14 @@ func TestSbloccaPasswordAES256(t *testing.T) {
 	if !inf.ServePassword || !inf.Cifrato {
 		t.Fatalf("doveva chiedere la password: %+v", inf)
 	}
-	if _, err := Sblocca(prot, ""); CodiceErrore(err) != "password" {
+	if _, err := Sblocca(prot, "", true); CodiceErrore(err) != "password" {
 		t.Fatalf("senza password: atteso codice password, avuto %v", err)
 	}
-	if _, err := Sblocca(prot, "sbagliata"); CodiceErrore(err) != "password" {
+	if _, err := Sblocca(prot, "sbagliata", true); CodiceErrore(err) != "password" {
 		t.Fatalf("password sbagliata: atteso codice password, avuto %v", err)
 	}
 	for _, pw := range []string{pwUtente, pwProprietario} {
-		lib, err := Sblocca(prot, pw)
+		lib, err := Sblocca(prot, pw, true)
 		if err != nil {
 			t.Fatalf("con la password giusta (%s): %v", pw, err)
 		}
@@ -171,7 +171,7 @@ func TestSbloccaSoloBlocchi(t *testing.T) {
 	if inf.ServePassword || !inf.Bloccato {
 		t.Fatalf("doveva aprirsi senza password ma con i blocchi: %+v", inf)
 	}
-	lib, err := Sblocca(prot, "")
+	lib, err := Sblocca(prot, "", true)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -182,7 +182,7 @@ func TestSbloccaSoloBlocchi(t *testing.T) {
 }
 
 func TestSbloccaNonProtetto(t *testing.T) {
-	if _, err := Sblocca(pdfProva([]pagProva{a4("libero")}), ""); CodiceErrore(err) != "non_protetto" {
+	if _, err := Sblocca(pdfProva([]pagProva{a4("libero")}), "", true); CodiceErrore(err) != "non_protetto" {
 		t.Fatalf("atteso non_protetto, avuto %v", err)
 	}
 }

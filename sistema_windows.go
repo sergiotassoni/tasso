@@ -389,7 +389,24 @@ func decodificaHEICWin(data []byte) (img image.Image, err error) {
 	return rgba, nil
 }
 
+// leggiZonaWin: il marchio del web (flusso NTFS ":Zone.Identifier") di un file, se c'è.
+func leggiZonaWin(p string) []byte {
+	b, err := os.ReadFile(p + ":Zone.Identifier")
+	if err != nil || len(b) == 0 || len(b) > 64<<10 {
+		return nil
+	}
+	return b
+}
+
+// scriviZonaWin: mette il marchio del web sul file salvato (su dischi non NTFS, come certe
+// chiavette FAT32, non si può: va bene così, Windows fa lo stesso).
+func scriviZonaWin(p string, zona []byte) error {
+	return os.WriteFile(p+":Zone.Identifier", zona, 0o644)
+}
+
 func init() {
+	piattaforma.leggiZona = leggiZonaWin
+	piattaforma.scriviZona = scriviZonaWin
 	piattaforma.scegliFile = scegliFileWin
 	piattaforma.salvaFile = salvaFileWin
 	piattaforma.apriLink = apriLinkWin
@@ -399,5 +416,5 @@ func init() {
 	piattaforma.cartellaDati = cartellaDatiWin
 	piattaforma.linguaTasso = linguaTassoWin
 	piattaforma.linguaSistema = linguaSistemaWin
-	decodificaHEIC = decodificaHEICWin
+	decodificaHEIC = conVersoHEIC(decodificaHEICWin)
 }

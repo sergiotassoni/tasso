@@ -11,6 +11,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"image/jpeg"
 	"io/fs"
 	"mime"
@@ -23,7 +24,7 @@ import (
 	"sync"
 )
 
-const versione = "1.1.0"
+const versione = "1.1.1"
 
 // Indirizzo delle pagine interne: non esiste su internet, le risponde il programma stesso.
 const hostInterno = "tassopdf.localhost"
@@ -49,6 +50,11 @@ var piattaforma struct {
 	menuAttivo    func() bool
 	impostaMenu   func(on bool, lingua string) error
 	apriTassoAgg  func() string // apre Tasso su Impostazioni → Aggiornamenti (aggiornamenti.go)
+	// Marchio del web (Mark-of-the-Web): il flusso NTFS ":Zone.Identifier" che Windows mette
+	// sui file scaricati. Lo copiamo sulle copie salvate, così Windows, SmartScreen e i lettori
+	// PDF (Protected View) sanno ancora che il contenuto viene da internet.
+	leggiZona  func(p string) []byte
+	scriviZona func(p string, zona []byte) error
 }
 
 // ---------------------------------------------------------------- Archivio dei file
@@ -62,6 +68,37 @@ type Voce struct {
 	Dati     []byte // contenuto, se non è (solo) sul disco
 	Tipo     string // pdf, jpg, png, heic
 	jpgHEIC  []byte // anteprima JPG di una foto HEIC
+	Zona     []byte // marchio del web del file d'origine (nil = file locale o sconosciuto)
+}
+
+// idZona: il numero ZoneId del marchio del web (3 = internet, 4 = siti non attendibili); 0 se manca.
+func idZona(z []byte) int {
+	for _, r := range strings.Split(string(z), "\n") {
+		r = strings.TrimSpace(r)
+		if strings.HasPrefix(strings.ToLower(r), "zoneid=") {
+			n, _ := strconv.Atoi(strings.TrimSpace(r[len("zoneid="):]))
+			return n
+		}
+	}
+	return 0
+}
+
+// zonaPiuSevera: fra più file uniti, il marchio che protegge di più (il numero di zona più alto).
+func zonaPiuSevera(zz ...[]byte) []byte {
+	var scelta []byte
+	for _, z := range zz {
+		if len(z) > 0 && (scelta == nil || idZona(z) > idZona(scelta)) {
+			scelta = z
+		}
+	}
+	return scelta
+}
+
+// mettiZona: dopo il salvataggio, copia il marchio del web sul file nuovo (se l'origine lo aveva).
+func mettiZona(p string, zona []byte) {
+	if len(zona) > 0 && piattaforma.scriviZona != nil {
+		_ = piattaforma.scriviZona(p, zona)
+	}
 }
 
 // VoceInfo: quello che la pagina sa di un file.
@@ -148,7 +185,11 @@ func apriPercorso(p string) (VoceInfo, error) {
 	if tipo == "" {
 		tipo = tipoDaNome(p)
 	}
-	return aggiungiVoce(&Voce{Nome: filepath.Base(p), Percorso: p, Tipo: tipo}), nil
+	v := &Voce{Nome: filepath.Base(p), Percorso: p, Tipo: tipo}
+	if piattaforma.leggiZona != nil {
+		v.Zona = piattaforma.leggiZona(p)
+	}
+	return aggiungiVoce(v), nil
 }
 
 func tipoDaNome(n string) string {
@@ -193,6 +234,7 @@ type Avvio struct {
 	Firma    bool   `json:"firma"` // c'è una firma salvata
 	Menu     bool   `json:"menu"`  // le voci nel menu del tasto destro di Windows sono attive
 	Windows  bool   `json:"windows"`
+	Sblocco  string `json:"sblocco"` // "A" (password del proprietario) o "B" (spunta di conferma)
 }
 
 type impostazioni struct {
@@ -248,7 +290,7 @@ func linguaIniziale() string {
 }
 
 func goAvvio() Avvio {
-	return Avvio{Lingua: linguaIniziale(), Versione: versione, Firma: fileFirmaEsiste(), Menu: goMenu(), Windows: piattaforma.impostaMenu != nil}
+	return Avvio{Lingua: linguaIniziale(), Versione: versione, Firma: fileFirmaEsiste(), Menu: goMenu(), Windows: piattaforma.impostaMenu != nil, Sblocco: string(modoSblocco)}
 }
 
 func goLingua(l string) error {
@@ -354,7 +396,7 @@ func risultato(v *Voce, b []byte, nome string) VoceInfo {
 	if orig == "" {
 		orig = v.Origine
 	}
-	return aggiungiVoce(&Voce{Nome: nome, Origine: orig, Dati: b, Tipo: "pdf"})
+	return aggiungiVoce(&Voce{Nome: nome, Origine: orig, Dati: b, Tipo: "pdf", Zona: v.Zona})
 }
 
 type lavoro func([]byte, string) ([]byte, error)
@@ -375,8 +417,13 @@ func esegui(id, pw string, f lavoro) (VoceInfo, error) {
 	return risultato(v, out, v.Nome), nil
 }
 
-func goRipara(id, pw string) (VoceInfo, error)  { return esegui(id, pw, Ripara) }
-func goSblocca(id, pw string) (VoceInfo, error) { return esegui(id, pw, Sblocca) }
+func goRipara(id, pw string) (VoceInfo, error) { return esegui(id, pw, Ripara) }
+
+// goSblocca: confermato = l'utente ha spuntato "il PDF è mio o ho il diritto di sbloccarlo"
+// (modo B); nel modo A pw deve essere la password del proprietario se il PDF ha blocchi.
+func goSblocca(id, pw string, confermato bool) (VoceInfo, error) {
+	return esegui(id, pw, func(b []byte, pw string) ([]byte, error) { return Sblocca(b, pw, confermato) })
+}
 
 // PezzoPagina: un file da unire, come lo manda la pagina.
 type PezzoPagina struct {
@@ -388,6 +435,7 @@ type PezzoPagina struct {
 func goUnisci(pezzi []PezzoPagina) (VoceInfo, error) {
 	var pp []Pezzo
 	var primo *Voce
+	var zone [][]byte
 	for i, p := range pezzi {
 		v, err := prendiVoce(p.ID)
 		if err != nil {
@@ -400,6 +448,7 @@ func goUnisci(pezzi []PezzoPagina) (VoceInfo, error) {
 		if err != nil {
 			return VoceInfo{}, perPagina(&ErrPezzo{Indice: i, Err: err})
 		}
+		zone = append(zone, v.Zona)
 		pp = append(pp, Pezzo{Nome: v.Nome, Dati: b, Foto: v.Tipo != "pdf", Rotazione: p.Rot, Password: p.Password})
 	}
 	out, err := Unisci(pp)
@@ -409,7 +458,13 @@ func goUnisci(pezzi []PezzoPagina) (VoceInfo, error) {
 	if primo == nil {
 		return VoceInfo{}, perPagina(errc("vuoto", nil))
 	}
-	return risultato(primo, out, primo.Nome), nil
+	vi := risultato(primo, out, primo.Nome)
+	if nv, err := prendiVoce(vi.ID); err == nil {
+		archivio.Lock()
+		nv.Zona = zonaPiuSevera(zone...)
+		archivio.Unlock()
+	}
+	return vi, nil
 }
 
 // TimbroPagina: firma, data, testo o spunta come li manda la pagina (PNG in base64).
@@ -486,7 +541,10 @@ func chiediDove(nomeSuggerito, cartella, titolo, ext string) (string, error) {
 		return "", nil
 	}
 	if !strings.EqualFold(filepath.Ext(p), "."+ext) {
-		p += "." + ext
+		// Es. "Contratto.txt" -> "Contratto.txt.pdf". Windows ha chiesto conferma solo per il
+		// nome scritto, non per questo: se "Contratto.txt.pdf" esiste già, non lo sostituisco
+		// in silenzio ma uso "Contratto.txt (2).pdf".
+		p = percorsoLibero(p + "." + ext)
 	}
 	if eUnOriginale(p) {
 		return "", errc("originale", nil)
@@ -510,6 +568,10 @@ func goSalvaTipo(id, nomeSuggerito, titolo, ext string) (string, error) {
 	if err := scriviSicuro(p, b); err != nil {
 		return "", perPagina(errc("scrittura", err))
 	}
+	archivio.Lock()
+	zona := v.Zona
+	archivio.Unlock()
+	mettiZona(p, zona)
 	return p, nil
 }
 
@@ -540,6 +602,42 @@ func scriviSicuro(p string, b []byte) error {
 		return err
 	}
 	return nil
+}
+
+// scriviNuovo: crea p solo se non esiste ancora (mai sovrascrivere). Se la scrittura si ferma
+// a metà, il file incompleto viene tolto. Se p esiste già: errore fs.ErrExist.
+func scriviNuovo(p string, b []byte) error {
+	f, err := os.OpenFile(p, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o644)
+	if err != nil {
+		return err
+	}
+	_, err = f.Write(b)
+	if err == nil {
+		err = f.Sync()
+	}
+	if e := f.Close(); err == nil {
+		err = e
+	}
+	if err != nil {
+		os.Remove(p)
+	}
+	return err
+}
+
+// percorsoLibero: p, oppure "nome (2).ext", "nome (3).ext"... il primo che non esiste.
+func percorsoLibero(p string) string {
+	if _, err := os.Lstat(p); os.IsNotExist(err) && !eUnOriginale(p) {
+		return p
+	}
+	ext := filepath.Ext(p)
+	base := strings.TrimSuffix(p, ext)
+	for k := 2; k < 1000; k++ {
+		q := fmt.Sprintf("%s (%d)%s", base, k, ext)
+		if _, err := os.Lstat(q); os.IsNotExist(err) && !eUnOriginale(q) {
+			return q
+		}
+	}
+	return p
 }
 
 // nomeValido: toglie dal nome i caratteri che Windows non accetta.

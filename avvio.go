@@ -8,6 +8,7 @@ package main
 import (
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"sync"
 )
@@ -118,4 +119,41 @@ func testoMenu(l, k string) string {
 		return m[k]
 	}
 	return testiMenu["en"][k]
+}
+
+// ordinaPerNome: i file arrivati insieme dal tasto destro, in ordine di nome (come in Esplora
+// file: "2.jpg" prima di "10.jpg").
+func ordinaPerNome(pp []string) {
+	sort.SliceStable(pp, func(i, j int) bool { return menoNaturale(filepath.Base(pp[i]), filepath.Base(pp[j])) })
+}
+
+// menoNaturale: confronto "naturale" senza maiuscole: i numeri dentro i nomi valgono come numeri.
+func menoNaturale(a, b string) bool {
+	a, b = strings.ToLower(a), strings.ToLower(b)
+	for a != "" && b != "" {
+		ca, cb := a[0], b[0]
+		if ca >= '0' && ca <= '9' && cb >= '0' && cb <= '9' {
+			i, j := 0, 0
+			for i < len(a) && a[i] >= '0' && a[i] <= '9' {
+				i++
+			}
+			for j < len(b) && b[j] >= '0' && b[j] <= '9' {
+				j++
+			}
+			na, nb := strings.TrimLeft(a[:i], "0"), strings.TrimLeft(b[:j], "0")
+			if len(na) != len(nb) {
+				return len(na) < len(nb)
+			}
+			if na != nb {
+				return na < nb
+			}
+			a, b = a[i:], b[j:]
+			continue
+		}
+		if ca != cb {
+			return ca < cb
+		}
+		a, b = a[1:], b[1:]
+	}
+	return len(a) < len(b)
 }

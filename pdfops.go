@@ -88,8 +88,10 @@ func classifica(err error) error {
 	switch {
 	case strings.Contains(s, "password"):
 		return errc("password", err)
+	// Solo i messaggi che dicono davvero "manca l'intestazione %PDF-". Una parola generica come
+	// "version" no: "root version: missing root dict" è un PDF scaricato a metà (rovinato).
 	case strings.Contains(s, "no pdf") || strings.Contains(s, "not a pdf") || strings.Contains(s, "missing header") ||
-		strings.Contains(s, "version"):
+		strings.Contains(s, "no header version"):
 		return errc("non_pdf", err)
 	}
 	return errc("rovinato", err)
@@ -112,6 +114,75 @@ type InfoDoc struct {
 	Bloccato       bool `json:"bloccato"`       // ha blocchi (stampa, copia, modifica...)
 	Riparato       bool `json:"riparato"`       // era rovinato ed è stato letto con la riparazione
 	PasswordGiusta bool `json:"passwordGiusta"` // la password data apre il file
+	// FirmatoDigitalmente: il PDF contiene una firma digitale (PAdES, campo /Sig firmato).
+	// Ogni copia modificata (firma disegnata, testo, unione...) la rende non più valida.
+	FirmatoDigitalmente bool `json:"firmatoDigitalmente"`
+	// ConPassword: per aprirlo serve una password (anche se qui è stata data giusta).
+	ConPassword bool `json:"conPassword"`
+}
+
+// haFirmaDigitale: c'è almeno un campo firma (/FT /Sig) con un valore (/V), oppure
+// /SigFlags con il bit "SignaturesExist" nel modulo del PDF.
+func haFirmaDigitale(ctx *model.Context) bool {
+	root, err := ctx.Catalog()
+	if err != nil || root == nil {
+		return false
+	}
+	o, ok := root.Find("AcroForm")
+	if !ok {
+		return false
+	}
+	af, err := ctx.DereferenceDict(o)
+	if err != nil || af == nil {
+		return false
+	}
+	if f, ok := af.Find("SigFlags"); ok {
+		if n, err := ctx.DereferenceInteger(f); err == nil && n != nil && n.Value()&1 != 0 {
+			return true
+		}
+	}
+	visti := map[types.IndirectRef]bool{}
+	var campo func(o types.Object, prof int) bool
+	campo = func(o types.Object, prof int) bool {
+		if prof > 30 {
+			return false
+		}
+		if ir, ok := o.(types.IndirectRef); ok {
+			if visti[ir] {
+				return false
+			}
+			visti[ir] = true
+		}
+		d, err := ctx.DereferenceDict(o)
+		if err != nil || d == nil {
+			return false
+		}
+		if ft := d.NameEntry("FT"); ft != nil && *ft == "Sig" {
+			if v, ok := d.Find("V"); ok && v != nil {
+				return true
+			}
+		}
+		if k, ok := d.Find("Kids"); ok {
+			if arr, err := ctx.DereferenceArray(k); err == nil {
+				for _, x := range arr {
+					if campo(x, prof+1) {
+						return true
+					}
+				}
+			}
+		}
+		return false
+	}
+	if f, ok := af.Find("Fields"); ok {
+		if arr, err := ctx.DereferenceArray(f); err == nil {
+			for _, x := range arr {
+				if campo(x, 0) {
+					return true
+				}
+			}
+		}
+	}
+	return false
 }
 
 // leggi: legge il PDF (anche rovinato). Se pdfcpu non ci riesce, o legge un file senza pagine
@@ -230,19 +301,23 @@ func Info(data []byte, pw string) (InfoDoc, error) {
 	ctx, rip, err := leggi(data, pw)
 	if err != nil {
 		if CodiceErrore(err) == "password" {
-			inf.Cifrato, inf.ServePassword = true, true
+			inf.Cifrato, inf.ServePassword, inf.ConPassword = true, true, true
 			return inf, nil
 		}
 		return inf, err
 	}
 	inf.Riparato = rip
 	inf.Cifrato = ctx.Encrypt != nil
-	inf.PasswordGiusta = true
-	if ctx.E != nil {
-		// Bit 3 stampa, 4 modifica, 5 copia, 6 note, 9 moduli, 10 accessibilità, 11 assemblaggio, 12 stampa buona.
-		const tutti = 4 | 8 | 16 | 32 | 256 | 512 | 1024 | 2048
-		inf.Bloccato = ctx.E.P&tutti != tutti
+	inf.FirmatoDigitalmente = haFirmaDigitale(ctx)
+	if ctx.Encrypt != nil && pw != "" {
+		// Si apre anche senza password? Se no, la password data era quella di apertura.
+		if _, _, e := leggi(data, ""); CodiceErrore(e) == "password" {
+			inf.ConPassword = true
+		}
 	}
+	inf.PasswordGiusta = true
+	// Bit 3 stampa, 4 modifica, 5 copia, 6 note, 9 moduli, 10 accessibilità, 11 assemblaggio, 12 stampa buona.
+	inf.Bloccato = haBlocchi(ctx)
 	if err := ctx.EnsurePageCount(); err == nil {
 		inf.Pagine = ctx.PageCount
 	}
@@ -279,9 +354,50 @@ func inChiaro(data []byte, pw string) ([]byte, error) {
 	return scrivi(ctx)
 }
 
+// ---------------------------------------------------------------- Sblocca: due modi
+
+// ModoSblocco: come si decide se si possono togliere i blocchi di un PDF.
+//
+//	SbloccoConConferma (B): l'utente spunta "Confermo che il PDF è mio o che ho il diritto
+//	                        di sbloccarlo" (obbligatoria). Per i PDF con password di apertura
+//	                        serve comunque quella password.
+//	SbloccoConProprietario (A): i blocchi (stampa, copia, modifica) si tolgono solo con la
+//	                        password del proprietario (quella dei permessi). Senza blocchi
+//	                        basta la password di apertura.
+type ModoSblocco string
+
+const (
+	SbloccoConProprietario ModoSblocco = "A"
+	SbloccoConConferma     ModoSblocco = "B"
+)
+
+// modoSblocco: LA scelta del titolare. Per passare all'altro modo basta cambiare questa riga
+// (l'interfaccia lo legge da goAvvio e mostra la spunta o il campo della password).
+const modoSblocco = SbloccoConConferma
+
+// passwordProprietarioGiusta: pw è la password del proprietario (dei permessi) di questo PDF?
+// pdfcpu prova prima la password del proprietario e, se è giusta, si ferma lì; altrimenti
+// prova quella di apertura. Come password di apertura gli do una stringa che nessuno può
+// avere scritto: così il file si apre solo se pw è proprio quella del proprietario.
+func passwordProprietarioGiusta(data []byte, pw string) bool {
+	c := confBase("")
+	c.OwnerPW, c.UserPW = pw, "\x00tasso-pdf: non una password\x00"
+	_, err := api.ReadContext(context.Background(), bytes.NewReader(data), c)
+	return err == nil
+}
+
 // Sblocca: toglie blocchi e password da un PDF dell'utente e restituisce una copia libera.
 // La password, se serve, la dà l'utente: il programma non prova mai a indovinarla.
-func Sblocca(data []byte, pw string) ([]byte, error) {
+// Modo B: senza la conferma dell'utente (confermato) non fa niente. Modo A: se il PDF ha
+// dei blocchi, pw deve essere la password del proprietario.
+func Sblocca(data []byte, pw string, confermato bool) ([]byte, error) {
+	return sbloccaCon(modoSblocco, data, pw, confermato)
+}
+
+func sbloccaCon(modo ModoSblocco, data []byte, pw string, confermato bool) ([]byte, error) {
+	if modo == SbloccoConConferma && !confermato {
+		return nil, errc("conferma_diritti", nil)
+	}
 	ctx, _, err := leggi(data, pw)
 	if err != nil {
 		return nil, err
@@ -289,7 +405,19 @@ func Sblocca(data []byte, pw string) ([]byte, error) {
 	if ctx.Encrypt == nil {
 		return nil, errc("non_protetto", nil)
 	}
+	if modo == SbloccoConProprietario && haBlocchi(ctx) && !passwordProprietarioGiusta(data, pw) {
+		return nil, errc("password_proprietario", nil)
+	}
 	return scrivi(ctx)
+}
+
+// haBlocchi: il PDF vieta qualcosa (stampa, modifica, copia, note, moduli, assemblaggio...).
+func haBlocchi(ctx *model.Context) bool {
+	if ctx.E == nil {
+		return false
+	}
+	const tutti = 4 | 8 | 16 | 32 | 256 | 512 | 1024 | 2048
+	return ctx.E.P&tutti != tutti
 }
 
 // Ripara: legge il PDF con la massima tolleranza (ricostruendo l'indice se serve) e lo riscrive pulito.
@@ -317,6 +445,7 @@ func Ripara(data []byte, pw string) ([]byte, error) {
 var reObj = regexp.MustCompile(`(?m)(?:^|[\r\n\s])(\d{1,10})\s+(\d{1,5})\s+obj\b`)
 var reCatalog = regexp.MustCompile(`/Type\s*/Catalog\b`)
 var rePagina = regexp.MustCompile(`/Type\s*/Page\b`)
+var reXRef = regexp.MustCompile(`/Type\s*/XRef\b`)
 var rePagesRef = regexp.MustCompile(`/Pages\s+\d+\s+\d+\s+R`)
 var reParentRef = regexp.MustCompile(`/Parent\s+\d+\s+\d+\s+R`)
 
@@ -333,6 +462,7 @@ func ricostruisci(data []byte, nuovoAlbero bool) ([]byte, error) {
 	}
 	trovati := map[int]pos{}
 	var ordinePagine []int
+	var xrefStream []int // posizioni degli oggetti "/Type /XRef" (indice compresso dei PDF moderni)
 	root := 0
 	taglio := len(data)
 	for _, m := range reObj.FindAllSubmatchIndex(data, -1) {
@@ -357,8 +487,25 @@ func ricostruisci(data []byte, nuovoAlbero bool) ([]byte, error) {
 		if rePagina.Match(corpo) {
 			ordinePagine = append(ordinePagine, num)
 		}
+		if reXRef.Match(corpo) {
+			xrefStream = append(xrefStream, m[2])
+		}
 	}
-	if len(trovati) == 0 || root == 0 {
+	if root == 0 {
+		// PDF moderni (Word, Chrome, scanner): il catalogo sta dentro un "object stream" e
+		// l'indice è uno stream /Type /XRef. Non lo riscrivo: faccio puntare startxref
+		// all'ultimo indice compresso ancora intero (di solito è solo startxref a essere sbagliato).
+		for i := len(xrefStream) - 1; i >= 0; i-- {
+			if xrefStream[i] < taglio {
+				var b bytes.Buffer
+				b.Write(data[:taglio])
+				fmt.Fprintf(&b, "\nstartxref\n%d\n%%%%EOF\n", xrefStream[i])
+				return b.Bytes(), nil
+			}
+		}
+		return nil, errors.New("nessun catalogo trovato")
+	}
+	if len(trovati) == 0 {
 		return nil, errors.New("nessun catalogo trovato")
 	}
 	max := 0
@@ -506,6 +653,40 @@ func Unisci(pezzi []Pezzo) ([]byte, error) {
 	if len(parti) == 1 {
 		return Ripara(parti[0], "")
 	}
+	return unisciParti(parti)
+}
+
+// unisciParti: mette insieme PDF già in chiaro. pdfcpu rifiuta di aggiungere un PDF 2.0 a un
+// PDF più vecchio ("PDF 2.0 unsupported"): se una delle parti è 2.0, la prima parte (quella a
+// cui si aggiungono le altre) diventa anche lei 2.0. Il 2.0 legge tutto quello che c'è nei
+// PDF più vecchi, quindi non si perde niente.
+func unisciParti(parti [][]byte) ([]byte, error) {
+	if len(parti) > 1 {
+		c0, err := api.ReadContext(context.Background(), bytes.NewReader(parti[0]), confBase(""))
+		if err != nil {
+			return nil, classifica(err)
+		}
+		if c0.XRefTable.Version() < model.V20 {
+			serve := false
+			for _, b := range parti[1:] {
+				c, err := api.ReadContext(context.Background(), bytes.NewReader(b), confBase(""))
+				if err == nil && c.XRefTable.Version() == model.V20 {
+					serve = true
+					break
+				}
+			}
+			if serve {
+				v := model.V20
+				c0.HeaderVersion = &v
+				c0.RootVersion = &v
+				b0, err := scrivi(c0)
+				if err != nil {
+					return nil, err
+				}
+				parti = append([][]byte{b0}, parti[1:]...)
+			}
+		}
+	}
 	var rss []io.ReadSeeker
 	for _, b := range parti {
 		rss = append(rss, bytes.NewReader(b))
@@ -601,6 +782,10 @@ func Timbra(data []byte, pw string, timbri []Timbro) ([]byte, error) {
 	for i, t := range timbri {
 		if t.L <= 0 || t.A <= 0 || len(t.PNG) == 0 {
 			return nil, errc("timbro", nil)
+		}
+		// Una pagina che non c'è (oltre la fine): errore, non una firma che sparisce in silenzio.
+		if t.Pagina < 0 || t.Pagina > ctx.PageCount {
+			return nil, errc("pagina_fuori", nil)
 		}
 		ir, _, _, err := model.CreateImageResource(ctx.XRefTable, bytes.NewReader(t.PNG))
 		if err != nil {

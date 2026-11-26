@@ -136,7 +136,7 @@ function docJS(v) {
 }
 function dimenticaDoc(id) {
   const p = cacheDoc.get(id);
-  if (p) { p.then(d => d.destroy()).catch(() => { }); cacheDoc.delete(id); }
+  if (p) { p.then(d => (d.loadingTask || d).destroy()).catch(() => { }); cacheDoc.delete(id); }
 }
 
 // dimensioni (punti, come si vede) di ogni pagina
@@ -292,6 +292,7 @@ function aggiornaFasce() {
   const f = [];
   if (sc.riparato) f.push(["riparato", "giallo", t("riparato")]);
   if (sc.info && sc.info.cifrato) f.push(["protetto", "giallo", t("fasciaProtetto")]);
+  if (sc.info && sc.info.firmatoDigitalmente) f.push(["firmaDigitale", "giallo", t("fasciaFirmaDigitale")]);
   if (sc.moduli) f.push(["moduli", "", t("fasciaModuli")]);
   for (const [k, c, testo] of f) {
     if (sc.chiuse.has(k)) continue;

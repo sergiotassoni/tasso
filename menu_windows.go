@@ -48,6 +48,8 @@ func attivaMenu(l string) error {
 		_ = k.SetStringValue("MUIVerb", "Tasso PDF")
 		_ = k.SetStringValue("Icon", `"`+exe+`",0`)
 		_ = k.SetStringValue("SubCommands", "")
+		// Senza questo, con più di 15 file selezionati Windows nasconde le voci.
+		_ = k.SetStringValue("MultiSelectModel", "Player")
 		k.Close()
 		for i, v := range voci {
 			chiave := radice + `\shell\` + string(rune('1'+i)) + v
@@ -58,6 +60,7 @@ func attivaMenu(l string) error {
 			}
 			_ = c.SetStringValue("MUIVerb", testoMenu(l, v))
 			_ = c.SetStringValue("Icon", `"`+exe+`",0`)
+			_ = c.SetStringValue("MultiSelectModel", "Player")
 			c.Close()
 			c, _, err = registry.CreateKey(registry.CURRENT_USER, chiave+`\command`, registry.SET_VALUE)
 			if err != nil {
@@ -121,8 +124,18 @@ func leggiComandoMenu() string {
 func menuAttivoWin() bool { return leggiComandoMenu() != "" }
 
 // menuPuntaA: le voci avviano proprio questo exe?
+// Controlla anche MultiSelectModel (aggiunto nella 1.1.1): le voci vecchie si riscrivono da sole.
 func menuPuntaA(exe string) bool {
-	return strings.EqualFold(leggiComandoMenu(), comandoMenu(exe, "apri"))
+	if !strings.EqualFold(leggiComandoMenu(), comandoMenu(exe, "apri")) {
+		return false
+	}
+	k, err := registry.OpenKey(registry.CURRENT_USER, `Software\Classes\SystemFileAssociations\.pdf\shell\`+verboMenu, registry.QUERY_VALUE)
+	if err != nil {
+		return false
+	}
+	defer k.Close()
+	v, _, err := k.GetStringValue("MultiSelectModel")
+	return err == nil && v == "Player"
 }
 
 func impostaMenuWin(on bool, l string) error {

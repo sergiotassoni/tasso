@@ -8,8 +8,9 @@ package main
 
 import (
 	"encoding/base64"
+	"errors"
 	"fmt"
-	"os"
+	"io/fs"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -48,7 +49,22 @@ func goOrganizza(id, pw string, altri []FonteAltra, seq []PaginaSeq) (VoceInfo, 
 		}
 		fonti = append(fonti, b)
 	}
-	return esegui(id, pw, func([]byte, string) ([]byte, error) { return Organizza(fonti, seq) })
+	vi, err := esegui(id, pw, func([]byte, string) ([]byte, error) { return Organizza(fonti, seq) })
+	if err == nil && len(altri) > 0 {
+		// pagine prese anche da altri file: il marchio del web più severo fra tutti
+		var zone [][]byte
+		for _, a := range append([]FonteAltra{{ID: id}}, altri...) {
+			if v, e := prendiVoce(a.ID); e == nil {
+				zone = append(zone, v.Zona)
+			}
+		}
+		if nv, e := prendiVoce(vi.ID); e == nil {
+			archivio.Lock()
+			nv.Zona = zonaPiuSevera(append(zone, nv.Zona)...)
+			archivio.Unlock()
+		}
+	}
+	return vi, err
 }
 
 // ElementoPagina: un Elemento come lo manda la pagina (l'immagine in base64).
@@ -119,6 +135,7 @@ func goCaricaTesto(nome, testo string) VoceInfo {
 type serie struct {
 	base, ext string
 	scritti   []string
+	zona      []byte // marchio del web del PDF d'origine
 }
 
 var serieAperte = struct {
@@ -132,8 +149,10 @@ func goSerieInizio(idOrigine, nomeSuggerito, titolo, ext string) (string, error)
 		return "", perPagina(errc("generico", nil))
 	}
 	cartella := ""
+	var zona []byte
 	if v, err := prendiVoce(idOrigine); err == nil {
 		cartella = v.cartella()
+		zona = v.Zona
 	}
 	p, err := chiediDove(nomeSuggerito, cartella, titolo, ext)
 	if err != nil || p == "" {
@@ -143,7 +162,7 @@ func goSerieInizio(idOrigine, nomeSuggerito, titolo, ext string) (string, error)
 	defer serieAperte.Unlock()
 	serieAperte.n++
 	tok := "s" + strconv.Itoa(serieAperte.n)
-	serieAperte.m[tok] = &serie{base: strings.TrimSuffix(p, filepath.Ext(p)), ext: ext}
+	serieAperte.m[tok] = &serie{base: strings.TrimSuffix(p, filepath.Ext(p)), ext: ext, zona: zona}
 	return tok, nil
 }
 
@@ -160,20 +179,27 @@ func goSerieScrivi(tok string, n int, b64 string) (string, error) {
 	}
 	p := ""
 	for k := 1; ; k++ {
+		if k > 99 {
+			return "", perPagina(errc("scrittura", nil))
+		}
 		p = fmt.Sprintf("%s - %d.%s", s.base, n, s.ext)
 		if k > 1 {
 			p = fmt.Sprintf("%s - %d (%d).%s", s.base, n, k, s.ext)
 		}
-		if _, err := os.Stat(p); os.IsNotExist(err) && !eUnOriginale(p) {
+		if eUnOriginale(p) {
+			continue
+		}
+		// Crea il file solo se non c'è ancora (O_EXCL): anche se un altro programma lo crea
+		// proprio in questo momento, non viene mai sovrascritto.
+		err = scriviNuovo(p, b)
+		if err == nil {
 			break
 		}
-		if k > 99 {
-			return "", perPagina(errc("scrittura", nil))
+		if !errors.Is(err, fs.ErrExist) {
+			return "", perPagina(errc("scrittura", err))
 		}
 	}
-	if err := scriviSicuro(p, b); err != nil {
-		return "", perPagina(errc("scrittura", err))
-	}
+	mettiZona(p, s.zona)
 	serieAperte.Lock()
 	s.scritti = append(s.scritti, p)
 	serieAperte.Unlock()
