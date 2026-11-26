@@ -41,6 +41,8 @@ var avvioT0 = time.Now()
 
 func main() {
 	hardenProcess()
+	// Partito dall'attività \Tasso\Apri Tasso: tengo solo gli argomenti permessi (apri_admin.go).
+	argomentiDaAttivita()
 	// Cancellazione sicura chiesta da uno script di pulizia (cancella_sicura.go): niente finestra,
 	// niente copia unica, fa il lavoro e chiude.
 	if len(os.Args) > 1 && os.Args[1] == argCancellaSicura {
@@ -52,6 +54,17 @@ func main() {
 		if a == argChiudi {
 			os.Exit(chiudiCopiaAperta())
 		}
+	}
+	// Tasso.exe --prepara-apertura (lo usa l'installatore): prepara l'attività \Tasso\Apri Tasso ed esce.
+	for _, a := range os.Args[1:] {
+		if a == argPreparaApertura {
+			os.Exit(preparaAperturaDaRiga())
+		}
+	}
+	// Dalla 3.1.1 il manifest non chiede l'amministratore (niente scudo sull'icona): senza permessi
+	// Tasso si riapre dall'attività \Tasso\Apri Tasso, o chiede i permessi a Windows (apri_admin.go).
+	if apriConPermessi() {
+		return
 	}
 	// Profilo gioco all'accensione del PC (Tasso non parte con Windows): rimetto il profilo e chiudo,
 	// senza finestra e senza tenere occupato Tasso, così se lo apri tu si apre normalmente.
@@ -178,6 +191,9 @@ func main() {
 	}
 	wv = w
 	defer w.Destroy()
+	if daAttivita && !minimized {
+		pSetFg.Call(uintptr(w.Window())) // partito dall'attività, non da un clic: la porto davanti
+	}
 	scriviAvvio("finestra creata")
 
 	// Le finestre "Scegli un file" vogliono il filo della finestra: tutte le altre chiamate
@@ -323,7 +339,7 @@ func newWindow() webview2.WebView {
 
 var dllSafe bool
 
-// hardenProcess: Tasso gira come amministratore, quindi all'avvio chiude due porte che un
+// hardenProcess: Tasso gira come amministratore (dalla 3.1.1 tramite apri_admin.go), quindi all'avvio chiude due porte che un
 // programma normale potrebbe usare per prendere il controllo di Tasso:
 //   - le DLL si caricano solo da System32, mai dalla cartella di Tasso.exe (es. Download), dove
 //     qualcuno potrebbe aver messo una DLL falsa;

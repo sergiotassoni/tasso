@@ -635,6 +635,12 @@ func setAutostart(on bool) string {
 // nel caso il file sia stato spostato.
 func refreshScheduledTasks() {
 	time.Sleep(3 * time.Second)
+	// \Tasso\Apri Tasso: apre Tasso da amministratore senza chiedere (apri_admin.go). Anche per chi
+	// passa dalla 3.1 alla 3.1.1 con l'aggiornamento di Tasso, senza l'installatore.
+	func() {
+		defer guard("apri-admin")
+		preparaAttivitaApri()
+	}()
 	setMu.Lock()
 	a, w, p := settings.Autostart, settings.Weekly, settings.Paused
 	setMu.Unlock()
