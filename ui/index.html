@@ -270,7 +270,7 @@ function vai(p){
   ind.hidden = !(p === 1 || p === 2); ann.hidden = true; av.hidden = false; av.disabled = false;
   if (p === 0 || p === 1) av.textContent = T('avanti');
   if (p === 2) { av.textContent = A.installata ? T('aggiorna') : T('installa'); controllaCartella(); }
-  if (p === 3) { av.hidden = true; ann.hidden = false; ann.disabled = false; }
+  if (p === 3) { av.hidden = true; ann.hidden = false; ann.disabled = false; ann.textContent = T('annulla'); } // anche dopo Riprova (in 5 dice Chiudi)
   if (p === 4 || p === 7) { av.textContent = T('chiudi'); }
   if (p === 5) { av.textContent = T('riprova'); ann.hidden = false; ann.textContent = T('chiudi'); }
   if (p === 6) { av.textContent = T('dis_bottone'); ann.hidden = false; ann.textContent = T('annulla'); }
@@ -422,7 +422,8 @@ function aggiornaSceltaDati(pre){
   $('#rigaDati').hidden = P !== 6 || $('#sceltaDati').hidden;
 }
 async function disinstalla(){
-  const ids = A.componenti.map(c => c.id).filter(id => dis[id]);
+  // solo quelli installati (dis parte spuntato anche per quelli che non ci sono): tutti tolti = dis_nessuno
+  const ids = A.componenti.map(c => c.id).filter(id => dis[id] && ((A.installata && A.installata.componenti) || []).includes(id));
   if (!ids.length) { msg(T('dis_nessuno')); return; }
   const aperti = await call('goProgrammiAperti', A.cartella, ids);
   if (aperti && aperti.length && !await chiediChiusura(aperti)) return;

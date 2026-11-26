@@ -54,3 +54,15 @@ func TestPaginaAggiorna(t *testing.T) {
 		t.Fatal("la finestrella carica qualcosa da internet")
 	}
 }
+
+// Disinstalla: si mandano solo i componenti installati (togliendo la spunta a tutti si deve vedere
+// dis_nessuno, non "fatto"); la pagina dell'installazione dice Annulla anche dopo Riprova.
+func TestPaginaDisinstallaEAnnulla(t *testing.T) {
+	p := Pagina()
+	if !strings.Contains(p, "filter(id => dis[id] && ((A.installata && A.installata.componenti) || []).includes(id))") {
+		t.Error("disinstalla: i componenti non installati finiscono tra quelli da togliere")
+	}
+	if !strings.Contains(p, "if (p === 3) { av.hidden = true; ann.hidden = false; ann.disabled = false; ann.textContent = T('annulla'); }") {
+		t.Error("pagina 3: il pulsante Annulla non torna Annulla dopo Riprova")
+	}
+}
