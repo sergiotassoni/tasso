@@ -572,7 +572,7 @@ const windowsUpdateScript = `
 # Windows Update a volte resta appeso per ore (ricerca che non finisce, download fermo). Lo faccio
 # lavorare a parte e guardo da qui: ogni fase ha un tempo massimo; se lo supera la lascio perdere
 # (Windows Update la può finire da solo più tardi) e la pulizia va avanti.
-$wuSt = [hashtable]::Synchronized(@{ Fase = 'cerca'; Da = [DateTime]::UtcNow; Fine = $false })
+$wuSt = [hashtable]::Synchronized(@{ Fase = 'cerca'; Da = [DateTime]::UtcNow; Fine = $false; Fatti = 0; Rb = $false })
 $wuLim = @{ cerca = 900; scarica = 1500; installa = 2100 }
 $wuNomi = @{ cerca = 'ricerca degli aggiornamenti'; scarica = 'download'; installa = 'installazione' }
 $wuProg = @{ cerca = 0.02; scarica = 0.05; installa = 0.4 }
@@ -638,7 +638,8 @@ try {
         $one = New-Object -ComObject Microsoft.Update.UpdateColl; [void]$one.Add($u)
         $c = 4
         try { $inst = $session.CreateUpdateInstaller(); $inst.Updates = $one; $r = $inst.Install(); $c = [int]$r.ResultCode; if ($r.RebootRequired) { $rb = $true } } catch {}
-        if ($c -eq 2 -or $c -eq 3) { $fatti++ }
+        if ($c -eq 2 -or $c -eq 3) { $fatti++; $St.Fatti = $fatti }
+        if ($rb) { $St.Rb = $true }
         $t = $names[$c]; if (-not $t) { $t = 'esito ' + $c }
         Say ($u.Title + ' -> ' + $t)
       }
@@ -660,6 +661,9 @@ while (-not $wuH.AsyncWaitHandle.WaitOne(1000)) {
   if ($el -ge $lim) {
     try { [void]$wuPs.BeginStop($null, $null) } catch {}
     Say ('Windows Update ({0}) ci mette troppo: lo lascio perdere dopo {1} minuti e vado avanti. Windows può finire da solo più tardi.' -f $wuNomi[$f], [int][math]::Round($el / 60))
+    # Quelli già installati prima di fermarmi contano (Bentornato, riavvio per finirli).
+    if ([int]$wuSt.Fatti -gt 0) { [Console]::Out.WriteLine('WUINST ' + [int]$wuSt.Fatti) }
+    if ($wuSt.Rb) { [Console]::Out.WriteLine('REBOOT') }
     # Windows Update resta appeso dentro Windows: chiudo subito questo PowerShell, senza aspettarlo.
     [Console]::Out.WriteLine('SLOW'); [Console]::Out.Flush()
     [Environment]::Exit(0)

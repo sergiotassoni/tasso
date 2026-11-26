@@ -6,7 +6,9 @@ package main
 
 import (
 	"sort"
+	"strconv"
 	"strings"
+	"time"
 )
 
 // Quando ha finito la pulizia: lascia acceso, riavvia o spegni.
@@ -92,6 +94,58 @@ func shutdownConRiprova(run func(args ...string) int, args []string) esitoShutdo
 	run("/a")
 	c = run(args...)
 	return esitoShutdown{OK: c == 0, Codice: c, Riprovato: true}
+}
+
+// riservaSecondi: anche quando shutdown.exe risponde "ok", se dopo il suo tempo + questi secondi
+// Tasso è ancora vivo (Windows non è partito davvero: il caso del portatile di Sergio, dove il conto
+// alla rovescia si vedeva ma il PC non si riavviava) ci provo da solo con ExitWindowsEx. La finestra
+// dice "non è partito" dopo il tempo + 30 s, quindi prima tento io.
+const riservaSecondi = 20
+
+// fineDeps: le parti Windows di riavvio/spegnimento (nei test sono finte).
+type fineDeps struct {
+	shutdown    func(args ...string) int // shutdown.exe, restituisce il codice di uscita
+	puoSpegnere func() bool              // il privilegio di spegnimento c'è
+	arma        func(dopo time.Duration) // conto alla rovescia di Tasso, poi ExitWindowsEx (annullabile)
+	esci        func() error             // ExitWindowsEx subito
+}
+
+// pianificaFineCon: riavvia/spegne tra secs secondi. Prima shutdown.exe (con riprova se ce n'era già
+// uno programmato) e in più la riserva di Tasso (ExitWindowsEx dopo secs+riservaSecondi, se Windows
+// non è partito); se shutdown.exe non accetta, il conto alla rovescia lo tiene Tasso (ExitWindowsEx
+// dopo secs). false = non si è potuto (la finestra lo dice).
+func pianificaFineCon(d fineDeps, riavvia bool, secs int, msg string) bool {
+	k := "/s"
+	if riavvia {
+		k = "/r"
+	}
+	args := []string{k, "/t", strconv.Itoa(secs)}
+	if msg != "" {
+		args = append(args, "/c", msg)
+	}
+	if shutdownConRiprova(d.shutdown, args).OK {
+		d.arma(time.Duration(secs+riservaSecondi) * time.Second)
+		return true
+	}
+	if !d.puoSpegnere() {
+		return false
+	}
+	d.arma(time.Duration(secs) * time.Second)
+	return true
+}
+
+// adessoFineCon: "Riavvia adesso" / "Spegni adesso". Prima shutdown.exe /t 0 (con riprova) più la
+// riserva di Tasso; se non accetta, ExitWindowsEx subito.
+func adessoFineCon(d fineDeps, riavvia bool) bool {
+	k := "/s"
+	if riavvia {
+		k = "/r"
+	}
+	if shutdownConRiprova(d.shutdown, []string{k, "/t", "0"}).OK {
+		d.arma(time.Duration(riservaSecondi) * time.Second)
+		return true
+	}
+	return d.esci() == nil
 }
 
 // passoFatto: un passaggio della pulizia finita, per il "Bentornato".

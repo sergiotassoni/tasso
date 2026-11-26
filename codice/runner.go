@@ -663,14 +663,16 @@ func startSteps(ids []string, level int, fine string, winupdate bool) string {
 			if riavvia {
 				msg = trGo("Tasso ha finito la manutenzione: il PC si riavvia tra 60 secondi.")
 			}
+			riep := riepilogoPulizia{
+				Livello: level, Fine: fine, FinitaAlle: time.Now().Format("15:04"), Quando: time.Now().Unix(),
+				Liberato: total, Aggiornamenti: wuInst, Fatti: done, Totale: len(sel), Passi: passi,
+			}
 			if pianificaFine(riavvia, fineSecondi, msg) {
 				restart, shutdown = riavvia, !riavvia
-				salvaBentornato(riepilogoPulizia{
-					Livello: level, Fine: fine, FinitaAlle: time.Now().Format("15:04"), Quando: time.Now().Unix(),
-					Liberato: total, Aggiornamenti: wuInst, Fatti: done, Totale: len(sel), Passi: passi,
-				})
+				salvaBentornato(riep)
 			} else {
 				fineErr = true
+				bentornatoInSospeso(riep) // se poi "Riavvia adesso" parte, il Bentornato c'è lo stesso
 				logLine("Windows non ha accettato il riavvio o lo spegnimento: lo puoi chiedere da Tasso con il pulsante.")
 			}
 		}
