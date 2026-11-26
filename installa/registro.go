@@ -1,7 +1,6 @@
 package installa
 
 import (
-	"errors"
 	"sort"
 	"strings"
 	"sync"
@@ -36,9 +35,6 @@ type Registro interface {
 	// Vuota dice se la chiave non ha valori né sottochiavi (o non esiste).
 	Vuota(r Radice, chiave string) bool
 }
-
-// ErrNonTrovato: valore o chiave che non c'è.
-var ErrNonTrovato = errors.New("non trovato nel registro")
 
 // RegistroMemoria simula il registro (per i test e per le prove su Linux).
 type RegistroMemoria struct {

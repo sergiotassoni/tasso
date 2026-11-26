@@ -266,11 +266,10 @@ func (in *Installatore) installa(ctx context.Context, o Opzioni) (*Stato, error)
 			}
 			dst, _ := percorsoFile(filepath.Join(nuovi, string(id)), f.Nome)
 			in.avanza(Avanzamento{Fase: "copia", File: f.Nome, Fatto: fatto, Totale: totale})
-			n, err := in.copiaControlla(ctx, path.Join(string(id), f.Nome), dst, f, func(d int64) {
+			_, err := in.copiaControlla(ctx, path.Join(string(id), f.Nome), dst, f, func(d int64) {
 				fatto += d
 				in.avanza(Avanzamento{Fase: "copia", File: f.Nome, Fatto: fatto, Totale: totale})
 			})
-			_ = n
 			if err != nil {
 				pulisci()
 				if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
@@ -509,20 +508,17 @@ func (in *Installatore) installa(ctx context.Context, o Opzioni) (*Stato, error)
 			nuoviColl = append(nuoviColl, c)
 		}
 		voluti := map[string]bool{}
-		tassoOra := false
-		for _, id := range progScelti {
-			tassoOra = tassoOra || id == ProgTasso
-		}
 		for _, c := range nuoviColl {
 			voluti[strings.ToLower(c.Percorso)] = true
 		}
 		// collegamenti di Tasso con un nome vecchio (es. "Tasso.lnk" delle versioni precedenti): li
-		// tolgo, ma solo se adesso installo anche Tasso (se aggiorno solo Zip, quelli di Tasso restano)
+		// tolgo, ma solo se adesso installo anche Tasso (se aggiorno solo Zip, quelli di Tasso restano).
 		// Con DesktopTogli via anche quelli sul Desktop dei programmi scelti.
 		scelto := map[Programma]bool{}
 		for _, id := range progScelti {
 			scelto[id] = true
 		}
+		tassoOra := scelto[ProgTasso]
 		tenuti := st.Collegamenti[:0]
 		for _, c := range st.Collegamenti {
 			vecchioNome := tassoOra && c.Programma == ProgTasso && !voluti[strings.ToLower(c.Percorso)]
