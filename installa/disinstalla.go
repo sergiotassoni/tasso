@@ -15,6 +15,10 @@ type Risultato struct {
 	NonTolti   []string // file che non si sono potuti cancellare (aperti?)
 	// AlRiavvio: file ancora occupati anche dopo aver riprovato: li cancella Windows al prossimo riavvio.
 	AlRiavvio []string
+	// DatiTenuti: con "togli anche i miei dati", le cartelle tenute apposta (CartelleDaTenere:
+	// originali dei giochi tradotti, copie del registro) perché non erano vuote. La pagina finale
+	// lo dice.
+	DatiTenuti []string
 }
 
 // OpzioniDisinstalla: scelte della pagina "Disinstalla".
@@ -395,6 +399,9 @@ func (in *Installatore) togliDatiTenendo(d string, tieni []string, ris *Risultat
 		return
 	}
 	Diario("%s: tengo %v (originali dei giochi o copie del registro che Tasso non ha messo in Documenti)", d, tenute)
+	for _, t := range tenute {
+		ris.DatiTenuti = append(ris.DatiTenuti, filepath.Join(d, t))
+	}
 	voci, err := os.ReadDir(d)
 	if err != nil {
 		return

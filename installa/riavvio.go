@@ -11,12 +11,15 @@ import (
 // stesso nome (Tasso.exe, la cartella lavoro...). Dopo un'installazione riuscita tolgo queste
 // cancellazioni, ma solo quelle dentro la cartella di Tasso e solo per file che adesso servono:
 // restano quelle delle copie da buttare (.tasso-setup-*, *.vecchio-N, Tasso.exe.old...).
+// E solo per i programmi che si stanno installando: reinstallando solo Tasso, le cancellazioni
+// dei file di Tasso Zip e Tasso PDF (tolti prima) restano, e viceversa.
 
 // TogliCancellazioniPendenti: voci è il valore di PendingFileRenameOperations (a coppie). Restituisce
 // le voci senza le cancellazioni dentro base da annullare, e quante ne ha tolte. Le rinomine vere
 // (destinazione non vuota), quelle fuori da base e quelle dei resti da buttare restano, in ordine.
-// Se le voci non sono a coppie non tocca niente.
-func TogliCancellazioniPendenti(voci []string, base string) ([]string, int) {
+// progs: i programmi appena installati (ProgrammiPer delle opzioni). Se le voci non sono a coppie
+// non tocca niente.
+func TogliCancellazioniPendenti(voci []string, base string, progs []Programma) ([]string, int) {
 	if len(voci)%2 != 0 || base == "" {
 		return voci, 0
 	}
@@ -24,7 +27,7 @@ func TogliCancellazioniPendenti(voci []string, base string) ([]string, int) {
 	tolte := 0
 	for i := 0; i < len(voci); i += 2 {
 		da, a := voci[i], voci[i+1]
-		if a == "" && cancellazioneDaAnnullare(percorsoPendente(da), base) {
+		if a == "" && cancellazioneDaAnnullare(percorsoPendente(da), base, progs) {
 			tolte++
 			continue
 		}
@@ -39,7 +42,7 @@ func percorsoPendente(p string) string {
 	return strings.TrimPrefix(p, `\\?\`)
 }
 
-func cancellazioneDaAnnullare(p, base string) bool {
+func cancellazioneDaAnnullare(p, base string, progs []Programma) bool {
 	if !Dentro(p, base) {
 		return false
 	}
@@ -61,5 +64,21 @@ func cancellazioneDaAnnullare(p, base string) bool {
 			return false
 		}
 	}
-	return true
+	// di quale programma è: Tasso Zip e Tasso PDF hanno la loro cartella, il resto è di Tasso,
+	// tranne il disinstallatore e tasso-setup.json (si riscrivono con qualunque programma)
+	di := ProgTasso
+	switch {
+	case strings.EqualFold(prima, CartellaZip):
+		di = ProgZip
+	case strings.EqualFold(prima, CartellaPDF):
+		di = ProgPDF
+	case !strings.Contains(rel, `\`) && (nome == strings.ToLower(NomeDisinstalla) || nome == FileStato):
+		return len(progs) > 0
+	}
+	for _, x := range progs {
+		if x == di {
+			return true
+		}
+	}
+	return false
 }

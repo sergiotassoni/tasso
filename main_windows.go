@@ -515,7 +515,10 @@ func collega(w webview2.WebView) {
 		if err != nil {
 			return map[string]any{"ok": false, "dettagli": err.Error()}
 		}
-		return map[string]any{"ok": true, "tuttoTolto": r.TuttoTolto, "nonTolti": r.NonTolti, "alRiavvio": r.AlRiavvio}
+		if viaTasso {
+			togliCollegamentoVecchio(baseDisins) // il Tasso.lnk della 3.0 sistemato all'installazione
+		}
+		return map[string]any{"ok": true, "tuttoTolto": r.TuttoTolto, "nonTolti": r.NonTolti, "alRiavvio": r.AlRiavvio, "datiTenuti": r.DatiTenuti}
 	})
 }
 
@@ -560,7 +563,7 @@ func installaInFondo(ctx context.Context, o installa.Opzioni) {
 	var avviso *installa.AvvisoCollegamenti
 	if err == nil || errors.As(err, &avviso) {
 		// reinstallato prima di riavviare dopo una disinstallazione: Windows non deve cancellare i file nuovi
-		annullaCancellazioniPendenti(o.Base)
+		annullaCancellazioniPendenti(o.Base, o.Componenti)
 		// collegamenti di Tasso anche sul Desktop: il Tasso.lnk della 3.0 portatile non deve più
 		// aprire la 3.0 scaricata (solo se è proprio quello, vedi CollegamentoVecchioDaAggiornare)
 		if o.Desktop {

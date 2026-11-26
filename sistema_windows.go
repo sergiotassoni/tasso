@@ -979,9 +979,10 @@ func conUtenteSessione(in *installa.Installatore) *installa.Installatore {
 // annullaCancellazioniPendenti: dopo un'installazione riuscita in base, toglie da
 // PendingFileRenameOperations le cancellazioni al riavvio dei file di Tasso dentro base (messe da
 // una disinstallazione fatta prima di riavviare): altrimenti al riavvio Windows cancellerebbe i
-// file nuovi con lo stesso nome. Vedi installa.TogliCancellazioniPendenti. Se qualcosa non va
-// non tocca niente.
-func annullaCancellazioniPendenti(base string) {
+// file nuovi con lo stesso nome. Solo quelle dei programmi appena installati (cc): reinstallando
+// solo Tasso, i file di Tasso Zip e Tasso PDF tolti prima si cancellano lo stesso. Vedi
+// installa.TogliCancellazioniPendenti. Se qualcosa non va non tocca niente.
+func annullaCancellazioniPendenti(base string, cc []installa.Componente) {
 	k, err := registry.OpenKey(registry.LOCAL_MACHINE, `SYSTEM\CurrentControlSet\Control\Session Manager`,
 		registry.QUERY_VALUE|registry.SET_VALUE)
 	if err != nil {
@@ -1001,7 +1002,7 @@ func annullaCancellazioniPendenti(base string) {
 		installa.Diario("PendingFileRenameOperations in un formato che non conosco: non lo tocco")
 		return
 	}
-	resto, tolte := installa.TogliCancellazioniPendenti(voci, base)
+	resto, tolte := installa.TogliCancellazioniPendenti(voci, base, append(installa.ProgrammiPer(cc), installa.ProgSetup))
 	if tolte == 0 {
 		return
 	}
@@ -1089,4 +1090,23 @@ func aggiornaCollegamentoVecchio(base string) {
 	err = creaCollegamento(installa.Collegamento{Percorso: lnk, Destinazione: nuovo, Cartella: base,
 		Descrizione: desc, Programma: installa.ProgTasso})
 	installa.Diario("%s portava a %s (Tasso 3.0 portatile): ora porta a %s (errore: %v)", lnk, dest, nuovo, err)
+}
+
+// togliCollegamentoVecchio: tolto Tasso, via anche il Desktop\Tasso.lnk della 3.0 che
+// aggiornaCollegamentoVecchio aveva fatto puntare al Tasso di base (solo se porta proprio a
+// base\Tasso.exe, vedi installa.CollegamentoVecchioNostro). In ogni altro caso non tocco niente.
+func togliCollegamentoVecchio(base string) {
+	lnk := installa.PercorsoCollegamentoVecchio(cartellaNota(windows.FOLDERID_Desktop, ""))
+	if lnk == "" {
+		return
+	}
+	if fi, err := os.Lstat(lnk); err != nil || !fi.Mode().IsRegular() {
+		return
+	}
+	dest, arg, _, err := leggiCollegamento(lnk)
+	if err != nil || !installa.CollegamentoVecchioNostro(dest, arg, base) {
+		return
+	}
+	err = togliFile(lnk)
+	installa.Diario("%s portava a %s (Tasso tolto): via (errore: %v)", lnk, dest, err)
 }
