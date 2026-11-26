@@ -34,3 +34,15 @@ func PercorsoCollegamentoVecchio(desktop string) string {
 	}
 	return filepath.Join(desktop, NomeCollegamentoVecchio)
 }
+
+// CollegamentoVecchioNostro: il Desktop\Tasso.lnk (destinazione dest, argomenti) è quello della 3.0
+// che aggiornaCollegamentoVecchio ha fatto puntare al Tasso installato in base: porta proprio a
+// base\Tasso.exe, senza argomenti. Togliendo Tasso va via anche lui (altrimenti resterebbe sul
+// Desktop a puntare a un Tasso.exe che non c'è più). In ogni altro caso non si tocca.
+func CollegamentoVecchioNostro(dest, argomenti, base string) bool {
+	if strings.TrimSpace(argomenti) != "" || normPercorso(base) == "" {
+		return false
+	}
+	d := normPercorso(dest)
+	return d != "" && d == normPercorso(base)+`\tasso.exe`
+}

@@ -119,7 +119,7 @@ label.scelta.fissa{cursor:default;opacity:.7}
 .btn.primary{background:var(--text);color:var(--bg)}
 .btn.primary:hover{background:#fff;transform:translateY(-1px);box-shadow:0 0 0 3px color-mix(in srgb,var(--text) 14%,transparent)}
 .btn.primary:disabled{opacity:.35;cursor:default;box-shadow:none;transform:none}
-.btn.ghost{background:transparent;color:var(--text);box-shadow:inset 0 0 0 1px var(--line);font:600 13.5px var(--body);letter-spacing:0;text-transform:none}
+.btn.ghost{background:transparent;color:var(--text);box-shadow:inset 0 0 0 1px var(--line);font-weight:700}
 .btn.ghost:hover{box-shadow:inset 0 0 0 1px var(--muted)}
 .btn.ghost:disabled{opacity:.35;cursor:default}
 .velo{position:fixed;inset:0;background:color-mix(in srgb,var(--bg) 78%,transparent);backdrop-filter:blur(3px);display:none;place-items:center;z-index:9}
@@ -194,20 +194,20 @@ ol.passi li i,.ver,.lingue button span{color:#7A808D}
     </section>
     <!-- 5. errore -->
     <section class="pagina" id="p5">
-      <div class="k" data-t="err_titolo"></div>
+      <div class="k" data-t="k_errore"></div>
       <div class="testa"><svg class="gmask" viewBox="0 0 240 220" aria-hidden="true"><path d="M44 22 H196 L226 104 L120 206 L14 104 Z" fill="var(--text)"/><path d="M80 22 H106 L108 142 L56 132 L36 98 Z" fill="var(--bg)"/><path d="M160 22 H134 L132 142 L184 132 L204 98 Z" fill="var(--bg)"/><g class="look"><circle class="eye" cx="82" cy="112" r="12" fill="var(--a1)"/></g><g class="look"><circle class="eye" cx="158" cy="112" r="12" fill="var(--a1)"/></g><path d="M100 164 H140 L120 190 Z" fill="var(--bg)"/></svg><div><h1 data-t="err_titolo"></h1></div></div>
       <div class="nota errore" id="errTesto"></div>
     </section>
     <!-- 6. disinstalla -->
     <section class="pagina" id="p6">
-      <div class="k" data-t="dis_titolo"></div>
+      <div class="k" data-t="k_disinstalla"></div>
       <div class="testa"><svg class="gmask" viewBox="0 0 240 220" aria-hidden="true"><path d="M44 22 H196 L226 104 L120 206 L14 104 Z" fill="var(--text)"/><path d="M80 22 H106 L108 142 L56 132 L36 98 Z" fill="var(--bg)"/><path d="M160 22 H134 L132 142 L184 132 L204 98 Z" fill="var(--bg)"/><g class="look"><circle class="eye" cx="82" cy="112" r="12" fill="var(--a1)"/></g><g class="look"><circle class="eye" cx="158" cy="112" r="12" fill="var(--a1)"/></g><path d="M100 164 H140 L120 190 Z" fill="var(--bg)"/></svg><div><h1 data-t="dis_titolo"></h1><p class="sub" data-t="dis_sotto"></p></div></div>
       <div class="comp" id="compDis"></div>
       <div class="nota" id="notaDis" data-t="dis_nota_tasso"></div>
     </section>
     <!-- 7. disinstallazione finita -->
     <section class="pagina" id="p7">
-      <div class="k" data-t="dis_titolo"></div>
+      <div class="k" data-t="k_disinstalla"></div>
       <div class="testa big"><svg class="gmask" viewBox="0 0 240 220" aria-hidden="true"><path d="M44 22 H196 L226 104 L120 206 L14 104 Z" fill="var(--text)"/><path d="M80 22 H106 L108 142 L56 132 L36 98 Z" fill="var(--bg)"/><path d="M160 22 H134 L132 142 L184 132 L204 98 Z" fill="var(--bg)"/><g class="look"><circle class="eye" cx="82" cy="112" r="12" fill="var(--a1)"/></g><g class="look"><circle class="eye" cx="158" cy="112" r="12" fill="var(--a1)"/></g><path d="M100 164 H140 L120 190 Z" fill="var(--bg)"/></svg><div><h1 data-t="fine_titolo"></h1><p class="sub" id="disEsito"></p></div></div>
       <div class="nota avviso" id="disNonTolti" hidden></div>
     </section>
@@ -445,6 +445,7 @@ async function disinstalla(){
   const nt = $('#disNonTolti'); const righe = [];
   if (r.nonTolti && r.nonTolti.length) righe.push(T('dis_non_tolti', r.nonTolti.join(', ')));
   if (r.alRiavvio && r.alRiavvio.length) righe.push(T('dis_al_riavvio', r.alRiavvio.join(', ')));
+  if (r.datiTenuti && r.datiTenuti.length) righe.push(T('dis_dati_tenuti', r.datiTenuti.join(', ')));
   nt.hidden = !righe.length; if (!nt.hidden) nt.textContent = righe.join('\n');
   vai(7);
 }

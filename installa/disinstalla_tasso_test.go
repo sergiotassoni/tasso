@@ -5,6 +5,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -258,6 +259,10 @@ func TestDisinstallaDatiTieneOriginaliGiochi(t *testing.T) {
 	if !r.TuttoTolto || esiste(p.base) {
 		t.Fatalf("la cartella di Tasso doveva sparire (tutto tolto %v, non tolti %v)", r.TuttoTolto, r.NonTolti)
 	}
+	tenuti := []string{filepath.Join(dati, "Tasso", "backup"), filepath.Join(dati, "TassoTraduce", "copie-giochi")}
+	if !reflect.DeepEqual(r.DatiTenuti, tenuti) {
+		t.Fatalf("dati tenuti %q, voglio %q (la pagina finale deve dirlo)", r.DatiTenuti, tenuti)
+	}
 
 	// Tasso ha già spostato tutto in Documenti (copie-giochi vuota): via la cartella intera
 	p2 := nuovaProva(t, "3.1")
@@ -268,8 +273,12 @@ func TestDisinstallaDatiTieneOriginaliGiochi(t *testing.T) {
 	os.MkdirAll(filepath.Join(dati2, "TassoTraduce", "copie-giochi"), 0o755)
 	os.WriteFile(filepath.Join(dati2, "TassoTraduce", "memoria.db"), []byte("x"), 0o644)
 	p2.in.CartellaDatiUtente = func() string { return dati2 }
-	if _, err := p2.in.DisinstallaCon(p2.base, []Componente{Gaming}, OpzioniDisinstalla{TogliDati: true}); err != nil {
+	r2, err := p2.in.DisinstallaCon(p2.base, []Componente{Gaming}, OpzioniDisinstalla{TogliDati: true})
+	if err != nil {
 		t.Fatal(err)
+	}
+	if len(r2.DatiTenuti) != 0 {
+		t.Fatalf("niente da tenere, ma dice %q", r2.DatiTenuti)
 	}
 	if esiste(filepath.Join(dati2, "TassoTraduce")) {
 		t.Fatal("TassoTraduce doveva sparire tutta")
@@ -289,5 +298,16 @@ func TestCartellaSoloTassoConResiduiAggiornamento(t *testing.T) {
 	os.WriteFile(filepath.Join(dir, "altro.exe"), nil, 0o644)
 	if CartellaSoloTasso(dir, st) {
 		t.Fatal("altro.exe non è di Tasso")
+	}
+}
+
+// Al riavvio si cancella solo quello che è dentro la cartella dell'installazione.
+func TestAlRiavvioSoloDentroBase(t *testing.T) {
+	r := &Risultato{base: `C:\Program Files\Tasso`}
+	if !r.alRiavvioPermesso(`C:\Program Files\Tasso\lavoro\x.tmp`) || !r.alRiavvioPermesso(`C:\Program Files\Tasso`) {
+		t.Fatal("dentro la cartella si può")
+	}
+	if r.alRiavvioPermesso(`C:\Users\x\AppData\Local\Tasso\memoria.db`) || r.alRiavvioPermesso(`C:\Program Files\TassoAltro\a`) {
+		t.Fatal("fuori dalla cartella non si cancella al riavvio")
 	}
 }

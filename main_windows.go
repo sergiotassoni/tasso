@@ -57,6 +57,7 @@ func L() string {
 }
 
 func main() {
+	protezioneAvvio()
 	installa.ImpostaDiario(filepath.Join(os.TempDir(), installa.NomeDiario))
 	installa.Diario("---- Tasso Setup avviato (%s), argomenti %q", versioneSetup(), os.Args[1:])
 	modoDisins = !pacco.Pieno
@@ -515,7 +516,10 @@ func collega(w webview2.WebView) {
 		if err != nil {
 			return map[string]any{"ok": false, "dettagli": err.Error()}
 		}
-		return map[string]any{"ok": true, "tuttoTolto": r.TuttoTolto, "nonTolti": r.NonTolti, "alRiavvio": r.AlRiavvio}
+		if viaTasso {
+			togliCollegamentoVecchio(baseDisins) // il Tasso.lnk della 3.0 sistemato all'installazione
+		}
+		return map[string]any{"ok": true, "tuttoTolto": r.TuttoTolto, "nonTolti": r.NonTolti, "alRiavvio": r.AlRiavvio, "datiTenuti": r.DatiTenuti}
 	})
 }
 
@@ -560,7 +564,7 @@ func installaInFondo(ctx context.Context, o installa.Opzioni) {
 	var avviso *installa.AvvisoCollegamenti
 	if err == nil || errors.As(err, &avviso) {
 		// reinstallato prima di riavviare dopo una disinstallazione: Windows non deve cancellare i file nuovi
-		annullaCancellazioniPendenti(o.Base)
+		annullaCancellazioniPendenti(o.Base, o.Componenti)
 		// collegamenti di Tasso anche sul Desktop: il Tasso.lnk della 3.0 portatile non deve più
 		// aprire la 3.0 scaricata (solo se è proprio quello, vedi CollegamentoVecchioDaAggiornare)
 		if o.Desktop {
@@ -593,4 +597,19 @@ func installaInFondo(ctx context.Context, o installa.Opzioni) {
 	var apribili []installa.Programma
 	apribili = append(apribili, installa.ProgrammiPer(o.Componenti)...)
 	manda("finito", map[string]any{"ok": true, "avvisoCollegamenti": avviso != nil, "apribili": apribili})
+}
+
+// protezioneAvvio: l'installatore gira come amministratore (come Tasso, vedi codice/main.go
+// hardenProcess): le DLL si caricano solo da System32, mai dalla cartella dell'exe (es. Download,
+// dove qualcuno potrebbe aver messo una DLL falsa), e le variabili WEBVIEW2_* dell'utente
+// (cambiabili senza permessi) si tolgono prima di aprire la finestra. Va chiamata per prima.
+func protezioneAvvio() {
+	if err := windows.SetDefaultDllDirectories(windows.LOAD_LIBRARY_SEARCH_SYSTEM32); err != nil {
+		installa.Diario("SetDefaultDllDirectories: %v", err)
+	}
+	for _, kv := range os.Environ() {
+		if i := strings.IndexByte(kv, '='); i > 0 && strings.HasPrefix(strings.ToUpper(kv[:i]), "WEBVIEW2_") {
+			_ = os.Unsetenv(kv[:i])
+		}
+	}
 }

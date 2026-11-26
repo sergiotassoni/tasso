@@ -28,3 +28,27 @@ func TestCollegamentoVecchioDaAggiornare(t *testing.T) {
 		t.Error("senza Programmi non si decide")
 	}
 }
+
+func TestCollegamentoVecchioNostro(t *testing.T) {
+	base := `C:\Program Files\Tasso`
+	casi := []struct {
+		dest, arg string
+		si        bool
+	}{
+		{`C:\Program Files\Tasso\Tasso.exe`, "", true},
+		{`c:\program files\tasso\TASSO.EXE`, "", true},
+		{`C:\Program Files\Tasso\Tasso.exe`, "--pulisci", false},
+		{`C:\Users\x\Downloads\Tasso.exe`, "", false}, // la 3.0 portatile mai sistemata: non è nostro
+		{`C:\Program Files\Tasso\Tasso Zip\TassoZip.exe`, "", false},
+		{`C:\Program Files\Tasso\Altro\Tasso.exe`, "", false},
+		{``, "", false},
+	}
+	for _, c := range casi {
+		if g := CollegamentoVecchioNostro(c.dest, c.arg, base); g != c.si {
+			t.Errorf("%q %q: %v, voglio %v", c.dest, c.arg, g, c.si)
+		}
+	}
+	if CollegamentoVecchioNostro(`\Tasso.exe`, "", "") {
+		t.Error("senza cartella non si decide")
+	}
+}

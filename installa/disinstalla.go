@@ -15,6 +15,13 @@ type Risultato struct {
 	NonTolti   []string // file che non si sono potuti cancellare (aperti?)
 	// AlRiavvio: file ancora occupati anche dopo aver riprovato: li cancella Windows al prossimo riavvio.
 	AlRiavvio []string
+	// DatiTenuti: con "togli anche i miei dati", le cartelle tenute apposta (CartelleDaTenere:
+	// originali dei giochi tradotti, copie del registro) perché non erano vuote. La pagina finale
+	// lo dice.
+	DatiTenuti []string
+	// base: la cartella dell'installazione. Al riavvio si cancella solo quello che è dentro: i
+	// file fuori (dati in %LOCALAPPDATA%...) restano tra i NonTolti, come dice la pagina finale.
+	base string
 }
 
 // OpzioniDisinstalla: scelte della pagina "Disinstalla".
@@ -164,7 +171,7 @@ func (in *Installatore) DisinstallaCon(base string, togli []Componente, od Opzio
 		progDopo[p] = true
 	}
 	tutto := len(restano) == 0
-	ris := &Risultato{}
+	ris := &Risultato{base: base}
 
 	var via []Programma
 	for _, p := range progPrima {
@@ -312,6 +319,10 @@ func (in *Installatore) togliORiavvio(fp string, ris *Risultato) {
 	if err == nil {
 		return
 	}
+	if !ris.alRiavvioPermesso(fp) {
+		ris.NonTolti = append(ris.NonTolti, fp)
+		return
+	}
 	if in.CancellaAlRiavvio != nil && in.CancellaAlRiavvio(fp) == nil {
 		Diario("%s occupato: si cancella al prossimo riavvio", fp)
 		ris.AlRiavvio = append(ris.AlRiavvio, fp)
@@ -335,13 +346,19 @@ func (in *Installatore) togliCartellaORiavvio(d string, ris *Risultato) {
 	if _, err := os.Lstat(d); err != nil {
 		return
 	}
-	if in.CancellaAlRiavvio != nil {
+	if in.CancellaAlRiavvio != nil && ris.alRiavvioPermesso(d) {
 		in.cancellaAlRiavvio(d)
 		Diario("%s non tolta del tutto: il resto si cancella al prossimo riavvio", d)
 		ris.AlRiavvio = append(ris.AlRiavvio, d)
 		return
 	}
 	ris.NonTolti = append(ris.NonTolti, d)
+}
+
+// alRiavvioPermesso: p si può far cancellare a Windows al riavvio: solo dentro la cartella
+// dell'installazione (fuori, per esempio i dati in %LOCALAPPDATA%, resta tra i non tolti).
+func (r *Risultato) alRiavvioPermesso(p string) bool {
+	return r.base == "" || Dentro(p, r.base)
 }
 
 var errOccupata = errors.New("qualcosa dentro è ancora aperto")
@@ -395,6 +412,9 @@ func (in *Installatore) togliDatiTenendo(d string, tieni []string, ris *Risultat
 		return
 	}
 	Diario("%s: tengo %v (originali dei giochi o copie del registro che Tasso non ha messo in Documenti)", d, tenute)
+	for _, t := range tenute {
+		ris.DatiTenuti = append(ris.DatiTenuti, filepath.Join(d, t))
+	}
 	voci, err := os.ReadDir(d)
 	if err != nil {
 		return

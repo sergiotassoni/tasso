@@ -19,7 +19,7 @@ func TestTogliCancellazioniPendenti(t *testing.T) {
 		`\??\C:\Windows\Temp\y.tmp`, "", // resta
 		`\??\C:\Program Files\Tasso`, "", // via: la cartella stessa
 	}
-	got, n := TogliCancellazioniPendenti(voci, base)
+	got, n := TogliCancellazioniPendenti(voci, base, []Programma{ProgTasso, ProgSetup})
 	want := []string{
 		`\??\C:\Program Files\Tasso\Tasso.exe.vecchio-1`, "",
 		`\??\C:\Program Files\Tasso\.tasso-setup-vecchio\tasso\Tasso.exe`, "",
@@ -33,7 +33,25 @@ func TestTogliCancellazioniPendenti(t *testing.T) {
 	}
 	// non a coppie: non tocco niente
 	dispari := []string{`\??\C:\Program Files\Tasso\Tasso.exe`}
-	if g, n := TogliCancellazioniPendenti(dispari, base); n != 0 || len(g) != 1 {
+	if g, n := TogliCancellazioniPendenti(dispari, base, []Programma{ProgTasso}); n != 0 || len(g) != 1 {
 		t.Fatal("voci dispari toccate")
+	}
+	// reinstallo solo Tasso: Zip e PDF tolti prima restano da cancellare; il disinstallatore no
+	solo := []string{
+		`\??\C:\Program Files\Tasso\Tasso Zip\TassoZip.exe`, "", // resta: Zip non si reinstalla
+		`\??\C:\Program Files\Tasso\Tasso Zip`, "", // resta
+		`\??\C:\Program Files\Tasso\tasso pdf\TassoPDF.exe`, "", // resta
+		`\??\C:\Program Files\Tasso\Disinstalla Tasso.exe`, "", // via: si riscrive sempre
+		`\??\C:\Program Files\Tasso\Tasso.exe`, "", // via
+	}
+	g, n := TogliCancellazioniPendenti(solo, base, []Programma{ProgTasso, ProgSetup})
+	if n != 2 || !reflect.DeepEqual(g, solo[:6]) {
+		t.Fatalf("solo Tasso: tolte %d\n%q", n, g)
+	}
+	// reinstallo solo Zip: via solo i file di Zip (e il disinstallatore), Tasso.exe resta
+	g, n = TogliCancellazioniPendenti(solo, base, []Programma{ProgZip, ProgSetup})
+	want = []string{solo[4], "", solo[8], ""}
+	if n != 3 || !reflect.DeepEqual(g, want) {
+		t.Fatalf("solo Zip: tolte %d\n%q", n, g)
 	}
 }
