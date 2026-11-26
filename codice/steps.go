@@ -396,7 +396,7 @@ function Get-DownloadsSicura {
   # '' = non si tocca.
   $prof = [string]$TassoProfiloVero
   if (-not $prof) { return '' }
-  try { $dl = [IO.Path]::GetFullPath([string](Get-DownloadsPath)).TrimEnd(''); $prof = [IO.Path]::GetFullPath($prof).TrimEnd('') } catch { return '' }
+  try { $dl = [IO.Path]::GetFullPath([string](Get-DownloadsPath)).TrimEnd('\'); $prof = [IO.Path]::GetFullPath($prof).TrimEnd('\') } catch { return '' }
   if (-not (In-Dir $dl $prof) -or ($dl -ieq $prof)) { return '' }
   if (-not (Test-Path -LiteralPath $dl -PathType Container)) { return '' }
   if (-not (Test-NoReparse $dl $prof)) { return '' }
@@ -405,7 +405,7 @@ function Get-DownloadsSicura {
 function Test-DownloadsSposta([string]$from, [string]$destDir, [string]$dl) {
   # Il file da spostare e la cartella di arrivo sono veri (niente giunzioni né collegamenti) e stanno
   # dentro Download: il file direttamente in Download, la cartella subito sotto.
-  try { $f = [IO.Path]::GetFullPath($from); $d = [IO.Path]::GetFullPath($destDir).TrimEnd('') } catch { return $false }
+  try { $f = [IO.Path]::GetFullPath($from); $d = [IO.Path]::GetFullPath($destDir).TrimEnd('\') } catch { return $false }
   if (-not ([IO.Path]::GetDirectoryName($f) -ieq $dl) -or -not ([IO.Path]::GetDirectoryName($d) -ieq $dl)) { return $false }
   return (Test-NoReparse $f $dl) -and (Test-NoReparse $d $dl)
 }
