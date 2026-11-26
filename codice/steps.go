@@ -575,7 +575,7 @@ const windowsUpdateScript = `
 $wuSt = [hashtable]::Synchronized(@{ Fase = 'cerca'; Da = [DateTime]::UtcNow; Fine = $false })
 $wuLim = @{ cerca = 900; scarica = 1500; installa = 2100 }
 $wuNomi = @{ cerca = 'ricerca degli aggiornamenti'; scarica = 'download'; installa = 'installazione' }
-$wuProg = @{ cerca = 0.02; scarica = 0.2; installa = 0.6 }
+$wuProg = @{ cerca = 0.02; scarica = 0.05; installa = 0.4 }
 $wuRs = $null; $wuPs = $null; $wuH = $null
 try {
   $wuRs = [runspacefactory]::CreateRunspace()
@@ -586,36 +586,66 @@ try {
   $wuPs = [powershell]::Create(); $wuPs.Runspace = $wuRs
   [void]$wuPs.AddScript({
     function Say([string]$m) { [Console]::Out.WriteLine('MSG ' + $m); [Console]::Out.Flush() }
+    # 3.1.1: la riga sotto il passaggio in corso (INFO) e la percentuale vera (PROG), un aggiornamento alla volta.
+    function Info([string]$m) { [Console]::Out.WriteLine('INFO ' + $m); [Console]::Out.Flush() }
+    function Prog([double]$f) { [Console]::Out.WriteLine('PROG ' + $f.ToString('0.000', [Globalization.CultureInfo]::InvariantCulture)); [Console]::Out.Flush() }
     $St = $A.St
     try {
       $session = New-Object -ComObject Microsoft.Update.Session
       $searcher = $session.CreateUpdateSearcher()
       Say 'Cerco su Windows Update...'
+      Info 'Cerco gli aggiornamenti...'
       $res = $searcher.Search($A.Criteria)
       $coll = New-Object -ComObject Microsoft.Update.UpdateColl
       foreach ($u in $res.Updates) {
         # I driver della scheda video non passano da qui (come in "Driver di tutto il PC"): Windows Update
         # metterebbe un driver diverso da quello di AMD Software/NVIDIA. Si aggiornano dal riquadro Schede video.
         if ($A.SkipDisplay -and [string]$u.DriverClass -eq 'Display') { Say ('Salto il driver della scheda video: ' + $u.Title + ' (si aggiorna dal riquadro Schede video).'); continue }
+        # Nessuna domanda dopo "Avvia": un aggiornamento che può chiedere qualcosa a chi è davanti al PC lo salto.
+        if ($u.InstallationBehavior.CanRequestUserInput) { Say ('Salto un aggiornamento che potrebbe farti delle domande: ' + $u.Title + ' (lo puoi fare da Impostazioni > Windows Update).'); continue }
         if (-not $u.EulaAccepted) { $u.AcceptEula() }
         [void]$coll.Add($u)
         Say ('Trovato: ' + $u.Title)
       }
       if ($coll.Count -eq 0) { Say $A.NothingMsg; $St.Fine = $true; return }
-      Say ('Scarico ' + $coll.Count + ' aggiornamenti...')
+      # Uno alla volta (come fa PSWindowsUpdate): così so a che punto sono ("2 di 3") e il tempo
+      # massimo vale per ogni aggiornamento, non per tutti insieme.
+      $n = $coll.Count
+      Say ('Scarico ' + $n + ' aggiornamenti...')
       $St.Fase = 'scarica'; $St.Da = [DateTime]::UtcNow
-      $dl = $session.CreateUpdateDownloader(); $dl.Updates = $coll; [void]$dl.Download()
+      for ($i = 0; $i -lt $n; $i++) {
+        $u = $coll.Item($i)
+        Info ('Scarico gli aggiornamenti: {0} di {1}' -f ($i + 1), $n)
+        Prog (0.05 + 0.35 * $i / $n)
+        $St.Da = [DateTime]::UtcNow
+        if (-not $u.IsDownloaded) {
+          $one = New-Object -ComObject Microsoft.Update.UpdateColl; [void]$one.Add($u)
+          try { $dl = $session.CreateUpdateDownloader(); $dl.Updates = $one; [void]$dl.Download() } catch { Say ('Download non riuscito: ' + $u.Title) }
+        }
+      }
+      $ok = New-Object -ComObject Microsoft.Update.UpdateColl
+      foreach ($u in $coll) { if ($u.IsDownloaded) { [void]$ok.Add($u) } }
+      if ($ok.Count -eq 0) { Say 'Non sono riuscito a scaricare gli aggiornamenti: Windows ci riprova da solo più tardi.'; $St.Fine = $true; return }
       Say 'Installo...'
       $St.Fase = 'installa'; $St.Da = [DateTime]::UtcNow
-      $inst = $session.CreateUpdateInstaller(); $inst.Updates = $coll
-      $r = $inst.Install()
       $names = @{ 2 = 'installato'; 3 = 'installato con avvisi'; 4 = 'NON riuscito'; 5 = 'annullato' }
-      for ($i = 0; $i -lt $coll.Count; $i++) {
-        $c = [int]$r.GetUpdateResult($i).ResultCode
+      $m = $ok.Count; $fatti = 0; $rb = $false
+      for ($i = 0; $i -lt $m; $i++) {
+        $u = $ok.Item($i)
+        Info ('Installo {0} aggiornamenti: {1} di {2} fatti' -f $m, $i, $m)
+        Prog (0.4 + 0.6 * $i / $m)
+        $St.Da = [DateTime]::UtcNow
+        $one = New-Object -ComObject Microsoft.Update.UpdateColl; [void]$one.Add($u)
+        $c = 4
+        try { $inst = $session.CreateUpdateInstaller(); $inst.Updates = $one; $r = $inst.Install(); $c = [int]$r.ResultCode; if ($r.RebootRequired) { $rb = $true } } catch {}
+        if ($c -eq 2 -or $c -eq 3) { $fatti++ }
         $t = $names[$c]; if (-not $t) { $t = 'esito ' + $c }
-        Say ($coll.Item($i).Title + ' -> ' + $t)
+        Say ($u.Title + ' -> ' + $t)
       }
-      if ($r.RebootRequired) { Say 'Serve un riavvio per completare.'; [Console]::Out.WriteLine('REBOOT') }
+      Info ('Installo {0} aggiornamenti: {1} di {2} fatti' -f $m, $m, $m)
+      Prog 1
+      [Console]::Out.WriteLine('WUINST ' + $fatti); [Console]::Out.Flush()
+      if ($rb) { Say 'Serve un riavvio per completare.'; [Console]::Out.WriteLine('REBOOT') }
     } catch { Say ('Windows Update non ha risposto: ' + $_.Exception.Message) }
     $St.Fine = $true
   }.ToString())
@@ -642,6 +672,8 @@ try { [void]$wuPs.EndInvoke($wuH); $wuPs.Dispose(); $wuRs.Dispose() } catch {}
 var allSteps = []Step{
 	{ID: "backup", Name: "Backup (punto di ripristino)", Desc: "Crea un punto di ripristino: se qualcosa non va torni indietro.", Level: 2, Minutes: 1.5, Timeout: 8 * time.Minute, Script: `
 Say 'Creo il backup di Windows (punto di ripristino)...'
+# 3.1.1: con un riavvio in attesa il punto di ripristino spesso ci mette molto o non riesce: lo dico subito.
+if ((Test-Path -LiteralPath 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\RebootPending') -or (Test-Path -LiteralPath 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\RebootRequired')) { Say 'Windows aspetta un riavvio per finire un aggiornamento: il backup può metterci di più o non riuscire. Ci provo per al massimo 5 minuti, poi vado avanti.' }
 $key = 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\SystemRestore'
 # "Protezione sistema" spenta (RPSessionInterval = 0): per fare il backup la devo accendere, ma lo dico
 # chiaramente e spiego come rispegnerla (occupa un po' di spazio del disco). Niente più accensione muta.
@@ -939,6 +971,9 @@ $SkipDisplay = $true
 if (-not (Ensure-RestorePoint 'Tasso - prima dei driver di Windows Update')) { Say 'Non sono riuscito a creare un punto di ripristino: per sicurezza non installo i driver adesso. Controlla che "Protezione sistema" sia attiva e riprova.'; return }
 ` + windowsUpdateScript},
 	{ID: "winupdate", Name: "Aggiornamenti di Windows", Desc: "Installa gli aggiornamenti di sicurezza e di sistema.", Level: 3, Minutes: 12, Timeout: 60 * time.Minute, Script: `
+# 3.1.1: se Windows aspetta già un riavvio per finire un aggiornamento, cercarne altri adesso non
+# serve (e spesso resta appeso): salto e lo segnalo, così il riavvio di fine pulizia ha senso.
+if ((Test-Path -LiteralPath 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\RebootPending') -or (Test-Path -LiteralPath 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\RebootRequired')) { Say 'Windows aspetta già un riavvio per finire un aggiornamento: salto questo passaggio. Dopo il riavvio Windows lo finisce da solo.'; [Console]::Out.WriteLine('REBOOT'); [Console]::Out.WriteLine('SKIPPED'); return }
 $Criteria = "IsInstalled=0 and Type='Software' and IsHidden=0 and BrowseOnly=0"
 $NothingMsg = 'Windows è già aggiornato.'
 ` + windowsUpdateScript},

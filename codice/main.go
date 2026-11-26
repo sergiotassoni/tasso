@@ -23,7 +23,7 @@ import (
 //go:embed ui/index.html
 var indexHTML string
 
-const appVersion = "3.1"
+const appVersion = "3.1.1"
 
 var (
 	wv       webview2.WebView
@@ -504,8 +504,23 @@ func bindAll(w webview2.WebView) {
 	_ = w.Bind("goHardware", func() string { go hardwareInfo(); return "ok" })
 	_ = w.Bind("goLive", func() map[string]interface{} { return liveStats() })
 	_ = w.Bind("goHwWatch", func() map[string]interface{} { return hwWatch() })
-	_ = w.Bind("goStartLevel", func(level int, off bool) string { return startLevel(level, off) })
-	_ = w.Bind("goStartSteps", func(ids []string, off bool) string { return startSteps(ids, 0, off) })
+	// fine: "acceso" / "riavvia" / "spegni" (Quando ha finito; dalla 3.1 arrivava un vero/falso =
+	// spegni sì/no, e va ancora bene). wu (facoltativo, di base sì): "Aggiorna anche Windows".
+	_ = w.Bind("goStartLevel", func(level int, fine interface{}, wu ...bool) string {
+		return startLevel(level, sceltaFine(fine), len(wu) == 0 || wu[0])
+	})
+	_ = w.Bind("goStartSteps", func(ids []string, fine interface{}, wu ...bool) string {
+		return startSteps(ids, 0, sceltaFine(fine), len(wu) == 0 || wu[0])
+	})
+	_ = w.Bind("goBattery", func() map[string]interface{} { return statoBatteria() })
+	_ = w.Bind("goBentornato", func() map[string]interface{} { return leggiBentornato() })
+	// "Riavvia adesso" / "Spegni adesso" (banner di fine pulizia, o quando il riavvio non è partito).
+	_ = w.Bind("goEndNow", func(kind string) string {
+		if adessoFine(kind != fineSpegni) {
+			return "ok"
+		}
+		return "no"
+	})
 	_ = w.Bind("goCancelShutdown", func() string { return cancelShutdown() })
 	_ = w.Bind("goSetTheme", func(id, look string) string {
 		r := setTheme(id, look)
@@ -723,9 +738,15 @@ func bindAll(w webview2.WebView) {
 	_ = w.Bind("goVaultPwned", func(id string) string {
 		return async("pwned", func() { r := vaultPwned(id); r["id"] = id; emit("onPwned", r) })
 	})
+	// 3.1.1: prima l'errore di shutdown.exe era ignorato e la finestra mostrava il conto alla
+	// rovescia anche se Windows non aveva accettato (portatile di Sergio: mai riavviato). Ora
+	// "ok" solo se il riavvio è davvero programmato (shutdown.exe con riprova, o ExitWindowsEx
+	// dopo il conto alla rovescia di Tasso); altrimenti "no" e la finestra lo dice.
 	_ = w.Bind("goRestart", func() string {
-		runHidden("shutdown.exe", "/r", "/t", "15", "/c", trGo("Tasso riavvia il PC tra 15 secondi per completare la manutenzione."))
-		return "ok"
+		if pianificaFine(true, 15, trGo("Tasso riavvia il PC tra 15 secondi per completare la manutenzione.")) {
+			return "ok"
+		}
+		return "no"
 	})
 }
 
