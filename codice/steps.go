@@ -817,7 +817,7 @@ foreach ($c in @('Immagini', 'Documenti', 'Video', 'Musica', 'Programmi', 'Archi
 Say ('Rimessi nella cartella Download: ' + $back + ' file.')
 if ($skip) { Say ('Lasciati dove sono: ' + $skip + ' (li avevi già spostati, rinominati o cancellati, oppure al loro posto c''è un file nuovo con lo stesso nome).') }
 `},
-	{ID: "apps", Name: "Aggiornamento programmi", Desc: "Aggiorna i programmi installati con winget. Attenzione: alcune app (Discord, Claude, Proton...) dopo l'aggiornamento chiedono di rifare l'accesso.", Level: 0, Minutes: 6, Timeout: 60 * time.Minute, Script: `
+	{ID: "apps", Name: "Aggiornamento programmi", Desc: "Aggiorna i programmi installati con winget. Attenzione: alcune app (Discord, Proton...) dopo l'aggiornamento chiedono di rifare l'accesso.", Level: 0, Minutes: 6, Timeout: 60 * time.Minute, Script: `
 $wg = Get-Winget
 if (-not $wg) { Say 'winget non è disponibile su questo PC: salto.'; return }
 Say 'Aggiorno i programmi (alcuni minuti)...'

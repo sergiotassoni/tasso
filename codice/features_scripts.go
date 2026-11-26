@@ -579,7 +579,7 @@ foreach ($k in @($A.keys)) {
   $k = [string]$k
   if (-not $k) { continue }
   $ps = $k -replace '^HKEY_CURRENT_USER\\', 'HKCU:\' -replace '^HKEY_LOCAL_MACHINE\\', 'HKLM:\'
-  if (-not (Test-Path -LiteralPath $ps)) { Say ('Chiave gia'' rimossa: ' + $k); continue }
+  if (-not (Test-Path -LiteralPath $ps)) { Say ('Chiave già rimossa: ' + $k); continue }
   if ($dir) {
     $safe = ($k -replace '[^A-Za-z0-9]+', '_')
     if ($safe.Length -gt 80) { $safe = $safe.Substring(0, 80) }
