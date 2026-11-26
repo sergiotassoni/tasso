@@ -7,7 +7,7 @@ package main
 //   - Riot (League of Legends, TFT, Valorant): indirizzi pubblici di Riot Direct, rispondono al ping.
 //   - Valve (CS2, Dota 2): l'elenco ufficiale dei relay arriva da Steam (GetSDRConfig), sempre aggiornato.
 //   - Amazon AWS (Fortnite e tanti altri giochi online): tempo di connessione al data center della regione.
-//   - Cloudflare e Google: per capire se il ritardo è già nella tua rete o nel tuo operatore.
+//   - due server pubblici (1.1.1.1 e 8.8.8.8): per capire se il ritardo è già nella tua rete o nel tuo operatore.
 
 import (
 	"encoding/json"
@@ -124,8 +124,8 @@ func pingTargetsFor(region string) ([]pingTarget, string) {
 		}
 	}
 	t = append(t,
-		pingTarget{"base", region, "Cloudflare", "1.1.1.1", false},
-		pingTarget{"base", region, "Google", "8.8.8.8", false})
+		pingTarget{"base", region, "Server veloce su internet", "1.1.1.1", false},
+		pingTarget{"base", region, "Server pubblico", "8.8.8.8", false})
 	return t, valveNote
 }
 
@@ -321,7 +321,7 @@ func pingTips(res []pingResult) []string {
 		return []string{"Nessun server ha risposto: controlla di essere connesso a internet. Alcuni firewall o antivirus bloccano il ping."}
 	}
 	if baseBad {
-		tips = append(tips, "Il ritardo è alto già verso Cloudflare e Google: il problema è nella tua rete o nel tuo operatore. Prova col cavo, riavvia il modem o chiudi download e streaming sugli altri dispositivi.")
+		tips = append(tips, "Il ritardo è alto già verso i server pubblici: il problema è nella tua rete o nel tuo operatore. Prova col cavo, riavvia il modem o chiudi download e streaming sugli altri dispositivi.")
 	}
 	if jitterBad {
 		tips = append(tips, "Il ping balla parecchio (jitter alto): succede spesso col Wi-Fi o quando qualcuno in casa scarica. Il cavo di rete è la soluzione migliore.")
