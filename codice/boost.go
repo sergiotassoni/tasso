@@ -452,7 +452,15 @@ func closeBackground() []string {
 
 // reopenBackground riapre i programmi chiusi (se non sono già ripartiti da soli), come utente
 // normale tramite Esplora file.
+// reopenMu: una riapertura alla volta, dall'inizio alla fine. Le chiamate possono arrivare quasi
+// insieme (avvio dopo un crash, watcher a gioco finito, "Rimetti com'era"): senza, tutte e due
+// leggerebbero lo stesso elenco e aprirebbero due volte lo stesso programma (explorer.exe lo avvia
+// dopo un attimo, quindi il controllo "è già aperto" non basta).
+var reopenMu sync.Mutex
+
 func reopenBackground() []string {
+	reopenMu.Lock()
+	defer reopenMu.Unlock()
 	bMu.Lock()
 	list := append([]string(nil), bClosed...)
 	bMu.Unlock()
@@ -480,6 +488,12 @@ func reopenBackground() []string {
 	saveBoost()
 	bMu.Unlock()
 	return names
+}
+
+// riapriAllAvvio: dopo un crash con il Boost già spento riapro i programmi chiusi solo se non c'è
+// un gioco aperto (riconosciuto da Tasso o un programma a schermo intero davanti).
+func riapriAllAvvio(daRiaprire, giocoAperto, schermoIntero bool) bool {
+	return daRiaprire && !giocoAperto && !schermoIntero
 }
 
 // tieniDaRiaprire: dall'elenco di adesso tolgo quelli che ho provato a riaprire (provati), tranne quelli
@@ -1526,7 +1540,9 @@ func bindBoost(w webview2.WebView) {
 	bMu.Unlock()
 	// Tasso si era chiuso (crash) con il Boost già spento ma programmi ancora chiusi: li riapro,
 	// se non c'è un gioco aperto (se c'è, lo farà "Rimetti com'era").
-	if daRiaprire && runningGame() == "" {
+	// Un gioco che Tasso non riconosce di solito è a schermo intero: anche lì non riapro niente
+	// (Teams o OneDrive aprirebbero una finestra sopra il gioco).
+	if riapriAllAvvio(daRiaprire, runningGame() != "", primoPianoSchermoIntero()) {
 		go func() {
 			defer guard("boost.go:riapri-avvio")
 			reopenBackground()
