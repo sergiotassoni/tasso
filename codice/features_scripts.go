@@ -196,6 +196,33 @@ function Test-UninstallOrphan($p, [string]$key) {
   return $true
 }
 # La voce si vede ancora nell'elenco? (Una chiave rimasta senza nome Windows non la mostra più.)
+function Test-UserWritable([string]$f) {
+  # $true se il file (o una cartella che lo contiene) si può cambiare senza essere amministratore.
+  # Fuori da Windows e da Programmi lo considero sempre scrivibile; dentro guardo i permessi.
+  try { $full = [IO.Path]::GetFullPath($f) } catch { return $true }
+  $trusted = @($TassoWin, $TassoPF, $TassoPF86) | Where-Object { $_ }
+  if (-not @($trusted | Where-Object { In-Dir $full $_ }).Count) { return $true }
+  $me = ''; try { $me = [Security.Principal.WindowsIdentity]::GetCurrent().User.Value } catch {}
+  $weak = @('S-1-1-0', 'S-1-5-11', 'S-1-5-32-545', 'S-1-5-4', $me) | Where-Object { $_ }
+  # Solo i diritti che permettono di cambiare o sostituire il file (non quelli di lettura):
+  # scrivere, aggiungere, cancellare (anche dalla cartella sopra), cambiare permessi o proprietario.
+  $writeMask = 0x2 -bor 0x4 -bor 0x40 -bor 0x10000 -bor 0x40000 -bor 0x80000 -bor 0x10000000 -bor 0x40000000
+  $cur = $full
+  while ($cur -and $cur.Length -gt 3) {
+    $top = @($trusted | Where-Object { $cur -ieq $_.TrimEnd('\') }).Count -gt 0
+    try {
+      $acl = Get-Acl -LiteralPath $cur -ErrorAction Stop
+      foreach ($r in @($acl.Access)) {
+        if ([string]$r.AccessControlType -ne 'Allow' -or ([int]$r.PropagationFlags -band 2)) { continue }  # 2 = vale solo per quello che c'è dentro
+        $sid = ''; try { $sid = $r.IdentityReference.Translate([Security.Principal.SecurityIdentifier]).Value } catch { continue }
+        if ($weak -contains $sid -and (([int]$r.FileSystemRights) -band $writeMask)) { return $true }
+      }
+    } catch { return $true }
+    if ($top) { break }
+    $cur = [IO.Path]::GetDirectoryName($cur)
+  }
+  return $false
+}
 function Test-StillListed([string]$kp) {
   if (-not (Test-Path -LiteralPath $kp)) { return $false }
   $x = Get-ItemProperty -LiteralPath $kp -ErrorAction SilentlyContinue
@@ -264,6 +291,14 @@ foreach ($td in @($env:TEMP, $TassoTempUtente, $TassoTempOriginale)) {
 # Programma installato solo per il tuo utente (HKCU): il suo disinstallatore lo può cambiare qualunque
 # programma che gira col tuo account, quindi parte come utente normale, mai da amministratore.
 $asUser = ([string]$A.key) -match '(?i)^HKEY_CURRENT_USER\\'
+# Anche una voce HKLM può puntare a un disinstallatore in una cartella dove scrive un programma
+# qualsiasi (C:\ProgramData\<app>, C:\<app>, il profilo...): chi lo sostituisce lo farebbe partire da
+# amministratore senza nessuna domanda. In quel caso parte come utente normale, come farebbe Windows
+# (se gli servono i permessi li chiede lui con la finestra di Windows).
+if (-not $asUser -and -not $isMsi -and $file -match '^[A-Za-z]:\\' -and (Test-UserWritable ([Environment]::ExpandEnvironmentVariables($file).Trim('"')))) {
+  $asUser = $true
+  Say 'Il programma di disinstallazione sta in una cartella dove possono scrivere anche i programmi normali: lo faccio partire senza i permessi di amministratore (se gli servono, te li chiede Windows).'
+}
 try {
   if ($asUser) {
     $exe = [Environment]::ExpandEnvironmentVariables($file).Trim('"')
@@ -393,9 +428,31 @@ foreach ($k in @($A)) {
 `
 
 const bloatRemoveScript = `
-foreach ($id in @($A)) {
+# App che tengono dati tuoi SOLO sul PC (le note di Sticky Notes senza account Microsoft, i contatti,
+# le liste di To Do): togliere l'app cancella anche quelli. Prima ne faccio una copia nella cartella
+# backup di Tasso; se la copia non riesce, l'app resta.
+$withData = '(?i)^Microsoft\.(MicrosoftStickyNotes|People|Todos)$'
+$bdir = [string]$A.dir
+foreach ($id in @($A.ids)) {
   $pks = @(Get-AppxPackage -Name ([string]$id) -ErrorAction SilentlyContinue)
   foreach ($pk in $pks) {
+    if ($pk.Name -match $withData) {
+      $data = Join-Path $env:LOCALAPPDATA ('Packages\' + $pk.PackageFamilyName)
+      $copied = $false; $dst = ''
+      if (Test-Path -LiteralPath $data) {
+        if (@(Get-Process -ErrorAction SilentlyContinue | Where-Object { [string]$_.Path -like ($pk.InstallLocation + '\*') }).Count) { Say ('Non rimossa: ' + $pk.Name + ' è aperta. Chiudila e riprova (prima copio le tue note e i tuoi dati).'); continue }
+        try {
+          $dst = Join-Path $bdir ('app-' + $pk.Name + '-' + (Get-Date -Format 'yyyyMMdd_HHmmss'))
+          foreach ($sub in @('LocalState', 'RoamingState', 'Settings')) {
+            $from = Join-Path $data $sub
+            if (Test-Path -LiteralPath $from) { [void](New-Item -ItemType Directory -Path $dst -Force -ErrorAction Stop); Copy-Item -LiteralPath $from -Destination $dst -Recurse -Force -ErrorAction Stop }
+          }
+          $copied = $true
+        } catch { $copied = $false }
+      } else { $copied = $true }
+      if (-not $copied) { Say ('Non rimossa: ' + $pk.Name + '. Non sono riuscito a fare la copia dei tuoi dati (le note di Sticky Notes, per esempio), quindi la lascio.'); continue }
+      if ($dst -and (Test-Path -LiteralPath $dst)) { Say ('Copia dei dati di ' + $pk.Name + ' salvata in: ' + $dst + ' (per le note di Sticky Notes è il file plum.sqlite).') }
+    }
     try { Remove-AppxPackage -Package $pk.PackageFullName -ErrorAction Stop; Say ('Rimossa: ' + $pk.Name) } catch { Say ('Non rimossa: ' + $pk.Name) }
   }
 }

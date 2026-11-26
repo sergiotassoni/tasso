@@ -407,11 +407,30 @@ Say-Undo $u
 `)},
 
 	// ---------- Outlook e posta ----------
-	{ID: "of_outlook_ost", Name: "Outlook non si aggiorna o mostra cartelle vuote", Desc: "Mette da parte il file locale di Outlook (.ost): Outlook lo riscarica dal server con le mail giuste. Solo per account Microsoft 365, Exchange, Outlook.com e IMAP, dove le mail sono online. Non cancella niente.", Level: 0, Minutes: 0.2, Timeout: 2 * time.Minute, Script: ofs2(`
+	{ID: "of_outlook_ost", Name: "Outlook non si aggiorna o mostra cartelle vuote", Desc: "Mette da parte il file locale di Outlook (.ost): Outlook lo riscarica dal server con le mail giuste. Solo per account Microsoft 365, Exchange e Outlook.com; con un account IMAP non tocca niente (calendario e contatti sono solo nel file locale). Non cancella niente.", Level: 0, Minutes: 0.2, Timeout: 2 * time.Minute, Script: ofs2(`
 if (Stop-IfOfficeOpen @('OUTLOOK')) { return }
 $dir = Join-Path $env:LOCALAPPDATA 'Microsoft\Outlook'
 $ost = @(Get-ChildItem -LiteralPath $dir -Filter '*.ost' -File -ErrorAction SilentlyContinue)
 if (-not $ost.Count) { Say 'Non ci sono file .ost: il tuo account usa un file .pst (POP), dove le mail sono solo sul PC. In quel caso non tocco niente: usa "Outlook non si apre" o "Outlook lento: la casella è troppo grande".'; return }
+# Account IMAP (Libero, Aruba, Gmail in IMAP...): Outlook tiene calendario, contatti e attività
+# "(Solo su questo computer)" dentro il .ost, non sul server. Un .ost messo da parte non si riapre più
+# con Outlook: quei dati andrebbero persi. Con un account IMAP non tocco niente.
+$imap = @()
+foreach ($ver in @('16.0', '15.0')) {
+  foreach ($acc in @(Get-ChildItem -LiteralPath ('HKCU:\Software\Microsoft\Office\' + $ver + '\Outlook\Profiles') -Recurse -ErrorAction SilentlyContinue | Where-Object { $_.PSParentPath -match '9375CFF0413111d3B88A00104B2A6676$' })) {
+    $v = $null; try { $v = (Get-ItemProperty -LiteralPath $acc.PSPath -ErrorAction Stop).'IMAP Server' } catch {}
+    if ($null -ne $v) {
+      $nm = ''; try { $raw = (Get-ItemProperty -LiteralPath $acc.PSPath -ErrorAction Stop).'Account Name'; if ($raw -is [byte[]]) { $nm = [Text.Encoding]::Unicode.GetString($raw).TrimEnd([char]0) } else { $nm = [string]$raw } } catch {}
+      if (-not $nm) { $nm = 'account IMAP' }
+      $imap += $nm
+    }
+  }
+}
+if ($imap.Count) {
+  Say ('Il tuo Outlook ha un account IMAP (' + (($imap | Select-Object -Unique) -join ', ') + '): con IMAP calendario, contatti e attività "Solo su questo computer" stanno nel file locale, non sul server. Mettendolo da parte si perderebbero, quindi non lo tocco.')
+  Say 'Prima fai una copia: in Outlook > File > Apri ed esporta > Importa/Esporta > Esporta in un file .pst (scegli Calendario e Contatti). Poi, se serve, rimuovi e riaggiungi l''account IMAP: Outlook riscarica le mail dal server.'
+  return
+}
 $tot = ($ost | Measure-Object -Property Length -Sum).Sum
 $c = Get-PSDrive -Name ($TassoSysDrive.Trim(':')) -ErrorAction SilentlyContinue
 if ($c -and $c.Free -lt $tot) { Say ('Per riscaricare la posta servono circa ' + (Fmt $tot) + ' liberi e sul disco ce ne sono ' + (Fmt $c.Free) + ': prima libera spazio.'); return }

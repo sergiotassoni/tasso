@@ -336,7 +336,7 @@ var bloatList = []bloat{
 	{"Microsoft.SkypeApp", "Skype", false},
 	{"Microsoft.Todos", "To Do", false},
 	{"Microsoft.WindowsMaps", "Mappe", false},
-	{"Microsoft.MicrosoftStickyNotes", "Sticky Notes", false},
+	{"Microsoft.MicrosoftStickyNotes", "Sticky Notes", false}, // le note solo sul PC si copiano prima in backup (bloatRemoveScript)
 }
 
 func bloatScan() {
@@ -361,7 +361,10 @@ func bloatRemove(ids []string) {
 	}
 	var msgs []string
 	if len(sel) > 0 {
-		runPSArgs(bloatRemoveScript, sel, 10*time.Minute, func(m string) { msgs = append(msgs, m) })
+		// La cartella backup di Tasso: lì va la copia dei dati delle app che li tengono solo sul PC (Sticky Notes).
+		bdir := filepath.Join(appDir, "backup")
+		_ = os.MkdirAll(bdir, 0o755)
+		runPSArgs(bloatRemoveScript, map[string]interface{}{"ids": sel, "dir": bdir}, 10*time.Minute, func(m string) { msgs = append(msgs, m) })
 	}
 	emit("onBloatDone", map[string]interface{}{"msgs": msgs})
 	bloatScan()

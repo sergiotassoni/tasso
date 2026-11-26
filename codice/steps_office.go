@@ -515,7 +515,27 @@ Say 'Se continua a chiederla con Gmail, Aruba o Libero: serve la "password per l
 	{ID: "of_outlook_attach", Name: "Gli allegati di Outlook non si aprono", Desc: "Svuota la cartella nascosta dove Outlook apre gli allegati, quando è piena e dà errore. I file vengono spostati in Documenti, non cancellati.", Level: 0, Minutes: 0.3, Timeout: 3 * time.Minute, Script: ofs(`
 if (Stop-IfOfficeOpen @('OUTLOOK')) { return }
 $dirs = @()
-foreach ($ver in @('16.0', '15.0', '14.0')) { try { $p = [string](Get-ItemProperty -LiteralPath ('HKCU:\Software\Microsoft\Office\' + $ver + '\Outlook\Security') -Name OutlookSecureTempFolder -ErrorAction Stop).OutlookSecureTempFolder; if ($p -and (Test-Path -LiteralPath $p)) { $dirs += $p } } catch {} }
+# La cartella la scrive Outlook in HKCU, dove la può cambiare un programma qualsiasi: la accetto solo
+# se è davvero quella degli allegati di Outlook nel profilo di questo utente (Content.Outlook nella
+# cache di internet), senza giunzioni. Altrimenti non sposto niente (da amministratore potrei svuotare
+# una cartella di Windows).
+$okRoots = @()
+foreach ($pr in @($TassoProfiloVero, $TassoProfilo)) {
+  if (-not $pr) { continue }
+  $okRoots += [pscustomobject]@{ P = (Join-Path $pr 'AppData\Local\Microsoft\Windows\INetCache\Content.Outlook'); Prof = $pr }
+  $okRoots += [pscustomobject]@{ P = (Join-Path $pr 'AppData\Local\Microsoft\Windows\Temporary Internet Files\Content.Outlook'); Prof = $pr }
+}
+foreach ($ver in @('16.0', '15.0', '14.0')) {
+  try {
+    $p = [string](Get-ItemProperty -LiteralPath ('HKCU:\Software\Microsoft\Office\' + $ver + '\Outlook\Security') -Name OutlookSecureTempFolder -ErrorAction Stop).OutlookSecureTempFolder
+    if (-not $p -or -not (Test-Path -LiteralPath $p -PathType Container)) { continue }
+    $full = ''; try { $full = [IO.Path]::GetFullPath($p).TrimEnd('\') } catch { continue }
+    $root = @($okRoots | Where-Object { (In-Dir $full $_.P) -and -not ($full -ieq $_.P.TrimEnd('\')) } | Select-Object -First 1)
+    # Nessuna giunzione dalla cartella degli allegati fino al profilo (compresa Content.Outlook).
+    if (-not $root.Count -or -not (Test-NoReparse $full ([string]$root[0].Prof))) { Say ('La cartella degli allegati scritta nelle impostazioni di Outlook non è quella solita (' + $full + '): per sicurezza non la tocco.'); continue }
+    $dirs += $full
+  } catch {}
+}
 if (-not $dirs.Count) { Say 'Non trovo la cartella degli allegati di Outlook: forse non hai Outlook classico o non hai mai aperto allegati.'; return }
 $dst = Join-Path ([Environment]::GetFolderPath('MyDocuments')) ('Tasso - allegati di Outlook\' + (Get-Date -Format 'yyyy-MM-dd HH.mm'))
 $n = 0
