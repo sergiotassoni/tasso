@@ -106,18 +106,19 @@ var trayModi = []struct{ id, nome string }{
 }
 
 var (
-	trayOnce     sync.Once
-	trayHwnd     atomic.Uintptr
-	trayIcona    atomic.Bool // l'icona è davvero nell'area di notifica (solo allora la X nasconde)
-	trayFermata  atomic.Bool // trayStop chiamata: niente più icona
-	trayFinito   = make(chan struct{})
-	trayMsgBarra uint32 // "TaskbarCreated"
-	trayIco      uintptr
-	trayIcoBig   uintptr
-	trayAvvMu    sync.Mutex
-	trayAvvTit   string
-	trayAvvTxt   string
-	trayAvvQuiet bool
+	trayOnce       sync.Once
+	trayHwnd       atomic.Uintptr
+	trayIcona      atomic.Bool // l'icona è davvero nell'area di notifica (solo allora la X nasconde)
+	trayFermata    atomic.Bool // trayStop chiamata: niente più icona
+	trayFinito     = make(chan struct{})
+	trayMsgBarra   uint32 // "TaskbarCreated"
+	trayIco        uintptr
+	trayIcoBig     uintptr
+	trayIcoProprie bool // trayIco/trayIcoBig vengono da LoadImage (non condivise)
+	trayAvvMu      sync.Mutex
+	trayAvvTit     string
+	trayAvvTxt     string
+	trayAvvQuiet   bool
 )
 
 // startTray mette l'icona (da chiamare una volta, dopo aver creato la finestra di Tasso).
@@ -277,14 +278,21 @@ func trayFilo() {
 	}
 }
 
-// trayCaricaIcone: il tassino dalle risorse di Tasso.exe (IconId 2, assets/tasso.ico).
+// trayCaricaIcone: il tassino dalle risorse di Tasso.exe: l'icona del tema in uso
+// (icone_tema.go), di base IconId 2 (assets/tasso.ico).
 func trayCaricaIcone(hinst uintptr) {
-	cx, _, _ := pGetSysMetrics.Call(49)                     // SM_CXSMICON
-	cy, _, _ := pGetSysMetrics.Call(50)                     // SM_CYSMICON
-	trayIco, _, _ = pLoadImage.Call(hinst, 2, 1, cx, cy, 0) // IMAGE_ICON
-	bx, _, _ := pGetSysMetrics.Call(11)                     // SM_CXICON
-	by, _, _ := pGetSysMetrics.Call(12)                     // SM_CYICON
-	trayIcoBig, _, _ = pLoadImage.Call(hinst, 2, 1, bx, by, 0)
+	id := idIconaAttuale()
+	cx, _, _ := pGetSysMetrics.Call(49)                      // SM_CXSMICON
+	cy, _, _ := pGetSysMetrics.Call(50)                      // SM_CYSMICON
+	trayIco, _, _ = pLoadImage.Call(hinst, id, 1, cx, cy, 0) // IMAGE_ICON
+	bx, _, _ := pGetSysMetrics.Call(11)                      // SM_CXICON
+	by, _, _ := pGetSysMetrics.Call(12)                      // SM_CYICON
+	trayIcoBig, _, _ = pLoadImage.Call(hinst, id, 1, bx, by, 0)
+	if trayIco == 0 && id != 2 {
+		trayIco, _, _ = pLoadImage.Call(hinst, 2, 1, cx, cy, 0)
+		trayIcoBig, _, _ = pLoadImage.Call(hinst, 2, 1, bx, by, 0)
+	}
+	trayIcoProprie = trayIco != 0 // caricate con LoadImage: si possono liberare al cambio di tema
 	if trayIco == 0 {
 		trayIco, _, _ = pLoadIcon.Call(hinst, 2)
 	}
@@ -356,6 +364,24 @@ func trayWndProc(hwnd, msg, wp, lp uintptr) uintptr {
 				nid.DwInfoFlags |= niifQuiet
 			}
 			pShellNotifyIcon.Call(nimModify, uintptr(unsafe.Pointer(&nid)))
+		}
+		return 0
+	case msg == wmTrayTema:
+		// è cambiato il tema (icone_tema.go): nuova icona, la vecchia si libera dopo averla tolta
+		vecchia, vecchiaBig, proprie := trayIco, trayIcoBig, trayIcoProprie
+		var hinst windows.Handle
+		_ = windows.GetModuleHandleEx(0, nil, &hinst)
+		trayCaricaIcone(uintptr(hinst))
+		if trayIcona.Load() {
+			nid := trayDati(hwnd)
+			nid.UFlags = nifIcon
+			nid.HIcon = trayIco
+			pShellNotifyIcon.Call(nimModify, uintptr(unsafe.Pointer(&nid)))
+		}
+		for _, v := range []uintptr{vecchia, vecchiaBig} {
+			if proprie && v != 0 && v != trayIco && v != trayIcoBig {
+				pDestroyIcoTe.Call(v) // mai quelle di LoadIcon (condivise)
+			}
 		}
 		return 0
 	case msg == wmTrayFerma:
