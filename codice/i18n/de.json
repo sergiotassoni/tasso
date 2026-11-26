@@ -1312,7 +1312,8 @@
   "Apre il Cestino, installa lo strumento gratuito di Microsoft per recuperare i file (si usa scrivendo comandi) e apre la guida ufficiale passo passo.": "Öffnet den Papierkorb, installiert das kostenlose Microsoft-Tool zur Dateiwiederherstellung (wird mit Befehlen bedient) und öffnet die offizielle Schritt-für-Schritt-Anleitung.",
   "Registrazione in background spenta (Win+Alt+R per registrare a mano funziona ancora). Aiuta solo se era accesa.": "Hintergrundaufnahme aus (Win+Alt+R zum Aufnehmen von Hand funktioniert weiter). Hilft nur, wenn sie an war.",
   "Priorità ai giochi accesa. Di solito non cambia gli FPS: aiuta solo i giochi che chiedono a Windows la priorità per i giochi.": "Spielpriorität an. Ändert die FPS meistens nicht: Hilft nur Spielen, die Windows um Spielpriorität bitten.",
-  "Rete a bassa latenza accesa. Di solito non cambia il ping (i giochi online usano quasi tutti UDP): può aiutare solo nei giochi che usano TCP, dopo il riavvio del PC.": "Netzwerk mit niedriger Latenz an. Ändert den Ping meistens nicht (fast alle Onlinespiele nutzen UDP): Kann nur bei Spielen mit TCP helfen, nach einem Neustart des PCs."
+  "Rete a bassa latenza accesa. Di solito non cambia il ping (i giochi online usano quasi tutti UDP): può aiutare solo nei giochi che usano TCP, dopo il riavvio del PC.": "Netzwerk mit niedriger Latenz an. Ändert den Ping meistens nicht (fast alle Onlinespiele nutzen UDP): Kann nur bei Spielen mit TCP helfen, nach einem Neustart des PCs.",
+  "Autoclick fermato: è cambiata la finestra davanti (non clicco dentro altri programmi).": "Autoklick gestoppt: Das Fenster im Vordergrund hat gewechselt (ich klicke nicht in andere Programme)."
  },
  "ps": {
   "echo Risparmio energetico delle porte USB rimesso come prima.": "echo Energiesparen der USB-Anschlüsse zurückgesetzt.",

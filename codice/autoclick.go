@@ -6,9 +6,13 @@ package main
 
 import (
 	"math/rand"
+	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 	"unsafe"
+
+	"tasso/traduce"
 )
 
 var (
@@ -97,11 +101,32 @@ func autoClickPick() {
 }
 
 // Giochi con anti-cheat: un autoclick lì può far bannare l'account, quindi non parte.
-var antiCheatExes = []string{"VALORANT-Win64-Shipping.exe", "EasyAntiCheat.exe", "EasyAntiCheat_EOS.exe", "BEService.exe", "BEService_x64.exe", "FortniteClient-Win64-Shipping.exe", "r5apex.exe", "r5apex_dx12.exe", "League of Legends.exe", "EAAntiCheat.GameService.exe", "cod.exe"}
+// L'elenco fisso vale per i processi sempre aperti degli anti-cheat; per il gioco in primo piano uso anche
+// il riconoscimento di Tasso Traduce (traduce.ConAntiCheat), lo stesso di "Regola con Tasso".
+var antiCheatExes = []string{"VALORANT-Win64-Shipping.exe", "vgc.exe", "vgtray.exe", "EasyAntiCheat.exe", "EasyAntiCheat_EOS.exe",
+	"BEService.exe", "BEService_x64.exe", "FortniteClient-Win64-Shipping.exe", "r5apex.exe", "r5apex_dx12.exe", "League of Legends.exe",
+	"EAAntiCheat.GameService.exe", "EAAntiCheat.GameServiceLauncher.exe", "cod.exe", "cs2.exe", "faceit.exe", "FACEITService.exe",
+	"FaceitClient.exe", "esea.exe", "eseaclient.exe", "Overwatch.exe", "ACE-Tray.exe", "ACE-Guard Client.exe", "SGuard64.exe", "SGuardSvc64.exe",
+	"GameMon.des", "GameMon64.des", "xigncode.exe", "xxd-0.xem", "mhyprot2.sys", "GenshinImpact.exe", "StarRail.exe", "ZenlessZoneZero.exe",
+	"PUBG.exe", "TslGame.exe", "RainbowSix.exe", "RainbowSix_BE.exe", "Marvel-Win64-Shipping.exe", "DeltaForceClient-Win64-Shipping.exe"}
 
 const antiCheatMsg = "È aperto un gioco con anti-cheat (per esempio Valorant, League of Legends, Fortnite, Apex, Call of Duty o i giochi con BattlEye): lì l'autoclick può farti bannare l'account, quindi non lo uso."
 
-func antiCheatRunning() bool { return exeRunning(antiCheatExes) }
+func antiCheatRunning() bool { return exeRunning(antiCheatExes) || primoPianoConAntiCheat() }
+
+// primoPianoConAntiCheat: il programma davanti è un gioco che Tasso Traduce riconosce con anti-cheat.
+func primoPianoConAntiCheat() bool {
+	exe := processPath(foregroundPid())
+	if exe == "" {
+		return false
+	}
+	return traduce.ConAntiCheat(traduce.GiocoRiconosciuto{Nome: strings.TrimSuffix(filepath.Base(exe), filepath.Ext(exe)), Cartella: filepath.Dir(exe)})
+}
+
+const cambioFinestraMsg = "Autoclick fermato: è cambiata la finestra davanti (non clicco dentro altri programmi)."
+
+// acFinestraCambiata: l'autoclick clicca solo nella finestra che era davanti quando è partito.
+func acFinestraCambiata(partenza, adesso uintptr) bool { return partenza != 0 && adesso != partenza }
 
 func autoClickStart(fromHotkey bool) string {
 	if antiCheatRunning() {
@@ -174,6 +199,7 @@ func autoClickStart(fromHotkey bool) string {
 			}
 		}()
 		emit("onAutoClick", map[string]interface{}{"running": true, "done": 0})
+		fgStart, _, _ := pGetFgWindow.Call() // la finestra del gioco: se cambia (Alt+Tab, una finestra di Windows) mi fermo
 		t := time.NewTicker(time.Duration(cfg.IntervalMs) * time.Millisecond)
 		defer t.Stop()
 		lastEmit := time.Now()
@@ -185,6 +211,10 @@ func autoClickStart(fromHotkey bool) string {
 					emit("onAutoClick", map[string]interface{}{"running": false, "msg": antiCheatMsg})
 					return
 				}
+			}
+			if fg, _, _ := pGetFgWindow.Call(); acFinestraCambiata(fgStart, fg) {
+				emit("onAutoClick", map[string]interface{}{"running": false, "msg": cambioFinestraMsg})
+				return
 			}
 			acClickOnce(cfg)
 			acMu.Lock()

@@ -1312,7 +1312,8 @@
   "Apre il Cestino, installa lo strumento gratuito di Microsoft per recuperare i file (si usa scrivendo comandi) e apre la guida ufficiale passo passo.": "Ouvre la Corbeille, installe l'outil gratuit de Microsoft pour récupérer des fichiers (il s'utilise en tapant des commandes) et ouvre le guide officiel pas à pas.",
   "Registrazione in background spenta (Win+Alt+R per registrare a mano funziona ancora). Aiuta solo se era accesa.": "Enregistrement en arrière-plan désactivé (Win+Alt+R pour enregistrer à la main fonctionne toujours). Ça n'aide que s'il était activé.",
   "Priorità ai giochi accesa. Di solito non cambia gli FPS: aiuta solo i giochi che chiedono a Windows la priorità per i giochi.": "Priorité aux jeux activée. En général ça ne change pas les FPS : ça n'aide que les jeux qui demandent à Windows la priorité pour les jeux.",
-  "Rete a bassa latenza accesa. Di solito non cambia il ping (i giochi online usano quasi tutti UDP): può aiutare solo nei giochi che usano TCP, dopo il riavvio del PC.": "Réseau à faible latence activé. En général ça ne change pas le ping (presque tous les jeux en ligne utilisent UDP) : ça peut aider seulement les jeux qui utilisent TCP, après le redémarrage du PC."
+  "Rete a bassa latenza accesa. Di solito non cambia il ping (i giochi online usano quasi tutti UDP): può aiutare solo nei giochi che usano TCP, dopo il riavvio del PC.": "Réseau à faible latence activé. En général ça ne change pas le ping (presque tous les jeux en ligne utilisent UDP) : ça peut aider seulement les jeux qui utilisent TCP, après le redémarrage du PC.",
+  "Autoclick fermato: è cambiata la finestra davanti (non clicco dentro altri programmi).": "Autoclic arrêté : la fenêtre au premier plan a changé (je ne clique pas dans d'autres logiciels)."
  },
  "ps": {
   "echo Risparmio energetico delle porte USB rimesso come prima.": "echo Économie d'énergie des ports USB remise comme avant.",
