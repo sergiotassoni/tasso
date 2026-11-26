@@ -574,6 +574,7 @@ func startSteps(ids []string, level int, fine string, winupdate bool) string {
 		var doneNames []string
 		var passi []passoFatto // per il "Bentornato"
 		wuInst := 0
+		wuCacheSaltata := false
 		for i, s := range sel {
 			if cancelReq.Load() {
 				logLine("Interrotto da te: i passaggi rimanenti sono stati saltati.")
@@ -611,6 +612,9 @@ func startSteps(ids []string, level int, fine string, winupdate bool) string {
 			}
 			if s.ID == "winupdate" {
 				wuInst += r.WUInst
+			}
+			if s.ID == "wu_cache" && r.Skipped {
+				wuCacheSaltata = true // Windows stava aggiornando: il riepilogo lo ricorda (Tasso 3.1.1)
 			}
 			passi = append(passi, passoFatto{Nome: s.Name, Liberato: r.Freed, Saltato: r.TooSlow || r.Skipped})
 			done++
@@ -690,6 +694,7 @@ func startSteps(ids []string, level int, fine string, winupdate bool) string {
 			"endErr":    fineErr,
 			"endSecs":   fineSecondi,
 			"updates":   wuInst,
+			"wuSkipped": wuCacheSaltata,
 			"settings":  getSettings(),
 		})
 		go func() { defer guard("numeri"); statsRun(level, doneNames, total, int(dur.Seconds()), cancelled) }()

@@ -824,9 +824,9 @@ foreach ($p in $GpuCaches) { if (Test-Path -LiteralPath $p) { $f += Clear-Folder
 Freed $f; Say ('Liberati ' + (Fmt $f))
 `},
 	{ID: "wu_cache", Name: "Cache di Windows Update", Desc: "File degli aggiornamenti già scaricati. Se ne serve ancora uno, Windows lo riscarica da solo.", Level: 2, Minutes: 1, Timeout: 8 * time.Minute, Script: `
-if ((Get-Process -Name TiWorker, MoUsoCoreWorker, TrustedInstaller -ErrorAction SilentlyContinue) -or (Test-Path -LiteralPath 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\RebootRequired')) { Say 'Windows sta installando degli aggiornamenti proprio adesso: salto, per non disturbarlo. Rifallo più tardi.'; return }
+if ((Get-Process -Name TiWorker, MoUsoCoreWorker, TrustedInstaller -ErrorAction SilentlyContinue) -or (Test-Path -LiteralPath 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\RebootRequired')) { Say 'Windows sta installando degli aggiornamenti proprio adesso: salto, per non disturbarlo. Rifallo più tardi.'; [Console]::Out.WriteLine('SKIPPED'); return }
 # Stop-Service aspetterebbe per sempre un servizio bloccato: al massimo 45 secondi ciascuno.
-if (-not (Stop-ServiceLimited @('wuauserv', 'bits') 45)) { Start-ServiceQuick @('wuauserv', 'bits'); Say 'Windows Update non si ferma (forse sta lavorando): salto, rifallo più tardi.'; return }
+if (-not (Stop-ServiceLimited @('wuauserv', 'bits') 45)) { Start-ServiceQuick @('wuauserv', 'bits'); Say 'Windows Update non si ferma (forse sta lavorando): salto, rifallo più tardi.'; [Console]::Out.WriteLine('SKIPPED'); return }
 $f = Clear-Folder (Join-Path $TassoWin 'SoftwareDistribution\Download')
 Start-ServiceQuick @('wuauserv', 'bits')
 Freed $f; Say ('Liberati ' + (Fmt $f))
@@ -1349,28 +1349,74 @@ Say 'Impostazioni di privacy rimesse come di fabbrica.'
 }
 
 const analyzeScript = `
-$junk = [long]0
-$junk += Get-FolderSize $TassoTempUtente
-if ($TassoTempOriginale) { $junk += Get-FolderSize $TassoTempOriginale }
-$junk += Get-FolderSize (Join-Path $TassoWin 'Temp')
-$junk += Get-FolderSize (Join-Path $TassoWin 'SoftwareDistribution\Download')
-# Le cache della scheda video (shader) non si contano: nessun livello di pulizia le toglie (solo il passaggio a mano gpu_cache).
-foreach ($b in $BrowserRoots) {
-  if (-not (Test-Path -LiteralPath $b.Root)) { continue }
-  Get-ChildItem -LiteralPath $b.Root -Directory -Force -ErrorAction SilentlyContinue | ForEach-Object {
-    foreach ($sub in @('Cache', 'Code Cache', 'GPUCache', 'cache2')) { $junk += Get-FolderSize (Join-Path $_.FullName $sub) }
+# L'anteprima conta con le stesse regole dei passaggi di pulizia (Tasso 3.1.1): se no promette spazio
+# che la pulizia poi lascia apposta (file nuovi o in uso, Cestino recente, Windows Update al lavoro).
+# Prova "in uso" come la pulizia (che apre il file per cancellarlo e, se un altro programma lo tiene
+# aperto senza permetterlo, lo lascia): al massimo 8 secondi in tutto, poi conto senza la prova.
+$inUsoFino = [DateTime]::UtcNow.AddSeconds(8)
+function Test-InUso([string]$p) {
+  if ([DateTime]::UtcNow -ge $inUsoFino) { return $false }
+  try {
+    $fs = New-Object IO.FileStream($p, [IO.FileMode]::Open, [Security.AccessControl.FileSystemRights]::Delete, ([IO.FileShare]::ReadWrite -bor [IO.FileShare]::Delete), 4096, [IO.FileOptions]::None)
+    $fs.Dispose(); return $false
+  } catch {
+    $e = $_.Exception; while ($e.InnerException) { $e = $e.InnerException }
+    # Solo "file usato da un altro processo" (0x20) o "bloccato" (0x21) vuol dire in uso; ogni altro errore no.
+    $hr = $e.HResult -band 0xFFFF
+    return ($e -is [IO.IOException] -and ($hr -eq 0x20 -or $hr -eq 0x21))
   }
 }
-$rb = [long]0
-try { $s = ((New-Object -ComObject Shell.Application).Namespace(0xA).Items() | Measure-Object -Property Size -Sum).Sum; if ($s) { $rb = [long]$s } } catch {}
-$junk += $rb
+function Get-OldTempSize([string]$p, [double]$hours) {
+  # Come Clear-Folder $p $hours: solo i file con modifica E creazione più vecchie di $hours ore, e non in uso.
+  if (-not $p -or -not (Test-Path -LiteralPath $p)) { return [long]0 }
+  $lim = (Get-Date).AddHours(-$hours); $t = [long]0
+  foreach ($f in @(Get-ChildItem -LiteralPath $p -Recurse -Force -File -ErrorAction SilentlyContinue)) {
+    if ($f.LastWriteTime -ge $lim -or $f.CreationTime -ge $lim) { continue }
+    if (Test-InUso $f.FullName) { continue }
+    $t += [long]$f.Length
+  }
+  return $t
+}
+$junk = [long]0
+$junk += Get-OldTempSize $TassoTempUtente 24
+if ($TassoTempOriginale) { $junk += Get-OldTempSize $TassoTempOriginale 24 }
+$junk += Get-OldTempSize (Join-Path $TassoWin 'Temp') 24
+# Cache di Windows Update: con lo stesso controllo del passaggio wu_cache. Se Windows sta installando
+# (o aspetta il riavvio) la pulizia la salta: la cifra va a parte (wuBusy), non nei file da togliere.
+$wuBusy = [long]0
+$wuSize = Get-FolderSize (Join-Path $TassoWin 'SoftwareDistribution\Download')
+if ((Get-Process -Name TiWorker, MoUsoCoreWorker, TrustedInstaller -ErrorAction SilentlyContinue) -or (Test-Path -LiteralPath 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\RebootRequired')) { $wuBusy = $wuSize } else { $junk += $wuSize }
+# Le cache della scheda video (shader) non si contano: nessun livello di pulizia le toglie (solo il passaggio a mano gpu_cache).
+# Cache dei browser: un browser con una finestra aperta viene saltato dal passaggio "browser" (stesso test): a parte (browserOpen).
+$browserOpen = [long]0
+foreach ($b in $BrowserRoots) {
+  if (-not (Test-Path -LiteralPath $b.Root)) { continue }
+  $aperto = @(Get-Process -Name $b.Proc -ErrorAction SilentlyContinue | Where-Object { $_.MainWindowHandle -ne 0 }).Count -gt 0
+  $bs = [long]0
+  Get-ChildItem -LiteralPath $b.Root -Directory -Force -ErrorAction SilentlyContinue | ForEach-Object {
+    foreach ($sub in @('Cache', 'Code Cache', 'GPUCache', 'cache2')) { $bs += Get-FolderSize (Join-Path $_.FullName $sub) }
+  }
+  if ($aperto) { $browserOpen += $bs } else { $junk += $bs }
+}
+# Cestino: recycle resta il totale; nei file da togliere solo quello buttato più di 7 giorni fa (come il passaggio "recycle").
+$rb = [long]0; $rbOld = [long]0
+try {
+  $rbLim = (Get-Date).AddDays(-7)
+  foreach ($it in @((New-Object -ComObject Shell.Application).Namespace(0xA).Items())) {
+    $len = [long]0; try { $len = [long]$it.Size } catch {}
+    $rb += $len
+    $d = $null; try { $d = [datetime]$it.ExtendedProperty('System.Recycle.DateDeleted') } catch {}
+    if ($d -and $d -le $rbLim) { $rbOld += $len }
+  }
+} catch {}
+$junk += $rbOld
 foreach ($p in @((Join-Path ($TassoSysDrive + '\') 'AMD'), (Join-Path ($TassoSysDrive + '\') 'NVIDIA'), (Join-Path $env:ProgramData 'NVIDIA Corporation\Downloader'))) { $junk += Get-FolderSize $p }
 # LiveKernelReports: la pulizia toglie solo i rapporti più vecchi di 3 giorni, quindi conto solo quelli.
 try { $old = (Get-Date).AddHours(-72); $junk += [long](@(Get-ChildItem -LiteralPath (Join-Path $TassoWin 'LiveKernelReports') -Recurse -File -Force -ErrorAction SilentlyContinue | Where-Object { $_.LastWriteTime -lt $old }) | Measure-Object Length -Sum).Sum } catch {}
 $startup = @(Get-TassoStartup | Where-Object { $_.enabled }).Count
 $badDev = @(Get-CimInstance Win32_PnPEntity -ErrorAction SilentlyContinue | Where-Object { $_.ConfigManagerErrorCode -ne 0 -and $_.ConfigManagerErrorCode -ne 22 -and $_.ConfigManagerErrorCode -ne 45 }).Count
 $diskWarn = @(Get-PhysicalDisk -ErrorAction SilentlyContinue | Where-Object { [string]$_.HealthStatus -ne 'Healthy' }).Count
-$o = [ordered]@{ junk = $junk; recycle = $rb; startup = $startup; badDevices = $badDev; diskWarnings = $diskWarn }
+$o = [ordered]@{ junk = $junk; recycle = $rb; wuBusy = $wuBusy; browserOpen = $browserOpen; startup = $startup; badDevices = $badDev; diskWarnings = $diskWarn }
 [Console]::Out.WriteLine('JSON ' + ($o | ConvertTo-Json -Compress))
 `
 

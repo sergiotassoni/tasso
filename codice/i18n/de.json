@@ -2951,6 +2951,9 @@
   "Non sono riuscito a scaricare gli aggiornamenti: Windows ci riprova da solo più tardi.": "Ich konnte die Updates nicht herunterladen: Windows versucht es später selbst noch einmal."
  },
  "ui": {
+  "Di cui {0} restano perché Windows sta installando degli aggiornamenti (rifai la pulizia dopo il riavvio).": "Davon bleiben {0}, weil Windows gerade Updates installiert (nach dem Neustart die Reinigung wiederholen).",
+  "Di cui {0} restano perché il browser è aperto (chiudilo per toglierli).": "Davon bleiben {0}, weil der Browser geöffnet ist (schließe ihn, um sie zu entfernen).",
+  "La cache di Windows Update (circa {0}) è rimasta perché Windows stava installando degli aggiornamenti: rifai la pulizia dopo il riavvio per toglierla.": "Der Windows-Update-Cache (etwa {0}) ist geblieben, weil Windows gerade Updates installiert hat: nach dem Neustart die Reinigung wiederholen, um ihn zu entfernen.",
   "Beta": "Beta",
   "Stiamo migliorando qualità e velocità: qualche frase può uscire strana o restare nella lingua originale del gioco.": "Wir verbessern Qualität und Tempo: Manche Sätze können seltsam klingen oder in der Originalsprache des Spiels bleiben.",
   "Resta acceso vicino all'orologio": "Neben der Uhr bleiben",

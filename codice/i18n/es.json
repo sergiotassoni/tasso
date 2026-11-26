@@ -2951,6 +2951,9 @@
   "Non sono riuscito a scaricare gli aggiornamenti: Windows ci riprova da solo più tardi.": "No he podido descargar las actualizaciones: Windows lo vuelve a intentar solo más tarde."
  },
  "ui": {
+  "Di cui {0} restano perché Windows sta installando degli aggiornamenti (rifai la pulizia dopo il riavvio).": "De ellos, {0} se quedan porque Windows está instalando actualizaciones (repite la limpieza después de reiniciar).",
+  "Di cui {0} restano perché il browser è aperto (chiudilo per toglierli).": "De ellos, {0} se quedan porque el navegador está abierto (ciérralo para quitarlos).",
+  "La cache di Windows Update (circa {0}) è rimasta perché Windows stava installando degli aggiornamenti: rifai la pulizia dopo il riavvio per toglierla.": "La caché de Windows Update (unos {0}) se ha quedado porque Windows estaba instalando actualizaciones: repite la limpieza después de reiniciar para quitarla.",
   "Beta": "Beta",
   "Stiamo migliorando qualità e velocità: qualche frase può uscire strana o restare nella lingua originale del gioco.": "Estamos mejorando la calidad y la velocidad: alguna frase puede salir rara o quedarse en el idioma original del juego.",
   "Resta acceso vicino all'orologio": "Quedarse junto al reloj",
