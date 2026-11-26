@@ -134,7 +134,6 @@ func aspettaCoppia(da, a string) bool {
 	return false
 }
 
-// applicaTraduzione: i passi veri, con l'avanzamento mandato alla finestra.
 // haAntiCheat: il gioco in questa cartella ha un sistema anti-imbroglio.
 func haAntiCheat(cartella string) bool {
 	g, ok := riconosciGioco(filepath.Join(cartella, "x.exe"))
@@ -149,6 +148,7 @@ func messaggioAntiCheat(nome string) string {
 	return "Per non rischiare con l'anti-imbroglio, " + nome + " viene tradotto sullo schermo."
 }
 
+// applicaTraduzione: i passi veri, con l'avanzamento mandato alla finestra.
 func applicaTraduzione(nome, cartella string) {
 	antiCheat := haAntiCheat(cartella)
 	defer func() {

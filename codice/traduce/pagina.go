@@ -1473,8 +1473,6 @@ func spostamentoScritta(vecchia, nuova *image.RGBA, b Blocco) int {
 	return 0
 }
 
-// zonaCambiata: le lettere inglesi di b sono cambiate tra le due immagini (colore, alone,
-// riquadro di evidenziazione): differenza media sopra 18 nella zona della scritta.
 // inchiostroCambiato: la FORMA delle lettere è cambiata ("On" → "Off", descrizione nuova).
 // Col mouse sopra inchiostro e sfondo cambiano colore insieme ma la forma resta: niente rilettura.
 func inchiostroCambiato(a, b *image.RGBA, bl Blocco) bool {
@@ -1499,6 +1497,8 @@ func inchiostroCambiato(a, b *image.RGBA, bl Blocco) bool {
 	return ink > 0 && diff*100 > ink*15
 }
 
+// zonaCambiata: le lettere inglesi di b sono cambiate tra le due immagini (colore, alone,
+// riquadro di evidenziazione): differenza media sopra 18 nella zona della scritta.
 func zonaCambiata(a, b *image.RGBA, bl Blocco) bool {
 	r := image.Rect(bl.X, bl.Y, bl.X+bl.W, bl.Y+bl.H).Intersect(a.Bounds())
 	if r.Empty() {
@@ -2329,6 +2329,7 @@ func correggiNomeGioco(testo, nome string) string {
 	return strings.Join(w, " ")
 }
 
+// distanzaModifica: quante lettere aggiungere, togliere o cambiare per passare da a a b.
 func distanzaModifica(a, b string) int {
 	ra, rb := []rune(a), []rune(b)
 	prec := make([]int, len(rb)+1)

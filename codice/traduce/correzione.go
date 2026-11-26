@@ -73,8 +73,7 @@ func (t *Traduttore) QuandoCorretta(f func(inglese, bozza, corretta string)) {
 	t.corr.mu.Unlock()
 }
 
-// accodaCorrezione: chiamata dopo una traduzione nuova di Mozilla. Se la coda è piena, la frase
-// resta com'è (meglio una traduzione un po' meno precisa che rallentare il gioco).
+// accodaCorrezioneCoppia: come accodaCorrezione, per le lingue diverse da inglese → italiano.
 func (t *Traduttore) accodaCorrezioneCoppia(chiave, testo, bozza, da, a string) {
 	c := &t.corr
 	c.mu.Lock()
@@ -93,6 +92,8 @@ func (t *Traduttore) accodaCorrezioneCoppia(chiave, testo, bozza, da, a string) 
 // (acceso solo se la prova sulle frasi FLORES dice che migliora).
 var CorrettoreCoppiaAttivo = true
 
+// accodaCorrezione: chiamata dopo una traduzione nuova di Mozilla. Se la coda è piena, la frase
+// resta com'è (meglio una traduzione un po' meno precisa che rallentare il gioco).
 func (t *Traduttore) accodaCorrezione(chiave, battuta, bozza string, g []voceTrovata, schermata []string) {
 	c := &t.corr
 	c.mu.Lock()

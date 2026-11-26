@@ -745,13 +745,12 @@ func leggiPaginaOCR(img *image.RGBA) ([]RigaOCR, float64, error) {
 	return rileggiPiccole(img, righe, f), f, nil
 }
 
-// mostraPaginaPronta disegna le scritte tradotte sopra il gioco.
-// scritteMosse: tra le due immagini i contorni netti sono cambiati fuori dalle zone che si
-// muovono da sole. Se cambia solo la luce dello sfondo la lettura già fatta va bene: prima la
-// pagina veniva letta due volte di fila nei menu con lo sfondo animato.
 // giocoDelleFisse: il programma del gioco a cui valgono le traduzioni fisse di adesso.
 var giocoDelleFisse string
 
+// scritteMosse: tra le due immagini i contorni netti sono cambiati fuori dalle zone che si
+// muovono da sole. Se cambia solo la luce dello sfondo la lettura già fatta va bene: prima la
+// pagina veniva letta due volte di fila nei menu con lo sfondo animato.
 func scritteMosse(a, b *image.RGBA, animate []bool) bool {
 	for c, si := range celleBordiCambiate(a, b) {
 		if si && (c >= len(animate) || !animate[c]) {
@@ -764,6 +763,7 @@ func scritteMosse(a, b *image.RGBA, animate []bool) bool {
 // motivoLettura: perché è partita l'ultima lettura (solo per pagina-tempi.txt, controllo a mano).
 var motivoLettura atomic.Value
 
+// mostraPaginaPronta disegna le scritte tradotte sopra il gioco.
 func mostraPaginaPronta(p *paginaPronta, giro int64) bool {
 	area, img, pronti, nuove, t0, tOCR, tTrad := p.area, p.img, p.pronti, p.nuove, p.t0, p.tOCR, p.tTrad
 	if nuove > 0 {
@@ -900,9 +900,7 @@ func nostraFinestraIn(area Zona) (Zona, bool) {
 // salvaAnteprime: solo il programma di prova salva l'ultima schermata tradotta.
 var salvaAnteprime = false
 
-// linguaIlleggibile: se Steam dice che il gioco è in una lingua che Windows su questo PC non sa
-// leggere (es. coreano senza il suo pacchetto), lo dico dentro il gioco e non parto: senza
-// lettura non comparirebbe niente e sembrerebbe che Tasso non funzioni. Una volta per gioco e lingua.
+// linguaSteamLetta: la lingua del gioco letta dai file di Steam, e quando.
 type linguaSteamLetta struct {
 	lingua string
 	quando time.Time
@@ -914,6 +912,9 @@ var (
 	avvisoIlleggibile = map[uintptr]time.Time{}
 )
 
+// linguaIlleggibile: se Steam dice che il gioco è in una lingua che Windows su questo PC non sa
+// leggere (es. coreano senza il suo pacchetto), lo dico dentro il gioco e non parto: senza
+// lettura non comparirebbe niente e sembrerebbe che Tasso non funzioni. Una volta per gioco e lingua.
 func linguaIlleggibile(fg uintptr) bool {
 	g, ok := riconosciGioco(percorsoDiFinestra(fg))
 	if !ok {

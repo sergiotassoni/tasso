@@ -148,7 +148,7 @@ func versioneCorta(it string) (string, bool) {
 	return out, out != it
 }
 
-// sostituisciParola: sostituisce l con c solo come parole intere.
+// sostituisciComando: sostituisce l con c solo come parole intere.
 func sostituisciComando(s, l, c string) string {
 	re := regexpComando(l)
 	return re.ReplaceAllString(s, "${1}"+strings.ReplaceAll(c, "$", "$$")+"${2}")

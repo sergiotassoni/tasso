@@ -17,14 +17,14 @@ var negazioni = map[string]bool{
 	"weren't": true, "shouldn't": true, "wouldn't": true, "couldn't": true, "haven't": true, "hasn't": true,
 }
 
-// cifre: i numeri veri della frase ("150", "3/10", "x2"); una cifra dentro una parola ("Hel1o") è
-// un errore dell'OCR e non conta.
 var pronomi = map[string]bool{
 	"he": true, "she": true, "him": true, "her": true, "his": true, "hers": true, "it": true, "its": true,
 	"they": true, "them": true, "their": true, "this": true, "these": true, "that": true, "those": true,
 	"i": true, "me": true, "my": true, "we": true, "us": true, "our": true, "you": true, "your": true,
 }
 
+// cifre: i numeri veri della frase ("150", "3/10", "x2"); una cifra dentro una parola ("Hel1o") è
+// un errore dell'OCR e non conta.
 func cifre(s string) string {
 	var out []string
 	for _, w := range strings.Fields(s) {

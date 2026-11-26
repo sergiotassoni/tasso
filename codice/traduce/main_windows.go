@@ -1017,7 +1017,7 @@ func mozillaPronto(ok bool, errore string) {
 	}
 }
 
-// preparaMotori sceglie i motori in base alle impostazioni e alla scheda video.
+// muMotori: un solo preparaMotori alla volta.
 var muMotori sync.Mutex
 
 func profiloAttuale() string {
@@ -1033,6 +1033,7 @@ func correzioniFatte() map[string]int64 {
 	return map[string]int64{"fatte": f, "cambiate": c, "attesa": int64(n)}
 }
 
+// preparaMotori sceglie i motori in base alle impostazioni e alla scheda video.
 func preparaMotori() {
 	defer guard("motori")
 	muMotori.Lock()
