@@ -859,11 +859,14 @@ func fixRestoreFreq() {
 
 // cleanWipeTemp toglie la cartella di riempimento di cipher /w (C:\EFSTMPWP) rimasta da un
 // "Cancella lo spazio libero" interrotto: può occupare tutto lo spazio libero del disco.
+// In C:\ un utente normale può creare cartelle: niente os.RemoveAll (lavora per nome e, a metà, potrebbe
+// finire in una giunzione messa lì apposta), ma la cancellazione sicura, che apre ogni cartella partendo
+// da quella sopra e non segue mai i collegamenti (cancella_sicura.go).
 func cleanWipeTemp() {
-	if sd := os.Getenv("SystemDrive"); sd != "" {
+	if sd := filepath.VolumeName(winDir()); sd != "" {
 		p := filepath.Join(sd+`\`, "EFSTMPWP")
-		if fi, err := os.Lstat(p); err == nil && fi.IsDir() && fi.Mode()&os.ModeSymlink == 0 && fi.Mode()&os.ModeIrregular == 0 {
-			_ = os.RemoveAll(p)
+		if fi, err := os.Lstat(p); err == nil && fi.IsDir() {
+			_ = (&cancellatore{}).togliElemento(p)
 		}
 	}
 }

@@ -34,6 +34,7 @@ import (
 	"unsafe"
 
 	"golang.org/x/sys/windows"
+	"golang.org/x/sys/windows/registry"
 )
 
 const argCancellaSicura = "--cancella-sicura"
@@ -326,8 +327,13 @@ func (c *cancellatore) svuotaCartella(radice, cartella string) error {
 		}
 	}
 	// Controllo in più: la cartella aperta sta davvero sotto la radice.
-	if f := percorsoFinale(cur); f == "" || !dentroDi(f, fin) {
+	f := percorsoFinale(cur)
+	if f == "" || !dentroDi(f, fin) {
 		return errCS("la cartella non è dove dovrebbe")
+	}
+	// L'elenco delle cartelle ammesse lo decide Tasso qui, non lo script (cancella_ammessi.go).
+	if !percorsoAmmesso(f, elencoAmmessi()) {
+		return errCS("non è fra le cartelle che Tasso pulisce: " + f)
 	}
 	c.svuota(cur, 0)
 	return nil
@@ -344,7 +350,7 @@ func (c *cancellatore) togliElemento(elemento string) error {
 	if !nomeValido(nome) {
 		return errCS("percorso non valido")
 	}
-	hp, _, err := apriRadice(padre)
+	hp, finPadre, err := apriRadice(padre)
 	if err != nil {
 		if nonTrovato(err) {
 			return nil
@@ -352,6 +358,9 @@ func (c *cancellatore) togliElemento(elemento string) error {
 		return err
 	}
 	defer windows.CloseHandle(hp)
+	if dove := finPadre + `\` + nome; !percorsoAmmesso(dove, elencoAmmessi()) {
+		return errCS("non è fra le cartelle che Tasso pulisce: " + dove)
+	}
 	c.togli(hp, nome, 0)
 	return nil
 }
@@ -522,4 +531,114 @@ func tassoExe() string {
 		return ""
 	}
 	return p
+}
+
+// profiloVero: la cartella dell'utente scritta da Windows in HKLM (ProfileList), che un programma
+// senza permessi non può cambiare. Le cartelle "note" (AppData, Documenti...) invece si possono
+// redirigere da HKCU.
+func profiloVero() string {
+	tok := windows.GetCurrentProcessToken()
+	u, err := tok.GetTokenUser()
+	if err != nil || u == nil || u.User.Sid == nil {
+		return ""
+	}
+	sid := u.User.Sid.String()
+	k, err := registry.OpenKey(registry.LOCAL_MACHINE, `SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList\`+sid, registry.QUERY_VALUE)
+	if err != nil {
+		return ""
+	}
+	defer k.Close()
+	v, _, err := k.GetStringValue("ProfileImagePath")
+	if err != nil {
+		return ""
+	}
+	if e, err := registry.ExpandString(v); err == nil {
+		v = e
+	}
+	if q, ok := percorsoLocale(v); ok && len(q) > 3 {
+		return q
+	}
+	return ""
+}
+
+// steamVero: la cartella di Steam scritta dall'installatore in HKLM (con steam.exe dentro), "" se no.
+func steamVero() string {
+	for _, p := range []string{`SOFTWARE\WOW6432Node\Valve\Steam`, `SOFTWARE\Valve\Steam`} {
+		k, err := registry.OpenKey(registry.LOCAL_MACHINE, p, registry.QUERY_VALUE)
+		if err != nil {
+			continue
+		}
+		v, _, err := k.GetStringValue("InstallPath")
+		k.Close()
+		if err != nil {
+			continue
+		}
+		if q, ok := percorsoLocale(strings.ReplaceAll(v, "/", `\`)); ok && len(q) > 3 && fileExists(filepath.Join(q, "steam.exe")) {
+			return q
+		}
+	}
+	return ""
+}
+
+// elencoAmmessi: dove la cancellazione sicura può lavorare (vedi cancella_ammessi.go). Ogni cartella
+// vale anche con il suo percorso vero (C:\Users spostato su D:, Steam su un altro disco).
+func elencoAmmessi() cartelleAmmesse {
+	c := cartelleVere
+	var a cartelleAmmesse
+	add := func(lista *[]string, p string) {
+		if p == "" {
+			return
+		}
+		*lista = append(*lista, p)
+		if f := finaleDi(p); f != "" && !strings.EqualFold(f, strings.TrimRight(p, `\`)) {
+			*lista = append(*lista, f)
+		}
+	}
+	// AppData del profilo VERO. Quelle "note" solo se stanno davvero lì dentro.
+	if prof := profiloVero(); prof != "" {
+		local, roaming := filepath.Join(prof, "AppData", "Local"), filepath.Join(prof, "AppData", "Roaming")
+		add(&a.dentro, local)
+		add(&a.dentro, roaming)
+		add(&a.intere, filepath.Join(local, "Temp"))
+		for _, k := range []string{c.Local, c.Roaming} {
+			if k != "" && dentroDi(k, prof) {
+				add(&a.dentro, k)
+			}
+		}
+	}
+	if c.TempOriginale != "" { // già controllata da tempOriginale (nome temp/tmp, niente cartelle personali)
+		add(&a.intere, c.TempOriginale)
+	}
+	if w := c.Win; w != "" {
+		for _, s := range []string{"Temp", `SoftwareDistribution\Download`, "Minidump", "LiveKernelReports",
+			`ServiceProfiles\LocalService\AppData\Local\Temp`, `ServiceProfiles\NetworkService\AppData\Local\Temp`} {
+			add(&a.intere, filepath.Join(w, s))
+		}
+		if sd := filepath.VolumeName(w); sd != "" {
+			for _, s := range []string{"AMD", "NVIDIA", `Intel\Logs`, `Intel\ExtremeGraphics`, "EFSTMPWP"} {
+				add(&a.intere, filepath.Join(sd+`\`, s))
+			}
+		}
+	}
+	if pd := c.PD; pd != "" {
+		for _, s := range []string{`Microsoft\Windows\WER`, `NVIDIA Corporation\NV_Cache`, `NVIDIA Corporation\Downloader`, `GOG.com\Galaxy\webcache`} {
+			add(&a.intere, filepath.Join(pd, s))
+		}
+	}
+	for _, pf := range []string{c.PF, c.PF86} {
+		if pf != "" {
+			add(&a.intere, filepath.Join(pf, `Ubisoft\Ubisoft Game Launcher\cache`))
+		}
+	}
+	if st := steamVero(); st != "" {
+		for _, s := range []string{"dumps", "logs", `appcache\httpcache`} {
+			add(&a.intere, filepath.Join(st, s))
+		}
+	}
+	// I temporanei di Tasso (Programmi\Tasso\lavoro): le esportazioni Wi-Fi e simili.
+	add(&a.intere, filepath.Join(cartellaTasso(), "lavoro"))
+	if c.TempTasso != "" {
+		add(&a.intere, c.TempTasso)
+	}
+	return a
 }

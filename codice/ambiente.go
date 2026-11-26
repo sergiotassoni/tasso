@@ -9,6 +9,7 @@ package main
 // ogni programma che Tasso fa partire, e anche os.Getenv in Tasso legge quelle vere.
 
 import (
+	"encoding/base64"
 	"os"
 	"path/filepath"
 	"strings"
@@ -140,10 +141,58 @@ func tempOriginale(c *cartelle, t string) string {
 	if strings.HasPrefix(primo, "$") || primo == "system volume information" || primo == "recovery" || primo == "boot" || primo == "efi" || primo == "windows.old" {
 		return ""
 	}
+	// Mai dentro le cartelle personali (un TEMP messo per sbaglio su Documenti o Desktop
+	// svuoterebbe file veri), e solo cartelle che si chiamano davvero temp/tmp.
+	personali := []string{c.Profilo}
+	for _, id := range []*windows.KNOWNFOLDERID{windows.FOLDERID_Documents, windows.FOLDERID_Desktop, windows.FOLDERID_Downloads,
+		windows.FOLDERID_Pictures, windows.FOLDERID_Videos, windows.FOLDERID_Music, windows.FOLDERID_OneDrive, windows.FOLDERID_SavedGames} {
+		personali = append(personali, cartellaNota(id))
+	}
+	if !tempNomeAccettabile(t, personali) {
+		return ""
+	}
 	if fi, err := os.Stat(t); err != nil || !fi.IsDir() {
 		return ""
 	}
 	return t
+}
+
+// tempNomeAccettabile: il TEMP dell'utente si pulisce solo se l'ultima cartella si chiama temp/tmp
+// (Temp, TMP, Temporanei, MyTemp...) e se non sta dentro (o non è) una cartella personale. Il profilo
+// conta come personale solo per sé stesso: AppData\Local\Temp va bene, il profilo intero no. Per sicurezza
+// rifiuto anche i nomi delle cartelle personali in qualunque punto del percorso (D:\Documenti\temp).
+func tempNomeAccettabile(t string, personali []string) bool {
+	t = strings.TrimRight(t, `\`)
+	nome := strings.ToLower(t[strings.LastIndex(t, `\`)+1:])
+	if !strings.Contains(nome, "temp") && !strings.Contains(nome, "tmp") {
+		return false
+	}
+	for i, d := range personali {
+		if d == "" {
+			continue
+		}
+		if i == 0 { // profilo: vietato solo lui, non quello che c'è dentro (il resto lo controllano gli altri)
+			if strings.EqualFold(strings.TrimRight(d, `\`), t) {
+				return false
+			}
+			continue
+		}
+		if dentroDi(t, d) {
+			return false
+		}
+	}
+	for _, parte := range strings.Split(strings.ToLower(t), `\`) {
+		switch parte {
+		case "documents", "documenti", "documentos", "dokumente", "desktop", "escritorio", "bureau", "downloads", "download",
+			"descargas", "téléchargements", "pictures", "immagini", "imágenes", "images", "bilder", "videos", "video", "vidéos",
+			"music", "musica", "música", "musique", "musik", "saved games", "giochi salvati":
+			return false
+		}
+		if strings.HasPrefix(parte, "onedrive") || strings.HasPrefix(parte, "dropbox") || strings.HasPrefix(parte, "google drive") || strings.HasPrefix(parte, "icloud") {
+			return false
+		}
+	}
+	return true
 }
 
 // winDir: la vera cartella di Windows (chiesta a Windows, non presa da SystemRoot o windir).
@@ -289,8 +338,25 @@ func pulisciTempTasso() {
 	}
 }
 
-// psQuote: un testo dentro apici singoli di PowerShell.
-func psQuote(s string) string { return "'" + strings.ReplaceAll(s, "'", "''") + "'" }
+// psQuote: un testo come valore di PowerShell, sicuro per qualunque carattere.
+// PowerShell chiude una stringa tra apici anche con gli apici "tipografici" (‘ ’ ‚ ‛), non solo con ':
+// raddoppiare solo ' non basta (una cartella "D’Amico", o una preparata apposta con ’;comando;’,
+// farebbe uscire dalla stringa un comando che gira da amministratore). I testi fatti solo di caratteri
+// semplici restano leggibili tra apici; tutti gli altri passano in base64, che non ha apici.
+func psQuote(s string) string {
+	semplice := true
+	for i := 0; i < len(s); i++ {
+		c := s[i]
+		if c < 0x20 || c >= 0x7f || c == '\'' || c == '`' {
+			semplice = false
+			break
+		}
+	}
+	if semplice {
+		return "'" + s + "'"
+	}
+	return "([Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('" + base64.StdEncoding.EncodeToString([]byte(s)) + "')))"
+}
 
 // psCartelle: le cartelle vere passate a ogni script (non prese da $env:, che uno script potrebbe
 // aver ricevuto cambiato). $TassoTempUtente è la cartella temporanea dell'utente (AppData\Local\Temp),
@@ -309,6 +375,11 @@ func psCartelle() string {
 	if c.Local != "" {
 		tu = filepath.Join(c.Local, "Temp")
 	}
+	// AppData\Local rediretto fuori dal profilo vero (lo può fare un programma qualsiasi da HKCU):
+	// i temporanei da pulire sono quelli del profilo vero, mai la cartella dove punta adesso.
+	if prof := profiloVero(); prof != "" && (c.Local == "" || !dentroDi(c.Local, prof)) {
+		tu = filepath.Join(prof, "AppData", "Local", "Temp")
+	}
 	return "$TassoWin = " + psQuote(c.Win) +
 		"\n$TassoSys32 = " + psQuote(c.Sys32) +
 		"\n$TassoPF = " + psQuote(c.PF) +
@@ -317,6 +388,7 @@ func psCartelle() string {
 		"\n$TassoLocal = " + psQuote(c.Local) +
 		"\n$TassoRoaming = " + psQuote(c.Roaming) +
 		"\n$TassoProfilo = " + psQuote(c.Profilo) +
+		"\n$TassoProfiloVero = " + psQuote(profiloVero()) +
 		"\n$TassoTempUtente = " + psQuote(tu) +
 		"\n$TassoTempOriginale = " + psQuote(c.TempOriginale) +
 		"\n$TassoExe = " + psQuote(tassoExe()) +
