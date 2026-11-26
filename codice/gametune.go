@@ -566,10 +566,10 @@ func unrealIni(dir string) string {
 
 var sgKeys = []string{"sg.ViewDistanceQuality", "sg.AntiAliasingQuality", "sg.ShadowQuality", "sg.GlobalIlluminationQuality", "sg.ReflectionQuality", "sg.PostProcessQuality", "sg.TextureQuality", "sg.EffectsQuality", "sg.FoliageQuality", "sg.ShadingQuality"}
 
-// writeUnrealIni cambia solo qualità, VSync e limite FPS; tutto il resto del file resta uguale.
 // errIniUTF16: il file è scritto in UTF-16 (alcuni giochi lo fanno): non lo tocco, per non rovinarlo.
 var errIniUTF16 = errors.New("file UTF-16")
 
+// writeUnrealIni cambia solo qualità, VSync e limite FPS; tutto il resto del file resta uguale.
 func writeUnrealIni(path string, o tuneOpts) error {
 	b, err := os.ReadFile(path)
 	if err != nil {

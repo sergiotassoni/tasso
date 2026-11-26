@@ -455,9 +455,9 @@ func shortHash(s string) string {
 	return hex.EncodeToString(h[:6])
 }
 
-// niceName: "the_witcher-3_v1.2.0" -> "The witcher 3" (tolgo solo la versione in fondo)
 var verTailRe = regexp.MustCompile(`(?i)([\s._-]+v\d+(\.\d+)*|[\s._-]+\d+(\.\d+){2,})[\w.()-]*$`)
 
+// niceName: "the_witcher-3_v1.2.0" -> "The witcher 3" (tolgo solo la versione in fondo)
 func niceName(n string) string {
 	s := verTailRe.ReplaceAllString(n, "")
 	if strings.TrimSpace(s) == "" {

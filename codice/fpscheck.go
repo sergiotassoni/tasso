@@ -378,9 +378,9 @@ func integratedGPU(name string) bool {
 
 var regexpRadeonM = regexp.MustCompile(`radeon\(tm\)? \d{3}m\b|radeon \d{3}m\b`)
 
-// ramRated: velocità scritta nel codice del banco (es. F4-3600C16, CMK16GX4M2B3200C16), se c'è.
 var ramSpeedRe = regexp.MustCompile(`\d{4}`)
 
+// ramRated: velocità scritta nel codice del banco (es. F4-3600C16, CMK16GX4M2B3200C16), se c'è.
 func ramRated(part string) int {
 	best := 0
 	for _, m := range ramSpeedRe.FindAllString(part, -1) {

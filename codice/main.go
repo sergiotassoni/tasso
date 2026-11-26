@@ -342,8 +342,6 @@ func hardenProcess() {
 	ambientePulito()
 }
 
-// startCrashLog: se Tasso si chiude per un errore grave, Go scrive il motivo in logs\crash.txt
-// (con data e versione), così si può capire cosa è successo sul PC di chi lo usa.
 // logPanic: scrive in logs\crash.txt un errore grave che Tasso ha fermato senza chiudersi.
 func logPanic(where string, r interface{}, stack []byte) {
 	p := filepath.Join(appDir, "logs", "crash.txt")
@@ -362,6 +360,8 @@ func guard(where string) {
 	}
 }
 
+// startCrashLog: se Tasso si chiude per un errore grave, Go scrive il motivo in logs\crash.txt
+// (con data e versione), così si può capire cosa è successo sul PC di chi lo usa.
 func startCrashLog() {
 	p := filepath.Join(appDir, "logs", "crash.txt")
 	if fi, err := os.Stat(p); err == nil && fi.Size() > 1<<20 {

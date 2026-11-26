@@ -152,7 +152,6 @@ func boostSpentoTesto() string {
 	return "Boost spento da solo: nessun gioco aperto da " + strconv.Itoa(int(boostSpegniDopo/time.Minute)) + " minuti. Il PC è tornato com'era."
 }
 
-// safeName: i nomi dei giochi arrivano da fuori (nome del programma): tengo solo caratteri semplici.
 // nomeGiocoSicuro: come safeName, ma per un gioco aperto con il nome tutto in caratteri non latini
 // (cinese, giapponese, cirillico) dà "gioco" invece di "": il gioco conta comunque come aperto.
 func nomeGiocoSicuro(s string) string {
@@ -167,6 +166,7 @@ func nomeGiocoSicuro(s string) string {
 	return n
 }
 
+// safeName: i nomi dei giochi arrivano da fuori (nome del programma): tengo solo caratteri semplici.
 func safeName(s string) string {
 	var b strings.Builder
 	for _, r := range s {
@@ -450,14 +450,14 @@ func closeBackground() []string {
 	return names
 }
 
-// reopenBackground riapre i programmi chiusi (se non sono già ripartiti da soli), come utente
-// normale tramite Esplora file.
 // reopenMu: una riapertura alla volta, dall'inizio alla fine. Le chiamate possono arrivare quasi
 // insieme (avvio dopo un crash, watcher a gioco finito, "Rimetti com'era"): senza, tutte e due
 // leggerebbero lo stesso elenco e aprirebbero due volte lo stesso programma (explorer.exe lo avvia
 // dopo un attimo, quindi il controllo "è già aperto" non basta).
 var reopenMu sync.Mutex
 
+// reopenBackground riapre i programmi chiusi (se non sono già ripartiti da soli), come utente
+// normale tramite Esplora file.
 func reopenBackground() []string {
 	reopenMu.Lock()
 	defer reopenMu.Unlock()

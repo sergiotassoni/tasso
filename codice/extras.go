@@ -428,10 +428,10 @@ func setAutoGame(on bool) string {
 	return "ok"
 }
 
-// runningGame restituisce il nome del primo gioco aperto, oppure "".
 // gamePid: il processo del gioco aperto (serve al pannellino per sapere se il gioco è davanti).
 var gamePid atomic.Uint32
 
+// runningGame restituisce il nome del primo gioco aperto, oppure "".
 func runningGame() string {
 	withWin := pidsWithBigWindow()
 	libDirs, libExes := libraryGamePaths()
