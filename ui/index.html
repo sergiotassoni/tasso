@@ -17,6 +17,8 @@
   --hover:color-mix(in srgb,var(--panel) 85%,var(--text) 8%);
 }
 *{box-sizing:border-box}
+/* hidden vince sempre (anche su .passi, label.scelta... che hanno display:flex) */
+[hidden]{display:none!important}
 html,body{margin:0;height:100%;background:var(--bg);color:var(--text);font-family:var(--body);font-size:14px;overflow:hidden;user-select:none}
 button{font-family:inherit;cursor:pointer;color:inherit}
 button:focus-visible,input:focus-visible,label:focus-within{outline:2px solid var(--a1);outline-offset:2px}
@@ -79,6 +81,7 @@ label.scelta.fissa{cursor:default;opacity:.7}
 .grande{display:flex;align-items:center;gap:22px}
 .grande img{width:120px;height:120px}
 .apri{display:flex;flex-direction:column;gap:10px}
+.sopraPiede{padding:12px 38px;border-top:1px solid var(--line)}
 .piede{display:flex;justify-content:flex-end;align-items:center;gap:10px;padding:16px 38px 24px;border-top:1px solid var(--line)}
 .piede .msg{margin-right:auto;color:var(--red);font-size:13px}
 .btn{border:0;border-radius:12px;padding:10px 20px;font-weight:700;font-size:14px;min-height:42px}
@@ -166,13 +169,16 @@ label.scelta.fissa{cursor:default;opacity:.7}
       <p class="sub" data-t="dis_sotto"></p>
       <div class="comp" id="compDis"></div>
       <div class="nota" id="notaDis" data-t="dis_nota_tasso"></div>
-      <label class="scelta" id="sceltaDati"><input type="checkbox" id="disDati"><span data-t="dis_dati"></span></label>
     </section>
     <!-- 7. disinstallazione finita -->
     <section class="pagina" id="p7">
       <div class="grande"><img src="{{ICONA:gaming}}" alt=""><div><h1 data-t="fine_titolo"></h1><p class="sub" id="disEsito"></p></div></div>
       <div class="nota avviso" id="disNonTolti" hidden></div>
     </section>
+    <!-- disinstalla: la casella dei dati sta sopra i pulsanti, sempre visibile senza scorrere -->
+    <div class="sopraPiede" id="rigaDati" hidden>
+      <label class="scelta" id="sceltaDati"><input type="checkbox" id="disDati"><span data-t="dis_dati"></span></label>
+    </div>
     <div class="piede">
       <span class="msg" id="msg" role="alert"></span>
       <button class="btn ghost" id="bIndietro" data-t="indietro"></button>
@@ -223,6 +229,7 @@ function vai(p){
   const passo = p <= 4 ? Math.min(p, 3) : (p === 5 ? 3 : -1);
   document.querySelectorAll('#passi li').forEach(li => { const n = +li.dataset.p; li.classList.toggle('on', n === passo && p !== 4); li.classList.toggle('fatto', n < passo || p === 4); });
   $('#passi').hidden = A.modo === 'disinstalla';
+  $('#rigaDati').hidden = p !== 6 || $('#sceltaDati').hidden;
   const ind = $('#bIndietro'), av = $('#bAvanti'), ann = $('#bAnnulla');
   ind.hidden = !(p === 1 || p === 2); ann.hidden = true; av.hidden = false; av.disabled = false;
   if (p === 0 || p === 1) av.textContent = T('avanti');
@@ -377,6 +384,7 @@ function aggiornaSceltaDati(pre){
   const via = tasso.length > 0 && tasso.every(id => dis[id]);
   $('#sceltaDati').hidden = !!(pre && pre.length) || !via;
   if ($('#sceltaDati').hidden) $('#disDati').checked = false;
+  $('#rigaDati').hidden = P !== 6 || $('#sceltaDati').hidden;
 }
 async function disinstalla(){
   const ids = A.componenti.map(c => c.id).filter(id => dis[id]);
