@@ -1,4 +1,4 @@
-﻿TASSO 3.1 - INDICE DELLE FUNZIONI
+﻿TASSO 3.1.1 - INDICE DELLE FUNZIONI
 =================================
 
 1. PULIZIA
@@ -197,6 +197,12 @@
      cosa e uno per tutto. Spegnere o riavviare il PC non rimette niente da solo
    - Avvio con Windows
    - Avvisi intelligenti (mai in modalità Gaming o FPS)
+
+NOVITÀ DELLA 3.1.1
+   - Pulizia: "Aggiorna anche Windows" (per ultimo) e "Quando ha finito": Lascia acceso,
+     Riavvia o Spegni (avviso di 60 secondi); PC sveglio fino alla fine; avviso batteria
+   - Aggiornamenti di Windows con l'avanzamento vero; "Bentornato" dopo il riavvio
+   - Corretto: "Riavvia ora" che a volte non riavviava il PC
 
 NOVITÀ DELLA 3.1
    - Menu nuovo: Home, Giochi, Pulisci e ripara, Impostazioni; in alto Gaming o Ufficio

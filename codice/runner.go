@@ -28,6 +28,8 @@ type psResult struct {
 	JSON    string
 	Err     error
 	TooSlow bool // fermato (tutto o in parte) perché superava il tempo massimo
+	Skipped bool // il passaggio dice di essersi saltato (riga SKIPPED), es. Windows aspetta già un riavvio
+	WUInst  int  // aggiornamenti di Windows installati (riga WUINST n)
 }
 
 var scriptSeq atomic.Int64
@@ -130,6 +132,12 @@ func psDeadline(timeout time.Duration) string {
 // runPSOpt: come runPSCtx; onProg riceve l'avanzamento (PROG), heartbeat=true scrive nel registro
 // "sto ancora lavorando" quando il passaggio resta in silenzio a lungo (così non sembra fermo).
 func runPSOpt(parent context.Context, script string, timeout time.Duration, onMsg func(string), onProg func(float64), heartbeat bool) psResult {
+	return runPSInfo(parent, script, timeout, onMsg, onProg, nil, heartbeat)
+}
+
+// runPSInfo: come runPSOpt; onInfo riceve le righe "INFO ..." (la riga sotto il passaggio in corso,
+// es. "Installo 3 aggiornamenti: 2 di 3 fatti").
+func runPSInfo(parent context.Context, script string, timeout time.Duration, onMsg func(string), onProg func(float64), onInfo func(string), heartbeat bool) psResult {
 	res := psResult{}
 	path, err := writeScript(psDeadline(timeout) + script)
 	if err != nil {
@@ -212,6 +220,16 @@ func runPSOpt(parent context.Context, script string, timeout time.Duration, onMs
 			res.Reboot = true
 		case line == "SLOW": // una parte lunga del passaggio è stata fermata perché troppo lenta
 			res.TooSlow = true
+		case line == "SKIPPED":
+			res.Skipped = true
+		case strings.HasPrefix(line, "WUINST "):
+			if n, e := strconv.Atoi(strings.TrimSpace(strings.TrimPrefix(line, "WUINST "))); e == nil && n > 0 {
+				res.WUInst += n
+			}
+		case strings.HasPrefix(line, "INFO "):
+			if onInfo != nil {
+				onInfo(strings.TrimPrefix(line, "INFO "))
+			}
 		case strings.HasPrefix(line, "JSON "):
 			res.JSON = strings.TrimPrefix(line, "JSON ")
 		case strings.HasPrefix(line, "PROG "):
@@ -405,7 +423,7 @@ func cancelRun() {
 	runCtxMu.Unlock()
 }
 
-func startLevel(level int, shutdownAfter bool) string {
+func startLevel(level int, fine string, winupdate bool) string {
 	if level < 1 || level > 5 {
 		return "livello non valido"
 	}
@@ -415,7 +433,7 @@ func startLevel(level int, shutdownAfter bool) string {
 			ids = append(ids, s.ID)
 		}
 	}
-	return startSteps(ids, level, shutdownAfter)
+	return startSteps(ids, level, fine, winupdate)
 }
 
 // Pulizia programmata: chi la chiede (avvio con --scheduled o la copia già aperta svegliata
@@ -427,7 +445,7 @@ var (
 	autoAt      time.Time
 	autoTTL     time.Duration
 	runAuto     atomic.Bool
-	runSingle   atomic.Bool // un solo passaggio scelto da te, senza "spegni al termine"
+	runSingle   atomic.Bool // un solo passaggio scelto da te, con "Quando ha finito: Lascia acceso"
 )
 
 func markAutoRun(level int, ttl time.Duration) {
@@ -444,7 +462,10 @@ func takeAutoRun(level int) bool {
 	return ok
 }
 
-func startSteps(ids []string, level int, shutdownAfter bool) string {
+// startSteps avvia la pulizia. fine: "acceso", "riavvia" o "spegni" (Quando ha finito);
+// winupdate=false toglie gli aggiornamenti di Windows ("Aggiorna anche Windows" tolto).
+func startSteps(ids []string, level int, fine string, winupdate bool) string {
+	fine = sceltaFine(fine)
 	want := map[string]bool{}
 	for _, id := range ids {
 		want[id] = true
@@ -455,6 +476,10 @@ func startSteps(ids []string, level int, shutdownAfter bool) string {
 			sel = append(sel, s)
 		}
 	}
+	if !winupdate && len(sel) > 1 {
+		sel = senzaPasso(sel, "winupdate")
+	}
+	sel = winupdatePerUltimo(sel) // 3.1.1: Windows Update sempre per ultimo
 	if len(sel) == 0 {
 		return "nessun passaggio"
 	}
@@ -470,7 +495,7 @@ func startSteps(ids []string, level int, shutdownAfter bool) string {
 	running = true
 	runMu.Unlock()
 	runAuto.Store(takeAutoRun(level))
-	runSingle.Store((len(sel) == 1 || level == 0) && !shutdownAfter) // Risolvi (livello 0): si può chiedere/aprire come per un passaggio solo
+	runSingle.Store((len(sel) == 1 || level == 0) && fine == fineAcceso) // Risolvi (livello 0): si può chiedere/aprire come per un passaggio solo
 	cancelReq.Store(false)
 	newRunCtx()
 
@@ -482,10 +507,13 @@ func startSteps(ids []string, level int, shutdownAfter bool) string {
 				logPanic("pulizia", r, debug.Stack())
 				emit("onRunDone", map[string]interface{}{
 					"freed": 0, "seconds": 0, "reboot": false, "cancelled": true,
-					"done": 0, "total": len(sel), "log": "", "shutdown": false,
+					"done": 0, "total": len(sel), "log": "", "shutdown": false, "restart": false,
 				})
 			}
 		}()
+		// Il PC resta sveglio fino alla fine (anche se la pulizia va in errore o la fermi).
+		sveglio := tienSveglio()
+		defer sveglio()
 		defer func() {
 			for _, x := range sel {
 				if x.ID == "wipe_free" {
@@ -519,7 +547,7 @@ func startSteps(ids []string, level int, shutdownAfter bool) string {
 		for _, s := range sel {
 			list = append(list, map[string]interface{}{"id": s.ID, "name": s.Name, "minutes": s.Minutes})
 		}
-		emit("onRunStart", map[string]interface{}{"level": level, "steps": list})
+		emit("onRunStart", map[string]interface{}{"level": level, "steps": list, "end": fine})
 		logLine(fmt.Sprintf(trGo("Tasso %s - inizio (%d passaggi)"), appVersion, len(sel)))
 
 		snapOK := true
@@ -544,6 +572,8 @@ func startSteps(ids []string, level int, shutdownAfter bool) string {
 		reboot := false
 		done := 0
 		var doneNames []string
+		var passi []passoFatto // per il "Bentornato"
+		wuInst := 0
 		for i, s := range sel {
 			if cancelReq.Load() {
 				logLine("Interrotto da te: i passaggi rimanenti sono stati saltati.")
@@ -554,17 +584,20 @@ func startSteps(ids []string, level int, shutdownAfter bool) string {
 			if passoConFoto[s.ID] && s.ID != "backup" && !snapOK {
 				// Senza la foto di com'era Windows non si potrebbe tornare indietro: lo salto.
 				logLine("   Saltato: non sono riuscito a salvare com'era Windows, quindi per sicurezza non cambio niente.")
+				passi = append(passi, passoFatto{Nome: s.Name, Saltato: true})
 				done++
 				emit("onStepDone", map[string]interface{}{"index": i, "freed": 0})
 				continue
 			}
 			idx := i
 			lastProg := -1.0
-			r := runPSOpt(runCtx(), s.Script, s.Timeout, func(m string) { logLine("   " + m) }, func(f float64) {
+			r := runPSInfo(runCtx(), s.Script, s.Timeout, func(m string) { logLine("   " + m) }, func(f float64) {
 				if f-lastProg >= 0.01 || f >= 1 { // al massimo 100 aggiornamenti per passaggio
 					lastProg = f
 					emit("onStepProgress", map[string]interface{}{"index": idx, "frac": f})
 				}
+			}, func(t string) {
+				emit("onStepInfo", map[string]interface{}{"index": idx, "text": t})
 			}, true)
 			if r.TooSlow {
 				slow++
@@ -576,6 +609,10 @@ func startSteps(ids []string, level int, shutdownAfter bool) string {
 			if r.Reboot {
 				reboot = true
 			}
+			if s.ID == "winupdate" {
+				wuInst += r.WUInst
+			}
+			passi = append(passi, passoFatto{Nome: s.Name, Liberato: r.Freed, Saltato: r.TooSlow || r.Skipped})
 			done++
 			doneNames = append(doneNames, s.Name)
 			emit("onStepDone", map[string]interface{}{"index": i, "freed": r.Freed})
@@ -614,11 +651,27 @@ func startSteps(ids []string, level int, shutdownAfter bool) string {
 			emit("onBench", map[string]interface{}{"result": after, "before": before, "history": benchHistory()})
 		}
 		cancelled := cancelReq.Load()
-		shutdown := false
-		if shutdownAfter && !cancelled {
-			logLine("Spegnimento automatico: il PC si spegne tra 2 minuti (puoi annullarlo da Tasso).")
-			if _, err := runHidden("shutdown.exe", "/s", "/t", "120", "/c", trGo("Tasso ha finito la manutenzione: il PC si spegne tra 2 minuti.")); err == nil {
-				shutdown = true
+		shutdown, restart, fineErr := false, false, false
+		if fine != fineAcceso && !cancelled {
+			riavvia := fine == fineRiavvia
+			if riavvia {
+				logLine("Quando ha finito: riavvio. Il PC si riavvia tra 60 secondi (puoi annullarlo da Tasso).")
+			} else {
+				logLine("Quando ha finito: spengo. Il PC si spegne tra 60 secondi (puoi annullarlo da Tasso).")
+			}
+			msg := trGo("Tasso ha finito la manutenzione: il PC si spegne tra 60 secondi.")
+			if riavvia {
+				msg = trGo("Tasso ha finito la manutenzione: il PC si riavvia tra 60 secondi.")
+			}
+			if pianificaFine(riavvia, fineSecondi, msg) {
+				restart, shutdown = riavvia, !riavvia
+				salvaBentornato(riepilogoPulizia{
+					Livello: level, Fine: fine, FinitaAlle: time.Now().Format("15:04"), Quando: time.Now().Unix(),
+					Liberato: total, Aggiornamenti: wuInst, Fatti: done, Totale: len(sel), Passi: passi,
+				})
+			} else {
+				fineErr = true
+				logLine("Windows non ha accettato il riavvio o lo spegnimento: lo puoi chiedere da Tasso con il pulsante.")
 			}
 		}
 		emit("onRunDone", map[string]interface{}{
@@ -630,6 +683,11 @@ func startSteps(ids []string, level int, shutdownAfter bool) string {
 			"total":     len(sel),
 			"log":       logPath,
 			"shutdown":  shutdown,
+			"restart":   restart,
+			"end":       fine,
+			"endErr":    fineErr,
+			"endSecs":   fineSecondi,
+			"updates":   wuInst,
 			"settings":  getSettings(),
 		})
 		go func() { defer guard("numeri"); statsRun(level, doneNames, total, int(dur.Seconds()), cancelled) }()

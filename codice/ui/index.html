@@ -1481,7 +1481,13 @@ const refreshS = async () => { const s = await call('goGetSettings'); if (s) S =
 function fmtBytes(b){ b = Number(b) || 0; if (b >= 1073741824) return (b / 1073741824).toFixed(1).replace('.', DEC) + ' GB'; if (b >= 1048576) return Math.round(b / 1048576) + ' MB'; return Math.round(b / 1024) + ' KB'; }
 function fmtMin(m){ m = Math.max(0, Math.round(m)); if (m < 1) return _t('meno di 1 min'); if (m < 60) return m + ' min'; return Math.floor(m / 60) + ' h ' + (m % 60) + ' min'; }
 // Dopo "Riavvia": 15 secondi per cambiare idea (shutdown /a annulla anche il riavvio).
-function restartToast(){ toast(_t('Il PC si riavvia tra 15 secondi.'), 'var(--a4)', {label:_t('Annulla'), fn: async () => { await call('goCancelShutdown'); toast(_t('Riavvio annullato.')); }}); }
+// 3.1.1: il conto alla rovescia si mostra solo se Windows ha accettato il riavvio (prima l'errore era
+// ignorato e sul portatile di Sergio il PC non si riavviava mai). Se dopo 15+30 s Tasso è ancora vivo, lo dico.
+let RST_T = null;
+function restartToast(){ clearTimeout(RST_T); RST_T = setTimeout(() => restartFailed(_t('Il riavvio non è partito.')), 45000); toast(_t('Il PC si riavvia tra 15 secondi.'), 'var(--a4)', {label:_t('Annulla'), fn: async () => { clearTimeout(RST_T); await call('goCancelShutdown'); toast(_t('Riavvio annullato.')); }}); }
+async function doRestart(){ const r = await call('goRestart'); if (r === 'ok') restartToast(); else restartFailed(_t('Windows non ha accettato il riavvio: premi Riavvia adesso')); }
+function restartFailed(msg){ modal('<h2>' + esc(msg) + '</h2><p class="muted" style="margin:0">' + _t('Salva il lavoro aperto prima di riavviare.') + '</p>', [{label:_t('Annulla')}, {label:_t('Riavvia adesso'), cls:'warn', fn: () => { endNow('riavvia'); }}]); }
+async function endNow(kind){ const r = await call('goEndNow', kind); if (r !== 'ok') toast(kind === 'spegni' ? _t('Windows non ha accettato lo spegnimento: spegni dal menu Start.') : _t('Windows non ha accettato il riavvio: riavvia dal menu Start.'), 'var(--a4)'); }
 function toast(t, color, action){
   const d = el('div', {class:'toast'}, '<span>' + esc(t) + '</span>');
   if (color) d.style.borderLeftColor = color;
@@ -1590,7 +1596,9 @@ const LEVELS = [
   {n:4, name:_t('Profonda'), c:'var(--a4)', badge:_t('MENSILE'), d:_t('Driver, Windows Update, driver video vecchi, sicurezza, deframmentazione, dischi, antivirus.')},
   {n:5, name:_t('Eccezionale'), c:'var(--a2)', badge:_t('COMPLETA'), d:_t('Ripara Windows, stabilità (crash ed errori hardware), ogni programma, il disco e le periferiche.')}
 ];
-const levelSteps = (n) => STEPS.filter(s => s.level > 0 && s.level <= n);
+// 3.1.1: gli aggiornamenti di Windows sempre per ultimi (come in runner.go, winupdatePerUltimo).
+const wuLast = (l) => l.filter(s => s.id !== 'winupdate').concat(l.filter(s => s.id === 'winupdate'));
+const levelSteps = (n) => wuLast(STEPS.filter(s => s.level > 0 && s.level <= n));
 const levelMinutes = (n) => levelSteps(n).reduce((a, s) => a + s.minutes, 0);
 const RECOMMENDED = 3;
 function levelCard(L){
@@ -1786,7 +1794,26 @@ document.addEventListener('keydown', (e) => {
   else if (!e.shiftKey && i === f.length - 1) { e.preventDefault(); f[0].focus(); }
 });
 
-const OFF_BOX = _t('<label class="check"><input type="checkbox" id="chkOff"> Spegni il PC quando ha finito</label>');
+// 3.1.1 "Un clic, esci di casa, torni e trovi tutto fatto": Aggiorna anche Windows + Quando ha finito
+// (Lascia acceso / Riavvia / Spegni) + avviso batteria. Sostituisce "Spegni il PC quando ha finito".
+function fineBox(wu){
+  const def = wu ? 'riavvia' : 'acceso';
+  const bt = [['acceso', _t('Lascia acceso')], ['riavvia', _t('Riavvia')], ['spegni', _t('Spegni')]].map(([k, l]) => '<button type="button" role="radio" class="btn ' + (k === def ? 'primary' : 'ghost') + '" aria-checked="' + (k === def) + '" data-fine="' + k + '">' + esc(l) + '</button>').join('');
+  return '<div class="note" style="display:flex;flex-direction:column;gap:12px;border-color:color-mix(in srgb,var(--a1) 40%,var(--line))">' +
+    (wu ? '<label style="display:flex;gap:10px;align-items:flex-start;cursor:pointer"><input type="checkbox" id="chkWU" checked style="margin-top:3px;accent-color:var(--a1)"><span><b>' + _t('Aggiorna anche Windows') + '</b><br><span class="muted">' + _t('Lo faccio per ultimo, dopo tutta la pulizia.') + '</span></span></label>' : '') +
+    '<div><b>' + _t('Quando ha finito') + '</b><div class="row wrap" role="radiogroup" style="gap:8px;margin-top:8px">' + bt + '</div><span class="muted" style="font-size:12px">' + _t('Prima di riavviare o spegnere ti avviso per 60 secondi.') + '</span></div></div>' +
+    '<div class="note" id="fineBatt" style="display:none;border-color:color-mix(in srgb,var(--a4) 55%,var(--line));background:color-mix(in srgb,var(--a4) 10%,var(--panel))"></div>' +
+    '<div class="muted" style="font-size:12.5px">' + _t('✓ Il PC resta sveglio fino alla fine') + ' &nbsp; ' + _t('✓ Dopo "Avvia" nessuna domanda') + ' &nbsp; ' + _t('✓ Se un passaggio si blocca, lo salto') + '</div>';
+}
+function fineWire(){
+  const box = $('#modalBox'), bs = [...box.querySelectorAll('[data-fine]')], wu = box.querySelector('#chkWU');
+  let touched = false;
+  const pick = (k) => bs.forEach(b => { const on = b.dataset.fine === k; b.className = 'btn ' + (on ? 'primary' : 'ghost'); b.setAttribute('aria-checked', on ? 'true' : 'false'); });
+  bs.forEach(b => { b.onclick = () => { touched = true; pick(b.dataset.fine); }; });
+  if (wu) wu.onchange = () => { if (!touched) pick(wu.checked ? 'riavvia' : 'acceso'); };
+  call('goBattery').then(b => { const n = box.querySelector('#fineBatt'); if (!n || !b || !b.battery) return; n.innerHTML = '<b>' + esc(_t('🔌 Il portatile è a batteria ({0}%).').replace('{0}', b.pct >= 0 ? b.pct : '?')) + '</b> ' + esc(_t('Attacca il caricatore prima di uscire.')); n.style.display = ''; }).catch(() => {});
+}
+function fineRead(box){ const b = box.querySelector('[data-fine][aria-checked="true"]'), wu = box.querySelector('#chkWU'); return {fine: b ? b.dataset.fine : 'acceso', wu: wu ? wu.checked : true}; }
 function confirmLevel(n){
   const L = LEVELS[n - 1];
   const list = levelSteps(n).map(s => '<li>' + esc(s.name) + '</li>').join('');
@@ -1794,14 +1821,18 @@ function confirmLevel(n){
   if (n >= 3) note += _t(' Prima di tutto viene creato un backup automatico.');
   if (n >= 4) note += _t(' Questa pulizia aggiorna driver e Windows: alla fine potrebbe servire un riavvio.');
   const found = AN && AN.junk ? _t('<div class="note" style="border-color:color-mix(in srgb,var(--a1) 40%,var(--line))">Anteprima: Tasso ha trovato circa <b style="color:var(--a1t)">') + fmtBytes(AN.junk) + _t('</b> di file inutili (temporanei, cache, Cestino, aggiornamenti vecchi).</div>') : '';
-  modal('<h2 style="color:' + L.c + _t('">Pulizia ') + L.name + _t('</h2><span class="muted">Durata stimata: circa ') + fmtMin(levelMinutes(n)) + '</span>' + found + '<ul>' + list + '</ul><div class="note">' + note + '</div>' + OFF_BOX,
-    [{label:_t('Annulla')}, {label:_t('Avvia pulizia ') + L.name, cls:'primary', risky:true, fn: (box) => { const off = !!(box.querySelector('#chkOff') || {}).checked; startLevel(n, off); }}]);
+  const wu = levelSteps(n).some(s => s.id === 'winupdate');
+  modal('<h2 style="color:' + L.c + _t('">Pulizia ') + L.name + _t('</h2><span class="muted">Durata stimata: circa ') + fmtMin(levelMinutes(n)) + '</span>' + found + '<ul style="max-height:150px;overflow:auto">' + list + '</ul><div class="note">' + note + '</div>' + fineBox(wu),
+    [{label:_t('Annulla')}, {label:_t('Avvia pulizia ') + L.name, cls:'primary', risky:true, fn: (box) => { const f = fineRead(box); startLevel(n, f.fine, f.wu); }}]);
+  fineWire();
 }
-async function startLevel(n, off){ const r = await call('goStartLevel', n, !!off); if (r === 'busy') toast(_t('Una pulizia è già in corso.'), 'var(--a4)'); else { if (RUN === null) RUN = undefined; show('clean'); } }
+// fine: 'acceso' / 'riavvia' / 'spegni'; wu: Aggiorna anche Windows. La pulizia programmata passa 'acceso': mai riavvio o spegnimento da sola.
+async function startLevel(n, fine, wu){ const r = await call('goStartLevel', n, fine || 'acceso', wu !== false); if (r === 'busy') toast(_t('Una pulizia è già in corso.'), 'var(--a4)'); else { if (RUN === null) RUN = undefined; show('clean'); } }
 function runSteps(ids, title, desc, minutes){
-  const long = minutes >= 10;
-  modal('<h2>' + esc(title) + '</h2><p class="muted" style="margin:0;line-height:1.5">' + esc(desc) + _t('</p><span class="muted">Durata stimata: ') + fmtMin(minutes) + '</span>' + (long ? OFF_BOX : ''),
-    [{label:_t('Annulla')}, {label:_t('Avvia'), cls:'primary', risky:true, fn: (box) => { const off = !!(box.querySelector('#chkOff') || {}).checked; call('goStartSteps', ids, off).then(r => { if (r === 'busy') toast(_t('Attendi la fine dell\'operazione in corso.'), 'var(--a4)'); else show('clean'); }); }}]);
+  const wu = ids.includes('winupdate'), long = minutes >= 10 || wu;
+  modal('<h2>' + esc(title) + '</h2><p class="muted" style="margin:0;line-height:1.5">' + esc(desc) + _t('</p><span class="muted">Durata stimata: ') + fmtMin(minutes) + '</span>' + (long ? fineBox(wu && ids.length > 1) : ''),
+    [{label:_t('Annulla')}, {label:_t('Avvia'), cls:'primary', risky:true, fn: (box) => { const f = fineRead(box); call('goStartSteps', ids, f.fine, f.wu).then(r => { if (r === 'busy') toast(_t('Attendi la fine dell\'operazione in corso.'), 'var(--a4)'); else show('clean'); }); }}]);
+  if (long) fineWire();
 }
 function runStep(id){ const s = STEP[id]; if (s) runSteps([id], s.name, s.desc, s.minutes); }
 $$('[data-step]').forEach(b => { b.onclick = () => runStep(b.dataset.step); });
@@ -1831,24 +1862,34 @@ function paintRun(){
     if (i < RUN.cur) { ic = '<span class="ic ok"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--a1)" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"/></svg></span>'; cls = ''; }
     else if (i === RUN.cur) { ic = '<span class="ic"><svg class="spin" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--a2)" stroke-width="2.6" stroke-linecap="round"><path d="M21 12a9 9 0 1 1-9-9"/></svg></span>'; cls = ''; }
     const fr = RUN.freedBy[i] ? fmtBytes(RUN.freedBy[i]) : '';
-    box.appendChild(el('div', {class: cls}, ic + '<span>' + esc(st.name) + '</span><span class="fr">' + fr + '</span>'));
+    // 3.1.1: accanto al passaggio in corso la sua percentuale e, se il passaggio la dà, una riga sotto
+    // (es. "Installo 3 aggiornamenti: 2 di 3 fatti").
+    let extra = '';
+    if (i === RUN.cur) {
+      const sp = Math.min(99, Math.round(RUN.creep * 100));
+      extra = ' <b class="stPct" style="margin-left:8px;padding:2px 8px;border-radius:8px;font-size:12px;background:color-mix(in srgb,var(--a2) 22%,var(--panel));color:var(--a2)">' + sp + '%</b>';
+      if (RUN.info) extra += '<span style="display:block;margin-top:6px"><span style="display:block;height:5px;border-radius:4px;background:var(--line);overflow:hidden;max-width:300px"><i style="display:block;height:100%;width:' + sp + '%;background:var(--a2)"></i></span><span class="muted" style="font-size:12px;font-weight:400">' + esc(RUN.info) + '</span></span>';
+    }
+    box.appendChild(el('div', {class: cls}, ic + '<span>' + esc(st.name) + extra + '</span><span class="fr">' + fr + '</span>'));
   });
 }
 window.tasso = {
   onBg(p){ const f = BG_WAIT[p.id]; if (f) { delete BG_WAIT[p.id]; f(p.r); } },
   onRunStart(p){
     const lv = LEVELS[(p.level || 0) - 1];
-    RUN = {level:p.level, steps:p.steps || [], cur:0, creep:0, freed:0, freedBy:{}}; RIPARA = [];
+    RUN = {level:p.level, steps:p.steps || [], cur:0, creep:0, freed:0, freedBy:{}, end:p.end || 'acceso', info:''}; RIPARA = [];
     $('#runTitle').textContent = lv ? _t('Pulizia ') + lv.name + _t(' in corso') : (RUN.steps.length === 1 ? RUN.steps[0].name : _t('Passaggi in corso'));
+    $('#runSub').textContent = RUN.end === 'riavvia' ? _t('Quando ha finito: Riavvia. Puoi uscire di casa, faccio tutto io.') : RUN.end === 'spegni' ? _t('Quando ha finito: Spegni. Puoi uscire di casa, faccio tutto io.') : _t('Puoi lasciare il PC acceso e andare a fare altro.');
     $('#runLog').textContent = ''; $('#btnCancel').disabled = false; $('#btnCancel').textContent = _t('Interrompi');
     runUI(true); paintRun();
-    let k = 0; clearInterval(msgTimer); msgTimer = setInterval(() => { $('#runMsg').textContent = MSGS[++k % MSGS.length]; }, 4000);
+    let k = 0; clearInterval(msgTimer); msgTimer = setInterval(() => { const c = RUN && RUN.steps[RUN.cur]; $('#runMsg').textContent = (c && c.id === 'winupdate') ? _t('Ultimo passaggio: aggiorno Windows.') + (RUN.end === 'riavvia' ? ' ' + _t('Quando ha finito, riavvio il PC.') : RUN.end === 'spegni' ? ' ' + _t('Quando ha finito, spengo il PC.') : '') : MSGS[++k % MSGS.length]; }, 4000);
     clearInterval(creepTimer); creepTimer = setInterval(() => { if (!RUN || RUN.prog) return; const m = RUN.steps[RUN.cur] ? RUN.steps[RUN.cur].minutes : 1; RUN.creep = Math.min(0.92, RUN.creep + (2 / (Math.max(0.1, m) * 60)) * (1 - RUN.creep) * 1.6); paintRun(); }, 2000);
   },
-  onStepStart(p){ if (!RUN) return; RUN.cur = p.index; RUN.creep = 0; RUN.prog = false; paintRun(); },
+  onStepStart(p){ if (!RUN) return; RUN.cur = p.index; RUN.creep = 0; RUN.prog = false; RUN.info = ''; paintRun(); },
+  onStepInfo(p){ if (!RUN || p.index !== RUN.cur) return; RUN.info = String(p.text || ''); paintRun(); },
   // Avanzamento vero del passaggio lungo (es. DISM 37%): la barra segue quello invece della stima.
   onStepProgress(p){ if (!RUN || p.index !== RUN.cur) return; const f = Number(p.frac); if (!(f >= 0)) return; RUN.prog = true; RUN.creep = Math.max(RUN.creep, Math.min(0.99, f)); paintRun(); },
-  onStepDone(p){ if (!RUN) return; RUN.freed += p.freed || 0; RUN.freedBy[p.index] = p.freed || 0; RUN.cur = p.index + 1; RUN.creep = 0; RUN.prog = false; paintRun(); },
+  onStepDone(p){ if (!RUN) return; RUN.freed += p.freed || 0; RUN.freedBy[p.index] = p.freed || 0; RUN.cur = p.index + 1; RUN.creep = 0; RUN.prog = false; RUN.info = ''; paintRun(); },
   // Una riga in più senza riscrivere tutto il registro (con migliaia di righe la finestra si bloccava); al massimo 4000 righe a schermo, il registro completo resta nel file.
   onLog(t){ const rm = /\s*\[ripara:([a-z_,]+)\]\s*$/.exec(t); if (rm) { RIPARA = rm[1].split(',').filter(x => STEP[x]); t = t.slice(0, rm.index); } const l = $('#runLog'); l.appendChild(document.createTextNode(t + '\n')); while (l.childNodes.length > 4000) l.removeChild(l.firstChild); if (!LOG_RAF) LOG_RAF = requestAnimationFrame(() => { LOG_RAF = 0; l.scrollTop = l.scrollHeight; }); },
   onRunDone(p){
@@ -1859,12 +1900,14 @@ window.tasso = {
     box.innerHTML = '<div class="row wrap" style="justify-content:space-between;gap:16px"><div><h2 style="font-size:22px;color:var(--a1t)">' + title + _t('</h2><p class="sub">Passaggi completati: ') + (Number(p.done) || 0) + _t(' di ') + (Number(p.total) || 0) + _t(' · durata ') + fmtMin(p.seconds / 60) + '</p></div>' +
       '<div class="row" style="gap:10px">' + ((lvl0 && !(p.freed > 0)) ? '' : _t('<div class="stat" style="text-align:right"><div class="k">Spazio liberato</div><div class="v" style="color:var(--a1t)">') + fmtBytes(p.freed) + '</div></div>') + ((LIVE && LIVE.diskFree) ? _t('<div class="stat" style="text-align:right"><div class="k">Spazio libero ora</div><div class="v">') + fmtBytes(LIVE.diskFree) + '</div></div>' : '') + '</div></div>' +
       '<div class="log" id="doneLog" style="margin-top:14px;height:180px"></div>' +
-      (p.reboot && !p.shutdown ? _t('<div class="note" style="margin-top:14px">Per completare aggiornamenti e riparazioni serve un riavvio.</div>') : '') +
-      '<div class="row wrap" style="gap:10px;margin-top:14px">' + (p.reboot && !p.shutdown ? _t('<button class="btn warn" id="btnReboot">Riavvia ora</button>') : '') + _t('<button class="btn ghost" id="btnLogs2">Apri la cartella dei registri</button></div>');
+      (p.reboot && !p.shutdown && !p.restart ? _t('<div class="note" style="margin-top:14px">Per completare aggiornamenti e riparazioni serve un riavvio.</div>') : '') +
+      '<div class="row wrap" style="gap:10px;margin-top:14px">' + (p.reboot && !p.shutdown && !p.restart ? _t('<button class="btn warn" id="btnReboot">Riavvia ora</button>') : '') + _t('<button class="btn ghost" id="btnLogs2">Apri la cartella dei registri</button></div>');
     $('#doneLog').textContent = $('#runLog').textContent;
     runUI(false); RUN = null;
-    $('#offBanner').classList.toggle('on', !!p.shutdown);
-    const rb = $('#btnReboot'); if (rb) rb.onclick = () => modal(_t('<h2>Riavviare il PC?</h2><p class="muted" style="margin:0">Salva il lavoro aperto: il PC si riavvia tra 15 secondi.</p>'), [{label:_t('Annulla')}, {label:_t('Riavvia'), cls:'warn', fn: () => { call('goRestart'); restartToast(); }}]);
+    if (p.restart || p.shutdown) fineBanner(p.restart ? 'riavvia' : 'spegni', Number(p.endSecs) || 60, p.updates > 0 || !!p.reboot);
+    else if (p.endErr) fineBanner(p.end === 'spegni' ? 'spegni' : 'riavvia', 0, false, true);
+    else fineHide();
+    const rb = $('#btnReboot'); if (rb) rb.onclick = () => modal(_t('<h2>Riavviare il PC?</h2><p class="muted" style="margin:0">Salva il lavoro aperto: il PC si riavvia tra 15 secondi.</p>'), [{label:_t('Annulla')}, {label:_t('Riavvia'), cls:'warn', fn: () => { doRestart(); }}]);
     $('#btnLogs2').onclick = () => call('goOpenLogs');
     if (RIPARA.length && !p.cancelled) { const ids = RIPARA.slice(), rp = el('button', {class:'btn primary'}, _t('Ripara adesso')); rp.onclick = () => { const ss = ids.map(i => STEP[i]); runSteps(ids, ss.map(s => s.name).join(' + '), ss.map(s => s.desc).join(' '), ss.reduce((a, s) => a + s.minutes, 0)); }; $('#btnLogs2').before(rp); }
     RIPARA = []; ofStati();
@@ -1898,7 +1941,44 @@ window.tasso = {
   onRestoreDone(p){ if (p.settings) S = p.settings; (p.msgs || []).forEach(m => toast(m, 'var(--a3)')); paintSettings(); paintModes(); if (p.ok !== false) toast(p.paused ? _t('Fatto: impostazioni rimesse com\'erano e Tasso è spento.') : _t('Fatto: impostazioni rimesse com\'erano.')); if (loaded.startup) call('goStartupList'); if (loaded.games) profileRefresh(); undoRefresh(); }
 };
 $('#btnCancel').onclick = () => { call('goCancel'); $('#btnCancel').disabled = true; $('#btnCancel').textContent = _t('Mi fermo…'); };
-$('#btnNoOff').onclick = async () => { await call('goCancelShutdown'); $('#offBanner').classList.remove('on'); toast(_t('Spegnimento annullato.')); };
+$('#btnNoOff').onclick = async () => { await call('goCancelShutdown'); fineHide(); toast(_t('Spegnimento annullato.')); };
+// 3.1.1: banner di fine pulizia con il conto alla rovescia (Riavvia/Spegni adesso, Annulla). Se a fine
+// conto Tasso è ancora vivo dopo 30 s, il riavvio non è partito: lo dico e lo si può richiedere.
+let FINE_T = null;
+function fineHide(){ clearInterval(FINE_T); FINE_T = null; $('#offBanner').classList.remove('on'); }
+function fineBanner(kind, secs, wu, failed){
+  const o = $('#offBanner'), rv = kind === 'riavvia', end = Date.now() + secs * 1000;
+  clearInterval(FINE_T); FINE_T = null;
+  o.innerHTML = '<span><b class="fbT"></b> <span class="muted fbS"></span></span><span class="row" style="gap:8px"><button class="btn primary fbNow"></button><button class="btn warn fbNo">' + _t('Annulla') + '</button></span>';
+  o.querySelector('.fbNow').textContent = rv ? _t('Riavvia adesso') : _t('Spegni adesso');
+  o.querySelector('.fbNow').onclick = () => { endNow(kind); };
+  o.querySelector('.fbNo').onclick = async () => { await call('goCancelShutdown'); fineHide(); toast(rv ? _t('Riavvio annullato.') : _t('Spegnimento annullato.')); };
+  const T = o.querySelector('.fbT'), S2 = o.querySelector('.fbS');
+  const fail = (msg) => { clearInterval(FINE_T); FINE_T = null; T.textContent = msg; S2.textContent = _t('Salva quello che hai aperto.'); o.querySelector('.fbNo').textContent = _t('Chiudi'); };
+  const draw = () => {
+    const now = Date.now(), left = Math.ceil((end - now) / 1000);
+    if (left > 0) { T.textContent = _t('Pulizia finita ✓') + ' ' + (rv ? _t('Il PC si riavvia tra {0} secondi') : _t('Il PC si spegne tra {0} secondi')).replace('{0}', left); S2.textContent = (rv && wu ? _t('per finire gli aggiornamenti di Windows.') + ' ' : '') + _t('Salva quello che hai aperto.'); }
+    else if (now < end + 30000) { T.textContent = rv ? _t('Riavvio in corso…') : _t('Spegnimento in corso…'); S2.textContent = ''; }
+    else fail(rv ? _t('Il riavvio non è partito.') : _t('Lo spegnimento non è partito.'));
+  };
+  if (failed) fail(rv ? _t('Windows non ha accettato il riavvio: premi Riavvia adesso') : _t('Windows non ha accettato lo spegnimento: premi Spegni adesso'));
+  else { draw(); FINE_T = setInterval(draw, 1000); }
+  o.classList.add('on');
+}
+// 3.1.1 "Bentornato": al primo avvio dopo il riavvio/spegnimento scelto nella pulizia, una volta sola.
+function showBentornato(b){
+  if (!b) return;
+  const lv = LEVELS[(b.level || 0) - 1], skipped = b.skipped || [], ok = Math.max(0, (Number(b.done) || 0) - skipped.length), up = Number(b.updates) || 0;
+  let head = (lv ? _t('La pulizia {0} è finita alle {1}').replace('{0}', lv.name) : _t('La pulizia è finita alle {1}')).replace('{1}', b.at || '');
+  head += b.end === 'spegni' ? _t(' e il PC si è spento.') : (up > 0 ? _t(' e il PC si è riavviato per completare gli aggiornamenti.') : _t(' e il PC si è riavviato.'));
+  const stat = (k, v, c) => '<div><div class="muted" style="font-size:12px;text-transform:uppercase">' + k + '</div><div style="font-size:34px;font-weight:800' + (c ? ';color:' + c : '') + '">' + v + '</div></div>';
+  const rows = (b.steps || []).map(s => '<div style="display:flex;justify-content:space-between;gap:12px;padding:7px 0;border-bottom:1px solid var(--line)"><span>✓ ' + esc(s.name) + '</span><span class="muted">' + (s.freed > 0 ? fmtBytes(s.freed) : _t('fatto')) + '</span></div>').join('');
+  modal('<h2>' + (skipped.length ? _t('Bentornato! Ho finito') : _t('Bentornato! È tutto fatto ✓')) + '</h2><span class="muted">' + esc(head) + '</span>' +
+    '<div class="row wrap" style="gap:36px;margin:14px 0">' + stat(_t('Spazio liberato'), fmtBytes(b.freed || 0), 'var(--a1t)') + (up > 0 ? stat(_t('Aggiornamenti'), up) : '') + stat(_t('Passaggi'), ok + '/' + (Number(b.total) || 0) + (skipped.length ? '' : ' ✓')) + '</div>' + rows +
+    (b.others > 0 ? '<div class="muted" style="padding-top:6px">' + esc(_t('… e altri {0} passaggi ✓').replace('{0}', b.others)) + '</div>' : '') +
+    (skipped.length ? '<div class="note" style="margin-top:10px;border-color:color-mix(in srgb,var(--a4) 55%,var(--line))">' + esc((skipped.length === 1 ? _t('1 passaggio saltato: ') : _t('{0} passaggi saltati: ').replace('{0}', skipped.length)) + skipped.join(', ')) + '</div>' : ''),
+    [{label:_t('Perfetto'), cls:'primary'}]);
+}
 
 /* ---------- home ---------- */
 function paintLast(){
@@ -2819,7 +2899,7 @@ function paintWelcome(){
 $('#btnWelcome').onclick = async () => { const wb = $('#btnWelcome'); if (wb.disabled) return; wb.disabled = true; const r = await callBg('goSetProfile', chosen); wb.disabled = false; if (r !== 'ok') { toast(typeof r === 'string' && r ? r : _t('Non sono riuscito a salvare la scelta: riprova.'), 'var(--a4)'); return; } $('#welcome').classList.remove('on'); await refreshS(); applyLook(); repaintLook(); toast(chosen === 'ufficio' ? _t('Fatto! Tasso è pronto per il lavoro.') : _t('Fatto! Tasso è configurato per te.')); setTimeout(statsAsk, 4000); setTimeout(async () => { await refreshS(); paintModes(); paintSettings(); }, 3000); };
 
 /* ---------- 2.1: salute, internet, disco, gioco automatico ---------- */
-const H_ACTIONS = {clean:[_t('Pulisci'), () => confirmLevel(3)], startup:[_t('Apri l\'avvio'), () => show('speed')], recycle:[_t('Togli i vecchi (più di 7 giorni)'), () => runStep('recycle')], defender:[_t('Scansione'), () => runStep('defender')], winupdate:[_t('Aggiorna'), () => runStep('winupdate')], reboot:[_t('Riavvia'), () => modal(_t('<h2>Riavviare il PC?</h2><p class="muted" style="margin:0">Salva il lavoro aperto: il PC si riavvia tra 15 secondi.</p>'), [{label:_t('Annulla')}, {label:_t('Riavvia'), cls:'warn', fn: () => { call('goRestart'); restartToast(); }}])], turbo:['Boost', () => show('games')], diskmap:[_t('Mappa del disco'), () => show('disk')], disks:[_t('Vedi dischi'), () => runStep('disk_health')], security:[_t('Apri'), () => call('goOpenWin', 'firewall')], devices:[_t('Controlla'), () => runStep('devices')]};
+const H_ACTIONS = {clean:[_t('Pulisci'), () => confirmLevel(3)], startup:[_t('Apri l\'avvio'), () => show('speed')], recycle:[_t('Togli i vecchi (più di 7 giorni)'), () => runStep('recycle')], defender:[_t('Scansione'), () => runStep('defender')], winupdate:[_t('Aggiorna'), () => runStep('winupdate')], reboot:[_t('Riavvia'), () => modal(_t('<h2>Riavviare il PC?</h2><p class="muted" style="margin:0">Salva il lavoro aperto: il PC si riavvia tra 15 secondi.</p>'), [{label:_t('Annulla')}, {label:_t('Riavvia'), cls:'warn', fn: () => { doRestart(); }}])], turbo:['Boost', () => show('games')], diskmap:[_t('Mappa del disco'), () => show('disk')], disks:[_t('Vedi dischi'), () => runStep('disk_health')], security:[_t('Apri'), () => call('goOpenWin', 'firewall')], devices:[_t('Controlla'), () => runStep('devices')]};
 function paintHealth(){
   const h = HEALTH; if (!h) return;
   const sc = Math.max(1, Math.min(100, Number(h.score) || 0));
@@ -2945,7 +3025,7 @@ Object.assign(window.tasso, {
   onHealth(h){ if (!h || typeof h.score !== 'number') { $('#hSub').textContent = _t('Controllo non riuscito: riprova tra poco.'); return; } HEALTH = h; paintHealth(); paintHero(); },
   onSpeedProgress(m){ $('#spMsg').textContent = m; },
   onPingProgress(m){ $('#pgMsg').textContent = m; },
-  onAutoRun(l){ if (RUN) return; toast(_t('È l\'ora della pulizia programmata: parto.'), 'var(--a3)'); startLevel(l, false); },
+  onAutoRun(l){ if (RUN) return; toast(_t('È l\'ora della pulizia programmata: parto.'), 'var(--a3)'); startLevel(l, 'acceso', true); },
   onBenchProgress(m){ $('#bnMsg').textContent = m; },
   onBench(r){ $('#btnBench').disabled = false; $('#bnMsg').textContent = r.before ? _t('Ecco com\'era prima e com\'è dopo la pulizia.') : _t('Fatto.'); paintBench(r.result, r.before, r.history); if (r.before) toast(_t('Leggerezza di Windows: ') + r.before.light + ' → ' + r.result.light + '.', 'var(--a1)'); },
   onUpdatesProgress(m){ $('#updMsg').textContent = m; },
@@ -3195,7 +3275,8 @@ setTimeout(() => { loaded.startup = 1; call('goStartupList'); }, 4000);
 pollLive(); setInterval(pollLive, 2000);
 call('goIsRunning').then(r => { if (r) show('clean'); });
 window.addEventListener('load', () => { setTimeout(() => call('goPronto'), 0); }); // misura dell'apertura (logs\avvio.txt)
-if (BOOT.autoLevel) setTimeout(() => startLevel(BOOT.autoLevel, false), 800);
+if (BOOT.autoLevel) setTimeout(() => startLevel(BOOT.autoLevel, 'acceso', true), 800);
+else if (S.onboarded) setTimeout(() => { call('goBentornato').then(b => { if (b && !$('#modal').classList.contains('on')) showBentornato(window.__tx ? window.__tx(b) : b); }).catch(() => {}); }, 1200);
 
 // ---------- Giochi ----------
 let LIB = [], BOOST = [];

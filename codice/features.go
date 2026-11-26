@@ -798,6 +798,8 @@ func shredFile(p string) string {
 }
 
 func cancelShutdown() string {
+	annullaFineTasso() // il conto alla rovescia di Tasso (quando shutdown.exe non era stato accettato)
+	togliBentornato()  // niente riavvio: niente "Bentornato" al prossimo avvio
 	_, _ = runHidden("shutdown.exe", "/a")
 	return "ok"
 }
