@@ -68,6 +68,7 @@ Say 'Consigli: se il gioco è piccolo o tagliato premi Alt + Invio (passa da fin
 Use-HighPerf
 Set-CpuMax 100
 Say 'Piano energetico al massimo e Modalità Gioco accesa.'
+Say 'Per tornare come prima: Impostazioni > Torna indietro > "Impostazioni di Windows" (rimette il piano energetico e il processore com''erano).'
 $bat = Get-CimInstance Win32_Battery -ErrorAction SilentlyContinue | Select-Object -First 1
 if ($bat -and $bat.BatteryStatus -eq 1) { Say 'ATTENZIONE: il portatile va a batteria. A batteria la scheda video va molto più piano: attaccalo alla corrente per giocare.' }
 $os = Get-CimInstance Win32_OperatingSystem -ErrorAction SilentlyContinue

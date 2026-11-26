@@ -32,6 +32,12 @@ type psResult struct {
 
 var scriptSeq atomic.Int64
 
+// passoConFoto: i passaggi che cambiano impostazioni di Windows coperte dalla foto di "com'era"
+// (piano energetico, limite del processore, Modalità Gioco, privacy): prima di loro la foto si fa per
+// forza, così "Rimetti tutto com'era" e Torna indietro li possono annullare. Senza foto non partono.
+// "Pochi FPS" e "Il gioco va a scatti" prima cambiavano il piano energetico senza nessuna foto.
+var passoConFoto = map[string]bool{"privacy": true, "backup": true, "fix_game_fps": true, "fix_game_lag": true}
+
 var (
 	scriptDirOnce sync.Once
 	scriptDirPath string
@@ -518,7 +524,7 @@ func startSteps(ids []string, level int, shutdownAfter bool) string {
 
 		snapOK := true
 		for _, s := range sel {
-			if s.ID == "privacy" || s.ID == "backup" {
+			if passoConFoto[s.ID] {
 				snapOK = ensureSnapshot() // salva le impostazioni originali prima di cambiarle
 				break
 			}
@@ -545,9 +551,9 @@ func startSteps(ids []string, level int, shutdownAfter bool) string {
 			}
 			emit("onStepStart", map[string]interface{}{"index": i})
 			logLine("» " + s.Name)
-			if s.ID == "privacy" && !snapOK {
+			if passoConFoto[s.ID] && s.ID != "backup" && !snapOK {
 				// Senza la foto di com'era Windows non si potrebbe tornare indietro: lo salto.
-				logLine("   Saltato: non sono riuscito a salvare com'era Windows, quindi non cambio la privacy.")
+				logLine("   Saltato: non sono riuscito a salvare com'era Windows, quindi per sicurezza non cambio niente.")
 				done++
 				emit("onStepDone", map[string]interface{}{"index": i, "freed": 0})
 				continue

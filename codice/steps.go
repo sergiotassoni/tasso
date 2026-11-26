@@ -466,6 +466,21 @@ function Get-TassoStartup {
   }
   return $out.ToArray()
 }
+function Ensure-RestorePoint([string]$desc) {
+  # $true se c'è un punto di ripristino di meno di 24 ore fa (Windows non ne fa due nello stesso giorno),
+  # altrimenti provo a crearlo (al massimo 5 minuti). Non accende "Protezione sistema" da solo.
+  $recent = {
+    $last = @(Get-ComputerRestorePoint -ErrorAction SilentlyContinue | Sort-Object SequenceNumber)
+    if (-not $last.Count) { return $null }
+    try { return [Management.ManagementDateTimeConverter]::ToDateTime([string]$last[-1].CreationTime) } catch { return $null }
+  }
+  $w = & $recent
+  if ($w -and $w -gt (Get-Date).AddHours(-24)) { Say ('Punto di ripristino: uso quello del ' + $w.ToString('dd/MM HH:mm') + '.'); return $true }
+  $cp = Invoke-Limited { try { Checkpoint-Computer -Description $A -RestorePointType MODIFY_SETTINGS -ErrorAction Stop; 'ok' } catch { 'ERR' } } 300 'Punto di ripristino' $desc
+  $w = & $recent
+  if ($w -and $w -gt (Get-Date).AddHours(-1)) { Say 'Punto di ripristino creato.'; return $true }
+  return $false
+}
 $BrowserRoots = @(
   @{ Label = 'Chrome';  Proc = 'chrome'; Root = (Join-Path $env:LOCALAPPDATA 'Google\Chrome\User Data') },
   @{ Label = 'Edge';    Proc = 'msedge';  Root = (Join-Path $env:LOCALAPPDATA 'Microsoft\Edge\User Data') },
@@ -500,7 +515,7 @@ try {
   $wuRs = [runspacefactory]::CreateRunspace()
   $wuRs.ApartmentState = [Threading.ApartmentState]::STA
   $wuRs.Open()
-  $wuRs.SessionStateProxy.SetVariable('A', @{ St = $wuSt; Criteria = $Criteria; NothingMsg = $NothingMsg })
+  $wuRs.SessionStateProxy.SetVariable('A', @{ St = $wuSt; Criteria = $Criteria; NothingMsg = $NothingMsg; SkipDisplay = [bool]$SkipDisplay })
   $wuRs.SessionStateProxy.SetVariable('ErrorActionPreference', 'SilentlyContinue')
   $wuPs = [powershell]::Create(); $wuPs.Runspace = $wuRs
   [void]$wuPs.AddScript({
@@ -513,6 +528,9 @@ try {
       $res = $searcher.Search($A.Criteria)
       $coll = New-Object -ComObject Microsoft.Update.UpdateColl
       foreach ($u in $res.Updates) {
+        # I driver della scheda video non passano da qui (come in "Driver di tutto il PC"): Windows Update
+        # metterebbe un driver diverso da quello di AMD Software/NVIDIA. Si aggiornano dal riquadro Schede video.
+        if ($A.SkipDisplay -and [string]$u.DriverClass -eq 'Display') { Say ('Salto il driver della scheda video: ' + $u.Title + ' (si aggiorna dal riquadro Schede video).'); continue }
         if (-not $u.EulaAccepted) { $u.AcceptEula() }
         [void]$coll.Add($u)
         Say ('Trovato: ' + $u.Title)
@@ -608,9 +626,11 @@ Freed $f; Say ('Liberati ' + (Fmt $f))
 $f = Clear-Folder ($TassoWin + '\Temp') 24
 Freed $f; Say ('Liberati ' + (Fmt $f))
 `},
-	{ID: "recycle", Name: "Cestino", Desc: "Svuota il Cestino di tutte le unità. Nella pulizia programmata toglie solo quello che è nel Cestino da più di 7 giorni.", Level: 1, Minutes: 0.3, Timeout: 5 * time.Minute, Script: `
-if ($TassoAuto) {
-  # Pulizia programmata: nessuno sta guardando, quindi lascio le cose buttate di recente.
+	{ID: "recycle", Name: "Cestino", Desc: "Toglie dal Cestino solo quello che è lì da più di 7 giorni: le cose buttate di recente restano, nel caso ti servano.", Level: 1, Minutes: 0.3, Timeout: 5 * time.Minute, Script: `
+# Anche a mano lascio le cose buttate di recente (come nella pulizia programmata): una foto buttata
+# per sbaglio ieri, o i doppioni e i resti che Tasso ha appena spostato lì, si devono poter recuperare.
+# Il Cestino intero si svuota solo con il passaggio a parte "Svuota tutto il Cestino" (recycle_all).
+& {
   $limit = (Get-Date).AddDays(-7); $f = [long]0; $n = 0; $kept = 0
   try {
     foreach ($it in @((New-Object -ComObject Shell.Application).Namespace(0xA).Items())) {
@@ -628,12 +648,18 @@ if ($TassoAuto) {
   } catch {}
   Freed $f
   Say ('Cestino: tolti ' + $n + ' elementi buttati più di 7 giorni fa (' + (Fmt $f) + '). Quelli più recenti (' + $kept + ') restano, nel caso ti servano.')
-  return
 }
-$size = [long]0
-try { $s = ((New-Object -ComObject Shell.Application).Namespace(0xA).Items() | Measure-Object -Property Size -Sum).Sum; if ($s) { $size = [long]$s } } catch {}
-Clear-RecycleBin -Force -ErrorAction SilentlyContinue
-Freed $size; Say ('Cestino svuotato: ' + (Fmt $size))
+`},
+	{ID: "recycle_all", Name: "Svuota tutto il Cestino", Desc: "Svuota il Cestino di tutte le unità, comprese le cose buttate oggi: quello che c'è dentro non si potrà più recuperare. Non fa parte di nessuna pulizia: parte solo se lo scegli tu.", Level: 0, Minutes: 0.3, Timeout: 5 * time.Minute, Script: `
+function Get-BinSize { $s = [long]0; try { $x = ((New-Object -ComObject Shell.Application).Namespace(0xA).Items() | Measure-Object -Property Size -Sum).Sum; if ($x) { $s = [long]$x } } catch {}; return $s }
+$before = Get-BinSize
+[void](Invoke-Limited { Clear-RecycleBin -Force -ErrorAction SilentlyContinue } 120 'Cestino')
+$after = Get-BinSize
+# Conto solo quello che è sparito davvero (se Windows non ha svuotato, non dico di aver liberato niente).
+$f = [math]::Max([long]0, $before - $after)
+Freed $f
+if ($after -gt 0) { Say ('Cestino svuotato solo in parte: liberati ' + (Fmt $f) + ', restano ' + (Fmt $after) + ' (file in uso o su dischi non collegati).') }
+else { Say ('Cestino svuotato: ' + (Fmt $f)) }
 `},
 	{ID: "thumbs", Name: "Cache delle anteprime", Desc: "Elimina le miniature di Esplora file (si ricreano da sole).", Level: 1, Minutes: 0.2, Timeout: 3 * time.Minute, Script: `
 $dir = Join-Path $env:LOCALAPPDATA 'Microsoft\Windows\Explorer'
@@ -763,6 +789,10 @@ if ($code -eq 0) { Say 'Programmi aggiornati.' } else { Say ('Fatto, con qualche
 	{ID: "drivers", Name: "Aggiornamento driver", Desc: "Driver certificati da Microsoft tramite Windows Update.", Level: 3, Minutes: 6, Timeout: 30 * time.Minute, Script: `
 $Criteria = "IsInstalled=0 and Type='Driver' and IsHidden=0 and BrowseOnly=0"
 $NothingMsg = 'I driver risultano già aggiornati.'
+$SkipDisplay = $true
+# Un driver di rete o audio sbagliato può lasciare il PC senza internet o senza suono: prima di
+# installare voglio un punto di ripristino (quello della pulizia di poco fa va bene). Senza, salto.
+if (-not (Ensure-RestorePoint 'Tasso - prima dei driver di Windows Update')) { Say 'Non sono riuscito a creare un punto di ripristino: per sicurezza non installo i driver adesso. Controlla che "Protezione sistema" sia attiva e riprova.'; return }
 ` + windowsUpdateScript},
 	{ID: "winupdate", Name: "Aggiornamenti di Windows", Desc: "Installa gli aggiornamenti di sicurezza e di sistema.", Level: 3, Minutes: 12, Timeout: 60 * time.Minute, Script: `
 $Criteria = "IsInstalled=0 and Type='Software' and IsHidden=0 and BrowseOnly=0"
@@ -968,21 +998,30 @@ foreach ($b in $BrowserRoots) {
 }
 if ($total -eq 0) { Say 'Nessuna estensione trovata.' } else { Say 'Se una di queste non l''hai messa tu, toglila dal menu Estensioni del browser.' }
 `},
-	{ID: "turbo", Name: "Turbo: libera il PC per giocare", Desc: "Chiude i programmi in background che non servono mentre giochi (OneDrive, Teams, Skype...). Si riaprono al prossimo avvio.", Level: 0, Minutes: 0.2, Timeout: 3 * time.Minute, Script: `
+	{ID: "turbo", Name: "Turbo: libera il PC per giocare", Desc: "Chiude con gentilezza i programmi in background che non servono mentre giochi (OneDrive, Teams, Skype...), solo se non hanno una finestra aperta: una chiamata o un lavoro in corso non si toccano. Si riaprono al prossimo avvio.", Level: 0, Minutes: 0.2, Timeout: 3 * time.Minute, Script: `
 $names = @('OneDrive', 'Teams', 'ms-teams', 'Skype', 'PhoneExperienceHost', 'YourPhone', 'Widgets', 'GoogleDriveFS', 'Dropbox', 'CCXProcess', 'Creative Cloud', 'AdobeCollabSync', 'Cortana')
-$freed = [long]0; $closed = New-Object System.Collections.ArrayList
+$freed = [long]0; $closed = New-Object System.Collections.ArrayList; $kept = New-Object System.Collections.ArrayList
 $mySession = (Get-Process -Id $PID).SessionId
+Add-Type -Namespace TassoTurbo -Name W -MemberDefinition '[DllImport("user32.dll")] public static extern bool EnumWindows(EnumProc f, IntPtr l); public delegate bool EnumProc(IntPtr h, IntPtr l); [DllImport("user32.dll")] public static extern bool IsWindowVisible(IntPtr h); [DllImport("user32.dll")] public static extern uint GetWindowThreadProcessId(IntPtr h, out uint p);' -ErrorAction SilentlyContinue
+# Processi con almeno una finestra visibile (anche ridotta a icona): una riunione di Teams, una
+# chiamata di Skype o una finestra di OneDrive aperta non si chiudono mai.
+$withWin = @{}
+try { [void][TassoTurbo.W]::EnumWindows({ param($h, $l) if ([TassoTurbo.W]::IsWindowVisible($h)) { $wp = [uint32]0; [void][TassoTurbo.W]::GetWindowThreadProcessId($h, [ref]$wp); $withWin[[int]$wp] = $true }; return $true }, [IntPtr]::Zero) } catch {}
+$tk = Join-Path $TassoSys32 'taskkill.exe'
 foreach ($n in $names) {
   # Solo i programmi del tuo account (non quelli di altri utenti collegati allo stesso PC).
   $ps = @(Get-Process -Name $n -ErrorAction SilentlyContinue | Where-Object { $_.SessionId -eq $mySession })
   if ($ps.Count -eq 0) { continue }
-  $mem = ($ps | Measure-Object -Property PrivateMemorySize64 -Sum).Sum
-  $ps | Stop-Process -Force -ErrorAction SilentlyContinue
-  $freed += [long]$mem
-  [void]$closed.Add($n)
+  if (@($ps | Where-Object { $withWin.ContainsKey([int]$_.Id) -or $_.MainWindowHandle -ne [IntPtr]::Zero }).Count -gt 0) { [void]$kept.Add($n); continue }
+  $mem = [long](($ps | Measure-Object -Property PrivateMemorySize64 -Sum).Sum)
+  # Chiusura normale (senza /F), come la X: finiscono di salvare o di caricare.
+  foreach ($p in $ps) { [void](Run-Hidden $tk ('/PID ' + $p.Id)) }
+  for ($i = 0; $i -lt 16 -and @(Get-Process -Name $n -ErrorAction SilentlyContinue | Where-Object { $_.SessionId -eq $mySession }).Count -gt 0; $i++) { Start-Sleep -Milliseconds 500 }
+  if (@(Get-Process -Name $n -ErrorAction SilentlyContinue | Where-Object { $_.SessionId -eq $mySession }).Count -eq 0) { $freed += $mem; [void]$closed.Add($n) } else { [void]$kept.Add($n) }
 }
-if ($closed.Count -eq 0) { Say 'Nessun programma inutile in background: il PC è già libero.' }
+if ($closed.Count -eq 0) { Say 'Nessun programma inutile da chiudere in background: il PC è già libero.' }
 else { Say ('Chiusi: ' + ($closed -join ', ')); Say ('Memoria liberata: ' + (Fmt $freed)) }
+if ($kept.Count) { Say ('Lasciati aperti (hanno una finestra aperta o non si sono chiusi da soli): ' + ($kept -join ', ') + '.') }
 `},
 	{ID: "fix_audio", Name: "Risolvi problemi audio", Desc: "Riavvia i servizi audio di Windows e controlla le schede audio.", Level: 0, Minutes: 0.3, Timeout: 3 * time.Minute, Script: `
 Say 'Riavvio i servizi audio...'

@@ -79,6 +79,13 @@ func driversInstall(ids []string) {
 	var msgs []string
 	reboot := false
 	if all || len(ok) > 0 {
+		// Prima un punto di ripristino (come per i driver della scheda video): un driver di rete o audio
+		// sbagliato può lasciare il PC senza internet o senza suono. Senza, non installo.
+		emit("onDriversProgress", "Creo il punto di ripristino…")
+		if rp := gdRestorePoint("driver di Windows Update"); rp == "none" {
+			emit("onDriversDone", map[string]interface{}{"msgs": []string{"Non sono riuscito a creare un punto di ripristino: per sicurezza non installo i driver adesso. Controlla che \"Protezione sistema\" sia attiva (Pannello di controllo > Sistema > Protezione sistema) e riprova."}, "reboot": false})
+			return
+		}
 		r := runPSArgs(driversInstallScript, map[string]interface{}{"all": all, "ids": ok}, 120*time.Minute, func(m string) {
 			msgs = append(msgs, m)
 			emit("onDriversProgress", m)
