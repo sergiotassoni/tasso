@@ -159,10 +159,18 @@ func ecoAltriAperti() bool {
 	return false
 }
 
+const msgEcoAltriAperti = "Tasso Zip o Tasso PDF sono aperti e potresti avere lavoro non salvato: chiudili e premi di nuovo Aggiorna."
+
 // ecoSelfUpdate: scarica, controlla e avvia l'installatore (u è il risultato di checkEcoUpdate).
 func ecoSelfUpdate(u map[string]interface{}) {
 	if giocoAperto() {
 		updMsg("error", "Hai un gioco aperto: aggiorna quando hai finito di giocare.")
+		return
+	}
+	// Tasso Zip e Tasso PDF aperti: l'installatore li chiuderebbe, anche con un archivio a metà o
+	// un PDF non salvato. Prima li chiudi tu (vale anche per "Aggiorna ora", non solo per "da solo").
+	if ecoAltriAperti() {
+		updMsg("error", msgEcoAltriAperti)
 		return
 	}
 	want, _ := u["sha"].(string)
@@ -229,6 +237,11 @@ func ecoSelfUpdate(u map[string]interface{}) {
 	updateSettings(func(s *Settings) { s.EcoTentata = want + "|" + strconv.FormatInt(time.Now().Unix(), 10) })
 	updMsg("done", "Fatto! Tasso si chiude, aggiorna i programmi e si riapre tra un attimo.")
 	time.Sleep(1500 * time.Millisecond)
+	// di nuovo, subito prima di partire: durante il download (minuti) potresti averli aperti
+	if ecoAltriAperti() {
+		fallito(msgEcoAltriAperti)
+		return
+	}
 	modeMu.Lock() // come selfUpdate: non chiudo Tasso a metà di un cambio di modalità
 	cmd := exec.Command(setup, "--aggiorna-silenzioso", "--riapri-tasso")
 	cmd.Dir = filepath.Dir(setup)

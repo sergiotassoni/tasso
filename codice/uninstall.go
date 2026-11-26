@@ -16,6 +16,7 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -141,6 +142,45 @@ var reExeTasso = regexp.MustCompile(`(?i)^tasso[\w .-]*\.exe$`)
 // togliTasso fa tutto il lavoro; passo(i, testo) aggiorna la finestra. Restituisce "" se è andato
 // tutto bene (e Tasso si chiude da solo), altrimenti il motivo per cui si è fermato.
 func togliTasso(rimetti bool, passo func(int, string)) string {
+	piano, msg, fatto := togliTassoPassi(rimetti, passo)
+	if msg != "" {
+		return msg
+	}
+	defer func() {
+		if !*fatto {
+			releaseRun()
+		}
+	}()
+	// 5. cartelle e file di Tasso: dopo la chiusura
+	if err := cancellaDopoLaChiusura(piano); err != nil {
+		// il prefisso tradotto qui: con un percorso dentro, la finestra non traduce i pezzi
+		return trGo("Ho tolto tutto tranne le cartelle di Tasso: ") + err.Error()
+	}
+	if piano.disinst != "" {
+		disinstAllaChiusura.Store(piano.disinst) // ecosistema.go: si apre quando la finestra si chiude
+		passo(3, "Le cartelle di Tasso si cancellano appena Tasso si chiude. Poi si apre il disinstallatore di Tasso: lì togli il programma (Tasso Zip e Tasso PDF restano se non li spunti)")
+	} else if piano.eco {
+		passo(3, "Le cartelle e il file di Tasso si cancellano appena Tasso si chiude (Tasso Zip e Tasso PDF restano)")
+	} else {
+		passo(3, "Le cartelle e il file di Tasso si cancellano appena Tasso si chiude")
+	}
+	trayStop() // tray.go: via l'icona vicino all'orologio (e da qui la X chiude davvero)
+	togliFinito.Store(true)
+	*fatto = true
+	return ""
+}
+
+// togliTassoPassi: i passi 1-4 di "Togli Tasso dal PC" (impostazioni, traduzioni nei giochi,
+// attività, copie di sicurezza e registro), senza cancellare cartelle né chiudere Tasso. msg = il
+// motivo se si è fermato ("" = tutto fatto). Se va tutto bene il posto di claimRun resta preso:
+// chi chiama lo lascia (*fatto false) o lo tiene fino alla chiusura (*fatto true).
+func togliTassoPassi(rimetti bool, passo func(int, string)) (piano pianoTogli, msg string, fatto *bool) {
+	fatto = new(bool)
+	msg = togliTassoPassiDentro(rimetti, passo, &piano)
+	return piano, msg, fatto
+}
+
+func togliTassoPassiDentro(rimetti bool, passo func(int, string), pianoOut *pianoTogli) string {
 	// 1. impostazioni di Windows e cose accese da Tasso
 	if rimetti {
 		msgs, ok := restoreOriginal()
@@ -155,7 +195,7 @@ func togliTasso(rimetti bool, passo func(int, string)) string {
 	if !claimRun() {
 		return "Tasso sta facendo un altro lavoro (pulizia o aggiornamento): aspetta che finisca e riprova. Tasso non è stato tolto."
 	}
-	// il posto resta preso fino alla chiusura se va tutto bene (nessuna pulizia nei 10 secondi finali)
+	// il posto resta preso se va tutto bene: lo lascia chi chiama (togliTasso, togliSilenzioso)
 	finito := false
 	defer func() {
 		if !finito {
@@ -174,6 +214,11 @@ func togliTasso(rimetti bool, passo func(int, string)) string {
 	}
 
 	// 2. traduzioni dentro i giochi: se un gioco è aperto mi fermo qui
+	if traduce.CartellaDati() == "" {
+		// Tasso Traduce non è partito (Tasso.exe --togli-silenzioso senza traduce.Prepara): senza la
+		// sua cartella non trovo le copie dei giochi, quindi non dico "nessuna traduzione"
+		return "Non trovo la cartella di Tasso Traduce: apri Tasso e usa \"Togli Tasso dal PC\". Tasso non è stato tolto."
+	}
 	tolti, falliti := traduce.TogliTutteLeTraduzioni()
 	if len(falliti) == 1 && falliti[0] == "INSTALLA" {
 		return "Tasso sta installando una traduzione in un gioco: aspetta che finisca e riprova. Tasso non è stato tolto."
@@ -209,24 +254,53 @@ try { $s = New-Object -ComObject Schedule.Service; $s.Connect(); $s.GetFolder('\
 		_ = registry.DeleteKey(registry.LOCAL_MACHINE, `SOFTWARE\Tasso`)
 	}
 	togliCollegamentoDesktop()
-
-	// 5. cartelle e file di Tasso: dopo la chiusura
-	if err := cancellaDopoLaChiusura(piano); err != nil {
-		// il prefisso tradotto qui: con un percorso dentro, la finestra non traduce i pezzi
-		return trGo("Ho tolto tutto tranne le cartelle di Tasso: ") + err.Error()
-	}
-	if piano.disinst != "" {
-		disinstAllaChiusura.Store(piano.disinst) // ecosistema.go: si apre quando la finestra si chiude
-		passo(3, "Le cartelle di Tasso si cancellano appena Tasso si chiude. Poi si apre il disinstallatore di Tasso: lì togli il programma (Tasso Zip e Tasso PDF restano se non li spunti)")
-	} else if piano.eco {
-		passo(3, "Le cartelle e il file di Tasso si cancellano appena Tasso si chiude (Tasso Zip e Tasso PDF restano)")
-	} else {
-		passo(3, "Le cartelle e il file di Tasso si cancellano appena Tasso si chiude")
-	}
-	trayStop() // tray.go: via l'icona vicino all'orologio (e da qui la X chiude davvero)
-	togliFinito.Store(true)
+	*pianoOut = piano
 	finito = true
 	return ""
+}
+
+// ---------------- Tasso.exe --togli-silenzioso (lo usa il disinstallatore) ----------------
+
+// argTogliSilenzioso: il disinstallatore di Tasso Setup (anche da App e funzionalità) chiede a
+// Tasso di togliere le sue cose prima di cancellare Tasso.exe: Boost, clic automatico e modalità
+// dell'Ufficio spenti, traduzioni tolte dai giochi, attività pianificate, copie di sicurezza in
+// Documenti, chiavi del registro di Tasso. Senza finestra. Le cartelle (lavoro, strumenti,
+// driver, %LOCALAPPDATA%) le toglie il disinstallatore (i dati solo se l'utente lo conferma).
+const argTogliSilenzioso = "--togli-silenzioso"
+
+// segnoTogliSilenzioso: il disinstallatore avvia Tasso con --togli-silenzioso solo se questa
+// scritta è dentro Tasso.exe (un Tasso che non conosce l'argomento si aprirebbe normalmente).
+// C'è nell'exe solo se main chiama togliSilenziosoSeChiesto.
+const segnoTogliSilenzioso = "tasso-togli-silenzioso-v1"
+
+// togliSilenziosoSeChiesto: da chiamare in main dopo loadSettings (con il mutex della copia unica
+// preso). Se è stato chiesto --togli-silenzioso fa il lavoro e restituisce il codice d'uscita.
+// Uscita (righe sullo standard output, che legge il disinstallatore): "TOGLI-OK" e codice 0, oppure
+// "TOGLI-NO <motivo>" e codice 1 (adesso non si può: niente è stato tolto).
+func togliSilenziosoSeChiesto() (codice int, chiesto bool) {
+	for _, a := range os.Args[1:] {
+		if a == argTogliSilenzioso {
+			return togliSilenzioso(os.Stdout), true
+		}
+	}
+	return 0, false
+}
+
+func togliSilenzioso(out io.Writer) int {
+	fmt.Fprintln(out, segnoTogliSilenzioso)
+	_, msg, _ := togliTassoPassi(false, func(int, string) {})
+	if msg != "" {
+		fmt.Fprintln(out, "TOGLI-NO "+unaRiga(msg))
+		return 1
+	}
+	releaseRun()
+	fmt.Fprintln(out, "TOGLI-OK")
+	return 0
+}
+
+// unaRiga: il motivo su una riga sola (il disinstallatore legge fino al primo a capo).
+func unaRiga(s string) string {
+	return strings.Join(strings.Fields(s), " ")
 }
 
 // salvaCopieDiSicurezza: i backup del registro e i plugin che l'utente aveva messo in un gioco
