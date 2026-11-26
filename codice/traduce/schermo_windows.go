@@ -654,8 +654,11 @@ func (f *finestrella) posiziona(hwnd uintptr) {
 		alt = int32(z.H) // copre tutti i sottotitoli inglesi
 	}
 	pReleaseDC.Call(hwnd, hdc)
-	vx, vy, vw, vh := monitorDellaZona(z)
-	x, y := posizioneFinestrella(pos, z, larg, alt, vx, vy, vw, vh)
+	vy, _, _ := pGetSysMetrics.Call(smYVirtual)
+	vx, _, _ := pGetSysMetrics.Call(smXVirtual)
+	vw, _, _ := pGetSysMetrics.Call(smCXVirtual)
+	vh, _, _ := pGetSysMetrics.Call(smCYVirtual)
+	x, y := posizioneFinestrella(pos, z, larg, alt, int32(vx), int32(vy), int32(vw), int32(vh))
 	pSetWindowPos.Call(hwnd, ^uintptr(0), uintptr(x), uintptr(y), uintptr(larg), uintptr(alt), swpNoActivate)
 	pShowWindow.Call(hwnd, 4) // SW_SHOWNOACTIVATE
 	pInvalidateRect.Call(hwnd, 0, 1)
@@ -1377,28 +1380,3 @@ func nascondiMotore(h uintptr) {
 func nomeTasto(funzione string) string {
 	return etichettaTasto(tastiCompleti(leggiImp().Tasti)[funzione])
 }
-
-// monitorDellaZona: il rettangolo del monitor dove sta la zona dei dialoghi (il più vicino).
-// Con monitor di misure diverse il desktop virtuale ha zone vuote: tenendo la finestrella solo
-// dentro il desktop virtuale poteva finire in una zona dove non c'è nessuno schermo (collaudo
-// 26/11). Se non si sa, il desktop virtuale intero come prima.
-func monitorDellaZona(z Zona) (x, y, w, h int32) {
-	r := rect{int32(z.X), int32(z.Y), int32(z.X + z.W), int32(z.Y + z.H)}
-	if mon, _, _ := pMonitorFromRect.Call(uintptr(unsafe.Pointer(&r)), 2); mon != 0 { // MONITOR_DEFAULTTONEAREST
-		mi := monitorInfo{}
-		mi.cbSize = uint32(unsafe.Sizeof(mi))
-		if ok, _, _ := pGetMonitorInfo.Call(mon, uintptr(unsafe.Pointer(&mi))); ok != 0 {
-			m := mi.rcMonitor
-			if m.Right > m.Left && m.Bottom > m.Top {
-				return m.Left, m.Top, m.Right - m.Left, m.Bottom - m.Top
-			}
-		}
-	}
-	vx, _, _ := pGetSysMetrics.Call(smXVirtual)
-	vy, _, _ := pGetSysMetrics.Call(smYVirtual)
-	vw, _, _ := pGetSysMetrics.Call(smCXVirtual)
-	vh, _, _ := pGetSysMetrics.Call(smCYVirtual)
-	return int32(vx), int32(vy), int32(vw), int32(vh)
-}
-
-var pMonitorFromRect = user32.NewProc("MonitorFromRect")

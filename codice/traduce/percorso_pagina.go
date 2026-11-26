@@ -40,6 +40,7 @@ func blocchiLetti(img *image.RGBA, righe []RigaOCR, f float64, voti *votazione, 
 	bl = togliFrecce(bl)
 	bl = togliIconeTasti(bl) // "Swing Sword O": l'icona del pulsante resta del gioco
 	bl = togliSegniIcona(bl) // "/Back", "'Close", "[Shipwreck": il segno è dell'icona
+	bl = togliLetteraIcona(bl) // "'t +5% damage": la freccia letta come una lettera
 	for i := range bl {
 		if bl[i].Grezzo == "" {
 			bl[i].Grezzo = bl[i].Testo

@@ -177,12 +177,6 @@ func preparaDXGI() error {
 		}
 		var d outputDesc
 		chiama(out, 7, uintptr(unsafe.Pointer(&d)))
-		// monitor ruotato (verticale): l'immagine duplicata non è ruotata come le coordinate e la
-		// zona si leggerebbe nel posto sbagliato. Lì resta la cattura classica (collaudo 26/11).
-		if d.Rotazione > 1 { // 1 = DXGI_MODE_ROTATION_IDENTITY (0 = non specificata)
-			lascia(out)
-			continue
-		}
 		if chiama(out, 0, uintptr(unsafe.Pointer(&iidIDXGIOutput1)), uintptr(unsafe.Pointer(&out1))) == 0 {
 			if chiama(out1, 22, uintptr(dev), uintptr(unsafe.Pointer(&dup))) == 0 && dup != nil {
 				chiama(dev, 1) // AddRef: ogni duplicatore tiene un riferimento al device

@@ -1380,6 +1380,9 @@ func fraseMenuConNumero(s string) (string, bool) {
 	if v, ok := frasiPronteTutte(s); ok {
 		return v, true
 	}
+	if v, ok := prontaConSoldi(s); ok {
+		return v, true
+	}
 	if v, ok := suggerimentoTasto(s); ok {
 		return v, true
 	}

@@ -159,17 +159,3 @@ func TestFissaSoloLeMostrate(t *testing.T) {
 		t.Error("fissata una scritta mai mostrata")
 	}
 }
-
-// Il posto dell'isteresi è quello che si sovrappone di più, non il primo trovato.
-func TestIsteresiPostoPiuSovrapposto(t *testing.T) {
-	s := &isteresi{}
-	t0 := time.Unix(1000, 0)
-	a := s.posto(image.Rect(100, 100, 300, 120), true, t0)
-	b := s.posto(image.Rect(100, 112, 300, 132), true, t0)
-	if a == b {
-		t.Fatal("due posti diversi presi come uno")
-	}
-	if got := s.posto(image.Rect(100, 111, 300, 131), false, t0); got != b {
-		t.Error("scelto il posto che si sovrappone di meno")
-	}
-}

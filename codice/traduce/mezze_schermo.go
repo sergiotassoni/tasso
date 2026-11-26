@@ -27,7 +27,7 @@ import (
 func ingleseVisibile(motivo string) bool {
 	switch {
 	case motivo == "", motivo == "non è testo da tradurre", motivo == motivoUgualeIt,
-		motivo == "uguale all'inglese", motivo == "forma strana", motivo == motivoNomeCodice,
+		motivo == "forma strana", motivo == motivoNomeCodice,
 		strings.HasPrefix(motivo, "nome di un veicolo"), motivo == motivoTitoloVideo, motivo == motivoNomeGioco:
 		return false
 	}
@@ -48,7 +48,7 @@ func senzaMezzeRighe(pronti, inglesi []Blocco) (tenute, tolte []Blocco) {
 	for {
 		via := -1
 		for i, p := range tenute {
-			if conIngleseAccanto(p, ingl) || pezzoSenzaTesta(p, tenute) || sceltaConIngleseInColonna(p, ingl) {
+			if conIngleseAccanto(p, ingl) || (pezzoSenzaTesta(p, tenute) && !inBarraComandi(p, append(tenute, ingl...))) || sceltaConIngleseInColonna(p, ingl) || barraConIngleseAccanto(p, ingl) {
 				via = i
 				break
 			}

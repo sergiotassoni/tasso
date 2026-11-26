@@ -4,6 +4,7 @@ package traduce
 // tagliate in fondo, titoli dei video e dei giochi, parole ripetute inventate dal traduttore.
 
 import (
+	"math"
 	"regexp"
 	"strings"
 )
@@ -209,3 +210,140 @@ func frasiPronteTutte(s string) (string, bool) {
 
 // reDataGioco: "4/7 Tue", "4/7 Tug" (il giorno letto male): data del calendario del gioco, resta.
 var reDataGioco = regexp.MustCompile(`^\W{0,3}\d{1,2}\s?/\s?\d{1,2}\b`)
+
+// ---------------------------------------------------------------- barra dei comandi
+
+// tastoDiComando: la parola è il nome di un tasto ("TAB", "ENTER", "ESC", "MOUSE", "LMB", "F1").
+func tastoDiComando(w string) bool {
+	u := strings.ToUpper(strings.Trim(w, "[]()<>:"))
+	return nomiTastiFissi[u] || nomiTastiParole[u] || u == "MOUSE" || u == "SPACE" || reTastoSicuro.MatchString(u) ||
+		u == "←" || u == "→" || u == "↑" || u == "↓"
+}
+
+// voceDiBarra: una voce corta di una barra dei comandi in fondo ("TAB group", "ENTER buy",
+// "select", "back"): al massimo 3 parole.
+func voceDiBarra(b Blocco) bool {
+	w := strings.Fields(strings.TrimSpace(b.Testo))
+	return righeSchermo(b) == 1 && len(w) >= 1 && len(w) <= 3 && len(strings.TrimSpace(b.Testo)) <= 24
+}
+
+func conTasto(b Blocco) bool {
+	for _, w := range strings.Fields(b.Testo) {
+		if tastoDiComando(w) {
+			return true
+		}
+	}
+	return false
+}
+
+// barraConIngleseAccanto: p è una voce della barra dei comandi ("← → select · TAB group · ENTER
+// buy · MOUSE rotate · ESC back") e un'altra voce della stessa barra resta in inglese: la barra è
+// un gruppo, tutta tradotta o tutta in inglese (prova finale, One More Donut: "select" in inglese
+// accanto a "gruppo TAB" e "Indietro").
+func barraConIngleseAccanto(p Blocco, inglesi []Blocco) bool {
+	if !voceDiBarra(p) {
+		return false
+	}
+	for _, e := range inglesi {
+		if e.X == p.X && e.Y == p.Y && e.W == p.W && e.H == p.H {
+			continue
+		}
+		if !voceDiBarra(e) || !lineaSimile(p, e) || !(conTasto(p) || conTasto(e)) {
+			continue
+		}
+		em := math.Max(math.Max(p.Em, e.Em), float64(max(p.H, e.H)))
+		sx, dx := p, e
+		if e.X < p.X {
+			sx, dx = e, p
+		}
+		if float64(dx.X-(sx.X+sx.W)) <= 8*em {
+			return true
+		}
+	}
+	return false
+}
+
+// ---------------------------------------------------------------- soldi e voci con prezzo
+
+var (
+	reMancano   = regexp.MustCompile(`(?i)^short by\s+([$€£]\s?[\d.,]+)$`)
+	reVoceSoldi = regexp.MustCompile(`^(\pL[\pL ]{1,20}?)\s*([·•|:\-])\s*([$€£]\s?[\d.,]+)$`)
+)
+
+// soldiIt: "$1,621" -> "$1.621" (il separatore delle migliaia all'italiana).
+func soldiIt(s string) string {
+	if strings.Count(s, ",") >= 1 && !strings.Contains(s, ".") {
+		return strings.ReplaceAll(s, ",", ".")
+	}
+	return s
+}
+
+// prontaConSoldi: "Short by $1,621" -> "Mancano $1.621", "BUY · $2,000" -> "COMPRA · $2.000".
+func prontaConSoldi(s string) (string, bool) {
+	s = strings.TrimSpace(s)
+	if m := reMancano.FindStringSubmatch(s); m != nil {
+		return "Mancano " + soldiIt(m[1]), true
+	}
+	if m := reVoceSoldi.FindStringSubmatch(s); m != nil {
+		v, ok := fraseMenu(strings.TrimSpace(m[1]))
+		if !ok {
+			return "", false
+		}
+		if tuttoMaiuscolo(m[1]) {
+			v = strings.ToUpper(v)
+		}
+		return v + " " + m[2] + " " + soldiIt(m[3]), true
+	}
+	return "", false
+}
+
+// ---------------------------------------------------------------- icona letta come lettera
+
+// reLetteraIcona: una lettera sola (con un apice) davanti a un numero o a un segno ("'t +5%
+// damage": la freccia ↑ letta come "t"): è un'icona, non una parola.
+var reLetteraIcona = regexp.MustCompile(`^['’‘]?\pL['’‘]?\s+([+\-−]?\d)`)
+
+// togliLetteraIcona: toglie l'icona letta come lettera dall'inizio della scritta.
+func togliLetteraIcona(bl []Blocco) []Blocco {
+	for i := range bl {
+		t := strings.TrimSpace(bl[i].Testo)
+		m := reLetteraIcona.FindStringSubmatchIndex(t)
+		if m == nil {
+			continue
+		}
+		w := strings.Fields(t)[0]
+		if strings.Trim(w, "'’‘") == "a" || strings.Trim(w, "'’‘") == "I" || strings.Trim(w, "'’‘") == "A" {
+			continue // "a 5% bonus", "I 2": parole vere
+		}
+		resto := strings.TrimSpace(t[m[2]:])
+		if bl[i].W > 0 && len([]rune(t)) > 0 {
+			via := bl[i].W * (len([]rune(t)) - len([]rune(resto))) / len([]rune(t))
+			bl[i].X += via
+			bl[i].W -= via
+		}
+		bl[i].Testo = resto
+		if bl[i].Grezzo == t {
+			bl[i].Grezzo = resto
+		}
+	}
+	return bl
+}
+
+// inBarraComandi: p è una voce di una barra dei comandi (sulla stessa riga ci sono almeno altre
+// due voci corte con il nome di un tasto): "select" minuscolo lì non è un pezzo di frase senza
+// testa, la sua icona (← →) non si legge.
+func inBarraComandi(p Blocco, tutte []Blocco) bool {
+	if !voceDiBarra(p) {
+		return false
+	}
+	n := 0
+	for _, q := range tutte {
+		if q.X == p.X && q.Y == p.Y && q.W == p.W && q.H == p.H {
+			continue
+		}
+		if voceDiBarra(q) && conTasto(q) && lineaSimile(p, q) {
+			n++
+		}
+	}
+	return n >= 2
+}

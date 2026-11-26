@@ -227,3 +227,44 @@ func TestObiettiviNonSonoFirma(t *testing.T) {
 		t.Error("firma semitrasparente del canale non riconosciuta")
 	}
 }
+
+// Prova finale, One More Donut (f0779, f0841): officina degli attrezzi.
+func TestOfficinaOneMoreDonut(t *testing.T) {
+	// elenco in colonna: una voce rimasta uguale all'inglese ("SLEDGEHAMMER") toglie le vicine
+	pic := Blocco{Testo: "PICKAXE", Tradotto: "PICCONE", X: 70, Y: 220, W: 90, H: 22, Righe: 1, Em: 22}
+	sle := Blocco{Testo: "SLEDGEHAMMER", X: 70, Y: 262, W: 150, H: 22, Righe: 1, Em: 22}
+	dri := Blocco{Testo: "DRILL", Tradotto: "TRIVELLA", X: 70, Y: 304, W: 70, H: 22, Righe: 1, Em: 22}
+	if !ingleseVisibile("uguale all'inglese") {
+		t.Fatal("una voce lasciata uguale all'inglese dal traduttore è inglese che si vede")
+	}
+	if tenute, _ := senzaMezzeRighe([]Blocco{pic, dri}, []Blocco{sle}); len(tenute) != 0 {
+		t.Errorf("elenco mezzo tradotto: %q", testiBlocchi(tenute))
+	}
+	for en, it := range map[string]string{"SLEDGEHAMMER": "MAZZA", "Rate": "Cadenza", "Reach": "Portata", "HIT POWER": "POTENZA DI COLPO",
+		"TOOL UPGRADES": "POTENZIAMENTI ATTREZZI", "Short by $1,621": "Mancano $1.621", "BUY · $2,000": "COMPRA · $2.000", "TAB group": "TAB Gruppo"} {
+		v, ok := fraseMenuConNumero(en)
+		if !ok || !strings.EqualFold(v, it) {
+			t.Errorf("%q -> %q (%v), volevo %q", en, v, ok, it)
+		}
+	}
+	// barra dei comandi: tutta tradotta o tutta in inglese
+	y, h := 966, 20
+	sel := Blocco{Testo: "select", X: 675, Y: y, W: 45, H: h, Righe: 1, Em: 20}
+	tab := Blocco{Testo: "TAB group", Tradotto: "TAB Gruppo", X: 745, Y: y, W: 85, H: h, Righe: 1, Em: 20}
+	ent := Blocco{Testo: "ENTER buy", Tradotto: "INVIO Compra", X: 860, Y: y, W: 85, H: h, Righe: 1, Em: 20}
+	mou := Blocco{Testo: "MOUSE rotate", Tradotto: "MOUSE Ruota", X: 975, Y: y, W: 110, H: h, Righe: 1, Em: 20}
+	esc := Blocco{Testo: "ESC back", Tradotto: "ESC Indietro", X: 1110, Y: y, W: 80, H: h, Righe: 1, Em: 20}
+	tenute, _ := senzaMezzeRighe([]Blocco{tab, ent, mou, esc}, []Blocco{sel})
+	if len(tenute) != 0 {
+		t.Errorf("barra dei comandi mezza tradotta: %q", testiBlocchi(tenute))
+	}
+	sel.Tradotto = "Seleziona"
+	if tenute, _ := senzaMezzeRighe([]Blocco{sel, tab, ent, mou, esc}, nil); len(tenute) != 5 {
+		t.Errorf("barra tutta tradotta: %q", testiBlocchi(tenute))
+	}
+	// la freccia letta come lettera davanti al numero
+	bl := togliLetteraIcona([]Blocco{{Testo: "'t +5% damage", X: 300, W: 130}, {Testo: "a 5% bonus"}})
+	if bl[0].Testo != "+5% damage" || bl[0].X <= 300 || bl[1].Testo != "a 5% bonus" {
+		t.Errorf("icona davanti al numero: %q %d / %q", bl[0].Testo, bl[0].X, bl[1].Testo)
+	}
+}
