@@ -727,6 +727,18 @@ func gpuVendor() string {
 	return v
 }
 
+// dueSchedeVideo: il PC ha una scheda integrata e una potente (di solito un portatile): è lì che la
+// scelta della scheda per un gioco conta, e senza scelta di Windows la fa il pannello NVIDIA/AMD.
+func dueSchedeVideo() bool {
+	hwOnce.Do(loadHwCache)
+	disc, integ := false, false
+	for _, g := range hwCache.GPUs {
+		disc = disc || discreteGPU(g.Name)
+		integ = integ || integratedGPU(g.Name)
+	}
+	return disc && integ
+}
+
 func gameTuneInfo(id string) {
 	libMu.Lock()
 	g, ok := library[id]
@@ -747,6 +759,16 @@ func gameTuneInfo(id string) {
 		recs[p] = recommend(p, tier, hz, vendor)
 	}
 	exes := gameExesFor(g)
+	scelta := false
+	for _, e := range exes {
+		scelta = scelta || gamePrefScelta(e)
+	}
+	if !gpuHighDiBase(scelta, winoptSceltoSpento(dxGlobal()), dueSchedeVideo()) {
+		for p, r := range recs {
+			r.Opts.GpuHigh = false
+			recs[p] = r
+		}
+	}
 	ini := unrealIni(g.dir)
 	// Giochi con anti-cheat: Tasso non tocca i loro file né le impostazioni (niente .ini, niente
 	// priorità del processore). La grafica la imposti tu dal menu del gioco.
@@ -813,19 +835,74 @@ func gpuPrefOrig(path string) (string, bool) {
 
 // gpuPrefUndo rimette il valore di prima ("1"+valore, oppure "0" = non c'era), ma solo se adesso
 // c'è ancora la scheda potente messa da Tasso: se l'hai cambiata tu, o l'ha già rimessa un'altra
-// parte di Tasso, non la tocco.
+// parte di Tasso, non la tocco. Rimette solo le chiavi scritte da Tasso (gpuPrefRimessa): quello che
+// hai cambiato tu nel frattempo per quel gioco (HDR automatico, frequenza variabile) resta.
 func gpuPrefUndo(path, prev string) {
 	if prev == "" {
 		return
 	}
-	if cur, ok := regGet(registry.CURRENT_USER, gpuPrefKey, path); !ok || !strings.Contains(cur, "GpuPreference=2") {
+	cur, ok := regGet(registry.CURRENT_USER, gpuPrefKey, path)
+	if !ok || !strings.Contains(cur, "GpuPreference=2") {
 		return
 	}
-	if prev[0] == '1' {
-		_ = regSet(registry.CURRENT_USER, gpuPrefKey, path, prev[1:])
+	if v, tieni := gpuPrefRimessa(cur, prev); tieni {
+		_ = regSet(registry.CURRENT_USER, gpuPrefKey, path, v)
 	} else {
 		regDel(registry.CURRENT_USER, gpuPrefKey, path)
 	}
+}
+
+// gpuPrefRimessa: la stringa di UserGpuPreferences di adesso (cur) con GpuPreference com'era prima
+// (prev: "1"+valore o "0") e SwapEffectUpgradeEnable com'era prima solo se adesso è ancora l'1
+// messo da Tasso. Tutte le altre chiavi restano quelle di adesso. tieni=false: non resta niente,
+// il valore va tolto.
+func gpuPrefRimessa(cur, prev string) (string, bool) {
+	prima := map[string]string{}
+	if prev != "" && prev[0] == '1' {
+		for _, p := range strings.Split(prev[1:], ";") {
+			if k, v, ok := strings.Cut(strings.TrimSpace(p), "="); ok {
+				prima[strings.TrimSpace(k)] = strings.TrimSpace(v)
+			}
+		}
+	}
+	var parts []string
+	visto := map[string]bool{}
+	rimetti := func(k string) {
+		if v, ok := prima[k]; ok {
+			parts = append(parts, k+"="+v)
+		}
+	}
+	for _, p := range strings.Split(cur, ";") {
+		p = strings.TrimSpace(p)
+		k, v, ok := strings.Cut(p, "=")
+		if p == "" || !ok {
+			continue
+		}
+		k, v = strings.TrimSpace(k), strings.TrimSpace(v)
+		visto[k] = true
+		switch {
+		case k == "GpuPreference", k == "SwapEffectUpgradeEnable" && v == "1":
+			rimetti(k)
+		default:
+			parts = append(parts, p)
+		}
+	}
+	if !visto["GpuPreference"] {
+		rimetti("GpuPreference")
+	}
+	if len(parts) == 0 {
+		return "", false
+	}
+	return strings.Join(parts, ";") + ";", true
+}
+
+// gpuHighDiBase: "Scheda video ad alte prestazioni" è spuntata di base in "Regola con Tasso" solo se
+// non va contro una scelta già fatta: niente scelta di Windows per il gioco (potente o risparmio
+// energetico), "giochi in finestra" non spenti apposta, e niente portatile con due schede video
+// (lì, senza scelta di Windows, decide il pannello NVIDIA/AMD, che Tasso non può leggere). Puoi
+// sempre spuntarla tu.
+func gpuHighDiBase(sceltaWindows, winoptSpento, dueSchede bool) bool {
+	return !sceltaWindows && !winoptSpento && !dueSchede
 }
 
 // ---------------- Applica / annulla ----------------
@@ -904,6 +981,7 @@ func gameTuneApply(id, preset string, o tuneOpts) {
 	if len(exes) == 0 && (o.GpuHigh || o.Priority || o.NoFSO || o.Mode != "") {
 		fail("Non ho trovato il programma del gioco nella sua cartella: le impostazioni di Windows per questo gioco non si possono applicare.")
 	}
+	winoptOff := o.GpuHigh && winoptSceltoSpento(dxGlobal())
 	for _, e := range exes {
 		if o.GpuHigh {
 			if v, ok := gpuPrefOrig(e); ok { // l'aveva già cambiata il Boost: mi tengo il valore vero di prima
@@ -912,9 +990,14 @@ func gameTuneApply(id, preset string, o tuneOpts) {
 				remember("gpu|"+e, registry.CURRENT_USER, gpuPrefKey, e)
 			}
 			// Le altre scelte di Windows per questo gioco (HDR automatico, frequenza variabile) restano.
+			// "Giochi in finestra" spenti apposta in Windows: non li riaccendo per questo gioco.
 			cur, _ := regGet(registry.CURRENT_USER, gpuPrefKey, e)
-			if regSet(registry.CURRENT_USER, gpuPrefKey, e, gpuPrefConAltre(cur, "GpuPreference=2", "SwapEffectUpgradeEnable=1")) == nil {
-				msgs = append(msgs, "✓ Scheda video ad alte prestazioni e ottimizzazioni per i giochi in finestra: "+filepath.Base(e))
+			nuove, testo := []string{"GpuPreference=2", "SwapEffectUpgradeEnable=1"}, "✓ Scheda video ad alte prestazioni e ottimizzazioni per i giochi in finestra: "
+			if winoptOff {
+				nuove, testo = nuove[:1], "✓ Scheda video ad alte prestazioni (ottimizzazioni per i giochi in finestra lasciate spente come in Windows): "
+			}
+			if regSet(registry.CURRENT_USER, gpuPrefKey, e, gpuPrefConAltre(cur, nuove...)) == nil {
+				msgs = append(msgs, testo+filepath.Base(e))
 			} else {
 				fail("✗ Windows non mi ha lasciato cambiare la scheda video per " + filepath.Base(e) + ".")
 			}

@@ -111,3 +111,35 @@ func TestModoDaRimettereDopoGioco(t *testing.T) {
 		}
 	}
 }
+
+// gpuPrefRimessa: "Rimetti com'era" rimette solo le chiavi scritte da Tasso; quello che hai cambiato
+// tu nel frattempo per il gioco (HDR automatico, frequenza variabile) resta.
+func TestGpuPrefRimessa(t *testing.T) {
+	casi := []struct {
+		nome, cur, prev, vuole string
+		tieni                  bool
+	}{
+		{"non c'era niente: si toglie", "GpuPreference=2;", "0", "", false},
+		{"non c'era niente, HDR messo dopo da te: resta solo HDR", "GpuPreference=2;AutoHDREnable=1;", "0", "AutoHDREnable=1;", true},
+		{"c'era risparmio: torna risparmio", "GpuPreference=2;", "1GpuPreference=1;", "GpuPreference=1;", true},
+		{"giochi in finestra messi da Tasso: tornano come prima", "GpuPreference=2;SwapEffectUpgradeEnable=1;", "1GpuPreference=0;", "GpuPreference=0;", true},
+		{"giochi in finestra spenti da te dopo: restano spenti", "GpuPreference=2;SwapEffectUpgradeEnable=0;", "0", "SwapEffectUpgradeEnable=0;", true},
+		{"HDR cambiato da te: resta quello di adesso", "GpuPreference=2;AutoHDREnable=0;", "1GpuPreference=1;AutoHDREnable=1;", "GpuPreference=1;AutoHDREnable=0;", true},
+	}
+	for _, c := range casi {
+		got, tieni := gpuPrefRimessa(c.cur, c.prev)
+		if got != c.vuole || tieni != c.tieni {
+			t.Errorf("%s: %q %v, volevo %q %v", c.nome, got, tieni, c.vuole, c.tieni)
+		}
+	}
+}
+
+// "Scheda video ad alte prestazioni" in "Regola con Tasso" spuntata di base solo senza scelte già fatte.
+func TestGpuHighDiBase(t *testing.T) {
+	if !gpuHighDiBase(false, false, false) {
+		t.Fatal("nessuna scelta, una scheda sola: spuntata")
+	}
+	if gpuHighDiBase(true, false, false) || gpuHighDiBase(false, true, false) || gpuHighDiBase(false, false, true) {
+		t.Fatal("scelta di Windows, giochi in finestra spenti o due schede (pannello): non spuntata")
+	}
+}
