@@ -18,7 +18,7 @@ finto = r"""
 const TESTI = __TESTI__;
 const SCENA = (location.hash || "#home").slice(1).split("-");
 window.__TZ_INIZIO__ = { modo: "", percorsi: [], mini: false };
-const D = "C:\\Users\\Sergio\\Downloads";
+const D = "C:\\Users\\Utente\\Downloads";
 const ora = Date.parse("2026-11-24T18:30:00Z");
 const giorni = g => new Date(ora - g * 86400000).toISOString();
 const voce = (nome, dim, g, cat, ext, cartella) => ({ nome, percorso: D + "\\" + nome, cartella: !!cartella, dim, quando: giorni(g), cat: cartella ? "cartella" : cat, ext: ext || "", nascosto: false, archivio: cat === "archivio" });
@@ -33,11 +33,11 @@ const VOCI = [
   voce("licenza.key", 512, 30, "file", "key"),
 ];
 const LUOGHI = [
-  { chiave: "desktop", percorso: "C:\\Users\\Sergio\\Desktop", tipo: "speciale" },
+  { chiave: "desktop", percorso: "C:\\Users\\Utente\\Desktop", tipo: "speciale" },
   { chiave: "download", percorso: D, tipo: "speciale" },
-  { chiave: "documenti", percorso: "C:\\Users\\Sergio\\Documents", tipo: "speciale" },
-  { chiave: "immagini", percorso: "C:\\Users\\Sergio\\Pictures", tipo: "speciale" },
-  { chiave: "home", nome: "Sergio", percorso: "C:\\Users\\Sergio", tipo: "speciale" },
+  { chiave: "documenti", percorso: "C:\\Users\\Utente\\Documents", tipo: "speciale" },
+  { chiave: "immagini", percorso: "C:\\Users\\Utente\\Pictures", tipo: "speciale" },
+  { chiave: "home", nome: "Utente", percorso: "C:\\Users\\Utente", tipo: "speciale" },
   { nome: "Windows", percorso: "C:\\", tipo: "fisso" }, { nome: "Dati", percorso: "D:\\", tipo: "fisso" },
   { nome: "", percorso: "E:\\", tipo: "rimovibile" },
 ];
@@ -53,9 +53,9 @@ const ELENCO = { tipo: "zip", dim: 248512000, metodo: "Deflate, Store", voci: [
   { nome: "Foto vacanze 2026/leggimi.txt", dim: 2048, compresso: 900, quando: giorni(21) },
 ]};
 const pausa = ms => new Promise(r => setTimeout(r, ms));
-window.goAvvio = async () => ({ lingua: SCENA[1] || "it", lingue: ["it","en","es","fr","de","pt","pl"], testi: TESTI, versione: "1.2.0", menu: true, assoc: false, formato: "zip", livello: "massima", desktop: "C:\\Users\\Sergio\\Desktop", formati: ["zip","7z","tar","targz","tarxz","tarbz2","tarzst"] });
+window.goAvvio = async () => ({ lingua: SCENA[1] || "it", lingue: ["it","en","es","fr","de","pt","pl"], testi: TESTI, versione: "1.2.0", menu: true, assoc: false, formato: "zip", livello: "massima", desktop: "C:\\Users\\Utente\\Desktop", formati: ["zip","7z","tar","targz","tarxz","tarbz2","tarzst"] });
 window.goLuoghi = async () => ({ luoghi: LUOGHI, iniziale: D, nascosti: false });
-window.goEsplora = async (id, dir) => { setTimeout(() => tz.cartella({ id, codice: "", el: { percorso: dir || D, padre: "C:\\Users\\Sergio", voci: VOCI, nascosti: 2, troppi: false } }), 20); return "ok"; };
+window.goEsplora = async (id, dir) => { setTimeout(() => tz.cartella({ id, codice: "", el: { percorso: dir || D, padre: "C:\\Users\\Utente", voci: VOCI, nascosti: 2, troppi: false } }), 20); return "ok"; };
 window.goElenca = async (p) => { setTimeout(() => tz.elenco({ percorso: p, elenco: ELENCO }), 30); return "ok"; };
 window.goInfo = async ps => ps.map(p => ({ percorso: p, nome: p.split("\\").pop(), cartella: !/\.[a-z0-9]+$/i.test(p), dim: 123456789, archivio: /\.(zip|7z|rar|gz)$/i.test(p), dove: D }));
 window.goInfoPercorsi = async (id, ps) => { setTimeout(() => tz.info({ id, misura: { file: 1, cartelle: 0, byte: 248512000 }, archivio: { tipo: "zip", metodo: "Deflate, Store", solido: false, file: 8, cartelle: 3, orig: 175363063, comp: 173280000, dim: 248512000 } }), 20); return "ok"; };
