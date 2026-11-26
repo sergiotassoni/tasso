@@ -39,3 +39,25 @@ func TestDownloadsSicuri(t *testing.T) {
 		t.Error("Get-DownloadsSicura manca o non usa il profilo vero")
 	}
 }
+
+// Cambiare lingua fra riordino e annullamento cambia i nomi delle cartelle (Immagini -> Pictures):
+// il riordino scrive nell'elenco i nomi veri usati e l'annullamento li accetta da lì.
+func TestDownloadsAnnullaDopoCambioLingua(t *testing.T) {
+	var riordino, annulla string
+	for _, s := range allSteps {
+		switch s.ID {
+		case "downloads":
+			riordino = s.Script
+		case "downloads_undo":
+			annulla = s.Script
+		}
+	}
+	if !strings.Contains(riordino, "'#cartelle' + [string][char]9 + (@($cats.Keys) -join") {
+		t.Error("downloads: i nomi veri delle cartelle non finiscono nell'elenco")
+	}
+	for _, w := range []string{"$p[0] -ne '#cartelle'", "GetInvalidFileNameChars()", "@($nomi | Where-Object { $toDir -ieq (Join-Path $dl $_) })", "foreach ($c in $nomi) {"} {
+		if !strings.Contains(annulla, w) {
+			t.Errorf("downloads_undo: manca %q", w)
+		}
+	}
+}

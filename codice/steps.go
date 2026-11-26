@@ -868,7 +868,10 @@ if ($righe.Count) {
     if (-not (Test-Path -LiteralPath $logDir)) { New-Item -ItemType Directory -Path $logDir -Force | Out-Null }
     # L'elenco si scrive solo in una cartella vera dentro Download, mai sopra un file che c'è già.
     if ((Test-NoReparse $logDir $dl) -and -not (Test-Path -LiteralPath $log)) {
-      [IO.File]::WriteAllLines($log, [string[]]$righe.ToArray(), (New-Object System.Text.UTF8Encoding($false))); $okLog = $true
+      # Prima riga: i nomi veri delle cartelle usate (dipendono dalla lingua di Tasso), così l'annullamento
+      # le ritrova anche se nel frattempo hai cambiato lingua.
+      $testa = '#cartelle' + [string][char]9 + (@($cats.Keys) -join [string][char]9)
+      [IO.File]::WriteAllLines($log, [string[]](@($testa) + $righe.ToArray()), (New-Object System.Text.UTF8Encoding($false))); $okLog = $true
     }
   } catch {}
   if (-not $okLog) { Say 'Non sono riuscito a scrivere l''elenco degli spostamenti: il riordino non si potrà annullare da Tasso.' }
@@ -886,14 +889,26 @@ if ((Test-Path -LiteralPath $logDir) -and -not (Test-NoReparse $logDir $dl)) { S
 $last = @(Get-ChildItem -LiteralPath $logDir -Filter 'riordino-*.tsv' -File -ErrorAction SilentlyContinue | Where-Object { $_.Name -notlike '*-annullato.tsv' -and -not ($_.Attributes -band [IO.FileAttributes]::ReparsePoint) } | Sort-Object Name -Descending | Select-Object -First 1)
 if (-not $last.Count) { Say 'Non trovo nessun riordino dei Download fatto da Tasso da annullare.'; return }
 $back = 0; $skip = 0
-foreach ($r in @([IO.File]::ReadAllLines($last[0].FullName))) {
+$linee = @([IO.File]::ReadAllLines($last[0].FullName))
+# Cartelle ammesse: quelle della lingua di adesso più quelle scritte dal riordino nella prima riga
+# (se la lingua è cambiata hanno un altro nome). Solo nomi semplici: niente \ / : .. o simili.
+$nomi = New-Object System.Collections.ArrayList
+foreach ($c in $cats) { [void]$nomi.Add($c) }
+foreach ($r in $linee) {
   $p = $r.Split([char]9)
-  if ($p.Count -ne 2) { continue }
+  if ($p[0] -ne '#cartelle') { continue }
+  foreach ($n in @($p | Select-Object -Skip 1)) {
+    if ($n -and $n -eq $n.Trim().TrimEnd('.') -and $n.IndexOfAny([IO.Path]::GetInvalidFileNameChars()) -lt 0 -and $n -ne 'Tasso - riordini' -and -not ($nomi -icontains $n)) { [void]$nomi.Add($n) }
+  }
+}
+foreach ($r in $linee) {
+  $p = $r.Split([char]9)
+  if ($p[0] -eq '#cartelle' -or $p.Count -ne 2) { continue }
   try { $from = [IO.Path]::GetFullPath($p[0]); $to = [IO.Path]::GetFullPath($p[1]) } catch { $skip++; continue }
   # Solo come le ha messe il riordino: $from era un file sciolto in Download, $to sta in una delle sue
   # cartelle (Immagini, Documenti...). Qualunque altra riga (scritta da un altro programma) la salto.
   $toDir = [IO.Path]::GetDirectoryName($to)
-  if (-not ([IO.Path]::GetDirectoryName($from) -ieq $dl) -or -not (@($cats | Where-Object { $toDir -ieq (Join-Path $dl $_) }).Count)) { $skip++; continue }
+  if (-not ([IO.Path]::GetDirectoryName($from) -ieq $dl) -or -not (@($nomi | Where-Object { $toDir -ieq (Join-Path $dl $_) }).Count)) { $skip++; continue }
   if (-not (Test-Path -LiteralPath $to -PathType Leaf) -or (Test-Path -LiteralPath $from)) { $skip++; continue }
   # File e cartelle veri (niente collegamenti) fino a Download, controllati subito prima di spostare.
   if (-not (Test-NoReparse $to $dl)) { $skip++; continue }
@@ -901,7 +916,7 @@ foreach ($r in @([IO.File]::ReadAllLines($last[0].FullName))) {
 }
 try { Rename-Item -LiteralPath $last[0].FullName -NewName ($last[0].BaseName + '-annullato.tsv') -ErrorAction Stop } catch {}
 # Le cartelle create dal riordino che sono rimaste vuote le tolgo (mai un collegamento).
-foreach ($c in $cats) {
+foreach ($c in $nomi) {
   $d = Join-Path $dl $c
   if ((Test-Path -LiteralPath $d -PathType Container) -and (Test-NoReparse $d $dl) -and -not (Get-ChildItem -LiteralPath $d -Force -ErrorAction SilentlyContinue | Select-Object -First 1)) { Remove-Item -LiteralPath $d -Force -ErrorAction SilentlyContinue }
 }
