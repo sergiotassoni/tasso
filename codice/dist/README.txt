@@ -1,4 +1,4 @@
-TASSO 3.1
+TASSO 3.1.1
 Cleans, repairs and boosts your PC. In one click.
 =================================================
 
@@ -38,6 +38,23 @@ WHERE IT SAVES ITS STUFF
 The full manual, with step-by-step explanations, is in the file Manual_Tasso_EN.pdf.
 The quick list of features is in the file INDEX.txt and inside Tasso,
 under "Info & index".
+
+------------------------------------------------------------
+WHAT'S NEW IN 3.1.1
+------------------------------------------------------------
+- "One click and leave the house" cleanup: in the cleanup window choose
+  "Update Windows too" (done last, after the whole cleanup) and
+  "When it's done": Leave on, Restart or Shut down. Before restarting or
+  shutting down Tasso warns you for 60 seconds and you can cancel.
+- During the cleanup the PC does not go to sleep; if the laptop is on battery
+  Tasso tells you before starting.
+- Windows updates with real progress ("Installing 3 updates: 2 of 3 done");
+  if Windows is already waiting for a restart the step is skipped.
+- When you come back, after the restart: "Welcome back! Everything is done"
+  with the space freed, the updates installed and any skipped steps.
+- Fixed: on some PCs "Restart now" showed the countdown but the PC did not
+  restart. Now Tasso checks that Windows accepted it and, if not, tells you
+  and tries again.
 
 ------------------------------------------------------------
 WHAT'S NEW IN 3.1

@@ -1,4 +1,4 @@
-TASSO 3.1
+TASSO 3.1.1
 Pulisce, ripara e spinge il tuo PC. In un clic.
 =================================================
 
@@ -36,6 +36,23 @@ DOVE SALVA LE SUE COSE
 Il manuale completo, con le spiegazioni passo passo, è nel file Manuale_Tasso.pdf.
 L'elenco rapido delle funzioni è nel file INDICE.txt e dentro Tasso,
 alla voce "Info e indice".
+
+------------------------------------------------------------
+NOVITÀ DELLA 3.1.1
+------------------------------------------------------------
+- Pulizia "un clic e esci di casa": nella finestra della pulizia scegli
+  "Aggiorna anche Windows" (lo fa per ultimo, dopo tutta la pulizia) e
+  "Quando ha finito": Lascia acceso, Riavvia o Spegni. Prima di riavviare o
+  spegnere Tasso avvisa per 60 secondi e puoi annullare.
+- Durante la pulizia il PC non va in sospensione; se il portatile è a batteria
+  Tasso te lo dice prima di partire.
+- Aggiornamenti di Windows con l'avanzamento vero ("Installo 3 aggiornamenti:
+  2 di 3 fatti"); se Windows aspetta già un riavvio il passaggio si salta.
+- Al ritorno, dopo il riavvio: "Bentornato! È tutto fatto" con lo spazio
+  liberato, gli aggiornamenti installati e i passaggi saltati.
+- Corretto: su alcuni PC "Riavvia ora" mostrava il conto alla rovescia ma il PC
+  non si riavviava. Ora Tasso controlla che Windows abbia accettato e, se no,
+  te lo dice e riprova.
 
 ------------------------------------------------------------
 NOVITÀ DELLA 3.1
