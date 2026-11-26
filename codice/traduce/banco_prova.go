@@ -499,7 +499,7 @@ func scriviReportBanco(dir string, esiti []esitoImmagine, instab []instabilita) 
 	}
 	if len(peggiCorrette) > 0 {
 		sort.SliceStable(peggiCorrette, func(i, j int) bool {
-			return distanzaLettere(peggiCorrette[i].r.Grezzo, peggiCorrette[i].r.Corretto) > distanzaLettere(peggiCorrette[j].r.Grezzo, peggiCorrette[j].r.Corretto)
+			return distanzaModifica(peggiCorrette[i].r.Grezzo, peggiCorrette[i].r.Corretto) > distanzaModifica(peggiCorrette[j].r.Grezzo, peggiCorrette[j].r.Corretto)
 		})
 		t.WriteString("\r\n=== RIGHE CON PIÙ CORREZIONI DELL'OCR\r\n")
 		for i, c := range peggiCorrette {
