@@ -231,7 +231,20 @@ func (v *votazione) mossa(b Blocco, adesso time.Time) bool {
 		dy := abs((r.Min.Y + r.Max.Y - p.rett.Min.Y - p.rett.Max.Y) / 2)
 		dimensione := abs(r.Dy()-p.rett.Dy())*5 > h || abs(r.Dx()-p.rett.Dx())*4 > max(r.Dx(), p.rett.Dx())
 		lato := dx > max(h/2, 6)
-		if !dimensione && (!lato || dy > 3*dx) {
+		// centro fermo (entro mezza riga): il riquadro un po' più largo o più alto è l'OCR che
+		// legge le lettere in modo un po' diverso, non la telecamera che si avvicina (banco del
+		// mattino 26/11: "Close Tutorial", "TUTORIAL: SPELLS" e la firma del canale, fermi, presi
+		// per scritte del mondo a fotogrammi alterni)
+		tol := max(h/2, 6)
+		// (cresciuta poco: un'insegna che si avvicina cresce di molto, l'OCR sbaglia di poco)
+		pocoDiversa := max(r.Dy(), p.rett.Dy())*5 <= min(r.Dy(), p.rett.Dy())*7 &&
+			max(r.Dx(), p.rett.Dx())*2 <= min(r.Dx(), p.rett.Dx())*3
+		centroFermo := pocoDiversa && dx <= tol && dy <= tol
+		// o un angolo fermo: stesso bordo a sinistra (o a destra) e stesso bordo in alto (o in
+		// basso); cambia solo l'altro lato, dove l'OCR ha preso o perso un segno
+		angoloFermo := pocoDiversa && (abs(r.Min.X-p.rett.Min.X) <= tol || abs(r.Max.X-p.rett.Max.X) <= tol) &&
+			(abs(r.Min.Y-p.rett.Min.Y) <= tol || abs(r.Max.Y-p.rett.Max.Y) <= tol)
+		if centroFermo || angoloFermo || (!dimensione && (!lato || dy > 3*dx)) {
 			ferma = true // nello stesso posto (o lista che scorre in verticale)
 		}
 	}
@@ -564,6 +577,9 @@ func motivoMondo(img *image.RGBA, b Blocco, tutte []Blocco) string {
 	if targaNome(b, tutte) {
 		return "nome di un veicolo o di un oggetto"
 	}
+	if firmaNellAngolo(img, b, tutte) {
+		return motivoFirmaAngolo
+	}
 	if p, m := punteggioMondo(img, b, tutte); p >= 3 {
 		return "scritta del mondo (" + strings.Join(m, ", ") + ")"
 	}
@@ -684,4 +700,61 @@ func rigaVicinaMancante(img *image.RGBA, b Blocco, tutte []Blocco) string {
 		}
 	}
 	return ""
+}
+
+// ---------------------------------------------------------------- firma nell'angolo
+
+// motivoFirmaAngolo: il nome del canale o il logo stampato in un angolo dello schermo.
+const motivoFirmaAngolo = "scritta del mondo (firma del canale o logo nell'angolo)"
+
+// paroleFunzione: parole che in un nome proprio di un canale o di un logo non ci sono, ma nei
+// comandi e nelle frasi sì ("Back to Menu", "Close the Map").
+var paroleFunzione = map[string]bool{"to": true, "the": true, "of": true, "a": true, "an": true, "and": true,
+	"for": true, "your": true, "my": true, "in": true, "on": true, "at": true, "with": true, "is": true, "or": true}
+
+// firmaNellAngolo: una scritta piccola, da sola, nell'angolo in alto a destra o in basso a destra
+// dello schermo, fatta solo di parole con l'iniziale maiuscola ("Horror Games House",
+// "MKIceAndFire" no: una parola sola non basta). È la firma del canale del video o il logo di chi
+// trasmette: resta in inglese (regola del proprietario: loghi e firme dei canali restano come
+// sono). Banco del mattino 26/11: "Horror Games House" tradotta "Casa Giochi Horror" a
+// fotogrammi alterni. I pezzi letti a metà davanti ("or Games House") non contano.
+func firmaNellAngolo(img *image.RGBA, b Blocco, tutte []Blocco) bool {
+	if img == nil || max(1, b.Righe) != 1 || b.Affid == letturaCatalog {
+		return false
+	}
+	g := areaGioco(img)
+	W, H := g.Dx(), g.Dy()
+	if W <= 0 || H <= 0 {
+		return false
+	}
+	cx, cy := b.X+b.W/2-g.Min.X, b.Y+b.H/2-g.Min.Y
+	if cx*100 < W*88 || (cy*100 > H*12 && cy*100 < H*88) || b.H*100 > H*4 {
+		return false
+	}
+	if allineata(b, tutte) {
+		return false // in colonna o in fila con altre voci: un elenco del gioco
+	}
+	parole := strings.Fields(b.Testo)
+	for len(parole) > 0 { // pezzo letto a metà davanti: "or", "•or"
+		r := []rune(parole[0])
+		if unicode.IsUpper(r[0]) {
+			break
+		}
+		parole = parole[1:]
+	}
+	if len(parole) < 2 || len(parole) > 4 {
+		return false
+	}
+	for _, p := range parole {
+		r := []rune(p)
+		if len(r) < 2 || !unicode.IsUpper(r[0]) || paroleFunzione[strings.ToLower(p)] {
+			return false
+		}
+		for _, c := range r[1:] {
+			if !unicode.IsLower(c) {
+				return false // tutto maiuscolo ("TAC-COM"), cifre, segni: interfaccia del gioco
+			}
+		}
+	}
+	return true
 }

@@ -656,11 +656,34 @@ func conPunteggiatura(catalogo, letto string) string {
 		out = strings.ToUpper(out)
 	}
 	fineL := letto[len(strings.TrimRightFunc(letto, func(r rune) bool { return unicode.IsPunct(r) && r != '+' })):]
+	fineL = senzaVirgoletteSole(letto, fineL)
 	nuda := strings.TrimRightFunc(out, func(r rune) bool { return unicode.IsPunct(r) && r != '+' })
 	if fineL != "" {
 		return nuda + fineL
 	}
 	return out
+}
+
+// senzaVirgoletteSole: la punteggiatura finale della lettura senza le virgolette che non chiudono
+// niente ("FIGHT YOUR WAY OUT'": l'apice è un puntino del fondo letto dall'OCR, non una citazione;
+// usciva "APRITI LA STRADA COMBATTENDO'", banco del mattino 26/11). Restano se la lettura ha anche
+// la virgoletta d'apertura ("\"Ready\"").
+func senzaVirgoletteSole(letto, fine string) string {
+	if !strings.ContainsAny(fine, "'\"’”") {
+		return fine
+	}
+	corpo := strings.TrimSuffix(letto, fine)
+	for _, w := range strings.Fields(corpo) {
+		if strings.ContainsAny(w[:1], "'\"‘“") || strings.HasPrefix(w, "‘") || strings.HasPrefix(w, "“") {
+			return fine
+		}
+	}
+	return strings.Map(func(r rune) rune {
+		if r == '\'' || r == '"' || r == '’' || r == '”' {
+			return -1
+		}
+		return r
+	}, fine)
 }
 
 // ---------------------------------------------------------------- righe mezze tradotte

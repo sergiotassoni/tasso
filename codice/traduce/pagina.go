@@ -2484,7 +2484,30 @@ func stessaScritta(a, b string) bool {
 	if lung < 15 {
 		return false
 	}
+	if parolaCambiata(a, b) {
+		return false
+	}
 	return distanzaModifica(la, lb)*10 <= lung*3
+}
+
+// parolaCambiata: con lo stesso numero di parole, una parola lunga è diventata un'altra parola
+// intera ("TUTORIAL: BLOCK ATTACKS" → "TUTORIAL: HEAVY ATTACKS"): è un'altra scritta, non la
+// stessa letta male (banco del mattino 26/11: la traduzione vecchia restava sulla scritta nuova).
+// L'OCR sbaglia qualche lettera ("uniil"/"until", "curmt"/"current"), non tutte.
+func parolaCambiata(a, b string) bool {
+	wa, wb := strings.Fields(a), strings.Fields(b)
+	if len(wa) != len(wb) {
+		return false
+	}
+	for i := range wa {
+		x := lettereConfuse(strings.ToLower(strings.Trim(wa[i], ".,;:!?\"'()[]")))
+		y := lettereConfuse(strings.ToLower(strings.Trim(wb[i], ".,;:!?\"'()[]")))
+		n := max(len([]rune(x)), len([]rune(y)))
+		if n >= 4 && distanzaModifica(x, y)*2 > n {
+			return true
+		}
+	}
+	return false
 }
 
 // numeriESegni: le cifre e i segni (+ - % / :) della scritta, in ordine. Dentro un numero la O

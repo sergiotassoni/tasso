@@ -74,6 +74,7 @@ func fraseMenu(battuta string) (string, bool) {
 		return "", false
 	}
 	fine := b[len(strings.TrimRightFunc(b, func(r rune) bool { return unicode.IsPunct(r) && r != '+' })):]
+	fine = senzaVirgoletteSole(b, fine)
 	itSenza := strings.TrimRightFunc(it, func(r rune) bool { return unicode.IsPunct(r) && r != '+' })
 	if fine != "" {
 		return itSenza + fine, true

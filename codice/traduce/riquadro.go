@@ -42,7 +42,13 @@ func etichettaComando(b Blocco) bool {
 	if len(parole) == 0 || len(parole) > 4 {
 		return false
 	}
-	if b.IconaDx > b.X || b.IconaSx > 0 || reParolaComando.MatchString(b.Testo) {
+	if reParolaComando.MatchString(b.Testo) {
+		return true
+	}
+	// l'icona accanto basta per le etichette corte ("Sprint", "Open Map", "Pick up item");
+	// quattro parole con un'icona sono un obiettivo o una voce ("FIGHT YOUR WAY OUT" col segno
+	// della missione), non il nome di un tasto: restavano in inglese a fotogrammi alterni
+	if (b.IconaDx > b.X || b.IconaSx > 0) && len(parole) <= 3 {
 		return true
 	}
 	if len(parole) >= 2 {

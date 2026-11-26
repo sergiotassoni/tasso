@@ -1380,6 +1380,19 @@ func fraseMenuConNumero(s string) (string, bool) {
 	if v, ok := suggerimentoTasto(s); ok {
 		return v, true
 	}
+	if v, ok := vociConIcone(s); ok {
+		return v, true
+	}
+	// "TUTORIAL: BLOCK ATTACKS": il titolo del riquadro dei suggerimenti con la voce pronta
+	// (usciva "TUTORIAL: ATTACCHI DI BLOCCHI", banco del mattino 26/11)
+	if pre, voce, ok := strings.Cut(s, ":"); ok && strings.EqualFold(strings.TrimSpace(pre), "tutorial") {
+		if v, ok := fraseMenu(strings.TrimSpace(voce)); ok {
+			if tuttoMaiuscolo(voce) {
+				v = strings.ToUpper(v)
+			}
+			return strings.TrimSpace(pre) + ": " + v, true
+		}
+	}
 	m := reNumeroVoce.FindStringSubmatch(s)
 	if m == nil {
 		return "", false
@@ -1409,6 +1422,9 @@ func suggerimentoTasto(s string) (string, bool) {
 	if m := reTastoDopo.FindStringSubmatch(s); m != nil { // "Q Hold"
 		return "Tieni premuto " + m[1], true
 	}
+	if v, ok := tastoDavanti(s); ok {
+		return v, true
+	}
 	m := reTastoPrima.FindStringSubmatch(s)
 	if m == nil {
 		return "", false
@@ -1431,8 +1447,96 @@ func suggerimentoTasto(s string) (string, bool) {
 	return pre + ": " + strings.ToLower(it[:1]) + it[1:], true
 }
 
+// tastoDavanti: l'etichetta di un comando con il tasto (o l'icona letta come una lettera)
+// davanti: "[Esc] CANCEL", "SPACE SKIP", "[X] Transfer", "O Transfer", "0 Transfer". Si traduce
+// solo la voce (frase pronta), il tasto resta dov'è (banco del mattino 26/11: "[Esc] CANCELLO",
+// "SALTO SPAZIO", "Trasferimento O"). "A" e "I" senza parentesi sono parole ("A New Game").
+func tastoDavanti(s string) (string, bool) {
+	m := reTastoDavanti.FindStringSubmatch(s)
+	if m == nil {
+		return "", false
+	}
+	apri, tasto, chiudi, voce := m[1], m[2], m[3], strings.TrimSpace(m[4])
+	parentesi := apri != "" || chiudi != ""
+	if !parentesi && (tasto == "A" || tasto == "I" || tasto == "a" || tasto == "i") {
+		return "", false
+	}
+	// senza parentesi i nomi lunghi che sono anche parole ("Enter Name", "End Turn", "Home Page")
+	// non sono un tasto davanti: solo quelli che davanti a una voce sono sempre un tasto
+	if !parentesi && len([]rune(tasto)) > 1 && !reTastoSicuro.MatchString(tasto) {
+		return "", false
+	}
+	if strings.HasPrefix(strings.ToLower(voce), "to ") || verbiTastoFrase[strings.ToLower(strings.Fields(voce)[0])] {
+		return "", false // "E to open", "X Hold to skip": li fa reTastoPrima o il traduttore
+	}
+	it, ok := fraseMenu(voce)
+	if !ok {
+		return "", false
+	}
+	if tuttoMaiuscolo(voce) {
+		it = strings.ToUpper(it)
+	}
+	nome := tasto
+	if it2, ok := nomiTastiIt[strings.ToLower(tasto)]; ok {
+		nome = it2
+		if tuttoMaiuscolo(tasto) {
+			nome = strings.ToUpper(it2)
+		}
+	}
+	if parentesi {
+		return "[" + nome + "] " + it, true
+	}
+	return nome + " " + it, true
+}
+
+// vociConIcone: più comandi sulla stessa riga, ognuno con la sua icona letta come "@"
+// ("@ Next Character @ Previous Character @ Restore Default", "@ Select @ Change Car"): se ogni
+// voce è una frase pronta si traducono una per una e le icone restano dove sono (il traduttore
+// veloce le mescolava: "@ Successivo Personaggio @ Precedente Personaggio", banco del mattino).
+func vociConIcone(s string) (string, bool) {
+	if strings.Count(s, "@") < 2 && !(strings.Count(s, "@") == 1 && !strings.HasPrefix(strings.TrimSpace(s), "@")) {
+		return "", false
+	}
+	pezzi := strings.Split(s, "@")
+	var out []string
+	voci := 0
+	for i, p := range pezzi {
+		p = strings.TrimSpace(p)
+		if p == "" {
+			if i == 0 {
+				continue
+			}
+			return "", false
+		}
+		it, ok := fraseMenu(p)
+		if !ok {
+			return "", false
+		}
+		if tuttoMaiuscolo(p) {
+			it = strings.ToUpper(it)
+		}
+		out = append(out, it)
+		voci++
+	}
+	if voci < 2 {
+		return "", false
+	}
+	pre := ""
+	if strings.HasPrefix(strings.TrimSpace(s), "@") {
+		pre = "@ "
+	}
+	return pre + strings.Join(out, " @ "), true
+}
+
+var reTastoSicuro = regexp.MustCompile(`^(?i:Space|Spacebar|Esc|Tab|Shift|Ctrl|Alt|LMB|RMB|F[0-9]{1,2})$`)
+
+// nomiTastiIt: i tasti che in italiano hanno un altro nome sulla tastiera.
+var nomiTastiIt = map[string]string{"space": "Spazio", "spacebar": "Spazio", "enter": "Invio"}
+
+var reTastoDavanti = regexp.MustCompile(`^([\[(]?)((?i:` + nomiTastiGioco + `)|[@®©])([\])]?)\s+([A-Za-z][A-Za-z' -]*[A-Za-z])$`)
+
 var (
-	nomiTastiGioco = `[A-Z0-9]|F[0-9]{1,2}|Space|Spacebar|Enter|Esc|Tab|Shift|Ctrl|Alt|LMB|RMB|Mouse[12]`
+	nomiTastiGioco = `[A-Z0-9]|F[0-9]{1,2}|Space|Spacebar|Enter|Esc|Tab|Shift|Ctrl|Alt|LMB|RMB|Mouse[12]|End|Home|Del|Ins|PgUp|PgDn|Backspace`
 	reTastoPrima   = regexp.MustCompile(`^(?i:(hold|press))\s*(` + nomiTastiGioco + `)\b\s*(?i:to\s+)?(.*)$`)
 	reTastoDopo    = regexp.MustCompile(`^(` + nomiTastiGioco + `)\s+(?i:hold)$`)
 )
