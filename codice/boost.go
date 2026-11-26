@@ -671,6 +671,46 @@ func boostDaRimettereAllUscita(acceso, partitaAuto, programmiChiusi, modalitaDaR
 	return acceso || partitaAuto || programmiChiusi || modalitaDaRimettere
 }
 
+// primoPianoSchermoIntero: la finestra davanti copre tutto il suo schermo (gioco a schermo intero o
+// senza bordi, video a schermo intero...). Il desktop e Esplora file non contano.
+func primoPianoSchermoIntero() bool {
+	h, _, _ := pForegroundWin.Call()
+	if h == 0 {
+		return false
+	}
+	var pid uint32
+	pGetWindowPid.Call(h, uintptr(unsafe.Pointer(&pid)))
+	if pid == 0 || pid == windows.GetCurrentProcessId() || strings.EqualFold(filepath.Base(processPath(pid)), "explorer.exe") {
+		return false
+	}
+	mon, _, _ := pMonitorFromWindow.Call(h, 2) // MONITOR_DEFAULTTONEAREST
+	if mon == 0 {
+		return false
+	}
+	var mi struct {
+		Size          uint32
+		Monitor, Work [4]int32
+		Flags         uint32
+	}
+	mi.Size = uint32(unsafe.Sizeof(mi))
+	if r, _, _ := pGetMonitorInfo.Call(mon, uintptr(unsafe.Pointer(&mi))); r == 0 {
+		return false
+	}
+	var wr [4]int32
+	if r, _, _ := pGetWindowRect.Call(h, uintptr(unsafe.Pointer(&wr))); r == 0 {
+		return false
+	}
+	return copreSchermo(wr, mi.Monitor)
+}
+
+// copreSchermo: il rettangolo della finestra (sinistra, alto, destra, basso) copre tutto lo schermo.
+func copreSchermo(finestra, schermo [4]int32) bool {
+	if schermo[2] <= schermo[0] || schermo[3] <= schermo[1] {
+		return false
+	}
+	return finestra[0] <= schermo[0] && finestra[1] <= schermo[1] && finestra[2] >= schermo[2] && finestra[3] >= schermo[3]
+}
+
 // ---------------- Boost automatico ----------------
 
 func setBoostAuto(on bool) string {
@@ -822,7 +862,13 @@ func startBoostWatcher() {
 					}
 					// Spegnimento automatico: nessun gioco aperto da boostSpegniDopo, e niente pulizia o
 					// aggiornamento in corso. Fa "Rimetti com'era" (anche programmi riaperti e mouse).
-					if boostDaSpegnere(manual, cur != "", isRunning() || updating.Load(), onAt, ultimoGioco, time.Now()) {
+					// Un gioco che Tasso non riconosce (cartella strana, emulatore, Minecraft) di solito è a
+					// schermo intero: finché c'è un programma a schermo intero davanti il Boost resta acceso.
+					aperto := cur != ""
+					if !aperto && primoPianoSchermoIntero() {
+						aperto, ultimoGioco = true, time.Now()
+					}
+					if boostDaSpegnere(manual, aperto, isRunning() || updating.Load(), onAt, ultimoGioco, time.Now()) {
 						if async("boostoff", func() {
 							bMu.Lock()
 							still := loadBoost().On && bOnAt.Equal(onAt) // nel frattempo non l'hai spento o riacceso tu

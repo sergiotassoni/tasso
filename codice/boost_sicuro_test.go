@@ -49,3 +49,16 @@ func TestBoostDaRimettereAllUscita(t *testing.T) {
 		}
 	}
 }
+
+func TestCopreSchermo(t *testing.T) {
+	scr := [4]int32{0, 0, 1920, 1080}
+	if !copreSchermo([4]int32{0, 0, 1920, 1080}, scr) || !copreSchermo([4]int32{-8, -8, 1928, 1088}, scr) {
+		t.Fatal("finestra grande quanto lo schermo: è a schermo intero")
+	}
+	if copreSchermo([4]int32{0, 0, 1920, 1040}, scr) || copreSchermo([4]int32{100, 100, 900, 700}, scr) {
+		t.Fatal("finestra normale o massimizzata con la barra: non è a schermo intero")
+	}
+	if copreSchermo([4]int32{1920, 0, 3840, 1080}, scr) {
+		t.Fatal("finestra sull'altro schermo")
+	}
+}
