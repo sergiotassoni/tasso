@@ -359,12 +359,38 @@ SOFTWARE.
 ----- Bergamot translator (MPL-2.0) - traduzione dei giochi -----
 Il motore di traduzione nel PC (file translator.js e worker WebAssembly) è Bergamot translator,
 distribuito con la Mozilla Public License 2.0, senza modifiche al sorgente.
+Contiene Marian NMT (MIT), SentencePiece (Apache-2.0) e intgemm (MIT).
 Sorgente: https://github.com/browsermt/bergamot-translator
 Testo della licenza: https://www.mozilla.org/MPL/2.0/
 
 ----- ooz (GPL-3.0) - lettura dei file compressi di alcuni giochi -----
 Decompressore ooz (https://github.com/powzix/ooz) compilato in WebAssembly, GPL-3.0,
 compatibile con la GPL-3.0 di Tasso. Testo della licenza: https://www.gnu.org/licenses/gpl-3.0.html
+Copyright (C) 2016, Powzix. Sorgente usato e istruzioni per ricompilarlo: cartella
+codice/strumenti/ooz-wasm del progetto https://github.com/sergiotassoni/tasso
+
+----- SIMDe (MIT) - usato dentro ooz -----
+Copyright 2017-2021 Evan Nemerson <evan@nemerson.com> and the SIMDe contributors
+
+Permission is hereby granted, free of charge, to any person
+obtaining a copy of this software and associated documentation
+files (the "Software"), to deal in the Software without
+restriction, including without limitation the rights to use, copy,
+modify, merge, publish, distribute, sublicense, and/or sell copies
+of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be
+included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS
+BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN
+ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
 
 ----- Libreria di frasi dei giochi liberi -----
 Frasi tradotte a mano dai traduttori volontari di questi giochi liberi, ognuna con la licenza del gioco
@@ -378,7 +404,15 @@ Frasi tradotte a mano dai traduttori volontari di questi giochi liberi, ognuna c
 ----- Scaricati solo se li chiedi tu (dalle fonti ufficiali) -----
 Modelli di traduzione Mozilla (MPL-2.0), llama.cpp (MIT), EuroLLM (Apache-2.0),
 whisper.cpp, modello Whisper e Silero VAD (MIT), BepInEx (LGPL-2.1), XUnity.AutoTranslator (MIT).
-Ognuno resta con la sua licenza.
+Ognuno resta con la sua licenza. Tasso controlla l'impronta SHA-256 di ogni file scaricato.
+- modelli di traduzione Mozilla: https://github.com/mozilla/firefox-translations-models
+- llama.cpp: https://github.com/ggml-org/llama.cpp
+- EuroLLM-9B-Instruct: https://huggingface.co/utter-project/EuroLLM-9B-Instruct
+- whisper.cpp: https://github.com/ggml-org/whisper.cpp - modello Whisper: https://github.com/openai/whisper
+- Silero VAD: https://github.com/snakers4/silero-vad
+- BepInEx (LGPL-2.1): Tasso lo copia nella cartella del gioco quando traduci dentro il gioco, senza
+  modificarlo. Sorgente delle versioni usate (5.4.23.6 e 6.0.0-be.793): https://github.com/BepInEx/BepInEx
+- XUnity.AutoTranslator: https://github.com/bbepis/XUnity.AutoTranslator
 
 ----- wazero 1.8.2 (Apache-2.0) -----
 wazero
