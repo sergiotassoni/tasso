@@ -1,4 +1,4 @@
-TASSO ZIP 1.2 - Ecosistema Tasso
+TASSO ZIP 1.3 - Ecosistema Tasso
 ================================
 Comprime ed estrae i tuoi file. In un clic.
 (English below)
@@ -203,7 +203,7 @@ LICENZA
 
 
 =====================================================================================
-TASSO ZIP 1.2 - Tasso Ecosystem  (English)
+TASSO ZIP 1.3 - Tasso Ecosystem  (English)
 =====================================================================================
 Compresses and extracts your files. In one click.
 

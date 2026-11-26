@@ -57,14 +57,13 @@ func riapriPer(modo string, percorsi []string) {
 	if err != nil {
 		return
 	}
-	args := "--" + modo
-	for _, p := range percorsi {
-		if strings.ContainsAny(p, "\"\r\n") {
-			continue
+	// tanti file: più avvii, ognuno sotto il limite della riga di comando (si riuniscono da soli)
+	for i, args := range comandiRiapertura(modo, percorsi, maxParametri) {
+		if i > 0 {
+			time.Sleep(150 * time.Millisecond) // il primo prende il "posto del primo"
 		}
-		args += ` "` + p + `"`
+		shellExecute(exe, args)
 	}
-	shellExecute(exe, args)
 }
 
 // visto da poco: lo stesso percorso arrivato due volte nello stesso avvio di Windows (un

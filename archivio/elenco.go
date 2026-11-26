@@ -7,8 +7,6 @@ import (
 	"archive/tar"
 	"archive/zip"
 	"bufio"
-	"compress/bzip2"
-	"compress/gzip"
 	"context"
 	"errors"
 	"fmt"
@@ -19,9 +17,7 @@ import (
 	"time"
 
 	"github.com/bodgit/sevenzip"
-	"github.com/klauspost/compress/zstd"
 	"github.com/nwaples/rardecode/v2"
-	"github.com/ulikunitz/xz"
 )
 
 // VoceArchivio: una voce dell'archivio, come la mostra la vista "Apri con Tasso Zip".
@@ -202,34 +198,18 @@ func hasSlash(n string) bool { return len(n) > 0 && (n[len(n)-1] == '/' || n[len
 
 // elencaFlusso: tar, anche compressi (gz, bz2, xz, zst), e file singoli compressi.
 func (l *lavoroEstrai) elencaFlusso(tipo Tipo, percorso string, aggiungi func(VoceArchivio) bool) error {
-	var r io.Reader = bufio.NewReaderSize(l.vol.lettoreSequenziale(), 1<<20)
-	if tipo != TipoTar {
-		var err error
-		switch tipo {
-		case TipoGz:
-			var gz *gzip.Reader
-			gz, err = gzip.NewReader(r)
-			if err == nil {
-				r = gz
-			}
-		case TipoBz2:
-			r = bzip2.NewReader(r)
-		case TipoXz:
-			r, err = xz.NewReader(r)
-		case TipoZst:
-			var zr *zstd.Decoder
-			zr, err = zstd.NewReader(r, zstd.WithDecoderConcurrency(1), zstd.WithDecoderMaxWindow(uint64(limiteFinestra())))
-			if err == nil {
-				defer zr.Close()
-				r = zr
-			}
-		}
-		if err != nil {
-			return l.erroreLettura(err)
-		}
+	r, chiudi, err := l.apriFlusso(tipo)
+	if err != nil {
+		return l.erroreLettura(err)
 	}
+	defer chiudi()
 	br := bufio.NewReaderSize(r, 1<<20)
-	testa, _ := br.Peek(512)
+	testa, errP := br.Peek(512)
+	if errP != nil && errP != io.EOF && errP != bufio.ErrBufferFull {
+		// Errore già all'inizio (es. intestazione del blocco xz rovinata). Va detto adesso:
+		// bufio lo "consuma" e la lettura dopo sembrerebbe un file vuoto e sano.
+		return l.erroreLettura(errP)
+	}
 	if tipo != TipoTar && !sembraTar(testa) {
 		// Un file solo compresso: la dimensione si sa solo leggendolo tutto.
 		n, err := io.Copy(io.Discard, &lettoreAnnullabile{ctx: l.ctx, r: br})
@@ -246,6 +226,10 @@ func (l *lavoroEstrai) elencaFlusso(tipo Tipo, percorso string, aggiungi func(Vo
 		}
 		h, err := tr.Next()
 		if err == io.EOF {
+			// anche qui: la somma di controllo del compressore sta in fondo
+			if err := l.fineFlusso(tipo, br); err != nil {
+				return l.erroreLettura(err)
+			}
 			return nil
 		}
 		if err != nil {

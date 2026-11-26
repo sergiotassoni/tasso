@@ -145,7 +145,10 @@ type RisultatoEstrai struct {
 	Rinominati int      // nomi doppi a cui ho aggiunto " (2)"
 	Saltati    []string // voci non estratte, con il motivo (collegamenti, nomi pericolosi...)
 	Falliti    []string // file con i dati rovinati, non estratti (gli altri sì)
-	Riserva    bool     // true se ho usato CartellaRiserva
+	// SommaSbagliata: tar compresso con la somma di controllo finale sbagliata: i file sono
+	// usciti, ma qualcuno potrebbe avere dati sbagliati (non si sa quale).
+	SommaSbagliata bool
+	Riserva        bool // true se ho usato CartellaRiserva
 	// UltimoFile: percorso finale dell'ultimo file estratto (per aprirlo subito).
 	UltimoFile string
 }
@@ -164,6 +167,8 @@ type lavoroEstrai struct {
 	// cifratiBuoni: file cifrati già usciti giusti (allora la password è giusta e un errore
 	// dopo vuol dire file rovinato, non password sbagliata).
 	cifratiBuoni int
+	// sommaSbagliata: la somma di controllo finale del flusso compresso non torna.
+	sommaSbagliata bool
 }
 
 func (l *lavoroEstrai) avanza(nome string, n int64) {
@@ -273,6 +278,7 @@ func Estrai(ctx context.Context, percorso string, opz OpzioniEstrai) (ris Risult
 	ris.Rinominati = l.d.rinominati
 	ris.Saltati = l.d.saltati
 	ris.Falliti = l.d.falliti
+	ris.SommaSbagliata = l.sommaSbagliata
 	return ris, nil
 }
 
@@ -300,6 +306,21 @@ func (l *lavoroEstrai) soloQuesto(err error) bool {
 		return false // errore del disco su cui scrivo
 	}
 	return true
+}
+
+// sommaFinale: finito il tar, la somma di controllo del compressore (in fondo al flusso) non
+// torna: qualche file già estratto può avere i dati sbagliati, ma non si sa quale. Nella
+// Verifica è un errore ("rovinato"); estraendo i file restano e alla fine lo dico chiaramente
+// (RisultatoEstrai.SommaSbagliata: avviso nella finestra).
+func (l *lavoroEstrai) sommaFinale(err error) error {
+	if !l.soloQuesto(err) || l.d.file == 0 {
+		return err
+	}
+	if l.d.primoErrore == nil {
+		l.d.primoErrore = err
+	}
+	l.sommaSbagliata = true
+	return nil
 }
 
 // resto: dopo un errore la lettura dell'archivio non può andare avanti. Se qualche file è

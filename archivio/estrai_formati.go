@@ -7,8 +7,6 @@ import (
 	"archive/tar"
 	"archive/zip"
 	"bufio"
-	"compress/bzip2"
-	"compress/gzip"
 	"errors"
 	"fmt"
 	"hash/crc32"
@@ -20,9 +18,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/bodgit/sevenzip"
-	"github.com/klauspost/compress/zstd"
 	"github.com/nwaples/rardecode/v2"
-	"github.com/ulikunitz/xz"
 	"golang.org/x/text/encoding"
 	"golang.org/x/text/encoding/charmap"
 )
@@ -313,36 +309,22 @@ func (l *lavoroEstrai) rar(percorso string) error {
 // ---------------- TAR, GZ, BZ2, XZ ----------------
 
 func (l *lavoroEstrai) flussoTar(tipo Tipo, percorso string) error {
-	var r io.Reader = bufio.NewReaderSize(l.vol.lettoreSequenziale(), 1<<20)
+	r, chiudi, err := l.apriFlusso(tipo)
+	if err != nil {
+		return l.erroreLettura(err)
+	}
+	defer chiudi()
 	nomeSingolo := ""
 	if tipo != TipoTar {
-		var err error
-		switch tipo {
-		case TipoGz:
-			var gz *gzip.Reader
-			gz, err = gzip.NewReader(r)
-			if err == nil {
-				r = gz
-			}
-		case TipoBz2:
-			r = bzip2.NewReader(r)
-		case TipoXz:
-			r, err = xz.NewReader(r)
-		case TipoZst:
-			var zr *zstd.Decoder
-			zr, err = zstd.NewReader(r, zstd.WithDecoderConcurrency(1), zstd.WithDecoderMaxWindow(uint64(limiteFinestra())))
-			if err == nil {
-				defer zr.Close()
-				r = zr
-			}
-		}
-		if err != nil {
-			return l.erroreLettura(err)
-		}
 		nomeSingolo = nomeDentro(percorso)
 	}
 	br := bufio.NewReaderSize(r, 1<<20)
-	testa, _ := br.Peek(512)
+	testa, errP := br.Peek(512)
+	if errP != nil && errP != io.EOF && errP != bufio.ErrBufferFull {
+		// Errore già all'inizio (es. intestazione del blocco xz rovinata). Va detto adesso:
+		// bufio lo "consuma" e la lettura dopo sembrerebbe un file vuoto e sano.
+		return l.erroreLettura(errP)
+	}
 	if tipo != TipoTar && !sembraTar(testa) {
 		// Un file solo compresso (es. "relazione.txt.gz").
 		if err := l.d.creaFile(nomeSingolo, br, time.Time{}); err != nil {
@@ -354,6 +336,10 @@ func (l *lavoroEstrai) flussoTar(tipo Tipo, percorso string) error {
 	for {
 		h, err := tr.Next()
 		if err == io.EOF {
+			// Il tar è finito, ma la somma di controllo del compressore sta in fondo al flusso.
+			if err := l.fineFlusso(tipo, br); err != nil {
+				return l.sommaFinale(l.erroreLettura(err))
+			}
 			return nil
 		}
 		if err != nil {

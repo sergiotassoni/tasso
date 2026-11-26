@@ -515,7 +515,7 @@ func avviaEstrai(percorso string, opz archivio.OpzioniEstrai, tipo string) strin
 		}
 		manda("fine", map[string]interface{}{
 			"tipo": tipo, "percorso": ris.Cartella, "file": ris.File, "rinominati": ris.Rinominati,
-			"saltati": testi.Motivi(lingua(), ris.Saltati), "falliti": testi.Motivi(lingua(), ris.Falliti),
+			"saltati": testi.Motivi(lingua(), ris.Saltati), "falliti": testi.Motivi(lingua(), ris.Falliti), "sommaSbagliata": ris.SommaSbagliata,
 			"riserva": ris.Riserva, "archivio": percorso, "qui": opz.Modo == archivio.ModoQui,
 		})
 	}()

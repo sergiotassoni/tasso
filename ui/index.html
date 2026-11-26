@@ -783,6 +783,7 @@ function mostraFatto(r, quanti) {
   if (r.riserva) avvisi.push(t("riserva"));
   const fal = r.falliti || [];
   if (fal.length) avvisi.unshift(t("falliti_avviso", { n: fal.filter(x => !x.startsWith("… ")).length || fal.length }));
+  if (r.sommaSbagliata) avvisi.unshift(t("avviso_somma"));
   $("f-avvisi").textContent = avvisi.join(" ");
   // i file rovinati (non estratti) prima, ben in vista; poi quelli lasciati fuori di proposito
   const s = fal.concat(r.saltati || []);
