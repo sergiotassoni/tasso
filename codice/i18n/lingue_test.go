@@ -349,3 +349,19 @@ func TestTestiFinestraTradotti(t *testing.T) {
 		}
 	}
 }
+
+// 3.1.1: il consiglio '✓ Dopo "Avvia" nessuna domanda' deve citare il pulsante con lo stesso nome
+// che ha nella lingua (Avvia → Start/Empezar/Démarrer/Starten), e in tedesco con le virgolette „…“.
+func TestConsiglioAvviaUgualeAlPulsante(t *testing.T) {
+	const k = `✓ Dopo "Avvia" nessuna domanda`
+	for _, l := range append([]string{"en"}, lingue...) {
+		d := leggi(t, l)
+		btn := d["ui"]["Avvia"]
+		if btn == "" || !strings.Contains(d["ui"][k], btn) {
+			t.Errorf("%s.json: %q = %q non cita il pulsante %q", l, k, d["ui"][k], btn)
+		}
+	}
+	if v := leggi(t, "de")["ui"][k]; strings.Contains(v, "„") && !strings.Contains(v, "“") {
+		t.Errorf("de.json: virgolette tedesche non chiuse in %q", v)
+	}
+}
