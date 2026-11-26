@@ -598,8 +598,8 @@ func cancellaAlRiavvio(p string) error {
 
 // ---------------- avvio a fine installazione ----------------
 
-// apri avvia un programma installato. Tasso chiede comunque l'amministratore (suo manifest):
-// lo avvio direttamente. Zip e PDF li avvio tramite Esplora file, così partono come utente
+// apri avvia un programma installato. Tasso lo avvio direttamente: eredita i permessi da
+// amministratore dell'installatore (dalla 3.1.1 il suo manifest è asInvoker, vedi preparaAperturaTasso). Zip e PDF li avvio tramite Esplora file, così partono come utente
 // normale e non da amministratore (trascina e rilascia, finestre di dialogo, file dell'utente).
 func apri(exe string, comeUtente bool) {
 	if comeUtente {
@@ -871,6 +871,46 @@ func pulisciTasso(base string) error {
 		return errors.New(motivo)
 	}
 	return nil // Tasso in errore o bloccato: la mia parte della pulizia si fa lo stesso
+}
+
+// ---------------- Tasso senza scudo sull'icona: l'attività \Tasso\Apri Tasso ----------------
+
+// segnoPreparaApertura: c'è dentro Tasso.exe solo se Tasso conosce "--prepara-apertura"
+// (apri_admin.go di Tasso 3.1.1). Un Tasso vecchio si aprirebbe normalmente: allora non lo avvio.
+const segnoPreparaApertura = "tasso-prepara-apertura-v1"
+
+// preparaAperturaTasso: dalla 3.1.1 Tasso.exe non chiede l'amministratore nel suo manifest (così
+// Windows non mette lo scudo sull'icona) e si riapre da amministratore con l'attività pianificata
+// \Tasso\Apri Tasso, senza la richiesta di Windows a ogni apertura. L'attività la prepara Tasso
+// stesso (Tasso.exe --prepara-apertura, da amministratore come l'installatore): così anche la
+// prima apertura dopo l'installazione non chiede niente. Se non riesce non è un errore: Tasso la
+// prepara alla prima apertura (dopo aver chiesto i permessi una volta). Con UAC e la password di un
+// altro account non la preparo: sarebbe per quell'account, non per chi usa il PC.
+func preparaAperturaTasso(base string, cc []installa.Componente) {
+	tasso := false
+	for _, p := range installa.ProgrammiPer(cc) {
+		tasso = tasso || p == installa.ProgTasso
+	}
+	if !tasso {
+		return
+	}
+	if conUtenteSessione(&installa.Installatore{}); utenteReg != nil {
+		installa.Diario("attività Apri Tasso non preparata: l'installatore gira con un altro account")
+		return
+	}
+	exe := filepath.Join(base, "Tasso.exe")
+	b, err := os.ReadFile(exe)
+	if err != nil || !bytes.Contains(b, []byte(segnoPreparaApertura)) {
+		installa.Diario("questo Tasso.exe non conosce --prepara-apertura (%v)", err)
+		return
+	}
+	ctx, annulla := context.WithTimeout(context.Background(), time.Minute)
+	defer annulla()
+	cmd := exec.CommandContext(ctx, exe, "--prepara-apertura")
+	cmd.Dir = base
+	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true, CreationFlags: 0x08000000}
+	out, err := cmd.Output()
+	installa.Diario("Tasso --prepara-apertura: %v %q", err, strings.TrimSpace(string(out)))
 }
 
 // togliAttivitaTasso: via la cartella \Tasso\ dell'Utilità di pianificazione con tutte le sue

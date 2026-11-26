@@ -225,6 +225,7 @@ func eseguiAggiornamento(piano *installa.PianoAggiornamento, riapri bool, avanza
 	}
 	if codice == installa.UscitaFatto {
 		annullaCancellazioniPendenti(base, o.Componenti) // vedi installaInFondo
+		preparaAperturaTasso(base, o.Componenti)         // vedi installaInFondo
 	}
 	if tassoAperto {
 		riapriTasso(base)

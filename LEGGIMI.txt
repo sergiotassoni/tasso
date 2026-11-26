@@ -80,7 +80,12 @@ DISINSTALLAZIONE ("Programmi e funzionalità" > Tasso > Disinstalla)
 AMMINISTRATORE
   TassoSetup.exe e il disinstallatore: requireAdministrator (scrivono in Programmi e HKLM).
   Tasso Zip e Tasso PDF restano asInvoker e, dalla pagina finale, partono come utente normale.
-  Tasso ha già il suo manifest (requireAdministrator).
+  Tasso.exe dalla 3.1.1 è asInvoker (così Windows non mette lo scudo sull'icona) e si riapre da
+  amministratore con l'attività pianificata \Tasso\Apri Tasso, senza chiedere a ogni apertura.
+  Dopo l'installazione o l'aggiornamento l'installatore la fa preparare a Tasso stesso
+  ("Tasso.exe --prepara-apertura", solo se Tasso.exe contiene "tasso-prepara-apertura-v1"; non
+  con UAC e la password di un altro account). La toglie, con le altre, togliAttivitaTasso.
+  Dalla pagina finale Tasso parte direttamente e prende i permessi dell'installatore.
 
 WEBVIEW2
   Se manca il Runtime: un messaggio di Windows lo spiega e chiede se aprire la pagina di
