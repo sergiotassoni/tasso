@@ -159,10 +159,14 @@ func ecoAltriAperti() bool {
 	return false
 }
 
-const msgEcoAltriAperti = "Tasso Zip o Tasso PDF sono aperti e potresti avere lavoro non salvato: chiudili e premi di nuovo Aggiorna."
+const msgEcoAltriAperti = "Tasso Zip o Tasso PDF sono aperti e potresti avere lavoro non salvato: chiudili e premi di nuovo Aggiorna ora."
 
 // ecoSelfUpdate: scarica, controlla e avvia l'installatore (u è il risultato di checkEcoUpdate).
 func ecoSelfUpdate(u map[string]interface{}) {
+	if !aggiornabileDaSolo() { // selfupdate.go: un Tasso di prova non firmato non si aggiorna da solo
+		updMsg("error", msgNonFirmato)
+		return
+	}
 	if giocoAperto() {
 		updMsg("error", "Hai un gioco aperto: aggiorna quando hai finito di giocare.")
 		return

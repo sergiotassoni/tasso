@@ -658,6 +658,9 @@ func bindAll(w webview2.WebView) {
 	// 3.1 "Aggiorna Tasso da solo": mai mentre un gioco è aperto o c'è una partita col Boost.
 	// Con l'ecosistema, da solo non chiude mai Tasso Zip o Tasso PDF aperti: riprova più tardi ("apps").
 	_ = w.Bind("goSelfUpdateAuto", func() string {
+		if !aggiornabileDaSolo() {
+			return "unsigned" // selfupdate.go: versione di prova non firmata, niente aggiornamento da solo
+		}
 		if giocoAperto() {
 			return "game"
 		}

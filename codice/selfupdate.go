@@ -54,7 +54,23 @@ func httpGet(url string, max int64, timeout time.Duration) ([]byte, error) {
 	return b, nil
 }
 
+// msgNonFirmato: un Tasso senza firma digitale è solo una versione di prova: non si aggiorna da
+// solo (né Tasso.zip né l'installatore), perché senza una firma da confrontare l'unico controllo
+// sarebbe l'impronta pubblicata sullo stesso sito del file. Si scarica a mano.
+const msgNonFirmato = "Questa è una versione di prova di Tasso, senza firma digitale: non si aggiorna da sola. Scarica la versione nuova dalla pagina di Tasso (Info)."
+
+// aggiornabileDaSolo: solo un Tasso firmato si aggiorna dall'interno (la firma vera, cioè
+// valida e con lo stesso nome, la controlla poi checkUpdateSignature su quello nuovo).
+func aggiornabileDaSolo() bool {
+	cur, err := os.Executable()
+	return err == nil && exeHasSignature(cur)
+}
+
 func selfUpdate() {
+	if !aggiornabileDaSolo() {
+		updMsg("error", msgNonFirmato)
+		return
+	}
 	if isRunning() {
 		updMsg("error", "Sta girando una pulizia: aspetta che finisca, poi aggiorna.")
 		return
@@ -364,7 +380,9 @@ func isCertum(rdn []string) bool {
 // sigDecision: la regola, separata per poterla provare.
 func sigDecision(cur, nw sigInfo) string {
 	if cur.Subject == "" {
-		return "" // questo Tasso non è firmato (versione di prova): non c'è una firma da confrontare
+		// questo Tasso non è firmato (versione di prova): non c'è una firma da confrontare, e
+		// l'impronta da sola non basta (viene dallo stesso sito): niente aggiornamento
+		return msgNonFirmato
 	}
 	if cur.Status != "Valid" {
 		// Firmato, ma Windows ora non riesce a verificare la firma (certificati non aggiornati):
@@ -445,7 +463,7 @@ func init() {
 			setMu.Lock()
 			noAuto := settings.NoAutoUpdate
 			setMu.Unlock()
-			controlla, dopo := prossimoControlloAgg(wv == nil || scheduledRun.Load(), noAuto,
+			controlla, dopo := prossimoControlloAgg(wv == nil || scheduledRun.Load() || !aggiornabileDaSolo(), noAuto,
 				giocoAperto(), ecoAltriAperti(), isRunning() || updating.Load())
 			if !controlla {
 				if dopo > 0 {
