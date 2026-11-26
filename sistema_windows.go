@@ -745,6 +745,12 @@ func preparaCartellaTasso(base string) (bool, error) {
 		return true, nil
 	}
 	if err := proteggiAlbero(base, sd, s.DiTasso); err != nil {
+		if s.DiTasso {
+			// installazione che c'è già: un aggiornamento non si blocca per i permessi (com'era
+			// prima di questa versione), lo scrivo e vado avanti
+			installa.Diario("permessi di %s non rimessi, aggiorno lo stesso: %v", base, err)
+			return false, nil
+		}
 		return false, err
 	}
 	return false, nil
