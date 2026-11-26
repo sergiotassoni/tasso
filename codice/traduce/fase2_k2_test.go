@@ -125,3 +125,14 @@ func TestK2CorrezioniOCR(t *testing.T) {
 		t.Error("riga buona scartata")
 	}
 }
+
+func TestK2TastoMaiuscolo(t *testing.T) {
+	for in, atteso := range map[string]string{"ENTER buy": "INVIO Compra", "ESC back": "ESC Indietro"} {
+		if got, ok := suggerimentoTasto(in); !ok || got != atteso {
+			t.Errorf("%q: %q %v, volevo %q", in, got, ok, atteso)
+		}
+	}
+	if got, ok := suggerimentoTasto("Enter Name"); ok {
+		t.Errorf("Enter Name è una frase, non un tasto: %q", got)
+	}
+}

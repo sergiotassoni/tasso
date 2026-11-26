@@ -1480,7 +1480,10 @@ func tastoDavanti(s string) (string, bool) {
 	}
 	// senza parentesi i nomi lunghi che sono anche parole ("Enter Name", "End Turn", "Home Page")
 	// non sono un tasto davanti: solo quelli che davanti a una voce sono sempre un tasto
-	if !parentesi && len([]rune(tasto)) > 1 && !reTastoSicuro.MatchString(tasto) {
+	// "ENTER buy": il nome del tasto TUTTO MAIUSCOLO e la voce no: è il tasto (prova 26/11 15:56:
+	// usciva "ENTER comprare"); "Enter Name" resta una frase
+	tastoMaiuscolo := len([]rune(tasto)) > 2 && tuttoMaiuscolo(tasto) && !tuttoMaiuscolo(voce)
+	if !parentesi && len([]rune(tasto)) > 1 && !reTastoSicuro.MatchString(tasto) && !tastoMaiuscolo {
 		return "", false
 	}
 	if strings.HasPrefix(strings.ToLower(voce), "to ") || verbiTastoFrase[strings.ToLower(strings.Fields(voce)[0])] {
