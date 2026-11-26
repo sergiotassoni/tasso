@@ -1832,10 +1832,22 @@ function confirmLevel(n){
   // pulizia lascia per forza adesso: lo dico qui, così il numero alla fine non sembra un errore.
   const ids = levelSteps(n).map(s => s.id);
   const wuB = (AN && ids.includes('wu_cache') && AN.wuBusy > 0) ? AN.wuBusy : 0, brO = (AN && ids.includes('browser') && AN.browserOpen > 0) ? AN.browserOpen : 0;
-  const tot = (AN && AN.junk > 0 ? AN.junk : 0) + wuB + brO;
+  // 3.1.1: con AN.cat (byte per passaggio, chiavi = id dei passaggi) sommo solo quello che il livello
+  // scelto tocca: la Classica non promette la cache dei browser o di Windows Update. Senza AN.cat
+  // (anteprima vecchia) resta il totale. La Home e il voto continuano a usare AN.junk.
+  const cat = (AN && AN.cat && typeof AN.cat === 'object') ? AN.cat : null;
+  const base = cat ? ids.reduce((a, id) => a + (cat[id] > 0 ? cat[id] : 0), 0) : (AN && AN.junk > 0 ? AN.junk : 0);
+  const tot = base + wuB + brO;
+  const rbN = (AN && ids.includes('recycle') && AN.recycleRecent > 0) ? AN.recycleRecent : 0;
   const resta = (wuB ? '<div class="muted" style="margin-top:6px">' + esc(_t('Di cui {0} restano perché Windows sta installando degli aggiornamenti (rifai la pulizia dopo il riavvio).').replace('{0}', fmtBytes(wuB))) + '</div>' : '') +
-    (brO ? '<div class="muted" style="margin-top:6px">' + esc(_t('Di cui {0} restano perché il browser è aperto (chiudilo per toglierli).').replace('{0}', fmtBytes(brO))) + '</div>' : '');
-  const found = tot > 0 ? _t('<div class="note" style="border-color:color-mix(in srgb,var(--a1) 40%,var(--line))">Anteprima: Tasso ha trovato circa <b style="color:var(--a1t)">') + fmtBytes(tot) + _t('</b> di file inutili (temporanei, cache, Cestino, aggiornamenti vecchi).</div>') + resta : '';
+    (brO ? '<div class="muted" style="margin-top:6px">' + esc(_t('Di cui {0} restano perché il browser è aperto (chiudilo per toglierli).').replace('{0}', fmtBytes(brO))) + '</div>' : '') +
+    (rbN ? '<div class="muted" style="margin-top:6px">' + esc(_t('Il Cestino ha {0} elementi più recenti di 7 giorni: restano, nel caso ti servano.').replace('{0}', rbN)) + '</div>' : '');
+  // Il testo tra parentesi segue quello che il livello tocca (Classica e Normale non toccano Windows Update).
+  const cosa = !cat ? _t('</b> di file inutili (temporanei, cache, Cestino, aggiornamenti vecchi).</div>') :
+    ids.includes('wu_cache') ? _t('</b> di file inutili (temporanei, cache, Cestino, aggiornamenti vecchi).</div>') :
+    ids.includes('browser') ? _t('</b> di file inutili (temporanei, cache dei browser, Cestino, miniature).</div>') :
+    (ids.includes('temp_user') && ids.includes('recycle') && ids.includes('thumbs')) ? _t('</b> di file inutili (temporanei, Cestino, miniature).</div>') : _t('</b> di file inutili.</div>');
+  const found = tot > 0 ? _t('<div class="note" style="border-color:color-mix(in srgb,var(--a1) 40%,var(--line))">Anteprima: Tasso ha trovato circa <b style="color:var(--a1t)">') + fmtBytes(tot) + cosa + resta : (rbN ? resta : '');
   const wu = levelSteps(n).some(s => s.id === 'winupdate');
   modal('<h2 style="color:' + L.c + _t('">Pulizia ') + L.name + _t('</h2><span class="muted">Durata stimata: circa ') + fmtMin(levelMinutes(n)) + '</span>' + found + '<ul style="max-height:150px;overflow:auto">' + list + '</ul><div class="note">' + note + '</div>' + fineBox(wu),
     [{label:_t('Annulla')}, {label:_t('Avvia pulizia ') + L.name, cls:'primary', risky:true, fn: (box) => { const f = fineRead(box); startLevel(n, f.fine, f.wu); }}]);

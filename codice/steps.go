@@ -1378,14 +1378,18 @@ function Get-OldTempSize([string]$p, [double]$hours) {
   return $t
 }
 $junk = [long]0
-$junk += Get-OldTempSize $TassoTempUtente 24
-if ($TassoTempOriginale) { $junk += Get-OldTempSize $TassoTempOriginale 24 }
-$junk += Get-OldTempSize (Join-Path $TassoWin 'Temp') 24
+# Tasso 3.1.1: anche i byte per passaggio (chiavi = id dei passaggi), così la finestra di conferma
+# somma solo quello che il livello scelto tocca davvero. junk resta il totale (Home e voto).
+$cat = [ordered]@{ temp_user = [long]0; temp_win = [long]0; recycle = [long]0; thumbs = [long]0; browser = [long]0; wu_cache = [long]0; driver_leftovers = [long]0; extra_junk = [long]0 }
+$cat.temp_user = Get-OldTempSize $TassoTempUtente 24
+if ($TassoTempOriginale) { $cat.temp_user += Get-OldTempSize $TassoTempOriginale 24 }
+$cat.temp_win = Get-OldTempSize (Join-Path $TassoWin 'Temp') 24
+$junk += $cat.temp_user + $cat.temp_win
 # Cache di Windows Update: con lo stesso controllo del passaggio wu_cache. Se Windows sta installando
 # (o aspetta il riavvio) la pulizia la salta: la cifra va a parte (wuBusy), non nei file da togliere.
 $wuBusy = [long]0
 $wuSize = Get-FolderSize (Join-Path $TassoWin 'SoftwareDistribution\Download')
-if ((Get-Process -Name TiWorker, MoUsoCoreWorker, TrustedInstaller -ErrorAction SilentlyContinue) -or (Test-Path -LiteralPath 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\RebootRequired')) { $wuBusy = $wuSize } else { $junk += $wuSize }
+if ((Get-Process -Name TiWorker, MoUsoCoreWorker, TrustedInstaller -ErrorAction SilentlyContinue) -or (Test-Path -LiteralPath 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\RebootRequired')) { $wuBusy = $wuSize } else { $junk += $wuSize; $cat.wu_cache = $wuSize }
 # Le cache della scheda video (shader) non si contano: nessun livello di pulizia le toglie (solo il passaggio a mano gpu_cache).
 # Cache dei browser: un browser con una finestra aperta viene saltato dal passaggio "browser" (stesso test): a parte (browserOpen).
 $browserOpen = [long]0
@@ -1396,27 +1400,34 @@ foreach ($b in $BrowserRoots) {
   Get-ChildItem -LiteralPath $b.Root -Directory -Force -ErrorAction SilentlyContinue | ForEach-Object {
     foreach ($sub in @('Cache', 'Code Cache', 'GPUCache', 'cache2')) { $bs += Get-FolderSize (Join-Path $_.FullName $sub) }
   }
-  if ($aperto) { $browserOpen += $bs } else { $junk += $bs }
+  if ($aperto) { $browserOpen += $bs } else { $junk += $bs; $cat.browser += $bs }
 }
 # Cestino: recycle resta il totale; nei file da togliere solo quello buttato più di 7 giorni fa (come il passaggio "recycle").
-$rb = [long]0; $rbOld = [long]0
+$rb = [long]0; $rbOld = [long]0; $rbNew = 0
 try {
   $rbLim = (Get-Date).AddDays(-7)
   foreach ($it in @((New-Object -ComObject Shell.Application).Namespace(0xA).Items())) {
     $len = [long]0; try { $len = [long]$it.Size } catch {}
     $rb += $len
     $d = $null; try { $d = [datetime]$it.ExtendedProperty('System.Recycle.DateDeleted') } catch {}
-    if ($d -and $d -le $rbLim) { $rbOld += $len }
+    if ($d -and $d -le $rbLim) { $rbOld += $len } else { $rbNew++ }
   }
 } catch {}
-$junk += $rbOld
-foreach ($p in @((Join-Path ($TassoSysDrive + '\') 'AMD'), (Join-Path ($TassoSysDrive + '\') 'NVIDIA'), (Join-Path $env:ProgramData 'NVIDIA Corporation\Downloader'))) { $junk += Get-FolderSize $p }
+$junk += $rbOld; $cat.recycle = $rbOld
+foreach ($p in @((Join-Path ($TassoSysDrive + '\') 'AMD'), (Join-Path ($TassoSysDrive + '\') 'NVIDIA'), (Join-Path $env:ProgramData 'NVIDIA Corporation\Downloader'))) { $cat.driver_leftovers += Get-FolderSize $p }
+$junk += $cat.driver_leftovers
 # LiveKernelReports: la pulizia toglie solo i rapporti più vecchi di 3 giorni, quindi conto solo quelli.
-try { $old = (Get-Date).AddHours(-72); $junk += [long](@(Get-ChildItem -LiteralPath (Join-Path $TassoWin 'LiveKernelReports') -Recurse -File -Force -ErrorAction SilentlyContinue | Where-Object { $_.LastWriteTime -lt $old }) | Measure-Object Length -Sum).Sum } catch {}
+try { $old = (Get-Date).AddHours(-72); $cat.extra_junk = [long](@(Get-ChildItem -LiteralPath (Join-Path $TassoWin 'LiveKernelReports') -Recurse -File -Force -ErrorAction SilentlyContinue | Where-Object { $_.LastWriteTime -lt $old }) | Measure-Object Length -Sum).Sum } catch {}
+$junk += $cat.extra_junk
+# Miniature (passaggio thumbs): solo nella cifra per passaggio, non in junk (la Home e il voto restano come prima).
+# Quelle che Esplora file tiene aperte la pulizia non le toglie: le salto con la stessa prova "in uso".
+foreach ($f in @(Get-ChildItem -LiteralPath (Join-Path $env:LOCALAPPDATA 'Microsoft\Windows\Explorer') -Filter 'thumbcache_*.db' -Force -File -ErrorAction SilentlyContinue)) {
+  if (-not (Test-InUso $f.FullName)) { $cat.thumbs += [long]$f.Length }
+}
 $startup = @(Get-TassoStartup | Where-Object { $_.enabled }).Count
 $badDev = @(Get-CimInstance Win32_PnPEntity -ErrorAction SilentlyContinue | Where-Object { $_.ConfigManagerErrorCode -ne 0 -and $_.ConfigManagerErrorCode -ne 22 -and $_.ConfigManagerErrorCode -ne 45 }).Count
 $diskWarn = @(Get-PhysicalDisk -ErrorAction SilentlyContinue | Where-Object { [string]$_.HealthStatus -ne 'Healthy' }).Count
-$o = [ordered]@{ junk = $junk; recycle = $rb; wuBusy = $wuBusy; browserOpen = $browserOpen; startup = $startup; badDevices = $badDev; diskWarnings = $diskWarn }
+$o = [ordered]@{ junk = $junk; recycle = $rb; recycleRecent = $rbNew; wuBusy = $wuBusy; browserOpen = $browserOpen; cat = $cat; startup = $startup; badDevices = $badDev; diskWarnings = $diskWarn }
 [Console]::Out.WriteLine('JSON ' + ($o | ConvertTo-Json -Compress))
 `
 
