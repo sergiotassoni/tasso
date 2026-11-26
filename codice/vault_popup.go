@@ -911,6 +911,12 @@ func vtWndProc(hwnd uintptr, msg uint32, wp, lp uintptr) uintptr {
 		vtPopMu.Lock()
 		d := vtPop
 		n := vtColpito(d, x, y)
+		var pw []uint16
+		if n == -5 && len(d.gen) > 1 && d.gen[0] != 0 {
+			// copia fatta col lucchetto: il filo di UI Automation può azzerare vtPop.gen
+			// (vtMostra/vtNascondi) appena lo lascio, e "Usa e salva" scriverebbe una password vuota
+			pw = append([]uint16(nil), d.gen...) // la copia la azzera chi la usa
+		}
 		vtPopMu.Unlock()
 		switch {
 		case n == -3, n == -6:
@@ -921,8 +927,7 @@ func vtWndProc(hwnd uintptr, msg uint32, wp, lp uintptr) uintptr {
 		case n == -4:
 			vtNascondi()
 			vtInvia(vtRichiesta{tipo: vrSalva})
-		case n == -5 && len(d.gen) > 1:
-			pw := append([]uint16(nil), d.gen...) // la copia la azzera chi la usa
+		case n == -5 && pw != nil:
 			vtNascondi()
 			vtInvia(vtRichiesta{tipo: vrGenera, pw: pw})
 		case n == -7 || n == -8 || n == -9:

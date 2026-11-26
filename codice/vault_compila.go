@@ -1045,8 +1045,8 @@ func (st *vtStato) scriviPw(top uintptr, pw []uint16) int {
 // genera: "Usa e salva" la password creata nella finestrella su una pagina di registrazione.
 func (st *vtStato) genera(pw []uint16) {
 	defer clear(pw)
-	if !st.valido || st.top == 0 || len(pw) < 2 {
-		return
+	if !st.valido || st.top == 0 || len(pw) < 2 || pw[0] == 0 {
+		return // pw[0] == 0: password vuota o già azzerata, non la scrivo e non la salvo
 	}
 	if m := vtVietata(st.top); m != "" {
 		vtFatto(m)
@@ -1096,7 +1096,7 @@ func (st *vtStato) genera(pw []uint16) {
 // riempiPw: la password creata nella finestra Salva va anche nei campi password del sito.
 func (st *vtStato) riempiPw(pw []uint16, top uintptr) {
 	defer clear(pw)
-	if !st.valido || top == 0 || top != st.top || len(pw) < 2 || vtVietata(top) != "" || !vtAperto() {
+	if !st.valido || top == 0 || top != st.top || len(pw) < 2 || pw[0] == 0 || vtVietata(top) != "" || !vtAperto() {
 		return
 	}
 	if !vtPortaDavanti(top) || !st.stessoSito(top) {
