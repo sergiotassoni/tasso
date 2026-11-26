@@ -277,8 +277,13 @@ func NormHost(addr string) string {
 	if a == "" || strings.ContainsAny(a, " \t") && !strings.Contains(a, "://") {
 		return ""
 	}
+	// "://" conta solo se viene prima di "/", "?" o "#": Chrome mostra l'indirizzo senza
+	// "https://", e in "finto-sito.com/login?r=https://www.amazon.it/" il sito è finto-sito.com,
+	// non amazon.it (altrimenti una pagina falsa potrebbe farsi passare per un'altra).
 	if i := strings.Index(a, "://"); i >= 0 {
-		a = a[i+3:]
+		if j := strings.IndexAny(a, "/?#"); j < 0 || i <= j {
+			a = a[i+3:]
+		}
 	}
 	if i := strings.IndexAny(a, "/?#"); i >= 0 {
 		a = a[:i]

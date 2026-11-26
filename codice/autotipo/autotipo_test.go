@@ -207,3 +207,24 @@ func TestTogliBrowserECampo(t *testing.T) {
 		t.Error("CampoAccesso sbagliato")
 	}
 }
+
+// "://" dentro la parte dopo il sito (es. un parametro ?r=https://...) non cambia il sito.
+func TestNormHostSchemaNeiParametri(t *testing.T) {
+	casi := map[string]string{
+		"finto-sito.com/login?r=https://www.amazon.it/":                                   "finto-sito.com",
+		"finto-sito.com?x=https://banca.it":                                               "finto-sito.com",
+		"finto-sito.com#https://banca.it":                                                 "finto-sito.com",
+		"accounts.google.com/v3/signin/identifier?continue=https://mail.google.com/mail/": "accounts.google.com",
+		"https://accedi.esempio.it/login?r=https://altro.it":                              "accedi.esempio.it",
+		"HTTPS://WWW.Esempio.IT/":                                                         "esempio.it",
+		"esempio.it":                                                                      "esempio.it",
+	}
+	for in, want := range casi {
+		if got := NormHost(in); got != want {
+			t.Errorf("NormHost(%q) = %q, voglio %q", in, got, want)
+		}
+	}
+	if Corrisponde(Voce{Site: "Amazon", Web: "amazon.it"}, Contesto{Exe: "chrome.exe", Host: NormHost("finto-sito.com/login?r=https://www.amazon.it/")}) {
+		t.Error("un parametro con https://www.amazon.it non deve far proporre l'account Amazon")
+	}
+}
