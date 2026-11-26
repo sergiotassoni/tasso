@@ -565,6 +565,7 @@ func installaInFondo(ctx context.Context, o installa.Opzioni) {
 	if err == nil || errors.As(err, &avviso) {
 		// reinstallato prima di riavviare dopo una disinstallazione: Windows non deve cancellare i file nuovi
 		annullaCancellazioniPendenti(o.Base, o.Componenti)
+		preparaAperturaTasso(o.Base, o.Componenti) // Tasso senza scudo: l'attività \Tasso\Apri Tasso
 		// collegamenti di Tasso anche sul Desktop: il Tasso.lnk della 3.0 portatile non deve più
 		// aprire la 3.0 scaricata (solo se è proprio quello, vedi CollegamentoVecchioDaAggiornare)
 		if o.Desktop {
