@@ -103,6 +103,7 @@ func avviaPaginaSu(fg uintptr) {
 	isteresiPagina.svuota()
 	if exe := exeDiFinestra(fg); exe != giocoDelleFisse { // un altro gioco: le sue traduzioni fisse sono altre
 		fissePagina.svuota()
+		confermePagina.svuota() // le conferme valgono per il gioco delle traduzioni fisse
 		giocoDelleFisse = exe
 	}
 	paginaAttiva.Store(true)

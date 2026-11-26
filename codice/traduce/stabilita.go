@@ -184,6 +184,17 @@ func (c *confermeDecisione) segna(coppia string, mostrate, freschi []Blocco, ade
 	}
 }
 
+// svuota: via tutte le conferme (gioco cambiato, insieme alle traduzioni fisse: le conferme di
+// un altro gioco non tengono la decisione su una scritta mostrata una volta sola in questo).
+func (c *confermeDecisione) svuota() {
+	if c == nil {
+		return
+	}
+	c.mu.Lock()
+	c.m, c.giri = nil, 0
+	c.mu.Unlock()
+}
+
 // valida: la decisione di tradurre la scritta si tiene ancora.
 func (c *confermeDecisione) valida(coppia, testo string, adesso time.Time) bool {
 	if c == nil {
