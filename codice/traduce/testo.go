@@ -15,6 +15,9 @@ var (
 	reSpazioPunt = regexp.MustCompile(`\s+([,.!?;:])`)                // "ciao ," -> "ciao,"
 	reSpazi      = regexp.MustCompile(`\s{2,}`)
 	reParlante   = regexp.MustCompile(`^\s*([A-Z][A-Za-z0-9' .\-]{1,24}):\s*(.+)$`)
+	// "Cope << You're on flare duty, okay? >>": i sottotitoli via radio (Ace Combat) con il nome
+	// del pilota davanti e la battuta tra << >> (collaudo 26/11: "Cope" diventava "Affrontare")
+	reParlanteFreccia = regexp.MustCompile(`^\s*([A-Z][A-Za-z0-9'.\-]{1,20})\s*(<{1,2}\s*\S+\s+\S.*)$`)
 	// cifre in mezzo a una parola minuscola: errori tipici dell'OCR (g0od, he1lo, ca5e)
 	reCifraInParola = regexp.MustCompile(`[a-z][015][a-z]`)
 )
@@ -124,6 +127,9 @@ func separaParlante(testo string) (string, string) {
 	m := reParlante.FindStringSubmatch(testo)
 	if m != nil && len(strings.Fields(m[1])) <= 3 && !etichetteUI[strings.ToLower(strings.Fields(m[1])[0])] && puoEssereNome(m[1]) {
 		return strings.TrimSpace(m[1]), strings.TrimSpace(m[2])
+	}
+	if m := reParlanteFreccia.FindStringSubmatch(testo); m != nil && !etichetteUI[strings.ToLower(m[1])] && puoEssereNome(m[1]) {
+		return m[1], strings.TrimSpace(m[2])
 	}
 	return "", testo
 }

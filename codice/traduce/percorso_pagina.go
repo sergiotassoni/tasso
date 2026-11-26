@@ -74,7 +74,7 @@ func motivoNonTradurre(b Blocco) string {
 		return letturaSpazzatura(b.Testo)
 	case !formaPlausibile(b):
 		return "forma strana"
-	case b.Affid == letturaDubbia:
+	case b.Affid == letturaDubbia && !b.GiaMostrata: // già mostrata con lo stesso testo: la lettura è buona
 		return "lettura incerta"
 	case !letturaAffidabile(b.Testo):
 		return "lettura incerta"
@@ -109,7 +109,7 @@ func controllaCompleta(img *image.RGBA, b *Blocco, tutte []Blocco) string {
 	if img == nil {
 		return ""
 	}
-	if m := motivoMondo(img, *b, tutte); m != "" {
+	if m := motivoMondo(img, *b, tutte); m != "" && !(b.GiaMostrata && motivoTenibile(m)) {
 		return m // insegna, cartello, nome sulla mappa: resta del gioco
 	}
 	coloriBlocco(img, b)
@@ -144,7 +144,8 @@ func traduciTutteFisse(ctx context.Context, tr *Traduttore, da []Blocco, veloce 
 	fatte := make([]bool, len(da))
 	for i := range da {
 		if v, ok := f.cerca(coppia, da[i].Testo); ok {
-			risultati[i] = Risultato{Originale: da[i].Testo, Tradotto: v, Motore: "memoria"}
+			// con le maiuscole della scritta di adesso: la chiave fissa è minuscola
+			risultati[i] = Risultato{Originale: da[i].Testo, Tradotto: maiuscoleDellaScritta(da[i].Testo, v), Motore: "memoria"}
 			fatte[i] = true
 		}
 	}

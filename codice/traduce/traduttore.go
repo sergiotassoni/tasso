@@ -417,6 +417,15 @@ func (t *Traduttore) traduciIn(ctx context.Context, grezzo string, dialogo bool,
 	if dialogo && !daFile {
 		parlante, battuta = separaParlante(testo)
 	} else if !daFile {
+		// chi parla resta com'è, si traduce solo la battuta (nomi_parlanti.go)
+		if n, sep, b, ok := t.battutaConNome(battuta); ok {
+			r := t.traduciIn(ctx, b, false, da, a)
+			if r.Tradotto != "" {
+				r.Tradotto = n + sep + r.Tradotto
+			}
+			r.Originale, r.Parlante = testo, n
+			return r
+		}
 		// (nei file no: l'etichetta si tradurrebbe nelle lingue di adesso, non in quelle del gioco;
 		// il controllo va prima, altrimenti la traduzione a pezzi partirebbe per niente)
 		if r, ok := t.traduciEtichetta(ctx, battuta, inizio); ok {
@@ -501,7 +510,7 @@ func (t *Traduttore) traduciIn(ctx context.Context, grezzo string, dialogo bool,
 	}
 	motori := append([]Motore(nil), t.motori...)
 	req := RichiestaTraduzione{
-		Testo:     battuta,
+		Testo:     senzaPuntoTitoli(battuta), // "Ms. Toriumi" non spezza la frase (nomi_parlanti.go)
 		Parlante:  parlante,
 		Contesto:  contestoSe(dialogo && !daFile, t.contesto), // le frasi dei file non prendono il contesto dello schermo
 		Schermata: schermataDa(ctx, dialogo),

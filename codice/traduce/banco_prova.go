@@ -79,6 +79,15 @@ func elaboraImmagine(img *image.RGBA, nome string, o opzioniBanco) (esitoImmagin
 	}
 	blocchi := blocchiLetti(img, righe, f, o.voti, time.Now())
 	spazioLibero(blocchi, img.Bounds().Dx())
+	var fisse *traduzioniFisse
+	if o.stato != nil {
+		if o.stato.fisse == nil {
+			o.stato.fisse, o.stato.ist, o.stato.ora = &traduzioniFisse{}, &isteresi{}, time.Unix(1_000_000, 0)
+		}
+		o.stato.ora = o.stato.ora.Add(passoBanco)
+		fisse = o.stato.fisse
+	}
+	segnaGiaMostrate(fisse, coppiaDi(o.tr), blocchi) // come nel gioco: la decisione già presa resta
 	var da []Blocco
 	var inglesi []Blocco // le scritte che restano in inglese con parole vere (per senzaMezzeRighe)
 	for _, b := range blocchi {
@@ -106,14 +115,6 @@ func elaboraImmagine(img *image.RGBA, nome string, o opzioniBanco) (esitoImmagin
 	}
 	ctx := conLotto(context.Background())
 	tTrad := time.Now()
-	var fisse *traduzioniFisse
-	if o.stato != nil {
-		if o.stato.fisse == nil {
-			o.stato.fisse, o.stato.ist, o.stato.ora = &traduzioniFisse{}, &isteresi{}, time.Unix(1_000_000, 0)
-		}
-		o.stato.ora = o.stato.ora.Add(passoBanco)
-		fisse = o.stato.fisse
-	}
 	ris := traduciTutteFisse(ctx, o.tr, da, false, fisse)
 	if o.dopo != nil {
 		ris = o.dopo(da, ris)
@@ -214,7 +215,7 @@ func elaboraImmagine(img *image.RGBA, nome string, o opzioniBanco) (esitoImmagin
 			rp := rettBlocco(p)
 			for i := range e.Righe {
 				r := &e.Righe[i]
-				if sovrapposti(rp, image.Rect(r.X, r.Y, r.X+r.W, r.Y+r.H)) {
+				if stessoRiquadro(rp, image.Rect(r.X, r.Y, r.X+r.W, r.Y+r.H)) {
 					r.Scartata, r.Tradotto, r.Fonte = "", p.Tradotto, "fotogramma prima"
 				}
 			}
@@ -243,7 +244,7 @@ func elaboraImmagine(img *image.RGBA, nome string, o opzioniBanco) (esitoImmagin
 			rp := image.Rect(p.X, p.Y, p.X+p.W, p.Y+p.H)
 			for i := range e.Righe {
 				r := &e.Righe[i]
-				if r.Scartata != "" && sovrapposti(rp, image.Rect(r.X, r.Y, r.X+r.W, r.Y+r.H)) {
+				if r.Scartata != "" && stessoRiquadro(rp, image.Rect(r.X, r.Y, r.X+r.W, r.Y+r.H)) {
 					r.Scartata, r.Tradotto, r.Fonte = "", p.Tradotto, "fotogramma prima"
 				}
 			}
@@ -270,6 +271,14 @@ func elaboraImmagine(img *image.RGBA, nome string, o opzioniBanco) (esitoImmagin
 		return e.Righe[i].X < e.Righe[j].X
 	})
 	return e, pronti
+}
+
+// stessoRiquadro: la riga del report è la scritta tenuta dal fotogramma prima (stesso posto, quasi
+// la stessa grandezza), non un pezzo letto lì dentro ("X", "30", "Burning"): ai pezzi il report
+// attribuiva la traduzione della riga intera, e i conti di "mostrate" e delle instabilità erano
+// gonfiati (collaudo finale 26/11).
+func stessoRiquadro(a, b image.Rectangle) bool {
+	return sovrapposti(a, b) && stessaMisura(a, b)
 }
 
 // immaginiCartella: le schermate (png, jpg) della cartella, in ordine di nome. Salta quelle già

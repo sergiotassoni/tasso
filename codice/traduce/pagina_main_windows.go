@@ -575,6 +575,7 @@ func preparaPaginaCon(area Zona, img, primaImg *image.RGBA, giro int64, annulla 
 		}
 	}
 	spazioLibero(blocchi, area.W)
+	segnaGiaMostrate(fissePagina, coppiaDi(traduttore), blocchi) // decisione già presa: resta (stabilita.go)
 	controllo := esisteVoce(filepath.Join(dirApp, "logs", "salva-anteprima"))
 	if controllo { // controllo a mano: cosa ha letto
 		var sb strings.Builder

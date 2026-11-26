@@ -71,6 +71,9 @@ type Blocco struct {
 	// davvero: dopo tutti i filtri e il disegno (collaudo 26/11: si fissavano anche traduzioni
 	// scartate, mai mostrate).
 	DaFissare string
+	// GiaMostrata: lo stesso testo è già stato tradotto e disegnato in questa sessione (stabilita.go):
+	// un fotogramma che lo giudica "scritta del mondo" o "lettura incerta" non lo rimette in inglese
+	GiaMostrata bool
 }
 
 // parole: le parole lette della scritta, con il loro rettangolo (nil se non le so).
@@ -2494,20 +2497,48 @@ func stessaScritta(a, b string) bool {
 	return distanzaModifica(la, lb)*10 <= lung*3
 }
 
-// parolaCambiata: con lo stesso numero di parole, una parola lunga è diventata un'altra parola
-// intera ("TUTORIAL: BLOCK ATTACKS" → "TUTORIAL: HEAVY ATTACKS"): è un'altra scritta, non la
-// stessa letta male (banco del mattino 26/11: la traduzione vecchia restava sulla scritta nuova).
-// L'OCR sbaglia qualche lettera ("uniil"/"until", "curmt"/"current"), non tutte.
+// parolaCambiata: una parola della scritta è diventata un'altra parola intera ("TUTORIAL: BLOCK
+// ATTACKS" → "TUTORIAL: HEAVY ATTACKS"): è un'altra scritta, non la stessa letta male (banco del
+// mattino 26/11: la traduzione vecchia restava sulla scritta nuova). Vale anche con un numero di
+// parole diverso: in un inventario che scorre "Rusty Iron War Axe" arriva dove c'era "Rusty Iron
+// Cuirass" (collaudo 26/11: restava "Corazza di ferro arrugginita" sull'ascia). L'OCR sbaglia
+// qualche lettera ("uniil"/"until", "curmt"/"current"), unisce o spezza le parole ("Holdto"),
+// salta qualche parola in una frase lunga: tutto questo resta la stessa scritta. Un'altra scritta
+// è quando da tutte e due le parti c'è una parola che dall'altra parte non si ritrova.
 func parolaCambiata(a, b string) bool {
-	wa, wb := strings.Fields(a), strings.Fields(b)
-	if len(wa) != len(wb) {
-		return false
+	return parolaSenzaPari(a, b) && parolaSenzaPari(b, a)
+}
+
+// parolaSenzaPari: in a c'è una parola (almeno 3 lettere) che in b non si ritrova, nemmeno letta
+// con qualche lettera sbagliata o attaccata alle parole vicine.
+func parolaSenzaPari(a, b string) bool {
+	pulisci := func(w string) string {
+		return lettereConfuse(strings.ToLower(strings.Trim(w, ".,;:!?\"'()[]<>«»*-")))
 	}
-	for i := range wa {
-		x := lettereConfuse(strings.ToLower(strings.Trim(wa[i], ".,;:!?\"'()[]")))
-		y := lettereConfuse(strings.ToLower(strings.Trim(wb[i], ".,;:!?\"'()[]")))
-		n := max(len([]rune(x)), len([]rune(y)))
-		if n >= 4 && distanzaModifica(x, y)*2 > n {
+	var pb []string
+	for _, w := range strings.Fields(b) {
+		if y := pulisci(w); y != "" {
+			pb = append(pb, y)
+		}
+	}
+	tuttaB := strings.Join(pb, "")
+	for _, w := range strings.Fields(a) {
+		x := pulisci(w)
+		if len([]rune(x)) < 3 || strings.ContainsFunc(x, unicode.IsDigit) {
+			continue
+		}
+		if strings.Contains(tuttaB, x) {
+			continue // la stessa parola, anche attaccata a quella vicina ("Holdto")
+		}
+		trovata := false
+		for _, y := range pb {
+			n := max(len([]rune(x)), len([]rune(y)))
+			if distanzaModifica(x, y)*2 <= n {
+				trovata = true
+				break
+			}
+		}
+		if !trovata {
 			return true
 		}
 	}
