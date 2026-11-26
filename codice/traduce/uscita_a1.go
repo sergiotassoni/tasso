@@ -66,12 +66,12 @@ func titoloVideo(t string) bool {
 // motivoNomeGioco: titolo del gioco o nome di fantasia ("The Blood of Dawnwalker"): resta com'è.
 const motivoNomeGioco = "titolo del gioco o nome di fantasia (resta uguale)"
 
-// nomeGioco: un titolo corto (2-6 parole, tutte con la maiuscola o tutto maiuscolo, senza
+// titoloDelGioco: un titolo corto (2-6 parole, tutte con la maiuscola o tutto maiuscolo, senza
 // punteggiatura da frase) con dentro una parola di fantasia fatta di due parole inglesi attaccate
 // ("Dawnwalker", "Shadowfell", "Ironforge"): è il nome di un gioco o di un posto, non si traduce
 // ("Il sangue di Dawnwalker" nell'elenco delle missioni). "Follow Lunka" no: Lunka è un nome
 // semplice e la scritta è un comando.
-func nomeGioco(t string) bool {
+func titoloDelGioco(t string) bool {
 	t = strings.TrimSpace(t)
 	if t == "" || strings.ContainsAny(t, ".!?,;:") {
 		return false

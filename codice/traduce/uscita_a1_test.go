@@ -78,12 +78,12 @@ func TestTitoliDeiVideo(t *testing.T) {
 
 func TestNomeDelGiocoResta(t *testing.T) {
 	for _, s := range []string{"The Blood of Dawnwalker", "THE BLOOD OF DAWNWALKER"} {
-		if !nomeGioco(s) {
+		if !titoloDelGioco(s) {
 			t.Errorf("%q: è il titolo del gioco, resta in inglese", s)
 		}
 	}
 	for _, s := range []string{"Follow Lunka", "Bring Lunka back", "All Good Things", "Defeat the enemies", "Directional Block", "Perfect Block"} {
-		if nomeGioco(s) {
+		if titoloDelGioco(s) {
 			t.Errorf("%q preso per il nome del gioco", s)
 		}
 	}

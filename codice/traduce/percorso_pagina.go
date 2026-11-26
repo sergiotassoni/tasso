@@ -89,7 +89,7 @@ func motivoNonTradurre(b Blocco) string {
 		return "non è testo da tradurre" // "4/7 Tue": la data del calendario del gioco
 	case titoloVideo(b.Testo):
 		return motivoTitoloVideo
-	case nomeGioco(b.Testo):
+	case titoloDelGioco(b.Testo):
 		return motivoNomeGioco
 	case fraseTroncata(b) != "":
 		return motivoFraseTroncata
