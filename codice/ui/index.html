@@ -161,8 +161,8 @@ h3{margin:0;font-size:15px}
 .toggle{display:flex;align-items:center;justify-content:space-between;gap:16px;width:100%;background:transparent;border:0;border-bottom:1px solid var(--line);padding:15px 0;text-align:left}
 .cover{position:relative;aspect-ratio:2/3;border-radius:10px;overflow:hidden;background:var(--track);display:grid;place-items:center;font-weight:800;font-size:28px}.cover img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}.cover img.wide{object-fit:contain;background:#0b0d14}.cover img.ico{object-fit:contain;padding:28%;background:var(--track)}
 .acf{display:flex;flex-direction:column;gap:6px;font-size:12px;color:var(--muted)}.acf input,.acf select,#acUnit{padding:8px 10px;border-radius:10px;border:1px solid var(--line);background:var(--bg2,transparent);color:var(--text);font:inherit;font-size:14px}.acf select option{background:#151826;color:#eee}
-#gwGame,#gwMode,#vPinKind{padding:9px 10px;min-height:42px;border-radius:10px;border:1px solid var(--line);background:var(--bg2,transparent);color:var(--text);font:inherit;font-size:14px}
-#gwGame option,#gwMode option,#vPinKind option{background:#151826;color:#eee}
+#vPinKind{padding:9px 10px;min-height:42px;border-radius:10px;border:1px solid var(--line);background:var(--bg2,transparent);color:var(--text);font:inherit;font-size:14px}
+#vPinKind option{background:#151826;color:#eee}
 .toggle b{display:block;font-size:15px;color:var(--text)}.toggle span{font-size:12px;color:var(--muted)}
 .sw{width:46px;height:26px;border-radius:99px;background:var(--track);display:flex;align-items:center;padding:3px;flex:0 0 46px;transition:background .2s}
 .sw i{width:20px;height:20px;border-radius:99px;background:#fff;transition:transform .2s;box-shadow:0 1px 3px rgba(0,0,0,.3)}
@@ -384,7 +384,7 @@ details.ofg .ofgrid{padding:0 12px 12px}
   aside .brand b,aside .brand small,.power b,.power span:not(.dot){display:none}
   .power{justify-content:center;padding:11px 0}
   .g2,.g3,.g4{grid-template-columns:repeat(auto-fit,minmax(min(100%,250px),1fr))}
-  #gwGame,#libSearch{min-width:0!important;max-width:100%}
+  #libSearch{min-width:0!important;max-width:100%}
   .row{flex-wrap:wrap}.card,.grid>*{min-width:0;overflow-wrap:anywhere}
   #hIssues .li,#hGood{overflow-wrap:break-word}#hIssues .li>span:first-child{flex:1 1 60%!important}
   .toasts{left:76px;right:12px;max-width:none}
@@ -521,7 +521,6 @@ nav [data-sub="gio"] button{--ic:#FF4D6D}
 .navrec .navcv .gph>*{display:none}
 .navrn{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
 @media (max-width:760px){.navrec{display:none}}
-.kgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:6px 18px}
 .kk{display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px solid var(--line);font-size:14px}.kk b{font-family:var(--mono,monospace);color:var(--a1t)}
 .boostside{display:flex;flex-direction:column;align-items:center;gap:10px}
 .boostgo{position:relative}#boostSub{min-height:3.2em}.boostundo.nascosto{visibility:hidden;pointer-events:none}
@@ -530,11 +529,9 @@ nav [data-sub="gio"] button{--ic:#FF4D6D}
 @media (prefers-reduced-motion:reduce){.bdot{animation:none}}
 .gptr{display:flex;flex-direction:column;gap:0;padding-top:6px;padding-bottom:6px}.gptr h3{margin:10px 0 2px}.gptr .gp-line small{display:block;line-height:1.6}.gptr .sw{border:0;cursor:pointer;flex:none}
 .boostundo{background:none;border:0;padding:4px 8px;border-radius:8px;font-size:12px;font-weight:500;color:var(--muted);display:inline-flex;align-items:center;gap:6px;cursor:pointer;transition:color .15s}.boostundo:hover,.boostundo:focus-visible{color:var(--text)}.boostundo[hidden]{display:none}
-.boostauto{display:flex;align-items:center;gap:12px;margin:14px 0 0;font-size:14px;cursor:pointer}.boostauto .sw{border:0;cursor:pointer;flex:none}
 .kbd{display:inline-block;font:600 12px var(--mono,monospace);line-height:1.5;padding:0 7px;border:1px solid var(--line);border-bottom-width:2px;border-radius:6px;color:var(--text);background:var(--panel2);white-space:nowrap}
 body main a.trhint{display:inline-block;margin-top:4px;font-size:12px;color:var(--muted);text-decoration:none}body main a.trhint:hover{color:var(--text)}
 .hkrow .btn{font-family:var(--mono,monospace);min-width:150px;min-height:36px;padding:6px 14px}.hkrow .btn.wait{border-style:dashed;border-color:var(--a1);color:var(--muted);font-family:inherit}
-.kcap{border:2px dashed var(--line);border-radius:12px;padding:18px;text-align:center;color:var(--muted);cursor:pointer}.kcap:focus{border-color:var(--a1);color:var(--text);outline:none}
 #trSetCard textarea,#modalBox textarea{width:100%;border-radius:10px;border:1px solid var(--line);background:transparent;color:inherit;font:13px var(--mono,monospace);padding:8px}
 #trFont{width:200px;accent-color:var(--a1)}
 #libGrid .cover{cursor:pointer}
@@ -1001,7 +998,7 @@ html:not([lang="it"]) .navsub button{padding-right:4px;gap:8px}
   </div>
 </section>
 
-<!-- HARDWARE -->
+<!-- RETE -->
 <section class="view" id="v-net">
   <div><h1 style="font-size:26px">Internet</h1><p class="sub">Quanto va veloce, come sei collegato e le password del Wi-Fi salvate su questo PC.</p></div>
   <div class="card" style="display:flex;flex-direction:column;gap:14px">
@@ -1170,8 +1167,6 @@ html:not([lang="it"]) .navsub button{padding-right:4px;gap:8px}
   </div>
   <p class="muted small" style="margin:0">Tasso legge uso e temperatura della scheda video (NVIDIA e AMD) e la temperatura dei dischi. Processore e scheda madre: Windows non sempre le dà; con LibreHardwareMonitor aperto (gratuito) Tasso le legge anche nel report Discord.</p>
 </section>
-
-<!-- TOOLS -->
 
 <!-- PRESTAZIONI+ (overclock sicuro) -->
 <section class="view" id="v-perf">
