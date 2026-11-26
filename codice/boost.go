@@ -456,6 +456,13 @@ func closeBackground() []string {
 // dopo un attimo, quindi il controllo "è già aperto" non basta).
 var reopenMu sync.Mutex
 
+// riapriGiaAperto e riapriApri: le due cose che reopenBackground chiede a Windows (programma già
+// aperto? apri con Esplora file). Variabili solo perché il test possa provare reopenBackground vera.
+var (
+	riapriGiaAperto = func(p string) bool { return len(pidsByExe(filepath.Base(p))) > 0 }
+	riapriApri      = openPath
+)
+
 // reopenBackground riapre i programmi chiusi (se non sono già ripartiti da soli), come utente
 // normale tramite Esplora file.
 func reopenBackground() []string {
@@ -471,10 +478,10 @@ func reopenBackground() []string {
 	explorer := filepath.Join(win, "explorer.exe")
 	var names, restano []string
 	for _, p := range list {
-		if len(pidsByExe(filepath.Base(p))) > 0 || !fileExists(p) {
+		if riapriGiaAperto(p) || !fileExists(p) {
 			continue // già ripartito da solo, o non c'è più: niente da riaprire
 		}
-		if openPath(explorer, "\""+p+"\"") {
+		if riapriApri(explorer, "\""+p+"\"") {
 			names = append(names, strings.TrimSuffix(filepath.Base(p), filepath.Ext(p)))
 		} else {
 			restano = append(restano, p) // non si è riaperto: resta nell'elenco, "Rimetti com'era" ci riprova

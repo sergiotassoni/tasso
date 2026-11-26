@@ -178,8 +178,9 @@ var (
 	hzTimer *time.Timer
 )
 
-// setScreenHz cambia la frequenza di uno schermo. save=false: solo per adesso (se il Tasso si
-// chiude o il PC si riavvia torna quella salvata); save=true: la salva in Windows.
+// setScreenHz cambia la frequenza di uno schermo. save=false: solo per adesso, senza salvarla in
+// Windows: resta finché il PC si riavvia (o la frequenza cambia di nuovo), anche se Tasso si chiude.
+// Per questo chiudendo Tasso screenHzUndo rimette quella di prima. save=true: la salva in Windows.
 func setScreenHz(dev string, hz int, save bool) bool {
 	var dm devMode
 	dm.Size = uint16(unsafe.Sizeof(dm))
@@ -205,7 +206,7 @@ func setScreenHz(dev string, hz int, save bool) bool {
 
 // screenHzMax prova la frequenza più alta sugli schermi che ne hanno bisogno, SENZA salvarla.
 // Se non confermi entro 15 secondi (per esempio perché lo schermo è nero) torna com'era; se il
-// Tasso si chiude prima, la frequenza salvata in Windows è ancora quella vecchia.
+// Tasso si chiude prima, la rimette screenHzUndo (quella salvata in Windows è ancora la vecchia).
 func screenHzMax() {
 	if onBattery() {
 		emit("onFpsHzTry", map[string]interface{}{"changed": []string{}, "msg": "Sei a batteria: molti portatili tengono 60 Hz apposta per consumare meno. Collega il caricatore e riprova."})

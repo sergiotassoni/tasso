@@ -313,7 +313,7 @@ func gameTick() {
 				}
 				updateSettings(func(s *Settings) { s.ModeBeforeGame, s.GameTarget = back, target })
 				gameTarget.Store(target)
-				go setMode(target)
+				modoGiocoInCorso(target)
 			}
 			emit("onGameMode", map[string]interface{}{"active": true, "game": name, "mode": target})
 			return
@@ -332,7 +332,7 @@ func gameTick() {
 				}
 				updateSettings(func(s *Settings) { s.ModeBeforeGame, s.GameTarget = back, target })
 				gameTarget.Store(target)
-				go setMode(target)
+				modoGiocoInCorso(target)
 			}
 			overlayGameStarted()
 			if m != "" || forAll { // senza una scelta per questo gioco non ho cambiato niente: niente avviso
@@ -401,11 +401,33 @@ func modoDaRimettereDopoGioco(cur, target string) bool {
 	return cur == "gaming" || (target != "" && cur == target)
 }
 
+// modoGiocoAvvii: quante modalità per una partita (da gameTick) stanno ancora partendo. Chiudendo
+// Tasso aspetto che finiscano: se no leggerei la modalità di prima e la nuova resterebbe dopo.
+var modoGiocoAvvii atomic.Int32
+
+func modoGiocoInCorso(target string) {
+	modoGiocoAvvii.Add(1)
+	go func() {
+		defer modoGiocoAvvii.Add(-1)
+		defer guard("extras.go:modoGiocoInCorso")
+		setMode(target)
+	}()
+}
+
+// aspettaModoGioco aspetta (al massimo max) che finiscano le modalità per una partita già partite.
+func aspettaModoGioco(max time.Duration) {
+	fine := time.Now().Add(max)
+	for modoGiocoAvvii.Load() > 0 && time.Now().Before(fine) {
+		time.Sleep(100 * time.Millisecond)
+	}
+}
+
 // modalitaGiocoPerUscita: chiudendo Tasso a partita in corso, la modalità messa dalla modalità gioco
 // automatica (piano energetico, notifiche in pausa, Modalità Gioco di Windows) torna com'era adesso:
 // senza Tasso aperto nessuno la rimetterebbe a fine partita. Aspetta la fine (Tasso sta per chiudersi).
 // Se non riesce, ModeBeforeGame resta e la rimette il prossimo avvio di Tasso.
 func modalitaGiocoPerUscita() {
+	aspettaModoGioco(150 * time.Second) // setMode dura al massimo 2 minuti
 	setMu.Lock()
 	back, cur, saved := settings.ModeBeforeGame, settings.Mode, settings.GameTarget
 	setMu.Unlock()
