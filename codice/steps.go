@@ -576,8 +576,13 @@ try { [void]$wuPs.EndInvoke($wuH); $wuPs.Dispose(); $wuRs.Dispose() } catch {}
 var allSteps = []Step{
 	{ID: "backup", Name: "Backup (punto di ripristino)", Desc: "Crea un punto di ripristino: se qualcosa non va torni indietro.", Level: 2, Minutes: 1.5, Timeout: 8 * time.Minute, Script: `
 Say 'Creo il backup di Windows (punto di ripristino)...'
-try { Enable-ComputerRestore -Drive ($TassoSysDrive + '\') -ErrorAction Stop } catch {}
 $key = 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\SystemRestore'
+# "Protezione sistema" spenta (RPSessionInterval = 0): per fare il backup la devo accendere, ma lo dico
+# chiaramente e spiego come rispegnerla (occupa un po' di spazio del disco). Niente più accensione muta.
+$srOff = $false
+try { $ri = (Get-ItemProperty -LiteralPath $key -Name 'RPSessionInterval' -ErrorAction Stop).RPSessionInterval; if ([int]$ri -eq 0) { $srOff = $true } } catch {}
+try { Enable-ComputerRestore -Drive ($TassoSysDrive + '\') -ErrorAction Stop } catch {}
+if ($srOff) { Say 'Protezione sistema era spenta su questo PC: l''ho accesa per poter fare il backup (usa un po'' di spazio del disco). Se la vuoi spenta: Pannello di controllo > Sistema > Protezione sistema > Configura > Disattiva.' }
 $oldFreq = (Get-ItemProperty -Path $key -Name 'SystemRestorePointCreationFrequency' -ErrorAction SilentlyContinue).SystemRestorePointCreationFrequency
 # Mi segno il valore di prima: se il passaggio viene interrotto, Tasso lo rimette al prossimo avvio.
 # Se il segno c'è già (un backup di prima interrotto e non ancora rimesso), il valore vero è quello
@@ -761,6 +766,10 @@ $cats = [ordered]@{
 }
 $limit = (Get-Date).AddMinutes(-15)
 $moved = 0
+# Elenco di ogni spostamento (da -> a): con "Annulla il riordino dei Download" tutto torna dov'era.
+$logDir = Join-Path $dl 'Tasso - riordini'
+$log = Join-Path $logDir ('riordino-' + (Get-Date -Format 'yyyyMMdd-HHmmss') + '.tsv')
+$righe = New-Object System.Collections.ArrayList
 Get-ChildItem -LiteralPath $dl -File -ErrorAction SilentlyContinue | ForEach-Object {
   if ($_.LastWriteTime -gt $limit) { return }
   if ($_.Name -like 'Tasso*.exe') { return }
@@ -772,12 +781,41 @@ Get-ChildItem -LiteralPath $dl -File -ErrorAction SilentlyContinue | ForEach-Obj
       $target = Join-Path $destDir $_.Name
       $n = 2
       while (Test-Path -LiteralPath $target) { $target = Join-Path $destDir ($_.BaseName + ' (' + $n + ')' + $_.Extension); $n++ }
-      try { Move-Item -LiteralPath $_.FullName -Destination $target -ErrorAction Stop; $moved++ } catch {}
+      $from = $_.FullName
+      try { Move-Item -LiteralPath $from -Destination $target -ErrorAction Stop; $moved++; [void]$righe.Add($from + [string][char]9 + $target) } catch {}
       break
     }
   }
 }
+if ($righe.Count) {
+  try { New-Item -ItemType Directory -Path $logDir -Force | Out-Null; [IO.File]::WriteAllLines($log, [string[]]$righe.ToArray(), (New-Object System.Text.UTF8Encoding($false))) } catch { Say 'Non sono riuscito a scrivere l''elenco degli spostamenti: il riordino non si potrà annullare da Tasso.' }
+}
 Say ('Riordinati ' + $moved + ' file nella cartella Download.')
+if ($righe.Count) { Say 'Se vuoi rimettere tutto com''era: Pulisci › Un passaggio alla volta › "Annulla il riordino dei Download".' }
+`},
+	{ID: "downloads_undo", Name: "Annulla il riordino dei Download", Desc: "Rimette nella cartella Download i file spostati dall'ultimo riordino di Tasso. I file che hai già spostato o cancellato tu restano come sono.", Level: 0, Minutes: 0.3, Timeout: 10 * time.Minute, Script: `
+$dl = Get-DownloadsPath
+$logDir = Join-Path $dl 'Tasso - riordini'
+$last = @(Get-ChildItem -LiteralPath $logDir -Filter 'riordino-*.tsv' -File -ErrorAction SilentlyContinue | Sort-Object Name -Descending | Select-Object -First 1)
+if (-not $last.Count) { Say 'Non trovo nessun riordino dei Download fatto da Tasso da annullare.'; return }
+$back = 0; $skip = 0
+foreach ($r in @([IO.File]::ReadAllLines($last[0].FullName))) {
+  $p = $r.Split([char]9)
+  if ($p.Count -ne 2) { continue }
+  $from = $p[0]; $to = $p[1]
+  # Solo dentro la cartella Download, e solo se il file è ancora dove l'ho messo e il suo posto è libero.
+  if (-not (In-Dir $from $dl) -or -not (In-Dir $to $dl)) { $skip++; continue }
+  if (-not (Test-Path -LiteralPath $to -PathType Leaf) -or (Test-Path -LiteralPath $from)) { $skip++; continue }
+  try { Move-Item -LiteralPath $to -Destination $from -ErrorAction Stop; $back++ } catch { $skip++ }
+}
+try { Rename-Item -LiteralPath $last[0].FullName -NewName ($last[0].BaseName + '-annullato.tsv') -ErrorAction Stop } catch {}
+# Le cartelle create dal riordino che sono rimaste vuote le tolgo.
+foreach ($c in @('Immagini', 'Documenti', 'Video', 'Musica', 'Programmi', 'Archivi')) {
+  $d = Join-Path $dl $c
+  if ((Test-Path -LiteralPath $d -PathType Container) -and -not (Get-ChildItem -LiteralPath $d -Force -ErrorAction SilentlyContinue | Select-Object -First 1)) { Remove-Item -LiteralPath $d -Force -ErrorAction SilentlyContinue }
+}
+Say ('Rimessi nella cartella Download: ' + $back + ' file.')
+if ($skip) { Say ('Lasciati dove sono: ' + $skip + ' (li avevi già spostati, rinominati o cancellati, oppure al loro posto c''è un file nuovo con lo stesso nome).') }
 `},
 	{ID: "apps", Name: "Aggiornamento programmi", Desc: "Aggiorna i programmi installati con winget. Attenzione: alcune app (Discord, Claude, Proton...) dopo l'aggiornamento chiedono di rifare l'accesso.", Level: 0, Minutes: 6, Timeout: 60 * time.Minute, Script: `
 $wg = Get-Winget
