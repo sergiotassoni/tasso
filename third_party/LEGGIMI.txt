@@ -2,7 +2,8 @@ Librerie usate da Tasso Zip (copie locali, per compilare anche senza internet)
 ==============================================================================
 
 Ogni cartella è la copia del tag ufficiale su GitHub indicato in go.mod (righe "replace").
-Per tenere piccolo il codice ho tolto: cartelle .git, test (*_test.go), testdata e i pacchetti
+Per tenere piccolo il codice ho tolto: cartelle .git, test (*_test.go), testdata, i file di
+configurazione degli strumenti degli autori (prove automatiche, rilasci) e i pacchetti
 che Tasso Zip non usa. Nei go.mod di sevenzip, plumbing, brotli, go4 e x/text ho tolto le
 dipendenze usate solo dai loro test o da pacchetti non usati (testify, randomstring, cloud...).
 Il codice delle librerie non è cambiato, tranne go-webview2 (vedi go-webview2/README.md) e
