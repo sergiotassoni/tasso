@@ -65,9 +65,47 @@ function Get-LocalSize([string]$p) {
   $s = (Get-ChildItem -LiteralPath $p -Recurse -Force -File -ErrorAction SilentlyContinue | Where-Object { -not ([int]$_.Attributes -band 0x401000) } | Measure-Object -Property Length -Sum).Sum
   if ($s) { return [long]$s } else { return [long]0 }
 }
+function Get-IndirectText([string]$t) {
+  # "@{Pacchetto?ms-resource://...}" o "@file.dll,-123": il testo vero lo sa Windows (SHLoadIndirectString).
+  if ($t -notlike '@*') { return $t }
+  try {
+    if (-not ('TassoIndStr' -as [type])) { Add-Type -TypeDefinition 'using System; using System.Text; using System.Runtime.InteropServices; public static class TassoIndStr { [DllImport("shlwapi.dll", CharSet = CharSet.Unicode)] public static extern int SHLoadIndirectString(string s, StringBuilder o, int n, IntPtr r); }' }
+    $sb = New-Object System.Text.StringBuilder 1024
+    if ([TassoIndStr]::SHLoadIndirectString($t, $sb, $sb.Capacity, [IntPtr]::Zero) -eq 0) { return $sb.ToString() }
+  } catch {}
+  return ''
+}
+function Get-AppxAssocName([string]$progId) {
+  $gone = 'un''app dello Store che non c''è più'
+  $n = ''; $aumid = ''
+  foreach ($root in @('Registry::HKEY_CURRENT_USER\Software\Classes\', 'Registry::HKEY_CLASSES_ROOT\')) {
+    try {
+      $a = Get-ItemProperty -LiteralPath ($root + $progId + '\Application') -ErrorAction Stop
+      if (-not $n) { $n = [string]$a.ApplicationName }
+      if (-not $aumid) { $aumid = [string]$a.AppUserModelID }
+    } catch {}
+  }
+  $n = Get-IndirectText $n
+  if ($n -and $n -notlike '@*' -and $n -notmatch '^AppX') { return $n }
+  if ($aumid -match '^([^!_]+)_[^!]+') {
+    try {
+      $pk = Get-AppxPackage -Name $Matches[1] -ErrorAction Stop | Select-Object -First 1
+      if ($pk) {
+        $d = ''
+        try { $d = [string](Get-AppxPackageManifest $pk -ErrorAction Stop).Package.Properties.DisplayName } catch {}
+        if ($d -like 'ms-resource:*') { $d = Get-IndirectText ('@{' + $pk.PackageFullName + '?' + $d + '}') }
+        if ($d -and $d -notlike 'ms-resource:*') { return $d }
+        return $pk.Name
+      }
+    } catch {}
+  }
+  return $gone
+}
 function Get-AssocName([string]$progId) {
   $known = @{ 'AcroExch' = 'Adobe Acrobat'; 'Acrobat' = 'Adobe Acrobat'; 'MSEdge' = 'Microsoft Edge'; 'AppXd4nrz8ff68srnhf9t5a8sbjyar1cr723' = 'Microsoft Edge'; 'ChromeHTML' = 'Google Chrome'; 'ChromePDF' = 'Google Chrome'; 'Firefox' = 'Firefox'; 'BraveHTML' = 'Brave'; 'Opera' = 'Opera'; 'Word.' = 'Word'; 'Excel.' = 'Excel'; 'PowerPoint.' = 'PowerPoint'; 'Outlook.' = 'Outlook'; 'CompressedFolder' = 'Windows (cartelle compresse)'; 'WinRAR' = 'WinRAR'; '7-Zip' = '7-Zip'; 'Applications\' = 'un programma scelto a mano' }
   foreach ($k in $known.Keys) { if ($progId.StartsWith($k)) { return $known[$k] } }
+  # App dello Store (ProgId "AppX..."): mai il codice grezzo, cerco il nome visibile del pacchetto.
+  if ($progId -match '^AppX') { return (Get-AppxAssocName $progId) }
   try { $n = [string](Get-ItemProperty -LiteralPath ('Registry::HKEY_CLASSES_ROOT\' + $progId) -ErrorAction Stop).'(default)'; if ($n) { return $n } } catch {}
   return $progId
 }
@@ -267,7 +305,7 @@ foreach ($e in $list.Keys) {
   $p = Get-UserChoice $e
   if (-not $p) { Say ($list[$e] + ': programma normale di Windows.'); continue }
   $ok = Test-ProgIdOk $p
-  if (-not $ok) { $broken++; Say ($list[$e] + ': ' + (Get-AssocName $p) + ' - ma quel programma non c''è più!') } else { Say ($list[$e] + ': ' + (Get-AssocName $p)) }
+  if (-not $ok) { $broken++; $nm = Get-AssocName $p; if ($nm -like '*non c''è più*') { Say ($list[$e] + ': ' + $nm + '!') } else { Say ($list[$e] + ': ' + $nm + ' - ma quel programma non c''è più!') } } else { Say ($list[$e] + ': ' + (Get-AssocName $p)) }
 }
 if ($broken) { Say 'Alcuni tipi di file puntano a un programma disinstallato: per questo non si aprono.' }
 Say 'Per cambiare: nella finestra che ti apro scrivi il tipo di file in alto (per esempio .pdf) e scegli il programma. Oppure tasto destro sul file > Apri con > Scegli un''altra app > spunta "Usa sempre".'
