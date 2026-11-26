@@ -68,6 +68,10 @@ func pulisciPezzo(p string) string {
 			b.WriteRune('_')
 		case strings.ContainsRune(`<>:"|?*/\`, r):
 			b.WriteRune('_')
+		case r >= 0x202A && r <= 0x202E, r >= 0x2066 && r <= 0x2069:
+			// caratteri che girano il verso del testo: "fattura\u202Efdp.exe" in Esplora
+			// file si legge "fatturaexe.pdf" (un programma travestito da documento)
+			b.WriteRune('_')
 		default:
 			b.WriteRune(r)
 		}

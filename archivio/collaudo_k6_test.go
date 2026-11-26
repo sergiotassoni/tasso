@@ -12,6 +12,7 @@ import (
 	"math/rand"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/ulikunitz/xz"
@@ -98,3 +99,32 @@ func TestXzTagliatoEFineGiusta(t *testing.T) {
 	}
 }
 
+// Un nome con i caratteri che girano il verso del testo (U+202E...) fa sembrare un .exe un
+// documento: "fattura‮fdp.exe" in Esplora file si legge "fatturaexe.pdf". Li tolgo;
+// le scritte arabe ed ebraiche vere (e gli accenti) restano come sono.
+func TestNomiConVersoGirato(t *testing.T) {
+	casi := map[string]string{
+		"fattura‮fdp.exe":   "fattura_fdp.exe",
+		"a‪b‫c‬d.txt":       "a_b_c_d.txt",
+		"x⁦y⁧z⁨w⁩.txt":      "x_y_z_w_.txt",
+		"تقرير.pdf":         "تقرير.pdf",
+		"שלום עולם.txt":     "שלום עולם.txt",
+		"perché è così.txt": "perché è così.txt",
+	}
+	for in, out := range casi {
+		p, ok := NomeSicuro(in)
+		if !ok || strings.Join(p, "/") != out {
+			t.Errorf("%q -> %q %v (atteso %q)", in, p, ok, out)
+		}
+	}
+	dir := t.TempDir()
+	p := filepath.Join(dir, "posta.zip")
+	creaZip(t, p, [][2]string{{"documenti/fattura‮fdp.exe", "MZ"}})
+	re, err := Estrai(context.Background(), p, OpzioniEstrai{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := albero(t, re.Cartella); got["fattura_fdp.exe"] != "MZ" {
+		t.Fatalf("estratti: %v", got)
+	}
+}
