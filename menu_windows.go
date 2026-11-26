@@ -202,7 +202,7 @@ func menuPuntaA(exe string) bool {
 		strings.EqualFold(nuova, comando(exe, "--estrai-in"))
 }
 
-var procSHChangeNotify = windows.NewLazySystemDLL("shell32.dll").NewProc("SHChangeNotify")
+var procSHChangeNotify = shell32.NewProc("SHChangeNotify")
 
 // avvisaExplorer: Esplora file rilegge le associazioni (SHCNE_ASSOCCHANGED).
 func avvisaExplorer() {

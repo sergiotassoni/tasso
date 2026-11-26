@@ -13,7 +13,6 @@ import (
 	"sync"
 	"time"
 
-	"golang.org/x/sys/windows"
 	"golang.org/x/sys/windows/registry"
 
 	"tassozip/archivio"
@@ -109,7 +108,7 @@ func linguaEcosistema() string {
 	return s
 }
 
-var procGetUserDefaultUILanguage = windows.NewLazySystemDLL("kernel32.dll").NewProc("GetUserDefaultUILanguage")
+var procGetUserDefaultUILanguage = kernel32.NewProc("GetUserDefaultUILanguage")
 
 func linguaWindows() string {
 	r, _, _ := procGetUserDefaultUILanguage.Call()

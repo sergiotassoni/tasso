@@ -53,7 +53,11 @@ func codePageOEM() int {
 	return int(r)
 }
 
-var procGetOEMCP = windows.NewLazySystemDLL("kernel32.dll").NewProc("GetOEMCP")
+var (
+	kernel32                 = windows.NewLazySystemDLL("kernel32.dll")
+	procGetOEMCP             = kernel32.NewProc("GetOEMCP")
+	procGlobalMemoryStatusEx = kernel32.NewProc("GlobalMemoryStatusEx")
+)
 
 // memoriaLibera: byte di RAM disponibili (0 se non si sa), con GlobalMemoryStatusEx.
 func memoriaLibera() int64 {
@@ -70,8 +74,6 @@ func memoriaLibera() int64 {
 	}
 	return int64(m.AvailPhys)
 }
-
-var procGlobalMemoryStatusEx = windows.NewLazySystemDLL("kernel32.dll").NewProc("GlobalMemoryStatusEx")
 
 // leggiZonaSistema: il "marchio del web" (flusso :Zone.Identifier) del file, nil se non c'è.
 func leggiZonaSistema(p string) []byte {
