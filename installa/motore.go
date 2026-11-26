@@ -459,7 +459,15 @@ func (in *Installatore) installa(ctx context.Context, o Opzioni) (*Stato, error)
 	// file e registro a posto: da qui un'interruzione non deve più rimettere i file vecchi.
 	// Prima via .tasso-setup-nuovo: con lui ancora lì e senza segno, Ripara rimetterebbe i file
 	// vecchi che la versione nuova ha tolto (caso "resti di un installatore di prima").
-	_ = os.RemoveAll(nuovi)
+	// La rinomina è atomica: se il PC si spegne mentre si cancella, resta .tasso-setup-via (che
+	// Ripara toglie e basta), mai una .tasso-setup-nuovo mezza vuota accanto al segno (che farebbe
+	// rimettere tutti i file vecchi sopra un'installazione finita).
+	scarto := filepath.Join(o.Base, cartellaScarto)
+	_ = os.RemoveAll(scarto)
+	if err := os.Rename(nuovi, scarto); err != nil && !os.IsNotExist(err) {
+		Diario("non riesco a rinominare %s (%v): la cancello e basta", nuovi, err)
+		_ = os.RemoveAll(nuovi)
+	}
 	if err := in.conRiprova("tolgo "+segno, func() error {
 		if e := os.Remove(segno); e != nil && !os.IsNotExist(e) {
 			return e
@@ -468,6 +476,7 @@ func (in *Installatore) installa(ctx context.Context, o Opzioni) (*Stato, error)
 	}); err != nil {
 		Diario("non riesco a togliere %s: %v", segno, err)
 	}
+	_ = os.RemoveAll(scarto)
 
 	// collegamenti: se uno non riesce non è grave (i programmi ci sono), lo si dice e basta
 	in.avanza(Avanzamento{Fase: "collegamenti", Fatto: totale, Totale: totale})
@@ -808,6 +817,7 @@ func (in *Installatore) Ripara(base string) error {
 		}
 	}
 	_ = os.RemoveAll(nuovi)
+	_ = os.RemoveAll(filepath.Join(base, cartellaScarto)) // resti della cancellazione dei nuovi
 	_ = os.Remove(segno)
 	return nil
 }

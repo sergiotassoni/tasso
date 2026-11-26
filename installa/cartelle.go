@@ -12,6 +12,7 @@ const (
 	CartellaPDF      = "Tasso PDF"
 	NomeDisinstalla  = "Disinstalla Tasso.exe"
 	cartellaNuovi    = ".tasso-setup-nuovo"   // file nuovi in arrivo (poi rinominati al loro posto)
+	cartellaScarto   = ".tasso-setup-via"     // .tasso-setup-nuovo rinominata a installazione finita, da cancellare
 	cartellaVecchi   = ".tasso-setup-vecchio" // file sostituiti (tenuti fino alla fine per tornare indietro)
 	CartellaTassoStd = "Tasso"
 )
@@ -193,6 +194,10 @@ func InfoCartellaDisco(p string) InfoCartella {
 // (non vuota, non degli amministratori, dentro una cartella di un utente, o un collegamento).
 const ErrCartNonSicura = "cart_non_sicura"
 
+// ErrCartSenzaPermessi: disco senza permessi (FAT32, exFAT) e cartella che c'è già, non vuota e
+// non di Tasso: lì chiunque può aver messo dei file, e non si possono proteggere.
+const ErrCartSenzaPermessi = "cart_senza_permessi"
+
 // SicurezzaCartella: cosa si sa della cartella scelta fuori da Programmi (letto da Windows).
 type SicurezzaCartella struct {
 	Esiste            bool // la cartella c'è già
@@ -201,6 +206,7 @@ type SicurezzaCartella struct {
 	Collegamento      bool // è un collegamento o una giunzione (porterebbe altrove)
 	ProprietarioAdmin bool // proprietario: Amministratori, SYSTEM o TrustedInstaller
 	AntenatiAdmin     bool // tutte le cartelle sopra che esistono (tranne la radice del disco) sono degli amministratori
+	SenzaPermessi     bool // il disco non ha permessi (FAT32, exFAT): proprietario e permessi non esistono
 }
 
 // DecidiCartellaSicura: fuori da Programmi Tasso.exe (sempre amministratore) e il disinstallatore
@@ -216,6 +222,18 @@ type SicurezzaCartella struct {
 func DecidiCartellaSicura(s SicurezzaCartella) (crea bool, err error) {
 	if s.Collegamento {
 		return false, &ErroreCartella{ErrCartNonSicura}
+	}
+	if s.SenzaPermessi {
+		// FAT32/exFAT (chiavette, dischi esterni): non ci sono proprietari né permessi da
+		// controllare o mettere. Va bene una cartella nuova, vuota o già di Tasso (l'installatore
+		// avvisa che chiunque può cambiare i file); un'altra cartella con dentro altro no.
+		switch {
+		case !s.Esiste:
+			return true, nil
+		case s.DiTasso, s.Vuota:
+			return false, nil
+		}
+		return false, &ErroreCartella{ErrCartSenzaPermessi}
 	}
 	if !s.Esiste {
 		if !s.AntenatiAdmin {

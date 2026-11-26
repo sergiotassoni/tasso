@@ -333,9 +333,15 @@ func collega(w webview2.WebView) {
 		out["fuoriProgrammi"] = !installa.DentroProgrammi(p, programFiles())
 		if out["fuoriProgrammi"] == true {
 			// fuori da Programmi: si usa solo una cartella che nessun utente normale può cambiare
-			if _, err := installa.DecidiCartellaSicura(sicurezzaCartella(p)); err != nil && !installa.InfoCartellaDisco(p).DiTasso {
+			s := sicurezzaCartella(p)
+			if _, err := installa.DecidiCartellaSicura(s); err != nil && !installa.InfoCartellaDisco(p).DiTasso {
 				out["errore"] = installa.ErrCartNonSicura
+				var ec *installa.ErroreCartella
+				if errors.As(err, &ec) {
+					out["errore"] = ec.Codice
+				}
 			}
+			out["senzaPermessi"] = s.SenzaPermessi // avviso: chiunque può cambiare i file
 		}
 		return out
 	})

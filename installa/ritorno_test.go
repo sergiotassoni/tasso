@@ -203,3 +203,32 @@ func TestNuoviToltiPrimaDelSegno(t *testing.T) {
 		t.Skip("nessun collegamento creato in questa prova")
 	}
 }
+
+// PC spento mentre si cancellava la cartella dei nuovi: con la rinomina atomica resta solo
+// .tasso-setup-via accanto al segno. Ripara la toglie e NON rimette i file vecchi.
+func TestRiparaScartoDeiNuoviRimasto(t *testing.T) {
+	p := nuovaProva(t, "3.1")
+	if _, err := p.in.Installa(context.Background(), p.opzioni(Gaming)); err != nil {
+		t.Fatal(err)
+	}
+	if esiste(filepath.Join(p.base, cartellaScarto)) || esiste(filepath.Join(p.base, cartellaNuovi)) {
+		t.Fatal("installazione finita: restano le cartelle di lavoro dell'installatore")
+	}
+	exe := filepath.Join(p.base, "Tasso.exe")
+	scarto := filepath.Join(p.base, cartellaScarto)
+	os.MkdirAll(filepath.Join(scarto, "gaming"), 0o755)
+	os.WriteFile(filepath.Join(scarto, "gaming", "pezzo.bin"), []byte("x"), 0o644)
+	vecchi := filepath.Join(p.base, cartellaVecchi)
+	os.MkdirAll(vecchi, 0o755)
+	os.WriteFile(filepath.Join(vecchi, "Tasso.exe"), []byte("tasso 3.0"), 0o644)
+	os.WriteFile(filepath.Join(p.base, fileInCorso), nil, 0o644)
+	if err := p.in.Ripara(p.base); err != nil {
+		t.Fatal(err)
+	}
+	if leggi(t, exe) != "tasso 3.1" {
+		t.Fatal("Ripara ha rimesso la versione vecchia sopra un'installazione finita")
+	}
+	if esiste(scarto) || esiste(filepath.Join(p.base, fileInCorso)) {
+		t.Fatal("restano lo scarto o il segno")
+	}
+}

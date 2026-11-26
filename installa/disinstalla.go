@@ -60,7 +60,7 @@ func CartellaSoloTasso(base string, st *Stato) bool {
 		return true
 	}
 	noti := map[string]bool{strings.ToLower(FileStato): true, strings.ToLower(FileStato + ".tmp"): true,
-		cartellaNuovi: true, cartellaVecchi: true, fileInCorso: true}
+		cartellaNuovi: true, cartellaVecchi: true, fileInCorso: true, cartellaScarto: true}
 	for _, d := range SottocartelleTasso {
 		noti[d] = true
 	}
@@ -243,6 +243,7 @@ func (in *Installatore) DisinstallaCon(base string, togli []Componente, od Opzio
 			return ris, err
 		}
 		_ = os.RemoveAll(filepath.Join(base, cartellaNuovi))
+		_ = os.RemoveAll(filepath.Join(base, cartellaScarto))
 		_ = os.RemoveAll(filepath.Join(base, cartellaVecchi))
 		_ = os.Remove(filepath.Join(base, fileInCorso))
 		_ = os.Remove(filepath.Join(base, FileStato+".tmp"))

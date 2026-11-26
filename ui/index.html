@@ -274,6 +274,8 @@ async function controllaCartella(){
   cart = r;
   const e = $('#errCartella'); e.hidden = !r.errore; if (r.errore) e.textContent = T(r.errore);
   $('#avvCartella').hidden = !!r.errore || !r.fuoriProgrammi;
+  $('#avvCartella').dataset.t = r.senzaPermessi ? 'cart_avv_senza_permessi' : 'cart_fuori_programmi'; // anche cambiando lingua
+  $('#avvCartella').textContent = T($('#avvCartella').dataset.t);
   const box = $('#percorsi'); box.innerHTML = '';
   if (!r.errore) {
     const righe = [];
@@ -384,9 +386,9 @@ async function disinstalla(){
   $('#bAvanti').disabled = true; $('#bAnnulla').disabled = true; msg(''); $('#msg').style.color = 'var(--muted)'; $('#msg').textContent = T('dis_in_corso');
   // prima Tasso toglie le sue cose (chiude solo Tasso); se rifiuta, Zip e PDF restano aperti
   const pr = await call('goPreparaDisinstalla', ids);
-  if (!pr.ok) {
+  if (!pr || !pr.ok) {
     $('#msg').style.color = ''; $('#bAvanti').disabled = false; $('#bAnnulla').disabled = false;
-    msg(pr.rifiuta ? T('dis_rifiuta', pr.dettagli || '') : T('aperti_errore')); return;
+    msg(pr && pr.rifiuta ? T('dis_rifiuta', pr.dettagli || '') : T('aperti_errore')); return;
   }
   if (aperti && aperti.length && !await call('goChiudiProgrammi', A.cartella, ids)) {
     $('#msg').style.color = ''; $('#bAvanti').disabled = false; $('#bAnnulla').disabled = false;

@@ -683,7 +683,10 @@ func antenatiAdmin(base string) bool {
 
 // sicurezzaCartella legge da Windows quello che serve a installa.DecidiCartellaSicura.
 func sicurezzaCartella(base string) installa.SicurezzaCartella {
-	s := installa.SicurezzaCartella{AntenatiAdmin: antenatiAdmin(base)}
+	s := installa.SicurezzaCartella{SenzaPermessi: discoSenzaPermessi(base)}
+	if !s.SenzaPermessi {
+		s.AntenatiAdmin = antenatiAdmin(base)
+	}
 	fi, err := os.Lstat(base)
 	if err != nil {
 		return s
@@ -701,6 +704,24 @@ func sicurezzaCartella(base string) installa.SicurezzaCartella {
 	}
 	s.ProprietarioAdmin = proprietarioAdmin(base)
 	return s
+}
+
+// discoSenzaPermessi: il disco di p non conserva proprietari e permessi (FAT32, exFAT: manca
+// FILE_PERSISTENT_ACLS). Se non si riesce a leggere, si fa come per NTFS (controlli pieni).
+func discoSenzaPermessi(p string) bool {
+	vol := filepath.VolumeName(p)
+	if vol == "" {
+		return false
+	}
+	radice, err := windows.UTF16PtrFromString(vol + `\`)
+	if err != nil {
+		return false
+	}
+	var flag uint32
+	if err := windows.GetVolumeInformation(radice, nil, 0, nil, nil, &flag, nil, 0); err != nil {
+		return false
+	}
+	return flag&windows.FILE_PERSISTENT_ACLS == 0
 }
 
 // preparaCartellaTasso: la cartella base. Dentro Programmi: una cartella normale (ha già i

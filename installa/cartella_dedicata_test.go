@@ -81,3 +81,30 @@ func TestDecidiCartellaSicura(t *testing.T) {
 		}
 	}
 }
+
+// Disco senza permessi (FAT32, exFAT): cartella nuova, vuota o già di Tasso sì; un'altra cartella
+// con dentro altro no, con il messaggio del disco senza permessi. Una giunzione mai.
+func TestCartellaSuDiscoSenzaPermessi(t *testing.T) {
+	for _, c := range []struct {
+		s    SicurezzaCartella
+		crea bool
+		err  string
+	}{
+		{SicurezzaCartella{SenzaPermessi: true}, true, ""},
+		{SicurezzaCartella{SenzaPermessi: true, Esiste: true, Vuota: true}, false, ""},
+		{SicurezzaCartella{SenzaPermessi: true, Esiste: true, DiTasso: true}, false, ""},
+		{SicurezzaCartella{SenzaPermessi: true, Esiste: true}, false, ErrCartSenzaPermessi},
+		{SicurezzaCartella{SenzaPermessi: true, Esiste: true, Vuota: true, Collegamento: true}, false, ErrCartNonSicura},
+		// NTFS: come prima
+		{SicurezzaCartella{Esiste: true, Vuota: true}, false, ErrCartNonSicura},
+	} {
+		crea, err := DecidiCartellaSicura(c.s)
+		codice := ""
+		if e, ok := err.(*ErroreCartella); ok {
+			codice = e.Codice
+		}
+		if crea != c.crea || codice != c.err {
+			t.Errorf("%+v: crea=%v errore=%q, volevo crea=%v errore=%q", c.s, crea, codice, c.crea, c.err)
+		}
+	}
+}
