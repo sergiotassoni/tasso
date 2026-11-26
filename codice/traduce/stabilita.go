@@ -124,19 +124,26 @@ func segnaGiaMostrate(f *traduzioniFisse, c *confermeDecisione, coppia string, b
 // in almeno confermeMinime fotogrammi, e l'ultima volta da meno di scadenzaDecisione. I fotogrammi
 // in cui resta tradotta solo grazie alla decisione tenuta non la rinnovano: passato il tempo, la
 // scritta si giudica di nuovo da sola (e se è del mondo torna in inglese).
+//
+// La scadenza conta anche i giri mostrati (scadenzaGiri): con la schermata ferma non si rilegge e
+// non si mostra niente di nuovo, quindi non passa nessun giro. Un menu fermo per un minuto non
+// perde la decisione appena qualcos'altro cambia sullo schermo e fa rileggere tutto.
 const (
 	confermeMinime    = 2
 	scadenzaDecisione = 20 * time.Second
+	scadenzaGiri      = 40 // circa 10-20 s di giri quando lo schermo si muove davvero
 )
 
 type conferma struct {
 	n      int
 	ultima time.Time
+	giro   int64 // giro (segna) dell'ultima conferma
 }
 
 type confermeDecisione struct {
-	mu sync.Mutex
-	m  map[string]conferma
+	mu   sync.Mutex
+	m    map[string]conferma
+	giri int64 // quante volte è stato chiamato segna (giri mostrati)
 }
 
 // confermePagina: quelle della traduzione dello schermo.
@@ -153,6 +160,7 @@ func (c *confermeDecisione) segna(coppia string, mostrate, freschi []Blocco, ade
 	if c.m == nil {
 		c.m = map[string]conferma{}
 	}
+	c.giri++
 	for _, b := range mostrate {
 		if b.Tenuta || !contieneBlocco(freschi, b) {
 			continue
@@ -164,11 +172,12 @@ func (c *confermeDecisione) segna(coppia string, mostrate, freschi []Blocco, ade
 		x := c.m[k]
 		x.n++
 		x.ultima = adesso
+		x.giro = c.giri
 		c.m[k] = x
 	}
 	if len(c.m) > 5000 { // via le più vecchie
 		for k, x := range c.m {
-			if adesso.Sub(x.ultima) > scadenzaDecisione {
+			if adesso.Sub(x.ultima) > scadenzaDecisione && c.giri-x.giro > scadenzaGiri {
 				delete(c.m, k)
 			}
 		}
@@ -183,7 +192,11 @@ func (c *confermeDecisione) valida(coppia, testo string, adesso time.Time) bool 
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	x, ok := c.m[chiaveFissa(coppia, testo)]
-	return ok && x.n >= confermeMinime && adesso.Sub(x.ultima) <= scadenzaDecisione
+	if !ok || x.n < confermeMinime {
+		return false
+	}
+	// scade solo se sono passati sia il tempo sia i giri mostrati (schermata ferma: si tiene)
+	return adesso.Sub(x.ultima) <= scadenzaDecisione || c.giri-x.giro <= scadenzaGiri
 }
 
 // letturaPiuGiusta: la lettura a è quella buona e b quella sbagliata della stessa scritta: a è già

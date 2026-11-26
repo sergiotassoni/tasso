@@ -333,3 +333,28 @@ func TestCollaudoIsteresiLetturaGiusta(t *testing.T) {
 		t.Errorf("una lettura sbagliata sola ha rimesso la traduzione sbagliata: %+v", vis)
 	}
 }
+
+// Schermata ferma (nessuna rilettura, nessun giro mostrato): la decisione non scade col solo
+// tempo. Quando poi qualcos'altro cambia e si rilegge tutto, la scritta resta tradotta.
+func TestCollaudoDecisioneSchermataFerma(t *testing.T) {
+	f := &traduzioniFisse{}
+	c := &confermeDecisione{}
+	t0 := time.Unix(9000, 0)
+	menu := Blocco{Testo: "Early Morning", Tradotto: "Mattina presto"}
+	f.fissa("en>it", menu.Testo, menu.Tradotto)
+	c.segna("en>it", []Blocco{menu}, []Blocco{menu}, t0)
+	c.segna("en>it", []Blocco{menu}, []Blocco{menu}, t0.Add(250*time.Millisecond))
+	bl := []Blocco{{Testo: "Early Morning", Affid: letturaDubbia}}
+	segnaGiaMostrate(f, c, "en>it", bl, t0.Add(90*time.Second)) // un minuto e mezzo fermo
+	if !bl[0].GiaMostrata {
+		t.Fatal("schermata ferma: la decisione non deve scadere solo per il tempo")
+	}
+	// ma con lo schermo che si muove (tanti giri mostrati senza conferme da sola) scade
+	for k := 0; k < scadenzaGiri+1; k++ {
+		c.segna("en>it", nil, nil, t0.Add(time.Duration(91+k)*time.Second))
+	}
+	segnaGiaMostrate(f, c, "en>it", bl, t0.Add(150*time.Second))
+	if bl[0].GiaMostrata {
+		t.Fatal("tanti giri senza conferme e più di 20 s: la decisione deve scadere")
+	}
+}

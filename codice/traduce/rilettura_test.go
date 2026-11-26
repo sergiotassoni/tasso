@@ -8,6 +8,11 @@ import (
 
 // La riga letta male viene riletta (ingrandita, in tre preparazioni) e vince la lettura buona.
 func TestRileggiIncerte(t *testing.T) {
+	// la memoria delle riletture è di tutto il programma: con -count=N il giro dopo troverebbe
+	// già la rilettura e non chiamerebbe l'OCR. Ogni giro parte da vuota.
+	muRiletture.Lock()
+	riletture = map[string][]ParolaOCR{}
+	muRiletture.Unlock()
 	sf, ink := color.RGBA{30, 60, 160, 255}, color.RGBA{245, 245, 245, 255} // bianco su pulsante blu
 	img := immagineFinta(800, 300, sf)
 	fine := parolaFinta(img, 100, 100, 10, 14, 30, ink)
