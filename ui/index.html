@@ -996,7 +996,7 @@ function disegnaArchivio() {
     const c = document.createElement("input"); c.type = "checkbox"; c.checked = A.sel.has(v.percorso);
     c.onclick = e => { e.stopPropagation(); scegliRiga(v, r, c.checked); };
     const n = document.createElement("div"); n.className = "n"; n.innerHTML = v.cartella ? ICONA_CARTELLA : ICONA_FILE;
-    const sp = document.createElement("span"); sp.textContent = v.nome; sp.title = v.percorso; n.append(sp);
+    const sp = document.createElement("span"); sp.textContent = vedi(v.nome); sp.title = vedi(v.percorso); n.append(sp);
     if (A.cerca.trim() && v.percorso.includes("/")) { const sm = document.createElement("small"); sm.textContent = v.percorso.slice(0, v.percorso.lastIndexOf("/")); sp.append(sm); }
     const d1 = document.createElement("div"); d1.className = "num"; d1.textContent = dim(v.dim || 0);
     const d2 = document.createElement("div"); d2.className = "num"; d2.textContent = v.comp >= 0 && !(v.cartella && !v.n) ? dim(v.comp) : "—";
@@ -1031,12 +1031,15 @@ function iniziaDaVista() {
   S.coda = []; S.codaTot = 1; S.codaFatti = 0; S.ultimoEstratto = null;
   S.daVista = true; S.corrente = S.arch.percorso; S.modoEstrai = "";
 }
+// vedi: il nome come lo si mostra, senza i caratteri che girano il verso del testo
+// ("fattura\u202Efdp.exe" si leggerebbe "fatturaexe.pdf"): come in estrazione diventano "_".
+function vedi(s) { return String(s).replace(/[\u202A-\u202E\u2066-\u2069]/g, "_"); }
 async function apriVoce(v, confermato) {
   const A = S.arch;
   if (S.occupato) { toast(t("err_occupato")); return; }
   let r = await goApriVoce(A.percorso, A.password, v.percorso, confermato);
   if (r === "conferma") {
-    if (!(await conferma(t("pericoloso_tit"), t("pericoloso", { nome: v.nome }), t("apri_comunque")))) return;
+    if (!(await conferma(t("pericoloso_tit"), t("pericoloso", { nome: vedi(v.nome) }), t("apri_comunque")))) return;
     confermato = true;
     r = await goApriVoce(A.percorso, A.password, v.percorso, true);
   }
