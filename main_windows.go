@@ -28,6 +28,9 @@ import (
 // Pagina Microsoft del WebView2 Runtime: si apre SOLO se l'utente risponde Sì.
 const paginaWebView2 = "https://go.microsoft.com/fwlink/p/?LinkId=2124703"
 
+// nomeMutex: una sola copia di Tasso Setup alla volta (anche con l'aggiornamento silenzioso).
+const nomeMutex = "Local\\TassoSetup"
+
 var (
 	finestra webview2.WebView
 	lingua   atomic.Value // string
@@ -83,11 +86,9 @@ func main() {
 			}
 		}
 	}
-	lingua.Store(testi.DaWindows(linguaWindows()))
 
 	// una sola copia alla volta
-	nome := "Local\\TassoSetup"
-	mn, _ := windows.UTF16PtrFromString(nome)
+	mn, _ := windows.UTF16PtrFromString(nomeMutex)
 	h, err := windows.CreateMutex(nil, true, mn)
 	if err == windows.ERROR_ALREADY_EXISTS {
 		portaDavanti()
@@ -133,21 +134,11 @@ func main() {
 
 	dati, _ := os.MkdirTemp("", "TassoSetup-WebView2-")
 	defer func() {
-		for i := 0; i < 10; i++ { // i processi di WebView2 escono un attimo dopo la finestra
-			if os.RemoveAll(dati) == nil {
-				break
-			}
-			time.Sleep(300 * time.Millisecond)
-		}
+		togliDatiWebView2(dati)
 		cancellaAllUscita()
 	}()
 
-	scala := 1.0
-	if procGetDpiForSystem.Find() == nil {
-		if dpi, _, _ := procGetDpiForSystem.Call(); dpi >= 96 {
-			scala = float64(dpi) / 96
-		}
-	}
+	scala := scalaSchermo()
 	webview2.SuFinestra["goScegliCartella"] = true // finestra di Windows legata alla nostra
 	webview2.Subito["goAnnulla"] = true
 	webview2.ChiusuraHook = func() bool {
@@ -177,6 +168,28 @@ func main() {
 	w.SetHtml(ui.Pagina())
 	w.Run()
 	w.Destroy()
+}
+
+// togliDatiWebView2 cancella la cartella temporanea della WebView2. I processi di WebView2
+// escono un attimo dopo la finestra: riprova per circa 3 secondi.
+func togliDatiWebView2(dati string) {
+	for i := 0; i < 10; i++ {
+		if os.RemoveAll(dati) == nil {
+			break
+		}
+		time.Sleep(300 * time.Millisecond)
+	}
+}
+
+// scalaSchermo: 1 a 96 DPI, 1.5 a 144 DPI... (per le dimensioni delle finestre).
+func scalaSchermo() float64 {
+	scala := 1.0
+	if procGetDpiForSystem.Find() == nil {
+		if dpi, _, _ := procGetDpiForSystem.Call(); dpi >= 96 {
+			scala = float64(dpi) / 96
+		}
+	}
+	return scala
 }
 
 func portaDavanti() {
@@ -554,8 +567,6 @@ func installaInFondo(ctx context.Context, o installa.Opzioni) {
 		return
 	}
 	var apribili []installa.Programma
-	for _, p := range installa.ProgrammiPer(o.Componenti) {
-		apribili = append(apribili, p)
-	}
+	apribili = append(apribili, installa.ProgrammiPer(o.Componenti)...)
 	manda("finito", map[string]any{"ok": true, "avvisoCollegamenti": avviso != nil, "apribili": apribili})
 }

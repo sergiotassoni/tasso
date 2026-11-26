@@ -350,10 +350,8 @@ func programmiAperti(base string, cc []installa.Componente) []aperto {
 		if err != nil {
 			continue
 		}
-		buf := make([]uint16, 1024)
-		sz := uint32(len(buf))
-		if windows.QueryFullProcessImageName(h, 0, &buf[0], &sz) == nil {
-			if nome, ok := cerca[strings.ToLower(windows.UTF16ToString(buf[:sz]))]; ok {
+		if exe, ok := percorsoExe(h); ok {
+			if nome, ok := cerca[strings.ToLower(exe)]; ok {
 				out = append(out, aperto{pe.ProcessID, nome})
 			}
 		}
@@ -497,10 +495,8 @@ func fotoProcessi() []installa.Processo {
 	for err = windows.Process32First(snap, &pe); err == nil; err = windows.Process32Next(snap, &pe) {
 		p := installa.Processo{PID: pe.ProcessID, Padre: pe.ParentProcessID, Nome: windows.UTF16ToString(pe.ExeFile[:])}
 		if h, err := windows.OpenProcess(windows.PROCESS_QUERY_LIMITED_INFORMATION, false, pe.ProcessID); err == nil {
-			buf := make([]uint16, 1024)
-			sz := uint32(len(buf))
-			if windows.QueryFullProcessImageName(h, 0, &buf[0], &sz) == nil {
-				p.Percorso = windows.UTF16ToString(buf[:sz])
+			if exe, ok := percorsoExe(h); ok {
+				p.Percorso = exe
 			}
 			p.Nato = natoIl(h)
 			windows.CloseHandle(h)
@@ -508,6 +504,16 @@ func fotoProcessi() []installa.Processo {
 		out = append(out, p)
 	}
 	return out
+}
+
+// percorsoExe: il percorso completo dell'exe del processo h.
+func percorsoExe(h windows.Handle) (string, bool) {
+	buf := make([]uint16, 1024)
+	sz := uint32(len(buf))
+	if windows.QueryFullProcessImageName(h, 0, &buf[0], &sz) != nil {
+		return "", false
+	}
+	return windows.UTF16ToString(buf[:sz]), true
 }
 
 // natoIl: ora di avvio del processo (0 se non si legge).
@@ -531,7 +537,7 @@ func criteriChiusura(base string, cc []installa.Componente, radici []uint32) ins
 }
 
 // chiudiAiutanti chiude i processi che tengono occupati i file da sostituire: i figli dei
-// programmi appena chiusi (radici, dalla fotografia prima fatta prima di chiuderli) e
+// programmi appena chiusi (radici, dalla fotografia fatta prima di chiuderli) e
 // qualsiasi processo partito dalle cartelle da sostituire. Prima aspetta un po' che escano da
 // soli (la WebView2 di Tasso esce subito dopo Tasso), poi li chiude a forza.
 // Mai un processo che non c'entra (vedi installa.DaChiudere). Se uno non si chiude non fermo
