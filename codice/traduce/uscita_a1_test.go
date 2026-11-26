@@ -112,3 +112,52 @@ func TestParoleInventateProvaFinale(t *testing.T) {
 		}
 	}
 }
+
+func TestFrasiRipetuteTolte(t *testing.T) {
+	casi := [][3]string{
+		{"Lunka: There are more of them. Quick! Follow me!", "Lunka: Ce ne sono altri. Presto! Seguimi! Seguimi!", "Lunka: Ce ne sono altri. Presto! Seguimi!"},
+		{"Come on! We have places to be!", "Forza! Forza! Abbiamo posti dove stare!", "Forza! Abbiamo posti dove stare!"},
+		{"What? I was just bein' friendly.", "Cosa? Cosa? Stavo solo per essere amichevole.", "Cosa? Stavo solo per essere amichevole."},
+		{"What's going on?", "Che succede? Cosa?", "Che succede?"},
+		{"What's going on? What did you do to me?", "Che succede? Cosa? Cosa mi hai fatto?", "Che succede? Cosa mi hai fatto?"},
+		// restano
+		{"No! No!", "No! No!", "No! No!"},
+		{"What? Really?", "Cosa? Davvero?", "Cosa? Davvero?"},
+		{"Welcome to our school.", "Benvenuti nella nostra scuola.", "Benvenuti nella nostra scuola."},
+		{"Hurry, hurry!", "Presto! Presto!", "Presto! Presto!"},
+	}
+	for _, c := range casi {
+		if got := senzaRipetizioni(c[0], c[1]); got != c[2] {
+			t.Errorf("%q -> %q, volevo %q", c[1], got, c[2])
+		}
+	}
+}
+
+func TestTerminiProvaFinale(t *testing.T) {
+	casi := [][3]string{
+		{"Restores 60% of Health Segment.", "Ripristina il 60% del segmento sanitario.", "Ripristina il 60% della tacca di salute."},
+		{"You can toggle Target Lock with", "Puoi attivare la serratura di destinazione con", "Puoi attivare il blocco del bersaglio con"},
+		{"To use Active Abilities, you need Activation Charges.", "Per utilizzare le Abilità Attive, è necessario Attivare le spese.", "Per utilizzare le Abilità Attive, servono le cariche di attivazione."},
+		{"But the lieutenant here will be feeding you intel.", "Ma il tenente qui ti darà da mangiare.", "Ma il tenente qui ti passerà le informazioni."},
+		{"C) JOURNAL", "C) GIORNALE", "C) DIARIO"},
+		{"The principal continues with his speech...", "Il principale continua con il suo discorso...", "Il preside continua con il suo discorso..."},
+		{"I'm Ms. Toriumi. I teach Composition.", "Sono la signora. Toriumi. Insegno composizione.", "Sono la signora Toriumi. Insegno composizione."},
+		{"Hostile 1: They rigged the entire camp and perimeter.", "Hanno truccato l'intero campo e il perimetro.", "Hanno minato l'intero campo e il perimetro."},
+		{"Have you seen the classroom assignments?", "Hai visto gli incarichi in classe?", "Hai visto le assegnazioni delle classi?"},
+		{"Hey, it's Yuka-tan!", "Ehi, sono Yuka-tan!", "Ehi, è Yuka-tan!"},
+	}
+	for _, c := range casi {
+		if got := correggiTerminiFrase(c[0], c[1]); got != c[2] {
+			t.Errorf("%q -> %q, volevo %q", c[1], got, c[2])
+		}
+	}
+	for en, it := range map[string]string{"Principal": "Preside", "Nice to meet you! What's your first name?": "Piacere di conoscerti! Come ti chiami?",
+		"Locate the camp": "Individua il campo", "Target Lock": "Blocco del bersaglio", "KING RAVEN": "KING RAVEN"} {
+		if v, ok := fraseMenuConNumero(en); !ok || !strings.EqualFold(v, it) {
+			t.Errorf("frase pronta %q -> %q %v, volevo %q", en, v, ok, it)
+		}
+	}
+	if motivoNonTradurre(Blocco{Testo: "4/7 Tug", Righe: 1, Affid: letturaBuona}) == "" {
+		t.Error("la data del calendario del gioco non va tradotta")
+	}
+}

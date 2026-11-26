@@ -85,6 +85,8 @@ func motivoNonTradurre(b Blocco) string {
 		return "lettura incerta" // "rm son'" al posto di "I'm sorry"
 	case nomeConCodice(b.Testo):
 		return motivoNomeCodice
+	case reDataGioco.MatchString(b.Testo) && len(strings.Fields(b.Testo)) <= 3:
+		return "non è testo da tradurre" // "4/7 Tue": la data del calendario del gioco
 	case titoloVideo(b.Testo):
 		return motivoTitoloVideo
 	case nomeGioco(b.Testo):

@@ -108,6 +108,45 @@ var regoleTermini = []regolaTermine{
 	{inglese: rx(`(?i)\bsharper turns?\b`), da: rx(`(?i)\b(una|la) (svolta|curva|virata) più (nitida|nitina|netta|affilata|acuta|sharp)\b`), a: "${1} curva più stretta"},
 	{inglese: rx(`(?i)\bsharper turns?\b`), da: rx(`(?i)\b(un|il) giro più (nitido|nitino|netto|affilato|acuto|sharp)\b`), a: "una curva più stretta"},
 	{inglese: rx(`(?i)\bwhile steering\b`), da: rx(`(?i)\bmentre si guida\b`), a: "mentre si sterza"},
+	// prova finale (26/11, 6 giochi mai visti): errori visti
+	{inglese: rx(`(?i)\bhealth segments?\b`), da: rx(`(?i)\b(del|il|un|al|dal|nel) segmento (sanitario|di salute|della salute)\b`), f: versoTacca},
+	{inglese: rx(`(?i)\bhealth segments?\b`), da: rx(`(?i)\bsegment[oi] (sanitari[oi]|di salute|della salute)\b`), a: "tacca di salute"},
+	{inglese: rx(`(?i)\btarget lock\b`), da: rx(`(?i)\b(la )?serratura (di destinazione|del bersaglio|bersaglio|di bersaglio)\b`), a: "il blocco del bersaglio"},
+	{inglese: rx(`(?i)\bactivation charges?\b`), da: rx(`(?i)è necessario attivare le spese\b`), a: "servono le cariche di attivazione"},
+	{inglese: rx(`(?i)\bactivation charges\b`), da: rx(`(?i)\b(spese|soste|cariche) (di|delle) attivazion[ei]\b`), a: "cariche di attivazione"},
+	{inglese: rx(`(?i)\bfeed(ing|s)? you intel\b`), da: rx(`(?i)\bti (darà|dà|sta dando|starà dando) da mangiare\b`), a: "ti passerà le informazioni"},
+	{inglese: rx(`(?i)\bprincipal\b`), evita: rx(`(?i)\bprincipal (component|amount|investigator|character|actor|engineer|cast)\b`), da: rx(`(?i)\bprincipale\b`), a: "preside"},
+	{inglese: rx(`(?i)\bjournal\b`), evita: rx(`(?i)\b(newspaper|daily journal|wall street)\b`), da: rx(`(?i)\bgiornale\b`), a: "diario"},
+	{inglese: rx(`(?i)\bdeploy\b`), da: rx(`(?i)\bdistribuisci\b`), a: "attiva"},
+	{inglese: rx(`(?i)\bget in there\b`), da: rx(`(?i)\bvoglio che tu sia lì dentro\b`), a: "voglio che tu entri lì"},
+	{inglese: rx(`(?i)\brigged\b`), evita: rx(`(?i)\b(game|election|match|vote|race|lottery)\b`), da: rx(`(?i)\btruccat(o|a|i|e)\b`), a: "minat$1"},
+	{inglese: rx(`(?i)\bcatch on\b`), da: rx(`(?i)\bprenderai piede\b`), a: "ci arriverai"},
+	{inglese: rx(`(?i)\bplaces to be\b`), da: rx(`(?i)\bposti dove stare\b`), a: "posti dove andare"},
+	{inglese: rx(`(?i)\bstory, fair,? and challenging\b`), da: rx(`(?i)\bsu storie, fiere e difficoltà impegnative\b`), a: "nelle difficoltà Storia, Equa e Impegnativa"},
+	{inglese: rx(`(?i)\bclassroom assignments?\b`), da: rx(`(?i)\b(gli )?incarichi in classe\b`), a: "le assegnazioni delle classi"},
+	{inglese: rx(`(?i)\b(pretty|very|so|really) close\b`), da: rx(`(?i)\bdevi essere molto vicin[oa]\b`), a: "dovete essere molto legati"},
+	{inglese: rx(`(?i)\bhow close are you\b`), da: rx(`(?i)\bquanto siete vicini\b`), a: "quanto siete legati"},
+	{inglese: rx(`(?i)\bwhat's the deal between\b`), da: rx(`(?i)\bqual è l'accordo tra\b`), a: "cosa c'è tra"},
+	{inglese: rx(`(?i)^hey, it's \pL`), da: rx(`(?i)^ehi, sono\b`), a: "Ehi, è"},
+	{inglese: rx(`(?i)\bnew kid\b`), da: rx(`(?i)\bessere nel nuovo ragazzo\b`), a: "essere il nuovo arrivato"},
+	{inglese: rx(`(?i)\bfingers and toes\b`), da: rx(`(?i)\bdita e dita dei piedi\b`), a: "dita delle mani e dei piedi"},
+	{inglese: rx(`(?i)\bspecial issue\b`), da: rx(`(?i)\bun problema special[ei]?\b`), a: "una dotazione speciale"},
+	{inglese: rx(`(?i)\bdodging the question\b`), da: rx(`(?i)\bscuotendo la domanda\b`), a: "evitando la domanda"},
+	{inglese: rx(`(?i)\btaking in the view\b`), da: rx(`(?i)\bsto solo toccando la vista\b`), a: "mi godo solo il panorama"},
+	{inglese: rx(`(?i)\bMs\. \pL`), da: rx(`(?i)\b(la )?signora\. (\p{Lu})`), a: "la signora $2"},
+	{inglese: rx(`(?i)\byou still got it\b`), da: rx(`(?i)\bhai ancora capito\b`), a: "ce l'hai ancora"},
+	{inglese: rx(`(?i)\bget up those stairs\b`), da: rx(`(?i)\balzate quelle scale\b`), a: "su per quelle scale"},
+}
+
+// versoTacca: "del segmento sanitario" -> "della tacca di salute".
+func versoTacca(s string) string {
+	art := map[string]string{"del": "della", "il": "la", "un": "una", "al": "alla", "dal": "dalla", "nel": "nella"}
+	w := strings.Fields(s)
+	a := art[strings.ToLower(w[0])]
+	if a == "" {
+		a = w[0]
+	}
+	return a + " tacca di salute"
 }
 
 // correggiTerminiFrase applica le regole a una traduzione di una frase inglese.
@@ -123,6 +162,9 @@ func correggiTerminiFrase(en, it string) string {
 			} else {
 				nuovo = r.da.ReplaceAllString(trovato, r.a)
 			}
+			if len([]rune(trovato)) > 1 && trovato == strings.ToUpper(trovato) && trovato != strings.ToLower(trovato) {
+				return strings.ToUpper(nuovo) // "C) GIORNALE" -> "C) DIARIO"
+			}
 			if p := []rune(trovato); len(p) > 0 && unicode.IsUpper(p[0]) {
 				q := []rune(nuovo)
 				q[0] = unicode.ToUpper(q[0])
@@ -131,7 +173,7 @@ func correggiTerminiFrase(en, it string) string {
 			return nuovo
 		})
 	}
-	return strings.TrimSpace(ritoccaItaliano(it))
+	return senzaRipetizioni(en, strings.TrimSpace(ritoccaItaliano(it)))
 }
 
 // ritoccaItaliano: errori di scrittura tipici del motore veloce, sempre uguali e sicuri da

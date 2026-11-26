@@ -4,6 +4,7 @@ package traduce
 // tagliate in fondo, titoli dei video e dei giochi, parole ripetute inventate dal traduttore.
 
 import (
+	"regexp"
 	"strings"
 )
 
@@ -98,3 +99,111 @@ func nomeGioco(t string) bool {
 func nomeComposto(w string) bool {
 	return len(w) >= 7 && !esiste(w) && parolaComposta(w)
 }
+
+// ---------------------------------------------------------------- frasi ripetute
+
+// frasiDi: le frasi di un testo, ognuna con la sua punteggiatura finale ("Presto! Seguimi!").
+func frasiDi(s string) []string {
+	var out []string
+	inizio := 0
+	r := []rune(s)
+	for i := 0; i < len(r); i++ {
+		if strings.ContainsRune(".!?…", r[i]) {
+			j := i
+			for j+1 < len(r) && strings.ContainsRune(".!?…\"»", r[j+1]) {
+				j++
+			}
+			if j+1 == len(r) || r[j+1] == ' ' {
+				if f := strings.TrimSpace(string(r[inizio : j+1])); f != "" {
+					out = append(out, f)
+				}
+				inizio = j + 1
+				i = j
+			}
+		}
+	}
+	if f := strings.TrimSpace(string(r[inizio:])); f != "" {
+		out = append(out, f)
+	}
+	return out
+}
+
+func chiaveRipetuta(f string) string {
+	return strings.ToLower(strings.TrimRight(strings.TrimSpace(f), ".!?…\"» "))
+}
+
+// senzaRipetizioni: toglie le frasi ripetute che il traduttore veloce aggiunge da solo ("Quick!
+// Follow me!" -> "Presto! Seguimi! Seguimi!", "Come on!" -> "Forza! Forza!", "What?" -> "Cosa?
+// Cosa?", "What's going on?" -> "Che succede? Cosa?"). Solo se l'inglese ha meno frasi e non è
+// ripetuto anche lui ("No, no!" resta).
+func senzaRipetizioni(en, it string) string {
+	fe, fi := frasiDi(strings.TrimSpace(en)), frasiDi(strings.TrimSpace(it))
+	if len(fi) <= len(fe) || len(fi) < 2 {
+		return it
+	}
+	ripetuteEn := false
+	cosaEn := false
+	for i, f := range fe {
+		if i > 0 && chiaveRipetuta(f) == chiaveRipetuta(fe[i-1]) {
+			ripetuteEn = true
+		}
+		if k := chiaveRipetuta(f); k == "what" || k == "huh" || k == "eh" {
+			cosaEn = true
+		}
+	}
+	parole := strings.FieldsFunc(strings.ToLower(en), func(r rune) bool { return !(r >= 'a' && r <= 'z') && r != '\'' })
+	for i := 1; i < len(parole); i++ {
+		if parole[i] == parole[i-1] {
+			ripetuteEn = true // "Hurry, hurry!": la ripetizione c'è anche in inglese
+		}
+	}
+	if ripetuteEn {
+		return it
+	}
+	var out []string
+	for i, f := range fi {
+		if i > 0 && chiaveRipetuta(f) == chiaveRipetuta(fi[i-1]) && len(fi)-(i-len(out)) > len(fe) {
+			continue // la stessa frase due volte di fila
+		}
+		out = append(out, f)
+	}
+	// "Cosa?" in più da solo (l'inglese non ha un "What?" da solo)
+	if len(out) > len(fe) && !cosaEn {
+		var tenute []string
+		tolta := false
+		for _, f := range out {
+			if !tolta && chiaveRipetuta(f) == "cosa" && len(out)-1 >= len(fe) {
+				tolta = true
+				continue
+			}
+			tenute = append(tenute, f)
+		}
+		out = tenute
+	}
+	if len(out) == len(fi) {
+		return it
+	}
+	return strings.Join(out, " ")
+}
+
+// frasiPronteTutte: una scritta di più frasi pronte una dopo l'altra (due scelte di dialogo lette
+// come un paragrafo: "Nice to meet you! What's your first name?"): ogni frase dal catalogo.
+// Solo se TUTTE le frasi sono pronte.
+func frasiPronteTutte(s string) (string, bool) {
+	f := frasiDi(strings.TrimSpace(s))
+	if len(f) < 2 || len(f) > 4 {
+		return "", false
+	}
+	var out []string
+	for _, x := range f {
+		v, ok := fraseMenu(x)
+		if !ok {
+			return "", false
+		}
+		out = append(out, v)
+	}
+	return strings.Join(out, " "), true
+}
+
+// reDataGioco: "4/7 Tue", "4/7 Tug" (il giorno letto male): data del calendario del gioco, resta.
+var reDataGioco = regexp.MustCompile(`^\W{0,3}\d{1,2}\s?/\s?\d{1,2}\b`)
