@@ -1826,7 +1826,14 @@ function confirmLevel(n){
   let note = _t('Salva il tuo lavoro e chiudi i browser prima di iniziare (i programmi aperti vengono saltati).');
   if (n >= 3) note += _t(' Prima di tutto viene creato un backup automatico.');
   if (n >= 4) note += _t(' Questa pulizia aggiorna driver e Windows: alla fine potrebbe servire un riavvio.');
-  const found = AN && AN.junk ? _t('<div class="note" style="border-color:color-mix(in srgb,var(--a1) 40%,var(--line))">Anteprima: Tasso ha trovato circa <b style="color:var(--a1t)">') + fmtBytes(AN.junk) + _t('</b> di file inutili (temporanei, cache, Cestino, aggiornamenti vecchi).</div>') : '';
+  // 3.1.1: l'anteprima conta come la pulizia. A parte (AN.wuBusy, AN.browserOpen) quello che questa
+  // pulizia lascia per forza adesso: lo dico qui, così il numero alla fine non sembra un errore.
+  const ids = levelSteps(n).map(s => s.id);
+  const wuB = (AN && ids.includes('wu_cache') && AN.wuBusy > 0) ? AN.wuBusy : 0, brO = (AN && ids.includes('browser') && AN.browserOpen > 0) ? AN.browserOpen : 0;
+  const tot = (AN && AN.junk > 0 ? AN.junk : 0) + wuB + brO;
+  const resta = (wuB ? '<div class="muted" style="margin-top:6px">' + esc(_t('Di cui {0} restano perché Windows sta installando degli aggiornamenti (rifai la pulizia dopo il riavvio).').replace('{0}', fmtBytes(wuB))) + '</div>' : '') +
+    (brO ? '<div class="muted" style="margin-top:6px">' + esc(_t('Di cui {0} restano perché il browser è aperto (chiudilo per toglierli).').replace('{0}', fmtBytes(brO))) + '</div>' : '');
+  const found = tot > 0 ? _t('<div class="note" style="border-color:color-mix(in srgb,var(--a1) 40%,var(--line))">Anteprima: Tasso ha trovato circa <b style="color:var(--a1t)">') + fmtBytes(tot) + _t('</b> di file inutili (temporanei, cache, Cestino, aggiornamenti vecchi).</div>') + resta : '';
   const wu = levelSteps(n).some(s => s.id === 'winupdate');
   modal('<h2 style="color:' + L.c + _t('">Pulizia ') + L.name + _t('</h2><span class="muted">Durata stimata: circa ') + fmtMin(levelMinutes(n)) + '</span>' + found + '<ul style="max-height:150px;overflow:auto">' + list + '</ul><div class="note">' + note + '</div>' + fineBox(wu),
     [{label:_t('Annulla')}, {label:_t('Avvia pulizia ') + L.name, cls:'primary', risky:true, fn: (box) => { const f = fineRead(box); startLevel(n, f.fine, f.wu); }}]);
@@ -1907,6 +1914,7 @@ window.tasso = {
       '<div class="row" style="gap:10px">' + ((lvl0 && !(p.freed > 0)) ? '' : _t('<div class="stat" style="text-align:right"><div class="k">Spazio liberato</div><div class="v" style="color:var(--a1t)">') + fmtBytes(p.freed) + '</div></div>') + ((LIVE && LIVE.diskFree) ? _t('<div class="stat" style="text-align:right"><div class="k">Spazio libero ora</div><div class="v">') + fmtBytes(LIVE.diskFree) + '</div></div>' : '') + '</div></div>' +
       '<div class="log" id="doneLog" style="margin-top:14px;height:180px"></div>' +
       (p.reboot && !p.shutdown && !p.restart ? _t('<div class="note" style="margin-top:14px">Per completare aggiornamenti e riparazioni serve un riavvio.</div>') : '') +
+      (p.wuSkipped && AN && AN.wuBusy > 0 ? '<div class="note" style="margin-top:14px">' + esc(_t('La cache di Windows Update (circa {0}) è rimasta perché Windows stava installando degli aggiornamenti: rifai la pulizia dopo il riavvio per toglierla.').replace('{0}', fmtBytes(AN.wuBusy))) + '</div>' : '') +
       '<div class="row wrap" style="gap:10px;margin-top:14px">' + (p.reboot && !p.shutdown && !p.restart ? _t('<button class="btn warn" id="btnReboot">Riavvia ora</button>') : '') + _t('<button class="btn ghost" id="btnLogs2">Apri la cartella dei registri</button></div>');
     $('#doneLog').textContent = $('#runLog').textContent;
     runUI(false); RUN = null;

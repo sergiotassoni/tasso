@@ -2951,6 +2951,9 @@
   "Non sono riuscito a scaricare gli aggiornamenti: Windows ci riprova da solo più tardi.": "I couldn't download the updates: Windows will try again by itself later."
  },
  "ui": {
+  "Di cui {0} restano perché Windows sta installando degli aggiornamenti (rifai la pulizia dopo il riavvio).": "Of this, {0} stays because Windows is installing updates (run the cleanup again after restarting).",
+  "Di cui {0} restano perché il browser è aperto (chiudilo per toglierli).": "Of this, {0} stays because the browser is open (close it to remove it).",
+  "La cache di Windows Update (circa {0}) è rimasta perché Windows stava installando degli aggiornamenti: rifai la pulizia dopo il riavvio per toglierla.": "The Windows Update cache (about {0}) was left because Windows was installing updates: run the cleanup again after restarting to remove it.",
   "Beta": "Beta",
   "Stiamo migliorando qualità e velocità: qualche frase può uscire strana o restare nella lingua originale del gioco.": "We're improving quality and speed: some sentences may come out odd or stay in the game's original language.",
   "Resta acceso vicino all'orologio": "Stay on next to the clock",
