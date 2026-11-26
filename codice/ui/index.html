@@ -1130,7 +1130,6 @@ html:not([lang="it"]) .navsub button{padding-right:4px;gap:8px}
     <div class="row wrap" style="gap:14px;align-items:flex-end">
       <label class="acf">Dove clicca<select id="acWhere"><option value="mouse">Dove si trova il mouse</option><option value="fixed">In un punto fisso</option></select></label>
       <button class="btn ghost" id="btnAcPick" style="display:none">Scegli il punto</button><span class="small muted" id="acPoint" style="align-self:center"></span>
-      <label class="acf">Movimento del mouse<select id="acJig"><option value="0">Fermo</option><option value="3">Piccolissimo (3 px)</option><option value="10">Piccolo (10 px)</option><option value="25">Medio (25 px)</option></select></label>
       <label class="acf">Parte dopo<select id="acDelay"><option value="0">subito</option><option value="3" selected>3 secondi</option><option value="5">5 secondi</option><option value="10">10 secondi</option></select></label>
     </div>
     <div class="row wrap"><button class="btn primary" id="btnAcGo">Avvia autoclick</button><button class="btn ghost" id="btnAcStop" disabled>Ferma</button></div>
@@ -3269,11 +3268,11 @@ Object.assign(window.tasso, {
 // ---------- Autoclick ----------
 function acCfg(){
   const every = Math.max(1, Number($('#acEvery').value) || 1) * Number($('#acUnit').value);
-  return { intervalMs: Math.round(every), count: $('#acInf').checked ? 0 : Math.max(1, Math.round(Number($('#acCount').value) || 1)), button: $('#acBtn').value, double: $('#acDbl').value === '1', fixed: $('#acWhere').value === 'fixed', x: AC_PT ? AC_PT.x : 0, y: AC_PT ? AC_PT.y : 0, jiggle: Number($('#acJig').value) || 0, delaySec: Number($('#acDelay').value) || 0 };
+  return { intervalMs: Math.round(every), count: $('#acInf').checked ? 0 : Math.max(1, Math.round(Number($('#acCount').value) || 1)), button: $('#acBtn').value, double: $('#acDbl').value === '1', fixed: $('#acWhere').value === 'fixed', x: AC_PT ? AC_PT.x : 0, y: AC_PT ? AC_PT.y : 0, delaySec: Number($('#acDelay').value) || 0 };
 }
 let AC_PT = null;
 async function acSave(){ await call('goAutoClickSet', acCfg()); }
-['#acEvery', '#acUnit', '#acCount', '#acInf', '#acBtn', '#acDbl', '#acWhere', '#acJig', '#acDelay'].forEach(id => { $(id).onchange = () => { $('#btnAcPick').style.display = $('#acWhere').value === 'fixed' ? '' : 'none'; $('#acCount').disabled = $('#acInf').checked; acSave(); }; });
+['#acEvery', '#acUnit', '#acCount', '#acInf', '#acBtn', '#acDbl', '#acWhere', '#acDelay'].forEach(id => { $(id).onchange = () => { $('#btnAcPick').style.display = $('#acWhere').value === 'fixed' ? '' : 'none'; $('#acCount').disabled = $('#acInf').checked; acSave(); }; });
 $('#acCount').disabled = true;
 try { if (localStorage.getItem('tassoAcWarn') === '0') $('#acWarn').style.display = 'none'; } catch (e) {}
 $('#acWarnHide').onclick = (e) => { if (e) e.preventDefault(); $('#acWarn').style.display = 'none'; try { localStorage.setItem('tassoAcWarn', '0'); } catch (x) {} };

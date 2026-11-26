@@ -1,11 +1,11 @@
 package main
 
 // Autoclick: clicca da solo ogni tot tempo, quante volte vuoi, dove sta il mouse o in un punto
-// fisso, con piccoli movimenti facoltativi che restano dentro la finestra del gioco.
+// fisso. Clicca esattamente dove gli dici: niente movimenti casuali del mouse per "sembrare umano"
+// (3.1, collaudo finale: un autoclick onesto non si nasconde).
 // Si avvia e si ferma con un tasto a scelta (di base F6) anche da dentro il gioco.
 
 import (
-	"math/rand"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -31,7 +31,6 @@ type acConfig struct {
 	Fixed      bool   `json:"fixed"` // punto fisso invece della posizione del mouse
 	X          int32  `json:"x"`
 	Y          int32  `json:"y"`
-	Jiggle     int32  `json:"jiggle"`   // pixel di movimento casuale (0 = fermo)
 	DelaySec   int    `json:"delaySec"` // attesa prima di partire (per andare nel gioco)
 }
 
@@ -65,12 +64,6 @@ func autoClickSet(c acConfig) string {
 	}
 	if c.Count < 0 {
 		c.Count = 0
-	}
-	if c.Jiggle < 0 {
-		c.Jiggle = 0
-	}
-	if c.Jiggle > 50 {
-		c.Jiggle = 50
 	}
 	if c.DelaySec < 0 || c.DelaySec > 30 {
 		c.DelaySec = 3
@@ -254,26 +247,6 @@ func acClickOnce(cfg acConfig) {
 	if cfg.Fixed {
 		pSetCursorPos.Call(uintptr(cfg.X), uintptr(cfg.Y))
 	}
-	if cfg.Jiggle > 0 {
-		var p point
-		pGetCursorPos.Call(uintptr(unsafe.Pointer(&p)))
-		bx, by := p.X, p.Y
-		if cfg.Fixed {
-			bx, by = cfg.X, cfg.Y
-		}
-		nx := bx + rand.Int31n(2*cfg.Jiggle+1) - cfg.Jiggle
-		ny := by + rand.Int31n(2*cfg.Jiggle+1) - cfg.Jiggle
-		// Resto dentro la finestra in primo piano (il gioco), con un margine di 8 pixel.
-		if fg, _, _ := pGetFgWindow.Call(); fg != 0 {
-			var r rect
-			pGetWindowRect.Call(fg, uintptr(unsafe.Pointer(&r)))
-			if r.Right-r.Left > 40 && r.Bottom-r.Top > 40 {
-				nx = clamp32(nx, r.Left+8, r.Right-8)
-				ny = clamp32(ny, r.Top+8, r.Bottom-8)
-			}
-		}
-		pSetCursorPos.Call(uintptr(nx), uintptr(ny))
-	}
 	down, up := uint32(0x0002), uint32(0x0004)
 	switch cfg.Button {
 	case "dx":
@@ -292,14 +265,4 @@ func acClickOnce(cfg acConfig) {
 			time.Sleep(40 * time.Millisecond)
 		}
 	}
-}
-
-func clamp32(v, lo, hi int32) int32 {
-	if v < lo {
-		return lo
-	}
-	if v > hi {
-		return hi
-	}
-	return v
 }
