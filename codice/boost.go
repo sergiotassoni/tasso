@@ -440,29 +440,44 @@ func closeBackground() []string {
 // normale tramite Esplora file.
 func reopenBackground() []string {
 	bMu.Lock()
-	st := loadBoost()
-	list := bClosed
-	bClosed = nil
-	if len(st.Closed) > 0 {
-		st.Closed = nil
-		saveBoost()
-	}
+	list := append([]string(nil), bClosed...)
 	bMu.Unlock()
 	win, err := windows.GetSystemWindowsDirectory()
 	if err != nil {
 		return nil
 	}
 	explorer := filepath.Join(win, "explorer.exe")
-	var names []string
+	var names, restano []string
 	for _, p := range list {
 		if len(pidsByExe(filepath.Base(p))) > 0 || !fileExists(p) {
-			continue
+			continue // già ripartito da solo, o non c'è più: niente da riaprire
 		}
 		if openPath(explorer, "\""+p+"\"") {
 			names = append(names, strings.TrimSuffix(filepath.Base(p), filepath.Ext(p)))
+		} else {
+			restano = append(restano, p) // non si è riaperto: resta nell'elenco, "Rimetti com'era" ci riprova
 		}
 	}
+	// Tolgo dall'elenco solo quelli sistemati (e tengo quelli chiusi nel frattempo da un'altra parte).
+	bMu.Lock()
+	st := loadBoost()
+	bClosed = tieniDaRiaprire(bClosed, list, restano)
+	st.Closed = append([]string(nil), bClosed...)
+	saveBoost()
+	bMu.Unlock()
 	return names
+}
+
+// tieniDaRiaprire: dall'elenco di adesso tolgo quelli che ho provato a riaprire (provati), tranne quelli
+// non riusciti (restano). Quelli aggiunti nel frattempo restano.
+func tieniDaRiaprire(adesso, provati, restano []string) []string {
+	var out []string
+	for _, p := range adesso {
+		if !hasStr(provati, p) || hasStr(restano, p) {
+			out = append(out, p)
+		}
+	}
+	return out
 }
 
 // ---------------- Accendi / spegni (pulsante) ----------------
@@ -666,6 +681,14 @@ func boostSpegniPerUscita() {
 	}
 }
 
+// boostDaRimettere: il Boost ha ancora qualcosa di suo da rimettere (per il "Rimetti com'era" generale).
+func boostDaRimettere() bool {
+	bMu.Lock()
+	defer bMu.Unlock()
+	s := loadBoost()
+	return s.On || bGame != "" || len(s.Cmds) > 0 || s.PrevMode != "" || len(s.GpuPrev) > 0 || s.Mouse != nil || len(bClosed) > 0
+}
+
 // boostDaRimettereAllUscita: c'è qualcosa del Boost che deve tornare com'era prima di chiudere Tasso.
 func boostDaRimettereAllUscita(acceso, partitaAuto, programmiChiusi, modalitaDaRimettere bool) bool {
 	return acceso || partitaAuto || programmiChiusi || modalitaDaRimettere
@@ -835,13 +858,23 @@ func startBoostWatcher() {
 							manGame, measured, since = cur, "", time.Now()
 							var msgs []string
 							if bOpMu.TryLock() { // se sto accendendo o spegnendo il Boost, salto
-								if closed := closeBackground(); len(closed) > 0 {
-									msgs = append(msgs, "Chiusi in background: "+strings.Join(closed, ", ")+". Li riapro quando premi \"Rimetti com'era\".")
+								// Ricontrollo dentro il lucchetto: "Rimetti com'era" può essere finito un attimo fa,
+								// e con Tasso in pausa il Boost non chiude niente.
+								bMu.Lock()
+								ancora := loadBoost().On
+								bMu.Unlock()
+								setMu.Lock()
+								inPausa := settings.Paused
+								setMu.Unlock()
+								if ancora && !inPausa {
+									if closed := closeBackground(); len(closed) > 0 {
+										msgs = append(msgs, "Chiusi in background: "+strings.Join(closed, ", ")+". Li riapro quando premi \"Rimetti com'era\".")
+									}
+									if m := mouseAccelOff(cur); m != "" {
+										msgs = append(msgs, m)
+									}
 								}
 								bOpMu.Unlock()
-							}
-							if m := mouseAccelOff(cur); m != "" {
-								msgs = append(msgs, m)
 							}
 							if len(msgs) > 0 {
 								emit("onBoost", map[string]interface{}{"msgs": msgs, "state": boostInfo(), "auto": true})

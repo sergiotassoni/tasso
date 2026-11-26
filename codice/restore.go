@@ -66,6 +66,11 @@ func restoreOriginal() (msgs []string, ok bool) {
 	}
 	defer releaseRun()
 	profileForget()
+	// Prima il Boost: rimette quello che ha cambiato lui (programmi chiusi, mouse, scheda video per
+	// gioco, modalità) prima che qui sotto si rimetta il resto di Windows.
+	if boostDaRimettere() {
+		msgs = append(msgs, boostOff(true)...)
+	}
 	modeMu.Lock()
 	defer modeMu.Unlock()
 	setMu.Lock()

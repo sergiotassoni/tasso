@@ -62,3 +62,13 @@ func TestCopreSchermo(t *testing.T) {
 		t.Fatal("finestra sull'altro schermo")
 	}
 }
+
+// "Rimetti com'era" del Boost: un programma che non si riapre resta nell'elenco per riprovare.
+func TestTieniDaRiaprire(t *testing.T) {
+	adesso := []string{`C:\a\OneDrive.exe`, `C:\b\Teams.exe`, `C:\c\Zoom.exe`}
+	provati := []string{`C:\a\OneDrive.exe`, `C:\b\Teams.exe`}
+	got := tieniDaRiaprire(adesso, provati, []string{`C:\b\Teams.exe`})
+	if len(got) != 2 || got[0] != `C:\b\Teams.exe` || got[1] != `C:\c\Zoom.exe` {
+		t.Fatalf("resta %v: voglio Teams (non riaperto) e Zoom (chiuso nel frattempo)", got)
+	}
+}
