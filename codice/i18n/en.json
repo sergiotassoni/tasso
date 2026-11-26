@@ -1315,7 +1315,9 @@
   "Registrazione in background spenta (Win+Alt+R per registrare a mano funziona ancora). Aiuta solo se era accesa.": "Background recording off (Win+Alt+R to record by hand still works). It only helps if it was on.",
   "Priorità ai giochi accesa. Di solito non cambia gli FPS: aiuta solo i giochi che chiedono a Windows la priorità per i giochi.": "Game priority on. It usually doesn't change FPS: it only helps games that ask Windows for game priority.",
   "Rete a bassa latenza accesa. Di solito non cambia il ping (i giochi online usano quasi tutti UDP): può aiutare solo nei giochi che usano TCP, dopo il riavvio del PC.": "Low-latency network on. It usually doesn't change ping (almost all online games use UDP): it can only help games that use TCP, after restarting the PC.",
-  "Autoclick fermato: è cambiata la finestra davanti (non clicco dentro altri programmi).": "Autoclick stopped: the window in front changed (I don't click inside other programs)."
+  "Autoclick fermato: è cambiata la finestra davanti (non clicco dentro altri programmi).": "Autoclick stopped: the window in front changed (I don't click inside other programs).",
+  " Protezione sistema era spenta: l'ho accesa per poter fare il punto di ripristino (usa un po' di spazio del disco). Si rispegne da Pannello di controllo > Sistema > Protezione sistema > Configura.": " System Protection was off: I turned it on to be able to make the restore point (it uses a little disk space). You can turn it off again in Control Panel > System > System Protection > Configure.",
+  "Protezione sistema era spenta: l'ho accesa per poter fare il punto di ripristino (usa un po' di spazio del disco). Si rispegne da Pannello di controllo > Sistema > Protezione sistema > Configura.": "System Protection was off: I turned it on to be able to make the restore point (it uses a little disk space). You can turn it off again in Control Panel > System > System Protection > Configure."
  },
  "ps": {
   "echo Risparmio energetico delle porte USB rimesso come prima.": "echo USB port power saving put back as it was.",

@@ -302,10 +302,12 @@ func amdInstall(noBackup bool) {
 	backupMsg := ""
 	if !noBackup {
 		gdEmit("backup", "Creo il punto di ripristino…", map[string]interface{}{"from": before, "to": o.Ver})
-		switch gdRestorePoint("AMD " + o.Ver) {
+		rp, nota := gdRestorePointNota("AMD " + o.Ver)
+		backupMsg = nota // Protezione sistema accesa da Tasso: lo dico nel messaggio dell'installazione
+		switch rp {
 		case "new":
 		case "recent":
-			backupMsg = " Uso il punto di ripristino creato poco fa."
+			backupMsg = " Uso il punto di ripristino creato poco fa." + nota
 		default:
 			gdEmit("nobackup", "Non sono riuscito a creare il punto di ripristino. Vuoi installare lo stesso?", map[string]interface{}{"undo": false, "vendor": "amd"})
 			return

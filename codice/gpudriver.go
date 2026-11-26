@@ -558,8 +558,12 @@ func gdLockVerify(p string) (windows.Handle, error) {
 }
 
 const nvRestoreScript = `
-try { Enable-ComputerRestore -Drive ($env:SystemDrive + '\') -ErrorAction Stop } catch {}
 $key = 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\SystemRestore'
+# "Protezione sistema" spenta (RPSessionInterval = 0): la accendo per poter fare il punto di ripristino,
+# ma lo dico (srOff nel risultato, Tasso lo scrive nella finestra).
+$srOff = $false
+try { $ri = (Get-ItemProperty -LiteralPath $key -Name 'RPSessionInterval' -ErrorAction Stop).RPSessionInterval; if ([int]$ri -eq 0) { $srOff = $true } } catch {}
+try { Enable-ComputerRestore -Drive ($env:SystemDrive + '\') -ErrorAction Stop } catch {}
 $oldFreq = (Get-ItemProperty -Path $key -Name 'SystemRestorePointCreationFrequency' -ErrorAction SilentlyContinue).SystemRestorePointCreationFrequency
 New-ItemProperty -Path $key -Name 'SystemRestorePointCreationFrequency' -Value 0 -PropertyType DWord -Force | Out-Null
 $before = @(Get-ComputerRestorePoint).Count
@@ -572,19 +576,36 @@ elseif ($after -gt 0) {
   $last = @(Get-ComputerRestorePoint | Sort-Object SequenceNumber)[-1]
   try { $when = [Management.ManagementDateTimeConverter]::ToDateTime([string]$last.CreationTime); if ($when -gt (Get-Date).AddHours(-2)) { $res = 'recent' } } catch {}
 }
-[Console]::Out.WriteLine('JSON ' + (ConvertTo-Json -Compress -InputObject ([ordered]@{ res = $res })))
+[Console]::Out.WriteLine('JSON ' + (ConvertTo-Json -Compress -InputObject ([ordered]@{ res = $res; srOff = [bool]$srOff })))
 `
+
+// notaProtezioneAccesa: da aggiungere al messaggio quando Tasso ha dovuto accendere "Protezione sistema"
+// per fare il punto di ripristino (prima la accendeva senza dirlo). Comincia con lo spazio: si attacca
+// in fondo a un'altra frase e si traduce come pezzo.
+const notaProtezioneAccesa = " Protezione sistema era spenta: l'ho accesa per poter fare il punto di ripristino (usa un po' di spazio del disco). Si rispegne da Pannello di controllo > Sistema > Protezione sistema > Configura."
 
 // gdRestorePoint: "new" (fatto adesso), "recent" (ce n'è uno di meno di 2 ore fa), "none".
 func gdRestorePoint(label string) string {
+	res, _ := gdRestorePointNota(label)
+	return res
+}
+
+// gdRestorePointNota: come gdRestorePoint, e in più la nota da mostrare se ha dovuto accendere
+// "Protezione sistema" ("" se era già accesa).
+func gdRestorePointNota(label string) (string, string) {
 	r := runPSArgs(nvRestoreScript, map[string]string{"v": label}, 10*time.Minute, nil)
 	var o struct {
-		Res string `json:"res"`
+		Res   string `json:"res"`
+		SrOff bool   `json:"srOff"`
 	}
 	if r.JSON == "" || json.Unmarshal([]byte(r.JSON), &o) != nil {
-		return "none"
+		return "none", ""
 	}
-	return o.Res
+	nota := ""
+	if o.SrOff {
+		nota = notaProtezioneAccesa
+	}
+	return o.Res, nota
 }
 
 // gdBlocker: motivi per non installare adesso (anche per le prove).
@@ -699,10 +720,12 @@ func gpuDrvInstall(undo, noBackup bool) {
 	backupMsg := ""
 	if !noBackup {
 		gdEmit("backup", "Creo il punto di ripristino…", nil)
-		switch gdRestorePoint("NVIDIA " + ver) {
+		rp, nota := gdRestorePointNota("NVIDIA " + ver)
+		backupMsg = nota // Protezione sistema accesa da Tasso: lo dico nel messaggio dell'installazione
+		switch rp {
 		case "new":
 		case "recent":
-			backupMsg = " Uso il punto di ripristino creato poco fa."
+			backupMsg = " Uso il punto di ripristino creato poco fa." + nota
 		default:
 			if ctx.Err() == nil {
 				gdEmit("nobackup", "Non sono riuscito a creare il punto di ripristino. Vuoi installare lo stesso?", map[string]interface{}{"undo": undo, "undoURL": !undo && nvPrevURL(u, ver, g.Ver) != ""})

@@ -8,6 +8,7 @@ package main
 
 import (
 	"regexp"
+	"strings"
 	"time"
 
 	"golang.org/x/sys/windows/registry"
@@ -82,7 +83,12 @@ func driversInstall(ids []string) {
 		// Prima un punto di ripristino (come per i driver della scheda video): un driver di rete o audio
 		// sbagliato può lasciare il PC senza internet o senza suono. Senza, non installo.
 		emit("onDriversProgress", "Creo il punto di ripristino…")
-		if rp := gdRestorePoint("driver di Windows Update"); rp == "none" {
+		rp, nota := gdRestorePointNota("driver di Windows Update")
+		if nota != "" { // Protezione sistema accesa da Tasso: lo dico (nell'avanzamento e alla fine)
+			msgs = append(msgs, strings.TrimSpace(nota))
+			emit("onDriversProgress", strings.TrimSpace(nota))
+		}
+		if rp == "none" {
 			emit("onDriversDone", map[string]interface{}{"msgs": []string{"Non sono riuscito a creare un punto di ripristino: per sicurezza non installo i driver adesso. Controlla che \"Protezione sistema\" sia attiva (Pannello di controllo > Sistema > Protezione sistema) e riprova."}, "reboot": false})
 			return
 		}
