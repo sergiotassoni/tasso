@@ -205,3 +205,36 @@ func TestReportDiscordTradotto(t *testing.T) {
 		}
 	}
 }
+
+// La pagina "Licenze dei componenti" dentro Tasso deve dire esattamente quello che c'è in
+// dist/LICENZE.txt e dist/LICENSES.txt (l'inglese vale per tutte le lingue diverse dall'italiano).
+func TestLicenzeNellaFinestra(t *testing.T) {
+	b, err := os.ReadFile("../ui/index.html")
+	if err != nil {
+		t.Skip("index.html non trovato")
+	}
+	s := string(b)
+	const inizio = "<script>(function(){var L="
+	i := strings.Index(s, inizio)
+	j := strings.Index(s[i+1:], ";function f(){")
+	if i < 0 || j < 0 {
+		t.Fatal("non trovo le licenze in index.html")
+	}
+	var L map[string]string
+	if err := json.Unmarshal([]byte(s[i+len(inizio):i+1+j]), &L); err != nil {
+		t.Fatal(err)
+	}
+	for l, f := range map[string]string{"it": "../dist/LICENZE.txt", "en": "../dist/LICENSES.txt"} {
+		d, err := os.ReadFile(f)
+		if err != nil {
+			t.Fatal(err)
+		}
+		txt := strings.Trim(strings.ReplaceAll(strings.TrimPrefix(string(d), "\ufeff"), "\r\n", "\n"), "\n")
+		if L[l] != txt {
+			t.Errorf("licenze %s in index.html diverse da %s: rigenerale dal file", l, f)
+		}
+	}
+	if !strings.Contains(s[i:], `(l==="it")?L.it:L.en`) {
+		t.Error("le lingue diverse dall'italiano devono vedere le licenze in inglese")
+	}
+}
