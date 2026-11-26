@@ -172,6 +172,34 @@ func formaVerbo(w string) bool {
 	}
 	for _, d := range desinenzeIre {
 		if r, ok := strings.CutSuffix(w, d); ok && len([]rune(r)) >= 2 && in(r+"ire") {
+			if formaIreSbagliata(r, d) {
+				continue
+			}
+			return true
+		}
+	}
+	return false
+}
+
+// verbi in -ire che non prendono -isc- ("fuggi", non "fuggisci": prova 26/11 "ESCAPE THE CAMP" ->
+// "FUGGISCI NEL CAMPO"). Solo verbi che con -isc- non esistono proprio.
+var ireSenzaIsc = map[string]bool{"fugg": true, "sfugg": true, "part": true, "ripart": true, "dorm": true,
+	"sent": true, "consent": true, "acconsent": true, "apr": true, "riapr": true, "copr": true, "scopr": true,
+	"offr": true, "soffr": true, "segu": true, "insegu": true, "prosegu": true, "serv": true, "vest": true,
+	"mor": true, "usc": true, "riusc": true, "ven": true, "sal": true, "risal": true, "assal": true, "boll": true,
+	"cuc": true, "avvert": true, "divert": true, "convert": true, "invert": true}
+
+// formaIreSbagliata: radice r + desinenza d di un verbo in -ire che in italiano non esiste:
+// -isc- sui verbi che non lo prendono ("fuggisci"), e le forme "regolari" dei verbi in -venire e
+// -salire che invece vogliono la g ("provena" per "provenga", "veno" per "vengo": prova 26/11
+// "Sembra che provena dalla classe").
+func formaIreSbagliata(r, d string) bool {
+	if strings.HasPrefix(d, "isc") && ireSenzaIsc[r] {
+		return true
+	}
+	if strings.HasSuffix(r, "ven") || strings.HasSuffix(r, "sal") {
+		switch d {
+		case "o", "a", "ano", "ono":
 			return true
 		}
 	}
@@ -353,7 +381,15 @@ func traduzioneInventata(en, it string) (bool, []string) {
 	if len(sospette) >= 2 {
 		return true, sospette
 	}
-	corta := len(strings.Fields(it)) <= 4
+	// corta: contano solo le parole con lettere ("Profodita 13 / 13 m" è una scritta di una
+	// parola, non di cinque: prova 26/11)
+	parole := 0
+	for _, f := range strings.Fields(it) {
+		if strings.ContainsFunc(f, unicode.IsLetter) && len([]rune(strings.TrimFunc(f, func(c rune) bool { return !unicode.IsLetter(c) }))) > 1 {
+			parole++
+		}
+	}
+	corta := parole <= 4
 	for _, w := range sospette {
 		if corta || parolaQuasiVera(w) || formaNonItaliana(w) {
 			return true, sospette
@@ -382,7 +418,27 @@ func parolaQuasiVera(w string) bool {
 		return false
 	}
 	lettere := []rune("abcdefghilmnopqrstuvzàèéìòù")
-	prova := func(x []rune) bool { return len(x) >= 4 && parolaItaliana(string(x)) }
+	prova := func(x []rune) bool {
+		if len(x) < 4 {
+			return false
+		}
+		if parolaItaliana(string(x)) {
+			return true
+		}
+		// con l'accento in fondo: "profodita" -> "profondita" -> "profondità" (prova 26/11)
+		if acc, ok := map[rune]rune{'a': 'à', 'e': 'è', 'i': 'ì', 'o': 'ò', 'u': 'ù'}[x[len(x)-1]]; ok {
+			y := append([]rune{}, x...)
+			y[len(y)-1] = acc
+			return parolaItaliana(string(y))
+		}
+		return false
+	}
+	// una lettera aggiunta prima dell'ultima: "provena" -> "provenga"
+	for _, c := range lettere {
+		if prova(append(append(append([]rune{}, r[:len(r)-1]...), c), r[len(r)-1])) {
+			return true
+		}
+	}
 	// le lettere in fondo no: "interrogatori" è solo il plurale di "interrogatorio"
 	for i := range r[:len(r)-1] {
 		// tolta

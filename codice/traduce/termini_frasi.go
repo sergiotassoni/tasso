@@ -137,11 +137,41 @@ var regoleTermini = []regolaTermine{
 	{inglese: rx(`(?i)\byou still got it\b`), da: rx(`(?i)\bhai ancora capito\b`), a: "ce l'hai ancora"},
 	{inglese: rx(`(?i)\bget up those stairs\b`), da: rx(`(?i)\balzate quelle scale\b`), a: "su per quelle scale"},
 	{inglese: rx(`(?i)\biron\b`), evita: rx(`(?i)\biron(ing|ed)?\b.*\b(clothes|shirt)\b|\bironing\b`), da: rx(`(?i)\bferro da stiro\b`), a: "ferro"},
-	{inglese: rx(`(?i)\b(this|per|the|your|next|night|work) shift\b`), evita: rx(`(?i)\b(press|hold|key)\b`), da: rx(`(?i)\b(questo|quel|il|lo|del|dello|nel|nello) spostamento\b`), f: versoTurno},
+	{inglese: rx(`(?i)\b(this|per|the|your|next|night|work) shift\b`), evita: rx(`(?i)\b(press|hold|key)\b`), da: rx(`(?i)\b(questo|quel|il|lo|del|dello|nel|nello) (spostamento|cambiamento)\b`), f: versoTurno},
+	// obiettivi delle missioni (prove 26/11 12:56 e 15:56, giochi diversi)
+	// "Head to the faculty office" -> "Testa all'ufficio facoltà": "head" è il verbo andare
+	{inglese: rx(`\b(?:Head|HEAD)(?:ing|ING)? (?i:(?:back |over |straight )?(?:to|towards?|into|inside))\b`), evita: rx(`(?i)\bhead (to|over) (toe|foot|heels|head)\b`), da: rx(`\b(?:Testa|TESTA) ((?i:a|al|allo|alla|ai|agli|alle|all'|verso|nel|nello|nella|nei|negli|nelle))\b`), f: versoVai},
+	// "Walk your siblings to the river" -> "Cammina i tuoi fratelli": accompagnare qualcuno
+	{inglese: rx(`(?i)\bwalk (your|the|my|his|her|their|our)\b[^.!?]*\bto\b`), evita: rx(`(?i)\bwalk (the|this|that) (path|line|road|plank|street|streets|halls?|earth|world|talk|way|walk)\b`), da: rx(`(?i)\bcammina (i|il|lo|la|le|gli|l'|tuo|tua|tuoi|tue|suo|sua|suoi|sue|mio|mia|miei|mie|loro|nostri|nostro|nostra|nostre)\b`), f: func(s string) string { _, r, _ := strings.Cut(s, " "); return "accompagna " + r }},
+	// "ESCAPE THE CAMP" -> "FUGGISCI NEL CAMPO": scappare DA un posto (non "into": lì è giusto "nel")
+	{inglese: rx(`(?i)^\W*escape (from )?(the|this|that|your)\b`), da: rx(`(?i)\b(fuggi|fuggisci|scappa) (nel|nello|nella|nei|negli|nelle|in|al|allo|alla|ai|agli|alle|il|lo|la|i|gli|le)\b`), f: versoDa},
+	{inglese: rx(`(?i)\bescape\b`), da: rx(`(?i)\bfuggisci\b`), a: "fuggi"},
+	// "CARGO HOLD" -> "TENUTA DI CARICO": la stiva della nave
+	{inglese: rx(`(?i)\bcargo holds?\b`), da: rx(`(?i)\b((?:la|nella|della|alla|dalla|sulla) )?tenuta di carico\b`), a: "${1}stiva"},
+	{inglese: rx(`(?i)\bcargo holds\b`), da: rx(`(?i)\btenute di carico\b`), a: "stive"},
 	{inglese: rx(`(?i)^hold to\b`), da: rx(`(?i)^aspetta di\b`), a: "Tieni premuto per"},
 	{inglese: rx(`(?i)^hold until\b`), da: rx(`(?i)^aspetta che( non)?\b`), a: "Tieni premuto finché"},
 	{inglese: rx(`(?i)\bstagger(ed)?\b`), da: rx(`(?i)\bscaglionat(o|a|i|e)\b`), a: "stordit$1"},
 	{inglese: rx(`(?i)\bherd animals?\b`), da: rx(`(?i)\banimali da pane\b`), a: "animali da branco"},
+}
+
+// versoVai: "Testa all'" -> "vai all'" (la maiuscola la rimette chi chiama).
+func versoVai(s string) string {
+	_, resto, _ := strings.Cut(s, " ")
+	return "vai " + resto
+}
+
+// versoDa: "fuggisci nel" -> "fuggi dal", "scappa nella" -> "scappa dalla" ("Escape the camp").
+func versoDa(s string) string {
+	w := strings.Fields(s)
+	verbo := w[0]
+	if strings.EqualFold(verbo, "fuggisci") {
+		verbo = "fuggi"
+	}
+	art := map[string]string{"nel": "dal", "nello": "dallo", "nella": "dalla", "nei": "dai", "negli": "dagli",
+		"nelle": "dalle", "in": "da", "al": "dal", "allo": "dallo", "alla": "dalla", "ai": "dai", "agli": "dagli",
+		"alle": "dalle", "il": "dal", "lo": "dallo", "la": "dalla", "i": "dai", "gli": "dagli", "le": "dalle"}
+	return verbo + " " + art[strings.ToLower(w[1])]
 }
 
 // versoTurno: "questo spostamento" -> "questo turno" (il turno di lavoro, "this shift").

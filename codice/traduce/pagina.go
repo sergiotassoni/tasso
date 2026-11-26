@@ -493,6 +493,11 @@ func separaAttaccate(s string) string {
 		if len(nucleo) < 5 || esiste(nucleo) || termGiochi[nucleo] != "" || strings.ToUpper(nucleo) == nucleo || !unicode.IsLower([]rune(nucleo)[0]) {
 			continue // i nomi ("Palworld") non si toccano
 		}
+		if strings.Contains(strings.Trim(nucleo, "'"), "'") || strings.HasSuffix(nucleo, "in'") {
+			// contrazioni e parlato: "ain't" -> "a in't", "bein'" -> "be in'" no (prova 26/11):
+			// l'apostrofo l'ha scritto il gioco, non è l'OCR che ha attaccato due parole
+			continue
+		}
 		if parti := dividiParola(nucleo, 3); parti != nil {
 			campi[i] = strings.Replace(c, nucleo, strings.Join(parti, " "), 1)
 			cambiato = true

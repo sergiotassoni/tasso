@@ -1427,7 +1427,9 @@ func fraseMenuConNumero(s string) (string, bool) {
 	return pre + apri + v + chiudi + post, true
 }
 
-var reNumeroVoce = regexp.MustCompile(`^([0-9][0-9.,%x×]*\s+)?(\(?[^0-9()]+\)?)(:?\s+[0-9][0-9.,%x×]*)?$`)
+// (dopo la voce anche "13 / 13 m", "5/ 13 m", "250 m": la profondità o la distanza con l'unità;
+// prova 26/11: "Depth 13 / 13 m" -> "Profodita 13 / 13 m" dal traduttore veloce)
+var reNumeroVoce = regexp.MustCompile(`^([0-9][0-9.,%x×]*\s+)?(\(?[^0-9()]+\)?)(:?\s+[0-9][0-9.,%x×]*(?:\s*/\s*[0-9][0-9.,]*)?(?:\s?(?:m|km|cm|mi|ft|kg|g|lb|lbs|s|min|h|m/s|km/h|mph)\.?)?)?$`)
 
 // suggerimentoTasto: i suggerimenti dei tasti in basso nei giochi. "Hold T skip", "HoldT skip",
 // "Hold T to skip", "Press E to interact", "Q Hold" → "Tieni premuto T: salta", "E: interagisci",

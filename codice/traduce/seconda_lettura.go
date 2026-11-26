@@ -414,6 +414,30 @@ func letturaPiuCompleta(prima, nuova string) bool {
 	if len(vecchie) == 0 {
 		return true
 	}
+	// un prezzo o un numero da solo non continua con delle parole ("$600" -> "$600 one": era la
+	// riga sotto, prova 26/11 15:56)
+	if !strings.ContainsFunc(prima, unicode.IsLetter) {
+		return false
+	}
+	// le parole aggiunte sono solo paroline ("Oh, by" -> "Oh, by on this"): è un pezzo di
+	// un'altra scritta, non il seguito della frase
+	gia := map[string]bool{}
+	for _, w := range vecchie {
+		gia[w] = true
+	}
+	aggiunte, piene := 0, 0
+	for _, w := range paroleNude(c) {
+		if gia[w] {
+			continue
+		}
+		aggiunte++
+		if !parolina[w] {
+			piene++
+		}
+	}
+	if aggiunte > 0 && piene == 0 {
+		return false
+	}
 	nuove := map[string]bool{}
 	for _, w := range paroleNude(c) {
 		nuove[w] = true
@@ -429,6 +453,15 @@ func letturaPiuCompleta(prima, nuova string) bool {
 	}
 	return ok*100 >= len(vecchie)*60
 }
+
+// parolina: parole vuote dell'inglese (articoli, preposizioni, pronomi, numeri in lettere): da
+// sole non completano una frase.
+var parolina = map[string]bool{"a": true, "an": true, "the": true, "of": true, "on": true, "in": true, "at": true,
+	"by": true, "to": true, "for": true, "from": true, "with": true, "this": true, "that": true, "these": true,
+	"those": true, "it": true, "is": true, "and": true, "or": true, "as": true, "so": true, "up": true, "one": true,
+	"two": true, "no": true, "oh": true, "be": true, "do": true, "if": true, "me": true, "my": true, "we": true,
+	"us": true, "he": true, "she": true, "his": true, "her": true, "you": true, "your": true, "its": true, "our": true,
+	"them": true, "they": true, "him": true, "out": true, "off": true, "into": true, "onto": true, "than": true}
 
 // letturaNuovaBuona: la lettura di una zona non letta vale se è testo vero (non spazzatura).
 func letturaNuovaBuona(t string) bool {

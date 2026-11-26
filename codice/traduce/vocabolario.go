@@ -140,6 +140,17 @@ func correggiParole(r string) string {
 				n++
 				continue
 			}
+			// 1b) parola spezzata con le lettere sottili perse nello spazio: "cap ves" ->
+			// "captives" (prova 26/11: usciva "cap yes" -> "Salva il tappo sì"). Il secondo pezzo
+			// non esiste e una sola parola vera viene rimettendo una o due lettere sottili.
+			if q != "" && soloLettere(p+q) && isLowerOrCap(p) && isLower(q) && !esiste(q) && len(q) >= 2 && len(p)+len(q) >= 5 {
+				if w := unitaConSottili(p, q); w != "" {
+					b.WriteString(w)
+					ultimo = idx[n+1][1]
+					n++
+					continue
+				}
+			}
 		}
 		// 0a) accento spuntato dalla lettura italiana su una parola inglese: "Codë" -> "Code"
 		if q := senzaAccenti(p); q != p && !esiste(p) && esiste(q) {
@@ -184,6 +195,36 @@ func correggiParole(r string) string {
 	}
 	b.WriteString(r[ultimo:])
 	return b.String()
+}
+
+// unitaConSottili: la sola parola vera e non rara p+X+q, con X una o due lettere sottili (i, l, t,
+// f, j, r) che l'OCR perde e legge come spazio. "" se non ce n'è una sola.
+func unitaConSottili(p, q string) string {
+	const sottili = "iltfjr"
+	v := vocabolario()
+	trovata := ""
+	prova := func(x string) bool {
+		l, ok := v[strings.ToLower(p+x+q)]
+		if !ok || l > 40 {
+			return true
+		}
+		if trovata != "" && trovata != p+x+q {
+			return false // due possibili: non so quale
+		}
+		trovata = p + x + q
+		return true
+	}
+	for _, a := range sottili {
+		if !prova(string(a)) {
+			return ""
+		}
+		for _, c := range sottili {
+			if !prova(string(a) + string(c)) {
+				return ""
+			}
+		}
+	}
+	return trovata
 }
 
 // parolaFrequente: la parola è tra le più usate dell'inglese (livello 10 o 20 del vocabolario).

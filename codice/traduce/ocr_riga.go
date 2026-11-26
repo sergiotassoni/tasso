@@ -514,6 +514,26 @@ func sconosciutaPlausibile(s string) bool {
 	return true
 }
 
+// reEscTagliato: "SC back", "SC Cancel": il tasto Esc letto senza la E.
+var reEscTagliato = regexp.MustCompile(`(^|\s)SC(\s+(?i:back|cancel|close|exit|return|menu|pause|skip|quit|resume))\b`)
+
+// letteraSolaInMezzo: una lettera minuscola da sola tra due parole ("whom s what"), che non è una
+// parola inglese ("a", "i", "o").
+func letteraSolaInMezzo(s string) bool {
+	w := strings.Fields(s)
+	for i := 1; i+1 < len(w); i++ {
+		r := []rune(w[i])
+		if len(r) != 1 || !unicode.IsLower(r[0]) || strings.ContainsRune("aio", r[0]) {
+			continue
+		}
+		prima, dopo := []rune(w[i-1]), []rune(w[i+1])
+		if unicode.IsLetter(prima[len(prima)-1]) && unicode.IsLetter(dopo[0]) {
+			return true
+		}
+	}
+	return false
+}
+
 // reSegnoAttaccato: "health!find", "ready?Go": manca lo spazio dopo ! o ? tra due parole.
 var reSegnoAttaccato = regexp.MustCompile(`(\p{Ll}{2})([!?]+)(\p{L})`)
 
@@ -522,6 +542,8 @@ var reSegnoAttaccato = regexp.MustCompile(`(\p{Ll}{2})([!?]+)(\p{L})`)
 func correggiRigaOCR(grezzo string) (string, int) {
 	s := strings.Join(strings.Fields(maiuscolaConfusa(lettereOCRStrane(grezzo))), " ")
 	s = reSegnoAttaccato.ReplaceAllString(s, "$1$2 $3")
+	// "SC back": la E di ESC persa sul bordo del tasto (prova 26/11 15:56: "SC indietro")
+	s = reEscTagliato.ReplaceAllString(s, "${1}ESC$2")
 	s = correggiContatori(correggiPercentuale(s))
 	if s == "" || reSoloSimboli.MatchString(s) {
 		return s, letturaDubbia
@@ -561,6 +583,12 @@ func correggiRigaOCR(grezzo string) (string, int) {
 	// pezzo di frase (comincia minuscolo) con una parola che non esiste: è un seguito letto male,
 	// meglio l'inglese del gioco che mezza frase storpiata
 	if iniziaMinuscola(s) && (false_ > 0 || f1 > 0) {
+		return s2, letturaDubbia
+	}
+	// una lettera sola in mezzo alle parole (non "a", "I", "o") e una parola inventata: la riga è
+	// storpiata ("How an by whom s what needy rhelp figuring out." -> "Come un da chi è che bisogno
+	// di aiuto disattente capire.", prova 26/11 15:56)
+	if (false_ > 0 || f1 > 0) && letteraSolaInMezzo(s) {
 		return s2, letturaDubbia
 	}
 	// parola spezzata in due dall'OCR in mezzo alla riga ("enemies ar Ire nearby."): un pezzo che
