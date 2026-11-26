@@ -1223,7 +1223,7 @@ Bind on Equip	Si vincola all'uso
 Account Bound	Vincolato all'account
 Tradable	Scambiabile
 Untradable	Non scambiabile
-Durability	Resistenza
+Durability	Durabilità
 Weight	Peso
 Value	Valore
 Sell Price	Prezzo di vendita
@@ -4519,8 +4519,8 @@ Your weapon has broken	La tua arma si è rotta
 Your weapon is about to break	La tua arma sta per rompersi
 Weapon broken	Arma rotta
 Armor broken	Armatura rotta
-Low Durability	Resistenza bassa
-Durability Low	Resistenza bassa
+Low Durability	Durabilità bassa
+Durability Low	Durabilità bassa
 Needs Repair	Da riparare
 Repaired	Riparato
 Repair Item	Ripara l'oggetto
@@ -8314,11 +8314,8 @@ Bond: Just taking in the view.	Bond: Mi godo solo il panorama.
 Bond: Fingers and toes. Water certainly doesn't help.	Bond: Dita delle mani e dei piedi. L'acqua di certo non aiuta.
 Against the Odds	Contro ogni previsione
 Sledgehammer	Mazza
-Rate	Cadenza
-Reach	Portata
 Radius	Raggio
 Hit Power	Potenza di colpo
-Sweep	Raggio d'azione
 Tool Upgrades	Potenziamenti attrezzi
 Group	Gruppo
 Hit Chance	Probabilità di colpire

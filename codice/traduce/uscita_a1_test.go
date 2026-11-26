@@ -240,7 +240,14 @@ func TestOfficinaOneMoreDonut(t *testing.T) {
 	if tenute, _ := senzaMezzeRighe([]Blocco{pic, dri}, []Blocco{sle}); len(tenute) != 0 {
 		t.Errorf("elenco mezzo tradotto: %q", testiBlocchi(tenute))
 	}
-	for en, it := range map[string]string{"SLEDGEHAMMER": "MAZZA", "Rate": "Cadenza", "Reach": "Portata", "HIT POWER": "POTENZA DI COLPO",
+	// "Rate", "Reach" e "Sweep" da sole non sono più frasi fisse: in altri giochi vogliono dire "Vota",
+	// "Raggiungi", "Spazza" (le traduce il traduttore normale, con il contesto della schermata).
+	for _, en := range []string{"Rate", "Reach", "Sweep"} {
+		if v, ok := fraseMenu(en); ok {
+			t.Errorf("%q è di nuovo una frase fissa (%q): da sola è ambigua", en, v)
+		}
+	}
+	for en, it := range map[string]string{"SLEDGEHAMMER": "MAZZA", "HIT POWER": "POTENZA DI COLPO",
 		"TOOL UPGRADES": "POTENZIAMENTI ATTREZZI", "Short by $1,621": "Mancano $1.621", "BUY · $2,000": "COMPRA · $2.000", "TAB group": "TAB Gruppo"} {
 		v, ok := fraseMenuConNumero(en)
 		if !ok || !strings.EqualFold(v, it) {
