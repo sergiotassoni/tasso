@@ -318,3 +318,51 @@ func TestGeneraPassword(t *testing.T) {
 		}
 	}
 }
+
+func TestNormHostBarraRovescia(t *testing.T) {
+	for in, want := range map[string]string{
+		`evil.com\@amazon.it`:            "evil.com",
+		`https://evil.com\@amazon.it/`:   "evil.com",
+		`https://evil.com\x?r=https://a`: "evil.com",
+		"https://amazon.it/a\\b":         "amazon.it",
+	} {
+		if got := NormHost(in); got != want {
+			t.Errorf("NormHost(%q) = %q, voglio %q", in, got, want)
+		}
+	}
+}
+
+func TestRegistrabileHosting(t *testing.T) {
+	for in, want := range map[string]string{
+		"alice.github.io":           "alice.github.io",
+		"www.alice.github.io":       "alice.github.io",
+		"a.b.alice.github.io":       "alice.github.io",
+		"github.io":                 "github.io",
+		"github.com":                "github.com",
+		"gist.github.com":           "github.com",
+		"bucket.s3.amazonaws.com":   "bucket.s3.amazonaws.com",
+		"x.bucket.s3.amazonaws.com": "bucket.s3.amazonaws.com",
+		"aws.amazon.com":            "amazon.com",
+		"login.banca.com.co":        "banca.com.co",
+		"mioblog.altervista.org":    "mioblog.altervista.org",
+		"www.bbc.co.uk":             "bbc.co.uk",
+		"accounts.google.com":       "google.com",
+		"truffa.vercel.app":         "truffa.vercel.app",
+		"contoso.sharepoint.com":    "contoso.sharepoint.com",
+		"contoso-my.sharepoint.com": "contoso-my.sharepoint.com",
+		"login.microsoftonline.com": "microsoftonline.com",
+	} {
+		if got := Registrabile(in); got != want {
+			t.Errorf("Registrabile(%q) = %q, voglio %q", in, got, want)
+		}
+	}
+	if StessoSito("alice.github.io", "truffa.github.io") {
+		t.Error("alice.github.io e truffa.github.io non sono lo stesso sito")
+	}
+	if Corrisponde(Voce{Site: "Blog", Web: "alice.github.io"}, Contesto{Exe: "chrome.exe", Host: "truffa.github.io"}) {
+		t.Error("l'account di alice.github.io non va proposto su truffa.github.io")
+	}
+	if !Corrisponde(Voce{Site: "Blog", Web: "alice.github.io"}, Contesto{Exe: "chrome.exe", Host: "www.alice.github.io"}) {
+		t.Error("l'account di alice.github.io va proposto su www.alice.github.io")
+	}
+}

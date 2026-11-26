@@ -270,6 +270,21 @@ var suffissiDoppi = map[string]bool{
 	"com.br": true, "com.mx": true, "com.ar": true, "com.tr": true, "com.cn": true, "com.hk": true, "com.tw": true,
 	"com.sg": true, "co.in": true, "co.za": true, "co.kr": true, "com.pl": true, "com.ua": true, "co.il": true,
 	"com.es": true, "com.pt": true, "com.ru": true, "gov.it": true, "edu.it": true,
+	"org.br": true, "net.br": true, "gov.br": true, "com.co": true, "com.vn": true, "co.id": true,
+	"com.my": true, "com.ph": true, "com.sa": true, "com.eg": true, "com.ng": true, "co.th": true,
+	"ac.jp": true, "go.jp": true, "gob.mx": true, "gob.es": true, "org.es": true, "co.at": true,
+	"or.at": true, "com.pe": true, "com.ve": true, "com.uy": true, "com.cl": true, "org.pl": true,
+	"net.pl": true, "co.ke": true, "com.pk": true, "com.bd": true, "co.ve": true, "org.mx": true,
+	// Siti di hosting dove ognuno ha il suo sottodominio (alice.github.io e truffa.github.io sono
+	// due siti diversi): qui il sito vero è il pezzo prima del suffisso.
+	"github.io": true, "gitlab.io": true, "blogspot.com": true, "wordpress.com": true,
+	"herokuapp.com": true, "netlify.app": true, "vercel.app": true, "pages.dev": true,
+	"workers.dev": true, "web.app": true, "firebaseapp.com": true, "azurewebsites.net": true,
+	"cloudfront.net": true, "appspot.com": true, "glitch.me": true, "onrender.com": true,
+	"fly.dev": true, "ngrok.io": true, "ngrok-free.app": true, "repl.co": true, "replit.app": true,
+	"myshopify.com": true, "wixsite.com": true, "weebly.com": true, "altervista.org": true,
+	"duckdns.org": true, "no-ip.org": true, "000webhostapp.com": true, "sharepoint.com": true,
+	"s3.amazonaws.com": true, "azurestaticapps.net": true, "surge.sh": true, "neocities.org": true,
 }
 
 // NormHost: dall'indirizzo (anche senza https://) al nome del sito in minuscolo, senza porta né www.
@@ -282,11 +297,13 @@ func NormHost(addr string) string {
 	// "https://", e in "finto-sito.com/login?r=https://www.amazon.it/" il sito è finto-sito.com,
 	// non amazon.it (altrimenti una pagina falsa potrebbe farsi passare per un'altra).
 	if i := strings.Index(a, "://"); i >= 0 {
-		if j := strings.IndexAny(a, "/?#"); j < 0 || i <= j {
+		if j := strings.IndexAny(a, "/?#\\"); j < 0 || i <= j {
 			a = a[i+3:]
 		}
 	}
-	if i := strings.IndexAny(a, "/?#"); i >= 0 {
+	// "\" vale come "/" (i browser lo trattano così negli indirizzi web): in
+	// "evil.com\@amazon.it" il sito è evil.com, non amazon.it.
+	if i := strings.IndexAny(a, "/?#\\"); i >= 0 {
 		a = a[:i]
 	}
 	if i := strings.LastIndex(a, "@"); i >= 0 {
@@ -337,8 +354,11 @@ func Registrabile(host string) string {
 	}
 	l := strings.Split(h, ".")
 	n := 2
-	if len(l) >= 3 && suffissiDoppi[l[len(l)-2]+"."+l[len(l)-1]] {
-		n = 3
+	for _, k := range []int{3, 2} { // prima il suffisso più lungo (s3.amazonaws.com)
+		if len(l) > k && suffissiDoppi[strings.Join(l[len(l)-k:], ".")] {
+			n = k + 1
+			break
+		}
 	}
 	if len(l) <= n {
 		return h
