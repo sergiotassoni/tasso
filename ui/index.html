@@ -131,8 +131,8 @@ label.scelta.fissa{cursor:default;opacity:.7}
 .toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 16px;display:none;z-index:10}
 .toast.on{display:block}
 /* programmi in aggiornamento (badge + nota): tutto in una schermata */
-#p1{gap:10px}#p1 .testa{gap:18px}#p1 .testa .gmask{width:52px}#p1 h1{font-size:24px}#p1 h1::after{margin-top:9px}#p1 .testa>div{gap:9px}
-#p1 .nota{padding:8px 12px;line-height:1.4}#p1 .comp{gap:8px}#p1 .carta{padding:10px 12px}#p1 .carta .badge{margin-top:5px}
+#p1:has(#notaAgg:not([hidden])){gap:10px}#p1:has(#notaAgg:not([hidden])) .testa{gap:18px}#p1:has(#notaAgg:not([hidden])) .testa .gmask{width:52px}#p1:has(#notaAgg:not([hidden])) h1{font-size:24px}#p1:has(#notaAgg:not([hidden])) h1::after{margin-top:9px}#p1:has(#notaAgg:not([hidden])) .testa>div{gap:9px}
+#p1:has(#notaAgg:not([hidden])) .nota{padding:8px 12px;line-height:1.4}#p1:has(#notaAgg:not([hidden])) .comp{gap:8px}#p1:has(#notaAgg:not([hidden])) .carta{padding:10px 12px}#p1:has(#notaAgg:not([hidden])) .carta .badge{margin-top:5px}
 /* contrasto leggibile (>= 4.5:1) */
 ol.passi li i,.ver,.lingue button span{color:#7A808D}
 .carta.no{opacity:1}.carta.no img,.carta.no input{opacity:.45}.carta.no b{color:var(--muted)}
