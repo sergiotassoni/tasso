@@ -1,6 +1,8 @@
 package icotema
 
 import (
+	"os"
+	"regexp"
 	"strings"
 	"testing"
 )
@@ -74,7 +76,11 @@ func TestTemaInUsoEPosizione(t *testing.T) {
 		{"gioco", "oro", "carta", "oro"},
 		{"", "", "", "tasso"},
 		{"ufficio", "oro", "", "ufficio"},
-		{"ufficio", "oro", "argento", "argento"},
+		{"ufficio", "oro", "argento", "ufficio"}, // argento è un tema Gaming: in Ufficio si vede Azzurro
+		{"ufficio", "oro", "carta", "carta"},
+		{"gioco", "notte", "", "tasso"}, // notte non si sceglie: l'interfaccia mostra Tasso
+		{"ufficio", "", "notte", "ufficio"},
+		{"gioco", "carta", "", "tasso"}, // tema dell'Ufficio salvato in Gaming
 		{"entrambi", "argento", "carta", "argento"},
 	}
 	for _, c := range cases {
@@ -101,5 +107,52 @@ func TestPreparaSVG(t *testing.T) {
 	}
 	if strings.Contains(out, "<title>") || strings.Contains(out, `url(#met)`) || strings.Count(out, "p-p-") > 0 {
 		t.Errorf("sbagliato: %s", out)
+	}
+}
+
+// I temi di ogni modalità sono gli stessi dell'interfaccia (OFFICE_THEMES e GAME_THEMES in
+// ui/index.html) e ogni tema che si sceglie, tranne "tasso", ha le sue due icone nell'elenco.
+func TestTemiComeInterfaccia(t *testing.T) {
+	ui, err := os.ReadFile("../ui/index.html")
+	if err != nil {
+		t.Skip("ui/index.html non trovato:", err)
+	}
+	lista := func(nome string) []string {
+		m := regexp.MustCompile(`const ` + nome + ` = \[([^\]]*)\]`).FindSubmatch(ui)
+		if m == nil {
+			t.Fatalf("%s non trovato in ui/index.html", nome)
+		}
+		return regexp.MustCompile(`'([a-z0-9]+)'`).FindAllString(string(m[1]), -1)
+	}
+	for _, c := range []struct {
+		nome string
+		lst  []string
+	}{{"OFFICE_THEMES", TemiUfficio}, {"GAME_THEMES", TemiGaming}} {
+		js := lista(c.nome)
+		var g []string
+		for _, x := range c.lst {
+			g = append(g, "'"+x+"'")
+		}
+		if strings.Join(js, ",") != strings.Join(g, ",") {
+			t.Errorf("%s: interfaccia %v, icotema %v", c.nome, js, g)
+		}
+	}
+	b, err := os.ReadFile("../assets/temi/elenco.txt")
+	if err != nil {
+		t.Fatal(err)
+	}
+	e, err := Leggi(b)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, tema := range append(append([]string{}, TemiUfficio...), TemiGaming...) {
+		if tema == "tasso" {
+			continue
+		}
+		for _, v := range []string{Gaming, Ufficio} {
+			if e.Trova(tema, v) == 0 {
+				t.Errorf("manca l'icona %s %s in elenco.txt", tema, v)
+			}
+		}
 	}
 }

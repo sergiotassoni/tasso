@@ -179,17 +179,36 @@ func Variante(profilo string) string {
 // TemaInUso: il tema che si vede adesso, con le stesse regole dell'interfaccia (curTheme in
 // ui/index.html): in Ufficio il tema dell'Ufficio (di base "ufficio"), altrimenti quello Gaming
 // (di base "tasso").
+// Un tema che non è della sua modalità (per esempio "notte", che non si sceglie più, o un tema
+// Gaming salvato come tema dell'Ufficio) torna al tema di base, come fa curTheme: così l'icona di
+// Windows è sempre quella del tema che si vede dentro Tasso.
 func TemaInUso(profilo, tema, temaUfficio string) string {
 	if profilo == "ufficio" {
-		if temaUfficio == "" {
+		if !contiene(TemiUfficio, temaUfficio) {
 			return "ufficio"
 		}
 		return temaUfficio
 	}
-	if tema == "" {
+	if !contiene(TemiGaming, tema) {
 		return "tasso"
 	}
 	return tema
+}
+
+// TemiUfficio e TemiGaming: i temi che si possono scegliere in ogni modalità, gli stessi di
+// OFFICE_THEMES e GAME_THEMES in ui/index.html (lo controlla un test).
+var (
+	TemiUfficio = []string{"ufficio", "salvia", "carta", "lavanda", "perla", "ardesia"}
+	TemiGaming  = []string{"tasso", "aurora", "lava", "neon", "neonrgb", "oro", "argento", "carbonio", "belva", "ghiaccio", "sabbia"}
+)
+
+func contiene(l []string, s string) bool {
+	for _, x := range l {
+		if x == s {
+			return true
+		}
+	}
+	return false
 }
 
 // PosizioneIcona: il testo IconLocation di un collegamento per questa icona. Per l'icona normale
