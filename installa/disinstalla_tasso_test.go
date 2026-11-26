@@ -300,3 +300,14 @@ func TestCartellaSoloTassoConResiduiAggiornamento(t *testing.T) {
 		t.Fatal("altro.exe non è di Tasso")
 	}
 }
+
+// Al riavvio si cancella solo quello che è dentro la cartella dell'installazione.
+func TestAlRiavvioSoloDentroBase(t *testing.T) {
+	r := &Risultato{base: `C:\Program Files\Tasso`}
+	if !r.alRiavvioPermesso(`C:\Program Files\Tasso\lavoro\x.tmp`) || !r.alRiavvioPermesso(`C:\Program Files\Tasso`) {
+		t.Fatal("dentro la cartella si può")
+	}
+	if r.alRiavvioPermesso(`C:\Users\x\AppData\Local\Tasso\memoria.db`) || r.alRiavvioPermesso(`C:\Program Files\TassoAltro\a`) {
+		t.Fatal("fuori dalla cartella non si cancella al riavvio")
+	}
+}

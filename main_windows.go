@@ -57,6 +57,7 @@ func L() string {
 }
 
 func main() {
+	protezioneAvvio()
 	installa.ImpostaDiario(filepath.Join(os.TempDir(), installa.NomeDiario))
 	installa.Diario("---- Tasso Setup avviato (%s), argomenti %q", versioneSetup(), os.Args[1:])
 	modoDisins = !pacco.Pieno
@@ -596,4 +597,19 @@ func installaInFondo(ctx context.Context, o installa.Opzioni) {
 	var apribili []installa.Programma
 	apribili = append(apribili, installa.ProgrammiPer(o.Componenti)...)
 	manda("finito", map[string]any{"ok": true, "avvisoCollegamenti": avviso != nil, "apribili": apribili})
+}
+
+// protezioneAvvio: l'installatore gira come amministratore (come Tasso, vedi codice/main.go
+// hardenProcess): le DLL si caricano solo da System32, mai dalla cartella dell'exe (es. Download,
+// dove qualcuno potrebbe aver messo una DLL falsa), e le variabili WEBVIEW2_* dell'utente
+// (cambiabili senza permessi) si tolgono prima di aprire la finestra. Va chiamata per prima.
+func protezioneAvvio() {
+	if err := windows.SetDefaultDllDirectories(windows.LOAD_LIBRARY_SEARCH_SYSTEM32); err != nil {
+		installa.Diario("SetDefaultDllDirectories: %v", err)
+	}
+	for _, kv := range os.Environ() {
+		if i := strings.IndexByte(kv, '='); i > 0 && strings.HasPrefix(strings.ToUpper(kv[:i]), "WEBVIEW2_") {
+			_ = os.Unsetenv(kv[:i])
+		}
+	}
 }
