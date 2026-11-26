@@ -493,7 +493,9 @@ func trayComando(cmd int) {
 			emit("onBoost", map[string]interface{}{"msgs": msgs, "state": boostInfo()})
 			trayAvvisoMsgs("Boost", msgs)
 			if ok {
-				fpsAutoFix(true)
+				// Dal menu dell'icona la finestra di Tasso di solito non si vede: niente prova della
+				// frequenza dello schermo (la conferma di 15 secondi resterebbe nascosta).
+				fpsAutoFix(false)
 			}
 		}) == "busy" {
 			trayAvviso("Tasso", "Tasso sta lavorando: riprova quando ha finito.", false)

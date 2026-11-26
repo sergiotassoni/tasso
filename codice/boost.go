@@ -153,6 +153,20 @@ func boostSpentoTesto() string {
 }
 
 // safeName: i nomi dei giochi arrivano da fuori (nome del programma): tengo solo caratteri semplici.
+// nomeGiocoSicuro: come safeName, ma per un gioco aperto con il nome tutto in caratteri non latini
+// (cinese, giapponese, cirillico) dà "gioco" invece di "": il gioco conta comunque come aperto.
+func nomeGiocoSicuro(s string) string {
+	if strings.TrimSpace(s) == "" {
+		return ""
+	}
+	n := safeName(s)
+	base := strings.TrimSpace(strings.TrimSuffix(strings.ToLower(n), ".exe"))
+	if strings.Trim(base, " .-_") == "" { // rimasta solo l'estensione o la punteggiatura
+		return "gioco"
+	}
+	return n
+}
+
 func safeName(s string) string {
 	var b strings.Builder
 	for _, r := range s {
@@ -842,7 +856,7 @@ func startBoostWatcher() {
 				setMu.Unlock()
 				cur := "" // gioco aperto adesso (lo cerco solo se serve)
 				if manual || (auto && !paused) || mouseAccelActive() {
-					cur = safeName(runningGame())
+					cur = nomeGiocoSicuro(runningGame())
 				}
 				name := ""
 				if auto && !paused {
@@ -1105,6 +1119,24 @@ func beep(n int) {
 	}
 }
 
+// chiudiSessioneFPS ferma la sessione ETW lasciata aperta da un PresentMon fermato a forza.
+func chiudiSessioneFPS() {
+	pm, lock, err := lockedPresentMon() // di nuovo controllato (impronta) e tenuto bloccato fino all'avvio
+	if err != nil {
+		return
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+	c := exec.CommandContext(ctx, pm, "--terminate_existing_session", "--session_name", "TassoFPS")
+	c.SysProcAttr = &syscall.SysProcAttr{HideWindow: true, CreationFlags: 0x08000000}
+	c.Dir = filepath.Dir(pm)
+	err = c.Start()
+	windows.CloseHandle(lock)
+	if err == nil {
+		_ = c.Wait()
+	}
+}
+
 func foregroundPid() uint32 {
 	h, _, _ := pForegroundWin.Call()
 	if h == 0 {
@@ -1184,6 +1216,10 @@ func fpsMeasure(delay, secs int, boosted, beeps bool, prefer string) (*fpsResult
 	_, _ = io.Copy(io.Discard, out)
 	werr := cmd.Wait()
 	close(done)
+	if ctx.Err() != nil {
+		// PresentMon fermato per tempo scaduto: la sessione ETW "TassoFPS" sopravvive al processo.
+		chiudiSessioneFPS()
+	}
 	fgMu.Lock()
 	durante := fgTot      // controlli fatti mentre misuravo
 	fg[foregroundPid()]++ // ultimo controllo a misura finita: solo un complemento
@@ -1486,7 +1522,16 @@ func bindBoost(w webview2.WebView) {
 	bMu.Lock()
 	st := loadBoost()
 	auto, manual := st.Auto, st.On
+	daRiaprire := !manual && bGame == "" && len(bClosed) > 0
 	bMu.Unlock()
+	// Tasso si era chiuso (crash) con il Boost già spento ma programmi ancora chiusi: li riapro,
+	// se non c'è un gioco aperto (se c'è, lo farà "Rimetti com'era").
+	if daRiaprire && runningGame() == "" {
+		go func() {
+			defer guard("boost.go:riapri-avvio")
+			reopenBackground()
+		}()
+	}
 	// Il Tasso si era chiuso con il mouse ancora senza accelerazione: lo rimetto com'era.
 	if !competitiveGame(safeName(runningGame())) {
 		mouseAccelRestore()
