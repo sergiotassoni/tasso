@@ -2,7 +2,7 @@
 
 package traduce
 
-// Modalità prova: TassoTraduce.exe --prova100 "C:\cartella"
+// Modalità prova: Tasso-collaudo.exe --prova100 "C:\cartella"
 // Nella cartella: llama-server.exe (con le sue DLL) e uno o più modelli .gguf da confrontare.
 // Per ogni modello avvia il motore, traduce le 100 frasi e scrive prova-100.md e prova-100.json.
 

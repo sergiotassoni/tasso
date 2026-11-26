@@ -2,7 +2,7 @@
 
 package traduce
 
-// Collaudo dal vivo: TassoTraduce.exe --collaudo "C:\cartella" [--anche-meta 200]
+// Collaudo dal vivo: Tasso-collaudo.exe --collaudo "C:\cartella" [--anche-meta 200]
 //
 // Apre il programma vero e aspetta che Mozilla sia pronto dentro WebView2. Poi, senza toccare
 // la memoria delle traduzioni né le librerie dei giochi dell'utente:

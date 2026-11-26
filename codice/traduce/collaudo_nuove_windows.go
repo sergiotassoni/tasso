@@ -2,7 +2,7 @@
 
 package traduce
 
-// Collaudo delle funzioni nuove: TassoTraduce.exe --collaudo "C:\cartella" --solo-nuove --voci-prova "C:\audio"
+// Collaudo delle funzioni nuove: Tasso-collaudo.exe --collaudo "C:\cartella" --solo-nuove --voci-prova "C:\audio"
 //  - chat al contrario: scarica (con impronte) il modello it→en, traduce frasi da chat, prova gli
 //    appunti e il tasto Ctrl+Alt+T come lo userebbe un giocatore;
 //  - voci: scarica (con impronte) whisper e i modelli, accende l'ascolto dell'audio del PC,
