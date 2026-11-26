@@ -115,6 +115,12 @@ func main() {
 	}
 	webview2.PanicHook = logPanic
 	loadSettings()
+	// Tasso.exe --togli-silenzioso (lo usa il disinstallatore, anche da App e funzionalità):
+	// Tasso toglie le sue cose senza finestra ed esce (uninstall.go).
+	traduce.PreparaCartella()
+	if codice, si := togliSilenziosoSeChiesto(); si {
+		os.Exit(codice)
+	}
 	// Installato con Tasso Setup: modalità scelta nell'installatore (ecosistema.go).
 	profiloInstallatore, modalitaCambiata := applicaModalitaInstallatore()
 	go officeGuardia()
