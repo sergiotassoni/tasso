@@ -120,7 +120,7 @@ def cover(c, doc):
     c.drawCentredString(W / 2, H / 2 - 57 * mm, 'Cleans, repairs and boosts your PC. In one click.')
     c.setFont('Pop', 9)
     c.setFillColor(colors.HexColor('#8B91A7'))
-    c.drawCentredString(W / 2, 18 * mm, 'Version 3.0  ·  Windows 10 and 11  ·  2026')
+    c.drawCentredString(W / 2, 18 * mm, 'Version 3.1  ·  Windows 10 and 11  ·  2026')
     c.restoreState()
 
 
@@ -162,7 +162,7 @@ toc = [
     ('10', 'Settings', 'themes, start with Windows, alerts'),
     ('11', 'Turning Tasso off and putting things back', 'the switch and the restore'),
     ('12', 'Safety and backup', 'how to go back if you need to'),
-    ('13', 'Frequently asked questions', 'antivirus, USB stick, sending it to a friend'),
+    ('13', 'Frequently asked questions', 'antivirus, USB stick, putting it on another PC'),
 ]
 rows = [[Paragraph('<font name="PopB" color="#0FA46E">%s</font>' % n, st['toc']), Paragraph('<b>%s</b>' % t, st['toc']), Paragraph(d, st['small'])] for n, t, d in toc]
 tt = Table(rows, colWidths=[12 * mm, 62 * mm, W - 2 * M - 74 * mm])
@@ -489,7 +489,7 @@ S += chapter(13, 'Frequently asked questions', 'quick answers')
 faq = [
     ('My antivirus or Windows blocks it: what do I do?', 'It\'s the warning for programs Windows doesn\'t know yet (chapter 1): click <b>More info</b> and <b>Run anyway</b>. If an antivirus puts it in quarantine, you can report it as a false positive to the antivirus maker; for Microsoft Defender, you can do it at microsoft.com/wdsi/filesubmission.'),
     ('Can I keep it on a USB stick?', 'Yes. Copy the whole Tasso folder to the USB stick and start Tasso.exe from there: there\'s no need to install it. The settings are saved on the PC you use it on.'),
-    ('How do I send it to a friend?', 'Send them the permanent link <b>github.com/sergiotassoni/tasso/raw/main/Tasso.zip</b>: it always downloads the latest version, no account needed. Or join the Tasso Discord server, where you\'ll find the link in the #tasso channel.'),
+    ('How do I put it on another PC?', 'Use the permanent link <b>github.com/sergiotassoni/tasso/raw/main/Tasso.zip</b>: it always downloads the latest version, no account needed. For questions or problems write to <b>tasso.services@proton.me</b> (or use Write to us inside Tasso).'),
     ('Does it slow down the PC while I play?', 'No. Tasso reads the sensors every 2 seconds only while it\'s open, and only does work when you start something. In Gaming and FPS mode it doesn\'t send alerts.'),
     ('If I turn off the PC, do the settings go back to how they were?', 'No. They stay the way Tasso set them, including the Game profile. They only go back to how they were if you ask from <b>Settings → Undo</b>.'),
     ('How do I update Tasso?', 'When a new version comes out, an alert shows up in Home that takes you to <b>Settings → Tasso updates</b>. Click <b>Update now</b>: Tasso downloads the new version from the official page, checks that the file is the right one and reopens by itself. Your settings stay. If something goes wrong, you can always download the zip by hand.'),
@@ -500,7 +500,7 @@ faq = [
 for q, a in faq:
     S += [KeepTogether([P('<b>%s</b>' % q, 'p'), P(a, 'p'), Spacer(1, 2)])]
 S += [Spacer(1, 6), box('Coming in future versions', ['Digital signature (it needs a paid certificate), video and music player with subtitles, file converters, recorder for the last 30 seconds of gameplay, stats on hours played, ad blocking, webcam and microphone control.'], BLUE, colors.HexColor('#EAF1FD'))]
-S += [Spacer(1, 10), P('Tasso 3.0', 'small')]
+S += [Spacer(1, 10), P('Tasso 3.1', 'small')]
 
 doc.build(S)
 print('ok')

@@ -120,7 +120,7 @@ def cover(c, doc):
     c.drawCentredString(W / 2, H / 2 - 57 * mm, 'Pulisce, ripara e spinge il tuo PC. In un clic.')
     c.setFont('Pop', 9)
     c.setFillColor(colors.HexColor('#8B91A7'))
-    c.drawCentredString(W / 2, 18 * mm, 'Versione 3.0  ·  Windows 10 e 11  ·  2026')
+    c.drawCentredString(W / 2, 18 * mm, 'Versione 3.1  ·  Windows 10 e 11  ·  2026')
     c.restoreState()
 
 
@@ -162,7 +162,7 @@ toc = [
     ('10', 'Impostazioni', 'temi, avvio con Windows, avvisi'),
     ('11', 'Spegnere Tasso e rimettere com\'era', 'l\'interruttore e il ripristino'),
     ('12', 'Sicurezza e backup', 'come tornare indietro se serve'),
-    ('13', 'Domande frequenti', 'antivirus, chiavetta, mandarlo a un amico'),
+    ('13', 'Domande frequenti', 'antivirus, chiavetta, metterlo su un altro PC'),
 ]
 rows = [[Paragraph('<font name="PopB" color="#0FA46E">%s</font>' % n, st['toc']), Paragraph('<b>%s</b>' % t, st['toc']), Paragraph(d, st['small'])] for n, t, d in toc]
 tt = Table(rows, colWidths=[12 * mm, 62 * mm, W - 2 * M - 74 * mm])
@@ -489,7 +489,7 @@ S += chapter(13, 'Domande frequenti', 'dubbi veloci')
 faq = [
     ('L\'antivirus o Windows lo bloccano: cosa faccio?', 'È l\'avviso per i programmi che Windows non conosce ancora (capitolo 1): clicca <b>Ulteriori informazioni</b> e <b>Esegui comunque</b>. Se un antivirus lo mette in quarantena, puoi segnalarlo come falso allarme al produttore dell\'antivirus; per Microsoft Defender si fa da microsoft.com/wdsi/filesubmission.'),
     ('Posso tenerlo su una chiavetta USB?', 'Sì. Copia tutta la cartella Tasso sulla chiavetta e avvia Tasso.exe da lì: non serve installarlo. Le impostazioni vengono salvate sul PC in cui lo usi.'),
-    ('Come lo mando a un amico?', 'Mandagli il link fisso <b>github.com/sergiotassoni/tasso/raw/main/Tasso.zip</b>: scarica sempre l\'ultima versione, senza account. Oppure entra nel server Discord di Tasso, dove trovi il link nel canale #tasso.'),
+    ('Come lo metto su un altro PC?', 'Usa il link fisso <b>github.com/sergiotassoni/tasso/raw/main/Tasso.zip</b>: scarica sempre l\'ultima versione, senza account. Per domande o problemi scrivi a <b>tasso.services@proton.me</b> (oppure usa Scrivici dentro Tasso).'),
     ('Rallenta il PC mentre gioco?', 'No. Tasso legge i sensori ogni 2 secondi solo mentre è aperto e lavora solo quando avvii qualcosa. In modalità Gaming e FPS non manda avvisi.'),
     ('Se spengo il PC le impostazioni tornano come prima?', 'No. Restano come le ha messe Tasso, anche il Profilo gioco. Tornano com\'erano solo se lo chiedi tu da <b>Impostazioni → Torna indietro</b>.'),
     ('Come si aggiorna Tasso?', 'Quando esce una versione nuova, in Home compare un avviso che ti porta in <b>Impostazioni → Aggiornamenti di Tasso</b>. Premi <b>Aggiorna ora</b>: Tasso scarica la nuova versione dalla pagina ufficiale, controlla che il file sia quello giusto e si riapre da solo. Le impostazioni restano. Se qualcosa non va, puoi sempre scaricare lo zip a mano.'),
@@ -500,7 +500,7 @@ faq = [
 for q, a in faq:
     S += [KeepTogether([P('<b>%s</b>' % q, 'p'), P(a, 'p'), Spacer(1, 2)])]
 S += [Spacer(1, 6), box('In arrivo nelle prossime versioni', ['Firma digitale (serve un certificato a pagamento), lettore video e musica con sottotitoli, convertitori di file, registratore degli ultimi 30 secondi di gioco, statistiche delle ore giocate, blocco pubblicità, controllo webcam e microfono.'], BLUE, colors.HexColor('#EAF1FD'))]
-S += [Spacer(1, 10), P('Tasso 3.0', 'small')]
+S += [Spacer(1, 10), P('Tasso 3.1', 'small')]
 
 doc.build(S)
 print('ok')
