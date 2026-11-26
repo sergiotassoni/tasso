@@ -223,6 +223,9 @@ func eseguiAggiornamento(piano *installa.PianoAggiornamento, riapri bool, avanza
 			motivo = strings.Replace(testi.T(L(), "aggs_bloccato"), "%s", filepath.Base(eb.File), 1)
 		}
 	}
+	if codice == installa.UscitaFatto {
+		annullaCancellazioniPendenti(base) // vedi installaInFondo
+	}
 	if tassoAperto {
 		riapriTasso(base)
 	}

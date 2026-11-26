@@ -18,6 +18,7 @@ import (
 	"sync"
 	"syscall"
 	"time"
+	"unicode/utf16"
 	"unsafe"
 
 	"golang.org/x/sys/windows"
@@ -971,4 +972,121 @@ func conUtenteSessione(in *installa.Installatore) *installa.Installatore {
 		in.RegistroUtente, in.CartellaDatiSessione = utenteReg, utenteCartel
 	}
 	return in
+}
+
+// ---------------- cancellazioni al riavvio rimaste da una disinstallazione ----------------
+
+// annullaCancellazioniPendenti: dopo un'installazione riuscita in base, toglie da
+// PendingFileRenameOperations le cancellazioni al riavvio dei file di Tasso dentro base (messe da
+// una disinstallazione fatta prima di riavviare): altrimenti al riavvio Windows cancellerebbe i
+// file nuovi con lo stesso nome. Vedi installa.TogliCancellazioniPendenti. Se qualcosa non va
+// non tocca niente.
+func annullaCancellazioniPendenti(base string) {
+	k, err := registry.OpenKey(registry.LOCAL_MACHINE, `SYSTEM\CurrentControlSet\Control\Session Manager`,
+		registry.QUERY_VALUE|registry.SET_VALUE)
+	if err != nil {
+		return
+	}
+	defer k.Close()
+	voci, tipo, err := k.GetStringsValue("PendingFileRenameOperations")
+	if err != nil || tipo != registry.MULTI_SZ || len(voci) == 0 {
+		return
+	}
+	// riscrivo solo se rileggendo ottengo esattamente gli stessi byte (niente pezzi persi)
+	dim := 2 // il doppio zero finale
+	for _, v := range voci {
+		dim += 2 * (len(utf16.Encode([]rune(v))) + 1)
+	}
+	if n, _, err := k.GetValue("PendingFileRenameOperations", nil); err != nil || n != dim {
+		installa.Diario("PendingFileRenameOperations in un formato che non conosco: non lo tocco")
+		return
+	}
+	resto, tolte := installa.TogliCancellazioniPendenti(voci, base)
+	if tolte == 0 {
+		return
+	}
+	if len(resto) == 0 {
+		err = k.DeleteValue("PendingFileRenameOperations")
+	} else {
+		err = k.SetStringsValue("PendingFileRenameOperations", resto)
+	}
+	installa.Diario("cancellazioni al riavvio dentro %s annullate: %d (errore: %v)", base, tolte, err)
+}
+
+// ---------------- collegamento della 3.0 portatile sul Desktop ----------------
+
+// leggiCollegamento: destinazione, argomenti e descrizione di un .lnk.
+func leggiCollegamento(p string) (dest, arg, desc string, err error) {
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+	if e := windows.CoInitializeEx(0, windows.COINIT_APARTMENTTHREADED); e == nil {
+		defer windows.CoUninitialize()
+	}
+	var sl *comObj
+	r, _, _ := procCoCreateInstance.Call(uintptr(unsafe.Pointer(&clsidShellLink)), 0, 1, /*CLSCTX_INPROC_SERVER*/
+		uintptr(unsafe.Pointer(&iidIShellLinkW)), uintptr(unsafe.Pointer(&sl)))
+	if int32(r) < 0 || sl == nil {
+		return "", "", "", fmt.Errorf("ShellLink non disponibile (0x%08X)", uint32(r))
+	}
+	defer chiama(sl, 2)
+	var pf *comObj
+	if err := chiama(sl, 0, uintptr(unsafe.Pointer(&iidIPersistFile)), uintptr(unsafe.Pointer(&pf))); err != nil || pf == nil {
+		return "", "", "", fmt.Errorf("IPersistFile: %v", err)
+	}
+	defer chiama(pf, 2)
+	if err := chiama(pf, 5, u16(p), 0 /*STGM_READ*/); err != nil { // Load
+		return "", "", "", err
+	}
+	buf := make([]uint16, 1024)
+	// vtable di IShellLinkW: 3 GetPath, 6 GetDescription, 10 GetArguments
+	if err := chiama(sl, 3, uintptr(unsafe.Pointer(&buf[0])), uintptr(len(buf)), 0, 0); err != nil {
+		return "", "", "", err
+	}
+	dest = windows.UTF16ToString(buf)
+	for i := range buf {
+		buf[i] = 0
+	}
+	if err := chiama(sl, 10, uintptr(unsafe.Pointer(&buf[0])), uintptr(len(buf))); err != nil {
+		return "", "", "", err
+	}
+	arg = windows.UTF16ToString(buf)
+	for i := range buf {
+		buf[i] = 0
+	}
+	if err := chiama(sl, 6, uintptr(unsafe.Pointer(&buf[0])), uintptr(len(buf))); err != nil {
+		return "", "", "", err
+	}
+	desc = windows.UTF16ToString(buf)
+	return dest, arg, desc, nil
+}
+
+// aggiornaCollegamentoVecchio: se sul Desktop dell'utente c'è il Tasso.lnk della 3.0 portatile
+// (installa.CollegamentoVecchioDaAggiornare), lo faccio puntare al Tasso installato in base,
+// così non apre più la 3.0 scaricata. In ogni altro caso (o se non si legge) non tocco niente.
+func aggiornaCollegamentoVecchio(base string) {
+	lnk := installa.PercorsoCollegamentoVecchio(cartellaNota(windows.FOLDERID_Desktop, ""))
+	if lnk == "" {
+		return
+	}
+	if fi, err := os.Lstat(lnk); err != nil || !fi.Mode().IsRegular() {
+		return
+	}
+	dest, arg, desc, err := leggiCollegamento(lnk)
+	if err != nil {
+		installa.Diario("%s non letto: non lo tocco (%v)", lnk, err)
+		return
+	}
+	if !installa.CollegamentoVecchioDaAggiornare(dest, arg, desc, programFiles()) {
+		return
+	}
+	if x86 := cartellaNota(windows.FOLDERID_ProgramFilesX86, ""); x86 != "" && installa.Dentro(dest, x86) {
+		return // anche Programmi (x86) è una cartella di installazioni: non è la 3.0 portatile
+	}
+	nuovo := filepath.Join(base, "Tasso.exe")
+	if fi, err := os.Lstat(nuovo); err != nil || !fi.Mode().IsRegular() {
+		return
+	}
+	err = creaCollegamento(installa.Collegamento{Percorso: lnk, Destinazione: nuovo, Cartella: base,
+		Descrizione: desc, Programma: installa.ProgTasso})
+	installa.Diario("%s portava a %s (Tasso 3.0 portatile): ora porta a %s (errore: %v)", lnk, dest, nuovo, err)
 }

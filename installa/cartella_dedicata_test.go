@@ -1,6 +1,7 @@
 package installa
 
 import (
+	"context"
 	"errors"
 	"os"
 	"path/filepath"
@@ -106,5 +107,65 @@ func TestCartellaSuDiscoSenzaPermessi(t *testing.T) {
 		if crea != c.crea || codice != c.err {
 			t.Errorf("%+v: crea=%v errore=%q, volevo crea=%v errore=%q", c.s, crea, codice, c.crea, c.err)
 		}
+	}
+}
+
+// Reinstallazione subito dopo una disinstallazione, prima del riavvio: in C:\Program Files\Tasso
+// sono rimasti solo resti di Tasso (lavoro occupato, Tasso.exe.vecchio-1...). Si usa quella
+// cartella, non C:\Program Files\Tasso\Tasso. Basta un file d'altro e si annida come prima.
+func TestCartellaDedicataRestiDopoDisinstallazione(t *testing.T) {
+	d := filepath.Join(t.TempDir(), "Tasso")
+	os.MkdirAll(filepath.Join(d, "lavoro", "tmp"), 0o755)
+	os.WriteFile(filepath.Join(d, "lavoro", "tmp", "a.txt"), []byte("x"), 0o644)
+	os.WriteFile(filepath.Join(d, "Tasso.exe.vecchio-1"), []byte("x"), 0o644)
+	os.WriteFile(filepath.Join(d, "Tasso.exe.old"), []byte("x"), 0o644)
+	os.MkdirAll(filepath.Join(d, ".tasso-setup-vecchio"), 0o755)
+	i := InfoCartellaDisco(d)
+	if !i.SoloResti || i.DiTasso || i.Vuota {
+		t.Fatalf("resti non riconosciuti: %+v", i)
+	}
+	if got := CartellaDedicata(d, InfoCartellaDisco); got != d {
+		t.Fatalf("annidata: %s", got)
+	}
+	os.WriteFile(filepath.Join(d, "altro.exe"), []byte("x"), 0o644)
+	if i := InfoCartellaDisco(d); i.SoloResti {
+		t.Fatal("altro.exe non è un resto di Tasso")
+	}
+	if got := CartellaDedicata(d, InfoCartellaDisco); got != d+`\Tasso` {
+		t.Fatalf("con un file d'altro doveva annidare: %s", got)
+	}
+	// una cartella che non si chiama Tasso, anche con soli resti, prende \Tasso come prima
+	e := filepath.Join(t.TempDir(), "Giochi")
+	os.MkdirAll(filepath.Join(e, "lavoro"), 0o755)
+	if got := CartellaDedicata(e, InfoCartellaDisco); got != e+`\Tasso` {
+		t.Fatalf("cartella non Tasso: %s", got)
+	}
+}
+
+// Disinstallazione con lavoro occupato e reinstallazione subito: Installa usa la cartella e il
+// lavoro resta (non lo tocco: Windows lo cancellerebbe al riavvio, ma installaInFondo annulla
+// quelle cancellazioni, vedi TogliCancellazioniPendenti).
+func TestReinstallaSopraResti(t *testing.T) {
+	p := nuovaProva(t, "3.1")
+	if _, err := p.in.Installa(context.Background(), p.opzioni(Gaming)); err != nil {
+		t.Fatal(err)
+	}
+	os.MkdirAll(filepath.Join(p.base, "lavoro"), 0o755)
+	os.WriteFile(filepath.Join(p.base, "lavoro", "occupato.txt"), []byte("x"), 0o644)
+	if _, err := p.in.Disinstalla(p.base, []Componente{Gaming}); err != nil {
+		t.Fatal(err)
+	}
+	// il test non ha file occupati: rimetto a mano il resto che sarebbe rimasto
+	os.MkdirAll(filepath.Join(p.base, "lavoro"), 0o755)
+	os.WriteFile(filepath.Join(p.base, "lavoro", "occupato.txt"), []byte("x"), 0o644)
+	base := CartellaDedicata(p.base, InfoCartellaDisco)
+	if base != p.base {
+		t.Fatalf("annidata in %s", base)
+	}
+	if _, err := p.in.Installa(context.Background(), p.opzioni(Gaming)); err != nil {
+		t.Fatal(err)
+	}
+	if !esiste(filepath.Join(p.base, "Tasso.exe")) || !esiste(filepath.Join(p.base, FileStato)) {
+		t.Fatal("reinstallazione non riuscita")
 	}
 }

@@ -328,7 +328,7 @@ func collega(w webview2.WebView) {
 			return out
 		}
 		// Tasso va sempre in una cartella sua (...\Tasso): vedi installa.CartellaDedicata
-		p = filepath.Clean(installa.CartellaDedicata(p, installa.InfoCartellaDisco))
+		p = filepath.Clean(installa.CartellaDedicata(p, infoCartella))
 		out["cartella"] = p
 		scelti, _ := installa.Normalizza(componenti(cc))
 		progs := installa.ProgrammiPer(scelti)
@@ -423,7 +423,7 @@ func collega(w webview2.WebView) {
 			l = L()
 		}
 		// sempre una cartella sua: mai C:\Program Files o D:\Giochi come "cartella di Tasso"
-		base := filepath.Clean(installa.CartellaDedicata(o.Cartella, installa.InfoCartellaDisco))
+		base := filepath.Clean(installa.CartellaDedicata(o.Cartella, infoCartella))
 		scelti := componenti(o.Componenti)
 		tieni := false
 		if st, _ := installa.LeggiStato(base); st != nil {
@@ -519,6 +519,17 @@ func collega(w webview2.WebView) {
 	})
 }
 
+// infoCartella: installa.InfoCartellaDisco, ma i "resti di un Tasso disinstallato" contano solo
+// dentro Programmi (lì solo gli amministratori scrivono). Fuori, una cartella non vuota resta da
+// controllare come prima (si aggiunge \Tasso e valgono i controlli di sicurezza).
+func infoCartella(p string) installa.InfoCartella {
+	i := installa.InfoCartellaDisco(p)
+	if i.SoloResti && !installa.DentroProgrammi(p, programFiles()) {
+		i.SoloResti = false
+	}
+	return i
+}
+
 // versioneInstallata: la versione installata di un programma (per Tasso vale anche il file
 // VERSIONE, che Tasso riscrive quando si aggiorna da solo).
 func versioneInstallata(st *installa.Stato, p installa.Programma) string {
@@ -547,6 +558,19 @@ func installaInFondo(ctx context.Context, o installa.Opzioni) {
 	_, err := in.Installa(ctx, o)
 	aggiornaIcone()
 	var avviso *installa.AvvisoCollegamenti
+	if err == nil || errors.As(err, &avviso) {
+		// reinstallato prima di riavviare dopo una disinstallazione: Windows non deve cancellare i file nuovi
+		annullaCancellazioniPendenti(o.Base)
+		// collegamenti di Tasso anche sul Desktop: il Tasso.lnk della 3.0 portatile non deve più
+		// aprire la 3.0 scaricata (solo se è proprio quello, vedi CollegamentoVecchioDaAggiornare)
+		if o.Desktop {
+			for _, p := range installa.ProgrammiPer(o.Componenti) {
+				if p == installa.ProgTasso {
+					aggiornaCollegamentoVecchio(o.Base)
+				}
+			}
+		}
+	}
 	if err != nil && !errors.As(err, &avviso) {
 		r := map[string]any{"ok": false, "codice": "err_generico", "dettagli": err.Error(), "diario": installa.PercorsoDiario()}
 		var ec *installa.ErroreCartella
