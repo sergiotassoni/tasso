@@ -1330,8 +1330,12 @@ func nascondiMotore(h uintptr) {
 		pSetWindowLongPtr.Call(h, gwlExStyle, nuovo)
 	}
 	// SWP_NOSIZE|SWP_NOZORDER|SWP_NOACTIVATE|SWP_FRAMECHANGED
-	fuori := int32(-32000)
-	pSetWindowPos.Call(h, 0, uintptr(fuori), uintptr(fuori), 0, 0, 0x1|0x4|0x10|0x20)
+	// Fuori dallo schermo ma NON a -32000: quella è la posizione delle finestre ridotte a icona, e
+	// Windows disegnava la barretta "Tasso Traduce (motore)" in basso a sinistra (26/11/2026).
+	vx, _, _ := pGetSysMetrics.Call(76) // SM_XVIRTUALSCREEN
+	vy, _, _ := pGetSysMetrics.Call(77) // SM_YVIRTUALSCREEN
+	fx, fy := int32(vx)-4000, int32(vy)-4000
+	pSetWindowPos.Call(h, 0, uintptr(fx), uintptr(fy), 0, 0, 0x1|0x4|0x10|0x20)
 	if cambiato {
 		// la barra delle applicazioni toglie il pulsante solo se la finestra si nasconde e riappare
 		pShowWindow.Call(h, 0) // SW_HIDE
