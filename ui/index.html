@@ -536,7 +536,7 @@ select.sel,#c-livello{background:var(--bg);color:inherit;border:1px solid var(--
     <span class="sep"></span>
     <label class="sw" title=""><input type="checkbox" id="assoc"><span></span></label>
     <div class="lbl"><span data-t="assoc_interruttore"></span></div>
-    <span class="eco" data-t="ecosistema"></span><span class="ver" id="ver" role="button" tabindex="0"></span>
+    <span class="eco" data-t="ecosistema"></span><span class="ver" id="ver" role="button" tabindex="0"></span><span class="ver" id="lic" role="button" tabindex="0" data-t="licenze" style="margin-left:10px"></span>
   </footer>
 </div>
 
@@ -552,6 +552,7 @@ const S = {
   lingua: "it", testi: {}, lingue: [], formato: "zip",
   lista: [],          // file e cartelle da comprimere
   coda: [], codaTot: 0, codaFatti: 0, ultimoEstratto: null,
+  inAttesa: [],       // richieste arrivate (tasto destro) mentre lavoravo: partono dopo
   corrente: null,     // archivio che sto estraendo
   tipo: "",           // "comprimi" o "estrai" (lavoro in corso)
   dropDove: "auto", vista: "home", occupato: false,
@@ -780,10 +781,13 @@ function mostraFatto(r, quanti) {
   const avvisi = [];
   if (r.rinominati) avvisi.push(t("rinominati", { n: r.rinominati }));
   if (r.riserva) avvisi.push(t("riserva"));
+  const fal = r.falliti || [];
+  if (fal.length) avvisi.unshift(t("falliti_avviso", { n: fal.filter(x => !x.startsWith("… ")).length || fal.length }));
   $("f-avvisi").textContent = avvisi.join(" ");
-  const s = r.saltati || [];
+  // i file rovinati (non estratti) prima, ben in vista; poi quelli lasciati fuori di proposito
+  const s = fal.concat(r.saltati || []);
   $("f-saltati-box").hidden = !s.length;
-  $("f-saltati-tit").textContent = r.tipo === "ripara" ? t("ripara_persi", { n: s.length }) : t("saltati", { n: s.length });
+  $("f-saltati-tit").textContent = r.tipo === "ripara" ? t("ripara_persi", { n: s.length }) : fal.length ? t("falliti", { n: fal.length }) : t("saltati", { n: s.length });
   $("f-saltati").textContent = s.join("\n");
   $("f-apri").onclick = () => goApri(r.percorso);
   vista("fatto");
@@ -799,7 +803,7 @@ function mostraErrore(e) {
     if (e.tipo === "estrai" && S.coda.length) { prossimo(); return; }
     S.occupato = false;
     if ((e.tipo === "apri" || e.tipo === "estrai") && S.daVista && S.arch) { vista("archivio"); return; }
-    if (INIZIO.mini && !(e.tipo === "estrai" && S.ultimoEstratto)) { goChiudi(); return; }
+    if (INIZIO.mini && !(e.tipo === "estrai" && S.ultimoEstratto)) { chiudiOAttesa(); return; }
     if (e.tipo === "estrai" && S.ultimoEstratto) { finisciCoda(); return; }
     if (S.ritorno === "guida") { vista("guida"); disegnaGuida(); return; }
     if (e.tipo === "comprimi" && S.lista.length) { vista("comprimi"); disegnaLista(); return; }
@@ -822,11 +826,16 @@ async function arrivati(percorsi, dove) {
   if (S.vista === "comprimi") { aggiungi(percorsi); return; }
   if (S.vista === "guida" && dove !== "estrai-in") { guidaAggiungi(percorsi); return; }
   if (dove === "estrai-in") {
+    if (S.occupato) {
+      // estrazione "in..." già in corso: stessa cartella, senza richiederla
+      if (S.tipo === "estrai" && S.destinazione) { estraiTutti(percorsi, S.destinazione, ""); toast(t("in_attesa")); return; }
+      mettiInAttesa(percorsi, dove); return;
+    }
     const d = await goScegliDestinazione();
-    if (!d || !d.length) { if (INIZIO.mini) goChiudi(); return; }
+    if (!d || !d.length) { if (INIZIO.mini) chiudiOAttesa(); return; }
     estraiTutti(percorsi, d[0], ""); return;
   }
-  if (S.occupato && !(S.tipo === "estrai" && dove !== "comprimi")) { toast(t("err_occupato")); return; }
+  if (S.occupato && !(S.tipo === "estrai" && dove !== "comprimi" && dove !== "zip" && dove !== "7z" && dove !== "apri")) { mettiInAttesa(percorsi, dove); return; }
   if (dove === "comprimi") { aggiungi(percorsi); return; }
   if (dove === "zip" || dove === "7z") { comprimiDiretto(percorsi, dove); return; }
   if (dove === "apri") { apriArchivio(percorsi[0]); return; }
@@ -848,9 +857,32 @@ async function arrivati(percorsi, dove) {
   else aggiungi(percorsi);
 }
 
+// ---------- richieste in attesa (tasto destro mentre lavoro) ----------
+// Prima un secondo "Estrai qui" o "Comprimi in .zip" arrivato mentre lavoravo si perdeva:
+// adesso aspetta il suo turno e parte da solo appena il lavoro in corso finisce.
+function mettiInAttesa(percorsi, dove) {
+  S.inAttesa.push({ percorsi: percorsi.slice(), dove });
+  toast(t("in_attesa"));
+}
+function eseguiAttesa() {
+  if (!S.inAttesa.length) return false;
+  const a = S.inAttesa.shift();
+  // più richieste uguali di "comprimi subito": un archivio solo con tutti i file
+  if (a.dove === "zip" || a.dove === "7z") {
+    for (let i = 0; i < S.inAttesa.length;) {
+      if (S.inAttesa[i].dove === a.dove) a.percorsi.push(...S.inAttesa.splice(i, 1)[0].percorsi); else i++;
+    }
+  }
+  S.ultimoEstratto = null;
+  arrivati(a.percorsi, a.dove);
+  return true;
+}
+function chiudiOAttesa() { if (!eseguiAttesa()) goChiudi(); }
+setInterval(() => { if (S.inAttesa.length && !S.occupato && puoiLasciare()) eseguiAttesa(); }, 500);
+
 // ---------- dal tasto destro: comprimi subito ----------
 async function comprimiDiretto(percorsi, formato) {
-  if (S.occupato) { toast(t("err_occupato")); return; }
+  if (S.occupato) { mettiInAttesa(percorsi, formato); return; }
   const r = await goComprimi(percorsi, formato, "", S.livello || "massima", "");
   if (r === "occupato") { toast(t("err_occupato")); return; }
   if (r !== "ok") return;
@@ -1744,7 +1776,7 @@ $("l-annulla").onclick = () => {
 };
 $("f-ok").onclick = () => {
   S.ultimoEstratto = null;
-  if (INIZIO.mini) { goChiudi(); return; }
+  if (INIZIO.mini) { chiudiOAttesa(); return; }
   if (S.daVista && S.arch) { vista("archivio"); return; }
   if (S.ritorno === "esplora") { tornaEsplora(true); return; }
   if (S.ritorno === "guida") { G.passo = 1; G.lista = []; if (G.daEsplora && X.el) { tornaEsplora(true); return; } }
@@ -1757,7 +1789,7 @@ $("p-annulla").onclick = () => {
   if (S.coda.length) { prossimo(); return; }
   S.occupato = false;
   if (S.daVista && S.arch && S.tipo !== "elenco") { vista("archivio"); return; }
-  if (INIZIO.mini && !S.ultimoEstratto) { goChiudi(); return; }
+  if (INIZIO.mini && !S.ultimoEstratto) { chiudiOAttesa(); return; }
   if (S.ultimoEstratto) { finisciCoda(); return; }
   if (S.ritorno === "esplora") { tornaEsplora(); return; }
   if (S.ritorno === "guida") { vista("guida"); return; }
@@ -1812,6 +1844,8 @@ const INIZIO = window.__TZ_INIZIO__ || { modo: "", percorsi: [] };
     if (r !== "nessuno") return;
     if (await conferma(t("agg_titolo"), t("agg_senza_tasso"), t("agg_apri_pagina"), { ico: "am" })) goPaginaVersioni();
   };
+  $("lic").onclick = () => goLicenze();
+  $("lic").onkeydown = e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); goLicenze(); } };
   $("ver").onkeydown = e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); $("ver").click(); } };
   applicaTesti();
   const p = INIZIO.percorsi || [];

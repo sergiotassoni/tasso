@@ -83,6 +83,7 @@ func RiparaZip(ctx context.Context, percorso, dove string, avanzamento FunzioneA
 	if dove == "" {
 		dove = filepath.Dir(percorso)
 	}
+	PulisciAvanzi(dove)
 	tmp := filepath.Join(dove, nomeTemporaneo(".tmp"))
 	out, err := os.OpenFile(tmp, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o644)
 	if err != nil {
@@ -175,6 +176,9 @@ func RiparaZip(ctx context.Context, percorso, dove string, avanzamento FunzioneA
 	if err != nil {
 		return ris, err
 	}
+	if z := leggiZona(percorso); z != nil {
+		scriviZona(finale, z) // l'archivio riparato viene da internet come l'originale
+	}
 	finito = true
 	ris.Archivio = finale
 	return ris, nil
@@ -201,7 +205,7 @@ func leggiVoce(ctx context.Context, f io.ReaderAt, dim, off int64, cerca *cercat
 	v.comp, v.decomp = uint64(le.Uint32(h[18:])), uint64(le.Uint32(h[22:]))
 	nl, el := int64(le.Uint16(h[26:])), int64(le.Uint16(h[28:]))
 	if nl == 0 || off+30+nl+el > dim {
-		return v, "intestazione rovinata"
+		return v, "intestazione_rovinata"
 	}
 	nb := make([]byte, nl+el)
 	if _, err := f.ReadAt(nb, off+30); err != nil {
@@ -210,7 +214,7 @@ func leggiVoce(ctx context.Context, f io.ReaderAt, dim, off int64, cerca *cercat
 	v.nome = string(nb[:nl])
 	if bytes.IndexByte(nb[:nl], 0) >= 0 {
 		v.nome = ""
-		return v, "intestazione rovinata"
+		return v, "intestazione_rovinata"
 	}
 	extra := nb[nl:]
 	zip64 := false
@@ -234,7 +238,7 @@ func leggiVoce(ctx context.Context, f io.ReaderAt, dim, off int64, cerca *cercat
 	}
 	v.inizioDati = off + 30 + nl + el
 	if v.flags&1 != 0 {
-		return v, "con password"
+		return v, "con_password"
 	}
 	if v.metodo != zip.Store && v.metodo != zip.Deflate {
 		return v, fmt.Sprintf("metodo %d non supportato", v.metodo)
@@ -252,7 +256,7 @@ func leggiVoce(ctx context.Context, f io.ReaderAt, dim, off int64, cerca *cercat
 		}
 		crc, n, err := controllaDati(ctx, io.NewSectionReader(f, v.inizioDati, int64(v.comp)), v.metodo)
 		if err != nil || crc != v.crc || uint64(n) != v.decomp {
-			return v, "dati rovinati"
+			return v, "dati_rovinati"
 		}
 		v.fine = v.inizioDati + int64(v.comp)
 		return v, ""
@@ -263,7 +267,7 @@ func leggiVoce(ctx context.Context, f io.ReaderAt, dim, off int64, cerca *cercat
 		cr := &contaByte{r: bufio.NewReaderSize(io.NewSectionReader(f, v.inizioDati, dim-v.inizioDati), 256<<10)}
 		crc, n, err := controllaDati(ctx, cr, zip.Deflate)
 		if err != nil {
-			return v, "dati rovinati"
+			return v, "dati_rovinati"
 		}
 		v.comp, v.decomp = uint64(cr.n), uint64(n)
 		fine, ok := descrittore(f, dim, v.inizioDati+cr.n, crc, v.comp, v.decomp, zip64)
@@ -271,7 +275,7 @@ func leggiVoce(ctx context.Context, f io.ReaderAt, dim, off int64, cerca *cercat
 			// Descrittore mancante o rovinato: accetto solo se il CRC dell'intestazione
 			// c'è e torna (il deflate da solo non ha una somma di controllo).
 			if v.crc == 0 || v.crc != crc {
-				return v, "dati rovinati"
+				return v, "dati_rovinati"
 			}
 			fine = v.inizioDati + cr.n
 		}

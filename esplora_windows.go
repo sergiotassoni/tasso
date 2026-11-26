@@ -262,7 +262,7 @@ func avviaVerifica(percorso, password string) string {
 				return
 			}
 			// Un archivio rovinato non è un errore del programma: è il risultato della verifica.
-			manda("verificato", map[string]interface{}{"percorso": percorso, "ok": false, "codice": c, "dettagli": err.Error()})
+			manda("verificato", map[string]interface{}{"percorso": percorso, "ok": false, "codice": c, "dettagli": testi.Dettagli(lingua(), err.Error())})
 			return
 		}
 		manda("verificato", map[string]interface{}{"percorso": percorso, "ok": true, "ris": ris})
@@ -289,7 +289,7 @@ func avviaRipara(percorso string) string {
 			return
 		}
 		manda("fine", map[string]interface{}{
-			"tipo": "ripara", "percorso": ris.Archivio, "file": ris.Salvati, "saltati": ris.Persi, "archivio": percorso,
+			"tipo": "ripara", "percorso": ris.Archivio, "file": ris.Salvati, "saltati": testi.Motivi(lingua(), ris.Persi), "archivio": percorso,
 		})
 	}()
 	return "ok"

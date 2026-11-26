@@ -436,7 +436,7 @@ func Trova(ctx context.Context, radice, cerca string, opz OpzioniTrova) (Risulta
 				}
 			}
 			// Solo cartelle vere: niente collegamenti o giunzioni (punti di rianalisi).
-			if de.IsDir() && de.Type()&(fs.ModeSymlink|fs.ModeIrregular) == 0 && !giunzione(filepath.Join(dir, de.Name())) {
+			if de.IsDir() && de.Type()&fs.ModeSymlink == 0 && !giunzione(filepath.Join(dir, de.Name())) {
 				coda = append(coda, filepath.Join(dir, de.Name()))
 			}
 		}

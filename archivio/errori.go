@@ -41,6 +41,8 @@ func Codice(err error) string {
 		return "password_sbagliata"
 	case errors.Is(err, ErrPassword):
 		return "password"
+	case errors.Is(err, ErrMemoria):
+		return "memoria"
 	case errors.Is(err, ErrBomba):
 		return "bomba"
 	case errors.Is(err, ErrTroppeVoci):

@@ -163,7 +163,7 @@ func Elenca(ctx context.Context, percorso, password string) (el ElencoArchivio, 
 			}
 		}
 	case TipoRar:
-		opz := []rardecode.Option{rardecode.MaxDictionarySize(1 << 30)}
+		opz := []rardecode.Option{rardecode.MaxDictionarySize(limiteFinestra())}
 		if password != "" {
 			opz = append(opz, rardecode.Password(password))
 		}
@@ -218,7 +218,7 @@ func (l *lavoroEstrai) elencaFlusso(tipo Tipo, percorso string, aggiungi func(Vo
 			r, err = xz.NewReader(r)
 		case TipoZst:
 			var zr *zstd.Decoder
-			zr, err = zstd.NewReader(r, zstd.WithDecoderConcurrency(1), zstd.WithDecoderMaxWindow(1<<30))
+			zr, err = zstd.NewReader(r, zstd.WithDecoderConcurrency(1), zstd.WithDecoderMaxWindow(uint64(limiteFinestra())))
 			if err == nil {
 				defer zr.Close()
 				r = zr

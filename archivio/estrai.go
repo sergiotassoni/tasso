@@ -9,6 +9,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -143,6 +144,7 @@ type RisultatoEstrai struct {
 	File       int      // file estratti
 	Rinominati int      // nomi doppi a cui ho aggiunto " (2)"
 	Saltati    []string // voci non estratte, con il motivo (collegamenti, nomi pericolosi...)
+	Falliti    []string // file con i dati rovinati, non estratti (gli altri sì)
 	Riserva    bool     // true se ho usato CartellaRiserva
 	// UltimoFile: percorso finale dell'ultimo file estratto (per aprirlo subito).
 	UltimoFile string
@@ -159,6 +161,9 @@ type lavoroEstrai struct {
 	totale   int64
 	flusso   bool // avanzamento in base ai byte letti dall'archivio (tar, gz, bz2, xz)
 	multipli bool
+	// cifratiBuoni: file cifrati già usciti giusti (allora la password è giusta e un errore
+	// dopo vuol dire file rovinato, non password sbagliata).
+	cifratiBuoni int
 }
 
 func (l *lavoroEstrai) avanza(nome string, n int64) {
@@ -205,23 +210,28 @@ func Estrai(ctx context.Context, percorso string, opz OpzioniEstrai) (ris Risult
 	if opz.Destinazione != "" {
 		dove = opz.Destinazione
 	}
+	PulisciAvanzi(dove)
 	tmp, err := creaCartellaTemporanea(dove)
 	if err != nil && opz.CartellaRiserva != "" {
 		dove = opz.CartellaRiserva
 		ris.Riserva = true
+		PulisciAvanzi(dove)
 		tmp, err = creaCartellaTemporanea(dove)
 	}
 	if err != nil {
 		return ris, fmt.Errorf("%w: %v", ErrNonScrivibile, err)
 	}
+	sblocca := bloccaLavoro(tmp)
 	finito := false
 	defer func() {
+		sblocca()
 		if !finito {
 			_ = os.RemoveAll(tmp) // annullato o errore: non lascio niente a metà
 		}
 	}()
 
 	l.d = nuovaDestinazione(ctx, tmp, limiti, l.vol.Size())
+	l.d.zona = zonaArchivio(l.parti)
 	l.d.avanzamento = l.avanza
 	l.d.filtro = filtroSelezione(opz.Selezione, opz.TogliPrefisso)
 
@@ -241,6 +251,9 @@ func Estrai(ctx context.Context, percorso string, opz OpzioniEstrai) (ris Risult
 	if err == nil {
 		err = l.d.annullato()
 	}
+	if err == nil && len(l.d.falliti) > 0 && l.d.file == 0 {
+		err = l.erroreLettura(l.d.primoErrore) // nessun file buono: l'archivio è rovinato
+	}
 	if err != nil {
 		if errors.Is(err, context.Canceled) {
 			err = ErrAnnullato
@@ -248,6 +261,7 @@ func Estrai(ctx context.Context, percorso string, opz OpzioniEstrai) (ris Risult
 		return ris, err
 	}
 
+	sblocca()
 	finale, ultimo, err := l.d.concludi(dove, NomeBaseArchivio(percorso), opz.Modo)
 	if err != nil {
 		return ris, err
@@ -258,7 +272,47 @@ func Estrai(ctx context.Context, percorso string, opz OpzioniEstrai) (ris Risult
 	ris.File = l.d.file
 	ris.Rinominati = l.d.rinominati
 	ris.Saltati = l.d.saltati
+	ris.Falliti = l.d.falliti
 	return ris, nil
+}
+
+// soloQuesto: l'errore riguarda solo i dati di questo file (rovinati): si salta il file e si
+// va avanti con gli altri. Annullo, password, memoria, spazio, disco che non scrive, zip bomb,
+// troppe voci: si ferma tutto. Nella Verifica ogni errore ferma (deve dire "rovinato").
+func (l *lavoroEstrai) soloQuesto(err error) bool {
+	if err == nil || l.d == nil || l.d.prova {
+		return false
+	}
+	for _, e := range []error{ErrAnnullato, context.Canceled, ErrBomba, ErrSpazio, ErrTroppeVoci, ErrPassword,
+		ErrPasswordSbagliata, ErrZipCifrato, ErrMemoria, ErrParteMancante} {
+		if errors.Is(err, e) {
+			return false
+		}
+	}
+	if erroreMemoria(err) || erroreDiscoPieno(err) {
+		return false
+	}
+	if l.multipli && errors.Is(err, io.ErrUnexpectedEOF) {
+		return false // manca una parte: lo dice ErrParteMancante
+	}
+	var pe *fs.PathError
+	if errors.As(err, &pe) && pe.Op != "read" {
+		return false // errore del disco su cui scrivo
+	}
+	return true
+}
+
+// resto: dopo un errore la lettura dell'archivio non può andare avanti. Se qualche file è
+// già uscito buono lo tengo e segno che il resto non si è potuto leggere; se no è un errore.
+func (l *lavoroEstrai) resto(err error) error {
+	if !l.soloQuesto(err) || l.d.file == 0 {
+		return err
+	}
+	if l.d.primoErrore == nil {
+		l.d.primoErrore = err
+	}
+	l.d.falliti = append(l.d.falliti, "… (resto_illeggibile)")
+	return nil
 }
 
 // apri trova le parti dell'archivio, le apre e ne riconosce il tipo dai primi byte.
@@ -332,10 +386,13 @@ func (l *lavoroEstrai) erroreLettura(err error) error {
 	if err == nil {
 		return nil
 	}
-	for _, e := range []error{ErrAnnullato, ErrBomba, ErrSpazio, ErrTroppeVoci, ErrPassword, ErrPasswordSbagliata, ErrZipCifrato} {
+	for _, e := range []error{ErrAnnullato, ErrBomba, ErrSpazio, ErrTroppeVoci, ErrPassword, ErrPasswordSbagliata, ErrZipCifrato, ErrMemoria} {
 		if errors.Is(err, e) {
 			return err
 		}
+	}
+	if erroreMemoria(err) {
+		return fmt.Errorf("%w (%v)", ErrMemoria, err)
 	}
 	if errors.Is(err, context.Canceled) {
 		return ErrAnnullato

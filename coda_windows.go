@@ -8,6 +8,9 @@ package main
 // Dal menu del tasto destro, se scegli 5 file, Windows avvia Tasso Zip 5 volte (una per file).
 // Il primo che parte diventa "il primo" (un mutex di Windows) e apre la finestra; gli altri
 // scrivono il loro percorso in un piccolo file di coda e si chiudono subito, senza finestra.
+// Il primo legge la coda per TUTTO il tempo in cui la finestra è aperta (prima solo 10
+// secondi: un secondo "Estrai qui" fatto dopo si perdeva senza dire niente). Alla chiusura,
+// se nella coda è rimasto qualcosa, apre un Tasso Zip nuovo per quei file.
 
 import (
 	"errors"
@@ -37,9 +40,37 @@ func sonoIlPrimo(modo string) (bool, func()) {
 	return true, func() {
 		_ = windows.ReleaseMutex(h)
 		windows.CloseHandle(h)
+		// arrivati proprio mentre chiudevo: non li perdo, li passo a un Tasso Zip nuovo
+		resto := leggiCodaTutti(modo)
+		time.Sleep(300 * time.Millisecond) // chi ha visto il mutex un attimo prima sta scrivendo
+		resto = append(resto, leggiCoda(modo)...)
+		if len(resto) > 0 {
+			riapriPer(modo, resto)
+		}
 		_ = os.Remove(fileCoda(modo))
 	}
 }
+
+// riapriPer avvia un Tasso Zip nuovo con questi file (lo stesso comando del tasto destro).
+func riapriPer(modo string, percorsi []string) {
+	exe, err := os.Executable()
+	if err != nil {
+		return
+	}
+	args := "--" + modo
+	for _, p := range percorsi {
+		if strings.ContainsAny(p, "\"\r\n") {
+			continue
+		}
+		args += ` "` + p + `"`
+	}
+	shellExecute(exe, args)
+}
+
+// visto da poco: lo stesso percorso arrivato due volte nello stesso avvio di Windows (un
+// processo per file) conta una volta sola; lo stesso archivio scelto di nuovo più tardi
+// (per esempio estratto una seconda volta) invece si rifà.
+const finestraDoppi = 3 * time.Second
 
 // passaAlPrimo aggiunge i percorsi alla coda (riprova se il file è occupato in quel momento).
 func passaAlPrimo(modo string, percorsi []string) {
@@ -74,22 +105,35 @@ func leggiCoda(modo string) []string {
 	var out []string
 	codaVistiMu.Lock()
 	defer codaVistiMu.Unlock()
+	ora := time.Now()
 	for _, r := range strings.Split(string(b), "\n") {
 		r = strings.TrimSpace(r)
-		if r == "" || codaVisti[strings.ToLower(r)] {
+		k := strings.ToLower(r)
+		if r == "" {
 			continue
 		}
-		codaVisti[strings.ToLower(r)] = true
+		if t, ok := codaVisti[k]; ok && ora.Sub(t) < finestraDoppi {
+			continue
+		}
+		codaVisti[k] = ora
 		out = append(out, r)
 	}
 	return out
+}
+
+// leggiCodaTutti: quello che è rimasto in coda, senza togliere i doppi (alla chiusura).
+func leggiCodaTutti(modo string) []string {
+	codaVistiMu.Lock()
+	codaVisti = map[string]time.Time{}
+	codaVistiMu.Unlock()
+	return leggiCoda(modo)
 }
 
 // raccogliCoda: aspetta un attimo gli altri Tasso Zip partiti insieme e unisce i loro file.
 func raccogliCoda(modo string, miei []string, attesa time.Duration) []string {
 	codaVistiMu.Lock()
 	for _, p := range miei {
-		codaVisti[strings.ToLower(p)] = true
+		codaVisti[strings.ToLower(p)] = time.Now()
 	}
 	codaVistiMu.Unlock()
 	tutti := append([]string{}, miei...)
@@ -101,10 +145,19 @@ func raccogliCoda(modo string, miei []string, attesa time.Duration) []string {
 	return tutti
 }
 
-// ascoltaCoda: per qualche secondo dopo l'apertura arrivano ancora file in ritardo: li passo alla pagina.
+// ascoltaCoda: finché la finestra è aperta passo alla pagina i file arrivati dopo (in ritardo
+// dallo stesso tasto destro, o da un tasto destro nuovo): la pagina li fa subito o, se sta
+// lavorando, appena finisce.
 func ascoltaCoda(modo string) {
-	for i := 0; i < 40; i++ {
-		time.Sleep(250 * time.Millisecond)
+	for i := 0; !chiusa.Load(); i++ {
+		pausa := 250 * time.Millisecond
+		if i > 40 {
+			pausa = 400 * time.Millisecond
+		}
+		time.Sleep(pausa)
+		if chiusa.Load() {
+			return // alla chiusura ci pensa sonoIlPrimo (riapre per quelli rimasti)
+		}
 		if nuovi := leggiCoda(modo); len(nuovi) > 0 {
 			manda("aggiunti", nuovi)
 		}

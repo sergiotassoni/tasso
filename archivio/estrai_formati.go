@@ -96,14 +96,17 @@ func (l *lavoroEstrai) zip() error {
 			if err := l.d.nuovaVoce(); err != nil {
 				return err
 			}
-			l.d.salta(nome, "file speciale")
+			l.d.salta(nome, "file_speciale")
 		default:
 			rc, err := f.Open()
-			if err != nil {
-				return l.erroreLettura(err)
+			if err == nil {
+				err = l.d.creaFile(nome, rc, f.Modified)
+				rc.Close()
 			}
-			err = l.d.creaFile(nome, rc, f.Modified)
-			rc.Close()
+			if l.soloQuesto(err) {
+				l.d.fallito(nome, err) // dati rovinati: salto questo file e vado avanti
+				continue
+			}
 			if err != nil {
 				return l.erroreLettura(err)
 			}
@@ -161,23 +164,58 @@ func (l *lavoroEstrai) setteZip() error {
 		default:
 			rc, err := f.Open()
 			if err != nil {
-				return l.errore7z(err)
+				if e := l.errore7z(err); !l.soloQuesto(err) || l.cifratoSbagliato(e) {
+					return l.comePassword(e)
+				}
+				l.d.fallito(f.Name, err)
+				continue
 			}
 			h := crc32.NewIEEE()
+			prima := l.d.file
 			err = l.d.creaFile(f.Name, io.TeeReader(rc, h), f.Modified)
 			rc.Close()
-			if err != nil {
-				return l.errore7z(err)
-			}
-			if f.CRC32 != 0 && f.UncompressedSize > 0 && h.Sum32() != f.CRC32 {
-				if l.opz.Password != "" {
-					return ErrPasswordSbagliata
+			if err == nil && f.CRC32 != 0 && f.UncompressedSize > 0 && h.Sum32() != f.CRC32 {
+				if l.d.file > prima {
+					l.d.togliUltimo()
 				}
-				return l.erroreLettura(fmt.Errorf("%s: dati non corretti", f.Name))
+				err = fmt.Errorf("%s: %w", f.Name, errDatiNonCorretti)
+			}
+			if err != nil {
+				e := l.errore7z(err)
+				if l.cifratoSbagliato(e) || !l.soloQuesto(err) {
+					return l.comePassword(e)
+				}
+				l.d.fallito(f.Name, err)
+				continue
+			}
+			if l.opz.Password != "" {
+				l.cifratiBuoni++
 			}
 		}
 	}
 	return nil
+}
+
+var errDatiNonCorretti = errors.New("dati non corretti")
+
+// comePassword: un errore dei dati con la password e nessun file giusto = password sbagliata.
+func (l *lavoroEstrai) comePassword(e error) error {
+	if errors.Is(e, ErrPassword) || errors.Is(e, ErrPasswordSbagliata) || !l.soloQuesto(e) {
+		return e
+	}
+	if l.opz.Password != "" && l.cifratiBuoni == 0 {
+		return ErrPasswordSbagliata
+	}
+	return e
+}
+
+// cifratoSbagliato: con la password, se nessun file è ancora uscito giusto, un errore dei dati
+// vuol dire quasi sempre password sbagliata (non "file rovinato").
+func (l *lavoroEstrai) cifratoSbagliato(e error) bool {
+	if errors.Is(e, ErrPassword) || errors.Is(e, ErrPasswordSbagliata) {
+		return true
+	}
+	return l.opz.Password != "" && l.cifratiBuoni == 0 && l.soloQuesto(e)
 }
 
 // ---------------- RAR ----------------
@@ -204,7 +242,7 @@ func (l *lavoroEstrai) erroreRar(err error, cifrato bool) error {
 }
 
 func (l *lavoroEstrai) rar(percorso string) error {
-	opz := []rardecode.Option{rardecode.MaxDictionarySize(1 << 30)}
+	opz := []rardecode.Option{rardecode.MaxDictionarySize(limiteFinestra())}
 	if l.opz.Password != "" {
 		opz = append(opz, rardecode.Password(l.opz.Password))
 	}
@@ -238,7 +276,10 @@ func (l *lavoroEstrai) rar(percorso string) error {
 			return nil
 		}
 		if err != nil {
-			return l.erroreRar(err, false)
+			if e := l.erroreRar(err, false); !l.soloQuesto(e) {
+				return e
+			}
+			return l.resto(l.erroreRar(err, false))
 		}
 		switch {
 		case h.LinkType != rardecode.LinkTypeNone || h.Mode()&fs.ModeSymlink != 0:
@@ -255,7 +296,15 @@ func (l *lavoroEstrai) rar(percorso string) error {
 				return ErrPassword
 			}
 			if err := l.d.creaFile(h.Name, r, h.ModificationTime); err != nil {
-				return l.erroreRar(err, h.Encrypted)
+				e := l.erroreRar(err, h.Encrypted && l.cifratiBuoni == 0)
+				if !l.soloQuesto(e) {
+					return e
+				}
+				l.d.fallito(h.Name, err)
+				continue
+			}
+			if h.Encrypted {
+				l.cifratiBuoni++
 			}
 		}
 	}
@@ -281,7 +330,7 @@ func (l *lavoroEstrai) flussoTar(tipo Tipo, percorso string) error {
 			r, err = xz.NewReader(r)
 		case TipoZst:
 			var zr *zstd.Decoder
-			zr, err = zstd.NewReader(r, zstd.WithDecoderConcurrency(1), zstd.WithDecoderMaxWindow(1<<30))
+			zr, err = zstd.NewReader(r, zstd.WithDecoderConcurrency(1), zstd.WithDecoderMaxWindow(uint64(limiteFinestra())))
 			if err == nil {
 				defer zr.Close()
 				r = zr
@@ -308,12 +357,15 @@ func (l *lavoroEstrai) flussoTar(tipo Tipo, percorso string) error {
 			return nil
 		}
 		if err != nil {
-			return l.erroreLettura(err)
+			return l.resto(l.erroreLettura(err))
 		}
 		switch h.Typeflag {
 		case tar.TypeReg, tar.TypeRegA, tar.TypeGNUSparse:
 			if err := l.d.creaFile(h.Name, tr, h.ModTime); err != nil {
-				return l.erroreLettura(err)
+				if !l.soloQuesto(err) {
+					return l.erroreLettura(err)
+				}
+				l.d.fallito(h.Name, err) // il flusso dopo un errore di solito non si legge più
 			}
 		case tar.TypeDir:
 			if err := l.d.creaCartella(h.Name, h.ModTime); err != nil {
@@ -330,7 +382,7 @@ func (l *lavoroEstrai) flussoTar(tipo Tipo, percorso string) error {
 			if err := l.d.nuovaVoce(); err != nil {
 				return err
 			}
-			l.d.salta(h.Name, "file speciale")
+			l.d.salta(h.Name, "file_speciale")
 		}
 	}
 }

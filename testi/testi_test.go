@@ -49,3 +49,50 @@ func TestScegli(t *testing.T) {
 		t.Error("T")
 	}
 }
+
+func TestMotivi(t *testing.T) {
+	v := Motivi("en", []string{"foto.lnk (collegamento)", "a/b.txt (rovinato)", "… (resto_illeggibile)", "strano (2) (sconosciuto)", "senza"})
+	atteso := []string{"foto.lnk (link)", "a/b.txt (damaged data)", "… (the rest of the archive is unreadable)", "strano (2) (sconosciuto)", "senza"}
+	for i := range atteso {
+		if v[i] != atteso[i] {
+			t.Errorf("%d: %q, atteso %q", i, v[i], atteso[i])
+		}
+	}
+	// ogni codice usato dal programma ha il suo testo in tutte le lingue
+	for _, c := range []string{"collegamento", "percorso_non_sicuro", "file_speciale", "non_leggibile", "rovinato",
+		"resto_illeggibile", "incompleto", "intestazione_rovinata", "con_password", "dati_rovinati"} {
+		for _, l := range Lingue {
+			if _, ok := Tutti()[l]["motivo_"+c]; !ok {
+				t.Errorf("%s: manca motivo_%s", l, c)
+			}
+		}
+	}
+}
+
+func TestDettagli(t *testing.T) {
+	d := Dettagli("de", "archivio rovinato o incompleto (sevenzip: bad header)")
+	if strings.Contains(d, "rovinato") || !strings.Contains(d, "sevenzip: bad header") {
+		t.Fatalf("dettagli: %q", d)
+	}
+	if Dettagli("it", "password sbagliata") != "password sbagliata" {
+		t.Fatal("in italiano resta com'è")
+	}
+	for _, f := range frasiErrori {
+		if T("en", f.chiave) == f.chiave {
+			t.Errorf("manca il testo %s", f.chiave)
+		}
+	}
+}
+
+// Nessun nome di altri programmi per archivi nei testi della finestra.
+func TestNiente7ZipWinRAR(t *testing.T) {
+	for l, m := range Tutti() {
+		for k, v := range m {
+			for _, x := range []string{"7-Zip", "7zip", "WinRAR", "WinZip", "PeaZip", "NanaZip"} {
+				if strings.Contains(strings.ToLower(v), strings.ToLower(x)) {
+					t.Errorf("%s/%s nomina %s: %q", l, k, x, v)
+				}
+			}
+		}
+	}
+}

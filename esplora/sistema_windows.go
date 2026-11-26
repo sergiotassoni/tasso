@@ -9,6 +9,7 @@ import (
 	"io/fs"
 	"os"
 	"syscall"
+	"tassozip/rianalisi"
 )
 
 const (
@@ -30,10 +31,15 @@ func nascosto(nome string, fi fs.FileInfo) bool {
 }
 
 // giunzione: cartella che in realtà porta altrove (giunzione, collegamento): non la percorro.
+// Le cartelle di OneDrive ("File su richiesta") e quelle compresse da Windows sono punti di
+// rianalisi anche loro, ma sono cartelle vere: quelle si percorrono.
 func giunzione(p string) bool {
 	fi, err := os.Lstat(p)
-	if err != nil {
+	if err != nil || fi.Mode()&fs.ModeSymlink != 0 {
 		return true
 	}
-	return attributi(fi)&attrRianalisi != 0 || fi.Mode()&(fs.ModeSymlink|fs.ModeIrregular) != 0
+	if attributi(fi)&attrRianalisi == 0 && fi.Mode()&fs.ModeIrregular == 0 {
+		return false
+	}
+	return rianalisi.PortaAltrove(p)
 }

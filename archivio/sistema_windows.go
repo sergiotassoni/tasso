@@ -7,6 +7,7 @@ package archivio
 
 import (
 	"errors"
+	"os"
 	"unsafe"
 
 	"golang.org/x/sys/windows"
@@ -71,3 +72,35 @@ func memoriaLibera() int64 {
 }
 
 var procGlobalMemoryStatusEx = windows.NewLazySystemDLL("kernel32.dll").NewProc("GlobalMemoryStatusEx")
+
+// leggiZonaSistema: il "marchio del web" (flusso :Zone.Identifier) del file, nil se non c'è.
+func leggiZonaSistema(p string) []byte {
+	b, err := os.ReadFile(p + ":Zone.Identifier")
+	if err != nil || len(b) == 0 || len(b) > 64<<10 {
+		return nil
+	}
+	return b
+}
+
+// scriviZonaSistema mette il marchio del web sul file (così SmartScreen e Office avvisano).
+func scriviZonaSistema(p string, b []byte) {
+	_ = os.WriteFile(p+":Zone.Identifier", b, 0o644)
+}
+
+// nascondi: la cartella o il file di lavoro non si vede in Esplora file mentre lavoro.
+func nascondi(p string) {
+	if u, err := windows.UTF16PtrFromString(p); err == nil {
+		if a, err := windows.GetFileAttributes(u); err == nil {
+			_ = windows.SetFileAttributes(u, a|windows.FILE_ATTRIBUTE_HIDDEN)
+		}
+	}
+}
+
+// mostra toglie l'attributo "nascosto" messo da nascondi.
+func mostra(p string) {
+	if u, err := windows.UTF16PtrFromString(p); err == nil {
+		if a, err := windows.GetFileAttributes(u); err == nil && a&windows.FILE_ATTRIBUTE_HIDDEN != 0 {
+			_ = windows.SetFileAttributes(u, a&^windows.FILE_ATTRIBUTE_HIDDEN)
+		}
+	}
+}

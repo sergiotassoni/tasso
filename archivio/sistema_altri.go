@@ -20,3 +20,8 @@ func spazioLibero(cartella string) int64 { return -1 }
 func codePageOEM() int { return 437 }
 
 func memoriaLibera() int64 { return 0 }
+
+func leggiZonaSistema(string) []byte   { return nil }
+func scriviZonaSistema(string, []byte) {}
+func nascondi(string)                  {}
+func mostra(string)                    {}

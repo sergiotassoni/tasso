@@ -17,6 +17,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"tassozip/rianalisi"
 	"time"
 
 	"tassozip/archivio/settezip"
@@ -217,6 +218,7 @@ func Comprimi(ctx context.Context, sorgenti []string, opz OpzioniComprimi) (ris 
 		}
 		return errors.New("non riesco a creare il file di lavoro")
 	}
+	PulisciAvanzi(dove)
 	if e := apri(dove); e != nil {
 		if opz.CartellaRiserva == "" {
 			return ris, fmt.Errorf("%w: %v", ErrNonScrivibile, e)
@@ -306,6 +308,13 @@ func Comprimi(ctx context.Context, sorgenti []string, opz OpzioniComprimi) (ris 
 	return ris, nil
 }
 
+// normale: un file vero (anche se Windows lo tiene come punto di rianalisi non collegamento:
+// OneDrive, file compressi da Windows). Va chiamata dopo rianalisi.Collegamento.
+func normale(fi fs.FileInfo) bool {
+	m := fi.Mode()
+	return m.IsRegular() || (m&fs.ModeIrregular != 0 && !m.IsDir() && m&(fs.ModeNamedPipe|fs.ModeSocket|fs.ModeDevice|fs.ModeCharDevice) == 0)
+}
+
 // elencaVoci percorre file e cartelle. Non segue mai i collegamenti (symlink, giunzioni).
 func elencaVoci(ctx context.Context, sorgenti []string, escludi string) ([]voce, []string, error) {
 	var voci []voce
@@ -333,9 +342,9 @@ func elencaVoci(ctx context.Context, sorgenti []string, escludi string) ([]voce,
 		radici[chiave(nomeRadice)] = true
 
 		switch {
-		case fi.Mode()&fs.ModeSymlink != 0 || fi.Mode()&fs.ModeIrregular != 0:
+		case rianalisi.Collegamento(s, fi):
 			salta(filepath.Base(s), "collegamento")
-		case fi.Mode().IsRegular():
+		case normale(fi):
 			if s == escludi {
 				continue
 			}
@@ -353,7 +362,7 @@ func elencaVoci(ctx context.Context, sorgenti []string, escludi string) ([]voce,
 					nomeArch = nomeRadice + "/" + filepath.ToSlash(rel)
 				}
 				if err != nil {
-					salta(nomeArch, "non leggibile")
+					salta(nomeArch, "non_leggibile")
 					if d != nil && d.IsDir() {
 						return fs.SkipDir
 					}
@@ -362,25 +371,25 @@ func elencaVoci(ctx context.Context, sorgenti []string, escludi string) ([]voce,
 				if p == escludi {
 					return nil
 				}
-				t := d.Type()
-				if t&fs.ModeSymlink != 0 || t&fs.ModeIrregular != 0 {
-					salta(nomeArch, "collegamento")
-					if d.IsDir() {
-						return fs.SkipDir
-					}
-					return nil
-				}
 				info, e := d.Info()
 				if e != nil {
-					salta(nomeArch, "non leggibile")
+					salta(nomeArch, "non_leggibile")
+					return nil
+				}
+				// collegamenti e giunzioni no; OneDrive e i file compressi da Windows sì
+				if t := d.Type(); t&(fs.ModeSymlink|fs.ModeIrregular) != 0 && rianalisi.Collegamento(p, info) {
+					salta(nomeArch, "collegamento")
+					if d.IsDir() && p != s {
+						return fs.SkipDir
+					}
 					return nil
 				}
 				if d.IsDir() {
 					voci = append(voci, voce{percorso: p, nome: nomeArch, cartella: true, quando: info.ModTime()})
 					return nil
 				}
-				if !info.Mode().IsRegular() {
-					salta(nomeArch, "file speciale")
+				if !normale(info) {
+					salta(nomeArch, "file_speciale")
 					return nil
 				}
 				voci = append(voci, voce{percorso: p, nome: nomeArch, dim: info.Size(), quando: info.ModTime()})
@@ -390,7 +399,7 @@ func elencaVoci(ctx context.Context, sorgenti []string, escludi string) ([]voce,
 				return nil, nil, err
 			}
 		default:
-			salta(filepath.Base(s), "file speciale")
+			salta(filepath.Base(s), "file_speciale")
 		}
 	}
 	return voci, saltati, nil
@@ -472,7 +481,7 @@ func scriviZip(c *copiatore, w io.Writer, voci []voce, ris *RisultatoComprimi) e
 		}
 		f, err := os.Open(v.percorso)
 		if err != nil {
-			ris.Saltati = append(ris.Saltati, v.nome+" (non leggibile)")
+			ris.Saltati = append(ris.Saltati, v.nome+" (non_leggibile)")
 			continue
 		}
 		dst, err := zw.CreateHeader(h)
@@ -508,6 +517,17 @@ func orarioZip(t time.Time) time.Time {
 	return t
 }
 
+// threadPerSpazio: con più core ogni pezzo compresso va prima in un file di lavoro e poi
+// nell'archivio, quindi sul disco serve posto per due copie compresse (al massimo grandi come i
+// file). Se non c'è sicuramente, un core solo: scrive direttamente nell'archivio. 0 = decide
+// settezip (secondo core e RAM).
+func threadPerSpazio(libero, totale int64) int {
+	if libero >= 0 && libero < 2*totale+(256<<20) {
+		return 1
+	}
+	return 0
+}
+
 // scrivi7z: super compressione con il nostro writer 7z (più core insieme).
 func scrivi7z(ctx context.Context, c *copiatore, out *os.File, dove string, voci []voce, liv Livello, ris *RisultatoComprimi) error {
 	var mu sync.Mutex
@@ -518,10 +538,15 @@ func scrivi7z(ctx context.Context, c *copiatore, out *os.File, dove string, voci
 			GiaCompresso: estensioniGiaCompresse[strings.ToLower(filepath.Ext(v.nome))],
 			Apri:         func() (io.ReadCloser, error) { return os.Open(p) }}
 	}
+	var totale int64
+	for _, v := range voci {
+		totale += v.dim
+	}
 	o := settezip.Opzioni{
 		Livello:   liv.settezip(),
 		RAMLibera: memoriaLibera(),
 		DirTemp:   dove,
+		Thread:    threadPerSpazio(spazioLibero(dove), totale),
 		Progresso: func(n int64, nome string) {
 			mu.Lock()
 			c.fatto += n
@@ -536,7 +561,7 @@ func scrivi7z(ctx context.Context, c *copiatore, out *os.File, dove string, voci
 		},
 		Saltato: func(nome string, _ error) {
 			mu.Lock()
-			ris.Saltati = append(ris.Saltati, nome+" (non leggibile)")
+			ris.Saltati = append(ris.Saltati, nome+" (non_leggibile)")
 			mu.Unlock()
 		},
 	}
@@ -646,14 +671,14 @@ func scriviTar(c *copiatore, xw io.Writer, voci []voce, ris *RisultatoComprimi) 
 		}
 		f, err := os.Open(v.percorso)
 		if err != nil {
-			ris.Saltati = append(ris.Saltati, v.nome+" (non leggibile)")
+			ris.Saltati = append(ris.Saltati, v.nome+" (non_leggibile)")
 			continue
 		}
 		// La dimensione la rileggo adesso: nel tar deve essere esatta.
 		fi, err := f.Stat()
 		if err != nil {
 			f.Close()
-			ris.Saltati = append(ris.Saltati, v.nome+" (non leggibile)")
+			ris.Saltati = append(ris.Saltati, v.nome+" (non_leggibile)")
 			continue
 		}
 		c.totale += fi.Size() - v.dim

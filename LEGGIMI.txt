@@ -81,7 +81,7 @@ APRI UN ARCHIVIO
     (%LOCALAPPDATA%\Tasso Zip\Temp, pulita da sola dopo un giorno) e lo apre col suo
     programma. Per programmi e script (.exe .bat .cmd .ps1 .vbs .js .msi .lnk ...) chiede
     prima di aprirli. Se l'archivio viene da internet, anche il file aperto lo "sa"
-    (marchio del web: Windows fa i suoi controlli).
+    (marchio del web: Windows fa i suoi controlli), come tutti i file estratti.
   - Interruttore in basso "Apri gli archivi con doppio clic con Tasso Zip": acceso,
     .zip .7z .rar .tar .gz .tgz .bz2 .xz .zst si aprono con Tasso Zip (solo per il tuo
     utente, HKCU, tipo TassoZip.Archivio). Chiede conferma; spento, tutto torna com'era.
@@ -123,6 +123,9 @@ TASTO DESTRO DEL MOUSE
   Per lo stesso motivo le voci non possono contenere il nome del file ("Comprimi in
   Foto.zip"): dicono ".zip" e ".7z". Windows passa al massimo 15 file per volta al menu.
   Se sposti TassoZip.exe, alla prima apertura voci e associazioni si aggiornano da sole.
+  Un nuovo comando dal tasto destro mentre Tasso Zip sta già lavorando non si perde: aspetta
+  il suo turno e parte da solo appena finisce il lavoro in corso (più "Comprimi in .zip"
+  arrivati insieme diventano un archivio solo).
 
 SICUREZZA
   - Non sovrascrive mai niente: se un nome c'è già, usa "nome (2)", "nome (3)"...
@@ -134,10 +137,23 @@ SICUREZZA
     dimensione (sopra gli 8 GB), oltre 1 milione di file, o se il disco sta per riempirsi
     (lascia sempre almeno 512 MB liberi).
   - Se annulli, chiudi la finestra o qualcosa va storto, non resta niente a metà: lavora in un
-    file/cartella temporaneo accanto (".tassozip-....tmp") e lo rinomina solo alla fine.
+    file/cartella temporaneo accanto (".tassozip-....tmp", nascosto) e lo rinomina solo alla
+    fine. Se il PC si spegne di colpo, gli avanzi vecchi si tolgono da soli al lavoro dopo.
+  - Marchio del web: se l'archivio viene da internet, TUTTI i file estratti (Estrai, Estrai qui,
+    tasto destro, procedura guidata, doppio clic nella vista) e l'archivio riparato lo "sanno":
+    SmartScreen e la Visualizzazione protetta di Office avvisano come per il file scaricato.
+  - Un file rovinato dentro l'archivio non blocca gli altri: i file buoni escono, quelli
+    rovinati restano fuori e Tasso Zip li elenca alla fine. Se non esce niente di buono, dice
+    che l'archivio è rovinato.
+  - Un archivio che chiede più memoria di quella libera (dizionario enorme) non si apre: lo
+    dice chiaramente invece di bloccare il PC.
   - Se un file cambia mentre lo comprime in .7z, si ferma e lo dice (niente archivi rovinati).
-  - Niente internet: Tasso Zip non si collega mai a niente (l'unica eccezione è la pagina
-    Microsoft di WebView2, solo se WebView2 manca e solo se premi OK).
+  - Niente internet: Tasso Zip non si collega mai a niente. Le uniche pagine che apre (nel
+    browser, solo se premi OK) sono quella Microsoft di WebView2, se WebView2 manca, e quella
+    delle versioni di Tasso su GitHub ("Controlla aggiornamenti" senza Tasso installato).
+  - "Controlla aggiornamenti" avvia Tasso solo dalla cartella scritta dal suo installatore
+    (HKLM\Software\Tasso, solo gli amministratori la cambiano), mai un Tasso.exe trovato in
+    un'altra cartella.
   - Impostazioni e registro errori: %LOCALAPPDATA%\Tasso Zip
     (impostazioni.json, errori.txt; la cartella WebView2 è della finestra).
 
@@ -182,7 +198,8 @@ PER CHI SVILUPPA
 
 LICENZA
   Tasso Zip (c) 2026 Sergio Tassoni. Software libero, licenza GNU GPL versione 3 (file LICENSE).
-  Licenze dei componenti usati: LICENZE.txt.
+  Licenze dei componenti usati: LICENZE.txt. Le licenze sono anche dentro il programma (link
+  "Licenze" in basso nella finestra) e compila.sh le copia accanto a TassoZip.exe in dist/.
 
 
 =====================================================================================

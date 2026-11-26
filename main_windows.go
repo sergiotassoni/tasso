@@ -41,6 +41,15 @@ var paginaHTML string
 //go:embed ui/caratteri.css
 var caratteriCSS string
 
+// Licenze: viaggiano dentro l'exe (anche se qualcuno lo copia da solo) e si leggono dal link
+// "Licenze" in basso nella finestra.
+//
+//go:embed LICENSE
+var testoLicenza string
+
+//go:embed LICENZE.txt
+var testoLicenzeTerzi string
+
 var (
 	finestra webview2.WebView
 	chiusa   atomic.Bool    // la finestra è chiusa: niente più messaggi alla pagina
@@ -50,8 +59,8 @@ var (
 	lavoroMu    sync.Mutex
 	lavoroStop  context.CancelFunc // non nil mentre comprime o estrae
 	ultimoAgg   time.Time
-	codaModo    string // il modo, se aperto dal menu del tasto destro (vedi modiRiga)
-	codaVisti   = map[string]bool{}
+	codaModo    string                   // il modo, se aperto dal menu del tasto destro (vedi modiRiga)
+	codaVisti   = map[string]time.Time{} // percorso (minuscolo) -> quando è arrivato
 	codaVistiMu sync.Mutex
 )
 
@@ -108,6 +117,7 @@ func main() {
 		percorsi = percorsi[:1]
 	}
 	go pulisciTemp()
+	go pulisciAvanziAvvio(percorsi)
 
 	// Dal menu del tasto destro Windows apre un Tasso Zip per ogni file scelto: il primo
 	// raccoglie tutti gli altri (che gli passano i loro file e si chiudono subito).
@@ -341,6 +351,17 @@ func collega(w webview2.WebView) {
 		}
 		return map[string]interface{}{"ok": err == nil, "on": menuAttivo()}
 	})
+	_ = w.Bind("goLicenze", func() string {
+		p := filepath.Join(cartella, "Licenze di Tasso Zip.txt")
+		testo := strings.ReplaceAll(testoLicenzeTerzi+"\n\n==== Tasso Zip: GNU GPL 3.0 ====\n\n"+testoLicenza, "\r\n", "\n")
+		if err := os.WriteFile(p, []byte(strings.ReplaceAll(testo, "\n", "\r\n")), 0o644); err != nil {
+			return "errore"
+		}
+		if shellExecute(p, "") <= 32 {
+			return "errore"
+		}
+		return "ok"
+	})
 	_ = w.Bind("goApri", func(p string) string {
 		mostraInEsplora(p)
 		return "ok"
@@ -415,7 +436,7 @@ func erroreVersoPagina(tipo, percorso string, err error) {
 	if c != "annullato" && c != "password" && c != "password_sbagliata" {
 		registraErrore("%s %s: %v", tipo, percorso, err)
 	}
-	manda("errore", map[string]interface{}{"tipo": tipo, "codice": c, "dettagli": err.Error(), "percorso": percorso})
+	manda("errore", map[string]interface{}{"tipo": tipo, "codice": c, "dettagli": testi.Dettagli(lingua(), err.Error()), "percorso": percorso})
 }
 
 func avviaComprimi(percorsi []string, formato, nome, livello, dove string) string {
@@ -456,7 +477,7 @@ func avviaComprimi(percorsi []string, formato, nome, livello, dove string) strin
 		}
 		manda("fine", map[string]interface{}{
 			"tipo": "comprimi", "percorso": ris.Archivio, "file": ris.File, "originale": ris.Originale,
-			"compresso": ris.Compresso, "saltati": ris.Saltati, "riserva": ris.Riserva,
+			"compresso": ris.Compresso, "saltati": testi.Motivi(lingua(), ris.Saltati), "riserva": ris.Riserva,
 		})
 	}()
 	return "ok"
@@ -494,7 +515,8 @@ func avviaEstrai(percorso string, opz archivio.OpzioniEstrai, tipo string) strin
 		}
 		manda("fine", map[string]interface{}{
 			"tipo": tipo, "percorso": ris.Cartella, "file": ris.File, "rinominati": ris.Rinominati,
-			"saltati": ris.Saltati, "riserva": ris.Riserva, "archivio": percorso, "qui": opz.Modo == archivio.ModoQui,
+			"saltati": testi.Motivi(lingua(), ris.Saltati), "falliti": testi.Motivi(lingua(), ris.Falliti),
+			"riserva": ris.Riserva, "archivio": percorso, "qui": opz.Modo == archivio.ModoQui,
 		})
 	}()
 	return "ok"
@@ -579,7 +601,6 @@ func avviaApriVoce(percorso, password, nome string, confermato bool) string {
 			erroreVersoPagina("apri", percorso, err)
 			return
 		}
-		copiaZona(percorso, ris.UltimoFile)
 		// ShellExecute nel filo della finestra (COM già pronto lì, come vuole Windows).
 		file := ris.UltimoFile
 		if w := finestra; w != nil && !chiusa.Load() {
@@ -590,14 +611,23 @@ func avviaApriVoce(percorso, password, nome string, confermato bool) string {
 	return "ok"
 }
 
-// copiaZona: se l'archivio viene da internet (ha il "marchio del web", Zone.Identifier),
-// lo metto anche sul file aperto, così Windows fa i suoi controlli (SmartScreen, Office).
-func copiaZona(archivioPath, file string) {
-	b, err := os.ReadFile(archivioPath + ":Zone.Identifier")
-	if err != nil || len(b) == 0 || len(b) > 64<<10 {
-		return
+// pulisciAvanziAvvio: cartelle e file di lavoro rimasti da lavori interrotti di colpo (PC
+// spento, programma chiuso a forza): sul Desktop (cartella di riserva) e accanto ai file
+// passati al programma.
+func pulisciAvanziAvvio(percorsi []string) {
+	visti := map[string]bool{}
+	for _, d := range append([]string{cartellaDesktop()}, percorsi...) {
+		if d == "" {
+			continue
+		}
+		if fi, err := os.Stat(d); err == nil && !fi.IsDir() {
+			d = filepath.Dir(d)
+		}
+		if k := strings.ToLower(d); !visti[k] {
+			visti[k] = true
+			archivio.PulisciAvanzi(d)
+		}
 	}
-	_ = os.WriteFile(file+":Zone.Identifier", b, 0o644)
 }
 
 // pulisciTemp toglie i file aperti dagli archivi più di un giorno fa.

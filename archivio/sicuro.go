@@ -131,6 +131,17 @@ type destinazione struct {
 	// scrive niente sul disco.
 	prova         bool
 	cartelleProva int
+	// zona: il "marchio del web" dell'archivio (contenuto di :Zone.Identifier), da mettere su
+	// ogni file estratto. nil = l'archivio non viene da internet.
+	zona []byte
+	// falliti: file con i dati rovinati, non estratti (gli altri sì). primoErrore: il primo di
+	// questi errori (se non esce nessun file, l'estrazione fallisce con questo).
+	falliti     []string
+	primoErrore error
+	// ultimoScritto: percorso completo dell'ultimo file scritto (per toglierlo se dopo la
+	// scrittura la somma di controllo dice che è rovinato); ultimoPrima: d.ultimo di prima.
+	ultimoScritto string
+	ultimoPrima   string
 }
 
 // NormalizzaNome: il nome di una voce come lo mostra Tasso Zip ("/" come separatore,
@@ -313,7 +324,7 @@ func (d *destinazione) creaCartella(nome string, quando time.Time) error {
 	}
 	pezzi, ok := NomeSicuro(nome)
 	if !ok {
-		d.salta(nome, "percorso non sicuro")
+		d.salta(nome, "percorso_non_sicuro")
 		return nil
 	}
 	if d.prova {
@@ -338,8 +349,11 @@ func (d *destinazione) creaFile(nome string, r io.Reader, quando time.Time) erro
 	}
 	pezzi, ok := NomeSicuro(nome)
 	if !ok && !d.prova {
-		d.salta(nome, "percorso non sicuro")
-		return nil
+		d.salta(nome, "percorso_non_sicuro")
+		// I dati si leggono lo stesso (e si buttano): nei 7z la somma di controllo e la
+		// posizione dei file dopo dipendono da questa lettura.
+		_, err := d.copia(io.Discard, r, nome)
+		return err
 	}
 	// In prova i dati si controllano anche con un nome strano (non scrivo niente: nessun danno).
 	if d.prova {
@@ -375,20 +389,45 @@ func (d *destinazione) creaFile(nome string, r io.Reader, quando time.Time) erro
 	}
 	_, errCopia := d.copia(f, r, nome)
 	errChiudi := f.Close()
+	if errCopia == nil {
+		errCopia = errChiudi
+	}
 	if errCopia != nil {
+		_ = os.Remove(percorso) // niente file a metà
 		return errCopia
 	}
-	if errChiudi != nil {
-		return errChiudi
+	if d.zona != nil {
+		scriviZona(percorso, d.zona)
 	}
 	if !quando.IsZero() && quando.Year() > 1980 && quando.Year() < 2200 {
 		_ = os.Chtimes(percorso, quando, quando)
 	}
+	d.ultimoPrima, d.ultimoScritto = d.ultimo, percorso
 	if rel, e := filepath.Rel(d.radice, percorso); e == nil {
 		d.ultimo = rel
 	}
 	d.file++
 	return nil
+}
+
+// togliUltimo: il file appena scritto è rovinato (somma di controllo sbagliata): via.
+func (d *destinazione) togliUltimo() {
+	if d.ultimoScritto == "" || d.prova {
+		return
+	}
+	_ = os.Remove(d.ultimoScritto)
+	d.ultimoScritto, d.ultimo = "", d.ultimoPrima
+	d.file--
+}
+
+// fallito: un file con i dati rovinati resta fuori; l'estrazione va avanti con gli altri.
+func (d *destinazione) fallito(nome string, err error) {
+	if d.primoErrore == nil {
+		d.primoErrore = err
+	}
+	if len(d.falliti) < 1000 {
+		d.falliti = append(d.falliti, nome+" (rovinato)")
+	}
 }
 
 // copia scrive i dati controllando: annulla, limite contro le zip bomb e spazio libero.
@@ -427,6 +466,9 @@ func (d *destinazione) copia(w io.Writer, r io.Reader, nome string) (int64, erro
 	}
 }
 
+// spostaQui: come spostaConNomeLibero (variabile per provare un errore a metà nei test).
+var spostaQui = spostaConNomeLibero
+
 // concludi sposta il risultato dalla cartella di lavoro alla cartella finale.
 // Restituisce la cartella (o, in ModoQui, la cartella di destinazione) e il percorso
 // finale dell'ultimo file scritto.
@@ -450,12 +492,21 @@ func (d *destinazione) concludi(dove, nomeBase string, modo ModoEstrai) (string,
 	}
 	unaCartella := len(voci) == 1 && voci[0].IsDir() && voci[0].Type()&fs.ModeSymlink == 0
 	if modo == ModoQui {
+		// Tutto o niente: se uno spostamento non riesce, quelli già fatti tornano indietro
+		// nella cartella di lavoro (che poi si cancella): niente estrazione a metà.
 		ultimo := ""
+		type spostato struct{ da, a string }
+		var fatti []spostato
 		for _, v := range voci {
-			fin, err := spostaConNomeLibero(filepath.Join(d.radice, v.Name()), dove, v.Name(), v.IsDir())
+			da := filepath.Join(d.radice, v.Name())
+			fin, err := spostaQui(da, dove, v.Name(), v.IsDir())
 			if err != nil {
+				for i := len(fatti) - 1; i >= 0; i-- {
+					_ = rinominaSeLibero(fatti[i].a, fatti[i].da)
+				}
 				return "", "", err
 			}
+			fatti = append(fatti, spostato{da, fin})
 			if v.Name() == primo {
 				ultimo = filepath.Join(fin, resto)
 			}
@@ -480,6 +531,7 @@ func (d *destinazione) concludi(dove, nomeBase string, modo ModoEstrai) (string,
 	if err != nil {
 		return "", "", err
 	}
+	mostra(finale) // la cartella di lavoro era nascosta
 	ultimo := ""
 	if d.ultimo != "" {
 		ultimo = filepath.Join(finale, d.ultimo)

@@ -22,9 +22,10 @@ import (
 // paginaVersioni: le versioni di Tasso (con l'installatore dell'ecosistema).
 const paginaVersioni = "https://github.com/sergiotassoni/tasso/releases/latest"
 
-// trovaTasso: Tasso.exe dell'ecosistema. Prima la cartella scritta dall'installatore
-// (HKLM\Software\Tasso\Cartella, solo gli amministratori la cambiano), poi la cartella sopra
-// quella di Tasso Zip (<cartella>\Tasso Zip\TassoZip.exe → <cartella>\Tasso.exe).
+// trovaTasso: Tasso.exe dell'ecosistema, SOLO dalla cartella scritta dall'installatore
+// (HKLM\Software\Tasso\Cartella: solo gli amministratori la cambiano). Niente più "la cartella
+// sopra quella di Tasso Zip": con Tasso Zip portatile (per esempio in Download) un Tasso.exe
+// qualsiasi scaricato lì sarebbe stato avviato premendo "Controlla aggiornamenti".
 func trovaTasso() string {
 	var cand []string
 	if k, err := registry.OpenKey(registry.LOCAL_MACHINE, `Software\Tasso`, registry.QUERY_VALUE|registry.WOW64_64KEY); err == nil {
@@ -32,9 +33,6 @@ func trovaTasso() string {
 			cand = append(cand, filepath.Join(strings.TrimSpace(v), "Tasso.exe"))
 		}
 		k.Close()
-	}
-	if me, err := os.Executable(); err == nil {
-		cand = append(cand, filepath.Join(filepath.Dir(filepath.Dir(me)), "Tasso.exe"))
 	}
 	for _, c := range cand {
 		if !filepath.IsAbs(c) || strings.HasPrefix(c, `\\`) || strings.ContainsAny(c, "\"%&|<>^\r\n") {
