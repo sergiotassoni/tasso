@@ -169,3 +169,39 @@ func TestImpostazioniTradotte(t *testing.T) {
 		}
 	}
 }
+
+// Il report su Discord (discord.go) passa da trAnyGo: ogni etichetta con l'emoji deve avere la sua traduzione,
+// se no chi usa Tasso in un'altra lingua riceve il report in italiano.
+func TestReportDiscordTradotto(t *testing.T) {
+	b, err := os.ReadFile("../discord.go")
+	if err != nil {
+		t.Skip("discord.go non trovato")
+	}
+	src := string(b)
+	etichette := []string{"💯 Salute", "⚙️ Modalità", "⏱️ Acceso da", "🧹 Ultima pulizia", "🔁 Prossimo report", "💾 Dischi",
+		"Il PC è a posto 👍", "Già a posto:", "🦡 Stato del PC", " · solo lettura", " · scrivi !stato per un report"}
+	tutte := map[string]diz{"en": leggi(t, "en")}
+	for _, l := range lingue {
+		tutte[l] = leggi(t, l)
+	}
+	for _, e := range etichette {
+		if !strings.Contains(src, e) {
+			t.Errorf("discord.go non usa più %q: aggiorna questo test", e)
+		}
+		for l, d := range tutte {
+			if d["go"][e] == "" {
+				t.Errorf("%s.json/go: manca l'etichetta del report Discord %q", l, e)
+			}
+		}
+	}
+	// Nelle altre lingue il comando del bot è !report (lo accetta anche il bot, discord.go: botAsk).
+	for l, d := range tutte {
+		for sez, m := range d {
+			for k, v := range m {
+				if strings.Contains(k, "!stato") && strings.Contains(v, "!stato") {
+					t.Errorf("%s.json/%s: %q dice ancora !stato", l, sez, k)
+				}
+			}
+		}
+	}
+}

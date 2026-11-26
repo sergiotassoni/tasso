@@ -1282,7 +1282,10 @@
   " nel gioco).": " im Spiel).",
   "Boost spento da solo: nessun gioco aperto da 15 minuti. Il PC è tornato com'era.": "Der Boost hat sich von selbst ausgeschaltet: 15 Minuten lang kein Spiel offen. Der PC ist wie vorher.",
   "Boost spento da solo: nessun gioco aperto da ": "Der Boost hat sich von selbst ausgeschaltet: kein Spiel offen seit ",
-  " minuti. Il PC è tornato com'era.": " Minuten. Der PC ist wie vorher."
+  " minuti. Il PC è tornato com'era.": " Minuten. Der PC ist wie vorher.",
+  "Il PC è a posto 👍": "Der PC ist in Ordnung 👍",
+  "Già a posto:": "Schon in Ordnung:",
+  "🌐 Internet": "🌐 Internet"
  },
  "ps": {
   "echo Risparmio energetico delle porte USB rimesso come prima.": "echo Energiesparen der USB-Anschlüsse zurückgesetzt.",
