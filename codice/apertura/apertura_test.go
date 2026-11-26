@@ -240,3 +240,57 @@ func TestSilenziosi(t *testing.T) {
 		}
 	}
 }
+
+func TestDopoUAC(t *testing.T) {
+	dopo, resto := TogliDopoUAC([]string{"--min", ArgDopoUAC, "--controlla-aggiornamenti"})
+	if !dopo || !reflect.DeepEqual(resto, []string{"--min", "--controlla-aggiornamenti"}) {
+		t.Fatalf("TogliDopoUAC: %v %q", dopo, resto)
+	}
+	if dopo, resto := TogliDopoUAC([]string{"--min"}); dopo || !reflect.DeepEqual(resto, []string{"--min"}) {
+		t.Fatalf("senza segno: %v %q", dopo, resto)
+	}
+	// il segno c'è una volta sola anche se c'era già
+	if got := ArgomentiRunas([]string{ArgDopoUAC, "--auto=5"}); !reflect.DeepEqual(got, []string{"--auto=5", ArgDopoUAC}) {
+		t.Fatalf("ArgomentiRunas: %q", got)
+	}
+	if got := ArgomentiRunas(nil); !reflect.DeepEqual(got, []string{ArgDopoUAC}) {
+		t.Fatalf("ArgomentiRunas(nil): %q", got)
+	}
+	// non è permesso: con il segno niente attività, e dall'attività non passa
+	if TuttiPermessi([]string{ArgDopoUAC}) || permessi[ArgDopoUAC] {
+		t.Fatal("--dopo-uac non deve essere tra gli argomenti permessi")
+	}
+	if _, _, resto := DaAttivita([]string{ArgDaAttivita, segno, ArgDopoUAC, "--min"}); !reflect.DeepEqual(resto, []string{"--min"}) {
+		t.Fatalf("DaAttivita deve buttare --dopo-uac: %q", resto)
+	}
+	if strings.Contains(ParametroAttivita(segno, []string{ArgDopoUAC}), ArgDopoUAC) {
+		t.Fatal("--dopo-uac nel parametro dell'attività")
+	}
+}
+
+func TestAvviabile(t *testing.T) {
+	a, err := LeggiAttivita(XMLAttivita(exeProva, sidProva))
+	if err != nil || !a.Avviabile(exeProva, sidProva) {
+		t.Fatalf("attività nuova non avviabile: %v %+v", err, a)
+	}
+	b := a
+	b.Attiva = false
+	if b.Avviabile(exeProva, sidProva) {
+		t.Fatal("attività disattivata avviabile")
+	}
+	c := a
+	c.Livello = "LeastPrivilege"
+	if c.Avviabile(exeProva, sidProva) || c.Aggiornata(exeProva, sidProva) {
+		t.Fatal("attività senza permessi alti avviabile o aggiornata")
+	}
+	if a.Avviabile(`C:\Users\me\Tasso.exe`, sidProva) {
+		t.Fatal("altro exe avviabile")
+	}
+}
+
+func TestSDDLCartella(t *testing.T) {
+	if !strings.HasPrefix(SDDLCartella, "D:P(") || !strings.Contains(SDDLCartella, "(A;;FR;;;AU)") ||
+		strings.Contains(SDDLCartella, "FA;;;AU") || strings.Contains(SDDLCartella, ";;;WD)") {
+		t.Fatalf("SDDLCartella: %s", SDDLCartella)
+	}
+}

@@ -1,3 +1,10 @@
+//go:build amd64
+
+// Solo amd64 (Tasso è solo a 64 bit): qui i VARIANT "per valore" delle funzioni COM
+// dell'Utilità di pianificazione si passano come puntatore, come vuole la convenzione x64. Su 386
+// andrebbero copiati sulla pila: compilando per 386 questo file manca e la build si ferma (main.go
+// usa le sue funzioni), invece di produrre un exe che sbaglia le chiamate.
+
 package main
 
 // Tasso senza lo scudo sull'icona (3.1.1). Il manifest di Tasso.exe non chiede più l'amministratore
@@ -50,6 +57,10 @@ var (
 // daAttivita: questa copia è partita dall'attività (per portare la finestra davanti).
 var daAttivita bool
 
+// dopoUAC: questa copia l'ha avviata Tasso chiedendo i permessi a Windows (--dopo-uac, già tolto
+// da os.Args). Se è ancora senza permessi non li richiede: va avanti senza, come la 3.1.
+var dopoUAC bool
+
 // elevato: Tasso gira da amministratore (con UAC: dopo il "Sì", o dall'attività).
 func elevato() bool { return windows.GetCurrentProcessToken().IsElevated() }
 
@@ -78,6 +89,9 @@ func sidUtente() string {
 func argomentiDaAttivita() {
 	da, nonce, resto := apertura.DaAttivita(os.Args[1:])
 	if !da {
+		// il segno della richiesta dei permessi: lo tolgo subito, nessun altro lo deve vedere
+		dopoUAC, resto = apertura.TogliDopoUAC(os.Args[1:])
+		os.Args = append([]string{os.Args[0]}, resto...)
 		return
 	}
 	daAttivita = true
@@ -102,6 +116,12 @@ func apriConPermessi() bool {
 	if apertura.Silenziosi(args) {
 		return true
 	}
+	// Windows ha già detto "sì" ma Tasso è ancora senza permessi (UAC spento con un utente
+	// normale: "runas" apre la copia con gli stessi permessi). Non richiedo: girerei in tondo per
+	// sempre. Vado avanti senza permessi, con la stessa finestra di prima (come la 3.1).
+	if dopoUAC {
+		return false
+	}
 	// la copia partita dall'attività non è da amministratore (per esempio utente normale): non
 	// riprovo con l'attività (girerei in tondo), chiedo i permessi a Windows
 	if !daAttivita && apertura.TuttiPermessi(args) && avviaAttivita(exe, args) {
@@ -117,10 +137,8 @@ func chiediPermessi(exe string, args []string) {
 	verbo, _ := windows.UTF16PtrFromString("runas")
 	file, _ := windows.UTF16PtrFromString(exe)
 	cart, _ := windows.UTF16PtrFromString(filepath.Dir(exe))
-	var par *uint16
-	if len(args) > 0 {
-		par, _ = windows.UTF16PtrFromString(apertura.RigaComando(args))
-	}
+	// col segno --dopo-uac: se la copia nuova è ancora senza permessi non richiede (apriConPermessi)
+	par, _ := windows.UTF16PtrFromString(apertura.RigaComando(apertura.ArgomentiRunas(args)))
 	_ = windows.ShellExecute(0, verbo, file, par, cart, windows.SW_SHOWNORMAL)
 }
 
@@ -158,9 +176,12 @@ func avviaAttivita(exe string, args []string) bool {
 		return false
 	}
 	defer windows.CloseHandle(ev)
-	// La copia nuova parte dall'Utilità di pianificazione, non da un clic: le lascio portare
-	// la sua finestra davanti (se no si aprirebbe dietro le altre).
-	pAllowSetFg.Call(uintptr(0xFFFFFFFF)) // ASFW_ANY
+	// Tasso.exe e la sua cartella li possono cambiare solo gli amministratori? Se no l'attività
+	// aprirebbe da amministratore un exe che un programma qualunque può sostituire: chiedo i permessi.
+	if m := protettoDaAdmin(exe, sid); m != "" {
+		scriviAvvioPresto("attività Apri Tasso non usata: " + m)
+		return false
+	}
 	partita := false
 	conPianificatore(func(s comObj) {
 		t := prendiAttivita(s, sid)
@@ -169,9 +190,14 @@ func avviaAttivita(exe string, args []string) bool {
 		}
 		defer t.release()
 		a, err := leggiAttivitaWin(t)
-		if err != nil || !a.Usabile(exe, sid) {
+		// solo se apre questo exe per questo utente, è attiva e parte con i permessi più alti;
+		// se no chiedo i permessi (e Tasso da amministratore la rifà)
+		if err != nil || !a.Avviabile(exe, sid) {
 			return
 		}
+		// La copia nuova parte dall'Utilità di pianificazione, non da un clic: le lascio portare
+		// la sua finestra davanti (se no si aprirebbe dietro le altre). Solo adesso che la avvio.
+		pAllowSetFg.Call(uintptr(0xFFFFFFFF)) // ASFW_ANY
 		partita = eseguiAttivita(t, apertura.ParametroAttivita(nonce, args))
 	})
 	if !partita {
@@ -237,9 +263,11 @@ func conPianificatore(f func(s comObj)) {
 		return
 	}
 	defer s.release()
-	var vuoto variant // VT_EMPTY: computer, utente, dominio e password di questa sessione
-	r, _, _ = syscall.SyscallN(metodo(s, 10), uintptr(s), uintptr(unsafe.Pointer(&vuoto)), uintptr(unsafe.Pointer(&vuoto)),
-		uintptr(unsafe.Pointer(&vuoto)), uintptr(unsafe.Pointer(&vuoto)))
+	// VT_EMPTY: computer, utente, dominio e password di questa sessione. Quattro VARIANT distinti:
+	// "per valore" vuol dire che ognuno è una copia che la funzione può cambiare.
+	var srv, usr, dom, pwd variant
+	r, _, _ = syscall.SyscallN(metodo(s, 10), uintptr(s), uintptr(unsafe.Pointer(&srv)), uintptr(unsafe.Pointer(&usr)),
+		uintptr(unsafe.Pointer(&dom)), uintptr(unsafe.Pointer(&pwd)))
 	if !hrOK(r) {
 		return
 	}
@@ -326,8 +354,10 @@ func proprietarioAdmin(c comObj) bool {
 		return false
 	}
 	return o.IsWellKnown(windows.WinBuiltinAdministratorsSid) || o.IsWellKnown(windows.WinLocalSystemSid) ||
-		o.String() == "S-1-5-80-956008885-3418522649-1831038044-1853292631-2271478464" // TrustedInstaller
+		o.String() == sidTrustedInstaller
 }
+
+const sidTrustedInstaller = "S-1-5-80-956008885-3418522649-1831038044-1853292631-2271478464"
 
 // registraAttivita: crea o rifà \Tasso\Apri Tasso <sid> (Tasso è da amministratore), con i
 // permessi di apertura.SDDLAttivita. "" = fatto, altrimenti il motivo (per il registro).
@@ -339,9 +369,12 @@ func registraAttivita(s comObj, xml, sid string) string {
 			return "cartella principale non aperta"
 		}
 		b := nuovaBSTR(strings.TrimPrefix(apertura.CartellaAttivita, `\`))
-		var vuoto variant
-		r, _, _ := syscall.SyscallN(metodo(radice, 11), uintptr(radice), b, uintptr(unsafe.Pointer(&vuoto)), uintptr(unsafe.Pointer(&c)))
+		// permessi espliciti: solo gli amministratori creano o tolgono attività in \Tasso
+		bs := nuovaBSTR(apertura.SDDLCartella)
+		vs := variant{vt: 8, val: bs} // VT_BSTR
+		r, _, _ := syscall.SyscallN(metodo(radice, 11), uintptr(radice), b, uintptr(unsafe.Pointer(&vs)), uintptr(unsafe.Pointer(&c)))
 		liberaBSTR(b)
+		liberaBSTR(bs)
 		radice.release()
 		if !hrOK(r) || c == 0 {
 			// creata nel frattempo da un'altra copia di Tasso?
@@ -451,6 +484,8 @@ func utenteDiverso(sid string) bool {
 func preparaAttivitaApri() string {
 	exe, err := os.Executable()
 	switch {
+	case apertura.BuildCollaudo:
+		return "build di prova (collaudo): niente attività"
 	case err != nil || exe == "":
 		return "exe sconosciuto"
 	case !elevato():
@@ -467,6 +502,9 @@ func preparaAttivitaApri() string {
 		return "non è il Tasso installato in Programmi"
 	case utenteDiverso(sid):
 		return "Tasso gira con un altro account"
+	}
+	if m := protettoDaAdmin(exe, sid); m != "" {
+		return m
 	}
 	motivo := "Utilità di pianificazione non raggiungibile"
 	conPianificatore(func(s comObj) {
@@ -493,4 +531,97 @@ func preparaAperturaDaRiga() int {
 	}
 	fmt.Println("APERTURA-OK")
 	return 0
+}
+
+// protettoDaAdmin: Tasso.exe e la sua cartella li possono cambiare solo gli amministratori.
+// Il proprietario è Amministratori, SYSTEM o TrustedInstaller, e nessun permesso dà a Users,
+// Authenticated Users, Everyone, INTERACTIVE o all'utente sid il diritto di scrivere, aggiungere o
+// cancellare file, cancellare, cambiare i permessi o il proprietario. Dentro Programmi di solito è
+// così, ma alcuni programmi creano cartelle dove tutti scrivono. "" = a posto, altrimenti il motivo.
+func protettoDaAdmin(exe, sid string) string {
+	deboli := map[string]bool{
+		"S-1-5-32-545": true, // Users
+		"S-1-5-11":     true, // Authenticated Users
+		"S-1-1-0":      true, // Everyone
+		"S-1-5-4":      true, // INTERACTIVE
+	}
+	if apertura.SidValido(sid) {
+		deboli[sid] = true
+	}
+	for _, p := range []string{exe, filepath.Dir(exe)} {
+		if m := controllaPermessi(p, deboli); m != "" {
+			return m + ": " + p
+		}
+	}
+	return ""
+}
+
+// diritti che permettono di cambiare un file o una cartella (o di sostituire Tasso.exe)
+const dirittiScrittura = 0x2 | // FILE_WRITE_DATA / FILE_ADD_FILE
+	0x4 | // FILE_APPEND_DATA / FILE_ADD_SUBDIRECTORY
+	0x40 | // FILE_DELETE_CHILD
+	0x10000 | // DELETE
+	0x40000 | // WRITE_DAC
+	0x80000 | // WRITE_OWNER
+	0x10000000 | // GENERIC_ALL
+	0x40000000 // GENERIC_WRITE
+
+func controllaPermessi(p string, deboli map[string]bool) string {
+	sd, err := windows.GetNamedSecurityInfo(p, windows.SE_FILE_OBJECT,
+		windows.OWNER_SECURITY_INFORMATION|windows.DACL_SECURITY_INFORMATION)
+	if err != nil {
+		return "permessi non letti (" + err.Error() + ")"
+	}
+	o, _, err := sd.Owner()
+	if err != nil || o == nil {
+		return "proprietario sconosciuto"
+	}
+	if !(o.IsWellKnown(windows.WinBuiltinAdministratorsSid) || o.IsWellKnown(windows.WinLocalSystemSid) ||
+		o.String() == sidTrustedInstaller) {
+		return "il proprietario non è degli amministratori (" + o.String() + ")"
+	}
+	dacl, _, err := sd.DACL()
+	if err != nil || dacl == nil {
+		return "nessun elenco di permessi (tutti possono tutto)"
+	}
+	for i := uint32(0); i < uint32(dacl.AceCount); i++ {
+		var ace *windows.ACCESS_ALLOWED_ACE
+		if windows.GetAce(dacl, i, &ace) != nil || ace == nil {
+			return "permessi non letti"
+		}
+		if ace.Header.AceFlags&windows.INHERIT_ONLY_ACE != 0 {
+			continue // vale solo per i file creati dopo dentro la cartella, non per questa
+		}
+		switch ace.Header.AceType {
+		case windows.ACCESS_DENIED_ACE_TYPE, 6, 10, 12: // divieti (anche object e callback): non danno niente
+			continue
+		case windows.ACCESS_ALLOWED_ACE_TYPE, 9: // permesso (anche callback): stesso formato
+		default:
+			return fmt.Sprintf("permesso di tipo sconosciuto (%d)", ace.Header.AceType)
+		}
+		if uint32(ace.Mask)&dirittiScrittura == 0 {
+			continue
+		}
+		s := (*windows.SID)(unsafe.Pointer(&ace.SidStart))
+		if deboli[s.String()] {
+			return "può scriverci anche " + s.String()
+		}
+	}
+	return ""
+}
+
+// scriviAvvioPresto: una riga in logs\avvio.txt anche prima che Tasso abbia preparato appDir
+// (la copia senza permessi esce subito dopo).
+func scriviAvvioPresto(cosa string) {
+	if appDir == "" {
+		if la := os.Getenv("LOCALAPPDATA"); la != "" {
+			_ = os.MkdirAll(filepath.Join(la, "Tasso", "logs"), 0o755)
+			vecchia := appDir
+			appDir = filepath.Join(la, "Tasso")
+			defer func() { appDir = vecchia }()
+		} else {
+			return
+		}
+	}
+	scriviAvvio(cosa)
 }

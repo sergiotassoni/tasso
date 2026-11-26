@@ -78,6 +78,15 @@ func main() {
 	mname, _ := windows.UTF16PtrFromString("Local\\TassoSingleInstance")
 	// La copia aperta tiene il mutex per tutta la sua vita (initialOwner = true).
 	h, err := windows.CreateMutex(nil, true, mname)
+	if err == windows.ERROR_ACCESS_DENIED && !elevato() {
+		// Il mutex c'è ma è del Tasso aperto da amministratore (permessi Amministratori/SYSTEM,
+		// livello alto): questa copia senza permessi non lo può aprire. Tasso è già aperto: lo
+		// porto davanti (se si sta ancora aprendo riprovo per qualche secondo) e non ne apro un altro.
+		for i := 0; i < 10 && !bringToFront(); i++ {
+			time.Sleep(500 * time.Millisecond)
+		}
+		return
+	}
 	if err == windows.ERROR_ALREADY_EXISTS {
 		// Pulizia programmata con Tasso già aperto: la passo alla copia aperta, senza disturbare.
 		for _, a := range os.Args[1:] {

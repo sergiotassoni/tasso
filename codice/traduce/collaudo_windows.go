@@ -36,6 +36,10 @@ import (
 	"unsafe"
 
 	"golang.org/x/sys/windows"
+
+	// prima di questi init: se Tasso è partito dall'attività Apri Tasso, le prove non vedono gli
+	// argomenti di chi l'ha avviata (apertura/collaudo.go)
+	_ "tasso/apertura"
 )
 
 var (

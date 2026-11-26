@@ -16,9 +16,16 @@ import (
 	"time"
 
 	"golang.org/x/sys/windows/registry"
+
+	"tasso/apertura"
 )
 
 func init() {
+	// partito dall'Utilità di pianificazione (attività Apri Tasso): niente modalità di prova, gli
+	// argomenti li sceglie chi avvia l'attività (apertura/collaudo.go li ha già filtrati)
+	if len(os.Args) > 1 && os.Args[1] == apertura.ArgDaAttivita {
+		return
+	}
 	for _, a := range os.Args[1:] {
 		if strings.HasPrefix(a, "--guardia=") {
 			// --guardia=6: fa girare la guardia della Modalità riunione per 6 minuti senza finestra

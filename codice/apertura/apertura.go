@@ -30,6 +30,11 @@ const (
 	NomeAttivita     = "Apri Tasso"
 	// ArgDaAttivita: il primo argomento della copia avviata dall'attività (fisso nell'attività).
 	ArgDaAttivita = "--da-attivita"
+	// ArgDopoUAC: il segno che Tasso aggiunge quando chiede i permessi a Windows ("runas"). Se la
+	// copia nuova è ancora senza permessi (UAC spento con un utente normale: "runas" non può dare
+	// i permessi) non li richiede di nuovo, se no girerebbe in tondo: va avanti senza, come la 3.1.
+	// Non è tra gli argomenti permessi: dall'attività non passa mai.
+	ArgDopoUAC = "--dopo-uac"
 	// VersioneAttivita: cambia quando cambia XMLAttivita, così Tasso rifà l'attività vecchia.
 	VersioneAttivita = "tasso-apri-2"
 )
@@ -55,6 +60,31 @@ func SidValido(s string) bool {
 // avviarla (serve alla copia senza permessi), non cambiarla né cancellarla. Nessun permesso ereditato.
 func SDDLAttivita(sid string) string {
 	return "D:P(A;;FA;;;SY)(A;;FA;;;BA)(A;;FRFX;;;" + sid + ")"
+}
+
+// SDDLCartella: i permessi della cartella \Tasso dell'Utilità di pianificazione quando la crea
+// Tasso: SYSTEM e Amministratori tutto, gli utenti collegati solo leggerla (la copia senza permessi
+// deve trovarci la sua attività). Nessuno, tranne gli amministratori, può crearci o cancellarci
+// attività. Nessun permesso ereditato.
+const SDDLCartella = "D:P(A;;FA;;;SY)(A;;FA;;;BA)(A;;FR;;;AU)"
+
+// TogliDopoUAC: toglie ArgDopoUAC dagli argomenti (ovunque sia) e dice se c'era.
+func TogliDopoUAC(args []string) (dopo bool, resto []string) {
+	resto = make([]string, 0, len(args))
+	for _, a := range args {
+		if a == ArgDopoUAC {
+			dopo = true
+			continue
+		}
+		resto = append(resto, a)
+	}
+	return dopo, resto
+}
+
+// ArgomentiRunas: gli argomenti per la richiesta dei permessi a Windows, col segno ArgDopoUAC.
+func ArgomentiRunas(args []string) []string {
+	_, resto := TogliDopoUAC(args)
+	return append(resto, ArgDopoUAC)
 }
 
 // Silenziosi: argomenti delle attività che partono già da amministratore (pulizia programmata,
@@ -130,6 +160,21 @@ func DaAttivita(args []string) (da bool, nonce string, resto []string) {
 		}
 	}
 	return true, nonce, resto
+}
+
+// SoloDaAttivita: argv completo (col nome del programma). Se il primo argomento è ArgDaAttivita
+// restituisce nome, ArgDaAttivita, il segno (se valido) e solo gli argomenti permessi; altrimenti
+// argv tale e quale. Lo usa la build di prova prima di tutti i suoi init (collaudo.go).
+func SoloDaAttivita(argv []string) []string {
+	if len(argv) < 2 || argv[1] != ArgDaAttivita {
+		return argv
+	}
+	_, nonce, resto := DaAttivita(argv[1:])
+	nuovi := []string{argv[0], ArgDaAttivita}
+	if nonce != "" {
+		nuovi = append(nuovi, nonce)
+	}
+	return append(nuovi, resto...)
 }
 
 // QuotaArg: un argomento per la riga di comando di Windows (regole di CommandLineToArgvW).
@@ -286,6 +331,13 @@ func LeggiAttivita(testo string) (Attivita, error) {
 func (a Attivita) Usabile(exe, sid string) bool {
 	return a.Comando != "" && strings.EqualFold(a.Comando, exe) && strings.EqualFold(a.Utente, sid) &&
 		strings.HasPrefix(a.Argomenti, ArgDaAttivita+" ")
+}
+
+// Avviabile: come Usabile, e in più l'attività è attiva e parte con i permessi più alti
+// (HighestAvailable). Solo così la copia senza permessi la avvia; altrimenti chiede i permessi a
+// Windows (e Tasso da amministratore la rifà, vedi Aggiornata).
+func (a Attivita) Avviabile(exe, sid string) bool {
+	return a.Usabile(exe, sid) && a.Attiva && a.Livello == "HighestAvailable"
 }
 
 // Aggiornata: come Usabile, e in più è quella di questa versione di Tasso, ed è attiva (non va
