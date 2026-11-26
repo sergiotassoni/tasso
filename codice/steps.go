@@ -409,6 +409,53 @@ function Test-DownloadsSposta([string]$from, [string]$destDir, [string]$dl) {
   if (-not ([IO.Path]::GetDirectoryName($f) -ieq $dl) -or -not ([IO.Path]::GetDirectoryName($d) -ieq $dl)) { return $false }
   return (Test-NoReparse $f $dl) -and (Test-NoReparse $d $dl)
 }
+function Test-NoLink([string]$p, [string]$root) {
+  # Come Test-NoReparse (da $root esclusa fino a $p), ma accetta i segnaposto di OneDrive (cartelle e
+  # file "solo online", che hanno un punto di analisi ma non portano altrove): Documenti spostato in
+  # OneDrive è normale. Rifiuta giunzioni, collegamenti simbolici e punti di montaggio.
+  try { $cur = [IO.Path]::GetFullPath($p).TrimEnd('\'); $r = [IO.Path]::GetFullPath($root).TrimEnd('\') } catch { return $false }
+  if (-not $r -or -not (In-Dir $cur $r)) { return $false }
+  while ($cur -and -not ($cur -ieq $r)) {
+    try { $a = [IO.File]::GetAttributes($cur) } catch { return $false }
+    if ($a -band [IO.FileAttributes]::ReparsePoint) {
+      $lt = 'sconosciuto'; try { $lt = [string](Get-Item -LiteralPath $cur -Force -ErrorAction Stop).LinkType } catch {}
+      if ($lt) { return $false }
+    }
+    $up = [IO.Path]::GetDirectoryName($cur)
+    if (-not $up -or $up -eq $cur) { return $false }
+    $cur = $up.TrimEnd('\')
+  }
+  return $true
+}
+function Get-DocumentiSicura {
+  # Documenti come cartella di ARRIVO per gli script che spostano file da amministratore (allegati di
+  # Outlook, collegamenti rotti): come per Download, solo dentro il profilo vero (preso da HKLM; da HKCU
+  # un programma qualsiasi la può far puntare a una cartella di Windows) e senza collegamenti fino al
+  # profilo. '' = non si sposta niente.
+  $prof = [string]$TassoProfiloVero
+  if (-not $prof) { return '' }
+  try { $doc = [IO.Path]::GetFullPath([string][Environment]::GetFolderPath('MyDocuments')).TrimEnd('\'); $prof = [IO.Path]::GetFullPath($prof).TrimEnd('\') } catch { return '' }
+  if (-not (In-Dir $doc $prof) -or ($doc -ieq $prof)) { return '' }
+  if (-not (Test-Path -LiteralPath $doc -PathType Container)) { return '' }
+  if (-not (Test-NoLink $doc $prof)) { return '' }
+  return $doc
+}
+function New-CartellaSicura([string]$base, [string]$rel) {
+  # Crea $base\$rel un pezzo alla volta: ogni pezzo che c'è già deve essere una cartella vera (niente
+  # giunzioni o collegamenti), così non creo niente fuori da $base. Restituisce il percorso, o ''.
+  $cur = $base
+  foreach ($n in @($rel -split '\\' | Where-Object { $_ })) {
+    if ($n -eq '.' -or $n -eq '..') { return '' }
+    $cur = Join-Path $cur $n
+    if (Test-Path -LiteralPath $cur) {
+      if (-not (Test-Path -LiteralPath $cur -PathType Container) -or -not (Test-NoLink $cur $base)) { return '' }
+    } else {
+      try { [void][IO.Directory]::CreateDirectory($cur) } catch { return '' }
+      if (-not (Test-NoLink $cur $base)) { return '' }
+    }
+  }
+  return $cur
+}
 function Test-StartupOn([string]$key, [string]$name) {
   # StartupApproved: primo byte dispari = disattivato (come in Gestione attività).
   try {

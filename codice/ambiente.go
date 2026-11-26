@@ -158,13 +158,15 @@ func tempOriginale(c *cartelle, t string) string {
 }
 
 // tempNomeAccettabile: il TEMP dell'utente si pulisce solo se l'ultima cartella si chiama temp/tmp
-// (Temp, TMP, Temporanei, MyTemp...) e se non sta dentro (o non è) una cartella personale. Il profilo
+// (Temp, TMP, Temp2; non Templates o MyTemp) e se non sta dentro (o non è) una cartella personale. Il profilo
 // conta come personale solo per sé stesso: AppData\Local\Temp va bene, il profilo intero no. Per sicurezza
 // rifiuto anche i nomi delle cartelle personali in qualunque punto del percorso (D:\Documenti\temp).
 func tempNomeAccettabile(t string, personali []string) bool {
 	t = strings.TrimRight(t, `\`)
 	nome := strings.ToLower(t[strings.LastIndex(t, `\`)+1:])
-	if !strings.Contains(nome, "temp") && !strings.Contains(nome, "tmp") {
+	// Solo "temp" o "tmp" (al massimo con un numero dopo, come Temp2): un nome che li contiene e basta
+	// ("Templates" di Office, "Contemporanea") può essere una cartella di file veri.
+	if b := strings.TrimRight(nome, "0123456789"); b != "temp" && b != "tmp" {
 		return false
 	}
 	for i, d := range personali {

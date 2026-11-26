@@ -114,3 +114,22 @@ func TestMessaggiVeriPulizia(t *testing.T) {
 		t.Error("la cache dei componenti di Office si dice svuotata solo se Tasso non ha rifiutato")
 	}
 }
+
+// K4 (fase 2): allegati di Outlook e collegamenti rotti si spostano in Documenti solo se Documenti
+// è nel profilo vero e senza collegamenti, e la sottocartella di arrivo si crea senza seguirne.
+func TestDocumentiArrivoSicuro(t *testing.T) {
+	for _, f := range []string{"function Test-NoLink", "function Get-DocumentiSicura", "function New-CartellaSicura", "$TassoProfiloVero"} {
+		if !strings.Contains(psPrelude, f) {
+			t.Errorf("psPrelude: manca %s", f)
+		}
+	}
+	for _, id := range []string{"of_outlook_attach", "of_shortcuts"} {
+		s := passo(t, id).Script
+		if !strings.Contains(s, "Get-DocumentiSicura") || !strings.Contains(s, "New-CartellaSicura $docs") || !strings.Contains(s, "Test-NoLink $dst $docs") {
+			t.Errorf("%s: la cartella Documenti di arrivo va controllata come Download", id)
+		}
+		if strings.Contains(s, "GetFolderPath('MyDocuments')") || strings.Contains(s, "New-Item -ItemType Directory -Path $dst") {
+			t.Errorf("%s: niente più Documenti preso da HKCU senza controlli", id)
+		}
+	}
+}

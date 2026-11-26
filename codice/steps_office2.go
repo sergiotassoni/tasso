@@ -321,9 +321,13 @@ Say 'Se cerchi un file e non ricordi dove l''hai salvato: apri Esplora file, cli
 `)},
 	{ID: "of_shortcuts", Name: "Icone del desktop che non aprono più niente", Desc: "Trova sul desktop i collegamenti che puntano a programmi o file che non ci sono più e li sposta in una cartella dentro Documenti (non li cancella).", Level: 0, Minutes: 0.2, Timeout: 2 * time.Minute, Script: ofs2(`
 $sh = New-Object -ComObject WScript.Shell
-$dst = Join-Path ([Environment]::GetFolderPath('MyDocuments')) 'Tasso\Collegamenti che non funzionano'
+# Documenti è la cartella di arrivo: come per Download, solo nel profilo vero e senza collegamenti.
+$docs = Get-DocumentiSicura
+if (-not $docs) { Say 'La cartella Documenti non è nel tuo profilo di Windows (o è un collegamento): per sicurezza non sposto niente.'; return }
+$dst = ''; $noDst = $false
 $n = 0; $names = @()
 foreach ($dir in @([Environment]::GetFolderPath('Desktop'), [Environment]::GetFolderPath('CommonDesktopDirectory'))) {
+  if ($noDst) { break }
   foreach ($f in @(Get-ChildItem -LiteralPath $dir -Filter '*.lnk' -File -ErrorAction SilentlyContinue)) {
     $t = ''; try { $t = [string]$sh.CreateShortcut($f.FullName).TargetPath } catch { continue }
     if (-not $t -or $t -match '^\\\\' -or $t -notmatch '^[A-Za-z]:\\') { continue }
@@ -331,14 +335,16 @@ foreach ($dir in @([Environment]::GetFolderPath('Desktop'), [Environment]::GetFo
     if (-not (Test-Path -LiteralPath $drv)) { continue }
     if ((Get-CimInstance Win32_LogicalDisk -Filter ("DeviceID='" + $t.Substring(0, 2) + "'") -ErrorAction SilentlyContinue).DriveType -ne 3) { continue }
     if (Test-Path -LiteralPath $t) { continue }
-    New-Item -ItemType Directory -Path $dst -Force | Out-Null
+    if (-not $dst) { $dst = New-CartellaSicura $docs 'Tasso\Collegamenti che non funzionano' }
+    if (-not $dst -or -not (Test-NoLink $dst $docs)) { $noDst = $true; break }
     $to = Join-Path $dst $f.Name; $i = 1
     while (Test-Path -LiteralPath $to) { $to = Join-Path $dst ($f.BaseName + ' (' + $i + ')' + $f.Extension); $i++ }
     try { Move-Item -LiteralPath $f.FullName -Destination $to -ErrorAction Stop; $n++; $names += $f.BaseName } catch {}
   }
 }
+if ($noDst) { Say 'In Documenti la cartella "Tasso\Collegamenti che non funzionano" non si può creare o è un collegamento: per sicurezza ho smesso di spostare.' }
 if ($n) { Say ('Spostati ' + $n + ' collegamenti che non aprivano più niente: ' + (($names | Select-Object -First 8) -join ', ') + '.'); Say ('Sono in: ' + $dst + '. Se ti serve uno di quei programmi, reinstallalo; poi cancella pure la cartella.') }
-else { Say 'Tutti i collegamenti del desktop funzionano (quelli verso cartelle di rete o chiavette non li controllo: dipendono da dove sei collegato).' }
+elseif (-not $noDst) { Say 'Tutti i collegamenti del desktop funzionano (quelli verso cartelle di rete o chiavette non li controllo: dipendono da dove sei collegato).' }
 `)},
 	{ID: "of_folders_slow", Name: "Le cartelle si aprono lente o con la vista sbagliata", Desc: "Azzera le viste salvate delle cartelle (icone, colonne, ordine), che col tempo si rovinano e rallentano Esplora file. Con copia di sicurezza. Cartelle e file non si toccano.", Level: 0, Minutes: 0.2, Timeout: 2 * time.Minute, Script: ofs2(`
 $base = 'HKCU\Software\Classes\Local Settings\Software\Microsoft\Windows\Shell'

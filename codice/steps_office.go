@@ -542,17 +542,26 @@ foreach ($ver in @('16.0', '15.0', '14.0')) {
   } catch {}
 }
 if (-not $dirs.Count) { Say 'Non trovo la cartella degli allegati di Outlook: forse non hai Outlook classico o non hai mai aperto allegati.'; return }
-$dst = Join-Path ([Environment]::GetFolderPath('MyDocuments')) ('Tasso - allegati di Outlook\' + (Get-Date -Format 'yyyy-MM-dd HH.mm'))
+# Documenti è la cartella di arrivo: come per Download, solo nel profilo vero e senza collegamenti
+# (da HKCU si può farla puntare a una cartella di Windows, e qui sposto file da amministratore).
+$docs = Get-DocumentiSicura
+if (-not $docs) { Say 'La cartella Documenti non è nel tuo profilo di Windows (o è un collegamento): per sicurezza non sposto niente.'; return }
+$dstRel = 'Tasso - allegati di Outlook\' + (Get-Date -Format 'yyyy-MM-dd HH.mm')
+$dst = ''; $noDst = $false
 $n = 0
 foreach ($d in ($dirs | Select-Object -Unique)) {
+  if ($noDst) { break }
   foreach ($f in @(Get-ChildItem -LiteralPath $d -File -Force -ErrorAction SilentlyContinue)) {
-    if (-not (Test-Path -LiteralPath $dst)) { New-Item -ItemType Directory -Path $dst -Force | Out-Null }
+    if (-not $dst) { $dst = New-CartellaSicura $docs $dstRel }
+    # Ricontrollo subito prima di spostare: la cartella di arrivo è vera e sta dentro Documenti.
+    if (-not $dst -or -not (Test-NoLink $dst $docs)) { $noDst = $true; break }
     $to = Join-Path $dst $f.Name; $i = 1
     while (Test-Path -LiteralPath $to) { $to = Join-Path $dst ($f.BaseName + ' (' + $i + ')' + $f.Extension); $i++ }
     try { Move-Item -LiteralPath $f.FullName -Destination $to -ErrorAction Stop; $n++ } catch {}
   }
 }
-if ($n) { Say ('Spostati ' + $n + ' allegati vecchi in Documenti > "Tasso - allegati di Outlook". Se avevi modificato un allegato aprendolo da Outlook, la tua modifica è lì dentro.') } else { Say 'La cartella degli allegati era già vuota.' }
+if ($noDst) { Say 'In Documenti la cartella "Tasso - allegati di Outlook" non si può creare o è un collegamento: per sicurezza ho smesso di spostare.' }
+if ($n) { Say ('Spostati ' + $n + ' allegati vecchi in Documenti > "Tasso - allegati di Outlook". Se avevi modificato un allegato aprendolo da Outlook, la tua modifica è lì dentro.') } elseif (-not $noDst) { Say 'La cartella degli allegati era già vuota.' }
 Say 'Fatto: riapri Outlook e riprova l''allegato. Consiglio: per modificare un allegato, prima salvalo (tasto destro > Salva con nome).'
 `)},
 	{ID: "of_outlook_reminders", Name: "I promemoria di Outlook impazziscono", Desc: "Ricrea l'elenco dei promemoria quando ne compaiono di vecchi o doppi, o non compaiono per niente. Appuntamenti e attività restano.", Level: 0, Minutes: 0.2, Timeout: 2 * time.Minute, Script: ofs(`
