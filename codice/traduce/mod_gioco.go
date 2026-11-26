@@ -356,12 +356,15 @@ func TogliModGioco(dirApp, chiave string) error {
 	if !cartellaModValida(m.Cartella) {
 		return errors.New("la cartella nell'elenco dei file aggiunti non è un gioco Unity: per sicurezza non tocco niente")
 	}
-	if tr := filepath.Join(m.Cartella, "BepInEx", "Translation"); esisteVoce(tr) {
+	if tr := filepath.Join(m.Cartella, "BepInEx", "Translation"); esisteVoce(tr) && senzaLink(m.Cartella, filepath.Join("BepInEx", "Translation")) {
 		_ = os.RemoveAll(filepath.Join(copie, "traduzioni"))
 		_ = copiaCartella(tr, filepath.Join(copie, "traduzioni"))
 	}
 	// plugin che l'utente ha aggiunto da solo dentro BepInEx: li metto da parte, non li cancello
 	for _, sub := range []string{"plugins", "patchers"} {
+		if !senzaLink(m.Cartella, filepath.Join("BepInEx", sub)) {
+			continue // BepInEx o la sua cartella portano altrove (giunzione o link): non sposto niente
+		}
 		voci, _ := os.ReadDir(filepath.Join(m.Cartella, "BepInEx", sub))
 		for _, v := range voci {
 			n := v.Name()
@@ -385,6 +388,10 @@ func TogliModGioco(dirApp, chiave string) error {
 		if filepath.IsAbs(s) || strings.Contains(s, "..") || strings.Contains(s, ":") || fileDelGiocoUnity(primoPezzo(s)) || fileDelGiocoUnity(filepath.Base(s)) {
 			continue
 		}
+		if !senzaLink(m.Cartella, s) {
+			errori = append(errori, s) // un pezzo del percorso porta fuori dal gioco: non scrivo
+			continue
+		}
 		if err := copiaFile(filepath.Join(copie, "originali", s), filepath.Join(m.Cartella, s)); err != nil {
 			errori = append(errori, s)
 		}
@@ -395,6 +402,25 @@ func TogliModGioco(dirApp, chiave string) error {
 	_ = os.Remove(filepath.Join(copie, "manifesto.json"))
 	_ = os.RemoveAll(filepath.Join(copie, "originali"))
 	return nil
+}
+
+// senzaLink: nessun pezzo di rel dentro base (cartelle e file, se ci sono) è un link o una giunzione
+// di Windows. Una giunzione la può creare anche un programma normale: seguendola, Tasso da
+// amministratore scriverebbe fuori dal gioco (per esempio in System32). Se un pezzo non c'è ancora
+// va bene: lo crea Tasso come cartella normale.
+func senzaLink(base, rel string) bool {
+	p := base
+	for _, pezzo := range strings.FieldsFunc(rel, func(r rune) bool { return r == '/' || r == '\\' }) {
+		p = filepath.Join(p, pezzo)
+		fi, err := os.Lstat(p)
+		if err != nil {
+			return os.IsNotExist(err)
+		}
+		if fi.Mode()&(os.ModeSymlink|os.ModeIrregular) != 0 {
+			return false
+		}
+	}
+	return true
 }
 
 // cartellaModValida: la cartella di un manifesto si tocca solo se è un percorso completo e un gioco

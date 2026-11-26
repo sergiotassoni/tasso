@@ -179,6 +179,10 @@ func maybeAutoExit() {
 		}
 		busyMu.Unlock()
 		if !anyBusy && !isRunning() {
+			// Come "Chiudi Tasso": Boost, modalità della partita e frequenza in prova tornano com'erano.
+			boostSpegniPerUscita()
+			modalitaGiocoPerUscita()
+			screenHzUndo(false)
 			wv.Dispatch(func() { wv.Terminate() })
 			return
 		}
