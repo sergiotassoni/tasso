@@ -422,3 +422,57 @@ func rimessoMsg(vecchio []byte, msg string) string {
 	}
 	return msg
 }
+
+// ---------------- Controllo periodico degli aggiornamenti ----------------
+
+// Tasso resta aperto anche per giorni (icona vicino all'orologio): oltre al controllo
+// all'apertura (pagina, 8 s dopo) ricontrollo ogni 12 ore. Mai con "Aggiorna Tasso da solo"
+// spento (NoAutoUpdate), mai mentre giochi, durante una pulizia o con Tasso Zip o Tasso PDF
+// aperti: in quei casi riprovo tra 30 minuti. Se c'è una versione nuova la pagina mostra il solito
+// avviso con i 30 secondi e "Non ora" (autoUpdate), che ricontrolla gioco e programmi aperti.
+const (
+	controlloAggOgni    = 12 * time.Hour
+	controlloAggRiprova = 30 * time.Minute
+)
+
+func init() {
+	go func() {
+		defer guard("selfupdate.go:controllo periodico")
+		attesa := controlloAggOgni
+		for {
+			time.Sleep(attesa)
+			attesa = controlloAggOgni
+			setMu.Lock()
+			noAuto := settings.NoAutoUpdate
+			setMu.Unlock()
+			controlla, dopo := prossimoControlloAgg(wv == nil || scheduledRun.Load(), noAuto,
+				giocoAperto(), ecoAltriAperti(), isRunning() || updating.Load())
+			if !controlla {
+				if dopo > 0 {
+					attesa = dopo
+				}
+				continue
+			}
+			u := checkUpdate()
+			if n, _ := u["newer"].(bool); !n {
+				continue
+			}
+			// come il controllo all'apertura: "silenzioso", così la pagina parte con l'avviso
+			wv.Dispatch(func() { wv.Eval("try { UPD_QUIET = true } catch (e) {}") })
+			emit("onUpdate", u)
+		}
+	}()
+}
+
+// prossimoControlloAgg: se controllare adesso, o fra quanto riprovare (0 = al giro normale).
+// spento: Tasso senza finestra (attività pianificata, --profile...); noAuto: "Aggiorna Tasso da
+// solo" spento; gioco, apps, occupato: un gioco, Tasso Zip/PDF aperti, una pulizia o un aggiornamento.
+func prossimoControlloAgg(spento, noAuto, gioco, apps, occupato bool) (bool, time.Duration) {
+	switch {
+	case spento, noAuto:
+		return false, 0
+	case gioco, apps, occupato:
+		return false, controlloAggRiprova
+	}
+	return true, 0
+}
