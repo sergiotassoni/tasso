@@ -126,7 +126,10 @@ func (s *isteresi) applica(nuovi, vecchi, inglesi []Blocco, img *image.RGBA, ade
 			usato[j], gestito[i] = true, true
 			p := s.posto(ro, true, adesso)
 			p.letta = adesso
-			if o.Tradotto == n.Tradotto || !stessaFormaSotto(o, img) {
+			// la scritta è cambiata davvero (altri numeri, altre parole: "20 HEALTH" dopo "10
+			// HEALTH", la voce dopo in un elenco): la traduzione nuova subito, mai quella vecchia
+			// sopra un'altra scritta
+			if o.Tradotto == n.Tradotto || !stessaFormaSotto(o, img) || !testoSimile(o.Testo, n.Testo) {
 				p.r, p.tradotto, p.cand, p.candN = rn, n.Tradotto, "", 0
 				break
 			}

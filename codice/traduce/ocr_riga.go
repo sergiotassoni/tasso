@@ -686,7 +686,8 @@ func init() {
 		headshot cooldown v-sync anti-aliasing taa fxaa smaa msaa ssao xess gamma ray tracing widget
 		jumpscare speedrunner leaderboard matchmaking hub dungeon raid tier
 		signora signore signor signorina piazza villa opera studio piano ciao bravo brava maestro nonna nonno
-		padre madre fresco pasta pizza mafia vendetta`) {
+		padre madre fresco pasta pizza mafia vendetta
+		test stamina goblin troll orc`) {
 		paroleUgualiIt[w] = true
 	}
 }
@@ -770,6 +771,9 @@ func rigaMezzaTradotta(en, it string) bool {
 			}
 			return true
 		}
+		if parolaSpostataIt(w, campiEn, it, inglesi) {
+			continue // "PASSIVE SKILLS" -> "ABILITÀ PASSIVE": parola italiana anche lei, messa al suo posto
+		}
 		if titolo && nomeTitolo == "" && parolaDaNome(w) {
 			nomeTitolo = low // "EMBER KINGDOM" -> "REGNO DI EMBER": nome di fantasia del titolo
 			continue
@@ -786,6 +790,41 @@ func rigaMezzaTradotta(en, it string) bool {
 		return true
 	}
 	return false
+}
+
+// parolaSpostataIt: in una scritta corta (al massimo 4 parole) la parola w, rimasta uguale, è
+// anche una parola italiana (PASSIVE) e il traduttore l'ha spostata di posto (in
+// italiano l'aggettivo va dopo: "PASSIVE SKILLS" -> "ABILITÀ PASSIVE"), e almeno un'altra parola
+// è stata tradotta davvero: non è inglese rimasto, è l'italiano giusto. Le altre parole inglesi
+// della riga restano controllate una per una (mai una riga mezza tradotta).
+func parolaSpostataIt(w string, campiEn []string, it string, inglesi map[string]bool) bool {
+	low := strings.ToLower(w)
+	// solo gli aggettivi in -ive, uguali all'inglese al femminile plurale (passive, massive,
+	// offensive, aggressive...): l'elenco delle parole italiane contiene anche parole inglesi
+	// ("iron", "deck") e non basta da solo
+	base, ok := strings.CutSuffix(low, "ive")
+	if len(campiEn) < 2 || len(campiEn) > 4 || !ok || len(base) < 2 || !vocabolarioItaliano()[base+"ivo"] {
+		return false
+	}
+	divide := func(r rune) bool { return !unicode.IsLetter(r) && r != '\'' && r != '-' }
+	posEn, posIt := -1, -1
+	for i, x := range campiEn {
+		if strings.ToLower(strings.Trim(x, "'-")) == low {
+			posEn = i
+			break
+		}
+	}
+	tradotta := false
+	for i, x := range strings.FieldsFunc(it, divide) {
+		l := strings.ToLower(strings.Trim(x, "'-"))
+		if l == low && posIt < 0 {
+			posIt = i
+		}
+		if len([]rune(l)) >= 3 && !inglesi[l] && parolaItaliana(l) && !esiste(l) { // italiana vera, non un prestito ("Streaming")
+			tradotta = true
+		}
+	}
+	return tradotta && posEn >= 0 && posIt >= 0 && posEn != posIt
 }
 
 // titoloCorto: un titolo (di gioco, di capitolo, di luogo): al massimo 4 parole, tutte con la

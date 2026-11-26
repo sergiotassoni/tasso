@@ -11,6 +11,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"unicode"
 )
 
 // infoRiga: cosa è successo a una scritta (per il banco di prova e il controllo a mano).
@@ -183,11 +184,60 @@ func motivoScartaTraduzione(b Blocco, r Risultato) string {
 			return motivoUgualeIt // "Video", "Audio", "No", "TAA": in italiano si scrive così
 		}
 		return "uguale all'inglese"
+	case pezzoDiParolaInFondo(b.Testo) && pezzoCopiato(b.Testo, t):
+		return motivoPezzoInFondo
 	case r.Motore != "catalogo" && rigaMezzaTradotta(b.Testo, t):
 		// (le frasi pronte sono scritte a mano: "Esci al desktop" è giusta così)
 		return "mezza in inglese: scartata"
 	}
 	return ""
+}
+
+// motivoPezzoInFondo: la lettura finisce con un pezzo di parola ("Start s", "Survival is the r"):
+// la riga è tagliata (lettura a metà) e la traduzione ha copiato il pezzo ("Inizia s").
+const motivoPezzoInFondo = "riga incompleta (pezzo di parola in fondo)"
+
+// paroleCorteFinali: parole inglesi di 1-2 lettere che possono chiudere una frase vera.
+var paroleCorteFinali = map[string]bool{"a": true, "i": true, "an": true, "to": true, "of": true, "on": true, "in": true,
+	"is": true, "it": true, "up": true, "me": true, "my": true, "so": true, "go": true, "no": true, "do": true, "be": true,
+	"we": true, "he": true, "us": true, "or": true, "at": true, "by": true, "ok": true, "am": true, "as": true, "if": true,
+	"oh": true, "hi": true, "ya": true, "yo": true, "ah": true, "eh": true, "uh": true, "x": true, "vs": true, "id": true}
+
+// pezzoDiParolaInFondo: l'ultima parola della lettura è un pezzo minuscolo di 1-2 lettere che non
+// è una parola ("s", "n", "op"), dopo una parola vera: l'OCR ha letto solo l'inizio della parola.
+// Non conta dopo un numero ("5 s", "10 m": unità di misura).
+func pezzoDiParolaInFondo(testo string) bool {
+	campi := strings.Fields(testo)
+	if len(campi) < 2 {
+		return false
+	}
+	ult, prima := campi[len(campi)-1], campi[len(campi)-2]
+	r := []rune(ult)
+	if len(r) > 2 {
+		return false
+	}
+	for _, c := range r {
+		if !unicode.IsLower(c) {
+			return false
+		}
+	}
+	if paroleCorteFinali[ult] || strings.ContainsFunc(prima, unicode.IsDigit) {
+		return false
+	}
+	return true
+}
+
+// pezzoCopiato: il pezzo di parola in fondo all'inglese è rimasto, uguale, in fondo alla
+// traduzione ("Start s" -> "Inizia s"): si vedrebbe. Se il traduttore l'ha lasciato fuori
+// ("STATISTICS s" -> "STATISTICHE") la traduzione va bene.
+func pezzoCopiato(en, it string) bool {
+	ce, ci := strings.Fields(en), strings.Fields(it)
+	if len(ce) == 0 || len(ci) == 0 {
+		return false
+	}
+	pezzo := ce[len(ce)-1]
+	ult := strings.TrimRightFunc(ci[len(ci)-1], unicode.IsPunct)
+	return strings.EqualFold(ult, pezzo)
 }
 
 // rifinisciPagina: dopo la traduzione, le scritte prendono grandezza e colori armonizzati, il

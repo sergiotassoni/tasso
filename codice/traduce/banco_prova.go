@@ -146,7 +146,7 @@ func elaboraImmagine(img *image.RGBA, nome string, o opzioniBanco) (esitoImmagin
 			continue
 		}
 		fisse.fissa(coppiaDi(o.tr), b.Testo, r.Tradotto)
-		if rigaMezzaTradotta(p.Testo, p.Tradotto) {
+		if r.Motore != "catalogo" && rigaMezzaTradotta(p.Testo, p.Tradotto) { // stessa regola di motivoScartaTraduzione
 			e.MezzeMostrate++
 		}
 		pronti = append(pronti, p)
@@ -352,7 +352,7 @@ func confrontaFotogrammi(a, b esitoImmagine) []instabilita {
 			if rb.Scartata != "" {
 				pb = "(inglese: " + rb.Scartata + ")"
 			}
-			if pa != pb {
+			if pa != pb && (ra.Scartata == "" || rb.Scartata == "") { // inglese e inglese: sullo schermo non cambia niente
 				out = append(out, instabilita{Da: a.Nome, A: b.Nome, Corretto: rb.Corretto, Prima: pa, Dopo: pb})
 			}
 			break
@@ -423,6 +423,9 @@ func scriviReportBanco(dir string, esiti []esitoImmagine, instab []instabilita) 
 			}
 			if r.Scartata != "" {
 				fmt.Fprintf(&t, "         affidabilità %d  -> resta in inglese: %s\r\n", r.Affid, r.Scartata)
+				if strings.HasPrefix(r.Scartata, "mezza") && strings.TrimSpace(r.Tradotto) != "" {
+					fmt.Fprintf(&t, "         traduzione scartata: %q\r\n", r.Tradotto) // per capire se si buttano traduzioni buone
+				}
 			} else {
 				fmt.Fprintf(&t, "         affidabilità %d  -> %q  (%s, %d ms)\r\n", r.Affid, r.Tradotto, r.Fonte, r.Ms)
 			}
