@@ -470,7 +470,7 @@ func (u *uia) occupatoSotto(campo rect, pid uint32) bool {
 		}
 		occ := elPid(e) != pid
 		docs, elenco := 0, false
-		for i := 0; e != 0 && i < 40 && !occ; i++ {
+		for i := 0; e != 0 && i < 80 && !occ; i++ {
 			switch elType(e) {
 			case uiaControlList, uiaControlListItem, uiaControlMenu, uiaControlMenuItem:
 				elenco = true

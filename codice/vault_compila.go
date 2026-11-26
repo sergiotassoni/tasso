@@ -78,17 +78,23 @@ var (
 )
 
 const (
-	vrFocus    = iota + 1 // il campo con la tastiera è cambiato
-	vrTasto               // scorciatoia premuta
-	vrRiempi              // clic su un account della finestrella
-	vrCompila             // pulsante Compila nell'elenco
-	vrCompilaA            // Compila nella finestra scelta dall'elenco
+	vrFocus       = iota + 1 // il campo con la tastiera è cambiato
+	vrTasto                  // scorciatoia premuta
+	vrRiempi                 // clic su un account della finestrella
+	vrCompila                // pulsante Compila nell'elenco
+	vrCompilaA               // Compila nella finestra scelta dall'elenco
+	vrSalva                  // "Salva questo account" nella finestrella
+	vrGenera                 // "Usa e salva" la password creata (registrazione)
+	vrRiempiPw               // password creata nella finestra Salva: va anche nel campo del sito
+	vrRicontrolla            // ricontrolla se sotto il campo è comparsa la tendina di un altro gestore
 )
 
 type vtRichiesta struct {
 	tipo  int
 	id    string
 	token string
+	pw    []uint16 // vrGenera, vrRiempiPw: chi la riceve la azzera
+	top   uintptr
 }
 
 type vtTok struct {
@@ -760,6 +766,8 @@ type vtStato struct {
 	top    uintptr
 	ctx    autotipo.Contesto
 	isPw   bool
+	reg    bool // campo password di una registrazione
+	nPw    int  // campi password nella finestra
 	valido bool
 }
 
@@ -810,6 +818,14 @@ func (st *vtStato) fai(r vtRichiesta) {
 		st.riempi(r.id)
 	case vrCompila:
 		st.compila(r.id, 0)
+	case vrSalva:
+		st.salva()
+	case vrGenera:
+		st.genera(r.pw)
+	case vrRiempiPw:
+		st.riempiPw(r.pw, r.top)
+	case vrRicontrolla:
+		st.ricontrolla()
 	case vrCompilaA:
 		vtTokMu.Lock()
 		t, ok := vtTokens[r.token]
@@ -870,6 +886,13 @@ func (st *vtStato) focus() {
 	if elReadOnly(e) {
 		return
 	}
+	st.reg, st.nPw = false, 0
+	if isPw {
+		campi := st.u.passwords(top)
+		st.nPw = len(campi)
+		releaseAll(campi)
+		st.reg = autotipo.CampoRegistrazione(elName(e), elAutoID(e), vtTitle(top), st.nPw)
+	}
 	st.top, st.ctx, st.isPw, st.valido = top, ctx, isPw, true
 	r, _ := elRect(e)
 	st.mostra(r, false)
@@ -885,7 +908,22 @@ func (st *vtStato) mostra(r rect, forza bool) {
 		}
 		return
 	}
-	if len(voci) == 0 && !forza {
+	base := vtPopDati{anchor: r, top: st.top, ctx: vtEtichetta(st.ctx), web: st.ctx.Host != "", isPw: st.isPw}
+	if st.el != 0 {
+		base.sopra = st.u.occupatoSotto(r, elPid(st.el))
+		if !st.isPw {
+			if u := strings.TrimSpace(elValue(st.el)); len(u) <= 120 {
+				base.utente = u
+			}
+		}
+	}
+	defer st.ricontrollaDopo(base.sopra)
+	// pagina per creare un account: "Crea password sicura e salvala" (se ci sono già account del
+	// sito e un solo campo password, è più probabile un accesso: propongo gli account)
+	if st.isPw && st.reg && (st.nPw >= 2 || len(voci) == 0) {
+		base.modo, base.simboli = vpGenera, true
+		base.gen = autotipo.GeneraPassword(20, true)
+		vtMostra(base)
 		return
 	}
 	// login in due passaggi: l'account appena usato in questo sito va per primo
@@ -901,11 +939,171 @@ func (st *vtStato) mostra(r rect, forza bool) {
 			}
 		}
 	}
-	modo := vpElenco
+	base.modo, base.voci, base.hint, base.first = vpElenco, voci, hint, !vtFirstOK()
 	if len(voci) == 0 {
-		modo = vpNessuno
+		base.modo = vpNessuno // "Nessun account salvato qui" + "Salva questo account"
 	}
-	vtMostra(vtPopDati{modo: modo, voci: voci, anchor: r, top: st.top, ctx: vtEtichetta(st.ctx), hint: hint, first: !vtFirstOK(), isPw: st.isPw})
+	_ = forza
+	vtMostra(base)
+}
+
+// ricontrollaDopo: le tendine delle estensioni compaiono un attimo dopo il clic: ricontrollo.
+func (st *vtStato) ricontrollaDopo(giaSopra bool) {
+	if giaSopra {
+		return
+	}
+	go func() {
+		defer guard("vault_compila.go:ricontrollaDopo")
+		time.Sleep(450 * time.Millisecond)
+		vtInvia(vtRichiesta{tipo: vrRicontrolla})
+	}()
+}
+
+func (st *vtStato) ricontrolla() {
+	vtPopMu.Lock()
+	vis := vtPop.modo != 0 && !vtPop.sopra && vtPop.top == st.top
+	vtPopMu.Unlock()
+	if !vis || !st.valido || st.el == 0 {
+		return
+	}
+	if r, ok := elRect(st.el); ok && st.u.occupatoSotto(r, elPid(st.el)) {
+		vtSpostaSopra()
+	}
+}
+
+// stessoSito: la pagina davanti è ancora dello stesso sito di quando è comparsa la finestrella?
+func (st *vtStato) stessoSito(top uintptr) bool {
+	if top != st.top || vtFg() != top {
+		return false
+	}
+	if st.ctx.Host == "" {
+		return !autotipo.Browser[vtContesto(nil, top).Exe]
+	}
+	return autotipo.StessoSito(autotipo.NormHost(st.u.browserURL(top)), st.ctx.Host)
+}
+
+// salva: "Salva questo account". Legge il sito (barra del browser) e l'utente scritto nella pagina
+// (le password Windows non le dà) e apre la finestra di salvataggio.
+func (st *vtStato) salva() {
+	if !st.valido || st.top == 0 {
+		return
+	}
+	if m := vtVietata(st.top); m != "" {
+		vtFatto(m)
+		return
+	}
+	if !vtAperto() {
+		vtMostraTasso("onVaultShow", map[string]interface{}{})
+		return
+	}
+	utente := ""
+	if st.el != 0 && !st.isPw {
+		utente = strings.TrimSpace(elValue(st.el))
+	}
+	if utente == "" {
+		utente = st.u.findUser(st.top)
+	}
+	d := svDati{utente: utente, top: st.top, web: st.ctx.Host != ""}
+	if d.web {
+		d.sito, d.nome = st.ctx.Host, autotipo.NomeDaSito(st.ctx.Host)
+	} else {
+		d.sito, d.nome = st.ctx.Exe, autotipo.TogliBrowser(st.ctx.Title)
+		if d.nome == "" {
+			d.nome = strings.TrimSuffix(st.ctx.Exe, ".exe")
+		}
+	}
+	d.anchor, _ = elRect(st.el)
+	if d.anchor.Right == 0 {
+		pGetWindowRect.Call(st.top, uintptr(unsafe.Pointer(&d.anchor)))
+	}
+	svPrepara(d)
+}
+
+// scriviPw mette la password in tutti i campi password della pagina (password e "conferma"),
+// tranne "password attuale". Torna quanti campi ha riempito.
+func (st *vtStato) scriviPw(top uintptr, pw []uint16) int {
+	campi := st.u.passwords(top)
+	defer releaseAll(campi)
+	n := 0
+	for _, e := range campi {
+		if elReadOnly(e) || !elEnabled(e) || elOffscreen(e) || !vtStessoProgramma(elPid(e), top) {
+			continue
+		}
+		if st.ctx.Host != "" && !st.u.insideDocument(e) {
+			continue
+		}
+		if !autotipo.CampoRegistrazione(elName(e), elAutoID(e), "", 2) {
+			continue // "password attuale"
+		}
+		if elSetValue(e, pw) {
+			n++
+		}
+	}
+	return n
+}
+
+// genera: "Usa e salva" la password creata nella finestrella su una pagina di registrazione.
+func (st *vtStato) genera(pw []uint16) {
+	defer clear(pw)
+	if !st.valido || st.top == 0 || len(pw) < 2 {
+		return
+	}
+	if m := vtVietata(st.top); m != "" {
+		vtFatto(m)
+		return
+	}
+	if !vtAperto() {
+		vtMostraTasso("onVaultShow", map[string]interface{}{})
+		return
+	}
+	if !st.stessoSito(st.top) {
+		vtFatto(errVtCambiata)
+		return
+	}
+	if st.scriviPw(st.top, pw) == 0 {
+		// il campo non accetta: lo scrivo a tasti nel campo che ha la tastiera
+		if st.el == 0 || !elHasFocus(st.el) {
+			vtFatto("Non riesco a scrivere nel campo password: la password non è stata salvata.")
+			return
+		}
+		s := &vtSegreto{pw: pw, passi: []autotipo.Passo{{Tipo: autotipo.Password}}}
+		if m := vtScrivi(st.top, s.passi, s); m != "" {
+			vtFatto(m)
+			return
+		}
+	}
+	nome := autotipo.NomeDaSito(st.ctx.Host)
+	web := st.ctx.Host
+	if web == "" {
+		nome, web = autotipo.TogliBrowser(st.ctx.Title), st.ctx.Exe
+		if nome == "" {
+			nome = strings.TrimSuffix(st.ctx.Exe, ".exe")
+		}
+	}
+	e := vaultEntry{Site: nome, User: st.u.findUser(st.top), Pw: windows.UTF16ToString(pw), Web: web}
+	r := vaultSave(e)
+	e.Pw = ""
+	switch r {
+	case "ok":
+		vtFatto(trGo("Password sicura creata, scritta e salvata nel portachiavi:") + " " + nome)
+	case "locked":
+		vtFatto("Il portachiavi si è chiuso: la password è scritta nella pagina ma non è stata salvata.")
+	default:
+		vtFatto(r)
+	}
+}
+
+// riempiPw: la password creata nella finestra Salva va anche nei campi password del sito.
+func (st *vtStato) riempiPw(pw []uint16, top uintptr) {
+	defer clear(pw)
+	if !st.valido || top == 0 || top != st.top || len(pw) < 2 || vtVietata(top) != "" || !vtAperto() {
+		return
+	}
+	if !vtPortaDavanti(top) || !st.stessoSito(top) {
+		vtFatto("La password è salvata ma non l'ho scritta nella pagina: la finestra è cambiata.")
+		return
+	}
+	st.scriviPw(top, pw)
 }
 
 // riempi: clic su un account nella finestrella.
