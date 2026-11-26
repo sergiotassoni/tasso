@@ -390,6 +390,25 @@ function Get-DownloadsPath {
   try { $p = (New-Object -ComObject Shell.Application).Namespace('shell:Downloads').Self.Path; if ($p -and (Test-Path -LiteralPath $p)) { return $p } } catch {}
   return (Join-Path $env:USERPROFILE 'Downloads')
 }
+function Get-DownloadsSicura {
+  # Download per gli script che SPOSTANO file da amministratore: solo dentro il profilo vero
+  # (preso da HKLM, non cambiabile da un programma normale) e senza collegamenti fino al profilo.
+  # '' = non si tocca.
+  $prof = [string]$TassoProfiloVero
+  if (-not $prof) { return '' }
+  try { $dl = [IO.Path]::GetFullPath([string](Get-DownloadsPath)).TrimEnd(''); $prof = [IO.Path]::GetFullPath($prof).TrimEnd('') } catch { return '' }
+  if (-not (In-Dir $dl $prof) -or ($dl -ieq $prof)) { return '' }
+  if (-not (Test-Path -LiteralPath $dl -PathType Container)) { return '' }
+  if (-not (Test-NoReparse $dl $prof)) { return '' }
+  return $dl
+}
+function Test-DownloadsSposta([string]$from, [string]$destDir, [string]$dl) {
+  # Il file da spostare e la cartella di arrivo sono veri (niente giunzioni né collegamenti) e stanno
+  # dentro Download: il file direttamente in Download, la cartella subito sotto.
+  try { $f = [IO.Path]::GetFullPath($from); $d = [IO.Path]::GetFullPath($destDir).TrimEnd('') } catch { return $false }
+  if (-not ([IO.Path]::GetDirectoryName($f) -ieq $dl) -or -not ([IO.Path]::GetDirectoryName($d) -ieq $dl)) { return $false }
+  return (Test-NoReparse $f $dl) -and (Test-NoReparse $d $dl)
+}
 function Test-StartupOn([string]$key, [string]$name) {
   # StartupApproved: primo byte dispari = disattivato (come in Gestione attività).
   try {
@@ -755,7 +774,11 @@ try {
 Freed $f; Say ('Liberati ' + (Fmt $f))
 `},
 	{ID: "downloads", Name: "Riordino della cartella Download", Desc: "Mette i file sciolti in Immagini, Documenti, Video, Musica, Programmi, Archivi.", Level: 0, Minutes: 0.5, Timeout: 10 * time.Minute, Script: `
-$dl = Get-DownloadsPath
+# Lo script gira da amministratore: la cartella Download (si può spostare da HKCU senza permessi) deve
+# stare nel profilo vero dell'utente, e né lei né le cartelle dove sposto i file possono essere
+# giunzioni o collegamenti (porterebbero i file in System32 o in Programmi).
+$dl = Get-DownloadsSicura
+if (-not $dl) { Say 'La cartella Download non è nel tuo profilo di Windows (o è un collegamento): per sicurezza non la riordino.'; return }
 $cats = [ordered]@{
   'Immagini'  = @('.jpg','.jpeg','.png','.gif','.bmp','.webp','.heic','.tif','.tiff','.svg')
   'Documenti' = @('.pdf','.doc','.docx','.odt','.txt','.rtf','.xls','.xlsx','.ods','.csv','.ppt','.pptx','.odp')
@@ -765,7 +788,7 @@ $cats = [ordered]@{
   'Archivi'   = @('.zip','.rar','.7z','.tar','.gz','.iso')
 }
 $limit = (Get-Date).AddMinutes(-15)
-$moved = 0
+$moved = 0; $saltati = 0
 # Elenco di ogni spostamento (da -> a): con "Annulla il riordino dei Download" tutto torna dov'era.
 $logDir = Join-Path $dl 'Tasso - riordini'
 $log = Join-Path $logDir ('riordino-' + (Get-Date -Format 'yyyyMMdd-HHmmss') + '.tsv')
@@ -773,46 +796,65 @@ $righe = New-Object System.Collections.ArrayList
 Get-ChildItem -LiteralPath $dl -File -ErrorAction SilentlyContinue | ForEach-Object {
   if ($_.LastWriteTime -gt $limit) { return }
   if ($_.Name -like 'Tasso*.exe') { return }
+  if ($_.Attributes -band [IO.FileAttributes]::ReparsePoint) { $saltati++; return }
   $ext = $_.Extension.ToLower()
   foreach ($c in $cats.Keys) {
     if ($cats[$c] -contains $ext) {
       $destDir = Join-Path $dl $c
-      New-Item -ItemType Directory -Path $destDir -Force | Out-Null
+      if (-not (Test-Path -LiteralPath $destDir)) { New-Item -ItemType Directory -Path $destDir -Force | Out-Null }
       $target = Join-Path $destDir $_.Name
       $n = 2
       while (Test-Path -LiteralPath $target) { $target = Join-Path $destDir ($_.BaseName + ' (' + $n + ')' + $_.Extension); $n++ }
       $from = $_.FullName
+      # Controllo subito prima di spostare: file e cartella di arrivo veri, dentro Download.
+      if (-not (Test-DownloadsSposta $from $destDir $dl)) { $saltati++; break }
       try { Move-Item -LiteralPath $from -Destination $target -ErrorAction Stop; $moved++; [void]$righe.Add($from + [string][char]9 + $target) } catch {}
       break
     }
   }
 }
 if ($righe.Count) {
-  try { New-Item -ItemType Directory -Path $logDir -Force | Out-Null; [IO.File]::WriteAllLines($log, [string[]]$righe.ToArray(), (New-Object System.Text.UTF8Encoding($false))) } catch { Say 'Non sono riuscito a scrivere l''elenco degli spostamenti: il riordino non si potrà annullare da Tasso.' }
+  $okLog = $false
+  try {
+    if (-not (Test-Path -LiteralPath $logDir)) { New-Item -ItemType Directory -Path $logDir -Force | Out-Null }
+    # L'elenco si scrive solo in una cartella vera dentro Download, mai sopra un file che c'è già.
+    if ((Test-NoReparse $logDir $dl) -and -not (Test-Path -LiteralPath $log)) {
+      [IO.File]::WriteAllLines($log, [string[]]$righe.ToArray(), (New-Object System.Text.UTF8Encoding($false))); $okLog = $true
+    }
+  } catch {}
+  if (-not $okLog) { Say 'Non sono riuscito a scrivere l''elenco degli spostamenti: il riordino non si potrà annullare da Tasso.' }
 }
 Say ('Riordinati ' + $moved + ' file nella cartella Download.')
+if ($saltati) { Say ('Lasciati dove sono: ' + $saltati + ' (collegamenti, o cartelle di arrivo che sono collegamenti).') }
 if ($righe.Count) { Say 'Se vuoi rimettere tutto com''era: Pulisci › Un passaggio alla volta › "Annulla il riordino dei Download".' }
 `},
 	{ID: "downloads_undo", Name: "Annulla il riordino dei Download", Desc: "Rimette nella cartella Download i file spostati dall'ultimo riordino di Tasso. I file che hai già spostato o cancellato tu restano come sono.", Level: 0, Minutes: 0.3, Timeout: 10 * time.Minute, Script: `
-$dl = Get-DownloadsPath
+$dl = Get-DownloadsSicura
+if (-not $dl) { Say 'La cartella Download non è nel tuo profilo di Windows (o è un collegamento): per sicurezza non tocco niente.'; return }
+$cats = @('Immagini', 'Documenti', 'Video', 'Musica', 'Programmi', 'Archivi')
 $logDir = Join-Path $dl 'Tasso - riordini'
-$last = @(Get-ChildItem -LiteralPath $logDir -Filter 'riordino-*.tsv' -File -ErrorAction SilentlyContinue | Sort-Object Name -Descending | Select-Object -First 1)
+if ((Test-Path -LiteralPath $logDir) -and -not (Test-NoReparse $logDir $dl)) { Say 'La cartella con gli elenchi dei riordini è un collegamento: per sicurezza non la uso.'; return }
+$last = @(Get-ChildItem -LiteralPath $logDir -Filter 'riordino-*.tsv' -File -ErrorAction SilentlyContinue | Where-Object { $_.Name -notlike '*-annullato.tsv' -and -not ($_.Attributes -band [IO.FileAttributes]::ReparsePoint) } | Sort-Object Name -Descending | Select-Object -First 1)
 if (-not $last.Count) { Say 'Non trovo nessun riordino dei Download fatto da Tasso da annullare.'; return }
 $back = 0; $skip = 0
 foreach ($r in @([IO.File]::ReadAllLines($last[0].FullName))) {
   $p = $r.Split([char]9)
   if ($p.Count -ne 2) { continue }
-  $from = $p[0]; $to = $p[1]
-  # Solo dentro la cartella Download, e solo se il file è ancora dove l'ho messo e il suo posto è libero.
-  if (-not (In-Dir $from $dl) -or -not (In-Dir $to $dl)) { $skip++; continue }
+  try { $from = [IO.Path]::GetFullPath($p[0]); $to = [IO.Path]::GetFullPath($p[1]) } catch { $skip++; continue }
+  # Solo come le ha messe il riordino: $from era un file sciolto in Download, $to sta in una delle sue
+  # cartelle (Immagini, Documenti...). Qualunque altra riga (scritta da un altro programma) la salto.
+  $toDir = [IO.Path]::GetDirectoryName($to)
+  if (-not ([IO.Path]::GetDirectoryName($from) -ieq $dl) -or -not (@($cats | Where-Object { $toDir -ieq (Join-Path $dl $_) }).Count)) { $skip++; continue }
   if (-not (Test-Path -LiteralPath $to -PathType Leaf) -or (Test-Path -LiteralPath $from)) { $skip++; continue }
+  # File e cartelle veri (niente collegamenti) fino a Download, controllati subito prima di spostare.
+  if (-not (Test-NoReparse $to $dl)) { $skip++; continue }
   try { Move-Item -LiteralPath $to -Destination $from -ErrorAction Stop; $back++ } catch { $skip++ }
 }
 try { Rename-Item -LiteralPath $last[0].FullName -NewName ($last[0].BaseName + '-annullato.tsv') -ErrorAction Stop } catch {}
-# Le cartelle create dal riordino che sono rimaste vuote le tolgo.
-foreach ($c in @('Immagini', 'Documenti', 'Video', 'Musica', 'Programmi', 'Archivi')) {
+# Le cartelle create dal riordino che sono rimaste vuote le tolgo (mai un collegamento).
+foreach ($c in $cats) {
   $d = Join-Path $dl $c
-  if ((Test-Path -LiteralPath $d -PathType Container) -and -not (Get-ChildItem -LiteralPath $d -Force -ErrorAction SilentlyContinue | Select-Object -First 1)) { Remove-Item -LiteralPath $d -Force -ErrorAction SilentlyContinue }
+  if ((Test-Path -LiteralPath $d -PathType Container) -and (Test-NoReparse $d $dl) -and -not (Get-ChildItem -LiteralPath $d -Force -ErrorAction SilentlyContinue | Select-Object -First 1)) { Remove-Item -LiteralPath $d -Force -ErrorAction SilentlyContinue }
 }
 Say ('Rimessi nella cartella Download: ' + $back + ' file.')
 if ($skip) { Say ('Lasciati dove sono: ' + $skip + ' (li avevi già spostati, rinominati o cancellati, oppure al loro posto c''è un file nuovo con lo stesso nome).') }
