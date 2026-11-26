@@ -51,8 +51,8 @@ func TestTogliModGiocoElencoFinto(t *testing.T) {
 	os.WriteFile(filepath.Join(gioco, "winhttp.dll"), []byte("bepinex"), 0o644)
 	os.MkdirAll(filepath.Join(cartellaCopie(app, "g"), "originali"), 0o755)
 	os.WriteFile(filepath.Join(cartellaCopie(app, "g"), "originali", "Gioco.exe"), []byte("cattivo"), 0o644)
-	if !cartellaModValida(gioco) {
-		t.Fatal("gioco Unity non riconosciuto")
+	if !cartellaModValida(gioco) || !cartellaModValida(gioco+string(os.PathSeparator)) {
+		t.Fatal("gioco Unity non riconosciuto (anche con la barra finale, come può essere salvato)")
 	}
 	if err := scriviManifesto(app, "g", ManifestoMod{Cartella: gioco, Tipo: "mono",
 		Aggiunti:   []string{"Gioco_Data", "Gioco.exe", "UnityPlayer.dll", "winhttp.dll", "x:y"},

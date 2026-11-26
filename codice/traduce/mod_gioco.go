@@ -401,7 +401,7 @@ func TogliModGioco(dirApp, chiave string) error {
 // Unity vero (TipoUnity: un .exe con accanto la sua cartella _Data). Un programma normale non può
 // creare un .exe dentro Windows, Programmi o la radice del disco.
 func cartellaModValida(c string) bool {
-	if c == "" || !filepath.IsAbs(c) || filepath.Clean(c) != c {
+	if c == "" || !filepath.IsAbs(c) {
 		return false
 	}
 	tipo, _ := TipoUnity(c)
