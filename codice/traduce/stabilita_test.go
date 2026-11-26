@@ -197,3 +197,27 @@ func TestCollaudoReportStessoRiquadro(t *testing.T) {
 		t.Error("un pezzo (\"X\") dentro la riga preso per la riga")
 	}
 }
+
+// La barra delle schede scorre: sulla scheda nuova ("PROSTHETICS", letta ma "non è testo da
+// tradurre") non resta la traduzione della scheda di prima. La stessa scritta letta a pezzi o
+// con lettere sbagliate tiene la traduzione.
+func TestCollaudoTraduzioneVecchiaSuUnAltraScritta(t *testing.T) {
+	vecchia := Blocco{Testo: "HAIR COLOR", Tradotto: "COLORE DEI CAPELLI", X: 667, Y: 166, W: 120, H: 20}
+	fresca := Blocco{Testo: "HAIR COLOR", Tradotto: "COLORE DEI CAPELLI", X: 483, Y: 167, W: 120, H: 20}
+	letti := []Blocco{fresca, {Testo: "PROSTHETICS", X: 661, Y: 166, W: 130, H: 20}}
+	out := senzaScritteCambiate([]Blocco{fresca, vecchia}, []Blocco{fresca}, letti)
+	if len(out) != 1 || out[0].X != 483 {
+		t.Errorf("la traduzione di HAIR COLOR resta su PROSTHETICS: %+v", out)
+	}
+	for _, l := range []string{"HAIR COLOR", "HAlR C0LOR", "HAIR", "|"} {
+		out := senzaScritteCambiate([]Blocco{vecchia}, nil, []Blocco{{Testo: l, X: 667, Y: 166, W: 120, H: 20}})
+		if len(out) != 1 {
+			t.Errorf("lettura %q della stessa scritta: traduzione tolta", l)
+		}
+	}
+	// una scritta accanto che tocca appena il riquadro non conta
+	out = senzaScritteCambiate([]Blocco{vecchia}, nil, []Blocco{{Testo: "PROSTHETICS", X: 780, Y: 166, W: 130, H: 20}})
+	if len(out) != 1 {
+		t.Error("la scritta accanto ha tolto la traduzione")
+	}
+}

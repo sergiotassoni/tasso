@@ -207,6 +207,7 @@ func elaboraImmagine(img *image.RGBA, nome string, o opzioniBanco) (esitoImmagin
 	if o.stato != nil {
 		prima := append([]Blocco(nil), pronti...)
 		pronti, inglesi = o.stato.ist.applica(pronti, o.stato.vecchi, inglesi, img, o.stato.ora)
+		pronti = senzaScritteCambiate(pronti, prima, blocchi) // mai la traduzione vecchia su un'altra scritta
 		// le righe del report: quelle tenute dall'isteresi dicono la traduzione mostrata davvero
 		for _, p := range pronti {
 			if contieneBlocco(prima, p) {
@@ -223,6 +224,8 @@ func elaboraImmagine(img *image.RGBA, nome string, o opzioniBanco) (esitoImmagin
 		n := len(pronti)
 		pronti = tieniFerme(pronti, o.stato.vecchi, img)
 		pronti = recuperaPerse(pronti, o.stato.vecchi, img, inglesi) // saltate dalla lettura ma ancora lì
+		// le recuperate: mai la traduzione vecchia su un'altra scritta
+		pronti = append(pronti[:n:n], senzaScritteCambiate(pronti[n:], nil, blocchi)...)
 		recuperate := append([]Blocco(nil), pronti[n:]...)
 		// le traduzioni tenute o recuperate dal fotogramma prima passano lo stesso controllo
 		if tenute, tolte := senzaMezzeRighe(pronti, inglesi); len(tolte) > 0 {

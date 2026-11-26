@@ -137,3 +137,39 @@ var paroleCorteItaliane = map[string]bool{"il": true, "lo": true, "la": true, "l
 	"ci": true, "vi": true, "si": true, "ne": true, "se": true, "ma": true, "ho": true, "ha": true, "fa": true,
 	"va": true, "sa": true, "no": true, "sì": true, "è": true, "ai": true, "al": true, "re": true, "ok": true,
 	"tè": true, "dì": true, "là": true, "lì": true, "po": true, "ad": true, "ed": true, "od": true, "gi": true}
+
+// senzaScritteCambiate: tolte le traduzioni tenute dal fotogramma prima (isteresi, recuperate)
+// sopra cui la lettura di adesso trova un'altra scritta, anche se quella lettura resta in inglese
+// perché "non è testo da tradurre". Banco del mattino f.2368: la barra delle schede è scorsa,
+// "PROSTHETICS" (letto con affidabilità 0) è arrivato dove c'era "HAIR COLOR" e restava
+// "COLORE DEI CAPELLI" (due schede con lo stesso nome). freschi: le traduzioni di questa lettura;
+// letti: tutte le scritte lette adesso. Una lettura della stessa scritta, anche a pezzi o con
+// lettere sbagliate, tiene la traduzione.
+func senzaScritteCambiate(pronti, freschi, letti []Blocco) []Blocco {
+	out := pronti[:0:0]
+	for _, p := range pronti {
+		if contieneBlocco(freschi, p) || p.Tradotto == "" {
+			out = append(out, p)
+			continue
+		}
+		rp := rettBlocco(p)
+		cambiata := false
+		for _, l := range letti {
+			rl := rettBlocco(l)
+			in := rp.Intersect(rl)
+			if in.Empty() || in.Dx()*in.Dy()*2 < min(rp.Dx()*rp.Dy(), rl.Dx()*rl.Dy()) {
+				continue // tocca appena: è la scritta accanto
+			}
+			lp, ll := lettereConfuse(p.Testo), lettereConfuse(l.Testo)
+			if len([]rune(ll)) < 3 || testoSimile(p.Testo, l.Testo) || strings.Contains(lp, ll) || strings.Contains(ll, lp) {
+				continue // la stessa scritta (o un suo pezzo, o un segno)
+			}
+			cambiata = true
+			break
+		}
+		if !cambiata {
+			out = append(out, p)
+		}
+	}
+	return out
+}

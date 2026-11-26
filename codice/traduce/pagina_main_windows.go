@@ -520,6 +520,7 @@ type paginaPronta struct {
 	parziale    bool        // solo le scritte già pronte (frasi pronte, memoria): le altre arrivano dopo
 	mancanti    int         // scritte senza traduzione perché il traduttore non era pronto: riprovare
 	inglesi     []Blocco    // scritte lette che restano in inglese con parole vere (senzaMezzeRighe)
+	letti       []Blocco    // tutte le scritte lette (senzaScritteCambiate)
 }
 
 // preparaPagina: legge tutte le scritte con la loro posizione e le traduce (senza disegnare).
@@ -683,7 +684,7 @@ func preparaPaginaCon(area Zona, img, primaImg *image.RGBA, giro int64, annulla 
 	if len(daMotore) > 0 && anteprima != nil && len(daMotore) < len(da) && !fermato() &&
 		paginaAttiva.Load() && paginaGiro.Load() == giro {
 		if pr, n, _, _, ingl := costruisci(risultati); len(pr) > 0 {
-			anteprima(&paginaPronta{area: area, img: img, pronti: pr, nuove: n, t0: t0, tOCR: tOCR, tTrad: time.Since(t0) - tOCR, parziale: true, inglesi: ingl})
+			anteprima(&paginaPronta{area: area, img: img, pronti: pr, nuove: n, t0: t0, tOCR: tOCR, tTrad: time.Since(t0) - tOCR, parziale: true, inglesi: ingl, letti: blocchi})
 		}
 	}
 	if len(daMotore) > 0 {
@@ -710,7 +711,7 @@ func preparaPaginaCon(area Zona, img, primaImg *image.RGBA, giro int64, annulla 
 		}
 		_ = os.WriteFile(filepath.Join(dirApp, "logs", "pagina-tradotto.txt"), []byte(sb.String()), 0o644)
 	}
-	return &paginaPronta{area: area, img: img, pronti: pronti, nuove: nuove, t0: t0, tOCR: tOCR, tTrad: tTrad, cron: cron, mancanti: mancanti, inglesi: ingl}, letturaFatta
+	return &paginaPronta{area: area, img: img, pronti: pronti, nuove: nuove, t0: t0, tOCR: tOCR, tTrad: tTrad, cron: cron, mancanti: mancanti, inglesi: ingl, letti: blocchi}, letturaFatta
 }
 
 // rileggiIncerte: le righe lette male rilette ingrandite e preparate in tre modi, con una sola
@@ -771,6 +772,8 @@ func mostraPaginaPronta(p *paginaPronta, giro int64) bool {
 		pronti, ingl := isteresiPagina.applica(pronti, vecchi, p.inglesi, img, time.Now())
 		pronti = tieniFerme(pronti, vecchi, img)
 		pronti = recuperaPerse(pronti, vecchi, img, ingl) // scritte saltate dalla lettura ma ancora lì: restano
+		// mai la traduzione vecchia su un'altra scritta (la barra delle schede che scorre)
+		pronti = senzaScritteCambiate(pronti, p.pronti, p.letti)
 		// anche le traduzioni rimaste dalla lettura prima: mai accanto a un pezzo della stessa
 		// frase che adesso resta in inglese
 		pronti, _ = senzaMezzeRighe(pronti, ingl)
