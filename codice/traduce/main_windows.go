@@ -618,10 +618,10 @@ func collega(w webview2.WebView) {
 	_ = w.Bind("ttScaricaMozilla", func() string { go scaricaMozilla(); return "ok" })
 	_ = w.Bind("ttScaricaIA", func() string { go scaricaIA(); return "ok" })
 	_ = w.Bind("ttScaricaChat", func() string { go scaricaChat(); return "ok" })
-	_ = w.Bind("ttApplicaTraduzione", func(nome, cartella string, rischioOK bool, modo string) string {
+	_ = w.Bind("ttApplicaTraduzione", func(nome, cartella, modo string) string {
 		accendiTraduzione()
 		if modo == "file" {
-			go applicaModGioco(nome, cartella, rischioOK)
+			go applicaModGioco(nome, cartella)
 		} else {
 			go applicaTraduzione(nome, cartella)
 		}

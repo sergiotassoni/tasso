@@ -4472,7 +4472,7 @@ async function wzApply(){
   W.armTimer = () => { clearTimeout(GW_T); GW_T = setTimeout(() => { if (W && W.run === run && W.busy) { W.busy = false; W.dead = run; W.err = _t('Il traduttore non ha risposto: riprova.'); wzDraw(); } }, 180000); };
   W.armTimer();
   W.trRun = run; // da qui accetto 'fatto'/'errore' della traduzione per questo giro
-  const r = await ttc('ttApplicaTraduzione', g.name, W.info.cartella, false, W.modo); // con l'anti-cheat mai dentro il gioco
+  const r = await ttc('ttApplicaTraduzione', g.name, W.info.cartella, W.modo); // con l'anti-cheat mai dentro il gioco (lo decide anche Go)
   if (r !== 'ok' && W && W.run === run) { clearTimeout(GW_T); W.busy = false; W.err = tx(r || _t('Non sono riuscito a partire.')); wzDraw(); }
 }
 async function wzFinish(run, trOk){

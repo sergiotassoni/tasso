@@ -74,7 +74,7 @@ func eseguiProvaFile() {
 		nota("copia lingua " + lin + " al posto dell'inglese: " + copiaLinguaComeInglese(provaFileCartella, lin))
 	} else if _, ok := leggiManifesto(dirApp, chiaveGioco(provaFileCartella)); !ok {
 		t0 := time.Now()
-		applicaModGioco(provaFileNome, provaFileCartella, false)
+		applicaModGioco(provaFileNome, provaFileCartella)
 		_, ok := leggiManifesto(dirApp, chiaveGioco(provaFileCartella))
 		nota(fmt.Sprintf("installazione: %v in %.1f s", ok, time.Since(t0).Seconds()))
 		if !ok {

@@ -8,7 +8,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"os"
 	"path/filepath"
 	"strings"
 	"sync/atomic"
@@ -50,7 +49,7 @@ func applicaModUnreal(nome, cartella string, antiCheat bool, passo func(int, str
 		fallito("Le scritte del gioco e la lingua che vuoi sono uguali (" + nomeLingua(a) + "): scegli la lingua del gioco al passo 1 e riprova.")
 		return
 	}
-	if GiocoHaLingua(paks, a) && os.Getenv("TASSO_FORZA_FILE") == "" {
+	if GiocoHaLingua(paks, a) && !forzaPerProva("TASSO_FORZA_FILE") {
 		fallito(nome + " ha già la sua traduzione in " + strings.ToLower(nomeLingua(a)) + ", fatta dagli autori del gioco: sceglila nelle impostazioni del gioco (di solito Opzioni → Lingua). È la traduzione migliore e non serve aggiungere niente.")
 		return
 	}

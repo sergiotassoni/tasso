@@ -215,9 +215,9 @@ func processoAperto(exe string) bool {
 // applicaModGioco: passi veri della procedura "Traduzione gioco" quando si sceglie "dentro il gioco".
 var muInstalla sync.Mutex
 
-// rischioOK: per i giochi con anti-cheat l'utente ha letto l'avviso sul rischio di ban e ha
-// scelto lui di tradurre dentro il gioco (sempre spento se non lo sceglie, gioco per gioco).
-func applicaModGioco(nome, cartella string, rischioOK bool) {
+// Regola: niente dentro i giochi con anti-cheat, mai (nemmeno se l'utente accetta il rischio):
+// per quei giochi si traduce solo lo schermo.
+func applicaModGioco(nome, cartella string) {
 	defer func() {
 		if r := recover(); r != nil {
 			logErrore("applica-mod", r, debug.Stack())
@@ -238,8 +238,7 @@ func applicaModGioco(nome, cartella string, rischioOK bool) {
 	}
 	passo(3, "Controllo il gioco…")
 	if tipo, _ := TipoUnity(cartella); tipo == "" && CartellaPaksUnreal(cartella) != "" {
-		ac := haAntiCheat(cartella)
-		if ac && !rischioOK {
+		if haAntiCheat(cartella) {
 			applicaTraduzione(nome, cartella)
 			return
 		}
@@ -248,21 +247,21 @@ func applicaModGioco(nome, cartella string, rischioOK bool) {
 			applicaTraduzione(nome, cartella)
 			return
 		}
-		if _, a := coppiaAttiva(); (GiocoHaLingua(CartellaPaksUnreal(cartella), a) || LinguaUfficialeNota(cartella, a)) && os.Getenv("TASSO_FORZA_FILE") == "" {
+		if _, a := coppiaAttiva(); (GiocoHaLingua(CartellaPaksUnreal(cartella), a) || LinguaUfficialeNota(cartella, a)) && !forzaPerProva("TASSO_FORZA_FILE") {
 			// Il controllo può sbagliare (file della lingua quasi vuoti): lo dico, ma la traduzione
 			// dello schermo parte lo stesso, così non resti mai senza niente.
 			emetti("guidata", map[string]any{"nome": nome, "percento": 4, "testo": nome + " sembra avere già la sua traduzione in " + strings.ToLower(nomeLingua(a)) + ": prova a sceglierla nelle impostazioni del gioco (di solito Opzioni → Lingua). Intanto lo traduco sullo schermo."})
 			applicaTraduzione(nome, cartella)
 			return
 		}
-		if os.Getenv("TASSO_FILE_UNREAL") == "" {
+		if !forzaPerProva("TASSO_FILE_UNREAL") {
 			// 24/11: provato dal vivo su PC Cafe Simulator (Unreal 5 con IoStore): il gioco non
 			// carica il file aggiunto in Paks\~mods, nemmeno con i suoi testi ufficiali dentro.
 			// Finché non funziona in un gioco vero resta spento: traduco sullo schermo
 			applicaTraduzione(nome, cartella)
 			return
 		}
-		applicaModUnreal(nome, cartella, ac, passo, fallito)
+		applicaModUnreal(nome, cartella, false, passo, fallito)
 		return
 	}
 	if haAntiCheat(cartella) {
