@@ -126,9 +126,9 @@ var ResiduiAggiornamentoTasso = []string{"Tasso.exe.new", "Tasso.exe.old", "Tass
 
 // Disinstalla toglie i componenti scelti, e solo i file scritti in tasso-setup.json.
 //   - Gaming senza Ufficio (o il contrario): Tasso.exe resta, cambia solo la modalità.
-//   - Gaming e Ufficio insieme (o l'unico dei due rimasto): via Tasso.exe e il suo collegamento.
-//     La cartella "lavoro" e le impostazioni di Tasso non si toccano: sono di Tasso
-//     (le toglie "Togli Tasso dal PC" dentro Tasso).
+//   - Gaming e Ufficio insieme (o l'unico dei due rimasto): via Tasso.exe e il suo collegamento,
+//     e le cose di Tasso come in DisinstallaCon (togliCoseDiTasso). I dati di Tasso in
+//     %LOCALAPPDATA% restano (solo DisinstallaCon con TogliDati li toglie).
 //   - Zip, PDF: via i loro file, i collegamenti e la loro cartella se resta vuota.
 //   - Se non resta niente: via anche disinstallatore, tasso-setup.json, le voci
 //     del registro dell'installatore e la cartella se è vuota.
@@ -276,7 +276,7 @@ func (in *Installatore) DisinstallaCon(base string, togli []Componente, od Opzio
 				}
 			}
 		}
-		_ = os.Remove(base) // solo se vuota (es. resta la cartella "lavoro" di Tasso: non è mia)
+		_ = os.Remove(base) // solo se vuota (in una cartella condivisa restano le cose degli altri)
 		ris.TuttoTolto = true
 		return ris, nil
 	}
@@ -442,7 +442,7 @@ func (in *Installatore) togliRegistro() error {
 		_ = r.TogliChiave(HKLM, ChiaveTasso)
 	}
 	// HKCU\Software\Tasso\Lingua: l'ha scritta l'installatore, va via con l'ultimo programma.
-	// Le altre cose di Tasso in HKCU\Software\Tasso (AudioUSB...) restano.
+	// Le chiavi di Tasso stesso (ChiaviSoloTasso) le toglie togliCoseDiTasso; le altre restano.
 	for _, rr := range []Registro{r, in.RegistroUtente} {
 		if rr == nil {
 			continue

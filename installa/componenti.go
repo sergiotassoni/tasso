@@ -121,7 +121,7 @@ const (
 )
 
 // ModalitaTasso dice in che modalità deve partire Tasso. Con una sola modalità
-// scelta Tasso deve anche nascondere l'altra (vedi LEGGIMI: serve una modifica in Tasso).
+// scelta Tasso non lascia passare all'altra (lo legge da HKLM\Software\Tasso\Modalita).
 // "" = Tasso non installato.
 func ModalitaTasso(cc []Componente) string {
 	g, u := false, false
