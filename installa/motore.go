@@ -58,6 +58,11 @@ type Installatore struct {
 	Bloccato          func(error) bool
 	Dormi             func(time.Duration)
 	CancellaAlRiavvio func(percorso string) error // MoveFileEx(MOVEFILE_DELAY_UNTIL_REBOOT)
+	// ProteggiCartella: fuori da Programmi la cartella nuova eredita i permessi del disco (spesso
+	// "tutti possono modificare"): qui le si danno quelli di Programmi (solo gli amministratori
+	// scrivono). nil = niente (Linux, test). Si chiama solo per una cartella creata adesso o che
+	// si chiama Tasso (cioè sicuramente solo di Tasso).
+	ProteggiCartella func(base string) error
 }
 
 // Opzioni scelte nelle pagine dell'installatore.
@@ -206,6 +211,13 @@ func (in *Installatore) installa(ctx context.Context, o Opzioni) (*Stato, error)
 	}
 	if err := os.MkdirAll(o.Base, 0o755); err != nil {
 		return nil, err
+	}
+	if in.ProteggiCartella != nil && (creataBase || strings.EqualFold(filepath.Base(o.Base), CartellaTassoStd)) {
+		if err := in.ProteggiCartella(o.Base); err != nil {
+			Diario("permessi della cartella %s non impostati: %v", o.Base, err)
+			pulisciBase(o.Base, creataBase)
+			return nil, fmt.Errorf("non riesco a proteggere la cartella %s: %w", o.Base, err)
+		}
 	}
 	in.Ripara(o.Base) // resti di un'installazione interrotta
 	vecchio, err := LeggiStato(o.Base)
@@ -595,6 +607,13 @@ func copiaConPassi(ctx context.Context, w io.Writer, r io.Reader, passo func(int
 		if err != nil {
 			return tot, err
 		}
+	}
+}
+
+// pulisciBase: toglie la cartella base se l'ho creata io ed è vuota.
+func pulisciBase(base string, creata bool) {
+	if creata {
+		_ = os.Remove(base)
 	}
 }
 

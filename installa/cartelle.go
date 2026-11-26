@@ -1,6 +1,7 @@
 package installa
 
 import (
+	"os"
 	"path/filepath"
 	"strings"
 )
@@ -131,4 +132,59 @@ func percorsoFile(dir, nome string) (string, bool) {
 		return "", false
 	}
 	return filepath.Join(dir, filepath.FromSlash(strings.ReplaceAll(nome, `\`, "/"))), true
+}
+
+// InfoCartella: cosa c'è in una cartella (per CartellaDedicata).
+type InfoCartella struct {
+	Esiste  bool // la cartella c'è
+	Vuota   bool // c'è ed è vuota
+	DiTasso bool // dentro c'è già Tasso (tasso-setup.json o Tasso.exe)
+}
+
+// CartellaDedicata: la cartella dove va davvero Tasso. Tasso va sempre in una cartella sua
+// (...\Tasso): l'aggiornamento e la disinstallazione toccano solo le cose di Tasso, e una
+// cartella condivisa (C:\Program Files, D:\Giochi) non deve mai diventare "la cartella di Tasso".
+// La cartella scelta resta com'è solo se è già quella di Tasso, oppure se si chiama Tasso ed è
+// vuota (o non c'è ancora). Altrimenti si aggiunge \Tasso.
+func CartellaDedicata(p string, info func(string) InfoCartella) string {
+	p = strings.TrimRight(strings.TrimSpace(p), `\/`)
+	if p == "" {
+		return p
+	}
+	i := info(p)
+	if i.DiTasso {
+		return p
+	}
+	if strings.EqualFold(filepathBaseWin(p), CartellaTassoStd) && (!i.Esiste || i.Vuota) {
+		return p
+	}
+	return p + `\` + CartellaTassoStd
+}
+
+// filepathBaseWin: l'ultima parte di un percorso di Windows (anche su Linux, nei test).
+func filepathBaseWin(p string) string {
+	p = strings.TrimRight(p, `\/`)
+	if i := strings.LastIndexAny(p, `\/`); i >= 0 {
+		return p[i+1:]
+	}
+	return p
+}
+
+// InfoCartellaDisco: InfoCartella letta dal disco.
+func InfoCartellaDisco(p string) InfoCartella {
+	var i InfoCartella
+	voci, err := os.ReadDir(p)
+	if err != nil {
+		fi, e := os.Lstat(p)
+		i.Esiste = e == nil && fi.IsDir()
+		return i
+	}
+	i.Esiste, i.Vuota = true, len(voci) == 0
+	for _, v := range voci {
+		n := strings.ToLower(v.Name())
+		if n == FileStato || n == "tasso.exe" {
+			i.DiTasso = true
+		}
+	}
+	return i
 }

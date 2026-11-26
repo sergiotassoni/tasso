@@ -208,7 +208,8 @@ func componenti(ss []string) []installa.Componente {
 
 func nuovoInstallatore() *installa.Installatore {
 	return &installa.Installatore{Sorgente: pacco.Sorgente(), Elenco: elenco, Registro: reg,
-		CreaCollegamento: creaCollegamento, TogliFile: togliFile, CancellaAlRiavvio: cancellaAlRiavvio}
+		CreaCollegamento: creaCollegamento, TogliFile: togliFile, CancellaAlRiavvio: cancellaAlRiavvio,
+		ProteggiCartella: proteggiCartellaFuoriProgrammi}
 }
 
 // versioneSetup: la versione dell'ecosistema dentro questo installatore (per il diario).
@@ -301,7 +302,9 @@ func collega(w webview2.WebView) {
 			}
 			return out
 		}
-		p = filepath.Clean(p)
+		// Tasso va sempre in una cartella sua (...\Tasso): vedi installa.CartellaDedicata
+		p = filepath.Clean(installa.CartellaDedicata(p, installa.InfoCartellaDisco))
+		out["cartella"] = p
 		scelti, _ := installa.Normalizza(componenti(cc))
 		progs := installa.ProgrammiPer(scelti)
 		var serve int64
@@ -359,7 +362,9 @@ func collega(w webview2.WebView) {
 		if l == "" {
 			l = L()
 		}
-		opz := installa.Opzioni{Base: filepath.Clean(o.Cartella), Componenti: componenti(o.Componenti), Desktop: o.Desktop,
+		// sempre una cartella sua: mai C:\Program Files o D:\Giochi come "cartella di Tasso"
+		base := filepath.Clean(installa.CartellaDedicata(o.Cartella, installa.InfoCartellaDisco))
+		opz := installa.Opzioni{Base: base, Componenti: componenti(o.Componenti), Desktop: o.Desktop,
 			DesktopTogli: o.DesktopTogli && !o.Desktop, Lingua: l, CartellaMenu: menuStart(), CartellaDesktop: desktopPubblico()}
 		ctx, annulla := context.WithCancel(context.Background())
 		annullaMu.Lock()

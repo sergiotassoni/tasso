@@ -511,26 +511,15 @@ func natoIl(h windows.Handle) int64 {
 	return c.Nanoseconds()
 }
 
-// criteriChiusura: le cartelle dei programmi che sto per sostituire. Se aggiorno Tasso (che ha la
-// cartella principale) ma non Zip o PDF, le loro sottocartelle restano fuori.
+// criteriChiusura: i file dei programmi che sto per sostituire (elenco installato e nuovo) e le
+// cartelle solo di Tasso (installa.CriteriPer). Mai tutto quello che parte dalla cartella.
 func criteriChiusura(base string, cc []installa.Componente, radici []uint32) installa.CriteriChiusura {
-	c := installa.CriteriChiusura{Radici: radici, Io: uint32(os.Getpid())}
-	scelti := map[installa.Programma]bool{}
-	for _, p := range installa.ProgrammiPer(cc) {
-		scelti[p] = true
-		c.Cartelle = append(c.Cartelle, installa.CartellaDi(base, p))
+	st, _ := installa.LeggiStato(base)
+	aiutanti := ""
+	if d := datiLocaliUtente(); d != "" {
+		aiutanti = filepath.Join(d, "TassoTraduce")
 	}
-	if scelti[installa.ProgTasso] {
-		for _, p := range []installa.Programma{installa.ProgZip, installa.ProgPDF} {
-			if !scelti[p] {
-				c.Escluse = append(c.Escluse, installa.CartellaDi(base, p))
-			}
-		}
-		if d := datiLocaliUtente(); d != "" {
-			c.CartelleAiutanti = append(c.CartelleAiutanti, filepath.Join(d, "TassoTraduce"))
-		}
-	}
-	return c
+	return installa.CriteriPer(base, cc, st, elenco, radici, uint32(os.Getpid()), aiutanti)
 }
 
 // chiudiAiutanti chiude i processi che tengono occupati i file da sostituire: i figli dei
@@ -642,4 +631,34 @@ func cancellaAllUscita() {
 	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true, CreationFlags: 0x08000000,
 		CmdLine: `cmd.exe /d /c ""` + filepath.Join(sistema32(), "ping.exe") + `" -n 4 127.0.0.1 >nul & del /f /q "` + daCancellareAllaFine + `""`}
 	_ = cmd.Start()
+}
+
+// proteggiCartellaFuoriProgrammi: fuori da Programmi la cartella di Tasso riceve i permessi di
+// Programmi: SYSTEM e Amministratori tutto, gli utenti solo leggere ed eseguire, senza ereditare
+// dal disco (dove spesso "Utenti autenticati" possono modificare). Tasso.exe e il disinstallatore
+// partono da amministratore: nessun programma normale deve poterli sostituire.
+// Dentro Programmi non serve (ha già questi permessi). Un disco senza permessi (FAT32, exFAT) non
+// li supporta: lì non si può fare niente, lo scrivo nel diario e vado avanti.
+func proteggiCartellaFuoriProgrammi(base string) error {
+	if installa.DentroProgrammi(base, programFiles()) {
+		return nil
+	}
+	sd, err := windows.SecurityDescriptorFromString("D:P(A;OICI;FA;;;SY)(A;OICI;FA;;;BA)(A;OICI;0x1200a9;;;BU)")
+	if err != nil {
+		return err
+	}
+	dacl, _, err := sd.DACL()
+	if err != nil {
+		return err
+	}
+	err = windows.SetNamedSecurityInfo(base, windows.SE_FILE_OBJECT,
+		windows.DACL_SECURITY_INFORMATION|windows.PROTECTED_DACL_SECURITY_INFORMATION, nil, nil, dacl, nil)
+	if errors.Is(err, windows.ERROR_NOT_SUPPORTED) || errors.Is(err, windows.ERROR_INVALID_FUNCTION) {
+		installa.Diario("il disco di %s non ha permessi (FAT32/exFAT?): la cartella resta com'è", base)
+		return nil
+	}
+	if err == nil {
+		installa.Diario("permessi di %s: solo gli amministratori possono modificare", base)
+	}
+	return err
 }
