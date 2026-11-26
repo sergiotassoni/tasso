@@ -14,6 +14,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 	"unsafe"
@@ -26,17 +27,22 @@ import (
 
 // ---------------- registro ----------------
 
-type registroWin struct{}
+// registroWin: il registro di Windows. hkcu = la radice da usare per HKCU (0 = quello di chi fa
+// girare l'installatore; HKEY_USERS\<SID> per l'utente della sessione, vedi utenteSessione).
+type registroWin struct{ hkcu registry.Key }
 
-func radice(r installa.Radice) registry.Key {
+func (g registroWin) radice(r installa.Radice) registry.Key {
 	if r == installa.HKCU {
+		if g.hkcu != 0 {
+			return g.hkcu
+		}
 		return registry.CURRENT_USER
 	}
 	return registry.LOCAL_MACHINE
 }
 
-func (registroWin) ScriviTesto(r installa.Radice, chiave, nome, valore string) error {
-	k, _, err := registry.CreateKey(radice(r), chiave, registry.SET_VALUE|registry.WOW64_64KEY)
+func (g registroWin) ScriviTesto(r installa.Radice, chiave, nome, valore string) error {
+	k, _, err := registry.CreateKey(g.radice(r), chiave, registry.SET_VALUE|registry.WOW64_64KEY)
 	if err != nil {
 		return err
 	}
@@ -44,8 +50,8 @@ func (registroWin) ScriviTesto(r installa.Radice, chiave, nome, valore string) e
 	return k.SetStringValue(nome, valore)
 }
 
-func (registroWin) ScriviNumero(r installa.Radice, chiave, nome string, valore uint32) error {
-	k, _, err := registry.CreateKey(radice(r), chiave, registry.SET_VALUE|registry.WOW64_64KEY)
+func (g registroWin) ScriviNumero(r installa.Radice, chiave, nome string, valore uint32) error {
+	k, _, err := registry.CreateKey(g.radice(r), chiave, registry.SET_VALUE|registry.WOW64_64KEY)
 	if err != nil {
 		return err
 	}
@@ -53,8 +59,8 @@ func (registroWin) ScriviNumero(r installa.Radice, chiave, nome string, valore u
 	return k.SetDWordValue(nome, valore)
 }
 
-func (registroWin) LeggiTesto(r installa.Radice, chiave, nome string) (string, bool) {
-	k, err := registry.OpenKey(radice(r), chiave, registry.QUERY_VALUE|registry.WOW64_64KEY)
+func (g registroWin) LeggiTesto(r installa.Radice, chiave, nome string) (string, bool) {
+	k, err := registry.OpenKey(g.radice(r), chiave, registry.QUERY_VALUE|registry.WOW64_64KEY)
 	if err != nil {
 		return "", false
 	}
@@ -63,8 +69,8 @@ func (registroWin) LeggiTesto(r installa.Radice, chiave, nome string) (string, b
 	return s, err == nil
 }
 
-func (registroWin) TogliValore(r installa.Radice, chiave, nome string) error {
-	k, err := registry.OpenKey(radice(r), chiave, registry.SET_VALUE|registry.WOW64_64KEY)
+func (g registroWin) TogliValore(r installa.Radice, chiave, nome string) error {
+	k, err := registry.OpenKey(g.radice(r), chiave, registry.SET_VALUE|registry.WOW64_64KEY)
 	if errors.Is(err, registry.ErrNotExist) {
 		return nil
 	}
@@ -78,16 +84,16 @@ func (registroWin) TogliValore(r installa.Radice, chiave, nome string) error {
 	return nil
 }
 
-func (registroWin) TogliChiave(r installa.Radice, chiave string) error {
-	err := registry.DeleteKey(radice(r), chiave)
+func (g registroWin) TogliChiave(r installa.Radice, chiave string) error {
+	err := registry.DeleteKey(g.radice(r), chiave)
 	if errors.Is(err, registry.ErrNotExist) {
 		return nil
 	}
 	return err
 }
 
-func (registroWin) TogliAlbero(r installa.Radice, chiave string) error {
-	k, err := registry.OpenKey(radice(r), chiave, registry.ENUMERATE_SUB_KEYS|registry.WOW64_64KEY)
+func (g registroWin) TogliAlbero(r installa.Radice, chiave string) error {
+	k, err := registry.OpenKey(g.radice(r), chiave, registry.ENUMERATE_SUB_KEYS|registry.WOW64_64KEY)
 	if errors.Is(err, registry.ErrNotExist) {
 		return nil
 	}
@@ -97,15 +103,15 @@ func (registroWin) TogliAlbero(r installa.Radice, chiave string) error {
 	figli, _ := k.ReadSubKeyNames(-1)
 	k.Close()
 	for _, f := range figli {
-		if err := (registroWin{}).TogliAlbero(r, chiave+`\`+f); err != nil {
+		if err := g.TogliAlbero(r, chiave+`\`+f); err != nil {
 			return err
 		}
 	}
-	return (registroWin{}).TogliChiave(r, chiave)
+	return g.TogliChiave(r, chiave)
 }
 
-func (registroWin) Vuota(r installa.Radice, chiave string) bool {
-	k, err := registry.OpenKey(radice(r), chiave, registry.QUERY_VALUE|registry.ENUMERATE_SUB_KEYS|registry.WOW64_64KEY)
+func (g registroWin) Vuota(r installa.Radice, chiave string) bool {
+	k, err := registry.OpenKey(g.radice(r), chiave, registry.QUERY_VALUE|registry.ENUMERATE_SUB_KEYS|registry.WOW64_64KEY)
 	if err != nil {
 		return true
 	}
@@ -719,4 +725,88 @@ exit 0`
 	cmd.Dir = sistema32()
 	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true, CreationFlags: 0x08000000}
 	return cmd.Run()
+}
+
+// ---------------- utente della sessione (UAC con un altro account) ----------------
+
+// utenteSessione: se l'utente collegato a questa sessione (quello di explorer.exe) non è chi fa
+// girare l'installatore (UAC con la password di un altro account), restituisce il registro con il
+// suo HKCU (HKEY_USERS\<SID>) e la sua %LOCALAPPDATA%. Tasso Zip e Tasso PDF girano come lui.
+// ok = false se è lo stesso utente (il caso normale) o se non si riesce a saperlo.
+func utenteSessione() (installa.Registro, func() string, bool) {
+	var sessione uint32
+	if windows.ProcessIdToSessionId(windows.GetCurrentProcessId(), &sessione) != nil {
+		return nil, nil, false
+	}
+	io, err := windows.GetCurrentProcessToken().GetTokenUser()
+	if err != nil {
+		return nil, nil, false
+	}
+	mioSID := io.User.Sid.String()
+	snap, err := windows.CreateToolhelp32Snapshot(windows.TH32CS_SNAPPROCESS, 0)
+	if err != nil {
+		return nil, nil, false
+	}
+	defer windows.CloseHandle(snap)
+	var pe windows.ProcessEntry32
+	pe.Size = uint32(unsafe.Sizeof(pe))
+	for err = windows.Process32First(snap, &pe); err == nil; err = windows.Process32Next(snap, &pe) {
+		if !strings.EqualFold(windows.UTF16ToString(pe.ExeFile[:]), "explorer.exe") {
+			continue
+		}
+		var s uint32
+		if windows.ProcessIdToSessionId(pe.ProcessID, &s) != nil || s != sessione {
+			continue
+		}
+		h, err := windows.OpenProcess(windows.PROCESS_QUERY_LIMITED_INFORMATION, false, pe.ProcessID)
+		if err != nil {
+			continue
+		}
+		var tok windows.Token
+		err = windows.OpenProcessToken(h, windows.TOKEN_QUERY|windows.TOKEN_IMPERSONATE|windows.TOKEN_DUPLICATE, &tok)
+		windows.CloseHandle(h)
+		if err != nil {
+			continue
+		}
+		u, err := tok.GetTokenUser()
+		if err != nil {
+			tok.Close()
+			continue
+		}
+		sid := u.User.Sid.String()
+		if sid == mioSID {
+			tok.Close()
+			return nil, nil, false // stesso utente: va bene HKCU normale
+		}
+		k, err := registry.OpenKey(registry.USERS, sid, registry.ALL_ACCESS|registry.WOW64_64KEY)
+		if err != nil {
+			tok.Close()
+			installa.Diario("HKCU dell'utente della sessione (%s) non aperto: %v", sid, err)
+			return nil, nil, false
+		}
+		dati, _ := tok.KnownFolderPath(windows.FOLDERID_LocalAppData, 0)
+		tok.Close()
+		installa.Diario("UAC con un altro account: tracce di Zip e PDF nell'utente della sessione %s (%s)", sid, dati)
+		return registroWin{hkcu: k}, func() string { return dati }, true
+	}
+	return nil, nil, false
+}
+
+var (
+	utenteUna    sync.Once
+	utenteReg    installa.Registro
+	utenteCartel func() string
+)
+
+// conUtenteSessione aggiunge all'installatore l'utente della sessione, se è diverso.
+func conUtenteSessione(in *installa.Installatore) *installa.Installatore {
+	utenteUna.Do(func() {
+		if r, d, ok := utenteSessione(); ok {
+			utenteReg, utenteCartel = r, d
+		}
+	})
+	if utenteReg != nil {
+		in.RegistroUtente, in.CartellaDatiSessione = utenteReg, utenteCartel
+	}
+	return in
 }

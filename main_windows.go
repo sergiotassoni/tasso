@@ -207,9 +207,9 @@ func componenti(ss []string) []installa.Componente {
 }
 
 func nuovoInstallatore() *installa.Installatore {
-	return &installa.Installatore{Sorgente: pacco.Sorgente(), Elenco: elenco, Registro: reg,
+	return conUtenteSessione(&installa.Installatore{Sorgente: pacco.Sorgente(), Elenco: elenco, Registro: reg,
 		CreaCollegamento: creaCollegamento, TogliFile: togliFile, CancellaAlRiavvio: cancellaAlRiavvio,
-		ProteggiCartella: proteggiCartellaFuoriProgrammi}
+		ProteggiCartella: proteggiCartellaFuoriProgrammi})
 }
 
 // versioneSetup: la versione dell'ecosistema dentro questo installatore (per il diario).
@@ -441,6 +441,7 @@ func collega(w webview2.WebView) {
 		if len(preScelti) == 0 {
 			in.PulisciTasso = pulisciTasso
 		}
+		conUtenteSessione(in)
 		installa.Diario("disinstallo %v da %s (dati: %v)", cc, baseDisins, togliDati)
 		chiudiAiutanti(baseDisins, componenti(cc), nil, nil)
 		r, err := in.DisinstallaCon(baseDisins, componenti(cc), installa.OpzioniDisinstalla{TogliDati: togliDati && len(preScelti) == 0})

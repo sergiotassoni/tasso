@@ -53,6 +53,13 @@ type Installatore struct {
 	// CartellaDatiUtente: %LOCALAPPDATA% dell'utente (lì Tasso Zip e Tasso PDF tengono
 	// impostazioni e file temporanei). nil o "" = non toccare niente.
 	CartellaDatiUtente func() string
+	// UAC "con un altro account" (utente standard che scrive la password di un amministratore):
+	// l'installatore gira come l'amministratore, ma Tasso Zip e Tasso PDF girano come l'utente
+	// della sessione e scrivono nel SUO HKCU e nella SUA %LOCALAPPDATA%. RegistroUtente (HKCU =
+	// quello dell'utente della sessione) e CartellaDatiSessione servono per le loro tracce e per la
+	// lingua. nil = lo stesso utente (il caso normale) o i test.
+	RegistroUtente       Registro
+	CartellaDatiSessione func() string
 	// File occupati (vedi riprova.go). nil = i valori veri: codici di Windows, time.Sleep, e
 	// nessuna cancellazione al riavvio.
 	Bloccato          func(error) bool
@@ -837,8 +844,22 @@ func (in *Installatore) scriviRegistro(st *Stato, lingua string) error {
 		if err := r.ScriviTesto(HKCU, ChiaveTasso, "Lingua", lingua); err != nil {
 			return err
 		}
+		// anche per l'utente della sessione (Zip e PDF girano come lui); non è grave se non riesce
+		if ru := in.RegistroUtente; ru != nil {
+			if err := ru.ScriviTesto(HKCU, ChiaveTasso, "Lingua", lingua); err != nil {
+				Diario("lingua non scritta per l'utente della sessione: %v", err)
+			}
+		}
 	}
 	return nil
+}
+
+// registroTracce: dove sono le tracce di Zip e PDF (HKCU dell'utente della sessione).
+func (in *Installatore) registroTracce() Registro {
+	if in.RegistroUtente != nil {
+		return in.RegistroUtente
+	}
+	return in.Registro
 }
 
 // scriviTasso: HKLM\Software\Tasso. Valori:

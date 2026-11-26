@@ -85,7 +85,7 @@ func cartellaDatiProgramma(p Programma) string {
 // installato in base) e la sua cartella dei dati. Restituisce le cartelle non tolte del tutto.
 func (in *Installatore) togliTracceUtente(base string, p Programma) []string {
 	var nonTolti []string
-	if r := in.Registro; r != nil {
+	if r := in.registroTracce(); r != nil {
 		for _, g := range tracceDi(p) {
 			exe := strings.ToLower(filepath.Join(CartellaDi(base, p), g.exeNome))
 			if g.prova != "" {
@@ -112,9 +112,13 @@ func (in *Installatore) togliTracceUtente(base string, p Programma) []string {
 			}
 		}
 	}
-	if in.CartellaDatiUtente != nil {
+	dati := in.CartellaDatiUtente
+	if in.CartellaDatiSessione != nil {
+		dati = in.CartellaDatiSessione // Zip e PDF: la %LOCALAPPDATA% dell'utente che li usa
+	}
+	if dati != nil {
 		if nome := cartellaDatiProgramma(p); nome != "" {
-			if radice := in.CartellaDatiUtente(); radice != "" && filepath.IsAbs(radice) {
+			if radice := dati(); radice != "" && filepath.IsAbs(radice) {
 				d := filepath.Join(radice, nome)
 				if err := in.togliCartella(d); err != nil {
 					nonTolti = append(nonTolti, d)

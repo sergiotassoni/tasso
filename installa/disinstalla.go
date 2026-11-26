@@ -311,9 +311,14 @@ func (in *Installatore) togliRegistro() error {
 	}
 	// HKCU\Software\Tasso\Lingua: l'ha scritta l'installatore, va via con l'ultimo programma.
 	// Le altre cose di Tasso in HKCU\Software\Tasso (AudioUSB...) restano.
-	_ = r.TogliValore(HKCU, ChiaveTasso, "Lingua")
-	if r.Vuota(HKCU, ChiaveTasso) {
-		_ = r.TogliChiave(HKCU, ChiaveTasso)
+	for _, rr := range []Registro{r, in.RegistroUtente} {
+		if rr == nil {
+			continue
+		}
+		_ = rr.TogliValore(HKCU, ChiaveTasso, "Lingua")
+		if rr.Vuota(HKCU, ChiaveTasso) {
+			_ = rr.TogliChiave(HKCU, ChiaveTasso)
+		}
 	}
 	return nil
 }
