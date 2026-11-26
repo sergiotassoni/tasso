@@ -2900,6 +2900,8 @@
   " da riprovare": " erneut zu versuchen"
  },
  "ui": {
+  "In prova": "Beta",
+  "Stiamo migliorando qualità e velocità: qualche frase può uscire strana o restare nella lingua originale del gioco.": "Wir verbessern Qualität und Tempo: Manche Sätze können seltsam klingen oder in der Originalsprache des Spiels bleiben.",
   "Resta acceso vicino all'orologio": "Neben der Uhr bleiben",
   "Con la X Tasso si nasconde nell'icona in basso a destra, vicino all'orologio, e resta acceso. Per chiuderlo davvero: clic destro sull'icona → Chiudi Tasso.": "Mit dem X versteckt sich Tasso im Symbol unten rechts neben der Uhr und bleibt an. Zum wirklichen Schließen: Rechtsklick auf das Symbol → Tasso schließen.",
   "Con la X Tasso resta acceso vicino all'orologio.": "Mit dem X bleibt Tasso neben der Uhr an.",
