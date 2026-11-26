@@ -93,6 +93,18 @@ func versioneTasso(base string) string {
 
 // aggiornaSilenzioso fa tutto e restituisce il codice d'uscita.
 func aggiornaSilenzioso(soloControlla, riapri bool) int {
+	if riapri && !soloControlla {
+		// Tasso si è chiuso per farsi aggiornare: qualunque cosa succeda qui (piano non valido,
+		// errore, panico), alla fine si riapre. riapriTasso non fa niente se è già aperto.
+		defer func() {
+			if r := recover(); r != nil {
+				installa.Diario("errore grave nell'aggiornamento silenzioso: %v", r)
+			}
+			if base, ok := installa.Installato(reg); ok {
+				riapriTasso(filepath.Clean(base))
+			}
+		}()
+	}
 	piano, codice := pianoSilenzioso()
 	if piano == nil || soloControlla {
 		return codice
@@ -152,6 +164,17 @@ func eseguiAggiornamento(piano *installa.PianoAggiornamento, riapri bool, avanza
 	}
 	if tassoGira(base) {
 		tassoAperto = true
+	}
+	// Tasso Zip e Tasso PDF aperti: potrebbero avere lavoro non salvato (un archivio a metà, un PDF
+	// modificato). Non li chiudo a forza: lo dico, e si riprova quando li hai chiusi.
+	for _, a := range programmiAperti(base, o.Componenti) {
+		if a.nome != "Tasso" {
+			installa.Diario("%s è aperto: non aggiorno", a.nome)
+			if tassoAperto {
+				riapriTasso(base)
+			}
+			return installa.UscitaErrore, testi.T(L(), "aggs_aperti")
+		}
 	}
 	if len(programmiAperti(base, o.Componenti)) > 0 && !chiudiProgrammi(base, o.Componenti) {
 		// Tasso sta facendo una pulizia (rifiuta --chiudi) o un programma non si chiude: non tocco niente
@@ -279,6 +302,14 @@ func conBarra(lavoro func(avanza func(testo string, perc int, errore bool)) int)
 	w.SetHtml(ui.PaginaAggiorna(testi.T(L(), "aggs_titolo"), testi.T(L(), "aggs_chiudo")))
 	var codice atomic.Int32
 	go func() {
+		defer func() {
+			if r := recover(); r != nil { // un errore grave non deve lasciare la finestrella aperta per sempre
+				installa.Diario("errore grave: %v", r)
+				codice.Store(int32(installa.UscitaErrore))
+				finito.Store(true)
+				w.Dispatch(func() { w.Terminate() })
+			}
+		}()
 		c := lavoro(func(testo string, perc int, errore bool) {
 			b, _ := json.Marshal(map[string]any{"testo": testo, "perc": perc, "errore": errore})
 			w.Dispatch(func() { w.Eval("window.TS && TS.avanza(" + string(b) + ")") })

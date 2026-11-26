@@ -140,18 +140,13 @@ func NewWithOptions(options WebViewOptions) WebView {
 
 	settings, err := chromium.GetSettings()
 	if err != nil {
-		log.Fatal(err)
+		log.Printf("impostazioni WebView2 non lette: %v", err) // modifica di Tasso: niente log.Fatal
+		return nil
 	}
 	// disable context menu
-	err = settings.PutAreDefaultContextMenusEnabled(options.Debug)
-	if err != nil {
-		log.Fatal(err)
-	}
+	_ = settings.PutAreDefaultContextMenusEnabled(options.Debug)
 	// disable developer tools
-	err = settings.PutAreDevToolsEnabled(options.Debug)
-	if err != nil {
-		log.Fatal(err)
-	}
+	_ = settings.PutAreDevToolsEnabled(options.Debug)
 	// Tasso: niente tasti da browser (F5/Ctrl+R ricarica e lascia la pagina bianca, Ctrl+F, Ctrl+P,
 	// Alt+Freccia sinistra, zoom da tastiera). Secondo Microsoft restano attivi i tasti di modifica
 	// del testo (Ctrl+C, Ctrl+V, Ctrl+X, Ctrl+A, Ctrl+Z) e di movimento (Home, Fine, Pagina su/giù).

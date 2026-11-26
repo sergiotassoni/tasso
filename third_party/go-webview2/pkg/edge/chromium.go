@@ -4,6 +4,7 @@
 package edge
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"path/filepath"
@@ -32,6 +33,9 @@ type Chromium struct {
 
 	// Settings
 	DataPath string
+
+	// Errore: modifica di Tasso, perché la creazione di WebView2 non è riuscita (nil = riuscita).
+	Errore error
 
 	// permissions
 	permissions      map[CoreWebView2PermissionKind]CoreWebView2PermissionState
@@ -109,6 +113,12 @@ func (e *Chromium) Embed(hwnd uintptr) bool {
 		_, _, _ = w32.User32TranslateMessage.Call(uintptr(unsafe.Pointer(&msg)))
 		_, _, _ = w32.User32DispatchMessageW.Call(uintptr(unsafe.Pointer(&msg)))
 	}
+	if e.Errore != nil || e.webview == nil {
+		if e.Errore != nil {
+			log.Printf("%v", e.Errore)
+		}
+		return false // modifica di Tasso: ambiente o controller non creati
+	}
 	e.Init("window.external={invoke:s=>window.chrome.webview.postMessage(s)}")
 	return true
 }
@@ -138,7 +148,8 @@ func (e *Chromium) Init(script string) {
 func (e *Chromium) Eval(script string) {
 	_script, err := windows.UTF16PtrFromString(script)
 	if err != nil {
-		log.Fatal(err)
+		log.Printf("script con un carattere nullo, non eseguito: %v", err) // modifica di Tasso
+		return
 	}
 
 	_, _, _ = e.webview.vtbl.ExecuteScript.Call(
@@ -169,8 +180,12 @@ func (e *Chromium) Release() uintptr {
 }
 
 func (e *Chromium) EnvironmentCompleted(res uintptr, env *ICoreWebView2Environment) uintptr {
-	if int64(res) < 0 {
-		log.Fatalf("Creating environment failed with %08x", res)
+	if int64(res) < 0 || env == nil {
+		// modifica di Tasso: niente log.Fatalf (chiudeva il programma senza dire niente).
+		// Embed restituisce false e chi chiama va avanti senza finestra.
+		e.Errore = fmt.Errorf("creazione dell'ambiente WebView2 non riuscita: %08x", res)
+		atomic.StoreUintptr(&e.inited, 1)
+		return 0
 	}
 	_, _, _ = env.vtbl.AddRef.Call(uintptr(unsafe.Pointer(env)))
 	e.environment = env
@@ -184,8 +199,10 @@ func (e *Chromium) EnvironmentCompleted(res uintptr, env *ICoreWebView2Environme
 }
 
 func (e *Chromium) CreateCoreWebView2ControllerCompleted(res uintptr, controller *ICoreWebView2Controller) uintptr {
-	if int64(res) < 0 {
-		log.Fatalf("Creating controller failed with %08x", res)
+	if int64(res) < 0 || controller == nil {
+		e.Errore = fmt.Errorf("creazione del controller WebView2 non riuscita: %08x", res) // modifica di Tasso
+		atomic.StoreUintptr(&e.inited, 1)
+		return 0
 	}
 	_, _, _ = controller.vtbl.AddRef.Call(uintptr(unsafe.Pointer(controller)))
 	e.controller = controller
@@ -281,7 +298,8 @@ func (e *Chromium) PermissionRequested(_ *ICoreWebView2, args *iCoreWebView2Perm
 func (e *Chromium) WebResourceRequested(sender *ICoreWebView2, args *ICoreWebView2WebResourceRequestedEventArgs) uintptr {
 	req, err := args.GetRequest()
 	if err != nil {
-		log.Fatal(err)
+		log.Printf("richiesta WebView2 non letta: %v", err) // modifica di Tasso
+		return 0
 	}
 	if e.WebResourceRequestedCallback != nil {
 		e.WebResourceRequestedCallback(req, args)
@@ -292,7 +310,7 @@ func (e *Chromium) WebResourceRequested(sender *ICoreWebView2, args *ICoreWebVie
 func (e *Chromium) AddWebResourceRequestedFilter(filter string, ctx COREWEBVIEW2_WEB_RESOURCE_CONTEXT) {
 	err := e.webview.AddWebResourceRequestedFilter(filter, ctx)
 	if err != nil {
-		log.Fatal(err)
+		log.Printf("filtro WebView2 non aggiunto: %v", err) // modifica di Tasso
 	}
 }
 
