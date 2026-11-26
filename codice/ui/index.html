@@ -162,6 +162,8 @@ h3{margin:0;font-size:15px}
 .cover{position:relative;aspect-ratio:2/3;border-radius:10px;overflow:hidden;background:var(--track);display:grid;place-items:center;font-weight:800;font-size:28px}.cover img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}.cover img.wide{object-fit:contain;background:#0b0d14}.cover img.ico{object-fit:contain;padding:28%;background:var(--track)}
 .acf{display:flex;flex-direction:column;gap:6px;font-size:12px;color:var(--muted)}.acf input,.acf select,#acUnit{padding:8px 10px;border-radius:10px;border:1px solid var(--line);background:var(--bg2,transparent);color:var(--text);font:inherit;font-size:14px}.acf select option{background:#151826;color:#eee}
 #vPinKind{padding:9px 10px;min-height:42px;border-radius:10px;border:1px solid var(--line);background:var(--bg2,transparent);color:var(--text);font:inherit;font-size:14px}
+/* tutti gli altri menu a tendina con lo stesso aspetto di quelli della Pulizia programmata (specificità zero: le regole sopra restano valide) */
+:where(select){padding:8px 10px;border-radius:10px;border:1px solid var(--line);background:var(--bg2,transparent);color:var(--text);font:inherit;font-size:14px}:where(select) option{background:#151826;color:#eee}
 #vPinKind option{background:#151826;color:#eee}
 .toggle b{display:block;font-size:15px;color:var(--text)}.toggle span{font-size:12px;color:var(--muted)}
 .sw{width:46px;height:26px;border-radius:99px;background:var(--track);display:flex;align-items:center;padding:3px;flex:0 0 46px;transition:background .2s}
