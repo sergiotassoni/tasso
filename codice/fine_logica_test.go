@@ -256,3 +256,25 @@ func TestAdessoFineCon(t *testing.T) {
 		t.Error("ExitWindowsEx fallito: deve rispondere no")
 	}
 }
+
+// 3.1.1: dopo il riavvio scelto nella pulizia Tasso partito con Windows apre da solo la finestra.
+func TestBentornatoFinestra(t *testing.T) {
+	casi := []struct {
+		pronto, nascosto, auto, schermo, gaming, gioco bool
+		vuole                                          int
+	}{
+		{true, true, false, false, false, false, bentFinestraApri},
+		{false, true, false, false, false, false, bentFinestraNo},    // avvio normale con Windows: resta nella tray
+		{true, false, false, false, false, false, bentFinestraNo},    // aperto a mano: la finestra c'è già
+		{true, true, true, false, false, false, bentFinestraNo},      // pulizia automatica (--auto)
+		{true, true, false, true, false, false, bentFinestraAspetta}, // schermo intero davanti
+		{true, true, false, false, true, true, bentFinestraAspetta},  // Gaming con un gioco aperto
+		{true, true, false, false, false, true, bentFinestraApri},    // gioco aperto ma non Gaming e non a schermo intero
+		{true, true, false, false, true, false, bentFinestraApri},    // Gaming senza giochi aperti
+	}
+	for i, c := range casi {
+		if g := bentornatoFinestra(c.pronto, c.nascosto, c.auto, c.schermo, c.gaming, c.gioco); g != c.vuole {
+			t.Errorf("caso %d: %d, voleva %d", i, g, c.vuole)
+		}
+	}
+}

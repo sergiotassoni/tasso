@@ -304,6 +304,7 @@ func main() {
 	if minimized {
 		pShowWin.Call(uintptr(w.Window()), 6) // SW_MINIMIZE
 	}
+	apriBentornatoAllAvvio(minimized, autoLevel > 0 || scheduledRun.Load()) // bentornato_apri.go
 	w.Run()
 	apriDisinstallatoreSeServe() // dopo "Togli Tasso dal PC" con l'installatore (uninstall.go)
 }

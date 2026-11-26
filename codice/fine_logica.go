@@ -198,3 +198,23 @@ func bentornatoDaMostrare(r riepilogoPulizia, avvioWindows, adesso int64) bool {
 	}
 	return avvioWindows > r.Quando
 }
+
+// Cosa fare con la finestra all'avvio quando c'è un "Bentornato" da mostrare (3.1.1).
+const (
+	bentFinestraNo      = iota // niente: nessun Bentornato, finestra già aperta o pulizia automatica
+	bentFinestraApri           // apro la finestra davanti, da sola
+	bentFinestraAspetta        // c'è un gioco davanti: non rubo il fuoco, riprovo più tardi
+)
+
+// bentornatoFinestra: Tasso partito nascosto (con Windows, nella tray) e con un Bentornato pronto apre
+// la finestra da solo; negli avvii normali resta nella tray. Con un gioco o qualcosa a schermo intero
+// davanti (o un gioco aperto in modalità Gaming) aspetto, per non rubare il fuoco.
+func bentornatoFinestra(pronto, partitoNascosto, puliziaAutomatica, schermoIntero, modoGaming, giocoAperto bool) int {
+	if !pronto || !partitoNascosto || puliziaAutomatica {
+		return bentFinestraNo
+	}
+	if schermoIntero || (modoGaming && giocoAperto) {
+		return bentFinestraAspetta
+	}
+	return bentFinestraApri
+}
