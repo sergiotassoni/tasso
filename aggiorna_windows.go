@@ -112,23 +112,37 @@ func aggiornaSilenzioso(soloControlla, riapri bool) int {
 	defer windows.CloseHandle(h)
 	defer cancellaCopiaAggiornamento()
 	return conBarra(func(avanza func(testo string, perc int, errore bool)) int {
-		codice := eseguiAggiornamento(piano, riapri, avanza)
+		codice, motivo := eseguiAggiornamento(piano, riapri, avanza)
+		installa.Diario("aggiornamento silenzioso finito: codice %d %s", codice, motivo)
 		if codice == installa.UscitaFatto {
 			avanza(testi.T(L(), "aggs_fatto"), 100, false)
 			time.Sleep(800 * time.Millisecond)
 		} else {
-			avanza(testi.T(L(), "aggs_errore"), -1, true)
-			time.Sleep(4 * time.Second) // il tempo di leggerlo, poi la finestrella si chiude da sola
+			testo := testi.T(L(), "aggs_errore")
+			if motivo != "" {
+				testo = motivo + " " + testo
+			}
+			avanza(testo, -1, true)
+			time.Sleep(6 * time.Second) // il tempo di leggerlo, poi la finestrella si chiude da sola
 		}
 		return codice
 	})
 }
 
-func eseguiAggiornamento(piano *installa.PianoAggiornamento, riapri bool, avanza func(string, int, bool)) int {
+// eseguiAggiornamento restituisce il codice d'uscita e, se non è riuscito, il motivo in parole semplici.
+func eseguiAggiornamento(piano *installa.PianoAggiornamento, riapri bool, avanza func(string, int, bool)) (int, string) {
 	o := piano.Opzioni
 	base := o.Base
 	avanza(testi.T(L(), "aggs_chiudo"), 0, false)
 	tassoAperto := riapri
+	// Tasso che mi ha avviato si sta chiudendo da solo: fotografo adesso i suoi figli (WebView2,
+	// llama-server...) per chiuderli dopo, se restano
+	prima := fotoProcessi()
+	var radici []uint32
+	for _, a := range programmiAperti(base, o.Componenti) {
+		radici = append(radici, a.pid)
+	}
+	installa.Diario("aggiornamento silenzioso di %v in %s (riapri=%v, aperti %d)", o.Componenti, base, riapri, len(radici))
 	if riapri {
 		// Tasso ci ha avviato e si sta chiudendo da solo: lo aspetto (al massimo un minuto)
 		fine := time.Now().Add(time.Minute)
@@ -144,8 +158,9 @@ func eseguiAggiornamento(piano *installa.PianoAggiornamento, riapri bool, avanza
 		if tassoAperto {
 			riapriTasso(base)
 		}
-		return installa.UscitaErrore
+		return installa.UscitaErrore, testi.T(L(), "aperti_errore")
 	}
+	chiudiAiutanti(base, o.Componenti, radici, prima)
 	in := nuovoInstallatore()
 	var ultimo time.Time
 	in.Avanzamento = func(a installa.Avanzamento) {
@@ -167,16 +182,28 @@ func eseguiAggiornamento(piano *installa.PianoAggiornamento, riapri bool, avanza
 		avanza(testo, perc, false)
 	}
 	_, err := in.Installa(context.Background(), o)
+	if errors.Is(err, installa.ErrFileBloccato) {
+		// un file è ancora occupato anche dopo 15 secondi: richiudo quello che è rimasto e riprovo
+		// una volta (Installa ha rimesso tutto com'era, quindi si può rifare da capo)
+		installa.Diario("file occupato: richiudo i processi rimasti e riprovo una volta")
+		chiudiAiutanti(base, o.Componenti, nil, nil)
+		time.Sleep(2 * time.Second)
+		_, err = in.Installa(context.Background(), o)
+	}
 	aggiornaIcone()
 	var avviso *installa.AvvisoCollegamenti
-	codice := installa.UscitaFatto
+	codice, motivo := installa.UscitaFatto, ""
 	if err != nil && !errors.As(err, &avviso) {
 		codice = installa.UscitaErrore
+		var eb *installa.ErroreBloccato
+		if errors.As(err, &eb) {
+			motivo = strings.Replace(testi.T(L(), "aggs_bloccato"), "%s", filepath.Base(eb.File), 1)
+		}
 	}
 	if tassoAperto {
 		riapriTasso(base)
 	}
-	return codice
+	return codice, motivo
 }
 
 // tassoGira: il Tasso.exe della cartella installata è aperto.
@@ -240,7 +267,7 @@ func conBarra(lavoro func(avanza func(testo string, perc int, errore bool)) int)
 		WindowOptions: webview2.WindowOptions{
 			Title:  testi.T(L(), "aggs_titolo"),
 			Width:  uint(460 * scala),
-			Height: uint(150 * scala),
+			Height: uint(175 * scala),
 			IconId: 2,
 			Center: true,
 		},
@@ -248,7 +275,7 @@ func conBarra(lavoro func(avanza func(testo string, perc int, errore bool)) int)
 	if w == nil {
 		return lavoro(func(string, int, bool) {})
 	}
-	w.SetSize(int(460*scala), int(150*scala), webview2.HintFixed)
+	w.SetSize(int(460*scala), int(175*scala), webview2.HintFixed)
 	w.SetHtml(ui.PaginaAggiorna(testi.T(L(), "aggs_titolo"), testi.T(L(), "aggs_chiudo")))
 	var codice atomic.Int32
 	go func() {

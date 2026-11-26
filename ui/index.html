@@ -60,6 +60,7 @@ h1{margin:0;font-family:var(--display);font-weight:800;font-stretch:110%;letter-
 .nota{border:1px solid var(--line);border-radius:12px;padding:12px 14px;color:var(--soft);line-height:1.5;font-size:13px}
 .nota.avviso{border-color:color-mix(in srgb,var(--a4) 55%,var(--line));color:var(--a4)}
 .nota.errore{border-color:color-mix(in srgb,var(--red) 60%,var(--line));color:var(--red)}
+#errTesto{white-space:pre-line;overflow-wrap:anywhere}
 .riga{display:flex;gap:10px;align-items:center}
 input[type=text]{flex:1;min-width:0;background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:12px;padding:12px 14px;font:500 13px var(--mono);user-select:text}
 input[type=text]:focus{outline:none;border-color:var(--a1)}
@@ -284,9 +285,10 @@ async function controllaCartella(){
   $('#bAvanti').disabled = !!r.errore || (r.libero > 0 && r.libero < r.serve);
 }
 
-async function installa(){
-  const opz = {cartella: $('#cartella').value, componenti: compScelti(), desktop: $('#desktop').checked,
+async function installa(ripeti){
+  const opz = ripeti || {cartella: $('#cartella').value, componenti: compScelti(), desktop: $('#desktop').checked,
     desktopTogli: !!(A.installata && A.installata.desktop) && !$('#desktop').checked, lingua: L};
+  ultimaOpz = opz;
   const aperti = await call('goProgrammiAperti', opz.cartella, opz.componenti);
   if (aperti && aperti.length) {
     const ok = await chiediChiusura(aperti);
@@ -307,8 +309,13 @@ function chiediChiusura(nomi){
     $('#veloNo').onclick = () => { $('#velo').classList.remove('on'); ok(false); };
   });
 }
+let ultimaOpz = null;  // le scelte dell'ultima installazione (per Riprova)
+let erroreCartella = false;
 function mostraErrore(r){
-  const t = r && r.codice ? (r.codice === 'err_generico' ? T('err_generico', r.dettagli || '') : T(r.codice)) : T('err_generico', String(r && r.dettagli || r));
+  const conDettagli = r && (r.codice === 'err_generico' || r.codice === 'err_bloccato');
+  let t = r && r.codice ? (conDettagli ? T(r.codice, r.dettagli || '') : T(r.codice)) : T('err_generico', String(r && r.dettagli || r));
+  if (r && r.diario) t += '\n\n' + T('err_diario', r.diario);
+  erroreCartella = !!(r && r.codice && String(r.codice).startsWith('cart_'));
   $('#errTesto').textContent = t; vai(5);
 }
 
@@ -345,7 +352,9 @@ $('#bAvanti').onclick = async () => {
   if (P === 1) { if (!compScelti().length) { msg(T('comp_nessuno')); return; } vai(2); return; }
   if (P === 2) { installa(); return; }
   if (P === 4) { const ids = [...document.querySelectorAll('#apri input:checked')].map(i => i.dataset.id); await call('goApri', ids); call('goChiudi'); return; }
-  if (P === 5) { vai(2); return; }
+  // Riprova: rifà subito l'installazione con le stesse scelte (richiude i programmi se serve);
+  // solo con un problema della cartella si torna alla pagina della cartella
+  if (P === 5) { if (erroreCartella || !ultimaOpz) { vai(2); return; } installa(ultimaOpz); return; }
   if (P === 6) { disinstalla(); return; }
   if (P === 7) { call('goChiudi'); }
 };

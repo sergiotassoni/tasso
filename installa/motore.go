@@ -53,6 +53,11 @@ type Installatore struct {
 	// CartellaDatiUtente: %LOCALAPPDATA% dell'utente (lì Tasso Zip e Tasso PDF tengono
 	// impostazioni e file temporanei). nil o "" = non toccare niente.
 	CartellaDatiUtente func() string
+	// File occupati (vedi riprova.go). nil = i valori veri: codici di Windows, time.Sleep, e
+	// nessuna cancellazione al riavvio.
+	Bloccato          func(error) bool
+	Dormi             func(time.Duration)
+	CancellaAlRiavvio func(percorso string) error // MoveFileEx(MOVEFILE_DELAY_UNTIL_REBOOT)
 }
 
 // Opzioni scelte nelle pagine dell'installatore.
@@ -167,6 +172,15 @@ type mossa struct{ da, a string }
 // I file di Tasso che non sono dell'installatore (es. la cartella "lavoro" di Tasso)
 // non vengono toccati. Un componente installato prima e non scelto adesso resta com'è.
 func (in *Installatore) Installa(ctx context.Context, o Opzioni) (*Stato, error) {
+	Diario("installo %v in %s (lingua %s)", o.Componenti, o.Base, o.Lingua)
+	st, err := in.installa(ctx, o)
+	if err != nil {
+		Diario("installazione NON riuscita: %v", err)
+	}
+	return st, err
+}
+
+func (in *Installatore) installa(ctx context.Context, o Opzioni) (*Stato, error) {
 	scelti, err := Normalizza(o.Componenti)
 	if err != nil {
 		return nil, err
@@ -208,6 +222,7 @@ func (in *Installatore) Installa(ctx context.Context, o Opzioni) (*Stato, error)
 	}
 
 	// 1. copia e controllo
+	Diario("1. copio e controllo i file nuovi in %s", nuovi)
 	totale := 2 * in.Elenco.Dimensione(progs)
 	var fatto int64
 	for _, id := range progs {
@@ -267,11 +282,14 @@ func (in *Installatore) Installa(ctx context.Context, o Opzioni) (*Stato, error)
 	}
 
 	// 2. sposta (da qui non si annulla più: sono pochi istanti)
+	Diario("2. metto i file nuovi al loro posto")
 	in.avanza(Avanzamento{Fase: "sposta", Fatto: totale, Totale: totale})
 	var fatte []mossa
 	indietro := func() {
+		Diario("torno indietro: rimetto i file com'erano (%d spostamenti)", len(fatte))
 		for i := len(fatte) - 1; i >= 0; i-- {
-			_ = in.rinomina(fatte[i].a, fatte[i].da)
+			m := fatte[i]
+			_ = in.conRiprova("rimetto "+m.da, func() error { return in.rinomina(m.a, m.da) })
 		}
 		_ = os.RemoveAll(vecchi)
 		pulisci()
@@ -280,19 +298,44 @@ func (in *Installatore) Installa(ctx context.Context, o Opzioni) (*Stato, error)
 		if err := os.MkdirAll(filepath.Dir(a), 0o755); err != nil {
 			return err
 		}
-		if err := in.rinomina(da, a); err != nil {
+		if err := in.conRiprova("sposto "+da+" -> "+a, func() error { return in.rinomina(da, a) }); err != nil {
 			return err
 		}
 		fatte = append(fatte, mossa{da, a})
 		return nil
 	}
+	var accanto []string // file vecchi rimasti occupati, spostati accanto (Tasso.exe.vecchio-1)
+	// togliDiMezzo sposta il file vecchio dst in copia; se resta occupato, ultima possibilità:
+	// lo rinomino accanto (Windows lo permette anche con un exe o una dll in uso).
+	togliDiMezzo := func(dst, copia string) error {
+		err := sposta(dst, copia)
+		if err == nil || !in.bloccato(err) {
+			return err
+		}
+		lato := accantoLibero(dst)
+		if e := in.rinomina(dst, lato); e != nil {
+			Diario("anche la rinomina accanto (%s) non riesce: %v", lato, e)
+			return &ErroreBloccato{File: dst, Err: err}
+		}
+		Diario("%s occupato: rinominato in %s (si cancella dopo)", dst, lato)
+		fatte = append(fatte, mossa{dst, lato})
+		accanto = append(accanto, lato)
+		return nil
+	}
 	metti := func(nuovo, dst, copia string) error {
 		if _, err := os.Lstat(dst); err == nil {
-			if err := sposta(dst, copia); err != nil {
+			if err := togliDiMezzo(dst, copia); err != nil {
+				var eb *ErroreBloccato
+				if errors.As(err, &eb) {
+					return err
+				}
 				return fmt.Errorf("non riesco a sostituire %s (è aperto?): %w", dst, err)
 			}
 		}
 		if err := sposta(nuovo, dst); err != nil {
+			if in.bloccato(err) {
+				return &ErroreBloccato{File: dst, Err: err}
+			}
 			return fmt.Errorf("non riesco a mettere %s: %w", dst, err)
 		}
 		return nil
@@ -323,8 +366,12 @@ func (in *Installatore) Installa(ctx context.Context, o Opzioni) (*Stato, error)
 					continue
 				}
 				if _, err := os.Lstat(dst); err == nil {
-					if err := sposta(dst, copia); err != nil {
+					if err := togliDiMezzo(dst, copia); err != nil {
 						indietro()
+						var eb *ErroreBloccato
+						if errors.As(err, &eb) {
+							return nil, err
+						}
 						return nil, fmt.Errorf("non riesco a togliere %s (è aperto?): %w", dst, err)
 					}
 				}
@@ -337,6 +384,7 @@ func (in *Installatore) Installa(ctx context.Context, o Opzioni) (*Stato, error)
 	}
 
 	// 3. registro (se non riesce, si torna indietro con i file)
+	Diario("3. registro di Windows e collegamenti")
 	in.avanza(Avanzamento{Fase: "registro", Fatto: totale, Totale: totale})
 	if err := in.scriviRegistro(st, o.Lingua); err != nil {
 		indietro()
@@ -421,17 +469,53 @@ func (in *Installatore) Installa(ctx context.Context, o Opzioni) (*Stato, error)
 		}
 	}
 
-	// 4. pulizia
+	// 4. pulizia: un file vecchio ancora aperto resta lì e si cancella al prossimo riavvio
+	// (e comunque Ripara lo toglie la prossima volta)
 	_ = os.RemoveAll(nuovi)
 	if err := os.RemoveAll(vecchi); err != nil {
-		// un file vecchio ancora aperto: resta lì, Ripara lo toglie la prossima volta
-		_ = err
+		Diario("cartella %s non tolta del tutto: %v", vecchi, err)
+		in.cancellaAlRiavvio(vecchi)
 	}
+	for _, f := range accanto {
+		if err := os.Remove(f); err != nil {
+			Diario("%s ancora occupato: si cancella al prossimo riavvio", f)
+			in.cancellaAlRiavvio(f)
+		}
+	}
+	Diario("installazione finita: versione %s in %s", st.Versione, o.Base)
 	in.avanza(Avanzamento{Fase: "fine", Fatto: totale, Totale: totale})
 	if errColl != nil {
 		return st, &AvvisoCollegamenti{errColl}
 	}
 	return st, nil
+}
+
+// cancellaAlRiavvio fa cancellare a Windows al prossimo riavvio il file p, o la cartella p con
+// quello che è rimasto dentro (prima i file, poi le cartelle, dalla più interna).
+func (in *Installatore) cancellaAlRiavvio(p string) {
+	if in.CancellaAlRiavvio == nil {
+		return
+	}
+	var file, cartelle []string
+	_ = filepath.WalkDir(p, func(q string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return nil
+		}
+		if d.IsDir() {
+			cartelle = append(cartelle, q)
+		} else {
+			file = append(file, q)
+		}
+		return nil
+	})
+	for i := len(cartelle) - 1; i >= 0; i-- {
+		file = append(file, cartelle[i])
+	}
+	for _, f := range file {
+		if err := in.CancellaAlRiavvio(f); err != nil {
+			Diario("non riesco a programmare la cancellazione di %s: %v", f, err)
+		}
+	}
 }
 
 // AvvisoCollegamenti: installazione riuscita ma un collegamento non si è creato.
@@ -450,8 +534,14 @@ func (in *Installatore) copiaControlla(ctx context.Context, src, dst string, f F
 	if err := os.MkdirAll(filepath.Dir(dst), 0o755); err != nil {
 		return 0, err
 	}
-	w, err := os.OpenFile(dst, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o755)
-	if err != nil {
+	var w *os.File
+	if err := in.conRiprova("scrivo "+dst, func() (e error) {
+		w, e = os.OpenFile(dst, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o755)
+		return e
+	}); err != nil {
+		if in.bloccato(err) {
+			return 0, &ErroreBloccato{File: dst, Err: err}
+		}
 		return 0, err
 	}
 	h := sha256.New()

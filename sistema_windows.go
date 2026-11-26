@@ -408,15 +408,30 @@ func ancoraAperto(pid uint32) bool {
 // una pulizia o un aggiornamento rifiuta: allora non lo chiudo a forza e restituisco false).
 // Agli altri (e a un Tasso vecchio) prima dice che "Windows si sta spegnendo"
 // (WM_QUERYENDSESSION/WM_ENDSESSION: Tasso salva impostazioni e memoria), poi li chiude.
+//
+// Dopo, chiude anche quello che Tasso aveva avviato e che tiene occupati i file (la sua WebView2,
+// llama-server, whisper-server, PresentMon): vedi chiudiAiutanti.
 func chiudiProgrammi(base string, cc []installa.Componente) bool {
+	aperti := programmiAperti(base, cc)
+	// la fotografia PRIMA di chiudere: dopo, i figli di Tasso non si riconoscono più dal padre
+	prima := fotoProcessi()
+	var radici []uint32
+	for _, a := range aperti {
+		radici = append(radici, a.pid)
+	}
+	installa.Diario("chiudo i programmi aperti: %v", aperti)
 	var lista []aperto
-	for _, a := range programmiAperti(base, cc) {
+	for _, a := range aperti {
 		if a.nome == "Tasso" {
-			switch chiudiTassoBene(filepath.Join(base, "Tasso.exe"), a.pid) {
+			switch esito := chiudiTassoBene(filepath.Join(base, "Tasso.exe"), a.pid); esito {
 			case tassoChiuso:
+				installa.Diario("Tasso (pid %d) si è chiuso da solo con --chiudi", a.pid)
 				continue
 			case tassoRifiuta:
+				installa.Diario("Tasso (pid %d) rifiuta di chiudersi: sta lavorando", a.pid)
 				return false
+			default:
+				installa.Diario("Tasso (pid %d) non ha capito --chiudi: lo chiudo come gli altri", a.pid)
 			}
 		}
 		lista = append(lista, a)
@@ -449,8 +464,132 @@ func chiudiProgrammi(base string, cc []installa.Componente) bool {
 		}
 		windows.CloseHandle(h)
 	}
+	chiudiAiutanti(base, cc, radici, prima)
 	time.Sleep(300 * time.Millisecond) // Windows rilascia i file un attimo dopo
-	return ok && len(programmiAperti(base, cc)) == 0
+	resta := programmiAperti(base, cc)
+	if !ok || len(resta) > 0 {
+		installa.Diario("non si sono chiusi: %v", resta)
+	}
+	return ok && len(resta) == 0
+}
+
+// ---------------- processi avviati da Tasso ----------------
+
+// fotoProcessi: tutti i processi, con padre, percorso dell'exe e ora di avvio.
+func fotoProcessi() []installa.Processo {
+	snap, err := windows.CreateToolhelp32Snapshot(windows.TH32CS_SNAPPROCESS, 0)
+	if err != nil {
+		installa.Diario("fotografia dei processi non riuscita: %v", err)
+		return nil
+	}
+	defer windows.CloseHandle(snap)
+	var pe windows.ProcessEntry32
+	pe.Size = uint32(unsafe.Sizeof(pe))
+	var out []installa.Processo
+	for err = windows.Process32First(snap, &pe); err == nil; err = windows.Process32Next(snap, &pe) {
+		p := installa.Processo{PID: pe.ProcessID, Padre: pe.ParentProcessID, Nome: windows.UTF16ToString(pe.ExeFile[:])}
+		if h, err := windows.OpenProcess(windows.PROCESS_QUERY_LIMITED_INFORMATION, false, pe.ProcessID); err == nil {
+			buf := make([]uint16, 1024)
+			sz := uint32(len(buf))
+			if windows.QueryFullProcessImageName(h, 0, &buf[0], &sz) == nil {
+				p.Percorso = windows.UTF16ToString(buf[:sz])
+			}
+			p.Nato = natoIl(h)
+			windows.CloseHandle(h)
+		}
+		out = append(out, p)
+	}
+	return out
+}
+
+// natoIl: ora di avvio del processo (0 se non si legge).
+func natoIl(h windows.Handle) int64 {
+	var c, e, k, u windows.Filetime
+	if windows.GetProcessTimes(h, &c, &e, &k, &u) != nil {
+		return 0
+	}
+	return c.Nanoseconds()
+}
+
+// criteriChiusura: le cartelle dei programmi che sto per sostituire. Se aggiorno Tasso (che ha la
+// cartella principale) ma non Zip o PDF, le loro sottocartelle restano fuori.
+func criteriChiusura(base string, cc []installa.Componente, radici []uint32) installa.CriteriChiusura {
+	c := installa.CriteriChiusura{Radici: radici, Io: uint32(os.Getpid())}
+	scelti := map[installa.Programma]bool{}
+	for _, p := range installa.ProgrammiPer(cc) {
+		scelti[p] = true
+		c.Cartelle = append(c.Cartelle, installa.CartellaDi(base, p))
+	}
+	if scelti[installa.ProgTasso] {
+		for _, p := range []installa.Programma{installa.ProgZip, installa.ProgPDF} {
+			if !scelti[p] {
+				c.Escluse = append(c.Escluse, installa.CartellaDi(base, p))
+			}
+		}
+		if d := datiLocaliUtente(); d != "" {
+			c.CartelleAiutanti = append(c.CartelleAiutanti, filepath.Join(d, "TassoTraduce"))
+		}
+	}
+	return c
+}
+
+// chiudiAiutanti chiude i processi che tengono occupati i file da sostituire: i figli dei
+// programmi appena chiusi (radici, dalla fotografia prima fatta prima di chiuderli) e
+// qualsiasi processo partito dalle cartelle da sostituire. Prima aspetta un po' che escano da
+// soli (la WebView2 di Tasso esce subito dopo Tasso), poi li chiude a forza.
+// Mai un processo che non c'entra (vedi installa.DaChiudere). Se uno non si chiude non fermo
+// niente: copiando, l'installatore riprova e al limite sposta il file accanto.
+func chiudiAiutanti(base string, cc []installa.Componente, radici []uint32, prima []installa.Processo) {
+	cr := criteriChiusura(base, cc, radici)
+	visti := map[uint32]bool{}
+	var tutti []installa.Processo
+	if len(radici) > 0 {
+		for _, p := range installa.DaChiudere(prima, cr) {
+			visti[p.PID] = true
+			tutti = append(tutti, p)
+		}
+	}
+	cr.Radici = nil
+	for _, p := range installa.DaChiudere(fotoProcessi(), cr) {
+		if !visti[p.PID] {
+			tutti = append(tutti, p)
+		}
+	}
+	if len(tutti) == 0 {
+		return
+	}
+	fine := time.Now().Add(5 * time.Second) // il tempo di uscire da soli, per tutti insieme
+	for _, p := range tutti {
+		h, err := windows.OpenProcess(windows.PROCESS_TERMINATE|windows.SYNCHRONIZE|windows.PROCESS_QUERY_LIMITED_INFORMATION, false, p.PID)
+		if err != nil {
+			continue // già uscito
+		}
+		if p.Nato != 0 && natoIl(h) != p.Nato {
+			windows.CloseHandle(h) // PID riusato da un altro programma: non è lui
+			continue
+		}
+		attesa := uint32(0)
+		if d := time.Until(fine); d > 0 {
+			attesa = uint32(d / time.Millisecond)
+		}
+		if ev, _ := windows.WaitForSingleObject(h, attesa); ev == windows.WAIT_OBJECT_0 {
+			installa.Diario("%s (pid %d) uscito da solo", p.Nome, p.PID)
+		} else {
+			err := windows.TerminateProcess(h, 1)
+			ev, _ := windows.WaitForSingleObject(h, 5000)
+			installa.Diario("%s (pid %d, %s) chiuso a forza: errore=%v, uscito=%v", p.Nome, p.PID, p.Percorso, err, ev == windows.WAIT_OBJECT_0)
+		}
+		windows.CloseHandle(h)
+	}
+}
+
+// cancellaAlRiavvio: Windows cancella il file (o la cartella vuota) al prossimo riavvio.
+func cancellaAlRiavvio(p string) error {
+	pp, err := windows.UTF16PtrFromString(p)
+	if err != nil {
+		return err
+	}
+	return windows.MoveFileEx(pp, nil, windows.MOVEFILE_DELAY_UNTIL_REBOOT)
 }
 
 // ---------------- avvio a fine installazione ----------------

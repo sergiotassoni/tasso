@@ -52,6 +52,8 @@ func L() string {
 }
 
 func main() {
+	installa.ImpostaDiario(filepath.Join(os.TempDir(), installa.NomeDiario))
+	installa.Diario("---- Tasso Setup avviato (%s), argomenti %q", versioneSetup(), os.Args[1:])
 	modoDisins = !pacco.Pieno
 	lingua.Store(testi.DaWindows(linguaWindows()))
 	// Aggiornamento silenzioso chiesto da Tasso (aggiorna_windows.go): niente pagine, esce con 0/1/2.
@@ -206,7 +208,18 @@ func componenti(ss []string) []installa.Componente {
 
 func nuovoInstallatore() *installa.Installatore {
 	return &installa.Installatore{Sorgente: pacco.Sorgente(), Elenco: elenco, Registro: reg,
-		CreaCollegamento: creaCollegamento, TogliFile: togliFile}
+		CreaCollegamento: creaCollegamento, TogliFile: togliFile, CancellaAlRiavvio: cancellaAlRiavvio}
+}
+
+// versioneSetup: la versione dell'ecosistema dentro questo installatore (per il diario).
+func versioneSetup() string {
+	if !pacco.Pieno {
+		return "disinstallatore"
+	}
+	if e, err := installa.LeggiElenco(pacco.Sorgente()); err == nil {
+		return e.Versione
+	}
+	return "?"
 }
 
 func collega(w webview2.WebView) {
@@ -396,7 +409,12 @@ func collega(w webview2.WebView) {
 		// Gaming, resta Ufficio) il collegamento "Tasso Gaming" diventa "Tasso Ufficio".
 		in := &installa.Installatore{Registro: reg, TogliFile: togliFile, CreaCollegamento: creaCollegamento,
 			CartellaDatiUtente: datiLocaliUtente}
+		installa.Diario("disinstallo %v da %s", cc, baseDisins)
+		chiudiAiutanti(baseDisins, componenti(cc), nil, nil)
 		r, err := in.Disinstalla(baseDisins, componenti(cc))
+		if err != nil {
+			installa.Diario("disinstallazione NON riuscita: %v", err)
+		}
 		aggiornaIcone()
 		if err != nil {
 			return map[string]any{"ok": false, "dettagli": err.Error()}
@@ -418,17 +436,22 @@ func installaInFondo(ctx context.Context, o installa.Opzioni) {
 		ultimo, ultimaFase = time.Now(), a.Fase
 		manda("avanza", a)
 	}
+	// processi rimasti da prima (es. un llama-server di un Tasso chiuso male) che tengono occupati i file
+	chiudiAiutanti(o.Base, o.Componenti, nil, nil)
 	_, err := in.Installa(ctx, o)
 	aggiornaIcone()
 	var avviso *installa.AvvisoCollegamenti
 	if err != nil && !errors.As(err, &avviso) {
-		r := map[string]any{"ok": false, "codice": "err_generico", "dettagli": err.Error()}
+		r := map[string]any{"ok": false, "codice": "err_generico", "dettagli": err.Error(), "diario": installa.PercorsoDiario()}
 		var ec *installa.ErroreCartella
+		var eb *installa.ErroreBloccato
 		switch {
 		case errors.Is(err, installa.ErrAnnullato):
 			r["codice"] = "err_annullato"
 		case errors.Is(err, installa.ErrVerifica):
 			r["codice"] = "err_verifica"
+		case errors.As(err, &eb):
+			r["codice"], r["dettagli"] = "err_bloccato", filepath.Base(eb.File)
 		case errors.As(err, &ec):
 			r["codice"] = ec.Codice
 		}
