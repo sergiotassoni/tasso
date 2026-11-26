@@ -911,7 +911,7 @@ if ($st -eq 1) { Say ('Windows è attivato. Licenza ' + $kind + '.'); Say 'Se ve
 Say ('Windows NON è attivato (licenza ' + $kind + ').')
 if ($d -match 'KMS') { Say 'È una licenza aziendale: si attiva da sola quando il PC è collegato alla rete dell''ufficio (o con la VPN), almeno una volta ogni 6 mesi. Collegati e riavvia; se resta, chiama l''assistenza.' }
 elseif ($d -match 'OEM') { Say 'La licenza è legata al PC. Succede dopo aver cambiato la scheda madre o reinstallato una versione diversa (Home/Pro). In Impostazioni > Attivazione premi "Risoluzione dei problemi".' }
-else { Say 'In Impostazioni > Attivazione premi "Risoluzione dei problemi"; se hai cambiato pezzi del PC scegli "Ho cambiato l''hardware di recente". Se il codice non è valido, una licenza si compra nel Microsoft Store.' }
+else { Say 'In Impostazioni > Attivazione premi "Risoluzione dei problemi"; se hai cambiato componenti del PC scegli "Ho cambiato l''hardware di recente". Se il codice non è valido, una licenza si compra nel Microsoft Store.' }
 Say 'Attenzione ai programmi e ai siti che "attivano gratis": sono pirateria e spesso contengono virus.'
 Open-User 'ms-settings:activation'
 `)},
@@ -971,7 +971,7 @@ Say 'Dove trovare la chiave (48 numeri), se un giorno il PC te la chiede:'
 if ($aad) { Say '- PC di lavoro con Microsoft 365: dal telefono vai su aka.ms/aadrecoverykey ed entra con l''account di lavoro, oppure chiedi all''assistenza.' }
 elseif ($dom) { Say '- PC dell''ufficio: la chiave ce l''ha l''assistenza (è salvata nel server). Chiamali e dai l''ID che vedi sulla schermata.' }
 else { Say '- Account Microsoft: dal telefono vai su aka.ms/myrecoverykey ed entra con lo stesso account del PC. Cerca l''ID che vedi sulla schermata blu.' }
-Say 'La chiede di solito dopo un aggiornamento del BIOS, un cambio di pezzi o se cambi impostazioni del BIOS. Senza chiave i dati del disco non si recuperano: controlla ORA che sia dove ti ho detto.'
+Say 'La chiede di solito dopo un aggiornamento del BIOS, un cambio di componenti o se cambi impostazioni del BIOS. Senza chiave i dati del disco non si recuperano: controlla ORA che sia dove ti ho detto.'
 `)},
 }
 
