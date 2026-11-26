@@ -147,7 +147,7 @@ func elaboraImmagine(img *image.RGBA, nome string, o opzioniBanco) (esitoImmagin
 			continue
 		}
 		// si fissa solo se arriva fino al disegno (come nel gioco)
-		p.DaFissare = r.Tradotto
+		p.DaFissare = daFissare(b, r.Tradotto)
 		if r.Motore != "catalogo" && rigaMezzaTradotta(p.Testo, p.Tradotto) { // stessa regola di motivoScartaTraduzione
 			e.MezzeMostrate++
 		}

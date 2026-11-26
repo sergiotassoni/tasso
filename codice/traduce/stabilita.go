@@ -14,6 +14,7 @@ package traduce
 
 import (
 	"strings"
+	"sync"
 	"unicode"
 )
 
@@ -172,4 +173,89 @@ func senzaScritteCambiate(pronti, freschi, letti []Blocco) []Blocco {
 		}
 	}
 	return out
+}
+
+// daFissare: la traduzione da fissare per tutta la sessione (fisse.go), ma non quella di una
+// lettura con una parola inglese che non esiste ("Early Meroing", "Locate the cahp"): è una
+// lettura sbagliata, e la sua traduzione ("La prima meroing") non deve diventare quella fissa
+// della scritta né tenere la decisione di tradurla (collaudo finale 26/11, Persona 3). Le parole
+// con la maiuscola dentro la frase sono nomi (restano buone anche se il vocabolario non le ha).
+func daFissare(b Blocco, tradotto string) string {
+	if letturaConParolaStrana(b.Testo) {
+		return ""
+	}
+	return tradotto
+}
+
+// letturaConParolaStrana: nella scritta c'è una parola minuscola (almeno 4 lettere, senza
+// cifre) che in inglese non esiste.
+func letturaConParolaStrana(s string) bool {
+	if len(vocabolario()) == 0 {
+		return false
+	}
+	// nelle scritte con le iniziali maiuscole o tutte maiuscole la maiuscola non dice "nome"
+	tutte := titoloMaiuscole(s) || tuttoMaiuscolo(s)
+	for i, w := range strings.Fields(s) {
+		w = strings.Trim(w, ".,;:!?\"'()[]<>«»*-—…")
+		r := []rune(w)
+		if len(r) < 4 || strings.ContainsFunc(w, unicode.IsDigit) || strings.ContainsAny(w, "'’-") {
+			continue
+		}
+		if esiste(w) {
+			continue
+		}
+		if unicode.IsUpper(r[0]) {
+			if i > 0 && !tutte {
+				continue // nome dentro la frase
+			}
+			// all'inizio o in un titolo: un nome ("Lunka") o una parola letta male ("Meroing"
+			// per "Morning")? letta male se è vicinissima a una parola inglese vera
+			if !vicinaAParolaVera(strings.ToLower(w)) {
+				continue
+			}
+		}
+		return true
+	}
+	return false
+}
+
+var (
+	muVicine sync.Mutex
+	vicine   = map[string]bool{}
+)
+
+// vicinaAParolaVera: w (minuscola, che il vocabolario non ha) è a una o due lettere da una
+// parola inglese vera di lunghezza simile (due solo dalle 7 lettere in su): "meroing" → "morning",
+// "cahp" → "camp". I nomi inventati dei giochi di solito no ("lunka", "toriumi"). Il risultato
+// resta in memoria: si cerca una volta sola per parola.
+func vicinaAParolaVera(w string) bool {
+	muVicine.Lock()
+	if v, ok := vicine[w]; ok {
+		muVicine.Unlock()
+		return v
+	}
+	muVicine.Unlock()
+	n := len([]rune(w))
+	soglia := 1
+	if n >= 7 {
+		soglia = 2
+	}
+	trovata := false
+	for p := range vocabolario() {
+		m := len([]rune(p))
+		if m < 4 || abs(m-n) > soglia || p[0] != w[0] {
+			continue
+		}
+		if distanzaModifica(w, p) <= soglia {
+			trovata = true
+			break
+		}
+	}
+	muVicine.Lock()
+	if len(vicine) > 5000 {
+		vicine = map[string]bool{}
+	}
+	vicine[w] = trovata
+	muVicine.Unlock()
+	return trovata
 }

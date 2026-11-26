@@ -221,3 +221,17 @@ func TestCollaudoTraduzioneVecchiaSuUnAltraScritta(t *testing.T) {
 		t.Error("la scritta accanto ha tolto la traduzione")
 	}
 }
+
+// La traduzione di una lettura sbagliata non diventa la traduzione fissa della sessione.
+func TestCollaudoLetturaSbagliataNonSiFissa(t *testing.T) {
+	for _, s := range []string{"Early Meroing", "Locate the cahp", "They are all agned."} {
+		if daFissare(Blocco{Testo: s}, "x") != "" {
+			t.Errorf("%q: lettura sbagliata fissata", s)
+		}
+	}
+	for _, s := range []string{"Early Morning", "Follow Lunka", "Lunka: Come on! We have places to be!", "REACH THE CAMP", "Bond: You're dodging the question."} {
+		if daFissare(Blocco{Testo: s}, "x") == "" {
+			t.Errorf("%q: lettura buona non fissata", s)
+		}
+	}
+}

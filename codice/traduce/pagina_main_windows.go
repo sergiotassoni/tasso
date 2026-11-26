@@ -663,7 +663,7 @@ func preparaPaginaCon(area Zona, img, primaImg *image.RGBA, giro int64, annulla 
 			}
 			// la traduzione si fissa (fisse.go) solo quando la scritta si vede davvero: in
 			// mostraPaginaPronta, dopo tutti i filtri
-			sc.DaFissare = r.Tradotto
+			sc.DaFissare = daFissare(b, r.Tradotto)
 			if r.Motore != "memoria" && r.Motore != "catalogo" && r.Motore != "libreria" && r.Motore != "libreria (IA)" {
 				nuove++
 			}
