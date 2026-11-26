@@ -200,9 +200,9 @@ func profileOff(p *gameProfile) []string {
 	return []string{"Profilo gioco spento: ho rimesso le cose com'erano prima di accenderlo."}
 }
 
-// profileSet accende o spegne il profilo, con le scelte che arrivano dall'interfaccia.
 var profileMu sync.Mutex
 
+// profileSet accende o spegne il profilo, con le scelte che arrivano dall'interfaccia.
 func profileSet(on bool, mode string, cmds []string, overlay, autoGame, standby bool) {
 	profileMu.Lock()
 	defer profileMu.Unlock()
@@ -303,7 +303,6 @@ func profileCheck() []string {
 	return fixed
 }
 
-// profileForget: quando rimetti tutto com'era, il profilo si spegne (senza rimettere niente: ci pensa il ripristino).
 // profileOffNow: spegne il profilo (da "Torna indietro"), solo se è acceso.
 func profileOffNow() string {
 	profileMu.Lock()
@@ -315,6 +314,7 @@ func profileOffNow() string {
 	return strings.Join(profileOff(p), " ")
 }
 
+// profileForget: quando rimetti tutto com'era, il profilo si spegne (senza rimettere niente: ci pensa il ripristino).
 func profileForget() {
 	setMu.Lock()
 	on := settings.GameProfile != nil && settings.GameProfile.On

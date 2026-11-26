@@ -378,9 +378,9 @@ var (
 	pickedExtra  string // l'ultima cartella scelta con Sfoglia: solo questa si può analizzare
 )
 
-// noTouchDir: cartelle di Windows, dei programmi e dei giochi. Lì i "doppioni" servono davvero.
 var noTouchRe = regexp.MustCompile(`(?i)\\(windows|program files( \(x86\))?|programdata|\$recycle\.bin|system volume information|windowsapps|steamapps|steamlibrary|epic games|riot games|xboxgames|battle\.net|ubisoft game launcher|ea games|gog galaxy|appdata|windows\.old|\$windows\.~bt|\$windows\.~ws|\$winreagent|recovery|perflogs)(\\|$)`)
 
+// noTouchDir: cartelle di Windows, dei programmi e dei giochi. Lì i "doppioni" servono davvero.
 func noTouchDir(p string) bool { return noTouchRe.MatchString(filepath.Clean(p) + `\`) }
 
 // pickScanFolder: finestra di Windows per scegliere una cartella o un disco in più.

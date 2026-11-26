@@ -92,9 +92,9 @@ func statsWin(name string) string {
 	return "Altro"
 }
 
-// statsStep: nome del passaggio, solo lettere, numeri e poca punteggiatura (sono nomi scritti da noi).
 var statsStepRe = regexp.MustCompile(`^[\p{L}\p{N} '’().,+/&:-]{1,60}$`)
 
+// statsStep: nome del passaggio, solo lettere, numeri e poca punteggiatura (sono nomi scritti da noi).
 func statsStep(n string) string {
 	n = strings.TrimSpace(n)
 	if !statsStepRe.MatchString(n) {

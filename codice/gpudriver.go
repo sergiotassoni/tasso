@@ -73,8 +73,7 @@ var (
 	gdMu     sync.Mutex
 	gdCancel context.CancelFunc
 	gdOffer  *nvOffer // ultima offerta mostrata: si installa solo quella
-	gdGpu    *nvGpu
-	gdVendor string // "nvidia" o "amd": cosa ha trovato l'ultimo controllo
+	gdVendor string   // "nvidia" o "amd": cosa ha trovato l'ultimo controllo
 )
 
 var errNoNvidia = errors.New("Non ho trovato una scheda video NVIDIA.")
@@ -365,7 +364,7 @@ func gpuDrvCheck() {
 		out["newer"] = nvNewer(o.Ver, g.Ver)
 	}
 	gdMu.Lock()
-	gdGpu, gdOffer = g, nil
+	gdOffer = nil
 	if err == nil {
 		gdOffer = o
 	}
@@ -586,14 +585,9 @@ elseif ($after -gt 0) {
 // in fondo a un'altra frase e si traduce come pezzo.
 const notaProtezioneAccesa = " Protezione sistema era spenta: l'ho accesa per poter fare il punto di ripristino (usa un po' di spazio del disco). Si rispegne da Pannello di controllo > Sistema > Protezione sistema > Configura."
 
-// gdRestorePoint: "new" (fatto adesso), "recent" (ce n'è uno di meno di 2 ore fa), "none".
-func gdRestorePoint(label string) string {
-	res, _ := gdRestorePointNota(label)
-	return res
-}
-
-// gdRestorePointNota: come gdRestorePoint, e in più la nota da mostrare se ha dovuto accendere
-// "Protezione sistema" ("" se era già accesa).
+// gdRestorePointNota: fa il punto di ripristino. Torna "new" (fatto adesso), "recent" (ce n'è uno
+// di meno di 2 ore fa) o "none", e la nota da mostrare se ha dovuto accendere "Protezione sistema"
+// ("" se era già accesa).
 func gdRestorePointNota(label string) (string, string) {
 	r := runPSArgs(nvRestoreScript, map[string]string{"v": label}, 10*time.Minute, nil)
 	var o struct {

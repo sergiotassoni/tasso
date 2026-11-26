@@ -481,13 +481,6 @@ const (
 	taskWeek  = "Tasso\\Pulizia settimanale"
 )
 
-// taskExe: le attività pianificate partono con i permessi da amministratore, quindi non
-// devono puntare a una cartella dove chiunque può scrivere (es. Download). Copio Tasso.exe
-// in Programmi\Tasso, che solo un amministratore può modificare, e uso quella copia.
-// Se la copia non si può fare restituisce "": meglio nessuna attività che una che fa partire
-// come amministratore un file che chiunque può sostituire.
-// Accanto alla copia c'è VERSIONE: non rimetto mai una versione vecchia sopra una più nuova
-// (es. dopo un aggiornamento fatto dalla copia in Programmi).
 // taskExeOK: in questa apertura di Tasso la copia in Programmi è già a posto (non la rileggo:
 // sono due file da ~40 MB ogni volta).
 var (
@@ -495,6 +488,13 @@ var (
 	taskExeOK string
 )
 
+// taskExe: le attività pianificate partono con i permessi da amministratore, quindi non
+// devono puntare a una cartella dove chiunque può scrivere (es. Download). Copio Tasso.exe
+// in Programmi\Tasso, che solo un amministratore può modificare, e uso quella copia.
+// Se la copia non si può fare restituisce "": meglio nessuna attività che una che fa partire
+// come amministratore un file che chiunque può sostituire.
+// Accanto alla copia c'è VERSIONE: non rimetto mai una versione vecchia sopra una più nuova
+// (es. dopo un aggiornamento fatto dalla copia in Programmi).
 func taskExe() string {
 	taskExeMu.Lock()
 	defer taskExeMu.Unlock()
@@ -548,10 +548,10 @@ func existingOr(dst string) string {
 	return ""
 }
 
-// installProgramCopy mette exe in Programmi\Tasso\Tasso.exe (prima in un file a parte, poi lo scambia)
-// e scrive la versione in VERSIONE.
 var progCopyMu sync.Mutex
 
+// installProgramCopy mette exe in Programmi\Tasso\Tasso.exe (prima in un file a parte, poi lo scambia)
+// e scrive la versione in VERSIONE.
 func installProgramCopy(dir string, exe []byte, ver string) error {
 	progCopyMu.Lock()
 	defer progCopyMu.Unlock()
