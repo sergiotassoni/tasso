@@ -1341,6 +1341,10 @@ function Save-Prev {
     $t = Get-ItemProperty -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\PushNotifications' -Name 'ToastEnabled' -ErrorAction SilentlyContinue
     $tv = 1; if ($t -and $null -ne $t.ToastEnabled) { $tv = [int]$t.ToastEnabled }
     New-ItemProperty -Path $PrevKey -Name 'Toasts' -Value $tv -PropertyType DWord -Force | Out-Null
+    # Modalità Gioco di Windows: c'è chi la spegne apposta (scatti con OBS o con lo streaming).
+    $gm = Get-ItemProperty -Path 'HKCU:\Software\Microsoft\GameBar' -Name 'AutoGameModeEnabled' -ErrorAction SilentlyContinue
+    $gv = 'none'; if ($gm -and $null -ne $gm.AutoGameModeEnabled) { $gv = [string][int]$gm.AutoGameModeEnabled }
+    New-ItemProperty -Path $PrevKey -Name 'GameMode' -Value $gv -PropertyType String -Force | Out-Null
     New-ItemProperty -Path $PrevKey -Name 'Ok' -Value 1 -PropertyType DWord -Force | Out-Null
   } catch {}
 }
@@ -1382,6 +1386,8 @@ function Restore-Prev {
   powercfg /setactive SCHEME_CURRENT 2>$null | Out-Null
   if ($p.Overlay -and $p.Overlay -match '^[0-9a-fA-F-]{36}$') { powercfg /overlaysetactive $p.Overlay 2>$null | Out-Null }
   if ($null -ne $p.Toasts) { Set-Toasts ([int]$p.Toasts) }
+  if ([string]$p.GameMode -eq 'none') { Remove-ItemProperty -Path 'HKCU:\Software\Microsoft\GameBar' -Name 'AutoGameModeEnabled' -ErrorAction SilentlyContinue }
+  elseif ([string]$p.GameMode -match '^[01]$') { SetDw 'HKCU:\Software\Microsoft\GameBar' 'AutoGameModeEnabled' ([int]$p.GameMode) }
   if ($p.Mouse) {
     $mm = [int[]]@(([string]$p.Mouse).Split(',') | ForEach-Object { [int]$_ })
     if ($mm.Count -eq 3) {
@@ -1393,7 +1399,6 @@ function Restore-Prev {
   Remove-Item -Path $PrevKey -Recurse -Force -ErrorAction SilentlyContinue
   return $true
 }
-SetDw 'HKCU:\Software\Microsoft\GameBar' 'AutoGameModeEnabled' 1
 `
 
 var modeScripts = map[string]string{
@@ -1408,6 +1413,7 @@ Undo-FpsMouse
 Use-HighPerf
 Set-CpuMax 100
 Set-Toasts 0
+SetDw 'HKCU:\Software\Microsoft\GameBar' 'AutoGameModeEnabled' 1
 Say 'Modalità Gioco di Windows attiva, notifiche in pausa.'
 Say 'Modalità Gaming pronta: tutta la potenza al gioco.'
 `,
@@ -1416,6 +1422,7 @@ Save-Prev
 Use-HighPerf
 Set-CpuMax 100
 Set-Toasts 0
+SetDw 'HKCU:\Software\Microsoft\GameBar' 'AutoGameModeEnabled' 1
 Set-MouseAccel $false
 Say 'Accelerazione del mouse spenta: mira più precisa.'
 Say 'Modalità FPS competitivo pronta. Consiglio: nel gioco usa la frequenza massima del monitor.'
