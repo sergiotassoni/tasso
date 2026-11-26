@@ -4223,7 +4223,8 @@ document.addEventListener('keydown', (ev) => {
   if (ev.shiftKey && i === 0) { ev.preventDefault(); f[f.length - 1].focus(); }
   else if (!ev.shiftKey && i === f.length - 1) { ev.preventDefault(); f[0].focus(); }
 });
-function canFile(){ const i = (W && W.info) || {}; return !!(i.file_ok && (!i.anticheat || i.unreal)); }
+// Con l'anti-cheat mai dentro il gioco (nemmeno se l'utente accetta il rischio): solo sullo schermo.
+function canFile(){ const i = (W && W.info) || {}; return !!(i.file_ok && !i.anticheat); }
 // la lingua del gioco non si legge dallo schermo: si può tradurre solo dentro il gioco
 function soloFile(){ const sl = LANGS.find(l => l.codice === W.da); return !!((sl && !sl.ocr_ok) || (W.info && W.info.lingua_steam && W.info.lingua_steam_ok === false && W.da === W.info.lingua_steam)); }
 function ocrBtn(c, chip){
@@ -4317,10 +4318,9 @@ function wzDraw(){
     const iaTxt = st.ia_file ? (st.ia_pc_ok ? _t('Installata. Accendila per questo gioco: ricontrolla le frasi e le rende naturali, si fa da parte se il gioco ha bisogno della scheda video.') : _t('Installata, ma su questo PC rallenterebbe il gioco: Tasso usa il traduttore veloce.')) : !st.ia_pc_ok ? _t('Non adatta a questo PC: ') + tx(st.ia_pc_motivo || '') : st.ia_offerta ? _t('Non scaricata. Si scarica una volta (circa 6 GB) in Giochi → Impostazioni. Senza, traduce il traduttore veloce.') : _t('Non disponibile: traduce il traduttore veloce.');
     h = P(_t('In che lingua lo vuoi?')) + '<div class="opz">' + langBtns(LANGS.filter(l => l.codice !== W.da), W.a, false) + '</div>' +
       ((i.lingue_ufficiali || []).indexOf(W.a) >= 0 ? '<div class="callout">💡 ' + esc(g.name) + esc(_t(' ha già questa lingua ufficiale: sceglila nelle impostazioni del gioco (di solito Opzioni → Lingua). Tasso serve per le scritte che restano in inglese.')) + '</div>' : '') +
-      '<h3>' + esc(_t('Come lo traduco?')) + '</h3><div class="opz"><button data-m="file" class="' + (W.modo === 'file' ? 'on' : '') + '" aria-pressed="' + (W.modo === 'file') + '"' + (canFile() ? '' : ' disabled') + '>' + esc(_t('Dentro il gioco')) + '<small>' + esc(canFile() ? (i.anticheat ? _t('Ha l\'anti-cheat: rischio di ban, scegli tu') : i.unreal ? _t('Scritte identiche all\'originale, il gioco non viene toccato') : _t('Le scritte del gioco, con copia di sicurezza')) : i.anticheat ? _t('No: c\'è l\'anti-imbroglio') : tx(i.file_motivo || _t('Solo per alcuni giochi Unity e Unreal'))) + '</small></button><button data-m="schermo" class="' + (W.modo === 'schermo' ? 'on' : '') + '" aria-pressed="' + (W.modo === 'schermo') + '"' + (soloFile() ? ' disabled' : '') + '>' + esc(_t('Sullo schermo')) + '<small>' + esc(soloFile() ? _t('No: Windows non sa leggere questa lingua') : _t('legge lo schermo, non tocca nessun file')) + '</small></button></div>' +
+      '<h3>' + esc(_t('Come lo traduco?')) + '</h3><div class="opz"><button data-m="file" class="' + (W.modo === 'file' ? 'on' : '') + '" aria-pressed="' + (W.modo === 'file') + '"' + (canFile() ? '' : ' disabled') + '>' + esc(_t('Dentro il gioco')) + '<small>' + esc(canFile() ? (i.unreal ? _t('Scritte identiche all\'originale, il gioco non viene toccato') : _t('Le scritte del gioco, con copia di sicurezza')) : i.anticheat ? _t('No: c\'è l\'anti-imbroglio') : tx(i.file_motivo || _t('Solo per alcuni giochi Unity e Unreal'))) + '</small></button><button data-m="schermo" class="' + (W.modo === 'schermo' ? 'on' : '') + '" aria-pressed="' + (W.modo === 'schermo') + '"' + (soloFile() ? ' disabled' : '') + '>' + esc(_t('Sullo schermo')) + '<small>' + esc(soloFile() ? _t('No: Windows non sa leggere questa lingua') : _t('legge lo schermo, non tocca nessun file')) + '</small></button></div>' +
       lvHtml(st, iaTxt) +
-      (i.anticheat && W.modo === 'file' ? '<div class="callout" style="border-color:var(--a4)">⚠️ <b>' + esc(_t('Attenzione: ')) + esc(g.name) + esc(_t(' ha un anti-cheat.')) + '</b> ' + esc(_t('Tasso aggiunge un file di lingua accanto a quelli del gioco, senza nascondersi e senza toccare l\'anti-cheat. Alcuni anti-cheat possono comunque considerarlo una modifica e bloccare o bannare l\'account. Se scegli di farlo, la responsabilità è tua. Più sicuro: "Sullo schermo".')) + '<label class="li check" style="margin-top:8px"><input type="checkbox" id="gwRisk"' + (W.rischio ? ' checked' : '') + '> <span>' + esc(_t('Ho capito il rischio di ban e scelgo io di tradurre dentro questo gioco')) + '</span></label></div>' :
-       i.anticheat ? '<div class="callout">🛡 ' + esc(_t('Sullo schermo è la scelta sicura con l\'anti-cheat: il gioco non viene toccato.')) + '</div>' : '');
+      (i.anticheat ? '<div class="callout">🛡 ' + esc(_t('Sullo schermo è la scelta sicura con l\'anti-cheat: il gioco non viene toccato.')) + '</div>' : '');
   }
   if (s === 'pot') {
     const rc = powRec();
@@ -4379,7 +4379,6 @@ $('#gwzB').addEventListener('click', (ev) => {
 $('#gwzB').addEventListener('change', async (ev) => {
   if (!W || W.busy) return;
   if (ev.target.id === 'gwIa') { W.ia = ev.target.checked; return; }
-  if (ev.target.id === 'gwRisk') { W.rischio = ev.target.checked; return; }
   if (ev.target.dataset && ev.target.dataset.tk) { W.tuneSel[ev.target.dataset.tk] = ev.target.checked; return; }
   if (ev.target.id === 'gwAuto') { const r = await call('goBoostAuto', ev.target.checked); if (r) toast(String(r).replace(/^ok:/, ''), 'var(--a3)'); await boostRefresh(); if (W) wzDraw(); }
 });
@@ -4393,7 +4392,7 @@ $('#gwzNext').onclick = async () => {
     if (W.info && W.info.lingua_steam && W.info.lingua_steam_ok === false) { toast(_t('Prima metti il gioco in una lingua che Windows sa leggere (per esempio inglese), oppure scegli "Non serve tradurre".'), 'var(--a4)'); return; }
     const sl = LANGS.find(l => l.codice === W.da); if (sl && !sl.ocr_ok) { toast(_t('Windows su questo PC non sa leggere questa lingua: scegline un\'altra.'), 'var(--a4)'); return; }
     W.skip = false; if (W.da === 'it' && W.a === 'it') W.a = 'en'; if (!canFile()) W.modo = 'schermo'; W.i++; wzDraw(); return; }
-  if (s === 'a') { if (W.modo === 'file' && W.info && W.info.anticheat && !W.rischio) { toast(soloFile() ? _t('Spunta "Ho capito il rischio" per tradurre dentro questo gioco, oppure torna indietro e salta la traduzione.') : _t('Spunta "Ho capito il rischio" oppure scegli "Sullo schermo".'), 'var(--a4)'); return; } if (W.da === W.a) { toast(_t('Le due lingue sono uguali: non serve tradurre.'), 'var(--a4)'); return; } W.i++; wzDraw(); return; }
+  if (s === 'a') { if (W.da === W.a) { toast(_t('Le due lingue sono uguali: non serve tradurre.'), 'var(--a4)'); return; } W.i++; wzDraw(); return; }
   if (s === 'pot') { if (!W.pot) W.pot = powRec(); W.i++; wzDraw(); return; }
   if (s === 'cons') { W.i++; wzDraw(); return; }
   if (s === 'fine') wzApply();
@@ -4446,7 +4445,7 @@ async function wzApply(){
   W.armTimer = () => { clearTimeout(GW_T); GW_T = setTimeout(() => { if (W && W.run === run && W.busy) { W.busy = false; W.dead = run; W.err = _t('Il traduttore non ha risposto: riprova.'); wzDraw(); } }, 180000); };
   W.armTimer();
   W.trRun = run; // da qui accetto 'fatto'/'errore' della traduzione per questo giro
-  const r = await ttc('ttApplicaTraduzione', g.name, W.info.cartella, !!(W.rischio && W.info.anticheat), W.modo);
+  const r = await ttc('ttApplicaTraduzione', g.name, W.info.cartella, false, W.modo); // con l'anti-cheat mai dentro il gioco
   if (r !== 'ok' && W && W.run === run) { clearTimeout(GW_T); W.busy = false; W.err = tx(r || _t('Non sono riuscito a partire.')); wzDraw(); }
 }
 async function wzFinish(run, trOk){
