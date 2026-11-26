@@ -237,6 +237,10 @@ body .banner.banner.upd{border-radius:8px;background:color-mix(in srgb,var(--a3)
 .pic{flex:0 0 34px;width:34px;height:34px;border-radius:9px;display:inline-flex;align-items:center;justify-content:center;font-weight:800;font-size:15px;color:#fff;background:hsl(var(--h,200) 45% 38%);margin-right:12px;overflow:hidden}
 .pic img{width:28px;height:28px;object-fit:contain;image-rendering:auto}
 .pic:has(img){background:rgba(255,255,255,.06)}
+/* Aggiornamenti dei programmi e App preinstallate: icona 28x28 arrotondata, o l'iniziale nel cerchietto. */
+#updList .pic,#bloatList .pic{flex:0 0 28px;width:28px;height:28px;margin:0;border-radius:50%;font-size:13px;line-height:1;box-shadow:inset 0 0 0 1px rgba(255,255,255,.14)}
+#updList .pic:has(img),#bloatList .pic:has(img){border-radius:7px;background:transparent;box-shadow:none}
+#updList .pic img,#bloatList .pic img{width:28px;height:28px;border-radius:7px;object-fit:contain;display:block}
 /* 2.6: due modalità. 3.1: Gaming mostra solo le cose per giocare; Ufficio è più semplice, morbida e tranquilla. */
 body.office .gm{display:none!important}
 body:not(.office):not(.showall) .gadv{display:none!important}
@@ -2567,7 +2571,8 @@ function paintBloat(){
   const box = $('#bloatList'); box.innerHTML = '';
   if (!BLOAT || !BLOAT.length) { box.innerHTML = '<div class="li"><span class="muted">' + (BLOAT ? _t('Nessuna app inutile trovata. Ottimo!') : _t('Lettura…')) + '</span></div>'; $('#btnBloat').disabled = true; return; }
   $('#btnBloat').disabled = false;
-  BLOAT.forEach((b, i) => { box.appendChild(el('label', {class:'li check'}, '<input type="checkbox" data-b="' + i + '"' + (b.junk ? ' checked' : '') + '><span class="x"><b>' + esc(b.name) + '</b><span>' + (b.junk ? _t('inutile per quasi tutti') : _t('togli solo se non la usi')) + '</span></span>')); });
+  // L'icona vera la manda Go dopo la lista (onIcons, chiave "b:" + id); intanto c'è l'iniziale.
+  BLOAT.forEach((b, i) => { box.appendChild(el('label', {class:'li check'}, '<input type="checkbox" data-b="' + i + '"' + (b.junk ? ' checked' : '') + '>' + picHTML('b:' + b.id, b.name) + '<span class="x"><b>' + esc(b.name) + '</b><span>' + (b.junk ? _t('inutile per quasi tutti') : _t('togli solo se non la usi')) + '</span></span>')); });
 }
 $('#btnBloat').onclick = () => {
   const ids = $$('#bloatList input[data-b]').filter(x => x.checked).map(x => BLOAT[Number(x.dataset.b)]);
@@ -3039,7 +3044,7 @@ Object.assign(window.tasso, {
     if (!it.length) box.innerHTML = _t('<div class="li"><span class="muted">Niente da aggiornare.</span></div>');
     it.forEach(x => {
       const can = !!x.id;
-      box.appendChild(el('label', {class:'li check'}, '<input type="checkbox" data-upd="' + esc(x.id) + '"' + (can ? ' checked' : ' disabled') + '><span class="x"><b>' + esc(x.name) + '</b><span>' + esc(x.ver) + ' → <b style="color:var(--a1t)">' + esc(x.avail) + '</b>' + (can ? '' : _t(' · si aggiorna solo con "Aggiorna tutti"')) + '</span></span>'));
+      box.appendChild(el('label', {class:'li check'}, '<input type="checkbox" data-upd="' + esc(x.id) + '"' + (can ? ' checked' : ' disabled') + '>' + picHTML(x.id ? 'u:' + x.id : 'u:n:' + x.name, x.name) + '<span class="x"><b>' + esc(x.name) + '</b><span>' + esc(x.ver) + ' → <b style="color:var(--a1t)">' + esc(x.avail) + '</b>' + (can ? '' : _t(' · si aggiorna solo con "Aggiorna tutti"')) + '</span></span>'));
     });
     if (it.some(x => !x.id)) { const b = el('button', {class:'btn ghost', style:'align-self:flex-start;margin-top:8px'}, _t('Aggiorna tutti')); b.onclick = () => updApply(['*']); box.appendChild(b); }
     $('#btnUpdSel').disabled = !it.some(x => x.id);
