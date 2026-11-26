@@ -250,11 +250,13 @@ func (s *ServerIA) Avvia(dirMotore, fileModello string) error {
 		}
 		// la cartella dei modelli la può cambiare qualsiasi programma dell'utente: copio il motore
 		// controllato dove scrivono solo gli amministratori e lo avvio da lì (ricontrollato)
-		if d, err := copiaMotoreProtetto(dirMotore, impronte, "llama-server.exe"); err == nil {
-			dirAvvio = d
-		} else {
-			notaCopia = "Copia nella cartella protetta non riuscita (" + err.Error() + "): avvio dalla cartella dei modelli.\r\n"
+		// (llama-server gira da amministratore: se la copia non riesce NON parte dalla cartella
+		// dei modelli, che qualsiasi programma può cambiare tra il controllo e l'avvio: niente IA)
+		d, err := copiaMotoreProtetto(dirMotore, impronte, "llama-server.exe")
+		if err != nil {
+			return errors.New("IA non disponibile: copia nella cartella protetta non riuscita (" + err.Error() + ")")
 		}
+		dirAvvio = d
 	}
 	exe = filepath.Join(dirAvvio, "llama-server.exe")
 	nctx := s.Contesto
