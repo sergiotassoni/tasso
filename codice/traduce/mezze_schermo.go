@@ -28,7 +28,7 @@ func ingleseVisibile(motivo string) bool {
 	switch {
 	case motivo == "", motivo == "non è testo da tradurre", motivo == motivoUgualeIt,
 		motivo == "uguale all'inglese", motivo == "forma strana", motivo == motivoNomeCodice,
-		strings.HasPrefix(motivo, "nome di un veicolo"):
+		strings.HasPrefix(motivo, "nome di un veicolo"), motivo == motivoTitoloVideo, motivo == motivoNomeGioco:
 		return false
 	}
 	return true
@@ -125,10 +125,24 @@ func stessaLineaSchermo(p, e Blocco) bool {
 	if dx.X < sx.X+sx.W {
 		return true // accavallati sulla stessa linea
 	}
-	if fratelli(sx, dx) && !vociSeparate(sx, dx) {
+	if fratelli(sx, dx) && (!vociSeparate(sx, dx) || pezzoDiFraseSchermo(sx) || pezzoDiFraseSchermo(dx)) {
+		// (due pulsanti di una fila restano separati; ma se uno dei due è un pezzo di frase,
+		// "Control, this is Delta" | "We have visuals on Alpha" | "Possible": sullo schermo è
+		// UNA riga, e si vede intera in italiano o intera in inglese)
 		return true
 	}
 	return pezziStessaLinea(sx, dx)
+}
+
+// pezzoDiFraseSchermo: il pezzo di una riga è un pezzo di frase e non una voce di una fila di pulsanti:
+// almeno 4 parole, oppure finisce con la punteggiatura di una frase o con una parola che vuole il
+// seguito.
+func pezzoDiFraseSchermo(b Blocco) bool {
+	t := strings.TrimSpace(b.Testo)
+	if len(strings.Fields(t)) >= 4 {
+		return true
+	}
+	return len(strings.Fields(t)) >= 2 && (strings.HasSuffix(t, ",") || chiedeSeguito(t))
 }
 
 // seguitoSotto: la scritta sotto continua la frase di quella sopra: subito sotto (fino a una
@@ -205,7 +219,8 @@ func voceCorta(b Blocco) bool {
 // grandezza, buco piccolo (al massimo una riga) e allineate a sinistra o al centro.
 func stessaColonnaVoci(a, b Blocco) bool {
 	h := min(a.H, b.H)
-	if float64(max(a.H, b.H)) > 1.35*float64(h) {
+	// (un'icona del tasto nella riga, "Move the camera with (R)", la fa un po' più alta)
+	if float64(max(a.H, b.H)) > 1.5*float64(h) {
 		return false
 	}
 	sopra, sotto := a, b
@@ -213,7 +228,7 @@ func stessaColonnaVoci(a, b Blocco) bool {
 		sopra, sotto = b, a
 	}
 	buco := sotto.Y - (sopra.Y + sopra.H)
-	if buco < -h/4 || buco > h {
+	if buco < -h/4 || buco > h*3/2 {
 		return false
 	}
 	return abs(a.X-b.X) <= h || abs((a.X+a.W/2)-(b.X+b.W/2)) <= h

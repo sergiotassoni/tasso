@@ -133,7 +133,13 @@ func formaItaliana(w string, prof int) bool {
 	// prefissi
 	for _, p := range prefissiIt {
 		r, ok := strings.CutPrefix(w, p)
-		if ok && len([]rune(r)) >= 4 && formaItaliana(r, prof-1) {
+		// con i prefissi corti ("in", "s", "co") il resto deve essere lungo: "inodia" non è
+		// "in" + "odia" (prova finale: "Locate the camp" -> "Inodia il campo")
+		minimo := 4
+		if len(p) <= 2 {
+			minimo = 5
+		}
+		if ok && len([]rune(r)) >= minimo && formaItaliana(r, prof-1) {
 			return true
 		}
 	}

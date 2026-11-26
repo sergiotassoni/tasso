@@ -447,7 +447,7 @@ func rigaAndataACapo(sopra string, larghSopra int, sotto Blocco) bool {
 var paroleSospese = map[string]bool{"of": true, "the": true, "a": true, "an": true, "to": true, "in": true,
 	"on": true, "at": true, "for": true, "with": true, "and": true, "or": true, "but": true, "from": true,
 	"by": true, "your": true, "my": true, "our": true, "their": true, "his": true, "her": true, "its": true,
-	"is": true, "are": true, "was": true, "were": true, "be": true, "that": true, "than": true, "into": true}
+	"is": true, "are": true, "was": true, "were": true, "be": true, "that": true, "than": true, "into": true, "without": true}
 
 // finisceSospesa: la riga finisce con una parola che vuole il seguito: la riga sotto lo è anche
 // se comincia con la maiuscola ("...on the first day of" / "Each month.").

@@ -85,6 +85,12 @@ func motivoNonTradurre(b Blocco) string {
 		return "lettura incerta" // "rm son'" al posto di "I'm sorry"
 	case nomeConCodice(b.Testo):
 		return motivoNomeCodice
+	case titoloVideo(b.Testo):
+		return motivoTitoloVideo
+	case nomeGioco(b.Testo):
+		return motivoNomeGioco
+	case fraseTroncata(b) != "":
+		return motivoFraseTroncata
 	}
 	return ""
 }

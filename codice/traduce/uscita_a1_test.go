@@ -1,0 +1,114 @@
+package traduce
+
+import (
+	"strings"
+	"testing"
+)
+
+// Prova finale (26/11, f0284, Gears of War): sottotitolo letto in 4 pezzi sulla stessa riga, due
+// in inglese e due tradotti. Sullo schermo si vedeva "Control, this is Delta. Abbiamo immagini su
+// Alphae Possibile KIA. No sign of resonator.": la riga intera resta in inglese.
+func TestRigaInteraMaiMezza(t *testing.T) {
+	a := Blocco{Testo: "Control, this is Delta", X: 430, Y: 962, W: 270, H: 28, Righe: 1, Em: 28}
+	b := Blocco{Testo: "We have-visuals on Alphae", Tradotto: "Abbiamo immagini su Alphae", X: 710, Y: 962, W: 310, H: 28, Righe: 1, Em: 28}
+	c := Blocco{Testo: "Possible", Tradotto: "Possibile", X: 1048, Y: 962, W: 100, H: 28, Righe: 1, Em: 28}
+	d := Blocco{Testo: "KIA. No sign of resonator", X: 1162, Y: 957, W: 330, H: 33, Righe: 1, Em: 30}
+	tenute, tolte := senzaMezzeRighe([]Blocco{b, c}, []Blocco{a, d})
+	if len(tenute) != 0 || len(tolte) != 2 {
+		t.Fatalf("riga mezza italiana e mezza inglese: tenute %q", testiBlocchi(tenute))
+	}
+	if n := mezzeDisegnate([]Blocco{b, c}, []Blocco{a, d}); n == 0 {
+		t.Error("il conteggio del banco deve vedere la riga mezza (stessa regola del disegno)")
+	}
+	// tutta tradotta: si disegna
+	a.Tradotto, d.Tradotto = "Controllo, qui Delta", "Possibile KIA. Nessuna traccia del risonatore"
+	if tenute, _ := senzaMezzeRighe([]Blocco{a, b, c, d}, nil); len(tenute) != 4 {
+		t.Errorf("riga tutta tradotta: tenute %q", testiBlocchi(tenute))
+	}
+	// due pulsanti corti di una fila restano indipendenti
+	p1 := Blocco{Testo: "Inventory", Tradotto: "Inventario", X: 100, Y: 20, W: 120, H: 24, Righe: 1, Em: 24}
+	p2 := Blocco{Testo: "Map", X: 250, Y: 20, W: 50, H: 24, Righe: 1, Em: 24}
+	if tenute, _ := senzaMezzeRighe([]Blocco{p1}, []Blocco{p2}); len(tenute) != 1 {
+		t.Error("due voci corte di una fila trattate come una frase")
+	}
+}
+
+// f0433 (Dawnwalker): elenco puntato nello stesso riquadro, "Hold to aim" tradotto e "Move the
+// camera with (R)" sotto in inglese (riga un po' più alta per l'icona del tasto).
+func TestElencoNelRiquadroTuttoOVia(t *testing.T) {
+	su := Blocco{Testo: "Hold to aim", Tradotto: "Tieni premuto per mirare", X: 713, Y: 648, W: 150, H: 24, Righe: 1, Em: 24}
+	giu := Blocco{Testo: "Move the camera with", X: 713, Y: 684, W: 230, H: 34, Righe: 1, Em: 24}
+	if tenute, _ := senzaMezzeRighe([]Blocco{su}, []Blocco{giu}); len(tenute) != 0 {
+		t.Errorf("voce dell'elenco tradotta accanto a una rimasta in inglese")
+	}
+}
+
+func TestFraseTroncataInFondo(t *testing.T) {
+	b := Blocco{Testo: "A quick tap of lets you Shadowstep forward without", Righe: 1, Affid: letturaBuona}
+	if m := fraseTroncata(b); m == "" {
+		t.Error("frase che finisce con 'without' (la riga sotto non letta): non va tradotta da sola")
+	}
+	for _, s := range []string{"Press", "Hold to aim", "Welcome to our school.", "Defeat the enemies"} {
+		if m := fraseTroncata(Blocco{Testo: s, Righe: 1}); m != "" {
+			t.Errorf("%q presa per troncata", s)
+		}
+	}
+	_ = strings.TrimSpace
+}
+
+func TestTitoliDeiVideo(t *testing.T) {
+	for _, s := range []string{
+		"007 FIRST LIGHT Gameplay Walkfirough Part 1 14K 60FPS PC ULTRAI - No Commentary (FULL GAME)",
+		"THE BLOOD OF DAWNWALKER Gameplay Walkthrough Part 1 FULL GAME [4K 60FPS PS5 PROI - No Commentary",
+		"ONE MORE DONUT - Full Gameplay Walktgrough Part 1 [FULL GAMEI No Comnmtary",
+	} {
+		if !titoloVideo(s) || motivoNonTradurre(Blocco{Testo: s, Righe: 1, Affid: letturaBuona}) == "" {
+			t.Errorf("titolo del video da tradurre: %q", s)
+		}
+	}
+	for _, s := range []string{"Locate the camp", "Part of the plan is to wait.", "Play the game", "Full health restored."} {
+		if titoloVideo(s) {
+			t.Errorf("%q preso per titolo di un video", s)
+		}
+	}
+}
+
+func TestNomeDelGiocoResta(t *testing.T) {
+	for _, s := range []string{"The Blood of Dawnwalker", "THE BLOOD OF DAWNWALKER"} {
+		if !nomeGioco(s) {
+			t.Errorf("%q: è il titolo del gioco, resta in inglese", s)
+		}
+	}
+	for _, s := range []string{"Follow Lunka", "Bring Lunka back", "All Good Things", "Defeat the enemies", "Directional Block", "Perfect Block"} {
+		if nomeGioco(s) {
+			t.Errorf("%q preso per il nome del gioco", s)
+		}
+	}
+}
+
+// "Locate the camp" -> "Inodia il campo" (007, sempre a schermo): "inodia" non è italiano
+// (prima passava come "in" + "odia").
+func TestParoleInventateProvaFinale(t *testing.T) {
+	casi := [][2]string{
+		{"Locate the camp", "Inodia il campo"},
+		{"They are all armed.", "Sono tutti aggegnati."},
+	}
+	for _, c := range casi {
+		if !italianoInventato(c[0], c[1]) {
+			t.Errorf("%q: parola inventata non vista", c[1])
+		}
+	}
+	for _, c := range [][2]string{
+		{"Reload the weapon", "Ricarica l'arma"},
+		{"Unlock the door", "Sblocca la porta"},
+		{"Restart the level", "Riavvia il livello"},
+		{"Disable the trap", "Disattiva la trappola"},
+		{"Locate the camp", "Individua il campo"},
+		{"Retrieve the documents", "Recupera i documenti"},
+		{"Reinstall", "Reinstalla"},
+	} {
+		if italianoInventato(c[0], c[1]) {
+			t.Errorf("%q presa per inventata (%v)", c[1], paroleInventateIt(c[0], c[1]))
+		}
+	}
+}
