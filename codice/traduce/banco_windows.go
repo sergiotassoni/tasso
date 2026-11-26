@@ -165,6 +165,14 @@ func EseguiBancoSchermo(dir string, durata, ogni time.Duration, larg int, ferma 
 	var ultimaImp Impronta
 	for time.Now().Before(fine) && (ferma == nil || !ferma()) {
 		inizio := time.Now()
+		if !davantiSchermoIntero() {
+			// davanti non c'è il gioco o il video a schermo intero (la scrivania, Esplora file, un
+			// altro programma): niente fotogramma, così nel report non finiscono dati personali
+			if d := ogni - time.Since(inizio); d > 0 {
+				time.Sleep(d)
+			}
+			continue
+		}
 		img, err := cattura(zonaSchermoPrincipale())
 		if err == nil && !catturaNera(img) {
 			imp := calcolaImpronta(img)
