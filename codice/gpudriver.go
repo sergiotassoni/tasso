@@ -563,7 +563,7 @@ $key = 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\SystemRestore'
 # ma lo dico (srOff nel risultato, Tasso lo scrive nella finestra).
 $srOff = $false
 try { $ri = (Get-ItemProperty -LiteralPath $key -Name 'RPSessionInterval' -ErrorAction Stop).RPSessionInterval; if ([int]$ri -eq 0) { $srOff = $true } } catch {}
-try { Enable-ComputerRestore -Drive ($env:SystemDrive + '\') -ErrorAction Stop } catch {}
+try { Enable-ComputerRestore -Drive ($TassoSysDrive + '\') -ErrorAction Stop } catch {}
 $oldFreq = (Get-ItemProperty -Path $key -Name 'SystemRestorePointCreationFrequency' -ErrorAction SilentlyContinue).SystemRestorePointCreationFrequency
 New-ItemProperty -Path $key -Name 'SystemRestorePointCreationFrequency' -Value 0 -PropertyType DWord -Force | Out-Null
 $before = @(Get-ComputerRestorePoint).Count
