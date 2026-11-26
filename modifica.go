@@ -781,7 +781,7 @@ func Comprimi(data []byte, pw string, immagini bool) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	ctx, _, err := leggi(plain, "")
+	ctx, riparato, err := leggi(plain, "")
 	if err != nil {
 		return nil, err
 	}
@@ -797,10 +797,22 @@ func Comprimi(data []byte, pw string, immagini bool) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	if len(out) >= len(plain) {
+	// Se la copia non pesa meno tengo l'originale, ma non se era rovinato (riparato in lettura):
+	// in quel caso la copia riscritta è quella buona.
+	if len(out) >= len(plain) && !riparato && finisceBene(plain) {
 		return plain, nil
 	}
 	return out, nil
+}
+
+// finisceBene: il PDF finisce con l'indice ("startxref" e "%%EOF" nelle ultime righe), come
+// un file intero. I file tagliati o senza indice li legge lo stesso, ma vanno riscritti.
+func finisceBene(b []byte) bool {
+	coda := b
+	if len(coda) > 1024 {
+		coda = coda[len(coda)-1024:]
+	}
+	return bytes.Contains(coda, []byte("startxref")) && bytes.Contains(coda, []byte("%%EOF"))
 }
 
 // alleggerisciImmagini: le foto (RGB o grigi, 8 bit) più grandi di maxLato pixel vengono

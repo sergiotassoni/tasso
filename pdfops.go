@@ -309,6 +309,7 @@ func controllaPagine(ctx *model.Context) error {
 	if _, err := ctx.Catalog(); err != nil {
 		return err
 	}
+	sistemaMisure(ctx)
 	if err := ctx.EnsurePageCount(); err != nil {
 		return err
 	}
@@ -327,6 +328,62 @@ func controllaPagine(ctx *model.Context) error {
 		sistemaContenuti(ctx, d)
 	}
 	return nil
+}
+
+// boxValida: o è un rettangolo [x1 y1 x2 y2] di 4 numeri con larghezza e altezza non nulle.
+func boxValida(ctx *model.Context, o types.Object) bool {
+	o, err := ctx.Dereference(o)
+	if err != nil {
+		return false
+	}
+	a, ok := o.(types.Array)
+	if !ok || len(a) != 4 {
+		return false
+	}
+	var v [4]float64
+	for i, x := range a {
+		x, err := ctx.Dereference(x)
+		if err != nil {
+			return false
+		}
+		switch n := x.(type) {
+		case types.Integer:
+			v[i] = float64(n)
+		case types.Float:
+			v[i] = float64(n)
+		default:
+			return false
+		}
+		if math.IsNaN(v[i]) || math.IsInf(v[i], 0) {
+			return false
+		}
+	}
+	return v[0] != v[2] && v[1] != v[3]
+}
+
+// sistemaMisure: una pagina (o un elenco di pagine) con la misura rovinata, per esempio
+// "/MediaBox []", diventa A4; un ritaglio (/CropBox) rovinato viene tolto. Senza, tutto il
+// file risultava "rovinato" (anche Ripara), pur avendo le pagine intere.
+func sistemaMisure(ctx *model.Context) {
+	for _, e := range ctx.XRefTable.Table {
+		if e == nil || e.Free || e.Object == nil {
+			continue
+		}
+		d, ok := e.Object.(types.Dict)
+		if !ok {
+			continue
+		}
+		t := d.Type()
+		if t == nil || (*t != "Page" && *t != "Pages") {
+			continue
+		}
+		if o, ok := d.Find("MediaBox"); ok && !boxValida(ctx, o) {
+			d.Update("MediaBox", types.Array{types.Integer(0), types.Integer(0), types.Float(595.28), types.Float(841.89)})
+		}
+		if o, ok := d.Find("CropBox"); ok && !boxValida(ctx, o) {
+			d.Delete("CropBox")
+		}
+	}
 }
 
 // sistemaContenuti: tiene solo i pezzi di contenuto della pagina che sono davvero stream.
