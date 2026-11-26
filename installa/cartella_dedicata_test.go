@@ -1,6 +1,7 @@
 package installa
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"testing"
@@ -50,5 +51,33 @@ func TestInfoCartellaDisco(t *testing.T) {
 	os.WriteFile(filepath.Join(d, FileStato), []byte("{}"), 0o644)
 	if i := InfoCartellaDisco(d); !i.DiTasso {
 		t.Fatalf("cartella di Tasso non riconosciuta: %+v", i)
+	}
+}
+
+func TestDecidiCartellaSicura(t *testing.T) {
+	casi := []struct {
+		s    SicurezzaCartella
+		crea bool
+		ok   bool
+	}{
+		{SicurezzaCartella{AntenatiAdmin: true}, true, true},          // nuova sotto D:\ o C:\Programmi miei
+		{SicurezzaCartella{}, false, false},                           // nuova dentro una cartella di un utente
+		{SicurezzaCartella{Esiste: true, DiTasso: true}, false, true}, // aggiornamento
+		{SicurezzaCartella{Esiste: true, Vuota: true, ProprietarioAdmin: true, AntenatiAdmin: true}, false, true},
+		{SicurezzaCartella{Esiste: true, Vuota: true, AntenatiAdmin: true}, false, false},             // "Tasso" creata prima da un utente
+		{SicurezzaCartella{Esiste: true, ProprietarioAdmin: true, AntenatiAdmin: true}, false, false}, // non vuota
+		{SicurezzaCartella{Esiste: true, DiTasso: true, Collegamento: true}, false, false},            // giunzione
+	}
+	for i, c := range casi {
+		crea, err := DecidiCartellaSicura(c.s)
+		if crea != c.crea || (err == nil) != c.ok {
+			t.Errorf("%d: crea %v err %v", i, crea, err)
+		}
+		if err != nil {
+			var ec *ErroreCartella
+			if !errors.As(err, &ec) || ec.Codice != ErrCartNonSicura {
+				t.Errorf("%d: codice %v", i, err)
+			}
+		}
 	}
 }

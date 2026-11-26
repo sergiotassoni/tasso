@@ -188,3 +188,46 @@ func InfoCartellaDisco(p string) InfoCartella {
 	}
 	return i
 }
+
+// ErrCartNonSicura: fuori da Programmi, una cartella che un utente normale potrebbe cambiare
+// (non vuota, non degli amministratori, dentro una cartella di un utente, o un collegamento).
+const ErrCartNonSicura = "cart_non_sicura"
+
+// SicurezzaCartella: cosa si sa della cartella scelta fuori da Programmi (letto da Windows).
+type SicurezzaCartella struct {
+	Esiste            bool // la cartella c'è già
+	Vuota             bool // c'è ed è vuota
+	DiTasso           bool // dentro c'è già un'installazione (tasso-setup.json)
+	Collegamento      bool // è un collegamento o una giunzione (porterebbe altrove)
+	ProprietarioAdmin bool // proprietario: Amministratori, SYSTEM o TrustedInstaller
+	AntenatiAdmin     bool // tutte le cartelle sopra che esistono (tranne la radice del disco) sono degli amministratori
+}
+
+// DecidiCartellaSicura: fuori da Programmi Tasso.exe (sempre amministratore) e il disinstallatore
+// devono stare in una cartella che nessun utente normale può cambiare:
+//   - cartella nuova: si crea già protetta (proprietario Amministratori), purché le cartelle sopra
+//     siano degli amministratori (altrimenti chi le possiede potrebbe spostarla e metterne un'altra);
+//   - cartella che c'è già con un'installazione di Tasso: va bene (aggiornamento), e si rimettono
+//     proprietario e permessi giusti anche ai file dentro;
+//   - un'altra cartella che c'è già: solo se è vuota, degli amministratori e con le cartelle sopra
+//     degli amministratori (una cartella "Tasso" creata prima da un utente resterebbe sua).
+//
+// crea = true se la cartella va creata.
+func DecidiCartellaSicura(s SicurezzaCartella) (crea bool, err error) {
+	if s.Collegamento {
+		return false, &ErroreCartella{ErrCartNonSicura}
+	}
+	if !s.Esiste {
+		if !s.AntenatiAdmin {
+			return false, &ErroreCartella{ErrCartNonSicura}
+		}
+		return true, nil
+	}
+	if s.DiTasso {
+		return false, nil
+	}
+	if !s.Vuota || !s.ProprietarioAdmin || !s.AntenatiAdmin {
+		return false, &ErroreCartella{ErrCartNonSicura}
+	}
+	return false, nil
+}

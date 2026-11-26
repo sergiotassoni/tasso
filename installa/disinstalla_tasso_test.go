@@ -128,3 +128,88 @@ func TestDisinstallaFileOccupatoAlRiavvio(t *testing.T) {
 		t.Fatalf("al riavvio: %v / %v", r.AlRiavvio, alRiavvio)
 	}
 }
+
+// M2 (verifica2): installazione di prima in una cartella condivisa (non "...\Tasso", con dentro
+// anche cose di altri programmi): lavoro, strumenti e driver NON si cancellano.
+func TestDisinstallaCartellaCondivisaTieneSottocartelle(t *testing.T) {
+	p := nuovaProva(t, "3.1")
+	// la cartella di prova si chiama Tasso: la sposto in una "condivisa" con un altro programma
+	condivisa := filepath.Join(filepath.Dir(p.base), "Programmi miei")
+	if err := os.MkdirAll(condivisa, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	p.base = condivisa
+	o := p.opzioni(Gaming, Ufficio)
+	o.Base = condivisa
+	if _, err := p.in.Installa(context.Background(), o); err != nil {
+		t.Fatal(err)
+	}
+	altro := filepath.Join(condivisa, "AltroProgramma", "altro.exe")
+	os.MkdirAll(filepath.Dir(altro), 0o755)
+	os.WriteFile(altro, []byte("x"), 0o644)
+	driver := filepath.Join(condivisa, "driver", "stampante.inf")
+	os.MkdirAll(filepath.Dir(driver), 0o755)
+	os.WriteFile(driver, []byte("di un altro programma"), 0o644)
+	st, _ := LeggiStato(condivisa)
+	if CartellaSoloTasso(condivisa, st) {
+		t.Fatal("una cartella con altri programmi non è solo di Tasso")
+	}
+	if cr := CriteriPer(condivisa, []Componente{Gaming}, st, nil, nil, 1, ""); len(cr.Cartelle) != 0 {
+		t.Fatalf("chiuderei tutto quello che parte da %v", cr.Cartelle)
+	}
+	if _, err := p.in.DisinstallaCon(condivisa, []Componente{Gaming, Ufficio}, OpzioniDisinstalla{}); err != nil {
+		t.Fatal(err)
+	}
+	if !esiste(driver) || !esiste(altro) {
+		t.Fatal("cancellata una cartella di un altro programma")
+	}
+}
+
+// La cartella di Tasso (si chiama Tasso, o dentro ci sono solo cose di Tasso Setup): sì.
+func TestCartellaSoloTasso(t *testing.T) {
+	p := nuovaProva(t, "3.1")
+	if _, err := p.in.Installa(context.Background(), p.opzioni(Gaming, Zip)); err != nil {
+		t.Fatal(err)
+	}
+	st, _ := LeggiStato(p.base)
+	if !CartellaSoloTasso(p.base, st) {
+		t.Fatal("la cartella di Tasso non riconosciuta")
+	}
+	if CartellaSoloTasso(p.base, nil) {
+		t.Fatal("senza installazione: no")
+	}
+}
+
+// TogliTasso: Tasso.exe va via solo togliendo tutti i suoi componenti installati.
+func TestTogliTasso(t *testing.T) {
+	st := &Stato{Componenti: []Componente{Gaming, Ufficio, Zip}}
+	casi := []struct {
+		togli []Componente
+		via   bool
+	}{
+		{[]Componente{Gaming, Ufficio}, true},
+		{[]Componente{Gaming}, false}, // resta Ufficio
+		{[]Componente{Zip}, false},
+		{[]Componente{Gaming, Ufficio, Zip}, true},
+	}
+	for i, c := range casi {
+		if TogliTasso(st, c.togli) != c.via {
+			t.Errorf("%d: %v", i, c.togli)
+		}
+	}
+	if TogliTasso(nil, []Componente{Gaming}) || TogliTasso(&Stato{Componenti: []Componente{Zip}}, []Componente{Zip}) {
+		t.Error("senza Tasso installato")
+	}
+}
+
+// TassoGiaPulito: Tasso ha già tolto le sue cose (goPreparaDisinstalla): non lo si richiama.
+func TestDisinstallaTassoGiaPulito(t *testing.T) {
+	p := nuovaProva(t, "3.1")
+	if _, err := p.in.Installa(context.Background(), p.opzioni(Gaming, Ufficio)); err != nil {
+		t.Fatal(err)
+	}
+	p.in.PulisciTasso = func(string) error { t.Fatal("PulisciTasso richiamato"); return nil }
+	if _, err := p.in.DisinstallaCon(p.base, []Componente{Gaming, Ufficio}, OpzioniDisinstalla{TassoGiaPulito: true}); err != nil {
+		t.Fatal(err)
+	}
+}

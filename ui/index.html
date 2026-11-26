@@ -255,7 +255,7 @@ function carta(c, mappa, testoExtra){
   if (testoExtra) { const s = document.createElement('span'); s.className = 'badge'; s.textContent = testoExtra; lab.querySelector('.t').appendChild(s); }
   const cb = lab.querySelector('input'); cb.checked = !!mappa[c.id];
   cb.setAttribute('aria-label', nomeComp(c.id));
-  cb.onchange = () => { mappa[c.id] = cb.checked; lab.className = 'carta ' + (cb.checked ? 'si' : 'no'); msg(''); };
+  cb.onchange = () => { mappa[c.id] = cb.checked; lab.className = 'carta ' + (cb.checked ? 'si' : 'no'); msg(''); if (mappa === dis) aggiornaSceltaDati(A.preScelti); };
   return lab;
 }
 function disegnaComp(){
@@ -366,15 +366,32 @@ $('#sfoglia').onclick = async () => { const p = await call('goScegliCartella', $
 $('#cartella').oninput = () => { clearTimeout(controllaCartella.t); controllaCartella.t = setTimeout(controllaCartella, 250); };
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && $('#velo').classList.contains('on')) $('#veloNo').click(); });
 
+// la casella "togli anche i dati di Tasso" solo se va via Tasso stesso: tutti i suoi componenti
+// installati (Gaming e Ufficio) sono tra quelli da togliere. Da "Togli Tasso dal PC" mai (i dati
+// li ha già tolti Tasso).
+function aggiornaSceltaDati(pre){
+  const inst = (A.installata && A.installata.componenti) || [];
+  const tasso = inst.filter(id => id === 'gaming' || id === 'ufficio');
+  const via = tasso.length > 0 && tasso.every(id => dis[id]);
+  $('#sceltaDati').hidden = !!(pre && pre.length) || !via;
+  if ($('#sceltaDati').hidden) $('#disDati').checked = false;
+}
 async function disinstalla(){
   const ids = A.componenti.map(c => c.id).filter(id => dis[id]);
   if (!ids.length) { msg(T('dis_nessuno')); return; }
   const aperti = await call('goProgrammiAperti', A.cartella, ids);
-  if (aperti && aperti.length) {
-    if (!await chiediChiusura(aperti)) return;
-    if (!await call('goChiudiProgrammi', A.cartella, ids)) { msg(T('aperti_errore')); return; }
-  }
+  if (aperti && aperti.length && !await chiediChiusura(aperti)) return;
   $('#bAvanti').disabled = true; $('#bAnnulla').disabled = true; msg(''); $('#msg').style.color = 'var(--muted)'; $('#msg').textContent = T('dis_in_corso');
+  // prima Tasso toglie le sue cose (chiude solo Tasso); se rifiuta, Zip e PDF restano aperti
+  const pr = await call('goPreparaDisinstalla', ids);
+  if (!pr.ok) {
+    $('#msg').style.color = ''; $('#bAvanti').disabled = false; $('#bAnnulla').disabled = false;
+    msg(pr.rifiuta ? T('dis_rifiuta', pr.dettagli || '') : T('aperti_errore')); return;
+  }
+  if (aperti && aperti.length && !await call('goChiudiProgrammi', A.cartella, ids)) {
+    $('#msg').style.color = ''; $('#bAvanti').disabled = false; $('#bAnnulla').disabled = false;
+    msg(T('aperti_errore')); return;
+  }
   const r = await call('goDisinstalla', ids, !!$('#disDati').checked && !$('#sceltaDati').hidden);
   $('#msg').style.color = '';
   if (!r.ok) { $('#bAvanti').disabled = false; $('#bAnnulla').disabled = false; msg(r.rifiuta ? T('dis_rifiuta', r.dettagli || '') : T('err_generico', r.dettagli || '')); return; }
@@ -398,7 +415,7 @@ async function disinstalla(){
     dis[c.id] = pre.length ? pre.includes(c.id) : true;
   });
   // i dati di Tasso: solo se l'utente lo spunta; da "Togli Tasso dal PC" li ha già tolti Tasso
-  $('#sceltaDati').hidden = !!pre.length || !(A.installata && (A.installata.componenti.includes('gaming') || A.installata.componenti.includes('ufficio')));
+  aggiornaSceltaDati(pre);
   $('#cartella').value = A.cartella || '';
   if (A.installata) { $('#cartella').readOnly = true; $('#sfoglia').hidden = true; } // aggiornamento: stessa cartella
   $('#desktop').checked = !!(A.installata && A.installata.desktop); // aggiornamento: il Desktop resta com'era

@@ -8,6 +8,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -640,34 +641,162 @@ func cancellaAllUscita() {
 	_ = cmd.Start()
 }
 
-// proteggiCartellaFuoriProgrammi: fuori da Programmi la cartella di Tasso riceve i permessi di
-// Programmi: SYSTEM e Amministratori tutto, gli utenti solo leggere ed eseguire, senza ereditare
-// dal disco (dove spesso "Utenti autenticati" possono modificare). Tasso.exe e il disinstallatore
-// partono da amministratore: nessun programma normale deve poterli sostituire.
-// Dentro Programmi non serve (ha già questi permessi). Un disco senza permessi (FAT32, exFAT) non
-// li supporta: lì non si può fare niente, lo scrivo nel diario e vado avanti.
-func proteggiCartellaFuoriProgrammi(base string) error {
-	if installa.DentroProgrammi(base, programFiles()) {
-		return nil
-	}
-	sd, err := windows.SecurityDescriptorFromString("D:P(A;OICI;FA;;;SY)(A;OICI;FA;;;BA)(A;OICI;0x1200a9;;;BU)")
+// sddlTasso: i permessi di Programmi per la cartella di Tasso fuori da Programmi. Proprietario
+// Amministratori; SYSTEM e Amministratori tutto; gli utenti solo leggere ed eseguire; niente
+// ereditato dal disco (dove spesso "Utenti autenticati" possono modificare). Tasso.exe e il
+// disinstallatore partono da amministratore: nessun programma normale deve poterli sostituire.
+const sddlTasso = "O:BAD:P(A;OICI;FA;;;SY)(A;OICI;FA;;;BA)(A;OICI;0x1200a9;;;BU)"
+
+// sidTrustedInstaller: NT SERVICE\TrustedInstaller (proprietario di molte cartelle di Windows).
+const sidTrustedInstaller = "S-1-5-80-956008885-3418522649-1831038044-1853292631-2271478464"
+
+// proprietarioAdmin: il proprietario di p è Amministratori, SYSTEM o TrustedInstaller.
+func proprietarioAdmin(p string) bool {
+	sd, err := windows.GetNamedSecurityInfo(p, windows.SE_FILE_OBJECT, windows.OWNER_SECURITY_INFORMATION)
 	if err != nil {
-		return err
+		return false
 	}
+	o, _, err := sd.Owner()
+	if err != nil || o == nil {
+		return false
+	}
+	return o.IsWellKnown(windows.WinBuiltinAdministratorsSid) || o.IsWellKnown(windows.WinLocalSystemSid) ||
+		o.String() == sidTrustedInstaller
+}
+
+// antenatiAdmin: le cartelle sopra base che esistono, tranne la radice del disco, sono degli
+// amministratori. Se una è di un utente, lui potrebbe spostare via la cartella di Tasso e metterne
+// una sua al suo posto (con un Tasso.exe suo, che poi partirebbe da amministratore).
+func antenatiAdmin(base string) bool {
+	radice := filepath.VolumeName(base) + `\`
+	for d := filepath.Dir(base); len(d) > len(radice) && !strings.EqualFold(d, radice); d = filepath.Dir(d) {
+		if _, err := os.Lstat(d); err != nil {
+			continue // la creo io (proprietario Amministratori)
+		}
+		if !proprietarioAdmin(d) {
+			installa.Diario("la cartella %s non è degli amministratori", d)
+			return false
+		}
+	}
+	return true
+}
+
+// sicurezzaCartella legge da Windows quello che serve a installa.DecidiCartellaSicura.
+func sicurezzaCartella(base string) installa.SicurezzaCartella {
+	s := installa.SicurezzaCartella{AntenatiAdmin: antenatiAdmin(base)}
+	fi, err := os.Lstat(base)
+	if err != nil {
+		return s
+	}
+	s.Esiste = true
+	s.Collegamento = !fi.IsDir() || fi.Mode()&(os.ModeSymlink|os.ModeIrregular) != 0
+	if a, ok := fi.Sys().(*syscall.Win32FileAttributeData); ok && a.FileAttributes&windows.FILE_ATTRIBUTE_REPARSE_POINT != 0 {
+		s.Collegamento = true
+	}
+	if voci, err := os.ReadDir(base); err == nil {
+		s.Vuota = len(voci) == 0
+	}
+	if _, err := os.Lstat(filepath.Join(base, installa.FileStato)); err == nil {
+		s.DiTasso = true
+	}
+	s.ProprietarioAdmin = proprietarioAdmin(base)
+	return s
+}
+
+// preparaCartellaTasso: la cartella base. Dentro Programmi: una cartella normale (ha già i
+// permessi giusti). Fuori: nuova, nasce già protetta (CreateDirectory con sddlTasso: nemmeno un
+// istante con i permessi del disco); già esistente, si usa solo se è sicura
+// (installa.DecidiCartellaSicura) e le si rimettono proprietario e permessi, anche ai file dentro.
+// Un disco senza permessi (FAT32, exFAT) non li supporta: lo scrivo nel diario e vado avanti.
+func preparaCartellaTasso(base string) (bool, error) {
+	if installa.DentroProgrammi(base, programFiles()) {
+		_, err := os.Stat(base)
+		creata := os.IsNotExist(err)
+		return creata, os.MkdirAll(base, 0o755)
+	}
+	s := sicurezzaCartella(base)
+	crea, err := installa.DecidiCartellaSicura(s)
+	if err != nil {
+		if s.DiTasso && !s.Collegamento {
+			// installazione già fuori da Programmi dentro una cartella di un utente (versioni di
+			// prima): l'aggiornamento non si blocca, lo scrivo e basta
+			installa.Diario("attenzione: %s è dentro una cartella che un utente può cambiare", base)
+		} else {
+			return false, err
+		}
+	}
+	sd, err := windows.SecurityDescriptorFromString(sddlTasso)
+	if err != nil {
+		return false, err
+	}
+	if crea {
+		if err := os.MkdirAll(filepath.Dir(base), 0o755); err != nil {
+			return false, err
+		}
+		p, err := windows.UTF16PtrFromString(base)
+		if err != nil {
+			return false, err
+		}
+		sa := &windows.SecurityAttributes{Length: uint32(unsafe.Sizeof(windows.SecurityAttributes{})), SecurityDescriptor: sd}
+		if err := windows.CreateDirectory(p, sa); err != nil {
+			return false, err
+		}
+		installa.Diario("cartella %s creata con i permessi di Programmi", base)
+		return true, nil
+	}
+	if err := proteggiAlbero(base, sd, s.DiTasso); err != nil {
+		return false, err
+	}
+	return false, nil
+}
+
+// proteggiAlbero: proprietario Amministratori e permessi di sddlTasso alla cartella; con dentro=true
+// anche a ogni file e cartella dentro (proprietario Amministratori, solo permessi ereditati), così
+// nessun file messo lì da un utente resta suo.
+func proteggiAlbero(base string, sd *windows.SECURITY_DESCRIPTOR, dentro bool) error {
 	dacl, _, err := sd.DACL()
 	if err != nil {
 		return err
 	}
+	owner, _, err := sd.Owner()
+	if err != nil {
+		return err
+	}
 	err = windows.SetNamedSecurityInfo(base, windows.SE_FILE_OBJECT,
-		windows.DACL_SECURITY_INFORMATION|windows.PROTECTED_DACL_SECURITY_INFORMATION, nil, nil, dacl, nil)
+		windows.OWNER_SECURITY_INFORMATION|windows.DACL_SECURITY_INFORMATION|windows.PROTECTED_DACL_SECURITY_INFORMATION,
+		owner, nil, dacl, nil)
 	if errors.Is(err, windows.ERROR_NOT_SUPPORTED) || errors.Is(err, windows.ERROR_INVALID_FUNCTION) {
 		installa.Diario("il disco di %s non ha permessi (FAT32/exFAT?): la cartella resta com'è", base)
 		return nil
 	}
-	if err == nil {
-		installa.Diario("permessi di %s: solo gli amministratori possono modificare", base)
+	if err != nil {
+		return err
 	}
-	return err
+	installa.Diario("permessi di %s: solo gli amministratori possono modificare", base)
+	if !dentro {
+		return nil
+	}
+	vuota, err := windows.ACLFromEntries(nil, nil)
+	if err != nil {
+		return err
+	}
+	return filepath.WalkDir(base, func(p string, d fs.DirEntry, e error) error {
+		if e != nil || p == base {
+			return nil
+		}
+		if d.Type()&(fs.ModeSymlink|fs.ModeIrregular) != 0 {
+			if d.IsDir() {
+				return fs.SkipDir // collegamenti e giunzioni: non li seguo
+			}
+			return nil
+		}
+		if err := windows.SetNamedSecurityInfo(p, windows.SE_FILE_OBJECT,
+			windows.OWNER_SECURITY_INFORMATION|windows.DACL_SECURITY_INFORMATION|windows.UNPROTECTED_DACL_SECURITY_INFORMATION,
+			owner, nil, vuota, nil); err != nil {
+			installa.Diario("permessi di %s non rimessi: %v", p, err)
+		}
+		return nil
+	})
 }
 
 // ---------------- Tasso toglie le sue cose (disinstallazione da App e funzionalità) ----------------

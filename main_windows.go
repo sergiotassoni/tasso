@@ -29,16 +29,18 @@ import (
 const paginaWebView2 = "https://go.microsoft.com/fwlink/p/?LinkId=2124703"
 
 var (
-	finestra   webview2.WebView
-	lingua     atomic.Value // string
-	inCorso    atomic.Bool  // installazione o disinstallazione in corso
-	annullaMu  sync.Mutex
-	annullaFn  context.CancelFunc
-	elenco     *installa.Elenco
-	errElenco  error
-	reg        = registroWin{}
-	modoDisins bool
-	baseDisins string
+	finestra webview2.WebView
+	lingua   atomic.Value // string
+	inCorso  atomic.Bool  // installazione o disinstallazione in corso
+	// tassoPulito: Tasso ha già tolto le sue cose (goPreparaDisinstalla)
+	tassoPulito atomic.Bool
+	annullaMu   sync.Mutex
+	annullaFn   context.CancelFunc
+	elenco      *installa.Elenco
+	errElenco   error
+	reg         = registroWin{}
+	modoDisins  bool
+	baseDisins  string
 	// --scegli=gaming,ufficio: nel disinstallatore sono già spuntati solo questi (lo usa
 	// "Togli Tasso dal PC" dentro Tasso). Si possono sempre cambiare.
 	preScelti []installa.Componente
@@ -209,7 +211,7 @@ func componenti(ss []string) []installa.Componente {
 func nuovoInstallatore() *installa.Installatore {
 	return conUtenteSessione(&installa.Installatore{Sorgente: pacco.Sorgente(), Elenco: elenco, Registro: reg,
 		CreaCollegamento: creaCollegamento, TogliFile: togliFile, CancellaAlRiavvio: cancellaAlRiavvio,
-		ProteggiCartella: proteggiCartellaFuoriProgrammi})
+		PreparaCartella: preparaCartellaTasso})
 }
 
 // versioneSetup: la versione dell'ecosistema dentro questo installatore (per il diario).
@@ -329,6 +331,12 @@ func collega(w webview2.WebView) {
 		out["serve"] = serve
 		out["libero"] = spazioLibero(p)
 		out["fuoriProgrammi"] = !installa.DentroProgrammi(p, programFiles())
+		if out["fuoriProgrammi"] == true {
+			// fuori da Programmi: si usa solo una cartella che nessun utente normale può cambiare
+			if _, err := installa.DecidiCartellaSicura(sicurezzaCartella(p)); err != nil && !installa.InfoCartellaDisco(p).DiTasso {
+				out["errore"] = installa.ErrCartNonSicura
+			}
+		}
 		return out
 	})
 	_ = w.Bind("goScegliCartella", func(attuale, titolo string) string {
@@ -344,6 +352,29 @@ func collega(w webview2.WebView) {
 			}
 		}
 		return nomi
+	})
+	// goPreparaDisinstalla: prima di chiudere gli altri programmi, se va via Tasso chiudo SOLO Tasso
+	// e gli chiedo di togliere le sue cose (Tasso.exe --togli-silenzioso). Se rifiuta (un gioco
+	// tradotto è aperto, la modalità riunione è accesa...) lo riapro e mi fermo: Zip e PDF restano
+	// aperti, niente è stato tolto. "ok", "chiuso" (Tasso non si chiude) o il motivo del rifiuto.
+	_ = w.Bind("goPreparaDisinstalla", func(cc []string) map[string]any {
+		st, _ := installa.LeggiStato(baseDisins)
+		if !modoDisins || len(preScelti) > 0 || !installa.TogliTasso(st, componenti(cc)) {
+			return map[string]any{"ok": true}
+		}
+		eraAperto := tassoGira(baseDisins)
+		if eraAperto && !chiudiProgrammi(baseDisins, []installa.Componente{installa.Gaming, installa.Ufficio}) {
+			return map[string]any{"ok": false, "chiuso": false}
+		}
+		if err := pulisciTasso(baseDisins); err != nil {
+			installa.Diario("Tasso non ha tolto le sue cose: %v", err)
+			if eraAperto {
+				riapriTasso(baseDisins)
+			}
+			return map[string]any{"ok": false, "rifiuta": true, "dettagli": err.Error()}
+		}
+		tassoPulito.Store(true)
+		return map[string]any{"ok": true}
 	})
 	_ = w.Bind("goChiudiProgrammi", func(base string, cc []string) bool {
 		return chiudiProgrammi(filepath.Clean(base), componenti(cc))
@@ -436,15 +467,24 @@ func collega(w webview2.WebView) {
 		// Gaming, resta Ufficio) il collegamento "Tasso Gaming" diventa "Tasso Ufficio".
 		in := &installa.Installatore{Registro: reg, TogliFile: togliFile, CreaCollegamento: creaCollegamento,
 			CartellaDatiUtente: datiLocaliUtente, CancellaAlRiavvio: cancellaAlRiavvio, TogliAttivita: togliAttivitaTasso}
-		// Da "Togli Tasso dal PC" (--scegli=) Tasso ha già tolto le sue cose e i suoi dati: non lo
-		// riapro. Da App e funzionalità invece Tasso toglie le sue cose prima di sparire.
-		if len(preScelti) == 0 {
-			in.PulisciTasso = pulisciTasso
-		}
 		conUtenteSessione(in)
-		installa.Diario("disinstallo %v da %s (dati: %v)", cc, baseDisins, togliDati)
+		st, _ := installa.LeggiStato(baseDisins)
+		viaTasso := installa.TogliTasso(st, componenti(cc))
+		installa.Diario("disinstallo %v da %s (dati: %v, via Tasso: %v)", cc, baseDisins, togliDati, viaTasso)
+		// Da "Togli Tasso dal PC" (--scegli=) Tasso ha già tolto le sue cose e i suoi dati: non lo
+		// riapro. Da App e funzionalità invece Tasso toglie le sue cose prima di sparire: PRIMA di
+		// chiudere qualsiasi altro programma, così se rifiuta (un gioco tradotto aperto...) non ho
+		// chiuso niente per niente.
+		if viaTasso && len(preScelti) == 0 && !tassoPulito.Load() {
+			// (di solito l'ha già fatto goPreparaDisinstalla, prima di chiudere Zip e PDF)
+			if err := pulisciTasso(baseDisins); err != nil {
+				installa.Diario("Tasso non ha tolto le sue cose: %v", err)
+				return map[string]any{"ok": false, "rifiuta": true, "dettagli": err.Error()}
+			}
+		}
 		chiudiAiutanti(baseDisins, componenti(cc), nil, nil)
-		r, err := in.DisinstallaCon(baseDisins, componenti(cc), installa.OpzioniDisinstalla{TogliDati: togliDati && len(preScelti) == 0})
+		r, err := in.DisinstallaCon(baseDisins, componenti(cc), installa.OpzioniDisinstalla{
+			TogliDati: togliDati && viaTasso && len(preScelti) == 0, TassoGiaPulito: true})
 		if err != nil {
 			installa.Diario("disinstallazione NON riuscita: %v", err)
 		}

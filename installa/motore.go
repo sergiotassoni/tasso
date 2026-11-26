@@ -65,11 +65,12 @@ type Installatore struct {
 	Bloccato          func(error) bool
 	Dormi             func(time.Duration)
 	CancellaAlRiavvio func(percorso string) error // MoveFileEx(MOVEFILE_DELAY_UNTIL_REBOOT)
-	// ProteggiCartella: fuori da Programmi la cartella nuova eredita i permessi del disco (spesso
-	// "tutti possono modificare"): qui le si danno quelli di Programmi (solo gli amministratori
-	// scrivono). nil = niente (Linux, test). Si chiama solo per una cartella creata adesso o che
-	// si chiama Tasso (cioè sicuramente solo di Tasso).
-	ProteggiCartella func(base string) error
+	// PreparaCartella: crea (o controlla) la cartella base. Fuori da Programmi la cartella nuova
+	// nasce già con i permessi di Programmi (proprietario Amministratori, gli utenti solo leggono):
+	// creata e poi protetta, nel frattempo un programma qualsiasi poteva metterci un file suo.
+	// Una cartella che c'è già si usa solo se è sicura (DecidiCartellaSicura). creata = l'ha
+	// creata adesso. nil = os.MkdirAll (Linux, test).
+	PreparaCartella func(base string) (creata bool, err error)
 	// PulisciTasso: disinstallando Tasso, Tasso stesso toglie le sue cose (Tasso.exe
 	// --togli-silenzioso: attività, Boost, Ufficio, traduzioni nei giochi). Un errore ferma la
 	// disinstallazione prima di togliere qualsiasi cosa. nil = niente (test).
@@ -219,17 +220,21 @@ func (in *Installatore) installa(ctx context.Context, o Opzioni) (*Stato, error)
 
 	in.avanza(Avanzamento{Fase: "prepara"})
 	creataBase := false
-	if _, err := os.Stat(o.Base); os.IsNotExist(err) {
-		creataBase = true
-	}
-	if err := os.MkdirAll(o.Base, 0o755); err != nil {
-		return nil, err
-	}
-	if in.ProteggiCartella != nil && (creataBase || strings.EqualFold(filepath.Base(o.Base), CartellaTassoStd)) {
-		if err := in.ProteggiCartella(o.Base); err != nil {
-			Diario("permessi della cartella %s non impostati: %v", o.Base, err)
-			pulisciBase(o.Base, creataBase)
-			return nil, fmt.Errorf("non riesco a proteggere la cartella %s: %w", o.Base, err)
+	if in.PreparaCartella != nil {
+		// fuori da Programmi: cartella creata già protetta, o controllata e protetta (vedi
+		// DecidiCartellaSicura); dentro Programmi una cartella normale
+		c, err := in.PreparaCartella(o.Base)
+		if err != nil {
+			Diario("cartella %s non usata: %v", o.Base, err)
+			return nil, err
+		}
+		creataBase = c
+	} else {
+		if _, err := os.Stat(o.Base); os.IsNotExist(err) {
+			creataBase = true
+		}
+		if err := os.MkdirAll(o.Base, 0o755); err != nil {
+			return nil, err
 		}
 	}
 	if err := in.Ripara(o.Base); err != nil { // resti di un'installazione interrotta
@@ -451,8 +456,16 @@ func (in *Installatore) installa(ctx context.Context, o Opzioni) (*Stato, error)
 		return nil, err
 	}
 
-	// file e registro a posto: da qui un'interruzione non deve più rimettere i file vecchi
-	if err := os.Remove(segno); err != nil {
+	// file e registro a posto: da qui un'interruzione non deve più rimettere i file vecchi.
+	// Prima via .tasso-setup-nuovo: con lui ancora lì e senza segno, Ripara rimetterebbe i file
+	// vecchi che la versione nuova ha tolto (caso "resti di un installatore di prima").
+	_ = os.RemoveAll(nuovi)
+	if err := in.conRiprova("tolgo "+segno, func() error {
+		if e := os.Remove(segno); e != nil && !os.IsNotExist(e) {
+			return e
+		}
+		return nil
+	}); err != nil {
 		Diario("non riesco a togliere %s: %v", segno, err)
 	}
 
@@ -658,13 +671,6 @@ func copiaConPassi(ctx context.Context, w io.Writer, r io.Reader, passo func(int
 	}
 }
 
-// pulisciBase: toglie la cartella base se l'ho creata io ed è vuota.
-func pulisciBase(base string, creata bool) {
-	if creata {
-		_ = os.Remove(base)
-	}
-}
-
 func scriviAtomico(p string, b []byte) error {
 	tmp := p + ".tmp"
 	if err := os.WriteFile(tmp, b, 0o644); err != nil {
@@ -749,6 +755,11 @@ func (in *Installatore) Ripara(base string) error {
 	_, errNuovi := os.Stat(nuovi)
 	ok := true
 	switch {
+	case errSegno == nil && errNuovi != nil:
+		// segno senza .tasso-setup-nuovo: l'installazione è finita (la cartella dei nuovi si toglie
+		// subito prima del segno), solo il segno non si era cancellato. Niente da rimettere: mai i
+		// *.vecchio-N, sarebbe la versione vecchia sopra quella nuova.
+		Diario("Ripara: segno rimasto dopo un'installazione finita in %s, niente da rimettere", base)
 	case errSegno == nil:
 		Diario("Ripara: installazione interrotta a metà in %s, rimetto tutti i file vecchi", base)
 		if errVecchi == nil {

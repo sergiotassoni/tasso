@@ -60,6 +60,7 @@ func TestRiparaNonRiuscitoNonInstallaSopra(t *testing.T) {
 	os.MkdirAll(filepath.Dir(v), 0o755)
 	os.Rename(filepath.Join(p.base, "Tasso.exe"), v)
 	os.WriteFile(filepath.Join(p.base, fileInCorso), nil, 0o644)
+	os.MkdirAll(filepath.Join(p.base, cartellaNuovi, "tasso"), 0o755) // fase 2 a metà: i nuovi ci sono ancora
 	p.in.Rinomina = func(a, b string) error { return errors.New("bloccato") }
 	src, e := pacchetto(t, "3.1")
 	p.in.Sorgente, p.in.Elenco = src, e
@@ -137,20 +138,68 @@ func TestInstallaFinitaSenzaSegno(t *testing.T) {
 	}
 }
 
-func TestProteggiCartella(t *testing.T) {
+func TestPreparaCartella(t *testing.T) {
 	p := nuovaProva(t, "3.1")
-	var protette []string
-	p.in.ProteggiCartella = func(b string) error { protette = append(protette, b); return nil }
+	var preparate []string
+	p.in.PreparaCartella = func(b string) (bool, error) {
+		preparate = append(preparate, b)
+		return true, os.MkdirAll(b, 0o755)
+	}
 	if _, err := p.in.Installa(context.Background(), p.opzioni(Gaming)); err != nil {
 		t.Fatal(err)
 	}
-	if len(protette) != 1 || protette[0] != p.base {
-		t.Fatalf("cartella protetta: %v", protette)
+	if len(preparate) != 1 || preparate[0] != p.base {
+		t.Fatalf("cartella preparata: %v", preparate)
 	}
-	// se non si riesce a proteggerla non si installa (e la cartella creata sparisce)
+	// cartella non sicura: non si installa e non si crea niente
 	q := nuovaProva(t, "3.1")
-	q.in.ProteggiCartella = func(string) error { return errors.New("accesso negato") }
-	if _, err := q.in.Installa(context.Background(), q.opzioni(Gaming)); err == nil || esiste(q.base) {
+	q.in.PreparaCartella = func(string) (bool, error) { return false, &ErroreCartella{ErrCartNonSicura} }
+	_, err := q.in.Installa(context.Background(), q.opzioni(Gaming))
+	var ec *ErroreCartella
+	if !errors.As(err, &ec) || ec.Codice != ErrCartNonSicura || esiste(q.base) {
 		t.Fatalf("errore %v, cartella rimasta %v", err, esiste(q.base))
+	}
+}
+
+// Segno rimasto dopo un'installazione finita (non si era cancellato) e un Tasso.exe.vecchio-1
+// ancora lì (si cancella al riavvio): Ripara NON rimette la versione vecchia sopra la nuova.
+func TestRiparaSegnoRimastoDopoFine(t *testing.T) {
+	p := nuovaProva(t, "3.1")
+	if _, err := p.in.Installa(context.Background(), p.opzioni(Gaming)); err != nil {
+		t.Fatal(err)
+	}
+	exe := filepath.Join(p.base, "Tasso.exe")
+	lato := exe + ".vecchio-1"
+	os.WriteFile(lato, []byte("tasso 3.0"), 0o644)
+	os.WriteFile(filepath.Join(p.base, fileInCorso), []byte(lato+"\t"+exe+"\n"), 0o644)
+	if err := p.in.Ripara(p.base); err != nil {
+		t.Fatal(err)
+	}
+	if leggi(t, exe) != "tasso 3.1" {
+		t.Fatal("Ripara ha rimesso la versione vecchia")
+	}
+	if esiste(filepath.Join(p.base, fileInCorso)) {
+		t.Fatal("il segno resta")
+	}
+}
+
+// Installazione riuscita: la cartella dei nuovi sparisce prima del segno (P1): se il PC si
+// spegne dopo, Ripara non rimette i file tolti dalla versione nuova.
+func TestNuoviToltiPrimaDelSegno(t *testing.T) {
+	p := nuovaProva(t, "3.1")
+	visto := false
+	p.in.CreaCollegamento = func(Collegamento) error {
+		// durante i collegamenti (dopo il registro) .tasso-setup-nuovo non c'è già più
+		if esiste(filepath.Join(p.base, cartellaNuovi)) {
+			t.Error("cartella dei nuovi ancora lì durante i collegamenti")
+		}
+		visto = true
+		return nil
+	}
+	if _, err := p.in.Installa(context.Background(), p.opzioni(Gaming)); err != nil {
+		t.Fatal(err)
+	}
+	if !visto {
+		t.Skip("nessun collegamento creato in questa prova")
 	}
 }

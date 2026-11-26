@@ -22,6 +22,72 @@ type OpzioniDisinstalla struct {
 	// TogliDati: via anche i dati di Tasso in %LOCALAPPDATA% (Tasso e TassoTraduce: impostazioni,
 	// memoria delle traduzioni, modelli scaricati, Portachiavi). Solo se l'utente lo conferma.
 	TogliDati bool
+	// TassoGiaPulito: Tasso ha già tolto le sue cose (PulisciTasso chiamata prima, per esempio
+	// prima di chiudere gli altri programmi): non lo richiamo.
+	TassoGiaPulito bool
+}
+
+// TogliTasso: togliendo questi componenti va via anche Tasso.exe (Gaming e Ufficio tutti e due,
+// o l'unico dei due che c'è). false se st è nil.
+func TogliTasso(st *Stato, togli []Componente) bool {
+	if st == nil {
+		return false
+	}
+	togli, err := normalizza(togli)
+	if err != nil || len(togli) == 0 {
+		return false
+	}
+	prima, dopo := false, false
+	for _, p := range ProgrammiPer(st.Componenti) {
+		prima = prima || p == ProgTasso
+	}
+	for _, p := range ProgrammiPer(Meno(st.Componenti, togli)) {
+		dopo = dopo || p == ProgTasso
+	}
+	return prima && !dopo
+}
+
+// CartellaSoloTasso: la cartella base è solo di Tasso (si chiama Tasso, o dentro ci sono soltanto
+// cose di Tasso Setup: i file e le cartelle dei programmi dell'elenco, le cartelle di lavoro di
+// Tasso, i file dell'installatore). Solo allora lavoro, strumenti e driver si toccano: le
+// installazioni di prima in una cartella condivisa (D:\Programmi, C:\Program Files) possono avere
+// una cartella "driver" o "strumenti" di un altro programma.
+func CartellaSoloTasso(base string, st *Stato) bool {
+	if st == nil {
+		return false
+	}
+	if strings.EqualFold(filepath.Base(filepath.Clean(base)), CartellaTassoStd) {
+		return true
+	}
+	noti := map[string]bool{strings.ToLower(FileStato): true, strings.ToLower(FileStato + ".tmp"): true,
+		cartellaNuovi: true, cartellaVecchi: true, fileInCorso: true}
+	for _, d := range SottocartelleTasso {
+		noti[d] = true
+	}
+	for id, sp := range st.Programmi {
+		dir := CartellaDi(base, id)
+		if !strings.EqualFold(filepath.Clean(dir), filepath.Clean(base)) {
+			if rel, err := filepath.Rel(base, dir); err == nil {
+				noti[strings.ToLower(strings.SplitN(filepath.ToSlash(rel), "/", 2)[0])] = true
+			}
+			continue
+		}
+		for _, f := range sp.File {
+			noti[strings.ToLower(strings.SplitN(strings.ReplaceAll(f.Nome, `\`, "/"), "/", 2)[0])] = true
+		}
+	}
+	voci, err := os.ReadDir(base)
+	if err != nil {
+		return false
+	}
+	for _, v := range voci {
+		n := strings.ToLower(v.Name())
+		if noti[n] || strings.Contains(n, ".vecchio-") {
+			continue
+		}
+		return false // qualcosa che non è di Tasso: cartella condivisa
+	}
+	return true
 }
 
 // ChiaviSoloTasso: chiavi del registro scritte da Tasso stesso (non dall'installatore) che con
@@ -71,6 +137,7 @@ func (in *Installatore) DisinstallaCon(base string, togli []Componente, od Opzio
 		return nil, errors.New("nessun componente da togliere")
 	}
 	restano := Meno(st.Componenti, togli)
+	stIniziale := copiaStato(st) // per CartellaSoloTasso: com'era prima di togliere
 	progPrima := ProgrammiPer(st.Componenti)
 	progDopo := map[Programma]bool{}
 	for _, p := range ProgrammiPer(restano) {
@@ -92,7 +159,7 @@ func (in *Installatore) DisinstallaCon(base string, togli []Componente, od Opzio
 	for _, p := range via {
 		viaTasso = viaTasso || p == ProgTasso
 	}
-	if viaTasso && in.PulisciTasso != nil {
+	if viaTasso && in.PulisciTasso != nil && !od.TassoGiaPulito {
 		// Tasso toglie le sue cose finché il suo exe c'è ancora. Se rifiuta (un gioco tradotto è
 		// aperto, la modalità riunione è accesa...) non tolgo niente e lo dico.
 		if err := in.PulisciTasso(base); err != nil {
@@ -164,7 +231,7 @@ func (in *Installatore) DisinstallaCon(base string, togli []Componente, od Opzio
 		// menu del tasto destro, "Apri con" e dati in %LOCALAPPDATA% messi dal programma
 		ris.NonTolti = append(ris.NonTolti, in.togliTracceUtente(base, id)...)
 		if id == ProgTasso {
-			in.togliCoseDiTasso(base, od, ris)
+			in.togliCoseDiTasso(base, stIniziale, od, ris)
 		}
 		delete(st.Programmi, id)
 	}
@@ -260,9 +327,13 @@ var errOccupata = errors.New("qualcosa dentro è ancora aperto")
 
 // togliCoseDiTasso: dopo Tasso.exe, le cose che Tasso ha messo da solo: le sue cartelle di lavoro,
 // le attività pianificate \Tasso\, le sue chiavi del registro e (se confermato) i suoi dati.
-func (in *Installatore) togliCoseDiTasso(base string, od OpzioniDisinstalla, ris *Risultato) {
-	for _, d := range SottocartelleTasso {
-		in.togliCartellaORiavvio(filepath.Join(base, d), ris)
+func (in *Installatore) togliCoseDiTasso(base string, st *Stato, od OpzioniDisinstalla, ris *Risultato) {
+	if CartellaSoloTasso(base, st) {
+		for _, d := range SottocartelleTasso {
+			in.togliCartellaORiavvio(filepath.Join(base, d), ris)
+		}
+	} else {
+		Diario("%s non è solo di Tasso: lavoro, strumenti e driver restano (potrebbero essere di altri programmi)", base)
 	}
 	if in.TogliAttivita != nil {
 		if err := in.TogliAttivita(); err != nil {
@@ -335,4 +406,13 @@ func Installato(r Registro) (string, bool) {
 		return c, true
 	}
 	return "", false
+}
+
+func copiaStato(st *Stato) *Stato {
+	c := *st
+	c.Programmi = map[Programma]StatoProg{}
+	for k, v := range st.Programmi {
+		c.Programmi[k] = v
+	}
+	return &c
 }

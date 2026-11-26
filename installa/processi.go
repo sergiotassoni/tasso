@@ -185,8 +185,17 @@ func CriteriPer(base string, cc []Componente, st *Stato, e *Elenco, radici []uin
 		}
 	}
 	if scelti[ProgTasso] {
-		for _, d := range SottocartelleTasso {
-			c.Cartelle = append(c.Cartelle, base+`\`+d)
+		// lavoro, strumenti e driver solo se la cartella è davvero di Tasso (vedi CartellaSoloTasso;
+		// senza installazione la cartella è sempre una sua, ...\Tasso: CartellaDedicata)
+		if st == nil || CartellaSoloTasso(base, st) {
+			for _, d := range SottocartelleTasso {
+				c.Cartelle = append(c.Cartelle, base+`\`+d)
+			}
+		} else {
+			// cartella condivisa: da lì solo gli aiutanti di Tasso per nome (llama-server...)
+			for _, d := range SottocartelleTasso {
+				c.CartelleAiutanti = append(c.CartelleAiutanti, base+`\`+d)
+			}
 		}
 		for _, p := range []Programma{ProgZip, ProgPDF} {
 			if !scelti[p] {
