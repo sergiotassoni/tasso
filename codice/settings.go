@@ -297,7 +297,7 @@ func loadSettings() {
 	if err == nil {
 		if json.Unmarshal(b, &settings) != nil {
 			// File rovinato: lo metto da parte invece di sovrascriverlo (dentro c'è il backup delle impostazioni).
-			_ = os.WriteFile(settingsPath()+".bad", b, 0o644)
+			_ = scriviFileApp(settingsPath()+".bad", b, 0o644)
 			settings = Settings{Mode: "normale"}
 		}
 	}
@@ -350,7 +350,7 @@ func saveSettings() bool {
 			return false
 		}
 		if err == nil {
-			_ = os.WriteFile(settingsPath()+".prima", old, 0o644)
+			_ = scriviFileApp(settingsPath()+".prima", old, 0o644)
 			// Il file adesso si legge: quello è quello vero. Lo tengo così com'è invece di
 			// sovrascriverlo con le impostazioni di partenza di questa sessione (si perde al massimo
 			// l'ultimo cambio fatto adesso, non tutto il resto).
@@ -370,9 +370,15 @@ func saveSettings() bool {
 	b, _ := json.MarshalIndent(settings, "", "  ")
 	// Scrittura sicura: prima un file temporaneo, poi lo scambio (niente file a metà se il PC si spegne).
 	tmp := settingsPath() + ".tmp"
-	if os.WriteFile(tmp, b, 0o644) == nil {
-		if os.Rename(tmp, settingsPath()) != nil {
-			_ = os.WriteFile(settingsPath(), b, 0o644)
+	// sicuro_scrittura.go: niente scritture attraverso collegamenti o giunzioni nella cartella dati.
+	// Un .tmp che è un collegamento lo tolgo (si toglie il collegamento, non il file a cui punta);
+	// lo scambio finale sostituisce un settings.json collegamento invece di seguirlo.
+	if fi, err := os.Lstat(tmp); err == nil && èLink(fi) {
+		_ = os.Remove(tmp)
+	}
+	if scriviFileApp(tmp, b, 0o644) == nil {
+		if rinominaApp(tmp, settingsPath()) != nil {
+			_ = scriviFileApp(settingsPath(), b, 0o644)
 			_ = os.Remove(tmp)
 		}
 	}

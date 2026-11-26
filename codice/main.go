@@ -296,10 +296,10 @@ func main() {
 // Serve a capire cosa rende lenta l'apertura sul PC di chi lo usa (il file resta piccolo).
 func scriviAvvio(cosa string) {
 	p := filepath.Join(appDir, "logs", "avvio.txt")
-	if fi, err := os.Stat(p); err == nil && fi.Size() > 64<<10 {
+	if fi, err := os.Lstat(p); err == nil && fi.Size() > 64<<10 && !èLink(fi) {
 		_ = os.Remove(p)
 	}
-	f, err := os.OpenFile(p, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0o644)
+	f, err := apriLogApp(p, os.O_WRONLY|os.O_CREATE|os.O_APPEND) // sicuro_scrittura.go: niente giunzioni
 	if err != nil {
 		return
 	}
@@ -346,7 +346,7 @@ func hardenProcess() {
 // logPanic: scrive in logs\crash.txt un errore grave che Tasso ha fermato senza chiudersi.
 func logPanic(where string, r interface{}, stack []byte) {
 	p := filepath.Join(appDir, "logs", "crash.txt")
-	f, err := os.OpenFile(p, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0o644)
+	f, err := apriLogApp(p, os.O_WRONLY|os.O_CREATE|os.O_APPEND)
 	if err != nil {
 		return
 	}
@@ -365,10 +365,10 @@ func guard(where string) {
 // (con data e versione), così si può capire cosa è successo sul PC di chi lo usa.
 func startCrashLog() {
 	p := filepath.Join(appDir, "logs", "crash.txt")
-	if fi, err := os.Stat(p); err == nil && fi.Size() > 1<<20 {
-		_ = os.Rename(p, p+".old") // non lo lascio crescere all'infinito
+	if fi, err := os.Lstat(p); err == nil && fi.Size() > 1<<20 && !èLink(fi) {
+		_ = rinominaApp(p, p+".old") // non lo lascio crescere all'infinito
 	}
-	f, err := os.OpenFile(p, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0o644)
+	f, err := apriLogApp(p, os.O_WRONLY|os.O_CREATE|os.O_APPEND)
 	if err != nil {
 		return
 	}

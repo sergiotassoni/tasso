@@ -501,7 +501,7 @@ func startSteps(ids []string, level int, shutdownAfter bool) string {
 			runMu.Unlock()
 		}()
 		logPath := filepath.Join(appDir, "logs", "tasso_"+time.Now().Format("20060102_150405")+".txt")
-		lf, _ := os.Create(logPath)
+		lf, _ := apriLogApp(logPath, os.O_RDWR|os.O_CREATE|os.O_TRUNC) // come os.Create, senza giunzioni
 		defer func() {
 			if lf != nil {
 				lf.Close()
