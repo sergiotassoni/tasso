@@ -64,6 +64,9 @@ func CartellaSoloTasso(base string, st *Stato) bool {
 	for _, d := range SottocartelleTasso {
 		noti[d] = true
 	}
+	for _, f := range ResiduiAggiornamentoTasso {
+		noti[strings.ToLower(f)] = true
+	}
 	for id, sp := range st.Programmi {
 		dir := CartellaDi(base, id)
 		if !strings.EqualFold(filepath.Clean(dir), filepath.Clean(base)) {
@@ -103,6 +106,23 @@ var ChiaviSoloTasso = []struct {
 
 // CartelleDatiTasso: le cartelle dei dati di Tasso in %LOCALAPPDATA%.
 var CartelleDatiTasso = []string{"Tasso", "TassoTraduce"}
+
+// CartelleDaTenere: dentro i dati di Tasso, le cartelle che non si cancellano mai, nemmeno con
+// "togli anche i miei dati": gli originali dei file dei giochi tradotti (copie-giochi) e le copie
+// del registro. Tasso, quando toglie le sue cose (--togli-silenzioso), le sposta in
+// Documenti\Tasso - copie di sicurezza e qui restano vuote; se non l'ha fatto (Tasso vecchio senza
+// --togli-silenzioso, bloccato o in errore) sono ancora qui, e cancellarle vorrebbe dire perdere
+// per sempre i file originali dei giochi.
+var CartelleDaTenere = map[string][]string{
+	"Tasso":        {"backup", "backup-registro"},
+	"TassoTraduce": {"copie-giochi"},
+}
+
+// ResiduiAggiornamentoTasso: copie a metà che Tasso lascia accanto a Tasso.exe quando si aggiorna da
+// solo o copia sé stesso in Programmi (selfupdate.go, installProgramCopy). Non sono nell'elenco
+// dell'installatore: senza toglierle la cartella di Tasso non resterebbe mai vuota (e resterebbe un
+// Tasso.exe vecchio in Programmi).
+var ResiduiAggiornamentoTasso = []string{"Tasso.exe.new", "Tasso.exe.old", "Tasso.new.exe", "Tasso.old.exe"}
 
 // Disinstalla toglie i componenti scelti, e solo i file scritti in tasso-setup.json.
 //   - Gaming senza Ufficio (o il contrario): Tasso.exe resta, cambia solo la modalità.
@@ -333,6 +353,11 @@ func (in *Installatore) togliCoseDiTasso(base string, st *Stato, od OpzioniDisin
 		for _, d := range SottocartelleTasso {
 			in.togliCartellaORiavvio(filepath.Join(base, d), ris)
 		}
+		for _, f := range ResiduiAggiornamentoTasso {
+			if fi, err := os.Lstat(filepath.Join(base, f)); err == nil && fi.Mode().IsRegular() {
+				in.togliORiavvio(filepath.Join(base, f), ris)
+			}
+		}
 	} else {
 		Diario("%s non è solo di Tasso: lavoro, strumenti e driver restano (potrebbero essere di altri programmi)", base)
 	}
@@ -350,8 +375,43 @@ func (in *Installatore) togliCoseDiTasso(base string, st *Stato, od OpzioniDisin
 	if od.TogliDati && in.CartellaDatiUtente != nil {
 		if radice := in.CartellaDatiUtente(); radice != "" && filepath.IsAbs(radice) {
 			for _, n := range CartelleDatiTasso {
-				in.togliCartellaORiavvio(filepath.Join(radice, n), ris)
+				in.togliDatiTenendo(filepath.Join(radice, n), CartelleDaTenere[n], ris)
 			}
+		}
+	}
+}
+
+// togliDatiTenendo toglie la cartella dei dati d, ma le sue sottocartelle tieni che hanno dentro
+// qualcosa restano (vedi CartelleDaTenere). Se non ce n'è nessuna, via la cartella intera.
+func (in *Installatore) togliDatiTenendo(d string, tieni []string, ris *Risultato) {
+	var tenute []string
+	for _, t := range tieni {
+		if voci, err := os.ReadDir(filepath.Join(d, t)); err == nil && len(voci) > 0 {
+			tenute = append(tenute, t)
+		}
+	}
+	if len(tenute) == 0 {
+		in.togliCartellaORiavvio(d, ris)
+		return
+	}
+	Diario("%s: tengo %v (originali dei giochi o copie del registro che Tasso non ha messo in Documenti)", d, tenute)
+	voci, err := os.ReadDir(d)
+	if err != nil {
+		return
+	}
+	for _, v := range voci {
+		tenuta := false
+		for _, t := range tenute {
+			tenuta = tenuta || strings.EqualFold(v.Name(), t)
+		}
+		if tenuta {
+			continue
+		}
+		p := filepath.Join(d, v.Name())
+		if v.IsDir() {
+			in.togliCartellaORiavvio(p, ris)
+		} else {
+			in.togliORiavvio(p, ris)
 		}
 	}
 }

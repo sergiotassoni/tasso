@@ -213,3 +213,81 @@ func TestDisinstallaTassoGiaPulito(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+// "Togli anche i miei dati" con Tasso che non ha spostato in Documenti gli originali dei giochi
+// (Tasso vecchio, bloccato o in errore): copie-giochi e le copie del registro restano, il resto dei
+// dati va via. Le copie a metà degli aggiornamenti di Tasso (Tasso.exe.old...) vanno via con Tasso,
+// così la cartella resta vuota e si toglie.
+func TestDisinstallaDatiTieneOriginaliGiochi(t *testing.T) {
+	p := nuovaProva(t, "3.1")
+	if _, err := p.in.Installa(context.Background(), p.opzioni(TuttiComponenti...)); err != nil {
+		t.Fatal(err)
+	}
+	dati := t.TempDir()
+	scrivi := func(parti ...string) {
+		f := filepath.Join(append([]string{dati}, parti...)...)
+		os.MkdirAll(filepath.Dir(f), 0o755)
+		os.WriteFile(f, []byte("x"), 0o644)
+	}
+	scrivi("TassoTraduce", "copie-giochi", "gioco-1", "data.pak")
+	scrivi("TassoTraduce", "memoria.db")
+	scrivi("TassoTraduce", "modelli", "m.bin")
+	scrivi("Tasso", "backup", "reg-1.reg")
+	scrivi("Tasso", "settings.json")
+	scrivi("Tasso", "portachiavi.dat")
+	os.MkdirAll(filepath.Join(dati, "Tasso", "backup-registro"), 0o755) // vuota: va via
+	for _, f := range ResiduiAggiornamentoTasso {
+		os.WriteFile(filepath.Join(p.base, f), []byte("vecchio"), 0o755)
+	}
+	p.in.CartellaDatiUtente = func() string { return dati }
+	r, err := p.in.DisinstallaCon(p.base, TuttiComponenti, OpzioniDisinstalla{TogliDati: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, f := range [][]string{{"TassoTraduce", "copie-giochi", "gioco-1", "data.pak"}, {"Tasso", "backup", "reg-1.reg"}} {
+		if !esiste(filepath.Join(append([]string{dati}, f...)...)) {
+			t.Errorf("tolto %v: era un originale da tenere", f)
+		}
+	}
+	for _, f := range [][]string{{"TassoTraduce", "memoria.db"}, {"TassoTraduce", "modelli"}, {"Tasso", "settings.json"},
+		{"Tasso", "portachiavi.dat"}, {"Tasso", "backup-registro"}} {
+		if esiste(filepath.Join(append([]string{dati}, f...)...)) {
+			t.Errorf("resta %v", f)
+		}
+	}
+	if !r.TuttoTolto || esiste(p.base) {
+		t.Fatalf("la cartella di Tasso doveva sparire (tutto tolto %v, non tolti %v)", r.TuttoTolto, r.NonTolti)
+	}
+
+	// Tasso ha già spostato tutto in Documenti (copie-giochi vuota): via la cartella intera
+	p2 := nuovaProva(t, "3.1")
+	if _, err := p2.in.Installa(context.Background(), p2.opzioni(Gaming)); err != nil {
+		t.Fatal(err)
+	}
+	dati2 := t.TempDir()
+	os.MkdirAll(filepath.Join(dati2, "TassoTraduce", "copie-giochi"), 0o755)
+	os.WriteFile(filepath.Join(dati2, "TassoTraduce", "memoria.db"), []byte("x"), 0o644)
+	p2.in.CartellaDatiUtente = func() string { return dati2 }
+	if _, err := p2.in.DisinstallaCon(p2.base, []Componente{Gaming}, OpzioniDisinstalla{TogliDati: true}); err != nil {
+		t.Fatal(err)
+	}
+	if esiste(filepath.Join(dati2, "TassoTraduce")) {
+		t.Fatal("TassoTraduce doveva sparire tutta")
+	}
+}
+
+// Una cartella con un nome qualsiasi, con dentro solo cose di Tasso e un Tasso.exe.old, è ancora solo di Tasso.
+func TestCartellaSoloTassoConResiduiAggiornamento(t *testing.T) {
+	dir := filepath.Join(t.TempDir(), "AppGiochi")
+	os.MkdirAll(dir, 0o755)
+	st := &Stato{Programmi: map[Programma]StatoProg{ProgTasso: {File: []FileElenco{{Nome: "Tasso.exe"}}}}}
+	os.WriteFile(filepath.Join(dir, "Tasso.exe"), nil, 0o644)
+	os.WriteFile(filepath.Join(dir, "Tasso.exe.old"), nil, 0o644)
+	if !CartellaSoloTasso(dir, st) {
+		t.Fatal("Tasso.exe.old è di Tasso")
+	}
+	os.WriteFile(filepath.Join(dir, "altro.exe"), nil, 0o644)
+	if CartellaSoloTasso(dir, st) {
+		t.Fatal("altro.exe non è di Tasso")
+	}
+}
