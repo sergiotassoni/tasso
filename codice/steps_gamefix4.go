@@ -230,7 +230,7 @@ if ($big.Count) { Say ('Giochi di Steam che occupano di più: ' + (($big | ForEa
 Say 'Per liberare spazio senza perdere niente: Pulisci e ripara (pulizia normale), poi Mappa del disco per vedere cosa occupa di più.'
 Say 'Se hai un secondo disco con spazio, installa lì il gioco: in Steam scegli la cartella nel momento in cui installi, oppure sposta un gioco già installato da Proprietà > File installati > Sposta cartella.'
 `)},
-	{ID: "fix_game_nat", Name: "Chat vocale o partite con amici non funzionano (NAT)", Desc: "Per \"NAT rigido o moderato\", party chat di Xbox che non si collega o amici che non riescono a entrare: rimette a posto i servizi di rete che servono ai giochi, controlla la rete e il microfono, e ti dice cosa fare sul router.", Level: 0, Minutes: 0.4, Timeout: 3 * time.Minute, Script: ofs2(`
+	{ID: "fix_game_nat", Name: "Chat vocale o partite online con altri giocatori non funzionano (NAT)", Desc: "Per \"NAT rigido o moderato\", party chat di Xbox che non si collega o altri giocatori che non riescono a entrare nella tua partita: rimette a posto i servizi di rete che servono ai giochi, controlla la rete e il microfono, e ti dice cosa fare sul router.", Level: 0, Minutes: 0.4, Timeout: 3 * time.Minute, Script: ofs2(`
 foreach ($s in @('iphlpsvc', 'SSDPSRV', 'upnphost', 'XblAuthManager', 'XboxNetApiSvc')) {
   $sv = Get-Service -Name $s -ErrorAction SilentlyContinue
   if ($sv -and $sv.StartType -eq 'Automatic' -and $sv.Status -ne 'Running') { try { Start-Service -Name $s -ErrorAction Stop; Say ('Riacceso il servizio ' + $sv.DisplayName + ', che doveva essere acceso.') } catch {} }
@@ -242,7 +242,7 @@ if ($td -eq 'Disabled') {
   if ($LASTEXITCODE -eq 0) { Say 'Riattivato "Teredo", il pezzo di Windows che serve alla party chat e al multigiocatore Xbox (era disattivato). Per tornare indietro: netsh interface teredo set state disabled' } else { Say 'Teredo, il pezzo di Windows per la party chat Xbox, è disattivato e Windows non mi lascia riattivarlo (forse lo blocca un criterio del PC di lavoro).' }
 }
 $pub = @(Get-NetConnectionProfile -ErrorAction SilentlyContinue | Where-Object { $_.NetworkCategory -eq 'Public' -and $_.IPv4Connectivity -eq 'Internet' })
-foreach ($p in $pub) { Say ('La rete "' + $p.Name + '" è segnata come Pubblica: per la rete di casa scegli "Privata" in Impostazioni > Rete e Internet > ' + $p.Name + '. Aiuta giochi e chat a collegarsi tra amici.') }
+foreach ($p in $pub) { Say ('La rete "' + $p.Name + '" è segnata come Pubblica: per la rete di casa scegli "Privata" in Impostazioni > Rete e Internet > ' + $p.Name + '. Aiuta giochi e chat a collegarsi con gli altri giocatori.') }
 $m = Get-Privacy 'microphone'
 if ($m.all -eq 'Deny' -or $m.pc -eq 'Deny') { Say 'Windows blocca il microfono a tutte le app: per questo nella chat non ti sentono. Accendilo in Impostazioni > Privacy > Microfono.'; Open-User 'ms-settings:privacy-microphone' }
 elseif ($m.desk -eq 'Deny') { Say 'Windows blocca il microfono ai programmi normali (giochi, Steam): accendi "Consenti alle app desktop di accedere al microfono" in Impostazioni > Privacy > Microfono.'; Open-User 'ms-settings:privacy-microphone' }
