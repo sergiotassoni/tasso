@@ -439,11 +439,11 @@ func TestDisinstallaSelettiva(t *testing.T) {
 	if !esiste(altro) || !esiste(filepath.Join(p.menu, "Tasso PDF.lnk")) {
 		t.Fatal("tolto qualcosa di troppo")
 	}
-	// 3. via Ufficio: ora Tasso.exe va via, la cartella lavoro resta
+	// 3. via Ufficio: ora Tasso.exe va via, e con lui la sua cartella lavoro
 	if _, err := p.in.Disinstalla(p.base, []Componente{Ufficio}); err != nil {
 		t.Fatal(err)
 	}
-	if esiste(filepath.Join(p.base, "Tasso.exe")) || esiste(filepath.Join(p.base, "VERSIONE")) || !esiste(lavoro) {
+	if esiste(filepath.Join(p.base, "Tasso.exe")) || esiste(filepath.Join(p.base, "VERSIONE")) || esiste(lavoro) {
 		t.Fatal("Tasso tolto male")
 	}
 	if _, ok := p.reg.LeggiTesto(HKLM, ChiaveTasso, "Modalita"); ok {
@@ -463,7 +463,7 @@ func TestDisinstallaSelettiva(t *testing.T) {
 			t.Errorf("rimasto %s", f)
 		}
 	}
-	if !esiste(lavoro) || !esiste(altro) {
+	if !esiste(altro) {
 		t.Fatal("cancellati file non dell'installatore")
 	}
 	if _, ok := p.reg.LeggiTesto(HKLM, ChiaveDisinstalla, "DisplayName"); ok {

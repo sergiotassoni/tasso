@@ -57,7 +57,7 @@ h1{margin:0;font-family:var(--display);font-weight:800;font-stretch:110%;letter-
 .carta b{display:block;font-family:var(--display);font-weight:700;font-stretch:105%;font-size:16px}
 .carta p{margin:4px 0 0;color:var(--muted);line-height:1.45;font-size:13px}
 .carta .badge{display:inline-block;margin-top:8px;font:500 10px var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--a3);border:1px solid var(--line);border-radius:6px;padding:3px 6px}
-.nota{border:1px solid var(--line);border-radius:12px;padding:12px 14px;color:var(--soft);line-height:1.5;font-size:13px}
+.nota{border:1px solid var(--line);border-radius:12px;padding:12px 14px;color:var(--soft);line-height:1.5;font-size:13px;white-space:pre-line}
 .nota.avviso{border-color:color-mix(in srgb,var(--a4) 55%,var(--line));color:var(--a4)}
 .nota.errore{border-color:color-mix(in srgb,var(--red) 60%,var(--line));color:var(--red)}
 #errTesto{white-space:pre-line;overflow-wrap:anywhere}
@@ -166,6 +166,7 @@ label.scelta.fissa{cursor:default;opacity:.7}
       <p class="sub" data-t="dis_sotto"></p>
       <div class="comp" id="compDis"></div>
       <div class="nota" id="notaDis" data-t="dis_nota_tasso"></div>
+      <label class="scelta" id="sceltaDati"><input type="checkbox" id="disDati"><span data-t="dis_dati"></span></label>
     </section>
     <!-- 7. disinstallazione finita -->
     <section class="pagina" id="p7">
@@ -259,8 +260,9 @@ function carta(c, mappa, testoExtra){
 }
 function disegnaComp(){
   const box = $('#comp'); box.innerHTML = '';
-  A.componenti.forEach(c => box.appendChild(carta(c, scelti, c.installato ? T('comp_installato', c.installato) : '')));
-  const n = $('#notaAgg'); n.hidden = !A.installata; if (A.installata) n.textContent = T('agg_nota', A.installata.versione);
+  A.componenti.forEach(c => box.appendChild(carta(c, scelti, c.piuNuovo ? T('comp_piu_nuovo', c.piuNuovo) : (c.installato ? T('comp_installato', c.installato) : ''))));
+  const n = $('#notaAgg'); n.hidden = !A.installata;
+  if (A.installata) n.textContent = T('agg_nota', A.installata.versione) + (A.installata.vecchio ? '\n' + T('agg_vecchio', A.versione) : '');
   const d = $('#compDis'); d.innerHTML = '';
   if (A.installata) A.componenti.filter(c => A.installata.componenti.includes(c.id)).forEach(c => d.appendChild(carta(c, dis, c.installato ? T('comp_installato', c.installato) : '')));
 }
@@ -312,7 +314,7 @@ function chiediChiusura(nomi){
 let ultimaOpz = null;  // le scelte dell'ultima installazione (per Riprova)
 let erroreCartella = false;
 function mostraErrore(r){
-  const conDettagli = r && (r.codice === 'err_generico' || r.codice === 'err_bloccato');
+  const conDettagli = r && (r.codice === 'err_generico' || r.codice === 'err_bloccato' || r.codice === 'agg_vecchio');
   let t = r && r.codice ? (conDettagli ? T(r.codice, r.dettagli || '') : T(r.codice)) : T('err_generico', String(r && r.dettagli || r));
   if (r && r.diario) t += '\n\n' + T('err_diario', r.diario);
   erroreCartella = !!(r && r.codice && String(r.codice).startsWith('cart_'));
@@ -373,11 +375,14 @@ async function disinstalla(){
     if (!await call('goChiudiProgrammi', A.cartella, ids)) { msg(T('aperti_errore')); return; }
   }
   $('#bAvanti').disabled = true; $('#bAnnulla').disabled = true; msg(''); $('#msg').style.color = 'var(--muted)'; $('#msg').textContent = T('dis_in_corso');
-  const r = await call('goDisinstalla', ids);
+  const r = await call('goDisinstalla', ids, !!$('#disDati').checked && !$('#sceltaDati').hidden);
   $('#msg').style.color = '';
-  if (!r.ok) { $('#bAvanti').disabled = false; $('#bAnnulla').disabled = false; msg(T('err_generico', r.dettagli || '')); return; }
+  if (!r.ok) { $('#bAvanti').disabled = false; $('#bAnnulla').disabled = false; msg(r.rifiuta ? T('dis_rifiuta', r.dettagli || '') : T('err_generico', r.dettagli || '')); return; }
   $('#disEsito').textContent = r.tuttoTolto ? T('dis_tutto') : T('dis_fatto');
-  const nt = $('#disNonTolti'); nt.hidden = !(r.nonTolti && r.nonTolti.length); if (!nt.hidden) nt.textContent = T('dis_non_tolti', r.nonTolti.join(', '));
+  const nt = $('#disNonTolti'); const righe = [];
+  if (r.nonTolti && r.nonTolti.length) righe.push(T('dis_non_tolti', r.nonTolti.join(', ')));
+  if (r.alRiavvio && r.alRiavvio.length) righe.push(T('dis_al_riavvio', r.alRiavvio.join(', ')));
+  nt.hidden = !righe.length; if (!nt.hidden) nt.textContent = righe.join('\n');
   vai(7);
 }
 
@@ -386,7 +391,14 @@ async function disinstalla(){
   L = A.lingua || 'it';
   // disinstalla: tutti spuntati, o solo quelli chiesti con --scegli= (da "Togli Tasso dal PC")
   const pre = (A.preScelti || []).filter(id => A.componenti.some(c => c.id === id));
-  A.componenti.forEach(c => { scelti[c.id] = true; dis[c.id] = pre.length ? pre.includes(c.id) : true; });
+  // installa: tutti spuntati; aggiornamento: solo quelli già installati e non già più nuovi
+  // (mai aggiungere di nascosto un programma che non c'era, mai tornare indietro)
+  A.componenti.forEach(c => {
+    scelti[c.id] = A.installata ? (A.installata.componenti.includes(c.id) && !c.piuNuovo) : true;
+    dis[c.id] = pre.length ? pre.includes(c.id) : true;
+  });
+  // i dati di Tasso: solo se l'utente lo spunta; da "Togli Tasso dal PC" li ha già tolti Tasso
+  $('#sceltaDati').hidden = !!pre.length || !(A.installata && (A.installata.componenti.includes('gaming') || A.installata.componenti.includes('ufficio')));
   $('#cartella').value = A.cartella || '';
   if (A.installata) { $('#cartella').readOnly = true; $('#sfoglia').hidden = true; } // aggiornamento: stessa cartella
   $('#desktop').checked = !!(A.installata && A.installata.desktop); // aggiornamento: il Desktop resta com'era

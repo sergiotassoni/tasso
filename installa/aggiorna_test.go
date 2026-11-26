@@ -261,3 +261,18 @@ func TestAggiornamentoDesktopNonSpuntatoTiene(t *testing.T) {
 		t.Fatal("DesktopTogli: il Desktop doveva restare vuoto")
 	}
 }
+
+func TestSenzaPiuNuovi(t *testing.T) {
+	st := &Stato{Programmi: map[Programma]StatoProg{ProgTasso: {Versione: "3.1"}, ProgZip: {Versione: "1.5"}}}
+	e := &Elenco{Programmi: []ProgElenco{{ID: ProgTasso, Versione: "3.1"}, {ID: ProgZip, Versione: "1.4"}, {ID: ProgPDF, Versione: "1.0"}}}
+	got := SenzaPiuNuovi(st, e, []Componente{Gaming, Zip, PDF}, "3.2")
+	if len(got) != 1 || got[0] != PDF {
+		t.Fatalf("restano %v: Tasso (VERSIONE 3.2) e Zip (1.5) sono più nuovi", got)
+	}
+	if got := SenzaPiuNuovi(st, e, []Componente{Gaming}, ""); len(got) != 1 {
+		t.Fatalf("stessa versione: si reinstalla (%v)", got)
+	}
+	if got := SenzaPiuNuovi(nil, e, []Componente{Gaming}, ""); len(got) != 1 {
+		t.Fatal("prima installazione")
+	}
+}

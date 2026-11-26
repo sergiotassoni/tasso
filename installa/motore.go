@@ -63,6 +63,12 @@ type Installatore struct {
 	// scrivono). nil = niente (Linux, test). Si chiama solo per una cartella creata adesso o che
 	// si chiama Tasso (cioè sicuramente solo di Tasso).
 	ProteggiCartella func(base string) error
+	// PulisciTasso: disinstallando Tasso, Tasso stesso toglie le sue cose (Tasso.exe
+	// --togli-silenzioso: attività, Boost, Ufficio, traduzioni nei giochi). Un errore ferma la
+	// disinstallazione prima di togliere qualsiasi cosa. nil = niente (test).
+	PulisciTasso func(base string) error
+	// TogliAttivita: toglie la cartella \Tasso\ dell'Utilità di pianificazione con le sue attività.
+	TogliAttivita func() error
 }
 
 // Opzioni scelte nelle pagine dell'installatore.

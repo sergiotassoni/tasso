@@ -4,6 +4,7 @@ package main
 // programmi aperti, scelta della cartella, spazio libero, togliere il disinstallatore aperto.
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -661,4 +662,61 @@ func proteggiCartellaFuoriProgrammi(base string) error {
 		installa.Diario("permessi di %s: solo gli amministratori possono modificare", base)
 	}
 	return err
+}
+
+// ---------------- Tasso toglie le sue cose (disinstallazione da App e funzionalità) ----------------
+
+// segnoTogliSilenzioso: c'è dentro Tasso.exe solo se Tasso conosce "--togli-silenzioso"
+// (uninstall.go di Tasso). Un Tasso vecchio, avviato con un argomento che non conosce, si
+// aprirebbe normalmente: allora non lo avvio e faccio solo la mia parte.
+const segnoTogliSilenzioso = "tasso-togli-silenzioso-v1"
+
+// pulisciTasso: "Tasso.exe --togli-silenzioso" toglie attività pianificate, Boost, modalità
+// dell'Ufficio e traduzioni nei giochi, senza finestra. Scrive "TOGLI-OK" se è andato tutto bene,
+// "TOGLI-NO <motivo>" (ed esce con 1) se adesso non si può (un gioco tradotto aperto...): allora
+// la disinstallazione si ferma prima di togliere qualsiasi cosa. Se Tasso si blocca o va in errore
+// vado avanti con la mia parte (attività, cartelle), che è comunque fatta.
+func pulisciTasso(base string) error {
+	exe := filepath.Join(base, "Tasso.exe")
+	b, err := os.ReadFile(exe)
+	if err != nil {
+		installa.Diario("pulizia di Tasso saltata: %v", err)
+		return nil
+	}
+	if !bytes.Contains(b, []byte(segnoTogliSilenzioso)) {
+		installa.Diario("questo Tasso.exe non conosce --togli-silenzioso: tolgo solo attività e cartelle")
+		return nil
+	}
+	ctx, annulla := context.WithTimeout(context.Background(), 5*time.Minute)
+	defer annulla()
+	cmd := exec.CommandContext(ctx, exe, "--togli-silenzioso")
+	cmd.Dir = base
+	out, err := cmd.Output()
+	testo := string(out)
+	installa.Diario("Tasso --togli-silenzioso: %v %q", err, testo)
+	if strings.Contains(testo, "TOGLI-OK") {
+		return nil
+	}
+	if i := strings.Index(testo, "TOGLI-NO "); i >= 0 {
+		motivo := strings.TrimSpace(strings.SplitN(testo[i+len("TOGLI-NO "):], "\n", 2)[0])
+		return errors.New(motivo)
+	}
+	return nil // Tasso in errore o bloccato: la mia parte della pulizia si fa lo stesso
+}
+
+// togliAttivitaTasso: via la cartella \Tasso\ dell'Utilità di pianificazione con tutte le sue
+// attività (Avvio con Windows, Profilo gioco, Pulizia settimanale).
+func togliAttivitaTasso() error {
+	ps := filepath.Join(sistema32(), "WindowsPowerShell", "v1.0", "powershell.exe")
+	script := `$ErrorActionPreference='SilentlyContinue'
+Get-ScheduledTask -TaskPath '\Tasso\' | Unregister-ScheduledTask -Confirm:$false
+try { $s = New-Object -ComObject Schedule.Service; $s.Connect(); $s.GetFolder('\').DeleteFolder('Tasso', 0) } catch {}
+if (Get-ScheduledTask -TaskPath '\Tasso\') { exit 1 }
+exit 0`
+	ctx, annulla := context.WithTimeout(context.Background(), 2*time.Minute)
+	defer annulla()
+	cmd := exec.CommandContext(ctx, ps, "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-Command", script)
+	cmd.Dir = sistema32()
+	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true, CreationFlags: 0x08000000}
+	return cmd.Run()
 }

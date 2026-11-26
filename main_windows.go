@@ -256,13 +256,23 @@ func collega(w webview2.WebView) {
 					}
 				}
 			}
-			comp = append(comp, map[string]any{"id": c, "installato": inst})
+			// già installato in una versione più nuova di quella di questo installatore: non si
+			// spunta e non si sostituisce (mai tornare indietro, come l'aggiornamento silenzioso)
+			piuNuovo := ""
+			if st != nil && !modoDisins && elenco != nil && inst != "" {
+				if ep := elenco.Prog(p); ep != nil && installa.PiuNuova(versioneInstallata(st, p), ep.Versione) {
+					piuNuovo = versioneInstallata(st, p)
+				}
+			}
+			comp = append(comp, map[string]any{"id": c, "installato": inst, "piuNuovo": piuNuovo})
 		}
 		var installata any
 		if st != nil {
 			// aggiornamento: la casella del Desktop parte spuntata se i collegamenti lì ci sono già
+			// vecchio: questo installatore è più vecchio dell'ecosistema installato (avviso)
+			vecchio := !modoDisins && elenco != nil && installa.PiuNuova(st.Versione, elenco.Versione)
 			installata = map[string]any{"versione": st.Versione, "componenti": st.Componenti,
-				"desktop": installa.DesktopUsato(st, desktopPubblico())}
+				"desktop": installa.DesktopUsato(st, desktopPubblico()), "vecchio": vecchio}
 		}
 		ver := ""
 		if elenco != nil {
@@ -364,8 +374,20 @@ func collega(w webview2.WebView) {
 		}
 		// sempre una cartella sua: mai C:\Program Files o D:\Giochi come "cartella di Tasso"
 		base := filepath.Clean(installa.CartellaDedicata(o.Cartella, installa.InfoCartellaDisco))
-		opz := installa.Opzioni{Base: base, Componenti: componenti(o.Componenti), Desktop: o.Desktop,
-			DesktopTogli: o.DesktopTogli && !o.Desktop, Lingua: l, CartellaMenu: menuStart(), CartellaDesktop: desktopPubblico()}
+		scelti := componenti(o.Componenti)
+		tieni := false
+		if st, _ := installa.LeggiStato(base); st != nil {
+			// mai tornare indietro: i programmi già più nuovi restano come sono
+			scelti = installa.SenzaPiuNuovi(st, elenco, scelti, versioneTasso(base))
+			tieni = installa.PiuNuova(st.Versione, elenco.Versione)
+			if len(scelti) == 0 {
+				inCorso.Store(false)
+				return map[string]any{"codice": "agg_vecchio", "dettagli": elenco.Versione}
+			}
+		}
+		opz := installa.Opzioni{Base: base, Componenti: scelti, Desktop: o.Desktop,
+			DesktopTogli: o.DesktopTogli && !o.Desktop, Lingua: l, CartellaMenu: menuStart(), CartellaDesktop: desktopPubblico(),
+			TieniDisinstallatore: tieni}
 		ctx, annulla := context.WithCancel(context.Background())
 		annullaMu.Lock()
 		annullaFn = annulla
@@ -405,7 +427,7 @@ func collega(w webview2.WebView) {
 		w.Dispatch(func() { w.Terminate() })
 		return true
 	})
-	_ = w.Bind("goDisinstalla", func(cc []string) map[string]any {
+	_ = w.Bind("goDisinstalla", func(cc []string, togliDati bool) map[string]any {
 		if !inCorso.CompareAndSwap(false, true) {
 			return map[string]any{"ok": false, "dettagli": "…"}
 		}
@@ -413,19 +435,38 @@ func collega(w webview2.WebView) {
 		// CreaCollegamento serve anche qui: se resta Tasso con un'altra modalità (es. tolto
 		// Gaming, resta Ufficio) il collegamento "Tasso Gaming" diventa "Tasso Ufficio".
 		in := &installa.Installatore{Registro: reg, TogliFile: togliFile, CreaCollegamento: creaCollegamento,
-			CartellaDatiUtente: datiLocaliUtente}
-		installa.Diario("disinstallo %v da %s", cc, baseDisins)
+			CartellaDatiUtente: datiLocaliUtente, CancellaAlRiavvio: cancellaAlRiavvio, TogliAttivita: togliAttivitaTasso}
+		// Da "Togli Tasso dal PC" (--scegli=) Tasso ha già tolto le sue cose e i suoi dati: non lo
+		// riapro. Da App e funzionalità invece Tasso toglie le sue cose prima di sparire.
+		if len(preScelti) == 0 {
+			in.PulisciTasso = pulisciTasso
+		}
+		installa.Diario("disinstallo %v da %s (dati: %v)", cc, baseDisins, togliDati)
 		chiudiAiutanti(baseDisins, componenti(cc), nil, nil)
-		r, err := in.Disinstalla(baseDisins, componenti(cc))
+		r, err := in.DisinstallaCon(baseDisins, componenti(cc), installa.OpzioniDisinstalla{TogliDati: togliDati && len(preScelti) == 0})
 		if err != nil {
 			installa.Diario("disinstallazione NON riuscita: %v", err)
 		}
 		aggiornaIcone()
+		var rif *installa.ErroreTassoRifiuta
+		if errors.As(err, &rif) {
+			return map[string]any{"ok": false, "rifiuta": true, "dettagli": rif.Error()}
+		}
 		if err != nil {
 			return map[string]any{"ok": false, "dettagli": err.Error()}
 		}
-		return map[string]any{"ok": true, "tuttoTolto": r.TuttoTolto, "nonTolti": r.NonTolti}
+		return map[string]any{"ok": true, "tuttoTolto": r.TuttoTolto, "nonTolti": r.NonTolti, "alRiavvio": r.AlRiavvio}
 	})
+}
+
+// versioneInstallata: la versione installata di un programma (per Tasso vale anche il file
+// VERSIONE, che Tasso riscrive quando si aggiorna da solo).
+func versioneInstallata(st *installa.Stato, p installa.Programma) string {
+	v := st.Programmi[p].Versione
+	if p == installa.ProgTasso {
+		v = installa.Maggiore(v, versioneTasso(st.Cartella))
+	}
+	return v
 }
 
 func installaInFondo(ctx context.Context, o installa.Opzioni) {
@@ -455,6 +496,8 @@ func installaInFondo(ctx context.Context, o installa.Opzioni) {
 			r["codice"] = "err_annullato"
 		case errors.Is(err, installa.ErrVerifica):
 			r["codice"] = "err_verifica"
+		case errors.Is(err, installa.ErrRiparaNonRiuscito) || errors.As(err, new(*installa.ErroreNonRimesso)):
+			r["codice"] = "err_non_rimesso"
 		case errors.As(err, &eb):
 			r["codice"], r["dettagli"] = "err_bloccato", filepath.Base(eb.File)
 		case errors.As(err, &ec):

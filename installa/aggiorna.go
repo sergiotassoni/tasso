@@ -175,3 +175,26 @@ const (
 	UscitaErrore       = 1 // non riuscito: sul PC non è cambiato niente
 	UscitaNienteDaFare = 2 // niente di installato, o versioni uguali o più vecchie
 )
+
+// SenzaPiuNuovi toglie dai componenti scelti quelli il cui programma è già installato in una
+// versione più nuova di quella di questo installatore (mai tornare indietro, anche con
+// l'installatore normale). versioneTasso: il file VERSIONE accanto a Tasso.exe.
+func SenzaPiuNuovi(st *Stato, e *Elenco, scelti []Componente, versioneTasso string) []Componente {
+	if st == nil || e == nil {
+		return scelti
+	}
+	var out []Componente
+	for _, c := range scelti {
+		id := ProgrammaDi(c)
+		inst := st.Programmi[id].Versione
+		if id == ProgTasso {
+			inst = Maggiore(inst, versioneTasso)
+		}
+		if p := e.Prog(id); p != nil && inst != "" && PiuNuova(inst, p.Versione) {
+			Diario("%s: installata %s, più nuova di %s: resta com'è", id, inst, p.Versione)
+			continue
+		}
+		out = append(out, c)
+	}
+	return out
+}
