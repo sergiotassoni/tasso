@@ -340,8 +340,8 @@ func boostCmdsOn() []string {
 		if on, _ := st[id].(bool); on {
 			continue
 		}
-		if id == "winopt" && winBuild() < 22000 {
-			continue
+		if id == "winopt" && (winBuild() < 22000 || winoptSceltoSpento(dxGlobal())) {
+			continue // Windows 10, o l'hai spenta tu nelle impostazioni della grafica: non la riaccendo
 		}
 		bMu.Lock()
 		s := loadBoost()

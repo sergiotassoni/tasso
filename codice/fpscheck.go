@@ -4,7 +4,7 @@ package main
 // onestamente quanto si guadagna sistemandoli. Le regolazioni di Windows del Boost danno di solito
 // 0-10%; i guadagni grandi vengono da qui, ma solo se il PC ha quel problema:
 //   1. schermo a 60 Hz quando può andare a 144/165       -> il Tasso lo sistema (con 15 s per confermare)
-//   2. portatile: gioco sulla scheda video integrata     -> il Tasso mette quella potente per il gioco
+//   2. portatile: gioco sulla scheda video integrata     -> con "Sistemalo" il Tasso mette quella potente
 //   3. gioco bloccato da V-Sync o da un limite di FPS     -> visto dalla misura, si cambia nel gioco
 //   4. scheda video al limite senza DLSS/FSR/XeSS         -> visto dalla misura, si cambia nel gioco
 //   5. RAM lenta (XMP/EXPO spento) o un solo banco        -> si cambia nel BIOS, il Tasso spiega come
@@ -407,17 +407,30 @@ func gpuVendorPage(name string) string {
 	return ""
 }
 
-// gamePrefHigh: Windows usa già la scheda video potente per questo gioco?
-func gamePrefHigh(path string) bool {
+// gamePrefScelta: in Windows c'è già una scheda video scelta per questo gioco (potente o a risparmio
+// energetico, da te o da Tasso)? "Lascia decidere a Windows" (GpuPreference=0) o nessun valore = no.
+func gamePrefScelta(path string) bool {
 	v, ok := regGet(registry.CURRENT_USER, gpuPrefKey, path)
-	return ok && strings.Contains(v, "GpuPreference=2")
+	return ok && gpuPrefScelta(v)
+}
+
+// gpuPrefScelta: la stringa di UserGpuPreferences ha GpuPreference=1 (risparmio) o =2 (potente).
+// Se l'hai messa a risparmio energetico apposta, Tasso non la cambia e non dice "nessuna preferenza".
+func gpuPrefScelta(v string) bool {
+	for _, p := range strings.Split(v, ";") {
+		if k, val, ok := strings.Cut(strings.TrimSpace(p), "="); ok && strings.TrimSpace(k) == "GpuPreference" {
+			val = strings.TrimSpace(val)
+			return val == "1" || val == "2"
+		}
+	}
+	return false
 }
 
 // ---------------- Analisi ----------------
 
 // fpsFindings: la parte che decide, separata dalla lettura del PC così si può provare anche su Linux.
 // Regola: meglio non dire niente che dare un falso allarme.
-func fpsFindings(f pcFacts, scr []screenInfo, last *fpsResult, battery, gpuPrefHigh bool, now time.Time) []fpsFinding {
+func fpsFindings(f pcFacts, scr []screenInfo, last *fpsResult, battery, gpuPrefScelta bool, now time.Time) []fpsFinding {
 	var out []fpsFinding
 	add := func(x fpsFinding) { out = append(out, x) }
 	disc, integ := false, false
@@ -453,8 +466,9 @@ func fpsFindings(f pcFacts, scr []screenInfo, last *fpsResult, battery, gpuPrefH
 			}
 		}
 	}
-	// 2. Portatile con due schede video: Windows non ha una preferenza salvata per il gioco.
-	if f.Laptop && disc && integ && last != nil && last.path != "" && !gpuPrefHigh {
+	// 2. Portatile con due schede video: Windows non ha una preferenza salvata per il gioco
+	// (gpuPrefScelta falso: né potente né risparmio energetico scelti in Windows).
+	if f.Laptop && disc && integ && last != nil && last.path != "" && !gpuPrefScelta {
 		add(fpsFinding{ID: "gpu", Sev: "mid", Title: last.Game + " potrebbe partire sulla scheda video integrata",
 			Why:  "Questo portatile ha due schede video e Windows non ha una preferenza salvata per questo gioco. Molti giochi scelgono da soli quella potente, ma non tutti.",
 			Gain: "Solo se ora usa quella integrata: anche il doppio degli FPS.",
@@ -599,7 +613,7 @@ func fpsCheck() map[string]interface{} {
 	last := getLastFps()
 	prefHigh := false
 	if last != nil && last.path != "" {
-		prefHigh = gamePrefHigh(last.path)
+		prefHigh = gamePrefScelta(last.path)
 	}
 	found := fpsFindings(f, screens(), last, onBattery(), prefHigh, time.Now())
 	return map[string]interface{}{"found": found, "measured": last != nil}
@@ -632,20 +646,35 @@ func fpsSetGpu() string {
 	}
 	saveBoost()
 	bMu.Unlock()
-	val := "GpuPreference=2;"
-	if had {
-		var parts []string
-		for _, p := range strings.Split(old, ";") {
-			if p != "" && !strings.HasPrefix(p, "GpuPreference=") {
-				parts = append(parts, p)
-			}
-		}
-		val = strings.Join(append([]string{"GpuPreference=2"}, parts...), ";") + ";"
+	if !had {
+		old = ""
 	}
-	if regSet(registry.CURRENT_USER, gpuPrefKey, last.path, val) != nil {
+	if regSet(registry.CURRENT_USER, gpuPrefKey, last.path, gpuPrefConAltre(old, "GpuPreference=2")) != nil {
 		return "Windows non mi ha lasciato cambiare questa impostazione."
 	}
 	return "ok:Fatto: " + last.Game + " userà la scheda video potente. Riavvia il gioco e misura di nuovo."
+}
+
+// gpuPrefConAltre: la stringa di UserGpuPreferences di un gioco con le scelte nuove (es.
+// "GpuPreference=2") al posto delle stesse chiavi di prima; le altre scelte di Windows per quel gioco
+// (HDR automatico, frequenza variabile...) restano come le avevi.
+func gpuPrefConAltre(old string, nuove ...string) string {
+	chiavi := map[string]bool{}
+	for _, n := range nuove {
+		if k, _, ok := strings.Cut(n, "="); ok {
+			chiavi[strings.TrimSpace(k)] = true
+		}
+	}
+	parts := append([]string(nil), nuove...)
+	for _, p := range strings.Split(old, ";") {
+		p = strings.TrimSpace(p)
+		k, _, ok := strings.Cut(p, "=")
+		if p == "" || !ok || chiavi[strings.TrimSpace(k)] {
+			continue
+		}
+		parts = append(parts, p)
+	}
+	return strings.Join(parts, ";") + ";"
 }
 
 // gpuPrefRestore: rimette le preferenze della scheda video com'erano (da "Rimetti com'era"), solo
@@ -661,7 +690,9 @@ func gpuPrefRestore(prev map[string]string) {
 
 // fpsAutoFix: dopo il Boost (o una misura automatica) il Tasso sistema da solo quello che si può
 // sistemare in modo sicuro e reversibile, e mostra il resto come consigli.
-//   - scheda video potente per il gioco (portatili): da solo, si rimette con "Rimetti com'era"
+//   - scheda video potente per il gioco (portatili): MAI da sola, solo con "Sistemalo". Quando Windows
+//     non ha una scelta salvata decide il pannello NVIDIA/AMD, dove puoi aver scelto la scheda integrata
+//     per quel gioco: scriverla in Windows passerebbe sopra al pannello della scheda video.
 //   - frequenza dello schermo: solo quando premi BOOST (sei davanti al Tasso), con 15 secondi per
 //     confermare; mai durante una partita, perché non potresti vedere la conferma
 //   - il resto (grafica nel gioco, BIOS, cavi, polvere) si fa a mano: il Tasso spiega come
@@ -678,11 +709,6 @@ func fpsAutoFix(interactive bool) {
 	var msgs []string
 	for _, f := range found {
 		switch {
-		case f.Action == "gpu":
-			if m := fpsSetGpu(); strings.HasPrefix(m, "ok:") {
-				msgs = append(msgs, strings.TrimPrefix(m, "ok:"))
-				continue
-			}
 		case f.Action == "hz" && interactive:
 			go screenHzMax()
 			continue

@@ -911,7 +911,9 @@ func gameTuneApply(id, preset string, o tuneOpts) {
 			} else {
 				remember("gpu|"+e, registry.CURRENT_USER, gpuPrefKey, e)
 			}
-			if regSet(registry.CURRENT_USER, gpuPrefKey, e, "GpuPreference=2;SwapEffectUpgradeEnable=1;") == nil {
+			// Le altre scelte di Windows per questo gioco (HDR automatico, frequenza variabile) restano.
+			cur, _ := regGet(registry.CURRENT_USER, gpuPrefKey, e)
+			if regSet(registry.CURRENT_USER, gpuPrefKey, e, gpuPrefConAltre(cur, "GpuPreference=2", "SwapEffectUpgradeEnable=1")) == nil {
 				msgs = append(msgs, "✓ Scheda video ad alte prestazioni e ottimizzazioni per i giochi in finestra: "+filepath.Base(e))
 			} else {
 				fail("✗ Windows non mi ha lasciato cambiare la scheda video per " + filepath.Base(e) + ".")

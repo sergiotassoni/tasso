@@ -382,7 +382,7 @@ func endGameMode() {
 		if t == "" {
 			t = saved
 		}
-		if cur == "gaming" || (t != "" && cur == t) {
+		if modoDaRimettereDopoGioco(cur, t) {
 			restored = back
 			go setMode(back)
 		}
@@ -393,6 +393,34 @@ func endGameMode() {
 	g := gameName
 	gameMu.Unlock()
 	emit("onGameMode", map[string]interface{}{"active": false, "game": g, "back": restored})
+}
+
+// modoDaRimettereDopoGioco: la modalità di adesso è ancora quella messa per il gioco (non l'hai
+// cambiata tu nel frattempo), quindi va rimessa quella di prima.
+func modoDaRimettereDopoGioco(cur, target string) bool {
+	return cur == "gaming" || (target != "" && cur == target)
+}
+
+// modalitaGiocoPerUscita: chiudendo Tasso a partita in corso, la modalità messa dalla modalità gioco
+// automatica (piano energetico, notifiche in pausa, Modalità Gioco di Windows) torna com'era adesso:
+// senza Tasso aperto nessuno la rimetterebbe a fine partita. Aspetta la fine (Tasso sta per chiudersi).
+// Se non riesce, ModeBeforeGame resta e la rimette il prossimo avvio di Tasso.
+func modalitaGiocoPerUscita() {
+	setMu.Lock()
+	back, cur, saved := settings.ModeBeforeGame, settings.Mode, settings.GameTarget
+	setMu.Unlock()
+	if back == "" {
+		return
+	}
+	t, _ := gameTarget.Load().(string)
+	if t == "" {
+		t = saved
+	}
+	if modoDaRimettereDopoGioco(cur, t) && !setMode(back) {
+		return
+	}
+	updateSettings(func(s *Settings) { s.ModeBeforeGame, s.GameTarget = "", "" })
+	gameTarget.Store("")
 }
 
 func setAutoGame(on bool) string {

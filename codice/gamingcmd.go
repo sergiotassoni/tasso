@@ -96,6 +96,11 @@ func dxRimettiParte(adesso map[string]string, p regPrev, k string) map[string]st
 	return adesso
 }
 
+// winoptSceltoSpento: "Ottimizzazioni per i giochi in finestra" spenta apposta (Impostazioni > Schermo >
+// Grafica scrive SwapEffectUpgradeEnable=0; se non l'hai mai toccata il valore non c'è). Il Boost non va
+// contro questa scelta: c'è chi la spegne perché un gioco o un overlay ci va male.
+func winoptSceltoSpento(m map[string]string) bool { return m["SwapEffectUpgradeEnable"] == "0" }
+
 func setDxGlobal(m map[string]string) error {
 	var b strings.Builder
 	for k, v := range m {

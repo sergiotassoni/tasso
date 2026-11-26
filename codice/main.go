@@ -441,6 +441,10 @@ func chiudiTasso() {
 		// Lo spegnimento dopo 15 minuti esiste solo con Tasso aperto: chiudendo Tasso, il Boost acceso
 		// (o i programmi che ha chiuso) va rimesso com'era adesso, se no resterebbe acceso per giorni.
 		boostSpegniPerUscita()
+		// Anche la modalità messa per una partita in corso e la frequenza dello schermo in prova
+		// (non ancora confermata) tornano com'erano: senza Tasso aperto nessuno le rimetterebbe.
+		modalitaGiocoPerUscita()
+		screenHzUndo(false)
 		trayStop()
 		wv.Dispatch(func() { wv.Terminate() })
 	}()
