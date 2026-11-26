@@ -194,7 +194,7 @@ func leggi(data []byte, pw string) (*model.Context, bool, error) {
 	}
 	var ctx *model.Context
 	err := senzaPanico(func() (e error) {
-		ctx, e = api.ReadContext(context.Background(), bytes.NewReader(data), confBase(pw))
+		ctx, e = leggiConPassword(data, pw)
 		return e
 	})
 	if err == nil && oltreLimite(ctx) {
@@ -222,7 +222,7 @@ func leggi(data []byte, pw string) (*model.Context, bool, error) {
 		}
 		var ctx2 *model.Context
 		err2 := senzaPanico(func() (e error) {
-			ctx2, e = api.ReadContext(context.Background(), bytes.NewReader(ric), confBase(pw))
+			ctx2, e = leggiConPassword(ric, pw)
 			return e
 		})
 		if err2 != nil {
@@ -240,6 +240,43 @@ func leggi(data []byte, pw string) (*model.Context, bool, error) {
 		return ctx2, true, nil
 	}
 	return nil, false, classifica(err)
+}
+
+// leggiConPassword: legge il PDF con la password dell'utente. Nei PDF con la protezione più
+// vecchia (RC4 o AES a 128 bit, fatti per esempio da Acrobat o qpdf) la password con le
+// lettere accentate ("città") è scritta nella codifica PDFDocEncoding, non in UTF-8: se la
+// prima prova dice "password sbagliata", riprovo con quella codifica.
+func leggiConPassword(data []byte, pw string) (*model.Context, error) {
+	ctx, err := api.ReadContext(context.Background(), bytes.NewReader(data), confBase(pw))
+	if err == nil || CodiceErrore(classifica(err)) != "password" {
+		return ctx, err
+	}
+	if alt, ok := pdfDocEncoding(pw); ok && alt != pw {
+		if ctx2, err2 := api.ReadContext(context.Background(), bytes.NewReader(data), confBase(alt)); err2 == nil {
+			return ctx2, nil
+		}
+	}
+	return ctx, err
+}
+
+// pdfDocEncoding: pw nella codifica PDFDocEncoding (uguale a Latin-1 per le lettere accentate,
+// € = 0xA0). ok = false se pw non è ASCII o contiene un carattere che lì non c'è.
+func pdfDocEncoding(pw string) (string, bool) {
+	var b []byte
+	ascii := true
+	for _, r := range pw {
+		switch {
+		case r >= 0x20 && r <= 0x7E:
+			b = append(b, byte(r))
+		case r == '€':
+			b, ascii = append(b, 0xA0), false
+		case r >= 0xA1 && r <= 0xFF && r != 0xAD:
+			b, ascii = append(b, byte(r)), false
+		default:
+			return "", false
+		}
+	}
+	return string(b), !ascii
 }
 
 // senzaPanico: esegue f; se pdfcpu va in panico su un file rovinato (es. "/MediaBox [ ]"),
@@ -272,6 +309,7 @@ func controllaPagine(ctx *model.Context) error {
 	if _, err := ctx.Catalog(); err != nil {
 		return err
 	}
+	sistemaMisure(ctx)
 	if err := ctx.EnsurePageCount(); err != nil {
 		return err
 	}
@@ -290,6 +328,62 @@ func controllaPagine(ctx *model.Context) error {
 		sistemaContenuti(ctx, d)
 	}
 	return nil
+}
+
+// boxValida: o è un rettangolo [x1 y1 x2 y2] di 4 numeri con larghezza e altezza non nulle.
+func boxValida(ctx *model.Context, o types.Object) bool {
+	o, err := ctx.Dereference(o)
+	if err != nil {
+		return false
+	}
+	a, ok := o.(types.Array)
+	if !ok || len(a) != 4 {
+		return false
+	}
+	var v [4]float64
+	for i, x := range a {
+		x, err := ctx.Dereference(x)
+		if err != nil {
+			return false
+		}
+		switch n := x.(type) {
+		case types.Integer:
+			v[i] = float64(n)
+		case types.Float:
+			v[i] = float64(n)
+		default:
+			return false
+		}
+		if math.IsNaN(v[i]) || math.IsInf(v[i], 0) {
+			return false
+		}
+	}
+	return v[0] != v[2] && v[1] != v[3]
+}
+
+// sistemaMisure: una pagina (o un elenco di pagine) con la misura rovinata, per esempio
+// "/MediaBox []", diventa A4; un ritaglio (/CropBox) rovinato viene tolto. Senza, tutto il
+// file risultava "rovinato" (anche Ripara), pur avendo le pagine intere.
+func sistemaMisure(ctx *model.Context) {
+	for _, e := range ctx.XRefTable.Table {
+		if e == nil || e.Free || e.Object == nil {
+			continue
+		}
+		d, ok := e.Object.(types.Dict)
+		if !ok {
+			continue
+		}
+		t := d.Type()
+		if t == nil || (*t != "Page" && *t != "Pages") {
+			continue
+		}
+		if o, ok := d.Find("MediaBox"); ok && !boxValida(ctx, o) {
+			d.Update("MediaBox", types.Array{types.Integer(0), types.Integer(0), types.Float(595.28), types.Float(841.89)})
+		}
+		if o, ok := d.Find("CropBox"); ok && !boxValida(ctx, o) {
+			d.Delete("CropBox")
+		}
+	}
 }
 
 // sistemaContenuti: tiene solo i pezzi di contenuto della pagina che sono davvero stream.
