@@ -648,13 +648,13 @@ func titoloDi(s string) string {
 	return strings.Join(w, " ")
 }
 
-// traduciEtichetta: scritte dei menu fatte a pezzi ("- Bleed Resist", "Mating Status: Error",
-// "HEALTH"). Ogni pezzo passa dal glossario, se c'è, altrimenti dal motore: così il motore veloce
-// non si confonde con frasi che non sono frasi.
 var reAumento = regexp.MustCompile(`^(\p{L}[\p{L} ]*?)\s+(?i:(increased|decreased|reduced|boosted))(?:\s+by)?\s+(\d+(?:[.,]\d+)?)\s?%$`)
 
 var reQuantita = regexp.MustCompile(`[^\s](\s+(?:[x×]\s?\d+|\(\d+\)|\d+(?:/\d+)?))$`)
 
+// traduciEtichetta: scritte dei menu fatte a pezzi ("- Bleed Resist", "Mating Status: Error",
+// "HEALTH"). Ogni pezzo passa dal glossario, se c'è, altrimenti dal motore: così il motore veloce
+// non si confonde con frasi che non sono frasi.
 func (t *Traduttore) traduciEtichetta(ctx context.Context, s string, inizio time.Time) (Risultato, bool) {
 	ris := Risultato{Originale: s}
 	finito := func(it, motore string) (Risultato, bool) {
@@ -1296,7 +1296,7 @@ func nomiIntatti(en, it string) string {
 			if len(rv) < 3 || unicode.ToLower(rv[0]) != unicode.ToLower(r[0]) || abs(len(rv)-len(r)) > 2 {
 				continue
 			}
-			if d := distanzaLettere(strings.ToLower(v), strings.ToLower(w)); d >= 1 && d <= 2 && d*4 <= len(r) {
+			if d := distanzaModifica(strings.ToLower(v), strings.ToLower(w)); d >= 1 && d <= 2 && d*4 <= len(r) {
 				it = sostituisciParola(it, v, w)
 				break
 			}
@@ -1305,15 +1305,15 @@ func nomiIntatti(en, it string) string {
 	return it
 }
 
-// nomiFissiIntatti: i nomi del catalogo da non tradurre ("Hello Games", "No Man's Sky") che il
-// motore ha tradotto lo stesso dentro una frase: "Ciao Games" -> "Hello Games",
-// "Sky Forsaken di No Man" -> "No Man's Sky Forsaken".
 // nomeGiocoAttivo: il nome del gioco che si sta traducendo ("Liar's Bar"). Conta come un nome
 // fisso: "Liar's Bar DECK" non deve diventare "Il Ponte Bar di Liar" (visto il 23/11).
 var nomeGiocoAttivo atomic.Value
 
 func impostaNomeGiocoAttivo(n string) { nomeGiocoAttivo.Store(n) }
 
+// nomiFissiIntatti: i nomi del catalogo da non tradurre ("Hello Games", "No Man's Sky") che il
+// motore ha tradotto lo stesso dentro una frase: "Ciao Games" -> "Hello Games",
+// "Sky Forsaken di No Man" -> "No Man's Sky Forsaken".
 func nomiFissiIntatti(en, it string) string {
 	caricaCataloghi()
 	nomi := nomiFissi
@@ -1355,28 +1355,6 @@ func sostituisciParola(s, vecchia, nuova string) string {
 		return s
 	}
 	return re.ReplaceAllLiteralString(s, nuova)
-}
-
-// distanzaLettere: quante lettere aggiungere, togliere o cambiare per passare da a a b.
-func distanzaLettere(a, b string) int {
-	ra, rb := []rune(a), []rune(b)
-	prec := make([]int, len(rb)+1)
-	cur := make([]int, len(rb)+1)
-	for j := range prec {
-		prec[j] = j
-	}
-	for i := 1; i <= len(ra); i++ {
-		cur[0] = i
-		for j := 1; j <= len(rb); j++ {
-			c := 1
-			if ra[i-1] == rb[j-1] {
-				c = 0
-			}
-			cur[j] = min(prec[j]+1, cur[j-1]+1, prec[j-1]+c)
-		}
-		prec, cur = cur, prec
-	}
-	return prec[len(rb)]
 }
 
 // fraseMenuConNumero: come fraseMenu, e in più le voci con un numero davanti o dietro, anche tra

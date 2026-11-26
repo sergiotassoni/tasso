@@ -2,7 +2,7 @@
 
 package traduce
 
-// Foto del programma vero: TassoTraduce-collaudo.exe --foto "C:\cartella" --scene "C:\scene"
+// Foto del programma vero: Tasso-collaudo.exe --foto "C:\cartella" --scene "C:\scene"
 // Apre Tasso Traduce, gira le sue schermate e fotografa la finestra; poi mostra le immagini di
 // gioco della cartella scene in una finestra, accende la traduzione vera (OCR di Windows +
 // Mozilla) e le voci (whisper) e fotografa lo schermo con le traduzioni sopra.

@@ -41,7 +41,7 @@ var nomiTastiParole = map[string]bool{"CONTROL": true, "SHIFT": true, "ALT": tru
 	"SPACEBAR": true, "ENTER": true, "RETURN": true, "ESCAPE": true, "BACKSPACE": true, "DELETE": true,
 	"INSERT": true, "HOME": true, "END": true, "CAPS": true}
 
-// valida: la parola esiste in inglese o è una parola dei giochi/un nome di tasto.
+// parolaValidaOCR: la parola esiste in inglese o è una parola dei giochi/un nome di tasto.
 func parolaValidaOCR(w string) bool {
 	if w == "" {
 		return true
@@ -1061,7 +1061,7 @@ func tastiIntatti(en, it string) string {
 				if nudo == "" || unicode.ToUpper([]rune(nudo)[0]) != rune(tasto[0]) {
 					continue
 				}
-				d := distanzaLettere(strings.ToLower(nudo), strings.ToLower(tasto))
+				d := distanzaModifica(strings.ToLower(nudo), strings.ToLower(tasto))
 				if d <= 2 && d*3 <= len(tasto) || strings.HasPrefix(strings.ToLower(nudo), strings.ToLower(tasto)) && len(nudo)-len(tasto) <= 2 {
 					pre := pezzo[:strings.Index(pezzo, nudo)]
 					post := pezzo[strings.Index(pezzo, nudo)+len(nudo):]

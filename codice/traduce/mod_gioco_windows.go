@@ -212,9 +212,10 @@ func processoAperto(exe string) bool {
 	return false
 }
 
-// applicaModGioco: passi veri della procedura "Traduzione gioco" quando si sceglie "dentro il gioco".
+// muInstalla: una sola installazione (o rimozione) della traduzione dentro un gioco alla volta.
 var muInstalla sync.Mutex
 
+// applicaModGioco: passi veri della procedura "Traduzione gioco" quando si sceglie "dentro il gioco".
 // Regola: niente dentro i giochi con anti-cheat, mai (nemmeno se l'utente accetta il rischio):
 // per quei giochi si traduce solo lo schermo.
 func applicaModGioco(nome, cartella string) {

@@ -332,7 +332,6 @@ func stessiPezzi(a, b []string) bool {
 	return true
 }
 
-// TraduciLocres: traduce tutte le frasi (le uguali una volta sola). avanzamento(fatte, totale).
 // ErrorePanico: una frase ha fatto andare in errore grave il traduttore (il lavoro si ferma, Tasso no).
 type ErrorePanico struct {
 	Valore any
@@ -341,6 +340,7 @@ type ErrorePanico struct {
 
 func (e *ErrorePanico) Error() string { return fmt.Sprint("errore interno: ", e.Valore) }
 
+// TraduciLocres: traduce tutte le frasi (le uguali una volta sola). avanzamento(fatte, totale).
 func TraduciLocres(files []LocresDaTradurre, traduci func(string) (string, bool), avanzamento func(int, int), stop func() bool) (tradotte int, err error) {
 	uniche := map[string]string{}
 	var ordine []string

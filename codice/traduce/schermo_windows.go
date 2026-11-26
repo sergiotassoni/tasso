@@ -325,7 +325,7 @@ func avviaFinestrella(dimFont int, tasti func(int), selezione func(Zona)) {
 			ov.bordo, _, _ = pCreateBrush.Call(0x00A6F32F)  // #2FF3A6 (BGR)
 			// Tasti rapidi validi in tutto Windows, anche mentre giochi.
 			pSetTimer.Call(h, 1, 400, 0) // controllo se il gioco è ancora in primo piano
-			// i tasti rapidi si registrano solo quando accendi Tasso Traduce (goAccendi):
+			// i tasti rapidi si registrano solo quando accendi Tasso Traduce (ttAccendi):
 			// da spento F6…F11 restano liberi per gli altri programmi
 			creaFinestraPagina()
 			// traduzione accesa prima che la finestrella esistesse: cambiaTasti non ha potuto

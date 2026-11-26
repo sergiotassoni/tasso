@@ -555,9 +555,9 @@ func gestisciBattuta(audio []float32, ferma chan struct{}, fineVoce time.Time) b
 
 var giroVoce atomic.Int64
 
-// mostraVoce: sottotitolo in basso, sulla finestra in primo piano, per il tempo di lettura.
 var primoSottotitolo atomic.Int64 // per il collaudo: quando è comparso il primo sottotitolo
 
+// mostraVoce: sottotitolo in basso, sulla finestra in primo piano, per il tempo di lettura.
 func mostraVoce(it, en string) {
 	primoSottotitolo.CompareAndSwap(0, time.Now().UnixNano())
 	fg, _, _ := pGetForeground.Call()
