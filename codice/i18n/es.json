@@ -1309,7 +1309,10 @@
   "I programmi disinstallati, le app di Windows tolte e i resti tolti (cartelle nel Cestino, registro nel backup .reg).": "Los programas desinstalados, las apps de Windows quitadas y los restos quitados (carpetas en la Papelera, registro en la copia .reg).",
   "I driver e gli aggiornamenti di Windows installati: per quelli c'è il punto di ripristino di Windows.": "Los controladores y las actualizaciones de Windows instalados: para eso está el punto de restauración de Windows.",
   "Le tracce cancellate (file recenti, cronologia di Esegui, appunti).": "Los rastros borrados (archivos recientes, historial de Ejecutar, portapapeles).",
-  "Apre il Cestino, installa lo strumento gratuito di Microsoft per recuperare i file (si usa scrivendo comandi) e apre la guida ufficiale passo passo.": "Abre la Papelera, instala la herramienta gratuita de Microsoft para recuperar archivos (se usa escribiendo comandos) y abre la guía oficial paso a paso."
+  "Apre il Cestino, installa lo strumento gratuito di Microsoft per recuperare i file (si usa scrivendo comandi) e apre la guida ufficiale passo passo.": "Abre la Papelera, instala la herramienta gratuita de Microsoft para recuperar archivos (se usa escribiendo comandos) y abre la guía oficial paso a paso.",
+  "Registrazione in background spenta (Win+Alt+R per registrare a mano funziona ancora). Aiuta solo se era accesa.": "Grabación en segundo plano desactivada (Win+Alt+R para grabar a mano sigue funcionando). Solo ayuda si estaba activada.",
+  "Priorità ai giochi accesa. Di solito non cambia gli FPS: aiuta solo i giochi che chiedono a Windows la priorità per i giochi.": "Prioridad a los juegos activada. Normalmente no cambia los FPS: solo ayuda a los juegos que piden a Windows la prioridad para juegos.",
+  "Rete a bassa latenza accesa. Di solito non cambia il ping (i giochi online usano quasi tutti UDP): può aiutare solo nei giochi che usano TCP, dopo il riavvio del PC.": "Red de baja latencia activada. Normalmente no cambia el ping (casi todos los juegos online usan UDP): solo puede ayudar en los juegos que usan TCP, después de reiniciar el PC."
  },
  "ps": {
   "echo Risparmio energetico delle porte USB rimesso come prima.": "echo Ahorro de energía de los puertos USB devuelto a como estaba.",

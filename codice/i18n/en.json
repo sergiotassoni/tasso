@@ -1309,7 +1309,10 @@
   "I programmi disinstallati, le app di Windows tolte e i resti tolti (cartelle nel Cestino, registro nel backup .reg).": "Uninstalled programs, removed Windows apps and removed leftovers (folders in the Recycle Bin, registry in the .reg backup).",
   "I driver e gli aggiornamenti di Windows installati: per quelli c'è il punto di ripristino di Windows.": "Installed drivers and Windows updates: for those there's the Windows restore point.",
   "Le tracce cancellate (file recenti, cronologia di Esegui, appunti).": "Erased activity traces (recent files, Run history, clipboard).",
-  "Apre il Cestino, installa lo strumento gratuito di Microsoft per recuperare i file (si usa scrivendo comandi) e apre la guida ufficiale passo passo.": "Opens the Recycle Bin, installs Microsoft's free file recovery tool (used by typing commands) and opens the official step-by-step guide."
+  "Apre il Cestino, installa lo strumento gratuito di Microsoft per recuperare i file (si usa scrivendo comandi) e apre la guida ufficiale passo passo.": "Opens the Recycle Bin, installs Microsoft's free file recovery tool (used by typing commands) and opens the official step-by-step guide.",
+  "Registrazione in background spenta (Win+Alt+R per registrare a mano funziona ancora). Aiuta solo se era accesa.": "Background recording off (Win+Alt+R to record by hand still works). It only helps if it was on.",
+  "Priorità ai giochi accesa. Di solito non cambia gli FPS: aiuta solo i giochi che chiedono a Windows la priorità per i giochi.": "Game priority on. It usually doesn't change FPS: it only helps games that ask Windows for game priority.",
+  "Rete a bassa latenza accesa. Di solito non cambia il ping (i giochi online usano quasi tutti UDP): può aiutare solo nei giochi che usano TCP, dopo il riavvio del PC.": "Low-latency network on. It usually doesn't change ping (almost all online games use UDP): it can only help games that use TCP, after restarting the PC."
  },
  "ps": {
   "echo Risparmio energetico delle porte USB rimesso come prima.": "echo USB port power saving put back as it was.",

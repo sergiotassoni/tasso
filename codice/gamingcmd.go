@@ -77,6 +77,25 @@ func dxGlobal() map[string]string {
 	return m
 }
 
+// dxRimettiParte: nella stringa DirectXUserGlobalSettings di adesso rimette solo la chiave k com'era
+// nella copia salvata p (o la toglie se allora non c'era); tutte le altre scelte restano quelle di adesso.
+func dxRimettiParte(adesso map[string]string, p regPrev, k string) map[string]string {
+	prima := ""
+	if p.Kind == "sz" {
+		for _, part := range strings.Split(p.S, ";") {
+			if i := strings.Index(part, "="); i > 0 && strings.TrimSpace(part[:i]) == k {
+				prima = strings.TrimSpace(part[i+1:])
+			}
+		}
+	}
+	if prima == "" {
+		delete(adesso, k)
+	} else {
+		adesso[k] = prima
+	}
+	return adesso
+}
+
 func setDxGlobal(m map[string]string) error {
 	var b strings.Builder
 	for k, v := range m {
@@ -147,8 +166,10 @@ func gamingTargets(id string) []regPrev {
 	}
 	switch id {
 	case "gamedvr":
+		// Solo la registrazione in background: AppCaptureEnabled (tutte le catture della Game Bar,
+		// anche Win+Alt+R) non si tocca più.
 		add(false, `System\GameConfigStore`, "GameDVR_Enabled")
-		add(false, `Software\Microsoft\Windows\CurrentVersion\GameDVR`, "AppCaptureEnabled")
+		add(false, `Software\Microsoft\Windows\CurrentVersion\GameDVR`, "HistoricalCaptureEnabled")
 	case "mmcss":
 		add(true, sysProfKey, "SystemResponsiveness")
 		add(true, gamesTask, "GPU Priority", "Priority", "Scheduling Category", "SFIO Priority")
@@ -179,6 +200,21 @@ func gamingRestore(id string) bool {
 	for _, t := range gamingTargets(id) {
 		allowed[regPrevKey(t)] = true
 	}
+	if id == "gamedvr" { // copie salvate dalle versioni di prima, che spegnevano anche AppCaptureEnabled
+		allowed[regPrevKey(regPrev{Path: `Software\Microsoft\Windows\CurrentVersion\GameDVR`, Name: "AppCaptureEnabled"})] = true
+	}
+	if id == "winopt" {
+		// La stringa DirectXUserGlobalSettings la scrive anche Windows (HDR automatico, frequenza
+		// variabile...): rimetto solo la parte di Tasso dentro la stringa di adesso, non la stringa intera.
+		for _, p := range prev {
+			if regPrevKey(p) != regPrevKey(regPrev{Path: dxUserKey, Name: "DirectXUserGlobalSettings"}) {
+				continue
+			}
+			_ = setDxGlobal(dxRimettiParte(dxGlobal(), p, "SwapEffectUpgradeEnable"))
+		}
+		updateSettings(func(s *Settings) { delete(s.GamingPrev, id) })
+		return true
+	}
 	for _, p := range prev {
 		// Rete: le schede che hanno un indirizzo adesso possono non essere quelle di quando l'hai
 		// acceso (una scheda spenta o staccata resterebbe cambiata): rimetto i due valori su
@@ -202,8 +238,8 @@ func gamingRestore(id string) bool {
 func gamingState() map[string]interface{} {
 	st := map[string]interface{}{}
 	dvr, ok1 := regDword(registry.CURRENT_USER, `System\GameConfigStore`, "GameDVR_Enabled")
-	cap, ok2 := regDword(registry.CURRENT_USER, `Software\Microsoft\Windows\CurrentVersion\GameDVR`, "AppCaptureEnabled")
-	st["gamedvr"] = ok1 && ok2 && dvr == 0 && cap == 0
+	hist, ok2 := regDword(registry.CURRENT_USER, `Software\Microsoft\Windows\CurrentVersion\GameDVR`, "HistoricalCaptureEnabled")
+	st["gamedvr"] = ok1 && dvr == 0 && (!ok2 || hist == 0)
 	sr, _ := regDword(registry.LOCAL_MACHINE, sysProfKey, "SystemResponsiveness")
 	pr, _ := regDword(registry.LOCAL_MACHINE, gamesTask, "Priority")
 	st["mmcss"] = sr == 10 && pr == 6
@@ -269,10 +305,10 @@ func gamingSet(id string, on bool) string {
 			v = 0
 		}
 		err = setDword(registry.CURRENT_USER, `System\GameConfigStore`, "GameDVR_Enabled", v)
-		if err == nil {
-			err = setDword(registry.CURRENT_USER, `Software\Microsoft\Windows\CurrentVersion\GameDVR`, "AppCaptureEnabled", v)
+		if err == nil && on { // spegnendo tocco solo la registrazione in background, mai le catture a mano
+			err = setDword(registry.CURRENT_USER, `Software\Microsoft\Windows\CurrentVersion\GameDVR`, "HistoricalCaptureEnabled", 0)
 		}
-		msg = map[bool]string{true: "Registrazione in background spenta: qualche FPS in più.", false: "Registrazione in background di Windows riaccesa."}[on]
+		msg = map[bool]string{true: "Registrazione in background spenta (Win+Alt+R per registrare a mano funziona ancora). Aiuta solo se era accesa.", false: "Registrazione in background di Windows riaccesa."}[on]
 	case "mmcss":
 		if on {
 			err = setDword(registry.LOCAL_MACHINE, sysProfKey, "SystemResponsiveness", 10)
@@ -282,7 +318,7 @@ func gamingSet(id string, on bool) string {
 				_ = regSet(registry.LOCAL_MACHINE, gamesTask, "Scheduling Category", "High")
 				_ = regSet(registry.LOCAL_MACHINE, gamesTask, "SFIO Priority", "High")
 			}
-			msg = "Priorità ai giochi accesa: Windows dà più spazio al gioco rispetto ai programmi in background."
+			msg = "Priorità ai giochi accesa. Di solito non cambia gli FPS: aiuta solo i giochi che chiedono a Windows la priorità per i giochi."
 		} else {
 			err = setDword(registry.LOCAL_MACHINE, sysProfKey, "SystemResponsiveness", 20)
 			if err == nil {
@@ -302,7 +338,7 @@ func gamingSet(id string, on bool) string {
 		if err == nil {
 			setNagle(on)
 		}
-		msg = map[bool]string{true: "Rete a bassa latenza accesa: i pacchetti del gioco partono subito. Vale dal prossimo avvio del gioco.", false: "Rete: rimessi i valori normali di Windows."}[on]
+		msg = map[bool]string{true: "Rete a bassa latenza accesa. Di solito non cambia il ping (i giochi online usano quasi tutti UDP): può aiutare solo nei giochi che usano TCP, dopo il riavvio del PC.", false: "Rete: rimessi i valori normali di Windows."}[on]
 	case "hags":
 		v := uint32(1)
 		if on {

@@ -57,8 +57,14 @@ var presentMonExe []byte
 const presentMonSHA = "d74183e7ae630f72cd3690be0373ecbfdc6cbb86578148aab8fa2a7166068f34"
 
 // Comandi gaming del Boost (accesi solo se erano spenti, rispenti con "Rimetti com'era").
-// Niente pianificazione GPU (vuole il riavvio e su alcuni PC peggiora).
-var boostCmds = []string{"gamedvr", "mmcss", "nagle", "winopt"}
+// Niente pianificazione GPU (vuole il riavvio e su alcuni PC peggiora). Niente "Priorità ai giochi"
+// (mmcss) e "Rete più reattiva" (nagle): quasi sempre non cambiano gli FPS, quindi il Boost non li
+// promette più; restano nel pannello avanzato per chi li vuole.
+var boostCmds = []string{"gamedvr", "winopt"}
+
+// boostCmdsDaRimettere: anche i comandi che il Boost accendeva nelle versioni di prima, così un
+// boost.json scritto prima dell'aggiornamento si rimette comunque com'era.
+var boostCmdsDaRimettere = []string{"gamedvr", "mmcss", "nagle", "winopt"}
 
 // Programmi che il Boost chiude, solo se sono in background (senza finestra) e non sono app dello
 // Store: sincronizzazione e chat. Mai Office, Outlook, Acrobat o programmi con lavoro non salvato.
@@ -89,16 +95,17 @@ type fpsResult struct {
 }
 
 type boostState struct {
-	On       bool                    `json:"on"`       // Boost acceso a mano
-	Auto     bool                    `json:"auto"`     // Boost automatico acceso
-	Cmds     []string                `json:"cmds"`     // comandi accesi dal Boost (da rispegnere)
-	PrevMode string                  `json:"prevMode"` // modalità da rimettere ("" = non l'ha cambiata il Boost)
-	PrevAG   *bool                   `json:"prevAutoGame,omitempty"`
-	GpuPrev  map[string]string       `json:"gpuPrev,omitempty"`  // gioco -> scelta della scheda video di prima ("0" = nessuna)
-	Mouse    *[3]int32               `json:"mouse,omitempty"`    // accelerazione del mouse di prima (solo se l'ha tolta il Boost)
-	MouseReg string                  `json:"mouseReg,omitempty"` // MouseSpeed salvato in Windows quando il Boost l'ha tolta
-	Closed   []string                `json:"closed,omitempty"`   // programmi chiusi da riaprire (anche se Tasso si riavvia)
-	History  map[string][]*fpsResult `json:"history,omitempty"`  // per gioco, ultime misure
+	On         bool                    `json:"on"`                   // Boost acceso a mano
+	Auto       bool                    `json:"auto"`                 // Boost automatico acceso
+	Cmds       []string                `json:"cmds"`                 // comandi accesi dal Boost (da rispegnere)
+	PrevMode   string                  `json:"prevMode"`             // modalità da rimettere ("" = non l'ha cambiata il Boost)
+	PrevSempre bool                    `json:"prevSempre,omitempty"` // la modalità Gaming si è accesa a metà: rimettere PrevMode anche se non risulta Gaming
+	PrevAG     *bool                   `json:"prevAutoGame,omitempty"`
+	GpuPrev    map[string]string       `json:"gpuPrev,omitempty"`  // gioco -> scelta della scheda video di prima ("0" = nessuna)
+	Mouse      *[3]int32               `json:"mouse,omitempty"`    // accelerazione del mouse di prima (solo se l'ha tolta il Boost)
+	MouseReg   string                  `json:"mouseReg,omitempty"` // MouseSpeed salvato in Windows quando il Boost l'ha tolta
+	Closed     []string                `json:"closed,omitempty"`   // programmi chiusi da riaprire (anche se Tasso si riavvia)
+	History    map[string][]*fpsResult `json:"history,omitempty"`  // per gioco, ultime misure
 }
 
 var (
@@ -165,13 +172,10 @@ func loadBoost() *boostState {
 	if bState != nil {
 		return bState
 	}
-	raw := &boostState{}
-	if b, err := os.ReadFile(boostFile()); err == nil {
-		_ = json.Unmarshal(b, raw)
-	}
+	raw := leggiBoostGrezzo(boostFile())
 	s := &boostState{On: raw.On, Auto: raw.Auto, PrevAG: raw.PrevAG, History: map[string][]*fpsResult{}}
 	for _, c := range raw.Cmds {
-		if hasStr(boostCmds, c) && !hasStr(s.Cmds, c) {
+		if hasStr(boostCmdsDaRimettere, c) && !hasStr(s.Cmds, c) {
 			s.Cmds = append(s.Cmds, c)
 		}
 	}
@@ -185,6 +189,7 @@ func loadBoost() *boostState {
 	}
 	if _, ok := modeScripts[raw.PrevMode]; ok {
 		s.PrevMode = raw.PrevMode
+		s.PrevSempre = raw.PrevSempre
 	}
 	// Mouse di prima: se il Tasso si è chiuso a metà partita, all'avvio lo rimetto com'era.
 	if m := raw.Mouse; m != nil && m[0] >= 0 && m[0] <= 99 && m[1] >= 0 && m[1] <= 99 && m[2] >= 0 && m[2] <= 2 {
@@ -224,8 +229,54 @@ func saveBoost() {
 	}
 	bAutoFlag.Store(bState.Auto)
 	if b, err := json.MarshalIndent(bState, "", "  "); err == nil {
-		_ = os.WriteFile(boostFile(), b, 0o644)
+		_ = scriviBoostSicuro(boostFile(), b)
 	}
+}
+
+// scriviBoostSicuro: boost.json dice cosa rimettere dopo il Boost, quindi non deve mai restare a metà
+// (PC spento mentre scrive). Scrivo in un file a parte, sposto quello vecchio in boost.json.bak e poi
+// metto il nuovo al suo posto: in ogni momento c'è almeno un file intero.
+func scriviBoostSicuro(path string, b []byte) error {
+	tmp := path + ".tmp"
+	f, err := os.OpenFile(tmp, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o644)
+	if err != nil {
+		return err
+	}
+	if _, err = f.Write(b); err == nil {
+		err = f.Sync()
+	}
+	if cerr := f.Close(); err == nil {
+		err = cerr
+	}
+	if err != nil {
+		_ = os.Remove(tmp)
+		return err
+	}
+	if _, err := os.Stat(path); err == nil {
+		_ = os.Remove(path + ".bak")
+		_ = os.Rename(path, path+".bak")
+	}
+	return os.Rename(tmp, path)
+}
+
+// leggiBoostGrezzo: boost.json così com'è; se manca o è rovinato uso la copia di prima (boost.json.bak).
+// Un file rovinato lo tengo da parte (boost.json.rotto) invece di ripartire da zero in silenzio.
+func leggiBoostGrezzo(path string) *boostState {
+	for i, p := range []string{path, path + ".bak"} {
+		b, err := os.ReadFile(p)
+		if err != nil {
+			continue
+		}
+		raw := &boostState{}
+		if json.Unmarshal(b, raw) == nil {
+			return raw
+		}
+		if i == 0 {
+			_ = os.Remove(path + ".rotto")
+			_ = os.Rename(path, path+".rotto")
+		}
+	}
+	return &boostState{}
 }
 
 func boostInfo() map[string]interface{} {
@@ -456,9 +507,18 @@ func boostOnOK() ([]string, bool) {
 		bMu.Unlock()
 		if setMode("gaming") {
 			msgs = append(msgs, "Modalità Gaming: processore al massimo, notifiche in pausa.")
-		} else {
+		} else if setMode(prev) {
+			// La modalità Gaming si è fermata a metà (piano energetico o notifiche già cambiati):
+			// rimetto subito la modalità di prima, così non resta niente di mezzo.
 			bMu.Lock()
-			s.PrevMode = ""
+			s.PrevMode, s.PrevSempre = "", false
+			saveBoost()
+			bMu.Unlock()
+			msgs = append(msgs, "Non sono riuscito a mettere la modalità Gaming: il resto del Boost è acceso.")
+		} else {
+			// Non riesco nemmeno a rimettere quella di prima: lo ricordo, e "Rimetti com'era" ci riprova.
+			bMu.Lock()
+			s.PrevSempre = true
 			saveBoost()
 			bMu.Unlock()
 			msgs = append(msgs, "Non sono riuscito a mettere la modalità Gaming: il resto del Boost è acceso.")
@@ -477,9 +537,10 @@ func boostOnOK() ([]string, bool) {
 }
 
 // restoreBoostMode rimette la modalità di prima, se l'ha cambiata il Boost e non l'hai cambiata tu.
-func restoreBoostMode(prev string) bool {
+// fatto: la modalità è stata rimessa; fallito: andava rimessa ma setMode non ci è riuscito.
+func restoreBoostMode(prev string, sempre bool) (fatto, fallito bool) {
 	if prev == "" {
-		return false
+		return false, false
 	}
 	setMu.Lock()
 	cur, target, before := settings.Mode, settings.GameTarget, settings.ModeBeforeGame
@@ -489,10 +550,11 @@ func restoreBoostMode(prev string) bool {
 	if before == "gaming" || before == "fps" {
 		updateSettings(func(st *Settings) { st.ModeBeforeGame = prev })
 	}
-	if cur == "gaming" || (target != "" && cur == target) {
-		return setMode(prev)
+	if cur == "gaming" || (target != "" && cur == target) || sempre {
+		ok := setMode(prev)
+		return ok, !ok
 	}
-	return false
+	return false, false
 }
 
 // boostOff ("Rimetti com'era"): spegne il Boost e anche il Boost automatico, e rimette solo
@@ -506,7 +568,7 @@ func boostOffOpt(explicit, keepAuto bool) []string {
 	defer bOpMu.Unlock()
 	bMu.Lock()
 	s := loadBoost()
-	prev, auto, prevAG := s.PrevMode, s.Auto, s.PrevAG
+	prev, prevSempre, auto, prevAG := s.PrevMode, s.PrevSempre, s.Auto, s.PrevAG
 	keepCmds := keepAuto && s.Auto // Ufficio col Boost automatico acceso: le regolazioni per giocare restano (come dice GIOCA)
 	var gpuPrev map[string]string
 	if explicit { // la scheda video per i giochi la rimette solo il pulsante "Rimetti com'era"
@@ -514,10 +576,10 @@ func boostOffOpt(explicit, keepAuto bool) []string {
 		s.GpuPrev = nil
 	}
 	if keepAuto {
-		s.On, s.PrevMode = false, ""
+		s.On = false
 		auto = false // la modalità gioco automatica non si tocca: serve ancora al Boost automatico
 	} else {
-		s.On, s.Auto, s.PrevMode, s.PrevAG = false, false, "", nil
+		s.On, s.Auto, s.PrevAG = false, false, nil
 		if bGame != "" {
 			bSkip = bGame
 		}
@@ -534,9 +596,18 @@ func boostOffOpt(explicit, keepAuto bool) []string {
 		gpuPrefRestore(gpuPrev)
 		msgs = append(msgs, "Scelta della scheda video per i giochi rimessa com'era.")
 	}
-	if restoreBoostMode(prev) {
+	// PrevMode resta in boost.json finché la modalità non è davvero rimessa: se setMode fallisce,
+	// "Rimetti com'era" (o lo spegnimento automatico) ci riprova la volta dopo.
+	modoFatto, modoFallito := restoreBoostMode(prev, prevSempre)
+	if modoFatto {
 		msgs = append(msgs, "Rimessa la modalità di prima.")
 	}
+	bMu.Lock()
+	if st := loadBoost(); !modoFallito && st.PrevMode == prev {
+		st.PrevMode, st.PrevSempre = "", false
+		saveBoost()
+	}
+	bMu.Unlock()
 	if auto && prevAG != nil && !*prevAG {
 		if autoGameNeeded() {
 			// La usano ancora la potenza per gioco o Regola con Tasso: resta accesa, ma solo per quei giochi.
@@ -555,7 +626,7 @@ func boostOffOpt(explicit, keepAuto bool) []string {
 	left, gpuLeft := len(loadBoost().Cmds), len(loadBoost().GpuPrev) > 0
 	bMu.Unlock()
 	switch {
-	case left > 0:
+	case left > 0 || modoFallito:
 		msgs = append(msgs, "Qualcosa non si è potuto rimettere: premi di nuovo \"Rimetti com'era\".")
 	case gpuLeft: // Boost automatico spento: la scheda video scelta per i giochi resta
 		msgs = append(msgs, "Il resto è com'era prima del Boost. La scheda video scelta per i giochi la rimette \"Rimetti com'era\".")
@@ -581,6 +652,23 @@ func boostOffForOffice() {
 		msgs := append([]string{"Modalità Ufficio: ho spento il Boost e rimesso com'era quello che aveva cambiato."}, boostOffOpt(false, true)...)
 		emit("onBoost", map[string]interface{}{"msgs": msgs, "state": boostInfo()})
 	}()
+}
+
+// boostSpegniPerUscita: chiudendo Tasso spengo il Boost acceso a mano (o quello automatico di una partita
+// in corso) e riapro i programmi chiusi. La scelta "Boost automatico" resta, come passando a Ufficio.
+func boostSpegniPerUscita() {
+	bMu.Lock()
+	s := loadBoost()
+	need := boostDaRimettereAllUscita(s.On, bGame != "", len(bClosed) > 0, s.PrevMode != "")
+	bMu.Unlock()
+	if need {
+		_ = boostOffOpt(false, true)
+	}
+}
+
+// boostDaRimettereAllUscita: c'è qualcosa del Boost che deve tornare com'era prima di chiudere Tasso.
+func boostDaRimettereAllUscita(acceso, partitaAuto, programmiChiusi, modalitaDaRimettere bool) bool {
+	return acceso || partitaAuto || programmiChiusi || modalitaDaRimettere
 }
 
 // ---------------- Boost automatico ----------------

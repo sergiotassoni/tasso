@@ -432,6 +432,9 @@ func chiudiTasso() {
 	go func() {
 		defer guard("main.go:320")
 		time.Sleep(150 * time.Millisecond)
+		// Lo spegnimento dopo 15 minuti esiste solo con Tasso aperto: chiudendo Tasso, il Boost acceso
+		// (o i programmi che ha chiuso) va rimesso com'era adesso, se no resterebbe acceso per giorni.
+		boostSpegniPerUscita()
 		trayStop()
 		wv.Dispatch(func() { wv.Terminate() })
 	}()
