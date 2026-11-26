@@ -1,0 +1,9 @@
+Librerie usate da Tasso (copie locali, per compilare senza internet)
+====================================================================
+  go-webview2    github.com/jchv/go-webview2    2026-02-05  MIT    copia modificata di Tasso (vedi go-webview2/README.md)
+  go-winloader   github.com/jchv/go-winloader   2025-04-06  ISC    (v0.0.0-20250406163304-c1995be93bd1)
+  x-sys          golang.org/x/sys               v0.30.0     BSD-3-Clause
+  wazero         github.com/tetratelabs/wazero  v1.8.2      Apache-2.0 (con NOTICE)
+Copie senza modifiche, senza le prove (*_test.go, testdata) e senza gli esempi e i programmi a
+riga di comando. Le licenze sono in ogni cartella e, tutte insieme, in ../dist/LICENZE.txt.
+Ricetta: vedi go.mod (replace ./third_party/...) e /home/claude/collaudo-finale/COME-COMPILARE.md.

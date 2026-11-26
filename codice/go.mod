@@ -5,7 +5,13 @@ go 1.24.7
 // Compilare sempre con questo Go (correzioni di sicurezza della libreria standard).
 toolchain go1.26.10
 
-replace golang.org/x/sys => github.com/golang/sys v0.30.0
+// Copie locali (con le loro licenze) per compilare senza internet e senza percorsi del PC dentro
+// l'exe: x/sys v0.30.0, go-winloader 2025-04-06, wazero v1.8.2. Vedi third_party/LEGGIMI.txt.
+replace golang.org/x/sys => ./third_party/x-sys
+
+replace github.com/jchv/go-winloader => ./third_party/go-winloader
+
+replace github.com/tetratelabs/wazero => ./third_party/wazero
 
 // Copia locale con il caricamento di WebView2Loader.dll solo da System32 (vedi third_party/go-webview2/README.md).
 replace github.com/jchv/go-webview2 => ./third_party/go-webview2
