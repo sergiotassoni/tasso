@@ -26,7 +26,7 @@ func TestPaginaCompleta(t *testing.T) {
 	if strings.Contains(p, "{{ICONA") || strings.Contains(p, "/*CARATTERI*/") {
 		t.Fatal("segnaposto rimasti nella pagina")
 	}
-	if !strings.Contains(p, "TassoArchivo") || strings.Count(p, "data:image/svg+xml;base64,") < 7 {
+	if !strings.Contains(p, "TassoArchivo") || strings.Count(p, "data:image/svg+xml;base64,") < 5 || !strings.Contains(p, "class=\"gmask\"") {
 		t.Fatal("caratteri o icone mancanti")
 	}
 	if strings.Contains(p, "http://") || strings.Contains(p, "https://") {
