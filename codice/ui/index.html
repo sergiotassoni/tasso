@@ -3159,7 +3159,6 @@ function paintLib(){
   $('#libCount').textContent = vis.length ? (list.length === 1 ? _t('1 gioco') : list.length + _t(' giochi')) + _t(' · i giocati di recente per primi, poi in ordine alfabetico. Tocca un gioco per aprire la sua pagina.') : '';
   if (!vis.length) { box.innerHTML = nHid ? _t('<span class="muted">Hai nascosto tutti i giochi.</span>') : _t('<span class="muted">Nessun gioco trovato. Se un gioco manca, premi "Aggiungi un gioco" e scegli il suo programma (.exe).</span>'); $('#libMsg').textContent = nHid ? '' : _t('Nessun gioco trovato.'); return; }
   if (!list.length) box.innerHTML = q ? _t('<span class="muted">Nessun gioco con questo nome. Se manca, premi "Aggiungi un gioco" (o guarda tra i giochi nascosti).</span>') : LIBF === 'rec' ? _t('<span class="muted">Nessun gioco giocato negli ultimi 14 giorni. Apri un gioco con GIOCA e lo trovi qui.</span>') : _t('<span class="muted">Nessun gioco in questo negozio.</span>');
-  const now = Date.now() / 1000;
   list.forEach(g => {
     const m = S.gameMemo && S.gameMemo[g.id];
     const badge = m && !m.skip && m.a ? _t('TRADOTTO') : isRecent(g) ? _t('RECENTE') : '';
@@ -4122,7 +4121,6 @@ function paintGame(g){
   const box = $('#gamePage'), m = S.gameMemo && S.gameMemo[g.id], i = GPI;
   const pw = gamePow(g.id);
   const pills = '<span class="pill">' + esc(storeName(g.store)) + '</span>' + (i && i.anticheat ? '<span class="pill warn">' + esc(_t('Anti-imbroglio')) + '</span>' : '') + (i && i.unity ? '<span class="pill">Unity</span>' : '') + (i && i.tradotto ? '<span class="pill ok">' + esc(_t('Tradotto')) + '</span>' : '');
-  const trTxt = gpTrText();
   const live = LIVE && LIVE.gpu && LIVE.gpu.temp != null ? Math.round(LIVE.gpu.temp) + '°' : '—';
   const stats = [[i && i.traduzioni ? String(i.traduzioni) : '0', _t('Frasi già tradotte')], [pw ? POW[pw] : autoAll() ? _t('Alta (Boost automatico)') : POW[''], _t('Potenza quando giochi')], [live, _t('Scheda video adesso')]];
   box.innerHTML = '<div class="gp"><div><button class="btn ghost" id="gpBack">← ' + esc(_t('Tutti i giochi')) + '</button></div>' +
