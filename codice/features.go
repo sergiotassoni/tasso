@@ -346,6 +346,8 @@ func bloatScan() {
 		list = []interface{}{}
 	}
 	emit("onBloat", list)
+	// I loghi delle app arrivano dopo la lista (icone_programmi.go).
+	iconeAppPreinstallate(list)
 }
 
 func bloatRemove(ids []string) {

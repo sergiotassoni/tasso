@@ -17,6 +17,10 @@ func updatesList() {
 		res = map[string]interface{}{"ok": false, "error": "Non sono riuscito a leggere gli aggiornamenti."}
 	}
 	emit("onUpdates", res)
+	// La lista è già sullo schermo: le icone vere dei programmi arrivano dopo (icone_programmi.go).
+	if m, ok := res.(map[string]interface{}); ok {
+		iconeAggiornamenti(m)
+	}
 }
 
 // updatesApply aggiorna i programmi scelti (id winget) oppure tutti ("*").
