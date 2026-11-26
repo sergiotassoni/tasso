@@ -185,7 +185,7 @@ func elaboraImmagine(img *image.RGBA, nome string, o opzioniBanco) (esitoImmagin
 	if tenute := senzaSovrapposte(pronti); len(tenute) != len(pronti) {
 		segnaTolte(tenute, "traduzioni sovrapposte")
 		for _, p := range pronti {
-			if !contieneBlocco(tenute, p) {
+			if !contieneBlocco(tenute, p) && !copertaDaTenuta(p, tenute) {
 				inglesi = append(inglesi, p)
 			}
 		}

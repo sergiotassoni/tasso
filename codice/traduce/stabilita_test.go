@@ -358,3 +358,26 @@ func TestCollaudoDecisioneSchermataFerma(t *testing.T) {
 		t.Fatal("confermata: resta tradotta anche dopo tanti giri (niente salti italiano/inglese)")
 	}
 }
+
+// Regola di Sergio 26/11: due letture della stessa scritta una sopra l'altra non fanno tornare in
+// inglese quella già tradotta e confermata ("Early Morning" che saltava a ogni fotogramma).
+func TestSovrappostaTieneLaConfermata(t *testing.T) {
+	conf := Blocco{Testo: "Early Morning", Tradotto: "Mattina presto", X: 100, Y: 100, W: 200, H: 30, GiaMostrata: true}
+	altra := Blocco{Testo: "Early Mornin", Tradotto: "Mattina presto", X: 105, Y: 102, W: 190, H: 28}
+	got := senzaSovrapposte([]Blocco{conf, altra})
+	if len(got) != 1 || got[0].Testo != conf.Testo {
+		t.Fatalf("deve restare solo quella confermata: %+v", got)
+	}
+	if !copertaDaTenuta(altra, got) {
+		t.Fatal("la lettura tolta sta sotto la confermata: non è un pezzo in inglese")
+	}
+	if tenute, _ := senzaMezzeRighe(got, nil); len(tenute) != 1 {
+		t.Fatal("la confermata deve restare disegnata")
+	}
+	// nessuna delle due confermata: via tutte e due come prima
+	a, b := conf, altra
+	a.GiaMostrata = false
+	if got := senzaSovrapposte([]Blocco{a, b}); len(got) != 0 {
+		t.Fatalf("senza conferma restano in inglese tutte e due: %+v", got)
+	}
+}

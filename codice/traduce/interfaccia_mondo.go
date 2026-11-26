@@ -625,7 +625,16 @@ func senzaSovrapposte(pronti []Blocco) []Blocco {
 				continue
 			}
 			if in.Dx()*in.Dy()*5 >= min(a.Dx()*a.Dy(), c.Dx()*c.Dy()) {
-				via[i], via[j] = true, true
+				// una delle due è già tradotta e confermata (stessa scritta, decisione tenuta):
+				// resta quella e va via solo l'altra lettura (niente salti italiano/inglese)
+				switch {
+				case pronti[i].GiaMostrata && !pronti[j].GiaMostrata:
+					via[j] = true
+				case pronti[j].GiaMostrata && !pronti[i].GiaMostrata:
+					via[i] = true
+				default:
+					via[i], via[j] = true, true
+				}
 			}
 		}
 	}
@@ -636,6 +645,23 @@ func senzaSovrapposte(pronti []Blocco) []Blocco {
 		}
 	}
 	return out
+}
+
+// copertaDaTenuta: p, tolta da senzaSovrapposte, sta sotto una traduzione tenuta (un'altra
+// lettura della stessa scritta già tradotta e confermata): non conta come pezzo in inglese.
+func copertaDaTenuta(p Blocco, tenute []Blocco) bool {
+	a := image.Rect(p.X, p.Y, p.X+p.W, p.Y+p.H)
+	for _, t := range tenute {
+		if !t.GiaMostrata {
+			continue
+		}
+		c := image.Rect(t.X, t.Y, t.X+t.W, t.Y+t.H)
+		in := a.Intersect(c)
+		if !in.Empty() && in.Dx()*in.Dy()*5 >= min(a.Dx()*a.Dy(), c.Dx()*c.Dy()) {
+			return true
+		}
+	}
+	return false
 }
 
 // ---------------------------------------------------------------- righe sopra e sotto

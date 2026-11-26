@@ -674,7 +674,7 @@ func preparaPaginaCon(area Zona, img, primaImg *image.RGBA, giro int64, annulla 
 		}
 		tenute := senzaSovrapposte(pronti) // mai due traduzioni una sopra l'altra
 		for _, p := range pronti {
-			if !contieneBlocco(tenute, p) {
+			if !contieneBlocco(tenute, p) && !copertaDaTenuta(p, tenute) {
 				ingl = append(ingl, p)
 			}
 		}

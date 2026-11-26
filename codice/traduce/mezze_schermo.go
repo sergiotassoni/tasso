@@ -68,6 +68,11 @@ func conIngleseAccanto(p Blocco, inglesi []Blocco) bool {
 		if e.X == p.X && e.Y == p.Y && e.W == p.W && e.H == p.H {
 			continue
 		}
+		// già tradotta e confermata: un pezzetto accanto di una o due parole (spesso lettere
+		// lette male, "o", "you") non la fa tornare in inglese (regola di Sergio 26/11)
+		if p.GiaMostrata && len(strings.Fields(e.Testo)) <= 2 {
+			continue
+		}
 		if stessaFraseSchermo(p, e) {
 			return true
 		}
