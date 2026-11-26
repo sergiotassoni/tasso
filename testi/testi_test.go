@@ -96,3 +96,16 @@ func TestNiente7ZipWinRAR(t *testing.T) {
 		}
 	}
 }
+
+// "Non riconosco questo file come archivio": l'elenco dei formati deve avere tutti quelli che
+// Tasso Zip apre davvero (anche zst), in tutte le lingue.
+func TestErrFormatoTuttiITipi(t *testing.T) {
+	for _, l := range Lingue {
+		s := T(l, "err_formato")
+		for _, f := range []string{"zip", "7z", "rar", "tar", "gz", "bz2", "xz", "zst"} {
+			if !strings.Contains(s, f) {
+				t.Errorf("%s: err_formato senza %s: %q", l, f, s)
+			}
+		}
+	}
+}
