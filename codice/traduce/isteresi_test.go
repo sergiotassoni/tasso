@@ -227,7 +227,8 @@ func TestTraduzioniFisse(t *testing.T) {
 	prima := n.Load()
 	for _, testo := range []string{"Repair the broken coffee machine", "Repair  the broken coffee rnachine", "REPAIR THE BROKEN COFFEE MACHINE"} {
 		r := traduciTutteFisse(context.Background(), tr, []Blocco{{Testo: testo}}, true, f)
-		if r[0].Tradotto != r1[0].Tradotto || r[0].Errore != "" {
+		// le stesse parole; le maiuscole seguono la scritta di adesso (stabilita.go: "REPAIR…" maiuscola)
+		if !strings.EqualFold(r[0].Tradotto, r1[0].Tradotto) || r[0].Errore != "" || (testo == strings.ToUpper(testo) && r[0].Tradotto != strings.ToUpper(r1[0].Tradotto)) {
 			t.Fatalf("%q: %q (attesa %q, errore %q)", testo, r[0].Tradotto, r1[0].Tradotto, r[0].Errore)
 		}
 	}
