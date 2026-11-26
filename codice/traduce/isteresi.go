@@ -88,10 +88,20 @@ func rettBlocco(b Blocco) image.Rectangle { return image.Rect(b.X, b.Y, b.X+b.W,
 
 // posto: il posto di r (nil se non c'è e crea è falso).
 func (s *isteresi) posto(r image.Rectangle, crea bool, adesso time.Time) *postoIsteresi {
+	// il posto che si sovrappone di più (non il primo: con due scritte vicine di misura simile la
+	// scritta vecchia ereditava la lettura della vicina)
+	var meglio *postoIsteresi
+	area := 0
 	for _, p := range s.posti {
 		if sovrapposti(p.r, r) && stessaMisura(p.r, r) {
-			return p
+			in := p.r.Intersect(r)
+			if a := in.Dx() * in.Dy(); meglio == nil || a > area {
+				meglio, area = p, a
+			}
 		}
+	}
+	if meglio != nil {
+		return meglio
 	}
 	if !crea {
 		return nil
