@@ -319,3 +319,33 @@ func TestNomiCartelleCoerenti(t *testing.T) {
 		}
 	}
 }
+
+// Ogni testo fisso passato a _t('...') in ui/index.html ha la sua traduzione (se no in es/fr/de
+// resta in italiano). Fuori solo i pezzi uguali in tutte le lingue (nomi di programmi, unità).
+func TestTestiFinestraTradotti(t *testing.T) {
+	b, err := os.ReadFile("../ui/index.html")
+	if err != nil {
+		t.Skip("index.html non trovato")
+	}
+	uguali := map[string]bool{" · RAM ": true, "min ": true, " ms).</b>": true, " AMD Ryzen Master": true,
+		" Intel XTU": true, `<span class="art" style="color:`: true, " Afterburner</button></div>": true}
+	tutte := map[string]diz{"en": leggi(t, "en")}
+	for _, l := range lingue {
+		tutte[l] = leggi(t, l)
+	}
+	re := regexp.MustCompile(`_t\('((?:[^'\\]|\\.)*)'\)`)
+	lettere := regexp.MustCompile(`[A-Za-zÀ-ÿ]{2}`)
+	for _, m := range re.FindAllStringSubmatch(string(b), -1) {
+		k := regexp.MustCompile(`\\(.)`).ReplaceAllString(m[1], "$1")
+		if !lettere.MatchString(k) || uguali[k] {
+			continue
+		}
+		for l, d := range tutte {
+			if _, ok := d["ui"][k]; !ok {
+				if _, ok := d["go"][k]; !ok {
+					t.Errorf("%s.json/ui: manca il testo della finestra %q", l, k)
+				}
+			}
+		}
+	}
+}

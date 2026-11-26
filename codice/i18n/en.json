@@ -3777,6 +3777,8 @@
   "Passaggi": "Steps",
   "Passaggio ": "Step ",
   "Passata veloce: temporanei anche di Windows, browser, DNS.": "Quick pass: Windows temporary files too, browsers, DNS.",
+  "Password: <span class=\"pw\" style=\"filter:blur(5px)\">": "Password: <span class=\"pw\" style=\"filter:blur(5px)\">",
+  "</b><br><span class=\"small muted\">Driver ": "</b><br><span class=\"small muted\">Driver ",
   "Password non disponibile": "Password not available",
   "Pausa": "Pause",
   "Per esperti": "For experts",
