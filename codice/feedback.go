@@ -24,6 +24,8 @@ import (
 	"unsafe"
 
 	"golang.org/x/sys/windows"
+
+	"tasso/fotopulita"
 )
 
 // cassettaURL: indirizzo della cassetta di Tasso (senza / finale), es. https://tasso-cassetta.NOME.workers.dev
@@ -71,6 +73,12 @@ func readPhoto(p string) ([]byte, string, error) {
 	}
 	t := photoType(b)
 	if t == "" {
+		return nil, "", fmt.Errorf("Questo file non è una foto (PNG, JPG, GIF, WEBP o BMP).")
+	}
+	// via i dati nascosti (EXIF: posizione GPS, telefono, data; XMP, commenti): si manda solo
+	// l'immagine. Una foto che non si riesce a pulire non parte.
+	b, err = fotopulita.Pulisci(b, t)
+	if err != nil {
 		return nil, "", fmt.Errorf("Questo file non è una foto (PNG, JPG, GIF, WEBP o BMP).")
 	}
 	return b, t, nil
