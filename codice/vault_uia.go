@@ -3,7 +3,7 @@ package main
 // UI Automation di Windows (la stessa che usano i lettori di schermo), chiamata a mano senza cgo:
 // serve al Portachiavi per capire su che campo hai cliccato (utente o password), dove sta sullo
 // schermo, qual è l'indirizzo della pagina nel browser e per riempire il campo senza tastiera.
-// Si usa solo dal filo "vtUIA" (COM inizializzato lì, modello MTA).
+// Si usa solo dal filo di vtLavoro in vault_compila.go (COM inizializzato lì, modello MTA).
 
 import (
 	"strings"
@@ -79,7 +79,7 @@ func bstrToString(b uintptr) string {
 	return windows.UTF16ToString(unsafe.Slice((*uint16)(puntatore(b)), int(n)))
 }
 
-// uia è l'oggetto IUIAutomation del filo vtUIA.
+// uia è l'oggetto IUIAutomation del filo di vtLavoro.
 type uia struct{ a comObj }
 
 func newUIA() (*uia, bool) {
@@ -187,7 +187,7 @@ func elRect(e comObj) (rect, bool) {
 	return r, true
 }
 
-// valuePattern: il "campo con un valore" dell'elemento (0 se non c'è).
+// elValuePattern: il "campo con un valore" dell'elemento (0 se non c'è).
 func elValuePattern(e comObj) comObj {
 	var p comObj
 	if e == 0 || !hrOK(e.call(14, uiaValuePatternID, uintptr(unsafe.Pointer(&iidIUIValuePattern)), uintptr(unsafe.Pointer(&p)))) {

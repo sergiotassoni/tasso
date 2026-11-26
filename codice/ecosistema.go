@@ -112,7 +112,7 @@ func applicaModalitaInstallatore() (pc string, cambiata bool) {
 
 // lingueDisponibili: le lingue di Tasso. "it" è quella scritta nel codice, le altre hanno il loro
 // file i18n/<codice>.json. Per aggiungerne una: il file i18n/xx.json (stesse chiavi di en.json,
-// lo controlla i18n_lingue_test.go), il suo codice qui, in go:embed di i18n.go, in linguaDaLangID
+// lo controlla i18n/lingue_test.go), il suo codice qui, in go:embed di i18n.go, in linguaDaLangID
 // (i18n.go) e il bottone nella finestra (data-lang in ui/index.html).
 func lingueDisponibili() []string { return []string{"it", "en", "es", "fr", "de"} }
 

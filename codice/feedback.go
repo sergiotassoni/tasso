@@ -267,7 +267,7 @@ func sendFeedback(kind, text, contact, pc string, photos []string, stars int, pu
 	done(true, false, "Messaggio mandato. Grazie, lo leggo davvero!")
 }
 
-// feedbackMail apre l'email già scritta (le foto si allegano a mano).
+// feedbackMailOpen apre l'email già scritta (le foto si allegano a mano).
 func feedbackMailOpen(kind, text, pc string) string {
 	kind, text, _, pc, err := fbCheck(kind, text, "", pc, nil)
 	if err != nil {

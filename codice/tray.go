@@ -70,7 +70,7 @@ const (
 	trayID        = 1
 	wmTrayIcona   = 0x8000 + 41 // WM_APP+41: messaggi dell'icona (clic, menu)
 	wmTrayFerma   = 0x8000 + 42 // togli l'icona e chiudi il filo
-	wmTrayAvviso  = 0x8000 + 43 // mostra l'avviso preparato in trayAvvisoDa
+	wmTrayAvviso  = 0x8000 + 43 // mostra l'avviso preparato da trayAvviso
 	trayTimerAdd  = 1           // riprova a mettere l'icona (Esplora risorse non ancora pronto)
 	nimAdd        = 0
 	nimModify     = 1
