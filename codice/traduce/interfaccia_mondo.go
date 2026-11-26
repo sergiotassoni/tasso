@@ -632,6 +632,15 @@ func senzaSovrapposte(pronti []Blocco) []Blocco {
 					via[j] = true
 				case pronti[j].GiaMostrata && !pronti[i].GiaMostrata:
 					via[i] = true
+				case stessaLetturaDoppia(pronti[i], pronti[j]):
+					// la stessa scritta letta due volte con la stessa traduzione (prova 15:56:
+					// "Early Morning" letto come "Early Mornin" e "iarIyMorning", "IMPACT IN 86"
+					// due volte nello stesso posto): resta una sola, la più grande
+					if areaBlocco(pronti[i]) >= areaBlocco(pronti[j]) {
+						via[j] = true
+					} else {
+						via[i] = true
+					}
 				default:
 					via[i], via[j] = true, true
 				}
@@ -647,12 +656,22 @@ func senzaSovrapposte(pronti []Blocco) []Blocco {
 	return out
 }
 
+// stessaLetturaDoppia: a e b sono la stessa scritta letta due volte (stesso testo, o con gli
+// errori tipici dell'OCR) e hanno la stessa traduzione: disegnarne una sola non lascia niente
+// di diverso in inglese.
+func stessaLetturaDoppia(a, b Blocco) bool {
+	return a.Tradotto != "" && strings.TrimSpace(a.Tradotto) == strings.TrimSpace(b.Tradotto) &&
+		max(1, a.Righe) == max(1, b.Righe) && stessaScritta(a.Testo, b.Testo)
+}
+
+func areaBlocco(b Blocco) int { return max(0, b.W) * max(0, b.H) }
+
 // copertaDaTenuta: p, tolta da senzaSovrapposte, sta sotto una traduzione tenuta (un'altra
 // lettura della stessa scritta già tradotta e confermata): non conta come pezzo in inglese.
 func copertaDaTenuta(p Blocco, tenute []Blocco) bool {
 	a := image.Rect(p.X, p.Y, p.X+p.W, p.Y+p.H)
 	for _, t := range tenute {
-		if !t.GiaMostrata {
+		if !t.GiaMostrata && !stessaLetturaDoppia(t, p) {
 			continue
 		}
 		c := image.Rect(t.X, t.Y, t.X+t.W, t.Y+t.H)

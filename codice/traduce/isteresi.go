@@ -216,7 +216,7 @@ func (s *isteresi) applica(nuovi, vecchi, inglesi []Blocco, img *image.RGBA, ade
 			continue // al suo posto c'è già un'altra traduzione
 		}
 		p := s.posto(ro, false, adesso)
-		if p == nil || adesso.Sub(p.letta) > s.grazia() || !stessaFormaSotto(o, img) {
+		if p == nil || adesso.Sub(p.letta) > s.grazia() || !(stessaFormaSotto(o, img) || lettaAMeta(o, restano)) {
 			continue
 		}
 		// le letture inglesi che toccano la scritta vecchia: tutte dentro il suo riquadro e con
@@ -243,6 +243,29 @@ func (s *isteresi) applica(nuovi, vecchi, inglesi []Blocco, img *image.RGBA, ade
 		out = append(out, o)
 	}
 	return out, restano
+}
+
+// lettaAMeta: o è già tradotta e confermata (GiaMostrata) e adesso lì dentro si legge un pezzo
+// della stessa scritta (le lettere che sfumano, "eat the enemies." per "Defeat the enemies.",
+// prova 15:56): anche se i pixel sotto sono cambiati un po', la scritta è quella e la
+// traduzione resta per il tempo di grazia invece di saltare in inglese per un fotogramma.
+func lettaAMeta(o Blocco, inglesi []Blocco) bool {
+	if !o.GiaMostrata {
+		return false
+	}
+	ro := rettBlocco(o)
+	trovata := false
+	for _, e := range inglesi {
+		if !ro.Overlaps(rettBlocco(e)) {
+			continue
+		}
+		le, lo := lettereConfuse(e.Testo), lettereConfuse(o.Testo)
+		if !dentroRiquadro(e, o) || len(le) < 6 || !strings.Contains(lo, le) || !testoSimile(e.Testo, o.Testo) {
+			return false // lì c'è un'altra scritta
+		}
+		trovata = true
+	}
+	return trovata
 }
 
 // testoSimile: due letture della stessa scritta, anche con qualche lettera sbagliata o una

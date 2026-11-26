@@ -38,9 +38,9 @@ func blocchiLetti(img *image.RGBA, righe []RigaOCR, f float64, voti *votazione, 
 	bl = spezzaSeparatori(bl)
 	bl = spezzaPulsanti(bl)
 	bl = togliFrecce(bl)
-	bl = togliIconeTasti(bl)   // "Swing Sword O": l'icona del pulsante resta del gioco
-	bl = togliSegniIcona(bl)   // "/Back", "'Close", "[Shipwreck": il segno è dell'icona
-	bl = togliLetteraIcona(bl) // "'t +5% damage": la freccia letta come una lettera
+	bl = togliIconeTasti(bl)    // "Swing Sword O": l'icona del pulsante resta del gioco
+	bl = togliSegniIcona(bl)    // "/Back", "'Close", "[Shipwreck": il segno è dell'icona
+	bl = togliLetteraIcona(bl)  // "'t +5% damage": la freccia letta come una lettera
 	bl = togliIconaParlante(bl) // "@ M16 Handler: …": l'icona della radio davanti a chi parla
 	for i := range bl {
 		if bl[i].Grezzo == "" {
@@ -52,7 +52,9 @@ func blocchiLetti(img *image.RGBA, righe []RigaOCR, f float64, voti *votazione, 
 		}
 	}
 	bl = spezzaIconeInMezzo(bl) // "Press t to sprint.": la "t" è la freccia dell'icona del tasto
+	righe1 := append([]Blocco(nil), bl...)
 	bl = unisciParagrafi(bl)
+	bl = separaScelte(bl, righe1) // "Nice to meet you!" / "What's your first name?": due scelte
 	for i := range bl {
 		if bl[i].Righe > 1 {
 			// paragrafo: il voto è quello del testo intero (anche la frase pronta intera)
@@ -64,6 +66,49 @@ func blocchiLetti(img *image.RGBA, righe []RigaOCR, f float64, voti *votazione, 
 		}
 	}
 	return bl
+}
+
+// separaScelte: i paragrafi uniti da unisciParagrafi fatti solo di righe corte che sono ognuna
+// una frase chiusa da "?" o "!" tornano righe separate. Sono le scelte di un dialogo una sotto
+// l'altra ("...Thanks." / "Nice to meet you!" / "What's your first name?", Persona 3; "What's
+// going on?" / "What did you do to me?", prova 15:56): unite, la scelta "Nice to meet you!"
+// mostrava "Piacere di conoscerti! Come ti chiami?", cioè anche il testo dell'altra scelta, e
+// al fotogramma dopo (righe lette separate) "Piacere di conoscerti!". Ogni riga è già una frase
+// intera: tradotta da sola è giusta e non cambia tra un fotogramma e l'altro.
+// righe: le righe prima dell'unione (con il loro testo corretto).
+func separaScelte(par, righe []Blocco) []Blocco {
+	var out []Blocco
+	for _, p := range par {
+		if p.Righe <= 1 {
+			out = append(out, p)
+			continue
+		}
+		rp := rettBlocco(p)
+		var dentro []Blocco
+		for _, r := range righe {
+			if max(1, r.Righe) == 1 && rettBlocco(r).In(rp) && strings.Contains(p.Testo, r.Testo) {
+				dentro = append(dentro, r)
+			}
+		}
+		if len(dentro) != p.Righe || !tutteScelte(dentro) {
+			out = append(out, p)
+			continue
+		}
+		sort.SliceStable(dentro, func(i, j int) bool { return dentro[i].Y < dentro[j].Y })
+		out = append(out, dentro...)
+	}
+	return out
+}
+
+// tutteScelte: ogni riga è una frase corta (al massimo 7 parole) chiusa da "?" o "!".
+func tutteScelte(bl []Blocco) bool {
+	for _, b := range bl {
+		t := strings.TrimRight(strings.TrimSpace(b.Testo), "\"'”’»)]")
+		if t == "" || !strings.ContainsAny(t[len(t)-1:], "?!") || len(strings.Fields(t)) > 7 {
+			return false
+		}
+	}
+	return len(bl) >= 2
 }
 
 // motivoNonTradurre: perché questa scritta non va tradotta ("" = va tradotta).
@@ -106,7 +151,7 @@ func motivoNonTradurre(b Blocco) string {
 func controllaCompleta(img *image.RGBA, b *Blocco, tutte []Blocco) string {
 	// passata la lettura incerta solo per la decisione già presa (motivoNonTradurre)
 	b.Tenuta = b.GiaMostrata && b.Affid == letturaDubbia
-	if m := motivoFratello(*b, tutte); m != "" {
+	if m := motivoFratello(*b, fratelliDaGuardare(*b, tutte)); m != "" {
 		return m
 	}
 	if img == nil {
@@ -145,6 +190,23 @@ func controllaCompleta(img *image.RGBA, b *Blocco, tutte []Blocco) string {
 	}
 	adattaAInchiostro(img, b)
 	return ""
+}
+
+// fratelliDaGuardare: le scritte accanto che possono far restare b in inglese come pezzo di una
+// frase letta male. Per una scritta già tradotta e confermata con lo stesso testo (GiaMostrata)
+// non contano i pezzetti di una o due parole letti male accanto ("nay g." accanto a "IMPACT IN
+// 86", prova 15:56): è la stessa regola di conIngleseAccanto, niente salti italiano/inglese.
+func fratelliDaGuardare(b Blocco, tutte []Blocco) []Blocco {
+	if !b.GiaMostrata {
+		return tutte
+	}
+	out := make([]Blocco, 0, len(tutte))
+	for _, s := range tutte {
+		if s.X == b.X && s.Y == b.Y && s.W == b.W && s.H == b.H || len(strings.Fields(s.Testo)) > 2 {
+			out = append(out, s)
+		}
+	}
+	return out
 }
 
 // traduciTutte: traduce le scritte (8 alla volta). veloce=true: solo frasi pronte, librerie e

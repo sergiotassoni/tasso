@@ -185,8 +185,27 @@ func elaboraImmagine(img *image.RGBA, nome string, o opzioniBanco) (esitoImmagin
 	if tenute := senzaSovrapposte(pronti); len(tenute) != len(pronti) {
 		segnaTolte(tenute, "traduzioni sovrapposte")
 		for _, p := range pronti {
-			if !contieneBlocco(tenute, p) && !copertaDaTenuta(p, tenute) {
+			if contieneBlocco(tenute, p) {
+				continue
+			}
+			if !copertaDaTenuta(p, tenute) {
 				inglesi = append(inglesi, p)
+				continue
+			}
+			// l'altra lettura della stessa scritta, sotto quella disegnata: nel report la
+			// traduzione che si vede lì (non "inglese"), se no conterebbe come un salto
+			sopra := p.Tradotto
+			for _, t := range tenute {
+				if copertaDaTenuta(p, []Blocco{t}) {
+					sopra = t.Tradotto
+					break
+				}
+			}
+			for i := range e.Righe {
+				r := &e.Righe[i]
+				if r.X == p.X && r.Y == p.Y && r.W == p.W && r.H == p.H && r.Scartata == "traduzioni sovrapposte" {
+					r.Scartata, r.Tradotto = "", sopra
+				}
 			}
 		}
 		pronti = tenute

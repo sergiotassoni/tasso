@@ -182,6 +182,13 @@ func seguitoSotto(sopra, sotto Blocco) bool {
 	if fineFraseTesto(t) {
 		return false
 	}
+	// scritta tutta maiuscola sopra una riga normale (o un numero): due scritte diverse, come in
+	// unisciParagrafi ("IMPACT IN 86" sopra "m' this shiFt", prova 15:56: l'avviso già tradotto
+	// tornava in inglese ogni volta che la riga sotto era letta senza il numero davanti)
+	if tuttoMaiuscolo(t) && !tuttoMaiuscolo(sotto.Testo) && !chiedeSeguito(t) && !strings.HasSuffix(t, ",") &&
+		!strings.HasSuffix(t, "-") && !strings.HasSuffix(t, "—") {
+		return false
+	}
 	if len(nomeChiParla(sotto.Testo)) > 0 {
 		return false // "Brodie: The cable's stuck.": chi parla comincia una battuta nuova
 	}
@@ -206,11 +213,19 @@ func sceltaConIngleseInColonna(p Blocco, inglesi []Blocco) bool {
 		if e.X == p.X && e.Y == p.Y && e.W == p.W && e.H == p.H {
 			continue
 		}
-		if voceCorta(e) && stessaColonnaVoci(p, e) {
+		if voceCorta(e) && stessaColonnaVoci(p, e) && stessoStileVoci(p, e) {
 			return true
 		}
 	}
 	return false
+}
+
+// stessoStileVoci: le voci di un elenco di scelte sono scritte allo stesso modo. Un titolo tutto
+// maiuscolo sopra una riga normale non è un'altra voce dello stesso elenco (prova 15:56: "ORDER
+// OF THE DAV" in inglese sopra "Meteoric iron: 30 / 30 units", "IMPACT IN 86" sopra "m' this
+// shiFt": la riga già tradotta saltava tra italiano e inglese).
+func stessoStileVoci(a, b Blocco) bool {
+	return tuttoMaiuscolo(a.Testo) == tuttoMaiuscolo(b.Testo)
 }
 
 // voceCorta: una riga sola, poche parole, non una battuta con chi parla ("Caz: Yes.").
