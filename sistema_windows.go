@@ -881,7 +881,7 @@ const segnoPreparaApertura = "tasso-prepara-apertura-v1"
 
 // preparaAperturaTasso: dalla 3.1.1 Tasso.exe non chiede l'amministratore nel suo manifest (così
 // Windows non mette lo scudo sull'icona) e si riapre da amministratore con l'attività pianificata
-// \Tasso\Apri Tasso, senza la richiesta di Windows a ogni apertura. L'attività la prepara Tasso
+// \Tasso\Apri Tasso <SID> (una per utente), senza la richiesta di Windows a ogni apertura. L'attività la prepara Tasso
 // stesso (Tasso.exe --prepara-apertura, da amministratore come l'installatore): così anche la
 // prima apertura dopo l'installazione non chiede niente. Se non riesce non è un errore: Tasso la
 // prepara alla prima apertura (dopo aver chiesto i permessi una volta). Con UAC e la password di un
@@ -914,7 +914,7 @@ func preparaAperturaTasso(base string, cc []installa.Componente) {
 }
 
 // togliAttivitaTasso: via la cartella \Tasso\ dell'Utilità di pianificazione con tutte le sue
-// attività (Avvio con Windows, Profilo gioco, Pulizia settimanale).
+// attività (Avvio con Windows, Profilo gioco, Pulizia settimanale, Apri Tasso <SID> di ogni utente).
 func togliAttivitaTasso() error {
 	ps := filepath.Join(sistema32(), "WindowsPowerShell", "v1.0", "powershell.exe")
 	script := `$ErrorActionPreference='SilentlyContinue'
