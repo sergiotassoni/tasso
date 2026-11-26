@@ -28,7 +28,7 @@ func ingleseVisibile(motivo string) bool {
 	switch {
 	case motivo == "", motivo == "non è testo da tradurre", motivo == motivoUgualeIt,
 		motivo == "forma strana", motivo == motivoNomeCodice,
-		strings.HasPrefix(motivo, "nome di un veicolo"), motivo == motivoTitoloVideo, motivo == motivoNomeGioco:
+		strings.HasPrefix(motivo, "nome di un veicolo"), motivo == motivoTitoloVideo, motivo == motivoNomeGioco, motivo == motivoSenzaLettere:
 		return false
 	}
 	return true

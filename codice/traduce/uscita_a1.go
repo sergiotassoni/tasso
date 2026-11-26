@@ -4,9 +4,11 @@ package traduce
 // tagliate in fondo, titoli dei video e dei giochi, parole ripetute inventate dal traduttore.
 
 import (
+	"image"
 	"math"
 	"regexp"
 	"strings"
+	"unicode"
 )
 
 // motivoFraseTroncata: la riga finisce con una parola che vuole il seguito ("...forward without"):
@@ -346,4 +348,87 @@ func inBarraComandi(p Blocco, tutte []Blocco) bool {
 		}
 	}
 	return n >= 2
+}
+
+// togliIconaParlante: l'icona della radio davanti a chi parla letta come un segno ("@ M16 Handler:
+// How long were you in the water?"): col segno davanti il nome non veniva riconosciuto e tutte le
+// battute del personaggio restavano in inglese (prova finale, 007). Si toglie solo un segno da
+// solo (senza lettere né cifre) seguito da "Nome: battuta".
+func togliIconaParlante(bl []Blocco) []Blocco {
+	for i := range bl {
+		t := strings.TrimSpace(bl[i].Testo)
+		w := strings.Fields(t)
+		if len(w) < 3 || len([]rune(w[0])) > 2 || strings.ContainsFunc(w[0], func(r rune) bool { return unicode.IsLetter(r) || unicode.IsDigit(r) }) {
+			continue
+		}
+		resto := strings.TrimSpace(strings.TrimPrefix(t, w[0]))
+		if len(nomeChiParla(resto)) == 0 {
+			continue
+		}
+		if bl[i].W > 0 {
+			via := bl[i].W * (len([]rune(t)) - len([]rune(resto))) / len([]rune(t))
+			bl[i].X += via
+			bl[i].W -= via
+		}
+		bl[i].Testo = resto
+		if bl[i].Grezzo == t {
+			bl[i].Grezzo = resto
+		}
+	}
+	return bl
+}
+
+// motivoSenzaLettere: nel riquadro non ci sono lettere vere (l'OCR ha "letto" il bordo di un
+// pannello o una riga di luce: "CUFFIE" disegnata sulla parete in One More Donut, f0841).
+const motivoSenzaLettere = "nessuna lettera vera nel riquadro"
+
+// densitaTratti: quante volte, lungo le righe di mezzo del riquadro, si passa da chiaro a scuro
+// (soglia a metà tra i pixel più scuri e più chiari), diviso per quante "lettere" ci starebbero
+// (larghezza/altezza). Testo vero: 2,5-5 (anche maiuscole grosse e scritte piccole); un bordo o
+// una riga di luce: sotto 0,3.
+func densitaTratti(img *image.RGBA, b Blocco) float64 {
+	r := image.Rect(b.X, b.Y, b.X+b.W, b.Y+b.H).Intersect(img.Bounds())
+	if r.Dx() < 8 || r.Dy() < 6 {
+		return 99
+	}
+	var conta [256]int
+	n := 0
+	for y := r.Min.Y; y < r.Max.Y; y++ {
+		for x := r.Min.X; x < r.Max.X; x++ {
+			conta[luceImg(img, x, y)]++
+			n++
+		}
+	}
+	lo, hi, acc := -1, -1, 0
+	for v := 0; v < 256; v++ {
+		acc += conta[v]
+		if lo < 0 && acc*20 >= n {
+			lo = v
+		}
+		if hi < 0 && acc*20 >= n*19 {
+			hi = v
+		}
+	}
+	soglia := (lo + hi) / 2
+	tot, righe := 0, 0
+	for y := r.Min.Y + r.Dy()/4; y < r.Max.Y-r.Dy()/4; y++ {
+		righe++
+		prima := luceImg(img, r.Min.X, y) > soglia
+		for x := r.Min.X + 1; x < r.Max.X; x++ {
+			c := luceImg(img, x, y) > soglia
+			if c != prima {
+				tot++
+			}
+			prima = c
+		}
+	}
+	if righe == 0 {
+		return 99
+	}
+	return float64(tot) / float64(righe) / (float64(r.Dx()) / float64(r.Dy()))
+}
+
+// senzaLettere: una riga sola il cui riquadro non ha tratti di lettere.
+func senzaLettere(img *image.RGBA, b Blocco) bool {
+	return img != nil && max(1, b.Righe) == 1 && b.Affid != letturaCatalog && densitaTratti(img, b) < 0.8
 }

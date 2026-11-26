@@ -327,3 +327,55 @@ func TestTerminiCollaudo01(t *testing.T) {
 		}
 	}
 }
+
+// 007 (prova finale): "@ M16 Handler: …" con l'icona della radio davanti: chi parla riconosciuto,
+// la battuta si traduce (prima restavano in inglese tutte).
+func TestIconaDavantiAChiParla(t *testing.T) {
+	bl := togliIconaParlante([]Blocco{
+		{Testo: "@ M16 Handler: How long were you in the water?", X: 100, W: 470},
+		{Testo: "@ 12 points", X: 100, W: 100},
+		{Testo: "• Hold to aim", X: 100, W: 100},
+	})
+	if bl[0].Testo != "M16 Handler: How long were you in the water?" || bl[0].X <= 100 {
+		t.Errorf("icona davanti a chi parla non tolta: %q", bl[0].Testo)
+	}
+	if bl[1].Testo != "@ 12 points" || bl[2].Testo != "• Hold to aim" {
+		t.Errorf("tolto un segno che non era davanti a chi parla: %q / %q", bl[1].Testo, bl[2].Testo)
+	}
+	if rigaMezzaTradotta(bl[0].Testo, "M16 Handler: Per quanto tempo sei stato in acqua?") {
+		t.Error("battuta con il nome di chi parla presa per mezza in inglese")
+	}
+}
+
+// One More Donut f0841: "CUFFIE" disegnata sulla parete dove non c'era testo (l'OCR aveva letto
+// il bordo del pannello). Nel riquadro non ci sono tratti di lettere: non si traduce. Le scritte
+// vere della stessa schermata (piccole, grosse, chiare, scure) restano.
+func TestRiquadroSenzaLettere(t *testing.T) {
+	a, _ := apriImmagineRGBA("testdata/donut/0779.jpg")
+	b, _ := apriImmagineRGBA("testdata/donut/0841.jpg")
+	for _, bb := range []Blocco{{Testo: "HEADPHONES", X: 960, Y: 220, W: 78, H: 15}, {Testo: "HEADPHONES", X: 955, Y: 216, W: 90, H: 20}} {
+		bb.Righe, bb.Affid = 1, letturaBuona
+		if !senzaLettere(b, bb) {
+			t.Errorf("riquadro senza testo (densità %.2f) tradotto", densitaTratti(b, bb))
+		}
+	}
+	for _, c := range []struct {
+		img *image.RGBA
+		b   Blocco
+	}{
+		{a, Blocco{Testo: "TOOLS", X: 478, Y: 203, W: 74, H: 26}},
+		{a, Blocco{Testo: "DO NOT TAKE", X: 390, Y: 594, W: 58, H: 10}},
+		{b, Blocco{Testo: "TAKE", X: 284, Y: 576, W: 29, H: 11}},
+		{a, Blocco{Testo: "HIT POWER", X: 27, Y: 472, W: 56, H: 11}},
+		{a, Blocco{Testo: "PICKAXE", X: 48, Y: 143, W: 60, H: 14}},
+		{a, Blocco{Testo: "Short by $1,621", X: 115, Y: 429, W: 70, H: 12}},
+		{a, Blocco{Testo: "Damage", X: 27, Y: 331, W: 40, H: 11}},
+		{a, Blocco{Testo: "select", X: 450, Y: 642, W: 30, H: 12}},
+		{a, Blocco{Testo: "WORKSHOP", X: 745, Y: 175, W: 230, H: 40}},
+	} {
+		c.b.Righe, c.b.Affid = 1, letturaBuona
+		if senzaLettere(c.img, c.b) {
+			t.Errorf("%q (scritta vera, densità %.2f) presa per riquadro senza lettere", c.b.Testo, densitaTratti(c.img, c.b))
+		}
+	}
+}

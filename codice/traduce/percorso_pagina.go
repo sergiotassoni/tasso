@@ -41,6 +41,7 @@ func blocchiLetti(img *image.RGBA, righe []RigaOCR, f float64, voti *votazione, 
 	bl = togliIconeTasti(bl)   // "Swing Sword O": l'icona del pulsante resta del gioco
 	bl = togliSegniIcona(bl)   // "/Back", "'Close", "[Shipwreck": il segno è dell'icona
 	bl = togliLetteraIcona(bl) // "'t +5% damage": la freccia letta come una lettera
+	bl = togliIconaParlante(bl) // "@ M16 Handler: …": l'icona della radio davanti a chi parla
 	for i := range bl {
 		if bl[i].Grezzo == "" {
 			bl[i].Grezzo = bl[i].Testo
@@ -110,6 +111,9 @@ func controllaCompleta(img *image.RGBA, b *Blocco, tutte []Blocco) string {
 	}
 	if img == nil {
 		return ""
+	}
+	if senzaLettere(img, *b) {
+		return motivoSenzaLettere
 	}
 	if m := motivoMondo(img, *b, tutte); m != "" {
 		if !(b.GiaMostrata && motivoTenibile(m)) {
