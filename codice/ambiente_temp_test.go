@@ -27,3 +27,18 @@ func TestTempNomeAccettabile(t *testing.T) {
 		}
 	}
 }
+
+// Un account con il nome di una cartella personale ("Video", "Desktop"): il suo TEMP vero si pulisce
+// ancora, le sue cartelle personali no.
+func TestTempNomeUtenteComeCartella(t *testing.T) {
+	for _, u := range []string{"Video", "Desktop", "Music", "Downloads"} {
+		prof := `C:\Users\` + u
+		pers := []string{prof, prof + `\Documents`, prof + `\Desktop`, prof + `\Downloads`}
+		if !tempNomeAccettabile(prof+`\AppData\Local\Temp`, pers) {
+			t.Errorf("%s: il TEMP vero non si pulisce più", u)
+		}
+		if tempNomeAccettabile(prof+`\Documents\Temp`, pers) || tempNomeAccettabile(prof+`\AppData\Local\Video\Temp`, pers) {
+			t.Errorf("%s: accettata una cartella personale", u)
+		}
+	}
+}

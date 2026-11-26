@@ -181,7 +181,15 @@ func tempNomeAccettabile(t string, personali []string) bool {
 			return false
 		}
 	}
-	for _, parte := range strings.Split(strings.ToLower(t), `\`) {
+	// Le parti del percorso si guardano DOPO il profilo: un account che si chiama "Video" o "Desktop"
+	// (C:\Users\Video\AppData\Local\Temp) ha comunque il suo TEMP vero da pulire.
+	resto := t
+	if len(personali) > 0 {
+		if prof := strings.TrimRight(personali[0], `\`); prof != "" && dentroDi(t, prof) && len(t) >= len(prof) {
+			resto = t[len(prof):]
+		}
+	}
+	for _, parte := range strings.Split(strings.ToLower(resto), `\`) {
 		switch parte {
 		case "documents", "documenti", "documentos", "dokumente", "desktop", "escritorio", "bureau", "downloads", "download",
 			"descargas", "téléchargements", "pictures", "immagini", "imágenes", "images", "bilder", "videos", "video", "vidéos",

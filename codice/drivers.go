@@ -83,8 +83,8 @@ func driversInstall(ids []string) {
 		// Prima un punto di ripristino (come per i driver della scheda video): un driver di rete o audio
 		// sbagliato può lasciare il PC senza internet o senza suono. Senza, non installo.
 		emit("onDriversProgress", "Creo il punto di ripristino…")
-		rp, nota := gdRestorePointNota("driver di Windows Update")
-		if nota != "" { // Protezione sistema accesa da Tasso: lo dico (nell'avanzamento e alla fine)
+		rp, nota := gdRestorePointNota("di Windows Update") // "Tasso - prima del driver di Windows Update"
+		if nota != "" {                                     // Protezione sistema accesa da Tasso: lo dico (nell'avanzamento e alla fine)
 			msgs = append(msgs, strings.TrimSpace(nota))
 			emit("onDriversProgress", strings.TrimSpace(nota))
 		}

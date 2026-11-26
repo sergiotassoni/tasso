@@ -210,7 +210,10 @@ func gamingRestore(id string) bool {
 			if regPrevKey(p) != regPrevKey(regPrev{Path: dxUserKey, Name: "DirectXUserGlobalSettings"}) {
 				continue
 			}
-			_ = setDxGlobal(dxRimettiParte(dxGlobal(), p, "SwapEffectUpgradeEnable"))
+			if err := setDxGlobal(dxRimettiParte(dxGlobal(), p, "SwapEffectUpgradeEnable")); err != nil {
+				// non riuscito: la copia di com'era resta, così "Rimetti com'era" ci riprova
+				return false
+			}
 		}
 		updateSettings(func(s *Settings) { delete(s.GamingPrev, id) })
 		return true
