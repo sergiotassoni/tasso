@@ -145,7 +145,7 @@ func impostaMenuWin(on bool, l string) error {
 	return togliMenu()
 }
 
-var procSHChangeNotify = windows.NewLazySystemDLL("shell32.dll").NewProc("SHChangeNotify")
+var procSHChangeNotify = shell32.NewProc("SHChangeNotify")
 
 // avvisaExplorer: Esplora file rilegge le associazioni (SHCNE_ASSOCCHANGED).
 func avvisaExplorer() { procSHChangeNotify.Call(0x08000000, 0, 0, 0) }
