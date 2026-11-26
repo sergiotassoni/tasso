@@ -173,3 +173,23 @@ func TestIsteresiPostoPiuSovrapposto(t *testing.T) {
 		t.Error("scelto il posto che si sovrappone di meno")
 	}
 }
+
+// "Quit?" e "Quit" sono due scritte diverse; svuota toglie tutto (gioco cambiato).
+func TestFissePunteggiaturaESvuota(t *testing.T) {
+	f := &traduzioniFisse{}
+	f.fissa("en>it", "Quit?", "Uscire?")
+	if v, ok := f.cerca("en>it", "Quit"); ok {
+		t.Errorf("Quit ha preso la traduzione di Quit?: %q", v)
+	}
+	if v, _ := f.cerca("en>it", "Quit?"); v != "Uscire?" {
+		t.Errorf("Quit?: %q", v)
+	}
+	f.fissa("en>it", "Save game", "Salva partita")
+	if v, _ := f.cerca("en>it", "Save game."); v != "Salva partita" {
+		t.Errorf("punto finale letto in più: %q", v)
+	}
+	f.svuota()
+	if f.fissata("en>it", "Quit?") || f.fissata("en>it", "Save game") {
+		t.Error("svuota non ha tolto le traduzioni fisse")
+	}
+}

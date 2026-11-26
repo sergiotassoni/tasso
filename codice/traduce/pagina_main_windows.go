@@ -101,6 +101,10 @@ func avviaPaginaSu(fg uintptr) {
 	apriLibreriaPer(fg)
 	votiPagina.svuota() // gioco nuovo (o ripartito): le letture vecchie non contano
 	isteresiPagina.svuota()
+	if exe := exeDiFinestra(fg); exe != giocoDelleFisse { // un altro gioco: le sue traduzioni fisse sono altre
+		fissePagina.svuota()
+		giocoDelleFisse = exe
+	}
 	paginaAttiva.Store(true)
 	ov.Spegni() // la finestrella dei dialoghi non serve mentre traduco tutta la schermata
 	giro := paginaGiro.Add(1)
@@ -745,6 +749,9 @@ func leggiPaginaOCR(img *image.RGBA) ([]RigaOCR, float64, error) {
 // scritteMosse: tra le due immagini i contorni netti sono cambiati fuori dalle zone che si
 // muovono da sole. Se cambia solo la luce dello sfondo la lettura già fatta va bene: prima la
 // pagina veniva letta due volte di fila nei menu con lo sfondo animato.
+// giocoDelleFisse: il programma del gioco a cui valgono le traduzioni fisse di adesso.
+var giocoDelleFisse string
+
 func scritteMosse(a, b *image.RGBA, animate []bool) bool {
 	for c, si := range celleBordiCambiate(a, b) {
 		if si && (c >= len(animate) || !animate[c]) {

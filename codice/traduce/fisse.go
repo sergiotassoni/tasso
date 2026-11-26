@@ -44,7 +44,11 @@ func coppiaDi(tr *Traduttore) string {
 // chiaveFissa: coppia + testo esatto normalizzato ("" se non c'è testo).
 func chiaveFissa(coppia, testo string) string {
 	t := strings.ToLower(strings.Join(strings.Fields(testo), " "))
-	t = strings.TrimRightFunc(t, func(r rune) bool { return unicode.IsPunct(r) && r != '+' && r != '%' && r != ')' })
+	// via il punto e i segni di fine riga letti per sbaglio, ma "?" "!" e "…" restano: "Quit?" e
+	// "Quit" sono due scritte diverse ("Uscire?" / "Esci")
+	t = strings.TrimRightFunc(t, func(r rune) bool {
+		return unicode.IsPunct(r) && !strings.ContainsRune("+%)?!…", r)
+	})
 	if lettereConfuse(t) == "" {
 		return ""
 	}
@@ -57,7 +61,12 @@ func chiaveSimile(coppia, testo string) string {
 	if l == "" {
 		return ""
 	}
-	return coppia + "|" + l + "|" + numeriESegni(testo)
+	fine := strings.TrimRight(strings.TrimSpace(testo), " .,;:'\"")
+	segno := "" // domanda ed esclamazione contano anche qui ("Quit?" non è "Quit")
+	if strings.HasSuffix(fine, "?") || strings.HasSuffix(fine, "!") || strings.HasSuffix(fine, "…") {
+		segno = string([]rune(fine)[len([]rune(fine))-1])
+	}
+	return coppia + "|" + l + "|" + numeriESegni(testo) + "|" + segno
 }
 
 // soloErroriOCR: a e b (chiavi esatte con la stessa chiave simile) differiscono solo in parole
@@ -161,6 +170,17 @@ func (f *traduzioniFisse) fissa(coppia, testo, tradotto string) {
 func (f *traduzioniFisse) fissata(coppia, testo string) bool {
 	_, ok := f.cerca(coppia, testo)
 	return ok
+}
+
+// svuota: via tutte le traduzioni fisse (gioco cambiato: "Fire" = "Fuoco" di un gioco non vale
+// per un altro).
+func (f *traduzioniFisse) svuota() {
+	if f == nil {
+		return
+	}
+	f.mu.Lock()
+	f.m, f.simili, f.ordine = nil, nil, nil
+	f.mu.Unlock()
 }
 
 // fissaMostrate: fissa le traduzioni delle scritte disegnate davvero (dopo tutti i filtri).
