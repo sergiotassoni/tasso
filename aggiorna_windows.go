@@ -110,7 +110,7 @@ func aggiornaSilenzioso(soloControlla, riapri bool) int {
 		return codice
 	}
 	// una sola copia di Tasso Setup alla volta (anche con l'installatore normale aperto)
-	mn, _ := windows.UTF16PtrFromString("Local\\TassoSetup")
+	mn, _ := windows.UTF16PtrFromString(nomeMutex)
 	h, err := windows.CreateMutex(nil, true, mn)
 	if err == windows.ERROR_ALREADY_EXISTS || h == 0 {
 		if h != 0 {
@@ -223,6 +223,9 @@ func eseguiAggiornamento(piano *installa.PianoAggiornamento, riapri bool, avanza
 			motivo = strings.Replace(testi.T(L(), "aggs_bloccato"), "%s", filepath.Base(eb.File), 1)
 		}
 	}
+	if codice == installa.UscitaFatto {
+		annullaCancellazioniPendenti(base) // vedi installaInFondo
+	}
 	if tassoAperto {
 		riapriTasso(base)
 	}
@@ -269,20 +272,8 @@ func conBarra(lavoro func(avanza func(testo string, perc int, errore bool)) int)
 		return lavoro(func(string, int, bool) {})
 	}
 	dati, _ := os.MkdirTemp("", "TassoSetup-WebView2-")
-	defer func() {
-		for i := 0; i < 10; i++ {
-			if os.RemoveAll(dati) == nil {
-				break
-			}
-			time.Sleep(300 * time.Millisecond)
-		}
-	}()
-	scala := 1.0
-	if procGetDpiForSystem.Find() == nil {
-		if dpi, _, _ := procGetDpiForSystem.Call(); dpi >= 96 {
-			scala = float64(dpi) / 96
-		}
-	}
+	defer togliDatiWebView2(dati)
+	scala := scalaSchermo()
 	var finito atomic.Bool
 	webview2.ChiusuraHook = func() bool { return !finito.Load() } // niente X a metà aggiornamento
 	w := webview2.NewWithOptions(webview2.WebViewOptions{

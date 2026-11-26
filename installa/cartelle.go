@@ -140,13 +140,18 @@ type InfoCartella struct {
 	Esiste  bool // la cartella c'è
 	Vuota   bool // c'è ed è vuota
 	DiTasso bool // dentro c'è già Tasso (tasso-setup.json o Tasso.exe)
+	// SoloResti: dentro ci sono solo resti di un Tasso disinstallato (vedi SoloRestiTasso), per
+	// esempio la cartella "lavoro" ancora occupata che Windows cancella al prossimo riavvio.
+	SoloResti bool
 }
 
 // CartellaDedicata: la cartella dove va davvero Tasso. Tasso va sempre in una cartella sua
 // (...\Tasso): l'aggiornamento e la disinstallazione toccano solo le cose di Tasso, e una
 // cartella condivisa (C:\Program Files, D:\Giochi) non deve mai diventare "la cartella di Tasso".
 // La cartella scelta resta com'è solo se è già quella di Tasso, oppure se si chiama Tasso ed è
-// vuota (o non c'è ancora). Altrimenti si aggiunge \Tasso.
+// vuota (o non c'è ancora), o se si chiama Tasso e dentro ci sono solo resti di un Tasso
+// disinstallato (reinstallazione subito dopo una disinstallazione, prima del riavvio: senza,
+// Tasso finirebbe in C:\Program Files\Tasso\Tasso). Altrimenti si aggiunge \Tasso.
 func CartellaDedicata(p string, info func(string) InfoCartella) string {
 	p = strings.TrimRight(strings.TrimSpace(p), `\/`)
 	if p == "" {
@@ -156,7 +161,7 @@ func CartellaDedicata(p string, info func(string) InfoCartella) string {
 	if i.DiTasso {
 		return p
 	}
-	if strings.EqualFold(filepathBaseWin(p), CartellaTassoStd) && (!i.Esiste || i.Vuota) {
+	if strings.EqualFold(filepathBaseWin(p), CartellaTassoStd) && (!i.Esiste || i.Vuota || i.SoloResti) {
 		return p
 	}
 	return p + `\` + CartellaTassoStd
@@ -187,7 +192,38 @@ func InfoCartellaDisco(p string) InfoCartella {
 			i.DiTasso = true
 		}
 	}
+	i.SoloResti = !i.Vuota && !i.DiTasso && SoloRestiTasso(voci)
 	return i
+}
+
+// nomiRestiTasso: quello che può restare nella cartella di Tasso dopo la disinstallazione (file
+// ancora occupati, da cancellare al riavvio). Mai Tasso.exe né tasso-setup.json.
+var nomiRestiTasso = func() map[string]bool {
+	m := map[string]bool{cartellaNuovi: true, cartellaVecchi: true, cartellaScarto: true, fileInCorso: true,
+		strings.ToLower(FileStato + ".tmp"): true, "versione": true, "license": true, "licenze.txt": true,
+		"licenses.txt": true, strings.ToLower(NomeDisinstalla): true,
+		strings.ToLower(CartellaZip): true, strings.ToLower(CartellaPDF): true}
+	for _, d := range SottocartelleTasso {
+		m[d] = true
+	}
+	for _, f := range ResiduiAggiornamentoTasso {
+		m[strings.ToLower(f)] = true
+	}
+	return m
+}()
+
+// SoloRestiTasso: le voci di una cartella sono tutte resti di Tasso (nomiRestiTasso o *.vecchio-N).
+func SoloRestiTasso(voci []os.DirEntry) bool {
+	if len(voci) == 0 {
+		return false
+	}
+	for _, v := range voci {
+		n := strings.ToLower(v.Name())
+		if !nomiRestiTasso[n] && !strings.Contains(n, ".vecchio-") {
+			return false
+		}
+	}
+	return true
 }
 
 // ErrCartNonSicura: fuori da Programmi, una cartella che un utente normale potrebbe cambiare

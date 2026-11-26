@@ -73,7 +73,6 @@ h1:focus{outline:none}
 .comp{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .carta{display:flex;gap:13px;align-items:flex-start;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 13px;cursor:pointer;transition:border-color .15s,opacity .15s,background .15s}
 .carta:hover{background:var(--hover)}
-.carta.no{opacity:.5}
 .carta.si{border-color:color-mix(in srgb,var(--a1) 38%,var(--line));background:linear-gradient(135deg,color-mix(in srgb,var(--a1) 6%,var(--panel)),var(--panel) 60%)}
 .carta img{width:40px;height:40px;flex:0 0 40px}
 .carta .t{flex:1;min-width:0}
@@ -113,6 +112,7 @@ label.scelta.fissa{cursor:default;opacity:.7}
 .apri{display:flex;flex-direction:column;border-block:1px solid var(--line)}
 .apri label.scelta{padding:11px 4px;color:var(--text)}
 .apri label.scelta+label.scelta{border-top:1px solid var(--line)}
+.sopraPiede{padding:10px 34px;border-top:1px solid var(--line);background:color-mix(in srgb,var(--panel) 55%,transparent)}
 .piede{display:flex;justify-content:flex-end;align-items:center;gap:10px;padding:11px 34px 13px;border-top:1px solid var(--line)}
 .piede .msg{margin-right:auto;color:var(--red);font-size:13px}
 .btn{border:0;border-radius:9px;padding:10px 24px;font:800 13px var(--display);font-stretch:112%;letter-spacing:.08em;text-transform:uppercase;min-height:40px;transition:transform .15s,box-shadow .15s,background .15s}
@@ -130,6 +130,12 @@ label.scelta.fissa{cursor:default;opacity:.7}
 .finestra .riga{justify-content:flex-end;margin-top:6px}
 .toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 16px;display:none;z-index:10}
 .toast.on{display:block}
+/* programmi in aggiornamento (badge + nota): tutto in una schermata */
+#p1{gap:10px}#p1 .testa{gap:18px}#p1 .testa .gmask{width:52px}#p1 h1{font-size:24px}#p1 h1::after{margin-top:9px}#p1 .testa>div{gap:9px}
+#p1 .nota{padding:8px 12px;line-height:1.4}#p1 .comp{gap:8px}#p1 .carta{padding:10px 12px}#p1 .carta .badge{margin-top:5px}
+/* contrasto leggibile (>= 4.5:1) */
+ol.passi li i,.ver,.lingue button span{color:#7A808D}
+.carta.no{opacity:1}.carta.no img,.carta.no input{opacity:.45}.carta.no b{color:var(--muted)}
 @media (prefers-reduced-motion:reduce){.barra i{transition:none}.gmask .look,.gmask .eye{animation:none}.btn{transition:none}}
 </style>
 </head>
@@ -198,7 +204,6 @@ label.scelta.fissa{cursor:default;opacity:.7}
       <div class="testa"><svg class="gmask" viewBox="0 0 240 220" aria-hidden="true"><path d="M44 22 H196 L226 104 L120 206 L14 104 Z" fill="var(--text)"/><path d="M80 22 H106 L108 142 L56 132 L36 98 Z" fill="var(--bg)"/><path d="M160 22 H134 L132 142 L184 132 L204 98 Z" fill="var(--bg)"/><g class="look"><circle class="eye" cx="82" cy="112" r="12" fill="var(--a1)"/></g><g class="look"><circle class="eye" cx="158" cy="112" r="12" fill="var(--a1)"/></g><path d="M100 164 H140 L120 190 Z" fill="var(--bg)"/></svg><div><h1 data-t="dis_titolo"></h1><p class="sub" data-t="dis_sotto"></p></div></div>
       <div class="comp" id="compDis"></div>
       <div class="nota" id="notaDis" data-t="dis_nota_tasso"></div>
-      <label class="scelta" id="sceltaDati"><input type="checkbox" id="disDati"><span data-t="dis_dati"></span></label>
     </section>
     <!-- 7. disinstallazione finita -->
     <section class="pagina" id="p7">
@@ -206,6 +211,10 @@ label.scelta.fissa{cursor:default;opacity:.7}
       <div class="testa big"><svg class="gmask" viewBox="0 0 240 220" aria-hidden="true"><path d="M44 22 H196 L226 104 L120 206 L14 104 Z" fill="var(--text)"/><path d="M80 22 H106 L108 142 L56 132 L36 98 Z" fill="var(--bg)"/><path d="M160 22 H134 L132 142 L184 132 L204 98 Z" fill="var(--bg)"/><g class="look"><circle class="eye" cx="82" cy="112" r="12" fill="var(--a1)"/></g><g class="look"><circle class="eye" cx="158" cy="112" r="12" fill="var(--a1)"/></g><path d="M100 164 H140 L120 190 Z" fill="var(--bg)"/></svg><div><h1 data-t="fine_titolo"></h1><p class="sub" id="disEsito"></p></div></div>
       <div class="nota avviso" id="disNonTolti" hidden></div>
     </section>
+    <!-- disinstalla: la casella dei dati sta sopra i pulsanti, sempre visibile senza scorrere -->
+    <div class="sopraPiede" id="rigaDati" hidden>
+      <label class="scelta" id="sceltaDati"><input type="checkbox" id="disDati"><span data-t="dis_dati"></span></label>
+    </div>
     <div class="piede">
       <span class="msg" id="msg" role="alert"></span>
       <button class="btn ghost" id="bIndietro" data-t="indietro"></button>
@@ -256,6 +265,7 @@ function vai(p){
   const passo = p <= 4 ? Math.min(p, 3) : (p === 5 ? 3 : -1);
   document.querySelectorAll('#passi li').forEach(li => { const n = +li.dataset.p; li.classList.toggle('on', n === passo && p !== 4); li.classList.toggle('fatto', n < passo || p === 4); });
   $('#passi').hidden = A.modo === 'disinstalla';
+  $('#rigaDati').hidden = p !== 6 || $('#sceltaDati').hidden;
   const ind = $('#bIndietro'), av = $('#bAvanti'), ann = $('#bAnnulla');
   ind.hidden = !(p === 1 || p === 2); ann.hidden = true; av.hidden = false; av.disabled = false;
   if (p === 0 || p === 1) av.textContent = T('avanti');
@@ -409,6 +419,7 @@ function aggiornaSceltaDati(pre){
   const via = tasso.length > 0 && tasso.every(id => dis[id]);
   $('#sceltaDati').hidden = !!(pre && pre.length) || !via;
   if ($('#sceltaDati').hidden) $('#disDati').checked = false;
+  $('#rigaDati').hidden = P !== 6 || $('#sceltaDati').hidden;
 }
 async function disinstalla(){
   const ids = A.componenti.map(c => c.id).filter(id => dis[id]);

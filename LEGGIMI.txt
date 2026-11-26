@@ -23,7 +23,8 @@ COSA SCRIVE
       (Tasso.exe, o il disinstallatore se Tasso non c'è), InstallLocation, UninstallString,
       InstallDate, EstimatedSize, NoModify, NoRepair
   HKLM\Software\Tasso   Cartella, Componenti (es. "gaming,ufficio,zip,pdf"), Versione,
-                        Modalita = gioco | ufficio | entrambi   (DA LEGGERE IN TASSO, vedi sotto)
+                        Modalita = gioco | ufficio | entrambi   (la legge Tasso: con una sola
+                        modalità installata non si passa all'altra)
   HKCU\Software\Tasso   Lingua (la leggono già Tasso Zip e Tasso PDF)
 
 COME FUNZIONA L'INSTALLAZIONE (atomica)
@@ -86,7 +87,7 @@ WEBVIEW2
   Microsoft (si apre solo rispondendo Sì). L'installatore non scarica niente.
 
 COMPILARE (anche da Linux)
-  ./compila.sh
+  TASSO_EXE=/percorso/Tasso.exe ./compila.sh      (installatore di prova, senza firme)
   - prova tutto (go vet anche GOOS=windows, go test), rifà rsrc_windows_amd64.syso con
     ../strumenti/risorse (icona Tasso Gaming, manifest requireAdministrator, versione);
   - compila build/Disinstalla Tasso.exe (go build -tags disinstallatore: niente programmi dentro);
@@ -94,12 +95,12 @@ COMPILARE (anche da Linux)
     cartelle dist/ vanno compilate prima) e il disinstallatore, e scrive elenco.json;
   - compila dist/TassoSetup.exe e controlla icona e manifest.
 
-  TASSO.EXE: adesso dentro c'è un SEGNAPOSTO, /tmp/tb8/Tasso.exe (build non firmata, con
-  --chiudi; compila.sh senza TASSO_EXE usa ancora /tmp/tb7/Tasso.exe, più vecchio).
-  Per la versione da distribuire:
-     TASSO_EXE=/percorso/Tasso-firmato.exe TASSO_VER=3.1 ./compila.sh
-  e poi firma anche dist/TassoSetup.exe (signtool). La firma di Tasso.exe resta valida:
-  il file viene copiato byte per byte (controllo SHA-256).
+  TASSO.EXE: compila.sh vuole sempre TASSO_EXE (senza si ferma). Per la versione da
+  distribuire l'ordine è in /home/claude/collaudo-finale/firma-ordine.md:
+     ./compila.sh disinstallatore      (poi firma build/Disinstalla Tasso.exe)
+     FIRMA=si TASSO_EXE=/percorso/Tasso-firmato.exe DISINSTALLA_EXE="build/Disinstalla Tasso.exe" ./compila.sh
+  e poi firma anche dist/TassoSetup.exe (signtool) e rifai go run ./strumenti/impronta.
+  La firma di Tasso.exe resta valida: il file viene copiato byte per byte (controllo SHA-256).
 
 PROVE
   go test ./...   installa/ (componenti, cartelle, registro simulato, annulla, ritorno indietro,

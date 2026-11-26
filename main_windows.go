@@ -28,6 +28,9 @@ import (
 // Pagina Microsoft del WebView2 Runtime: si apre SOLO se l'utente risponde Sì.
 const paginaWebView2 = "https://go.microsoft.com/fwlink/p/?LinkId=2124703"
 
+// nomeMutex: una sola copia di Tasso Setup alla volta (anche con l'aggiornamento silenzioso).
+const nomeMutex = "Local\\TassoSetup"
+
 var (
 	finestra webview2.WebView
 	lingua   atomic.Value // string
@@ -83,11 +86,9 @@ func main() {
 			}
 		}
 	}
-	lingua.Store(testi.DaWindows(linguaWindows()))
 
 	// una sola copia alla volta
-	nome := "Local\\TassoSetup"
-	mn, _ := windows.UTF16PtrFromString(nome)
+	mn, _ := windows.UTF16PtrFromString(nomeMutex)
 	h, err := windows.CreateMutex(nil, true, mn)
 	if err == windows.ERROR_ALREADY_EXISTS {
 		portaDavanti()
@@ -133,21 +134,11 @@ func main() {
 
 	dati, _ := os.MkdirTemp("", "TassoSetup-WebView2-")
 	defer func() {
-		for i := 0; i < 10; i++ { // i processi di WebView2 escono un attimo dopo la finestra
-			if os.RemoveAll(dati) == nil {
-				break
-			}
-			time.Sleep(300 * time.Millisecond)
-		}
+		togliDatiWebView2(dati)
 		cancellaAllUscita()
 	}()
 
-	scala := 1.0
-	if procGetDpiForSystem.Find() == nil {
-		if dpi, _, _ := procGetDpiForSystem.Call(); dpi >= 96 {
-			scala = float64(dpi) / 96
-		}
-	}
+	scala := scalaSchermo()
 	webview2.SuFinestra["goScegliCartella"] = true // finestra di Windows legata alla nostra
 	webview2.Subito["goAnnulla"] = true
 	webview2.ChiusuraHook = func() bool {
@@ -177,6 +168,28 @@ func main() {
 	w.SetHtml(ui.Pagina())
 	w.Run()
 	w.Destroy()
+}
+
+// togliDatiWebView2 cancella la cartella temporanea della WebView2. I processi di WebView2
+// escono un attimo dopo la finestra: riprova per circa 3 secondi.
+func togliDatiWebView2(dati string) {
+	for i := 0; i < 10; i++ {
+		if os.RemoveAll(dati) == nil {
+			break
+		}
+		time.Sleep(300 * time.Millisecond)
+	}
+}
+
+// scalaSchermo: 1 a 96 DPI, 1.5 a 144 DPI... (per le dimensioni delle finestre).
+func scalaSchermo() float64 {
+	scala := 1.0
+	if procGetDpiForSystem.Find() == nil {
+		if dpi, _, _ := procGetDpiForSystem.Call(); dpi >= 96 {
+			scala = float64(dpi) / 96
+		}
+	}
+	return scala
 }
 
 func portaDavanti() {
@@ -315,7 +328,7 @@ func collega(w webview2.WebView) {
 			return out
 		}
 		// Tasso va sempre in una cartella sua (...\Tasso): vedi installa.CartellaDedicata
-		p = filepath.Clean(installa.CartellaDedicata(p, installa.InfoCartellaDisco))
+		p = filepath.Clean(installa.CartellaDedicata(p, infoCartella))
 		out["cartella"] = p
 		scelti, _ := installa.Normalizza(componenti(cc))
 		progs := installa.ProgrammiPer(scelti)
@@ -410,7 +423,7 @@ func collega(w webview2.WebView) {
 			l = L()
 		}
 		// sempre una cartella sua: mai C:\Program Files o D:\Giochi come "cartella di Tasso"
-		base := filepath.Clean(installa.CartellaDedicata(o.Cartella, installa.InfoCartellaDisco))
+		base := filepath.Clean(installa.CartellaDedicata(o.Cartella, infoCartella))
 		scelti := componenti(o.Componenti)
 		tieni := false
 		if st, _ := installa.LeggiStato(base); st != nil {
@@ -506,6 +519,17 @@ func collega(w webview2.WebView) {
 	})
 }
 
+// infoCartella: installa.InfoCartellaDisco, ma i "resti di un Tasso disinstallato" contano solo
+// dentro Programmi (lì solo gli amministratori scrivono). Fuori, una cartella non vuota resta da
+// controllare come prima (si aggiunge \Tasso e valgono i controlli di sicurezza).
+func infoCartella(p string) installa.InfoCartella {
+	i := installa.InfoCartellaDisco(p)
+	if i.SoloResti && !installa.DentroProgrammi(p, programFiles()) {
+		i.SoloResti = false
+	}
+	return i
+}
+
 // versioneInstallata: la versione installata di un programma (per Tasso vale anche il file
 // VERSIONE, che Tasso riscrive quando si aggiorna da solo).
 func versioneInstallata(st *installa.Stato, p installa.Programma) string {
@@ -534,6 +558,19 @@ func installaInFondo(ctx context.Context, o installa.Opzioni) {
 	_, err := in.Installa(ctx, o)
 	aggiornaIcone()
 	var avviso *installa.AvvisoCollegamenti
+	if err == nil || errors.As(err, &avviso) {
+		// reinstallato prima di riavviare dopo una disinstallazione: Windows non deve cancellare i file nuovi
+		annullaCancellazioniPendenti(o.Base)
+		// collegamenti di Tasso anche sul Desktop: il Tasso.lnk della 3.0 portatile non deve più
+		// aprire la 3.0 scaricata (solo se è proprio quello, vedi CollegamentoVecchioDaAggiornare)
+		if o.Desktop {
+			for _, p := range installa.ProgrammiPer(o.Componenti) {
+				if p == installa.ProgTasso {
+					aggiornaCollegamentoVecchio(o.Base)
+				}
+			}
+		}
+	}
 	if err != nil && !errors.As(err, &avviso) {
 		r := map[string]any{"ok": false, "codice": "err_generico", "dettagli": err.Error(), "diario": installa.PercorsoDiario()}
 		var ec *installa.ErroreCartella
@@ -554,8 +591,6 @@ func installaInFondo(ctx context.Context, o installa.Opzioni) {
 		return
 	}
 	var apribili []installa.Programma
-	for _, p := range installa.ProgrammiPer(o.Componenti) {
-		apribili = append(apribili, p)
-	}
+	apribili = append(apribili, installa.ProgrammiPer(o.Componenti)...)
 	manda("finito", map[string]any{"ok": true, "avvisoCollegamenti": avviso != nil, "apribili": apribili})
 }

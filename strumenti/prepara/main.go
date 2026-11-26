@@ -4,7 +4,7 @@
 // Uso (lo chiama compila.sh):
 //
 //	go run ./strumenti/prepara -versione 3.1 \
-//	   -tasso /tmp/tb7/Tasso.exe -tasso-versione 3.1 -tasso-licenza ../../tasso/LICENSE \
+//	   -tasso /percorso/Tasso.exe -tasso-versione 3.1 -tasso-licenza ../../tasso/LICENSE \
 //	   -tasso-avvisi ../../tasso/codice/dist \
 //	   -zip-dir ../tassozip -zip-versione 1.1.0 -pdf-dir ../tassopdf -pdf-versione 1.0.0 \
 //	   -disinstalla "build/Disinstalla Tasso.exe"
