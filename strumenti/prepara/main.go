@@ -5,6 +5,7 @@
 //
 //	go run ./strumenti/prepara -versione 3.1 \
 //	   -tasso /tmp/tb7/Tasso.exe -tasso-versione 3.1 -tasso-licenza ../../tasso/LICENSE \
+//	   -tasso-avvisi ../../tasso/codice/dist \
 //	   -zip-dir ../tassozip -zip-versione 1.1.0 -pdf-dir ../tassopdf -pdf-versione 1.0.0 \
 //	   -disinstalla "build/Disinstalla Tasso.exe"
 package main
@@ -28,6 +29,10 @@ func main() {
 	tasso := flag.String("tasso", "/tmp/tb7/Tasso.exe", "Tasso.exe da incorporare (la build firmata)")
 	tassoVer := flag.String("tasso-versione", "", "versione di Tasso (finisce nel file VERSIONE)")
 	tassoLic := flag.String("tasso-licenza", "", "LICENSE di Tasso")
+	// LICENZE.txt e LICENSES.txt: gli avvisi dei componenti di terze parti dentro Tasso.exe (PresentMon,
+	// caratteri, WebView2, wazero, ooz, Bergamot...). Le licenze MIT, BSD, OFL e Apache chiedono che
+	// arrivino insieme al programma: senza, l'installatore non si prepara.
+	tassoAvvisi := flag.String("tasso-avvisi", "../../tasso/codice/dist", "cartella con LICENZE.txt e LICENSES.txt di Tasso")
 	zipDir := flag.String("zip-dir", "../tassozip", "repository di Tasso Zip")
 	zipVer := flag.String("zip-versione", "", "versione di Tasso Zip")
 	pdfDir := flag.String("pdf-dir", "../tassopdf", "repository di Tasso PDF")
@@ -67,6 +72,13 @@ func main() {
 	tf := [][2]string{{*tasso, "Tasso.exe"}}
 	if *tassoLic != "" {
 		tf = append(tf, [2]string{*tassoLic, "LICENSE"})
+	}
+	for _, n := range []string{"LICENZE.txt", "LICENSES.txt"} {
+		da := filepath.Join(*tassoAvvisi, n)
+		if fi, err := os.Stat(da); err != nil || !fi.Mode().IsRegular() || fi.Size() == 0 {
+			esci(fmt.Errorf("manca %s (avvisi delle licenze di Tasso): passa -tasso-avvisi", da))
+		}
+		tf = append(tf, [2]string{da, n})
 	}
 	// VERSIONE: lo legge Tasso (selfupdate.go/taskExeCheck) per sapere che versione c'è in Programmi
 	aggiungi(installa.ProgTasso, "Tasso", *tassoVer, "Tasso.exe", tf, map[string]string{"VERSIONE": *tassoVer})

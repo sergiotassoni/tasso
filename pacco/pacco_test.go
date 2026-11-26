@@ -25,7 +25,9 @@ func TestPaccoVero(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, f := range []string{"Tasso.exe", "VERSIONE", installa.NomeDisinstalla, "Tasso Zip/TassoZip.exe", "Tasso PDF/TassoPDF.exe"} {
+	// anche gli avvisi delle licenze di terze parti, accanto a ogni programma
+	for _, f := range []string{"Tasso.exe", "VERSIONE", "LICENSE", "LICENZE.txt", "LICENSES.txt", installa.NomeDisinstalla,
+		"Tasso Zip/TassoZip.exe", "Tasso Zip/LICENZE.txt", "Tasso PDF/TassoPDF.exe", "Tasso PDF/LICENZE.txt"} {
 		if _, err := os.Stat(filepath.Join(base, filepath.FromSlash(f))); err != nil {
 			t.Errorf("manca %s", f)
 		}

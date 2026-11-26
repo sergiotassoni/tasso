@@ -71,7 +71,7 @@ else
 fi
 # 2. i programmi da incorporare, con le impronte SHA-256 (dei file già firmati)
 $GO run ./strumenti/prepara -versione "$ECO_VER" \
-  -tasso "$TASSO_EXE" -tasso-versione "$TASSO_VER" -tasso-licenza ../../tasso/LICENSE \
+  -tasso "$TASSO_EXE" -tasso-versione "$TASSO_VER" -tasso-licenza ../../tasso/LICENSE -tasso-avvisi ../../tasso/codice/dist \
   -zip-dir ../tassozip -zip-versione "$ZIP_VER" -pdf-dir ../tassopdf -pdf-versione "$PDF_VER" \
   -disinstalla "$DISINST"
 # 3. l'installatore
