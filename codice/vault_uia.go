@@ -6,11 +6,14 @@ package main
 // Si usa solo dal filo di vtLavoro in vault_compila.go (COM inizializzato lì, modello MTA).
 
 import (
+	"os"
 	"strings"
 	"syscall"
 	"unsafe"
 
 	"golang.org/x/sys/windows"
+
+	"tasso/autotipo"
 )
 
 var (
@@ -339,4 +342,156 @@ func (u *uia) browserURL(top uintptr) string {
 		return best
 	}
 	return ""
+}
+
+// --- Salva questo account / Crea password sicura ---
+
+const (
+	uiaControlTypeProp = uintptr(30003)
+	uiaControlList     = int32(50008)
+	uiaControlListItem = int32(50007)
+	uiaControlMenu     = int32(50009)
+	uiaControlMenuItem = int32(50011)
+)
+
+// elFindAll: tutti gli elementi che rispettano la condizione (da rilasciare con releaseAll).
+func elFindAll(e comObj, scope uintptr, cond comObj, max int) []comObj {
+	if e == 0 || cond == 0 {
+		return nil
+	}
+	var arr comObj
+	if !hrOK(e.call(6, scope, uintptr(cond), uintptr(unsafe.Pointer(&arr)))) || arr == 0 {
+		return nil
+	}
+	defer arr.release()
+	var n int32
+	if !hrOK(arr.call(3, uintptr(unsafe.Pointer(&n)))) {
+		return nil
+	}
+	if int(n) > max {
+		n = int32(max)
+	}
+	out := make([]comObj, 0, n)
+	for i := int32(0); i < n; i++ {
+		var x comObj
+		if hrOK(arr.call(4, uintptr(i), uintptr(unsafe.Pointer(&x)))) && x != 0 {
+			out = append(out, x)
+		}
+	}
+	return out
+}
+
+func releaseAll(l []comObj) {
+	for _, e := range l {
+		e.release()
+	}
+}
+
+// passwords: i campi password della finestra (al massimo 8).
+func (u *uia) passwords(top uintptr) []comObj {
+	root := u.fromHandle(top)
+	if root == 0 {
+		return nil
+	}
+	defer root.release()
+	c := u.condProp(uiaIsPasswordProp, 11, ^uintptr(0))
+	if c == 0 {
+		return nil
+	}
+	defer c.release()
+	return elFindAll(root, uiaTreeDescendants, c, 8)
+}
+
+// findUser: l'email o il nome utente già scritto nella pagina (campo di testo di accesso, non
+// password). Windows non dà mai il testo dei campi password: qui si legge solo l'utente.
+func (u *uia) findUser(top uintptr) string {
+	root := u.fromHandle(top)
+	if root == 0 {
+		return ""
+	}
+	defer root.release()
+	c := u.condProp(uiaControlTypeProp, 3, uintptr(uiaControlEdit)) // VT_I4
+	if c == 0 {
+		return ""
+	}
+	defer c.release()
+	campi := elFindAll(root, uiaTreeDescendants, c, 60)
+	defer releaseAll(campi)
+	primo := ""
+	for _, e := range campi {
+		if elIsPassword(e) || !u.insideDocument(e) {
+			continue
+		}
+		v := strings.TrimSpace(elValue(e))
+		if v == "" || len(v) > 200 || !autotipo.CampoAccesso(elName(e), elAutoID(e)) {
+			continue
+		}
+		if strings.Contains(v, "@") {
+			return v
+		}
+		if primo == "" {
+			primo = v
+		}
+	}
+	return primo
+}
+
+// fromPoint: l'elemento sotto il punto dello schermo.
+func (u *uia) fromPoint(x, y int32) comObj {
+	var e comObj
+	pt := uintptr(uint32(x)) | uintptr(uint32(y))<<32 // POINT passato per valore (x64)
+	if !hrOK(u.a.call(7, pt, uintptr(unsafe.Pointer(&e)))) {
+		return 0
+	}
+	return e
+}
+
+// occupatoSotto: subito sotto il campo c'è già la tendina di un altro programma o di un altro
+// gestore di password (finestra di un altro processo, elenco o menu, o una pagina dentro la pagina
+// come fanno le estensioni)? Allora la finestrella va sopra il campo.
+func (u *uia) occupatoSotto(campo rect, pid uint32) bool {
+	w := u.rawWalker()
+	if w == 0 {
+		return false
+	}
+	defer w.release()
+	larg := campo.Right - campo.Left
+	mio := uint32(os.Getpid())
+	for _, f := range []int32{30, 97} {
+		x := campo.Left + larg*f/100
+		y := campo.Bottom + (campo.Bottom-campo.Top)/2 + 4
+		e := u.fromPoint(x, y)
+		if e == 0 {
+			continue
+		}
+		if elPid(e) == mio { // c'è già la finestrella di Tasso: sotto non vedo
+			e.release()
+			continue
+		}
+		occ := elPid(e) != pid
+		docs, elenco := 0, false
+		for i := 0; e != 0 && i < 40 && !occ; i++ {
+			switch elType(e) {
+			case uiaControlList, uiaControlListItem, uiaControlMenu, uiaControlMenuItem:
+				elenco = true
+			case uiaControlDocument:
+				docs++
+				occ = docs >= 2
+			}
+			var p comObj
+			if !hrOK(w.call(3, uintptr(e), uintptr(unsafe.Pointer(&p)))) {
+				p = 0
+			}
+			e.release()
+			e = p
+		}
+		if e != 0 {
+			e.release()
+		}
+		// un elenco fuori dalla pagina è la tendina del browser (password, suggerimenti)
+		if occ || (elenco && docs == 0) {
+			return true
+		}
+	}
+	return false
 }

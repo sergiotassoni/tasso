@@ -1,6 +1,7 @@
 package autotipo
 
 import (
+	"strings"
 	"testing"
 	"time"
 )
@@ -226,5 +227,94 @@ func TestNormHostSchemaNeiParametri(t *testing.T) {
 	}
 	if Corrisponde(Voce{Site: "Amazon", Web: "amazon.it"}, Contesto{Exe: "chrome.exe", Host: NormHost("finto-sito.com/login?r=https://www.amazon.it/")}) {
 		t.Error("un parametro con https://www.amazon.it non deve far proporre l'account Amazon")
+	}
+}
+
+func TestNomeDaSito(t *testing.T) {
+	casi := map[string]string{"accedi.esempio.it": "Esempio", "accounts.google.com": "Google", "www.bbc.co.uk": "Bbc", "": "", "192.168.1.1": "192.168.1.1", "lumio.it": "Lumio"}
+	for in, want := range casi {
+		if got := NomeDaSito(in); got != want {
+			t.Errorf("NomeDaSito(%q) = %q, voglio %q", in, got, want)
+		}
+	}
+}
+
+func TestCampoRegistrazione(t *testing.T) {
+	si := []struct {
+		nome, id, titolo string
+		n                int
+	}{
+		{"Password", "", "Accedi - Google Chrome", 2},
+		{"Nuova password", "", "", 1},
+		{"Password", "new-password", "", 1},
+		{"Password", "", "Crea il tuo account – Esempio - Google Chrome", 1},
+		{"Password", "", "Sign up | Esempio - Microsoft Edge", 1},
+	}
+	for _, c := range si {
+		if !CampoRegistrazione(c.nome, c.id, c.titolo, c.n) {
+			t.Errorf("doveva essere registrazione: %+v", c)
+		}
+	}
+	no := []struct {
+		nome, id, titolo string
+		n                int
+	}{
+		{"Password", "", "Accedi - Google Chrome", 1},
+		{"Inserisci la password", "password", "Sign in - Esempio", 1},
+		{"", "", "", 0},
+		{"Password attuale", "", "Cambia password", 3},
+		{"Current password", "", "", 2},
+	}
+	for _, c := range no {
+		if CampoRegistrazione(c.nome, c.id, c.titolo, c.n) {
+			t.Errorf("non doveva essere registrazione: %+v", c)
+		}
+	}
+}
+
+func TestGeneraPassword(t *testing.T) {
+	visti := map[string]bool{}
+	for _, c := range []struct {
+		n       int
+		simboli bool
+	}{{20, true}, {14, true}, {20, false}, {3, false}, {200, true}} {
+		for k := 0; k < 50; k++ {
+			p := GeneraPassword(c.n, c.simboli)
+			want := c.n
+			if want < 8 {
+				want = 8
+			}
+			if want > 64 {
+				want = 64
+			}
+			if len(p) != want+1 || p[want] != 0 {
+				t.Fatalf("lunghezza %d (voglio %d con lo zero finale)", len(p), want+1)
+			}
+			s := ""
+			var min, mai, num, sim bool
+			for _, u := range p[:want] {
+				r := rune(u)
+				s += string(r)
+				switch {
+				case strings.ContainsRune("lIO01", r):
+					t.Fatalf("carattere che si confonde in %q", s)
+				case r >= 'a' && r <= 'z':
+					min = true
+				case r >= 'A' && r <= 'Z':
+					mai = true
+				case r >= '2' && r <= '9':
+					num = true
+				default:
+					sim = true
+				}
+			}
+			if !min || !mai || !num || sim != c.simboli {
+				t.Fatalf("gruppi sbagliati in %q (simboli=%v)", s, c.simboli)
+			}
+			if visti[s] {
+				t.Fatalf("password ripetuta: %q", s)
+			}
+			visti[s] = true
+		}
 	}
 }

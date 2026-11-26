@@ -7,6 +7,7 @@
 package autotipo
 
 import (
+	"crypto/rand"
 	"errors"
 	"net"
 	"strconv"
@@ -511,4 +512,93 @@ func CampoAccesso(nome, id string) bool {
 		}
 	}
 	return false
+}
+
+// NomeDaSito: il nome proposto per un account nuovo, preso dal sito ("accedi.esempio.it" → "Esempio").
+func NomeDaSito(host string) string {
+	r := Registrabile(host)
+	if r == "" || net.ParseIP(r) != nil {
+		return r
+	}
+	nome := r
+	if i := strings.Index(r, "."); i > 0 {
+		nome = r[:i]
+	}
+	rs := []rune(nome)
+	rs[0] = unicode.ToUpper(rs[0])
+	return string(rs)
+}
+
+// CampoRegistrazione: il campo password è di una pagina per creare un account (e non di un
+// accesso)? Sì se nella pagina ci sono almeno due campi password (password e conferma) o se il
+// nome del campo o il titolo della pagina parlano di account nuovo.
+func CampoRegistrazione(nome, id, titolo string, campiPassword int) bool {
+	campo := strings.ToLower(nome + " " + id)
+	for _, k := range []string{"attuale", "current", "vecchia", "old password", "oldpassword", "actual", "actuel", "aktuell"} {
+		if strings.Contains(campo, k) {
+			return false // "password attuale" in un cambio password: quella si compila, non si crea
+		}
+	}
+	if campiPassword >= 2 {
+		return true
+	}
+	s := strings.ToLower(nome + " " + id + " " + TogliBrowser(titolo))
+	for _, k := range []string{
+		"new-password", "new password", "newpassword", "nuova password", "crea password", "crea una password",
+		"conferma", "confirm", "registra", "registrati", "registrazione", "iscriviti", "crea account",
+		"crea un account", "crea il tuo account", "sign up", "signup", "register", "create account",
+		"create your account", "create password", "nueva contraseña", "crear cuenta", "regístrate",
+		"nouveau mot de passe", "créer un compte", "inscription", "neues passwort", "konto erstellen", "registrieren",
+	} {
+		if strings.Contains(s, k) {
+			return true
+		}
+	}
+	return false
+}
+
+// GeneraPassword crea una password casuale vera (crypto/rand) di n caratteri, con almeno una
+// minuscola, una maiuscola, un numero (e un simbolo se richiesto), senza caratteri che si
+// confondono (l, I, O, 0, 1). Torna UTF-16 con lo zero finale, così le copie si possono azzerare.
+func GeneraPassword(n int, simboli bool) []uint16 {
+	if n < 8 {
+		n = 8
+	}
+	if n > 64 {
+		n = 64
+	}
+	gruppi := []string{"abcdefghijkmnopqrstuvwxyz", "ABCDEFGHJKLMNPQRSTUVWXYZ", "23456789"}
+	if simboli {
+		gruppi = append(gruppi, "!#$%&*?-_+=@")
+	}
+	tutti := strings.Join(gruppi, "")
+	caso := func(m int) int {
+		var b [1]byte
+		lim := 256 - 256%m // niente sbilanciamenti
+		for {
+			if _, err := rand.Read(b[:]); err != nil {
+				panic("crypto/rand non disponibile")
+			}
+			if int(b[0]) < lim {
+				return int(b[0]) % m
+			}
+		}
+	}
+	out := make([]uint16, n+1)
+	for {
+		for i := 0; i < n; i++ {
+			out[i] = uint16(tutti[caso(len(tutti))])
+		}
+		ok := true
+		for _, g := range gruppi {
+			c := false
+			for i := 0; i < n && !c; i++ {
+				c = strings.IndexByte(g, byte(out[i])) >= 0
+			}
+			ok = ok && c
+		}
+		if ok {
+			return out
+		}
+	}
 }
