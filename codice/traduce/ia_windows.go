@@ -378,13 +378,11 @@ func (s *ServerIA) avviaProcesso(exe, dirAvvio string, args []string, nota strin
 	}
 }
 
-// cartellaProtettaIA: <Programmi>\Tasso\lavoro\ia. Programmi è quella vera (KnownFolderPath),
-// mai la variabile d'ambiente, che un programma senza privilegi può cambiare. Dentro Tasso la
-// cartella di Tasso la dice Tasso (Ospite.CartellaTasso): un'altra cartella dentro Programmi se
-// l'installatore l'ha messo lì. Restituisce la cartella di Tasso e quella del motore.
-func cartellaProtettaIA() (tasso, dest string, err error) { return cartellaProtetta("ia") }
-
 // cartellaProtetta: <Programmi>\Tasso\lavoro\<sotto> (sotto: "ia" per llama, "voci" per whisper).
+// Programmi è quella vera (KnownFolderPath), mai la variabile d'ambiente, che un programma senza
+// privilegi può cambiare. Dentro Tasso la cartella di Tasso la dice Tasso (Ospite.CartellaTasso):
+// un'altra cartella dentro Programmi se l'installatore l'ha messo lì. Restituisce la cartella di
+// Tasso e quella del motore.
 func cartellaProtetta(sotto string) (tasso, dest string, err error) {
 	pf, err := windows.KnownFolderPath(windows.FOLDERID_ProgramFiles, 0)
 	if err != nil || pf == "" {
