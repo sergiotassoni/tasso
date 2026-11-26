@@ -518,6 +518,11 @@ func TogliTutteLeTraduzioni() (tolti, falliti []string) {
 			// gioco disinstallato o disco staccato: non ricreo la cartella; le copie vanno in Documenti
 			continue
 		}
+		if m.Tipo != "unreal" && !cartellaModValida(m.Cartella) {
+			// non è (più) un gioco Unity: l'elenco può essere stato cambiato da un altro programma,
+			// quindi da amministratore non tocco quella cartella; le copie vanno in Documenti
+			continue
+		}
 		if processoAperto(m.Exe) {
 			falliti = append(falliti, nome)
 			continue

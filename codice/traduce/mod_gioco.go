@@ -349,6 +349,13 @@ func TogliModGioco(dirApp, chiave string) error {
 		}
 		return os.Remove(filepath.Join(copie, "manifesto.json"))
 	}
+	// Il manifesto sta nella cartella dei dati dell'utente (la può cambiare qualsiasi programma) e
+	// Tasso lo usa da amministratore: tocco la cartella solo se è ancora un gioco Unity vero (un .exe
+	// con la sua cartella _Data), come quando ho installato. Così un elenco finto non può far
+	// cancellare o sostituire file in Windows, in Programmi o in un altro programma.
+	if !cartellaModValida(m.Cartella) {
+		return errors.New("la cartella nell'elenco dei file aggiunti non è un gioco Unity: per sicurezza non tocco niente")
+	}
 	if tr := filepath.Join(m.Cartella, "BepInEx", "Translation"); esisteVoce(tr) {
 		_ = os.RemoveAll(filepath.Join(copie, "traduzioni"))
 		_ = copiaCartella(tr, filepath.Join(copie, "traduzioni"))
@@ -367,7 +374,7 @@ func TogliModGioco(dirApp, chiave string) error {
 	}
 	var errori []string
 	for _, a := range m.Aggiunti {
-		if a == "" || strings.ContainsAny(a, `/\`) || a == "." || a == ".." {
+		if a == "" || strings.ContainsAny(a, `/\:`) || a == "." || a == ".." || fileDelGiocoUnity(a) {
 			continue
 		}
 		if err := os.RemoveAll(filepath.Join(m.Cartella, a)); err != nil {
@@ -375,7 +382,7 @@ func TogliModGioco(dirApp, chiave string) error {
 		}
 	}
 	for _, s := range m.Sostituiti {
-		if filepath.IsAbs(s) || strings.Contains(s, "..") {
+		if filepath.IsAbs(s) || strings.Contains(s, "..") || strings.Contains(s, ":") || fileDelGiocoUnity(primoPezzo(s)) || fileDelGiocoUnity(filepath.Base(s)) {
 			continue
 		}
 		if err := copiaFile(filepath.Join(copie, "originali", s), filepath.Join(m.Cartella, s)); err != nil {
@@ -388,6 +395,30 @@ func TogliModGioco(dirApp, chiave string) error {
 	_ = os.Remove(filepath.Join(copie, "manifesto.json"))
 	_ = os.RemoveAll(filepath.Join(copie, "originali"))
 	return nil
+}
+
+// cartellaModValida: la cartella di un manifesto si tocca solo se è un percorso completo e un gioco
+// Unity vero (TipoUnity: un .exe con accanto la sua cartella _Data). Un programma normale non può
+// creare un .exe dentro Windows, Programmi o la radice del disco.
+func cartellaModValida(c string) bool {
+	if c == "" || !filepath.IsAbs(c) || filepath.Clean(c) != c {
+		return false
+	}
+	tipo, _ := TipoUnity(c)
+	return tipo != ""
+}
+
+// fileDelGiocoUnity: nomi che sono del gioco, mai di BepInEx o XUnity (che in cima non hanno .exe né
+// cartelle _Data): "Ferma traduzione" non li toglie né li sovrascrive, anche se un elenco cambiato
+// li dicesse aggiunti o sostituiti.
+func fileDelGiocoUnity(nome string) bool {
+	n := strings.ToLower(nome)
+	return strings.HasSuffix(n, ".exe") || strings.HasSuffix(n, "_data") || n == "unityplayer.dll" ||
+		n == "gameassembly.dll" || n == "monobleedingedge"
+}
+
+func primoPezzo(rel string) string {
+	return strings.Split(strings.ReplaceAll(rel, `\`, "/"), "/")[0]
 }
 
 func copiaCartella(da, a string) error {
