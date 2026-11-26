@@ -221,9 +221,14 @@ func (v *votazione) mossa(b Blocco, adesso time.Time) bool {
 	}
 	v.posti = tieni
 	visti, ferma := 0, false
-	for _, p := range v.posti {
+	var prima *postoScritta // la lettura più vecchia della stessa scritta nei 6 secondi
+	for i := range v.posti {
+		p := v.posti[i]
 		if !p.quando.Before(adesso) || !stessaScritta(p.testo, b.Testo) {
 			continue
+		}
+		if prima == nil {
+			prima = &v.posti[i]
 		}
 		visti++
 		h := max(r.Dy(), p.rett.Dy())
@@ -246,6 +251,16 @@ func (v *votazione) mossa(b Blocco, adesso time.Time) bool {
 			(abs(r.Min.Y-p.rett.Min.Y) <= tol || abs(r.Max.Y-p.rett.Max.Y) <= tol)
 		if centroFermo || angoloFermo || (!dimensione && (!lato || dy > 3*dx)) {
 			ferma = true // nello stesso posto (o lista che scorre in verticale)
+		}
+	}
+	// crescita contata dalla prima lettura, non solo dall'ultima: un'insegna che si avvicina
+	// cresce di un 30% a ogni lettura (ogni passo sembra "l'OCR che sbaglia di poco"), ma in
+	// qualche secondo è diventata molto più grande (collaudo 02b, regressione di f9b1c22)
+	if prima != nil && ferma {
+		q := prima.rett
+		cresciuta := max(r.Dy(), q.Dy())*5 > min(r.Dy(), q.Dy())*7 || max(r.Dx(), q.Dx())*2 > min(r.Dx(), q.Dx())*3
+		if cresciuta {
+			ferma = false
 		}
 	}
 	if len(v.posti) >= 300 {
@@ -745,6 +760,12 @@ func firmaNellAngolo(img *image.RGBA, b Blocco, tutte []Blocco) bool {
 	if len(parole) < 2 || len(parole) > 4 {
 		return false
 	}
+	if verbiObiettivo[strings.ToLower(parole[0])] {
+		return false // "Find Marcus", "Reach The Camp": l'obiettivo della missione, non una firma
+	}
+	if !scrittaTrasparente(img, b) {
+		return false // lettere nette (bianche su scuro): interfaccia del gioco ("Abandoned Mine")
+	}
 	for _, p := range parole {
 		r := []rune(p)
 		if len(r) < 2 || !unicode.IsUpper(r[0]) || paroleFunzione[strings.ToLower(p)] {
@@ -757,4 +778,40 @@ func firmaNellAngolo(img *image.RGBA, b Blocco, tutte []Blocco) bool {
 		}
 	}
 	return true
+}
+
+// verbiObiettivo: verbi con cui cominciano gli obiettivi delle missioni.
+var verbiObiettivo = map[string]bool{"find": true, "reach": true, "locate": true, "follow": true, "talk": true,
+	"go": true, "defeat": true, "kill": true, "return": true, "bring": true, "collect": true, "search": true,
+	"escape": true, "survive": true, "protect": true, "meet": true, "investigate": true, "explore": true,
+	"destroy": true, "open": true, "get": true, "head": true, "speak": true, "use": true, "deliver": true}
+
+// scrittaTrasparente: la firma del canale è stampata semitrasparente sopra il video: dentro il
+// riquadro la luce cambia poco tra lettere e sfondo (le scritte dell'interfaccia del gioco sono
+// nette, quasi bianche su scuro). Guarda la differenza tra i pixel più chiari e più scuri (5% e
+// 95%) del riquadro.
+func scrittaTrasparente(img *image.RGBA, b Blocco) bool {
+	r := image.Rect(b.X, b.Y, b.X+b.W, b.Y+b.H).Intersect(img.Bounds())
+	if r.Dx() < 2 || r.Dy() < 2 {
+		return false
+	}
+	var conta [256]int
+	n := 0
+	for y := r.Min.Y; y < r.Max.Y; y++ {
+		for x := r.Min.X; x < r.Max.X; x++ {
+			conta[luceImg(img, x, y)]++
+			n++
+		}
+	}
+	basso, alto, acc := -1, -1, 0
+	for v := 0; v < 256; v++ {
+		acc += conta[v]
+		if basso < 0 && acc*20 >= n {
+			basso = v
+		}
+		if alto < 0 && acc*20 >= n*19 {
+			alto = v
+		}
+	}
+	return alto-basso <= 130
 }

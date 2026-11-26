@@ -1,8 +1,11 @@
 package traduce
 
 import (
+	"image"
+	"math/rand"
 	"strings"
 	"testing"
+	"time"
 )
 
 // Prova finale (26/11, f0284, Gears of War): sottotitolo letto in 4 pezzi sulla stessa riga, due
@@ -159,5 +162,68 @@ func TestTerminiProvaFinale(t *testing.T) {
 	}
 	if motivoNonTradurre(Blocco{Testo: "4/7 Tug", Righe: 1, Affid: letturaBuona}) == "" {
 		t.Error("la data del calendario del gioco non va tradotta")
+	}
+}
+
+// Collaudo 02b: un'insegna che si avvicina cresce di un 30% a ogni lettura, col centro quasi
+// fermo. Ogni passo da solo sembra "l'OCR che sbaglia di poco"; dalla prima lettura è cresciuta
+// molto: è una scritta del mondo.
+func TestInsegnaCheCresceAPoco(t *testing.T) {
+	v := &votazione{}
+	t0 := time.Unix(1_000_000, 0)
+	w, h := 100, 20
+	mosse := false
+	for i := 0; i < 4; i++ {
+		b := Blocco{Testo: "GAS STATION", X: 600 - w/2, Y: 300 - h/2, W: w, H: h}
+		if v.mossa(b, t0.Add(time.Duration(i)*1500*time.Millisecond)) {
+			mosse = true
+		}
+		w, h = w*13/10, h*13/10
+	}
+	if !mosse {
+		t.Error("insegna cresciuta del 30% a ogni lettura (più del doppio in 4,5 s) non riconosciuta come scritta del mondo")
+	}
+	// una scritta ferma letta un po' diversa ogni volta resta ferma
+	v2 := &votazione{}
+	for i, d := range []int{0, 4, -3, 5} {
+		b := Blocco{Testo: "Close Tutorial", X: 500, Y: 800, W: 160 + d, H: 22}
+		if v2.mossa(b, t0.Add(time.Duration(i)*time.Second)) {
+			t.Errorf("scritta ferma presa per mossa alla lettura %d", i)
+		}
+	}
+}
+
+// Collaudo 02b: gli obiettivi in alto a destra ("Find Marcus", "Abandoned Mine"), con le lettere
+// nette, non sono la firma del canale.
+func TestObiettiviNonSonoFirma(t *testing.T) {
+	img := image.NewRGBA(image.Rect(0, 0, 1920, 1080))
+	rnd := rand.New(rand.NewSource(7))
+	for i := 0; i < len(img.Pix); i += 4 {
+		v := uint8(20 + rnd.Intn(40))
+		img.Pix[i], img.Pix[i+1], img.Pix[i+2], img.Pix[i+3] = v, v, v, 255
+	}
+	scrivi := func(b Blocco, luce uint8) {
+		for y := b.Y + 3; y < b.Y+b.H-3; y++ {
+			for x := b.X; x < b.X+b.W; x += 3 {
+				i := img.PixOffset(x, y)
+				img.Pix[i], img.Pix[i+1], img.Pix[i+2] = luce, luce, luce
+			}
+		}
+	}
+	for _, b := range []Blocco{
+		{Testo: "Abandoned Mine", X: 1750, Y: 60, W: 140, H: 18},
+		{Testo: "Find Marcus", X: 1760, Y: 100, W: 110, H: 18},
+	} {
+		b.Righe, b.Affid = 1, letturaBuona
+		scrivi(b, 245)
+		if firmaNellAngolo(img, b, []Blocco{b}) {
+			t.Errorf("%q (obiettivo, lettere nette) presa per firma del canale", b.Testo)
+		}
+	}
+	// la firma semitrasparente sì
+	f := Blocco{Testo: "Horror Games House", X: 1771, Y: 990, W: 124, H: 16, Righe: 1, Affid: letturaBuona}
+	scrivi(f, 120)
+	if !firmaNellAngolo(img, f, []Blocco{f}) {
+		t.Error("firma semitrasparente del canale non riconosciuta")
 	}
 }

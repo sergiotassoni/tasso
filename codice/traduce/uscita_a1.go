@@ -46,7 +46,9 @@ var paroleVideo = map[string]bool{"gameplay": true, "walkthrough": true, "walktr
 func titoloVideo(t string) bool {
 	low := strings.ToLower(t)
 	n := 0
-	for _, w := range strings.FieldsFunc(low, func(r rune) bool { return r == ' ' || r == '[' || r == ']' || r == '(' || r == ')' || r == '|' || r == '-' }) {
+	for _, w := range strings.FieldsFunc(low, func(r rune) bool {
+		return r == ' ' || r == '[' || r == ']' || r == '(' || r == ')' || r == '|' || r == '-'
+	}) {
 		w = strings.Trim(w, ".,:;!?'\"")
 		if paroleVideo[w] || strings.HasPrefix(w, "walk") && len(w) >= 9 || strings.HasPrefix(w, "comm") && len(w) >= 8 ||
 			strings.HasSuffix(w, "fps") && len(w) <= 6 || (len(w) >= 2 && len(w) <= 4 && (strings.HasSuffix(w, "k") && strings.Trim(w[:len(w)-1], "0123456789") == "")) {

@@ -18,6 +18,7 @@ package traduce
 import (
 	"regexp"
 	"strings"
+	"sync"
 	"unicode"
 )
 
@@ -149,7 +150,7 @@ func versioneCorta(it string) (string, bool) {
 
 // sostituisciParola: sostituisce l con c solo come parole intere.
 func sostituisciComando(s, l, c string) string {
-	re := regexp.MustCompile(`(^|[^\p{L}])` + regexp.QuoteMeta(l) + `($|[^\p{L}])`)
+	re := regexpComando(l)
 	return re.ReplaceAllString(s, "${1}"+strings.ReplaceAll(c, "$", "$$")+"${2}")
 }
 
@@ -168,4 +169,17 @@ func adattaAlRiquadro(b *Blocco) string {
 		return ""
 	}
 	return motivoNonCiSta
+}
+
+// regexpComando: l'espressione per la parola l, preparata una volta sola (prima si ricompilava a
+// ogni scritta di ogni fotogramma).
+var cacheRegexpComando sync.Map // string -> *regexp.Regexp
+
+func regexpComando(l string) *regexp.Regexp {
+	if v, ok := cacheRegexpComando.Load(l); ok {
+		return v.(*regexp.Regexp)
+	}
+	re := regexp.MustCompile(`(^|[^\p{L}])` + regexp.QuoteMeta(l) + `($|[^\p{L}])`)
+	cacheRegexpComando.Store(l, re)
+	return re
 }
