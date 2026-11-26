@@ -74,6 +74,9 @@ type Blocco struct {
 	// GiaMostrata: lo stesso testo è già stato tradotto e disegnato in questa sessione (stabilita.go):
 	// un fotogramma che lo giudica "scritta del mondo" o "lettura incerta" non lo rimette in inglese
 	GiaMostrata bool
+	// Tenuta: in questo fotogramma la scritta si traduce solo grazie alla decisione tenuta (non
+	// conta come conferma, vedi confermeDecisione)
+	Tenuta bool
 }
 
 // parole: le parole lette della scritta, con il loro rettangolo (nil se non le so).

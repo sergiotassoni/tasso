@@ -45,7 +45,8 @@ type statoBanco struct {
 	vecchi []Blocco
 	fisse  *traduzioniFisse // traduzioni già mostrate: la stessa scritta esce sempre uguale
 	ist    *isteresi        // niente sfarfallio tra un fotogramma e l'altro
-	ora    time.Time        // orologio finto: ogni fotogramma è un giro di rilettura del gioco
+	conf   *confermeDecisione
+	ora    time.Time // orologio finto: ogni fotogramma è un giro di rilettura del gioco
 }
 
 // passoBanco: quanto tempo passa tra due fotogrammi del banco (come un giro di rilettura nel gioco).
@@ -83,11 +84,17 @@ func elaboraImmagine(img *image.RGBA, nome string, o opzioniBanco) (esitoImmagin
 	if o.stato != nil {
 		if o.stato.fisse == nil {
 			o.stato.fisse, o.stato.ist, o.stato.ora = &traduzioniFisse{}, &isteresi{}, time.Unix(1_000_000, 0)
+			o.stato.conf = &confermeDecisione{}
 		}
 		o.stato.ora = o.stato.ora.Add(passoBanco)
 		fisse = o.stato.fisse
 	}
-	segnaGiaMostrate(fisse, coppiaDi(o.tr), blocchi) // come nel gioco: la decisione già presa resta
+	var conf *confermeDecisione
+	ora := time.Now()
+	if o.stato != nil {
+		conf, ora = o.stato.conf, o.stato.ora
+	}
+	segnaGiaMostrate(fisse, conf, coppiaDi(o.tr), blocchi, ora) // come nel gioco: la decisione già presa resta
 	var da []Blocco
 	var inglesi []Blocco // le scritte che restano in inglese con parole vere (per senzaMezzeRighe)
 	for _, b := range blocchi {
@@ -254,6 +261,7 @@ func elaboraImmagine(img *image.RGBA, nome string, o opzioniBanco) (esitoImmagin
 		}
 		o.stato.vecchi = pronti
 		fissaMostrate(fisse, coppiaDi(o.tr), pronti)
+		o.stato.conf.segna(coppiaDi(o.tr), pronti, prima, o.stato.ora)
 	}
 	// controllo finale sul disegno: nessuna scritta tradotta accanto a un pezzo della stessa
 	// frase rimasto in inglese, nessuna traduzione mezza inglese (devono essere 0)

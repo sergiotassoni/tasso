@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 )
 
 // Voci diverse di un inventario non sono la stessa scritta, anche con un numero di parole diverso.
@@ -111,13 +112,18 @@ func TestCollaudoMaiuscoleDellaScritta(t *testing.T) {
 // fotogramma all'altro; le regole contro le righe mezze inglesi restano.
 func TestCollaudoDecisioneTenuta(t *testing.T) {
 	f := &traduzioniFisse{}
+	c := &confermeDecisione{}
+	t0 := time.Unix(1000, 0)
 	bl := []Blocco{{Testo: "Early Morning", Affid: letturaDubbia}, {Testo: "After School", Affid: letturaDubbia}}
-	segnaGiaMostrate(f, "en>it", bl)
+	segnaGiaMostrate(f, c, "en>it", bl, t0)
 	if bl[0].GiaMostrata || motivoNonTradurre(bl[0]) != "lettura incerta" {
 		t.Fatalf("mai mostrata: la lettura incerta resta in inglese (%+v, %q)", bl[0], motivoNonTradurre(bl[0]))
 	}
 	f.fissa("en>it", "Early Morning", "Mattina presto")
-	segnaGiaMostrate(f, "en>it", bl)
+	mostrata := []Blocco{{Testo: "Early Morning", Tradotto: "Mattina presto"}}
+	c.segna("en>it", mostrata, mostrata, t0)
+	c.segna("en>it", mostrata, mostrata, t0.Add(250*time.Millisecond))
+	segnaGiaMostrate(f, c, "en>it", bl, t0.Add(500*time.Millisecond))
 	if !bl[0].GiaMostrata || bl[1].GiaMostrata {
 		t.Fatalf("segnate male: %v %v", bl[0].GiaMostrata, bl[1].GiaMostrata)
 	}
@@ -233,5 +239,97 @@ func TestCollaudoLetturaSbagliataNonSiFissa(t *testing.T) {
 		if daFissare(Blocco{Testo: s}, "x") == "" {
 			t.Errorf("%q: lettura buona non fissata", s)
 		}
+	}
+}
+
+// La decisione tenuta scade: vale solo dopo almeno 2 fotogrammi decisi da soli, e non oltre 20
+// secondi dall'ultima conferma; i fotogrammi tenuti solo grazie a lei non la rinnovano.
+// Una scritta del mondo tradotta per sbaglio una volta non resta tradotta per la sessione.
+func TestCollaudoDecisioneScade(t *testing.T) {
+	f := &traduzioniFisse{}
+	c := &confermeDecisione{}
+	t0 := time.Unix(5000, 0)
+	cartello := Blocco{Testo: "KEEP OUT", Tradotto: "VIETATO L'INGRESSO"}
+	f.fissa("en>it", cartello.Testo, cartello.Tradotto)
+	c.segna("en>it", []Blocco{cartello}, []Blocco{cartello}, t0) // tradotta per sbaglio una volta
+	bl := []Blocco{{Testo: "KEEP OUT"}}
+	segnaGiaMostrate(f, c, "en>it", bl, t0.Add(time.Second))
+	if bl[0].GiaMostrata {
+		t.Fatal("una sola volta tradotta: la decisione non si deve tenere")
+	}
+	// due fotogrammi decisi da soli: si tiene
+	c.segna("en>it", []Blocco{cartello}, []Blocco{cartello}, t0.Add(250*time.Millisecond))
+	segnaGiaMostrate(f, c, "en>it", bl, t0.Add(time.Second))
+	if !bl[0].GiaMostrata {
+		t.Fatal("confermata due volte: la decisione si tiene")
+	}
+	// tenuta solo grazie alla decisione (Tenuta) o rimasta dal fotogramma prima: non rinnova
+	tenuta := cartello
+	tenuta.Tenuta = true
+	for k := 1; k <= 100; k++ {
+		ora := t0.Add(time.Duration(k) * 250 * time.Millisecond)
+		c.segna("en>it", []Blocco{tenuta}, []Blocco{tenuta}, ora)
+		c.segna("en>it", []Blocco{cartello}, nil, ora) // dal fotogramma prima: non fresca
+	}
+	segnaGiaMostrate(f, c, "en>it", bl, t0.Add(21*time.Second))
+	if bl[0].GiaMostrata {
+		t.Error("senza conferme da sola per più di 20 s: la decisione deve scadere")
+	}
+	// controllaCompleta segna Tenuta quando passa solo per la decisione (lettura incerta)
+	b := Blocco{Testo: "Early Morning", Affid: letturaDubbia, GiaMostrata: true}
+	controllaCompleta(nil, &b, nil)
+	if !b.Tenuta {
+		t.Error("lettura incerta passata per la decisione tenuta: Tenuta non segnata")
+	}
+	b = Blocco{Testo: "Early Morning", Affid: 1, GiaMostrata: true}
+	controllaCompleta(nil, &b, nil)
+	if b.Tenuta {
+		t.Error("lettura buona: è una conferma vera, non Tenuta")
+	}
+}
+
+// La lettura giusta sostituisce subito la traduzione di quella sbagliata; letture alternate
+// giusta/sbagliata non fanno sfarfallare.
+func TestCollaudoIsteresiLetturaGiusta(t *testing.T) {
+	img := immagineMondo(600, 300, 0, 0, 1)
+	f := lettereIrregolari(img, 100, 100, 24)
+	img2 := immagineMondo(600, 300, 0, 0, 1)
+	lettereIrregolari(img2, 100, 100, 24)
+	ist := &isteresi{}
+	t0 := time.Unix(1000, 0)
+	sbagliata := bloccoMostrato(img, "Reach the comp", "Raggiungere il Comp", 100, 100, f-100, 24)
+	giusta := bloccoMostrato(img2, "Reach the camp", "Raggiungi il campo", 100, 100, f-100, 24)
+	giusta.GiaMostrata = true // già mostrata e confermata prima (fisse + conferme)
+	vis, _ := ist.applica([]Blocco{sbagliata}, nil, nil, img, t0)
+	vis, _ = ist.applica([]Blocco{giusta}, vis, nil, img2, t0.Add(250*time.Millisecond))
+	if len(vis) != 1 || vis[0].Tradotto != "Raggiungi il campo" {
+		t.Fatalf("lettura giusta dopo quella sbagliata: %+v", vis)
+	}
+	// alternate: sbagliata, giusta, sbagliata, sbagliata... resta sempre la giusta
+	ora := t0.Add(500 * time.Millisecond)
+	for k := 0; k < 8; k++ {
+		n := sbagliata
+		if k%3 == 1 {
+			n = giusta
+		}
+		n.Img = img2
+		vis, _ = ist.applica([]Blocco{n}, vis, nil, img2, ora)
+		if len(vis) != 1 || vis[0].Tradotto != "Raggiungi il campo" {
+			t.Fatalf("giro %d (%q): mostrata %+v", k, n.Testo, vis)
+		}
+		ora = ora.Add(250 * time.Millisecond)
+	}
+	// parola inglese che non esiste: "Early Meroing" → "Early Morning" subito
+	ist2 := &isteresi{}
+	a := bloccoMostrato(img, "Early Meroing", "La prima meroing", 100, 100, f-100, 24)
+	b := bloccoMostrato(img2, "Early Morning", "Mattina presto", 100, 100, f-100, 24)
+	vis, _ = ist2.applica([]Blocco{a}, nil, nil, img, t0)
+	vis, _ = ist2.applica([]Blocco{b}, vis, nil, img2, t0.Add(250*time.Millisecond))
+	if len(vis) != 1 || vis[0].Tradotto != "Mattina presto" {
+		t.Errorf("Early Morning dopo Early Meroing: %+v", vis)
+	}
+	vis, _ = ist2.applica([]Blocco{a}, vis, nil, img2, t0.Add(500*time.Millisecond))
+	if len(vis) != 1 || vis[0].Tradotto != "Mattina presto" {
+		t.Errorf("una lettura sbagliata sola ha rimesso la traduzione sbagliata: %+v", vis)
 	}
 }

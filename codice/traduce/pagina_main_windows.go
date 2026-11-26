@@ -580,7 +580,7 @@ func preparaPaginaCon(area Zona, img, primaImg *image.RGBA, giro int64, annulla 
 		}
 	}
 	spazioLibero(blocchi, area.W)
-	segnaGiaMostrate(fissePagina, coppiaDi(traduttore), blocchi) // decisione già presa: resta (stabilita.go)
+	segnaGiaMostrate(fissePagina, confermePagina, coppiaDi(traduttore), blocchi, time.Now()) // decisione già presa: resta (stabilita.go)
 	controllo := esisteVoce(filepath.Join(dirApp, "logs", "salva-anteprima"))
 	if controllo { // controllo a mano: cosa ha letto
 		var sb strings.Builder
@@ -790,6 +790,7 @@ func mostraPaginaPronta(p *paginaPronta, giro int64) bool {
 			return false
 		}
 		fissaMostrate(fissePagina, coppiaDi(traduttore), pronti) // da adesso si traducono sempre così
+		confermePagina.segna(coppiaDi(traduttore), pronti, p.pronti, time.Now())
 		paginaMostrata.Store(time.Now().UnixNano())
 		for _, r := range p.cron { // adesso la pagina si vede: le sue scritte vanno nella cronologia
 			aggiungiCronologia(r, true)

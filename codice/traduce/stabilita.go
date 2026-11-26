@@ -15,6 +15,7 @@ package traduce
 import (
 	"strings"
 	"sync"
+	"time"
 	"unicode"
 )
 
@@ -109,11 +110,90 @@ func (f *traduzioniFisse) mostrataPrima(coppia, testo string) bool {
 	return ok
 }
 
-// segnaGiaMostrate: segna le scritte già tradotte e mostrate (vedi Blocco.GiaMostrata).
-func segnaGiaMostrate(f *traduzioniFisse, coppia string, bl []Blocco) {
+// segnaGiaMostrate: segna le scritte la cui decisione di tradurle è tenuta (vedi
+// Blocco.GiaMostrata): già tradotte e mostrate, e confermate di recente da sole (conferme).
+func segnaGiaMostrate(f *traduzioniFisse, c *confermeDecisione, coppia string, bl []Blocco, adesso time.Time) {
 	for i := range bl {
-		bl[i].GiaMostrata = f.mostrataPrima(coppia, bl[i].Testo)
+		bl[i].GiaMostrata = f.mostrataPrima(coppia, bl[i].Testo) && c.valida(coppia, bl[i].Testo, adesso)
 	}
+}
+
+// La decisione tenuta scade (collaudo 26/11, giro 2): una scritta del mondo tradotta per sbaglio
+// in un fotogramma non deve restare tradotta per tutta la sessione. Regola: la decisione si tiene
+// solo se la scritta è stata tradotta e mostrata "da sola" (senza la decisione tenuta, Blocco.Tenuta)
+// in almeno confermeMinime fotogrammi, e l'ultima volta da meno di scadenzaDecisione. I fotogrammi
+// in cui resta tradotta solo grazie alla decisione tenuta non la rinnovano: passato il tempo, la
+// scritta si giudica di nuovo da sola (e se è del mondo torna in inglese).
+const (
+	confermeMinime    = 2
+	scadenzaDecisione = 20 * time.Second
+)
+
+type conferma struct {
+	n      int
+	ultima time.Time
+}
+
+type confermeDecisione struct {
+	mu sync.Mutex
+	m  map[string]conferma
+}
+
+// confermePagina: quelle della traduzione dello schermo.
+var confermePagina = &confermeDecisione{}
+
+// segna: le scritte mostrate (disegnate) che in questo fotogramma sono state decise da sole.
+// freschi: le traduzioni di questa lettura (quelle tenute dal fotogramma prima non contano).
+func (c *confermeDecisione) segna(coppia string, mostrate, freschi []Blocco, adesso time.Time) {
+	if c == nil {
+		return
+	}
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.m == nil {
+		c.m = map[string]conferma{}
+	}
+	for _, b := range mostrate {
+		if b.Tenuta || !contieneBlocco(freschi, b) {
+			continue
+		}
+		k := chiaveFissa(coppia, b.Testo)
+		if k == "" {
+			continue
+		}
+		x := c.m[k]
+		x.n++
+		x.ultima = adesso
+		c.m[k] = x
+	}
+	if len(c.m) > 5000 { // via le più vecchie
+		for k, x := range c.m {
+			if adesso.Sub(x.ultima) > scadenzaDecisione {
+				delete(c.m, k)
+			}
+		}
+	}
+}
+
+// valida: la decisione di tradurre la scritta si tiene ancora.
+func (c *confermeDecisione) valida(coppia, testo string, adesso time.Time) bool {
+	if c == nil {
+		return false
+	}
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	x, ok := c.m[chiaveFissa(coppia, testo)]
+	return ok && x.n >= confermeMinime && adesso.Sub(x.ultima) <= scadenzaDecisione
+}
+
+// letturaPiuGiusta: la lettura a è quella buona e b quella sbagliata della stessa scritta: a è già
+// stata mostrata e confermata (decisione tenuta) e b no, oppure b ha una parola inglese che non
+// esiste e a no ("Reach the camp" dopo "Reach the comp", "Early Morning" dopo "Early Meroing").
+func letturaPiuGiusta(a, b Blocco) bool {
+	if a.GiaMostrata != b.GiaMostrata {
+		return a.GiaMostrata
+	}
+	return !letturaConParolaStrana(a.Testo) && letturaConParolaStrana(b.Testo)
 }
 
 // motivoTenibile: i motivi per lasciare l'inglese che una scritta già mostrata in italiano non

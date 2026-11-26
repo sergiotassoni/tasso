@@ -168,6 +168,19 @@ func (s *isteresi) applica(nuovi, vecchi, inglesi []Blocco, img *image.RGBA, ade
 				p.r, p.tradotto, p.cand, p.candN = rn, n.Tradotto, "", 0
 				break
 			}
+			// la lettura nuova è quella buona e quella sullo schermo era sbagliata ("Reach the
+			// camp" già confermata dopo "Reach the comp"): la traduzione giusta subito
+			if letturaPiuGiusta(n, o) {
+				p.r, p.tradotto, p.cand, p.candN = rn, n.Tradotto, "", 0
+				break
+			}
+			// sullo schermo c'è una lettura già confermata e la nuova non lo è: resta quella, e la
+			// nuova non conta come conferma (letture alternate giusta/sbagliata: niente cambi)
+			if o.GiaMostrata && !n.GiaMostrata {
+				p.cand, p.candN = "", 0
+				out[i] = o
+				break
+			}
 			if p.cand == n.Tradotto && p.candN >= 1 { // seconda lettura di fila uguale: si cambia
 				p.r, p.tradotto, p.cand, p.candN = rn, n.Tradotto, "", 0
 				break

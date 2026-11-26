@@ -38,8 +38,8 @@ func blocchiLetti(img *image.RGBA, righe []RigaOCR, f float64, voti *votazione, 
 	bl = spezzaSeparatori(bl)
 	bl = spezzaPulsanti(bl)
 	bl = togliFrecce(bl)
-	bl = togliIconeTasti(bl) // "Swing Sword O": l'icona del pulsante resta del gioco
-	bl = togliSegniIcona(bl) // "/Back", "'Close", "[Shipwreck": il segno è dell'icona
+	bl = togliIconeTasti(bl)   // "Swing Sword O": l'icona del pulsante resta del gioco
+	bl = togliSegniIcona(bl)   // "/Back", "'Close", "[Shipwreck": il segno è dell'icona
 	bl = togliLetteraIcona(bl) // "'t +5% damage": la freccia letta come una lettera
 	for i := range bl {
 		if bl[i].Grezzo == "" {
@@ -103,14 +103,19 @@ func motivoNonTradurre(b Blocco) string {
 // tutte: tutte le scritte lette della schermata (l'inchiostro di un'altra scritta letta accanto,
 // come il pulsante vicino di una fila, non è una parola persa); può essere nil.
 func controllaCompleta(img *image.RGBA, b *Blocco, tutte []Blocco) string {
+	// passata la lettura incerta solo per la decisione già presa (motivoNonTradurre)
+	b.Tenuta = b.GiaMostrata && b.Affid == letturaDubbia
 	if m := motivoFratello(*b, tutte); m != "" {
 		return m
 	}
 	if img == nil {
 		return ""
 	}
-	if m := motivoMondo(img, *b, tutte); m != "" && !(b.GiaMostrata && motivoTenibile(m)) {
-		return m // insegna, cartello, nome sulla mappa: resta del gioco
+	if m := motivoMondo(img, *b, tutte); m != "" {
+		if !(b.GiaMostrata && motivoTenibile(m)) {
+			return m // insegna, cartello, nome sulla mappa: resta del gioco
+		}
+		b.Tenuta = true // resta tradotta solo per la decisione già presa
 	}
 	coloriBlocco(img, b)
 	if m := rigaVicinaMancante(img, *b, tutte); m != "" {
