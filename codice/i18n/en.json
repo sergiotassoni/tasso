@@ -1692,7 +1692,7 @@
   "Cache del nuovo Teams svuotata.": "New Teams cache cleared.",
   "La cartella Documenti non è nel tuo profilo di Windows (o è un collegamento): per sicurezza non sposto niente.": "The Documents folder is not in your Windows profile (or it is a link): to be safe I am not moving anything.",
   "In Documenti la cartella \"Tasso - allegati di Outlook\" non si può creare o è un collegamento: per sicurezza ho smesso di spostare.": "In Documents the folder \"Tasso - allegati di Outlook\" cannot be created or is a link: to be safe I stopped moving.",
-  "In Documenti la cartella \"Tasso\\Collegamenti che non funzionano\" non si può creare o è un collegamento: per sicurezza ho smesso di spostare.": "In Documents the folder \"Tasso\\Collegamenti che non funzionano\" cannot be created or is a link: to be safe I stopped moving.",
+  "In Documenti la cartella \"Tasso\\Collegamenti che non funzionano\" non si può creare o è un collegamento: per sicurezza ho smesso di spostare.": "In Documents the folder \"Tasso\\Broken shortcuts\" cannot be created or is a link: to be safe I stopped moving.",
   "Non ho svuotato la cache del nuovo Teams: la cartella non è sul disco del PC o non è sicura da pulire (": "I did not clear the new Teams cache: the folder is not on this PC's disk or is not safe to clean (",
   "). Se il tuo profilo è in rete (PC dell'ufficio), chiedi all'assistenza.": "). If your profile is on the network (office PC), ask your IT support.",
   "Non sono riuscito a svuotare la cache del nuovo Teams: qualche file è ancora in uso. Riavvia il PC e riprova.": "I could not clear the new Teams cache: some files are still in use. Restart the PC and try again.",

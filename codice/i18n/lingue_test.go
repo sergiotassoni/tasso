@@ -300,3 +300,22 @@ func TestNienteChiaviDoppie(t *testing.T) {
 		}
 	}
 }
+
+// Le cartelle che Tasso crea hanno il nome tradotto (sezione "ps", chiavi come "Tasso\..."):
+// i messaggi che nominano quella cartella devono usare lo stesso nome tradotto, non quello
+// italiano (se no il messaggio parla di una cartella che sul PC non c'è).
+func TestNomiCartelleCoerenti(t *testing.T) {
+	for _, l := range append([]string{"en"}, lingue...) {
+		ps := leggi(t, l)["ps"]
+		for k, nome := range ps {
+			if !strings.HasPrefix(k, `Tasso\`) || nome == k {
+				continue
+			}
+			for k2, v2 := range ps {
+				if k2 != k && strings.Contains(k2, k) && strings.Contains(v2, k) {
+					t.Errorf("%s.json/ps: %q nomina la cartella col nome italiano %q (tradotto: %q)", l, v2, k, nome)
+				}
+			}
+		}
+	}
+}
