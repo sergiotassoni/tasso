@@ -166,3 +166,115 @@ func TestChiaveAggiornamento(t *testing.T) {
 		t.Fatal("chiavi diverse da quelle dell'interfaccia")
 	}
 }
+
+func TestPacchettoDaIdMSIX(t *testing.T) {
+	casi := []struct {
+		id, nome, editore string
+		ok                bool
+	}{
+		{`MSIX\MSTeams_24295.605.3225.8804_x64__8wekyb3d8bbwe`, "MSTeams", "8wekyb3d8bbwe", true},
+		{`MSIX\\MicrosoftTeams_24004.1403.2634.2418_x64__8wekyb3d8bbwe`, "MicrosoftTeams", "8wekyb3d8bbwe", true},
+		{`msix/Microsoft.OutlookForWindows_1.2024.1.0_x64__8WEKYB3D8BBWE`, "Microsoft.OutlookForWindows", "8wekyb3d8bbwe", true},
+		{`MSIX\Microsoft.DesktopAppInstaller_8wekyb3d8bbwe`, "Microsoft.DesktopAppInstaller", "8wekyb3d8bbwe", true},
+		{`MSIX\`, "", "", false},
+		{`Microsoft.Teams`, "", "", false},
+		{`ARP\Machine\X64\{GUID}`, "", "", false},
+		{`MSIXFoo`, "", "", false},
+		{`9WZDNCRFJ3PS`, "", "", false},
+	}
+	for _, c := range casi {
+		n, e, ok := pacchettoDaIdMSIX(c.id)
+		if n != c.nome || e != c.editore || ok != c.ok {
+			t.Errorf("%q: %q %q %v", c.id, n, e, ok)
+		}
+	}
+}
+
+func TestPacchettiPerWinget(t *testing.T) {
+	var tutti []pacchettoAppx
+	for _, full := range []string{
+		"MSTeams_24295.605.3225.8804_x64__8wekyb3d8bbwe",
+		"MSTeams_24193.1805.3040.8975_x64__8wekyb3d8bbwe",
+		"MicrosoftTeams_24004.1403.2634.2418_x64__8wekyb3d8bbwe",
+		"Microsoft.OutlookForWindows_1.2024.1.0_x64__8wekyb3d8bbwe",
+		"Microsoft.DesktopAppInstaller_1.24.25200.0_x64__8wekyb3d8bbwe",
+		"Microsoft.WindowsCalculator_11.2405.2.0_x64__8wekyb3d8bbwe",
+		"Contoso.MSTeams_1.0.0.0_x64__altroeditore",
+	} {
+		n, v, _, _ := dividiNomeCompleto(full)
+		tutti = append(tutti, pacchettoAppx{nomeCompleto: full, nome: n, versione: v})
+	}
+	visibili := map[string]string{
+		"Microsoft.DesktopAppInstaller": "Programma di installazione app",
+		"Microsoft.WindowsCalculator":   "Calcolatrice",
+		"MicrosoftTeams":                "Microsoft Teams (personal)",
+	}
+	vis := func(pk pacchettoAppx) string { return visibili[pk.nome] }
+	casi := []struct{ nome, id, vuole string }{
+		{"Microsoft Teams", `MSIX\MSTeams_24193.1805.3040.8975_x64__8wekyb3d8bbwe`, "MSTeams_24295.605.3225.8804_x64__8wekyb3d8bbwe"},
+		{"Microsoft Teams (personal)", `MSIX\MicrosoftTeams_24004.1403.2634.2418_x64__8wekyb3d8bbwe`, "MicrosoftTeams_24004.1403.2634.2418_x64__8wekyb3d8bbwe"},
+		{"Microsoft Teams", "Microsoft.Teams", "MSTeams_24295.605.3225.8804_x64__8wekyb3d8bbwe"},
+		{"Microsoft Teams (personal)", "9WZDNCRFJ3PS", "MicrosoftTeams_24004.1403.2634.2418_x64__8wekyb3d8bbwe"},
+		{"Outlook for Windows", "9NRX63209R7B", "Microsoft.OutlookForWindows_1.2024.1.0_x64__8wekyb3d8bbwe"},
+		{"Outlook for Windows", "", "Microsoft.OutlookForWindows_1.2024.1.0_x64__8wekyb3d8bbwe"},
+		{"Programma di installazione app", "Microsoft.AppInstaller", "Microsoft.DesktopAppInstaller_1.24.25200.0_x64__8wekyb3d8bbwe"},
+		{"Calcolatrice", "9WZDNCRFHVN5", "Microsoft.WindowsCalculator_11.2405.2.0_x64__8wekyb3d8bbwe"},
+		{"Calcol…", "", "Microsoft.WindowsCalculator_11.2405.2.0_x64__8wekyb3d8bbwe"},
+		{"Microsoft Edge", "Microsoft.Edge", ""},
+		{"WinRAR 7.01 (64-bit)", "RARLab.WinRAR", ""},
+		{"Cal", "", ""},
+	}
+	for _, c := range casi {
+		got := pacchettiPerWinget(c.nome, c.id, tutti, vis)
+		g := ""
+		if len(got) > 0 {
+			g = got[0].nomeCompleto
+		}
+		if g != c.vuole {
+			t.Errorf("%q %q: %q, vuole %q", c.nome, c.id, g, c.vuole)
+		}
+	}
+	// Editore diverso: l'MSTeams di un altro editore non deve vincere.
+	got := pacchettiPerWinget("x", `MSIX\MSTeams_1.0.0.0_x64__8wekyb3d8bbwe`, tutti, nil)
+	for _, pk := range got {
+		if editoreAppx(pk.nomeCompleto) != "8wekyb3d8bbwe" {
+			t.Errorf("editore sbagliato: %+v", pk)
+		}
+	}
+	// Senza nomi visibili non si inventa niente.
+	if got := pacchettiPerWinget("Calcolatrice", "", tutti, nil); len(got) != 0 {
+		t.Errorf("senza visibile: %+v", got)
+	}
+}
+
+func TestScegliLogoVariantiStore(t *testing.T) {
+	nomi := []string{
+		"StoreLogo.png",
+		"Square44x44Logo.scale-200.png",
+		"Square44x44Logo.scale-100.png",
+		"Square44x44Logo.targetsize-48.png",
+		"Square44x44Logo.targetsize-48_altform-unplated.png",
+		"Square44x44Logo.targetsize-48_altform-lightunplated.png",
+		"Square44x44Logo.scale-200_contrast-black.png",
+	}
+	got := scegliLogo(nomi, "Square44x44Logo", ".png", false)
+	if len(got) == 0 || got[0] != "Square44x44Logo.targetsize-48_altform-unplated.png" {
+		t.Fatalf("32: %v", got)
+	}
+	got = scegliLogo(nomi, "Square44x44Logo", ".png", true)
+	if len(got) == 0 || got[0] != "Square44x44Logo.targetsize-48_altform-unplated.png" {
+		t.Fatalf("64: %v", got)
+	}
+	// Solo scale-200 e scale-100: su schermo normale scale-100, ad alta risoluzione scale-200.
+	solo := []string{"Logo.scale-200.png", "Logo.scale-100.png"}
+	if got := scegliLogo(solo, "Logo", ".png", false); got[0] != "Logo.scale-100.png" {
+		t.Fatalf("scale 32: %v", got)
+	}
+	if got := scegliLogo(solo, "Logo", ".png", true); got[0] != "Logo.scale-200.png" {
+		t.Fatalf("scale 64: %v", got)
+	}
+	// Il contrasto alto resta per ultimo.
+	if got := scegliLogo([]string{"Logo.scale-100_contrast-white.png", "Logo.png"}, "Logo", ".png", false); got[0] != "Logo.png" {
+		t.Fatalf("contrasto: %v", got)
+	}
+}
