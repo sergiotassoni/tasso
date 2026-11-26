@@ -639,15 +639,22 @@ body.th-neonrgb:not(.office) .gbig:not(.on):hover,body.th-neonrgb:not(.office) .
 body.th-oro:not(.office) .gbig:not(.on):hover,body.th-oro:not(.office) .btn.primary.boostgo:not(.on):hover{box-shadow:0 0 22px -6px #F5C542}
 body.th-argento:not(.office) .gbig:not(.on):hover,body.th-argento:not(.office) .btn.primary.boostgo:not(.on):hover{box-shadow:0 0 22px -6px #E9EEF3}
 body.th-neonrgb:not(.office) h1.gname::after,body.th-oro:not(.office) h1.gname::after,body.th-argento:not(.office) h1.gname::after{background:var(--tg);width:96px}
-body.th-neonrgb .gm rect+rect{stroke:url(#tgNeonrgb);stroke-opacity:1}
-body.th-oro .gm rect+rect{stroke:url(#tgOro);stroke-opacity:1}
-body.th-argento .gm rect+rect{stroke:url(#tgArgento);stroke-opacity:1}
-body.th-oro .gm rect:first-child{fill:#17120A}
-body.th-argento .gm rect:first-child{fill:#161A1F}
-body.th-neonrgb .gm rect:first-child{fill:#0E0B18}
+body.th-neonrgb svg.gm>rect+rect{stroke:url(#tgNeonrgb);stroke-opacity:1}
+body.th-oro svg.gm>rect+rect{stroke:url(#tgOro);stroke-opacity:1}
+body.th-argento svg.gm>rect+rect{stroke:url(#tgArgento);stroke-opacity:1}
+body.th-oro svg.gm>rect:first-child{fill:#17120A}
+body.th-argento svg.gm>rect:first-child{fill:#161A1F}
+body.th-neonrgb svg.gm>rect:first-child{fill:#0E0B18}
 body.th-neonrgb:not(.office) .gdot{background:#3BE8FF;box-shadow:0 0 10px #3BE8FF,0 0 18px #FF6AD5}
 body.th-neonrgb:not(.office) .gkick{border-image:var(--tg) 1}
 body.th-oro:not(.office) h1.gname,body.th-argento:not(.office) h1.gname{background:var(--tg);-webkit-background-clip:text;background-clip:text;color:transparent}
+/* Oro e Argento: le iconcine del menu a sinistra sono tutte dorate / tutte argento (quella aperta con il gradiente
+   del tema, come il BOOST) e il punto "Tasso è acceso" è dello stesso metallo. Neon RGB tiene le icone colorate. */
+body.th-oro:not(.office) nav button{--ic:#F5C542}
+body.th-argento:not(.office) nav button{--ic:#D7DEE6}
+body.th-oro:not(.office) nav button.on:not(.navgrp)>svg,body.th-argento:not(.office) nav button.on:not(.navgrp)>svg{background:var(--tg);stroke:var(--tgink);color:var(--tgink)}
+body.th-oro .power:not(.off) .dot{background:radial-gradient(circle at 35% 35%,#FFF1B8,#F5C542 55%,#B8892A);box-shadow:0 0 10px #F5C542}
+body.th-argento .power:not(.off) .dot{background:radial-gradient(circle at 35% 35%,#FFFFFF,#D7DEE6 55%,#7D8794);box-shadow:0 0 10px #E9EEF3}
 /* Neon RGB: gli occhi del tasso cambiano colore di continuo (ciclo RGB morbido) e ogni 4 secondi si muovono:
    una volta guardano a sinistra e a destra, la volta dopo fanno l'occhiolino. Solo animazione CSS, niente timer. */
 body.th-neonrgb .brand .pup,body.th-neonrgb .welcome .pup,body.th-neonrgb .gmask .eye{animation:trgb 6s linear infinite,tlook8 8s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
