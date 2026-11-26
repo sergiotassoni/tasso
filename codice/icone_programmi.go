@@ -26,6 +26,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 	"unicode"
 	"unsafe"
 
@@ -168,19 +169,29 @@ func latoIcona() int {
 
 // ---------------- programmi winget ----------------
 
+// iconaWinget: per le app MSIX/Store (Id `MSIX\<FullName>`) prima il logo del pacchetto; per gli altri
+// prima la voce Uninstall e, se non dà un'icona (niente voce o niente DisplayIcon), il logo del
+// pacchetto Appx con lo stesso nome.
 func iconaWinget(nome, id string, voci []voceDisinst, grande bool) string {
-	v, ok := trovaVoceWinget(nome, id, voci)
-	if !ok {
-		return ""
-	}
-	lato := 32
-	if grande {
-		lato = 64
-	}
-	for _, f := range fontiIcona(v) {
-		if s := estraiIcona(f.percorso, f.indice, lato); s != "" {
+	_, _, msix := pacchettoDaIdMSIX(id)
+	if msix {
+		if s := iconaAppxWinget(nome, id, grande); s != "" {
 			return s
 		}
+	}
+	if v, ok := trovaVoceWinget(nome, id, voci); ok {
+		lato := 32
+		if grande {
+			lato = 64
+		}
+		for _, f := range fontiIcona(v) {
+			if s := estraiIcona(f.percorso, f.indice, lato); s != "" {
+				return s
+			}
+		}
+	}
+	if !msix {
+		return iconaAppxWinget(nome, id, grande)
 	}
 	return ""
 }
@@ -272,9 +283,10 @@ func leggiPacchettiAppx() []pacchettoAppx {
 		if !ok || risorsa {
 			continue // i pacchetti di sole risorse (lingue, misure) non hanno il manifest con il logo
 		}
-		dir := ""
+		dir, vis := "", ""
 		if sk, err := registry.OpenKey(registry.CURRENT_USER, chiaveRepoAppx+`\`+full, registry.QUERY_VALUE); err == nil {
 			dir, _, _ = sk.GetStringValue("PackageRootFolder")
+			vis, _, _ = sk.GetStringValue("DisplayName")
 			sk.Close()
 		}
 		if dir == "" {
@@ -283,7 +295,7 @@ func leggiPacchettiAppx() []pacchettoAppx {
 		if dir == "" {
 			continue
 		}
-		out = append(out, pacchettoAppx{full, nome, filepath.Clean(dir), ver})
+		out = append(out, pacchettoAppx{full, nome, filepath.Clean(dir), ver, vis})
 	}
 	return out
 }
@@ -302,6 +314,72 @@ func cartellaPacchetto(full string) string {
 		return ""
 	}
 	return windows.UTF16ToString(buf)
+}
+
+// Pacchetti Appx per gli aggiornamenti: letti dal registro una volta sola e tenuti qualche minuto,
+// insieme ai nomi visibili già risolti (SHLoadIndirectString, niente PowerShell).
+var (
+	pSHLoadIndirectString = windows.NewLazySystemDLL("shlwapi.dll").NewProc("SHLoadIndirectString")
+
+	appxAggMu     sync.Mutex
+	appxAggLista  []pacchettoAppx
+	appxAggQuando time.Time
+	appxAggNomi   = map[string]string{} // nome completo -> nome visibile risolto
+)
+
+func pacchettiAggiornamenti() []pacchettoAppx {
+	appxAggMu.Lock()
+	defer appxAggMu.Unlock()
+	if appxAggLista == nil || time.Since(appxAggQuando) > 5*time.Minute {
+		appxAggLista = leggiPacchettiAppx()
+		if appxAggLista == nil {
+			appxAggLista = []pacchettoAppx{}
+		}
+		appxAggQuando = time.Now()
+	}
+	return appxAggLista
+}
+
+// nomeVisibileAppx: il DisplayName del pacchetto nella lingua dell'utente ("Programma di installazione app").
+func nomeVisibileAppx(pk pacchettoAppx) string {
+	appxAggMu.Lock()
+	v, ok := appxAggNomi[pk.nomeCompleto]
+	appxAggMu.Unlock()
+	if ok {
+		return v
+	}
+	v = strings.TrimSpace(pk.nomeVisibile)
+	if strings.HasPrefix(v, "@") {
+		v = ""
+		if pSHLoadIndirectString.Find() == nil {
+			if src, err := windows.UTF16PtrFromString(strings.TrimSpace(pk.nomeVisibile)); err == nil {
+				buf := make([]uint16, 512)
+				if r, _, _ := pSHLoadIndirectString.Call(uintptr(unsafe.Pointer(src)), uintptr(unsafe.Pointer(&buf[0])), uintptr(len(buf)), 0); r == 0 {
+					v = strings.TrimSpace(windows.UTF16ToString(buf))
+				}
+			}
+		}
+		if strings.HasPrefix(v, "@") || strings.HasPrefix(strings.ToLower(v), "ms-resource:") {
+			v = ""
+		}
+	}
+	appxAggMu.Lock()
+	if len(appxAggNomi) > 4000 {
+		appxAggNomi = map[string]string{}
+	}
+	appxAggNomi[pk.nomeCompleto] = v
+	appxAggMu.Unlock()
+	return v
+}
+
+// iconaAppxWinget: il logo del manifest del pacchetto Appx che corrisponde a una riga di winget.
+func iconaAppxWinget(nome, id string, grande bool) string {
+	for _, pk := range pacchettiPerWinget(nome, id, pacchettiAggiornamenti(), nomeVisibileAppx) {
+		if s := logoPacchetto(pk.cartella, grande); s != "" {
+			return s
+		}
+	}
+	return ""
 }
 
 func iconaAppx(id string, pacchetti []pacchettoAppx, grande bool) string {
@@ -583,6 +661,7 @@ func trovaVoceWinget(nome, id string, voci []voceDisinst) (voceDisinst, bool) {
 type pacchettoAppx struct {
 	nomeCompleto, nome, cartella string
 	versione                     []int
+	nomeVisibile                 string // DisplayName del registro, anche "@{...ms-resource:...}"
 }
 
 // dividiNomeCompleto: "Nome_Versione_Arch_Risorsa_Editore" -> nome, versione, se è di sole risorse.
@@ -614,6 +693,110 @@ func pacchettiPerID(id string, tutti []pacchettoAppx) []pacchettoAppx {
 	}
 	sort.SliceStable(out, func(i, j int) bool { return versionePiuNuova(out[i].versione, out[j].versione) })
 	return out
+}
+
+// pacchettoDaIdMSIX: `MSIX\MSTeams_24295.605.3225.8804_x64__8wekyb3d8bbwe` (anche con `\\` o "/",
+// o con il solo family name "MSTeams_8wekyb3d8bbwe") -> nome del pacchetto ed editore (PublisherId).
+func pacchettoDaIdMSIX(id string) (nome, editore string, ok bool) {
+	s := strings.TrimSpace(id)
+	if len(s) < 6 || !strings.EqualFold(s[:4], "MSIX") || (s[4] != '\\' && s[4] != '/') {
+		return "", "", false
+	}
+	s = strings.TrimLeft(s[4:], `\/`)
+	if i := strings.IndexAny(s, `\/`); i >= 0 {
+		s = s[:i]
+	}
+	p := strings.Split(s, "_")
+	switch {
+	case len(p) == 5 && p[0] != "":
+		return p[0], strings.ToLower(p[4]), true
+	case len(p) == 2 && p[0] != "" && p[1] != "":
+		return p[0], strings.ToLower(p[1]), true
+	case len(p) == 1 && p[0] != "":
+		return p[0], "", true
+	}
+	return "", "", false
+}
+
+// editoreAppx: l'ultima parte del nome completo (PublisherId, es. "8wekyb3d8bbwe").
+func editoreAppx(full string) string {
+	if i := strings.LastIndex(full, "_"); i >= 0 {
+		return strings.ToLower(full[i+1:])
+	}
+	return ""
+}
+
+// appxNotiWinget: Id di winget (o nomi normalizzati) di app MSIX che non somigliano al nome del pacchetto.
+var appxNotiWinget = map[string]string{
+	"microsoft.teams":             "MSTeams",
+	"microsoft.teams.free":        "MicrosoftTeams",
+	"microsoft.appinstaller":      "Microsoft.DesktopAppInstaller",
+	"microsoft.outlookforwindows": "Microsoft.OutlookForWindows",
+	"9nrx63209r7b":                "Microsoft.OutlookForWindows",
+	"9nblggh4nns1":                "Microsoft.DesktopAppInstaller",
+	"microsoftteams":              "MSTeams",
+	"microsoftteamspersonal":      "MicrosoftTeams",
+	"microsoftteamsfree":          "MicrosoftTeams",
+	"outlookforwindows":           "Microsoft.OutlookForWindows",
+	"appinstaller":                "Microsoft.DesktopAppInstaller",
+	"programmadiinstallazioneapp": "Microsoft.DesktopAppInstaller",
+}
+
+// pacchettiPerWinget: i pacchetti Appx di una riga di winget, dal più sicuro al meno sicuro:
+// Id MSIX\<FullName>, Id o nome noti, nome del pacchetto uguale al nome, nome visibile uguale (o che
+// comincia così, se winget l'ha accorciato con "…"). visibile può essere nil.
+func pacchettiPerWinget(nome, id string, tutti []pacchettoAppx, visibile func(pacchettoAppx) string) []pacchettoAppx {
+	filtra := func(ok func(pk pacchettoAppx) bool) []pacchettoAppx {
+		var out []pacchettoAppx
+		for _, pk := range tutti {
+			if ok(pk) {
+				out = append(out, pk)
+			}
+		}
+		sort.SliceStable(out, func(i, j int) bool { return versionePiuNuova(out[i].versione, out[j].versione) })
+		return out
+	}
+	if n, ed, ok := pacchettoDaIdMSIX(id); ok {
+		if out := filtra(func(pk pacchettoAppx) bool {
+			return strings.EqualFold(pk.nome, n) && (ed == "" || editoreAppx(pk.nomeCompleto) == ed)
+		}); len(out) > 0 {
+			return out
+		}
+	}
+	tronco := strings.HasSuffix(strings.TrimSpace(nome), "…")
+	n := normaNome(strings.TrimRight(strings.TrimSpace(nome), "…"))
+	for _, k := range []string{strings.ToLower(strings.TrimSpace(id)), n} {
+		if pn, ok := appxNotiWinget[k]; ok && k != "" && pn != "" && !(k == n && tronco) {
+			if out := filtra(func(pk pacchettoAppx) bool { return strings.EqualFold(pk.nome, pn) }); len(out) > 0 {
+				return out
+			}
+		}
+	}
+	if len(n) < 4 {
+		return nil
+	}
+	// Nome del pacchetto: "Microsoft.OutlookForWindows" -> "outlookforwindows" (o tutto il nome).
+	if !tronco {
+		if out := filtra(func(pk pacchettoAppx) bool {
+			ult := pk.nome[strings.LastIndex(pk.nome, ".")+1:]
+			return normaNome(pk.nome) == n || normaNome(ult) == n
+		}); len(out) > 0 {
+			return out
+		}
+	}
+	if visibile == nil {
+		return nil
+	}
+	return filtra(func(pk pacchettoAppx) bool {
+		v := normaNome(visibile(pk))
+		if v == "" {
+			return false
+		}
+		if tronco {
+			return strings.HasPrefix(v, n)
+		}
+		return v == n
+	})
 }
 
 func versionePiuNuova(a, b []int) bool {
