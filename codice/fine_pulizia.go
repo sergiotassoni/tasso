@@ -11,7 +11,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
-	"strconv"
 	"sync"
 	"syscall"
 	"time"
@@ -93,11 +92,15 @@ func shutdownExe(args ...string) int {
 	}
 }
 
-// Il conto alla rovescia di Tasso, quando shutdown.exe non è stato accettato: alla fine
-// ExitWindowsEx. Si annulla con cancelShutdown (Annulla).
+// Il conto alla rovescia di Tasso (quando shutdown.exe non è stato accettato, o come riserva se
+// l'ha accettato ma Windows non parte): alla fine ExitWindowsEx. Si annulla con cancelShutdown
+// (Annulla). Finché il conto è in corso il PC resta sveglio: dopo ore senza nessuno davanti, appena
+// la pulizia toglieva la richiesta Windows poteva sospendersi durante i 60 secondi e il riavvio non
+// partiva più (si trovava il PC addormentato, con gli aggiornamenti da finire).
 var (
-	fineMu    sync.Mutex
-	fineTimer *time.Timer
+	fineMu      sync.Mutex
+	fineTimer   *time.Timer
+	fineSveglio func()
 )
 
 func annullaFineTasso() {
@@ -106,6 +109,36 @@ func annullaFineTasso() {
 		fineTimer.Stop()
 		fineTimer = nil
 	}
+	if fineSveglio != nil {
+		fineSveglio()
+		fineSveglio = nil
+	}
+	fineMu.Unlock()
+}
+
+// armaFine: tra "dopo" riavvia (riavvia=true) o spegne con ExitWindowsEx, se Tasso è ancora vivo.
+func armaFine(riavvia bool, dopo time.Duration) {
+	annullaFineTasso()
+	sv := tienSveglio()
+	fineMu.Lock()
+	fineSveglio = sv
+	var t *time.Timer
+	t = time.AfterFunc(dopo, func() {
+		defer guard("fineTasso")
+		_ = exitWindows(riavvia)
+		// Se Windows non è partito lascio dormire il PC tra 2 minuti (la finestra dice "non è partito").
+		time.Sleep(2 * time.Minute)
+		fineMu.Lock()
+		if fineTimer == t {
+			fineTimer = nil
+			if fineSveglio != nil {
+				fineSveglio()
+				fineSveglio = nil
+			}
+		}
+		fineMu.Unlock()
+	})
+	fineTimer = t
 	fineMu.Unlock()
 }
 
@@ -133,46 +166,29 @@ func exitWindows(riavvia bool) error {
 	return windows.ExitWindowsEx(fl, windows.SHTDN_REASON_MAJOR_OPERATINGSYSTEM|windows.SHTDN_REASON_MINOR_UPGRADE|windows.SHTDN_REASON_FLAG_PLANNED)
 }
 
-// pianificaFine: riavvia (riavvia=true) o spegne tra secs secondi. Prima shutdown.exe (con
-// riprova se ce n'era già uno programmato); se Windows non lo accetta, il conto alla rovescia lo
-// tiene Tasso e alla fine usa ExitWindowsEx. false = non si è potuto (la finestra lo dice).
+func fineDepsVeri(riavvia bool) fineDeps {
+	return fineDeps{
+		shutdown:    shutdownExe,
+		puoSpegnere: puoSpegnere,
+		arma:        func(dopo time.Duration) { armaFine(riavvia, dopo) },
+		esci:        func() error { return exitWindows(riavvia) },
+	}
+}
+
+// pianificaFine: riavvia (riavvia=true) o spegne tra secs secondi (vedi pianificaFineCon).
 func pianificaFine(riavvia bool, secs int, msg string) bool {
 	annullaFineTasso()
-	k := "/s"
-	if riavvia {
-		k = "/r"
-	}
-	args := []string{k, "/t", strconv.Itoa(secs), "/c", msg}
-	e := shutdownConRiprova(shutdownExe, args)
-	if e.OK {
-		return true
-	}
-	// shutdown.exe non ha accettato (es. 1115 spegnimento già in corso, Windows Update al lavoro):
-	// conto alla rovescia mio, poi ExitWindowsEx. Controllo subito che il privilegio ci sia.
-	if !puoSpegnere() {
-		return false
-	}
-	fineMu.Lock()
-	fineTimer = time.AfterFunc(time.Duration(secs)*time.Second, func() {
-		defer guard("fineTasso")
-		_ = exitWindows(riavvia)
-	})
-	fineMu.Unlock()
-	return true
+	return pianificaFineCon(fineDepsVeri(riavvia), riavvia, secs, msg)
 }
 
 // adessoFine: "Riavvia adesso" / "Spegni adesso": tolgo quello programmato e chiedo subito.
 func adessoFine(riavvia bool) bool {
 	annullaFineTasso()
-	k := "/s"
-	if riavvia {
-		k = "/r"
+	if !adessoFineCon(fineDepsVeri(riavvia), riavvia) {
+		return false
 	}
-	e := shutdownConRiprova(shutdownExe, []string{k, "/t", "0"})
-	if e.OK {
-		return true
-	}
-	return exitWindows(riavvia) == nil
+	salvaBentornatoInSospeso()
+	return true
 }
 
 // puoSpegnere: il privilegio di spegnimento si può abilitare (senza spegnere niente).
@@ -198,7 +214,35 @@ func salvaBentornato(r riepilogoPulizia) {
 	}
 }
 
-func togliBentornato() { _ = os.Remove(bentornatoFile()) }
+func togliBentornato() {
+	bentMu.Lock()
+	bentSospeso = nil
+	bentMu.Unlock()
+	_ = os.Remove(bentornatoFile())
+}
+
+// Il riepilogo di una pulizia con "Riavvia"/"Spegni" che Windows non aveva accettato: se poi premi
+// "Riavvia adesso" e questa volta parte, al ritorno c'è lo stesso il "Bentornato".
+var (
+	bentMu      sync.Mutex
+	bentSospeso *riepilogoPulizia
+)
+
+func bentornatoInSospeso(r riepilogoPulizia) {
+	bentMu.Lock()
+	bentSospeso = &r
+	bentMu.Unlock()
+}
+
+func salvaBentornatoInSospeso() {
+	bentMu.Lock()
+	r := bentSospeso
+	bentSospeso = nil
+	bentMu.Unlock()
+	if r != nil {
+		salvaBentornato(*r)
+	}
+}
 
 // avvioWindows: quando si è acceso Windows l'ultima volta (Unix).
 func avvioWindows() int64 {

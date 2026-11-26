@@ -6,6 +6,7 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestSceltaFine(t *testing.T) {
@@ -171,5 +172,87 @@ func TestTestiFineTradotti(t *testing.T) {
 				t.Errorf("%s.json/ps: manca %q", l, k)
 			}
 		}
+	}
+}
+
+// Riavvio che "parte" ma non parte (portatile di Sergio): anche con shutdown.exe che risponde ok
+// Tasso arma la sua riserva (ExitWindowsEx dopo il tempo + riservaSecondi); se shutdown.exe non
+// accetta, il conto alla rovescia lo tiene Tasso; senza privilegio la finestra lo dice.
+func TestPianificaFineCon(t *testing.T) {
+	type giro struct {
+		codici []int
+		puo    bool
+		ok     bool
+		arma   []time.Duration
+	}
+	casi := []giro{
+		{[]int{0}, true, true, []time.Duration{80 * time.Second}},          // accettato: riserva a 60+20 s
+		{[]int{1190, 0}, true, true, []time.Duration{80 * time.Second}},    // ce n'era già uno: /a e riprova
+		{[]int{1115}, true, true, []time.Duration{60 * time.Second}},       // non accettato: conto di Tasso
+		{[]int{1190, 1190}, true, true, []time.Duration{60 * time.Second}}, // riprova fallita: conto di Tasso
+		{[]int{-1}, false, false, nil},                                     // niente privilegio: "no"
+	}
+	for i, c := range casi {
+		var armati []time.Duration
+		var args [][]string
+		n := 0
+		d := fineDeps{
+			shutdown: func(a ...string) int {
+				args = append(args, a)
+				if a[0] == "/a" {
+					return 0
+				}
+				x := c.codici[n]
+				if n < len(c.codici)-1 {
+					n++
+				}
+				return x
+			},
+			puoSpegnere: func() bool { return c.puo },
+			arma:        func(dopo time.Duration) { armati = append(armati, dopo) },
+			esci:        func() error { t.Errorf("caso %d: ExitWindowsEx subito non va chiamato qui", i); return nil },
+		}
+		if g := pianificaFineCon(d, true, 60, "msg"); g != c.ok {
+			t.Errorf("caso %d: ok=%v, voglio %v", i, g, c.ok)
+		}
+		if !reflect.DeepEqual(armati, c.arma) {
+			t.Errorf("caso %d: armati %v, voglio %v", i, armati, c.arma)
+		}
+		if w := []string{"/r", "/t", "60", "/c", "msg"}; !reflect.DeepEqual(args[0], w) {
+			t.Errorf("caso %d: argomenti %v", i, args[0])
+		}
+	}
+	// Spegni: /s
+	var primo []string
+	d := fineDeps{shutdown: func(a ...string) int {
+		if primo == nil {
+			primo = a
+		}
+		return 0
+	}, puoSpegnere: func() bool { return true }, arma: func(time.Duration) {}, esci: func() error { return nil }}
+	if !pianificaFineCon(d, false, 60, "x") || primo[0] != "/s" {
+		t.Errorf("spegni: %v", primo)
+	}
+}
+
+func TestAdessoFineCon(t *testing.T) {
+	var armati []time.Duration
+	usciti := 0
+	d := fineDeps{
+		shutdown:    func(a ...string) int { return 0 },
+		puoSpegnere: func() bool { return true },
+		arma:        func(dopo time.Duration) { armati = append(armati, dopo) },
+		esci:        func() error { usciti++; return nil },
+	}
+	if !adessoFineCon(d, true) || usciti != 0 || !reflect.DeepEqual(armati, []time.Duration{riservaSecondi * time.Second}) {
+		t.Errorf("accettato: usciti %d armati %v", usciti, armati)
+	}
+	d.shutdown = func(a ...string) int { return 1115 }
+	if !adessoFineCon(d, true) || usciti != 1 {
+		t.Errorf("non accettato: ExitWindowsEx subito (usciti %d)", usciti)
+	}
+	d.esci = func() error { return os.ErrPermission }
+	if adessoFineCon(d, true) {
+		t.Error("ExitWindowsEx fallito: deve rispondere no")
 	}
 }
