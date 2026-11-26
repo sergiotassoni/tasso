@@ -1081,7 +1081,7 @@ $code = Run-Hidden 'cipher.exe' ('/w:' + $TassoSysDrive + '\')
 Remove-Safe (Join-Path ($TassoSysDrive + '\') 'EFSTMPWP')
 if ($code -eq 0) { Say 'Fatto: i file cancellati in passato non sono più recuperabili.' } else { Say ('Terminato con codice ' + $code) }
 `},
-	{ID: "recover", Name: "Recupera file cancellati", Desc: "Apre il Cestino e lo strumento gratuito di Microsoft per recuperare foto e documenti cancellati.", Level: 0, Minutes: 1, Timeout: 20 * time.Minute, Script: `
+	{ID: "recover", Name: "Recupera file cancellati", Desc: "Apre il Cestino, installa lo strumento gratuito di Microsoft per recuperare i file (si usa scrivendo comandi) e apre la guida ufficiale passo passo.", Level: 0, Minutes: 1, Timeout: 20 * time.Minute, Script: `
 Say 'Prima guarda nel Cestino: lo apro adesso.'
 Start-Process 'explorer.exe' 'shell:RecycleBinFolder'
 # Windows File Recovery è un'app dello Store: la cerco fra le app installate (il suo alias non è nel PATH di Tasso).

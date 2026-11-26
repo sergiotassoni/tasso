@@ -94,19 +94,48 @@ const updatesApplyScript = `
 $wg = Get-Winget
 if (-not $wg) { Say 'winget non c''è su questo PC.'; return }
 $common = '--silent --accept-source-agreements --accept-package-agreements --disable-interactivity'
+# Codici di winget: 0 fatto; 0x8A150109 fatto ma serve un riavvio; 0x8A150061 / 0x8A15010D il
+# programma è già alla versione nuova; 0x8A15002B winget non ha un aggiornamento che può installare
+# (di solito il programma si aggiorna da solo o va aggiornato dal suo sito). Solo 0 e 0x8A150109
+# vogliono dire "aggiornato davvero".
+function Esito-Winget([int]$c) {
+  switch ($c) {
+    0 { return 'ok' }
+    -1978334967 { return 'riavvio' }
+    -1978335135 { return 'gia' }
+    -1978334963 { return 'gia' }
+    -1978335189 { return 'nonapplicabile' }
+    default { return 'no' }
+  }
+}
 if ($A.all) {
   Say 'Aggiorno tutti i programmi (può volerci qualche minuto)...'
   $code = Run-Hidden $wg ('upgrade --all ' + $common)
-  if (@(0, -1978335189, -1978335135, -1978334963, -1978334967) -contains $code) { Say 'Tutti i programmi sono aggiornati.' } else { Say 'Fatto. Qualche programma va aggiornato a mano (di solito perché è aperto: chiudilo e riprova).' }
+  switch (Esito-Winget $code) {
+    'ok' { Say 'Tutti i programmi sono aggiornati.' }
+    'riavvio' { Say 'Programmi aggiornati: per finire serve un riavvio del PC.'; [Console]::Out.WriteLine('REBOOT') }
+    'gia' { Say 'Tutti i programmi sono aggiornati.' }
+    'nonapplicabile' { Say 'winget non ha trovato aggiornamenti che può installare da solo: quelli rimasti si aggiornano dal loro programma o dal loro sito.' }
+    default { Say 'Fatto. Qualche programma va aggiornato a mano (di solito perché è aperto: chiudilo e riprova).' }
+  }
   return
 }
-$ok = 0; $ko = 0
+$ok = 0; $ko = 0; $na = 0
 foreach ($id in @($A.ids)) {
   $id = [string]$id
   if ($id -notmatch '^[A-Za-z0-9][A-Za-z0-9._+\-]{1,127}$') { continue }
   Say ('Aggiorno ' + $id + '...')
   $code = Run-Hidden $wg ('upgrade --id "' + $id + '" --exact ' + $common)
-  if (@(0, -1978335189, -1978335135, -1978334963, -1978334967) -contains $code) { $ok++; Say ('Aggiornato: ' + $id) } else { $ko++; Say ('Non aggiornato: ' + $id + ' (se è aperto, chiudilo e riprova)') }
+  switch (Esito-Winget $code) {
+    'ok' { $ok++; Say ('Aggiornato: ' + $id) }
+    'riavvio' { $ok++; Say ('Aggiornato: ' + $id + ' (per finire serve un riavvio)'); [Console]::Out.WriteLine('REBOOT') }
+    'gia' { $ok++; Say ('Già alla versione nuova: ' + $id) }
+    'nonapplicabile' { $na++; Say ('Non aggiornato: ' + $id + ' (winget non ha un aggiornamento che può installare: aggiornalo dal programma stesso o dal suo sito)') }
+    default { $ko++; Say ('Non aggiornato: ' + $id + ' (se è aperto, chiudilo e riprova)') }
+  }
 }
-Say ('Aggiornati ' + $ok + ' programmi' + $(if ($ko) { ', ' + $ko + ' da riprovare.' } else { '.' }))
+$resto = @()
+if ($na) { $resto += ($na.ToString() + ' da aggiornare dal programma stesso') }
+if ($ko) { $resto += ($ko.ToString() + ' da riprovare') }
+Say ('Aggiornati ' + $ok + ' programmi' + $(if ($resto.Count) { ', ' + ($resto -join ', ') + '.' } else { '.' }))
 `

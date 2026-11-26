@@ -167,8 +167,8 @@ try {
   $sec.SetSecurityDescriptorSddlForm('D:P(A;OICI;FA;;;SY)(A;OICI;FA;;;BA)')
   [void][System.IO.Directory]::CreateDirectory($dir, $sec)
 } catch {
-  # Senza permessi privati non esporto le password.
-  [Console]::Out.WriteLine('JSON []'); return
+  # Senza permessi privati non esporto le password (e lo dico: non è "nessuna rete salvata").
+  [Console]::Out.WriteLine('JSON {"error":"cartella"}'); return
 }
 $list = New-Object System.Collections.ArrayList
 try {
@@ -180,7 +180,10 @@ try {
       if (-not $name) { $name = [string]$x.WLANProfile.name }
       $key = [string]$x.WLANProfile.MSM.security.sharedKey.keyMaterial
       $auth = [string]$x.WLANProfile.MSM.security.authEncryption.authentication
-      [void]$list.Add([pscustomobject]@{ name = $name; password = $key; open = ($auth -eq 'open') })
+      # Reti dell'ufficio o della scuola (WPA2/WPA3-Enterprise): non c'è una password della rete,
+      # si entra con il proprio account.
+      $ent = ($auth -match '^WPA') -and ($auth -notmatch 'PSK|SAE') -and -not $key
+      [void]$list.Add([pscustomobject]@{ name = $name; password = $key; open = ($auth -eq 'open'); enterprise = $ent })
     } catch {}
   }
 } finally { Remove-Safe $dir }
@@ -189,13 +192,15 @@ $sorted = @($list | Sort-Object -Property name)
 `
 
 // Mappa del disco: dimensione delle cartelle principali con robocopy in modalità "solo elenco"
-// (veloce, non copia niente, salta le cartelle protette).
+// (veloce, non copia niente, salta le cartelle protette). /XA:O salta i file "solo online" di
+// OneDrive e degli altri servizi cloud: sono sul server, non occupano il disco. Oltre al disco di
+// sistema misura le cartelle principali degli altri dischi interni (D:, E:...), finché c'è tempo.
 const diskMapScript = `
 function Measure-Dir([string]$p) {
   try {
     $psi = New-Object System.Diagnostics.ProcessStartInfo
     $psi.FileName = 'robocopy.exe'
-    $psi.Arguments = '"' + $p.TrimEnd('\') + '" "' + (Join-Path $env:TEMP 'tasso_nul') + '" /L /E /XJ /NFL /NDL /NJH /BYTES /R:0 /W:0 /NP'
+    $psi.Arguments = '"' + $p.TrimEnd('\') + '" "' + (Join-Path $env:TEMP 'tasso_nul') + '" /L /E /XJ /XA:O /NFL /NDL /NJH /BYTES /R:0 /W:0 /NP'
     $psi.UseShellExecute = $false; $psi.CreateNoWindow = $true; $psi.RedirectStandardOutput = $true; $psi.RedirectStandardError = $true
     $pr = [System.Diagnostics.Process]::Start($psi)
     $err = $pr.StandardError.ReadToEndAsync()
@@ -225,15 +230,27 @@ foreach ($d in @(Get-ChildItem -LiteralPath $env:USERPROFILE -Directory -Force -
   if ($d.Attributes -band [IO.FileAttributes]::ReparsePoint) { continue }
   [void]$targets.Add(@{ path = $d.FullName; group = 'Cartella utente' })
 }
+$altri = @()
+try { $altri = @(Get-CimInstance Win32_LogicalDisk -Filter 'DriveType=3' -ErrorAction Stop | Where-Object { $_.DeviceID -and $_.DeviceID -ne $env:SystemDrive } | ForEach-Object { [string]$_.DeviceID }) } catch {}
+foreach ($dl in $altri) {
+  foreach ($d in @(Get-ChildItem -LiteralPath ($dl + '\') -Directory -Force -ErrorAction SilentlyContinue)) {
+    if ($skip -contains $d.Name -or ($d.Attributes -band [IO.FileAttributes]::ReparsePoint)) { continue }
+    [void]$targets.Add(@{ path = $d.FullName; group = 'Disco ' + $dl })
+  }
+}
+$t0 = [DateTime]::UtcNow
 $i = 0
 foreach ($t in $targets) {
   $i++
+  # gli altri dischi solo se c'è ancora tempo (il disco di sistema viene sempre per primo)
+  if ($t.group -like 'Disco *' -and $t.group -ne ('Disco ' + $env:SystemDrive) -and ([DateTime]::UtcNow - $t0).TotalMinutes -gt 12) { continue }
   Say ('Misuro ' + $i + ' di ' + $targets.Count + ': ' + (Split-Path $t.path -Leaf))
   $size = Measure-Dir $t.path
   if ($size -gt 50MB) { [void]$roots.Add([pscustomobject]@{ path = $t.path; name = (Split-Path $t.path -Leaf); group = $t.group; size = $size }) }
 }
 $d = Get-CimInstance Win32_LogicalDisk -Filter ("DeviceID='" + $env:SystemDrive + "'")
 $sorted = @($roots | Sort-Object -Property size -Descending)
-$o = [pscustomobject]@{ total = [long]$d.Size; free = [long]$d.FreeSpace; items = $sorted }
+$dischi = @(Get-CimInstance Win32_LogicalDisk -Filter 'DriveType=3' -ErrorAction SilentlyContinue | ForEach-Object { [pscustomobject]@{ id = [string]$_.DeviceID; total = [long]$_.Size; free = [long]$_.FreeSpace } })
+$o = [pscustomobject]@{ total = [long]$d.Size; free = [long]$d.FreeSpace; items = $sorted; disks = $dischi; sys = [string]$env:SystemDrive }
 [Console]::Out.WriteLine('JSON ' + (ConvertTo-Json -InputObject $o -Compress -Depth 4))
 `

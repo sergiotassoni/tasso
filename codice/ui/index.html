@@ -886,8 +886,8 @@ html:not([lang="it"]) .navsub button{padding-right:4px;gap:8px}
   <div class="card" id="filesStatus" style="display:none"><div class="row"><svg class="spin" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--a1)" stroke-width="2.6" stroke-linecap="round"><path d="M21 12a9 9 0 1 1-9-9"/></svg><span id="filesMsg">Analisi in corso…</span></div></div>
   <div id="filesResult" style="display:none;flex-direction:column;gap:16px"></div>
   <div class="grid g3">
-    <div class="card fixcard" style="--c:var(--red)"><span class="big"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M10 11v6M14 11v6M5 7l1 13h12l1-13M9 7V4h6v3"/></svg></span><h3>Distruggi file</h3><p class="sub" style="margin:0">Per documenti riservati: li riscrive con dati a caso e li cancella, così diventano quasi impossibili da recuperare. Puoi sceglierne tanti insieme.</p><button class="btn ghost" id="btnShred" style="margin-top:auto">Scegli i file…</button></div>
-    <div class="card fixcard" style="--c:var(--a3)"><span class="big"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg></span><h3>Recupera file cancellati</h3><p class="sub" style="margin:0">Apre il Cestino e lo strumento gratuito di Microsoft per recuperare foto e documenti.</p><button class="btn ghost" data-step="recover" style="margin-top:auto">Apri il recupero</button></div>
+    <div class="card fixcard" style="--c:var(--red)"><span class="big"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M10 11v6M14 11v6M5 7l1 13h12l1-13M9 7V4h6v3"/></svg></span><h3>Distruggi file</h3><p class="sub" style="margin:0">Per documenti riservati: li riscrive con dati a caso e li cancella, così sul disco non si recuperano più. Copie in OneDrive, nei punti di ripristino o nella Cronologia file restano. Puoi sceglierne tanti insieme.</p><button class="btn ghost" id="btnShred" style="margin-top:auto">Scegli i file…</button></div>
+    <div class="card fixcard" style="--c:var(--a3)"><span class="big"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg></span><h3>Recupera file cancellati</h3><p class="sub" style="margin:0">Apre il Cestino, installa lo strumento gratuito di Microsoft (si usa scrivendo comandi) e apre la guida passo passo.</p><button class="btn ghost" data-step="recover" style="margin-top:auto">Apri il recupero</button></div>
     <div class="card fixcard" style="--c:var(--a2)"><span class="big"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 9h10M7 13h6"/></svg></span><h3>Cancella lo spazio libero</h3><p class="sub" style="margin:0">Rende impossibile recuperare i file già cancellati. Utile prima di vendere il PC. Può durare ore.</p><button class="btn ghost" data-step="wipe_free" style="margin-top:auto">Avvia</button></div>
   </div>
 </section>
@@ -1652,6 +1652,8 @@ function paintDetect(){
     $('#detTitle').textContent = probs.length ? (_t('Ho trovato ') + probs.length + (probs.length === 1 ? _t(' problema') : _t(' problemi')) + (tips.length ? _t(' e ') + tips.length + (tips.length === 1 ? _t(' consiglio') : _t(' consigli')) : '')) : (_t('Nessun problema, ') + tips.length + (tips.length === 1 ? _t(' consiglio') : _t(' consigli')));
     $('#detStatus').textContent = _t('Ho controllato ') + n + _t(' problemi diversi. Clicca Risolvi su quello che vuoi sistemare, o Ignora se non ti interessa.') + when;
   }
+  const skipped = [].concat(DET.skipped || []).filter(Boolean);
+  if (skipped.length) $('#detStatus').textContent += _t(' Non sono riuscito a controllare: ') + skipped.join(', ') + _t(' (non vuol dire che sia tutto a posto: riprova più tardi).');
   const fixable = probs.filter(x => !OFFICE_CHECK[x.id]).map(x => x.id);
   if (fixable.length >= 2) {
     const all = el('button', {class:'btn primary', style:'align-self:flex-start'}, fixable.length === 2 ? _t('Risolvi i 2 problemi insieme') : _t('Risolvi i ') + fixable.length + _t(' problemi insieme'));
@@ -1819,8 +1821,8 @@ window.tasso = {
   onPerf(d){ PERF = d || {}; paintPerf(); },
   onPerfMsgs(p){ PERF_MSGS = (p && p.msgs) || []; },
   onModeDone(p){ if (p.settings) S = p.settings; paintModes(); (p.msgs || []).forEach(m => toast(m, 'var(--a3)')); },
-  onStartup(p){ STARTUP = p.items || []; paintStartup(); (alertOn('startup') ? (p.fresh || []) : []).forEach(n => alertSmart(_t('Nuovo programma all\'avvio: ') + n, {label:_t('Vedi'), fn: () => show('speed')})); },
-  onPrograms(list){ PROGS = list || []; paintPrograms(); },
+  onStartup(p){ STARTUP = p.items || []; STARTUP_ERR = p.error || ''; paintStartup(); (alertOn('startup') ? (p.fresh || []) : []).forEach(n => alertSmart(_t('Nuovo programma all\'avvio: ') + n, {label:_t('Vedi'), fn: () => show('speed')})); },
+  onPrograms(list){ PROGS_ERR = (list && !Array.isArray(list) && list.error) || ''; PROGS = Array.isArray(list) ? list : []; paintPrograms(); },
   onUninstallDone(p){ uninstallDone(p); },
   onOrphanDone(p){ orphanDone(p); },
   onLeftoversDone(p){ (p.msgs || []).forEach(m => toast(m, 'var(--a3)')); },
@@ -2325,8 +2327,10 @@ function askMode(m){
 
 /* ---------- startup ---------- */
 const SCOPE = {hkcu:_t('Solo il tuo account'), hklm:_t('Tutti gli account'), hklm32:_t('Tutti gli account'), fu:_t('Cartella Esecuzione automatica'), fc:_t('Cartella Esecuzione automatica (tutti)'), appx:_t('App di Windows / Store')};
+let STARTUP_ERR = '';
 function paintStartup(){
   const box = $('#startupList'); box.innerHTML = '';
+  if (STARTUP_ERR) { box.innerHTML = '<div class="li"><span class="muted">' + esc(STARTUP_ERR) + '</span></div>'; return; }
   if (!STARTUP || !STARTUP.length) { box.innerHTML = _t('<div class="li"><span class="muted">Nessun programma parte all\'avvio. Ottimo!</span></div>'); return; }
   const list = STARTUP.slice().sort((a, b) => String(a.name).localeCompare(String(b.name), 'it', {sensitivity:'base'}));
   const on = list.filter(i => i.enabled).length;
@@ -2364,9 +2368,11 @@ window.tasso.onIcons = (m) => {
   });
 };
 /* ---------- programs ---------- */
+let PROGS_ERR = '';
 function paintPrograms(){
   const q = ($('#progSearch').value || '').toLowerCase();
   const box = $('#progList'); box.innerHTML = '';
+  if (PROGS_ERR) { box.innerHTML = '<div class="li"><span class="muted">' + esc(PROGS_ERR) + '</span></div>'; $('#progCount').textContent = ''; return; }
   // Voci senza un nome vero (rovinate da un disinstallatore): Windows non le mostra, Tasso neanche.
   const list = (PROGS || []).filter(p => /[\p{L}\p{N}]/u.test(String(p.name || '')) && (!q || (p.name + ' ' + p.publisher).toLowerCase().indexOf(q) >= 0));
   $('#progCount').textContent = PROGS ? '(' + PROGS.length + ')' : '';
@@ -2470,7 +2476,10 @@ function paintFiles(){
 function recycleDone(p){
   (p.msgs || []).forEach(m => toast(m, 'var(--a3)'));
   if (p.kind === 'files' && p.result && p.result.n) {
-    const gone = {}; $$('#filesResult input[data-p]').forEach(x => { if (x.checked) gone[x.getAttribute('data-p')] = 1; });
+    // Solo quelli finiti davvero nel Cestino: quelli saltati (troppo grandi, aperti) restano nell'elenco.
+    const norm = (q) => String(q || '').replace(/\\+$/, '').toLowerCase();
+    const moved = new Set([].concat(p.result.moved || []).map(norm));
+    const gone = {}; $$('#filesResult input[data-p]').forEach(x => { if (x.checked && moved.has(norm(x.getAttribute('data-p')))) gone[x.getAttribute('data-p')] = 1; });
     $$('#filesResult input[data-p]').forEach(x => { if (gone[x.getAttribute('data-p')]) { const li = x.closest('.li'); if (li) li.remove(); } });
   }
 }
@@ -2478,7 +2487,7 @@ $('#btnShred').onclick = async () => {
   const ps = await call('goPickFiles');
   if (!ps || !ps.length) return;
   const many = ps.length > 1;
-  modal(_t('<h2 style="color:var(--red)">Distruggere ') + (many ? _t('questi ') + ps.length + _t(' file') : _t('questo file')) + '?</h2><div class="note" style="word-break:break-all;max-height:160px;overflow:auto">' + ps.map(esc).join('<br>') + _t('</div><p class="muted" style="margin:0;line-height:1.5">Ogni file viene <b>riscritto con dati a caso</b>, rinominato e cancellato: <b>non si potrà più recuperare</b>, nemmeno dal Cestino o con i programmi di recupero.</p><p class="small muted" style="margin:0;line-height:1.5">Onestamente: sugli SSD nessun programma può garantirlo al 100%, perché è il disco a decidere dove scrivere. Per questo alla fine Tasso chiede anche all\'SSD di cancellare davvero lo spazio liberato (TRIM): in pratica il file non torna più.</p>'),
+  modal(_t('<h2 style="color:var(--red)">Distruggere ') + (many ? _t('questi ') + ps.length + _t(' file') : _t('questo file')) + '?</h2><div class="note" style="word-break:break-all;max-height:160px;overflow:auto">' + ps.map(esc).join('<br>') + _t('</div><p class="muted" style="margin:0;line-height:1.5">Ogni file viene <b>riscritto con dati a caso</b>, rinominato e cancellato: <b>non si potrà più recuperare</b>, nemmeno dal Cestino o con i programmi di recupero.</p><p class="small muted" style="margin:0;line-height:1.5">Onestamente: sugli SSD nessun programma può garantirlo al 100%, perché è il disco a decidere dove scrivere. Per questo alla fine Tasso chiede anche all\'SSD di cancellare davvero lo spazio liberato (TRIM): in pratica il file non torna più.</p>') + _t('<p class="small muted" style="margin:0;line-height:1.5">Copie che Tasso non può toccare: se il file è in <b>OneDrive</b> resta nella cronologia delle versioni e nel Cestino di OneDrive; possono averne una copia anche i <b>punti di ripristino</b> e la <b>Cronologia file</b> di Windows.</p>'),
     [{label:_t('Annulla')}, {label:_t('Distruggi per sempre'), cls:'danger', fn: () => { call('goShred', ps).then(r => { if (r === 'busy') toast(_t('Sto già distruggendo altri file.'), 'var(--a4)'); else toast(_t('Distruggo…')); }); }}]);
 };
 
@@ -2591,11 +2600,11 @@ function paintPerf(){
 }
 const INDEX = [
   {t:_t('Pulizia'), c:'var(--a1)', i:[_t('<b>5 livelli</b>: Classica, Normale, Media, Profonda, Eccezionale, con anteprima di quanto c\'è da liberare'),_t('<b>File temporanei</b> tuoi e di Windows, <b>Cestino</b>, <b>anteprime</b>'),_t('<b>Cache dei browser</b> (Chrome, Edge, Brave, Opera, Firefox) senza toccare password e cookie'),_t('<b>Cache delle app</b>: Discord, Steam, Teams, Epic Games'),_t('<b>Cache della scheda video</b> e di <b>Windows Update</b>'),_t('<b>File di sistema inutili</b> (rapporti errori, dump, log vecchi) e <b>pulizia componenti</b> (DISM), senza finestre'),_t('<b>Resti dei driver</b> (C:\\AMD, C:\\NVIDIA), <b>driver video vecchi</b> e <b>cache dei launcher</b> (Battle.net, EA, Ubisoft, GOG, Riot, Steam, Spotify)'),_t('<b>Pulizia programmata</b> ogni 1 o 2 settimane (giorno, ora e livello li scegli tu) e <b>spegnimento automatico</b> a fine lavoro'),_t('<b>Voto al PC</b> prima e dopo la pulizia')]},
-  {t:_t('Avvio del PC'), c:'var(--a4)', i:[_t('<b>Modalità</b> Normale, Gaming, FPS competitivo, Film, Silenzioso, con controllo dei componenti'),_t('<b>Turbo</b>: chiude i programmi in background che non servono'),_t('<b>Programmi all\'avvio</b>: accendi e spegni con un interruttore'),_t('<b>Guardiano dell\'avvio</b>: ti avvisa quando si aggiunge un programma nuovo'),_t('<b>Deframmentazione</b> dei dischi meccanici e <b>TRIM</b> degli SSD')]},
+  {t:_t('Avvio del PC'), c:'var(--a4)', i:[_t('<b>Modalità</b> Normale, Gaming, FPS competitivo, Film, Silenzioso, con controllo dei componenti'),_t('<b>Programmi all\'avvio</b>: accendi e spegni con un interruttore'),_t('<b>Guardiano dell\'avvio</b>: ti avvisa quando si aggiunge un programma nuovo'),_t('<b>Deframmentazione</b> dei dischi meccanici e <b>TRIM</b> degli SSD')]},
   {t:_t('Programmi e aggiornamenti'), c:'var(--a3)', i:[_t('<b>Disinstallazione completa</b>, con ricerca delle cartelle rimaste'),_t('<b>App preinstallate</b>: via Candy Crush, TikTok e simili'),_t('<b>Aggiornamento programmi</b> con winget: vedi quali hanno una versione nuova e li aggiorni uno per uno o tutti'),_t('<b>Driver di tutto il PC</b> (scheda video AMD, NVIDIA o Intel, audio, mouse, tastiera, rete…): Windows Update e siti ufficiali'),_t('<b>Aggiornamenti di Windows</b>'),_t('<b>Icone vere</b> dei programmi installati e all\'avvio'),_t('<b>Controllo estensioni</b> dei browser')]},
   {t:_t('File'), c:'var(--a2)', i:[_t('<b>File doppi</b>, <b>file enormi</b>, <b>cartelle vuote</b>, <b>collegamenti rotti</b>: sempre con conferma e nel Cestino'),_t('<b>Riordino della cartella Download</b> per tipo di file'),_t('<b>Distruggi file</b> riservati (anche più file insieme) e <b>cancella lo spazio libero</b>'),_t('<b>Recupera file cancellati</b> con lo strumento di Microsoft')]},
   {t:_t('Riparazione e sicurezza'), c:'var(--red)', i:[_t('<b>Backup automatico</b> (punto di ripristino) prima delle pulizie importanti'),_t('<b>Risolvi problemi</b> di audio, internet, Windows Update, stampante, Store e ricerca'),_t('<b>Problemi nei giochi</b> (13, con un pulsante): scatti, pochi FPS, ping alto, il gioco non parte (Visual C++, DirectX), launcher, schermo nero, controller e cuffie, Xbox e Game Pass, anti-cheat, Discord, mira del mouse, gioco che si riduce a icona, download lenti'),_t('<b>Driver di tutto il PC</b>: scheda video AMD, NVIDIA, Intel, audio, mouse, tastiera, rete; Windows Update e siti ufficiali'),_t('<b>Riparazione di Windows</b> (DISM + SFC) e <b>controllo errori del disco</b>'),_t('<b>Controllo periferiche</b>, <b>salute dei dischi</b>, <b>antivirus</b> Defender'),_t('<b>Controllo sicurezza</b> (firewall, Secure Boot, TPM, SMBv1…) e <b>controllo stabilità</b> (crash, schermate blu, errori hardware)'),_t('<b>Privacy</b>: stop a pubblicità e tracciamento di Windows, con ripristino, e <b>tracce di attività</b>')]},
-  {t:'Giochi', c:'var(--a2)', i:[_t('<b>Libreria</b> Steam, Epic e Riot con copertine'),_t('<b>Regola con Tasso</b>: grafica consigliata per ogni gioco in base al tipo di gioco e al tuo PC'),_t('<b>Comandi gaming</b>: priorità ai giochi, rete a bassa latenza, registrazione in background spenta, pianificazione GPU, memoria in standby, riavvio del driver video'),_t('<b>Ottimizza prima di giocare</b>, <b>pannellino in gioco</b>, <b>autoclick</b>'),_t('<b>Profilo gioco</b> con un interruttore: resta acceso anche dopo il riavvio finché non lo spegni'),_t('<b>Potenza per ogni gioco</b>: Potenza alta o Massima potenza, messa da sola quando apri il gioco'),_t('<b>Ping ai server dei giochi</b> (LoL, Valorant, CS2, Fortnite…) per scegliere il server migliore'),_t('<b>Problemi nei giochi</b>: in Risolvi un problema, 13 riparazioni con un pulsante spiegate semplici')]},
+  {t:'Giochi', c:'var(--a2)', i:[_t('<b>Libreria</b> Steam, Epic e Riot con copertine'),_t('<b>Regola con Tasso</b>: grafica consigliata per ogni gioco in base al tipo di gioco e al tuo PC'),_t('<b>Comandi gaming</b>: priorità ai giochi, rete a bassa latenza, registrazione in background spenta, pianificazione GPU, memoria in standby, riavvio del driver video'),_t('<b>Ottimizza prima di giocare</b>, <b>pannellino in gioco</b>, <b>autoclick</b>'),_t('<b>Profilo gioco</b> con un interruttore: resta acceso anche dopo il riavvio finché non lo spegni'),_t('<b>Potenza per ogni gioco</b>: Potenza alta o Massima potenza, messa da sola quando apri il gioco'),_t('<b>Ping ai server dei giochi</b> (LoL, Valorant, CS2, Fortnite…) per scegliere il server migliore'),_t('<b>Problemi nei giochi</b>: in Risolvi un problema, ') + (Object.keys(STEP).filter(k => k.indexOf('fix_game_') === 0).length || 26) + _t(' riparazioni con un pulsante spiegate semplici')]},
   {t:'Portachiavi e Discord', c:'var(--a1)', i:[_t('<b>Portachiavi</b> con PIN da 4 a 12 numeri o senza PIN: cifrato sul PC, generatore di password, password deboli o usate più volte'),_t('<b>Controllo password rubate</b> senza mandare la password'),_t('<b>Stato del PC su Discord</b>: report con spunte verdi e temperature, ogni 3/6/12/24 ore'),_t('<b>Report su richiesta</b> scrivendo !stato (con un bot tuo, facoltativo)')]},
   {t:_t('Hardware e comodità'), c:'var(--a3)', i:[_t('<b>Componenti</b>: processore, scheda video, scheda madre, RAM, dischi'),_t('<b>Sensori</b>: uso di processore e RAM, scheda video, temperatura dei dischi'),_t('<b>BIOS</b>: versione e pagina ufficiale del produttore'),_t('<b>8 temi</b>, <b>avvisi intelligenti</b>, <b>avvio con Windows</b>'),_t('<b>Interruttore Tasso acceso/spento</b>: da spento non fa nulla in automatico'),_t('<b>Torna indietro</b>: l\'elenco di tutto quello che Tasso ha cambiato, con un pulsante per rimettere com\'era ogni cosa o tutto insieme. Spegnere o riavviare il PC non cambia niente: torna indietro solo quando lo decidi tu')]}
 ];
@@ -2806,6 +2815,15 @@ function paintUndo(c){
     b.onclick = () => { b.disabled = true; call('goUndoChange', x.kind, x.id).then(r => { if (r === 'busy') { b.disabled = false; toast(_t('Aspetta: sto già rimettendo qualcosa.'), 'var(--a4)'); } }); };
     li.appendChild(b); box.appendChild(li);
   });
+  const uf = (c && c.undoFiles) || [];
+  if (uf.length) {
+    box.appendChild(el('div', {class:'li', style:'min-height:0'}, _t('<span class="small muted"><b>Riparazioni di "Risolvi un problema"</b>: ognuna ha lasciato un file che rimette com\'era (doppio clic sul file).</span>')));
+    uf.slice(0, 12).forEach(f => box.appendChild(el('div', {class:'li'}, '<span class="x"><b>' + esc(f.name) + '</b><span>' + esc(f.when) + ' · ' + esc(f.file) + '</span></span>')));
+    const ob = el('button', {class:'btn ghost', style:'align-self:flex-start;margin-top:6px'}, _t('Apri la cartella dei file per tornare indietro'));
+    ob.onclick = () => call('goUndoChange', 'undofolder', ''); box.appendChild(ob);
+  }
+  const nu = (c && c.notUndo) || [];
+  if (nu.length) box.appendChild(el('div', {class:'note', style:'margin-top:8px'}, _t('<b>Questo pulsante non rimette:</b>') + '<ul style="margin:6px 0 0 18px;padding:0">' + nu.map(x => '<li>' + esc(x) + '</li>').join('') + '</ul>'));
   $('#btnRegBak').style.display = c && c.regBackups ? '' : 'none';
   if (c && c.regBackups) $('#btnRegBak').textContent = _t('Backup del registro (') + c.regBackups + ')';
 }
@@ -2941,10 +2959,11 @@ Object.assign(window.tasso, {
   },
   onWifi(list){
     const box = $('#wfList'); box.innerHTML = '';
+    if (list && !Array.isArray(list) && list.error) { box.innerHTML = '<div class="li"><span class="muted">' + esc(list.error) + '</span></div>'; return; }
     list = Array.isArray(list) ? list : (list ? [list] : []);
     if (!list.length) { box.innerHTML = _t('<div class="li"><span class="muted">Nessuna rete Wi-Fi salvata su questo PC.</span></div>'); return; }
     list.forEach(w => {
-      const row = el('div', {class:'li'}, '<span style="flex:1"><b>' + esc(w.name) + '</b><br><span class="small muted">' + (w.open ? _t('Rete aperta, senza password') : (w.password ? _t('Password: <span class="pw" style="filter:blur(5px)">') + esc(w.password) + '</span>' : _t('Password non disponibile'))) + '</span></span>');
+      const row = el('div', {class:'li'}, '<span style="flex:1"><b>' + esc(w.name) + '</b><br><span class="small muted">' + (w.open ? _t('Rete aperta, senza password') : (w.password ? _t('Password: <span class="pw" style="filter:blur(5px)">') + esc(w.password) + '</span>' : (w.enterprise ? _t('Rete dell\'ufficio o della scuola: si entra con il tuo account, non c\'è una password della rete') : _t('Password non disponibile')))) + '</span></span>');
       if (w.password) {
         const sh = el('button', {class:'btn ghost'}, _t('Mostra')); sh.onclick = () => { const p = row.querySelector('.pw'); const on = p.style.filter !== 'none'; p.style.filter = on ? 'none' : 'blur(5px)'; sh.textContent = on ? _t('Nascondi') : _t('Mostra'); };
         const cp = el('button', {class:'btn ghost'}, _t('Copia')); cp.onclick = () => copySecret(w.password);
@@ -2960,6 +2979,9 @@ Object.assign(window.tasso, {
     if (!d || !d.items) { $('#dmMsg').textContent = _t('Controllo non riuscito: riprova.'); return; }
     const used = (Number(d.total) || 0) - (Number(d.free) || 0);
     $('#dmMsg').textContent = _t('Usati ') + fmtBytes(used) + _t(' su ') + fmtBytes(d.total) + _t(', liberi ') + fmtBytes(d.free) + '.';
+    // Gli altri dischi interni (D:, E:...): le loro cartelle principali sono nell'elenco qui sotto.
+    const altri = [].concat(d.disks || []).filter(x => x && x.id && Number(x.total) > 0 && x.id !== d.sys);
+    if (altri.length) $('#dmMsg').textContent += ' ' + altri.map(x => x.id + _t(' liberi ') + fmtBytes(x.free) + _t(' su ') + fmtBytes(x.total)).join(' · ') + '.';
     const items = Array.isArray(d.items) ? d.items : [d.items];
     const max = Math.max(1, ...items.map(i => Number(i.size) || 0));
     items.slice(0, 25).forEach(i => {

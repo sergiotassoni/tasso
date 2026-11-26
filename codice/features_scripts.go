@@ -490,6 +490,7 @@ function Get-BinLimit([string]$path) {
   return $lim
 }
 $n = 0; $b = [long]0; $big = 0
+$spostati = New-Object System.Collections.ArrayList  # solo quelli finiti davvero nel Cestino
 foreach ($p in @($A)) {
   $p = [string]$p
   if ($protect.ContainsKey($p.TrimEnd('\').ToLower())) { Say ('Cartella di sistema, la salto: ' + $p); continue }
@@ -498,18 +499,18 @@ foreach ($p in @($A)) {
       $len = (Get-Item -LiteralPath $p -Force).Length
       if ($len -gt (Get-BinLimit $p)) { $big++; Say ('Troppo grande per il Cestino (verrebbe cancellato per sempre), non lo tocco: ' + $p); continue }
       [Microsoft.VisualBasic.FileIO.FileSystem]::DeleteFile($p, 'OnlyErrorDialogs', 'SendToRecycleBin')
-      $n++; $b += $len
+      if (-not (Test-Path -LiteralPath $p)) { $n++; $b += $len; [void]$spostati.Add($p) } else { Say ('Non spostato: ' + $p) }
     } elseif (Test-Path -LiteralPath $p -PathType Container) {
       $len = Get-FolderSize $p
       if ($len -gt (Get-BinLimit $p)) { $big++; Say ('Troppo grande per il Cestino (verrebbe cancellato per sempre), non la tocco: ' + $p); continue }
       [Microsoft.VisualBasic.FileIO.FileSystem]::DeleteDirectory($p, 'OnlyErrorDialogs', 'SendToRecycleBin')
-      $n++; $b += $len
+      if (-not (Test-Path -LiteralPath $p)) { $n++; $b += $len; [void]$spostati.Add($p) } else { Say ('Non spostato: ' + $p) }
     }
   } catch { Say ('Non spostato: ' + $p) }
 }
 Say ('Spostati nel Cestino: ' + $n + ' elementi (' + (Fmt $b) + '). Puoi sempre recuperarli dal Cestino.')
 if ($big) { Say ('Non toccati perché troppo grandi per il Cestino: ' + $big + '. Se vuoi davvero toglierli, cancellali tu da Esplora file sapendo che non si recuperano.') }
-[Console]::Out.WriteLine('JSON ' + (ConvertTo-Json -InputObject ([ordered]@{ n = $n; bytes = $b }) -Compress))
+[Console]::Out.WriteLine('JSON ' + (ConvertTo-Json -InputObject ([ordered]@{ n = $n; bytes = $b; moved = @($spostati) }) -Compress))
 `
 
 const regRemoveScript = `

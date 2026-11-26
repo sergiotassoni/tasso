@@ -178,7 +178,22 @@ func netUsage() {
 
 func wifiList() {
 	r := runPSArgs(wifiScript, map[string]string{"base": scriptDir()}, 2*time.Minute, nil)
-	emitRaw("onWifi", decodeJSON(r.JSON)) // nomi delle reti e password: mai tradotti
+	emitRaw("onWifi", wifiRisultato(decodeJSON(r.JSON))) // nomi delle reti e password: mai tradotti
+}
+
+// wifiRisultato: l'elenco delle reti, oppure {error} se la lettura non è riuscita (prima un errore
+// si vedeva come "Nessuna rete Wi-Fi salvata su questo PC").
+func wifiRisultato(v interface{}) interface{} {
+	switch x := v.(type) {
+	case []interface{}:
+		return x
+	case map[string]interface{}:
+		if _, ok := x["error"]; ok {
+			return map[string]interface{}{"error": trGo("Non posso leggere le password del Wi-Fi in modo sicuro su questo PC (la cartella privata di Tasso non si crea): non le mostro.")}
+		}
+		return []interface{}{x} // una rete sola: PowerShell la scrive come oggetto singolo
+	}
+	return map[string]interface{}{"error": trGo("Non sono riuscito a leggere le reti Wi-Fi salvate: riprova tra poco.")}
 }
 
 // ---------------- Mappa del disco ----------------

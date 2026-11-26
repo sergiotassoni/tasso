@@ -6,6 +6,7 @@ package main
 import (
 	"crypto/rand"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -19,6 +20,7 @@ import (
 	"unsafe"
 
 	"golang.org/x/sys/windows"
+	"golang.org/x/sys/windows/registry"
 )
 
 // runPSArgs passa dati allo script tramite un file JSON (così nomi e percorsi strani non rompono nulla).
@@ -100,7 +102,8 @@ func startupList() {
 	if list == nil {
 		// Lettura non riuscita: non cancello l'elenco dei programmi già visti, se no la volta dopo
 		// conterebbe come "prima volta" e i programmi nuovi all'avvio non verrebbero segnalati.
-		emit("onStartup", map[string]interface{}{"items": []interface{}{}, "fresh": []string{}})
+		emit("onStartup", map[string]interface{}{"items": []interface{}{}, "fresh": []string{},
+			"error": "Non sono riuscito a leggere i programmi all'avvio: riprova tra poco."})
 		return
 	}
 	setMu.Lock()
@@ -160,9 +163,11 @@ func startupSet(scope, name string, enable bool) {
 
 func programsList() {
 	r := runPS(programsListScript, 3*time.Minute, nil)
-	list, _ := decodeJSON(r.JSON).([]interface{})
-	if list == nil {
-		list = []interface{}{}
+	list, ok := decodeJSON(r.JSON).([]interface{})
+	if !ok {
+		// Lettura non riuscita: lo dico, invece di mostrare "Nessun programma trovato".
+		emit("onPrograms", map[string]interface{}{"error": "Non sono riuscito a leggere i programmi installati: riprova tra poco."})
+		return
 	}
 	emit("onPrograms", list)
 }
@@ -589,46 +594,106 @@ var (
 	lastPicked map[string]bool
 )
 
-func shredAllowed(p string) bool {
+// shredMotivo: perché un file scelto non si può distruggere ("" = si può). Il motivo vero, da dire
+// all'utente (prima tutti i rifiuti finivano in "sono di sistema, aperti in un altro programma o spariti").
+func shredMotivo(p string) string {
 	pickMu.Lock()
 	ok := lastPicked[p]
 	pickMu.Unlock()
 	if !ok {
-		return false
+		return "non l'hai scelto tu dalla finestra"
 	}
-	// Percorso reale (niente nomi corti tipo PROGRA~1, niente \\?\): poi controllo le cartelle di sistema.
-	if real, err := filepath.EvalSymlinks(p); err == nil {
-		if !strings.EqualFold(real, p) {
-			return false // è un collegamento: non lo seguo
-		}
+	lp := strings.ToLower(p)
+	if strings.HasPrefix(lp, `\\?\`) || strings.HasPrefix(lp, `\\.\`) {
+		return "percorso speciale di Windows"
 	}
-	if lfi, err := os.Lstat(p); err != nil || lfi.Mode()&os.ModeSymlink != 0 {
-		return false
+	// Nomi corti tipo PROGRA~1: li accetto solo se il nome lungo è proprio quello (i file di
+	// Office come "~$documento.docx" hanno la tilde nel nome vero).
+	if strings.Contains(p, "~") && !nomeLungoUguale(p) {
+		return "nome corto di Windows (scegli il file con il suo nome completo)"
 	}
-	if lp := strings.ToLower(p); strings.HasPrefix(lp, `\\?\`) || strings.HasPrefix(lp, `\\.\`) || strings.Contains(lp, "~") {
-		return false
+	if lfi, err := os.Lstat(p); err != nil {
+		return "non c'è più"
+	} else if lfi.Mode()&os.ModeSymlink != 0 || lfi.Mode()&os.ModeIrregular != 0 {
+		return "è un collegamento: non distruggo il file a cui porta"
 	}
-	lp := strings.ToLower(filepath.Clean(p))
+	if real, err := filepath.EvalSymlinks(p); err == nil && !strings.EqualFold(real, p) {
+		return "è un collegamento: non distruggo il file a cui porta"
+	}
+	cl := strings.ToLower(filepath.Clean(p))
 	for _, r := range []string{winDir(), programFilesDir(), cartellaNota(windows.FOLDERID_ProgramFilesX86), cartellaNota(windows.FOLDERID_ProgramData)} {
-		if r != "" && strings.HasPrefix(lp, strings.ToLower(filepath.Clean(r))+"\\") {
-			return false
+		if r != "" && strings.HasPrefix(cl, strings.ToLower(filepath.Clean(r))+"\\") {
+			return "è un file di Windows o di un programma"
 		}
 	}
 	st, err := os.Stat(p)
-	return err == nil && st.Mode().IsRegular()
+	if err != nil {
+		return "non c'è più"
+	}
+	if !st.Mode().IsRegular() {
+		return "non è un file normale"
+	}
+	return ""
+}
+
+// nomeLungoUguale: il percorso con la tilde è già il nome lungo (non un nome corto 8.3).
+func nomeLungoUguale(p string) bool {
+	u, err := windows.UTF16PtrFromString(p)
+	if err != nil {
+		return false
+	}
+	buf := make([]uint16, 1024)
+	n, err := windows.GetLongPathName(u, &buf[0], uint32(len(buf)))
+	if err != nil || n == 0 || int(n) >= len(buf) {
+		return false
+	}
+	return strings.EqualFold(windows.UTF16ToString(buf[:n]), p)
+}
+
+// cartelleOneDrive: le cartelle di OneDrive dell'utente (personale e di lavoro). Lì una copia del
+// file resta nella cronologia delle versioni e nel Cestino di OneDrive anche dopo la distruzione.
+func cartelleOneDrive() []string {
+	var out []string
+	for _, v := range []string{"OneDrive", "OneDriveConsumer", "OneDriveCommercial"} {
+		if d := strings.TrimSpace(os.Getenv(v)); d != "" {
+			out = append(out, filepath.Clean(d))
+		}
+	}
+	if k, err := registry.OpenKey(registry.CURRENT_USER, `Software\Microsoft\OneDrive\Accounts`, registry.ENUMERATE_SUB_KEYS); err == nil {
+		nomi, _ := k.ReadSubKeyNames(50)
+		k.Close()
+		for _, n := range nomi {
+			if a, err := registry.OpenKey(registry.CURRENT_USER, `Software\Microsoft\OneDrive\Accounts\`+n, registry.QUERY_VALUE); err == nil {
+				if d, _, err := a.GetStringValue("UserFolder"); err == nil && strings.TrimSpace(d) != "" {
+					out = append(out, filepath.Clean(d))
+				}
+				a.Close()
+			}
+		}
+	}
+	return out
 }
 
 // shredFiles distrugge i file scelti; alla fine chiede agli SSD di cancellare davvero i blocchi liberi (TRIM).
 func shredFiles(paths []string) {
-	ok, ko := 0, 0
+	ok := 0
+	var rifiutati []string
 	drives := map[string]bool{}
+	od := cartelleOneDrive()
+	inOneDrive := 0
 	for i, p := range paths {
 		emit("onShredProgress", fmt.Sprintf(trGo("Distruggo %d di %d: %s"), i+1, len(paths), filepath.Base(p)))
-		if shredFile(p) {
+		if motivo := shredFile(p); motivo == "" {
 			ok++
 			drives[strings.ToUpper(filepath.VolumeName(p))] = true
+			for _, d := range od {
+				if dentroDi(filepath.Clean(p), d) {
+					inOneDrive++
+					break
+				}
+			}
 		} else {
-			ko++
+			rifiutati = append(rifiutati, filepath.Base(p)+" ("+trGo(motivo)+")")
 		}
 	}
 	pickMu.Lock()
@@ -644,11 +709,17 @@ func shredFiles(paths []string) {
 		emit("onShredProgress", "Chiedo al disco di cancellare davvero lo spazio liberato (TRIM)…")
 		runPSArgs(retrimScript, letters, 10*time.Minute, nil)
 	}
-	msg := fmt.Sprintf(trGo("Distrutti %d file: recuperarli ora è quasi impossibile (sugli SSD Windows fa anche la pulizia TRIM)."), ok)
-	if ko > 0 {
-		msg += fmt.Sprintf(trGo(" %d non distrutti: sono di sistema, aperti in un altro programma o spariti."), ko)
+	msg := fmt.Sprintf(trGo("Distrutti %d file: il loro contenuto sul disco è stato sovrascritto."), ok)
+	if ok > 0 {
+		msg += trGo(" Possono restarne copie altrove: nei punti di ripristino e nella Cronologia file di Windows, e sugli SSD in celle che Windows non lascia sovrascrivere (il TRIM aiuta, ma non è una garanzia).")
 	}
-	emit("onShredDone", map[string]interface{}{"ok": ok > 0 && ko == 0, "msg": msg})
+	if inOneDrive > 0 {
+		msg += fmt.Sprintf(trGo(" %d erano in OneDrive: lì restano nella cronologia delle versioni e nel Cestino di OneDrive. Toglili anche da onedrive.com (Cestino e versioni precedenti)."), inOneDrive)
+	}
+	if len(rifiutati) > 0 {
+		msg += fmt.Sprintf(trGo(" %d non distrutti: %s."), len(rifiutati), strings.Join(rifiutati, ", "))
+	}
+	emit("onShredDone", map[string]interface{}{"ok": ok > 0 && len(rifiutati) == 0, "msg": msg})
 }
 
 const retrimScript = `
@@ -663,10 +734,15 @@ foreach ($l in @($A)) {
 }
 `
 
-// shredFile sovrascrive il file con dati casuali, lo rinomina e lo cancella.
-func shredFile(p string) bool {
-	if !shredAllowed(p) {
-		return false
+// shredFile sovrascrive il file con dati casuali, lo rinomina e lo cancella. Restituisce "" se è
+// andato tutto bene, altrimenti il motivo (da dire all'utente).
+func shredFile(p string) string {
+	if m := shredMotivo(p); m != "" {
+		return m
+	}
+	// "Sola lettura": la tolgo (il file l'hai scelto tu per distruggerlo).
+	if st, err := os.Stat(p); err == nil && st.Mode().Perm()&0o200 == 0 {
+		_ = os.Chmod(p, st.Mode().Perm()|0o200)
 	}
 	err := func() error {
 		f, err := os.OpenFile(p, os.O_WRONLY, 0)
@@ -706,7 +782,16 @@ func shredFile(p string) bool {
 		}
 		return os.Remove(p)
 	}()
-	return err == nil
+	if err == nil {
+		return ""
+	}
+	if errors.Is(err, windows.ERROR_SHARING_VIOLATION) || errors.Is(err, windows.ERROR_LOCK_VIOLATION) {
+		return "è aperto in un altro programma: chiudilo e riprova"
+	}
+	if os.IsPermission(err) {
+		return "Windows non mi lascia scriverlo (permessi)"
+	}
+	return "non sono riuscito a sovrascriverlo"
 }
 
 func cancelShutdown() string {

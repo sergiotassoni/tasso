@@ -90,7 +90,65 @@ func changesList() map[string]interface{} {
 		items = append(items, map[string]interface{}{"kind": "tune", "id": id, "title": "Regola con Tasso", "detail": tunes[id]})
 	}
 	regs, _ := filepath.Glob(filepath.Join(appDir, "backup", "*.reg"))
-	return map[string]interface{}{"items": items, "regBackups": len(regs)}
+	return map[string]interface{}{"items": items, "regBackups": len(regs), "undoFiles": fileDaRimettere(), "notUndo": nonSiRimette}
+}
+
+// nonSiRimette: quello che "Rimetti tutto com'era" NON rimette (detto chiaro nel pannello).
+var nonSiRimette = []string{
+	"Le riparazioni di \"Risolvi un problema\" (servizi riaccesi, stampante predefinita, viste delle cartelle, Office, tastiera...): ognuna ha il suo file per tornare indietro, nell'elenco qui sotto.",
+	"I file cancellati dalle pulizie (temporanei, cache, Cestino svuotato) e quelli distrutti.",
+	"I programmi disinstallati, le app di Windows tolte e i resti tolti (cartelle nel Cestino, registro nel backup .reg).",
+	"I driver e gli aggiornamenti di Windows installati: per quelli c'è il punto di ripristino di Windows.",
+	"Le tracce cancellate (file recenti, cronologia di Esegui, appunti).",
+}
+
+// fileDaRimettere: i file "per tornare come prima" che lasciano le riparazioni (Save-Undo e
+// Backup-Reg in %LOCALAPPDATA%\Tasso\backup-registro, nome_aaaammgg_hhmmss.reg/.cmd), dal più nuovo.
+func fileDaRimettere() []map[string]interface{} {
+	var out []map[string]interface{}
+	voci, err := os.ReadDir(filepath.Join(appDir, "backup-registro"))
+	if err != nil {
+		return out
+	}
+	type fileUndo struct {
+		nome, quando, file string
+		t                  time.Time
+	}
+	var l []fileUndo
+	for _, v := range voci {
+		n := v.Name()
+		ext := strings.ToLower(filepath.Ext(n))
+		if v.IsDir() || (ext != ".reg" && ext != ".cmd") {
+			continue
+		}
+		base := strings.TrimSuffix(n, filepath.Ext(n))
+		nome, t := nomeEDataUndo(base)
+		if t.IsZero() {
+			if fi, err := v.Info(); err == nil {
+				t = fi.ModTime()
+			}
+		}
+		l = append(l, fileUndo{nome: nome, quando: t.Format("02/01/2006 15:04"), file: n, t: t})
+	}
+	sort.Slice(l, func(i, j int) bool { return l[i].t.After(l[j].t) })
+	if len(l) > 50 {
+		l = l[:50]
+	}
+	for _, f := range l {
+		out = append(out, map[string]interface{}{"name": f.nome, "when": f.quando, "file": f.file})
+	}
+	return out
+}
+
+// nomeEDataUndo: "viste-cartelle_20261126_101500" -> ("viste cartelle", 26/11/2026 10:15).
+func nomeEDataUndo(base string) (string, time.Time) {
+	p := strings.Split(base, "_")
+	if len(p) >= 3 {
+		if t, err := time.ParseInLocation("20060102_150405", p[len(p)-2]+"_"+p[len(p)-1], time.Local); err == nil {
+			return strings.ReplaceAll(strings.Join(p[:len(p)-2], "_"), "-", " "), t
+		}
+	}
+	return strings.ReplaceAll(base, "-", " "), time.Time{}
 }
 
 // undoChange rimette com'era una sola cosa.
@@ -152,6 +210,10 @@ func undoChange(kind, id string) {
 	case "regfolder":
 		_ = os.MkdirAll(filepath.Join(appDir, "backup"), 0o755)
 		openPath(explorerExe(), "\""+filepath.Join(appDir, "backup")+"\"")
+		return
+	case "undofolder":
+		_ = os.MkdirAll(filepath.Join(appDir, "backup-registro"), 0o755)
+		openPath(explorerExe(), "\""+filepath.Join(appDir, "backup-registro")+"\"")
 		return
 	case "restorepoint":
 		openPath(filepath.Join(sistema32(), "rstrui.exe"), "")
