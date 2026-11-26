@@ -117,7 +117,7 @@ h3{margin:0;font-size:15px}
 .steps .ok{border-radius:99px;background:color-mix(in srgb,var(--a1) 16%,transparent)}
 .steps .wait{width:18px;height:18px;border-radius:99px;border:2px solid var(--line)}
 .steps .fr{margin-left:auto;font-family:var(--mono);font-size:12px;color:var(--muted)}
-.log{font-family:var(--mono);font-size:12px;color:var(--soft);background:color-mix(in srgb,var(--bg) 70%,#000);border:1px solid var(--line);border-radius:14px;padding:12px;height:200px;overflow-y:auto;white-space:pre-wrap;user-select:text}
+.log{font-family:var(--mono);font-size:12px;color:var(--soft);background:color-mix(in srgb,var(--bg) 92%,#000);border:1px solid var(--line);border-radius:14px;padding:12px;height:200px;overflow-y:auto;white-space:pre-wrap;user-select:text}
 .stat .k{font-size:13px;color:var(--muted)}
 .stat .v{font-family:var(--mono);font-size:28px;font-weight:700}
 /* MODES / TOOLS / LISTS */
@@ -3715,7 +3715,9 @@ function statsHW(h){
   call('goStatsHW', String(o.name || ''), String(c.name || ''), String(g.name || ''), Number(r.total) || 0);
 }
 function fbAskOnce(p){
-  if (!S || S.feedbackAsked || p.cancelled || p.shutdown || !(Number(p.done) > 0)) return;
+  // 3.1.1: niente domanda se è stato scelto Riavvia/Spegni (anche se Windows ha rifiutato): chi ha scelto
+  // così di solito non è al PC, la domanda coprirebbe il conto alla rovescia e andrebbe persa col riavvio.
+  if (!S || S.feedbackAsked || p.cancelled || p.shutdown || p.restart || p.endErr || !(Number(p.done) > 0)) return;
   S.feedbackAsked = true; call('goFeedbackAsked');
   setTimeout(() => {
     if ($('#modal').classList.contains('on')) return;
