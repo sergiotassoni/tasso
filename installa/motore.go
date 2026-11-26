@@ -219,7 +219,9 @@ func (in *Installatore) installa(ctx context.Context, o Opzioni) (*Stato, error)
 			return nil, fmt.Errorf("non riesco a proteggere la cartella %s: %w", o.Base, err)
 		}
 	}
-	in.Ripara(o.Base) // resti di un'installazione interrotta
+	if err := in.Ripara(o.Base); err != nil { // resti di un'installazione interrotta
+		return nil, err
+	}
 	vecchio, err := LeggiStato(o.Base)
 	if err != nil {
 		vecchio = nil // file rovinato: si riscrive (i file dei programmi si sovrascrivono comunque)
@@ -296,15 +298,41 @@ func (in *Installatore) installa(ctx context.Context, o Opzioni) (*Stato, error)
 	// 2. sposta (da qui non si annulla più: sono pochi istanti)
 	Diario("2. metto i file nuovi al loro posto")
 	in.avanza(Avanzamento{Fase: "sposta", Fatto: totale, Totale: totale})
+	// segno: c'è finché la fase 2 non è finita. Se il PC si spegne a metà, Ripara lo trova e
+	// rimette TUTTI i file vecchi (dentro c'è anche l'elenco dei file rinominati accanto).
+	segno := filepath.Join(o.Base, fileInCorso)
+	if err := os.WriteFile(segno, nil, 0o644); err != nil {
+		pulisci()
+		return nil, err
+	}
 	var fatte []mossa
-	indietro := func() {
+	// indietro rimette i file com'erano. Se anche un solo file non torna al suo posto, la copia
+	// dei file vecchi (.tasso-setup-vecchio) NON si cancella: è l'unica che resta, e Ripara
+	// riprova la prossima volta (anche dopo un riavvio).
+	indietro := func() bool {
 		Diario("torno indietro: rimetto i file com'erano (%d spostamenti)", len(fatte))
+		ok := true
 		for i := len(fatte) - 1; i >= 0; i-- {
 			m := fatte[i]
-			_ = in.conRiprova("rimetto "+m.da, func() error { return in.rinomina(m.a, m.da) })
+			if err := in.conRiprova("rimetto "+m.da, func() error { return in.rinomina(m.a, m.da) }); err != nil {
+				ok = false
+			}
+		}
+		if !ok {
+			Diario("NON sono riuscito a rimettere tutti i file: tengo %s, %s e %s (Ripara riprova)", vecchi, nuovi, segno)
+			return false
 		}
 		_ = os.RemoveAll(vecchi)
+		_ = os.Remove(segno)
 		pulisci()
+		return true
+	}
+	// tornaIndietro: indietro, e se non è riuscito lo dice insieme all'errore di prima.
+	tornaIndietro := func(err error) error {
+		if indietro() {
+			return err
+		}
+		return &ErroreNonRimesso{Err: err}
 	}
 	sposta := func(da, a string) error {
 		if err := os.MkdirAll(filepath.Dir(a), 0o755); err != nil {
@@ -325,6 +353,7 @@ func (in *Installatore) installa(ctx context.Context, o Opzioni) (*Stato, error)
 			return err
 		}
 		lato := accantoLibero(dst)
+		annotaAccanto(segno, lato, dst) // prima di rinominare: se il PC si spegne, Ripara lo sa
 		if e := in.rinomina(dst, lato); e != nil {
 			Diario("anche la rinomina accanto (%s) non riesce: %v", lato, e)
 			return &ErroreBloccato{File: dst, Err: err}
@@ -362,8 +391,7 @@ func (in *Installatore) installa(ctx context.Context, o Opzioni) (*Stato, error)
 			dst, _ := percorsoFile(dir, f.Nome)
 			copia, _ := percorsoFile(filepath.Join(vecchi, string(id)), f.Nome)
 			if err := metti(src, dst, copia); err != nil {
-				indietro()
-				return nil, err
+				return nil, tornaIndietro(err)
 			}
 		}
 		// file della versione vecchia che la nuova non ha più: via anche loro (in .tasso-setup-vecchio)
@@ -379,33 +407,40 @@ func (in *Installatore) installa(ctx context.Context, o Opzioni) (*Stato, error)
 				}
 				if _, err := os.Lstat(dst); err == nil {
 					if err := togliDiMezzo(dst, copia); err != nil {
-						indietro()
 						var eb *ErroreBloccato
-						if errors.As(err, &eb) {
-							return nil, err
+						if !errors.As(err, &eb) {
+							err = fmt.Errorf("non riesco a togliere %s (è aperto?): %w", dst, err)
 						}
-						return nil, fmt.Errorf("non riesco a togliere %s (è aperto?): %w", dst, err)
+						return nil, tornaIndietro(err)
 					}
 				}
 			}
 		}
 	}
 	if err := metti(filepath.Join(nuovi, FileStato), filepath.Join(o.Base, FileStato), filepath.Join(vecchi, FileStato)); err != nil {
-		indietro()
-		return nil, err
+		return nil, tornaIndietro(err)
 	}
 
 	// 3. registro (se non riesce, si torna indietro con i file)
 	Diario("3. registro di Windows e collegamenti")
 	in.avanza(Avanzamento{Fase: "registro", Fatto: totale, Totale: totale})
 	if err := in.scriviRegistro(st, o.Lingua); err != nil {
-		indietro()
+		rimesso := indietro()
 		if vecchio != nil {
 			_ = in.scriviRegistro(vecchio, vecchio.Lingua)
 		} else {
 			_ = in.togliRegistro()
 		}
-		return nil, fmt.Errorf("non riesco a scrivere nel registro di Windows: %w", err)
+		err = fmt.Errorf("non riesco a scrivere nel registro di Windows: %w", err)
+		if !rimesso {
+			err = &ErroreNonRimesso{Err: err}
+		}
+		return nil, err
+	}
+
+	// file e registro a posto: da qui un'interruzione non deve più rimettere i file vecchi
+	if err := os.Remove(segno); err != nil {
+		Diario("non riesco a togliere %s: %v", segno, err)
 	}
 
 	// collegamenti: se uno non riesce non è grave (i programmi ci sono), lo si dice e basta
@@ -625,38 +660,132 @@ func scriviAtomico(p string, b []byte) error {
 	return os.Rename(tmp, p)
 }
 
+// fileInCorso: c'è dall'inizio della fase 2 fino alla fine dell'installazione (o del ritorno
+// indietro). Dentro, una riga per ogni file vecchio rinominato accanto: "<accanto>\t<file>".
+const fileInCorso = ".tasso-setup-in-corso"
+
+// ErroreNonRimesso: l'installazione non è riuscita e non tutti i file vecchi sono tornati al loro
+// posto. La loro copia resta in .tasso-setup-vecchio: riaprendo l'installatore (anche dopo un
+// riavvio) Ripara li rimette.
+type ErroreNonRimesso struct{ Err error }
+
+func (e *ErroreNonRimesso) Error() string {
+	return "non tutti i file sono tornati com'erano (la copia resta in " + cartellaVecchi + ", riavvia il PC e riapri l'installatore): " + e.Err.Error()
+}
+func (e *ErroreNonRimesso) Unwrap() error { return e.Err }
+
+// ErrRiparaNonRiuscito: un'installazione interrotta non si è potuta sistemare: non installo
+// sopra (rischierei di perdere la copia dei file vecchi).
+var ErrRiparaNonRiuscito = errors.New("un'installazione interrotta non si è potuta sistemare: riavvia il PC e riprova")
+
+func annotaAccanto(segno, lato, dst string) {
+	f, err := os.OpenFile(segno, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0o644)
+	if err != nil {
+		Diario("non riesco ad annotare %s: %v", lato, err)
+		return
+	}
+	defer f.Close()
+	_, _ = f.WriteString(lato + "\t" + dst + "\n")
+}
+
+// dstDaVecchi: dove va un file della copia dei vecchi ("" se il nome non è valido).
+func dstDaVecchi(base, vecchi, p string) string {
+	rel, err := filepath.Rel(vecchi, p)
+	if err != nil {
+		return ""
+	}
+	parti := strings.SplitN(filepath.ToSlash(rel), "/", 2)
+	if len(parti) == 1 && parti[0] == FileStato {
+		return filepath.Join(base, FileStato)
+	}
+	if len(parti) == 2 {
+		if d, ok := percorsoFile(CartellaDi(base, Programma(parti[0])), parti[1]); ok {
+			return d
+		}
+	}
+	return ""
+}
+
+// rimetti mette il file vecchio p al posto di dst (togliendo il nuovo, se c'è).
+func (in *Installatore) rimetti(p, dst string) error {
+	if _, err := os.Lstat(dst); err == nil {
+		if err := in.conRiprova("tolgo il nuovo "+dst, func() error { return os.Remove(dst) }); err != nil {
+			return err
+		}
+	}
+	_ = os.MkdirAll(filepath.Dir(dst), 0o755)
+	return in.conRiprova("rimetto "+dst, func() error { return in.rinomina(p, dst) })
+}
+
 // Ripara sistema i resti di un'installazione interrotta (PC spento a metà):
-// i file vecchi che non hanno più il nuovo al loro posto tornano dove erano,
-// poi le cartelle temporanee si cancellano.
-func (in *Installatore) Ripara(base string) {
+//   - fase 2 non finita (c'è .tasso-setup-in-corso): TUTTI i file vecchi tornano al loro posto,
+//     anche quelli già sostituiti (niente versioni mischiate), compresi i file rinominati accanto;
+//   - resti di un installatore di prima (c'è ancora .tasso-setup-nuovo, niente segno): tornano i
+//     file vecchi che non hanno più niente al loro posto;
+//   - installazione finita ma copia dei vecchi rimasta (un file era occupato): si cancella e basta
+//     (mai rimettere file che la versione nuova ha tolto).
+//
+// Le copie dei vecchi si cancellano solo se ogni file è tornato al suo posto: altrimenti restano
+// e Ripara restituisce ErrRiparaNonRiuscito (non si installa sopra).
+func (in *Installatore) Ripara(base string) error {
 	vecchi := filepath.Join(base, cartellaVecchi)
-	if _, err := os.Stat(vecchi); err == nil {
+	nuovi := filepath.Join(base, cartellaNuovi)
+	segno := filepath.Join(base, fileInCorso)
+	_, errSegno := os.Lstat(segno)
+	_, errVecchi := os.Stat(vecchi)
+	_, errNuovi := os.Stat(nuovi)
+	ok := true
+	switch {
+	case errSegno == nil:
+		Diario("Ripara: installazione interrotta a metà in %s, rimetto tutti i file vecchi", base)
+		if errVecchi == nil {
+			_ = filepath.WalkDir(vecchi, func(p string, d fs.DirEntry, err error) error {
+				if err != nil || d.IsDir() {
+					return nil
+				}
+				if dst := dstDaVecchi(base, vecchi, p); dst != "" && in.rimetti(p, dst) != nil {
+					ok = false
+				}
+				return nil
+			})
+		}
+		if b, err := os.ReadFile(segno); err == nil {
+			for _, riga := range strings.Split(string(b), "\n") {
+				lato, dst, trovato := strings.Cut(strings.TrimSpace(riga), "\t")
+				if !trovato || lato == "" || dst == "" {
+					continue
+				}
+				if _, err := os.Lstat(lato); err == nil && in.rimetti(lato, dst) != nil {
+					ok = false
+				}
+			}
+		}
+	case errVecchi == nil && errNuovi == nil:
 		_ = filepath.WalkDir(vecchi, func(p string, d fs.DirEntry, err error) error {
 			if err != nil || d.IsDir() {
 				return nil
 			}
-			rel, err := filepath.Rel(vecchi, p)
-			if err != nil {
-				return nil
-			}
-			parti := strings.SplitN(filepath.ToSlash(rel), "/", 2)
-			var dst string
-			if len(parti) == 1 && parti[0] == FileStato {
-				dst = filepath.Join(base, FileStato)
-			} else if len(parti) == 2 {
-				dst, _ = percorsoFile(CartellaDi(base, Programma(parti[0])), parti[1])
-			}
-			if dst != "" {
-				if _, err := os.Lstat(dst); os.IsNotExist(err) {
-					_ = os.MkdirAll(filepath.Dir(dst), 0o755)
-					_ = in.rinomina(p, dst)
+			if dst := dstDaVecchi(base, vecchi, p); dst != "" {
+				if _, err := os.Lstat(dst); os.IsNotExist(err) && in.rimetti(p, dst) != nil {
+					ok = false
 				}
 			}
 			return nil
 		})
-		_ = os.RemoveAll(vecchi)
 	}
-	_ = os.RemoveAll(filepath.Join(base, cartellaNuovi))
+	if !ok {
+		Diario("Ripara: non tutti i file sono tornati al loro posto, tengo %s", vecchi)
+		return ErrRiparaNonRiuscito
+	}
+	if errVecchi == nil {
+		if err := os.RemoveAll(vecchi); err != nil {
+			Diario("cartella %s non tolta del tutto: %v", vecchi, err)
+			in.cancellaAlRiavvio(vecchi)
+		}
+	}
+	_ = os.RemoveAll(nuovi)
+	_ = os.Remove(segno)
+	return nil
 }
 
 // scriviRegistro: "Programmi e funzionalità" (HKLM\...\Uninstall\Tasso),
