@@ -46,7 +46,7 @@ func (l *lavoroEstrai) apriFlusso(tipo Tipo) (r io.Reader, chiudi func(), err er
 		if err := controllaDizionariXz(l.vol, l.vol.Size()); err != nil {
 			return nil, chiudi, err
 		}
-		x, err := xz.NewReader(src)
+		x, err := xz.NewReader(&fineXz{r: src})
 		if err != nil {
 			return nil, chiudi, err
 		}
@@ -124,6 +124,52 @@ func (g *gzMembri) Read(p []byte) (int, error) {
 			return n, nil
 		}
 	}
+}
+
+// fineXz: la libreria xz, se il file finisce dentro l'intestazione di un blocco (o subito
+// prima dell'indice), lo prende per la fine normale del flusso: un .xz tagliato a 12-23 byte
+// (o senza indice) usciva vuoto o incompleto e la Verifica diceva "OK". Un flusso xz vero
+// finisce sempre con il piede "YZ", seguito al massimo da zeri di riempimento: se il file
+// finisce in un altro modo, la fine diventa io.ErrUnexpectedEOF ("rovinato").
+type fineXz struct {
+	r      io.Reader
+	ultimi [2]byte // gli ultimi due byte prima degli zeri finali
+	zeri   int64   // zeri alla fine di quello letto finora
+	letti  int64
+}
+
+func (f *fineXz) Read(p []byte) (int, error) {
+	n, err := f.r.Read(p)
+	f.guarda(p[:n])
+	if err == io.EOF && !f.finePulita() {
+		return n, io.ErrUnexpectedEOF
+	}
+	return n, err
+}
+
+func (f *fineXz) guarda(b []byte) {
+	f.letti += int64(len(b))
+	i := len(b) - 1
+	for i >= 0 && b[i] == 0 {
+		i--
+	}
+	if i < 0 {
+		f.zeri += int64(len(b))
+		return
+	}
+	prima := f.ultimi[1]
+	if f.zeri > 0 {
+		prima = 0
+	}
+	if i >= 1 {
+		prima = b[i-1]
+	}
+	f.ultimi = [2]byte{prima, b[i]}
+	f.zeri = int64(len(b) - 1 - i)
+}
+
+func (f *fineXz) finePulita() bool {
+	return f.letti == 0 || (f.ultimi == [2]byte{'Y', 'Z'} && f.zeri%4 == 0)
 }
 
 // ---------------------------------------------------------------- dizionari degli .xz
