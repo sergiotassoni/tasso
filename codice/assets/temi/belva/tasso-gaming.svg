@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+<title>TASSO GAMING</title>
+<g transform="scale(1.28)">
+<defs><mask id="anello" maskUnits="userSpaceOnUse" x="0" y="0" width="200" height="200"><rect width="200" height="200" fill="#FFFFFF"/><rect x="9" y="9" width="182" height="182" rx="42.5" fill="none" stroke="#000000" stroke-width="4.7"/></mask></defs><rect x="4" y="4" width="192" height="192" rx="48" fill="#251F31" mask="url(#anello)"/><rect x="9" y="9" width="182" height="182" rx="42.5" fill="none" stroke="#A78BFA" stroke-opacity=".667" stroke-width="4.7"/><path d="M100 172 L34 94 L58 38 L142 38 L166 94 Z" fill="#F2F4F8"/><path d="M58 38 L86 38 L94 122 L76 132 L44 104 Z" fill="#07080D"/><path d="M142 38 L114 38 L106 122 L124 132 L156 104 Z" fill="#07080D"/><ellipse cx="74.00" cy="98" rx="9" ry="9.00" fill="#A78BFA"/><ellipse cx="126.00" cy="98" rx="9" ry="9.00" fill="#A78BFA"/><path d="M89 149.7 H111 L100 162.2 Z" fill="#07080D"/>
+</g>
+</svg>

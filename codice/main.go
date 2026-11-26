@@ -189,7 +189,7 @@ func main() {
 	// lavoro lento, così il tasto Ferma funziona sempre e i numeri dal vivo non si bloccano.
 	// Anche i tasti "Ferma" del driver video e del clic automatico e "Spegni tutto il Boost": sono
 	// protetti dai loro lucchetti (gdMu, acMu, e async per il Boost), quindi possono partire subito.
-	for _, n := range []string{"goCancel", "goIsRunning", "goLive", "goHwWatch", "goGpuDrvCancel", "goAutoClickStop", "goBoostAllOff", "goPronto"} {
+	for _, n := range []string{"goCancel", "goIsRunning", "goLive", "goHwWatch", "goGpuDrvCancel", "goAutoClickStop", "goBoostAllOff", "goPronto", "goIconaTema"} {
 		webview2.Subito[n] = true
 	}
 	bindAll(w)
@@ -223,6 +223,7 @@ func main() {
 	}
 	defer traduce.Chiudi()
 	// Icona vicino all'orologio (tray.go): la X nasconde Tasso lì. Si toglie alla chiusura vera.
+	applicaIconeTema() // icone_tema.go: finestra, collegamenti e (subito dopo) tray col tema salvato
 	startTray()
 	defer trayStop()
 	ascoltaChiudi()       // ecosistema.go: Tasso.exe --chiudi
@@ -506,7 +507,14 @@ func bindAll(w webview2.WebView) {
 	_ = w.Bind("goStartLevel", func(level int, off bool) string { return startLevel(level, off) })
 	_ = w.Bind("goStartSteps", func(ids []string, off bool) string { return startSteps(ids, 0, off) })
 	_ = w.Bind("goCancelShutdown", func() string { return cancelShutdown() })
-	_ = w.Bind("goSetTheme", func(id, look string) string { return setTheme(id, look) })
+	_ = w.Bind("goSetTheme", func(id, look string) string {
+		r := setTheme(id, look)
+		if r == "ok" {
+			applicaIconeTema() // icone_tema.go
+		}
+		return r
+	})
+	_ = w.Bind("goIconaTema", func(tema string, ufficio bool) string { return svgIconaTema(tema, ufficio) })
 	_ = w.Bind("goSetStats", func(on bool) string { return setStats(on) })
 	_ = w.Bind("goStatsHW", func(osName, cpu, gpu string, ram float64) string { return statsHardware(osName, cpu, gpu, ram) })
 	_ = w.Bind("goSetSmartAlerts", func(on bool) string { return setSmartAlerts(on) })
@@ -889,6 +897,7 @@ func cleanWipeTemp() {
 // automatica e Profilo gioco si fermano da soli (guardano settings.Profile) e riprendono in Gaming.
 func lookChanged(office bool) {
 	traduce.ImpostaUfficio(office)
+	applicaIconeTema() // icone_tema.go: Gaming e Ufficio hanno ognuna il suo tema e la sua icona
 	if office {
 		autoClickStop()
 		acDisarm()

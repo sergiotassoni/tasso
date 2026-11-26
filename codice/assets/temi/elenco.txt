@@ -1,0 +1,36 @@
+# Icone dei temi dentro Tasso.exe (risorse di Windows). Scritto da strumenti/icone-temi:
+# i numeri non si cambiano mai (i collegamenti sul Desktop puntano a Tasso.exe,-numero).
+201 ardesia gaming
+202 ardesia ufficio
+203 argento gaming
+204 argento ufficio
+205 aurora gaming
+206 aurora ufficio
+207 belva gaming
+208 belva ufficio
+209 carbonio gaming
+210 carbonio ufficio
+211 carta gaming
+212 carta ufficio
+213 ghiaccio gaming
+214 ghiaccio ufficio
+215 lava gaming
+216 lava ufficio
+217 lavanda gaming
+218 lavanda ufficio
+219 neon gaming
+220 neon ufficio
+221 neonrgb gaming
+222 neonrgb ufficio
+223 notte gaming
+224 notte ufficio
+225 oro gaming
+226 oro ufficio
+227 perla gaming
+228 perla ufficio
+229 sabbia gaming
+230 sabbia ufficio
+231 salvia gaming
+232 salvia ufficio
+233 ufficio gaming
+234 ufficio ufficio

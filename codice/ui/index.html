@@ -449,6 +449,9 @@ body.office nav button.navgrp.on svg{stroke:currentColor}
 .brandt{display:flex;flex-direction:column;align-items:flex-start;gap:4px;min-width:0}
 .modesel{margin:0}
 .brand>svg{flex:none}
+/* logo del tema (icone_tema.go): al posto dei due loghi di sempre, solo se il tema ha un disegno suo */
+.tmlogo{display:none;flex:none;width:44px;height:44px}.tmlogo svg{width:100%;height:100%;display:block}
+body.tmlogo-on aside .brand>svg.gm,body.tmlogo-on aside .brand>svg.om{display:none!important}body.tmlogo-on aside .brand>.tmlogo{display:block}
 #modeNow{display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
 #modeBtn{display:flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--panel);color:var(--text);border-radius:9px;padding:3px 9px;font:700 12px var(--body,inherit);cursor:pointer}
 #modeBtn:hover{border-color:var(--a1)}
@@ -603,7 +606,7 @@ dl.sum{display:grid;grid-template-columns:max-content 1fr;gap:6px 14px;margin:0}
 .g5 .lvl.best{padding:17px 15px}
 .lvl .f2{flex-direction:column;align-items:flex-start;gap:2px}
 .theme .badge{white-space:nowrap;flex:none}
-@media (max-height:760px){aside{padding:14px 12px;gap:10px} nav button{padding:6px 12px} .navsub button{padding:4px 10px} .brand svg{width:38px;height:38px}}
+@media (max-height:760px){aside{padding:14px 12px;gap:10px} nav button{padding:6px 12px} .navsub button{padding:4px 10px} .brand svg{width:38px;height:38px}.tmlogo{width:38px;height:38px}}
 .ofc{align-items:stretch}
 .ofc .ic{align-self:flex-start}
 .ofc .btn{margin-top:auto}
@@ -663,7 +666,7 @@ body.th-neonrgb .gmask .eye{filter:drop-shadow(0 0 8px rgba(199,125,255,.55))}
 <aside>
   <div class="brand">
     <svg class="gm" width="44" height="44" viewBox="0 0 200 200" aria-hidden="true"><rect x="4" y="4" width="192" height="192" rx="48" fill="#141725"/><rect x="4" y="4" width="192" height="192" rx="48" fill="none" stroke="var(--a1)" stroke-opacity=".75" stroke-width="7"/><path d="M100 172 L34 94 L58 38 L142 38 L166 94 Z" fill="#F2F4F8"/><path d="M58 38 L86 38 L94 122 L76 132 L44 104 Z" fill="#07080D"/><path d="M142 38 L114 38 L106 122 L124 132 L156 104 Z" fill="#07080D"/><circle class="pup" cx="74" cy="98" r="9" fill="var(--a1)"/><circle class="pup" cx="126" cy="98" r="9" fill="var(--a1)"/></svg><svg class="om tassino" width="44" height="44" viewBox="0 0 200 200" aria-hidden="true"><rect x="4" y="4" width="192" height="192" rx="48" fill="#FFFFFF"/><rect x="4" y="4" width="192" height="192" rx="48" fill="none" stroke="#C9CDD4" stroke-width="6"/><g transform="translate(28 36) scale(0.6)"><path d="M44 22 H196 L226 104 L120 206 L14 104 Z" fill="#0A0B0D"/><path d="M80 22 H106 L108 142 L56 132 L36 98 Z" fill="#FFFFFF"/><path d="M160 22 H134 L132 142 L184 132 L204 98 Z" fill="#FFFFFF"/><circle class="pup" cx="82" cy="112" r="12" fill="#2F6FEB"/><circle class="pup" cx="158" cy="112" r="12" fill="#2F6FEB"/><path d="M100 164 H140 L120 190 Z" fill="#FFFFFF"/></g></svg>
-    <div class="brandt"><b>TASSO</b><div class="modesel"><button id="modeBtn" type="button" aria-expanded="false" aria-controls="lookSw" title="Cambia modalità"><span id="modeNow">🎮 <span class="lt">Gaming</span></span><span class="chev" aria-hidden="true">▾</span></button>
+    <span class="tmlogo" aria-hidden="true"></span><div class="brandt"><b>TASSO</b><div class="modesel"><button id="modeBtn" type="button" aria-expanded="false" aria-controls="lookSw" title="Cambia modalità"><span id="modeNow">🎮 <span class="lt">Gaming</span></span><span class="chev" aria-hidden="true">▾</span></button>
       <div class="modemenu" id="lookSw" role="group" aria-label="Modalità di Tasso" hidden><button type="button" data-look="gioco">🎮 <span><b>Gaming</b><small>Giochi, Boost, FPS e ping</small></span></button><button type="button" data-look="ufficio">💼 <span><b>Ufficio</b><small>Più semplice, con i problemi dell'ufficio</small></span></button></div></div></div>
   </div>
   <nav aria-label="Menu">
@@ -1392,7 +1395,7 @@ const _t = (s) => (EN && typeof s === 'string' && TD[s] !== undefined) ? TD[s] :
 // tx: i dati che arrivano da Go (messaggi, elenchi). Nomi, percorsi e codici non si toccano.
 const TX_SKIP = {id:1, cat:1, ids:1, key:1, path:1, paths:1, exe:1, dir:1, mode:1, theme:1, themeOffice:1, profile:1, guid:1, url:1, icon:1, src:1, value:1, val:1, hook:1, token:1, webhook:1, discordWebhook:1, discordBot:1, kind_id:1, file:1, cmd:1, arg:1, lang:1, region:1, settings:1, snapshot:1, originale:1, tradotto:1, non_tradurre:1, termini:1, parlante:1, cartella:1, password:1, pw:1, site:1, user:1, note:1};
 // TX_RAW: risposte fatte solo di dati dell'utente (password, siti, nomi di file): non si traducono mai.
-const TX_RAW = {goGetSettings:1, goVaultList:1, goVaultReveal:1, goVaultGen:1, goPickFiles:1, goBoostKeep:1};
+const TX_RAW = {goGetSettings:1, goVaultList:1, goVaultReveal:1, goVaultGen:1, goPickFiles:1, goBoostKeep:1, goIconaTema:1};
 function tx(v, depth){
   if (!EN) return v;
   depth = depth || 0;
@@ -1538,6 +1541,20 @@ function applyTheme(id){
   document.documentElement.style.colorScheme = light ? 'light' : 'dark';
   $('#glow1').style.background = 'radial-gradient(circle,' + t.v.a2 + (light ? '22' : '38') + ' 0%,transparent 65%)';
   $('#glow2').style.background = 'radial-gradient(circle,' + t.v.a1 + (light ? '18' : '1F') + ' 0%,transparent 65%)';
+  paintThemeLogo(t.id);
+}
+// Logo nella barra a sinistra col disegno del tema (lo stesso dell'icona di Windows). Il tema
+// "tasso" e i temi senza disegno: i loghi di sempre.
+let TM_LOGO = 0;
+function paintThemeLogo(id){
+  const n = ++TM_LOGO, box = document.querySelector('aside .brand .tmlogo');
+  if (!box || !document.body) return;
+  call('goIconaTema', id, OFFICE_THEMES.indexOf(id) >= 0).then(svg => {
+    if (n !== TM_LOGO) return; // nel frattempo è cambiato di nuovo il tema
+    const ok = typeof svg === 'string' && svg.indexOf('<svg') === 0;
+    box.innerHTML = ok ? svg : '';
+    document.body.classList.toggle('tmlogo-on', ok);
+  });
 }
 function paintThemes(){
   const box = $('#themeCards'); box.innerHTML = '';
