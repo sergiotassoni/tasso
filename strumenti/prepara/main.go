@@ -12,6 +12,7 @@ package main
 
 import (
 	"crypto/sha256"
+	"debug/buildinfo"
 	"encoding/hex"
 	"encoding/json"
 	"flag"
@@ -19,6 +20,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"tassosetup/installa"
 )
@@ -38,6 +40,7 @@ func main() {
 	pdfDir := flag.String("pdf-dir", "../tassopdf", "repository di Tasso PDF")
 	pdfVer := flag.String("pdf-versione", "", "versione di Tasso PDF")
 	disinst := flag.String("disinstalla", "build/"+installa.NomeDisinstalla, "disinstallatore compilato")
+	rilascio := flag.Bool("rilascio", false, "installatore da pubblicare: exe compilati in modo pulito o niente (lo passa compila.sh con FIRMA=si)")
 	flag.Parse()
 	if *versione == "" || *tassoVer == "" || *zipVer == "" || *pdfVer == "" {
 		esci(fmt.Errorf("servono -versione, -tasso-versione, -zip-versione e -pdf-versione"))
@@ -47,6 +50,16 @@ func main() {
 	for _, v := range voci {
 		if v.Name() != "LEGGIMI.txt" {
 			esci(os.RemoveAll(filepath.Join(*uscita, v.Name())))
+		}
+	}
+	// exe compilati in modo pulito: con -trimpath e senza percorsi del PC di chi compila (replace
+	// verso cartelle assolute come /root/go/... o /tmp/wazero finiscono dentro l'exe)
+	for _, exe := range []string{*tasso, filepath.Join(*zipDir, "dist", "TassoZip.exe"), filepath.Join(*pdfDir, "dist", "TassoPDF.exe"), *disinst} {
+		if problema := buildSporca(exe); problema != "" {
+			if *rilascio {
+				esci(fmt.Errorf("%s: %s", exe, problema))
+			}
+			fmt.Fprintf(os.Stderr, "ATTENZIONE: %s: %s (va bene per una prova, non per pubblicare)\n", exe, problema)
 		}
 	}
 	e := installa.Elenco{Versione: *versione}
@@ -104,6 +117,33 @@ func main() {
 			fmt.Printf("%-6s %-22s %10d  %s\n", p.ID, f.Nome, f.Dim, f.SHA256)
 		}
 	}
+}
+
+// buildSporca: "" se l'exe Go è compilato con -trimpath e senza replace verso percorsi assoluti.
+func buildSporca(exe string) string {
+	bi, err := buildinfo.ReadFile(exe)
+	if err != nil {
+		return "non riesco a leggere come è stato compilato (" + err.Error() + ")"
+	}
+	trim := false
+	for _, s := range bi.Settings {
+		if s.Key == "-trimpath" && s.Value == "true" {
+			trim = true
+		}
+	}
+	if !trim {
+		return "compilato senza -trimpath (dentro restano i percorsi del PC di chi compila)"
+	}
+	for _, d := range bi.Deps {
+		if r := d.Replace; r != nil && assoluto(r.Path) {
+			return "dentro c'è il percorso " + r.Path + " (replace in go.mod verso una cartella assoluta): usa una copia in third_party"
+		}
+	}
+	return ""
+}
+
+func assoluto(p string) bool {
+	return strings.HasPrefix(p, "/") || strings.HasPrefix(p, `\\`) || len(p) > 2 && p[1] == ':' && (p[2] == '\\' || p[2] == '/')
 }
 
 func copia(da, a string) (installa.FileElenco, error) {

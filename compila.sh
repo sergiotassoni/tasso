@@ -73,7 +73,7 @@ fi
 $GO run ./strumenti/prepara -versione "$ECO_VER" \
   -tasso "$TASSO_EXE" -tasso-versione "$TASSO_VER" -tasso-licenza ../../tasso/LICENSE -tasso-avvisi ../../tasso/codice/dist \
   -zip-dir ../tassozip -zip-versione "$ZIP_VER" -pdf-dir ../tassopdf -pdf-versione "$PDF_VER" \
-  -disinstalla "$DISINST"
+  -disinstalla "$DISINST" $( [ "$FIRMA" = "si" ] && echo -rilascio )
 # 3. l'installatore
 GOOS=windows GOARCH=amd64 $GO build -trimpath -ldflags "$LDF" -o dist/TassoSetup.exe .
 (cd ../strumenti/risorse && $GO run . controlla -exe "$QUI/dist/TassoSetup.exe" -ico "$QUI/../icone/gaming/definitiva/tasso-gaming.ico" -livello requireAdministrator)
