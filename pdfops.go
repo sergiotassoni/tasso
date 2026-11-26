@@ -18,6 +18,7 @@ import (
 	"io"
 	"math"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -191,9 +192,19 @@ func leggi(data []byte, pw string) (*model.Context, bool, error) {
 	if !sembraPDF(data) {
 		return nil, false, errc("non_pdf", nil)
 	}
-	ctx, err := api.ReadContext(context.Background(), bytes.NewReader(data), confBase(pw))
+	var ctx *model.Context
+	err := senzaPanico(func() (e error) {
+		ctx, e = api.ReadContext(context.Background(), bytes.NewReader(data), confBase(pw))
+		return e
+	})
+	if err == nil && oltreLimite(ctx) {
+		// Un numero di oggetto oltre il limite dei PDF (file rovinato): pdfcpu, scrivendo la copia,
+		// passerebbe uno per uno tutti i numeri fino a lì (miliardi: il programma si blocca).
+		// La riparazione qui sotto quegli oggetti non li prende.
+		err = errors.New("numero di oggetto oltre il limite dei PDF")
+	}
 	if err == nil {
-		if errP := controllaPagine(ctx); errP == nil {
+		if errP := senzaPanico(func() error { return controllaPagine(ctx) }); errP == nil {
 			return ctx, ctx.Read != nil && ctx.Read.RepairOffset != 0, nil
 		} else {
 			err = errP
@@ -209,19 +220,47 @@ func leggi(data []byte, pw string) (*model.Context, bool, error) {
 		if errR != nil {
 			continue
 		}
-		ctx2, err2 := api.ReadContext(context.Background(), bytes.NewReader(ric), confBase(pw))
+		var ctx2 *model.Context
+		err2 := senzaPanico(func() (e error) {
+			ctx2, e = api.ReadContext(context.Background(), bytes.NewReader(ric), confBase(pw))
+			return e
+		})
 		if err2 != nil {
 			if c := classifica(err2); CodiceErrore(c) == "password" {
 				return nil, false, c
 			}
 			continue
 		}
-		if errP := controllaPagine(ctx2); errP != nil {
+		if oltreLimite(ctx2) {
+			continue
+		}
+		if errP := senzaPanico(func() error { return controllaPagine(ctx2) }); errP != nil {
 			continue
 		}
 		return ctx2, true, nil
 	}
 	return nil, false, classifica(err)
+}
+
+// senzaPanico: esegue f; se pdfcpu va in panico su un file rovinato (es. "/MediaBox [ ]"),
+// diventa un errore normale: così si prova la riparazione e, se non basta, il messaggio è
+// "PDF rovinato" invece di "errore interno".
+func senzaPanico(f func() error) (err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("file rovinato (%v)", r)
+		}
+	}()
+	return f()
+}
+
+// maxOggettiPDF: il numero di oggetto più alto che un PDF può avere (specifica PDF, allegato C:
+// 8.388.607 oggetti). Numeri più alti si trovano solo nei file rovinati.
+const maxOggettiPDF = 8_388_607
+
+// oltreLimite: il PDF letto dice di avere oggetti oltre il limite (vedi maxOggettiPDF).
+func oltreLimite(ctx *model.Context) bool {
+	return ctx.XRefTable.Size != nil && *ctx.XRefTable.Size > maxOggettiPDF+1
 }
 
 // controllaPagine: il file ha un catalogo e almeno una pagina; le pagine con contenuti
@@ -468,8 +507,8 @@ func ricostruisci(data []byte, nuovoAlbero bool) ([]byte, error) {
 	for _, m := range reObj.FindAllSubmatchIndex(data, -1) {
 		num, err1 := strconv.Atoi(string(data[m[2]:m[3]]))
 		gen, err2 := strconv.Atoi(string(data[m[4]:m[5]]))
-		if err1 != nil || err2 != nil || num <= 0 {
-			continue
+		if err1 != nil || err2 != nil || num <= 0 || num > maxOggettiPDF {
+			continue // numeri oltre il limite dei PDF: pezzi rovinati, non oggetti veri
 		}
 		fine := bytes.Index(data[m[1]:], []byte("endobj"))
 		if fine < 0 {
@@ -570,14 +609,26 @@ func ricostruisci(data []byte, nuovoAlbero bool) ([]byte, error) {
 		fmt.Fprintf(&b, "%d 0 obj\n%s\nendobj\n", catNum, strings.TrimSpace(cat))
 		root, max = catNum, catNum
 	}
+	// L'indice elenca solo gli oggetti trovati, a gruppi di numeri consecutivi ("da quanti"):
+	// un numero enorme in un file rovinato (es. "4000000000 0 obj") non deve far scrivere
+	// miliardi di righe (memoria del PC esaurita: il programma si chiuderebbe di colpo).
+	numeri := make([]int, 0, len(trovati))
+	for n := range trovati {
+		numeri = append(numeri, n)
+	}
+	sort.Ints(numeri)
 	xref := b.Len()
-	fmt.Fprintf(&b, "xref\n0 %d\n0000000000 65535 f\r\n", max+1)
-	for i := 1; i <= max; i++ {
-		if p, ok := trovati[i]; ok {
-			fmt.Fprintf(&b, "%010d %05d n\r\n", p.off, p.gen)
-		} else {
-			b.WriteString("0000000000 65535 f\r\n")
+	b.WriteString("xref\n0 1\n0000000000 65535 f\r\n")
+	for i := 0; i < len(numeri); {
+		j := i
+		for j+1 < len(numeri) && numeri[j+1] == numeri[j]+1 {
+			j++
 		}
+		fmt.Fprintf(&b, "%d %d\r\n", numeri[i], j-i+1)
+		for _, n := range numeri[i : j+1] {
+			fmt.Fprintf(&b, "%010d %05d n\r\n", trovati[n].off, trovati[n].gen)
+		}
+		i = j + 1
 	}
 	fmt.Fprintf(&b, "trailer\n<< /Size %d /Root %d 0 R >>\nstartxref\n%d\n%%%%EOF\n", max+1, root, xref)
 	return b.Bytes(), nil
