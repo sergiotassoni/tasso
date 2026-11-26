@@ -628,9 +628,34 @@ nav button{min-width:0;max-width:100%;overflow-wrap:break-word;hyphens:auto}
 html:not([lang="it"]) .navsub button{padding-right:4px;gap:8px}
 .langbtn{white-space:nowrap}
 .k,.badge,.tag{overflow-wrap:break-word}
+/* Temi Gaming Neon RGB, Oro e Argento: il BOOST, la linea sotto il titolo e la cornice del logo hanno il gradiente del tema
+   (--tg, da applyTheme). La scritta sul gradiente è scura: contrasto almeno 5,7:1 su ogni colore del gradiente. */
+body.th-neonrgb:not(.office) .gbig:not(.on),body.th-oro:not(.office) .gbig:not(.on),body.th-argento:not(.office) .gbig:not(.on),
+body.th-neonrgb:not(.office) .btn.primary.boostgo:not(.on),body.th-oro:not(.office) .btn.primary.boostgo:not(.on),body.th-argento:not(.office) .btn.primary.boostgo:not(.on){background:var(--tg);color:var(--tgink)}
+body.th-neonrgb:not(.office) .gbig:not(.on):hover,body.th-neonrgb:not(.office) .btn.primary.boostgo:not(.on):hover{box-shadow:0 0 22px -4px #C77DFF,0 0 22px -6px #3BE8FF}
+body.th-oro:not(.office) .gbig:not(.on):hover,body.th-oro:not(.office) .btn.primary.boostgo:not(.on):hover{box-shadow:0 0 22px -6px #F5C542}
+body.th-argento:not(.office) .gbig:not(.on):hover,body.th-argento:not(.office) .btn.primary.boostgo:not(.on):hover{box-shadow:0 0 22px -6px #E9EEF3}
+body.th-neonrgb:not(.office) h1.gname::after,body.th-oro:not(.office) h1.gname::after,body.th-argento:not(.office) h1.gname::after{background:var(--tg);width:96px}
+body.th-neonrgb .gm rect+rect{stroke:url(#tgNeonrgb);stroke-opacity:1}
+body.th-oro .gm rect+rect{stroke:url(#tgOro);stroke-opacity:1}
+body.th-argento .gm rect+rect{stroke:url(#tgArgento);stroke-opacity:1}
+body.th-oro .gm rect:first-child{fill:#17120A}
+body.th-argento .gm rect:first-child{fill:#161A1F}
+body.th-neonrgb .gm rect:first-child{fill:#0E0B18}
+body.th-neonrgb:not(.office) .gdot{background:#3BE8FF;box-shadow:0 0 10px #3BE8FF,0 0 18px #FF6AD5}
+body.th-neonrgb:not(.office) .gkick{border-image:var(--tg) 1}
+body.th-oro:not(.office) h1.gname,body.th-argento:not(.office) h1.gname{background:var(--tg);-webkit-background-clip:text;background-clip:text;color:transparent}
+/* Neon RGB: gli occhi del tasso cambiano colore di continuo (ciclo RGB morbido) e ogni 4 secondi si muovono:
+   una volta guardano a sinistra e a destra, la volta dopo fanno l'occhiolino. Solo animazione CSS, niente timer. */
+body.th-neonrgb .brand .pup,body.th-neonrgb .welcome .pup,body.th-neonrgb .gmask .eye{animation:trgb 6s linear infinite,tlook8 8s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
+body.th-neonrgb .gmask .eye{filter:drop-shadow(0 0 8px rgba(199,125,255,.55))}
+@keyframes trgb{0%,100%{fill:#FF3B3B}17%{fill:#FFE53B}33%{fill:#3BFF6E}50%{fill:#00E5FF}67%{fill:#3B6BFF}83%{fill:#FF3BD4}}
+@keyframes tlook8{0%,40%,58%,88%,100%{transform:translateX(0) scaleY(1)}43%,47%{transform:translateX(-42%) scaleY(1)}51%,55%{transform:translateX(42%) scaleY(1)}91%,96%{transform:translateX(0) scaleY(1)}93.5%{transform:translateX(0) scaleY(.1)}}
+@media (prefers-reduced-motion:reduce){body.th-neonrgb .brand .pup,body.th-neonrgb .welcome .pup,body.th-neonrgb .gmask .eye{animation:trgb 12s linear infinite}}
 </style>
 </head>
 <body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs><linearGradient id="tgNeonrgb" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FF5A5A"/><stop offset=".17" stop-color="#FFA43B"/><stop offset=".33" stop-color="#FFE94D"/><stop offset=".5" stop-color="#5CFF8A"/><stop offset=".67" stop-color="#3BE8FF"/><stop offset=".83" stop-color="#C77DFF"/><stop offset="1" stop-color="#FF6AD5"/></linearGradient><linearGradient id="tgOro" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FFF1B8"/><stop offset=".35" stop-color="#F5C542"/><stop offset=".7" stop-color="#B8892A"/><stop offset="1" stop-color="#FFE08A"/></linearGradient><linearGradient id="tgArgento" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FFFFFF"/><stop offset=".35" stop-color="#B9C2CC"/><stop offset=".7" stop-color="#7D8794"/><stop offset="1" stop-color="#E9EEF3"/></linearGradient></defs></svg>
 <div class="glow" id="glow1" style="top:-240px;right:-160px;width:720px;height:720px"></div>
 <div class="glow" id="glow2" style="bottom:-320px;left:200px;width:760px;height:760px"></div>
 
@@ -1458,6 +1483,9 @@ const THEMES = [
   {id:'neon', name:'Neon', tag:_t('Scuro · fucsia e giallo'), v:{bg:'#12062B',side:'#180A38',panel:'#1E0E45',line:'#3B2370',text:'#FBF4FF',muted:'#BBA6E0',a1:'#FF2E97',a2:'#FFE14D',a3:'#00E5FF',a4:'#FFB547',ink:'#2B0018',red:'#FF5C7A'}},
   {id:'carbonio', name:_t('Carbonio'), tag:_t('Scuro · rosso e grigio'), v:{bg:'#0B0B0C',side:'#111113',panel:'#17171A',line:'#2C2C31',text:'#F4F4F5',muted:'#A1A1AA',a1:'#E5202E',a2:'#D4D4D8',a3:'#38BDF8',a4:'#F59E0B',ink:'#FFFFFF',red:'#FF5555'}},
   {id:'belva', name:_t('Belva'), tag:_t('Scuro · viola feroce'), v:{bg:'#09060F',side:'#0E0A1C',panel:'#160F2B',line:'#2E2152',text:'#F3EEFF',muted:'#9B8DC4',a1:'#A78BFA',a2:'#C084FC',a3:'#22D3EE',a4:'#F0ABFC',ink:'#160826',red:'#FF5C7A'}},
+  {id:'neonrgb', name:'Neon RGB', tag:_t('Scuro · luci RGB'), g:'linear-gradient(90deg,#FF5A5A,#FFA43B,#FFE94D,#5CFF8A,#3BE8FF,#7A95FF,#C77DFF,#FF6AD5)', v:{bg:'#07060D',side:'#0B0914',panel:'#110E1C',line:'#2A2440',text:'#F7F5FF',muted:'#ABA4C8',a1:'#00F0FF',a2:'#FF3BD4',a3:'#7CFF4F',a4:'#FFD23F',ink:'#001A1F',red:'#FF5C7A'}},
+  {id:'oro', name:_t('Oro'), tag:_t('Scuro · oro lucido'), g:'linear-gradient(100deg,#B8892A,#F5C542 30%,#FFF1B8 50%,#E0A526 72%,#C49A3A)', v:{bg:'#0B0906',side:'#100D08',panel:'#16120A',line:'#3A2F17',text:'#FFF7E0',muted:'#C9B27A',a1:'#F5C542',a2:'#FFE08A',a3:'#E0A526',a4:'#FFB547',ink:'#1F1500',red:'#FF6B5C'}},
+  {id:'argento', name:_t('Argento'), tag:_t('Scuro · argento cromato'), g:'linear-gradient(100deg,#7D8794,#E9EEF3 32%,#FFFFFF 50%,#B9C2CC 70%,#8A949F)', v:{bg:'#0C0E11',side:'#111418',panel:'#171B20',line:'#2E343C',text:'#F2F5F8',muted:'#A3ACB8',a1:'#D7DEE6',a2:'#9FB4C8',a3:'#7FD1E8',a4:'#F0C36D',ink:'#111418',red:'#FF6B6B'}},
   {id:'ghiaccio', name:_t('Ghiaccio'), tag:_t('Chiaro · blu e verde'), v:{bg:'#F2F5FB',side:'#FFFFFF',panel:'#FFFFFF',line:'#D9E0EE',text:'#0E1525',muted:'#55627D',a1:'#2F6BFF',a2:'#7C4DFF',a3:'#0B7D57',a4:'#A65208',ink:'#FFFFFF',red:'#D93025'}},
   {id:'sabbia', name:_t('Sabbia'), tag:_t('Chiaro · terracotta'), v:{bg:'#F6F1E9',side:'#FFFBF5',panel:'#FFFFFF',line:'#E6DCCB',text:'#2A1F14',muted:'#6E5E4B',a1:'#B04A22',a2:'#2F7D6B',a3:'#3D5A99',a4:'#A86A0C',ink:'#FFFFFF',red:'#C0392B'}},
   {id:'ufficio', name:_t('Azzurro'), tag:_t('Chiaro · azzurro tenue'), v:{bg:'#E7EFF9',side:'#F2F7FD',panel:'#F2F7FD',line:'#D0DDEE',text:'#1E293B',muted:'#5A6B84',a1:'#2963D7',a2:'#6A4CD6',a3:'#0A7953',a4:'#975A00',ink:'#FFFFFF',red:'#C23049'}},
@@ -1469,7 +1497,7 @@ const THEMES = [
   {id:'ardesia', name:_t('Ardesia'), tag:_t('Scuro · blu calmo'), v:{bg:'#161D2B',side:'#1E2636',panel:'#1E2636',line:'#2E3A54',text:'#E6ECF5',muted:'#9AA6BF',a1:'#7FA8E8',a2:'#8FD3C1',a3:'#C3A6FF',a4:'#F0C36D',ink:'#0F1420',red:'#F08A80'}}
 ];
 const OFFICE_THEMES = ['ufficio', 'salvia', 'carta', 'lavanda', 'perla', 'ardesia'];
-const GAME_THEMES = ['tasso', 'aurora', 'lava', 'neon', 'carbonio', 'belva', 'ghiaccio', 'sabbia'];
+const GAME_THEMES = ['tasso', 'aurora', 'lava', 'neon', 'neonrgb', 'oro', 'argento', 'carbonio', 'belva', 'ghiaccio', 'sabbia'];
 const isOffice = () => S.profile === 'ufficio';
 // 3.1: "Mostra tutte le funzioni" (solo Gaming): preferenza di questo PC.
 function paintShowAll(){ const on = !!(typeof S !== 'undefined' && S && S.showAll); document.body.classList.toggle('showall', on); const t = document.getElementById('tgShowAll'); if (t) t.classList.toggle('on', on); }
@@ -1484,6 +1512,8 @@ function applyTheme(id){
   const t = THEMES.find(x => x.id === id) || THEMES[0];
   const r = document.documentElement.style;
   Object.keys(t.v).forEach(k => r.setProperty('--' + k, t.v[k]));
+  // Gradiente dei temi Neon RGB, Oro e Argento (BOOST, linea del titolo); la scritta sopra è il colore ink del tema.
+  r.setProperty('--tg', t.g || t.v.a1); r.setProperty('--tgink', t.g ? (t.id === 'neonrgb' ? '#0A0912' : t.v.ink) : t.v.ink);
   // Scritta sui pulsanti rossi: bianca sui rossi scuri, quasi nera sui rossi chiari (si legge meglio).
   const hx = String(t.v.red || '#FF6B5C').replace('#', ''); const ch = (i) => { const c = parseInt(hx.substr(i, 2), 16) / 255; return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4); };
   const lum = 0.2126 * ch(0) + 0.7152 * ch(2) + 0.0722 * ch(4);
@@ -1513,11 +1543,11 @@ function paintThemes(){
   const box = $('#themeCards'); box.innerHTML = '';
   const allowed = isOffice() ? OFFICE_THEMES : GAME_THEMES;
   allowed.map(id => THEMES.find(t => t.id === id)).filter(Boolean).forEach(t => {
-    const v = t.v, on = curTheme() === t.id;
+    const v = t.v, on = curTheme() === t.id, ga = t.g || v.a1;
     const b = el('button', {class:'theme' + (on ? ' on' : ''), 'aria-pressed': on ? 'true' : 'false'},
-      '<span class="mini" style="background:' + v.bg + ';border-color:' + v.line + '"><span style="width:26%;background:' + v.side + ';padding:8px 6px;display:flex;flex-direction:column;gap:5px"><span style="width:14px;height:14px;border-radius:5px;background:' + v.a1 + '"></span><span style="height:5px;width:80%;border-radius:9px;background:' + v.a1 + '"></span><span style="height:5px;width:60%;border-radius:9px;background:' + v.line + '"></span><span style="height:5px;width:70%;border-radius:9px;background:' + v.line + '"></span></span>' +
+      '<span class="mini" style="background:' + v.bg + ';border-color:' + v.line + '"><span style="width:26%;background:' + v.side + ';padding:8px 6px;display:flex;flex-direction:column;gap:5px"><span style="width:14px;height:14px;border-radius:5px;background:' + v.a1 + '"></span><span style="height:5px;width:80%;border-radius:9px;background:' + ga + '"></span><span style="height:5px;width:60%;border-radius:9px;background:' + v.line + '"></span><span style="height:5px;width:70%;border-radius:9px;background:' + v.line + '"></span></span>' +
       '<span style="flex:1;padding:8px;display:flex;flex-direction:column;gap:6px"><span style="flex:1;border-radius:8px;background:' + v.panel + ';display:flex;align-items:center;justify-content:space-between;padding:0 8px"><span style="display:flex;flex-direction:column;gap:4px"><span style="height:5px;width:46px;border-radius:9px;background:' + v.text + '"></span><span style="height:5px;width:30px;border-radius:9px;background:' + v.a2 + '"></span></span><span style="width:26px;height:26px;border-radius:50%;border:4px solid ' + v.a1 + '"></span></span>' +
-      '<span style="display:flex;gap:4px"><span style="flex:1;height:12px;border-radius:5px;background:' + v.a1 + '"></span><span style="flex:1;height:12px;border-radius:5px;background:' + v.a3 + '"></span><span style="flex:1;height:12px;border-radius:5px;background:' + v.a4 + '"></span><span style="flex:1;height:12px;border-radius:5px;background:' + v.a2 + '"></span></span></span></span>' +
+      '<span style="display:flex;gap:4px"><span style="flex:1;height:12px;border-radius:5px;background:' + ga + '"></span><span style="flex:1;height:12px;border-radius:5px;background:' + v.a3 + '"></span><span style="flex:1;height:12px;border-radius:5px;background:' + v.a4 + '"></span><span style="flex:1;height:12px;border-radius:5px;background:' + v.a2 + '"></span></span></span></span>' +
       '<span class="row" style="justify-content:space-between;gap:6px;padding:0 4px 2px"><span style="display:flex;flex-direction:column;gap:2px"><b style="font-family:var(--display);font-size:15px">' + t.name + '</b><span class="small muted">' + t.tag + '</span></span>' + (on ? _t('<span class="badge" style="background:var(--a1);color:var(--ink)">IN USO</span>') : '') + '</span>');
     b.onclick = async () => { applyTheme(t.id); if (isOffice()) S.themeOffice = t.id; else S.theme = t.id; const r = await call('goSetTheme', t.id, isOffice() ? 'ufficio' : 'gioco'); if (r !== 'ok') toast(_t('Non sono riuscito a salvare il tema.'), 'var(--a4)'); paintThemes(); };
     box.appendChild(b);
