@@ -194,7 +194,7 @@ func leggi(data []byte, pw string) (*model.Context, bool, error) {
 	}
 	var ctx *model.Context
 	err := senzaPanico(func() (e error) {
-		ctx, e = api.ReadContext(context.Background(), bytes.NewReader(data), confBase(pw))
+		ctx, e = leggiConPassword(data, pw)
 		return e
 	})
 	if err == nil && oltreLimite(ctx) {
@@ -222,7 +222,7 @@ func leggi(data []byte, pw string) (*model.Context, bool, error) {
 		}
 		var ctx2 *model.Context
 		err2 := senzaPanico(func() (e error) {
-			ctx2, e = api.ReadContext(context.Background(), bytes.NewReader(ric), confBase(pw))
+			ctx2, e = leggiConPassword(ric, pw)
 			return e
 		})
 		if err2 != nil {
@@ -240,6 +240,43 @@ func leggi(data []byte, pw string) (*model.Context, bool, error) {
 		return ctx2, true, nil
 	}
 	return nil, false, classifica(err)
+}
+
+// leggiConPassword: legge il PDF con la password dell'utente. Nei PDF con la protezione più
+// vecchia (RC4 o AES a 128 bit, fatti per esempio da Acrobat o qpdf) la password con le
+// lettere accentate ("città") è scritta nella codifica PDFDocEncoding, non in UTF-8: se la
+// prima prova dice "password sbagliata", riprovo con quella codifica.
+func leggiConPassword(data []byte, pw string) (*model.Context, error) {
+	ctx, err := api.ReadContext(context.Background(), bytes.NewReader(data), confBase(pw))
+	if err == nil || CodiceErrore(classifica(err)) != "password" {
+		return ctx, err
+	}
+	if alt, ok := pdfDocEncoding(pw); ok && alt != pw {
+		if ctx2, err2 := api.ReadContext(context.Background(), bytes.NewReader(data), confBase(alt)); err2 == nil {
+			return ctx2, nil
+		}
+	}
+	return ctx, err
+}
+
+// pdfDocEncoding: pw nella codifica PDFDocEncoding (uguale a Latin-1 per le lettere accentate,
+// € = 0xA0). ok = false se pw non è ASCII o contiene un carattere che lì non c'è.
+func pdfDocEncoding(pw string) (string, bool) {
+	var b []byte
+	ascii := true
+	for _, r := range pw {
+		switch {
+		case r >= 0x20 && r <= 0x7E:
+			b = append(b, byte(r))
+		case r == '€':
+			b, ascii = append(b, 0xA0), false
+		case r >= 0xA1 && r <= 0xFF && r != 0xAD:
+			b, ascii = append(b, byte(r)), false
+		default:
+			return "", false
+		}
+	}
+	return string(b), !ascii
 }
 
 // senzaPanico: esegue f; se pdfcpu va in panico su un file rovinato (es. "/MediaBox [ ]"),

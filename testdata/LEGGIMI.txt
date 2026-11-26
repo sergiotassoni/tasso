@@ -1,3 +1,7 @@
 xref-stream.pdf: PDF di 3 pagine scritto da reportlab e poi riscritto da qpdf con
 "--object-streams=generate": indice compresso (/Type /XRef) e catalogo dentro un object
 stream, come i PDF di Word, Chrome e degli scanner recenti. Serve a TestRiparaPDFConXRefStream.
+
+rc4-password-accentata.pdf: 3 pagine protette con RC4 a 128 bit, password di apertura "città"
+scritta in PDFDocEncoding (come fanno Acrobat e qpdf con la protezione vecchia). Fatto con:
+qpdf --allow-weak-crypto --encrypt 'città' 'capò' 128 --use-aes=n -- a.pdf rc4-password-accentata.pdf
