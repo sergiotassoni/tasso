@@ -17,6 +17,7 @@ package traduce
 
 import (
 	"image"
+	"image/color"
 	"math"
 	"strings"
 	"sync"
@@ -491,6 +492,7 @@ func punteggioMondo(img *image.RGBA, b Blocco, tutte []Blocco) (int, []string) {
 		p += n
 		motivi = append(motivi, m)
 	}
+	etichettaOggetto := tuttoMaiuscolo(b.Testo) && etichettaCorta(b.Testo) && !strings.ContainsAny(b.Testo, ".!?,") && b.Affid != letturaCatalog
 	if b.Mossa {
 		segna(3, "si muove con la scena")
 	}
@@ -509,11 +511,17 @@ func punteggioMondo(img *image.RGBA, b Blocco, tutte []Blocco) (int, []string) {
 	if luce(b.Inchiostro) < 90 && luce(b.Sfondo) > 150 && trama(img, b) >= sogliaTramaPiatta {
 		segna(1, "lettere scure su un cartello") // l'interfaccia sopra la scena ha lettere chiare
 	}
+	if etichettaOggetto && sfondoColorato(b.Sfondo) {
+		// "TAKE" su un cassetto arancione: i pannelli dell'interfaccia sono scuri o grigi, una
+		// parola maiuscola su un fondo molto colorato è stampata su un oggetto della scena
+		segna(1, "scritta su un oggetto colorato")
+	}
 	// le bande nere sopra e sotto (video, filmati) non sono lo schermo del gioco
 	g := areaGioco(img)
 	W, H = g.Dx(), g.Dy()
 	cx, cy := b.X+b.W/2-g.Min.X, b.Y+b.H/2-g.Min.Y
-	if cy*100 > H*72 && abs(cx-W/2)*100 < W*20 {
+	if cy*100 > H*72 && abs(cx-W/2)*100 < W*20 && !etichettaOggetto {
+		// ("DO NOT TAKE" stampato su un cassetto in basso al centro non è un sottotitolo)
 		if len(strings.Fields(b.Testo)) >= 3 || paroleFrase(b.Testo) {
 			segna(-3, "zona dei sottotitoli")
 		} else {
@@ -814,4 +822,11 @@ func scrittaTrasparente(img *image.RGBA, b Blocco) bool {
 		}
 	}
 	return alto-basso <= 130
+}
+
+// sfondoColorato: colore acceso e non scuro (arancione, rosso, verde pieno): saturazione alta.
+func sfondoColorato(c color.RGBA) bool {
+	mx := max(int(c.R), int(c.G), int(c.B))
+	mn := min(int(c.R), int(c.G), int(c.B))
+	return mx >= 120 && mx-mn >= mx*6/10
 }

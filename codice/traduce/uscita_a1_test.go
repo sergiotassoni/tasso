@@ -268,3 +268,40 @@ func TestOfficinaOneMoreDonut(t *testing.T) {
 		t.Errorf("icona davanti al numero: %q %d / %q", bl[0].Testo, bl[0].X, bl[1].Testo)
 	}
 }
+
+// One More Donut (f0779, f0841; metà alta di collaudo-finale/cmp*.jpg, 1200x675): le scritte
+// stampate sugli oggetti della scena ("TOOLS" sul cartello, "DO NOT TAKE" e "TAKE" sui cassetti
+// arancioni) restano in inglese; le voci dell'interfaccia no.
+func TestDonutScritteSugliOggetti(t *testing.T) {
+	a, err := apriImmagineRGBA("testdata/donut/0779.jpg")
+	if err != nil {
+		t.Fatal(err)
+	}
+	b, err := apriImmagineRGBA("testdata/donut/0841.jpg")
+	if err != nil {
+		t.Fatal(err)
+	}
+	ui := []Blocco{
+		{Testo: "HIT POWER", X: 27, Y: 472, W: 56, H: 11, Righe: 1, Affid: letturaBuona},
+		{Testo: "TEMPO", X: 27, Y: 507, W: 34, H: 11, Righe: 1, Affid: letturaBuona},
+		{Testo: "SWEEP", X: 27, Y: 542, W: 34, H: 11, Righe: 1, Affid: letturaBuona},
+		{Testo: "LUCK", X: 27, Y: 577, W: 26, H: 11, Righe: 1, Affid: letturaBuona},
+	}
+	for _, c := range []struct {
+		img *image.RGBA
+		b   Blocco
+	}{
+		{a, Blocco{Testo: "TOOLS", X: 478, Y: 203, W: 74, H: 26, Righe: 1, Affid: letturaBuona}},
+		{a, Blocco{Testo: "DO NOT TAKE", X: 390, Y: 594, W: 58, H: 10, Righe: 1, Affid: letturaBuona}},
+		{b, Blocco{Testo: "TAKE", X: 284, Y: 576, W: 29, H: 11, Righe: 1, Affid: letturaBuona}},
+	} {
+		if m := motivoMondo(c.img, c.b, append(append([]Blocco(nil), ui...), c.b)); m == "" {
+			t.Errorf("%q stampata su un oggetto della scena: doveva restare in inglese", c.b.Testo)
+		}
+	}
+	for _, u := range ui {
+		if m := motivoMondo(a, u, ui); m != "" {
+			t.Errorf("%q (voce dell'interfaccia) presa per scritta del mondo: %s", u.Testo, m)
+		}
+	}
+}

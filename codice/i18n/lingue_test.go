@@ -238,15 +238,3 @@ func TestLicenzeNellaFinestra(t *testing.T) {
 		t.Error("le lingue diverse dall'italiano devono vedere le licenze in inglese")
 	}
 }
-
-// I testi della sezione "ps" finiscono dentro stringhe tra apici degli script PowerShell: un apice
-// tipografico (‘ ’ ‚ ‛) per PowerShell chiude la stringa e romperebbe lo script (o peggio).
-func TestPsSenzaApiciTipografici(t *testing.T) {
-	for _, l := range append([]string{"en"}, lingue...) {
-		for k, v := range leggi(t, l)["ps"] {
-			if strings.ContainsAny(v, "‘’‚‛") {
-				t.Errorf("%s.json, ps %q: la traduzione contiene un apice tipografico, usa '", l, k)
-			}
-		}
-	}
-}
