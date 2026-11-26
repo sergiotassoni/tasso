@@ -655,8 +655,9 @@ func preparaPaginaCon(area Zona, img, primaImg *image.RGBA, giro int64, annulla 
 				ingl = append(ingl, b)
 				continue
 			}
-			// da adesso questa scritta si traduce sempre così (fisse.go)
-			fissePagina.fissa(coppiaDi(traduttore), b.Testo, r.Tradotto)
+			// la traduzione si fissa (fisse.go) solo quando la scritta si vede davvero: in
+			// mostraPaginaPronta, dopo tutti i filtri
+			sc.DaFissare = r.Tradotto
 			if r.Motore != "memoria" && r.Motore != "catalogo" && r.Motore != "libreria" && r.Motore != "libreria (IA)" {
 				nuove++
 			}
@@ -777,6 +778,7 @@ func mostraPaginaPronta(p *paginaPronta, giro int64) bool {
 			NascondiPagina() // spento proprio adesso: niente scritte rimaste sullo schermo
 			return false
 		}
+		fissaMostrate(fissePagina, coppiaDi(traduttore), pronti) // da adesso si traducono sempre così
 		paginaMostrata.Store(time.Now().UnixNano())
 		for _, r := range p.cron { // adesso la pagina si vede: le sue scritte vanno nella cronologia
 			aggiungiCronologia(r, true)

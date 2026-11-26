@@ -145,7 +145,7 @@ func elaboraImmagine(img *image.RGBA, nome string, o opzioniBanco) (esitoImmagin
 			inglesi = append(inglesi, b)
 			continue
 		}
-		fisse.fissa(coppiaDi(o.tr), b.Testo, r.Tradotto)
+		p.DaFissare = r.Tradotto // si fissa solo se arriva fino al disegno (come nel gioco)
 		if r.Motore != "catalogo" && rigaMezzaTradotta(p.Testo, p.Tradotto) { // stessa regola di motivoScartaTraduzione
 			e.MezzeMostrate++
 		}
@@ -248,6 +248,7 @@ func elaboraImmagine(img *image.RGBA, nome string, o opzioniBanco) (esitoImmagin
 			}
 		}
 		o.stato.vecchi = pronti
+		fissaMostrate(fisse, coppiaDi(o.tr), pronti)
 	}
 	// controllo finale sul disegno: nessuna scritta tradotta accanto a un pezzo della stessa
 	// frase rimasto in inglese, nessuna traduzione mezza inglese (devono essere 0)

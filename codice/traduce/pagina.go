@@ -67,6 +67,10 @@ type Blocco struct {
 	// mai sopra: con l'icona a destra cresce verso sinistra (SpazioSx: spazio libero a sinistra).
 	IconaDx, IconaSx int
 	SpazioSx         int
+	// DaFissare: la traduzione da fissare (fisse.go) per Testo, ma solo quando la scritta si vede
+	// davvero: dopo tutti i filtri e il disegno (collaudo 26/11: si fissavano anche traduzioni
+	// scartate, mai mostrate).
+	DaFissare string
 }
 
 // parole: le parole lette della scritta, con il loro rettangolo (nil se non le so).
@@ -2454,7 +2458,7 @@ func stabilizza(nuovi, vecchi []Blocco) {
 			if stessaScritta(o.Testo, n.Testo) {
 				// anche il testo letto prima: così tieniFerme la riconosce come la stessa scritta
 				// e la lascia identica (niente tremolio di 1-2 pixel a ogni rilettura)
-				n.Tradotto, n.Testo = o.Tradotto, o.Testo
+				n.Tradotto, n.Testo, n.DaFissare = o.Tradotto, o.Testo, o.DaFissare
 			}
 			break
 		}

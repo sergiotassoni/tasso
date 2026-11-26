@@ -44,8 +44,32 @@ type postoIsteresi struct {
 }
 
 type isteresi struct {
-	mu    sync.Mutex
-	posti []*postoIsteresi
+	mu     sync.Mutex
+	posti  []*postoIsteresi
+	ultimo time.Time     // l'ultima lettura passata di qui
+	giro   time.Duration // durata media di un giro di lettura (media mobile)
+}
+
+// grazia: il tempo di grazia rispetto al giro vero. Con letture lente (motore non veloce, IA
+// che si carica, schermo che si muove) un giro supera i 900 ms: la grazia fissa scadeva prima
+// della lettura dopo e la traduzione spariva per un giro (collaudo 26/11). Così una scritta può
+// mancare a UNA lettura senza sparire, qualunque sia la durata del giro (tetto 3 s).
+func (s *isteresi) grazia() time.Duration {
+	return min(max(graziaIsteresi, s.giro*3/2), 3*time.Second)
+}
+
+// misuraGiro: aggiorna la durata media del giro con la lettura di adesso.
+func (s *isteresi) misuraGiro(adesso time.Time) {
+	if !s.ultimo.IsZero() {
+		if d := adesso.Sub(s.ultimo); d > 0 && d < 10*time.Second {
+			if s.giro == 0 {
+				s.giro = d
+			} else {
+				s.giro = (s.giro*3 + d) / 4
+			}
+		}
+	}
+	s.ultimo = adesso
 }
 
 // isteresiPagina: quella della traduzione dello schermo.
@@ -56,7 +80,7 @@ func (s *isteresi) svuota() {
 		return
 	}
 	s.mu.Lock()
-	s.posti = nil
+	s.posti, s.ultimo, s.giro = nil, time.Time{}, 0
 	s.mu.Unlock()
 }
 
@@ -101,6 +125,7 @@ func (s *isteresi) applica(nuovi, vecchi, inglesi []Blocco, img *image.RGBA, ade
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	s.misuraGiro(adesso)
 	tieni := s.posti[:0]
 	for _, p := range s.posti { // via i posti non visti da mezzo minuto
 		if adesso.Sub(p.letta) < 30*time.Second {
@@ -168,7 +193,7 @@ func (s *isteresi) applica(nuovi, vecchi, inglesi []Blocco, img *image.RGBA, ade
 			continue // al suo posto c'è già un'altra traduzione
 		}
 		p := s.posto(ro, false, adesso)
-		if p == nil || adesso.Sub(p.letta) > graziaIsteresi || !stessaFormaSotto(o, img) {
+		if p == nil || adesso.Sub(p.letta) > s.grazia() || !stessaFormaSotto(o, img) {
 			continue
 		}
 		// le letture inglesi che toccano la scritta vecchia: tutte dentro il suo riquadro e con
@@ -250,6 +275,16 @@ func zonaVuota(img *image.RGBA, b Blocco) bool {
 	return true
 }
 
+// Limiti della ricerca di una scritta spostata (banco 26/11: con il raggio calcolato su un
+// paragrafo di 5 righe la ricerca durava mezzo secondo per scritta, nel ciclo della pagina).
+const (
+	limiteSpostY = 48 // pixel in su o in giù
+	limiteSpostX = 64 // pixel di lato
+)
+
+// budgetSegui: tempo massimo della ricerca per tutte le scritte di un giro (variabile per i test).
+var budgetSegui = 25 * time.Millisecond
+
 // spostamento2D: dove si ritrova la scritta b (presa da vecchia) nell'immagine nuova, entro
 // qualche riga in su o in giù e qualche em di lato. ok falso se non si ritrova bene o se non
 // si è mossa.
@@ -258,8 +293,9 @@ func spostamento2D(vecchia, nuova *image.RGBA, b Blocco) (dx, dy int, ok bool) {
 	if r.Dx() < 6 || r.Dy() < 4 {
 		return 0, 0, false
 	}
-	passoY := max(1, r.Dy()/8)
-	passoX := max(2, r.Dx()/40)
+	// punti di confronto: al massimo circa 12 x 24, anche per un paragrafo grande
+	passoY := max(1, r.Dy()/12)
+	passoX := max(2, r.Dx()/24)
 	type punto struct {
 		x, y int
 		c    [3]int
@@ -283,8 +319,10 @@ func spostamento2D(vecchia, nuova *image.RGBA, b Blocco) (dx, dy int, ok bool) {
 		return 0, 0, false
 	}
 	nb := nuova.Bounds()
-	media := func(dx, dy int) int {
-		tot := 0
+	// media: differenza media dei punti spostati di (dx, dy). Smette appena supera tetto (non
+	// può più essere la migliore): la ricerca resta veloce anche su un paragrafo grande.
+	media := func(dx, dy, tetto int) int {
+		tot, lim := 0, tetto*len(pt)
 		for _, p := range pt {
 			x, y := p.x+dx, p.y+dy
 			if x < nb.Min.X || x >= nb.Max.X || y < nb.Min.Y || y >= nb.Max.Y {
@@ -292,16 +330,22 @@ func spostamento2D(vecchia, nuova *image.RGBA, b Blocco) (dx, dy int, ok bool) {
 			}
 			c := nuova.RGBAAt(x, y)
 			tot += abs(int(c.R)-p.c[0]) + abs(int(c.G)-p.c[1]) + abs(int(c.B)-p.c[2])
+			if tot > lim {
+				return 1 << 20
+			}
 		}
 		return tot / len(pt)
 	}
-	limY := max(4*b.H, 24)
-	limX := max(3*b.H, 32)
-	d0 := media(0, 0)
+	// raggio dall'altezza di UNA riga (non del paragrafo intero), con un tetto: oltre, è
+	// un'altra lettura a rimettere la traduzione al posto giusto
+	h := max(1, b.H/max(1, b.Righe))
+	limY := min(max(4*h, 24), limiteSpostY)
+	limX := min(max(3*h, 32), limiteSpostX)
+	d0 := media(0, 0, 1<<12)
 	meglio, mx, my := 1<<20, 0, 0
 	for y := -limY; y <= limY; y += 2 { // prima a passi di 2, poi di fino attorno al migliore
 		for x := -limX; x <= limX; x += 2 {
-			if m := media(x, y); m < meglio {
+			if m := media(x, y, min(meglio, 37)); m < meglio {
 				meglio, mx, my = m, x, y
 			}
 		}
@@ -309,7 +353,7 @@ func spostamento2D(vecchia, nuova *image.RGBA, b Blocco) (dx, dy int, ok bool) {
 	cx, cy := mx, my
 	for y := cy - 1; y <= cy+1; y++ {
 		for x := cx - 1; x <= cx+1; x++ {
-			if m := media(x, y); m < meglio {
+			if m := media(x, y, meglio); m < meglio {
 				meglio, mx, my = m, x, y
 			}
 		}
@@ -330,7 +374,11 @@ func seguiScritte(img *image.RGBA, bl []Blocco) ([]Blocco, int) {
 	}
 	out := append([]Blocco(nil), bl...)
 	var mosse []int
+	inizio := time.Now()
 	for i, b := range out {
+		if time.Since(inizio) > budgetSegui {
+			break // tempo del giro finito: le altre le rimette a posto la lettura dopo
+		}
 		if b.Img == nil || b.Img.Bounds() != img.Bounds() || b.Tradotto == "" ||
 			(b.Inchiostro == coloreTestoFascia && b.Sfondo == coloreFascia) {
 			continue
