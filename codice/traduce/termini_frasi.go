@@ -136,6 +136,23 @@ var regoleTermini = []regolaTermine{
 	{inglese: rx(`(?i)\bMs\. \pL`), da: rx(`(?i)\b(la )?signora\. (\p{Lu})`), a: "la signora $2"},
 	{inglese: rx(`(?i)\byou still got it\b`), da: rx(`(?i)\bhai ancora capito\b`), a: "ce l'hai ancora"},
 	{inglese: rx(`(?i)\bget up those stairs\b`), da: rx(`(?i)\balzate quelle scale\b`), a: "su per quelle scale"},
+	{inglese: rx(`(?i)\biron\b`), evita: rx(`(?i)\biron(ing|ed)?\b.*\b(clothes|shirt)\b|\bironing\b`), da: rx(`(?i)\bferro da stiro\b`), a: "ferro"},
+	{inglese: rx(`(?i)\b(this|per|the|your|next|night|work) shift\b`), evita: rx(`(?i)\b(press|hold|key)\b`), da: rx(`(?i)\b(questo|quel|il|lo|del|dello|nel|nello) spostamento\b`), f: versoTurno},
+	{inglese: rx(`(?i)^hold to\b`), da: rx(`(?i)^aspetta di\b`), a: "Tieni premuto per"},
+	{inglese: rx(`(?i)^hold until\b`), da: rx(`(?i)^aspetta che( non)?\b`), a: "Tieni premuto finché"},
+	{inglese: rx(`(?i)\bstagger(ed)?\b`), da: rx(`(?i)\bscaglionat(o|a|i|e)\b`), a: "stordit$1"},
+	{inglese: rx(`(?i)\bherd animals?\b`), da: rx(`(?i)\banimali da pane\b`), a: "animali da branco"},
+}
+
+// versoTurno: "questo spostamento" -> "questo turno" (il turno di lavoro, "this shift").
+func versoTurno(s string) string {
+	w := strings.Fields(s)
+	art := map[string]string{"lo": "il", "dello": "del", "nello": "nel", "quel": "quel"}
+	a := w[0]
+	if x, ok := art[strings.ToLower(a)]; ok {
+		a = x
+	}
+	return a + " turno"
 }
 
 // versoTacca: "del segmento sanitario" -> "della tacca di salute".

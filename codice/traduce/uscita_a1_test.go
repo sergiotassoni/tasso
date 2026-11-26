@@ -305,3 +305,18 @@ func TestDonutScritteSugliOggetti(t *testing.T) {
 		}
 	}
 }
+
+func TestTerminiCollaudo01(t *testing.T) {
+	casi := [][3]string{
+		{"Meteoric iron: 30 / 30 units", "Ferro da stiro meteorico: 30 / 30 unità", "Ferro meteorico: 30 / 30 unità"},
+		{"-183 m this shift", "-183 m questo spostamento", "-183 m questo turno"},
+		{"Hold to see all available actions.", "Aspetta di vedere tutte le azioni disponibili.", "Tieni premuto per vedere tutte le azioni disponibili."},
+		{"Make sure opponents don't deplete your Fatigue or you'll be staggered.", "...o sarai scaglionato.", "...o sarai stordito."},
+		{"Sheep are herd animals", "Le pecore sono animali da pane", "Le pecore sono animali da branco"},
+	}
+	for _, c := range casi {
+		if got := correggiTerminiFrase(c[0], c[1]); got != c[2] {
+			t.Errorf("%q -> %q, volevo %q", c[1], got, c[2])
+		}
+	}
+}
