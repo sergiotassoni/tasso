@@ -164,7 +164,7 @@ func TestXMLAttivitaCaratteriStrani(t *testing.T) {
 func TestLeggiAttivitaDiWindows(t *testing.T) {
 	x := `<?xml version="1.0" encoding="UTF-16"?>
 <Task version="1.2" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">
-  <RegistrationInfo><Author>Tasso</Author><Version>tasso-apri-0</Version><URI>\Tasso\Apri Tasso</URI></RegistrationInfo>
+  <RegistrationInfo><Author>Tasso</Author><Version>tasso-apri-1</Version><URI>\Tasso\Apri Tasso</URI></RegistrationInfo>
   <Triggers />
   <Principals><Principal id="Author"><UserId>` + sidProva + `</UserId><LogonType>InteractiveToken</LogonType><RunLevel>HighestAvailable</RunLevel></Principal></Principals>
   <Settings><MultipleInstancesPolicy>IgnoreNew</MultipleInstancesPolicy><IdleSettings><StopOnIdleEnd>true</StopOnIdleEnd></IdleSettings></Settings>
@@ -191,5 +191,52 @@ func TestLeggiAttivitaDiWindows(t *testing.T) {
 	}
 	if _, err := LeggiAttivita("non è xml"); err == nil {
 		t.Fatal("testo a caso accettato")
+	}
+}
+
+func TestAttivitaDisattivata(t *testing.T) {
+	x := strings.Replace(XMLAttivita(exeProva, sidProva), "<Enabled>true</Enabled>", "<Enabled>false</Enabled>", 1)
+	a, err := LeggiAttivita(x)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if a.Attiva || a.Aggiornata(exeProva, sidProva) {
+		t.Fatal("disattivata: va rifatta")
+	}
+	// senza <Enabled> è attiva (valore di base di Windows)
+	if a, _ := LeggiAttivita(strings.Replace(XMLAttivita(exeProva, sidProva), "<Enabled>true</Enabled>", "", 1)); !a.Attiva {
+		t.Fatal("senza Enabled deve essere attiva")
+	}
+}
+
+func TestNomeESDDL(t *testing.T) {
+	if n := NomeAttivitaPer(sidProva); n != "Apri Tasso "+sidProva {
+		t.Fatalf("nome: %q", n)
+	}
+	if s := SDDLAttivita(sidProva); s != "D:P(A;;FA;;;SY)(A;;FA;;;BA)(A;;FRFX;;;"+sidProva+")" {
+		t.Fatalf("sddl: %q", s)
+	}
+	for _, s := range []string{sidProva, "S-1-5-18"} {
+		if !SidValido(s) {
+			t.Errorf("SidValido(%q) = false", s)
+		}
+	}
+	for _, s := range []string{"", "S-1-", "S-1-5-21-1)(A;;FA;;;WD", "s-1-5-18", "S-1-5--1", "S-1-5-", `PC\utente`} {
+		if SidValido(s) {
+			t.Errorf("SidValido(%q) = true", s)
+		}
+	}
+}
+
+func TestSilenziosi(t *testing.T) {
+	for _, a := range [][]string{{"--scheduled"}, {"--auto=3", "--min"}, {"--profile"}} {
+		if !Silenziosi(a) {
+			t.Errorf("Silenziosi(%q) = false", a)
+		}
+	}
+	for _, a := range [][]string{nil, {"--min"}, {"--controlla-aggiornamenti"}, {"--after-update"}} {
+		if Silenziosi(a) {
+			t.Errorf("Silenziosi(%q) = true", a)
+		}
 	}
 }

@@ -639,7 +639,9 @@ func refreshScheduledTasks() {
 	// passa dalla 3.1 alla 3.1.1 con l'aggiornamento di Tasso, senza l'installatore.
 	func() {
 		defer guard("apri-admin")
-		preparaAttivitaApri()
+		if m := preparaAttivitaApri(); m != "" {
+			scriviAvvio("attività Apri Tasso: " + m) // logs\avvio.txt, per capire perché chiede i permessi
+		}
 	}()
 	setMu.Lock()
 	a, w, p := settings.Autostart, settings.Weekly, settings.Paused
