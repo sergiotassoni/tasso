@@ -1254,6 +1254,7 @@ html:not([lang="it"]) .navsub button{padding-right:4px;gap:8px}
     <div><h2>Aspetto</h2><p class="sub" style="margin:2px 0 0">Clicca una scheda e Tasso cambia colore subito. Gaming e Ufficio ricordano ognuna il suo tema.</p></div>
     <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px" id="themeCards"></div>
     <button role="switch" aria-checked="false" class="toggle gm" id="tgShowAll"><span><b>Mostra tutte le funzioni</b><span>In Gaming il menu tiene solo le cose per giocare. Accendi per vedere anche Prestazioni+ e, in Pulisci, le pulizie una per una (privacy, Download…).</span></span><span class="sw"><i></i></span></button>
+    <button role="switch" aria-checked="false" class="toggle gm" id="tgCovers"><span><b>Copertine dei giochi da internet</b><span>Per i giochi che non sono di Steam, Tasso cerca la copertina su Steam usando il nome del gioco (il nome va a Steam). Spento: solo le immagini che ci sono già sul PC.</span></span><span class="sw"><i></i></span></button>
   </div>
   <div class="row wrap" style="align-items:stretch;gap:18px">
     <div class="card" style="flex:1 1 360px;padding:6px 22px">
@@ -1480,6 +1481,10 @@ const isOffice = () => S.profile === 'ufficio';
 function paintShowAll(){ const on = !!(typeof S !== 'undefined' && S && S.showAll); document.body.classList.toggle('showall', on); const t = document.getElementById('tgShowAll'); if (t) t.classList.toggle('on', on); }
 document.addEventListener('click', (e) => { const t = e.target.closest && e.target.closest('#tgShowAll'); if (!t) return; const on = !document.body.classList.contains('showall'); S.showAll = on; paintShowAll(); if (window.goSetShowAll) Promise.resolve(window.goSetShowAll(on)).catch(() => {}); });
 setTimeout(paintShowAll, 0);
+// Copertine da internet (spento di base): con il sì, i nomi dei giochi non di Steam si cercano su Steam.
+function paintCovers(){ const on = !!(S && S.coverInternet); const t = document.getElementById('tgCovers'); if (t) { t.classList.toggle('on', on); t.setAttribute('aria-checked', on ? 'true' : 'false'); } }
+document.addEventListener('click', (e) => { const t = e.target.closest && e.target.closest('#tgCovers'); if (!t) return; S.coverInternet = !S.coverInternet; paintCovers(); call('goSetCoverInternet', S.coverInternet); });
+setTimeout(paintCovers, 0);
 const curTheme = () => isOffice() ? (OFFICE_THEMES.indexOf(S.themeOffice) >= 0 ? S.themeOffice : 'ufficio') : (GAME_THEMES.indexOf(S.theme) >= 0 ? S.theme : 'tasso');
 function applyTheme(id){
   const t = THEMES.find(x => x.id === id) || THEMES[0];

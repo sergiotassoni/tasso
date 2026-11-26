@@ -5232,6 +5232,8 @@
   "Per documenti riservati: li riscrive con dati a caso e li cancella, così sul disco non si recuperano più. Copie in OneDrive, nei punti di ripristino o nella Cronologia file restano. Puoi sceglierne tanti insieme.": "Para documentos confidenciales: los sobrescribe con datos aleatorios y los borra, así ya no se recuperan del disco. Las copias en OneDrive, en los puntos de restauración o en el Historial de archivos se quedan. Puedes elegir muchos a la vez.",
   "<p class=\"small muted\" style=\"margin:0;line-height:1.5\">Copie che Tasso non può toccare: se il file è in <b>OneDrive</b> resta nella cronologia delle versioni e nel Cestino di OneDrive; possono averne una copia anche i <b>punti di ripristino</b> e la <b>Cronologia file</b> di Windows.</p>": "<p class=\"small muted\" style=\"margin:0;line-height:1.5\">Copias que Tasso no puede tocar: si el archivo está en <b>OneDrive</b> sigue en el historial de versiones y en la Papelera de OneDrive; también pueden tener una copia los <b>puntos de restauración</b> y el <b>Historial de archivos</b> de Windows.</p>",
   "Apre il Cestino, installa lo strumento gratuito di Microsoft (si usa scrivendo comandi) e apre la guida passo passo.": "Abre la Papelera, instala la herramienta gratuita de Microsoft (se usa escribiendo comandos) y abre la guía paso a paso.",
-  " liberi ": " libres "
+  " liberi ": " libres ",
+  "Copertine dei giochi da internet": "Portadas de los juegos desde internet",
+  "Per i giochi che non sono di Steam, Tasso cerca la copertina su Steam usando il nome del gioco (il nome va a Steam). Spento: solo le immagini che ci sono già sul PC.": "Para los juegos que no son de Steam, Tasso busca la portada en Steam con el nombre del juego (el nombre se envía a Steam). Desactivado: solo las imágenes que ya están en el PC."
  }
 }

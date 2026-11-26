@@ -887,6 +887,9 @@ func steamHeaderFor(app string) string {
 // poi al massimo 40 ricerche nuove per volta, 4 alla volta. Desktop, Download e giochi aggiunti a mano: niente ricerca.
 func fillCovers(all []gameEntry) bool {
 	changed := false
+	setMu.Lock()
+	cercaPerNome := settings.CoverInternet
+	setMu.Unlock()
 	var ask []*gameEntry
 	type hdrAsk struct {
 		g   *gameEntry
@@ -926,7 +929,8 @@ func fillCovers(all []gameEntry) bool {
 			}
 			continue
 		}
-		if len(ask) < 40 {
+		// Senza il sì dell'utente i nomi dei giochi non escono dal PC: niente ricerca su Steam.
+		if coverDaCercare(cercaPerNome, len(ask)) {
 			ask = append(ask, g)
 		}
 	}
@@ -973,6 +977,10 @@ func fillCovers(all []gameEntry) bool {
 	wg.Wait()
 	return changed
 }
+
+// coverDaCercare: la copertina di un gioco non di Steam si cerca su Steam per nome solo con
+// "Copertine da internet" acceso, e al massimo 40 per volta.
+func coverDaCercare(permesso bool, giaInCoda int) bool { return permesso && giaInCoda < 40 }
 
 // pickFile: finestra di Windows per scegliere un file. filter: "Nome\x00*.est\x00\x00".
 func pickFile(title, filter string) string {

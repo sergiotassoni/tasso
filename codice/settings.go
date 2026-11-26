@@ -86,6 +86,9 @@ type Settings struct {
 	CustomGames []CustomGame `json:"customGames,omitempty"`
 	HiddenGames []string     `json:"hiddenGames,omitempty"`
 	ShowAll     bool         `json:"showAll,omitempty"` // 3.1: in Gaming mostra anche le funzioni nascoste
+	// Copertine dei giochi non di Steam cercate su Steam per nome: il nome del gioco va a Valve,
+	// quindi solo se l'utente lo accende (spento di base).
+	CoverInternet bool `json:"coverInternet,omitempty"`
 	// 3.1: "Aggiorna Tasso da solo" è acceso di base; true = l'utente l'ha spento.
 	NoAutoUpdate bool `json:"noAutoUpdate,omitempty"`
 	// Ecosistema (ecoupdate.go): "<sha256 di TassoSetup.exe>|<ora unix>" dell'ultimo aggiornamento

@@ -5232,6 +5232,8 @@
   "Per documenti riservati: li riscrive con dati a caso e li cancella, così sul disco non si recuperano più. Copie in OneDrive, nei punti di ripristino o nella Cronologia file restano. Puoi sceglierne tanti insieme.": "Pour les documents confidentiels : il les écrase avec des données aléatoires et les supprime, ils ne se récupèrent donc plus sur le disque. Les copies dans OneDrive, les points de restauration ou l'Historique des fichiers restent. Vous pouvez en choisir plusieurs à la fois.",
   "<p class=\"small muted\" style=\"margin:0;line-height:1.5\">Copie che Tasso non può toccare: se il file è in <b>OneDrive</b> resta nella cronologia delle versioni e nel Cestino di OneDrive; possono averne una copia anche i <b>punti di ripristino</b> e la <b>Cronologia file</b> di Windows.</p>": "<p class=\"small muted\" style=\"margin:0;line-height:1.5\">Copies que Tasso ne peut pas toucher : si le fichier est dans <b>OneDrive</b>, il reste dans l'historique des versions et la Corbeille OneDrive ; les <b>points de restauration</b> et l'<b>Historique des fichiers</b> de Windows peuvent aussi en avoir une copie.</p>",
   "Apre il Cestino, installa lo strumento gratuito di Microsoft (si usa scrivendo comandi) e apre la guida passo passo.": "Ouvre la Corbeille, installe l'outil gratuit de Microsoft (il s'utilise en tapant des commandes) et ouvre le guide pas à pas.",
-  " liberi ": " libres "
+  " liberi ": " libres ",
+  "Copertine dei giochi da internet": "Jaquettes des jeux depuis internet",
+  "Per i giochi che non sono di Steam, Tasso cerca la copertina su Steam usando il nome del gioco (il nome va a Steam). Spento: solo le immagini che ci sono già sul PC.": "Pour les jeux qui ne viennent pas de Steam, Tasso cherche la jaquette sur Steam avec le nom du jeu (le nom est envoyé à Steam). Désactivé : seulement les images déjà présentes sur le PC."
  }
 }

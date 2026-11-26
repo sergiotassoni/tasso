@@ -5232,6 +5232,8 @@
   "Per documenti riservati: li riscrive con dati a caso e li cancella, così sul disco non si recuperano più. Copie in OneDrive, nei punti di ripristino o nella Cronologia file restano. Puoi sceglierne tanti insieme.": "For confidential documents: it overwrites them with random data and deletes them, so they can't be recovered from the drive. Copies in OneDrive, restore points or File History remain. You can choose many at once.",
   "<p class=\"small muted\" style=\"margin:0;line-height:1.5\">Copie che Tasso non può toccare: se il file è in <b>OneDrive</b> resta nella cronologia delle versioni e nel Cestino di OneDrive; possono averne una copia anche i <b>punti di ripristino</b> e la <b>Cronologia file</b> di Windows.</p>": "<p class=\"small muted\" style=\"margin:0;line-height:1.5\">Copies Tasso can't touch: if the file is in <b>OneDrive</b> it stays in the version history and the OneDrive Recycle Bin; Windows <b>restore points</b> and <b>File History</b> may also have a copy.</p>",
   "Apre il Cestino, installa lo strumento gratuito di Microsoft (si usa scrivendo comandi) e apre la guida passo passo.": "Opens the Recycle Bin, installs Microsoft's free tool (used by typing commands) and opens the step-by-step guide.",
-  " liberi ": " free "
+  " liberi ": " free ",
+  "Copertine dei giochi da internet": "Game covers from the internet",
+  "Per i giochi che non sono di Steam, Tasso cerca la copertina su Steam usando il nome del gioco (il nome va a Steam). Spento: solo le immagini che ci sono già sul PC.": "For games that aren't from Steam, Tasso looks for the cover on Steam using the game's name (the name is sent to Steam). Off: only the images already on the PC."
  }
 }

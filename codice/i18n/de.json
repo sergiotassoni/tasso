@@ -5232,6 +5232,8 @@
   "Per documenti riservati: li riscrive con dati a caso e li cancella, così sul disco non si recuperano più. Copie in OneDrive, nei punti di ripristino o nella Cronologia file restano. Puoi sceglierne tanti insieme.": "Für vertrauliche Dokumente: Überschreibt sie mit Zufallsdaten und löscht sie, sodass sie vom Laufwerk nicht wiederherstellbar sind. Kopien in OneDrive, in Wiederherstellungspunkten oder im Dateiversionsverlauf bleiben. Du kannst mehrere auf einmal auswählen.",
   "<p class=\"small muted\" style=\"margin:0;line-height:1.5\">Copie che Tasso non può toccare: se il file è in <b>OneDrive</b> resta nella cronologia delle versioni e nel Cestino di OneDrive; possono averne una copia anche i <b>punti di ripristino</b> e la <b>Cronologia file</b> di Windows.</p>": "<p class=\"small muted\" style=\"margin:0;line-height:1.5\">Kopien, die Tasso nicht anfassen kann: Liegt die Datei in <b>OneDrive</b>, bleibt sie im Versionsverlauf und im OneDrive-Papierkorb; auch <b>Wiederherstellungspunkte</b> und der <b>Dateiversionsverlauf</b> von Windows können eine Kopie haben.</p>",
   "Apre il Cestino, installa lo strumento gratuito di Microsoft (si usa scrivendo comandi) e apre la guida passo passo.": "Öffnet den Papierkorb, installiert das kostenlose Microsoft-Tool (wird mit Befehlen bedient) und öffnet die Schritt-für-Schritt-Anleitung.",
-  " liberi ": " frei "
+  " liberi ": " frei ",
+  "Copertine dei giochi da internet": "Spielcover aus dem Internet",
+  "Per i giochi che non sono di Steam, Tasso cerca la copertina su Steam usando il nome del gioco (il nome va a Steam). Spento: solo le immagini che ci sono già sul PC.": "Für Spiele, die nicht von Steam sind, sucht Tasso das Cover auf Steam mit dem Namen des Spiels (der Name geht an Steam). Aus: nur die Bilder, die schon auf dem PC sind."
  }
 }
