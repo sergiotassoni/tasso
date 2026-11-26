@@ -1688,6 +1688,7 @@
   "C'è una copia della versione precedente di Windows (Windows.old, ": "Il y a une copie de la version précédente de Windows (Windows.old, ",
   "Cache DNS svuotata.": "Cache DNS vidé.",
   "Cache dei componenti aggiuntivi di Office svuotata (si riscaricano da soli).": "Cache des compléments Office vidé (ils se retéléchargent tout seuls).",
+  "Non ho svuotato la cache dei componenti aggiuntivi di Office: la cartella non è sul disco del PC o non è sicura da pulire (": "Je n'ai pas vidé le cache des compléments Office : le dossier n'est pas sur le disque du PC ou n'est pas sûr à nettoyer (",
   "Cache del nuovo Teams svuotata.": "Cache du nouveau Teams vidé.",
   "Cache di Discord svuotata: ": "Cache de Discord vidé : ",
   "Cache di Teams classico svuotata.": "Cache de Teams classique vidé.",

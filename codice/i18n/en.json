@@ -1688,6 +1688,7 @@
   "C'è una copia della versione precedente di Windows (Windows.old, ": "There's a copy of the previous version of Windows (Windows.old, ",
   "Cache DNS svuotata.": "DNS cache cleared.",
   "Cache dei componenti aggiuntivi di Office svuotata (si riscaricano da soli).": "Office add-in cache cleared (they download again by themselves).",
+  "Non ho svuotato la cache dei componenti aggiuntivi di Office: la cartella non è sul disco del PC o non è sicura da pulire (": "I did not clear the Office add-in cache: the folder is not on this PC's disk or is not safe to clean (",
   "Cache del nuovo Teams svuotata.": "New Teams cache cleared.",
   "Cache di Discord svuotata: ": "Discord cache cleared: ",
   "Cache di Teams classico svuotata.": "Classic Teams cache cleared.",

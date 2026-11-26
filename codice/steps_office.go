@@ -422,7 +422,12 @@ Say 'Ora apri Word: ti chiede di accedere. Usa l''account con cui hai Office (qu
 if (Stop-IfOfficeOpen) { return }
 $f = [long]0
 $wef = Join-Path $env:LOCALAPPDATA 'Microsoft\Office\16.0\Wef'
-if (Test-Path -LiteralPath $wef) { $f += Clear-Folder $wef; Say 'Cache dei componenti aggiuntivi di Office svuotata (si riscaricano da soli).' }
+if (Test-Path -LiteralPath $wef) {
+  $f += Clear-Folder $wef
+  # "Svuotata" solo se Tasso l'ha pulita davvero (rifiuta per esempio AppData in rete o con una giunzione).
+  if ($TassoRifiuto) { Say ('Non ho svuotato la cache dei componenti aggiuntivi di Office: la cartella non è sul disco del PC o non è sicura da pulire (' + $TassoRifiuto + ').') }
+  else { Say 'Cache dei componenti aggiuntivi di Office svuotata (si riscaricano da soli).' }
+}
 Freed $f
 $found = $false
 foreach ($root in @('HKCU:\Software\Microsoft\Office\Outlook\Addins', 'HKLM:\SOFTWARE\Microsoft\Office\Outlook\Addins', 'HKLM:\SOFTWARE\WOW6432Node\Microsoft\Office\Outlook\Addins')) {

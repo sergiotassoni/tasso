@@ -601,6 +601,8 @@ $key = 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\SystemRestore'
 $srOff = $false
 try { $ri = (Get-ItemProperty -LiteralPath $key -Name 'RPSessionInterval' -ErrorAction Stop).RPSessionInterval; if ([int]$ri -eq 0) { $srOff = $true } } catch {}
 try { Enable-ComputerRestore -Drive ($TassoSysDrive + '\') -ErrorAction Stop } catch {}
+# "L'ho accesa" solo se adesso è accesa davvero (un criterio dell'azienda può impedirlo).
+if ($srOff) { try { $ri = (Get-ItemProperty -LiteralPath $key -Name 'RPSessionInterval' -ErrorAction Stop).RPSessionInterval; if ([int]$ri -eq 0) { $srOff = $false } } catch { $srOff = $false } }
 if ($srOff) { Say 'Protezione sistema era spenta su questo PC: l''ho accesa per poter fare il backup (usa un po'' di spazio del disco). Se la vuoi spenta: Pannello di controllo > Sistema > Protezione sistema > Configura > Disattiva.' }
 $oldFreq = (Get-ItemProperty -Path $key -Name 'SystemRestorePointCreationFrequency' -ErrorAction SilentlyContinue).SystemRestorePointCreationFrequency
 # Mi segno il valore di prima: se il passaggio viene interrotto, Tasso lo rimette al prossimo avvio.

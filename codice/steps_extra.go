@@ -220,7 +220,7 @@ if ($bad -eq 0) { Say 'Il PC è stabile negli ultimi 30 giorni.' }
 $rec = Join-Path $env:APPDATA 'Microsoft\Windows\Recent'
 $n = 0
 if (Test-Path -LiteralPath $rec) {
-  Get-ChildItem -LiteralPath $rec -File -Filter '*.lnk' -Force -ErrorAction SilentlyContinue | ForEach-Object { Remove-Item -LiteralPath $_.FullName -Force -ErrorAction SilentlyContinue; $n++ }
+  Get-ChildItem -LiteralPath $rec -File -Filter '*.lnk' -Force -ErrorAction SilentlyContinue | ForEach-Object { Remove-Item -LiteralPath $_.FullName -Force -ErrorAction SilentlyContinue; if (-not (Test-Path -LiteralPath $_.FullName)) { $n++ } }
 }
 Say ('File recenti: tolti ' + $n + ' collegamenti dall''elenco.')
 foreach ($k in @('HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\RunMRU', 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\TypedPaths')) {

@@ -86,3 +86,31 @@ func TestDisinstallatoreScrivibileNonDaAmministratore(t *testing.T) {
 		t.Error("un disinstallatore in una cartella scrivibile non deve partire da amministratore")
 	}
 }
+
+// K4 (fase 2): il Cestino intero si svuota solo da "Svuota tutto il Cestino" (con la conferma della
+// finestra); nessun altro passaggio lo svuota.
+func TestCestinoInteroSoloConConferma(t *testing.T) {
+	for _, s := range allSteps {
+		if s.ID == "recycle_all" {
+			continue
+		}
+		if strings.Contains(s.Script, "Clear-RecycleBin") || strings.Contains(s.Script, "SHEmptyRecycleBin") {
+			t.Errorf("%s: solo recycle_all può svuotare tutto il Cestino", s.ID)
+		}
+	}
+}
+
+// K4 (fase 2): i messaggi dicono il vero. "Protezione sistema ... l'ho accesa" solo se adesso è accesa;
+// "tolti N collegamenti" conta solo quelli spariti; la cache di Office "svuotata" solo se Tasso non ha rifiutato.
+func TestMessaggiVeriPulizia(t *testing.T) {
+	ricontrollo := "if ([int]$ri -eq 0) { $srOff = $false }"
+	if !strings.Contains(passo(t, "backup").Script, ricontrollo) || !strings.Contains(nvRestoreScript, ricontrollo) {
+		t.Error("dopo Enable-ComputerRestore va ricontrollato che Protezione sistema sia accesa davvero")
+	}
+	if !strings.Contains(passo(t, "privacy_traces").Script, "if (-not (Test-Path -LiteralPath $_.FullName)) { $n++ }") {
+		t.Error("i file recenti tolti si contano solo se sono spariti")
+	}
+	if !strings.Contains(passo(t, "of_office_addins").Script, "if ($TassoRifiuto)") {
+		t.Error("la cache dei componenti di Office si dice svuotata solo se Tasso non ha rifiutato")
+	}
+}
