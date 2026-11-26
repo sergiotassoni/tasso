@@ -346,7 +346,7 @@ func (l *lavoroEstrai) flussoTar(tipo Tipo, percorso string) error {
 			return l.resto(l.erroreLettura(err))
 		}
 		switch h.Typeflag {
-		case tar.TypeReg, tar.TypeRegA, tar.TypeGNUSparse:
+		case tar.TypeReg, tar.TypeRegA, tar.TypeCont, tar.TypeGNUSparse: // TypeCont: "file contiguo", un file normale
 			if err := l.d.creaFile(h.Name, tr, h.ModTime); err != nil {
 				if !l.soloQuesto(err) {
 					return l.erroreLettura(err)
