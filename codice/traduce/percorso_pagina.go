@@ -122,11 +122,19 @@ func controllaCompleta(img *image.RGBA, b *Blocco, tutte []Blocco) string {
 		b.Tenuta = true // resta tradotta solo per la decisione già presa
 	}
 	coloriBlocco(img, b)
+	// Già tradotta e confermata con lo stesso testo esatto: una parola accanto non letta in questo
+	// fotogramma non la fa tornare in inglese (regola di Sergio 26/11: niente salti italiano/inglese).
 	if m := rigaVicinaMancante(img, *b, tutte); m != "" {
-		return m
+		if !b.GiaMostrata {
+			return m
+		}
+		b.Tenuta = true
 	}
 	if b.Righe <= 1 && b.Affid != letturaCatalog && scrittaContinuaTra(img, *b, tutte) && !fraseConPocoAccanto(img, *b, tutte) {
-		return "riga incompleta (parola accanto non letta)"
+		if !b.GiaMostrata {
+			return "riga incompleta (parola accanto non letta)"
+		}
+		b.Tenuta = true
 	}
 	// una parola maiuscola del catalogo con lettere scure su un fondo più chiaro e altre lettere
 	// uguali accanto non lette ("CLUMP [WEIGHT]" sulla targa gialla di una macchina): è una

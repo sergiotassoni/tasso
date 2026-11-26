@@ -121,7 +121,7 @@ func segnaGiaMostrate(f *traduzioniFisse, c *confermeDecisione, coppia string, b
 // La decisione tenuta scade (collaudo 26/11, giro 2): una scritta del mondo tradotta per sbaglio
 // in un fotogramma non deve restare tradotta per tutta la sessione. Regola: la decisione si tiene
 // solo se la scritta è stata tradotta e mostrata "da sola" (senza la decisione tenuta, Blocco.Tenuta)
-// in almeno confermeMinime fotogrammi, e l'ultima volta da meno di scadenzaDecisione. I fotogrammi
+// in almeno confermeMinime fotogrammi; da lì resta per tutta la partita (26/11 12:22, Sergio). I fotogrammi
 // in cui resta tradotta solo grazie alla decisione tenuta non la rinnovano: passato il tempo, la
 // scritta si giudica di nuovo da sola (e se è del mondo torna in inglese).
 //
@@ -195,8 +195,11 @@ func (c *confermeDecisione) valida(coppia, testo string, adesso time.Time) bool 
 	if !ok || x.n < confermeMinime {
 		return false
 	}
-	// scade solo se sono passati sia il tempo sia i giri mostrati (schermata ferma: si tiene)
-	return adesso.Sub(x.ultima) <= scadenzaDecisione || c.giri-x.giro <= scadenzaGiri
+	// Regola di Sergio (26/11 12:22): una scritta tradotta e confermata resta tradotta per tutta la
+	// partita, uguale, anche quando ci ritorni: niente salti tra italiano e inglese. La decisione
+	// non scade più col tempo; si azzera solo quando cambia il gioco (con le traduzioni fisse).
+	_ = adesso
+	return true
 }
 
 // letturaPiuGiusta: la lettura a è quella buona e b quella sbagliata della stessa scritta: a è già

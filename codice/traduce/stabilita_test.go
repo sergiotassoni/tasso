@@ -271,9 +271,9 @@ func TestCollaudoDecisioneScade(t *testing.T) {
 		c.segna("en>it", []Blocco{tenuta}, []Blocco{tenuta}, ora)
 		c.segna("en>it", []Blocco{cartello}, nil, ora) // dal fotogramma prima: non fresca
 	}
-	segnaGiaMostrate(f, c, "en>it", bl, t0.Add(21*time.Second))
-	if bl[0].GiaMostrata {
-		t.Error("senza conferme da sola per più di 20 s: la decisione deve scadere")
+	segnaGiaMostrate(f, c, "en>it", bl, t0.Add(10*time.Minute))
+	if !bl[0].GiaMostrata {
+		t.Error("confermata due volte: resta tradotta per tutta la partita (regola di Sergio, niente salti)")
 	}
 	// controllaCompleta segna Tenuta quando passa solo per la decisione (lettura incerta)
 	b := Blocco{Testo: "Early Morning", Affid: letturaDubbia, GiaMostrata: true}
@@ -349,12 +349,12 @@ func TestCollaudoDecisioneSchermataFerma(t *testing.T) {
 	if !bl[0].GiaMostrata {
 		t.Fatal("schermata ferma: la decisione non deve scadere solo per il tempo")
 	}
-	// ma con lo schermo che si muove (tanti giri mostrati senza conferme da sola) scade
+	// e neanche con lo schermo che si muove: resta tradotta per tutta la partita (regola di Sergio)
 	for k := 0; k < scadenzaGiri+1; k++ {
 		c.segna("en>it", nil, nil, t0.Add(time.Duration(91+k)*time.Second))
 	}
 	segnaGiaMostrate(f, c, "en>it", bl, t0.Add(150*time.Second))
-	if bl[0].GiaMostrata {
-		t.Fatal("tanti giri senza conferme e più di 20 s: la decisione deve scadere")
+	if !bl[0].GiaMostrata {
+		t.Fatal("confermata: resta tradotta anche dopo tanti giri (niente salti italiano/inglese)")
 	}
 }
