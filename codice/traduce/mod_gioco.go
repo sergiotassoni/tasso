@@ -122,6 +122,9 @@ func leggiManifesto(dirApp, chiave string) (ManifestoMod, bool) {
 
 func scriviManifesto(dirApp, chiave string, m ManifestoMod) error {
 	d := cartellaCopie(dirApp, chiave)
+	if !copieSenzaLink(dirApp, chiave, "manifesto.json.tmp") || !copieSenzaLink(dirApp, chiave, "manifesto.json") {
+		return errors.New("la cartella delle copie di sicurezza porta altrove (link o giunzione): per sicurezza non scrivo")
+	}
 	if err := os.MkdirAll(d, 0o755); err != nil {
 		return err
 	}
@@ -169,6 +172,10 @@ func estraiInGioco(zipPath, cartella, copie string, m *ManifestoMod, inCima map[
 		}
 		rel, _ := filepath.Rel(cartella, dest)
 		primo := strings.Split(filepath.ToSlash(rel), "/")[0]
+		if !senzaLink(cartella, rel) || !senzaLink(copie, filepath.Join("originali", rel)) {
+			// una giunzione nel gioco (o nelle copie) farebbe scrivere Tasso da amministratore altrove
+			return fmt.Errorf("nel percorso di %s c'è un link o una giunzione: per sicurezza non lo tocco", rel)
+		}
 		if _, err := os.Stat(dest); err == nil {
 			// esiste già: se l'ho messo io con lo zip prima va bene, altrimenti copia di sicurezza
 			if !inCima[primo] {
@@ -217,6 +224,16 @@ func scriviDaZip(f *zip.File, dest string) error {
 }
 
 func copiaFile(da, a string) error {
+	// leggo solo un file normale (un link farebbe leggere a Tasso da amministratore un file qualsiasi)
+	// e non scrivo sopra un link: il file nuovo resta dove deve stare
+	if fi, err := os.Lstat(da); err != nil {
+		return err
+	} else if !fi.Mode().IsRegular() {
+		return fmt.Errorf("%s non è un file normale", da)
+	}
+	if fi, err := os.Lstat(a); err == nil && !fi.Mode().IsRegular() {
+		return fmt.Errorf("%s non è un file normale", a)
+	}
 	if err := os.MkdirAll(filepath.Dir(a), 0o755); err != nil {
 		return err
 	}
@@ -301,6 +318,9 @@ func InstallaModGioco(dirApp, nome, cartella, chiave string, zips []string, da, 
 		return ManifestoMod{}, errors.New("la traduzione dentro il gioco è già installata")
 	}
 	copie := cartellaCopie(dirApp, chiave)
+	if !copieSenzaLink(dirApp, chiave, "originali") {
+		return ManifestoMod{}, errors.New("la cartella delle copie di sicurezza porta altrove (link o giunzione): per sicurezza non lo tocco")
+	}
 	tok := make([]byte, 16)
 	_, _ = rand.Read(tok)
 	m := ManifestoMod{Gioco: nome, Cartella: cartella, Tipo: tipo, Exe: exe, Quando: time.Now(), Token: hex.EncodeToString(tok), Lingue: [2]string{da, a}}
@@ -321,6 +341,10 @@ func InstallaModGioco(dirApp, nome, cartella, chiave string, zips []string, da, 
 		}
 	}
 	cfg := filepath.Join(cartella, "BepInEx", "config")
+	if !senzaLink(cartella, filepath.Join("BepInEx", "config", "AutoTranslatorConfig.ini")) || !senzaLink(cartella, filepath.Join("BepInEx", "config", "BepInEx.cfg")) {
+		_ = TogliModGioco(dirApp, chiave)
+		return ManifestoMod{}, errors.New("nella cartella BepInEx c'è un link o una giunzione: per sicurezza non lo tocco")
+	}
 	_ = os.MkdirAll(cfg, 0o755)
 	if err := os.WriteFile(filepath.Join(cfg, "AutoTranslatorConfig.ini"), []byte(configXUnity(chiave, m.Token, da, a)), 0o644); err != nil {
 		_ = TogliModGioco(dirApp, chiave)
@@ -329,7 +353,7 @@ func InstallaModGioco(dirApp, nome, cartella, chiave string, zips []string, da, 
 	_ = os.WriteFile(filepath.Join(cfg, "BepInEx.cfg"), []byte(configBepInEx), 0o644)
 	// traduzioni già fatte in una prova precedente: le rimetto, così non si riparte da zero
 	salvate := filepath.Join(copie, "traduzioni")
-	if _, err := os.Stat(salvate); err == nil {
+	if _, err := os.Stat(salvate); err == nil && senzaLink(copie, "traduzioni") && senzaLink(cartella, filepath.Join("BepInEx", "Translation")) {
 		_ = copiaCartella(salvate, filepath.Join(cartella, "BepInEx", "Translation"))
 	}
 	return m, scriviManifesto(dirApp, chiave, m)
@@ -343,6 +367,9 @@ func TogliModGioco(dirApp, chiave string) error {
 		return nil
 	}
 	copie := cartellaCopie(dirApp, chiave)
+	if !copieSenzaLink(dirApp, chiave, "") {
+		return errors.New("la cartella delle copie di sicurezza porta altrove (link o giunzione): per sicurezza non tocco niente")
+	}
 	if m.Tipo == "unreal" {
 		if err := togliModUnreal(m); err != nil {
 			return err
@@ -356,7 +383,7 @@ func TogliModGioco(dirApp, chiave string) error {
 	if !cartellaModValida(m.Cartella) {
 		return errors.New("la cartella nell'elenco dei file aggiunti non è un gioco Unity: per sicurezza non tocco niente")
 	}
-	if tr := filepath.Join(m.Cartella, "BepInEx", "Translation"); esisteVoce(tr) && senzaLink(m.Cartella, filepath.Join("BepInEx", "Translation")) {
+	if tr := filepath.Join(m.Cartella, "BepInEx", "Translation"); esisteVoce(tr) && senzaLink(m.Cartella, filepath.Join("BepInEx", "Translation")) && senzaLink(copie, "traduzioni") {
 		_ = os.RemoveAll(filepath.Join(copie, "traduzioni"))
 		_ = copiaCartella(tr, filepath.Join(copie, "traduzioni"))
 	}
@@ -370,6 +397,9 @@ func TogliModGioco(dirApp, chiave string) error {
 			n := v.Name()
 			if strings.HasPrefix(n, "XUnity.") || strings.HasPrefix(strings.ToLower(n), "readme") {
 				continue
+			}
+			if !senzaLink(copie, filepath.Join("plugin-utente", sub, n)) {
+				continue // la copia porta altrove: un file del gioco finirebbe in Windows o in Programmi
 			}
 			_ = os.MkdirAll(filepath.Join(copie, "plugin-utente", sub), 0o755)
 			_ = os.Rename(filepath.Join(m.Cartella, "BepInEx", sub, n), filepath.Join(copie, "plugin-utente", sub, n))
@@ -388,7 +418,7 @@ func TogliModGioco(dirApp, chiave string) error {
 		if filepath.IsAbs(s) || strings.Contains(s, "..") || strings.Contains(s, ":") || fileDelGiocoUnity(primoPezzo(s)) || fileDelGiocoUnity(filepath.Base(s)) {
 			continue
 		}
-		if !senzaLink(m.Cartella, s) {
+		if !senzaLink(m.Cartella, s) || !senzaLink(copie, filepath.Join("originali", s)) {
 			errori = append(errori, s) // un pezzo del percorso porta fuori dal gioco: non scrivo
 			continue
 		}
@@ -423,6 +453,12 @@ func senzaLink(base, rel string) bool {
 	return true
 }
 
+// copieSenzaLink: come senzaLink per la cartella delle copie di sicurezza (dentro dirApp, che sta nei
+// dati dell'utente): copie-giochi, la cartella del gioco e rel non devono portare altrove.
+func copieSenzaLink(dirApp, chiave, rel string) bool {
+	return senzaLink(dirApp, filepath.Join("copie-giochi", chiave, rel))
+}
+
 // cartellaModValida: la cartella di un manifesto si tocca solo se è un percorso completo e un gioco
 // Unity vero (TipoUnity: un .exe con accanto la sua cartella _Data). Un programma normale non può
 // creare un .exe dentro Windows, Programmi o la radice del disco.
@@ -453,6 +489,12 @@ func copiaCartella(da, a string) error {
 			return err
 		}
 		rel, _ := filepath.Rel(da, p)
+		if !info.IsDir() && !info.Mode().IsRegular() {
+			return nil // link, giunzione o altro: non lo seguo
+		}
+		if !senzaLink(a, rel) {
+			return fmt.Errorf("nel percorso di %s c'è un link o una giunzione", rel)
+		}
 		if info.IsDir() {
 			return os.MkdirAll(filepath.Join(a, rel), 0o755)
 		}
