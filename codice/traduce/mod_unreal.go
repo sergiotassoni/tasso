@@ -426,6 +426,9 @@ func TraduciLocres(files []LocresDaTradurre, traduci func(string) (string, bool)
 // Restituisce il percorso relativo alla cartella del gioco e se ha creato lui ~mods.
 func ScriviModUnreal(cartella, paks string, files []LocresDaTradurre) (rel string, creataMods bool, err error) {
 	mods := filepath.Join(paks, "~mods")
+	if r, e := filepath.Rel(cartella, filepath.Join(mods, nomeModUnreal)); e != nil || strings.HasPrefix(r, "..") || !senzaLink(cartella, r) || !senzaLink(cartella, r+".tmp") {
+		return "", false, errors.New("nel percorso della mod c'è un link o una giunzione: per sicurezza non scrivo")
+	}
 	if _, e := os.Stat(mods); os.IsNotExist(e) {
 		if err = os.MkdirAll(mods, 0o755); err != nil {
 			return "", false, err
@@ -481,6 +484,9 @@ func togliModUnreal(m ManifestoMod) error {
 			continue
 		}
 		p := filepath.Join(m.Cartella, a)
+		if !senzaLink(m.Cartella, a) || !senzaLink(m.Cartella, a+".tmp") {
+			return fmt.Errorf("nel percorso di %s c'è un link o una giunzione: per sicurezza non lo tocco", nomeModUnreal)
+		}
 		_ = os.Remove(p + ".tmp") // rimasto se Tasso si era chiuso mentre lo scriveva
 		if err := os.Remove(p); err != nil && !os.IsNotExist(err) {
 			return fmt.Errorf("non sono riuscito a togliere %s (il gioco è aperto?)", nomeModUnreal)
