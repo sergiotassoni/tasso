@@ -73,8 +73,51 @@ func conIngleseAccanto(p Blocco, inglesi []Blocco) bool {
 		if p.GiaMostrata && len(strings.Fields(e.Testo)) <= 2 {
 			continue
 		}
+		if p.GiaMostrata && titoloSopraConfermato(p, e) && !stessaRigaSchermo(p, e) {
+			continue
+		}
 		if stessaFraseSchermo(p, e) {
 			return true
+		}
+	}
+	return false
+}
+
+// titoloSopraConfermato: p, già tradotta e confermata da sola con lo stesso testo (GiaMostrata), è
+// una scritta corta (al massimo 3 parole) sopra e che non chiede un seguito: un titolo o un'etichetta
+// ("Early Morning" sopra "t Head to the faculty office J" letta male, banco 19:22 f.46). La riga
+// sotto in inglese non la fa tornare in inglese (regola di Sergio 26/11: niente salti italiano/
+// inglese). Contano ancora i riquadri accavallati e la stessa riga (stessaRigaSchermo): lì sì che
+// si vedrebbe mezza riga tradotta. Una prima riga lunga di un dialogo (4+ parole) non passa di qui.
+func titoloSopraConfermato(p, e Blocco) bool {
+	t := strings.TrimSpace(p.Testo)
+	if righeSchermo(p) != 1 || len(strings.Fields(t)) > 3 || p.Y+p.H > e.Y+max(1, p.H/4) {
+		return false
+	}
+	return !strings.HasSuffix(t, ",") && !strings.HasSuffix(t, "-") && !strings.HasSuffix(t, "—") && !chiedeSeguito(t)
+}
+
+// stessaRigaSchermo: la parte di stessaFraseSchermo senza la riga sopra o sotto: riquadri
+// accavallati o pezzi della stessa linea.
+func stessaRigaSchermo(p, e Blocco) bool {
+	rp := image.Rect(p.X, p.Y, p.X+p.W, p.Y+p.H)
+	re := image.Rect(e.X, e.Y, e.X+e.W, e.Y+e.H)
+	if in := rp.Intersect(re); !in.Empty() {
+		ae := re.Dx() * re.Dy()
+		if in.Dx()*in.Dy()*10 < ae*9 && in.Dx()*in.Dy()*5 >= min(ae, rp.Dx()*rp.Dy()) {
+			return true
+		}
+	}
+	if righeSchermo(p) == 1 && righeSchermo(e) == 1 && lineaSimile(p, e) {
+		return stessaLineaSchermo(p, e)
+	}
+	if righeSchermo(p) > 1 || righeSchermo(e) > 1 {
+		for _, rp := range righeDelBlocco(p) {
+			for _, re := range righeDelBlocco(e) {
+				if lineaSimile(rp, re) && stessaLineaSchermo(rp, re) {
+					return true
+				}
+			}
 		}
 	}
 	return false
