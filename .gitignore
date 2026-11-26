@@ -1,1 +1,6 @@
 codice/prove/
+
+# schermate di confronto e foto delle prove (non vanno nel repository; prove-anteprime/lingue/ resta)
+prove-anteprime/*.png
+prove-anteprime/*.gif
+prove-traduzione/

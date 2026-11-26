@@ -44,6 +44,12 @@ var (
 	User32SetWindowPos       = user32.NewProc("SetWindowPos")
 	User32IsDialogMessage    = user32.NewProc("IsDialogMessage")
 	User32GetAncestor        = user32.NewProc("GetAncestor")
+	// modifiche di Tasso: attesa con scadenza nell'avvio di WebView2, finestra fuori dallo schermo
+	User32PeekMessageW                = user32.NewProc("PeekMessageW")
+	User32MsgWaitForMultipleObjectsEx = user32.NewProc("MsgWaitForMultipleObjectsEx")
+	User32MonitorFromRect             = user32.NewProc("MonitorFromRect")
+	User32GetWindowRect               = user32.NewProc("GetWindowRect")
+	User32SetWindowDisplayAffinity    = user32.NewProc("SetWindowDisplayAffinity")
 )
 
 const (

@@ -61,8 +61,7 @@ func init() {
 	// facevano niente: la funzione c'era ma nessuno la chiamava.
 	leggiArgomentiCollaudo(os.Args)
 	salvaAnteprime = true
-	cartellaWebView = "WebView2-prova"
-	nomeUnaCopia = "Local\\TassoTraduceProva"
+	cartellaWebView = "WebView2-prova" // il motore delle prove usa una cartella dati sua (Prepara)
 }
 
 func avviaCollaudoSeServe() {
@@ -615,3 +614,18 @@ func salvaPNG(img image.Image, percorso string) error {
 	defer f.Close()
 	return png.Encode(f, img)
 }
+
+// finestraErrore / finestraInfo: messaggi delle prove (solo Tasso-collaudo).
+func finestraErrore(testo string) {
+	t, _ := windows.UTF16PtrFromString(testo)
+	c, _ := windows.UTF16PtrFromString("Tasso Traduce")
+	user32.NewProc("MessageBoxW").Call(0, uintptr(unsafePtr(t)), uintptr(unsafePtr(c)), 0x10)
+}
+
+func finestraInfo(testo string) {
+	t, _ := windows.UTF16PtrFromString(testo)
+	c, _ := windows.UTF16PtrFromString("Tasso Traduce")
+	user32.NewProc("MessageBoxW").Call(0, uintptr(unsafePtr(t)), uintptr(unsafePtr(c)), 0x40)
+}
+
+func unsafePtr(p *uint16) unsafe.Pointer { return unsafe.Pointer(p) }

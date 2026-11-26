@@ -953,8 +953,26 @@ var idTasti = map[string]uintptr{
 func registraTasti(h uintptr, t map[string]uint32) []string {
 	var falliti []string
 	presi := map[uint32]uintptr{} // codice del tasto -> id, per il gancio della tastiera
-	for nome, id := range idTasti {
+	for _, id := range idTasti {
 		pUnregisterHotKey.Call(h, id)
+	}
+	// Traduzione spenta (resta solo il tasto che la accende, F7): niente tasto rapido di tutto
+	// Windows. Solo il gancio della tastiera, che lo prende quando davanti c'è un gioco (anche
+	// a schermo intero non conosciuto); negli altri programmi F7 resta loro (Word, browser…:
+	// prima premerlo sul desktop accendeva la traduzione e apriva il motore, collaudo 26/11).
+	if soloTastoNelGioco(t) {
+		for nome, id := range idTasti {
+			if c := t[nome]; c != 0 {
+				presi[c] = id
+			}
+		}
+		aggiornaGancio(h, presi)
+		if gancioOra.Load() != nil {
+			return nil
+		}
+		presi = map[uint32]uintptr{} // niente gancio: si torna al tasto rapido normale
+	}
+	for nome, id := range idTasti {
 		c := t[nome]
 		if c == 0 {
 			continue
@@ -969,6 +987,17 @@ func registraTasti(h uintptr, t map[string]uint32) []string {
 	aggiornaGancio(h, presi)
 	sort.Strings(falliti)
 	return falliti
+}
+
+// soloTastoNelGioco: i tasti sono solo quello che accende la traduzione (traduzione spenta).
+func soloTastoNelGioco(t map[string]uint32) bool {
+	n := 0
+	for _, c := range t {
+		if c != 0 {
+			n++
+		}
+	}
+	return n == 1 && t["pagina"] != 0 && !acceso.Load()
 }
 
 // ---------------------------------------------------------------- tasti che il gioco non deve vedere
@@ -1149,7 +1178,9 @@ func seguiGiocoDavanti(g *istanzaGancio, ferma <-chan struct{}) {
 	for {
 		fg, _, _ := pGetForeground.Call()
 		if fg != ultimo || time.Since(quando) > 5*time.Second {
-			ultimo, quando, gioco = fg, time.Now(), finestraDiGioco(fg)
+			// un gioco riconosciuto, o una finestra che la traduzione considera un gioco (anche a
+			// schermo intero non conosciuto): lì i tasti di Tasso sono di Tasso
+			ultimo, quando, gioco = fg, time.Now(), finestraDiGioco(fg) || finestraPerTradurre(fg)
 			ricordaGioco(fg, gioco, quando)
 		}
 		if gioco {
@@ -1314,9 +1345,10 @@ func nomiTasti(funzioni []string, t map[string]uint32) string {
 }
 
 // nascondiMotore porta la finestra del motore fuori dallo schermo, senza icona nella barra
-// delle applicazioni e senza che prenda il fuoco. Per sicurezza è anche trasparente ai clic e
-// invisibile (LAYERED con alfa 0 + TRANSPARENT): se Windows o WebView2 la riportassero sullo
-// schermo, non coprirebbe niente e non si prenderebbe i clic. Si può chiamare più volte.
+// delle applicazioni e senza che prenda il fuoco, ed esclusa dalle catture (l'OCR non la legge
+// mai). NON è LAYERED/TRANSPARENT: con LAYERED WebView2 non parte. Se Windows la riporta su
+// uno schermo (monitor, risoluzione, DPI) la rimette fuori la finestra stessa (FuoriSchermo in
+// go-webview2). Si può chiamare più volte.
 func nascondiMotore(h uintptr) {
 	if h == 0 {
 		return
@@ -1340,7 +1372,8 @@ func nascondiMotore(h uintptr) {
 		// la barra delle applicazioni toglie il pulsante solo se la finestra si nasconde e riappare
 		pShowWindow.Call(h, 0) // SW_HIDE
 	}
-	pShowWindow.Call(h, 4) // SW_SHOWNOACTIVATE: visibile per WebView2, ma fuori dallo schermo
+	pShowWindow.Call(h, 4)         // SW_SHOWNOACTIVATE: visibile per WebView2, ma fuori dallo schermo
+	pSetDisplayAffin.Call(h, 0x11) // WDA_EXCLUDEFROMCAPTURE
 }
 
 // nomeTasto: il tasto scelto adesso per una funzione, da scrivere nei messaggi (es. "F7").

@@ -4,10 +4,12 @@
 package edge
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"path/filepath"
 	"sync/atomic"
+	"time"
 	"unsafe"
 
 	"github.com/jchv/go-webview2/internal/w32"
@@ -27,6 +29,14 @@ type Chromium struct {
 	webResourceRequested  *iCoreWebView2WebResourceRequestedEventHandler
 	acceleratorKeyPressed *ICoreWebView2AcceleratorKeyPressedEventHandler
 	navigationCompleted   *ICoreWebView2NavigationCompletedEventHandler
+	processFailed         *ICoreWebView2ProcessFailedEventHandler
+
+	// Modifiche di Tasso: niente log.Fatal (chiudeva TUTTO Tasso se WebView2 non partiva).
+	// Errore: perché l'avvio non è riuscito (vuoto = riuscito). Scadenza: quanto aspettare al
+	// massimo che WebView2 crei ambiente e controller (0 = senza limite, come prima).
+	Errore      string
+	Scadenza    time.Duration
+	abbandonato int32 // Embed è tornato con un errore: le risposte che arrivano dopo si ignorano
 
 	environment *ICoreWebView2Environment
 
@@ -42,6 +52,9 @@ type Chromium struct {
 	WebResourceRequestedCallback func(request *ICoreWebView2WebResourceRequest, args *ICoreWebView2WebResourceRequestedEventArgs)
 	NavigationCompletedCallback  func(sender *ICoreWebView2, args *ICoreWebView2NavigationCompletedEventArgs)
 	AcceleratorKeyCallback       func(uint) bool
+	// ProcessFailedCallback (Tasso): un processo di WebView2 è caduto (tipo: 0 browser, 1 pagina,
+	// 2 pagina bloccata, altri: processi secondari). Gira nel filo della finestra.
+	ProcessFailedCallback func(tipo uint32)
 }
 
 func NewChromium() *Chromium {
@@ -64,6 +77,7 @@ func NewChromium() *Chromium {
 	e.webResourceRequested = newICoreWebView2WebResourceRequestedEventHandler(e)
 	e.acceleratorKeyPressed = newICoreWebView2AcceleratorKeyPressedEventHandler(e)
 	e.navigationCompleted = newICoreWebView2NavigationCompletedEventHandler(e)
+	e.processFailed = newICoreWebView2ProcessFailedEventHandler(e)
 	e.permissions = make(map[CoreWebView2PermissionKind]CoreWebView2PermissionState)
 
 	return e
@@ -86,28 +100,50 @@ func (e *Chromium) Embed(hwnd uintptr) bool {
 
 	res, err := createCoreWebView2EnvironmentWithOptions(nil, windows.StringToUTF16Ptr(dataPath), 0, e.envCompleted)
 	if err != nil {
+		e.Errore = fmt.Sprintf("WebView2Loader: %v", err)
 		log.Printf("Error calling Webview2Loader: %v", err)
 		return false
 	} else if res != 0 {
+		e.Errore = fmt.Sprintf("CreateCoreWebView2EnvironmentWithOptions: %08x", res)
 		log.Printf("Result: %08x", res)
 		return false
 	}
+	// Tasso: si aspetta la risposta di WebView2 girando i messaggi, ma con una scadenza (prima
+	// GetMessage senza limite: se WebView2 non rispondeva mai, Tasso Traduce restava bloccato).
+	var fine time.Time
+	if e.Scadenza > 0 {
+		fine = time.Now().Add(e.Scadenza)
+	}
 	var msg w32.Msg
-	for {
-		if atomic.LoadUintptr(&e.inited) != 0 {
-			break
+	for atomic.LoadUintptr(&e.inited) == 0 {
+		if !fine.IsZero() && time.Now().After(fine) {
+			atomic.StoreInt32(&e.abbandonato, 1)
+			e.Errore = fmt.Sprintf("WebView2 non ha risposto entro %v", e.Scadenza)
+			return false
 		}
-		r, _, _ := w32.User32GetMessageW.Call(
-			uintptr(unsafe.Pointer(&msg)),
-			0,
-			0,
-			0,
-		)
-		if r == 0 {
-			break
+		// MWMO_INPUTAVAILABLE, QS_ALLINPUT, al massimo 100 ms per volta
+		_, _, _ = w32.User32MsgWaitForMultipleObjectsEx.Call(0, 0, 100, 0x04FF, 0x4)
+		for atomic.LoadUintptr(&e.inited) == 0 {
+			r, _, _ := w32.User32PeekMessageW.Call(uintptr(unsafe.Pointer(&msg)), 0, 0, 0, 1) // PM_REMOVE
+			if r == 0 {
+				break
+			}
+			if msg.Message == w32.WMQuit {
+				// il filo deve finire: rimetto il messaggio per il giro di Run e mi fermo
+				_, _, _ = w32.User32PostQuitMessage.Call(msg.WParam)
+				atomic.StoreInt32(&e.abbandonato, 1)
+				e.Errore = "chiusura durante l'avvio di WebView2"
+				return false
+			}
+			_, _, _ = w32.User32TranslateMessage.Call(uintptr(unsafe.Pointer(&msg)))
+			_, _, _ = w32.User32DispatchMessageW.Call(uintptr(unsafe.Pointer(&msg)))
 		}
-		_, _, _ = w32.User32TranslateMessage.Call(uintptr(unsafe.Pointer(&msg)))
-		_, _, _ = w32.User32DispatchMessageW.Call(uintptr(unsafe.Pointer(&msg)))
+	}
+	if e.Errore != "" || e.webview == nil {
+		if e.Errore == "" {
+			e.Errore = "WebView2 non ha creato la pagina"
+		}
+		return false
 	}
 	e.Init("window.external={invoke:s=>window.chrome.webview.postMessage(s)}")
 	return true
@@ -137,8 +173,8 @@ func (e *Chromium) Init(script string) {
 
 func (e *Chromium) Eval(script string) {
 	_script, err := windows.UTF16PtrFromString(script)
-	if err != nil {
-		log.Fatal(err)
+	if err != nil || e.webview == nil {
+		return // Tasso: uno script con un carattere NUL si scarta (prima log.Fatal chiudeva Tasso)
 	}
 
 	_, _, _ = e.webview.vtbl.ExecuteScript.Call(
@@ -169,23 +205,39 @@ func (e *Chromium) Release() uintptr {
 }
 
 func (e *Chromium) EnvironmentCompleted(res uintptr, env *ICoreWebView2Environment) uintptr {
-	if int64(res) < 0 {
-		log.Fatalf("Creating environment failed with %08x", res)
+	if atomic.LoadInt32(&e.abbandonato) != 0 {
+		return 0 // Embed ha già rinunciato (scadenza): niente controller su una finestra chiusa
+	}
+	// Tasso: l'HRESULT è a 32 bit (con int64 un errore come 0x8007139F sembrava positivo) e un
+	// errore non chiude più tutto il programma: Embed restituisce false con il motivo.
+	if int32(res) < 0 || env == nil {
+		e.Errore = fmt.Sprintf("ambiente WebView2 non creato (%08x)", uint32(res))
+		atomic.StoreUintptr(&e.inited, 1)
+		return 0
 	}
 	_, _, _ = env.vtbl.AddRef.Call(uintptr(unsafe.Pointer(env)))
 	e.environment = env
 
-	_, _, _ = env.vtbl.CreateCoreWebView2Controller.Call(
+	r, _, _ := env.vtbl.CreateCoreWebView2Controller.Call(
 		uintptr(unsafe.Pointer(env)),
 		e.hwnd,
 		uintptr(unsafe.Pointer(e.controllerCompleted)),
 	)
+	if int32(r) < 0 {
+		e.Errore = fmt.Sprintf("controller WebView2 non creato (%08x)", uint32(r))
+		atomic.StoreUintptr(&e.inited, 1)
+	}
 	return 0
 }
 
 func (e *Chromium) CreateCoreWebView2ControllerCompleted(res uintptr, controller *ICoreWebView2Controller) uintptr {
-	if int64(res) < 0 {
-		log.Fatalf("Creating controller failed with %08x", res)
+	if atomic.LoadInt32(&e.abbandonato) != 0 {
+		return 0
+	}
+	if int32(res) < 0 || controller == nil {
+		e.Errore = fmt.Sprintf("controller WebView2 non creato (%08x)", uint32(res))
+		atomic.StoreUintptr(&e.inited, 1)
+		return 0
 	}
 	_, _, _ = controller.vtbl.AddRef.Call(uintptr(unsafe.Pointer(controller)))
 	e.controller = controller
@@ -195,6 +247,11 @@ func (e *Chromium) CreateCoreWebView2ControllerCompleted(res uintptr, controller
 		uintptr(unsafe.Pointer(controller)),
 		uintptr(unsafe.Pointer(&e.webview)),
 	)
+	if e.webview == nil {
+		e.Errore = "WebView2 non ha dato la pagina"
+		atomic.StoreUintptr(&e.inited, 1)
+		return 0
+	}
 	_, _, _ = e.webview.vtbl.AddRef.Call(
 		uintptr(unsafe.Pointer(e.webview)),
 	)
@@ -220,6 +277,11 @@ func (e *Chromium) CreateCoreWebView2ControllerCompleted(res uintptr, controller
 	)
 
 	_ = e.controller.AddAcceleratorKeyPressed(e.acceleratorKeyPressed, &token)
+	_, _, _ = e.webview.vtbl.AddProcessFailed.Call( // Tasso: sapere se la pagina o il browser cadono
+		uintptr(unsafe.Pointer(e.webview)),
+		uintptr(unsafe.Pointer(e.processFailed)),
+		uintptr(unsafe.Pointer(&token)),
+	)
 
 	atomic.StoreUintptr(&e.inited, 1)
 
@@ -281,7 +343,8 @@ func (e *Chromium) PermissionRequested(_ *ICoreWebView2, args *iCoreWebView2Perm
 func (e *Chromium) WebResourceRequested(sender *ICoreWebView2, args *ICoreWebView2WebResourceRequestedEventArgs) uintptr {
 	req, err := args.GetRequest()
 	if err != nil {
-		log.Fatal(err)
+		log.Printf("WebResourceRequested: %v", err) // Tasso: niente log.Fatal
+		return 0
 	}
 	if e.WebResourceRequestedCallback != nil {
 		e.WebResourceRequestedCallback(req, args)
@@ -290,9 +353,12 @@ func (e *Chromium) WebResourceRequested(sender *ICoreWebView2, args *ICoreWebVie
 }
 
 func (e *Chromium) AddWebResourceRequestedFilter(filter string, ctx COREWEBVIEW2_WEB_RESOURCE_CONTEXT) {
+	if e.webview == nil {
+		return
+	}
 	err := e.webview.AddWebResourceRequestedFilter(filter, ctx)
 	if err != nil {
-		log.Fatal(err)
+		log.Printf("AddWebResourceRequestedFilter: %v", err) // Tasso: niente log.Fatal
 	}
 }
 
@@ -358,4 +424,16 @@ func (e *Chromium) Focus() {
 		return
 	}
 	_ = e.controller.MoveFocus(COREWEBVIEW2_MOVE_FOCUS_REASON_PROGRAMMATIC)
+}
+
+// ProcessFailed (Tasso): un processo di WebView2 è caduto.
+func (e *Chromium) ProcessFailed(sender *ICoreWebView2, args *ICoreWebView2ProcessFailedEventArgs) uintptr {
+	var tipo uint32
+	if args != nil {
+		_, _, _ = args.vtbl.GetProcessFailedKind.Call(uintptr(unsafe.Pointer(args)), uintptr(unsafe.Pointer(&tipo)))
+	}
+	if e.ProcessFailedCallback != nil {
+		e.ProcessFailedCallback(tipo)
+	}
+	return 0
 }

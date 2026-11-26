@@ -122,11 +122,6 @@ func mediaPresente() bool {
 	return r.URL != "" && r.SHA256 != "" && presenteORiserva(r, risorseIA.MediaRiserva)
 }
 
-// scortaPresente: l'IA piccola di scorta è scaricata e verificata.
-func scortaPresente() bool {
-	r := risorseIA.Scorta
-	return r.URL != "" && r.SHA256 != "" && presente(dirIA(), r)
-}
 func fileModelloIA() string {
 	return filepath.Join(dirIA(), fileDaUsare(risorseIA.Modello, risorseIA.ModelloRiserva).Nome)
 }

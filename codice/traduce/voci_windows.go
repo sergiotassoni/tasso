@@ -139,9 +139,10 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 // ---------------------------------------------------------------- server whisper
 
 type serverVoci struct {
-	mu  sync.Mutex
-	cmd *exec.Cmd
-	url string
+	mu     sync.Mutex
+	cmd    *exec.Cmd
+	url    string
+	uscito chan struct{} // si chiude quando il processo di whisper-server è uscito
 }
 
 var sv = &serverVoci{}
@@ -155,6 +156,13 @@ func (s *serverVoci) avvia() error {
 	if err := verificaMotore(dirMotoreVoci(), improntaWhisper, "whisper-server.exe"); err != nil {
 		return err
 	}
+	// whisper-server gira da amministratore: mai dalla cartella dei modelli (la può cambiare
+	// qualsiasi programma dell'utente tra il controllo e l'avvio). Si copia, controllato, nella
+	// cartella protetta (come llama-server) e parte da lì; se la copia non riesce, niente voci.
+	dirAvvio, err := copiaMotoreProtettoIn("voci", dirMotoreVoci(), improntaWhisper, "whisper-server.exe")
+	if err != nil {
+		return errors.New("riconoscimento delle voci non disponibile: copia nella cartella protetta non riuscita (" + err.Error() + ")")
+	}
 	porta, err := portaLibera()
 	if err != nil {
 		return err
@@ -165,7 +173,7 @@ func (s *serverVoci) avvia() error {
 	// percorso segreto per questa sessione: whisper-server gira da amministratore e senza chiave
 	// qualunque programma o pagina web potrebbe chiamare /load o /inference
 	chiave := chiaveCasuale()
-	cmd := exec.Command(filepath.Join(dirMotoreVoci(), "whisper-server.exe"),
+	cmd := exec.Command(filepath.Join(dirAvvio, "whisper-server.exe"),
 		"-m", filepath.Join(dirVoci(), risorseVoci.Modello.Nome),
 		"--host", "127.0.0.1", "--port", fmt.Sprint(porta),
 		"--request-path", "/"+chiave,
@@ -174,22 +182,26 @@ func (s *serverVoci) avvia() error {
 		"-bo", "1",
 		"--vad", "-vm", filepath.Join(dirVoci(), risorseVoci.VAD.Nome),
 	)
-	cmd.Dir = dirMotoreVoci()
+	cmd.Dir = dirAvvio
 	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true, CreationFlags: 0x08000000 | 0x00004000}
 	logf, _ := os.Create(filepath.Join(dirApp, "logs", "voci.txt"))
 	cmd.Stdout, cmd.Stderr = logf, logf
 	if err := cmd.Start(); err != nil {
 		return err
 	}
-	jobChiudiConMe(cmd.Process.Pid)
+	job := jobChiudiConMe(cmd.Process.Pid)
 	s.cmd = cmd
 	s.url = fmt.Sprintf("http://127.0.0.1:%d/%s", porta, chiave) // tutte le chiamate partono da qui
 	uscito := make(chan struct{})
+	s.uscito = uscito
 	go func() {
 		defer guard("server-voci")
 		_ = cmd.Wait()
 		if logf != nil {
 			logf.Close()
+		}
+		if job != 0 {
+			windows.CloseHandle(job) // il job non resta aperto a ogni riavvio delle voci
 		}
 		close(uscito)
 		s.mu.Lock()
@@ -222,11 +234,19 @@ func (s *serverVoci) attivo() bool {
 
 func (s *serverVoci) ferma() {
 	s.mu.Lock()
-	defer s.mu.Unlock()
-	if s.cmd != nil && s.cmd.Process != nil {
-		_ = s.cmd.Process.Kill()
+	cmd, uscito := s.cmd, s.uscito
+	if cmd != nil && cmd.Process != nil {
+		_ = cmd.Process.Kill()
 	}
 	s.cmd = nil
+	s.mu.Unlock()
+	// aspetto che esca davvero (al massimo 5 s): un aggiornamento subito dopo trova il file libero
+	if cmd != nil && uscito != nil {
+		select {
+		case <-uscito:
+		case <-time.After(5 * time.Second):
+		}
+	}
 }
 
 // trascrivi: audio di una battuta → testo inglese.

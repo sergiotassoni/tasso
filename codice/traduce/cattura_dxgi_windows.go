@@ -268,13 +268,8 @@ type mappata struct {
 	rowPitch, depthPit uint32
 }
 
-// catturaDXGI: come cattura(), ma con la duplicazione del desktop.
-func catturaDXGI(z Zona) (*image.RGBA, error) {
-	img, _, err := catturaDXGIGen(z, 0)
-	return img, err
-}
-
-// catturaDXGIGen: come catturaDXGI, e dice anche il numero del fotogramma (gen). Se ultimo è il
+// catturaDXGIGen: come cattura(), ma con la duplicazione del desktop, e dice anche il numero del
+// fotogramma (gen). Se ultimo è il
 // numero della cattura precedente di questa zona e Windows non ha mandato niente di nuovo,
 // restituisce errStessoFotogramma senza rifare l'immagine (chi chiama riusa la sua).
 func catturaDXGIGen(z Zona, ultimo uint64) (*image.RGBA, uint64, error) {

@@ -84,6 +84,7 @@ type LettoreOCR struct {
 	dir    string
 	script string // file .ps1 di questo avvio (tolto alla chiusura)
 	n      int
+	job    windows.Handle // job "chiudi con me": se Tasso esce di colpo, Windows chiude PowerShell
 }
 
 func pulisciCatture(dir, tieni string) {
@@ -163,6 +164,9 @@ func (l *LettoreOCR) avvia() error {
 	if err != nil {
 		return err
 	}
+	// PowerShell dell'OCR gira da amministratore: legato a Tasso (KILL_ON_JOB_CLOSE) come llama e
+	// whisper, così non resta acceso se Tasso si chiude di colpo mentre legge
+	l.job = jobChiudiConMe(cmd.Process.Pid)
 	sc := bufio.NewScanner(out)
 	sc.Buffer(make([]byte, 64*1024), 4*1024*1024)
 	l.cmd, l.in, l.out = cmd, in, sc
@@ -286,6 +290,10 @@ func (l *LettoreOCR) chiudi() {
 		_, _ = l.cmd.Process.Wait()
 	}
 	l.cmd, l.in, l.out = nil, nil, nil
+	if l.job != 0 {
+		windows.CloseHandle(l.job)
+		l.job = 0
+	}
 	if l.script != "" {
 		togliScriptTT(l.script)
 		l.script = ""

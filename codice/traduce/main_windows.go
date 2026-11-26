@@ -25,7 +25,6 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
-	"unsafe"
 
 	webview2 "github.com/jchv/go-webview2"
 	"golang.org/x/sys/windows"
@@ -149,10 +148,15 @@ func Prepara(w webview2.WebView, dati string) {
 	}
 	dirApp = filepath.Join(base, "TassoTraduce")
 	_ = os.MkdirAll(filepath.Join(dirApp, "logs"), 0o755)
-	avviaLogErrori()
+	avviaLogErrori(false) // dentro Tasso: gli errori gravi li scrive il crash.txt di Tasso
 	caricaImp()
 	wv = w
 	motoreDati = dati
+	if cartellaWebView != "WebView2" && dati != "" {
+		// Tasso-collaudo: il motore ha una cartella dati sua (WebView2-prova accanto a quella di
+		// Tasso), così una prova non tocca il browser della copia vera dell'utente
+		motoreDati = filepath.Join(filepath.Dir(dati), cartellaWebView)
+	}
 	collega(w)
 }
 
@@ -309,41 +313,74 @@ func assicuraMotore() {
 	}
 	motoreAvviato.Store(true)
 	mozErr.Store("")
-	func() {
-		pronta := make(chan struct{})
-		go func() {
-			defer guard("motore")
-			runtime.LockOSThread() // la finestra del motore ha il suo giro di messaggi su questo filo
-			m := creaMotore()
-			if m == nil {
-				motoreAvviato.Store(false)
-				close(pronta)
-				mozillaPronto(false, "la finestra nascosta del traduttore non si è aperta")
-				emetti("aggiorna", stato())
-				return
-			}
-			_ = m.Bind("goMozillaPronto", func(ok bool, errore string) string {
-				h := uintptr(m.Window())
-				m.Dispatch(func() { nascondiMotore(h) }) // pagina caricata: la rimetto via, per sicurezza
-				mozillaPronto(ok, errore)
-				emetti("aggiorna", stato())
-				return "ok"
-			})
-			_ = m.Bind("goMozFatto", func(id int64, testo, errore string) string { moz.fatto(id, testo, errore); return "ok" })
-			motoreMu.Lock()
-			motore = m
-			motoreMu.Unlock()
-			close(pronta)
+	// Il motore nasce nel suo filo e chi chiama non aspetta (prima aspettava tutta la nascita di
+	// WebView2 tenendo il lucchetto: i pulsanti di Tasso e F7 restavano fermi, e per sempre se
+	// WebView2 non rispondeva). Lo stato arriva con mozillaPronto / emetti("aggiorna").
+	go filoMotore(url)
+}
+
+// scadenzaMotore: quanto aspettare al massimo che WebView2 crei la finestra del motore.
+const scadenzaMotore = 20 * time.Second
+
+// filoMotore: il filo della finestra del motore (COM in STA come vuole WebView2, giro di
+// messaggi suo). Finisce quando la finestra si chiude.
+func filoMotore(url string) {
+	defer guard("motore")
+	defer motoreAvviato.Store(false)
+	runtime.LockOSThread() // la finestra del motore ha il suo giro di messaggi su questo filo
+	// Niente UnlockOSThread: alla fine del goroutine Go chiude questo filo, con il suo COM.
+	if err := windows.CoInitializeEx(0, windows.COINIT_APARTMENTTHREADED); err != nil {
+		// S_FALSE (già STA) va bene; RPC_E_CHANGED_MODE: filo già in MTA, si prova lo stesso
+		scriviLog("motore: CoInitializeEx: " + err.Error())
+	} else {
+		defer windows.CoUninitialize()
+	}
+	m := creaMotore()
+	if m == nil {
+		mozillaPronto(false, "la finestra nascosta del traduttore non si è aperta")
+		emetti("aggiorna", stato())
+		return
+	}
+	_ = m.Bind("goMozillaPronto", func(ok bool, errore string) string {
+		h := uintptr(m.Window())
+		m.Dispatch(func() { nascondiMotore(h) }) // pagina caricata: la rimetto via, per sicurezza
+		mozTimeout.Store(0)
+		mozillaPronto(ok, errore)
+		emetti("aggiorna", stato())
+		return "ok"
+	})
+	_ = m.Bind("goMozFatto", func(id int64, testo, errore string) string { moz.fatto(id, testo, errore); return "ok" })
+	// se un processo di WebView2 cade: la pagina si ricarica; se cade il browser, il motore si
+	// chiude e il prossimo assicuraMotore lo ricrea (prima restava "pronto" e ogni frase
+	// aspettava 15 s)
+	webview2.SuProcessoCaduto(m, func(tipo uint32) {
+		scriviLog(fmt.Sprintf("motore: processo di WebView2 caduto (tipo %d)", tipo))
+		mozOK.Store(false)
+		mozErr.Store("il traduttore veloce si è fermato: lo riavvio")
+		emetti("aggiorna", stato())
+		switch tipo {
+		case 1, 2: // pagina caduta o bloccata: si ricarica
 			m.Navigate(url)
-			rinascondiMotore(m)
-			m.Run()
-			motoreMu.Lock()
-			motore = nil
-			motoreMu.Unlock()
-			motoreAvviato.Store(false)
-		}()
-		<-pronta
-	}()
+		case 0: // browser caduto: la WebView non si usa più
+			m.Destroy()
+			go func() {
+				time.Sleep(2 * time.Second)
+				assicuraMotore()
+			}()
+		}
+	})
+	motoreMu.Lock()
+	motore = m
+	motoreMu.Unlock()
+	m.Navigate(url)
+	rinascondiMotore(m)
+	m.Run()
+	motoreMu.Lock()
+	if motore == m {
+		motore = nil
+	}
+	motoreMu.Unlock()
+	mozOK.Store(false) // finito il giro della finestra il traduttore veloce non c'è più
 }
 
 // evalMotore esegue del codice nella pagina del motore (se c'è).
@@ -360,7 +397,27 @@ func evalMotore(js string) bool {
 
 // creaMotore: finestra WebView2 fuori dallo schermo, senza icona nella barra e senza prendere
 // il fuoco. Non la nascondo del tutto: una WebView nascosta può rallentare i suoi calcoli.
-func creaMotore() (w webview2.WebView) {
+//
+// Primo tentativo: la finestra nasce GIÀ fuori dallo schermo (FuoriSchermo: stile normale,
+// TOOLWINDOW|NOACTIVATE, SW_SHOWNOACTIVATE, niente SetFocus, niente LAYERED, niente argomenti
+// in più per il browser): niente lampo bianco, niente pulsante nella barra, niente fuoco rubato
+// al gioco. Se WebView2 non parte così (il 26/11 una finestra nata nascosta in un altro modo,
+// WS_POPUP a -32000, non partiva), secondo tentativo con il modo di prima (finestra normale
+// spostata subito dopo): così non può mai andare peggio di prima. Tutto finisce nel log.
+func creaMotore() webview2.WebView {
+	if w := creaMotoreCon(true); w != nil {
+		return w
+	}
+	scriviLog("motore: non partito fuori dallo schermo (" + webview2.UltimoErrore() + "): riprovo nel modo di prima")
+	w := creaMotoreCon(false)
+	if w == nil {
+		scriviLog("motore: non partito neanche nel modo di prima (" + webview2.UltimoErrore() + ")")
+		logErrore("motore-finestra", "WebView2 non partito: "+webview2.UltimoErrore(), nil)
+	}
+	return w
+}
+
+func creaMotoreCon(fuori bool) (w webview2.WebView) {
 	defer func() {
 		if r := recover(); r != nil {
 			logErrore("motore-finestra", r, debug.Stack())
@@ -371,13 +428,12 @@ func creaMotore() (w webview2.WebView) {
 	// finestra di Tasso, e WebView2 rifiuta di creare l'ambiente se gli argomenti sono diversi
 	// (il motore non partiva più e il traduttore veloce restava "non pronto", 25/11/2026).
 	w = webview2.NewWithOptions(webview2.WebViewOptions{
-		DataPath:  motoreDati,
-		AutoFocus: false,
+		DataPath:      motoreDati,
+		AutoFocus:     false,
+		ScadenzaAvvio: scadenzaMotore,
 		WindowOptions: webview2.WindowOptions{
 			Title: "Tasso Traduce (motore)", Width: 320, Height: 240,
-			// Niente Nascosta: con la finestra creata gia nascosta (WS_POPUP/TOOLWINDOW fuori schermo) WebView2
-			// non creava il suo ambiente e il traduttore veloce non partiva (prove del 26/11/2026). La finestra
-			// nasce normale e nascondiMotore/rinascondiMotore la portano subito fuori dallo schermo.
+			FuoriSchermo: fuori,
 		},
 	})
 	if w == nil {
@@ -407,19 +463,11 @@ func rinascondiMotore(m webview2.WebView) {
 	}
 }
 
-func finestraErrore(testo string) {
-	t, _ := windows.UTF16PtrFromString(testo)
-	c, _ := windows.UTF16PtrFromString("Tasso Traduce")
-	user32.NewProc("MessageBoxW").Call(0, uintptr(unsafePtr(t)), uintptr(unsafePtr(c)), 0x10)
-}
-
-func finestraInfo(testo string) {
-	t, _ := windows.UTF16PtrFromString(testo)
-	c, _ := windows.UTF16PtrFromString("Tasso Traduce")
-	user32.NewProc("MessageBoxW").Call(0, uintptr(unsafePtr(t)), uintptr(unsafePtr(c)), 0x40)
-}
-
-func avviaLogErrori() {
+// avviaLogErrori: una riga in crash.txt di Tasso Traduce a ogni apertura. comeProgramma=true
+// solo quando Tasso Traduce gira da solo: allora anche gli errori fatali del programma vanno lì.
+// Dentro Tasso NO: SetCrashOutput vale per tutto il processo e l'ultima chiamata vince, e i
+// crash di tutto Tasso finivano nel file del traduttore (collaudo 26/11).
+func avviaLogErrori(comeProgramma bool) {
 	p := filepath.Join(dirApp, "logs", "crash.txt")
 	if fi, err := os.Stat(p); err == nil && fi.Size() > 1<<20 {
 		_ = os.Rename(p, p+".old")
@@ -430,7 +478,9 @@ func avviaLogErrori() {
 	}
 	defer f.Close()
 	_, _ = f.WriteString("--- Tasso Traduce " + versione + " aperto il " + time.Now().Format("02/01/2006 15:04:05") + "\r\n")
-	_ = debug.SetCrashOutput(f, debug.CrashOptions{})
+	if comeProgramma {
+		_ = debug.SetCrashOutput(f, debug.CrashOptions{})
+	}
 }
 
 func logErrore(dove string, r interface{}, stack []byte) {
@@ -440,6 +490,20 @@ func logErrore(dove string, r interface{}, stack []byte) {
 	}
 	defer f.Close()
 	_, _ = fmt.Fprintf(f, "--- Errore fermato il %s in %s: %v\r\n%s\r\n", time.Now().Format("02/01/2006 15:04:05"), dove, r, stack)
+}
+
+// scriviLog: una riga in logs\motore.txt (nascita del motore, tentativi, processi caduti).
+func scriviLog(riga string) {
+	p := filepath.Join(dirApp, "logs", "motore.txt")
+	if fi, err := os.Stat(p); err == nil && fi.Size() > 256<<10 {
+		_ = os.Rename(p, p+".old")
+	}
+	f, err := os.OpenFile(p, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0o644)
+	if err != nil {
+		return
+	}
+	defer f.Close()
+	_, _ = fmt.Fprintf(f, "%s %s\r\n", time.Now().Format("02/01/2006 15:04:05"), riga)
 }
 
 // guard: con defer all'inizio di ogni goroutine, così un errore non chiude il programma.
@@ -1001,6 +1065,9 @@ type ponteMozilla struct {
 
 var moz = &ponteMozilla{attesa: map[int64]chan [2]string{}}
 
+// mozTimeout: quante frasi di fila il motore non ha risposto.
+var mozTimeout atomic.Int32
+
 func (p *ponteMozilla) Nome() string { return "Mozilla" }
 
 func (p *ponteMozilla) Traduci(ctx context.Context, r RichiestaTraduzione) (string, error) {
@@ -1036,11 +1103,20 @@ func (p *ponteMozilla) traduciCoppia(ctx context.Context, testo, da, a string) (
 	}
 	select {
 	case v := <-ch:
+		mozTimeout.Store(0)
 		if v[1] != "" {
 			return "", errors.New(v[1])
 		}
 		return v[0], nil
 	case <-time.After(15 * time.Second):
+		// due frasi di fila senza risposta: la pagina del motore è ferma o morta. Non è più
+		// "pronto" (le frasi non aspettano più 15 s l'una) e la pagina si ricarica.
+		if mozTimeout.Add(1) >= 2 && mozOK.CompareAndSwap(true, false) {
+			mozErr.Store("il traduttore veloce non risponde")
+			scriviLog("motore: due frasi senza risposta, ricarico la pagina")
+			emetti("aggiorna", stato())
+			go assicuraMotore()
+		}
 		return "", errors.New("il traduttore veloce non risponde")
 	case <-ctx.Done():
 		return "", ctx.Err()
@@ -1575,8 +1651,6 @@ func salvaCronologia() string {
 	return p
 }
 
-func unsafePtr(p *uint16) unsafe.Pointer { return unsafe.Pointer(p) }
-
 func etichetteTasti(t map[string]uint32) map[string]string {
 	out := map[string]string{}
 	for k, v := range tastiCompleti(t) {
@@ -1585,10 +1659,8 @@ func etichetteTasti(t map[string]uint32) map[string]string {
 	return out
 }
 
-// nomeUnaCopia: una sola copia di Tasso Traduce aperta (le prove ne usano un altro, così non
-// chiudono la copia vera dell'utente).
-var nomeUnaCopia = "Local\\TassoTraduceUnaCopia"
-
+// cartellaWebView: "WebView2" = il motore usa la cartella dati della finestra di Tasso (stesso
+// browser). Tasso-collaudo la cambia (collaudo_windows.go): cartella a parte per le prove.
 var cartellaWebView = "WebView2"
 
 // accendi: l'interruttore Traduzione (dalla finestra, da F7 nel gioco o spegnendo per Ufficio).

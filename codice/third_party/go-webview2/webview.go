@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"sync"
 	"sync/atomic"
+	"time"
 	"unsafe"
 
 	"github.com/jchv/go-webview2/internal/w32"
@@ -68,6 +69,7 @@ type webview struct {
 	codaChiusa bool           // la WebView è stata chiusa: niente più chiamate, il filo esce
 	// Modifica di Tasso: 1 dopo Destroy(), così la chiusura chiesta dal programma non passa da ChiusuraHook.
 	chiusuraVera int32
+	fuori        bool // modifica di Tasso: finestra di lavoro fuori dallo schermo (vedi FuoriSchermo)
 }
 
 // Funzioni di Windows per far girare i messaggi nel filo della coda (non sono in internal/w32).
@@ -94,10 +96,13 @@ type WindowOptions struct {
 	Height uint
 	IconId uint
 	Center bool
-	// Nascosta (modifica di Tasso): finestra di lavoro che non si vede e non si tocca mai.
-	// Nasce già fuori dallo schermo, (niente LAYERED: con LAYERED WebView2 non parte),
-	// senza pulsante nella barra delle applicazioni (TOOLWINDOW) e senza prendere il fuoco.
-	Nascosta bool
+	// FuoriSchermo (modifica di Tasso): finestra di lavoro che non si vede e non si tocca. Nasce
+	// già fuori dallo schermo, con lo stile normale (WS_OVERLAPPEDWINDOW: con WS_POPUP o LAYERED
+	// WebView2 non partiva), senza pulsante nella barra (TOOLWINDOW), senza prendere il fuoco
+	// (NOACTIVATE, SW_SHOWNOACTIVATE, niente SetFocus), esclusa dalle catture, e si rimette fuori
+	// se Windows la riporta su uno schermo (monitor aggiunto, risoluzione o DPI cambiati).
+	// Classe di finestra a parte: la X e la chiusura della finestra principale non la riguardano.
+	FuoriSchermo bool
 }
 
 type WebViewOptions struct {
@@ -115,6 +120,26 @@ type WebViewOptions struct {
 	// WindowOptions customizes the window that is created to embed the
 	// WebView2 widget.
 	WindowOptions WindowOptions
+
+	// ScadenzaAvvio (modifica di Tasso): quanto aspettare al massimo che WebView2 crei ambiente
+	// e controller. 0 = senza limite (come la libreria originale).
+	ScadenzaAvvio time.Duration
+}
+
+// ultimoErrore (modifica di Tasso): perché l'ultima NewWithOptions ha restituito nil.
+var ultimoErrore atomic.Value
+
+// UltimoErrore: il motivo dell'ultima WebView non creata ("" se nessuno).
+func UltimoErrore() string { s, _ := ultimoErrore.Load().(string); return s }
+
+// SuProcessoCaduto (modifica di Tasso): f viene chiamata nel filo della finestra quando un
+// processo di WebView2 cade (tipo 0: browser; 1: pagina; 2: pagina bloccata; altri: secondari).
+func SuProcessoCaduto(v WebView, f func(tipo uint32)) {
+	if w, ok := v.(*webview); ok {
+		if c, ok := w.browser.(*edge.Chromium); ok {
+			c.ProcessFailedCallback = f
+		}
+	}
 }
 
 // New creates a new webview in a new window.
@@ -136,28 +161,34 @@ func NewWithOptions(options WebViewOptions) WebView {
 	chromium := edge.NewChromium()
 	chromium.MessageCallback = w.msgcb
 	chromium.DataPath = options.DataPath
+	chromium.Scadenza = options.ScadenzaAvvio
 	chromium.SetPermission(edge.CoreWebView2PermissionKindClipboardRead, edge.CoreWebView2PermissionStateAllow)
 
 	w.browser = chromium
 	w.mainthread, _, _ = w32.Kernel32GetCurrentThreadID.Call()
+	ultimoErrore.Store("")
 	if !w.CreateWithOptions(options.WindowOptions) {
+		e := chromium.Errore
+		if e == "" {
+			e = "WebView2 non è partito"
+		}
+		ultimoErrore.Store(e)
+		w.chiudiFinestraFallita()
 		return nil
 	}
 
+	// Tasso: niente log.Fatal (chiudeva tutto il programma): senza impostazioni la WebView non
+	// si usa e si restituisce nil con il motivo.
 	settings, err := chromium.GetSettings()
-	if err != nil {
-		log.Fatal(err)
+	if err != nil || settings == nil {
+		ultimoErrore.Store(fmt.Sprintf("impostazioni di WebView2: %v", err))
+		w.chiudiFinestraFallita()
+		return nil
 	}
 	// disable context menu
-	err = settings.PutAreDefaultContextMenusEnabled(options.Debug)
-	if err != nil {
-		log.Fatal(err)
-	}
+	_ = settings.PutAreDefaultContextMenusEnabled(options.Debug)
 	// disable developer tools
-	err = settings.PutAreDevToolsEnabled(options.Debug)
-	if err != nil {
-		log.Fatal(err)
-	}
+	_ = settings.PutAreDevToolsEnabled(options.Debug)
 	// Tasso: niente tasti da browser (F5/Ctrl+R ricarica e lascia la pagina bianca, Ctrl+F, Ctrl+P,
 	// Alt+Freccia sinistra, zoom da tastiera). Secondo Microsoft restano attivi i tasti di modifica
 	// del testo (Ctrl+C, Ctrl+V, Ctrl+X, Ctrl+A, Ctrl+Z) e di movimento (Home, Fine, Pagina su/giù).
@@ -433,9 +464,17 @@ func wndproc(hwnd, msg, wp, lp uintptr) uintptr {
 			if w.autofocus {
 				w.browser.Focus()
 			}
+		case 0x007E, 0x02E0, 0x0047: // WM_DISPLAYCHANGE, WM_DPICHANGED, WM_WINDOWPOSCHANGED
+			// Modifica di Tasso: la finestra di lavoro torna fuori se Windows la riporta su uno schermo
+			r, _, _ := w32.User32DefWindowProcW.Call(hwnd, msg, wp, lp)
+			if w.fuori {
+				rimettiFuori(hwnd)
+			}
+			return r
 		case w32.WMClose:
 			// Modifica di Tasso: la X può nascondere la finestra invece di chiuderla (vedi ChiusuraHook).
-			if atomic.LoadInt32(&w.chiusuraVera) == 0 && ChiusuraHook != nil && ChiusuraHook() {
+			// Solo per la finestra principale, mai per quella di lavoro fuori dallo schermo.
+			if !w.fuori && atomic.LoadInt32(&w.chiusuraVera) == 0 && ChiusuraHook != nil && ChiusuraHook() {
 				break
 			}
 			_, _, _ = w32.User32DestroyWindow.Call(hwnd)
@@ -481,7 +520,11 @@ func (w *webview) CreateWithOptions(opts WindowOptions) bool {
 		icon, _, _ = w32.User32LoadImageW.Call(uintptr(hinstance), uintptr(opts.IconId), 1, 0, 0, w32.LR_DEFAULTSIZE|w32.LR_SHARED)
 	}
 
-	className, _ := windows.UTF16PtrFromString("webview")
+	nomeClasse := "webview"
+	if opts.FuoriSchermo {
+		nomeClasse = "webview-tasso-lavoro" // modifica di Tasso: classe a parte per la finestra di lavoro
+	}
+	className, _ := windows.UTF16PtrFromString(nomeClasse)
 	wc := w32.WndClassExW{
 		CbSize:        uint32(unsafe.Sizeof(w32.WndClassExW{})),
 		HInstance:     hinstance,
@@ -518,11 +561,13 @@ func (w *webview) CreateWithOptions(opts WindowOptions) bool {
 	}
 
 	exStyle, style := uintptr(0), uintptr(0xCF0000) // WS_OVERLAPPEDWINDOW
-	if opts.Nascosta {
-		// modifica di Tasso: LAYERED|TRANSPARENT|TOOLWINDOW|NOACTIVATE, WS_POPUP, fuori dallo schermo
-		exStyle, style = 0x80|0x08000000, 0x80000000 // TOOLWINDOW|NOACTIVATE (niente LAYERED: WebView2 non funziona in una finestra LAYERED)
-		fuori := int32(-32000)
-		posX, posY = uint(uintptr(fuori)), uint(uintptr(fuori))
+	if opts.FuoriSchermo {
+		// modifica di Tasso: stile normale (WebView2 parte), ma TOOLWINDOW|NOACTIVATE e già fuori
+		// dallo schermo (non a -32000: è il posto delle finestre ridotte a icona)
+		exStyle = 0x80 | 0x08000000
+		fx, fy := posizioneFuori()
+		posX, posY = uint(uintptr(fx)), uint(uintptr(fy))
+		w.fuori = true
 	}
 	w.hwnd, _, _ = w32.User32CreateWindowExW.Call(
 		exStyle,
@@ -538,10 +583,17 @@ func (w *webview) CreateWithOptions(opts WindowOptions) bool {
 		uintptr(hinstance),
 		0,
 	)
+	if w.hwnd == 0 {
+		if c, ok := w.browser.(*edge.Chromium); ok {
+			c.Errore = "CreateWindowEx non riuscita"
+		}
+		return false
+	}
 	setWindowContext(w.hwnd, w)
 
-	if opts.Nascosta {
-				_, _, _ = w32.User32ShowWindow.Call(w.hwnd, 4)   // SW_SHOWNOACTIVATE: "visibile" per WebView2, senza fuoco
+	if opts.FuoriSchermo {
+		_, _, _ = w32.User32SetWindowDisplayAffinity.Call(w.hwnd, 0x11) // WDA_EXCLUDEFROMCAPTURE
+		_, _, _ = w32.User32ShowWindow.Call(w.hwnd, 4)                  // SW_SHOWNOACTIVATE: "visibile" per WebView2, senza fuoco
 	} else {
 		_, _, _ = w32.User32ShowWindow.Call(w.hwnd, w32.SWShow)
 		_, _, _ = w32.User32UpdateWindow.Call(w.hwnd)
@@ -553,6 +605,47 @@ func (w *webview) CreateWithOptions(opts WindowOptions) bool {
 	}
 	w.browser.Resize()
 	return true
+}
+
+// chiudiFinestraFallita (Tasso): la finestra di una WebView che non è partita non resta in giro.
+func (w *webview) chiudiFinestraFallita() {
+	if w.hwnd != 0 {
+		atomic.StoreInt32(&w.chiusuraVera, 1)
+		windowContextSync.Lock()
+		delete(windowContext, w.hwnd)
+		windowContextSync.Unlock()
+		_, _, _ = w32.User32DestroyWindow.Call(w.hwnd)
+		w.hwnd = 0
+	}
+}
+
+// posizioneFuori (Tasso): un punto ben fuori da tutti gli schermi (4000 px prima dell'angolo in
+// alto a sinistra del desktop virtuale, che con monitor a sinistra o sopra è negativo).
+func posizioneFuori() (int32, int32) {
+	vx, _, _ := w32.User32GetSystemMetrics.Call(76) // SM_XVIRTUALSCREEN
+	vy, _, _ := w32.User32GetSystemMetrics.Call(77) // SM_YVIRTUALSCREEN
+	return int32(vx) - 4000, int32(vy) - 4000
+}
+
+// suUnoSchermo (Tasso): la finestra tocca almeno un monitor.
+func suUnoSchermo(hwnd uintptr) bool {
+	var r [4]int32
+	if ok, _, _ := w32.User32GetWindowRect.Call(hwnd, uintptr(unsafe.Pointer(&r))); ok == 0 {
+		return false
+	}
+	m, _, _ := w32.User32MonitorFromRect.Call(uintptr(unsafe.Pointer(&r)), 0) // MONITOR_DEFAULTTONULL
+	return m != 0
+}
+
+// rimettiFuori (Tasso): se Windows ha riportato la finestra di lavoro su uno schermo, la rimette
+// fuori (senza attivarla e senza cambiarne la misura).
+func rimettiFuori(hwnd uintptr) {
+	if !suUnoSchermo(hwnd) {
+		return
+	}
+	fx, fy := posizioneFuori()
+	// SWP_NOSIZE|SWP_NOZORDER|SWP_NOACTIVATE
+	_, _, _ = w32.User32SetWindowPos.Call(hwnd, 0, uintptr(fx), uintptr(fy), 0, 0, 0x1|0x4|0x10)
 }
 
 func (w *webview) Destroy() {

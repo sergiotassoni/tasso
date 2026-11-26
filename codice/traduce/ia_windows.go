@@ -380,7 +380,10 @@ func (s *ServerIA) avviaProcesso(exe, dirAvvio string, args []string, nota strin
 // mai la variabile d'ambiente, che un programma senza privilegi può cambiare. Dentro Tasso la
 // cartella di Tasso la dice Tasso (Ospite.CartellaTasso): un'altra cartella dentro Programmi se
 // l'installatore l'ha messo lì. Restituisce la cartella di Tasso e quella del motore.
-func cartellaProtettaIA() (tasso, dest string, err error) {
+func cartellaProtettaIA() (tasso, dest string, err error) { return cartellaProtetta("ia") }
+
+// cartellaProtetta: <Programmi>\Tasso\lavoro\<sotto> (sotto: "ia" per llama, "voci" per whisper).
+func cartellaProtetta(sotto string) (tasso, dest string, err error) {
 	pf, err := windows.KnownFolderPath(windows.FOLDERID_ProgramFiles, 0)
 	if err != nil || pf == "" {
 		return "", "", errors.New("cartella Programmi non trovata")
@@ -391,7 +394,7 @@ func cartellaProtettaIA() (tasso, dest string, err error) {
 			tasso = filepath.Clean(d)
 		}
 	}
-	return tasso, filepath.Join(tasso, "lavoro", "ia"), nil
+	return tasso, filepath.Join(tasso, "lavoro", sotto), nil
 }
 
 // copiaMotoreProtetto: copia programma e librerie del motore (già controllati in dir) nella
@@ -399,7 +402,12 @@ func cartellaProtettaIA() (tasso, dest string, err error) {
 // le impronte. Così nessuno può cambiare i file tra il controllo e l'avvio. I file già giusti
 // non si ricopiano. Restituisce la cartella da cui avviare.
 func copiaMotoreProtetto(dir string, impronte map[string]string, exe string) (string, error) {
-	tasso, dest, err := cartellaProtettaIA()
+	return copiaMotoreProtettoIn("ia", dir, impronte, exe)
+}
+
+// copiaMotoreProtettoIn: come copiaMotoreProtetto, nella sottocartella sotto di lavoro.
+func copiaMotoreProtettoIn(sotto, dir string, impronte map[string]string, exe string) (string, error) {
+	tasso, dest, err := cartellaProtetta(sotto)
 	if err != nil {
 		return "", err
 	}
