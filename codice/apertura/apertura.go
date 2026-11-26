@@ -23,15 +23,51 @@ import (
 )
 
 const (
-	// CartellaAttivita e NomeAttivita: \Tasso\Apri Tasso, nella stessa cartella delle altre
+	// CartellaAttivita e NomeAttivita: \Tasso\Apri Tasso <SID>, una per ogni utente (due
+	// amministratori sullo stesso PC non si rubano l'attività), nella stessa cartella delle altre
 	// attività di Tasso (così "Togli Tasso dal PC" e il disinstallatore la tolgono con le altre).
 	CartellaAttivita = `\Tasso`
 	NomeAttivita     = "Apri Tasso"
 	// ArgDaAttivita: il primo argomento della copia avviata dall'attività (fisso nell'attività).
 	ArgDaAttivita = "--da-attivita"
 	// VersioneAttivita: cambia quando cambia XMLAttivita, così Tasso rifà l'attività vecchia.
-	VersioneAttivita = "tasso-apri-1"
+	VersioneAttivita = "tasso-apri-2"
 )
+
+// NomeAttivitaPer: il nome dell'attività dell'utente sid ("Apri Tasso S-1-5-21-...").
+func NomeAttivitaPer(sid string) string { return NomeAttivita + " " + sid }
+
+// SidValido: un SID scritto come testo (S-1-...: solo cifre e trattini), da mettere nel nome
+// dell'attività e nei permessi.
+func SidValido(s string) bool {
+	if len(s) < 5 || len(s) > 184 || !strings.HasPrefix(s, "S-1-") {
+		return false
+	}
+	for _, c := range s[4:] {
+		if !(c >= '0' && c <= '9' || c == '-') {
+			return false
+		}
+	}
+	return !strings.Contains(s, "--") && !strings.HasSuffix(s, "-")
+}
+
+// SDDLAttivita: i permessi dell'attività. SYSTEM e Amministratori tutto; l'utente solo leggerla e
+// avviarla (serve alla copia senza permessi), non cambiarla né cancellarla. Nessun permesso ereditato.
+func SDDLAttivita(sid string) string {
+	return "D:P(A;;FA;;;SY)(A;;FA;;;BA)(A;;FRFX;;;" + sid + ")"
+}
+
+// Silenziosi: argomenti delle attività che partono già da amministratore (pulizia programmata,
+// Profilo gioco). Se arrivano a un Tasso senza permessi qualcosa non va: esco senza chiedere niente,
+// invece di far comparire la richiesta di Windows all'improvviso.
+func Silenziosi(args []string) bool {
+	for _, a := range args {
+		if a == "--scheduled" || a == "--profile" || strings.HasPrefix(a, "--auto=") {
+			return true
+		}
+	}
+	return false
+}
 
 // permessi: gli unici argomenti che passano dall'attività (e il segno che li accompagna).
 //   - --controlla-aggiornamenti: lo usano Tasso Zip e Tasso PDF (girano senza permessi);
@@ -203,6 +239,7 @@ type Attivita struct {
 	Argomenti string
 	Livello   string
 	Multiple  string
+	Attiva    bool // Settings>Enabled (di base sì)
 }
 
 // LeggiAttivita legge l'XML di un'attività (quello che restituisce Windows, in UTF-16 già
@@ -215,6 +252,7 @@ func LeggiAttivita(testo string) (Attivita, error) {
 			RunLevel string `xml:"RunLevel"`
 		} `xml:"Principals>Principal"`
 		Multiple string `xml:"Settings>MultipleInstancesPolicy"`
+		Enabled  string `xml:"Settings>Enabled"`
 		Exec     []struct {
 			Command   string `xml:"Command"`
 			Arguments string `xml:"Arguments"`
@@ -239,6 +277,7 @@ func LeggiAttivita(testo string) (Attivita, error) {
 		Argomenti: strings.TrimSpace(t.Exec[0].Arguments),
 		Livello:   strings.TrimSpace(t.Principal[0].RunLevel),
 		Multiple:  strings.TrimSpace(t.Multiple),
+		Attiva:    !strings.EqualFold(strings.TrimSpace(t.Enabled), "false"),
 	}, nil
 }
 
@@ -249,8 +288,9 @@ func (a Attivita) Usabile(exe, sid string) bool {
 		strings.HasPrefix(a.Argomenti, ArgDaAttivita+" ")
 }
 
-// Aggiornata: come Usabile, e in più è quella di questa versione di Tasso (non va rifatta).
+// Aggiornata: come Usabile, e in più è quella di questa versione di Tasso, ed è attiva (non va
+// rifatta; una disattivata a mano si rifà attiva).
 func (a Attivita) Aggiornata(exe, sid string) bool {
 	return a.Usabile(exe, sid) && a.Versione == VersioneAttivita && a.Argomenti == ArgDaAttivita+" $(Arg0)" &&
-		a.Livello == "HighestAvailable" && a.Multiple == "Parallel"
+		a.Livello == "HighestAvailable" && a.Multiple == "Parallel" && a.Attiva
 }

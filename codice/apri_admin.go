@@ -4,7 +4,7 @@ package main
 // (asInvoker): così Windows non mette lo scudo sull'icona. Tasso però ha bisogno dei permessi da
 // amministratore, quindi all'apertura:
 //   - se è già amministratore va avanti come sempre;
-//   - se no avvia l'attività pianificata \Tasso\Apri Tasso (la prepara Tasso stesso, o
+//   - se no avvia l'attività pianificata \Tasso\Apri Tasso <SID dell'utente> (la prepara Tasso stesso, o
 //     l'installatore con Tasso.exe --prepara-apertura), che lo riapre da amministratore senza
 //     chiedere niente, e si chiude;
 //   - se l'attività non c'è o non parte, chiede i permessi come prima (la finestra di Windows
@@ -97,6 +97,11 @@ func apriConPermessi() bool {
 	}
 	exe = filepath.Clean(exe)
 	args := os.Args[1:]
+	// pulizia programmata o Profilo gioco: le loro attività partono già da amministratore. Senza
+	// permessi qualcosa non va: esco in silenzio, niente richiesta di Windows all'improvviso.
+	if apertura.Silenziosi(args) {
+		return true
+	}
 	// la copia partita dall'attività non è da amministratore (per esempio utente normale): non
 	// riprovo con l'attività (girerei in tondo), chiedo i permessi a Windows
 	if !daAttivita && apertura.TuttiPermessi(args) && avviaAttivita(exe, args) {
@@ -139,7 +144,7 @@ func segnalaPartita(nonce string) {
 // e aspetta che la copia nuova sia partita. false = non c'è, non è partita o non so: chiedo i permessi.
 func avviaAttivita(exe string, args []string) bool {
 	sid := sidUtente()
-	if sid == "" {
+	if !apertura.SidValido(sid) {
 		return false
 	}
 	var b [16]byte
@@ -158,7 +163,7 @@ func avviaAttivita(exe string, args []string) bool {
 	pAllowSetFg.Call(uintptr(0xFFFFFFFF)) // ASFW_ANY
 	partita := false
 	conPianificatore(func(s comObj) {
-		t := prendiAttivita(s)
+		t := prendiAttivita(s, sid)
 		if t == 0 {
 			return
 		}
@@ -191,7 +196,7 @@ func leggiAttivitaWin(t comObj) (apertura.Attivita, error) {
 // ---------------- Utilità di pianificazione (COM, ITaskService) ----------------
 // Tabelle delle funzioni (dopo IUnknown 0-2 e IDispatch 3-6):
 //   ITaskService:    7 GetFolder, 10 Connect
-//   ITaskFolder:     9 GetFolder, 11 CreateFolder, 13 GetTask, 16 RegisterTask
+//   ITaskFolder:     9 GetFolder, 11 CreateFolder, 13 GetTask, 16 RegisterTask, 18 GetSecurityDescriptor
 //   IRegisteredTask: 12 Run, 20 get_Xml
 
 // metodo: l'indirizzo della funzione numero idx dell'oggetto COM o.
@@ -256,14 +261,14 @@ func prendiCartella(s comObj, percorso string) comObj {
 	return c
 }
 
-// prendiAttivita: IRegisteredTask di \Tasso\Apri Tasso (0 se non c'è o non la posso vedere).
-func prendiAttivita(s comObj) comObj {
+// prendiAttivita: IRegisteredTask di \Tasso\Apri Tasso <sid> (0 se non c'è o non la posso vedere).
+func prendiAttivita(s comObj, sid string) comObj {
 	c := prendiCartella(s, apertura.CartellaAttivita)
 	if c == 0 {
 		return 0
 	}
 	defer c.release()
-	b := nuovaBSTR(apertura.NomeAttivita)
+	b := nuovaBSTR(apertura.NomeAttivitaPer(sid))
 	if b == 0 {
 		return 0
 	}
@@ -301,13 +306,37 @@ func eseguiAttivita(t comObj, parametro string) bool {
 	return hrOK(r)
 }
 
-// registraAttivita: crea o rifà \Tasso\Apri Tasso (Tasso è da amministratore).
-func registraAttivita(s comObj, xml string) bool {
+// proprietarioAdmin: il proprietario della cartella \Tasso dell'Utilità di pianificazione è
+// Amministratori, SYSTEM o TrustedInstaller (non un programma dell'utente che l'ha creata prima di
+// Tasso con permessi suoi).
+func proprietarioAdmin(c comObj) bool {
+	var b uintptr
+	r, _, _ := syscall.SyscallN(metodo(c, 18), uintptr(c), 1, uintptr(unsafe.Pointer(&b))) // GetSecurityDescriptor(OWNER)
+	if !hrOK(r) {
+		return false
+	}
+	testo := bstrToString(b)
+	liberaBSTR(b)
+	sd, err := windows.SecurityDescriptorFromString(testo)
+	if err != nil {
+		return false
+	}
+	o, _, err := sd.Owner()
+	if err != nil || o == nil {
+		return false
+	}
+	return o.IsWellKnown(windows.WinBuiltinAdministratorsSid) || o.IsWellKnown(windows.WinLocalSystemSid) ||
+		o.String() == "S-1-5-80-956008885-3418522649-1831038044-1853292631-2271478464" // TrustedInstaller
+}
+
+// registraAttivita: crea o rifà \Tasso\Apri Tasso <sid> (Tasso è da amministratore), con i
+// permessi di apertura.SDDLAttivita. "" = fatto, altrimenti il motivo (per il registro).
+func registraAttivita(s comObj, xml, sid string) string {
 	c := prendiCartella(s, apertura.CartellaAttivita)
 	if c == 0 {
 		radice := prendiCartella(s, `\`)
 		if radice == 0 {
-			return false
+			return "cartella principale non aperta"
 		}
 		b := nuovaBSTR(strings.TrimPrefix(apertura.CartellaAttivita, `\`))
 		var vuoto variant
@@ -317,76 +346,151 @@ func registraAttivita(s comObj, xml string) bool {
 		if !hrOK(r) || c == 0 {
 			// creata nel frattempo da un'altra copia di Tasso?
 			if c = prendiCartella(s, apertura.CartellaAttivita); c == 0 {
-				return false
+				return fmt.Sprintf("cartella \\Tasso non creata (%#x)", uint32(r))
 			}
 		}
 	}
 	defer c.release()
-	nome, testo := nuovaBSTR(apertura.NomeAttivita), nuovaBSTR(xml)
+	if !proprietarioAdmin(c) {
+		return "la cartella \\Tasso non è degli amministratori"
+	}
+	nome, testo := nuovaBSTR(apertura.NomeAttivitaPer(sid)), nuovaBSTR(xml)
+	utente, sddl := nuovaBSTR(sid), nuovaBSTR(apertura.SDDLAttivita(sid))
 	defer liberaBSTR(nome)
 	defer liberaBSTR(testo)
-	if nome == 0 || testo == 0 {
-		return false
+	defer liberaBSTR(utente)
+	defer liberaBSTR(sddl)
+	if nome == 0 || testo == 0 || utente == 0 || sddl == 0 {
+		return "memoria"
 	}
-	var vuoto variant
+	vUtente := variant{vt: 8, val: utente} // VT_BSTR: il SID dell'utente
+	vSddl := variant{vt: 8, val: sddl}
+	var vuoto variant // password: nessuna (InteractiveToken)
 	var t comObj
-	// 6 = TASK_CREATE_OR_UPDATE; 3 = TASK_LOGON_INTERACTIVE_TOKEN (solo con l'utente collegato)
-	r, _, _ := syscall.SyscallN(metodo(c, 16), uintptr(c), nome, testo, 6,
-		uintptr(unsafe.Pointer(&vuoto)), uintptr(unsafe.Pointer(&vuoto)), 3, uintptr(unsafe.Pointer(&vuoto)), uintptr(unsafe.Pointer(&t)))
+	// 0x16 = TASK_CREATE_OR_UPDATE + TASK_DONT_ADD_PRINCIPAL_ACE (valgono solo i permessi di sddl);
+	// 3 = TASK_LOGON_INTERACTIVE_TOKEN (solo con l'utente collegato, nessuna password salvata)
+	r, _, _ := syscall.SyscallN(metodo(c, 16), uintptr(c), nome, testo, 0x16,
+		uintptr(unsafe.Pointer(&vUtente)), uintptr(unsafe.Pointer(&vuoto)), 3, uintptr(unsafe.Pointer(&vSddl)), uintptr(unsafe.Pointer(&t)))
 	t.release()
-	return hrOK(r)
+	if !hrOK(r) {
+		return fmt.Sprintf("RegisterTask %#x", uint32(r))
+	}
+	return ""
 }
 
-// copiaInstallata: exe è il Tasso.exe installato (Programmi\Tasso o la cartella dell'installatore),
-// in una cartella dove scrivono solo gli amministratori. Solo questo può aprirsi dall'attività:
-// un Tasso.exe in Download lo potrebbe cambiare qualunque programma.
+// copiaInstallata: exe è il Tasso.exe installato dentro Programmi (Programmi\Tasso o la cartella
+// dell'installatore dentro Programmi, vedi cartellaTasso: la stessa regola delle altre attività,
+// taskExe in settings.go), dove scrivono solo gli amministratori. Solo questo può aprirsi
+// dall'attività: un Tasso.exe in Download, o in una cartella scelta fuori da Programmi (magari su
+// un disco senza permessi), lo potrebbe cambiare qualunque programma.
 func copiaInstallata(exe string) bool {
 	exe = filepath.Clean(exe)
-	if strings.ContainsAny(exe, "\"%\r\n") {
+	if strings.ContainsAny(exe, "\"%\r\n") || programFilesDir() == "" {
 		return false
 	}
-	if strings.EqualFold(exe, filepath.Join(cartellaTasso(), "Tasso.exe")) {
-		return true
+	dir := cartellaTasso()
+	dentro := false
+	for _, pf := range []string{programFilesDir(), cartellaNota(windows.FOLDERID_ProgramFilesX86)} {
+		dentro = dentro || pf != "" && dentroDi(dir, pf) && !strings.EqualFold(strings.TrimRight(dir, `\`), strings.TrimRight(pf, `\`))
 	}
-	_, dir := disinstallatoreEcosistema() // ecosistema.go: la cartella scritta dall'installatore
-	return dir != "" && strings.EqualFold(exe, filepath.Join(filepath.Clean(dir), "Tasso.exe"))
+	return dentro && strings.EqualFold(exe, filepath.Join(dir, "Tasso.exe"))
 }
 
-// preparaAttivitaApri: crea o rifà \Tasso\Apri Tasso se serve. Da amministratore, solo per il Tasso
-// installato e solo con UAC acceso. true = l'attività c'è ed è a posto.
-func preparaAttivitaApri() bool {
-	exe, err := os.Executable()
-	if err != nil || exe == "" || !elevato() || !elevazioneDivisa() {
+// utenteDiverso: Tasso da amministratore gira con un altro account rispetto a chi è collegato
+// (UAC con la password di un altro amministratore): l'attività sarebbe per quell'account, non per
+// chi usa il PC. Guardo il proprietario di explorer.exe di questa sessione, come l'installatore.
+// Se non lo so (niente Esplora file) non è diverso.
+func utenteDiverso(sid string) bool {
+	var sessione uint32
+	if windows.ProcessIdToSessionId(windows.GetCurrentProcessId(), &sessione) != nil {
 		return false
+	}
+	snap, err := windows.CreateToolhelp32Snapshot(windows.TH32CS_SNAPPROCESS, 0)
+	if err != nil {
+		return false
+	}
+	defer windows.CloseHandle(snap)
+	var pe windows.ProcessEntry32
+	pe.Size = uint32(unsafe.Sizeof(pe))
+	visto := false
+	for err = windows.Process32First(snap, &pe); err == nil; err = windows.Process32Next(snap, &pe) {
+		if !strings.EqualFold(windows.UTF16ToString(pe.ExeFile[:]), "explorer.exe") {
+			continue
+		}
+		var ss uint32
+		if windows.ProcessIdToSessionId(pe.ProcessID, &ss) != nil || ss != sessione {
+			continue
+		}
+		h, err := windows.OpenProcess(windows.PROCESS_QUERY_LIMITED_INFORMATION, false, pe.ProcessID)
+		if err != nil {
+			continue
+		}
+		var tok windows.Token
+		err = windows.OpenProcessToken(h, windows.TOKEN_QUERY, &tok)
+		windows.CloseHandle(h)
+		if err != nil {
+			continue
+		}
+		u, err := tok.GetTokenUser()
+		tok.Close()
+		if err != nil {
+			continue
+		}
+		if strings.EqualFold(u.User.Sid.String(), sid) {
+			return false // lo stesso utente
+		}
+		visto = true
+	}
+	return visto
+}
+
+// preparaAttivitaApri: crea o rifà \Tasso\Apri Tasso <sid> se serve (manca, è vecchia, è
+// disattivata, è di un altro exe). Da amministratore, solo per il Tasso installato in Programmi,
+// solo con UAC acceso e solo per l'utente collegato. "" = l'attività c'è ed è a posto, altrimenti
+// il motivo.
+func preparaAttivitaApri() string {
+	exe, err := os.Executable()
+	switch {
+	case err != nil || exe == "":
+		return "exe sconosciuto"
+	case !elevato():
+		return "senza permessi"
+	case !elevazioneDivisa():
+		return "UAC spento o account senza doppio token: non serve"
 	}
 	exe = filepath.Clean(exe)
 	sid := sidUtente()
-	if sid == "" || !copiaInstallata(exe) {
-		return false
+	switch {
+	case !apertura.SidValido(sid):
+		return "utente sconosciuto"
+	case !copiaInstallata(exe):
+		return "non è il Tasso installato in Programmi"
+	case utenteDiverso(sid):
+		return "Tasso gira con un altro account"
 	}
-	ok := false
+	motivo := "Utilità di pianificazione non raggiungibile"
 	conPianificatore(func(s comObj) {
-		if t := prendiAttivita(s); t != 0 {
+		if t := prendiAttivita(s, sid); t != 0 {
 			a, err := leggiAttivitaWin(t)
 			t.release()
 			if err == nil && a.Aggiornata(exe, sid) {
-				ok = true
+				motivo = ""
 				return
 			}
 		}
-		ok = registraAttivita(s, apertura.XMLAttivita(exe, sid))
+		motivo = registraAttivita(s, apertura.XMLAttivita(exe, sid), sid)
 	})
-	return ok
+	return motivo
 }
 
 // preparaAperturaDaRiga: Tasso.exe --prepara-apertura (l'installatore). Scrive il segno, poi
-// "APERTURA-OK" o "APERTURA-NO".
+// "APERTURA-OK" o "APERTURA-NO <motivo>".
 func preparaAperturaDaRiga() int {
 	fmt.Println(segnoPreparaApertura)
-	if preparaAttivitaApri() {
-		fmt.Println("APERTURA-OK")
-		return 0
+	if m := preparaAttivitaApri(); m != "" {
+		fmt.Println("APERTURA-NO " + m)
+		return 1
 	}
-	fmt.Println("APERTURA-NO")
-	return 1
+	fmt.Println("APERTURA-OK")
+	return 0
 }
