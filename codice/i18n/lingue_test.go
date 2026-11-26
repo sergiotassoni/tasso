@@ -250,3 +250,53 @@ func TestPsSenzaApiciTipografici(t *testing.T) {
 		}
 	}
 }
+
+// Nessuna chiave ripetuta nella stessa sezione: con due agenti che aggiungono le stesse traduzioni
+// il file restava JSON valido (vince l'ultima) ma con doppioni che nessuno vedeva.
+func TestNienteChiaviDoppie(t *testing.T) {
+	for _, l := range append([]string{"en"}, lingue...) {
+		b, err := os.ReadFile(l + ".json")
+		if err != nil {
+			t.Fatal(err)
+		}
+		dec := json.NewDecoder(strings.NewReader(string(b)))
+		var visti []map[string]bool
+		var sezione []bool // per ogni livello: true se è un oggetto e il prossimo token è una chiave
+		for {
+			tok, err := dec.Token()
+			if err != nil {
+				break
+			}
+			switch v := tok.(type) {
+			case json.Delim:
+				switch v {
+				case '{':
+					visti = append(visti, map[string]bool{})
+					sezione = append(sezione, true)
+				case '[':
+					visti = append(visti, nil)
+					sezione = append(sezione, false)
+				case '}', ']':
+					visti, sezione = visti[:len(visti)-1], sezione[:len(sezione)-1]
+					if n := len(sezione); n > 0 && visti[n-1] != nil {
+						sezione[n-1] = true
+					}
+				}
+				continue
+			case string:
+				n := len(sezione)
+				if n > 0 && visti[n-1] != nil && sezione[n-1] {
+					if visti[n-1][v] {
+						t.Errorf("%s.json: chiave ripetuta %q", l, v)
+					}
+					visti[n-1][v] = true
+					sezione[n-1] = false
+					continue
+				}
+			}
+			if n := len(sezione); n > 0 && visti[n-1] != nil {
+				sezione[n-1] = true
+			}
+		}
+	}
+}
