@@ -90,6 +90,11 @@ func restoreOriginalDett() (msgs []string, ok bool, avvioNo []string) {
 		orig[k] = v
 	}
 	setMu.Unlock()
+	// una foto fatta dopo Ottimizza tutto o la Privacy (anche con una versione di prima): i valori di
+	// Tasso diventano il loro com'era vero, finché le voci sono ancora attive (prima di rimetterle)
+	if len(snap) > 0 {
+		snap = json.RawMessage(fotoConPrimaVera(string(snap)))
+	}
 
 	setMu.Lock()
 	var tuned []string

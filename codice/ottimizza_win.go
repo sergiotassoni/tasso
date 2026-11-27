@@ -977,6 +977,7 @@ func applicaUnaOtt(id string) ottimizza.Esito {
 	if ottInCorso.Load() {
 		return ottimizza.Esito{ID: id, Stato: ottimizza.VoceErrore, Motivo: "Aspetta che Ottimizza tutto finisca, poi riprova."}
 	}
+	_ = ensureSnapshot() // la foto di com'era prima del cambio (C-1)
 	a := ambienteOtt(context.Background(), nil)
 	ottMu.Lock()
 	defer ottMu.Unlock()

@@ -2,6 +2,7 @@ package ottimizza
 
 import (
 	"reflect"
+	"strings"
 	"testing"
 )
 
@@ -85,6 +86,7 @@ func TestVociNuoveRegistro(t *testing.T) {
 func TestConsigliAllargati(t *testing.T) {
 	a, r, _, _ := ambienteFinto()
 	r.metti(dw(HKCU, kContenuti, "SubscribedContent-338389Enabled", 1))
+	r.metti(dw(HKCU, kContenuti, "RotatingLockScreenEnabled", 0)) // detto da Windows: niente Contenuti in evidenza
 	prima := r.copia()
 	st := &Stato{}
 	if es := esegui(t, "consigli", a, st); es.Stato != VoceFatta {
@@ -98,20 +100,25 @@ func TestConsigliAllargati(t *testing.T) {
 	if es := rimetti(t, "consigli", a, st); es.Stato != VoceRimessa || !reflect.DeepEqual(prima, r.v) {
 		t.Fatalf("%+v\nprima %v\ndopo  %v", es, prima, r.v)
 	}
-	// con "Contenuti in evidenza di Windows" nella schermata di blocco le curiosità non si toccano
-	a, r, _, _ = ambienteFinto()
-	r.metti(dw(HKCU, kContenuti, "RotatingLockScreenEnabled", 1))
-	st = &Stato{}
-	if es := esegui(t, "consigli", a, st); es.Stato != VoceFatta {
-		t.Fatal(es)
-	}
-	for _, n := range []string{"RotatingLockScreenOverlayEnabled", "SubscribedContent-338387Enabled"} {
-		if v, _ := r.Leggi(HKCU, kContenuti, n); v.Esiste {
-			t.Errorf("con Contenuti in evidenza %s non va toccato: %+v", n, v)
+	// con "Contenuti in evidenza di Windows" (valore 1) o senza saperlo (valore assente, D-A) le
+	// curiosità della schermata di blocco non si toccano
+	for _, cera := range []bool{true, false} {
+		a, r, _, _ = ambienteFinto()
+		if cera {
+			r.metti(dw(HKCU, kContenuti, "RotatingLockScreenEnabled", 1))
 		}
-	}
-	if v, _ := r.Leggi(HKCU, kContenuti, "RotatingLockScreenEnabled"); !dwordE(v, 1) {
-		t.Error("lo sfondo della schermata di blocco non si cambia")
+		st = &Stato{}
+		if es := esegui(t, "consigli", a, st); es.Stato != VoceFatta {
+			t.Fatal(es)
+		}
+		for _, n := range []string{"RotatingLockScreenOverlayEnabled", "SubscribedContent-338387Enabled"} {
+			if v, _ := r.Leggi(HKCU, kContenuti, n); v.Esiste {
+				t.Errorf("Contenuti in evidenza (valore c'era %v): %s non va toccato: %+v", cera, n, v)
+			}
+		}
+		if v, _ := r.Leggi(HKCU, kContenuti, "RotatingLockScreenEnabled"); v.Esiste != cera {
+			t.Error("lo sfondo della schermata di blocco non si cambia")
+		}
 	}
 }
 
@@ -385,7 +392,7 @@ func TestPrivacyRipristinaComEra(t *testing.T) {
 	r.metti(dw(HKCU, kPubblicita, "Enabled", 1))
 	r.metti(dw(HKCU, kContenuti, "SoftLandingEnabled", 0))            // già spento: non si tocca
 	r.metti(dw(HKCU, kContenuti, "SystemPaneSuggestionsEnabled", 7))  // un valore strano: torna 7
-	r.metti(dw(HKLM, kTelemetria, "AllowTelemetry", 3))               // di base sui PC di casa
+	r.metti(dw(HKLM, kTelemetria, "AllowTelemetry", 3))               // criterio di un'azienda: resta 3 (D-C)
 	r.metti(dw(HKCU, kExplorerPol, "DisableSearchBoxSuggestions", 0)) // c'era a 0: torna 0
 	prima := r.copia()
 	p := Privacy()
@@ -394,8 +401,8 @@ func TestPrivacyRipristinaComEra(t *testing.T) {
 	if es := Esegui(p, a, st, salvaFinto(&n)); es.Stato != VoceFatta {
 		t.Fatal(es)
 	}
-	if v, _ := r.Leggi(HKLM, kTelemetria, "AllowTelemetry"); !dwordE(v, 1) {
-		t.Fatal(v)
+	if v, _ := r.Leggi(HKLM, kTelemetria, "AllowTelemetry"); !dwordE(v, 3) || !TelemetriaAlta(r) {
+		t.Fatal("criterio dell'azienda abbassato", v)
 	}
 	if v, _ := r.Leggi(HKCU, kExplorerPol, "DisableSearchBoxSuggestions"); !dwordE(v, 1) {
 		t.Fatal(v)
@@ -421,14 +428,37 @@ func TestPrivacyRipristinaComEra(t *testing.T) {
 	if v, _ := r.Leggi(HKLM, kTelemetria, "AllowTelemetry"); !dwordE(v, 0) {
 		t.Fatal("telemetria alzata", v)
 	}
-	// senza amministratore: il criterio di tutto il PC si salta, il resto si fa
+	// nessun criterio: livello 1 (dati obbligatori), e "ripristina" lo cancella
+	a, r, _, _ = ambienteFinto()
+	stT := &Stato{}
+	Esegui(p, a, stT, salvaFinto(&n))
+	if v, _ := r.Leggi(HKLM, kTelemetria, "AllowTelemetry"); !dwordE(v, 1) {
+		t.Fatal(v)
+	}
+	RimettiM(p, a, stT, salvaFinto(&n))
+	if v, _ := r.Leggi(HKLM, kTelemetria, "AllowTelemetry"); v.Esiste {
+		t.Fatal("non c'era", v)
+	}
+	// criterio MDM con il livello 3: non si scrive niente
+	a, r, _, _ = ambienteFinto()
+	r.metti(dw(HKLM, kMDMSistema, "AllowTelemetry", 3))
+	Esegui(p, a, &Stato{}, salvaFinto(&n))
+	if v, _ := r.Leggi(HKLM, kTelemetria, "AllowTelemetry"); v.Esiste {
+		t.Fatal("con il criterio MDM non va scritto", v)
+	}
+	// senza amministratore (C-2): HKLM e HKCU\Software\Policies si saltano, il resto si fa.
+	// Il registro finto rifiuta HKCU\Software\Policies come un utente standard.
 	a, r, _, _ = ambienteFinto()
 	a.PC.Admin = false
+	r.rotte[chiaveFinta(HKCU, kExplorerPol, "DisableSearchBoxSuggestions")] = true
 	if es := Esegui(p, a, &Stato{}, salvaFinto(&n)); es.Stato != VoceFatta {
 		t.Fatal(es)
 	}
 	if v, _ := r.Leggi(HKLM, kTelemetria, "AllowTelemetry"); v.Esiste {
 		t.Fatal("senza permessi non si scrive HKLM")
+	}
+	if v, _ := r.Leggi(HKCU, kPubblicita, "Enabled"); !dwordE(v, 0) {
+		t.Fatal("il resto del passo va fatto", v)
 	}
 }
 
@@ -540,5 +570,83 @@ func TestPrimaVera(t *testing.T) {
 	}
 	if v, ok := PrimaVera(st, dw(HKCU, kPrivacyUt, "TailoredExperiencesWithDiagnosticDataEnabled", 0)); !ok || v.Esiste {
 		t.Fatal("non c'era", v, ok)
+	}
+}
+
+// C-1: la foto di com'era Windows non tiene il piano o la modalità messi da Tasso.
+func TestPianoVeroNellaFoto(t *testing.T) {
+	a, _, e, _ := ambienteFinto()
+	st := &Stato{}
+	esegui(t, "piano", a, st)
+	if e.attivo != PianoPrestazioni {
+		t.Fatal(e.attivo)
+	}
+	att, ov := PianoVero(st, "{"+strings.ToUpper(PianoPrestazioni)+"}", "")
+	if att != PianoBilanciato || ov != "" {
+		t.Fatal(att, ov)
+	}
+	// portatile: modalità a corrente (il piano resta Bilanciato)
+	a, _, e, _ = ambienteFinto()
+	a.PC.Portatile = true
+	e.modoAC = ModoEfficienza
+	st = &Stato{}
+	if es := esegui(t, "modoac", a, st); es.Stato != VoceFatta {
+		t.Fatal(es)
+	}
+	if _, ov := PianoVero(st, PianoBilanciato, OverlayMigliori); ov != ModoEfficienza {
+		t.Fatal(ov)
+	}
+	// valori cambiati dall'utente nel frattempo (non più quelli di Tasso): restano
+	if att, ov := PianoVero(st, PianoMassime, OverlayNessuno); att != PianoMassime || ov != OverlayNessuno {
+		t.Fatal(att, ov)
+	}
+	// piano senza "Prestazioni elevate": modalità "migliori" sul fisso
+	a2, _, e2, _ := ambienteFinto()
+	delete(e2.piani, PianoPrestazioni)
+	st2 := &Stato{}
+	esegui(t, "piano", a2, st2)
+	if _, ov := PianoVero(st2, PianoBilanciato, OverlayMigliori); ov != OverlayNessuno {
+		t.Fatal(ov)
+	}
+	if att, ov := PianoVero(nil, "x", "y"); att != "x" || ov != "y" {
+		t.Fatal("senza stato non cambia niente")
+	}
+}
+
+// D-D: con Tasso aperto da un altro account le scorciatoie (che non sono nel registro) non si toccano.
+func TestScorciatoieAltroUtente(t *testing.T) {
+	a, _, _, s := ambienteFinto()
+	prima := map[string]uint32{}
+	for k, v := range s.tasti {
+		prima[k] = v
+	}
+	a.PC.AltroUtente = true
+	st := &Stato{}
+	if es := esegui(t, "scorciatoie", a, st); es.Stato != VoceSaltata || es.Motivo != MsgAltroUtente {
+		t.Fatal(es)
+	}
+	if !reflect.DeepEqual(prima, s.tasti) {
+		t.Fatalf("toccate con un altro account: %v", s.tasti)
+	}
+	a.PC.AltroUtente = false
+	esegui(t, "scorciatoie", a, st)
+	dopo := map[string]uint32{}
+	for k, v := range s.tasti {
+		dopo[k] = v
+	}
+	a.PC.AltroUtente = true
+	if es := rimetti(t, "scorciatoie", a, st); es.Stato != VoceErrore || !reflect.DeepEqual(dopo, s.tasti) {
+		t.Fatalf("%+v %v", es, s.tasti)
+	}
+}
+
+// C-2: i criteri dell'utente (HKCU\Software\Policies) valgono come "serve l'amministratore".
+func TestCriteriUtenteServeAdmin(t *testing.T) {
+	if !serveAdminV(dw(HKCU, kExplorerPol, "DisableSearchBoxSuggestions", 1)) || serveAdminV(dw(HKCU, kEsplora, "X", 1)) {
+		t.Fatal("serveAdminV")
+	}
+	pr := Precedente{Valori: []Valore{{Radice: HKCU, Chiave: kExplorerPol, Nome: "DisableSearchBoxSuggestions"}}, Messi: []Valore{dw(HKCU, kExplorerPol, "DisableSearchBoxSuggestions", 1)}}
+	if q, ok := Privacy().G.Valida(pr, false); !ok || len(q.Messi) != 0 {
+		t.Fatal("da un file non protetto non si rimette un criterio", q)
 	}
 }

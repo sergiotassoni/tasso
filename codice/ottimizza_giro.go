@@ -84,7 +84,11 @@ func giroOtt(modo string) {
 		return
 	}
 
-	// 2. le modifiche, una alla volta
+	// 2. le modifiche, una alla volta. Prima la foto di com'era Windows (se non c'è ancora): così
+	// "Rimetti tutto com'era" non prende mai come "com'era" il piano o un valore messo da Tasso.
+	if !ensureSnapshot() {
+		logf("Foto di com'era Windows non salvata: vado avanti, ogni modifica ha comunque il suo com'era.")
+	}
 	elenco := ottimizza.Elenco(modo)
 	emit("onOttStato", map[string]interface{}{"fase": "sistemo", "modo": modo, "totale": len(elenco)})
 	a := ambienteOtt(ctx, logf)

@@ -1,10 +1,14 @@
 package main
 
 // Comandi gaming: le regolazioni di Windows che contano per giocare, fatte da Tasso in modo
-// sicuro e reversibile (spento = valore normale di Windows): priorità ai giochi (MMCSS),
-// memoria in standby, rete a bassa latenza (Nagle e limitazione di rete spenti),
-// registrazione in background spenta, pianificazione GPU hardware, ottimizzazioni per i
-// giochi in finestra, riavvio rapido del driver video, cache degli shader.
+// sicuro e reversibile (spento = valore normale di Windows): memoria in standby, registrazione in
+// background spenta, pianificazione GPU hardware, ottimizzazioni per i giochi in finestra, riavvio
+// rapido del driver video, cache degli shader.
+//
+// "Priorità ai giochi" (mmcss: SystemResponsiveness, Tasks\Games) e "Rete a bassa latenza" (nagle:
+// NetworkThrottlingIndex, TcpAckFrequency, TCPNoDelay) sono ritirati (decisione di Sergio): non sono
+// documentati da Microsoft come regolazioni per i giochi. Tasso non li accende più, ma chi li ha
+// accesi con una versione di prima li può sempre spegnere: il ripristino li rimette com'erano.
 
 import (
 	"fmt"
@@ -272,7 +276,15 @@ func gamingState() map[string]interface{} {
 	return st
 }
 
+// comandiRitirati: Tasso non li accende più, li sa solo spegnere (rimettere com'erano).
+var comandiRitirati = map[string]bool{"mmcss": true, "nagle": true}
+
+const msgComandoRitirato = "Tasso non accende più questo comando: non è documentato da Microsoft e quasi sempre non cambia niente. Se l'avevi acceso con una versione di prima, puoi spegnerlo per rimetterlo com'era."
+
 func gamingSet(id string, on bool) string {
+	if on && comandiRitirati[id] {
+		return msgComandoRitirato
+	}
 	var err error
 	msg := ""
 	if on {

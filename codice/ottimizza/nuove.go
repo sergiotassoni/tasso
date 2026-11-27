@@ -374,11 +374,20 @@ func nuoviConsigli() Gestore {
 	b = append(b, bersaglio{vuole: dw(HKCU, kEngagement, "ScoobeSystemSettingEnabled", 0), ok: soloQuesti(0)})
 	return &regGest{bers: b, filtro: func(a *Ambiente, x bersaglio) bool {
 		if x.vuole.Nome == "RotatingLockScreenOverlayEnabled" || x.vuole.Nome == "SubscribedContent-338387Enabled" {
-			v, err := a.Reg.Leggi(HKCU, kContenuti, "RotatingLockScreenEnabled")
-			return err == nil && !dwordE(v, 1)
+			// solo se la schermata di blocco NON usa Contenuti in evidenza, detto chiaro da Windows
+			// (valore a 0): se il valore manca, il valore di base è proprio Contenuti in evidenza
+			return SenzaContenutiInEvidenza(a.Reg)
 		}
 		return true
 	}}
+}
+
+// SenzaContenutiInEvidenza: la schermata di blocco non usa "Contenuti in evidenza di Windows"
+// (RotatingLockScreenEnabled scritto a 0 da Windows). Valore assente, illeggibile o diverso: non
+// si sa, quindi false (le curiosità della schermata di blocco non si toccano).
+func SenzaContenutiInEvidenza(r Registro) bool {
+	v, err := r.Leggi(HKCU, kContenuti, "RotatingLockScreenEnabled")
+	return err == nil && dwordE(v, 0)
 }
 
 // feedback: "Frequenza dei feedback" = Mai (tabella "Never: 0 / 0" della pagina Microsoft "Manage
@@ -483,8 +492,16 @@ func Privacy() Modifica {
 	)
 	return Modifica{ID: IDPrivacy, Categoria: "privacy", Utente: true, G: &regGest{bers: b,
 		// senza amministratore il criterio di tutto il PC si salta, il resto si fa
-		filtro: func(a *Ambiente, x bersaglio) bool { return !serveAdmin(x.vuole.Radice) || a.PC.Admin },
-		dopo:   avvisa("TraySettings")}}
+		filtro: func(a *Ambiente, x bersaglio) bool {
+			if serveAdminV(x.vuole) && !a.PC.Admin {
+				return false // HKLM e HKCU\Software\Policies: solo da amministratore
+			}
+			if x.vuole.Nome == "AllowTelemetry" {
+				return !TelemetriaDecisa(a.Reg)
+			}
+			return true
+		},
+		dopo: avvisa("TraySettings")}}
 }
 
 // ValoriPrivacy: i valori che il passo Privacy mette (per leggere il com'era dalla foto di una
@@ -495,6 +512,59 @@ func ValoriPrivacy() []Valore {
 		out = append(out, b.vuole)
 	}
 	return out
+}
+
+const kMDMSistema = `SOFTWARE\Microsoft\PolicyManager\current\device\System`
+
+// TelemetriaDecisa: il livello dei dati di diagnostica c'è già (criterio di gruppo o MDM, di
+// un'azienda, di un altro programma o di Tasso stesso): il passo Privacy non lo cambia.
+func TelemetriaDecisa(r Registro) bool {
+	for _, k := range []string{kTelemetria, kMDMSistema} {
+		if v, err := r.Leggi(HKLM, k, "AllowTelemetry"); err != nil || v.Esiste {
+			return true
+		}
+	}
+	return false
+}
+
+// TelemetriaAlta: c'è un criterio con il livello 2 o 3 (lo ha deciso chi gestisce il PC): va detto.
+func TelemetriaAlta(r Registro) bool {
+	for _, k := range []string{kTelemetria, kMDMSistema} {
+		if v, err := r.Leggi(HKLM, k, "AllowTelemetry"); err == nil && v.Esiste && !dwordE(v, 0, 1) {
+			return true
+		}
+	}
+	return false
+}
+
+// PianoVero: nella foto di com'era Windows, il piano attivo e la modalità a corrente messi da
+// Ottimizza tutto (voci piano e modoac ancora attive) diventano quelli di prima di Tasso.
+func PianoVero(st *Stato, attivo, modoAC string) (string, string) {
+	if st == nil {
+		return attivo, modoAC
+	}
+	norm := func(g string) string {
+		g = strings.ToLower(strings.Trim(strings.TrimSpace(g), "{}"))
+		if g == "" {
+			return OverlayNessuno
+		}
+		return g
+	}
+	if v := st.Voce("piano"); v != nil && v.Attiva() {
+		x := v.Prima.Extra
+		switch {
+		case x["modo"] == "piano" && norm(attivo) == x["messo"] && GUIDValido(x["prima"]):
+			attivo = x["prima"]
+		case x["modo"] == "overlay" && norm(modoAC) == x["messo"] && GUIDValido(x["prima"]):
+			modoAC = x["prima"]
+		}
+	}
+	if v := st.Voce("modoac"); v != nil && v.Attiva() {
+		if x := v.Prima.Extra; norm(modoAC) == x["messo"] && modoACNoto(x["modoac"]) {
+			modoAC = x["modoac"]
+		}
+	}
+	return attivo, modoAC
 }
 
 // IDPrivacy: l'id del passo Privacy nel suo file di stato.

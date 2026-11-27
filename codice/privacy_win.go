@@ -86,14 +86,16 @@ func privacyApplica(log func(string)) {
 	switch e.Stato {
 	case ottimizza.VoceFatta:
 		log("Pubblicità nel menu Start, suggerimenti, ID pubblicitario e raccolta dati extra: spenti.")
-		if !a.PC.Admin {
-			log("Senza i permessi di amministratore il livello dei dati di diagnostica non l'ho cambiato.")
-		}
 		log("Alcune modifiche si vedono dopo il riavvio. Con \"Privacy: ripristina\" tornano i valori che c'erano prima.")
 	case ottimizza.VoceAPosto:
 		log("Era già tutto spento: non ho cambiato niente.")
 	default:
 		log(e.Motivo)
+	}
+	if !a.PC.Admin {
+		log("Senza i permessi di amministratore non ho cambiato il livello dei dati di diagnostica e i suggerimenti dal web nella ricerca: li decide l'amministratore.")
+	} else if ottimizza.TelemetriaAlta(a.Reg) {
+		log("Il livello dei dati di diagnostica lo ha deciso chi gestisce questo PC (azienda, scuola o un programma): l'ho lasciato com'è.")
 	}
 }
 
@@ -246,13 +248,26 @@ func fotoConPrimaVera(raw string) string {
 	if json.Unmarshal([]byte(raw), &foto) != nil {
 		return raw
 	}
-	var righe []fotoReg
-	if json.Unmarshal(foto["reg"], &righe) != nil {
-		return raw
-	}
 	// solo lettura, senza blocchi: la foto si fa anche dentro un giro di Ottimizza tutto (ottMu preso)
 	stOtt, stPriv := leggiSoloStato(fileStatoOtt), leggiSoloStato(filePrivacy)
 	cambiate := false
+	// piano energetico e modalità a corrente (voci piano e modoac di Ottimizza tutto)
+	var attivo, modoAC string
+	_ = json.Unmarshal(foto["active"], &attivo)
+	_ = json.Unmarshal(foto["overlayAc"], &modoAC)
+	if a2, m2 := ottimizza.PianoVero(stOtt, attivo, modoAC); a2 != attivo || m2 != modoAC {
+		if a2 != attivo {
+			foto["active"], _ = json.Marshal(a2)
+		}
+		if m2 != modoAC {
+			foto["overlayAc"], _ = json.Marshal(m2)
+		}
+		cambiate = true
+	}
+	var righe []fotoReg
+	if json.Unmarshal(foto["reg"], &righe) != nil {
+		righe = nil
+	}
 	for i := range righe {
 		adesso, ok := valoreDaFoto(righe[i])
 		if !ok {
@@ -269,11 +284,13 @@ func fotoConPrimaVera(raw string) string {
 	if !cambiate {
 		return raw
 	}
-	b, err := json.Marshal(righe)
-	if err != nil {
-		return raw
+	if righe != nil {
+		b, err := json.Marshal(righe)
+		if err != nil {
+			return raw
+		}
+		foto["reg"] = b
 	}
-	foto["reg"] = b
 	out, err := json.Marshal(foto)
 	if err != nil {
 		return raw

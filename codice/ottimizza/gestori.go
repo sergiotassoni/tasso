@@ -132,9 +132,14 @@ const msgAdmin = "Per questa serve Tasso aperto come amministratore: la salto."
 
 func serveAdmin(r Radice) bool { return r == HKLM || r == HKNS }
 
+// serveAdminV: anche i criteri dell'utente (HKCU\Software\Policies) li scrive solo l'amministratore.
+func serveAdminV(v Valore) bool {
+	return serveAdmin(v.Radice) || v.Radice == HKCU && strings.HasPrefix(strings.ToLower(v.Chiave), `software\policies\`)
+}
+
 func (g *regGest) Disponibile(a *Ambiente) (bool, string) {
 	for _, b := range g.usa(a) {
-		if serveAdmin(b.vuole.Radice) && !a.PC.Admin {
+		if serveAdminV(b.vuole) && !a.PC.Admin {
 			return false, msgAdmin
 		}
 	}
@@ -305,7 +310,7 @@ func (g *regGest) Valida(p Precedente, admin bool) (Precedente, bool) {
 		if !trovato || !v.Stesso(m) || !valoreSicuro(v) {
 			return Precedente{}, false
 		}
-		if serveAdmin(m.Radice) && !admin {
+		if serveAdminV(m) && !admin {
 			continue // valore di tutto il PC da un file che può cambiare chiunque: non lo uso
 		}
 		out.Valori = append(out.Valori, v)
