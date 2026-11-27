@@ -243,7 +243,7 @@ body .banner.banner.upd{border-radius:8px;background:color-mix(in srgb,var(--a3)
 #updList .pic,#bloatList .pic{flex:0 0 28px;width:28px;height:28px;margin:0;border-radius:50%;font-size:13px;line-height:1;box-shadow:inset 0 0 0 1px rgba(255,255,255,.14)}
 #updList .pic:has(img),#bloatList .pic:has(img){border-radius:7px;background:transparent;box-shadow:none}
 #updList .pic img,#bloatList .pic img{width:28px;height:28px;border-radius:7px;object-fit:contain;display:block}
-/* 2.6: due modalità. 3.1: Gaming mostra solo le cose per giocare; Ufficio è più semplice, morbida e tranquilla. */
+/* 2.6: due modalità. Gaming ha le cose di tutti i giorni più quelle per giocare; Ufficio è più semplice, morbida e tranquilla. */
 body.office .gm{display:none!important}
 body:not(.office):not(.showall) .gadv{display:none!important}
 body:not(.office) .om{display:none!important}
@@ -322,8 +322,19 @@ h1.gname::after{content:"";display:block;width:48px;height:3px;background:var(--
 @media (max-width:760px){.ghero{grid-template-columns:1fr}.gmask{max-width:150px}
   nav button>svg{padding:5px}}
 
-body.fixq #secOffice{display:block!important}
-body.fixq #secOffice .sech{display:none}
+/* 3.2: Modalità riunione sulla Home dell'Ufficio, accanto a PULISCI: è il Boost dell'ufficio. */
+.meet{display:flex;align-items:center;gap:12px;align-self:flex-start;max-width:100%;margin-top:6px;padding:7px 20px 7px 7px;border-radius:999px;border:1px solid var(--line);background:color-mix(in srgb,var(--panel2) 60%,transparent);color:var(--text);font:inherit;text-align:left;cursor:pointer;transition:border-color .15s,background .15s}
+.meet:hover{border-color:color-mix(in srgb,var(--a1) 60%,var(--line))}
+.meet:focus-visible{outline:2px solid var(--a1);outline-offset:3px}
+.meet .mi{flex:0 0 40px;width:40px;height:40px;border-radius:50%;display:grid;place-items:center;background:color-mix(in srgb,var(--a1) 14%,transparent);color:var(--a1)}
+.meet .mt{display:flex;flex-direction:column;gap:2px;min-width:0}
+.meet .mt b{font-size:15px;font-weight:600}
+.meet .mt span{font-size:12.5px;color:var(--muted);line-height:1.35}
+.meet.on{border-color:color-mix(in srgb,var(--a1) 70%,transparent);background:color-mix(in srgb,var(--a1) 9%,transparent)}
+.meet.on .mi{background:var(--a1);color:var(--ink)}
+.meet.on .mt b::before{content:'';display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--a1);margin-right:7px;vertical-align:1px;animation:meetDot 1.6s ease-in-out infinite}
+@keyframes meetDot{50%{opacity:.35}}
+@media (prefers-reduced-motion:reduce){.meet.on .mt b::before{animation:none}}
 body.office{--display:'Segoe UI Variable Display','Segoe UI',system-ui,sans-serif}
 body.office .glow,body.office .orbit{display:none}
 body.office .go{animation:none;box-shadow:0 12px 34px color-mix(in srgb,var(--a1) 32%,transparent)}
@@ -783,6 +794,7 @@ body.th-tasso:not(.office) .aa-passi li::before{background:var(--text);color:var
       <span style="font-size:12px;font-weight:800;letter-spacing:1.4px;color:var(--a2)">STATO DEL PC</span>
       <h1 id="heroTitle">Sto controllando il tuo PC…</h1>
       <p class="sub" id="heroSub" style="font-size:15px;max-width:470px;color:var(--soft)">Un attimo: guardo quanti file inutili ci sono e come stanno i dischi.</p>
+      <button class="meet" id="btnMeet" aria-pressed="false"><span class="mi"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></span><span class="mt"><b id="meetT">Modalità riunione</b><span id="meetS">Il Boost dell'ufficio: niente notifiche, PC al massimo.</span></span></button>
     </div>
     <div class="orb">
       <svg class="orbit" width="260" height="260" viewBox="0 0 260 260" aria-hidden="true"><circle cx="130" cy="130" r="123" fill="none" stroke="var(--a2)" stroke-opacity=".5" stroke-width="1.5" stroke-dasharray="2 10"/><circle cx="130" cy="7" r="5" fill="var(--a2)"/></svg>
@@ -851,8 +863,10 @@ body.th-tasso:not(.office) .aa-passi li::before{background:var(--text);color:var
       <button role="switch" aria-checked="false" class="toggle" id="tgBenchAround"><span><b>Misura da solo prima e dopo ogni pulizia</b><span>Così vedi subito cosa è cambiato (la pulizia dura circa 50 secondi in più).</span></span><span class="sw"><i></i></span></button>
       <details class="guide"><summary>📘 Cosa vogliono dire i voti</summary>
         <ul>
-          <li><b>Processore, memoria RAM e disco</b> (da 1 a 100: 70 è un PC da gioco medio di oggi, e ogni volta che la velocità raddoppia il voto sale di 25): misurati davvero con una prova di pochi secondi. La RAM conta anche quanta ce n'è e come è montata (velocità in MT/s e numero di banchi). Dipendono dai componenti: <b>una pulizia li cambia poco</b>, e chi ti promette il contrario ti prende in giro.</li>
-          <li><b>Scheda video</b>: Tasso legge il modello e la memoria video e le dà un voto con una sua tabella, senza scaricare niente. Se il PC ha due schede (quella dentro il processore e quella vera) conta quella vera, cioè quella che usano i giochi.</li>
+          <li class="gm"><b>Processore, memoria RAM e disco</b> (da 1 a 100: 70 è un PC da gioco medio di oggi, e ogni volta che la velocità raddoppia il voto sale di 25): misurati davvero con una prova di pochi secondi. La RAM conta anche quanta ce n'è e come è montata (velocità in MT/s e numero di banchi). Dipendono dai componenti: <b>una pulizia li cambia poco</b>, e chi ti promette il contrario ti prende in giro.</li>
+          <li class="gm"><b>Scheda video</b>: Tasso legge il modello e la memoria video e le dà un voto con una sua tabella, senza scaricare niente. Se il PC ha due schede (quella dentro il processore e quella vera) conta quella vera, cioè quella che usano i giochi.</li>
+          <li class="om"><b>Processore, memoria RAM e disco</b> (da 1 a 100: 70 è un buon PC di oggi, e ogni volta che la velocità raddoppia il voto sale di 25): misurati davvero con una prova di pochi secondi. La RAM conta anche quanta ce n'è e come è montata (velocità in MT/s e numero di banchi). Dipendono dai componenti: <b>una pulizia li cambia poco</b>, e chi ti promette il contrario ti prende in giro.</li>
+          <li class="om"><b>Scheda video</b>: Tasso legge il modello e la memoria video e le dà un voto con una sua tabella, senza scaricare niente. Se il PC ha due schede (quella dentro il processore e quella vera) conta quella vera. Per il lavoro d'ufficio conta poco.</li>
           <li><b>Raffreddamento</b>: compare solo se Tasso riesce a leggere la temperatura del processore (con LibreHardwareMonitor aperto). Non conta nel voto totale, perché dipende anche da quanto è calda la stanza.</li>
           <li><b>Leggerezza di Windows</b> (da 1 a 100): quanta memoria è già occupata, quanti programmi girano in background, quanti partono all'avvio, quanto spazio è libero e quanti file inutili ci sono. <b>Questa sì che migliora dopo una pulizia</b>, ed è quella che senti nell'uso di tutti i giorni.</li>
           <li><b>Voto totale</b> e <b>classifica</b>: 60% potenza del PC e 40% leggerezza di Windows. La potenza è la media di processore (35%), scheda video (25%), disco (25%) e memoria RAM (15%). Il conto è uguale per tutti, in Gaming e in Ufficio, così puoi confrontare il tuo PC con quello degli amici. Fasce: sotto 40 PC lento, 40-59 PC da ufficio, 60-79 buon PC, 80-94 PC veloce, da 95 in su top.</li>
@@ -925,7 +939,7 @@ body.th-tasso:not(.office) .aa-passi li::before{background:var(--text);color:var
   <div class="row wrap" style="align-items:stretch;gap:18px">
     <div class="card" style="flex:3 1 460px;display:flex;flex-direction:column;gap:12px">
       <div class="row wrap" style="justify-content:space-between"><h2>Programmi installati <span class="muted small" id="progCount"></span></h2><button class="btn ghost" id="btnProgReload">Aggiorna</button></div>
-      <div class="banner" style="margin:0;background:transparent;border:1px solid var(--line)"><span class="small">💡 <b>Non disinstallare da qui i tuoi giochi, Discord, Steam, Epic Games o Riot</b>: potresti perdere partite salvate e dati. Toglili dal loro launcher. Qui conviene togliere solo i programmi che non usi più.</span></div>
+      <div class="banner" style="margin:0;background:transparent;border:1px solid var(--line)"><span class="small gm">💡 <b>Non disinstallare da qui i tuoi giochi, Discord, Steam, Epic Games o Riot</b>: potresti perdere partite salvate e dati. Toglili dal loro launcher. Qui conviene togliere solo i programmi che non usi più.</span><span class="small om">💡 <b>Non disinstallare da qui Office, Teams, la VPN e i programmi del lavoro</b>: se il PC è dell'ufficio, chiedi prima all'assistenza. Qui conviene togliere solo i programmi che non usi più.</span></div>
       <input class="search" id="progSearch" placeholder="Cerca un programma…" aria-label="Cerca un programma">
       <div class="list" id="progList"><div class="li"><span class="muted">Lettura…</span></div></div>
     </div>
@@ -937,9 +951,9 @@ body.th-tasso:not(.office) .aa-passi li::before{background:var(--text);color:var
     </div>
   </div>
   <div class="card" style="display:flex;flex-direction:column;gap:12px">
-    <div class="row wrap" style="justify-content:space-between"><div><h2>Aggiornamenti dei programmi <span class="muted small" id="updCount"></span></h2><p class="sub" style="margin:2px 0 0" id="updMsg">Chrome, Discord, 7-Zip, VLC e gli altri: Tasso trova le versioni nuove con winget (gratuito, è dentro Windows) e le installa senza finestre.</p></div><div class="row" style="gap:8px"><button class="btn ghost" id="btnUpdCheck">Cerca aggiornamenti</button><button class="btn primary" id="btnUpdSel" disabled>Aggiorna i selezionati</button></div></div>
+    <div class="row wrap" style="justify-content:space-between"><div><h2>Aggiornamenti dei programmi <span class="muted small" id="updCount"></span></h2><p class="sub" style="margin:2px 0 0" id="updMsg"><span class="gm">Chrome, Discord, 7-Zip, VLC e gli altri: Tasso trova le versioni nuove con winget (gratuito, è dentro Windows) e le installa senza finestre.</span><span class="om">Il browser, il lettore di PDF, 7-Zip e gli altri: Tasso trova le versioni nuove con winget (gratuito, è dentro Windows) e le installa senza finestre.</span></p></div><div class="row" style="gap:8px"><button class="btn ghost" id="btnUpdCheck">Cerca aggiornamenti</button><button class="btn primary" id="btnUpdSel" disabled>Aggiorna i selezionati</button></div></div>
     <div class="list" id="updList" style="max-height:340px"><div class="li"><span class="muted">Premi "Cerca aggiornamenti".</span></div></div>
-    <span class="small muted">Chiudi i programmi prima di aggiornarli. Alcuni (Discord, Proton…) dopo l'aggiornamento chiedono di rifare l'accesso. I giochi si aggiornano dal loro launcher.</span>
+    <span class="small muted gm">Chiudi i programmi prima di aggiornarli. Alcuni (Discord, Proton…) dopo l'aggiornamento chiedono di rifare l'accesso. I giochi si aggiornano dal loro launcher.</span><span class="small muted om">Chiudi i programmi prima di aggiornarli. Alcuni dopo l'aggiornamento chiedono di rifare l'accesso. Se il PC è dell'ufficio, Office e i programmi del lavoro li aggiorna di solito l'assistenza.</span>
   </div>
 </section>
 
@@ -952,7 +966,7 @@ body.th-tasso:not(.office) .aa-passi li::before{background:var(--text);color:var
   <div class="card row wrap" style="gap:14px;align-items:flex-end">
     <label class="acf">File grandi da<select id="fsMin"><option value="100">100 MB</option><option value="300" selected>300 MB</option><option value="1000">1 GB</option></select></label>
     <div style="display:flex;flex-direction:column;gap:6px;flex:1 1 260px;min-width:0"><span class="small muted">Cerco in Desktop, Documenti, Immagini, Video, Musica e Download<span id="fsExtra"></span>.</span><div class="row" style="gap:8px"><button class="btn ghost" id="btnFsAdd">+ Aggiungi una cartella o un disco</button><button class="btn ghost" id="btnFsDel" style="display:none">Togli</button></div></div>
-    <span class="small muted" style="flex:1 1 240px">Le cartelle di Windows, dei programmi e dei giochi (Steam, Epic, Riot…) vengono saltate: lì i doppioni servono.</span>
+    <span class="small muted gm" style="flex:1 1 240px">Le cartelle di Windows, dei programmi e dei giochi (Steam, Epic, Riot…) vengono saltate: lì i doppioni servono.</span><span class="small muted om" style="flex:1 1 240px">Le cartelle di Windows e dei programmi vengono saltate: lì i doppioni servono.</span>
   </div>
   <div class="card" id="filesStatus" style="display:none"><div class="row"><svg class="spin" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--a1)" stroke-width="2.6" stroke-linecap="round"><path d="M21 12a9 9 0 1 1-9-9"/></svg><span id="filesMsg">Analisi in corso…</span></div></div>
   <div id="filesResult" style="display:none;flex-direction:column;gap:16px"></div>
@@ -990,7 +1004,7 @@ body.th-tasso:not(.office) .aa-passi li::before{background:var(--text);color:var
     </div>
     <div class="card" style="display:flex;flex-direction:column;gap:4px">
       <h3 style="margin:0 0 4px">Compila da solo</h3>
-      <button role="switch" aria-checked="false" class="toggle" id="tgVSuggest" style="padding:8px 0"><span><b>Proponi gli account quando clicco su un campo di accesso</b><span>Clicchi nel campo utente o password di Steam, Google o di un altro sito: sotto il campo compare una finestrella di Tasso con i tuoi account di quel sito. Un clic e Tasso compila.</span></span><span class="sw"><i></i></span></button>
+      <button role="switch" aria-checked="false" class="toggle" id="tgVSuggest" style="padding:8px 0"><span><b>Proponi gli account quando clicco su un campo di accesso</b><span><span class="gm">Clicchi nel campo utente o password di Steam, Google o di un altro sito: sotto il campo compare una finestrella di Tasso con i tuoi account di quel sito. Un clic e Tasso compila.</span><span class="om">Clicchi nel campo utente o password di Microsoft, Google o della tua banca: sotto il campo compare una finestrella di Tasso con i tuoi account di quel sito. Un clic e Tasso compila.</span></span></span><span class="sw"><i></i></span></button>
       <label class="li" style="border-bottom:0;gap:12px;flex-wrap:wrap"><span class="x" style="flex:1 1 260px"><b>Scorciatoia da tastiera</b><span>Con la finestra di login davanti premi la scorciatoia: Tasso trova l'account giusto e compila.</span></span><select id="vFillKey" style="max-width:200px"><option value="0">Spenta</option><option value="196673">Ctrl+Alt+A</option><option value="196683">Ctrl+Alt+K</option><option value="196688">Ctrl+Alt+P</option></select></label>
       <details class="guide"><summary>Come funziona e limiti</summary><div class="small muted" style="line-height:1.6;display:flex;flex-direction:column;gap:6px;margin-top:8px">
         <span><b>Finestrella</b>: compare solo se nel portachiavi c'è un account di quel sito. Nei browser Tasso legge l'indirizzo della pagina e lo confronta con il sito vero: accounts.google.com va bene per Google, una pagina falsa come google.com.truffa.it no. Si chiude con Esc o cliccando altrove. Con il portachiavi chiuso dice "Sblocca il portachiavi".</span>
@@ -1010,7 +1024,7 @@ body.th-tasso:not(.office) .aa-passi li::before{background:var(--text);color:var
   <div id="fixTitle"><h1 style="font-size:26px">Risolvi un problema</h1><p class="sub">Un clic sul problema che hai: Tasso prova a sistemarlo da solo. Se non lo trovi, scrivilo nella ricerca. Non sai qual è il problema? Apri <a href="#" id="fixToDetect">Salute e problemi</a> e te lo dice Tasso.</p></div>
   <div class="fixsearch"><input class="search" id="fixSearch" type="search" placeholder="Scrivi il problema: Wi-Fi, audio, lento, mouse…" aria-label="Cerca un problema"><p class="sub" id="fixNone" role="status" aria-live="polite" style="display:none;margin:8px 0 0">Nessun problema con queste parole. Prova con una parola sola, per esempio "audio", "lento", "mouse" o "password".</p></div>
   <div class="fixsec" id="secWin">
-  <div class="sech"><span class="sei">🪟</span><div><h2>Sezione Windows</h2><p class="sub"><span class="gm">Audio, internet, aggiornamenti e ricerca: valgono per tutti.</span><span class="om">Audio, internet, stampa, aggiornamenti e ricerca: valgono per tutti.</span></p></div></div>
+  <div class="sech"><span class="sei">🪟</span><div><h2>Sezione Windows</h2><p class="sub">Audio, internet, stampa, aggiornamenti e ricerca: valgono per tutti.</p></div></div>
   <div class="grid g3">
     <div class="card fixcard" style="--c:var(--a1)"><span class="big"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5L6 9H2v6h4l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M19 5a10 10 0 0 1 0 14"/></svg></span><h3>Non sento l'audio</h3><p class="sub" style="margin:0">Riavvia i servizi audio di Windows e controlla le schede audio.</p><button class="btn primary" data-step="fix_audio" style="margin-top:auto">Risolvi</button></div>
     <div class="card fixcard" style="--c:var(--a3)"><span class="big"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8.5a15 15 0 0 1 20 0M5 12a10 10 0 0 1 14 0M8.5 15.5a5 5 0 0 1 7 0"/><circle cx="12" cy="19" r="1"/></svg></span><h3>Internet non va</h3><p class="sub" style="margin:0">Rinnova la connessione e ripristina le impostazioni di rete. Poi serve un riavvio.</p><button class="btn primary" data-step="fix_net" style="margin-top:auto">Risolvi</button></div>
@@ -1018,9 +1032,10 @@ body.th-tasso:not(.office) .aa-passi li::before{background:var(--text);color:var
     <div class="card fixcard" style="--c:var(--a2)"><span class="big"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M8.5 12l2.5 2.5 4.5-5"/></svg></span><h3>Windows dà errori</h3><p class="sub" style="margin:0">Controlla e ripara i file di sistema danneggiati (DISM + SFC). 20–40 minuti.</p><button class="btn primary" data-step="repair" style="margin-top:auto">Ripara</button></div>
     <div class="card fixcard" style="--c:var(--a3)"><span class="big"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg></span><h3>Una periferica non va</h3><p class="sub" style="margin:0">Controlla mouse, tastiera, rete, video e USB e ti dice quale ha problemi.</p><button class="btn primary" data-step="devices" style="margin-top:auto">Controlla</button></div>
     <div class="card fixcard" style="--c:var(--a1)"><span class="big"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v6c0 1.7 3.6 3 8 3s8-1.3 8-3V6M4 12v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/></svg></span><h3>Il disco fa i capricci</h3><p class="sub" style="margin:0">Controlla errori, salute e usura dei dischi.</p><button class="btn primary" data-steps="chkdsk,disk_health" style="margin-top:auto">Controlla</button></div>
-    <div class="card fixcard om" style="--c:var(--a1)"><span class="big"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V3h12v6M6 18H4a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="7" rx="1"/></svg></span><h3>La stampante non stampa</h3><p class="sub" style="margin:0">Riavvia il servizio di stampa e svuota la coda bloccata. È la causa più comune quando non esce niente.</p><button class="btn primary" data-step="fix_print" style="margin-top:auto">Risolvi</button></div>
+    <div class="card fixcard" style="--c:var(--a1)"><span class="big"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V3h12v6M6 18H4a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="7" rx="1"/></svg></span><h3>La stampante non stampa</h3><p class="sub" style="margin:0">Riavvia il servizio di stampa e svuota la coda bloccata. È la causa più comune quando non esce niente.</p><button class="btn primary" data-step="fix_print" style="margin-top:auto">Risolvi</button></div>
     <div class="card fixcard" style="--c:var(--a2)"><span class="big"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l1.5-5h15L21 9M3 9h18M3 9v9a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V9M9 13h6"/></svg></span><h3>Lo Store e le app non si aprono</h3><p class="sub" style="margin:0">Svuota la cache del Microsoft Store e ricontrolla le app di Windows quando restano bianche o non si aggiornano.</p><button class="btn primary" data-step="fix_store" style="margin-top:auto">Risolvi</button></div>
     <div class="card fixcard" style="--c:var(--a3)"><span class="big"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg></span><h3>Ricerca e menu Start bloccati</h3><p class="sub" style="margin:0">Riavvia la ricerca di Windows e il menu Start quando non rispondono o non trovano i programmi.</p><button class="btn primary" data-step="fix_search" style="margin-top:auto">Risolvi</button></div>
+    <div class="card fixcard gm" style="--c:var(--a2)"><span class="big"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></span><h3>Chi usa webcam e microfono</h3><p class="sub" style="margin:0">Ti fa vedere quali programmi hanno usato la webcam e il microfono negli ultimi 30 giorni e chi li sta usando adesso. Così scopri se qualcuno ti guarda o ti ascolta.</p><button class="btn ghost" data-step="of_new_camlog" style="margin-top:auto">Controlla</button></div>
     <div class="card fixcard" style="--c:var(--a1)"><span class="big"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="7" r="3"/><circle cx="17" cy="9" r="2.5"/><path d="M2 20c0-3.3 2.7-6 6-6s6 2.7 6 6M14 15.5c.9-.6 1.9-1 3-1 2.8 0 5 2.2 5 5"/></svg></span><h3>Fai aiutare un amico</h3><p class="sub" style="margin:0">Un amico ti dà aiuto da remoto: vede il tuo schermo e ti aiuta. Si usa Assistenza rapida (Quick Assist), un programma gratuito di Windows. Spiegato passo passo.</p><button class="btn primary" data-go2="aiuto" style="margin-top:auto">Apri</button></div>
   </div>
   </div>
@@ -1030,6 +1045,7 @@ body.th-tasso:not(.office) .aa-passi li::before{background:var(--text);color:var
     <div class="card fixcard" style="--c:var(--red)"><span class="big">🎮</span><h3>Il gioco va a scatti</h3><p class="sub" style="margin:0">Accende la Modalità Gioco di Windows e ti dice se il PC sta risparmiando energia mentre giochi. Le cache della grafica non le cancella: servono proprio a non scattare.</p><button class="btn primary" data-step="fix_game_lag" style="margin-top:auto">Risolvi</button></div>
     <div class="card fixcard" style="--c:var(--a4)"><span class="big">🚀</span><h3>Il gioco non parte o si chiude</h3><p class="sub" style="margin:0">Installa o ripara i "pezzi" di Windows che servono ai giochi (Visual C++, DirectX, .NET) dal sito ufficiale Microsoft. 2-5 minuti.</p><button class="btn primary" data-step="fix_game_start" style="margin-top:auto">Risolvi</button></div>
     <div class="card fixcard" style="--c:var(--a2)"><span class="big">🎧</span><h3>Controller, cuffie o microfono non vanno</h3><p class="sub" style="margin:0">Riavvia controller, cuffie, microfono e periferiche USB o Bluetooth bloccate, e l'audio di Windows. Controlla anche se il microfono è bloccato dalla privacy.</p><button class="btn primary" data-step="fix_game_pads" style="margin-top:auto">Risolvi</button></div>
+    <div class="card fixcard" style="--c:var(--a3)"><span class="big">🎙️</span><h3>Prova microfono e cuffie</h3><p class="sub" style="margin:0">Prima di una chat vocale o di una diretta: prova in pochi secondi microfono, cuffie, webcam e internet. Se qualcosa non va, ti propone la riparazione con un pulsante.</p><button class="btn ghost" data-step="of_new_call" style="margin-top:auto">Controlla</button></div>
     <div class="card fixcard" style="--c:var(--a3)"><span class="big">📶</span><h3>Ping alto o lag online</h3><p class="sub" style="margin:0">Il "ping" è il tempo che serve a un tuo comando per arrivare al server del gioco. Tasso svuota la memoria degli indirizzi internet, rimette la rete di Windows come deve essere, ferma la condivisione nascosta degli aggiornamenti e ti dice se il Wi-Fi ti sta rallentando.</p><button class="btn primary" data-step="fix_game_ping" style="margin-top:auto">Risolvi</button></div>
     <div class="card fixcard" style="--c:var(--a1)"><span class="big">🧩</span><h3>Steam, Epic o altri launcher non si aprono</h3><p class="sub" style="margin:0">Il "launcher" è il programma da cui apri i giochi (Steam, Epic, EA, Battle.net, Riot, Ubisoft, GOG). Se resta bianco, nero o non si apre, Tasso lo chiude e svuota le sue pagine salvate. Giochi, account e salvataggi non vengono toccati.</p><button class="btn primary" data-step="fix_game_launcher" style="margin-top:auto">Risolvi</button></div>
     <div class="card fixcard" style="--c:var(--a4)"><span class="big">🖥️</span><h3>Schermo nero o risoluzione sbagliata</h3><p class="sub" style="margin:0">Fa ripartire la scheda video in 2 secondi senza riavviare il PC (lo schermo lampeggia) e ti spiega i tasti per rimettere il gioco a schermo intero o lo schermo giusto.</p><button class="btn primary" data-step="fix_game_screen" style="margin-top:auto">Risolvi</button></div>
@@ -1056,8 +1072,8 @@ body.th-tasso:not(.office) .aa-passi li::before{background:var(--text);color:var
     <div class="card fixcard" style="--c:var(--a1)"><span class="big">💬</span><h3>Discord non va o non ti sentono</h3><p class="sub" style="margin:0">Chiude Discord bloccato, svuota la sua cache (messaggi e accesso restano) e controlla che Windows non blocchi il microfono.</p><button class="btn primary" data-step="fix_discord" style="margin-top:auto">Risolvi</button></div>
   </div>
   </div>
-  <div class="om fixsec" id="secOffice">
-  <div class="sech"><span class="sei">💼</span><div><h2>Sezione Ufficio</h2><p class="sub" id="ofSub">Stampanti, Word, Excel, Adobe, Outlook, Teams, rete, file e schermi. Tasso non cancella mai documenti e non chiude Word o Excel se sono aperti: ti chiede di salvare.</p></div></div>
+  <div class="fixsec" id="secOffice">
+  <div class="sech"><span class="sei om">💼</span><span class="sei gm">🧰</span><div><h2><span class="om">Sezione Ufficio</span><span class="gm">Problemi di tutti i giorni</span></h2><p class="sub" id="ofSub">Stampanti, Word, Excel, Adobe, Outlook, Teams, rete, file e schermi. Tasso non cancella mai documenti e non chiude Word o Excel se sono aperti: ti chiede di salvare.</p></div></div>
   <div id="ofBlock" class="ofblock"></div>
   </div>
   <div class="card" id="drvCard" style="display:flex;flex-direction:column;gap:12px">
@@ -1284,17 +1300,22 @@ body.th-tasso:not(.office) .aa-passi li::before{background:var(--text);color:var
     <li><b>Driver da siti sconosciuti o programmi "aggiorna tutti i driver"</b>: Tasso installa solo driver certificati da Microsoft (Windows Update) o il driver NVIDIA preso da NVIDIA e con la firma di NVIDIA controllata; per il resto ti apre il sito ufficiale del produttore.</li>
     <li><b>Overclock e aggiornamento automatico del BIOS</b>: troppo rischiosi da fare in automatico.</li></ul></div>
   <div class="card idx" style="--c:var(--a3)"><h3>Novità della 3.2</h3><ul>
+    <li class="gm"><b>Problemi di tutti i giorni</b> in Risolvi un problema, ognuno con un pulsante: Wi-Fi che si stacca, file zip, schermi, tastiera, batteria, ora sbagliata e la stampante di casa. In più <b>Prova microfono e cuffie</b> e <b>Chi usa webcam e microfono</b>.</li>
+    <li class="om"><b>Modalità riunione sulla Home</b>, accanto a PULISCI: un tasto prima della chiamata. In Risolvi un problema anche <b>il PC che si scalda</b>, <b>un programma che non parte</b> e <b>lo schermo che diventa nero</b>.</li>
     <li><b>Sfondi abbinati al tema</b>: quando scegli un tema, Tasso ti propone anche lo sfondo del desktop uguale, nitido anche sugli schermi 4K. È facoltativo: puoi dire di no, e con "Rimetti il mio" torna il tuo sfondo. Vale per Tasso installato con l'installatore.</li>
     <li><b>Nuovo Voto al PC</b>: conta anche la scheda video, la memoria RAM e, se si può, il raffreddamento. Alla fine ti dà il tuo biglietto da visita con il voto, da copiare o salvare.</li>
     <li><b>Fai aiutare un amico</b>: in Risolvi un problema c'è una guida semplice per farti aiutare a distanza con Assistenza rapida di Windows (o per aiutare qualcuno), con gli avvisi contro le truffe.</li>
-    <li><b>Più sicurezza dietro le quinte</b>: i file di Tasso e le copie dei giochi tradotti sono più protetti, e togliendo Tasso le copie dei giochi non si perdono mai.</li>
-    <li><b>Pulizia programmata più attenta</b>: aspetta che chiudi il gioco.</li></ul></div>
+    <li class="gm"><b>Più sicurezza dietro le quinte</b>: i file di Tasso e le copie dei giochi tradotti sono più protetti, e togliendo Tasso le copie dei giochi non si perdono mai.</li>
+    <li class="om"><b>Più sicurezza dietro le quinte</b>: i file di Tasso sono più protetti.</li>
+    <li class="gm"><b>Pulizia programmata più attenta</b>: aspetta che chiudi il gioco.</li></ul></div>
   <div class="card idx" style="--c:var(--a1)"><h3>Novità della 3.1</h3><ul>
-    <li><b>Boost nuovo</b>: un tasto prima di giocare chiude i programmi in background che non servono e prepara il PC; con "Rimetti com'era" torna tutto come prima.</li>
-    <li><b>Gaming e Ufficio separati</b>, con il menu a gruppi: in Gaming le cose per giocare (con "Mostra tutte le funzioni" vedi anche il resto), in Ufficio quelle per lavorare.</li>
-    <li><b>Traduzione dei giochi</b>: nel gioco premi F7 e le scritte compaiono tradotte, tutto sul PC.</li>
-    <li><b>Modalità riunione e Blocco automatico</b> nella sezione Ufficio.</li>
-    <li><b>Tasso si aggiorna da solo</b>, mai mentre giochi (si può spegnere nelle Impostazioni).</li></ul></div>
+    <li class="gm"><b>Boost nuovo</b>: un tasto prima di giocare chiude i programmi in background che non servono e prepara il PC; con "Rimetti com'era" torna tutto come prima.</li>
+    <li class="gm"><b>Gaming e Ufficio separati</b>, con il menu a gruppi: in Gaming le cose per giocare (con "Mostra tutte le funzioni" vedi anche il resto), in Ufficio quelle per lavorare.</li>
+    <li class="om"><b>Gaming e Ufficio separati</b>, con il menu a gruppi: in Ufficio le cose per lavorare, più semplici e tranquille.</li>
+    <li class="gm"><b>Traduzione dei giochi</b>: nel gioco premi F7 e le scritte compaiono tradotte, tutto sul PC.</li>
+    <li class="om"><b>Modalità riunione e Blocco automatico</b> nella sezione Ufficio.</li>
+    <li class="gm"><b>Tasso si aggiorna da solo</b>, mai mentre giochi (si può spegnere nelle Impostazioni).</li>
+    <li class="om"><b>Tasso si aggiorna da solo</b>: prima ti avvisa, così non ti interrompe mentre lavori (si può spegnere nelle Impostazioni).</li></ul></div>
   <div class="card idx" style="--c:var(--a2)"><h3>Novità della 3.0</h3><ul>
     <li><b>Scrivici</b> (Impostazioni e Info): mandi un'idea, un problema o un commento, con fino a 2 foto. Li leggo tutti.</li>
     <li>Se vuoi, <b>numeri anonimi</b> per aiutare a migliorare Tasso: lo chiede una volta, e puoi cambiare idea nelle Impostazioni.</li>
@@ -1305,10 +1326,11 @@ body.th-tasso:not(.office) .aa-passi li::before{background:var(--text);color:var
     <li><b>Grande controllo generale</b> di tutto Tasso, con tante correzioni piccole e grandi.</li>
     <li>La modalità <b>Normale</b> rimette le <b>tue</b> impostazioni (mouse, schermo, piano energetico).</li>
     <li><b>Pulizia programmata più prudente</b>: dal Cestino toglie solo quello buttato da più di 7 giorni; a batteria salta i lavori lunghi.</li>
-    <li><b>Riparazione di Windows</b> con il risultato vero; <b>Apri qualsiasi file</b> ora apre anche le cartelle; <b>autoclick</b> fermato nei giochi con anti-cheat più conosciuti.</li></ul></div>
+    <li class="gm"><b>Riparazione di Windows</b> con il risultato vero; <b>Apri qualsiasi file</b> ora apre anche le cartelle; <b>autoclick</b> fermato nei giochi con anti-cheat più conosciuti.</li>
+    <li class="om"><b>Riparazione di Windows</b> con il risultato vero; <b>Apri qualsiasi file</b> ora apre anche le cartelle.</li></ul></div>
   <div class="card idx" style="--c:var(--a3)"><h3>Novità della 2.6</h3><ul>
     <li><b>Due modalità</b>: <b>Gaming</b> (tutto, anche giochi, FPS e ping) e <b>Ufficio</b> (più semplice, tranquilla, con un tasso più morbido). Si sceglie al primo avvio e si cambia quando vuoi dal pulsante in alto a sinistra.</li>
-    <li><b>I 100 problemi dell'ufficio</b> in Risolvi un problema, ognuno con un pulsante: stampanti, Word ed Excel, Outlook, Teams e riunioni, Wi-Fi e VPN, unità di rete, schermi e proiettore, tastiera, OneDrive, ora sbagliata, programmi sospetti.</li>
+    <li class="om"><b>I 100 problemi dell'ufficio</b> in Risolvi un problema, ognuno con un pulsante: stampanti, Word ed Excel, Outlook, Teams e riunioni, Wi-Fi e VPN, unità di rete, schermi e proiettore, tastiera, OneDrive, ora sbagliata, programmi sospetti.</li>
     <li><b>Temi chiari e scuri</b> anche per l'ufficio: tanti temi tra cui scegliere, che si cambiano in Impostazioni.</li></ul></div>
   <div class="card idx gm" style="--c:var(--a1)"><h3>Novità della 2.5</h3><ul>
     <li><b>5 livelli di pulizia</b> (Classica, Normale, Media, Profonda, Eccezionale) e <b>pulizia programmata</b> ogni 1 o 2 settimane, in Home.</li>
@@ -1331,7 +1353,7 @@ body.th-tasso:not(.office) .aa-passi li::before{background:var(--text);color:var
     <div class="updicon">⬆️</div>
     <div class="updtxt"><h2 style="margin:0" id="updTit">Aggiornamenti di Tasso</h2><p class="sub" style="margin:4px 0 0" id="updVerRow">Versione installata: <b id="verNum2"></b></p><div id="updEco" style="display:none"></div><p class="sub" style="margin:4px 0 0" id="appUpdMsg">Controlla se è uscita una versione più nuova: se c’è, Tasso si aggiorna da solo con un clic.</p></div>
     <div class="updbtns"><button class="btn primary" id="btnUpd">Controlla aggiornamenti</button><button class="btn primary" id="btnUpdNow" style="display:none">Aggiorna ora</button><a href="#" class="small" id="lnkUpdZip" style="display:none">oppure scarica lo zip</a></div>
-    <label class="check autoupd" style="flex-basis:100%"><input type="checkbox" id="chkAutoUpd"> <span><b id="autoUpdTit">Aggiorna Tasso da solo</b><br><span class="small muted" id="autoUpdSub">Quando esce una versione nuova Tasso la scarica, controlla che sia firmata da noi e si riapre. Prima ti avvisa e puoi dire "Non ora". Non lo fa mentre giochi o durante una pulizia.</span></span></label>
+    <label class="check autoupd" style="flex-basis:100%"><input type="checkbox" id="chkAutoUpd"> <span><b id="autoUpdTit">Aggiorna Tasso da solo</b><br><span class="small muted" id="autoUpdSub"><span class="gm">Quando esce una versione nuova Tasso la scarica, controlla che sia firmata da noi e si riapre. Prima ti avvisa e puoi dire "Non ora". Non lo fa mentre giochi o durante una pulizia.</span><span class="om">Quando esce una versione nuova Tasso la scarica, controlla che sia firmata da noi e si riapre. Prima ti avvisa e puoi dire "Non ora", così non ti interrompe mentre lavori. Non lo fa durante una pulizia.</span></span></span></label>
   </div>
   <div class="card" style="display:flex;flex-direction:column;gap:12px">
     <div><h2>Lingua · Language</h2><p class="sub" style="margin:2px 0 0">Tasso si riapre nella lingua scelta. · Tasso reopens in the language you choose.</p></div>
@@ -1345,7 +1367,7 @@ body.th-tasso:not(.office) .aa-passi li::before{background:var(--text);color:var
     <div><h2>Aspetto</h2><p class="sub" style="margin:2px 0 0">Clicca una scheda e Tasso cambia colore subito. Gaming e Ufficio ricordano ognuna il suo tema.</p></div>
     <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px" id="themeCards"></div>
     <div class="row wrap" id="sfondoRow" style="display:none;gap:8px;align-items:center"><span class="small muted">Sfondo del desktop:</span><button class="btn ghost" id="sfondoMetti">Metti quello del tema</button><button class="btn ghost" id="sfondoRimetti">Rimetti il mio</button></div>
-    <button role="switch" aria-checked="false" class="toggle gm" id="tgShowAll"><span><b>Mostra tutte le funzioni</b><span>In Gaming il menu tiene solo le cose per giocare. Accendi per vedere anche Prestazioni+ e, in Pulisci, le pulizie una per una (privacy, Download…).</span></span><span class="sw"><i></i></span></button>
+    <button role="switch" aria-checked="false" class="toggle gm" id="tgShowAll"><span><b>Mostra tutte le funzioni</b><span>In Gaming alcune funzioni da esperti restano nascoste. Accendi per vedere anche Prestazioni+ e, in Pulisci, le pulizie una per una (privacy, Download…).</span></span><span class="sw"><i></i></span></button>
     <button role="switch" aria-checked="false" class="toggle gm" id="tgCovers"><span><b>Copertine dei giochi da internet</b><span>Per i giochi che non sono di Steam, Tasso cerca la copertina su Steam usando il nome del gioco (il nome va a Steam). Spento: solo le immagini che ci sono già sul PC.</span></span><span class="sw"><i></i></span></button>
   </div>
   <div class="row wrap" style="align-items:stretch;gap:18px">
@@ -1400,7 +1422,7 @@ body.th-tasso:not(.office) .aa-passi li::before{background:var(--text);color:var
       <button role="switch" aria-checked="false" class="toggle" id="tgStats" style="display:none"><span><b>📊 Aiuta a migliorare Tasso</b><span>Manda numeri anonimi: versione, Windows, marca di processore e scheda video, RAM, spazio liberato, pulsanti usati, errori. Niente nome, niente file.</span></span><span class="sw"><i></i></span></button>
       <div class="small" id="statsWhatRow" style="display:none;padding:10px 0;border-bottom:1px solid var(--line)"><a href="#" id="lnkStatsWhat">📄 Cosa manda Tasso, nel dettaglio</a></div>
       <button role="switch" aria-checked="false" class="toggle" id="tgAlerts"><span><b>Avvisi intelligenti</b><span>Piccoli avvisi in basso a destra (disco quasi pieno, nuovo programma all'avvio). <span class="gm">Mai in modalità Gaming o FPS.</span></span></span><span class="sw"><i></i></span></button>
-      <div style="padding:15px 0;border-bottom:1px solid var(--line)"><b style="font-size:15px">Modalità di Tasso</b><br><span class="small muted">Gaming: solo le cose per giocare, con giochi, FPS e ping. Ufficio: più semplice e tranquilla, con i 100 problemi da lavoro. Cambia solo cosa vedi, non il PC.</span><div class="row wrap" style="gap:8px;margin-top:10px" id="profBtns"></div></div>
+      <div style="padding:15px 0;border-bottom:1px solid var(--line)"><b style="font-size:15px">Modalità di Tasso</b><br><span class="small muted">Gaming: pulizia, riparazioni e strumenti di tutti i giorni, più giochi, Boost, FPS e ping. Ufficio: più semplice e tranquilla, con i problemi del lavoro (Word, Outlook, Teams) e la Modalità riunione. Cambia solo cosa vedi, non il PC.</span><div class="row wrap" style="gap:8px;margin-top:10px" id="profBtns"></div></div>
       <div style="padding:15px 0;border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:10px" id="undoBox">
         <span><b style="font-size:15px">↩️ Torna indietro</b><br><span class="small muted">Tutto quello che Tasso ha cambiato, una cosa per riga. Le modifiche <b>restano anche se spegni o riavvii il PC</b>: tornano com'erano solo se premi tu "Rimetti". Prima di cambiare qualcosa la prima volta, Tasso si salva com'era.</span></span>
         <div class="list" id="undoList"><div class="li"><span class="muted">Lettura…</span></div></div>
@@ -1782,9 +1804,10 @@ async function detStart(){
   $('#detStatus').textContent = _t('Comincio…');
   $('#btnDetect').disabled = true; $('#detBar').hidden = false; $('#detResult').innerHTML = '';
 }
-// 3.1: Gaming e Ufficio divisi. Le cose del lavoro (stampanti, Office...) solo in Ufficio, quelle dei giochi solo in Gaming.
-// Solo le cose del lavoro (stampa, Office, Outlook, Teams, OneDrive, VPN, unità di rete…). Tastiera, mouse, Wi-Fi, disco pieno, ora: valgono per tutti.
-const OFFICE_ONLY = (id) => /^of_(print_|scan$|office_|outlook_|teams$|adobe$|netdrive$|netpwd$|vpn|excel_locked$|onedrive|rdp$|projector$|pwd_expire$|mailto$|regional$)/.test(id) || id === 'fix_print';
+// 3.1: Gaming e Ufficio divisi. Le cose del lavoro (Office, Teams, VPN...) solo in Ufficio, quelle dei giochi solo in Gaming.
+// Solo le cose del lavoro (Office, Outlook, Teams, OneDrive, VPN, unità e stampanti di rete…). Tastiera, mouse, Wi-Fi, disco pieno,
+// ora e (dalla 3.2) la stampante e lo scanner di casa valgono per tutti.
+const OFFICE_ONLY = (id) => /^of_(print_find$|office_|outlook_|teams$|adobe$|netdrive$|netpwd$|vpn|excel_locked$|onedrive|rdp$|projector$|pwd_expire$|mailto$|regional$)/.test(id);
 const GAME_ONLY = (id) => /^fix_game_/.test(id) || id === 'fix_discord' || id === 'turbo' || id === 'game_cache';
 const forMode = (id) => isOffice() ? !GAME_ONLY(String(id)) : !OFFICE_ONLY(String(id));
 function detOkId(id){ return !!STEP[id] && forMode(id); }
@@ -1968,7 +1991,7 @@ function runSteps(ids, title, desc, minutes){
     [{label:_t('Annulla')}, {label:_t('Avvia'), cls:'primary', risky:true, fn: (box) => { const f = fineRead(box); call('goStartSteps', ids, f.fine, f.wu).then(r => { if (r === 'busy') toast(_t('Attendi la fine dell\'operazione in corso.'), 'var(--a4)'); else show('clean'); }); }}]);
   if (long) fineWire();
 }
-function runStep(id){ const s = STEP[id]; if (s) runSteps([id], s.name, s.desc, s.minutes); }
+function runStep(id){ const s = STEP[id], x = stepTxt(id); if (s) runSteps([id], x.name, x.desc, s.minutes); }
 $$('[data-step]').forEach(b => { b.onclick = () => runStep(b.dataset.step); });
 $$('[data-steps]').forEach(b => { b.onclick = () => { const ids = b.dataset.steps.split(','); const ss = ids.map(i => STEP[i]).filter(Boolean); runSteps(ids, ss.map(s => s.name).join(' + '), ss.map(s => s.desc).join(' '), ss.reduce((a, s) => a + s.minutes, 0)); }; });
 $('#bigGo').onclick = () => confirmLevel(RECOMMENDED);
@@ -2011,7 +2034,8 @@ window.tasso = {
   onBg(p){ const f = BG_WAIT[p.id]; if (f) { delete BG_WAIT[p.id]; f(p.r); } },
   onRunStart(p){
     const lv = LEVELS[(p.level || 0) - 1];
-    RUN = {level:p.level, steps:p.steps || [], cur:0, creep:0, freed:0, freedBy:{}, end:p.end || 'acceso', info:''}; RIPARA = [];
+    const st = (p.steps || []).map(s => { const x = s && s.id && STEP[s.id] ? stepTxt(s.id) : null; return x ? Object.assign({}, s, {name: x.name}) : s; });
+    RUN = {level:p.level, steps:st, cur:0, creep:0, freed:0, freedBy:{}, end:p.end || 'acceso', info:''}; RIPARA = [];
     $('#runTitle').textContent = lv ? _t('Pulizia ') + lv.name + _t(' in corso') : (RUN.steps.length === 1 ? RUN.steps[0].name : _t('Passaggi in corso'));
     $('#runSub').textContent = RUN.end === 'riavvia' ? _t('Quando ha finito: Riavvia. Puoi uscire di casa, faccio tutto io.') : RUN.end === 'spegni' ? _t('Quando ha finito: Spegni. Puoi uscire di casa, faccio tutto io.') : _t('Puoi lasciare il PC acceso e andare a fare altro.');
     $('#runLog').textContent = ''; $('#btnCancel').disabled = false; $('#btnCancel').textContent = _t('Interrompi');
@@ -2050,7 +2074,7 @@ window.tasso = {
     paintLast(); call('goAnalyze');
     try { fbAskOnce(p); } catch (e) {}
   },
-  onOfficeStati(p){ OF_STATI = p || {}; $$('[data-tg]').forEach(b => { if (b.dataset.tg) b.textContent = OF_STATI[b.dataset.tg] ? _t('Spegni') : _t('Accendi'); }); },
+  onOfficeStati(p){ OF_STATI = p || {}; paintStati(); },
   onAnalysis(a){ AN = a || {}; paintHero(); hwHealthAlert(); },
   onHardware(h){ HW = h || {}; HW.at = Date.now(); HW_LOADING = false; paintHardware(); statsHW(HW); hwHealthAlert(); },
   onPerf(d){ PERF = d || {}; paintPerf(); },
@@ -2879,20 +2903,26 @@ const INDEX = [
   {t:_t('Programmi e aggiornamenti'), c:'var(--a3)', i:[_t('<b>Disinstallazione completa</b>, con ricerca delle cartelle rimaste'),_t('<b>App preinstallate</b>: via Candy Crush, TikTok e simili'),_t('<b>Aggiornamento programmi</b> con winget: vedi quali hanno una versione nuova e li aggiorni uno per uno o tutti'),_t('<b>Driver di tutto il PC</b> (scheda video AMD, NVIDIA o Intel, audio, mouse, tastiera, rete…): Windows Update e siti ufficiali'),_t('<b>Aggiornamenti di Windows</b>'),_t('<b>Icone vere</b> dei programmi installati e all\'avvio'),_t('<b>Controllo estensioni</b> dei browser')]},
   {t:_t('File'), c:'var(--a2)', i:[_t('<b>File doppi</b>, <b>file enormi</b>, <b>cartelle vuote</b>, <b>collegamenti rotti</b>: sempre con conferma e nel Cestino'),_t('<b>Riordino della cartella Download</b> per tipo di file'),_t('<b>Distruggi file</b> riservati (anche più file insieme) e <b>cancella lo spazio libero</b>'),_t('<b>Recupera file cancellati</b> con lo strumento di Microsoft')]},
   {t:_t('Riparazione e sicurezza'), c:'var(--red)', i:[_t('<b>Backup automatico</b> (punto di ripristino) prima delle pulizie importanti'),_t('<b>Risolvi problemi</b> di audio, internet, Windows Update, stampante, Store e ricerca'),_t('<b>Problemi nei giochi</b> (con un pulsante): scatti, pochi FPS, ping alto, il gioco non parte (Visual C++, DirectX), launcher, schermo nero, controller e cuffie, Xbox e Game Pass, anti-cheat, Discord, mira del mouse, gioco che si riduce a icona, download lenti'),_t('<b>Driver di tutto il PC</b>: scheda video AMD, NVIDIA, Intel, audio, mouse, tastiera, rete; Windows Update e siti ufficiali'),_t('<b>Riparazione di Windows</b> (DISM + SFC) e <b>controllo errori del disco</b>'),_t('<b>Controllo periferiche</b>, <b>salute dei dischi</b>, <b>antivirus</b> Defender'),_t('<b>Controllo sicurezza</b> (firewall, Secure Boot, TPM, SMBv1…) e <b>controllo stabilità</b> (crash, schermate blu, errori hardware)'),_t('<b>Privacy</b>: stop a pubblicità e tracciamento di Windows, con ripristino, e <b>tracce di attività</b>')]},
+  {t:_t('Problemi di tutti i giorni'), gm:1, c:'var(--a4)', i:[_t('<b>Problemi di tutti i giorni</b> in Risolvi un problema, ognuno con un pulsante: Wi-Fi che si stacca, file zip, programma bloccato, secondo schermo, tastiera e touchpad, Win + V, batteria, ora sbagliata'),_t('<b>Stampante e scanner di casa</b>, <b>Prova microfono e cuffie</b>, <b>Chi usa webcam e microfono</b>')]},
   {t:'Giochi', c:'var(--a2)', i:[_t('<b>Libreria</b> Steam, Epic e Riot con copertine'),_t('<b>Regola con Tasso</b>: grafica consigliata per ogni gioco in base al tipo di gioco e al tuo PC'),_t('<b>Comandi gaming</b>: priorità ai giochi, rete a bassa latenza, registrazione in background spenta, pianificazione GPU, memoria in standby, riavvio del driver video'),_t('<b>Ottimizza prima di giocare</b>, <b>pannellino in gioco</b>, <b>autoclick</b>'),_t('<b>Profilo gioco</b> con un interruttore: resta acceso anche dopo il riavvio finché non lo spegni'),_t('<b>Potenza per ogni gioco</b>: Potenza alta o Massima potenza, messa da sola quando apri il gioco'),_t('<b>Ping ai server dei giochi</b> (LoL, Valorant, CS2, Fortnite…) per scegliere il server migliore'),_t('<b>Problemi nei giochi</b>: in Risolvi un problema, ') + (Object.keys(STEP).filter(k => k.indexOf('fix_game_') === 0).length || 26) + _t(' riparazioni con un pulsante spiegate semplici')]},
   {t:'Portachiavi e Discord', c:'var(--a1)', i:[_t('<b>Portachiavi</b> con PIN da 4 a 12 numeri o senza PIN: cifrato sul PC, generatore di password, password deboli o usate più volte'),_t('<b>Controllo password rubate</b> senza mandare la password'),_t('<b>Stato del PC su Discord</b>: report con spunte verdi e temperature, ogni 3/6/12/24 ore'),_t('<b>Report su richiesta</b> scrivendo !stato (con un bot tuo, facoltativo)')]},
-  {t:_t('Hardware e comodità'), c:'var(--a3)', i:[_t('<b>Componenti</b>: processore, scheda video, scheda madre, RAM, dischi'),_t('<b>Sensori</b>: uso di processore e RAM, scheda video, temperatura dei dischi'),_t('<b>BIOS</b>: versione e pagina ufficiale del produttore'),_t('<b>8 temi</b>, <b>avvisi intelligenti</b>, <b>avvio con Windows</b>'),_t('<b>Interruttore Tasso acceso/spento</b>: da spento non fa nulla in automatico'),_t('<b>Torna indietro</b>: l\'elenco di tutto quello che Tasso ha cambiato, con un pulsante per rimettere com\'era ogni cosa o tutto insieme. Spegnere o riavviare il PC non cambia niente: torna indietro solo quando lo decidi tu')]}
+  {t:_t('Hardware e comodità'), c:'var(--a3)', i:[_t('<b>Componenti</b>: processore, scheda video, scheda madre, RAM, dischi'),_t('<b>Sensori</b>: uso di processore e RAM, scheda video, temperatura dei dischi'),_t('<b>BIOS</b>: versione e pagina ufficiale del produttore'),_t('<b>Temi</b> chiari e scuri, <b>avvisi intelligenti</b>, <b>avvio con Windows</b>'),_t('<b>Interruttore Tasso acceso/spento</b>: da spento non fa nulla in automatico'),_t('<b>Torna indietro</b>: l\'elenco di tutto quello che Tasso ha cambiato, con un pulsante per rimettere com\'era ogni cosa o tutto insieme. Spegnere o riavviare il PC non cambia niente: torna indietro solo quando lo decidi tu')]}
 ];
-const OFFICE_INDEX = {t:_t('Ufficio'), c:'var(--a3)', i:[_t('<b>100 problemi del lavoro</b> con un pulsante, divisi in gruppi e con la ricerca: scrivi il problema e lo trovi'),_t('<b>Stampanti e scanner</b>: offline, stampante sbagliata, Stampa su PDF, stampanti di rete e USB'),_t('<b>Word, Excel, Adobe e Outlook</b>: riparazione ufficiale, aggiornamenti, documenti non salvati, file bloccati, date e CSV, Acrobat Reader, password, allegati, ricerca, Outlook classico'),_t('<b>Teams e riunioni</b>: cache, microfono, webcam, cuffie Bluetooth, casse'),_t('<b>Rete</b>: Wi-Fi che si stacca, VPN, unità di rete, proxy; <b>schermi</b>: secondo monitor, proiettore, schermo girato'),_t('<b>File e zip</b>: programma sbagliato, file bloccati o cancellati per sbaglio, nomi troppo lunghi, disco pieno'),_t('<b>Mouse, tastiera e portatile</b>: tasti permanenti, tasto Windows, touchpad, Bloc Num, batteria'),_t('<b>OneDrive</b>, <b>ora sbagliata</b>, <b>password che scade</b>, <b>BitLocker</b>, <b>attivazione</b>, <b>programmi sospetti</b>')]};
+const OFFICE_INDEX = {t:_t('Ufficio'), c:'var(--a3)', i:[_t('<b>100 problemi del lavoro</b> con un pulsante, divisi in gruppi e con la ricerca: scrivi il problema e lo trovi'),_t('<b>Stampanti e scanner</b>: offline, stampante sbagliata, Stampa su PDF, stampanti di rete e USB'),_t('<b>Word, Excel, Adobe e Outlook</b>: riparazione ufficiale, aggiornamenti, documenti non salvati, file bloccati, date e CSV, Acrobat Reader, password, allegati, ricerca, Outlook classico'),_t('<b>Teams e riunioni</b>: cache, microfono, webcam, cuffie Bluetooth, casse'),_t('<b>Rete</b>: Wi-Fi che si stacca, VPN, unità di rete, proxy; <b>schermi</b>: secondo monitor, proiettore, schermo girato'),_t('<b>File e zip</b>: programma sbagliato, file bloccati o cancellati per sbaglio, nomi troppo lunghi, disco pieno'),_t('<b>Mouse, tastiera e portatile</b>: tasti permanenti, tasto Windows, touchpad, Bloc Num, batteria'),_t('<b>OneDrive</b>, <b>ora sbagliata</b>, <b>password che scade</b>, <b>BitLocker</b>, <b>attivazione</b>, <b>programmi sospetti</b>'),_t('<b>Il PC si scalda</b>, <b>un programma non parte</b> (manca un file .dll), <b>il PC si blocca con file grandi</b>, <b>l\'audio gracchia nelle chiamate</b>, <b>lo schermo diventa nero</b>'),_t('<b>Modalità riunione</b> sulla Home, accanto a PULISCI: niente notifiche, PC al massimo')]};
+// In Ufficio alcune righe si riscrivono invece di sparire (dentro hanno anche cose da gioco, ma il resto serve).
+const OFFICE_IDX_ALT = {};
+OFFICE_IDX_ALT[_t('<b>Cache delle app</b>: Discord, Steam, Teams, Epic Games')] = _t('<b>Cache delle app</b>, per esempio quella di Teams');
+OFFICE_IDX_ALT[_t('<b>Modalità</b> Normale, Gaming, FPS competitivo, Film, Silenzioso, con controllo dei componenti')] = _t('<b>Modalità</b> Normale, Film e Silenzioso, con controllo dei componenti');
+OFFICE_IDX_ALT[_t('<b>Resti dei driver</b> (C:\\AMD, C:\\NVIDIA), <b>driver video vecchi</b> e <b>cache dei launcher</b> (Battle.net, EA, Ubisoft, GOG, Riot, Steam, Spotify)')] = _t('<b>Resti dei driver</b> (C:\\AMD, C:\\NVIDIA) e <b>driver video vecchi</b>');
 function paintIndex(){
   const GAMEY = /gioc|game|gaming|fps|ping|discord|turbo|autoclick|pannellino|overlay|anti-?cheat|steam|epic|afterburner|reflex|anti-lag|overclock/i;
-  const idx = isOffice() ? [OFFICE_INDEX].concat(INDEX.filter(s => s.t !== 'Giochi').map(s => ({t: s.t.replace(/ e Discord$/, ''), c: s.c, i: s.i.filter(x => !GAMEY.test(x))})).filter(s => s.i.length)) : INDEX;
+  const idx = isOffice() ? [OFFICE_INDEX].concat(INDEX.filter(s => s.t !== 'Giochi' && !s.gm).map(s => ({t: s.t.replace(/ e Discord$/, ''), c: s.c, i: s.i.map(x => OFFICE_IDX_ALT[x] || x).filter(x => !GAMEY.test(x))})).filter(s => s.i.length)) : INDEX;
   $('#indexCards').innerHTML = idx.map(s => '<div class="card idx" style="--c:' + s.c + '"><h3>' + _t(s.t) + '</h3><ul>' + s.i.map(x => '<li>' + x + '</li>').join('') + '</ul></div>').join('');
 }
 
 /* ---------- settings ---------- */
 const PROFILES = [
-  {id:'gioco', name:'Gaming', c:'var(--red)', d:_t('Per chi gioca: solo le cose per giocare, con FPS, ping, giochi e Boost.'), chips:[_t('Giochi e FPS'),_t('Ping ai server'),_t('Boost a un clic')], art:'<svg width="112" height="112" viewBox="0 0 200 200" aria-hidden="true"><rect x="4" y="4" width="192" height="192" rx="48" fill="#141725"/><rect x="4" y="4" width="192" height="192" rx="48" fill="none" stroke="var(--a1)" stroke-opacity=".8" stroke-width="7"/><path d="M100 172 L34 94 L58 38 L142 38 L166 94 Z" fill="#F2F4F8"/><path d="M58 38 L86 38 L94 122 L76 132 L44 104 Z" fill="#07080D"/><path d="M142 38 L114 38 L106 122 L124 132 L156 104 Z" fill="#07080D"/><circle cx="74" cy="98" r="9" fill="var(--a1)"/><circle cx="126" cy="98" r="9" fill="var(--a1)"/><path d="M88 148 L112 148 L100 164 Z" fill="#07080D"/></svg>'},
+  {id:'gioco', name:'Gaming', c:'var(--red)', d:_t('Per chi gioca: pulizia, riparazioni e strumenti di tutti i giorni, più giochi, Boost, FPS e ping.'), chips:[_t('Giochi e FPS'),_t('Ping ai server'),_t('Boost a un clic')], art:'<svg width="112" height="112" viewBox="0 0 200 200" aria-hidden="true"><rect x="4" y="4" width="192" height="192" rx="48" fill="#141725"/><rect x="4" y="4" width="192" height="192" rx="48" fill="none" stroke="var(--a1)" stroke-opacity=".8" stroke-width="7"/><path d="M100 172 L34 94 L58 38 L142 38 L166 94 Z" fill="#F2F4F8"/><path d="M58 38 L86 38 L94 122 L76 132 L44 104 Z" fill="#07080D"/><path d="M142 38 L114 38 L106 122 L124 132 L156 104 Z" fill="#07080D"/><circle cx="74" cy="98" r="9" fill="var(--a1)"/><circle cx="126" cy="98" r="9" fill="var(--a1)"/><path d="M88 148 L112 148 L100 164 Z" fill="#07080D"/></svg>'},
   {id:'ufficio', name:_t('Ufficio'), c:'var(--a3)', d:_t('Per lavorare: più semplice e tranquilla, con i 100 problemi del PC da ufficio risolti con un clic.'), chips:[_t('Stampanti e Office'),_t('Teams e riunioni'),_t('Pulizia programmata')], art:'<span class="offart"></span>'},
 ];
 function setToggle(id, on, disabled){ const t = $(id); t.classList.toggle('on', !!on); t.disabled = !!disabled; }
@@ -3454,31 +3484,65 @@ const OFF_ART = '<svg width="112" height="112" viewBox="0 0 200 200" aria-hidden
 
 /* ---------- 2.6: modalità Gaming / Ufficio e i 100 problemi dell'ufficio ---------- */
 const OFFICE = [
-  {t:_t('Novità'), e:'✨', c:'var(--a1)', ids:[['of_new_call','🎥'],['of_new_meeting','🤫'],['of_new_camlog','👁️'],['of_new_lock','🔒']]},
-  {t:_t('Stampa e scanner'), e:'🖨️', c:'var(--a3)', ids:[['of_print_offline','🖨️'],['of_print_default','📌'],['of_print_pdf','📄'],['of_print_find','🔎'],['of_print_usb','🔌'],['of_scan','📠']]},
+  {k:'new', t:_t('Novità'), e:'✨', c:'var(--a1)', ids:[['of_new_call','🎥'],['of_new_meeting','🤫'],['of_new_camlog','👁️'],['of_new_lock','🔒']]},
+  {t:_t('Stampa e scanner'), tg:_t('Stampante e scanner di casa'), e:'🖨️', c:'var(--a3)', ids:[['of_print_offline','🖨️'],['of_print_default','📌'],['of_print_pdf','📄'],['of_print_find','🔎'],['of_print_usb','🔌'],['of_scan','📠']]},
   {t:_t('Word, Excel, Office e Adobe'), e:'📝', c:'var(--a1)', ids:[['of_office_repair','🛠️'],['of_office_update','⬆️'],['of_office_lost','🛟'],['of_office_crash','💥'],['of_office_login','🔑'],['of_office_addins','🧩'],['of_office_gpu','🌫️'],['of_office_cache','☁️'],['of_office_protected','🟨'],['of_excel_locked','🔒'],['of_regional','📅'],['of_adobe','📕']]},
-  {t:_t('Outlook e posta'), e:'📧', c:'var(--a2)', ids:[['of_outlook_open','📬'],['of_outlook_search','🔍'],['of_outlook_mail','✉️'],['of_outlook_size','📦'],['of_outlook_pwd','🔒'],['of_outlook_attach','📎'],['of_outlook_reminders','⏰'],['of_outlook_ost','🔄'],['of_outlook_classic','↩️'],['of_links','🔗'],['of_mailto','📨']]},
-  {t:_t('Teams e riunioni'), e:'👥', c:'var(--a3)', ids:[['of_teams','💬'],['of_meet_mic','🎙️'],['of_meet_cam','📷'],['of_meet_bt','🎧'],['of_meet_speaker','🔈'],['of_notif','🔔'],['of_cam_busy','🚫'],['of_sound_comm','🔉']]},
+  {t:_t('Outlook e posta'), gno:1, e:'📧', c:'var(--a2)', ids:[['of_outlook_open','📬'],['of_outlook_search','🔍'],['of_outlook_mail','✉️'],['of_outlook_size','📦'],['of_outlook_pwd','🔒'],['of_outlook_attach','📎'],['of_outlook_reminders','⏰'],['of_outlook_ost','🔄'],['of_outlook_classic','↩️'],['of_links','🔗'],['of_mailto','📨']]},
+  {t:_t('Teams e riunioni'), tg:_t('Microfono, webcam e cuffie'), eg:'🎧', e:'👥', c:'var(--a3)', ids:[['of_teams','💬'],['fix_game_crackle','🔊'],['of_meet_mic','🎙️'],['of_meet_cam','📷'],['of_meet_bt','🎧'],['of_meet_speaker','🔈'],['of_notif','🔔'],['of_cam_busy','🚫'],['of_sound_comm','🔉']]},
   {t:_t('File, cartelle e zip'), e:'📁', c:'var(--a4)', ids:[['of_open_with','🗂️'],['of_zip','🗜️'],['of_longpath','📏'],['of_file_locked','🔐'],['of_deleted','🗑️'],['of_hidden_files','👻'],['of_shortcuts','🔗'],['of_folders_slow','🐌'],['of_explorer_home','🏠'],['of_disk_full','💽'],['of_context_menu','🖱️']]},
-  {t:_t('Rete, Wi-Fi e VPN'), e:'🌐', c:'var(--a1)', ids:[['of_wifi_drop','📶'],['of_wifi_conn','📡'],['of_vpn','🛡️'],['of_vpn_dns','🏢'],['of_netdrive','🗄️'],['of_netpwd','🔐'],['of_proxy','🚧'],['of_ethernet','🔌'],['of_metered','📉'],['of_net_slow','🐢'],['of_rdp','🖥️'],['of_hosts','🚷'],['of_static_ip','🧳']]},
-  {t:_t('Schermi e USB'), e:'🖥️', c:'var(--a2)', ids:[['of_second_screen','🖥️'],['of_projector','📽️'],['of_rotated','🔄'],['of_blurry','👓'],['of_usb','💾'],['of_usb_drop','🔌'],['of_screen_off','🌑'],['of_brightness','🔆'],['of_snip','✂️']]},
+  {t:_t('Rete, Wi-Fi e VPN'), tg:_t('Rete e Wi-Fi'), gadd:[['of_links','🔗']], e:'🌐', c:'var(--a1)', ids:[['of_wifi_drop','📶'],['of_wifi_conn','📡'],['of_vpn','🛡️'],['of_vpn_dns','🏢'],['of_netdrive','🗄️'],['of_netpwd','🔐'],['of_proxy','🚧'],['of_ethernet','🔌'],['of_metered','📉'],['of_net_slow','🐢'],['of_rdp','🖥️'],['of_hosts','🚷'],['of_static_ip','🧳']]},
+  {t:_t('Schermi e USB'), e:'🖥️', c:'var(--a2)', ids:[['of_second_screen','🖥️'],['of_projector','📽️'],['of_rotated','🔄'],['of_blurry','👓'],['of_usb','💾'],['of_usb_drop','🔌'],['of_screen_off','🌑'],['fix_game_screen','⬛'],['of_brightness','🔆'],['of_snip','✂️']]},
   {t:_t('Mouse, tastiera e portatile'), e:'⌨️', c:'var(--a3)', ids:[['of_keyboard','⌨️'],['of_clipboard','📋'],['of_clipboard_history','🗒️'],['of_mouse','🖱️'],['of_touchpad','👆'],['of_numlock','🔢'],['of_sticky','🔁'],['of_win_key','⊞'],['of_battery','🔋']]},
-  {t:_t('Windows lento o bloccato'), e:'🪟', c:'var(--a4)', ids:[['of_explorer','📁'],['of_taskbar','📌'],['of_taskbar_hidden','⬇️'],['of_desktop_icons','🖼️'],['of_hung','🧊'],['of_slow_now','⏱️'],['of_fonts','🔤'],['of_thumbs','🖼️'],['of_ext','🏷️'],['of_slow_boot','🐢'],['of_fast_startup','⏻'],['of_sleep','🌙']]},
-  {t:_t('Ora, OneDrive, account e sicurezza'), e:'🔐', c:'var(--red)', ids:[['of_time','🕒'],['of_onedrive','☁️'],['of_onedrive_space','🪶'],['of_onedrive_conflict','👯'],['of_suspicious','🕵️'],['of_activation','🪪'],['of_temp_profile','👤'],['of_pwd_expire','🔑'],['of_bitlocker','🗝️']]}
+  {t:_t('Windows lento o bloccato'), e:'🪟', c:'var(--a4)', ids:[['of_explorer','📁'],['of_taskbar','📌'],['of_taskbar_hidden','⬇️'],['of_desktop_icons','🖼️'],['of_hung','🧊'],['fix_game_start','🧩'],['fix_game_freeze','🐘'],['fix_game_heat','🌡️'],['of_slow_now','⏱️'],['of_fonts','🔤'],['of_thumbs','🖼️'],['of_ext','🏷️'],['of_slow_boot','🐢'],['of_fast_startup','⏻'],['of_sleep','🌙']]},
+  {t:_t('Ora, OneDrive, account e sicurezza'), tg:_t('Ora, account e sicurezza'), gadd:[['of_new_lock','🔒']], e:'🔐', c:'var(--red)', ids:[['of_time','🕒'],['of_onedrive','☁️'],['of_onedrive_space','🪶'],['of_onedrive_conflict','👯'],['of_suspicious','🕵️'],['of_activation','🪪'],['of_temp_profile','👤'],['of_pwd_expire','🔑'],['of_bitlocker','🗝️']]}
 ];
+// 3.2: gli stessi problemi in tutte e due le modalità, con il nome adatto (lo script è sempre lo stesso).
+// In Ufficio: 5 problemi della Sezione Gaming che capitano anche lavorando.
+const OF_ALIAS = {
+  fix_game_heat: [_t('Il PC si scalda'), _t('Legge le temperature di processore e scheda video, controlla se il PC rallenta per il caldo e ti dice come rinfrescarlo. Non tocca le ventole.')],
+  fix_game_start: [_t('Un programma non parte (manca un file .dll)'), _t('Se un programma dice che manca un file .dll o si chiude appena lo apri: Tasso installa o ripara i componenti di Windows che servono ai programmi (Visual C++, DirectX, .NET) dal sito ufficiale Microsoft. 2-5 minuti.')],
+  fix_game_freeze: [_t('Il PC si blocca con file grandi'), _t('Controlla la memoria (RAM), il file di paging (se è spento o piccolo il PC si blocca con i file grandi) e lo spazio sul disco, e ti dice cosa sistemare.')],
+  fix_game_crackle: [_t('L\'audio gracchia nelle chiamate'), _t('Riavvia l\'audio di Windows, spegne il risparmio energetico delle porte USB (causa comune con le cuffie USB) e controlla le cuffie Bluetooth in modalità chiamata. Puoi tornare indietro.')],
+  fix_game_screen: [_t('Lo schermo diventa nero'), _t('Fa ripartire la scheda video senza riavviare il PC (lo schermo lampeggia un attimo) e ti spiega i tasti per rimettere lo schermo giusto e la risoluzione.')]
+};
+// In Gaming: i problemi dell'ufficio che servono anche a chi gioca. Stanno nella Sezione Windows e nella Sezione Gaming.
+const GM_ALIAS = {
+  of_new_call: [_t('Prova microfono e cuffie'), _t('Prima di una chat vocale o di una diretta: prova in pochi secondi microfono, cuffie, webcam e internet. Se qualcosa non va, ti propone la riparazione con un pulsante.')],
+  of_new_camlog: [_t('Chi usa webcam e microfono'), _t('Ti fa vedere quali programmi hanno usato la webcam e il microfono negli ultimi 30 giorni e chi li sta usando adesso. Così scopri se qualcuno ti guarda o ti ascolta.')]
+};
+// In Gaming non vanno nei "Problemi di tutti i giorni": la riunione (in Gaming c'è il Boost) e quelli già nelle altre sezioni.
+const GM_SKIP = {of_new_meeting:1, of_new_call:1, of_new_camlog:1};
+function stepTxt(id){ const s = STEP[id] || {name:'', desc:''}, a = (isOffice() ? OF_ALIAS : GM_ALIAS)[id]; return a ? {name: a[0], desc: a[1]} : {name: s.name, desc: s.desc}; }
+// I gruppi della sezione, per la modalità di adesso. In Gaming: solo i problemi che valgono per tutti.
+function ofGroups(){
+  if (isOffice()) return OFFICE.map(g => ({t: g.t, e: g.e, c: g.c, ids: g.ids}));
+  return OFFICE.filter(g => g.k !== 'new' && !g.gno).map(g => ({t: g.tg || g.t, e: g.eg || g.e, c: g.c, ids: g.ids.concat(g.gadd || []).filter(x => !OFFICE_ONLY(x[0]) && !GAME_ONLY(x[0]) && !GM_SKIP[x[0]])}));
+}
 // Quelli che controllano e spiegano (non si possono sistemare da soli in automatico): il pulsante lo dice.
 const OFFICE_CHECK = {of_new_call:1, of_new_camlog:1, of_outlook_mail:1, of_outlook_size:1, of_netpwd:1, of_slow_boot:1, of_sleep:1, of_office_protected:1, of_open_with:1, of_deleted:1, of_disk_full:1, of_links:1, of_cam_busy:1, of_net_slow:1, of_battery:1, of_slow_now:1, of_onedrive_conflict:1, of_activation:1, of_temp_profile:1, of_pwd_expire:1, of_bitlocker:1};
 // Novità 3.1: interruttori (Modalità riunione, Blocco automatico) e "Ripara adesso" dopo la prova della videochiamata.
 const OFFICE_TOGGLE = {of_new_meeting:1, of_new_lock:1};
 let OF_STATI = {}, RIPARA = [];
 setInterval(() => { if (isOffice() && !document.hidden) ofStati(); }, 30000); // la guardia può spegnere la riunione da sola
-function ofStati(){ call('goOfficeStati').then(r => { OF_STATI = r || {}; $$('[data-tg]').forEach(b => { if (b.dataset.tg) b.textContent = OF_STATI[b.dataset.tg] ? _t('Spegni') : _t('Accendi'); }); }).catch(() => {}); }
+function ofStati(){ call('goOfficeStati').then(r => { OF_STATI = r || {}; paintStati(); }).catch(() => {}); }
+function paintStati(){
+  $$('[data-tg]').forEach(b => { if (b.dataset.tg) b.textContent = OF_STATI[b.dataset.tg] ? _t('Spegni') : _t('Accendi'); });
+  // Home dell'Ufficio: il pulsante della Modalità riunione dice se è accesa.
+  const m = $('#btnMeet'); if (!m) return;
+  const on = !!OF_STATI.of_new_meeting;
+  m.classList.toggle('on', on); m.setAttribute('aria-pressed', on ? 'true' : 'false');
+  $('#meetT').textContent = on ? _t('Riunione in corso') : _t('Modalità riunione');
+  $('#meetS').textContent = on ? _t('Premi per spegnerla: torna tutto com\'era.') : _t('Il Boost dell\'ufficio: niente notifiche, PC al massimo.');
+}
+$('#btnMeet').onclick = () => runStep('of_new_meeting');
 function ofCard(id, ic, c){
-  const s = STEP[id]; if (!s) return null;
+  if (!STEP[id]) return null;
+  const s = stepTxt(id);
   const d = el('div', {class:'ofc', 'data-id': id, style:'--c:' + c, 'data-q': (s.name + ' ' + s.desc).toLowerCase()},
     '<span class="ic">' + ic + '</span><span class="x"><b>' + esc(s.name) + '</b><span>' + esc(s.desc) + '</span></span>');
   const tg = OFFICE_TOGGLE[id];
-  const b = el('button', {class:'btn ' + (OFFICE_CHECK[id] ? 'ghost' : 'primary'), 'data-tg': tg ? id : ''}, tg ? (OF_STATI[id] ? _t('Spegni') : _t('Accendi')) : OFFICE_CHECK[id] ? _t('Controlla') : _t('Risolvi'));
+  const chk = OFFICE_CHECK[id] || id === 'fix_game_heat';
+  const b = el('button', {class:'btn ' + (chk ? 'ghost' : 'primary'), 'data-tg': tg ? id : ''}, tg ? (OF_STATI[id] ? _t('Spegni') : _t('Accendi')) : chk ? _t('Controlla') : _t('Risolvi'));
   b.onclick = () => runStep(id);
   d.querySelector('.x').appendChild(b);
   return d;
@@ -3486,10 +3550,12 @@ function ofCard(id, ic, c){
 function paintOffice(){
   const box = $('#ofBlock'); if (!box) return;
   box.innerHTML = '';
-  const total = OFFICE.reduce((a, g) => a + g.ids.filter(x => STEP[x[0]]).length, 0);
+  const groups = ofGroups();
+  const total = groups.reduce((a, g) => a + g.ids.filter(x => STEP[x[0]]).length, 0);
   const open = isOffice();
-  $('#ofSub').innerHTML = '<b>' + total + _t(' problemi</b> del lavoro: stampanti, Word, Excel, Adobe, Outlook, Teams, rete, file, zip e schermi. ') + (open ? '' : _t('Clicca un gruppo per aprirlo. ')) + _t('Tasso non cancella mai documenti e non chiude Word o Excel se sono aperti: ti chiede di salvare.');
-  OFFICE.forEach(g => {
+  $('#ofSub').innerHTML = open ? '<b>' + total + _t(' problemi</b> del lavoro: stampanti, Word, Excel, Adobe, Outlook, Teams, rete, file, zip e schermi. ') + _t('Tasso non cancella mai documenti e non chiude Word o Excel se sono aperti: ti chiede di salvare.')
+    : '<b>' + total + _t(' problemi</b> che capitano a tutti: Wi-Fi, file e zip, schermi, tastiera, batteria, ora sbagliata, stampante di casa. ') + _t('Clicca un gruppo per aprirlo.');
+  groups.forEach(g => {
     const cards = g.ids.map(x => ofCard(x[0], x[1], g.c)).filter(Boolean);
     if (!cards.length) return;
     const det = el('details', {class:'ofg ofsec'});
@@ -3507,11 +3573,10 @@ function fixFilter(){
   const words = FIX_Q.toLowerCase().trim().split(/\s+/).filter(Boolean);
   const hit = c => { if (!c.dataset.q) { const h = c.querySelector('h3'), pp = c.querySelector('p'); c.dataset.q = ((h ? h.textContent : '') + ' ' + (pp ? pp.textContent : '')).toLowerCase(); } return words.every(w => c.dataset.q.indexOf(w) >= 0); };
   const off = document.body.classList.contains('office');
-  // In Gaming la Sezione Ufficio resta nascosta, ma se cerchi trovi anche tastiera, mouse, Wi-Fi… (mai stampa, Word, Outlook).
-  document.body.classList.toggle('fixq', !off && words.length > 0);
+  // In Gaming la sezione ha solo i "Problemi di tutti i giorni" (mai Word, Outlook, Teams…); in Ufficio anche i 5 problemi dei giochi che valgono per tutti.
   let shown = 0;
   $$('#secWin .fixcard, #secGame .fixcard').forEach(c => { const ok = hit(c); c.style.display = ok ? '' : 'none'; if (ok && !(off && c.closest('.gm')) && !(!off && c.classList.contains('om'))) shown++; });
-  $$('#ofBlock .ofsec').forEach(d => { let n = 0; d.querySelectorAll('.ofc').forEach(c => { const ok = hit(c) && (off || (words.length > 0 && !OFFICE_ONLY(c.dataset.id || ''))); c.style.display = ok ? '' : 'none'; if (ok) n++; }); const nn = d.querySelector('summary .n'); if (nn) { if (!nn.dataset.t) nn.dataset.t = nn.textContent; nn.textContent = words.length ? n + _t(' di ') + nn.dataset.t : nn.dataset.t; } d.style.display = n ? '' : 'none'; d.open = words.length ? n > 0 : !!d.dataset.def; shown += n; });
+  $$('#ofBlock .ofsec').forEach(d => { let n = 0; d.querySelectorAll('.ofc').forEach(c => { const ok = hit(c); c.style.display = ok ? '' : 'none'; if (ok) n++; }); const nn = d.querySelector('summary .n'); if (nn) { if (!nn.dataset.t) nn.dataset.t = nn.textContent; nn.textContent = words.length ? n + _t(' di ') + nn.dataset.t : nn.dataset.t; } d.style.display = n ? '' : 'none'; d.open = words.length ? n > 0 : !!d.dataset.def; shown += n; });
   ['#secWin', '#secGame', '#secOffice'].forEach(id => { const sec = $(id); if (!sec) return; const vis = [...sec.querySelectorAll('.fixcard, .ofc')].some(c => c.style.display !== 'none' && !(!off && c.classList.contains('om')) && !(off && c.closest('.gm'))); sec.style.display = vis ? '' : 'none'; });
   if (!words.length) ['#secWin', '#secGame', '#secOffice'].forEach(id => { const sec = $(id); if (sec) sec.style.display = ''; });
   $('#fixNone').style.display = words.length && !shown ? 'block' : 'none';
@@ -3667,7 +3732,7 @@ async function setLook(p){
   const boostOn = !!(typeof BST !== 'undefined' && BST && (BST.on || BST.game)); // la modalità la rimette Go spegnendo il Boost
   if (p === 'ufficio' && !boostOn && (S.mode === 'gaming' || S.mode === 'fps')) toast(_t('Modalità Ufficio attiva. Il PC però è ancora in modalità ') + (S.mode === 'fps' ? 'FPS' : 'Gaming') + _t(' (consuma di più).') + paused, 'var(--a3)', {label:_t('Metti Normale'), fn: () => { call('goSetMode', 'normale'); toast(_t('Metto la modalità Normale…')); }});
   else if (p === 'ufficio') toast(_t('Modalità Ufficio: Tasso più semplice e tranquillo.') + paused, 'var(--a3)');
-  else toast(_t('Modalità Gaming: solo le cose per giocare, con giochi, FPS e ping.'), 'var(--red)');
+  else toast(_t('Modalità Gaming: pulizia e riparazioni di tutti i giorni, più giochi, Boost, FPS e ping.'), 'var(--red)');
 }
 function modeMenu(open){ const m = $('#lookSw'), b = $('#modeBtn'); if (!m || !b) return; m.hidden = !open; b.setAttribute('aria-expanded', open ? 'true' : 'false'); }
 $$('#lookSw button').forEach(b => { b.onclick = () => { modeMenu(false); $('#modeBtn').focus(); setLook(b.dataset.look); }; });
@@ -4180,7 +4245,7 @@ function ecoRighe(cc){
     (c.disponibile ? ' · ' + (c.nuova ? _t('disponibile ') + '<b>' + esc(c.disponibile) + '</b>' : _t('aggiornata')) : '') + '</p>').join('');
   if (cc.length > 1) {
     $('#autoUpdTit').textContent = _t('Aggiorna da solo Tasso, Tasso Zip e Tasso PDF');
-    $('#autoUpdSub').textContent = _t('Quando esce una versione nuova Tasso scarica l\'installatore, controlla che sia firmato da noi, aggiorna i programmi installati e si riapre. Prima ti avvisa e puoi dire "Non ora". Non lo fa mentre giochi, durante una pulizia o con Tasso Zip o Tasso PDF aperti.');
+    $('#autoUpdSub').innerHTML = '<span class="gm">' + esc(_t('Quando esce una versione nuova Tasso scarica l\'installatore, controlla che sia firmato da noi, aggiorna i programmi installati e si riapre. Prima ti avvisa e puoi dire "Non ora". Non lo fa mentre giochi, durante una pulizia o con Tasso Zip o Tasso PDF aperti.')) + '</span><span class="om">' + esc(_t('Quando esce una versione nuova Tasso scarica l\'installatore, controlla che sia firmato da noi, aggiorna i programmi installati e si riapre. Prima ti avvisa e puoi dire "Non ora", così non ti interrompe mentre lavori. Non lo fa durante una pulizia o con Tasso Zip o Tasso PDF aperti.')) + '</span>';
   }
 }
 // "Tasso Zip 1.3, Tasso PDF 1.2": i programmi con una versione nuova.
@@ -5289,7 +5354,8 @@ function vaultEdit(it){
     _t('<label class="acf">Titolo della finestra<input id="veWin" value="') + esc(e.win || '') + _t('" placeholder="es. Steam oppure Accedi*Google"></label>') +
     _t('<label class="acf">Sequenza dei tasti<input id="veSeq" class="mono" value="') + esc(e.seq || '') + '" placeholder="{UTENTE}{TAB}{PASSWORD}{INVIO}"></label>' +
     _t('<label class="check"><input type="checkbox" id="veKeys"') + (e.keys ? ' checked' : '') + _t('> <span>Scrivi lettera per lettera (per i siti o programmi che non accettano la compilazione diretta)</span></label>') +
-    _t('<span class="small muted" style="line-height:1.5">Per Steam, Google, Microsoft, Epic, Riot e altri siti famosi basta il nome in "Sito o programma". Il titolo della finestra serve per i programmi: va bene anche solo un pezzo, * vuol dire "qualsiasi testo". Nella sequenza: {UTENTE}, {TAB}, {PASSWORD}, {INVIO}, {ATTESA 2s}.</span>') +
+    (isOffice() ? _t('<span class="small muted" style="line-height:1.5">Per Microsoft, Outlook, Google, Amazon, PayPal e altri siti famosi basta il nome in "Sito o programma". Il titolo della finestra serve per i programmi: va bene anche solo un pezzo, * vuol dire "qualsiasi testo". Nella sequenza: {UTENTE}, {TAB}, {PASSWORD}, {INVIO}, {ATTESA 2s}.</span>')
+      : _t('<span class="small muted" style="line-height:1.5">Per Steam, Google, Microsoft, Epic, Riot e altri siti famosi basta il nome in "Sito o programma". Il titolo della finestra serve per i programmi: va bene anche solo un pezzo, * vuol dire "qualsiasi testo". Nella sequenza: {UTENTE}, {TAB}, {PASSWORD}, {INVIO}, {ATTESA 2s}.</span>')) +
     '</div></details>',
     [{label:_t('Annulla')}, {label:_t('Salva'), cls:'primary', fn: (box) => {
       const v = {id: e.id || '', site: box.querySelector('#veSite').value, user: box.querySelector('#veUser').value, pw: box.querySelector('#vePw').value, note: box.querySelector('#veNote').value, web: box.querySelector('#veWeb').value, win: box.querySelector('#veWin').value, seq: box.querySelector('#veSeq').value, keys: box.querySelector('#veKeys').checked};
