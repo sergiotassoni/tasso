@@ -438,7 +438,14 @@ func bringToFront() bool {
 	t, _ := windows.UTF16PtrFromString("Tasso")
 	hwnd, _, _ := pFindWin.Call(uintptr(unsafe.Pointer(c)), uintptr(unsafe.Pointer(t)))
 	if hwnd != 0 {
-		mostraFinestra(hwnd) // tray.go: anche se è nascosta nell'icona vicino all'orologio
+		// Se la finestra è di un'altra copia di Tasso (per esempio quella aperta dall'installatore),
+		// le passo il permesso di venire davanti che Windows ha dato a me per il doppio clic.
+		var pid uint32
+		pGetWindowPid.Call(hwnd, uintptr(unsafe.Pointer(&pid)))
+		if pid != 0 && pid != uint32(os.Getpid()) {
+			pAllowSetFg.Call(uintptr(pid))
+		}
+		portaDavanti(hwnd) // bentornato_apri.go: anche se è nascosta nell'icona vicino all'orologio
 		return true
 	}
 	return false

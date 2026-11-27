@@ -75,6 +75,17 @@ func portaDavantiBentornato(h uintptr) {
 			return // l'hai già aperta tu
 		}
 	}
+	portaDavanti(h)
+}
+
+// portaDavanti: mostra la finestra (anche se è nascosta nell'icona vicino all'orologio) e la porta
+// davanti. Se Windows rifiuta SetForegroundWindow (programma in background, avvio lento la prima
+// volta dopo l'installazione) mi aggancio un attimo al filo della finestra davanti; se non basta
+// ancora, la finestra lampeggia sulla barra delle applicazioni. Usata anche da bringToFront.
+func portaDavanti(h uintptr) {
+	if h == 0 {
+		return
+	}
 	mostraFinestra(h) // tray.go: SW_SHOW, SW_RESTORE, SetForegroundWindow
 	fg, _, _ := pForegroundWin.Call()
 	if fg == h {
