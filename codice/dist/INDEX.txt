@@ -198,7 +198,8 @@
    - Tasso mode: Gaming or Office (button at the top left; it only changes how Tasso
      looks)
    - Gaming themes: Tasso, Aurora, Lava, Neon, Carbon, Beast, Ice, Sand
-   - Office themes: Light blue, Sage, Paper, Lavender, Pearl, Slate
+   - Office themes: Light blue, Paper, Pearl (light), Graphite, Forest, Plum, Teal, Taupe,
+     Slate (dark)
    - Tasso on / off
    - Undo: the list of everything Tasso has changed, a button for each thing and
      one for everything. Turning off or restarting the PC doesn't put anything back
@@ -226,6 +227,8 @@ WHAT'S NEW IN 3.2
    - Scheduled cleanup that waits until you close the game
    - File backup: warning if you choose the wrong folder
    - Office: Meeting mode separate for each user of the PC
+   - Office: 5 new dark themes (Graphite, Forest, Plum, Teal, Taupe); Sage and Lavender are
+     gone (if you used them, Tasso switches you to Paper and Pearl)
    - Lots of fixes: Health and Fix a problem tell the truth, updates only with a check
      mark, "Privacy: restore" puts back the values you had before, cleanup every 2 weeks
      described correctly

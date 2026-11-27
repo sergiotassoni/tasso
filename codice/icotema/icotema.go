@@ -198,9 +198,21 @@ func TemaInUso(profilo, tema, temaUfficio string) string {
 // TemiUfficio e TemiGaming: i temi che si possono scegliere in ogni modalità, gli stessi di
 // OFFICE_THEMES e GAME_THEMES in ui/index.html (lo controlla un test).
 var (
-	TemiUfficio = []string{"ufficio", "salvia", "carta", "lavanda", "perla", "ardesia"}
+	TemiUfficio = []string{"ufficio", "carta", "perla", "grafite", "bosco", "prugna", "petrolio", "tortora", "ardesia"}
 	TemiGaming  = []string{"tasso", "aurora", "lava", "neon", "neonrgb", "oro", "argento", "carbonio", "belva", "ghiaccio", "sabbia"}
 )
+
+// temiUfficioRitirati: i temi dell'Ufficio che dalla 3.2 non si scelgono più e il tema chiaro più
+// simile che prende il loro posto. Le loro icone restano dentro Tasso.exe e i loro numeri in
+// elenco.txt non si riusano mai.
+var temiUfficioRitirati = map[string]string{"salvia": "carta", "lavanda": "perla"}
+
+// TemaUfficioSostituto: per un tema dell'Ufficio ritirato (Salvia, Lavanda) il tema che lo
+// sostituisce e true; per gli altri temi "" e false.
+func TemaUfficioSostituto(tema string) (string, bool) {
+	n, ok := temiUfficioRitirati[tema]
+	return n, ok
+}
 
 func contiene(l []string, s string) bool {
 	for _, x := range l {

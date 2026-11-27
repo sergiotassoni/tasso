@@ -447,7 +447,7 @@ S += [box('The BIOS: should you update it or not?', ['Tasso shows you the BIOS v
 # 9 Impostazioni
 S += chapter(10, 'Settings', 'made to fit you')
 S += [table([['Setting', 'What it does'],
-             ['<b>Appearance (8 themes)</b>', 'Tasso, Aurora, Lava, Neon, Carbon, Beast (dark) and Ice, Sand (light). Click a card and the app changes color right away.'],
+             ['<b>Appearance</b>', 'Gaming: Tasso, Aurora, Lava, Neon, Neon RGB, Gold, Silver, Carbon, Beast (dark) and Ice, Sand (light). Office: Light blue, Paper, Pearl (light) and Graphite, Forest, Plum, Teal, Taupe, Slate (dark). Click a card and the app changes color right away; Gaming and Office each remember their own theme.'],
              ['<b>Tasso on</b>', 'The main switch: see chapter 11.'],
              ['<b>Start with Windows</b>', 'Tasso starts by itself, minimized, when you turn on the PC.'],
              ['<b>Smart alerts</b>', 'Small alerts at the bottom right (disk almost full, new program at startup). Never in Gaming or FPS mode.'],
