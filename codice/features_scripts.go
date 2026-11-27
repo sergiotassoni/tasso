@@ -11,6 +11,7 @@ const startupSetScript = `
 # 3.2: il preludio ha ErrorActionPreference SilentlyContinue, quindi una scrittura che non riesce
 # (chiave in sola lettura, criterio di gruppo) non fermerebbe lo script. Qui ogni scrittura ha
 # -ErrorAction Stop dentro try/catch, e "JSON ok" esce solo se rileggendo il valore è quello giusto.
+# La rilettura usa Get-Item -LiteralPath e GetValue (nome esatto: "App [x64]" non è un carattere jolly).
 $map = @{
   hkcu   = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\Run'
   hklm   = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\Run'
@@ -27,9 +28,9 @@ if ([string]$A.scope -eq 'appx') {
   try {
     if (-not (Test-Path -LiteralPath $k)) { New-Item -Path $k -Force -ErrorAction Stop | Out-Null }
     New-ItemProperty -LiteralPath $k -Name 'State' -Value $v -PropertyType DWord -Force -ErrorAction Stop | Out-Null
-    $letto = (Get-ItemProperty -LiteralPath $k -Name 'State' -ErrorAction Stop).State
+    $letto = (Get-Item -LiteralPath $k -ErrorAction Stop).GetValue('State')
   } catch { Say 'Windows non mi lascia cambiare questa voce.'; return }
-  if ([int]$letto -ne $v) { Say 'Windows non mi lascia cambiare questa voce.'; return }
+  if ($null -eq $letto -or [int]$letto -ne $v) { Say 'Windows non mi lascia cambiare questa voce.'; return }
   [Console]::Out.WriteLine('JSON ok')
   Say 'Fatto.'
   return
@@ -46,7 +47,7 @@ if ($A.enable) { $b[0] = 2 } else {
 try {
   if (-not (Test-Path -LiteralPath $key)) { New-Item -Path $key -Force -ErrorAction Stop | Out-Null }
   New-ItemProperty -LiteralPath $key -Name $n -Value $b -PropertyType Binary -Force -ErrorAction Stop | Out-Null
-  $letto = [byte[]]((Get-ItemProperty -LiteralPath $key -Name $n -ErrorAction Stop).$n)
+  $letto = [byte[]]((Get-Item -LiteralPath $key -ErrorAction Stop).GetValue($n))
 } catch { Say 'Windows non mi lascia cambiare questa voce.'; return }
 if (-not $letto -or $letto.Length -lt 1 -or $letto[0] -ne $b[0]) { Say 'Windows non mi lascia cambiare questa voce.'; return }
 [Console]::Out.WriteLine('JSON ok')

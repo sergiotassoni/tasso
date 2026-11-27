@@ -51,7 +51,7 @@ func TestMsgAvvioFalliti(t *testing.T) {
 // C2: "JSON ok" solo dopo scritture con -ErrorAction Stop e la rilettura del valore.
 func TestStartupSetScriptVerifica(t *testing.T) {
 	s := startupSetScript
-	if strings.Count(s, "-ErrorAction Stop") < 6 || strings.Count(s, "catch {") < 2 {
+	if strings.Count(s, "-ErrorAction Stop") < 6 || strings.Count(s, "catch {") < 2 || strings.Contains(s, "Get-ItemProperty") {
 		t.Fatal("scritture senza -ErrorAction Stop dentro try/catch")
 	}
 	resto := s
@@ -61,7 +61,7 @@ func TestStartupSetScriptVerifica(t *testing.T) {
 			break
 		}
 		prima := resto[:i]
-		if strings.LastIndex(prima, "Get-ItemProperty") < 0 || strings.LastIndex(prima, "-ne") < strings.LastIndex(prima, "Get-ItemProperty") {
+		if strings.LastIndex(prima, ".GetValue(") < 0 || strings.LastIndex(prima, "-ne") < strings.LastIndex(prima, ".GetValue(") {
 			t.Fatal("JSON ok senza rilettura e confronto prima")
 		}
 		resto = resto[i+10:]
