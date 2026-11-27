@@ -25,7 +25,18 @@ func correggiNumeriOCR(s string) string {
 		parole[i] = strings.NewReplacer("S", "5", "O", "0", "I", "1", "l", "1").Replace(w)
 	}
 	s = strings.Join(parole, " ")
-	return rePercento96.ReplaceAllString(s, "$1 $2%")
+	return rePercento96.ReplaceAllStringFunc(s, func(m string) string {
+		p := rePercento96.FindStringSubmatch(m)
+		parola, num := strings.ToLower(p[1]), p[2]
+		// Con i decimali ("6.796") è sempre una percentuale. Senza, solo con un numero piccolo
+		// (1-2 cifre); dopo "by" e "bonus" non con 19 e 20, che sono anni ("by 1996", "by 2096")
+		if !strings.ContainsAny(num, ".,") {
+			if len(num) > 2 || ((parola == "by" || parola == "bonus") && (num == "19" || num == "20")) {
+				return m
+			}
+		}
+		return p[1] + " " + num + "%"
+	})
 }
 
 // rePercento00: il segno "%" letto come "0/0" (o "o/o") attaccato alle cifre: "800/0" -> "80%",

@@ -90,6 +90,8 @@ func changesList() map[string]interface{} {
 		items = append(items, map[string]interface{}{"kind": "tune", "id": id, "title": "Regola con Tasso", "detail": tunes[id]})
 	}
 	regs, _ := filepath.Glob(filepath.Join(appDir, "backup", "*.reg"))
+	regs2, _ := filepath.Glob(filepath.Join(appDir, "backup-registro", "*.reg")) // copie fatte dall'Ufficio
+	regs = append(regs, regs2...)
 	return map[string]interface{}{"items": items, "regBackups": len(regs), "undoFiles": fileDaRimettere(), "notUndo": nonSiRimette}
 }
 
@@ -204,8 +206,10 @@ func undoChange(kind, id string) {
 	case "tune":
 		if gameTuneBusy(id) {
 			msg = "Il gioco è aperto: chiudilo e riprova, così le sue impostazioni tornano com'erano davvero."
-		} else if gameTuneUndoQuiet(id, false) == "" {
+		} else if r := gameTuneUndoQuiet(id, false); r == "" {
 			msg = "Questo gioco non era regolato."
+		} else if r == "!ini" {
+			msg = msgIniNonRimesso
 		}
 	case "regfolder":
 		_ = os.MkdirAll(filepath.Join(appDir, "backup"), 0o755)

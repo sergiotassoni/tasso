@@ -40,7 +40,7 @@ func init() {
 			go officeGuardia()
 			fine := time.Now().Add(time.Duration(min) * time.Minute)
 			for time.Now().Before(fine) {
-				_, e := os.Stat(filepath.Join(officeDir(), "riunione.json"))
+				_, e := os.Stat(fileUfficio("riunione"))
 				fmt.Fprintf(f, "%s  riunione.json: %v  microfono in uso: %v\n", time.Now().Format("15:04:05"), e == nil, micInUso())
 				time.Sleep(30 * time.Second)
 			}

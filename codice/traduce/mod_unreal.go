@@ -483,6 +483,9 @@ func togliModUnreal(m ManifestoMod) error {
 		if filepath.IsAbs(a) || strings.Contains(a, "..") || !strings.EqualFold(filepath.Base(a), nomeModUnreal) {
 			continue
 		}
+		if !senzaCollegamenti(m.Cartella, a) {
+			return fmt.Errorf("non tolgo %s: la cartella passa da un collegamento", nomeModUnreal)
+		}
 		p := filepath.Join(m.Cartella, a)
 		if !senzaLink(m.Cartella, a) || !senzaLink(m.Cartella, a+".tmp") {
 			return fmt.Errorf("nel percorso di %s c'è un link o una giunzione: per sicurezza non lo tocco", nomeModUnreal)

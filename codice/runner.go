@@ -157,6 +157,9 @@ func runPSInfo(parent context.Context, script string, timeout time.Duration, onM
 		return res
 	}
 	cmd := exec.Command(sysExe("powershell.exe"), "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File", path)
+	// cartella di lavoro = System32: i programmi chiamati per nome (dism, sfc, reg…) non possono
+	// essere presi da una cartella dove chiunque può scrivere (per es. quella di Tasso.exe)
+	cmd.Dir = sistema32()
 	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true, CreationFlags: 0x08000000}
 	cmd.Stdout = pw
 	if err := cmd.Start(); err != nil {
@@ -428,7 +431,12 @@ func startLevel(level int, fine string, winupdate bool) string {
 		return "livello non valido"
 	}
 	var ids []string
+	ufficio := officeMode()
 	for _, s := range allSteps {
+		// 3.1: in Ufficio niente pulizia delle cache dei giochi (come nella lista dei passaggi).
+		if ufficio && s.ID == "game_cache" {
+			continue
+		}
 		if s.Level > 0 && s.Level <= level {
 			ids = append(ids, s.ID)
 		}

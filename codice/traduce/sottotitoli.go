@@ -33,6 +33,25 @@ func stessoSottotitolo(a, b string) bool {
 	if a == "" || b == "" || cifre(a) != cifre(b) || negazioniDi(a) != negazioniDi(b) {
 		return false
 	}
+	// parola per parola: l'OCR sbaglia di solito una lettera per parola; "north"/"south",
+	// "key"/"map", "him"/"her" sono battute diverse anche se quasi tutto il resto è uguale
+	// (solo se tutto il resto è identico: con parole spostate o unite è rumore di lettura)
+	if wa, wb := strings.Fields(a), strings.Fields(b); len(wa) == len(wb) && len(wa) >= 3 {
+		diverse, lontane := 0, false
+		for i := range wa {
+			pa, pb := lettereCifre(wa[i]), lettereCifre(wb[i])
+			if string(pa) == string(pb) {
+				continue
+			}
+			diverse++
+			if distanzaTesti(pa, pb, 2) > 1 {
+				lontane = true
+			}
+		}
+		if diverse > 0 && diverse <= 2 && lontane {
+			return false
+		}
+	}
 	na, nb := lettereCifre(a), lettereCifre(b)
 	l := max(len(na), len(nb))
 	if l < 12 {

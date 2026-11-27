@@ -40,9 +40,9 @@ func consiglioPC(g InfoGPU, ramGB float64, core int, iaDisponibile bool) Analisi
 	a.Righe = append(a.Righe, RigaAnalisi{"Traduzione veloce", "Va bene su questo PC. Traduce subito, non usa la scheda video.", "si"})
 
 	var ia RigaAnalisi
-	p := sceltaCorrettore(g, ramGB, core)
+	p := sceltaPrevista(g, ramGB, core)
 	// per il consiglio conta la scheda a riposo, non quanto la usa adesso un gioco aperto
-	if q := sceltaCorrettore(InfoGPU{Nome: g.Nome, MemoriaGB: g.MemoriaGB}, ramGB, core); q.Nome != "" {
+	if q := sceltaPrevista(InfoGPU{Nome: g.Nome, MemoriaGB: g.MemoriaGB}, ramGB, core); q.Nome != "" {
 		p = q
 	}
 	switch p.Nome {

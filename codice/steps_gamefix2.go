@@ -92,14 +92,14 @@ foreach ($s in 'XblAuthManager','XblGameSave','XboxNetApiSvc','XboxGipSvc','Gami
     Set-Service -Name $s -StartupType $want -ErrorAction SilentlyContinue
     $now = [string](Get-Service -Name $s -ErrorAction SilentlyContinue).StartType
     if ($now -ne 'Disabled') { Say ('Il servizio ' + $s + ' era spento del tutto: l''ho rimesso come lo vuole Windows.') }
-    elseif ($s -like 'GamingServices*') { Say 'Gaming Services è spento e Windows non mi lascia riaccenderlo: reinstallalo dallo Store (ti apro la pagina).'; Start-Process 'ms-windows-store://pdp/?ProductId=9MWPM2CQNLHN' }
+    elseif ($s -like 'GamingServices*') { Say 'Gaming Services è spento e Windows non mi lascia riaccenderlo: reinstallalo dallo Store (ti apro la pagina).'; Start-Process -FilePath (Join-Path $env:SystemRoot 'explorer.exe') -ArgumentList '"ms-windows-store://pdp/?ProductId=9MWPM2CQNLHN"' }
     else { Say ('Non sono riuscito a riaccendere il servizio ' + $s + '.') }
   }
   Restart-Service -Name $s -Force -ErrorAction SilentlyContinue
 }
 if (-not (Get-Service -Name GamingServices -ErrorAction SilentlyContinue)) {
   Say 'Manca "Gaming Services", il pezzo di Windows che installa i giochi Game Pass: ti apro la sua pagina ufficiale nello Store, premi Installa.'
-  Start-Process 'ms-windows-store://pdp/?ProductId=9MWPM2CQNLHN'
+  Start-Process -FilePath (Join-Path $env:SystemRoot 'explorer.exe') -ArgumentList '"ms-windows-store://pdp/?ProductId=9MWPM2CQNLHN"'
 }
 Say 'Ripasso l''app Xbox e i suoi componenti...'
 foreach ($n in 'Microsoft.GamingApp','Microsoft.XboxIdentityProvider','Microsoft.Xbox.TCUI','Microsoft.XboxGamingOverlay','Microsoft.WindowsStore') {
@@ -160,7 +160,7 @@ Say ('Cache di Discord svuotata: ' + (Fmt $f) + '. Messaggi, server e accesso re
 $mk = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\microphone'
 $v = ''; try { $v = [string](Get-ItemProperty -LiteralPath $mk -Name Value -ErrorAction Stop).Value } catch {}
 $nd = ''; try { $nd = [string](Get-ItemProperty -LiteralPath ($mk + '\NonPackaged') -Name Value -ErrorAction Stop).Value } catch {}
-if ($v -eq 'Deny' -or $nd -eq 'Deny') { Say 'ATTENZIONE: Windows blocca il microfono ai programmi come Discord. Ti apro l''impostazione: accendi "Accesso al microfono" e "Consenti alle app desktop di accedere al microfono".'; Start-Process 'ms-settings:privacy-microphone' }
+if ($v -eq 'Deny' -or $nd -eq 'Deny') { Say 'ATTENZIONE: Windows blocca il microfono ai programmi come Discord. Ti apro l''impostazione: accendi "Accesso al microfono" e "Consenti alle app desktop di accedere al microfono".'; Start-Process -FilePath (Join-Path $env:SystemRoot 'explorer.exe') -ArgumentList '"ms-settings:privacy-microphone"' }
 Say 'Ora riapri Discord dal menu Start: al primo avvio controlla gli aggiornamenti, aspetta qualche secondo.'
 Say 'Se resta bloccato su "Aggiornamento": disinstallalo da Programmi e riscaricalo da discord.com (il sito ufficiale). Se non ti sentono: in Discord > Impostazioni > Voce e video scegli il microfono giusto.'
 `},

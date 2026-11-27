@@ -120,7 +120,7 @@ def cover(c, doc):
     c.drawCentredString(W / 2, H / 2 - 57 * mm, 'Cleans, repairs and boosts your PC. In one click.')
     c.setFont('Pop', 9)
     c.setFillColor(colors.HexColor('#8B91A7'))
-    c.drawCentredString(W / 2, 18 * mm, 'Version 3.1.1  ·  Windows 10 and 11  ·  2026')
+    c.drawCentredString(W / 2, 18 * mm, 'Version 3.1.2  ·  Windows 10 and 11  ·  2026')
     c.restoreState()
 
 
@@ -500,7 +500,7 @@ faq = [
 for q, a in faq:
     S += [KeepTogether([P('<b>%s</b>' % q, 'p'), P(a, 'p'), Spacer(1, 2)])]
 S += [Spacer(1, 6), box('Coming in future versions', ['Digital signature (it needs a paid certificate), video and music player with subtitles, file converters, recorder for the last 30 seconds of gameplay, stats on hours played, ad blocking, webcam and microphone control.'], BLUE, colors.HexColor('#EAF1FD'))]
-S += [Spacer(1, 10), P('Tasso 3.1.1', 'small')]
+S += [Spacer(1, 10), P('Tasso 3.1.2', 'small')]
 
 doc.build(S)
 print('ok')

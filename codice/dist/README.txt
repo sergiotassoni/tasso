@@ -1,11 +1,11 @@
-TASSO 3.1.1
+TASSO 3.1.2
 Cleans, repairs and boosts your PC. In one click.
 =================================================
 
 HOW TO OPEN IT
 1. Extract the folder from the zip (right-click > Extract All).
    You can also copy it to a USB stick: Tasso runs from there without installing it.
-   (Only if you turn on scheduled cleanup or the game profile, Tasso puts a copy of
+   (Only if you turn on scheduled cleanup or "Start with Windows", Tasso puts a copy of
    itself in Program Files\Tasso, so Windows can start it on its own.)
 2. Double-click Tasso.exe and click "Yes" when Windows asks:
    Tasso needs administrator rights to clean and repair.
@@ -40,6 +40,23 @@ The quick list of features is in the file INDEX.txt and inside Tasso,
 under "Info & index".
 
 ------------------------------------------------------------
+WHAT'S NEW IN 3.1.2
+------------------------------------------------------------
+- Safer in-game translations: the list of added files is signed by Tasso and
+  only administrators can read the key; a fake or altered list is never used.
+  Original files are put back only if they are exactly the ones set aside.
+- "Remove Tasso from the PC": if it can't save the backup copies to Documents
+  (also with Documents in OneDrive) it doesn't delete the folder holding them.
+- Scheduled cleanup: waits until you close the game and never hangs.
+- In Office mode the cleanup doesn't touch game caches; the connection test
+  gives advice for video calls.
+- The anonymous statistics question has the focus on "No, thanks" and doesn't
+  appear on top of "Prepare the game".
+- Translation: AI corrections also for lines starting with a dash, percentages
+  read correctly ("by 10%"), "R U OK" in chat, a game is no longer marked as
+  translated if its list isn't valid.
+
+------------------------------------------------------------
 WHAT'S NEW IN 3.1.1
 ------------------------------------------------------------
 - "One click and leave the house" cleanup: in the cleanup window choose
@@ -70,13 +87,18 @@ WHAT'S NEW IN 3.1
   It runs on your PC, no subscription: an AI on your graphics card polishes the
   translation (automatic level, or Small, Medium, Large or Off).
   Other players' chat is translated too, next to the game's chat.
-  In games with anti-cheat Tasso only translates the screen and never touches files.
+  In games with anti-cheat Tasso translates the screen; translating inside the game's
+  files is off and only turns on if you choose it, game by game, after the warning
+  about the risk of a ban.
 - Games page: your library, a page for every game and "Prepare the game",
   a step-by-step guide that tunes the game and the translation.
 - A more honest Boost: it says what it really does, measures real FPS, and
   "Restore original" puts back everything.
 - Refresh rate: Tasso only offers the rates your monitor declares (up to
   1000 Hz) and goes back on its own if you don't confirm within 15 seconds.
+- Graphics card drivers inside Tasso: NVIDIA downloaded only from the NVIDIA site with
+  NVIDIA's signature checked, AMD from Windows Update; there is always a restore point
+  first, and you can go back to the previous driver.
 - Live hardware: part names and CPU temperature.
 - In-game overlay your way: what to show and in which corner.
 - 14 more game problems in Fix a problem.

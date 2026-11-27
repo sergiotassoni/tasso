@@ -53,12 +53,28 @@ func soloSigle(s string) bool {
 
 // espandiAbbreviazioni scrive per intero le abbreviazioni della chat, lasciando il resto uguale.
 func espandiAbbreviazioni(s string) string {
-	return reParolaChat.ReplaceAllStringFunc(s, func(p string) string {
-		if v, ok := abbreviazioniChat[strings.ToLower(p)]; ok {
-			return v
+	var b strings.Builder
+	ultimo := 0
+	for _, m := range reParolaChat.FindAllStringIndex(s, -1) {
+		p := s[m[0]:m[1]]
+		v, ok := abbreviazioniChat[strings.ToLower(p)]
+		switch {
+		case !ok:
+			continue
+		case strings.EqualFold(p, "pm") && strings.TrimRight(s[:m[0]], " ") != "" && strings.ContainsAny(strings.TrimRight(s[:m[0]], " ")[len(strings.TrimRight(s[:m[0]], " "))-1:], "0123456789"):
+			continue // "9 pm" è un'ora, non un messaggio privato
+		case len(p) == 1 && p == strings.ToUpper(p) && !lettereChatVicine(s, m, abbreviazioniChat):
+			continue // "R" o "U" maiuscola da sola è un tasto ("premi R"), non "are"/"you"
 		}
-		return p
-	})
+		b.WriteString(s[ultimo:m[0]])
+		b.WriteString(v)
+		ultimo = m[1]
+	}
+	if ultimo == 0 {
+		return s
+	}
+	b.WriteString(s[ultimo:])
+	return b.String()
 }
 
 // uniscriRigheChat: un messaggio lungo va a capo su più righe. Se la chat ha i nomi dei
@@ -82,4 +98,20 @@ func uniscriRigheChat(righe []string) []string {
 		out = append(out, r)
 	}
 	return out
+}
+
+// lettereChatVicine: una "R" o "U" maiuscola è chat se accanto c'è un'altra abbreviazione di una
+// lettera ("R U OK") o se la frase è una domanda ("U THERE?").
+func lettereChatVicine(s string, m []int, abbr map[string]string) bool {
+	if strings.HasSuffix(strings.TrimSpace(s), "?") {
+		return true
+	}
+	prima := strings.Fields(s[:m[0]])
+	dopo := strings.Fields(s[m[1]:])
+	una := func(w string) bool {
+		w = strings.Trim(w, ".,!?;:")
+		_, ok := abbr[strings.ToLower(w)]
+		return len(w) == 1 && ok
+	}
+	return (len(prima) > 0 && una(prima[len(prima)-1])) || (len(dopo) > 0 && una(dopo[0]))
 }

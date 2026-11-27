@@ -734,6 +734,21 @@ func contrastante(c color.RGBA) color.RGBA {
 	return color.RGBA{245, 245, 245, 255}
 }
 
+// daTradurreIn: come daTradurre per i giochi in inglese; per le altre lingue (anche russo,
+// giapponese, coreano, cinese) basta che sia testo vero: le parole inglesi lì non ci sono.
+func daTradurreIn(s string, inglese bool) bool {
+	if inglese {
+		return daTradurre(s)
+	}
+	lettere := 0
+	for _, c := range s {
+		if unicode.IsLetter(c) {
+			lettere++
+		}
+	}
+	return lettere >= 2 && sembraTesto(s) && !nomeGiocatore(s)
+}
+
 // daTradurre: salto numeri, sigle, simboli e codici ("47.5 KM/h", "185/425", "α").
 func daTradurre(s string) bool {
 	lettere := 0

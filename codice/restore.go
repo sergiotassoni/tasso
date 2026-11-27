@@ -66,8 +66,8 @@ func restoreOriginal() (msgs []string, ok bool) {
 	}
 	defer releaseRun()
 	profileForget()
-	// Prima il Boost: rimette quello che ha cambiato lui (programmi chiusi, mouse, scheda video per
-	// gioco, modalità) prima che qui sotto si rimetta il resto di Windows.
+	// Prima del modeMu (ordine dei blocchi: bOpMu poi modeMu): se il Boost ha cambiato qualcosa
+	// (programmi chiusi, scheda video, mouse, modalità) lo rimetto anche qui.
 	if boostDaRimettere() {
 		msgs = append(msgs, boostOff(true)...)
 	}

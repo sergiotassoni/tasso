@@ -187,3 +187,36 @@ func TestCorrezioniDaParteColCorrettoreSpento(t *testing.T) {
 		t.Fatalf("frase non rimessa in coda: %d da parte, %d in coda", daParte, len(tr.corr.coda))
 	}
 }
+
+// Prima di scaricare l'IA, una scheda da 8 GB non deve sentirsi dire "non adatta" se dopo lo
+// scaricamento userebbe davvero l'IA piccola.
+func TestSceltaPrevista(t *testing.T) {
+	vecchio := iaMancante
+	defer func() { iaMancante = vecchio }()
+	iaMancante = func() bool { return true }
+	for _, c := range []struct{ mem, ram float64 }{{8, 16}, {8, 32}, {6, 16}} {
+		if p := sceltaPrevista(InfoGPU{MemoriaGB: c.mem}, c.ram, 8); p.Nome != "piccola" {
+			t.Errorf("%.0f GB scheda, %.0f GB RAM: prima di scaricare vuole piccola, ho %q (%s)", c.mem, c.ram, p.Nome, p.Motivo)
+		}
+	}
+	iaMancante = func() bool { return false } // scaricata ma senza la Media: niente promesse
+	if p := sceltaPrevista(InfoGPU{MemoriaGB: 8}, 16, 8); p.Nome != "" {
+		t.Errorf("senza Media vuole \"\", ho %q", p.Nome)
+	}
+}
+
+// Schede da 10-11 GB con meno di 8 core: mai l'IA intera oltre il limite lasciato al gioco.
+func TestSchedaDieciPochiCore(t *testing.T) {
+	for _, mem := range []float64{10, 11} {
+		p := sceltaCorrettoreCon(InfoGPU{MemoriaGB: mem}, 32, 6, true, true)
+		if p.MemoriaGB > limiteIA(mem)+0.01 {
+			t.Errorf("%.0f GB, 6 core: %q usa %.2f GB oltre il limite %.2f", mem, p.Nome, p.MemoriaGB, limiteIA(mem))
+		}
+		if p.Nome != "media" {
+			t.Errorf("%.0f GB, 6 core, con la Media: vuole media, ho %q (%s)", mem, p.Nome, p.Motivo)
+		}
+		if q := sceltaCorrettoreCon(InfoGPU{MemoriaGB: mem}, 32, 6, false, false); q.Nome == "scheda" {
+			t.Errorf("%.0f GB, 6 core, senza Media: niente IA intera, ho %q", mem, q.Nome)
+		}
+	}
+}

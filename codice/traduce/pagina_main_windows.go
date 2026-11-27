@@ -29,6 +29,7 @@ type TempiPagina struct {
 
 var (
 	paginaMostrata atomic.Int64 // quando è stata disegnata l'ultima traduzione della schermata
+	paginaTradotta atomic.Int64 // come paginaMostrata, ma solo se c'era almeno una scritta tradotta
 	cambioVisto    atomic.Int64
 	tempiPagina    atomic.Pointer[TempiPagina]
 	paginaAttiva   atomic.Bool
@@ -108,6 +109,7 @@ func avviaPaginaSu(fg uintptr) {
 	}
 	paginaAttiva.Store(true)
 	ov.Spegni() // la finestrella dei dialoghi non serve mentre traduco tutta la schermata
+	dimenticaDialogo()
 	giro := paginaGiro.Add(1)
 	badgeStato(statoBadgeTraduco)
 	go cicloPagina(giro)
@@ -580,6 +582,16 @@ func preparaPaginaCon(area Zona, img, primaImg *image.RGBA, giro int64, annulla 
 			return nil, letturaNiente // lingua che non so ancora tradurre, o già quella che vuoi
 		}
 	}
+	// Le correzioni degli errori di lettura e i controlli con le parole inglesi valgono solo per i
+	// giochi in inglese: in tedesco "Spiel beenden" non è "Spiel been den"
+	daLingua, _ := coppiaAttiva()
+	inglese := daLingua == "en"
+	if inglese {
+		for i := range blocchi {
+			blocchi[i].Testo = correggiParole(separaAttaccate(blocchi[i].Testo))
+		}
+	}
+	blocchi = unisciParagrafi(blocchi)
 	spazioLibero(blocchi, area.W)
 	segnaGiaMostrate(fissePagina, confermePagina, coppiaDi(traduttore), blocchi, time.Now()) // decisione già presa: resta (stabilita.go)
 	controllo := esisteVoce(filepath.Join(dirApp, "logs", "salva-anteprima"))
@@ -795,6 +807,9 @@ func mostraPaginaPronta(p *paginaPronta, giro int64) bool {
 		paginaMostrata.Store(time.Now().UnixNano())
 		for _, r := range p.cron { // adesso la pagina si vede: le sue scritte vanno nella cronologia
 			aggiungiCronologia(r, true)
+		}
+		if len(pronti) > 0 {
+			paginaTradotta.Store(time.Now().UnixNano())
 		}
 		tempiPagina.Store(&TempiPagina{OCR: tOCR, Traduzione: tTrad, Totale: time.Since(t0), Visto: time.Unix(0, cambioVisto.Load()), Scritte: len(pronti), Nuove: nuove})
 		ultimeScritte.Store(int64(len(pronti)))

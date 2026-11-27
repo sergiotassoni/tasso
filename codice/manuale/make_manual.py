@@ -120,7 +120,7 @@ def cover(c, doc):
     c.drawCentredString(W / 2, H / 2 - 57 * mm, 'Pulisce, ripara e spinge il tuo PC. In un clic.')
     c.setFont('Pop', 9)
     c.setFillColor(colors.HexColor('#8B91A7'))
-    c.drawCentredString(W / 2, 18 * mm, 'Versione 3.1.1  ·  Windows 10 e 11  ·  2026')
+    c.drawCentredString(W / 2, 18 * mm, 'Versione 3.1.2  ·  Windows 10 e 11  ·  2026')
     c.restoreState()
 
 
@@ -500,7 +500,7 @@ faq = [
 for q, a in faq:
     S += [KeepTogether([P('<b>%s</b>' % q, 'p'), P(a, 'p'), Spacer(1, 2)])]
 S += [Spacer(1, 6), box('In arrivo nelle prossime versioni', ['Firma digitale (serve un certificato a pagamento), lettore video e musica con sottotitoli, convertitori di file, registratore degli ultimi 30 secondi di gioco, statistiche delle ore giocate, blocco pubblicità, controllo webcam e microfono.'], BLUE, colors.HexColor('#EAF1FD'))]
-S += [Spacer(1, 10), P('Tasso 3.1.1', 'small')]
+S += [Spacer(1, 10), P('Tasso 3.1.2', 'small')]
 
 doc.build(S)
 print('ok')

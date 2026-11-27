@@ -234,6 +234,26 @@ func gamingRestore(id string) bool {
 		if id == "nagle" && nagleRestoreOK(p) && !regKeyExists(rootOf(p.HKLM), p.Path) {
 			continue
 		}
+		if id == "winopt" && p.Name == "DirectXUserGlobalSettings" {
+			// Nella stessa stringa Windows tiene anche HDR automatico, VRR e altro: rimetto solo
+			// la parte che Tasso cambia, il resto lo lascio com'è adesso.
+			was := ""
+			if p.Kind == "sz" {
+				for _, part := range strings.Split(p.S, ";") {
+					if i := strings.Index(part, "="); i > 0 && strings.TrimSpace(part[:i]) == "SwapEffectUpgradeEnable" {
+						was = strings.TrimSpace(part[i+1:])
+					}
+				}
+			}
+			m := dxGlobal()
+			if was == "" {
+				delete(m, "SwapEffectUpgradeEnable")
+			} else {
+				m["SwapEffectUpgradeEnable"] = was
+			}
+			_ = setDxGlobal(m)
+			continue
+		}
 		switch p.Kind {
 		case "dword", "sz", "none":
 			p.restore()

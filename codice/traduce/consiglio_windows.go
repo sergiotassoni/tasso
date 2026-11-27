@@ -125,7 +125,7 @@ func profiloPC() (ProfiloCorrettore, bool) {
 		return ProfiloCorrettore{Motivo: m}, true
 	}
 	// conto la scheda a riposo: il gioco non è ancora aperto
-	return sceltaCorrettore(InfoGPU{Nome: g.Nome, MemoriaGB: g.MemoriaGB}, ram, core), true
+	return sceltaPrevista(InfoGPU{Nome: g.Nome, MemoriaGB: g.MemoriaGB}, ram, core), true
 }
 
 // iaAdattaPC (3.1): l'IA su questo PC può partire? Finché non ho misurato la scheda dico di sì

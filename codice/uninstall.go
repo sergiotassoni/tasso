@@ -137,7 +137,8 @@ func togliTassoInfo() map[string]interface{} {
 	return map[string]interface{}{"bytes": tot, "vault": vaultExists()}
 }
 
-var reExeTasso = regexp.MustCompile(`(?i)^tasso[\w .-]*\.exe$`)
+// anche "Tasso (1).exe", il nome che dà il browser quando lo riscarichi
+var reExeTasso = regexp.MustCompile(`(?i)^tasso[\w .()-]*\.exe$`)
 
 // togliTasso fa tutto il lavoro; passo(i, testo) aggiorna la finestra. Restituisce "" se è andato
 // tutto bene (e Tasso si chiude da solo), altrimenti il motivo per cui si è fermato.
@@ -182,6 +183,8 @@ func togliTassoPassi(rimetti bool, passo func(int, string)) (piano pianoTogli, m
 
 func togliTassoPassiDentro(rimetti bool, passo func(int, string), pianoOut *pianoTogli) string {
 	// 1. impostazioni di Windows e cose accese da Tasso
+	// prima la riunione: rimette i valori di quando era partita, poi "Rimetti com'era" vince
+	officeSpegniTutto()
 	if rimetti {
 		msgs, ok := restoreOriginal()
 		if !ok {
@@ -219,12 +222,16 @@ func togliTassoPassiDentro(rimetti bool, passo func(int, string), pianoOut *pian
 		// sua cartella non trovo le copie dei giochi, quindi non dico "nessuna traduzione"
 		return "Non trovo la cartella di Tasso Traduce: apri Tasso e usa \"Togli Tasso dal PC\". Tasso non è stato tolto."
 	}
-	tolti, falliti := traduce.TogliTutteLeTraduzioni()
+	tolti, falliti, spariti := traduce.TogliTutteLeTraduzioni()
 	if len(falliti) == 1 && falliti[0] == "INSTALLA" {
 		return "Tasso sta installando una traduzione in un gioco: aspetta che finisca e riprova. Tasso non è stato tolto."
 	}
 	if len(falliti) > 0 {
 		return "Chiudi " + strings.Join(falliti, ", ") + " e riprova: con il gioco aperto non posso togliere la traduzione. Tasso non è stato tolto."
+	}
+	if len(spariti) > 0 {
+		// non blocco: il gioco non è più dove l'avevo tradotto. Dico dove guardare.
+		passo(1, trGo("Non trovo più questi giochi dove li avevo tradotti (spostati o su un disco staccato): ")+strings.Join(spariti, ", ")+trGo(". Se li hai ancora, nella loro nuova cartella togli BepInEx, winhttp.dll, doorstop_config.ini, .doorstop_version e, se c'è, dotnet."))
 	}
 	if len(tolti) > 0 {
 		passo(1, trGo("Traduzioni tolte dai giochi: ")+strings.Join(tolti, ", "))
@@ -302,6 +309,9 @@ func togliSilenzioso(out io.Writer) int {
 func unaRiga(s string) string {
 	return strings.Join(strings.Fields(s), " ")
 }
+// copieNonSalvate: cartelle con copie di sicurezza che non sono riuscito a spostare in Documenti:
+// la cartella di Tasso che le contiene non si cancella (meglio un resto che perdere i backup).
+var copieNonSalvate []string
 
 // salvaCopieDiSicurezza: i backup del registro e i plugin che l'utente aveva messo in un gioco
 // tradotto finiscono in Documenti\Tasso - copie di sicurezza (non si cancellano mai).
@@ -314,13 +324,47 @@ func salvaCopieDiSicurezza() {
 	if p, e := windows.KnownFolderPath(windows.FOLDERID_Documents, 0); e == nil && p != "" {
 		dest = filepath.Join(p, "Tasso - copie di sicurezza")
 	}
+	copieNonSalvate = nil
 	sposta := func(da, a string) {
 		if voci, _ := os.ReadDir(da); len(voci) == 0 {
 			return
 		}
+		salvato := false
+		defer func() {
+			if !salvato {
+				copieNonSalvate = append(copieNonSalvate, da) // non la cancello: resta dov'è
+			}
+		}()
 		_ = os.MkdirAll(filepath.Dir(a), 0o755)
-		if os.Rename(da, a) != nil {
-			_ = copiaCartellaSemplice(da, a)
+		// Documenti lo può preparare un altro programma: niente collegamenti di cartella lungo la
+		// strada (Tasso scriverebbe da amministratore dove punta il collegamento) e niente cartella
+		// già esistente da riempire
+		for _, x := range []string{dest, filepath.Dir(a)} {
+			// Solo i veri collegamenti (symlink e junction): le cartelle di OneDrive sono anche loro
+			// "reparse point" ma non portano altrove, e lì le copie vanno salvate lo stesso.
+			st, err := os.Lstat(x)
+			if err != nil || st.Mode()&os.ModeSymlink != 0 {
+				return
+			}
+			if st.Mode()&os.ModeIrregular != 0 {
+				if _, e := os.Readlink(x); e == nil {
+					return // junction
+				}
+			} else if !st.IsDir() {
+				return
+			}
+		}
+		for i := 2; ; i++ {
+			if _, err := os.Lstat(a); os.IsNotExist(err) {
+				break
+			}
+			if i > 50 {
+				return
+			}
+			a = strings.TrimSuffix(a, fmt.Sprintf(" (%d)", i-1)) + fmt.Sprintf(" (%d)", i)
+		}
+		if os.Rename(da, a) == nil || copiaCartellaSemplice(da, a) == nil {
+			salvato = true
 		}
 	}
 	sposta(filepath.Join(appDir, "backup"), filepath.Join(dest, "backup del registro"))
@@ -423,6 +467,15 @@ func scriptCancellazione(piano pianoTogli) (string, error) {
 		return !filepath.IsAbs(p) || strings.HasPrefix(p, `\\`) || strings.ContainsAny(p, "\"%&|<>^\r\n")
 	}
 	for _, d := range piano.intere {
+		tieni := false
+		for _, c := range copieNonSalvate {
+			if r, e := filepath.Rel(d, c); e == nil && r != ".." && !strings.HasPrefix(r, ".."+string(filepath.Separator)) {
+				tieni = true
+			}
+		}
+		if tieni {
+			continue // dentro ci sono copie di sicurezza non salvate in Documenti
+		}
 		if strano(d) || !nomeCartellaTasso(d) || len(d) <= 3 {
 			return "", fmt.Errorf("percorso strano: %s", d)
 		}
