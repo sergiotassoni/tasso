@@ -890,8 +890,8 @@ body.office .r2t{font-weight:600;font-stretch:normal}
 body.cardsfondo #main{opacity:.3;transition:opacity .15s}
 .cardmodo{position:fixed;top:78px;right:34px;font:800 clamp(56px,7vw,96px)/1 var(--display);font-stretch:122%;letter-spacing:-.03em;text-transform:uppercase;color:var(--text);opacity:.42;pointer-events:none;white-space:nowrap;overflow:hidden}
 body.office .cardmodo{font-weight:700;font-stretch:normal;letter-spacing:-.02em;color:var(--a1);opacity:.92}
-/* la scritta resta dietro la finestra: non copre mai titolo e testi (sopra la finestra se c'è posto, se no più tenue) */
-.overlay>.modal{position:relative;z-index:1}.cardmodo{z-index:0}.cardmodo.dietro{opacity:.22}body.office .cardmodo.dietro{opacity:.3}
+/* la scritta sta sempre fuori dalla finestra (sopra, o in verticale/di lato nello spazio a destra): non copre mai titolo e testi */
+.overlay>.modal{position:relative;z-index:1}.cardmodo{z-index:0;overflow:visible}.cardmodo.vert{writing-mode:vertical-rl}.cardmodo.via{display:none}
 .opt-card-prev canvas{width:560px;height:560px;max-width:100%;border-radius:14px;display:block;box-shadow:0 14px 34px rgba(0,0,0,.35)}
 </style>
 </head>
@@ -4012,25 +4012,62 @@ function cardSfondoModo(){
   m.querySelectorAll('.cardmodo').forEach(x => x.remove());
   if (!isOffice() && CURVIEW === 'home') return;
   const a = document.querySelector('aside'), left = a ? Math.round(a.getBoundingClientRect().right) + 34 : 34;
-  const d = el('div', {class: 'cardmodo', 'aria-hidden': 'true', style: 'left:' + left + 'px'}, esc(isOffice() ? _t('Ufficio') : 'Gaming'));
+  const d = el('div', {class: 'cardmodo', 'aria-hidden': 'true', 'data-left': left, style: 'left:' + left + 'px'}, esc(isOffice() ? _t('Ufficio') : 'Gaming'));
   m.insertBefore(d, m.firstChild);
   // il programma resta visibile dietro, più tenue, così la scritta non si mescola ai testi della pagina
   document.body.classList.add('cardsfondo');
-  cardModoPosto();
+  cardModoPosto(); cardModoGuarda();
 }
-// Dove sta la scritta: sopra la finestra se lì c'è posto (si legge tutta), se no in alto ma dietro
-// la finestra e più tenue. In ogni caso la finestra resta sopra: titolo e testi non si coprono mai.
+// Dove sta la scritta (uguale in Gaming e in Ufficio). Sempre FUORI dalla finestra, così titolo e
+// testi non si coprono mai, e sempre ben leggibile (mai sbiadita):
+//  1. sopra la finestra, come nel disegno, se lì ci sta grande almeno 44 px;
+//  2. se no nello spazio a destra della finestra, di lato o in verticale, dove viene più grande;
+//  3. se non c'è spazio da nessuna parte (finestre strette), sopra la finestra più piccola (min 18 px,
+//     con margini più stretti);
+//  4. solo se non ci sta neanche così, non si mostra (non finisce mai sopra o sotto i testi).
+// Si ricalcola quando cambia la misura del programma o della finestra del biglietto (ResizeObserver).
+const CARDMODO_M = 12, CARDMODO_GAP = 14;
+// misura del disegno vero delle lettere (anche i puntini di BÜRO, che escono dalla riga) e scarto
+// rispetto al riquadro dell'elemento
+function cardModoMisura(d){
+  const e = d.getBoundingClientRect(), rg = document.createRange(); rg.selectNodeContents(d);
+  const a = rg.getBoundingClientRect();
+  const l = Math.min(a.left, e.left), t = Math.min(a.top, e.top), r = Math.max(a.right, e.right), b = Math.max(a.bottom, e.bottom);
+  return {w: r - l, h: b - t, dx: e.left - l, dy: e.top - t};
+}
 function cardModoPosto(){
   const d = document.querySelector('#modal .cardmodo'), box = $('#modalBox'); if (!d || !box) return;
-  d.style.top = ''; d.style.fontSize = ''; d.classList.remove('dietro');
-  const b = box.getBoundingClientRect(), sopra = b.top - 14;
-  let h = d.getBoundingClientRect().height;
-  if (sopra < h + 12) { // poco posto: la scritta più piccola, ma non sotto i 36 px
-    const fs = Math.floor(parseFloat(getComputedStyle(d).fontSize) * (sopra - 12) / h);
-    if (fs >= 36) { d.style.fontSize = fs + 'px'; h = d.getBoundingClientRect().height; }
+  const W = innerWidth, H = innerHeight, M = CARDMODO_M, G = CARDMODO_GAP, left0 = +(d.dataset.left || 34);
+  d.classList.remove('vert', 'via'); d.style.fontSize = ''; d.style.top = '0px'; d.style.right = 'auto'; d.style.left = left0 + 'px';
+  const fs0 = parseFloat(getComputedStyle(d).fontSize) || 72;
+  const m0 = cardModoMisura(d), rw = m0.w / fs0, rh = m0.h / fs0; if (!rw || !rh) return;
+  const b = box.getBoundingClientRect();
+  const fit = (w, h, vert) => Math.max(0, Math.min(fs0, Math.floor((vert ? h : w) / rw), Math.floor((vert ? w : h) / rh)));
+  const gx0 = b.right + G, gw = W - M - gx0, gh = H - 2 * M;
+  const scelte = [
+    {dove: 'sopra', fs: fit(W - left0 - 34, b.top - G - M, false)},   // sopra la finestra, come nel disegno
+    {dove: 'destra', fs: fit(gw, gh, false)},                          // a destra della finestra, di lato
+    {dove: 'vert', fs: fit(gw, gh, true)},                             // a destra della finestra, in verticale
+    {dove: 'sopra', fs: fit(W - left0 - 34, b.top - 6 - 4, false), stretta: true}, // finestre strette
+  ];
+  const s = scelte[0].fs >= 44 ? scelte[0] : scelte.reduce((a, c) => c.fs > a.fs ? c : a);
+  if (s.fs < 18) { d.classList.add('via'); return; }
+  d.style.fontSize = s.fs + 'px';
+  if (s.dove === 'vert') d.classList.add('vert');
+  const m = cardModoMisura(d);
+  if (s.dove === 'sopra') d.style.top = Math.round(Math.max(s.stretta ? 4 : M, b.top - (s.stretta ? 6 : G) - m.h) + m.dy) + 'px';
+  else {
+    d.style.left = Math.round(gx0 + Math.max(0, (gw - m.w) / 2) + m.dx) + 'px';
+    d.style.top = Math.round(Math.max(M, Math.min(b.top, H - M - m.h)) + m.dy) + 'px';
   }
-  if (sopra >= h + 12) d.style.top = Math.round(sopra - h) + 'px';
-  else { d.style.fontSize = ''; d.classList.add('dietro'); }
+}
+let CARDMODO_RO = null;
+function cardModoGuarda(){
+  if (!CARDMODO_RO && typeof ResizeObserver === 'function') {
+    CARDMODO_RO = new ResizeObserver(() => { if (document.querySelector('#modal .cardmodo')) cardModoPosto(); });
+    CARDMODO_RO.observe($('#modalBox'));
+  }
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { if (document.querySelector('#modal .cardmodo')) cardModoPosto(); });
 }
 window.addEventListener('resize', () => { if (document.querySelector('#modal .cardmodo')) cardModoPosto(); });
 // Finestra dei biglietti: la stessa per il Voto al PC e per Ottimizza tutto, in Gaming e in Ufficio.
