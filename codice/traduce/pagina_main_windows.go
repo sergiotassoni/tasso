@@ -30,6 +30,7 @@ type TempiPagina struct {
 
 var (
 	paginaMostrata atomic.Int64 // quando è stata disegnata l'ultima traduzione della schermata
+	paginaTradotta atomic.Int64 // come paginaMostrata, ma solo se c'era almeno una scritta tradotta
 	cambioVisto    atomic.Int64
 	tempiPagina    atomic.Pointer[TempiPagina]
 	paginaAttiva   atomic.Bool
@@ -76,6 +77,7 @@ func avviaPaginaSu(fg uintptr) {
 	apriLibreriaPer(fg)
 	paginaAttiva.Store(true)
 	ov.Spegni() // la finestrella dei dialoghi non serve mentre traduco tutta la schermata
+	dimenticaDialogo()
 	giro := paginaGiro.Add(1)
 	go cicloPagina(giro)
 }
@@ -93,7 +95,8 @@ func cicloPagina(giro int64) {
 	perche := "avvio" // perché prima è vero (solo per pagina-tempi.txt)
 	nascostaPerAltTab := false
 	nere := 0
-	mosse := 0 // giri di fila in cui la schermata si muoveva ancora
+	mosse := 0   // giri di fila in cui la schermata si muoveva ancora
+	inutili := 0 // riletture di fila che hanno dato le stesse scritte (si gioca: la scena si muove)
 	for paginaAttiva.Load() && paginaGiro.Load() == giro {
 		gioco := paginaGiocoA.Load()
 		if v, _, _ := pIsWindow.Call(gioco); v == 0 { // il gioco è stato chiuso
@@ -218,6 +221,11 @@ func cicloPagina(giro int64) {
 						// muove (video) traduco: le scritte sopra un video diventano una fascia scura
 						pronta, occupata = preparaPagina(area, img2, img, giro)
 					}
+					if pronta != nil && stesseScritte(blocchiPagina(), pronta.pronti) {
+						inutili++
+					} else if pronta != nil {
+						inutili = 0
+					}
 					if pronta != nil && celleUltime != nil && stesseScritte(blocchiPagina(), pronta.pronti) {
 						// riletto per niente: le zone cambiate si muovono da sole, d'ora in poi non contano.
 						// Mai le zone sotto le scritte (lì un cambio vero va sempre visto) e al massimo
@@ -294,6 +302,10 @@ func cicloPagina(giro int64) {
 		}
 		if ultimeScritte.Load() == 0 {
 			time.Sleep(400 * time.Millisecond) // niente scritte (si sta giocando): controllo più di rado
+		} else if inutili >= 3 {
+			// le ultime riletture hanno dato sempre le stesse scritte (scena 3D che si muove sotto
+			// la HUD): rileggo più di rado per non togliere processore al gioco
+			time.Sleep(time.Duration(min(inutili, 8)) * 60 * time.Millisecond)
 		} else {
 			time.Sleep(40 * time.Millisecond) // svelto: le schermate nuove e i pulsanti evidenziati cambiano subito
 		}
@@ -335,10 +347,6 @@ func preparaPagina(area Zona, img, primaImg *image.RGBA, giro int64) (p *paginaP
 	}
 	righe = rileggiPiccole(img, righe, f)
 	blocchi := segmenti(righe, f)
-	for i := range blocchi {
-		blocchi[i].Testo = correggiParole(separaAttaccate(blocchi[i].Testo))
-	}
-	blocchi = unisciParagrafi(blocchi)
 	nostraL, ceNostraL := nostraFinestraIn(area)
 	var testiLetti []string
 	for _, b := range blocchi {
@@ -356,6 +364,16 @@ func preparaPagina(area Zona, img, primaImg *image.RGBA, giro int64) (p *paginaP
 			return nil, false // lingua che non so ancora tradurre, o già quella che vuoi
 		}
 	}
+	// Le correzioni degli errori di lettura e i controlli con le parole inglesi valgono solo per i
+	// giochi in inglese: in tedesco "Spiel beenden" non è "Spiel been den"
+	daLingua, _ := coppiaAttiva()
+	inglese := daLingua == "en"
+	if inglese {
+		for i := range blocchi {
+			blocchi[i].Testo = correggiParole(separaAttaccate(blocchi[i].Testo))
+		}
+	}
+	blocchi = unisciParagrafi(blocchi)
 	spazioLibero(blocchi, area.W)
 	if esisteVoce(filepath.Join(dirApp, "logs", "salva-anteprima")) { // controllo a mano: cosa ha letto
 		var sb strings.Builder
@@ -372,7 +390,7 @@ func preparaPagina(area Zona, img, primaImg *image.RGBA, giro int64) (p *paginaP
 	// di scritte si traduce in una frazione del tempo che serviva una alla volta
 	var da []Blocco
 	for _, b := range blocchi {
-		if !daTradurre(b.Testo) || !formaPlausibile(b) || !letturaAffidabile(b.Testo) {
+		if !daTradurreIn(b.Testo, inglese) || !formaPlausibile(b) || (inglese && !letturaAffidabile(b.Testo)) {
 			continue
 		}
 		if ceNostra && dentro(b, nostra) { // è la finestra di Tasso Traduce sopra il gioco: non la traduco
@@ -496,6 +514,9 @@ func mostraPaginaPronta(p *paginaPronta, giro int64) bool {
 			return false
 		}
 		paginaMostrata.Store(time.Now().UnixNano())
+		if len(pronti) > 0 {
+			paginaTradotta.Store(time.Now().UnixNano())
+		}
 		tempiPagina.Store(&TempiPagina{OCR: tOCR, Traduzione: tTrad, Totale: time.Since(t0), Visto: time.Unix(0, cambioVisto.Load()), Scritte: len(pronti), Nuove: nuove})
 		ultimeScritte.Store(int64(len(pronti)))
 		go func() {

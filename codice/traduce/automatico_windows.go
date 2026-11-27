@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 	"unsafe"
 )
@@ -210,7 +211,18 @@ func apriLibreriaPer(h uintptr) {
 		cart = g.Cartella
 	}
 	traduttore.ApriLibreria(fileLibreriaGioco(cart, nomeGioco(h)))
+	// gioco diverso da prima: la lingua riconosciuta era quella dell'altro gioco
+	if k := chiaveGioco(cart); cart != "" {
+		if prima, _ := ultimoGiocoLingua.Load().(string); prima != k {
+			ultimoGiocoLingua.Store(k)
+			if prima != "" {
+				linguaRilevata.Store(linguaVista(k))
+			}
+		}
+	}
 }
+
+var ultimoGiocoLingua atomic.Value // chiave dell'ultimo gioco per cui vale linguaRilevata
 
 // nomeRiconosciuto: il nome con cui la finestrella chiamava il gioco di questa cartella (per
 // ritrovare le librerie salvate col nome dalle versioni di prima).

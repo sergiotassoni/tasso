@@ -25,5 +25,14 @@ func correggiNumeriOCR(s string) string {
 		parole[i] = strings.NewReplacer("S", "5", "O", "0", "I", "1", "l", "1").Replace(w)
 	}
 	s = strings.Join(parole, " ")
-	return rePercento96.ReplaceAllString(s, "$1 $2%")
+	return rePercento96.ReplaceAllStringFunc(s, func(m string) string {
+		p := rePercento96.FindStringSubmatch(m)
+		parola, num := strings.ToLower(p[1]), p[2]
+		// "by 1996", "bonus 396": anni e numeri veri. Lo cambio solo con i decimali ("6.796")
+		// o con un numero piccolo dopo le parole delle statistiche ("Increased 1096", non "by 1996")
+		if !strings.ContainsAny(num, ".,") && !(parola != "by" && parola != "bonus" && len(num) <= 2) {
+			return m
+		}
+		return p[1] + " " + num + "%"
+	})
 }

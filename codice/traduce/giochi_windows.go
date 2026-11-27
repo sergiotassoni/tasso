@@ -101,7 +101,7 @@ func verificaTraduzione(g GiocoInstallato) {
 		time.Sleep(time.Second)
 	}
 	richiestePrima := richiesteDelGioco(chiave)
-	mostrataPrima := paginaMostrata.Load()
+	mostrataPrima := paginaTradotta.Load() // "Funziona" solo se ho davvero tradotto qualcosa
 	for t := time.Now(); time.Since(t) < 5*time.Minute; time.Sleep(2 * time.Second) {
 		if giocoInFile(g.Cartella) && ModNonPartita(g.Cartella) {
 			segnaModNonPartita(chiave, g.Nome)
@@ -118,7 +118,7 @@ func verificaTraduzione(g GiocoInstallato) {
 			return
 		}
 	avanti:
-		if paginaMostrata.Load() != mostrataPrima && inGioco() {
+		if paginaTradotta.Load() != mostrataPrima && inGioco() {
 			dici(true, "Funziona: ho tradotto una schermata di "+g.Nome+".")
 			return
 		}

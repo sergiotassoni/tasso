@@ -629,6 +629,12 @@ func collega(w webview2.WebView) {
 		imp.Tasti = attuali
 		muImp.Unlock()
 		salvaImp()
+		if !acceso.Load() && nome == "pagina" {
+			// spento resta registrato solo il tasto che la riaccende: va cambiato anche lui
+			if f := cambiaTasti(soloTastoAccendi()); len(f) > 0 {
+				altri = append(altri, f...)
+			}
+		}
 		r := map[string]string{"etichetta": etichettaTasto(codice)}
 		if len(altri) > 0 {
 			r["avviso"] = "Già usati da un altro programma: " + nomiTasti(altri, attuali) + "."
@@ -644,6 +650,8 @@ func collega(w webview2.WebView) {
 			if f := cambiaTasti(tastiCompleti(nil)); len(f) > 0 {
 				return fmt.Sprintf("occupati:%d", len(f))
 			}
+		} else {
+			cambiaTasti(soloTastoAccendi())
 		}
 		return "ok"
 	})
@@ -1104,6 +1112,7 @@ func impostaAuto(on bool) {
 	salvaImp()
 	if !on {
 		ov.Spegni()
+		dimenticaDialogo()
 	}
 	emetti("aggiorna", stato())
 }
@@ -1113,6 +1122,9 @@ var (
 	ultimaImp    Impronta // impronta dell'ultima zona letta
 	precedente   Impronta // cattura del giro prima (per aspettare che il testo smetta di scorrere)
 	ultimoTesto  string
+	erroreVisto  bool        // sullo schermo c'è "Non riesco a tradurre adesso."
+	ultimaSub    Impronta    // sottotitoli: ultima immagine letta
+	fermiSub     int         // sottotitoli: giri di fila con l'immagine ferma
 	candidatoSub string      // sottotitoli: ultima lettura, in attesa di una seconda uguale
 	ultimoGrezzo string      // ultima lettura dell'OCR (per le prove)
 	erroreSub    time.Time   // sottotitoli: ultimo errore di traduzione (non riprovo a raffica)
@@ -1152,14 +1164,26 @@ func cicloAutomatico() {
 		adesso := calcolaImpronta(img)
 		if i.Posizione == "sottotitoli" {
 			// nei video lo sfondo si muove sempre: niente confronto delle immagini, leggo il
-			// testo ogni volta (12 ms) e traduco solo quando cambia o sparisce
+			// testo ogni volta e traduco solo quando cambia o sparisce. Se l'immagine è proprio
+			// ferma (pausa, menu) non rileggo: niente lavoro per niente
+			// (due letture della stessa immagine servono comunque: il sottotitolo si conferma così)
+			if adesso.differenza(ultimaSub) < 0.3 {
+				fermiSub++
+			} else {
+				fermiSub = 0
+			}
+			ultimaSub = adesso
+			if fermiSub >= 2 && !rileggi.Load() {
+				continue
+			}
 			leggiETraduci(img, adesso, false)
 			continue
 		}
 		muImpronte.Lock()
 		fermo := adesso.differenza(precedente) < sogliaFermo
 		precedente = adesso
-		cambiato := adesso.differenza(ultimaImp) > sogliaCambiato
+		// anche poche celle cambiate: una battuta nuova nello stesso riquadro cambia poco la media
+		cambiato := adesso.cambiata(ultimaImp)
 		muImpronte.Unlock()
 		// Il dialogo è cambiato rispetto all'ultimo letto, e ha smesso di comparire lettera per lettera.
 		if cambiato && fermo {
@@ -1191,12 +1215,13 @@ func assicuraOCR() error {
 func traduciOra(forza bool) {
 	defer guard("traduci-ora")
 	i := leggiImp()
+	if paginaAttiva.Load() {
+		// la schermata intera si sta già traducendo (anche con una zona scelta): "ritraduci" la
+		// rilegge, non la spegne
+		paginaRileggi.Store(true)
+		return
+	}
 	if !i.Zona.Valida() {
-		if paginaAttiva.Load() {
-			// la schermata si sta già traducendo: "ritraduci" la rilegge, non la spegne
-			paginaRileggi.Store(true)
-			return
-		}
 		// nessuna zona scelta: traduco tutto lo schermo del gioco (quello dove sta la sua finestra)
 		attivaPagina()
 		return
@@ -1252,7 +1277,15 @@ func leggiETraduci(img *image.RGBA, impronta Impronta, forza bool) {
 	} else if fg, _, _ := pGetForeground.Call(); fg != 0 {
 		apriLibreriaPer(fg)
 	}
+	if sub {
+		// prima tolgo le righe di rumore (lettere sparse sullo sfondo che si muove), poi pulisco:
+		// pulisci unisce le righe e il rumore non si potrebbe più togliere
+		grezzo = righeSottotitolo(grezzo)
+	}
 	pulito := pulisci(grezzo)
+	if da, _ := coppiaAttiva(); da != "en" {
+		pulito = pulisciFile(grezzo) // le correzioni di lettura sono per l'inglese ("Inventar" non è "Inventor")
+	}
 	if sub {
 		pulito = righeSottotitolo(pulito)
 		grezzo = righeSottotitolo(grezzo)
@@ -1264,8 +1297,8 @@ func leggiETraduci(img *image.RGBA, impronta Impronta, forza bool) {
 	if pulito == "" {
 		candidatoSub = ""
 		// il dialogo o il sottotitolo è sparito: tolgo anche la traduzione
-		if ultimoTesto != "" {
-			ultimoTesto = ""
+		if ultimoTesto != "" || erroreVisto {
+			ultimoTesto, erroreVisto = "", false
 			muDialogo.Lock()
 			dialogoMostrato = mostratoDialogo{}
 			muDialogo.Unlock()
@@ -1310,9 +1343,11 @@ func leggiETraduci(img *image.RGBA, impronta Impronta, forza bool) {
 			erroreSub = time.Now()
 		}
 		ov.Mostra(z, testoTasso("Non riesco a tradurre adesso.", "I can't translate right now."), pulito, r.Errore)
+		erroreVisto = true
 		emetti("info", map[string]string{"testo": "Traduzione non riuscita: " + r.Errore})
 		return
 	}
+	erroreVisto = false
 	testo := r.Tradotto
 	if r.Parlante != "" {
 		testo = r.Parlante + ": " + testo
@@ -1432,7 +1467,9 @@ func correzioneArrivata(inglese, bozza, corretta string) {
 	}
 	muDialogo.Lock()
 	d := dialogoMostrato
-	ok := d.tradotto != "" && d.tradotto == bozza
+	// solo se la finestrella c'è ancora: con la traduzione spenta o con tutta la schermata
+	// tradotta una correzione arrivata tardi non deve far ricomparire il riquadro
+	ok := d.tradotto != "" && d.tradotto == bozza && acceso.Load() && !paginaAttiva.Load()
 	if ok {
 		dialogoMostrato.tradotto = corretta
 	}
@@ -1537,6 +1574,7 @@ func accendi(on bool) bool {
 		paginaGiro.Add(1)
 		NascondiPagina()
 		ov.Spegni()
+		dimenticaDialogo()
 		ovChat.Nascondi()
 	}
 	return on
@@ -1549,4 +1587,12 @@ func soloTastoAccendi() map[string]uint32 {
 		return map[string]uint32{}
 	}
 	return map[string]uint32{"pagina": tastiCompleti(leggiImp().Tasti)["pagina"]}
+}
+
+// dimenticaDialogo: la finestrella dei dialoghi è stata spenta: una correzione dell'IA arrivata
+// dopo non la deve rimettere.
+func dimenticaDialogo() {
+	muDialogo.Lock()
+	dialogoMostrato = mostratoDialogo{}
+	muDialogo.Unlock()
 }

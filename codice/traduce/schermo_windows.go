@@ -925,8 +925,11 @@ var idTasti = map[string]uintptr{
 // programma), in ordine.
 func registraTasti(h uintptr, t map[string]uint32) []string {
 	var falliti []string
-	for nome, id := range idTasti {
+	// prima li tolgo tutti: scambiando due tasti, il secondo sembrerebbe "già preso" dal primo
+	for _, id := range idTasti {
 		pUnregisterHotKey.Call(h, id)
+	}
+	for nome, id := range idTasti {
 		c := t[nome]
 		if c == 0 {
 			continue
