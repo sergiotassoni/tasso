@@ -11,6 +11,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"runtime/debug"
 	"sort"
 	"strings"
 	"sync"
@@ -86,6 +87,7 @@ func async(kind string, f func()) string {
 		}()
 		defer func() {
 			if r := recover(); r != nil {
+				logPanic("lavoro "+kind, r, debug.Stack()) // in crash.txt, per capire cosa è successo
 				emit("onBgError", map[string]interface{}{"kind": kind, "msg": "Qualcosa è andato storto. Riprova; se succede ancora, riavvia Tasso."})
 			}
 		}()
@@ -557,7 +559,7 @@ func pickFiles() []string {
 		lpstrFile:   &buf[0],
 		nMaxFile:    uint32(len(buf)),
 		lpstrTitle:  title,
-		flags:       0x00001000 | 0x00000800 | 0x00000008 | 0x00080000 | 0x00000200, // FILEMUSTEXIST|PATHMUSTEXIST|NOCHANGEDIR|EXPLORER|ALLOWMULTISELECT
+		flags:       0x00001000 | 0x00000800 | 0x00000008 | 0x00080000 | 0x00000200 | 0x00100000, // FILEMUSTEXIST|PATHMUSTEXIST|NOCHANGEDIR|EXPLORER|ALLOWMULTISELECT|NODEREFERENCELINKS (un collegamento .lnk distrugge il collegamento, non il file a cui punta)
 	}
 	ofn.lStructSize = uint32(unsafe.Sizeof(ofn))
 	r, _, _ := pGetOpenFile.Call(uintptr(unsafe.Pointer(&ofn)))

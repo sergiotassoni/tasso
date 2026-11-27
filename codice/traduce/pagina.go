@@ -71,6 +71,9 @@ type Blocco struct {
 	// davvero: dopo tutti i filtri e il disegno (collaudo 26/11: si fissavano anche traduzioni
 	// scartate, mai mostrate).
 	DaFissare string
+	// NonInglese: scritta di un gioco non in inglese: niente correzioni e controlli con le parole
+	// inglesi (in tedesco "Spiel beenden" non è "Spiel been den").
+	NonInglese bool
 	// GiaMostrata: lo stesso testo è già stato tradotto e disegnato in questa sessione (stabilita.go):
 	// un fotogramma che lo giudica "scritta del mondo" o "lettura incerta" non lo rimette in inglese
 	GiaMostrata bool
@@ -732,6 +735,21 @@ func contrastante(c color.RGBA) color.RGBA {
 		return color.RGBA{15, 15, 15, 255}
 	}
 	return color.RGBA{245, 245, 245, 255}
+}
+
+// daTradurreIn: come daTradurre per i giochi in inglese; per le altre lingue (anche russo,
+// giapponese, coreano, cinese) basta che sia testo vero: le parole inglesi lì non ci sono.
+func daTradurreIn(s string, inglese bool) bool {
+	if inglese {
+		return daTradurre(s)
+	}
+	lettere := 0
+	for _, c := range s {
+		if unicode.IsLetter(c) {
+			lettere++
+		}
+	}
+	return lettere >= 2 && sembraTesto(s) && !nomeGiocatore(s)
 }
 
 // daTradurre: salto numeri, sigle, simboli e codici ("47.5 KM/h", "185/425", "α").

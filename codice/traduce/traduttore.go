@@ -385,7 +385,13 @@ func soloEsatta(ctx context.Context) context.Context {
 }
 
 func (t *Traduttore) TraduciPer(ctx context.Context, grezzo string, dialogo bool, da, a string) Risultato {
-	return t.traduciIn(context.WithValue(ctx, chiaveFile{}, true), grezzo, dialogo, da, a)
+	r := t.traduciIn(context.WithValue(ctx, chiaveFile{}, true), grezzo, dialogo, da, a)
+	// "- Trova la chiave": il trattino davanti (elenco di obiettivi) lo tolgono i ritocchi, nel
+	// gioco va rimesso (sullo schermo lo rimette la regola delle etichette)
+	if g := strings.TrimSpace(grezzo); strings.HasPrefix(g, "- ") && r.Tradotto != "" && !strings.HasPrefix(r.Tradotto, "-") {
+		r.Tradotto = "- " + r.Tradotto
+	}
+	return r
 }
 
 // chiaveFile: testo preso dai file del gioco, già scritto giusto. Niente correzioni della lettura
@@ -409,6 +415,16 @@ func (t *Traduttore) traduciIn(ctx context.Context, grezzo string, dialogo bool,
 		testo = pulisciFile(grezzo)
 	} else {
 		testo = pulisci(grezzo)
+		// le correzioni degli errori di lettura non devono cambiare parole vere dei giochi
+		// ("Crit Chance" non è "Grit Chance", "C4" non sparisce): se la scritta letta così com'è
+		// è nel catalogo o nel glossario, uso quella
+		if leggero := pulisciFile(grezzo); leggero != "" && leggero != testo {
+			if _, ok := fraseMenuConNumero(leggero); ok {
+				testo = leggero
+			} else if _, ok := t.termineEsatto(leggero); ok {
+				testo = leggero
+			}
+		}
 	}
 	if testo == "" {
 		return Risultato{}
@@ -666,6 +682,12 @@ func (t *Traduttore) traduciEtichetta(ctx context.Context, s string, inizio time
 	}
 	if it, ok := t.oggettoDiMateriale(s); ok {
 		return finito(it, "glossario")
+	}
+	t.mu.Lock()
+	gl := t.glossario
+	t.mu.Unlock()
+	if v, ok := fraseMenuConNumero(s); ok && len(gl.trova(s)) == 0 {
+		return finito(v, "catalogo") // "Fullscreen", "VSync", "Melee"…: il catalogo prima della regola dei nomi
 	}
 	if w := strings.Fields(s); len(w) == 1 && !esiste(strings.Trim(w[0], ".,:;!?")) && unicode.IsUpper([]rune(w[0])[0]) {
 		if _, pronta := fraseMenuConNumero(s); !pronta { // "English" -> "Inglese": la frase pronta vince

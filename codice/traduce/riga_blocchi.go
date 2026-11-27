@@ -256,7 +256,7 @@ func motivoFratello(b Blocco, tutte []Blocco) string {
 		if !fratelli(sx, dx) && !accavallati {
 			continue // lontani
 		}
-		if dx.X == b.X && iniziaConFrammento(b.Testo) {
+		if dx.X == b.X && !b.NonInglese && iniziaConFrammento(b.Testo) { // (parole inglesi: non per le altre lingue)
 			return "pezzo di una parola spezzata"
 		}
 		if !accavallati && vociSeparate(sx, dx) {
@@ -670,6 +670,7 @@ func bloccoDaPosizioni(p []ParolaOCR, base Blocco) Blocco {
 	n := Blocco{Testo: strings.Join(parole, " "), Righe: 1, Em: base.Em, Pos: &copia,
 		X: int(x0), Y: int(y0), W: int(x1 - x0 + 0.5), H: int(y1 - y0 + 0.5)}
 	n.Grezzo = n.Testo
+	n.NonInglese = base.NonInglese
 	if e := emParole(p); e > 0 {
 		n.Em = e
 	}

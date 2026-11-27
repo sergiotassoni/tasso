@@ -204,8 +204,10 @@ func undoChange(kind, id string) {
 	case "tune":
 		if gameTuneBusy(id) {
 			msg = "Il gioco è aperto: chiudilo e riprova, così le sue impostazioni tornano com'erano davvero."
-		} else if gameTuneUndoQuiet(id, false) == "" {
+		} else if r := gameTuneUndoQuiet(id, false); r == "" {
 			msg = "Questo gioco non era regolato."
+		} else if r == "!ini" {
+			msg = msgIniNonRimesso
 		}
 	case "regfolder":
 		_ = os.MkdirAll(filepath.Join(appDir, "backup"), 0o755)

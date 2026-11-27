@@ -20,7 +20,10 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"time"
+
+	"tasso/traduce"
 )
 
 const shaURL = "https://raw.githubusercontent.com/sergiotassoni/tasso/main/Tasso.sha256"
@@ -160,7 +163,7 @@ func selfUpdate() {
 	}
 	// Da qui in poi non deve partire nient'altro: tra poco Tasso si chiude.
 	updating.Store(true)
-	if isRunning() || otherBusy("update") {
+	if isRunning() || otherBusy("update") || traduce.StaInstallando() {
 		updating.Store(false)
 		updMsg("error", "Tasso sta facendo un altro lavoro: aspetta che finisca, poi aggiorna.")
 		return
@@ -178,7 +181,7 @@ func selfUpdate() {
 	if err := os.WriteFile(newPath, exe, 0o755); err != nil {
 		_ = os.Remove(newPath)
 		updating.Store(false)
-		updMsg("error", "Non posso scrivere nella cartella di Tasso. Scarica lo zip a mano da Info.")
+		updMsg("error", "Non posso scrivere nella cartella di Tasso. Scarica lo zip a mano: Impostazioni, \"oppure scarica lo zip\".")
 		return
 	}
 	// Firma digitale: se questo Tasso è firmato, il nuovo deve essere firmato anche lui, con lo
@@ -196,7 +199,7 @@ func selfUpdate() {
 	if err != nil {
 		_ = os.Remove(newPath)
 		updating.Store(false)
-		updMsg("error", "Non riesco a preparare il controllo della firma: per sicurezza non aggiorno. Scarica lo zip a mano da Info.")
+		updMsg("error", "Non riesco a preparare il controllo della firma: per sicurezza non aggiorno. Scarica lo zip a mano: Impostazioni, \"oppure scarica lo zip\".")
 		return
 	}
 	msg := checkUpdateSignature(cur, verifica)
@@ -214,7 +217,7 @@ func selfUpdate() {
 		lockSelfExe()
 		_ = os.Remove(newPath)
 		updating.Store(false)
-		updMsg("error", "Non riesco a sostituire Tasso.exe. Scarica lo zip a mano da Info.")
+		updMsg("error", "Non riesco a sostituire Tasso.exe. Scarica lo zip a mano: Impostazioni, \"oppure scarica lo zip\".")
 		return
 	}
 	if err := os.Rename(newPath, cur); err != nil {
@@ -222,7 +225,7 @@ func selfUpdate() {
 		lockSelfExe()
 		_ = os.Remove(newPath)
 		updating.Store(false)
-		updMsg("error", rimessoMsg(vecchio, "Non riesco a sostituire Tasso.exe. Scarica lo zip a mano da Info."))
+		updMsg("error", rimessoMsg(vecchio, "Non riesco a sostituire Tasso.exe. Scarica lo zip a mano: Impostazioni, \"oppure scarica lo zip\"."))
 		return
 	}
 	// Blocco subito il file nuovo e controllo che sia proprio quello scaricato e verificato: un
@@ -234,7 +237,7 @@ func selfUpdate() {
 		_ = os.Rename(oldPath, cur)
 		lockSelfExe()
 		updating.Store(false)
-		updMsg("error", rimessoMsg(vecchio, "Il file nuovo è cambiato durante l'aggiornamento: per sicurezza non lo apro. Scarica lo zip a mano da Info."))
+		updMsg("error", rimessoMsg(vecchio, "Il file nuovo è cambiato durante l'aggiornamento: per sicurezza non lo apro. Scarica lo zip a mano: Impostazioni, \"oppure scarica lo zip\"."))
 		return
 	}
 	// Anche la copia in Programmi (quella delle attività pianificate) passa alla versione nuova,
@@ -281,6 +284,18 @@ func cleanOldExe() {
 		defer guard("cleanEcoSetup")
 		cleanEcoSetup() // ecoupdate.go: copie dell'installatore rimaste in Programmi
 	}()
+	// resti in Programmi di un controllo della firma o di un "Togli Tasso" interrotti (più vecchi di
+	// 10 minuti: uno in corso adesso non lo tocco)
+	if pf := programFilesDir(); pf != "" {
+		for _, pat := range []string{"tasso-verifica-*.exe", "togli-tasso-*.cmd"} {
+			m, _ := filepath.Glob(filepath.Join(pf, pat))
+			for _, f := range m {
+				if fi, err := os.Lstat(f); err == nil && fi.Mode().IsRegular() && time.Since(fi.ModTime()) > 10*time.Minute {
+					_ = os.Remove(f)
+				}
+			}
+		}
+	}
 	cur, err := os.Executable()
 	if err != nil {
 		return
@@ -350,7 +365,7 @@ func checkUpdateSignature(cur, newExe string) string {
 		New sigFull `json:"new"`
 	}
 	if r.JSON == "" || json.Unmarshal([]byte(r.JSON), &res) != nil {
-		return "Non riesco a controllare la firma digitale del nuovo Tasso: per sicurezza non aggiorno. Scarica lo zip a mano da Info."
+		return "Non riesco a controllare la firma digitale del nuovo Tasso: per sicurezza non aggiorno. Scarica lo zip a mano: Impostazioni, \"oppure scarica lo zip\"."
 	}
 	if msg := sigDecision(res.Cur.sigInfo, res.New.sigInfo); msg != "" {
 		return msg
@@ -387,7 +402,7 @@ func sigDecision(cur, nw sigInfo) string {
 	if cur.Status != "Valid" {
 		// Firmato, ma Windows ora non riesce a verificare la firma (certificati non aggiornati):
 		// senza un controllo vero non installo niente.
-		return "Windows non riesce a verificare la firma di questo Tasso: per sicurezza non aggiorno da solo. Scarica lo zip a mano da Info."
+		return "Windows non riesce a verificare la firma di questo Tasso: per sicurezza non aggiorno da solo. Scarica lo zip a mano: Impostazioni, \"oppure scarica lo zip\"."
 	}
 	if nw.Status != "Valid" {
 		return "Il nuovo Tasso non ha una firma digitale valida: per sicurezza non lo installo."
@@ -407,13 +422,34 @@ func contains(list []string, s string) bool {
 	return false
 }
 
+// copiaFirmata: questi byte sono un Tasso con una firma valida di Sergio Tassoni, rilasciata da
+// Certum (controllata su una copia nuova in Programmi, dove nessun altro programma può cambiarla).
+func copiaFirmata(exe []byte) bool {
+	p, err := copiaPerVerifica(exe)
+	if err != nil {
+		return false
+	}
+	defer os.Remove(p)
+	r := runPSArgs(sigCheckScript, map[string]string{"cur": p, "new": p}, 2*time.Minute, nil)
+	var res struct {
+		New sigFull `json:"new"`
+	}
+	if r.JSON == "" || json.Unmarshal([]byte(r.JSON), &res) != nil {
+		return false
+	}
+	return res.New.Status == "Valid" && isCertum(res.New.Issuer) && strings.Contains(res.New.Subject, "Sergio Tassoni")
+}
+
+// verificaN: aggiornamento e copia in Programmi possono verificare insieme: un file a testa.
+var verificaN atomic.Int64
+
 // copiaPerVerifica: il nuovo Tasso in un file di Programmi nuovo di zecca (O_EXCL), per la firma.
 func copiaPerVerifica(exe []byte) (string, error) {
 	pf := programFilesDir()
 	if pf == "" {
 		return "", os.ErrNotExist
 	}
-	p := filepath.Join(pf, "tasso-verifica-"+strconv.Itoa(os.Getpid())+".exe")
+	p := filepath.Join(pf, "tasso-verifica-"+strconv.Itoa(os.Getpid())+"-"+strconv.FormatInt(verificaN.Add(1), 10)+".exe")
 	_ = os.Remove(p) // resto di un aggiornamento interrotto (in Programmi lo scrive solo un amministratore)
 	f, err := os.OpenFile(p, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o644)
 	if err != nil {

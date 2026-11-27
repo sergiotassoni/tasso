@@ -28,6 +28,16 @@ type infoRiga struct {
 // ha spezzato una riga, divise ai separatori, corrette, votate nel tempo (voti può essere nil),
 // unite in paragrafi.
 func blocchiLetti(img *image.RGBA, righe []RigaOCR, f float64, voti *votazione, adesso time.Time) []Blocco {
+	return blocchiLettiIn(img, righe, f, voti, adesso, true)
+}
+
+// blocchiLettiIn: come blocchiLetti; con inglese=false (gioco in un'altra lingua) le righe
+// restano come le ha lette l'OCR, senza le correzioni fatte per le parole inglesi.
+func blocchiLettiIn(img *image.RGBA, righe []RigaOCR, f float64, voti *votazione, adesso time.Time, inglese bool) []Blocco {
+	correggi := correggiRigaOCR
+	if !inglese {
+		correggi = rigaNonInglese
+	}
 	bl := segmenti(righe, f)
 	for i := range bl {
 		bl[i].Grezzo = bl[i].Testo
@@ -46,7 +56,8 @@ func blocchiLetti(img *image.RGBA, righe []RigaOCR, f float64, voti *votazione, 
 		if bl[i].Grezzo == "" {
 			bl[i].Grezzo = bl[i].Testo
 		}
-		bl[i].Testo, bl[i].Affid = correggiRigaOCR(bl[i].Grezzo)
+		bl[i].Testo, bl[i].Affid = correggi(bl[i].Grezzo)
+		bl[i].NonInglese = !inglese
 		if voti != nil && img != nil {
 			bl[i].Testo, bl[i].Affid = voti.scegli(img, bl[i], bl[i].Testo, bl[i].Affid, adesso)
 		}
@@ -58,9 +69,10 @@ func blocchiLetti(img *image.RGBA, righe []RigaOCR, f float64, voti *votazione, 
 	for i := range bl {
 		if bl[i].Righe > 1 {
 			// paragrafo: il voto è quello del testo intero (anche la frase pronta intera)
-			t, a := correggiRigaOCR(bl[i].Testo)
+			t, a := correggi(bl[i].Testo)
 			bl[i].Testo, bl[i].Affid = t, a
 		}
+		bl[i].NonInglese = !inglese
 		if voti != nil {
 			bl[i].Mossa = voti.mossa(bl[i], adesso) // si muove con la telecamera?
 		}
@@ -111,8 +123,35 @@ func tutteScelte(bl []Blocco) bool {
 	return len(bl) >= 2
 }
 
+// rigaNonInglese: la riga di un gioco non in inglese, solo con gli spazi messi a posto.
+func rigaNonInglese(grezzo string) (string, int) {
+	s := strings.Join(strings.Fields(grezzo), " ")
+	if s == "" || reSoloSimboli.MatchString(s) {
+		return s, letturaDubbia
+	}
+	return s, letturaBuona
+}
+
 // motivoNonTradurre: perché questa scritta non va tradotta ("" = va tradotta).
 func motivoNonTradurre(b Blocco) string {
+	if b.NonInglese {
+		// gioco in un'altra lingua: i controlli con le parole inglesi qui scarterebbero tutto
+		switch {
+		case !daTradurreIn(b.Testo, false):
+			return "non è testo da tradurre"
+		case !formaPlausibile(b):
+			return "forma strana"
+		case b.Affid == letturaDubbia && !b.GiaMostrata:
+			return "lettura incerta"
+		case nomeConCodice(b.Testo):
+			return motivoNomeCodice
+		case reDataGioco.MatchString(b.Testo) && len(strings.Fields(b.Testo)) <= 3:
+			return "non è testo da tradurre"
+		case titoloDelGioco(b.Testo):
+			return motivoNomeGioco
+		}
+		return ""
+	}
 	switch {
 	case !daTradurre(b.Testo), soloParoleVuote(b.Testo):
 		return "non è testo da tradurre"
@@ -273,9 +312,9 @@ func motivoScartaTraduzione(b Blocco, r Risultato) string {
 			return motivoUgualeIt // "Video", "Audio", "No", "TAA": in italiano si scrive così
 		}
 		return "uguale all'inglese"
-	case pezzoDiParolaInFondo(b.Testo) && pezzoCopiato(b.Testo, t):
+	case !b.NonInglese && pezzoDiParolaInFondo(b.Testo) && pezzoCopiato(b.Testo, t):
 		return motivoPezzoInFondo
-	case r.Motore != "catalogo" && rigaMezzaTradotta(b.Testo, t):
+	case !b.NonInglese && r.Motore != "catalogo" && rigaMezzaTradotta(b.Testo, t):
 		// (le frasi pronte sono scritte a mano: "Esci al desktop" è giusta così)
 		return "mezza in inglese: scartata"
 	}
@@ -424,7 +463,12 @@ func vociDiUnaFila(b Blocco) []Blocco {
 	out := make([]Blocco, 0, len(gruppi))
 	for _, g := range gruppi {
 		n := bloccoDaPosizioni(g, b)
-		n.Testo, n.Affid = correggiRigaOCR(n.Grezzo)
+		if b.NonInglese {
+			n.Testo, n.Affid = rigaNonInglese(n.Grezzo)
+		} else {
+			n.Testo, n.Affid = correggiRigaOCR(n.Grezzo)
+		}
+		n.NonInglese = b.NonInglese
 		out = append(out, n)
 	}
 	return out

@@ -130,7 +130,12 @@ func mostraAvviso(area Zona, testo string, em float64, spazio int, durata time.D
 	go func() {
 		defer guard("avviso")
 		time.Sleep(durata)
-		if giroAvviso.Load() == g && !paginaAttiva.Load() {
+		if giroAvviso.Load() != g {
+			return
+		}
+		// con la schermata tradotta di un altro gioco l'avviso resta solo se quel gioco è davanti
+		fg, _, _ := pGetForeground.Call()
+		if !paginaAttiva.Load() || fg != paginaGiocoA.Load() {
 			NascondiPagina()
 		}
 	}()

@@ -9,6 +9,7 @@ import (
 
 	"golang.org/x/sys/windows"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -255,9 +256,12 @@ func installaLetturaOCR(codice string) string {
 }
 
 func apriImpostazioniLingue() {
+	// da Esplora file (utente normale): ms-settings: da amministratore si può dirottare
 	verbo, _ := windows.UTF16PtrFromString("open")
+	win, _ := windows.GetSystemWindowsDirectory()
+	exe, _ := windows.UTF16PtrFromString(filepath.Join(win, "explorer.exe"))
 	dove, _ := windows.UTF16PtrFromString("ms-settings:regionlanguage")
-	if windows.ShellExecute(0, verbo, dove, nil, nil, 1) == nil {
+	if windows.ShellExecute(0, verbo, exe, dove, nil, 1) == nil {
 		muOCRLingue.Lock()
 		ocrRileggiFino = time.Now().Add(5 * time.Minute)
 		muOCRLingue.Unlock()

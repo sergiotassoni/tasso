@@ -261,10 +261,32 @@ func TestElencoIgnorato(t *testing.T) {
 	g := t.TempDir()
 	d := filepath.Join(dirApp, "copie-giochi", "k")
 	_ = os.MkdirAll(d, 0o755)
+	// elenco senza firma (3.1.1): non è "ignorato", lo toglie togliModVecchia (3.1.2)
 	_ = os.WriteFile(filepath.Join(d, "manifesto.json"), []byte(`{"gioco":"Gioco","cartella":`+strconvQuote(g)+`,"tipo":"mono","token":"0123456789abcdef"}`), 0o644)
 	_ = baseCopie()
+	if _, _, ok := elencoIgnorato("k"); ok {
+		t.Fatal("elenco senza firma trattato come ignorato")
+	}
+	// elenco firmato da Tasso ma senza il segno di Tasso nel gioco (D8): ignorato
+	m := ManifestoMod{Gioco: "Gioco", Cartella: g, Tipo: "mono", Token: "0123456789abcdef"}
+	if err := firmaManifesto(dirApp, "k", &m); err != nil {
+		t.Fatal(err)
+	}
+	b, _ := json.Marshal(m)
+	_ = os.WriteFile(filepath.Join(d, "manifesto.json"), b, 0o644)
+	if !manifestoFirmato(dirApp, m) {
+		t.Fatal("firma non valida")
+	}
 	if _, dove, ok := elencoIgnorato("k"); !ok || dove != filepath.Join(d, "originali") {
 		t.Fatalf("non riconosciuto: %v %s", ok, dove)
+	}
+	// firma che non torna (elenco cambiato dopo): ignorato anche lui
+	m.Gioco = "Gioco"
+	m.Token = "fedcba9876543210"
+	b, _ = json.Marshal(m)
+	_ = os.WriteFile(filepath.Join(d, "manifesto.json"), b, 0o644)
+	if _, _, ok := elencoIgnorato("k"); !ok {
+		t.Fatal("elenco con la firma sbagliata non riconosciuto")
 	}
 	if l := GiochiDaSistemareAMano(); len(l) != 1 || l[0] != "Gioco" {
 		t.Fatal(l)

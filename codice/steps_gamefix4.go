@@ -215,7 +215,10 @@ foreach ($l in $libs) {
     if ($txt -match '"name"\s+"([^"]+)"') { $nm = $Matches[1]; $sz = 0; if ($txt -match '"SizeOnDisk"\s+"(\d+)"') { $sz = [double]$Matches[1] }; if ($sz -gt 0) { $big += [pscustomobject]@{ N = $nm; S = $sz } } }
   }
   $dl = Join-Path $l 'steamapps\downloading'
-  if ((Test-Path -LiteralPath $dl) -and -not (Get-Process -Name steam -ErrorAction SilentlyContinue)) {
+  # mai attraverso collegamenti: se downloading (o steamapps) porta altrove non tocco niente
+  $link = $false
+  foreach ($q in @($dl, (Join-Path $l 'steamapps'), $l)) { try { if ((Get-Item -LiteralPath $q -Force -ErrorAction Stop).Attributes -band [IO.FileAttributes]::ReparsePoint) { $link = $true } } catch {} }
+  if (-not $link -and (Test-Path -LiteralPath $dl) -and -not (Get-Process -Name steam -ErrorAction SilentlyContinue)) {
     # solo download interi fermi da più di 3 giorni (tutta la cartella del gioco), mai un pezzo
     $f = 0
     foreach ($g in @(Get-ChildItem -LiteralPath $dl -Directory -ErrorAction SilentlyContinue)) {

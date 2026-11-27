@@ -1092,6 +1092,10 @@ func gameTuneApply(id, preset string, o tuneOpts) {
 		case exeRunning(exes):
 			fail("• Grafica dentro il gioco: chiudi " + g.Name + " e premi di nuovo Applica (con il gioco aperto le modifiche verrebbero perse).")
 			ini = ""
+		case !safeIniPath(ini):
+			// passa da un collegamento o giunzione: poi non potrei rimetterlo com'era, quindi non lo tocco
+			fail("• Grafica dentro il gioco: il file delle impostazioni di questo gioco passa da un collegamento di cartella: per poterlo rimettere com'era non lo cambio. Imposta i valori consigliati dal menu Opzioni del gioco.")
+			ini = ""
 		default:
 			if err := writeUnrealIni(ini, o); errors.Is(err, errIniUTF16) {
 				fail("• Grafica dentro il gioco: il file delle impostazioni di questo gioco è in un formato (UTF-16) che Tasso non cambia, per non rovinarlo. Imposta i valori consigliati dal menu Opzioni del gioco.")
@@ -1244,9 +1248,7 @@ func gameTuneUndoQuiet(id string, reapply bool) string {
 		}
 		return ""
 	}
-	if t.Ini != "" {
-		restoreIniBackup(t.Ini)
-	}
+	iniRimasto := t.Ini != "" && !restoreIniBackup(t.Ini) && fileExists(t.Ini+".tasso-backup")
 	updateSettings(func(s *Settings) {
 		for _, e := range t.Exes {
 			delete(s.GameModes, strings.ToLower(strings.TrimSuffix(filepath.Base(e), filepath.Ext(e))))
@@ -1254,8 +1256,13 @@ func gameTuneUndoQuiet(id string, reapply bool) string {
 		delete(s.GameTunes, id)
 		autoGameTuneCleanup(s)
 	})
+	if iniRimasto {
+		return "!ini" // il file della grafica non l'ho potuto rimettere: lo dico
+	}
 	return "x"
 }
+
+const msgIniNonRimesso = "• Il file della grafica del gioco non l'ho potuto rimettere (è protetto, in uso o passa da un collegamento): la copia di prima è accanto, con il nome che finisce in .tasso-backup. Le impostazioni di Windows sono rimesse."
 
 // autoGameTuneCleanup: se la Modalità gioco automatica l'aveva accesa una regolazione o una potenza
 // per gioco, la spengo quando nessuno la usa più. Va chiamata dentro updateSettings.
@@ -1306,7 +1313,11 @@ func gameTuneUndo(id string) {
 		emit("onGameTuneDone", map[string]interface{}{"id": id, "ok": false, "undo": true, "msgs": msgs, "settings": getSettings()})
 		return
 	}
-	if gameTuneUndoQuiet(id, false) != "" {
+	switch gameTuneUndoQuiet(id, false) {
+	case "":
+	case "!ini":
+		msgs = []string{msgIniNonRimesso}
+	default:
 		msgs = []string{"✓ Regolazione tolta: impostazioni di Windows e file della grafica rimessi com'erano."}
 	}
 	emit("onGameTuneDone", map[string]interface{}{"id": id, "ok": true, "undo": true, "msgs": msgs, "settings": getSettings()})

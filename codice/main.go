@@ -67,6 +67,8 @@ func main() {
 	if apriConPermessi() {
 		return
 	}
+	// chiave della firma degli elenchi delle traduzioni nei giochi: dove scrivono solo gli amministratori
+	traduce.CartellaSicura = cartellaTasso() // ecosistema.go: di base Programmi\Tasso (solo amministratori)
 	// Profilo gioco all'accensione del PC (Tasso non parte con Windows): rimetto il profilo e chiudo,
 	// senza finestra e senza tenere occupato Tasso, così se lo apri tu si apre normalmente.
 	for _, a := range os.Args[1:] {
@@ -183,7 +185,17 @@ func main() {
 	if scheduledRun.Load() && autoLevel == 0 {
 		return // attività pianificata con Tasso spento: non apro neanche la finestra
 	}
-	if scheduledRun.Load() {
+	if scheduledRun.Load() && autoLevel > 0 && runningGame() != "" {
+		// stai giocando: la pulizia programmata parte quando chiudi il gioco
+		lvl := autoLevel
+		autoLevel = 0
+		go func() {
+			defer guard("main.go:attesa-gioco")
+			time.Sleep(20 * time.Second) // la finestra deve essere pronta per ricevere l'avvio
+			avviaQuandoNessunGioco(lvl)
+		}()
+	}
+	if scheduledRun.Load() && autoLevel > 0 {
 		markAutoRun(autoLevel, 30*time.Minute) // su un PC lento appena acceso la finestra può metterci un po'
 
 	}
@@ -267,6 +279,7 @@ func main() {
 			}
 		}()
 	}
+	defer screenHzUndoAllaChiusura()
 	startLiveMonitor()
 	startGameWatcher()
 	startOverlay()
@@ -512,6 +525,12 @@ func messageBox(text, title string) {
 func openURL(u string) {
 	if isWebURL(u) && openPath(explorerExe(), "\""+u+"\"") {
 		return // aperto come utente normale, non da amministratore
+	}
+	if i := strings.Index(u, ":"); i > 1 {
+		// un indirizzo con protocollo (ms-settings:, windowsdefender:…) mai da amministratore: il
+		// programma che lo apre si può cambiare senza privilegi (HKCU\Software\Classes)
+		openPath(explorerExe(), "\""+u+"\"")
+		return
 	}
 	verb, _ := windows.UTF16PtrFromString("open")
 	target, _ := windows.UTF16PtrFromString(u)

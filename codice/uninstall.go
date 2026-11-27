@@ -80,7 +80,8 @@ func pianoTogliTasso() pianoTogli {
 		}
 		// copie a metà di un aggiornamento (installProgramCopy, selfupdate): non sono nell'elenco
 		// dell'installatore, e senza toglierle la cartella non resterebbe mai vuota
-		for _, f := range []string{"Tasso.exe.new", "Tasso.exe.old", "Tasso.new.exe", "Tasso.old.exe"} {
+		// chiave-traduzioni: la chiave delle firme degli elenchi dei giochi (traduce/firma_manifesto.go)
+		for _, f := range []string{"Tasso.exe.new", "Tasso.exe.old", "Tasso.new.exe", "Tasso.old.exe", "chiave-traduzioni"} {
 			p.file = append(p.file, filepath.Join(base, f))
 		}
 		// Tasso.exe, VERSIONE e LICENSE: se li ha messi l'installatore li toglie il suo disinstallatore
@@ -138,7 +139,8 @@ func togliTassoInfo() map[string]interface{} {
 	return map[string]interface{}{"bytes": tot, "vault": vaultExists()}
 }
 
-var reExeTasso = regexp.MustCompile(`(?i)^tasso[\w .-]*\.exe$`)
+// anche "Tasso (1).exe", il nome che dà il browser quando lo riscarichi
+var reExeTasso = regexp.MustCompile(`(?i)^tasso[\w .()-]*\.exe$`)
 
 // togliTasso fa tutto il lavoro; passo(i, testo) aggiorna la finestra. Restituisce "" se è andato
 // tutto bene (e Tasso si chiude da solo), altrimenti il motivo per cui si è fermato.
@@ -183,6 +185,8 @@ func togliTassoPassi(rimetti bool, passo func(int, string)) (piano pianoTogli, m
 
 func togliTassoPassiDentro(rimetti bool, passo func(int, string), pianoOut *pianoTogli) string {
 	// 1. impostazioni di Windows e cose accese da Tasso
+	// prima la riunione: rimette i valori di quando era partita, poi "Rimetti com'era" vince
+	officeSpegniTutto()
 	if rimetti {
 		msgs, ok, avvioNo := restoreOriginalDett()
 		if !ok {
@@ -213,9 +217,13 @@ func togliTassoPassiDentro(rimetti bool, passo func(int, string), pianoOut *pian
 	officeSpegniTutto()
 	// Se la Modalità riunione o il blocco dell'Ufficio sono ancora accesi, le loro impostazioni di
 	// prima stanno in quei file: cancellando le cartelle non si potrebbero più rimettere. Mi fermo qui.
-	for _, n := range []string{"riunione.json", "blocco.json"} {
-		if _, err := os.Stat(filepath.Join(officeDir(), n)); err == nil {
-			return "Non sono riuscito a spegnere la Modalità riunione o il blocco del PC dell'Ufficio: spegnili dalla sezione Ufficio di Tasso e riprova. Tasso non è stato tolto."
+	// (anche quelli di un altro account del PC, riunione-<utente>.json, e quello unico della 3.1.1)
+	for _, n := range []string{"riunione*.json", "blocco*.json"} {
+		trovati, _ := filepath.Glob(filepath.Join(officeDir(), n))
+		for _, f := range trovati {
+			if !strings.Contains(filepath.Base(f), "-illeggibile-") {
+				return "Non sono riuscito a spegnere la Modalità riunione o il blocco del PC dell'Ufficio (anche di un altro account del PC): spegnili dalla sezione Ufficio di Tasso e riprova. Tasso non è stato tolto."
+			}
 		}
 	}
 
@@ -225,15 +233,22 @@ func togliTassoPassiDentro(rimetti bool, passo func(int, string), pianoOut *pian
 		// sua cartella non trovo le copie dei giochi, quindi non dico "nessuna traduzione"
 		return "Non trovo la cartella di Tasso Traduce: apri Tasso e usa \"Togli Tasso dal PC\". Tasso non è stato tolto."
 	}
-	tolti, falliti := traduce.TogliTutteLeTraduzioni()
+	tolti, falliti, spariti := traduce.TogliTutteLeTraduzioni()
+	if len(falliti) == 1 && falliti[0] == "ADMIN" {
+		return "Per togliere le traduzioni dai giochi Tasso deve essere aperto come amministratore: riaprilo, accetta la richiesta di Windows e riprova. Tasso non è stato tolto."
+	}
 	if len(falliti) == 1 && falliti[0] == "INSTALLA" {
 		return "Tasso sta installando una traduzione in un gioco: aspetta che finisca e riprova. Tasso non è stato tolto."
 	}
 	if len(falliti) > 0 {
 		return "Chiudi " + strings.Join(falliti, ", ") + " e riprova: con il gioco aperto non posso togliere la traduzione. Tasso non è stato tolto."
 	}
+	if len(spariti) > 0 {
+		// non blocco: il gioco non è più dove l'avevo tradotto. Dico dove guardare.
+		passo(1, trGo("Non trovo più questi giochi dove li avevo tradotti (spostati o su un disco staccato): ")+strings.Join(spariti, ", ")+trGo(". Se li hai ancora, nella loro nuova cartella togli BepInEx, winhttp.dll, doorstop_config.ini, .doorstop_version e, se c'è, dotnet."))
+	}
 	if aMano := traduce.GiochiDaSistemareAMano(); len(aMano) > 0 {
-		// elenchi in AppData che Tasso non usa (manca il segno di Tasso nel gioco): lo dico
+		// elenchi in AppData che Tasso non usa (firma che non torna o manca il segno di Tasso nel gioco): lo dico
 		passo(1, msgGiochiAMano(aMano))
 	}
 	if len(tolti) > 0 {
@@ -317,6 +332,10 @@ func unaRiga(s string) string {
 	return strings.Join(strings.Fields(s), " ")
 }
 
+// copieNonSalvate: cartelle con copie di sicurezza che non sono riuscito a spostare in Documenti:
+// la cartella di Tasso che le contiene non si cancella (meglio un resto che perdere i backup).
+var copieNonSalvate []string
+
 // salvaCopieDiSicurezza: i backup del registro e i plugin che l'utente aveva messo in un gioco
 // tradotto finiscono in Documenti\Tasso - copie di sicurezza (non si cancellano mai).
 // Le copie non si perdono mai: se in Documenti non si riesce (cartella protetta da "Accesso
@@ -334,14 +353,40 @@ func salvaCopieDiSicurezza() (nonSalvate, altrove []string) {
 	if pd, e := windows.KnownFolderPath(windows.FOLDERID_ProgramData, 0); e == nil && pd != "" {
 		riserva = filepath.Join(pd, "Tasso - copie di sicurezza")
 	}
+	copieNonSalvate = nil
+	defer func() { copieNonSalvate = append([]string(nil), nonSalvate...) }() // scriptCancellazione le tiene
+	// senzaRimandi: x è una cartella vera, non un collegamento o una giunzione (Documenti e
+	// ProgramData li può preparare un altro programma: Tasso scriverebbe da amministratore dove porta
+	// il collegamento). Le cartelle di OneDrive sono anche loro "reparse point" ma non portano altrove:
+	// lì le copie si salvano lo stesso.
+	senzaRimandi := func(x string) bool {
+		st, err := os.Lstat(x)
+		if err != nil || st.Mode()&os.ModeSymlink != 0 {
+			return false
+		}
+		if st.Mode()&os.ModeIrregular != 0 {
+			_, e := os.Readlink(x)
+			return e != nil // giunzione: no; OneDrive: sì
+		}
+		return st.IsDir()
+	}
+	// strada: prepara la cartella che conterrà a, dentro radice, solo se né radice né lei portano altrove
+	strada := func(radice, a string) bool {
+		if esisteVoce(radice) && !senzaRimandi(radice) {
+			return false
+		}
+		if os.MkdirAll(filepath.Dir(a), 0o755) != nil {
+			return false
+		}
+		return senzaRimandi(radice) && senzaRimandi(filepath.Dir(a))
+	}
 	// salva: da va in a. copiaPrima=true per quello che viene da Programmi\Tasso\lavoro: copiati, i
 	// file prendono i permessi di Documenti (rinominando si porterebbero dietro quelli di Programmi).
 	salva := func(da, a, rel string, copiaPrima bool) {
 		if voci, _ := os.ReadDir(da); len(voci) == 0 {
 			return
 		}
-		if dest != "" {
-			_ = os.MkdirAll(filepath.Dir(a), 0o755)
+		if dest != "" && strada(dest, a) {
 			if copiaPrima {
 				if copiaCartellaSemplice(da, a) == nil {
 					_ = os.RemoveAll(da)
@@ -360,8 +405,7 @@ func salvaCopieDiSicurezza() (nonSalvate, altrove []string) {
 		}
 		if riserva != "" {
 			r := nomeCopiaLibero(filepath.Join(riserva, filepath.Dir(rel)), filepath.Base(rel), time.Now(), esisteVoce)
-			_ = os.MkdirAll(filepath.Dir(r), 0o755)
-			if os.Rename(da, r) == nil {
+			if strada(riserva, r) && os.Rename(da, r) == nil {
 				altrove = append(altrove, r)
 				return
 			}
@@ -532,6 +576,15 @@ func scriptCancellazione(piano pianoTogli) (string, error) {
 		return !filepath.IsAbs(p) || strings.HasPrefix(p, `\\`) || strings.ContainsAny(p, "\"%&|<>^\r\n")
 	}
 	for _, d := range piano.intere {
+		tieni := false
+		for _, c := range copieNonSalvate {
+			if r, e := filepath.Rel(d, c); e == nil && r != ".." && !strings.HasPrefix(r, ".."+string(filepath.Separator)) {
+				tieni = true
+			}
+		}
+		if tieni {
+			continue // dentro ci sono copie di sicurezza non salvate in Documenti
+		}
 		if strano(d) || !nomeCartellaTasso(d) || len(d) <= 3 {
 			return "", fmt.Errorf("percorso strano: %s", d)
 		}
@@ -562,7 +615,7 @@ func scriptCancellazione(piano pianoTogli) (string, error) {
 // fileTasso: i soli nomi di file che "Togli Tasso" cancella.
 func fileTasso(n string) bool {
 	switch strings.ToLower(n) {
-	case "versione", "license":
+	case "versione", "license", "chiave-traduzioni":
 		return true
 	}
 	return reExeTasso.MatchString(n) || strings.EqualFold(n, "Tasso.exe.new") || strings.EqualFold(n, "Tasso.exe.old")

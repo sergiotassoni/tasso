@@ -53,7 +53,7 @@
 5. REPAIR AND SECURITY
    - Automatic backup (restore point) before the big cleanups
    - Fix problems: audio, internet, Windows Update, printer, Store, search
-   - Game problems (13): stuttering, low FPS, high ping, game won't start, launchers,
+   - Game problems (27): stuttering, low FPS, high ping, game won't start, launchers,
      black screen, controller and headset, Xbox and Game Pass, anti-cheat, Discord,
      mouse aim, game that minimizes by itself, slow downloads
    - Windows repair (DISM + SFC)
@@ -179,8 +179,8 @@
 
 5b. GAMES (Gaming mode)
    - Steam, Epic and Riot library with covers
-   - Game profile (a switch that stays on after a restart) and per-game power
-   - Tune with Tasso, Gaming commands explained, Optimize before playing
+   - Tasso Translate (F7) and "Prepare the game", per-game power
+   - Tune with Tasso, Gaming commands explained, Boost with real FPS
    - Game server ping, in-game overlay, autoclicker
 
 6. HARDWARE
@@ -209,6 +209,12 @@ WHAT'S NEW IN 3.2
      against scams
    - More security behind the scenes: game copies and Tasso's files better protected
 
+WHAT'S NEW IN 3.1.2
+   - Safer in-game translations (signed list, key readable only by administrators)
+   - Remove Tasso: backup copies are never lost; scheduled cleanup waits for the game
+   - Office: no game caches in the cleanup; connection test for video calls
+   - Translation: dash-line corrections, percentages, all-caps chat
+
 WHAT'S NEW IN 3.1.1
    - Cleanup: "Update Windows too" (last) and "When it's done": Leave on, Restart or
      Shut down (60-second warning); PC kept awake until the end; battery warning
@@ -220,10 +226,12 @@ WHAT'S NEW IN 3.1
    - Tasso Translate: games translated on screen (F7), same place, size and colour as
      the game; F9 area, F10 translate again, F11 automatic, F8 history, Ctrl+Alt+I English;
      AI on your PC (Automatic, Small, Medium, Large, Off); other players' chat translated;
-     in games with anti-cheat only the screen
+     in games with anti-cheat the screen (inside the files only if you choose it)
    - Games page: library, a page for every game, "Prepare the game" guide
    - Honest Boost with real measured FPS and "Restore original"
    - Refresh rates up to 1000 Hz, only the ones your monitor declares
+   - Graphics card drivers: NVIDIA from the NVIDIA site (signature checked), AMD from
+     Windows Update, restore point first, back to the previous driver
    - Live hardware with part names and CPU temperature
    - In-game overlay your way (what to show, 4 corners)
    - 14 more game problems

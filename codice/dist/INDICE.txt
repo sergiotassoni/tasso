@@ -51,7 +51,7 @@
 5. RIPARAZIONE E SICUREZZA
    - Backup automatico (punto di ripristino) prima delle pulizie importanti
    - Risolvi problemi: audio, internet, Windows Update, stampante, Store, ricerca
-   - Problemi nei giochi (13): scatti, pochi FPS, ping alto, il gioco non parte, launcher,
+   - Problemi nei giochi (27): scatti, pochi FPS, ping alto, il gioco non parte, launcher,
      schermo nero, controller e cuffie, Xbox e Game Pass, anti-cheat, Discord, mira del mouse,
      gioco che si riduce a icona, download lenti
    - Riparazione di Windows (DISM + SFC)
@@ -177,8 +177,8 @@
 
 5b. GIOCHI (modalità Gaming)
    - Libreria Steam, Epic, Riot con copertine
-   - Profilo gioco (interruttore che resta acceso dopo il riavvio) e potenza per ogni gioco
-   - Regola con Tasso, Comandi gaming spiegati, Ottimizza prima di giocare
+   - Tasso Traduce (F7) e "Prepara il gioco", potenza per ogni gioco
+   - Regola con Tasso, Comandi gaming spiegati, Boost con FPS veri
    - Ping ai server dei giochi, pannellino in gioco, autoclick
 
 6. HARDWARE
@@ -205,6 +205,12 @@ NOVITÀ DELLA 3.2
      contro le truffe
    - Più sicurezza dietro le quinte: copie dei giochi e file di Tasso più protetti
 
+NOVITÀ DELLA 3.1.2
+   - Traduzioni dentro i giochi più sicure (elenco firmato, chiave solo per gli amministratori)
+   - Togli Tasso: le copie di sicurezza non si perdono mai; pulizia programmata che aspetta il gioco
+   - Ufficio: niente cache dei giochi nella pulizia; test della connessione per le videochiamate
+   - Traduzione: correzioni con il trattino, percentuali, chat in maiuscolo
+
 NOVITÀ DELLA 3.1.1
    - Pulizia: "Aggiorna anche Windows" (per ultimo) e "Quando ha finito": Lascia acceso,
      Riavvia o Spegni (avviso di 60 secondi); PC sveglio fino alla fine; avviso batteria
@@ -216,10 +222,13 @@ NOVITÀ DELLA 3.1
    - Tasso Traduce: giochi in inglese tradotti in italiano sullo schermo (F7), stesso posto,
      grandezza e colore del gioco; F9 zona, F10 ritraduci, F11 automatico, F8 cronologia,
      Ctrl+Alt+I inglese; IA sul tuo PC (Automatica, Piccola, Media, Grande, Spenta);
-     chat degli altri giocatori tradotta; nei giochi con anti-cheat solo lo schermo
+     chat degli altri giocatori tradotta; nei giochi con anti-cheat lo schermo (dentro i
+     file solo se lo scegli tu)
    - Pagina Giochi: libreria, pagina di ogni gioco, procedura "Prepara il gioco"
    - Boost onesto con FPS veri misurati e "Rimetti com'era"
    - Frequenze dello schermo fino a 1000 Hz, solo quelle dichiarate dal monitor
+   - Driver della scheda video: NVIDIA dal sito NVIDIA (firma controllata), AMD da
+     Windows Update, prima il punto di ripristino, si torna al driver di prima
    - Hardware dal vivo con nome dei pezzi e temperatura del processore
    - Pannellino in gioco a scelta (cosa mostrare, 4 angoli)
    - 14 problemi dei giochi in più

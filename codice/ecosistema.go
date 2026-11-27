@@ -21,6 +21,8 @@ import (
 
 	"golang.org/x/sys/windows"
 	"golang.org/x/sys/windows/registry"
+
+	"tasso/traduce"
 )
 
 const (
@@ -387,7 +389,7 @@ func tassoNonSiChiude() bool {
 	busyMu.Lock()
 	togli := busy["uninstall-tasso"]
 	busyMu.Unlock()
-	return isRunning() || togli || updating.Load()
+	return isRunning() || togli || updating.Load() || traduce.StaInstallando() // traduzione a metà dentro un gioco
 }
 
 var togliFinito atomic.Bool

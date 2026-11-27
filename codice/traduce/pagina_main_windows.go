@@ -29,6 +29,7 @@ type TempiPagina struct {
 
 var (
 	paginaMostrata atomic.Int64 // quando è stata disegnata l'ultima traduzione della schermata
+	paginaTradotta atomic.Int64 // come paginaMostrata, ma solo se c'era almeno una scritta tradotta
 	cambioVisto    atomic.Int64
 	tempiPagina    atomic.Pointer[TempiPagina]
 	paginaAttiva   atomic.Bool
@@ -108,6 +109,7 @@ func avviaPaginaSu(fg uintptr) {
 	}
 	paginaAttiva.Store(true)
 	ov.Spegni() // la finestrella dei dialoghi non serve mentre traduco tutta la schermata
+	dimenticaDialogo()
 	giro := paginaGiro.Add(1)
 	badgeStato(statoBadgeTraduco)
 	go cicloPagina(giro)
@@ -123,6 +125,7 @@ func cicloPagina(giro int64) {
 	animate := make([]bool, celleBordiX*celleBordiY)
 	animateDa := time.Now()
 	var celleUltime []bool // zone cambiate che hanno fatto partire l'ultima rilettura
+	inutili := 0           // riletture di fila che hanno dato le stesse scritte (si gioca: la scena si muove)
 	prima := true
 	perche := "avvio" // perché prima è vero (solo per pagina-tempi.txt)
 	nascostaPerAltTab := false
@@ -198,7 +201,7 @@ func cicloPagina(giro int64) {
 			if fermo && !prima {
 				// lo schermo non ha mandato fotogrammi nuovi: niente da rifare (prima a ogni giro
 				// convertivo e confrontavo di nuovo tutta la schermata)
-				time.Sleep(pausaPagina())
+				time.Sleep(pausaPagina(inutili))
 				continue
 			}
 			img, err = imgCatt, nil
@@ -347,6 +350,11 @@ func cicloPagina(giro int64) {
 					// le scritte sopra un video diventano una fascia scura
 					pronta, esito = preparaPagina(area, img2, img, giro, nil)
 				}
+				if pronta != nil && stesseScritte(blocchiPagina(), pronta.pronti) {
+					inutili++
+				} else if pronta != nil {
+					inutili = 0
+				}
 				if pronta != nil && celleUltime != nil && stesseScritte(blocchiPagina(), pronta.pronti) {
 					// riletto per niente: le zone cambiate si muovono da sole, d'ora in poi non contano
 					impara(celleUltime, celleDiBlocchi(pronta.pronti, img2.Bounds()))
@@ -446,14 +454,19 @@ func cicloPagina(giro int64) {
 			}
 			fermo = true
 		}
-		time.Sleep(pausaPagina())
+		time.Sleep(pausaPagina(inutili))
 	}
 }
 
 // pausaPagina: quanto aspettare tra un giro e l'altro.
-func pausaPagina() time.Duration {
+func pausaPagina(inutili int) time.Duration {
 	if ultimeScritte.Load() == 0 {
 		return 400 * time.Millisecond // niente scritte (si sta giocando): controllo più di rado
+	}
+	if inutili >= 3 {
+		// le ultime riletture hanno dato sempre le stesse scritte (scena 3D che si muove sotto la
+		// HUD): rileggo più di rado per non togliere processore al gioco (al massimo mezzo secondo)
+		return time.Duration(min(inutili, 8)) * 60 * time.Millisecond
 	}
 	return 40 * time.Millisecond // svelto: le schermate nuove e i pulsanti evidenziati cambiano subito
 }
@@ -557,12 +570,19 @@ func preparaPaginaCon(area Zona, img, primaImg *image.RGBA, giro int64, annulla 
 	if fermato() {
 		return nil, letturaAnnullata
 	}
-	// letture incerte rilette ingrandite, con il contrasto giusto (chiaro su scuro e viceversa)
-	righe = rileggiIncerte(img, righe, f)
-	if fermato() {
-		return nil, letturaAnnullata
+	// le correzioni degli errori di lettura e i controlli con le parole inglesi valgono solo per i
+	// giochi in inglese (la lingua è quella scelta, o quella vista l'ultima volta sullo schermo)
+	daLingua, _ := coppiaAttiva()
+	inglese := daLingua == "en"
+	if inglese {
+		// letture incerte rilette ingrandite, con il contrasto giusto (chiaro su scuro e viceversa);
+		// "incerte" secondo le parole inglesi: per le altre lingue rileggerei tutto a ogni giro
+		righe = rileggiIncerte(img, righe, f)
+		if fermato() {
+			return nil, letturaAnnullata
+		}
 	}
-	blocchi := blocchiLetti(img, righe, f, votiPagina, time.Now())
+	blocchi := blocchiLettiIn(img, righe, f, votiPagina, time.Now(), inglese)
 	nostraL, ceNostraL := nostraFinestraIn(area)
 	var testiLetti []string
 	for _, b := range blocchi {
@@ -795,6 +815,9 @@ func mostraPaginaPronta(p *paginaPronta, giro int64) bool {
 		paginaMostrata.Store(time.Now().UnixNano())
 		for _, r := range p.cron { // adesso la pagina si vede: le sue scritte vanno nella cronologia
 			aggiungiCronologia(r, true)
+		}
+		if len(pronti) > 0 {
+			paginaTradotta.Store(time.Now().UnixNano())
 		}
 		tempiPagina.Store(&TempiPagina{OCR: tOCR, Traduzione: tTrad, Totale: time.Since(t0), Visto: time.Unix(0, cambioVisto.Load()), Scritte: len(pronti), Nuove: nuove})
 		ultimeScritte.Store(int64(len(pronti)))

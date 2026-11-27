@@ -693,6 +693,8 @@ func boostOffOpt(explicit, keepAuto bool) []string {
 		msgs = append(msgs, "Qualcosa non si è potuto rimettere: premi di nuovo \"Rimetti com'era\".")
 	case gpuLeft: // Boost automatico spento: la scheda video scelta per i giochi resta
 		msgs = append(msgs, "Il resto è com'era prima del Boost. La scheda video scelta per i giochi la rimette \"Rimetti com'era\".")
+	case hzTenuto.Load():
+		msgs = append(msgs, "Tutto com'era prima del Boost, tranne la frequenza dello schermo che hai confermato con \"Tengo\": quella resta (la cambi dalle impostazioni dello schermo di Windows).")
 	default:
 		msgs = append(msgs, "Tutto com'era prima del Boost.")
 	}
@@ -1567,6 +1569,17 @@ func bindBoost(w webview2.WebView) {
 			defer guard("boost.go:riapri-avvio")
 			reopenBackground()
 		}()
+	}
+	// 3.0 → 3.1: la "Modalità gioco automatica" accesa a mano non ha più un suo interruttore
+	// (ora c'è il Boost automatico). La passo alle regole della 3.1: resta solo se serve a una
+	// potenza scelta per un gioco, altrimenti si spegne (prima non si poteva più spegnere)
+	if !auto {
+		updateSettings(func(s *Settings) {
+			if s.AutoGame && !s.AutoGameTune {
+				s.AutoGameTune = true
+				autoGameTuneCleanup(s)
+			}
+		})
 	}
 	// Il Tasso si era chiuso con il mouse ancora senza accelerazione: lo rimetto com'era.
 	if !competitiveGame(safeName(runningGame())) {

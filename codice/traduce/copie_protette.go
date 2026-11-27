@@ -398,14 +398,19 @@ func cartellaDiSistema(c string) bool {
 }
 
 // elencoIgnorato: in AppData c'è un elenco di quel gioco che si legge ma che Tasso non usa
-// (manifestoAffidabile: per esempio il file di XUnity di Tasso non c'è più). dove = la cartella con
+// (firma che non torna, o manifestoAffidabile: per esempio il file di XUnity di Tasso non c'è più). dove = la cartella con
 // gli originali. Serve per dire all'utente cosa fare, invece di non dire niente.
 func elencoIgnorato(chiave string) (m ManifestoMod, dove string, ok bool) {
 	if dirApp == "" || èCartellaProtetta(dirApp) {
 		return m, "", false
 	}
 	b, err := leggiSenzaLink(dirApp, filepath.Join("copie-giochi", chiave, "manifesto.json"))
-	if err != nil || json.Unmarshal(b, &m) != nil || manifestoAffidabile(dirApp, m) {
+	if err != nil || json.Unmarshal(b, &m) != nil {
+		return m, "", false
+	}
+	// senza firma è un elenco della 3.1.1: lo toglie togliModVecchia (mod_vecchia.go). Senza la
+	// chiave (Tasso non da amministratore) non so dire se è buono: non lo dichiaro ignorato.
+	if m.Firma == "" || chiaveNonLeggibile() || (manifestoFirmato(dirApp, m) && manifestoAffidabile(dirApp, m)) {
 		return m, "", false
 	}
 	return m, filepath.Join(dirApp, "copie-giochi", chiave, "originali"), true

@@ -25,7 +25,8 @@ import (
 func chiaveGioco(cartella string) string {
 	pulita := strings.ToLower(filepath.Clean(cartella))
 	h := sha1.Sum([]byte(pulita))
-	return filepath.Base(pulita) + "-" + hex.EncodeToString(h[:4])
+	// "#", "%" e "?" romperebbero l'indirizzo con cui il gioco parla con Tasso
+	return strings.NewReplacer("#", "_", "%", "_", "?", "_").Replace(filepath.Base(pulita)) + "-" + hex.EncodeToString(h[:4])
 }
 
 // giocoTradotto: il gioco ha la traduzione "applicata" (parte da sola quando lo apri).
@@ -59,6 +60,7 @@ func impostaGiocoTradotto(cartella string, si bool) {
 		resto = append(resto, pulita)
 	} else {
 		delete(imp.GiochiTradotti, nome)
+		delete(imp.GiochiTradotti, chiaveGiocoVecchia(cartella)) // segnato dalla 3.1.1 ("#" o "%" nel nome)
 	}
 	imp.CartelleTradotte = resto
 	muImp.Unlock()

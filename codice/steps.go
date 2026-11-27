@@ -369,6 +369,12 @@ function Clear-Folder([string]$p, [double]$minAgeHours = 0) {
 function Run-Hidden([string]$file, [string]$argline) {
   # Nessuna finestra: processo senza console, output letto in background per non bloccarsi.
   try {
+    if ($file -notmatch '[\\/:]') {
+      # nome nudo (dism, sfc…): sempre quello di System32, mai uno messo nella cartella di lavoro
+      $c = Join-Path ([Environment]::SystemDirectory) $file
+      if ($c -notmatch '\.[A-Za-z]{3}$') { $c += '.exe' }
+      if (Test-Path -LiteralPath $c) { $file = $c }
+    }
     $psi = New-Object System.Diagnostics.ProcessStartInfo
     $psi.FileName = $file
     $psi.Arguments = $argline
@@ -1297,7 +1303,7 @@ else { Say 'Windows Update ripristinato: riprova ad aggiornare da Impostazioni >
 $ssd = $false
 try { $pn = (Get-Partition -DriveLetter ($TassoSysDrive.TrimEnd(':')) -ErrorAction Stop | Get-Disk -ErrorAction Stop).Number; $ssd = [string](Get-PhysicalDisk -ErrorAction Stop | Where-Object { [string]$_.DeviceId -eq [string]$pn } | Select-Object -First 1).MediaType -eq 'SSD' } catch {}
 if ($ssd) { Say 'Nota onesta: il tuo disco è un SSD. Sugli SSD Windows cancella già i file per davvero da solo (TRIM), quindi questo passaggio serve poco e consuma un po'' il disco. Lo faccio lo stesso, visto che l''hai chiesto.' }
-Say ('Sovrascrivo lo spazio libero di ' + $TassoSysDrive + ' (può durare molto, puoi usare il PC nel frattempo)...')
+Say ('Sovrascrivo lo spazio libero di ' + $TassoSysDrive + ' (può durare molto: meglio chiudere gli altri programmi, perché per qualche tempo il disco resta pieno e non si possono salvare file)...')
 $code = Run-Hidden 'cipher.exe' ('/w:' + $TassoSysDrive + '\')
 # Se cipher si ferma a metà lascia una cartella enorme: la tolgo sempre.
 Remove-Safe (Join-Path ($TassoSysDrive + '\') 'EFSTMPWP')

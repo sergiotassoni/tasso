@@ -30,6 +30,10 @@ func applicaModUnreal(nome, cartella string, antiCheat bool, passo func(int, str
 		return
 	}
 	chiave := chiaveGioco(cartella)
+	if _, motivo := togliVecchiaSeCe(cartella); motivo != "" {
+		fallito("Non riesco a togliere la traduzione messa dalla versione di prima: " + motivo)
+		return
+	}
 	if _, gia := leggiManifesto(baseDi(chiave), chiave); gia {
 		// rifaccio da capo (es. dopo un aggiornamento del gioco o un cambio di lingua)
 		if err := TogliModGioco(baseDi(chiave), chiave); err != nil {
