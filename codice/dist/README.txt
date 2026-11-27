@@ -53,6 +53,10 @@ WHAT'S NEW IN 3.2
 - Badge card: at the end of Optimize everything and of the PC score you
   get your card with the result, in the colors of your theme, square or
   vertical, to copy or save as a picture.
+- Tasso calls you by name: type your name in the installer or in Settings
+  ("Your name") and Tasso greets you. Tasso Zip and Tasso PDF use it too
+  and, if you like, it appears on your card. It stays only on your PC and
+  never goes on the internet. Names in every language of the world are fine.
 - Meeting mode on the Home page (Office): one button next to CLEAN UP,
   before the call.
 - Desktop backgrounds that match the theme: when you choose a theme (for
@@ -85,6 +89,11 @@ WHAT'S NEW IN 3.2
 - Office: 5 new restful dark themes in Settings > Appearance: Graphite,
   Forest, Plum, Teal and Taupe (with their own icons). Sage and Lavender are
   gone: if you used them, Tasso switches you to Paper and Pearl.
+- Language changes right away: choose the language in Settings and Tasso
+  switches instantly, without closing and reopening.
+- Safer Boost: Tasso only uses settings documented by Microsoft. "Priority
+  to games" and "Low-latency network" no longer turn on; if you had them on,
+  you can turn them off and they go back to how they were.
 - Lots of fixes: Health & problems and Fix a problem tell you what they
   really find; program updates ask first and only touch the ones with a
   check mark; "Privacy: restore" puts back the values you had before; the

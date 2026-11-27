@@ -212,6 +212,8 @@ WHAT'S NEW IN 3.2
    - Optimize everything on the Home page, in Gaming and in Office: measures, sets up
      Windows, shows the difference; everything can be put back as it was
    - Badge card with the result of Optimize everything and of the PC score
+   - Tasso calls you by name: your name (installer or Settings) in the greetings of Tasso,
+     Tasso Zip and Tasso PDF and, if you like, on your card; it stays only on the PC
    - Office: Meeting mode on the Home page, next to CLEAN UP
    - Desktop backgrounds that match the theme (optional), sharp even in 4K; "Put mine back"
      (with Tasso installed by the installer)
@@ -230,6 +232,9 @@ WHAT'S NEW IN 3.2
    - Office: Meeting mode separate for each user of the PC
    - Office: 5 new dark themes (Graphite, Forest, Plum, Teal, Taupe); Sage and Lavender are
      gone (if you used them, Tasso switches you to Paper and Pearl)
+   - Language changes right away, without closing and reopening Tasso
+   - Safer Boost: only settings documented by Microsoft ("Priority to games" and
+     "Low-latency network" no longer turn on, but you can still turn them off)
    - Lots of fixes: Health and Fix a problem tell the truth, updates only with a check
      mark, "Privacy: restore" puts back the values you had before, cleanup every 2 weeks
      described correctly

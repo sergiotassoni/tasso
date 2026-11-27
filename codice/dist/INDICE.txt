@@ -208,6 +208,8 @@ NOVITÀ DELLA 3.2
    - Ottimizza tutto sulla Home, in Gaming e in Ufficio: misura, sistema Windows, mostra la
      differenza; tutto si rimette com'era
    - Biglietto tesserino con il risultato di Ottimizza tutto e del Voto al PC
+   - Tasso ti chiama per nome: il tuo nome (installatore o Impostazioni) nei saluti di Tasso,
+     Tasso Zip e Tasso PDF e, se vuoi, sul biglietto; resta solo sul PC
    - Ufficio: Modalità riunione sulla Home, accanto a PULISCI
    - Sfondi del desktop abbinati al tema (facoltativi), nitidi anche in 4K; "Rimetti il mio"
      (con Tasso installato con l'installatore)
@@ -226,6 +228,9 @@ NOVITÀ DELLA 3.2
    - Ufficio: Modalità riunione separata per ogni utente del PC
    - Ufficio: 5 temi scuri nuovi (Grafite, Bosco, Prugna, Petrolio, Tortora); Salvia e Lavanda
      non ci sono più (chi le usava passa da solo a Carta e Perla)
+   - La lingua cambia subito, senza chiudere e riaprire Tasso
+   - Boost più sicuro: solo impostazioni documentate da Microsoft ("Priorità ai giochi" e
+     "Rete a bassa latenza" non si accendono più, ma si possono spegnere)
    - Tante correzioni: Salute e Risolvi dicono il vero, aggiornamenti solo con la spunta,
      "Privacy: ripristina" rimette i valori di prima, pulizia ogni 2 settimane descritta bene
 

@@ -51,6 +51,10 @@ NOVITÀ DELLA 3.2
 - Biglietto tesserino: alla fine di Ottimizza tutto e del Voto al PC c'è
   il tuo biglietto con il risultato, nei colori del tema, quadrato o
   verticale, da copiare o salvare come immagine.
+- Tasso ti chiama per nome: scrivi il tuo nome nell'installatore o nelle
+  Impostazioni ("Il tuo nome") e Tasso ti saluta. Lo usano anche Tasso Zip
+  e Tasso PDF e, se vuoi, compare sul tuo biglietto. Resta solo sul tuo PC
+  e non va mai su internet. Vanno bene i nomi in tutte le lingue del mondo.
 - Modalità riunione sulla Home (Ufficio): un tasto accanto a PULISCI,
   prima della chiamata.
 - Sfondi del desktop abbinati al tema: quando scegli un tema (per esempio
@@ -82,6 +86,11 @@ NOVITÀ DELLA 3.2
 - Ufficio: 5 temi scuri nuovi e riposanti in Impostazioni > Aspetto: Grafite,
   Bosco, Prugna, Petrolio e Tortora (con le loro icone). Salvia e Lavanda non
   ci sono più: chi le usava passa da solo a Carta e Perla.
+- La lingua cambia subito: nelle Impostazioni scegli la lingua e Tasso
+  cambia all'istante, senza chiudersi e riaprirsi.
+- Boost più sicuro: Tasso usa solo impostazioni documentate da Microsoft.
+  "Priorità ai giochi" e "Rete a bassa latenza" non si accendono più; se li
+  avevi accesi, puoi spegnerli e tornano come prima.
 - Tante correzioni: Salute e problemi e Risolvi un problema dicono quello
   che trovano davvero; gli aggiornamenti dei programmi chiedono prima e
   toccano solo quelli con la spunta; "Privacy: ripristina" rimette i
