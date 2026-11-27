@@ -107,3 +107,41 @@ func TestDisinstallaToglieTracceUtente(t *testing.T) {
 		t.Fatalf("registro non pulito: %v", k)
 	}
 }
+
+// "Apri con > Tasso Zip > Sempre" (UserChoice / UserChoiceLatest): togliendo Tasso Zip va via solo
+// la scelta che porta a Tasso Zip; quella di un altro programma resta. Se il tipo di file
+// TassoZip.Archivio è di un'altra copia di Tasso Zip, le sue scelte restano.
+func TestDisinstallaToglieSceltaApriCon(t *testing.T) {
+	fe := `Software\Microsoft\Windows\CurrentVersion\Explorer\FileExts\`
+	for _, altraCopia := range []bool{false, true} {
+		p := nuovaProva(t, "3.1")
+		if _, err := p.in.Installa(context.Background(), p.opzioni(Zip)); err != nil {
+			t.Fatal(err)
+		}
+		exe := filepath.Join(p.base, "Tasso Zip", "TassoZip.exe")
+		if altraCopia {
+			exe = `D:\Portatili\TassoZip.exe`
+		}
+		r := p.reg
+		r.ScriviTesto(HKCU, `Software\Classes\`+progIDZip+`\shell\open\command`, "", `"`+exe+`" --apri "%1"`)
+		r.ScriviTesto(HKCU, fe+`.zip\UserChoice`, "ProgId", progIDZip)
+		r.ScriviTesto(HKCU, fe+`.zip\UserChoice`, "Hash", "abc=")
+		r.ScriviTesto(HKCU, fe+`.rar\UserChoiceLatest`, "ProgId", `Applications\TassoZip.exe`)
+		r.ScriviTesto(HKCU, fe+`.rar\UserChoice`, "ProgId", "WinRAR")
+		r.ScriviTesto(HKCU, fe+`.7z\UserChoice`, "ProgId", "7-Zip.7z")
+		r.ScriviTesto(HKCU, fe+`.pdf\UserChoice`, "ProgId", progIDZip) // non è un'estensione di Zip: non si guarda
+		if _, err := p.in.Disinstalla(p.base, []Componente{Zip}); err != nil {
+			t.Fatal(err)
+		}
+		_, zip := r.LeggiTesto(HKCU, fe+`.zip\UserChoice`, "ProgId")
+		_, rar := r.LeggiTesto(HKCU, fe+`.rar\UserChoiceLatest`, "ProgId")
+		if zip != altraCopia || rar != altraCopia { // nostra copia: tolte; altra copia: restano
+			t.Errorf("altra copia %v: scelte di Tasso Zip presenti dopo .zip=%v .rar=%v", altraCopia, zip, rar)
+		}
+		for _, k := range []string{fe + `.rar\UserChoice`, fe + `.7z\UserChoice`, fe + `.pdf\UserChoice`} {
+			if _, ok := r.LeggiTesto(HKCU, k, "ProgId"); !ok {
+				t.Errorf("tolta una scelta non di Tasso Zip: %s", k)
+			}
+		}
+	}
+}

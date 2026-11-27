@@ -24,6 +24,21 @@ type gruppoTracce struct {
 	seVale  [][2]string // {chiave, valore}: tolgo il valore predefinito della chiave solo se è questo
 	vuote   []string    // chiavi da togliere se restano vuote
 	exeNome string
+	// scelte: estensioni di cui togliere la scelta "Apri con > … > Sempre" dell'utente
+	// (FileExts\<ext>\UserChoice e UserChoiceLatest), solo se porta a questo programma (sceltaNostra)
+	scelte []string
+}
+
+// chiaveScelteUtente e scelteUtente: dove Windows tiene "Apri con > … > Sempre" (UserChoiceLatest
+// nei Windows 11 più nuovi). Stessi nomi di Tasso Zip (associa_windows.go).
+const chiaveScelteUtente = `Software\Microsoft\Windows\CurrentVersion\Explorer\FileExts\`
+
+var scelteUtente = []string{"UserChoiceLatest", "UserChoice"}
+
+// sceltaDiTassoZip: il ProgId scelto dall'utente porta a Tasso Zip (il suo tipo di file o "Apri con >
+// Tasso Zip"). È la stessa regola di diTassoZip in Tasso Zip.
+func sceltaDiTassoZip(p string) bool {
+	return strings.EqualFold(p, progIDZip) || strings.EqualFold(p, `Applications\TassoZip.exe`)
 }
 
 var (
@@ -58,6 +73,7 @@ func tracceDi(p Programma) []gruppoTracce {
 			assoc.valori = append(assoc.valori, [2]string{cl + e + `\OpenWithProgids`, progIDZip})
 			assoc.seVale = append(assoc.seVale, [2]string{cl + e, progIDZip})
 			assoc.vuote = append(assoc.vuote, cl+e+`\OpenWithProgids`, cl+e)
+			assoc.scelte = append(assoc.scelte, e)
 		}
 		return []gruppoTracce{menu, vecchio, assoc}
 	case ProgPDF:
@@ -110,6 +126,18 @@ func (in *Installatore) togliTracceUtente(base string, p Programma) []string {
 			for _, k := range g.vuote {
 				if r.Vuota(HKCU, k) {
 					_ = r.TogliChiave(HKCU, k)
+				}
+			}
+			// "Apri con > Tasso Zip > Sempre": senza Tasso Zip Windows chiederebbe "Come vuoi aprire?".
+			// Si legge e, solo se porta a Tasso Zip, si cancella (mai scritta: niente hash).
+			for _, e := range g.scelte {
+				for _, c := range scelteUtente {
+					k := chiaveScelteUtente + e + `\` + c
+					if v, ok := r.LeggiTesto(HKCU, k, "ProgId"); ok && sceltaDiTassoZip(v) {
+						if err := r.TogliChiave(HKCU, k); err != nil {
+							Diario("scelta \"Apri con\" di %s non tolta: %v", e, err)
+						}
+					}
 				}
 			}
 		}
