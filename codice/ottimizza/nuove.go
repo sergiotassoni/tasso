@@ -23,7 +23,7 @@ func modoACNoto(g string) bool {
 	return g == ModoEfficienza || g == OverlayNessuno || g == OverlayMigliori
 }
 
-// modoACGest: "Prestazioni migliori" solo quando il portatile è attaccato alla corrente. A batteria
+// modoACGest: "Prestazioni ottimali" solo quando il portatile è attaccato alla corrente. A batteria
 // (la modalità DC) Windows usa la sua scelta, che Tasso non tocca mai.
 type modoACGest struct{}
 

@@ -696,6 +696,40 @@ func modoTassoOtt() string {
 	return ""
 }
 
+// pianoUtenteOtt (F05-5): il piano energetico dell'utente quando ne è acceso uno per un po', perché le
+// impostazioni della batteria vadano lì e valgano anche dopo. Con una modalità di Tasso è quello
+// salvato prima della modalità (Save-Prev, lo rimette "Normale"); con la Modalità riunione quello
+// salvato nel suo file (lo rimette la fine della riunione). ignoto=true: ne è acceso uno per un po'
+// ma non si sa qual è quello dell'utente (le voci della batteria si saltano e lo dicono).
+func pianoUtenteOtt(modo string) (piano string, ignoto bool) {
+	const prima = `Software\Tasso\PrimaDelleModalita`
+	if modo != "" {
+		if ok, _ := regDword(registry.CURRENT_USER, prima, "Ok"); ok == 1 {
+			if p, _ := regGet(registry.CURRENT_USER, prima, "Plan"); ottimizza.GUIDValido(strings.ToLower(p)) {
+				return strings.ToLower(p), false
+			}
+		}
+		return "", true
+	}
+	b, ok := leggiFileUnicoOtt(filepath.Join(officeDir(), "riunione-"+sidOtt()+".json"))
+	if !ok {
+		return "", false // niente riunione accesa: il piano acceso è il suo
+	}
+	var r struct {
+		Plan string `json:"plan"`
+	}
+	if json.Unmarshal([]byte(strings.TrimPrefix(string(b), "\uFEFF")), &r) != nil {
+		return "", true
+	}
+	if r.Plan == "" {
+		return "", false // la riunione non ha cambiato il piano
+	}
+	if p := strings.ToLower(r.Plan); ottimizza.GUIDValido(p) {
+		return p, false
+	}
+	return "", true
+}
+
 // altroUtenteOtt: Tasso da amministratore con un altro account (UAC con la password di un altro
 // amministratore). Le impostazioni dell'utente collegato non sono raggiungibili da qui.
 func altroUtenteOtt() bool { return elevato() && utenteDiverso(sidUtente()) }
@@ -709,6 +743,7 @@ func pcOtt() ottimizza.PC {
 	pc := ottimizza.PC{Admin: elevato(), Caricatore: !onBattery(), Build: winBuild(), Giochi: giochiOtt(),
 		AltroUtente: altroUtenteOtt(), ModoTasso: modoTassoOtt(), BoostFinestra: boostFinestra}
 	pc.Portatile, pc.PortatileDubbio = ottimizza.DecidiPortatile(letto, in.Portatile, batteriaOtt())
+	pc.PianoUtente, pc.PianoTemporaneo = pianoUtenteOtt(pc.ModoTasso)
 	for _, a := range adattatoriOtt() {
 		if a.software {
 			continue
@@ -937,9 +972,21 @@ func infoOtt() map[string]interface{} {
 
 func infoDaStatoOtt(st *ottimizza.Stato) map[string]interface{} {
 	voci := []map[string]interface{}{}
+	modo := modoTassoOtt()
+	setMu.Lock()
+	boost := settings.GamingCmds["winopt"]
+	setMu.Unlock()
 	for _, v := range st.Voci {
 		m, _ := ottimizza.Trova(v.ID)
-		voci = append(voci, map[string]interface{}{"id": v.ID, "stato": v.Stato, "motivo": v.Motivo, "quando": v.Quando, "riavvio": m.Riavvio, "nonRimette": m.NonRimette})
+		// F04-2: perché adesso non si può rimettere com'era (lo dice l'elenco sotto la voce)
+		blocco := ""
+		if v.Attiva() && m.Modo && modo != "" {
+			blocco = ottimizza.MsgModoRimetti
+		} else if v.Attiva() && m.Boost && boost {
+			blocco = ottimizza.MsgBoostRimetti
+		}
+		voci = append(voci, map[string]interface{}{"id": v.ID, "stato": v.Stato, "motivo": v.Motivo, "quando": v.Quando, "riavvio": m.Riavvio, "nonRimette": m.NonRimette,
+			"blocco": blocco, "parziale": v.Stato == ottimizza.VocePulita && v.Motivo == ottimizza.MsgPuliziaErrore})
 	}
 	ris := map[string]interface{}{}
 	for modo, r := range st.Risultati {
@@ -959,7 +1006,7 @@ func infoDaStatoOtt(st *ottimizza.Stato) map[string]interface{} {
 
 func rimettiOtt(id string) ottimizza.Esito {
 	if ottInCorso.Load() {
-		return ottimizza.Esito{ID: id, Stato: ottimizza.VoceErrore, Motivo: "Aspetta che Ottimizza tutto finisca, poi riprova."}
+		return ottimizza.Esito{ID: id, Stato: ottimizza.VoceErrore, Motivo: msgAspettaOtt}
 	}
 	a := ambienteRimettiOtt(context.Background(), nil)
 	ottMu.Lock()
@@ -975,7 +1022,7 @@ func applicaUnaOtt(id string) ottimizza.Esito {
 		return ottimizza.Esito{ID: id, Stato: ottimizza.VoceErrore, Motivo: ottimizza.MsgNienteDa}
 	}
 	if ottInCorso.Load() {
-		return ottimizza.Esito{ID: id, Stato: ottimizza.VoceErrore, Motivo: "Aspetta che Ottimizza tutto finisca, poi riprova."}
+		return ottimizza.Esito{ID: id, Stato: ottimizza.VoceErrore, Motivo: msgAspettaOtt}
 	}
 	_ = ensureSnapshot() // la foto di com'era prima del cambio (C-1)
 	a := ambienteOtt(context.Background(), nil)
@@ -989,7 +1036,7 @@ func applicaUnaOtt(id string) ottimizza.Esito {
 // forza=false: con un giro in corso non fa niente (lo dice).
 func rimettiTuttoOtt(forza bool) ([]ottimizza.Esito, bool) {
 	if !forza && ottInCorso.Load() {
-		return []ottimizza.Esito{{Stato: ottimizza.VoceErrore, Motivo: "Aspetta che Ottimizza tutto finisca, poi riprova."}}, false
+		return []ottimizza.Esito{{Stato: ottimizza.VoceErrore, Motivo: msgAspettaOtt}}, false
 	}
 	ottMu.Lock()
 	st := caricaOtt()
@@ -1292,6 +1339,46 @@ func ottAltriFile() []string {
 	return avvisi
 }
 
+// Perché qualche modifica non è tornata com'era con "Rimetti tutto" (F04-2): il motivo vero e cosa
+// fare. Le altre modifiche intanto sono tornate com'erano (RimettiTutto va avanti con tutte).
+const (
+	msgOttRestaModo  = "Ottimizza tutto: ho rimesso com'era il resto, ma le impostazioni che gestisce la modalità di Tasso accesa (Gaming, FPS, Film o Silenziosa) restano come sono. Torna alla modalità Normale e poi rimetti di nuovo com'era."
+	msgOttRestaBoost = "Ottimizza tutto: ho rimesso com'era il resto, ma \"Ottimizzazioni per i giochi in finestra\" resta accesa perché la tiene il Boost. Spegni \"giochi in finestra\" nel Boost e poi rimetti di nuovo com'era."
+	msgOttNonTutto   = "Ottimizza tutto: non sono riuscito a rimettere tutto com'era. Riprova tra poco dalla pagina Ottimizza tutto."
+	msgAspettaOtt    = "Aspetta che Ottimizza tutto finisca, poi riprova."
+)
+
+// msgRestaOtt: il messaggio per "Rimetti tutto" quando qualcosa non è tornato.
+func msgRestaOtt(es []ottimizza.Esito) []string {
+	var out []string
+	modo, boost, altro := false, false, false
+	for _, e := range es {
+		if e.Stato != ottimizza.VoceErrore {
+			continue
+		}
+		switch e.Motivo {
+		case ottimizza.MsgModoRimetti:
+			modo = true
+		case ottimizza.MsgBoostRimetti:
+			boost = true
+		case msgAspettaOtt:
+			return []string{msgAspettaOtt}
+		default:
+			altro = true
+		}
+	}
+	if modo {
+		out = append(out, msgOttRestaModo)
+	}
+	if boost {
+		out = append(out, msgOttRestaBoost)
+	}
+	if altro || len(out) == 0 {
+		out = append(out, msgOttNonTutto)
+	}
+	return out
+}
+
 // msgRimettiOtt: per "Rimetti tutto com'era" delle Impostazioni.
 func msgRimettiOtt() ([]string, bool) {
 	es, ok := rimettiTuttoOtt(false)
@@ -1299,7 +1386,7 @@ func msgRimettiOtt() ([]string, bool) {
 		return nil, true
 	}
 	if !ok {
-		return []string{"Ottimizza tutto: non sono riuscito a rimettere tutto com'era. Riprova tra poco dalla pagina Ottimizza tutto."}, false
+		return msgRestaOtt(es), false
 	}
 	return []string{"Ottimizza tutto: modifiche rimesse com'erano."}, true
 }
@@ -1462,7 +1549,7 @@ func bindOttimizza(w webview2.WebView) {
 	_ = w.Bind("goOttRimettiTutto", func() string {
 		return async("ottimizza-rimetti", func() {
 			es, ok := rimettiTuttoOtt(false)
-			emit("onOttRimesso", map[string]interface{}{"tutto": true, "ok": ok, "n": len(es), "info": infoOtt()})
+			emit("onOttRimesso", map[string]interface{}{"tutto": true, "ok": ok, "n": len(es), "esiti": es, "info": infoOtt()})
 		})
 	})
 	_ = w.Bind("goOttAccensione", func() string {

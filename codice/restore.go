@@ -109,8 +109,10 @@ func restoreOriginalDett() (msgs []string, ok bool, avvioNo []string) {
 	msgs = append(msgs, restoreUsbAudio()...)
 	// Ottimizza tutto (3.2): anche le sue modifiche. Se qualcuna non torna lo dico, ma non blocca
 	// (si riprova dalla sua pagina; "Togli Tasso" la mette con le copie di sicurezza)
-	ottMsgs, _ := msgRimettiOtt()
-	msgs = append(msgs, ottMsgs...)
+	ottMsgs, ottOK := msgRimettiOtt()
+	if ottOK {
+		msgs = append(msgs, ottMsgs...)
+	}
 	// poi il passo Privacy (i valori che tiene lui Ottimizza li ha lasciati), prima della foto
 	msgs = append(msgs, privacyRimettiTutto()...)
 	busy := 0
@@ -128,6 +130,9 @@ func restoreOriginalDett() (msgs []string, ok bool, avvioNo []string) {
 		msgs = append(msgs, "Un gioco regolato è aperto: chiudilo e premi di nuovo per togliere anche la sua regolazione.")
 	}
 	if len(snap) == 0 && len(orig) == 0 {
+		if !ottOK {
+			msgs = append(msgs, ottMsgs...)
+		}
 		if len(msgs) > 0 {
 			return msgs, busy == 0, nil
 		}
@@ -173,6 +178,14 @@ func restoreOriginalDett() (msgs []string, ok bool, avvioNo []string) {
 			s.StartupOrig = rimasti // li tengo: premendo di nuovo "Rimetti com'era" riprovo
 		}
 	})
+	if !ottOK {
+		// F04-2: le voci di Ottimizza tutto che una modalità di Tasso teneva: adesso la modalità è
+		// tornata com'era, quindi riprovo (si chiudono, o si rimettono se hanno ancora il valore di Tasso)
+		if m, ok := msgRimettiOtt(); m != nil || ok {
+			ottMsgs = m
+		}
+		msgs = append(msgs, ottMsgs...)
+	}
 	return msgs, snapOK && busy == 0, falliti
 }
 

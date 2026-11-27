@@ -13,7 +13,8 @@ type Step struct {
 	Timeout time.Duration
 	Script  string
 	// Go: il passaggio è fatto in Go invece che con uno script (Script vuoto). log: i messaggi.
-	Go func(log func(string))
+	// Il risultato dice se si è saltato o non è riuscito (come quello degli script).
+	Go func(log func(string)) psResult
 }
 
 func stepList() []map[string]interface{} {

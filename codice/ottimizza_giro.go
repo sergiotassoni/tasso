@@ -130,14 +130,16 @@ func giroOtt(modo string) {
 			if e.Stato == ottimizza.VoceFatta {
 				fatteOra = append(fatteOra, m.ID)
 			}
-			if e.Stato == ottimizza.VoceFatta {
+			// F04-6: anche quelle già messe da Tasso in un giro di prima (restano attive, con l'interruttore)
+			if e.Stato == ottimizza.VoceFatta || e.Stato == ottimizza.VoceAPosto && e.Motivo == ottimizza.MsgGiaFatta {
 				fatte++
 			}
 			if e.Stato == ottimizza.VocePulita {
 				pulite++
 			}
 			fatti++
-			emit("onOttPasso", map[string]interface{}{"id": m.ID, "cat": c.ID, "fase": "fine", "esito": e, "fatti": fatti, "totale": len(elenco)})
+			emit("onOttPasso", map[string]interface{}{"id": m.ID, "cat": c.ID, "fase": "fine", "esito": e, "fatti": fatti, "totale": len(elenco),
+				"parziale": e.Stato == ottimizza.VocePulita && e.Motivo == ottimizza.MsgPuliziaErrore})
 			pausaOtt(ctx, 350*time.Millisecond)
 		}
 	}
@@ -254,7 +256,7 @@ func misuraOtt(ctx context.Context, modo string, prima bool, logf func(string)) 
 	if gioco {
 		durata = 70
 	} else {
-		durata = 55
+		durata = 70 // ogni programma si apre due volte (la prima non conta)
 	}
 	if !prima {
 		durata -= 10
@@ -597,6 +599,9 @@ func aspettaFinestraOtt(ctx context.Context, prima map[uintptr]string, exe map[s
 // aperturaOtt: apre e richiude Esplora file, Blocco note e il browser predefinito, come utente
 // normale, e misura quanto ci mette ognuno a mostrare la finestra. Il browser si misura solo se
 // non è già aperto (se no si aprirebbe una scheda in una finestra che c'è già).
+// F05-4, misura onesta: ogni programma si apre due volte e conta solo la seconda, prima e dopo
+// allo stesso modo. Così la misura "prima" non è a freddo (file ancora da leggere dal disco) e
+// quella "dopo" a caldo: tutte e due sono a caldo, e la differenza è quella vera.
 func aperturaOtt(ctx context.Context, onProg func(float64), logf func(string)) map[string]int {
 	out := map[string]int{}
 	docs := cartellaNota(windows.FOLDERID_Documents)
@@ -605,7 +610,8 @@ func aperturaOtt(ctx context.Context, onProg func(float64), logf func(string)) m
 	}
 	pagina := filepath.Join(appDir, "tmp", "tasso-prova.html")
 	_ = os.MkdirAll(filepath.Dir(pagina), 0o755)
-	_ = scriviFileApp(pagina, []byte("<!DOCTYPE html><html><head><meta charset=\"utf-8\"><title>Tasso</title></head><body style=\"font-family:sans-serif\">Tasso: prova di apertura del browser. Si chiude da sola.</body></html>"), 0o644)
+	// pagina vuota con solo il titolo "Tasso": niente testo in una lingua sola (F05-14)
+	_ = scriviFileApp(pagina, []byte("<!DOCTYPE html><html><head><meta charset=\"utf-8\"><title>Tasso</title></head><body></body></html>"), 0o644)
 	br := browserOtt()
 	browser := map[string]bool{}
 	for _, e := range []string{"msedge.exe", "chrome.exe", "firefox.exe", "brave.exe", "opera.exe", "vivaldi.exe"} {
@@ -642,18 +648,28 @@ func aperturaOtt(ctx context.Context, onProg func(float64), logf func(string)) m
 				continue
 			}
 		}
-		d, h := aspettaFinestraOtt(ctx, prima, p.exe, p.apri)
-		if h != 0 {
-			out[p.id] = int(d / time.Millisecond)
-			logf(fmt.Sprintf("Apertura %s: %.1f s", p.id, d.Seconds()))
+		for giro := 0; giro < 2 && ctx.Err() == nil; giro++ {
+			if giro > 0 {
+				prima = finestreOtt()
+			}
+			d, h := aspettaFinestraOtt(ctx, prima, p.exe, p.apri)
+			if h == 0 {
+				logf("Apertura " + p.id + ": nessuna finestra nuova, non la conto.")
+				// arrivata dopo il tempo massimo o con Fermati: la chiudo lo stesso
+				chiudiNuoveOtt(prima, p.exe)
+				pausaOtt(ctx, 1500*time.Millisecond)
+				break
+			}
+			if giro == 1 {
+				out[p.id] = int(d / time.Millisecond)
+				logf(fmt.Sprintf("Apertura %s: %.1f s", p.id, d.Seconds()))
+			} else {
+				logf(fmt.Sprintf("Apertura %s (la prima, non la conto): %.1f s", p.id, d.Seconds()))
+			}
 			pausaOtt(ctx, 1200*time.Millisecond)
 			pPostMessage.Call(h, 0x0010, 0, 0) // WM_CLOSE: si chiude solo la finestra aperta da Tasso
-		} else {
-			logf("Apertura " + p.id + ": nessuna finestra nuova, non la conto.")
-			// arrivata dopo il tempo massimo o con Fermati: la chiudo lo stesso
-			chiudiNuoveOtt(prima, p.exe)
+			pausaOtt(ctx, 1500*time.Millisecond)
 		}
-		pausaOtt(ctx, 1500*time.Millisecond)
 	}
 	onProg(1)
 	_ = os.Remove(pagina)

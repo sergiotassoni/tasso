@@ -206,7 +206,12 @@ func TestRegolaPortatile(t *testing.T) {
 	if e.attivo != PianoBilanciato {
 		t.Fatal("sul portatile il piano è cambiato")
 	}
+	// "Mai" a batteria (0) l'ha scelto l'utente: non si tocca (F05-19)
 	e.val[PianoBilanciato+GruppoSchermo+ImpSchermoSpento] = [2]uint32{600, 0}
+	if es := Esegui(batt, a, &Stato{}, salvaFinto(&n)); es.Stato != VoceSaltata || es.Motivo != msgSchermoMai {
+		t.Fatalf("schermo a batteria su Mai: %+v", es)
+	}
+	e.val[PianoBilanciato+GruppoSchermo+ImpSchermoSpento] = [2]uint32{600, 900}
 	if es := Esegui(batt, a, &Stato{}, salvaFinto(&n)); es.Stato != VoceFatta {
 		t.Fatalf("batteria sul portatile: %+v", es)
 	}
@@ -222,14 +227,14 @@ func TestRegolaPortatile(t *testing.T) {
 	}
 }
 
-// Senza "Prestazioni elevate" (molti PC nuovi): la modalità "Prestazioni migliori" di Windows.
+// Senza "Prestazioni elevate" (molti PC nuovi): la modalità "Prestazioni ottimali" di Windows.
 func TestPianoSenzaPrestazioni(t *testing.T) {
 	a, _, e, _ := ambienteFinto()
 	delete(e.piani, PianoPrestazioni)
 	m, _ := Trova("piano")
 	st := &Stato{}
 	n := 0
-	if es := Esegui(m, a, st, salvaFinto(&n)); es.Stato != VoceFatta || e.overlay != OverlayMigliori || e.attivo != PianoBilanciato {
+	if es := Esegui(m, a, st, salvaFinto(&n)); es.Stato != VoceFatta || es.Motivo != msgPianoOverlay || e.overlay != OverlayMigliori || e.attivo != PianoBilanciato {
 		t.Fatalf("%+v %s %s", es, e.attivo, e.overlay)
 	}
 	if es := Rimetti("piano", a, st, salvaFinto(&n)); es.Stato != VoceRimessa || e.overlay != OverlayNessuno {
@@ -389,8 +394,41 @@ func TestHAGS(t *testing.T) {
 		t.Fatalf("già accesa dal driver: %+v", es)
 	}
 	a.PC.HAGSAcceso = false
-	if es := Esegui(m, a, &Stato{}, salvaFinto(&n)); es.Stato != VoceFatta || es.Motivo != MsgFattaRiavvio {
+	st := &Stato{}
+	if es := Esegui(m, a, st, salvaFinto(&n)); es.Stato != VoceFatta || es.Motivo != MsgFattaRiavvio {
 		t.Fatalf("da accendere: %+v", es)
+	}
+	// F04-14: rimessa, ma Windows la usa solo dal prossimo riavvio: va detto
+	if es := Rimetti("hags", a, st, salvaFinto(&n)); es.Stato != VoceRimessa || es.Motivo != MsgRimessaRiavvio {
+		t.Fatalf("rimetti: %+v", es)
+	}
+}
+
+// F05-5: con un piano acceso per un po' (Modalità riunione) le impostazioni della batteria vanno nel
+// piano dell'utente; se non si sa qual è, la voce si salta e lo dice.
+func TestBatteriaNelPianoUtente(t *testing.T) {
+	a, _, e, _ := ambienteFinto()
+	a.PC.Portatile = true
+	e.attivo = PianoPrestazioni // la riunione ha messo Prestazioni elevate
+	e.val[PianoPrestazioni+GruppoSchermo+ImpSchermoSpento] = [2]uint32{600, 900}
+	a.PC.PianoUtente = PianoBilanciato
+	m, _ := Trova("batt_schermo")
+	st := &Stato{}
+	n := 0
+	if es := Esegui(m, a, st, salvaFinto(&n)); es.Stato != VoceFatta {
+		t.Fatalf("%+v", es)
+	}
+	if e.val[PianoBilanciato+GruppoSchermo+ImpSchermoSpento] != [2]uint32{600, 300} || e.val[PianoPrestazioni+GruppoSchermo+ImpSchermoSpento] != [2]uint32{600, 900} {
+		t.Fatalf("scritto nel piano sbagliato: %v", e.val)
+	}
+	// finita la riunione (piano dell'utente di nuovo acceso) si rimette nel piano giusto
+	e.attivo, a.PC.PianoUtente = PianoBilanciato, ""
+	if es := Rimetti("batt_schermo", a, st, salvaFinto(&n)); es.Stato != VoceRimessa || e.val[PianoBilanciato+GruppoSchermo+ImpSchermoSpento] != [2]uint32{600, 900} {
+		t.Fatalf("rimetti: %+v %v", es, e.val)
+	}
+	a.PC.PianoTemporaneo = true
+	if es := Esegui(m, a, &Stato{}, salvaFinto(&n)); es.Stato != VoceSaltata || es.Motivo != MsgPianoTemporaneo {
+		t.Fatalf("piano dell'utente sconosciuto: %+v", es)
 	}
 }
 

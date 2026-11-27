@@ -91,7 +91,7 @@ type Energia interface {
 	PianoAttivo() (string, error)
 	PianoEsiste(guid string) bool
 	AttivaPiano(guid string) error
-	// Overlay: la "modalità di risparmio energia" di Windows 10/11 (Bilanciato, Prestazioni migliori...).
+	// Overlay: la "modalità di risparmio energia" di Windows 10/11 (Bilanciato, Prestazioni ottimali...).
 	Overlay() (string, error)
 	ImpostaOverlay(guid string) error
 	// Modalità di risparmio energia scelta dall'utente quando il PC è attaccato alla corrente
@@ -182,6 +182,13 @@ type PC struct {
 	HAGS          bool     // la scheda video e il driver permettono la pianificazione GPU hardware
 	HAGSAcceso    bool     // la pianificazione GPU hardware è già accesa (anche di base, dal driver)
 	Giochi        []string // programmi dei giochi trovati da Tasso (percorsi completi .exe)
+
+	// PianoUtente: il piano energetico dell'utente quando ne è acceso uno per un po' (Modalità
+	// riunione, una modalità di Tasso): le impostazioni della batteria vanno lì, così valgono anche
+	// dopo. "" = quello acceso è il suo. PianoTemporaneo: ne è acceso uno per un po' e non si sa qual
+	// è quello dell'utente: le impostazioni della batteria si saltano (MsgPianoTemporaneo).
+	PianoUtente     string
+	PianoTemporaneo bool
 }
 
 // Pulitore: la pulizia di Tasso (passaggi di "Pulisci"), per i file inutili dell'Ufficio. Non si
