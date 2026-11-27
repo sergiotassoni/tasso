@@ -72,16 +72,16 @@ func eseguiProvaFile() {
 		// diagnosi: metto nel file aggiunto i testi ufficiali di un'altra lingua del gioco al
 		// posto dell'inglese. Se il gioco (in inglese) li mostra, il file aggiunto viene caricato
 		nota("copia lingua " + lin + " al posto dell'inglese: " + copiaLinguaComeInglese(provaFileCartella, lin))
-	} else if _, ok := leggiManifesto(dirApp, chiaveGioco(provaFileCartella)); !ok {
+	} else if _, ok := leggiManifesto(baseCopie(), chiaveGioco(provaFileCartella)); !ok {
 		t0 := time.Now()
 		applicaModGioco(provaFileNome, provaFileCartella)
-		_, ok := leggiManifesto(dirApp, chiaveGioco(provaFileCartella))
+		_, ok := leggiManifesto(baseCopie(), chiaveGioco(provaFileCartella))
 		nota(fmt.Sprintf("installazione: %v in %.1f s", ok, time.Since(t0).Seconds()))
 		if !ok {
 			return
 		}
 	}
-	m, _ := leggiManifesto(dirApp, chiaveGioco(provaFileCartella))
+	m, _ := leggiManifesto(baseCopie(), chiaveGioco(provaFileCartella))
 	nota("aggiunti: " + strings.Join(m.Aggiunti, ", ") + " | sostituiti: " + strings.Join(m.Sostituiti, ", "))
 	// i giochi Steam si aprono da Steam: lanciando l'exe Steam chiede conferma con una finestra
 	// "parametri personalizzati" che aspetta un clic (visto con PC Cafe Simulator, 24/11)
@@ -184,11 +184,11 @@ func copiaLinguaComeInglese(cartella, lin string) string {
 	rel, _ := filepath.Rel(cartella, filepath.Join(paks, "~mods", nomeModUnreal))
 	m.Aggiunti = []string{rel}
 	m.CreataMods = !esisteVoce(filepath.Join(paks, "~mods"))
-	if err := scriviManifesto(dirApp, chiaveGioco(cartella), m); err != nil {
+	if err := scriviManifesto(baseCopie(), chiaveGioco(cartella), m); err != nil {
 		return err.Error()
 	}
 	if _, _, err := ScriviModUnreal(cartella, paks, tenuti); err != nil {
-		_ = TogliModGioco(dirApp, chiaveGioco(cartella))
+		_ = TogliModGioco(baseCopie(), chiaveGioco(cartella))
 		return err.Error()
 	}
 	var nomi []string

@@ -277,7 +277,7 @@ func scriviBoostSicuro(path string, b []byte) error {
 // Un file rovinato lo tengo da parte (boost.json.rotto) invece di ripartire da zero in silenzio.
 func leggiBoostGrezzo(path string) *boostState {
 	for i, p := range []string{path, path + ".bak"} {
-		b, err := os.ReadFile(p)
+		b, err := leggiFileApp(p)
 		if err != nil {
 			continue
 		}

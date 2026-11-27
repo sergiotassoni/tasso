@@ -94,7 +94,7 @@ func guardPath() string { return filepath.Join(appDir, "portachiavi.tentativi") 
 
 func loadGuard() vaultGuard {
 	var g vaultGuard
-	if b, err := os.ReadFile(guardPath()); err == nil {
+	if b, err := leggiFileApp(guardPath()); err == nil {
 		if raw, err := unprotect(b); err == nil {
 			_ = json.Unmarshal(raw, &g)
 		}
@@ -204,7 +204,7 @@ func vaultWrite(items []vaultEntry, salt, key []byte) error {
 }
 
 func vaultRead(pin string) ([]vaultEntry, []byte, []byte, error) {
-	enc, err := os.ReadFile(vaultPath())
+	enc, err := leggiFileApp(vaultPath())
 	if err != nil {
 		return nil, nil, nil, errors.New("Portachiavi non trovato.")
 	}

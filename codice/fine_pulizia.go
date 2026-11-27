@@ -253,7 +253,7 @@ func avvioWindows() int64 {
 // leggiBentornato: il riepilogo da mostrare una volta sola (poi il file si cancella); nil se non
 // c'è o se il PC non è stato riavviato/spento dopo la pulizia.
 func leggiBentornato() map[string]interface{} {
-	b, err := os.ReadFile(bentornatoFile())
+	b, err := leggiFileApp(bentornatoFile())
 	if err != nil {
 		return nil
 	}

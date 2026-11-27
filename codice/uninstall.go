@@ -17,6 +17,7 @@ package main
 import (
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -330,10 +331,18 @@ func salvaCopieDiSicurezza() {
 	}
 	// copie dei giochi: tutto quello che resta (plugin messi da parte, originali di giochi che non
 	// ho potuto sistemare perché disinstallati o su un disco staccato, elenchi illeggibili)
-	copie := filepath.Join(traduce.CartellaDati(), "copie-giochi")
-	voci, _ := os.ReadDir(copie)
-	for _, v := range voci {
-		sposta(filepath.Join(copie, v.Name()), filepath.Join(dest, "giochi", v.Name()))
+	// (dalla 3.2 in Programmi\Tasso\lavoro; guardo anche il posto vecchio in AppData)
+	for _, copie := range []string{traduce.CartellaCopie(), traduce.CartellaCopieVecchia()} {
+		if copie == "" {
+			continue
+		}
+		voci, _ := os.ReadDir(copie)
+		for _, v := range voci {
+			if !v.IsDir() || v.Type()&(fs.ModeSymlink|fs.ModeIrregular) != 0 {
+				continue // il segno dello spostamento, link e giunzioni: non li porto via
+			}
+			sposta(filepath.Join(copie, v.Name()), filepath.Join(dest, "giochi", v.Name()))
+		}
 	}
 }
 

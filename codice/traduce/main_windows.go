@@ -91,7 +91,7 @@ func fileImp() string { return filepath.Join(dirApp, "impostazioni.json") }
 
 func caricaImp() {
 	imp.Glossario = glossarioBase()
-	if b, err := os.ReadFile(fileImp()); err == nil {
+	if b, err := leggiSenzaLink(dirApp, "impostazioni.json"); err == nil {
 		_ = json.Unmarshal(b, &imp)
 	}
 	if imp.Glossario.Termini == nil {

@@ -224,6 +224,7 @@ func main() {
 	// in sottofondo e non legge lo schermo finché non accendi la traduzione.
 	traduce.Ospite.ApriComeUtente = openUser
 	traduce.Ospite.CartellaScript = scriptDir
+	traduce.Ospite.CartellaProtetta = cartellaLavoroProtetta   // runner.go: "" se uso il ripiego in AppData
 	traduce.Ospite.CartellaTasso = cartellaTasso               // ecosistema.go
 	traduce.Ospite.GiocoDiTasso = func(percorso string) bool { // extras.go: libreria di Tasso e cartelle dei giochi
 		p := strings.ToLower(percorso)

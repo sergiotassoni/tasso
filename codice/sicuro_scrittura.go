@@ -14,6 +14,7 @@ package main
 
 import (
 	"errors"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -119,4 +120,36 @@ func apriLogApp(p string, flag int) (*os.File, error) {
 		}
 	}
 	return os.OpenFile(p, flag, 0o644)
+}
+
+// leggiFileApp: come os.ReadFile, ma non segue collegamenti né giunzioni. Tasso gira come
+// amministratore e questi file (boost.json, settings.json...) stanno nella cartella dell'utente:
+// un collegamento farebbe leggere a Tasso un file qualsiasi del PC come se fosse suo.
+// Controllo il percorso da appDir in giù, il file stesso (deve essere un file normale) e, dopo
+// averlo aperto, che il file aperto sia proprio quello controllato (os.SameFile), così anche un
+// cambio fatto tra il controllo e l'apertura si vede.
+func leggiFileApp(p string) ([]byte, error) {
+	if err := controllaPercorsoApp(filepath.Dir(p)); err != nil {
+		return nil, err
+	}
+	fi, err := os.Lstat(p)
+	if err != nil {
+		return nil, err
+	}
+	if !fi.Mode().IsRegular() {
+		return nil, errPercorsoLink
+	}
+	f, err := os.Open(p)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+	fi2, err := f.Stat()
+	if err != nil {
+		return nil, err
+	}
+	if !os.SameFile(fi, fi2) {
+		return nil, errPercorsoLink
+	}
+	return io.ReadAll(f)
 }

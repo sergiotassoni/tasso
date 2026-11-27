@@ -10,7 +10,6 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
-	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -105,7 +104,7 @@ func statsStep(n string) string {
 
 // statsErrors: quanti errori fermati (o chiusure) ci sono in crash.txt.
 func statsErrors() int {
-	b, err := os.ReadFile(filepath.Join(appDir, "logs", "crash.txt"))
+	b, err := leggiFileApp(filepath.Join(appDir, "logs", "crash.txt"))
 	if err != nil {
 		return 0
 	}

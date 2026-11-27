@@ -113,7 +113,7 @@ func cartellaCopie(dirApp, chiave string) string {
 
 func leggiManifesto(dirApp, chiave string) (ManifestoMod, bool) {
 	var m ManifestoMod
-	b, err := os.ReadFile(filepath.Join(cartellaCopie(dirApp, chiave), "manifesto.json"))
+	b, err := leggiSenzaLink(dirApp, filepath.Join("copie-giochi", chiave, "manifesto.json"))
 	if err != nil || json.Unmarshal(b, &m) != nil {
 		return m, false
 	}
@@ -362,14 +362,14 @@ func InstallaModGioco(dirApp, nome, cartella, chiave string, zips []string, da, 
 // TogliModGioco: "Ferma traduzione". Tolgo solo quello che ho aggiunto io e rimetto gli originali.
 // Le traduzioni fatte nel gioco le tengo da parte per la prossima volta.
 func TogliModGioco(dirApp, chiave string) error {
+	if !copieSenzaLink(dirApp, chiave, "") {
+		return errors.New("la cartella delle copie di sicurezza porta altrove (link o giunzione): per sicurezza non tocco niente")
+	}
 	m, ok := leggiManifesto(dirApp, chiave)
 	if !ok {
 		return nil
 	}
 	copie := cartellaCopie(dirApp, chiave)
-	if !copieSenzaLink(dirApp, chiave, "") {
-		return errors.New("la cartella delle copie di sicurezza porta altrove (link o giunzione): per sicurezza non tocco niente")
-	}
 	if m.Tipo == "unreal" {
 		if err := togliModUnreal(m); err != nil {
 			return err

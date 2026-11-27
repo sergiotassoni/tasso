@@ -65,6 +65,16 @@ func scriptDir() string {
 	return scriptDirPath
 }
 
+// cartellaLavoroProtetta: Programmi\Tasso\lavoro se scriptDir l'ha potuta usare, "" se è nel
+// ripiego in AppData (dove un programma dell'utente può scrivere).
+func cartellaLavoroProtetta() string {
+	d := scriptDir()
+	if appDir != "" && filepath.Clean(d) == filepath.Clean(filepath.Join(appDir, "scripts")) {
+		return ""
+	}
+	return d
+}
+
 // pulisciScriptVecchi: se Tasso è stato chiuso mentre uno script girava (o Windows non ha lasciato
 // cancellare il file subito), il .ps1 resta in lavoro. Tolgo i nostri più vecchi di un giorno:
 // tasso_*.ps1 (passaggi), tt_*.ps1 e tt_ocr_*.ps1 (traduzione: lettura del testo, scheda video).

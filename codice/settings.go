@@ -285,11 +285,11 @@ var (
 func settingsPath() string { return filepath.Join(appDir, "settings.json") }
 
 func loadSettings() {
-	b, err := os.ReadFile(settingsPath())
+	b, err := leggiFileApp(settingsPath())
 	for i := 0; i < 5 && err != nil && !os.IsNotExist(err); i++ {
 		// File occupato un attimo (antivirus, backup): riprovo invece di ripartire da zero.
 		time.Sleep(400 * time.Millisecond)
-		b, err = os.ReadFile(settingsPath())
+		b, err = leggiFileApp(settingsPath())
 	}
 	if err != nil && !os.IsNotExist(err) {
 		settingsReadOnly = true // non lo sovrascrivo: dentro ci sono le impostazioni originali di Windows
@@ -345,7 +345,7 @@ func fixSettingsDefaults() {
 func saveSettings() bool {
 	if settingsReadOnly {
 		// All'avvio il file non si leggeva: prima di scriverci sopra ne salvo una copia.
-		old, err := os.ReadFile(settingsPath())
+		old, err := leggiFileApp(settingsPath())
 		if err != nil && !os.IsNotExist(err) {
 			return false
 		}

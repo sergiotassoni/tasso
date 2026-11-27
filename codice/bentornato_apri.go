@@ -5,7 +5,6 @@ package main
 
 import (
 	"encoding/json"
-	"os"
 	"time"
 	"unsafe"
 )
@@ -20,7 +19,7 @@ var (
 // bentornatoPronto: c'è un Bentornato da mostrare a questo avvio. Guarda soltanto, non lo consuma
 // (lo legge e lo cancella la pagina, con goBentornato: resta "una volta sola").
 func bentornatoPronto() bool {
-	b, err := os.ReadFile(bentornatoFile())
+	b, err := leggiFileApp(bentornatoFile())
 	if err != nil {
 		return false
 	}
