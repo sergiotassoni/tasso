@@ -120,7 +120,7 @@ def cover(c, doc):
     c.drawCentredString(W / 2, H / 2 - 57 * mm, 'Pulisce, ripara e spinge il tuo PC. In un clic.')
     c.setFont('Pop', 9)
     c.setFillColor(colors.HexColor('#8B91A7'))
-    c.drawCentredString(W / 2, 18 * mm, 'Versione 3.0  ·  Windows 10 e 11  ·  2026')
+    c.drawCentredString(W / 2, 18 * mm, 'Versione 3.1  ·  Windows 10 e 11  ·  2026')
     c.restoreState()
 
 
@@ -140,7 +140,7 @@ def page(c, doc):
 
 
 doc = BaseDocTemplate(OUT, pagesize=A4, leftMargin=M, rightMargin=M, topMargin=18 * mm, bottomMargin=17 * mm,
-                      title="Tasso - Manuale d'uso", author='Tasso', subject='Manuale di Tasso 2.6')
+                      title="Tasso - Manuale d'uso", author='Tasso', subject='Manuale di Tasso 3.1')
 frame = Frame(M, 17 * mm, W - 2 * M, H - 35 * mm, id='f', leftPadding=0, rightPadding=0, topPadding=0, bottomPadding=0)
 doc.addPageTemplates([PageTemplate(id='cover', frames=[frame], onPage=cover), PageTemplate(id='body', frames=[frame], onPage=page)])
 
@@ -150,77 +150,186 @@ S += [NextPageTemplate('body'), PageBreak()]
 # Indice
 S += [P('Indice', 'h1'), Spacer(1, 4)]
 toc = [
-    ('1', 'Primi passi', 'aprire Tasso, Gaming o Ufficio, l\'avviso di Windows'),
-    ('2', 'La Home', 'il voto del PC, il pulsante PULISCI, i sensori'),
-    ('3', 'Le 5 pulizie', 'Classica, Normale, Media, Profonda, Eccezionale'),
-    ('4', 'Velocità', 'modalità, Turbo, programmi all\'avvio'),
-    ('5', 'Programmi', 'disinstallare per bene, app preinstallate'),
-    ('6', 'File', 'doppi, grandi, cartelle vuote, distruggi e recupera'),
-    ('7', 'Risolvi problemi', 'i 100 problemi dell\'ufficio, i giochi e Windows'),
-    ('8', 'Internet, disco e giochi', 'ping, velocità di Internet, disco, giochi'),
-    ('9', 'Hardware', 'componenti, sensori, BIOS, scheda video'),
-    ('10', 'Impostazioni', 'temi, avvio con Windows, avvisi'),
-    ('11', 'Spegnere Tasso e rimettere com\'era', 'l\'interruttore e il ripristino'),
-    ('12', 'Sicurezza e backup', 'come tornare indietro se serve'),
-    ('13', 'Domande frequenti', 'antivirus, chiavetta, mandarlo a un amico'),
+    ('1', 'Primi passi', 'aprire Tasso, Gaming o Ufficio, il menu'),
+    ('2', 'La Home', 'il pulsante grande, lo stato del PC'),
+    ('3', 'Giochi', 'la libreria, la pagina del gioco, Prepara il gioco, il Boost'),
+    ('4', 'Tasso Traduce', 'i giochi in inglese tradotti sullo schermo'),
+    ('5', 'Le 5 pulizie', 'Classica, Normale, Media, Profonda, Eccezionale'),
+    ('6', 'Avvio del PC', 'modalità e programmi all\'avvio'),
+    ('7', 'Programmi', 'disinstallare per bene, app preinstallate'),
+    ('8', 'File', 'doppi, grandi, cartelle vuote, distruggi e recupera'),
+    ('9', 'Risolvi un problema', 'Windows, i 27 problemi dei giochi, l\'ufficio, i driver'),
+    ('10', 'Altri strumenti', 'salute, internet, disco, portachiavi'),
+    ('11', 'Hardware', 'componenti, sensori, BIOS, scheda video'),
+    ('12', 'Impostazioni', 'temi, aggiornamenti, Togli Tasso'),
+    ('13', 'Spegnere Tasso e rimettere com\'era', 'l\'interruttore e il ripristino'),
+    ('14', 'Sicurezza e backup', 'come tornare indietro se serve'),
+    ('15', 'Domande frequenti', 'antivirus, chiavetta, ban, mandarlo a un amico'),
 ]
 rows = [[Paragraph('<font name="PopB" color="#0FA46E">%s</font>' % n, st['toc']), Paragraph('<b>%s</b>' % t, st['toc']), Paragraph(d, st['small'])] for n, t, d in toc]
 tt = Table(rows, colWidths=[12 * mm, 62 * mm, W - 2 * M - 74 * mm])
 tt.setStyle(TableStyle([('LINEBELOW', (0, 0), (-1, -1), 0.5, LINE), ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'), ('TOPPADDING', (0, 0), (-1, -1), 4), ('BOTTOMPADDING', (0, 0), (-1, -1), 4)]))
 S += [tt, Spacer(1, 10)]
 S += [box('In breve', ['Tasso è un programma gratuito che tiene il PC pulito, veloce e in ordine. Usa gli strumenti ufficiali di Microsoft, prima delle pulizie importanti fa un <b>backup automatico</b>, e non cancella mai i tuoi file personali senza chiedertelo: quello che scegli di eliminare va nel <b>Cestino</b>.'], GREEN, GREEN_BG)]
+S += [box('Novità della 3.1', bullets([
+    '<b>Menu nuovo</b>, più semplice: Home, Giochi, Pulisci e ripara, Impostazioni. In alto scegli Gaming o Ufficio.',
+    '<b>Tasso Traduce</b>: i giochi in inglese tradotti in italiano sullo schermo, con F7 (capitolo 4).',
+    '<b>Pagina Giochi</b> nuova, con la pagina di ogni gioco e <b>Prepara il gioco</b>. Il <b>Boost</b> misura gli FPS veri e con "Rimetti com\'era" torna tutto come prima (capitolo 3). Al posto di Turbo, Profilo gioco e Ottimizza prima di giocare ora c\'è il Boost.',
+    '<b>Frequenza dello schermo</b> e <b>driver della scheda video</b> dentro Tasso, sempre con la strada per tornare indietro.',
+    '<b>14 problemi dei giochi in più</b> (27 in tutto) e, per l\'Ufficio, <b>Pronto per la videochiamata?</b>, <b>Modalità riunione</b>, <b>Chi ha usato webcam e microfono</b>, <b>Blocca il PC quando ti alzi</b> (capitolo 9).',
+    '<b>Aggiorna Tasso da solo</b> (mai con un gioco aperto) e <b>Togli Tasso dal PC</b>, in Impostazioni (capitolo 12).']), VIOLET, VIOLET_BG)]
 
 # 1 Primi passi
 S += chapter(1, 'Primi passi', 'per iniziare')
 S += [P('<b>Cosa serve</b>', 'h2')]
 S += bullets(['Un PC con <b>Windows 10 o Windows 11</b> a 64 bit.',
               '<b>Microsoft Edge WebView2</b>: è già dentro Windows 11 e quasi tutti i Windows 10. Se manca, Tasso apre da solo la pagina ufficiale Microsoft per installarlo gratis.',
-              'I permessi di <b>amministratore</b> del PC (quelli che hai di solito sul tuo computer di casa).'])
+              'I permessi di <b>amministratore</b> del PC (quelli che hai di solito sul tuo computer di casa). Se non sei amministratore, Windows ti chiede la password di un amministratore.'])
 S += [P('<b>Come si apre</b>', 'h2')]
 S += steps(['Scarica <b>Tasso.zip</b> da github.com/sergiotassoni/tasso, fai tasto destro sul file e scegli <b>Estrai tutto</b>.',
             'Apri la cartella <b>Tasso</b> e fai doppio clic su <b>Tasso.exe</b>.',
             'Windows chiede "Vuoi consentire a questa app di apportare modifiche?": rispondi <b>Sì</b>. Serve per pulire e riparare il sistema.',
             'Se compare la schermata blu <b>"PC protetto da Windows"</b>, clicca <b>Ulteriori informazioni</b> e poi <b>Esegui comunque</b> (vedi il riquadro qui sotto).'])
+S += [P('Tasso funziona anche da una chiavetta USB, senza installarlo. Solo se accendi la pulizia programmata o "Avvia con Windows", Tasso mette una sua copia in Programmi\\Tasso, perché Windows possa avviarla da solo.', 'small')]
 S += [box('Perché Windows dice "PC protetto"?', ['Tasso ha la <b>firma digitale</b> (la vedi in Proprietà &gt; Firme digitali), ma Windows mostra questo avviso per i programmi che non sono ancora stati scaricati da abbastanza persone. Non significa che Tasso sia un virus: Windows semplicemente non lo conosce ancora. Più persone lo usano, meno spesso compare.'], AMBER, AMBER_BG)]
 S += [P('<b>La prima configurazione</b>', 'h2'),
       P('La prima volta Tasso ti chiede <b>come userai il PC</b>. Tocca la scheda giusta (Tasso ti fa vedere subito come sarà) e poi <b>Continua</b>:')]
 S += [table([['Modalità', 'Com\'è Tasso e cosa imposta'],
-             ['<b>Gaming</b>', 'Tutto Tasso: giochi, FPS, ping ai server, Turbo, Prestazioni+, temi scuri e colorati. Mette la modalità Gaming del PC.'],
-             ['<b>Ufficio</b>', 'Più semplice e tranquillo: colori chiari e morbidi, un tasso più carino, niente giochi, FPS e ping. In Risolvi problemi trovi subito i <b>100 problemi più comuni dell\'ufficio</b>. Mette la modalità Normale e la pulizia programmata ogni settimana.']],
+             ['<b>Gaming</b>', 'Per chi gioca: giochi, Boost, FPS, ping ai server, Tasso Traduce, temi scuri e colorati. Mette la modalità Gaming del PC.'],
+             ['<b>Ufficio</b>', 'Più semplice e tranquillo: colori chiari e morbidi, un tasso più carino, niente giochi, FPS e ping. In Risolvi un problema trovi subito i <b>problemi più comuni dell\'ufficio</b>. Mette la modalità Normale e la pulizia programmata ogni settimana.']],
             [32 * mm, W - 2 * M - 32 * mm])]
-S += [P('Puoi cambiare modalità quando vuoi con il pulsante <b>Gaming / Ufficio</b> in alto a sinistra, sotto il logo (o da <b>Impostazioni</b>). Il pulsante cambia solo come appare Tasso, non tocca il PC. Ogni modalità ricorda il suo tema.', 'small')]
+S += [P('Puoi cambiare quando vuoi con il pulsante <b>Gaming / Ufficio</b> in alto a sinistra, sotto la scritta TASSO (o da <b>Impostazioni</b>). Il pulsante cambia solo come appare Tasso, non tocca il PC. Ogni modalità ricorda il suo tema.', 'small')]
+S += [P('<b>Il menu</b>', 'h2')]
+S += [table([['Voce', 'Cosa trovi'],
+             ['<b>Home</b>', 'Il pulsante grande e lo stato del PC (capitolo 2).'],
+             ['<b>Giochi</b>', 'Solo in Gaming. I tuoi giochi, il Boost e la traduzione (capitoli 3 e 4). Sotto ci sono <b>I miei giochi</b>, <b>Cronologia</b>, <b>Impostazioni giochi</b> e i giochi giocati di recente.'],
+             ['<b>Pulisci e ripara</b>', 'Pulisci, Salute e problemi, Risolvi un problema, Avvio del PC, Programmi, Internet, Hardware, File, Mappa del disco, Portachiavi (e Prestazioni+ in Gaming).'],
+             ['<b>Impostazioni</b>', '<b>Impostazioni di Tasso</b> (capitolo 12) e <b>Info e indice</b>: l\'elenco di tutto quello che Tasso sa fare, le novità e le licenze.']],
+            [36 * mm, W - 2 * M - 36 * mm])]
+S += [P('In Gaming il menu tiene solo le cose per giocare. Per vedere anche Prestazioni+ e le pulizie una per una accendi <b>Mostra tutte le funzioni</b> in Impostazioni.', 'small')]
 
 # 2 Home
 S += chapter(2, 'La Home', 'colpo d\'occhio')
-S += bullets(['<b>Il voto del PC</b> (da 0 a 100%): tiene conto dei file inutili, dello spazio libero, dei programmi all\'avvio, dello stato dei dischi e di quanto tempo è passato dall\'ultima pulizia.',
-              '<b>Salute del PC</b>: il voto da 0 a 100 con i consigli per migliorarlo (vedi il capitolo 8).',
-              '<b>Il pulsante rotondo PULISCI</b>: avvia la pulizia consigliata (la Media). Prima ti mostra cosa farà e ti chiede conferma.',
-              '<b>Scegli la potenza</b>: le cinque schede per scegliere la pulizia che vuoi (vedi il capitolo 3).',
-              '<b>Pulizia programmata</b>: sotto le pulizie. Scegli il giorno, l\'ora, il livello (Classica, Normale o Media; se vuoi anche Profonda o Eccezionale, che durano di più) e se ogni settimana o ogni 2 settimane. Se a quell\'ora il PC è spento, Tasso pulisce appena lo riaccendi. Nella pulizia programmata Tasso è più prudente: dal Cestino toglie solo quello buttato da più di 7 giorni, e i lavori lunghi li salta se il portatile va a batteria.',
-              '<b>I sensori</b> in basso: quanto lavora il processore, la RAM usata, quanto è pieno il disco e, con le schede NVIDIA, la temperatura della scheda video.',
-              '<b>La modalità attiva</b> è scritta in alto a destra (Normale, Gaming, FPS, Film, Silenzioso).'])
+S += [P('<b>In Gaming</b>', 'h2')]
+S += bullets(['<b>BOOST</b>: un tasto prima di giocare. Tasso chiude i programmi in background che non servono e prepara il PC. Quando hai finito, premi <b>Rimetti com\'era</b> nella pagina Giochi (capitolo 3).',
+              '<b>Pulisci</b>: avvia la pulizia consigliata.',
+              'Quattro numeri con il loro collegamento: <b>Salute del PC</b>, <b>Da liberare</b> (file inutili), <b>Spazio libero</b> e <b>Programmi all\'avvio</b>.',
+              'Sotto, le scorciatoie per <b>Salute e problemi</b>, <b>Pulisci</b>, <b>Risolvi un problema</b> e <b>Giochi</b>.'])
+S += [P('<b>In Ufficio</b>', 'h2')]
+S += bullets(['<b>Il pulsante rotondo PULISCI</b>: avvia la pulizia consigliata (la Media). Prima ti mostra cosa farà e ti chiede conferma.',
+              '<b>Stato del PC</b>: Tasso guarda quanti file inutili ci sono e come stanno i dischi.',
+              'Le scorciatoie per <b>Salute e problemi</b> e <b>Risolvi un problema</b>.',
+              '<b>Mostra dettagli</b>: il voto della salute del PC (da 0 a 100, con i consigli), i file da liberare, lo spazio libero, i programmi all\'avvio e i sensori.'])
+S += [P('In alto è scritta la <b>modalità attiva</b> del PC (Normale, Gaming, FPS, Film, Silenzioso). Quando esce una versione nuova di Tasso, in Home compare un avviso.', 'p')]
 
-# 3 Pulizie
-S += chapter(3, 'Le 5 pulizie', 'il cuore di Tasso')
+# 3 Giochi
+S += chapter(3, 'Giochi', 'solo in Gaming')
+S += [P('La pagina <b>Giochi</b> tiene in un posto solo i tuoi giochi, il Boost e la traduzione. In cima c\'è il <b>Boost</b>; sotto ci sono tre schede: <b>I miei giochi</b>, <b>Cronologia</b> (le traduzioni, capitolo 4) e <b>Impostazioni</b>.')]
+S += [P('<b>La tua libreria</b>', 'h2'),
+      P('Tutti i tuoi giochi in un posto solo, con le copertine: Steam, Epic, GOG, EA, Ubisoft, Battle.net, Xbox, Riot e anche quelli installati a mano. Se un gioco manca, premi <b>Aggiungi un gioco</b>. Le copertine che mancano Tasso le cerca nel negozio di Steam, mandando solo il nome o il numero Steam del gioco (mai per quelli aggiunti a mano).')]
+S += [P('<b>La pagina di ogni gioco</b>', 'h2'),
+      P('Tocca un gioco e si apre la sua pagina:')]
+S += bullets(['<b>GIOCA</b>: apre il gioco dal suo negozio, con le impostazioni che Tasso si ricorda per quel gioco.',
+              '<b>PREPARA A PASSI</b>: la procedura <b>Prepara il gioco</b> (qui sotto).',
+              '<b>Potenza quando apri il gioco</b>: Normale, Alta o Massima. Tasso la mette da sola quando apri quel gioco e la toglie quando lo chiudi.',
+              '<b>Traduci</b> o <b>Togli la traduzione</b> per quel gioco.',
+              '<b>Strumenti per questo gioco</b>: traduzione dello schermo, chat degli altri, cronologia, impostazioni consigliate, Misura gli FPS, Controllo FPS, pannellino in gioco, autoclick, "Non parte o mancano file", "Va a scatti", gli altri problemi dei giochi, la cartella del gioco e "Nascondi o disinstalla" (con il programma ufficiale del negozio, che chiede conferma).'])
+S += [P('<b>Prepara il gioco</b>', 'h2'),
+      P('Una procedura a passi che regola il gioco e la traduzione, una cosa alla volta. Premi <b>Avanti</b> a ogni passo:')]
+S += steps(['<b>Scegli il gioco</b> e premi <b>Sì, conferma</b>.',
+            '<b>In che lingua è il gioco?</b> Se non lo sai, premi <b>Riconosci da solo</b>. Se il gioco ha già l\'italiano ufficiale, Tasso te lo dice: sceglilo nelle opzioni del gioco.',
+            '<b>In che lingua lo vuoi e come lo traduco?</b> <b>Sullo schermo</b> (legge lo schermo, non tocca nessun file: la scelta sicura) oppure <b>Dentro il gioco</b> (solo per alcuni giochi, con copia di sicurezza). Qui scegli anche l\'IA (capitolo 4).',
+            '<b>Quanta potenza?</b> Normale, Potenza alta (va bene per tutti i giochi) o Massima potenza (in più il mouse senza accelerazione, per gli sparatutto).',
+            '<b>Impostazioni consigliate</b>: calcolate per il gioco e per il tuo PC. Tasso applica solo quelle sicure, e si tolgono quando vuoi. Puoi anche saltarle.',
+            'Premi <b>Applica</b>: Tasso fa tutto da solo.'])
+S += [P('<b>Il Boost</b>', 'h2'),
+      P('Il Boost prepara il PC per giocare con un tasto. Dice sempre cosa fa davvero:')]
+S += bullets(['Mette la potenza al massimo (non se il portatile va a batteria).',
+              'Chiude con gentilezza i programmi di sincronizzazione e chat aperti in sottofondo senza finestra (OneDrive, Dropbox, Google Drive, iCloud, Teams, Zoom, Skype) e li riapre a fine partita. Non chiude mai Discord, OBS e i programmi per lo stream, Spotify, Steam e gli altri launcher, i browser, e niente che abbia una finestra aperta. In <b>Cosa chiude il Boost</b> puoi dirgli di non chiudere mai anche altri programmi.',
+              'Accende le regolazioni di Windows utili per giocare. Restano accese finché premi <b>Rimetti com\'era</b>.',
+              'Onestamente: le regolazioni di Windows di solito danno da 0 al 10% di FPS in più; aiutano soprattutto sui PC con tanti programmi aperti e sui portatili.'])
+S += [table([['Pulsante', 'Cosa fa'],
+             ['<b>BOOST</b>', 'Scegli il gioco e confermi: Tasso lo prepara con la potenza giusta. Da lì in poi lo fa da solo ogni volta che apri quel gioco.'],
+             ['<b>Boost subito</b>', 'Il Boost senza scegliere il gioco.'],
+             ['<b>Rimetti com\'era</b>', 'Torna tutto come prima del Boost e si riaprono i programmi chiusi.'],
+             ['<b>Misura gli FPS</b>', 'Gioca 30 secondi: Tasso ti dice gli FPS veri e i cali. Li legge da Windows (con PresentMon, il programma gratuito di Intel), senza entrare nel gioco. Misura senza e con il Boost per vedere la differenza vera.'],
+             ['<b>Controllo FPS</b>', 'Controlla schermo, scheda video, RAM, temperature e driver. Sistema da solo quello che può e ti dice il resto, un passo alla volta.'],
+             ['<b>Boost automatico</b>', 'Quando apri un gioco Tasso fa il Boost da solo; a fine partita riapre i programmi chiusi e rimette mouse e modalità.']],
+            [38 * mm, W - 2 * M - 38 * mm])]
+S += [box('La frequenza dello schermo (Hz)', ['Se il Controllo FPS vede che lo schermo va più piano di quello che può (per esempio 60 Hz su uno schermo da 144), te lo propone. Tasso usa <b>solo le frequenze che il monitor dichiara</b> (fino a 1000 Hz). Dopo il cambio ti chiede <b>"Lo schermo si vede bene?"</b>: se non premi <b>Tengo</b> entro 15 secondi, torna com\'era da solo. Così, se lo schermo diventa nero, basta aspettare.'], GREEN, GREEN_BG)]
+S += [box('Il driver della scheda video', ['Dal Controllo FPS, o da <b>Risolvi un problema &gt; Driver di tutto il PC</b> con il pulsante <b>Aggiorna con Tasso</b>, Tasso aggiorna il driver della scheda video:',
+                                          '<b>NVIDIA</b>: lo scarica solo dal sito di NVIDIA e controlla che sia firmato da NVIDIA prima di installarlo.',
+                                          '<b>AMD</b>: lo prende da Windows Update (il driver AMD certificato da Microsoft). Se hai AMD Software, Tasso ti dice di aggiornarlo da lì.',
+                                          'Prima crea sempre un <b>punto di ripristino</b>. Se il driver nuovo ti dà problemi, premi <b>Torna al driver di prima</b> (o usa il punto di ripristino).'], BLUE, colors.HexColor('#EAF1FD'))]
+S += [P('<b>Gli altri strumenti per giocare</b>', 'h2')]
+S += bullets(['<b>Regolazioni una per una</b> (Impostazioni giochi): i comandi gaming che il Boost accende già. Qui li accendi o spegni uno per uno: ognuno ti spiega cosa fa e se ci sono rischi. Spenti tornano come prima di Tasso.',
+              '<b>Pannellino in gioco</b>: una scritta piccola e trasparente in un angolo dello schermo. Scegli tu cosa mostrare (processore, scheda video, temperature, RAM, ora) e in quale dei 4 angoli. Non si può cliccare. Si vede nei giochi in finestra o "schermo intero senza bordi". <b>Ctrl + Maiusc + F12</b> lo mostra o lo nasconde; con <b>Mostralo da solo quando gioco</b> (serve il Boost automatico) appare quando apri un gioco.',
+              '<b>Autoclick</b>: clicca da solo al posto tuo, ogni tot millisecondi, secondi o minuti, con il tasto che vuoi, dove si trova il mouse o in un punto fisso. <b>F6</b> lo avvia e lo ferma anche nel gioco; <b>Esc</b> lo ferma sempre.',
+              '<b>Ping ai server dei giochi</b> (in Internet): ritardo, stabilità e pacchetti persi verso i server veri di Riot, Valve e Amazon.'])
+S += [box('Autoclick e giochi online', ['Nei giochi online con anti-cheat (League of Legends, Valorant, Fortnite, CS2 e altri) l\'autoclick è contro le regole e può portare al ban dell\'account. Usalo nei giochi per un giocatore, nei giochi "clicker" o dove è permesso.'], AMBER, AMBER_BG)]
+
+# 4 Tasso Traduce
+S += chapter(4, 'Tasso Traduce', 'i giochi in italiano')
+S += [P('Tasso Traduce mette in italiano i giochi in inglese, <b>sullo schermo</b>. Premi <b>F7</b> nel gioco: le scritte inglesi vengono coperte dalla traduzione, nello stesso posto, con la stessa grandezza e lo stesso colore del gioco. Funziona sul tuo PC, senza abbonamento.')]
+S += [P('<b>Per iniziare</b>', 'h2')]
+S += steps(['Vai in <b>Giochi &gt; Impostazioni</b> e scarica il <b>Traduttore veloce</b> (circa 35 MB, una volta sola). Da lì traduce sul tuo PC, senza internet.',
+            'Apri il gioco con <b>GIOCA</b>, oppure prepara il gioco con <b>Prepara il gioco</b> (capitolo 3).',
+            'Nel gioco premi <b>F7</b>: le scritte diventano italiane.'])
+S += [P('<b>I tasti nel gioco</b>', 'h2')]
+S += [table([['Tasto', 'Cosa fa'],
+             ['<b>F7</b>', 'Accende e spegne la traduzione.'],
+             ['<b>F9</b>', 'Traduci solo una zona: scegli tu il pezzo di schermo.'],
+             ['<b>F10</b>', 'Ritraduci quello che c\'è adesso.'],
+             ['<b>F11</b>', 'Zona automatica.'],
+             ['<b>F8</b>', 'La cronologia: le ultime scritte tradotte.'],
+             ['<b>Ctrl + Alt + I</b>', 'Mostra l\'inglese.']],
+            [36 * mm, W - 2 * M - 36 * mm])]
+S += [P('Questi tasti non arrivano al gioco. Se vuoi, li cambi in <b>Giochi &gt; Impostazioni &gt; Tasti nel gioco</b>.', 'small')]
+S += [P('<b>L\'IA che corregge la traduzione</b>', 'h2'),
+      P('È <b>facoltativa</b>. Un\'intelligenza artificiale sulla tua scheda video ricontrolla le frasi e le rende più naturali. Si scarica una volta, circa <b>10 GB</b>, in Giochi &gt; Impostazioni. Usa da 2 a 5 GB della memoria della scheda video e lascia sempre spazio al gioco: se non basta, Tasso usa il traduttore veloce.')]
+S += [table([['Livello', 'Cosa vuol dire'],
+             ['<b>Automatica</b>', 'Tasso sceglie da solo il livello più intelligente che ci sta, gioco per gioco.'],
+             ['<b>Piccola</b>', 'Veloce e quasi precisa come la Grande, con 1 GB in meno.'],
+             ['<b>Media</b>', 'Per i giochi che usano tanta scheda video.'],
+             ['<b>Grande</b>', 'La più intelligente. Per schede video da 12 GB in su.'],
+             ['<b>Spenta</b>', 'Traduce solo il traduttore veloce: la scheda video resta tutta al gioco.']],
+            [36 * mm, W - 2 * M - 36 * mm])]
+S += [P('<b>La chat degli altri giocatori</b>', 'h2'),
+      P('Facoltativa. Per ogni gioco disegni una volta il riquadro della chat (<b>Scegli dove sta la chat</b>). Con la traduzione accesa, i messaggi nuovi degli altri compaiono in italiano accanto alla chat del gioco. Tasso legge solo lo schermo.')]
+S += [P('<b>Altre scelte</b> (Giochi &gt; Impostazioni)', 'h2')]
+S += bullets(['<b>Lingua dei giochi</b> e <b>Lingua che vuoi</b>.',
+              '<b>Dove mettere la traduzione</b>: sopra la scritta, sotto, al posto della scritta, di lato o in basso come sottotitoli; e la grandezza del testo.',
+              '<b>Mostra anche l\'inglese</b>: sotto la traduzione vedi anche la frase originale.',
+              '<b>Traduci da solo appena apro un gioco</b>: se è spento, Tasso traduce da solo i giochi che hai preparato e per gli altri te lo chiede.',
+              '<b>Cronologia</b>: le ultime scritte tradotte, dalla più nuova. Restano solo sul tuo PC; puoi salvarle in un file.'])
+S += [box('Giochi con anti-cheat: niente rischi', ['Nei giochi con anti-cheat Tasso <b>traduce lo schermo</b>: il gioco non viene toccato. La traduzione <b>dentro i file del gioco</b> è spenta e si accende solo se la scegli tu, <b>gioco per gioco</b>, dopo aver letto l\'avviso sul <b>rischio di ban</b> e spuntato "Ho capito il rischio di ban e scelgo io di tradurre dentro questo gioco". La scelta più sicura resta sempre <b>Sullo schermo</b>.'], AMBER, AMBER_BG)]
+
+# 5 Pulizie
+S += chapter(5, 'Le 5 pulizie', 'il cuore di Tasso')
+S += [P('Le trovi in <b>Pulisci e ripara &gt; Pulisci</b>. Dalla Media in su viene fatto prima un backup automatico.')]
 S += [table([['Pulizia', 'Durata', 'Cosa fa', 'Quando'],
              ['<b>1 Classica</b>', '1 min', 'I tuoi file temporanei, il Cestino e le miniature delle foto.', 'Quando vuoi, anche ogni giorno.'],
-             ['<b>2 Normale</b>', '3 min', 'Tutto la Classica + file temporanei di Windows, cache dei browser, cache DNS.', 'Ogni settimana.'],
+             ['<b>2 Normale</b>', 'pochi min', 'Tutto la Classica + file temporanei di Windows, cache dei browser, cache DNS.', 'Ogni settimana.'],
              ['<b>3 Media</b>', '16 min', 'Tutto la Normale + <b>backup</b>, cache delle app (Discord, Steam, Teams, Epic) e della scheda video, cache di Windows Update, file di sistema inutili, resti dei driver, cache dei launcher. È la <b>consigliata</b>.', 'Ogni 2 settimane.'],
-             ['<b>4 Profonda</b>', '55 min', 'Tutto la Media + driver e aggiornamenti di Windows, driver video vecchi, programmi all\'avvio, estensioni dei browser, salute dei dischi, sicurezza, deframmentazione o TRIM, antivirus.', 'Una volta al mese.'],
+             ['<b>4 Profonda</b>', '50 min', 'Tutto la Media + driver e aggiornamenti di Windows, driver video vecchi, programmi all\'avvio, estensioni dei browser, salute dei dischi, sicurezza, deframmentazione o TRIM, antivirus.', 'Una volta al mese.'],
              ['<b>5 Eccezionale</b>', '90 min', 'Tutto la Profonda + riparazione di Windows (DISM e SFC), stabilità (crash ed errori hardware), controllo di ogni programma, errori del disco, periferiche.', 'Quando il PC dà problemi o ogni 2-3 mesi.']],
             [28 * mm, 17 * mm, 90 * mm, W - 2 * M - 135 * mm])]
-S += [box('Il voto al PC, prima e dopo', ['In <b>Pulizia</b> trovi il <b>Voto al PC</b>: misura in pochi secondi la velocità di processore, memoria e disco e quanto è "leggero" Windows (memoria occupata, programmi in background e all\'avvio, spazio libero, file inutili). Tutti i voti vanno <b>da 1 a 100</b> (70 = un PC da gioco medio di oggi) e c\'è un <b>voto totale</b> con la <b>classifica</b>: PC lento (sotto 40), PC da ufficio (40-59), buon PC (60-79), PC veloce (80-94), top (95 e più). Se accendi "Misura prima e dopo ogni pulizia" vedi quanto è servita. Onestamente: la pulizia migliora soprattutto la leggerezza; la velocità dei pezzi dipende dall\'hardware.'], GREEN, GREEN_BG)]
+S += [box('Il Cestino', ['Tasso svuota il Cestino, ma <b>lascia quello che hai buttato nelle ultime 24 ore</b>: così puoi ancora recuperarlo. Nella pulizia programmata è ancora più prudente: toglie solo quello che è nel Cestino <b>da più di 7 giorni</b>.'], GREEN, GREEN_BG)]
+S += [P('<b>Pulizia programmata</b>', 'h2'),
+      P('Nella stessa pagina. Tasso pulisce da solo, senza che tu debba aprirlo. Scegli il giorno, l\'ora, il livello (Classica, Normale o Media; se vuoi anche Profonda o Eccezionale, che durano di più) e se ogni settimana o ogni 2 settimane. Se a quell\'ora il PC è spento, Tasso pulisce appena lo riaccendi. <b>Se stai giocando, aspetta</b> che il gioco sia chiuso (al massimo 4 ore, poi la fa la volta dopo). I lavori lunghi li salta se il portatile va a batteria. Se alla fine serve un riavvio, Tasso non lo fa da solo: te lo dice.')]
+S += [box('Il voto al PC, prima e dopo', ['In <b>Pulisci</b> trovi il <b>Voto al PC</b>: misura in circa 20 secondi la velocità di processore, memoria e disco e quanto è "leggero" Windows (memoria occupata, programmi in background e all\'avvio, spazio libero, file inutili). Tutti i voti vanno <b>da 1 a 100</b> (70 = un PC da gioco medio di oggi) e c\'è un <b>voto totale</b> con la <b>classifica</b>: PC lento (sotto 40), PC da ufficio (40-59), buon PC (60-79), PC veloce (80-94), top (95 e più). Se accendi "Misura da solo prima e dopo ogni pulizia" vedi quanto è servita. Onestamente: la pulizia migliora soprattutto la leggerezza; la velocità dei pezzi dipende dall\'hardware.'], GREEN, GREEN_BG)]
 S += [P('<b>Durante la pulizia</b>', 'h2')]
 S += bullets(['La barra si muove e le frasi cambiano: il PC sta lavorando, puoi anche andare a fare altro.',
               'A destra vedi lo <b>spazio liberato</b>, il <b>tempo che manca</b> e i <b>dettagli</b> di ogni passaggio.',
               '<b>Interrompi</b>: Tasso si ferma appena finisce il passaggio in corso, così non lascia niente a metà.',
               '<b>Spegni il PC quando ha finito</b>: spunta la casella prima di avviare. Alla fine il PC si spegne dopo 2 minuti, e puoi annullare con il pulsante <b>Annulla lo spegnimento</b>.',
-              'Chiudi i browser prima di iniziare: quelli aperti vengono saltati.'])
+              'Chiudi i browser prima di iniziare: quelli aperti vengono saltati.',
+              '<b>Un passaggio alla volta</b>: le pulizie e le riparazioni una per una, da avviare quando vuoi (in Gaming accendi prima "Mostra tutte le funzioni").'])
 S += [box('Al termine', ['Vedi lo spazio liberato, la durata e il registro completo. Se sono stati installati aggiornamenti o fatte riparazioni, Tasso ti propone di <b>riavviare</b>. Ogni pulizia viene salvata in un registro (Impostazioni, <b>Apri la cartella dei registri</b>).'], GREEN, GREEN_BG)]
 
-# 4 Velocità
-S += chapter(4, 'Velocità', 'più scattante')
-S += [P('<b>Le modalità</b>', 'h2')]
+# 6 Avvio del PC
+S += chapter(6, 'Avvio del PC', 'più scattante')
+S += [P('<b>Le modalità del PC</b>', 'h2')]
 S += [table([['Modalità', 'Cosa fa'],
              ['<b>Normale</b>', 'Equilibrio tra velocità e consumi, notifiche attive. Va bene tutti i giorni.'],
              ['<b>Gaming</b>', 'Piano energetico al massimo, Modalità Gioco di Windows attiva, notifiche in pausa.'],
@@ -228,26 +337,27 @@ S += [table([['Modalità', 'Cosa fa'],
              ['<b>Film</b>', 'Niente notifiche e lo schermo non si spegne durante il film.'],
              ['<b>Silenzioso</b>', 'Processore limitato al 70%: meno calore e ventole più tranquille.']],
             [36 * mm, W - 2 * M - 36 * mm])]
-S += [P('Prima di attivare una modalità, Tasso controlla il PC e ti avvisa se serve: per esempio se sei su un portatile (meglio tenere il caricatore attaccato) o se hai poca RAM.', 'p')]
-S += [P('<b>Turbo</b>', 'h2'),
-      P('Chiude i programmi in background che non servono mentre giochi (OneDrive, Teams, Skype, Dropbox e simili) e libera memoria. Non tocca i tuoi giochi, Discord o il browser. I programmi chiusi si riaprono da soli al prossimo avvio del PC.')]
+S += [P('Prima di attivare una modalità, Tasso controlla il PC e ti avvisa se serve: per esempio se sei su un portatile (meglio tenere il caricatore attaccato) o se hai poca RAM. <b>Per giocare usa il Boost</b> nella pagina Giochi: mette lui la potenza massima e la toglie quando hai finito.', 'p')]
 S += [P('<b>Programmi all\'avvio</b>', 'h2'),
       P('Ogni programma che parte quando accendi il PC ha il suo <b>interruttore</b>. Spegni quelli che non ti servono subito: Windows si accende più in fretta. Il programma resta installato, semplicemente non parte da solo.'),
       P('<b>Guardiano dell\'avvio</b>: se un programma nuovo si aggiunge all\'avvio di nascosto, Tasso te lo segnala con un piccolo avviso.', 'p')]
 
-# 5 Programmi
-S += chapter(5, 'Programmi', 'installa e togli')
+# 7 Programmi
+S += chapter(7, 'Programmi', 'installa e togli')
 S += [P('<b>Disinstallare per bene</b>', 'h2')]
 S += steps(['Vai su <b>Programmi</b> e cerca il programma (puoi scriverne il nome nella barra di ricerca).',
             'Clicca <b>Disinstalla</b> e segui le finestre del programma di disinstallazione.',
             'Alla fine Tasso cerca le <b>cartelle rimaste</b> e ti chiede se spostarle nel Cestino.'])
+S += [P('Non disinstallare da qui i tuoi giochi, Discord, Steam, Epic Games o Riot: potresti perdere partite salvate e dati. Toglili dal loro launcher.', 'small')]
 S += [P('<b>App preinstallate</b>', 'h2'),
       P('Sono i giochini e le app pubblicitarie che Windows installa da solo (Candy Crush, TikTok, Solitaire, Notizie e simili). Quelle già spuntate sono inutili per quasi tutti; le altre toglile solo se non le usi. Se te ne serve di nuovo una, la reinstalli gratis dal Microsoft Store.')]
+S += [P('<b>Aggiornamenti dei programmi</b>', 'h2'),
+      P('Chrome, Discord, 7-Zip, VLC e gli altri: premi <b>Cerca aggiornamenti</b> e Tasso trova le versioni nuove con winget (gratuito, è dentro Windows). Li aggiorni uno per uno o tutti insieme. Chiudi i programmi prima di aggiornarli. I giochi si aggiornano dal loro launcher.')]
 
-# 6 File
-S += chapter(6, 'File', 'ordine e spazio')
+# 8 File
+S += chapter(8, 'File', 'ordine e spazio')
 S += steps(['Vai su <b>File</b> e clicca <b>Analizza i miei file</b>. Tasso guarda Desktop, Documenti, Immagini, Video, Musica e Download.',
-            'Ti mostra <b>file doppi</b> (il primo di ogni gruppo resta, le copie sono spuntate), <b>file più grandi</b> (scegli tu: sopra 100 MB, 300 MB o 1 GB; quelli non toccati da più di un anno sono segnati), <b>cartelle vuote</b> e <b>collegamenti rotti</b>. Con <b>Aggiungi una cartella</b> controlli anche un\'altra cartella o un disco esterno.',
+            'Ti mostra <b>file doppi</b> (il primo di ogni gruppo resta, le copie sono spuntate), <b>file più grandi</b> (scegli tu: sopra 100 MB, 300 MB o 1 GB), <b>cartelle vuote</b> e <b>collegamenti rotti</b>. Con <b>Aggiungi una cartella o un disco</b> controlli anche un\'altra cartella o un disco esterno.',
             'Controlla le spunte e clicca <b>Sposta nel Cestino i selezionati</b>. Fino a quando non svuoti il Cestino puoi recuperare tutto.'])
 S += [table([['Strumento', 'A cosa serve'],
              ['<b>Distruggi file</b>', 'Per documenti riservati, anche più file insieme: vengono sovrascritti e cancellati, e <b>non si possono più recuperare</b>. Onestamente: sugli SSD Windows sposta i dati da solo, quindi la garanzia totale non esiste; Tasso chiede anche al disco di cancellare subito gli spazi liberi (TRIM). Per un PC da vendere usa anche Cancella lo spazio libero.'],
@@ -255,37 +365,59 @@ S += [table([['Strumento', 'A cosa serve'],
              ['<b>Cancella lo spazio libero</b>', 'Rende impossibile recuperare i file già cancellati in passato. Utile prima di vendere o regalare il PC. Può durare ore.']],
             [44 * mm, W - 2 * M - 44 * mm])]
 
-# 7 Risolvi
-S += chapter(7, 'Risolvi problemi', 'un clic sul problema')
+# 9 Risolvi
+S += chapter(9, 'Risolvi un problema', 'un clic sul problema')
+S += [P('In <b>Pulisci e ripara &gt; Risolvi un problema</b> tocchi il problema che hai e Tasso prova a sistemarlo da solo. In cima c\'è <b>una ricerca sola</b>: scrivi il problema (per esempio "audio", "lento", "mouse" o "password") e Tasso ti mostra solo quelli giusti. Non sai qual è il problema? Apri <b>Salute e problemi</b> (capitolo 10) e te lo dice Tasso.')]
+S += [P('<b>Sezione Windows</b> (per tutti)', 'h2')]
 S += [table([['Problema', 'Cosa fa Tasso'],
              ['<b>Non sento l\'audio</b>', 'Riavvia i servizi audio di Windows e controlla le schede audio.'],
-             ['<b>Internet non va</b>', 'Svuota la cache, rinnova la connessione e ripristina le impostazioni di rete. Internet si stacca per qualche secondo; alla fine serve un riavvio.'],
+             ['<b>Internet non va</b>', 'Rinnova la connessione e ripristina le impostazioni di rete. Internet si stacca per qualche secondo; alla fine serve un riavvio.'],
              ['<b>Windows Update bloccato</b>', 'Ripristina i componenti di Windows Update quando gli aggiornamenti non si installano.'],
              ['<b>Windows dà errori</b>', 'Controlla e ripara i file di sistema (DISM e SFC). 20-40 minuti.'],
              ['<b>Una periferica non va</b>', 'Controlla mouse, tastiera, rete, video e USB e ti dice quale ha problemi.'],
-             ['<b>Il disco fa i capricci</b>', 'Controlla errori, salute, usura e temperatura dei dischi.'],
+             ['<b>Il disco fa i capricci</b>', 'Controlla errori, salute e usura dei dischi.'],
              ['<b>Stampante, Store, menu Start</b>', 'Svuota la coda di stampa bloccata, ripara lo Store e le app, riavvia ricerca e menu Start.']],
             [46 * mm, W - 2 * M - 46 * mm])]
-S += [P('<b>Problemi nei giochi</b>', 'h2'),
-      P('I 13 problemi più comuni di chi gioca, ognuno con il suo pulsante. Tasso spiega sempre cosa fa e non tocca mai giochi, salvataggi o file dell\'anti-cheat.')]
+S += [P('<b>Sezione Gaming: i 27 problemi dei giochi</b>', 'h2'),
+      P('Solo in Gaming. I problemi più comuni di chi gioca, ognuno con il suo pulsante: i 13 di prima più <b>14 nuovi nella 3.1</b>. Tasso spiega sempre cosa fa e non tocca mai giochi, salvataggi o file dell\'anti-cheat.')]
 S += [table([['Problema', 'Cosa fa Tasso'],
-             ['<b>Il gioco va a scatti</b>', 'Svuota le cache della grafica (gli "shader" di DirectX, AMD, NVIDIA, Intel), accende la Modalità Gioco e ti dice se il PC sta risparmiando energia.'],
-             ['<b>Pochi FPS</b>', 'Gli FPS sono le immagini al secondo. Mette la potenza al massimo, spegne la registrazione nascosta e ti dice cosa ruba potenza (batteria, memoria piena, programmi pesanti).'],
+             ['<b>Il gioco va a scatti</b>', 'Accende la Modalità Gioco di Windows, controlla se il PC sta risparmiando energia e ti dice cosa fare. Le cache della grafica le lascia: servono proprio a non scattare.'],
+             ['<b>Il gioco non parte o si chiude</b>', 'Installa o ripara Visual C++, DirectX e .NET dal sito ufficiale Microsoft: sono i "pezzi" di Windows che servono ai giochi.'],
+             ['<b>Controller, cuffie o microfono non vanno</b>', 'Riavvia le periferiche bloccate e l\'audio di Windows, e controlla se il microfono è bloccato dalla privacy.'],
              ['<b>Ping alto o lag online</b>', 'Svuota la memoria degli indirizzi internet, rimette la rete come la vuole Windows, ferma la condivisione nascosta degli aggiornamenti e ti avvisa se il Wi-Fi ti rallenta.'],
-             ['<b>Il gioco non parte</b>', 'Installa o ripara Visual C++, DirectX e .NET dal sito ufficiale Microsoft: sono i "pezzi" di Windows che servono ai giochi.'],
-             ['<b>Steam, Epic e launcher</b>', 'Chiude i launcher bloccati e svuota le loro pagine salvate (schermate bianche o nere). Giochi e account restano.'],
-             ['<b>Schermo nero o risoluzione</b>', 'Fa ripartire la scheda video in 2 secondi e ti spiega i tasti utili (Alt+Invio, Win+P).'],
-             ['<b>Controller, cuffie, microfono</b>', 'Riavvia le periferiche bloccate e l\'audio di Windows, e controlla se il microfono è bloccato dalla privacy.'],
-             ['<b>Xbox e Game Pass</b>', 'Riavvia i servizi Xbox e ripara l\'app Xbox e lo Store.'],
-             ['<b>Errore dell\'anti-cheat</b>', 'Controlla Vanguard, Easy Anti-Cheat, BattlEye e FACEIT e li riaccende se un altro programma li ha spenti.'],
-             ['<b>Discord</b>', 'Chiude Discord bloccato, svuota la sua cache (messaggi e accesso restano) e controlla il microfono.'],
+             ['<b>Steam, Epic o altri launcher non si aprono</b>', 'Chiude i launcher bloccati e svuota le loro pagine salvate (schermate bianche o nere). Giochi e account restano.'],
+             ['<b>Schermo nero o risoluzione sbagliata</b>', 'Fa ripartire la scheda video in 2 secondi e ti spiega i tasti utili (Alt+Invio, Win+P).'],
+             ['<b>Pochi FPS (il gioco va lento)</b>', 'Gli FPS sono le immagini al secondo. Mette la potenza al massimo, accende la Modalità Gioco e ti dice cosa ruba potenza (batteria, memoria piena, programmi pesanti).'],
+             ['<b>App Xbox e Game Pass non vanno</b>', 'Riavvia i servizi Xbox e ripara l\'app Xbox e lo Store.'],
+             ['<b>Errore dell\'anti-cheat</b>', 'Controlla Vanguard, Easy Anti-Cheat, BattlEye e gli altri e li riaccende se un altro programma li ha spenti, senza toccare i loro file.'],
+             ['<b>Discord non va o non ti sentono</b>', 'Chiude Discord bloccato, svuota la sua cache (messaggi e accesso restano) e controlla il microfono.'],
              ['<b>La mira con il mouse non è precisa</b>', 'Spegne l\'"accelerazione" del puntatore di Windows: lo stesso movimento sposta la mira sempre della stessa quantità. Si torna indietro con un doppio clic.'],
              ['<b>Il gioco si riduce a icona da solo</b>', 'Rimette la protezione di Windows che impedisce agli altri programmi di "rubare" la finestra e ti dice quali programmi aperti lo fanno di solito.'],
-             ['<b>I download dei giochi sono lenti</b>', 'Controlla rete "a consumo", limiti di velocità, aggiornamenti e disco pieno, e svuota la cache dei download di Steam. Giochi e salvataggi restano.']],
-            [46 * mm, W - 2 * M - 46 * mm])]
-S += [P('<b>I 100 problemi dell\'ufficio</b> (novità della 2.6)', 'h2'),
-      P('Risolvi problemi è diviso in tre sezioni: <b>Ufficio</b>, <b>Gaming</b> (solo nella modalità Gaming) e <b>Windows</b>, con <b>una ricerca sola</b> in cima: scrivi il problema (per esempio "stampante", "zip" o "password") e Tasso ti mostra solo quelli giusti, in tutte le sezioni. I 100 problemi dell\'ufficio sono divisi in 10 gruppi che si aprono con un tocco (stampa, Word/Excel/Adobe, Outlook, Teams, file e zip, rete, schermi, mouse e tastiera, Windows, account e sicurezza). In Ufficio i gruppi sono aperti e la sezione è la prima; in Gaming i gruppi sono chiusi e la sezione è dopo quelle dei giochi e di Windows. Tasso non cancella mai documenti (al massimo li sposta in una cartella in Documenti), salva le impostazioni prima di cambiarle e <b>non chiude mai Word, Excel o Outlook mentre ci lavori</b>: ti chiede di salvare e chiuderli tu (l\'unica eccezione è Outlook bloccato da più di 2 minuti senza finestra). I pulsanti <b>Controlla</b> (invece di Risolvi) sono i casi che non si possono sistemare da soli: Tasso trova la causa e ti spiega cosa fare.')]
+             ['<b>I download dei giochi sono lenti</b>', 'Controlla rete "a consumo", limiti di velocità, aggiornamenti e disco pieno, e svuota la cache dei download di Steam. Giochi e salvataggi restano.'],
+             ['<b><font color="#2F6BE0">NUOVI NELLA 3.1</font></b>', ''],
+             ['<b>Il gioco non salva</b>', 'Controlla se la protezione delle cartelle di Windows o OneDrive bloccano il salvataggio, e ti dice come consentire il gioco senza spegnere le protezioni.'],
+             ['<b>Errore della scheda video (DEVICE_REMOVED)</b>', 'Conta quante volte il driver video si è bloccato, controlla temperatura, driver e overclock, e ti dice cosa fare in ordine.'],
+             ['<b>Il PC si scalda troppo</b>', 'Legge le temperature di processore e scheda video, controlla se il PC rallenta per il caldo e ti dice come rinfrescarlo. Non tocca le ventole.'],
+             ['<b>Lo schermo va a 60 Hz invece di 144</b>', 'Controlla gli Hz di ogni schermo e ti dice il numero più alto da scegliere, aprendo le impostazioni giuste. Se vede solo 60 ti dice perché (cavo, porta, driver).'],
+             ['<b>Il portatile usa la scheda video sbagliata</b>', 'Sui portatili con due schede video controlla quale usano i giochi e ti dice come fissare quella potente.'],
+             ['<b>Programmi sopra al gioco che rallentano</b>', 'Spegne la registrazione in sottofondo di Windows e trova gli overlay che pesano (NVIDIA, Overwolf, Medal...). Puoi tornare indietro.'],
+             ['<b>Non c\'è spazio per installare</b>', 'Ti dice lo spazio libero di ogni disco e i giochi che occupano di più, e svuota i download di Steam rimasti a metà.'],
+             ['<b>Chat vocale o partite con amici (NAT)</b>', 'Per "NAT rigido", party chat che non si collega o amici che non entrano: rimette a posto i servizi di rete dei giochi e controlla il microfono.'],
+             ['<b>L\'audio gracchia mentre giochi</b>', 'Riavvia l\'audio, spegne il risparmio energetico delle porte USB e controlla le cuffie Bluetooth in modalità chiamata.'],
+             ['<b>Ritardo tra mouse e gioco (input lag)</b>', 'Accende la Modalità Gioco, controlla Hz, batteria e accelerazione del mouse, e ti dice cosa cambiare nel gioco.'],
+             ['<b>I giochi caricano lentamente</b>', 'Controlla se i giochi sono su un disco meccanico (HDD) e ti spiega come spostarli sull\'SSD senza riscaricarli.'],
+             ['<b>Il gioco non va a schermo intero</b>', 'Controlla il ridimensionamento di Windows e le vecchie impostazioni di compatibilità, e ti spiega i tasti per sistemarlo.'],
+             ['<b>Il controller non viene riconosciuto</b>', 'Riavvia controller e Bluetooth bloccati, trova i programmi che "rubano" il controller e ti spiega Steam Input.'],
+             ['<b>Il gioco si blocca nel caricamento</b>', 'Controlla RAM, file di paging (spento o piccolo è la causa più comune) e spazio sul disco, e ti dice cosa sistemare.']],
+            [56 * mm, W - 2 * M - 56 * mm])]
+S += [P('<b>Sezione Ufficio: i problemi dell\'ufficio</b>', 'h2'),
+      P('Solo in Ufficio (in Gaming la sezione è nascosta, ma con la ricerca trovi anche tastiera, mouse, Wi-Fi e simili). Sono i 100 problemi più comuni del PC da lavoro, più <b>4 novità della 3.1</b>, divisi in gruppi che si aprono con un tocco. Tasso non cancella mai documenti (al massimo li sposta in una cartella in Documenti), salva le impostazioni prima di cambiarle e <b>non chiude mai Word, Excel o Outlook mentre ci lavori</b>: ti chiede di salvare e chiuderli tu (l\'unica eccezione è Outlook bloccato da più di 2 minuti senza finestra). I pulsanti <b>Controlla</b> (invece di Risolvi) sono i casi che non si possono sistemare da soli: Tasso trova la causa e ti spiega cosa fare. <b>Modalità riunione</b> e <b>Blocca il PC quando ti alzi</b> hanno invece il pulsante <b>Accendi / Spegni</b>.')]
 S += [table([['Problema', 'Cosa fa Tasso'],
+             ['<b><font color="#2F6BE0">NOVITÀ DELLA 3.1</font></b>', ''],
+             ['<b>Pronto per la videochiamata?</b>', 'Prova in pochi secondi webcam, microfono, casse o cuffie e internet. Ti dice cosa va e cosa no e, se serve, ti propone la riparazione con un pulsante. Controlla e spiega.'],
+             ['<b>Modalità riunione</b>', 'Premi prima di una chiamata: niente notifiche, OneDrive e aggiornamenti di Windows in pausa, PC al massimo. A fine chiamata (con Tasso aperto) si spegne da sola e rimette tutto com\'era. Premi di nuovo per spegnerla subito.'],
+             ['<b>Chi ha usato webcam e microfono</b>', 'Ti fa vedere quali programmi hanno usato la webcam e il microfono negli ultimi 30 giorni (con l\'ultima volta di ciascuno) e chi li sta usando adesso. Così scopri se qualcuno ti guarda o ascolta. Controlla e spiega.'],
+             ['<b>Blocca il PC quando ti alzi</b>', 'Accende il blocco automatico: dopo 5 minuti senza toccare mouse e tastiera lo schermo si blocca e per rientrare serve il PIN o la password (se il tuo account ne ha uno). Premi di nuovo per rimettere com\'era.'],
              ['<b><font color="#2F6BE0">STAMPA E SCANNER</font></b>', ''],
              ['<b>La stampante dice "offline"</b>', 'Riavvia il servizio di stampa, toglie la spunta "Usa stampante offline" e controlla se le stampanti di rete rispondono.'],
              ['<b>Stampa sempre sulla stampante sbagliata</b>', 'Spegne "Lascia che Windows gestisca la stampante predefinita" (che la cambia da solo) e ti fa scegliere quella giusta una volta per tutte.'],
@@ -398,85 +530,76 @@ S += [table([['Problema', 'Cosa fa Tasso'],
              ['<b>Il PC chiede la chiave di ripristino BitLocker</b>', 'Controlla se i dischi sono protetti con BitLocker e ti dice dove trovare la chiave di ripristino (account Microsoft o dell\'ufficio) prima che serva. Tasso non mostra né salva la chiave. Controlla e spiega.']],
             [56 * mm, W - 2 * M - 56 * mm])]
 S += [P('<b>Driver di tutto il PC</b>', 'h2'),
-      P('Il <b>driver</b> è il "libretto di istruzioni" che dice a Windows come usare un pezzo del PC. In <b>Risolvi problemi</b> Tasso elenca tutte le periferiche (scheda video AMD Radeon, NVIDIA o Intel, audio, cuffie, mouse, tastiera, rete, Bluetooth, webcam, monitor...), segna quelle con problemi con il pulsante <b>Ripara</b>, cerca i driver nuovi su <b>Windows Update</b> (certificati da Microsoft) e li installa. Per scheda video e periferiche da gaming apre il <b>sito ufficiale</b> della marca (NVIDIA App, AMD, Intel, Logitech, Razer, Corsair, SteelSeries, scheda madre). L\'interruttore <b>Windows scarica da solo i driver</b> resta anche dopo il riavvio. Mai siti di "driver gratis" o programmi che "aggiornano tutti i driver".')]
+      P('Il <b>driver</b> è il "libretto di istruzioni" che dice a Windows come usare un pezzo del PC. In fondo a <b>Risolvi un problema</b> premi <b>Controlla le periferiche</b>: Tasso elenca tutte le periferiche (scheda video AMD Radeon, NVIDIA o Intel, audio, cuffie, mouse, tastiera, rete, Bluetooth, webcam, monitor...), segna quelle con problemi con il pulsante <b>Ripara</b>, cerca i driver nuovi su <b>Windows Update</b> (certificati da Microsoft) e li installa. Accanto alla scheda video NVIDIA o AMD c\'è <b>Aggiorna con Tasso</b> (vedi il riquadro sul driver della scheda video nel capitolo 3). Per il resto apre il <b>sito ufficiale</b> della marca. L\'interruttore <b>Windows scarica da solo i driver</b> resta anche dopo il riavvio. Mai siti di "driver gratis" o programmi che "aggiornano tutti i driver".')]
 
-# 8 Internet, disco e giochi (2.1)
-S += chapter(8, 'Internet, disco e giochi', 'novità dalla 2.1 alla 2.5')
-S += bullets(['<b>Salute del PC</b> (in Home): un voto da 0 a 100 con i problemi più importanti e un pulsante per sistemarli. Controlla spazio libero, programmi all\'avvio, file temporanei, Cestino, antivirus, aggiornamenti di Windows, riavvii in sospeso, memoria e salute dei dischi.',
-              '<b>Internet, test di velocità</b>: download, upload e ping in circa 30 secondi, con un giudizio semplice (va bene per film, giochi online, download).',
-              '<b>Internet, la tua connessione</b>: come sei collegato (Wi-Fi o cavo) e consigli utili, per esempio "collegati alla rete a 5 GHz" quando il tuo router ce l\'ha, o "usa il cavo" se il segnale è debole. Non mostra più i dati consumati.',
+# 10 Altri strumenti
+S += chapter(10, 'Altri strumenti', 'in Pulisci e ripara')
+S += bullets(['<b>Salute e problemi</b>: premi <b>Rileva i problemi</b> e in circa un minuto Tasso controlla il PC da cima a fondo (stampanti, internet, Word ed Excel, Outlook, OneDrive, periferiche, tastiera, Windows e, in Gaming, le impostazioni per i giochi). <b>Non cambia niente</b>: ti dice cosa ha trovato e sei tu a scegliere cosa sistemare. Alcuni problemi si vedono solo quando succedono (per esempio il secondo schermo nero): per quelli c\'è Risolvi un problema.',
+              '<b>Salute del PC</b>: un voto da 0 a 100 con i problemi più importanti e un pulsante per sistemarli. Controlla spazio libero, programmi all\'avvio, file temporanei, Cestino, antivirus, aggiornamenti di Windows, riavvii in sospeso, memoria e salute dei dischi.',
+              '<b>Internet, test di velocità</b>: download, upload e ping in circa 30 secondi, con i server gratuiti di Cloudflare.',
+              '<b>Internet, ping ai server dei giochi</b> (in Gaming): ritardo, stabilità e pacchetti persi verso i server di Riot, Valve e Amazon, in circa 20 secondi.',
+              '<b>Internet, la tua connessione</b>: come sei collegato (Wi-Fi o cavo) e consigli utili, per esempio "collegati alla rete a 5 GHz" quando il tuo router ce l\'ha, o "usa il cavo" se il segnale è debole.',
               '<b>Internet, Wi-Fi salvati</b>: le reti a cui il PC si è collegato e la loro password, nascosta finché non premi Mostra. Comodo per darla a un ospite.',
-              '<b>Mappa del disco</b>: le cartelle che occupano più spazio, dalla più grande, con il pulsante per aprirle. Tasso guarda e basta: non cancella niente.',
-              '<b>Modalità gioco automatica</b> (Impostazioni): quando apri un gioco di Steam, Epic, Riot, Xbox e simili, Tasso passa da solo alla modalità Gaming; un minuto dopo che lo hai chiuso rimette la modalità di prima.'])
-
-S += [P('<b>Giochi (novità della 2.2)</b>', 'h2')]
-S += bullets(['<b>Ottimizza prima di giocare</b>: Tasso ti mostra i programmi aperti che usano più memoria. Scegli quali chiudere (i programmi con una finestra si chiudono come con la X, quindi ti chiedono di salvare se serve) e premi <b>Ottimizza e gioca</b>: passa anche alla modalità Gaming. A fine partita premi <b>Fine partita</b>: rimette la modalità di prima e riapre i programmi chiusi. Windows, driver, antivirus, Discord, i launcher dei giochi e i programmi per lo streaming (OBS, Streamlabs, Twitch Studio, Medal) non vengono mai toccati, e Tasso chiude solo quello che spunti tu. Se riduci il gioco a icona per andare un attimo su Chrome, Tasso lo considera ancora aperto e il pannellino si nasconde finché non torni nel gioco.',
-              '<b>Pannellino in gioco</b>: una scritta piccola e trasparente in alto a destra o a sinistra con uso e temperatura di processore e scheda video, RAM e ora. Non si può cliccare. Appare da solo quando giochi (con la modalità gioco automatica accesa) e si mostra o nasconde con <b>Ctrl + Maiusc + F12</b>. Si vede nei giochi in finestra o "schermo intero senza bordi". La temperatura del processore appare se Windows la fornisce o se è aperto LibreHardwareMonitor.',
-              '<b>FPS</b>: Tasso non entra mai dentro i giochi, perché con gli anti-cheat si rischia il ban. Per vedere gli FPS usa gli strumenti ufficiali: <b>Win + G</b> (Prestazioni) di Windows oppure <b>Alt + R</b> di NVIDIA.',
-              '<b>Autoclick</b>: clicca da solo ogni tot millisecondi, secondi o minuti, per un numero di volte o all\'infinito, con il tasto sinistro, destro o centrale, singolo o doppio, dove si trova il mouse o in un punto fisso. Può fare piccoli movimenti del mouse che restano dentro la finestra del gioco. Si avvia e si ferma con un tasto che scegli tu (di base F6); <b>Esc</b> lo ferma sempre.',
-              '<b>La tua libreria</b>: tutti i giochi installati con Steam, Epic Games e Riot in una pagina sola, con la ricerca e il pulsante <b>Gioca</b>.'])
-S += [box('Autoclick e giochi online', ['Nei giochi online con anti-cheat (League of Legends, Valorant, Fortnite, CS2 e altri) l\'autoclick è contro le regole e può portare al ban dell\'account. Usalo nei giochi per un giocatore, nei giochi "clicker" o dove è permesso.'], AMBER, AMBER_BG)]
-
-S += [P('<b>Novità della 2.6</b>', 'h2')]
-S += bullets(['<b>Rileva i problemi</b> (in cima al menu, subito sotto Home insieme a Risolvi problemi, e pulsante in Home): un clic e Tasso controlla 58 problemi diversi (54 in modalità Ufficio) in circa un minuto. <b>Non cambia niente</b>: ti mostra solo quelli che ha trovato davvero, ognuno con il suo pulsante Risolvi, e "Risolvi insieme" per sistemarli tutti in una volta. Alcuni problemi si vedono solo quando succedono (per esempio il secondo schermo nero): per quelli c\'è Risolvi problemi.',
-              '<b>Internet</b>: al posto del consumo di dati c\'è <b>La tua connessione</b>, con consigli utili (per esempio "collegati alla rete a 5 GHz" quando il tuo router ce l\'ha).',
-              '<b>Due modalità</b>: Gaming e Ufficio, scelte alla prima apertura e cambiabili quando vuoi dal pulsante in alto a sinistra. In Ufficio Tasso è più semplice e tranquillo (colori chiari e morbidi, un tasso più carino) e nasconde giochi, FPS, ping, Turbo e Prestazioni+.',
-              '<b>I 100 problemi più comuni dell\'ufficio</b> in Risolvi problemi (stampa, Word, Excel, Adobe, Outlook, Teams, file e zip, rete, schermi, mouse e tastiera, account), ognuno con un pulsante e una spiegazione semplice (vedi capitolo 7).',
-              '<b>Risolvi problemi diviso in sezioni</b> (Ufficio, Gaming, Windows) con <b>una ricerca sola</b> per tutti i problemi, e <b>3 problemi da gioco nuovi</b>: mira del mouse, gioco che si riduce a icona, download lenti.',
-              '<b>Voto al PC da 1 a 100</b> per tutto, con il voto totale e la classifica (da "PC lento" a "top").',
-              '<b>Giochi</b>: la tua libreria è in cima alla pagina. <b>Prestazioni+</b> riordinata: prima le cose facili e sicure, poi quelle per esperti.',
-              '<b>6 temi nuovi</b> per l\'ufficio: Ufficio, Carta, Salvia, Lavanda, Notte e Ardesia (8 in tutto, con Ghiaccio e Sabbia). Gaming e Ufficio ricordano ognuna il suo tema.'])
-S += [P('<b>Novità della 2.5</b>', 'h2')]
-S += bullets(['<b>Profilo gioco</b> (in Giochi): scegli una volta cosa ti serve per giocare (Gaming o FPS competitivo, i comandi gaming, il pannellino, la modalità gioco automatica) e lo accendi con <b>un interruttore</b>. <b>Resta acceso anche se spegni o riavvii il PC</b>: a ogni accensione Tasso controlla che sia tutto come l\'hai scelto e rimette quello che è cambiato (per esempio il piano energetico rimesso normale da un aggiornamento). Quando lo spegni torna tutto com\'era prima.',
-              '<b>Potenza per ogni gioco</b>: scegli un gioco e <b>Potenza alta</b> (modalità Gaming) o <b>Massima potenza</b> (FPS competitivo, con il mouse senza accelerazione). Quando apri quel gioco Tasso la mette da solo, quando lo chiudi rimette com\'era.',
-              '<b>Ping ai server dei giochi</b> (in Internet): League of Legends, TFT, Valorant, CS2, Dota 2, Fortnite e altri giochi sui server Amazon. Vedi i millisecondi, i salti e i pacchetti persi, e Tasso ti dice qual è il server migliore per te.',
-              '<b>Regola con Tasso</b> (sotto ogni gioco): capisce se il gioco è competitivo, grafico o "prestazionale", guarda il tuo PC e propone la grafica giusta. Applica da solo quello che può in sicurezza, con <b>Annulla</b>.',
-              '<b>Comandi gaming</b> spiegati in parole semplici: per ognuno <b>cosa fa</b>, <b>quando serve</b> e <b>se ci sono rischi</b>. Restano accesi dopo il riavvio; spenti tornano esattamente com\'erano prima di Tasso.',
-              '<b>Aggiornamento programmi</b> (in Programmi): l\'elenco dei programmi con una versione nuova, da aggiornare uno per uno o tutti insieme, e le <b>icone vere</b> dei programmi.',
-              '<b>Portachiavi</b> (nel menu a sinistra): le tue password cifrate (AES-256) e salvate solo su questo PC. Scegli un <b>PIN da 4 numeri</b> (comodo ma più debole), <b>da 6</b> (consigliato), <b>da 7 a 12</b> (il più sicuro) oppure <b>senza PIN</b>: si apre da solo con il tuo account di Windows, ma chi usa il PC con il tuo account vede le password. Genera password forti e controlla se sono state rubate (al servizio Have I Been Pwned arriva solo un pezzetto dell\'impronta, mai la password).',
-              '<b>Stato del PC su Discord</b> più ricco, ogni 3/6/12/24 ore e su richiesta con !stato.'])
+              '<b>Mappa del disco</b>: le cartelle che occupano più spazio, dalla più grande. Tasso guarda e basta: non cancella niente.',
+              '<b>Portachiavi</b>: le tue password in un posto solo, cifrate (AES-256) e salvate solo su questo PC, niente cloud. Scegli un <b>PIN da 6 numeri</b> (consigliato), <b>da 4</b> (comodo ma più debole), <b>da 7 a 12</b> (il più sicuro) oppure <b>senza PIN</b> (si apre con il tuo account di Windows: chi usa il PC con il tuo account vede le password). Con il PIN si chiude da solo dopo 5 minuti. Genera password forti e controlla se sono state rubate (al servizio Have I Been Pwned arriva solo un pezzetto dell\'impronta, mai la password).',
+              '<b>Prestazioni+</b> (in Gaming, con "Mostra tutte le funzioni"): Tasso guarda i tuoi componenti e ti dice cosa conviene fare, restando sotto i limiti del produttore. Non cambia da solo frequenze o voltaggi: ti apre gli strumenti ufficiali e ti guida passo passo.'])
 S += [box('Se scordi il PIN del portachiavi', ['Nessuno può recuperarlo, nemmeno Tasso: è proprio questo che lo rende sicuro. Puoi solo azzerare il portachiavi e ricominciare da capo.'], AMBER, AMBER_BG)]
 
-# 9 Hardware
-S += chapter(9, 'Hardware', 'conosci il tuo PC')
-S += bullets(['<b>Componenti</b>: processore, scheda video, scheda madre e BIOS, RAM, dischi, versione di Windows.',
-              '<b>Sensori in tempo reale</b>: uso del processore e della RAM, spazio del disco; con le schede <b>NVIDIA</b> anche temperatura, uso, ventola e memoria video; temperatura dei dischi quando Windows la rende disponibile.',
-              '<b>Scheda video</b>: il pulsante apre il pannello NVIDIA o AMD, oppure la pagina ufficiale per scaricarlo.'])
+# 11 Hardware
+S += chapter(11, 'Hardware', 'conosci il tuo PC')
+S += bullets(['<b>Dal vivo</b>: quanto lavorano i pezzi del PC, con il loro nome, e la temperatura del processore quando Windows la dà.',
+              '<b>Componenti</b>: processore, scheda video, scheda madre e BIOS, RAM, dischi, versione di Windows.',
+              '<b>Scheda video</b>: uso e temperatura (NVIDIA e AMD); il pulsante apre il pannello NVIDIA o AMD.',
+              '<b>Dischi</b>: salute e temperatura, quando Windows la rende disponibile.',
+              'Con <b>LibreHardwareMonitor</b> aperto (gratuito) Tasso legge anche le temperature che Windows non dà.'])
 S += [box('Il BIOS: aggiornarlo sì o no?', ['Tasso ti mostra la versione del BIOS e cerca la pagina ufficiale del produttore della scheda madre, ma <b>non lo aggiorna da solo</b>. Aggiornalo solo se risolve un problema che hai o se il produttore lo consiglia: se il PC si spegne a metà aggiornamento, la scheda madre può bloccarsi. Segui sempre le istruzioni del produttore, con il PC collegato alla corrente.'], AMBER, AMBER_BG)]
 
-# 9 Impostazioni
-S += chapter(10, 'Impostazioni', 'su misura')
+# 12 Impostazioni
+S += chapter(12, 'Impostazioni', 'su misura')
+S += [P('Le trovi in <b>Impostazioni &gt; Impostazioni di Tasso</b>.')]
 S += [table([['Impostazione', 'Cosa fa'],
-             ['<b>Aspetto (8 temi)</b>', 'Tasso, Aurora, Lava, Neon, Carbonio, Belva (scuri) e Ghiaccio, Sabbia (chiari). Tocca una scheda e l\'app cambia colore subito.'],
-             ['<b>Tasso acceso</b>', 'L\'interruttore generale: vedi il capitolo 11.'],
+             ['<b>Aggiornamenti di Tasso</b>', '<b>Controlla aggiornamenti</b> e <b>Aggiorna ora</b>: Tasso scarica la nuova versione, controlla che il file sia quello giusto e si riapre da solo. Le impostazioni restano.'],
+             ['<b>Aggiorna Tasso da solo</b>', 'Quando esce una versione nuova Tasso la scarica, controlla che sia firmata da noi e si riapre. Prima ti avvisa e puoi dire <b>Non ora</b>. <b>Non lo fa mai con un gioco aperto</b> né durante una pulizia.'],
+             ['<b>Lingua</b>', 'Italiano o English. Tasso si riapre nella lingua scelta.'],
+             ['<b>Scrivici</b>', 'Mandi un\'idea, un problema o un commento, con fino a 2 foto e, se vuoi, i dati del PC e la tua email per la risposta. C\'è anche in Info e indice.'],
+             ['<b>Aspetto</b>', 'Gaming: Tasso, Aurora, Lava, Neon, Carbonio, Belva (scuri), Ghiaccio e Sabbia (chiari). Ufficio: Azzurro, Salvia, Carta, Lavanda, Perla (chiari e morbidi) e Ardesia (scuro). Tocca una scheda e Tasso cambia colore subito; ogni modalità ricorda il suo tema.'],
+             ['<b>Mostra tutte le funzioni</b>', 'Solo in Gaming: fa vedere anche Prestazioni+ e, in Pulisci, le pulizie una per una.'],
+             ['<b>Avvisi</b>', 'Scegli di cosa vuoi essere avvisato. Gli <b>avvisi intelligenti</b> (disco quasi pieno, programma nuovo all\'avvio) non arrivano mai in modalità Gaming o FPS.'],
+             ['<b>Backup e collegamenti</b>', '<b>Backup foto e documenti</b>: copia (non sposta) Foto, Documenti, Desktop, Video e Musica su una chiavetta o un disco esterno. <b>Collegamento sul Desktop</b> per avere Tasso a portata di mano.'],
+             ['<b>Tasso acceso</b>', 'L\'interruttore generale: vedi il capitolo 13.'],
              ['<b>Avvia con Windows</b>', 'Tasso parte da solo, ridotto a icona, quando accendi il PC.'],
-             ['<b>Avvisi intelligenti</b>', 'Piccoli avvisi in basso a destra (disco quasi pieno, programma nuovo all\'avvio). Mai in modalità Gaming o FPS.'],
-             ['<b>Modalità gioco automatica</b>', 'Quando apri un gioco Tasso passa alla modalità Gaming e, quando lo chiudi, rimette quella di prima.'],
-             ['<b>Stato del PC su Discord</b>', 'Tasso scrive in un tuo canale privato di Discord il report del PC: voto di salute, processore, scheda video, scheda madre, RAM, dischi, temperature e internet, con le spunte verdi per quello che va bene. Scegli ogni quanto (3, 6, 12 o 24 ore); arriva anche dopo ogni pulizia. Serve l\'indirizzo di un webhook (Modifica canale, Integrazioni, Webhook, Copia URL), da incollare qui: la guida passo passo è dentro Tasso. Facoltativo: con un piccolo bot gratuito (guida in Tasso) scrivi <b>!stato</b> nel canale e il report arriva subito. Da Discord si può solo leggere: non si comanda il PC.'],
-             ['<b>Scrivici</b>', 'Mandi un\'idea, un problema o un commento, con fino a 2 foto e, se vuoi, i dati del PC e la tua email per la risposta. C\'è anche in Info. Se internet non va, Tasso prepara l\'email già scritta.'],
+             ['<b>Boost automatico</b>', 'Lo stesso interruttore della pagina Giochi: quando apri un gioco Tasso fa il Boost da solo e, quando lo chiudi, riapre i programmi chiusi e rimette la modalità di prima.'],
+             ['<b>Stato del PC su Discord</b>', 'Tasso scrive in un tuo canale privato di Discord il report del PC (voto di salute, pezzi, temperature e internet), ogni 3, 6, 12 o 24 ore e dopo ogni pulizia. Serve l\'indirizzo di un webhook: la guida passo passo è dentro Tasso. Facoltativo: con un piccolo bot gratuito scrivi <b>!stato</b> e il report arriva subito. Da Discord si può solo leggere: non si comanda il PC.'],
              ['<b>Aiuta a migliorare Tasso</b>', 'Numeri anonimi (versione, Windows, marca di processore e scheda video, RAM, spazio liberato, pulsanti usati, errori). Mai nome, file o indirizzo IP. Tasso lo chiede una volta; qui lo accendi o lo spegni quando vuoi.'],
-             ['<b>Modalità di Tasso</b>', 'Gaming o Ufficio, come il pulsante in alto a sinistra.'],
-             ['<b>Torna indietro</b>', 'L\'elenco di tutto quello che Tasso ha cambiato (impostazioni di Windows, programmi all\'avvio, comandi gaming, giochi regolati, profilo gioco), con un pulsante per rimettere com\'era ogni cosa o tutto insieme (vedi capitolo 11).']],
+             ['<b>Modalità di Tasso</b>', 'Gaming o Ufficio, come il pulsante in alto a sinistra. Cambia solo cosa vedi, non il PC.'],
+             ['<b>Torna indietro</b>', 'L\'elenco di tutto quello che Tasso ha cambiato, una cosa per riga, con un pulsante per rimettere com\'era ogni cosa o tutto insieme (vedi capitolo 13).']],
             [42 * mm, W - 2 * M - 42 * mm])]
+S += [P('<b>Togli Tasso dal PC</b>', 'h2'),
+      P('In fondo alle Impostazioni c\'è il pulsante <b>Togli Tasso dal PC</b>. Tasso toglie tutto quello che ha messo e poi si chiude. <b>I tuoi file, i giochi e i salvataggi non si toccano.</b>')]
+S += bullets(['Tasso toglie: la partenza con Windows e le pulizie automatiche; le traduzioni messe dentro i giochi (solo i file aggiunti da Tasso: gli originali sono intatti); le sue cartelle (impostazioni, registri e modelli della traduzione); il collegamento sul Desktop e il file di Tasso.',
+              'Restano: i punti di ripristino di Windows e i backup del registro fatti da Tasso, che vengono spostati in <b>Documenti &gt; Tasso - copie di sicurezza</b>.',
+              'Se nel portachiavi hai delle password, <b>si cancellano e non si recuperano</b>: prima copiale altrove e spunta "Ho copiato le password che mi servono".',
+              'Se c\'è una pulizia in corso, aspetta che finisca. Se un giorno rivuoi Tasso, lo riscarichi gratis.'])
 
-# 10 Spegnere
-S += chapter(11, 'Spegnere Tasso e rimettere com\'era', 'tu decidi')
+# 13 Spegnere
+S += chapter(13, 'Spegnere Tasso e rimettere com\'era', 'tu decidi')
 S += [P('In basso a sinistra c\'è il pulsante <b>"Tasso è acceso"</b>. Cliccalo per spegnerlo: da spento Tasso <b>non parte con Windows, non fa pulizie automatiche e non manda avvisi</b>. Quando lo spegni scegli cosa fare con le impostazioni che ha cambiato:')]
 S += [table([['Scelta', 'Cosa succede'],
              ['<b>Spegni e rimetti com\'era prima</b>', 'Le impostazioni di Windows cambiate da Tasso tornano esattamente come erano prima che lo usassi.'],
              ['<b>Spegni e lascia tutto così</b>', 'Tasso si spegne ma le impostazioni restano come sono adesso.']],
             [56 * mm, W - 2 * M - 56 * mm])]
 S += [box('Cosa torna com\'era e cosa no', ['<b>Torna com\'era:</b> piano energetico e limite del processore, spegnimento dello schermo e sospensione, notifiche, mouse, Modalità Gioco, impostazioni di privacy, programmi all\'avvio che hai acceso o spento da Tasso.',
-                                            '<b>Non può tornare indietro:</b> i file cancellati, i programmi disinstallati e gli aggiornamenti installati. Per quelli c\'è il backup di Windows del capitolo 12.'], VIOLET, VIOLET_BG)]
-S += [box('Spegnere o riavviare il PC non rimette niente', ['Tutto quello che Tasso cambia <b>resta così</b> anche se spegni o riavvii il PC. Torna com\'era solo quando lo decidi tu: dal pulsante qui sopra oppure da <b>Impostazioni → Torna indietro</b>, dove puoi rimettere com\'era una cosa alla volta o tutto insieme.'], GREEN, GREEN_BG)]
+                                            '<b>Non può tornare indietro:</b> i file cancellati, i programmi disinstallati e gli aggiornamenti installati. Per quelli c\'è il backup di Windows del capitolo 14.'], VIOLET, VIOLET_BG)]
+S += [box('Spegnere o riavviare il PC non rimette niente', ['Tutto quello che Tasso cambia <b>resta così</b> anche se spegni o riavvii il PC. Torna com\'era solo quando lo decidi tu: dal pulsante qui sopra, da <b>Impostazioni &gt; Torna indietro</b> (una cosa alla volta o tutto insieme) oppure, per il Boost, con <b>Rimetti com\'era</b> nella pagina Giochi.'], GREEN, GREEN_BG)]
 S += [P('Per riaccendere Tasso basta ricliccare il pulsante, oppure <b>Riaccendi Tasso</b> nella Home.', 'p')]
 
-# 11 Sicurezza
-S += chapter(12, 'Sicurezza e backup', 'niente paura')
-S += bullets(['<b>Backup automatico</b>: prima delle pulizie Media, Profonda ed Eccezionale Tasso crea un <b>punto di ripristino</b> di Windows.',
+# 14 Sicurezza
+S += chapter(14, 'Sicurezza e backup', 'niente paura')
+S += bullets(['<b>Backup automatico</b>: prima delle pulizie Media, Profonda ed Eccezionale Tasso crea un <b>punto di ripristino</b> di Windows. Lo crea anche prima di installare il driver della scheda video.',
               '<b>I tuoi file</b> non vengono mai cancellati senza conferma, e vanno nel Cestino.',
               '<b>Password e cookie</b> dei browser non vengono toccati: Tasso pulisce solo la cache.',
-              '<b>Driver</b>: Tasso installa solo quelli certificati da Microsoft (Windows Update); per il resto apre il sito ufficiale del produttore.',
+              '<b>Driver</b>: Tasso installa solo quelli certificati da Microsoft (Windows Update) o il driver NVIDIA preso da NVIDIA, con la firma di NVIDIA controllata; per il resto apre il sito ufficiale del produttore.',
+              '<b>Giochi</b>: Tasso non entra mai nella memoria dei giochi e non tocca i file dell\'anti-cheat. Nei giochi con anti-cheat traduce solo lo schermo, se non scegli tu diversamente.',
               '<b>Privacy</b>: lo strumento "Privacy: stop pubblicità e tracciamento" ha il suo tasto "Privacy: ripristina".'])
 S += [P('<b>Come tornare indietro con il backup di Windows</b>', 'h2')]
 S += steps(['Premi il tasto <b>Windows</b> e scrivi <b>Crea un punto di ripristino</b>, poi aprilo.',
@@ -484,23 +607,25 @@ S += steps(['Premi il tasto <b>Windows</b> e scrivi <b>Crea un punto di ripristi
             'Scegli il punto chiamato <b>"Tasso - prima della manutenzione"</b> e conferma. Il PC si riavvia com\'era in quel momento (i tuoi documenti non vengono toccati).'])
 S += [box('Cosa Tasso non fa, apposta', ['<b>Pulizia del registro</b>, <b>"libera RAM" continuo</b>, <b>acceleratori di internet</b> miracolosi, <b>driver da siti sconosciuti</b>, <b>overclock</b> e <b>aggiornamento automatico del BIOS</b>: o non servono davvero o sono troppo rischiosi da fare in automatico.'], RED, RED_BG)]
 
-# 12 FAQ
-S += chapter(13, 'Domande frequenti', 'dubbi veloci')
+# 15 FAQ
+S += chapter(15, 'Domande frequenti', 'dubbi veloci')
 faq = [
     ('L\'antivirus o Windows lo bloccano: cosa faccio?', 'È l\'avviso per i programmi che Windows non conosce ancora (capitolo 1): clicca <b>Ulteriori informazioni</b> e <b>Esegui comunque</b>. Se un antivirus lo mette in quarantena, puoi segnalarlo come falso allarme al produttore dell\'antivirus; per Microsoft Defender si fa da microsoft.com/wdsi/filesubmission.'),
     ('Posso tenerlo su una chiavetta USB?', 'Sì. Copia tutta la cartella Tasso sulla chiavetta e avvia Tasso.exe da lì: non serve installarlo. Le impostazioni vengono salvate sul PC in cui lo usi.'),
     ('Come lo mando a un amico?', 'Mandagli il link fisso <b>github.com/sergiotassoni/tasso/raw/main/Tasso.zip</b>: scarica sempre l\'ultima versione, senza account. Oppure entra nel server Discord di Tasso, dove trovi il link nel canale #tasso.'),
-    ('Rallenta il PC mentre gioco?', 'No. Tasso legge i sensori ogni 2 secondi solo mentre è aperto e lavora solo quando avvii qualcosa. In modalità Gaming e FPS non manda avvisi.'),
-    ('Se spengo il PC le impostazioni tornano come prima?', 'No. Restano come le ha messe Tasso, anche il Profilo gioco. Tornano com\'erano solo se lo chiedi tu da <b>Impostazioni → Torna indietro</b>.'),
-    ('Come si aggiorna Tasso?', 'Quando esce una versione nuova, in Home compare un avviso che ti porta in <b>Impostazioni → Aggiornamenti di Tasso</b>. Premi <b>Aggiorna ora</b>: Tasso scarica la nuova versione dalla pagina ufficiale, controlla che il file sia quello giusto e si riapre da solo. Le impostazioni restano. Se qualcosa non va, puoi sempre scaricare lo zip a mano.'),
+    ('Rallenta il PC mentre gioco?', 'No. Tasso legge i sensori ogni 2 secondi solo mentre è aperto e lavora solo quando avvii qualcosa. In modalità Gaming e FPS non manda avvisi, la pulizia programmata aspetta che il gioco sia chiuso e Tasso non si aggiorna mai con un gioco aperto.'),
+    ('Con Tasso Traduce rischio il ban?', 'Tasso Traduce di base <b>legge solo lo schermo</b> e non tocca il gioco. La traduzione dentro i file del gioco, nei giochi con anti-cheat, si accende solo se la scegli tu dopo l\'avviso sul rischio di ban (capitolo 4).'),
+    ('Se spengo il PC le impostazioni tornano come prima?', 'No. Restano come le ha messe Tasso. Tornano com\'erano solo se lo chiedi tu da <b>Impostazioni &gt; Torna indietro</b> (o con Rimetti com\'era, per il Boost).'),
+    ('Come si aggiorna Tasso?', 'Quando esce una versione nuova, in Home compare un avviso che ti porta in <b>Impostazioni &gt; Aggiornamenti di Tasso</b>. Premi <b>Aggiorna ora</b>, oppure accendi <b>Aggiorna Tasso da solo</b>. Le impostazioni restano. Se qualcosa non va, puoi sempre scaricare lo zip a mano.'),
+    ('Come tolgo Tasso dal PC?', 'Da <b>Impostazioni &gt; Togli Tasso dal PC</b> (capitolo 12): toglie tutto quello che ha messo e lascia stare i tuoi file.'),
     ('Dove salva le sue cose?', 'Nella cartella <b>%LOCALAPPDATA%\\Tasso</b>: impostazioni, registri di ogni pulizia e portachiavi cifrato.'),
     ('Una pulizia ci mette tanto: è normale?', 'Sì per Profonda ed Eccezionale: aggiornamenti di Windows, riparazione e deframmentazione possono richiedere tempo. Se un passaggio si blocca troppo a lungo, Tasso lo ferma da solo e va avanti.'),
     ('Si apre una finestra bianca o un messaggio su WebView2.', 'Manca il componente gratuito di Microsoft: premi OK, si apre la pagina ufficiale per installarlo, poi riapri Tasso.'),
 ]
 for q, a in faq:
     S += [KeepTogether([P('<b>%s</b>' % q, 'p'), P(a, 'p'), Spacer(1, 2)])]
-S += [Spacer(1, 6), box('In arrivo nelle prossime versioni', ['Firma digitale (serve un certificato a pagamento), lettore video e musica con sottotitoli, convertitori di file, registratore degli ultimi 30 secondi di gioco, statistiche delle ore giocate, blocco pubblicità, controllo webcam e microfono.'], BLUE, colors.HexColor('#EAF1FD'))]
-S += [Spacer(1, 10), P('Tasso 3.0', 'small')]
+S += [Spacer(1, 6), box('In arrivo nelle prossime versioni', ['Lettore video e musica con sottotitoli, convertitori di file, registratore degli ultimi 30 secondi di gioco, statistiche delle ore giocate, blocco pubblicità.'], BLUE, colors.HexColor('#EAF1FD'))]
+S += [Spacer(1, 10), P('Tasso 3.1', 'small')]
 
 doc.build(S)
 print('ok')

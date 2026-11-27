@@ -120,7 +120,7 @@ def cover(c, doc):
     c.drawCentredString(W / 2, H / 2 - 57 * mm, 'Cleans, repairs and boosts your PC. In one click.')
     c.setFont('Pop', 9)
     c.setFillColor(colors.HexColor('#8B91A7'))
-    c.drawCentredString(W / 2, 18 * mm, 'Version 3.0  ·  Windows 10 and 11  ·  2026')
+    c.drawCentredString(W / 2, 18 * mm, 'Version 3.1  ·  Windows 10 and 11  ·  2026')
     c.restoreState()
 
 
@@ -140,7 +140,7 @@ def page(c, doc):
 
 
 doc = BaseDocTemplate(OUT, pagesize=A4, leftMargin=M, rightMargin=M, topMargin=18 * mm, bottomMargin=17 * mm,
-                      title="Tasso - User manual", author='Tasso', subject='Tasso 2.6 manual')
+                      title="Tasso - User manual", author='Tasso', subject='Tasso 3.1 manual')
 frame = Frame(M, 17 * mm, W - 2 * M, H - 35 * mm, id='f', leftPadding=0, rightPadding=0, topPadding=0, bottomPadding=0)
 doc.addPageTemplates([PageTemplate(id='cover', frames=[frame], onPage=cover), PageTemplate(id='body', frames=[frame], onPage=page)])
 
@@ -150,142 +150,274 @@ S += [NextPageTemplate('body'), PageBreak()]
 # Indice
 S += [P('Contents', 'h1'), Spacer(1, 4)]
 toc = [
-    ('1', 'Getting started', 'opening Tasso, Gaming or Office, the Windows warning'),
-    ('2', 'Home', 'the PC score, the CLEAN UP button, the sensors'),
-    ('3', 'The 5 cleanups', 'Classic, Normal, Medium, Deep, Extreme'),
-    ('4', 'Speed', 'modes, Turbo, startup apps'),
-    ('5', 'Programs', 'uninstalling properly, preinstalled apps'),
-    ('6', 'Files', 'duplicates, large files, empty folders, shred and recover'),
-    ('7', 'Fix problems', 'the 100 office problems, games and Windows'),
-    ('8', 'Internet, disk and games', 'ping, Internet speed, disk, games'),
-    ('9', 'Hardware', 'components, sensors, BIOS, graphics card'),
-    ('10', 'Settings', 'themes, start with Windows, alerts'),
-    ('11', 'Turning Tasso off and putting things back', 'the switch and the restore'),
-    ('12', 'Safety and backup', 'how to go back if you need to'),
-    ('13', 'Frequently asked questions', 'antivirus, USB stick, sending it to a friend'),
+    ('1', 'Getting started', 'opening Tasso, Gaming or Office, the menu'),
+    ('2', 'Home', 'the big button, the state of your PC'),
+    ('3', 'Games', 'the library, the game page, Prepare the game, the Boost'),
+    ('4', 'Tasso Traduce', 'English games translated on screen'),
+    ('5', 'The 5 cleanups', 'Classic, Normal, Medium, Deep, Extreme'),
+    ('6', 'PC startup', 'modes and startup apps'),
+    ('7', 'Programs', 'uninstalling properly, preinstalled apps'),
+    ('8', 'Files', 'duplicates, large files, empty folders, shred and recover'),
+    ('9', 'Fix a problem', 'Windows, the 27 game problems, the office, drivers'),
+    ('10', 'Other tools', 'health, internet, disk, vault'),
+    ('11', 'Hardware', 'components, sensors, BIOS, graphics card'),
+    ('12', 'Settings', 'themes, updates, Remove Tasso'),
+    ('13', 'Turning Tasso off and putting things back', 'the switch and restoring'),
+    ('14', 'Safety and backup', 'how to go back if you need to'),
+    ('15', 'FAQ', 'antivirus, USB stick, bans, sharing it with a friend'),
 ]
 rows = [[Paragraph('<font name="PopB" color="#0FA46E">%s</font>' % n, st['toc']), Paragraph('<b>%s</b>' % t, st['toc']), Paragraph(d, st['small'])] for n, t, d in toc]
 tt = Table(rows, colWidths=[12 * mm, 62 * mm, W - 2 * M - 74 * mm])
 tt.setStyle(TableStyle([('LINEBELOW', (0, 0), (-1, -1), 0.5, LINE), ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'), ('TOPPADDING', (0, 0), (-1, -1), 4), ('BOTTOMPADDING', (0, 0), (-1, -1), 4)]))
 S += [tt, Spacer(1, 10)]
 S += [box('In short', ['Tasso is a free program that keeps your PC clean, fast and tidy. It uses Microsoft\'s official tools, makes an <b>automatic backup</b> before the big cleanups, and never deletes your personal files without asking you first: whatever you choose to delete goes to the <b>Recycle Bin</b>.'], GREEN, GREEN_BG)]
+S += [box('What\'s new in 3.1', bullets([
+    '<b>New, simpler menu</b>: Home, Games, Clean &amp; fix, Settings. At the top you pick Gaming or Office.',
+    '<b>Tasso Traduce</b>: English games translated on screen, with F7 (chapter 4).',
+    'A new <b>Games page</b>, with a page for every game and <b>Prepare the game</b>. The <b>Boost</b> measures real FPS and "Put it back" restores everything (chapter 3). The Boost now replaces Turbo, the Game profile and Optimize before playing.',
+    '<b>Screen refresh rate</b> and <b>graphics card drivers</b> inside Tasso, always with a way back.',
+    '<b>14 more game problems</b> (27 in all) and, for Office, <b>Ready for the video call?</b>, <b>Meeting mode</b>, <b>Who used the webcam and microphone</b>, <b>Lock the PC when you get up</b> (chapter 9).',
+    '<b>Update Tasso by itself</b> (never while a game is open) and <b>Remove Tasso from this PC</b>, in Settings (chapter 12).']), VIOLET, VIOLET_BG)]
 
 # 1 Primi passi
 S += chapter(1, 'Getting started', 'the basics')
 S += [P('<b>What you need</b>', 'h2')]
 S += bullets(['A PC with 64-bit <b>Windows 10 or Windows 11</b>.',
               '<b>Microsoft Edge WebView2</b>: it\'s already built into Windows 11 and almost every Windows 10 PC. If it\'s missing, Tasso opens the official Microsoft page for you so you can install it for free.',
-              '<b>Administrator</b> rights on the PC (the ones you usually have on your home computer).'])
+              '<b>Administrator</b> rights on the PC (the ones you usually have on your home computer). If you\'re not an administrator, Windows asks for an administrator\'s password.'])
 S += [P('<b>How to open it</b>', 'h2')]
 S += steps(['Download <b>Tasso.zip</b> from github.com/sergiotassoni/tasso, right-click the file and choose <b>Extract All</b>.',
             'Open the <b>Tasso</b> folder and double-click <b>Tasso.exe</b>.',
-            'Windows asks "Do you want to allow this app to make changes to your device?": click <b>Yes</b>. Tasso needs this to clean and repair the system.',
+            'Windows asks "Do you want to allow this app to make changes to your device?": click <b>Yes</b>. Tasso needs it to clean and repair the system.',
             'If the blue <b>"Windows protected your PC"</b> screen shows up, click <b>More info</b> and then <b>Run anyway</b> (see the box below).'])
+S += [P('Tasso also runs from a USB stick, without installing it. Only if you turn on scheduled cleanup or "Start with Windows" does Tasso put a copy of itself in Program Files\\Tasso, so Windows can start it on its own.', 'small')]
 S += [box('Why does Windows say "Windows protected your PC"?', ['Tasso is <b>digitally signed</b> (see Properties &gt; Digital Signatures), but Windows shows this warning for programs that haven\'t been downloaded by enough people yet. It doesn\'t mean Tasso is a virus: Windows just doesn\'t know it yet. The more people use it, the less often it shows up.'], AMBER, AMBER_BG)]
 S += [P('<b>First-time setup</b>', 'h2'),
-      P('The first time, Tasso asks you <b>how you\'ll use the PC</b>. Click the right card (Tasso shows you right away what it will look like) and then <b>Continue</b>:')]
+      P('The first time, Tasso asks you <b>how you\'ll use the PC</b>. Tap the right card (Tasso shows you right away what it will look like) and then <b>Continue</b>:')]
 S += [table([['Mode', 'What Tasso looks like and what it sets'],
-             ['<b>Gaming</b>', 'All of Tasso: games, FPS, server ping, Turbo, Performance+, dark and colorful themes. It puts the PC in Gaming mode.'],
-             ['<b>Office</b>', 'Simpler and calmer: soft, light colors, a cuter badger, no games, FPS or ping. In Fix problems you\'ll find the <b>100 most common office problems</b> right away. It puts the PC in Normal mode and sets up a weekly scheduled cleanup.']],
+             ['<b>Gaming</b>', 'For gamers: games, Boost, FPS, ping to the servers, Tasso Traduce, dark and colourful themes. It sets the PC\'s Gaming mode.'],
+             ['<b>Office</b>', 'Simpler and calmer: light, soft colours, a cuter badger, no games, FPS or ping. In Fix a problem you\'ll find the <b>most common office problems</b> right away. It sets Normal mode and a weekly scheduled cleanup.']],
             [32 * mm, W - 2 * M - 32 * mm])]
-S += [P('You can switch modes whenever you want with the <b>Gaming / Office</b> button at the top left, under the logo (or from <b>Settings</b>). The button only changes how Tasso looks; it doesn\'t touch the PC. Each mode remembers its own theme.', 'small')]
+S += [P('You can switch whenever you want with the <b>Gaming / Office</b> button at the top left, under the word TASSO (or from <b>Settings</b>). The button only changes how Tasso looks; it doesn\'t touch the PC. Each mode remembers its own theme.', 'small')]
+S += [P('<b>The menu</b>', 'h2')]
+S += [table([['Item', 'What you\'ll find'],
+             ['<b>Home</b>', 'The big button and the state of your PC (chapter 2).'],
+             ['<b>Games</b>', 'Gaming only. Your games, the Boost and the translation (chapters 3 and 4). Underneath are <b>My games</b>, <b>History</b>, <b>Game settings</b> and your recently played games.'],
+             ['<b>Clean &amp; fix</b>', 'Clean up, Health &amp; problems, Fix a problem, PC startup, Programs, Internet, Hardware, Files, Disk map, Vault (and Performance+ in Gaming).'],
+             ['<b>Settings</b>', '<b>Tasso settings</b> (chapter 12) and <b>Info &amp; index</b>: the list of everything Tasso can do, what\'s new and the licences.']],
+            [36 * mm, W - 2 * M - 36 * mm])]
+S += [P('In Gaming the menu only keeps the things for playing. To also see Performance+ and the individual cleanup steps, turn on <b>Show all features</b> in Settings.', 'small')]
 
 # 2 Home
 S += chapter(2, 'Home', 'at a glance')
-S += bullets(['<b>The PC score</b> (from 0 to 100%): it takes into account junk files, free space, startup apps, the state of your disks and how long it\'s been since the last cleanup.',
-              '<b>PC health</b>: the score from 0 to 100 with tips to improve it (see chapter 8).',
-              '<b>The round CLEAN UP button</b>: starts the recommended cleanup (Medium). First it shows you what it will do and asks you to confirm.',
-              '<b>Choose the power</b>: the five cards to pick the cleanup you want (see chapter 3).',
-              '<b>Scheduled cleanup</b>: below the cleanups. Choose the day, the time, the level (Classic, Normal or Medium; Deep or Extreme too if you want, but they take longer) and whether to run it every week or every 2 weeks. If the PC is off at that time, Tasso cleans as soon as you turn it back on. In a scheduled cleanup Tasso is more careful: from the Recycle Bin it only removes what was thrown away more than 7 days ago, and it skips the long jobs if the laptop is running on battery.',
-              '<b>The sensors</b> at the bottom: how hard the processor is working, the RAM in use, how full the disk is and, with NVIDIA cards, the graphics card temperature.',
-              '<b>The active mode</b> is shown at the top right (Normal, Gaming, FPS, Movie, Quiet).'])
+S += [P('<b>In Gaming</b>', 'h2')]
+S += bullets(['<b>BOOST</b>: one button before you play. Tasso closes the background programs you don\'t need and gets the PC ready. When you\'re done, press <b>Put it back</b> on the Games page (chapter 3).',
+              '<b>Clean up</b>: starts the recommended cleanup.',
+              'Four numbers, each with its shortcut: <b>PC health</b>, <b>To free up</b> (junk files), <b>Free space</b> and <b>Startup apps</b>.',
+              'Below, shortcuts to <b>Health &amp; problems</b>, <b>Clean up</b>, <b>Fix a problem</b> and <b>Games</b>.'])
+S += [P('<b>In Office</b>', 'h2')]
+S += bullets(['<b>The round CLEAN UP button</b>: starts the recommended cleanup (Medium). First it shows you what it will do and asks you to confirm.',
+              '<b>PC status</b>: Tasso looks at how many junk files there are and how the disks are doing.',
+              'Shortcuts to <b>Health &amp; problems</b> and <b>Fix a problem</b>.',
+              '<b>Show details</b>: the PC health score (from 0 to 100, with tips), the files to free up, free space, startup apps and the sensors.'])
+S += [P('The PC\'s <b>active mode</b> is written at the top (Normal, Gaming, FPS, Movie, Quiet). When a new version of Tasso is out, a notice shows up in Home.', 'p')]
 
-# 3 Pulizie
-S += chapter(3, 'The 5 cleanups', 'the heart of Tasso')
+# 3 Giochi
+S += chapter(3, 'Games', 'Gaming only')
+S += [P('The <b>Games</b> page keeps your games, the Boost and the translation in one place. The <b>Boost</b> is at the top; below are three tabs: <b>My games</b>, <b>History</b> (the translations, chapter 4) and <b>Settings</b>.')]
+S += [P('<b>Your library</b>', 'h2'),
+      P('All your games in one place, with their covers: Steam, Epic, GOG, EA, Ubisoft, Battle.net, Xbox, Riot and even the ones installed by hand. If a game is missing, press <b>Add a game</b>. Tasso looks for missing covers in the Steam store, sending only the game\'s name or Steam number (never for games added by hand).')]
+S += [P('<b>The page for each game</b>', 'h2'),
+      P('Tap a game and its page opens:')]
+S += bullets(['<b>PLAY</b>: opens the game from its store, with the settings Tasso remembers for that game.',
+              '<b>PREPARE STEP BY STEP</b>: the <b>Prepare the game</b> guide (below).',
+              '<b>Power when you open the game</b>: Normal, High or Maximum. Tasso sets it by itself when you open that game and removes it when you close it.',
+              '<b>Translate</b> or <b>Remove the translation</b> for that game.',
+              '<b>Tools for this game</b>: screen translation, other players\' chat, history, recommended settings, Measure FPS, FPS check, in-game overlay, autoclicker, "won\'t start or files missing", "stutters", the other game problems, the game folder and "Hide or uninstall" (with the store\'s official program, which asks you to confirm).'])
+S += [P('<b>Prepare the game</b>', 'h2'),
+      P('A step-by-step guide that tunes the game and the translation, one thing at a time. Press <b>Next</b> at each step:')]
+S += steps(['<b>Choose the game</b> and press <b>Yes, confirm</b>.',
+            '<b>Which language is the game in?</b> If you don\'t know, press <b>Detect it for me</b>. If the game already has an official version in your language, Tasso tells you: pick it in the game\'s options.',
+            '<b>Which language do you want it in, and how do I translate it?</b> <b>On screen</b> (reads the screen, doesn\'t touch any file: the safe choice) or <b>Inside the game</b> (only for some games, with a backup copy). Here you also choose the AI (chapter 4).',
+            '<b>How much power?</b> Normal, High power (fine for every game) or Maximum power (plus the mouse without acceleration, for shooters).',
+            '<b>Recommended settings</b>: worked out for the game and for your PC. Tasso only applies the safe ones, and you can remove them whenever you want. You can also skip them.',
+            'Press <b>Apply</b>: Tasso does everything by itself.'])
+S += [P('<b>The Boost</b>', 'h2'),
+      P('The Boost gets the PC ready for gaming with one button. It always tells you what it really does:')]
+S += bullets(['It sets power to maximum (not if the laptop is on battery).',
+              'It gently closes the sync and chat programs running in the background without a window (OneDrive, Dropbox, Google Drive, iCloud, Teams, Zoom, Skype) and reopens them when you finish playing. It never closes Discord, OBS and streaming programs, Spotify, Steam and the other launchers, browsers, or anything with an open window. In <b>What the Boost closes</b> you can tell it to also never close other programs.',
+              'It turns on the Windows settings that help gaming. They stay on until you press <b>Put it back</b>.',
+              'Honestly: the Windows settings usually give between 0 and 10% more FPS; they help most on PCs with lots of open programs and on laptops.'])
+S += [table([['Button', 'What it does'],
+             ['<b>BOOST</b>', 'Choose the game and confirm: Tasso prepares it with the right power. From then on it does it by itself every time you open that game.'],
+             ['<b>Boost now</b>', 'The Boost without choosing the game.'],
+             ['<b>Put it back</b>', 'Everything goes back to how it was before the Boost and the closed programs reopen.'],
+             ['<b>Measure FPS</b>', 'Play for 30 seconds: Tasso tells you the real FPS and the drops. It reads them from Windows (with PresentMon, Intel\'s free program), without getting into the game. Measure without and with the Boost to see the real difference.'],
+             ['<b>FPS check</b>', 'Checks screen, graphics card, RAM, temperatures and drivers. It fixes what it can by itself and tells you the rest, one step at a time.'],
+             ['<b>Auto Boost</b>', 'When you open a game Tasso Boosts by itself; when you finish it reopens the closed programs and puts the mouse and mode back.']],
+            [38 * mm, W - 2 * M - 38 * mm])]
+S += [box('Screen refresh rate (Hz)', ['If the FPS check sees that the screen runs slower than it can (for example 60 Hz on a 144 Hz screen), it offers to change it. Tasso uses <b>only the rates your monitor declares</b> (up to 1000 Hz). After the change it asks <b>"Does the screen look fine?"</b>: if you don\'t press <b>Keep</b> within 15 seconds, it goes back by itself. So if the screen goes black, just wait.'], GREEN, GREEN_BG)]
+S += [box('The graphics card driver', ['From the FPS check, or from <b>Fix a problem &gt; Drivers for the whole PC</b> with the <b>Update with Tasso</b> button, Tasso updates the graphics card driver:',
+                                       '<b>NVIDIA</b>: it downloads it only from the NVIDIA site and checks that it\'s signed by NVIDIA before installing it.',
+                                       '<b>AMD</b>: it gets it from Windows Update (the AMD driver certified by Microsoft). If you have AMD Software, Tasso tells you to update from there.',
+                                       'It always creates a <b>restore point</b> first. If the new driver gives you trouble, press <b>Back to the previous driver</b> (or use the restore point).'], BLUE, colors.HexColor('#EAF1FD'))]
+S += [P('<b>Other tools for gaming</b>', 'h2')]
+S += bullets(['<b>Settings one by one</b> (Game settings): the gaming commands the Boost already turns on. Here you turn them on or off one by one: each one explains what it does and whether there are risks. When off, they go back to how they were before Tasso.',
+              '<b>In-game overlay</b>: small, see-through text in a corner of the screen. You choose what to show (processor, graphics card, temperatures, RAM, time) and in which of the 4 corners. It can\'t be clicked. It shows in windowed or "borderless fullscreen" games. <b>Ctrl + Shift + F12</b> shows or hides it; with <b>Show it automatically when I play</b> (needs Auto Boost) it appears when you open a game.',
+              '<b>Autoclicker</b>: clicks for you, every so many milliseconds, seconds or minutes, with the button you want, where the mouse is or at a fixed point. <b>F6</b> starts and stops it, even in the game; <b>Esc</b> always stops it.',
+              '<b>Ping to game servers</b> (in Internet): delay, stability and packet loss to the real Riot, Valve and Amazon servers.'])
+S += [box('Autoclicker and online games', ['In online games with anti-cheat (League of Legends, Valorant, Fortnite, CS2 and others) the autoclicker is against the rules and can get your account banned. Use it in single-player games, "clicker" games, or wherever it\'s allowed.'], AMBER, AMBER_BG)]
+
+# 4 Tasso Traduce
+S += chapter(4, 'Tasso Traduce', 'games in your language')
+S += [P('Tasso Traduce translates English games <b>on screen</b> (for example into Italian; you choose the language in Games &gt; Game settings). Press <b>F7</b> in the game: the English text is covered by the translation, in the same place, with the same size and colour as the game. It runs on your PC, no subscription.')]
+S += [P('<b>Getting started</b>', 'h2')]
+S += steps(['Go to <b>Games &gt; Settings</b> and download the <b>Fast translator</b> (about 35 MB, only once). From then on it translates on your PC, without the internet.',
+            'Open the game with <b>PLAY</b>, or prepare it with <b>Prepare the game</b> (chapter 3).',
+            'In the game press <b>F7</b>: the text is translated.'])
+S += [P('<b>Keys in the game</b>', 'h2')]
+S += [table([['Key', 'What it does'],
+             ['<b>F7</b>', 'Turns the translation on and off.'],
+             ['<b>F9</b>', 'Translate one area only: you pick the piece of the screen.'],
+             ['<b>F10</b>', 'Translate again what\'s there now.'],
+             ['<b>F11</b>', 'Automatic area.'],
+             ['<b>F8</b>', 'The history: the latest translated text.'],
+             ['<b>Ctrl + Alt + I</b>', 'Shows the English.']],
+            [36 * mm, W - 2 * M - 36 * mm])]
+S += [P('These keys never reach the game. If you want, change them in <b>Games &gt; Settings &gt; Keys in the game</b>.', 'small')]
+S += [P('<b>The AI that polishes the translation</b>', 'h2'),
+      P('It\'s <b>optional</b>. An artificial intelligence on your graphics card double-checks the sentences and makes them sound more natural. You download it once, about <b>10 GB</b>, in Games &gt; Settings. It uses 2 to 5 GB of the graphics card\'s memory and always leaves room for the game: if there isn\'t enough, Tasso uses the fast translator.')]
+S += [table([['Level', 'What it means'],
+             ['<b>Automatic</b>', 'Tasso picks by itself the smartest level that fits, game by game.'],
+             ['<b>Small</b>', 'Fast and almost as accurate as Large, with 1 GB less.'],
+             ['<b>Medium</b>', 'For games that use a lot of graphics card.'],
+             ['<b>Large</b>', 'The smartest. For graphics cards with 12 GB or more.'],
+             ['<b>Off</b>', 'Only the fast translator translates: the graphics card stays all for the game.']],
+            [36 * mm, W - 2 * M - 36 * mm])]
+S += [P('<b>Other players\' chat</b>', 'h2'),
+      P('Optional. For each game you draw the chat box once (<b>Choose where the chat is</b>). With the translation on, the other players\' new messages show up translated next to the game\'s chat. Tasso only reads the screen.')]
+S += [P('<b>Other choices</b> (Games &gt; Settings)', 'h2')]
+S += bullets(['<b>Game language</b> and <b>Language you want</b>.',
+              '<b>Where to put the translation</b>: above the text, below it, instead of the text, to the side or at the bottom like subtitles; and the text size.',
+              '<b>Also show the English</b>: under the translation you also see the original sentence.',
+              '<b>Translate by itself as soon as I open a game</b>: when it\'s off, Tasso translates by itself the games you prepared and asks for the others.',
+              '<b>History</b>: the latest translated text, newest first. It stays only on your PC; you can save it to a file.'])
+S += [box('Games with anti-cheat: no risks', ['In games with anti-cheat Tasso <b>translates the screen</b>: the game isn\'t touched. Translating <b>inside the game\'s files</b> is off, and only turns on if you choose it, <b>game by game</b>, after reading the warning about the <b>risk of a ban</b> and ticking "I understand the ban risk and I choose to translate inside this game". The safest choice is always <b>On screen</b>.'], AMBER, AMBER_BG)]
+
+# 5 Pulizie
+S += chapter(5, 'The 5 cleanups', 'the heart of Tasso')
+S += [P('You\'ll find them in <b>Clean &amp; fix &gt; Clean up</b>. From Medium up, an automatic backup is made first.')]
 S += [table([['Cleanup', 'Time', 'What it does', 'When'],
              ['<b>1 Classic</b>', '1 min', 'Your temporary files, the Recycle Bin and photo thumbnails.', 'Whenever you want, even every day.'],
-             ['<b>2 Normal</b>', '3 min', 'Everything in Classic + Windows temporary files, browser cache, DNS cache.', 'Every week.'],
-             ['<b>3 Medium</b>', '16 min', 'Everything in Normal + <b>backup</b>, app cache (Discord, Steam, Teams, Epic) and graphics card cache, Windows Update cache, useless system files, driver leftovers, launcher cache. This is the <b>recommended</b> one.', 'Every 2 weeks.'],
-             ['<b>4 Deep</b>', '55 min', 'Everything in Medium + drivers and Windows updates, old graphics drivers, startup apps, browser extensions, disk health, security, defragmentation or TRIM, antivirus.', 'Once a month.'],
+             ['<b>2 Normal</b>', 'a few min', 'Everything in Classic + Windows temporary files, browser caches, DNS cache.', 'Every week.'],
+             ['<b>3 Medium</b>', '16 min', 'Everything in Normal + <b>backup</b>, app caches (Discord, Steam, Teams, Epic) and graphics card cache, Windows Update cache, useless system files, leftover drivers, launcher caches. It\'s the <b>recommended</b> one.', 'Every 2 weeks.'],
+             ['<b>4 Deep</b>', '50 min', 'Everything in Medium + drivers and Windows updates, old graphics drivers, startup apps, browser extensions, disk health, security, defragmentation or TRIM, antivirus.', 'Once a month.'],
              ['<b>5 Extreme</b>', '90 min', 'Everything in Deep + Windows repair (DISM and SFC), stability (crashes and hardware errors), a check of every program, disk errors, devices.', 'When the PC has problems, or every 2-3 months.']],
             [28 * mm, 17 * mm, 90 * mm, W - 2 * M - 135 * mm])]
-S += [box('The PC score, before and after', ['In <b>Cleanup</b> you\'ll find the <b>PC score</b>: in a few seconds it measures the speed of the processor, memory and disk, and how "light" Windows is (memory in use, background and startup programs, free space, junk files). All scores go <b>from 1 to 100</b> (70 = an average gaming PC of today), and there\'s an <b>overall score</b> with a <b>rank</b>: slow PC (below 40), office PC (40-59), good PC (60-79), fast PC (80-94), top (95 and up). If you turn on "Measure before and after each cleanup", you can see how much it helped. Honestly: cleanup mostly improves lightness; the speed of the parts depends on the hardware.'], GREEN, GREEN_BG)]
+S += [box('The Recycle Bin', ['Tasso empties the Recycle Bin, but <b>keeps what you deleted in the last 24 hours</b>: so you can still get it back. Scheduled cleanup is even more careful: it only removes what has been in the Recycle Bin <b>for more than 7 days</b>.'], GREEN, GREEN_BG)]
+S += [P('<b>Scheduled cleanup</b>', 'h2'),
+      P('On the same page. Tasso cleans by itself, without you having to open it. Choose the day, the time, the level (Classic, Normal or Medium; if you want, also Deep or Extreme, which take longer) and whether every week or every 2 weeks. If the PC is off at that time, Tasso cleans as soon as you turn it back on. <b>If you\'re playing, it waits</b> until the game is closed (4 hours at most, then it does it next time). It skips the long jobs if the laptop is on battery. If a restart is needed at the end, Tasso doesn\'t do it by itself: it tells you.')]
+S += [box('The PC score, before and after', ['In <b>Clean up</b> you\'ll find the <b>PC score</b>: in about 20 seconds it measures the speed of the processor, memory and disk, and how "light" Windows is (memory in use, background and startup programs, free space, junk files). All scores go <b>from 1 to 100</b> (70 = an average gaming PC of today), and there\'s an <b>overall score</b> with a <b>rank</b>: slow PC (below 40), office PC (40-59), good PC (60-79), fast PC (80-94), top (95 and up). If you turn on "Measure automatically before and after every cleanup", you can see how much it helped. Honestly: cleanup mostly improves lightness; the speed of the parts depends on the hardware.'], GREEN, GREEN_BG)]
 S += [P('<b>During the cleanup</b>', 'h2')]
 S += bullets(['The bar moves and the messages change: the PC is working, and you can go do something else in the meantime.',
-              'On the right you can see the <b>space freed up</b>, the <b>time left</b> and the <b>details</b> of each step.',
-              '<b>Stop</b>: Tasso stops as soon as the current step is finished, so nothing is left half done.',
-              '<b>Turn off the PC when it\'s done</b>: check the box before you start. At the end the PC turns off after 2 minutes, and you can cancel with the <b>Cancel the shutdown</b> button.',
-              'Close your browsers before you start: open ones are skipped.'])
+              'On the right you see the <b>space freed up</b>, the <b>time left</b> and the <b>details</b> of each step.',
+              '<b>Stop</b>: Tasso stops as soon as the current step is finished, so it doesn\'t leave anything half done.',
+              '<b>Turn off the PC when it\'s done</b>: tick the box before starting. At the end the PC turns off after 2 minutes, and you can cancel with the <b>Cancel the shutdown</b> button.',
+              'Close your browsers before starting: the ones that are open get skipped.',
+              '<b>One step at a time</b>: the cleanups and repairs one by one, to run whenever you want (in Gaming, first turn on "Show all features").'])
 S += [box('When it\'s done', ['You\'ll see the space freed up, how long it took and the full log. If updates were installed or repairs were made, Tasso offers to <b>restart</b>. Every cleanup is saved in a log (Settings, <b>Open the logs folder</b>).'], GREEN, GREEN_BG)]
 
-# 4 Velocità
-S += chapter(4, 'Speed', 'snappier')
-S += [P('<b>The modes</b>', 'h2')]
+# 6 Avvio del PC
+S += chapter(6, 'PC startup', 'snappier')
+S += [P('<b>The PC modes</b>', 'h2')]
 S += [table([['Mode', 'What it does'],
-             ['<b>Normal</b>', 'A balance between speed and power use, with notifications on. Good for every day.'],
+             ['<b>Normal</b>', 'A balance between speed and power use, notifications on. Fine for every day.'],
              ['<b>Gaming</b>', 'Power plan at maximum, Windows Game Mode on, notifications paused.'],
              ['<b>Competitive FPS</b>', 'Like Gaming, plus the mouse without acceleration for more precise aim.'],
              ['<b>Movie</b>', 'No notifications, and the screen doesn\'t turn off during the movie.'],
              ['<b>Quiet</b>', 'Processor limited to 70%: less heat and calmer fans.']],
             [36 * mm, W - 2 * M - 36 * mm])]
-S += [P('Before turning on a mode, Tasso checks the PC and lets you know if needed: for example if you\'re on a laptop (better to keep the charger plugged in) or if you have little RAM.', 'p')]
-S += [P('<b>Turbo</b>', 'h2'),
-      P('It closes background programs you don\'t need while you play (OneDrive, Teams, Skype, Dropbox and similar) and frees up memory. It doesn\'t touch your games, Discord or your browser. The closed programs open again by themselves the next time you start the PC.')]
+S += [P('Before turning on a mode, Tasso checks the PC and lets you know if needed: for example if you\'re on a laptop (better to keep the charger plugged in) or if you have little RAM. <b>For gaming, use the Boost</b> on the Games page: it sets maximum power and removes it when you\'re done.', 'p')]
 S += [P('<b>Startup apps</b>', 'h2'),
-      P('Every program that starts when you turn on the PC has its own <b>switch</b>. Turn off the ones you don\'t need right away: Windows will start faster. The program stays installed; it just doesn\'t start by itself.'),
-      P('<b>Startup guard</b>: if a new program quietly adds itself to startup, Tasso lets you know with a small alert.', 'p')]
+      P('Every program that starts when you turn on the PC has its own <b>switch</b>. Turn off the ones you don\'t need right away: Windows starts faster. The program stays installed, it just doesn\'t start by itself.'),
+      P('<b>Startup guard</b>: if a new program sneaks into startup, Tasso lets you know with a small alert.', 'p')]
 
-# 5 Programmi
-S += chapter(5, 'Programs', 'install and remove')
+# 7 Programmi
+S += chapter(7, 'Programs', 'install and remove')
 S += [P('<b>Uninstalling properly</b>', 'h2')]
 S += steps(['Go to <b>Programs</b> and find the program (you can type its name in the search bar).',
-            'Click <b>Uninstall</b> and follow the windows of the uninstaller.',
+            'Click <b>Uninstall</b> and follow the uninstaller\'s windows.',
             'At the end, Tasso looks for <b>leftover folders</b> and asks you whether to move them to the Recycle Bin.'])
+S += [P('Don\'t uninstall your games, Discord, Steam, Epic Games or Riot from here: you could lose saved games and data. Remove them from their launcher.', 'small')]
 S += [P('<b>Preinstalled apps</b>', 'h2'),
-      P('These are the little games and ad apps that Windows installs by itself (Candy Crush, TikTok, Solitaire, News and similar). The ones already checked are useless for almost everyone; remove the others only if you don\'t use them. If you need one again, you can reinstall it for free from the Microsoft Store.')]
+      P('These are the little games and promotional apps that Windows installs by itself (Candy Crush, TikTok, Solitaire, News and the like). The ones already ticked are useless for almost everyone; only remove the others if you don\'t use them. If you need one again, you can reinstall it for free from the Microsoft Store.')]
+S += [P('<b>Program updates</b>', 'h2'),
+      P('Chrome, Discord, 7-Zip, VLC and the others: press <b>Check for updates</b> and Tasso finds the new versions with winget (free, built into Windows). Update them one by one or all together. Close the programs before updating them. Games update from their launcher.')]
 
-# 6 File
-S += chapter(6, 'Files', 'order and space')
+# 8 File
+S += chapter(8, 'Files', 'order and space')
 S += steps(['Go to <b>Files</b> and click <b>Scan my files</b>. Tasso looks in Desktop, Documents, Pictures, Videos, Music and Downloads.',
-            'It shows you <b>duplicate files</b> (the first one in each group stays, the copies are checked), the <b>largest files</b> (you choose: over 100 MB, 300 MB or 1 GB; the ones not touched in over a year are marked), <b>empty folders</b> and <b>broken shortcuts</b>. With <b>Add a folder or drive</b> you can also check another folder or an external drive.',
-            'Check the boxes and click <b>Move selected to Recycle Bin</b>. Until you empty the Recycle Bin, you can get everything back.'])
+            'It shows you <b>duplicate files</b> (the first of each group stays, the copies are ticked), <b>the largest files</b> (you choose: over 100 MB, 300 MB or 1 GB), <b>empty folders</b> and <b>broken shortcuts</b>. With <b>Add a folder or drive</b> you can also check another folder or an external drive.',
+            'Check the ticks and click <b>Move selected to Recycle Bin</b>. Until you empty the Recycle Bin, you can get everything back.'])
 S += [table([['Tool', 'What it\'s for'],
-             ['<b>Shred files</b>', 'For private documents, even several files at once: they get overwritten and deleted, and <b>can no longer be recovered</b>. Honestly: on SSDs Windows moves data around by itself, so a 100% guarantee doesn\'t exist; Tasso also asks the disk to clear free space right away (TRIM). For a PC you\'re selling, also use Wipe free space.'],
+             ['<b>Shred files</b>', 'For confidential documents, even several files at once: they get overwritten and deleted, and <b>can no longer be recovered</b>. Honestly: on SSDs Windows moves data around by itself, so a total guarantee doesn\'t exist; Tasso also asks the disk to wipe free space right away (TRIM). For a PC you\'re selling, also use Wipe free space.'],
              ['<b>Recover deleted files</b>', 'Opens the Recycle Bin and Microsoft\'s free tool with its guide. Tip: don\'t save new files until you\'ve recovered the ones you need.'],
-             ['<b>Wipe free space</b>', 'Makes it impossible to recover files that were already deleted in the past. Useful before you sell or give away the PC. It can take hours.']],
+             ['<b>Wipe free space</b>', 'Makes it impossible to recover files deleted in the past. Useful before selling or giving away the PC. It can take hours.']],
             [44 * mm, W - 2 * M - 44 * mm])]
 
-# 7 Risolvi
-S += chapter(7, 'Fix problems', 'one click on the problem')
+# 9 Risolvi
+S += chapter(9, 'Fix a problem', 'one click on the problem')
+S += [P('In <b>Clean &amp; fix &gt; Fix a problem</b> you tap the problem you have and Tasso tries to fix it by itself. At the top there\'s <b>one single search</b>: type the problem (for example "audio", "slow", "mouse" or "password") and Tasso shows you only the right ones. Don\'t know what the problem is? Open <b>Health &amp; problems</b> (chapter 10) and Tasso will tell you.')]
+S += [P('<b>Windows section</b> (for everyone)', 'h2')]
 S += [table([['Problem', 'What Tasso does'],
              ['<b>I can\'t hear any sound</b>', 'Restarts the Windows audio services and checks the sound cards.'],
-             ['<b>The internet isn\'t working</b>', 'Clears the cache, renews the connection and resets the network settings. The internet drops for a few seconds; a restart is needed at the end.'],
+             ['<b>The internet isn\'t working</b>', 'Renews the connection and resets the network settings. The internet drops for a few seconds; a restart is needed at the end.'],
              ['<b>Windows Update is stuck</b>', 'Resets the Windows Update components when updates won\'t install.'],
-             ['<b>Windows shows errors</b>', 'Checks and repairs the system files (DISM and SFC). 20-40 minutes.'],
-             ['<b>A device isn\'t working</b>', 'Checks the mouse, keyboard, network, display and USB, and tells you which one has problems.'],
-             ['<b>The disk is acting up</b>', 'Checks the disks for errors, health, wear and temperature.'],
-             ['<b>Printer, Store, Start menu</b>', 'Clears a stuck print queue, repairs the Store and apps, and restarts search and the Start menu.']],
+             ['<b>Windows shows errors</b>', 'Checks and repairs system files (DISM and SFC). 20-40 minutes.'],
+             ['<b>A device isn\'t working</b>', 'Checks mouse, keyboard, network, video and USB and tells you which one has problems.'],
+             ['<b>The disk is acting up</b>', 'Checks the disks for errors, health and wear.'],
+             ['<b>Printer, Store, Start menu</b>', 'Clears a stuck print queue, repairs the Store and apps, restarts search and the Start menu.']],
             [46 * mm, W - 2 * M - 46 * mm])]
-S += [P('<b>Game problems</b>', 'h2'),
-      P('The 13 most common problems gamers run into, each with its own button. Tasso always explains what it does and never touches games, saves or anti-cheat files.')]
+S += [P('<b>Gaming section: the 27 game problems</b>', 'h2'),
+      P('Gaming only. The most common problems gamers run into, each with its own button: the 13 from before plus <b>14 new ones in 3.1</b>. Tasso always explains what it does and never touches games, saves or anti-cheat files.')]
 S += [table([['Problem', 'What Tasso does'],
-             ['<b>The game stutters</b>', 'Clears the graphics caches (the DirectX, AMD, NVIDIA and Intel "shaders"), turns on Game Mode and tells you if the PC is saving power.'],
-             ['<b>Low FPS</b>', 'FPS means frames per second. It sets the power to maximum, turns off hidden background recording and tells you what\'s stealing power (battery, full memory, heavy programs).'],
-             ['<b>High ping or online lag</b>', 'Clears the internet address cache, sets the network back the way Windows wants it, stops the hidden sharing of updates and tells you if your Wi-Fi is slowing you down.'],
-             ['<b>The game won\'t start</b>', 'Installs or repairs Visual C++, DirectX and .NET from Microsoft\'s official website: these are the Windows "pieces" that games need.'],
-             ['<b>Steam, Epic and launchers</b>', 'Closes stuck launchers and clears their saved pages (white or black screens). Games and accounts stay.'],
-             ['<b>Black screen or resolution</b>', 'Restarts the graphics card in 2 seconds and explains the useful keys (Alt+Enter, Win+P).'],
-             ['<b>Controller, headset, microphone</b>', 'Restarts stuck devices and Windows audio, and checks whether the microphone is blocked by privacy settings.'],
-             ['<b>Xbox and Game Pass</b>', 'Restarts the Xbox services and repairs the Xbox app and the Store.'],
-             ['<b>Anti-cheat error</b>', 'Checks Vanguard, Easy Anti-Cheat, BattlEye and FACEIT, and turns them back on if another program turned them off.'],
-             ['<b>Discord</b>', 'Closes Discord if it\'s stuck, clears its cache (messages and sign-in stay) and checks the microphone.'],
-             ['<b>Mouse aim isn\'t precise</b>', 'Turns off Windows pointer "acceleration": the same movement always moves your aim by the same amount. You can undo it with a double-click.'],
-             ['<b>The game minimizes by itself</b>', 'Turns back on the Windows protection that stops other programs from "stealing" the window, and tells you which open programs usually do it.'],
-             ['<b>Game downloads are slow</b>', 'Checks for a "metered" network, speed limits, updates and a full disk, and clears the Steam download cache. Games and saves stay.']],
-            [46 * mm, W - 2 * M - 46 * mm])]
-S += [P('<b>The 100 office problems</b> (new in 2.6)', 'h2'),
-      P('Fix problems is split into three sections: <b>Office</b>, <b>Gaming</b> (only in Gaming mode) and <b>Windows</b>, with <b>a single search</b> at the top: type the problem (for example "printer", "zip" or "password") and Tasso shows you only the matching ones, across all sections. The 100 office problems are split into 10 groups that open with one click (printing, Word/Excel/Adobe, Outlook, Teams, files and zip, network, screens, mouse and keyboard, Windows, accounts and security). In Office mode the groups are open and this section comes first; in Gaming mode the groups are closed and this section comes after the games and Windows ones. Tasso never deletes documents (at most it moves them to a folder in Documents), saves the settings before changing them and <b>never closes Word, Excel or Outlook while you\'re working in them</b>: it asks you to save and close them yourself (the only exception is Outlook stuck for more than 2 minutes with no window). The <b>Check</b> buttons (instead of Fix) are for cases that can\'t be fixed automatically: Tasso finds the cause and explains what to do.')]
+             ['<b>The game stutters</b>', 'Turns on Windows Game Mode, checks whether the PC is saving power and tells you what to do. It leaves the graphics caches alone: they are exactly what stops stuttering.'],
+             ['<b>The game won\'t start or keeps closing</b>', 'Installs or repairs Visual C++, DirectX and .NET from Microsoft\'s official site: these are the Windows "parts" that games need.'],
+             ['<b>Controller, headset or microphone not working</b>', 'Restarts stuck devices and Windows audio, and checks whether the microphone is blocked by privacy settings.'],
+             ['<b>High ping or online lag</b>', 'Clears the internet address memory, puts the network back the way Windows wants it, stops the hidden sharing of updates and lets you know if Wi-Fi is slowing you down.'],
+             ['<b>Steam, Epic or other launchers won\'t open</b>', 'Closes stuck launchers and clears their saved pages (white or black screens). Games and accounts stay.'],
+             ['<b>Black screen or wrong resolution</b>', 'Restarts the graphics card in 2 seconds and explains the handy keys (Alt+Enter, Win+P).'],
+             ['<b>Low FPS (the game runs slowly)</b>', 'FPS means frames per second. It sets power to maximum, turns on Game Mode and tells you what\'s stealing power (battery, full memory, heavy programs).'],
+             ['<b>Xbox app and Game Pass not working</b>', 'Restarts the Xbox services and repairs the Xbox app and the Store.'],
+             ['<b>Anti-cheat error</b>', 'Checks Vanguard, Easy Anti-Cheat, BattlEye and the others, and turns them back on if another program turned them off, without touching their files.'],
+             ['<b>Discord isn\'t working or people can\'t hear you</b>', 'Closes a stuck Discord, clears its cache (messages and sign-in stay) and checks the microphone.'],
+             ['<b>My mouse aim isn\'t precise</b>', 'Turns off Windows pointer "acceleration": the same movement always moves your aim by the same amount. You can undo it with a double-click.'],
+             ['<b>The game minimizes by itself</b>', 'Restores the Windows protection that stops other programs from "stealing" the window, and tells you which open programs usually do it.'],
+             ['<b>Game downloads are slow</b>', 'Checks for a "metered" network, speed limits, updates and a full disk, and clears Steam\'s download cache. Games and saves stay.'],
+             ['<b><font color="#2F6BE0">NEW IN 3.1</font></b>', ''],
+             ['<b>The game doesn\'t save</b>', 'Checks whether Windows folder protection or OneDrive block the save, and tells you how to allow the game without turning protections off.'],
+             ['<b>Graphics card error (DEVICE_REMOVED)</b>', 'Counts how many times the graphics driver froze, checks temperature, driver and overclock, and tells you what to do in order.'],
+             ['<b>My PC gets too hot</b>', 'Reads processor and graphics card temperatures, checks whether the PC slows down from heat and tells you how to cool it. It doesn\'t touch the fans.'],
+             ['<b>My screen runs at 60 Hz instead of 144</b>', 'Checks the Hz of each screen and tells you the highest number to pick, opening the right settings. If it only sees 60 it tells you why (cable, port, driver).'],
+             ['<b>My laptop uses the wrong graphics card</b>', 'On laptops with two graphics cards checks which one games use and tells you how to lock in the powerful one.'],
+             ['<b>Programs on top of the game slow it down</b>', 'Turns off Windows background recording and finds the overlays that weigh on the game (NVIDIA, Overwolf, Medal...). You can undo it.'],
+             ['<b>No space to install</b>', 'Tells you the free space on each disk and the games that take up the most, and clears Steam downloads stuck halfway.'],
+             ['<b>Voice chat or games with friends (NAT)</b>', 'For "Strict NAT", party chat that won\'t connect or friends who can\'t join: puts back the games\' network services and checks the microphone.'],
+             ['<b>Audio crackles while I play</b>', 'Restarts audio, turns off USB port power saving and checks Bluetooth headphones in call mode.'],
+             ['<b>Delay between mouse and game (input lag)</b>', 'Turns on Game Mode, checks Hz, battery and mouse acceleration, and tells you what to change in the game.'],
+             ['<b>Games load slowly</b>', 'Checks whether games are on a mechanical disk (HDD) and explains how to move them to the SSD without downloading again.'],
+             ['<b>The game won\'t go fullscreen</b>', 'Checks Windows scaling and old compatibility settings, and explains the keys to fix it.'],
+             ['<b>The controller isn\'t recognized</b>', 'Restarts stuck controllers and Bluetooth, finds programs that "steal" the controller and explains Steam Input.'],
+             ['<b>The game freezes while loading</b>', 'Checks RAM, the paging file (off or too small is the most common cause) and disk space, and tells you what to fix.']],
+            [56 * mm, W - 2 * M - 56 * mm])]
+S += [P('<b>Office section: the office problems</b>', 'h2'),
+      P('Office only (in Gaming the section is hidden, but searching also finds keyboard, mouse, Wi-Fi and similar). These are the 100 most common problems of a work PC, plus <b>4 new ones in 3.1</b>, split into groups that open with a tap. Tasso never deletes documents (at most it moves them to a folder in Documents), saves settings before changing them and <b>never closes Word, Excel or Outlook while you\'re working in them</b>: it asks you to save and close them yourself (the only exception is Outlook stuck for more than 2 minutes with no window). The <b>Check</b> buttons (instead of Fix) are the cases that can\'t be fixed automatically: Tasso finds the cause and explains what to do. <b>Meeting mode</b> and <b>Lock the PC when you get up</b> have a <b>Turn on / Turn off</b> button instead.')]
 S += [table([['Problem', 'What Tasso does'],
+             ['<b><font color="#2F6BE0">NEW IN 3.1</font></b>', ''],
+             ['<b>Ready for the video call?</b>', 'Tests webcam, microphone, speakers or headphones and internet in a few seconds. Tells you what works and what doesn\'t and, if needed, offers the fix with one button. Checks and explains.'],
+             ['<b>Meeting mode</b>', 'Press before a call: no notifications, OneDrive and Windows updates paused, PC at full power. When the call ends (with Tasso open) it turns itself off and puts everything back. Press again to turn it off right away.'],
+             ['<b>Who used the webcam and microphone</b>', 'Shows which programs used the webcam and microphone in the last 30 days (with the last time for each) and who is using them right now. So you find out if someone is watching or listening. Checks and explains.'],
+             ['<b>Lock the PC when you get up</b>', 'Turns on the automatic lock: after 5 minutes without touching mouse and keyboard the screen locks and you need your PIN or password (if your account has one) to get back in. Press again to put it back as it was.'],
              ['<b><font color="#2F6BE0">PRINTING &amp; SCANNERS</font></b>', ''],
              ['<b>The printer says "offline"</b>', 'Restarts the print service, unchecks "Use Printer Offline" and checks whether network printers respond.'],
              ['<b>It always prints on the wrong printer</b>', 'Turns off "Let Windows manage my default printer" (which changes it on its own) and lets you pick the right one once and for all.'],
@@ -398,109 +530,102 @@ S += [table([['Problem', 'What Tasso does'],
              ['<b>The PC asks for the BitLocker recovery key</b>', 'Checks whether your disks are protected with BitLocker and tells you where to find the recovery key (your Microsoft or office account) before you need it. Tasso doesn\'t show or save the key. Checks and explains.']],
             [56 * mm, W - 2 * M - 56 * mm])]
 S += [P('<b>Drivers for the whole PC</b>', 'h2'),
-      P('A <b>driver</b> is the "instruction booklet" that tells Windows how to use a part of the PC. In <b>Fix problems</b>, Tasso lists all your devices (AMD Radeon, NVIDIA or Intel graphics card, audio, headphones, mouse, keyboard, network, Bluetooth, webcam, monitor...), marks the ones with problems with a <b>Repair</b> button, looks for new drivers on <b>Windows Update</b> (certified by Microsoft) and installs them. For graphics cards and gaming devices it opens the brand\'s <b>official website</b> (NVIDIA App, AMD, Intel, Logitech, Razer, Corsair, SteelSeries, motherboard). The <b>Windows downloads drivers by itself</b> switch stays as you set it even after a restart. Never use "free driver" websites or programs that "update all your drivers".')]
+      P('A <b>driver</b> is the "instruction manual" that tells Windows how to use a part of the PC. At the bottom of <b>Fix a problem</b> press <b>Check devices</b>: Tasso lists all the devices (AMD Radeon, NVIDIA or Intel graphics card, audio, headphones, mouse, keyboard, network, Bluetooth, webcam, monitor...), marks the ones with problems with a <b>Repair</b> button, looks for new drivers on <b>Windows Update</b> (certified by Microsoft) and installs them. Next to an NVIDIA or AMD graphics card there\'s <b>Update with Tasso</b> (see the graphics card driver box in chapter 3). For everything else it opens the maker\'s <b>official site</b>. The <b>Windows downloads drivers by itself</b> switch stays on even after a restart. Never "free driver" sites or programs that "update all your drivers".')]
 
-# 8 Internet, disco e giochi (2.1)
-S += chapter(8, 'Internet, disk and games', 'new from 2.1 to 2.5')
-S += bullets(['<b>PC health</b> (in Home): a score from 0 to 100 with the most important problems and a button to fix them. It checks free space, startup apps, temporary files, Recycle Bin, antivirus, Windows updates, pending restarts, memory and disk health.',
-              '<b>Internet, speed test</b>: download, upload and ping in about 30 seconds, with a simple verdict (good for movies, online games, downloads).',
-              '<b>Internet, your connection</b>: how you\'re connected (Wi-Fi or cable) and useful tips, for example "connect to the 5 GHz network" when your router has it, or "use a cable" if the signal is weak. It no longer shows data usage.',
-              '<b>Internet, saved Wi-Fi</b>: the networks the PC has connected to and their passwords, hidden until you click Show. Handy when a guest asks for the Wi-Fi password.',
-              '<b>Disk map</b>: the folders that take up the most space, largest first, with a button to open them. Tasso only looks: it doesn\'t delete anything.',
-              '<b>Automatic game mode</b> (Settings): when you open a game from Steam, Epic, Riot, Xbox and similar, Tasso switches to Gaming mode by itself; one minute after you close it, it puts the previous mode back.'])
-
-S += [P('<b>Games (new in 2.2)</b>', 'h2')]
-S += bullets(['<b>Optimize before playing</b>: Tasso shows you the open programs using the most memory. Choose which ones to close (programs with a window close as if you clicked the X, so they ask you to save if needed) and click <b>Optimize and play</b>: it also switches to Gaming mode. When you\'re done playing, click <b>End game</b>: it puts the previous mode back and reopens the closed programs. Windows, drivers, antivirus, Discord, game launchers and streaming programs (OBS, Streamlabs, Twitch Studio, Medal) are never touched, and Tasso only closes what you check. If you minimize the game to hop over to Chrome for a moment, Tasso still counts it as open and the overlay hides until you go back to the game.',
-              '<b>In-game overlay</b>: small, see-through text at the top right or left with processor and graphics card usage and temperature, RAM and the time. You can\'t click it. It shows up by itself when you play (with automatic game mode on) and you can show or hide it with <b>Ctrl + Shift + F12</b>. It shows in windowed or "borderless fullscreen" games. The processor temperature shows up if Windows provides it or if LibreHardwareMonitor is open.',
-              '<b>FPS</b>: Tasso never gets inside games, because with anti-cheat you risk a ban. To see your FPS, use the official tools: Windows <b>Win + G</b> (Performance) or NVIDIA\'s <b>Alt + R</b>.',
-              '<b>Autoclicker</b>: clicks by itself every so many milliseconds, seconds or minutes, a set number of times or forever, with the left, right or middle button, single or double click, wherever the mouse is or at a fixed spot. It can make small mouse movements that stay inside the game window. You start and stop it with a key you choose (F6 by default); <b>Esc</b> always stops it.',
-              '<b>Your library</b>: all the games installed with Steam, Epic Games and Riot on one page, with search and a <b>Play</b> button.'])
-S += [box('Autoclicker and online games', ['In online games with anti-cheat (League of Legends, Valorant, Fortnite, CS2 and others) the autoclicker is against the rules and can get your account banned. Use it in single-player games, "clicker" games, or wherever it\'s allowed.'], AMBER, AMBER_BG)]
-
-S += [P('<b>What\'s new in 2.6</b>', 'h2')]
-S += bullets(['<b>Detect problems</b> (at the top of the menu, right under Home together with Fix problems, and as a button in Home): one click and Tasso checks for 58 different problems (54 in Office mode) in about a minute. <b>It doesn\'t change anything</b>: it only shows you the ones it really found, each with its own Fix button, plus "Fix all at once" to solve them all in one go. Some problems only show up when they happen (for example a black second screen): for those, there\'s Fix problems.',
-              '<b>Internet</b>: instead of data usage there\'s now <b>Your connection</b>, with useful tips (for example "connect to the 5 GHz network" when your router has it).',
-              '<b>Two modes</b>: Gaming and Office, chosen the first time you open Tasso and changeable whenever you want from the button at the top left. In Office mode Tasso is simpler and calmer (soft, light colors, a cuter badger) and hides games, FPS, ping, Turbo and Performance+.',
-              '<b>The 100 most common office problems</b> in Fix problems (printing, Word, Excel, Adobe, Outlook, Teams, files and zip, network, screens, mouse and keyboard, accounts), each with a button and a simple explanation (see chapter 7).',
-              '<b>Fix problems split into sections</b> (Office, Gaming, Windows) with <b>a single search</b> for all problems, and <b>3 new game problems</b>: mouse aim, game that minimizes by itself, slow downloads.',
-              '<b>PC score from 1 to 100</b> for everything, with the overall score and the rank (from "Slow PC" to "top").',
-              '<b>Games</b>: your library is at the top of the page. <b>Performance+</b> reorganized: easy, safe things first, then the ones for experts.',
-              '<b>6 new themes</b> for the office: Office, Paper, Sage, Lavender, Night and Slate (8 in all, with Ice and Sand). Gaming and Office each remember their own theme.'])
-S += [P('<b>What\'s new in 2.5</b>', 'h2')]
-S += bullets(['<b>Game profile</b> (in Games): choose once what you need for gaming (Gaming or Competitive FPS, the gaming commands, the overlay, automatic game mode) and turn it on with <b>one switch</b>. <b>It stays on even if you turn off or restart the PC</b>: every time the PC starts, Tasso checks that everything is the way you chose and puts back whatever has changed (for example the power plan set back to normal by an update). When you turn it off, everything goes back to how it was before.',
-              '<b>Per-game power</b>: choose a game and <b>High power</b> (Gaming mode) or <b>Maximum power</b> (Competitive FPS, with the mouse without acceleration). When you open that game Tasso sets it by itself, and when you close it, it puts things back as they were.',
-              '<b>Game server ping</b> (in Internet): League of Legends, TFT, Valorant, CS2, Dota 2, Fortnite and other games on Amazon servers. You see the milliseconds, the jitter and the lost packets, and Tasso tells you which server is best for you.',
-              '<b>Tune with Tasso</b> (under each game): it figures out whether the game is competitive, graphics-heavy or performance-focused, looks at your PC and suggests the right graphics settings. It applies what it safely can by itself, and you can undo it with <b>Cancel</b>.',
-              '<b>Gaming commands</b> explained in plain words: for each one, <b>what it does</b>, <b>when it helps</b> and <b>whether there are any risks</b>. They stay on after a restart; when turned off, they go back to exactly how they were before Tasso.',
-              '<b>Program updates</b> (in Programs): the list of programs with a new version, to update one by one or all at once, and the programs\' <b>real icons</b>.',
-              '<b>Vault</b> (in the menu on the left): your passwords, encrypted (AES-256) and saved only on this PC. Choose a <b>4-digit PIN</b> (handy but weaker), <b>6-digit</b> (recommended), <b>7 to 12 digits</b> (the safest) or <b>no PIN</b>: it opens by itself with your Windows account, but anyone who uses the PC with your account can see the passwords. It creates strong passwords and checks whether they\'ve been stolen (the Have I Been Pwned service only receives a tiny piece of the fingerprint, never the password).',
-              'Richer <b>PC status on Discord</b>, every 3/6/12/24 hours and on request with !stato.'])
+# 10 Altri strumenti
+S += chapter(10, 'Other tools', 'in Clean &amp; fix')
+S += bullets(['<b>Health &amp; problems</b>: press <b>Detect problems</b> and in about a minute Tasso checks the PC from top to bottom (printers, internet, Word and Excel, Outlook, OneDrive, devices, keyboard, Windows and, in Gaming, the settings for games). <b>It doesn\'t change anything</b>: it tells you what it found and you choose what to fix. Some problems only show up when they happen (for example a black second screen): for those, there\'s Fix a problem.',
+              '<b>PC health</b>: a score from 0 to 100 with the most important problems and a button to fix them. It checks free space, startup apps, temporary files, Recycle Bin, antivirus, Windows updates, pending restarts, memory and disk health.',
+              '<b>Internet, speed test</b>: download, upload and ping in about 30 seconds, using Cloudflare\'s free servers.',
+              '<b>Internet, ping to game servers</b> (in Gaming): delay, stability and packet loss to the Riot, Valve and Amazon servers, in about 20 seconds.',
+              '<b>Internet, your connection</b>: how you\'re connected (Wi-Fi or cable) and useful tips, for example "connect to the 5 GHz network" when your router has one, or "use a cable" if the signal is weak.',
+              '<b>Internet, saved Wi-Fi</b>: the networks the PC has connected to and their password, hidden until you press Show. Handy for giving it to a guest.',
+              '<b>Disk map</b>: the folders that take up the most space, largest first. Tasso only looks: it doesn\'t delete anything.',
+              '<b>Vault</b>: your passwords in one place, encrypted (AES-256) and saved only on this PC, no cloud. Choose a <b>6-digit PIN</b> (recommended), <b>4-digit</b> (handy but weaker), <b>7 to 12 digits</b> (the safest) or <b>no PIN</b> (it opens with your Windows account: anyone using the PC with your account can see the passwords). With a PIN it locks by itself after 5 minutes. It generates strong passwords and checks whether they\'ve been stolen (only a small piece of the fingerprint reaches the Have I Been Pwned service, never the password).',
+              '<b>Performance+</b> (in Gaming, with "Show all features"): Tasso looks at your components and tells you what\'s worth doing, staying within the maker\'s limits. It doesn\'t change frequencies or voltages by itself: it opens the official tools and guides you step by step.'])
 S += [box('If you forget your vault PIN', ['Nobody can recover it, not even Tasso: that\'s exactly what makes it safe. All you can do is reset the vault and start over.'], AMBER, AMBER_BG)]
 
-# 9 Hardware
-S += chapter(9, 'Hardware', 'know your PC')
-S += bullets(['<b>Components</b>: processor, graphics card, motherboard and BIOS, RAM, disks, Windows version.',
-              '<b>Real-time sensors</b>: processor and RAM usage, disk space; with <b>NVIDIA</b> cards also temperature, usage, fan and video memory; disk temperature when Windows makes it available.',
-              '<b>Graphics card</b>: the button opens the NVIDIA or AMD control panel, or the official page to download it.'])
+# 11 Hardware
+S += chapter(11, 'Hardware', 'know your PC')
+S += bullets(['<b>Live</b>: how hard the PC\'s parts are working, with their names, and the processor temperature when Windows provides it.',
+              '<b>Components</b>: processor, graphics card, motherboard and BIOS, RAM, disks, Windows version.',
+              '<b>Graphics card</b>: usage and temperature (NVIDIA and AMD); the button opens the NVIDIA or AMD control panel.',
+              '<b>Disks</b>: health and temperature, when Windows makes it available.',
+              'With <b>LibreHardwareMonitor</b> open (free) Tasso also reads the temperatures Windows doesn\'t provide.'])
 S += [box('The BIOS: should you update it or not?', ['Tasso shows you the BIOS version and finds the official page of your motherboard maker, but <b>it doesn\'t update it by itself</b>. Update it only if it fixes a problem you have or if the maker recommends it: if the PC turns off in the middle of the update, the motherboard can stop working. Always follow the maker\'s instructions, with the PC plugged in.'], AMBER, AMBER_BG)]
 
-# 9 Impostazioni
-S += chapter(10, 'Settings', 'made to fit you')
+# 12 Impostazioni
+S += chapter(12, 'Settings', 'made to fit you')
+S += [P('You\'ll find them in <b>Settings &gt; Tasso settings</b>.')]
 S += [table([['Setting', 'What it does'],
-             ['<b>Appearance (8 themes)</b>', 'Tasso, Aurora, Lava, Neon, Carbon, Beast (dark) and Ice, Sand (light). Click a card and the app changes color right away.'],
-             ['<b>Tasso on</b>', 'The main switch: see chapter 11.'],
+             ['<b>Tasso updates</b>', '<b>Check for updates</b> and <b>Update now</b>: Tasso downloads the new version, checks that the file is the right one and reopens by itself. Your settings stay.'],
+             ['<b>Update Tasso by itself</b>', 'When a new version is out, Tasso downloads it, checks that it\'s signed by us and reopens. It tells you first and you can say <b>Not now</b>. <b>It never does it while a game is open</b> or during a cleanup.'],
+             ['<b>Language</b>', 'Italiano or English. Tasso reopens in the language you choose.'],
+             ['<b>Write to us</b>', 'Send an idea, a problem or a comment, with up to 2 photos and, if you want, your PC details and your email for a reply. It\'s also in Info &amp; index.'],
+             ['<b>Appearance</b>', 'Gaming: Tasso, Aurora, Lava, Neon, Carbonio, Belva (dark), Ghiaccio and Sabbia (light). Office: Azzurro, Salvia, Carta, Lavanda, Perla (light and soft) and Ardesia (dark). Tap a card and Tasso changes colour right away; each mode remembers its own theme.'],
+             ['<b>Show all features</b>', 'Gaming only: also shows Performance+ and, in Clean up, the individual cleanup steps.'],
+             ['<b>Alerts</b>', 'Choose what you want to be alerted about. <b>Smart alerts</b> (disk almost full, new startup program) never come in Gaming or FPS mode.'],
+             ['<b>Backup and shortcuts</b>', '<b>Back up photos and documents</b>: copies (doesn\'t move) Photos, Documents, Desktop, Videos and Music to a USB stick or external drive. <b>Desktop shortcut</b> to keep Tasso handy.'],
+             ['<b>Tasso on</b>', 'The main switch: see chapter 13.'],
              ['<b>Start with Windows</b>', 'Tasso starts by itself, minimized, when you turn on the PC.'],
-             ['<b>Smart alerts</b>', 'Small alerts at the bottom right (disk almost full, new program at startup). Never in Gaming or FPS mode.'],
-             ['<b>Automatic game mode</b>', 'When you open a game, Tasso switches to Gaming mode and, when you close it, puts the previous mode back.'],
-             ['<b>PC status on Discord</b>', 'Tasso posts the PC report in a private Discord channel of yours: health score, processor, graphics card, motherboard, RAM, disks, temperatures and internet, with green checkmarks for what\'s fine. Choose how often (3, 6, 12 or 24 hours); it also arrives after every cleanup. You need a webhook URL (Edit Channel, Integrations, Webhooks, Copy Webhook URL) to paste here: the step-by-step guide is inside Tasso. Optional: with a small free bot (guide in Tasso) you type <b>!stato</b> in the channel and the report arrives right away. Discord can only read: it can\'t control the PC.'],
-             ['<b>Tasso mode</b>', 'Gaming or Office, like the button at the top left.'],
-             ['<b>Write to us</b>', 'Send an idea, a problem or a comment, with up to 2 photos and, if you like, your PC details and your email for a reply. It is also in Info. If the internet is down, Tasso prepares the email for you.'],
-             ['<b>Help improve Tasso</b>', 'Anonymous numbers (version, Windows, processor and graphics card brand, RAM, space freed, buttons used, errors). Never your name, files or IP address. Tasso asks once; here you turn it on or off whenever you like.'],
-             ['<b>Undo</b>', 'The list of everything Tasso has changed (Windows settings, startup apps, gaming commands, tuned games, game profile), with a button to put each thing back as it was, or everything at once (see chapter 11).']],
+             ['<b>Auto Boost</b>', 'The same switch as on the Games page: when you open a game Tasso Boosts by itself and, when you close it, reopens the closed programs and puts the previous mode back.'],
+             ['<b>PC status on Discord</b>', 'Tasso posts the PC report (health score, parts, temperatures and internet) in a private Discord channel of yours, every 3, 6, 12 or 24 hours and after every cleanup. You need a webhook address: the step-by-step guide is inside Tasso. Optional: with a small free bot, type <b>!stato</b> and the report arrives right away. From Discord you can only read: you can\'t control the PC.'],
+             ['<b>Help improve Tasso</b>', 'Anonymous numbers (version, Windows, processor and graphics card brand, RAM, space freed, buttons used, errors). Never your name, files or IP address. Tasso asks once; here you turn it on or off whenever you want.'],
+             ['<b>Tasso mode</b>', 'Gaming or Office, like the button at the top left. It only changes what you see, not the PC.'],
+             ['<b>Undo</b>', 'The list of everything Tasso has changed, one thing per row, with a button to put each one back as it was, or everything at once (see chapter 13).']],
             [42 * mm, W - 2 * M - 42 * mm])]
+S += [P('<b>Remove Tasso from this PC</b>', 'h2'),
+      P('At the bottom of Settings there\'s the <b>Remove Tasso from this PC</b> button. Tasso removes everything it added and then closes. <b>Your files, games and saves aren\'t touched.</b>')]
+S += bullets(['Tasso removes: starting with Windows and the automatic cleanups; the translations placed inside games (only the files Tasso added: the originals are intact); its folders (settings, logs and translation models); the Desktop shortcut and the Tasso file.',
+              'What stays: Windows restore points and the registry backups made by Tasso, which are moved to <b>Documents &gt; Tasso - copie di sicurezza</b>.',
+              'If you have passwords in the vault, <b>they are deleted and can\'t be recovered</b>: copy them somewhere else first and tick "I have copied the passwords I need".',
+              'If a cleanup is running, wait for it to finish. If you ever want Tasso back, you can download it again for free.'])
 
-# 10 Spegnere
-S += chapter(11, 'Turning Tasso off and putting things back', 'you decide')
+# 13 Spegnere
+S += chapter(13, 'Turning Tasso off and putting things back', 'you decide')
 S += [P('At the bottom left there\'s the <b>"Tasso is on"</b> button. Click it to turn Tasso off: when it\'s off, Tasso <b>doesn\'t start with Windows, doesn\'t run automatic cleanups and doesn\'t send alerts</b>. When you turn it off, you choose what to do with the settings it changed:')]
 S += [table([['Choice', 'What happens'],
-             ['<b>Turn off and restore everything as it was</b>', 'The Windows settings changed by Tasso go back to exactly how they were before you used it.'],
-             ['<b>Turn off and leave everything as it is</b>', 'Tasso turns off, but the settings stay the way they are now.']],
+             ['<b>Turn off and restore everything as it was</b>', 'The Windows settings changed by Tasso go back exactly to how they were before you used it.'],
+             ['<b>Turn off and leave everything as it is</b>', 'Tasso turns off, but the settings stay as they are now.']],
             [56 * mm, W - 2 * M - 56 * mm])]
 S += [box('What goes back and what doesn\'t', ['<b>Goes back as it was:</b> power plan and processor limit, screen turn-off and sleep, notifications, mouse, Game Mode, privacy settings, startup apps you turned on or off from Tasso.',
-                                            '<b>Can\'t be undone:</b> deleted files, uninstalled programs and installed updates. For those, there\'s the Windows backup in chapter 12.'], VIOLET, VIOLET_BG)]
-S += [box('Turning off or restarting the PC doesn\'t put anything back', ['Everything Tasso changes <b>stays that way</b> even if you turn off or restart the PC. It only goes back to how it was when you decide: from the button above or from <b>Settings → Undo</b>, where you can put things back one at a time or all at once.'], GREEN, GREEN_BG)]
+                                               '<b>Can\'t go back:</b> deleted files, uninstalled programs and installed updates. For those, there\'s the Windows backup in chapter 14.'], VIOLET, VIOLET_BG)]
+S += [box('Turning off or restarting the PC doesn\'t put anything back', ['Everything Tasso changes <b>stays that way</b> even if you turn off or restart the PC. It only goes back to how it was when you decide: from the button above, from <b>Settings &gt; Undo</b> (one thing at a time or all at once) or, for the Boost, with <b>Put it back</b> on the Games page.'], GREEN, GREEN_BG)]
 S += [P('To turn Tasso back on, just click the button again, or <b>Turn Tasso back on</b> in Home.', 'p')]
 
-# 11 Sicurezza
-S += chapter(12, 'Safety and backup', 'nothing to fear')
-S += bullets(['<b>Automatic backup</b>: before Medium, Deep and Extreme cleanups, Tasso creates a Windows <b>restore point</b>.',
-              '<b>Your files</b> are never deleted without your OK, and they go to the Recycle Bin.',
-              'Browser <b>passwords and cookies</b> aren\'t touched: Tasso only clears the cache.',
-              '<b>Drivers</b>: Tasso only installs the ones certified by Microsoft (Windows Update); for everything else it opens the maker\'s official website.',
+# 14 Sicurezza
+S += chapter(14, 'Safety and backup', 'nothing to fear')
+S += bullets(['<b>Automatic backup</b>: before Medium, Deep and Extreme cleanups, Tasso creates a Windows <b>restore point</b>. It also creates one before installing the graphics card driver.',
+              '<b>Your files</b> are never deleted without your confirmation, and they go to the Recycle Bin.',
+              'Browser <b>passwords and cookies</b> are never touched: Tasso only clears the cache.',
+              '<b>Drivers</b>: Tasso only installs drivers certified by Microsoft (Windows Update) or the NVIDIA driver taken from NVIDIA, with NVIDIA\'s signature checked; for everything else it opens the maker\'s official site.',
+              '<b>Games</b>: Tasso never gets into a game\'s memory and doesn\'t touch anti-cheat files. In games with anti-cheat it only translates the screen, unless you choose otherwise.',
               '<b>Privacy</b>: the "Privacy: stop ads and tracking" tool has its own "Privacy: restore" button.'])
 S += [P('<b>How to go back with the Windows backup</b>', 'h2')]
 S += steps(['Press the <b>Windows</b> key, type <b>Create a restore point</b> and open it.',
             'Click <b>System Restore</b> and then <b>Next</b>.',
-            'Choose the point called <b>"Tasso - before maintenance"</b> and confirm. The PC restarts the way it was at that moment (your documents aren\'t touched).'])
-S += [box('What Tasso doesn\'t do, on purpose', ['<b>Registry cleaning</b>, <b>constant "RAM freeing"</b>, miracle <b>internet boosters</b>, <b>drivers from unknown websites</b>, <b>overclocking</b> and <b>automatic BIOS updates</b>: they either don\'t really help or are too risky to do automatically.'], RED, RED_BG)]
+            'Choose the point called <b>"Tasso - prima della manutenzione"</b> and confirm. The PC restarts the way it was at that moment (your documents aren\'t touched).'])
+S += [box('What Tasso doesn\'t do, on purpose', ['<b>Registry cleaning</b>, <b>constant "free up RAM"</b>, miracle <b>internet boosters</b>, <b>drivers from unknown sites</b>, <b>overclocking</b> and <b>automatic BIOS updates</b>: either they don\'t really help or they\'re too risky to do automatically.'], RED, RED_BG)]
 
-# 12 FAQ
-S += chapter(13, 'Frequently asked questions', 'quick answers')
+# 15 FAQ
+S += chapter(15, 'FAQ', 'quick answers')
 faq = [
-    ('My antivirus or Windows blocks it: what do I do?', 'It\'s the warning for programs Windows doesn\'t know yet (chapter 1): click <b>More info</b> and <b>Run anyway</b>. If an antivirus puts it in quarantine, you can report it as a false positive to the antivirus maker; for Microsoft Defender, you can do it at microsoft.com/wdsi/filesubmission.'),
-    ('Can I keep it on a USB stick?', 'Yes. Copy the whole Tasso folder to the USB stick and start Tasso.exe from there: there\'s no need to install it. The settings are saved on the PC you use it on.'),
-    ('How do I send it to a friend?', 'Send them the permanent link <b>github.com/sergiotassoni/tasso/raw/main/Tasso.zip</b>: it always downloads the latest version, no account needed. Or join the Tasso Discord server, where you\'ll find the link in the #tasso channel.'),
-    ('Does it slow down the PC while I play?', 'No. Tasso reads the sensors every 2 seconds only while it\'s open, and only does work when you start something. In Gaming and FPS mode it doesn\'t send alerts.'),
-    ('If I turn off the PC, do the settings go back to how they were?', 'No. They stay the way Tasso set them, including the Game profile. They only go back to how they were if you ask from <b>Settings → Undo</b>.'),
-    ('How do I update Tasso?', 'When a new version comes out, an alert shows up in Home that takes you to <b>Settings → Tasso updates</b>. Click <b>Update now</b>: Tasso downloads the new version from the official page, checks that the file is the right one and reopens by itself. Your settings stay. If something goes wrong, you can always download the zip by hand.'),
+    ('My antivirus or Windows blocks it: what do I do?', 'It\'s the warning for programs Windows doesn\'t know yet (chapter 1): click <b>More info</b> and <b>Run anyway</b>. If an antivirus quarantines it, you can report it as a false positive to the antivirus maker; for Microsoft Defender you do it at microsoft.com/wdsi/filesubmission.'),
+    ('Can I keep it on a USB stick?', 'Yes. Copy the whole Tasso folder to the stick and run Tasso.exe from there: no need to install it. Settings are saved on the PC you use it on.'),
+    ('How do I send it to a friend?', 'Send them the permanent link <b>github.com/sergiotassoni/tasso/raw/main/Tasso.zip</b>: it always downloads the latest version, no account needed. Or join Tasso\'s Discord server, where you\'ll find the link in the #tasso channel.'),
+    ('Does it slow down the PC while I play?', 'No. Tasso reads the sensors every 2 seconds only while it\'s open, and only works when you start something. In Gaming and FPS mode it doesn\'t send alerts, scheduled cleanup waits until the game is closed and Tasso never updates while a game is open.'),
+    ('Can Tasso Traduce get me banned?', 'By default Tasso Traduce <b>only reads the screen</b> and doesn\'t touch the game. Translating inside the game\'s files, in games with anti-cheat, only turns on if you choose it after the warning about the risk of a ban (chapter 4).'),
+    ('If I turn off the PC, do the settings go back to how they were?', 'No. They stay the way Tasso set them. They only go back if you ask for it from <b>Settings &gt; Undo</b> (or with Put it back, for the Boost).'),
+    ('How do I update Tasso?', 'When a new version is out, a notice shows up in Home and takes you to <b>Settings &gt; Tasso updates</b>. Press <b>Update now</b>, or turn on <b>Update Tasso by itself</b>. Your settings stay. If something goes wrong, you can always download the zip by hand.'),
+    ('How do I remove Tasso from the PC?', 'From <b>Settings &gt; Remove Tasso from this PC</b> (chapter 12): it removes everything it added and leaves your files alone.'),
     ('Where does it save its stuff?', 'In the <b>%LOCALAPPDATA%\\Tasso</b> folder: settings, logs of every cleanup and the encrypted vault.'),
-    ('A cleanup is taking a long time: is that normal?', 'Yes, for Deep and Extreme: Windows updates, repairs and defragmentation can take a while. If a step is stuck for too long, Tasso stops it by itself and moves on.'),
-    ('A white window or a message about WebView2 shows up.', 'Microsoft\'s free component is missing: click OK, the official page to install it opens, then open Tasso again.'),
+    ('A cleanup is taking a long time: is that normal?', 'Yes for Deep and Extreme: Windows updates, repairs and defragmentation can take time. If a step gets stuck for too long, Tasso stops it by itself and moves on.'),
+    ('A white window or a message about WebView2 shows up.', 'The free Microsoft component is missing: click OK, the official page to install it opens, then reopen Tasso.'),
 ]
 for q, a in faq:
     S += [KeepTogether([P('<b>%s</b>' % q, 'p'), P(a, 'p'), Spacer(1, 2)])]
-S += [Spacer(1, 6), box('Coming in future versions', ['Digital signature (it needs a paid certificate), video and music player with subtitles, file converters, recorder for the last 30 seconds of gameplay, stats on hours played, ad blocking, webcam and microphone control.'], BLUE, colors.HexColor('#EAF1FD'))]
-S += [Spacer(1, 10), P('Tasso 3.0', 'small')]
+S += [Spacer(1, 6), box('Coming in future versions', ['Video and music player with subtitles, file converters, a recorder for the last 30 seconds of gameplay, stats on hours played, ad blocking.'], BLUE, colors.HexColor('#EAF1FD'))]
+S += [Spacer(1, 10), P('Tasso 3.1', 'small')]
 
 doc.build(S)
 print('ok')
