@@ -43,8 +43,8 @@ NOVITÀ DELLA 3.2
 - Sfondi del desktop abbinati al tema: quando scegli un tema (per esempio
   Oro o Neon RGB) Tasso ti chiede se vuoi anche lo sfondo uguale, nitido anche
   sugli schermi 4K. È facoltativo: puoi dire di no, e con "Rimetti il mio"
-  torna il tuo sfondo di prima.
-- Voto al PC nuovo: conta anche la scheda video, la memoria RAM completa e,
+  torna il tuo sfondo di prima. Vale per Tasso installato con l'installatore.
+- Nuovo Voto al PC: conta anche la scheda video, la memoria RAM completa e,
   se si può, il raffreddamento. Alla fine c'è il tuo "biglietto da visita"
   con il voto, da copiare o salvare come immagine.
 - Fai aiutare un amico: in Risolvi un problema trovi una guida semplice per

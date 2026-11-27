@@ -204,7 +204,8 @@
 
 WHAT'S NEW IN 3.2
    - Desktop backgrounds that match the theme (optional), sharp even in 4K; "Put mine back"
-   - New PC score: graphics card, full RAM, cooling and a business card
+     (with Tasso installed by the installer)
+   - PC score, renewed: graphics card, full RAM, cooling and a business card
    - Get help from a friend: Windows Quick Assist explained step by step, with warnings
      against scams
    - More security behind the scenes: game copies and Tasso's files better protected

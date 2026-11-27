@@ -200,7 +200,8 @@
 
 NOVITÀ DELLA 3.2
    - Sfondi del desktop abbinati al tema (facoltativi), nitidi anche in 4K; "Rimetti il mio"
-   - Voto al PC nuovo: scheda video, RAM completa, raffreddamento e biglietto da visita
+     (con Tasso installato con l'installatore)
+   - Nuovo Voto al PC: scheda video, RAM completa, raffreddamento e biglietto da visita
    - Fai aiutare un amico: Assistenza rapida di Windows spiegata passo passo, con gli avvisi
      contro le truffe
    - Più sicurezza dietro le quinte: copie dei giochi e file di Tasso più protetti

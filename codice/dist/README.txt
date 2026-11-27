@@ -45,8 +45,9 @@ WHAT'S NEW IN 3.2
 - Desktop backgrounds that match the theme: when you choose a theme (for
   example Gold or Neon RGB) Tasso asks whether you want the matching
   background too, sharp even on 4K screens. It is optional: you can say no,
-  and "Put mine back" brings back your previous background.
-- New PC score: it also counts the graphics card, the full RAM picture and,
+  and "Put mine back" brings back your previous background. Only for Tasso
+  installed with the installer.
+- PC score, renewed: it also counts the graphics card, the full RAM picture and,
   when possible, the cooling. At the end you get your "business card" with
   the score, to copy or save as a picture.
 - Get help from a friend: in Fix a problem there is a simple guide to get
