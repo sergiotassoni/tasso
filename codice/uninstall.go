@@ -329,6 +329,18 @@ func salvaCopieDiSicurezza() {
 			_ = copiaCartellaSemplice(da, a)
 		}
 	}
+	// copia: per quello che viene da Programmi\Tasso\lavoro. Rinominando, i file si porterebbero
+	// dietro i permessi di Programmi (l'utente non li potrebbe cancellare senza la richiesta di
+	// Windows); copiati prendono quelli di Documenti. L'originale lo tolgo solo se la copia è riuscita.
+	copia := func(da, a string) {
+		if voci, _ := os.ReadDir(da); len(voci) == 0 {
+			return
+		}
+		_ = os.MkdirAll(filepath.Dir(a), 0o755)
+		if copiaCartellaSemplice(da, a) == nil {
+			_ = os.RemoveAll(da)
+		}
+	}
 	sposta(filepath.Join(appDir, "backup"), filepath.Join(dest, "backup del registro"))
 	// backup fatti dalle voci dell'Ufficio (stessa cartella di Windows, non la variabile d'ambiente)
 	if local, e := windows.KnownFolderPath(windows.FOLDERID_LocalAppData, 0); e == nil && local != "" {
@@ -337,8 +349,8 @@ func salvaCopieDiSicurezza() {
 	// copie dei giochi: tutto quello che resta (plugin messi da parte, originali di giochi che non
 	// ho potuto sistemare perché disinstallati o su un disco staccato, elenchi illeggibili)
 	// (dalla 3.2 in Programmi\Tasso\lavoro; guardo anche il posto vecchio in AppData)
-	for _, copie := range []string{traduce.CartellaCopie(), traduce.CartellaCopieVecchia()} {
-		if copie == "" {
+	for i, copie := range []string{traduce.CartellaCopie(), traduce.CartellaCopieVecchia()} {
+		if copie == "" || (i == 1 && filepath.Clean(copie) == filepath.Clean(traduce.CartellaCopie())) {
 			continue
 		}
 		voci, _ := os.ReadDir(copie)
@@ -346,7 +358,15 @@ func salvaCopieDiSicurezza() {
 			if !v.IsDir() || v.Type()&(fs.ModeSymlink|fs.ModeIrregular) != 0 {
 				continue // il segno dello spostamento, link e giunzioni: non li porto via
 			}
-			sposta(filepath.Join(copie, v.Name()), filepath.Join(dest, "giochi", v.Name()))
+			a := filepath.Join(dest, "giochi", v.Name())
+			if _, err := os.Lstat(a); err == nil {
+				a = filepath.Join(dest, "giochi", v.Name()+" (copia vecchia)") // non mescolo due copie dello stesso gioco
+			}
+			if i == 0 {
+				copia(filepath.Join(copie, v.Name()), a)
+			} else {
+				sposta(filepath.Join(copie, v.Name()), a)
+			}
 		}
 	}
 }
@@ -358,8 +378,17 @@ func copiaCartellaSemplice(da, a string) error {
 		}
 		rel, _ := filepath.Rel(da, p)
 		t := filepath.Join(a, rel)
+		if fi.Mode()&(fs.ModeSymlink|fs.ModeIrregular) != 0 {
+			if fi.IsDir() {
+				return filepath.SkipDir
+			}
+			return nil // collegamenti e giunzioni: non li seguo (Tasso è amministratore)
+		}
 		if fi.IsDir() {
 			return os.MkdirAll(t, 0o755)
+		}
+		if !fi.Mode().IsRegular() {
+			return nil
 		}
 		b, err := os.ReadFile(p)
 		if err != nil {
