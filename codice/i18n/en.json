@@ -1198,7 +1198,8 @@
   "Spazio sul disco non sufficiente per l'IA: liberi ": "Not enough disk space for the AI: ",
   " GB, ne servono circa ": " GB free, it needs about ",
   " (più un po' di margine). Libera spazio e riprova.": " (plus a little margin). Free up some space and try again.",
-  "Svuota il Cestino di tutte le unità, tranne quello buttato nelle ultime 24 ore (così puoi ancora recuperarlo). Nella pulizia programmata toglie solo quello che è nel Cestino da più di 7 giorni.": "Empties the Recycle Bin on all drives, except what was deleted in the last 24 hours (so you can still get it back). In the scheduled cleanup it only removes what has been in the Recycle Bin for more than 7 days."
+  "Svuota il Cestino di tutte le unità, tranne quello buttato nelle ultime 24 ore (così puoi ancora recuperarlo). Nella pulizia programmata toglie solo quello che è nel Cestino da più di 7 giorni.": "Empties the Recycle Bin on all drives, except what was deleted in the last 24 hours (so you can still get it back). In the scheduled cleanup it only removes what has been in the Recycle Bin for more than 7 days.",
+  "L'IA intera toglierebbe troppa memoria al gioco con una scheda video da ": "The full AI would take too much memory from the game with a graphics card of "
  },
  "ps": {
   " di ": " of ",

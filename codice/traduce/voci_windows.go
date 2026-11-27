@@ -458,6 +458,8 @@ func gestisciParziale(audio []float32, ferma chan struct{}) {
 	muProvvisorio.Lock()
 	if provvisorio == nil || len(provvisorio.cache) > 300 {
 		provvisorio = NuovoTraduttore("", leggiImp().Glossario, moz)
+		// la voce è sempre inglese (Whisper base.en): solo la lingua di arrivo è quella scelta
+		provvisorio.Coppia = func() (string, string) { _, a := coppiaAttiva(); return "en", a }
 	}
 	t := provvisorio
 	muProvvisorio.Unlock()
@@ -510,7 +512,12 @@ func gestisciBattuta(audio []float32, ferma chan struct{}, fineVoce time.Time) b
 	if en == "" {
 		return false
 	}
-	r := traduttore.Traduci(ctx, en)
+	var r Risultato
+	if da, a := coppiaAttiva(); da != "en" {
+		r = traduttore.TraduciPer(ctx, en, true, "en", a) // la voce è sempre inglese, anche se il gioco è in un'altra lingua
+	} else {
+		r = traduttore.Traduci(ctx, en)
+	}
 	if r.Tradotto == "" {
 		return false
 	}

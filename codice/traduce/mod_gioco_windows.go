@@ -26,7 +26,7 @@ import (
 var (
 	postiServer   = make(chan struct{}, 4) // al massimo 4 traduzioni insieme per il gioco
 	muModRecenti  sync.Mutex
-	modRecenti    = map[string]string{}               // inglese → chiave del gioco che l'ha chiesto
+	modRecenti    = map[string]modRiga{}              // inglese (anche ripulito) → gioco e testo esatto chiesto
 	modCorrezioni = map[string]map[string][2]string{} // chiave → inglese → [bozza, corretta]
 	modRichieste  atomic.Int64
 	modAvvio      sync.Once
@@ -116,10 +116,12 @@ func rispondiAlGioco(w http.ResponseWriter, r *http.Request) {
 	contaRichiestaGioco(chiave)
 	muModRecenti.Lock()
 	if len(modRecenti) > 20000 {
-		modRecenti = map[string]string{}
+		modRecenti = map[string]modRiga{}
 	}
-	modRecenti[strings.TrimSpace(testo)] = chiave
-	modRecenti[strings.Join(strings.Fields(testo), " ")] = chiave // come la chiama il correttore
+	riga := modRiga{chiave, testo}
+	modRecenti[strings.TrimSpace(testo)] = riga
+	modRecenti[strings.Join(strings.Fields(testo), " ")] = riga
+	modRecenti[pulisciFile(testo)] = riga // come la chiama il correttore (’ → ', a capo → spazio)
 	muModRecenti.Unlock()
 	emetti("riga", map[string]string{"originale": testo, "tradotto": ris.Tradotto, "motore": "nel gioco"})
 	registraRigaGioco(chiave, testo, ris.Tradotto)
@@ -133,15 +135,22 @@ func rispondiAlGioco(w http.ResponseWriter, r *http.Request) {
 func modCorretta(inglese, bozza, corretta string) {
 	muModRecenti.Lock()
 	defer muModRecenti.Unlock()
-	chiave, ok := modRecenti[strings.TrimSpace(inglese)]
+	r, ok := modRecenti[strings.TrimSpace(inglese)]
+	if !ok {
+		r, ok = modRecenti[pulisciFile(inglese)]
+	}
 	if !ok {
 		return
 	}
-	if modCorrezioni[chiave] == nil {
-		modCorrezioni[chiave] = map[string][2]string{}
+	if modCorrezioni[r.chiave] == nil {
+		modCorrezioni[r.chiave] = map[string][2]string{}
 	}
-	modCorrezioni[chiave][inglese] = [2]string{bozza, corretta}
+	// nel file di XUnity la riga ha il testo esatto chiesto dal gioco, non quello ripulito
+	modCorrezioni[r.chiave][r.grezzo] = [2]string{bozza, corretta}
 }
+
+// modRiga: quale gioco ha chiesto una frase e con quale testo esatto.
+type modRiga struct{ chiave, grezzo string }
 
 // cicloCorrezioniFile: scrivo le correzioni quando il gioco è chiuso (mentre gira, XUnity tiene
 // il file aperto e lo riscrive lui).
@@ -179,7 +188,21 @@ func cicloCorrezioniFile() {
 func lingueMod(m ManifestoMod) (string, string) {
 	da, a := m.Lingue[0], m.Lingue[1]
 	if da == "" || da == "auto" || a == "" {
-		da, a = coppiaAttiva()
+		da, a = coppiaDelGioco(chiaveGioco(m.Cartella))
+	}
+	return da, a
+}
+
+// coppiaDelGioco: come coppiaAttiva, ma con "Riconosci da solo" vale la lingua vista in QUESTO
+// gioco (o l'inglese), mai quella riconosciuta in un altro gioco della stessa sessione.
+func coppiaDelGioco(chiave string) (string, string) {
+	i := leggiImp()
+	da, a := i.LinguaDa, linguaArrivo(i)
+	if da == "" || da == "auto" {
+		da = "en"
+		if v := linguaVista(chiave); v != "" {
+			da = v
+		}
 	}
 	return da, a
 }
@@ -323,7 +346,7 @@ func applicaModGioco(nome, cartella string, rischioOK bool) {
 		percorsi = append(percorsi, filepath.Join(dir, z.Nome))
 	}
 	chiave := chiaveGioco(cartella)
-	da, a := coppiaAttiva()
+	da, a := coppiaDelGioco(chiave)
 	if da == "auto" || da == "" {
 		da = "en"
 	}

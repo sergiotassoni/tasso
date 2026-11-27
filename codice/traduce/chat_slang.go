@@ -53,12 +53,28 @@ func soloSigle(s string) bool {
 
 // espandiAbbreviazioni scrive per intero le abbreviazioni della chat, lasciando il resto uguale.
 func espandiAbbreviazioni(s string) string {
-	return reParolaChat.ReplaceAllStringFunc(s, func(p string) string {
-		if v, ok := abbreviazioniChat[strings.ToLower(p)]; ok {
-			return v
+	var b strings.Builder
+	ultimo := 0
+	for _, m := range reParolaChat.FindAllStringIndex(s, -1) {
+		p := s[m[0]:m[1]]
+		v, ok := abbreviazioniChat[strings.ToLower(p)]
+		switch {
+		case !ok:
+			continue
+		case strings.EqualFold(p, "pm") && strings.TrimRight(s[:m[0]], " ") != "" && strings.ContainsAny(strings.TrimRight(s[:m[0]], " ")[len(strings.TrimRight(s[:m[0]], " "))-1:], "0123456789"):
+			continue // "9 pm" è un'ora, non un messaggio privato
+		case len(p) == 1 && p == strings.ToUpper(p):
+			continue // "R" o "U" maiuscola da sola è un tasto ("premi R"), non "are"/"you"
 		}
-		return p
-	})
+		b.WriteString(s[ultimo:m[0]])
+		b.WriteString(v)
+		ultimo = m[1]
+	}
+	if ultimo == 0 {
+		return s
+	}
+	b.WriteString(s[ultimo:])
+	return b.String()
 }
 
 // uniscriRigheChat: un messaggio lungo va a capo su più righe. Se la chat ha i nomi dei

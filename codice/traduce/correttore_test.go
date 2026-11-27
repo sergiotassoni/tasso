@@ -181,3 +181,19 @@ func TestSceltaPrevista(t *testing.T) {
 		t.Errorf("senza Media vuole \"\", ho %q", p.Nome)
 	}
 }
+
+// Schede da 10-11 GB con meno di 8 core: mai l'IA intera oltre il limite lasciato al gioco.
+func TestSchedaDieciPochiCore(t *testing.T) {
+	for _, mem := range []float64{10, 11} {
+		p := sceltaCorrettoreCon(InfoGPU{MemoriaGB: mem}, 32, 6, true, true)
+		if p.MemoriaGB > limiteIA(mem)+0.01 {
+			t.Errorf("%.0f GB, 6 core: %q usa %.2f GB oltre il limite %.2f", mem, p.Nome, p.MemoriaGB, limiteIA(mem))
+		}
+		if p.Nome != "media" {
+			t.Errorf("%.0f GB, 6 core, con la Media: vuole media, ho %q (%s)", mem, p.Nome, p.Motivo)
+		}
+		if q := sceltaCorrettoreCon(InfoGPU{MemoriaGB: mem}, 32, 6, false, false); q.Nome == "scheda" {
+			t.Errorf("%.0f GB, 6 core, senza Media: niente IA intera, ho %q", mem, q.Nome)
+		}
+	}
+}

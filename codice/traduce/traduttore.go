@@ -32,6 +32,8 @@ type Traduttore struct {
 	fileCache      string
 	libreria       map[string]string // traduzioni del gioco aperto, tenute per sempre
 	fileLibreria   string
+	libNonScrivere bool // libreria troppo grande per leggerla: non la riscrivo (perderei tutto)
+	dubNonScrivere bool
 	dubbi          map[string]Dubbio // traduzioni che sembrano strane, da guardare insieme
 	corr           correttoreSfondo  // IA che ricontrolla le frasi in sottofondo
 	// Coppia: lingua del gioco e lingua di arrivo scelte ("en","it" se nil). Per inglese →
@@ -173,7 +175,13 @@ func soloEsatta(ctx context.Context) context.Context {
 }
 
 func (t *Traduttore) TraduciPer(ctx context.Context, grezzo string, dialogo bool, da, a string) Risultato {
-	return t.traduciIn(context.WithValue(ctx, chiaveFile{}, true), grezzo, dialogo, da, a)
+	r := t.traduciIn(context.WithValue(ctx, chiaveFile{}, true), grezzo, dialogo, da, a)
+	// "- Trova la chiave": il trattino davanti (elenco di obiettivi) lo tolgono i ritocchi, nel
+	// gioco va rimesso (sullo schermo lo rimette la regola delle etichette)
+	if g := strings.TrimSpace(grezzo); strings.HasPrefix(g, "- ") && r.Tradotto != "" && !strings.HasPrefix(r.Tradotto, "-") {
+		r.Tradotto = "- " + r.Tradotto
+	}
+	return r
 }
 
 // chiaveFile: testo preso dai file del gioco, già scritto giusto. Niente correzioni della lettura
@@ -197,6 +205,16 @@ func (t *Traduttore) traduciIn(ctx context.Context, grezzo string, dialogo bool,
 		testo = pulisciFile(grezzo)
 	} else {
 		testo = pulisci(grezzo)
+		// le correzioni degli errori di lettura non devono cambiare parole vere dei giochi
+		// ("Crit Chance" non è "Grit Chance", "C4" non sparisce): se la scritta letta così com'è
+		// è nel catalogo o nel glossario, uso quella
+		if leggero := pulisciFile(grezzo); leggero != "" && leggero != testo {
+			if _, ok := fraseMenuConNumero(leggero); ok {
+				testo = leggero
+			} else if _, ok := t.termineEsatto(leggero); ok {
+				testo = leggero
+			}
+		}
 	}
 	if testo == "" {
 		return Risultato{}
@@ -204,9 +222,11 @@ func (t *Traduttore) traduciIn(ctx context.Context, grezzo string, dialogo bool,
 	parlante, battuta := "", strings.ReplaceAll(testo, "\n", " ")
 	if dialogo && !daFile {
 		parlante, battuta = separaParlante(testo)
-	} else if r, ok := t.traduciEtichetta(ctx, battuta, inizio); ok && !daFile {
+	} else if !daFile {
 		// (nei file no: l'etichetta si tradurrebbe nelle lingue di adesso, non in quelle del gioco)
-		return r
+		if r, ok := t.traduciEtichetta(ctx, battuta, inizio); ok {
+			return r
+		}
 	}
 	ricorda := func(b string) {
 		if dialogo && !daFile {
@@ -266,7 +286,9 @@ func (t *Traduttore) traduciIn(ctx context.Context, grezzo string, dialogo bool,
 		ricorda(battuta)
 		return ris
 	}
-	if !conParoleFisse && ctx.Value(chiaveEsatta{}) == nil {
+	// il "quasi uguale" serve solo per gli errori di lettura dello schermo: mai per il testo
+	// chiesto dal gioco (XUnity salva la risposta per sempre, "lost" al posto di "lose" resterebbe)
+	if !conParoleFisse && ctx.Value(chiaveEsatta{}) == nil && ctx.Value(chiaveFile{}) == nil {
 		if v, ok := t.cercaQuasiUguale(parlante, battuta); ok {
 			t.mu.Unlock()
 			ris.Tradotto, ris.Motore = nomiIntatti(battuta, v), "libreria"
@@ -336,7 +358,8 @@ func (t *Traduttore) traduciIn(ctx context.Context, grezzo string, dialogo bool,
 		t.accodaCorrezione(chiave, battuta, ris.Tradotto, req.Glossario, req.Schermata)
 	}
 	ricorda(battuta)
-	if dialogo {
+	if dialogo && !daFile {
+		// (le frasi chieste dal gioco arrivano a raffica: le salva il salvataggio ogni 2 minuti)
 		t.salvaCache()
 	}
 	return ris
@@ -360,6 +383,12 @@ func (t *Traduttore) traduciEtichetta(ctx context.Context, s string, inizio time
 	}
 	if it, ok := t.oggettoDiMateriale(s); ok {
 		return finito(it, "glossario")
+	}
+	t.mu.Lock()
+	gl := t.glossario
+	t.mu.Unlock()
+	if v, ok := fraseMenuConNumero(s); ok && len(gl.trova(s)) == 0 {
+		return finito(v, "catalogo") // "Fullscreen", "VSync", "Melee"…: il catalogo prima della regola dei nomi
 	}
 	if w := strings.Fields(s); len(w) == 1 && !esiste(strings.Trim(w[0], ".,:;!?")) && unicode.IsUpper([]rune(w[0])[0]) {
 		return finito(s, "nome") // nome proprio (luogo, creatura, personaggio): resta com'è
@@ -557,16 +586,34 @@ func (t *Traduttore) ApriLibreria(file string) {
 	t.mu.Unlock()
 	t.salvaLibreria()
 	nuova := map[string]string{}
-	if b, err := os.ReadFile(file); err == nil && len(b) < 64<<20 {
-		_ = json.Unmarshal(b, &nuova)
-	}
+	libNo := apriJSON(file, 64<<20, &nuova)
 	dubbi := map[string]Dubbio{}
-	if b, err := os.ReadFile(strings.TrimSuffix(file, ".json") + "-da-controllare.json"); err == nil && len(b) < 16<<20 {
-		_ = json.Unmarshal(b, &dubbi)
-	}
+	dubNo := apriJSON(strings.TrimSuffix(file, ".json")+"-da-controllare.json", 16<<20, &dubbi)
 	t.mu.Lock()
 	t.libreria, t.fileLibreria, t.dubbi = nuova, file, dubbi
+	t.libNonScrivere, t.dubNonScrivere = libNo, dubNo
 	t.mu.Unlock()
+}
+
+// apriJSON legge un file della libreria. Torna true se il file c'è ma non va riscritto: troppo
+// grande per leggerlo (riscrivendolo perderei tutto quello che c'è dentro). Un file rovinato lo
+// metto da parte (.rovinato) e riparto da vuoto.
+func apriJSON(file string, max int64, v interface{}) bool {
+	st, err := os.Stat(file)
+	if err != nil {
+		return false
+	}
+	if st.Size() >= max {
+		return true
+	}
+	b, err := os.ReadFile(file)
+	if err != nil {
+		return true // c'è ma non lo leggo (in uso?): non lo tocco
+	}
+	if json.Unmarshal(b, v) != nil {
+		_ = os.Rename(file, file+".rovinato")
+	}
+	return false
 }
 
 func (t *Traduttore) salvaLibreria() {
@@ -576,9 +623,13 @@ func (t *Traduttore) salvaLibreria() {
 		t.mu.Unlock()
 		return
 	}
-	b, err := json.Marshal(t.libreria)
+	var b []byte
+	var err error
+	if !t.libNonScrivere {
+		b, err = json.Marshal(t.libreria)
+	}
 	var bd []byte
-	if len(t.dubbi) > 0 {
+	if len(t.dubbi) > 0 && !t.dubNonScrivere {
 		bd, _ = json.MarshalIndent(t.dubbi, "", " ")
 	}
 	t.mu.Unlock()
@@ -591,6 +642,9 @@ func (t *Traduttore) salvaLibreria() {
 		muFileCache.Lock()
 		scriviSeCambiato(dc, bd)
 		muFileCache.Unlock()
+	}
+	if b == nil {
+		return
 	}
 	muFileCache.Lock()
 	defer muFileCache.Unlock()

@@ -149,7 +149,12 @@ func sceltaPrevista(g InfoGPU, ramGB float64, core int) ProfiloCorrettore {
 func sceltaCorrettoreCon(g InfoGPU, ramGB float64, core int, conMedia, conScorta bool) ProfiloCorrettore {
 	p := sceltaGrande(g, ramGB, core)
 	if p.Nome == "scheda" {
-		return p
+		if g.MemoriaGB == 0 || limiteIA(g.MemoriaGB) >= vramIntero {
+			return p
+		}
+		// (schede da 10-11 GB con meno di 8 core) l'IA intera supererebbe il limite lasciato al
+		// gioco: provo la Media o la Piccola, altrimenti traduttore veloce
+		p = ProfiloCorrettore{"", 0, 0, fmt.Sprintf("L'IA intera toglierebbe troppa memoria al gioco con una scheda video da %.0f GB: uso il traduttore veloce.", g.MemoriaGB)}
 	}
 	libera := g.MemoriaGB - g.UsataGB
 	if conMedia && g.MemoriaGB > 0 && limiteIA(g.MemoriaGB) >= vramMedia && libera >= vramMedia+margineGiocoGB &&

@@ -91,7 +91,9 @@ var (
 func fileImp() string { return filepath.Join(dirApp, "impostazioni.json") }
 
 func caricaImp() {
-	imp.Glossario = glossarioBase()
+	// vuoto prima di leggere: json unirebbe le parole salvate a quelle di base, e una parola che
+	// hai tolto tornerebbe al riavvio
+	imp.Glossario = Glossario{}
 	if b, err := os.ReadFile(fileImp()); err == nil {
 		_ = json.Unmarshal(b, &imp)
 	}
