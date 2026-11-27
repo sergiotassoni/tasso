@@ -51,15 +51,6 @@ type Scelta struct {
 	Indirizzo string
 }
 
-// nomeDi: dal nome completo di un pacchetto ("Nome_1.2.3.0_x64__8wekyb3d8bbwe") il nome ("Nome").
-func nomeDi(p string) string {
-	p = strings.TrimSpace(p)
-	if i := strings.IndexByte(p, '_'); i >= 0 {
-		p = p[:i]
-	}
-	return p
-}
-
 var reParte = regexp.MustCompile(`^[A-Za-z0-9.\-]+$`)
 
 // Famiglia: dal nome completo il nome di famiglia "Nome_IdEditore" (nome e id editore sono la
@@ -102,8 +93,8 @@ func LeggiManifest(b []byte) (appID string, protocolli []string) {
 // IndirizzoApp: "shell:AppsFolder\<famiglia>!<Id app>" (AUMID), il modo con cui Tasso apre già le
 // app dello Store. Niente finestra "Ti serve una nuova app": il pacchetto è già verificato.
 func IndirizzoApp(p Installato) string {
-	f := Famiglia(p.NomeCompleto)
-	if f == "" {
+	f := Pacchetto + "_" + EditorePredefinito // scritto sempre allo stesso modo
+	if !strings.EqualFold(Famiglia(p.NomeCompleto), f) {
 		return ""
 	}
 	id := p.AppID
@@ -116,9 +107,11 @@ func IndirizzoApp(p Installato) string {
 	return prefissoApp + f + "!" + id
 }
 
+// trova: il pacchetto con quel nome E l'editore Microsoft (8wekyb3d8bbwe). Il registro HKCU lo può
+// scrivere l'utente: un pacchetto con lo stesso nome ma un altro editore non vale.
 func trova(pacchetti []Installato, nome string) (Installato, bool) {
 	for _, p := range pacchetti {
-		if strings.EqualFold(nomeDi(p.NomeCompleto), nome) {
+		if strings.EqualFold(Famiglia(p.NomeCompleto), nome+"_"+EditorePredefinito) {
 			return p, true
 		}
 	}
@@ -126,8 +119,8 @@ func trova(pacchetti []Installato, nome string) (Installato, bool) {
 }
 
 // Scegli: con i pacchetti dell'utente decide cosa aprire.
-// Assistenza rapida installata -> l'app (AUMID; il protocollo solo se l'AUMID non si fa e il
-// manifest lo dichiara; se no l'AUMID della famiglia Microsoft). Se manca: la pagina dello Store;
+// Assistenza rapida installata (con l'editore Microsoft) -> l'app (AUMID; il protocollo solo se
+// l'Id dell'app nel manifest non è valido e il manifest lo dichiara; se no l'AUMID con "App"). Se manca: la pagina dello Store;
 // se manca anche lo Store, la stessa pagina sul sito.
 func Scegli(pacchetti []Installato) Scelta {
 	if p, ok := trova(pacchetti, Pacchetto); ok {
@@ -147,7 +140,7 @@ func Scegli(pacchetti []Installato) Scelta {
 	return Scelta{ModoWeb, PaginaWeb}
 }
 
-var reApp = regexp.MustCompile(`^shell:AppsFolder\\` + regexp.QuoteMeta(Pacchetto) + `_[A-Za-z0-9]+![A-Za-z0-9.\-]+$`)
+var reApp = regexp.MustCompile(`^shell:AppsFolder\\` + regexp.QuoteMeta(Pacchetto+"_"+EditorePredefinito) + `![A-Za-z0-9.\-]+$`)
 
 // IndirizzoAmmesso: si possono aprire solo Assistenza rapida e la sua pagina nello Store.
 func IndirizzoAmmesso(u string) bool {

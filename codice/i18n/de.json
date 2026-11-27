@@ -5366,7 +5366,6 @@
   "Il codice dura poco tempo. Se non va, chiedi al tuo amico un codice nuovo.": "Der Code gilt nur kurze Zeit. Wenn er nicht geht, frag deinen Freund nach einem neuen Code.",
   "Vedrai un codice di 6 lettere e numeri, per esempio <span class=\"aa-cod\">AB12CD</span>. Leggilo al telefono, una lettera alla volta. Dura poco tempo.": "Du siehst einen Code aus 6 Buchstaben und Zahlen, zum Beispiel <span class=\"aa-cod\">AB12CD</span>. Lies ihn am Telefon vor, einen Buchstaben nach dem anderen. Er gilt nur kurze Zeit.",
   "Su questo PC Assistenza rapida non c'è, e manca anche il Microsoft Store. Il pulsante apre la sua pagina nel browser, ma forse non si potrà installare: serve Windows 10 o 11 aggiornato. Se non ci riesci, chiedi aiuto a chi ti ha dato il PC.": "Remotehilfe ist nicht auf diesem PC, und auch der Microsoft Store fehlt. Der Knopf öffnet ihre Seite im Browser, aber vielleicht lässt sie sich nicht installieren: Dafür braucht es ein aktuelles Windows 10 oder 11. Wenn es nicht klappt, frag die Person, die dir den PC gegeben hat.",
-  "Usa il codice solo con una persona che conosci e con cui stai parlando adesso (al telefono o di persona).": "Benutze den Code nur mit einer Person, die du kennst und mit der du gerade sprichst (am Telefon oder persönlich).",
   "Nessuno di Microsoft, di Tasso, della banca o della polizia ti chiamerà mai per farti aprire Assistenza rapida o darti il codice. Se succede, è una truffa: riattacca.": "Niemand von Microsoft, von Tasso, von der Bank oder von der Polizei ruft dich jemals an, damit du Remotehilfe öffnest, oder um dir den Code zu geben. Wenn das passiert, ist es Betrug: Leg auf.",
   "Se un messaggio sul PC ti dice di chiamare un numero, è una truffa: non chiamare.": "Wenn eine Meldung auf dem PC sagt, du sollst eine Nummer anrufen, ist es Betrug: Ruf nicht an.",
   "Un amico ti dà aiuto da remoto: vede il tuo schermo e ti aiuta. Si usa Assistenza rapida (Quick Assist), un programma gratuito di Windows. Spiegato passo passo.": "Ein Freund gibt dir Fernhilfe: Er sieht deinen Bildschirm und hilft dir. Dafür gibt es Remotehilfe (Quick Assist), ein kostenloses Programm von Windows. Schritt für Schritt erklärt.",
@@ -5376,6 +5375,8 @@
   "Vuoi consentire le modifiche?": "Änderungen zulassen?",
   "Questo lo vede il tuo amico": "Das sieht dein Freund",
   "Il tuo nome": "Dein Name",
-  "Sì": "Ja"
+  "Sì": "Ja",
+  "Scrivi o leggi il codice solo con una persona che conosci e con cui stai parlando adesso (al telefono o di persona).": "Tipp oder lies den Code nur zusammen mit einer Person, die du kennst und mit der du gerade sprichst (am Telefon oder persönlich).",
+  "controllo remoto, assistenza remota, aiuto a distanza, Quick Assist": "Fernsteuerung, Fernwartung, Fernhilfe, Fernzugriff, Remote, Quick Assist"
  }
 }

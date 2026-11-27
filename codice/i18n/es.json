@@ -5366,7 +5366,6 @@
   "Il codice dura poco tempo. Se non va, chiedi al tuo amico un codice nuovo.": "El código dura poco tiempo. Si no funciona, pide a tu amigo un código nuevo.",
   "Vedrai un codice di 6 lettere e numeri, per esempio <span class=\"aa-cod\">AB12CD</span>. Leggilo al telefono, una lettera alla volta. Dura poco tempo.": "Verás un código de 6 letras y números, por ejemplo <span class=\"aa-cod\">AB12CD</span>. Léelo por teléfono, una letra cada vez. Dura poco tiempo.",
   "Su questo PC Assistenza rapida non c'è, e manca anche il Microsoft Store. Il pulsante apre la sua pagina nel browser, ma forse non si potrà installare: serve Windows 10 o 11 aggiornato. Se non ci riesci, chiedi aiuto a chi ti ha dato il PC.": "Asistencia rápida no está en este PC, y tampoco está Microsoft Store. El botón abre su página en el navegador, pero puede que no se instale: hace falta Windows 10 u 11 actualizado. Si no lo consigues, pide ayuda a quien te dio el PC.",
-  "Usa il codice solo con una persona che conosci e con cui stai parlando adesso (al telefono o di persona).": "Usa el código solo con una persona que conoces y con la que estás hablando ahora (por teléfono o en persona).",
   "Nessuno di Microsoft, di Tasso, della banca o della polizia ti chiamerà mai per farti aprire Assistenza rapida o darti il codice. Se succede, è una truffa: riattacca.": "Nadie de Microsoft, de Tasso, del banco ni de la policía te llamará nunca para que abras Asistencia rápida o para darte el código. Si pasa, es una estafa: cuelga.",
   "Se un messaggio sul PC ti dice di chiamare un numero, è una truffa: non chiamare.": "Si un mensaje en el PC te dice que llames a un número, es una estafa: no llames.",
   "Un amico ti dà aiuto da remoto: vede il tuo schermo e ti aiuta. Si usa Assistenza rapida (Quick Assist), un programma gratuito di Windows. Spiegato passo passo.": "Un amigo te da ayuda remota: ve tu pantalla y te ayuda. Se usa Asistencia rápida (Quick Assist), un programa gratuito de Windows. Explicado paso a paso.",
@@ -5376,6 +5375,8 @@
   "Vuoi consentire le modifiche?": "¿Permitir cambios?",
   "Questo lo vede il tuo amico": "Esto lo ve tu amigo",
   "Il tuo nome": "Tu nombre",
-  "Sì": "Sí"
+  "Sì": "Sí",
+  "Scrivi o leggi il codice solo con una persona che conosci e con cui stai parlando adesso (al telefono o di persona).": "Escribe o lee el código solo con una persona que conoces y con la que estás hablando ahora (por teléfono o en persona).",
+  "controllo remoto, assistenza remota, aiuto a distanza, Quick Assist": "control remoto, asistencia remota, ayuda a distancia, Quick Assist"
  }
 }

@@ -5366,7 +5366,6 @@
   "Il codice dura poco tempo. Se non va, chiedi al tuo amico un codice nuovo.": "Le code ne dure que peu de temps. S'il ne marche pas, demandez un nouveau code à votre ami.",
   "Vedrai un codice di 6 lettere e numeri, per esempio <span class=\"aa-cod\">AB12CD</span>. Leggilo al telefono, una lettera alla volta. Dura poco tempo.": "Vous verrez un code de 6 lettres et chiffres, par exemple <span class=\"aa-cod\">AB12CD</span>. Lisez-le au téléphone, une lettre à la fois. Il ne dure que peu de temps.",
   "Su questo PC Assistenza rapida non c'è, e manca anche il Microsoft Store. Il pulsante apre la sua pagina nel browser, ma forse non si potrà installare: serve Windows 10 o 11 aggiornato. Se non ci riesci, chiedi aiuto a chi ti ha dato il PC.": "Assistance rapide n'est pas sur ce PC, et le Microsoft Store manque aussi. Le bouton ouvre sa page dans le navigateur, mais elle ne pourra peut-être pas s'installer : il faut Windows 10 ou 11 à jour. Si vous n'y arrivez pas, demandez de l'aide à la personne qui vous a donné le PC.",
-  "Usa il codice solo con una persona che conosci e con cui stai parlando adesso (al telefono o di persona).": "N'utilisez le code qu'avec une personne que vous connaissez et avec qui vous parlez en ce moment (au téléphone ou en personne).",
   "Nessuno di Microsoft, di Tasso, della banca o della polizia ti chiamerà mai per farti aprire Assistenza rapida o darti il codice. Se succede, è una truffa: riattacca.": "Personne de Microsoft, de Tasso, de la banque ou de la police ne vous appellera jamais pour vous faire ouvrir Assistance rapide ou vous donner le code. Si cela arrive, c'est une arnaque : raccrochez.",
   "Se un messaggio sul PC ti dice di chiamare un numero, è una truffa: non chiamare.": "Si un message sur le PC vous dit d'appeler un numéro, c'est une arnaque : n'appelez pas.",
   "Un amico ti dà aiuto da remoto: vede il tuo schermo e ti aiuta. Si usa Assistenza rapida (Quick Assist), un programma gratuito di Windows. Spiegato passo passo.": "Un ami vous aide à distance : il voit votre écran et vous aide. On utilise Assistance rapide (Quick Assist), un programme gratuit de Windows. Expliqué étape par étape.",
@@ -5376,6 +5375,8 @@
   "Vuoi consentire le modifiche?": "Autoriser les modifications ?",
   "Questo lo vede il tuo amico": "Votre ami voit ceci",
   "Il tuo nome": "Votre nom",
-  "Sì": "Oui"
+  "Sì": "Oui",
+  "Scrivi o leggi il codice solo con una persona che conosci e con cui stai parlando adesso (al telefono o di persona).": "N'écrivez ou ne lisez le code qu'avec une personne que vous connaissez et avec qui vous parlez en ce moment (au téléphone ou en personne).",
+  "controllo remoto, assistenza remota, aiuto a distanza, Quick Assist": "contrôle à distance, prise en main à distance, assistance à distance, aide à distance, Quick Assist"
  }
 }

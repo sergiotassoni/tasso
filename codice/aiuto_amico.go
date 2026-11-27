@@ -20,9 +20,14 @@ func aiutoAmicoScelta() aiutoamico.Scelta {
 	var lista []aiutoamico.Installato
 	for _, p := range leggiPacchettiAppx() {
 		x := aiutoamico.Installato{NomeCompleto: p.nomeCompleto}
-		if strings.EqualFold(p.nome, aiutoamico.Pacchetto) && p.cartella != "" {
-			if b, err := os.ReadFile(filepath.Join(p.cartella, "AppxManifest.xml")); err == nil && len(b) < 4<<20 {
-				x.AppID, x.Protocolli = aiutoamico.LeggiManifest(b)
+		// La cartella viene dal registro dell'utente: niente percorsi di rete (\\server\...) e niente
+		// file enormi; la dimensione la guardo prima di leggere.
+		if strings.EqualFold(p.nome, aiutoamico.Pacchetto) && p.cartella != "" && !strings.HasPrefix(p.cartella, `\\`) {
+			f := filepath.Join(p.cartella, "AppxManifest.xml")
+			if fi, err := os.Stat(f); err == nil && fi.Mode().IsRegular() && fi.Size() < 4<<20 {
+				if b, err := os.ReadFile(f); err == nil {
+					x.AppID, x.Protocolli = aiutoamico.LeggiManifest(b)
+				}
 			}
 		}
 		lista = append(lista, x)

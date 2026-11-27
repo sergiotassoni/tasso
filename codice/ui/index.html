@@ -1076,7 +1076,7 @@ body.th-tasso:not(.office) .aa-passi li::before{background:var(--text);color:var
   <div class="row wrap" style="justify-content:space-between;gap:12px"><div style="flex:1 1 420px"><h1 style="font-size:26px">Fai aiutare un amico</h1><p class="sub">Un amico può vedere il tuo schermo e aiutarti, anche se è lontano.</p><p class="sub" style="margin-top:4px">Si usa Assistenza rapida: è un programma di Windows, gratis, fatto da Microsoft. Tasso lo apre e basta: non vede niente e non passa niente dai suoi server.</p></div><button class="btn ghost" id="aaBack">← Torna a Risolvi un problema</button></div>
   <div class="aa-sicuro" role="note">
     <h2>⚠️ Attenzione alle truffe</h2>
-    <p>Usa il codice solo con una persona che conosci e con cui stai parlando adesso (al telefono o di persona).</p>
+    <p>Scrivi o leggi il codice solo con una persona che conosci e con cui stai parlando adesso (al telefono o di persona).</p>
     <p>Nessuno di Microsoft, di Tasso, della banca o della polizia ti chiamerà mai per farti aprire Assistenza rapida o darti il codice. Se succede, è una truffa: riattacca.</p>
     <p>Se un messaggio sul PC ti dice di chiamare un numero, è una truffa: non chiamare.</p>
     <p>Puoi chiudere l'aiuto quando vuoi: premi Esci (o Termina), oppure chiudi la finestra.</p>
@@ -3319,8 +3319,7 @@ function aaFig(k){
     '<rect x="30" y="84" width="140" height="18" rx="5" style="fill:var(--bg);stroke:var(--muted);stroke-width:1.5"/><text x="38" y="96.5" style="fill:var(--soft);font:600 8.5px var(--body)">' + aaEsc(_t('Account Microsoft')) + '</text>' +
     '<text x="100" y="117" text-anchor="middle" style="fill:var(--soft);font:600 8px var(--body)">' + aaEsc(_t('Accedi')) + '</text>');
   if (k === 'codOut') return aaWin('<text x="100" y="44" text-anchor="middle" style="fill:var(--soft);font:600 9.5px var(--body)">' + aaEsc(_t('Codice di sicurezza')) + '</text>' +
-    '<text x="100" y="76" text-anchor="middle" style="fill:var(--a1);font:800 24px var(--mono);letter-spacing:4px">AB12CD</text>' +
-    '<text x="100" y="98" text-anchor="middle" style="fill:var(--soft);font:600 11px var(--body)">⏱</text>');
+    '<text x="100" y="76" text-anchor="middle" style="fill:var(--a1);font:800 24px var(--mono);letter-spacing:4px">AB12CD</text>');
   if (k === 'richiedi') return '<svg viewBox="0 0 200 128" role="img" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">' +
     '<rect x="3" y="3" width="194" height="122" rx="10" style="fill:var(--panel2);stroke:var(--line);stroke-width:2"/><rect x="3" y="3" width="194" height="28" rx="10" style="fill:var(--line)"/>' +
     aaBtn(10, 7, 124, _t('Richiedi il controllo'), true) + '<rect x="18" y="42" width="164" height="74" rx="5" style="fill:var(--bg)"/>' +
@@ -3381,6 +3380,10 @@ async function aaApri(){
 }
 $$('#v-aiuto .aa-big').forEach(b => { b.onclick = () => { AA.guida = AA.guida === b.dataset.aa ? '' : b.dataset.aa; aaPaint(); if (AA.guida) { const g = $('#aaGuida'); if (g && g.scrollIntoView) g.scrollIntoView({block:'start', behavior:'smooth'}); } }; });
 $('#aaBack').onclick = () => show('fix');
+// Ricerca in Risolvi un problema: la scheda si trova anche con "controllo remoto" e simili (tradotti).
+(function(){ const b = document.querySelector('.fixcard [data-go2="aiuto"]'); const c = b && b.closest('.fixcard'); if (!c) return;
+  const h = c.querySelector('h3'), pp = c.querySelector('p');
+  c.dataset.q = ((h ? h.textContent : '') + ' ' + (pp ? pp.textContent : '') + ' ' + _t('controllo remoto, assistenza remota, aiuto a distanza, Quick Assist')).toLowerCase(); })();
 function aaApriPagina(){ call('goAiutoAmicoStato').then(m => { if (m && m !== AA.modo) { AA.modo = m; aaPaint(); } }); }
 function applyLook(preview){
   const off = preview ? preview === 'ufficio' : isOffice();

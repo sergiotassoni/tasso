@@ -5366,7 +5366,6 @@
   "Il codice dura poco tempo. Se non va, chiedi al tuo amico un codice nuovo.": "The code only lasts a short time. If it does not work, ask your friend for a new code.",
   "Vedrai un codice di 6 lettere e numeri, per esempio <span class=\"aa-cod\">AB12CD</span>. Leggilo al telefono, una lettera alla volta. Dura poco tempo.": "You will see a code of 6 letters and numbers, for example <span class=\"aa-cod\">AB12CD</span>. Read it out on the phone, one letter at a time. It only lasts a short time.",
   "Su questo PC Assistenza rapida non c'è, e manca anche il Microsoft Store. Il pulsante apre la sua pagina nel browser, ma forse non si potrà installare: serve Windows 10 o 11 aggiornato. Se non ci riesci, chiedi aiuto a chi ti ha dato il PC.": "Quick Assist is not on this PC, and the Microsoft Store is missing too. The button opens its page in the browser, but it may not install: it needs an up-to-date Windows 10 or 11. If you cannot do it, ask for help from whoever gave you the PC.",
-  "Usa il codice solo con una persona che conosci e con cui stai parlando adesso (al telefono o di persona).": "Only use the code with someone you know and are talking to right now (on the phone or in person).",
   "Nessuno di Microsoft, di Tasso, della banca o della polizia ti chiamerà mai per farti aprire Assistenza rapida o darti il codice. Se succede, è una truffa: riattacca.": "Nobody from Microsoft, Tasso, the bank or the police will ever call you to make you open Quick Assist or to give you the code. If it happens, it is a scam: hang up.",
   "Se un messaggio sul PC ti dice di chiamare un numero, è una truffa: non chiamare.": "If a message on the PC tells you to call a number, it is a scam: do not call.",
   "Un amico ti dà aiuto da remoto: vede il tuo schermo e ti aiuta. Si usa Assistenza rapida (Quick Assist), un programma gratuito di Windows. Spiegato passo passo.": "A friend gives you remote help: they see your screen and help you. It uses Quick Assist, a free Windows program. Explained step by step.",
@@ -5376,6 +5375,8 @@
   "Vuoi consentire le modifiche?": "Allow changes?",
   "Questo lo vede il tuo amico": "Your friend sees this",
   "Il tuo nome": "Your name",
-  "Sì": "Yes"
+  "Sì": "Yes",
+  "Scrivi o leggi il codice solo con una persona che conosci e con cui stai parlando adesso (al telefono o di persona).": "Only type or read out the code with someone you know and are talking to right now (on the phone or in person).",
+  "controllo remoto, assistenza remota, aiuto a distanza, Quick Assist": "remote control, remote assistance, remote help, Quick Assist"
  }
 }

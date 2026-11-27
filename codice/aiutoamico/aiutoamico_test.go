@@ -14,8 +14,11 @@ func TestScegli(t *testing.T) {
 		{"installata, manifest letto", []Installato{{NomeCompleto: store}, {NomeCompleto: qa, AppID: "App", Protocolli: []string{"ms-quick-assist"}}}, ModoApp, `shell:AppsFolder\MicrosoftCorporationII.QuickAssist_8wekyb3d8bbwe!App`},
 		{"installata, Id diverso nel manifest", []Installato{{NomeCompleto: qa, AppID: "QuickAssist"}}, ModoApp, `shell:AppsFolder\MicrosoftCorporationII.QuickAssist_8wekyb3d8bbwe!QuickAssist`},
 		{"installata, manifest non letto", []Installato{{NomeCompleto: qa}}, ModoApp, `shell:AppsFolder\MicrosoftCorporationII.QuickAssist_8wekyb3d8bbwe!App`},
-		{"nome strano, c'è il protocollo", []Installato{{NomeCompleto: "microsoftcorporationii.quickassist", Protocolli: []string{"ms-quick-assist"}}}, ModoApp, Protocollo},
-		{"nome strano, niente protocollo", []Installato{{NomeCompleto: "MicrosoftCorporationII.QuickAssist"}}, ModoApp, `shell:AppsFolder\MicrosoftCorporationII.QuickAssist_8wekyb3d8bbwe!App`},
+		{"Id app non valido, c'è il protocollo", []Installato{{NomeCompleto: qa, AppID: "A pp", Protocolli: []string{"ms-quick-assist"}}}, ModoApp, Protocollo},
+		{"maiuscole diverse", []Installato{{NomeCompleto: "microsoftcorporationii.quickassist_2.0_x64__8WEKYB3D8BBWE"}}, ModoApp, `shell:AppsFolder\MicrosoftCorporationII.QuickAssist_8wekyb3d8bbwe!App`},
+		{"solo il nome, senza editore", []Installato{{NomeCompleto: "MicrosoftCorporationII.QuickAssist"}, {NomeCompleto: store}}, ModoStore, PaginaStore},
+		{"stesso nome, altro editore", []Installato{{NomeCompleto: "MicrosoftCorporationII.QuickAssist_9.9.9.9_x64__abcdefghijk1", AppID: "App"}, {NomeCompleto: store}}, ModoStore, PaginaStore},
+		{"Store di un altro editore", []Installato{{NomeCompleto: "Microsoft.WindowsStore_1.0_x64__zzz"}}, ModoWeb, PaginaWeb},
 		{"manca: c'è lo Store", []Installato{{NomeCompleto: store}}, ModoStore, "ms-windows-store://pdp/?ProductId=9P7BP5VNWKX5"},
 		{"manca anche lo Store", []Installato{{NomeCompleto: "Microsoft.Photos_2024.1_x64__8wekyb3d8bbwe"}}, ModoWeb, "https://apps.microsoft.com/detail/9P7BP5VNWKX5"},
 		{"registro vuoto", nil, ModoWeb, PaginaWeb},
@@ -66,7 +69,7 @@ func TestLeggiManifest(t *testing.T) {
 
 func TestIndirizzoAmmesso(t *testing.T) {
 	for _, u := range []string{"", "https://example.com", "ms-quick-assist:x", "ms-windows-store://pdp/?ProductId=9NBLGGH4NNS1", "cmd.exe",
-		`shell:AppsFolder\Contoso.App_abc!App`, `shell:AppsFolder\MicrosoftCorporationII.QuickAssist_8wekyb3d8bbwe!App"x`, `shell:AppsFolder\MicrosoftCorporationII.QuickAssist_8wekyb3d8bbwe!App\..\x`} {
+		`shell:AppsFolder\Contoso.App_abc!App`, `shell:AppsFolder\MicrosoftCorporationII.QuickAssist_abcdefghijk1!App`, `shell:AppsFolder\MicrosoftCorporationII.QuickAssist_8wekyb3d8bbwe!App"x`, `shell:AppsFolder\MicrosoftCorporationII.QuickAssist_8wekyb3d8bbwe!App\..\x`} {
 		if IndirizzoAmmesso(u) {
 			t.Errorf("%q non doveva essere ammesso", u)
 		}
