@@ -43,11 +43,11 @@ const argCancellaSicura = "--cancella-sicura"
 func cancellaSicuraDaRiga(args []string) (codice int) {
 	defer func() {
 		if r := recover(); r != nil {
-			fmt.Println("RIFIUTO errore interno")
+			fmt.Println("RIFIUTO " + motivoTradotto("errore interno"))
 			codice = 3
 		}
 	}()
-	rifiuta := func(m string) int { fmt.Println("RIFIUTO " + m); return 3 }
+	rifiuta := func(m string) int { fmt.Println("RIFIUTO " + motivoTradotto(m)); return 3 }
 	if len(args) < 1 {
 		return rifiuta("comando mancante")
 	}
@@ -113,6 +113,26 @@ func (c *cancellatore) scaduto() bool {
 type errCS string
 
 func (e errCS) Error() string { return string(e) }
+
+// motivoTradotto: il motivo di un rifiuto nella lingua di Tasso (TASSO_LINGUA, la mette lo script):
+// lo script lo mostra tra parentesi dentro un messaggio già tradotto. Si traduce solo il testo
+// prima di ": ", il nome o il percorso dopo resta com'è. Un motivo che non è nel dizionario (per
+// esempio un errore di Windows, già nella lingua di Windows) resta uguale.
+func motivoTradotto(m string) string {
+	d := dizLingua(strings.TrimSpace(os.Getenv("TASSO_LINGUA")))
+	if d == nil {
+		return m
+	}
+	testo, dettaglio, conDettaglio := strings.Cut(m, ": ")
+	v := d.Go[testo]
+	if v == "" {
+		return m
+	}
+	if conDettaglio {
+		return v + ": " + dettaglio
+	}
+	return v
+}
 
 // percorsoLocale: solo percorsi completi su un disco con la lettera (niente rete, niente \\?\).
 func percorsoLocale(p string) (string, bool) {
@@ -313,12 +333,12 @@ func (c *cancellatore) svuotaCartella(radice, cartella string) error {
 				if nonTrovato(err) {
 					return nil
 				}
-				return errCS("non riesco ad aprire " + n)
+				return errCS("non riesco ad aprire: " + n)
 			}
 			aperte = append(aperte, h)
 			var fi windows.ByHandleFileInformation
 			if windows.GetFileInformationByHandle(h, &fi) != nil {
-				return errCS("non riesco a leggere " + n)
+				return errCS("non riesco a leggere: " + n)
 			}
 			if fi.FileAttributes&windows.FILE_ATTRIBUTE_REPARSE_POINT != 0 {
 				return errCS("c'è una giunzione o un collegamento: " + n)

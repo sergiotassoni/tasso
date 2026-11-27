@@ -303,6 +303,8 @@ function Invoke-TassoCancella([string[]]$a) {
     # Tasso si ferma da solo un po' prima della fine del passaggio (cartelle con milioni di file) e
     # dice quanto ha liberato fin lì: così il passaggio finisce e lo spazio viene contato.
     $psi.EnvironmentVariables['TASSO_FINE'] = [string][long]([DateTimeOffset]::UtcNow.ToUnixTimeSeconds() + [math]::Max(5, (Time-Left) - 30))
+    # La lingua di Tasso: il motivo di un rifiuto finisce dentro un messaggio già tradotto.
+    $psi.EnvironmentVariables['TASSO_LINGUA'] = [string]$TassoLang
     $pr = [System.Diagnostics.Process]::Start($psi)
     $er = $pr.StandardError.ReadToEndAsync()
     $out = $pr.StandardOutput.ReadToEnd()
