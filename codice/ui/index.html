@@ -3276,16 +3276,16 @@ function diskKind(k){ return k === 'nvme' ? 'SSD NVMe' : k === 'ssd' ? 'SSD' : k
 // Le righe del voto (finestra e biglietto): [nome, voto, sotto, nuovo]
 function votoRows(r){
   const p = paramsOf(r), rp = r.report || {}, rows = [];
-  rows.push([_t('Processore'), p.processore, (rp.processore ? rp.processore + ' · ' : '') + _t('un core ') + v100(r.cpu1) + _t(' · tutti i core ') + v100(r.cpuN)]);
-  if (p.schedaVideo > 0) rows.push([_t('Scheda video'), p.schedaVideo, (r.gpuName || '') + (r.gpuVramMB ? ' · ' + gbTxt(r.gpuVramMB / 1024) : '') + (r.gpuKnown ? '' : _t(' · voto stimato dalla memoria video')), true]);
+  rows.push([_t('Processore'), p.processore, (rp.processore ? rp.processore + ' · ' : '') + _t('un core ') + v100(r.cpu1) + _t(' · tutti i core ') + v100(r.cpuN), false, 'cpu']);
+  if (p.schedaVideo > 0) rows.push([_t('Scheda video'), p.schedaVideo, (r.gpuName || '') + (r.gpuVramMB ? ' · ' + gbTxt(r.gpuVramMB / 1024) : '') + (r.gpuKnown ? '' : _t(' · voto stimato dalla memoria video')), true, 'gpu']);
   const ram = [];
   if (rp.ramGB) ram.push(gbTxt(rp.ramGB) + (rp.ramTipo ? ' ' + rp.ramTipo : ''));
   if (rp.ramMTs) ram.push(rp.ramMTs + ' MT/s');
   if (rp.ramSaldata) ram.push(_t('saldata sulla scheda madre'));
   else if (rp.ramBanchi) ram.push(rp.ramBanchi + (rp.ramBanchi === 1 ? _t(' banco (canale singolo)') : _t(' banchi (doppio canale)')));
-  rows.push([_t('Memoria RAM'), p.ram, ram.length ? ram.join(' · ') : _t('velocità misurata ') + v100(r.ram)]);
-  rows.push([_t('Disco'), p.disco || null, r.diskSkip ? _t('saltato (poco spazio)') : ((rp.discoStimato && rp.disco ? _t('probabilmente ') : '') + diskKind(rp.disco) + (rp.discoMBs ? _t(' · lettura ') + Number(rp.discoMBs).toLocaleString(LANG) + ' MB/s' : ''))]);
-  rows.push([_t('Leggerezza di Windows'), p.leggerezza, _t('Memoria usata ') + (Number(r.ramPct) || 0) + '% · ' + (Number(r.procs) || 0) + _t(' processi · ') + (Number(r.startup) || 0) + _t(' all\'avvio · libero ') + (Number(r.freePct) || 0) + _t('% · inutili ') + String(Number(r.junkGB) || 0).replace('.', DEC) + ' GB']);
+  rows.push([_t('Memoria RAM'), p.ram, ram.length ? ram.join(' · ') : _t('velocità misurata ') + v100(r.ram), false, 'ram']);
+  rows.push([_t('Disco'), p.disco || null, r.diskSkip ? _t('saltato (poco spazio)') : ((rp.discoStimato && rp.disco ? _t('probabilmente ') : '') + diskKind(rp.disco) + (rp.discoMBs ? _t(' · lettura ') + Number(rp.discoMBs).toLocaleString(LANG) + ' MB/s' : '')), false, 'disco']);
+  rows.push([_t('Leggerezza di Windows'), p.leggerezza, _t('Memoria usata ') + (Number(r.ramPct) || 0) + '% · ' + (Number(r.procs) || 0) + _t(' processi · ') + (Number(r.startup) || 0) + _t(' all\'avvio · libero ') + (Number(r.freePct) || 0) + _t('% · inutili ') + String(Number(r.junkGB) || 0).replace('.', DEC) + ' GB', false, 'leggerezza']);
   if (p.raffreddamento > 0) rows.push([_t('Raffreddamento'), p.raffreddamento, _t('Processore a ') + Math.round(rp.tempMax || 0) + _t(' °C sotto carico · non conta nel totale')]);
   return rows;
 }
@@ -3357,6 +3357,29 @@ function cardLogoSrc(){
   return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(new XMLSerializer().serializeToString(c).replace(/var\(--a1\)/g, a1));
 }
 function loadImg(src){ return new Promise(res => { if (!src) return res(null); const i = new Image(); i.onload = () => res(i); i.onerror = () => res(null); i.src = src; }); }
+// Il nome dei componenti, in piccolo accanto alle voci del biglietto (come in Ottimizza tutto).
+function votoNomiComp(r){
+  const rp = r.report || {}, ram = [];
+  if (rp.ramGB) ram.push(Math.round(Number(rp.ramGB)) + ' GB' + (rp.ramTipo ? ' ' + rp.ramTipo : ''));
+  if (rp.ramMTs) ram.push(rp.ramMTs + ' MT/s');
+  return {cpu: ottNome(rp.processore), gpu: ottNome(r.gpuName || rp.schedaVideo), ram: ram.join(' · '), disco: r.diskSkip ? '' : diskKind(rp.disco), leggerezza: r.winNome || ''};
+}
+// Un testo che sta in maxw, accorciato in modo pulito (parola intera e "…").
+function cardTaglia(g, t, maxw){
+  t = String(t || ''); if (maxw <= 0) return '';
+  if (g.measureText(t).width <= maxw) return t;
+  let x = t; while (x.length > 1 && g.measureText(x + '…').width > maxw) x = x.slice(0, -1);
+  const w = x.replace(/\s+\S*$/, ''); return (w.length >= 4 ? w : x).replace(/[\s·,-]+$/, '') + '…';
+}
+// Lo spazio per il nome dell'utente (lo prepara il ramo f32-nome): stessa posizione nei due biglietti,
+// centrato sopra "Misurato con Tasso". Senza nome non si disegna niente e lo spazio torna libero.
+function cardNome(){ return String((S && S.nomeUtente) || '').trim(); }
+function drawCardNome(g, C, W, foot, V){
+  const n = cardNome(); if (!n) return 0;
+  g.save(); g.textAlign = 'center'; g.fillStyle = C.text; g.font = '600 ' + (V ? 34 : 26) + 'px ' + C.body;
+  g.fillText(cardTaglia(g, n, W - 280), W / 2, foot - (V ? 58 : 44)); g.restore();
+  return V ? 64 : 50;
+}
 async function drawVotoCard(r, fmt){
   const V = fmt === 'v', W = 1080, H = V ? 1920 : 1080, C = cardColors();
   try { await document.fonts.ready; await Promise.all([document.fonts.load('800 100px ' + C.display), document.fonts.load('600 40px ' + C.body), document.fonts.load('400 30px ' + C.body)]); } catch (e) {}
@@ -3397,31 +3420,30 @@ async function drawVotoCard(r, fmt){
     y = 420;
   }
   if (V) { font(800, 50, C.display); const bw = g.measureText(rk[0]).width + 60, bx = (W - bw) / 2; g.beginPath(); g.roundRect(bx, y + 10, bw, 80, 40); g.globalAlpha = .12; g.fillStyle = rc; g.fill(); g.globalAlpha = 1; g.lineWidth = 3; g.strokeStyle = rc; g.stroke(); g.fillStyle = rc; g.textAlign = 'center'; g.fillText(rk[0], W / 2, y + 68); g.textAlign = 'left'; y += 150; }
-  // in fondo: indirizzo, e sopra i riquadri con scheda video e scheda madre
-  const rp = r.report || {}, info = [];
-  if (r.gpuName) info.push([_t('Scheda video'), r.gpuName]);
-  if (rp.schedaMadre && (V || !r.gpuName)) info.push([_t('Scheda madre'), rp.schedaMadre]); // nel quadrato c'è posto per un riquadro solo
-  const fs = V ? 1.12 : 1, ih = V ? 86 : 64, foot = H - pad;
-  let iy = foot - (V ? 60 : 46) - info.length * (ih + 12);
-  info.forEach(x => {
-    g.beginPath(); g.roundRect(pad, iy, W - 2 * pad, ih, 20); g.globalAlpha = .85; g.fillStyle = C.panel; g.fill(); g.globalAlpha = 1; g.lineWidth = 1.5; g.strokeStyle = C.line; g.stroke();
-    font(400, Math.round(24 * fs)); g.fillStyle = C.muted; g.textAlign = 'left'; g.fillText(x[0], pad + 24, iy + ih / 2 + 9 * fs);
-    const lw = g.measureText(x[0]).width; font(700, Math.round(28 * fs)); g.fillStyle = C.text;
-    let t = x[1]; const maxw = W - 2 * pad - lw - 70; while (g.measureText(t).width > maxw && t.length > 4) t = t.slice(0, -2);
-    if (t !== x[1]) t = t.replace(/\s*\S?$/, '') + '…';
-    g.fillText(t, pad + 24 + lw + 16, iy + ih / 2 + 10 * fs);
-    iy += ih + 12;
-  });
+  // in fondo: indirizzo e, sopra, lo spazio per il nome dell'utente (come nel biglietto di Ottimizza
+  // tutto). I nomi dei componenti stanno accanto alle voci, quindi niente riquadri in fondo.
+  const fs = V ? 1.12 : 1, foot = H - pad;
   g.textAlign = 'center'; g.fillStyle = C.muted; font(400, V ? 26 : 22); g.fillText(_t('Misurato con Tasso · sergiotassoni.github.io/tasso'), W / 2, foot);
+  const nomeH = drawCardNome(g, C, W, foot, V);
+  const nomi = votoNomiComp(r);
   // le barre, nello spazio che resta
-  const rows = votoRows(r).filter(x => x[1] > 0), top = y + (V ? 0 : 10), bottom = foot - (V ? 60 : 46) - info.length * (ih + 12) - (V ? 40 : 24);
+  const rows = votoRows(r).filter(x => x[1] > 0), top = y + (V ? 0 : 10), bottom = foot - (V ? 60 : 46) - nomeH - (V ? 40 : 24);
   const step = Math.min(V ? 150 : 104, (bottom - top) / Math.max(1, rows.length)), bh = V ? 22 : 16;
+  // il nome del componente sotto l'etichetta se c'è posto, se no accanto (sulla stessa riga)
+  const sotto = step >= (V ? 112 : 92);
   rows.forEach((x, i) => {
-    const by = top + i * step + step - bh - (V ? 24 : 14);
-    g.textAlign = 'left'; g.fillStyle = C.text; font(600, Math.round(32 * fs)); g.fillText(x[0], pad, by - 16);
-    if (x[3]) { const lw = g.measureText(x[0]).width; font(800, Math.round(17 * fs)); const tw = g.measureText(_t('NUOVO')).width + 20; g.beginPath(); g.roundRect(pad + lw + 14, by - 16 - 26 * fs, tw, 28 * fs, 14 * fs); g.fillStyle = grad(pad + lw, pad + lw + tw); g.fill(); g.fillStyle = C.bg; g.fillText(_t('NUOVO'), pad + lw + 24, by - 16 - 7 * fs); }
-    g.textAlign = 'right'; font(600, Math.round(22 * fs), C.display); g.fillStyle = C.muted; g.fillText('/100', W - pad, by - 16);
-    const sw = g.measureText('/100').width; font(800, Math.round(40 * fs), C.display); g.fillStyle = C.text; g.fillText(String(x[1]), W - pad - sw - 4, by - 16);
+    const by = top + i * step + step - bh - (V ? 24 : 14), ly = by - 16 - (sotto ? Math.round(30 * fs) : 0);
+    g.textAlign = 'left'; g.fillStyle = C.text; font(600, Math.round(32 * fs)); g.fillText(x[0], pad, ly);
+    const lw = g.measureText(x[0]).width;
+    g.textAlign = 'right'; font(600, Math.round(22 * fs), C.display); g.fillStyle = C.muted; g.fillText('/100', W - pad, ly);
+    const sw = g.measureText('/100').width; font(800, Math.round(40 * fs), C.display); g.fillStyle = C.text; g.fillText(String(x[1]), W - pad - sw - 4, ly);
+    const vw = sw + 4 + g.measureText(String(x[1])).width;
+    const nc = nomi[x[4]] || '';
+    if (nc) {
+      g.textAlign = 'left'; g.fillStyle = C.muted; font(400, Math.round(22 * fs));
+      if (sotto) g.fillText(cardTaglia(g, nc, W - 2 * pad - vw - 30), pad, by - 14);
+      else g.fillText(cardTaglia(g, nc, W - 2 * pad - lw - vw - 50), pad + lw + 16, ly);
+    }
     g.beginPath(); g.roundRect(pad, by, W - 2 * pad, bh, bh / 2); g.globalAlpha = .12; g.fillStyle = C.text; g.fill(); g.globalAlpha = 1;
     const fw = Math.max(bh, (W - 2 * pad) * Math.max(1, Math.min(100, x[1])) / 100); g.beginPath(); g.roundRect(pad, by, fw, bh, bh / 2); g.fillStyle = grad(pad, pad + fw); g.fill();
   });
@@ -3451,7 +3473,8 @@ const OTT_IC = {
   pow:'<path d="M12 2v10"/><path d="M18.4 6.6a9 9 0 1 1-12.8 0"/>',
   clean:'<path d="M12 3l1.8 4.7 4.7 1.8-4.7 1.8L12 16l-1.8-4.7-4.7-1.8 4.7-1.8z"/><path d="M19 15l.8 2.2 2.2.8-2.2.8L19 21l-.8-2.2-2.2-.8 2.2-.8z"/>',
   bell:'<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>',
-  batt:'<rect x="2" y="7" width="17" height="10" rx="2"/><path d="M22 11v2M6 10v4M10 10v4"/>'
+  batt:'<rect x="2" y="7" width="17" height="10" rx="2"/><path d="M22 11v2M6 10v4M10 10v4"/>',
+  ads:'<path d="M3 11v2a1 1 0 0 0 1 1h3l5 4V6L7 10H4a1 1 0 0 0-1 1z"/><path d="M16 9a4 4 0 0 1 0 6M19 6a8 8 0 0 1 0 12"/>'
 };
 const ottSvg = (k, s) => '<svg width="' + (s || 18) + '" height="' + (s || 18) + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + (OTT_IC[k] || k) + '</svg>';
 const OTT_CHECK = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
@@ -3459,8 +3482,8 @@ const OTT_SHIELD = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" 
 const OTT_INFO = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>';
 // Le categorie a sinistra e le modifiche (stessi id di ottimizza/elenco.go), con una frase semplice.
 const OTT_CATS = {
-  gioco: [['cpu', _t('Processore'), '#C084FC'], ['ram', _t('Memoria'), '#22D3EE'], ['gpu', _t('Scheda video'), '#FF8A3D'], ['net', _t('Rete'), '#38BDF8'], ['win', 'Windows', '#4DA3FF'], ['start', _t('Programmi all\'avvio'), '#FFE14D'], ['mouse', _t('Mouse'), '#F472B6'], ['pow', _t('Energia'), '#2FF3A6']],
-  ufficio: [['start', _t('Programmi all\'avvio'), '#FFB020'], ['win', _t('Effetti visivi'), '#4DA3FF'], ['clean', _t('File inutili'), '#2FF3A6'], ['ram', _t('Riapertura delle app'), '#22D3EE'], ['bell', _t('Notifiche'), '#F472B6'], ['batt', _t('Batteria'), '#A3E635']]
+  gioco: [['cpu', _t('Processore'), '#C084FC'], ['ram', _t('Memoria'), '#22D3EE'], ['gpu', _t('Scheda video'), '#FF8A3D'], ['net', _t('Rete'), '#38BDF8'], ['win', 'Windows', '#4DA3FF'], ['ads', _t('Consigli e pubblicità'), '#FB7185'], ['start', _t('Programmi all\'avvio'), '#FFE14D'], ['mouse', _t('Mouse e tastiera'), '#F472B6'], ['pow', _t('Energia'), '#2FF3A6']],
+  ufficio: [['start', _t('Programmi all\'avvio'), '#FFB020'], ['win', 'Windows', '#4DA3FF'], ['clean', _t('File inutili'), '#2FF3A6'], ['ram', _t('Riapertura delle app'), '#22D3EE'], ['bell', _t('Notifiche'), '#F472B6'], ['ads', _t('Consigli e pubblicità'), '#FB7185'], ['net', _t('Aggiornamenti'), '#38BDF8'], ['batt', _t('Batteria'), '#A3E635']]
 };
 const OTT_MOD = {
   gioco: [
@@ -3470,22 +3493,35 @@ const OTT_MOD = {
     ['riapertura', 'ram', _t('Niente riapertura automatica delle app'), _t('All\'accensione Windows non riapre da solo le app di ieri.')],
     ['hags', 'gpu', _t('Accelerazione GPU hardware'), _t('La scheda video organizza da sola il suo lavoro. Vale dal prossimo riavvio.')],
     ['gpupref', 'gpu', _t('I giochi usano la scheda video potente'), _t('Sui PC con due schede video, i giochi usano quella più forte.')],
+    ['finestra', 'gpu', _t('Ottimizzazioni per i giochi in finestra'), _t('Solo Windows 11: i giochi DirectX 10 e 11 in finestra o senza bordi hanno meno ritardo. Vale dal prossimo avvio del gioco.')],
     ['recapito', 'net', _t('Niente invio di aggiornamenti ad altri PC'), _t('Windows non usa la tua connessione per mandare file a sconosciuti.')],
     ['orari', 'net', _t('Niente riavvii per aggiornamenti mentre giochi'), _t('Gli aggiornamenti continuano, ma Windows non riavvia il PC dalle 8 alle 2 di notte.')],
     ['effetti', 'win', _t('Effetti che non si notano spenti'), _t('Tolgo solo gli effetti che non si notano: Windows resta bello.')],
     ['notifgioco', 'win', _t('Notifiche in pausa durante il gioco'), _t('Nessun avviso a sorpresa sopra il gioco (con Tasso acceso).')],
     ['registrazione', 'win', _t('Registrazione in background spenta'), _t('Windows smette di registrare di nascosto gli ultimi minuti di gioco.')],
+    ['ricerca', 'win', _t('Niente evidenziazioni nella ricerca'), _t('La ricerca non carica più immagini e notizie del giorno da internet. Cerca come prima.')],
+    ['consigli', 'ads', _t('Consigli e pubblicità di Windows spenti'), _t('Niente consigli, suggerimenti e app proposte in Impostazioni, nella schermata di blocco e dopo gli aggiornamenti.')],
+    ['feedback', 'ads', _t('Niente richieste di feedback'), _t('Windows non ti chiede più di dare un voto o un parere. I dati per la sicurezza non cambiano.')],
     ['mouse', 'mouse', _t('Accelerazione del mouse spenta'), _t('Lo stesso movimento sposta la mira sempre della stessa distanza.')],
+    ['scorciatoie', 'mouse', _t('Niente scorciatoie che interrompono il gioco'), _t('Maiusc premuto 5 volte (o tenuto premuto, o Bloc Num tenuto) non apre più finestre sopra il gioco. Se usi queste funzioni, non le tocco.')],
     ['piano', 'pow', _t('Piano energetico Prestazioni elevate'), _t('Il processore non rallenta per risparmiare (consuma un po\' di più).')],
+    ['modoac', 'pow', _t('Più prestazioni a corrente'), _t('Solo portatili con Windows 11: attaccato alla corrente usa "Prestazioni migliori". A batteria non cambia niente.')],
     ['usb', 'pow', _t('Mouse e tastiera non si addormentano'), _t('Quando il PC è attaccato alla corrente, Windows non spegne le porte USB.')]
   ],
   ufficio: [
     ['effetti', 'win', _t('Effetti che non si notano spenti'), _t('Tolgo solo gli effetti che non si notano: Windows resta bello.')],
+    ['ricerca', 'win', _t('Niente evidenziazioni nella ricerca'), _t('La ricerca non carica più immagini e notizie del giorno da internet. Cerca come prima.')],
+    ['menustart', 'win', _t('Meno suggerimenti nel menu Start'), _t('Solo Windows 11: niente consigli, app da provare e avvisi dell\'account. I tuoi file recenti restano.')],
     ['pulizia_temp', 'clean', _t('File temporanei di Windows tolti'), _t('Con la pulizia di Tasso: solo file che Windows non usa più.')],
     ['pulizia_resti', 'clean', _t('Resti di aggiornamenti e programmi tolti'), _t('Più spazio libero sul disco, niente dei tuoi documenti.')],
     ['riapertura', 'ram', _t('Niente riapertura automatica delle app'), _t('All\'accensione Windows non riapre da solo le app di ieri.')],
     ['suoni', 'bell', _t('Notifiche senza suono'), _t('Le notifiche arrivano in silenzio e le leggi quando vuoi.')],
-    ['consigli', 'bell', _t('Consigli e suggerimenti di Windows spenti'), _t('Niente finestrelle che interrompono mentre scrivi.')],
+    ['consigli', 'ads', _t('Consigli e pubblicità di Windows spenti'), _t('Niente consigli, suggerimenti e app proposte in Impostazioni, nella schermata di blocco e dopo gli aggiornamenti.')],
+    ['feedback', 'ads', _t('Niente richieste di feedback'), _t('Windows non ti chiede più di dare un voto o un parere. I dati per la sicurezza non cambiano.')],
+    ['esplora', 'ads', _t('Niente pubblicità in Esplora file'), _t('Niente avvisi con offerte (per esempio di OneDrive o Microsoft 365). OneDrive funziona come prima.')],
+    ['pubblicita', 'ads', _t('Pubblicità su misura spenta'), _t('Le app non usano più il tuo ID pubblicitario e Windows non usa i dati di diagnostica per i consigli.')],
+    ['orari', 'net', _t('Niente riavvii per aggiornamenti mentre lavori'), _t('Gli aggiornamenti continuano, ma Windows non riavvia il PC dalle 8 alle 2 di notte.')],
+    ['recapito', 'net', _t('Niente invio di aggiornamenti ad altri PC'), _t('Windows non usa la tua connessione per mandare aggiornamenti ad altri PC. Gli aggiornamenti arrivano lo stesso.')],
     ['batt_risparmio', 'batt', _t('Risparmio batteria automatico sotto il 20%'), _t('Solo sui portatili: quando la batteria cala, il PC consuma meno.')],
     ['batt_schermo', 'batt', _t('Lo schermo si spegne prima quando sei a batteria'), _t('Solo sui portatili: più ore lontano dalla presa.')]
   ]
@@ -3545,7 +3581,7 @@ function ottInizio(){
   ottView(ottHead(0, '<span class="opt-safe">' + OTT_SHIELD + _t('Solo modifiche sicure e reversibili') + '</span>') +
     '<div class="opt-body"><div><h1 class="opt-title" tabindex="-1">' + (off ? _t('Un PC più svelto per lavorare') : _t('Rendi il PC più veloce nei giochi')) + '</h1>' +
     '<p class="opt-sub">' + (off ? _t('Un pulsante solo: Tasso misura il PC, sistema Windows per lavorare e ti mostra la differenza.') : _t('Un pulsante solo: Tasso misura il PC, sistema Windows per giocare e ti mostra la differenza.')) + ' ' +
-    (off ? _t('Ogni impostazione cambiata si rimette com\'era con un interruttore; i file inutili tolti dalla pulizia no.') + ' ' + _t('L\'antivirus e gli aggiornamenti non si toccano.') : _t('Ogni cosa che cambia si rimette com\'era con un interruttore.') + ' ' + _t('L\'antivirus non si tocca. Gli aggiornamenti non si spengono mai: Tasso evita i riavvii mentre giochi e non li condivide con altri PC.')) + '</p></div>' +
+    (off ? _t('Ogni impostazione cambiata si rimette com\'era con un interruttore; i file inutili tolti dalla pulizia no.') + ' ' + _t('L\'antivirus non si tocca. Gli aggiornamenti non si spengono mai: Tasso evita i riavvii mentre lavori e non li condivide con altri PC.') : _t('Ogni cosa che cambia si rimette com\'era con un interruttore.') + ' ' + _t('L\'antivirus non si tocca. Gli aggiornamenti non si spengono mai: Tasso evita i riavvii mentre giochi e non li condivide con altri PC.')) + '</p></div>' +
     '<div class="opt-foot"><div class="opt-hints">' + OTT_INFO + '<span>' + (off ? _t('Salva il lavoro aperto: Tasso apre e chiude Esplora file, Blocco note e il browser.') : _t('Chiudi i giochi e il browser: la misura viene più giusta.')) + '</span></div>' +
     '<button class="' + (off ? 'btn primary' : 'gbig') + '" id="ottGo">' + (off ? _t('Ottimizza tutto') : _t('OTTIMIZZA TUTTO')) + '</button></div></div>');
   $('#ottGo').onclick = ottInizia;
@@ -3828,6 +3864,7 @@ async function drawOttCard(R, fmt){
   y += Math.ceil(normali.length / col) * ch;
   if (legg) cella(legg, x0, y, x1 - x0);
   g.textAlign = 'center'; g.fillStyle = C.muted; font(400, L.fs); g.fillText(_t('Misurato con Tasso · sergiotassoni.github.io/tasso'), W / 2, L.foot);
+  drawCardNome(g, C, W, L.foot, V); // il nome dell'utente, nello stesso posto del biglietto del Voto
   return cv;
 }
 // La scritta grande della modalità (GAMING, UFFICIO) dietro la finestra dei biglietti, sopra il
