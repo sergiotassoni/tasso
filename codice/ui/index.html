@@ -2035,7 +2035,7 @@ function paintFps(r, summary){
   if (e && e.compare && e.compare.verdict) h += '<div style="margin-top:4px">' + esc(e.compare.verdict) + '</div>';
   else if (!r.boost) h += '<div class="muted" style="margin-top:4px">' + _t('Ora premi BOOST, riapri il gioco e misura di nuovo nello stesso posto: ti dico la differenza vera.') + '</div>';
   else h += '<div class="muted" style="margin-top:4px">' + _t('Per un confronto serve anche una misura senza Boost (premi "Rimetti com\'era", poi misura).') + '</div>';
-  h += '<div class="muted" style="margin-top:4px">' + _t('I fotogrammi creati dalla generazione di fotogrammi (frame generation) non sono contati.') + '</div>';
+  h += '<div class="muted" style="margin-top:4px">' + _t('Con la generazione di fotogrammi (frame generation) accesa, nel conto ci sono anche i fotogrammi creati: per un confronto giusto misura sempre con la stessa impostazione.') + '</div>';
   box.innerHTML = h;
 }
 $('#btnBoost').onclick = () => { if (BST.on || BST.game) { toast(_t('Il Boost è già acceso. Per spegnerlo premi "Rimetti com\'era".')); return; } wzOpen(null, 'boost'); };

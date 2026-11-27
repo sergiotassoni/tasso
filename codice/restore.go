@@ -61,6 +61,11 @@ func restoreOriginal() (msgs []string, ok bool) {
 	}
 	defer releaseRun()
 	profileForget()
+	// Prima del modeMu (ordine dei blocchi: bOpMu poi modeMu): se il Boost ha cambiato qualcosa
+	// (programmi chiusi, scheda video, mouse, modalità) lo rimetto anche qui.
+	if boostDaRimettere() {
+		msgs = append(msgs, boostOff(true)...)
+	}
 	modeMu.Lock()
 	defer modeMu.Unlock()
 	setMu.Lock()

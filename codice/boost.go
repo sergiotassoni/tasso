@@ -364,6 +364,17 @@ func closeBackground() []string {
 	return names
 }
 
+// reopenAllaChiusura: Tasso si chiude mentre ci sono programmi chiusi dal Boost e nessun gioco
+// aperto (gioco appena chiuso, prima che il controllo li riapra): li riapro adesso, come promesso.
+func reopenAllaChiusura() {
+	bMu.Lock()
+	n := len(bClosed)
+	bMu.Unlock()
+	if n > 0 && runningGame() == "" {
+		reopenBackground()
+	}
+}
+
 // reopenBackground riapre i programmi chiusi (se non sono già ripartiti da soli), come utente
 // normale tramite Esplora file.
 func reopenBackground() []string {
@@ -537,6 +548,8 @@ func boostOffOpt(explicit, keepAuto bool) []string {
 		msgs = append(msgs, "Qualcosa non si è potuto rimettere: premi di nuovo \"Rimetti com'era\".")
 	case gpuLeft: // Boost automatico spento: la scheda video scelta per i giochi resta
 		msgs = append(msgs, "Il resto è com'era prima del Boost. La scheda video scelta per i giochi la rimette \"Rimetti com'era\".")
+	case hzTenuto.Load():
+		msgs = append(msgs, "Tutto com'era prima del Boost, tranne la frequenza dello schermo che hai confermato con \"Tengo\": quella resta (la cambi dalle impostazioni dello schermo di Windows).")
 	default:
 		msgs = append(msgs, "Tutto com'era prima del Boost.")
 	}
@@ -546,6 +559,14 @@ func boostOffOpt(explicit, keepAuto bool) []string {
 // boostOffForOffice: passando alla modalità Ufficio, se il Boost è acceso (o ha chiuso dei
 // programmi) lo spengo come con "Rimetti com'era", che in Ufficio non si vede: così OneDrive,
 // Teams e gli altri programmi chiusi tornano aperti.
+// boostDaRimettere: il Boost è acceso o ha lasciato qualcosa da rimettere.
+func boostDaRimettere() bool {
+	bMu.Lock()
+	defer bMu.Unlock()
+	s := loadBoost()
+	return s.On || bGame != "" || len(bClosed) > 0 || len(s.Cmds) > 0 || s.PrevMode != "" || len(s.GpuPrev) > 0 || s.Mouse != nil
+}
+
 func boostOffForOffice() {
 	bMu.Lock()
 	s := loadBoost()

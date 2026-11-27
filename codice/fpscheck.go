@@ -20,6 +20,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 	"unsafe"
 
@@ -271,6 +272,21 @@ func screenHzUndoAllaChiusura() {
 	}
 }
 
+// vicinoAlLimite: gli FPS sono quasi uguali ai Hz dello schermo o a un limite tipico (V-Sync,
+// limite FPS): allora la scheda video "aspetta" il limite, non il processore.
+func vicinoAlLimite(avg float64, hz int) bool {
+	for _, c := range []float64{float64(hz), 30, 60, 72, 75, 90, 100, 120} {
+		if c > 0 && math.Abs(avg-c)/c < 0.03 {
+			return true
+		}
+	}
+	return false
+}
+
+// hzTenuto: in questa sessione hai confermato con "Tengo" una frequenza nuova dello schermo
+// (resta anche dopo "Rimetti com'era" del Boost: è una scelta tua).
+var hzTenuto atomic.Bool
+
 // screenHzKeep: hai confermato che lo schermo si vede bene: ora la salvo in Windows.
 func screenHzKeep() {
 	hzMu.Lock()
@@ -284,6 +300,7 @@ func screenHzKeep() {
 	if len(undo) == 0 {
 		return // tempo già scaduto: è già tornato com'era
 	}
+	hzTenuto.Store(true)
 	for _, s := range screens() {
 		if _, ok := undo[s.Dev]; ok {
 			setScreenHz(s.Dev, s.Hz, true)
@@ -498,7 +515,7 @@ func fpsFindings(f pcFacts, scr []screenInfo, last *fpsResult, battery, gpuPrefH
 				Why:  "Lavora per il " + strconv.Itoa(int(last.GpuBusy)) + "% di ogni fotogramma: il limite è lei, non Windows.",
 				Gain: "DLSS, FSR o XeSS su Qualità: di solito +20–40% (se non sono già accesi). La generazione di fotogrammi arriva quasi al doppio degli FPS mostrati, ma serve partire da almeno 50–60 FPS.",
 				Fix:  "Nelle impostazioni grafiche del gioco accendi DLSS (NVIDIA), FSR o XeSS su Qualità, oppure abbassa la grafica di un livello. \"Regola con Tasso\" ti dice la grafica giusta per il tuo PC.", Action: "tune"})
-		case last.GpuBusy > 0 && last.GpuBusy < 60 && last.Avg < 120:
+		case last.GpuBusy > 0 && last.GpuBusy < 60 && last.Avg < 120 && !vicinoAlLimite(last.Avg, last.Hz):
 			add(fpsFinding{ID: "cpu", Sev: "mid", Title: "In " + last.Game + " il limite è il processore",
 				Why:  "La scheda video lavora solo il " + strconv.Itoa(int(last.GpuBusy)) + "% del tempo: aspetta il processore.",
 				Gain: "Abbassare distanza di visibilità, folla, ombre e fisica: +10–25%. Qui la generazione di fotogrammi aiuta, DLSS/FSR da soli poco.",
