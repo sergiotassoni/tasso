@@ -168,26 +168,52 @@ func setPaused(on bool) string {
 		autoClickStop()
 		acDisarm()
 		ovPost() // in pausa niente Ctrl+Maiusc+F12
-		_, _ = runHidden("schtasks.exe", "/Delete", "/TN", taskAvvio, "/F")
-		_, _ = runHidden("schtasks.exe", "/Delete", "/TN", taskWeek, "/F")
-		_, _ = runHidden("schtasks.exe", "/Delete", "/TN", taskProfilo, "/F")
+		tolte := true
+		for _, tn := range []string{taskAvvio, taskWeek, taskProfilo} {
+			if !togliAttivita(tn) {
+				tolte = false
+			}
+		}
 		updateSettings(func(s *Settings) {
 			s.PrevAuto, s.PrevWeekly = a, w
 			s.Autostart, s.Weekly = false, false
 			s.Paused = true
 		})
+		if !tolte {
+			// Tasso è spento lo stesso, ma la pagina non deve dire che non parte più con Windows.
+			return "ok:" + "Tasso è spento, ma alcune attività pianificate non si sono tolte: puoi cancellarle a mano in Utilità di pianificazione, cartella Tasso."
+		}
 		return "ok"
 	}
 	updateSettings(func(s *Settings) { s.Paused = false })
 	ovPost()
+	var errs []string
 	if pa {
-		setAutostart(true)
+		if r := setAutostart(true); r != "ok" {
+			errs = append(errs, r)
+		}
 	}
 	if pw {
-		setWeekly(true)
+		if r := setWeekly(true); r != "ok" {
+			errs = append(errs, r)
+		}
 	}
 	profileTask(profileIsOn())
+	if len(errs) > 0 {
+		// Tasso è acceso, ma quello che non è tornato si dice (e si riaccende da Impostazioni o da Pulisci).
+		return "ok:" + "Tasso è di nuovo acceso, ma qualcosa non è tornato:" + " " + strings.Join(errs, " ")
+	}
 	return "ok"
+}
+
+// togliAttivita cancella un'attività pianificata di Tasso. true se dopo non c'è più (anche se non
+// c'era già prima); false se è ancora lì.
+func togliAttivita(tn string) bool {
+	if _, err := runHidden("schtasks.exe", "/Delete", "/TN", tn, "/F"); err == nil {
+		return true
+	}
+	_, err := runHidden("schtasks.exe", "/Query", "/TN", tn)
+	return err != nil
 }
 
 var validThemes = map[string]bool{"tasso": true, "aurora": true, "lava": true, "neon": true, "neonrgb": true, "oro": true, "argento": true, "carbonio": true, "belva": true, "ghiaccio": true, "sabbia": true, "ufficio": true, "carta": true, "notte": true, "salvia": true, "lavanda": true, "ardesia": true, "perla": true,
@@ -475,7 +501,9 @@ func setProfile(p string) string {
 		s.Profile = p
 	})
 	lookChanged(p == "ufficio")
-	profiloPC(p)
+	if r := profiloPC(p); r != "ok" {
+		return "ok:" + r // la scelta è salvata, ma la pulizia programmata non si è accesa: la pagina lo dice
+	}
 	return "ok"
 }
 
@@ -484,7 +512,8 @@ func setProfile(p string) string {
 // La modalità di Tasso cambia solo cosa vedi: con Gaming il PC non si tocca per niente (piano
 // energetico, risparmio energia di Windows 11 e notifiche restano come sono). Gaming e FPS li mette
 // il Boost, solo mentre giochi. In Ufficio la pulizia programmata si accende, e la pagina lo dice.
-func profiloPC(p string) {
+// Restituisce "ok" o il messaggio di setWeekly se la pulizia programmata non si è potuta accendere.
+func profiloPC(p string) string {
 	setMu.Lock()
 	prima := settings.Mode
 	setMu.Unlock()
@@ -495,8 +524,9 @@ func profiloPC(p string) {
 	case "gioco":
 		setWeekly(false)
 	case "ufficio", "entrambi":
-		setWeekly(true)
+		return setWeekly(true)
 	}
+	return "ok"
 }
 
 // modoPrimoAvvio: la modalità del PC da mettere alla prima scelta del profilo ("" = non toccare).

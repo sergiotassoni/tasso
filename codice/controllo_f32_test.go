@@ -30,7 +30,7 @@ func TestPrimoAvvioMaiGaming(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	m := regexp.MustCompile(`(?s)func profiloPC\(p string\) \{.*?\n\}`).Find(b)
+	m := regexp.MustCompile(`(?s)func profiloPC\(p string\) string \{.*?\n\}`).Find(b)
 	if m == nil {
 		t.Fatal("profiloPC non trovata")
 	}

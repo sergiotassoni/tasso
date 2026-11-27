@@ -41,7 +41,7 @@ nav button.on svg{stroke:var(--a1)}
 .power.off .dot{background:var(--red);box-shadow:none}
 main{flex:1;min-width:0;overflow-y:auto;position:relative}
 main::-webkit-scrollbar{width:10px}main::-webkit-scrollbar-thumb{background:var(--line);border-radius:10px;border:3px solid var(--bg)}
-.view{display:none;padding:26px 34px 40px;flex-direction:column;gap:22px;max-width:1240px}
+.view{display:none;padding:26px 34px 40px;flex-direction:column;gap:22px;max-width:1240px;margin-inline:auto} /* schermi larghi: pagina al centro (sotto i ~1470 px non cambia niente) */
 .view.on{display:flex}
 .glow{position:fixed;pointer-events:none;border-radius:50%;z-index:0;opacity:.9}
 .view>*{position:relative;z-index:1}
@@ -87,6 +87,7 @@ h3{margin:0;font-size:15px}
 .go b{font-family:var(--display);font-size:24px;letter-spacing:.5px;white-space:nowrap}
 :lang(de) .go b{font-size:19px;letter-spacing:0} /* BEREINIGEN non va a capo dentro il cerchio */
 .go small{font-size:11px;font-weight:800;letter-spacing:.5px;opacity:.75}
+body.office .go small{opacity:1} /* temi chiari di Ufficio: "CONSIGLIATA" leggibile sul blu */
 @keyframes pulse{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--a1) 50%,transparent),0 0 60px color-mix(in srgb,var(--a1) 30%,transparent)}70%{box-shadow:0 0 0 24px transparent,0 0 60px color-mix(in srgb,var(--a1) 30%,transparent)}100%{box-shadow:0 0 0 0 transparent,0 0 60px color-mix(in srgb,var(--a1) 30%,transparent)}}
 .lvl{position:relative;overflow:hidden;border-radius:22px;padding:20px;text-align:left;background:var(--panel);border:1px solid var(--line);display:flex;flex-direction:column;gap:9px;min-height:196px;transition:transform .18s,border-color .18s}
 .lvl:hover{transform:translateY(-3px);border-color:var(--c)}
@@ -197,6 +198,7 @@ body.office #themeCards>.theme{flex:0 0 calc((100% - 48px) / 5);min-width:0}
 .welcome{position:fixed;inset:0;background:var(--bg);z-index:60;display:none;overflow-y:auto}
 .welcome.on{display:block}
 .welcome .in{max-width:1080px;margin:0 auto;padding:30px 28px 40px;display:flex;flex-direction:column;gap:30px;position:relative}
+@media (max-height:820px){.welcome .in{gap:18px;padding-top:18px;padding-bottom:24px}.welcome h1{font-size:40px!important}.welcome .prof .art{height:120px}}
 .prof{position:relative;text-align:left;border-radius:26px;padding:18px;background:var(--panel);border:2px solid var(--line);display:flex;flex-direction:column;gap:16px;transition:transform .2s,border-color .2s,box-shadow .2s}
 .prof:hover{transform:translateY(-4px)}
 .prof .art{height:150px;border-radius:18px;display:flex;align-items:center;justify-content:center;background:color-mix(in srgb,var(--c) 12%,var(--panel))}
@@ -313,6 +315,7 @@ body:not(.office) #healthCard .stat{display:none}
 body:not(.office) #homeMore{border-top:0}
 .ghome{display:flex;flex-direction:column;gap:30px}
 .gkick{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;font:500 12px var(--mono);letter-spacing:.16em;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--line);padding-bottom:16px}
+.gkick .griprova{cursor:pointer;text-decoration:underline;text-underline-offset:3px}
 .gdot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--a1);box-shadow:0 0 12px var(--a1);margin-right:10px;vertical-align:1px}
 .ghero{display:grid;grid-template-columns:minmax(140px,220px) 1fr;gap:clamp(24px,4vw,56px);align-items:center}
 .ghero>*{min-width:0}
@@ -943,7 +946,7 @@ body.office .cardmodo{font-weight:700;font-stretch:normal;letter-spacing:-.02em;
 <main id="main">
 <!-- HOME -->
 <section class="view on" id="v-home">
-  <div class="banner upd" id="updBanner"><span id="updBannerTxt"><b>È uscita una nuova versione di Tasso.</b></span><button class="btn primary" id="btnUpdBanner">Vai ad Aggiorna</button></div>
+  <div class="banner upd" id="updBanner"><span id="updBannerTxt"><b>È uscita una nuova versione di Tasso.</b></span><button class="btn primary" id="btnUpdBanner">Vai agli aggiornamenti</button></div>
   <div class="banner" id="pausedBanner"><span><b>Tasso è spento.</b> <span class="muted">Non parte con Windows, non fa pulizie automatiche e non manda avvisi.</span></span><button class="btn primary" id="btnResume">Riaccendi Tasso</button></div>
   <div class="row wrap om" style="justify-content:space-between">
     <h1 style="font-size:20px" id="hello">Ciao!</h1>
@@ -2475,7 +2478,7 @@ function paintHero(){
   if (st > 5) bits.push(st + _t(' programmi che rallentano l\'avvio'));
   if (AN.badDevices > 0) bits.push(AN.badDevices + (AN.badDevices === 1 ? _t(' periferica con problemi') : _t(' periferiche con problemi')));
   if (AN.diskWarnings > 0) bits.push(_t('un disco da tenere d\'occhio'));
-  if (ds > 30) bits.push(ds >= 999 ? _t('nessuna pulizia fatta finora') : _t('ultima pulizia ') + ds + _t(' giorni fa'));
+  if (ds > 30) bits.push(ds >= 999 ? _t('nessuna pulizia fatta finora') : _t('ultima pulizia {0} giorni fa').replace('{0}', ds));
   $('#heroSub').textContent = bits.length ? bits.join(', ') + '.' : '';
   $('#fJunk').textContent = okJunk ? fmtBytes(junk) : '—'; $('#fStart').textContent = typeof AN.startup === 'number' ? st : '—';
   paintGHome(score);
@@ -2487,11 +2490,15 @@ function paintGHome(score){
   gDatePaint();
   const okJunk = AN && typeof AN.junk === 'number', okHealth = HEALTH && HEALTH.score != null;
   if (!okJunk && !okHealth) {
-    ['gScore', 'gJunk', 'gStart'].forEach(id => { g(id).textContent = '…'; g(id).style.color = ''; });
+    // niente numeri finti, ma nemmeno "…" come se stesse ancora caricando: "—" come in Ufficio
+    ['gScore', 'gJunk', 'gStart'].forEach(id => { g(id).textContent = '—'; g(id).style.color = ''; });
+    if (AN && typeof AN.startup === 'number') g('gStart').textContent = AN.startup;
     g('gDot').style.background = 'var(--muted)'; g('gDot').style.boxShadow = 'none';
-    g('gState').textContent = _t('Controllo non riuscito');
+    g('gState').textContent = _t('Controllo non riuscito') + ' · ' + _t('Controlla di nuovo');
+    gStateRiprova(true);
     return;
   }
+  gStateRiprova(false);
   const light = document.documentElement.style.colorScheme === 'light';
   const col = score >= 80 ? (light ? '#0E8F62' : '#2FF3A6') : score >= 60 ? (light ? '#A86400' : '#FFB020') : (light ? '#C8243F' : '#FF4D6D');
   g('gScore').textContent = score + '/100'; g('gScore').style.color = col;
@@ -2499,6 +2506,17 @@ function paintGHome(score){
   g('gStart').textContent = AN && typeof AN.startup === 'number' ? AN.startup : '…';
   g('gDot').style.background = col; g('gDot').style.boxShadow = '0 0 12px ' + col;
   g('gState').textContent = score >= 80 ? _t('PC in forma') : score >= 60 ? _t('PC da sistemare un po\'') : _t('Il PC ha bisogno di una mano');
+}
+// Controllo non riuscito: la scritta in alto diventa il pulsante per rifare il controllo (analisi + Salute del PC).
+function gStateRiprova(on){
+  const st = document.getElementById('gState'); if (!st) return;
+  st.classList.toggle('griprova', on);
+  if (on) { st.setAttribute('role', 'button'); st.tabIndex = 0; } else { st.removeAttribute('role'); st.removeAttribute('tabindex'); }
+  if (st.dataset.riprova) return;
+  st.dataset.riprova = '1';
+  const vai = () => { if (!st.classList.contains('griprova')) return; gStateRiprova(false); st.textContent = _t('Controllo il PC…'); call('goAnalyze'); call('goHealth'); };
+  st.addEventListener('click', vai);
+  st.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); vai(); } });
 }
 function gDatePaint(){ const d = document.getElementById('gDate'); if (d) { try { d.textContent = new Date().toLocaleDateString(LOC, {weekday:'long', day:'numeric', month:'long'}) + (nomeOra() ? ' · ' + _t('Ciao, {0}').replace('{0}', nomeOra()) : ''); } catch (e) {} } }
 gDatePaint();
@@ -2683,7 +2701,7 @@ function boostPaintState(){
   if (bs && bs.dataset.base === undefined) bs.dataset.base = bs.textContent;
   if (on) {
     if (bt) bt.textContent = BST.game ? _t('Il PC è potenziato per ') + BST.game : _t('Il PC è potenziato');
-    if (bs) bs.textContent = _t('Ho chiuso i programmi che non servono e dato tutta la potenza ai giochi. Ora scegli il gioco qui sotto e premi GIOCA. Si spegne da solo dopo ') + boostOffMin() + _t(' minuti senza giochi aperti.');
+    if (bs) bs.textContent = _t('Il PC è pronto per giocare. Ora scegli il gioco qui sotto e premi GIOCA. Si spegne da solo dopo ') + boostOffMin() + _t(' minuti senza giochi aperti.');
   } else if (bs && bs.dataset.base !== undefined) bs.textContent = bs.dataset.base;
   const bo = $('#bkOffTxt'); if (bo) bo.textContent = _t('Il Boost si spegne da solo dopo ') + boostOffMin() + _t(' minuti senza giochi aperti.');
   if (typeof gBoostPaint === 'function') gBoostPaint();
@@ -3289,10 +3307,10 @@ async function setPaused(on){
   if (on) {
     modal(_t('<h2>Spegnere Tasso?</h2><p class="muted" style="margin:0;line-height:1.5">Da spento Tasso non parte con Windows, non fa pulizie automatiche e non manda avvisi. Scegli cosa fare con le impostazioni di Windows che Tasso ha cambiato:</p>') + RESTORE_INFO,
       [{label:_t('Annulla')},
-       {label:_t('Spegni e lascia tutto così'), cls:'ghost', fn: () => { callBg('goSetPaused', true).then(async (r) => { if (r !== 'ok') { toast(r || _t('Non riuscito, riprova.'), 'var(--red)'); return; } await refreshS(); paintSettings(); paintModes(); toast(_t('Tasso è spento. Le impostazioni restano come sono ora.'), 'var(--red)'); }); }},
+       {label:_t('Spegni e lascia tutto così'), cls:'ghost', fn: () => { callBg('goSetPaused', true).then(async (r) => { const avv = typeof r === 'string' && r.indexOf('ok:') === 0 ? r.slice(3) : ''; if (r !== 'ok' && !avv) { toast(r || _t('Non riuscito, riprova.'), 'var(--red)'); return; } await refreshS(); paintSettings(); paintModes(); toast(avv || _t('Tasso è spento. Le impostazioni restano come sono ora.'), avv ? 'var(--a4)' : 'var(--red)'); }); }},
        {label:_t('Spegni e rimetti com\'era prima'), cls:'primary', risky:true, fn: () => { call('goRestore', true).then(r => { if (r === 'busy') toast(_t('Sto già rimettendo le impostazioni…'), 'var(--a4)'); else toast(_t('Rimetto le impostazioni com\'erano…')); }); }}]);
   } else {
-    const r = await callBg('goSetPaused', false); if (r !== 'ok') { toast(r || _t('Non riuscito, riprova.'), 'var(--red)'); return; } await refreshS(); paintSettings(); toast(_t('Tasso è di nuovo acceso.'));
+    const r = await callBg('goSetPaused', false); const avv = typeof r === 'string' && r.indexOf('ok:') === 0 ? r.slice(3) : ''; if (r !== 'ok' && !avv) { toast(r || _t('Non riuscito, riprova.'), 'var(--red)'); return; } await refreshS(); paintSettings(); if (avv) toast(avv, 'var(--a4)'); else toast(_t('Tasso è di nuovo acceso.'));
   }
 }
 $('#powerBtn').onclick = () => setPaused(!S.paused);
@@ -3387,7 +3405,7 @@ function paintWelcome(){
   $('#profNote').textContent = chosen === 'ufficio' ? _t('Con Ufficio accendo la Pulizia programmata: {0}. La cambi o la spegni in Pulisci.').replace('{0}', wkQuando()) : _t('Il PC resta com\'è: piano energetico e notifiche di Windows non cambiano. Il Boost mette il PC al massimo solo mentre giochi.');
   $$('#profCards .offart').forEach(x => { x.innerHTML = OFF_ART; });
 }
-$('#btnWelcome').onclick = async () => { const wb = $('#btnWelcome'); if (wb.disabled) return; wb.disabled = true; const r = await callBg('goSetProfile', chosen); wb.disabled = false; if (r !== 'ok') { toast(typeof r === 'string' && r ? r : _t('Non sono riuscito a salvare la scelta: riprova.'), 'var(--a4)'); return; } $('#welcome').classList.remove('on'); await refreshS(); applyLook(); repaintLook(); toast(nomeOra() ? (chosen === 'ufficio' ? _t('Fatto, {0}! Tasso è pronto per il lavoro.') : _t('Fatto, {0}! Tasso è configurato per te.')).replace('{0}', nomeOra()) : chosen === 'ufficio' ? _t('Fatto! Tasso è pronto per il lavoro.') : _t('Fatto! Tasso è configurato per te.')); setTimeout(statsAsk, 4000); setTimeout(async () => { await refreshS(); paintModes(); paintSettings(); }, 3000); };
+$('#btnWelcome').onclick = async () => { const wb = $('#btnWelcome'); if (wb.disabled) return; wb.disabled = true; const r = await callBg('goSetProfile', chosen); wb.disabled = false; const wkNo = typeof r === 'string' && r.indexOf('ok:') === 0; if (r !== 'ok' && !wkNo) { toast(typeof r === 'string' && r ? r : _t('Non sono riuscito a salvare la scelta: riprova.'), 'var(--a4)'); return; } $('#welcome').classList.remove('on'); await refreshS(); applyLook(); repaintLook(); if (wkNo) toast(_t('Non sono riuscito ad accendere la Pulizia programmata: accendila da Pulisci.'), 'var(--a4)'); else toast(nomeOra() ? (chosen === 'ufficio' ? _t('Fatto, {0}! Tasso è pronto per il lavoro.') : _t('Fatto, {0}! Tasso è configurato per te.')).replace('{0}', nomeOra()) : chosen === 'ufficio' ? _t('Fatto! Tasso è pronto per il lavoro.') : _t('Fatto! Tasso è configurato per te.')); setTimeout(statsAsk, 4000); setTimeout(async () => { await refreshS(); paintModes(); paintSettings(); }, 3000); };
 
 /* ---------- 2.1: salute, internet, disco, gioco automatico ---------- */
 const H_ACTIONS = {clean:[_t('Pulisci'), () => confirmLevel(3)], startup:[_t('Apri l\'avvio'), () => show('speed')], recycle:[_t('Togli i vecchi (più di 7 giorni)'), () => runStep('recycle')], defender:[_t('Scansione'), () => runStep('defender')], winupdate:[_t('Aggiorna'), () => runStep('winupdate')], reboot:[_t('Riavvia'), () => modal(_t('<h2>Riavviare il PC?</h2><p class="muted" style="margin:0">Salva il lavoro aperto: il PC si riavvia tra 15 secondi.</p>'), [{label:_t('Annulla')}, {label:_t('Riavvia'), cls:'warn', fn: () => { doRestart(); }}])], turbo:['Boost', () => show('games')], diskmap:[_t('Mappa del disco'), () => show('disk')], disks:[_t('Vedi dischi'), () => runStep('disk_health')], security:[_t('Apri'), () => call('goOpenWin', 'firewall')], devices:[_t('Controlla'), () => runStep('devices')]};
@@ -3427,7 +3445,7 @@ function diskKind(k){ return k === 'nvme' ? 'SSD NVMe' : k === 'ssd' ? 'SSD' : k
 // Le righe del voto (finestra e biglietto): [nome, voto, sotto, nuovo]
 function votoRows(r){
   const p = paramsOf(r), rp = r.report || {}, rows = [];
-  rows.push([_t('Processore'), p.processore, (rp.processore ? rp.processore + ' · ' : '') + _t('un core ') + v100(r.cpu1) + _t(' · tutti i core ') + v100(r.cpuN), false, 'cpu']);
+  rows.push([_t('Processore'), p.processore, (rp.processore ? ottNome(rp.processore) + ' · ' : '') + _t('un core ') + v100(r.cpu1) + _t(' · tutti i core ') + v100(r.cpuN), false, 'cpu']);
   if (p.schedaVideo > 0) rows.push([_t('Scheda video'), p.schedaVideo, (r.gpuName || '') + (r.gpuVramMB ? ' · ' + gbTxt(r.gpuVramMB / 1024) : '') + (r.gpuKnown ? '' : _t(' · voto stimato dalla memoria video')), true, 'gpu']);
   const ram = [];
   if (rp.ramGB) ram.push(gbTxt(rp.ramGB) + (rp.ramTipo ? ' ' + rp.ramTipo : ''));
@@ -4019,7 +4037,8 @@ function cardSfondoModo(){
   const m = $('#modal'); if (!m) return;
   m.querySelectorAll('.cardmodo').forEach(x => x.remove());
   if (!isOffice() && CURVIEW === 'home') return;
-  const a = document.querySelector('aside'), left = a ? Math.round(a.getBoundingClientRect().right) + 34 : 34;
+  // allineata al bordo sinistro dei testi della pagina (sugli schermi larghi la pagina è al centro)
+  const a = document.querySelector('aside'), vw = document.querySelector('main .view.on'), left = vw ? Math.round(vw.getBoundingClientRect().left + (parseFloat(getComputedStyle(vw).paddingLeft) || 0)) : a ? Math.round(a.getBoundingClientRect().right) + 34 : 34;
   const d = el('div', {class: 'cardmodo', 'aria-hidden': 'true', 'data-left': left, style: 'left:' + left + 'px'}, esc(isOffice() ? _t('Ufficio') : 'Gaming'));
   m.insertBefore(d, m.firstChild);
   // il programma resta visibile dietro, più tenue, così la scritta non si mescola ai testi della pagina
@@ -4210,7 +4229,7 @@ Object.assign(window.tasso, {
   onPingProgress(m){ $('#pgMsg').textContent = m; },
   onAutoRun(l){ if (RUN) return; toast(_t('È l\'ora della pulizia programmata: parto.'), 'var(--a3)'); startLevel(l, 'acceso', true); },
   onBenchProgress(m){ $('#bnMsg').textContent = m; },
-  onBench(r){ $('#btnBench').disabled = false; $('#bnMsg').textContent = r.before ? _t('Ecco com\'era prima e com\'è dopo la pulizia.') : _t('Fatto.'); paintBench(r.result, r.before, r.history); if (BENCH_MANUAL && !r.before) { BENCH_MANUAL = false; openVotoCard(r.result); } if (r.before) toast(_t('Leggerezza di Windows: ') + r.before.light + ' → ' + r.result.light + '.', 'var(--a1)'); },
+  onBench(r){ $('#btnBench').disabled = false; $('#bnMsg').textContent = r.before ? _t('Ecco com\'era prima e com\'è dopo la pulizia.') : _t('Fatto.'); paintBench(r.result, r.before, r.history); if (BENCH_MANUAL && !r.before) { BENCH_MANUAL = false; const ae = document.activeElement; if (!ae || ae === document.body) $('#btnBench').focus(); openVotoCard(r.result); } if (r.before) toast(_t('Leggerezza di Windows: ') + r.before.light + ' → ' + r.result.light + '.', 'var(--a1)'); },
   onUpdatesProgress(m){ $('#updMsg').textContent = m; },
   onUpdates(r){
     UPD_BUSY = false; $('#btnUpdCheck').disabled = false;
@@ -4638,7 +4657,9 @@ pollLive(); setInterval(pollLive, 2000);
 call('goIsRunning').then(r => { if (r) show('clean'); });
 window.addEventListener('load', () => { setTimeout(() => call('goPronto'), 0); }); // misura dell'apertura (logs\avvio.txt)
 if (BOOT.autoLevel) setTimeout(() => startLevel(BOOT.autoLevel, 'acceso', true), 800);
-else if (S.onboarded && !BOOT.dopoLingua) setTimeout(() => { call('goBentornato').then(b => { if (b && !$('#modal').classList.contains('on')) showBentornato(window.__tx ? window.__tx(b) : b); }).catch(() => {}); }, 1200);
+else if (S.onboarded && !BOOT.dopoLingua) setTimeout(() => { call('goBentornato').then(b => { if (b) bentornatoAppena(window.__tx ? window.__tx(b) : b, 0); }).catch(() => {}); }, 1200);
+// Go il riepilogo l'ha già cancellato (una volta sola): se c'è un'altra finestra aperta, aspetto che si chiuda.
+function bentornatoAppena(b, n){ if ($('#modal').classList.contains('on') || !$('#gwz').hidden) { if (n < 100) setTimeout(() => bentornatoAppena(b, n + 1), 3000); return; } showBentornato(b); }
 
 // ---------- Giochi ----------
 let LIB = [], BOOST = [];
@@ -4863,7 +4884,7 @@ Object.assign(window.tasso, {
     // Dopo un errore rimetto a posto i pulsanti del lavoro che si è fermato, così si può riprovare.
     const k = (p && p.kind) || '';
     const en = (id) => { const b = $(id); if (b) b.disabled = false; };
-    ({ping: () => en('#btnPing'), speed: () => en('#btnSpeed'), diskmap: () => en('#btnDisk'), bench: () => en('#btnBench'),
+    ({ping: () => en('#btnPing'), speed: () => en('#btnSpeed'), diskmap: () => en('#btnDisk'), bench: () => { en('#btnBench'); BENCH_MANUAL = false; $('#bnMsg').textContent = _t('Il controllo non è riuscito: riprova tra poco.'); },
       drivers: () => en('#btnDrvScan'), drvcheck: () => en('#btnDrvCheck'), net: () => en('#btnNet'),
       updates: () => { UPD_BUSY = false; en('#btnUpdCheck'); },
       detect: () => { DET_RUN = false; DET = {error:_t('Il controllo non è riuscito: riprova tra poco.')}; paintDetect(); },
@@ -5478,7 +5499,7 @@ window.tt = {
 // ---- pagina del gioco (come nell'esempio approvato)
 const POW = {'':_t('Normale'), gaming:_t('Potenza alta'), max:_t('Massima potenza')};
 const potKey = (p) => p === 'normale' ? '' : (p || '');
-function fmtDay(d){ if (!d) return ''; const t = new Date(d + 'T12:00:00'); if (isNaN(t)) return d; const days = Math.round((new Date().setHours(12, 0, 0, 0) - t.getTime()) / 864e5); if (days <= 0) return _t('oggi'); if (days === 1) return _t('ieri'); if (days < 7) return days + _t(' giorni fa'); try { return t.toLocaleDateString(LOC, {day:'numeric', month:'long'}); } catch (e) { return d; } }
+function fmtDay(d){ if (!d) return ''; const t = new Date(d + 'T12:00:00'); if (isNaN(t)) return d; const days = Math.round((new Date().setHours(12, 0, 0, 0) - t.getTime()) / 864e5); if (days <= 0) return _t('oggi'); if (days === 1) return _t('ieri'); if (days < 7) return _t('{0} giorni fa').replace('{0}', days); try { return t.toLocaleDateString(LOC, {day:'numeric', month:'long'}); } catch (e) { return d; } }
 function memoTxt(m){
   if (!m) return '';
   const tr = m.skip ? _t('senza traduzione') : (m.a ? langName(m.da || 'auto') + ' → ' + langName(m.a) + ', ' + (m.modo === 'file' ? _t('dentro il gioco') : _t('sullo schermo')) + (m.ia ? _t(', con l\'IA') : '') : '');
@@ -6418,13 +6439,14 @@ function nomeInterruttoreHtml(){
 function nomeInterruttore(ridisegna){
   const b = $('#nomeSw'); if (!b) return;
   b.onclick = async () => {
-    if (b.disabled) return;
-    const on = !nomeSulBiglietto(); b.disabled = true;
+    if (b.dataset.busy) return; // niente disabled: il fuoco della tastiera resta sull'interruttore
+    const on = !nomeSulBiglietto(); b.dataset.busy = '1'; b.setAttribute('aria-busy', 'true');
     BOOT.nome = Object.assign({}, BOOT.nome, {biglietto: on});
     b.setAttribute('aria-checked', on ? 'true' : 'false'); b.querySelector('.sw').classList.toggle('on', on);
     $('#nomeSwSub').textContent = (on ? _t('Sotto la data compare "{0}". Spento, il biglietto resta senza nome.') : _t('Spento: il biglietto resta senza nome.')).replace('{0}', nomeOra());
     try { await ridisegna(); } catch (e) {}
-    call('goNomeBiglietto', on); b.disabled = false;
+    const ok = await call('goNomeBiglietto', on); delete b.dataset.busy; b.removeAttribute('aria-busy');
+    if (ok !== true) toast(_t('Non sono riuscito a salvare la scelta: riprova.'), 'var(--a4)'); // altrimenti alla prossima apertura tornerebbe com'era senza dirlo
   };
 }
 // Rilegge il nome salvato (forse cambiato in Tasso Zip o Tasso PDF) e aggiorna saluti e Impostazioni.
