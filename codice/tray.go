@@ -548,7 +548,7 @@ func trayComando(cmd int) {
 			trayAvviso("Traduzione dei giochi", perche, false)
 		case r:
 			// il tasto scelto in Giochi → Impostazioni → Tasti rapidi (di base F7)
-			trayAvviso("Traduzione dei giochi", trGo("Traduzione accesa. Nel gioco premi ")+traduce.NomeTasto("pagina")+trGo(" per vedere le scritte in italiano."), false)
+			trayAvviso("Traduzione dei giochi", trGo("Traduzione accesa. Nel gioco premi ")+traduce.NomeTasto("pagina")+trGo(" per vedere le scritte tradotte."), false)
 		default:
 			trayAvviso("Traduzione dei giochi", "Traduzione spenta.", false)
 		}
