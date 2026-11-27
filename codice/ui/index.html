@@ -651,6 +651,8 @@ nav button{min-width:0;max-width:100%;overflow-wrap:break-word;hyphens:auto}
 .gtabs button{flex:0 0 auto}
 html:not([lang="it"]) .navsub button{padding-right:4px;gap:8px}
 .langbtn{white-space:nowrap}
+.langbtn.langwait{cursor:progress;opacity:.85}
+.langglobo{font-size:20px;line-height:1;margin-right:2px}
 .k,.badge,.tag{overflow-wrap:break-word}
 /* Temi Gaming Neon RGB, Oro e Argento: il BOOST, la linea sotto il titolo e la cornice del logo hanno il gradiente del tema
    (--tg, da applyTheme). La scritta sul gradiente è scura: contrasto almeno 5,7:1 su ogni colore del gradiente. */
@@ -1355,8 +1357,8 @@ body.th-tasso:not(.office) .aa-passi li::before{background:var(--text);color:var
     <div class="updbtns"><button class="btn primary" id="btnUpd">Controlla aggiornamenti</button><button class="btn primary" id="btnUpdNow" style="display:none">Aggiorna ora</button><a href="#" class="small" id="lnkUpdZip" style="display:none">oppure scarica lo zip</a></div>
     <label class="check autoupd" style="flex-basis:100%"><input type="checkbox" id="chkAutoUpd"> <span><b id="autoUpdTit">Aggiorna Tasso da solo</b><br><span class="small muted" id="autoUpdSub"><span class="gm">Quando esce una versione nuova Tasso la scarica, controlla che sia firmata da noi e si riapre. Prima ti avvisa e puoi dire "Non ora". Non lo fa mentre giochi o durante una pulizia.</span><span class="om">Quando esce una versione nuova Tasso la scarica, controlla che sia firmata da noi e si riapre. Prima ti avvisa e puoi dire "Non ora", così non ti interrompe mentre lavori. Non lo fa durante una pulizia.</span></span></span></label>
   </div>
-  <div class="card" style="display:flex;flex-direction:column;gap:12px">
-    <div><h2>Lingua · Language</h2><p class="sub" style="margin:2px 0 0">Tasso si riapre nella lingua scelta. · Tasso reopens in the language you choose.</p></div>
+  <div class="card" id="langCard" style="display:flex;flex-direction:column;gap:12px">
+    <div><h2>🌐 Lingua · Language</h2><p class="sub" style="margin:2px 0 0">Tasso cambia lingua subito. · Tasso changes language right away.</p></div>
     <div class="row wrap" style="gap:8px"><button class="btn ghost langbtn" data-lang="it" lang="it" translate="no">Italiano</button><button class="btn ghost langbtn" data-lang="en" lang="en" translate="no">English</button><button class="btn ghost langbtn" data-lang="es" lang="es" translate="no">Español</button><button class="btn ghost langbtn" data-lang="fr" lang="fr" translate="no">Français</button><button class="btn ghost langbtn" data-lang="de" lang="de" translate="no">Deutsch</button></div>
   </div>
   <div class="card" id="fbCard" style="display:flex;flex-direction:column;gap:12px">
@@ -1449,7 +1451,7 @@ body.th-tasso:not(.office) .aa-passi li::before{background:var(--text);color:var
 <div class="welcome" id="welcome"><div class="in">
   <div class="row wrap" style="justify-content:space-between">
     <div class="brand" style="padding:0"><svg class="gm" width="42" height="42" viewBox="0 0 200 200" aria-hidden="true"><rect x="4" y="4" width="192" height="192" rx="48" fill="#141725"/><rect x="4" y="4" width="192" height="192" rx="48" fill="none" stroke="var(--a1)" stroke-opacity=".8" stroke-width="7"/><path d="M100 172 L34 94 L58 38 L142 38 L166 94 Z" fill="#F2F4F8"/><path d="M58 38 L86 38 L94 122 L76 132 L44 104 Z" fill="#07080D"/><path d="M142 38 L114 38 L106 122 L124 132 L156 104 Z" fill="#07080D"/><circle class="pup" cx="74" cy="98" r="9" fill="var(--a1)"/><circle class="pup" cx="126" cy="98" r="9" fill="var(--a1)"/></svg><svg class="om tassino" width="42" height="42" viewBox="0 0 200 200" aria-hidden="true"><rect x="4" y="4" width="192" height="192" rx="48" fill="#FFFFFF"/><rect x="4" y="4" width="192" height="192" rx="48" fill="none" stroke="#C9CDD4" stroke-width="6"/><g transform="translate(28 36) scale(0.6)"><path d="M44 22 H196 L226 104 L120 206 L14 104 Z" fill="#0A0B0D"/><path d="M80 22 H106 L108 142 L56 132 L36 98 Z" fill="#FFFFFF"/><path d="M160 22 H134 L132 142 L184 132 L204 98 Z" fill="#FFFFFF"/><circle class="pup" cx="82" cy="112" r="12" fill="#2F6FEB"/><circle class="pup" cx="158" cy="112" r="12" fill="#2F6FEB"/><path d="M100 164 H140 L120 190 Z" fill="#FFFFFF"/></g></svg><div><b>TASSO</b></div></div>
-    <span class="row" style="gap:6px"><button class="btn ghost langbtn" data-lang="it" lang="it" translate="no" style="padding:8px 14px">Italiano</button><button class="btn ghost langbtn" data-lang="en" lang="en" translate="no" style="padding:8px 14px">English</button><button class="btn ghost langbtn" data-lang="es" lang="es" translate="no" style="padding:8px 14px">Español</button><button class="btn ghost langbtn" data-lang="fr" lang="fr" translate="no" style="padding:8px 14px">Français</button><button class="btn ghost langbtn" data-lang="de" lang="de" translate="no" style="padding:8px 14px">Deutsch</button></span>
+    <span class="row wrap" style="gap:6px;align-items:center"><span class="langglobo" title="Lingua · Language" aria-hidden="true">🌐</span><button class="btn ghost langbtn" data-lang="it" lang="it" translate="no" style="padding:8px 14px">Italiano</button><button class="btn ghost langbtn" data-lang="en" lang="en" translate="no" style="padding:8px 14px">English</button><button class="btn ghost langbtn" data-lang="es" lang="es" translate="no" style="padding:8px 14px">Español</button><button class="btn ghost langbtn" data-lang="fr" lang="fr" translate="no" style="padding:8px 14px">Français</button><button class="btn ghost langbtn" data-lang="de" lang="de" translate="no" style="padding:8px 14px">Deutsch</button></span>
   </div>
   <div style="display:flex;flex-direction:column;align-items:center;gap:12px;text-align:center">
     <span style="font-size:12px;font-weight:800;letter-spacing:2px;color:var(--a2)">PRIMA CONFIGURAZIONE</span>
@@ -1470,9 +1472,12 @@ body.th-tasso:not(.office) .aa-passi li::before{background:var(--text);color:var
 <script>
 (function(){
 'use strict';
-const BOOT = window.__TASSO_BOOT__ || {};
+// Cambio di lingua (dalla 3.2): Go ricarica la pagina con i dati e il dizionario della lingua nuova in
+// window.__TASSO_LINGUA__ (i18n.go, scriptLingua); quelli dell'apertura restano in __TASSO_BOOT__/__TASSO_I18N__.
+const LINGUA_NUOVA = window.__TASSO_LINGUA__ || null;
+const BOOT = (LINGUA_NUOVA && LINGUA_NUOVA.boot) || window.__TASSO_BOOT__ || {};
 // ---------- Lingua: l'italiano è nel codice; nelle altre lingue (en, es, fr, de) Go passa il dizionario ----------
-const I18N = window.__TASSO_I18N__ || null;
+const I18N = LINGUA_NUOVA ? LINGUA_NUOVA.i18n : (window.__TASSO_I18N__ || null);
 // EN: la finestra NON è in italiano (i testi passano dal dizionario). LANG: la lingua vera.
 const EN = !!(I18N && I18N.t);
 const LANG = BOOT.lang || (I18N && I18N.lang) || (EN ? 'en' : 'it');
@@ -1502,15 +1507,18 @@ function tx(v, depth){
   return v;
 }
 window.__tx = tx;
-let LANGSEL = LANG; // la lingua scelta (se Tasso non si è riaperto da solo, vale dal prossimo avvio)
+let LANGSEL = LANG; // la lingua scelta (se la finestra non si è ricaricata da sola, vale dal prossimo avvio)
+let LANG_ATTESA = 0; // timer: la lingua è chiesta, la pagina nuova sta arrivando
 function paintLang(){ const cur = LANGSEL; document.querySelectorAll('.langbtn').forEach(b => { const on = b.dataset.lang === cur; b.classList.toggle('primary', on); b.classList.toggle('ghost', !on); b.setAttribute('aria-pressed', on ? 'true' : 'false'); }); }
 document.addEventListener('click', async (e) => {
   const b = e.target.closest && e.target.closest('.langbtn'); if (!b) return;
-  const l = b.dataset.lang; if (l === LANGSEL) return;
-  document.querySelectorAll('.langbtn').forEach(x => x.disabled = true);
+  const l = b.dataset.lang; if (l === LANGSEL || LANG_ATTESA) return;
+  const riattiva = () => { clearTimeout(LANG_ATTESA); LANG_ATTESA = 0; document.querySelectorAll('.langbtn').forEach(x => { x.disabled = false; x.classList.remove('langwait'); }); };
+  document.querySelectorAll('.langbtn').forEach(x => x.disabled = true); b.classList.add('langwait');
+  LANG_ATTESA = setTimeout(riattiva, 4000); // la pagina nuova non è arrivata: i pulsanti non restano spenti
   const r = await call('goSetLang', l);
-  if (r === 'ok') return; // Tasso si riapre da solo
-  document.querySelectorAll('.langbtn').forEach(x => x.disabled = false);
+  if (r === 'ok') return; // la pagina si ricarica subito nella lingua nuova
+  riattiva();
   if (r === 'ok-manual') { LANGSEL = l; paintLang(); toast(({en:'Saved: close Tasso and open it again.', es:'Guardado: cierra Tasso y vuelve a abrirlo.', fr:'Enregistré : fermez Tasso et rouvrez-le.', de:'Gespeichert: Schließe Tasso und öffne es erneut.'})[l] || 'Salvato: chiudi Tasso e riaprilo.'); }
   else if (r) toast(r);
 });
@@ -1556,7 +1564,8 @@ const el = (tag, attrs, html) => { const e = document.createElement(tag); if (at
 const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 // callBg: per le cose lente (attività pianificate, PowerShell): Go lavora in sottofondo e risponde con onBg.
 let BG_SEQ = 0; const BG_WAIT = {};
-const callBg = (name, ...a) => new Promise(res => { const id = 'bg' + (++BG_SEQ); BG_WAIT[id] = res; call(name, id, ...a).then(r => { if (r !== 'ok' && BG_WAIT[id]) { delete BG_WAIT[id]; res(r === 'busy' ? _t('Un attimo, sto ancora finendo la cosa di prima.') : r); } }); });
+// Il numero della pagina (BOOT.gen) nel nome: dopo un cambio di lingua una risposta per la pagina di prima non si confonde.
+const callBg = (name, ...a) => new Promise(res => { const id = 'bg' + (BOOT.gen ? BOOT.gen + '_' : '') + (++BG_SEQ); BG_WAIT[id] = res; call(name, id, ...a).then(r => { if (r !== 'ok' && BG_WAIT[id]) { delete BG_WAIT[id]; res(r === 'busy' ? _t('Un attimo, sto ancora finendo la cosa di prima.') : r); } }); });
 const call = (name, ...a) => { try { return typeof window[name] === 'function' ? Promise.resolve(window[name](...a)).then(r => TX_RAW[name] ? r : tx(r)).catch(() => null) : Promise.resolve(null); } catch (e) { return Promise.resolve(null); } };
 const refreshS = async () => { const s = await call('goGetSettings'); if (s) S = s; return S; };
 
@@ -3781,6 +3790,9 @@ PREP_READY = true;
 requestAnimationFrame(() => setTimeout(prepPages, 0));
 setTimeout(prepPages, 400); // finestra aperta ridotta a icona: lì requestAnimationFrame aspetta
 if (!S.onboarded && !BOOT.autoLevel) { paintWelcome(); $('#welcome').classList.add('on'); }
+// Appena cambiata la lingua: torno nelle Impostazioni, dove si sceglie la lingua (la prima configurazione resta aperta da sola).
+// (con setTimeout: show usa variabili dichiarate più avanti nello script)
+else if (BOOT.dopoLingua) setTimeout(() => { show('settings'); const c = $('#langCard'); if (c) c.scrollIntoView({block: 'center'}); }, 0);
 call('goAnalyze'); HW_LOADING = true; call('goHardware'); setTimeout(() => call('goHealth'), 1500);
 if (S.onboarded) setTimeout(statsAsk, 3000);
 setTimeout(() => { loaded.startup = 1; call('goStartupList'); }, 4000);
@@ -3788,7 +3800,7 @@ pollLive(); setInterval(pollLive, 2000);
 call('goIsRunning').then(r => { if (r) show('clean'); });
 window.addEventListener('load', () => { setTimeout(() => call('goPronto'), 0); }); // misura dell'apertura (logs\avvio.txt)
 if (BOOT.autoLevel) setTimeout(() => startLevel(BOOT.autoLevel, 'acceso', true), 800);
-else if (S.onboarded) setTimeout(() => { call('goBentornato').then(b => { if (b && !$('#modal').classList.contains('on')) showBentornato(window.__tx ? window.__tx(b) : b); }).catch(() => {}); }, 1200);
+else if (S.onboarded && !BOOT.dopoLingua) setTimeout(() => { call('goBentornato').then(b => { if (b && !$('#modal').classList.contains('on')) showBentornato(window.__tx ? window.__tx(b) : b); }).catch(() => {}); }, 1200);
 
 // ---------- Giochi ----------
 let LIB = [], BOOST = [];

@@ -230,7 +230,9 @@ func main() {
 	// lavoro lento, così il tasto Ferma funziona sempre e i numeri dal vivo non si bloccano.
 	// Anche i tasti "Ferma" del driver video e del clic automatico e "Spegni tutto il Boost": sono
 	// protetti dai loro lucchetti (gdMu, acMu, e async per il Boost), quindi possono partire subito.
-	for _, n := range []string{"goCancel", "goIsRunning", "goLive", "goHwWatch", "goGpuDrvCancel", "goAutoClickStop", "goBoostAllOff", "goPronto", "goIconaTema"} {
+	// Anche il cambio di lingua (i18n.go): è veloce e non deve aspettare dietro un lavoro lento,
+	// se no i pulsanti delle lingue restano spenti per qualche secondo.
+	for _, n := range []string{"goCancel", "goIsRunning", "goLive", "goHwWatch", "goGpuDrvCancel", "goAutoClickStop", "goBoostAllOff", "goPronto", "goIconaTema", "goSetLang"} {
 		webview2.Subito[n] = true
 	}
 	bindAll(w)
@@ -302,24 +304,14 @@ func main() {
 		}()
 	}
 
-	boot := map[string]interface{}{
-		"version":   appVersion,
-		"lang":      curLang(),
-		"autoLevel": autoLevel,
-		"cassetta":  strings.HasPrefix(cassettaURL, "https://"),
-		"settings":  getSettings(),
-		"steps":     stepList(),
-		"modoFisso": modalitaFissa(), // ecosistema.go: "gioco"/"ufficio" = niente menu per cambiare modalità
-		"eco":       ecoInfo(),       // ecoupdate.go: Tasso, Zip e PDF installati con l'installatore (nil se no)
-		"controllaAgg": func() bool { // Tasso.exe --controlla-aggiornamenti (da Tasso Zip / Tasso PDF)
-			for _, a := range os.Args[1:] {
-				if a == argControllaAgg {
-					return true
-				}
+	boot := datiPagina(autoLevel, func() bool { // Tasso.exe --controlla-aggiornamenti (da Tasso Zip / Tasso PDF)
+		for _, a := range os.Args[1:] {
+			if a == argControllaAgg {
+				return true
 			}
-			return false
-		}(),
-	}
+		}
+		return false
+	}())
 	b, _ := json.Marshal(boot)
 	w.Init("window.__TASSO_BOOT__ = " + string(b) + "; window.__TASSO_I18N__ = " + uiDictJSON() + ";")
 	w.SetHtml(indexHTML)
@@ -782,7 +774,13 @@ func bindAll(w webview2.WebView) {
 		}
 		return async("update", selfUpdate)
 	})
-	_ = w.Bind("goCheckUpdate", func() string { return async("update", func() { emit("onUpdate", checkUpdate()) }) })
+	_ = w.Bind("goCheckUpdate", func() string {
+		return async("update", func() {
+			soloControlloAgg.Store(true) // i18n.go: il solo controllo non ferma il cambio di lingua
+			defer soloControlloAgg.Store(false)
+			emit("onUpdate", checkUpdate())
+		})
+	})
 	_ = w.Bind("goOpenDiscord", func() string { openURL(discordURL); return "ok" })
 	_ = w.Bind("goFeedbackPhoto", func() map[string]interface{} { return pickFeedbackPhoto() })
 	_ = w.Bind("goFeedbackSend", func(kind, text, contact, pc string, photos []string, stars int, publish bool, name string) string {

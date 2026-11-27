@@ -141,7 +141,7 @@ func TestImpostazioniTradotte(t *testing.T) {
 	}
 	f := strings.Index(s[a:], "</section>")
 	pag := s[a : a+f]
-	fuori := map[string]bool{"Lingua · Language": true, "!stato": true, "TASSO": true,
+	fuori := map[string]bool{"!stato": true, "TASSO": true,
 		"Italiano": true, "English": true, "Español": true, "Français": true, "Deutsch": true,
 		"New Application": true, "Create": true, "Bot": true, "Reset Token": true, "Copy": true,
 		"Message Content Intent": true, "Save Changes": true}
@@ -162,9 +162,9 @@ func TestImpostazioniTradotte(t *testing.T) {
 		}
 	}
 	// Il sottotitolo della lingua: in ogni lingua c'è la frase nella lingua stessa, non l'italiano.
-	k := "Tasso si riapre nella lingua scelta. · Tasso reopens in the language you choose."
+	k := "Tasso cambia lingua subito. · Tasso changes language right away."
 	for l, d := range tutte {
-		if v := d["ui"][k]; v == "" || strings.Contains(v, "si riapre") {
+		if v := d["ui"][k]; v == "" || strings.Contains(v, "cambia lingua") {
 			t.Errorf("%s.json/ui: il sottotitolo della lingua è ancora in italiano: %q", l, v)
 		}
 	}

@@ -12,8 +12,10 @@ import (
 	"os/exec"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
@@ -244,27 +246,102 @@ func uiDictJSON() string {
 	return string(b)
 }
 
-// setLang cambia la lingua e riapre Tasso (i testi si caricano all'apertura).
+// Cambio di lingua (dalla 3.2): la finestra si ricarica subito nella lingua nuova, senza chiudere e
+// riaprire Tasso. Prima Tasso si riapriva: per qualche secondo la finestra restava ferma (non
+// rispondeva ai clic) e, appena riaperto, i controlli automatici dell'apertura (stato del PC,
+// programmi all'avvio, aggiornamenti) facevano rispondere "Tasso sta lavorando" a chi voleva
+// tornare subito alla lingua di prima.
+var (
+	linguaGen atomic.Int64 // quante volte la pagina si è ricaricata per la lingua
+	// lavoriSoloLettura: controlli che leggono e basta (molti partono da soli all'apertura): non
+	// fermano il cambio di lingua, il risultato arriva alla pagina nuova come prima.
+	lavoriSoloLettura = map[string]bool{"health": true, "startup": true, "library": true}
+	soloControlloAgg  atomic.Bool // "update" sta solo controllando se c'è una versione nuova (main.go)
+)
+
+// maxRicariche: dopo tante ricariche Tasso si riapre come prima (ogni ricarica lascia nella
+// WebView il suo dizionario per le pagine nuove: così la memoria non cresce senza fine).
+const maxRicariche = 12
+
+// lavoroCheBlocca: c'è un lavoro vero in corso (pulizia, Boost, driver, aggiornamento...).
+// Il solo controllo degli aggiornamenti non blocca; lo scaricamento e l'aggiornamento sì.
+func lavoroCheBlocca() bool {
+	if isRunning() || updating.Load() {
+		return true
+	}
+	busyMu.Lock()
+	defer busyMu.Unlock()
+	for k, v := range busy {
+		if v && !lavoriSoloLettura[k] && !(k == "update" && soloControlloAgg.Load()) {
+			return true
+		}
+	}
+	return false
+}
+
+// datiPagina: quello che la pagina riceve all'apertura (window.__TASSO_BOOT__).
+func datiPagina(autoLevel int, controllaAgg bool) map[string]interface{} {
+	return map[string]interface{}{
+		"version":      appVersion,
+		"lang":         curLang(),
+		"autoLevel":    autoLevel,
+		"cassetta":     strings.HasPrefix(cassettaURL, "https://"),
+		"settings":     getSettings(),
+		"steps":        stepList(),
+		"modoFisso":    modalitaFissa(), // ecosistema.go: "gioco"/"ufficio" = niente menu per cambiare modalità
+		"eco":          ecoInfo(),       // ecoupdate.go: Tasso, Zip e PDF installati con l'installatore (nil se no)
+		"controllaAgg": controllaAgg,
+	}
+}
+
+// scriptLingua: lo script che la pagina ricaricata legge prima di tutto. Ogni ricarica ne aggiunge
+// uno (la WebView li tiene tutti): vince quello con il numero più alto, in qualsiasi ordine girino.
+// Anche i numeri delle chiamate ripartono da lì, così una risposta in ritardo della pagina di prima
+// non finisce a una chiamata della pagina nuova.
+func scriptLingua(gen int64) string {
+	boot := datiPagina(0, false)
+	boot["gen"] = gen
+	boot["dopoLingua"] = true // la pagina nuova riapre le Impostazioni (o la prima configurazione)
+	b, _ := json.Marshal(boot)
+	g := strconv.FormatInt(gen, 10)
+	return "(function(){var g=" + g + ";var o=window.__TASSO_LINGUA__;" +
+		"if(!o||o.gen<g){window.__TASSO_LINGUA__={gen:g,boot:" + string(b) + ",i18n:" + uiDictJSON() + "};}" +
+		"var r=window._rpc=(window._rpc||{nextSeq:1});if(r.nextSeq<g*1e9)r.nextSeq=g*1e9;})();"
+}
+
+// setLang cambia la lingua: la finestra si ricarica subito nella lingua nuova.
 func setLang(l string) string {
 	if !linguaDisponibile(l) {
 		return "no"
 	}
-	// Un cambio di modalità in corso deve finire prima del riavvio (se no Tasso perde quale modalità
-	// ha messo): tengo modeMu fino alla chiusura, come l'aggiornamento.
+	// Un cambio di modalità in corso deve finire prima (la pagina nuova deve vedere quella giusta).
 	if !modeMu.TryLock() {
 		return occupatoIn(l)
 	}
-	locked := true
-	defer func() {
-		if locked {
-			modeMu.Unlock()
-		}
-	}()
-	if isRunning() || otherBusy("") {
+	defer modeMu.Unlock()
+	if lavoroCheBlocca() {
 		return occupatoIn(l)
 	}
 	updateSettings(func(s *Settings) { s.Lang = l })
 	scriviLinguaEcosistema(l) // ecosistema.go: Tasso Zip e Tasso PDF seguono la lingua di Tasso
+	if wv == nil {
+		return "ok-manual"
+	}
+	gen := linguaGen.Add(1)
+	if gen > maxRicariche {
+		return riapriInLingua()
+	}
+	js := scriptLingua(gen)
+	scriviAvvio("cambio lingua: " + l)
+	wv.Dispatch(func() {
+		wv.Init(js)
+		wv.SetHtml(indexHTML)
+	})
+	return "ok"
+}
+
+// riapriInLingua: come prima della 3.2, Tasso si chiude e si riapre (solo dopo tante ricariche).
+func riapriInLingua() string {
 	exe, err := os.Executable()
 	if err != nil {
 		return "ok-manual"
@@ -274,9 +351,8 @@ func setLang(l string) string {
 	if cmd.Start() != nil {
 		return "ok-manual"
 	}
-	locked = false // resta preso fino alla chiusura
 	go func() {
-		defer guard("i18n.go:201")
+		defer guard("i18n.go:riapri")
 		time.Sleep(300 * time.Millisecond)
 		wv.Dispatch(func() { wv.Terminate() })
 	}()
