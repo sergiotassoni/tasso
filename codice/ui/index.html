@@ -1680,8 +1680,18 @@ function paintThemes(){
     b.onclick = async () => { applyTheme(t.id); if (isOffice()) S.themeOffice = t.id; else S.theme = t.id; const r = await call('goSetTheme', t.id, isOffice() ? 'ufficio' : 'gioco'); if (r !== 'ok') toast(_t('Non sono riuscito a salvare il tema.'), 'var(--a4)'); paintThemes(); if (r === 'ok') sfondoChiedi(t.id); };
     box.appendChild(b);
   });
+  themeCols();
   paintSfondo();
 }
+// Colonne dei temi: mai un tema da solo sull'ultima riga (6 = 3+3, 11 = 4+4+3), anche se la finestra cambia.
+function themeCols(){
+  const box = $('#themeCards'); if (!box || !box.clientWidth) return;
+  const n = box.children.length, gap = 12, min = 150, max = Math.max(1, Math.floor((box.clientWidth + gap) / (min + gap)));
+  let c = Math.min(max, n);
+  if (n > c && n % c === 1) { let d = 0; for (let k = c; k >= Math.ceil(c / 2) && !d; k--) if (n % k === 0) d = k; if (!d) for (let k = c - 1; k >= 2 && !d; k--) if (n % k >= Math.ceil(k / 2)) d = k; if (d) c = d; }
+  box.style.gridTemplateColumns = 'repeat(' + c + ',minmax(0,1fr))';
+}
+window.addEventListener('resize', () => { if (CURVIEW === 'settings') themeCols(); });
 
 /* ---------- 3.2: sfondo del desktop abbinato al tema ---------- */
 // Mai automatico: una domanda sola per sfondo, e solo se lo sfondo è installato (Programmi\Tasso\sfondi).
@@ -1772,6 +1782,7 @@ function show(v){ prepPages(); const prevView = CURVIEW; CURVIEW=v;
   if (v === 'speed' && !loaded.startup) { loaded.startup = 1; call('goStartupList'); }
   if (v === 'net' && !loaded.net) { loaded.net = 1; call('goNetUsage'); }
   if (v === 'aiuto') aaApriPagina();
+  if (v === 'settings') themeCols(); // la larghezza dei temi si misura solo con la pagina visibile
   if (v === 'fix' && !loaded.drv) { loaded.drv = 1; $('#btnDrvScan').click(); }
   if (v === 'home' || v === 'hw') { LAST_SENS=''; LAST_HW=''; paintLive(); }
   if (v === 'games' && !isOffice()) call('goAutoClickArm').then(ok => { AC_KEY_OK = ok !== false; paintAcKey(); });
