@@ -61,7 +61,8 @@ type Risultato struct {
 	Prima       Misura       `json:"prima"`
 	Dopo        *Misura      `json:"dopo,omitempty"`
 	Componenti  []Componente `json:"componenti,omitempty"`
-	Fatte       int          `json:"fatte"`
+	Fatte       int          `json:"fatte"`  // cambiate e si rimettono com'erano
+	Pulite      int          `json:"pulite"` // pulizie fatte (non si rimettono)
 	Totale      int          `json:"totale"`
 	AccInAttesa bool         `json:"accInAttesa,omitempty"` // Ufficio: l'accensione "dopo" arriva alla prossima riaccensione
 	Fermato     bool         `json:"fermato,omitempty"`
@@ -204,8 +205,8 @@ func pulisciRisultato(r *Risultato) *Risultato {
 		d := m(*r.Dopo)
 		out.Dopo = &d
 	}
-	if r.Fatte >= 0 && r.Fatte <= 50 && r.Totale >= 0 && r.Totale <= 50 {
-		out.Fatte, out.Totale = r.Fatte, r.Totale
+	if r.Fatte >= 0 && r.Fatte <= 50 && r.Totale >= 0 && r.Totale <= 50 && r.Pulite >= 0 && r.Pulite <= 10 {
+		out.Fatte, out.Totale, out.Pulite = r.Fatte, r.Totale, r.Pulite
 	}
 	for i, c := range r.Componenti {
 		if i >= 8 {
@@ -216,4 +217,34 @@ func pulisciRisultato(r *Risultato) *Risultato {
 		}
 	}
 	return out
+}
+
+// Unisci: le voci del file dell'utente (un giro fatto con Tasso senza permessi, letto con
+// admin=false: solo impostazioni dell'utente) dentro lo stato del file protetto. Una voce entra se
+// nel file protetto non c'è già una voce attiva con lo stesso id; i risultati che mancano pure.
+// Restituisce quante voci attive sono entrate. Dopo, il file dell'utente va tolto: lo stato vero
+// sta tutto nel file protetto (così "Togli Tasso" non trova più voci vecchie da nessun'altra parte).
+func (s *Stato) Unisci(u *Stato) int {
+	if u == nil {
+		return 0
+	}
+	n := 0
+	for _, v := range u.Voci {
+		if old := s.Voce(v.ID); old != nil && (old.Attiva() || !v.Attiva()) {
+			continue
+		}
+		s.Metti(v)
+		if v.Attiva() {
+			n++
+		}
+	}
+	if s.Risultati == nil {
+		s.Risultati = map[string]*Risultato{}
+	}
+	for k, r := range u.Risultati {
+		if s.Risultati[k] == nil {
+			s.Risultati[k] = r
+		}
+	}
+	return n
 }

@@ -234,3 +234,88 @@ func AccensioneDopo(l []Accensione, fatto time.Time) (Accensione, bool) {
 	}
 	return best, !best.Inizio.IsZero()
 }
+
+// ---------------- Portatile o fisso, quando Windows non risponde ----------------
+
+// DecidiPortatile: letto = Windows ha detto tipo di PC e telaio; regola = votopc.Portatile su quei
+// dati; batteria = GetSystemPowerStatus.BatteryFlag (128 = nessuna batteria, 255 = non si sa).
+// Se la lettura non è riuscita, nel dubbio il PC è un portatile (niente piano energetico al
+// massimo): dubbio=true lo fa dire. Senza lettura ma con "nessuna batteria" è un fisso.
+func DecidiPortatile(letto, regola bool, batteria uint8) (portatile, dubbio bool) {
+	if letto {
+		return regola, false
+	}
+	if batteria == 128 {
+		return false, false
+	}
+	return true, true
+}
+
+// ---------------- Notifiche in pausa durante il gioco ----------------
+
+// NotificheDaRimettere: cosa fare con i fumetti (ToastEnabled) alla fine della pausa. prima = il
+// valore salvato prima della pausa ("none" = non c'era, "1" acceso); adesso = il valore di adesso
+// (ok=false se non c'è). Si tocca solo se sono ancora spenti come li ha messi Tasso; un file
+// strano li riaccende (acceso è il valore di Windows): mai spenti per sempre.
+// Risultato: "lascia", "cancella" (torna il valore di Windows) o "accendi".
+func NotificheDaRimettere(prima string, adesso uint32, ok bool) string {
+	if !ok || adesso != 0 {
+		return "lascia"
+	}
+	if prima == "none" {
+		return "cancella"
+	}
+	return "accendi"
+}
+
+// ---------------- Copia dei valori toccati (.reg) ----------------
+
+func regNome(r Radice, chiave string) string {
+	switch r {
+	case HKCU:
+		return `HKEY_CURRENT_USER\` + chiave
+	case HKLM:
+		return `HKEY_LOCAL_MACHINE\` + chiave
+	case HKNS:
+		return `HKEY_USERS\S-1-5-20\` + chiave
+	}
+	return ""
+}
+
+func regTesto(s string) string {
+	return `"` + strings.ReplaceAll(strings.ReplaceAll(s, `\`, `\\`), `"`, `\"`) + `"`
+}
+
+// TestoReg: un file .reg con solo questi valori com'erano (un valore che non c'era diventa
+// "nome"=-, cioè si cancella). Le chiavi nell'ordine in cui compaiono.
+func TestoReg(valori []Valore) string {
+	var b strings.Builder
+	b.WriteString("Windows Registry Editor Version 5.00\r\n")
+	var ordine []string
+	per := map[string][]Valore{}
+	for _, v := range valori {
+		k := regNome(v.Radice, v.Chiave)
+		if k == "" {
+			continue
+		}
+		if _, ok := per[k]; !ok {
+			ordine = append(ordine, k)
+		}
+		per[k] = append(per[k], v)
+	}
+	for _, k := range ordine {
+		b.WriteString("\r\n[" + k + "]\r\n")
+		for _, v := range per[k] {
+			n := regTesto(v.Nome)
+			switch {
+			case !v.Esiste:
+				b.WriteString(n + "=-\r\n")
+			case v.Tipo == TipoDword:
+				b.WriteString(n + "=dword:" + strconv.FormatUint(uint64(v.Num)|1<<32, 16)[1:] + "\r\n")
+			case v.Tipo == TipoSz:
+				b.WriteString(n + "=" + regTesto(v.Testo) + "\r\n")
+			}
+		}
+	}
+	return b.String()
+}

@@ -725,6 +725,26 @@ body.office .opt-band h2{font-weight:600;font-stretch:normal;font-size:26px}
 @media (max-width:900px){.opt-band{grid-template-columns:1fr}.opt-band .opt-go{align-items:flex-start}}
 #v-opt{margin:0 auto;width:100%;min-height:100%;position:relative;padding:96px 34px 60px}
 #v-opt .opt-head{position:absolute;top:26px;left:34px;right:34px}
+@media (max-width:760px){
+  #v-opt{padding:26px 18px 40px}
+  #v-opt .opt-head{position:static;flex-wrap:wrap;margin-bottom:22px}
+  #v-opt .opt-safe{display:none}
+  .opt-steps{flex-wrap:wrap;gap:10px 16px}
+  #v-opt .btn,#v-opt .gbig{white-space:nowrap}
+  .opt-live{grid-template-columns:1fr}
+  .opt-live .opt-stage{order:-1;min-height:0;padding:24px 20px 16px}
+  .opt-cats{display:grid;grid-template-columns:1fr 1fr}
+  .opt-meas{grid-template-columns:1fr}
+  .opt-meas>div+div{border-left:0;border-top:1px solid var(--line);padding-left:0}
+  .opt-comps{grid-template-columns:1fr 1fr;margin-top:0}
+  .opt-comps>div+div{border-left:0;padding-left:0}
+  .opt-foot{flex-wrap:wrap}
+  .opt-tg{flex-wrap:wrap;gap:12px}
+  .opt-tg .lab{min-width:0;text-align:left}
+  .opt-row{grid-template-columns:1fr auto auto;gap:12px}
+  .opt-row .c{grid-column:1/-1}
+  .opt-stage h2{font-size:28px}
+}
 #v-opt .opt-body{display:flex;flex-direction:column;gap:22px;justify-content:center;flex:1}
 .opt-head{display:flex;justify-content:space-between;gap:12px;align-items:center;font:500 12px var(--mono);letter-spacing:.16em;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--line);padding-bottom:16px}
 .opt-steps{display:flex;gap:22px}
@@ -756,7 +776,7 @@ body.office .opt-meas dd{font-weight:600;font-stretch:normal}
 .opt-comps>div{padding:16px 16px 18px 0;display:flex;flex-direction:column;gap:6px;min-width:0}
 .opt-comps>div+div{padding-left:16px;border-left:1px solid var(--line)}
 .opt-comps span{font:500 10.5px var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--muted);display:flex;align-items:center;gap:7px}
-.opt-comps b{font-size:14px;font-weight:600;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-height:19px}
+.opt-comps b{font-size:14px;font-weight:600;color:var(--muted);overflow:hidden;min-height:19px;line-height:1.35;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow-wrap:anywhere}
 .opt-comps .ok b{color:var(--text)}
 .opt-comps .ok span::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--a1);box-shadow:0 0 8px var(--a1)}
 body.office .opt-comps span{font-family:var(--body);letter-spacing:.06em}
@@ -799,7 +819,8 @@ body.office .opt-stage h2{font-weight:600;font-stretch:normal}
 body.office .opt-barrow,body.office .opt-tg .lab,body.office .opt-stage .sk,body.office .opt-row .c,body.office .opt-row .s,body.office .opt-meas dt,body.office .opt-band .k,body.office .r2k,body.office .r2h span{font-family:var(--body);letter-spacing:.06em}
 .r2{display:flex;flex-direction:column;align-items:center;text-align:center}
 .r2logo svg{display:block}
-.r2k{margin-top:30px;font:500 12px var(--mono);letter-spacing:.2em;text-transform:uppercase;color:var(--muted)}
+.opt-body.r2{gap:0}
+.r2k{margin-top:22px;font:500 12px var(--mono);letter-spacing:.2em;text-transform:uppercase;color:var(--muted)}
 .r2t{margin:14px 0 0;font:700 34px var(--display);font-stretch:108%;letter-spacing:-.01em}
 .r2s{margin:10px 0 0;color:var(--muted);font-size:15.5px;max-width:60ch}
 .r2tab{margin-top:40px;width:460px;max-width:100%;font-variant-numeric:tabular-nums}
@@ -937,8 +958,8 @@ body.office .r2t{font-weight:600;font-stretch:normal}
     </div>
   </div>
   <div class="opt-band om" role="group" aria-label="Ottimizza tutto">
-    <div><div class="k"><span class="opt-new">NUOVO</span>Ottimizza tutto</div><h2>Un PC che parte in fretta e non si blocca</h2><p>Un pulsante solo: Tasso misura il PC, sistema Windows per lavorare e ti mostra la differenza.</p></div>
-    <div class="opt-go"><button class="btn primary" data-ottgo="1">Ottimizza tutto</button><span class="small muted">circa 5 minuti · si rimette com'era</span></div>
+    <div><div class="k"><span class="opt-new">NUOVO</span>Ottimizza tutto</div><h2>Un PC più svelto per lavorare</h2><p>Un pulsante solo: Tasso misura il PC, sistema Windows per lavorare e ti mostra la differenza.</p></div>
+    <div class="opt-go"><button class="btn primary" data-ottgo="1">Ottimizza tutto</button><span class="small muted">circa 5 minuti · le impostazioni si rimettono com'erano</span></div>
   </div>
   <div class="quick q2 om" role="group" aria-label="Le cose principali">
     <button class="qk" id="btnHomeDetect"><span class="qi">🔎</span><b>Salute e problemi</b><span>Tasso controlla il PC e ti dice cosa non va</span></button>
@@ -3461,7 +3482,7 @@ const OTT_INFO = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" st
 // Le categorie a sinistra e le modifiche (stessi id di ottimizza/elenco.go), con una frase semplice.
 const OTT_CATS = {
   gioco: [['cpu', _t('Processore'), '#C084FC'], ['ram', _t('Memoria'), '#22D3EE'], ['gpu', _t('Scheda video'), '#FF8A3D'], ['net', _t('Rete'), '#38BDF8'], ['win', 'Windows', '#4DA3FF'], ['start', _t('Programmi all\'avvio'), '#FFE14D'], ['mouse', _t('Mouse'), '#F472B6'], ['pow', _t('Energia'), '#2FF3A6']],
-  ufficio: [['start', _t('Programmi all\'avvio'), '#FFB020'], ['win', _t('Effetti visivi'), '#4DA3FF'], ['clean', _t('File inutili'), '#2FF3A6'], ['ram', _t('App in background'), '#22D3EE'], ['bell', _t('Notifiche'), '#F472B6'], ['batt', _t('Batteria'), '#A3E635']]
+  ufficio: [['start', _t('Programmi all\'avvio'), '#FFB020'], ['win', _t('Effetti visivi'), '#4DA3FF'], ['clean', _t('File inutili'), '#2FF3A6'], ['ram', _t('Riapertura delle app'), '#22D3EE'], ['bell', _t('Notifiche'), '#F472B6'], ['batt', _t('Batteria'), '#A3E635']]
 };
 const OTT_MOD = {
   gioco: [
@@ -3472,22 +3493,21 @@ const OTT_MOD = {
     ['hags', 'gpu', _t('Accelerazione GPU hardware'), _t('La scheda video organizza da sola il suo lavoro. Vale dal prossimo riavvio.')],
     ['gpupref', 'gpu', _t('I giochi usano la scheda video potente'), _t('Sui PC con due schede video, i giochi usano quella più forte.')],
     ['recapito', 'net', _t('Niente invio di aggiornamenti ad altri PC'), _t('Windows non usa la tua connessione per mandare file a sconosciuti.')],
-    ['orari', 'net', _t('Aggiornamenti più leggeri mentre giochi'), _t('Gli aggiornamenti continuano, ma Windows non riavvia il PC dalle 8 alle 2 di notte.')],
+    ['orari', 'net', _t('Niente riavvii per aggiornamenti mentre giochi'), _t('Gli aggiornamenti continuano, ma Windows non riavvia il PC dalle 8 alle 2 di notte.')],
     ['effetti', 'win', _t('Effetti visivi inutili spenti'), _t('Meno animazioni e trasparenze: il PC risponde più in fretta.')],
     ['notifgioco', 'win', _t('Notifiche in pausa durante il gioco'), _t('Nessun avviso a sorpresa sopra il gioco (con Tasso acceso).')],
     ['registrazione', 'win', _t('Registrazione in background spenta'), _t('Windows smette di registrare di nascosto gli ultimi minuti di gioco.')],
     ['mouse', 'mouse', _t('Accelerazione del mouse spenta'), _t('Lo stesso movimento sposta la mira sempre della stessa distanza.')],
-    ['piano', 'pow', _t('Piano energetico Prestazioni elevate'), _t('Il processore non rallenta per risparmiare mentre giochi.')],
-    ['usb', 'pow', _t('Mouse e tastiera non si addormentano'), _t('Con il caricatore attaccato Windows non spegne le porte USB per risparmiare.')]
+    ['piano', 'pow', _t('Piano energetico Prestazioni elevate'), _t('Il processore non rallenta per risparmiare (consuma un po\' di più).')],
+    ['usb', 'pow', _t('Mouse e tastiera non si addormentano'), _t('Quando il PC è attaccato alla corrente, Windows non spegne le porte USB.')]
   ],
   ufficio: [
     ['effetti', 'win', _t('Animazioni e trasparenze inutili spente'), _t('Le finestre si aprono subito, senza effetti che rallentano.')],
     ['ombre', 'win', _t('Ombre e anteprime pesanti spente'), _t('Meno lavoro per il PC, stessa comodità.')],
     ['pulizia_temp', 'clean', _t('File temporanei di Windows tolti'), _t('Con la pulizia di Tasso: solo file che Windows non usa più.')],
     ['pulizia_resti', 'clean', _t('Resti di aggiornamenti e programmi tolti'), _t('Più spazio libero sul disco, niente dei tuoi documenti.')],
-    ['bgapps', 'ram', _t('App di Windows in background ferme'), _t('Le app che non usi non restano accese a occupare memoria.')],
     ['riapertura', 'ram', _t('Niente riapertura automatica delle app'), _t('All\'accensione Windows non riapre da solo le app di ieri.')],
-    ['suoni', 'bell', _t('Concentrazione durante il lavoro'), _t('Le notifiche arrivano in silenzio e le leggi quando vuoi.')],
+    ['suoni', 'bell', _t('Notifiche senza suono'), _t('Le notifiche arrivano in silenzio e le leggi quando vuoi.')],
     ['consigli', 'bell', _t('Consigli e suggerimenti di Windows spenti'), _t('Niente finestrelle che interrompono mentre scrivi.')],
     ['batt_risparmio', 'batt', _t('Risparmio batteria automatico sotto il 20%'), _t('Solo sui portatili: quando la batteria cala, il PC consuma meno.')],
     ['batt_schermo', 'batt', _t('Lo schermo si spegne prima quando sei a batteria'), _t('Solo sui portatili: più ore lontano dalla presa.')]
@@ -3530,7 +3550,7 @@ async function ottInizia(){
   const modo = isOffice() ? 'ufficio' : 'gioco';
   const r = await call('goOttAvvia', modo);
   if (r === 'busy') { toast(_t('Tasso sta facendo un altro lavoro (pulizia o aggiornamento): aspetta che finisca e riprova.'), 'var(--a4)'); return; }
-  if (r !== 'ok') { toast(String(r || _t('Non sono riuscito a partire: riprova tra poco.')), 'var(--a4)'); return; }
+  if (r !== 'ok') { toast(_t('Non sono riuscito a partire: riprova tra poco.'), 'var(--a4)'); return; }
   OTT = {info: OTT.info, fase: 'misura', modo: modo, mis: {prima: true, pct: 0, testo: _t('Leggo i componenti…'), secondi: 0, valori: {}, componenti: []}, cat: '', passi: {}, avvio: null, fatti: 0, totale: 0, vista: '', ferma: false};
   if (OTT.info) OTT.info.inCorso = true;
   ottDisegna();
@@ -3546,9 +3566,9 @@ function ottDisegna(){
 function ottInizio(){
   const off = ottModo() === 'ufficio';
   ottView(ottHead(0, '<span class="opt-safe">' + OTT_SHIELD + _t('Solo modifiche sicure e reversibili') + '</span>') +
-    '<div class="opt-body"><div><h1 class="opt-title" tabindex="-1">' + (off ? _t('Un PC che parte in fretta e non si blocca') : _t('Rendi il PC più veloce nei giochi')) + '</h1>' +
+    '<div class="opt-body"><div><h1 class="opt-title" tabindex="-1">' + (off ? _t('Un PC più svelto per lavorare') : _t('Rendi il PC più veloce nei giochi')) + '</h1>' +
     '<p class="opt-sub">' + (off ? _t('Un pulsante solo: Tasso misura il PC, sistema Windows per lavorare e ti mostra la differenza.') : _t('Un pulsante solo: Tasso misura il PC, sistema Windows per giocare e ti mostra la differenza.')) + ' ' +
-    _t('Ogni cosa che cambia si rimette com\'era con un interruttore. Antivirus e aggiornamenti non si toccano mai.') + '</p></div>' +
+    (off ? _t('Ogni impostazione cambiata si rimette com\'era con un interruttore; i file inutili tolti dalla pulizia no.') + ' ' + _t('L\'antivirus e gli aggiornamenti non si toccano.') : _t('Ogni cosa che cambia si rimette com\'era con un interruttore.') + ' ' + _t('L\'antivirus non si tocca. Gli aggiornamenti non si spengono mai: Tasso sposta solo l\'orario dei riavvii.')) + '</p></div>' +
     '<div class="opt-foot"><div class="opt-hints">' + OTT_INFO + '<span>' + (off ? _t('Salva il lavoro aperto: Tasso apre e chiude Esplora file, Blocco note e il browser.') : _t('Chiudi i giochi e il browser: la misura viene più giusta.')) + '</span></div>' +
     '<button class="' + (off ? 'btn primary' : 'gbig') + '" id="ottGo">' + (off ? _t('Ottimizza tutto') : _t('OTTIMIZZA TUTTO')) + '</button></div></div>');
   $('#ottGo').onclick = ottInizia;
@@ -3568,7 +3588,7 @@ function ottMisura(){
   }
   const nomi = {cpu: _t('Processore'), gpu: _t('Scheda video'), ram: _t('Memoria RAM'), disco: _t('Disco'), leggerezza: _t('Leggerezza di Windows')};
   const cs = m.componenti || [];
-  const comps = ['cpu', 'gpu', 'ram', 'disco', 'leggerezza'].map((k, i) => { const c = cs.find(x => x.chiave === k); const ok = c && c.nome; return '<div class="' + (ok ? 'ok' : '') + '"><span>' + nomi[k] + '</span><b>' + (ok ? esc(ottNome(c.nome)) : (i === cs.length ? _t('leggo…') : '')) + '</b></div>'; }).join('');
+  const comps = ['cpu', 'gpu', 'ram', 'disco', 'leggerezza'].map((k, i) => { const c = cs.find(x => x.chiave === k); const ok = c && c.nome; return '<div class="' + (ok ? 'ok' : '') + '"><span>' + nomi[k] + '</span><b' + (ok ? ' title="' + esc(ottNome(c.nome)) + '"' : '') + '>' + (ok ? esc(ottNome(c.nome)) : (i === cs.length ? _t('leggo…') : '')) + '</b></div>'; }).join('');
   const sub = dopo ? _t('Rifaccio le stesse prove di prima, così vedi la differenza vera.') : off ? _t('Tasso legge quanto ci mette il PC ad accendersi, apre i programmi di tutti i giorni e fa il Voto al PC completo. Ci vuole circa 1 minuto.') : _t('Tasso fa girare una sua scena di prova e, insieme, il Voto al PC completo. Ci vogliono circa 1-2 minuti.');
   const pct = Math.max(0, Math.min(100, Number(m.pct) || 0));
   ottView(ottHead(dopo ? 3 : 1, '<span></span>') +
@@ -3595,7 +3615,7 @@ function ottLive(){
   } else {
     rows = mods.filter(x => x[1] === c[0]).map(x => {
       const p = OTT.passi[x[0]] || {}, e = p.esito || {};
-      let cls = 'wait', lab = _t('Dopo'), on = false, half = false, nota = '';
+      let cls = 'wait', lab = _t('Tra poco'), on = false, half = false, nota = '';
       if (p.fase === 'inizio') { cls = 'now'; lab = _t('Lo cambio…'); half = true; }
       else if (p.fase === 'fine') {
         if (e.stato === 'fatta' || e.stato === 'pulita') { cls = 'ok'; lab = _t('Fatto'); on = true; if (e.motivo && e.motivo.indexOf(' ') > 0 && e.stato === 'fatta' && /riavvio|restart|reinicio|redémarrage|Neustart/i.test(e.motivo)) nota = e.motivo; }
@@ -3640,7 +3660,7 @@ const OTT_RIGHE = {fps: _t('FPS medi'), fps1: _t('FPS più bassi (1%)'), voto: _
 function ottRis(){
   const R = ottRisultato(); if (!R) return ottInizio();
   const r = R.risultato || {}, off = r.modo === 'ufficio', righe = R.righe || [];
-  const fatte = Number(r.fatte) || 0;
+  const fatte = Number(r.fatte) || 0, pulite = Number(r.pulite) || 0;
   const tab = righe.length ? '<div class="r2tab"><div class="r2h"><span></span><span>' + _t('Prima') + '</span><span></span><span>' + _t('Dopo') + '</span></div>' + righe.map(x =>
     '<div class="r2r"><span>' + (OTT_RIGHE[x.chiave] || '') + '</span><span>' + ottNum(x.prima, x.decimali) + '</span><span class="ar">→</span><span class="af' + (x.meglio ? ' up' : '') + '">' + (x.haDopo ? ottNum(x.dopo, x.decimali) + '<small>' + esc(x.unita) + '</small>' : '…') + '</span></div>').join('') + '</div>' : '';
   const note = [];
@@ -3652,13 +3672,13 @@ function ottRis(){
     '<div class="r2k">' + _t('Fatto') + '</div>' +
     '<h1 class="r2t" tabindex="-1">' + (off ? _t('Il tuo PC è pronto per lavorare') : _t('Il tuo PC è pronto per giocare')) + '</h1>' +
     (R.piccolo ? '<p class="r2s" style="color:var(--text)">' + _t('Il tuo PC era già messo bene: la differenza è piccola.') + '</p>' : '') +
-    '<p class="r2s">' + fatte + _t(' modifiche sicure. Ognuna si rimette com\'era con un interruttore.') + '</p>' + tab +
+    '<p class="r2s">' + (pulite > 0 ? fatte + _t(' modifiche si rimettono com\'era con un interruttore; la pulizia dei file inutili no.') : fatte + _t(' modifiche sicure. Ognuna si rimette com\'era con un interruttore.')) + '</p>' + tab +
     note.map(n => '<p class="r2fn">' + esc(n) + '</p>').join('') +
     '<div class="opt-btns"><button class="btn primary" id="ottShare">' + _t('Condividi il risultato') + '</button><button class="btn ghost" id="ottBack">' + _t('Rimetti com\'era') + '</button></div>' +
     '<button class="opt-link" id="ottAgain">' + _t('Rifai Ottimizza tutto') + '</button></div>');
   $('#ottShare').onclick = () => ottBiglietto();
   $('#ottBack').onclick = () => { OTT.vista = 'elenco'; ottDisegna(); };
-  $('#ottAgain').onclick = ottInizia;
+  $('#ottAgain').onclick = () => modal('<h2>' + _t('Rifaccio Ottimizza tutto?') + '</h2><p class="muted" style="margin:0">' + _t('Tasso misura di nuovo il PC e ricontrolla le impostazioni: ci vogliono alcuni minuti. Le modifiche già fatte restano.') + '</p>', [{label: _t('Annulla')}, {label: _t('Rifai'), cls: 'primary', fn: () => { ottInizia(); }}]);
 }
 // 5: Rimetti com'era, un interruttore per ogni modifica
 function ottElenco(){
@@ -3676,14 +3696,22 @@ function ottElenco(){
     const c = x[1] !== prev ? nCat[x[1]] : ''; prev = x[1];
     return '<div class="opt-row' + (off ? ' off' : '') + '"><span class="c">' + esc(c) + '</span><div class="x"><b>' + x[2] + '</b><span>' + x[3] + '</span>' + (nota ? '<em>' + esc(nota) + '</em>' : '') + '</div><span class="s">' + lab + '</span>' + sw + '</div>';
   }).join('');
+  // D1: le modifiche fatte nell'altra modalità (Gaming o Ufficio) si vedono anche qui, perché
+  // "Rimetti com'era tutto" rimette anche quelle.
+  const altro = modo === 'ufficio' ? 'gioco' : 'ufficio', mieId = mods.map(x => x[0]);
+  const altre = OTT_MOD[altro].filter(x => mieId.indexOf(x[0]) < 0 && (ottVoce(x[0]) || {}).stato === 'fatta' || mieId.indexOf(x[0]) < 0 && (ottVoce(x[0]) || {}).stato === 'incorso');
+  const rowsAltre = altre.length ? '<div class="opt-row"><span class="c">' + (altro === 'gioco' ? _t('Cambiate in Gaming') : _t('Cambiate in Ufficio')) + '</span></div>' + altre.map(x => {
+    const v = ottVoce(x[0]);
+    return '<div class="opt-row"><span class="c"></span><div class="x"><b>' + x[2] + '</b><span>' + x[3] + '</span></div><span class="s">' + (v.riavvio ? _t('Cambiato · al riavvio') : _t('Cambiato')) + '</span><button class="sw on" data-ott="' + x[0] + '" data-on="1" aria-label="' + esc(_t('Rimetti com\'era') + ': ' + x[2]) + '"><i></i></button></div>';
+  }).join('') : '';
   const attive = (OTT.info && OTT.info.attive) || 0;
   ottView(ottHead(3) +
     '<div class="opt-body" style="justify-content:flex-start"><div style="display:flex;justify-content:space-between;align-items:flex-end;gap:20px;flex-wrap:wrap"><div><h1 class="opt-title" style="font-size:36px" tabindex="-1">' + _t('Cosa ho cambiato') + '</h1><p class="opt-sub" style="margin-top:8px">' + _t('Spegni un interruttore per rimettere com\'era solo quella cosa. Vale anche dopo un riavvio.') + '</p></div>' +
     '<div class="row" style="gap:10px"><button class="btn ghost" id="ottRis">' + _t('Torna al risultato') + '</button><button class="btn ghost" id="ottAll"' + (attive ? '' : ' disabled') + '>' + _t('Rimetti com\'era tutto') + '</button></div></div>' +
-    '<div class="opt-sum">' + rows + '</div></div>');
+    '<div class="opt-sum">' + rows + rowsAltre + '</div></div>');
   $('#ottRis').onclick = () => { OTT.vista = ottRisultato() ? 'risultato' : 'inizio'; ottDisegna(); };
-  $('#ottAll').onclick = () => modal('<h2>' + _t('Rimetto com\'era tutto?') + '</h2><p class="muted" style="margin:0">' + _t('Tutte le impostazioni cambiate da Ottimizza tutto tornano come prima. I file tolti dalla pulizia non tornano (non servivano più).') + '</p>', [{label: _t('Annulla')}, {label: _t('Rimetti com\'era tutto'), cls: 'primary', fn: () => { $('#ottAll').disabled = true; call('goOttRimettiTutto'); }}]);
-  $$('#v-opt [data-ott]').forEach(b => { b.onclick = () => { const id = b.dataset.ott, on = b.dataset.on === '1'; b.disabled = true; b.classList.toggle('on', !on); call(on ? 'goOttRimetti' : 'goOttApplica', id).then(r => { if (r === 'busy') { b.disabled = false; b.classList.toggle('on', on); toast(_t('Aspetta: sto già rimettendo qualcosa.'), 'var(--a4)'); } }); }; });
+  $('#ottAll').onclick = () => modal('<h2>' + _t('Rimetto com\'era tutto?') + '</h2><p class="muted" style="margin:0">' + _t('Tutte le impostazioni cambiate da Ottimizza tutto tornano come prima, sia in Gaming sia in Ufficio. I file tolti dalla pulizia non tornano (non servivano più).') + '</p>', [{label: _t('Annulla')}, {label: _t('Rimetti com\'era tutto'), cls: 'primary', fn: () => { $('#ottAll').disabled = true; call('goOttRimettiTutto'); }}]);
+  $$('#v-opt [data-ott]').forEach(b => { b.onclick = () => { const id = b.dataset.ott, on = b.dataset.on === '1'; b.disabled = true; b.classList.toggle('on', !on); call(on ? 'goOttRimetti' : 'goOttApplica', id).then(r => { if (r === 'busy') { b.disabled = false; b.classList.toggle('on', on); toast(_t('Aspetta: sto già rimettendo qualcosa.'), 'var(--a4)'); } else if (r !== 'ok') { b.disabled = false; b.classList.toggle('on', on); toast(_t('Non ci sono riuscito: riprova tra poco.'), 'var(--a4)'); } }); }; });
 }
 Object.assign(window.tasso, {
   onOttStato(p){

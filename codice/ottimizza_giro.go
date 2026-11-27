@@ -89,7 +89,7 @@ func giroOtt(modo string) {
 	emit("onOttStato", map[string]interface{}{"fase": "sistemo", "modo": modo, "totale": len(elenco)})
 	a := ambienteOtt(ctx, logf)
 	var fatteOra []string
-	fatte, fatti := 0, 0
+	fatte, pulite, fatti := 0, 0, 0
 	for _, c := range ottimizza.Categorie(modo) {
 		if ottStop.Load() {
 			break
@@ -126,8 +126,11 @@ func giroOtt(modo string) {
 			if e.Stato == ottimizza.VoceFatta {
 				fatteOra = append(fatteOra, m.ID)
 			}
-			if e.Stato == ottimizza.VoceFatta || e.Stato == ottimizza.VocePulita {
+			if e.Stato == ottimizza.VoceFatta {
 				fatte++
+			}
+			if e.Stato == ottimizza.VocePulita {
+				pulite++
 			}
 			fatti++
 			emit("onOttPasso", map[string]interface{}{"id": m.ID, "cat": c.ID, "fase": "fine", "esito": e, "fatti": fatti, "totale": len(elenco)})
@@ -139,13 +142,26 @@ func giroOtt(modo string) {
 		a2 := ambienteOtt(context.Background(), logf)
 		ottMu.Lock()
 		st := caricaOtt()
+		errori := 0
 		for i := len(fatteOra) - 1; i >= 0; i-- {
 			e := ottimizza.Rimetti(fatteOra[i], a2, st, salvaOtt)
 			logf(fatteOra[i] + ": " + e.Stato + " - " + e.Motivo)
+			if e.Stato == ottimizza.VoceErrore {
+				errori++
+			}
 		}
 		ottMu.Unlock()
-		logf("Fermato da te: rimesso com'era quello che avevo cambiato.")
-		emit("onOttStato", map[string]interface{}{"fase": "fermato", "msg": "Fermato: ho rimesso com'era quello che avevo cambiato."})
+		msg := "Fermato: ho rimesso com'era quello che avevo cambiato."
+		switch {
+		case errori > 0:
+			msg = "Fermato: qualcosa non è tornato com'era. Lo trovi in Rimetti com'era, da dove puoi riprovare."
+		case pulite > 0:
+			msg = "Fermato: ho rimesso com'era quello che avevo cambiato (i file inutili già tolti non tornano)."
+		case len(fatteOra) == 0:
+			msg = "Fermato: non ho cambiato niente."
+		}
+		logf(msg)
+		emit("onOttStato", map[string]interface{}{"fase": "fermato", "msg": msg})
 		return
 	}
 
@@ -155,7 +171,7 @@ func giroOtt(modo string) {
 	if len(comp2) > 0 {
 		comp = comp2
 	}
-	r := &ottimizza.Risultato{Modo: modo, Quando: time.Now().Format(time.RFC3339), Prima: prima, Dopo: &dopo, Componenti: comp, Fatte: fatte, Totale: len(elenco)}
+	r := &ottimizza.Risultato{Modo: modo, Quando: time.Now().Format(time.RFC3339), Prima: prima, Dopo: &dopo, Componenti: comp, Fatte: fatte, Pulite: pulite, Totale: len(elenco)}
 	if modo == ottimizza.ModoUfficio && prima.Accensione > 0 {
 		r.AccInAttesa = true // l'accensione "dopo" si misura alla prossima riaccensione del PC
 	}
@@ -476,7 +492,16 @@ var (
 	pGetWindowOtt = user32.NewProc("GetWindow")
 )
 
+// classeOtt: la classe della finestra (per riconoscere le finestre di Esplora file: CabinetWClass).
+func classeOtt(h uintptr) string {
+	buf := make([]uint16, 128)
+	n, _, _ := vtpGetClassName.Call(h, uintptr(unsafe.Pointer(&buf[0])), uintptr(len(buf)))
+	return windows.UTF16ToString(buf[:n])
+}
+
 // finestreOtt: le finestre principali visibili con il programma che le ha aperte (in minuscolo).
+// Per Esplora file conta solo la finestra delle cartelle (CabinetWClass): le finestre di copia dei
+// file, il desktop e la barra non sono "la finestra aperta da Tasso".
 func finestreOtt() map[uintptr]string {
 	ottEnumMu.Lock()
 	ottEnumList = nil
@@ -496,9 +521,23 @@ func finestreOtt() map[uintptr]string {
 		if pid == 0 {
 			continue
 		}
-		out[h] = strings.ToLower(filepath.Base(processPath(pid)))
+		exe := strings.ToLower(filepath.Base(processPath(pid)))
+		if exe == "explorer.exe" && classeOtt(h) != "CabinetWClass" {
+			continue
+		}
+		out[h] = exe
 	}
 	return out
+}
+
+// chiudiNuoveOtt: chiude le finestre nuove (non c'erano prima) di questi programmi: quelle aperte
+// da Tasso e arrivate tardi, o lasciate aperte da Fermati.
+func chiudiNuoveOtt(prima map[uintptr]string, exe map[string]bool) {
+	for h, e := range finestreOtt() {
+		if _, c := prima[h]; !c && exe[e] {
+			pPostMessage.Call(h, 0x0010, 0, 0) // WM_CLOSE
+		}
+	}
 }
 
 // browserOtt: il programma del browser predefinito (dalla scelta dell'utente per i file .html,
@@ -581,7 +620,8 @@ func aperturaOtt(ctx context.Context, onProg func(float64), logf func(string)) m
 		}
 		onProg(float64(i) / 3)
 		prima := finestreOtt()
-		if p.id == "browser" {
+		if p.id == "browser" || p.id == "blocconote" {
+			// già aperto: si aprirebbe solo una scheda (browser, Blocco note di Windows 11)
 			aperto := false
 			for _, e := range prima {
 				if p.exe[e] {
@@ -589,7 +629,7 @@ func aperturaOtt(ctx context.Context, onProg func(float64), logf func(string)) m
 				}
 			}
 			if aperto || exeRunning(keysOtt(p.exe)) {
-				logf("Browser già aperto: non lo misuro (si aprirebbe solo una scheda).")
+				logf(p.id + ": già aperto, non lo misuro (si aprirebbe solo una scheda).")
 				continue
 			}
 		}
@@ -601,6 +641,9 @@ func aperturaOtt(ctx context.Context, onProg func(float64), logf func(string)) m
 			pPostMessage.Call(h, 0x0010, 0, 0) // WM_CLOSE: si chiude solo la finestra aperta da Tasso
 		} else {
 			logf("Apertura " + p.id + ": nessuna finestra nuova, non la conto.")
+			// arrivata dopo il tempo massimo o con Fermati: la chiudo lo stesso
+			time.Sleep(1500 * time.Millisecond)
+			chiudiNuoveOtt(prima, p.exe)
 		}
 		pausaOtt(ctx, 1500*time.Millisecond)
 	}

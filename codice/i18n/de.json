@@ -1458,7 +1458,19 @@
   "Le impostazioni di Windows cambiate da Ottimizza tutto: ognuna si rimette com'era anche dalla sua pagina.": "Die von Alles optimieren geänderten Windows-Einstellungen: Jede lässt sich auch auf ihrer Seite zurücksetzen.",
   "Modifiche di Ottimizza tutto rimesse com'erano.": "Änderungen von Alles optimieren zurückgesetzt.",
   "Non sono riuscito a rimettere tutte le modifiche di Ottimizza tutto: riprova tra poco.": "Ich konnte nicht alle Änderungen von Alles optimieren zurücksetzen: Versuche es gleich noch einmal.",
-  "Non sono riuscito a rimettere com'erano le modifiche di Ottimizza tutto (anche di un altro account del PC): rimettile dalla pagina Ottimizza tutto di quell'account e riprova. Tasso non è stato tolto.": "Ich konnte die Änderungen von Alles optimieren nicht zurücksetzen (auch die eines anderen Kontos auf dem PC): Setze sie auf der Seite Alles optimieren dieses Kontos zurück und versuche es erneut. Tasso wurde nicht entfernt."
+  "Non sono riuscito a rimettere com'erano le modifiche di Ottimizza tutto (anche di un altro account del PC): rimettile dalla pagina Ottimizza tutto di quell'account e riprova. Tasso non è stato tolto.": "Ich konnte die Änderungen von Alles optimieren nicht zurücksetzen (auch die eines anderen Kontos auf dem PC): Setze sie auf der Seite Alles optimieren dieses Kontos zurück und versuche es erneut. Tasso wurde nicht entfernt.",
+  "L'avevi spenta tu: la lascio così.": "Du hast sie selbst ausgeschaltet: Ich lasse sie so.",
+  "Non sono riuscito a capire se questo PC è un portatile: per sicurezza non cambio il piano energetico.": "Ich konnte nicht erkennen, ob dieser PC ein Laptop ist: Sicherheitshalber ändere ich den Energiesparplan nicht.",
+  "Tasso è aperto con un altro account amministratore: questa impostazione è del tuo account e non la cambio. Apri Tasso dal tuo account.": "Tasso ist mit einem anderen Administratorkonto geöffnet: Diese Einstellung gehört zu deinem Konto, ich ändere sie nicht. Öffne Tasso über dein eigenes Konto.",
+  "Una modalità di Tasso (Gaming, FPS, Film o Silenziosa) è accesa e gestisce già questa impostazione: la lascio a lei.": "Ein Tasso-Modus (Gaming, FPS, Film oder Leise) ist an und steuert diese Einstellung schon: Ich überlasse sie ihm.",
+  "Una modalità di Tasso (Gaming, FPS, Film o Silenziosa) è accesa: torna alla modalità Normale e poi rimetti com'era.": "Ein Tasso-Modus (Gaming, FPS, Film oder Leise) ist an: Wechsle zurück in den Modus Normal und stelle dann das Original wieder her.",
+  "Fermato: qualcosa non è tornato com'era. Lo trovi in Rimetti com'era, da dove puoi riprovare.": "Gestoppt: Etwas wurde nicht zurückgesetzt. Du findest es unter Original wiederherstellen und kannst es dort erneut versuchen.",
+  "Fermato: ho rimesso com'era quello che avevo cambiato (i file inutili già tolti non tornano).": "Gestoppt: Ich habe zurückgesetzt, was ich geändert hatte (bereits entfernte unnötige Dateien kommen nicht zurück).",
+  "Ottimizza tutto: alcune impostazioni non sono tornate com'erano (Windows non le lascia rimettere). Tolgo Tasso lo stesso: l'elenco con i valori di prima va con le copie di sicurezza in Documenti.": "Alles optimieren: Einige Einstellungen wurden nicht zurückgesetzt (Windows lässt es nicht zu). Ich entferne Tasso trotzdem: Die Liste mit den vorherigen Werten kommt zu den Sicherungskopien in Dokumente.",
+  "Ottimizza tutto: alcune impostazioni di un altro account del PC non sono tornate com'erano (Tasso non può cambiare le impostazioni di un altro account). Tolgo Tasso lo stesso: l'elenco va con le copie di sicurezza in Documenti.": "Alles optimieren: Einige Einstellungen eines anderen Kontos auf diesem PC wurden nicht zurückgesetzt (Tasso kann die Einstellungen eines anderen Kontos nicht ändern). Ich entferne Tasso trotzdem: Die Liste kommt zu den Sicherungskopien in Dokumente.",
+  "Ottimizza tutto: un file con le impostazioni di prima era rovinato. Tolgo Tasso lo stesso: il file va con le copie di sicurezza in Documenti.": "Alles optimieren: Eine Datei mit den vorherigen Einstellungen war beschädigt. Ich entferne Tasso trotzdem: Die Datei kommt zu den Sicherungskopien in Dokumente.",
+  "Rimetti le rimette tutte com'erano; una alla volta dalla pagina Ottimizza tutto.": "Wiederherstellen setzt alle zurück; einzeln auf der Seite Alles optimieren.",
+  "Boost, clic automatico, modalità dell'Ufficio e modifiche di Ottimizza tutto rimessi com'erano (le altre impostazioni restano come sono)": "Boost, Auto-Klick, Büro-Modi und Änderungen von Alles optimieren zurückgesetzt (die anderen Einstellungen bleiben, wie sie sind)"
  },
  "ps": {
   "Windows non mi lascia cambiare questa voce.": "Windows lässt mich diesen Eintrag nicht ändern.",
@@ -5797,6 +5809,26 @@
   "Dentro non ci sono dati personali.": "Es enthält keine persönlichen Daten.",
   "circa 5 minuti · si rimette com'era": "etwa 5 Minuten · umkehrbar",
   "prima di Ottimizza tutto": "vor Alles optimieren",
-  "dopo Ottimizza tutto": "nach Alles optimieren"
+  "dopo Ottimizza tutto": "nach Alles optimieren",
+  "Tra poco": "Gleich",
+  " modifiche si rimettono com'era con un interruttore; la pulizia dei file inutili no.": " Änderungen lassen sich mit einem Schalter rückgängig machen; die Bereinigung unnötiger Dateien nicht.",
+  "Cambiate in Gaming": "In Gaming geändert",
+  "Cambiate in Ufficio": "In Büro geändert",
+  "Il processore non rallenta per risparmiare (consuma un po' di più).": "Der Prozessor bremst nicht, um Strom zu sparen (er verbraucht etwas mehr).",
+  "L'antivirus e gli aggiornamenti non si toccano.": "Virenschutz und Updates bleiben unangetastet.",
+  "L'antivirus non si tocca. Gli aggiornamenti non si spengono mai: Tasso sposta solo l'orario dei riavvii.": "Der Virenschutz bleibt unangetastet. Updates werden nie ausgeschaltet: Tasso verschiebt nur die Uhrzeit der Neustarts.",
+  "Niente riavvii per aggiornamenti mentre giochi": "Keine Update-Neustarts beim Spielen",
+  "Non ci sono riuscito: riprova tra poco.": "Das hat nicht geklappt: versuch es gleich noch einmal.",
+  "Notifiche senza suono": "Benachrichtigungen ohne Ton",
+  "Ogni cosa che cambia si rimette com'era con un interruttore.": "Jede Änderung lässt sich mit einem Schalter rückgängig machen.",
+  "Ogni impostazione cambiata si rimette com'era con un interruttore; i file inutili tolti dalla pulizia no.": "Jede geänderte Einstellung lässt sich mit einem Schalter rückgängig machen; von der Bereinigung entfernte unnötige Dateien nicht.",
+  "Quando il PC è attaccato alla corrente, Windows non spegne le porte USB.": "Wenn der PC am Strom hängt, schaltet Windows die USB-Anschlüsse nicht ab.",
+  "Riapertura delle app": "Wiederöffnen von Apps",
+  "Rifaccio Ottimizza tutto?": "Alles optimieren noch einmal ausführen?",
+  "Rifai": "Noch einmal",
+  "Tasso misura di nuovo il PC e ricontrolla le impostazioni: ci vogliono alcuni minuti. Le modifiche già fatte restano.": "Tasso misst den PC erneut und prüft die Einstellungen noch einmal: Das dauert ein paar Minuten. Die bereits gemachten Änderungen bleiben.",
+  "Tutte le impostazioni cambiate da Ottimizza tutto tornano come prima, sia in Gaming sia in Ufficio. I file tolti dalla pulizia non tornano (non servivano più).": "Alle von Alles optimieren geänderten Einstellungen werden zurückgesetzt, in Gaming und in Büro. Von der Bereinigung entfernte Dateien kommen nicht zurück (sie wurden nicht mehr gebraucht).",
+  "Un PC più svelto per lavorare": "Ein flotterer PC zum Arbeiten",
+  "circa 5 minuti · le impostazioni si rimettono com'erano": "etwa 5 Minuten · Einstellungen lassen sich zurücksetzen"
  }
 }

@@ -91,7 +91,7 @@ func changesList() map[string]interface{} {
 	}
 	if n := attiveOtt(); n > 0 {
 		items = append(items, map[string]interface{}{"kind": "ottimizza", "id": "", "title": "Ottimizza tutto",
-			"detail": "Le impostazioni di Windows cambiate da Ottimizza tutto: ognuna si rimette com'era anche dalla sua pagina."})
+			"detail": "Rimetti le rimette tutte com'erano; una alla volta dalla pagina Ottimizza tutto."})
 	}
 	regs, _ := filepath.Glob(filepath.Join(appDir, "backup", "*.reg"))
 	return map[string]interface{}{"items": items, "regBackups": len(regs), "undoFiles": fileDaRimettere(), "notUndo": nonSiRimette}
@@ -214,7 +214,7 @@ func undoChange(kind, id string) {
 			msg = msgIniNonRimesso
 		}
 	case "ottimizza":
-		if _, ok := rimettiTuttoOtt(); ok {
+		if _, ok := rimettiTuttoOtt(false); ok {
 			msg = "Modifiche di Ottimizza tutto rimesse com'erano."
 		} else {
 			msg = "Non sono riuscito a rimettere tutte le modifiche di Ottimizza tutto: riprova tra poco."

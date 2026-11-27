@@ -20,7 +20,14 @@ type Modifica struct {
 	Categoria  string // per la colonna a sinistra della finestra
 	Riavvio    bool   // vale dal prossimo riavvio del PC (va detto)
 	NonRimette bool   // non si rimette com'era (pulizia dei file inutili)
-	G          Gestore
+	// Utente: tocca le impostazioni o i file dell'utente (HKCU, desktop, temporanei): con Tasso
+	// aperto da un altro account amministratore si salta.
+	Utente bool
+	// Modo: la gestiscono anche le modalità di Tasso (Gaming, FPS...): con una modalità accesa si lascia a lei.
+	Modo bool
+	// VerificaLenta: si ricontrolla dopo qualche secondo (Windows potrebbe rimettere il suo valore).
+	VerificaLenta bool
+	G             Gestore
 }
 
 // Categoria: una riga a sinistra nella finestra. Chiedi = l'utente decide (programmi all'avvio):
@@ -42,6 +49,8 @@ const (
 	kRecapitoPol = `SOFTWARE\Policies\Microsoft\Windows\DeliveryOptimization`
 	kAggUX       = `SOFTWARE\Microsoft\WindowsUpdate\UX\Settings`
 	kAggPol      = `SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate`
+	kMDMAgg      = `SOFTWARE\Microsoft\PolicyManager\current\device\Update`
+	kMDMRecapito = `SOFTWARE\Microsoft\PolicyManager\current\device\DeliveryOptimization`
 	kTemi        = `Software\Microsoft\Windows\CurrentVersion\Themes\Personalize`
 	kEsplora     = `Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced`
 	kDWM         = `Software\Microsoft\Windows\DWM`
@@ -152,6 +161,10 @@ func nuovaHAGS() Gestore {
 			if !a.PC.HAGS {
 				return false, "La scheda video o il suo driver non la permettono: la salto."
 			}
+			if v, err := a.Reg.Leggi(HKLM, kGrafica, "HwSchMode"); err == nil && dwordE(v, 1) && !a.PC.HAGSAcceso {
+				// spenta apposta (VR, registrazione, scatti): è una scelta dell'utente
+				return false, "L'avevi spenta tu: la lascio così."
+			}
 			return true, ""
 		},
 		aPosto: func(a *Ambiente) (bool, error) { return a.PC.HAGSAcceso, nil },
@@ -162,7 +175,7 @@ func nuovoRecapito() Gestore {
 	return &regGest{
 		bers: []bersaglio{{vuole: dw(HKNS, kRecapito, "DownloadMode", 0), ok: soloQuesti(0, 99, 100)}},
 		cond: func(a *Ambiente) (bool, string) {
-			if policyPresente(a, kRecapitoPol, "DODownloadMode") {
+			if policyPresente(a, kRecapitoPol, "DODownloadMode") || policyPresente(a, kMDMRecapito, "DODownloadMode") {
 				return false, "Su questo PC lo decide chi lo gestisce (azienda o scuola): non lo cambio."
 			}
 			return true, ""
@@ -180,7 +193,8 @@ func nuoviOrari() Gestore {
 			{vuole: dw(HKLM, kAggUX, "SmartActiveHoursState", 0), ok: assenteO(0)},
 		},
 		cond: func(a *Ambiente) (bool, string) {
-			if policyPresente(a, kAggPol, "SetActiveHours") || policyPresente(a, kAggPol, "ActiveHoursStart") {
+			if policyPresente(a, kAggPol, "SetActiveHours") || policyPresente(a, kAggPol, "ActiveHoursStart") || policyPresente(a, kAggPol, "ActiveHoursMaxRange") ||
+				policyPresente(a, kMDMAgg, "ActiveHoursStart") || policyPresente(a, kMDMAgg, "ActiveHoursEnd") || policyPresente(a, kMDMAgg, "ActiveHoursMaxRange") {
 				return false, "Su questo PC gli orari degli aggiornamenti li decide chi lo gestisce (azienda o scuola): non li cambio."
 			}
 			return true, ""
@@ -240,33 +254,34 @@ func nuoviConsigli() Gestore {
 // Elenco: le modifiche di una modalità, nell'ordine in cui le fa (e le mostra la finestra).
 func Elenco(modo string) []Modifica {
 	if modo == ModoUfficio {
+		// "App in background ferme" non c'è in Ufficio (decisione di Sergio, 28/11): le app dello
+		// Store chiuse non manderebbero più notifiche e promemoria (Posta, Calendario, Telefono).
 		return []Modifica{
-			{ID: "effetti", Categoria: "win", G: nuoviEffetti()},
-			{ID: "ombre", Categoria: "win", G: nuoveOmbre()},
-			{ID: "pulizia_temp", Categoria: "clean", NonRimette: true, G: &puliziaGest{passi: []string{"backup", "temp_user", "temp_win", "thumbs"}}},
+			{ID: "effetti", Categoria: "win", Utente: true, G: nuoviEffetti()},
+			{ID: "ombre", Categoria: "win", Utente: true, G: nuoveOmbre()},
+			{ID: "pulizia_temp", Categoria: "clean", Utente: true, NonRimette: true, G: &puliziaGest{passi: []string{"backup", "temp_user", "temp_win", "thumbs"}}},
 			{ID: "pulizia_resti", Categoria: "clean", NonRimette: true, G: &puliziaGest{passi: []string{"wu_cache", "cleanmgr"}}},
-			{ID: "bgapps", Categoria: "ram", G: nuoveApp()},
-			{ID: "riapertura", Categoria: "ram", G: nuovaRiapertura()},
-			{ID: "suoni", Categoria: "bell", G: nuoviSuoni()},
-			{ID: "consigli", Categoria: "bell", G: nuoviConsigli()},
+			{ID: "riapertura", Categoria: "ram", Utente: true, G: nuovaRiapertura()},
+			{ID: "suoni", Categoria: "bell", Utente: true, G: nuoviSuoni()},
+			{ID: "consigli", Categoria: "bell", Utente: true, G: nuoviConsigli()},
 			{ID: "batt_risparmio", Categoria: "batt", G: &enGest{gruppo: GruppoRisparmio, imp: ImpRisparmioSoglia, dc: true, vuole: 20, ok: func(v uint32) bool { return v >= 20 }, cond: soloPortatile}},
 			{ID: "batt_schermo", Categoria: "batt", G: &enGest{gruppo: GruppoSchermo, imp: ImpSchermoSpento, dc: true, vuole: 300, ok: func(v uint32) bool { return v > 0 && v <= 300 }, cond: soloPortatile}},
 		}
 	}
 	return []Modifica{
-		{ID: "gamemode", Categoria: "cpu", G: nuovaGamemode()},
+		{ID: "gamemode", Categoria: "cpu", Utente: true, Modo: true, G: nuovaGamemode()},
 		{ID: "primopiano", Categoria: "cpu", G: nuovaPrimoPiano()},
-		{ID: "bgapps", Categoria: "ram", G: nuoveApp()},
-		{ID: "riapertura", Categoria: "ram", G: nuovaRiapertura()},
+		{ID: "bgapps", Categoria: "ram", Utente: true, G: nuoveApp()},
+		{ID: "riapertura", Categoria: "ram", Utente: true, G: nuovaRiapertura()},
 		{ID: "hags", Categoria: "gpu", Riavvio: true, G: nuovaHAGS()},
-		{ID: "gpupref", Categoria: "gpu", G: &gpuGest{}},
+		{ID: "gpupref", Categoria: "gpu", Utente: true, G: &gpuGest{}},
 		{ID: "recapito", Categoria: "net", G: nuovoRecapito()},
-		{ID: "orari", Categoria: "net", G: nuoviOrari()},
-		{ID: "effetti", Categoria: "win", G: nuoviEffetti()},
-		{ID: "notifgioco", Categoria: "win", G: &notifGest{}},
-		{ID: "registrazione", Categoria: "win", G: nuovaRegistrazione()},
-		{ID: "mouse", Categoria: "mouse", G: nuovoMouse()},
-		{ID: "piano", Categoria: "pow", G: &pianoGest{}},
+		{ID: "orari", Categoria: "net", VerificaLenta: true, G: nuoviOrari()},
+		{ID: "effetti", Categoria: "win", Utente: true, G: nuoviEffetti()},
+		{ID: "notifgioco", Categoria: "win", Utente: true, G: &notifGest{}},
+		{ID: "registrazione", Categoria: "win", Utente: true, G: nuovaRegistrazione()},
+		{ID: "mouse", Categoria: "mouse", Utente: true, Modo: true, G: nuovoMouse()},
+		{ID: "piano", Categoria: "pow", Modo: true, G: &pianoGest{}},
 		{ID: "usb", Categoria: "pow", G: &enGest{gruppo: GruppoUSB, imp: ImpUSBSospensione, vuole: 0, ok: func(v uint32) bool { return v == 0 }}},
 	}
 }

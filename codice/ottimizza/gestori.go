@@ -194,6 +194,10 @@ func rimettiValori(r Registro, p Precedente) (Rimesso, bool, error) {
 			break
 		}
 		cur, err := r.Leggi(m.Radice, m.Chiave, m.Nome)
+		if errors.Is(err, ErrTipoDiverso) {
+			esito = RimessoLascia // l'hai cambiato tu in un altro tipo: non è più quello di Tasso
+			continue
+		}
 		if err != nil {
 			if primoErr == nil {
 				primoErr = err
@@ -576,9 +580,15 @@ func pianoGiaAlto(g string) bool {
 // hanno solo Bilanciato), la modalità "Prestazioni migliori" di Windows.
 type pianoGest struct{}
 
-const msgPianoPortatile = "Sui portatili Tasso non cambia il piano energetico: a batteria si scaricherebbe in fretta. Quando giochi tieni attaccato il caricatore."
+const (
+	msgPianoPortatile = "Sui portatili Tasso non cambia il piano energetico: a batteria si scaricherebbe in fretta. Quando giochi tieni attaccato il caricatore."
+	msgPianoDubbio    = "Non sono riuscito a capire se questo PC è un portatile: per sicurezza non cambio il piano energetico."
+)
 
 func (g *pianoGest) Disponibile(a *Ambiente) (bool, string) {
+	if a.PC.PortatileDubbio {
+		return false, msgPianoDubbio
+	}
 	if a.PC.Portatile {
 		return false, msgPianoPortatile
 	}
@@ -654,7 +664,14 @@ func (g *pianoGest) Rimetti(a *Ambiente, p Precedente) (Rimesso, error) {
 		return RimessoLascia, nil
 	}
 	if p.Extra["modo"] == "overlay" {
-		return RimessoTutto, a.En.ImpostaOverlay(p.Extra["prima"])
+		if err := a.En.ImpostaOverlay(p.Extra["prima"]); err != nil {
+			return RimessoTutto, err
+		}
+		// il comando della modalità non è documentato: rileggo che sia tornata davvero
+		if v, err := g.adesso(a, "overlay"); err != nil || v != p.Extra["prima"] {
+			return RimessoTutto, errors.New("modalità non rimessa")
+		}
+		return RimessoTutto, nil
 	}
 	if !a.En.PianoEsiste(p.Extra["prima"]) {
 		// il piano di prima non c'è più (tolto nel frattempo): torno a Bilanciato
@@ -787,13 +804,12 @@ func (g *enGest) Valida(p Precedente, admin bool) (Precedente, bool) {
 // ChiaveGPU: le scelte di Windows "Impostazioni grafiche" (una stringa per programma).
 const ChiaveGPU = `Software\Microsoft\DirectX\UserGpuPreferences`
 
-// GPUScelta: nella stringa c'è già una scelta (1 risparmio energetico, 2 prestazioni elevate).
-// Se l'hai messa tu, Tasso non la cambia.
+// GPUScelta: nella stringa c'è già una scelta (0 "Lascia decidere a Windows", 1 risparmio
+// energetico, 2 prestazioni elevate). Se l'hai messa tu, Tasso non la cambia.
 func GPUScelta(v string) bool {
 	for _, p := range strings.Split(v, ";") {
-		if k, val, ok := strings.Cut(strings.TrimSpace(p), "="); ok && strings.TrimSpace(k) == "GpuPreference" {
-			val = strings.TrimSpace(val)
-			return val == "1" || val == "2"
+		if k, _, ok := strings.Cut(strings.TrimSpace(p), "="); ok && strings.TrimSpace(k) == "GpuPreference" {
+			return true
 		}
 	}
 	return false

@@ -21,6 +21,7 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+	"unicode/utf16"
 	"unsafe"
 
 	webview2 "github.com/jchv/go-webview2"
@@ -91,8 +92,9 @@ func (regVero) Leggi(r ottimizza.Radice, chiave, nome string) (ottimizza.Valore,
 		}
 		v.Esiste, v.Tipo, v.Testo = true, ottimizza.TipoSz, s
 	default:
-		// un tipo che Tasso non scrive mai: non lo tocco (la modifica si salta)
-		return v, ottimizza.ErrNonAccessibile
+		// un tipo che Tasso non scrive mai: non lo tocco (la modifica si salta; nel rimetti vale
+		// come "l'hai cambiato tu")
+		return v, ottimizza.ErrTipoDiverso
 	}
 	return v, nil
 }
@@ -148,63 +150,60 @@ func (regVero) Nomi(r ottimizza.Radice, chiave string) ([]string, error) {
 	return k.ReadValueNames(-1)
 }
 
-// regConCopia: prima di scrivere in una chiave per la prima volta, ne fa il backup (.reg) in
-// %LOCALAPPDATA%\Tasso\backup-registro, come le riparazioni di "Risolvi un problema" (con doppio
-// clic sul file torna com'era; "Togli Tasso dal PC" li sposta in Documenti).
+// regConCopia: prima di scrivere un valore per la prima volta, ne salva com'era in un file .reg
+// di questo giro in %LOCALAPPDATA%\Tasso\backup-registro (come le riparazioni di "Risolvi un
+// problema": con doppio clic torna com'era; "Togli Tasso dal PC" li sposta in Documenti). Dentro ci
+// sono solo i valori toccati da Tasso (quelli che prima non c'erano come "nome"=-), mai chiavi intere.
 type regConCopia struct {
 	ottimizza.Registro
-	mu      sync.Mutex
-	fatte   map[string]bool
-	n       int
-	quando  string
-	esporta func(radice ottimizza.Radice, chiave, file string) // nil = reg.exe export
+	mu     sync.Mutex
+	visti  map[string]bool
+	valori []ottimizza.Valore
+	dir    string // "" = %LOCALAPPDATA%\Tasso\backup-registro
+	file   string
 }
 
 func nuovoRegConCopia(base ottimizza.Registro) *regConCopia {
-	return &regConCopia{Registro: base, fatte: map[string]bool{}, quando: time.Now().Format("20060102_150405")}
+	return &regConCopia{Registro: base, visti: map[string]bool{}, file: "ottimizza-tutto_" + time.Now().Format("20060102_150405") + ".reg"}
 }
 
-func nomeRegCompleto(r ottimizza.Radice, chiave string) string {
-	switch r {
-	case ottimizza.HKCU:
-		return `HKCU\` + chiave
-	case ottimizza.HKLM:
-		return `HKLM\` + chiave
-	case ottimizza.HKNS:
-		return `HKU\` + sidServizioRete + `\` + chiave
-	}
-	return ""
-}
-
-func (c *regConCopia) primaDiScrivere(r ottimizza.Radice, chiave string) {
+func (c *regConCopia) primaDiScrivere(r ottimizza.Radice, chiave, nome string) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	id := string(r) + `\` + strings.ToLower(chiave)
-	if c.fatte[id] {
+	id := string(r) + `\` + strings.ToLower(chiave) + `|` + strings.ToLower(nome)
+	if c.visti[id] {
 		return
 	}
-	c.fatte[id] = true
-	c.n++
-	dir := filepath.Join(appDir, "backup-registro")
+	c.visti[id] = true
+	v, err := c.Registro.Leggi(r, chiave, nome)
+	if err != nil {
+		return // non leggibile: la scrittura non riuscirà comunque
+	}
+	c.valori = append(c.valori, v)
+	dir := c.dir
+	if dir == "" {
+		dir = filepath.Join(appDir, "backup-registro")
+	}
 	if os.MkdirAll(dir, 0o755) != nil {
 		return
 	}
-	file := filepath.Join(dir, fmt.Sprintf("ottimizza-tutto-%d_%s.reg", c.n, c.quando))
-	if c.esporta != nil {
-		c.esporta(r, chiave, file)
-		return
+	// .reg come lo scrive Windows: UTF-16 con BOM
+	u := utf16.Encode([]rune(ottimizza.TestoReg(c.valori)))
+	b := make([]byte, 2, 2+2*len(u))
+	b[0], b[1] = 0xFF, 0xFE
+	for _, x := range u {
+		b = append(b, byte(x), byte(x>>8))
 	}
-	// la chiave può non esserci ancora (la crea Tasso): allora non c'è niente da salvare
-	_, _ = runHiddenTimeout(20*time.Second, "reg.exe", "export", nomeRegCompleto(r, chiave), file, "/y")
+	_ = scriviFileApp(filepath.Join(dir, c.file), b, 0o644)
 }
 
 func (c *regConCopia) Scrivi(v ottimizza.Valore) error {
-	c.primaDiScrivere(v.Radice, v.Chiave)
+	c.primaDiScrivere(v.Radice, v.Chiave, v.Nome)
 	return c.Registro.Scrivi(v)
 }
 
 func (c *regConCopia) Cancella(r ottimizza.Radice, chiave, nome string) error {
-	c.primaDiScrivere(r, chiave)
+	c.primaDiScrivere(r, chiave, nome)
 	return c.Registro.Cancella(r, chiave, nome)
 }
 
@@ -586,9 +585,40 @@ func giochiOtt() []string {
 	return out
 }
 
+// batteriaOtt: GetSystemPowerStatus.BatteryFlag (128 = nessuna batteria, 255 = non si sa).
+func batteriaOtt() uint8 {
+	var st struct {
+		ACLineStatus, BatteryFlag, BatteryLifePercent, SystemStatusFlag byte
+		BatteryLifeTime, BatteryFullLifeTime                            uint32
+	}
+	if r, _, _ := pGetPowerStatus.Call(uintptr(unsafe.Pointer(&st))); r == 0 {
+		return 255
+	}
+	return st.BatteryFlag
+}
+
+// modoTassoOtt: la modalità di Tasso accesa che gestisce piano, mouse e Modalità Gioco ("" = nessuna).
+func modoTassoOtt() string {
+	setMu.Lock()
+	m := settings.Mode
+	setMu.Unlock()
+	switch m {
+	case "gaming", "fps", "film", "silenzioso":
+		return m
+	}
+	return ""
+}
+
+// altroUtenteOtt: Tasso da amministratore con un altro account (UAC con la password di un altro
+// amministratore). Le impostazioni dell'utente collegato non sono raggiungibili da qui.
+func altroUtenteOtt() bool { return elevato() && utenteDiverso(sidUtente()) }
+
 func pcOtt() ottimizza.PC {
 	in := leggiInfoPC()
-	pc := ottimizza.PC{Admin: elevato(), Portatile: in.Portatile, Caricatore: !onBattery(), Build: winBuild(), Giochi: giochiOtt()}
+	letto := in.RAMGB > 0 || in.PCType != 0 || len(in.Telai) > 0
+	pc := ottimizza.PC{Admin: elevato(), Caricatore: !onBattery(), Build: winBuild(), Giochi: giochiOtt(),
+		AltroUtente: altroUtenteOtt(), ModoTasso: modoTassoOtt()}
+	pc.Portatile, pc.PortatileDubbio = ottimizza.DecidiPortatile(letto, in.Portatile, batteriaOtt())
 	for _, a := range adattatoriOtt() {
 		if a.software {
 			continue
@@ -614,15 +644,18 @@ var (
 	ottRovinato atomic.Bool // il file di stato era illeggibile (messo da parte)
 )
 
+func sidOtt() string {
+	if sid := sidUtente(); sid != "" {
+		return sid
+	}
+	return "utente"
+}
+
 // fileStatoOtt: Programmi\Tasso\lavoro\ottimizza\stato-<utente>.json (lì scrivono solo gli
 // amministratori). Senza permessi (account normale) Tasso non può scrivere lì: usa la sua cartella
 // dell'utente, e da quel file non rimette mai valori di tutto il PC (ottimizza.Leggi admin=false).
 func fileStatoOtt() (string, bool) {
-	sid := sidUtente()
-	if sid == "" {
-		sid = "utente"
-	}
-	nome := "stato-" + sid + ".json"
+	nome := "stato-" + sidOtt() + ".json"
 	if elevato() {
 		if d := cartellaLavoroProtetta(); d != "" {
 			d = filepath.Join(d, "ottimizza")
@@ -637,36 +670,41 @@ func fileStatoOtt() (string, bool) {
 }
 
 func fileStatoUtenteOtt() string {
-	sid := sidUtente()
-	if sid == "" {
-		sid = "utente"
-	}
-	return filepath.Join(appDir, "ottimizza", "stato-"+sid+".json")
+	return filepath.Join(appDir, "ottimizza", "stato-"+sidOtt()+".json")
 }
 
-// caricaOtt legge il file di stato (chiamare con ottMu preso).
-func caricaOtt() *ottimizza.Stato {
-	vuoto := &ottimizza.Stato{Versione: ottimizza.VersioneStato, Risultati: map[string]*ottimizza.Risultato{}}
-	p, protetto := fileStatoOtt()
-	var b []byte
-	var err error
-	if protetto {
-		b, err = os.ReadFile(p)
-	} else {
-		b, err = leggiFileApp(p)
-	}
-	admin := protetto
-	if err != nil && protetto {
-		// un giro fatto senza permessi (raro): uso il file dell'utente, solo per le sue impostazioni
-		if b2, e2 := leggiFileApp(fileStatoUtenteOtt()); e2 == nil {
-			b, err, admin = b2, nil, false
+// leggiStatoFile: il file (o, se è vuoto o rovinato, la sua copia .prima). admin: come ottimizza.Leggi.
+func leggiStatoFile(p string, protetto, admin bool) (*ottimizza.Stato, bool, error) {
+	leggi := func(f string) ([]byte, error) {
+		if protetto {
+			return os.ReadFile(f)
 		}
+		return leggiFileApp(f)
 	}
+	b, err := leggi(p)
 	if err != nil {
-		return vuoto
+		return nil, false, err
 	}
 	st, scartate, err := ottimizza.Leggi(b, admin)
 	if err != nil {
+		// file a metà (corrente mancata mentre si scriveva): la copia di prima
+		if b2, e2 := leggi(p + ".prima"); e2 == nil {
+			if st2, sc2, e3 := ottimizza.Leggi(b2, admin); e3 == nil {
+				return st2, sc2 > 0, nil
+			}
+		}
+		return nil, true, err
+	}
+	return st, scartate > 0, nil
+}
+
+// caricaOtt legge il file di stato (chiamare con ottMu preso). Da amministratore unisce anche il
+// file dell'utente di un giro fatto senza permessi e poi lo toglie: lo stato vero sta in un posto solo.
+func caricaOtt() *ottimizza.Stato {
+	vuoto := &ottimizza.Stato{Versione: ottimizza.VersioneStato, Risultati: map[string]*ottimizza.Risultato{}}
+	p, protetto := fileStatoOtt()
+	st, scartate, err := leggiStatoFile(p, protetto, protetto)
+	if err != nil && !os.IsNotExist(err) && !errors.Is(err, errPercorsoLink) {
 		ottRovinato.Store(true)
 		via := filepath.Join(filepath.Dir(p), "stato-illeggibile-"+time.Now().Format("20060102-150405")+".json")
 		if protetto {
@@ -674,41 +712,78 @@ func caricaOtt() *ottimizza.Stato {
 		} else {
 			_ = rinominaApp(p, via)
 		}
-		return vuoto
 	}
-	if scartate > 0 {
-		logPanic("ottimizza", fmt.Sprintf("file di stato: %d voci non valide scartate", scartate), nil)
+	if st == nil {
+		st = vuoto
+	}
+	if scartate {
+		logPanic("ottimizza", "file di stato: voci non valide scartate", nil)
 	}
 	if st.Risultati == nil {
 		st.Risultati = map[string]*ottimizza.Risultato{}
 	}
+	if protetto {
+		u := fileStatoUtenteOtt()
+		if su, _, e := leggiStatoFile(u, false, false); e == nil {
+			st.Unisci(su)
+			if salvaOtt(st) == nil {
+				_ = os.Remove(u)
+				_ = os.Remove(u + ".prima")
+			}
+		}
+	}
 	return st
 }
 
-// salvaOtt scrive il file di stato (prima su un file nuovo, poi al posto di quello vecchio, così
-// non resta mai a metà). Chiamare con ottMu preso.
+// scriviSicuroOtt: file nuovo scritto davvero su disco (Sync), copia .prima di quello vecchio,
+// poi al posto di quello vecchio: mai un file a metà.
+func scriviSicuroOtt(p string, b []byte, protetto bool) error {
+	if !protetto {
+		if err := controllaPercorsoApp(filepath.Dir(p)); err != nil {
+			return err
+		}
+	}
+	scrivi := func(f string, dati []byte) error {
+		h, err := os.OpenFile(f, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o644)
+		if err != nil {
+			return err
+		}
+		if _, err := h.Write(dati); err != nil {
+			h.Close()
+			return err
+		}
+		if err := h.Sync(); err != nil {
+			h.Close()
+			return err
+		}
+		return h.Close()
+	}
+	if old, err := os.ReadFile(p); err == nil && len(old) > 0 {
+		if fi, e := os.Lstat(p); e == nil && !èLink(fi) {
+			_ = scrivi(p+".prima", old)
+		}
+	}
+	tmp := p + ".nuovo"
+	if err := scrivi(tmp, b); err != nil {
+		return err
+	}
+	return os.Rename(tmp, p)
+}
+
+// salvaOtt scrive il file di stato. Chiamare con ottMu preso.
 func salvaOtt(st *ottimizza.Stato) error {
 	b, err := st.Codifica()
 	if err != nil {
 		return err
 	}
 	p, protetto := fileStatoOtt()
-	tmp := p + ".nuovo"
-	if protetto {
-		if err := os.WriteFile(tmp, b, 0o644); err != nil {
-			return err
-		}
-		return os.Rename(tmp, p)
-	}
-	if err := scriviFileApp(tmp, b, 0o644); err != nil {
-		return err
-	}
-	return rinominaApp(tmp, p)
+	return scriviSicuroOtt(p, b, protetto)
 }
 
 // ambienteOtt: registro con backup, piano energetico, desktop, preferenze e pulizia veri.
 func ambienteOtt(ctx context.Context, log func(string)) *ottimizza.Ambiente {
-	return &ottimizza.Ambiente{Reg: nuovoRegConCopia(regVero{}), En: enVera{}, Sis: sisVero{}, Pref: prefVere{}, Pul: pulVero{ctx: ctx, log: log}, PC: pcOtt()}
+	return &ottimizza.Ambiente{Reg: nuovoRegConCopia(regVero{}), En: enVera{}, Sis: sisVero{}, Pref: prefVere{}, Pul: pulVero{ctx: ctx, log: log}, PC: pcOtt(),
+		Attendi: func(d time.Duration) { time.Sleep(d) }}
 }
 
 // ---------------- Informazioni per la finestra ----------------
@@ -778,7 +853,11 @@ func applicaUnaOtt(id string) ottimizza.Esito {
 }
 
 // rimettiTuttoOtt: tutte le modifiche attive (anche da "Rimetti tutto com'era" e da "Togli Tasso").
-func rimettiTuttoOtt() ([]ottimizza.Esito, bool) {
+// forza=false: con un giro in corso non fa niente (lo dice).
+func rimettiTuttoOtt(forza bool) ([]ottimizza.Esito, bool) {
+	if !forza && ottInCorso.Load() {
+		return []ottimizza.Esito{{Stato: ottimizza.VoceErrore, Motivo: "Aspetta che Ottimizza tutto finisca, poi riprova."}}, false
+	}
 	ottMu.Lock()
 	st := caricaOtt()
 	n := len(st.Attive())
@@ -800,42 +879,140 @@ func attiveOtt() int {
 	return len(caricaOtt().Attive())
 }
 
-// ottSpegniTutto: "Togli Tasso dal PC" (come la Modalità riunione e il blocco del PC): rimette
-// com'erano le modifiche di Ottimizza tutto e la pausa delle notifiche durante il gioco.
-func ottSpegniTutto() {
-	ottNotificheFine()
-	updateSettings(func(s *Settings) { s.OttNotifGioco = false })
-	_, _ = rimettiTuttoOtt()
+// fermaGiroOtt: ferma un giro in corso (come "Fermati") e aspetta al massimo 2 minuti che finisca.
+func fermaGiroOtt() {
+	if !ottInCorso.Load() {
+		return
+	}
+	ottStop.Store(true)
+	ottCancelMu.Lock()
+	if ottCancel != nil {
+		ottCancel()
+	}
+	ottCancelMu.Unlock()
+	for i := 0; i < 240 && ottInCorso.Load(); i++ {
+		time.Sleep(500 * time.Millisecond)
+	}
 }
 
-// ottDaRimettereAltrove: file di stato con modifiche ancora da rimettere (anche di un altro account
-// del PC). Togli Tasso si ferma: cancellando le cartelle non si potrebbero più rimettere.
-func ottDaRimettereAltrove() bool {
-	var files []string
+// ottSpegniTutto: "Togli Tasso dal PC" (come la Modalità riunione e il blocco del PC): rimette
+// com'erano le modifiche di Ottimizza tutto e la pausa delle notifiche durante il gioco. Non blocca
+// mai la disinstallazione: quello che non torna (un altro account, un valore che Windows non lascia
+// rimettere, un file rovinato) va con le copie di sicurezza in Documenti e si dice (avvisi).
+func ottSpegniTutto() (avvisi []string) {
+	fermaGiroOtt()
+	// una modalità di Tasso accesa prima torna a Normale: rimette i suoi "com'era", così Ottimizza
+	// trova i suoi valori e li rimette (senza, la modalità rimetterebbe dopo quelli di Ottimizza)
+	if modoTassoOtt() != "" {
+		setMode("normale")
+	}
+	ottNotificheFine()
+	updateSettings(func(s *Settings) { s.OttNotifGioco = false })
+	if _, ok := rimettiTuttoOtt(true); !ok {
+		if p, _ := fileStatoOtt(); copiaPerDocumentiOtt(p) {
+			avvisi = append(avvisi, "Ottimizza tutto: alcune impostazioni non sono tornate com'erano (Windows non le lascia rimettere). Tolgo Tasso lo stesso: l'elenco con i valori di prima va con le copie di sicurezza in Documenti.")
+		}
+	}
+	avvisi = append(avvisi, ottAltriFile()...)
+	return avvisi
+}
+
+// copiaPerDocumentiOtt: una copia del file in %LOCALAPPDATA%\Tasso\backup-registro, che "Togli
+// Tasso dal PC" sposta in Documenti con le altre copie di sicurezza.
+func copiaPerDocumentiOtt(p string) bool {
+	b, err := os.ReadFile(p)
+	if err != nil {
+		return false
+	}
+	dir := filepath.Join(appDir, "backup-registro")
+	if os.MkdirAll(dir, 0o755) != nil {
+		return false
+	}
+	nome := "ottimizza-tutto-" + strings.TrimSuffix(filepath.Base(p), ".json") + "_" + time.Now().Format("20060102_150405") + ".json"
+	return scriviFileApp(filepath.Join(dir, nome), b, 0o644) == nil
+}
+
+// ottAltriFile: i file di stato e delle notifiche diversi da quello dell'utente di adesso (un
+// altro account del PC, un account cancellato, un giro fatto senza permessi in un'altra cartella).
+// Le modifiche di tutto il PC (HKLM, piano energetico) le rimetto io; quelle di un altro account
+// non le posso raggiungere: il file va con le copie di sicurezza e lo dico. Mai un blocco.
+func ottAltriFile() []string {
+	var avvisi []string
+	mio, _ := fileStatoOtt()
+	type file struct {
+		p        string
+		protetto bool
+	}
+	var l []file
 	if d := cartellaLavoroProtetta(); d != "" {
-		f, _ := filepath.Glob(filepath.Join(d, "ottimizza", "stato-*.json"))
-		files = append(files, f...)
+		f, _ := filepath.Glob(filepath.Join(d, "ottimizza", "*.json"))
+		for _, x := range f {
+			l = append(l, file{x, true})
+		}
 	}
-	f, _ := filepath.Glob(filepath.Join(appDir, "ottimizza", "stato-*.json"))
-	files = append(files, f...)
-	for _, p := range files {
-		if strings.Contains(filepath.Base(p), "illeggibile") {
+	f, _ := filepath.Glob(filepath.Join(appDir, "ottimizza", "*.json"))
+	for _, x := range f {
+		l = append(l, file{x, false})
+	}
+	altri, illeggibili := 0, 0
+	for _, x := range l {
+		base := filepath.Base(x.p)
+		if strings.EqualFold(x.p, mio) || strings.HasPrefix(base, "notifiche-") && strings.EqualFold(x.p, fileNotificheOtt()) {
 			continue
 		}
-		b, err := os.ReadFile(p)
+		if strings.HasPrefix(base, "notifiche-") {
+			// pausa delle notifiche di un altro account: si riaccendono quando quell'account riapre Tasso
+			if copiaPerDocumentiOtt(x.p) {
+				altri++
+			}
+			continue
+		}
+		if !strings.HasPrefix(base, "stato-") {
+			continue
+		}
+		if strings.Contains(base, "illeggibile") {
+			if copiaPerDocumentiOtt(x.p) {
+				illeggibili++
+			}
+			continue
+		}
+		st, _, err := leggiStatoFile(x.p, x.protetto, x.protetto)
 		if err != nil {
+			if copiaPerDocumentiOtt(x.p) {
+				illeggibili++
+			}
 			continue
 		}
-		if st, _, err := ottimizza.Leggi(b, true); err == nil && len(st.Attive()) > 0 {
-			return true
+		if len(st.Attive()) == 0 {
+			continue
+		}
+		// solo le modifiche di tutto il PC: quelle dell'utente sono di un altro account
+		a := ambienteOtt(context.Background(), nil)
+		a.PC.AltroUtente = true
+		salva := func(s *ottimizza.Stato) error {
+			b, err := s.Codifica()
+			if err != nil {
+				return err
+			}
+			return scriviSicuroOtt(x.p, b, x.protetto)
+		}
+		ottimizza.RimettiTutto(a, st, salva)
+		if len(st.Attive()) > 0 && copiaPerDocumentiOtt(x.p) {
+			altri++
 		}
 	}
-	return false
+	if altri > 0 {
+		avvisi = append(avvisi, "Ottimizza tutto: alcune impostazioni di un altro account del PC non sono tornate com'erano (Tasso non può cambiare le impostazioni di un altro account). Tolgo Tasso lo stesso: l'elenco va con le copie di sicurezza in Documenti.")
+	}
+	if illeggibili > 0 {
+		avvisi = append(avvisi, "Ottimizza tutto: un file con le impostazioni di prima era rovinato. Tolgo Tasso lo stesso: il file va con le copie di sicurezza in Documenti.")
+	}
+	return avvisi
 }
 
 // msgRimettiOtt: per "Rimetti tutto com'era" delle Impostazioni.
 func msgRimettiOtt() ([]string, bool) {
-	es, ok := rimettiTuttoOtt()
+	es, ok := rimettiTuttoOtt(false)
 	if len(es) == 0 {
 		return nil, true
 	}
@@ -849,15 +1026,16 @@ func msgRimettiOtt() ([]string, bool) {
 
 // Con "notifiche in pausa durante il gioco" accesa (e Tasso acceso), quando parte un gioco Tasso
 // spegne i fumetti delle notifiche e li riaccende un minuto dopo la fine della partita. Com'era
-// prima sta in lavoro\ottimizza\notifiche-<utente>.json (scritto prima del cambio): se Tasso o il
-// PC si spengono a partita in corso, alla prossima apertura Tasso rimette com'era.
+// prima sta sempre nello stesso posto, %LOCALAPPDATA%\Tasso\ottimizza\notifiche-<utente>.json
+// (con o senza permessi), scritto prima del cambio: se Tasso o il PC si spengono a partita in
+// corso, alla prossima apertura Tasso rimette com'era. Il file contiene solo "com'era" (none o 1):
+// qualsiasi altra cosa riaccende i fumetti, mai spenti per sempre.
 // Se la modalità di Tasso per i giochi (Gaming, FPS, Film) è già accesa, le notifiche le mette lei.
 
 const chiaveToastOtt = `Software\Microsoft\Windows\CurrentVersion\PushNotifications`
 
 func fileNotificheOtt() string {
-	p, _ := fileStatoOtt()
-	return filepath.Join(filepath.Dir(p), "notifiche-"+strings.TrimPrefix(filepath.Base(p), "stato-"))
+	return filepath.Join(appDir, "ottimizza", "notifiche-"+sidOtt()+".json")
 }
 
 var ottNotifMu sync.Mutex
@@ -866,6 +1044,9 @@ var ottNotifMu sync.Mutex
 func ottNotificheInizio() {
 	ottNotifMu.Lock()
 	defer ottNotifMu.Unlock()
+	if altroUtenteOtt() {
+		return // i fumetti sono dell'utente collegato, non dell'account di Tasso
+	}
 	f := fileNotificheOtt()
 	if _, err := os.Stat(f); err == nil {
 		return // già in pausa
@@ -879,7 +1060,8 @@ func ottNotificheInizio() {
 		prima = fmt.Sprint(v)
 	}
 	b, _ := json.Marshal(map[string]string{"prima": prima, "at": time.Now().Format(time.RFC3339)})
-	if os.WriteFile(f, b, 0o644) != nil {
+	_ = os.MkdirAll(filepath.Dir(f), 0o755)
+	if scriviSicuroOtt(f, b, false) != nil {
 		return // senza il file non cambio niente
 	}
 	if setDword(registry.CURRENT_USER, chiaveToastOtt, "ToastEnabled", 0) != nil {
@@ -888,30 +1070,35 @@ func ottNotificheInizio() {
 }
 
 // ottNotificheFine: rimette i fumetti com'erano, solo se sono ancora spenti come li ha messi Tasso.
+// Guarda anche il posto della prima versione (lavoro\ottimizza).
 func ottNotificheFine() {
 	ottNotifMu.Lock()
 	defer ottNotifMu.Unlock()
-	f := fileNotificheOtt()
-	b, err := os.ReadFile(f)
-	if err != nil {
-		return
+	files := []string{fileNotificheOtt()}
+	if d := cartellaLavoroProtetta(); d != "" {
+		files = append(files, filepath.Join(d, "ottimizza", "notifiche-"+sidOtt()+".json"))
 	}
-	var s struct {
-		Prima string `json:"prima"`
-	}
-	_ = json.Unmarshal(b, &s)
-	if v, ok := regDword(registry.CURRENT_USER, chiaveToastOtt, "ToastEnabled"); ok && v == 0 {
-		switch s.Prima {
-		case "none":
+	for _, f := range files {
+		b, err := leggiFileApp(f)
+		if err != nil {
+			if b, err = os.ReadFile(f); err != nil {
+				continue
+			}
+		}
+		var s struct {
+			Prima string `json:"prima"`
+		}
+		_ = json.Unmarshal(b, &s)
+		v, ok := regDword(registry.CURRENT_USER, chiaveToastOtt, "ToastEnabled")
+		switch ottimizza.NotificheDaRimettere(s.Prima, v, ok) {
+		case "cancella":
 			regDel(registry.CURRENT_USER, chiaveToastOtt, "ToastEnabled")
-		case "1":
-			_ = setDword(registry.CURRENT_USER, chiaveToastOtt, "ToastEnabled", 1)
-		default:
-			// file strano: i fumetti accesi sono il valore di Windows
+		case "accendi":
 			_ = setDword(registry.CURRENT_USER, chiaveToastOtt, "ToastEnabled", 1)
 		}
+		_ = os.Remove(f)
+		_ = os.Remove(f + ".prima")
 	}
-	_ = os.Remove(f)
 }
 
 // ottGuardiaGiochi: gira dentro Tasso. Ogni 10 secondi guarda se c'è un gioco aperto.
@@ -985,7 +1172,7 @@ func bindOttimizza(w webview2.WebView) {
 	})
 	_ = w.Bind("goOttRimettiTutto", func() string {
 		return async("ottimizza-rimetti", func() {
-			es, ok := rimettiTuttoOtt()
+			es, ok := rimettiTuttoOtt(false)
 			emit("onOttRimesso", map[string]interface{}{"tutto": true, "ok": ok, "n": len(es), "info": infoOtt()})
 		})
 	})

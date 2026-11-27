@@ -22,6 +22,9 @@ const (
 	MsgLasciata      = "L'avevi già cambiata tu (o un'altra parte di Tasso): la lascio com'è."
 	MsgNonRimetto    = "Non sono riuscito a rimetterla com'era: riprova tra poco."
 	MsgNienteDa      = "Non c'è niente da rimettere."
+	MsgAltroUtente   = "Tasso è aperto con un altro account amministratore: questa impostazione è del tuo account e non la cambio. Apri Tasso dal tuo account."
+	MsgModoAcceso    = "Una modalità di Tasso (Gaming, FPS, Film o Silenziosa) è accesa e gestisce già questa impostazione: la lascio a lei."
+	MsgModoRimetti   = "Una modalità di Tasso (Gaming, FPS, Film o Silenziosa) è accesa: torna alla modalità Normale e poi rimetti com'era."
 )
 
 // Esito: cosa è successo a una modifica (per la finestra).
@@ -37,7 +40,9 @@ type Salvatore func(*Stato) error
 func adesso() string { return time.Now().Format(time.RFC3339) }
 
 // Esegui fa una modifica: già a posto, salva com'era (su disco), applica, verifica. Se qualcosa
-// non va, rimette quello che aveva già scritto e va avanti (non ferma tutto).
+// non va, rimette quello che aveva già scritto e va avanti (non ferma tutto). Il "com'era" vero
+// non si perde mai: una voce si chiude solo dopo che i suoi valori sono tornati com'erano (o
+// l'utente li ha cambiati); se il rimetti non riesce, la voce resta attiva con il suo com'era.
 func Esegui(m Modifica, a *Ambiente, st *Stato, salva Salvatore) Esito {
 	fine := func(stato, motivo string, prima Precedente) Esito {
 		v := Voce{ID: m.ID, Stato: stato, Motivo: motivo, Quando: adesso(), Prima: prima}
@@ -47,6 +52,12 @@ func Esegui(m Modifica, a *Ambiente, st *Stato, salva Salvatore) Esito {
 		}
 		_ = salva(st)
 		return Esito{ID: m.ID, Stato: stato, Motivo: motivo}
+	}
+	if m.Utente && a.PC.AltroUtente {
+		return fine(VoceSaltata, MsgAltroUtente, Precedente{})
+	}
+	if m.Modo && a.PC.ModoTasso != "" {
+		return fine(VoceSaltata, MsgModoAcceso, Precedente{})
 	}
 	if ok, motivo := m.G.Disponibile(a); !ok {
 		if motivo == "" {
@@ -62,9 +73,16 @@ func Esegui(m Modifica, a *Ambiente, st *Stato, salva Salvatore) Esito {
 			_ = salva(st)
 			return Esito{ID: m.ID, Stato: VoceAPosto, Motivo: MsgGiaFatta}
 		}
-		// l'hai cambiata tu nel frattempo: la vecchia voce si chiude, e si riparte da com'è adesso
+		// Cambiata in parte (da te, o un giro interrotto a metà): prima rimetto com'erano i valori
+		// che hanno ancora quello di Tasso, poi riparto da com'è adesso. Se non riesco, la voce
+		// resta com'è (con il suo com'era) e questa volta la salto.
+		if _, err := m.G.Rimetti(a, old.Prima); err != nil {
+			return Esito{ID: m.ID, Stato: VoceErrore, Motivo: MsgNonRimetto}
+		}
 		old.Stato, old.Motivo, old.Prima = VoceLasciata, MsgLasciata, Precedente{}
-		_ = salva(st)
+		if err := salva(st); err != nil {
+			return Esito{ID: m.ID, Stato: VoceSaltata, Motivo: MsgNonSalvo}
+		}
 	}
 	if !m.NonRimette {
 		ok, err := m.G.APosto(a)
@@ -91,24 +109,32 @@ func Esegui(m Modifica, a *Ambiente, st *Stato, salva Salvatore) Esito {
 		}
 		return fine(VocePulita, MsgPulita, Precedente{})
 	}
-	// prima su disco, poi il cambio: se Tasso o il PC si spengono a metà, al prossimo "Rimetti
-	// com'era" si rimette lo stesso (rimette solo dove c'è ancora il valore di Tasso)
+	// prima su disco (ogni valore com'era), poi il cambio: se Tasso o il PC si spengono a metà, al
+	// prossimo giro o "Rimetti com'era" si rimette lo stesso (solo dove c'è ancora il valore di Tasso)
 	st.Metti(Voce{ID: m.ID, Stato: VoceInCorso, Quando: adesso(), Prima: p})
 	if err := salva(st); err != nil {
 		st.Metti(Voce{ID: m.ID, Stato: VoceSaltata, Motivo: MsgNonSalvo, Quando: adesso()})
 		return Esito{ID: m.ID, Stato: VoceSaltata, Motivo: MsgNonSalvo}
 	}
-	if err := m.G.Applica(a, p); err != nil {
-		_, _ = m.G.Rimetti(a, p) // quello già scritto torna com'era
-		st.Metti(Voce{ID: m.ID, Stato: VoceErrore, Motivo: MsgNonCambia, Quando: adesso()})
+	annulla := func(motivo string) Esito {
+		if _, err := m.G.Rimetti(a, p); err != nil {
+			// non sono riuscito a rimettere: la voce resta "in corso" con il suo com'era
+			st.Metti(Voce{ID: m.ID, Stato: VoceInCorso, Motivo: MsgNonRimetto, Quando: adesso(), Prima: p})
+			_ = salva(st)
+			return Esito{ID: m.ID, Stato: VoceErrore, Motivo: motivo}
+		}
+		st.Metti(Voce{ID: m.ID, Stato: VoceErrore, Motivo: motivo, Quando: adesso()})
 		_ = salva(st)
-		return Esito{ID: m.ID, Stato: VoceErrore, Motivo: MsgNonCambia}
+		return Esito{ID: m.ID, Stato: VoceErrore, Motivo: motivo}
+	}
+	if err := m.G.Applica(a, p); err != nil {
+		return annulla(MsgNonCambia)
+	}
+	if m.VerificaLenta && a.Attendi != nil {
+		a.Attendi(3 * time.Second) // Windows potrebbe rimettere il suo valore subito dopo
 	}
 	if !m.G.Verifica(a, p) {
-		_, _ = m.G.Rimetti(a, p)
-		st.Metti(Voce{ID: m.ID, Stato: VoceErrore, Motivo: MsgNonResta, Quando: adesso()})
-		_ = salva(st)
-		return Esito{ID: m.ID, Stato: VoceErrore, Motivo: MsgNonResta}
+		return annulla(MsgNonResta)
 	}
 	motivo := MsgFatta
 	if m.Riavvio {
@@ -119,12 +145,19 @@ func Esegui(m Modifica, a *Ambiente, st *Stato, salva Salvatore) Esito {
 	return Esito{ID: m.ID, Stato: VoceFatta, Motivo: motivo}
 }
 
-// Rimetti rimette com'era una modifica fatta da Tasso.
+// Rimetti rimette com'era una modifica fatta da Tasso. Se non riesce la voce resta attiva (con il
+// suo com'era) e si può riprovare.
 func Rimetti(id string, a *Ambiente, st *Stato, salva Salvatore) Esito {
 	m, ok := Trova(id)
 	v := st.Voce(id)
 	if !ok || v == nil || !v.Attiva() {
 		return Esito{ID: id, Stato: VoceRimessa, Motivo: MsgNienteDa}
+	}
+	if m.Utente && a.PC.AltroUtente {
+		return Esito{ID: id, Stato: VoceErrore, Motivo: MsgAltroUtente}
+	}
+	if m.Modo && a.PC.ModoTasso != "" {
+		return Esito{ID: id, Stato: VoceErrore, Motivo: MsgModoRimetti}
 	}
 	r, err := m.G.Rimetti(a, v.Prima)
 	if err != nil {

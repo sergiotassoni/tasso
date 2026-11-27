@@ -210,11 +210,8 @@ func provaOttimizza(conApertura bool) int {
 		log("=== " + modo + " ===")
 		rp := &regProva{letti: map[string]bool{}}
 		copia := nuovoRegConCopia(rp)
-		copia.esporta = func(r ottimizza.Radice, chiave, file string) {
-			file = filepath.Join(dir, "prova-ottimizza-"+filepath.Base(file))
-			_, err := runHiddenTimeout(20*time.Second, "reg.exe", "export", `HKCU\`+rp.sotto(r, chiave), file, "/y")
-			log(fmt.Sprintf("   backup di %s -> %s (errore: %v)", nomeRegCompleto(r, chiave), filepath.Base(file), err))
-		}
+		copia.dir = dir // il .reg con i valori di prima va accanto al rapporto
+		log("   backup dei valori toccati: " + filepath.Join(dir, copia.file))
 		en := &enProva{val: map[string][2]uint32{}}
 		sis := &sisProva{spi: map[string]bool{}}
 		a := &ottimizza.Ambiente{Reg: copia, En: en, Sis: sis, Pref: &prefProva{}, Pul: pulProva{log: log}, PC: pc}

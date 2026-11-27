@@ -16,6 +16,7 @@ package ottimizza
 import (
 	"errors"
 	"strings"
+	"time"
 )
 
 // Radice: la parte del registro.
@@ -70,6 +71,10 @@ func (v Valore) Uguale(o Valore) bool {
 // ErrNonAccessibile: la chiave c'è ma Tasso non la può leggere o scrivere (permessi, parte del
 // registro non caricata). Chi la riceve salta la modifica con un messaggio.
 var ErrNonAccessibile = errors.New("parte del registro non accessibile")
+
+// ErrTipoDiverso: il valore c'è ma è di un tipo che Tasso non scrive mai (per esempio l'hai
+// cambiato tu in binario): per "rimetti com'era" vale come "l'hai cambiato tu".
+var ErrTipoDiverso = errors.New("valore di un tipo diverso")
 
 // Registro: leggere e scrivere valori. Un valore o una chiave che non c'è NON è un errore: torna
 // Esiste=false.
@@ -126,8 +131,17 @@ type Preferenze interface {
 
 // PC: quello che serve sapere del PC per decidere cosa fare.
 type PC struct {
-	Admin      bool     // Tasso gira da amministratore
-	Portatile  bool     // regola di votopc.Portatile (un gruppo di continuità non conta)
+	Admin     bool // Tasso gira da amministratore
+	Portatile bool // regola di votopc.Portatile (un gruppo di continuità non conta); nel dubbio true
+	// PortatileDubbio: Windows non ha saputo dire se è un portatile (lettura non riuscita): si tratta
+	// come portatile (niente piano energetico) e lo si dice.
+	PortatileDubbio bool
+	// AltroUtente: Tasso gira con un altro account amministratore (UAC con la password di un altro):
+	// le impostazioni dell'utente (HKCU, desktop, pulizia dei suoi file) non si toccano.
+	AltroUtente bool
+	// ModoTasso: una modalità di Tasso (Gaming, FPS, Film, Silenziosa) è accesa e gestisce già
+	// piano energetico, mouse e Modalità Gioco: quelle voci si lasciano a lei ("" = nessuna).
+	ModoTasso  string
 	Caricatore bool     // a corrente (sui fissi sempre true)
 	Build      int      // numero di build di Windows (19045 = Windows 10 22H2, 22000+ = Windows 11)
 	SchedeVere int      // schede video vere (DirectX, senza quelle software)
@@ -150,4 +164,7 @@ type Ambiente struct {
 	Pref Preferenze
 	Pul  Pulitore
 	PC   PC
+	// Attendi: aspetta un po' prima di ricontrollare un cambio che Windows potrebbe rimettere
+	// (orari degli aggiornamenti). nil = non aspetta (prove).
+	Attendi func(d time.Duration)
 }

@@ -1458,7 +1458,19 @@
   "Le impostazioni di Windows cambiate da Ottimizza tutto: ognuna si rimette com'era anche dalla sua pagina.": "Los ajustes de Windows cambiados por Optimizar todo: cada uno se puede devolver como estaba también desde su página.",
   "Modifiche di Ottimizza tutto rimesse com'erano.": "Cambios de Optimizar todo devueltos como estaban.",
   "Non sono riuscito a rimettere tutte le modifiche di Ottimizza tutto: riprova tra poco.": "No he podido devolver todos los cambios de Optimizar todo: vuelve a intentarlo en un momento.",
-  "Non sono riuscito a rimettere com'erano le modifiche di Ottimizza tutto (anche di un altro account del PC): rimettile dalla pagina Ottimizza tutto di quell'account e riprova. Tasso non è stato tolto.": "No he podido devolver como estaban los cambios de Optimizar todo (también de otra cuenta del PC): devuélvelos desde la página Optimizar todo de esa cuenta y vuelve a intentarlo. Tasso no se ha quitado."
+  "Non sono riuscito a rimettere com'erano le modifiche di Ottimizza tutto (anche di un altro account del PC): rimettile dalla pagina Ottimizza tutto di quell'account e riprova. Tasso non è stato tolto.": "No he podido devolver como estaban los cambios de Optimizar todo (también de otra cuenta del PC): devuélvelos desde la página Optimizar todo de esa cuenta y vuelve a intentarlo. Tasso no se ha quitado.",
+  "L'avevi spenta tu: la lascio così.": "La apagaste tú: la dejo así.",
+  "Non sono riuscito a capire se questo PC è un portatile: per sicurezza non cambio il piano energetico.": "No he podido saber si este PC es un portátil: por seguridad no cambio el plan de energía.",
+  "Tasso è aperto con un altro account amministratore: questa impostazione è del tuo account e non la cambio. Apri Tasso dal tuo account.": "Tasso está abierto con otra cuenta de administrador: este ajuste es de tu cuenta y no lo cambio. Abre Tasso desde tu cuenta.",
+  "Una modalità di Tasso (Gaming, FPS, Film o Silenziosa) è accesa e gestisce già questa impostazione: la lascio a lei.": "Un modo de Tasso (Gaming, FPS, Película o Silencioso) está activo y ya gestiona este ajuste: lo dejo en sus manos.",
+  "Una modalità di Tasso (Gaming, FPS, Film o Silenziosa) è accesa: torna alla modalità Normale e poi rimetti com'era.": "Un modo de Tasso (Gaming, FPS, Película o Silencioso) está activo: vuelve al modo Normal y luego restaura el original.",
+  "Fermato: qualcosa non è tornato com'era. Lo trovi in Rimetti com'era, da dove puoi riprovare.": "Detenido: algo no ha vuelto a como estaba. Lo encuentras en Restaurar original, desde donde puedes reintentarlo.",
+  "Fermato: ho rimesso com'era quello che avevo cambiato (i file inutili già tolti non tornano).": "Detenido: he deshecho lo que había cambiado (los archivos inútiles ya borrados no vuelven).",
+  "Ottimizza tutto: alcune impostazioni non sono tornate com'erano (Windows non le lascia rimettere). Tolgo Tasso lo stesso: l'elenco con i valori di prima va con le copie di sicurezza in Documenti.": "Optimizar todo: algunos ajustes no han vuelto a como estaban (Windows no deja restaurarlos). Quito Tasso igualmente: la lista con los valores de antes va con las copias de seguridad en Documentos.",
+  "Ottimizza tutto: alcune impostazioni di un altro account del PC non sono tornate com'erano (Tasso non può cambiare le impostazioni di un altro account). Tolgo Tasso lo stesso: l'elenco va con le copie di sicurezza in Documenti.": "Optimizar todo: algunos ajustes de otra cuenta del PC no han vuelto a como estaban (Tasso no puede cambiar los ajustes de otra cuenta). Quito Tasso igualmente: la lista va con las copias de seguridad en Documentos.",
+  "Ottimizza tutto: un file con le impostazioni di prima era rovinato. Tolgo Tasso lo stesso: il file va con le copie di sicurezza in Documenti.": "Optimizar todo: un archivo con los ajustes de antes estaba dañado. Quito Tasso igualmente: el archivo va con las copias de seguridad en Documentos.",
+  "Rimetti le rimette tutte com'erano; una alla volta dalla pagina Ottimizza tutto.": "Restaurar las devuelve todas a como estaban; una a una desde la página Optimizar todo.",
+  "Boost, clic automatico, modalità dell'Ufficio e modifiche di Ottimizza tutto rimessi com'erano (le altre impostazioni restano come sono)": "Boost, clic automático, modos de Oficina y cambios de Optimizar todo deshechos (los demás ajustes se quedan como están)"
  },
  "ps": {
   "Windows non mi lascia cambiare questa voce.": "Windows no me deja cambiar esta entrada.",
@@ -5797,6 +5809,26 @@
   "Dentro non ci sono dati personali.": "Dentro no hay datos personales.",
   "circa 5 minuti · si rimette com'era": "unos 5 minutos · se puede deshacer",
   "prima di Ottimizza tutto": "antes de Optimizar todo",
-  "dopo Ottimizza tutto": "después de Optimizar todo"
+  "dopo Ottimizza tutto": "después de Optimizar todo",
+  "Tra poco": "Enseguida",
+  " modifiche si rimettono com'era con un interruttore; la pulizia dei file inutili no.": " cambios se deshacen con un interruptor; la limpieza de archivos inútiles no.",
+  "Cambiate in Gaming": "Cambiados en Gaming",
+  "Cambiate in Ufficio": "Cambiados en Oficina",
+  "Il processore non rallenta per risparmiare (consuma un po' di più).": "El procesador no se frena para ahorrar (consume un poco más).",
+  "L'antivirus e gli aggiornamenti non si toccano.": "El antivirus y las actualizaciones no se tocan.",
+  "L'antivirus non si tocca. Gli aggiornamenti non si spengono mai: Tasso sposta solo l'orario dei riavvii.": "El antivirus no se toca. Las actualizaciones nunca se apagan: Tasso solo cambia el horario de los reinicios.",
+  "Niente riavvii per aggiornamenti mentre giochi": "Sin reinicios por actualizaciones mientras juegas",
+  "Non ci sono riuscito: riprova tra poco.": "No lo he conseguido: inténtalo de nuevo en un momento.",
+  "Notifiche senza suono": "Notificaciones sin sonido",
+  "Ogni cosa che cambia si rimette com'era con un interruttore.": "Cada cambio se deshace con un interruptor.",
+  "Ogni impostazione cambiata si rimette com'era con un interruttore; i file inutili tolti dalla pulizia no.": "Cada ajuste cambiado se deshace con un interruptor; los archivos inútiles borrados por la limpieza no.",
+  "Quando il PC è attaccato alla corrente, Windows non spegne le porte USB.": "Cuando el PC está enchufado, Windows no apaga los puertos USB.",
+  "Riapertura delle app": "Reapertura de apps",
+  "Rifaccio Ottimizza tutto?": "¿Vuelvo a hacer Optimizar todo?",
+  "Rifai": "Repetir",
+  "Tasso misura di nuovo il PC e ricontrolla le impostazioni: ci vogliono alcuni minuti. Le modifiche già fatte restano.": "Tasso vuelve a medir el PC y revisa los ajustes: tarda unos minutos. Los cambios ya hechos se quedan.",
+  "Tutte le impostazioni cambiate da Ottimizza tutto tornano come prima, sia in Gaming sia in Ufficio. I file tolti dalla pulizia non tornano (non servivano più).": "Todos los ajustes cambiados por Optimizar todo vuelven a como estaban, tanto en Gaming como en Oficina. Los archivos borrados por la limpieza no vuelven (ya no servían).",
+  "Un PC più svelto per lavorare": "Un PC más ágil para trabajar",
+  "circa 5 minuti · le impostazioni si rimettono com'erano": "unos 5 minutos · los ajustes se pueden deshacer"
  }
 }

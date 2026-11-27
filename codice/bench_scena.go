@@ -143,13 +143,13 @@ func scenaFPS(ctx context.Context, d time.Duration, onProg func(float64)) (durat
 	defer runtime.UnlockOSThread()
 
 	ad := adattatorePotente()
-	if ad != 0 {
-		defer comCall(ad, 2)
+	if ad == 0 {
+		// solo la scheda di base di Windows (desktop remoto, driver mancante): lavorerebbe il
+		// processore e gli FPS non vorrebbero dire niente
+		return nil, fmt.Errorf("%w: nessuna scheda video vera", errScenaNonParte)
 	}
-	driver := uintptr(1) // D3D_DRIVER_TYPE_HARDWARE
-	if ad != 0 {
-		driver = 0 // con una scheda scelta: D3D_DRIVER_TYPE_UNKNOWN
-	}
+	defer comCall(ad, 2)
+	driver := uintptr(0)                         // con una scheda scelta: D3D_DRIVER_TYPE_UNKNOWN
 	livelli := [3]uint32{0xb000, 0xa100, 0xa000} // 11_0, 10_1, 10_0
 	var dev, ctxD uintptr
 	var livello uint32
@@ -230,7 +230,7 @@ func scenaFPS(ctx context.Context, d time.Duration, onProg func(float64)) (durat
 		comCall(ctxD, 28, q)                                                  // End(query)
 		for {
 			r := comCall(ctxD, 29, q, 0, 0, 0) // GetData: S_OK quando la scheda ha finito
-			if r == 0 {
+			if uint32(r) == 0 {
 				break
 			}
 			if !hrOK(r) {

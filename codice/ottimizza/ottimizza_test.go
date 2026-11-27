@@ -13,8 +13,8 @@ func TestQuanteModifiche(t *testing.T) {
 	if n := len(Elenco(ModoGioco)); n != 14 {
 		t.Fatalf("Gaming: %d modifiche, ne servono 14", n)
 	}
-	if n := len(Elenco(ModoUfficio)); n != 10 {
-		t.Fatalf("Ufficio: %d modifiche, ne servono 10", n)
+	if n := len(Elenco(ModoUfficio)); n != 9 {
+		t.Fatalf("Ufficio: %d modifiche, ne servono 9 (senza \"App in background ferme\")", n)
 	}
 	for _, modo := range []string{ModoGioco, ModoUfficio} {
 		cats := map[string]bool{}
@@ -93,7 +93,7 @@ func TestGiroCompletoTornaComEra(t *testing.T) {
 				t.Errorf("%s/%s: errore %s", modo, m.ID, es.Motivo)
 			}
 		}
-		if fatte < 7 {
+		if fatte < 6 {
 			t.Errorf("%s: solo %d fatte", modo, fatte)
 		}
 		if n == 0 {
