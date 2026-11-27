@@ -47,6 +47,8 @@ function applicaLingua() {
   if (stato.vista === "sblocca") aggiornaSblocca();
   if (stato.vista === "firma") $("#fSalva").textContent = t(firma.alFine ? "firmaApplica" : "firmaSalva");
   linguaDocumento();
+  $("#nomeIn").placeholder = t("nomeCampo");
+  nomeDisegna();
 }
 
 export function localePdfjs() {
@@ -1041,6 +1043,8 @@ $("#btnInfo").onclick = async () => {
 
 // ---------------------------------------------------------------- avvio
 
+let nomeUtente = ""; // "Il tuo nome" (vedi più sotto)
+
 (async function avvio() {
   const box = $("#lingue");
   LINGUE.forEach(l => {
@@ -1058,6 +1062,7 @@ $("#btnInfo").onclick = async () => {
     if (a.sblocco === "A" || a.sblocco === "B") modoSblocco = a.sblocco;
     $("#hMenu").classList.toggle("hidden", !a.windows);
     $("#hMenuIn").checked = !!a.menu;
+    nomeUtente = typeof a.nome === "string" ? a.nome : ""; // "Il tuo nome"
   } catch { /* */ }
   initDocumento();
   applicaLingua();
@@ -1083,6 +1088,85 @@ $("#hMenuIn").onchange = async () => {
   try { $("#hMenuIn").checked = await go("goImpostaMenu", on); if (on) avvisa(t("menuFatto")); }
   catch (e) { $("#hMenuIn").checked = !on; avvisaErrore(e); }
 };
+
+// ---------------------------------------------------------------- "Il tuo nome" (Ecosistema Tasso 3.2)
+// Lo stesso nome di Tasso e Tasso Zip (HKCU\Software\Tasso\Nome, nome_utente.go), solo sul PC.
+// Sulla pagina entra sempre con textContent. Le regole sono quelle di nome/nome.go.
+/* ==== REGOLE DEL NOME: INIZIO ====
+   Uguali, carattere per carattere, nelle pagine di Tasso, installatore, Tasso Zip e Tasso PDF, e
+   uguali alle regole in Go (Controlla). Stessi elenchi espliciti di blocchi e di caratteri invisibili,
+   così la pagina e Go danno lo stesso esito anche con versioni diverse di Unicode. */
+const NOME_MIN = 2, NOME_MAX = 20, NOME_MAX_ACCENTI = 3;
+const NOME_BLOCCHI = [
+  [0x0030, 0x0039], [0x0041, 0x005A], [0x0061, 0x007A], [0x00C0, 0x024F], [0x0300, 0x036F],
+  [0x0370, 0x03FF], [0x0400, 0x052F], [0x0531, 0x058F], [0x0591, 0x05FF], [0x0600, 0x06FF],
+  [0x0900, 0x097F], [0x0E00, 0x0E7F], [0x10A0, 0x10FF], [0x1E00, 0x1FFF], [0x3040, 0x30FF],
+  [0x3400, 0x4DBF], [0x4E00, 0x9FFF], [0xAC00, 0xD7A3],
+];
+const NOME_INVISIBILI = [
+  [0x0000, 0x001F], [0x007F, 0x009F], [0x00AD, 0x00AD], [0x034F, 0x034F], [0x0600, 0x0605],
+  [0x061C, 0x061C], [0x06DD, 0x06DD], [0x115F, 0x1160], [0x17B4, 0x17B5], [0x180B, 0x180F],
+  [0x2000, 0x200F], [0x2028, 0x202F], [0x205F, 0x206F], [0x3000, 0x3000], [0x3164, 0x3164],
+  [0xFE00, 0xFE0F], [0xFEFF, 0xFEFF], [0xFFA0, 0xFFA0], [0xFFF0, 0xFFFB], [0xE0000, 0xE0FFF],
+];
+function nomeDentro(c, t) { for (const x of t) if (c >= x[0] && c <= x[1]) return true; return false; }
+function nomePulisci(s) { return String(s == null ? "" : s).replace(/[\t\n\v\f\r \u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000\ufeff]+/g, " ").trim(); }
+function nomeControlla(s) {
+  const c = [...s];
+  if (c.length < NOME_MIN) return { codice: "corto" };
+  if (c.length > NOME_MAX) return { codice: "lungo" };
+  let lettera = false, dopoLettera = false, accenti = 0;
+  for (const r of c) {
+    const k = r.codePointAt(0);
+    if (r === " " || r === "." || r === "-" || r === "_") { dopoLettera = false; accenti = 0; }
+    else if (nomeDentro(k, NOME_INVISIBILI)) return { codice: "invisibile" };
+    else if (!nomeDentro(k, NOME_BLOCCHI)) return { codice: "simbolo", simbolo: r };
+    else if (/^[\p{L}\p{Nd}]$/u.test(r)) { lettera = true; dopoLettera = true; accenti = 0; }
+    else if (/^\p{M}$/u.test(r)) { accenti++; if (!dopoLettera || accenti > NOME_MAX_ACCENTI) return { codice: "accenti" }; }
+    else return { codice: "simbolo", simbolo: r };
+  }
+  return lettera ? { codice: "" } : { codice: "senza" };
+}
+/* ==== REGOLE DEL NOME: FINE ==== */
+const NOME_ERR = { corto: "nomeErrCorto", lungo: "nomeErrLungo", simbolo: "nomeErrSimbolo", invisibile: "nomeErrInvisibile", senza: "nomeErrSenza", accenti: "nomeErrAccenti", registro: "nomeErrRegistro" };
+function nomeDisegna() {
+  const n = nomeUtente, h = $("#v-home h1");
+  if (h) h.textContent = n ? t("cosaNome", n) : t("cosa");
+  $("#nomeB").textContent = n; $("#nomeB").hidden = !n;
+  $("#nomeBtn").textContent = n ? t("nomeCambia") : t("nomeAggiungi");
+}
+function nomeCampo() {
+  const p = nomePulisci($("#nomeIn").value), e = nomeControlla(p), err = !!p && !!e.codice, m = $("#nomeMsg");
+  $("#nomeCont").textContent = [...p].length + " / 20"; $("#nomeCont").classList.toggle("err", err);
+  $("#nomeIn").classList.toggle("err", err); $("#nomeIn").setAttribute("aria-invalid", err ? "true" : "false");
+  m.className = "msg" + (err ? " err" : "");
+  m.textContent = err ? t(NOME_ERR[e.codice], e.simbolo || "") : t("nomeRegole");
+  $("#nomeSi").disabled = !!e.codice;
+  return e;
+}
+function nomeApri() {
+  $("#nomeIn").value = nomeUtente; nomeCampo();
+  $("#nomeMod").classList.add("on"); setTimeout(() => { $("#nomeIn").focus(); $("#nomeIn").select(); }, 30);
+}
+function nomeChiudi() { $("#nomeMod").classList.remove("on"); $("#nomeBtn").focus(); }
+async function nomeSalva() {
+  if ($("#nomeSi").disabled || nomeCampo().codice) return;
+  $("#nomeSi").disabled = true;
+  let r = null;
+  try { r = await go("goNomeSalva", nomePulisci($("#nomeIn").value)); } catch { r = null; }
+  $("#nomeSi").disabled = false;
+  if (!r || !r.ok) { const m = $("#nomeMsg"); m.className = "msg err"; m.textContent = t(NOME_ERR[(r && r.errore) || "registro"] || "nomeErrRegistro", (r && r.simbolo) || ""); return; }
+  nomeUtente = r.nome; nomeChiudi(); nomeDisegna();
+  const f = $("#nomeFatto"); f.textContent = t("nomeSalvato", r.nome); clearTimeout(nomeSalva.t); nomeSalva.t = setTimeout(() => { f.textContent = ""; }, 4000);
+}
+$("#nomeBtn").onclick = nomeApri;
+$("#nomeNo").onclick = nomeChiudi;
+$("#nomeSi").onclick = nomeSalva;
+$("#nomeIn").addEventListener("input", nomeCampo);
+$("#nomeIn").addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); nomeSalva(); } else if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); nomeChiudi(); } });
+$("#nomeMod").addEventListener("mousedown", e => { if (e.target === $("#nomeMod")) nomeChiudi(); });
+// cambiato in Tasso o in Tasso Zip mentre Tasso PDF era aperto: lo rileggo quando la finestra torna in primo piano
+window.addEventListener("focus", async () => { if ($("#nomeMod").classList.contains("on")) return; try { const n = await go("goNome"); if (typeof n === "string" && n !== nomeUtente) { nomeUtente = n; nomeDisegna(); } } catch { /* */ } });
 
 // per le prove automatiche
 window.__tasso = { stato, unisci, firma, sblocca, gestisciFileTrascinati, apriDocumento, apriDaDialogo, apriFirma, apriSblocca, apriUnisci, aggiungiElemento, impostaFirma, pngTesto, azione, doc: __doc };
