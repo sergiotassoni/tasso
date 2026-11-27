@@ -604,7 +604,7 @@ const (
 	PianoPrestazioni   = "8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c"
 	PianoMassime       = "e9a42b02-d5df-448d-aa00-03f14749eb61" // Prestazioni ottimali (Ultimate)
 	PianoRyzenAlte     = "9897998c-92de-4669-853f-b7cd3ecb2790" // AMD Ryzen High Performance
-	OverlayMigliori    = "ded574b5-45a0-4f42-8737-46345c09c238" // modalità "Prestazioni migliori"
+	OverlayMigliori    = "ded574b5-45a0-4f42-8737-46345c09c238" // modalità "Prestazioni ottimali" (Windows 11 in italiano)
 	OverlayNessuno     = "00000000-0000-0000-0000-000000000000"
 	GruppoUSB          = "2a737441-1930-4402-8d77-b2bebba308a3"
 	ImpUSBSospensione  = "48e6b7a6-50f5-4782-a5d4-53bb8f07e226"
@@ -624,13 +624,22 @@ func pianoGiaAlto(g string) bool {
 }
 
 // pianoGest: piano "Prestazioni elevate" (solo sui PC fissi). Se il PC non ce l'ha (molti PC nuovi
-// hanno solo Bilanciato), la modalità "Prestazioni migliori" di Windows.
+// hanno solo Bilanciato), la modalità "Prestazioni ottimali" di Windows (e lo dice).
 type pianoGest struct{}
 
 const (
 	msgPianoPortatile = "Sui portatili Tasso non cambia il piano energetico: a batteria si scaricherebbe in fretta. Quando giochi tieni attaccato il caricatore."
 	msgPianoDubbio    = "Non sono riuscito a capire se questo PC è un portatile: per sicurezza non cambio il piano energetico."
+	msgPianoOverlay   = "Questo PC non ha il piano Prestazioni elevate: ho messo la modalità \"Prestazioni ottimali\" di Windows."
 )
+
+// MotivoFatta: senza il piano Prestazioni elevate lo dico, perché il titolo della voce parla di quello.
+func (g *pianoGest) MotivoFatta(p Precedente) string {
+	if p.Extra["modo"] == "overlay" {
+		return msgPianoOverlay
+	}
+	return ""
+}
 
 func (g *pianoGest) Disponibile(a *Ambiente) (bool, string) {
 	if a.PC.PortatileDubbio {
@@ -753,6 +762,9 @@ type enGest struct {
 }
 
 func (g *enGest) Disponibile(a *Ambiente) (bool, string) {
+	if g.dc && a.PC.PianoTemporaneo {
+		return false, MsgPianoTemporaneo
+	}
 	if g.cond != nil {
 		return g.cond(a)
 	}
@@ -774,8 +786,25 @@ func (g *enGest) scrivi(a *Ambiente, piano string, v uint32) error {
 	return a.En.ScriviAC(piano, g.gruppo, g.imp, v)
 }
 
+// pianoUtente: il piano dove vanno le impostazioni della batteria. Con un piano acceso per un po'
+// (Modalità riunione, modalità di Tasso) è quello dell'utente, così a fine riunione valgono ancora.
+func pianoUtente(a *Ambiente) (string, error) {
+	if p := a.PC.PianoUtente; GUIDValido(p) && a.En.PianoEsiste(p) {
+		return p, nil
+	}
+	return a.En.PianoAttivo()
+}
+
+// piano: per le impostazioni della batteria (dc) il piano dell'utente, per le altre quello acceso.
+func (g *enGest) piano(a *Ambiente) (string, error) {
+	if g.dc {
+		return pianoUtente(a)
+	}
+	return a.En.PianoAttivo()
+}
+
 func (g *enGest) APosto(a *Ambiente) (bool, error) {
-	att, err := a.En.PianoAttivo()
+	att, err := g.piano(a)
 	if err != nil {
 		return false, err
 	}
@@ -784,7 +813,7 @@ func (g *enGest) APosto(a *Ambiente) (bool, error) {
 }
 
 func (g *enGest) Prepara(a *Ambiente) (Precedente, error) {
-	att, err := a.En.PianoAttivo()
+	att, err := g.piano(a)
 	if err != nil {
 		return Precedente{}, err
 	}

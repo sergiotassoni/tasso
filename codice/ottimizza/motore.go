@@ -17,7 +17,7 @@ const (
 	MsgFatta         = "Fatto."
 	MsgFattaRiavvio  = "Fatto: vale dal prossimo riavvio del PC."
 	MsgPulita        = "Fatto. I file tolti non servivano più (questa non si rimette com'era)."
-	MsgPuliziaErrore = "Pulizia fatta in parte: alcuni file erano in uso."
+	MsgPuliziaErrore = "Pulizia fatta solo in parte: un passaggio non è arrivato alla fine (per esempio perché ci metteva troppo). La puoi rifare da Pulisci."
 	MsgRimessa       = "Rimessa com'era."
 	MsgLasciata      = "L'avevi già cambiata tu (o un'altra parte di Tasso): la lascio com'è."
 	MsgNonRimetto    = "Non sono riuscito a rimetterla com'era: riprova tra poco."
@@ -29,6 +29,22 @@ const (
 	MsgBoostRimetti  = "Il Boost di Tasso tiene accesa questa impostazione: spegni prima \"giochi in finestra\" nel Boost, poi rimetti com'era."
 	MsgNonAccettato  = "Windows su questo PC non tiene questa impostazione (forse la tua versione non ce l'ha): l'ho lasciata com'era e la salto."
 )
+
+const (
+	// MsgRimessaRiavvio, MsgRimessaGioco: rimessa, ma Windows la usa solo dal prossimo riavvio del PC
+	// (o dal prossimo avvio del gioco): fino ad allora resta com'è adesso.
+	MsgRimessaRiavvio = "Rimessa com'era: vale dal prossimo riavvio del PC."
+	MsgRimessaGioco   = "Rimessa com'era: vale dal prossimo avvio del gioco."
+	// MsgPianoTemporaneo: le impostazioni della batteria vanno nel piano energetico dell'utente, non in
+	// quello messo per un po' da una modalità di Tasso; se non si sa qual è, la voce si salta.
+	MsgPianoTemporaneo = "Una modalità di Tasso ha cambiato per un po' il piano energetico e non trovo il tuo: la salto, se no finirebbe nel piano della modalità. Torna alla modalità Normale e rifai Ottimizza tutto."
+)
+
+// motivoFatta: un gestore che, a cambio fatto, ha qualcosa in più da dire (per esempio quale
+// modalità di Windows ha messo al posto del piano che il PC non ha).
+type motivoFatta interface {
+	MotivoFatta(p Precedente) string
+}
 
 // Esito: cosa è successo a una modifica (per la finestra).
 type Esito struct {
@@ -151,6 +167,11 @@ func Esegui(m Modifica, a *Ambiente, st *Stato, salva Salvatore) Esito {
 	if m.Riavvio {
 		motivo = MsgFattaRiavvio
 	}
+	if mf, ok := m.G.(motivoFatta); ok {
+		if x := mf.MotivoFatta(p); x != "" {
+			motivo = x
+		}
+	}
 	st.Metti(Voce{ID: m.ID, Stato: VoceFatta, Motivo: motivo, Quando: adesso(), Prima: p})
 	_ = salva(st)
 	return Esito{ID: m.ID, Stato: VoceFatta, Motivo: motivo}
@@ -187,6 +208,12 @@ func RimettiM(m Modifica, a *Ambiente, st *Stato, salva Salvatore) Esito {
 		return Esito{ID: id, Stato: VoceErrore, Motivo: MsgNonRimetto}
 	}
 	stato, motivo := VoceRimessa, MsgRimessa
+	switch {
+	case m.Riavvio:
+		motivo = MsgRimessaRiavvio
+	case m.AlGioco:
+		motivo = MsgRimessaGioco
+	}
 	if r == RimessoLascia {
 		stato, motivo = VoceLasciata, MsgLasciata
 	}

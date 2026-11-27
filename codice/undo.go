@@ -220,10 +220,10 @@ func undoChange(kind, id string) {
 			msg = msgIniNonRimesso
 		}
 	case "ottimizza":
-		if _, ok := rimettiTuttoOtt(false); ok {
+		if es, ok := rimettiTuttoOtt(false); ok {
 			msg = "Modifiche di Ottimizza tutto rimesse com'erano."
 		} else {
-			msg = "Non sono riuscito a rimettere tutte le modifiche di Ottimizza tutto: riprova tra poco."
+			msg = strings.Join(msgRestaOtt(es), " ") // F04-2: il motivo vero e cosa fare
 		}
 	case "regfolder":
 		_ = os.MkdirAll(filepath.Join(appDir, "backup"), 0o755)

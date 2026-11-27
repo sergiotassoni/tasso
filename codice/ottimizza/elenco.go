@@ -23,6 +23,7 @@ type Modifica struct {
 	ID         string
 	Categoria  string // per la colonna a sinistra della finestra
 	Riavvio    bool   // vale dal prossimo riavvio del PC (va detto)
+	AlGioco    bool   // vale dal prossimo avvio del gioco (va detto anche rimettendola com'era)
 	NonRimette bool   // non si rimette com'era (pulizia dei file inutili)
 	// Utente: tocca le impostazioni o i file dell'utente (HKCU, desktop, temporanei): con Tasso
 	// aperto da un altro account amministratore si salta.
@@ -116,6 +117,22 @@ func copreSera(inizio, fine uint32) bool {
 func soloPortatile(a *Ambiente) (bool, string) {
 	if !a.PC.Portatile {
 		return false, "Solo sui portatili: su un PC fisso non serve."
+	}
+	return true, ""
+}
+
+// msgSchermoMai: lo schermo a batteria su "Mai" (valore 0) è una scelta dell'utente.
+const msgSchermoMai = "A batteria lo schermo non si spegne mai: l'hai scelto tu, lo lascio così."
+
+// schermoNonMai: solo sui portatili, e non se l'utente ha scelto "Mai" (regola "chi l'ha messo?").
+func schermoNonMai(a *Ambiente) (bool, string) {
+	if ok, motivo := soloPortatile(a); !ok {
+		return false, motivo
+	}
+	if piano, err := pianoUtente(a); err == nil {
+		if _, dc, err := a.En.Leggi(piano, GruppoSchermo, ImpSchermoSpento); err == nil && dc == 0 {
+			return false, msgSchermoMai
+		}
 	}
 	return true, ""
 }
@@ -267,7 +284,7 @@ func Elenco(modo string) []Modifica {
 			{ID: "orari", Categoria: "net", VerificaLenta: true, G: nuoviOrari()},
 			{ID: "recapito", Categoria: "net", G: nuovoRecapito()},
 			{ID: "batt_risparmio", Categoria: "batt", G: &enGest{gruppo: GruppoRisparmio, imp: ImpRisparmioSoglia, dc: true, vuole: 20, ok: func(v uint32) bool { return v >= 20 }, cond: soloPortatile}},
-			{ID: "batt_schermo", Categoria: "batt", G: &enGest{gruppo: GruppoSchermo, imp: ImpSchermoSpento, dc: true, vuole: 300, ok: func(v uint32) bool { return v > 0 && v <= 300 }, cond: soloPortatile}},
+			{ID: "batt_schermo", Categoria: "batt", G: &enGest{gruppo: GruppoSchermo, imp: ImpSchermoSpento, dc: true, vuole: 300, ok: func(v uint32) bool { return v > 0 && v <= 300 }, cond: schermoNonMai}},
 		}
 	}
 	return []Modifica{
@@ -277,7 +294,7 @@ func Elenco(modo string) []Modifica {
 		{ID: "riapertura", Categoria: "ram", Utente: true, G: nuovaRiapertura()},
 		{ID: "hags", Categoria: "gpu", Riavvio: true, G: nuovaHAGS()},
 		{ID: "gpupref", Categoria: "gpu", Utente: true, G: &gpuGest{}},
-		{ID: "finestra", Categoria: "gpu", Utente: true, Boost: true, LivelloB: true, G: &finestraGest{}},
+		{ID: "finestra", Categoria: "gpu", Utente: true, Boost: true, LivelloB: true, AlGioco: true, G: &finestraGest{}},
 		{ID: "recapito", Categoria: "net", G: nuovoRecapito()},
 		{ID: "orari", Categoria: "net", VerificaLenta: true, G: nuoviOrari()},
 		{ID: "effetti", Categoria: "win", Utente: true, G: nuoviEffetti()},

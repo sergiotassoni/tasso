@@ -74,7 +74,7 @@ func ambientePrivacy() *ottimizza.Ambiente {
 }
 
 // privacyApplica: il passo "Privacy: stop pubblicità e tracciamento".
-func privacyApplica(log func(string)) {
+func privacyApplica(log func(string)) psResult {
 	// com'era vero dei valori messi da Ottimizza tutto (solo lettura del suo file di stato)
 	stOtt := leggiSoloStato(fileStatoOtt)
 	a := ambientePrivacy()
@@ -83,6 +83,7 @@ func privacyApplica(log func(string)) {
 	st := caricaPrivacyLock()
 	e := ottimizza.Esegui(ottimizza.Privacy(), a, st, salvaPrivacy)
 	privMu.Unlock()
+	var r psResult
 	switch e.Stato {
 	case ottimizza.VoceFatta:
 		log("Pubblicità nel menu Start, suggerimenti, ID pubblicitario e raccolta dati extra: spenti.")
@@ -91,18 +92,20 @@ func privacyApplica(log func(string)) {
 		log("Era già tutto spento: non ho cambiato niente.")
 	default:
 		log(e.Motivo)
+		r.Skipped = true // F05-22: saltato o non riuscito, nel riepilogo non risulta fatto
 	}
 	if !a.PC.Admin {
 		log("Senza i permessi di amministratore non ho cambiato il livello dei dati di diagnostica e i suggerimenti dal web nella ricerca: li decide l'amministratore.")
 	} else if ottimizza.TelemetriaAlta(a.Reg) {
 		log("Il livello dei dati di diagnostica lo ha deciso chi gestisce questo PC (azienda, scuola o un programma): l'ho lasciato com'è.")
 	}
+	return r
 }
 
 // privacyRimetti: "Privacy: ripristina". Rimette i valori di prima del passo Privacy. Per un passo
 // fatto con una versione vecchia di Tasso (senza file di stato) usa la foto di com'era Windows,
 // salvata prima del passo.
-func privacyRimetti(log func(string)) {
+func privacyRimetti(log func(string)) psResult {
 	a := ambientePrivacy()
 	privMu.Lock()
 	st := caricaPrivacyLock()
@@ -129,7 +132,9 @@ func privacyRimetti(log func(string)) {
 		log("Impostazioni di privacy rimesse com'erano prima di Tasso. Quelle che avevi già cambiato tu le ho lasciate come sono.")
 	default:
 		log(e.Motivo)
+		return psResult{Skipped: true} // F05-22: non riuscito, nel riepilogo non risulta fatto
 	}
+	return psResult{}
 }
 
 // privacyRimettiTutto: per "Rimetti tutto com'era" (prima della foto). nil se non c'è niente.
@@ -325,8 +330,7 @@ func init() {
 // eseguiPasso: un passaggio di Pulisci, in Go (Step.Go) o con il suo script.
 func eseguiPasso(ctx context.Context, s Step, onMsg func(string), onProg func(float64), onInfo func(string)) psResult {
 	if s.Go != nil {
-		s.Go(onMsg)
-		return psResult{}
+		return s.Go(onMsg)
 	}
 	if s.Script == "" {
 		return psResult{Err: errNienteGo}
