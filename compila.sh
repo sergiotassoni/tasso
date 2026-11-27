@@ -27,7 +27,7 @@ export PATH="$(dirname "$GO"):$PATH"   # anche "go run" dentro strumenti usa lo 
 
 LDF="-H windowsgui -s -w"
 mkdir -p build dist
-TASSO_VER=${TASSO_VER:-$(cat ../../tasso/VERSION 2>/dev/null || echo 3.1.1)}
+TASSO_VER=${TASSO_VER:-$(cat ../../tasso/VERSION 2>/dev/null || echo 3.2)}
 ECO_VER=${ECO_VER:-$TASSO_VER}
 
 # icona (Tasso Gaming, con gli occhi) + manifest requireAdministrator + versione. Lo stesso codice
