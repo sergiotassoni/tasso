@@ -24,7 +24,16 @@ func TestTogliModVecchia(t *testing.T) {
 	scrivi(filepath.Join(gioco, "winhttp.dll"), "doorstop")
 	scrivi(filepath.Join(gioco, "doorstop_config.ini"), "ini")
 	scrivi(filepath.Join(gioco, "BepInEx", "plugins", "MioPlugin.dll"), "utente")
-	m := ManifestoMod{Gioco: "Gioco", Cartella: gioco, Tipo: "il2cpp", Exe: "Gioco.exe", Aggiunti: []string{"BepInEx", "winhttp.dll", "Gioco.exe"}}
+	scrivi(filepath.Join(gioco, "dotnet", "x.dll"), "bepinex6")
+	m := ManifestoMod{Gioco: "Gioco", Cartella: gioco, Tipo: "il2cpp", Exe: "Gioco.exe", Aggiunti: []string{"BepInEx", "dotnet", "winhttp.dll", "Gioco.exe"}}
+
+	// BepInEx messo dall'utente (senza il traduttore di Tasso): non lo tocco
+	mv0 := m
+	if err := togliModVecchia(t.TempDir(), "k0", mv0); err == nil || !esisteVoce(filepath.Join(gioco, "winhttp.dll")) {
+		t.Fatal("tolto un BepInEx che non è di Tasso")
+	}
+	scrivi(filepath.Join(gioco, "BepInEx", "plugins", "XUnity.AutoTranslator", "XUnity.AutoTranslator.Plugin.Core.dll"), "x")
+	scrivi(filepath.Join(gioco, "BepInEx", "config", "AutoTranslatorConfig.ini"), "[Custom]\nUrl=http://127.0.0.1:47321/gioco/k/t\n")
 	b, _ := json.Marshal(m)
 	scrivi(filepath.Join(cartellaCopie(dirApp, "k"), "manifesto.json"), string(b))
 
@@ -38,7 +47,7 @@ func TestTogliModVecchia(t *testing.T) {
 	if err := togliModVecchia(dirApp, "k", mv); err != nil {
 		t.Fatal(err)
 	}
-	for _, n := range []string{"winhttp.dll", "doorstop_config.ini", "BepInEx"} {
+	for _, n := range []string{"winhttp.dll", "doorstop_config.ini", "BepInEx", "dotnet"} {
 		if esisteVoce(filepath.Join(gioco, n)) {
 			t.Fatalf("%s è rimasto", n)
 		}
@@ -52,6 +61,17 @@ func TestTogliModVecchia(t *testing.T) {
 	}
 	if esisteVoce(filepath.Join(cartellaCopie(dirApp, "k"), "manifesto.json")) || ModGiaPresenti(gioco) != "" {
 		t.Fatal("l'elenco vecchio o il caricatore bloccano ancora la nuova traduzione")
+	}
+
+	// elenco Unreal della 3.1.1: messo da parte, nessun file toccato
+	cartU := t.TempDir()
+	scrivi(filepath.Join(cartU, "vuota", "segnaposto"), "x")
+	_ = os.Remove(filepath.Join(cartU, "vuota", "segnaposto"))
+	mu := ManifestoMod{Cartella: cartU, Tipo: "unreal", CreataMods: true, Aggiunti: []string{filepath.Join("vuota", nomeModUnreal)}}
+	b, _ = json.Marshal(mu)
+	scrivi(filepath.Join(cartellaCopie(dirApp, "ku"), "manifesto.json"), string(b))
+	if err := togliModVecchia(dirApp, "ku", mu); err != nil || !esisteVoce(filepath.Join(cartU, "vuota")) {
+		t.Fatalf("elenco Unreal vecchio: %v", err)
 	}
 
 	// firma presente ma sbagliata: non è un elenco vecchio

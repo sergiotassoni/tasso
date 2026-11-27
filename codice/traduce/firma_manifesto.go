@@ -15,6 +15,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
@@ -55,8 +56,11 @@ func chiaveFirma() (k []byte, nuova bool, err error) {
 	}
 	p := filepath.Join(CartellaSicura, "chiave-traduzioni")
 	b, err := os.ReadFile(p)
-	if err != nil && !os.IsNotExist(err) {
+	if err != nil && errors.Is(err, fs.ErrPermission) {
 		return nil, false, ErrChiaveNonLeggibile // c'è ma non la posso leggere: non la rifaccio
+	}
+	if err != nil && !os.IsNotExist(err) {
+		return nil, false, err // un altro Tasso la sta creando adesso: riprovo la prossima volta
 	}
 	if err == nil && len(b) == 32 {
 		if proteggiChiave != nil && proteggiChiave(p) != nil {

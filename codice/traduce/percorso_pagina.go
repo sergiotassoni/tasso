@@ -312,9 +312,9 @@ func motivoScartaTraduzione(b Blocco, r Risultato) string {
 			return motivoUgualeIt // "Video", "Audio", "No", "TAA": in italiano si scrive così
 		}
 		return "uguale all'inglese"
-	case pezzoDiParolaInFondo(b.Testo) && pezzoCopiato(b.Testo, t):
+	case !b.NonInglese && pezzoDiParolaInFondo(b.Testo) && pezzoCopiato(b.Testo, t):
 		return motivoPezzoInFondo
-	case r.Motore != "catalogo" && rigaMezzaTradotta(b.Testo, t):
+	case !b.NonInglese && r.Motore != "catalogo" && rigaMezzaTradotta(b.Testo, t):
 		// (le frasi pronte sono scritte a mano: "Esci al desktop" è giusta così)
 		return "mezza in inglese: scartata"
 	}

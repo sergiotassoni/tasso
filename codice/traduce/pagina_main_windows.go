@@ -570,15 +570,19 @@ func preparaPaginaCon(area Zona, img, primaImg *image.RGBA, giro int64, annulla 
 	if fermato() {
 		return nil, letturaAnnullata
 	}
-	// letture incerte rilette ingrandite, con il contrasto giusto (chiaro su scuro e viceversa)
-	righe = rileggiIncerte(img, righe, f)
-	if fermato() {
-		return nil, letturaAnnullata
-	}
 	// le correzioni degli errori di lettura e i controlli con le parole inglesi valgono solo per i
 	// giochi in inglese (la lingua è quella scelta, o quella vista l'ultima volta sullo schermo)
 	daLingua, _ := coppiaAttiva()
-	blocchi := blocchiLettiIn(img, righe, f, votiPagina, time.Now(), daLingua == "en")
+	inglese := daLingua == "en"
+	if inglese {
+		// letture incerte rilette ingrandite, con il contrasto giusto (chiaro su scuro e viceversa);
+		// "incerte" secondo le parole inglesi: per le altre lingue rileggerei tutto a ogni giro
+		righe = rileggiIncerte(img, righe, f)
+		if fermato() {
+			return nil, letturaAnnullata
+		}
+	}
+	blocchi := blocchiLettiIn(img, righe, f, votiPagina, time.Now(), inglese)
 	nostraL, ceNostraL := nostraFinestraIn(area)
 	var testiLetti []string
 	for _, b := range blocchi {

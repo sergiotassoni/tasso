@@ -48,6 +48,7 @@ func togliVecchiaSeCe(cartella string) (trovata bool, motivo string) {
 		muImp.Lock()
 		delete(imp.GiochiTradotti, k)
 		muImp.Unlock()
+		salvaImp()
 	}
 	return true, ""
 }

@@ -312,6 +312,12 @@ func applicaModGioco(nome, cartella string) {
 		fallito("Chiudi " + nome + " e riprova: con il gioco aperto non posso aggiungere i file.")
 		return
 	}
+	// traduzione messa dalla 3.1.1 (elenco senza firma): la tolgo prima, altrimenti il suo BepInEx
+	// sembrerebbe una mod dell'utente
+	if _, motivo := togliVecchiaSeCe(cartella); motivo != "" {
+		fallito("Non riesco a togliere la traduzione messa dalla versione di prima: " + motivo)
+		return
+	}
 	if g := ModGiaPresenti(cartella); g != "" {
 		fallito(nome + " ha già delle mod installate (" + g + "): per sicurezza non lo tocco. Usa la traduzione dello schermo.")
 		return
@@ -346,10 +352,6 @@ func applicaModGioco(nome, cartella string) {
 		percorsi = append(percorsi, filepath.Join(dir, z.Nome))
 	}
 	chiave := chiaveGioco(cartella)
-	if _, motivo := togliVecchiaSeCe(cartella); motivo != "" {
-		fallito("Non riesco a togliere la traduzione messa dalla versione di prima: " + motivo)
-		return
-	}
 	da, a := coppiaDelGioco(chiave)
 	if da == "auto" || da == "" {
 		da = "en"
@@ -528,22 +530,7 @@ func controllaModInstallate() {
 	voci, _ := os.ReadDir(filepath.Join(dirApp, "copie-giochi"))
 	for _, v := range voci {
 		m, ok := leggiManifesto(dirApp, v.Name())
-		if !ok {
-			// traduzione messa dalla 3.1.1 (elenco senza firma): la tolgo a gioco chiuso, e chi
-			// la vuole la rimette da Tasso
-			if mv, vecchio := leggiManifestoVecchio(dirApp, v.Name()); vecchio && chiaveDellaCartella(v.Name(), mv.Cartella) &&
-				!(mv.Exe != "" && processoAperto(mv.Exe)) && togliModVecchia(dirApp, v.Name(), mv) == nil {
-				impostaGiocoTradotto(mv.Cartella, true) // resta tradotto, sullo schermo
-				nome := mv.Gioco
-				if nome == "" {
-					nome = filepath.Base(mv.Cartella)
-				}
-				emetti("info", map[string]string{"testo": "Ho tolto da " + nome + " la traduzione dentro il gioco messa dalla versione di prima di Tasso: il gioco ora si traduce sullo schermo. Per riaverla dentro il gioco, applica di nuovo la traduzione da Tasso."})
-				emetti("aggiorna", stato())
-			}
-			continue
-		}
-		if !ModNonPartita(m.Cartella) {
+		if !ok || !ModNonPartita(m.Cartella) {
 			continue
 		}
 		segnaModNonPartita(v.Name(), m.Gioco)
@@ -582,8 +569,12 @@ func TogliTutteLeTraduzioni() (tolti, falliti, spariti []string) {
 				}
 				if st, err := os.Stat(mv.Cartella); err != nil || !st.IsDir() {
 					spariti = append(spariti, nome+" ("+mv.Cartella+")")
-				} else if (mv.Exe != "" && processoAperto(mv.Exe)) || togliModVecchia(dirApp, v.Name(), mv) != nil {
+				} else if mv.Exe != "" && processoAperto(mv.Exe) {
 					falliti = append(falliti, nome)
+				} else if togliModVecchia(dirApp, v.Name(), mv) != nil {
+					// non è (più) la traduzione di Tasso o non si toglie: non tocco il gioco, le copie
+					// vanno in Documenti e lo dico
+					spariti = append(spariti, nome+" ("+mv.Cartella+")")
 				} else {
 					impostaGiocoTradotto(mv.Cartella, false)
 					tolti = append(tolti, nome)
