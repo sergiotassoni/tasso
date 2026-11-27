@@ -64,6 +64,9 @@ NOVITÀ DELLA 3.2
 - Backup dei file: Tasso ti avvisa se scegli una cartella sbagliata (una di
   quelle che stai copiando).
 - Ufficio: la Modalità riunione è separata per ogni utente del PC.
+- Ufficio: 5 temi scuri nuovi e riposanti in Impostazioni > Aspetto: Grafite,
+  Bosco, Prugna, Petrolio e Tortora (con le loro icone). Salvia e Lavanda non
+  ci sono più: chi le usava passa da solo a Carta e Perla.
 - Tante piccole correzioni (traduzione, giochi, Ufficio).
 
 ------------------------------------------------------------

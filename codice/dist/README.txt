@@ -67,6 +67,9 @@ WHAT'S NEW IN 3.2
 - File backup: Tasso warns you if you choose the wrong folder (one of those
   you are copying).
 - Office: Meeting mode is separate for each user of the PC.
+- Office: 5 new restful dark themes in Settings > Appearance: Graphite,
+  Forest, Plum, Teal and Taupe (with their own icons). Sage and Lavender are
+  gone: if you used them, Tasso switches you to Paper and Pearl.
 - Lots of small fixes (translation, games, Office).
 
 ------------------------------------------------------------

@@ -173,6 +173,12 @@ h3{margin:0;font-size:15px}
 .theme{text-align:left;background:var(--panel);border:2px solid var(--line);border-radius:18px;padding:10px;display:flex;flex-direction:column;gap:10px;transition:transform .15s}
 .theme:hover{transform:translateY(-2px)}
 .theme.on{border-color:var(--a1)}
+/* 3.2: i 9 temi dell'Ufficio in file centrate e ordinate: 5 + 4, poi 3 × 3 (mai un tema da solo su una riga) */
+body.office #themeCards{display:flex!important;flex-wrap:wrap;justify-content:center;container-type:inline-size}
+body.office #themeCards>.theme{flex:0 0 calc((100% - 48px) / 5);min-width:0}
+@container (max-width:900px){body.office #themeCards>.theme{flex-basis:calc((100% - 24px) / 3)}}
+@container (max-width:480px){body.office #themeCards .mini>span:first-child{width:20%!important;padding:8px 5px!important}body.office #themeCards .mini>span:last-child{min-width:0}body.office #themeCards .mini>span:last-child>span:first-child{gap:6px;padding:0 6px!important}body.office #themeCards .mini>span:last-child>span:first-child>span:first-child{flex:1 1 0;min-width:0}body.office #themeCards .mini>span:last-child>span:first-child>span:first-child>span{max-width:100%}body.office #themeCards .mini>span:last-child>span:first-child>span:last-child{flex:none;width:20px!important;height:20px!important;border-width:3px!important}}
+@container (max-width:330px){body.office #themeCards>.theme{flex-basis:100%}}
 .mini{height:92px;border-radius:12px;display:flex;overflow:hidden;border:1px solid}
 .fixcard{display:flex;flex-direction:column;gap:10px;min-height:200px}
 .fixcard .big{width:52px;height:52px;border-radius:15px;display:flex;align-items:center;justify-content:center;color:var(--c);background:color-mix(in srgb,var(--c) 15%,var(--panel))}
@@ -1767,9 +1773,15 @@ const THEMES = [
   {id:'salvia', name:_t('Salvia'), tag:_t('Chiaro · verde tenue'), v:{bg:'#E8F0EA',side:'#F2F7F3',panel:'#F2F7F3',line:'#CFDDD3',text:'#1D2A22',muted:'#5D6F63',a1:'#377459',a2:'#4C6B8D',a3:'#6E609F',a4:'#915F0F',ink:'#FFFFFF',red:'#B64036'}},
   {id:'lavanda', name:_t('Lavanda'), tag:_t('Chiaro · lilla tenue'), v:{bg:'#ECE9F6',side:'#F5F3FB',panel:'#F5F3FB',line:'#D6D0EA',text:'#25213A',muted:'#6A6485',a1:'#6658C2',a2:'#A2496A',a3:'#227272',a4:'#915D0B',ink:'#FFFFFF',red:'#B53A39'}},
   {id:'perla', name:_t('Perla'), tag:_t('Chiaro · grigio perla'), v:{bg:'#E7E9ED',side:'#F1F2F5',panel:'#F1F2F5',line:'#D0D4DB',text:'#222831',muted:'#5E6573',a1:'#49668D',a2:'#6C5E93',a3:'#297160',a4:'#8B5F0F',ink:'#FFFFFF',red:'#B43C3A'}},
+  {id:'grafite', name:_t('Grafite'), tag:_t('Scuro · grigio caldo'), v:{bg:'#33302D',side:'#3C3935',panel:'#3C3935',line:'#544F49',text:'#EEEAE4',muted:'#B5AEA4',a1:'#DDB673',a2:'#9CC8B2',a3:'#AFBDEB',a4:'#E9C46F',ink:'#2A1C06',red:'#F2958A'}},
+  {id:'bosco', name:_t('Bosco'), tag:_t('Scuro · verde bosco'), v:{bg:'#25312C',side:'#2E3B35',panel:'#2E3B35',line:'#44544C',text:'#E7EFEA',muted:'#A6B8AE',a1:'#8FCDA8',a2:'#DDBE8E',a3:'#AFBDEB',a4:'#E9C46F',ink:'#0D2016',red:'#F0958A'}},
+  {id:'prugna', name:_t('Prugna'), tag:_t('Scuro · prugna tenue'), v:{bg:'#302838',side:'#393042',panel:'#393042',line:'#51465B',text:'#EFE9F2',muted:'#B9ADC2',a1:'#CDA8E6',a2:'#E7B9A0',a3:'#9ED0C2',a4:'#ECC872',ink:'#22122E',red:'#F59AA0'}},
+  {id:'petrolio', name:_t('Petrolio'), tag:_t('Scuro · verde petrolio'), v:{bg:'#203135',side:'#293B3F',panel:'#293B3F',line:'#3F5358',text:'#E4EEF0',muted:'#A2B8BD',a1:'#74C9CB',a2:'#E6BC92',a3:'#BDB1F0',a4:'#E9C46F',ink:'#06201F',red:'#F2958A'}},
+  {id:'tortora', name:_t('Tortora'), tag:_t('Scuro · tortora'), v:{bg:'#3A3430',side:'#453D38',panel:'#453D38',line:'#5D534C',text:'#F2ECE6',muted:'#C4B8AC',a1:'#F1BAA3',a2:'#A9CBB8',a3:'#B6C1EC',a4:'#EDCB7A',ink:'#2B130A',red:'#F59A90'}},
   {id:'ardesia', name:_t('Ardesia'), tag:_t('Scuro · blu calmo'), v:{bg:'#161D2B',side:'#1E2636',panel:'#1E2636',line:'#2E3A54',text:'#E6ECF5',muted:'#9AA6BF',a1:'#7FA8E8',a2:'#8FD3C1',a3:'#C3A6FF',a4:'#F0C36D',ink:'#0F1420',red:'#F08A80'}}
 ];
-const OFFICE_THEMES = ['ufficio', 'salvia', 'carta', 'lavanda', 'perla', 'ardesia'];
+// 3.2: Salvia e Lavanda non si scelgono più (settings.go le porta a Carta e Perla). Dal più chiaro al più scuro.
+const OFFICE_THEMES = ['ufficio', 'carta', 'perla', 'grafite', 'bosco', 'prugna', 'petrolio', 'tortora', 'ardesia'];
 const GAME_THEMES = ['tasso', 'aurora', 'lava', 'neon', 'neonrgb', 'oro', 'argento', 'carbonio', 'belva', 'ghiaccio', 'sabbia'];
 const isOffice = () => S.profile === 'ufficio';
 // 3.1: "Mostra tutte le funzioni" (solo Gaming): preferenza di questo PC.

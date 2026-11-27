@@ -17,6 +17,8 @@ func TestPerTema(t *testing.T) {
 		{"argento", false, "argento"}, {"aurora", false, ""}, {"lava", false, ""}, {"belva", false, ""},
 		{"ufficio", true, "nebbia"}, {"ardesia", true, "blunotte"}, {"carta", true, "sabbia"},
 		{"salvia", true, ""}, {"lavanda", true, ""},
+		// 3.2: i 5 temi Ufficio nuovi per ora non hanno uno sfondo ("Metti quello del tema" resta spento)
+		{"grafite", true, ""}, {"bosco", true, ""}, {"prugna", true, ""}, {"petrolio", true, ""}, {"tortora", true, ""},
 		{"tasso", true, ""}, {"ardesia", false, ""}, {"", false, ""}, {"nonesiste", true, ""},
 	}
 	for _, c := range casi {

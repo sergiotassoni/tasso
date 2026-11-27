@@ -191,7 +191,8 @@
 7. IMPOSTAZIONI
    - Modalità di Tasso: Gaming o Ufficio (pulsante in alto a sinistra, cambia solo l'aspetto)
    - Temi Gaming: Tasso, Aurora, Lava, Neon, Carbonio, Belva, Ghiaccio, Sabbia
-   - Temi Ufficio: Azzurro, Salvia, Carta, Lavanda, Perla, Ardesia
+   - Temi Ufficio: Azzurro, Carta, Perla (chiari), Grafite, Bosco, Prugna, Petrolio, Tortora,
+     Ardesia (scuri)
    - Tasso acceso / spento
    - Torna indietro: l'elenco di tutto quello che Tasso ha cambiato, un pulsante per ogni
      cosa e uno per tutto. Spegnere o riavviare il PC non rimette niente da solo
@@ -213,6 +214,8 @@ NOVITÀ DELLA 3.2
    - Pulizia programmata che aspetta che chiudi il gioco
    - Backup dei file: avviso se scegli una cartella sbagliata
    - Ufficio: Modalità riunione separata per ogni utente del PC
+   - Ufficio: 5 temi scuri nuovi (Grafite, Bosco, Prugna, Petrolio, Tortora); Salvia e Lavanda
+     non ci sono più (chi le usava passa da solo a Carta e Perla)
    - Tante piccole correzioni (traduzione, giochi, Ufficio)
 
 NOVITÀ DELLA 3.1.1

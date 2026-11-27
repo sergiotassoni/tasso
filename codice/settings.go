@@ -17,6 +17,8 @@ import (
 	"time"
 
 	"golang.org/x/sys/windows"
+
+	"tasso/icotema"
 )
 
 type LastClean struct {
@@ -187,7 +189,8 @@ func setPaused(on bool) string {
 	return "ok"
 }
 
-var validThemes = map[string]bool{"tasso": true, "aurora": true, "lava": true, "neon": true, "neonrgb": true, "oro": true, "argento": true, "carbonio": true, "belva": true, "ghiaccio": true, "sabbia": true, "ufficio": true, "carta": true, "notte": true, "salvia": true, "lavanda": true, "ardesia": true, "perla": true}
+var validThemes = map[string]bool{"tasso": true, "aurora": true, "lava": true, "neon": true, "neonrgb": true, "oro": true, "argento": true, "carbonio": true, "belva": true, "ghiaccio": true, "sabbia": true, "ufficio": true, "carta": true, "notte": true, "salvia": true, "lavanda": true, "ardesia": true, "perla": true,
+	"grafite": true, "bosco": true, "prugna": true, "petrolio": true, "tortora": true} // 3.2: salvia e lavanda restano valide (come notte) ma non si scelgono più
 
 // Avvisi: cosa l'utente vuole che Tasso gli segnali. Se non impostato, sono tutti attivi.
 var alertKeys = []string{"temp", "disk", "startup", "ram", "health"}
@@ -351,16 +354,25 @@ func loadSettings() {
 			saveSettings() // subito, così al prossimo avvio non li alzo di nuovo
 		}
 	}
-	fixSettingsDefaults()
+	if fixSettingsDefaults() && err == nil && !settingsReadOnly {
+		saveSettings() // 3.2: tema dell'Ufficio ritirato già sostituito, non lo rifaccio a ogni avvio
+	}
 }
 
-// fixSettingsDefaults mette i valori di partenza dove mancano (temi, avvisi).
-func fixSettingsDefaults() {
+// fixSettingsDefaults mette i valori di partenza dove mancano (temi, avvisi). True se ha portato
+// un tema dell'Ufficio ritirato al suo sostituto (da salvare).
+func fixSettingsDefaults() (cambiato bool) {
 	if !validThemes[settings.Theme] {
 		settings.Theme = "tasso"
 	}
 	if settings.ThemeOffice != "" && !validThemes[settings.ThemeOffice] {
 		settings.ThemeOffice = ""
+	}
+	// 3.2: Salvia e Lavanda non si scelgono più: chi le aveva passa al tema chiaro più simile
+	// (Carta e Perla). Chi chiama salva (loadSettings), così succede una volta sola.
+	if nuovo, ok := icotema.TemaUfficioSostituto(settings.ThemeOffice); ok {
+		settings.ThemeOffice = nuovo
+		cambiato = true
 	}
 	if settings.SmartAlerts == nil {
 		v := true
@@ -375,6 +387,7 @@ func fixSettingsDefaults() {
 			}
 		}
 	}
+	return cambiato
 }
 
 // saveSettings scrive le impostazioni. Restituisce true se invece ha ricaricato il file vero

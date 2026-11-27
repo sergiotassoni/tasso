@@ -447,7 +447,7 @@ S += [box('Il BIOS: aggiornarlo sì o no?', ['Tasso ti mostra la versione del BI
 # 9 Impostazioni
 S += chapter(10, 'Impostazioni', 'su misura')
 S += [table([['Impostazione', 'Cosa fa'],
-             ['<b>Aspetto (8 temi)</b>', 'Tasso, Aurora, Lava, Neon, Carbonio, Belva (scuri) e Ghiaccio, Sabbia (chiari). Tocca una scheda e l\'app cambia colore subito.'],
+             ['<b>Aspetto</b>', 'Gaming: Tasso, Aurora, Lava, Neon, Neon RGB, Oro, Argento, Carbonio, Belva (scuri) e Ghiaccio, Sabbia (chiari). Ufficio: Azzurro, Carta, Perla (chiari) e Grafite, Bosco, Prugna, Petrolio, Tortora, Ardesia (scuri). Tocca una scheda e l\'app cambia colore subito; Gaming e Ufficio ricordano ognuna il suo tema.'],
              ['<b>Tasso acceso</b>', 'L\'interruttore generale: vedi il capitolo 11.'],
              ['<b>Avvia con Windows</b>', 'Tasso parte da solo, ridotto a icona, quando accendi il PC.'],
              ['<b>Avvisi intelligenti</b>', 'Piccoli avvisi in basso a destra (disco quasi pieno, programma nuovo all\'avvio). Mai in modalità Gaming o FPS.'],
