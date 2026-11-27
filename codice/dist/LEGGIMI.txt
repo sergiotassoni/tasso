@@ -5,7 +5,7 @@ Pulisce, ripara e spinge il tuo PC. In un clic.
 COME SI APRE
 1. Estrai la cartella dallo zip (tasto destro > Estrai tutto).
    Puoi anche copiarla su una chiavetta USB: Tasso funziona da lì senza installarlo.
-   (Solo se accendi la pulizia programmata o il profilo gioco, Tasso mette una sua
+   (Solo se accendi la pulizia programmata o "Avvia con Windows", Tasso mette una sua
    copia in Programmi\Tasso, perché Windows possa avviarla da solo.)
 2. Doppio clic su Tasso.exe e rispondi "Sì" alla richiesta di Windows:
    Tasso ha bisogno dei permessi di amministratore per pulire e riparare.
@@ -50,13 +50,18 @@ NOVITÀ DELLA 3.1
   Funziona sul tuo PC, senza abbonamento: un'IA sulla tua scheda video corregge
   la traduzione (livello automatico, oppure Piccola, Media, Grande o Spenta).
   Tradotta anche la chat degli altri giocatori, accanto a quella del gioco.
-  Nei giochi con anti-cheat Tasso traduce solo lo schermo e non tocca i file.
+  Nei giochi con anti-cheat Tasso traduce lo schermo; la traduzione dentro i file del
+  gioco è spenta e si accende solo se la scegli tu, gioco per gioco, dopo l'avviso
+  sul rischio di ban.
 - Pagina Giochi: la tua libreria, la pagina di ogni gioco e "Prepara il gioco",
   una procedura a passi che regola il gioco e la traduzione.
 - Boost più onesto: dice cosa fa davvero, misura gli FPS veri e con
   "Rimetti com'era" torna tutto come prima.
 - Frequenza dello schermo: Tasso propone solo quelle che il monitor dichiara
   (fino a 1000 Hz) e se non confermi entro 15 secondi torna indietro da solo.
+- Driver della scheda video dentro Tasso: NVIDIA scaricato solo dal sito NVIDIA e con la
+  firma di NVIDIA controllata, AMD da Windows Update; prima c'è sempre un punto di
+  ripristino, e puoi tornare al driver di prima.
 - Hardware dal vivo: nome dei pezzi e temperatura del processore.
 - Pannellino in gioco a scelta: cosa mostrare e in quale angolo.
 - 14 problemi dei giochi in più in Risolvi un problema.

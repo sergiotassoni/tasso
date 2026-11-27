@@ -129,6 +129,24 @@ func profiloPiccola(libera float64, motivo string) (ProfiloCorrettore, bool) {
 }
 
 func sceltaCorrettore(g InfoGPU, ramGB float64, core int) ProfiloCorrettore {
+	return sceltaCorrettoreCon(g, ramGB, core, conMedia, conScorta)
+}
+
+// iaMancante: l'IA non è ancora scaricata (lo imposta la parte Windows).
+var iaMancante func() bool
+
+// sceltaPrevista: come sceltaCorrettore, ma se l'IA non è ancora scaricata conta anche la Media
+// e la Piccola che arriveranno con lo scaricamento: così un PC con scheda da 6-8 GB non si sente
+// dire "non adatta" per poi usare davvero l'IA piccola dopo averla scaricata.
+func sceltaPrevista(g InfoGPU, ramGB float64, core int) ProfiloCorrettore {
+	media, scorta := conMedia, conScorta
+	if iaMancante != nil && iaMancante() && risorseIA.Media.URL != "" && risorseIA.Media.SHA256 != "" {
+		media, scorta = true, true
+	}
+	return sceltaCorrettoreCon(g, ramGB, core, media, scorta)
+}
+
+func sceltaCorrettoreCon(g InfoGPU, ramGB float64, core int, conMedia, conScorta bool) ProfiloCorrettore {
 	p := sceltaGrande(g, ramGB, core)
 	if p.Nome == "scheda" {
 		return p
@@ -154,7 +172,7 @@ func sceltaGrande(g InfoGPU, ramGB float64, core int) ProfiloCorrettore {
 	libera := g.MemoriaGB - g.UsataGB
 	if lim := limiteIA(g.MemoriaGB); g.MemoriaGB > 0 && lim < vramMeta && ramGB >= ramMinimaIA {
 		// scheda piccola (8 GB): anche metà IA supererebbe il limite. Il gioco prima di tutto
-		return ProfiloCorrettore{"", 0, 0, fmt.Sprintf("Con %.0f GB di scheda video l'IA toglierebbe troppa memoria al gioco: uso il traduttore veloce.", g.MemoriaGB)}
+		return ProfiloCorrettore{"", 0, 0, fmt.Sprintf("L'IA toglierebbe troppa memoria al gioco con una scheda video da %.0f GB: uso il traduttore veloce.", g.MemoriaGB)}
 	}
 	if lim := limiteIA(g.MemoriaGB); g.MemoriaGB > 0 && lim < vramIntero && lim >= vramMeta &&
 		ramGB >= ramMinimaIA && core >= coreMinimiMeta && libera >= vramMeta+margineGiocoGB {

@@ -160,7 +160,7 @@ func selfUpdate() {
 	if err := os.WriteFile(newPath, exe, 0o755); err != nil {
 		_ = os.Remove(newPath)
 		updating.Store(false)
-		updMsg("error", "Non posso scrivere nella cartella di Tasso. Scarica lo zip a mano da Info.")
+		updMsg("error", "Non posso scrivere nella cartella di Tasso. Scarica lo zip a mano: Impostazioni, \"oppure scarica lo zip\".")
 		return
 	}
 	// Firma digitale: se questo Tasso è firmato, il nuovo deve essere firmato anche lui, con lo
@@ -178,7 +178,7 @@ func selfUpdate() {
 	if err != nil {
 		_ = os.Remove(newPath)
 		updating.Store(false)
-		updMsg("error", "Non riesco a preparare il controllo della firma: per sicurezza non aggiorno. Scarica lo zip a mano da Info.")
+		updMsg("error", "Non riesco a preparare il controllo della firma: per sicurezza non aggiorno. Scarica lo zip a mano: Impostazioni, \"oppure scarica lo zip\".")
 		return
 	}
 	msg := checkUpdateSignature(cur, verifica)
@@ -196,7 +196,7 @@ func selfUpdate() {
 		lockSelfExe()
 		_ = os.Remove(newPath)
 		updating.Store(false)
-		updMsg("error", "Non riesco a sostituire Tasso.exe. Scarica lo zip a mano da Info.")
+		updMsg("error", "Non riesco a sostituire Tasso.exe. Scarica lo zip a mano: Impostazioni, \"oppure scarica lo zip\".")
 		return
 	}
 	if err := os.Rename(newPath, cur); err != nil {
@@ -204,7 +204,7 @@ func selfUpdate() {
 		lockSelfExe()
 		_ = os.Remove(newPath)
 		updating.Store(false)
-		updMsg("error", rimessoMsg(vecchio, "Non riesco a sostituire Tasso.exe. Scarica lo zip a mano da Info."))
+		updMsg("error", rimessoMsg(vecchio, "Non riesco a sostituire Tasso.exe. Scarica lo zip a mano: Impostazioni, \"oppure scarica lo zip\"."))
 		return
 	}
 	// Blocco subito il file nuovo e controllo che sia proprio quello scaricato e verificato: un
@@ -216,7 +216,7 @@ func selfUpdate() {
 		_ = os.Rename(oldPath, cur)
 		lockSelfExe()
 		updating.Store(false)
-		updMsg("error", rimessoMsg(vecchio, "Il file nuovo è cambiato durante l'aggiornamento: per sicurezza non lo apro. Scarica lo zip a mano da Info."))
+		updMsg("error", rimessoMsg(vecchio, "Il file nuovo è cambiato durante l'aggiornamento: per sicurezza non lo apro. Scarica lo zip a mano: Impostazioni, \"oppure scarica lo zip\"."))
 		return
 	}
 	// Anche la copia in Programmi (quella delle attività pianificate) passa alla versione nuova,
@@ -339,7 +339,7 @@ func checkUpdateSignature(cur, newExe string) string {
 		New sigFull `json:"new"`
 	}
 	if r.JSON == "" || json.Unmarshal([]byte(r.JSON), &res) != nil {
-		return "Non riesco a controllare la firma digitale del nuovo Tasso: per sicurezza non aggiorno. Scarica lo zip a mano da Info."
+		return "Non riesco a controllare la firma digitale del nuovo Tasso: per sicurezza non aggiorno. Scarica lo zip a mano: Impostazioni, \"oppure scarica lo zip\"."
 	}
 	if msg := sigDecision(res.Cur.sigInfo, res.New.sigInfo); msg != "" {
 		return msg
@@ -374,7 +374,7 @@ func sigDecision(cur, nw sigInfo) string {
 	if cur.Status != "Valid" {
 		// Firmato, ma Windows ora non riesce a verificare la firma (certificati non aggiornati):
 		// senza un controllo vero non installo niente.
-		return "Windows non riesce a verificare la firma di questo Tasso: per sicurezza non aggiorno da solo. Scarica lo zip a mano da Info."
+		return "Windows non riesce a verificare la firma di questo Tasso: per sicurezza non aggiorno da solo. Scarica lo zip a mano: Impostazioni, \"oppure scarica lo zip\"."
 	}
 	if nw.Status != "Valid" {
 		return "Il nuovo Tasso non ha una firma digitale valida: per sicurezza non lo installo."

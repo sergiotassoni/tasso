@@ -164,3 +164,20 @@ func TestPiccolaSiStringe(t *testing.T) {
 		t.Fatalf("troppo pesante: %+v", p)
 	}
 }
+
+// Prima di scaricare l'IA, una scheda da 8 GB non deve sentirsi dire "non adatta" se dopo lo
+// scaricamento userebbe davvero l'IA piccola.
+func TestSceltaPrevista(t *testing.T) {
+	vecchio := iaMancante
+	defer func() { iaMancante = vecchio }()
+	iaMancante = func() bool { return true }
+	for _, c := range []struct{ mem, ram float64 }{{8, 16}, {8, 32}, {6, 16}} {
+		if p := sceltaPrevista(InfoGPU{MemoriaGB: c.mem}, c.ram, 8); p.Nome != "piccola" {
+			t.Errorf("%.0f GB scheda, %.0f GB RAM: prima di scaricare vuole piccola, ho %q (%s)", c.mem, c.ram, p.Nome, p.Motivo)
+		}
+	}
+	iaMancante = func() bool { return false } // scaricata ma senza la Media: niente promesse
+	if p := sceltaPrevista(InfoGPU{MemoriaGB: 8}, 16, 8); p.Nome != "" {
+		t.Errorf("senza Media vuole \"\", ho %q", p.Nome)
+	}
+}
