@@ -5315,6 +5315,22 @@
   "… e altri {0} passaggi ✓": "… und {0} weitere Schritte ✓",
   "1 passaggio saltato: ": "1 Schritt übersprungen: ",
   "{0} passaggi saltati: ": "{0} Schritte übersprungen: ",
-  "Perfetto": "Perfekt"
+  "Perfetto": "Perfekt",
+  "Sfondo del desktop:": "Desktop-Hintergrund:",
+  "Metti quello del tema": "Den des Designs verwenden",
+  "Rimetti il mio": "Meinen zurücksetzen",
+  "Nebbia": "Nebel",
+  "Blu notte": "Nachtblau",
+  "Questo tema non ha uno sfondo abbinato.": "Zu diesem Design gibt es keinen passenden Hintergrund.",
+  "Sfondo {0} impostato. Puoi tornare al tuo quando vuoi da Impostazioni → Aspetto.": "Hintergrund {0} eingestellt. Du kannst jederzeit unter Einstellungen → Aussehen zu deinem zurück.",
+  "Non trovo gli sfondi di Tasso: riapri l'installatore di Tasso per rimetterli.": "Ich finde die Tasso-Hintergründe nicht: Öffne das Tasso-Installationsprogramm erneut, um sie wiederherzustellen.",
+  "Non sono riuscito a cambiare lo sfondo del desktop.": "Ich konnte den Desktop-Hintergrund nicht ändern.",
+  "Vuoi anche lo sfondo del desktop abbinato?": "Möchtest du auch den passenden Desktop-Hintergrund?",
+  "Hai scelto il tema {0}. Tasso può mettere lo stesso stile anche sullo sfondo del tuo desktop.": "Du hast das Design {0} gewählt. Tasso kann denselben Stil auch auf deinen Desktop-Hintergrund bringen.",
+  "Sfondo {0} · nitido anche sugli schermi 4K. Il tuo sfondo di adesso lo tengo da parte.": "Hintergrund {0} · scharf auch auf 4K-Bildschirmen. Deinen jetzigen Hintergrund hebe ich auf.",
+  "Non chiedermelo più": "Nicht mehr fragen",
+  "Sì, mettilo": "Ja, einstellen",
+  "Ho rimesso il tuo sfondo del desktop.": "Dein Desktop-Hintergrund ist wieder da.",
+  "Non ho un tuo sfondo da rimettere: cambialo da Impostazioni di Windows → Personalizzazione.": "Ich habe keinen Hintergrund von dir zum Zurücksetzen: Ändere ihn in den Windows-Einstellungen → Personalisierung."
  }
 }

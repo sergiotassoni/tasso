@@ -5315,6 +5315,22 @@
   "… e altri {0} passaggi ✓": "… et {0} autres étapes ✓",
   "1 passaggio saltato: ": "1 étape sautée : ",
   "{0} passaggi saltati: ": "{0} étapes sautées : ",
-  "Perfetto": "Parfait"
+  "Perfetto": "Parfait",
+  "Sfondo del desktop:": "Fond d'écran du bureau :",
+  "Metti quello del tema": "Mettre celui du thème",
+  "Rimetti il mio": "Remettre le mien",
+  "Nebbia": "Brume",
+  "Blu notte": "Bleu nuit",
+  "Questo tema non ha uno sfondo abbinato.": "Ce thème n'a pas de fond d'écran assorti.",
+  "Sfondo {0} impostato. Puoi tornare al tuo quando vuoi da Impostazioni → Aspetto.": "Fond d'écran {0} appliqué. Vous pouvez revenir au vôtre quand vous voulez depuis Paramètres → Apparence.",
+  "Non trovo gli sfondi di Tasso: riapri l'installatore di Tasso per rimetterli.": "Je ne trouve pas les fonds d'écran de Tasso : rouvrez le programme d'installation de Tasso pour les remettre.",
+  "Non sono riuscito a cambiare lo sfondo del desktop.": "Je n'ai pas réussi à changer le fond d'écran du bureau.",
+  "Vuoi anche lo sfondo del desktop abbinato?": "Voulez-vous aussi le fond d'écran assorti ?",
+  "Hai scelto il tema {0}. Tasso può mettere lo stesso stile anche sullo sfondo del tuo desktop.": "Vous avez choisi le thème {0}. Tasso peut aussi mettre le même style sur le fond d'écran de votre bureau.",
+  "Sfondo {0} · nitido anche sugli schermi 4K. Il tuo sfondo di adesso lo tengo da parte.": "Fond d'écran {0} · net même sur les écrans 4K. Je garde votre fond d'écran actuel de côté.",
+  "Non chiedermelo più": "Ne plus me demander",
+  "Sì, mettilo": "Oui, mettez-le",
+  "Ho rimesso il tuo sfondo del desktop.": "J'ai remis votre fond d'écran du bureau.",
+  "Non ho un tuo sfondo da rimettere: cambialo da Impostazioni di Windows → Personalizzazione.": "Je n'ai pas de fond d'écran à vous remettre : changez-le dans Paramètres Windows → Personnalisation."
  }
 }

@@ -1294,6 +1294,7 @@ body.th-neonrgb .gmask .eye{filter:drop-shadow(0 0 8px rgba(199,125,255,.55))}
   <div class="card" style="display:flex;flex-direction:column;gap:14px">
     <div><h2>Aspetto</h2><p class="sub" style="margin:2px 0 0">Clicca una scheda e Tasso cambia colore subito. Gaming e Ufficio ricordano ognuna il suo tema.</p></div>
     <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px" id="themeCards"></div>
+    <div class="row wrap" id="sfondoRow" style="display:none;gap:8px;align-items:center"><span class="small muted">Sfondo del desktop:</span><button class="btn ghost" id="sfondoMetti">Metti quello del tema</button><button class="btn ghost" id="sfondoRimetti">Rimetti il mio</button></div>
     <button role="switch" aria-checked="false" class="toggle gm" id="tgShowAll"><span><b>Mostra tutte le funzioni</b><span>In Gaming il menu tiene solo le cose per giocare. Accendi per vedere anche Prestazioni+ e, in Pulisci, le pulizie una per una (privacy, Download…).</span></span><span class="sw"><i></i></span></button>
     <button role="switch" aria-checked="false" class="toggle gm" id="tgCovers"><span><b>Copertine dei giochi da internet</b><span>Per i giochi che non sono di Steam, Tasso cerca la copertina su Steam usando il nome del gioco (il nome va a Steam). Spento: solo le immagini che ci sono già sul PC.</span></span><span class="sw"><i></i></span></button>
   </div>
@@ -1414,7 +1415,7 @@ const _t = (s) => (EN && typeof s === 'string' && TD[s] !== undefined) ? TD[s] :
 // tx: i dati che arrivano da Go (messaggi, elenchi). Nomi, percorsi e codici non si toccano.
 const TX_SKIP = {id:1, cat:1, ids:1, key:1, path:1, paths:1, exe:1, dir:1, mode:1, theme:1, themeOffice:1, profile:1, guid:1, url:1, icon:1, src:1, value:1, val:1, hook:1, token:1, webhook:1, discordWebhook:1, discordBot:1, kind_id:1, file:1, cmd:1, arg:1, lang:1, region:1, settings:1, snapshot:1, originale:1, tradotto:1, non_tradurre:1, termini:1, parlante:1, cartella:1, password:1, pw:1, site:1, user:1, note:1};
 // TX_RAW: risposte fatte solo di dati dell'utente (password, siti, nomi di file): non si traducono mai.
-const TX_RAW = {goGetSettings:1, goVaultList:1, goVaultReveal:1, goVaultGen:1, goPickFiles:1, goBoostKeep:1, goIconaTema:1};
+const TX_RAW = {goGetSettings:1, goVaultList:1, goVaultReveal:1, goVaultGen:1, goPickFiles:1, goBoostKeep:1, goIconaTema:1, goSfondoInfo:1, goSfondoRisposta:1, goSfondoMetti:1, goSfondoRimetti:1, goSfondoMai:1};
 function tx(v, depth){
   if (!EN) return v;
   depth = depth || 0;
@@ -1591,10 +1592,55 @@ function paintThemes(){
       '<span style="flex:1;padding:8px;display:flex;flex-direction:column;gap:6px"><span style="flex:1;border-radius:8px;background:' + v.panel + ';display:flex;align-items:center;justify-content:space-between;padding:0 8px"><span style="display:flex;flex-direction:column;gap:4px"><span style="height:5px;width:46px;border-radius:9px;background:' + v.text + '"></span><span style="height:5px;width:30px;border-radius:9px;background:' + v.a2 + '"></span></span><span style="width:26px;height:26px;border-radius:50%;border:4px solid ' + v.a1 + '"></span></span>' +
       '<span style="display:flex;gap:4px"><span style="flex:1;height:12px;border-radius:5px;background:' + ga + '"></span><span style="flex:1;height:12px;border-radius:5px;background:' + v.a3 + '"></span><span style="flex:1;height:12px;border-radius:5px;background:' + v.a4 + '"></span><span style="flex:1;height:12px;border-radius:5px;background:' + v.a2 + '"></span></span></span></span>' +
       '<span class="row" style="justify-content:space-between;gap:6px;padding:0 4px 2px"><span style="display:flex;flex-direction:column;gap:2px"><b style="font-family:var(--display);font-size:15px">' + t.name + '</b><span class="small muted">' + t.tag + '</span></span>' + (on ? _t('<span class="badge" style="background:var(--a1);color:var(--ink)">IN USO</span>') : '') + '</span>');
-    b.onclick = async () => { applyTheme(t.id); if (isOffice()) S.themeOffice = t.id; else S.theme = t.id; const r = await call('goSetTheme', t.id, isOffice() ? 'ufficio' : 'gioco'); if (r !== 'ok') toast(_t('Non sono riuscito a salvare il tema.'), 'var(--a4)'); paintThemes(); };
+    b.onclick = async () => { applyTheme(t.id); if (isOffice()) S.themeOffice = t.id; else S.theme = t.id; const r = await call('goSetTheme', t.id, isOffice() ? 'ufficio' : 'gioco'); if (r !== 'ok') toast(_t('Non sono riuscito a salvare il tema.'), 'var(--a4)'); paintThemes(); if (r === 'ok') sfondoChiedi(t.id); };
     box.appendChild(b);
   });
+  paintSfondo();
 }
+
+/* ---------- 3.2: sfondo del desktop abbinato al tema ---------- */
+// Mai automatico: una domanda sola per sfondo, e solo se lo sfondo è installato (Programmi\Tasso\sfondi).
+const SFONDO_NOMI = {gaming:'Gaming', neonrgb:'Neon RGB', oro:_t('Oro'), argento:_t('Argento'), nebbia:_t('Nebbia'), blunotte:_t('Blu notte'), sabbia:_t('Sabbia')};
+let SFONDO = null;
+function sfondoInfo(){ return call('goSfondoInfo', curTheme(), isOffice()).then(i => (i && typeof i === 'object') ? i : null).catch(() => null); }
+function paintSfondo(){
+  sfondoInfo().then(i => {
+    SFONDO = i; const row = $('#sfondoRow'); if (!row) return;
+    row.style.display = (i && i.ok) ? '' : 'none';
+    const m = $('#sfondoMetti'), r = $('#sfondoRimetti');
+    if (m) { m.disabled = !(i && i.id) || i.messo === i.id; m.title = (i && i.id) ? '' : _t('Questo tema non ha uno sfondo abbinato.'); }
+    if (r) r.disabled = !(i && i.mio && i.messo);
+  });
+}
+function sfondoEsito(r, id){
+  if (r === 'ok') toast(_t('Sfondo {0} impostato. Puoi tornare al tuo quando vuoi da Impostazioni → Aspetto.').replace('{0}', SFONDO_NOMI[id] || ''), 'var(--a1)');
+  else if (r === 'manca') toast(_t('Non trovo gli sfondi di Tasso: riapri l\'installatore di Tasso per rimetterli.'), 'var(--a4)');
+  else toast(_t('Non sono riuscito a cambiare lo sfondo del desktop.'), 'var(--a4)');
+  paintSfondo();
+}
+function sfondoChiedi(tema){
+  sfondoInfo().then(i => {
+    SFONDO = i; paintSfondo();
+    if (!i || !i.chiedi || !i.id || curTheme() !== tema) return;
+    const t = THEMES.find(x => x.id === tema), nome = SFONDO_NOMI[i.id] || '';
+    const mini = (typeof i.mini === 'string' && i.mini.indexOf('data:image/jpeg;base64,') === 0) ? i.mini : '';
+    const mai = () => { const c = $('#sfondoMai'); return !!(c && c.checked); };
+    modal('<h2>' + esc(_t('Vuoi anche lo sfondo del desktop abbinato?')) + '</h2>' +
+      '<p class="muted" style="margin:0">' + esc(_t('Hai scelto il tema {0}. Tasso può mettere lo stesso stile anche sullo sfondo del tuo desktop.').replace('{0}', t ? t.name : '')) + '</p>' +
+      (mini ? '<div style="border-radius:16px;overflow:hidden;border:1px solid var(--line);box-shadow:0 12px 30px rgba(0,0,0,.35)"><img alt="" src="' + mini + '" style="display:block;width:100%;aspect-ratio:16/9;object-fit:cover"></div>' : '') +
+      '<span class="small muted" style="margin-top:-4px">' + esc(_t('Sfondo {0} · nitido anche sugli schermi 4K. Il tuo sfondo di adesso lo tengo da parte.').replace('{0}', nome)) + '</span>' +
+      '<label style="display:flex;gap:10px;align-items:center;cursor:pointer;font-size:13px"><input type="checkbox" id="sfondoMai" style="width:16px;height:16px;accent-color:var(--a1)"> ' + esc(_t('Non chiedermelo più')) + '</label>',
+      [{label:_t('No, grazie'), focus:true, fn: () => { call('goSfondoRisposta', i.id, false, mai()).then(paintSfondo); }},
+       {label:_t('Sì, mettilo'), cls:'primary', fn: () => { const id = i.id; call('goSfondoRisposta', id, true, mai()).then(r => sfondoEsito(r, id)); }}]);
+    // La casella vale subito (anche se la finestra si chiude con Esc o fuori).
+    const cb = $('#sfondoMai'); if (cb) cb.onchange = () => call('goSfondoMai', cb.checked);
+  });
+}
+document.addEventListener('click', (e) => {
+  const m = e.target.closest && e.target.closest('#sfondoMetti'), r = e.target.closest && e.target.closest('#sfondoRimetti');
+  if (m && SFONDO && SFONDO.id) { const id = SFONDO.id; m.disabled = true; call('goSfondoMetti', id).then(x => sfondoEsito(x, id)); }
+  if (r) { r.disabled = true; call('goSfondoRimetti').then(x => { if (x === 'ok') toast(_t('Ho rimesso il tuo sfondo del desktop.'), 'var(--a1)'); else if (x === 'niente') toast(_t('Non ho un tuo sfondo da rimettere: cambialo da Impostazioni di Windows → Personalizzazione.'), 'var(--a4)'); else toast(_t('Non sono riuscito a cambiare lo sfondo del desktop.'), 'var(--a4)'); paintSfondo(); }); }
+});
 
 /* ---------- levels ---------- */
 const LEVELS = [
