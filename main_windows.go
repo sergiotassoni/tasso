@@ -554,6 +554,8 @@ var estensioniPericolose = map[string]bool{
 	".appinstaller": true, ".application": true, ".lnk": true, ".url": true, ".scr": true, ".pif": true,
 	".cpl": true, ".reg": true, ".inf": true, ".jar": true, ".chm": true, ".gadget": true, ".dll": true,
 	".sys": true, ".scf": true, ".settingcontent-ms": true, ".library-ms": true, ".iso": true, ".img": true, ".vhd": true, ".vhdx": true,
+	".msc": true, ".appref-ms": true, ".xll": true, ".wsc": true, ".sct": true, ".diagcab": true, ".search-ms": true,
+	".ps1xml": true, ".mht": true, ".mhtml": true,
 }
 
 func pericoloso(nome string) bool {
