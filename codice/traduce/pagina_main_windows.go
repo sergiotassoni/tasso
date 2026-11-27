@@ -125,6 +125,7 @@ func cicloPagina(giro int64) {
 	animate := make([]bool, celleBordiX*celleBordiY)
 	animateDa := time.Now()
 	var celleUltime []bool // zone cambiate che hanno fatto partire l'ultima rilettura
+	inutili := 0           // riletture di fila che hanno dato le stesse scritte (si gioca: la scena si muove)
 	prima := true
 	perche := "avvio" // perché prima è vero (solo per pagina-tempi.txt)
 	nascostaPerAltTab := false
@@ -200,7 +201,7 @@ func cicloPagina(giro int64) {
 			if fermo && !prima {
 				// lo schermo non ha mandato fotogrammi nuovi: niente da rifare (prima a ogni giro
 				// convertivo e confrontavo di nuovo tutta la schermata)
-				time.Sleep(pausaPagina())
+				time.Sleep(pausaPagina(inutili))
 				continue
 			}
 			img, err = imgCatt, nil
@@ -349,6 +350,11 @@ func cicloPagina(giro int64) {
 					// le scritte sopra un video diventano una fascia scura
 					pronta, esito = preparaPagina(area, img2, img, giro, nil)
 				}
+				if pronta != nil && stesseScritte(blocchiPagina(), pronta.pronti) {
+					inutili++
+				} else if pronta != nil {
+					inutili = 0
+				}
 				if pronta != nil && celleUltime != nil && stesseScritte(blocchiPagina(), pronta.pronti) {
 					// riletto per niente: le zone cambiate si muovono da sole, d'ora in poi non contano
 					impara(celleUltime, celleDiBlocchi(pronta.pronti, img2.Bounds()))
@@ -448,14 +454,19 @@ func cicloPagina(giro int64) {
 			}
 			fermo = true
 		}
-		time.Sleep(pausaPagina())
+		time.Sleep(pausaPagina(inutili))
 	}
 }
 
 // pausaPagina: quanto aspettare tra un giro e l'altro.
-func pausaPagina() time.Duration {
+func pausaPagina(inutili int) time.Duration {
 	if ultimeScritte.Load() == 0 {
 		return 400 * time.Millisecond // niente scritte (si sta giocando): controllo più di rado
+	}
+	if inutili >= 3 {
+		// le ultime riletture hanno dato sempre le stesse scritte (scena 3D che si muove sotto la
+		// HUD): rileggo più di rado per non togliere processore al gioco (al massimo mezzo secondo)
+		return time.Duration(min(inutili, 8)) * 60 * time.Millisecond
 	}
 	return 40 * time.Millisecond // svelto: le schermate nuove e i pulsanti evidenziati cambiano subito
 }
@@ -564,7 +575,10 @@ func preparaPaginaCon(area Zona, img, primaImg *image.RGBA, giro int64, annulla 
 	if fermato() {
 		return nil, letturaAnnullata
 	}
-	blocchi := blocchiLetti(img, righe, f, votiPagina, time.Now())
+	// le correzioni degli errori di lettura e i controlli con le parole inglesi valgono solo per i
+	// giochi in inglese (la lingua è quella scelta, o quella vista l'ultima volta sullo schermo)
+	daLingua, _ := coppiaAttiva()
+	blocchi := blocchiLettiIn(img, righe, f, votiPagina, time.Now(), daLingua == "en")
 	nostraL, ceNostraL := nostraFinestraIn(area)
 	var testiLetti []string
 	for _, b := range blocchi {
@@ -582,16 +596,6 @@ func preparaPaginaCon(area Zona, img, primaImg *image.RGBA, giro int64, annulla 
 			return nil, letturaNiente // lingua che non so ancora tradurre, o già quella che vuoi
 		}
 	}
-	// Le correzioni degli errori di lettura e i controlli con le parole inglesi valgono solo per i
-	// giochi in inglese: in tedesco "Spiel beenden" non è "Spiel been den"
-	daLingua, _ := coppiaAttiva()
-	inglese := daLingua == "en"
-	if inglese {
-		for i := range blocchi {
-			blocchi[i].Testo = correggiParole(separaAttaccate(blocchi[i].Testo))
-		}
-	}
-	blocchi = unisciParagrafi(blocchi)
 	spazioLibero(blocchi, area.W)
 	segnaGiaMostrate(fissePagina, confermePagina, coppiaDi(traduttore), blocchi, time.Now()) // decisione già presa: resta (stabilita.go)
 	controllo := esisteVoce(filepath.Join(dirApp, "logs", "salva-anteprima"))

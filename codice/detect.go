@@ -189,7 +189,7 @@ try {
   $odRun = [string](Get-RegValue 'HKCU\Software\Microsoft\Windows\CurrentVersion\Run' 'OneDrive')
   $odAuto = $odRun -and (Test-StartupOn 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\Run' 'OneDrive')
   # in Modalità riunione OneDrive lo mette in pausa Tasso apposta
-  $riun2 = $false; try { $riun2 = Test-Path -LiteralPath (Join-Path ([Environment]::GetFolderPath('ProgramFiles')) ('Tasso\lavoro\ufficio\riunione-' + [Security.Principal.WindowsIdentity]::GetCurrent().User.Value + '.json')) } catch {}
+  $riun2 = $false; try { $cart2 = if ($TassoCartella) { $TassoCartella } else { Join-Path ([Environment]::GetFolderPath('ProgramFiles')) 'Tasso' }; $riun2 = Test-Path -LiteralPath (Join-Path $cart2 ('lavoro\ufficio\riunione-' + [Security.Principal.WindowsIdentity]::GetCurrent().User.Value + '.json')) } catch {}
   if (-not $riun2 -and $roots.Count -and $odExe -and $odMail -and $odAuto -and -not (Get-Process -Name OneDrive -ErrorAction SilentlyContinue)) { F 'of_onedrive' 'p' 'OneDrive è collegato ma non è acceso: i file non si sincronizzano.' }
   foreach ($r in $roots) {
     $rx = '-' + [regex]::Escape($env:COMPUTERNAME) + '(-\d+)?$'

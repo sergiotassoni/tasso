@@ -71,6 +71,9 @@ type Blocco struct {
 	// davvero: dopo tutti i filtri e il disegno (collaudo 26/11: si fissavano anche traduzioni
 	// scartate, mai mostrate).
 	DaFissare string
+	// NonInglese: scritta di un gioco non in inglese: niente correzioni e controlli con le parole
+	// inglesi (in tedesco "Spiel beenden" non è "Spiel been den").
+	NonInglese bool
 	// GiaMostrata: lo stesso testo è già stato tradotto e disegnato in questa sessione (stabilita.go):
 	// un fotogramma che lo giudica "scritta del mondo" o "lettura incerta" non lo rimette in inglese
 	GiaMostrata bool

@@ -60,6 +60,7 @@ func impostaGiocoTradotto(cartella string, si bool) {
 		resto = append(resto, pulita)
 	} else {
 		delete(imp.GiochiTradotti, nome)
+		delete(imp.GiochiTradotti, chiaveGiocoVecchia(cartella)) // segnato dalla 3.1.1 ("#" o "%" nel nome)
 	}
 	imp.CartelleTradotte = resto
 	muImp.Unlock()

@@ -32,8 +32,6 @@ type Traduttore struct {
 	fileCache      string
 	libreria       map[string]string // traduzioni del gioco aperto, tenute per sempre
 	fileLibreria   string
-	libNonScrivere bool // libreria troppo grande per leggerla: non la riscrivo (perderei tutto)
-	dubNonScrivere bool
 	dubbi          map[string]Dubbio // traduzioni che sembrano strane, da guardare insieme
 	corr           correttoreSfondo  // IA che ricontrolla le frasi in sottofondo
 	// Coppia: lingua del gioco e lingua di arrivo scelte ("en","it" se nil). Per inglese →

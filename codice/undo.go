@@ -90,8 +90,6 @@ func changesList() map[string]interface{} {
 		items = append(items, map[string]interface{}{"kind": "tune", "id": id, "title": "Regola con Tasso", "detail": tunes[id]})
 	}
 	regs, _ := filepath.Glob(filepath.Join(appDir, "backup", "*.reg"))
-	regs2, _ := filepath.Glob(filepath.Join(appDir, "backup-registro", "*.reg")) // copie fatte dall'Ufficio
-	regs = append(regs, regs2...)
 	return map[string]interface{}{"items": items, "regBackups": len(regs), "undoFiles": fileDaRimettere(), "notUndo": nonSiRimette}
 }
 

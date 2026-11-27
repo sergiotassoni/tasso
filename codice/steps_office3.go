@@ -261,26 +261,19 @@ func fileUfficio(nome string) string {
 	return filepath.Join(officeDir(), nome+"-"+sid+".json")
 }
 
-// spostaStatoVecchio: i file di prima (uno per tutto il PC, o in AppData nella prova del 24/11)
-// diventano quelli dell'utente di adesso, così una riunione accesa prima si spegne lo stesso.
+// spostaStatoVecchio: il file unico della 3.1.1 (riunione.json, blocco.json, uno per tutto il PC)
+// diventa quello dell'utente di adesso, così una riunione accesa prima si spegne lo stesso.
+// Solo dalla cartella protetta dell'Ufficio: mai da AppData, dove scrive qualsiasi programma.
 func spostaStatoVecchio() {
-	local, _ := windows.KnownFolderPath(windows.FOLDERID_LocalAppData, 0)
 	for _, n := range []string{"riunione", "blocco"} {
 		nuovo := fileUfficio(n)
 		if _, err := os.Stat(nuovo); err == nil {
 			continue
 		}
-		for _, d := range []string{officeDir(), filepath.Join(local, "Tasso", "ufficio")} {
-			if d == "" || (local == "" && d != officeDir()) {
-				continue
-			}
-			vecchio := filepath.Join(d, n+".json")
-			if b, err := os.ReadFile(vecchio); err == nil {
-				_ = os.MkdirAll(officeDir(), 0o755)
-				if os.WriteFile(nuovo, b, 0o644) == nil {
-					_ = os.Remove(vecchio)
-				}
-				break
+		vecchio := filepath.Join(officeDir(), n+".json")
+		if b, err := os.ReadFile(vecchio); err == nil {
+			if os.WriteFile(nuovo, b, 0o644) == nil {
+				_ = os.Remove(vecchio)
 			}
 		}
 	}
@@ -401,6 +394,7 @@ func micInUso() bool {
 // officeSpegniTutto ("Togli Tasso dal PC"): spegne la Modalità riunione e il blocco automatico se
 // li aveva accesi Tasso, rimettendo com'era.
 func officeSpegniTutto() {
+	spostaStatoVecchio() // riunione.json / blocco.json della 3.1.1: diventano quelli di questo utente
 	if _, err := os.Stat(fileUfficio("riunione")); err == nil {
 		runPS(ofRiunioneFine+"\n[void](Fine-Riunione 'Tasso tolto dal PC')\n", time.Minute, nil)
 	}

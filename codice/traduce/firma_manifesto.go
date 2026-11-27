@@ -34,6 +34,15 @@ var (
 // elenco finto). Lo imposta la parte Windows.
 var proteggiChiave func(p string) error
 
+// creaFileChiave: crea il file nuovo della chiave (errore se c'è già). Su Windows nasce già con i
+// permessi giusti: nessun programma può aprirlo nell'attimo prima che la protezione arrivi.
+var creaFileChiave = func(p string) (*os.File, error) {
+	return os.OpenFile(p, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o600)
+}
+
+// ErrChiaveNonLeggibile: la chiave c'è ma non si legge (Tasso non è da amministratore).
+var ErrChiaveNonLeggibile = errors.New("la chiave delle firme non si legge: Tasso non è aperto come amministratore")
+
 // chiaveFirma: la chiave della firma (la crea la prima volta).
 func chiaveFirma() (k []byte, nuova bool, err error) {
 	muChiave.Lock()
@@ -46,6 +55,9 @@ func chiaveFirma() (k []byte, nuova bool, err error) {
 	}
 	p := filepath.Join(CartellaSicura, "chiave-traduzioni")
 	b, err := os.ReadFile(p)
+	if err != nil && !os.IsNotExist(err) {
+		return nil, false, ErrChiaveNonLeggibile // c'è ma non la posso leggere: non la rifaccio
+	}
 	if err == nil && len(b) == 32 {
 		if proteggiChiave != nil && proteggiChiave(p) != nil {
 			return nil, false, errors.New("non riesco a proteggere la chiave")
@@ -63,7 +75,7 @@ func chiaveFirma() (k []byte, nuova bool, err error) {
 		return nil, false, err
 	}
 	_ = os.MkdirAll(CartellaSicura, 0o755)
-	f, err := os.OpenFile(p, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o600)
+	f, err := creaFileChiave(p)
 	if err != nil {
 		// un'altra copia di Tasso l'ha appena creata: uso la sua
 		if b2, e := os.ReadFile(p); e == nil && len(b2) == 32 {
@@ -90,6 +102,13 @@ func chiaveFirma() (k []byte, nuova bool, err error) {
 	}
 	chiaveMem = b
 	return b, true, nil
+}
+
+// chiaveNonLeggibile: la chiave c'è ma questo Tasso non la può leggere (non è da amministratore):
+// gli elenchi firmati sembrerebbero tutti "non validi", e non lo sono.
+func chiaveNonLeggibile() bool {
+	_, _, err := chiaveFirma()
+	return errors.Is(err, ErrChiaveNonLeggibile)
 }
 
 func firmaDi(k []byte, m ManifestoMod) string {

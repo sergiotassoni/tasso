@@ -79,7 +79,8 @@ func pianoTogliTasso() pianoTogli {
 		}
 		// copie a metà di un aggiornamento (installProgramCopy, selfupdate): non sono nell'elenco
 		// dell'installatore, e senza toglierle la cartella non resterebbe mai vuota
-		for _, f := range []string{"Tasso.exe.new", "Tasso.exe.old", "Tasso.new.exe", "Tasso.old.exe"} {
+		// chiave-traduzioni: la chiave delle firme degli elenchi dei giochi (traduce/firma_manifesto.go)
+		for _, f := range []string{"Tasso.exe.new", "Tasso.exe.old", "Tasso.new.exe", "Tasso.old.exe", "chiave-traduzioni"} {
 			p.file = append(p.file, filepath.Join(base, f))
 		}
 		// Tasso.exe, VERSIONE e LICENSE: se li ha messi l'installatore li toglie il suo disinstallatore
@@ -210,9 +211,13 @@ func togliTassoPassiDentro(rimetti bool, passo func(int, string), pianoOut *pian
 	officeSpegniTutto()
 	// Se la Modalità riunione o il blocco dell'Ufficio sono ancora accesi, le loro impostazioni di
 	// prima stanno in quei file: cancellando le cartelle non si potrebbero più rimettere. Mi fermo qui.
-	for _, n := range []string{"riunione.json", "blocco.json"} {
-		if _, err := os.Stat(filepath.Join(officeDir(), n)); err == nil {
-			return "Non sono riuscito a spegnere la Modalità riunione o il blocco del PC dell'Ufficio: spegnili dalla sezione Ufficio di Tasso e riprova. Tasso non è stato tolto."
+	// (anche quelli di un altro account del PC, riunione-<utente>.json, e quello unico della 3.1.1)
+	for _, n := range []string{"riunione*.json", "blocco*.json"} {
+		trovati, _ := filepath.Glob(filepath.Join(officeDir(), n))
+		for _, f := range trovati {
+			if !strings.Contains(filepath.Base(f), "-illeggibile-") {
+				return "Non sono riuscito a spegnere la Modalità riunione o il blocco del PC dell'Ufficio (anche di un altro account del PC): spegnili dalla sezione Ufficio di Tasso e riprova. Tasso non è stato tolto."
+			}
 		}
 	}
 
@@ -223,6 +228,9 @@ func togliTassoPassiDentro(rimetti bool, passo func(int, string), pianoOut *pian
 		return "Non trovo la cartella di Tasso Traduce: apri Tasso e usa \"Togli Tasso dal PC\". Tasso non è stato tolto."
 	}
 	tolti, falliti, spariti := traduce.TogliTutteLeTraduzioni()
+	if len(falliti) == 1 && falliti[0] == "ADMIN" {
+		return "Per togliere le traduzioni dai giochi Tasso deve essere aperto come amministratore: riaprilo, accetta la richiesta di Windows e riprova. Tasso non è stato tolto."
+	}
 	if len(falliti) == 1 && falliti[0] == "INSTALLA" {
 		return "Tasso sta installando una traduzione in un gioco: aspetta che finisca e riprova. Tasso non è stato tolto."
 	}
@@ -309,6 +317,7 @@ func togliSilenzioso(out io.Writer) int {
 func unaRiga(s string) string {
 	return strings.Join(strings.Fields(s), " ")
 }
+
 // copieNonSalvate: cartelle con copie di sicurezza che non sono riuscito a spostare in Documenti:
 // la cartella di Tasso che le contiene non si cancella (meglio un resto che perdere i backup).
 var copieNonSalvate []string
@@ -506,7 +515,7 @@ func scriptCancellazione(piano pianoTogli) (string, error) {
 // fileTasso: i soli nomi di file che "Togli Tasso" cancella.
 func fileTasso(n string) bool {
 	switch strings.ToLower(n) {
-	case "versione", "license":
+	case "versione", "license", "chiave-traduzioni":
 		return true
 	}
 	return reExeTasso.MatchString(n) || strings.EqualFold(n, "Tasso.exe.new") || strings.EqualFold(n, "Tasso.exe.old")

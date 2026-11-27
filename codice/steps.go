@@ -25,8 +25,6 @@ func stepList() []map[string]interface{} {
 const psPrelude = `
 $env:PSModulePath = (Join-Path ([Environment]::SystemDirectory) 'WindowsPowerShell\v1.0\Modules') + ';' + (Join-Path ([Environment]::GetFolderPath('ProgramFiles')) 'WindowsPowerShell\Modules')
 $ErrorActionPreference = 'SilentlyContinue'
-# moduli solo dalle cartelle di sistema: PowerShell 5.1 aggiunge da solo Documenti\WindowsPowerShell\Modules
-$env:PSModulePath = (Join-Path $env:ProgramFiles 'WindowsPowerShell\Modules') + ';' + (Join-Path ([Environment]::SystemDirectory) 'WindowsPowerShell\v1.0\Modules')
 $ProgressPreference = 'SilentlyContinue'
 [Console]::OutputEncoding = New-Object System.Text.UTF8Encoding($false)
 function Say([string]$m) { [Console]::Out.WriteLine('MSG ' + $m); [Console]::Out.Flush() }

@@ -346,6 +346,10 @@ func applicaModGioco(nome, cartella string) {
 		percorsi = append(percorsi, filepath.Join(dir, z.Nome))
 	}
 	chiave := chiaveGioco(cartella)
+	if _, motivo := togliVecchiaSeCe(cartella); motivo != "" {
+		fallito("Non riesco a togliere la traduzione messa dalla versione di prima: " + motivo)
+		return
+	}
 	da, a := coppiaDelGioco(chiave)
 	if da == "auto" || da == "" {
 		da = "en"
@@ -375,6 +379,8 @@ func applicaModGioco(nome, cartella string) {
 	emetti("aggiorna", stato())
 }
 
+const msgServeAdmin = "Per togliere la traduzione Tasso deve essere aperto come amministratore: chiudilo, riaprilo e accetta la richiesta di Windows."
+
 const msgElencoNonValido = "L'elenco dei file aggiunti a questo gioco non è valido: non tocco niente. Per rimettere il gioco com'era verifica i file del gioco dal suo launcher."
 
 // fermaModGioco: toglie tutto e rimette il gioco com'era.
@@ -387,7 +393,13 @@ func fermaModGioco(cartella string) string {
 	defer muInstalla.Unlock()
 	m, ok := leggiManifesto(dirApp, chiaveGioco(cartella))
 	if !ok {
+		if trovata, motivo := togliVecchiaSeCe(cartella); trovata {
+			return motivo // traduzione messa dalla 3.1.1: tolta (o il motivo per cui no)
+		}
 		if _, err := os.Stat(filepath.Join(cartellaCopie(dirApp, chiaveGioco(cartella)), "manifesto.json")); err == nil {
+			if chiaveNonLeggibile() {
+				return msgServeAdmin // l'elenco può essere buono: non lo considero rovinato
+			}
 			// l'elenco c'è ma non è firmato da Tasso (o è rovinato): non dico "tolta" se non lo è
 			return msgElencoNonValido
 		}
@@ -516,7 +528,22 @@ func controllaModInstallate() {
 	voci, _ := os.ReadDir(filepath.Join(dirApp, "copie-giochi"))
 	for _, v := range voci {
 		m, ok := leggiManifesto(dirApp, v.Name())
-		if !ok || !ModNonPartita(m.Cartella) {
+		if !ok {
+			// traduzione messa dalla 3.1.1 (elenco senza firma): la tolgo a gioco chiuso, e chi
+			// la vuole la rimette da Tasso
+			if mv, vecchio := leggiManifestoVecchio(dirApp, v.Name()); vecchio && chiaveDellaCartella(v.Name(), mv.Cartella) &&
+				!(mv.Exe != "" && processoAperto(mv.Exe)) && togliModVecchia(dirApp, v.Name(), mv) == nil {
+				impostaGiocoTradotto(mv.Cartella, true) // resta tradotto, sullo schermo
+				nome := mv.Gioco
+				if nome == "" {
+					nome = filepath.Base(mv.Cartella)
+				}
+				emetti("info", map[string]string{"testo": "Ho tolto da " + nome + " la traduzione dentro il gioco messa dalla versione di prima di Tasso: il gioco ora si traduce sullo schermo. Per riaverla dentro il gioco, applica di nuovo la traduzione da Tasso."})
+				emetti("aggiorna", stato())
+			}
+			continue
+		}
+		if !ModNonPartita(m.Cartella) {
 			continue
 		}
 		segnaModNonPartita(v.Name(), m.Gioco)
@@ -540,10 +567,29 @@ func TogliTutteLeTraduzioni() (tolti, falliti, spariti []string) {
 		return nil, []string{"INSTALLA"}, nil
 	}
 	defer muInstalla.Unlock()
+	if chiaveNonLeggibile() {
+		return nil, []string{"ADMIN"}, nil // senza la chiave ogni elenco sembrerebbe finto
+	}
 	voci, _ := os.ReadDir(filepath.Join(dirApp, "copie-giochi"))
 	for _, v := range voci {
 		m, ok := leggiManifesto(dirApp, v.Name())
 		if !ok {
+			if mv, vecchio := leggiManifestoVecchio(dirApp, v.Name()); vecchio && chiaveDellaCartella(v.Name(), mv.Cartella) {
+				// traduzione messa dalla 3.1.1: tolgo solo i file del caricatore (BepInEx rinominata)
+				nome := mv.Gioco
+				if nome == "" {
+					nome = v.Name()
+				}
+				if st, err := os.Stat(mv.Cartella); err != nil || !st.IsDir() {
+					spariti = append(spariti, nome+" ("+mv.Cartella+")")
+				} else if (mv.Exe != "" && processoAperto(mv.Exe)) || togliModVecchia(dirApp, v.Name(), mv) != nil {
+					falliti = append(falliti, nome)
+				} else {
+					impostaGiocoTradotto(mv.Cartella, false)
+					tolti = append(tolti, nome)
+				}
+				continue
+			}
 			// senza elenco non tocco il gioco: la cartella delle copie va in Documenti, e lo dico
 			if esisteVoce(filepath.Join(cartellaCopie(dirApp, v.Name()), "manifesto.json")) {
 				spariti = append(spariti, v.Name())

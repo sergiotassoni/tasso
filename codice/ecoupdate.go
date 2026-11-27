@@ -35,6 +35,7 @@ import (
 	"golang.org/x/sys/windows"
 
 	"tasso/ecoagg"
+	"tasso/traduce"
 )
 
 const (
@@ -195,7 +196,7 @@ func ecoSelfUpdate(u map[string]interface{}) {
 	}
 	// Da qui in poi non deve partire nient'altro: tra poco Tasso si chiude.
 	updating.Store(true)
-	if isRunning() || otherBusy("update") {
+	if isRunning() || otherBusy("update") || traduce.StaInstallando() {
 		updating.Store(false)
 		updMsg("error", "Tasso sta facendo un altro lavoro: aspetta che finisca, poi aggiorna.")
 		return
