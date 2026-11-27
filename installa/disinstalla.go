@@ -19,6 +19,9 @@ type Risultato struct {
 	// originali dei giochi tradotti, copie del registro) perché non erano vuote. La pagina finale
 	// lo dice.
 	DatiTenuti []string
+	// CopieSalvate: originali dei giochi tradotti che erano ancora in <base>\lavoro\copie-giochi
+	// (Tasso non li aveva messi al sicuro) e che l'installatore ha spostato qui. La pagina lo dice.
+	CopieSalvate []string
 	// base: la cartella dell'installazione. Al riavvio si cancella solo quello che è dentro: i
 	// file fuori (dati in %LOCALAPPDATA%...) restano tra i NonTolti, come dice la pagina finale.
 	base string
@@ -204,6 +207,13 @@ func (in *Installatore) DisinstallaCon(base string, togli []Componente, od Opzio
 			return nil, &ErroreTassoRifiuta{Err: err}
 		}
 	}
+	// Gli originali dei giochi ancora in lavoro\copie-giochi (Tasso in errore, bloccato, fuori tempo
+	// o vecchio): li metto al sicuro PRIMA di togliere qualsiasi cosa. Se non si può, mi fermo.
+	if viaTasso && CartellaSoloTasso(base, stIniziale) {
+		if err := in.salvaCopieGiochiPrima(base, ris); err != nil {
+			return nil, err
+		}
+	}
 	// prima i collegamenti (così nessuno apre un programma mentre lo tolgo)
 	var restColl []StatoCollegamento
 	for _, c := range st.Collegamenti {
@@ -378,6 +388,12 @@ var errOccupata = errors.New("qualcosa dentro è ancora aperto")
 func (in *Installatore) togliCoseDiTasso(base string, st *Stato, od OpzioniDisinstalla, ris *Risultato) {
 	if CartellaSoloTasso(base, st) {
 		for _, d := range SottocartelleTasso {
+			if d == "lavoro" && len(giochiDaSalvare(base)) > 0 {
+				// non dovrebbe succedere (salvaCopieGiochiPrima): mai cancellare gli originali dei giochi
+				Diario("%s: dentro ci sono ancora originali dei giochi, non la tolgo", filepath.Join(base, d))
+				ris.NonTolti = append(ris.NonTolti, CartellaCopieGiochi(base))
+				continue
+			}
 			in.togliCartellaORiavvio(filepath.Join(base, d), ris)
 		}
 		for _, f := range append(append([]string{}, ResiduiAggiornamentoTasso...), FileDiTassoNellaCartella...) {

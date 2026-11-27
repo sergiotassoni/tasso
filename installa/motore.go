@@ -75,6 +75,11 @@ type Installatore struct {
 	// --togli-silenzioso: attività, Boost, Ufficio, traduzioni nei giochi). Un errore ferma la
 	// disinstallazione prima di togliere qualsiasi cosa. nil = niente (test).
 	PulisciTasso func(base string) error
+	// MeteCopieGiochi: dove mettere gli originali dei giochi tradotti rimasti in
+	// <base>\lavoro\copie-giochi (Tasso non li ha messi al sicuro), in ordine: di solito
+	// Documenti\Tasso - copie di sicurezza, poi %ProgramData%\Tasso - copie di sicurezza.
+	// nil = nessuna meta: se ci sono originali la disinstallazione si ferma.
+	MeteCopieGiochi func() []Meta
 	// TogliAttivita: toglie la cartella \Tasso\ dell'Utilità di pianificazione con le sue attività.
 	TogliAttivita func() error
 }

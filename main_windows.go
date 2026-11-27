@@ -522,7 +522,8 @@ func collega(w webview2.WebView) {
 		// CreaCollegamento serve anche qui: se resta Tasso con un'altra modalità (es. tolto
 		// Gaming, resta Ufficio) il collegamento "Tasso Gaming" diventa "Tasso Ufficio".
 		in := &installa.Installatore{Registro: reg, TogliFile: togliFile, CreaCollegamento: creaCollegamento,
-			CartellaDatiUtente: datiLocaliUtente, CancellaAlRiavvio: cancellaAlRiavvio, TogliAttivita: togliAttivitaTasso}
+			CartellaDatiUtente: datiLocaliUtente, CancellaAlRiavvio: cancellaAlRiavvio, TogliAttivita: togliAttivitaTasso,
+			MeteCopieGiochi: meteCopieGiochi}
 		conUtenteSessione(in)
 		st, _ := installa.LeggiStato(baseDisins)
 		viaTasso := installa.TogliTasso(st, componenti(cc))
@@ -549,13 +550,17 @@ func collega(w webview2.WebView) {
 		if errors.As(err, &rif) {
 			return map[string]any{"ok": false, "rifiuta": true, "dettagli": rif.Error()}
 		}
+		var nonSalv *installa.ErroreCopieNonSalvate
+		if errors.As(err, &nonSalv) {
+			return map[string]any{"ok": false, "copieNonSalvate": true, "dettagli": strings.Join(nonSalv.Dove, ", ")}
+		}
 		if err != nil {
 			return map[string]any{"ok": false, "dettagli": err.Error()}
 		}
 		if viaTasso {
 			togliCollegamentoVecchio(baseDisins) // il Tasso.lnk della 3.0 sistemato all'installazione
 		}
-		return map[string]any{"ok": true, "tuttoTolto": r.TuttoTolto, "nonTolti": r.NonTolti, "alRiavvio": r.AlRiavvio, "datiTenuti": r.DatiTenuti}
+		return map[string]any{"ok": true, "tuttoTolto": r.TuttoTolto, "nonTolti": r.NonTolti, "alRiavvio": r.AlRiavvio, "datiTenuti": r.DatiTenuti, "copieSalvate": r.CopieSalvate}
 	})
 }
 

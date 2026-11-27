@@ -856,21 +856,33 @@ func pulisciTasso(base string) error {
 		installa.Diario("questo Tasso.exe non conosce --togli-silenzioso: tolgo solo attività e cartelle")
 		return nil
 	}
-	ctx, annulla := context.WithTimeout(context.Background(), 5*time.Minute)
+	// 20 minuti: Tasso copia in Documenti gli originali dei giochi, che possono essere grandi
+	ctx, annulla := context.WithTimeout(context.Background(), 20*time.Minute)
 	defer annulla()
 	cmd := exec.CommandContext(ctx, exe, "--togli-silenzioso")
 	cmd.Dir = base
 	out, err := cmd.Output()
 	testo := string(out)
 	installa.Diario("Tasso --togli-silenzioso: %v %q", err, testo)
-	if strings.Contains(testo, "TOGLI-OK") {
-		return nil
+	// Senza TOGLI-OK (errore, blocco, tempo scaduto) vado avanti con la mia parte: gli originali dei
+	// giochi rimasti in lavoro\copie-giochi li mette al sicuro DisinstallaCon (SalvaCopieGiochi),
+	// prima di cancellare qualsiasi cosa, e se non ci riesce si ferma.
+	_, rifiuto := installa.EsitoTogliSilenzioso(testo, err)
+	return rifiuto
+}
+
+// meteCopieGiochi: Documenti\Tasso - copie di sicurezza (copiando: i file prendono i permessi di
+// Documenti), poi %ProgramData%\Tasso - copie di sicurezza (stesso disco di Programmi, il
+// disinstallatore non la cancella). Mai le variabili d'ambiente.
+func meteCopieGiochi() []installa.Meta {
+	var m []installa.Meta
+	if d := cartellaNota(windows.FOLDERID_Documents, ""); d != "" {
+		m = append(m, installa.Meta{Cartella: filepath.Join(d, installa.NomeCopieSicurezza), Copia: true})
 	}
-	if i := strings.Index(testo, "TOGLI-NO "); i >= 0 {
-		motivo := strings.TrimSpace(strings.SplitN(testo[i+len("TOGLI-NO "):], "\n", 2)[0])
-		return errors.New(motivo)
+	if pd := cartellaNota(windows.FOLDERID_ProgramData, ""); pd != "" {
+		m = append(m, installa.Meta{Cartella: filepath.Join(pd, installa.NomeCopieSicurezza)})
 	}
-	return nil // Tasso in errore o bloccato: la mia parte della pulizia si fa lo stesso
+	return m
 }
 
 // ---------------- Tasso senza scudo sull'icona: l'attività \Tasso\Apri Tasso ----------------

@@ -440,12 +440,13 @@ async function disinstalla(){
   }
   const r = await call('goDisinstalla', ids, !!$('#disDati').checked && !$('#sceltaDati').hidden);
   $('#msg').style.color = '';
-  if (!r.ok) { $('#bAvanti').disabled = false; $('#bAnnulla').disabled = false; msg(r.rifiuta ? T('dis_rifiuta', r.dettagli || '') : T('err_generico', r.dettagli || '')); return; }
+  if (!r.ok) { $('#bAvanti').disabled = false; $('#bAnnulla').disabled = false; msg(r.rifiuta ? T('dis_rifiuta', r.dettagli || '') : r.copieNonSalvate ? T('dis_copie_non_salvate', r.dettagli || '') : T('err_generico', r.dettagli || '')); return; }
   $('#disEsito').textContent = r.tuttoTolto ? T('dis_tutto') : T('dis_fatto');
   const nt = $('#disNonTolti'); const righe = [];
   if (r.nonTolti && r.nonTolti.length) righe.push(T('dis_non_tolti', r.nonTolti.join(', ')));
   if (r.alRiavvio && r.alRiavvio.length) righe.push(T('dis_al_riavvio', r.alRiavvio.join(', ')));
   if (r.datiTenuti && r.datiTenuti.length) righe.push(T('dis_dati_tenuti', r.datiTenuti.join(', ')));
+  if (r.copieSalvate && r.copieSalvate.length) righe.push(T('dis_copie_salvate', r.copieSalvate.join(', ')));
   nt.hidden = !righe.length; if (!nt.hidden) nt.textContent = righe.join('\n');
   vai(7);
 }
