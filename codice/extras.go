@@ -10,6 +10,7 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"net/url"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -18,6 +19,7 @@ import (
 	"unsafe"
 
 	"golang.org/x/sys/windows"
+	"golang.org/x/sys/windows/registry"
 )
 
 // ---------------- Salute del PC ----------------
@@ -35,9 +37,24 @@ func speedTest() {
 	defer func() { emit("onSpeed", res) }()
 	emit("onSpeedProgress", "Misuro il ping…")
 
+	// Proxy: quello delle variabili d'ambiente o, se non c'è, quello di Windows (reti d'ufficio
+	// che escono solo dal proxy). Con il proxy il ping si misura con richieste HTTPS dal proxy.
+	winProxy, pac := proxyDiWindows()
+	proxy := func(r *http.Request) (*url.URL, error) {
+		if u, err := http.ProxyFromEnvironment(r); u != nil || err != nil {
+			return u, err
+		}
+		return winProxy, nil
+	}
+	client := &http.Client{Timeout: 40 * time.Second, Transport: &http.Transport{Proxy: proxy}}
+	conProxy := winProxy != nil || pac
+	if u, _ := http.ProxyFromEnvironment(&http.Request{URL: &url.URL{Scheme: "https", Host: "speed.cloudflare.com"}}); u != nil {
+		conProxy = true
+	}
+
 	// Ping: tempo di connessione TCP, il migliore di 5 tentativi.
 	best := time.Duration(0)
-	for i := 0; i < 5; i++ {
+	for i := 0; i < 5 && winProxy == nil; i++ {
 		t := time.Now()
 		c, err := net.DialTimeout("tcp", "speed.cloudflare.com:443", 3*time.Second)
 		if err != nil {
@@ -50,12 +67,19 @@ func speedTest() {
 		}
 	}
 	if best == 0 {
-		res["error"] = "Non riesco a raggiungere internet. Controlla il cavo o il Wi-Fi e riprova."
+		// niente connessione diretta (o c'è un proxy): richieste HTTPS piccole, la prima apre la
+		// connessione e non conta, le altre misurano il tempo di andata e ritorno
+		best = pingHTTPS(client)
+	}
+	if best == 0 {
+		if conProxy {
+			res["error"] = "Il test non riesce a passare dal proxy dell'ufficio: la velocità non si può misurare da qui."
+		} else {
+			res["error"] = "Non riesco a raggiungere internet. Controlla il cavo o il Wi-Fi e riprova."
+		}
 		return
 	}
 	res["pingMs"] = best.Milliseconds()
-
-	client := &http.Client{Timeout: 40 * time.Second, Transport: &http.Transport{Proxy: http.ProxyFromEnvironment}}
 
 	emit("onSpeedProgress", "Misuro la velocità in download…")
 	down := measureDownload(client, 12*time.Second)
@@ -68,7 +92,101 @@ func speedTest() {
 	res["ok"] = down > 0
 	if down <= 0 {
 		res["error"] = "Il test di download non è riuscito: riprova tra poco."
+		if conProxy {
+			res["error"] = "Il test non riesce a passare dal proxy dell'ufficio: la velocità non si può misurare da qui."
+		}
 	}
+}
+
+// pingHTTPS: il tempo migliore di 4 richieste HTTPS piccole sulla stessa connessione (anche dal
+// proxy), dopo una prima richiesta che apre la connessione. 0 = non risponde.
+func pingHTTPS(client *http.Client) time.Duration {
+	best := time.Duration(0)
+	for i := 0; i < 5; i++ {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		req, err := http.NewRequestWithContext(ctx, "GET", "https://speed.cloudflare.com/__down?bytes=0", nil)
+		if err != nil {
+			cancel()
+			return 0
+		}
+		t := time.Now()
+		resp, err := client.Do(req)
+		if err != nil {
+			cancel()
+			if i == 0 {
+				return 0
+			}
+			continue
+		}
+		_, _ = io.Copy(io.Discard, resp.Body)
+		_ = resp.Body.Close()
+		cancel()
+		d := time.Since(t)
+		if resp.StatusCode >= 300 {
+			return 0
+		}
+		if i > 0 && (best == 0 || d < best) {
+			best = d
+		}
+	}
+	return best
+}
+
+// proxyDiWindows: il proxy scelto in Windows (Impostazioni > Rete > Proxy) per l'utente, letto
+// dal registro (valori, non scritte: uguale in ogni lingua). pac = c'è uno script di
+// configurazione automatica, che Tasso non legge.
+func proxyDiWindows() (u *url.URL, pac bool) {
+	k, err := registry.OpenKey(registry.CURRENT_USER, `Software\Microsoft\Windows\CurrentVersion\Internet Settings`, registry.QUERY_VALUE)
+	if err != nil {
+		return nil, false
+	}
+	defer k.Close()
+	if a, _, err := k.GetStringValue("AutoConfigURL"); err == nil && strings.TrimSpace(a) != "" {
+		pac = true
+	}
+	if on, _, err := k.GetIntegerValue("ProxyEnable"); err != nil || on == 0 {
+		return nil, pac
+	}
+	srv, _, err := k.GetStringValue("ProxyServer")
+	if err != nil {
+		return nil, pac
+	}
+	return leggiProxyServer(srv), pac
+}
+
+// leggiProxyServer: "host:porta" oppure "http=host:porta;https=host:porta;socks=host:porta".
+func leggiProxyServer(srv string) *url.URL {
+	srv = strings.TrimSpace(srv)
+	if srv == "" {
+		return nil
+	}
+	scelto, schema := srv, "http"
+	if strings.Contains(srv, "=") {
+		per := map[string]string{}
+		for _, p := range strings.Split(srv, ";") {
+			if k, v, ok := strings.Cut(strings.TrimSpace(p), "="); ok && strings.TrimSpace(v) != "" {
+				per[strings.ToLower(strings.TrimSpace(k))] = strings.TrimSpace(v)
+			}
+		}
+		switch {
+		case per["https"] != "":
+			scelto = per["https"]
+		case per["http"] != "":
+			scelto = per["http"]
+		case per["socks"] != "":
+			scelto, schema = per["socks"], "socks5"
+		default:
+			return nil
+		}
+	}
+	if !strings.Contains(scelto, "://") {
+		scelto = schema + "://" + scelto
+	}
+	u, err := url.Parse(scelto)
+	if err != nil || u.Host == "" {
+		return nil
+	}
+	return u
 }
 
 // measureDownload scarica a ondate per al massimo maxDur e restituisce i Mbit/s medi.

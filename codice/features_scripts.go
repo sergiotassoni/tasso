@@ -511,9 +511,23 @@ foreach ($sg in ($files | Where-Object { $_.Length -ge 1MB -or ($_.Length -ge 50
 }
 Say 'Cerco le cartelle vuote...'
 $empty = New-Object System.Collections.ArrayList
+# Cartelle note di Windows che possono essere vuote (Rullino, Immagini salvate, Screenshot,
+# Acquisizioni della Game Bar, Modelli di Office): non si propongono. Si trovano dal codice della
+# cartella nel registro (uguale in ogni lingua) e dal nome vero sul disco (in inglese per tutti).
+$noteWin = @{}
+try {
+  $usf = Get-ItemProperty -LiteralPath 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders' -ErrorAction Stop
+  foreach ($g in @('{AB5FB87B-7CE2-4F83-915D-550846C9537B}', '{3B193882-D3AD-4EAB-965A-69829D1FB59F}', '{B7BEDE81-DF94-4682-A7D8-57A52620B86F}', '{EDC0FE71-98D8-4F4A-B920-C8DC133CB165}')) {
+    $v = [string]$usf.$g; if ($v) { $noteWin[[Environment]::ExpandEnvironmentVariables($v).TrimEnd('\').ToLowerInvariant()] = 1 }
+  }
+} catch {}
+foreach ($x in @(@('MyPictures', 'Camera Roll'), @('MyPictures', 'Saved Pictures'), @('MyPictures', 'Screenshots'), @('MyVideos', 'Captures'), @('MyDocuments', 'Custom Office Templates'))) {
+  try { $b = [Environment]::GetFolderPath($x[0]); if ($b) { $noteWin[(Join-Path $b $x[1]).ToLowerInvariant()] = 1 } } catch {}
+}
 foreach ($r in $roots) {
   Get-ChildItem -LiteralPath $r -Recurse -Directory -ErrorAction SilentlyContinue | Where-Object { -not ($_.Attributes -band [IO.FileAttributes]::Hidden) -and -not ($_.Attributes -band [IO.FileAttributes]::ReparsePoint) -and -not ($_.Attributes -band [IO.FileAttributes]::System) -and (($_.FullName + '\') -notmatch $noTouch) } | ForEach-Object {
     if ($empty.Count -lt 300) {
+      if ($noteWin.ContainsKey($_.FullName.TrimEnd('\').ToLowerInvariant())) { return }
       try { $e = [IO.Directory]::EnumerateFileSystemEntries($_.FullName).GetEnumerator(); if (-not $e.MoveNext()) { [void]$empty.Add($_.FullName) } } catch {}
     }
   }

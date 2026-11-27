@@ -257,9 +257,9 @@ body .banner.banner.upd{border-radius:8px;background:color-mix(in srgb,var(--a3)
 .pg h3{margin:6px 0 0;font-size:15px}
 .pg .li{min-height:46px}
 .pd{width:11px;height:11px;border-radius:99px;flex:0 0 11px}
-.pd.green{background:var(--a1);box-shadow:0 0 8px var(--a1)}
-.pd.yellow{background:var(--a4);box-shadow:0 0 8px var(--a4)}
-.pd.red{background:var(--red);box-shadow:0 0 8px var(--red)}
+.pd.green{background:var(--sem-ok,#2FF3A6);box-shadow:0 0 8px var(--sem-ok,#2FF3A6)}
+.pd.yellow{background:var(--sem-mid,#FFB020);box-shadow:0 0 8px var(--sem-mid,#FFB020)}
+.pd.red{background:var(--sem-bad,#FF4D6D);box-shadow:0 0 8px var(--sem-bad,#FF4D6D)}
 .pms{font-family:var(--mono);font-size:18px;font-weight:700;min-width:70px;text-align:right}
 .bestsrv{font-size:11px;font-weight:800;color:var(--ink);background:var(--a1);border-radius:99px;padding:3px 8px;white-space:nowrap}
 .okgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:6px 14px}
@@ -542,7 +542,7 @@ nav [data-sub="gio"] button{--ic:#FF4D6D}
 .gp-main{display:flex;flex-direction:column;gap:14px;min-width:0}
 .gp-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
 .gp-stats>div{border:1px solid var(--line);border-radius:12px;padding:12px 14px;background:var(--panel);min-width:0}
-.gp-stats b{display:block;font-size:22px;color:var(--a1t);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.gp-stats span{font:600 11px var(--mono,monospace);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.gp-stats b{display:block;font-size:clamp(16px,1.7vw,22px);line-height:1.15;color:var(--a1t);overflow-wrap:break-word;hyphens:auto}.gp-stats span{font:600 11px var(--mono,monospace);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
 @media (max-width:560px){.gp-stats{grid-template-columns:1fr 1fr}.gp-stats>div:last-child{grid-column:1/-1}}
 .gp-big.gprep{background:var(--a1);border-color:var(--a1);color:var(--ink)}.gp-big.gprep span{color:var(--ink);opacity:.85}
 .gp-big.gplay{background:var(--text);border-color:var(--text);color:var(--bg)}.gp-big.gplay span{color:var(--bg);opacity:.8}
@@ -603,7 +603,7 @@ body main a.trhint{display:inline-block;margin-top:4px;font-size:12px;color:var(
 .gp-big b{font-size:17px;letter-spacing:.02em}.gp-big span{font-size:13px;color:var(--muted)}
 .gp-big:hover{border-color:var(--a1)}
 .gp-line{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--line)}
-.gp-line>span{flex:1;min-width:0}.gp-line b{display:block}.gp-line small{color:var(--muted);font-size:12px}
+.gp-line>span{flex:1 1 220px;min-width:0}.gp-line b{display:block}.gp-line small{color:var(--muted);font-size:12px}
 .mem{display:flex;gap:12px;align-items:center;padding:12px 14px;border-radius:12px;border:1px solid color-mix(in srgb,var(--a1) 45%,var(--line));background:color-mix(in srgb,var(--a1) 7%,transparent)}
 .mem>div{flex:1;min-width:0}.mem b{display:block}.mem span{font-size:13px;color:var(--muted)}
 .gwz{position:fixed;inset:0;z-index:40;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;padding:16px}
@@ -1163,7 +1163,7 @@ body.office .cardmodo{font-weight:700;font-stretch:normal;letter-spacing:-.02em;
   </div>
   <div class="card row wrap" style="gap:14px;align-items:flex-end">
     <label class="acf">File grandi da<select id="fsMin"><option value="100">100 MB</option><option value="300" selected>300 MB</option><option value="1000">1 GB</option></select></label>
-    <div style="display:flex;flex-direction:column;gap:6px;flex:1 1 260px;min-width:0"><span class="small muted">Cerco in Desktop, Documenti, Immagini, Video, Musica e Download<span id="fsExtra"></span>.</span><div class="row" style="gap:8px"><button class="btn ghost" id="btnFsAdd">+ Aggiungi una cartella o un disco</button><button class="btn ghost" id="btnFsDel" style="display:none">Togli</button></div></div>
+    <div style="display:flex;flex-direction:column;gap:6px;flex:1 1 260px;min-width:0"><span class="small muted">Cerco in Desktop, Documenti, Immagini, Video, Musica e Download<span id="fsExtra"></span>.</span><div class="row" style="gap:8px"><button class="btn ghost" id="btnFsAdd">+ Aggiungi una cartella o un disco</button><button class="btn ghost" id="btnFsDel" style="display:none">Togli dalla ricerca</button></div></div>
     <span class="small muted gm" style="flex:1 1 240px">Le cartelle di Windows, dei programmi e dei giochi (Steam, Epic, Riot…) vengono saltate: lì i doppioni servono.</span><span class="small muted om" style="flex:1 1 240px">Le cartelle di Windows e dei programmi vengono saltate: lì i doppioni servono.</span>
   </div>
   <div class="card" id="filesStatus" style="display:none"><div class="row"><svg class="spin" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--a1)" stroke-width="2.6" stroke-linecap="round"><path d="M21 12a9 9 0 1 1-9-9"/></svg><span id="filesMsg">Analisi in corso…</span></div></div>
@@ -1213,7 +1213,7 @@ body.office .cardmodo{font-weight:700;font-stretch:normal;letter-spacing:-.02em;
         <span>Niente esce dal PC: Tasso non salva mai le password in chiaro, né nei file di registro.</span>
       </div></details>
     </div>
-    <span class="small muted">Con il PIN si chiude da solo dopo 5 minuti che non lo usi. Nome utente e password copiati non finiscono nella cronologia degli appunti (Win+V) né negli appunti sul cloud, e si cancellano dagli appunti dopo 20 secondi. "Controlla se è stata rubata" usa il servizio gratuito Have I Been Pwned: al sito arriva solo un pezzetto dell'impronta della password, mai la password.</span>
+    <span class="small muted">Con il PIN si chiude da solo dopo 5 minuti che non lo usi. Nome utente e password copiati non finiscono nella cronologia degli appunti (Win+V) né negli appunti sul cloud, e si cancellano dagli appunti dopo 20 secondi. "Rubata?" usa il servizio gratuito Have I Been Pwned: al sito arriva solo un pezzetto dell'impronta della password, mai la password.</span>
   </div>
 </section>
 
@@ -1426,9 +1426,9 @@ body.office .cardmodo{font-weight:700;font-stretch:normal;letter-spacing:-.02em;
     <div class="row wrap" style="justify-content:space-between"><div><h2>Autoclick</h2><p class="sub" style="margin:2px 0 0">Clicca da solo al posto tuo. Il tasto <b id="acKeyName">F6</b> lo avvia e lo ferma anche dentro il gioco. <a href="#" id="acKeyChange" style="color:var(--a1t)">Cambia tasto</a></p></div><span class="small" id="acState" style="font-weight:700">Fermo</span></div>
     <div class="row wrap" style="gap:14px;align-items:flex-end">
       <label class="acf">Ogni<span class="row" style="gap:6px"><input id="acEvery" type="number" min="1" value="1" style="width:84px"><select id="acUnit"><option value="1">millisecondi</option><option value="1000" selected>secondi</option><option value="60000">minuti</option></select></span></label>
-      <label class="acf">Quanti click<span class="row" style="gap:6px"><input id="acCount" type="number" min="1" value="100" style="width:96px"><label class="check" style="font-size:13px"><input type="checkbox" id="acInf" checked> all'infinito</label></span></label>
-      <label class="acf">Tasto<select id="acBtn"><option value="sx">Sinistro</option><option value="dx">Destro</option><option value="centro">Centrale</option></select></label>
-      <label class="acf">Tipo<select id="acDbl"><option value="0">Click singolo</option><option value="1">Doppio click</option></select></label>
+      <label class="acf">Quanti clic<span class="row" style="gap:6px"><input id="acCount" type="number" min="1" value="100" style="width:96px"><label class="check" style="font-size:13px"><input type="checkbox" id="acInf" checked> all'infinito</label></span></label>
+      <label class="acf">Tasto del mouse<select id="acBtn"><option value="sx">Sinistro</option><option value="dx">Destro</option><option value="centro">Centrale</option></select></label>
+      <label class="acf">Tipo<select id="acDbl"><option value="0">Clic singolo</option><option value="1">Doppio clic</option></select></label>
     </div>
     <div class="row wrap" style="gap:14px;align-items:flex-end">
       <label class="acf">Dove clicca<select id="acWhere"><option value="mouse">Dove si trova il mouse</option><option value="fixed">In un punto fisso</option></select></label>
@@ -1807,7 +1807,9 @@ const callBg = (name, ...a) => new Promise(res => { const id = 'bg' + (BOOT.gen 
 const call = (name, ...a) => { try { return typeof window[name] === 'function' ? Promise.resolve(window[name](...a)).then(r => TX_RAW[name] ? r : tx(r)).catch(() => null) : Promise.resolve(null); } catch (e) { return Promise.resolve(null); } };
 const refreshS = async () => { const s = await call('goGetSettings'); if (s) S = s; return S; };
 
-function fmtBytes(b){ b = Number(b) || 0; if (b >= 1073741824) return (b / 1073741824).toFixed(1).replace('.', DEC) + ' GB'; if (b >= 1048576) return Math.round(b / 1048576) + ' MB'; return Math.round(b / 1024) + ' KB'; }
+// unità: TB da 1024 GB in su; in francese Ko, Mo, Go, To
+const BYTE_U = LANG === 'fr' ? ['Ko', 'Mo', 'Go', 'To'] : ['KB', 'MB', 'GB', 'TB'];
+function fmtBytes(b){ b = Number(b) || 0; if (b >= 1099511627776) return (b / 1099511627776).toFixed(1).replace('.', DEC) + ' ' + BYTE_U[3]; if (b >= 1073741824) return (b / 1073741824).toFixed(1).replace('.', DEC) + ' ' + BYTE_U[2]; if (b >= 1048576) return Math.round(b / 1048576) + ' ' + BYTE_U[1]; return Math.round(b / 1024) + ' ' + BYTE_U[0]; }
 function fmtMin(m){ m = Math.max(0, Math.round(m)); if (m < 1) return _t('meno di 1 min'); if (m < 60) return m + ' min'; return Math.floor(m / 60) + ' h ' + (m % 60) + ' min'; }
 // Dopo "Riavvia": 15 secondi per cambiare idea (shutdown /a annulla anche il riavvio).
 // 3.1.1: il conto alla rovescia si mostra solo se Windows ha accettato il riavvio (prima l'errore era
@@ -1901,6 +1903,8 @@ function applyTheme(id){
   const light = ['ghiaccio', 'sabbia', 'ufficio', 'carta', 'salvia', 'lavanda', 'perla'].indexOf(t.id) >= 0;
   if (document.body) { THEMES.forEach(x => document.body.classList.remove('th-' + x.id)); document.body.classList.add('th-' + t.id); }
   document.documentElement.style.colorScheme = light ? 'light' : 'dark';
+  // semaforo (ping): verde, giallo e rosso veri in tutti i temi, non i colori del tema
+  r.setProperty('--sem-ok', light ? '#0E8F62' : '#2FF3A6'); r.setProperty('--sem-mid', light ? '#A86400' : '#FFB020'); r.setProperty('--sem-bad', light ? '#C8243F' : '#FF4D6D');
   $('#glow1').style.background = 'radial-gradient(circle,' + t.v.a2 + (light ? '22' : '38') + ' 0%,transparent 65%)';
   $('#glow2').style.background = 'radial-gradient(circle,' + t.v.a1 + (light ? '18' : '1F') + ' 0%,transparent 65%)';
   paintThemeLogo(t.id);
@@ -2390,7 +2394,7 @@ window.tasso = {
   onFiles(p){ FILES = p.data || null; paintFiles(); },
   onScanFolder(p){ if (p.error) { toast(p.error, 'var(--a4)'); return; } if (!p.path) return; FS_EXTRA = p.path; paintFsExtra(); },
   onRecycleDone(p){ recycleDone(p); },
-  onShredProgress(m){ if (/^Chiedo|^Distruggo 1 di|^Asking|^Destroying 1 of/.test(m)) toast(m, 'var(--a3)'); },
+  onShredProgress(m){ if (m && (m.trim || m.i === 1) && m.msg) toast(m.msg, 'var(--a3)'); }, // il primo file e il TRIM, in ogni lingua
   onShredDone(p){ toast(p.msg, p.ok ? 'var(--a1)' : 'var(--a4)'); },
   onUndoDone(p){ if (p.settings) S = p.settings; toast(p.msg, 'var(--a1)'); paintUndo(p.changes); paintModes(); if (loaded.startup) call('goStartupList'); if (loaded.games) { paintLib(); profileRefresh(); } },
   onTogliTasso(p){ if (!TOGLI) TOGLI = {passi: [], fatto: false, err: ''}; if (p.text) TOGLI.passi.push(p.text); if (p.done) TOGLI.fatto = true; if (p.eco) TOGLI.eco = true; if (p.error) TOGLI.err = p.error; togliDraw(); },
@@ -2785,7 +2789,7 @@ async function fcAction(f, b){
     const ok = r.indexOf('ok:') === 0; toast(r.replace(/^ok:/, ''), ok ? 'var(--a3)' : 'var(--a4)'); if (ok && b) b.disabled = true;
   } else if (f.action === 'tune') {
     const m = $('#libGrid'); if (m) m.scrollIntoView({behavior:'smooth', block:'center'});
-    toast(_t('Premi sul gioco nella libreria e poi "Regola con Tasso": ti dico la grafica giusta per il tuo PC.'));
+    toast(_t('Apri il gioco nella libreria e poi "Impostazioni consigliate" (in Prestazioni): ti dico la grafica giusta per il tuo PC.'));
   } else if (f.action === 'driver:nvidia' || f.action === 'driver:amd') {
     gpuDrvOpen();
   } else if (f.action.indexOf('driver:') === 0) {
@@ -3069,7 +3073,7 @@ function paintFsExtra(){ $('#fsExtra').innerHTML = FS_EXTRA ? _t(' e in <b>') + 
 $('#btnFsAdd').onclick = () => call('goPickScanFolder');
 $('#btnFsDel').onclick = () => { FS_EXTRA = ''; paintFsExtra(); };
 function baseName(p){ var i=Math.max(p.lastIndexOf('/'), p.lastIndexOf(String.fromCharCode(92))); return i>=0?p.slice(i+1):p; }
-function fileRowBig(f, extra){ return '<div class="li" style="gap:8px"><label class="check" style="flex:1;min-width:0;margin:0"><input type="checkbox" data-p="'+esc(f.path)+'"><span class="x"><b>'+esc(baseName(f.path))+'</b><span>'+esc(f.path)+(extra?' · '+extra:'')+'</span></span></label><button class="btn ghost" data-rev="'+esc(f.path)+_t('" style="min-height:34px;padding:6px 10px;font-size:13px;flex:0 0 auto">Apri cartella</button></div>'); }
+function fileRowBig(f, extra){ return '<div class="li" style="gap:8px"><label class="check" style="flex:1;min-width:0;margin:0"><input type="checkbox" data-p="'+esc(f.path)+'"><span class="x"><b>'+esc(baseName(f.path))+'</b><span>'+esc(f.path)+'</span>'+(extra?'<span style="white-space:normal">'+extra+'</span>':'')+'</span></label><button class="btn ghost" data-rev="'+esc(f.path)+_t('" style="min-height:34px;padding:6px 10px;font-size:13px;flex:0 0 auto">Apri cartella</button></div>'); }
 function fileRow(f, checked, extra){ return '<label class="li check"><input type="checkbox" data-p="' + esc(f.path) + '"' + (checked ? ' checked' : '') + '><span class="x"><b>' + esc(f.path.split('\\').pop()) + '</b><span>' + esc(f.path) + (extra ? ' · ' + extra : '') + '</span></span></label>'; }
 function paintFiles(){
   $('#filesStatus').style.display = 'none';
@@ -3081,7 +3085,7 @@ function paintFiles(){
   const sec = (title, sub, inner, count) => '<div class="card" style="display:flex;flex-direction:column;gap:8px"><div class="row wrap" style="justify-content:space-between"><div><h2 style="font-size:16px">' + title + ' <span class="muted small">(' + count + ')</span></h2><p class="sub" style="margin:2px 0 0">' + sub + '</p></div></div><div class="list" style="max-height:300px">' + (inner || _t('<div class="li"><span class="muted">Niente da segnalare.</span></div>')) + '</div></div>';
   let dupHtml = '';
   dups.forEach(g => { g.forEach((f, i) => { dupHtml += i === 0 ? _t('<div class="li keep"><span class="x"><b>Tengo: ') + esc(f.path.split('\\').pop()) + '</b><span>' + esc(f.path) + ' · ' + fmtBytes(f.size) + '</span></span></div>' : fileRow(f, true, fmtBytes(f.size) + _t(' · copia')); }); });
-  box.innerHTML = _t('<div class="card row wrap" style="justify-content:space-between"><span>Ho controllato <b>') + (F.count || 0) + _t('</b> file. Le copie doppie occupano <b style="color:var(--a1t)">') + fmtBytes(waste) + _t('</b>.</span><button class="btn danger" id="btnRecycleSel">Sposta nel Cestino i selezionati</button></div>') +
+  box.innerHTML = _t('<div class="card row wrap" style="justify-content:space-between"><span>Ho controllato <b>') + Number(F.count || 0).toLocaleString(LOC) + _t('</b> file. Le copie doppie occupano <b style="color:var(--a1t)">') + fmtBytes(waste) + _t('</b>.</span><button class="btn danger" id="btnRecycleSel">Sposta nel Cestino i selezionati</button></div>') +
     sec(_t('File doppi'), _t('Per ogni gruppo il primo file viene tenuto, le copie sono spuntate.'), dupHtml, dups.length) +
     sec(_t('File più grandi'), _t('Sopra i ') + $('#fsMin').selectedOptions[0].textContent + _t('. Quelli con <b style="color:var(--a4)">dimenticato</b> non li hai toccati da più di un anno. Spunta quelli che non ti servono più, oppure premi "Apri cartella" per vederli nel computer.'), large.map(f => fileRowBig(f, fmtBytes(f.size) + ' · ' + f.date + (f.old ? _t(' · <b style="color:var(--a4)">dimenticato</b>') : ''))).join(''), large.length) +
     sec(_t('Cartelle vuote'), _t('Cartelle senza niente dentro.'), empty.map(p => fileRow({path:p}, true, _t('vuota'))).join(''), empty.length) +
@@ -3089,7 +3093,7 @@ function paintFiles(){
   $('#btnRecycleSel').onclick = () => {
     const paths = $$('#filesResult input[data-p]').filter(x => x.checked).map(x => x.getAttribute('data-p'));
     if (!paths.length) { toast(_t('Non hai selezionato niente.'), 'var(--a4)'); return; }
-    modal(_t('<h2>Spostare ') + paths.length + _t(' elementi nel Cestino?</h2><p class="muted" style="margin:0">Potrai recuperarli dal Cestino finché non lo svuoti.</p>'), [{label:_t('Annulla')}, {label:_t('Sposta nel Cestino'), cls:'danger', fn: () => { call('goRecycle', paths, 'files'); toast(_t('Sposto nel Cestino…')); }}]);
+    modal((paths.length === 1 ? _t('<h2>Spostare 1 elemento nel Cestino?</h2><p class="muted" style="margin:0">Potrai recuperarlo dal Cestino finché non lo svuoti.</p>') : _t('<h2>Spostare {0} elementi nel Cestino?</h2><p class="muted" style="margin:0">Potrai recuperarli dal Cestino finché non lo svuoti.</p>').replace('{0}', paths.length)), [{label:_t('Annulla')}, {label:_t('Sposta nel Cestino'), cls:'danger', fn: () => { call('goRecycle', paths, 'files'); toast(_t('Sposto nel Cestino…')); }}]);
   };
 }
 function recycleDone(p){
@@ -3099,14 +3103,24 @@ function recycleDone(p){
     const norm = (q) => String(q || '').replace(/\\+$/, '').toLowerCase();
     const moved = new Set([].concat(p.result.moved || []).map(norm));
     const gone = {}; $$('#filesResult input[data-p]').forEach(x => { if (x.checked && moved.has(norm(x.getAttribute('data-p')))) gone[x.getAttribute('data-p')] = 1; });
-    $$('#filesResult input[data-p]').forEach(x => { if (gone[x.getAttribute('data-p')]) { const li = x.closest('.li'); if (li) li.remove(); } });
+    // tolgo i file spostati anche dai risultati e ridisegno: totali e conteggi tornano giusti, le spunte restano
+    if (FILES && Object.keys(gone).length) {
+      const via = (q) => !gone[q], spunte = {};
+      $$('#filesResult input[data-p]').forEach(x => { spunte[x.getAttribute('data-p')] = x.checked; });
+      FILES.dups = (FILES.dups || []).map(g => g.filter(f => via(f.path))).filter(g => g.length > 1);
+      FILES.large = (FILES.large || []).filter(f => via(f.path));
+      FILES.empty = (FILES.empty || []).filter(q => via(q));
+      FILES.broken = (FILES.broken || []).filter(b => via(b.path));
+      paintFiles();
+      $$('#filesResult input[data-p]').forEach(x => { const q = x.getAttribute('data-p'); if (q in spunte) x.checked = spunte[q]; });
+    }
   }
 }
 $('#btnShred').onclick = async () => {
   const ps = await call('goPickFiles');
   if (!ps || !ps.length) return;
   const many = ps.length > 1;
-  modal(_t('<h2 style="color:var(--red)">Distruggere ') + (many ? _t('questi ') + ps.length + _t(' file') : _t('questo file')) + '?</h2><div class="note" style="word-break:break-all;max-height:160px;overflow:auto">' + ps.map(esc).join('<br>') + _t('</div><p class="muted" style="margin:0;line-height:1.5">Ogni file viene <b>riscritto con dati a caso</b>, rinominato e cancellato: <b>non si potrà più recuperare</b>, nemmeno dal Cestino o con i programmi di recupero.</p><p class="small muted" style="margin:0;line-height:1.5">Onestamente: sugli SSD nessun programma può garantirlo al 100%, perché è il disco a decidere dove scrivere. Per questo alla fine Tasso chiede anche all\'SSD di cancellare davvero lo spazio liberato (TRIM): in pratica il file non torna più.</p>') + _t('<p class="small muted" style="margin:0;line-height:1.5">Copie che Tasso non può toccare: se il file è in <b>OneDrive</b> resta nella cronologia delle versioni e nel Cestino di OneDrive; possono averne una copia anche i <b>punti di ripristino</b> e la <b>Cronologia file</b> di Windows.</p>'),
+  modal((many ? _t('<h2 style="color:var(--red)">Distruggere questi {0} file?</h2>').replace('{0}', ps.length) : _t('<h2 style="color:var(--red)">Distruggere questo file?</h2>')) + '<div class="note" style="word-break:break-all;max-height:160px;overflow:auto">' + ps.map(esc).join('<br>') + _t('</div><p class="muted" style="margin:0;line-height:1.5">Ogni file viene <b>riscritto con dati a caso</b>, rinominato e cancellato: <b>non si potrà più recuperare</b>, nemmeno dal Cestino o con i programmi di recupero.</p><p class="small muted" style="margin:0;line-height:1.5">Onestamente: sugli SSD nessun programma può garantirlo al 100%, perché è il disco a decidere dove scrivere. Per questo alla fine Tasso chiede anche all\'SSD di cancellare davvero lo spazio liberato (TRIM): in pratica il file non torna più.</p>') + _t('<p class="small muted" style="margin:0;line-height:1.5">Copie che Tasso non può toccare: se il file è in <b>OneDrive</b> resta nella cronologia delle versioni e nel Cestino di OneDrive; possono averne una copia anche i <b>punti di ripristino</b> e la <b>Cronologia file</b> di Windows.</p>'),
     [{label:_t('Annulla')}, {label:_t('Distruggi per sempre'), cls:'danger', fn: () => { call('goShred', ps).then(r => { if (r === 'busy') toast(_t('Sto già distruggendo altri file.'), 'var(--a4)'); else toast(_t('Distruggo…')); }); }}]);
 };
 
@@ -4191,7 +4205,8 @@ function paintDiscord(){
   else if (!S.discordOn) st.textContent = _t('Webhook salvato, invio automatico spento.');
   else st.textContent = _t('Acceso: un report ogni ') + every + _t(' ore e dopo ogni pulizia') + (S.discordLast ? _t('. Ultimo invio: ') + new Date(S.discordLast).toLocaleString(LOC, {day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit'}) : '') + '.';
   const bs = $('#dcBotState');
-  if (!BOT_MSG) bs.textContent = S.discordBotSaved ? (S.discordBotOn ? _t('Bot collegato: scrivi !stato nel canale per ricevere il report.') : _t('Token salvato (protetto da Windows), bot spento.')) : _t('Il token viene salvato protetto da Windows: si può leggere solo dal tuo account su questo PC.');
+  if (S.discordBotSaved && S.discordBotOn && !S.discordOn) { bs.textContent = _t('Bot fermo: riaccendi lo Stato su Discord con "Salva e accendi" e torna a rispondere a !stato.'); bs.style.color = ''; } // il bot ascolta solo con l'invio acceso (discord.go)
+  else if (!BOT_MSG) bs.textContent = S.discordBotSaved ? (S.discordBotOn ? _t('Bot collegato: scrivi !stato nel canale per ricevere il report.') : _t('Token salvato (protetto da Windows), bot spento.')) : _t('Il token viene salvato protetto da Windows: si può leggere solo dal tuo account su questo PC.');
 }
 let BOT_MSG = '', BOT_INVITE = '';
 function paintBot(r){
@@ -4207,7 +4222,7 @@ $('#btnBotSave').onclick = async () => { const t = $('#dcBotTok').value.trim(); 
 $('#btnBotInvite').onclick = () => { if (BOT_INVITE) call('goOpenURL', BOT_INVITE); };
 $('#btnBotOff').onclick = async () => { await call('goDiscordBot', '', false); BOT_INVITE = ''; };
 $('#btnDcSave').onclick = async () => { if (!$('#dcHook').value.trim()) { toast(_t("Prima incolla l'indirizzo del webhook.")); return; } const r = await call('goSetDiscord', $('#dcHook').value, true); if (r !== 'ok') { toast(r || _t('Non salvato.')); return; } await refreshS(); paintDiscord(); toast(_t('Stato su Discord acceso.')); };
-$('#btnDcOff').onclick = async () => { await call('goSetDiscord', S.discordWebhook || '', false); await refreshS(); paintDiscord(); toast(_t('Stato su Discord spento.')); };
+$('#btnDcOff').onclick = async () => { await call('goSetDiscord', S.discordWebhook || '', false); BOT_MSG = ''; await refreshS(); paintDiscord(); toast(_t('Stato su Discord spento.')); };
 $('#btnDcTest').onclick = async () => {
   const typed = $('#dcHook').value.trim();
   if (typed && typed !== (S.discordWebhook || '')) { const r = await call('goSetDiscord', typed, !!S.discordOn || !S.discordWebhook); if (r !== 'ok') { toast(r || _t('Non riuscito, riprova.')); return; } await refreshS(); }
@@ -4262,7 +4277,7 @@ Object.assign(window.tasso, {
       const list = el('div', {class:'list'});
       rows.forEach(x => {
         const det = x.ok ? (_t('min ') + x.min + _t(' ms · stabilità ±') + x.jitter + _t(' ms · persi ') + x.loss + '%' + (x.tcp ? _t(' · connessione') : '')) : _t('Non risponde (il server non accetta il ping o la rete lo blocca)');
-        list.appendChild(el('div', {class:'li'}, '<i class="pd ' + esc(x.color) + '"></i><div class="x"><b>' + esc(x.name) + '</b><span>' + esc(det) + '</span></div>' + (best && best.host === x.host ? _t('<span class="bestsrv">MIGLIORE</span>') : '') + '<span class="pms">' + (x.ok ? x.avg + ' ms' : '–') + '</span>'));
+        list.appendChild(el('div', {class:'li'}, '<i class="pd ' + esc(x.color) + '"></i><div class="x"><b>' + esc(x.name) + '</b><span>' + esc(det) + '</span></div><span style="display:flex;align-items:center;gap:8px;flex:0 0 auto;margin-left:auto">' + (best && best.host === x.host ? _t('<span class="bestsrv">MIGLIORE</span>') : '') + '<span class="pms">' + (x.ok ? x.avg + ' ms' : '–') + '</span></span>'));
       });
       box.appendChild(list); out.appendChild(box);
     });
@@ -4282,16 +4297,16 @@ Object.assign(window.tasso, {
     const box = $('#nuList'); box.innerHTML = '';
     const nb = $('#btnNet'); nb.disabled = false; nb.textContent = _t('Aggiorna'); const now = new Date(); $('#nuTime').textContent = _t('Aggiornato alle ') + String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0') + ':' + String(now.getSeconds()).padStart(2, '0') + '.';
     const ad = (n && n.adapters) || [];
-    $('#nuSub').textContent = n && n.ssid ? _t('Sei collegato al Wi-Fi "') + n.ssid + '".' : _t('Come sei collegato e qualche consiglio per andare più veloce.');
+    $('#nuSub').textContent = n && n.ssid ? _t('Sei collegato al Wi-Fi "{0}".').replace('{0}', () => n.ssid) : _t('Come sei collegato e qualche consiglio per andare più veloce.');
     const tip = (h) => box.appendChild(el('div', {class:'note', style:'border-color:var(--a3);--c:var(--a3);margin-bottom:8px'}, h));
     const b24 = !!(n && (/2[.,]4/.test(String(n.band || '')) || /2[.,]4\s*g/i.test(String(n.ssid || ''))));
     const five = ((n && n.five) || []).filter(x => x && x !== (n && n.ssid));
     const same5 = !!(n && n.ssid && ((n.five || []).indexOf(n.ssid) >= 0));
     if (b24) {
       const like = five.filter(x => n.ssid && x.toLowerCase().replace(/[^a-z0-9]/g, '').indexOf(n.ssid.toLowerCase().replace(/[-_ ]*(2[.,]?4\s*(g(hz)?)?|2g)$/i, '').replace(/[^a-z0-9]/g, '')) === 0);
-      if (like.length) tip(_t('<b>Ti conviene collegarti a "') + esc(like[0]) + _t('".</b> È la rete a 5 GHz del tuo router: va molto più veloce di quella a 2.4 GHz che stai usando, soprattutto vicino al router. Se ti chiede la password, di solito è la stessa.'));
-      else if (same5) tip(_t('<b>Il tuo router ha anche il 5 GHz, con lo stesso nome.</b> Adesso sei sul 2.4 GHz, più lento: di solito succede quando sei lontano dal router. Avvicinati, oppure spegni e riaccendi il Wi-Fi del PC.'));
-      else tip(_t('<b>Sei sul Wi-Fi a 2.4 GHz</b>, il più lento e affollato. Se il tuo router ha anche il <b>5 GHz</b> (quasi tutti i router moderni), collegati a quella rete: di solito ha lo stesso nome più "5G" o "5GHz".'));
+      if (like.length) tip(_t('<b>Ti conviene collegarti a "') + esc(like[0]) + _t('".</b> È la rete a 5 GHz del tuo router: va molto più veloce di quella a 2,4 GHz che stai usando, soprattutto vicino al router. Se ti chiede la password, di solito è la stessa.'));
+      else if (same5) tip(_t('<b>Il tuo router ha anche il 5 GHz, con lo stesso nome.</b> Adesso sei sul 2,4 GHz, più lento: di solito succede quando sei lontano dal router. Avvicinati, oppure spegni e riaccendi il Wi-Fi del PC.'));
+      else tip(_t('<b>Sei sul Wi-Fi a 2,4 GHz</b>, il più lento e affollato. Se il tuo router ha anche il <b>5 GHz</b> (quasi tutti i router moderni), collegati a quella rete: di solito ha lo stesso nome più "5G" o "5GHz".'));
     }
     if (n && n.locOff && ad.some(a => a.kind === 'Wi-Fi')) tip(_t('<b>Windows non mi fa vedere i dati del Wi-Fi.</b> Su Windows 11 servono i permessi della Posizione: Impostazioni > Privacy e sicurezza > Posizione, accendila. Così Tasso può consigliarti la rete più veloce.'));
     if (n && typeof n.signal === 'number' && n.signal < 40) tip(_t('<b>Il segnale del Wi-Fi è debole (') + n.signal + _t('%).</b> Avvicinati al router o togli ostacoli: internet sarà più veloce e non si staccherà.'));
@@ -4324,7 +4339,10 @@ Object.assign(window.tasso, {
     // Gli altri dischi interni (D:, E:...): le loro cartelle principali sono nell'elenco qui sotto.
     const altri = [].concat(d.disks || []).filter(x => x && x.id && Number(x.total) > 0 && x.id !== d.sys);
     $('#dmTitle').textContent = altri.length ? _t('Dischi del PC') : _t('Disco di sistema');
+    if (altri.length && d.sys) $('#dmMsg').textContent = d.sys + ' ' + $('#dmMsg').textContent; // con più dischi: la prima parte è del disco di Windows
     if (altri.length) $('#dmMsg').textContent += ' ' + altri.map(x => x.id + _t(' liberi ') + fmtBytes(x.free) + _t(' su ') + fmtBytes(x.total)).join(' · ') + '.';
+    const salt = [].concat(d.saltati || []).filter(Boolean);
+    if (salt.length) $('#dmMsg').textContent += ' ' + _t('{0}: non ho misurato tutte le cartelle, il controllo durava troppo. Riprova più tardi o apri il disco da Esplora file.').replace('{0}', salt.join(', '));
     const items = Array.isArray(d.items) ? d.items : [d.items];
     const max = Math.max(1, ...items.map(i => Number(i.size) || 0));
     items.slice(0, 25).forEach(i => {
@@ -4666,8 +4684,10 @@ let LIB = [], BOOST = [];
 const STORE_COL = {Steam:'var(--a2)', Epic:'var(--a3)', Riot:'var(--red)', GOG:'#a46ad8', EA:'#ff5a5a', Ubisoft:'#4aa3ff', 'Battle.net':'#39a0ff', Xbox:'#4cc04c', Rockstar:'#f5b400', Amazon:'#ff9900', 'itch.io':'#fa5c5c', Altro:'var(--a1)', Mano:'var(--a1)'};
 // 3.1: nomi dei negozi da mostrare ("Altro" = trovato da Tasso sul disco, "Mano" = aggiunto da te)
 const storeName = (s) => s === 'Altro' ? _t('Trovato sul PC') : s === 'Mano' ? _t('Aggiunto da te') : s;
+// ricerca dei giochi: senza accenti, simboli (™ ® ©) e spazi doppi ("pokemon" trova "Pokémon", "fc 25" trova "FC™ 25")
+const libNorm = (s) => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[™®©]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
 function paintLib(){
-  const q = ($('#libSearch').value || '').toLowerCase().trim();
+  const q = libNorm($('#libSearch').value);
   const box = $('#libGrid'); box.innerHTML = '';
   const vis = LIB.filter(g => !g.hidden);
   const nHid = LIB.length - vis.length;
@@ -4677,10 +4697,10 @@ function paintLib(){
   const stores = [...new Set(vis.map(g => g.store))];
   if (LIBF !== 'all' && LIBF !== 'rec' && stores.indexOf(LIBF) < 0) LIBF = 'all';
   $('#libChips').innerHTML = [['all', _t('Tutti')], ['rec', _t('Recenti')]].concat(stores.map(x => [x, storeName(x)])).map(f => '<button class="chip' + (LIBF === f[0] ? ' on' : '') + '" data-lf="' + esc(f[0]) + '" aria-pressed="' + (LIBF === f[0]) + '">' + esc(f[1]) + '</button>').join('');
-  const list = sortedLib().filter(g => !g.hidden && (LIBF === 'all' || (LIBF === 'rec' ? isRecent(g) : g.store === LIBF)) && (!q || g.name.toLowerCase().includes(q)));
+  const list = sortedLib().filter(g => !g.hidden && (LIBF === 'all' || (LIBF === 'rec' ? isRecent(g) : g.store === LIBF)) && (!q || libNorm(g.name).includes(q)));
   $('#libCount').textContent = vis.length ? (list.length === 1 ? _t('1 gioco') : list.length + _t(' giochi')) + _t(' · i giocati di recente per primi, poi in ordine alfabetico. Tocca un gioco per aprire la sua pagina.') : '';
   if (!vis.length) { box.innerHTML = nHid ? _t('<span class="muted">Hai nascosto tutti i giochi.</span>') : _t('<span class="muted">Nessun gioco trovato. Se un gioco manca, premi "Aggiungi un gioco" e scegli il suo programma (.exe).</span>'); $('#libMsg').textContent = nHid ? '' : _t('Nessun gioco trovato.'); return; }
-  if (!list.length) box.innerHTML = q ? _t('<span class="muted">Nessun gioco con questo nome. Se manca, premi "Aggiungi un gioco" (o guarda tra i giochi nascosti).</span>') : LIBF === 'rec' ? _t('<span class="muted">Nessun gioco giocato negli ultimi 14 giorni. Apri un gioco con GIOCA e lo trovi qui.</span>') : _t('<span class="muted">Nessun gioco in questo negozio.</span>');
+  if (!list.length) box.innerHTML = q ? (nHid ? _t('<span class="muted">Nessun gioco con questo nome. Se manca, premi "Aggiungi un gioco" (o guarda tra i giochi nascosti).</span>') : _t('<span class="muted">Nessun gioco con questo nome. Se manca, premi "Aggiungi un gioco".</span>')) : LIBF === 'rec' ? _t('<span class="muted">Nessun gioco giocato negli ultimi 14 giorni. Apri un gioco con GIOCA e lo trovi qui.</span>') : _t('<span class="muted">Nessun gioco in questo negozio.</span>');
   list.forEach(g => {
     const m = S.gameMemo && S.gameMemo[g.id];
     const badge = m && !m.skip && m.a ? _t('TRADOTTO') : isRecent(g) ? _t('RECENTE') : '';
@@ -4788,14 +4808,16 @@ function acCfg(){
 }
 let AC_PT = null;
 async function acSave(){ await call('goAutoClickSet', acCfg()); }
-['#acEvery', '#acUnit', '#acCount', '#acInf', '#acBtn', '#acDbl', '#acWhere', '#acDelay'].forEach(id => { $(id).onchange = () => { $('#btnAcPick').style.display = $('#acWhere').value === 'fixed' ? '' : 'none'; $('#acCount').disabled = $('#acInf').checked; acSave(); }; });
+// "Ogni": l'autoclick non va sotto i 10 ms (autoclick.go), quindi con i millisecondi il minimo è 10
+function acMinMs(){ const ms = $('#acUnit').value === '1', e = $('#acEvery'); e.min = ms ? 10 : 1; e.title = ms ? _t('Minimo 10 millisecondi.') : ''; if (ms && (Number(e.value) || 0) < 10) e.value = 10; }
+['#acEvery', '#acUnit', '#acCount', '#acInf', '#acBtn', '#acDbl', '#acWhere', '#acDelay'].forEach(id => { $(id).onchange = () => { acMinMs(); $('#btnAcPick').style.display = $('#acWhere').value === 'fixed' ? '' : 'none'; $('#acCount').disabled = $('#acInf').checked; acSave(); }; });
 $('#acCount').disabled = true;
 try { if (localStorage.getItem('tassoAcWarn') === '0') $('#acWarn').style.display = 'none'; } catch (e) {}
 $('#acWarnHide').onclick = (e) => { if (e) e.preventDefault(); $('#acWarn').style.display = 'none'; try { localStorage.setItem('tassoAcWarn', '0'); } catch (x) {} };
 $('#btnAcPick').onclick = () => { call('goAutoClickPick'); };
 $('#btnAcGo').onclick = async () => {
   if ($('#acWhere').value === 'fixed' && !AC_PT) { toast(_t('Prima premi "Scegli il punto".')); return; }
-  await acSave(); const r = await call('goAutoClickStart'); if (r === 'busy') return; if (r !== 'ok') { toast(r || _t('Non riuscito, riprova.')); return; }
+  acMinMs(); await acSave(); const r = await call('goAutoClickStart'); if (r === 'busy') return; if (r !== 'ok') { toast(r || _t('Non riuscito, riprova.')); return; }
   $('#btnAcGo').disabled = true; $('#btnAcStop').disabled = false;
 };
 $('#btnAcStop').onclick = () => call('goAutoClickStop');
@@ -4804,9 +4826,9 @@ Object.assign(window.tasso, {
   onAutoClick(a){
     const st = $('#acState');
     if (a.msg) toast(a.msg);
-    if (!a.running) { st.textContent = _t('Fermo') + (a.done ? ' · ' + a.done + _t(' click fatti') : ''); st.style.color = ''; $('#btnAcGo').disabled = false; $('#btnAcStop').disabled = true; return; }
+    if (!a.running) { st.textContent = _t('Fermo') + (a.done ? ' · ' + a.done + _t(' clic fatti') : ''); st.style.color = ''; $('#btnAcGo').disabled = false; $('#btnAcStop').disabled = true; return; }
     $('#btnAcGo').disabled = true; $('#btnAcStop').disabled = false; st.style.color = 'var(--a1)';
-    st.textContent = a.wait ? _t('Parte tra ') + a.wait + '…' : _t('In funzione · ') + (a.done || 0) + _t(' click');
+    st.textContent = a.wait ? _t('Parte tra ') + a.wait + '…' : _t('In funzione · ') + (a.done || 0) + _t(' clic');
   }
 });
 const VK_NAMES = {8:'Backspace',9:'Tab',19:_t('Pausa'),20:_t('Bloc Maiusc'),32:_t('Spazio'),33:_t('Pag Su'),34:_t('Pag Giù'),35:_t('Fine'),36:'Home',37:_t('Freccia sinistra'),38:_t('Freccia su'),39:_t('Freccia destra'),40:_t('Freccia giù'),45:_t('Ins'),46:_t('Canc'),96:'Num 0',97:'Num 1',98:'Num 2',99:'Num 3',100:'Num 4',101:'Num 5',102:'Num 6',103:'Num 7',104:'Num 8',105:'Num 9',106:'Num *',107:'Num +',109:'Num -',110:'Num ,',111:'Num /',144:_t('Bloc Num'),145:_t('Bloc Scorr')};
@@ -5455,16 +5477,17 @@ $('#btnTrWords').onclick = async () => {
   const gl = await ttc('ttGlossario') || {};
   const nt = (gl.non_tradurre || []).join('\n');
   const te = Object.keys(gl.termini || {}).map(k => k + ' = ' + gl.termini[k]).join('\n');
-  modal('<h2>' + esc(_t('Parole fisse')) + '</h2><p class="small muted" style="margin:0">' + esc(_t('Nomi da non tradurre mai (uno per riga) e parole da tradurre sempre allo stesso modo (inglese = italiano).')) + '</p>' +
+  const glA = gl.lingua_a || (TT && TT.lingua_a) || 'it', glN = langName(glA), glEs = {it:'Health = Salute', en:'Santé = Health', es:'Health = Salud', fr:'Health = Santé', de:'Health = Gesundheit'}[glA] || 'Health = …';
+  modal('<h2>' + esc(_t('Parole fisse')) + '</h2><p class="small muted" style="margin:0">' + esc(_t('Nomi da non tradurre mai (uno per riga), per tutte le lingue. Parole da tradurre sempre allo stesso modo in {0}: parola del gioco = parola in {0}.').split('{0}').join(LOWNAMES ? glN.toLowerCase() : glN)) + '</p>' +
     '<label class="acf">' + esc(_t('Da non tradurre')) + '<textarea id="glNt" rows="5" spellcheck="false">' + esc(nt) + '</textarea></label>' +
-    '<label class="acf">' + esc(_t('Sempre così')) + '<textarea id="glTe" rows="6" spellcheck="false" placeholder="Health = Salute">' + esc(te) + '</textarea></label>',
+    '<label class="acf">' + esc(_t('Sempre così')) + '<textarea id="glTe" rows="6" spellcheck="false" placeholder="' + esc(glEs) + '">' + esc(te) + '</textarea></label>',
     [{label:_t('Annulla')}, {label:_t('Salva'), cls:'primary', fn: (box) => {
       const lines = (id) => box.querySelector(id).value.split('\n').map(x => x.trim()).filter(Boolean).slice(0, 500).map(x => x.slice(0, 120));
       const termini = {}; lines('#glTe').forEach(l => { const k = l.indexOf('='); if (k > 0) { const a = l.slice(0, k).trim(), b = l.slice(k + 1).trim(); if (a && b) termini[a] = b; } });
-      ttc('ttSalvaGlossario', {non_tradurre: lines('#glNt'), termini}).then(r => toast(r === 'ok' ? _t('Parole fisse salvate.') : _t('Non sono riuscito a salvare.'), r === 'ok' ? 'var(--a3)' : 'var(--a4)'));
+      ttc('ttSalvaGlossario', {non_tradurre: lines('#glNt'), termini}, glA).then(r => toast(r === 'ok' ? _t('Parole fisse salvate.') : _t('Non sono riuscito a salvare.'), r === 'ok' ? 'var(--a3)' : 'var(--a4)'));
     }}]);
 };
-$('#btnKeyReset').onclick = async () => { HK_WAIT = ''; const r = await ttc('ttTastiDiBase'); await call('goAutoClickKey', 117, 0); await call('goOverlayKey', 0); S.acVK = 117; S.acMods = 0; paintAcKey(); await hkxRefresh(); await ttRefresh(); paintKeys(); hkMsg(''); const n = parseInt(String(r || '').replace('occupati:', ''), 10); if (r === 'ok') toast(_t('Tasti rimessi come all\'inizio.'), 'var(--a3)'); else if (n > 0) toast(_t('Tasti rimessi come all\'inizio, ma ') + n + _t(' sono già usati da un altro programma: cambiali qui sopra.'), 'var(--a4)'); else toast(_t('Non riuscito.'), 'var(--a4)'); };
+$('#btnKeyReset').onclick = async () => { HK_WAIT = ''; const r = await ttc('ttTastiDiBase'); const rAc = await call('goAutoClickKey', 117, 0), rOv = await call('goOverlayKey', 0); await hkxRefresh(); if (rAc === 'ok') { S.acVK = 117; S.acMods = 0; AC_KEY_OK = true; } else if (HKX && HKX.ac) { S.acVK = HKX.ac & 0xFFFF; S.acMods = (HKX.ac >>> 16) & 0xF; } paintAcKey(); await ttRefresh(); paintKeys(); hkMsg(''); const n = parseInt(String(r || '').replace('occupati:', ''), 10); const presi = [rAc === 'ok' ? '' : vkName(117, 0), rOv === 'ok' ? '' : OV_KEY0].filter(Boolean); if (presi.length && (r === 'ok' || n > 0)) toast(_t('Tasti rimessi, ma {0} non si può usare (forse lo usa già un altro programma): cambialo qui sopra.').replace('{0}', presi.join(', ')), 'var(--a4)'); else if (r === 'ok') toast(_t('Tasti rimessi come all\'inizio.'), 'var(--a3)'); else if (n > 0) toast(_t('Tasti rimessi come all\'inizio, ma ') + n + _t(' sono già usati da un altro programma: cambiali qui sopra.'), 'var(--a4)'); else toast(_t('Non riuscito.'), 'var(--a4)'); };
 const DLN = {mozilla:_t('Traduttore veloce'), ia:_t('IA'), voci:_t('Voci'), chat:_t('Chat tradotta'), lingue:_t('Lingue')};
 function ttRepaint(){ if (W && !$('#gwz').hidden && !W.busy && wzStep() !== 'ok') wzDraw(); gpRepaintTr(); }
 // La pagina del gioco aperta segue lo stato della traduzione (strumenti e riga «Traduzione»).
@@ -5539,6 +5562,7 @@ async function openGame(id, quiet){
   if (!quiet || GP_ID !== id) GPI = null;
   GP_ID = id;
   $$('#v-games .gpanel').forEach(p => { p.hidden = true; }); $('#gTabs').hidden = true; $('#trBar').hidden = true; $('#boostCard').hidden = true;
+  $$('nav [data-gtab]').forEach(b => { const on = b.dataset.gtab === 'lib'; b.classList.toggle('on', on); if (on) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current'); }); // la pagina del gioco sta dentro "I miei giochi"
   const box = $('#gamePage'); box.hidden = false;
   paintGame(g);
   // Pagina del gioco appena aperta: sempre dall'alto, con il titolo "Giochi" e "← Tutti i giochi" in vista
@@ -5600,7 +5624,7 @@ function paintGameTools(g){
 }
 async function toolClick(g, id){
   if (id === 'trs') { $('#trSw').click(); return; }
-  if (id === 'voci') { const v = (TT && TT.voci) || {}; if (!v.file) { closeGame(); gTab('imp'); return; } const r = await ttc('ttAccendiVoci', !v.accese); if (r && r.errore) toast(tx(r.errore), 'var(--a4)'); ttRefresh(); return; }
+  if (id === 'voci') { const v = (TT && TT.voci) || {}; if (!v.file) { closeGame(); gTab('imp'); toast(_t('Scarica le voci tradotte qui, in Impostazioni giochi.')); const vr = $('#trVociRow'); if (vr) vr.scrollIntoView({block:'center'}); return; } const r = await ttc('ttAccendiVoci', !v.accese); if (r && r.errore) toast(tx(r.errore), 'var(--a4)'); ttRefresh(); return; }
   if (id === 'chata') { if (!chatQui(GPI || {})) { toast(_t('Apri il gioco con la chat visibile: Tasso va a icona e tra 3 secondi disegni il riquadro della chat (Esc per annullare).')); ttc('ttScegliZonaChat'); return; } chatAltri(!(TT && TT.chat_altri && TT.acceso)); return; } // chat accesa ma traduzione spenta: il click accende
   if (id === 'chat') { if (!(TT && TT.chat_file)) { closeGame(); gTab('imp'); toast(_t('Scarica la chat tradotta qui, in Impostazioni giochi.')); return; } toast(_t('Copia il testo in italiano e premi ') + keyName('chat', 'Ctrl+Alt+T') + _t(': negli appunti trovi la frase in inglese, da incollare nella chat.')); return; }
   if (id === 'cro') { gTab('cro'); return; }
@@ -5664,17 +5688,17 @@ function paintGame(g){
   // il negozio è già scritto sopra il titolo: qui niente doppione
   const pills = (i && i.anticheat ? '<span class="pill warn">' + esc(_t('Anti-cheat')) + '</span>' : '') + (i && i.unity ? '<span class="pill">Unity</span>' : '') + (i && i.tradotto ? '<span class="pill ok">' + esc(_t('Tradotto')) + '</span>' : '');
   const live = LIVE && LIVE.gpu && LIVE.gpu.temp != null ? Math.round(LIVE.gpu.temp) + '°C' : '—';
-  const stats = [[i && i.traduzioni ? String(i.traduzioni) : '0', _t('Frasi già tradotte')], [pw ? POW[pw] : autoAll() ? _t('Alta (Boost automatico)') : POW[''], _t('Potenza quando giochi')], [live, _t('Scheda video adesso')]];
+  const stats = [[i && i.traduzioni ? Number(i.traduzioni).toLocaleString(LOC) : '0', _t('Frasi già tradotte')], [pw ? POW[pw] : autoAll() ? _t('Alta (Boost automatico)') : POW[''], _t('Potenza quando giochi')], [live, _t('Scheda video adesso')]];
   box.innerHTML = '<div class="gp"><div><button class="btn ghost" id="gpBack">← ' + esc(_t('Tutti i giochi')) + '</button></div>' +
     '<div class="card gp-hero"><div class="cover gp-cv"></div><div class="gp-tit"><div class="gp-store">' + esc(storeName(g.store)) + '</div><h2 tabindex="-1">' + esc(g.name) + '</h2><div>' + pills + '</div></div></div>' +
     '<div class="gp-grid"><div class="gp-main">' +
-      (m && memoTxt(m) ? '<div class="mem"><div><b>🧠 ' + esc(_t('Tasso si ricorda')) + '</b><span>' + esc(_t('Ultima volta')) + (m.when ? ' (' + esc(fmtDay(m.when)) + ')' : '') + ': ' + esc(memoTxt(m)) + '. ' + esc(_t('Premi GIOCA e uso le stesse impostazioni.')) + '</span></div><button class="btn ghost" data-act="wiz">' + esc(_t('Cambia')) + '</button></div>' : '') +
+      (m && memoTxt(m) ? '<div class="mem"><div><b>🧠 ' + esc(_t('Tasso si ricorda')) + '</b><span>' + esc(m.when ? _t('Ultima volta ({0}): ').replace('{0}', fmtDay(m.when)) : _t('Ultima volta: ')) + esc(memoTxt(m)) + '. ' + esc(_t('Premi GIOCA e uso le stesse impostazioni.')) + '</span></div><button class="btn ghost" data-act="wiz">' + esc(_t('Cambia')) + '</button></div>' : '') +
       '<div class="gp-stats">' + stats.map(s => '<div><b>' + esc(s[0]) + '</b><span>' + esc(s[1]) + '</span></div>').join('') + '</div>' +
       gpTrCard(g) +
-      '<div class="gp-acts"><button class="gp-big gplay" data-act="play"><b>▶ ' + esc(_t('GIOCA')) + '</b><span>' + esc(pw ? _t('Con ') + POW[pw] + _t('. A fine partita rimetto tutto com\'era.') : (BST && BST.on) ? _t('Il Boost è acceso: il PC è già pronto per giocare.') : autoAll() ? _t('Con il Boost automatico. A fine partita riapro i programmi chiusi e rimetto mouse e modalità; le regolazioni di Windows per giocare restano finché premi "Rimetti com\'era".') : _t('Apre il gioco dal suo negozio.')) + '</span></button>' +
+      '<div class="gp-acts"><button class="gp-big gplay" data-act="play"><b>▶ ' + esc(_t('GIOCA')) + '</b><span>' + esc(pw ? (pw === 'max' ? _t('Con la massima potenza. A fine partita rimetto tutto com\'era.') : _t('Con la potenza alta. A fine partita rimetto tutto com\'era.')) : (BST && BST.on) ? _t('Il Boost è acceso: il PC è già pronto per giocare.') : autoAll() ? _t('Con il Boost automatico. A fine partita riapro i programmi chiusi e rimetto mouse e modalità; le regolazioni di Windows per giocare restano finché premi "Rimetti com\'era".') : _t('Apre il gioco dal suo negozio.')) + '</span></button>' +
       '<button class="gp-big gprep" data-act="wiz"><b>⚙ ' + esc(_t('PREPARA A PASSI')) + '</b><span>' + esc(_t('Traduzione, potenza e impostazioni consigliate, una cosa alla volta.')) + '</span></button></div>' +
       '<div class="card gp-sets">' +
-        '<div class="gp-line" style="border-bottom:0"><span><b>' + esc(_t('Potenza quando apri il gioco')) + '</b><small>' + esc(POW_FAIL[g.id] ? POW_FAIL[g.id] : _t('Anche se lo apri da Steam. Quando lo chiudi rimetto tutto com\'era.')) + '</small></span><div class="seg" role="group" aria-label="' + esc(_t('Potenza quando apri il gioco')) + '">' + ['', 'gaming', 'max'].map(k => '<button data-pow="' + k + '" class="' + (pw === k ? 'on' : '') + '" aria-pressed="' + (pw === k) + '"' + (POW_FAIL[g.id] && k !== pw ? ' disabled' : '') + '>' + esc(k === '' ? _t('Normale') : k === 'gaming' ? _t('Alta') : _t('Massima')) + '</button>').join('') + '</div></div>' +
+        '<div class="gp-line" style="border-bottom:0"><span><b>' + esc(_t('Potenza quando apri il gioco')) + '</b><small>' + esc(POW_FAIL[g.id] ? POW_FAIL[g.id] : (g.store && g.store !== 'Altro' && g.store !== 'Mano' ? _t('Anche se lo apri da {0}. Quando lo chiudi rimetto tutto com\'era.').replace('{0}', g.store) : _t('Anche se non lo apri da Tasso. Quando lo chiudi rimetto tutto com\'era.'))) + '</small></span><div class="seg" role="group" aria-label="' + esc(_t('Potenza quando apri il gioco')) + '">' + ['', 'gaming', 'max'].map(k => '<button data-pow="' + k + '" class="' + (pw === k ? 'on' : '') + '" aria-pressed="' + (pw === k) + '"' + (POW_FAIL[g.id] && k !== pw ? ' disabled' : '') + '>' + esc(k === '' ? _t('Normale') : k === 'gaming' ? _t('Alta') : _t('Massima')) + '</button>').join('') + '</div></div>' +
       '</div>' +
     '</div><div class="card gp-side"><h3>' + esc(_t('Strumenti per questo gioco')) + '</h3><div class="row wrap" style="gap:6px" id="gpToolTabs"></div><span class="small muted">' + esc(_t('Tocca uno strumento per usarlo.')) + '</span><div id="gpTools"></div></div></div></div>';
   putCover(box.querySelector('.gp-cv'), g);
@@ -5905,7 +5929,7 @@ function wzDraw0(){
     const rc = powRec();
     const cur = W.pot || rc;
     const cb = (k, t, d) => '<button data-pw="' + k + '" class="' + (cur === k ? 'on' : '') + '" aria-pressed="' + (cur === k) + '"><em>' + (rc === k ? esc(_t('Consigliato')) : '') + '</em><b>' + esc(t) + '</b><span>' + esc(d) + '</span></button>';
-    h = (W.noGame ? '<div class="callout">' + esc(tx(i.errore || '')) + ' ' + esc(_t('La traduzione si salta.')) + '</div>' : '') + P(_t('Quanta potenza?')) + '<p class="small muted" style="margin:0">' + esc(_t('Tasso la mette da solo quando apri ')) + esc(g.name) + esc(_t(' (anche da Steam) e rimette tutto quando lo chiudi.')) + '</p><div class="pw">' +
+    h = (W.noGame ? '<div class="callout">' + esc(tx(i.errore || '')) + ' ' + esc(_t('La traduzione si salta.')) + '</div>' : '') + P(_t('Quanta potenza?')) + '<p class="small muted" style="margin:0">' + esc(_t('Tasso la mette da solo quando apri ')) + esc(g.name) + esc(g.store && g.store !== 'Altro' && g.store !== 'Mano' ? _t(' (anche da {0}) e rimette tutto quando lo chiudi.').replace('{0}', g.store) : _t(' (anche fuori da Tasso) e rimette tutto quando lo chiudi.')) + '</p><div class="pw">' +
       cb('normale', _t('Normale'), _t('Il PC resta com\'è. Per giochi leggeri o il portatile a batteria.')) + cb('gaming', _t('Potenza alta'), _t('Piano energetico al massimo, notifiche in pausa. Va bene per tutti i giochi.')) + cb('max', _t('Massima potenza'), _t('Come Potenza alta, più mouse senza accelerazione. Per gli sparatutto.')) + '</div>' +
       '<details class="small"><summary style="cursor:pointer;font-weight:700">' + esc(_t('Cosa chiude il Boost?')) + '</summary><p class="muted" style="margin:6px 0 0;line-height:1.5">' + esc(_t('Solo se sono aperti in sottofondo senza finestra: OneDrive, Dropbox, Google Drive, iCloud, Teams (versione classica), Zoom, Skype. Li chiude con gentilezza e li riapre quando il Boost si spegne. Non chiude mai Discord, OBS e i programmi per lo stream, Spotify, Steam e gli altri launcher, i browser, e niente che abbia una finestra aperta.')) + '</p></details>';
   }
@@ -5981,9 +6005,9 @@ let TUNE_WAIT = null;
 function applyTune(g, o, preset){
   return new Promise(res => {
     const done = (r) => { clearTimeout(t); if (TUNE_WAIT === done) TUNE_WAIT = null; res(r); };
-    const t = setTimeout(() => done({ok:false, msgs:[_t('La regolazione non ha risposto: riprova da "Regola con Tasso".')]}), 60000);
+    const t = setTimeout(() => done({ok:false, msgs:[_t('La regolazione non ha risposto: riprova da "Impostazioni consigliate", nella pagina del gioco.')]}), 60000);
     TUNE_WAIT = done;
-    call('goGameTuneApply', g.id, preset, o).then(r => { if (r === 'busy') done({ok:false, msgs:[_t('Tasso stava finendo un\'altra regolazione: riprova da "Regola con Tasso".')]}); });
+    call('goGameTuneApply', g.id, preset, o).then(r => { if (r === 'busy') done({ok:false, msgs:[_t('Tasso stava finendo un\'altra regolazione: riprova da "Impostazioni consigliate", nella pagina del gioco.')]}); });
   });
 }
 async function wzApply(){
@@ -6006,7 +6030,7 @@ async function wzApply(){
     if (!W || W.run !== run) return;
     if (tr && tr.ok === false) W.notes.push([(tr.msgs || []).join(' ') || _t('Impostazioni consigliate non applicate.'), true]);
     else if (tr && tr.partial) W.notes.push([_t('Impostazioni consigliate applicate in parte: ') + (tr.failed || []).join(' '), true]);
-    else W.notes.push([_t('Impostazioni consigliate applicate (si tolgono da "Regola con Tasso").'), false]);
+    else W.notes.push([_t('Impostazioni consigliate applicate (si tolgono dalla pagina del gioco → "Impostazioni consigliate", o da Impostazioni → Torna indietro).'), false]);
   }
   if (wzUntr()) {
     msg(_t('Tolgo la traduzione…')); bar(20);
@@ -6190,12 +6214,13 @@ function paintVault(){
   const items = (VAULT && VAULT.items) || [];
   const list = items.filter(i => !q || (i.site + ' ' + i.user + ' ' + i.note).toLowerCase().includes(q));
   const weak = items.filter(i => i.strength === 0).length, reused = items.filter(i => i.reused).length;
-  $('#vSummary').innerHTML = items.length ? (items.length + _t(' password salvate') + (weak ? ' · <span style="color:var(--red)">' + weak + _t(' deboli</span>') : '') + (reused ? ' · <span style="color:var(--a4)">' + reused + _t(' usate in più posti</span>') : '') + (!weak && !reused ? _t(' · <span style="color:var(--a1t)">✓ tutte forti e diverse</span>') : '')) : '';
+  $('#vSummary').innerHTML = items.length ? (items.length + (items.length === 1 ? _t(' password salvata') : _t(' password salvate')) + (weak ? ' · <span style="color:var(--red)">' + weak + (weak === 1 ? _t(' debole</span>') : _t(' deboli</span>')) : '') + (reused ? ' · <span style="color:var(--a4)">' + reused + (reused === 1 ? _t(' usata in più posti</span>') : _t(' usate in più posti</span>')) : '') + (!weak && !reused ? _t(' · <span style="color:var(--a1t)">✓ tutte forti e diverse</span>') : '')) : '';
   const box = $('#vList'); box.innerHTML = '';
   if (!items.length) { box.innerHTML = _t('<div class="li"><span class="muted">Ancora vuoto. Premi "+ Aggiungi" per salvare la prima password.</span></div>'); return; }
+  if (!list.length) { box.innerHTML = '<div class="li"><span class="muted">' + esc(_t('Nessuna password per questa ricerca.')) + '</span></div>'; return; }
   list.forEach(it => {
     const st = STRENGTH[it.strength] || STRENGTH[0];
-    const row = el('div', {class:'li', style:'flex-wrap:wrap'}, '<span class="x" style="flex:1 1 240px"><b>' + esc(it.site) + '</b><span>' + esc(it.user || '—') + ' · <span style="color:' + st[1] + '">' + st[0] + '</span>' + (it.reused ? _t(' · <span style="color:var(--a4)">usata anche altrove</span>') : '') + (it.note ? ' · ' + esc(it.note) : '') + '</span><span class="pwv mono" style="display:none;color:var(--text);user-select:text"></span></span>');
+    const row = el('div', {class:'li', style:'flex-wrap:wrap'}, '<span class="x" style="flex:1 1 240px"><b>' + esc(it.site) + '</b><span style="white-space:normal;overflow-wrap:anywhere">' + esc(it.user || '—') + ' · <span style="color:' + st[1] + '">' + st[0] + '</span>' + (it.reused ? _t(' · <span style="color:var(--a4)">usata anche altrove</span>') : '') + (it.note ? ' · ' + esc(it.note) : '') + '</span><span class="pwv mono" style="display:none;color:var(--text);user-select:text"></span></span>');
     const mk = (label, fn, cls) => { const b = el('button', {class:'btn ' + (cls || 'ghost'), style:'min-height:34px;padding:6px 11px;font-size:12px'}, label); b.onclick = fn; row.appendChild(b); return b; };
     // Clic sul nome dell'account (o su Compila): Tasso compila utente e password nella finestra di login.
     const nb = row.querySelector('.x b'); nb.style.cursor = 'pointer'; nb.title = _t('Compila utente e password nella finestra di login'); nb.onclick = () => vaultFill(it.id);
@@ -6205,7 +6230,7 @@ function paintVault(){
     const sh = mk(_t('Mostra'), async () => { const pv = row.querySelector('.pwv'); if (pv.style.display === 'none') { const pw = await call('goVaultReveal', it.id); if (!pw) { vaultRefresh(); return; } pv.textContent = pw; pv.style.display = ''; sh.textContent = _t('Nascondi'); setTimeout(() => { pv.textContent = ''; pv.style.display = 'none'; sh.textContent = _t('Mostra'); }, 20000); } else { pv.textContent = ''; pv.style.display = 'none'; sh.textContent = _t('Mostra'); } });
     mk(_t('Rubata?'), async () => { const r = await call('goVaultPwned', it.id); if (r === 'busy') toast(_t('Un controllo è già in corso.')); else toast(_t('Controllo in corso…')); });
     mk(_t('Modifica'), () => vaultEdit(it));
-    mk(_t('Elimina'), () => modal(_t('<h2>Eliminare ') + esc(it.site) + _t('?</h2><p class="muted" style="margin:0">La password non si potrà più recuperare.</p>'), [{label:_t('Annulla')}, {label:_t('Elimina'), cls:'danger', fn: async () => { const r = await call('goVaultDelete', it.id); vaultAns(r, _t('Eliminata.')); vaultRefresh(); }}]));
+    mk(_t('Elimina'), () => modal(_t('<h2>Eliminare {0}?</h2><p class="muted" style="margin:0">La password non si potrà più recuperare.</p>').replace('{0}', () => esc(it.site)), [{label:_t('Annulla')}, {label:_t('Elimina'), cls:'danger', fn: async () => { const r = await call('goVaultDelete', it.id); vaultAns(r, _t('Eliminata.')); vaultRefresh(); }}]));
     box.appendChild(row);
   });
 }
@@ -6249,13 +6274,13 @@ function vaultEdit(it){
   modal('<h2>' + (it ? _t('Modifica') : _t('Nuova password')) + '</h2>' +
     _t('<label class="acf">Sito o programma<input id="veSite" value="') + esc(e.site || '') + (isOffice() ? _t('" placeholder="es. Microsoft, Gmail, Amazon"></label>') : _t('" placeholder="es. Steam, Gmail, Amazon"></label>')) +
     _t('<label class="acf">Nome utente o email<input id="veUser" value="') + esc(e.user || '') + '"></label>' +
-    '<label class="acf">Password' + (it ? _t(' (lascia vuoto per non cambiarla)') : '') + _t('<span class="row" style="gap:6px"><input id="vePw" type="password" style="flex:1" autocomplete="off"><button class="btn ghost" id="veShow" type="button" style="min-height:38px">Mostra</button><button class="btn ghost" id="veGen" type="button" style="min-height:38px">Genera</button></span></label>') +
+    '<label class="acf">' + esc(_t('Password')) + (it ? _t(' (lascia vuoto per non cambiarla)') : '') + _t('<span class="row" style="gap:6px"><input id="vePw" type="password" style="flex:1" autocomplete="off"><button class="btn ghost" id="veShow" type="button" style="min-height:38px">Mostra</button><button class="btn ghost" id="veGen" type="button" style="min-height:38px">Genera</button></span></label>') +
     '<span class="small" id="veStr"></span>' +
     _t('<label class="acf">Nota (facoltativa)<input id="veNote" value="') + esc(e.note || '') + '"></label>' +
     '<details class="guide"' + (e.web || e.win || e.seq || e.keys ? ' open' : '') + '><summary>' + _t('Compila da solo (facoltativo)') + '</summary><div style="display:flex;flex-direction:column;gap:8px;margin-top:8px">' +
     _t('<label class="acf">Indirizzo del sito o programma<input id="veWeb" value="') + esc(e.web || '') + _t('" placeholder="es. accounts.google.com oppure steam.exe"></label>') +
     _t('<label class="acf">Titolo della finestra<input id="veWin" value="') + esc(e.win || '') + (isOffice() ? _t('" placeholder="es. Outlook oppure Accedi*Google"></label>') : _t('" placeholder="es. Steam oppure Accedi*Google"></label>')) +
-    _t('<label class="acf">Sequenza dei tasti<input id="veSeq" class="mono" value="') + esc(e.seq || '') + '" placeholder="{UTENTE}{TAB}{PASSWORD}{INVIO}"></label>' +
+    _t('<label class="acf">Sequenza dei tasti<input id="veSeq" class="mono" value="') + esc(e.seq || '') + '" placeholder="' + (LANG === 'it' ? '{UTENTE}{TAB}{PASSWORD}{INVIO}' : '{USER}{TAB}{PASSWORD}{ENTER}') + '"></label>' +
     _t('<label class="check"><input type="checkbox" id="veKeys"') + (e.keys ? ' checked' : '') + _t('> <span>Scrivi lettera per lettera (per i siti o programmi che non accettano la compilazione diretta)</span></label>') +
     (isOffice() ? _t('<span class="small muted" style="line-height:1.5">Per Microsoft, Google, Amazon, PayPal e altri siti famosi basta il nome in "Sito o programma". Il titolo della finestra serve per i programmi: va bene anche solo un pezzo, * vuol dire "qualsiasi testo". Nella sequenza: {UTENTE}, {TAB}, {PASSWORD}, {INVIO}, {ATTESA 2s}.</span>')
       : _t('<span class="small muted" style="line-height:1.5">Per Steam, Google, Microsoft, Epic, Riot e altri siti famosi basta il nome in "Sito o programma". Il titolo della finestra serve per i programmi: va bene anche solo un pezzo, * vuol dire "qualsiasi testo". Nella sequenza: {UTENTE}, {TAB}, {PASSWORD}, {INVIO}, {ATTESA 2s}.</span>')) +
@@ -6295,7 +6320,7 @@ $('#btnVOpen').onclick = async () => {
     const k = $('#vPinKind').value;
     if (k === '0') pin = '';
     else {
-      if (!/^\d+$/.test(pin) || (k === '4' && pin.length !== 4) || (k === '6' && pin.length !== 6) || (k === '12' && (pin.length < 7 || pin.length > 12))) { $('#vLockMsg').textContent = k === '12' ? _t('Il PIN deve avere da 7 a 12 numeri.') : _t('Il PIN deve avere ') + k + _t(' numeri.'); return; }
+      if (!/^\d+$/.test(pin) || (k === '4' && pin.length !== 4) || (k === '6' && pin.length !== 6) || (k === '12' && (pin.length < 7 || pin.length > 12))) { $('#vLockMsg').textContent = k === '12' ? _t('Il PIN deve avere da 7 a 12 numeri.') : _t('Il PIN deve avere {0} numeri.').replace('{0}', k); return; }
       if (pin !== $('#vPin2').value.trim()) { $('#vLockMsg').textContent = _t('I due PIN non sono uguali.'); return; }
     }
   }
@@ -6326,7 +6351,7 @@ $('#btnVPin').onclick = () => modal('<h2>' + (VST.noPin ? _t('Metti un PIN') : _
 $('#vForgot').onclick = (e) => { e.preventDefault(); modal(_t('<h2>PIN dimenticato?</h2><p class="muted" style="margin:0;line-height:1.5">Onestamente: senza PIN le password non si possono recuperare, nemmeno da Tasso. È proprio questo che le rende sicure. Puoi solo <b>cancellare il portachiavi</b> e crearne uno nuovo (le password dentro andranno perse).</p>'), [{label:_t('Annulla')}, {label:_t('Cancella il portachiavi'), cls:'danger', fn: async () => { const r = await call('goVaultReset'); if (r === 'ok') toast(_t('Portachiavi cancellato.')); else toast(r || _t('Errore'), 'var(--red)'); vaultRefresh(); }}]); };
 Object.assign(window.tasso, { onPwned(r){
   if (!r || !r.ok) { toast((r && r.error) || _t('Controllo non riuscito.'), 'var(--a4)'); return; }
-  if (r.count > 0) toast(_t('⚠️ Questa password compare ') + Number(r.count).toLocaleString(LOC) + _t(' volte tra quelle rubate su internet. Cambiala subito dove la usi.'), 'var(--red)');
+  if (r.count > 0) toast((r.count === 1 ? _t('⚠️ Questa password compare 1 volta tra quelle rubate su internet. Cambiala subito dove la usi.') : _t('⚠️ Questa password compare {0} volte tra quelle rubate su internet. Cambiala subito dove la usi.').replace('{0}', Number(r.count).toLocaleString(LOC))), 'var(--red)');
   else toast(_t('✓ Questa password non compare tra quelle rubate conosciute.'), 'var(--a1)');
 }, onVaultFill(d){
   if (!d) return;

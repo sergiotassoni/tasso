@@ -272,6 +272,7 @@ func (t *Traduttore) ImpostaGlossario(g Glossario) {
 	t.glossario = g
 	t.glossarioPieno = g.conGiochi()
 	t.cache = map[string]string{} // le traduzioni vecchie potrebbero non rispettare il glossario nuovo
+	t.altreCoppie = map[string]string{}
 	t.usoCache = map[string]int64{}
 	t.cacheCambiataLocked()
 	t.mu.Unlock()
@@ -1257,8 +1258,15 @@ func (t *Traduttore) traduciCoppia(ctx context.Context, grezzo, da, a string, in
 		return ris
 	}
 	motori := append([]Motore(nil), t.motori...)
+	// le parole fisse dell'utente valgono per ogni coppia di lingue (quelle verso la lingua a)
+	voci := t.glossario.perArrivo(a).trova(testo)
 	t.mu.Unlock()
-	if da == "en" {
+	if v, ok := terminePieno(testo, voci); ok {
+		ris.Tradotto, ris.Motore = v, "glossario"
+		ris.Millisec = time.Since(inizio).Milliseconds()
+		return ris
+	}
+	if da == "en" && len(voci) == 0 {
 		if v, ok := fraseLiberaLingua(testo, a); ok {
 			ris.Tradotto, ris.Motore = v, "libreria giochi liberi"
 			ris.Millisec = time.Since(inizio).Milliseconds()
@@ -1270,7 +1278,7 @@ func (t *Traduttore) traduciCoppia(ctx context.Context, grezzo, da, a string, in
 		if !ok {
 			continue
 		}
-		out, err := mc.TraduciCoppia(ctx, testo, da, a)
+		out, err := traduciCoppiaConVoci(ctx, mc, testo, da, a, voci)
 		if err != nil {
 			ris.Errore = err.Error()
 			continue
@@ -1289,7 +1297,9 @@ func (t *Traduttore) traduciCoppia(ctx context.Context, grezzo, da, a string, in
 		}
 		t.altreCoppie[chiave] = ris.Tradotto
 		t.mu.Unlock()
-		t.accodaCorrezioneCoppia(chiave, testo, ris.Tradotto, da, a)
+		if len(voci) == 0 { // il correttore IA non conosce le parole fisse: non le deve togliere
+			t.accodaCorrezioneCoppia(chiave, testo, ris.Tradotto, da, a)
+		}
 		break
 	}
 	if ris.Tradotto == "" && ris.Errore == "" {
@@ -1297,6 +1307,65 @@ func (t *Traduttore) traduciCoppia(ctx context.Context, grezzo, da, a string, in
 	}
 	ris.Millisec = time.Since(inizio).Milliseconds()
 	return ris
+}
+
+// terminePieno: la scritta intera è una parola fissa dell'utente ("Health", "HEALTH:").
+func terminePieno(s string, voci []voceTrovata) (string, bool) {
+	nuda := strings.TrimRightFunc(strings.TrimSpace(s), func(r rune) bool { return r == ':' || r == '.' || r == '!' })
+	fine := strings.TrimSpace(s)[len(nuda):]
+	for _, v := range voci {
+		if strings.EqualFold(v.Inglese, nuda) {
+			if nuda == strings.ToUpper(nuda) && len(nuda) > 3 {
+				return strings.ToUpper(v.Italiano) + fine, true
+			}
+			return comeMaiuscola(nuda, v.Italiano) + fine, true
+		}
+	}
+	return "", false
+}
+
+// traduciCoppiaConVoci: come in inglese → italiano (traduciConMotore), le parole fisse vanno al
+// motore come "nomi finti" e tornano scritte come le vuole l'utente: le parole da tradurre
+// sempre così all'inizio delle scritte brevi, i nomi da non tradurre in tutta la frase.
+// Se un nome finto si perde, la frase si traduce normale.
+func traduciCoppiaConVoci(ctx context.Context, mc MotoreCoppie, testo, da, a string, voci []voceTrovata) (string, error) {
+	if bloccato, mappa := bloccaVociCoppia(testo, voci); mappa != nil {
+		if o, err := mc.TraduciCoppia(ctx, bloccato, da, a); err == nil {
+			if s, ok := sbloccaTermini(o, mappa); ok {
+				return s, nil
+			}
+		} else if ctx.Err() != nil {
+			return "", err
+		}
+	}
+	return mc.TraduciCoppia(ctx, testo, da, a)
+}
+
+// bloccaVociCoppia: i termini come bloccaTermini (all'inizio delle scritte brevi), più i nomi da
+// non tradurre (voce uguale all'originale) ovunque nella frase, come parole intere.
+func bloccaVociCoppia(testo string, voci []voceTrovata) (string, map[string]string) {
+	out, m := bloccaTermini(testo, voci)
+	if m == nil {
+		m = map[string]string{}
+	}
+	n := len(m)
+	for _, v := range voci {
+		if n >= len(nomiFinti) || v.Inglese != v.Italiano {
+			continue
+		}
+		re, err := regexp.Compile(`(?i)(^|[^\pL\pN])(` + regexp.QuoteMeta(v.Inglese) + `)($|[^\pL\pN])`)
+		if err != nil || !re.MatchString(out) {
+			continue
+		}
+		finto := nomiFinti[n]
+		out = re.ReplaceAllString(out, "${1}"+finto+"${3}")
+		m[finto] = v.Italiano
+		n++
+	}
+	if len(m) == 0 {
+		return testo, nil
+	}
+	return out, m
 }
 
 // nomiIntatti: i nomi inventati del gioco ("Palbox", "Eldenring") non sono parole inglesi e non
