@@ -643,6 +643,8 @@ func bindAll(w webview2.WebView) {
 	_ = w.Bind("goBench", func() string { return async("bench", benchNow) })
 	_ = w.Bind("goBenchHistory", func() []benchResult { return benchHistory() })
 	_ = w.Bind("goSetBenchAround", func(on bool) string { return setBenchAround(on) })
+	_ = w.Bind("goVotoSalva", func(dataURL, forma string) string { return salvaCartolina(dataURL, forma) })
+	_ = w.Bind("goVotoCopia", func(dataURL string) string { return copiaCartolina(dataURL) })
 	_ = w.Bind("goChanges", func() map[string]interface{} { return changesList() })
 	_ = w.Bind("goUndoChange", func(kind, id string) string { return async("restore", func() { undoChange(kind, id) }) })
 	_ = w.Bind("goGamePing", func(region string) string { return async("ping", func() { gamePing(region) }) })
