@@ -10,6 +10,7 @@ import (
 	"runtime/debug"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"time"
 	"unsafe"
 
@@ -452,11 +453,26 @@ func bringToFront() bool {
 	return false
 }
 
+// fineSessione: Windows ha mandato WM_QUERYENDSESSION/WM_ENDSESSION (si spegne, si riavvia o ci si
+// disconnette). Serve alla finestra per non dire "il riavvio non è partito" mentre Windows chiude.
+var fineSessione atomic.Bool
+
+// spegnimentoInCorso: Windows sta chiudendo la sessione (GetSystemMetrics SM_SHUTTINGDOWN) o ce
+// l'ha già detto con WM_QUERYENDSESSION.
+func spegnimentoInCorso() bool {
+	if fineSessione.Load() {
+		return true
+	}
+	v, _, _ := pGetSysMetrics.Call(0x2000) // SM_SHUTTINGDOWN
+	return v != 0
+}
+
 // salvaAlloSpegnimento: Windows si spegne o l'utente si disconnette (WM_QUERYENDSESSION /
 // WM_ENDSESSION, arrivano alla finestra nascosta di tray.go). Salvo impostazioni e memoria delle
 // traduzioni: dopo Windows può chiudere Tasso senza passare dalla chiusura normale.
 func salvaAlloSpegnimento() {
 	defer guard("salvaAlloSpegnimento")
+	fineSessione.Store(true)
 	for i := 0; i < 40; i++ { // aspetto al massimo 2 secondi che le impostazioni siano libere
 		if setMu.TryLock() {
 			saveSettings()
@@ -556,6 +572,12 @@ func bindAll(w webview2.WebView) {
 		return "no"
 	})
 	_ = w.Bind("goCancelShutdown", func() string { return cancelShutdown() })
+	_ = w.Bind("goSpegnimentoInCorso", func() string { // "1": Windows sta già chiudendo per spegnersi o riavviarsi
+		if spegnimentoInCorso() {
+			return "1"
+		}
+		return "0"
+	})
 	_ = w.Bind("goSetTheme", func(id, look string) string {
 		r := setTheme(id, look)
 		if r == "ok" {

@@ -802,7 +802,7 @@ body.th-neonrgb .gmask .eye{filter:drop-shadow(0 0 8px rgba(199,125,255,.55))}
 <section class="view" id="v-clean">
   <div id="cleanIdle" style="display:flex;flex-direction:column;gap:22px">
     <div><h1 style="font-size:26px">Pulizia</h1><p class="sub">Scegli quanto a fondo pulire. Dalla Media in su viene fatto prima un backup automatico.</p></div>
-    <div class="banner" id="offBanner" style="background:color-mix(in srgb,var(--a4) 12%,var(--panel));border-color:color-mix(in srgb,var(--a4) 45%,var(--line))"><span><b>Il PC si spegnerà tra 2 minuti.</b> <span class="muted">Salva quello che hai aperto.</span></span><button class="btn warn" id="btnNoOff">Annulla lo spegnimento</button></div>
+    <div class="banner" id="offBanner" style="background:color-mix(in srgb,var(--a4) 12%,var(--panel));border-color:color-mix(in srgb,var(--a4) 45%,var(--line))"></div><!-- il contenuto lo scrive fineBanner -->
     <div class="grid g5" id="levelCards2"></div>
   <div class="card" style="display:flex;flex-direction:column;gap:12px;padding-top:6px" id="wkCard">
       <button role="switch" aria-checked="false" class="toggle" id="tgWeekly"><span><b style="font-size:16px">Pulizia programmata</b><span id="wkDesc">Tasso pulisce da solo ogni settimana o ogni due, senza che tu debba aprirlo.</span></span><span class="sw"><i></i></span></button>
@@ -1492,7 +1492,11 @@ function fmtMin(m){ m = Math.max(0, Math.round(m)); if (m < 1) return _t('meno d
 // 3.1.1: il conto alla rovescia si mostra solo se Windows ha accettato il riavvio (prima l'errore era
 // ignorato e sul portatile di Sergio il PC non si riavviava mai). Se dopo 15+30 s Tasso è ancora vivo, lo dico.
 let RST_T = null;
-function restartToast(){ clearTimeout(RST_T); RST_T = setTimeout(() => restartFailed(_t('Il riavvio non è partito.')), 45000); toast(_t('Il PC si riavvia tra 15 secondi.'), 'var(--a4)', {label:_t('Annulla'), fn: async () => { clearTimeout(RST_T); await call('goCancelShutdown'); toast(_t('Riavvio annullato.')); }}); }
+// spegnimentoInCorso: Windows sta già chiudendo i programmi per spegnersi o riavviarsi (può metterci
+// più di 30 secondi): allora il riavvio è partito, non dico "non è partito".
+async function spegnimentoInCorso(){ return (await call('goSpegnimentoInCorso')) === '1'; }
+function rstControlla(n){ spegnimentoInCorso().then(si => { if (si && n < 20) RST_T = setTimeout(() => rstControlla(n + 1), 15000); else if (!si) restartFailed(_t('Il riavvio non è partito.')); }); }
+function restartToast(){ clearTimeout(RST_T); RST_T = setTimeout(() => rstControlla(0), 45000); toast(_t('Il PC si riavvia tra 15 secondi.'), 'var(--a4)', {label:_t('Annulla'), fn: async () => { clearTimeout(RST_T); await call('goCancelShutdown'); toast(_t('Riavvio annullato.')); }}); }
 async function doRestart(){ const r = await call('goRestart'); if (r === 'ok') restartToast(); else restartFailed(_t('Windows non ha accettato il riavvio: premi Riavvia adesso')); }
 function restartFailed(msg){ modal('<h2>' + esc(msg) + '</h2><p class="muted" style="margin:0">' + _t('Salva il lavoro aperto prima di riavviare.') + '</p>', [{label:_t('Annulla')}, {label:_t('Riavvia adesso'), cls:'warn', fn: () => { endNow('riavvia'); }}]); }
 async function endNow(kind){ const r = await call('goEndNow', kind); if (r !== 'ok') toast(kind === 'spegni' ? _t('Windows non ha accettato lo spegnimento: spegni dal menu Start.') : _t('Windows non ha accettato il riavvio: riavvia dal menu Start.'), 'var(--a4)'); }
@@ -1969,7 +1973,6 @@ window.tasso = {
   onRestoreDone(p){ if (p.settings) S = p.settings; (p.msgs || []).forEach(m => toast(m, 'var(--a3)')); paintSettings(); paintModes(); if (p.ok !== false) toast(p.paused ? _t('Fatto: impostazioni rimesse com\'erano e Tasso è spento.') : _t('Fatto: impostazioni rimesse com\'erano.')); if (loaded.startup) call('goStartupList'); if (loaded.games) profileRefresh(); undoRefresh(); }
 };
 $('#btnCancel').onclick = () => { call('goCancel'); $('#btnCancel').disabled = true; $('#btnCancel').textContent = _t('Mi fermo…'); };
-$('#btnNoOff').onclick = async () => { await call('goCancelShutdown'); fineHide(); toast(_t('Spegnimento annullato.')); };
 // 3.1.1: banner di fine pulizia con il conto alla rovescia (Riavvia/Spegni adesso, Annulla). Se a fine
 // conto Tasso è ancora vivo dopo 30 s, il riavvio non è partito: lo dico e lo si può richiedere.
 let FINE_T = null;
@@ -1982,12 +1985,13 @@ function fineBanner(kind, secs, wu, failed){
   o.querySelector('.fbNow').onclick = () => { endNow(kind); };
   o.querySelector('.fbNo').onclick = async () => { await call('goCancelShutdown'); fineHide(); toast(rv ? _t('Riavvio annullato.') : _t('Spegnimento annullato.')); };
   const T = o.querySelector('.fbT'), S2 = o.querySelector('.fbS');
+  let attesa = 30000, guardo = false; // dopo lo zero: 30 s, poi altri 15 s alla volta se Windows si sta già spegnendo
   const fail = (msg) => { clearInterval(FINE_T); FINE_T = null; T.textContent = msg; S2.textContent = _t('Salva quello che hai aperto.'); o.querySelector('.fbNo').textContent = _t('Chiudi'); };
   const draw = () => {
     const now = Date.now(), left = Math.ceil((end - now) / 1000);
     if (left > 0) { T.textContent = _t('Pulizia finita ✓') + ' ' + (rv ? _t('Il PC si riavvia tra {0} secondi') : _t('Il PC si spegne tra {0} secondi')).replace('{0}', left); S2.textContent = (rv && wu ? _t('per finire gli aggiornamenti di Windows.') + ' ' : '') + _t('Salva quello che hai aperto.'); }
-    else if (now < end + 30000) { T.textContent = rv ? _t('Riavvio in corso…') : _t('Spegnimento in corso…'); S2.textContent = ''; }
-    else fail(rv ? _t('Il riavvio non è partito.') : _t('Lo spegnimento non è partito.'));
+    else if (now < end + attesa || guardo) { T.textContent = rv ? _t('Riavvio in corso…') : _t('Spegnimento in corso…'); S2.textContent = ''; }
+    else { guardo = true; spegnimentoInCorso().then(si => { guardo = false; if (FINE_T === null) return; if (si && attesa < 330000) attesa += 15000; else if (!si) fail(rv ? _t('Il riavvio non è partito.') : _t('Lo spegnimento non è partito.')); }); }
   };
   if (failed) fail(rv ? _t('Windows non ha accettato il riavvio: premi Riavvia adesso') : _t('Windows non ha accettato lo spegnimento: premi Spegni adesso'));
   else { draw(); FINE_T = setInterval(draw, 1000); }
