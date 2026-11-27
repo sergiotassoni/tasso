@@ -1335,7 +1335,7 @@ if ($wuFail) { Say 'Non sono riuscito a ripristinare tutto: Windows teneva occup
 elseif (-not $wu -or $wu.Status -ne 'Running') { Say 'Ho ripristinato i file di Windows Update, ma il servizio non è ripartito: riavvia il PC e riprova ad aggiornare.' }
 else { Say 'Windows Update ripristinato: riprova ad aggiornare da Impostazioni > Windows Update.' }
 `},
-	{ID: "wipe_free", Name: "Cancella lo spazio libero", Desc: "Sovrascrive lo spazio libero del disco così i file già cancellati non si recuperano più. Può durare ore.", Level: 0, Minutes: 90, Timeout: 8 * time.Hour, Script: `
+	{ID: "wipe_free", Name: "Cancella lo spazio libero", Desc: "Sovrascrive lo spazio libero del disco di Windows (di solito C:): i file già cancellati lì non si recuperano più. Può durare ore.", Level: 0, Minutes: 90, Timeout: 8 * time.Hour, Script: `
 $ssd = $false
 try { $pn = (Get-Partition -DriveLetter ($TassoSysDrive.TrimEnd(':')) -ErrorAction Stop | Get-Disk -ErrorAction Stop).Number; $ssd = [string](Get-PhysicalDisk -ErrorAction Stop | Where-Object { [string]$_.DeviceId -eq [string]$pn } | Select-Object -First 1).MediaType -eq 'SSD' } catch {}
 if ($ssd) { Say 'Nota onesta: il tuo disco è un SSD. Sugli SSD Windows cancella già i file per davvero da solo (TRIM), quindi questo passaggio serve poco e consuma un po'' il disco. Lo faccio lo stesso, visto che l''hai chiesto.' }
@@ -1345,28 +1345,35 @@ $code = Run-Hidden 'cipher.exe' ('/w:' + $TassoSysDrive + '\')
 Remove-Safe (Join-Path ($TassoSysDrive + '\') 'EFSTMPWP')
 if ($code -eq 0) { Say 'Fatto: i file cancellati in passato non sono più recuperabili.' } else { Say ('Terminato con codice ' + $code) }
 `},
-	{ID: "recover", Name: "Recupera file cancellati", Desc: "Apre il Cestino, installa lo strumento gratuito di Microsoft per recuperare i file (si usa scrivendo comandi) e apre la guida ufficiale passo passo.", Level: 0, Minutes: 1, Timeout: 20 * time.Minute, Script: `
+	{ID: "recover", Name: "Recupera file cancellati", Desc: "Apre il Cestino, installa lo strumento gratuito di Microsoft per recuperare i file (si usa scrivendo comandi) e apre la guida ufficiale passo passo. Installarlo scrive sul disco di Windows: se il file perso era lì ed è importantissimo, non avviare e chiedi aiuto.", Level: 0, Minutes: 1, Timeout: 20 * time.Minute, Script: `
 Say 'Prima guarda nel Cestino: lo apro adesso.'
 Start-Process 'explorer.exe' 'shell:RecycleBinFolder'
 # Windows File Recovery è un'app dello Store: la cerco fra le app installate (il suo alias non è nel PATH di Tasso).
 $w = @(Get-AppxPackage -Name 'Microsoft.WindowsFileRecovery' -ErrorAction SilentlyContinue).Count -gt 0
+$messo = $false
 if (-not $w) {
   $wg = Get-Winget
   if ($wg) {
     Say 'Installo Windows File Recovery (strumento gratuito di Microsoft)...'
     [void](Run-Hidden $wg 'install --id 9N26S50LN705 --source msstore --accept-source-agreements --accept-package-agreements --silent')
+    # il risultato si controlla tra le app installate, non dal codice di winget
+    $w = @(Get-AppxPackage -Name 'Microsoft.WindowsFileRecovery' -ErrorAction SilentlyContinue).Count -gt 0
+    $messo = $w
   }
 }
+if ($w) { Say 'Windows File Recovery è installato: si usa scrivendo winfr in un Terminale aperto come amministratore (la guida qui sotto spiega i comandi).' }
+else { Say 'Non sono riuscito a installare Windows File Recovery: lo trovi gratis nel Microsoft Store.' }
 # La guida nella lingua di Tasso (la pagina si riconosce dal codice finale, il resto dell'indirizzo conta poco).
 $loc = @{ it = 'it-it'; en = 'en-us'; es = 'es-es'; fr = 'fr-fr'; de = 'de-de' }[[string]$TassoLang]
 if (-not $loc) { $loc = 'en-us' }
 Start-Process -FilePath "$TassoWin\explorer.exe" -ArgumentList ('https://support.microsoft.com/' + $loc + '/windows/recuperare-file-persi-in-windows-10-61f5b28a-f5b8-3cc2-0f8e-a63cb4e1d4c4')
 Say 'Ho aperto la guida ufficiale Microsoft: spiega passo passo come recuperare i file.'
 Say 'Consiglio: non salvare nuovi file sul disco finché non hai recuperato quelli che ti servono.'
+if ($messo) { Say 'Quando non ti serve più, Windows File Recovery si toglie da Impostazioni > App.' }
 `},
 	// I due passi Privacy girano in Go con il motore di Ottimizza tutto (privacy_win.go): com'era
 	// salvato per ogni singolo valore, "ripristina" rimette i valori di prima.
-	{ID: "privacy", Name: "Privacy: stop pubblicità e tracciamento", Desc: "Spegne pubblicità, suggerimenti e raccolta dati di Windows.", Level: 0, Minutes: 0.2, Timeout: 3 * time.Minute},
+	{ID: "privacy", Name: "Privacy: stop pubblicità e tracciamento", Desc: "Spegne pubblicità, suggerimenti e ID pubblicitario e riduce al minimo i dati inviati a Microsoft (da amministratore).", Level: 0, Minutes: 0.2, Timeout: 3 * time.Minute},
 	{ID: "privacy_undo", Name: "Privacy: ripristina", Desc: "Rimette le impostazioni di privacy com'erano prima di Tasso.", Level: 0, Minutes: 0.2, Timeout: 3 * time.Minute},
 }
 

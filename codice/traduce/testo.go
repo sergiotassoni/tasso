@@ -139,7 +139,37 @@ func separaParlante(testo string) (string, string) {
 // Glossario: termini con traduzione imposta e nomi da lasciare così come sono.
 type Glossario struct {
 	NonTradurre []string          `json:"non_tradurre"`
-	Termini     map[string]string `json:"termini"`
+	Termini     map[string]string `json:"termini"` // parole fisse verso l'italiano
+	// PerLingua: le parole fisse verso le altre lingue ("de" → "Health" = "Gesundheit"). I nomi
+	// da non tradurre valgono per tutte le lingue; le parole fisse cambiano con la lingua che vuoi.
+	PerLingua map[string]map[string]string `json:"termini_per_lingua,omitempty"`
+}
+
+// perArrivo: il glossario da usare quando si traduce verso la lingua a (Termini per l'italiano,
+// PerLingua[a] per le altre lingue; i nomi da non tradurre sempre).
+func (g Glossario) perArrivo(a string) Glossario {
+	if a == "it" || a == "" {
+		return Glossario{NonTradurre: g.NonTradurre, Termini: g.Termini}
+	}
+	return Glossario{NonTradurre: g.NonTradurre, Termini: g.PerLingua[a]}
+}
+
+// conTerminiPer: come g, ma con le parole fisse verso la lingua a sostituite da termini.
+func (g Glossario) conTerminiPer(a string, termini map[string]string) Glossario {
+	if termini == nil {
+		termini = map[string]string{}
+	}
+	if a == "it" || a == "" {
+		g.Termini = termini
+		return g
+	}
+	per := make(map[string]map[string]string, len(g.PerLingua)+1)
+	for k, v := range g.PerLingua {
+		per[k] = v
+	}
+	per[a] = termini
+	g.PerLingua = per
+	return g
 }
 
 func glossarioBase() Glossario {

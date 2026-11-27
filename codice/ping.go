@@ -36,7 +36,7 @@ var pingGroups = []map[string]string{
 	{"id": "riot", "name": "League of Legends · TFT · Valorant", "note": "Server Riot Direct. Valorant usa la stessa rete: per Valorant il valore è indicativo."},
 	{"id": "valve", "name": "Counter-Strike 2 · Dota 2", "note": "Relay ufficiali di Valve, elenco preso da Steam. In CS2 puoi limitare il ping massimo in Impostazioni > Gioco."},
 	{"id": "aws", "name": "Fortnite e altri giochi online", "note": "Data center Amazon AWS, dove girano Fortnite e molti altri giochi. Misurato come tempo di connessione."},
-	{"id": "base", "name": "La tua connessione", "note": "Server vicinissimi a tutti: se qui il ping è alto, il problema è la tua rete o il tuo operatore, non il gioco."},
+	{"id": "base", "name": "Internet in generale (server pubblici)", "note": "Server vicinissimi a tutti: se qui il ping è alto, il problema è la tua rete o il tuo operatore, non il gioco."},
 }
 
 var riotTargets = []pingTarget{

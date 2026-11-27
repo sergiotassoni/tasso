@@ -123,24 +123,29 @@ foreach ($a in @(Get-NetAdapter -ErrorAction SilentlyContinue | Where-Object { $
 $ssid = ''; $band = ''; $signal = $null; $locOff = $false
 try {
   $iw = netsh wlan show interfaces
-  # Windows 11 24H2: senza "Posizione" accesa netsh non dà più i dati del Wi-Fi.
-  if (($iw -join ' ') -match '(?i)location|posizione') { $locOff = $true }
+  # Windows 11 24H2: senza "Posizione" accesa netsh non dà più i dati del Wi-Fi. La parola cambia
+  # con la lingua di Windows (it/en/es/fr/de); senza parole vale anche il Wi-Fi collegato senza
+  # nessuna riga SSID (vedi sotto).
+  if (($iw -join ' ') -match '(?i)location|posizione|standort|localisation|emplacement|ubicaci') { $locOff = $true }
   $l = $iw | Select-String -Pattern '^\s*SSID\s*:\s*(.+)$' | Select-Object -First 1; if ($l) { $ssid = $l.Matches[0].Groups[1].Value.Trim() }
-  $b = $iw | Select-String -Pattern '^\s*(Band|Banda)\s*:\s*(.+)$' | Select-Object -First 1; if ($b) { $band = $b.Matches[0].Groups[2].Value.Trim() }
-  if (-not $band) { $r = $iw | Select-String -Pattern '^\s*(Radio type|Tipo radio)\s*:\s*(.+)$' | Select-Object -First 1; if ($r) { $band = $r.Matches[0].Groups[2].Value.Trim() } }
+  # banda: la riga che ha come valore solo "2,4 GHz", "5 GHz" o "6 GHz" (uguale in ogni lingua)
+  $b = $iw | Select-String -Pattern '^\s*[^:]+?\s*:\s*(\d+(?:[.,]\d+)?\s*GHz)\s*$' | Select-Object -First 1; if ($b) { $band = $b.Matches[0].Groups[1].Value.Trim() }
+  if (-not $band) { $b = $iw | Select-String -Pattern '^\s*(Band|Banda|Bande)\s*:\s*(.+)$' | Select-Object -First 1; if ($b) { $band = $b.Matches[0].Groups[2].Value.Trim() } }
+  if (-not $band) { $r = $iw | Select-String -Pattern '^\s*(Radio type|Tipo radio|Tipo de radio|Type de radio|Funktyp)\s*:\s*(.+)$' | Select-Object -First 1; if ($r) { $band = $r.Matches[0].Groups[2].Value.Trim() } }
   if (-not $band -or $band -match '802') { $c = $iw | Select-String -Pattern '^\s*(Channel|Canale|Kanal|Canal)\s*:\s*(\d+)' | Select-Object -First 1; if ($c) { $band = $(if ([int]$c.Matches[0].Groups[2].Value -le 14) { '2.4 GHz' } else { '5 GHz' }) } }
   # segnale: la riga che ha come valore solo un numero e "%" (in ogni lingua), mai SSID/BSSID (il nome della rete)
   foreach ($ln in @($iw)) { if ([string]$ln -match '^\s*([^:]+?)\s*:\s*(\d+)\s*%\s*$' -and $Matches[1] -notmatch 'SSID') { $signal = [int]$Matches[2]; break } }
 } catch {}
 if ($ssid) { $locOff = $false }
+elseif (@($list | Where-Object { $_.kind -eq 'Wi-Fi' }).Count -gt 0) { $locOff = $true } # Wi-Fi collegato ma netsh non dà il nome: dati nascosti
 # Reti a 5 GHz visibili adesso (solo i nomi, per consigliare quella più veloce).
 $five = @()
 try {
   $cur = ''
   foreach ($ln in @(netsh wlan show networks mode=bssid 2>$null)) {
     if ($ln -match '^SSID\s+\d+\s*:\s*(.*)$') { $cur = $Matches[1].Trim() }
-    elseif ($ln -match '^\s*(Band|Banda)\s*:\s*5') { if ($cur -and $five -notcontains $cur) { $five += $cur } }
-    elseif ($ln -match '^\s*(Channel|Canale)\s*:\s*(\d+)') { if ([int]$Matches[2] -ge 32 -and $cur -and $five -notcontains $cur) { $five += $cur } }
+    elseif ($ln -match '^\s*[^:]+?\s*:\s*[56]\s*GHz\s*$') { if ($cur -and $five -notcontains $cur) { $five += $cur } } # "5 GHz"/"6 GHz": uguale in ogni lingua
+    elseif ($ln -match '^\s*(Channel|Canale|Kanal|Canal)\s*:\s*(\d+)') { if ([int]$Matches[2] -ge 32 -and $cur -and $five -notcontains $cur) { $five += $cur } }
   }
 } catch {}
 # Una presa di rete libera: con il cavo si va quasi sempre più veloce e stabili.
@@ -236,16 +241,17 @@ try { $altri = @(Get-CimInstance Win32_LogicalDisk -Filter 'DriveType=3' -ErrorA
 foreach ($dl in $altri) {
   foreach ($d in @(Get-ChildItem -LiteralPath ($dl + '\') -Directory -Force -ErrorAction SilentlyContinue)) {
     if ($skip -contains $d.Name -or ($d.Attributes -band [IO.FileAttributes]::ReparsePoint)) { continue }
-    [void]$targets.Add(@{ path = $d.FullName; group = 'Disco ' + $dl; altro = $true })
+    [void]$targets.Add(@{ path = $d.FullName; group = 'Disco ' + $dl; altro = $true; dl = $dl })
   }
 }
 $t0 = [DateTime]::UtcNow
 $i = 0
+$saltati = @() # dischi con cartelle non misurate per il limite di tempo: la pagina lo dice
 foreach ($t in $targets) {
   $i++
   # gli altri dischi solo se c'è ancora tempo (il disco di sistema viene sempre per primo).
   # Il segno "altro" non è un testo: i testi tra apici li traduce trPS e un confronto con 'Disco *' in inglese non scatterebbe mai.
-  if ($t.altro -and ([DateTime]::UtcNow - $t0).TotalMinutes -gt 12) { continue }
+  if ($t.altro -and ([DateTime]::UtcNow - $t0).TotalMinutes -gt 12) { if ($saltati -notcontains $t.dl) { $saltati += $t.dl }; continue }
   Say ('Misuro ' + $i + ' di ' + $targets.Count + ': ' + (Split-Path $t.path -Leaf))
   $size = Measure-Dir $t.path
   if ($size -gt 50MB) { [void]$roots.Add([pscustomobject]@{ path = $t.path; name = (Split-Path $t.path -Leaf); group = $t.group; size = $size }) }
@@ -253,6 +259,6 @@ foreach ($t in $targets) {
 $d = Get-CimInstance Win32_LogicalDisk -Filter ("DeviceID='" + $env:SystemDrive + "'")
 $sorted = @($roots | Sort-Object -Property size -Descending)
 $dischi = @(Get-CimInstance Win32_LogicalDisk -Filter 'DriveType=3' -ErrorAction SilentlyContinue | ForEach-Object { [pscustomobject]@{ id = [string]$_.DeviceID; total = [long]$_.Size; free = [long]$_.FreeSpace } })
-$o = [pscustomobject]@{ total = [long]$d.Size; free = [long]$d.FreeSpace; items = $sorted; disks = $dischi; sys = [string]$env:SystemDrive }
+$o = [pscustomobject]@{ total = [long]$d.Size; free = [long]$d.FreeSpace; items = $sorted; disks = $dischi; sys = [string]$env:SystemDrive; saltati = @($saltati) }
 [Console]::Out.WriteLine('JSON ' + (ConvertTo-Json -InputObject $o -Compress -Depth 4))
 `

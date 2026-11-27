@@ -403,7 +403,11 @@ func pickScanFolder() {
 	p, _ := m["path"].(string)
 	if p != "" {
 		if st, err := os.Stat(p); err != nil || !st.IsDir() || noTouchDir(p) {
-			emit("onScanFolder", map[string]interface{}{"error": "Questa cartella è di Windows, dei programmi o dei giochi: lì Tasso non cerca doppioni, perché servono."})
+			msg := "Questa cartella è di Windows, dei programmi o dei giochi: lì Tasso non cerca doppioni, perché servono."
+			if officeMode() { // in Ufficio niente giochi nei testi
+				msg = "Questa cartella è di Windows o dei programmi: lì Tasso non cerca doppioni, perché servono."
+			}
+			emit("onScanFolder", map[string]interface{}{"error": msg})
 			return
 		}
 	}
@@ -551,8 +555,8 @@ var (
 func pickFiles() []string {
 	buf := make([]uint16, 65536)
 	// Il filtro contiene degli zeri di separazione: StringToUTF16 andrebbe in panic.
-	filter := utf16.Encode([]rune("Tutti i file\x00*.*\x00\x00"))
-	title, _ := windows.UTF16PtrFromString("Scegli i file da distruggere (puoi sceglierne più di uno)")
+	filter := utf16.Encode([]rune(trGo("Tutti i file") + "\x00*.*\x00\x00"))
+	title, _ := windows.UTF16PtrFromString(trGo("Scegli i file da distruggere (puoi sceglierne più di uno)"))
 	var hwnd uintptr
 	if wv != nil {
 		hwnd = uintptr(wv.Window())
@@ -693,7 +697,8 @@ func shredFiles(paths []string) {
 	od := cartelleOneDrive()
 	inOneDrive := 0
 	for i, p := range paths {
-		emit("onShredProgress", fmt.Sprintf(trGo("Distruggo %d di %d: %s"), i+1, len(paths), filepath.Base(p)))
+		// numeri a parte: la pagina decide quando avvisare senza leggere il testo (che è tradotto)
+		emit("onShredProgress", map[string]interface{}{"i": i + 1, "n": len(paths), "msg": fmt.Sprintf(trGo("Distruggo %d di %d: %s"), i+1, len(paths), filepath.Base(p))})
 		if motivo := shredFile(p); motivo == "" {
 			ok++
 			drives[strings.ToUpper(filepath.VolumeName(p))] = true
@@ -717,10 +722,13 @@ func shredFiles(paths []string) {
 				letters = append(letters, d[:1])
 			}
 		}
-		emit("onShredProgress", "Chiedo al disco di cancellare davvero lo spazio liberato (TRIM)…")
+		emit("onShredProgress", map[string]interface{}{"trim": true, "msg": "Chiedo al disco di cancellare davvero lo spazio liberato (TRIM)…"})
 		runPSArgs(retrimScript, letters, 10*time.Minute, nil)
 	}
 	msg := fmt.Sprintf(trGo("Distrutti %d file: il loro contenuto sul disco è stato sovrascritto."), ok)
+	if ok == 1 {
+		msg = trGo("Distrutto 1 file: il suo contenuto sul disco è stato sovrascritto.")
+	}
 	if ok > 0 {
 		msg += trGo(" Possono restarne copie altrove: nei punti di ripristino e nella Cronologia file di Windows, e sugli SSD in celle che Windows non lascia sovrascrivere (il TRIM aiuta, ma non è una garanzia).")
 	}

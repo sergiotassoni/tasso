@@ -896,17 +896,39 @@ func collega(w webview2.WebView) {
 	})
 	_ = w.Bind("ttCronologia", func() []Risultato { return cronologia() })
 	_ = w.Bind("ttSalvaCronologia", func() string { return salvaCronologia() })
-	_ = w.Bind("ttGlossario", func() Glossario { return leggiImp().Glossario })
-	_ = w.Bind("ttSalvaGlossario", func(g Glossario) string {
+	// Parole fisse: i nomi da non tradurre valgono per tutte le lingue, le parole "sempre così"
+	// sono quelle verso la lingua che vuoi adesso (ogni lingua di arrivo ha le sue).
+	_ = w.Bind("ttGlossario", func() map[string]any {
+		i := leggiImp()
+		a := linguaArrivo(i)
+		g := i.Glossario.perArrivo(a)
+		if g.NonTradurre == nil {
+			g.NonTradurre = []string{}
+		}
 		if g.Termini == nil {
 			g.Termini = map[string]string{}
 		}
+		return map[string]any{"non_tradurre": g.NonTradurre, "termini": g.Termini, "lingua_a": a}
+	})
+	_ = w.Bind("ttSalvaGlossario", func(g Glossario, a string) string {
+		if _, ok := linguaDa(a); !ok {
+			return "no"
+		}
+		if g.NonTradurre == nil {
+			g.NonTradurre = []string{}
+		}
 		muImp.Lock()
-		imp.Glossario = g
+		nuovo := imp.Glossario
+		nuovo.NonTradurre = g.NonTradurre
+		nuovo = nuovo.conTerminiPer(a, g.Termini)
+		if nuovo.Termini == nil {
+			nuovo.Termini = map[string]string{}
+		}
+		imp.Glossario = nuovo
 		muImp.Unlock()
 		salvaImp()
 		if traduttore != nil {
-			traduttore.ImpostaGlossario(g)
+			traduttore.ImpostaGlossario(nuovo)
 		}
 		return "ok"
 	})

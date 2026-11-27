@@ -607,9 +607,9 @@ else { Say 'Windows non mi ha lasciato cambiarlo (forse lo decide l''ufficio). P
 `)},
 	{ID: "of_net_slow", Name: "Internet è lento solo su questo PC", Desc: "Controlla segnale Wi-Fi, velocità del cavo, VPN e i programmi che scaricano o caricano in sottofondo (OneDrive, aggiornamenti). Ti dice cosa rallenta. Controlla e spiega.", Level: 0, Minutes: 0.2, Timeout: 2 * time.Minute, Script: ofs2(`
 $wi = (netsh.exe wlan show interfaces 2>$null) -join [char]10
-if ($wi -match '(?:Segnale|Signal)\s*:\s*(\d+)%') { $sig = [int]$Matches[1]; Say ('Segnale Wi-Fi: ' + $sig + '%.'); if ($sig -lt 50) { Say 'È debole: avvicinati al router, o usa il cavo. Muri e armadi di metallo lo bloccano molto.' } }
-if ($wi -match '(?:Banda|Band)\s*:\s*2[.,]4') { Say 'Sei collegato al Wi-Fi a 2,4 GHz (più lento e affollato): se il router ha la rete "5G" o "5GHz", collegati a quella.' }
-elseif ($wi -match '(?:Tipo radio|Tipo di radio|Radio type)\s*:\s*802\.11(b|g)\b') { Say 'Sei collegato al Wi-Fi in un modo vecchio e lento (802.11' + $Matches[1] + '): se il router ha la rete "5G" o "5GHz", collegati a quella.' }
+if ($wi -match '(?m)^\s*[^:\n]*?(?<!SSID)\s*:\s*(\d+)\s*%\s*$') { $sig = [int]$Matches[1]; Say ('Segnale Wi-Fi: ' + $sig + '%.'); if ($sig -lt 50) { Say 'È debole: avvicinati al router, o usa il cavo. Muri e armadi di metallo lo bloccano molto.' } }
+if ($wi -match ':\s*2[.,]4\s*GHz') { Say 'Sei collegato al Wi-Fi a 2,4 GHz (più lento e affollato): se il router ha la rete "5G" o "5GHz", collegati a quella.' }
+elseif ($wi -match '(?m):\s*802\.11(b|g)\s*$') { Say 'Sei collegato al Wi-Fi in un modo vecchio e lento (802.11' + $Matches[1] + '): se il router ha la rete "5G" o "5GHz", collegati a quella.' }
 foreach ($a in @(Get-NetAdapter -Physical -ErrorAction SilentlyContinue | Where-Object { [string]$_.Status -eq 'Up' -and $_.InterfaceDescription -notmatch 'Wi-?Fi|Wireless|WLAN|802\.11' })) { if ([string]$a.LinkSpeed -match '^(10|100) Mbps') { Say ('Il cavo va solo a ' + $a.LinkSpeed + ': cambialo, dovrebbe andare a 1 Gbps.') } }
 $vpn = @(Get-NetAdapter -ErrorAction SilentlyContinue | Where-Object { [string]$_.Status -eq 'Up' -and $_.InterfaceDescription -match 'VPN|TAP-|WireGuard|Fortinet|Cisco|AnyConnect|GlobalProtect|PANGP|Pulse|SonicWall|OpenVPN|Check Point' })
 if ($vpn.Count) { Say 'La VPN è accesa: tutto passa dal server dell''ufficio, ed è normale che vada più piano. Spegnila quando non ti serve.' }
@@ -676,7 +676,9 @@ foreach ($a in @(Get-NetAdapter -Physical -ErrorAction SilentlyContinue | Where-
   $f = Join-Path $dir ('rete-' + ($a.Name -replace '[^\w-]', '_') + '-' + (Get-Date -Format 'yyyyMMdd_HHmm') + '.txt')
   $ips = @(Get-NetIPAddress -InterfaceIndex $a.ifIndex -AddressFamily IPv4 -ErrorAction SilentlyContinue | ForEach-Object { $_.IPAddress + '/' + $_.PrefixLength })
   @('Impostazioni di rete messe a mano, salvate da Tasso il ' + (Get-Date -Format 'dd/MM/yyyy HH:mm'), ('Scheda: ' + $a.Name), ('Indirizzo IP: ' + ($ips -join ', ')), ('Gateway: ' + ($gw -join ', ')), ('DNS: ' + ($dns -join ', ')), '', 'Per rimetterle: Impostazioni > Rete e Internet > (Wi-Fi o Ethernet) > la tua rete > Assegnazione IP / DNS > Modifica > Manuale.') | Set-Content -LiteralPath $f -Encoding UTF8
+  $ipRimesso = $false
   if ($staticIp -and -not $works) {
+    $ipRimesso = $true
     Remove-NetRoute -InterfaceIndex $a.ifIndex -DestinationPrefix '0.0.0.0/0' -Confirm:$false -ErrorAction SilentlyContinue
     Remove-NetIPAddress -InterfaceIndex $a.ifIndex -AddressFamily IPv4 -PrefixOrigin Manual -Confirm:$false -ErrorAction SilentlyContinue
     Set-NetIPInterface -InterfaceIndex $a.ifIndex -Dhcp Enabled -ErrorAction SilentlyContinue
@@ -685,7 +687,8 @@ foreach ($a in @(Get-NetAdapter -Physical -ErrorAction SilentlyContinue | Where-
   [void](Run-Hidden 'ipconfig.exe' '/renew')
   Start-Sleep -Seconds 4
   $done++
-  Say ($a.Name + ': aveva ' + $(if ($staticIp) { 'indirizzo e DNS' } else { 'il DNS' }) + ' messi a mano che qui non funzionavano: ora sono automatici. I valori vecchi sono salvati in ' + $f)
+  Say ($a.Name + ': aveva ' + $(if ($ipRimesso) { 'indirizzo e DNS' } else { 'i DNS' }) + ' messi a mano che qui non funzionavano: ora sono automatici. I valori vecchi sono salvati in ' + $f)
+  if ($staticIp -and -not $ipRimesso) { Say ($a.Name + ': l''indirizzo fisso invece funziona e resta com''era.') }
 }
 if (-not $done) { Say 'Le schede di rete sono già in automatico (o le impostazioni a mano funzionano): non era questo il problema.'; return }
 if (Test-Internet) { Say 'Internet funziona.' } else { Say 'Internet ancora non va: prova "Il Wi-Fi non si collega" o "Risolvi problemi di internet".' }

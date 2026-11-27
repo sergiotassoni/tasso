@@ -699,7 +699,7 @@ foreach ($a in $wl) {
   } else { Say ($a.Name + ': il risparmio energetico non la spegne, ok.') }
 }
 $wi = (netsh wlan show interfaces) -join "§"
-$sig = ''; if ($wi -match '(?:Segnale|Signal)\s*:\s*(\d+)\s*%') { $sig = $Matches[1] }
+$sig = ''; if ($wi -match '(?:^|§)\s*[^§:]*?(?<!SSID)\s*:\s*(\d+)\s*%\s*(?=§|$)') { $sig = $Matches[1] } # riga con solo un numero e "%": vale in ogni lingua di Windows
 $ssid = ''; if ($wi -match '§\s*SSID\s*:\s*([^§]+)') { $ssid = $Matches[1].Trim() }
 if ($sig) {
   Say ('Collegato a "' + $ssid + '" con segnale al ' + $sig + '%.')
