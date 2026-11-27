@@ -892,6 +892,10 @@ func legami() map[string]interface{} {
 		// aggiornamenti.go
 		"goControllaAggiornamenti": goControllaAggiornamenti,
 		"goPaginaVersioni":         goPaginaVersioni,
+		// chiusura.go: la X della finestra con documenti modificati (F16-1)
+		"goDocumentiAperti": goDocumentiAperti,
+		"goChiusuraVista":   goChiusuraVista,
+		"goChiudiFinestra":  goChiudiFinestra,
 	}
 }
 
@@ -899,4 +903,4 @@ func legami() map[string]interface{} {
 var legamiSuFinestra = []string{"goScegli", "goSalva", "goSalvaTipo", "goSerieInizio"}
 
 // Funzioni veloci che non devono aspettare in coda dietro un lavoro lungo.
-var legamiSubito = []string{"goCaricaPezzo", "goDimentica", "goFileAvvio", "goTestoAdatto"}
+var legamiSubito = []string{"goCaricaPezzo", "goDimentica", "goFileAvvio", "goTestoAdatto", "goDocumentiAperti", "goChiusuraVista", "goChiudiFinestra"}

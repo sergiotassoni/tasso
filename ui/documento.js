@@ -245,6 +245,7 @@ function disegnaSchede() {
     box.appendChild(b);
   }
   disegnaAperti();
+  segnalaAperti();
 }
 
 async function chiudiScheda(sc) {
@@ -291,7 +292,7 @@ function aggiornaFasce() {
   if (!sc) return;
   const f = [];
   if (sc.riparato) f.push(["riparato", "giallo", t("riparato")]);
-  if (sc.info && sc.info.cifrato) f.push(["protetto", "giallo", t("fasciaProtetto")]);
+  if (sc.info && sc.info.cifrato) f.push(["protetto", "giallo", t(sc.info.conPassword ? "fasciaProtetto" : "fasciaBlocchi")]);
   if (sc.info && sc.info.firmatoDigitalmente) f.push(["firmaDigitale", "giallo", t("fasciaFirmaDigitale")]);
   if (sc.moduli) f.push(["moduli", "", t("fasciaModuli")]);
   for (const [k, c, testo] of f) {
@@ -388,7 +389,7 @@ export async function salvaCopiaDoc() {
   const suff = sc.riparato && !modificato(sc) && !tmp ? t("suffRiparato") : (modificato(sc) || tmp ? t("suffModificato") : t("suffCopia"));
   const p = await salva(id, nomeCon(sc.nome, suff));
   if (tmp) go("goDimentica", tmp.id).catch(() => { });
-  if (p) { sc.salvata = true; disegnaSchede(); }
+  if (p) { sc.salvata = true; if (tmp && doc) doc.annotationStorage.resetModified(); disegnaSchede(); }
   return p;
 }
 
@@ -705,7 +706,7 @@ function pProteggi(box) {
   });
 }
 
-const mb = n => (n / 1048576).toLocaleString(lingua, { maximumFractionDigits: n < 10485760 ? 2 : 1 }) + " MB";
+const mb = n => n < 1048576 ? Math.max(1, Math.round(n / 1024)).toLocaleString(lingua) + " KB" : (n / 1048576).toLocaleString(lingua, { maximumFractionDigits: n < 10485760 ? 2 : 1 }) + " MB";
 
 function pComprimi(box) {
   testoP(box, "d_comprimi");
@@ -724,8 +725,8 @@ function pComprimi(box) {
     if (!r) return;
     ultimo = r;
     ris.classList.remove("hidden");
-    if (r.dim < prima) {
-      const perc = Math.round((1 - r.dim / prima) * 100);
+    const perc = r.dim < prima ? Math.round((1 - r.dim / prima) * 100) : 0;
+    if (perc >= 1) {
       ris.innerHTML = `${t("compDa")}<b><span class="verde"></span></b><span></span>`;
       $(".verde", ris).textContent = t("daA", mb(prima), mb(r.dim));
       ris.lastChild.textContent = t("compPerc", perc);
@@ -1808,4 +1809,31 @@ export function linguaDocumento() {
 
 export function documentiAperti() { return D.schede.length; }
 export function salvaTutto() { return D.schede.some(s => !s.salvata); }
+
+// F16-1: la X della finestra e Alt+F4. Go chiede alla pagina (tassoChiudiFinestra) solo se ci
+// sono documenti aperti; con modifiche non salvate la finestra si chiude solo dopo la risposta.
+let numAperti = 0, ultimiAperti = null, chiusuraInCorso = false;
+function segnalaAperti() {
+  const on = D.schede.length > 0;
+  if (on === ultimiAperti) return;
+  ultimiAperti = on;
+  go("goDocumentiAperti", ++numAperti, on).catch(() => { ultimiAperti = null; });
+}
+function nonSalvate() {
+  const noteNuove = !!(appV && appV.pdfDocument && appV._annotationStorageModified);
+  return D.schede.filter(s => !s.salvata || (s === D.att && noteNuove));
+}
+window.tassoChiudiFinestra = async () => {
+  go("goChiusuraVista").catch(() => { });
+  if (chiusuraInCorso || $("#dMsg").classList.contains("on")) return; // prima si risponde alla domanda aperta
+  const mod = nonSalvate();
+  if (mod.length) {
+    chiusuraInCorso = true;
+    let r;
+    try { r = await chiedi(t("chiudiFinT"), t("chiudiFinD", mod.map(s => "• " + s.nome).join("\n")), [[t("chiudiSenza"), 1], [t("annulla"), 0, true]]); }
+    finally { chiusuraInCorso = false; }
+    if (r !== 1) return;
+  }
+  go("goChiudiFinestra").catch(e => avvisaErrore(e));
+};
 export const __doc = { D, E, O, apriOrganizza, usaStrumento: id => usaStrumento(strumento(id)), vaiSezione, applicaRapido, pagineDa, nuovaVersione };

@@ -991,7 +991,11 @@ async function gestisciFileTrascinati(files, sullaScheda) {
   const pdf = ok.filter(v => v.tipo === "pdf");
   switch (stato.vista) {
     case "unisci": return aggiungiAUnisci(ok);
-    case "firma": return pdf.length ? apriFirma(pdf[0], "", firma.alFine) : avvisa(t("e_non_pdf"));
+    case "firma":
+      if (!pdf.length) return avvisa(t("e_non_pdf"));
+      // F16-10: la firma aperta da un documento torna in quella scheda: un altro PDF non va mescolato.
+      if (firma.alFine) return avvisa(t("firmaAltroPdf", firma.voce ? firma.voce.nome : ""));
+      return apriFirma(pdf[0], "");
     case "sblocca": return pdf.length ? apriSblocca(pdf[0], stato.ritorno === "doc") : avvisa(t("e_non_pdf"));
     case "doc": return azione("auto", ok);
     default: return azione(sullaScheda || "auto", ok);
@@ -1031,8 +1035,7 @@ $("#toastX").onclick = () => $("#toast").classList.remove("on");
 $("#toastMostra").onclick = () => { if (ultimoSalvato) go("goMostra", ultimoSalvato).catch(() => {}); };
 // Informazioni, con la riga degli aggiornamenti: li gestisce Tasso (Tasso PDF non usa internet).
 $("#btnInfo").onclick = async () => {
-  const vxy = versione.split(".").slice(0, 2).join(".");
-  const r = await chiedi("Tasso PDF " + versione, t("infoTesto", versione) + "\n\n" + t("aggVersione", vxy) + "\n\n" + t("infoSicurezza") + "\n\n" + t("infoComponenti"),
+  const r = await chiedi("Tasso PDF " + versione, t("infoTesto", versione) + "\n\n" + t("aggVersione", versione) + "\n\n" + t("infoSicurezza") + "\n\n" + t("infoComponenti"),
     [[t("aggControlla"), "agg", false], [t("ok"), true, true]]);
   if (r !== "agg") return;
   const esito = await go("goControllaAggiornamenti").catch(() => "errore");

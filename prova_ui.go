@@ -21,6 +21,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"strings"
+	"time"
 )
 
 func main() {
@@ -52,6 +53,7 @@ func main() {
 		return filepath.Join(d, nome), nil
 	}
 	piattaforma.apriLink = func(u string) error { log.Printf("APRI LINK: %s", u); return nil }
+	chiudiFinestraVera = func() { log.Printf("CHIUDI FINESTRA") }
 	piattaforma.proteggi = func(b []byte) ([]byte, error) { return append([]byte("PROVA"), b...), nil }
 	piattaforma.svela = func(b []byte) ([]byte, error) {
 		if len(b) < 5 {
@@ -86,6 +88,12 @@ func main() {
 			}
 			w.Header().Set("Content-Type", "application/json")
 			_ = json.NewEncoder(w).Encode(out)
+			return
+		}
+		if r.URL.Path == "/prova/x" { // la X della finestra (F16-1): se "chiedi", la prova chiama tassoChiudiFinestra
+			resta, chiedi := chiusuraX(time.Now())
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode(map[string]bool{"resta": resta, "chiedi": chiedi})
 			return
 		}
 		if r.URL.Path == "/prova-rpc.js" {

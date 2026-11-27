@@ -99,6 +99,7 @@ export const TESTI = {
     e_password: "Serve la password giusta per aprire questo PDF.",
     e_password_proprietario: "Per questa operazione il PDF chiede la password del proprietario.",
     e_non_pdf: "Questo file non è un PDF.",
+    firmaAltroPdf: "Qui stai firmando «{0}», aperto dal documento. Per firmare un altro PDF torna indietro e aprilo da «Firma».",
     e_rovinato: "Il PDF è troppo rovinato per questa operazione.",
     e_non_protetto: "Questo PDF non ha né password né blocchi.",
     e_vuoto: "Non c'è niente da fare: aggiungi prima qualcosa.",
@@ -128,7 +129,7 @@ export const TESTI = {
     e_pezzo: "Problema con il file n. {0} ({1}): {2}",
   },
   en: {
-    sottotitolo: "Open, merge and sign your PDFs",
+    sottotitolo: "Open, edit, merge and sign your PDFs",
     cosa: "What do you want to do?",
     cosaSub: "Choose below. You can also drag files into this window.",
     // "Il tuo nome" (Ecosistema Tasso 3.2)
@@ -214,6 +215,7 @@ export const TESTI = {
     e_password: "The correct password is needed to open this PDF.",
     e_password_proprietario: "For this operation the PDF asks for the owner password.",
     e_non_pdf: "This file is not a PDF.",
+    firmaAltroPdf: "Here you are signing “{0}”, opened from the document. To sign another PDF, go back and open it from “Sign”.",
     e_rovinato: "The PDF is too damaged for this operation.",
     e_non_protetto: "This PDF has no password and no restrictions.",
     e_vuoto: "Nothing to do: add something first.",
@@ -243,7 +245,7 @@ export const TESTI = {
     e_pezzo: "Problem with file no. {0} ({1}): {2}",
   },
   es: {
-    sottotitolo: "Abre, une y firma tus PDF",
+    sottotitolo: "Abre, edita, une y firma tus PDF",
     cosa: "¿Qué quieres hacer?",
     cosaSub: "Elige abajo. También puedes arrastrar archivos a esta ventana.",
     // "Il tuo nome" (Ecosistema Tasso 3.2)
@@ -329,6 +331,7 @@ export const TESTI = {
     e_password: "Hace falta la contraseña correcta para abrir este PDF.",
     e_password_proprietario: "Para esta operación el PDF pide la contraseña del propietario.",
     e_non_pdf: "Este archivo no es un PDF.",
+    firmaAltroPdf: "Aquí estás firmando «{0}», abierto desde el documento. Para firmar otro PDF vuelve atrás y ábrelo desde «Firmar».",
     e_rovinato: "El PDF está demasiado dañado para esta operación.",
     e_non_protetto: "Este PDF no tiene contraseña ni restricciones.",
     e_vuoto: "No hay nada que hacer: añade algo primero.",
@@ -358,7 +361,7 @@ export const TESTI = {
     e_pezzo: "Problema con el archivo n.º {0} ({1}): {2}",
   },
   fr: {
-    sottotitolo: "Ouvrez, fusionnez et signez vos PDF",
+    sottotitolo: "Ouvrez, modifiez, fusionnez et signez vos PDF",
     cosa: "Que voulez-vous faire ?",
     cosaSub: "Choisissez ci-dessous. Vous pouvez aussi glisser des fichiers dans cette fenêtre.",
     // "Il tuo nome" (Ecosistema Tasso 3.2)
@@ -444,6 +447,7 @@ export const TESTI = {
     e_password: "Le bon mot de passe est nécessaire pour ouvrir ce PDF.",
     e_password_proprietario: "Pour cette opération, le PDF demande le mot de passe du propriétaire.",
     e_non_pdf: "Ce fichier n'est pas un PDF.",
+    firmaAltroPdf: "Vous signez ici « {0} », ouvert depuis le document. Pour signer un autre PDF, revenez en arrière et ouvrez-le depuis « Signer ».",
     e_rovinato: "Le PDF est trop abîmé pour cette opération.",
     e_non_protetto: "Ce PDF n'a ni mot de passe ni restrictions.",
     e_vuoto: "Rien à faire : ajoutez d'abord quelque chose.",
@@ -473,7 +477,7 @@ export const TESTI = {
     e_pezzo: "Problème avec le fichier n° {0} ({1}) : {2}",
   },
   de: {
-    sottotitolo: "PDFs öffnen, zusammenfügen und unterschreiben",
+    sottotitolo: "PDFs öffnen, bearbeiten, zusammenfügen und unterschreiben",
     cosa: "Was möchtest du tun?",
     cosaSub: "Wähle unten aus. Du kannst Dateien auch in dieses Fenster ziehen.",
     // "Il tuo nome" (Ecosistema Tasso 3.2)
@@ -559,6 +563,7 @@ export const TESTI = {
     e_password: "Zum Öffnen dieses PDFs wird das richtige Passwort benötigt.",
     e_password_proprietario: "Für diesen Vorgang verlangt das PDF das Besitzerpasswort.",
     e_non_pdf: "Diese Datei ist kein PDF.",
+    firmaAltroPdf: "Hier unterschreibst du „{0}“, geöffnet aus dem Dokument. Um ein anderes PDF zu unterschreiben, geh zurück und öffne es über „Unterschreiben“.",
     e_rovinato: "Das PDF ist für diesen Vorgang zu stark beschädigt.",
     e_non_protetto: "Dieses PDF hat weder Passwort noch Sperren.",
     e_vuoto: "Nichts zu tun: füge zuerst etwas hinzu.",
@@ -588,7 +593,7 @@ export const TESTI = {
     e_pezzo: "Problem mit Datei Nr. {0} ({1}): {2}",
   },
   pt: {
-    sottotitolo: "Abra, junte e assine os seus PDF",
+    sottotitolo: "Abra, edite, junte e assine os seus PDF",
     cosa: "O que quer fazer?",
     cosaSub: "Escolha abaixo. Também pode arrastar ficheiros para esta janela.",
     // "Il tuo nome" (Ecosistema Tasso 3.2)
@@ -668,12 +673,13 @@ export const TESTI = {
     aggTitolo: "Atualizações",
     aggVersione: "Versão {0} — Atualizações: é o Tasso que trata delas",
     aggControlla: "Procurar atualizações",
-    aggNonAperto: "O Tasso não abriu. Abre-o tu e vai a Definições → Atualizações.",
-    aggSenzaTasso: "O Tasso não está instalado neste PC, por isso ninguém procura atualizações. Queres abrir no navegador a página com as versões novas?",
+    aggNonAperto: "O Tasso não abriu. Abra-o e vá a Definições → Atualizações.",
+    aggSenzaTasso: "O Tasso não está instalado neste PC, por isso ninguém procura atualizações. Quer abrir no navegador a página com as versões novas?",
     aggApriPagina: "Abrir a página",
     e_password: "É precisa a palavra-passe certa para abrir este PDF.",
     e_password_proprietario: "Para esta operação o PDF pede a palavra-passe do proprietário.",
     e_non_pdf: "Este ficheiro não é um PDF.",
+    firmaAltroPdf: "Aqui está a assinar «{0}», aberto a partir do documento. Para assinar outro PDF, volte atrás e abra-o em «Assinar».",
     e_rovinato: "O PDF está demasiado danificado para esta operação.",
     e_non_protetto: "Este PDF não tem palavra-passe nem restrições.",
     e_vuoto: "Não há nada a fazer: adicione primeiro alguma coisa.",
@@ -703,7 +709,7 @@ export const TESTI = {
     e_pezzo: "Problema com o ficheiro n.º {0} ({1}): {2}",
   },
   pl: {
-    sottotitolo: "Otwieraj, łącz i podpisuj swoje pliki PDF",
+    sottotitolo: "Otwieraj, edytuj, łącz i podpisuj swoje pliki PDF",
     cosa: "Co chcesz zrobić?",
     cosaSub: "Wybierz poniżej. Możesz też przeciągnąć pliki do tego okna.",
     // "Il tuo nome" (Ecosistema Tasso 3.2)
@@ -789,6 +795,7 @@ export const TESTI = {
     e_password: "Do otwarcia tego PDF potrzebne jest prawidłowe hasło.",
     e_password_proprietario: "Do tej operacji PDF wymaga hasła właściciela.",
     e_non_pdf: "Ten plik nie jest plikiem PDF.",
+    firmaAltroPdf: "Tutaj podpisujesz „{0}”, otwarty z dokumentu. Aby podpisać inny PDF, wróć i otwórz go z „Podpisz”.",
     e_rovinato: "PDF jest zbyt uszkodzony do tej operacji.",
     e_non_protetto: "Ten PDF nie ma hasła ani ograniczeń.",
     e_vuoto: "Nie ma nic do zrobienia: najpierw coś dodaj.",

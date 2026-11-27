@@ -88,6 +88,8 @@ SICUREZZA
 
 DOVE TIENE I SUOI DATI
 %LOCALAPPDATA%\Tasso PDF : lingua scelta, firma salvata (protetta), dati di WebView2.
+Il tuo nome: HKCU\Software\Tasso\Nome, lo stesso di Tasso e Tasso Zip; resta sul PC.
+Lo toglie il disinstallatore con l'ultimo programma.
 Lingua: quella scelta in alto; altrimenti quella dell'installatore di Tasso
 (HKCU\Software\Tasso\Lingua); altrimenti quella di Windows.
 Lingue: italiano, inglese, spagnolo, francese, tedesco, portoghese, polacco.
@@ -145,6 +147,11 @@ disappears), Export to PNG/JPG images or .txt text. Every change is a new versio
 ("Undo last change"); nothing is written until "Save a copy". Letters missing from the
 standard PDF fonts (e.g. Polish ł) are added as an image. Optional right-click menu
 ("Tasso PDF" submenu, per-user, no admin rights).
+
+WHERE IT KEEPS ITS DATA
+%LOCALAPPDATA%\Tasso PDF : chosen language, saved signature (protected), WebView2 data.
+Your name: HKCU\Software\Tasso\Nome, the same as Tasso and Tasso Zip; it stays on this PC.
+The uninstaller removes it together with the last program.
 
 WHAT IT DOES NOT DO
 No digital (advanced/qualified) signatures, no editing of existing text, no OCR, no Word/Excel

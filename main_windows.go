@@ -126,6 +126,13 @@ func main() {
 	hwndPrincipale = uintptr(w.Window())
 	w.SetSize(900, 620, webview2.HintMin)
 
+	// La X e Alt+F4 con documenti aperti: prima chiedo alla pagina (F16-1, vedi chiusura.go).
+	chiudiFinestraVera = w.Destroy
+	chiediChiusuraPagina = func() {
+		w.Dispatch(func() { w.Eval("window.tassoChiudiFinestra && window.tassoChiudiFinestra()") })
+	}
+	webview2.ChiusuraHook = suChiusuraX
+
 	for _, n := range legamiSuFinestra {
 		webview2.SuFinestra[n] = true
 	}
