@@ -302,20 +302,43 @@ function attesaFine(){ clearInterval(attesaTasso.timer); attesaTasso.timer = nul
 const nomeComp = id => T('comp_' + id + '_nome');
 // "Come ti chiami?" (3.2): le stesse regole di installa/nome.go (e di Tasso, nomeutente):
 // da 2 a 20 caratteri; lettere (anche accentate), numeri, spazio, punto, - e _; almeno una lettera o un numero.
-function nomePulisci(s){ return String(s == null ? '' : s).replace(/\s+/g, ' ').trim(); }
-function nomeControlla(s){
+/* ==== REGOLE DEL NOME: INIZIO ====
+   Uguali, carattere per carattere, nelle pagine di Tasso, installatore, Tasso Zip e Tasso PDF, e
+   uguali alle regole in Go (Controlla). Stessi elenchi espliciti di blocchi e di caratteri invisibili,
+   così la pagina e Go danno lo stesso esito anche con versioni diverse di Unicode. */
+const NOME_MIN = 2, NOME_MAX = 20, NOME_MAX_ACCENTI = 3;
+const NOME_BLOCCHI = [
+  [0x0030, 0x0039], [0x0041, 0x005A], [0x0061, 0x007A], [0x00C0, 0x024F], [0x0300, 0x036F],
+  [0x0370, 0x03FF], [0x0400, 0x052F], [0x0531, 0x058F], [0x0591, 0x05FF], [0x0600, 0x06FF],
+  [0x0900, 0x097F], [0x0E00, 0x0E7F], [0x10A0, 0x10FF], [0x1E00, 0x1FFF], [0x3040, 0x30FF],
+  [0x3400, 0x4DBF], [0x4E00, 0x9FFF], [0xAC00, 0xD7A3],
+];
+const NOME_INVISIBILI = [
+  [0x0000, 0x001F], [0x007F, 0x009F], [0x00AD, 0x00AD], [0x034F, 0x034F], [0x0600, 0x0605],
+  [0x061C, 0x061C], [0x06DD, 0x06DD], [0x115F, 0x1160], [0x17B4, 0x17B5], [0x180B, 0x180F],
+  [0x2000, 0x200F], [0x2028, 0x202F], [0x205F, 0x206F], [0x3000, 0x3000], [0x3164, 0x3164],
+  [0xFE00, 0xFE0F], [0xFEFF, 0xFEFF], [0xFFA0, 0xFFA0], [0xFFF0, 0xFFFB], [0xE0000, 0xE0FFF],
+];
+function nomeDentro(c, t) { for (const x of t) if (c >= x[0] && c <= x[1]) return true; return false; }
+function nomePulisci(s) { return String(s == null ? "" : s).replace(/[\t\n\v\f\r \u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000\ufeff]+/g, " ").trim(); }
+function nomeControlla(s) {
   const c = [...s];
-  if (c.length < 2) return {codice: 'corto'};
-  if (c.length > 20) return {codice: 'lungo'};
-  for (let i = 0; i < c.length; i++) {
-    const r = c[i];
-    if (r === ' ' || r === '.' || r === '-' || r === '_' || /^[\p{L}\p{Nd}]$/u.test(r) || (i > 0 && /^\p{M}$/u.test(r))) continue;
-    if (/^[\p{C}\p{Z}]$/u.test(r)) return {codice: 'invisibile'};
-    return {codice: 'simbolo', simbolo: r};
+  if (c.length < NOME_MIN) return { codice: "corto" };
+  if (c.length > NOME_MAX) return { codice: "lungo" };
+  let lettera = false, dopoLettera = false, accenti = 0;
+  for (const r of c) {
+    const k = r.codePointAt(0);
+    if (r === " " || r === "." || r === "-" || r === "_") { dopoLettera = false; accenti = 0; }
+    else if (nomeDentro(k, NOME_INVISIBILI)) return { codice: "invisibile" };
+    else if (!nomeDentro(k, NOME_BLOCCHI)) return { codice: "simbolo", simbolo: r };
+    else if (/^[\p{L}\p{Nd}]$/u.test(r)) { lettera = true; dopoLettera = true; accenti = 0; }
+    else if (/^\p{M}$/u.test(r)) { accenti++; if (!dopoLettera || accenti > NOME_MAX_ACCENTI) return { codice: "accenti" }; }
+    else return { codice: "simbolo", simbolo: r };
   }
-  return c.some(r => /^[\p{L}\p{Nd}]$/u.test(r)) ? {codice: ''} : {codice: 'senza'};
+  return lettera ? { codice: "" } : { codice: "senza" };
 }
-const NOME_ERR = {corto: 'nome_err_corto', lungo: 'nome_err_lungo', simbolo: 'nome_err_simb', invisibile: 'nome_err_invis', senza: 'nome_err_senza'};
+/* ==== REGOLE DEL NOME: FINE ==== */
+const NOME_ERR = {corto: 'nome_err_corto', lungo: 'nome_err_lungo', simbolo: 'nome_err_simb', invisibile: 'nome_err_invis', senza: 'nome_err_senza', accenti: 'nome_err_accenti'};
 // Aggiorna il campo (bordo, contatore, errore gentile in arancione, saluto di prova) e Avanti.
 function nomeCampo(){
   const p = nomePulisci($('#nome').value), e = nomeControlla(p), ok = !e.codice, err = !!p && !ok;
@@ -328,6 +351,17 @@ function nomeCampo(){
   if (ok) $('#nomeSaluto').lastElementChild.textContent = T('nome_esempio', p);
   if (P === 8) $('#bAvanti').disabled = !ok;
   return {ok, p};
+}
+// Go ha l'ultima parola sul nome (P4): l'errore di Go si mostra come quelli della pagina.
+function nomeErrGo(r){
+  const box = $('#nomeErr'); box.hidden = false; box.lastElementChild.textContent = T(NOME_ERR[r.errore] || 'nome_err_invis', r.simbolo || '');
+  $('#nomeBox').classList.remove('ok'); $('#nomeBox').classList.add('err'); $('#nomeOk').toggleAttribute('hidden', true);
+  $('#nomeSaluto').hidden = true; $('#nomeRegole').hidden = false; $('#bAvanti').disabled = true; $('#nome').focus();
+}
+async function nomeGo(){
+  const r = await call('goNomeControlla', $('#nome').value);
+  if (r && r.errore) { nomeErrGo(r); return false; }
+  return true;
 }
 const compScelti = () => A.componenti.map(c => c.id).filter(id => scelti[id]);
 
@@ -419,6 +453,7 @@ async function installa(ripeti){
   $('#barra').style.width = '0'; $('#perc').textContent = '0%'; $('#fase').textContent = T('fase_prepara');
   vai(3);
   const r = await call('goInstalla', opz);
+  if (r && r.codice === 'nome') { lavoro = false; vai(8); nomeErrGo(r); return; } // Go non accetta il nome: si torna al passo del nome
   if (r !== 'ok') { lavoro = false; mostraErrore(r); }
 }
 function chiediChiusura(nomi){
@@ -471,7 +506,7 @@ window.TS = {
 
 $('#bAvanti').onclick = async () => {
   if (P === 0) { vai(8); return; }
-  if (P === 8) { if (!nomeCampo().ok) return; vai(1); return; }
+  if (P === 8) { if (!nomeCampo().ok) return; if (!await nomeGo()) return; vai(1); return; }
   if (P === 1) { if (!compScelti().length) { msg(T('comp_nessuno')); return; } vai(2); return; }
   if (P === 2) { installa(); return; }
   if (P === 4) { const ids = [...document.querySelectorAll('#apri input:checked')].map(i => i.dataset.id); await call('goApri', ids); call('goChiudi'); return; }
