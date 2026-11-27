@@ -757,16 +757,73 @@ func fmtBytes(b int64) string {
 	}
 }
 
-func analyze() {
-	r := runPS(analyzeScript, 3*time.Minute, nil)
-	var data map[string]interface{}
-	if r.JSON != "" {
-		_ = json.Unmarshal([]byte(r.JSON), &data)
-	}
-	emit("onAnalysis", data)
+// lettura: un controllo lungo (PowerShell) che risponde alla pagina con un emit. Ne gira uno solo
+// alla volta; dopo un cambio di lingua (riusa) la pagina nuova riceve l'ultimo risultato già pronto
+// invece di far ripartire un altro PowerShell (i18n.go: la pagina si ricarica a ogni cambio).
+type lettura struct {
+	mu      sync.Mutex
+	inCorso bool
+	ancora  bool // chiesta di nuovo mentre girava (es. dopo una pulizia): rifaccio una volta
+	dati    map[string]interface{}
 }
 
-func hardwareInfo() {
+func (l *lettura) chiedi(riusa bool, evento string, f func() map[string]interface{}) {
+	l.mu.Lock()
+	if l.inCorso { // il risultato arriverà comunque alla pagina di adesso
+		l.ancora = l.ancora || !riusa
+		l.mu.Unlock()
+		return
+	}
+	if riusa && l.dati != nil {
+		d := l.dati
+		l.mu.Unlock()
+		emit(evento, d)
+		return
+	}
+	l.inCorso = true
+	l.mu.Unlock()
+	go func() {
+		defer guard("runner.go:lettura " + evento)
+		defer func() { // anche se f si ferma con un errore, la prossima richiesta può ripartire
+			l.mu.Lock()
+			l.inCorso, l.ancora = false, false
+			l.mu.Unlock()
+		}()
+		for {
+			d := f()
+			l.mu.Lock()
+			if d != nil {
+				l.dati = d
+			}
+			di := l.ancora
+			l.ancora = false
+			l.mu.Unlock()
+			if !di {
+				emit(evento, d)
+				return
+			}
+		}
+	}()
+}
+
+var letturaAnalisi, letturaHardware lettura
+
+func analyze(riusa bool) {
+	letturaAnalisi.chiedi(riusa, "onAnalysis", func() map[string]interface{} {
+		r := runPS(analyzeScript, 3*time.Minute, nil)
+		var data map[string]interface{}
+		if r.JSON != "" {
+			_ = json.Unmarshal([]byte(r.JSON), &data)
+		}
+		return data
+	})
+}
+
+func hardwareInfo(riusa bool) {
+	letturaHardware.chiedi(riusa, "onHardware", leggiHardware)
+}
+
+func leggiHardware() map[string]interface{} {
 	r := runPS(hardwareScript, 2*time.Minute, nil)
 	var data map[string]interface{}
 	if r.JSON != "" {
@@ -781,7 +838,7 @@ func hardwareInfo() {
 			}
 		}
 	}
-	emit("onHardware", data)
+	return data
 }
 
 var modeMu sync.Mutex

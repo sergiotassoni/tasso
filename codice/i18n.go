@@ -17,6 +17,8 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"tasso/traduce"
 )
 
 //go:embed i18n/en.json i18n/es.json i18n/fr.json i18n/de.json
@@ -255,24 +257,56 @@ var (
 	linguaGen atomic.Int64 // quante volte la pagina si è ricaricata per la lingua
 	// lavoriSoloLettura: controlli che leggono e basta (molti partono da soli all'apertura): non
 	// fermano il cambio di lingua, il risultato arriva alla pagina nuova come prima.
-	lavoriSoloLettura = map[string]bool{"health": true, "startup": true, "library": true}
-	soloControlloAgg  atomic.Bool // "update" sta solo controllando se c'è una versione nuova (main.go)
+	// Alcuni nomi valgono per leggere e per scrivere (startup, bloat, updates, drvcheck, perf): così le due
+	// cose non girano mai insieme. La scrittura si segna a parte con scrittura(nome) e blocca sempre.
+	lavoriSoloLettura = map[string]bool{"health": true, "startup": true, "library": true, "programs": true,
+		"bloat": true, "updates": true, "drvcheck": true, "net": true, "perf": true, "gpudrvcheck": true, "detect": true}
+	scrittureMu      sync.Mutex
+	scritture        = map[string]int{} // nome -> scritture in corso
+	soloControlloAgg atomic.Bool        // "update" sta solo controllando se c'è una versione nuova (main.go)
 )
 
 // maxRicariche: dopo tante ricariche Tasso si riapre come prima (ogni ricarica lascia nella
 // WebView il suo dizionario per le pagine nuove: così la memoria non cresce senza fine).
 const maxRicariche = 12
 
+// scrittura: segna che il lavoro "nome" sta cambiando qualcosa (non solo leggendo).
+// Si usa con defer scrittura("nome")() all'inizio del lavoro.
+func scrittura(nome string) func() {
+	scrittureMu.Lock()
+	scritture[nome]++
+	scrittureMu.Unlock()
+	return func() {
+		scrittureMu.Lock()
+		if scritture[nome]--; scritture[nome] <= 0 {
+			delete(scritture, nome)
+		}
+		scrittureMu.Unlock()
+	}
+}
+
+func staScrivendo(nome string) bool {
+	scrittureMu.Lock()
+	defer scrittureMu.Unlock()
+	return scritture[nome] > 0
+}
+
 // lavoroCheBlocca: c'è un lavoro vero in corso (pulizia, Boost, driver, aggiornamento...).
 // Il solo controllo degli aggiornamenti non blocca; lo scaricamento e l'aggiornamento sì.
 func lavoroCheBlocca() bool {
-	if isRunning() || updating.Load() {
+	if isRunning() || updating.Load() || traduce.StaInstallando() {
 		return true
 	}
 	busyMu.Lock()
-	defer busyMu.Unlock()
+	attivi := []string{}
 	for k, v := range busy {
-		if v && !lavoriSoloLettura[k] && !(k == "update" && soloControlloAgg.Load()) {
+		if v {
+			attivi = append(attivi, k)
+		}
+	}
+	busyMu.Unlock()
+	for _, k := range attivi {
+		if (!lavoriSoloLettura[k] || staScrivendo(k)) && !(k == "update" && soloControlloAgg.Load()) {
 			return true
 		}
 	}
@@ -311,6 +345,8 @@ func scriptLingua(gen int64) string {
 }
 
 // setLang cambia la lingua: la finestra si ricarica subito nella lingua nuova.
+// Risposte: "ok" (la pagina si ricarica), "ok-riapre" (Tasso si chiude e si riapre),
+// "ok-manual" (salvata, vale alla prossima apertura), oppure il messaggio "Tasso sta lavorando".
 func setLang(l string) string {
 	if !linguaDisponibile(l) {
 		return "no"
@@ -319,8 +355,14 @@ func setLang(l string) string {
 	if !modeMu.TryLock() {
 		return occupatoIn(l)
 	}
-	defer modeMu.Unlock()
-	if lavoroCheBlocca() {
+	tieni := false // Tasso si riapre: modeMu resta preso fino alla chiusura
+	defer func() {
+		if !tieni {
+			modeMu.Unlock()
+		}
+	}()
+	riapri := wv != nil && linguaGen.Load() >= maxRicariche
+	if lavoroCheBlocca() || (riapri && occupatoPerRiaprire()) {
 		return occupatoIn(l)
 	}
 	updateSettings(func(s *Settings) { s.Lang = l })
@@ -328,10 +370,12 @@ func setLang(l string) string {
 	if wv == nil {
 		return "ok-manual"
 	}
-	gen := linguaGen.Add(1)
-	if gen > maxRicariche {
-		return riapriInLingua()
+	if riapri {
+		r := riapriInLingua()
+		tieni = r == "ok-riapre"
+		return r
 	}
+	gen := linguaGen.Add(1)
 	js := scriptLingua(gen)
 	scriviAvvio("cambio lingua: " + l)
 	wv.Dispatch(func() {
@@ -341,7 +385,34 @@ func setLang(l string) string {
 	return "ok"
 }
 
-// riapriInLingua: come prima della 3.2, Tasso si chiude e si riapre (solo dopo tante ricariche).
+// occupatoPerRiaprire: per chiudere Tasso non deve girare niente, neanche una lettura
+// (come prima della 3.2), né l'installazione della traduzione in un gioco.
+func occupatoPerRiaprire() bool {
+	return isRunning() || updating.Load() || otherBusy("") || traduce.StaInstallando()
+}
+
+// riapriLinguaScelta: la pagina nuova non è arrivata entro 4 secondi (goRiapriLingua):
+// Tasso si riapre nella lingua già salvata.
+func riapriLinguaScelta() string {
+	if wv == nil {
+		return "ok-manual"
+	}
+	if !modeMu.TryLock() {
+		return occupatoIn(curLang())
+	}
+	if occupatoPerRiaprire() {
+		modeMu.Unlock()
+		return occupatoIn(curLang())
+	}
+	r := riapriInLingua()
+	if r != "ok-riapre" {
+		modeMu.Unlock()
+	} // se no resta preso fino alla chiusura
+	return r
+}
+
+// riapriInLingua: come prima della 3.2, Tasso si chiude e si riapre (dopo tante ricariche, o se la
+// pagina nuova non arriva). Chi la chiama tiene modeMu fino alla chiusura.
 func riapriInLingua() string {
 	exe, err := os.Executable()
 	if err != nil {
@@ -352,12 +423,13 @@ func riapriInLingua() string {
 	if cmd.Start() != nil {
 		return "ok-manual"
 	}
+	scriviAvvio("cambio lingua: Tasso si riapre")
 	go func() {
 		defer guard("i18n.go:riapri")
 		time.Sleep(300 * time.Millisecond)
 		wv.Dispatch(func() { wv.Terminate() })
 	}()
-	return "ok"
+	return "ok-riapre"
 }
 
 // occupatoIn: "Tasso sta lavorando" nella lingua appena scelta (quella di adesso può essere un'altra).

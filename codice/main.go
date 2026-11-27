@@ -234,7 +234,7 @@ func main() {
 	// protetti dai loro lucchetti (gdMu, acMu, e async per il Boost), quindi possono partire subito.
 	// Anche il cambio di lingua (i18n.go): è veloce e non deve aspettare dietro un lavoro lento,
 	// se no i pulsanti delle lingue restano spenti per qualche secondo.
-	for _, n := range []string{"goCancel", "goIsRunning", "goLive", "goHwWatch", "goGpuDrvCancel", "goAutoClickStop", "goBoostAllOff", "goPronto", "goIconaTema", "goSetLang"} {
+	for _, n := range []string{"goCancel", "goIsRunning", "goLive", "goHwWatch", "goGpuDrvCancel", "goAutoClickStop", "goBoostAllOff", "goPronto", "goIconaTema", "goSetLang", "goRiapriLingua"} {
 		webview2.Subito[n] = true
 	}
 	bindAll(w)
@@ -590,8 +590,9 @@ func bindAll(w webview2.WebView) {
 		acDisarm()
 		return "ok"
 	})
-	_ = w.Bind("goAnalyze", func() string { go analyze(); return "ok" })
-	_ = w.Bind("goHardware", func() string { go hardwareInfo(); return "ok" })
+	// riusa (dopo un cambio di lingua): l'ultimo risultato già pronto, senza un altro PowerShell (runner.go)
+	_ = w.Bind("goAnalyze", func(riusa ...bool) string { analyze(len(riusa) > 0 && riusa[0]); return "ok" })
+	_ = w.Bind("goHardware", func(riusa ...bool) string { hardwareInfo(len(riusa) > 0 && riusa[0]); return "ok" })
 	_ = w.Bind("goLive", func() map[string]interface{} { return liveStats() })
 	_ = w.Bind("goHwWatch", func() map[string]interface{} { return hwWatch() })
 	// fine: "acceso" / "riavvia" / "spegni" (Quando ha finito; dalla 3.1 arrivava un vero/falso =
@@ -659,7 +660,7 @@ func bindAll(w webview2.WebView) {
 	})
 	_ = w.Bind("goStartupList", func() string { return async("startup", startupList) })
 	_ = w.Bind("goStartupSet", func(scope, name string, enable bool) string {
-		return async("startup", func() { startupSet(scope, name, enable) })
+		return async("startup", func() { defer scrittura("startup")(); startupSet(scope, name, enable) })
 	})
 	_ = w.Bind("goPrograms", func() string { return async("programs", programsList) })
 	_ = w.Bind("goUninstall", func(key string) string { return async("uninstall", func() { uninstallProgram(key) }) })
@@ -671,12 +672,14 @@ func bindAll(w webview2.WebView) {
 	_ = w.Bind("goDesktopShortcut", func() string { return desktopShortcut() })
 	_ = w.Bind("goPerfScan", func() string { return async("perf", perfScan) })
 	_ = w.Bind("goPerfProfile", func(id string, on bool) string {
-		return bgCall("perf", id, func() string { return setPerfProfile(on) })
+		return bgCall("perf", id, func() string { defer scrittura("perf")(); return setPerfProfile(on) })
 	})
 	_ = w.Bind("goPerfTool", func(id string) string { return openPerfTool(id) })
 	_ = w.Bind("goSetAlert", func(key string, on bool) string { return setAlert(key, on) })
 	_ = w.Bind("goBloat", func() string { return async("bloat", bloatScan) })
-	_ = w.Bind("goBloatRemove", func(ids []string) string { return async("bloat", func() { bloatRemove(ids) }) })
+	_ = w.Bind("goBloatRemove", func(ids []string) string {
+		return async("bloat", func() { defer scrittura("bloat")(); bloatRemove(ids) })
+	})
 	_ = w.Bind("goScanFiles", func(extra string, minMB int) string { return async("files", func() { filesScan(extra, minMB) }) })
 	_ = w.Bind("goPickScanFolder", func() string { return async("pickfolder", pickScanFolder) })
 	_ = w.Bind("goRecycle", func(paths []string, kind string) string {
@@ -709,7 +712,9 @@ func bindAll(w webview2.WebView) {
 	_ = w.Bind("goDetIgnore", func(id string, on bool) string { return setDetIgnored(id, on) })
 	_ = w.Bind("goSpeedTest", func() string { return async("speed", speedTest) })
 	_ = w.Bind("goUpdatesList", func() string { return async("updates", updatesList) })
-	_ = w.Bind("goUpdatesApply", func(ids []string) string { return async("updates", func() { updatesApply(ids) }) })
+	_ = w.Bind("goUpdatesApply", func(ids []string) string {
+		return async("updates", func() { defer scrittura("updates")(); updatesApply(ids) })
+	})
 	_ = w.Bind("goBench", func() string { return async("bench", benchNow) })
 	_ = w.Bind("goBenchHistory", func() []benchResult { return benchHistory() })
 	_ = w.Bind("goSetBenchAround", func(on bool) string { return setBenchAround(on) })
@@ -766,6 +771,7 @@ func bindAll(w webview2.WebView) {
 	})
 	_ = w.Bind("goPurgeStandby", func() string { return purgeStandby() })
 	_ = w.Bind("goSetLang", func(l string) string { return setLang(l) })
+	_ = w.Bind("goRiapriLingua", func() string { return riapriLinguaScelta() })
 	_ = w.Bind("goGpuReset", func() string { return resetGpuDriver() })
 	_ = w.Bind("goGameTune", func(id string) string { return async("tune", func() { gameTuneInfo(id) }) })
 	_ = w.Bind("goGameTuneApply", func(id, preset string, o tuneOpts) string {
@@ -818,7 +824,9 @@ func bindAll(w webview2.WebView) {
 	_ = w.Bind("goIcons", func(req map[string][]string) string { return queueIcons(req) })
 	_ = w.Bind("goDrivers", func() string { return async("drivers", driversScan) })
 	_ = w.Bind("goDriversCheck", func() string { return async("drvcheck", driversCheck) })
-	_ = w.Bind("goDriversInstall", func(ids []string) string { return async("drvcheck", func() { driversInstall(ids) }) })
+	_ = w.Bind("goDriversInstall", func(ids []string) string {
+		return async("drvcheck", func() { defer scrittura("drvcheck")(); driversInstall(ids) })
+	})
 	_ = w.Bind("goDriverFix", func(id string) string { return async("drvfix", func() { driverFix(id) }) })
 	_ = w.Bind("goDriversAuto", func(on bool) string { return setDriversAuto(on) })
 	_ = w.Bind("goVendorPage", func(id string) string { return openVendorPage(id) })
