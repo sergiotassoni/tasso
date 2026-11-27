@@ -1,6 +1,6 @@
 package installa
 
-// Diario: un file di testo semplice (%TEMP%\TassoSetup.log) con ogni passo e l'errore esatto.
+// Diario: un file di testo semplice (%ProgramData%\TassoSetup\TassoSetup.log, vedi lavoro.go) con ogni passo e l'errore esatto.
 // Si aggiunge in fondo; se supera 2 MB il vecchio diventa TassoSetup.log.1.
 
 import (

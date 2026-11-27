@@ -1150,3 +1150,85 @@ func togliCollegamentoVecchio(base string) {
 	err = togliFile(lnk)
 	installa.Diario("%s portava a %s (Tasso tolto): via (errore: %v)", lnk, dest, err)
 }
+
+// ---------------- cartella di lavoro dell'installatore ----------------
+
+// cartellaLavoro: %ProgramData%\TassoSetup con i permessi di Programmi (sddlTasso), per il diario
+// e i dati della WebView2. L'installatore parte da amministratore: in %TEMP% dell'utente un altro
+// programma potrebbe cambiare quei file mentre li uso. "" se non si può: allora uso %TEMP% come prima.
+func cartellaLavoro() string {
+	pd := cartellaNota(windows.FOLDERID_ProgramData, "")
+	if pd == "" {
+		return ""
+	}
+	base := filepath.Join(pd, installa.NomeCartellaLavoro)
+	sd, err := windows.SecurityDescriptorFromString(sddlTasso)
+	if err != nil {
+		return ""
+	}
+	fi, err := os.Lstat(base)
+	if err != nil && !os.IsNotExist(err) {
+		return ""
+	}
+	esiste := err == nil
+	cartella, coll, admin := false, false, false
+	if esiste {
+		cartella = fi.IsDir()
+		coll = fi.Mode()&(fs.ModeSymlink|fs.ModeIrregular) != 0 || collegamentoWin(base)
+		admin = proprietarioAdmin(base)
+	}
+	switch installa.DecidiCartellaLavoro(esiste, cartella, coll, admin) {
+	case installa.LavoroUsa:
+		// dentro=false: i file dentro li ho messi io (gli utenti non possono scrivere lì)
+		if proteggiAlbero(base, sd, false) != nil {
+			return ""
+		}
+		return base
+	case installa.LavoroSpostaVia:
+		// messa lì da qualcun altro: la sposto via (una giunzione si sposta, non si segue)
+		if os.Rename(base, base+".vecchia-"+strconv.FormatInt(time.Now().UnixNano(), 36)) != nil {
+			return ""
+		}
+	}
+	p, err := windows.UTF16PtrFromString(base)
+	if err != nil {
+		return ""
+	}
+	sa := &windows.SecurityAttributes{Length: uint32(unsafe.Sizeof(windows.SecurityAttributes{})), SecurityDescriptor: sd}
+	if windows.CreateDirectory(p, sa) != nil {
+		return ""
+	}
+	return base
+}
+
+// collegamentoWin: p è un reparse point (collegamento simbolico, giunzione...).
+func collegamentoWin(p string) bool {
+	u, err := windows.UTF16PtrFromString(p)
+	if err != nil {
+		return true
+	}
+	a, err := windows.GetFileAttributes(u)
+	if err != nil {
+		return true
+	}
+	return a&windows.FILE_ATTRIBUTE_REPARSE_POINT != 0
+}
+
+// togliDatiWebView2Vecchi: le cartelle della WebView2 rimaste da installazioni chiuse male.
+func togliDatiWebView2Vecchi(base string) {
+	if base == "" {
+		return
+	}
+	voci, err := os.ReadDir(base)
+	if err != nil {
+		return
+	}
+	for _, v := range voci {
+		if !v.IsDir() || v.Type()&(fs.ModeSymlink|fs.ModeIrregular) != 0 {
+			continue
+		}
+		if info, err := v.Info(); err == nil && installa.DatiWebView2Vecchi(v.Name(), info.ModTime(), time.Now()) {
+			_ = os.RemoveAll(filepath.Join(base, v.Name()))
+		}
+	}
+}

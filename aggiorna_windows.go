@@ -272,7 +272,7 @@ func conBarra(lavoro func(avanza func(testo string, perc int, errore bool)) int)
 	if v, err := webviewloader.GetInstalledVersion(); err != nil || v == "" {
 		return lavoro(func(string, int, bool) {})
 	}
-	dati, _ := os.MkdirTemp("", "TassoSetup-WebView2-")
+	dati := nuoviDatiWebView2()
 	defer togliDatiWebView2(dati)
 	scala := scalaSchermo()
 	var finito atomic.Bool

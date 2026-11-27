@@ -47,6 +47,8 @@ var (
 	// --scegli=gaming,ufficio: nel disinstallatore sono già spuntati solo questi (lo usa
 	// "Togli Tasso dal PC" dentro Tasso). Si possono sempre cambiare.
 	preScelti []installa.Componente
+	// cartellaLav: la cartella protetta per diario e dati della WebView2 ("" = %TEMP%, come prima)
+	cartellaLav string
 )
 
 func L() string {
@@ -58,7 +60,13 @@ func L() string {
 
 func main() {
 	protezioneAvvio()
-	installa.ImpostaDiario(filepath.Join(os.TempDir(), installa.NomeDiario))
+	cartellaLav = cartellaLavoro() // %ProgramData%\TassoSetup, solo gli amministratori la cambiano
+	if cartellaLav != "" {
+		installa.ImpostaDiario(filepath.Join(cartellaLav, installa.NomeDiario))
+	} else {
+		installa.ImpostaDiario(filepath.Join(os.TempDir(), installa.NomeDiario))
+		installa.Diario("cartella protetta per il diario non disponibile: uso %%TEMP%%")
+	}
 	installa.Diario("---- Tasso Setup avviato (%s), argomenti %q", versioneSetup(), os.Args[1:])
 	modoDisins = !pacco.Pieno
 	lingua.Store(testi.DaWindows(linguaWindows()))
@@ -133,7 +141,8 @@ func main() {
 		return
 	}
 
-	dati, _ := os.MkdirTemp("", "TassoSetup-WebView2-")
+	togliDatiWebView2Vecchi(cartellaLav)
+	dati := nuoviDatiWebView2()
 	defer func() {
 		togliDatiWebView2(dati)
 		cancellaAllUscita()
@@ -169,6 +178,18 @@ func main() {
 	w.SetHtml(ui.Pagina())
 	w.Run()
 	w.Destroy()
+}
+
+// nuoviDatiWebView2: una cartella nuova per i dati della WebView2, dentro la cartella protetta
+// (se non si può, in %TEMP% come prima).
+func nuoviDatiWebView2() string {
+	if cartellaLav != "" {
+		if d, err := os.MkdirTemp(cartellaLav, installa.PrefissoDatiWebView2); err == nil {
+			return d
+		}
+	}
+	d, _ := os.MkdirTemp("", "TassoSetup-"+installa.PrefissoDatiWebView2)
+	return d
 }
 
 // togliDatiWebView2 cancella la cartella temporanea della WebView2. I processi di WebView2
