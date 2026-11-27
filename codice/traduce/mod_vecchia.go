@@ -75,44 +75,51 @@ func togliModVecchia(dirApp, chiave string, m ManifestoMod) error {
 	if !cartellaModValida(m.Cartella) {
 		return errors.New("la cartella nell'elenco non è un gioco Unity: per sicurezza non tocco niente")
 	}
-	if !esisteVoce(filepath.Join(m.Cartella, "BepInEx")) && !esisteVoce(filepath.Join(m.Cartella, "winhttp.dll")) {
-		return metti() // già tolta (a mano o verificando i file dal launcher)
-	}
-	if !traduzioneTassoVecchia(m.Cartella) {
-		return errors.New("nel gioco c'è un BepInEx che non è quello di Tasso: per sicurezza non lo tocco")
-	}
-	var errori []string
-	for _, n := range fileCaricatoreVecchio {
-		p := filepath.Join(m.Cartella, n)
-		st, err := os.Lstat(p)
-		if os.IsNotExist(err) {
-			continue
-		}
-		if err != nil || !st.Mode().IsRegular() {
-			errori = append(errori, n) // cartella, link o giunzione con quel nome: non è mio
-			continue
-		}
-		if err := os.Remove(p); err != nil {
-			errori = append(errori, n)
-		}
-	}
 	// BepInEx (con i plugin dell'utente dentro) e dotnet (BepInEx 6, se l'aveva aggiunto Tasso):
-	// rinominate, non cancellate
+	// rinominate, non cancellate. Controllo prima che siano cartelle vere: tutto o niente.
 	cartelle := []string{"BepInEx"}
 	for _, a := range m.Aggiunti {
 		if strings.EqualFold(a, "dotnet") {
 			cartelle = append(cartelle, "dotnet")
 		}
 	}
+	var daRinominare []string
 	for _, n := range cartelle {
-		p := filepath.Join(m.Cartella, n)
-		st, err := os.Lstat(p)
+		st, err := os.Lstat(filepath.Join(m.Cartella, n))
 		if os.IsNotExist(err) {
 			continue
 		}
 		if err != nil || !st.IsDir() || st.Mode()&(os.ModeSymlink|os.ModeIrregular) != 0 {
-			errori = append(errori, n)
-		} else if err := os.Rename(p, filepath.Join(m.Cartella, n+"-tolto-da-Tasso-"+adesso)); err != nil {
+			return fmt.Errorf("%s nel gioco non è una cartella normale: per sicurezza non tocco niente", n)
+		}
+		daRinominare = append(daRinominare, n)
+	}
+	bep := esisteVoce(filepath.Join(m.Cartella, "BepInEx"))
+	if bep && !traduzioneTassoVecchia(m.Cartella) {
+		return errors.New("nel gioco c'è un BepInEx che non è quello di Tasso: per sicurezza non lo tocco")
+	}
+	if !bep && esisteVoce(filepath.Join(m.Cartella, "winhttp.dll")) {
+		return errors.New("nel gioco c'è un winhttp.dll senza la traduzione di Tasso: per sicurezza non lo tocco")
+	}
+	var errori []string
+	if bep { // i file del caricatore solo insieme alla traduzione di Tasso
+		for _, n := range fileCaricatoreVecchio {
+			p := filepath.Join(m.Cartella, n)
+			st, err := os.Lstat(p)
+			if os.IsNotExist(err) {
+				continue
+			}
+			if err != nil || !st.Mode().IsRegular() {
+				errori = append(errori, n) // cartella, link o giunzione con quel nome: non è mio
+				continue
+			}
+			if err := os.Remove(p); err != nil {
+				errori = append(errori, n)
+			}
+		}
+	}
+	for _, n := range daRinominare {
+		if err := os.Rename(filepath.Join(m.Cartella, n), filepath.Join(m.Cartella, n+"-tolto-da-Tasso-"+adesso)); err != nil {
 			errori = append(errori, n)
 		}
 	}

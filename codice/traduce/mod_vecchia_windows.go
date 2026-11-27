@@ -7,7 +7,34 @@ import (
 	"encoding/hex"
 	"path/filepath"
 	"strings"
+	"sync"
 )
+
+var (
+	muAvvisate sync.Mutex
+	avvisate   = map[string]bool{}
+)
+
+// avvisaVecchia: una volta per sessione, se in un gioco c'è ancora la traduzione della 3.1.1
+// (non funziona più: il gioco si traduce sullo schermo). Non tocca niente: lo decidi tu.
+func avvisaVecchia(chiave string) {
+	m, ok := leggiManifestoVecchio(dirApp, chiave)
+	if !ok || !chiaveDellaCartella(chiave, m.Cartella) || m.Tipo == "unreal" {
+		return
+	}
+	muAvvisate.Lock()
+	gia := avvisate[chiave]
+	avvisate[chiave] = true
+	muAvvisate.Unlock()
+	if gia {
+		return
+	}
+	nome := m.Gioco
+	if nome == "" {
+		nome = filepath.Base(m.Cartella)
+	}
+	emetti("info", map[string]string{"testo": "In " + nome + " c'è la traduzione dentro il gioco della versione di prima di Tasso: ora lo traduco sullo schermo. Per rimetterla dentro il gioco, applica di nuovo la traduzione (Tasso toglie da solo quella vecchia)."})
+}
 
 // chiaveGiocoVecchia: la chiave della 3.1.1, senza cambiare "#", "%" e "?" nel nome.
 func chiaveGiocoVecchia(cartella string) string {

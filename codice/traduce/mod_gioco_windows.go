@@ -396,6 +396,9 @@ func fermaModGioco(cartella string) string {
 	m, ok := leggiManifesto(dirApp, chiaveGioco(cartella))
 	if !ok {
 		if trovata, motivo := togliVecchiaSeCe(cartella); trovata {
+			if motivo != "" && !strings.HasPrefix(motivo, "Chiudi ") {
+				impostaGiocoTradotto(cartella, false) // non la posso togliere io: non la considero più attiva
+			}
 			return motivo // traduzione messa dalla 3.1.1: tolta (o il motivo per cui no)
 		}
 		if _, err := os.Stat(filepath.Join(cartellaCopie(dirApp, chiaveGioco(cartella)), "manifesto.json")); err == nil {
@@ -530,7 +533,11 @@ func controllaModInstallate() {
 	voci, _ := os.ReadDir(filepath.Join(dirApp, "copie-giochi"))
 	for _, v := range voci {
 		m, ok := leggiManifesto(dirApp, v.Name())
-		if !ok || !ModNonPartita(m.Cartella) {
+		if !ok {
+			avvisaVecchia(v.Name()) // traduzione della 3.1.1: lo dico una volta, non tocco niente
+			continue
+		}
+		if !ModNonPartita(m.Cartella) {
 			continue
 		}
 		segnaModNonPartita(v.Name(), m.Gioco)
