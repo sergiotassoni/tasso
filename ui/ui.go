@@ -41,8 +41,9 @@ func PaginaAggiorna(titolo, testo string) string {
 }
 
 var (
-	reDataT = regexp.MustCompile(`data-t="([a-z0-9_]+)"`)
+	reDataT = regexp.MustCompile(`data-tp?="([a-z0-9_]+)"`) // data-tp: il testo del segnaposto
 	reT     = regexp.MustCompile(`\bT\('([a-z0-9_]+)'[,)]`)
+	reNome  = regexp.MustCompile(`'(nome_[a-z_]+)'`)
 	reComp  = regexp.MustCompile(`'comp_' \+ [a-z.]+ \+ '_([a-z]+)'`)
 	reFase  = regexp.MustCompile(`'fase_' \+ a\.fase`)
 )
@@ -57,6 +58,9 @@ func Chiavi() []string {
 		set[m[1]] = true
 	}
 	for _, m := range reT.FindAllStringSubmatch(s, -1) {
+		set[m[1]] = true
+	}
+	for _, m := range reNome.FindAllStringSubmatch(s, -1) { // "Come ti chiami?": NOME_ERR
 		set[m[1]] = true
 	}
 	for _, m := range reComp.FindAllStringSubmatch(s, -1) {

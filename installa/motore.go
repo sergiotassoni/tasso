@@ -99,6 +99,9 @@ type Opzioni struct {
 	// TieniDisinstallatore: non sostituire "Disinstalla Tasso.exe" (aggiornamento silenzioso con un
 	// installatore di una versione dell'ecosistema più vecchia di quella installata).
 	TieniDisinstallatore bool
+	// Nome: "Come ti chiami?" (nome.go). "" = non chiesto (aggiornamento automatico o silenzioso):
+	// il nome che c'è già resta com'è.
+	Nome string
 }
 
 func (in *Installatore) rinomina(a, b string) error {
@@ -459,6 +462,7 @@ func (in *Installatore) installa(ctx context.Context, o Opzioni) (*Stato, error)
 		}
 		return nil, err
 	}
+	in.scriviNome(o.Nome) // "Il tuo nome" (nome.go): solo se l'hai scritto; non è grave se non riesce
 
 	// file e registro a posto: da qui un'interruzione non deve più rimettere i file vecchi.
 	// Prima via .tasso-setup-nuovo: con lui ancora lì e senza segno, Ripara rimetterebbe i file

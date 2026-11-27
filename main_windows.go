@@ -342,7 +342,9 @@ func collega(w webview2.WebView) {
 		}
 		return map[string]any{"modo": modo, "lingua": L(), "lingue": lingue, "testi": testi.Dizionario,
 			"componenti": comp, "cartella": cartella, "installata": installata, "versione": ver, "preScelti": pre,
-			"vuoto": !modoDisins && (elenco == nil || errElenco != nil)}
+			"vuoto": !modoDisins && (elenco == nil || errElenco != nil),
+			// "Come ti chiami?": il nome già salvato (reinstallando o aggiornando dalla finestra), per riempire il campo
+			"nome": conUtenteSessione(&installa.Installatore{Registro: reg}).LeggiNome()}
 	})
 	_ = w.Bind("goLingua", func(l string) bool {
 		if testi.Valida(l) {
@@ -442,6 +444,7 @@ func collega(w webview2.WebView) {
 		// la casella era spuntata perché c'erano già i collegamenti sul Desktop e l'hai tolta tu
 		DesktopTogli bool   `json:"desktopTogli"`
 		Lingua       string `json:"lingua"`
+		Nome         string `json:"nome"` // "Come ti chiami?" (installa/nome.go: un nome non valido non si salva)
 	}) any {
 		if modoDisins || elenco == nil {
 			return map[string]any{"codice": "err_vuoto"}
@@ -473,7 +476,7 @@ func collega(w webview2.WebView) {
 			}
 		}
 		opz := installa.Opzioni{Base: base, Componenti: scelti, Desktop: o.Desktop,
-			DesktopTogli: o.DesktopTogli && !o.Desktop, Lingua: l, CartellaMenu: menuStart(), CartellaDesktop: desktopPubblico(),
+			DesktopTogli: o.DesktopTogli && !o.Desktop, Lingua: l, Nome: o.Nome, CartellaMenu: menuStart(), CartellaDesktop: desktopPubblico(),
 			TieniDisinstallatore: tieni}
 		ctx, annulla := context.WithCancel(context.Background())
 		annullaMu.Lock()
