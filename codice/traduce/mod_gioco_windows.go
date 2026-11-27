@@ -37,7 +37,7 @@ func giocoInFile(cartella string) bool {
 	if cartella == "" {
 		return false
 	}
-	_, ok := leggiManifesto(baseCopie(), chiaveGioco(cartella))
+	_, ok := leggiManifesto(baseDi(chiaveGioco(cartella)), chiaveGioco(cartella))
 	return ok
 }
 
@@ -79,7 +79,7 @@ func rispondiAlGioco(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	chiave := parti[0]
-	m, ok := leggiManifesto(baseCopie(), chiave)
+	m, ok := leggiManifesto(baseDi(chiave), chiave)
 	if !ok || m.Token == "" || subtle.ConstantTimeCompare([]byte(parti[1]), []byte(m.Token)) != 1 {
 		http.Error(w, "no", http.StatusForbidden)
 		return
@@ -152,7 +152,7 @@ func cicloCorrezioniFile() {
 		modCorrezioni = map[string]map[string][2]string{}
 		muModRecenti.Unlock()
 		for chiave, corr := range lavoro {
-			m, ok := leggiManifesto(baseCopie(), chiave)
+			m, ok := leggiManifesto(baseDi(chiave), chiave)
 			if !ok {
 				continue
 			}
@@ -355,7 +355,7 @@ func fermaModGioco(cartella string) string {
 		return "Sto installando una traduzione: aspetta che finisca, poi premi di nuovo per toglierla."
 	}
 	defer muInstalla.Unlock()
-	m, ok := leggiManifesto(baseCopie(), chiaveGioco(cartella))
+	m, ok := leggiManifesto(baseDi(chiaveGioco(cartella)), chiaveGioco(cartella))
 	if !ok {
 		return ""
 	}
@@ -365,7 +365,7 @@ func fermaModGioco(cartella string) string {
 	if processoAperto(m.Exe) {
 		return "Chiudi " + m.Gioco + " e riprova: con il gioco aperto non posso togliere i file."
 	}
-	if err := TogliModGioco(baseCopie(), chiaveGioco(cartella)); err != nil {
+	if err := TogliModGioco(baseDi(chiaveGioco(cartella)), chiaveGioco(cartella)); err != nil {
 		return err.Error()
 	}
 	return ""
@@ -415,7 +415,7 @@ func modDaUsare(cartella string, inPrimoPianoDa time.Duration, nome string) bool
 		return false
 	}
 	chiave := chiaveGioco(cartella)
-	if m, _ := leggiManifesto(baseCopie(), chiave); m.Tipo == "unreal" {
+	if m, _ := leggiManifesto(baseDi(chiave), chiave); m.Tipo == "unreal" {
 		// Unreal: le scritte tradotte sono nel file aggiunto, il gioco non chiede niente a Tasso
 		return len(m.Aggiunti) > 0 && esisteVoce(filepath.Join(m.Cartella, m.Aggiunti[0]))
 	}
@@ -479,9 +479,15 @@ func segnaModNonPartita(chiave, nome string) {
 // controllaModInstallate: giochi con i file aggiunti in cui la traduzione dentro non è partita:
 // a gioco chiuso li rimetto com'erano e resta la traduzione dello schermo.
 func controllaModInstallate() {
-	voci, _ := os.ReadDir(filepath.Join(baseCopie(), "copie-giochi"))
+	for _, base := range basiCopie() {
+		controllaModInstallateIn(base)
+	}
+}
+
+func controllaModInstallateIn(base string) {
+	voci, _ := os.ReadDir(filepath.Join(base, "copie-giochi"))
 	for _, v := range voci {
-		m, ok := leggiManifesto(baseCopie(), v.Name())
+		m, ok := leggiManifesto(base, v.Name())
 		if !ok || !ModNonPartita(m.Cartella) {
 			continue
 		}
@@ -489,7 +495,7 @@ func controllaModInstallate() {
 		if processoAperto(m.Exe) {
 			continue
 		}
-		if err := TogliModGioco(baseCopie(), v.Name()); err == nil {
+		if err := TogliModGioco(base, v.Name()); err == nil {
 			impostaGiocoTradotto(m.Cartella, true) // resta tradotto, sullo schermo
 			emetti("info", map[string]string{"testo": "Ho tolto da " + m.Gioco + " i file della traduzione dentro il gioco, che non partiva: il gioco è com'era. Lo traduco sullo schermo."})
 			emetti("aggiorna", stato())
@@ -505,9 +511,17 @@ func TogliTutteLeTraduzioni() (tolti, falliti []string) {
 		return nil, []string{"INSTALLA"}
 	}
 	defer muInstalla.Unlock()
-	voci, _ := os.ReadDir(filepath.Join(baseCopie(), "copie-giochi"))
+	for _, base := range basiCopie() { // copie in Programmi\Tasso\lavoro e quelle rimaste in AppData
+		t, f := togliTutteIn(base)
+		tolti, falliti = append(tolti, t...), append(falliti, f...)
+	}
+	return tolti, falliti
+}
+
+func togliTutteIn(base string) (tolti, falliti []string) {
+	voci, _ := os.ReadDir(filepath.Join(base, "copie-giochi"))
 	for _, v := range voci {
-		m, ok := leggiManifesto(baseCopie(), v.Name())
+		m, ok := leggiManifesto(base, v.Name())
 		if !ok {
 			continue // senza elenco non tocco il gioco: la cartella delle copie va in Documenti
 		}
@@ -528,7 +542,7 @@ func TogliTutteLeTraduzioni() (tolti, falliti []string) {
 			falliti = append(falliti, nome)
 			continue
 		}
-		if err := TogliModGioco(baseCopie(), v.Name()); err != nil {
+		if err := TogliModGioco(base, v.Name()); err != nil {
 			falliti = append(falliti, nome)
 			continue
 		}

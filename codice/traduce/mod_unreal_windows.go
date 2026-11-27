@@ -30,9 +30,9 @@ func applicaModUnreal(nome, cartella string, antiCheat bool, passo func(int, str
 		return
 	}
 	chiave := chiaveGioco(cartella)
-	if _, gia := leggiManifesto(baseCopie(), chiave); gia {
+	if _, gia := leggiManifesto(baseDi(chiave), chiave); gia {
 		// rifaccio da capo (es. dopo un aggiornamento del gioco o un cambio di lingua)
-		if err := TogliModGioco(baseCopie(), chiave); err != nil {
+		if err := TogliModGioco(baseDi(chiave), chiave); err != nil {
 			fallito("Non riesco a togliere la traduzione di prima: " + err.Error())
 			return
 		}
@@ -113,7 +113,7 @@ func applicaModUnreal(nome, cartella string, antiCheat bool, passo func(int, str
 		return
 	}
 	if _, _, err := ScriviModUnreal(cartella, paks, files); err != nil {
-		_ = TogliModGioco(baseCopie(), chiave)
+		_ = TogliModGioco(baseDi(chiave), chiave)
 		fallito("Non sono riuscito a scrivere il file: " + err.Error() + ". Il gioco è rimasto com'era.")
 		return
 	}

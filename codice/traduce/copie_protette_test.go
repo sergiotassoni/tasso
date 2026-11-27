@@ -77,3 +77,55 @@ func TestLeggiSenzaLink(t *testing.T) {
 		t.Fatal("ha seguito il collegamento")
 	}
 }
+
+// C1: con --togli-silenzioso baseCopie viene chiamata prima che Tasso dica qual è la cartella
+// protetta: non deve fissare AppData per sempre, e chi toglie le traduzioni guarda tutti e due i posti.
+func TestBaseCopieAspettaOspite(t *testing.T) {
+	vecchiDir, vecchiaF := dirApp, Ospite.CartellaProtetta
+	t.Cleanup(func() {
+		dirApp, Ospite.CartellaProtetta = vecchiDir, vecchiaF
+		copieMu.Lock()
+		copieDeciso, copieProtetta = false, ""
+		copieMu.Unlock()
+	})
+	copieMu.Lock()
+	copieDeciso, copieProtetta = false, ""
+	copieMu.Unlock()
+	radice := t.TempDir()
+	dirApp = filepath.Join(radice, "app")
+	lavoro := filepath.Join(radice, "lavoro")
+	// copie già spostate da un avvio di prima: in AppData resta solo un gioco di Tasso Traduce da solo
+	_ = os.MkdirAll(filepath.Join(lavoro, "copie-giochi", "spostato"), 0o755)
+	_ = os.WriteFile(filepath.Join(lavoro, "copie-giochi", "spostato", "manifesto.json"), []byte("{}"), 0o644)
+	_ = os.WriteFile(filepath.Join(lavoro, "copie-giochi", segnoCopieSpostate), []byte("ok"), 0o644)
+	_ = os.MkdirAll(filepath.Join(dirApp, "copie-giochi", "dasolo"), 0o755)
+	_ = os.WriteFile(filepath.Join(dirApp, "copie-giochi", "dasolo", "manifesto.json"), []byte("{}"), 0o644)
+
+	Ospite.CartellaProtetta = nil
+	if b := baseCopie(); b != dirApp {
+		t.Fatalf("senza Ospite: %s", b)
+	}
+	Ospite.CartellaProtetta = func() string { return lavoro }
+	if b := baseCopie(); b != lavoro {
+		t.Fatalf("dopo Ospite deve usare lavoro, non %s", b)
+	}
+	if bb := basiCopie(); len(bb) != 2 || bb[0] != lavoro || bb[1] != dirApp {
+		t.Fatalf("basiCopie: %v", bb)
+	}
+	if baseDi("spostato") != lavoro || baseDi("dasolo") != dirApp || baseDi("nuovo") != lavoro {
+		t.Fatal("baseDi sbaglia posto")
+	}
+	if CartellaCopie() != filepath.Join(lavoro, "copie-giochi") {
+		t.Fatal(CartellaCopie())
+	}
+	// il gioco di Tasso Traduce da solo resta in AppData (lo spostamento è già stato fatto)
+	if _, err := os.Stat(filepath.Join(dirApp, "copie-giochi", "dasolo")); err != nil {
+		t.Fatal("copia in AppData toccata")
+	}
+}
+
+func TestDentroFinale(t *testing.T) {
+	if !dentroFinale(`C:\Users\a\AppData\x\f.txt`, `c:\users\a\appdata`) || dentroFinale(`C:\Users\a\AppDataX\f`, `C:\Users\a\AppData`) || dentroFinale("", `C:\x`) {
+		t.Fatal("dentroFinale")
+	}
+}

@@ -140,6 +140,9 @@ func main() {
 	loadSettings()
 	// Tasso.exe --togli-silenzioso (lo usa il disinstallatore, anche da App e funzionalità):
 	// Tasso toglie le sue cose senza finestra ed esce (uninstall.go).
+	// Prima di PreparaCartella e di qualsiasi uso delle copie dei giochi: anche --togli-silenzioso
+	// deve trovare le copie in Programmi\Tasso\lavoro (traduce/copie_protette.go).
+	impostaOspiteTraduce()
 	traduce.PreparaCartella()
 	if codice, si := togliSilenziosoSeChiesto(); si {
 		os.Exit(codice)
@@ -223,10 +226,6 @@ func main() {
 	_ = w.Bind("goPronto", func() string { scriviAvvio("pagina pronta"); return "ok" })
 	// Tasso Traduce (sezione Traduci): collegamenti prima di caricare la pagina; il resto parte
 	// in sottofondo e non legge lo schermo finché non accendi la traduzione.
-	traduce.Ospite.ApriComeUtente = openUser
-	traduce.Ospite.CartellaScript = scriptDir
-	traduce.Ospite.CartellaProtetta = cartellaLavoroProtetta   // runner.go: "" se uso il ripiego in AppData
-	traduce.Ospite.CartellaTasso = cartellaTasso               // ecosistema.go
 	traduce.Ospite.GiocoDiTasso = func(percorso string) bool { // extras.go: libreria di Tasso e cartelle dei giochi
 		p := strings.ToLower(percorso)
 		exe := filepath.Base(p)
@@ -451,6 +450,15 @@ func bringToFront() bool {
 		return true
 	}
 	return false
+}
+
+// impostaOspiteTraduce: le funzioni di Tasso che Tasso Traduce usa (cartelle protette, aprire come
+// utente). Va chiamata prima di traduce.PreparaCartella.
+func impostaOspiteTraduce() {
+	traduce.Ospite.ApriComeUtente = openUser
+	traduce.Ospite.CartellaScript = scriptDir
+	traduce.Ospite.CartellaProtetta = cartellaLavoroProtetta // runner.go: "" se uso il ripiego in AppData
+	traduce.Ospite.CartellaTasso = cartellaTasso             // ecosistema.go
 }
 
 // fineSessione: Windows ha mandato WM_QUERYENDSESSION/WM_ENDSESSION (si spegne, si riavvia o ci si
