@@ -89,6 +89,10 @@ func changesList() map[string]interface{} {
 	for _, id := range tids {
 		items = append(items, map[string]interface{}{"kind": "tune", "id": id, "title": "Regola con Tasso", "detail": tunes[id]})
 	}
+	if n := attiveOtt(); n > 0 {
+		items = append(items, map[string]interface{}{"kind": "ottimizza", "id": "", "title": "Ottimizza tutto",
+			"detail": "Le impostazioni di Windows cambiate da Ottimizza tutto: ognuna si rimette com'era anche dalla sua pagina."})
+	}
 	regs, _ := filepath.Glob(filepath.Join(appDir, "backup", "*.reg"))
 	return map[string]interface{}{"items": items, "regBackups": len(regs), "undoFiles": fileDaRimettere(), "notUndo": nonSiRimette}
 }
@@ -208,6 +212,12 @@ func undoChange(kind, id string) {
 			msg = "Questo gioco non era regolato."
 		} else if r == "!ini" {
 			msg = msgIniNonRimesso
+		}
+	case "ottimizza":
+		if _, ok := rimettiTuttoOtt(); ok {
+			msg = "Modifiche di Ottimizza tutto rimesse com'erano."
+		} else {
+			msg = "Non sono riuscito a rimettere tutte le modifiche di Ottimizza tutto: riprova tra poco."
 		}
 	case "regfolder":
 		_ = os.MkdirAll(filepath.Join(appDir, "backup"), 0o755)

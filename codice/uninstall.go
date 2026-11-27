@@ -187,6 +187,7 @@ func togliTassoPassiDentro(rimetti bool, passo func(int, string), pianoOut *pian
 	// 1. impostazioni di Windows e cose accese da Tasso
 	// prima la riunione: rimette i valori di quando era partita, poi "Rimetti com'era" vince
 	officeSpegniTutto()
+	ottSpegniTutto() // Ottimizza tutto (3.2): le sue modifiche tornano com'erano, come la riunione
 	if rimetti {
 		msgs, ok, avvioNo := restoreOriginalDett()
 		if !ok {
@@ -215,6 +216,7 @@ func togliTassoPassiDentro(rimetti bool, passo func(int, string), pianoOut *pian
 	autoClickStop()
 	boostOff(true) // come "Rimetti com'era" del Boost (se non era acceso non fa niente)
 	officeSpegniTutto()
+	ottSpegniTutto()
 	// Se la Modalità riunione o il blocco dell'Ufficio sono ancora accesi, le loro impostazioni di
 	// prima stanno in quei file: cancellando le cartelle non si potrebbero più rimettere. Mi fermo qui.
 	// (anche quelli di un altro account del PC, riunione-<utente>.json, e quello unico della 3.1.1)
@@ -225,6 +227,12 @@ func togliTassoPassiDentro(rimetti bool, passo func(int, string), pianoOut *pian
 				return "Non sono riuscito a spegnere la Modalità riunione o il blocco del PC dell'Ufficio (anche di un altro account del PC): spegnili dalla sezione Ufficio di Tasso e riprova. Tasso non è stato tolto."
 			}
 		}
+	}
+
+	// Ottimizza tutto: com'era prima sta in lavoro\ottimizza (anche per un altro account del PC).
+	// Cancellando le cartelle non si potrebbe più rimettere: mi fermo qui.
+	if ottDaRimettereAltrove() {
+		return "Non sono riuscito a rimettere com'erano le modifiche di Ottimizza tutto (anche di un altro account del PC): rimettile dalla pagina Ottimizza tutto di quell'account e riprova. Tasso non è stato tolto."
 	}
 
 	// 2. traduzioni dentro i giochi: se un gioco è aperto mi fermo qui

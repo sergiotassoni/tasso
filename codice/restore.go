@@ -101,6 +101,8 @@ func restoreOriginalDett() (msgs []string, ok bool, avvioNo []string) {
 		msgs = append(msgs, gamingResetAll()...)
 	}
 	msgs = append(msgs, restoreUsbAudio()...)
+	ottMsgs, ottOK := msgRimettiOtt() // Ottimizza tutto (3.2): anche le sue modifiche
+	msgs = append(msgs, ottMsgs...)
 	busy := 0
 	for _, id := range tuned {
 		if gameTuneBusy(id) {
@@ -117,7 +119,7 @@ func restoreOriginalDett() (msgs []string, ok bool, avvioNo []string) {
 	}
 	if len(snap) == 0 && len(orig) == 0 {
 		if len(msgs) > 0 {
-			return msgs, busy == 0, nil
+			return msgs, busy == 0 && ottOK, nil
 		}
 		return []string{"Tasso non ha ancora cambiato impostazioni di Windows: non c'è niente da rimettere."}, true, nil
 	}
@@ -161,7 +163,7 @@ func restoreOriginalDett() (msgs []string, ok bool, avvioNo []string) {
 			s.StartupOrig = rimasti // li tengo: premendo di nuovo "Rimetti com'era" riprovo
 		}
 	})
-	return msgs, snapOK && busy == 0, falliti
+	return msgs, snapOK && busy == 0 && ottOK, falliti
 }
 
 // Risparmio energetico delle porte USB cambiato da "L'audio gracchia": il valore di prima sta in
