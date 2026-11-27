@@ -878,13 +878,11 @@ func legami() map[string]interface{} {
 		"goOscura":        goOscura,
 		"goProteggi":      goProteggi,
 		"goComprimi":      goComprimi,
-		"goTestoAdatto":   goTestoAdatto,
 		"goCaricaTesto":   goCaricaTesto,
 		"goSerieInizio":   goSerieInizio,
 		"goSerieScrivi":   goSerieScrivi,
 		"goSerieFine":     goSerieFine,
 		"goFileAvvio":     goFileAvvio,
-		"goMenu":          goMenu,
 		"goImpostaMenu":   goImpostaMenu,
 		// nome_utente.go: "Il tuo nome", lo stesso di Tasso e Tasso Zip
 		"goNome":      goNome,
@@ -903,4 +901,4 @@ func legami() map[string]interface{} {
 var legamiSuFinestra = []string{"goScegli", "goSalva", "goSalvaTipo", "goSerieInizio"}
 
 // Funzioni veloci che non devono aspettare in coda dietro un lavoro lungo.
-var legamiSubito = []string{"goCaricaPezzo", "goDimentica", "goFileAvvio", "goTestoAdatto", "goDocumentiAperti", "goChiusuraVista", "goChiudiFinestra"}
+var legamiSubito = []string{"goCaricaPezzo", "goDimentica", "goFileAvvio", "goDocumentiAperti", "goChiusuraVista", "goChiudiFinestra"}

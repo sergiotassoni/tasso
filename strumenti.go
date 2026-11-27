@@ -119,9 +119,6 @@ func goComprimi(id, pw string, immagini bool) (VoceInfo, error) {
 	return esegui(id, pw, func(b []byte, pw string) ([]byte, error) { return Comprimi(b, pw, immagini) })
 }
 
-// goTestoAdatto: il testo si può scrivere con i caratteri standard del PDF?
-func goTestoAdatto(s string) bool { return TestoAdatto(s) }
-
 // goCaricaTesto: un testo (es. quello estratto dal PDF) come file da salvare.
 func goCaricaTesto(nome, testo string) VoceInfo {
 	b := []byte("\ufeff" + strings.ReplaceAll(testo, "\n", "\r\n"))

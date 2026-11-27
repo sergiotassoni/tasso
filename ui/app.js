@@ -104,17 +104,23 @@ export function attesa(on, testo) {
   finestra("dAttesa", contaAttesa > 0);
 }
 
-export function chiedi(titolo, testo, tasti) {
+// esc: il valore di Esc (F19-3). Se manca: quello di «Annulla», oppure dell'unico tasto.
+let chiediEsc = null;
+export function chiedi(titolo, testo, tasti, esc) {
+  if (esc === undefined) { const a = tasti.find(x => x[0] === t("annulla")) || (tasti.length === 1 ? tasti[0] : null); if (a) esc = a[1]; }
   return new Promise(ok => {
     $("#dMsgT").textContent = titolo;
     $("#dMsgP").textContent = testo;
     const box = $("#dMsgTasti");
     box.innerHTML = "";
+    const prima = document.activeElement; // dopo la risposta il fuoco torna dov'era
+    const fine = valore => { chiediEsc = null; finestra("dMsg", false); if (prima && prima.isConnected && prima.focus && !$(".velo.on")) prima.focus(); ok(valore); };
+    chiediEsc = esc === undefined ? null : () => fine(esc);
     tasti.forEach(([etich, valore, prim]) => {
       const b = document.createElement("button");
       b.className = "btn" + (prim ? " prim" : "");
       b.textContent = etich;
-      b.onclick = () => { finestra("dMsg", false); ok(valore); };
+      b.onclick = () => fine(valore);
       box.appendChild(b);
     });
     finestra("dMsg", true);
@@ -123,6 +129,25 @@ export function chiedi(titolo, testo, tasti) {
 }
 
 export const avvisa = (testo, titolo = "Tasso PDF") => chiedi(titolo, testo, [[t("ok"), true, true]]);
+
+// F19-3: nelle finestre sopra la pagina Esc fa come «Annulla» e Tab resta dentro la finestra.
+const ESC_VELO = { dPw: "#dPwNo", dTesto: "#dTestoNo", dFirma: "#tNo" };
+document.addEventListener("keydown", e => {
+  const veli = $$(".velo.on"), v = veli[veli.length - 1];
+  if (!v) return;
+  if (e.key === "Escape") {
+    const b = v.id === "dMsg" ? null : ESC_VELO[v.id] && $(ESC_VELO[v.id]);
+    if (v.id === "dMsg" ? !chiediEsc : !b) return;
+    e.preventDefault(); e.stopPropagation();
+    if (b) b.click(); else chiediEsc();
+    return;
+  }
+  if (e.key !== "Tab") return;
+  const f = $$("button, input, select, textarea, a[href], [tabindex]:not([tabindex='-1'])", v).filter(x => !x.disabled && x.getClientRects().length);
+  if (!f.length) { e.preventDefault(); return; }
+  const i = f.indexOf(document.activeElement);
+  if (e.shiftKey ? i <= 0 : (i < 0 || i === f.length - 1)) { e.preventDefault(); f[e.shiftKey ? f.length - 1 : 0].focus(); }
+}, true);
 export const avvisaErrore = (e, nomi) => avvisa(testoErrore(e, nomi));
 
 export function chiediPassword(nome, sbagliata) {
@@ -221,7 +246,7 @@ export async function salva(id, nomeSuggerito) {
 // Restituisce la voce da salvare (quella protetta, se l'utente ha detto sì).
 export async function proteggiCopia(r, nome, pwApertura, soloBlocchi) {
   if (pwApertura) {
-    const si = await chiedi(t("protettoTit"), t("protettoTesto", nome), [[t("protettoNo"), false], [t("protettoSi"), true, true]]);
+    const si = await chiedi(t("protettoTit"), t("protettoTesto", nome), [[t("protettoNo"), false], [t("protettoSi"), true, true]], true); // Esc: tiene la password (più sicuro)
     if (!si) return r;
     attesa(true);
     try {
@@ -1036,7 +1061,7 @@ $("#toastMostra").onclick = () => { if (ultimoSalvato) go("goMostra", ultimoSalv
 // Informazioni, con la riga degli aggiornamenti: li gestisce Tasso (Tasso PDF non usa internet).
 $("#btnInfo").onclick = async () => {
   const r = await chiedi("Tasso PDF " + versione, t("infoTesto", versione) + "\n\n" + t("aggVersione", versione) + "\n\n" + t("infoSicurezza") + "\n\n" + t("infoComponenti"),
-    [[t("aggControlla"), "agg", false], [t("ok"), true, true]]);
+    [[t("aggControlla"), "agg", false], [t("ok"), true, true]], true);
   if (r !== "agg") return;
   const esito = await go("goControllaAggiornamenti").catch(() => "errore");
   if (esito === "errore") { avvisa(t("aggNonAperto"), t("aggTitolo")); return; }
@@ -1130,7 +1155,7 @@ function nomeControlla(s) {
   let lettera = false, dopoLettera = false, accenti = 0;
   for (const r of c) {
     const k = r.codePointAt(0);
-    if (r === " " || r === "." || r === "-" || r === "_") { dopoLettera = false; accenti = 0; }
+    if (r === " " || r === "." || r === "-" || r === "_" || r === "'" || r === "’") { dopoLettera = false; accenti = 0; }
     else if (nomeDentro(k, NOME_INVISIBILI)) return { codice: "invisibile" };
     else if (!nomeDentro(k, NOME_BLOCCHI)) return { codice: "simbolo", simbolo: r };
     else if (/^[\p{L}\p{Nd}]$/u.test(r)) { lettera = true; dopoLettera = true; accenti = 0; }

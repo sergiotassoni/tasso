@@ -139,7 +139,7 @@ func Controlla(s string) Esito {
 	lettera, dopoLettera, accenti := false, false, 0
 	for _, r := range s {
 		switch {
-		case r == ' ' || r == '.' || r == '-' || r == '_':
+		case r == ' ' || r == '.' || r == '-' || r == '_' || r == '\'' || r == '’':
 			dopoLettera, accenti = false, 0
 		case dentro(r, invisibili):
 			return Esito{Codice: Invisibile}

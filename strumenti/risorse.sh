@@ -10,4 +10,4 @@ export GOTOOLCHAIN=local GOPROXY=off GOSUMDB=off GOFLAGS=-mod=mod
 cd ../strumenti/risorse
 go run . crea -ico "$QUI/risorse/TassoPDF.ico" -manifest "$QUI/risorse/TassoPDF.manifest" \
   -o "$QUI/rsrc_windows_amd64.syso" -versione "$VERSIONE" \
-  -prodotto "Tasso PDF" -descrizione "Tasso PDF" -azienda "Sergio Tassoni" -file TassoPDF.exe
+  -prodotto "Tasso PDF" -descrizione "Tasso PDF" -azienda "Sergio Tassoni" -copyright "© 2026 Sergio Tassoni" -file TassoPDF.exe
