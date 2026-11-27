@@ -26,12 +26,13 @@ const (
 
 // DecidiCartellaLavoro: esiste = c'è qualcosa con quel nome; cartella = è una cartella vera;
 // collegamento = collegamento simbolico o giunzione (reparse point); admin = il proprietario è
-// Amministratori, SYSTEM o TrustedInstaller.
-func DecidiCartellaLavoro(esiste, cartella, collegamento, admin bool) AzioneLavoro {
+// Amministratori, SYSTEM o TrustedInstaller; protetta = i suoi permessi non sono ereditati da
+// ProgramData (lì gli utenti possono creare file: dentro potrebbe esserci già qualcosa di loro).
+func DecidiCartellaLavoro(esiste, cartella, collegamento, admin, protetta bool) AzioneLavoro {
 	switch {
 	case !esiste:
 		return LavoroCrea
-	case cartella && !collegamento && admin:
+	case cartella && !collegamento && admin && protetta:
 		return LavoroUsa
 	}
 	return LavoroSpostaVia

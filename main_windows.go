@@ -29,7 +29,7 @@ import (
 const paginaWebView2 = "https://go.microsoft.com/fwlink/p/?LinkId=2124703"
 
 // nomeMutex: una sola copia di Tasso Setup alla volta (anche con l'aggiornamento silenzioso).
-const nomeMutex = "Local\\TassoSetup"
+const nomeMutex = "Global\\TassoSetup" // Global: una sola copia anche con più utenti collegati (cartella di lavoro comune)
 
 var (
 	finestra webview2.WebView

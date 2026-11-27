@@ -1171,13 +1171,14 @@ func cartellaLavoro() string {
 		return ""
 	}
 	esiste := err == nil
-	cartella, coll, admin := false, false, false
+	cartella, coll, admin, protetta := false, false, false, false
 	if esiste {
 		cartella = fi.IsDir()
 		coll = fi.Mode()&(fs.ModeSymlink|fs.ModeIrregular) != 0 || collegamentoWin(base)
 		admin = proprietarioAdmin(base)
+		protetta = daclProtetto(base)
 	}
-	switch installa.DecidiCartellaLavoro(esiste, cartella, coll, admin) {
+	switch installa.DecidiCartellaLavoro(esiste, cartella, coll, admin, protetta) {
 	case installa.LavoroUsa:
 		// dentro=false: i file dentro li ho messi io (gli utenti non possono scrivere lì)
 		if proteggiAlbero(base, sd, false) != nil {
@@ -1199,6 +1200,17 @@ func cartellaLavoro() string {
 		return ""
 	}
 	return base
+}
+
+// daclProtetto: i permessi di p non ereditano da sopra (SE_DACL_PROTECTED), come quelli che metto io
+// con sddlTasso. Una cartella con i permessi ereditati da ProgramData la rifaccio da capo.
+func daclProtetto(p string) bool {
+	sd, err := windows.GetNamedSecurityInfo(p, windows.SE_FILE_OBJECT, windows.DACL_SECURITY_INFORMATION)
+	if err != nil {
+		return false
+	}
+	c, _, err := sd.Control()
+	return err == nil && c&windows.SE_DACL_PROTECTED != 0
 }
 
 // collegamentoWin: p è un reparse point (collegamento simbolico, giunzione...).

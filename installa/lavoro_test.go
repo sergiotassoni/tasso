@@ -7,17 +7,18 @@ import (
 
 func TestDecidiCartellaLavoro(t *testing.T) {
 	casi := []struct {
-		esiste, cartella, coll, admin bool
-		want                          AzioneLavoro
+		esiste, cartella, coll, admin, prot bool
+		want                                AzioneLavoro
 	}{
-		{false, false, false, false, LavoroCrea},
-		{true, true, false, true, LavoroUsa},
-		{true, true, false, false, LavoroSpostaVia}, // creata da un utente
-		{true, true, true, true, LavoroSpostaVia},   // giunzione
-		{true, false, false, true, LavoroSpostaVia}, // un file
+		{false, false, false, false, false, LavoroCrea},
+		{true, true, false, true, true, LavoroUsa},
+		{true, true, false, false, true, LavoroSpostaVia}, // creata da un utente
+		{true, true, true, true, true, LavoroSpostaVia},   // giunzione
+		{true, false, false, true, true, LavoroSpostaVia}, // un file
+		{true, true, false, true, false, LavoroSpostaVia}, // degli admin ma con i permessi di ProgramData
 	}
 	for _, c := range casi {
-		if got := DecidiCartellaLavoro(c.esiste, c.cartella, c.coll, c.admin); got != c.want {
+		if got := DecidiCartellaLavoro(c.esiste, c.cartella, c.coll, c.admin, c.prot); got != c.want {
 			t.Errorf("%+v: %v", c, got)
 		}
 	}
