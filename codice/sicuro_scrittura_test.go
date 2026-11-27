@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"testing"
@@ -157,8 +158,8 @@ func TestLeggiFileAppNonSegueLink(t *testing.T) {
 	}
 	cattivo := filepath.Join(app, "settings.json")
 	link(t, fuori, cattivo)
-	if b, err := leggiFileApp(cattivo); err == nil {
-		t.Fatalf("ha seguito il collegamento: %q", b)
+	if b, err := leggiFileApp(cattivo); !errors.Is(err, errPercorsoLink) {
+		t.Fatalf("collegamento: %q %v", b, err)
 	}
 	altrove := filepath.Join(filepath.Dir(app), "altrove")
 	_ = os.MkdirAll(altrove, 0o755)
@@ -167,5 +168,27 @@ func TestLeggiFileAppNonSegueLink(t *testing.T) {
 	link(t, altrove, filepath.Join(app, "logs"))
 	if _, err := leggiFileApp(filepath.Join(app, "logs", "crash.txt")); err == nil {
 		t.Fatal("ha seguito la cartella collegata")
+	}
+}
+
+// N2: settings.json collegamento: messo da parte (rinominato), il file a cui porta resta com'è e le
+// impostazioni non vanno in sola lettura.
+func TestLoadSettingsCollegamentoMessoDaParte(t *testing.T) {
+	app, fuori := preparaApp(t)
+	link(t, fuori, filepath.Join(app, "settings.json"))
+	vecchieRO := settingsReadOnly
+	t.Cleanup(func() { settingsReadOnly = vecchieRO })
+	settingsReadOnly = false
+	loadSettings()
+	restaOriginale(t, fuori)
+	if settingsReadOnly {
+		t.Fatal("collegamento vero: non serve la sola lettura")
+	}
+	l, _ := filepath.Glob(filepath.Join(app, "settings.json.collegamento-*"))
+	if len(l) != 1 {
+		t.Fatalf("collegamento non messo da parte: %v", l)
+	}
+	if _, err := os.Lstat(filepath.Join(app, "settings.json")); !os.IsNotExist(err) {
+		t.Fatal("settings.json collegamento ancora al suo posto")
 	}
 }

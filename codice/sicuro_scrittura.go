@@ -123,15 +123,30 @@ func apriLogApp(p string, flag int) (*os.File, error) {
 	return os.OpenFile(p, flag, 0o644)
 }
 
+// errNonVerificato: Windows non sa dire dove porta davvero il file aperto (GetFinalPathNameByHandle
+// non risponde) o il file è cambiato proprio mentre lo aprivo. NON vuol dire che sia un collegamento:
+// chi lo riceve riprova e, se non basta, non scrive sopra il file (le impostazioni non si perdono).
+var errNonVerificato = errors.New("non riesco a controllare dove porta il file: non lo uso adesso")
+
 // leggiFileApp: come os.ReadFile, ma non segue collegamenti né giunzioni. Tasso gira come
 // amministratore e questi file (boost.json, settings.json...) stanno nella cartella dell'utente:
 // un collegamento farebbe leggere a Tasso un file qualsiasi del PC come se fosse suo.
-// Controllo il percorso da appDir in giù, il file stesso (deve essere un file normale) e, dopo
-// averlo aperto, che il file aperto sia proprio quello controllato (os.SameFile), così anche un
-// cambio fatto tra il controllo e l'apertura si vede.
+// Controllo il percorso da appDir in giù e il file stesso (deve essere un file normale); il percorso
+// vero di appDir lo calcolo prima di aprire il file, aprendo appDir senza seguire collegamenti; dopo
+// l'apertura il file deve essere quello controllato (os.SameFile) e il suo percorso vero deve stare
+// sotto quello di appDir. Errori: errPercorsoLink (collegamento vero o file fuori), errNonVerificato
+// (non si sa), o quello di Lstat.
 func leggiFileApp(p string) ([]byte, error) {
 	if err := controllaPercorsoApp(filepath.Dir(p)); err != nil {
 		return nil, err
+	}
+	radice := ""
+	if _, sotto := sottoApp(appDir, p); appDir != "" && sotto {
+		r, err := radiceVeraApp(appDir)
+		if err != nil {
+			return nil, err
+		}
+		radice = r
 	}
 	fi, err := os.Lstat(p)
 	if err != nil {
@@ -146,31 +161,47 @@ func leggiFileApp(p string) ([]byte, error) {
 	}
 	defer f.Close()
 	fi2, err := f.Stat()
-	if err != nil {
-		return nil, err
+	if err != nil || !os.SameFile(fi, fi2) {
+		return nil, errNonVerificato
 	}
-	if !os.SameFile(fi, fi2) || !apertoInApp(f, p) {
-		return nil, errPercorsoLink
+	if radice != "" {
+		vero := percorsoFinale(windows.Handle(f.Fd()))
+		if vero == "" {
+			return nil, errNonVerificato
+		}
+		if !dentroDi(vero, radice) {
+			return nil, errPercorsoLink
+		}
 	}
 	return io.ReadAll(f)
 }
 
-// apertoInApp: se p sta sotto appDir, il file aperto deve stare davvero sotto appDir anche dopo
-// aver risolto collegamenti e giunzioni (GetFinalPathNameByHandle): così una cartella in mezzo
-// cambiata in giunzione dopo controllaPercorsoApp si vede lo stesso.
-func apertoInApp(f *os.File, p string) bool {
-	if appDir == "" {
-		return true
-	}
-	if _, sotto := sottoApp(appDir, p); !sotto {
-		return true
-	}
-	h, err := apriCartellaPerNome(appDir)
+// radiceVeraApp: il percorso vero di appDir, aperta senza seguire collegamenti
+// (FILE_FLAG_OPEN_REPARSE_POINT): se appDir stessa è un collegamento → errPercorsoLink.
+func radiceVeraApp(d string) (string, error) {
+	u, err := windows.UTF16PtrFromString(d)
 	if err != nil {
-		return false
+		return "", errNonVerificato
 	}
-	radice := percorsoFinale(h)
-	windows.CloseHandle(h)
-	vero := percorsoFinale(windows.Handle(f.Fd()))
-	return radice != "" && vero != "" && dentroDi(vero, radice)
+	h, err := windows.CreateFile(u, windows.FILE_READ_ATTRIBUTES, windows.FILE_SHARE_READ|windows.FILE_SHARE_WRITE|windows.FILE_SHARE_DELETE,
+		nil, windows.OPEN_EXISTING, windows.FILE_FLAG_BACKUP_SEMANTICS|windows.FILE_FLAG_OPEN_REPARSE_POINT, 0)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return "", err
+		}
+		return "", errNonVerificato
+	}
+	defer windows.CloseHandle(h)
+	var fi windows.ByHandleFileInformation
+	if windows.GetFileInformationByHandle(h, &fi) != nil {
+		return "", errNonVerificato
+	}
+	if fi.FileAttributes&windows.FILE_ATTRIBUTE_REPARSE_POINT != 0 || fi.FileAttributes&windows.FILE_ATTRIBUTE_DIRECTORY == 0 {
+		return "", errPercorsoLink
+	}
+	v := percorsoFinale(h)
+	if v == "" {
+		return "", errNonVerificato
+	}
+	return v, nil
 }

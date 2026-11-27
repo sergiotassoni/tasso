@@ -91,8 +91,27 @@ func fileImp() string { return filepath.Join(dirApp, "impostazioni.json") }
 
 func caricaImp() {
 	imp.Glossario = glossarioBase()
-	if b, err := leggiSenzaLink(dirApp, "impostazioni.json"); err == nil {
+	b, err := leggiSenzaLink(dirApp, "impostazioni.json")
+	for i := 0; i < 5 && errors.Is(err, errNonVerificato); i++ {
+		time.Sleep(300 * time.Millisecond) // file occupato o Windows lento a dire dove sta: riprovo
+		b, err = leggiSenzaLink(dirApp, "impostazioni.json")
+	}
+	switch {
+	case err == nil:
 		_ = json.Unmarshal(b, &imp)
+	case errors.Is(err, errNonVerificato):
+		// non so se è un collegamento: non lo leggo, ma non lo sovrascrivo nemmeno (glossario, lingue)
+		impSolaLettura.Store(true)
+	case errors.Is(err, errLink):
+		// collegamento o giunzione vero: lo metto da parte rinominandolo (si sposta il collegamento,
+		// non quello a cui porta), così non si perde niente, e riparto dai valori di base
+		if fi, e := os.Lstat(fileImp()); e == nil && fi.Mode()&(os.ModeSymlink|os.ModeIrregular) != 0 {
+			if os.Rename(fileImp(), fileImp()+".collegamento-"+time.Now().Format("20060102-150405")) != nil {
+				impSolaLettura.Store(true)
+			}
+		} else {
+			impSolaLettura.Store(true) // il collegamento è più in alto: non scrivo
+		}
 	}
 	if imp.Glossario.Termini == nil {
 		imp.Glossario = glossarioBase()
@@ -106,7 +125,14 @@ func caricaImp() {
 // muFileImp: un salvataggio alla volta (due insieme scriverebbero lo stesso .tmp).
 var muFileImp sync.Mutex
 
+// impSolaLettura: impostazioni.json c'era ma non si è potuto leggere in modo sicuro: non lo
+// sovrascrivo con i valori di base (si perderebbero glossario e scelte).
+var impSolaLettura atomic.Bool
+
 func salvaImp() {
+	if impSolaLettura.Load() {
+		return
+	}
 	muFileImp.Lock()
 	defer muFileImp.Unlock()
 	muImp.Lock()
