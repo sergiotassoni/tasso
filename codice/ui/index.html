@@ -3339,6 +3339,20 @@ let UPD_BUSY = false;
 function updCheck(){ if (UPD_BUSY) return; call('goUpdatesList').then(r => { if (r === 'busy') return; UPD_BUSY = true; $('#btnUpdCheck').disabled = true; $('#btnUpdSel').disabled = true; $('#updMsg').textContent = _t('Cerco gli aggiornamenti (circa un minuto)…'); }); }
 function updApply(ids){ call('goUpdatesApply', ids).then(r => { if (r === 'busy') { toast(_t('Aspetta: sto già controllando o aggiornando.'), 'var(--a4)'); return; } UPD_BUSY = true; $('#btnUpdCheck').disabled = true; $('#btnUpdSel').disabled = true; $('#updMsg').textContent = _t('Aggiorno… non spegnere il PC.'); }); }
 $('#btnUpdCheck').onclick = updCheck;
+// La chiave di un programma da aggiornare: l'id di winget, oppure "n:" e il nome esatto. Niente se il nome
+// è accorciato da winget (…) o ha caratteri che non si possono passare a winget.
+function updKey(x){ if (!x) return ''; if (x.id) return x.id; const n = String(x.name || '').trim(); return (n && n.length <= 200 && !/[\u2026"\r\n]/.test(n)) ? 'n:' + n : ''; }
+const UPD_LAVORO = /\b(office|microsoft 365|teams|outlook|onedrive|skype for business|vpn|forticlient|globalprotect|anyconnect|citrix|vmware horizon|webex|sap)\b/i;
+// "Aggiorna tutti": chiede prima, e aggiorna solo quelli con la spunta (in Ufficio mai Office e i programmi del lavoro).
+function updAll(){
+  const sel = $$('#updList input[data-upd]').filter(x => x.checked && x.dataset.upd && !(isOffice() && x.dataset.lavoro));
+  if (!sel.length) { toast(_t('Non hai selezionato niente.'), 'var(--a4)'); return; }
+  const nomi = sel.map(x => { const b = x.closest('label').querySelector('.x b'); return b ? b.textContent : x.dataset.upd; });
+  const fuori = $$('#updList input[data-upd]').filter(x => x.dataset.upd && !sel.includes(x)).length;
+  modal('<h2>' + esc(_t('Aggiorno tutti i programmi con la spunta?')) + '</h2><p class="muted" style="margin:0">' + esc(nomi.join(', ')) + '</p>' +
+    (fuori ? '<div class="note">' + esc(_t('Quelli senza spunta restano come sono.')) + (isOffice() ? ' ' + esc(_t('Office e i programmi del lavoro restano fuori: se il PC è dell\'ufficio, chiedi prima all\'assistenza.')) : '') + '</div>' : ''),
+    [{label:_t('Annulla')}, {label:_t('Sì, aggiorna'), cls:'primary', fn: () => { updApply(sel.map(x => x.dataset.upd)); }}]);
+}
 $('#btnUpdSel').onclick = () => { const ids = $$('#updList input[data-upd]').filter(x => x.checked && x.dataset.upd).map(x => x.dataset.upd); if (!ids.length) { toast(_t('Non hai selezionato niente.'), 'var(--a4)'); return; } updApply(ids); };
 const PREGIONS = [['eu',_t('Europa')],['na',_t('Nord America')],['sa',_t('Sud America')],['asia',_t('Asia e Oceania')]];
 let PREG = null;
@@ -3407,12 +3421,15 @@ Object.assign(window.tasso, {
     $('#updCount').textContent = it.length ? '(' + it.length + ')' : '';
     $('#updMsg').textContent = it.length ? _t('Ci sono versioni nuove: spunta quelle da installare.') : _t('Tutti i programmi sono aggiornati. 👍');
     if (!it.length) box.innerHTML = _t('<div class="li"><span class="muted">Niente da aggiornare.</span></div>');
+    // Ogni programma si aggiorna da solo: con il suo id di winget, o con il nome esatto se winget non dà l'id
+    // (niente più "winget upgrade --all", che aggiornava anche quelli senza spunta).
+    // In Ufficio Office e i programmi del lavoro partono senza spunta: di solito li aggiorna l'assistenza.
     it.forEach(x => {
-      const can = !!x.id;
-      box.appendChild(el('label', {class:'li check'}, '<input type="checkbox" data-upd="' + esc(x.id) + '"' + (can ? ' checked' : ' disabled') + '>' + picHTML(x.id ? 'u:' + x.id : 'u:n:' + x.name, x.name) + '<span class="x"><b>' + esc(x.name) + '</b><span>' + esc(x.ver) + ' → <b style="color:var(--a1t)">' + esc(x.avail) + '</b>' + (can ? '' : _t(' · si aggiorna solo con "Aggiorna tutti"')) + '</span></span>'));
+      const key = updKey(x), can = !!key, lavoro = isOffice() && UPD_LAVORO.test(x.name + ' ' + (x.id || ''));
+      box.appendChild(el('label', {class:'li check'}, '<input type="checkbox" data-upd="' + esc(key) + '"' + (lavoro ? ' data-lavoro="1"' : '') + (can ? (lavoro ? '' : ' checked') : ' disabled') + '>' + picHTML(x.id ? 'u:' + x.id : 'u:n:' + x.name, x.name) + '<span class="x"><b>' + esc(x.name) + '</b><span>' + esc(x.ver) + ' → <b style="color:var(--a1t)">' + esc(x.avail) + '</b>' + (!can ? _t(' · da qui non si aggiorna: aggiornalo dal programma stesso') : lavoro ? _t(' · programma del lavoro: di solito lo aggiorna l\'assistenza') : '') + '</span></span>'));
     });
-    if (it.some(x => !x.id)) { const b = el('button', {class:'btn ghost', style:'align-self:flex-start;margin-top:8px'}, _t('Aggiorna tutti')); b.onclick = () => updApply(['*']); box.appendChild(b); }
-    $('#btnUpdSel').disabled = !it.some(x => x.id);
+    if (it.filter(updKey).length >= 2) { const b = el('button', {class:'btn ghost', style:'align-self:flex-start;margin-top:8px'}, _t('Aggiorna tutti')); b.onclick = updAll; box.appendChild(b); }
+    $('#btnUpdSel').disabled = !it.some(updKey);
   },
   onUpdatesDone(r){ (r.msgs || []).slice(-3).forEach(m => toast(m, 'var(--a3)')); },
   onPing(r){
