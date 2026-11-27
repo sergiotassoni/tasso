@@ -5,18 +5,9 @@
 // Sta solo sul PC, per ogni utente di Windows: HKCU\Software\Tasso, valore "Nome" (REG_SZ).
 // Non va mai in rete.
 //
-// Qui ci sono le regole, uguali in tutti i programmi (e nella pagina, in JavaScript):
-//   - da 2 a 20 caratteri (contati come caratteri veri, non byte);
-//   - lettere (anche accentate, di qualsiasi alfabeto), numeri, spazio, punto, trattino e
-//     trattino basso; i segni che si appoggiano a una lettera (accenti "staccati") vanno bene
-//     dopo una lettera;
-//   - almeno una lettera o un numero.
-//
-// Prima di controllare si pulisce: spazi all'inizio e alla fine via, più spazi di fila
-// diventano uno solo (anche tabulazioni, a capo e spazi "speciali" incollati da altre parti).
-//
-// Copia di tasso/codice/nomeutente (le regole sono le stesse anche in: installatore,
-// Tasso, Tasso PDF e nelle pagine, funzione nomeControlla). Se cambi qui, cambia anche lì.
+// Le regole: da 2 a 20 caratteri; lettere (anche accentate, di molte scritture), numeri, spazio,
+// punto, trattino e trattino basso; almeno una lettera o un numero; al massimo 3 accenti
+// "staccati" sopra una lettera; niente caratteri che non si vedono. Prima si puliscono gli spazi.
 package nome
 
 import (
@@ -25,10 +16,19 @@ import (
 	"unicode/utf8"
 )
 
-// Lunghezza ammessa, in caratteri.
+// ==== REGOLE DEL NOME: INIZIO ====
+// Uguali, carattere per carattere, in Tasso (nomeutente), installatore (nome), Tasso Zip (nome) e
+// Tasso PDF (nome); nelle pagine c'è la stessa cosa in JavaScript (nomeControlla). Un test controlla
+// l'impronta di questo pezzo: se lo cambi qui, cambialo in tutte e 8 le copie.
+//
+// Per avere lo stesso esito in Go e nella pagina (che usano versioni diverse di Unicode) le lettere
+// ammesse stanno in un elenco esplicito di blocchi di Unicode con scritture stabili da molti anni.
+
+// Lunghezza ammessa, in caratteri; accenti "staccati" di fila sulla stessa lettera.
 const (
-	Min = 2
-	Max = 20
+	Min        = 2
+	Max        = 20
+	MaxAccenti = 3
 )
 
 // Codici dell'esito di Controlla (la pagina li trasforma in frasi gentili).
@@ -36,9 +36,10 @@ const (
 	OK         = ""
 	Corto      = "corto"      // meno di 2 caratteri
 	Lungo      = "lungo"      // più di 20 caratteri
-	Simbolo    = "simbolo"    // un simbolo che non si può usare (Esito.Simbolo dice quale)
-	Invisibile = "invisibile" // un carattere che non si vede (di controllo, a larghezza zero...)
+	Simbolo    = "simbolo"    // un carattere che non si può usare (Esito.Simbolo dice quale)
+	Invisibile = "invisibile" // un carattere che non si vede
 	Senza      = "senza"      // solo punti, trattini o spazi: niente lettere né numeri
+	Accenti    = "accenti"    // un accento staccato non sopra una lettera, o più di 3 di fila
 )
 
 // Esito di Controlla.
@@ -47,8 +48,36 @@ type Esito struct {
 	Simbolo string // per Codice == Simbolo: il primo carattere non ammesso
 }
 
-// spazio: gli spazi che la pagina toglie con /\s/ (JavaScript), così Go e la pagina puliscono
-// allo stesso modo.
+// blocchiAmmessi: cifre e lettere latine, accenti staccati, greco, cirillico, armeno, ebraico,
+// arabo, devanagari, thai, georgiano, latino e greco estesi, hiragana, katakana, ideogrammi
+// cinesi (con l'estensione A) e sillabe coreane. Dentro i blocchi valgono solo lettere, cifre e
+// accenti (le categorie L, Nd e M di Unicode).
+var blocchiAmmessi = [][2]rune{
+	{0x0030, 0x0039}, {0x0041, 0x005A}, {0x0061, 0x007A}, {0x00C0, 0x024F}, {0x0300, 0x036F},
+	{0x0370, 0x03FF}, {0x0400, 0x052F}, {0x0531, 0x058F}, {0x0591, 0x05FF}, {0x0600, 0x06FF},
+	{0x0900, 0x097F}, {0x0E00, 0x0E7F}, {0x10A0, 0x10FF}, {0x1E00, 0x1FFF}, {0x3040, 0x30FF},
+	{0x3400, 0x4DBF}, {0x4E00, 0x9FFF}, {0xAC00, 0xD7A3},
+}
+
+// invisibili: caratteri che non si vedono (controllo, larghezza zero, direzione del testo,
+// riempitivi coreani, selettori di variante, etichette...).
+var invisibili = [][2]rune{
+	{0x0000, 0x001F}, {0x007F, 0x009F}, {0x00AD, 0x00AD}, {0x034F, 0x034F}, {0x0600, 0x0605},
+	{0x061C, 0x061C}, {0x06DD, 0x06DD}, {0x115F, 0x1160}, {0x17B4, 0x17B5}, {0x180B, 0x180F},
+	{0x2000, 0x200F}, {0x2028, 0x202F}, {0x205F, 0x206F}, {0x3000, 0x3000}, {0x3164, 0x3164},
+	{0xFE00, 0xFE0F}, {0xFEFF, 0xFEFF}, {0xFFA0, 0xFFA0}, {0xFFF0, 0xFFFB}, {0xE0000, 0xE0FFF},
+}
+
+func dentro(r rune, t [][2]rune) bool {
+	for _, x := range t {
+		if r >= x[0] && r <= x[1] {
+			return true
+		}
+	}
+	return false
+}
+
+// spazio: gli spazi che Pulisci unisce (gli stessi della pagina).
 func spazio(r rune) bool {
 	switch r {
 	case '\t', '\n', '\v', '\f', '\r', ' ', '\u00a0', '\u1680', '\u2028', '\u2029', '\u202f', '\u205f', '\u3000', '\ufeff':
@@ -79,25 +108,6 @@ func Pulisci(s string) string {
 	return strings.TrimRight(b.String(), " ")
 }
 
-// ammesso: il carattere r, in posizione i, va bene.
-func ammesso(r rune, i int) bool {
-	switch {
-	case r == ' ' || r == '.' || r == '-' || r == '_':
-		return true
-	case unicode.IsLetter(r) || unicode.Is(unicode.Nd, r):
-		return true
-	case unicode.Is(unicode.M, r):
-		return i > 0 // un accento "staccato" va bene solo dopo un altro carattere
-	}
-	return false
-}
-
-// invisibile: caratteri che non si vedono (di controllo, formato, spazi strani, non assegnati).
-func invisibile(r rune) bool {
-	return unicode.IsControl(r) || unicode.Is(unicode.Cf, r) || unicode.Is(unicode.Z, r) ||
-		unicode.Is(unicode.Co, r) || unicode.Is(unicode.Cs, r) || !unicode.Is(unicode.L, r) && !unicode.IsGraphic(r)
-}
-
 // Controlla dice se il nome (già pulito con Pulisci) va bene e, se no, perché.
 func Controlla(s string) Esito {
 	if !utf8.ValidString(s) {
@@ -110,23 +120,33 @@ func Controlla(s string) Esito {
 	if n > Max {
 		return Esito{Codice: Lungo}
 	}
-	i := 0
+	lettera, dopoLettera, accenti := false, false, 0
 	for _, r := range s {
-		if !ammesso(r, i) {
-			if invisibile(r) {
-				return Esito{Codice: Invisibile}
+		switch {
+		case r == ' ' || r == '.' || r == '-' || r == '_':
+			dopoLettera, accenti = false, 0
+		case dentro(r, invisibili):
+			return Esito{Codice: Invisibile}
+		case !dentro(r, blocchiAmmessi):
+			return Esito{Codice: Simbolo, Simbolo: string(r)}
+		case unicode.IsLetter(r) || unicode.Is(unicode.Nd, r):
+			lettera, dopoLettera, accenti = true, true, 0
+		case unicode.Is(unicode.M, r):
+			accenti++
+			if !dopoLettera || accenti > MaxAccenti {
+				return Esito{Codice: Accenti}
 			}
+		default:
 			return Esito{Codice: Simbolo, Simbolo: string(r)}
 		}
-		i++
 	}
-	for _, r := range s {
-		if unicode.IsLetter(r) || unicode.Is(unicode.Nd, r) {
-			return Esito{}
-		}
+	if !lettera {
+		return Esito{Codice: Senza}
 	}
-	return Esito{Codice: Senza}
+	return Esito{}
 }
+
+// ==== REGOLE DEL NOME: FINE ====
 
 // Valido: il nome, così com'è, si può salvare e mostrare (già pulito e con le regole giuste).
 func Valido(s string) bool {
