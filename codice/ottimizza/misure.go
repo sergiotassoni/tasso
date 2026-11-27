@@ -319,3 +319,31 @@ func TestoReg(valori []Valore) string {
 	}
 	return b.String()
 }
+
+// ValoriUtente: i valori di prima (HKCU) delle modifiche ancora attive, per un .reg "per rimettere
+// com'era" da aprire con l'account a cui appartengono (dopo Togli Tasso, quando Tasso non può
+// raggiungere le impostazioni di un altro account). Ognuno una volta sola, il primo visto.
+func ValoriUtente(s *Stato) []Valore {
+	var out []Valore
+	visti := map[string]bool{}
+	var giro func(p Precedente)
+	giro = func(p Precedente) {
+		for _, v := range p.Valori {
+			id := strings.ToLower(v.Chiave + "|" + v.Nome)
+			if v.Radice != HKCU || visti[id] {
+				continue
+			}
+			visti[id] = true
+			out = append(out, v)
+		}
+		for _, x := range p.Parti {
+			giro(x)
+		}
+	}
+	for _, v := range s.Voci {
+		if v.Attiva() {
+			giro(v.Prima)
+		}
+	}
+	return out
+}

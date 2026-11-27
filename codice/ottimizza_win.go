@@ -744,6 +744,13 @@ func scriviSicuroOtt(p string, b []byte, protetto bool) error {
 		}
 	}
 	scrivi := func(f string, dati []byte) error {
+		// mai seguire un collegamento messo al posto del file (Tasso amministratore nella cartella
+		// dell'utente): lo tolgo, poi creo il file nuovo
+		if fi, e := os.Lstat(f); e == nil && (èLink(fi) || !fi.Mode().IsRegular()) {
+			if !èLink(fi) || os.Remove(f) != nil {
+				return fmt.Errorf("%s non è un file normale", filepath.Base(f))
+			}
+		}
 		h, err := os.OpenFile(f, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o644)
 		if err != nil {
 			return err
@@ -781,9 +788,19 @@ func salvaOtt(st *ottimizza.Stato) error {
 }
 
 // ambienteOtt: registro con backup, piano energetico, desktop, preferenze e pulizia veri.
+// Per cambiare (giro, riaccendere un interruttore): il .reg di backup tiene i valori di prima.
 func ambienteOtt(ctx context.Context, log func(string)) *ottimizza.Ambiente {
 	return &ottimizza.Ambiente{Reg: nuovoRegConCopia(regVero{}), En: enVera{}, Sis: sisVero{}, Pref: prefVere{}, Pul: pulVero{ctx: ctx, log: log}, PC: pcOtt(),
 		Attendi: func(d time.Duration) { time.Sleep(d) }}
+}
+
+// ambienteRimettiOtt: come ambienteOtt ma senza .reg di backup. Rimettendo com'era, "com'era" è il
+// valore di Tasso: un .reg con quello, con un doppio clic (anche da "Torna indietro"), rifarebbe le
+// modifiche. Il .reg del giro, con i valori di prima di Tasso, resta quello buono.
+func ambienteRimettiOtt(ctx context.Context, log func(string)) *ottimizza.Ambiente {
+	a := ambienteOtt(ctx, log)
+	a.Reg = regVero{}
+	return a
 }
 
 // ---------------- Informazioni per la finestra ----------------
@@ -829,7 +846,7 @@ func rimettiOtt(id string) ottimizza.Esito {
 	if ottInCorso.Load() {
 		return ottimizza.Esito{ID: id, Stato: ottimizza.VoceErrore, Motivo: "Aspetta che Ottimizza tutto finisca, poi riprova."}
 	}
-	a := ambienteOtt(context.Background(), nil)
+	a := ambienteRimettiOtt(context.Background(), nil)
 	ottMu.Lock()
 	defer ottMu.Unlock()
 	st := caricaOtt()
@@ -865,7 +882,7 @@ func rimettiTuttoOtt(forza bool) ([]ottimizza.Esito, bool) {
 	if n == 0 {
 		return nil, true
 	}
-	a := ambienteOtt(context.Background(), nil)
+	a := ambienteRimettiOtt(context.Background(), nil)
 	ottMu.Lock()
 	defer ottMu.Unlock()
 	st = caricaOtt()
@@ -932,6 +949,56 @@ func copiaPerDocumentiOtt(p string) bool {
 	return scriviFileApp(filepath.Join(dir, nome), b, 0o644) == nil
 }
 
+const leggimiRegOtt = "Questo file rimette com'erano le impostazioni cambiate da Ottimizza tutto di Tasso.\nCome si usa: entra in Windows con l'account di cui sono le impostazioni, fai doppio clic sul file .reg con lo stesso nome, rispondi Sì alle domande di Windows, poi esci e rientra.\nDentro ci sono solo i valori di prima: non rifà nessuna modifica. Dopo lo puoi cancellare."
+
+// regAltroAccountOtt: dopo Togli Tasso, per le modifiche di un altro account che Tasso non può
+// raggiungere, un .reg con i valori di prima (solo HKCU, solo quelli toccati) in Documenti pubblici\Tasso,
+// che tutti gli account del PC vedono, più una copia con le copie di sicurezza in Documenti. Va aperto
+// da quell'account: HKEY_CURRENT_USER è il suo. Dentro ci sono solo i valori di prima di Tasso: un
+// doppio clic rimette com'era, mai le modifiche.
+func regAltroAccountOtt(st *ottimizza.Stato) bool {
+	v := ottimizza.ValoriUtente(st)
+	if len(v) == 0 {
+		return false
+	}
+	u := utf16.Encode([]rune(ottimizza.TestoReg(v)))
+	b := make([]byte, 2, 2+2*len(u))
+	b[0], b[1] = 0xFF, 0xFE
+	for _, x := range u {
+		b = append(b, byte(x), byte(x>>8))
+	}
+	nome := strings.Map(func(r rune) rune {
+		if strings.ContainsRune(`<>:"/\|?*`, r) || r < 32 {
+			return '-'
+		}
+		return r
+	}, trGo("Tasso - rimetti com'era le impostazioni di questo account")) + "_" + time.Now().Format("20060102_150405") + ".reg"
+	ok := false
+	if pub, err := windows.KnownFolderPath(windows.FOLDERID_PublicDocuments, 0); err == nil && pub != "" {
+		d := filepath.Join(pub, "Tasso")
+		if fi, e := os.Lstat(d); e == nil && èLink(fi) {
+			d = "" // mai seguire un collegamento in una cartella che tutti possono scrivere
+		}
+		if d != "" && os.MkdirAll(d, 0o755) == nil {
+			f := filepath.Join(d, nome)
+			if fi, e := os.Lstat(f); !(e == nil && èLink(fi)) {
+				ok = os.WriteFile(f, b, 0o644) == nil
+			}
+			// due righe per chi lo trova lì
+			g := filepath.Join(d, strings.TrimSuffix(nome, ".reg")+".txt")
+			if fi, e := os.Lstat(g); ok && !(e == nil && èLink(fi)) {
+				_ = os.WriteFile(g, []byte("\ufeff"+strings.ReplaceAll(trGo(leggimiRegOtt), "\n", "\r\n")), 0o644)
+			}
+		}
+	}
+	if dir := filepath.Join(appDir, "backup-registro", "altro account"); os.MkdirAll(dir, 0o755) == nil {
+		if scriviFileApp(filepath.Join(dir, nome), b, 0o644) == nil {
+			ok = true
+		}
+	}
+	return ok
+}
+
 // ottAltriFile: i file di stato e delle notifiche diversi da quello dell'utente di adesso (un
 // altro account del PC, un account cancellato, un giro fatto senza permessi in un'altra cartella).
 // Le modifiche di tutto il PC (HKLM, piano energetico) le rimetto io; quelle di un altro account
@@ -954,7 +1021,7 @@ func ottAltriFile() []string {
 	for _, x := range f {
 		l = append(l, file{x, false})
 	}
-	altri, illeggibili := 0, 0
+	altri, illeggibili, conReg := 0, 0, 0
 	for _, x := range l {
 		base := filepath.Base(x.p)
 		if strings.EqualFold(x.p, mio) || strings.HasPrefix(base, "notifiche-") && strings.EqualFold(x.p, fileNotificheOtt()) {
@@ -987,7 +1054,7 @@ func ottAltriFile() []string {
 			continue
 		}
 		// solo le modifiche di tutto il PC: quelle dell'utente sono di un altro account
-		a := ambienteOtt(context.Background(), nil)
+		a := ambienteRimettiOtt(context.Background(), nil)
 		a.PC.AltroUtente = true
 		salva := func(s *ottimizza.Stato) error {
 			b, err := s.Codifica()
@@ -997,11 +1064,18 @@ func ottAltriFile() []string {
 			return scriviSicuroOtt(x.p, b, x.protetto)
 		}
 		ottimizza.RimettiTutto(a, st, salva)
-		if len(st.Attive()) > 0 && copiaPerDocumentiOtt(x.p) {
-			altri++
+		if len(st.Attive()) > 0 {
+			if copiaPerDocumentiOtt(x.p) {
+				altri++
+			}
+			if regAltroAccountOtt(st) {
+				conReg++
+			}
 		}
 	}
-	if altri > 0 {
+	if conReg > 0 {
+		avvisi = append(avvisi, "Ottimizza tutto: alcune impostazioni di un altro account del PC non sono tornate com'erano (Tasso non può cambiare le impostazioni di un altro account). Per rimetterle: entra in Windows con quell'account, apri Documenti pubblici, cartella Tasso, fai doppio clic sul file \"Tasso - rimetti com'era…\", rispondi Sì, poi esci e rientra.")
+	} else if altri > 0 {
 		avvisi = append(avvisi, "Ottimizza tutto: alcune impostazioni di un altro account del PC non sono tornate com'erano (Tasso non può cambiare le impostazioni di un altro account). Tolgo Tasso lo stesso: l'elenco va con le copie di sicurezza in Documenti.")
 	}
 	if illeggibili > 0 {
@@ -1078,12 +1152,19 @@ func ottNotificheFine() {
 	if d := cartellaLavoroProtetta(); d != "" {
 		files = append(files, filepath.Join(d, "ottimizza", "notifiche-"+sidOtt()+".json"))
 	}
-	for _, f := range files {
-		b, err := leggiFileApp(f)
+	for i, f := range files {
+		var b []byte
+		var err error
+		if i == 0 {
+			b, err = leggiFileApp(f) // cartella dell'utente: niente collegamenti
+		} else {
+			b, err = os.ReadFile(f) // cartella protetta (solo amministratori)
+		}
 		if err != nil {
-			if b, err = os.ReadFile(f); err != nil {
+			if os.IsNotExist(err) {
 				continue
 			}
+			b = nil // illeggibile: "prima" vuoto = riaccendo i fumetti, mai spenti per sempre
 		}
 		var s struct {
 			Prima string `json:"prima"`

@@ -799,6 +799,10 @@ func setMode(id string) bool {
 		emit("onModeDone", map[string]interface{}{"id": id, "ok": false, "msgs": []string{"Non riesco a salvare com'era Windows, quindi per sicurezza non cambio niente. Riprova tra poco."}})
 		return false
 	}
+	// Ottimizza tutto: se i fumetti delle notifiche sono in pausa per una partita, li rimetto com'erano
+	// prima che Save-Prev li salvi spenti come "tuoi" (tornando a Normale resterebbero spenti per sempre).
+	// Con una modalità per i giochi accesa la pausa non riparte: le notifiche le gestisce lei.
+	ottNotificheFine()
 	// Le impostazioni "tue" si salvano solo se adesso il PC è in Normale (o com'era):
 	// se è già in Gaming/FPS/Film salverei quelle messe da Tasso.
 	setMu.Lock()

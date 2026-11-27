@@ -819,7 +819,7 @@ body.office .opt-stage h2{font-weight:600;font-stretch:normal}
 body.office .opt-barrow,body.office .opt-tg .lab,body.office .opt-stage .sk,body.office .opt-row .c,body.office .opt-row .s,body.office .opt-meas dt,body.office .opt-band .k,body.office .r2k,body.office .r2h span{font-family:var(--body);letter-spacing:.06em}
 .r2{display:flex;flex-direction:column;align-items:center;text-align:center}
 .r2logo svg{display:block}
-.opt-body.r2{gap:0}
+#v-opt .opt-body.r2{gap:0}
 .r2k{margin-top:22px;font:500 12px var(--mono);letter-spacing:.2em;text-transform:uppercase;color:var(--muted)}
 .r2t{margin:14px 0 0;font:700 34px var(--display);font-stretch:108%;letter-spacing:-.01em}
 .r2s{margin:10px 0 0;color:var(--muted);font-size:15.5px;max-width:60ch}
@@ -3568,7 +3568,7 @@ function ottInizio(){
   ottView(ottHead(0, '<span class="opt-safe">' + OTT_SHIELD + _t('Solo modifiche sicure e reversibili') + '</span>') +
     '<div class="opt-body"><div><h1 class="opt-title" tabindex="-1">' + (off ? _t('Un PC più svelto per lavorare') : _t('Rendi il PC più veloce nei giochi')) + '</h1>' +
     '<p class="opt-sub">' + (off ? _t('Un pulsante solo: Tasso misura il PC, sistema Windows per lavorare e ti mostra la differenza.') : _t('Un pulsante solo: Tasso misura il PC, sistema Windows per giocare e ti mostra la differenza.')) + ' ' +
-    (off ? _t('Ogni impostazione cambiata si rimette com\'era con un interruttore; i file inutili tolti dalla pulizia no.') + ' ' + _t('L\'antivirus e gli aggiornamenti non si toccano.') : _t('Ogni cosa che cambia si rimette com\'era con un interruttore.') + ' ' + _t('L\'antivirus non si tocca. Gli aggiornamenti non si spengono mai: Tasso sposta solo l\'orario dei riavvii.')) + '</p></div>' +
+    (off ? _t('Ogni impostazione cambiata si rimette com\'era con un interruttore; i file inutili tolti dalla pulizia no.') + ' ' + _t('L\'antivirus e gli aggiornamenti non si toccano.') : _t('Ogni cosa che cambia si rimette com\'era con un interruttore.') + ' ' + _t('L\'antivirus non si tocca. Gli aggiornamenti non si spengono mai: Tasso evita i riavvii mentre giochi e non li condivide con altri PC.')) + '</p></div>' +
     '<div class="opt-foot"><div class="opt-hints">' + OTT_INFO + '<span>' + (off ? _t('Salva il lavoro aperto: Tasso apre e chiude Esplora file, Blocco note e il browser.') : _t('Chiudi i giochi e il browser: la misura viene più giusta.')) + '</span></div>' +
     '<button class="' + (off ? 'btn primary' : 'gbig') + '" id="ottGo">' + (off ? _t('Ottimizza tutto') : _t('OTTIMIZZA TUTTO')) + '</button></div></div>');
   $('#ottGo').onclick = ottInizia;

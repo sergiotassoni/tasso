@@ -2,6 +2,7 @@ package ottimizza
 
 import (
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 )
@@ -260,5 +261,23 @@ func TestTestoReg(t *testing.T) {
 		"\r\n[HKEY_USERS\\S-1-5-20\\Software\\Microsoft\\Windows\\CurrentVersion\\DeliveryOptimization\\Settings]\r\n\"DownloadMode\"=dword:00000003\r\n"
 	if got != vuole {
 		t.Fatalf("%q\n%q", got, vuole)
+	}
+}
+
+// R2 (verifica a0059f5): dopo Togli Tasso, per un altro account resta un .reg con i soli valori
+// HKCU di prima delle modifiche ancora attive.
+func TestValoriUtente(t *testing.T) {
+	s := &Stato{Voci: []Voce{
+		{ID: "mouse", Stato: VoceFatta, Prima: Precedente{Valori: []Valore{sz(HKCU, chiaveMouse, "MouseSpeed", "1")}}},
+		{ID: "hags", Stato: VoceFatta, Prima: Precedente{Valori: []Valore{dw(HKLM, kGrafica, "HwSchMode", 1)}}},
+		{ID: "effetti", Stato: VoceInCorso, Prima: Precedente{Parti: []Precedente{{Valori: []Valore{{Radice: HKCU, Chiave: chiaveMouse, Nome: "Altro"}, sz(HKCU, chiaveMouse, "mousespeed", "9")}}}}},
+		{ID: "suoni", Stato: VoceRimessa, Prima: Precedente{Valori: []Valore{dw(HKCU, `Software\X`, "Y", 1)}}},
+	}}
+	v := ValoriUtente(s)
+	if len(v) != 2 || v[0].Nome != "MouseSpeed" || v[0].Testo != "1" || v[1].Nome != "Altro" {
+		t.Fatalf("valori: %+v", v)
+	}
+	if r := TestoReg(v); !strings.Contains(r, `"MouseSpeed"="1"`) || !strings.Contains(r, `"Altro"=-`) || strings.Contains(r, "HKEY_LOCAL_MACHINE") {
+		t.Fatalf("reg: %q", r)
 	}
 }

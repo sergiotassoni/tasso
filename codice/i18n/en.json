@@ -1470,7 +1470,10 @@
   "Ottimizza tutto: alcune impostazioni di un altro account del PC non sono tornate com'erano (Tasso non può cambiare le impostazioni di un altro account). Tolgo Tasso lo stesso: l'elenco va con le copie di sicurezza in Documenti.": "Optimize everything: some settings of another account on this PC didn't go back to how they were (Tasso can't change another account's settings). I'm removing Tasso anyway: the list goes with the backups in Documents.",
   "Ottimizza tutto: un file con le impostazioni di prima era rovinato. Tolgo Tasso lo stesso: il file va con le copie di sicurezza in Documenti.": "Optimize everything: a file with the previous settings was damaged. I'm removing Tasso anyway: the file goes with the backups in Documents.",
   "Rimetti le rimette tutte com'erano; una alla volta dalla pagina Ottimizza tutto.": "Restore puts them all back; one at a time from the Optimize everything page.",
-  "Boost, clic automatico, modalità dell'Ufficio e modifiche di Ottimizza tutto rimessi com'erano (le altre impostazioni restano come sono)": "Boost, auto-click, Office modes and Optimize everything changes put back (other settings stay as they are)"
+  "Boost, clic automatico, modalità dell'Ufficio e modifiche di Ottimizza tutto rimessi com'erano (le altre impostazioni restano come sono)": "Boost, auto-click, Office modes and Optimize everything changes put back (other settings stay as they are)",
+  "Ottimizza tutto: alcune impostazioni di un altro account del PC non sono tornate com'erano (Tasso non può cambiare le impostazioni di un altro account). Per rimetterle: entra in Windows con quell'account, apri Documenti pubblici, cartella Tasso, fai doppio clic sul file \"Tasso - rimetti com'era…\", rispondi Sì, poi esci e rientra.": "Optimize everything: some settings of another account on this PC didn't go back to how they were (Tasso can't change another account's settings). To restore them: sign in to Windows with that account, open Public Documents, Tasso folder, double-click the \"Tasso - restore…\" file, answer Yes, then sign out and back in.",
+  "Tasso - rimetti com'era le impostazioni di questo account": "Tasso - restore this account's settings",
+  "Questo file rimette com'erano le impostazioni cambiate da Ottimizza tutto di Tasso.\nCome si usa: entra in Windows con l'account di cui sono le impostazioni, fai doppio clic sul file .reg con lo stesso nome, rispondi Sì alle domande di Windows, poi esci e rientra.\nDentro ci sono solo i valori di prima: non rifà nessuna modifica. Dopo lo puoi cancellare.": "This file puts back the settings changed by Tasso's Optimize everything.\nHow to use it: sign in to Windows with the account the settings belong to, double-click the .reg file with the same name, answer Yes to Windows' questions, then sign out and back in.\nIt only contains the previous values: it doesn't redo any change. You can delete it afterwards."
  },
  "ps": {
   "Windows non mi lascia cambiare questa voce.": "Windows won't let me change this entry.",
@@ -5816,7 +5819,6 @@
   "Cambiate in Ufficio": "Changed in Office",
   "Il processore non rallenta per risparmiare (consuma un po' di più).": "The processor doesn't slow down to save power (it uses a little more).",
   "L'antivirus e gli aggiornamenti non si toccano.": "The antivirus and updates are left alone.",
-  "L'antivirus non si tocca. Gli aggiornamenti non si spengono mai: Tasso sposta solo l'orario dei riavvii.": "The antivirus is left alone. Updates are never turned off: Tasso only moves the restart hours.",
   "Niente riavvii per aggiornamenti mentre giochi": "No update restarts while you play",
   "Non ci sono riuscito: riprova tra poco.": "That didn't work: try again in a moment.",
   "Notifiche senza suono": "Silent notifications",
@@ -5829,6 +5831,7 @@
   "Tasso misura di nuovo il PC e ricontrolla le impostazioni: ci vogliono alcuni minuti. Le modifiche già fatte restano.": "Tasso measures the PC again and rechecks the settings: it takes a few minutes. The changes already made stay.",
   "Tutte le impostazioni cambiate da Ottimizza tutto tornano come prima, sia in Gaming sia in Ufficio. I file tolti dalla pulizia non tornano (non servivano più).": "All settings changed by Optimize everything go back to how they were, in both Gaming and Office. Files removed by the cleanup don't come back (they weren't needed).",
   "Un PC più svelto per lavorare": "A quicker PC for work",
-  "circa 5 minuti · le impostazioni si rimettono com'erano": "about 5 minutes · settings can be put back"
+  "circa 5 minuti · le impostazioni si rimettono com'erano": "about 5 minutes · settings can be put back",
+  "L'antivirus non si tocca. Gli aggiornamenti non si spengono mai: Tasso evita i riavvii mentre giochi e non li condivide con altri PC.": "The antivirus is left alone. Updates are never turned off: Tasso avoids restarts while you play and doesn't share them with other PCs."
  }
 }

@@ -1470,7 +1470,10 @@
   "Ottimizza tutto: alcune impostazioni di un altro account del PC non sono tornate com'erano (Tasso non può cambiare le impostazioni di un altro account). Tolgo Tasso lo stesso: l'elenco va con le copie di sicurezza in Documenti.": "Tout optimiser : certains réglages d'un autre compte du PC ne sont pas revenus comme avant (Tasso ne peut pas modifier les réglages d'un autre compte). Je supprime Tasso quand même : la liste va avec les copies de sécurité dans Documents.",
   "Ottimizza tutto: un file con le impostazioni di prima era rovinato. Tolgo Tasso lo stesso: il file va con le copie di sicurezza in Documenti.": "Tout optimiser : un fichier avec les réglages d'avant était abîmé. Je supprime Tasso quand même : le fichier va avec les copies de sécurité dans Documents.",
   "Rimetti le rimette tutte com'erano; una alla volta dalla pagina Ottimizza tutto.": "Restaurer les remet toutes comme avant ; une par une depuis la page Tout optimiser.",
-  "Boost, clic automatico, modalità dell'Ufficio e modifiche di Ottimizza tutto rimessi com'erano (le altre impostazioni restano come sono)": "Boost, clic automatique, modes du Bureau et modifications de Tout optimiser remis comme avant (les autres réglages restent tels quels)"
+  "Boost, clic automatico, modalità dell'Ufficio e modifiche di Ottimizza tutto rimessi com'erano (le altre impostazioni restano come sono)": "Boost, clic automatique, modes du Bureau et modifications de Tout optimiser remis comme avant (les autres réglages restent tels quels)",
+  "Ottimizza tutto: alcune impostazioni di un altro account del PC non sono tornate com'erano (Tasso non può cambiare le impostazioni di un altro account). Per rimetterle: entra in Windows con quell'account, apri Documenti pubblici, cartella Tasso, fai doppio clic sul file \"Tasso - rimetti com'era…\", rispondi Sì, poi esci e rientra.": "Tout optimiser : certains réglages d'un autre compte du PC ne sont pas revenus comme avant (Tasso ne peut pas modifier les réglages d'un autre compte). Pour les remettre : ouvrez une session Windows avec ce compte, ouvrez Documents publics, dossier Tasso, double-cliquez sur le fichier « Tasso - rétablir… », répondez Oui, puis fermez la session et rouvrez-la.",
+  "Tasso - rimetti com'era le impostazioni di questo account": "Tasso - rétablir les réglages de ce compte",
+  "Questo file rimette com'erano le impostazioni cambiate da Ottimizza tutto di Tasso.\nCome si usa: entra in Windows con l'account di cui sono le impostazioni, fai doppio clic sul file .reg con lo stesso nome, rispondi Sì alle domande di Windows, poi esci e rientra.\nDentro ci sono solo i valori di prima: non rifà nessuna modifica. Dopo lo puoi cancellare.": "Ce fichier remet comme avant les réglages modifiés par Tout optimiser de Tasso.\nMode d'emploi : ouvrez une session Windows avec le compte à qui appartiennent les réglages, double-cliquez sur le fichier .reg du même nom, répondez Oui aux questions de Windows, puis fermez la session et rouvrez-la.\nIl ne contient que les valeurs d'avant : il ne refait aucune modification. Vous pouvez le supprimer ensuite."
  },
  "ps": {
   "Windows non mi lascia cambiare questa voce.": "Windows ne me laisse pas modifier cette entrée.",
@@ -5816,7 +5819,6 @@
   "Cambiate in Ufficio": "Modifiés en Bureau",
   "Il processore non rallenta per risparmiare (consuma un po' di più).": "Le processeur ne ralentit pas pour économiser (il consomme un peu plus).",
   "L'antivirus e gli aggiornamenti non si toccano.": "L'antivirus et les mises à jour ne sont pas touchés.",
-  "L'antivirus non si tocca. Gli aggiornamenti non si spengono mai: Tasso sposta solo l'orario dei riavvii.": "L'antivirus n'est pas touché. Les mises à jour ne sont jamais désactivées : Tasso déplace seulement l'horaire des redémarrages.",
   "Niente riavvii per aggiornamenti mentre giochi": "Pas de redémarrage pour les mises à jour pendant que vous jouez",
   "Non ci sono riuscito: riprova tra poco.": "Cela n'a pas marché : réessayez dans un instant.",
   "Notifiche senza suono": "Notifications sans son",
@@ -5829,6 +5831,7 @@
   "Tasso misura di nuovo il PC e ricontrolla le impostazioni: ci vogliono alcuni minuti. Le modifiche già fatte restano.": "Tasso mesure à nouveau le PC et revérifie les réglages : cela prend quelques minutes. Les modifications déjà faites restent.",
   "Tutte le impostazioni cambiate da Ottimizza tutto tornano come prima, sia in Gaming sia in Ufficio. I file tolti dalla pulizia non tornano (non servivano più).": "Tous les réglages modifiés par Tout optimiser reviennent comme avant, en Gaming comme en Bureau. Les fichiers supprimés par le nettoyage ne reviennent pas (ils ne servaient plus).",
   "Un PC più svelto per lavorare": "Un PC plus rapide pour travailler",
-  "circa 5 minuti · le impostazioni si rimettono com'erano": "environ 5 minutes · les réglages se remettent comme avant"
+  "circa 5 minuti · le impostazioni si rimettono com'erano": "environ 5 minutes · les réglages se remettent comme avant",
+  "L'antivirus non si tocca. Gli aggiornamenti non si spengono mai: Tasso evita i riavvii mentre giochi e non li condivide con altri PC.": "L'antivirus n'est pas touché. Les mises à jour ne sont jamais désactivées : Tasso évite les redémarrages pendant que vous jouez et ne les partage pas avec d'autres PC."
  }
 }

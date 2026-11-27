@@ -139,7 +139,7 @@ func giroOtt(modo string) {
 	}
 	if ottStop.Load() {
 		// Fermati: rimetto com'era quello che ho cambiato in questo giro
-		a2 := ambienteOtt(context.Background(), logf)
+		a2 := ambienteRimettiOtt(context.Background(), logf)
 		ottMu.Lock()
 		st := caricaOtt()
 		errori := 0
@@ -530,12 +530,17 @@ func finestreOtt() map[uintptr]string {
 	return out
 }
 
-// chiudiNuoveOtt: chiude le finestre nuove (non c'erano prima) di questi programmi: quelle aperte
-// da Tasso e arrivate tardi, o lasciate aperte da Fermati.
+// chiudiNuoveOtt: la finestra aperta da Tasso arrivata dopo il tempo massimo, o con Fermati. Guarda
+// per qualche secondo e chiude al massimo UNA finestra nuova di quel programma (Tasso ne ha aperta
+// una sola): se nel frattempo ne apri tu un'altra, resta aperta. WM_CLOSE: il Blocco note chiede di
+// salvare, niente lavoro perso.
 func chiudiNuoveOtt(prima map[uintptr]string, exe map[string]bool) {
-	for h, e := range finestreOtt() {
-		if _, c := prima[h]; !c && exe[e] {
-			pPostMessage.Call(h, 0x0010, 0, 0) // WM_CLOSE
+	for t0 := time.Now(); time.Since(t0) < 6*time.Second; time.Sleep(300 * time.Millisecond) {
+		for h, e := range finestreOtt() {
+			if _, c := prima[h]; !c && exe[e] {
+				pPostMessage.Call(h, 0x0010, 0, 0) // WM_CLOSE
+				return
+			}
 		}
 	}
 }
@@ -642,7 +647,6 @@ func aperturaOtt(ctx context.Context, onProg func(float64), logf func(string)) m
 		} else {
 			logf("Apertura " + p.id + ": nessuna finestra nuova, non la conto.")
 			// arrivata dopo il tempo massimo o con Fermati: la chiudo lo stesso
-			time.Sleep(1500 * time.Millisecond)
 			chiudiNuoveOtt(prima, p.exe)
 		}
 		pausaOtt(ctx, 1500*time.Millisecond)
