@@ -487,6 +487,9 @@ func controllaModInstallate() {
 func controllaModInstallateIn(base string) {
 	voci, _ := os.ReadDir(filepath.Join(base, "copie-giochi"))
 	for _, v := range voci {
+		if doppione(base, v.Name()) {
+			continue // lo stesso gioco c'è anche nella cartella in uso: vale quello
+		}
 		m, ok := leggiManifesto(base, v.Name())
 		if !ok || !ModNonPartita(m.Cartella) {
 			continue
@@ -521,6 +524,9 @@ func TogliTutteLeTraduzioni() (tolti, falliti []string) {
 func togliTutteIn(base string) (tolti, falliti []string) {
 	voci, _ := os.ReadDir(filepath.Join(base, "copie-giochi"))
 	for _, v := range voci {
+		if doppione(base, v.Name()) {
+			continue // lo stesso gioco c'è anche nella cartella in uso: vale quello
+		}
 		m, ok := leggiManifesto(base, v.Name())
 		if !ok {
 			continue // senza elenco non tocco il gioco: la cartella delle copie va in Documenti

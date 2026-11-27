@@ -1,6 +1,7 @@
 package traduce
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"testing"
@@ -127,5 +128,112 @@ func TestBaseCopieAspettaOspite(t *testing.T) {
 func TestDentroFinale(t *testing.T) {
 	if !dentroFinale(`C:\Users\a\AppData\x\f.txt`, `c:\users\a\appdata`) || dentroFinale(`C:\Users\a\AppDataX\f`, `C:\Users\a\AppData`) || dentroFinale("", `C:\x`) {
 		t.Fatal("dentroFinale")
+	}
+}
+
+func TestLeggiSenzaLinkErrori(t *testing.T) {
+	base := t.TempDir()
+	fuori := filepath.Join(t.TempDir(), "x")
+	_ = os.WriteFile(fuori, []byte("X"), 0o644)
+	if err := os.Symlink(fuori, filepath.Join(base, "imp.json")); err != nil {
+		t.Skip(err)
+	}
+	if _, err := leggiSenzaLink(base, "imp.json"); !errors.Is(err, errLink) {
+		t.Fatalf("collegamento vero: %v", err)
+	}
+	if _, err := leggiSenzaLink(base, "manca.json"); !os.IsNotExist(err) {
+		t.Fatalf("file che manca: %v", err)
+	}
+	// radice che è un collegamento: rifiutata subito
+	altra := filepath.Join(t.TempDir(), "radice")
+	_ = os.Symlink(base, altra)
+	if _, err := leggiSenzaLink(altra, "qualsiasi.json"); !errors.Is(err, errLink) {
+		t.Fatalf("radice collegamento: %v", err)
+	}
+}
+
+// N3: un gioco che c'è in tutti e due i posti resta solo nella cartella nuova.
+func TestSpostaCopieUnaSola(t *testing.T) {
+	radice := t.TempDir()
+	vecchia, nuova := filepath.Join(radice, "app"), filepath.Join(radice, "lavoro")
+	for _, d := range []string{filepath.Join(vecchia, "copie-giochi", "g"), filepath.Join(nuova, "copie-giochi", "g")} {
+		_ = os.MkdirAll(d, 0o755)
+		_ = os.WriteFile(filepath.Join(d, "manifesto.json"), []byte(d), 0o644)
+	}
+	if err := spostaCopieVecchie(vecchia, nuova); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(filepath.Join(vecchia, "copie-giochi", "g")); !os.IsNotExist(err) {
+		t.Fatal("doppione rimasto in AppData")
+	}
+}
+
+func TestSegnoTassoNelGioco(t *testing.T) {
+	g := t.TempDir()
+	m := ManifestoMod{Cartella: g, Tipo: "mono", Token: "0123456789abcdef"}
+	if segnoTassoNelGioco(m) {
+		t.Fatal("senza file di XUnity")
+	}
+	cfg := filepath.Join(g, "BepInEx", "config")
+	_ = os.MkdirAll(cfg, 0o755)
+	_ = os.WriteFile(filepath.Join(cfg, "AutoTranslatorConfig.ini"), []byte("Url=http://127.0.0.1:1/gioco/k/altro"), 0o644)
+	if segnoTassoNelGioco(m) {
+		t.Fatal("segreto diverso accettato")
+	}
+	_ = os.WriteFile(filepath.Join(cfg, "AutoTranslatorConfig.ini"), []byte("Url=http://127.0.0.1:1/gioco/k/0123456789abcdef"), 0o644)
+	if !segnoTassoNelGioco(m) {
+		t.Fatal("segno vero non visto")
+	}
+	u := ManifestoMod{Cartella: g, Tipo: "unreal", Aggiunti: []string{filepath.Join("Paks", "~mods", nomeModUnreal)}}
+	if segnoTassoNelGioco(u) {
+		t.Fatal("unreal senza pak")
+	}
+	_ = os.MkdirAll(filepath.Join(g, "Paks", "~mods"), 0o755)
+	_ = os.WriteFile(filepath.Join(g, "Paks", "~mods", nomeModUnreal), []byte("p"), 0o644)
+	if !segnoTassoNelGioco(u) {
+		t.Fatal("unreal con pak")
+	}
+}
+
+// D8: dentro Tasso un elenco in AppData vale solo per un gioco con il segno di Tasso, mai per
+// cartelle di sistema; quelli della cartella protetta valgono come prima.
+func TestManifestoAffidabile(t *testing.T) {
+	vecchiaF, vecchiaG := Ospite.CartellaProtetta, Ospite.GiocoDiTasso
+	t.Cleanup(func() {
+		Ospite.CartellaProtetta, Ospite.GiocoDiTasso = vecchiaF, vecchiaG
+		copieMu.Lock()
+		copieProtetta = ""
+		copieMu.Unlock()
+	})
+	lavoro, app, g := t.TempDir(), t.TempDir(), t.TempDir()
+	copieMu.Lock()
+	copieProtetta = lavoro
+	copieMu.Unlock()
+	Ospite.CartellaProtetta = func() string { return lavoro }
+	Ospite.GiocoDiTasso = nil
+	m := ManifestoMod{Cartella: g, Tipo: "mono", Token: "0123456789abcdef", Exe: "Gioco.exe"}
+	if !manifestoAffidabile(lavoro, m) {
+		t.Fatal("cartella protetta: come prima")
+	}
+	if manifestoAffidabile(app, m) {
+		t.Fatal("AppData senza segno accettato")
+	}
+	cfg := filepath.Join(g, "BepInEx", "config")
+	_ = os.MkdirAll(cfg, 0o755)
+	_ = os.WriteFile(filepath.Join(cfg, "AutoTranslatorConfig.ini"), []byte("/gioco/k/0123456789abcdef"), 0o644)
+	if !manifestoAffidabile(app, m) {
+		t.Fatal("AppData con segno rifiutato")
+	}
+	Ospite.GiocoDiTasso = func(string) bool { return false }
+	if manifestoAffidabile(app, m) {
+		t.Fatal("cartella che non è di giochi accettata")
+	}
+	Ospite.GiocoDiTasso = nil
+	if manifestoAffidabile(app, ManifestoMod{Cartella: "/", Token: m.Token}) {
+		t.Fatal("radice del disco accettata")
+	}
+	Ospite.CartellaProtetta = nil
+	if !manifestoAffidabile(app, ManifestoMod{}) {
+		t.Fatal("Tasso Traduce da solo: come prima")
 	}
 }

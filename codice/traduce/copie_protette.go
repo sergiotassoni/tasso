@@ -15,6 +15,15 @@ import (
 	"sync"
 )
 
+// errLink: c'è un collegamento o una giunzione, o il file porta fuori dalla cartella attesa.
+// errNonVerificato: Windows non sa dire dove sta davvero il file (GetFinalPathNameByHandle non
+// risponde, per esempio su certi dischi o filtri): non vuol dire che sia un collegamento, quindi chi
+// lo riceve non deve trattare il file come rovinato né scriverci sopra.
+var (
+	errLink          = errors.New("collegamento o giunzione: non leggo")
+	errNonVerificato = errors.New("non riesco a controllare dove porta il file: non lo uso adesso")
+)
+
 // segnoCopieSpostate: c'è dentro la cartella protetta dopo lo spostamento delle copie vecchie.
 // Senza questo segno, ogni avvio riprenderebbe da %LOCALAPPDATA% anche quello che ci mette dopo un
 // altro programma.
@@ -81,6 +90,16 @@ func baseDi(chiave string) string {
 	return baseCopie()
 }
 
+// doppione: la copia di chiave in base è un doppione di quella nella cartella in uso (vale quella).
+func doppione(base, chiave string) bool {
+	uso := baseCopie()
+	if filepath.Clean(base) == filepath.Clean(uso) {
+		return false
+	}
+	_, err := os.Lstat(filepath.Join(uso, "copie-giochi", chiave, "manifesto.json"))
+	return err == nil
+}
+
 // CartellaCopie: la cartella "copie-giochi" in uso (per la disinstallazione).
 func CartellaCopie() string { return filepath.Join(baseCopie(), "copie-giochi") }
 
@@ -107,8 +126,9 @@ func scriviLogCopie(s string) {
 // spostaCopieVecchie porta vecchia\copie-giochi\<gioco> in nuova\copie-giochi\<gioco>. Copio
 // (non sposto): un file spostato sullo stesso disco si porta dietro i permessi di prima, cioè
 // resterebbe modificabile dall'utente. Link e giunzioni non li seguo (copiaCartella li rifiuta).
-// Un gioco che c'è già nella cartella nuova non lo tocco. Se tutto va bene tolgo la cartella
-// vecchia e metto il segno; se qualcosa non va, la vecchia resta e riprovo al prossimo avvio.
+// Un gioco che c'è già nella cartella nuova non lo tocco. Ogni gioco copiato (o già presente nella
+// nuova) lo tolgo subito dalla vecchia: un gioco ha sempre una copia sola. Se tutto va bene tolgo la
+// cartella vecchia e metto il segno; se qualcosa non va, i giochi non copiati restano e riprovo.
 func spostaCopieVecchie(vecchia, nuova string) error {
 	segno := filepath.Join(nuova, "copie-giochi", segnoCopieSpostate)
 	if _, err := os.Lstat(segno); err == nil {
@@ -129,6 +149,16 @@ func spostaCopieVecchie(vecchia, nuova string) error {
 	if !fi.IsDir() || fi.Mode()&(os.ModeSymlink|os.ModeIrregular) != 0 {
 		return fatto() // non è una cartella vera: non la seguo e non ci torno più
 	}
+	// Il percorso vero della cartella vecchia lo calcolo adesso, una volta sola, aprendola senza
+	// seguire collegamenti: se dopo qualcuno la cambia in una giunzione, i file portano fuori da
+	// questa stringa e non li copio.
+	radice, err := radiceVera(old)
+	if errors.Is(err, errLink) {
+		return fatto()
+	}
+	if err != nil {
+		return err // non so dove porta: riprovo al prossimo avvio
+	}
 	voci, err := os.ReadDir(old)
 	if err != nil {
 		return err
@@ -139,13 +169,19 @@ func spostaCopieVecchie(vecchia, nuova string) error {
 			continue
 		}
 		dest := filepath.Join(nuova, "copie-giochi", v.Name())
+		vecchio := filepath.Join(old, v.Name())
 		if _, err := os.Lstat(dest); err == nil {
+			// c'è già nella cartella nuova (spostato a un avvio di prima): quella vale, la vecchia via,
+			// così ogni gioco ha una copia sola
+			_ = os.RemoveAll(vecchio)
 			continue
 		}
-		if err := copiaCartellaDentro(filepath.Join(old, v.Name()), dest); err != nil {
+		if err := copiaCartellaDentro(vecchio, dest, radice); err != nil {
 			_ = os.RemoveAll(dest) // niente copie a metà
 			errs = append(errs, errors.New(v.Name()+": "+err.Error()))
+			continue
 		}
+		_ = os.RemoveAll(vecchio) // copiato: tolgo subito la copia vecchia di questo gioco
 	}
 	if len(errs) > 0 {
 		return errors.Join(errs...)
@@ -157,11 +193,17 @@ func spostaCopieVecchie(vecchia, nuova string) error {
 }
 
 // leggiSenzaLink: il file base\rel, solo se né lui né le cartelle in mezzo sono collegamenti o
-// giunzioni (Tasso lo legge da amministratore dalla cartella dell'utente) e se il file aperto è
-// proprio quello controllato.
+// giunzioni (Tasso lo legge da amministratore dalla cartella dell'utente), se il file aperto è
+// proprio quello controllato e se il suo percorso vero sta sotto il percorso vero di base, calcolato
+// una volta sola prima di aprire il file. Errori: errLink (collegamento vero o file fuori),
+// errNonVerificato (non si sa), o quello di Lstat (per esempio il file non c'è).
 func leggiSenzaLink(base, rel string) ([]byte, error) {
-	if fb, err := os.Lstat(base); err != nil || fb.Mode()&(os.ModeSymlink|os.ModeIrregular) != 0 || !senzaLink(base, rel) {
-		return nil, errors.New("collegamento o giunzione: non leggo")
+	radice, err := radiceVera(base)
+	if err != nil {
+		return nil, err
+	}
+	if !senzaLink(base, rel) {
+		return nil, errLink
 	}
 	p := filepath.Join(base, rel)
 	fi, err := os.Lstat(p)
@@ -169,7 +211,7 @@ func leggiSenzaLink(base, rel string) ([]byte, error) {
 		return nil, err
 	}
 	if !fi.Mode().IsRegular() {
-		return nil, errors.New("non è un file normale: non leggo")
+		return nil, errLink
 	}
 	f, err := os.Open(p)
 	if err != nil {
@@ -177,8 +219,11 @@ func leggiSenzaLink(base, rel string) ([]byte, error) {
 	}
 	defer f.Close()
 	fi2, err := f.Stat()
-	if err != nil || !os.SameFile(fi, fi2) || !apertoDentro(f, base) {
-		return nil, errors.New("il file è cambiato mentre lo aprivo: non leggo")
+	if err != nil || !os.SameFile(fi, fi2) {
+		return nil, errNonVerificato // cambiato proprio adesso (anche un salvataggio): riprovo dopo
+	}
+	if err := controllaAperto(f, radice, false); err != nil {
+		return nil, err
 	}
 	return io.ReadAll(f)
 }
@@ -201,7 +246,7 @@ func dentroFinale(p, radice string) bool {
 // lo apro, controllo che sia quello visto con Lstat e che il suo percorso vero sia ancora dentro la
 // cartella di partenza (una cartella cambiata in giunzione a metà copia non porta fuori), e copio
 // dal file già aperto.
-func copiaCartellaDentro(da, a string) error {
+func copiaCartellaDentro(da, a, radice string) error {
 	return filepath.Walk(da, func(p string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
@@ -225,7 +270,7 @@ func copiaCartellaDentro(da, a string) error {
 		if !info.Mode().IsRegular() {
 			return nil
 		}
-		return copiaFileDentro(p, filepath.Join(a, rel), info, da)
+		return copiaFileDentro(p, filepath.Join(a, rel), info, radice)
 	})
 }
 
@@ -242,8 +287,8 @@ func copiaFileDentro(p, dest string, visto os.FileInfo, radice string) error {
 	if !os.SameFile(visto, fi) || !fi.Mode().IsRegular() {
 		return errors.New(p + " è cambiato mentre lo copiavo")
 	}
-	if !apertoDentro(in, radice) {
-		return errors.New(p + " porta fuori dalla cartella di partenza")
+	if err := controllaAperto(in, radice, true); err != nil {
+		return errors.New(p + ": " + err.Error())
 	}
 	if fd, err := os.Lstat(dest); err == nil && !fd.Mode().IsRegular() {
 		return errors.New(dest + " non è un file normale")
@@ -257,4 +302,96 @@ func copiaFileDentro(p, dest string, visto os.FileInfo, radice string) error {
 		return err
 	}
 	return out.Close()
+}
+
+// èCartellaProtetta: base è la cartella protetta in uso (Programmi\Tasso\lavoro).
+func èCartellaProtetta(base string) bool {
+	copieMu.Lock()
+	d := copieProtetta
+	copieMu.Unlock()
+	return d != "" && filepath.Clean(d) == filepath.Clean(base)
+}
+
+// leggiSenzaLinkSemplice: come leggiSenzaLink senza il percorso vero (solo per la cartella protetta).
+func leggiSenzaLinkSemplice(base, rel string) ([]byte, error) {
+	if !senzaLink(base, rel) {
+		return nil, errLink
+	}
+	p := filepath.Join(base, rel)
+	fi, err := os.Lstat(p)
+	if err != nil {
+		return nil, err
+	}
+	if !fi.Mode().IsRegular() {
+		return nil, errLink
+	}
+	f, err := os.Open(p)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+	if fi2, err := f.Stat(); err != nil || !os.SameFile(fi, fi2) {
+		return nil, errNonVerificato
+	}
+	return io.ReadAll(f)
+}
+
+// manifestoAffidabile: dentro Tasso (che gira da amministratore) un elenco che sta in AppData, dove
+// qualunque programma dell'utente scrive, lo uso solo se porta a un gioco vero dove Tasso ha messo
+// davvero la sua traduzione: mai cartelle di Windows, mai cartelle che non sono di giochi. Gli
+// elenchi nella cartella protetta e Tasso Traduce da solo (che non è amministratore) restano come prima.
+func manifestoAffidabile(base string, m ManifestoMod) bool {
+	if Ospite.CartellaProtetta == nil || èCartellaProtetta(base) {
+		return true
+	}
+	if m.Cartella == "" || !filepath.IsAbs(m.Cartella) || cartellaDiSistema(m.Cartella) {
+		return false
+	}
+	if Ospite.GiocoDiTasso != nil && !Ospite.GiocoDiTasso(filepath.Join(m.Cartella, filepath.Base(m.Exe))) {
+		return false
+	}
+	return segnoTassoNelGioco(m)
+}
+
+// segnoTassoNelGioco: nella cartella del gioco c'è quello che ci ha messo Tasso. Unity: il file di
+// XUnity scritto da Tasso, con dentro l'indirizzo del traduttore sul PC e il segreto di questo
+// elenco. Unreal: il pak zz_TassoTraduce_P.pak indicato nell'elenco. Nessun collegamento in mezzo.
+func segnoTassoNelGioco(m ManifestoMod) bool {
+	if m.Tipo == "unreal" {
+		for _, a := range m.Aggiunti {
+			if filepath.IsAbs(a) || strings.Contains(a, "..") || !strings.EqualFold(filepath.Base(a), nomeModUnreal) {
+				continue
+			}
+			if fi, err := os.Lstat(filepath.Join(m.Cartella, a)); err == nil && fi.Mode().IsRegular() && senzaLink(m.Cartella, a) {
+				return true
+			}
+		}
+		return false
+	}
+	if len(m.Token) < 8 {
+		return false
+	}
+	rel := filepath.Join("BepInEx", "config", "AutoTranslatorConfig.ini")
+	if !senzaLink(m.Cartella, rel) {
+		return false
+	}
+	p := filepath.Join(m.Cartella, rel)
+	if fi, err := os.Lstat(p); err != nil || !fi.Mode().IsRegular() || fi.Size() > 1<<20 {
+		return false
+	}
+	b, err := os.ReadFile(p)
+	return err == nil && strings.Contains(string(b), "/gioco/") && strings.Contains(string(b), m.Token)
+}
+
+// cartellaDiSistema: dentro la cartella di Windows (o è la radice di un disco).
+func cartellaDiSistema(c string) bool {
+	c = filepath.Clean(c)
+	if len(c) <= 3 {
+		return true
+	}
+	w := os.Getenv("SystemRoot")
+	if w == "" {
+		w = os.Getenv("windir")
+	}
+	return w != "" && dentroFinale(c, w)
 }

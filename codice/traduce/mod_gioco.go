@@ -113,8 +113,17 @@ func cartellaCopie(dirApp, chiave string) string {
 
 func leggiManifesto(dirApp, chiave string) (ManifestoMod, bool) {
 	var m ManifestoMod
-	b, err := leggiSenzaLink(dirApp, filepath.Join("copie-giochi", chiave, "manifesto.json"))
+	rel := filepath.Join("copie-giochi", chiave, "manifesto.json")
+	b, err := leggiSenzaLink(dirApp, rel)
+	if errors.Is(err, errNonVerificato) && èCartellaProtetta(dirApp) {
+		// Programmi\Tasso\lavoro: solo gli amministratori ci scrivono, quindi se Windows non sa
+		// dire il percorso vero bastano i controlli con Lstat e os.SameFile
+		b, err = leggiSenzaLinkSemplice(dirApp, rel)
+	}
 	if err != nil || json.Unmarshal(b, &m) != nil {
+		return m, false
+	}
+	if !manifestoAffidabile(dirApp, m) {
 		return m, false
 	}
 	return m, true
