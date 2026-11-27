@@ -637,6 +637,8 @@ func elencoAmmessi() cartelleAmmesse {
 	}
 	// I temporanei di Tasso (Programmi\Tasso\lavoro): le esportazioni Wi-Fi e simili.
 	add(&a.intere, filepath.Join(cartellaTasso(), "lavoro"))
+	add(&a.mai, filepath.Join(cartellaTasso(), "lavoro", "copie-giochi")) // traduce/copie_protette.go
+	add(&a.mai, filepath.Join(cartellaTasso(), "lavoro", "mod"))
 	if c.TempTasso != "" {
 		add(&a.intere, c.TempTasso)
 	}
