@@ -149,6 +149,7 @@ func togliTasso(rimetti bool, passo func(int, string)) string {
 	if msg != "" {
 		return msg
 	}
+	togliNome() // nome_utente.go: anche "Il tuo nome" (HKCU\Software\Tasso\Nome) va via
 	defer func() {
 		if !*fatto {
 			releaseRun()

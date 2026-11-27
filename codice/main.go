@@ -310,6 +310,7 @@ func main() {
 		"settings":  getSettings(),
 		"steps":     stepList(),
 		"modoFisso": modalitaFissa(), // ecosistema.go: "gioco"/"ufficio" = niente menu per cambiare modalità
+		"nome":      nomeInfo(),      // nome_utente.go: "Il tuo nome" e l'interruttore del biglietto (nome "" = saluti senza nome)
 		"eco":       ecoInfo(),       // ecoupdate.go: Tasso, Zip e PDF installati con l'installatore (nil se no)
 		"controllaAgg": func() bool { // Tasso.exe --controlla-aggiornamenti (da Tasso Zip / Tasso PDF)
 			for _, a := range os.Args[1:] {
@@ -760,6 +761,7 @@ func bindAll(w webview2.WebView) {
 	bindBoost(w)     // Boost 3.1 (boost.go)
 	bindGpuDrv(w)    // driver NVIDIA dentro il Tasso (gpudriver.go)
 	bindVaultFill(w) // Portachiavi > Compila (vault_compila.go)
+	bindNome(w)      // "Il tuo nome" (nome_utente.go)
 	_ = w.Bind("goAutoClickSet", func(c acConfig) string { return autoClickSet(c) })
 	_ = w.Bind("goAutoClickStart", func() string { return autoClickStart(false) })
 	_ = w.Bind("goAutoClickStop", func() string { return autoClickStop() })
