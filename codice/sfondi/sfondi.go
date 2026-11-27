@@ -102,10 +102,18 @@ func norm(p string) string {
 	return strings.TrimRight(strings.ToLower(p), `\`)
 }
 
+// RadiceOk: una cartella usabile come radice "sicura": percorso locale assoluto, non la radice
+// di un disco (C:\ andrebbe bene per tutto) e senza "..".
+func RadiceOk(base string) bool {
+	nb := norm(base)
+	return len(nb) > 3 && Locale(nb+`\`) && !strings.Contains(nb, `..`)
+}
+
 // Sotto: p è dentro la cartella base (o è base stessa). Confronto alla Windows, senza ".." .
+// Una radice di disco (C:\) o non locale non vale mai come base.
 func Sotto(p, base string) bool {
 	np, nb := norm(p), norm(base)
-	if np == "" || nb == "" || strings.Contains(np, `\..`) || strings.Contains(np, `..\`) {
+	if np == "" || !RadiceOk(base) || strings.Contains(np, `\..`) || strings.Contains(np, `..\`) {
 		return false
 	}
 	return np == nb || strings.HasPrefix(np, nb+`\`)
@@ -173,6 +181,37 @@ func Ripristino(salvato, copia string, usabile func(string) bool) (string, bool)
 		return copia, true
 	}
 	return "", false
+}
+
+// EstensioneDa: l'estensione giusta per un'immagine, guardando i primi byte (TranscodedWallpaper
+// di Windows non ha estensione e può essere JPEG, PNG, BMP o GIF). "" se non la riconosco.
+func EstensioneDa(b []byte) string {
+	switch {
+	case len(b) >= 3 && b[0] == 0xFF && b[1] == 0xD8 && b[2] == 0xFF:
+		return ".jpg"
+	case len(b) >= 8 && string(b[:8]) == "\x89PNG\r\n\x1a\n":
+		return ".png"
+	case len(b) >= 6 && (string(b[:6]) == "GIF87a" || string(b[:6]) == "GIF89a"):
+		return ".gif"
+	case len(b) >= 14 && b[0] == 'B' && b[1] == 'M':
+		return ".bmp"
+	}
+	return ""
+}
+
+// EstensioniCopia: le estensioni possibili della copia dello sfondo dell'utente.
+func EstensioniCopia() []string { return []string{".jpg", ".png", ".bmp", ".gif"} }
+
+// Messo: lo sfondo di Tasso registrato (registrato) è davvero quello che Windows mostra adesso
+// (attuale)? Se l'utente l'ha cambiato da Windows, no: "" (come se Tasso non l'avesse messo).
+func Messo(registrato, attuale string, cartelle ...string) string {
+	if registrato == "" || !Valido(registrato) || !DiTasso(attuale, cartelle...) {
+		return ""
+	}
+	if !strings.EqualFold(filepath.Base(strings.ReplaceAll(attuale, `\`, "/")), File(registrato)) {
+		return ""
+	}
+	return registrato
 }
 
 // DaChiedere: la finestrella "Vuoi anche lo sfondo abbinato?" si mostra solo se c'è uno

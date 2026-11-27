@@ -54,6 +54,8 @@ type Settings struct {
 	SfondoMio        string   `json:"sfondoMio,omitempty"`
 	SfondoMioStile   string   `json:"sfondoMioStile,omitempty"`
 	SfondoMioTile    string   `json:"sfondoMioTile,omitempty"`
+	SfondoMioStileC  bool     `json:"sfondoMioStileC,omitempty"` // WallpaperStyle c'era (se no, si cancella)
+	SfondoMioTileC   bool     `json:"sfondoMioTileC,omitempty"`  // TileWallpaper c'era (se no, si cancella)
 	SfondoMioOk      bool     `json:"sfondoMioOk,omitempty"`
 	SfondoTasso      string   `json:"sfondoTasso,omitempty"`      // sfondo di Tasso messo adesso ("" = quello dell'utente)
 	SfondoNoChiedere bool     `json:"sfondoNoChiedere,omitempty"` // "Non chiedermelo più"

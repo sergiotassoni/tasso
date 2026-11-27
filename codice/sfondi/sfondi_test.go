@@ -143,3 +143,39 @@ func TestDaChiedere(t *testing.T) {
 		t.Error("niente sfondo: niente domanda")
 	}
 }
+
+func TestRadiciEstensioniMesso(t *testing.T) {
+	for _, b := range []string{`C:\`, `c:`, `C:/`, ``, `\\srv\x`, `C:\a\..\b`} {
+		if RadiceOk(b) {
+			t.Errorf("RadiceOk(%q) = true", b)
+		}
+		if Sotto(`C:\Users\altro\Pictures\x.jpg`, b) {
+			t.Errorf("Sotto(..., %q) = true: una radice di disco non protegge niente", b)
+		}
+	}
+	if !RadiceOk(`C:\Users\Sergio`) {
+		t.Error("il profilo è una radice valida")
+	}
+	casi := map[string][]byte{
+		".jpg": {0xFF, 0xD8, 0xFF, 0xE0}, ".png": []byte("\x89PNG\r\n\x1a\n...."),
+		".gif": []byte("GIF89a...."), ".bmp": append([]byte("BM"), make([]byte, 20)...), "": []byte("MZ\x90\x00 eseguibile"),
+	}
+	for est, b := range casi {
+		if g := EstensioneDa(b); g != est {
+			t.Errorf("EstensioneDa = %q, atteso %q", g, est)
+		}
+	}
+	if EstensioneDa(nil) != "" || EstensioneDa([]byte("BM")) != "" {
+		t.Error("file troppo corti riconosciuti")
+	}
+	prog := `C:\Program Files\Tasso\sfondi`
+	if Messo("oro", prog+`\tasso-oro.jpg`, prog) != "oro" {
+		t.Error("Oro messo e visibile: atteso oro")
+	}
+	if Messo("oro", `C:\Users\Sergio\Pictures\mare.jpg`, prog) != "" {
+		t.Error("l'utente ha cambiato sfondo da Windows: atteso \"\"")
+	}
+	if Messo("oro", prog+`\tasso-argento.jpg`, prog) != "" || Messo("", prog+`\tasso-oro.jpg`, prog) != "" {
+		t.Error("nome diverso o niente registrato: atteso \"\"")
+	}
+}
