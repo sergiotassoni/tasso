@@ -151,6 +151,7 @@ body.office .go small{opacity:1} /* temi chiari di Ufficio: "CONSIGLIATA" leggib
 .list{display:flex;flex-direction:column;max-height:430px;overflow-y:auto;border-top:1px solid var(--line)}
 .list>*{flex-shrink:0} /* F14-1: le righe che vanno a capo non si schiacciano una sull'altra */
 .li{display:flex;align-items:center;gap:12px;padding:10px 4px;border-bottom:1px solid var(--line);min-height:52px}
+.list>.li{flex-shrink:0}
 .li .x{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
 .li .x b{font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .li .x span{font-size:12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -680,6 +681,7 @@ body.office .theme{position:relative}body.office .theme .badge{position:absolute
 .sensor .v{font-size:18px;white-space:nowrap}
 .sensor .meter{margin-top:auto}
 #hwLive{grid-template-columns:repeat(auto-fit,minmax(170px,1fr))}
+#hwLive .sensor .v{white-space:normal;overflow-wrap:anywhere}
 @media (max-width:1100px){.sensor .v{white-space:normal}}
 body nav button[data-go="games"].on{background:transparent;box-shadow:none}
 .navsub button{white-space:nowrap}
@@ -1157,7 +1159,7 @@ body.office .cardmodo{font-weight:700;font-stretch:normal;letter-spacing:-.02em;
 <section class="view" id="v-programs">
   <div><h1 style="font-size:26px">Programmi</h1><p class="sub">Disinstalla i programmi <b>per bene</b>: dopo la disinstallazione Tasso cerca le cartelle rimaste e te le fa buttare nel Cestino (così recuperi tutto se sbagli) — più pulito di un disinstallatore normale. Qui sotto puoi togliere anche le <b>app pubblicitarie</b> che Windows installa da solo.</p></div>
   <div class="row wrap" style="align-items:stretch;gap:18px">
-    <div class="card" style="flex:3 1 460px;display:flex;flex-direction:column;gap:12px">
+    <div class="card" style="flex:3 1 460px;min-width:0;display:flex;flex-direction:column;gap:12px">
       <div class="row wrap" style="justify-content:space-between"><h2>Programmi installati <span class="muted small" id="progCount"></span></h2><button class="btn ghost" id="btnProgReload">Aggiorna</button></div>
       <div class="banner" style="margin:0;background:transparent;border:1px solid var(--line)"><span class="small gm">💡 <b>Non disinstallare da qui i tuoi giochi, Discord, Steam, Epic Games o Riot</b>: potresti perdere partite salvate e dati. Toglili dal loro launcher. Qui conviene togliere solo i programmi che non usi più.</span><span class="small om">💡 <b>Non disinstallare da qui Office, Teams, la VPN e i programmi del lavoro</b>: se il PC è dell'ufficio, chiedi prima all'assistenza. Qui conviene togliere solo i programmi che non usi più.</span></div>
       <input class="search" id="progSearch" placeholder="Cerca un programma…" aria-label="Cerca un programma">
@@ -2413,7 +2415,8 @@ window.tasso = {
   onHardware(h){ HW = h || {}; HW.at = Date.now(); HW_LOADING = false; paintHardware(); statsHW(HW); hwHealthAlert(); },
   onPerf(d){ PERF = d || {}; paintPerf(); },
   onPerfMsgs(p){ PERF_MSGS = (p && p.msgs) || []; },
-  onModeDone(p){ if (p.settings) S = p.settings; paintModes(); (p.msgs || []).forEach(m => toast(m, 'var(--a3)')); },
+  onModeDone(p){ if (p.settings) S = p.settings; paintModes(); (p.msgs || []).forEach(m => toast(m, 'var(--a3)')); if (p.ok === false && !(p.msgs || []).length) toast(_t('Non sono riuscito a cambiare modalità, riprova.'), 'var(--a4)'); },
+  onStartupSet(p){ const n = STARTUP_PEND[p.key]; delete STARTUP_PEND[p.key]; if (!p.ok) toast(p.msg, 'var(--a4)'); else if (n != null) toast((p.enable ? _t('Attivato: ') : _t('Disattivato: ')) + n); },
   onStartup(p){ STARTUP = p.items || []; STARTUP_ERR = p.error || ''; paintStartup(); (alertOn('startup') ? (p.fresh || []) : []).forEach(n => alertSmart(_t('Nuovo programma all\'avvio: ') + n, {label:_t('Vedi'), fn: () => show('speed')})); },
   onPrograms(list){ PROGS_ERR = (list && !Array.isArray(list) && list.error) || ''; PROGS = Array.isArray(list) ? list : []; paintPrograms(); },
   onUninstallDone(p){ uninstallDone(p); },
@@ -2672,8 +2675,10 @@ function paintHardware(){
   const b = HW.board || {};
   // Testi di riempimento del BIOS nei PC assemblati ("To be filled by O.E.M.", "System Product Name"...): non li mostro.
   const vero = x => x && !HW_FILLER.test(x);
+  // date sempre come gg/mm/aaaa, anche se arrivano come aaaa-mm-gg
+  const data = x => /^\d{4}-\d{2}-\d{2}/.test(String(x || '')) ? String(x).slice(0, 10).split('-').reverse().join('/') : (x || '');
   add(_t('Scheda madre'), [b.maker, b.model].filter(vero).join(' '));
-  add('BIOS', (b.bios || '') + (b.biosDate ? _t(' del ') + b.biosDate : ''));
+  add('BIOS', (b.bios || '') + (b.biosDate ? _t(' del ') + data(b.biosDate) : ''));
   const r = HW.ram || {};
   add(_t('Memoria RAM'), fmtBytes(r.total) + (r.modules ? ' · ' + r.modules + (r.modules > 1 ? _t(' moduli') : _t(' modulo')) : '') + (r.speed ? ' · ' + r.speed + ' MT/s' : ''));
   const pc = HW.pc || {};
@@ -2688,20 +2693,26 @@ function paintHardware(){
   }).join('');
   $('#hwDisks').innerHTML = dk || _t('Nessun disco letto.');
   const g0 = mainGpu(HW.gpus);
-  $('#gpuInfo').innerHTML = g0 ? '<b style="color:var(--text)">' + esc(g0.name) + '</b><br>' + _t('Driver ') + esc(g0.driver) + (g0.driverDate ? _t(' del ') + esc(g0.driverDate) : '') : _t('Nessuna scheda video trovata.');
-  $('#biosTitle').textContent = 'BIOS: ' + ((b.maker || '') + ' ' + (b.model || '')).trim() + (b.bios ? _t(' · versione ') + b.bios : '') + (b.biosDate ? ' (' + b.biosDate + ')' : '');
+  $('#gpuInfo').innerHTML = g0 ? '<b style="color:var(--text)">' + esc(g0.name) + '</b><br>' + _t('Driver ') + esc(g0.driver) + (g0.driverDate ? _t(' del ') + esc(data(g0.driverDate)) : '') : _t('Nessuna scheda video trovata.');
+  $('#biosTitle').textContent = 'BIOS: ' + [b.maker, b.model].filter(vero).join(' ') + (b.bios ? _t(' · versione ') + b.bios : '') + (b.biosDate ? ' (' + data(b.biosDate) + ')' : '');
   paintLive();
 }
 $('#btnHwReload').onclick = () => { HW = null; HW_LOADING = true; $('#hwKv').innerHTML = _t('<span>Lettura…</span><span></span>'); call('goHardware'); };
 $('#btnBios').onclick = async () => {
+  if (!hwPronto()) return;
   const b = (HW && HW.board) || {}, pc = (HW && HW.pc) || {};
   const pcModel = [pc.family, pc.model].filter((x, i, a) => x && a.indexOf(x) === i && !HW_FILLER.test(x)).join(' ');
   const r = String(await call('goBiosSearch', String(b.maker || ''), String(b.model || ''), String(pc.maker || ''), pcModel, !!pc.laptop) || '');
   const model = r.endsWith(':pc') ? pcModel : String(b.model || '');
   if (r.startsWith('vendor:')) toast(_t('Ho aperto il sito di assistenza ufficiale.') + (model ? ' ' + _t('Cerca il modello ') + model + _t(' e apri la sezione BIOS.') : ''), 'var(--a3)');
+  else if (r === 'none') toast(_t('Non sono riuscito a leggere la marca della scheda madre e del PC: premi Aggiorna e riprova.'), 'var(--a4)');
   else if (r.startsWith('search:')) toast(_t('Non conosco il sito di questa marca: ho aperto una ricerca su Google, non la pagina ufficiale. Scarica il BIOS solo dal sito del produttore.'), 'var(--a4)');
 };
-$('#btnGpuPanel').onclick = async () => { const g = HW && mainGpu(HW.gpus); const r = await call('goGpuPanel', g ? g.name : ''); if (r === 'web') toast(_t('Ho aperto la pagina ufficiale del produttore della scheda video.'), 'var(--a3)'); if (r === 'none') toast(_t('Non ho riconosciuto la scheda video.'), 'var(--a4)'); };
+// "Apri NVIDIA App": apre l'app se c'è (come il pannello della scheda video), il sito solo se manca.
+function apriNvidiaApp(){ call('goGpuPanel', 'nvidia').then(r => { if (r === 'web') toast(_t('Ho aperto la pagina ufficiale del produttore della scheda video.'), 'var(--a3)'); }); }
+// F19-1: mentre Tasso legge i componenti i dati non ci sono ancora: niente ricerche a vuoto.
+function hwPronto(){ if (HW_LOADING || !HW) { toast(_t('Aspetta: sto ancora leggendo i componenti del PC.'), 'var(--a4)'); return false; } return true; }
+$('#btnGpuPanel').onclick = async () => { if (!hwPronto()) return; const g = HW && mainGpu(HW.gpus); const r = await call('goGpuPanel', g ? g.name : ''); if (r === 'web') toast(_t('Ho aperto la pagina ufficiale del produttore della scheda video.'), 'var(--a3)'); if (r === 'none') toast(_t('Non ho riconosciuto la scheda video.'), 'var(--a4)'); };
 
 /* ---------- modes ---------- */
 const MODES = [
@@ -2884,7 +2895,7 @@ let GD = {stage:'', info:null, last:null, t0:0};
 const GD_WORK = {download:1, verify:1, backup:1, install:1};
 function gdOurs(){ return $('#modal').classList.contains('on') && !!$('#gdMark'); }
 function gdFree(){ return !$('#modal').classList.contains('on') || gdOurs(); }
-function gdBox(inner, buttons){ modal('<span id="gdMark" hidden></span><h2>' + _t('🎮 Driver della scheda video') + '</h2>' + inner, buttons); GD.t0 = Date.now(); }
+function gdBox(inner, buttons){ modal('<span id="gdMark" hidden></span><h2>' + (isOffice() ? _t('🖥️ Driver della scheda video') : _t('🎮 Driver della scheda video')) + '</h2>' + inner, buttons); GD.t0 = Date.now(); }
 // Mostra un risultato: nella finestra se è libera, altrimenti un avviso (non copro altre finestre).
 function gdShow(inner, buttons, short){ if (gdFree()) gdBox(inner, buttons); else toast(short, 'var(--a3)', {label:_t('Vedi'), fn: () => gdBox(inner, buttons)}); }
 function gdPaint(force){
@@ -2911,7 +2922,7 @@ function gdPaint(force){
   if (st === 'check') { gdBox('<div class="muted" role="status">' + _t('Controllo se c\'è un driver nuovo… (può volerci qualche minuto)') + '</div>', [{label:_t('Chiudi'), fn: () => { GD.stage = ''; }}]); return; }
   if (!i) return;
   const g = i.gpu || {}, o = i.offer || {}, amd = i.vendor === 'amd';
-  const site = amd ? [{label:_t('Apri il sito AMD'), fn: () => { call('goVendorPage', 'amd'); }}] : i.gpu ? [{label:_t('Apri NVIDIA App'), fn: () => { call('goVendorPage', 'nvidia'); }}] : [];
+  const site = amd ? [{label:_t('Apri il sito AMD'), fn: () => { call('goVendorPage', 'amd'); }}] : i.gpu ? [{label:_t('Apri NVIDIA App'), fn: () => { apriNvidiaApp(); }}] : [];
   if (i.error && !i.offer) {
     gdBox('<div class="note">' + esc(i.error) + '</div>' + (i.canUndo ? gdUndoHtml(i) : ''), gdUndoBtns(i, site.concat([{label:_t('Chiudi')}])));
     return;
@@ -2928,7 +2939,7 @@ function gdPaint(force){
   if (amd) {
     gdBox('<div><b>' + esc(g.name || '') + '</b></div><div style="font-size:18px;margin:8px 0">' + esc(g.ver || '') + ' → <b style="color:var(--a1t)">' + (o.ver ? esc(o.ver) : _t('driver del ') + esc((o.date || '').split('-').reverse().join('/'))) + '</b></div>' +
       (o.date ? '<div class="small muted">' + _t('Driver del ') + esc(o.date.split('-').reverse().join('/')) + '</div>' : '') +
-      '<ul class="small" style="line-height:1.6"><li>' + _t('Lo prendo da Windows Update: è il driver AMD certificato da Microsoft per la tua scheda.') + '</li><li>' + _t('Prima creo un punto di ripristino.') + '</li><li>' + _t('Può essere un po\' più vecchio di quello sul sito AMD, ma è il più sicuro.') + '</li><li>' + _t('Chiudi i giochi. Durante l\'installazione lo schermo può diventare nero per qualche secondo.') + '</li></ul>',
+      '<ul class="small" style="line-height:1.6"><li>' + _t('Lo prendo da Windows Update: è il driver AMD certificato da Microsoft per la tua scheda.') + '</li><li>' + _t('Prima creo un punto di ripristino.') + '</li><li>' + _t('Può essere un po\' più vecchio di quello sul sito AMD, ma è il più sicuro.') + '</li><li>' + (isOffice() ? _t('Chiudi i programmi aperti. Durante l\'installazione lo schermo può diventare nero per qualche secondo.') : _t('Chiudi i giochi. Durante l\'installazione lo schermo può diventare nero per qualche secondo.')) + '</li></ul>',
       [{label:_t('Aggiorna il driver'), cls:'primary', fn: () => { gdStart(false, false); return 'keep'; }}].concat(site, [{label:_t('Non ora')}]));
     return;
   }
@@ -2941,7 +2952,7 @@ function gdPaint(force){
     return;
   }
   gdBox('<div><b>' + esc(g.name || '') + '</b></div><div style="font-size:20px;margin:8px 0">' + esc(g.ver || '') + ' → <b style="color:var(--a1t)">' + esc(o.ver || '') + '</b></div>' +
-    '<ul class="small" style="line-height:1.6"><li>' + _t('Lo scarico solo dal sito di NVIDIA e controllo che sia firmato da NVIDIA.') + '</li><li>' + _t('Prima creo un punto di ripristino.') + '</li><li>' + _t('Non è un\'installazione pulita: di solito le impostazioni NVIDIA restano.') + '</li><li>' + _t('Chiudi i giochi. Durante l\'installazione lo schermo può diventare nero per qualche secondo.') + '</li></ul>',
+    '<ul class="small" style="line-height:1.6"><li>' + _t('Lo scarico solo dal sito di NVIDIA e controllo che sia firmato da NVIDIA.') + '</li><li>' + _t('Prima creo un punto di ripristino.') + '</li><li>' + _t('Non è un\'installazione pulita: di solito le impostazioni NVIDIA restano.') + '</li><li>' + (isOffice() ? _t('Chiudi i programmi aperti. Durante l\'installazione lo schermo può diventare nero per qualche secondo.') : _t('Chiudi i giochi. Durante l\'installazione lo schermo può diventare nero per qualche secondo.')) + '</li></ul>',
     [{label:_t('Aggiorna il driver'), cls:'primary', fn: () => { gdStart(false, false); return 'keep'; }}, {label:_t('Non ora')}]);
 }
 function gdUndoHtml(i){ return '<div class="small muted" style="margin-top:8px">' + _t('Prima avevi il driver ') + esc(i.prevVer || '') + (i.undoURL ? _t('. Se il nuovo ti dà problemi puoi tornare indietro.') : _t('. Quella versione non si può riscaricare da NVIDIA: per tornare indietro usa il punto di ripristino.')) + '</div>'; }
@@ -2999,18 +3010,19 @@ function askMode(m){
 /* ---------- startup ---------- */
 const SCOPE = {hkcu:_t('Solo il tuo account'), hklm:_t('Tutti gli account'), hklm32:_t('Tutti gli account'), fu:_t('Cartella Esecuzione automatica'), fc:_t('Cartella Esecuzione automatica (tutti)'), appx:_t('App di Windows / Store')};
 let STARTUP_ERR = '';
+const STARTUP_PEND = {}; // interruttori premuti qui: il toast arriva con l'esito vero (onStartupSet)
 function paintStartup(){
   const box = $('#startupList'); box.innerHTML = '';
   if (STARTUP_ERR) { box.innerHTML = '<div class="li"><span class="muted">' + esc(STARTUP_ERR) + '</span></div>'; return; }
   if (!STARTUP || !STARTUP.length) { box.innerHTML = _t('<div class="li"><span class="muted">Nessun programma parte all\'avvio. Ottimo!</span></div>'); return; }
   const list = STARTUP.slice().sort((a, b) => String(a.name).localeCompare(String(b.name), 'it', {sensitivity:'base'}));
   const on = list.filter(i => i.enabled).length;
-  box.appendChild(el('div', {class:'li', style:'min-height:0'}, _t('<span class="small muted">Stesso elenco di Gestione attività &gt; App di avvio: <b style="color:var(--a1t)">') + on + _t(' accesi</b>, ') + (list.length - on) + _t(' spenti.</span>')));
+  box.appendChild(el('div', {class:'li', style:'min-height:0'}, _t('<span class="small muted">Stesso elenco di Gestione attività &gt; App di avvio: <b style="color:var(--a1t)">') + on + (on === 1 ? _t(' acceso</b>, ') : _t(' accesi</b>, ')) + (list.length - on) + (list.length - on === 1 ? _t(' spento.</span>') : _t(' spenti.</span>'))));
   if (AN) { AN.startup = on; paintHero(); }
   list.forEach(it => {
     const li = el('div', {class:'li'}, picHTML('s:' + (it.scope + '|' + (it.key || it.name)), it.name) + '<span class="x"><b>' + esc(it.name) + (it.new ? _t(' <span class="badge">NUOVO</span>') : '') + '</b><span>' + (it.enabled ? _t('<span style="color:var(--a1t)">Acceso</span>') : _t('Spento')) + ' · ' + esc(SCOPE[it.scope] || '') + ' · ' + esc(it.cmd) + '</span></span>');
     const sw = el('button', {class:'sw' + (it.enabled ? ' on' : ''), 'aria-label': (it.enabled ? _t('Disattiva ') : _t('Attiva ')) + it.name, style:'border:0'}, '<i></i>');
-    sw.onclick = () => { it.enabled = !it.enabled; sw.classList.toggle('on', it.enabled); call('goStartupSet', it.scope, it.key || it.name, it.enabled).then(r => { if (r === 'busy' || r == null) { it.enabled = !it.enabled; sw.classList.toggle('on', it.enabled); toast(_t('Un attimo, sto ancora lavorando: riprova tra poco.'), 'var(--a4)'); } else toast((it.enabled ? _t('Attivato: ') : _t('Disattivato: ')) + it.name); }); };
+    sw.onclick = () => { it.enabled = !it.enabled; sw.classList.toggle('on', it.enabled); call('goStartupSet', it.scope, it.key || it.name, it.enabled).then(r => { if (r === 'busy' || r == null) { it.enabled = !it.enabled; sw.classList.toggle('on', it.enabled); toast(_t('Un attimo, sto ancora lavorando: riprova tra poco.'), 'var(--a4)'); } else STARTUP_PEND[it.scope + '|' + (it.key || it.name)] = it.name; }); };
     li.appendChild(sw); box.appendChild(li);
   });
   askIcons(Object.fromEntries(list.map(it => ['s:' + (it.scope + '|' + (it.key || it.name)), [it.icon || '', 'cmd:' + (it.cmd || '')].filter(x => x && x !== 'cmd:')])));
@@ -3250,7 +3262,7 @@ function paintPerf(){
   let pProf = '', pRam = '', pGpu = '', pCpu = '';
   pProf = '<div class="card" style="display:flex;flex-direction:column;gap:10px">'
     + _t('<div class="row wrap" style="justify-content:space-between;align-items:center;gap:12px"><div><h2 style="margin:0">Profilo prestazioni <span class="badge" style="background:var(--a1);color:var(--ink)">SICURO</span></h2><p class="sub" style="margin:2px 0 0">Dice a Windows di dare il massimo al processore invece di risparmiare. Reversibile, non tocca l\'hardware.</p></div>')
-    + '<button class="btn ' + (d.highPerf ? 'ghost' : 'primary') + '" id="btnPerfProf">' + (d.highPerf ? _t('Attivo — torna a Bilanciato') : _t('Attiva prestazioni elevate')) + '</button></div></div>';
+    + '<button class="btn ' + (d.highPerf ? 'ghost' : 'primary') + '" id="btnPerfProf">' + (d.highPerf ? _t('Attivo — torna al piano di prima') : _t('Attiva prestazioni elevate')) + '</button></div></div>';
   pRam = '<div class="card" style="display:flex;flex-direction:column;gap:8px">'
     + _t('<div class="row wrap" style="justify-content:space-between;align-items:center"><h2 style="margin:0">Memoria RAM — EXPO / XMP</h2><b class="mono">') + esc(ramTxt) + '</b></div>';
   if(ramLow){ pRam += _t('<div class="note" style="border-color:var(--a3);--c:var(--a3)">La tua RAM gira a <b>') + d.ramCur + _t(' MT/s</b>: molto probabilmente è sotto le sue capacità. Attivando <b>EXPO</b> (AMD) o <b>XMP</b> (Intel) nel BIOS va più veloce, <b>gratis e in sicurezza</b> (è una velocità certificata dal produttore della RAM).</div>'); }
@@ -3280,7 +3292,7 @@ function paintPerf(){
   html += head('2', _t('Gratis dal BIOS'), _t('Una volta sola all\'accensione del PC: è una velocità certificata dal produttore della RAM.')) + pRam;
   html += head('3', _t('Per esperti'), _t('Più potenza con programmi ufficiali, a piccoli passi. Se non sei sicuro, fermati ai punti 1 e 2.')) + pCpu + pGpu;
   box.innerHTML = html;
-  const bp = $('#btnPerfProf'); if(bp) bp.onclick = () => { const turnOn = !d.highPerf; bp.disabled = true; PERF_MSGS = []; callBg('goPerfProfile', turnOn).then((r) => { bp.disabled = false; const m = /^ok([01])$/.exec(r || ''); if (!m) { toast(r === 'busy' ? _t('Un attimo: sto ancora leggendo il PC, riprova tra poco.') : (r || _t('Non riuscito, riprova.')), 'var(--red)'); return; } const high = m[1] === '1', msg = PERF_MSGS.join(' ').trim(); PERF.highPerf = high; if (high === turnOn) toast(turnOn ? _t('Prestazioni elevate attivate.') : _t('Tornato a Bilanciato.')); else toast(msg || (turnOn ? _t('Windows ha tenuto il piano Bilanciato: Prestazioni elevate non è attivo.') : _t('Il piano energetico è rimasto Prestazioni elevate.')), 'var(--a4)'); paintPerf(); }); };
+  const bp = $('#btnPerfProf'); if(bp) bp.onclick = () => { const turnOn = !d.highPerf; bp.disabled = true; PERF_MSGS = []; callBg('goPerfProfile', turnOn).then((r) => { bp.disabled = false; const m = /^ok([01])$/.exec(r || ''); if (!m) { toast(r === 'busy' ? _t('Un attimo: sto ancora leggendo il PC, riprova tra poco.') : (r || _t('Non riuscito, riprova.')), 'var(--red)'); return; } const high = m[1] === '1', msg = PERF_MSGS.join(' ').trim(); PERF.highPerf = high; if (high === turnOn) toast(turnOn ? _t('Prestazioni elevate attivate.') : _t('Tornato al piano energetico di prima.')); else toast(msg || (turnOn ? _t('Windows ha tenuto il piano Bilanciato: Prestazioni elevate non è attivo.') : _t('Il piano energetico è rimasto Prestazioni elevate.')), 'var(--a4)'); paintPerf(); }); };
   box.querySelectorAll('[data-tool]').forEach(b => { b.onclick = async () => { const r = await call('goPerfTool', b.dataset.tool); toast(r === 'app' ? _t('Apro il programma…') : r === 'web' ? _t('Non lo trovo sul PC: ho aperto la sua pagina ufficiale.') : _t('Non riuscito, riprova.'), r === 'app' || r === 'web' ? 'var(--a3)' : 'var(--a4)'); }; });
 }
 const INDEX = [
@@ -4294,7 +4306,14 @@ $('#btnUpdCheck').onclick = updCheck;
 // è accorciato da winget (…) o ha caratteri che non si possono passare a winget.
 function updKey(x){ if (!x) return ''; if (x.id) return x.id; const n = String(x.name || '').trim(); return (n && n.length <= 200 && !/[\u2026"\r\n]/.test(n)) ? 'n:' + n : ''; }
 const UPD_LAVORO = /\b(office|microsoft 365|teams|outlook|onedrive|skype for business|vpn|forticlient|globalprotect|anyconnect|citrix|vmware horizon|webex|sap)\b/i;
-$('#btnUpdSel').onclick = () => { const ids = $$('#updList input[data-upd]').filter(x => x.checked && x.dataset.upd).map(x => x.dataset.upd); if (!ids.length) { toast(_t('Non hai selezionato niente.'), 'var(--a4)'); return; } updApply(ids); };
+$('#btnUpdSel').onclick = () => {
+  const sel = $$('#updList input[data-upd]').filter(x => x.checked && x.dataset.upd), ids = sel.map(x => x.dataset.upd);
+  if (!ids.length) { toast(_t('Non hai selezionato niente.'), 'var(--a4)'); return; }
+  // Prima di aggiornare chiedo conferma, con l'elenco: il fuoco va su "Annulla".
+  const nomi = sel.map(x => { const b = x.closest('label') && x.closest('label').querySelector('.x b'); return b ? b.textContent : ''; }).filter(Boolean);
+  modal('<h2>' + _t('Aggiornare i programmi selezionati?') + '</h2><p style="margin:0 0 6px">' + _t('Programmi da aggiornare: ') + ids.length + '</p><p class="small" style="margin:0 0 10px;max-height:30vh;overflow:auto;overflow-wrap:anywhere">' + esc(nomi.join(', ')) + '</p><p class="muted" style="margin:0;line-height:1.5">' + _t('Chiudili prima di continuare: alcuni dopo l\'aggiornamento chiedono di rifare l\'accesso.') + '</p>',
+    [{label:_t('Annulla'), focus:true}, {label:_t('Aggiorna adesso'), cls:'primary', fn: () => updApply(ids)}]);
+};
 const PREGIONS = [['eu',_t('Europa')],['na',_t('Nord America')],['sa',_t('Sud America')],['asia',_t('Asia e Oceania')]];
 let PREG = null;
 function paintPingRegions(){ if (!PREG) PREG = S.pingRegion || 'eu'; $('#pgRegions').innerHTML = PREGIONS.map(x => '<button class="chip' + (PREG === x[0] ? ' on' : '') + '" data-r="' + x[0] + '">' + x[1] + '</button>').join(''); $$('#pgRegions .chip').forEach(b => b.onclick = () => { PREG = b.dataset.r; paintPingRegions(); }); }
@@ -4503,6 +4522,8 @@ const GM_ALIAS = {
   of_cam_busy: [null, _t('Ti dice quale programma sta usando adesso la webcam o il microfono (Discord, il browser, un\'app di chiamata...), così sai cosa chiudere. Controlla e spiega.')],
   of_sound_comm: [null, _t('Dice a Windows di non abbassare più musica, giochi e altri suoni quando sei in chiamata, per esempio su Discord. Puoi tornare indietro.')],
   of_time: [null, _t('Rimette l\'ora giusta da internet. Con l\'ora sbagliata i siti dicono "connessione non privata" e giochi e programmi online possono non collegarsi.')],
+  // Solo la descrizione: in Gaming niente Word, Excel e Outlook.
+  of_hung: [null, _t('Trova i programmi e i giochi bloccati ("Non risponde") da più di 20 secondi e li chiude. Un gioco che sta ancora caricando può sembrare bloccato: aspetta un minuto prima di premere qui. I progressi non salvati nel programma o nel gioco chiuso si perdono.')],
   of_meet_speaker: [_t('Non sento gli altri nelle chiamate'), null],
   of_hosts: [_t('Un sito è bloccato senza motivo'), null],
   of_metered: [_t('Aggiornamenti e download fermi: "connessione a consumo"'), _t('Se la rete Wi-Fi che usi è segnata "a consumo", Windows e i giochi non scaricano. Toglie il segno dalla rete di casa (non dall\'hotspot del telefono). Puoi rimetterlo.')],
@@ -5057,7 +5078,7 @@ Object.assign(window.tasso, {
 // ---------- Driver ----------
 let DRV = null;
 const DRV_CAT = {'Con problemi':'⚠️','Scheda video':'🎮','Audio':'🔊','Mouse':'🖱️','Tastiera':'⌨️','Controller e periferiche USB':'🕹️','Rete e Wi-Fi':'📶','Bluetooth':'🔵','Webcam':'📷','Monitor':'🖥️','Dischi':'💽','USB':'🔌','Scheda madre e chipset':'🧩','Stampanti':'🖨️','Altro':'📦'};
-const DRV_ERR = {1:_t('non configurata bene'),3:_t('driver rotto o memoria piena'),10:_t('non riesce a partire'),18:_t('va reinstallata'),19:_t('impostazioni rovinate'),21:_t('Windows la sta togliendo'),24:_t('non collegata o rotta'),28:_t('manca il driver'),31:_t('non funziona bene'),39:_t('driver rotto o mancante'),43:_t('si è bloccata (spesso un cavo o il driver)'),48:_t('driver bloccato perché incompatibile'),52:_t('driver non firmato')};
+const DRV_ERR = {1:_t('non configurata bene'),3:_t('driver rotto o memoria piena'),10:_t('non riesce a partire'),18:_t('va reinstallata'),19:_t('impostazioni rovinate'),21:_t('Windows la sta togliendo'),24:_t('driver installato a metà: premi Ripara'),28:_t('manca il driver'),31:_t('non funziona bene'),39:_t('driver rotto o mancante'),43:_t('si è bloccata (spesso un cavo o il driver)'),48:_t('driver bloccato perché incompatibile'),52:_t('driver non firmato')};
 const VID_VEND = {'046D':'logitech','1532':'razer','1B1C':'corsair','1038':'steelseries','0951':'hyperx','1E7D':'roccat','0FD9':'elgato','1235':'focusrite','054C':'sony'};
 function drvAge(d){ if (!d) return 0; const t = Date.parse(d); return isNaN(t) ? 0 : Math.floor((Date.now() - t) / 864e5 / 30.4); }
 function drvBtn(id, label){ return '<button class="btn ghost" data-vend="' + esc(id) + '" style="min-height:34px;padding:5px 12px;font-size:12px">' + esc(label) + '</button>'; }
@@ -5111,7 +5132,7 @@ function paintDrvUpdates(r){
   if (!r || !r.ok) { b.innerHTML = '<div class="note" style="margin:0;border-color:var(--a4)">' + esc((r && r.error) || _t('Ricerca non riuscita.')) + '</div>'; return; }
   const it = r.items || [];
   const vNote = r.video > 0 ? '<div class="note" style="margin:0;border-color:var(--a3)">' + _t('Windows Update ha anche un driver per la scheda video: non lo installo da qui. Usa i pulsanti della tua scheda video qui sotto ("Aggiorna con Tasso" crea prima un punto di ripristino e controlla AMD Software).') + '</div>' : '';
-  if (!it.length) { b.innerHTML = (r.video > 0 ? '' : _t('<div class="note" style="margin:0;border-color:var(--a1)"><b>✓ Windows Update non ha driver più nuovi per il tuo PC.</b> Per scheda video e periferiche da gaming guarda comunque i siti ufficiali qui sotto: lì escono prima.</div>')) + vNote; return; }
+  if (!it.length) { b.innerHTML = (r.video > 0 ? '' : (isOffice() ? _t('<div class="note" style="margin:0;border-color:var(--a1)"><b>✓ Windows Update non ha driver più nuovi per il tuo PC.</b> Per scheda video e periferiche guarda comunque i siti ufficiali qui sotto: lì escono prima.</div>') : _t('<div class="note" style="margin:0;border-color:var(--a1)"><b>✓ Windows Update non ha driver più nuovi per il tuo PC.</b> Per scheda video e periferiche da gaming guarda comunque i siti ufficiali qui sotto: lì escono prima.</div>'))) + vNote; return; }
   let h = vNote + '<div class="note" style="margin:0;border-color:var(--a3)"><b>' + it.length + _t(' driver nuovi su Windows Update</b> (certificati da Microsoft). Spunta quelli da installare. <span class="small muted">"Facoltativo" vuol dire che Windows non lo mette da solo: installalo se quel componente ti dà problemi o se è un driver più nuovo di quello che hai.</span></div><div class="list">');
   it.forEach(x => { h += '<label class="li check" style="gap:10px"><input type="checkbox" value="' + esc(x.id) + '"' + (x.optional ? '' : ' checked') + '> <span style="flex:1"><b>' + esc(x.title) + '</b><br><span class="small muted">' + esc([x.cls, x.maker, x.date ? x.date.split('-').reverse().join('/') : '', x.mb ? String(x.mb).replace('.', DEC) + ' MB' : '', x.optional ? _t('facoltativo') : _t('consigliato')].filter(Boolean).join(' · ')) + '</span></span></label>'; });
   h += _t('</div><div class="row wrap"><button class="btn primary" id="btnDrvInst">Installa i driver spuntati</button></div>');
@@ -5126,7 +5147,7 @@ function paintDrvUpdates(r){
 $('#btnDrvScan').onclick = () => { $('#btnDrvScan').disabled = true; $('#drvMsg').textContent = _t('Controllo le periferiche…'); call('goDrivers'); };
 $('#btnDrvCheck').onclick = async () => { const r = await call('goDriversCheck'); if (r === 'busy') { toast(_t('Sto già lavorando con Windows Update, aspetta.')); return; } $('#btnDrvCheck').disabled = true; $('#btnDrvCheck').textContent = _t('Cerco…'); $('#drvUpd').style.display = 'flex'; $('#drvUpd').innerHTML = _t('<span class="small muted">Chiedo a Windows Update (1-3 minuti)…</span>'); };
 $('#tgDrvAuto').onclick = async () => { const on = !$('#tgDrvAuto').classList.contains('on'); const r = await call('goDriversAuto', on); if (r === 'ok') { $('#tgDrvAuto').classList.toggle('on', on); if (DRV) DRV.auto = on; toast(on ? _t('Windows scaricherà da solo i driver certificati.') : _t('Windows non scaricherà più i driver da solo.')); } else toast(r || _t('Non riuscito.'), 'var(--red)'); };
-document.addEventListener('click', (e) => { const b = e.target.closest && e.target.closest('[data-vend]'); if (b) { e.preventDefault(); call('goVendorPage', b.dataset.vend); } });
+document.addEventListener('click', (e) => { const b = e.target.closest && e.target.closest('[data-vend]'); if (b) { e.preventDefault(); if (b.dataset.vend === 'nvidia') apriNvidiaApp(); else call('goVendorPage', b.dataset.vend); } });
 Object.assign(window.tasso, {
   onDrivers(d){ paintDrivers(d); },
   onDriversProgress(m){ $('#drvMsg').textContent = m; },

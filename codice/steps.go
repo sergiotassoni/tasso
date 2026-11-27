@@ -1527,7 +1527,7 @@ function Use-HighPerf {
   if ($cpuN -match '(?i)\b(7900|7950|9900|9950)X3D|\b(7945|9955|9945)HX3D') {
     [void](Use-Plan $BAL)
     powercfg /overlaysetactive ded574b5-45a0-4f42-8737-46345c09c238 2>$null | Out-Null
-    Say 'Piano energetico: Bilanciato con "Prestazioni migliori". Sul tuo Ryzen X3D è il più veloce per i giochi (lo consiglia AMD).'
+    Say 'Piano energetico: Bilanciato con "Prestazioni ottimali". Sul tuo Ryzen X3D è il più veloce per i giochi (lo consiglia AMD).'
     return
   }
   if (Use-Plan $HIGH) { Say 'Piano energetico: Prestazioni elevate.'; return }
@@ -1541,6 +1541,7 @@ function Use-HighPerf {
   }
   # Copia con lo stesso codice di Windows: la prossima volta basta attivarla.
   powercfg -duplicatescheme $HIGH $HIGH 2>$null | Out-Null
+  if ($LASTEXITCODE -eq 0) { SetDw 'HKCU:\Software\Tasso' 'PianoAltoAggiunto' 1 }
   if (Use-Plan $HIGH) {
     # F20-15: lo ricordo (HKLM, solo gli amministratori), così "Rimetti tutto com'era" e "Togli Tasso" lo tolgono
     try { $tk = 'HKLM:\SOFTWARE\Tasso'; if (-not (Test-Path -LiteralPath $tk)) { New-Item -Path $tk -ErrorAction Stop | Out-Null }; New-ItemProperty -LiteralPath $tk -Name 'PianoCreato' -Value $HIGH -PropertyType String -Force -ErrorAction Stop | Out-Null } catch {}
@@ -1548,8 +1549,16 @@ function Use-HighPerf {
   }
   [void](Use-Plan $BAL)
   powercfg /overlaysetactive ded574b5-45a0-4f42-8737-46345c09c238 2>$null | Out-Null
-  if ($LASTEXITCODE -eq 0) { Say 'Il PC ha un solo piano energetico: ho messo la modalità "Prestazioni migliori".' }
+  if ($LASTEXITCODE -eq 0) { Say 'Il PC ha un solo piano energetico: ho messo la modalità "Prestazioni ottimali".' }
   else { Say 'Questo PC permette solo il piano "Bilanciato": ho tenuto quello. Se è un portatile, attaccalo alla corrente quando giochi.' }
+}
+function Remove-HighAdded {
+  # 3.2: il piano "Prestazioni elevate" che Tasso ha aggiunto (mancava) lo tolgo quando non è più attivo.
+  $f = (Get-ItemProperty -Path 'HKCU:\Software\Tasso' -Name 'PianoAltoAggiunto' -ErrorAction SilentlyContinue).PianoAltoAggiunto
+  if (-not $f) { return }
+  if ((@(powercfg /getactivescheme 2>$null) -join ' ') -match $HIGH) { return }
+  powercfg /delete $HIGH 2>$null | Out-Null
+  Remove-ItemProperty -Path 'HKCU:\Software\Tasso' -Name 'PianoAltoAggiunto' -ErrorAction SilentlyContinue
 }
 function Set-CpuMax([int]$pct) {
   powercfg /setacvalueindex SCHEME_CURRENT SUB_PROCESSOR PROCTHROTTLEMAX $pct 2>$null | Out-Null
@@ -1569,11 +1578,33 @@ function Get-PowerIdx([string]$sub, [string]$set, [string]$scheme = 'SCHEME_CURR
   return @([Convert]::ToInt32($m[$m.Count-2].Value, 16), [Convert]::ToInt32($m[$m.Count-1].Value, 16))
 }
 $PrevKey = 'HKCU:\Software\Tasso\PrimaDelleModalita'
+function Save-Prev32([string]$plan, [bool]$vecchio) {
+  # 3.2: anche i tempi a batteria (Film li mette a "mai") e il limite del processore dei piani
+  # Bilanciato e Risparmio energia (Silenzioso lo mette al 70% lì, non nel piano di prima).
+  if ($plan -notmatch '^[0-9a-fA-F-]{36}$') { $plan = 'SCHEME_CURRENT' }
+  $v = Get-PowerIdx 'SUB_VIDEO' 'VIDEOIDLE' $plan; if ($v) { New-ItemProperty -Path $PrevKey -Name 'MonitorDc' -Value $v[1] -PropertyType DWord -Force | Out-Null }
+  $v = Get-PowerIdx 'SUB_SLEEP' 'STANDBYIDLE' $plan; if ($v) { New-ItemProperty -Path $PrevKey -Name 'StandbyDc' -Value $v[1] -PropertyType DWord -Force | Out-Null }
+  $v = Get-PowerIdx 'SUB_VIDEO' 'VIDEOIDLE' $BAL; if ($v) { New-ItemProperty -Path $PrevKey -Name 'BalMonitorDc' -Value $v[1] -PropertyType DWord -Force | Out-Null }
+  $v = Get-PowerIdx 'SUB_SLEEP' 'STANDBYIDLE' $BAL; if ($v) { New-ItemProperty -Path $PrevKey -Name 'BalStandbyDc' -Value $v[1] -PropertyType DWord -Force | Out-Null }
+  foreach ($x in @(@('Bal', $BAL), @('Saver', $SAVER))) {
+    $v = Get-PowerIdx 'SUB_PROCESSOR' 'PROCTHROTTLEMAX' $x[1]
+    if (-not $v) { continue }
+    # salvato da una versione di prima: 70 e 70 è il limite lasciato da Silenzioso, quello vero è 100
+    if ($vecchio -and $v[0] -eq 70 -and $v[1] -eq 70) { $v = @(100, 100) }
+    New-ItemProperty -Path $PrevKey -Name ($x[0] + 'CpuAc') -Value $v[0] -PropertyType DWord -Force | Out-Null
+    New-ItemProperty -Path $PrevKey -Name ($x[0] + 'CpuDc') -Value $v[1] -PropertyType DWord -Force | Out-Null
+  }
+  New-ItemProperty -Path $PrevKey -Name 'V32' -Value 1 -PropertyType DWord -Force | Out-Null
+}
 function Save-Prev {
   # Salvo com'era il PC solo la prima volta: così "Normale" rimette le TUE impostazioni, non quelle di fabbrica.
   if (-not $TassoCanSave) { return }
   $old = Get-ItemProperty -Path $PrevKey -ErrorAction SilentlyContinue
-  if ($old -and $old.Ok) { return }
+  if ($old -and $old.Ok) {
+    # salvato da una versione di prima: aggiungo i valori nuovi (quelle versioni non li cambiavano)
+    if (-not $old.V32) { try { Save-Prev32 ([string]$old.Plan) $true } catch {} }
+    return
+  }
   Remove-Item -Path $PrevKey -Recurse -Force -ErrorAction SilentlyContinue
   try {
     New-Item -Path $PrevKey -Force | Out-Null
@@ -1581,6 +1612,7 @@ function Save-Prev {
     # Modalità riunione accesa: il piano di adesso l'ha messo lei, salvo quello di prima della riunione.
     if ($TassoInMeeting -and $TassoMeetPlan) { $g = [string]$TassoMeetPlan }
     if ($g) { New-ItemProperty -Path $PrevKey -Name 'Plan' -Value $g -PropertyType String -Force | Out-Null }
+    Save-Prev32 $g $false
     $v = Get-PowerIdx 'SUB_VIDEO' 'VIDEOIDLE'; if ($v) { New-ItemProperty -Path $PrevKey -Name 'Monitor' -Value $v[0] -PropertyType DWord -Force | Out-Null }
     $v = Get-PowerIdx 'SUB_SLEEP' 'STANDBYIDLE'; if ($v) { New-ItemProperty -Path $PrevKey -Name 'Standby' -Value $v[0] -PropertyType DWord -Force | Out-Null }
     $v = Get-PowerIdx 'SUB_VIDEO' 'VIDEOIDLE' $BAL; if ($v) { New-ItemProperty -Path $PrevKey -Name 'BalMonitor' -Value $v[0] -PropertyType DWord -Force | Out-Null }
@@ -1633,17 +1665,28 @@ function Restore-Prev {
     if (-not $TassoInMeeting) { Set-Toasts 1 }
     $v = Get-PowerIdx 'SUB_VIDEO' 'VIDEOIDLE'; if ($v -and $v[0] -eq 0) { powercfg /change monitor-timeout-ac 10 | Out-Null }
     $v = Get-PowerIdx 'SUB_SLEEP' 'STANDBYIDLE'; if ($v -and $v[0] -eq 0) { powercfg /change standby-timeout-ac 30 | Out-Null }
+    $v = Get-PowerIdx 'SUB_VIDEO' 'VIDEOIDLE'; if ($v -and $v[1] -eq 0) { powercfg /change monitor-timeout-dc 5 | Out-Null }
+    $v = Get-PowerIdx 'SUB_SLEEP' 'STANDBYIDLE'; if ($v -and $v[1] -eq 0) { powercfg /change standby-timeout-dc 15 | Out-Null }
     Remove-Item -Path $PrevKey -Recurse -Force -ErrorAction SilentlyContinue
     return $false
   }
   # Film e Silenzioso scrivono nel piano Bilanciato: rimetto anche i suoi tempi.
   if ($null -ne $p.BalMonitor) { powercfg /setacvalueindex $BAL SUB_VIDEO VIDEOIDLE $p.BalMonitor 2>$null | Out-Null }
   if ($null -ne $p.BalStandby) { powercfg /setacvalueindex $BAL SUB_SLEEP STANDBYIDLE $p.BalStandby 2>$null | Out-Null }
+  if ($null -ne $p.BalMonitorDc) { powercfg /setdcvalueindex $BAL SUB_VIDEO VIDEOIDLE $p.BalMonitorDc 2>$null | Out-Null }
+  if ($null -ne $p.BalStandbyDc) { powercfg /setdcvalueindex $BAL SUB_SLEEP STANDBYIDLE $p.BalStandbyDc 2>$null | Out-Null }
+  # Silenzioso scrive il 70% nel piano Risparmio energia (o nel Bilanciato): rimetto anche quelli.
+  if ($null -ne $p.BalCpuAc) { powercfg /setacvalueindex $BAL SUB_PROCESSOR PROCTHROTTLEMAX $p.BalCpuAc 2>$null | Out-Null }
+  if ($null -ne $p.BalCpuDc) { powercfg /setdcvalueindex $BAL SUB_PROCESSOR PROCTHROTTLEMAX $p.BalCpuDc 2>$null | Out-Null }
+  if ($null -ne $p.SaverCpuAc) { powercfg /setacvalueindex $SAVER SUB_PROCESSOR PROCTHROTTLEMAX $p.SaverCpuAc 2>$null | Out-Null }
+  if ($null -ne $p.SaverCpuDc) { powercfg /setdcvalueindex $SAVER SUB_PROCESSOR PROCTHROTTLEMAX $p.SaverCpuDc 2>$null | Out-Null }
   if (-not ($p.Plan -and (Use-Plan $p.Plan))) { [void](Use-Plan $BAL) }
   if ($null -ne $p.CpuAc) { powercfg /setacvalueindex SCHEME_CURRENT SUB_PROCESSOR PROCTHROTTLEMAX $p.CpuAc 2>$null | Out-Null }
   if ($null -ne $p.CpuDc) { powercfg /setdcvalueindex SCHEME_CURRENT SUB_PROCESSOR PROCTHROTTLEMAX $p.CpuDc 2>$null | Out-Null }
   if ($null -ne $p.Monitor) { powercfg /setacvalueindex SCHEME_CURRENT SUB_VIDEO VIDEOIDLE $p.Monitor 2>$null | Out-Null }
   if ($null -ne $p.Standby) { powercfg /setacvalueindex SCHEME_CURRENT SUB_SLEEP STANDBYIDLE $p.Standby 2>$null | Out-Null }
+  if ($null -ne $p.MonitorDc) { powercfg /setdcvalueindex SCHEME_CURRENT SUB_VIDEO VIDEOIDLE $p.MonitorDc 2>$null | Out-Null }
+  if ($null -ne $p.StandbyDc) { powercfg /setdcvalueindex SCHEME_CURRENT SUB_SLEEP STANDBYIDLE $p.StandbyDc 2>$null | Out-Null }
   powercfg /setactive SCHEME_CURRENT 2>$null | Out-Null
   if ($p.Overlay -and $p.Overlay -match '^[0-9a-fA-F-]{36}$') { powercfg /overlaysetactive $p.Overlay 2>$null | Out-Null }
   # con la Modalità riunione accesa le notifiche restano spente: a fine riunione le rimette lei.
@@ -1677,6 +1720,7 @@ var modeScripts = map[string]string{
 	"normale": modeBase + `
 powercfg /overlaysetactive 00000000-0000-0000-0000-000000000000 2>$null | Out-Null
 $rp = Restore-Prev
+Remove-HighAdded # 3.2 (correttore L): il piano aggiunto da Tasso se ne va quando non serve più
 if ($TassoInMeeting) {
   if ($rp) { Say 'Modalità Normale: ho rimesso piano energetico, mouse e tempi dello schermo come li avevi tu.' }
   else { Say 'Modalità Normale: equilibrio tra velocità e consumi.' }
@@ -1714,6 +1758,9 @@ Set-CpuMax 100
 Set-Toasts 0
 powercfg /change monitor-timeout-ac 0 | Out-Null
 powercfg /change standby-timeout-ac 0 | Out-Null
+# anche a batteria: Save-Prev ha salvato i tempi di prima, "Normale" li rimette
+powercfg /change monitor-timeout-dc 0 | Out-Null
+powercfg /change standby-timeout-dc 0 | Out-Null
 Say 'Modalità Film: niente notifiche, lo schermo non si spegne durante il film.'
 `,
 	"silenzioso": modeBase + `

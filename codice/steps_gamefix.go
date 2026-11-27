@@ -24,7 +24,10 @@ Say 'Altre cause frequenti: il gioco installato su un disco meccanico (meglio un
 $wg = Get-Winget
 if (-not $wg) {
   Say 'winget non c''è su questo PC: ti apro la pagina ufficiale Microsoft dei componenti Visual C++.'
-  Start-Process -FilePath "$env:SystemRoot\explorer.exe" -ArgumentList 'https://learn.microsoft.com/cpp/windows/latest-supported-vc-redist'
+  # la pagina nella lingua di Tasso, come la guida di steps.go (B25)
+  $loc = @{ it = 'it-it'; en = 'en-us'; es = 'es-es'; fr = 'fr-fr'; de = 'de-de' }[[string]$TassoLang]
+  if (-not $loc) { $loc = 'en-us' }
+  Start-Process -FilePath "$env:SystemRoot\explorer.exe" -ArgumentList ('https://learn.microsoft.com/' + $loc + '/cpp/windows/latest-supported-vc-redist')
   return
 }
 $pk = @(

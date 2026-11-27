@@ -444,6 +444,7 @@ try {
 } catch {}
 if ($bad.p -eq 0 -and $bad.r -eq 0) {
   Remove-Item -Path 'HKCU:\Software\Tasso\PrimaDelleModalita' -Recurse -Force -ErrorAction SilentlyContinue
+  Remove-Item -Path 'HKCU:\Software\Tasso\PrimaDelProfilo' -Recurse -Force -ErrorAction SilentlyContinue
   Say 'RESTORE_OK'
 }
 `

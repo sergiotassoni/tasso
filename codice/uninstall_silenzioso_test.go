@@ -43,3 +43,26 @@ func TestMsgCopieNonSalvate(t *testing.T) {
 		t.Fatal(m)
 	}
 }
+
+func TestMotivoTogliNoSenzaFinale(t *testing.T) {
+	setMu.Lock()
+	prima := settings.Lang
+	settings.Lang = "it"
+	setMu.Unlock()
+	defer func() { setMu.Lock(); settings.Lang = prima; setMu.Unlock() }()
+	m := motivoTogliNo(msgCopieNonSalvate([]string{`C:\x`}))
+	if !strings.Contains(m, `C:\x`) || strings.Contains(m, "non è stato tolto") || !strings.HasSuffix(m, "riprova a togliere Tasso.") {
+		t.Fatal(m)
+	}
+	if g := motivoTogliNo("Tasso non è stato tolto."); g != "Tasso non è stato tolto." {
+		t.Fatal(g)
+	}
+	// in inglese: tradotto (anche la parte fissa attorno al percorso) e senza la frase finale
+	setMu.Lock()
+	settings.Lang = "en"
+	setMu.Unlock()
+	m = motivoTogliNo(msgCopieNonSalvate([]string{`C:\x`}))
+	if !strings.Contains(m, `C:\x`) || strings.Contains(m, "not been removed") || strings.Contains(m, "was not removed") || strings.Contains(m, "Copiali") {
+		t.Fatal(m)
+	}
+}

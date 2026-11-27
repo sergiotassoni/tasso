@@ -113,7 +113,7 @@ func highPlanActive() bool {
 	l := strings.ToLower(out)
 	return strings.Contains(l, "8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c") || strings.Contains(l, "prestazioni elevate") ||
 		strings.Contains(l, "high performance") || strings.Contains(l, "ultimate") || strings.Contains(l, "prestazioni ottimali") ||
-		!planExists("8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c") // PC con solo "Bilanciato": Tasso usa la modalità "Prestazioni migliori"
+		!planExists("8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c") // PC con solo "Bilanciato": Tasso usa la modalità "Prestazioni ottimali"
 }
 
 // planExists: il piano energetico c'è su questo PC? (molti portatili nuovi hanno solo Bilanciato)

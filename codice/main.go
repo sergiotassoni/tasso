@@ -932,17 +932,17 @@ func openGpuPanel(vendor string) string {
 		if openPath("explorer.exe", "shell:AppsFolder\\NVIDIACorp.NVIDIAControlPanel_56jk4w8tv9wjp!NVIDIACorp.NVIDIAControlPanel") {
 			return "ok"
 		}
-		openURL("https://www.nvidia.com/it-it/software/nvidia-app/")
+		openURL(sitoInLingua("https://www.nvidia.com/it-it/software/nvidia-app/"))
 		return "web"
 	case strings.Contains(v, "amd") || strings.Contains(v, "radeon"):
 		app := filepath.Join(pf, "AMD", "CNext", "CNext", "RadeonSoftware.exe")
 		if fileExists(app) && openPath(app, "") {
 			return "ok"
 		}
-		openURL("https://www.amd.com/it/support/download/drivers.html")
+		openURL(sitoInLingua("https://www.amd.com/it/support/download/drivers.html"))
 		return "web"
 	case strings.Contains(v, "intel"):
-		openURL("https://www.intel.it/content/www/it/it/support/detect.html")
+		openURL(sitoInLingua("https://www.intel.it/content/www/it/it/support/detect.html"))
 		return "web"
 	}
 	return "none"
@@ -977,6 +977,10 @@ func biosVendor(maker string) string {
 // Risponde "vendor:pc"/"vendor:board" (pagina ufficiale, con il modello da cercare) oppure
 // "search:pc"/"search:board" se la marca non la conosco: allora, come ultima scelta, una ricerca Google.
 func biosPage(boardMaker, boardModel, pcMaker, pcModel string, laptop bool) string {
+	// F19-1: senza nessun dato (componenti non ancora letti) non apro niente: lo dice la finestra.
+	if strings.TrimSpace(boardMaker+boardModel+pcMaker+pcModel) == "" {
+		return "none"
+	}
 	pk, bk := biosVendor(pcMaker), biosVendor(boardMaker)
 	oem := pk == "lenovo" || pk == "hp" || pk == "dell" || pk == "acer"
 	key, which := "", "board"
@@ -989,7 +993,7 @@ func biosPage(boardMaker, boardModel, pcMaker, pcModel string, laptop bool) stri
 		key, which = pk, "pc"
 	}
 	if p, ok := vendorPages[key]; ok && key != "" {
-		openURL(p[1])
+		openURL(sitoInLingua(p[1]))
 		return "vendor:" + which
 	}
 	q := strings.TrimSpace(boardMaker + " " + boardModel)
