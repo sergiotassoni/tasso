@@ -293,16 +293,22 @@ func collega(w webview2.WebView) {
 		return "ok"
 	})
 	_ = w.Bind("goAssocia", func(on bool) map[string]interface{} {
+		// "altre": accendendo, le estensioni che il doppio clic non apre con Tasso Zip;
+		// spegnendo, quelle per cui l'utente deve scegliere di nuovo il programma di prima.
+		var altre []string
 		var err error
 		if on {
-			_, err = attivaAssociazioni(lingua())
+			altre, err = attivaAssociazioni(lingua())
 		} else {
-			err = togliAssociazioni()
+			altre, err = togliAssociazioni()
 		}
 		if err != nil {
 			registraErrore("associazioni: %v", err)
 		}
-		return map[string]interface{}{"ok": err == nil, "on": associazioniAttive()}
+		if altre == nil {
+			altre = []string{}
+		}
+		return map[string]interface{}{"ok": err == nil, "on": associazioniAttive(), "altre": altre}
 	})
 	_ = w.Bind("goAnnulla", func() string {
 		lavoroMu.Lock()
@@ -365,7 +371,9 @@ func collega(w webview2.WebView) {
 		return "ok"
 	})
 	_ = w.Bind("goApri", func(p string) string {
-		mostraInEsplora(p)
+		if !mostraInEsplora(p) {
+			return "errore" // il file non c'è più (o Esplora file non parte): la pagina lo dice
+		}
 		return "ok"
 	})
 }
@@ -694,20 +702,20 @@ func apriURL(u string) {
 
 // mostraInEsplora apre Esplora file con il file o la cartella selezionati.
 // Una cartella si apre, un file si mostra selezionato nella sua cartella.
-func mostraInEsplora(p string) {
+// Risponde false se il file non c'è più o se Esplora file non è partito.
+func mostraInEsplora(p string) bool {
 	fi, err := os.Stat(p)
 	if err != nil {
-		return
+		return false
 	}
 	explorer := filepath.Join(os.Getenv("SystemRoot"), "explorer.exe")
 	if os.Getenv("SystemRoot") == "" {
 		explorer = `C:\Windows\explorer.exe`
 	}
 	if fi.IsDir() {
-		shellExecute(explorer, `"`+p+`"`)
-		return
+		return shellExecute(explorer, `"`+p+`"`) > 32
 	}
-	shellExecute(explorer, `/select,"`+p+`"`)
+	return shellExecute(explorer, `/select,"`+p+`"`) > 32
 }
 
 func cartellaDesktop() string {

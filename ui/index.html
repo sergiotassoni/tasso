@@ -188,10 +188,10 @@ footer .nomef svg{color:var(--a4);flex:none}
 footer .nomef b{color:var(--text);font-weight:600;max-width:150px;overflow:hidden;text-overflow:ellipsis}
 footer .nomef button{background:none;border:0;padding:2px 4px;color:var(--a4);font:inherit;font-weight:600;cursor:pointer;border-radius:4px}
 footer .nomef button:hover{text-decoration:underline}
-footer .eco{white-space:nowrap} /* con il nome la barra è più piena: "Ecosistema Tasso" resta su una riga */
+footer .eco{white-space:nowrap;display:inline-flex;align-items:center} /* con il nome la barra è più piena: "Ecosistema Tasso" resta su una riga, col pallino attaccato; sotto 960 px resta solo il pallino (il nome è nel suggerimento) */
 /* finestra stretta (fino a 760 px): il nome si accorcia con i puntini e "Il tuo nome:" lascia posto */
 @media (max-width:1100px){footer .nomef b{max-width:110px}}
-@media (max-width:900px){footer .nomef>span[data-t]{display:none}footer .nomef b{max-width:70px}footer .eco{white-space:normal}footer{gap:8px}footer .sep{margin:0 2px}}
+@media (max-width:960px){footer .nomef>span[data-t]{display:none}footer .nomef b{max-width:70px}footer .eco{font-size:0}footer .eco::before{margin-right:0}footer{gap:8px}footer .sep{margin:0 2px}}
 #nomeMod{position:fixed;inset:0;background:rgba(5,6,10,.66);display:none;place-items:center;z-index:72;padding:20px}
 #nomeMod.on{display:grid}
 #nomeMod .box{background:var(--panel);border:1px solid var(--line2);border-radius:var(--r2);padding:22px 24px;width:min(480px,100%);display:flex;flex-direction:column;gap:12px;box-shadow:0 16px 48px rgba(0,0,0,.5)}
@@ -277,6 +277,9 @@ main.pieno .view.on{height:100%}
 .banner{display:flex;align-items:center;gap:10px;background:var(--panel);border:1px solid var(--line);border-left:2px solid var(--a4);border-radius:6px;padding:4px 6px 4px 12px;font-size:12.5px;color:var(--soft);flex:none}
 .banner b{color:var(--text);font-weight:600}
 .banner .btn{min-height:26px;padding:0 10px;font-size:12px;margin-left:auto;border-radius:5px}
+/* sotto la misura minima della finestra (testo di Windows ingrandito): attrezzi su due righe, niente colonna "Tipo" */
+@media (max-width:759px){.attrezzi{flex-wrap:wrap;overflow-x:visible}.attrezzi .spazio{display:none}.esp-corpo{grid-template-columns:136px minmax(0,1fr)}#x-trova{width:150px}
+  .tab.esp .rg{grid-template-columns:minmax(0,1fr) 76px 112px;gap:8px}.tab.esp .rg>:nth-child(3){display:none}}
 .stato{display:flex;gap:16px;align-items:center;color:var(--muted);font-size:11.5px;padding:0 4px;flex:none;min-height:20px;font-variant-numeric:tabular-nums}
 .stato b{color:var(--soft);font-weight:500}
 .stato label{margin-left:auto;display:flex;align-items:center;gap:6px;cursor:pointer}
@@ -546,7 +549,7 @@ select.sel,#c-livello{background:var(--bg);color:inherit;border:1px solid var(--
 
     <!-- ERRORE -->
     <section class="view centro" id="v-errore">
-      <div class="grande ko"><svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="#E0786C" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v6"/><path d="M12 16.5v.5"/></svg></div>
+      <div class="grande ko" id="e-ico"><svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="#E0786C" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v6"/><path d="M12 16.5v.5"/></svg></div>
       <h1 data-t="errore_titolo" id="e-titolo"></h1>
       <p class="sub" id="e-testo" style="max-width:600px"></p>
       <details id="e-box"><summary data-t="err_dettagli"></summary><pre id="e-dettagli"></pre></details>
@@ -562,7 +565,7 @@ select.sel,#c-livello{background:var(--bg);color:inherit;border:1px solid var(--
     <div class="lbl"><span data-t="assoc_interruttore"></span></div>
     <span class="sep"></span>
     <div class="nomef" id="nomeF"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg><span data-t="nome_tuo"></span><b id="nomeB" translate="no"></b><button type="button" id="nomeBtn"></button></div>
-    <span class="eco" data-t="ecosistema"></span><span class="ver" id="ver" role="button" tabindex="0"></span><span class="ver" id="lic" role="button" tabindex="0" data-t="licenze" style="margin-left:10px"></span>
+    <span class="eco" data-t="ecosistema" data-tt="ecosistema"></span><span class="ver" id="ver" role="button" tabindex="0"></span><span class="ver" id="lic" role="button" tabindex="0" data-t="licenze" style="margin-left:10px"></span>
   </footer>
 </div>
 
@@ -605,6 +608,15 @@ function t(k, v) {
   if (v) for (const [a, b] of Object.entries(v)) s = s.split("{" + a + "}").join(b);
   return s;
 }
+// Singolare e plurale giusti in ogni lingua: "chiave_1" per uno, "chiave_2" per i "pochi"
+// del polacco (2-4, 22-24…), "chiave" per tutti gli altri numeri. Le regole sono quelle di
+// Intl.PluralRules (il portoghese è quello del Portogallo: 0 vuole il plurale).
+function tn(k, n, v) {
+  let c = "other";
+  try { c = new Intl.PluralRules(S.lingua === "pt" ? "pt-PT" : S.lingua).select(Number(n) || 0); } catch (e) { /* lingua sconosciuta: plurale */ }
+  const k2 = c === "one" ? k + "_1" : c === "few" ? k + "_2" : k;
+  return t((S.testi[S.lingua] || {})[k2] !== undefined ? k2 : k, Object.assign({ n }, v));
+}
 function applicaTesti() {
   document.documentElement.lang = S.lingua;
   document.querySelectorAll("[data-t]").forEach(e => { e.textContent = t(e.dataset.t); });
@@ -618,6 +630,7 @@ function applicaTesti() {
   if (X.el) { disegnaLuoghi(); disegnaEsplora(); }
   if (S.vista === "guida") disegnaGuida();
   nomeDisegna();
+  if (S.versione) $("ver").title = t("agg_versione", { v: S.versione });
 }
 function dim(n) {
   const f = new Intl.NumberFormat(S.lingua, { maximumFractionDigits: 1 });
@@ -639,6 +652,8 @@ function toast(s) {
   const e = $("toast"); e.textContent = s; e.classList.add("on");
   clearTimeout(toastT); toastT = setTimeout(() => e.classList.remove("on"), 3200);
 }
+// "Mostra nella cartella": se il file non c'è più lo dico, invece di non fare niente.
+async function mostraFile(p) { if ((await goApri(p)) !== "ok") toast(t("file_sparito")); }
 function nomeFile(p) { return p.split(/[\\/]/).filter(Boolean).pop() || p; }
 function cartellaDi(p) { const i = Math.max(p.lastIndexOf("\\"), p.lastIndexOf("/")); return i > 0 ? p.slice(0, i) : p; }
 
@@ -799,39 +814,48 @@ const tz = window.tz = {
 function mostraFatto(r, quanti) {
   $("f-titolo").textContent = r.tipo === "comprimi" ? t("fatto_comprimi") : r.tipo === "ripara" ? t("fatto_ripara") : t("fatto_estrai");
   if (r.tipo === "ripara") {
-    $("f-dettagli").textContent = t("fatto_ripara_d", { n: r.file });
+    $("f-dettagli").textContent = tn("fatto_ripara_d", r.file);
     $("f-apri").textContent = t("mostra_file");
   } else if (r.tipo === "comprimi") {
     const perc = r.originale > 0 ? Math.max(0, Math.round((1 - r.compresso / r.originale) * 100)) : 0;
-    $("f-dettagli").textContent = t("fatto_dettagli_c", { file: r.file, orig: dim(r.originale), comp: dim(r.compresso), perc: perc + "%" });
+    $("f-dettagli").textContent = tn("fatto_dettagli_c", r.file, { file: r.file, orig: dim(r.originale), comp: dim(r.compresso), perc: perc + "%" });
     $("f-apri").textContent = t("mostra_file");
   } else {
-    $("f-dettagli").textContent = quanti ? t("fatto_coda", { n: quanti }) : t("fatto_dettagli_e", { file: r.file });
+    $("f-dettagli").textContent = quanti ? t("fatto_coda", { n: quanti }) : tn("fatto_dettagli_e", r.file, { file: r.file });
     $("f-apri").textContent = t("apri_cartella");
   }
-  if (r.tipo === "estrai" && r.qui && !quanti) $("f-dettagli").textContent = t("fatto_dettagli_q", { file: r.file });
+  if (r.tipo === "estrai" && r.qui && !quanti) $("f-dettagli").textContent = tn("fatto_dettagli_q", r.file, { file: r.file });
   $("f-ok").textContent = INIZIO.mini ? t("chiudi") : (S.daVista && S.arch ? t("torna_archivio") : S.ritorno === "esplora" ? t("torna_esplora") : t("nuovo"));
   if (S.ritorno === "guida") $("f-apri").textContent = t("apri_cartella");
   $("f-percorso").textContent = r.percorso;
   const avvisi = [];
-  if (r.rinominati) avvisi.push(t("rinominati", { n: r.rinominati }));
+  if (r.rinominati) avvisi.push(tn("rinominati", r.rinominati));
   if (r.riserva) avvisi.push(t("riserva"));
   const fal = r.falliti || [];
-  if (fal.length) avvisi.unshift(t("falliti_avviso", { n: fal.filter(x => !x.startsWith("… ")).length || fal.length }));
+  const nFal = fal.filter(x => !x.startsWith("… ")).length || fal.length; // "… resto illeggibile" non è un file
+  if (fal.length) avvisi.unshift(tn("falliti_avviso", nFal));
   if (r.sommaSbagliata) avvisi.unshift(t("avviso_somma"));
   $("f-avvisi").textContent = avvisi.join(" ");
-  // i file rovinati (non estratti) prima, ben in vista; poi quelli lasciati fuori di proposito
-  const s = fal.concat(r.saltati || []);
+  // i file rovinati (non estratti) prima, ben in vista; poi, separati, quelli lasciati fuori di proposito
+  const sal = r.saltati || [];
+  const s = fal.concat(sal);
   $("f-saltati-box").hidden = !s.length;
-  $("f-saltati-tit").textContent = r.tipo === "ripara" ? t("ripara_persi", { n: s.length }) : fal.length ? t("falliti", { n: fal.length }) : t("saltati", { n: s.length });
-  $("f-saltati").textContent = s.join("\n");
-  $("f-apri").onclick = () => goApri(r.percorso);
+  $("f-saltati-tit").textContent = r.tipo === "ripara" ? tn("ripara_persi", s.length) : fal.length ? tn("falliti", nFal) : tn("saltati", s.length);
+  $("f-saltati").textContent = fal.length && sal.length && r.tipo !== "ripara"
+    ? fal.join("\n") + "\n\n" + tn("saltati", sal.length) + "\n" + sal.join("\n")
+    : s.join("\n");
+  $("f-apri").onclick = () => mostraFile(r.percorso);
   vista("fatto");
 }
 function mostraErrore(e) {
   const chiave = "err_" + (e.codice || "generico");
   const testo = t(chiave) === chiave ? t("err_generico") : t(chiave);
-  $("e-titolo").textContent = e.codice === "annullato" ? t("annulla") : t("errore_titolo");
+  // annullato dall'utente: titolo "Annullato" e icona neutra (ambra), non l'errore rosso
+  const annullato = e.codice === "annullato";
+  $("e-titolo").dataset.t = annullato ? "annullato_tit" : "errore_titolo";
+  $("e-titolo").textContent = t($("e-titolo").dataset.t);
+  $("e-ico").className = "grande " + (annullato ? "pw" : "ko");
+  $("e-ico").querySelector("svg").setAttribute("stroke", annullato ? "#FFB547" : "#E0786C");
   $("e-testo").textContent = (e.percorso ? nomeFile(e.percorso) + ": " : "") + testo;
   $("e-dettagli").textContent = e.dettagli || "";
   $("e-box").hidden = !e.dettagli || e.codice === "annullato";
@@ -885,7 +909,7 @@ async function arrivati(percorsi, dove) {
       if (await avviso(t("non_archivi_tit"), t("non_archivi_testo"), { ico: "am", si: t("comprimili"), no: true })) aggiungi(altri);
       return;
     }
-    if (altri.length) toast(t("non_archivi_alcuni", { n: altri.length }));
+    if (altri.length) toast(tn("non_archivi_alcuni", altri.length));
     estraiTutti(archivi, ""); return;
   }
   // automatico: se sono tutti archivi li estraggo, altrimenti li comprimo
@@ -1013,7 +1037,7 @@ function disegnaArchivio() {
   if (!A) return;
   $("a-nome").textContent = nomeFile(A.percorso); $("a-nome").title = A.percorso;
   const tipo = String(A.el.tipo || "").toUpperCase();
-  $("a-info").textContent = t("vista_info", { n: A.albero.n, orig: dim(A.albero.dim) }) + (tipo ? " · " + tipo : "") + " · " + dim(A.el.dim || 0);
+  $("a-info").textContent = tn("vista_info", A.albero.n, { orig: dim(A.albero.dim) }) + (tipo ? " · " + tipo : "") + " · " + dim(A.el.dim || 0);
   // briciole
   const b = $("a-bric"); b.textContent = "";
   const btn = (testo, perc) => { const x = document.createElement("button"); x.textContent = testo; x.onclick = () => { A.cartella = perc; A.cerca = ""; $("a-cerca").value = ""; A.sel.clear(); disegnaArchivio(); }; b.append(x); };
@@ -1354,8 +1378,9 @@ function disegnaEsplora() {
   });
   corpo.append(frag);
   if (!righe.length) { const x = document.createElement("div"); x.className = "vuoto"; x.textContent = X.trova ? t("x_niente_trovato") : t("x_vuota"); corpo.append(x); }
-  if (righe.length > MAX_RIGHE_X) { const x = document.createElement("div"); x.className = "vuoto"; x.textContent = t("vista_troppi", { n: MAX_RIGHE_X }); corpo.append(x); }
-  if (!X.trova && X.el.troppi) { const x = document.createElement("div"); x.className = "vuoto"; x.textContent = t("x_troppi", { n: X.voci.length }); corpo.append(x); }
+  // una frase sola, con il numero di righe davvero mostrate
+  const troppi = !X.trova && X.el.troppi;
+  if (troppi || righe.length > MAX_RIGHE_X) { const x = document.createElement("div"); x.className = "vuoto"; x.textContent = troppi ? t("x_troppi", { n: Math.min(righe.length, MAX_RIGHE_X) }) : t("vista_troppi", { n: MAX_RIGHE_X }); corpo.append(x); }
   document.querySelectorAll("#v-esplora .th button").forEach(b => {
     b.classList.toggle("on", b.dataset.o === X.ordine);
     b.querySelector(".fr").textContent = b.dataset.o === X.ordine ? (X.dir > 0 ? "▲" : "▼") : "";
@@ -1369,9 +1394,9 @@ function aggiornaStato() {
   const righe = righeEsplora();
   let nf = 0, nc = 0, b = 0;
   for (const v of righe) { if (v.cartella) nc++; else { nf++; b += v.dim || 0; } }
-  let tot = t("x_totale", { file: nf, dim: dim(b) });
-  if (nc) tot = t("x_totale_c", { c: nc }) + " · " + tot;
-  if (!X.trova && X.el.nascosti && !X.nascosti) tot += " · " + t("x_nascosti_n", { n: X.el.nascosti });
+  let tot = tn("x_totale", nf, { file: nf, dim: dim(b) });
+  if (nc) tot = tn("x_totale_c", nc, { c: nc }) + " · " + tot;
+  if (!X.trova && X.el.nascosti && !X.nascosti) tot += " · " + tn("x_nascosti_n", X.el.nascosti);
   $("x-totale").textContent = tot;
   const s = selezionate();
   let sb = 0; for (const v of s) sb += v.cartella ? 0 : v.dim || 0;
@@ -1461,16 +1486,16 @@ async function azione(a) {
     }
     case "elimina": {
       if (!s.length) return;
-      const testo = s.length === 1 ? t("elimina_1", { nome: s[0].nome }) : t("elimina_n", { n: s.length });
-      if (!(await conferma(t("elimina_tit"), testo + " " + t("elimina_cestino"), t("elimina_si"), { colore: "rosso" }))) return;
+      const testo = s.length === 1 ? t("elimina_1", { nome: s[0].nome }) : tn("elimina_n", s.length);
+      if (!(await conferma(t("elimina_tit"), testo + " " + tn("elimina_cestino", s.length), t("elimina_si"), { colore: "rosso" }))) return;
       const r = await goCestino(s.map(v => v.percorso));
-      if (r && r.ok) { toast(t("eliminati", { n: r.n })); apriCartella(X.el.percorso); }
+      if (r && r.ok) { toast(tn("eliminati", r.n)); apriCartella(X.el.percorso); }
       else if (r && r.codice === "protetto") avviso(t("elimina_tit"), t("elimina_protetto", { nome: r.nome || "" }), { ico: "am" });
       else if (r && r.codice !== "annullato") toast(t("elimina_errore"));
       else apriCartella(X.el.percorso);
       return;
     }
-    case "mostra": if (s[0]) goApri(s[0].percorso); return;
+    case "mostra": if (s[0]) mostraFile(s[0].percorso); return;
     case "guida": apriGuida(); G.daEsplora = true; return;
     case "casa": vista("home"); return;
   }
@@ -1490,7 +1515,7 @@ async function verificaArrivata(r) {
   if (S.ritorno === "esplora") { vista("esplora"); } else vista("home");
   if (r.ok) {
     const v = r.ris || {};
-    avviso(t("verifica_ok_tit"), t("verifica_ok", { n: v.file, dim: dim(v.byte || 0) }), { ico: "ok", colore: "verde" });
+    avviso(t("verifica_ok_tit"), tn("verifica_ok", v.file, { dim: dim(v.byte || 0) }), { ico: "ok", colore: "verde" });
   } else {
     const chiave = "err_" + (r.codice || "generico");
     const testo = t(chiave) === chiave ? t("err_rovinato") : t(chiave);
@@ -1520,12 +1545,12 @@ function infoArrivata(r) {
     if (s[0].quando) righe.push([t("col_modificato"), data(s[0].quando)]);
   } else righe.push([t("info_elementi"), String(s.length)]);
   righe.push([t("info_dimensione"), dim(m.byte || 0) + (m.fermata ? " +" : "")]);
-  if (m.cartelle || s.some(v => v.cartella)) righe.push([t("info_contiene"), t("info_contiene_v", { file: m.file || 0, c: m.cartelle || 0 }) + (m.fermata ? " +" : "")]);
+  if (m.cartelle || s.some(v => v.cartella)) righe.push([t("info_contiene"), t("info_contiene_v", { file: tn("n_file", m.file || 0), c: tn("x_totale_c", m.cartelle || 0, { c: m.cartelle || 0 }) }) + (m.fermata ? " +" : "")]);
   const a = r.archivio;
   if (a) {
     righe.push([t("info_formato"), String(a.tipo || "").toUpperCase() + (a.solido ? " · " + t("info_solido") : "")]);
     if (a.metodo) righe.push([t("info_metodo"), a.metodo]);
-    righe.push([t("info_dentro"), t("info_contiene_v", { file: a.file, c: a.cartelle })]);
+    righe.push([t("info_dentro"), t("info_contiene_v", { file: tn("n_file", a.file || 0), c: tn("x_totale_c", a.cartelle || 0, { c: a.cartelle || 0 }) })]);
     righe.push([t("info_originale"), dim(a.orig || 0)]);
     righe.push([t("info_compresso"), dim(a.comp || 0)]);
     if (a.orig > 0) {
@@ -1559,7 +1584,7 @@ function trovaArrivata(r) {
   const n = X.trova.voci.length;
   const b = document.createElement("b"); b.textContent = "“" + X.trova.cerca + "”";
   $("x-banner-t").textContent = "";
-  $("x-banner-t").append(t("x_risultati", { n }) + " ", b, r.ris && (r.ris.troppi || r.ris.fermata) ? " · " + t("x_ricerca_limite") : "");
+  $("x-banner-t").append(tn("x_risultati", n) + " ", b, r.ris && (r.ris.troppi || r.ris.fermata) ? " · " + t("x_ricerca_limite") : "");
   $("x-banner-b").textContent = t("x_chiudi_ricerca");
   disegnaEsplora();
 }
@@ -1746,7 +1771,7 @@ async function guidaAggiungi(percorsi) {
     if (G.cosa === "estrai" && !e.archivio) { scartati++; continue; }
     if (!visti.has(e.percorso.toLowerCase())) { G.lista.push(e); visti.add(e.percorso.toLowerCase()); }
   }
-  if (scartati) toast(t("non_archivi_alcuni", { n: scartati }));
+  if (scartati) toast(tn("non_archivi_alcuni", scartati));
   disegnaGuida();
 }
 async function guidaProsegui() {
@@ -1850,7 +1875,12 @@ $("assoc").onchange = async () => {
   const r = await goAssocia(voglio);
   $("assoc").disabled = false;
   $("assoc").checked = !!(r && r.on);
-  toast(r && r.ok ? (voglio ? t("assoc_attivo") : t("assoc_tolto")) : t("assoc_errore"));
+  if (!r || !r.ok) { toast(t("assoc_errore")); return; }
+  // messaggi veri: "fatto" solo se il doppio clic apre davvero Tasso Zip (o torna davvero come prima)
+  const altre = (r.altre || []).join(", ");
+  if (!altre) toast(voglio ? t("assoc_attivo") : t("assoc_tolto"));
+  else if (voglio) avviso(t("assoc_parziale_tit"), t("assoc_parziale", { est: altre }), { ico: "am" });
+  else avviso(t("assoc_riscegli_tit"), t("assoc_riscegli", { est: altre }), { ico: "am" });
 };
 const SALUTO_SEL = "#v-home h1"; // "Ciao Sergio, cosa vuoi fare?"
 // ---------- "Il tuo nome" (Ecosistema Tasso 3.2) ----------
@@ -1960,19 +1990,20 @@ const INIZIO = window.__TZ_INIZIO__ || { modo: "", percorsi: [] };
   }
   $("menu").checked = !!a.menu; $("menu-nota").hidden = !a.menu;
   $("assoc").checked = !!a.assoc;
-  $("ver").textContent = "v" + String(a.versione).split(".").slice(0, 2).join(".");
-  // Versione e aggiornamenti: li gestisce Tasso (Tasso Zip non usa internet).
-  const vxy = String(a.versione).split(".").slice(0, 2).join(".");
-  $("ver").title = t("agg_versione", { v: vxy });
+  // Versione intera (1.3.2), come la mostra Tasso: così dopo un aggiornamento si vede che è arrivato.
+  S.versione = String(a.versione || "");
+  $("ver").textContent = "v" + S.versione;
+  // Versione e aggiornamenti: li gestisce Tasso (Tasso Zip non usa internet). Il suggerimento lo rifà applicaTesti().
   $("ver").onclick = async () => {
-    if (!(await conferma("Tasso Zip", t("agg_versione", { v: vxy }), t("agg_controlla"), { ico: "am" }))) return;
+    if (!(await conferma("Tasso Zip", t("agg_versione", { v: S.versione }), t("agg_controlla"), { ico: "am" }))) return;
     const r = await goControllaAggiornamenti();
     if (r === "errore") { avviso(t("agg_titolo"), t("agg_non_aperto"), { ico: "am" }); return; }
     if (r !== "nessuno") return;
     if (await conferma(t("agg_titolo"), t("agg_senza_tasso"), t("agg_apri_pagina"), { ico: "am" })) goPaginaVersioni();
   };
-  $("lic").onclick = () => goLicenze();
-  $("lic").onkeydown = e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); goLicenze(); } };
+  const licenze = async () => { if ((await goLicenze()) !== "ok") toast(t("licenze_errore")); };
+  $("lic").onclick = licenze;
+  $("lic").onkeydown = e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); licenze(); } };
   $("ver").onkeydown = e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); $("ver").click(); } };
   applicaTesti();
   const p = INIZIO.percorsi || [];

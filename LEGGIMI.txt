@@ -1,13 +1,27 @@
-TASSO ZIP 1.3 - Ecosistema Tasso
-================================
+TASSO ZIP 1.3.2 - Ecosistema Tasso
+==================================
 Comprime ed estrae i tuoi file. In un clic.
 (English below)
 
 COME SI USA
 -----------
-Doppio clic su TassoZip.exe. Non va installato e NON chiede i permessi da amministratore.
+Di solito arriva con l'installatore dell'Ecosistema Tasso. Funziona anche da solo, senza
+installarlo: doppio clic su TassoZip.exe. Tasso Zip NON chiede i permessi da amministratore.
 Serve Windows 10 o 11 a 64 bit con Microsoft Edge WebView2 (c'è già in Windows 11 e quasi
 sempre in Windows 10; se manca, Tasso Zip apre la pagina ufficiale Microsoft per installarlo).
+
+NOVITÀ DELLA 1.3.1 E DELLA 1.3.2
+  - Il tuo nome: in basso nella finestra puoi scrivere il tuo nome (o un nickname) e Tasso Zip
+    ti saluta ("Ciao Sergio, cosa vuoi fare?"). È lo stesso nome di Tasso e di Tasso PDF:
+    se lo cambi in uno, cambia in tutti e tre. Sta solo sul PC, nel registro di Windows
+    (HKEY_CURRENT_USER\Software\Tasso, valore "Nome"). Vanno bene le lettere di tutti gli
+    alfabeti delle lingue vive, numeri, spazio, punto, - e _.
+  - Nomi riservati di Windows: anche COM0 e LPT0 (oltre a CON, NUL, COM1...) diventano
+    "_COM0..." quando si estrae.
+  - Più estensioni pericolose: anche .msc, .appref-ms, .xll, .wsc, .sct, .diagcab,
+    .search-ms, .ps1xml, .mht e .mhtml chiedono conferma prima di aprirle.
+  - La versione si legge intera in basso (v1.3.2), così dopo un aggiornamento si vede che è
+    arrivato.
 
 TRASCINARE I FILE
   Nella schermata iniziale, mentre trascini dei file sopra la finestra, la scheda sotto il
@@ -22,7 +36,7 @@ ESPLORA I FILE (nuovo nella 1.2)
     senza estrarre: legge tutti i dati e controlla le somme di controllo), Apri, Trova (per
     nome qui e nelle sottocartelle, anche con * e ?; si ferma a 500 risultati, 20.000
     cartelle o 15 secondi), Info (dimensioni, numero di file, formato, metodo, rapporto di
-    compressione), Ripara (solo per gli zip), Elimina, Assistente, Inizio.
+    compressione), Ripara (solo per gli zip), Elimina, Procedura guidata, Inizio.
   - Freccia su, indirizzo che puoi scrivere o incollare (Invio), a sinistra Desktop,
     Download, Documenti, Immagini, la tua cartella e i dischi.
   - Elenco con Nome / Dimensione / Tipo / Modificato il: clic sulle colonne per ordinare,
@@ -32,8 +46,9 @@ ESPLORA I FILE (nuovo nella 1.2)
   - Tasto destro sull'elenco: le stesse azioni e "Mostra in Esplora file".
   - In basso: totale dei file e della selezione; "Mostra i file nascosti" (spento: i file
     nascosti e di sistema di Windows non si vedono).
-  - Cartelle enormi: mostra le prime 20.000 voci; una cartella lenta (rete) si ferma dopo
-    pochi secondi con quello che ha letto. La finestra non si blocca mai.
+  - Cartelle enormi: ne legge al massimo 20.000 voci e ne mostra le prime 5.000 (per le altre
+    c'è Trova); una cartella lenta (rete) si ferma dopo pochi secondi con quello che ha letto.
+    La finestra non si blocca mai.
   - ELIMINA manda i file nel Cestino di Windows (si possono rimettere a posto), sempre dopo
     una conferma; mai cancellazione definitiva in silenzio: se un file non può andare nel
     Cestino (per es. su una chiavetta) è Windows a chiederlo prima. Non tocca mai i dischi
@@ -45,10 +60,11 @@ ESPLORA I FILE (nuovo nella 1.2)
     dati rovinati non si possono salvare e vengono elencati. Per 7z e rar non c'è.
 
 PROCEDURA GUIDATA (nuovo nella 1.2)
-  "Procedura guidata" nella schermata iniziale (o "Assistente" in Esplora), 3 passaggi:
+  "Procedura guidata" nella schermata iniziale (o nella barra di Esplora), 3 passaggi:
   1) Comprimere o estrarre; 2) i file (trascinali o "Sfoglia...", con l'elenco e "Togli");
   3) per comprimere: formato, nome, dove salvarlo, livello; per estrarre: dove (accanto o in
-  un'altra cartella) e come (cartella nuova, cartella col nome dell'archivio, direttamente).
+  un'altra cartella) e come (cartella nuova, cartella col nome dell'archivio, direttamente;
+  "cartella nuova" usa la cartella che c'è dentro l'archivio, se ce n'è una sola).
   Poi avanzamento con Annulla e "Fatto!" con "Apri la cartella".
   Formati che Tasso Zip sa CREARE: .zip, .7z, .tar, .tar.gz, .tar.xz, .tar.bz2, .tar.zst
   (ognuno riletto byte per byte nei test). RAR: si può solo estrarre (formato chiuso, la
@@ -87,7 +103,13 @@ APRI UN ARCHIVIO
     utente, HKCU, tipo TassoZip.Archivio). Chiede conferma; spento, tutto torna com'era.
     Windows 10/11 non lasciano a nessun programma cambiare da solo una scelta fatta con
     "Apri con > Usa sempre": in quel caso tasto destro > Apri con > Scegli un'altra app >
-    Tasso Zip > Sempre.
+    Tasso Zip > Sempre. Tasso Zip dice "fatto" solo se il doppio clic apre davvero Tasso Zip;
+    se per qualche estensione c'è ancora un altro programma, lo dice e spiega come fare.
+    Spegnendo, se avevi scelto "Apri con > Tasso Zip > Sempre", Tasso Zip toglie anche quella
+    scelta, così Windows torna al programma di prima invece di chiedere "Come vuoi aprire
+    questo file?". Se prima di Tasso Zip avevi scelto tu un altro programma con "Sempre",
+    Windows non lascia rimettere quella scelta a nessun programma: Tasso Zip te lo dice e si
+    rifà da Apri con.
 
 ESTRAI
   "Scegli l'archivio" (o trascinalo nella finestra, a destra). Tasso Zip apre:
@@ -129,7 +151,8 @@ TASTO DESTRO DEL MOUSE
 
 SICUREZZA
   - Non sovrascrive mai niente: se un nome c'è già, usa "nome (2)", "nome (3)"...
-  - Non tocca i file originali.
+  - Quando comprime o estrae non tocca i file originali. Solo "Elimina" in Esplora i file li
+    manda nel Cestino, quando lo chiedi tu e dopo una conferma.
   - Protezione dai percorsi che escono dalla cartella ("zip slip": nomi con .., nomi assoluti
     come C:\... o \\server\..., nomi riservati di Windows come CON o NUL).
   - Non crea mai collegamenti simbolici.
@@ -183,7 +206,11 @@ RIGA DI COMANDO
 
 PER TOGLIERLO
   Spegni i due interruttori in basso (tasto destro e doppio clic), poi cancella TassoZip.exe
-  e la cartella %LOCALAPPDATA%\Tasso Zip.
+  e la cartella %LOCALAPPDATA%\Tasso Zip. Se l'hai installato con l'Ecosistema Tasso, usa il
+  suo disinstallatore: fa tutto lui.
+  Il tuo nome resta nel registro (HKEY_CURRENT_USER\Software\Tasso, valore "Nome") perché
+  è anche di Tasso e di Tasso PDF: lo togli da Tasso, oppure lo toglie il disinstallatore
+  dell'Ecosistema.
 
 PER CHI SVILUPPA
   Codice in Go. ./compila.sh fa go vet, i test (girano anche su Linux) e crea dist\TassoZip.exe.
@@ -203,14 +230,25 @@ LICENZA
 
 
 =====================================================================================
-TASSO ZIP 1.3 - Tasso Ecosystem  (English)
+TASSO ZIP 1.3.2 - Tasso Ecosystem  (English)
 =====================================================================================
 Compresses and extracts your files. In one click.
 
 HOW TO USE
-  Double-click TassoZip.exe. No installation, and it does NOT ask for administrator rights.
+  It usually comes with the Tasso Ecosystem installer. It also works on its own, without
+  installing: double-click TassoZip.exe. Tasso Zip does NOT ask for administrator rights.
   Needs 64-bit Windows 10 or 11 with Microsoft Edge WebView2 (already in Windows 11 and almost
   always in Windows 10; if missing, Tasso Zip opens the official Microsoft page to install it).
+
+WHAT'S NEW IN 1.3.1 AND 1.3.2
+  - Your name: at the bottom of the window you can type your name (or a nickname) and
+    Tasso Zip greets you. It is the same name as in Tasso and Tasso PDF (change it in one,
+    it changes in all three). It stays on the PC only, in the Windows registry
+    (HKEY_CURRENT_USER\Software\Tasso, value "Nome"). Letters of every living script work.
+  - Reserved Windows names: COM0 and LPT0 too become "_COM0..." when extracting.
+  - More dangerous extensions (.msc, .appref-ms, .xll, .wsc, .sct, .diagcab, .search-ms,
+    .ps1xml, .mht, .mhtml) ask for confirmation before opening.
+  - The full version is shown at the bottom (v1.3.2).
 
 DRAG AND DROP
   On the start screen, while you drag files over the window, the card under the cursor
@@ -251,7 +289,11 @@ OPEN AN ARCHIVE
   and scripts (.exe .bat .cmd .ps1 .vbs .js .msi .lnk ...) need a confirmation first.
   The switch "Open archives with Tasso Zip on double click" registers the
   TassoZip.Archivio file type in HKCU (with confirmation; turning it off restores
-  everything).
+  everything). It says "done" only if a double click really opens Tasso Zip; otherwise it
+  explains how to choose it with Open with. Turning it off also removes an "Open with >
+  Tasso Zip > Always" choice, so Windows goes back to the previous program; a different
+  program you had chosen with "Always" before cannot be put back by any program (Windows
+  rule): Tasso Zip tells you so.
 
 EXTRACT
   "Choose the archive" (or drag it into the window, right side). Tasso Zip opens:
@@ -281,7 +323,8 @@ RIGHT-CLICK MENU
 
 SAFETY
   - Never overwrites anything: if a name exists it uses "name (2)", "name (3)"...
-  - Never touches the original files.
+  - When compressing or extracting it never touches the original files. Only "Delete" in
+    Browse files moves them to the Recycle Bin, when you ask and after a confirmation.
   - Protection against paths escaping the folder ("zip slip": .., absolute names, C:\..., \\server\...,
     reserved Windows names such as CON or NUL).
   - Never creates symbolic links.
@@ -300,7 +343,10 @@ LANGUAGE
   installer), the Windows language, English.
 
 TO REMOVE IT
-  Turn off both switches at the bottom, then delete TassoZip.exe and %LOCALAPPDATA%\Tasso Zip.
+  Turn off both switches at the bottom, then delete TassoZip.exe and %LOCALAPPDATA%\Tasso Zip
+  (or use the Tasso Ecosystem uninstaller). Your name stays in the registry
+  (HKEY_CURRENT_USER\Software\Tasso, value "Nome") because Tasso and Tasso PDF use it too:
+  remove it from Tasso, or the Ecosystem uninstaller removes it.
 
 LICENSE
   Tasso Zip (c) 2026 Sergio Tassoni. Free software, GNU GPL version 3 (file LICENSE).
