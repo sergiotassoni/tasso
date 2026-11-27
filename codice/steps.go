@@ -1217,12 +1217,17 @@ else { Say ('Chiusi: ' + ($closed -join ', ')); Say ('Memoria liberata: ' + (Fmt
 if ($kept.Count) { Say ('Lasciati aperti (hanno una finestra aperta o non si sono chiusi da soli): ' + ($kept -join ', ') + '.') }
 `},
 	{ID: "fix_audio", Name: "Risolvi problemi audio", Desc: "Riavvia i servizi audio di Windows e controlla le schede audio.", Level: 0, Minutes: 0.3, Timeout: 3 * time.Minute, Script: `
-Say 'Riavvio i servizi audio...'
-Restart-Service -Name AudioEndpointBuilder -Force -ErrorAction SilentlyContinue
-Restart-Service -Name Audiosrv -Force -ErrorAction SilentlyContinue
-Start-Sleep -Seconds 2
-$s = Get-Service -Name Audiosrv -ErrorAction SilentlyContinue
-if ($s -and $s.Status -eq 'Running') { Say 'Servizio audio di Windows: attivo.' } else { Say 'ATTENZIONE: il servizio audio non è partito. Prova a riavviare il PC.' }
+# Servizio audio disattivato apposta: riavviare non serve (e nemmeno riavviare il PC). Tasso non lo riaccende da solo, dice come si fa.
+$off = @(Get-Service -Name AudioEndpointBuilder, Audiosrv -ErrorAction SilentlyContinue | Where-Object { [string]$_.StartType -eq 'Disabled' })
+foreach ($o in $off) { Say ('Il servizio "' + $o.DisplayName + '" è disattivato in Windows (qualcuno l''ha spento apposta): Tasso non lo riaccende, e senza di lui non c''è suono. Per riaccenderlo: Start > scrivi "Servizi" > ' + $o.DisplayName + ' > Tipo di avvio: Automatico > Avvia.') }
+if (-not $off.Count) {
+  Say 'Riavvio i servizi audio...'
+  Restart-Service -Name AudioEndpointBuilder -Force -ErrorAction SilentlyContinue
+  Restart-Service -Name Audiosrv -Force -ErrorAction SilentlyContinue
+  Start-Sleep -Seconds 2
+  $au = @(Get-Service -Name AudioEndpointBuilder, Audiosrv -ErrorAction SilentlyContinue)
+  if ($au.Count -eq 2 -and -not @($au | Where-Object { $_.Status -ne 'Running' }).Count) { Say 'Servizio audio di Windows: attivo.' } else { Say 'ATTENZIONE: il servizio audio non è partito. Prova a riavviare il PC.' }
+}
 $dev = @(Get-CimInstance Win32_SoundDevice -ErrorAction SilentlyContinue)
 foreach ($d in $dev) { $st = 'ok'; if ($d.ConfigManagerErrorCode -ne 0) { $st = 'PROBLEMA (codice ' + $d.ConfigManagerErrorCode + '): reinstalla il driver audio' }; Say ($d.Name + ': ' + $st) }
 if ($dev.Count -eq 0) { Say 'Nessuna scheda audio trovata: controlla che casse o cuffie siano collegate.' }

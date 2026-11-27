@@ -8,10 +8,21 @@ func detectProblems() {
 	setMu.Lock()
 	mode, prof := settings.Mode, settings.Profile
 	setMu.Unlock()
+	lingua := curLang()
 	r := runPSArgs(ofHelpers+ofHelpers2+detectScript, map[string]string{"mode": mode, "profile": prof}, 5*time.Minute, func(m string) { emit("onDetectProgress", m) })
 	res := decodeJSON(r.JSON)
 	if res == nil {
 		res = map[string]interface{}{"error": "Il controllo non è riuscito: riprova tra poco."}
+	}
+	// Modalità o lingua cambiate mentre girava: il risultato è della modalità (o nella lingua) di prima.
+	// Con la modalità cambiata direbbe "va tutto bene" senza aver controllato stampanti, Office e OneDrive.
+	setMu.Lock()
+	prof2 := settings.Profile
+	setMu.Unlock()
+	if prof2 != prof {
+		res = map[string]interface{}{"error": "Hai cambiato modalità durante il controllo: premi Controlla di nuovo per rifarlo."}
+	} else if curLang() != lingua {
+		res = map[string]interface{}{"error": "Hai cambiato lingua durante il controllo: premi Controlla di nuovo per rifarlo."}
 	}
 	emit("onDetect", res)
 }
@@ -88,7 +99,7 @@ try {
 try {
   [void][Windows.Networking.Connectivity.NetworkInformation, Windows.Networking.Connectivity, ContentType = WindowsRuntime]
   $cp = [Windows.Networking.Connectivity.NetworkInformation]::GetInternetConnectionProfile()
-  if ($cp -and [string]$cp.GetConnectionCost().NetworkCostType -match 'Fixed|Variable') { F 'of_metered' 'p' ('La rete "' + $cp.ProfileName + '" è segnata "a consumo": aggiornamenti e OneDrive restano fermi.') }
+  if ($cp -and [string]$cp.GetConnectionCost().NetworkCostType -match 'Fixed|Variable') { if ([string]$A.profile -eq 'ufficio') { F 'of_metered' 'p' ('La rete "' + $cp.ProfileName + '" è segnata "a consumo": aggiornamenti e OneDrive restano fermi.') } else { F 'of_metered' 'p' ('La rete "' + $cp.ProfileName + '" è segnata "a consumo": aggiornamenti e download (anche dei giochi) restano fermi.') } }
 } catch { Salta }
 try {
   foreach ($m in @(Get-ChildItem -LiteralPath 'HKCU:\Network' -ErrorAction SilentlyContinue)) {
@@ -110,7 +121,7 @@ try {
     $rq = [Net.WebRequest]::Create('http://www.msftconnecttest.com/connecttest.txt'); $rq.Method = 'HEAD'; $rq.Timeout = 6000
     $rs = $rq.GetResponse(); $d = [datetime]::ParseExact([string]$rs.Headers['Date'], 'r', [Globalization.CultureInfo]::InvariantCulture); $rs.Close()
     $diff = [math]::Abs(((Get-Date).ToUniversalTime() - $d).TotalMinutes)
-    if ($diff -gt 3) { F 'of_time' 'p' ('L''orologio del PC è sbagliato di circa ' + [int]$diff + ' minuti: alcuni siti e Office danno errore.') }
+    if ($diff -gt 3) { if ([string]$A.profile -eq 'ufficio') { F 'of_time' 'p' ('L''orologio del PC è sbagliato di circa ' + [int]$diff + ' minuti: alcuni siti e Office danno errore.') } else { F 'of_time' 'p' ('L''orologio del PC è sbagliato di circa ' + [int]$diff + ' minuti: alcuni siti, giochi online e programmi danno errore.') } }
   }
 } catch { Salta }
 
@@ -148,7 +159,9 @@ try {
     if ([string]$A.profile -eq 'ufficio') { F 'of_meet_cam' 'p' 'La webcam è bloccata nelle impostazioni della privacy.' }
     elseif (@(Get-CimInstance Win32_PnPEntity -Filter "PNPClass='Camera' OR PNPClass='Image'" -ErrorAction SilentlyContinue).Count) { F 'of_meet_cam' 'c' 'La webcam è bloccata nelle impostazioni della privacy. Se l''hai fatto apposta, va bene così.' }
   }
-  if (@(Get-Service -Name Audiosrv, AudioEndpointBuilder -ErrorAction SilentlyContinue | Where-Object { $_.Status -ne 'Running' }).Count) { F 'fix_audio' 'p' 'Il servizio audio di Windows è fermo: niente suono.' }
+  $au = @(Get-Service -Name Audiosrv, AudioEndpointBuilder -ErrorAction SilentlyContinue)
+  if (@($au | Where-Object { [string]$_.StartType -eq 'Disabled' }).Count) { F 'fix_audio' 'p' 'Il servizio audio di Windows è disattivato: niente suono.' }
+  elseif (@($au | Where-Object { $_.Status -ne 'Running' }).Count) { F 'fix_audio' 'p' 'Il servizio audio di Windows è fermo: niente suono.' }
   # In modalità Gaming, FPS o Film, o in Modalità riunione, le notifiche le mette in pausa Tasso apposta: non è un problema.
   $riun = $false; try { $cart = if ($TassoCartella) { $TassoCartella } else { Join-Path ([Environment]::GetFolderPath('ProgramFiles')) 'Tasso' }; $riun = Test-Path -LiteralPath (Join-Path $cart ('lavoro\ufficio\riunione-' + [Security.Principal.WindowsIdentity]::GetCurrent().User.Value + '.json')) } catch { Salta }
   if (-not $riun -and @('gaming','fps','film') -notcontains [string]$A.mode -and (Get-RegValue 'HKCU\Software\Microsoft\Windows\CurrentVersion\PushNotifications' 'ToastEnabled') -eq 0) { F 'of_notif' 'p' 'Le notifiche di Windows sono spente: Teams e Outlook non ti avvisano.' }
@@ -235,7 +248,7 @@ try {
   $lu = Get-LocalUser -Name $env:USERNAME -ErrorAction SilentlyContinue
   if ($lu -and $lu.PasswordExpires -and $lu.PasswordExpires -lt (Get-Date).AddDays(14)) { F 'of_pwd_expire' 'p' ('La password di Windows scade il ' + $lu.PasswordExpires.ToString('dd/MM/yyyy') + '.') }
   $v = Get-PowerValue 'SUB_VIDEO' 'VIDEOIDLE'
-  if ($v.Count -eq 2 -and $v[0] -gt 0 -and $v[0] -lt 120) { F 'of_screen_off' 'c' ('Con la corrente lo schermo si spegne dopo solo ' + $v[0] + ' secondi.') }
+  if ($v.Count -eq 2 -and $v[0] -gt 0 -and $v[0] -lt 120) { F 'of_screen_off' 'c' ('Con la corrente lo schermo si spegne dopo solo ' + $v[0] + ' secondi di inattività.') }
   $loc = [string](Get-RegValue 'HKCU\Control Panel\International' 'LocaleName')
   if ($loc -eq 'it-IT' -and [string](Get-RegValue 'HKCU\Control Panel\International' 'sDecimal') -ne ',') { F 'of_regional' 'p' 'I numeri usano il punto invece della virgola: Excel sbaglia decimali e CSV.' }
 } catch { Salta }

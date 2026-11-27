@@ -740,7 +740,7 @@ body.th-tasso:not(.office) .aa-passi li::before{background:var(--text);color:var
 .aa-apri .btn{font-size:16px;min-height:52px;padding:12px 26px}
 .aa-nota{margin:0;font-size:14.5px;line-height:1.5;color:var(--soft)}
 .aa-manca{border:1px solid color-mix(in srgb,var(--a4) 45%,var(--line));background:color-mix(in srgb,var(--a4) 9%,var(--panel));border-radius:16px;padding:14px 18px;font-size:15px;line-height:1.5}
-@media (max-width:820px){.aa-passi li{grid-template-columns:44px 1fr}.aa-passi svg{grid-column:2;width:170px}}
+@media (max-width:820px){.aa-passi li{grid-template-columns:44px 1fr}.aa-passi svg{grid-column:2;width:170px}.aa-passi .aa-fig2{grid-column:2;justify-self:start}}
 /* ---------- 3.2: Ottimizza tutto (fascia in Home, misura, interruttori dal vivo, risultato, elenco) ---------- */
 nav button[data-go="opt"]{--ic:#2FF3A6}
 .opt-band{display:grid;grid-template-columns:1fr auto;align-items:center;gap:28px;padding:30px 34px;border:1px solid var(--line);border-radius:14px;background:radial-gradient(600px 220px at 100% 0%,color-mix(in srgb,var(--a1) 10%,transparent),transparent 70%),var(--panel)}
@@ -1244,12 +1244,12 @@ body.office .cardmodo{font-weight:700;font-stretch:normal;letter-spacing:-.02em;
     <div class="card fixcard" style="--c:var(--a3)"><span class="big">📶</span><h3>Ping alto o lag online</h3><p class="sub" style="margin:0">Il "ping" è il tempo che serve a un tuo comando per arrivare al server del gioco. Tasso svuota la memoria degli indirizzi internet, rimette la rete di Windows come deve essere, ferma la condivisione nascosta degli aggiornamenti e ti dice se il Wi-Fi ti sta rallentando.</p><button class="btn primary" data-step="fix_game_ping" style="margin-top:auto">Risolvi</button></div>
     <div class="card fixcard" style="--c:var(--a1)"><span class="big">🧩</span><h3>Steam, Epic o altri launcher non si aprono</h3><p class="sub" style="margin:0">Il "launcher" è il programma da cui apri i giochi (Steam, Epic, EA, Battle.net, Riot, Ubisoft, GOG). Se resta bianco, nero o non si apre, Tasso lo chiude e svuota le sue pagine salvate. Giochi, account e salvataggi non vengono toccati.</p><button class="btn primary" data-step="fix_game_launcher" style="margin-top:auto">Risolvi</button></div>
     <div class="card fixcard" style="--c:var(--a4)"><span class="big">🖥️</span><h3>Schermo nero o risoluzione sbagliata</h3><p class="sub" style="margin:0">Prova a far ripartire la scheda video senza riavviare il PC (lo schermo lampeggia) e ti spiega i tasti per rimettere il gioco a schermo intero o lo schermo giusto.</p><button class="btn primary" data-step="fix_game_screen" style="margin-top:auto">Risolvi</button></div>
-    <div class="card fixcard" style="--c:var(--red)"><span class="big">🐢</span><h3>Pochi FPS (il gioco va lento)</h3><p class="sub" style="margin:0">Gli "FPS" sono le immagini al secondo: più sono, più il gioco è fluido. Tasso mette la potenza al massimo, accende la Modalità Gioco, e ti dice cosa sta rubando potenza (batteria, memoria piena, programmi pesanti).</p><button class="btn primary" data-step="fix_game_fps" style="margin-top:auto">Risolvi</button></div>
+    <div class="card fixcard" style="--c:var(--red)"><span class="big">🐢</span><h3>Pochi FPS (il gioco va lento)</h3><p class="sub" style="margin:0">Gli "FPS" sono le immagini al secondo: più sono, più il gioco è fluido. Tasso sceglie il piano energetico più veloce per il tuo PC, accende la Modalità Gioco e ti dice cosa sta rubando potenza (batteria, memoria piena, programmi pesanti).</p><button class="btn primary" data-step="fix_game_fps" style="margin-top:auto">Risolvi</button></div>
     <div class="card fixcard" style="--c:var(--a2)"><span class="big">🟩</span><h3>App Xbox e Game Pass non vanno</h3><p class="sub" style="margin:0">Quando i giochi Game Pass non si installano, non partono o ti chiedono sempre l'accesso: Tasso riavvia i servizi Xbox di Windows e ripara l'app Xbox e lo Store.</p><button class="btn primary" data-step="fix_game_xbox" style="margin-top:auto">Risolvi</button></div>
     <div class="card fixcard" style="--c:var(--a3)"><span class="big">🛡️</span><h3>Errore dell'anti-cheat</h3><p class="sub" style="margin:0">L'"anti-cheat" è il programma che blocca chi bara nei giochi online (Vanguard di LoL e Valorant, Easy Anti-Cheat di Fortnite e Apex, BattlEye). Se un altro programma l'ha spento il gioco non parte: Tasso lo rimette a posto senza toccare i suoi file.</p><button class="btn primary" data-step="fix_game_anticheat" style="margin-top:auto">Risolvi</button></div>
     <div class="card fixcard" style="--c:var(--a4)"><span class="big">🎯</span><h3>La mira con il mouse non è precisa</h3><p class="sub" style="margin:0">Spegne l'"accelerazione" del puntatore di Windows: lo stesso movimento del mouse sposta la mira sempre della stessa quantità, piano o veloce. Si torna indietro con un doppio clic.</p><button class="btn primary" data-step="fix_game_mouse" style="margin-top:auto">Risolvi</button></div>
     <div class="card fixcard" style="--c:var(--red)"><span class="big">🪟</span><h3>Il gioco si riduce a icona da solo</h3><p class="sub" style="margin:0">Rimette la protezione di Windows che impedisce agli altri programmi di "rubare" la finestra mentre giochi e ti dice quali programmi aperti lo fanno di solito.</p><button class="btn primary" data-step="fix_game_minimize" style="margin-top:auto">Risolvi</button></div>
-    <div class="card fixcard" style="--c:var(--a3)"><span class="big">⬇️</span><h3>I download dei giochi sono lenti</h3><p class="sub" style="margin:0">Controlla cosa rallenta Steam, Epic e Xbox (rete "a consumo", limiti di velocità, aggiornamenti, disco pieno) e svuota la cache dei download di Steam. Giochi e salvataggi restano.</p><button class="btn primary" data-step="fix_game_download" style="margin-top:auto">Risolvi</button></div>
+    <div class="card fixcard" style="--c:var(--a3)"><span class="big">⬇️</span><h3>I download dei giochi sono lenti</h3><p class="sub" style="margin:0">Controlla cosa rallenta Steam, Epic e Xbox (rete "a consumo", limiti di velocità, aggiornamenti, disco pieno), svuota la memoria web di Steam e ti dice come togliere il limite e svuotare la cache dei download. Giochi e salvataggi restano.</p><button class="btn primary" data-step="fix_game_download" style="margin-top:auto">Risolvi</button></div>
     <div class="card fixcard" style="--c:var(--a1)"><span class="big">💾</span><h3>Il gioco non salva</h3><p class="sub" style="margin:0">Controlla se la protezione delle cartelle di Windows o OneDrive bloccano il salvataggio, e ti dice come consentire il gioco senza spegnere le protezioni.</p><button class="btn primary" data-step="fix_game_save" style="margin-top:auto">Risolvi</button></div>
     <div class="card fixcard" style="--c:var(--red)"><span class="big">💥</span><h3>Errore della scheda video (DEVICE_REMOVED)</h3><p class="sub" style="margin:0">Conta quante volte il driver video si è bloccato, controlla temperatura, driver e overclock, e ti dice cosa fare in ordine.</p><button class="btn primary" data-step="fix_game_gpucrash" style="margin-top:auto">Risolvi</button></div>
     <div class="card fixcard" style="--c:var(--a4)"><span class="big">🌡️</span><h3>Il PC si scalda troppo</h3><p class="sub" style="margin:0">Legge le temperature di processore e scheda video, controlla se il PC rallenta per il caldo e ti dice come rinfrescarlo.</p><button class="btn primary" data-step="fix_game_heat" style="margin-top:auto">Risolvi</button></div>
@@ -2087,7 +2087,7 @@ function detIgnSection(box, found){
   d.appendChild(el('p', {class:'sub', style:'margin:10px 0 0'}, esc(_t('Tasso non te li segnala più. Se cambi idea, clicca Ripristina.'))));
   ids.forEach(id => {
     const s = STEP[id], x = (found || []).find(f => f.id === id);
-    const why = x ? (x.why || s.desc) : (found ? _t('All\'ultimo controllo non c\'era.') : s.desc);
+    const why = x ? (x.why || stepTxt(id).desc) : (found ? _t('All\'ultimo controllo non c\'era.') : stepTxt(id).desc);
     const sev = x ? '<span class="detsev' + (x.sev === 'p' ? '' : ' c') + '">' + (x.sev === 'p' ? _t('Problema') : _t('Consiglio')) + '</span>' : '';
     const r = el('div', {class:'detitem detignrow'}, '<div class="x">' + sev + '<b>' + esc(detNome(id)) + '</b><span class="sub" style="margin:0">' + esc(why) + '</span></div>');
     const rb = el('button', {class:'btn ghost'}, _t('Ripristina'));
@@ -2113,24 +2113,29 @@ function paintDetect(){
   const probs = list.filter(x => x.sev === 'p'), tips = list.filter(x => x.sev !== 'p');
   const n = Math.max(0, (Number(DET.checked) || 0) - (office ? (Number(DET.games) || 0) : (Number(DET.office) || 0)));
   const when = DET.when ? _t(' Ultimo controllo alle ') + DET.when + '.' : '';
-  if (!list.length) {
+  const skipped = [].concat(DET.skipped || []).filter(Boolean);
+  if (!list.length && skipped.length) {
+    // Un gruppo non controllato: niente "va tutto bene" (sotto si dice quale manca).
+    $('#detTitle').textContent = _t('Nessun problema nei controlli fatti');
+    $('#detStatus').textContent = _t('Ho controllato ') + n + _t(' problemi diversi.') + when;
+  } else if (!list.length) {
     $('#detTitle').textContent = ignFound ? _t('Nessun problema nuovo 🎉') : _t('Nessun problema trovato 🎉');
     $('#detStatus').textContent = _t('Ho controllato ') + n + (ignFound ? _t(' problemi diversi: a parte quelli che hai scelto di ignorare, va tutto bene.') : _t(' problemi diversi e va tutto bene.')) + when;
   } else {
     $('#detTitle').textContent = probs.length ? (_t('Ho trovato ') + probs.length + (probs.length === 1 ? _t(' problema') : _t(' problemi')) + (tips.length ? _t(' e ') + tips.length + (tips.length === 1 ? _t(' consiglio') : _t(' consigli')) : '')) : (_t('Nessun problema, ') + tips.length + (tips.length === 1 ? _t(' consiglio') : _t(' consigli')));
     $('#detStatus').textContent = _t('Ho controllato ') + n + _t(' problemi diversi. Clicca Risolvi su quello che vuoi sistemare, o Ignora se non ti interessa.') + when;
   }
-  const skipped = [].concat(DET.skipped || []).filter(Boolean);
   if (skipped.length) $('#detStatus').textContent += _t(' Non sono riuscito a controllare: ') + skipped.join(', ') + _t(' (non vuol dire che sia tutto a posto: riprova più tardi).');
   const fixable = probs.filter(x => !OFFICE_CHECK[x.id]).map(x => x.id);
   if (fixable.length >= 2) {
     const all = el('button', {class:'btn primary', style:'align-self:flex-start'}, fixable.length === 2 ? _t('Risolvi i 2 problemi insieme') : _t('Risolvi i ') + fixable.length + _t(' problemi insieme'));
-    all.onclick = () => { const ss = fixable.map(i => STEP[i]); runSteps(fixable, _t('Risolvi i problemi trovati'), ss.map(s => s.name).join(' · '), ss.reduce((a, s) => a + s.minutes, 0)); };
+    // Nomi come nell'elenco e, sotto, l'avviso di chi chiude programmi o stacca internet (come nella conferma singola).
+    all.onclick = () => { const ss = fixable.map(i => STEP[i]), avv = fixable.filter(i => DET_AVVISA.includes(i)).map(i => '\n\n' + detNome(i) + ': ' + stepTxt(i).desc).join(''); runSteps(fixable, _t('Risolvi i problemi trovati'), fixable.map(detNome).join(' · ') + avv, ss.reduce((a, s) => a + s.minutes, 0)); };
     box.appendChild(all);
   }
   list.forEach(x => {
     const s = STEP[x.id], chk = !!OFFICE_CHECK[x.id];
-    const c = el('div', {class:'card detitem'}, '<div class="x"><span class="detsev' + (x.sev === 'p' ? '' : ' c') + '">' + (x.sev === 'p' ? _t('Problema') : _t('Consiglio')) + '</span><b>' + esc(detNome(x.id)) + '</b><span class="sub" style="margin:0">' + esc(x.why || s.desc) + '</span></div>');
+    const c = el('div', {class:'card detitem'}, '<div class="x"><span class="detsev' + (x.sev === 'p' ? '' : ' c') + '">' + (x.sev === 'p' ? _t('Problema') : _t('Consiglio')) + '</span><b>' + esc(detNome(x.id)) + '</b><span class="sub" style="margin:0">' + esc(x.why || stepTxt(x.id).desc) + '</span></div>');
     const btns = el('div', {class:'row', style:'gap:8px'});
     const b = el('button', {class:'btn ' + (x.sev === 'p' ? 'primary' : 'ghost')}, chk ? _t('Controlla') : _t('Risolvi'));
     b.onclick = () => runStep(x.id);
@@ -2140,13 +2145,11 @@ function paintDetect(){
   });
   detIgnSection(box, found);
 }
-// Il titolo di un problema trovato: per i 6 della sezione Windows lo stesso della scheda in "Risolvi un problema"
-// ("Internet non va", non "Risolvi problemi di internet"), per gli altri quello adatto alla modalità.
-const DET_SCHEDA = ['fix_audio', 'fix_net', 'fix_wu', 'fix_print', 'fix_store', 'fix_search'];
-function detNome(id){
-  if (DET_SCHEDA.includes(id)) { const b = document.querySelector('#v-fix .fixcard [data-step="' + id + '"]'), h = b && b.closest('.fixcard').querySelector('h3'); if (h && h.textContent.trim()) return h.textContent.trim(); }
-  return stepTxt(id).name;
-}
+// Il titolo di un problema trovato: lo stesso della scheda in "Risolvi un problema" ("Internet non va", non
+// "Risolvi problemi di internet"), per gli altri quello adatto alla modalità (schedaTxt).
+function detNome(id){ return schedaTxt(id).name; }
+// I passaggi che chiudono programmi o staccano internet: in "Risolvi i N problemi insieme" il loro avviso si vede.
+const DET_AVVISA = ['of_hung', 'fix_net', 'of_explorer', 'of_thumbs'];
 let DET_IGN_OPEN = false, DET_TOAST = null;
 async function detIgnore(id, on, btn){
   if (btn) btn.disabled = true;
@@ -2264,18 +2267,19 @@ function confirmLevel(n){
 async function startLevel(n, fine, wu){ const r = await call('goStartLevel', n, fine || 'acceso', wu !== false); if (r === 'busy') toast(_t('Una pulizia è già in corso.'), 'var(--a4)'); else { if (RUN === null) RUN = undefined; show('clean'); } }
 function runSteps(ids, title, desc, minutes){
   const wu = ids.includes('winupdate'), long = minutes >= 10 || wu;
-  modal('<h2>' + esc(title) + '</h2><p class="muted" style="margin:0;line-height:1.5">' + esc(desc) + _t('</p><span class="muted">Durata stimata: ') + fmtMin(minutes) + '</span>' + (long ? fineBox(wu && ids.length > 1) : ''),
+  modal('<h2>' + esc(title) + '</h2><p class="muted" style="margin:0;line-height:1.5;white-space:pre-line">' + esc(desc) + _t('</p><span class="muted">Durata stimata: ') + fmtMin(minutes) + '</span>' + (long ? fineBox(wu && ids.length > 1) : ''),
     [{label:_t('Annulla')}, {label:_t('Avvia'), cls:'primary', risky:true, fn: (box) => { const f = fineRead(box); call('goStartSteps', ids, f.fine, f.wu).then(r => { if (r === 'busy') toast(_t('Attendi la fine dell\'operazione in corso.'), 'var(--a4)'); else show('clean'); }); }}]);
   if (long) fineWire();
 }
 function runStep(id){
-  const s = STEP[id], x = stepTxt(id); if (!s) return;
+  const s = STEP[id], x = schedaTxt(id); if (!s) return;
   // La riunione accesa si spegne con lo stesso passaggio: la conferma lo dice.
   if (id === 'of_new_meeting' && OF_STATI.of_new_meeting) { runSteps([id], _t('Spegni la Modalità riunione'), _t('Notifiche, OneDrive, aggiornamenti e alimentazione tornano come prima.'), s.minutes); return; }
   runSteps([id], x.name, x.desc, s.minutes);
 }
 $$('[data-step]').forEach(b => { b.onclick = () => runStep(b.dataset.step); });
-$$('[data-steps]').forEach(b => { b.onclick = () => { const ids = b.dataset.steps.split(','); const ss = ids.map(i => STEP[i]).filter(Boolean); runSteps(ids, ss.map(s => s.name).join(' + '), ss.map(s => s.desc).join(' '), ss.reduce((a, s) => a + s.minutes, 0)); }; });
+// Scheda con più passaggi ("Il disco fa i capricci"): la conferma dice titolo e testo della scheda.
+$$('[data-steps]').forEach(b => { b.onclick = () => { const ids = b.dataset.steps.split(','); const ss = ids.map(i => STEP[i]).filter(Boolean), c = b.closest('.fixcard'), h = c && c.querySelector('h3'), pp = c && c.querySelector('p'); runSteps(ids, h ? h.textContent.trim() : ss.map(s => s.name).join(' + '), pp ? pp.textContent.trim() : ss.map(s => s.desc).join(' '), ss.reduce((a, s) => a + s.minutes, 0)); }; });
 $('#bigGo').onclick = () => confirmLevel(RECOMMENDED);
 // Turbo (Velocità) tolto in 3.1: chiudere le app in background lo fa il Boost nella pagina Giochi.
 
@@ -2316,7 +2320,8 @@ window.tasso = {
   onBg(p){ const f = BG_WAIT[p.id]; if (f) { delete BG_WAIT[p.id]; f(p.r); } },
   onRunStart(p){
     const lv = LEVELS[(p.level || 0) - 1];
-    const st = (p.steps || []).map(s => { const x = s && s.id && STEP[s.id] ? stepTxt(s.id) : null; return x ? Object.assign({}, s, {name: x.name}) : s; });
+    // Un Risolvi da solo ha il nome della sua scheda (come la conferma); nelle pulizie il nome del passaggio.
+    const st = (p.steps || []).map(s => { const x = s && s.id && STEP[s.id] ? (p.level || (p.steps || []).length > 1 ? stepTxt(s.id) : schedaTxt(s.id)) : null; return x ? Object.assign({}, s, {name: x.name}) : s; });
     LOG_NOMI = {}; (p.steps || []).forEach((s, i) => { if (s && s.name && st[i] && st[i].name !== s.name) LOG_NOMI['» ' + s.name] = '» ' + st[i].name; });
     RUN = {level:p.level, steps:st, cur:0, creep:0, freed:0, freedBy:{}, end:p.end || 'acceso', info:''}; RIPARA = [];
     $('#runTitle').textContent = lv ? _t('Pulizia ') + lv.name + _t(' in corso') : (RUN.steps.length === 1 ? RUN.steps[0].name : _t('Passaggi in corso'));
@@ -2353,7 +2358,7 @@ window.tasso = {
     $('#btnLogs2').onclick = () => call('goOpenLogs');
     if (RIPARA.length && !p.cancelled) { const ids = RIPARA.slice(), rp = el('button', {class:'btn primary'}, _t('Ripara adesso')); rp.onclick = () => { const ss = ids.map(i => STEP[i]); runSteps(ids, ss.map(s => s.name).join(' + '), ss.map(s => s.desc).join(' '), ss.reduce((a, s) => a + s.minutes, 0)); }; $('#btnLogs2').before(rp); }
     RIPARA = []; ofStati();
-    const nf = !p.cancelled && nomeOra() ? _t('Fatto, {0}: il tuo PC è pronto.').replace('{0}', nomeOra()) : ''; // 3.2 "Il tuo nome"
+    const nf = !p.cancelled && nomeOra() ? (lvl0 ? _t('Finito, {0}: qui sotto cosa ho trovato.') : _t('Fatto, {0}: il tuo PC è pronto.')).replace('{0}', nomeOra()) : ''; // 3.2 "Il tuo nome": "pronto" solo dopo una pulizia
     toast(p.cancelled ? _t('Interrotto.') : nf ? nf + (p.freed > 0 ? ' ' + _t('Liberati {0}.').replace('{0}', fmtBytes(p.freed)) : '') : (p.freed > 0 ? _t('Finito: liberati ') + fmtBytes(p.freed) + '.' : _t('Finito.')));
     paintLast(); call('goAnalyze');
     try { fbAskOnce(p); } catch (e) {}
@@ -4359,12 +4364,23 @@ const GM_ALIAS = {
   of_time: [null, _t('Rimette l\'ora giusta da internet. Con l\'ora sbagliata i siti dicono "connessione non privata" e giochi e programmi online possono non collegarsi.')],
   of_meet_speaker: [_t('Non sento gli altri nelle chiamate'), null],
   of_hosts: [_t('Un sito è bloccato senza motivo'), null],
+  of_metered: [_t('Aggiornamenti e download fermi: "connessione a consumo"'), _t('Se la rete Wi-Fi che usi è segnata "a consumo", Windows e i giochi non scaricano. Toglie il segno dalla rete di casa (non dall\'hotspot del telefono). Puoi rimetterlo.')],
   of_new_call: [_t('Prova microfono e cuffie'), _t('Prima di una chat vocale o di una diretta: prova in pochi secondi microfono, cuffie, webcam e internet. Se qualcosa non va, ti propone la riparazione con un pulsante.')],
   of_new_camlog: [_t('Chi usa webcam e microfono'), _t('Ti fa vedere quali programmi hanno usato la webcam e il microfono negli ultimi 30 giorni e chi li sta usando adesso. Così scopri se qualcuno ti guarda o ti ascolta.')]
 };
 // In Gaming non vanno nei "Problemi di tutti i giorni": la riunione (in Gaming c'è il Boost) e quelli già nelle altre sezioni.
 const GM_SKIP = {of_new_meeting:1, of_new_call:1, of_new_camlog:1};
 function stepTxt(id){ const s = STEP[id] || {name:'', desc:''}, a = (isOffice() ? OF_ALIAS : GM_ALIAS)[id]; return a ? {name: a[0] || s.name, desc: a[1] || s.desc} : {name: s.name, desc: s.desc}; }
+// schedaTxt: se il passaggio ha una scheda fissa in "Risolvi un problema" (Sezione Windows o Gaming) visibile nella
+// modalità di adesso, titolo e testo della scheda; altrimenti stepTxt. Così Salute, conferma e passaggio in corso
+// dicono lo stesso nome che si legge sulla scheda.
+function schedaTxt(id){
+  const off = isOffice();
+  const c = [...document.querySelectorAll('#v-fix .fixcard [data-step="' + id + '"]')].map(b => b.closest('.fixcard')).find(c => c && !(off && c.closest('.gm')) && !(!off && c.closest('.om')));
+  const h = c && c.querySelector('h3'), pp = c && c.querySelector('p');
+  if (h && h.textContent.trim()) return {name: h.textContent.trim(), desc: pp && pp.textContent.trim() ? pp.textContent.trim() : stepTxt(id).desc};
+  return stepTxt(id);
+}
 // Le schede fisse "Prova microfono e cuffie" e "Chi usa webcam e microfono" (solo Gaming): testo da GM_ALIAS.
 (function gmCards(){ ['of_new_call', 'of_new_camlog'].forEach(id => { const b = document.querySelector('.fixcard [data-step="' + id + '"]'); if (!b) return; const c = b.closest('.fixcard'), a = GM_ALIAS[id]; c.querySelector('h3').textContent = a[0]; c.querySelector('p').textContent = a[1]; delete c.dataset.q; }); })();
 // I gruppi della sezione, per la modalità di adesso. In Gaming: solo i problemi che valgono per tutti.
@@ -4373,7 +4389,7 @@ function ofGroups(){
   return OFFICE.filter(g => g.k !== 'new' && !g.gno).map(g => ({t: g.tg || g.t, e: g.eg || g.e, c: g.c, ids: g.ids.concat(g.gadd || []).filter(x => !OFFICE_ONLY(x[0]) && !GAME_ONLY(x[0]) && !GM_SKIP[x[0]])}));
 }
 // Quelli che controllano e spiegano (non si possono sistemare da soli in automatico): il pulsante lo dice.
-const OFFICE_CHECK = {of_new_call:1, of_new_camlog:1, of_outlook_mail:1, of_outlook_size:1, of_netpwd:1, of_slow_boot:1, of_sleep:1, of_office_protected:1, of_open_with:1, of_deleted:1, of_disk_full:1, of_links:1, of_cam_busy:1, of_net_slow:1, of_battery:1, of_slow_now:1, of_onedrive_conflict:1, of_activation:1, of_temp_profile:1, of_pwd_expire:1, of_bitlocker:1};
+const OFFICE_CHECK = {of_new_call:1, of_new_camlog:1, of_outlook_mail:1, of_outlook_size:1, of_netpwd:1, of_slow_boot:1, of_sleep:1, of_office_protected:1, of_open_with:1, of_deleted:1, of_disk_full:1, of_links:1, of_cam_busy:1, of_net_slow:1, of_battery:1, of_slow_now:1, of_onedrive_conflict:1, of_activation:1, of_temp_profile:1, of_pwd_expire:1, of_bitlocker:1, fix_game_download:1};
 // Novità 3.1: interruttori (Modalità riunione, Blocco automatico) e "Ripara adesso" dopo la prova della videochiamata.
 const OFFICE_TOGGLE = {of_new_meeting:1, of_new_lock:1};
 let OF_STATI = {}, RIPARA = [];

@@ -37,17 +37,17 @@ $hit = @(); foreach ($n in $known.Keys) { if (@($names | Where-Object { $_ -matc
 if ($hit.Count) { Say ('Programmi aperti che spesso fanno uscire dal gioco (con finestre o avvisi): ' + ($hit -join ', ') + '. Se succede ancora, chiudili prima di giocare o spegnili da Pulisci e ripara > Avvio del PC.') }
 Say 'Altre cause: notifiche (Windows le blocca da sola mentre giochi a schermo intero), il tasto Xbox del controller che apre la Game Bar, e i giochi in "finestra senza bordi": prova "schermo intero" nelle opzioni video.'
 `)},
-	{ID: "fix_game_download", Name: "I download dei giochi sono lenti", Desc: "Controlla cosa rallenta i download di Steam, Epic e Xbox (rete \"a consumo\", limiti di velocità, Windows Update, disco quasi pieno) e svuota la cache dei download di Steam. Giochi e salvataggi non si toccano.", Level: 0, Minutes: 0.2, Timeout: 2 * time.Minute, Script: ofs2(`
+	{ID: "fix_game_download", Name: "I download dei giochi sono lenti", Desc: "Controlla cosa rallenta i download di Steam, Epic e Xbox (rete \"a consumo\", limiti di velocità, Windows Update, disco quasi pieno), svuota la memoria web di Steam e ti dice come togliere il limite e svuotare la cache dei download. Giochi e salvataggi non si toccano.", Level: 0, Minutes: 0.2, Timeout: 2 * time.Minute, Script: ofs2(`
 $p = $null
 try { [void][Windows.Networking.Connectivity.NetworkInformation, Windows.Networking.Connectivity, ContentType = WindowsRuntime]; $p = [Windows.Networking.Connectivity.NetworkInformation]::GetInternetConnectionProfile() } catch {}
-if ($p -and [string]$p.GetConnectionCost().NetworkCostType -notmatch 'Unrestricted|Unknown') { Say 'La rete è segnata "a consumo": l''app Xbox e Windows scaricano piano o si fermano. Usa "Aggiornamenti e OneDrive fermi: connessione a consumo" (in Risolvi un problema, sezione Ufficio).' }
+if ($p -and [string]$p.GetConnectionCost().NetworkCostType -notmatch 'Unrestricted|Unknown') { Say 'La rete è segnata "a consumo": l''app Xbox e Windows scaricano piano o si fermano. Usa "Aggiornamenti e download fermi: connessione a consumo" (in Risolvi un problema > Problemi di tutti i giorni > Rete e Wi-Fi).' }
 $steam = ''; try { $steam = [string](Get-ItemProperty -LiteralPath 'HKCU:\Software\Valve\Steam' -Name SteamPath -ErrorAction Stop).SteamPath } catch {}
 if ($steam -and (Test-Path -LiteralPath $steam)) {
   $cfg = Join-Path $steam 'config\config.vdf'
   if ((Test-Path -LiteralPath $cfg) -and ((Get-Content -LiteralPath $cfg -Raw -ErrorAction SilentlyContinue) -match '"DownloadThrottleKbps"\s+"([1-9]\d*)"')) { Say 'Steam ha un limite di velocità dei download impostato: toglilo in Steam > Impostazioni > Download > "Limita la larghezza di banda".' }
-  if (Get-Process -Name steam -ErrorAction SilentlyContinue) { Say 'Steam è aperto: per svuotare la cache dei download chiudilo (Steam > Esci) e premi di nuovo Risolvi. Oppure fallo da Steam > Impostazioni > Download > "Svuota la cache dei download".' }
+  if (Get-Process -Name steam -ErrorAction SilentlyContinue) { Say 'Steam è aperto: per svuotare la sua memoria web chiudilo (Steam > Esci) e premi di nuovo Risolvi. La cache dei download la svuoti da Steam > Impostazioni > Download > "Svuota la cache dei download".' }
   else { $f = Clear-Folder (Join-Path $steam 'appcache\httpcache'); Freed $f; Say ('Svuotata la memoria web di Steam (' + (Fmt $f) + '): giochi installati e salvataggi restano.'); Say 'Se il download resta lento, svuota anche la "cache dei download" da Steam > Impostazioni > Download (Steam ti chiederà di rientrare).' }
-  Say 'Su Steam aiuta anche cambiare "Area di download" (Impostazioni > Download) con una città vicina, per esempio Milano.'
+  Say 'Su Steam aiuta anche cambiare "Area di download" (Impostazioni > Download) con la città più vicina a te.'
 }
 if (Get-Process -Name TiWorker, MoUsoCoreWorker -ErrorAction SilentlyContinue) { Say 'Windows Update sta scaricando o installando: in questo momento i giochi scaricano più piano.' }
 $c = Get-PSDrive -Name ($env:SystemDrive.Trim(':')) -ErrorAction SilentlyContinue

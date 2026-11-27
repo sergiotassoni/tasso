@@ -316,7 +316,8 @@ $k = 'HKLM\SYSTEM\CurrentControlSet\Control\FileSystem'
 if ((Get-RegValue $k 'LongPathsEnabled') -eq 1) { Say 'I percorsi lunghi erano già accesi.' }
 else { $u = Save-Undo $k @('LongPathsEnabled') 'percorsi-lunghi'; Set-RegValue $k 'LongPathsEnabled' 1 'DWord'; Say 'Accesi i percorsi lunghi: i programmi moderni ora possono usare nomi e cartelle più lunghi di 260 caratteri.'; Say-Undo $u }
 Say 'Attenzione: Esplora file, Word ed Excel restano comunque al limite di circa 250 caratteri (nome di tutte le cartelle + nome del file). Se il messaggio torna:'
-Say '1) accorcia i nomi delle cartelle (es. "Documenti condivisi del reparto amministrazione 2026" -> "Amministrazione 2026"); 2) sposta la cartella più in alto; 3) per le cartelle di Teams/SharePoint, sincronizza la sottocartella che ti serve invece di tutta la raccolta.'
+if ($TassoUfficio) { Say '1) accorcia i nomi delle cartelle (es. "Documenti condivisi del reparto amministrazione 2026" -> "Amministrazione 2026"); 2) sposta la cartella più in alto; 3) per le cartelle di Teams/SharePoint, sincronizza la sottocartella che ti serve invece di tutta la raccolta.' }
+else { Say '1) accorcia i nomi delle cartelle (es. "Foto e video delle vacanze in montagna 2026" -> "Montagna 2026"); 2) sposta la cartella più in alto (per esempio direttamente in Documenti).' }
 `)},
 	{ID: "of_file_locked", Name: "Non posso cancellare o rinominare un file (\"è aperto in un altro programma\")", Desc: "Chiude l'anteprima di Esplora file e riavvia Esplora file, che spesso tengono il file occupato. Le finestre delle cartelle si chiudono: se stai copiando file, aspetta che finisca.", Level: 0, Minutes: 0.2, Timeout: time.Minute, Script: ofs2(`
 $o = Get-OpenOffice
@@ -506,7 +507,7 @@ elseif (-not (Test-ProgIdOk $h)) { Say ('I link si aprono con ' + (Get-AssocName
 elseif ($h2 -and $h2 -ne $h) { Say ('I link "https" si aprono con ' + (Get-AssocName $h) + ' e quelli "http" con ' + (Get-AssocName $h2) + ': conviene sceglierne uno solo.') }
 else { Say ('I link si aprono con ' + (Get-AssocName $h) + '.') }
 Say 'Cosa fare: nella finestra che ti apro scegli di nuovo il browser che usi (anche se è già quello giusto) e premi "Imposta come predefinito". Questo sistema anche l''errore "criteri dell''organizzazione".'
-Say 'Poi chiudi e riapri Outlook.'
+if ($TassoUfficio) { Say 'Poi chiudi e riapri Outlook.' } else { Say 'Poi chiudi e riapri il programma in cui hai cliccato il link.' }
 Open-User 'ms-settings:defaultapps'
 `)},
 	{ID: "of_mailto", Name: "\"Nessun programma di posta\" quando invio un file per email", Desc: "Rimette Outlook come programma di posta di Windows, quello che usano \"Invia a > Destinatario\" e i pulsanti \"Invia per email\" degli altri programmi. Puoi tornare indietro.", Level: 0, Minutes: 0.1, Timeout: time.Minute, Script: ofs2(`
@@ -557,12 +558,12 @@ $cam = Get-InUse 'webcam'; $mic = Get-InUse 'microphone'
 if ($cam.Count) { Say ('In questo momento la webcam è usata da: ' + ($cam -join ', ') + '. Chiudi quel programma (anche dall''icona vicino all''orologio) e riprova.') }
 else { Say 'In questo momento nessun programma sta usando la webcam.' }
 if ($mic.Count) { Say ('Il microfono è usato da: ' + ($mic -join ', ') + '.') }
-Say 'Ricorda: la webcam la può usare un solo programma alla volta. Se hai Teams aperto anche nel browser, chiudi una delle due.'
+if ($TassoUfficio) { Say 'Ricorda: la webcam la può usare un solo programma alla volta. Se hai Teams aperto anche nel browser, chiudi una delle due.' } else { Say 'Ricorda: la webcam la può usare un solo programma alla volta. Se hai Discord aperto anche nel browser, chiudi una delle due.' }
 if (-not $cam.Count) { Say 'Se la webcam dice ancora "in uso", prova "La webcam non va": riavvia la webcam e controlla i permessi.' }
 `)},
 	{ID: "of_sound_comm", Name: "Il volume si abbassa da solo durante le chiamate", Desc: "Dice a Windows di non abbassare più musica e altri suoni quando sei in chiamata su Teams, Zoom o Skype. Puoi tornare indietro.", Level: 0, Minutes: 0.1, Timeout: time.Minute, Script: ofs2(`
 $k = 'HKCU\Software\Microsoft\Multimedia\Audio'
-if ((Get-RegValue $k 'UserDuckingPreference') -eq 3) { Say 'Windows già non abbassava il volume nelle chiamate. Se succede ancora, è il programma della riunione o delle cuffie: in Teams controlla Impostazioni > Dispositivi.'; return }
+if ((Get-RegValue $k 'UserDuckingPreference') -eq 3) { if ($TassoUfficio) { Say 'Windows già non abbassava il volume nelle chiamate. Se succede ancora, è il programma della riunione o delle cuffie: in Teams controlla Impostazioni > Dispositivi.' } else { Say 'Windows già non abbassava il volume nelle chiamate. Se succede ancora, è il programma della chiamata o delle cuffie: in Discord controlla Impostazioni > Voce e video > Attenuazione.' }; return }
 $u = Save-Undo $k @('UserDuckingPreference') 'volume-chiamate'
 Set-RegValue $k 'UserDuckingPreference' 3 'DWord'
 Say 'Fatto: durante le chiamate Windows non abbassa più gli altri suoni. Vale dalla prossima chiamata.'
@@ -670,7 +671,7 @@ foreach ($a in @(Get-NetAdapter -Physical -ErrorAction SilentlyContinue | Where-
   if (-not $staticIp -and -not $ns) { continue }
   $works = (Test-Tcp '1.1.1.1' 443) -or (Test-Tcp '8.8.8.8' 53) -or (Test-Tcp '9.9.9.9' 443)
   $dnsOk = $true; try { [void](Resolve-DnsName 'www.microsoft.com' -DnsOnly -QuickTimeout -ErrorAction Stop) } catch { $dnsOk = $false }
-  if ($works -and $dnsOk) { Say ($a.Name + ': ha impostazioni messe a mano, ma funzionano: non tocco niente (in ufficio possono servire).'); continue }
+  if ($works -and $dnsOk) { if ($TassoUfficio) { Say ($a.Name + ': ha impostazioni messe a mano, ma funzionano: non tocco niente (in ufficio possono servire).') } else { Say ($a.Name + ': ha impostazioni messe a mano, ma funzionano: non tocco niente (possono servire per la tua rete).') }; continue }
   $dir = Join-Path ([Environment]::GetFolderPath('MyDocuments')) 'Tasso'
   New-Item -ItemType Directory -Path $dir -Force | Out-Null
   $f = Join-Path $dir ('rete-' + ($a.Name -replace '[^\w-]', '_') + '-' + (Get-Date -Format 'yyyyMMdd_HHmm') + '.txt')
@@ -689,17 +690,31 @@ foreach ($a in @(Get-NetAdapter -Physical -ErrorAction SilentlyContinue | Where-
 }
 if (-not $done) { Say 'Le schede di rete sono già in automatico (o le impostazioni a mano funzionano): non era questo il problema.'; return }
 if (Test-Internet) { Say 'Internet funziona.' } else { Say 'Internet ancora non va: prova "Il Wi-Fi non si collega" o "Risolvi problemi di internet".' }
-Say 'Quando torni in ufficio, se lì serviva l''indirizzo fisso, rimettilo con i valori del file (o chiedi all''assistenza).'
+if ($TassoUfficio) { Say 'Quando torni in ufficio, se lì serviva l''indirizzo fisso, rimettilo con i valori del file (o chiedi all''assistenza).' } else { Say 'Quando torni nella rete di prima, se lì serviva l''indirizzo fisso, rimettilo con i valori del file.' }
 `)},
 
 	// ---------- Schermi e USB ----------
-	{ID: "of_screen_off", Name: "Lo schermo si spegne o si blocca troppo presto", Desc: "Se lo schermo si spegne o chiede la password dopo 1-2 minuti, porta l'attesa a 10 minuti con la corrente e 5 a batteria. Ti dice anche se è l'ufficio a deciderlo.", Level: 0, Minutes: 0.1, Timeout: time.Minute, Script: ofs2(`
+	{ID: "of_screen_off", Name: "Lo schermo si spegne o si blocca troppo presto", Desc: "Se lo schermo si spegne o chiede la password dopo 1-2 minuti, porta l'attesa a 10 minuti con la corrente e 5 a batteria. Ti dice anche se è l'ufficio a deciderlo.", Level: 0, Minutes: 0.1, Timeout: time.Minute, Script: ofs2(undoCmdPS + `
 $v = Get-PowerValue 'SUB_VIDEO' 'VIDEOIDLE'
 $ch = @()
 if ($v.Count -eq 2) {
-  if ($v[0] -gt 0 -and $v[0] -lt 180) { [void](Run-Hidden 'powercfg.exe' '/setacvalueindex SCHEME_CURRENT SUB_VIDEO VIDEOIDLE 600'); $ch += ('con la corrente: da ' + $v[0] + ' secondi a 10 minuti') }
-  if ($v[1] -gt 0 -and $v[1] -lt 120) { [void](Run-Hidden 'powercfg.exe' '/setdcvalueindex SCHEME_CURRENT SUB_VIDEO VIDEOIDLE 300'); $ch += ('a batteria: da ' + $v[1] + ' secondi a 5 minuti') }
-  if ($ch.Count) { [void](Run-Hidden 'powercfg.exe' '/setactive SCHEME_CURRENT') }
+  $ac = $v[0] -gt 0 -and $v[0] -lt 180; $dc = $v[1] -gt 0 -and $v[1] -lt 120
+  if ($ac -or $dc) {
+    # Prima di cambiarli salvo i tempi di prima del piano energetico in uso: con un doppio clic tornano così.
+    $plan = [regex]::Match((@(powercfg.exe /getactivescheme 2>$null) -join ' '), '[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}').Value
+    $cmds = @()
+    if ($ac) { $cmds += ('"%SystemRoot%\System32\powercfg.exe" /setacvalueindex ' + $plan + ' SUB_VIDEO VIDEOIDLE ' + [int64]$v[0]) }
+    if ($dc) { $cmds += ('"%SystemRoot%\System32\powercfg.exe" /setdcvalueindex ' + $plan + ' SUB_VIDEO VIDEOIDLE ' + [int64]$v[1]) }
+    $cmds += ('"%SystemRoot%\System32\powercfg.exe" /setactive SCHEME_CURRENT')
+    $uv = ''; if ($plan) { $uv = New-UndoCmd $cmds 'spegnimento-schermo' 'Tempi di spegnimento dello schermo rimessi come prima.' }
+    if (-not $uv) { Say 'Non sono riuscito a salvare i tempi di prima dello spegnimento dello schermo, quindi non li cambio.' }
+    else {
+      if ($ac) { [void](Run-Hidden 'powercfg.exe' ('/setacvalueindex ' + $plan + ' SUB_VIDEO VIDEOIDLE 600')); $ch += ('con la corrente: da ' + $v[0] + ' secondi a 10 minuti') }
+      if ($dc) { [void](Run-Hidden 'powercfg.exe' ('/setdcvalueindex ' + $plan + ' SUB_VIDEO VIDEOIDLE 300')); $ch += ('a batteria: da ' + $v[1] + ' secondi a 5 minuti') }
+      [void](Run-Hidden 'powercfg.exe' '/setactive SCHEME_CURRENT')
+      Say-Undo $uv
+    }
+  }
 }
 $pol = Get-RegValue 'HKCU\Software\Policies\Microsoft\Windows\Control Panel\Desktop' 'ScreenSaveTimeOut'
 $ina = Get-RegValue 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System' 'InactivityTimeoutSecs'
@@ -766,17 +781,21 @@ Say ('Per tornare come prima: doppio clic su ' + $b1 + ' e su ' + $b2 + ', poi e
 	{ID: "of_touchpad", Name: "Il touchpad del portatile non funziona", Desc: "Riaccende il touchpad se era spento in Gestione dispositivi, riavvia il suo driver e ti dice dove si accende in Windows e quale tasto Fn lo spegne.", Level: 0, Minutes: 0.2, Timeout: 2 * time.Minute, Script: ofs2(`
 $tp = @(Get-PnpDevice -PresentOnly -ErrorAction SilentlyContinue | Where-Object { $_.Class -match 'Mouse|HIDClass' -and $_.FriendlyName -match 'touch ?pad|TouchPad|Precision|I2C HID|Synaptics|ELAN|Alps' })
 if (-not $tp.Count) { Say 'Windows non vede nessun touchpad. Se è un portatile: riavvia il PC; se non torna, manca il driver (in Tasso: Aggiornamento driver) o è un problema del touchpad.'; return }
+# La causa più comune: l'interruttore "Touchpad" spento nelle Impostazioni di Windows.
+$tpOff = ((Get-RegValue 'HKCU\Software\Microsoft\Windows\CurrentVersion\PrecisionTouchPad\Status' 'Enabled') -eq 0)
+$rif = 0
 foreach ($d in $tp) {
   if ([string]$d.Status -ne 'OK') {
     $id = [string]$d.InstanceId
     if ($id -match '^[A-Za-z0-9\\&_.{}#\- ]{3,300}$') {
       [void](Run-Hidden 'pnputil.exe' ('/enable-device "' + $id + '"'))
       [void](Run-Hidden 'pnputil.exe' ('/restart-device "' + $id + '"'))
-      Say ('Riacceso e riavviato: ' + $d.FriendlyName)
+      Say ('Riacceso e riavviato: ' + $d.FriendlyName); $rif++
     }
   }
 }
-Say 'Se ancora non va:'
+if ($tpOff) { Say 'Trovato: il touchpad è spento nelle Impostazioni di Windows. Te le apro: accendi "Touchpad".' }
+if ($rif -or $tpOff) { Say 'Se ancora non va:' } else { Say 'Windows vede il touchpad e il suo driver funziona. Cose da controllare:' }
 Say '1) Molti portatili hanno un tasto che lo spegne: cerca sui tasti F1-F12 il disegno di un rettangolo barrato e premilo (a volte insieme a Fn).'
 Say '2) In Windows deve essere acceso, e se usi anche un mouse controlla "Lascia attivo il touchpad quando è collegato un mouse". Te lo apro.'
 Open-User 'ms-settings:devices-touchpad'

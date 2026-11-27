@@ -618,7 +618,7 @@ $n = Restart-BadDevices 'AudioEndpoint|MEDIA'
 if (Use-Audio) {
   $st = [TassoAudio]::State(1, 2)
   if (-not $st) {
-    Say 'Windows non vede il microfono: riavvio l''audio di Windows (si ferma per un secondo, anche in riunione)...'
+    Say 'Windows non vede il microfono: riavvio l''audio di Windows (si ferma per un secondo, anche nelle chiamate)...'
     Restart-Service -Name AudioEndpointBuilder -Force -ErrorAction SilentlyContinue
     Start-Service -Name Audiosrv -ErrorAction SilentlyContinue
     for ($i = 0; $i -lt 4 -and -not $st; $i++) { Start-Sleep -Seconds 1; $st = [TassoAudio]::State(1, 2) }
@@ -633,7 +633,8 @@ if (Use-Audio) {
 $pv = Get-Privacy 'microphone'
 if ($pv.pc -eq 'Deny' -or $pv.all -eq 'Deny' -or $pv.desk -eq 'Deny') { Say 'ATTENZIONE: Windows blocca il microfono ai programmi. Ti apro l''impostazione: accendi "Accesso al microfono" e "Consenti alle app desktop di accedere al microfono".'; Open-User 'ms-settings:privacy-microphone' }
 else { Say 'Windows lascia usare il microfono ai programmi: ok.' }
-Say 'Ultimo controllo da fare tu: nel programma della riunione (Teams: Impostazioni > Dispositivi; Zoom: Impostazioni > Audio) scegli il microfono giusto e controlla che il pulsante del microfono non sia barrato. Molte cuffie hanno anche un tasto muto sul filo.'
+if ($TassoUfficio) { Say 'Ultimo controllo da fare tu: nel programma della riunione (Teams: Impostazioni > Dispositivi; Zoom: Impostazioni > Audio) scegli il microfono giusto e controlla che il pulsante del microfono non sia barrato. Molte cuffie hanno anche un tasto muto sul filo.' }
+else { Say 'Ultimo controllo da fare tu: nel programma della chiamata (Discord: Impostazioni > Voce e video) o nelle opzioni audio del gioco scegli il microfono giusto e controlla che il pulsante del microfono non sia barrato. Molte cuffie hanno anche un tasto muto sul filo.' }
 `)},
 	{ID: "of_meet_cam", Name: "La webcam non va", Desc: "Ti dice se la webcam è già usata da un altro programma, la riaccende se era spenta, riavvia il servizio della fotocamera e controlla la privacy.", Level: 0, Minutes: 0.3, Timeout: 3 * time.Minute, Script: ofs(`
 $base = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\webcam'
@@ -652,7 +653,8 @@ $cams = @(Get-PnpDevice -PresentOnly -ErrorAction SilentlyContinue | Where-Objec
 if ($cams.Count) { Say ('Webcam trovate: ' + (($cams | ForEach-Object { $_.FriendlyName }) -join ', ') + '.') } else { Say 'Windows non vede nessuna webcam. Sul portatile cerca un tasto con la telecamera barrata (spesso F8 o F10) o una tendina scorrevole sopra lo schermo.' }
 $pv = Get-Privacy 'webcam'
 if ($pv.pc -eq 'Deny' -or $pv.all -eq 'Deny' -or $pv.desk -eq 'Deny') { Say 'ATTENZIONE: Windows blocca la webcam ai programmi. Ti apro l''impostazione: accendi "Accesso alla fotocamera" e "Consenti alle app desktop".'; Open-User 'ms-settings:privacy-webcam' }
-Say 'Nel programma della riunione scegli la webcam giusta (Teams: Impostazioni > Dispositivi > Fotocamera).'
+if ($TassoUfficio) { Say 'Nel programma della riunione scegli la webcam giusta (Teams: Impostazioni > Dispositivi > Fotocamera).' }
+else { Say 'Nel programma che usa la webcam scegli quella giusta (Discord: Impostazioni > Voce e video > Fotocamera).' }
 `)},
 	{ID: "of_meet_bt", Name: "Le cuffie Bluetooth non si collegano", Desc: "Riavvia il Bluetooth e i suoi servizi audio. Ti spiega anche perché in chiamata le cuffie Bluetooth si sentono peggio.", Level: 0, Minutes: 0.3, Timeout: 3 * time.Minute, Script: ofs(`
 $radio = @(Get-PnpDevice -Class Bluetooth -PresentOnly -ErrorAction SilentlyContinue)
@@ -685,7 +687,8 @@ if (Use-Audio) {
 $outs = @(Get-PnpDevice -Class AudioEndpoint -PresentOnly -Status OK -ErrorAction SilentlyContinue | Where-Object { $_.FriendlyName -notmatch '\b(Microfono|Microfoni|Microphone|Mic)\b|Line In|Ingresso' })
 if ($outs.Count -gt 1) { Say ('Uscite audio collegate: ' + (($outs | ForEach-Object { $_.FriendlyName }) -join ', ') + '. Se il suono va in quella sbagliata, scegli quella giusta nella finestra che ti apro (Uscita).') }
 Open-User 'ms-settings:sound'
-Say 'Nel programma della riunione controlla anche l''altoparlante scelto (Teams: Impostazioni > Dispositivi > Altoparlante).'
+if ($TassoUfficio) { Say 'Nel programma della riunione controlla anche l''altoparlante scelto (Teams: Impostazioni > Dispositivi > Altoparlante).' }
+else { Say 'Nel programma della chiamata e nel gioco controlla anche l''uscita audio scelta (Discord: Impostazioni > Voce e video > Dispositivo di uscita).' }
 `)},
 
 	// ---------- Rete, Wi-Fi e VPN ----------
@@ -973,10 +976,15 @@ else { Say 'Windows non mi ha lasciato svuotare tutta la memoria dei caratteri: 
 Say 'Se manca un carattere preciso in un documento (es. ricevuto da un collega), va installato: doppio clic sul file del carattere > Installa.'
 [Console]::Out.WriteLine('REBOOT')
 `)},
-	{ID: "of_thumbs", Name: "Non vedo le anteprime di foto e documenti", Desc: "Riaccende le anteprime in Esplora file se erano spente e ricrea le miniature rovinate. Se stai copiando file, aspetta che finisca.", Level: 0, Minutes: 0.3, Timeout: 3 * time.Minute, Script: ofs(`
+	{ID: "of_thumbs", Name: "Non vedo le anteprime di foto e documenti", Desc: "Riaccende le anteprime in Esplora file se erano spente e ricrea le miniature rovinate. Se stai copiando file, aspetta che finisca.", Level: 0, Minutes: 0.3, Timeout: 3 * time.Minute, Script: ofs2(`
 $k = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced'
 $io = 0; try { $io = [int](Get-ItemProperty -LiteralPath $k -Name IconsOnly -ErrorAction Stop).IconsOnly } catch {}
-if ($io -eq 1) { Set-ItemProperty -LiteralPath $k -Name IconsOnly -Value 0 -Type DWord; Say 'Era accesa "Mostra sempre icone, mai anteprime": spenta.' }
+$u = ''
+if ($io -eq 1) {
+  $u = Save-Undo 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced' @('IconsOnly') 'anteprime'
+  if ($u) { Set-ItemProperty -LiteralPath $k -Name IconsOnly -Value 0 -Type DWord; Say 'Era accesa "Mostra sempre icone, mai anteprime": spenta.' }
+  else { Say 'È accesa "Mostra sempre icone, mai anteprime", ma non sono riuscito a salvare com''era, quindi non la cambio: la spegni da Esplora file > Opzioni > Visualizzazione.' }
+}
 Say 'Ricreo le miniature (Esplora file si riavvia per un attimo)...'
 Get-Process -Name explorer -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
 Start-Sleep -Milliseconds 800
@@ -987,6 +995,7 @@ if (-not (Get-Process -Name explorer -ErrorAction SilentlyContinue)) { Start-Pro
 Freed $f
 if ($f -eq 0) { Say 'Le miniature erano in uso da Windows: si ricreano al prossimo riavvio del PC.'; [Console]::Out.WriteLine('REBOOT') }
 Say 'Le anteprime si rifanno aprendo le cartelle. Per i PDF serve un lettore che le crea (Adobe Acrobat Reader le fa; anche il "Riquadro di anteprima" con Alt + P).'
+Say-Undo $u
 `)},
 	{ID: "of_ext", Name: "Non vedo .pdf .docx alla fine dei file", Desc: "Fa vedere sempre l'estensione dei file (.pdf, .docx, .exe). Così capisci cos'è un file e riconosci gli allegati truffa come fattura.pdf.exe.", Level: 0, Minutes: 0.1, Timeout: time.Minute, Script: ofs(`
 $k = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced'
@@ -998,7 +1007,7 @@ Say 'Per tornare come prima: Esplora file > Visualizza > Mostra > togli la spunt
 	{ID: "of_slow_boot", Name: "Il PC ci mette tanto ad accendersi", Desc: "Misura quanto ci mette Windows a partire, trova i programmi che lo rallentano e ti dice cosa spegnere. Controlla e spiega.", Level: 0, Minutes: 0.4, Timeout: 3 * time.Minute, Script: ofs(`
 $ev = @(Get-WinEvent -FilterHashtable @{ LogName = 'Microsoft-Windows-Diagnostics-Performance/Operational'; Id = 100 } -MaxEvents 5 -ErrorAction SilentlyContinue)
 $t = @(); foreach ($e in $ev) { try { $x = [xml]$e.ToXml(); $b = ($x.Event.EventData.Data | Where-Object { $_.Name -eq 'BootTime' }).'#text'; if ($b) { $t += [double]$b / 1000 } } catch {} }
-if ($t.Count) { $avg = [math]::Round(($t | Measure-Object -Average).Average); Say ('Le ultime accensioni sono durate in media ' + $avg + ' secondi (fino a quando puoi usare il PC).'); if ($avg -gt 90) { Say 'È lento: un PC da ufficio con disco SSD dovrebbe starci sotto il minuto.' } }
+if ($t.Count) { $avg = [math]::Round(($t | Measure-Object -Average).Average); Say ('Le ultime accensioni sono durate in media ' + $avg + ' secondi (fino a quando puoi usare il PC).'); if ($avg -gt 90) { Say 'È lento: un PC con disco SSD dovrebbe starci sotto il minuto.' } }
 else { Say 'Windows non ha ancora i tempi di accensione (si misurano dopo qualche riavvio).' }
 $slow = @(Get-WinEvent -FilterHashtable @{ LogName = 'Microsoft-Windows-Diagnostics-Performance/Operational'; Id = 101 } -MaxEvents 30 -ErrorAction SilentlyContinue)
 $names = @{}; foreach ($e in $slow) { try { $x = [xml]$e.ToXml(); $fn = ($x.Event.EventData.Data | Where-Object { $_.Name -eq 'FriendlyName' }).'#text'; if ($fn) { $names[$fn] = 1 } } catch {} }
@@ -1010,7 +1019,7 @@ $sys = Get-PSDrive -Name ($env:SystemDrive.Trim(':')) -ErrorAction SilentlyConti
 if ($sys -and $sys.Free -lt 10GB) { Say ('Il disco C: ha solo ' + (Fmt $sys.Free) + ' liberi: anche questo rallenta. Fai una pulizia.') }
 $sd = Get-Partition -DriveLetter ($env:SystemDrive.Trim(':')) -ErrorAction SilentlyContinue | Get-Disk -ErrorAction SilentlyContinue
 $hdd = @(Get-PhysicalDisk -ErrorAction SilentlyContinue | Where-Object { $sd -and [string]$_.DeviceId -eq [string]$sd.Number -and [string]$_.MediaType -eq 'HDD' })
-if ($hdd.Count) { Say 'Questo PC ha un disco "meccanico" (HDD): è la causa principale della lentezza. Passare a un SSD (circa 40-60 euro) lo rende 3-4 volte più veloce ad accendersi.' }
+if ($hdd.Count) { Say 'Questo PC ha un disco "meccanico" (HDD): è la causa principale della lentezza. Passare a un SSD lo rende 3-4 volte più veloce ad accendersi.' }
 $up = (Get-Date) - (Get-CimInstance Win32_OperatingSystem).LastBootUpTime
 if ($up.TotalDays -gt 7) { Say ('Il PC non si riavvia da ' + [int]$up.TotalDays + ' giorni (con "Arresta" Windows non si spegne del tutto): ogni tanto fai Riavvia, aiuta molto.') }
 `)},

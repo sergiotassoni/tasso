@@ -234,17 +234,28 @@ if ($big.Count) { Say ('Giochi di Steam che occupano di più: ' + (($big | ForEa
 Say 'Per liberare spazio senza perdere niente: Pulisci e ripara (pulizia normale), poi Mappa del disco per vedere cosa occupa di più.'
 Say 'Se hai un secondo disco con spazio, installa lì il gioco: in Steam scegli la cartella nel momento in cui installi, oppure sposta un gioco già installato da Proprietà > File installati > Sposta cartella.'
 `)},
-	{ID: "fix_game_nat", Name: "Chat vocale o partite online con altri giocatori non funzionano (NAT)", Desc: "Per \"NAT rigido o moderato\", party chat di Xbox che non si collega o altri giocatori che non riescono a entrare nella tua partita: rimette a posto i servizi di rete che servono ai giochi, controlla la rete e il microfono, e ti dice cosa fare sul router.", Level: 0, Minutes: 0.4, Timeout: 3 * time.Minute, Script: ofs2(`
-foreach ($s in @('iphlpsvc', 'SSDPSRV', 'upnphost', 'XblAuthManager', 'XboxNetApiSvc')) {
+	{ID: "fix_game_nat", Name: "Chat vocale o partite online con altri giocatori non funzionano (NAT)", Desc: "Per \"NAT rigido o moderato\", party chat di Xbox che non si collega o altri giocatori che non riescono a entrare nella tua partita: rimette a posto i servizi di rete che servono ai giochi, controlla la rete e il microfono, e ti dice cosa fare sul router.", Level: 0, Minutes: 0.4, Timeout: 3 * time.Minute, Script: ofs2(undoCmdPS + `
+$ns = @('iphlpsvc', 'SSDPSRV', 'upnphost', 'XblAuthManager', 'XboxNetApiSvc')
+$td = ''; try { $td = [string](Get-NetTeredoConfiguration -ErrorAction Stop).Type } catch { $td = '' }
+# Prima di riaccendere servizi disattivati e Teredo salvo com'erano: con un doppio clic tornano così.
+$spenti = @($ns | Where-Object { $v = Get-Service -Name $_ -ErrorAction SilentlyContinue; $v -and [string]$v.StartType -eq 'Disabled' })
+$cmds = @($spenti | ForEach-Object { 'sc.exe config ' + $_ + ' start= disabled' })
+if ($td -eq 'Disabled') { $cmds += 'netsh.exe interface teredo set state disabled' }
+$u = ''; $salvo = $true
+if ($cmds.Count) {
+  $u = New-UndoCmd $cmds 'rete-chat-giochi' 'Servizi di rete e Teredo rimessi come prima.'
+  if (-not $u) { $salvo = $false; Say 'Alcuni servizi di rete per i giochi sono disattivati, ma non sono riuscito a salvare com''erano, quindi non li cambio.' }
+}
+foreach ($s in $ns) {
   $sv = Get-Service -Name $s -ErrorAction SilentlyContinue
   if ($sv -and $sv.StartType -eq 'Automatic' -and $sv.Status -ne 'Running') { try { Start-Service -Name $s -ErrorAction Stop; Say ('Riacceso il servizio ' + $sv.DisplayName + ', che doveva essere acceso.') } catch {} }
-  elseif ($sv -and $sv.StartType -eq 'Disabled') { try { Set-Service -Name $s -StartupType Manual -ErrorAction Stop; Start-Service -Name $s -ErrorAction SilentlyContinue; Say ('Il servizio ' + $sv.DisplayName + ' era disattivato da un programma: ora parte quando serve. Per tornare indietro: in un prompt dei comandi da amministratore scrivi  sc config ' + $s + ' start= disabled') } catch {} }
+  elseif ($sv -and $sv.StartType -eq 'Disabled' -and $salvo) { try { Set-Service -Name $s -StartupType Manual -ErrorAction Stop; Start-Service -Name $s -ErrorAction SilentlyContinue; Say ('Il servizio ' + $sv.DisplayName + ' era disattivato da un programma: ora parte quando serve.') } catch {} }
 }
-$td = ''; try { $td = [string](Get-NetTeredoConfiguration -ErrorAction Stop).Type } catch { $td = '' }
-if ($td -eq 'Disabled') {
+if ($td -eq 'Disabled' -and $salvo) {
   & netsh.exe interface teredo set state type=default 2>$null | Out-Null
-  if ($LASTEXITCODE -eq 0) { Say 'Riattivato "Teredo", il pezzo di Windows che serve alla party chat e al multigiocatore Xbox (era disattivato). Per tornare indietro: netsh interface teredo set state disabled' } else { Say 'Teredo, il pezzo di Windows per la party chat Xbox, è disattivato e Windows non mi lascia riattivarlo (forse lo blocca un criterio del PC di lavoro).' }
+  if ($LASTEXITCODE -eq 0) { Say 'Riattivato "Teredo", il pezzo di Windows che serve alla party chat e al multigiocatore Xbox (era disattivato).' } else { Say 'Teredo, il pezzo di Windows per la party chat Xbox, è disattivato e Windows non mi lascia riattivarlo (forse lo blocca un criterio del PC).' }
 }
+Say-UndoCmd $u
 $pub = @(Get-NetConnectionProfile -ErrorAction SilentlyContinue | Where-Object { $_.NetworkCategory -eq 'Public' -and $_.IPv4Connectivity -eq 'Internet' })
 foreach ($p in $pub) { Say ('La rete "' + $p.Name + '" è segnata come Pubblica: per la rete di casa scegli "Privata" in Impostazioni > Rete e Internet > ' + $p.Name + '. Aiuta giochi e chat a collegarsi con gli altri giocatori.') }
 $m = Get-Privacy 'microphone'
@@ -296,7 +307,7 @@ $heavy = @(Get-Process -ErrorAction SilentlyContinue | Where-Object { $_.Process
 if ($heavy.Count) { Say ('Sono aperti programmi che "migliorano" l''audio: ' + ($heavy -join ', ') + $(if ($TassoUfficio) { '. Se gracchia ancora, spegni i loro effetti.' } else { '. Se gracchia ancora, spegni i loro effetti (in particolare Nahimic è noto per dare scatti nei giochi).' })) }
 Say 'Altri consigli: collega le cuffie USB a una porta dietro il PC (non a un hub), e in Impostazioni > Sistema > Audio > proprietà del dispositivo prova il formato 24 bit, 48000 Hz.'
 `)},
-	{ID: "fix_game_inputlag", Name: "C'è ritardo tra il mouse e il gioco (input lag)", Desc: "Controlla le impostazioni di Windows che aggiungono ritardo (Modalità Gioco, frequenza dello schermo, piano energetico, puntatore) e accende quelle che lo riducono. Ti dice cosa cambiare nel gioco.", Level: 0, Minutes: 0.1, Timeout: time.Minute, Script: ofs2(`
+	{ID: "fix_game_inputlag", Name: "C'è ritardo tra il mouse e il gioco (input lag)", Desc: "Controlla le impostazioni di Windows che aggiungono ritardo (Modalità Gioco, frequenza dello schermo, accelerazione del mouse, batteria) e accende quelle che lo riducono. Ti dice cosa cambiare nel gioco.", Level: 0, Minutes: 0.1, Timeout: time.Minute, Script: ofs2(`
 $gm = 'HKCU\Software\Microsoft\GameBar'
 if ((Get-RegValue $gm 'AutoGameModeEnabled') -eq 0) { $u = Save-Undo $gm @('AutoGameModeEnabled') 'modalita-gioco'; Set-RegValue $gm 'AutoGameModeEnabled' 1 'DWord'; Say 'Accesa la Modalità Gioco di Windows: mentre giochi Windows non fa partire aggiornamenti e lavori in sottofondo.'; Say-Undo $u }
 else { Say 'La Modalità Gioco di Windows è accesa.' }
@@ -320,12 +331,12 @@ foreach ($x in $ssd) { Say ('Disco ' + $x + ': (con i giochi) è un SSD, veloce.
 foreach ($x in $hdd) { Say ('Disco ' + $x + ': (con i giochi) è un disco meccanico (HDD): carica 5-10 volte più piano di un SSD. È la causa più comune dei caricamenti lunghi e delle texture che compaiono tardi.') }
 $allSsd = @(); foreach ($d in @(Get-PSDrive -PSProvider FileSystem -ErrorAction SilentlyContinue)) { if ((Get-DiskKind $d.Name) -eq 'SSD' -and $d.Free -gt 30GB) { $allSsd += ($d.Name + ': (' + (Fmt $d.Free) + ' liberi)') } }
 if ($hdd.Count -and $allSsd.Count) { Say ('Hai un SSD con spazio: ' + ($allSsd -join ', ') + '. Sposta lì i giochi che usi di più: in Steam tasto destro sul gioco > Proprietà > File installati > Sposta cartella. Non serve riscaricarli.') }
-elseif ($hdd.Count) { Say 'Un SSD costa poco (da 40-60 euro per 1 TB) ed è il miglioramento più grande per i caricamenti.' }
+elseif ($hdd.Count) { Say 'Un SSD costa poco ed è il miglioramento più grande per i caricamenti.' }
 foreach ($x in $letters) { $d = Get-PSDrive -Name $x -ErrorAction SilentlyContinue; if ($d -and ($d.Free + $d.Used) -gt 0 -and ($d.Free / ($d.Free + $d.Used)) -lt 0.1) { Say ('Il disco ' + $x + ': è pieno oltre il 90%: anche un SSD rallenta quando è quasi pieno. Libera spazio da Pulisci e ripara.') } }
 try { $busy = (Get-CimInstance Win32_PerfFormattedData_PerfDisk_PhysicalDisk -ErrorAction Stop | Where-Object { $_.Name -eq '_Total' }).PercentDiskTime; if ($busy -ge 90) { Say 'In questo momento il disco è usato al massimo da qualcosa: guarda in Gestione attività (Ctrl + Maiusc + Esc) > colonna Disco.' } } catch {}
 Say 'La prima volta che apri un gioco dopo un aggiornamento è normale che carichi di più: prepara gli "shader" della grafica (lo fa una volta sola).'
 `)},
-	{ID: "fix_game_fullscreen", Name: "Il gioco non va a schermo intero", Desc: "Per giochi che restano in finestra, con bordi neri, tagliati o che escono dallo schermo intero: controlla il ridimensionamento di Windows e la Game Bar, e ti spiega i tasti per sistemarlo.", Level: 0, Minutes: 0.1, Timeout: time.Minute, Script: ofs2(`
+	{ID: "fix_game_fullscreen", Name: "Il gioco non va a schermo intero", Desc: "Per giochi che restano in finestra, con bordi neri, tagliati o che escono dallo schermo intero: controlla il ridimensionamento di Windows e le vecchie impostazioni di compatibilità, e ti spiega i tasti per sistemarlo.", Level: 0, Minutes: 0.1, Timeout: time.Minute, Script: ofs2(`
 try { $dpi = [int](Get-RegValue 'HKCU\Control Panel\Desktop\WindowMetrics' 'AppliedDPI'); if (-not $dpi) { Add-Type -Namespace TassoDpi -Name D -MemberDefinition '[DllImport("user32.dll")] public static extern bool SetProcessDPIAware(); [DllImport("user32.dll")] public static extern int GetDpiForSystem();' -ErrorAction Stop; [void][TassoDpi.D]::SetProcessDPIAware(); $dpi = [TassoDpi.D]::GetDpiForSystem() }; if ($dpi -gt 96) { Say ('Il ridimensionamento di Windows è al ' + [int]($dpi * 100 / 96) + '%. Alcuni giochi vecchi per questo escono tagliati o piccoli: tasto destro sul file del gioco > Proprietà > Compatibilità > Modifica impostazioni DPI elevati > spunta "Sostituisci comportamento ridimensionamento DPI" e scegli "Applicazione".') } else { Say 'Il ridimensionamento di Windows è al 100%: va bene per i giochi.' } } catch {}
 $lay = 'HKCU\Software\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers'
 $k = Get-Item -LiteralPath ('Registry::' + (Get-FullKey $lay)) -ErrorAction SilentlyContinue
