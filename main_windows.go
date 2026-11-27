@@ -342,7 +342,9 @@ func collega(w webview2.WebView) {
 		}
 		return map[string]any{"modo": modo, "lingua": L(), "lingue": lingue, "testi": testi.Dizionario,
 			"componenti": comp, "cartella": cartella, "installata": installata, "versione": ver, "preScelti": pre,
-			"vuoto": !modoDisins && (elenco == nil || errElenco != nil)}
+			"vuoto": !modoDisins && (elenco == nil || errElenco != nil),
+			// "Come ti chiami?": il nome già salvato (reinstallando o aggiornando dalla finestra), per riempire il campo
+			"nome": conUtenteSessione(&installa.Installatore{Registro: reg}).LeggiNome()}
 	})
 	_ = w.Bind("goLingua", func(l string) bool {
 		if testi.Valida(l) {
@@ -351,6 +353,14 @@ func collega(w webview2.WebView) {
 			return true
 		}
 		return false
+	})
+	// goNomeControlla: Go decide se il nome va bene (la pagina lo chiede quando premi Avanti nel
+	// passo "Come ti chiami?"). Restituisce il nome pulito, il codice dell'errore ("" = va bene) e
+	// il simbolo che non va.
+	_ = w.Bind("goNomeControlla", func(scritto string) map[string]any {
+		n := installa.PulisciNome(scritto)
+		c, sim := installa.ControllaNome(n)
+		return map[string]any{"nome": n, "errore": c, "simbolo": sim}
 	})
 	_ = w.Bind("goControllaCartella", func(p string, cc []string) map[string]any {
 		p = strings.TrimSpace(p)
@@ -442,10 +452,18 @@ func collega(w webview2.WebView) {
 		// la casella era spuntata perché c'erano già i collegamenti sul Desktop e l'hai tolta tu
 		DesktopTogli bool   `json:"desktopTogli"`
 		Lingua       string `json:"lingua"`
+		Nome         string `json:"nome"` // "Come ti chiami?" (installa/nome.go: un nome non valido non si salva)
 	}) any {
 		if modoDisins || elenco == nil {
 			return map[string]any{"codice": "err_vuoto"}
 		}
+		// "Come ti chiami?" è obbligatorio anche qui, non solo nella pagina: se il nome non va
+		// bene si torna al passo del nome con il motivo (la pagina mostra l'errore di Go)
+		n := installa.PulisciNome(o.Nome)
+		if c, sim := installa.ControllaNome(n); c != "" {
+			return map[string]any{"codice": "nome", "errore": c, "simbolo": sim}
+		}
+		o.Nome = n
 		if !inCorso.CompareAndSwap(false, true) {
 			return "ok"
 		}
@@ -473,7 +491,7 @@ func collega(w webview2.WebView) {
 			}
 		}
 		opz := installa.Opzioni{Base: base, Componenti: scelti, Desktop: o.Desktop,
-			DesktopTogli: o.DesktopTogli && !o.Desktop, Lingua: l, CartellaMenu: menuStart(), CartellaDesktop: desktopPubblico(),
+			DesktopTogli: o.DesktopTogli && !o.Desktop, Lingua: l, Nome: o.Nome, CartellaMenu: menuStart(), CartellaDesktop: desktopPubblico(),
 			TieniDisinstallatore: tieni}
 		ctx, annulla := context.WithCancel(context.Background())
 		annullaMu.Lock()

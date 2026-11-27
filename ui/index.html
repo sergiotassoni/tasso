@@ -100,6 +100,25 @@ label.scelta{display:flex;gap:12px;align-items:center;color:var(--soft);cursor:p
 #p6{padding-top:18px;gap:11px}#p6 .comp{gap:8px}#p6 .testa{gap:18px}#p6 .testa .gmask{width:50px}#p6 h1{font-size:24px}#p6 h1::after{margin-top:9px}#p6 .testa>div{gap:9px}#p6 .sub{font-size:12.5px;line-height:1.45}
 #p6 .nota{padding:8px 12px;font-size:12px;line-height:1.42}#p6 .carta{padding:10px 12px}#p6 .carta p{line-height:1.33}#p6 .carta .badge{margin-top:5px}
 label.scelta.fissa{cursor:default;opacity:.7}
+/* "Come ti chiami?" (3.2): il campo grande, errori in arancione, il saluto di prova */
+#p8 .testa .gmask{width:96px}
+.nomebox{position:relative;display:flex;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:14px;transition:border-color .15s,box-shadow .15s;margin-top:4px}
+.nomebox input[type=text]#nome{flex:1;border:0;background:transparent;font:600 21px var(--body);padding:19px 22px;border-radius:14px;letter-spacing:0}
+.nomebox input[type=text]#nome:focus{outline:none}
+.nomebox input#nome::placeholder{color:#6A707C;font-weight:500}
+.nomebox:focus-within{border-color:color-mix(in srgb,var(--a1) 45%,var(--line))}
+.nomebox.ok{border-color:var(--a1);box-shadow:0 0 0 4px color-mix(in srgb,var(--a1) 10%,transparent)}
+.nomebox.err{border-color:var(--a4);box-shadow:0 0 0 4px color-mix(in srgb,var(--a4) 10%,transparent)}
+.nomecont{display:flex;align-items:center;gap:10px;padding-right:22px;font:500 12px var(--mono);letter-spacing:.12em;color:var(--muted);white-space:nowrap}
+.nomecont svg{color:var(--a1)}
+.nomebox.err .nomecont{color:var(--a4)}
+.nomeerr{display:flex;align-items:flex-start;gap:10px;color:var(--a4);font-weight:600;font-size:14px;line-height:1.45}
+.nomeerr svg{flex:none;margin-top:1px}
+.nomeregole{color:var(--muted);font-size:13px;line-height:1.5;margin:0}
+.saluto{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;border:1px solid var(--line);border-radius:12px;padding:13px 18px;background:color-mix(in srgb,var(--panel) 70%,transparent);color:var(--muted);font-size:13.5px}
+.saluto b{color:var(--text);font:800 17px var(--display);font-stretch:108%;overflow-wrap:anywhere}
+.solopc{display:flex;align-items:center;gap:10px;font:500 10.5px var(--mono);letter-spacing:.22em;text-transform:uppercase;color:var(--muted);margin-top:2px}
+.solopc svg{color:var(--a1);flex:none}
 /* installazione in corso */
 .lavoro{display:flex;align-items:center;gap:40px;flex:1}
 .lavoro .gmask{width:150px}
@@ -145,9 +164,10 @@ ol.passi li i,.ver,.lingue button span{color:#7A808D}
     <div class="brand"><img id="faccia" src="{{ICONA:gaming}}" alt=""><div><b>TASSO</b><small id="sottoBrand">SETUP</small></div></div>
     <ol class="passi" id="passi">
       <li data-p="0"><i>01</i><span data-t="passo_lingua"></span></li>
-      <li data-p="1"><i>02</i><span data-t="passo_componenti"></span></li>
-      <li data-p="2"><i>03</i><span data-t="passo_cartella"></span></li>
-      <li data-p="3"><i>04</i><span data-t="passo_installa"></span></li>
+      <li data-p="1"><i>02</i><span data-t="passo_nome"></span></li>
+      <li data-p="2"><i>03</i><span data-t="passo_componenti"></span></li>
+      <li data-p="3"><i>04</i><span data-t="passo_cartella"></span></li>
+      <li data-p="4"><i>05</i><span data-t="passo_installa"></span></li>
     </ol>
     <div class="ver" id="versione"></div>
   </aside>
@@ -158,9 +178,19 @@ ol.passi li i,.ver,.lingue button span{color:#7A808D}
       <div class="testa big"><svg class="gmask" viewBox="0 0 240 220" aria-hidden="true"><path d="M44 22 H196 L226 104 L120 206 L14 104 Z" fill="var(--text)"/><path d="M80 22 H106 L108 142 L56 132 L36 98 Z" fill="var(--bg)"/><path d="M160 22 H134 L132 142 L184 132 L204 98 Z" fill="var(--bg)"/><g class="look"><circle class="eye" cx="82" cy="112" r="12" fill="var(--a1)"/></g><g class="look"><circle class="eye" cx="158" cy="112" r="12" fill="var(--a1)"/></g><path d="M100 164 H140 L120 190 Z" fill="var(--bg)"/></svg><div><h1 data-t="lingua_titolo"></h1><p class="sub" data-t="lingua_sotto"></p></div></div>
       <div class="lingue" id="lingue"></div>
     </section>
+    <!-- 8. il tuo nome (3.2): obbligatorio, subito dopo la lingua (Avanti spento finché non va bene) -->
+    <section class="pagina" id="p8">
+      <div class="k">02 · <span data-t="passo_nome"></span></div>
+      <div class="testa"><svg class="gmask" viewBox="0 0 240 220" aria-hidden="true"><path d="M44 22 H196 L226 104 L120 206 L14 104 Z" fill="var(--text)"/><path d="M80 22 H106 L108 142 L56 132 L36 98 Z" fill="var(--bg)"/><path d="M160 22 H134 L132 142 L184 132 L204 98 Z" fill="var(--bg)"/><g class="look"><circle class="eye" cx="82" cy="112" r="12" fill="var(--a1)"/></g><g class="look"><circle class="eye" cx="158" cy="112" r="12" fill="var(--a1)"/></g><path d="M100 164 H140 L120 190 Z" fill="var(--bg)"/></svg><div><h1 data-t="nome_titolo"></h1><p class="sub" data-t="nome_sotto"></p></div></div>
+      <div class="nomebox" id="nomeBox"><input type="text" id="nome" spellcheck="false" autocomplete="off" data-tp="nome_campo" aria-describedby="nomeErr nomeRegole"><span class="nomecont"><svg id="nomeOk" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" hidden><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span id="nomeCont">0 / 20</span></span></div>
+      <div class="nomeerr" id="nomeErr" role="alert" hidden><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 7v6M12 16.5v.5"/></svg><span></span></div>
+      <div class="saluto" id="nomeSaluto" hidden><span data-t="nome_saluta"></span><b translate="no"></b></div>
+      <p class="nomeregole" id="nomeRegole" data-t="nome_regole"></p>
+      <div class="solopc"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span data-t="nome_solo_pc"></span></div>
+    </section>
     <!-- 1. componenti -->
     <section class="pagina" id="p1">
-      <div class="k">02 · <span data-t="passo_componenti"></span></div>
+      <div class="k">03 · <span data-t="passo_componenti"></span></div>
       <div class="testa"><svg class="gmask" viewBox="0 0 240 220" aria-hidden="true"><path d="M44 22 H196 L226 104 L120 206 L14 104 Z" fill="var(--text)"/><path d="M80 22 H106 L108 142 L56 132 L36 98 Z" fill="var(--bg)"/><path d="M160 22 H134 L132 142 L184 132 L204 98 Z" fill="var(--bg)"/><g class="look"><circle class="eye" cx="82" cy="112" r="12" fill="var(--a1)"/></g><g class="look"><circle class="eye" cx="158" cy="112" r="12" fill="var(--a1)"/></g><path d="M100 164 H140 L120 190 Z" fill="var(--bg)"/></svg><div><h1 data-t="comp_titolo"></h1><p class="sub" data-t="comp_sotto"></p></div></div>
       <div class="comp" id="comp"></div>
       <div class="nota" data-t="comp_nota_tasso"></div>
@@ -168,7 +198,7 @@ ol.passi li i,.ver,.lingue button span{color:#7A808D}
     </section>
     <!-- 2. cartella -->
     <section class="pagina" id="p2">
-      <div class="k">03 · <span data-t="passo_cartella"></span></div>
+      <div class="k">04 · <span data-t="passo_cartella"></span></div>
       <div class="testa"><svg class="gmask" viewBox="0 0 240 220" aria-hidden="true"><path d="M44 22 H196 L226 104 L120 206 L14 104 Z" fill="var(--text)"/><path d="M80 22 H106 L108 142 L56 132 L36 98 Z" fill="var(--bg)"/><path d="M160 22 H134 L132 142 L184 132 L204 98 Z" fill="var(--bg)"/><g class="look"><circle class="eye" cx="82" cy="112" r="12" fill="var(--a1)"/></g><g class="look"><circle class="eye" cx="158" cy="112" r="12" fill="var(--a1)"/></g><path d="M100 164 H140 L120 190 Z" fill="var(--bg)"/></svg><div><h1 data-t="cart_titolo"></h1><p class="sub" data-t="cart_sotto"></p></div></div>
       <div class="riga"><input type="text" id="cartella" spellcheck="false" aria-label="Cartella"><button class="btn ghost" id="sfoglia" data-t="cart_sfoglia"></button></div>
       <div class="nota errore" id="errCartella" hidden></div>
@@ -180,7 +210,7 @@ ol.passi li i,.ver,.lingue button span{color:#7A808D}
     </section>
     <!-- 3. installazione -->
     <section class="pagina" id="p3">
-      <div class="k">04 · <span data-t="passo_installa"></span></div>
+      <div class="k">05 · <span data-t="passo_installa"></span></div>
       <div class="lavoro"><svg class="gmask" viewBox="0 0 240 220" aria-hidden="true"><path d="M44 22 H196 L226 104 L120 206 L14 104 Z" fill="var(--text)"/><path d="M80 22 H106 L108 142 L56 132 L36 98 Z" fill="var(--bg)"/><path d="M160 22 H134 L132 142 L184 132 L204 98 Z" fill="var(--bg)"/><g class="look"><circle class="eye" cx="82" cy="112" r="12" fill="var(--a1)"/></g><g class="look"><circle class="eye" cx="158" cy="112" r="12" fill="var(--a1)"/></g><path d="M100 164 H140 L120 190 Z" fill="var(--bg)"/></svg><div><div class="perc" id="perc">0%</div>
       <div class="barra"><i id="barra"></i></div>
       <div class="fase" id="fase"></div></div></div>
@@ -243,10 +273,11 @@ let cart = null;       // ultimo controllo della cartella
 let lavoro = false;    // installazione in corso
 let fattoOk = null;    // esito installazione
 
-function T(k, ...v){ let s = (A && A.testi[L] && A.testi[L][k]) || (A && A.testi.it[k]) || k; v.forEach(x => { s = s.replace('%s', x); }); return s; }
+function T(k, ...v){ let s = (A && A.testi[L] && A.testi[L][k]) || (A && A.testi.it[k]) || k; v.forEach(x => { s = s.replace('%s', () => x); }); return s; }
 function traduci(){
   document.documentElement.lang = L;
   document.querySelectorAll('[data-t]').forEach(e => { e.textContent = T(e.dataset.t); });
+  document.querySelectorAll('[data-tp]').forEach(e => { e.placeholder = T(e.dataset.tp); e.setAttribute('aria-label', T(e.dataset.tp)); });
   document.title = T('titolo');
 }
 function dim(n){
@@ -269,18 +300,83 @@ function attesaScrivi(){
 function attesaInizio(p){ attesaTasso.t0 = Date.now(); attesaTasso.passo = p == null ? -1 : p; attesaScrivi(); attesaTasso.timer = setInterval(attesaScrivi, 1000); }
 function attesaFine(){ clearInterval(attesaTasso.timer); attesaTasso.timer = null; attesaTasso.t0 = 0; }
 const nomeComp = id => T('comp_' + id + '_nome');
+// "Come ti chiami?" (3.2): le stesse regole di installa/nome.go (e di Tasso, nomeutente):
+// da 2 a 20 caratteri; lettere (anche accentate), numeri, spazio, punto, - e _; almeno una lettera o un numero.
+/* ==== REGOLE DEL NOME: INIZIO ====
+   Uguali, carattere per carattere, nelle pagine di Tasso, installatore, Tasso Zip e Tasso PDF, e
+   uguali alle regole in Go (Controlla). Stessi elenchi espliciti di blocchi e di caratteri invisibili,
+   così la pagina e Go danno lo stesso esito anche con versioni diverse di Unicode. */
+const NOME_MIN = 2, NOME_MAX = 20, NOME_MAX_ACCENTI = 3;
+const NOME_BLOCCHI = [
+  [0x0030, 0x0039], [0x0041, 0x005A], [0x0061, 0x007A], [0x00C0, 0x024F], [0x0300, 0x036F],
+  [0x0370, 0x03FF], [0x0400, 0x052F], [0x0531, 0x058F], [0x0591, 0x05FF], [0x0600, 0x06FF],
+  [0x0900, 0x097F], [0x0E00, 0x0E7F], [0x10A0, 0x10FF], [0x1E00, 0x1FFF], [0x3040, 0x30FF],
+  [0x3400, 0x4DBF], [0x4E00, 0x9FFF], [0xAC00, 0xD7A3],
+];
+const NOME_INVISIBILI = [
+  [0x0000, 0x001F], [0x007F, 0x009F], [0x00AD, 0x00AD], [0x034F, 0x034F], [0x0600, 0x0605],
+  [0x061C, 0x061C], [0x06DD, 0x06DD], [0x115F, 0x1160], [0x17B4, 0x17B5], [0x180B, 0x180F],
+  [0x2000, 0x200F], [0x2028, 0x202F], [0x205F, 0x206F], [0x3000, 0x3000], [0x3164, 0x3164],
+  [0xFE00, 0xFE0F], [0xFEFF, 0xFEFF], [0xFFA0, 0xFFA0], [0xFFF0, 0xFFFB], [0xE0000, 0xE0FFF],
+];
+function nomeDentro(c, t) { for (const x of t) if (c >= x[0] && c <= x[1]) return true; return false; }
+function nomePulisci(s) { return String(s == null ? "" : s).replace(/[\t\n\v\f\r \u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000\ufeff]+/g, " ").trim(); }
+function nomeControlla(s) {
+  const c = [...s];
+  if (c.length < NOME_MIN) return { codice: "corto" };
+  if (c.length > NOME_MAX) return { codice: "lungo" };
+  let lettera = false, dopoLettera = false, accenti = 0;
+  for (const r of c) {
+    const k = r.codePointAt(0);
+    if (r === " " || r === "." || r === "-" || r === "_") { dopoLettera = false; accenti = 0; }
+    else if (nomeDentro(k, NOME_INVISIBILI)) return { codice: "invisibile" };
+    else if (!nomeDentro(k, NOME_BLOCCHI)) return { codice: "simbolo", simbolo: r };
+    else if (/^[\p{L}\p{Nd}]$/u.test(r)) { lettera = true; dopoLettera = true; accenti = 0; }
+    else if (/^\p{M}$/u.test(r)) { accenti++; if (!dopoLettera || accenti > NOME_MAX_ACCENTI) return { codice: "accenti" }; }
+    else return { codice: "simbolo", simbolo: r };
+  }
+  return lettera ? { codice: "" } : { codice: "senza" };
+}
+/* ==== REGOLE DEL NOME: FINE ==== */
+const NOME_ERR = {corto: 'nome_err_corto', lungo: 'nome_err_lungo', simbolo: 'nome_err_simb', invisibile: 'nome_err_invis', senza: 'nome_err_senza', accenti: 'nome_err_accenti'};
+// Aggiorna il campo (bordo, contatore, errore gentile in arancione, saluto di prova) e Avanti.
+function nomeCampo(){
+  const p = nomePulisci($('#nome').value), e = nomeControlla(p), ok = !e.codice, err = !!p && !ok;
+  $('#nomeBox').classList.toggle('ok', ok); $('#nomeBox').classList.toggle('err', err);
+  $('#nome').setAttribute('aria-invalid', err ? 'true' : 'false');
+  $('#nomeCont').textContent = [...p].length + ' / 20'; $('#nomeOk').toggleAttribute('hidden', !ok); // svg: niente proprietà .hidden
+  const box = $('#nomeErr'); box.hidden = !err;
+  if (err) box.lastElementChild.textContent = T(NOME_ERR[e.codice], e.simbolo || '');
+  $('#nomeSaluto').hidden = !ok; $('#nomeRegole').hidden = ok;
+  if (ok) $('#nomeSaluto').lastElementChild.textContent = T('nome_esempio', p);
+  if (P === 8) $('#bAvanti').disabled = !ok;
+  return {ok, p};
+}
+// Go ha l'ultima parola sul nome (P4): l'errore di Go si mostra come quelli della pagina.
+function nomeErrGo(r){
+  const box = $('#nomeErr'); box.hidden = false; box.lastElementChild.textContent = T(NOME_ERR[r.errore] || 'nome_err_invis', r.simbolo || '');
+  $('#nomeBox').classList.remove('ok'); $('#nomeBox').classList.add('err'); $('#nomeOk').toggleAttribute('hidden', true);
+  $('#nomeSaluto').hidden = true; $('#nomeRegole').hidden = false; $('#bAvanti').disabled = true; $('#nome').focus();
+}
+async function nomeGo(){
+  const r = await call('goNomeControlla', $('#nome').value);
+  if (r && r.errore) { nomeErrGo(r); return false; }
+  return true;
+}
 const compScelti = () => A.componenti.map(c => c.id).filter(id => scelti[id]);
 
 function vai(p){
   P = p; msg('');
   document.querySelectorAll('.pagina').forEach(e => e.classList.toggle('on', e.id === 'p' + p));
-  const passo = p <= 4 ? Math.min(p, 3) : (p === 5 ? 3 : -1);
+  // passo nella barra a sinistra: Lingua 0, Il tuo nome 1 (pagina 8), Programmi 2, Cartella 3, Installazione 4
+  const passo = ({0: 0, 8: 1, 1: 2, 2: 3, 3: 4, 4: 4, 5: 4})[p] ?? -1;
   document.querySelectorAll('#passi li').forEach(li => { const n = +li.dataset.p; li.classList.toggle('on', n === passo && p !== 4); li.classList.toggle('fatto', n < passo || p === 4); });
   $('#passi').hidden = A.modo === 'disinstalla';
   $('#rigaDati').hidden = p !== 6 || $('#sceltaDati').hidden;
   const ind = $('#bIndietro'), av = $('#bAvanti'), ann = $('#bAnnulla');
-  ind.hidden = !(p === 1 || p === 2); ann.hidden = true; av.hidden = false; av.disabled = false;
-  if (p === 0 || p === 1) av.textContent = T('avanti');
+  ind.hidden = !(p === 1 || p === 2 || p === 8); ann.hidden = true; av.hidden = false; av.disabled = false;
+  if (p === 0 || p === 1 || p === 8) av.textContent = T('avanti');
+  if (p === 8) { nomeCampo(); setTimeout(() => $('#nome').focus(), 30); } // Avanti spento finché il nome non va bene
   if (p === 2) { av.textContent = A.installata ? T('aggiorna') : T('installa'); controllaCartella(); }
   if (p === 3) { av.hidden = true; ann.hidden = false; ann.disabled = false; ann.textContent = T('annulla'); } // anche dopo Riprova (in 5 dice Chiudi)
   if (p === 4 || p === 7) { av.textContent = T('chiudi'); }
@@ -345,7 +441,7 @@ async function controllaCartella(){
 
 async function installa(ripeti){
   const opz = ripeti || {cartella: $('#cartella').value, componenti: compScelti(), desktop: $('#desktop').checked,
-    desktopTogli: !!(A.installata && A.installata.desktop) && !$('#desktop').checked, lingua: L};
+    desktopTogli: !!(A.installata && A.installata.desktop) && !$('#desktop').checked, lingua: L, nome: nomePulisci($('#nome').value)};
   ultimaOpz = opz;
   const aperti = await call('goProgrammiAperti', opz.cartella, opz.componenti);
   if (aperti && aperti.length) {
@@ -357,6 +453,7 @@ async function installa(ripeti){
   $('#barra').style.width = '0'; $('#perc').textContent = '0%'; $('#fase').textContent = T('fase_prepara');
   vai(3);
   const r = await call('goInstalla', opz);
+  if (r && r.codice === 'nome') { lavoro = false; vai(8); nomeErrGo(r); return; } // Go non accetta il nome: si torna al passo del nome
   if (r !== 'ok') { lavoro = false; mostraErrore(r); }
 }
 function chiediChiusura(nomi){
@@ -408,7 +505,8 @@ window.TS = {
 };
 
 $('#bAvanti').onclick = async () => {
-  if (P === 0) { vai(1); return; }
+  if (P === 0) { vai(8); return; }
+  if (P === 8) { if (!nomeCampo().ok) return; if (!await nomeGo()) return; vai(1); return; }
   if (P === 1) { if (!compScelti().length) { msg(T('comp_nessuno')); return; } vai(2); return; }
   if (P === 2) { installa(); return; }
   if (P === 4) { const ids = [...document.querySelectorAll('#apri input:checked')].map(i => i.dataset.id); await call('goApri', ids); call('goChiudi'); return; }
@@ -418,7 +516,9 @@ $('#bAvanti').onclick = async () => {
   if (P === 6) { disinstalla(); return; }
   if (P === 7) { call('goChiudi'); }
 };
-$('#bIndietro').onclick = () => { if (P > 0) vai(P - 1); };
+$('#bIndietro').onclick = () => { const prima = {8: 0, 1: 8, 2: 1}[P]; if (prima != null) vai(prima); };
+$('#nome').addEventListener('input', nomeCampo);
+$('#nome').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); $('#bAvanti').click(); } });
 $('#bAnnulla').onclick = () => { if (P === 3) { $('#bAnnulla').disabled = true; call('goAnnulla'); } else call('goChiudi'); };
 $('#sfoglia').onclick = async () => { const p = await call('goScegliCartella', $('#cartella').value, T('cart_scegli')); if (p) { $('#cartella').value = p; controllaCartella(); } };
 $('#cartella').oninput = () => { clearTimeout(controllaCartella.t); controllaCartella.t = setTimeout(controllaCartella, 250); };
@@ -484,6 +584,7 @@ async function disinstalla(){
   // i dati di Tasso: solo se l'utente lo spunta; da "Togli Tasso dal PC" li ha già tolti Tasso
   aggiornaSceltaDati(pre);
   $('#cartella').value = A.cartella || '';
+  $('#nome').value = A.nome || ''; // reinstallando o aggiornando dalla finestra: il nome che c'è già
   if (A.installata) { $('#cartella').readOnly = true; $('#sfoglia').hidden = true; } // aggiornamento: stessa cartella
   $('#desktop').checked = !!(A.installata && A.installata.desktop); // aggiornamento: il Desktop resta com'era
   $('#versione').textContent = 'TASSO ' + (A.versione || '');

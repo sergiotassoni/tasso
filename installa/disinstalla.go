@@ -487,13 +487,15 @@ func (in *Installatore) togliRegistro() error {
 	if r.Vuota(HKLM, ChiaveTasso) {
 		_ = r.TogliChiave(HKLM, ChiaveTasso)
 	}
-	// HKCU\Software\Tasso\Lingua: l'ha scritta l'installatore, va via con l'ultimo programma.
+	// HKCU\Software\Tasso\Lingua e Nome: li ha scritti l'installatore, vanno via con l'ultimo programma.
 	// Le chiavi di Tasso stesso (ChiaviSoloTasso) le toglie togliCoseDiTasso; le altre restano.
 	for _, rr := range []Registro{r, in.RegistroUtente} {
 		if rr == nil {
 			continue
 		}
 		_ = rr.TogliValore(HKCU, ChiaveTasso, "Lingua")
+		_ = rr.TogliValore(HKCU, ChiaveTasso, ValoreNome) // "Il tuo nome" (nome.go), condiviso da Tasso, Zip e PDF
+		_ = rr.TogliValore(HKCU, ChiaveTasso, valoreNomeBiglietto)
 		if rr.Vuota(HKCU, ChiaveTasso) {
 			_ = rr.TogliChiave(HKCU, ChiaveTasso)
 		}
