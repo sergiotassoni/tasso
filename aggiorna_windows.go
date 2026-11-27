@@ -116,6 +116,7 @@ func aggiornaSilenzioso(soloControlla, riapri bool) int {
 		if h != 0 {
 			windows.CloseHandle(h)
 		}
+		installa.Diario("aggiornamento silenzioso non fatto: Tasso Setup è già aperto su questo PC (anche da un altro utente) (mutex: %v)", err)
 		if riapri {
 			riapriTasso(piano.Opzioni.Base)
 		}

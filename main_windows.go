@@ -99,8 +99,19 @@ func main() {
 	// una sola copia alla volta
 	mn, _ := windows.UTF16PtrFromString(nomeMutex)
 	h, err := windows.CreateMutex(nil, true, mn)
-	if err == windows.ERROR_ALREADY_EXISTS {
-		portaDavanti()
+	if err == windows.ERROR_ALREADY_EXISTS || err == windows.ERROR_ACCESS_DENIED || h == 0 {
+		// un'altra copia c'è già (anche di un altro utente, o un mutex che non posso aprire): se la sua
+		// finestra è qui la porto davanti, altrimenti lo dico. Mai chiudere senza dire niente.
+		if h != 0 {
+			windows.CloseHandle(h)
+		}
+		installa.Diario("Tasso Setup è già aperto (mutex: %v)", err)
+		if !portaDavanti() {
+			tit, _ := windows.UTF16PtrFromString(testi.T(L(), "titolo"))
+			txt, _ := windows.UTF16PtrFromString(testi.T(L(), "gia_aperto"))
+			const mbOK, mbIconInformation = 0x0, 0x40
+			_, _ = windows.MessageBox(0, txt, tit, mbOK|mbIconInformation)
+		}
 		return
 	}
 	if h != 0 {
@@ -214,11 +225,15 @@ func scalaSchermo() float64 {
 	return scala
 }
 
-func portaDavanti() {
+// portaDavanti: porta davanti la finestra di Tasso Setup già aperta; false se qui non c'è (per
+// esempio è aperta da un altro utente collegato).
+func portaDavanti() bool {
 	tit, _ := windows.UTF16PtrFromString(testi.T(L(), "titolo"))
 	if hw, _, _ := procFindWindowW.Call(0, uintptr(unsafe.Pointer(tit))); hw != 0 {
 		procSetForegroundWindow.Call(hw)
+		return true
 	}
+	return false
 }
 
 // manda un evento alla pagina: window.TS.<nome>(dati).
