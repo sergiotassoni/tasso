@@ -32,6 +32,16 @@ if (-not $f) { Say 'Backup annullato.'; [Console]::Out.WriteLine('JSON ' + (Conv
 $dest = ''
 try { $dest = [string]$f.Self.Path } catch {}
 if (-not $dest -or -not (Test-Path -LiteralPath $dest)) { Say 'Cartella non valida.'; [Console]::Out.WriteLine('JSON ' + (ConvertTo-Json -InputObject ([ordered]@{ ok = $false }) -Compress)); return }
+# La cartella del backup non può stare dentro quelle da copiare (per es. il Desktop): robocopy
+# copierebbe il backup dentro sé stesso fino a riempire il disco.
+$destFull = [IO.Path]::GetFullPath($dest).TrimEnd('\') + '\'
+foreach ($s in @('MyPictures', 'MyDocuments', 'Desktop', 'MyVideos', 'MyMusic')) {
+  $p = [Environment]::GetFolderPath($s)
+  if ($p -and $destFull.StartsWith(([IO.Path]::GetFullPath($p).TrimEnd('\') + '\'), [StringComparison]::OrdinalIgnoreCase)) {
+    Say 'Questa cartella è dentro quelle da copiare (Documenti, Desktop, Immagini, Video o Musica): scegli una chiavetta o un disco esterno.'
+    [Console]::Out.WriteLine('JSON ' + (ConvertTo-Json -InputObject ([ordered]@{ ok = $false }) -Compress)); return
+  }
+}
 $stamp = Get-Date -Format 'yyyy-MM-dd'
 $out = Join-Path $dest ('Backup_Tasso_' + $stamp)
 New-Item -ItemType Directory -Path $out -Force | Out-Null

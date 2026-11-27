@@ -580,7 +580,6 @@
   "Suggerimenti": "Tips",
   "Svuota C:\\Windows\\Temp (solo i file più vecchi di un giorno).": "Empties C:\\Windows\\Temp (only files older than one day).",
   "Svuota i file temporanei del tuo account più vecchi di un giorno (quelli in uso restano).": "Empties your account's temporary files older than one day (the ones in use stay).",
-  "Svuota il Cestino di tutte le unità. Nella pulizia programmata toglie solo quello che è nel Cestino da più di 7 giorni.": "Empties the Recycle Bin on all drives. In the scheduled cleanup it only removes what has been in the Recycle Bin for more than 7 days.",
   "Svuota l'accesso e le password salvate di Office (il registro con copia di sicurezza): poi rientri una volta con il tuo account e torna tutto a posto.": "Clears Office's saved sign-in and passwords (backing up the registry first): then you sign in once with your account and everything works again.",
   "Svuota la cache del Microsoft Store e ri-registra le app di Windows quando non si aprono o non si aggiornano.": "Clears the Microsoft Store cache and re-registers Windows apps when they won't open or update.",
   "Svuota la cache, rinnova la connessione e ripristina le impostazioni di rete. Internet si stacca per qualche secondo.": "Clears the cache, renews the connection and resets the network settings. The internet will drop for a few seconds.",
@@ -1198,7 +1197,8 @@
   " GB: uso il traduttore veloce.": " GB: I use the fast translator.",
   "Spazio sul disco non sufficiente per l'IA: liberi ": "Not enough disk space for the AI: ",
   " GB, ne servono circa ": " GB free, it needs about ",
-  " (più un po' di margine). Libera spazio e riprova.": " (plus a little margin). Free up some space and try again."
+  " (più un po' di margine). Libera spazio e riprova.": " (plus a little margin). Free up some space and try again.",
+  "Svuota il Cestino di tutte le unità, tranne quello buttato nelle ultime 24 ore (così puoi ancora recuperarlo). Nella pulizia programmata toglie solo quello che è nel Cestino da più di 7 giorni.": "Empties the Recycle Bin on all drives, except what was deleted in the last 24 hours (so you can still get it back). In the scheduled cleanup it only removes what has been in the Recycle Bin for more than 7 days."
  },
  "ps": {
   " di ": " of ",
@@ -1209,7 +1209,6 @@
   " (altri ": " (another ",
   " (cartella XLSTART). Se uno è rovinato Excel si chiude.": " (XLSTART folder). If one is damaged, Excel closes.",
   " (codice ": " (code ",
-  " (può durare molto, puoi usare il PC nel frattempo)...": " (this can take a long time, you can use the PC in the meantime)...",
   " (se è aperto, chiudilo e riprova)": " (if it's open, close it and try again)",
   " (ultima ": " (last ",
   " (ultimo ": " (last ",
@@ -2689,7 +2688,11 @@
   "Modalità riunione ACCESA. Con Tasso aperto si spegne da sola 3 minuti dopo la fine della chiamata (quando nessun programma usa più il microfono), al massimo dopo 4 ore; se chiudi Tasso o riavvii il PC, la spegne Tasso alla prossima apertura se la chiamata è finita. Per spegnerla prima premi di nuovo il pulsante.": "Meeting mode ON. With Tasso open it turns itself off 3 minutes after the call ends (when no program is using the microphone), after 4 hours at most; if you close Tasso or restart the PC, Tasso turns it off next time it opens if the call is over. To turn it off sooner, press the button again.",
   "Non riesco a leggere com'era prima: non tocco lo screensaver. Controllalo in Impostazioni > Personalizzazione > Schermata di blocco > Screensaver.": "I can't read how it was before: I'm not touching the screen saver. Check it in Settings > Personalization > Lock screen > Screen saver.",
   "ATTENZIONE  Modalità riunione spenta, ma il file con le impostazioni di prima era rovinato: non ho potuto rimetterle. Controlla tu notifiche (Impostazioni > Sistema > Notifiche), OneDrive e il piano di alimentazione.": "WARNING  Meeting mode turned off, but the file with the previous settings was damaged: I couldn't put them back. Please check notifications (Settings > System > Notifications), OneDrive and the power plan yourself.",
-  "  <- LA STA USANDO ADESSO": "  <- USING IT RIGHT NOW"
+  "  <- LA STA USANDO ADESSO": "  <- USING IT RIGHT NOW",
+  "Per sicurezza salto una cartella che è un collegamento a un altro posto: ": "To be safe I skip a folder that is a link to another place: ",
+  "Questa cartella è dentro quelle da copiare (Documenti, Desktop, Immagini, Video o Musica): scegli una chiavetta o un disco esterno.": "This folder is inside the ones to copy (Documents, Desktop, Pictures, Videos or Music): choose a USB stick or an external drive.",
+  "). Quelli buttati nelle ultime 24 ore (": "). The ones deleted in the last 24 hours (",
+  " (può durare molto: meglio chiudere gli altri programmi, perché per qualche tempo il disco resta pieno e non si possono salvare file)...": " (this can take a long time: better close the other programs, because for a while the disk stays full and files can't be saved)..."
  },
  "ui": {
   "Non riesco ad accendere la traduzione adesso: chiudi Tasso e riaprilo, poi riprova.": "I can't turn translation on right now: close Tasso and open it again, then try again.",
@@ -2992,7 +2995,6 @@
   "<div class=\"note\" style=\"border-color:var(--a3);--c:var(--a3)\">La tua RAM gira a <b>": "<div class=\"note\" style=\"border-color:var(--a3);--c:var(--a3)\">Your RAM runs at <b>",
   "<div class=\"note\" style=\"margin-top:14px\">Per completare aggiornamenti e riparazioni serve un riavvio.</div>": "<div class=\"note\" style=\"margin-top:14px\">A restart is needed to finish updates and repairs.</div>",
   "<div class=\"note\" style=\"margin:0;border-color:var(--a1)\"><b>✓ Windows Update non ha driver più nuovi per il tuo PC.</b> Per scheda video e periferiche da gaming guarda comunque i siti ufficiali qui sotto: lì escono prima.</div>": "<div class=\"note\" style=\"margin:0;border-color:var(--a1)\"><b>✓ Windows Update has no newer drivers for your PC.</b> For your graphics card and gaming devices, still check the official websites below: new drivers come out there first.</div>",
-  "<div class=\"note\"><b>Tasso rimette com'erano:</b> piano energetico e limite del processore, spegnimento dello schermo e sospensione, notifiche, mouse, Modalità Gioco, impostazioni di privacy e programmi all'avvio che hai acceso o spento da Tasso.<br><br><b>Non si possono rimettere:</b> i file cancellati, i programmi disinstallati e gli aggiornamenti installati. Per quelli c'è il backup di Windows (punto di ripristino) creato da Tasso prima delle pulizie.</div>": "<div class=\"note\"><b>Tasso puts back as it was:</b> power plan and processor limit, screen turn-off and sleep, notifications, mouse, Game Mode, privacy settings, and startup apps you turned on or off from Tasso.<br><br><b>Can't be put back:</b> deleted files, uninstalled programs and installed updates. For those there's the Windows backup (restore point) that Tasso creates before cleanups.</div>",
   "<div class=\"note\">Il tuo PC è adatto a questa modalità.</div>": "<div class=\"note\">Your PC is a good fit for this mode.</div>",
   "<div class=\"note\">🎯 <b>Tipo di gioco:</b> ": "<div class=\"note\">🎯 <b>Game type:</b> ",
   "<div class=\"row wrap\" style=\"gap:12px;padding-left:28px\"><label class=\"acf\">Qualità<select id=\"toQ\">": "<div class=\"row wrap\" style=\"gap:12px;padding-left:28px\"><label class=\"acf\">Quality<select id=\"toQ\">",
@@ -4940,6 +4942,7 @@
   "<b>Boost</b> con FPS veri, <b>pannellino in gioco</b>, <b>autoclick</b>": "<b>Boost</b> with real FPS, <b>in-game panel</b>, <b>autoclick</b>",
   "<b>Problemi nei giochi</b>: in Risolvi un problema, 27 riparazioni con un pulsante spiegate semplici": "<b>Game problems</b>: in Fix a problem, 27 one-button fixes explained simply",
   "Boost a un clic": "One-click Boost",
-  " GB di RAM: la modalità aiuta, ma con i giochi pesanti chiudi gli altri programmi (browser compreso) o usa il Boost.": " GB of RAM: the mode helps, but with heavy games close the other programs (browser included) or use the Boost."
+  " GB di RAM: la modalità aiuta, ma con i giochi pesanti chiudi gli altri programmi (browser compreso) o usa il Boost.": " GB of RAM: the mode helps, but with heavy games close the other programs (browser included) or use the Boost.",
+  "<div class=\"note\"><b>Tasso rimette com'erano:</b> piano energetico e limite del processore, spegnimento dello schermo e sospensione, notifiche, mouse, Modalità Gioco, impostazioni di privacy e programmi all'avvio che hai acceso o spento da Tasso.<br><br><b>Non si possono rimettere:</b> i file cancellati, i programmi disinstallati e gli aggiornamenti installati. Per programmi, driver e aggiornamenti c'è il backup di Windows (punto di ripristino) creato da Tasso prima delle pulizie da Media in su; i file personali cancellati e il Cestino svuotato non tornano.</div>": "<div class=\"note\"><b>Tasso puts back as it was:</b> power plan and processor limit, screen turn-off and sleep, notifications, mouse, Game Mode, privacy settings, and startup apps you turned on or off from Tasso.<br><br><b>Can't be put back:</b> deleted files, uninstalled programs and installed updates. For programs, drivers and updates there's the Windows backup (restore point) that Tasso creates before cleanups from Medium up; deleted personal files and an emptied Recycle Bin don't come back.</div>"
  }
 }

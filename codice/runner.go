@@ -106,6 +106,9 @@ func runPSCtx(parent context.Context, script string, timeout time.Duration, onMs
 	ctx, cancel := context.WithTimeout(parent, timeout)
 	defer cancel()
 	cmd := exec.CommandContext(ctx, sysExe("powershell.exe"), "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File", path)
+	// cartella di lavoro = System32: i programmi chiamati per nome (dism, sfc, reg…) non possono
+	// essere presi da una cartella dove chiunque può scrivere (per es. quella di Tasso.exe)
+	cmd.Dir = sistema32()
 	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true, CreationFlags: 0x08000000}
 	out, err := cmd.StdoutPipe()
 	if err != nil {
@@ -348,7 +351,8 @@ func startSteps(ids []string, level int, shutdownAfter bool) string {
 
 		snapOK := true
 		for _, s := range sel {
-			if s.ID == "privacy" || s.ID == "backup" {
+			// anche fix_game_fps: cambia piano energetico e processore, che "Rimetti com'era" deve conoscere
+			if s.ID == "privacy" || s.ID == "backup" || s.ID == "fix_game_fps" {
 				snapOK = ensureSnapshot() // salva le impostazioni originali prima di cambiarle
 				break
 			}

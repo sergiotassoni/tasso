@@ -127,7 +127,17 @@ func main() {
 	if scheduledRun.Load() && autoLevel == 0 {
 		return // attività pianificata con Tasso spento: non apro neanche la finestra
 	}
-	if scheduledRun.Load() {
+	if scheduledRun.Load() && autoLevel > 0 && runningGame() != "" {
+		// stai giocando: la pulizia programmata parte quando chiudi il gioco
+		lvl := autoLevel
+		autoLevel = 0
+		go func() {
+			defer guard("main.go:attesa-gioco")
+			time.Sleep(20 * time.Second) // la finestra deve essere pronta per ricevere l'avvio
+			avviaQuandoNessunGioco(lvl)
+		}()
+	}
+	if scheduledRun.Load() && autoLevel > 0 {
 		markAutoRun(autoLevel, 30*time.Minute) // su un PC lento appena acceso la finestra può metterci un po'
 
 	}
@@ -233,6 +243,16 @@ func hardenProcess() {
 	for _, kv := range os.Environ() {
 		if i := strings.IndexByte(kv, '='); i > 0 && strings.HasPrefix(strings.ToUpper(kv[:i]), "WEBVIEW2_") {
 			_ = os.Unsetenv(kv[:i])
+		}
+	}
+	// Tasso gira da amministratore ma eredita le variabili dell'utente (HKCU\Environment, che un
+	// programma qualsiasi può cambiare): la cartella di Windows la chiedo a Windows, non alla
+	// variabile, così explorer.exe, reg.exe e gli script partono sempre da quella vera.
+	if w, err := windows.GetSystemWindowsDirectory(); err == nil && w != "" {
+		_ = os.Setenv("SystemRoot", w)
+		_ = os.Setenv("windir", w)
+		if s, err := windows.GetSystemDirectory(); err == nil && s != "" {
+			_ = os.Setenv("ComSpec", filepath.Join(s, "cmd.exe"))
 		}
 	}
 }

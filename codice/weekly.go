@@ -138,9 +138,46 @@ func listenAutoRequests() {
 			if isRunning() {
 				continue // sta già girando una pulizia: questa la salto
 			}
-			markAutoRun(lvl, 3*time.Minute)
-			emit("onAutoRun", lvl)
+			avviaQuandoNessunGioco(lvl)
 		}
+	}()
+}
+
+var aspettaGioco atomic.Bool
+
+// avviaQuandoNessunGioco: la pulizia programmata non parte mentre giochi (driver, DISM e
+// deframmentazione rallenterebbero o fermerebbero il gioco): aspetto che il gioco sia chiuso,
+// al massimo 4 ore, poi la salto fino alla prossima volta.
+func avviaQuandoNessunGioco(lvl int) {
+	if runningGame() == "" {
+		markAutoRun(lvl, 3*time.Minute)
+		emit("onAutoRun", lvl)
+		return
+	}
+	if !aspettaGioco.CompareAndSwap(false, true) {
+		return // sto già aspettando
+	}
+	go func() {
+		defer guard("weekly.go:gioco")
+		defer aspettaGioco.Store(false)
+		fine := time.Now().Add(4 * time.Hour)
+		for time.Now().Before(fine) {
+			time.Sleep(2 * time.Minute)
+			if scheduledRun.Load() && wv != nil {
+				if r, _, _ := pIsIconic.Call(uintptr(wv.Window())); r == 0 {
+					diventaNormale() // l'hai aperto tu mentre aspettavo: è un Tasso normale (con la traduzione)
+				}
+			}
+			if runningGame() == "" {
+				time.Sleep(time.Minute) // il gioco si è appena chiuso: lascio respirare il PC
+				if runningGame() == "" && !isRunning() {
+					markAutoRun(lvl, 3*time.Minute)
+					emit("onAutoRun", lvl)
+				}
+				return
+			}
+		}
+		go maybeAutoExit() // hai giocato più di 4 ore: la pulizia la faccio la prossima volta
 	}()
 }
 

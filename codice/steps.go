@@ -81,9 +81,21 @@ function Remove-Old([string]$p, [datetime]$limit) {
     Remove-Item -LiteralPath $it.FullName -Force -ErrorAction SilentlyContinue
   }
 }
+function Test-NoLink([string]$p) {
+  # La cartella da svuotare e tutte quelle sopra (fino al disco) non devono essere collegamenti o
+  # giunzioni: altrimenti svuoterei la cartella a cui puntano (per es. un profilo o Programmi).
+  try { $d = [IO.Path]::GetFullPath($p).TrimEnd('\') } catch { return $false }
+  while ($d -and $d.Length -gt 3) {
+    $it = Get-Item -LiteralPath $d -Force -ErrorAction SilentlyContinue
+    if ($it -and ($it.Attributes -band [IO.FileAttributes]::ReparsePoint)) { return $false }
+    $d = [IO.Path]::GetDirectoryName($d)
+  }
+  return $true
+}
 function Clear-Folder([string]$p, [double]$minAgeHours = 0) {
   if (-not (Test-SafeTarget $p)) { return [long]0 }
   if (-not (Test-Path -LiteralPath $p)) { return [long]0 }
+  if (-not (Test-NoLink $p)) { Say ('Per sicurezza salto una cartella che è un collegamento a un altro posto: ' + $p); return [long]0 }
   $b = Get-FolderSize $p
   $limit = (Get-Date).AddHours(-$minAgeHours)
   if ($minAgeHours -le 0) {
@@ -97,6 +109,12 @@ function Clear-Folder([string]$p, [double]$minAgeHours = 0) {
 function Run-Hidden([string]$file, [string]$argline) {
   # Nessuna finestra: processo senza console, output letto in background per non bloccarsi.
   try {
+    if ($file -notmatch '[\\/:]') {
+      # nome nudo (dism, sfc…): sempre quello di System32, mai uno messo nella cartella di lavoro
+      $c = Join-Path ([Environment]::SystemDirectory) $file
+      if ($c -notmatch '\.[A-Za-z]{3}$') { $c += '.exe' }
+      if (Test-Path -LiteralPath $c) { $file = $c }
+    }
     $psi = New-Object System.Diagnostics.ProcessStartInfo
     $psi.FileName = $file
     $psi.Arguments = $argline
@@ -249,6 +267,9 @@ $key = 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\SystemRestore'
 $oldFreq = (Get-ItemProperty -Path $key -Name 'SystemRestorePointCreationFrequency' -ErrorAction SilentlyContinue).SystemRestorePointCreationFrequency
 # Mi segno il valore di prima: se il passaggio viene interrotto, Tasso lo rimette al prossimo avvio.
 $mark = 'HKLM:\SOFTWARE\Tasso\PuntoRipristino'
+# Segno rimasto da un backup interrotto: il valore vero di prima è quello segnato, non lo 0 messo da Tasso.
+$prevMark = (Get-ItemProperty -Path $mark -Name 'Old' -ErrorAction SilentlyContinue).Old
+if ($prevMark) { if ($prevMark -eq 'none') { $oldFreq = $null } else { $oldFreq = [int]$prevMark } }
 try { New-Item -Path $mark -Force | Out-Null; New-ItemProperty -Path $mark -Name 'Old' -Value $(if ($null -ne $oldFreq) { [string][int]$oldFreq } else { 'none' }) -PropertyType String -Force | Out-Null } catch {}
 New-ItemProperty -Path $key -Name 'SystemRestorePointCreationFrequency' -Value 0 -PropertyType DWord -Force | Out-Null
 $before = @(Get-ComputerRestorePoint).Count
@@ -274,10 +295,12 @@ Freed $f; Say ('Liberati ' + (Fmt $f))
 $f = Clear-Folder (Join-Path $env:windir 'Temp') 24
 Freed $f; Say ('Liberati ' + (Fmt $f))
 `},
-	{ID: "recycle", Name: "Cestino", Desc: "Svuota il Cestino di tutte le unità. Nella pulizia programmata toglie solo quello che è nel Cestino da più di 7 giorni.", Level: 1, Minutes: 0.3, Timeout: 5 * time.Minute, Script: `
-if ($TassoAuto) {
-  # Pulizia programmata: nessuno sta guardando, quindi lascio le cose buttate di recente.
-  $limit = (Get-Date).AddDays(-7); $f = [long]0; $n = 0; $kept = 0
+	{ID: "recycle", Name: "Cestino", Desc: "Svuota il Cestino di tutte le unità, tranne quello buttato nelle ultime 24 ore (così puoi ancora recuperarlo). Nella pulizia programmata toglie solo quello che è nel Cestino da più di 7 giorni.", Level: 1, Minutes: 0.3, Timeout: 5 * time.Minute, Script: `
+# Lascio sempre le cose buttate di recente (anche quelle che Tasso ha appena messo nel Cestino
+# dicendo "le puoi recuperare"): 24 ore a mano, 7 giorni nella pulizia programmata.
+$giorni = 1; if ($TassoAuto) { $giorni = 7 }
+if ($true) {
+  $limit = (Get-Date).AddDays(-$giorni); $f = [long]0; $n = 0; $kept = 0
   try {
     foreach ($it in @((New-Object -ComObject Shell.Application).Namespace(0xA).Items())) {
       $d = $null; try { $d = [datetime]$it.ExtendedProperty('System.Recycle.DateDeleted') } catch {}
@@ -293,13 +316,10 @@ if ($TassoAuto) {
     }
   } catch {}
   Freed $f
-  Say ('Cestino: tolti ' + $n + ' elementi buttati più di 7 giorni fa (' + (Fmt $f) + '). Quelli più recenti (' + $kept + ') restano, nel caso ti servano.')
-  return
+  if ($kept -eq 0) { Say ('Cestino svuotato: ' + (Fmt $f)) }
+  elseif ($TassoAuto) { Say ('Cestino: tolti ' + $n + ' elementi buttati più di 7 giorni fa (' + (Fmt $f) + '). Quelli più recenti (' + $kept + ') restano, nel caso ti servano.') }
+  else { Say ('Cestino: tolti ' + $n + ' elementi (' + (Fmt $f) + '). Quelli buttati nelle ultime 24 ore (' + $kept + ') restano, nel caso ti servano.') }
 }
-$size = [long]0
-try { $s = ((New-Object -ComObject Shell.Application).Namespace(0xA).Items() | Measure-Object -Property Size -Sum).Sum; if ($s) { $size = [long]$s } } catch {}
-Clear-RecycleBin -Force -ErrorAction SilentlyContinue
-Freed $size; Say ('Cestino svuotato: ' + (Fmt $size))
 `},
 	{ID: "thumbs", Name: "Cache delle anteprime", Desc: "Elimina le miniature di Esplora file (si ricreano da sole).", Level: 1, Minutes: 0.2, Timeout: 5 * time.Minute, Script: `
 $dir = Join-Path $env:LOCALAPPDATA 'Microsoft\Windows\Explorer'
@@ -408,6 +428,8 @@ Get-ChildItem -LiteralPath $dl -File -ErrorAction SilentlyContinue | ForEach-Obj
     if ($cats[$c] -contains $ext) {
       $destDir = Join-Path $dl $c
       New-Item -ItemType Directory -Path $destDir -Force | Out-Null
+      # una sottocartella che è un collegamento porterebbe i file altrove (anche in cartelle di Windows)
+      if (-not (Test-NoLink $destDir)) { break }
       $target = Join-Path $destDir $_.Name
       $n = 2
       while (Test-Path -LiteralPath $target) { $target = Join-Path $destDir ($_.BaseName + ' (' + $n + ')' + $_.Extension); $n++ }
@@ -713,7 +735,7 @@ else { Say 'Windows Update ripristinato: riprova ad aggiornare da Impostazioni >
 $ssd = $false
 try { $pn = (Get-Partition -DriveLetter ($env:SystemDrive.TrimEnd(':')) -ErrorAction Stop | Get-Disk -ErrorAction Stop).Number; $ssd = [string](Get-PhysicalDisk -ErrorAction Stop | Where-Object { [string]$_.DeviceId -eq [string]$pn } | Select-Object -First 1).MediaType -eq 'SSD' } catch {}
 if ($ssd) { Say 'Nota onesta: il tuo disco è un SSD. Sugli SSD Windows cancella già i file per davvero da solo (TRIM), quindi questo passaggio serve poco e consuma un po'' il disco. Lo faccio lo stesso, visto che l''hai chiesto.' }
-Say ('Sovrascrivo lo spazio libero di ' + $env:SystemDrive + ' (può durare molto, puoi usare il PC nel frattempo)...')
+Say ('Sovrascrivo lo spazio libero di ' + $env:SystemDrive + ' (può durare molto: meglio chiudere gli altri programmi, perché per qualche tempo il disco resta pieno e non si possono salvare file)...')
 $code = Run-Hidden 'cipher.exe' ('/w:' + $env:SystemDrive + '\')
 # Se cipher si ferma a metà lascia una cartella enorme: la tolgo sempre.
 Remove-Safe (Join-Path ($env:SystemDrive + '\') 'EFSTMPWP')

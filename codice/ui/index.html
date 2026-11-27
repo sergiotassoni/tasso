@@ -2337,11 +2337,12 @@ function uninstallDone(p){
   if (!res || !res.removed || (!folders.length && !regs.length)) return;
   let html = _t('<h2>Resti di ') + esc(res.name) + '</h2><p class="muted" style="margin:0 0 2px">' + esc(res.name) + _t(' ha lasciato dei resti nel PC. Tasso li toglie per bene, più a fondo di una disinstallazione normale: le cartelle vanno nel Cestino (recuperabili) e del registro fa un backup prima di toccarlo.</p>');
   // Spunto da solo solo quello che porta proprio il nome del programma; il resto lo decidi tu.
+  // Mai da sola una cartella in AppData: lì i giochi e i programmi tengono salvataggi e dati tuoi.
   const nm = String(res.name || '').toLowerCase().trim();
   const sure = (x) => { const t = String(x || '').toLowerCase().replace(/\\+$/, ''); return !!nm && t.slice(-nm.length - 1) === '\\' + nm; };
   if (folders.length){
     html += _t('<p style="margin:12px 0 2px"><b>Cartelle rimaste</b> <span class="muted small">(spunta solo quelle che riconosci)</span></p>');
-    html += folders.map((l, i) => '<label class="check"><input type="checkbox"' + (sure(l.path) ? ' checked' : '') + ' data-f="' + i + '"><span><b>' + esc(l.path) + '</b> <span class="muted">' + fmtBytes(l.size) + '</span></span></label>').join('');
+    html += folders.map((l, i) => '<label class="check"><input type="checkbox"' + (sure(l.path) && !/\\appdata\\/i.test(String(l.path)) ? ' checked' : '') + ' data-f="' + i + '"><span><b>' + esc(l.path) + '</b> <span class="muted">' + fmtBytes(l.size) + '</span></span></label>').join('');
   }
   if (regs.length){
     html += _t('<p style="margin:12px 0 2px"><b>Voci nel registro</b> <span class="muted small">(backup automatico prima di rimuoverle)</span></p>');
@@ -2599,7 +2600,7 @@ function paintSettings(){
   $('#pausedBanner').classList.toggle('on', !!S.paused);
   if (typeof gBoostPaint === 'function') gBoostPaint();
 }
-const RESTORE_INFO = _t('<div class="note"><b>Tasso rimette com\'erano:</b> piano energetico e limite del processore, spegnimento dello schermo e sospensione, notifiche, mouse, Modalità Gioco, impostazioni di privacy e programmi all\'avvio che hai acceso o spento da Tasso.<br><br><b>Non si possono rimettere:</b> i file cancellati, i programmi disinstallati e gli aggiornamenti installati. Per quelli c\'è il backup di Windows (punto di ripristino) creato da Tasso prima delle pulizie.</div>');
+const RESTORE_INFO = _t('<div class="note"><b>Tasso rimette com\'erano:</b> piano energetico e limite del processore, spegnimento dello schermo e sospensione, notifiche, mouse, Modalità Gioco, impostazioni di privacy e programmi all\'avvio che hai acceso o spento da Tasso.<br><br><b>Non si possono rimettere:</b> i file cancellati, i programmi disinstallati e gli aggiornamenti installati. Per programmi, driver e aggiornamenti c\'è il backup di Windows (punto di ripristino) creato da Tasso prima delle pulizie da Media in su; i file personali cancellati e il Cestino svuotato non tornano.</div>');
 async function setPaused(on){
   if (on) {
     modal(_t('<h2>Spegnere Tasso?</h2><p class="muted" style="margin:0;line-height:1.5">Da spento Tasso non parte con Windows, non fa pulizie automatiche e non manda avvisi. Scegli cosa fare con le impostazioni di Windows che Tasso ha cambiato:</p>') + RESTORE_INFO,

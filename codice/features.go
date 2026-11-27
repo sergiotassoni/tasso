@@ -542,7 +542,7 @@ func pickFiles() []string {
 		lpstrFile:   &buf[0],
 		nMaxFile:    uint32(len(buf)),
 		lpstrTitle:  title,
-		flags:       0x00001000 | 0x00000800 | 0x00000008 | 0x00080000 | 0x00000200, // FILEMUSTEXIST|PATHMUSTEXIST|NOCHANGEDIR|EXPLORER|ALLOWMULTISELECT
+		flags:       0x00001000 | 0x00000800 | 0x00000008 | 0x00080000 | 0x00000200 | 0x00100000, // FILEMUSTEXIST|PATHMUSTEXIST|NOCHANGEDIR|EXPLORER|ALLOWMULTISELECT|NODEREFERENCELINKS (un collegamento .lnk distrugge il collegamento, non il file a cui punta)
 	}
 	ofn.lStructSize = uint32(unsafe.Sizeof(ofn))
 	r, _, _ := pGetOpenFile.Call(uintptr(unsafe.Pointer(&ofn)))

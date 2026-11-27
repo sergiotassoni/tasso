@@ -90,6 +90,8 @@ func changesList() map[string]interface{} {
 		items = append(items, map[string]interface{}{"kind": "tune", "id": id, "title": "Regola con Tasso", "detail": tunes[id]})
 	}
 	regs, _ := filepath.Glob(filepath.Join(appDir, "backup", "*.reg"))
+	regs2, _ := filepath.Glob(filepath.Join(appDir, "backup-registro", "*.reg")) // copie fatte dall'Ufficio
+	regs = append(regs, regs2...)
 	return map[string]interface{}{"items": items, "regBackups": len(regs)}
 }
 
@@ -152,8 +154,14 @@ func undoChange(kind, id string) {
 			msg = msgIniNonRimesso
 		}
 	case "regfolder":
-		_ = os.MkdirAll(filepath.Join(appDir, "backup"), 0o755)
-		openPath(filepath.Join(os.Getenv("SystemRoot"), "explorer.exe"), "\""+filepath.Join(appDir, "backup")+"\"")
+		dir := filepath.Join(appDir, "backup")
+		if a, _ := filepath.Glob(filepath.Join(dir, "*.reg")); len(a) == 0 {
+			if b, _ := filepath.Glob(filepath.Join(appDir, "backup-registro", "*.reg")); len(b) > 0 {
+				dir = filepath.Join(appDir, "backup-registro")
+			}
+		}
+		_ = os.MkdirAll(dir, 0o755)
+		openPath(filepath.Join(os.Getenv("SystemRoot"), "explorer.exe"), "\""+dir+"\"")
 		return
 	case "restorepoint":
 		openPath(filepath.Join(os.Getenv("SystemRoot"), "System32", "rstrui.exe"), "")
