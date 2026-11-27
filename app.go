@@ -24,7 +24,7 @@ import (
 	"sync"
 )
 
-const versione = "1.1.1"
+const versione = "1.1.2"
 
 // Indirizzo delle pagine interne: non esiste su internet, le risponde il programma stesso.
 const hostInterno = "tassopdf.localhost"
