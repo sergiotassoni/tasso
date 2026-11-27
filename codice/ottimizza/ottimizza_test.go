@@ -432,6 +432,38 @@ func TestBatteriaNelPianoUtente(t *testing.T) {
 	}
 }
 
+// "Mouse e tastiera non si addormentano" (usb) con una modalità di Tasso accesa: va nel piano
+// dell'utente salvato prima della modalità, non in quello della modalità (la stessa regola di F05-5).
+func TestUSBNelPianoUtente(t *testing.T) {
+	a, _, e, _ := ambienteFinto()
+	e.attivo = PianoPrestazioni // la modalità Gaming ha messo Prestazioni elevate
+	a.PC.ModoTasso = "gaming"
+	a.PC.PianoUtente = PianoBilanciato
+	m, _ := Trova("usb")
+	st := &Stato{}
+	n := 0
+	if es := Esegui(m, a, st, salvaFinto(&n)); es.Stato != VoceFatta {
+		t.Fatalf("%+v", es)
+	}
+	if e.val[PianoBilanciato+GruppoUSB+ImpUSBSospensione] != [2]uint32{0, 1} || e.val[PianoPrestazioni+GruppoUSB+ImpUSBSospensione] != [2]uint32{1, 1} {
+		t.Fatalf("scritto nel piano sbagliato: %v", e.val)
+	}
+	// tornato in Normale (piano dell'utente di nuovo acceso) si rimette nel piano giusto
+	e.attivo, a.PC.ModoTasso, a.PC.PianoUtente = PianoBilanciato, "", ""
+	if es := Rimetti("usb", a, st, salvaFinto(&n)); es.Stato != VoceRimessa || e.val[PianoBilanciato+GruppoUSB+ImpUSBSospensione] != [2]uint32{1, 1} {
+		t.Fatalf("rimetti: %+v %v", es, e.val)
+	}
+	// senza modalità né riunione va nel piano acceso, come prima
+	if es := Esegui(m, a, &Stato{}, salvaFinto(&n)); es.Stato != VoceFatta || e.val[PianoBilanciato+GruppoUSB+ImpUSBSospensione] != [2]uint32{0, 1} {
+		t.Fatalf("senza modalità: %+v %v", es, e.val)
+	}
+	// modalità accesa ma il piano dell'utente non si sa: si salta e lo dice
+	a.PC.ModoTasso, a.PC.PianoTemporaneo = "gaming", true
+	if es := Esegui(m, a, &Stato{}, salvaFinto(&n)); es.Stato != VoceSaltata || es.Motivo != MsgPianoTemporaneo {
+		t.Fatalf("piano dell'utente sconosciuto: %+v", es)
+	}
+}
+
 func TestPuliziaNonRimette(t *testing.T) {
 	a, _, _, _ := ambienteFinto()
 	m, _ := Trova("pulizia_temp")

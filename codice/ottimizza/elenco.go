@@ -307,7 +307,7 @@ func Elenco(modo string) []Modifica {
 		{ID: "scorciatoie", Categoria: "mouse", Utente: true, G: nuoveScorciatoie()},
 		{ID: "piano", Categoria: "pow", Modo: true, G: &pianoGest{}},
 		{ID: "modoac", Categoria: "pow", Modo: true, G: &modoACGest{}},
-		{ID: "usb", Categoria: "pow", G: &enGest{gruppo: GruppoUSB, imp: ImpUSBSospensione, vuole: 0, ok: func(v uint32) bool { return v == 0 }}},
+		{ID: "usb", Categoria: "pow", G: &enGest{gruppo: GruppoUSB, imp: ImpUSBSospensione, utente: true, vuole: 0, ok: func(v uint32) bool { return v == 0 }}},
 	}
 }
 

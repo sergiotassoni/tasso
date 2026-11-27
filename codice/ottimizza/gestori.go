@@ -753,16 +753,18 @@ func (g *pianoGest) Valida(p Precedente, admin bool) (Precedente, bool) {
 // ---------------- Un'impostazione di un piano energetico ----------------
 
 // enGest: un'impostazione del piano attivo, a corrente (dc=false) o a batteria (dc=true).
+// utente=true: va nel piano dell'utente anche se è a corrente (come quelle della batteria, F05-5).
 type enGest struct {
 	gruppo, imp string
 	dc          bool
+	utente      bool
 	ok          func(v uint32) bool
 	vuole       uint32
 	cond        func(a *Ambiente) (bool, string)
 }
 
 func (g *enGest) Disponibile(a *Ambiente) (bool, string) {
-	if g.dc && a.PC.PianoTemporaneo {
+	if g.nelPianoUtente() && a.PC.PianoTemporaneo {
 		return false, MsgPianoTemporaneo
 	}
 	if g.cond != nil {
@@ -795,9 +797,14 @@ func pianoUtente(a *Ambiente) (string, error) {
 	return a.En.PianoAttivo()
 }
 
-// piano: per le impostazioni della batteria (dc) il piano dell'utente, per le altre quello acceso.
+// nelPianoUtente: l'impostazione va nel piano dell'utente e non in quello di una modalità di Tasso o
+// della Modalità riunione: quelle della batteria e "Mouse e tastiera non si addormentano" (usb).
+func (g *enGest) nelPianoUtente() bool { return g.dc || g.utente }
+
+// piano: per le impostazioni della batteria (dc) e per quelle con utente=true il piano dell'utente,
+// per le altre quello acceso.
 func (g *enGest) piano(a *Ambiente) (string, error) {
-	if g.dc {
+	if g.nelPianoUtente() {
 		return pianoUtente(a)
 	}
 	return a.En.PianoAttivo()

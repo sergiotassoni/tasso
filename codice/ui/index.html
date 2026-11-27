@@ -2638,7 +2638,7 @@ function paintLive(){
     sensorTile(_t('RAM in uso'), fmtBytes(LIVE.ramUsed) + ' / ' + fmtBytes(LIVE.ramTotal), ramPct, 'var(--a2)') +
     sensorTile(_t('Disco di sistema pieno al'), Math.round(diskPct) + '%', diskPct, diskPct > 90 ? 'var(--red)' : 'var(--a3)');
   if (g && g.fan != null) hw += sensorTile(_t('Ventola scheda video'), Math.round(g.fan) + '%', g.fan, 'var(--a3)');
-  if (g && g.memTot) hw += sensorTile(_t('Memoria video'), Math.round(g.memUsed) + ' / ' + Math.round(g.memTot) + ' MB', g.memUsed / g.memTot * 100, 'var(--a2)');
+  if (g && g.memTot) hw += sensorTile(_t('Memoria video'), Math.round(g.memUsed) + ' / ' + Math.round(g.memTot) + ' ' + BYTE_U[1], g.memUsed / g.memTot * 100, 'var(--a2)');
   if (LIVE.boardTemp) hw += sensorTile(_t('Sensore scheda madre'), Math.round(LIVE.boardTemp) + '°C', LIVE.boardTemp, tempColor(LIVE.boardTemp));
   const hwNew = hwFresh();
   if (HW && HW.disks) HW.disks.forEach(d => { const dt = Number(d.temp) || 0; if (dt) hw += hwNew ? sensorTile(_t('Temperatura ') + esc(d.name), dt + '°C', dt, diskColor(d, dt)) : sensorTile(_t('Temperatura ') + esc(d.name), dt + '°C · ' + _t('letta alle ') + hhmm(HW.at), dt, 'var(--muted)'); });
@@ -3248,7 +3248,7 @@ function paintPerf(){
   // RAM sotto la sua velocità: il kit dice di più (dal codice del modulo), oppure DDR4/DDR5 alla velocità base.
   // Sui portatili di solito XMP/EXPO non c'è, quindi non lo propongo.
   const ramLow = !!(d.ramCur && !d.laptop && ((d.ramKit && d.ramCur < d.ramKit - 150) || (!d.ramKit && ((d.ramDdr === 4 && d.ramCur <= 2666) || (d.ramDdr === 5 && d.ramCur <= 4800) || (!d.ramDdr && d.ramCur <= 2400)))));
-  const ramTxt = d.ramCur ? (d.ramCur + ' MT/s' + (d.ramDdr ? ' (DDR' + d.ramDdr + ')' : '') + (d.ramCount ? ' · ' + d.ramCount + _t(' moduli') : '') + (d.ramGB ? ' · ' + d.ramGB + ' GB' : '')) : (d.ramGB ? d.ramGB + ' GB' : '—');
+  const ramTxt = d.ramCur ? (d.ramCur + ' MT/s' + (d.ramDdr ? ' (DDR' + d.ramDdr + ')' : '') + (d.ramCount ? ' · ' + d.ramCount + _t(' moduli') : '') + (d.ramGB ? ' · ' + d.ramGB + ' ' + BYTE_U[2] : '')) : (d.ramGB ? d.ramGB + ' ' + BYTE_U[2] : '—');
   let cpuTool = '', cpuBtn = '', cpuGuide = '';
   // Curve Optimizer esiste solo dai Ryzen 5000 (desktop) in poi: sui 1000/2000/3000 non c'è.
   const ryzSer = (/Ryzen\s+(?:\d+\s+)?(\d)\d{3}/i.exec(d.cpu || '') || [])[1];
@@ -3526,7 +3526,7 @@ function paramsOf(r){
   return {processore: to100(Math.sqrt(Math.max(1, r.cpu1) * Math.max(1, r.cpuN))), schedaVideo: 0, ram: to100(r.ram), disco: r.diskSkip ? 0 : to100(r.disk), leggerezza: Math.max(1, Number(r.light) || 1)};
 }
 const NEW_TAG = '<span style="font-size:10px;font-weight:800;letter-spacing:.06em;padding:2px 7px;border-radius:99px;background:var(--a1);color:var(--ink);margin-left:6px;vertical-align:2px">' + _t('NUOVO') + '</span>';
-function gbTxt(v){ v = Number(v) || 0; return (Math.round(v * 10) / 10).toString().replace('.', DEC) + ' GB'; }
+function gbTxt(v){ v = Number(v) || 0; return (Math.round(v * 10) / 10).toString().replace('.', DEC) + ' ' + BYTE_U[2]; }
 function diskKind(k){ return k === 'nvme' ? 'SSD NVMe' : k === 'ssd' ? 'SSD' : k === 'hdd' ? _t('disco meccanico (HDD)') : ''; }
 // Le righe del voto (finestra e biglietto): [nome, voto, sotto, nuovo]
 function votoRows(r){
@@ -3539,8 +3539,8 @@ function votoRows(r){
   if (rp.ramSaldata) ram.push(_t('saldata sulla scheda madre'));
   else if (rp.ramBanchi) ram.push(rp.ramBanchi + (rp.ramBanchi === 1 ? _t(' banco (canale singolo)') : _t(' banchi (doppio canale)')));
   rows.push([_t('Memoria RAM'), p.ram, ram.length ? ram.join(' · ') : _t('velocità misurata ') + v100(r.ram), false, 'ram']);
-  rows.push([_t('Disco'), p.disco || null, r.diskSkip ? _t('saltato (poco spazio)') : ((rp.discoStimato && rp.disco ? _t('probabilmente ') : '') + diskKind(rp.disco) + (rp.discoMBs ? _t(' · lettura ') + Number(rp.discoMBs).toLocaleString(LANG) + ' MB/s' : '')), false, 'disco']);
-  rows.push([_t('Leggerezza di Windows'), p.leggerezza, _t('Memoria usata ') + (Number(r.ramPct) || 0) + '% · ' + (Number(r.procs) || 0) + _t(' processi · ') + (Number(r.startup) || 0) + _t(' all\'avvio · libero ') + (Number(r.freePct) || 0) + _t('% · inutili ') + String(Number(r.junkGB) || 0).replace('.', DEC) + ' GB', false, 'leggerezza']);
+  rows.push([_t('Disco'), p.disco || null, r.diskSkip ? _t('saltato (poco spazio)') : ((rp.discoStimato && rp.disco ? _t('probabilmente ') : '') + diskKind(rp.disco) + (rp.discoMBs ? _t(' · lettura ') + Number(rp.discoMBs).toLocaleString(LANG) + ' ' + BYTE_U[1] + '/s' : '')), false, 'disco']);
+  rows.push([_t('Leggerezza di Windows'), p.leggerezza, _t('Memoria usata ') + (Number(r.ramPct) || 0) + '% · ' + (Number(r.procs) || 0) + _t(' processi · ') + (Number(r.startup) || 0) + _t(' all\'avvio · libero ') + (Number(r.freePct) || 0) + _t('% · inutili ') + gbTxt(r.junkGB), false, 'leggerezza']);
   if (p.raffreddamento > 0) rows.push([_t('Raffreddamento'), p.raffreddamento, _t('Processore a ') + Math.round(rp.tempMax || 0) + _t(' °C sotto carico · non conta nel totale')]);
   return rows;
 }
@@ -3555,7 +3555,7 @@ function paintBench(r, b, hist){
   $('#bnNow').innerHTML = _t('<div class="stat" style="grid-column:1/-1"><div class="k">Voto totale · fascia</div><div class="v"><span style="color:') + rk[1] + '">' + tot + '</span><span style="font-size:14px;color:var(--muted)">/100</span> <span style="font-size:17px;font-family:var(--display);font-weight:700;color:' + rk[1] + '">' + rk[0] + '</span>' + (b && tot !== totalOf(b) ? ' <span style="font-size:15px;color:' + (tot > totalOf(b) ? 'var(--a1)' : 'var(--red)') + '">' + (tot > totalOf(b) ? '+' : '') + (tot - totalOf(b)) + '</span>' : '') + '</div>' + scale + votoNota(r) + '</div>' +
     (r.formula >= 2 ? votoTiles(r, b) :
     benchTile(_t('Velocità dei componenti'), sp, _t('Processore ') + v100(r.cpu1) + _t(' · tutti i core ') + v100(r.cpuN) + _t(' · RAM ') + v100(r.ram) + _t(' · disco ') + (r.diskSkip ? _t('saltato (poco spazio)') : v100(r.disk)), b && to100(b.score)) +
-    benchTile(_t('Leggerezza di Windows'), '<span style="color:' + lc + '">' + Math.max(1, r.light) + '</span>', _t('Memoria usata ') + (Number(r.ramPct) || 0) + '% · ' + (Number(r.procs) || 0) + _t(' processi · ') + (Number(r.startup) || 0) + _t(' all\'avvio · libero ') + (Number(r.freePct) || 0) + _t('% · inutili ') + String(Number(r.junkGB) || 0).replace('.', DEC) + ' GB', b && Math.max(1, b.light)));
+    benchTile(_t('Leggerezza di Windows'), '<span style="color:' + lc + '">' + Math.max(1, r.light) + '</span>', _t('Memoria usata ') + (Number(r.ramPct) || 0) + '% · ' + (Number(r.procs) || 0) + _t(' processi · ') + (Number(r.startup) || 0) + _t(' all\'avvio · libero ') + (Number(r.freePct) || 0) + _t('% · inutili ') + gbTxt(r.junkGB), b && Math.max(1, b.light)));
   LAST_BENCH = r; const rv = $('#btnVotoCard'); if (rv) rv.style.display = '';
   const h = (hist || []).slice(-6).reverse();
   $('#bnHist').innerHTML = h.length > 1 ? _t('<div class="small muted" style="margin-bottom:6px">Ultime misure</div><div class="list">') + h.map(x => '<div class="li" style="min-height:40px"><span class="x"><b>' + esc(x.when) + (x.label ? ' · ' + (x.label === 'prima' ? _t('prima della pulizia') : x.label === 'dopo' ? _t('dopo la pulizia') : x.label === 'ottimizza-prima' ? _t('prima di Ottimizza tutto') : x.label === 'ottimizza-dopo' ? _t('dopo Ottimizza tutto') : esc(x.label)) : '') + _t('</b></span><span class="mono small">totale ') + totalOf(x) + (x.formula >= 2 && x.report ? _t(' · potenza ') + x.report.potenza : _t(' · componenti ') + v100(x.score)) + _t(' · leggerezza ') + Math.max(1, Number(x.light) || 1) + '</span></div>').join('') + '</div>' : '';
@@ -3615,7 +3615,7 @@ function loadImg(src){ return new Promise(res => { if (!src) return res(null); c
 // Il nome dei componenti, in piccolo accanto alle voci del biglietto (come in Ottimizza tutto).
 function votoNomiComp(r){
   const rp = r.report || {}, ram = [];
-  if (rp.ramGB) ram.push(Math.round(Number(rp.ramGB)) + ' GB' + (rp.ramTipo ? ' ' + rp.ramTipo : ''));
+  if (rp.ramGB) ram.push(Math.round(Number(rp.ramGB)) + ' ' + BYTE_U[2] + (rp.ramTipo ? ' ' + rp.ramTipo : ''));
   if (rp.ramMTs) ram.push(rp.ramMTs + ' MT/s');
   return {cpu: ottNome(rp.processore), gpu: ottNome(r.gpuName || rp.schedaVideo), ram: ram.join(' · '), disco: r.diskSkip ? '' : diskKind(rp.disco), leggerezza: r.winNome || ''};
 }
@@ -5136,7 +5136,7 @@ function paintDrvUpdates(r){
   const vNote = r.video > 0 ? '<div class="note" style="margin:0;border-color:var(--a3)">' + _t('Windows Update ha anche un driver per la scheda video: non lo installo da qui. Usa i pulsanti della tua scheda video qui sotto ("Aggiorna con Tasso" crea prima un punto di ripristino e controlla AMD Software).') + '</div>' : '';
   if (!it.length) { b.innerHTML = (r.video > 0 ? '' : (isOffice() ? _t('<div class="note" style="margin:0;border-color:var(--a1)"><b>✓ Windows Update non ha driver più nuovi per il tuo PC.</b> Per scheda video e periferiche guarda comunque i siti ufficiali qui sotto: lì escono prima.</div>') : _t('<div class="note" style="margin:0;border-color:var(--a1)"><b>✓ Windows Update non ha driver più nuovi per il tuo PC.</b> Per scheda video e periferiche da gaming guarda comunque i siti ufficiali qui sotto: lì escono prima.</div>'))) + vNote; return; }
   let h = vNote + '<div class="note" style="margin:0;border-color:var(--a3)"><b>' + it.length + _t(' driver nuovi su Windows Update</b> (certificati da Microsoft). Spunta quelli da installare. <span class="small muted">"Facoltativo" vuol dire che Windows non lo mette da solo: installalo se quel componente ti dà problemi o se è un driver più nuovo di quello che hai.</span></div><div class="list">');
-  it.forEach(x => { h += '<label class="li check" style="gap:10px"><input type="checkbox" value="' + esc(x.id) + '"' + (x.optional ? '' : ' checked') + '> <span style="flex:1"><b>' + esc(x.title) + '</b><br><span class="small muted">' + esc([x.cls, x.maker, x.date ? x.date.split('-').reverse().join('/') : '', x.mb ? String(x.mb).replace('.', DEC) + ' MB' : '', x.optional ? _t('facoltativo') : _t('consigliato')].filter(Boolean).join(' · ')) + '</span></span></label>'; });
+  it.forEach(x => { h += '<label class="li check" style="gap:10px"><input type="checkbox" value="' + esc(x.id) + '"' + (x.optional ? '' : ' checked') + '> <span style="flex:1"><b>' + esc(x.title) + '</b><br><span class="small muted">' + esc([x.cls, x.maker, x.date ? x.date.split('-').reverse().join('/') : '', x.mb ? fmtBytes(Number(x.mb) * 1048576) : '', x.optional ? _t('facoltativo') : _t('consigliato')].filter(Boolean).join(' · ')) + '</span></span></label>'; });
   h += _t('</div><div class="row wrap"><button class="btn primary" id="btnDrvInst">Installa i driver spuntati</button></div>');
   b.innerHTML = h;
   $('#btnDrvInst').onclick = async () => {
@@ -5604,7 +5604,7 @@ function paintLangMsg(r){
   const mb = langMissing(da, a);
   if (mb < 0) { box.textContent = _t('✓ Salvato'); return; }
   box.textContent = _t('✓ Salvato, ma mancano i modelli di queste lingue.') + ' ';
-  const b = document.createElement('button'); b.className = 'btn ghost'; b.textContent = _t('Scarica') + (mb > 0 ? ' (' + mb + ' MB)' : '');
+  const b = document.createElement('button'); b.className = 'btn ghost'; b.textContent = _t('Scarica') + (mb > 0 ? ' (' + fmtBytes(mb * 1048576) + ')' : '');
   b.onclick = async () => { b.disabled = true; const x = await ttc('ttScaricaLingue', da, a); if (x === 'occupato') { b.disabled = false; toast(_t('Un attimo: sto già scaricando un\'altra cosa.'), 'var(--a4)'); } else if (x === 'ok') box.textContent = _t('Inizio a scaricare…'); else { b.disabled = false; box.textContent = _t('Lingua non valida.'); } };
   box.appendChild(b);
 }
@@ -5993,8 +5993,8 @@ function langBtns(list, cur, from){
   return list.map(l => {
     let sm = '';
     if (l.codice !== 'auto' && from && !l.ocr_ok) sm = _t('Windows non lo sa ancora leggere');
-    else if (from && l.mb_da) sm = Math.round(l.mb_da) + ' MB';
-    else if (!from && l.mb_a) sm = Math.round(l.mb_a) + ' MB';
+    else if (from && l.mb_da) sm = fmtBytes(Number(l.mb_da) * 1048576);
+    else if (!from && l.mb_a) sm = fmtBytes(Number(l.mb_a) * 1048576);
     else if (l.codice !== 'auto') sm = _t('pronta');
     return '<button data-l="' + esc(l.codice) + '" class="' + (cur === l.codice ? 'on' : '') + '" aria-pressed="' + (cur === l.codice) + '">' + esc(langName(l.codice)) + (sm ? '<small>' + esc(sm) + '</small>' : '') + '</button>';
   }).join('');
@@ -6030,17 +6030,17 @@ function lvHtml(st, iaTxt){
   const cur = W.liv || 'auto';
   let ia = 0, txt = '';
   if (cur === 'off') txt = _t('Spenta: traduce solo il traduttore veloce, la scheda video resta tutta al gioco.');
-  else if (cur === 'auto') { const b = L.slice(1).reverse().find(x => x.ok && fit(x.gb)); ia = b ? b.gb : 0; txt = _t('Adesso userebbe: ') + (b ? b.t + ' (' + n(b.gb) + ' GB)' : _t('solo il traduttore veloce')) + '.'; }
-  else { const sc = L.find(x => x.k === cur) || L[0]; const giu = fit(sc.gb) ? sc : L.slice(1).reverse().find(x => x.ok && x.gb < sc.gb && fit(x.gb)); ia = giu ? giu.gb : 0; txt = _t('Hai scelto ') + sc.t + ' (' + n(sc.gb) + ' GB).' + (fit(sc.gb) ? _t(' Ci sta insieme a quello che usa adesso la scheda video.') : _t(' Adesso non ci sta: finché serve memoria usa il livello sotto.')); }
+  else if (cur === 'auto') { const b = L.slice(1).reverse().find(x => x.ok && fit(x.gb)); ia = b ? b.gb : 0; txt = _t('Adesso userebbe: ') + (b ? b.t + ' (' + n(b.gb) + ' ' + BYTE_U[2] + ')' : _t('solo il traduttore veloce')) + '.'; }
+  else { const sc = L.find(x => x.k === cur) || L[0]; const giu = fit(sc.gb) ? sc : L.slice(1).reverse().find(x => x.ok && x.gb < sc.gb && fit(x.gb)); ia = giu ? giu.gb : 0; txt = _t('Hai scelto ') + sc.t + ' (' + n(sc.gb) + ' ' + BYTE_U[2] + ').' + (fit(sc.gb) ? _t(' Ci sta insieme a quello che usa adesso la scheda video.') : _t(' Adesso non ci sta: finché serve memoria usa il livello sotto.')); }
   const card = L.map(x => {
     const on = cur === x.k;
-    const gb = x.gb == null ? '<div class="gb">' + n(gbv.piccola) + '–' + n(gbv.grande) + ' <small>GB</small></div>' : '<div class="gb">' + n(x.gb) + ' <small>GB</small></div>';
+    const gb = x.gb == null ? '<div class="gb">' + n(gbv.piccola) + '–' + n(gbv.grande) + ' <small>' + BYTE_U[2] + '</small></div>' : '<div class="gb">' + n(x.gb) + ' <small>' + BYTE_U[2] + '</small></div>';
     const dots = '<div class="lvdots"' + (x.v ? ' aria-label="' + esc(_t('Intelligenza ') + x.v + _t(' su 5')) + '"' : ' aria-hidden="true"') + '>' + (x.v ? [1,2,3,4,5].map(i => '<i class="' + (i <= x.v ? 'on' : '') + '"></i>').join('') : '') + '</div>';
     const f = !x.ok ? '<span class="fit no">' + esc(_t('Non ancora scaricata')) + '</span>' : x.gb == null || !tot ? '<span class="fit ok">✓ ' + esc(_t('si adatta al gioco')) + '</span>' : fit(x.gb) ? '<span class="fit ok">✓ ' + esc(_t('ci sta adesso')) + '</span>' : '<span class="fit no">⚠ ' + esc(_t('adesso scende di livello')) + '</span>';
     return '<button data-lv="' + x.k + '" class="' + (on ? 'on' : '') + '" aria-pressed="' + on + '"' + (x.ok ? '' : ' disabled') + '><em>' + esc(x.em || '') + '</em><b>' + esc(x.t) + '</b>' + gb + dots + '<span>' + esc(x.d) + '</span>' + f + '</button>';
   }).join('');
   return '<h3>🧠 ' + esc(_t('Quanto è intelligente l\'IA?')) + '</h3><div class="lvcard"><div class="small">' + esc(txt) + '</div>' +
-    (tot ? '<div class="lvbar" aria-hidden="true"><div class="g" style="width:' + (gioco / tot * 100) + '%"></div><div class="ia" style="width:' + (ia / tot * 100) + '%"></div></div><div class="lvleg"><span><i style="background:var(--a3)"></i>' + esc(_t('Già usata')) + ' (' + n(gioco) + ' GB)</span><span><i style="background:var(--a1)"></i>' + esc(_t('IA')) + '</span><span><i style="background:var(--line)"></i>' + esc(_t('Libera')) + '</span><span>' + esc(_t('La tua scheda: ')) + '<b style="color:var(--text)">' + esc((g.nome || '') + ' · ' + n(tot) + ' GB') + '</b></span></div>' : '') +
+    (tot ? '<div class="lvbar" aria-hidden="true"><div class="g" style="width:' + (gioco / tot * 100) + '%"></div><div class="ia" style="width:' + (ia / tot * 100) + '%"></div></div><div class="lvleg"><span><i style="background:var(--a3)"></i>' + esc(_t('Già usata')) + ' (' + n(gioco) + ' ' + BYTE_U[2] + ')</span><span><i style="background:var(--a1)"></i>' + esc(_t('IA')) + '</span><span><i style="background:var(--line)"></i>' + esc(_t('Libera')) + '</span><span>' + esc(_t('La tua scheda: ')) + '<b style="color:var(--text)">' + esc((g.nome || '') + ' · ' + n(tot) + ' ' + BYTE_U[2]) + '</b></span></div>' : '') +
     '</div><div class="lv">' + card + '</div><button class="lvoff' + (cur === 'off' ? ' on' : '') + '" data-lv="off" aria-pressed="' + (cur === 'off') + '">' + esc(_t('Spenta: solo il traduttore veloce (0 GB della scheda video)')) + '</button>';
 }
 function wzLingue(){ if (W && !$('#gwz').hidden && wzStep() === 'da') wzDraw(); }
