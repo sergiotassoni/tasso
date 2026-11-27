@@ -24,7 +24,8 @@ func TestPaginaNomeSempreConEsc(t *testing.T) {
 	if usi < 8 {
 		t.Fatalf("il nome si usa in %d righe: manca qualcosa?", usi)
 	}
-	for _, f := range []string{"if (e && n) e.textContent = (", `pill.textContent = n ||`} {
+	// il saluto della Home (anche senza nome, aggiornato ogni minuto: correttore G) entra con textContent
+	for _, f := range []string{"if (e && e.textContent !== t) e.textContent = t;", `pill.textContent = n ||`} {
 		if !strings.Contains(s, f) {
 			t.Errorf("non trovo %q", f)
 		}
