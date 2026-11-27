@@ -49,6 +49,7 @@ func checkUpdate() map[string]interface{} {
 	// Ecosistema Tasso (ecoupdate.go): se c'è qualcosa di nuovo si aggiorna con TassoSetup.exe.
 	eco := checkEcoUpdate()
 	if n, _ := eco["newer"].(bool); n {
+		eco["prova"], eco["msgProva"] = !aggiornabileDaSolo(), msgNonFirmato // F14-20
 		return eco
 	}
 	res := map[string]interface{}{"current": appVersion, "download": downloadURL}
@@ -83,5 +84,10 @@ func checkUpdate() map[string]interface{} {
 	}
 	res["latest"] = latest
 	res["newer"] = verNewer(latest, appVersion)
+	if res["newer"] == true {
+		// F14-20: una versione di prova non firmata non si aggiorna da sola: la finestra non fa
+		// partire il conto alla rovescia e lo dice subito
+		res["prova"], res["msgProva"] = !aggiornabileDaSolo(), msgNonFirmato
+	}
 	return res
 }

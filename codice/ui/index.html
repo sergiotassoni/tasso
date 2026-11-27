@@ -148,6 +148,7 @@ h3{margin:0;font-size:15px}
 .kv span:nth-child(odd){color:var(--muted)}
 .kv span:nth-child(even){font-weight:600}
 .list{display:flex;flex-direction:column;max-height:430px;overflow-y:auto;border-top:1px solid var(--line)}
+.list>*{flex-shrink:0} /* F14-1: le righe che vanno a capo non si schiacciano una sull'altra */
 .li{display:flex;align-items:center;gap:12px;padding:10px 4px;border-bottom:1px solid var(--line);min-height:52px}
 .li .x{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
 .li .x b{font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -944,6 +945,8 @@ body.office .cardmodo{font-weight:700;font-stretch:normal;letter-spacing:-.02em;
 <!-- HOME -->
 <section class="view on" id="v-home">
   <div class="banner upd" id="updBanner"><span id="updBannerTxt"><b>È uscita una nuova versione di Tasso.</b></span><button class="btn primary" id="btnUpdBanner">Vai ad Aggiorna</button></div>
+  <!-- F20-11: Tasso aperto da amministratore con l'account di un altro (UAC): le impostazioni personali vanno a quell'account -->
+  <div class="banner" id="altroUtenteBanner" style="background:color-mix(in srgb,var(--a4) 12%,var(--panel));border-color:color-mix(in srgb,var(--a4) 45%,var(--line))"><span><b>Tasso è aperto con l'account di un altro amministratore.</b> <span class="muted">Le impostazioni personali che cambi qui (notifiche, mouse, modalità del PC, programmi all'avvio) valgono per quell'account, non per il tuo.</span></span></div>
   <div class="banner" id="pausedBanner"><span><b>Tasso è spento.</b> <span class="muted">Non parte con Windows, non fa pulizie automatiche e non manda avvisi.</span></span><button class="btn primary" id="btnResume">Riaccendi Tasso</button></div>
   <div class="row wrap om" style="justify-content:space-between">
     <h1 style="font-size:20px" id="hello">Ciao!</h1>
@@ -1508,7 +1511,8 @@ body.office .cardmodo{font-weight:700;font-stretch:normal;letter-spacing:-.02em;
     <li class="om"><b>Più sicurezza dietro le quinte</b>: i file di Tasso sono più protetti.</li>
     <li class="gm"><b>Pulizia programmata più attenta</b>: aspetta che chiudi il gioco.</li>
     <li><b>Tasso ti chiama per nome</b>: scrivi il tuo nome nell'installatore o nelle Impostazioni e Tasso ti saluta. Lo usano anche Tasso Zip e Tasso PDF e, se vuoi, compare sul tuo biglietto. Resta solo sul tuo PC.</li>
-    <li><b>5 temi nuovi per l'Ufficio</b>: Grafite, Bosco, Prugna, Petrolio e Tortora, scuri e riposanti per gli occhi. Li trovi in Impostazioni, Aspetto.</li>
+    <li class="om"><b>5 temi nuovi per l'Ufficio</b>: Grafite, Bosco, Prugna, Petrolio e Tortora, scuri e riposanti per gli occhi. Li trovi in Impostazioni, Aspetto.</li>
+    <li class="gm"><b>5 temi nuovi per l'Ufficio</b>: Grafite, Bosco, Prugna, Petrolio e Tortora, scuri e riposanti per gli occhi. Li trovi in Impostazioni, Aspetto, quando usi la modalità Ufficio.</li>
     <li><b>La lingua cambia subito</b>: nelle Impostazioni scegli la lingua e Tasso cambia all'istante, senza chiudersi e riaprirsi.</li>
     <li class="gm"><b>Boost più sicuro</b>: Tasso usa solo impostazioni documentate da Microsoft, quindi "Priorità ai giochi" e "Rete a bassa latenza" non si accendono più. Se li avevi accesi, puoi spegnerli e tornano come prima.</li>
     <li><b>Tante correzioni</b>: Salute e problemi e Risolvi un problema dicono quello che trovano davvero, gli aggiornamenti dei programmi chiedono prima e toccano solo quelli con la spunta, "Privacy: ripristina" rimette i valori di prima e la pulizia ogni 2 settimane è descritta bene in tutte le lingue.</li></ul></div>
@@ -1586,7 +1590,7 @@ body.office .cardmodo{font-weight:700;font-stretch:normal;letter-spacing:-.02em;
     <button role="switch" aria-checked="false" class="toggle gm" id="tgCovers"><span><b>Copertine dei giochi da internet</b><span>Per i giochi che non sono di Steam, Tasso cerca la copertina su Steam usando il nome del gioco (il nome va a Steam). Spento: solo le immagini che ci sono già sul PC.</span></span><span class="sw"><i></i></span></button>
   </div>
   <div class="row wrap" style="align-items:stretch;gap:18px">
-    <div class="card" style="flex:1 1 360px;padding:6px 22px">
+    <div class="card" style="flex:1 1 360px;min-width:0;padding:6px 22px">
       <div style="padding:14px 0 4px"><h2 style="margin:0">Avvisi</h2><p class="sub" style="margin:4px 0 0">Scegli di cosa vuoi che Tasso ti avvisi. Spegni quello che non ti interessa: niente più avvisi inutili.</p></div>
       <div id="alertList"></div>
     </div>
@@ -1600,7 +1604,7 @@ body.office .cardmodo{font-weight:700;font-stretch:normal;letter-spacing:-.02em;
     </div>
   </div>
   <div class="row wrap" style="align-items:stretch;gap:18px">
-    <div class="card" style="flex:2 1 420px;padding:6px 22px">
+    <div class="card" style="flex:2 1 420px;min-width:0;padding:6px 22px">
       <button role="switch" aria-checked="false" class="toggle" id="tgPaused"><span><b>Tasso acceso</b><span>Spento: non parte con Windows, niente pulizie automatiche né avvisi. Riaccendilo e Tasso riprende a funzionare come prima.</span></span><span class="sw"><i></i></span></button>
       <button role="switch" aria-checked="false" class="toggle" id="tgAutostart"><span><b>Avvia con Windows</b><span>Tasso parte da solo, ridotto a icona, quando accendi il PC.</span></span><span class="sw"><i></i></span></button>
       <button role="switch" aria-checked="false" class="toggle" id="tgTray"><span><b>Resta acceso vicino all'orologio</b><span>Con la X Tasso si nasconde nell'icona in basso a destra, vicino all'orologio, e resta acceso. Per chiuderlo davvero: clic destro sull'icona → Chiudi Tasso.</span></span><span class="sw"><i></i></span></button>
@@ -1641,6 +1645,7 @@ body.office .cardmodo{font-weight:700;font-stretch:normal;letter-spacing:-.02em;
       <div style="padding:15px 0;border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:10px" id="undoBox">
         <span><b style="font-size:15px">↩️ Torna indietro</b><br><span class="small muted">Tutto quello che Tasso ha cambiato, una cosa per riga. Le modifiche <b>restano anche se spegni o riavvii il PC</b>: tornano com'erano solo se premi tu "Rimetti". Prima di cambiare qualcosa la prima volta, Tasso si salva com'era.</span></span>
         <div class="list" id="undoList"><div class="li"><span class="muted">Lettura…</span></div></div>
+        <div id="undoExtra" style="display:flex;flex-direction:column;gap:8px"></div>
         <div class="row wrap" style="gap:8px"><button class="btn primary" id="btnRestore">Rimetti tutto com'era prima di Tasso</button><button class="btn ghost" data-undo="restorepoint">Punto di ripristino di Windows</button><button class="btn ghost" data-undo="recycle">Apri il Cestino</button><button class="btn ghost" data-undo="regfolder" id="btnRegBak" style="display:none">Backup del registro</button></div>
         <span class="small muted">I file cancellati si recuperano dal <b>Cestino</b> (se non l'hai svuotato). Per tornare indietro con tutto Windows c'è il <b>punto di ripristino</b> che Tasso crea prima delle pulizie Media, Profonda ed Eccezionale.</span>
       </div>
@@ -2389,9 +2394,9 @@ window.tasso = {
   onRecycleDone(p){ recycleDone(p); },
   onShredProgress(m){ if (/^Chiedo|^Distruggo 1 di|^Asking|^Destroying 1 of/.test(m)) toast(m, 'var(--a3)'); },
   onShredDone(p){ toast(p.msg, p.ok ? 'var(--a1)' : 'var(--a4)'); },
-  onUndoDone(p){ if (p.settings) S = p.settings; toast(p.msg, 'var(--a1)'); paintUndo(p.changes); paintModes(); if (loaded.startup) call('goStartupList'); if (loaded.games) { paintLib(); profileRefresh(); } },
-  onTogliTasso(p){ if (!TOGLI) TOGLI = {passi: [], fatto: false, err: ''}; if (p.text) TOGLI.passi.push(p.text); if (p.done) TOGLI.fatto = true; if (p.eco) TOGLI.eco = true; if (p.error) TOGLI.err = p.error; togliDraw(); },
-  onRestoreDone(p){ if (p.settings) S = p.settings; (p.msgs || []).forEach(m => toast(m, 'var(--a3)')); paintSettings(); paintModes(); if (p.ok !== false) toast(p.paused ? _t('Fatto: impostazioni rimesse com\'erano e Tasso è spento.') : _t('Fatto: impostazioni rimesse com\'erano.')); if (loaded.startup) call('goStartupList'); if (loaded.games) profileRefresh(); undoRefresh(); }
+  onUndoDone(p){ if (p.settings) S = p.settings; toast(p.msg, p.ok === false ? 'var(--a4)' : 'var(--a1)'); paintUndo(p.changes); paintModes(); if (loaded.startup) call('goStartupList'); if (loaded.games) { paintLib(); profileRefresh(); } },
+  onTogliTasso(p){ if (!TOGLI) TOGLI = {passi: [], fatto: false, err: ''}; if (p.text) TOGLI.passi.push({t: p.text, a: !!p.avviso}); if (p.avvisi) TOGLI.avvisi = true; if (p.done) TOGLI.fatto = true; if (p.eco) TOGLI.eco = true; if (p.error) TOGLI.err = p.error; togliDraw(); },
+  onRestoreDone(p){ if (p.settings) S = p.settings; (p.msgs || []).forEach(m => toast(m, p.ok === false ? 'var(--a4)' : 'var(--a3)')); paintSettings(); paintModes(); if (p.nulla && p.paused) toast(_t('Tasso è spento. Le impostazioni restano come sono ora.'), 'var(--red)'); if (p.ok !== false && !p.nulla) toast(p.paused ? _t('Fatto: impostazioni rimesse com\'erano e Tasso è spento.') : _t('Fatto: impostazioni rimesse com\'erano.')); if (loaded.startup) call('goStartupList'); if (loaded.games) profileRefresh(); undoRefresh(); }
 };
 $('#btnCancel').onclick = () => { call('goCancel'); $('#btnCancel').disabled = true; $('#btnCancel').textContent = _t('Mi fermo…'); };
 // 3.1.1: banner di fine pulizia con il conto alla rovescia (Riavvia/Spegni adesso, Annulla). Se a fine
@@ -2585,6 +2590,7 @@ function alertSmart(text, action, sempre){
   if (S.paused || S.smartAlerts === false) return false;
   if (!sempre && (BST.on || BST.game)) return false;
   toast(text, 'var(--a4)', action);
+  call('goAvvisoTray', text); // F14-7: con Tasso nascosto vicino all'orologio o a icona arriva anche come avviso di Windows
   return true;
 }
 async function pollLive(){ try { const l = await call('goLive'); if (l) { if (CURVIEW === 'hw' && !document.hidden) { const w = await call('goHwWatch'); if (w) { l.cpuTemp = w.cpuTemp; l.boardTemp = w.boardTemp; } } LIVE = l; paintLive(); } } catch (e) {} }
@@ -3210,7 +3216,9 @@ const INDEX = [
   {t:_t('Problemi di tutti i giorni'), gm:1, c:'var(--a4)', i:[_t('<b>Problemi di tutti i giorni</b> in Risolvi un problema, ognuno con un pulsante: Wi-Fi che si stacca, file zip, programma bloccato, secondo schermo, tastiera e touchpad, Win + V, batteria, ora sbagliata'),_t('<b>Prova microfono e cuffie</b> e <b>Chi usa webcam e microfono</b>')]},
   {t:'Giochi', c:'var(--a2)', i:[_t('<b>Libreria</b> Steam, Epic e Riot con copertine'),_t('<b>Regola con Tasso</b>: grafica consigliata per ogni gioco in base al tipo di gioco e al tuo PC'),_t('<b>Comandi gaming</b>: registrazione in background spenta, pianificazione GPU, giochi in finestra, memoria in standby, riavvio del driver video'),_t('<b>Ottimizza prima di giocare</b>, <b>pannellino in gioco</b>, <b>autoclick</b>'),_t('<b>Profilo gioco</b> con un interruttore: resta acceso anche dopo il riavvio finché non lo spegni'),_t('<b>Potenza per ogni gioco</b>: Potenza alta o Massima potenza, messa da sola quando apri il gioco'),_t('<b>Ping ai server dei giochi</b> (LoL, Valorant, CS2, Fortnite…) per scegliere il server migliore'),_t('<b>Problemi nei giochi</b>: in Risolvi un problema, ') + (Object.keys(STEP).filter(k => k.indexOf('fix_game_') === 0).length || 26) + _t(' riparazioni con un pulsante spiegate semplici')]},
   {t:'Portachiavi e Discord', c:'var(--a1)', i:[_t('<b>Portachiavi</b> con PIN da 4 a 12 numeri o senza PIN: cifrato sul PC, generatore di password, password deboli o usate più volte'),_t('<b>Controllo password rubate</b> senza mandare la password'),_t('<b>Stato del PC su Discord</b>: report con spunte verdi e temperature, ogni 3/6/12/24 ore'),_t('<b>Report su richiesta</b> scrivendo !stato (con un bot tuo, facoltativo)')]},
-  {t:_t('Hardware e comodità'), c:'var(--a3)', i:[_t('<b>Componenti</b>: processore, scheda video, scheda madre, RAM, dischi'),_t('<b>Sensori</b>: uso di processore e RAM, scheda video, temperatura dei dischi'),_t('<b>BIOS</b>: versione e pagina ufficiale del produttore'),_t('<b>Temi</b> chiari e scuri, <b>avvisi intelligenti</b>, <b>avvio con Windows</b>'),_t('<b>Interruttore Tasso acceso/spento</b>: da spento non fa nulla in automatico'),_t('<b>Torna indietro</b>: l\'elenco di tutto quello che Tasso ha cambiato, con un pulsante per rimettere com\'era ogni cosa o tutto insieme. Spegnere o riavviare il PC non cambia niente: torna indietro solo quando lo decidi tu')]}
+  {t:_t('Hardware e comodità'), c:'var(--a3)', i:[_t('<b>Componenti</b>: processore, scheda video, scheda madre, RAM, dischi'),_t('<b>Sensori</b>: uso di processore e RAM, scheda video, temperatura dei dischi'),_t('<b>BIOS</b>: versione e pagina ufficiale del produttore'),_t('<b>Temi</b> chiari e scuri, <b>avvisi intelligenti</b>, <b>avvio con Windows</b>'),_t('<b>Interruttore Tasso acceso/spento</b>: da spento non fa nulla in automatico'),_t('<b>Torna indietro</b>: l\'elenco di tutto quello che Tasso ha cambiato, con un pulsante per rimettere com\'era ogni cosa o tutto insieme. Spegnere o riavviare il PC non cambia niente: torna indietro solo quando lo decidi tu')]},
+  // F14-16: le novità della 3.2 (come in INDICE.txt), in Gaming e in Ufficio
+  {t:_t('Novità della 3.2'), c:'var(--a1)', i:[_t('<b>Ottimizza tutto</b>, sulla Home: un pulsante solo e Tasso misura il PC, sistema Windows e ti mostra la differenza. Ogni modifica si rimette com\'era'),_t('<b>Il tuo nome</b>: Tasso ti saluta per nome, e così Tasso Zip e Tasso PDF (Impostazioni, Il tuo nome)'),_t('<b>Fai aiutare un amico</b>: in Risolvi un problema, la guida per farti aiutare a distanza con Assistenza rapida di Windows, con gli avvisi contro le truffe'),_t('<b>Sfondi abbinati al tema</b>: se vuoi, lo sfondo del desktop uguale al tema; con "Rimetti il mio" torna il tuo')]},
 ];
 const OFFICE_INDEX = {t:_t('Ufficio'), c:'var(--a3)', i:[_t('<b>100 problemi del lavoro</b> con un pulsante, divisi in gruppi e con la ricerca: scrivi il problema e lo trovi'),_t('<b>Stampanti e scanner</b>: offline, stampante sbagliata, Stampa su PDF, stampanti di rete e USB'),_t('<b>Word, Excel, Adobe e Outlook</b>: riparazione ufficiale, aggiornamenti, documenti non salvati, file bloccati, date e CSV, Acrobat Reader, password, allegati, ricerca, Outlook classico'),_t('<b>Teams e riunioni</b>: cache, microfono, webcam, cuffie Bluetooth, casse'),_t('<b>Rete</b>: Wi-Fi che si stacca, VPN, unità di rete, proxy; <b>schermi</b>: secondo monitor, proiettore, schermo girato'),_t('<b>File e zip</b>: programma sbagliato, file bloccati o cancellati per sbaglio, nomi troppo lunghi, disco pieno'),_t('<b>Mouse, tastiera e portatile</b>: tasti permanenti, tasto Windows, touchpad, Bloc Num, batteria'),_t('<b>OneDrive</b>, <b>ora sbagliata</b>, <b>password che scade</b>, <b>BitLocker</b>, <b>attivazione</b>, <b>programmi sospetti</b>'),_t('<b>Il PC si scalda</b>, <b>un programma non parte</b> (manca un file .dll), <b>il PC si blocca con file grandi</b>, <b>l\'audio gracchia nelle chiamate</b>, <b>lo schermo diventa nero</b>'),_t('<b>Modalità riunione</b> sulla Home, accanto a PULISCI: niente notifiche, PC al massimo')]};
 // In Ufficio alcune righe si riscrivono invece di sparire (dentro hanno anche cose da gioco, ma il resto serve).
@@ -3282,9 +3290,10 @@ function paintSettings(){
   $('#powerSub').textContent = S.paused ? _t('Clicca per riaccenderlo') : _t('Clicca per spegnerlo');
   $('#powerBtn').title = $('#powerTitle').textContent + '. ' + $('#powerSub').textContent; // col menu stretto si vede solo il pallino
   $('#pausedBanner').classList.toggle('on', !!S.paused);
+  $('#altroUtenteBanner').classList.toggle('on', !!BOOT.altroUtente);
   if (typeof gBoostPaint === 'function') gBoostPaint();
 }
-const RESTORE_INFO = _t('<div class="note"><b>Tasso rimette com\'erano:</b> piano energetico e limite del processore, spegnimento dello schermo e sospensione, notifiche, mouse, Modalità Gioco, impostazioni di privacy e programmi all\'avvio che hai acceso o spento da Tasso.<br><br><b>Non si possono rimettere:</b> i file cancellati, i programmi disinstallati e gli aggiornamenti installati. Per programmi, driver e aggiornamenti c\'è il backup di Windows (punto di ripristino) creato da Tasso prima delle pulizie da Media in su; i file personali cancellati e il Cestino svuotato non tornano.</div>');
+const RESTORE_INFO = _t('<div class="note"><b>Tasso rimette com\'erano:</b> piano energetico e limite del processore, spegnimento dello schermo e sospensione, notifiche, mouse, Modalità Gioco, impostazioni di privacy, programmi all\'avvio che hai acceso o spento da Tasso, le modifiche di Ottimizza tutto e il risparmio energetico delle porte USB<span class="gm">, i Comandi gaming e le regolazioni dei giochi</span>.<br><br><b>Non si possono rimettere:</b> i file cancellati, i programmi disinstallati e gli aggiornamenti installati. Per programmi, driver e aggiornamenti c\'è il backup di Windows (punto di ripristino) creato da Tasso prima delle pulizie da Media in su; i file personali cancellati e il Cestino svuotato non tornano.</div>');
 async function setPaused(on){
   if (on) {
     modal(_t('<h2>Spegnere Tasso?</h2><p class="muted" style="margin:0;line-height:1.5">Da spento Tasso non parte con Windows, non fa pulizie automatiche e non manda avvisi. Scegli cosa fare con le impostazioni di Windows che Tasso ha cambiato:</p>') + RESTORE_INFO,
@@ -3332,15 +3341,17 @@ $('#tgAlerts').onclick = async () => { const on = S.smartAlerts === false; await
 $('#btnBackup').onclick = async () => { const r = await call('goBackup'); if (r === 'busy') { toast(_t('Aspetta che finisca l\'operazione in corso.'), 'var(--a4)'); return; } toast(_t('Si apre la finestra per scegliere dove salvare il backup (una chiavetta o un disco esterno).')); };
 $('#btnShortcut').onclick = async () => { const r = await call('goDesktopShortcut'); if (r === 'ok') toast(_t('Collegamento a Tasso creato sul Desktop.')); else toast(r === 'no' ? _t('Non sono riuscito a creare il collegamento.') : (r || _t('Non sono riuscito a creare il collegamento.')), 'var(--red)'); };
 $('#btnLogs').onclick = () => call('goOpenLogs');
-$('#btnRestore').onclick = () => modal(_t('<h2>Rimettere le impostazioni com\'erano?</h2><p class="muted" style="margin:0;line-height:1.5">Tasso resta acceso, ma le impostazioni di Windows che ha cambiato tornano com\'erano prima di lui') + (S.snapshotAt ? _t(' (salvate il ') + esc(S.snapshotAt) + ')' : '') + '.</p>' + RESTORE_INFO,
+$('#btnRestore').onclick = () => modal(_t('<h2>Rimettere le impostazioni com\'erano?</h2><p class="muted" style="margin:0;line-height:1.5">Tasso resta acceso, ma le impostazioni di Windows che ha cambiato tornano com\'erano prima di lui') + (S.snapshotAt ? _t(' (salvate il ') + esc(dataFotoTxt(S.snapshotAt)) + ')' : '') + '.</p>' + RESTORE_INFO,
   [{label:_t('Annulla')}, {label:_t('Rimetti com\'era'), cls:'primary', risky:true, fn: () => { call('goRestore', false).then(r => { if (r === 'busy') toast(_t('Sto già rimettendo le impostazioni…'), 'var(--a4)'); else toast(_t('Rimetto le impostazioni com\'erano…')); }); }}]);
 // 3.1: "Togli Tasso dal PC" (anteprima 7WB9K5TL): conferma, avanzamento, fine
 let TOGLI = null;
 function togliDraw(){
   const T = TOGLI; if (!T) return;
-  const righe = T.passi.map(x => '<li style="display:flex;gap:8px;align-items:flex-start"><span>✓</span><span>' + esc(x) + '</span></li>').join('');
+  // F14-6: gli avvisi con ⚠️ e il colore degli avvisi, le cose riuscite con ✓
+  const righe = T.passi.map(x => '<li style="display:flex;gap:8px;align-items:flex-start' + (x.a ? ';color:var(--a4)' : '') + '"><span aria-hidden="true">' + (x.a ? '⚠️' : '✓') + '</span><span>' + esc(x.t) + '</span></li>').join('');
   let h = '';
   if (T.err) h = '<h3>' + esc(_t('Tasso non è stato tolto del tutto')) + '</h3><ul style="list-style:none;padding:0;margin:0 0 8px">' + righe + '</ul><div class="callout" style="border-color:var(--a4)">' + esc(T.err) + '</div>';
+  else if (T.fatto && T.avvisi) h = '<h3>' + esc(_t('Tasso è stato tolto')) + '</h3><ul style="list-style:none;padding:0;margin:0 0 8px">' + righe + '</ul><p class="small muted">' + esc(T.eco ? _t('Leggi con calma gli avvisi qui sopra: Tasso si chiude quando premi Chiudi adesso (o da solo tra 10 minuti), poi si apre il disinstallatore di Tasso: premi Disinstalla per togliere il programma.') : _t('Leggi con calma gli avvisi qui sopra: Tasso si chiude quando premi Chiudi adesso (o da solo tra 10 minuti) e il suo file si cancella subito dopo.')) + '</p>';
   else if (T.fatto) h = '<h3>' + esc(_t('Tasso è stato tolto')) + '</h3><ul style="list-style:none;padding:0;margin:0 0 8px">' + righe + '</ul><p class="small muted">' + esc(T.eco ? _t('Tasso si chiude tra pochi secondi e si apre il disinstallatore di Tasso: premi Disinstalla per togliere il programma. Se un giorno lo rivuoi, riapri l\'installatore di Tasso.') : _t('Tasso si chiude tra pochi secondi e il suo file si cancella subito dopo. Se un giorno lo rivuoi, lo riscarichi gratis da sergiotassoni.github.io/tasso.')) + '</p>';
   else h = '<h3>' + esc(_t('Tolgo Tasso dal PC…')) + '</h3><ul style="list-style:none;padding:0;margin:0 0 8px">' + righe + '</ul><p class="small muted">' + esc(_t('Non spegnere il PC: ci vuole meno di un minuto.')) + '</p>';
   modal(h, T.err ? [{label:_t('Chiudi'), fn:() => { TOGLI = null; }}] : T.fatto ? [{label:_t('Chiudi adesso'), cls:'primary', fn:() => { call('goQuit'); }}] : []);
@@ -3356,7 +3367,10 @@ $('#btnTogli').onclick = async () => {
     '<div class="callout"><b>' + esc(_t('Tasso toglie:')) + '</b><ul style="margin:6px 0 0;padding-left:20px"><li>' + esc(_t('la partenza con Windows e le pulizie automatiche')) + '</li><li>' + esc(isOffice() ? _t('le traduzioni dei giochi, se le hai usate in Gaming') : _t('le traduzioni messe dentro i giochi (solo i file aggiunti da Tasso; gli originali sono intatti)')) + '</li><li>' + esc(_t('le sue cartelle: impostazioni, registri e modelli della traduzione')) + esc(gb) + '</li><li>' + esc(_t('il collegamento sul Desktop e il file di Tasso')) + '</li></ul></div>' +
     '<label class="li check" style="align-items:flex-start;margin-top:8px;border-bottom:0;min-height:0"><input type="checkbox" id="tgRimetti" checked> <span>' + esc(_t('Rimetti anche le impostazioni di Windows com\'erano prima di Tasso')) + '<br><span class="small muted">' + esc(_t('Piano energetico, schermo, notifiche, mouse, programmi all\'avvio. I file cancellati dalle pulizie non tornano: per quelli c\'è il punto di ripristino di Windows.')) + '</span></span></label>' +
     (info.vault ? '<div class="callout" style="border-color:var(--a4);margin-top:8px"><b>' + esc(_t('Hai il portachiavi di Tasso con delle password.')) + '</b> ' + esc(_t('Togliendo Tasso si cancellano e non si recuperano. Prima copiale altrove (Portachiavi > tocca una password > Copia).')) + '<label class="li check" style="margin-top:8px;border-bottom:0;min-height:0"><input type="checkbox" id="tgVault"> <span>' + esc(_t('Ho copiato le password che mi servono')) + '</span></label></div>' : '') +
-    '<p class="small muted" style="margin:8px 0 0">' + esc(_t('Restano: i punti di ripristino di Windows e i backup del registro fatti da Tasso, che sposto in Documenti > Tasso - copie di sicurezza.')) + '</p>';
+    '<p class="small muted" style="margin:8px 0 0">' + esc(_t('Restano: i punti di ripristino di Windows e i backup del registro fatti da Tasso, che sposto in Documenti > Tasso - copie di sicurezza.')) +
+    // F14-11: le tre cose che la persona vuole sapere prima
+    (isOffice() ? '' : ' ' + esc(_t('Anche le copie dei giochi tradotti vanno lì.'))) + ' ' + esc(_t('Le modifiche di Ottimizza tutto tornano sempre com\'erano, anche senza la spunta qui sopra.')) +
+    (info.zipPdf ? ' ' + esc(_t('Tasso Zip e Tasso PDF restano sul PC.')) : '') + '</p>';
   modal(h, [{label:_t('Annulla')}, {label:_t('Togli Tasso'), cls:'danger', risky:true, fn:(box) => {
     const v = box.querySelector('#tgVault');
     if (v && !v.checked) { toast(_t('Prima copia le password e spunta "Ho copiato le password che mi servono".'), 'var(--a4)'); return 'keep'; }
@@ -3369,7 +3383,7 @@ $('#btnTogli').onclick = async () => {
   const v = $('#tgVault'), bt = $('#modalBox .row .btn.danger');
   if (v && bt) { bt.disabled = true; v.onchange = () => { bt.disabled = !v.checked; }; }
 };
-$('#btnQuit').onclick = () => { if (togliInCorso()) { togliDraw(); return; } if (RUN) { toast(_t('Aspetta la fine della pulizia prima di chiudere.'), 'var(--a4)'); return; } call('goQuit'); };
+$('#btnQuit').onclick = () => { if (togliInCorso()) { togliDraw(); return; } if (RUN) { toast(_t('Aspetta la fine della pulizia prima di chiudere.'), 'var(--a4)'); return; } call('goQuit').then(r => { if (r && r !== 'ok') toast(r, 'var(--a4)'); }); };
 
 /* ---------- welcome ---------- */
 let chosen = S.profile === 'ufficio' ? 'ufficio' : 'gioco';
@@ -4121,12 +4135,16 @@ async function ottBiglietto(){
   finestraBiglietto(_t('Il tuo biglietto'), (off ? _t('Voto al PC, componenti, accensione e apertura dei programmi in un biglietto solo.') : _t('Voto al PC, componenti e FPS in un biglietto solo.')) + ' ' + _t('Quadrato per i post, verticale per le storie.') + ' ' + (nomeOra() ? _t('Il tuo nome c\'è solo se lo lasci acceso qui sotto.') : _t('Dentro non ci sono dati personali.')), q, v, (u, f) => call('goOttSalva', u, f), disegna);
 }
 async function undoRefresh(){ paintUndo(await call('goChanges')); }
+// F14-13: "2026-11-20 10:15" (come la salva Tasso) nella forma della lingua: 20/11/2026, 10:15
+function dataFotoTxt(s){ const m = /^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2})$/.exec(s || ''); if (!m) return s || ''; try { return new Date(+m[1], +m[2] - 1, +m[3], +m[4], +m[5]).toLocaleString(LOC, {day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit'}); } catch (e) { return s; } }
 function paintUndo(c){
   const box = $('#undoList'); if (!box) return; box.innerHTML = '';
   const it = (c && c.items) || [];
   if (!it.length) box.innerHTML = _t('<div class="li"><span class="muted">Tasso non ha cambiato niente di Windows: non c\'è niente da rimettere.</span></div>');
+  const ex = $('#undoExtra'); if (ex) ex.innerHTML = ''; // F14-8: nota e cartella fuori dalla parte che scorre
   it.forEach(x => {
-    const li = el('div', {class:'li'}, '<span class="x"><b>' + esc(x.title) + '</b><span>' + esc(x.detail) + '</span></span>');
+    // F20-13: con il testo tagliato (…) si legge tutto passando sopra col mouse
+    const li = el('div', {class:'li'}, '<span class="x" title="' + esc(x.title + ' · ' + x.detail) + '"><b>' + esc(x.title) + '</b><span>' + esc(x.detail) + '</span></span>');
     const b = el('button', {class:'btn ghost', style:'min-height:34px;padding:6px 12px;font-size:13px;flex:0 0 auto'}, _t('Rimetti'));
     b.onclick = () => { b.disabled = true; call('goUndoChange', x.kind, x.id).then(r => { if (r === 'busy') { b.disabled = false; toast(_t('Aspetta: sto già rimettendo qualcosa.'), 'var(--a4)'); } }); };
     li.appendChild(b); box.appendChild(li);
@@ -4134,12 +4152,12 @@ function paintUndo(c){
   const uf = (c && c.undoFiles) || [];
   if (uf.length) {
     box.appendChild(el('div', {class:'li', style:'min-height:0'}, _t('<span class="small muted"><b>Riparazioni di "Risolvi un problema"</b>: ognuna ha lasciato un file che rimette com\'era (doppio clic sul file).</span>')));
-    uf.slice(0, 12).forEach(f => box.appendChild(el('div', {class:'li'}, '<span class="x"><b>' + esc(f.name) + '</b><span>' + esc(f.when) + ' · ' + esc(f.file) + '</span></span>')));
-    const ob = el('button', {class:'btn ghost', style:'align-self:flex-start;margin-top:6px'}, _t('Apri la cartella dei file per tornare indietro'));
-    ob.onclick = () => call('goUndoChange', 'undofolder', ''); box.appendChild(ob);
+    uf.slice(0, 12).forEach(f => box.appendChild(el('div', {class:'li'}, '<span class="x" title="' + esc(f.name + ' · ' + f.when + ' · ' + f.file) + '"><b>' + esc(f.name) + '</b><span>' + esc(f.when) + ' · ' + esc(f.file) + '</span></span>')));
+    const ob = el('button', {class:'btn ghost', style:'align-self:flex-start'}, _t('Apri la cartella dei file per tornare indietro'));
+    ob.onclick = () => call('goUndoChange', 'undofolder', ''); (ex || box).appendChild(ob);
   }
   const nu = (c && c.notUndo) || [];
-  if (nu.length) box.appendChild(el('div', {class:'note', style:'margin-top:8px'}, _t('<b>Questo pulsante non rimette:</b>') + '<ul style="margin:6px 0 0 18px;padding:0">' + nu.map(x => '<li>' + esc(x) + '</li>').join('') + '</ul>'));
+  if (nu.length) (ex || box).appendChild(el('div', {class:'note'}, _t('<b>Questo pulsante non rimette:</b>') + '<ul style="margin:6px 0 0 18px;padding:0">' + nu.map(x => '<li>' + esc(x) + '</li>').join('') + '</ul>'));
   $('#btnRegBak').style.display = c && c.regBackups ? '' : 'none';
   if (c && c.regBackups) $('#btnRegBak').textContent = _t('Backup del registro (') + c.regBackups + ')';
 }
@@ -5180,8 +5198,11 @@ const auGioco = () => typeof BST !== 'undefined' && !!BST && !!(BST.on || BST.ga
 // auLater: adesso no (gioco aperto o altra finestra): riprovo tra 10 minuti invece di lasciar perdere.
 const AU_RETRY = 10 * 60 * 1000;
 function auLater(u){ clearInterval(AU_T); clearTimeout(AU_T); AU_T = setTimeout(() => { AU_T = null; autoUpdate(u); }, AU_RETRY); }
+let AU_PROVA = false;
 function autoUpdate(u){
   if (S.noAutoUpdate || UPD_SELF || AU_T) return;
+  // F14-20: una versione di prova non firmata non si aggiorna da sola: niente conto alla rovescia, lo dico una volta
+  if (u && u.prova) { if (!AU_PROVA && u.msgProva) { AU_PROVA = true; toast(u.msgProva, 'var(--a4)'); } return; }
   AU_U = u;
   // Tasso aperto a icona (avvio con Windows): avviso solo quando lo guardi
   if (document.visibilityState === 'hidden') { const w = () => { if (document.visibilityState !== 'hidden') { document.removeEventListener('visibilitychange', w); autoUpdate(u); } }; document.addEventListener('visibilitychange', w); return; }
@@ -6366,7 +6387,7 @@ function nomeControlla(s) {
   let lettera = false, dopoLettera = false, accenti = 0;
   for (const r of c) {
     const k = r.codePointAt(0);
-    if (r === " " || r === "." || r === "-" || r === "_") { dopoLettera = false; accenti = 0; }
+    if (r === " " || r === "." || r === "-" || r === "_" || r === "'" || r === "’") { dopoLettera = false; accenti = 0; }
     else if (nomeDentro(k, NOME_INVISIBILI)) return { codice: "invisibile" };
     else if (!nomeDentro(k, NOME_BLOCCHI)) return { codice: "simbolo", simbolo: r };
     else if (/^[\p{L}\p{Nd}]$/u.test(r)) { lettera = true; dopoLettera = true; accenti = 0; }
@@ -6389,7 +6410,7 @@ function nomeErrore(e){
   }
   return '';
 }
-// Saluti della Home: Ufficio "Buon pomeriggio, Sergio!", Gaming "venerdì 27 novembre · Ciao, Sergio".
+// Saluti della Home: Ufficio "Buon pomeriggio, Marco!", Gaming "venerdì 27 novembre · Ciao, Marco".
 function nomeSaluti(){
   const h = new Date().getHours(), n = nomeOra(), e = $('#hello');
   // senza nome il saluto resta quello scritto all'avvio
@@ -6445,7 +6466,8 @@ function nomeCardPaint(){
   $('#nomeCambia').classList.toggle('primary', !n); $('#nomeCambia').classList.toggle('ghost', !!n);
   const nota = $('#nomeNota'), ed = $('#nomeEdit').style.display !== 'none';
   nota.style.display = n || ed ? 'none' : '';
-  if (!n) nota.innerHTML = esc(_t('Finché non lo scrivi, Tasso ti saluta senza nome:')) + ' <b>' + esc(_t('"Bentornato!"')) + '</b>. ' + esc(_t('Con il nome:')) + ' <b>' + esc(_t('"Bentornato, Sergio!"')) + '</b>';
+  // un nome d'esempio diverso in ogni lingua (mai quello di una persona vera), saluto neutro
+  if (!n) nota.innerHTML = esc(_t('Finché non lo scrivi, Tasso ti saluta senza nome:')) + ' <b>' + esc(_t('"Ciao di nuovo!"')) + '</b>. ' + esc(_t('Con il nome:')) + ' <b>' + esc(_t('"Ciao di nuovo, Marco!"')) + '</b>';
 }
 function nomeCampo(){
   const i = $('#nomeIn'), m = $('#nomeMsg'), c = $('#nomeCont'), p = nomePulisci(i.value), e = nomeControlla(p), k = [...p].length;
@@ -6453,7 +6475,7 @@ function nomeCampo(){
   c.textContent = k + ' / 20'; c.classList.toggle('err', !!err);
   i.classList.toggle('err', !!err); i.classList.toggle('ok', !vuoto && !e.codice); i.setAttribute('aria-invalid', err ? 'true' : 'false');
   m.className = err ? 'nomeerrtxt' : 'small muted';
-  m.textContent = err ? nomeErrore(e) : _t('Da 2 a 20 caratteri. Vanno bene lettere, numeri, spazio, punto, trattino e trattino basso.');
+  m.textContent = err ? nomeErrore(e) : _t('Da 2 a 20 caratteri. Vanno bene lettere, numeri, spazio, punto, apostrofo, trattino e trattino basso.');
   $('#nomeSalva').disabled = !!e.codice;
   return e;
 }
@@ -6473,7 +6495,7 @@ async function nomeSalva(){
   nomeApri(false); nomeSaluti();
   toast(_t('Fatto: ora ti chiamo {0}. Vale anche in Tasso Zip e Tasso PDF.').replace('{0}', r.nome));
 }
-nomeSaluti(); // all'apertura: con il nome "Buongiorno, Sergio!" (Ufficio) e "Ciao, Sergio" (Gaming)
+nomeSaluti(); // all'apertura: con il nome "Buongiorno, Marco!" (Ufficio) e "Ciao, Marco" (Gaming)
 if ($('#nomeCard')) {
   $('#nomeCambia').onclick = () => nomeApri(true);
   $('#nomeAnnulla').onclick = () => nomeApri(false);

@@ -87,7 +87,7 @@ func readPhoto(p string) ([]byte, string, error) {
 // pickFeedbackPhoto: finestra di Windows per scegliere una foto da allegare.
 func pickFeedbackPhoto() map[string]interface{} {
 	buf := make([]uint16, 4096)
-	filter := utf16.Encode([]rune("Immagini\x00*.png;*.jpg;*.jpeg;*.gif;*.webp;*.bmp\x00\x00"))
+	filter := utf16.Encode([]rune(trGo("Immagini") + "\x00*.png;*.jpg;*.jpeg;*.gif;*.webp;*.bmp\x00\x00")) // F14-17: tradotto
 	title, _ := windows.UTF16PtrFromString(trGo("Scegli una foto da allegare"))
 	var hwnd uintptr
 	if wv != nil {

@@ -59,8 +59,9 @@ func httpGet(url string, max int64, timeout time.Duration) ([]byte, error) {
 
 // msgNonFirmato: un Tasso senza firma digitale è solo una versione di prova: non si aggiorna da
 // solo (né Tasso.zip né l'installatore), perché senza una firma da confrontare l'unico controllo
-// sarebbe l'impronta pubblicata sullo stesso sito del file. Si scarica a mano.
-const msgNonFirmato = "Questa è una versione di prova di Tasso, senza firma digitale: non si aggiorna da sola. Scarica la versione nuova dalla pagina di Tasso (Info)."
+// sarebbe l'impronta pubblicata sullo stesso sito del file. Si scarica a mano (F14-20: con il
+// collegamento delle Impostazioni, sotto "Aggiorna ora"; in Info non c'è).
+const msgNonFirmato = "Questa è una versione di prova di Tasso, senza firma digitale: non si aggiorna da sola. Scarica la versione nuova a mano: Impostazioni, il collegamento \"oppure scarica…\" sotto Aggiorna ora."
 
 // aggiornabileDaSolo: solo un Tasso firmato si aggiorna dall'interno (la firma vera, cioè
 // valida e con lo stesso nome, la controlla poi checkUpdateSignature su quello nuovo).

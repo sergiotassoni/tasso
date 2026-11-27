@@ -1512,7 +1512,11 @@ function Use-HighPerf {
   }
   # Copia con lo stesso codice di Windows: la prossima volta basta attivarla.
   powercfg -duplicatescheme $HIGH $HIGH 2>$null | Out-Null
-  if (Use-Plan $HIGH) { Say 'Piano energetico: Prestazioni elevate (l''ho aggiunto io, mancava).'; return }
+  if (Use-Plan $HIGH) {
+    # F20-15: lo ricordo (HKLM, solo gli amministratori), così "Rimetti tutto com'era" e "Togli Tasso" lo tolgono
+    try { $tk = 'HKLM:\SOFTWARE\Tasso'; if (-not (Test-Path -LiteralPath $tk)) { New-Item -Path $tk -ErrorAction Stop | Out-Null }; New-ItemProperty -LiteralPath $tk -Name 'PianoCreato' -Value $HIGH -PropertyType String -Force -ErrorAction Stop | Out-Null } catch {}
+    Say 'Piano energetico: Prestazioni elevate (l''ho aggiunto io, mancava).'; return
+  }
   [void](Use-Plan $BAL)
   powercfg /overlaysetactive ded574b5-45a0-4f42-8737-46345c09c238 2>$null | Out-Null
   if ($LASTEXITCODE -eq 0) { Say 'Il PC ha un solo piano energetico: ho messo la modalità "Prestazioni migliori".' }

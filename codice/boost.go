@@ -254,9 +254,16 @@ func saveBoost() {
 // scriviBoostSicuro: boost.json dice cosa rimettere dopo il Boost, quindi non deve mai restare a metà
 // (PC spento mentre scrive). Scrivo in un file a parte, sposto quello vecchio in boost.json.bak e poi
 // metto il nuovo al suo posto: in ogni momento c'è almeno un file intero.
+// F20-6: Tasso è amministratore e la cartella è dell'utente: niente collegamenti o giunzioni nel
+// percorso (controllaPercorsoApp, sicuro_scrittura.go) e il file a parte si crea sempre nuovo
+// (O_EXCL: un collegamento messo al suo posto non si segue, si toglie prima).
 func scriviBoostSicuro(path string, b []byte) error {
+	if err := controllaPercorsoApp(path); err != nil {
+		return err
+	}
 	tmp := path + ".tmp"
-	f, err := os.OpenFile(tmp, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o644)
+	_ = os.Remove(tmp) // un resto (o un collegamento): os.Remove toglie il collegamento, non quello a cui porta
+	f, err := os.OpenFile(tmp, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o644)
 	if err != nil {
 		return err
 	}
@@ -270,11 +277,11 @@ func scriviBoostSicuro(path string, b []byte) error {
 		_ = os.Remove(tmp)
 		return err
 	}
-	if _, err := os.Stat(path); err == nil {
+	if _, err := os.Lstat(path); err == nil {
 		_ = os.Remove(path + ".bak")
-		_ = os.Rename(path, path+".bak")
+		_ = rinominaApp(path, path+".bak")
 	}
-	return os.Rename(tmp, path)
+	return rinominaApp(tmp, path)
 }
 
 // leggiBoostGrezzo: boost.json così com'è; se manca o è rovinato uso la copia di prima (boost.json.bak).
@@ -299,9 +306,9 @@ func leggiBoostGrezzo(path string) *boostState {
 		if json.Unmarshal(b, raw) == nil {
 			return raw
 		}
-		if i == 0 {
+		if i == 0 && controllaPercorsoApp(path) == nil {
 			_ = os.Remove(path + ".rotto")
-			_ = os.Rename(path, path+".rotto")
+			_ = rinominaApp(path, path+".rotto")
 		}
 	}
 	return &boostState{}

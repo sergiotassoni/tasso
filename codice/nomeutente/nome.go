@@ -4,7 +4,7 @@
 // Non va mai in rete.
 //
 // Le regole: da 2 a 20 caratteri; lettere (anche accentate, di molte scritture), numeri, spazio,
-// punto, trattino e trattino basso; almeno una lettera o un numero; al massimo 3 accenti
+// punto, apostrofo (' e ’, come in D'Angelo e O'Brien), trattino e trattino basso; almeno una lettera o un numero; al massimo 3 accenti
 // "staccati" sopra una lettera; niente caratteri che non si vedono. Prima si puliscono gli spazi.
 package nomeutente
 
@@ -137,7 +137,7 @@ func Controlla(s string) Esito {
 	lettera, dopoLettera, accenti := false, false, 0
 	for _, r := range s {
 		switch {
-		case r == ' ' || r == '.' || r == '-' || r == '_':
+		case r == ' ' || r == '.' || r == '-' || r == '_' || r == '\'' || r == '’':
 			dopoLettera, accenti = false, 0
 		case dentro(r, invisibili):
 			return Esito{Codice: Invisibile}

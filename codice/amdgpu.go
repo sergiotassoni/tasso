@@ -6,7 +6,6 @@ package main
 
 import (
 	"fmt"
-	"os"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -120,7 +119,7 @@ func adlDump(out *adlPMLogOut) {
 			sb.WriteString(fmt.Sprintf("%d = %d\r\n", i, out.Sensors[i].Value))
 		}
 	}
-	_ = os.WriteFile(filepath.Join(appDir, "logs", "sensori_amd.txt"), []byte(sb.String()), 0o644)
+	_ = scriviFileApp(filepath.Join(appDir, "logs", "sensori_amd.txt"), []byte(sb.String()), 0o644) // F20-6
 }
 
 // sampleAMD legge temperatura, uso e ventola. Restituisce false se non c'è una Radeon leggibile.

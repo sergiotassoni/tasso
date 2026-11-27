@@ -259,6 +259,13 @@ func (s *ServerIA) Avvia(dirMotore, fileModello string) error {
 		dirAvvio = d
 	}
 	exe = filepath.Join(dirAvvio, "llama-server.exe")
+	// F20-7: il modello resta bloccato (nessuno lo può cambiare) e controllato finché il server non
+	// l'ha caricato (Avvia torna quando il modello è caricato, o se il server non parte)
+	sblocca, err := bloccaModello(fileModello)
+	if err != nil {
+		return errors.New("IA non disponibile: " + err.Error())
+	}
+	defer sblocca()
 	nctx := s.Contesto
 	if nctx <= 0 {
 		nctx = 4096
@@ -280,7 +287,7 @@ func (s *ServerIA) Avvia(dirMotore, fileModello string) error {
 	if !opzioniVelociKO.Load() {
 		veloci = opzioniVelociIA(os.Getenv)
 	}
-	err := s.avviaProcesso(exe, dirAvvio, append(base, veloci...), notaCopia, false)
+	err = s.avviaProcesso(exe, dirAvvio, append(base, veloci...), notaCopia, false)
 	if errors.Is(err, errChiusoAllAvvio) && len(veloci) > 0 && s.cmd == nil {
 		// forse la scheda (o il driver) non regge flash attention o la memoria compressa:
 		// riprovo subito come prima, e in questa sessione non le uso più

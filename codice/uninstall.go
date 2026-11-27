@@ -134,11 +134,13 @@ func dimensioneCartella(d string) int64 {
 // togliTassoInfo: per la finestra di conferma (quanto spazio libera, quante password nel portachiavi).
 func togliTassoInfo() map[string]interface{} {
 	var tot int64
-	for _, d := range cartelleTasso() {
+	piano := pianoTogliTasso()
+	for _, d := range piano.intere {
 		tot += dimensioneCartella(d)
 	}
 	// il portachiavi è cifrato col PIN: so solo se c'è, non quante password contiene
-	return map[string]interface{}{"bytes": tot, "vault": vaultExists()}
+	// zipPdf: Tasso Zip o Tasso PDF restano sul PC (la finestra lo dice prima, F14-11)
+	return map[string]interface{}{"bytes": tot, "vault": vaultExists(), "zipPdf": piano.zipPdf}
 }
 
 // anche "Tasso (1).exe", il nome che dà il browser quando lo riscarichi
@@ -147,7 +149,7 @@ var reExeTasso = regexp.MustCompile(`(?i)^tasso[\w .()-]*\.exe$`)
 // togliTasso fa tutto il lavoro; passo(i, testo) aggiorna la finestra. Restituisce "" se è andato
 // tutto bene (e Tasso si chiude da solo), altrimenti il motivo per cui si è fermato.
 func togliTasso(rimetti bool, passo func(int, string)) string {
-	piano, msg, fatto := togliTassoPassi(rimetti, passo)
+	piano, msg, fatto := togliTassoPassi(rimetti, false, passo)
 	if msg != "" {
 		return msg
 	}
@@ -181,38 +183,90 @@ func togliTasso(rimetti bool, passo func(int, string)) string {
 	return ""
 }
 
+// avvisoTogli: davanti al testo di un passo che è un avviso (non una cosa riuscita): la finestra lo
+// mostra con ⚠️ e non si chiude da sola; il disinstallatore lo scrive come TOGLI-AVVISO.
+const avvisoTogli = "\x00avviso\x00"
+
 // togliTassoPassi: i passi 1-4 di "Togli Tasso dal PC" (impostazioni, traduzioni nei giochi,
 // attività, copie di sicurezza e registro), senza cancellare cartelle né chiudere Tasso. msg = il
 // motivo se si è fermato ("" = tutto fatto). Se va tutto bene il posto di claimRun resta preso:
 // chi chiama lo lascia (*fatto false) o lo tiene fino alla chiusura (*fatto true).
-func togliTassoPassi(rimetti bool, passo func(int, string)) (piano pianoTogli, msg string, fatto *bool) {
+// silenzioso: Tasso.exe --togli-silenzioso (disinstallatore). Lì quello che non torna com'era non
+// ferma la disinstallazione (da App e funzionalità si fermerebbe per sempre): diventa un avviso.
+func togliTassoPassi(rimetti, silenzioso bool, passo func(int, string)) (piano pianoTogli, msg string, fatto *bool) {
 	fatto = new(bool)
-	msg = togliTassoPassiDentro(rimetti, passo, &piano)
+	msg = togliTassoPassiDentro(rimetti, silenzioso, passo, &piano)
 	return piano, msg, fatto
 }
 
-func togliTassoPassiDentro(rimetti bool, passo func(int, string), pianoOut *pianoTogli) string {
+// togliControlliPrima: tutto quello che può fermare "Togli Tasso", controllato prima di cambiare
+// qualcosa (F14-9): un altro lavoro di Tasso, una traduzione che si sta installando, un gioco
+// tradotto aperto, Tasso Traduce che non è partito.
+func togliControlliPrima() string {
+	if isRunning() || updating.Load() {
+		return "Tasso sta facendo un altro lavoro (pulizia o aggiornamento): aspetta che finisca e riprova. Tasso non è stato tolto."
+	}
+	if traduce.CartellaDati() == "" {
+		// Tasso Traduce non è partito (Tasso.exe --togli-silenzioso senza traduce.Prepara): senza la
+		// sua cartella non trovo le copie dei giochi, quindi non dico "nessuna traduzione"
+		return "Non trovo la cartella di Tasso Traduce: apri Tasso e usa \"Togli Tasso dal PC\". Tasso non è stato tolto."
+	}
+	switch motivo, aperti := traduce.ControllaPrimaDiTogliere(); {
+	case motivo == "ADMIN":
+		return "Per togliere le traduzioni dai giochi Tasso deve essere aperto come amministratore: riaprilo, accetta la richiesta di Windows e riprova. Tasso non è stato tolto."
+	case motivo == "INSTALLA":
+		return "Tasso sta installando una traduzione in un gioco: aspetta che finisca e riprova. Tasso non è stato tolto."
+	case len(aperti) > 0:
+		return "Chiudi " + strings.Join(aperti, ", ") + " e riprova: con il gioco aperto non posso togliere la traduzione. Tasso non è stato tolto."
+	}
+	return ""
+}
+
+func togliTassoPassiDentro(rimetti, silenzioso bool, passo func(int, string), pianoOut *pianoTogli) string {
+	avviso := func(i int, t string) { passo(i, avvisoTogli+t) }
+	// 0. prima i controlli che possono fermare tutto: se mi fermo, non ho ancora cambiato niente
+	if msg := togliControlliPrima(); msg != "" {
+		return msg
+	}
 	// 1. impostazioni di Windows e cose accese da Tasso
 	// prima la riunione: rimette i valori di quando era partita, poi "Rimetti com'era" vince
 	officeSpegniTutto()
-	ottAvvisi := ottSpegniTutto() // Ottimizza tutto (3.2): le sue modifiche tornano com'erano, come la riunione
+	uffAvvisi := officeAltriAccount() // riunione e blocco di un altro account: non fermano più (F14-4)
+	ottAvvisi := ottSpegniTutto()     // Ottimizza tutto (3.2): le sue modifiche tornano com'erano, come la riunione
+	sfondoAvviso := sfondoPerTogli()  // lo sfondo di Tasso se ne va con Tasso: rimetto quello di prima
 	if rimetti {
 		msgs, ok, avvioNo := restoreOriginalDett()
-		if !ok {
-			return "Non ho finito di rimettere le impostazioni: " + strings.Join(msgs, " ") + " Non ho tolto niente: riprova."
-		}
-		if len(avvioNo) > 0 {
+		switch {
+		case !ok && silenzioso:
+			// dal disinstallatore non mi fermo: dico cosa non è tornato com'era
+			avviso(0, trGo("Non sono riuscito a rimettere tutte le impostazioni di Windows com'erano prima di Tasso: ")+trGoTutti(msgs))
+		case !ok:
+			// il prefisso tradotto qui: con i messaggi dentro, la finestra non traduce i pezzi
+			return trGo("Modalità riunione, Ottimizza tutto e modalità del PC sono già tornati com'erano, ma non ho finito di rimettere le altre impostazioni di Windows: ") + trGoTutti(msgs) + " " + trGo("Tasso non è stato tolto: riprova.")
+		case len(avvioNo) > 0:
 			// un programma all'avvio che non torna com'era non blocca la disinstallazione: avviso e vado avanti
-			passo(0, msgAvvioFallitiTogli(avvioNo))
-		} else {
+			avviso(0, msgAvvioFallitiTogli(avvioNo))
+		default:
 			passo(0, "Impostazioni di Windows rimesse com'erano")
 		}
 	} else {
 		passo(0, "Boost, clic automatico, modalità dell'Ufficio e modifiche di Ottimizza tutto rimessi com'erano (le altre impostazioni restano come sono)")
 	}
-	// Ottimizza tutto non blocca mai: quello che non è tornato va con le copie di sicurezza e lo dico
-	for _, a := range ottAvvisi {
-		passo(0, a)
+	if sfondoAvviso != "" {
+		passo(0, sfondoAvviso)
+	}
+	// il piano "Prestazioni elevate" aggiunto da Tasso (F20-15), anche senza "Rimetti anche…"
+	for _, m := range togliPianoCreato() {
+		if strings.HasPrefix(m, "Non ") {
+			avviso(0, m)
+		} else {
+			passo(0, m)
+		}
+	}
+	// Ottimizza tutto e l'Ufficio degli altri account non bloccano mai: quello che non è tornato va
+	// con le copie di sicurezza (o in un file sul Desktop di quell'account) e lo dico
+	for _, a := range append(ottAvvisi, uffAvvisi...) {
+		avviso(0, a)
 	}
 	// da qui nessuna pulizia programmata deve partire (restoreOriginal ha già preso e lasciato il posto)
 	if !claimRun() {
@@ -228,24 +282,15 @@ func togliTassoPassiDentro(rimetti bool, passo func(int, string), pianoOut *pian
 	autoClickStop()
 	boostOff(true) // come "Rimetti com'era" del Boost (se non era acceso non fa niente)
 	officeSpegniTutto()
-	// Se la Modalità riunione o il blocco dell'Ufficio sono ancora accesi, le loro impostazioni di
-	// prima stanno in quei file: cancellando le cartelle non si potrebbero più rimettere. Mi fermo qui.
-	// (anche quelli di un altro account del PC, riunione-<utente>.json, e quello unico della 3.1.1)
-	for _, n := range []string{"riunione*.json", "blocco*.json"} {
-		trovati, _ := filepath.Glob(filepath.Join(officeDir(), n))
-		for _, f := range trovati {
-			if !strings.Contains(filepath.Base(f), "-illeggibile-") {
-				return "Non sono riuscito a spegnere la Modalità riunione o il blocco del PC dell'Ufficio (anche di un altro account del PC): spegnili dalla sezione Ufficio di Tasso e riprova. Tasso non è stato tolto."
-			}
-		}
+	// Se la Modalità riunione o il blocco del PC di QUESTO account sono ancora accesi, le loro
+	// impostazioni di prima stanno solo in quei file: cancellando le cartelle non si potrebbero più
+	// rimettere. Mi fermo qui. (Quelli degli altri account li ha già sistemati officeAltriAccount.)
+	if ufficioAncoraAcceso() {
+		return "Non sono riuscito a spegnere la Modalità riunione o il blocco del PC di questo account. Passa alla modalità Ufficio e, in Risolvi un problema, premi di nuovo \"Modalità riunione\" o \"Blocca il PC quando ti alzi\", poi riprova. Tasso non è stato tolto."
 	}
 
-	// 2. traduzioni dentro i giochi: se un gioco è aperto mi fermo qui
-	if traduce.CartellaDati() == "" {
-		// Tasso Traduce non è partito (Tasso.exe --togli-silenzioso senza traduce.Prepara): senza la
-		// sua cartella non trovo le copie dei giochi, quindi non dico "nessuna traduzione"
-		return "Non trovo la cartella di Tasso Traduce: apri Tasso e usa \"Togli Tasso dal PC\". Tasso non è stato tolto."
-	}
+	// 2. traduzioni dentro i giochi: se un gioco è aperto mi fermo qui (l'ho già controllato
+	// all'inizio, ma il gioco si può aprire nel frattempo)
 	tolti, falliti, spariti, aManoQui, daControllare := traduce.TogliTutteLeTraduzioni()
 	if len(falliti) == 1 && falliti[0] == "ADMIN" {
 		return "Per togliere le traduzioni dai giochi Tasso deve essere aperto come amministratore: riaprilo, accetta la richiesta di Windows e riprova. Tasso non è stato tolto."
@@ -258,35 +303,46 @@ func togliTassoPassiDentro(rimetti bool, passo func(int, string), pianoOut *pian
 	}
 	if len(spariti) > 0 {
 		// non blocco: il gioco non è più dove l'avevo tradotto. Dico dove guardare.
-		passo(1, trGo("Non trovo più questi giochi dove li avevo tradotti (spostati o su un disco staccato): ")+strings.Join(spariti, ", ")+trGo(". Se li hai ancora, nella loro nuova cartella togli BepInEx, winhttp.dll, doorstop_config.ini, .doorstop_version e, se c'è, dotnet."))
+		avviso(1, trGo("Non trovo più questi giochi dove li avevo tradotti (spostati o su un disco staccato): ")+strings.Join(spariti, ", ")+trGo(". Se li hai ancora, nella loro nuova cartella togli BepInEx, winhttp.dll, doorstop_config.ini, .doorstop_version e, se c'è, dotnet."))
 	}
 	if aMano := append(aManoQui, traduce.GiochiDaSistemareAMano()...); len(aMano) > 0 {
 		// elenchi in AppData che Tasso non usa (firma che non torna o manca il segno di Tasso nel gioco): lo dico
-		passo(1, msgGiochiAMano(aMano))
+		avviso(1, msgGiochiAMano(aMano))
 	}
 	if len(daControllare) > 0 {
 		// traduzione tolta, ma qualche file non è tornato com'era: lo dico a parte
-		passo(1, msgGiochiDaControllare(daControllare))
+		avviso(1, msgGiochiDaControllare(daControllare))
 	}
+	setMu.Lock()
+	ufficio := settings.Profile == "ufficio"
+	setMu.Unlock()
 	if len(tolti) > 0 {
 		passo(1, trGo("Traduzioni tolte dai giochi: ")+strings.Join(tolti, ", "))
-	} else {
-		passo(1, "Nessuna traduzione dentro i giochi da togliere")
+	} else if !ufficio {
+		passo(1, "Nessuna traduzione dentro i giochi da togliere") // in Ufficio non se ne parla (F14-6)
 	}
 
 	// 3. partenza con Windows e attività programmate
 	setAutostart(false)
 	setWeekly(false)
 	_, _ = runHidden("schtasks.exe", "/Delete", "/TN", taskProfilo, "/F")
-	runPS(`Get-ScheduledTask -TaskPath '\Tasso\' -ErrorAction SilentlyContinue | Unregister-ScheduledTask -Confirm:$false -ErrorAction SilentlyContinue
-try { $s = New-Object -ComObject Schedule.Service; $s.Connect(); $s.GetFolder('\').DeleteFolder('Tasso', 0) } catch {}`, time.Minute, nil)
-	passo(2, "Partenza con Windows e pulizie automatiche tolte")
+	// F20-9: poi ricontrollo, e "tolte" lo scrivo solo se in \Tasso\ non è rimasto niente
+	r := runPS(`Get-ScheduledTask -TaskPath '\Tasso\' -ErrorAction SilentlyContinue | Unregister-ScheduledTask -Confirm:$false -ErrorAction SilentlyContinue
+try { $s = New-Object -ComObject Schedule.Service; $s.Connect(); $s.GetFolder('\').DeleteFolder('Tasso', 0) } catch {}
+$resto = -1
+try { $resto = @(Get-ScheduledTask -TaskPath '\Tasso\' -ErrorAction Stop).Count } catch { if ($_.CategoryInfo.Category -eq 'ObjectNotFound') { $resto = 0 } }
+[Console]::Out.WriteLine('JSON ' + $resto)`, time.Minute, nil)
+	if strings.TrimSpace(r.JSON) == "0" {
+		passo(2, "Partenza con Windows e pulizie automatiche tolte")
+	} else {
+		avviso(2, "Non sono riuscito a togliere tutte le attività pianificate di Tasso: apri Utilità di pianificazione di Windows e cancella la cartella Tasso.")
+	}
 
 	// 4. copie di sicurezza in Documenti (backup del registro, plugin dei giochi messi da parte)
 	if nonSalvate, altrove := salvaCopieDiSicurezza(); len(nonSalvate) > 0 {
 		return msgCopieNonSalvate(nonSalvate)
 	} else if len(altrove) > 0 {
-		passo(2, msgCopieAltrove(altrove))
+		avviso(2, msgCopieAltrove(altrove))
 	}
 	piano := pianoTogliTasso()
 	_ = registry.DeleteKey(registry.CURRENT_USER, `Software\Tasso\PrimaDelleModalita`)
@@ -308,7 +364,8 @@ try { $s = New-Object -ComObject Schedule.Service; $s.Connect(); $s.GetFolder('\
 // ---------------- Tasso.exe --togli-silenzioso (lo usa il disinstallatore) ----------------
 
 // argTogliSilenzioso: il disinstallatore di Tasso Setup (anche da App e funzionalità) chiede a
-// Tasso di togliere le sue cose prima di cancellare Tasso.exe: Boost, clic automatico e modalità
+// Tasso di togliere le sue cose prima di cancellare Tasso.exe: impostazioni di Windows rimesse
+// com'erano (come "Rimetti anche…" dentro Tasso), Boost, clic automatico e modalità
 // dell'Ufficio spenti, traduzioni tolte dai giochi, attività pianificate, copie di sicurezza in
 // Documenti, chiavi del registro di Tasso. Senza finestra. Le cartelle (lavoro, strumenti,
 // driver, %LOCALAPPDATA%) le toglie il disinstallatore (i dati solo se l'utente lo conferma).
@@ -322,7 +379,8 @@ const segnoTogliSilenzioso = "tasso-togli-silenzioso-v1"
 // togliSilenziosoSeChiesto: da chiamare in main dopo loadSettings (con il mutex della copia unica
 // preso). Se è stato chiesto --togli-silenzioso fa il lavoro e restituisce il codice d'uscita.
 // Uscita (righe sullo standard output, che legge il disinstallatore): "TOGLI-OK" e codice 0, oppure
-// "TOGLI-NO <motivo>" e codice 1 (adesso non si può: niente è stato tolto).
+// "TOGLI-NO <motivo>" e codice 1 (adesso non si può: niente è stato tolto). Prima di TOGLI-OK ci
+// possono essere righe "TOGLI-AVVISO <testo>": cose che non sono tornate com'erano, da mostrare.
 func togliSilenziosoSeChiesto() (codice int, chiesto bool) {
 	for _, a := range os.Args[1:] {
 		if a == argTogliSilenzioso {
@@ -338,7 +396,14 @@ func togliSilenzioso(out io.Writer) int {
 	// copie di sicurezza). Il disinstallatore lo legge riga per riga e lo mostra (R2).
 	fmt.Fprintln(out, "TOGLI-PASSO 0")
 	ultimo := 0
-	_, msg, _ := togliTassoPassi(false, func(i int, _ string) {
+	// F20-1: come "Togli Tasso dal PC" con "Rimetti anche le impostazioni di Windows" (acceso di
+	// base): prima le impostazioni tornano com'erano, poi si cancella la memoria di com'erano.
+	// Quello che non torna non ferma la disinstallazione: "TOGLI-AVVISO <testo>", che il
+	// disinstallatore mostra alla fine.
+	_, msg, _ := togliTassoPassi(true, true, func(i int, t string) {
+		if strings.HasPrefix(t, avvisoTogli) {
+			fmt.Fprintln(out, "TOGLI-AVVISO "+unaRiga(trGo(strings.TrimPrefix(t, avvisoTogli))))
+		}
 		if i+1 > ultimo && i+1 <= 2 {
 			ultimo = i + 1
 			fmt.Fprintf(out, "TOGLI-PASSO %d\n", ultimo)
@@ -351,6 +416,35 @@ func togliSilenzioso(out io.Writer) int {
 	releaseRun()
 	fmt.Fprintln(out, "TOGLI-OK")
 	return 0
+}
+
+// trGoTutti: i messaggi tradotti uno per uno, uniti da uno spazio (dentro una frase più lunga la
+// finestra non li tradurrebbe più).
+func trGoTutti(msgs []string) string {
+	t := make([]string, 0, len(msgs))
+	for _, m := range msgs {
+		t = append(t, trGo(m))
+	}
+	return strings.Join(t, " ")
+}
+
+// sfondoPerTogli (F20-8): se adesso c'è lo sfondo di Tasso, rimetto quello di prima (l'immagine di
+// Tasso se ne va con Tasso, e la copia del tuo con le sue cartelle). "" = niente da dire; con
+// avvisoTogli davanti se non ci sono riuscito.
+func sfondoPerTogli() string {
+	setMu.Lock()
+	registrato := settings.SfondoTasso
+	setMu.Unlock()
+	if sfondoMessoOra(registrato) == "" {
+		return ""
+	}
+	switch sfondoRimetti() {
+	case "ok":
+		return "Sfondo del desktop: rimesso il tuo di prima"
+	case "errore":
+		return avvisoTogli + "Non sono riuscito a rimettere il tuo sfondo del desktop di prima: sceglilo in Impostazioni > Personalizzazione > Sfondo. La copia della tua immagine va con le copie di sicurezza in Documenti."
+	}
+	return ""
 }
 
 // unaRiga: il motivo su una riga sola (il disinstallatore legge fino al primo a capo).
@@ -466,6 +560,9 @@ func salvaCopieDiSicurezza() (nonSalvate, altrove []string) {
 	// backup fatti dalle voci dell'Ufficio (stessa cartella di Windows, non la variabile d'ambiente)
 	if local, e := windows.KnownFolderPath(windows.FOLDERID_LocalAppData, 0); e == nil && local != "" {
 		salva(filepath.Join(local, "Tasso", "backup-registro"), in("backup del registro - ufficio"), "backup del registro - ufficio", false)
+		// la copia del tuo sfondo del desktop di prima (sfondo_desktop.go): senza, dopo Togli Tasso non
+		// si potrebbe più rimettere (F20-8)
+		salva(filepath.Join(local, "Tasso", "sfondi"), in("sfondo del desktop di prima"), "sfondo del desktop di prima", false)
 	}
 	// copie dei giochi: tutto quello che resta (plugin messi da parte, originali di giochi che non
 	// ho potuto sistemare perché disinstallati o su un disco staccato, elenchi illeggibili)
@@ -633,14 +730,15 @@ func scriptCancellazione(piano pianoTogli) (string, error) {
 	cmd.WriteString("@echo off\r\n")
 	// il file è in UTF-8: senza questo un nome utente con accenti (Nicolò) darebbe percorsi sbagliati
 	fmt.Fprintf(&cmd, "\"%s\" 65001 >nul\r\n", filepath.Join(sistema32(), "chcp.com"))
-	// aspetto la chiusura di Tasso (al massimo 2 minuti)
-	// se dopo 2 minuti Tasso è ancora aperto non cancello niente (i file sarebbero in uso)
+	// aspetto la chiusura di Tasso (al massimo circa un quarto d'ora: con degli avvisi da leggere la
+	// finestra resta aperta finché non premi "Chiudi adesso", al massimo 10 minuti, F14-6)
+	// se dopo Tasso è ancora aperto non cancello niente (i file sarebbero in uso)
 	sys := sistema32()
 	if strings.ContainsAny(sys, "\"%&|<>^\r\n") {
 		return "", fmt.Errorf("percorso strano: %s", sys)
 	}
 	tl, fd, pg := filepath.Join(sys, "tasklist.exe"), filepath.Join(sys, "find.exe"), filepath.Join(sys, "PING.EXE")
-	fmt.Fprintf(&cmd, "for /L %%%%i in (1,1,120) do (\"%s\" /FI \"PID eq %d\" | \"%s\" \"%d\" >nul || goto via & \"%s\" -n 2 127.0.0.1 >nul)\r\n(goto) 2>nul & del /f /q \"%%~f0\"\r\n:via\r\n", tl, os.Getpid(), fd, os.Getpid(), pg)
+	fmt.Fprintf(&cmd, "for /L %%%%i in (1,1,720) do (\"%s\" /FI \"PID eq %d\" | \"%s\" \"%d\" >nul || goto via & \"%s\" -n 2 127.0.0.1 >nul)\r\n(goto) 2>nul & del /f /q \"%%~f0\"\r\n:via\r\n", tl, os.Getpid(), fd, os.Getpid(), pg)
 	strano := func(p string) bool {
 		return !filepath.IsAbs(p) || strings.HasPrefix(p, `\\`) || strings.ContainsAny(p, "\"%&|<>^\r\n")
 	}

@@ -17,8 +17,8 @@ import (
 )
 
 const (
-	impronteRegoleGo = "16b10d79cef070a80ed840604a57d29303d19eb9b1ee28b41c7c17b308c208a8"
-	impronteRegoleJS = "cb8cd015b42b3c26037fc1f9a5d438399641cacb6150481a936d4b9d5da92580"
+	impronteRegoleGo = "5ba184d24c270426c1a8aee604866d9e0873c54b2b072a9be70a77fae8d7c145"
+	impronteRegoleJS = "6fae8e7de09ab7b9511d51465c29b05d87cd5169fb685d89a003cd33bdba6686"
 	percorsoPagina   = "../ui/index.html"
 )
 
@@ -65,7 +65,7 @@ func TestPaginaControllaComeGo(t *testing.T) {
 		t.Skip("node non c'è")
 	}
 	js := pezzo(t, pagina(t), "/* ==== REGOLE DEL NOME: INIZIO ====", "/* ==== REGOLE DEL NOME: FINE ==== */")
-	casi := []string{"Sergio", "  Gian   Luca ", "S", "", "Sergio★", "<b>x</b>", "Niccolò", "José-María", "Анна",
+	casi := []string{"Sergio", "  Gian   Luca ", "S", "", "Sergio★", "<b>x</b>", "Niccolò", "José-María", "Анна", "D'Angelo", "O’Brien", "'", "’’",
 		"e\u0301va", "\u0301ab", "a\u0301\u0302\u0303\u0304", "a \u0301", "ㅤㅤ", "Sergio\ufe0f", "\tAnna\u00a0Maria\n", "\ufeffLuca", strings.Repeat("è", 21),
 		// 3.2: le scritture delle lingue vive (tamil, bengali, etiope, 々, birmano, ol chiki, adlam...)
 		"தமிழ்செல்வி", "সৌমিত্র", "ኃይሌ", "佐々木", "ကြွေး", "ᱥᱟᱱᱛᱟᱲᱤ", "𞤀𞤣𞤤𞤢𞤥", "ລາວ", "ខ្មែរ", "ᏣᎳᎩ", "ꦗꦮ", "𠮷野", "Kɔfi",

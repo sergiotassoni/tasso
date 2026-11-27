@@ -813,7 +813,7 @@ func steamCoverFor(name string) string {
 	loadCoverCache()
 	coverCache[key] = coverHit{App: app, When: time.Now().Unix()}
 	if b, err := json.Marshal(coverCache); err == nil {
-		_ = os.WriteFile(coverCacheFile(), b, 0o644)
+		_ = scriviFileApp(coverCacheFile(), b, 0o644) // F20-6: niente collegamenti o giunzioni
 	}
 	coverMu.Unlock()
 	return app
@@ -877,7 +877,7 @@ func steamHeaderFor(app string) string {
 	loadCoverCache()
 	coverCache["#"+app] = coverHit{Hdr: hdr, When: time.Now().Unix()}
 	if b, err := json.Marshal(coverCache); err == nil {
-		_ = os.WriteFile(coverCacheFile(), b, 0o644)
+		_ = scriviFileApp(coverCacheFile(), b, 0o644) // F20-6: niente collegamenti o giunzioni
 	}
 	coverMu.Unlock()
 	return hdr

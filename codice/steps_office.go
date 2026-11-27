@@ -301,7 +301,12 @@ else { Say 'Non vedo stampanti col cavo USB. Prova così: stampante accesa, stac
 	{ID: "of_scan", Name: "Lo scanner non funziona", Desc: "Riavvia il servizio di Windows per scanner e fotocamere, sblocca gli scanner bloccati e ti apre il programma per scansionare.", Level: 0, Minutes: 0.4, Timeout: 4 * time.Minute, Script: ofs(`
 Say 'Riavvio il servizio di Windows per scanner (Acquisizione immagini)...'
 $sv = Get-Service -Name stisvc -ErrorAction SilentlyContinue
-if ($sv -and $sv.StartType -eq 'Disabled') { Set-Service -Name stisvc -StartupType Manual -ErrorAction SilentlyContinue; Say 'Il servizio degli scanner era spento del tutto: l''ho rimesso come lo vuole Windows (manuale).' }
+if ($sv -and $sv.StartType -eq 'Disabled') {
+  Set-Service -Name stisvc -StartupType Manual -ErrorAction SilentlyContinue
+  # F20-10: lo dico solo se, rileggendo, è cambiato davvero
+  if ([string](Get-Service -Name stisvc -ErrorAction SilentlyContinue).StartType -ne 'Disabled') { Say 'Il servizio degli scanner era spento del tutto: l''ho rimesso come lo vuole Windows (manuale). Per tornare indietro: in un prompt dei comandi da amministratore scrivi  sc config stisvc start= disabled' }
+  else { Say 'ATTENZIONE  Il servizio degli scanner è spento del tutto e Windows non mi lascia riaccenderlo (forse lo decide l''ufficio): senza, lo scanner non funziona.' }
+}
 Restart-Service -Name stisvc -Force -ErrorAction SilentlyContinue
 Start-Service -Name stisvc -ErrorAction SilentlyContinue
 Restart-Service -Name ShellHWDetection -Force -ErrorAction SilentlyContinue
@@ -1031,7 +1036,12 @@ if ($arm.Count) { Say ('Possono svegliare il PC: ' + ($arm -join ', ') + '. Se s
 	// ---------- Ora, OneDrive e sicurezza ----------
 	{ID: "of_time", Name: "L'ora è sbagliata (e i siti danno errore)", Desc: "Rimette l'ora giusta da internet. Con l'ora sbagliata i siti dicono \"connessione non privata\" e VPN e Office non si collegano.", Level: 0, Minutes: 0.3, Timeout: 3 * time.Minute, Script: ofs(`
 $sv = Get-Service -Name W32Time -ErrorAction SilentlyContinue
-if ($sv -and $sv.StartType -eq 'Disabled') { Set-Service -Name W32Time -StartupType Manual -ErrorAction SilentlyContinue; Say 'Il servizio dell''ora di Windows era spento del tutto: riacceso.' }
+if ($sv -and $sv.StartType -eq 'Disabled') {
+  Set-Service -Name W32Time -StartupType Manual -ErrorAction SilentlyContinue
+  # F20-10: lo dico solo se, rileggendo, è cambiato davvero
+  if ([string](Get-Service -Name W32Time -ErrorAction SilentlyContinue).StartType -ne 'Disabled') { Say 'Il servizio dell''ora di Windows era spento del tutto: riacceso. Per tornare indietro: in un prompt dei comandi da amministratore scrivi  sc config W32Time start= disabled' }
+  else { Say 'ATTENZIONE  Il servizio dell''ora di Windows è spento del tutto e Windows non mi lascia riaccenderlo (forse lo decide l''ufficio): senza, l''ora non si sincronizza.' }
+}
 Start-Service -Name W32Time -ErrorAction SilentlyContinue
 $dom = [bool](Get-CimInstance Win32_ComputerSystem -ErrorAction SilentlyContinue).PartOfDomain
 Say 'Sincronizzo l''ora...'

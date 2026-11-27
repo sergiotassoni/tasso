@@ -74,6 +74,12 @@ function Fine-Riunione([string]$perche) {
   $t = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\PushNotifications'
   if ([string]$s.noc -match '^[01]$') { Set-ItemProperty -LiteralPath $n -Name 'NOC_GLOBAL_SETTING_TOASTS_ENABLED' -Value ([int]$s.noc) -Type DWord -ErrorAction SilentlyContinue } else { Remove-ItemProperty -LiteralPath $n -Name 'NOC_GLOBAL_SETTING_TOASTS_ENABLED' -ErrorAction SilentlyContinue }
   if ([string]$s.toast -match '^[01]$') { Set-ItemProperty -LiteralPath $t -Name 'ToastEnabled' -Value ([int]$s.toast) -Type DWord -ErrorAction SilentlyContinue } else { Remove-ItemProperty -LiteralPath $t -Name 'ToastEnabled' -ErrorAction SilentlyContinue }
+  # F20-9: rileggo, e "tornati come prima" lo dice solo chi è tornato davvero (2 = non tutto)
+  $parz = $false
+  foreach ($kv in @(@($n, 'NOC_GLOBAL_SETTING_TOASTS_ENABLED', [string]$s.noc), @($t, 'ToastEnabled', [string]$s.toast))) {
+    $ora = $null; try { $ora = (Get-Item -LiteralPath $kv[0] -ErrorAction Stop).GetValue($kv[1], $null) } catch {}
+    if ($kv[2] -match '^[01]$') { if ($ora -eq $null -or [string]$ora -ne $kv[2]) { $parz = $true } } elseif ($ora -ne $null) { $parz = $true }
+  }
   if ([string]$s.plan -match '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$') { & (Join-Path $TassoSys32 'powercfg.exe') /setactive ([string]$s.plan) | Out-Null }
   if ($s.wu -eq $true) {
     # tolgo la pausa solo se è ancora quella messa da Tasso (se nel frattempo l'hai cambiata tu, resta)
@@ -91,6 +97,7 @@ function Fine-Riunione([string]$perche) {
   Add-Content -LiteralPath (Join-Path $OfState 'riunione.log') -Value ((Get-Date).ToString('yyyy-MM-dd HH:mm') + ' spenta (' + $perche + ')') -ErrorAction SilentlyContinue
   # per ultimo: se qualcosa si interrompe a metà, al prossimo giro si rimette tutto di nuovo
   Remove-Item -LiteralPath $f -Force -ErrorAction SilentlyContinue
+  if ($parz) { return 2 }
   return $true
 }
 `
@@ -142,7 +149,10 @@ else { Say 'Niente da riparare in automatico: segui il consiglio qui sopra.' }
 $f = Join-Path $OfState ('riunione-' + $OfSid + '.json')
 ` + ofRiunioneFine + `
 if (Test-Path -LiteralPath $f) {
-  if (Fine-Riunione 'pulsante') {
+  $fine = Fine-Riunione 'pulsante'
+  if (2 -eq $fine) { # ($true -eq 2 sarebbe vero: il numero a sinistra)
+    Say 'ATTENZIONE  Modalità riunione spenta: OneDrive, aggiornamenti e alimentazione sono tornati come prima, ma Windows non mi ha lasciato rimettere le notifiche. Controllale tu in Impostazioni > Sistema > Notifiche.'
+  } elseif ($fine) {
     Say 'Modalità riunione SPENTA: notifiche, OneDrive, aggiornamenti e alimentazione sono tornati come prima.'
   } else {
     Say 'ATTENZIONE  Modalità riunione spenta, ma il file con le impostazioni di prima era rovinato: non ho potuto rimetterle. Controlla tu notifiche (Impostazioni > Sistema > Notifiche), OneDrive e il piano di alimentazione.'
