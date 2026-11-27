@@ -53,7 +53,10 @@ const ELENCO = { tipo: "zip", dim: 248512000, metodo: "Deflate, Store", voci: [
   { nome: "Foto vacanze 2026/leggimi.txt", dim: 2048, compresso: 900, quando: giorni(21) },
 ]};
 const pausa = ms => new Promise(r => setTimeout(r, ms));
-window.goAvvio = async () => ({ lingua: SCENA[1] || "it", lingue: ["it","en","es","fr","de","pt","pl"], testi: TESTI, versione: "1.3.1", menu: true, assoc: false, formato: "zip", livello: "massima", desktop: "C:\\Users\\Utente\\Desktop", formati: ["zip","7z","tar","targz","tarxz","tarbz2","tarzst"] });
+window.goAvvio = async () => ({ lingua: SCENA[1] || "it", lingue: ["it","en","es","fr","de","pt","pl"], testi: TESTI, versione: "1.3.1", menu: true, assoc: false, formato: "zip", livello: "massima", desktop: "C:\\Users\\Utente\\Desktop", formati: ["zip","7z","tar","targz","tarxz","tarbz2","tarzst"], nome: SCENA[2] === "senza" ? "" : (SCENA[2] ? decodeURIComponent(SCENA[2]) : "Sergio") });
+// "Il tuo nome": #home-it (Sergio), #home-it-senza (senza nome), #nome-it, #nomeerr-it
+window.goNome = async () => S.nome || "";
+window.goNomeSalva = async (n) => ({ ok: true, nome: n });
 window.goLuoghi = async () => ({ luoghi: LUOGHI, iniziale: D, nascosti: false });
 window.goEsplora = async (id, dir) => { setTimeout(() => tz.cartella({ id, codice: "", el: { percorso: dir || D, padre: "C:\\Users\\Utente", voci: VOCI, nascosti: 2, troppi: false } }), 20); return "ok"; };
 window.goElenca = async (p) => { setTimeout(() => tz.elenco({ percorso: p, elenco: ELENCO }), 30); return "ok"; };
@@ -97,6 +100,7 @@ window.addEventListener("load", async () => {
   if (s === "fatto") { mostraFatto({ tipo: "comprimi", file: 8, originale: 175363063, compresso: 98304000, percorso: D + "\\Foto vacanze 2026.7z", saltati: [] }, 0); }
   if (s === "errore") { mostraErrore({ codice: "generico", percorso: D + "\\driver-stampante.rar", dettagli: "unexpected EOF" }); }
   if (s === "password") { S.corrente = D + "\\Backup documenti.7z"; chiediPassword(true); }
+  if (s === "nome" || s === "nomeerr") { document.getElementById("nomeBtn").click(); await pausa(80); if (s === "nomeerr") { const i = document.getElementById("nomeIn"); i.value = "Sergio★"; i.dispatchEvent(new Event("input")); } }
   if (s === "avviso") { document.querySelector('#v-home .card.e').dataset.zona; S.dropDove = "estrai"; tz.trascinati([D + "\\note.txt"]); }
 });
 </script>

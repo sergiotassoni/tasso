@@ -250,6 +250,7 @@ func manda(nome string, dati interface{}) {
 
 func collega(w webview2.WebView) {
 	collegaAggiornamenti(w) // aggiornamenti_windows.go
+	collegaNome(w)          // nome_windows.go: "Il tuo nome", lo stesso di Tasso e Tasso PDF
 	_ = w.Bind("goAvvio", func() map[string]interface{} {
 		return map[string]interface{}{
 			"lingua":   lingua(),
@@ -262,6 +263,7 @@ func collega(w webview2.WebView) {
 			"livello":  impostazioniCopia().Livello,
 			"desktop":  cartellaDesktop(),
 			"formati":  archivio.FormatiCreabili,
+			"nome":     leggiNome(), // "Il tuo nome" ("" = senza nome)
 		}
 	})
 	_ = w.Bind("goScegliFile", func() []string {

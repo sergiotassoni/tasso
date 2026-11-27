@@ -182,6 +182,27 @@ body.mini .grande svg{width:20px;height:20px}
 body.mini .centro{padding-top:8px}
 body.mini .percorso{font-size:11.5px;padding:6px 10px}
 footer .sep{width:1px;height:20px;background:var(--line);margin:0 8px}
+/* "Il tuo nome" (Ecosistema Tasso 3.2): nella barra in basso e nella sua finestrella */
+footer .nomef{display:flex;align-items:center;gap:6px;color:var(--muted);white-space:nowrap;flex:none}
+footer .nomef svg{color:var(--a4);flex:none}
+footer .nomef b{color:var(--text);font-weight:600;max-width:150px;overflow:hidden;text-overflow:ellipsis}
+footer .nomef button{background:none;border:0;padding:2px 4px;color:var(--a4);font:inherit;font-weight:600;cursor:pointer;border-radius:4px}
+footer .nomef button:hover{text-decoration:underline}
+footer .eco{white-space:nowrap} /* con il nome la barra è più piena: "Ecosistema Tasso" resta su una riga */
+#nomeMod{position:fixed;inset:0;background:rgba(5,6,10,.66);display:none;place-items:center;z-index:72;padding:20px}
+#nomeMod.on{display:grid}
+#nomeMod .box{background:var(--panel);border:1px solid var(--line2);border-radius:var(--r2);padding:22px 24px;width:min(480px,100%);display:flex;flex-direction:column;gap:12px;box-shadow:0 16px 48px rgba(0,0,0,.5)}
+#nomeMod h2{font-size:15px;margin:0}
+#nomeMod p{margin:0;color:var(--soft);line-height:1.55;font-size:13px}
+#nomeMod .riga{display:flex;align-items:center;gap:10px}
+#nomeMod input{font-size:15px;font-weight:600;min-height:42px;padding:0 12px}
+#nomeMod input.err{border-color:var(--a4)}
+#nomeMod .cont{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
+#nomeMod .cont.err{color:var(--a4)}
+#nomeMod .msg{font-size:12px;color:var(--muted);line-height:1.5}
+#nomeMod .msg.err{color:var(--a4);font-weight:600;font-size:12.5px}
+#nomeMod .solo{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)}
+#nomeMod .solo svg{color:var(--a4)}
 /* schede della schermata iniziale illuminate mentre trascini */
 .card{transition:border-color .2s,background-color .2s,box-shadow .2s,opacity .2s}
 .card .lascia{position:absolute;left:24px;right:24px;bottom:24px;min-height:32px;display:none;align-items:center;justify-content:center;gap:8px;border-radius:6px;border:1px dashed var(--line2);color:var(--muted);font-family:var(--body);font-weight:500;font-size:13px;transition:border-color .2s,color .2s,background-color .2s}
@@ -536,6 +557,8 @@ select.sel,#c-livello{background:var(--bg);color:inherit;border:1px solid var(--
     <span class="sep"></span>
     <label class="sw" title=""><input type="checkbox" id="assoc"><span></span></label>
     <div class="lbl"><span data-t="assoc_interruttore"></span></div>
+    <span class="sep"></span>
+    <div class="nomef" id="nomeF"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg><span data-t="nome_tuo"></span><b id="nomeB" translate="no"></b><button type="button" id="nomeBtn"></button></div>
     <span class="eco" data-t="ecosistema"></span><span class="ver" id="ver" role="button" tabindex="0"></span><span class="ver" id="lic" role="button" tabindex="0" data-t="licenze" style="margin-left:10px"></span>
   </footer>
 </div>
@@ -544,6 +567,14 @@ select.sel,#c-livello{background:var(--bg);color:inherit;border:1px solid var(--
 <div id="toast"></div>
 <div id="modale"><div class="box"><div id="m-ico"></div><h2 id="m-titolo"></h2><p id="m-testo"></p><dl class="dati" id="m-dati" hidden></dl><div class="row" style="justify-content:flex-end"><button class="btn ghost" id="m-no" data-t="annulla"></button><button class="btn blu" id="m-si"></button></div></div></div>
 <div id="ctx"></div>
+<div id="nomeMod" role="dialog" aria-modal="true" aria-labelledby="nomeTit"><div class="box">
+  <h2 id="nomeTit" data-t="nome_titolo"></h2>
+  <p data-t="nome_sotto"></p>
+  <div class="riga"><input type="text" id="nomeIn" spellcheck="false" autocomplete="off" data-tp="nome_campo" aria-describedby="nomeMsg"><span class="cont" id="nomeCont" aria-hidden="true"></span></div>
+  <div class="msg" id="nomeMsg" role="status" aria-live="polite"></div>
+  <div class="solo"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span data-t="nome_solo_pc"></span></div>
+  <div class="row" style="justify-content:flex-end"><button class="btn ghost" id="nomeNo" data-t="annulla"></button><button class="btn blu" id="nomeSi" data-t="nome_salva"></button></div>
+</div></div>
 
 <script>
 "use strict";
@@ -583,6 +614,7 @@ function applicaTesti() {
   document.querySelectorAll("[data-tt]").forEach(e => { e.title = t(e.dataset.tt); e.setAttribute("aria-label", t(e.dataset.tt)); });
   if (X.el) { disegnaLuoghi(); disegnaEsplora(); }
   if (S.vista === "guida") disegnaGuida();
+  nomeDisegna();
 }
 function dim(n) {
   const f = new Intl.NumberFormat(S.lingua, { maximumFractionDigits: 1 });
@@ -1817,6 +1849,62 @@ $("assoc").onchange = async () => {
   $("assoc").checked = !!(r && r.on);
   toast(r && r.ok ? (voglio ? t("assoc_attivo") : t("assoc_tolto")) : t("assoc_errore"));
 };
+const SALUTO_SEL = "#v-home h1"; // "Ciao Sergio, cosa vuoi fare?"
+// ---------- "Il tuo nome" (Ecosistema Tasso 3.2) ----------
+// Lo stesso nome di Tasso e degli altri programmi (HKCU\Software\Tasso\Nome), solo sul PC.
+// Sulla pagina entra sempre con textContent. Le regole sono quelle di nome.go / nome/nome.go.
+function nomePulisci(s) { return String(s == null ? "" : s).replace(/\s+/g, " ").trim(); }
+function nomeControlla(s) {
+  const c = [...s];
+  if (c.length < 2) return { codice: "corto" };
+  if (c.length > 20) return { codice: "lungo" };
+  for (let i = 0; i < c.length; i++) {
+    const r = c[i];
+    if (r === " " || r === "." || r === "-" || r === "_" || /^[\p{L}\p{Nd}]$/u.test(r) || (i > 0 && /^\p{M}$/u.test(r))) continue;
+    if (/^[\p{C}\p{Z}]$/u.test(r)) return { codice: "invisibile" };
+    return { codice: "simbolo", simbolo: r };
+  }
+  return c.some(r => /^[\p{L}\p{Nd}]$/u.test(r)) ? { codice: "" } : { codice: "senza" };
+}
+// Fine delle regole (pagina_test.go le confronta con quelle di Go).
+function nomeDisegna() {
+  const n = S.nome || "";
+  const h = document.querySelector(SALUTO_SEL);
+  if (h) h.textContent = n ? t("domanda_nome", { n }) : t("domanda");
+  $("nomeB").textContent = n; $("nomeB").hidden = !n;
+  $("nomeBtn").textContent = n ? t("nome_cambia") : t("nome_aggiungi");
+}
+function nomeCampo() {
+  const p = nomePulisci($("nomeIn").value), e = nomeControlla(p), err = !!p && !!e.codice, m = $("nomeMsg");
+  $("nomeCont").textContent = [...p].length + " / 20"; $("nomeCont").classList.toggle("err", err);
+  $("nomeIn").classList.toggle("err", err); $("nomeIn").setAttribute("aria-invalid", err ? "true" : "false");
+  m.className = "msg" + (err ? " err" : "");
+  m.textContent = err ? t("nome_err_" + e.codice, { s: e.simbolo || "" }) : t("nome_regole");
+  $("nomeSi").disabled = !!e.codice;
+  return e;
+}
+function nomeApri() {
+  $("nomeIn").value = S.nome || ""; nomeCampo();
+  $("nomeMod").classList.add("on"); setTimeout(() => { $("nomeIn").focus(); $("nomeIn").select(); }, 30);
+}
+function nomeChiudi() { $("nomeMod").classList.remove("on"); $("nomeBtn").focus(); }
+async function nomeSalva() {
+  if ($("nomeSi").disabled || nomeCampo().codice) return;
+  $("nomeSi").disabled = true;
+  const r = await goNomeSalva(nomePulisci($("nomeIn").value));
+  $("nomeSi").disabled = false;
+  if (!r || !r.ok) { const m = $("nomeMsg"); m.className = "msg err"; m.textContent = t("nome_err_" + ((r && r.errore) || "registro"), { s: (r && r.simbolo) || "" }); return; }
+  S.nome = r.nome; nomeChiudi(); nomeDisegna(); toast(t("nome_salvato", { n: r.nome }));
+}
+$("nomeBtn").onclick = nomeApri;
+$("nomeNo").onclick = nomeChiudi;
+$("nomeSi").onclick = nomeSalva;
+$("nomeIn").addEventListener("input", nomeCampo);
+$("nomeIn").addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); nomeSalva(); } else if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); nomeChiudi(); } });
+$("nomeMod").addEventListener("mousedown", e => { if (e.target === $("nomeMod")) nomeChiudi(); });
+// cambiato in un altro programma dell'Ecosistema mentre questo era aperto: lo rileggo quando la finestra torna in primo piano
+window.addEventListener("focus", async () => { if ($("nomeMod").classList.contains("on") || typeof goNome !== "function") return; const n = await goNome(); if (typeof n === "string" && n !== (S.nome || "")) { S.nome = n; nomeDisegna(); } });
+
 // niente "Indietro" del browser
 history.pushState(null, "", location.href);
 window.addEventListener("popstate", () => history.pushState(null, "", location.href));
@@ -1826,6 +1914,7 @@ const INIZIO = window.__TZ_INIZIO__ || { modo: "", percorsi: [] };
 (async function avvio() {
   const a = await goAvvio();
   S.lingua = a.lingua; S.testi = a.testi; S.lingue = a.lingue; S.livello = a.livello || "massima";
+  S.nome = typeof a.nome === "string" ? a.nome : ""; // Il tuo nome
   S.formato = a.formato === "7z" ? "7z" : "zip"; // qui solo .zip e .7z; tutti gli altri nella procedura guidata
   if (a.formati && a.formati.length) S.formati = a.formati;
   if (INIZIO.mini) document.body.classList.add("mini");
