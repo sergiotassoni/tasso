@@ -165,6 +165,7 @@ func main() {
 		}()
 	}
 	defer traduce.Chiudi()
+	defer screenHzUndoAllaChiusura()
 	startLiveMonitor()
 	startGameWatcher()
 	startOverlay()

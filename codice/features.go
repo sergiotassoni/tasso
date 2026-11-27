@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"runtime/debug"
 	"sort"
 	"strings"
 	"sync"
@@ -81,6 +82,7 @@ func async(kind string, f func()) string {
 		}()
 		defer func() {
 			if r := recover(); r != nil {
+				logPanic("lavoro "+kind, r, debug.Stack()) // in crash.txt, per capire cosa è successo
 				emit("onBgError", map[string]interface{}{"kind": kind, "msg": "Qualcosa è andato storto. Riprova; se succede ancora, riavvia Tasso."})
 			}
 		}()

@@ -16,6 +16,7 @@ package traduce
 import (
 	"archive/zip"
 	"crypto/rand"
+	"debug/pe"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -159,6 +160,34 @@ func estraiInGioco(zipPath, cartella, copie string, m *ManifestoMod, inCima map[
 	}
 	defer r.Close()
 	base := filepath.Clean(cartella) + string(os.PathSeparator)
+	// prima giro a vuoto: se qualcosa non va (percorso fuori dal gioco, cartella del gioco già
+	// esistente) mi fermo PRIMA di toccare un solo file
+	prova := map[string]bool{}
+	for k, v := range inCima {
+		prova[k] = v
+	}
+	for _, f := range r.File {
+		if !voluto(f.Name) {
+			continue
+		}
+		dest := filepath.Join(cartella, filepath.FromSlash(strings.ReplaceAll(f.Name, `\`, "/")))
+		if !strings.HasPrefix(filepath.Clean(dest), base) {
+			return fmt.Errorf("percorso non valido nello zip: %s", f.Name)
+		}
+		rel, _ := filepath.Rel(cartella, dest)
+		primo := strings.Split(filepath.ToSlash(rel), "/")[0]
+		if prova[primo] {
+			continue
+		}
+		if _, err := os.Stat(dest); err == nil {
+			continue
+		}
+		if _, err := os.Stat(filepath.Join(cartella, primo)); err != nil {
+			prova[primo] = true
+		} else {
+			return fmt.Errorf("il gioco ha già una cartella %s: per sicurezza non lo tocco", primo)
+		}
+	}
 	for _, f := range r.File {
 		if !voluto(f.Name) {
 			continue
@@ -176,6 +205,10 @@ func estraiInGioco(zipPath, cartella, copie string, m *ManifestoMod, inCima map[
 					return fmt.Errorf("copia di sicurezza di %s: %w", rel, err)
 				}
 				m.Sostituiti = append(m.Sostituiti, rel)
+				// su disco PRIMA di sovrascrivere: se qualcosa va storto l'originale torna
+				if err := salva(); err != nil {
+					return fmt.Errorf("non riesco a scrivere l'elenco dei file sostituiti: %w", err)
+				}
 			}
 		} else if _, err := os.Stat(filepath.Join(cartella, primo)); err != nil && !inCima[primo] {
 			inCima[primo] = true
@@ -340,6 +373,10 @@ func InstallaModGioco(dirApp, nome, cartella, chiave string, zips []string, da, 
 func TogliModGioco(dirApp, chiave string) error {
 	m, ok := leggiManifesto(dirApp, chiave)
 	if !ok {
+		if esisteVoce(filepath.Join(cartellaCopie(dirApp, chiave), "manifesto.json")) {
+			// c'è ma non si legge (PC spento mentre lo scrivevo): non dico "fatto" se non lo è
+			return fmt.Errorf("l'elenco dei file aggiunti è rovinato: togli a mano BepInEx, winhttp.dll e doorstop dalla cartella del gioco")
+		}
 		return nil
 	}
 	copie := cartellaCopie(dirApp, chiave)
@@ -361,8 +398,24 @@ func TogliModGioco(dirApp, chiave string) error {
 			if strings.HasPrefix(n, "XUnity.") || strings.HasPrefix(strings.ToLower(n), "readme") {
 				continue
 			}
-			_ = os.MkdirAll(filepath.Join(copie, "plugin-utente", sub), 0o755)
-			_ = os.Rename(filepath.Join(m.Cartella, "BepInEx", sub, n), filepath.Join(copie, "plugin-utente", sub, n))
+			da := filepath.Join(m.Cartella, "BepInEx", sub, n)
+			a := filepath.Join(copie, "plugin-utente", sub, n)
+			if esisteVoce(a) { // messo da parte già un'altra volta: non lo copro
+				a += "-" + time.Now().Format("20060102-150405")
+			}
+			_ = os.MkdirAll(filepath.Dir(a), 0o755)
+			if os.Rename(da, a) != nil {
+				// altro disco (gioco su D:, Tasso su C:): copio, e se non riesco non tolgo niente
+				var err error
+				if v.IsDir() {
+					err = copiaCartella(da, a)
+				} else {
+					err = copiaFile(da, a)
+				}
+				if err != nil {
+					return fmt.Errorf("non riesco a mettere da parte il plugin %s: non tolgo niente", n)
+				}
+			}
 		}
 	}
 	var errori []string
@@ -470,6 +523,12 @@ const versioneMetadataMassima = 106
 // ModPossibile: si può tradurre dentro il gioco? Se no, il motivo in parole semplici.
 func ModPossibile(cartella string) (bool, string) {
 	tipo, exe := TipoUnity(cartella)
+	if tipo == "mono" || tipo == "il2cpp" {
+		// gli strumenti che installo sono solo a 64 bit: in un gioco a 32 bit il gioco non partirebbe
+		if !a64Bit(cartella, exe) {
+			return false, "gioco a 32 bit: traduco sullo schermo"
+		}
+	}
 	switch tipo {
 	case "mono":
 		return true, ""
@@ -518,4 +577,39 @@ func ModNonPartita(cartella string) bool {
 		}
 	}
 	return false
+}
+
+// a64Bit: il programma del gioco (o UnityPlayer.dll, che carica winhttp.dll) è x64. Se non
+// riesco a leggerlo dico di no: meglio la traduzione sullo schermo che un gioco che non parte.
+func a64Bit(cartella, exe string) bool {
+	for _, n := range []string{"UnityPlayer.dll", exe} {
+		if n == "" {
+			continue
+		}
+		m, ok := macchinaPE(filepath.Join(cartella, n))
+		if !ok {
+			continue
+		}
+		return m == pe.IMAGE_FILE_MACHINE_AMD64
+	}
+	return false
+}
+
+// macchinaPE: il tipo di processore scritto nell'intestazione del programma (solo i pochi byte che servono).
+func macchinaPE(p string) (uint16, bool) {
+	f, err := os.Open(p)
+	if err != nil {
+		return 0, false
+	}
+	defer f.Close()
+	var h [64]byte
+	if _, err := io.ReadFull(f, h[:]); err != nil || h[0] != 'M' || h[1] != 'Z' {
+		return 0, false
+	}
+	off := int64(uint32(h[0x3c]) | uint32(h[0x3d])<<8 | uint32(h[0x3e])<<16 | uint32(h[0x3f])<<24)
+	var c [6]byte
+	if _, err := f.ReadAt(c[:], off); err != nil || string(c[:4]) != "PE\x00\x00" {
+		return 0, false
+	}
+	return uint16(c[4]) | uint16(c[5])<<8, true
 }

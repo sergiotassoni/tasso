@@ -199,7 +199,11 @@ func saveBoost() {
 	}
 	bAutoFlag.Store(bState.Auto)
 	if b, err := json.MarshalIndent(bState, "", "  "); err == nil {
-		_ = os.WriteFile(boostFile(), b, 0o644)
+		// file nuovo e poi scambio: se il PC si spegne mentre scrivo, resta quello di prima intero
+		tmp := boostFile() + ".tmp"
+		if os.WriteFile(tmp, b, 0o644) == nil {
+			_ = os.Rename(tmp, boostFile())
+		}
 	}
 }
 
@@ -1193,8 +1197,28 @@ func bindBoost(w webview2.WebView) {
 		return openVendorPage(id)
 	})
 	bMu.Lock()
-	auto := loadBoost().Auto
+	bs := loadBoost()
+	auto, chiusi := bs.Auto, len(bs.Closed) > 0
 	bMu.Unlock()
+	// Tasso si era chiuso (o era caduto) durante una partita con programmi chiusi dal Boost: se
+	// adesso nessun gioco è aperto li riapro (OneDrive deve tornare a sincronizzare)
+	if chiusi && runningGame() == "" {
+		go func() {
+			defer guard("boost:riapri")
+			reopenBackground()
+		}()
+	}
+	// 3.0 → 3.1: la "Modalità gioco automatica" accesa a mano non ha più un suo interruttore
+	// (ora c'è il Boost automatico). La passo alle regole della 3.1: resta solo se serve a una
+	// potenza scelta per un gioco, altrimenti si spegne (prima non si poteva più spegnere)
+	if !auto {
+		updateSettings(func(s *Settings) {
+			if s.AutoGame && !s.AutoGameTune {
+				s.AutoGameTune = true
+				autoGameTuneCleanup(s)
+			}
+		})
+	}
 	// Il Tasso si era chiuso con il mouse ancora senza accelerazione: lo rimetto com'era.
 	if !competitiveGame(safeName(runningGame())) {
 		mouseAccelRestore()

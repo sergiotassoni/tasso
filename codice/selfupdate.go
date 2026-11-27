@@ -21,6 +21,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"tasso/traduce"
 )
 
 const shaURL = "https://raw.githubusercontent.com/sergiotassoni/tasso/main/Tasso.sha256"
@@ -140,7 +142,7 @@ func selfUpdate() {
 	}
 	// Da qui in poi non deve partire nient'altro: tra poco Tasso si chiude.
 	updating.Store(true)
-	if isRunning() || otherBusy("update") {
+	if isRunning() || otherBusy("update") || traduce.StaInstallando() {
 		updating.Store(false)
 		updMsg("error", "Tasso sta facendo un altro lavoro: aspetta che finisca, poi aggiorna.")
 		return
@@ -256,6 +258,18 @@ func selfUpdate() {
 // cleanOldExe toglie il Tasso.old.exe lasciato dall'aggiornamento (riprova per qualche secondo:
 // la copia vecchia potrebbe non essersi ancora chiusa del tutto).
 func cleanOldExe() {
+	// resti in Programmi di un controllo della firma o di un "Togli Tasso" interrotti (più vecchi di
+	// 10 minuti: uno in corso adesso non lo tocco)
+	if pf := programFilesDir(); pf != "" {
+		for _, pat := range []string{"tasso-verifica-*.exe", "togli-tasso-*.cmd"} {
+			m, _ := filepath.Glob(filepath.Join(pf, pat))
+			for _, f := range m {
+				if fi, err := os.Lstat(f); err == nil && fi.Mode().IsRegular() && time.Since(fi.ModTime()) > 10*time.Minute {
+					_ = os.Remove(f)
+				}
+			}
+		}
+	}
 	cur, err := os.Executable()
 	if err != nil {
 		return

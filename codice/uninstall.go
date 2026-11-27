@@ -63,7 +63,8 @@ func togliTassoInfo() map[string]interface{} {
 	return map[string]interface{}{"bytes": tot, "vault": vaultExists()}
 }
 
-var reExeTasso = regexp.MustCompile(`(?i)^tasso[\w .-]*\.exe$`)
+// anche "Tasso (1).exe", il nome che dà il browser quando lo riscarichi
+var reExeTasso = regexp.MustCompile(`(?i)^tasso[\w .()-]*\.exe$`)
 
 // togliTasso fa tutto il lavoro; passo(i, testo) aggiorna la finestra. Restituisce "" se è andato
 // tutto bene (e Tasso si chiude da solo), altrimenti il motivo per cui si è fermato.
@@ -94,12 +95,16 @@ func togliTasso(rimetti bool, passo func(int, string)) string {
 	officeSpegniTutto()
 
 	// 2. traduzioni dentro i giochi: se un gioco è aperto mi fermo qui
-	tolti, falliti := traduce.TogliTutteLeTraduzioni()
+	tolti, falliti, spariti := traduce.TogliTutteLeTraduzioni()
 	if len(falliti) == 1 && falliti[0] == "INSTALLA" {
 		return "Tasso sta installando una traduzione in un gioco: aspetta che finisca e riprova. Tasso non è stato tolto."
 	}
 	if len(falliti) > 0 {
 		return "Chiudi " + strings.Join(falliti, ", ") + " e riprova: con il gioco aperto non posso togliere la traduzione. Tasso non è stato tolto."
+	}
+	if len(spariti) > 0 {
+		// non blocco: il gioco non è più dove l'avevo tradotto. Dico dove guardare.
+		passo(1, trGo("Non trovo più questi giochi dove li avevo tradotti (spostati o su un disco staccato): ")+strings.Join(spariti, ", ")+trGo(". Se li hai ancora, nella loro nuova cartella togli BepInEx, winhttp.dll, doorstop_config.ini, .doorstop_version e, se c'è, dotnet."))
 	}
 	if len(tolti) > 0 {
 		passo(1, trGo("Traduzioni tolte dai giochi: ")+strings.Join(tolti, ", "))

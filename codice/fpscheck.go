@@ -255,6 +255,22 @@ func screenHzUndo(timeout bool) {
 	}
 }
 
+// screenHzUndoAllaChiusura: Tasso si chiude durante la prova dei 15 secondi. Il cambio fatto da
+// Windows resta anche dopo la chiusura: rimetto la frequenza di prima (senza parlare con la finestra).
+func screenHzUndoAllaChiusura() {
+	hzMu.Lock()
+	undo := hzUndo
+	hzUndo = nil
+	if hzTimer != nil {
+		hzTimer.Stop()
+		hzTimer = nil
+	}
+	hzMu.Unlock()
+	for dev, hz := range undo {
+		setScreenHz(dev, hz, false)
+	}
+}
+
 // screenHzKeep: hai confermato che lo schermo si vede bene: ora la salvo in Windows.
 func screenHzKeep() {
 	hzMu.Lock()

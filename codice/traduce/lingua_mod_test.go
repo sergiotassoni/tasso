@@ -45,7 +45,7 @@ func TestModPossibile(t *testing.T) {
 	scrivi := func(ver byte) string {
 		d := t.TempDir()
 		os.MkdirAll(filepath.Join(d, "G_Data", "il2cpp_data", "Metadata"), 0o755)
-		os.WriteFile(filepath.Join(d, "G.exe"), []byte("x"), 0o644)
+		os.WriteFile(filepath.Join(d, "G.exe"), peFinto(0x8664), 0o644)
 		os.WriteFile(filepath.Join(d, "GameAssembly.dll"), []byte("x"), 0o644)
 		os.WriteFile(filepath.Join(d, "G_Data", "il2cpp_data", "Metadata", "global-metadata.dat"), []byte{0xAF, 0x1B, 0xB1, 0xFA, ver, 0, 0, 0}, 0o644)
 		return d
@@ -58,6 +58,11 @@ func TestModPossibile(t *testing.T) {
 	}
 	if ok, _ := ModPossibile(t.TempDir()); ok {
 		t.Error("cartella vuota")
+	}
+	d32 := scrivi(31)
+	os.WriteFile(filepath.Join(d32, "G.exe"), peFinto(0x14c), 0o644)
+	if ok, _ := ModPossibile(d32); ok {
+		t.Error("gioco a 32 bit: gli strumenti sono a 64 bit")
 	}
 	// gioco vero, se c'è su questo PC
 	if d := `C:\Program Files (x86)\Steam\steamapps\common\Moon Sweepers`; esisteVoce(d) {
@@ -94,4 +99,15 @@ func TestNomiLingueInglesi(t *testing.T) {
 	if etichettaTasto(4<<16|0x2E) != "Shift+Del" {
 		t.Errorf("tasto in inglese: %q", etichettaTasto(4<<16|0x2E))
 	}
+}
+
+
+// peFinto: l'intestazione minima di un programma di Windows con il tipo di processore dato.
+func peFinto(macchina uint16) []byte {
+	b := make([]byte, 0x40+24)
+	b[0], b[1] = 'M', 'Z'
+	b[0x3c] = 0x40
+	copy(b[0x40:], "PE\x00\x00")
+	b[0x44], b[0x45] = byte(macchina), byte(macchina>>8)
+	return b
 }

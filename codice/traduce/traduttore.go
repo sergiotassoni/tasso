@@ -4,6 +4,7 @@ package traduce
 
 import (
 	"context"
+	"crypto/sha256"
 	"encoding/json"
 	"os"
 	"path/filepath"
@@ -587,16 +588,28 @@ func (t *Traduttore) salvaLibreria() {
 	if bd != nil {
 		_ = os.MkdirAll(filepath.Dir(file), 0o755)
 		dc := strings.TrimSuffix(file, ".json") + "-da-controllare.json"
-		if os.WriteFile(dc+".tmp", bd, 0o644) == nil {
-			_ = os.Rename(dc+".tmp", dc)
-		}
+		muFileCache.Lock()
+		scriviSeCambiato(dc, bd)
+		muFileCache.Unlock()
 	}
 	muFileCache.Lock()
 	defer muFileCache.Unlock()
 	_ = os.MkdirAll(filepath.Dir(file), 0o755)
+	scriviSeCambiato(file, b)
+}
+
+// ultimoScritto: impronta dell'ultima cosa scritta in ogni file (con muFileCache preso). Il
+// salvataggio ogni 2 minuti non riscrive MB identici sul disco quando non è cambiato niente.
+var ultimoScritto = map[string][32]byte{}
+
+func scriviSeCambiato(file string, b []byte) {
+	h := sha256.Sum256(b)
+	if v, ok := ultimoScritto[file]; ok && v == h {
+		return
+	}
 	tmp := file + ".tmp"
-	if os.WriteFile(tmp, b, 0o644) == nil {
-		_ = os.Rename(tmp, file)
+	if os.WriteFile(tmp, b, 0o644) == nil && os.Rename(tmp, file) == nil {
+		ultimoScritto[file] = h
 	}
 }
 
@@ -710,10 +723,7 @@ func (t *Traduttore) salvaCache() {
 	}
 	muFileCache.Lock()
 	defer muFileCache.Unlock()
-	tmp := t.fileCache + ".tmp"
-	if os.WriteFile(tmp, b, 0o644) == nil {
-		_ = os.Rename(tmp, t.fileCache)
-	}
+	scriviSeCambiato(t.fileCache, b)
 }
 
 // sigleItaliane: se il motore ha lasciato una sigla inglese del glossario (HP, XP, NPC...),
