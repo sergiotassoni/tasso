@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"testing"
@@ -140,5 +141,54 @@ func TestRinominaAppEFuoriCartella(t *testing.T) {
 	}
 	if _, ok := sottoApp(app, app+"-altro"); ok {
 		t.Fatal("una cartella con nome simile non è dentro la cartella dati")
+	}
+}
+
+func TestLeggiFileAppNonSegueLink(t *testing.T) {
+	app, fuori := preparaApp(t)
+	buono := filepath.Join(app, "boost.json")
+	if err := os.WriteFile(buono, []byte("{}"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if b, err := leggiFileApp(buono); err != nil || string(b) != "{}" {
+		t.Fatalf("file normale: %q %v", b, err)
+	}
+	if _, err := leggiFileApp(filepath.Join(app, "manca.json")); !os.IsNotExist(err) {
+		t.Fatalf("file che manca: %v", err)
+	}
+	cattivo := filepath.Join(app, "settings.json")
+	link(t, fuori, cattivo)
+	if b, err := leggiFileApp(cattivo); !errors.Is(err, errPercorsoLink) {
+		t.Fatalf("collegamento: %q %v", b, err)
+	}
+	altrove := filepath.Join(filepath.Dir(app), "altrove")
+	_ = os.MkdirAll(altrove, 0o755)
+	_ = os.WriteFile(filepath.Join(altrove, "crash.txt"), []byte("x"), 0o644)
+	_ = os.RemoveAll(filepath.Join(app, "logs"))
+	link(t, altrove, filepath.Join(app, "logs"))
+	if _, err := leggiFileApp(filepath.Join(app, "logs", "crash.txt")); err == nil {
+		t.Fatal("ha seguito la cartella collegata")
+	}
+}
+
+// N2: settings.json collegamento: messo da parte (rinominato), il file a cui porta resta com'è e le
+// impostazioni non vanno in sola lettura.
+func TestLoadSettingsCollegamentoMessoDaParte(t *testing.T) {
+	app, fuori := preparaApp(t)
+	link(t, fuori, filepath.Join(app, "settings.json"))
+	vecchieRO := settingsReadOnly
+	t.Cleanup(func() { settingsReadOnly = vecchieRO })
+	settingsReadOnly = false
+	loadSettings()
+	restaOriginale(t, fuori)
+	if settingsReadOnly {
+		t.Fatal("collegamento vero: non serve la sola lettura")
+	}
+	l, _ := filepath.Glob(filepath.Join(app, "settings.json.collegamento-*"))
+	if len(l) != 1 {
+		t.Fatalf("collegamento non messo da parte: %v", l)
+	}
+	if _, err := os.Lstat(filepath.Join(app, "settings.json")); !os.IsNotExist(err) {
+		t.Fatal("settings.json collegamento ancora al suo posto")
 	}
 }

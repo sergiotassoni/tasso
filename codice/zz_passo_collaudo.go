@@ -55,11 +55,16 @@ func init() {
 				fmt.Fprintf(&b, "cartella: %s (%.1f MB)\n", d, float64(dimensioneCartella(d))/1e6)
 			}
 			fmt.Fprintf(&b, "portachiavi presente: %v\n", vaultExists())
-			copie := filepath.Join(os.Getenv("LOCALAPPDATA"), "TassoTraduce", "copie-giochi")
-			voci, _ := os.ReadDir(copie)
-			for _, v := range voci {
-				m, _ := os.ReadFile(filepath.Join(copie, v.Name(), "manifesto.json"))
-				fmt.Fprintf(&b, "traduzione in un gioco: %s manifesto=%v plugin-utente=%v\n", v.Name(), len(m) > 0, func() bool { _, e := os.Stat(filepath.Join(copie, v.Name(), "plugin-utente")); return e == nil }())
+			// copie dei giochi: dalla 3.2 in Programmi\Tasso\lavoro, prima in AppData (qui non sposto niente)
+			for _, copie := range []string{filepath.Join(cartellaTasso(), "lavoro", "copie-giochi"), filepath.Join(os.Getenv("LOCALAPPDATA"), "TassoTraduce", "copie-giochi")} {
+				voci, _ := os.ReadDir(copie)
+				for _, v := range voci {
+					if !v.IsDir() {
+						continue
+					}
+					m, _ := os.ReadFile(filepath.Join(copie, v.Name(), "manifesto.json"))
+					fmt.Fprintf(&b, "traduzione in un gioco: %s (%s) manifesto=%v plugin-utente=%v\n", v.Name(), copie, len(m) > 0, func() bool { _, e := os.Stat(filepath.Join(copie, v.Name(), "plugin-utente")); return e == nil }())
+				}
 			}
 			bk, _ := os.ReadDir(filepath.Join(appDir, "backup"))
 			fmt.Fprintf(&b, "backup del registro da spostare in Documenti: %d file\n", len(bk))

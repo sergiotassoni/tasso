@@ -64,3 +64,15 @@ func TestPsQuote(t *testing.T) {
 		}
 	}
 }
+
+func TestPercorsoAmmessoMai(t *testing.T) {
+	a := cartelleAmmesse{intere: []string{`C:\Program Files\Tasso\lavoro`}, mai: []string{`C:\Program Files\Tasso\lavoro\copie-giochi`}}
+	if !percorsoAmmesso(`C:\Program Files\Tasso\lavoro\tmp\x.txt`, a) {
+		t.Fatal("temporaneo di lavoro non ammesso")
+	}
+	for _, p := range []string{`C:\Program Files\Tasso\lavoro\copie-giochi\g\originali\a.dll`, `C:\Program Files\Tasso\lavoro\COPIE-GIOCHI`, `C:\Program Files\Tasso\lavoro`} {
+		if percorsoAmmesso(p, a) {
+			t.Errorf("%s ammesso", p)
+		}
+	}
+}

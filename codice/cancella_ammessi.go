@@ -18,6 +18,9 @@ type cartelleAmmesse struct {
 	intere []string
 	// Solo dentro: si può lavorare sotto, mai sulla cartella stessa (AppData\Local, AppData\Roaming).
 	dentro []string
+	// Mai: le copie di sicurezza dei giochi tradotti (Programmi\Tasso\lavoro\copie-giochi) e gli
+	// strumenti della traduzione: stanno dentro lavoro, ma senza di loro un gioco non torna com'era.
+	mai []string
 }
 
 // Cestino: X:\$Recycle.Bin\<SID dell'utente>\<elemento> (la pulizia toglie gli elementi vecchi).
@@ -28,6 +31,11 @@ func percorsoAmmesso(p string, a cartelleAmmesse) bool {
 	p = strings.TrimRight(strings.TrimSpace(p), `\`)
 	if len(p) <= 3 || strings.Contains(p, `\..`) {
 		return false
+	}
+	for _, d := range a.mai {
+		if d = strings.TrimRight(d, `\`); len(d) > 3 && (dentroDi(p, d) || dentroDi(d, p)) {
+			return false // dentro, o una cartella sopra che la porterebbe via con sé
+		}
 	}
 	for _, d := range a.intere {
 		if d = strings.TrimRight(d, `\`); len(d) > 3 && dentroDi(p, d) {

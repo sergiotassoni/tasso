@@ -757,7 +757,7 @@ func loadCoverCache() {
 	}
 	coverCache = map[string]coverHit{}
 	if st, err := os.Stat(coverCacheFile()); err == nil && st.Size() < 4<<20 {
-		if b, err := os.ReadFile(coverCacheFile()); err == nil {
+		if b, err := leggiFileApp(coverCacheFile()); err == nil {
 			_ = json.Unmarshal(b, &coverCache)
 		}
 	}

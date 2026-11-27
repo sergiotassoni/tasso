@@ -5,7 +5,6 @@ package main
 
 import (
 	"encoding/json"
-	"os"
 	"time"
 	"unsafe"
 )
@@ -20,7 +19,7 @@ var (
 // bentornatoPronto: c'è un Bentornato da mostrare a questo avvio. Guarda soltanto, non lo consuma
 // (lo legge e lo cancella la pagina, con goBentornato: resta "una volta sola").
 func bentornatoPronto() bool {
-	b, err := os.ReadFile(bentornatoFile())
+	b, err := leggiFileApp(bentornatoFile())
 	if err != nil {
 		return false
 	}
@@ -74,6 +73,17 @@ func portaDavantiBentornato(h uintptr) {
 		if ic, _, _ := pIsIconic.Call(h); ic == 0 {
 			return // l'hai già aperta tu
 		}
+	}
+	portaDavanti(h)
+}
+
+// portaDavanti: mostra la finestra (anche se è nascosta nell'icona vicino all'orologio) e la porta
+// davanti. Se Windows rifiuta SetForegroundWindow (programma in background, avvio lento la prima
+// volta dopo l'installazione) mi aggancio un attimo al filo della finestra davanti; se non basta
+// ancora, la finestra lampeggia sulla barra delle applicazioni. Usata anche da bringToFront.
+func portaDavanti(h uintptr) {
+	if h == 0 {
+		return
 	}
 	mostraFinestra(h) // tray.go: SW_SHOW, SW_RESTORE, SetForegroundWindow
 	fg, _, _ := pForegroundWin.Call()

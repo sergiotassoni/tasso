@@ -237,8 +237,11 @@ func loadBoost() *boostState {
 	return s
 }
 
+// boostSolaLettura: boost.json c'era ma non si è potuto controllare: non lo sovrascrivo.
+var boostSolaLettura atomic.Bool
+
 func saveBoost() {
-	if bState == nil {
+	if bState == nil || boostSolaLettura.Load() {
 		return
 	}
 	bAutoFlag.Store(bState.Auto)
@@ -277,7 +280,17 @@ func scriviBoostSicuro(path string, b []byte) error {
 // Un file rovinato lo tengo da parte (boost.json.rotto) invece di ripartire da zero in silenzio.
 func leggiBoostGrezzo(path string) *boostState {
 	for i, p := range []string{path, path + ".bak"} {
-		b, err := os.ReadFile(p)
+		b, err := leggiFileApp(p)
+		for n := 0; n < 3 && errors.Is(err, errNonVerificato); n++ {
+			time.Sleep(300 * time.Millisecond)
+			b, err = leggiFileApp(p)
+		}
+		if errors.Is(err, errNonVerificato) {
+			// non so se è un collegamento: non lo uso, ma non lo sovrascrivo nemmeno (dentro c'è
+			// cosa rimettere dopo il Boost)
+			boostSolaLettura.Store(true)
+			return &boostState{}
+		}
 		if err != nil {
 			continue
 		}

@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -297,11 +298,33 @@ var (
 func settingsPath() string { return filepath.Join(appDir, "settings.json") }
 
 func loadSettings() {
-	b, err := os.ReadFile(settingsPath())
-	for i := 0; i < 5 && err != nil && !os.IsNotExist(err); i++ {
+	b, err := leggiFileApp(settingsPath())
+	if errors.Is(err, errPercorsoLink) {
+		if fi, e := os.Lstat(settingsPath()); e == nil && èLink(fi) {
+			// settings.json stesso è un collegamento o una giunzione (messo da un altro programma):
+			// non lo seguo. Prima lo metto da parte rinominandolo (si sposta il collegamento, non il
+			// file a cui porta: così, se fosse un caso voluto, non si perde niente), poi riparto
+			// dalle impostazioni di base. Dopo il rinomino non c'è più: l'avviso compare una volta sola.
+			via := settingsPath() + ".collegamento-" + time.Now().Format("20060102-150405")
+			if rinominaApp(settingsPath(), via) == nil {
+				scriviAvvio("attenzione: settings.json era un collegamento o una giunzione: messo da parte come " + filepath.Base(via) + ", riparto dalle impostazioni di base")
+				go avvisaSettingsLink()
+				err = os.ErrNotExist
+			} else {
+				scriviAvvio("attenzione: settings.json è un collegamento e non si sposta: lo lascio com'è e non salvo")
+			}
+		} else {
+			// il collegamento è più in alto (la cartella dati o logs) o il file porta fuori: come
+			// prima, non leggo e non scrivo sopra (sola lettura qui sotto)
+			scriviAvvio("attenzione: settings.json passa da un collegamento o una giunzione: non lo leggo e non lo sovrascrivo")
+		}
+	}
+	// errNonVerificato (Windows non sa dire dove porta il file) e file occupato: riprovo qui sotto e,
+	// se non basta, sola lettura: le impostazioni non si perdono mai.
+	for i := 0; i < 5 && err != nil && !os.IsNotExist(err) && !errors.Is(err, errPercorsoLink); i++ {
 		// File occupato un attimo (antivirus, backup): riprovo invece di ripartire da zero.
 		time.Sleep(400 * time.Millisecond)
-		b, err = os.ReadFile(settingsPath())
+		b, err = leggiFileApp(settingsPath())
 	}
 	if err != nil && !os.IsNotExist(err) {
 		settingsReadOnly = true // non lo sovrascrivo: dentro ci sono le impostazioni originali di Windows
@@ -357,7 +380,7 @@ func fixSettingsDefaults() {
 func saveSettings() bool {
 	if settingsReadOnly {
 		// All'avvio il file non si leggeva: prima di scriverci sopra ne salvo una copia.
-		old, err := os.ReadFile(settingsPath())
+		old, err := leggiFileApp(settingsPath())
 		if err != nil && !os.IsNotExist(err) {
 			return false
 		}
@@ -670,4 +693,14 @@ func refreshScheduledTasks() {
 	if profileIsOn() {
 		profileTask(true)
 	}
+}
+
+// avvisaSettingsLink: una volta sola (il salvataggio sostituisce il collegamento con un file vero),
+// appena c'è l'icona vicino all'orologio.
+func avvisaSettingsLink() {
+	defer guard("avvisaSettingsLink")
+	for i := 0; i < 120 && trayHwnd.Load() == 0; i++ {
+		time.Sleep(500 * time.Millisecond)
+	}
+	trayAvviso("Tasso", "Il file delle impostazioni di Tasso era stato cambiato da un altro programma: per sicurezza riparto dalle impostazioni di base. Controlla le tue scelte in Tasso.", false)
 }

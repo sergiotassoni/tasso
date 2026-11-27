@@ -10,6 +10,7 @@ import (
 	"runtime/debug"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"time"
 	"unsafe"
 
@@ -139,6 +140,9 @@ func main() {
 	loadSettings()
 	// Tasso.exe --togli-silenzioso (lo usa il disinstallatore, anche da App e funzionalità):
 	// Tasso toglie le sue cose senza finestra ed esce (uninstall.go).
+	// Prima di PreparaCartella e di qualsiasi uso delle copie dei giochi: anche --togli-silenzioso
+	// deve trovare le copie in Programmi\Tasso\lavoro (traduce/copie_protette.go).
+	impostaOspiteTraduce()
 	traduce.PreparaCartella()
 	if codice, si := togliSilenziosoSeChiesto(); si {
 		os.Exit(codice)
@@ -222,9 +226,6 @@ func main() {
 	_ = w.Bind("goPronto", func() string { scriviAvvio("pagina pronta"); return "ok" })
 	// Tasso Traduce (sezione Traduci): collegamenti prima di caricare la pagina; il resto parte
 	// in sottofondo e non legge lo schermo finché non accendi la traduzione.
-	traduce.Ospite.ApriComeUtente = openUser
-	traduce.Ospite.CartellaScript = scriptDir
-	traduce.Ospite.CartellaTasso = cartellaTasso               // ecosistema.go
 	traduce.Ospite.GiocoDiTasso = func(percorso string) bool { // extras.go: libreria di Tasso e cartelle dei giochi
 		p := strings.ToLower(percorso)
 		exe := filepath.Base(p)
@@ -438,10 +439,34 @@ func bringToFront() bool {
 	t, _ := windows.UTF16PtrFromString("Tasso")
 	hwnd, _, _ := pFindWin.Call(uintptr(unsafe.Pointer(c)), uintptr(unsafe.Pointer(t)))
 	if hwnd != 0 {
-		mostraFinestra(hwnd) // tray.go: anche se è nascosta nell'icona vicino all'orologio
+		portaDavanti(hwnd) // bentornato_apri.go: anche se è nascosta nell'icona vicino all'orologio
 		return true
 	}
 	return false
+}
+
+// impostaOspiteTraduce: le funzioni di Tasso che Tasso Traduce usa (cartelle protette, aprire come
+// utente). Va chiamata prima di traduce.PreparaCartella.
+func impostaOspiteTraduce() {
+	traduce.Ospite.ApriComeUtente = openUser
+	traduce.Ospite.CartellaScript = scriptDir
+	traduce.Ospite.CartellaProtetta = cartellaLavoroProtetta // runner.go: "" se uso il ripiego in AppData
+	traduce.Ospite.CartellaTasso = cartellaTasso             // ecosistema.go
+	traduce.Ospite.Avvisa = func(t, s string) { trayAvviso(t, s, false) }
+}
+
+// fineSessione: Windows ha mandato WM_QUERYENDSESSION/WM_ENDSESSION (si spegne, si riavvia o ci si
+// disconnette). Serve alla finestra per non dire "il riavvio non è partito" mentre Windows chiude.
+var fineSessione atomic.Bool
+
+// spegnimentoInCorso: Windows sta chiudendo la sessione (GetSystemMetrics SM_SHUTTINGDOWN) o ce
+// l'ha già detto con WM_QUERYENDSESSION.
+func spegnimentoInCorso() bool {
+	if fineSessione.Load() {
+		return true
+	}
+	v, _, _ := pGetSysMetrics.Call(0x2000) // SM_SHUTTINGDOWN
+	return v != 0
 }
 
 // salvaAlloSpegnimento: Windows si spegne o l'utente si disconnette (WM_QUERYENDSESSION /
@@ -449,6 +474,7 @@ func bringToFront() bool {
 // traduzioni: dopo Windows può chiudere Tasso senza passare dalla chiusura normale.
 func salvaAlloSpegnimento() {
 	defer guard("salvaAlloSpegnimento")
+	fineSessione.Store(true)
 	for i := 0; i < 40; i++ { // aspetto al massimo 2 secondi che le impostazioni siano libere
 		if setMu.TryLock() {
 			saveSettings()
@@ -548,6 +574,12 @@ func bindAll(w webview2.WebView) {
 		return "no"
 	})
 	_ = w.Bind("goCancelShutdown", func() string { return cancelShutdown() })
+	_ = w.Bind("goSpegnimentoInCorso", func() string { // "1": Windows sta già chiudendo per spegnersi o riavviarsi
+		if spegnimentoInCorso() {
+			return "1"
+		}
+		return "0"
+	})
 	_ = w.Bind("goSetTheme", func(id, look string) string {
 		r := setTheme(id, look)
 		if r == "ok" {

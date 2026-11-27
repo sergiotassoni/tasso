@@ -402,6 +402,8 @@ func trayWndProc(hwnd, msg, wp, lp uintptr) uintptr {
 	case msg == 0x0016: // WM_ENDSESSION
 		if wp != 0 {
 			salvaAlloSpegnimento()
+		} else {
+			fineSessione.Store(false) // spegnimento annullato (da un programma o dall'utente)
 		}
 		return 0
 	case msg == wmDestroyMsg:

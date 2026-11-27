@@ -123,7 +123,7 @@ func listenAutoRequests() {
 			if r, _ := windows.WaitForSingleObject(ev, windows.INFINITE); r != windows.WAIT_OBJECT_0 {
 				return
 			}
-			b, err := os.ReadFile(autoReqPath())
+			b, err := leggiFileApp(autoReqPath())
 			_ = os.Remove(autoReqPath())
 			if err != nil {
 				continue
