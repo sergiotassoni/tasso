@@ -9,6 +9,7 @@ package installa
 // ferma prima di togliere qualsiasi cosa: gli originali non si perdono mai.
 
 import (
+	"bufio"
 	"errors"
 	"io"
 	"os"
@@ -254,6 +255,37 @@ func (in *Installatore) salvaCopieGiochiPrima(base string, ris *Risultato) error
 		return err
 	}
 	return nil
+}
+
+// LeggiUscitaTogli legge tutta l'uscita di Tasso --togli-silenzioso, riga per riga, senza limiti
+// di lunghezza (una riga lunghissima non ferma la lettura: Tasso non resta bloccato a scrivere) e
+// fino alla fine, anche dopo righe strane. Per ogni "TOGLI-PASSO n" chiama passo. Restituisce solo
+// le righe che servono (TOGLI-*, il segno), ognuna al massimo di 4 KB: TOGLI-OK e TOGLI-NO non si
+// perdono mai (R8).
+func LeggiUscitaTogli(r io.Reader, passo func(int)) string {
+	br := bufio.NewReaderSize(r, 64<<10)
+	var out strings.Builder
+	for {
+		riga, err := br.ReadString('\n')
+		if riga != "" {
+			t := strings.TrimRight(riga, "\r\n")
+			if n, ok := PassoTogli(t); ok && passo != nil {
+				passo(n)
+			}
+			if strings.Contains(t, "TOGLI-") || strings.Contains(t, "tasso-togli-silenzioso") {
+				if i := strings.Index(t, "TOGLI-"); i > 0 {
+					t = t[i:]
+				}
+				if len(t) > 4<<10 {
+					t = t[:4<<10]
+				}
+				out.WriteString(t + "\n")
+			}
+		}
+		if err != nil {
+			return out.String()
+		}
+	}
 }
 
 // PassoTogli: una riga "TOGLI-PASSO n" di Tasso --togli-silenzioso (n = 0 impostazioni, 1

@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -187,5 +188,26 @@ func TestSalvaCopieGiochiSenzaCopieAMeta(t *testing.T) {
 	voci, _ := os.ReadDir(filepath.Join(doc, "giochi"))
 	if len(voci) != 2 || !esiste(filepath.Join(vecchia, "mezzo")) {
 		t.Fatalf("restano copie a metà nuove o è stata toccata quella di prima: %v", voci)
+	}
+}
+
+// R8: righe lunghissime (oltre 64 KB), righe strane e niente a capo finale non fermano la lettura:
+// TOGLI-OK / TOGLI-NO alla fine si leggono sempre, e i passi arrivano tutti.
+func TestLeggiUscitaTogli(t *testing.T) {
+	lunga := strings.Repeat("x", 200<<10)
+	var passi []int
+	testo := LeggiUscitaTogli(strings.NewReader("tasso-togli-silenzioso-v1\r\nTOGLI-PASSO 0\n"+lunga+"\nTOGLI-PASSO 1\n\x00\xff strano\nTOGLI-PASSO 2\nTOGLI-OK"), func(n int) { passi = append(passi, n) })
+	if ok, rif := EsitoTogliSilenzioso(testo, nil); !ok || rif != nil {
+		t.Fatalf("TOGLI-OK perso: %q", testo)
+	}
+	if len(passi) != 3 || passi[2] != 2 {
+		t.Fatalf("passi %v", passi)
+	}
+	if len(testo) > 1000 {
+		t.Fatalf("tiene troppo: %d byte", len(testo))
+	}
+	testo = LeggiUscitaTogli(strings.NewReader(lunga+lunga+"TOGLI-NO Chiudi Gioco e riprova\n"), nil)
+	if _, rif := EsitoTogliSilenzioso(testo, &exec.ExitError{}); rif == nil || rif.Error() != "Chiudi Gioco e riprova" {
+		t.Fatalf("TOGLI-NO perso: %q", testo)
 	}
 }

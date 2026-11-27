@@ -380,7 +380,7 @@ function mostraErrore(r){
 // eventi da Go
 window.TS = {
   // Tasso toglie le sue cose (--togli-silenzioso): il passo che comincia adesso
-  passoTasso(n){ attesaTasso.passo = n; attesaScrivi(); },
+  passoTasso(n){ attesaTasso.passo = n; attesaScrivi(); }, // -2 = l'installatore toglie i file (R9)
   avanza(a){
     if (a.fase === 'fine') return;
     const p = a.totale > 0 ? Math.min(100, Math.floor(a.fatto * 100 / a.totale)) : 0;

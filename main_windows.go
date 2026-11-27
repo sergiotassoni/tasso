@@ -539,6 +539,8 @@ func collega(w webview2.WebView) {
 				return map[string]any{"ok": false, "rifiuta": true, "dettagli": err.Error()}
 			}
 		}
+		// R9: Tasso ha finito: la finestra torna a "Tolgo i programmi scelti…" (passo -2)
+		manda("passoTasso", -2)
 		chiudiAiutanti(baseDisins, componenti(cc), nil, nil)
 		r, err := in.DisinstallaCon(baseDisins, componenti(cc), installa.OpzioniDisinstalla{
 			TogliDati: togliDati && viaTasso && len(preScelti) == 0, TassoGiaPulito: true})
