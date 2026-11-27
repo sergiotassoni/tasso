@@ -4,6 +4,7 @@ package main
 // programmi aperti, scelta della cartella, spazio libero, togliere il disinstallatore aperto.
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"errors"
@@ -861,8 +862,24 @@ func pulisciTasso(base string) error {
 	defer annulla()
 	cmd := exec.CommandContext(ctx, exe, "--togli-silenzioso")
 	cmd.Dir = base
-	out, err := cmd.Output()
-	testo := string(out)
+	// leggo riga per riga: con "TOGLI-PASSO n" la finestra dice cosa sta facendo Tasso (R2)
+	var tutto strings.Builder
+	pipe, err := cmd.StdoutPipe()
+	if err == nil {
+		err = cmd.Start()
+	}
+	if err == nil {
+		sc := bufio.NewScanner(pipe)
+		for sc.Scan() {
+			riga := sc.Text()
+			tutto.WriteString(riga + "\n")
+			if n, ok := installa.PassoTogli(riga); ok {
+				manda("passoTasso", n)
+			}
+		}
+		err = cmd.Wait()
+	}
+	testo := tutto.String()
 	installa.Diario("Tasso --togli-silenzioso: %v %q", err, testo)
 	// Senza TOGLI-OK (errore, blocco, tempo scaduto) vado avanti con la mia parte: gli originali dei
 	// giochi rimasti in lavoro\copie-giochi li mette al sicuro DisinstallaCon (SalvaCopieGiochi),

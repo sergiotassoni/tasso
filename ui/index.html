@@ -256,6 +256,18 @@ function dim(n){
 }
 function toast(t){ const e = $('#toast'); e.textContent = t; e.classList.add('on'); clearTimeout(toast.t); toast.t = setTimeout(() => e.classList.remove('on'), 3500); }
 function msg(t){ $('#msg').textContent = t || ''; }
+// Mentre aspetto Tasso (può volerci qualche minuto) il messaggio cambia: il passo di Tasso e il
+// tempo che passa, così nessuno pensa che il setup sia bloccato (R2).
+const attesaTasso = { t0: 0, passo: -1, timer: null };
+function attesaScrivi(){
+  if (!attesaTasso.t0) return;
+  const s = Math.floor((Date.now() - attesaTasso.t0) / 1000);
+  const tempo = Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+  const t = attesaTasso.passo >= 0 ? T('dis_tasso_passo_' + attesaTasso.passo) : attesaTasso.passo === -2 ? T('dis_in_corso') : T('dis_tasso_attesa');
+  $('#msg').style.color = 'var(--muted)'; $('#msg').textContent = t + ' · ' + tempo;
+}
+function attesaInizio(p){ attesaTasso.t0 = Date.now(); attesaTasso.passo = p == null ? -1 : p; attesaScrivi(); attesaTasso.timer = setInterval(attesaScrivi, 1000); }
+function attesaFine(){ clearInterval(attesaTasso.timer); attesaTasso.timer = null; attesaTasso.t0 = 0; }
 const nomeComp = id => T('comp_' + id + '_nome');
 const compScelti = () => A.componenti.map(c => c.id).filter(id => scelti[id]);
 
@@ -367,6 +379,8 @@ function mostraErrore(r){
 
 // eventi da Go
 window.TS = {
+  // Tasso toglie le sue cose (--togli-silenzioso): il passo che comincia adesso
+  passoTasso(n){ attesaTasso.passo = n; attesaScrivi(); },
   avanza(a){
     if (a.fase === 'fine') return;
     const p = a.totale > 0 ? Math.min(100, Math.floor(a.fatto * 100 / a.totale)) : 0;
@@ -429,7 +443,9 @@ async function disinstalla(){
   if (aperti && aperti.length && !await chiediChiusura(aperti)) return;
   $('#bAvanti').disabled = true; $('#bAnnulla').disabled = true; msg(''); $('#msg').style.color = 'var(--muted)'; $('#msg').textContent = T('dis_in_corso');
   // prima Tasso toglie le sue cose (chiude solo Tasso); se rifiuta, Zip e PDF restano aperti
+  attesaInizio();
   const pr = await call('goPreparaDisinstalla', ids);
+  attesaFine();
   if (!pr || !pr.ok) {
     $('#msg').style.color = ''; $('#bAvanti').disabled = false; $('#bAnnulla').disabled = false;
     msg(pr && pr.rifiuta ? T('dis_rifiuta', pr.dettagli || '') : T('aperti_errore')); return;
@@ -438,7 +454,10 @@ async function disinstalla(){
     $('#msg').style.color = ''; $('#bAvanti').disabled = false; $('#bAnnulla').disabled = false;
     msg(T('aperti_errore')); return;
   }
+  $('#msg').textContent = T('dis_in_corso');
+  attesaInizio(-2); // -2: "Tolgo i programmi scelti…"; il passo di Tasso, se c'è, arriva da passoTasso
   const r = await call('goDisinstalla', ids, !!$('#disDati').checked && !$('#sceltaDati').hidden);
+  attesaFine();
   $('#msg').style.color = '';
   if (!r.ok) { $('#bAvanti').disabled = false; $('#bAnnulla').disabled = false; msg(r.rifiuta ? T('dis_rifiuta', r.dettagli || '') : r.copieNonSalvate ? T('dis_copie_non_salvate', r.dettagli || '') : T('err_generico', r.dettagli || '')); return; }
   $('#disEsito').textContent = r.tuttoTolto ? T('dis_tutto') : T('dis_fatto');

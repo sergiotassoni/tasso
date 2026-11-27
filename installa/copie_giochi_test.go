@@ -151,3 +151,41 @@ func TestSalvaCopieGiochiDocumentiCollegamento(t *testing.T) {
 		t.Fatal(s, err)
 	}
 }
+
+// R2: le righe "TOGLI-PASSO n" di Tasso.
+func TestPassoTogli(t *testing.T) {
+	for riga, atteso := range map[string]int{"TOGLI-PASSO 0": 0, "TOGLI-PASSO 1\r": 1, " TOGLI-PASSO 2 ": 2} {
+		if n, ok := PassoTogli(riga); !ok || n != atteso {
+			t.Errorf("%q: %d %v", riga, n, ok)
+		}
+	}
+	for _, riga := range []string{"TOGLI-OK", "TOGLI-PASSO", "TOGLI-PASSO 9", "TOGLI-PASSO x", "tasso-togli-silenzioso-v1"} {
+		if _, ok := PassoTogli(riga); ok {
+			t.Errorf("%q accettata", riga)
+		}
+	}
+}
+
+// R3: la copia va prima in "<gioco> (copia non finita)" e prende il nome giusto solo alla fine:
+// dopo una copia riuscita non resta niente "non finito"; una copia interrotta prima (rimasta da
+// un tentativo di prima) non viene toccata e non prende il nome giusto.
+func TestSalvaCopieGiochiSenzaCopieAMeta(t *testing.T) {
+	base := filepath.Join(t.TempDir(), "Tasso")
+	os.MkdirAll(filepath.Join(CartellaCopieGiochi(base), "g", "originali"), 0o755)
+	os.WriteFile(filepath.Join(CartellaCopieGiochi(base), "g", "originali", "f"), []byte("x"), 0o644)
+	doc := filepath.Join(t.TempDir(), NomeCopieSicurezza)
+	vecchia := filepath.Join(doc, "giochi", "g (copia non finita)")
+	os.MkdirAll(vecchia, 0o755)
+	os.WriteFile(filepath.Join(vecchia, "mezzo"), []byte("?"), 0o644)
+	s, err := SalvaCopieGiochi(base, []Meta{{Cartella: doc, Copia: true}}, nuovaProva(t, "3.2").in.adesso())
+	if err != nil || len(s) != 1 || s[0] != filepath.Join(doc, "giochi", "g") {
+		t.Fatal(s, err)
+	}
+	if b, err := os.ReadFile(filepath.Join(doc, "giochi", "g", "originali", "f")); err != nil || string(b) != "x" {
+		t.Fatal("copia non giusta", err)
+	}
+	voci, _ := os.ReadDir(filepath.Join(doc, "giochi"))
+	if len(voci) != 2 || !esiste(filepath.Join(vecchia, "mezzo")) {
+		t.Fatalf("restano copie a metà nuove o è stata toccata quella di prima: %v", voci)
+	}
+}

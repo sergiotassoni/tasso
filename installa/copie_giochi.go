@@ -187,14 +187,20 @@ func SalvaCopieGiochi(base string, mete []Meta, adesso time.Time) (salvate []str
 				salvate, fatto = append(salvate, a), true
 				break
 			}
-			if e := copiaAlbero(da, a); e == nil {
+			// copio in "<a> (copia non finita)" e rinomino solo alla fine (R3): una copia interrotta
+			// non resta mai con il nome giusto accanto a quella buona
+			tmp := nomeLibero(dir, filepath.Base(a)+" (copia non finita)", adesso)
+			e := copiaAlbero(da, tmp)
+			if e == nil {
+				e = os.Rename(tmp, a)
+			}
+			if e == nil {
 				_ = os.RemoveAll(da)
 				salvate, fatto = append(salvate, a), true
 				break
-			} else {
-				Diario("copie dei giochi: %s in %s non riuscita: %v", da, a, e)
-				_ = os.RemoveAll(a) // niente copie a metà
 			}
+			Diario("copie dei giochi: %s in %s non riuscita: %v", da, a, e)
+			_ = os.RemoveAll(tmp) // solo la copia appena fatta: gli originali sono ancora in da
 		}
 		if !fatto {
 			nonSalvate = append(nonSalvate, da)
@@ -248,6 +254,20 @@ func (in *Installatore) salvaCopieGiochiPrima(base string, ris *Risultato) error
 		return err
 	}
 	return nil
+}
+
+// PassoTogli: una riga "TOGLI-PASSO n" di Tasso --togli-silenzioso (n = 0 impostazioni, 1
+// traduzioni nei giochi, 2 copie di sicurezza): il passo che Tasso comincia adesso.
+func PassoTogli(riga string) (int, bool) {
+	riga = strings.TrimSpace(riga)
+	if !strings.HasPrefix(riga, "TOGLI-PASSO ") {
+		return 0, false
+	}
+	n, err := strconv.Atoi(strings.TrimSpace(strings.TrimPrefix(riga, "TOGLI-PASSO ")))
+	if err != nil || n < 0 || n > 2 {
+		return 0, false
+	}
+	return n, true
 }
 
 // EsitoTogliSilenzioso legge la risposta di "Tasso.exe --togli-silenzioso": ok solo con
