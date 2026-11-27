@@ -2702,8 +2702,10 @@ $('#btnBios').onclick = async () => {
   if (!hwPronto()) return;
   const b = (HW && HW.board) || {}, pc = (HW && HW.pc) || {};
   const pcModel = [pc.family, pc.model].filter((x, i, a) => x && a.indexOf(x) === i && !HW_FILLER.test(x)).join(' ');
-  const r = String(await call('goBiosSearch', String(b.maker || ''), String(b.model || ''), String(pc.maker || ''), pcModel, !!pc.laptop) || '');
-  const model = r.endsWith(':pc') ? pcModel : String(b.model || '');
+  // F19-1: a Go solo i nomi veri, con lo stesso filtro del titolo ("To be filled by O.E.M." non va nella ricerca)
+  const vero = x => (x && !HW_FILLER.test(String(x))) ? String(x) : '';
+  const r = String(await call('goBiosSearch', vero(b.maker), vero(b.model), vero(pc.maker), pcModel, !!pc.laptop) || '');
+  const model = r.endsWith(':pc') ? pcModel : vero(b.model);
   if (r.startsWith('vendor:')) toast(_t('Ho aperto il sito di assistenza ufficiale.') + (model ? ' ' + _t('Cerca il modello ') + model + _t(' e apri la sezione BIOS.') : ''), 'var(--a3)');
   else if (r === 'none') toast(_t('Non sono riuscito a leggere la marca della scheda madre e del PC: premi Aggiorna e riprova.'), 'var(--a4)');
   else if (r.startsWith('search:')) toast(_t('Non conosco il sito di questa marca: ho aperto una ricerca su Google, non la pagina ufficiale. Scarica il BIOS solo dal sito del produttore.'), 'var(--a4)');
