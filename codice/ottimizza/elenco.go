@@ -1,6 +1,10 @@
 package ottimizza
 
-// Le modifiche di Ottimizza tutto: 14 in Gaming, 10 in Ufficio. Titoli e frasi stanno nella
+// Le modifiche di Ottimizza tutto: 20 in Gaming, 15 in Ufficio (13 impostazioni che si rimettono
+// com'erano e 2 pulizie dei file inutili, che non si rimettono). Sette voci sono uguali nelle due
+// modalità (stesso id: effetti, riapertura, consigli, feedback, ricerca, orari, recapito). Su un PC
+// vero alcune si saltano da sole (per esempio "Più prestazioni a corrente" sui fissi e le voci solo
+// di Windows 11 su Windows 10). Titoli e frasi stanno nella
 // finestra (index.html, con le traduzioni); qui ci sono le chiavi esatte, quando una modifica va
 // già bene e su quali PC si fa.
 //
@@ -25,9 +29,15 @@ type Modifica struct {
 	Utente bool
 	// Modo: la gestiscono anche le modalità di Tasso (Gaming, FPS...): con una modalità accesa si lascia a lei.
 	Modo bool
+	// Boost: la gestisce anche il Boost di Tasso (Ottimizzazioni per i giochi in finestra): se il Boost
+	// l'ha accesa si lascia a lui, e non si rimette finché il Boost la tiene.
+	Boost bool
 	// VerificaLenta: si ricontrolla dopo qualche secondo (Windows potrebbe rimettere il suo valore).
 	VerificaLenta bool
-	G             Gestore
+	// LivelloB: Microsoft descrive l'interruttore ma non pubblica il nome del valore. Se dopo la
+	// scrittura Windows non lo tiene, la voce si salta e si dice perché.
+	LivelloB bool
+	G        Gestore
 }
 
 // Categoria: una riga a sinistra nella finestra. Chiedi = l'utente decide (programmi all'avvio):
@@ -237,15 +247,6 @@ func nuoviSuoni() Gestore {
 	return &regGest{bers: []bersaglio{{vuole: dw(HKCU, kNotifiche, "NOC_GLOBAL_SETTING_ALLOW_NOTIFICATION_SOUND", 0), ok: soloQuesti(0)}}}
 }
 
-func nuoviConsigli() Gestore {
-	var b []bersaglio
-	for _, n := range []string{"SubscribedContent-338389Enabled", "SoftLandingEnabled", "SystemPaneSuggestionsEnabled", "SubscribedContent-310093Enabled"} {
-		b = append(b, bersaglio{vuole: dw(HKCU, kContenuti, n, 0), ok: soloQuesti(0)})
-	}
-	b = append(b, bersaglio{vuole: dw(HKCU, kEngagement, "ScoobeSystemSettingEnabled", 0), ok: soloQuesti(0)})
-	return &regGest{bers: b}
-}
-
 // Elenco: le modifiche di una modalità, nell'ordine in cui le fa (e le mostra la finestra).
 func Elenco(modo string) []Modifica {
 	if modo == ModoUfficio {
@@ -253,11 +254,18 @@ func Elenco(modo string) []Modifica {
 		// Store chiuse non manderebbero più notifiche e promemoria (Posta, Calendario, Telefono).
 		return []Modifica{
 			{ID: "effetti", Categoria: "win", Utente: true, G: nuoviEffetti()},
+			{ID: "ricerca", Categoria: "win", Utente: true, LivelloB: true, G: nuovaRicerca()},
+			{ID: "menustart", Categoria: "win", Utente: true, LivelloB: true, G: nuovoStart()},
 			{ID: "pulizia_temp", Categoria: "clean", Utente: true, NonRimette: true, G: &puliziaGest{passi: []string{"backup", "temp_user", "temp_win", "thumbs"}}},
 			{ID: "pulizia_resti", Categoria: "clean", NonRimette: true, G: &puliziaGest{passi: []string{"wu_cache", "cleanmgr"}}},
 			{ID: "riapertura", Categoria: "ram", Utente: true, G: nuovaRiapertura()},
 			{ID: "suoni", Categoria: "bell", Utente: true, G: nuoviSuoni()},
-			{ID: "consigli", Categoria: "bell", Utente: true, G: nuoviConsigli()},
+			{ID: "consigli", Categoria: "ads", Utente: true, LivelloB: true, G: nuoviConsigli()},
+			{ID: "feedback", Categoria: "ads", Utente: true, G: nuovoFeedback()},
+			{ID: "esplora", Categoria: "ads", Utente: true, LivelloB: true, G: nuovaEsplora()},
+			{ID: "pubblicita", Categoria: "ads", Utente: true, LivelloB: true, G: nuovaPubblicita()},
+			{ID: "orari", Categoria: "net", VerificaLenta: true, G: nuoviOrari()},
+			{ID: "recapito", Categoria: "net", G: nuovoRecapito()},
 			{ID: "batt_risparmio", Categoria: "batt", G: &enGest{gruppo: GruppoRisparmio, imp: ImpRisparmioSoglia, dc: true, vuole: 20, ok: func(v uint32) bool { return v >= 20 }, cond: soloPortatile}},
 			{ID: "batt_schermo", Categoria: "batt", G: &enGest{gruppo: GruppoSchermo, imp: ImpSchermoSpento, dc: true, vuole: 300, ok: func(v uint32) bool { return v > 0 && v <= 300 }, cond: soloPortatile}},
 		}
@@ -269,13 +277,19 @@ func Elenco(modo string) []Modifica {
 		{ID: "riapertura", Categoria: "ram", Utente: true, G: nuovaRiapertura()},
 		{ID: "hags", Categoria: "gpu", Riavvio: true, G: nuovaHAGS()},
 		{ID: "gpupref", Categoria: "gpu", Utente: true, G: &gpuGest{}},
+		{ID: "finestra", Categoria: "gpu", Utente: true, Boost: true, LivelloB: true, G: &finestraGest{}},
 		{ID: "recapito", Categoria: "net", G: nuovoRecapito()},
 		{ID: "orari", Categoria: "net", VerificaLenta: true, G: nuoviOrari()},
 		{ID: "effetti", Categoria: "win", Utente: true, G: nuoviEffetti()},
 		{ID: "notifgioco", Categoria: "win", Utente: true, G: &notifGest{}},
 		{ID: "registrazione", Categoria: "win", Utente: true, G: nuovaRegistrazione()},
+		{ID: "ricerca", Categoria: "win", Utente: true, LivelloB: true, G: nuovaRicerca()},
+		{ID: "consigli", Categoria: "ads", Utente: true, LivelloB: true, G: nuoviConsigli()},
+		{ID: "feedback", Categoria: "ads", Utente: true, G: nuovoFeedback()},
 		{ID: "mouse", Categoria: "mouse", Utente: true, Modo: true, G: nuovoMouse()},
+		{ID: "scorciatoie", Categoria: "mouse", Utente: true, G: nuoveScorciatoie()},
 		{ID: "piano", Categoria: "pow", Modo: true, G: &pianoGest{}},
+		{ID: "modoac", Categoria: "pow", Modo: true, G: &modoACGest{}},
 		{ID: "usb", Categoria: "pow", G: &enGest{gruppo: GruppoUSB, imp: ImpUSBSospensione, vuole: 0, ok: func(v uint32) bool { return v == 0 }}},
 	}
 }
@@ -283,9 +297,9 @@ func Elenco(modo string) []Modifica {
 // Categorie: le righe a sinistra, nell'ordine della finestra (quella "start" è chiedi).
 func Categorie(modo string) []Categoria {
 	if modo == ModoUfficio {
-		return []Categoria{{ID: "start", Chiedi: true}, {ID: "win"}, {ID: "clean"}, {ID: "ram"}, {ID: "bell"}, {ID: "batt"}}
+		return []Categoria{{ID: "start", Chiedi: true}, {ID: "win"}, {ID: "clean"}, {ID: "ram"}, {ID: "bell"}, {ID: "ads"}, {ID: "net"}, {ID: "batt"}}
 	}
-	return []Categoria{{ID: "cpu"}, {ID: "ram"}, {ID: "gpu"}, {ID: "net"}, {ID: "win"}, {ID: "start", Chiedi: true}, {ID: "mouse"}, {ID: "pow"}}
+	return []Categoria{{ID: "cpu"}, {ID: "ram"}, {ID: "gpu"}, {ID: "net"}, {ID: "win"}, {ID: "ads"}, {ID: "start", Chiedi: true}, {ID: "mouse"}, {ID: "pow"}}
 }
 
 // Trova: la modifica con questo id (di Gaming o di Ufficio: alcune sono le stesse).
@@ -296,6 +310,9 @@ func Trova(id string) (Modifica, bool) {
 				return m, true
 			}
 		}
+	}
+	if id == IDPrivacy {
+		return Privacy(), true // il passo Privacy (ha un suo file di stato)
 	}
 	return Modifica{}, false
 }

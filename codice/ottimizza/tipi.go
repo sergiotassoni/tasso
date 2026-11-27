@@ -1,7 +1,7 @@
 // Package ottimizza: la logica (senza Windows) di "Ottimizza tutto" (Tasso 3.2).
 //
-// Ottimizza tutto misura il PC, cambia una serie di impostazioni sicure di Windows (14 in Gaming,
-// 10 in Ufficio), misura di nuovo e mostra la differenza. Ogni modifica ha quattro parti:
+// Ottimizza tutto misura il PC, cambia una serie di impostazioni sicure di Windows (19 in Gaming,
+// 15 in Ufficio: elenco.go), misura di nuovo e mostra la differenza. Ogni modifica ha quattro parti:
 //   - "già a posto": se Windows è già come serve, la salta e lo dice;
 //   - applica: prima salva com'era (su disco, nella cartella protetta di Tasso), poi cambia;
 //   - verifica: rilegge e controlla che il cambio ci sia davvero;
@@ -94,6 +94,12 @@ type Energia interface {
 	// Overlay: la "modalità di risparmio energia" di Windows 10/11 (Bilanciato, Prestazioni migliori...).
 	Overlay() (string, error)
 	ImpostaOverlay(guid string) error
+	// Modalità di risparmio energia scelta dall'utente quando il PC è attaccato alla corrente
+	// (PowerGetUserConfiguredACPowerMode / PowerSetUserConfiguredACPowerMode, Windows 11).
+	// HaModoAC: le due funzioni ci sono su questo Windows.
+	HaModoAC() bool
+	ModoAC() (string, error)
+	ImpostaModoAC(guid string) error
 	// Valore di un'impostazione di un piano: a corrente (AC) e a batteria (DC).
 	Leggi(piano, gruppo, impostazione string) (ac, dc uint32, err error)
 	ScriviAC(piano, gruppo, impostazione string, v uint32) error
@@ -107,6 +113,11 @@ type Sistema interface {
 	ScriviSPI(id string, on bool) error
 	// ImpostaMouse: soglie e velocità dell'accelerazione del mouse, subito e per i prossimi accessi.
 	ImpostaMouse(soglia1, soglia2, velocita int) error
+	// LeggiTasti, ScriviTasti: i dwFlags di Tasti permanenti, Filtro tasti e Segnalazione tasti
+	// (SPI_GETSTICKYKEYS/FILTERKEYS/TOGGLEKEYS), id Tasti* qui sotto. Scrivi li salva anche per i
+	// prossimi accessi. Non sono effetti del desktop: l'aspetto di Windows non cambia.
+	LeggiTasti(id string) (uint32, error)
+	ScriviTasti(id string, flags uint32) error
 	// Avvisa: dice a Windows e ai programmi aperti che un'impostazione è cambiata (WM_SETTINGCHANGE).
 	Avvisa(area string)
 }
@@ -117,6 +128,26 @@ const (
 	SPIFinestre   = "finestre"   // SPI_GETANIMATION: animazione di riduzione/ingrandimento
 	SPIOmbre      = "ombre"      // SPI_GETDROPSHADOW: ombre sotto le finestre
 )
+
+// Le tre funzioni di accessibilità della tastiera con una scorciatoia (Maiusc 5 volte, Maiusc
+// tenuto premuto, Bloc Num tenuto premuto).
+const (
+	TastiPermanenti = "sticky" // STICKYKEYS
+	TastiFiltro     = "filter" // FILTERKEYS
+	TastiAvviso     = "toggle" // TOGGLEKEYS
+)
+
+// Bit dei dwFlags uguali per le tre strutture (STICKYKEYS, FILTERKEYS, TOGGLEKEYS su learn).
+const (
+	TastoAcceso      = 0x1 // SKF_STICKYKEYSON / FKF_FILTERKEYSON / TKF_TOGGLEKEYSON: la funzione è accesa
+	TastoScorciatoia = 0x4 // *_HOTKEYACTIVE: la scorciatoia accende e spegne la funzione
+	TastoConferma    = 0x8 // *_CONFIRMHOTKEY: la finestra di conferma della scorciatoia
+)
+
+// TastiNoto: gli id che Ottimizza tutto conosce.
+func TastiNoto(id string) bool {
+	return id == TastiPermanenti || id == TastiFiltro || id == TastiAvviso
+}
 
 // SPINoto: gli id che Ottimizza tutto conosce (un file rovinato non ne fa usare altri).
 func SPINoto(id string) bool {
@@ -141,13 +172,16 @@ type PC struct {
 	AltroUtente bool
 	// ModoTasso: una modalità di Tasso (Gaming, FPS, Film, Silenziosa) è accesa e gestisce già
 	// piano energetico, mouse e Modalità Gioco: quelle voci si lasciano a lei ("" = nessuna).
-	ModoTasso  string
-	Caricatore bool     // a corrente (sui fissi sempre true)
-	Build      int      // numero di build di Windows (19045 = Windows 10 22H2, 22000+ = Windows 11)
-	SchedeVere int      // schede video vere (DirectX, senza quelle software)
-	HAGS       bool     // la scheda video e il driver permettono la pianificazione GPU hardware
-	HAGSAcceso bool     // la pianificazione GPU hardware è già accesa (anche di base, dal driver)
-	Giochi     []string // programmi dei giochi trovati da Tasso (percorsi completi .exe)
+	ModoTasso string
+	// BoostFinestra: il Boost di Tasso ha acceso "Ottimizzazioni per i giochi in finestra" (comando
+	// winopt): quel valore è suo, Ottimizza tutto non lo tocca (regola "chi l'ha messo?", come D3).
+	BoostFinestra bool
+	Caricatore    bool     // a corrente (sui fissi sempre true)
+	Build         int      // numero di build di Windows (19045 = Windows 10 22H2, 22000+ = Windows 11)
+	SchedeVere    int      // schede video vere (DirectX, senza quelle software)
+	HAGS          bool     // la scheda video e il driver permettono la pianificazione GPU hardware
+	HAGSAcceso    bool     // la pianificazione GPU hardware è già accesa (anche di base, dal driver)
+	Giochi        []string // programmi dei giochi trovati da Tasso (percorsi completi .exe)
 }
 
 // Pulitore: la pulizia di Tasso (passaggi di "Pulisci"), per i file inutili dell'Ufficio. Non si
@@ -170,6 +204,13 @@ type Ambiente struct {
 	// RegSenzaCopia: lo stesso registro senza la copia di sicurezza (.reg). Per rimettere com'era:
 	// la copia salverebbe come "com'era" il valore di Tasso. nil = si usa Reg.
 	RegSenzaCopia Registro
+	// Tenuti: un valore del registro che adesso è di un'altra parte di Tasso (il passo Privacy): rimettendo
+	// com'era non si tocca (vale come "lasciata"), così le due funzioni non si annullano a vicenda.
+	// nil = nessuno.
+	Tenuti func(v Valore) bool
+	// Eredita: per il passo Privacy. Se il valore di adesso l'ha messo Ottimizza tutto, torna il suo
+	// com'era vero (di prima di Tasso): Privacy lo prende come suo e Ottimizza non lo rimette più.
+	Eredita func(adesso Valore) (prima Valore, ok bool)
 }
 
 // perRimettere: l'ambiente per rimettere com'era, con il registro senza copia.

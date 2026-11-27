@@ -100,6 +100,32 @@ type regGest struct {
 	// aPosto: se c'è, decide lui "già a posto" (per esempio la pianificazione GPU già accesa dal driver)
 	aPosto func(a *Ambiente) (bool, error)
 	dopo   func(a *Ambiente) // dopo aver scritto o rimesso (avvisi a Windows)
+	// filtro: false = questo valore su questo PC non si tocca (per esempio esiste solo da una certa
+	// versione di Windows). nil = tutti.
+	filtro func(a *Ambiente, b bersaglio) bool
+}
+
+// usa: i valori di questa modifica che su questo PC si toccano.
+func (g *regGest) usa(a *Ambiente) []bersaglio {
+	if g.filtro == nil {
+		return g.bers
+	}
+	var out []bersaglio
+	for _, b := range g.bers {
+		if g.filtro(a, b) {
+			out = append(out, b)
+		}
+	}
+	return out
+}
+
+// eredita: il valore di adesso va già bene, ma l'ha messo Ottimizza tutto (solo per il passo Privacy,
+// con Ambiente.Eredita): torna il com'era vero da prendere come proprio.
+func eredita(a *Ambiente, b bersaglio, v Valore) (Valore, bool) {
+	if a.Eredita == nil || !v.Uguale(b.vuole) {
+		return Valore{}, false
+	}
+	return a.Eredita(v)
 }
 
 const msgAdmin = "Per questa serve Tasso aperto come amministratore: la salto."
@@ -107,7 +133,7 @@ const msgAdmin = "Per questa serve Tasso aperto come amministratore: la salto."
 func serveAdmin(r Radice) bool { return r == HKLM || r == HKNS }
 
 func (g *regGest) Disponibile(a *Ambiente) (bool, string) {
-	for _, b := range g.bers {
+	for _, b := range g.usa(a) {
 		if serveAdmin(b.vuole.Radice) && !a.PC.Admin {
 			return false, msgAdmin
 		}
@@ -124,7 +150,7 @@ func (g *regGest) APosto(a *Ambiente) (bool, error) {
 			return ok, err
 		}
 	}
-	for _, b := range g.bers {
+	for _, b := range g.usa(a) {
 		v, err := a.Reg.Leggi(b.vuole.Radice, b.vuole.Chiave, b.vuole.Nome)
 		if err != nil {
 			return false, err
@@ -132,16 +158,26 @@ func (g *regGest) APosto(a *Ambiente) (bool, error) {
 		if !b.vaBene(v) {
 			return false, nil
 		}
+		if _, ok := eredita(a, b, v); ok {
+			return false, nil // da prendere come proprio (passo Privacy)
+		}
 	}
 	return true, nil
 }
 
 func (g *regGest) Prepara(a *Ambiente) (Precedente, error) {
 	var p Precedente
-	for _, b := range g.bers {
+	for _, b := range g.usa(a) {
 		v, err := a.Reg.Leggi(b.vuole.Radice, b.vuole.Chiave, b.vuole.Nome)
 		if err != nil {
 			return Precedente{}, err
+		}
+		if prima, ok := eredita(a, b, v); ok {
+			// l'ha messo Ottimizza tutto: il com'era vero è il suo
+			prima.Radice, prima.Chiave, prima.Nome = b.vuole.Radice, b.vuole.Chiave, b.vuole.Nome
+			p.Valori = append(p.Valori, prima)
+			p.Messi = append(p.Messi, b.vuole)
+			continue
 		}
 		if b.vaBene(v) {
 			continue // questo pezzo va già bene: non lo tocco
@@ -185,13 +221,19 @@ func (g *regGest) Verifica(a *Ambiente, p Precedente) bool {
 	return true
 }
 
-// rimettiValori: rimette Valori[i] solo dove adesso c'è ancora Messi[i].
-func rimettiValori(r Registro, p Precedente) (Rimesso, bool, error) {
+// rimettiValori: rimette Valori[i] solo dove adesso c'è ancora Messi[i] e il valore non è di
+// un'altra parte di Tasso (Ambiente.Tenuti).
+func rimettiValori(a *Ambiente, p Precedente) (Rimesso, bool, error) {
+	r := a.Reg
 	esito, scritto := RimessoTutto, false
 	var primoErr error
 	for i, m := range p.Messi {
 		if i >= len(p.Valori) {
 			break
+		}
+		if a.Tenuti != nil && a.Tenuti(m) {
+			esito = RimessoLascia // adesso lo tiene il passo Privacy: lo rimette lui com'era
+			continue
 		}
 		cur, err := r.Leggi(m.Radice, m.Chiave, m.Nome)
 		if errors.Is(err, ErrTipoDiverso) {
@@ -220,7 +262,7 @@ func rimettiValori(r Registro, p Precedente) (Rimesso, bool, error) {
 }
 
 func (g *regGest) Rimetti(a *Ambiente, p Precedente) (Rimesso, error) {
-	esito, scritto, err := rimettiValori(a.Reg, p)
+	esito, scritto, err := rimettiValori(a, p)
 	if scritto && g.dopo != nil {
 		g.dopo(a)
 	}
@@ -529,7 +571,7 @@ func (g *mouseGest) Applica(a *Ambiente, p Precedente) error {
 func (g *mouseGest) Verifica(a *Ambiente, p Precedente) bool { return g.reg.Verifica(a, p) }
 
 func (g *mouseGest) Rimetti(a *Ambiente, p Precedente) (Rimesso, error) {
-	e, scritto, err := rimettiValori(a.Reg, p)
+	e, scritto, err := rimettiValori(a, p)
 	if scritto {
 		g.applicaSubito(a)
 	}
@@ -905,7 +947,7 @@ func (g *gpuGest) Applica(a *Ambiente, p Precedente) error {
 func (g *gpuGest) Verifica(a *Ambiente, p Precedente) bool { return (&regGest{}).Verifica(a, p) }
 
 func (g *gpuGest) Rimetti(a *Ambiente, p Precedente) (Rimesso, error) {
-	e, _, err := rimettiValori(a.Reg, p)
+	e, _, err := rimettiValori(a, p)
 	return e, err
 }
 

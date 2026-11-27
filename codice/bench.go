@@ -52,6 +52,8 @@ type benchResult struct {
 	GPUVRAMMB uint64            `json:"gpuVramMB,omitempty"`
 	GPUKnown  bool              `json:"gpuKnown,omitempty"`
 	Report    *votopc.Risultato `json:"report,omitempty"`
+	// WinNome: "Windows 10" o "Windows 11", scritto in piccolo accanto alla Leggerezza nel biglietto.
+	WinNome string `json:"winNome,omitempty"`
 }
 
 // Valori di riferimento (= 1000 punti).
@@ -326,6 +328,7 @@ func runBench(label string) benchResult {
 	res.Formula, res.Params, res.Total = votopc.Formula, &pr, votopc.Totale(pr)
 	rep := risultatoVoto(res, info, ramTipo, ramSaldata, canali, diskMB, tempMax)
 	res.Report = &rep
+	res.WinNome = nomeWindowsOtt()
 
 	updateSettings(func(s *Settings) {
 		s.Bench = append(s.Bench, res)

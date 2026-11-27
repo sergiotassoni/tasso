@@ -25,6 +25,9 @@ const (
 	MsgAltroUtente   = "Tasso è aperto con un altro account amministratore: questa impostazione è del tuo account e non la cambio. Apri Tasso dal tuo account."
 	MsgModoAcceso    = "Una modalità di Tasso (Gaming, FPS, Film o Silenziosa) è accesa e gestisce già questa impostazione: la lascio a lei."
 	MsgModoRimetti   = "Una modalità di Tasso (Gaming, FPS, Film o Silenziosa) è accesa: torna alla modalità Normale e poi rimetti com'era."
+	MsgBoostAcceso   = "Il Boost di Tasso l'ha già accesa e la gestisce lui: la lascio a lui."
+	MsgBoostRimetti  = "Il Boost di Tasso tiene accesa questa impostazione: spegni prima \"giochi in finestra\" nel Boost, poi rimetti com'era."
+	MsgNonAccettato  = "Windows su questo PC non tiene questa impostazione (forse la tua versione non ce l'ha): l'ho lasciata com'era e la salto."
 )
 
 // Esito: cosa è successo a una modifica (per la finestra).
@@ -58,6 +61,9 @@ func Esegui(m Modifica, a *Ambiente, st *Stato, salva Salvatore) Esito {
 	}
 	if m.Modo && a.PC.ModoTasso != "" {
 		return fine(VoceSaltata, MsgModoAcceso, Precedente{})
+	}
+	if m.Boost && a.PC.BoostFinestra {
+		return fine(VoceSaltata, MsgBoostAcceso, Precedente{})
 	}
 	if ok, motivo := m.G.Disponibile(a); !ok {
 		if motivo == "" {
@@ -123,9 +129,14 @@ func Esegui(m Modifica, a *Ambiente, st *Stato, salva Salvatore) Esito {
 			_ = salva(st)
 			return Esito{ID: m.ID, Stato: VoceErrore, Motivo: motivo}
 		}
-		st.Metti(Voce{ID: m.ID, Stato: VoceErrore, Motivo: motivo, Quando: adesso()})
+		stato := VoceErrore
+		if m.LivelloB && motivo == MsgNonResta {
+			// valore non pubblicato da Microsoft che questo Windows non tiene: saltata, e lo dico
+			stato, motivo = VoceSaltata, MsgNonAccettato
+		}
+		st.Metti(Voce{ID: m.ID, Stato: stato, Motivo: motivo, Quando: adesso()})
 		_ = salva(st)
-		return Esito{ID: m.ID, Stato: VoceErrore, Motivo: motivo}
+		return Esito{ID: m.ID, Stato: stato, Motivo: motivo}
 	}
 	if err := m.G.Applica(a, p); err != nil {
 		return annulla(MsgNonCambia)
@@ -149,8 +160,17 @@ func Esegui(m Modifica, a *Ambiente, st *Stato, salva Salvatore) Esito {
 // suo com'era) e si può riprovare.
 func Rimetti(id string, a *Ambiente, st *Stato, salva Salvatore) Esito {
 	m, ok := Trova(id)
+	if !ok {
+		return Esito{ID: id, Stato: VoceRimessa, Motivo: MsgNienteDa}
+	}
+	return RimettiM(m, a, st, salva)
+}
+
+// RimettiM: come Rimetti, con la modifica già trovata.
+func RimettiM(m Modifica, a *Ambiente, st *Stato, salva Salvatore) Esito {
+	id := m.ID
 	v := st.Voce(id)
-	if !ok || v == nil || !v.Attiva() {
+	if v == nil || !v.Attiva() {
 		return Esito{ID: id, Stato: VoceRimessa, Motivo: MsgNienteDa}
 	}
 	if m.Utente && a.PC.AltroUtente {
@@ -158,6 +178,9 @@ func Rimetti(id string, a *Ambiente, st *Stato, salva Salvatore) Esito {
 	}
 	if m.Modo && a.PC.ModoTasso != "" {
 		return Esito{ID: id, Stato: VoceErrore, Motivo: MsgModoRimetti}
+	}
+	if m.Boost && a.PC.BoostFinestra {
+		return Esito{ID: id, Stato: VoceErrore, Motivo: MsgBoostRimetti}
 	}
 	r, err := m.G.Rimetti(perRimettere(a), v.Prima)
 	if err != nil {

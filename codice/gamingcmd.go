@@ -15,6 +15,8 @@ import (
 
 	"golang.org/x/sys/windows"
 	"golang.org/x/sys/windows/registry"
+
+	"tasso/ottimizza"
 )
 
 const (
@@ -66,14 +68,11 @@ func winBuild() int {
 }
 
 // dxGlobal legge/scrive le opzioni globali DirectX di Windows ("Chiave=valore;Chiave=valore;").
+// La lettura della stringa è la stessa di Ottimizza tutto (ottimizza.DXParti, voce "Ottimizzazioni
+// per i giochi in finestra"), così le due funzioni leggono le stesse parti.
 func dxGlobal() map[string]string {
-	m := map[string]string{}
-	v, _ := regGet(registry.CURRENT_USER, dxUserKey, "DirectXUserGlobalSettings")
-	for _, part := range strings.Split(v, ";") {
-		if i := strings.Index(part, "="); i > 0 {
-			m[strings.TrimSpace(part[:i])] = strings.TrimSpace(part[i+1:])
-		}
-	}
+	v, _ := regGet(registry.CURRENT_USER, dxUserKey, ottimizza.NomeDXGlobale)
+	_, m := ottimizza.DXParti(v)
 	return m
 }
 
@@ -99,7 +98,7 @@ func dxRimettiParte(adesso map[string]string, p regPrev, k string) map[string]st
 // winoptSceltoSpento: "Ottimizzazioni per i giochi in finestra" spenta apposta (Impostazioni > Schermo >
 // Grafica scrive SwapEffectUpgradeEnable=0; se non l'hai mai toccata il valore non c'è). Il Boost non va
 // contro questa scelta: c'è chi la spegne perché un gioco o un overlay ci va male.
-func winoptSceltoSpento(m map[string]string) bool { return m["SwapEffectUpgradeEnable"] == "0" }
+func winoptSceltoSpento(m map[string]string) bool { return m[ottimizza.DXFinestra] == "0" }
 
 func setDxGlobal(m map[string]string) error {
 	var b strings.Builder

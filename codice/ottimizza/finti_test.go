@@ -67,12 +67,15 @@ func (f *regFinto) copia() map[string]Valore {
 
 type enFinta struct {
 	attivo, overlay string
+	modoAC          string // modalità a corrente scelta dall'utente
+	senzaModoAC     bool   // Windows senza PowerSetUserConfiguredACPowerMode
+	modoACIgnora    bool   // Windows non tiene la modalità scritta
 	piani           map[string]bool
 	val             map[string][2]uint32
 }
 
 func nuovaEn() *enFinta {
-	return &enFinta{attivo: PianoBilanciato, overlay: OverlayNessuno, piani: map[string]bool{PianoBilanciato: true, PianoPrestazioni: true}, val: map[string][2]uint32{}}
+	return &enFinta{attivo: PianoBilanciato, overlay: OverlayNessuno, modoAC: OverlayNessuno, piani: map[string]bool{PianoBilanciato: true, PianoPrestazioni: true}, val: map[string][2]uint32{}}
 }
 
 func (e *enFinta) PianoAttivo() (string, error) { return e.attivo, nil }
@@ -84,7 +87,15 @@ func (e *enFinta) AttivaPiano(g string) error {
 	e.attivo = g
 	return nil
 }
-func (e *enFinta) Overlay() (string, error)      { return e.overlay, nil }
+func (e *enFinta) Overlay() (string, error) { return e.overlay, nil }
+func (e *enFinta) HaModoAC() bool           { return !e.senzaModoAC }
+func (e *enFinta) ModoAC() (string, error)  { return e.modoAC, nil }
+func (e *enFinta) ImpostaModoAC(g string) error {
+	if !e.modoACIgnora {
+		e.modoAC = g
+	}
+	return nil
+}
 func (e *enFinta) ImpostaOverlay(g string) error { e.overlay = g; return nil }
 func (e *enFinta) Leggi(p, g, i string) (uint32, uint32, error) {
 	if !e.piani[p] {
@@ -108,12 +119,15 @@ func (e *enFinta) ScriviDC(p, g, i string, v uint32) error {
 
 type sisFinto struct {
 	spi    map[string]bool
+	tasti  map[string]uint32
 	mouse  [3]int
 	avvisi []string
 }
 
 func nuovoSis() *sisFinto {
-	return &sisFinto{spi: map[string]bool{SPIAnimazioni: true, SPIFinestre: true, SPIOmbre: true}, mouse: [3]int{6, 10, 1}}
+	// dwFlags di base di Windows (scorciatoie accese, con la conferma): 510, 126, 62
+	return &sisFinto{spi: map[string]bool{SPIAnimazioni: true, SPIFinestre: true, SPIOmbre: true}, mouse: [3]int{6, 10, 1},
+		tasti: map[string]uint32{TastiPermanenti: 510, TastiFiltro: 126, TastiAvviso: 62}}
 }
 
 func (s *sisFinto) LeggiSPI(id string) (bool, error) { return s.spi[id], nil }
@@ -121,8 +135,10 @@ func (s *sisFinto) ScriviSPI(id string, on bool) error {
 	s.spi[id] = on
 	return nil
 }
-func (s *sisFinto) ImpostaMouse(a, b, c int) error { s.mouse = [3]int{a, b, c}; return nil }
-func (s *sisFinto) Avvisa(area string)             { s.avvisi = append(s.avvisi, area) }
+func (s *sisFinto) LeggiTasti(id string) (uint32, error)  { return s.tasti[id], nil }
+func (s *sisFinto) ScriviTasti(id string, f uint32) error { s.tasti[id] = f; return nil }
+func (s *sisFinto) ImpostaMouse(a, b, c int) error        { s.mouse = [3]int{a, b, c}; return nil }
+func (s *sisFinto) Avvisa(area string)                    { s.avvisi = append(s.avvisi, area) }
 
 type prefFinte struct{ notif bool }
 

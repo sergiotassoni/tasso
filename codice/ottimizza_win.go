@@ -211,14 +211,17 @@ func (c *regConCopia) Cancella(r ottimizza.Radice, chiave, nome string) error {
 // ---------------- Piano energetico (powrprof) ----------------
 
 var (
-	powrprofOtt    = windows.NewLazySystemDLL("powrprof.dll")
-	pPwrGetActive  = powrprofOtt.NewProc("PowerGetActiveScheme")
-	pPwrSetActive  = powrprofOtt.NewProc("PowerSetActiveScheme")
-	pPwrReadAC     = powrprofOtt.NewProc("PowerReadACValueIndex")
-	pPwrReadDC     = powrprofOtt.NewProc("PowerReadDCValueIndex")
-	pPwrWriteAC    = powrprofOtt.NewProc("PowerWriteACValueIndex")
-	pPwrWriteDC    = powrprofOtt.NewProc("PowerWriteDCValueIndex")
-	pPwrEnumerate  = powrprofOtt.NewProc("PowerEnumerate")
+	powrprofOtt   = windows.NewLazySystemDLL("powrprof.dll")
+	pPwrGetActive = powrprofOtt.NewProc("PowerGetActiveScheme")
+	pPwrSetActive = powrprofOtt.NewProc("PowerSetActiveScheme")
+	pPwrReadAC    = powrprofOtt.NewProc("PowerReadACValueIndex")
+	pPwrReadDC    = powrprofOtt.NewProc("PowerReadDCValueIndex")
+	pPwrWriteAC   = powrprofOtt.NewProc("PowerWriteACValueIndex")
+	pPwrWriteDC   = powrprofOtt.NewProc("PowerWriteDCValueIndex")
+	pPwrEnumerate = powrprofOtt.NewProc("PowerEnumerate")
+	// modalità di risparmio energia a corrente (Windows 11, learn: PowerSetUserConfiguredACPowerMode)
+	pPwrGetUserAC  = powrprofOtt.NewProc("PowerGetUserConfiguredACPowerMode")
+	pPwrSetUserAC  = powrprofOtt.NewProc("PowerSetUserConfiguredACPowerMode")
 	pLocalFreeOtt  = windows.NewLazySystemDLL("kernel32.dll").NewProc("LocalFree")
 	errPowrprof    = errors.New("powrprof non disponibile")
 	chiavePianiOtt = `SYSTEM\CurrentControlSet\Control\Power\User\PowerSchemes`
@@ -299,6 +302,34 @@ func (e enVera) ImpostaOverlay(guid string) error {
 	return nil
 }
 
+// HaModoAC: le due funzioni della modalità a corrente ci sono (se mancano, la voce si salta e lo dice).
+func (enVera) HaModoAC() bool { return pPwrGetUserAC.Find() == nil && pPwrSetUserAC.Find() == nil }
+
+func (e enVera) ModoAC() (string, error) {
+	if !e.HaModoAC() {
+		return "", errPowrprof
+	}
+	var g windows.GUID
+	if r, _, _ := pPwrGetUserAC.Call(uintptr(unsafe.Pointer(&g))); r != 0 {
+		return "", fmt.Errorf("modalità a corrente: %d", r)
+	}
+	return testoGUID(g), nil
+}
+
+func (e enVera) ImpostaModoAC(guid string) error {
+	if !e.HaModoAC() {
+		return errPowrprof
+	}
+	g, err := guidOtt(guid)
+	if err != nil {
+		return err
+	}
+	if r, _, _ := pPwrSetUserAC.Call(uintptr(unsafe.Pointer(&g))); r != 0 {
+		return fmt.Errorf("modalità a corrente: %d", r)
+	}
+	return nil
+}
+
 func (enVera) leggi(p *windows.LazyProc, piano, gruppo, imp string) (uint32, error) {
 	gp, e1 := guidOtt(piano)
 	gg, e2 := guidOtt(gruppo)
@@ -362,7 +393,62 @@ const (
 	spiGetClientAreaAnimation = 0x1042
 	spiSetClientAreaAnimation = 0x1043
 	spifSalvaEAvvisa          = 3 // SPIF_UPDATEINIFILE | SPIF_SENDCHANGE
+	spiGetFilterKeys          = 0x0032
+	spiSetFilterKeys          = 0x0033
+	spiGetToggleKeys          = 0x0034
+	spiSetToggleKeys          = 0x0035
+	spiGetStickyKeys          = 0x003A
+	spiSetStickyKeys          = 0x003B
 )
+
+// tastiInfo: STICKYKEYS e TOGGLEKEYS sono cbSize + dwFlags (8 byte), FILTERKEYS ha in più quattro
+// tempi (24 byte). Si legge la struttura intera e si riscrive cambiando solo dwFlags.
+type tastiInfo struct {
+	Size  uint32
+	Flags uint32
+	Tempi [4]uint32
+}
+
+func codiciTasti(id string) (get, set uintptr, size uint32, ok bool) {
+	switch id {
+	case ottimizza.TastiPermanenti:
+		return spiGetStickyKeys, spiSetStickyKeys, 8, true
+	case ottimizza.TastiAvviso:
+		return spiGetToggleKeys, spiSetToggleKeys, 8, true
+	case ottimizza.TastiFiltro:
+		return spiGetFilterKeys, spiSetFilterKeys, 24, true
+	}
+	return 0, 0, 0, false
+}
+
+func leggiTastiInfo(id string) (tastiInfo, uintptr, error) {
+	get, set, size, ok := codiciTasti(id)
+	if !ok {
+		return tastiInfo{}, 0, errors.New("impostazione sconosciuta")
+	}
+	ti := tastiInfo{Size: size}
+	if r, _, _ := pSysParamInfo.Call(get, uintptr(size), uintptr(unsafe.Pointer(&ti)), 0); r == 0 {
+		return tastiInfo{}, 0, errors.New("SystemParametersInfo")
+	}
+	return ti, set, nil
+}
+
+func (sisVero) LeggiTasti(id string) (uint32, error) {
+	ti, _, err := leggiTastiInfo(id)
+	return ti.Flags, err
+}
+
+func (sisVero) ScriviTasti(id string, flags uint32) error {
+	ti, set, err := leggiTastiInfo(id)
+	if err != nil {
+		return err
+	}
+	ti.Flags = flags
+	if r, _, _ := pSysParamInfo.Call(set, uintptr(ti.Size), uintptr(unsafe.Pointer(&ti)), spifSalvaEAvvisa); r == 0 {
+		return errors.New("SystemParametersInfo")
+	}
+	return nil
+}
 
 type animationInfo struct {
 	Size uint32
@@ -617,8 +703,11 @@ func altroUtenteOtt() bool { return elevato() && utenteDiverso(sidUtente()) }
 func pcOtt() ottimizza.PC {
 	in := leggiInfoPC()
 	letto := in.RAMGB > 0 || in.PCType != 0 || len(in.Telai) > 0
+	setMu.Lock()
+	boostFinestra := settings.GamingCmds["winopt"]
+	setMu.Unlock()
 	pc := ottimizza.PC{Admin: elevato(), Caricatore: !onBattery(), Build: winBuild(), Giochi: giochiOtt(),
-		AltroUtente: altroUtenteOtt(), ModoTasso: modoTassoOtt()}
+		AltroUtente: altroUtenteOtt(), ModoTasso: modoTassoOtt(), BoostFinestra: boostFinestra}
 	pc.Portatile, pc.PortatileDubbio = ottimizza.DecidiPortatile(letto, in.Portatile, batteriaOtt())
 	for _, a := range adattatoriOtt() {
 		if a.software {
@@ -655,8 +744,11 @@ func sidOtt() string {
 // fileStatoOtt: Programmi\Tasso\lavoro\ottimizza\stato-<utente>.json (lì scrivono solo gli
 // amministratori). Senza permessi (account normale) Tasso non può scrivere lì: usa la sua cartella
 // dell'utente, e da quel file non rimette mai valori di tutto il PC (ottimizza.Leggi admin=false).
-func fileStatoOtt() (string, bool) {
-	nome := "stato-" + sidOtt() + ".json"
+func fileStatoOtt() (string, bool) { return fileStatoNomeOtt("stato-" + sidOtt() + ".json") }
+
+// fileStatoNomeOtt: un file di stato con questo nome nella cartella di Ottimizza tutto (anche
+// quello del passo Privacy).
+func fileStatoNomeOtt(nome string) (string, bool) {
 	if elevato() {
 		if d := cartellaLavoroProtetta(); d != "" {
 			d = filepath.Join(d, "ottimizza")
@@ -811,9 +903,10 @@ func salvaOtt(st *ottimizza.Stato) error {
 
 // ambienteOtt: registro con backup, piano energetico, desktop, preferenze e pulizia veri.
 // Per cambiare (giro, riaccendere un interruttore): il .reg di backup tiene i valori di prima.
+// Tenuti: i valori che adesso tiene il passo Privacy (regola "chi l'ha messo?"): Ottimizza non li rimette.
 func ambienteOtt(ctx context.Context, log func(string)) *ottimizza.Ambiente {
 	return &ottimizza.Ambiente{Reg: nuovoRegConCopia(regVero{}), RegSenzaCopia: regVero{}, En: enVera{}, Sis: sisVero{}, Pref: prefVere{}, Pul: pulVero{ctx: ctx, log: log}, PC: pcOtt(),
-		Attendi: func(d time.Duration) { time.Sleep(d) }}
+		Attendi: func(d time.Duration) { time.Sleep(d) }, Tenuti: ottimizza.ValoriTenuti(caricaPrivacy())}
 }
 
 // ambienteRimettiOtt: come ambienteOtt ma senza .reg di backup. Rimettendo com'era, "com'era" è il
@@ -945,6 +1038,14 @@ func ottSpegniTutto() (avvisi []string) {
 	if modoTassoOtt() != "" {
 		setMode("normale")
 	}
+	// lo stesso per il Boost con "giochi in finestra" acceso (regola "chi l'ha messo?"): prima
+	// rimette la sua parte, poi Ottimizza la sua
+	setMu.Lock()
+	winopt := settings.GamingCmds["winopt"]
+	setMu.Unlock()
+	if winopt {
+		gamingSet("winopt", false)
+	}
 	ottNotificheFine()
 	updateSettings(func(s *Settings) { s.OttNotifGioco = false })
 	if _, ok := rimettiTuttoOtt(true); !ok {
@@ -971,7 +1072,7 @@ func copiaPerDocumentiOtt(p string) bool {
 	return scriviFileApp(filepath.Join(dir, nome), b, 0o644) == nil
 }
 
-const leggimiRegOtt = "Questo file serve a rimettere com'erano le impostazioni di questo account cambiate da Ottimizza tutto di Tasso.\nIl file .reg con lo stesso nome rimette i valori che c'erano prima delle modifiche di Tasso. Attenzione: rimette quelli di prima anche se nel frattempo li hai cambiati tu. Non rifà nessuna modifica.\nCome si usa: entra in Windows con questo account, fai doppio clic sul file .reg, rispondi Sì alle domande di Windows, poi esci da Windows e rientra.\nAnimazioni e ombre delle finestre non sono in questo file (Tasso le lascia come sono). Se non ti sembrano come prima, sistemale a mano. Windows 11: Impostazioni > Accessibilità > Effetti visivi. Windows 10: Pannello di controllo > Sistema > Impostazioni di sistema avanzate > Prestazioni > Impostazioni, poi scegli \"Lascia scegliere a Windows\".\nDopo puoi cancellare tutti e due i file."
+const leggimiRegOtt = "Questo file serve a rimettere com'erano le impostazioni di questo account cambiate da Ottimizza tutto di Tasso.\nIl file .reg con lo stesso nome rimette i valori che c'erano prima delle modifiche di Tasso. Attenzione: rimette quelli di prima anche se nel frattempo li hai cambiati tu. Non rifà nessuna modifica.\nCome si usa: entra in Windows con questo account, fai doppio clic sul file .reg, rispondi Sì alle domande di Windows, poi esci da Windows e rientra.\nAnimazioni e ombre delle finestre non sono in questo file (Tasso le lascia come sono). Se non ti sembrano come prima, sistemale a mano. Windows 11: Impostazioni > Accessibilità > Effetti visivi. Windows 10: Pannello di controllo > Sistema > Impostazioni di sistema avanzate > Prestazioni > Impostazioni, poi scegli \"Lascia scegliere a Windows\".\nAnche le scorciatoie da tastiera dell'accessibilità (Maiusc premuto 5 volte, Maiusc o Bloc Num tenuti premuti) non sono in questo file. Se le rivuoi: Impostazioni > Accessibilità > Tastiera, e accendi la scorciatoia di Tasti permanenti, Filtro tasti e Segnalazione tasti.\nDopo puoi cancellare tutti e due i file."
 
 // regAltroAccountOtt: dopo Togli Tasso, per le modifiche di un altro account che Tasso non può
 // raggiungere, un .reg con i valori di prima (solo HKCU, solo quelli toccati) e un .txt che spiega,
@@ -1176,10 +1277,10 @@ func ottAltriFile() []string {
 		}
 	}
 	if conReg > 0 {
-		avvisi = append(avvisi, "Ottimizza tutto: alcune impostazioni di un altro account del PC non sono tornate com'erano (Tasso non può cambiare le impostazioni di un altro account). Per rimetterle: entra in Windows con quell'account, fai doppio clic sul file \"Tasso - rimetti com'era…\" che trovi sul suo Desktop (o nella sua cartella personale), rispondi Sì, poi esci e rientra.")
+		avvisi = append(avvisi, "Ottimizza tutto: alcune impostazioni di un altro account del PC non sono tornate com'erano (Tasso non può cambiare le impostazioni di un altro account). Per rimetterle: entra in Windows con quell'account, fai doppio clic sul file \"Tasso - rimetti com'era…\" che trovi sul suo Desktop, rispondi Sì, poi esci e rientra. Se non lo trovi sul Desktop (succede se il Desktop è in OneDrive), guarda nella cartella personale di quell'account: in Esplora file, Disco locale (C:) > Utenti > nome dell'account, e lì nella cartella Desktop.")
 	}
 	if senzaReg > 0 {
-		avvisi = append(avvisi, "Ottimizza tutto: alcune impostazioni di un altro account del PC non sono tornate com'erano e non ho potuto lasciare un file nella sua cartella. Per rimetterle: entra in Windows con quell'account e, in Impostazioni, riaccendi a mano quello che serve (accelerazione del mouse, effetti visivi, suoni delle notifiche, consigli di Windows). L'elenco con i valori di prima va con le copie di sicurezza in Documenti.")
+		avvisi = append(avvisi, "Ottimizza tutto: alcune impostazioni di un altro account del PC non sono tornate com'erano e non ho potuto lasciare un file nella sua cartella. Per rimetterle: entra in Windows con quell'account e, in Impostazioni, riaccendi a mano quello che serve (accelerazione del mouse, scorciatoie di accessibilità della tastiera, suoni delle notifiche, consigli e pubblicità di Windows). L'elenco con i valori di prima va con le copie di sicurezza in Documenti.")
 	}
 	if conReg == 0 && senzaReg == 0 && altri > 0 {
 		avvisi = append(avvisi, "Ottimizza tutto: alcune impostazioni di un altro account del PC non sono tornate com'erano (Tasso non può cambiare le impostazioni di un altro account). Tolgo Tasso lo stesso: l'elenco va con le copie di sicurezza in Documenti.")

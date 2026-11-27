@@ -85,6 +85,7 @@ type enProva struct {
 	vero    enVera
 	attivo  string
 	overlay string
+	modoAC  string
 	val     map[string][2]uint32
 }
 
@@ -117,6 +118,20 @@ func (e *enProva) Overlay() (string, error) {
 	return e.overlay, nil
 }
 func (e *enProva) ImpostaOverlay(g string) error { e.overlay = g; return nil }
+
+// modalità a corrente: letta dal Windows vero (prova che la funzione c'è e risponde), scritta in memoria
+func (e *enProva) HaModoAC() bool { return e.vero.HaModoAC() }
+func (e *enProva) ModoAC() (string, error) {
+	if e.modoAC == "" {
+		m, err := e.vero.ModoAC()
+		if err != nil {
+			return "", err
+		}
+		e.modoAC = m
+	}
+	return e.modoAC, nil
+}
+func (e *enProva) ImpostaModoAC(g string) error { e.modoAC = g; return nil }
 func (e *enProva) Leggi(p, g, i string) (uint32, uint32, error) {
 	if x, ok := e.val[p+g+i]; ok {
 		return x[0], x[1], nil
@@ -142,8 +157,22 @@ func (e *enProva) ScriviDC(p, g, i string, v uint32) error {
 type sisProva struct {
 	vero  sisVero
 	spi   map[string]bool
+	tasti map[string]uint32
 	mouse []int
 }
+
+// scorciatoie di accessibilità: lette dal Windows vero (SPI_GET...), scritte in memoria
+func (s *sisProva) LeggiTasti(id string) (uint32, error) {
+	if v, ok := s.tasti[id]; ok {
+		return v, nil
+	}
+	v, err := s.vero.LeggiTasti(id)
+	if err == nil {
+		s.tasti[id] = v
+	}
+	return v, err
+}
+func (s *sisProva) ScriviTasti(id string, f uint32) error { s.tasti[id] = f; return nil }
 
 func (s *sisProva) LeggiSPI(id string) (bool, error) {
 	if v, ok := s.spi[id]; ok {
@@ -204,6 +233,13 @@ func provaOttimizza(conApertura bool) int {
 	for _, a := range adattatoriOtt() {
 		log(fmt.Sprintf("   scheda: %s (vendor 0x%04x, software %v)", a.nome, a.vendor, a.software))
 	}
+	if m, err := (enVera{}).ModoAC(); true {
+		log(fmt.Sprintf("modalità a corrente: funzioni=%v adesso=%s %v (Boost giochi in finestra=%v)", (enVera{}).HaModoAC(), m, err, pc.BoostFinestra))
+	}
+	for _, id := range []string{ottimizza.TastiPermanenti, ottimizza.TastiFiltro, ottimizza.TastiAvviso} {
+		f, err := (sisVero{}).LeggiTasti(id)
+		log(fmt.Sprintf("   tasti %s: flags=%d %v", id, f, err))
+	}
 
 	for _, modo := range []string{ottimizza.ModoGioco, ottimizza.ModoUfficio} {
 		log("")
@@ -213,7 +249,7 @@ func provaOttimizza(conApertura bool) int {
 		copia.dir = dir // il .reg con i valori di prima va accanto al rapporto
 		log("   backup dei valori toccati: " + filepath.Join(dir, copia.file))
 		en := &enProva{val: map[string][2]uint32{}}
-		sis := &sisProva{spi: map[string]bool{}}
+		sis := &sisProva{spi: map[string]bool{}, tasti: map[string]uint32{}}
 		a := &ottimizza.Ambiente{Reg: copia, En: en, Sis: sis, Pref: &prefProva{}, Pul: pulProva{log: log}, PC: pc}
 		st := &ottimizza.Stato{Risultati: map[string]*ottimizza.Risultato{}}
 		fileStato := filepath.Join(dir, "prova-ottimizza-stato.json")
@@ -288,6 +324,16 @@ func provaOttimizza(conApertura bool) int {
 		for k, v := range primaEn {
 			if en.val[k] != v {
 				sbaglio("impostazione del piano non tornata: " + k)
+			}
+		}
+		for id, v := range sis.tasti {
+			if vero, err := (sisVero{}).LeggiTasti(id); err == nil && vero != v {
+				sbaglio("scorciatoia di accessibilità non tornata: " + id)
+			}
+		}
+		if en.modoAC != "" {
+			if vero, err := (enVera{}).ModoAC(); err == nil && vero != en.modoAC {
+				sbaglio("modalità a corrente non tornata com'era")
 			}
 		}
 		for id, v := range sis.spi {

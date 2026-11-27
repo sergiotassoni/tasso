@@ -610,14 +610,14 @@ func startSteps(ids []string, level int, fine string, winupdate bool) string {
 			}
 			idx := i
 			lastProg := -1.0
-			r := runPSInfo(runCtx(), s.Script, s.Timeout, func(m string) { logLine("   " + m) }, func(f float64) {
+			r := eseguiPasso(runCtx(), s, func(m string) { logLine("   " + m) }, func(f float64) {
 				if f-lastProg >= 0.01 || f >= 1 { // al massimo 100 aggiornamenti per passaggio
 					lastProg = f
 					emit("onStepProgress", map[string]interface{}{"index": idx, "frac": f})
 				}
 			}, func(t string) {
 				emit("onStepInfo", map[string]interface{}{"index": idx, "text": t})
-			}, true)
+			})
 			if r.TooSlow {
 				slow++
 			}
