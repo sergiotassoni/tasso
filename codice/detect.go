@@ -27,8 +27,12 @@ $blocchi = New-Object System.Collections.ArrayList
 $script:cur = $null
 function C([string]$what, [string]$nome = '', [int]$n = 1, [string]$tipo = '') { Say $what; $script:cur = [pscustomobject]@{ nome = $nome; n = $n; tipo = $tipo; salta = $false }; [void]$blocchi.Add($script:cur) }
 function Salta { if ($script:cur) { $script:cur.salta = $true } }
+# Solo i gruppi della modalità di Tasso in uso: in Gaming niente stampanti, Office e OneDrive, in Ufficio niente
+# giochi. Un gruppo saltato non entra in $blocchi, così "Ho controllato N" e "non controllato" restano giusti.
+function Tocca([string]$tipo) { if ($tipo -eq 'o') { return ([string]$A.profile -eq 'ufficio') }; if ($tipo -eq 'g') { return ([string]$A.profile -ne 'ufficio') }; return $true }
 $virt = 'PDF|XPS|OneNote|Fax|Anteprima|Send To|Invia a'
 
+if (Tocca 'o') {
 C 'Controllo le stampanti…' 'le stampanti' 4 'o'
 try {
   $sp = Get-Service -Name Spooler -ErrorAction Stop
@@ -42,6 +46,7 @@ try {
     if ($stuck.Count) { F 'of_print_offline' 'p' ('Ci sono ' + $stuck.Count + ' stampe bloccate in coda da più di 2 ore.') }
   }
 } catch { Salta }
+}
 
 C 'Controllo internet e rete…' 'internet e rete' 9 ''
 $net = $true
@@ -69,7 +74,11 @@ try {
 } catch { Salta }
 try {
   $wi = (netsh.exe wlan show interfaces 2>$null) -join [char]10
-  if ($wi -match '(?:Segnale|Signal)\s*:\s*(\d+)\s*%' -and [int]$Matches[1] -lt 40) { F 'of_net_slow' 'c' ('Il segnale del Wi-Fi è debole (' + $Matches[1] + '%): internet può essere lento o staccarsi.') }
+  # Il segnale è la riga di netsh che ha come valore solo un numero e "%": così vale in ogni lingua di Windows
+  # (Signal, Segnale, Señal, Sinal...). Le righe SSID/BSSID non contano: il nome della rete può finire con "5%".
+  $sig = $null
+  foreach ($ln in ($wi -split [char]10)) { if ($ln -match '^\s*([^:]+?)\s*:\s*(\d+)\s*%\s*$' -and $Matches[1] -notmatch 'SSID') { $sig = [int]$Matches[2]; break } }
+  if ($null -ne $sig -and $sig -lt 40) { F 'of_net_slow' 'c' ('Il segnale del Wi-Fi è debole (' + $sig + '%): internet può essere lento o staccarsi.') }
   $since = (Get-Date).AddDays(-3)
   # Conto solo i distacchi "strani": non quelli vicini a sospensione, riavvio o spegnimento.
   $pw = @(Get-WinEvent -FilterHashtable @{ LogName = 'System'; Id = 42, 107, 506, 507, 1074, 6006, 6008; StartTime = $since } -MaxEvents 500 -ErrorAction SilentlyContinue | ForEach-Object { $_.TimeCreated })
@@ -105,6 +114,7 @@ try {
   }
 } catch { Salta }
 
+if (Tocca 'o') {
 C 'Controllo Word, Excel e Outlook…' 'Word, Excel e Outlook' 4 'o'
 try {
   $u = Get-RegValue 'HKLM\SOFTWARE\Microsoft\Office\ClickToRun\Configuration' 'UpdatesEnabled'
@@ -123,6 +133,7 @@ try {
   $us = @(Get-ChildItem -LiteralPath (Join-Path $env:LOCALAPPDATA 'Microsoft\Office\UnsavedFiles') -File -ErrorAction SilentlyContinue | Where-Object { $_.LastWriteTime -gt (Get-Date).AddDays(-4) })
   if ($us.Count) { F 'of_office_lost' 'c' ('Ci sono ' + $us.Count + ' documenti di Office non salvati che si possono ancora recuperare.') }
 } catch { Salta }
+}
 
 C 'Controllo microfono, webcam, audio e notifiche…' 'microfono, webcam, audio e notifiche' 4 ''
 try {
@@ -146,7 +157,8 @@ try {
 C 'Controllo le periferiche…' 'le periferiche' 1 ''
 try {
   $map = @{ USB = 'of_usb'; HIDClass = 'of_usb'; Keyboard = 'of_usb'; Mouse = 'of_usb'; DiskDrive = 'of_usb'; Camera = 'of_meet_cam'; Image = 'of_meet_cam'; Bluetooth = 'of_meet_bt'; Printer = 'of_print_usb'; PrintQueue = 'of_print_usb'; Net = 'fix_net'; MEDIA = 'fix_audio'; AudioEndpoint = 'fix_audio'; Monitor = 'of_second_screen'; Display = 'of_second_screen' }
-  foreach ($d in @(Get-CimInstance Win32_PnPEntity -ErrorAction SilentlyContinue | Where-Object { $_.ConfigManagerErrorCode -and $_.ConfigManagerErrorCode -notin 22, 24, 45 })) {
+  # 22 spenta apposta, 45 non collegata; 24 solo se la periferica non c'è (Present falso): con i driver a metà è un problema vero.
+  foreach ($d in @(Get-CimInstance Win32_PnPEntity -ErrorAction SilentlyContinue | Where-Object { $_.ConfigManagerErrorCode -and $_.ConfigManagerErrorCode -notin @(22, 45) -and -not ($_.ConfigManagerErrorCode -eq 24 -and $_.Present -eq $false) })) {
     $id = $map[[string]$d.PNPClass]
     if ($id) { F $id 'p' ('"' + $d.Name + '" ha un problema (codice ' + $d.ConfigManagerErrorCode + ').') }
   }
@@ -186,6 +198,7 @@ try {
   foreach ($x in @('http', 'https')) { $p = Get-UserChoice $x; if ($p -and -not (Test-ProgIdOk $p)) { F 'of_links' 'p' 'I link si aprono con un browser che non c''è più: cliccando non succede niente.' } }
 } catch { Salta }
 
+if (Tocca 'o') {
 C 'Controllo OneDrive…' 'OneDrive' 2 'o'
 try {
   $roots = @(Get-OneDriveRoots)
@@ -204,14 +217,17 @@ try {
     if ($dup) { F 'of_onedrive_conflict' 'p' ('In OneDrive ci sono file doppi con il nome del PC (es. ' + $dup.Name + ').'); break }
   }
 } catch { Salta }
+}
 
 C 'Controllo avvio, servizi e licenza di Windows…' 'avvio, servizi e licenza di Windows' 8 ''
 try {
   $ev = Get-WinEvent -FilterHashtable @{ LogName = 'Microsoft-Windows-Diagnostics-Performance/Operational'; Id = 100 } -MaxEvents 1 -ErrorAction SilentlyContinue
   if ($ev) { $bt = ([xml]$ev.ToXml()).Event.EventData.Data | Where-Object { $_.Name -eq 'BootTime' } | Select-Object -First 1; if ($bt -and [int]$bt.'#text' -gt 120000) { F 'of_slow_boot' 'p' ('L''ultima accensione è durata ' + [int]([int]$bt.'#text' / 1000) + ' secondi (normale: meno di 60).') } }
-  foreach ($s in @(@('wuauserv', 'fix_wu', 'Windows Update'), @('WSearch', 'fix_search', 'la ricerca di Windows'))) {
+  # Frasi intere (i pezzi tradotti a parte davano "Il servizio di la ricerca..."). Un servizio disattivato
+  # di solito l'ha spento qualcuno apposta (anche l'ufficio): è un Consiglio, e Risolvi spiega come riaccenderlo.
+  foreach ($s in @(@('wuauserv', 'fix_wu', 'Il servizio di Windows Update è disattivato.'), @('WSearch', 'fix_search', 'La ricerca di Windows è disattivata.'))) {
     $sv = Get-Service -Name $s[0] -ErrorAction SilentlyContinue
-    if ($sv -and [string]$sv.StartType -eq 'Disabled') { F $s[1] 'p' ('Il servizio di ' + $s[2] + ' è disattivato.') }
+    if ($sv -and [string]$sv.StartType -eq 'Disabled') { F $s[1] 'c' $s[2] }
   }
   $lic = @(Get-CimInstance SoftwareLicensingProduct -Filter "ApplicationID='55c92734-d682-4d71-983e-d6ec3f16059f' AND PartialProductKey IS NOT NULL AND LicenseDependsOn IS NULL" -ErrorAction SilentlyContinue)
   if ($lic.Count -and -not @($lic | Where-Object { $_.LicenseStatus -eq 1 }).Count) { F 'of_activation' 'p' 'Windows non risulta attivato.' }
@@ -242,6 +258,7 @@ try {
   }
 } catch { Salta }
 
+if (Tocca 'g') {
 C 'Controllo le impostazioni per i giochi…' 'le impostazioni per i giochi' 4 'g'
 try {
   if ((Get-RegValue 'HKCU\Control Panel\Desktop' 'ForegroundLockTimeout') -eq 0) { F 'fix_game_minimize' 'p' 'Un programma ha tolto la protezione che impedisce alle finestre di "rubare" il gioco: può ridursi a icona da solo.' }
@@ -252,6 +269,7 @@ try {
   $st = [string](Get-RegValue 'HKCU\Software\Valve\Steam' 'SteamPath')
   if ($st) { $cfg = Join-Path ($st -replace '/', '\') 'config\config.vdf'; if ((Get-Content -LiteralPath $cfg -Raw -ErrorAction SilentlyContinue) -match '"DownloadThrottleKbps"\s+"([1-9]\d*)"') { F 'fix_game_download' 'c' 'Steam ha un limite alla velocità dei download.' } }
 } catch { Salta }
+}
 
 $fatti = @($blocchi | Where-Object { -not $_.salta })
 $contaTipo = { param($t) [int](@($fatti | Where-Object { $_.tipo -eq $t } | Measure-Object -Property n -Sum).Sum) }

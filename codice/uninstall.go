@@ -187,6 +187,7 @@ func togliTassoPassiDentro(rimetti bool, passo func(int, string), pianoOut *pian
 	// 1. impostazioni di Windows e cose accese da Tasso
 	// prima la riunione: rimette i valori di quando era partita, poi "Rimetti com'era" vince
 	officeSpegniTutto()
+	ottAvvisi := ottSpegniTutto() // Ottimizza tutto (3.2): le sue modifiche tornano com'erano, come la riunione
 	if rimetti {
 		msgs, ok, avvioNo := restoreOriginalDett()
 		if !ok {
@@ -199,7 +200,11 @@ func togliTassoPassiDentro(rimetti bool, passo func(int, string), pianoOut *pian
 			passo(0, "Impostazioni di Windows rimesse com'erano")
 		}
 	} else {
-		passo(0, "Boost, clic automatico e modalità dell'Ufficio spenti (le altre impostazioni restano come sono)")
+		passo(0, "Boost, clic automatico, modalità dell'Ufficio e modifiche di Ottimizza tutto rimessi com'erano (le altre impostazioni restano come sono)")
+	}
+	// Ottimizza tutto non blocca mai: quello che non è tornato va con le copie di sicurezza e lo dico
+	for _, a := range ottAvvisi {
+		passo(0, a)
 	}
 	// da qui nessuna pulizia programmata deve partire (restoreOriginal ha già preso e lasciato il posto)
 	if !claimRun() {

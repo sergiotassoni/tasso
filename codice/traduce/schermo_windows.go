@@ -948,6 +948,17 @@ var idTasti = map[string]uintptr{
 // Restituisce le funzioni dei tasti che non si sono potuti registrare (già presi da un altro
 // programma), in ordine.
 func registraTasti(h uintptr, t map[string]uint32) []string {
+	// La chat tradotta va solo dall'italiano all'inglese e Tasso la offre solo in italiano: nelle
+	// altre lingue Ctrl+Alt+T non si registra e resta agli altri programmi.
+	if linguaTasso() != "it" {
+		senza := make(map[string]uint32, len(t))
+		for k, v := range t {
+			if k != "chat" {
+				senza[k] = v
+			}
+		}
+		t = senza
+	}
 	var falliti []string
 	presi := map[uint32]uintptr{} // codice del tasto -> id, per il gancio della tastiera
 	for _, id := range idTasti {

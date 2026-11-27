@@ -26,11 +26,15 @@
    - Startup apps: an on/off switch for each one
    - Startup guard: lets you know if a new program adds itself
    - Defragmentation (hard drives) and TRIM (SSDs)
+   - Optimize everything (Home): measures the PC, sets up Windows for playing (Gaming) or
+     for working (Office), shows before and after and the badge card; every change can be
+     put back as it was, one at a time or all
 
 3. PROGRAMS AND UPDATES
    - Complete uninstall, with a search for leftover folders
    - Removal of preinstalled apps (Candy Crush, TikTok, Solitaire, etc.)
-   - Program updates (winget): a list of programs with a new version, one by one or all
+   - Program updates (winget): a list of programs with a new version, one by one or the ones with a
+     check mark (asks first)
    - Drivers for the whole PC: AMD/NVIDIA/Intel graphics card, audio, mouse, keyboard,
      network, Bluetooth, webcam; Windows Update and official websites; automatic
      driver downloads
@@ -200,24 +204,31 @@
      one for everything. Turning off or restarting the PC doesn't put anything back
      by itself
    - Start with Windows
-   - Smart alerts (never in Gaming or FPS mode)
+   - Smart alerts (while you play with the Boost only temperature and disk health)
 
 WHAT'S NEW IN 3.2
+   - Optimize everything on the Home page, in Gaming and in Office: measures, sets up
+     Windows, shows the difference; everything can be put back as it was
+   - Badge card with the result of Optimize everything and of the PC score
+   - Office: Meeting mode on the Home page, next to CLEAN UP
    - Desktop backgrounds that match the theme (optional), sharp even in 4K; "Put mine back"
      (with Tasso installed by the installer)
    - PC score, renewed: graphics card, full RAM, cooling and a business card
    - Get help from a friend: Windows Quick Assist explained step by step, with warnings
      against scams
-   - Gaming: "Everyday problems" in Fix a problem, "Test microphone and headset" and
-     "Who is using the webcam and microphone"
-   - Office: Meeting mode on the Home page, next to CLEAN UP; in Fix a problem also PC
+   - Better balance between Gaming and Office. Gaming: "Everyday problems" in Fix a
+     problem, "Test microphone and headset", "Who is using the webcam and microphone",
+     smart alerts; choosing Gaming the first time doesn't change the PC
+   - Office: in Fix a problem also PC
      getting hot, program that won't start (missing .dll), PC freezing with big files,
      sound crackling in calls, black screen
    - More security behind the scenes: game copies and Tasso's files better protected
    - Scheduled cleanup that waits until you close the game
    - File backup: warning if you choose the wrong folder
    - Office: Meeting mode separate for each user of the PC
-   - Lots of small fixes (translation, games, Office)
+   - Lots of fixes: Health and Fix a problem tell the truth, updates only with a check
+     mark, "Privacy: restore" puts back the values you had before, cleanup every 2 weeks
+     described correctly
 
 WHAT'S NEW IN 3.1.1
    - Cleanup: "Update Windows too" (last) and "When it's done": Leave on, Restart or

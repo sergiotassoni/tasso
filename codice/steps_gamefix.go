@@ -51,7 +51,7 @@ if ($TassoUfficio) {
 	{ID: "fix_game_pads", Name: "Controller, cuffie o microfono non vanno", Desc: "Riavvia controller, cuffie, microfono e periferiche USB o Bluetooth che non rispondono, e riavvia l'audio di Windows.", Level: 0, Minutes: 0.5, Timeout: 5 * time.Minute, Script: `
 Say 'Cerco controller, cuffie e periferiche USB con problemi...'
 $cls = 'HIDClass|USB|MEDIA|AudioEndpoint|XnaComposite|XboxComposite|Bluetooth|Mouse|Keyboard'
-$bad = @(Get-CimInstance Win32_PnPEntity -ErrorAction SilentlyContinue | Where-Object { $_.PNPClass -match $cls -and $_.ConfigManagerErrorCode -ne 0 -and $_.ConfigManagerErrorCode -ne 22 -and $_.ConfigManagerErrorCode -ne 45 })
+$bad = @(Get-CimInstance Win32_PnPEntity -ErrorAction SilentlyContinue | Where-Object { $_.PNPClass -match $cls -and $_.ConfigManagerErrorCode -ne 0 -and $_.ConfigManagerErrorCode -ne 22 -and $_.ConfigManagerErrorCode -ne 45 -and -not ($_.ConfigManagerErrorCode -eq 24 -and $_.Present -eq $false) })
 foreach ($d in $bad) {
   Say ('Riavvio: ' + $d.Name)
   $id = [string]$d.PNPDeviceID
@@ -69,7 +69,7 @@ Restart-Service -Name bthserv -Force -ErrorAction SilentlyContinue
 $mk = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\microphone'
 $v = ''; try { $v = [string](Get-ItemProperty -LiteralPath $mk -Name Value -ErrorAction Stop).Value } catch {}
 if ($v -eq 'Deny') { Say 'ATTENZIONE: il microfono è bloccato per tutte le app in Impostazioni > Privacy > Microfono. Accendilo lì per farti sentire su Discord e nei giochi.'; Start-Process -FilePath (Join-Path $env:SystemRoot 'explorer.exe') -ArgumentList '"ms-settings:privacy-microphone"' }
-$still = @(Get-CimInstance Win32_PnPEntity -ErrorAction SilentlyContinue | Where-Object { $_.PNPClass -match $cls -and $_.ConfigManagerErrorCode -ne 0 -and $_.ConfigManagerErrorCode -ne 22 -and $_.ConfigManagerErrorCode -ne 45 })
+$still = @(Get-CimInstance Win32_PnPEntity -ErrorAction SilentlyContinue | Where-Object { $_.PNPClass -match $cls -and $_.ConfigManagerErrorCode -ne 0 -and $_.ConfigManagerErrorCode -ne 22 -and $_.ConfigManagerErrorCode -ne 45 -and -not ($_.ConfigManagerErrorCode -eq 24 -and $_.Present -eq $false) })
 if ($still.Count) { Say ('Ancora con problemi: ' + (($still | ForEach-Object { $_.Name }) -join ', ') + '. Scollegala, aspetta 5 secondi e ricollegala (meglio in una porta USB dietro il PC). Poi guarda "Driver di tutto il PC" qui sotto.') }
 else { Say 'Fatto. Se un controller o le cuffie non vanno ancora: scollegale e ricollegale, e controlla che siano scelte come dispositivo nel gioco o su Discord.' }
 `},

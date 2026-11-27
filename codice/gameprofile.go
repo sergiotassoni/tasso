@@ -60,7 +60,7 @@ func cleanCmds(in []string) []string {
 	var out []string
 	seen := map[string]bool{}
 	for _, id := range in {
-		if _, ok := gamingTitles[id]; ok && !seen[id] {
+		if _, ok := gamingTitles[id]; ok && !seen[id] && !comandiRitirati[id] {
 			seen[id] = true
 			out = append(out, id)
 		}

@@ -10,6 +10,7 @@ import (
 	"runtime/debug"
 	"strconv"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"time"
 	"unsafe"
@@ -152,6 +153,7 @@ func main() {
 	// Installato con Tasso Setup: modalità scelta nell'installatore (ecosistema.go).
 	profiloInstallatore, modalitaCambiata := applicaModalitaInstallatore()
 	go officeGuardia()
+	go ottAllAvvio() // ottimizza_win.go: notifiche durante il gioco, accensione "dopo" in Ufficio
 
 	autoLevel := 0
 	minimized := false
@@ -276,6 +278,19 @@ func main() {
 				// come il pulsante "Continua" della prima apertura, con la scelta fatta nell'installatore
 				lookChanged(profiloInstallatore == "ufficio")
 				profiloPC(profiloInstallatore)
+				setMu.Lock()
+				wk := settings.Weekly
+				setMu.Unlock()
+				if profiloInstallatore != "gioco" && wk {
+					// Lo segno nelle impostazioni (si toglie quando la pagina l'ha mostrato, goPuliziaDetta):
+					// se la pagina non è ancora pronta o Tasso si chiude prima, lo dice alla prossima apertura.
+					updateSettings(func(s *Settings) { s.PuliziaDaDire = true })
+					select {
+					case <-paginaPronta:
+						emit("onPuliziaAccesa", nil)
+					case <-time.After(5 * time.Minute):
+					}
+				}
 			} else {
 				lookChanged(officeMode()) // come il menu delle modalità (Boost, autoclick, pannellino)
 			}
@@ -502,6 +517,7 @@ func chiudiTasso() {
 		// Anche la modalità messa per una partita in corso e la frequenza dello schermo in prova
 		// (non ancora confermata) tornano com'erano: senza Tasso aperto nessuno le rimetterebbe.
 		modalitaGiocoPerUscita()
+		ottNotificheFine() // Ottimizza tutto: notifiche in pausa per una partita in corso
 		screenHzUndo(false)
 		trayStop()
 		wv.Dispatch(func() { wv.Terminate() })
@@ -539,8 +555,18 @@ func openPath(p string, args string) bool {
 	return windows.ShellExecute(0, verb, target, a, nil, windows.SW_SHOWNORMAL) == nil
 }
 
+// paginaPronta si chiude quando la pagina ha finito di partire (goPaginaPronta): gli avvisi che non
+// devono perdersi aspettano questo, non un ritardo fisso.
+var (
+	paginaPronta     = make(chan struct{})
+	paginaProntaOnce sync.Once
+)
+
 func bindAll(w webview2.WebView) {
 	bindAiutoAmico(w)
+	bindOttimizza(w) // ottimizza_win.go: Ottimizza tutto (3.2)
+	_ = w.Bind("goPaginaPronta", func() string { paginaProntaOnce.Do(func() { close(paginaPronta) }); return "ok" })
+	_ = w.Bind("goPuliziaDetta", func() string { updateSettings(func(s *Settings) { s.PuliziaDaDire = false }); return "ok" })
 	_ = w.Bind("goGetSettings", func() map[string]interface{} { return getSettings() })
 	_ = w.Bind("goSetProfile", func(id, p string) string { return bgCall("sched", id, func() string { return setProfile(p) }) })
 	_ = w.Bind("goSetLook", func(p string) string {

@@ -5,6 +5,7 @@ package main
 
 import (
 	"regexp"
+	"strings"
 	"time"
 )
 
@@ -23,28 +24,44 @@ func updatesList() {
 	}
 }
 
-// updatesApply aggiorna i programmi scelti (id winget) oppure tutti ("*").
+// updatesApply aggiorna solo i programmi scelti: id di winget, oppure "n:" e il nome esatto per quelli
+// che winget mostra senza id. Mai "upgrade --all": aggiornerebbe anche quelli senza spunta.
 func updatesApply(ids []string) {
-	var ok []string
-	all := false
+	var ok, nomi []string
 	for _, id := range ids {
-		if id == "*" {
-			all = true
-			break
+		if n, isNome := strings.CutPrefix(id, "n:"); isNome {
+			if nomeWingetValido(n) {
+				nomi = append(nomi, n)
+			}
+			continue
 		}
 		if wingetIDRe.MatchString(id) {
 			ok = append(ok, id)
 		}
 	}
 	var msgs []string
-	if !all && len(ok) == 0 {
+	if len(ok) == 0 && len(nomi) == 0 {
 		msgs = append(msgs, "Niente da aggiornare.")
 	} else {
-		args := map[string]interface{}{"all": all, "ids": ok}
+		args := map[string]interface{}{"ids": ok, "names": nomi}
 		runPSArgs(updatesApplyScript, args, 90*time.Minute, func(m string) { msgs = append(msgs, m); emit("onUpdatesProgress", m) })
 	}
 	emit("onUpdatesDone", map[string]interface{}{"msgs": msgs})
 	updatesList()
+}
+
+// nomeWingetValido: un nome di programma che si può passare a "winget upgrade --name ... --exact".
+// No nomi accorciati da winget (…), virgolette, a capo o caratteri di controllo.
+func nomeWingetValido(n string) bool {
+	if n == "" || n != strings.TrimSpace(n) || len(n) > 200 || strings.ContainsAny(n, "\"\u2026`") {
+		return false
+	}
+	for _, r := range n {
+		if r < 32 || r == 127 {
+			return false
+		}
+	}
+	return true
 }
 
 const updatesListScript = `
@@ -112,31 +129,29 @@ function Esito-Winget([int]$c) {
     default { return 'no' }
   }
 }
-if ($A.all) {
-  Say 'Aggiorno tutti i programmi (può volerci qualche minuto)...'
-  $code = Run-Hidden $wg ('upgrade --all ' + $common)
-  switch (Esito-Winget $code) {
-    'ok' { Say 'Tutti i programmi sono aggiornati.' }
-    'riavvio' { Say 'Programmi aggiornati: per finire serve un riavvio del PC.'; [Console]::Out.WriteLine('REBOOT') }
-    'gia' { Say 'Tutti i programmi sono aggiornati.' }
-    'nonapplicabile' { Say 'winget non ha trovato aggiornamenti che può installare da solo: quelli rimasti si aggiornano dal loro programma o dal loro sito.' }
-    default { Say 'Fatto. Qualche programma va aggiornato a mano (di solito perché è aperto: chiudilo e riprova).' }
-  }
-  return
-}
 $ok = 0; $ko = 0; $na = 0
+# Un programma alla volta: $sel è l'argomento per winget (--id o --name, sempre --exact), $nome quello da mostrare.
+function Aggiorna-Uno([string]$sel, [string]$nome) {
+  Say ('Aggiorno ' + $nome + '...')
+  $code = Run-Hidden $wg ('upgrade ' + $sel + ' --exact ' + $common)
+  switch (Esito-Winget $code) {
+    'ok' { $script:ok++; Say ('Aggiornato: ' + $nome) }
+    'riavvio' { $script:ok++; Say ('Aggiornato: ' + $nome + ' (per finire serve un riavvio)'); [Console]::Out.WriteLine('REBOOT') }
+    'gia' { $script:ok++; Say ('Già alla versione nuova: ' + $nome) }
+    'nonapplicabile' { $script:na++; Say ('Non aggiornato: ' + $nome + ' (winget non ha un aggiornamento che può installare: aggiornalo dal programma stesso o dal suo sito)') }
+    default { $script:ko++; Say ('Non aggiornato: ' + $nome + ' (se è aperto, chiudilo e riprova)') }
+  }
+}
 foreach ($id in @($A.ids)) {
   $id = [string]$id
   if ($id -notmatch '^[A-Za-z0-9][A-Za-z0-9._+\-]{1,127}$') { continue }
-  Say ('Aggiorno ' + $id + '...')
-  $code = Run-Hidden $wg ('upgrade --id "' + $id + '" --exact ' + $common)
-  switch (Esito-Winget $code) {
-    'ok' { $ok++; Say ('Aggiornato: ' + $id) }
-    'riavvio' { $ok++; Say ('Aggiornato: ' + $id + ' (per finire serve un riavvio)'); [Console]::Out.WriteLine('REBOOT') }
-    'gia' { $ok++; Say ('Già alla versione nuova: ' + $id) }
-    'nonapplicabile' { $na++; Say ('Non aggiornato: ' + $id + ' (winget non ha un aggiornamento che può installare: aggiornalo dal programma stesso o dal suo sito)') }
-    default { $ko++; Say ('Non aggiornato: ' + $id + ' (se è aperto, chiudilo e riprova)') }
-  }
+  Aggiorna-Uno ('--id "' + $id + '"') $id
+}
+# Programmi che winget mostra senza id: per nome esatto (se il nome vale per più programmi winget non fa niente).
+foreach ($n in @($A.names)) {
+  $n = [string]$n
+  if (-not $n -or $n -match '["\r\n]' -or $n.Contains([string][char]0x2026)) { continue }
+  Aggiorna-Uno ('--name "' + $n + '"') $n
 }
 $resto = @()
 if ($na) { $resto += ($na.ToString() + ' da aggiornare dal programma stesso') }

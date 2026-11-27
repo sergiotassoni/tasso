@@ -12,6 +12,8 @@ type Step struct {
 	Minutes float64
 	Timeout time.Duration
 	Script  string
+	// Go: il passaggio è fatto in Go invece che con uno script (Script vuoto). log: i messaggi.
+	Go func(log func(string))
 }
 
 func stepList() []map[string]interface{} {
@@ -1006,7 +1008,9 @@ foreach ($x in @($disks)) {
   $w = ''; if ($r.Wear -ne $null) { $w = ', usura ' + $r.Wear + '%' }
   $h = [string]$d.HealthStatus
   if ($h -eq 'Healthy') { $h = 'in salute' } elseif ($h -eq 'Warning') { $h = 'ATTENZIONE, da tenere d''occhio' } elseif ($h -eq 'Unhealthy') { $h = 'A RISCHIO: fai subito un backup dei tuoi file' }
-  Say ($d.FriendlyName + ' (' + $d.MediaType + '): ' + $h + $w + $t)
+  $mt = [string]$d.MediaType; $tipo = ''
+  if ($mt -eq 'SSD') { $tipo = ' (SSD)' } elseif ($mt -eq 'HDD') { $tipo = ' (' + 'disco meccanico (HDD)' + ')' }
+  Say ($d.FriendlyName + $tipo + ': ' + $h + $w + $t)
 }
 `},
 	{ID: "dism_cleanup", Name: "Pulizia componenti di Windows", Desc: "Rimuove le versioni vecchie dei componenti di sistema.", Level: 3, Minutes: 10, Timeout: 40 * time.Minute, Script: `
@@ -1024,7 +1028,7 @@ if ($TassoLento) { Say ('Pulizia componenti fermata perché troppo lenta: libera
 else { Say ('Fatto (codice ' + $code + '), liberati ' + (Fmt $f)) }
 `},
 	{ID: "devices", Name: "Controllo periferiche", Desc: "Verifica che audio, rete, video e USB funzionino.", Level: 4, Minutes: 0.2, Timeout: 3 * time.Minute, Script: `
-$bad = @(Get-CimInstance Win32_PnPEntity -ErrorAction SilentlyContinue | Where-Object { $_.ConfigManagerErrorCode -ne 0 -and $_.ConfigManagerErrorCode -ne 22 -and $_.ConfigManagerErrorCode -ne 45 })
+$bad = @(Get-CimInstance Win32_PnPEntity -ErrorAction SilentlyContinue | Where-Object { $_.ConfigManagerErrorCode -ne 0 -and $_.ConfigManagerErrorCode -ne 22 -and $_.ConfigManagerErrorCode -ne 45 -and -not ($_.ConfigManagerErrorCode -eq 24 -and $_.Present -eq $false) })
 if ($bad.Count -eq 0) { Say 'Tutte le periferiche funzionano correttamente.' }
 else {
   Say ('ATTENZIONE: ' + $bad.Count + ' periferiche con problemi:')
@@ -1224,7 +1228,7 @@ foreach ($d in $dev) { $st = 'ok'; if ($d.ConfigManagerErrorCode -ne 0) { $st = 
 if ($dev.Count -eq 0) { Say 'Nessuna scheda audio trovata: controlla che casse o cuffie siano collegate.' }
 Say 'Se ancora non senti nulla: clic sull''icona del volume e controlla quale uscita è scelta.'
 `},
-	{ID: "fix_net", Name: "Risolvi problemi di internet", Desc: "Svuota la cache, rinnova la connessione e ripristina le impostazioni di rete. Internet si stacca per qualche secondo.", Level: 0, Minutes: 0.5, Timeout: 5 * time.Minute, Script: `
+	{ID: "fix_net", Name: "Risolvi problemi di internet", Desc: "Svuota la cache, rinnova la connessione e ripristina le impostazioni di rete. Internet si stacca per qualche secondo.", Level: 0, Minutes: 0.5, Timeout: 5 * time.Minute, Script: ofs(`
 Say 'Svuoto la cache DNS...'
 Clear-DnsClientCache
 Say 'Rinnovo l''indirizzo di rete (internet si stacca per qualche secondo)...'
@@ -1246,11 +1250,12 @@ try {
 if ($manual) { Say 'Il PC ha un indirizzo IP o dei DNS scelti a mano: li lascio come sono (non faccio il ripristino completo della rete).' }
 else { [void](Run-Hidden 'netsh.exe' 'int ip reset') }
 Start-Sleep -Seconds 3
-$ok = Test-Connection -ComputerName 1.1.1.1 -Count 1 -Quiet -ErrorAction SilentlyContinue
+# Prova con una connessione vera (e con il proxy di Windows), non con il ping: molte reti e router lo bloccano.
+$ok = Test-Internet
 if ($ok) { Say 'Connessione a internet: funziona.' } else { Say 'Internet non risponde ancora: riavvia il PC e, se serve, anche il modem.' }
 Say 'Per completare il ripristino serve un riavvio.'
 [Console]::Out.WriteLine('REBOOT')
-`},
+`)},
 	{ID: "fix_print", Name: "Risolvi problemi di stampa", Desc: "Riavvia il servizio di stampa (spooler) e svuota la coda bloccata. Utile quando la stampante non stampa.", Level: 0, Minutes: 0.3, Timeout: 3 * time.Minute, Script: `
 Say 'Fermo il servizio di stampa...'
 Stop-Service -Name Spooler -Force -ErrorAction SilentlyContinue
@@ -1267,24 +1272,45 @@ if ($sv -and [string]$sv.StartType -eq 'Disabled') {
   else { Say 'Il servizio di stampa non è ripartito. Riavvia il PC e riprova; se non parte ancora, apri Start > scrivi "Servizi" > Spooler di stampa e guarda l''errore.' }
 }
 `},
-	{ID: "fix_store", Name: "Risolvi problemi del Microsoft Store e delle app", Desc: "Svuota la cache del Microsoft Store e ri-registra le app di Windows quando non si aprono o non si aggiornano.", Level: 0, Minutes: 1, Timeout: 10 * time.Minute, Script: `
+	{ID: "fix_store", Name: "Risolvi problemi del Microsoft Store e delle app", Desc: "Svuota la cache del Microsoft Store e ripara lo Store quando le app non si aprono o non si aggiornano.", Level: 0, Minutes: 1, Timeout: 10 * time.Minute, Script: `
 Say 'Svuoto la cache del Microsoft Store...'
 try { Start-Process -FilePath 'wsreset.exe' -WindowStyle Hidden -ErrorAction Stop } catch {}
 Start-Sleep -Seconds 3
 Get-Process -Name WinStore.App -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
-Say 'Ricontrollo le app di sistema (può volerci un minuto)...'
-Get-AppxPackage -AllUsers Microsoft.WindowsStore | ForEach-Object { Add-AppxPackage -DisableDevelopmentMode -Register ($_.InstallLocation + '\AppXManifest.xml') -ErrorAction SilentlyContinue }
-Say 'Fatto. Se un app non si apriva ancora, prova a riavviare il PC.'
+Say 'Ripristino il Microsoft Store (può volerci un minuto)...'
+$storeOk = $true
+$pk = @(Get-AppxPackage -AllUsers Microsoft.WindowsStore -ErrorAction SilentlyContinue)
+if (-not $pk.Count) { $storeOk = $false }
+foreach ($p in $pk) { try { Add-AppxPackage -DisableDevelopmentMode -Register ($p.InstallLocation + '\AppXManifest.xml') -ErrorAction Stop } catch { $storeOk = $false } }
+if ($storeOk) { Say 'Fatto. Se un''app non si apriva ancora, prova a riavviare il PC.' }
+else { Say 'Ho svuotato la cache dello Store, ma non sono riuscito a ripristinare lo Store: riavvia il PC e riprova.' }
 `},
 	{ID: "fix_search", Name: "Risolvi problemi di ricerca e menu Start", Desc: "Riavvia la ricerca di Windows e l'interfaccia del menu Start quando non rispondono o non trovano niente.", Level: 0, Minutes: 0.4, Timeout: 5 * time.Minute, Script: `
-Say 'Riavvio la ricerca di Windows...'
-Restart-Service -Name WSearch -Force -ErrorAction SilentlyContinue
+# Ricerca disattivata apposta (anche dall'ufficio): Tasso non la riaccende da solo, dice come si fa.
+$ws = Get-Service -Name WSearch -ErrorAction SilentlyContinue
+$cerca = $false
+if ($ws -and [string]$ws.StartType -eq 'Disabled') {
+  Say 'La ricerca di Windows è disattivata in Windows (qualcuno l''ha spenta apposta): Tasso non la riaccende. Per riaccenderla: Start > scrivi "Servizi" > Windows Search > Tipo di avvio: Automatico (avvio ritardato) > Avvia.'
+} elseif ($ws) {
+  Say 'Riavvio la ricerca di Windows...'
+  Restart-Service -Name WSearch -Force -ErrorAction SilentlyContinue
+  Start-Sleep -Seconds 2
+  $ws = Get-Service -Name WSearch -ErrorAction SilentlyContinue
+  if ($ws -and $ws.Status -eq 'Running') { $cerca = $true } else { Say 'La ricerca di Windows non è ripartita: riavvia il PC e riprova.' }
+}
 Say 'Riavvio il menu Start e la barra...'
 Get-Process -Name StartMenuExperienceHost -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
 Get-Process -Name SearchHost,SearchApp -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
-Say 'Fatto: ricerca e menu Start riavviati (si ricaricano da soli in qualche secondo).'
+if ($cerca) { Say 'Fatto: ricerca e menu Start riavviati (si ricaricano da soli in qualche secondo).' }
+else { Say 'Fatto: menu Start riavviato (si ricarica da solo in qualche secondo).' }
 `},
 	{ID: "fix_wu", Name: "Risolvi problemi di Windows Update", Desc: "Ripristina i componenti di Windows Update quando gli aggiornamenti si bloccano.", Level: 0, Minutes: 1, Timeout: 10 * time.Minute, Script: `
+# Windows Update disattivato apposta (a volte lo fa l'ufficio): Tasso non lo riaccende e non tocca niente.
+$wu = Get-Service -Name wuauserv -ErrorAction SilentlyContinue
+if ($wu -and [string]$wu.StartType -eq 'Disabled') {
+  Say 'Il servizio di Windows Update è disattivato in Windows (qualcuno l''ha spento apposta, a volte lo fa l''ufficio): Tasso non lo riaccende e non tocca niente. Per riaccenderlo: Start > scrivi "Servizi" > Windows Update > Tipo di avvio: Manuale > Avvia.'
+  return
+}
 $svcs = @('wuauserv', 'bits', 'cryptsvc', 'msiserver')
 Say 'Fermo i servizi di Windows Update...'
 foreach ($s in $svcs) { Stop-Service -Name $s -Force -ErrorAction SilentlyContinue }
@@ -1304,7 +1330,9 @@ foreach ($p in @($sd, $cr)) {
 }
 Say 'Riavvio i servizi...'
 foreach ($s in $svcs) { Start-Service -Name $s -ErrorAction SilentlyContinue }
+$wu = Get-Service -Name wuauserv -ErrorAction SilentlyContinue
 if ($wuFail) { Say 'Non sono riuscito a ripristinare tutto: Windows teneva occupati i file. Riavvia il PC e premi di nuovo Risolvi.' }
+elseif (-not $wu -or $wu.Status -ne 'Running') { Say 'Ho ripristinato i file di Windows Update, ma il servizio non è ripartito: riavvia il PC e riprova ad aggiornare.' }
 else { Say 'Windows Update ripristinato: riprova ad aggiornare da Impostazioni > Windows Update.' }
 `},
 	{ID: "wipe_free", Name: "Cancella lo spazio libero", Desc: "Sovrascrive lo spazio libero del disco così i file già cancellati non si recuperano più. Può durare ore.", Level: 0, Minutes: 90, Timeout: 8 * time.Hour, Script: `
@@ -1329,37 +1357,17 @@ if (-not $w) {
     [void](Run-Hidden $wg 'install --id 9N26S50LN705 --source msstore --accept-source-agreements --accept-package-agreements --silent')
   }
 }
-Start-Process -FilePath "$TassoWin\explorer.exe" -ArgumentList 'https://support.microsoft.com/it-it/windows/recuperare-file-persi-in-windows-10-61f5b28a-f5b8-3cc2-0f8e-a63cb4e1d4c4'
+# La guida nella lingua di Tasso (la pagina si riconosce dal codice finale, il resto dell'indirizzo conta poco).
+$loc = @{ it = 'it-it'; en = 'en-us'; es = 'es-es'; fr = 'fr-fr'; de = 'de-de' }[[string]$TassoLang]
+if (-not $loc) { $loc = 'en-us' }
+Start-Process -FilePath "$TassoWin\explorer.exe" -ArgumentList ('https://support.microsoft.com/' + $loc + '/windows/recuperare-file-persi-in-windows-10-61f5b28a-f5b8-3cc2-0f8e-a63cb4e1d4c4')
 Say 'Ho aperto la guida ufficiale Microsoft: spiega passo passo come recuperare i file.'
 Say 'Consiglio: non salvare nuovi file sul disco finché non hai recuperato quelli che ti servono.'
 `},
-	{ID: "privacy", Name: "Privacy: stop pubblicità e tracciamento", Desc: "Spegne pubblicità, suggerimenti e raccolta dati di Windows.", Level: 0, Minutes: 0.2, Timeout: 3 * time.Minute, Script: `
-function SetDw([string]$path, [string]$name, [int]$val) { if (-not (Test-Path $path)) { New-Item -Path $path -Force | Out-Null }; New-ItemProperty -Path $path -Name $name -Value $val -PropertyType DWord -Force | Out-Null }
-SetDw 'HKCU:\Software\Microsoft\Windows\CurrentVersion\AdvertisingInfo' 'Enabled' 0
-$cdm = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager'
-foreach ($n in @('SilentInstalledAppsEnabled','SystemPaneSuggestionsEnabled','SoftLandingEnabled','SubscribedContent-338388Enabled','SubscribedContent-338389Enabled','SubscribedContent-338393Enabled','SubscribedContent-353694Enabled','SubscribedContent-353696Enabled','SubscribedContent-310093Enabled')) { SetDw $cdm $n 0 }
-SetDw 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Privacy' 'TailoredExperiencesWithDiagnosticDataEnabled' 0
-SetDw 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced' 'ShowSyncProviderNotifications' 0
-SetDw 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced' 'Start_IrisRecommendations' 0
-SetDw 'HKCU:\Software\Policies\Microsoft\Windows\Explorer' 'DisableSearchBoxSuggestions' 1
-SetDw 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\DataCollection' 'AllowTelemetry' 1
-SetDw 'HKCU:\Software\Microsoft\Input\TIPC' 'Enabled' 0
-Say 'Pubblicità nel menu Start, suggerimenti, ID pubblicitario e raccolta dati extra: spenti.'
-Say 'Alcune modifiche si vedono dopo il riavvio. Puoi annullarle con "Privacy: ripristina".'
-`},
-	{ID: "privacy_undo", Name: "Privacy: ripristina", Desc: "Rimette le impostazioni di privacy com'erano di fabbrica.", Level: 0, Minutes: 0.2, Timeout: 3 * time.Minute, Script: `
-function SetDw([string]$path, [string]$name, [int]$val) { if (-not (Test-Path $path)) { New-Item -Path $path -Force | Out-Null }; New-ItemProperty -Path $path -Name $name -Value $val -PropertyType DWord -Force | Out-Null }
-SetDw 'HKCU:\Software\Microsoft\Windows\CurrentVersion\AdvertisingInfo' 'Enabled' 1
-$cdm = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager'
-foreach ($n in @('SilentInstalledAppsEnabled','SystemPaneSuggestionsEnabled','SoftLandingEnabled','SubscribedContent-338388Enabled','SubscribedContent-338389Enabled','SubscribedContent-338393Enabled','SubscribedContent-353694Enabled','SubscribedContent-353696Enabled','SubscribedContent-310093Enabled')) { SetDw $cdm $n 1 }
-SetDw 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Privacy' 'TailoredExperiencesWithDiagnosticDataEnabled' 1
-Remove-ItemProperty -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced' -Name 'ShowSyncProviderNotifications' -ErrorAction SilentlyContinue
-Remove-ItemProperty -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced' -Name 'Start_IrisRecommendations' -ErrorAction SilentlyContinue
-Remove-ItemProperty -Path 'HKCU:\Software\Policies\Microsoft\Windows\Explorer' -Name 'DisableSearchBoxSuggestions' -ErrorAction SilentlyContinue
-Remove-ItemProperty -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\DataCollection' -Name 'AllowTelemetry' -ErrorAction SilentlyContinue
-Remove-ItemProperty -Path 'HKCU:\Software\Microsoft\Input\TIPC' -Name 'Enabled' -ErrorAction SilentlyContinue
-Say 'Impostazioni di privacy rimesse come di fabbrica.'
-`},
+	// I due passi Privacy girano in Go con il motore di Ottimizza tutto (privacy_win.go): com'era
+	// salvato per ogni singolo valore, "ripristina" rimette i valori di prima.
+	{ID: "privacy", Name: "Privacy: stop pubblicità e tracciamento", Desc: "Spegne pubblicità, suggerimenti e raccolta dati di Windows.", Level: 0, Minutes: 0.2, Timeout: 3 * time.Minute},
+	{ID: "privacy_undo", Name: "Privacy: ripristina", Desc: "Rimette le impostazioni di privacy com'erano prima di Tasso.", Level: 0, Minutes: 0.2, Timeout: 3 * time.Minute},
 }
 
 const analyzeScript = `
@@ -1439,7 +1447,7 @@ foreach ($f in @(Get-ChildItem -LiteralPath (Join-Path $env:LOCALAPPDATA 'Micros
   if (-not (Test-InUso $f.FullName)) { $cat.thumbs += [long]$f.Length }
 }
 $startup = @(Get-TassoStartup | Where-Object { $_.enabled }).Count
-$badDev = @(Get-CimInstance Win32_PnPEntity -ErrorAction SilentlyContinue | Where-Object { $_.ConfigManagerErrorCode -ne 0 -and $_.ConfigManagerErrorCode -ne 22 -and $_.ConfigManagerErrorCode -ne 45 }).Count
+$badDev = @(Get-CimInstance Win32_PnPEntity -ErrorAction SilentlyContinue | Where-Object { $_.ConfigManagerErrorCode -ne 0 -and $_.ConfigManagerErrorCode -ne 22 -and $_.ConfigManagerErrorCode -ne 45 -and -not ($_.ConfigManagerErrorCode -eq 24 -and $_.Present -eq $false) }).Count
 $diskWarn = @(Get-PhysicalDisk -ErrorAction SilentlyContinue | Where-Object { [string]$_.HealthStatus -ne 'Healthy' }).Count
 $o = [ordered]@{ junk = $junk; recycle = $rb; recycleRecent = $rbNew; wuBusy = $wuBusy; browserOpen = $browserOpen; cat = $cat; startup = $startup; badDevices = $badDev; diskWarnings = $diskWarn }
 [Console]::Out.WriteLine('JSON ' + ($o | ConvertTo-Json -Compress))

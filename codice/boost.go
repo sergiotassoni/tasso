@@ -8,7 +8,7 @@ package main
 //   - Le regolazioni di Windows di solito danno da 0 al 10% di FPS in più; aiutano soprattutto sui
 //     PC con tanti programmi aperti e sui portatili. I salti enormi delle pubblicità (92 -> 218)
 //     vengono quasi sempre da grafica diversa, DLSS/FSR o generazione di fotogrammi.
-//   - Rete, priorità ai giochi e ottimizzazioni in finestra valgono dal prossimo avvio del gioco
+//   - Le ottimizzazioni in finestra valgono dal prossimo avvio del gioco
 //     (la priorità a volte dal riavvio del PC): per questo il Boost le lascia accese finché non premi
 //     "Rimetti com'era", invece di accenderle e spegnerle a ogni partita.
 //   - Niente svuotamento della memoria in standby durante il gioco: toglierebbe al gioco i suoi file
@@ -58,8 +58,9 @@ const presentMonSHA = "d74183e7ae630f72cd3690be0373ecbfdc6cbb86578148aab8fa2a716
 
 // Comandi gaming del Boost (accesi solo se erano spenti, rispenti con "Rimetti com'era").
 // Niente pianificazione GPU (vuole il riavvio e su alcuni PC peggiora). Niente "Priorità ai giochi"
-// (mmcss) e "Rete più reattiva" (nagle): quasi sempre non cambiano gli FPS, quindi il Boost non li
-// promette più; restano nel pannello avanzato per chi li vuole.
+// (mmcss) e "Rete più reattiva" (nagle): ritirati da tutto Tasso (non documentati da Microsoft,
+// comandiRitirati in gamingcmd.go). Il Boost li sa ancora spegnere se li aveva accesi una versione
+// di prima (boostCmdsDaRimettere).
 var boostCmds = []string{"gamedvr", "winopt"}
 
 // boostCmdsDaRimettere: anche i comandi che il Boost accendeva nelle versioni di prima, così un

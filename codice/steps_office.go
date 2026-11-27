@@ -76,7 +76,7 @@ function Backup-Reg([string]$key, [string]$name) {
 }
 function Restart-BadDevices([string]$cls) {
   $n = 0
-  foreach ($d in @(Get-CimInstance Win32_PnPEntity -ErrorAction SilentlyContinue | Where-Object { $_.PNPClass -match $cls -and $_.ConfigManagerErrorCode -ne 0 -and $_.ConfigManagerErrorCode -ne 22 -and $_.ConfigManagerErrorCode -ne 45 })) {
+  foreach ($d in @(Get-CimInstance Win32_PnPEntity -ErrorAction SilentlyContinue | Where-Object { $_.PNPClass -match $cls -and $_.ConfigManagerErrorCode -ne 0 -and $_.ConfigManagerErrorCode -ne 22 -and $_.ConfigManagerErrorCode -ne 45 -and -not ($_.ConfigManagerErrorCode -eq 24 -and $_.Present -eq $false) })) {
     $id = [string]$d.PNPDeviceID
     if ($id -match '^[A-Za-z0-9\\&_.{}#\- ]{3,300}$') { Say ('Riavvio: ' + $d.Name); [void](Run-Hidden 'pnputil.exe' ('/restart-device "' + $id + '"')); $n++ }
   }

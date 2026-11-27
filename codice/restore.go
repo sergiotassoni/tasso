@@ -40,7 +40,8 @@ func ensureSnapshot() bool {
 		if len(s.Snapshot) > 0 {
 			return // c'è già quella vera (per esempio dal file ricaricato): non la sostituisco
 		}
-		s.Snapshot = json.RawMessage(r.JSON)
+		// i valori messi da Ottimizza tutto o dal passo Privacy diventano il loro com'era vero
+		s.Snapshot = json.RawMessage(fotoConPrimaVera(r.JSON))
 		s.SnapshotAt = time.Now().Format("2006-01-02 15:04")
 	})
 	return true
@@ -89,6 +90,11 @@ func restoreOriginalDett() (msgs []string, ok bool, avvioNo []string) {
 		orig[k] = v
 	}
 	setMu.Unlock()
+	// una foto fatta dopo Ottimizza tutto o la Privacy (anche con una versione di prima): i valori di
+	// Tasso diventano il loro com'era vero, finché le voci sono ancora attive (prima di rimetterle)
+	if len(snap) > 0 {
+		snap = json.RawMessage(fotoConPrimaVera(string(snap)))
+	}
 
 	setMu.Lock()
 	var tuned []string
@@ -101,6 +107,12 @@ func restoreOriginalDett() (msgs []string, ok bool, avvioNo []string) {
 		msgs = append(msgs, gamingResetAll()...)
 	}
 	msgs = append(msgs, restoreUsbAudio()...)
+	// Ottimizza tutto (3.2): anche le sue modifiche. Se qualcuna non torna lo dico, ma non blocca
+	// (si riprova dalla sua pagina; "Togli Tasso" la mette con le copie di sicurezza)
+	ottMsgs, _ := msgRimettiOtt()
+	msgs = append(msgs, ottMsgs...)
+	// poi il passo Privacy (i valori che tiene lui Ottimizza li ha lasciati), prima della foto
+	msgs = append(msgs, privacyRimettiTutto()...)
 	busy := 0
 	for _, id := range tuned {
 		if gameTuneBusy(id) {
