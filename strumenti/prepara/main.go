@@ -101,7 +101,7 @@ func main() {
 		if *rilascio {
 			esci(err)
 		}
-		fmt.Fprintf(os.Stderr, "ATTENZIONE: %v (Tasso nasconderà lo sfondo abbinato al tema)\n", err)
+		fmt.Fprintf(os.Stderr, "ATTENZIONE: %v (per quei temi niente sfondo abbinato; senza nessuno sfondo Tasso nasconde la funzione)\n", err)
 	}
 	tf = append(tf, sf...)
 	// VERSIONE: lo legge Tasso (selfupdate.go/taskExeCheck) per sapere che versione c'è in Programmi
@@ -130,27 +130,33 @@ func main() {
 	}
 }
 
-// buildSporca: "" se l'exe Go è compilato con -trimpath e senza replace verso percorsi assoluti.
-// sfondiTasso: i file tasso-*.jpg della cartella, da installare in sfondi/ ([origine, nome dentro]).
+// sfondiAttesi: gli sfondi di Tasso 3.2 (gli stessi di tasso/codice/sfondi, sfondi.Tutti()).
+var sfondiAttesi = []string{"gaming", "neonrgb", "oro", "argento", "nebbia", "blunotte", "sabbia"}
+
+// sfondiTasso: i file tasso-<id>.jpg della cartella, da installare in sfondi/ ([origine, nome
+// dentro]). Errore se ne manca anche uno solo (in prova è solo un avviso, con quelli che ci sono).
 func sfondiTasso(dir string) ([][2]string, error) {
 	if dir == "" {
 		return nil, fmt.Errorf("nessuna cartella degli sfondi (-tasso-sfondi)")
 	}
-	m, _ := filepath.Glob(filepath.Join(dir, "tasso-*.jpg"))
 	var out [][2]string
-	for _, f := range m {
-		fi, err := os.Lstat(f)
-		if err != nil || !fi.Mode().IsRegular() || fi.Size() == 0 {
+	var mancano []string
+	for _, id := range sfondiAttesi {
+		n := "tasso-" + id + ".jpg"
+		f := filepath.Join(dir, n)
+		if fi, err := os.Lstat(f); err != nil || !fi.Mode().IsRegular() || fi.Size() == 0 {
+			mancano = append(mancano, n)
 			continue
 		}
-		out = append(out, [2]string{f, "sfondi/" + filepath.Base(f)})
+		out = append(out, [2]string{f, "sfondi/" + n})
 	}
-	if len(out) == 0 {
-		return nil, fmt.Errorf("nessuno sfondo tasso-*.jpg in %s", dir)
+	if len(mancano) > 0 {
+		return out, fmt.Errorf("in %s mancano gli sfondi %s", dir, strings.Join(mancano, ", "))
 	}
 	return out, nil
 }
 
+// buildSporca: "" se l'exe Go è compilato con -trimpath e senza replace verso percorsi assoluti.
 func buildSporca(exe string) string {
 	bi, err := buildinfo.ReadFile(exe)
 	if err != nil {
