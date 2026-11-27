@@ -1,10 +1,14 @@
 package main
 
 // Comandi gaming: le regolazioni di Windows che contano per giocare, fatte da Tasso in modo
-// sicuro e reversibile (spento = valore normale di Windows): priorità ai giochi (MMCSS),
-// memoria in standby, rete a bassa latenza (Nagle e limitazione di rete spenti),
-// registrazione in background spenta, pianificazione GPU hardware, ottimizzazioni per i
-// giochi in finestra, riavvio rapido del driver video, cache degli shader.
+// sicuro e reversibile (spento = valore normale di Windows): memoria in standby, registrazione in
+// background spenta, pianificazione GPU hardware, ottimizzazioni per i giochi in finestra, riavvio
+// rapido del driver video, cache degli shader.
+//
+// "Priorità ai giochi" (mmcss: SystemResponsiveness, Tasks\Games) e "Rete a bassa latenza" (nagle:
+// NetworkThrottlingIndex, TcpAckFrequency, TCPNoDelay) sono ritirati (decisione di Sergio): non sono
+// documentati da Microsoft come regolazioni per i giochi. Tasso non li accende più, ma chi li ha
+// accesi con una versione di prima li può sempre spegnere: il ripristino li rimette com'erano.
 
 import (
 	"fmt"
@@ -15,6 +19,8 @@ import (
 
 	"golang.org/x/sys/windows"
 	"golang.org/x/sys/windows/registry"
+
+	"tasso/ottimizza"
 )
 
 const (
@@ -66,14 +72,11 @@ func winBuild() int {
 }
 
 // dxGlobal legge/scrive le opzioni globali DirectX di Windows ("Chiave=valore;Chiave=valore;").
+// La lettura della stringa è la stessa di Ottimizza tutto (ottimizza.DXParti, voce "Ottimizzazioni
+// per i giochi in finestra"), così le due funzioni leggono le stesse parti.
 func dxGlobal() map[string]string {
-	m := map[string]string{}
-	v, _ := regGet(registry.CURRENT_USER, dxUserKey, "DirectXUserGlobalSettings")
-	for _, part := range strings.Split(v, ";") {
-		if i := strings.Index(part, "="); i > 0 {
-			m[strings.TrimSpace(part[:i])] = strings.TrimSpace(part[i+1:])
-		}
-	}
+	v, _ := regGet(registry.CURRENT_USER, dxUserKey, ottimizza.NomeDXGlobale)
+	_, m := ottimizza.DXParti(v)
 	return m
 }
 
@@ -99,7 +102,7 @@ func dxRimettiParte(adesso map[string]string, p regPrev, k string) map[string]st
 // winoptSceltoSpento: "Ottimizzazioni per i giochi in finestra" spenta apposta (Impostazioni > Schermo >
 // Grafica scrive SwapEffectUpgradeEnable=0; se non l'hai mai toccata il valore non c'è). Il Boost non va
 // contro questa scelta: c'è chi la spegne perché un gioco o un overlay ci va male.
-func winoptSceltoSpento(m map[string]string) bool { return m["SwapEffectUpgradeEnable"] == "0" }
+func winoptSceltoSpento(m map[string]string) bool { return m[ottimizza.DXFinestra] == "0" }
 
 func setDxGlobal(m map[string]string) error {
 	var b strings.Builder
@@ -273,7 +276,15 @@ func gamingState() map[string]interface{} {
 	return st
 }
 
+// comandiRitirati: Tasso non li accende più, li sa solo spegnere (rimettere com'erano).
+var comandiRitirati = map[string]bool{"mmcss": true, "nagle": true}
+
+const msgComandoRitirato = "Tasso non accende più questo comando: non è documentato da Microsoft e quasi sempre non cambia niente. Se l'avevi acceso con una versione di prima, puoi spegnerlo per rimetterlo com'era."
+
 func gamingSet(id string, on bool) string {
+	if on && comandiRitirati[id] {
+		return msgComandoRitirato
+	}
 	var err error
 	msg := ""
 	if on {

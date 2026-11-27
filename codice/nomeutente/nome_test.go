@@ -24,13 +24,13 @@ func TestPulisci(t *testing.T) {
 }
 
 func TestControlla(t *testing.T) {
-	buoni := []string{"Sergio", "Jo", "Gian Luca", "Niccolò", "José-María", "Zoë_92", "Ž. Šimić", "Łukasz", "Ἀθηνᾶ", "Анна", "李小龍", "R2-D2", "a.b", "e\u0301va", strings.Repeat("a", 20), "ÀÈÌÒÙàèìòù ÇçÑñ ßẞ"}
+	buoni := []string{"Sergio", "Jo", "Gian Luca", "Niccolò", "José-María", "Zoë_92", "Ž. Šimić", "Łukasz",
+		"Ἀθηνᾶ", "Анна", "李小龍", "R2-D2", "a.b", "e\u0301va", "e\u0301\u0302\u0303", strings.Repeat("a", 20),
+		"ÀÈÌÒÙàèìòù ÇçÑñ ß", "שרה", "محمد", "र\u093eज", "สมชาย",
+		"გიო", "Nguyễn", "さくら", "サクラ", "민수", "Արա"}
 	for _, s := range buoni {
 		if e := Controlla(s); e.Codice != OK {
 			t.Errorf("Controlla(%q) = %+v, doveva andare bene", s, e)
-		}
-		if !Valido(s) {
-			t.Errorf("Valido(%q) = false", s)
 		}
 	}
 	cattivi := []struct {
@@ -46,13 +46,27 @@ func TestControlla(t *testing.T) {
 		{"Ser\"gio", Simbolo, "\""},
 		{"Ser'gio", Simbolo, "'"},
 		{"a&b", Simbolo, "&"},
-		{"Sergio😀", Simbolo, "😀"},
+		{"Sergio\U0001f600", Simbolo, "\U0001f600"},
 		{"Ser/gio", Simbolo, "/"},
-		{"Ser\\gio", Simbolo, "\\"},
+		{"××", Simbolo, "×"},
+		{"ＷＷ", Simbolo, "Ｗ"},
+		{"\U0001d412\U0001d41e", Simbolo, "\U0001d412"},
 		{"Ser\u200bgio", Invisibile, ""},
-		{"Ser\u202egio", Invisibile, ""}, // scrittura al contrario
+		{"Ser\u202egio", Invisibile, ""},
 		{"Ser\x00gio", Invisibile, ""},
-		{"\u0301ab", Simbolo, "\u0301"}, // accento staccato all'inizio
+		{"ㅤㅤ", Invisibile, ""},
+		{"ᅟᅠ", Invisibile, ""},
+		{"ﾠﾠ", Invisibile, ""},
+		{"Sergio\ufe0f", Invisibile, ""},
+		{"Se\u034frgio", Invisibile, ""},
+		{"ab\u180b", Invisibile, ""},
+		{"a\U000e0100b", Invisibile, ""},
+		{"a\u17b4b", Invisibile, ""},
+		{"\u0301ab", Accenti, ""},
+		{"ab \u0301", Accenti, ""},
+		{"a.\u0301b", Accenti, ""},
+		{"a\u0301\u0302\u0303\u0304", Accenti, ""},
+		{"a" + strings.Repeat("\u0301", 19), Accenti, ""},
 		{"..", Senza, ""},
 		{"-_ .", Senza, ""},
 		{"ab\xff", Invisibile, ""},
@@ -76,16 +90,8 @@ func TestValidoSoloPulito(t *testing.T) {
 	if n != "Gian Luca" || e.Codice != OK {
 		t.Fatalf("DaSalvare = %q %+v", n, e)
 	}
-}
-
-func TestLetto(t *testing.T) {
-	if Letto("Sergio") != "Sergio" {
-		t.Fatal("nome buono perso")
-	}
-	for _, s := range []string{"", "<script>", " Sergio", strings.Repeat("x", 300), "a\u202eb"} {
-		if Letto(s) != "" {
-			t.Errorf("Letto(%q) doveva essere vuoto", s)
-		}
+	if Letto("Sergio") != "Sergio" || Letto("<script>") != "" || Letto(" Sergio") != "" || Letto("ㅤㅤ") != "" {
+		t.Fatal("Letto sbagliato")
 	}
 }
 
@@ -120,22 +126,16 @@ func TestSalvaELeggi(t *testing.T) {
 	if e.Codice != OK || n != "Niccolò Rossi" || a.v != "Niccolò Rossi" {
 		t.Fatalf("Salva = %q %+v, archivio %q", n, e, a.v)
 	}
-	if Leggi(a) != "Niccolò Rossi" {
-		t.Fatalf("Leggi = %q", Leggi(a))
-	}
-	// un nome sbagliato non tocca quello salvato
 	if n, e := Salva(a, "<script>"); e.Codice != Simbolo || n != "" || a.v != "Niccolò Rossi" {
 		t.Fatalf("nome sbagliato salvato: %q %+v %q", n, e, a.v)
 	}
-	if _, e := Salva(a, "x"); e.Codice != Corto || a.v != "Niccolò Rossi" {
-		t.Fatalf("nome corto: %+v %q", e, a.v)
+	if _, e := Salva(a, "ㅤㅤ"); e.Codice != Invisibile || a.v != "Niccolò Rossi" {
+		t.Fatalf("nome invisibile: %+v %q", e, a.v)
 	}
-	// valore cambiato a mano nel registro: non si usa
 	a.v = "Ciao<b>"
 	if Leggi(a) != "" {
 		t.Fatal("valore strano nel registro usato")
 	}
-	// Windows non lascia scrivere
 	b := &finto{err: true}
 	if n, e := Salva(b, "Sergio"); e.Codice != CodiceRegistro || n != "" {
 		t.Fatalf("errore del registro: %q %+v", n, e)

@@ -163,7 +163,8 @@ func salvaNome(scritto string) (string, nomeutente.Esito) {
 	return nomeutente.Salva(archivioRegistro{}, scritto)
 }
 
-// togliNome: "Togli Tasso dal PC" cancella anche il nome (in HKCU e, se diverso, nell'utente vero).
+// togliNome: "Togli Tasso dal PC", quando Tasso è l'ultimo programma della famiglia, cancella anche il
+// nome (in HKCU e, se diverso, nell'utente vero). Con Zip o PDF ancora sul PC il nome resta.
 func togliNome() {
 	nomeMu.Lock()
 	defer nomeMu.Unlock()

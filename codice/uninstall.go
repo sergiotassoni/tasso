@@ -41,6 +41,7 @@ type pianoTogli struct {
 	seVuote []string // cartelle che si tolgono solo se restano vuote
 	disinst string   // disinstallatore dell'ecosistema da aprire alla chiusura ("" se non c'è)
 	eco     bool     // c'è l'ecosistema (disinstallatore o Tasso Zip / Tasso PDF): Zip e PDF restano
+	zipPdf  bool     // Tasso Zip o Tasso PDF restano sul PC ("Il tuo nome" serve ancora a loro)
 }
 
 // nomeCartellaTasso: le cartelle che si cancellano per intero hanno un nome che comincia con
@@ -66,7 +67,8 @@ func pianoTogliTasso() pianoTogli {
 	std := filepath.Join(pf, "Tasso")
 	disinst, dirInst := disinstallatoreEcosistema()
 	p.disinst = disinst
-	p.eco = disinst != "" || cartellaVera(filepath.Join(base, "Tasso Zip")) || cartellaVera(filepath.Join(base, "Tasso PDF"))
+	p.zipPdf = cartellaVera(filepath.Join(base, "Tasso Zip")) || cartellaVera(filepath.Join(base, "Tasso PDF"))
+	p.eco = disinst != "" || p.zipPdf
 	exe, _ := os.Executable()
 	if exe != "" {
 		exe, _ = filepath.Abs(exe)
@@ -149,7 +151,12 @@ func togliTasso(rimetti bool, passo func(int, string)) string {
 	if msg != "" {
 		return msg
 	}
-	togliNome() // nome_utente.go: anche "Il tuo nome" (HKCU\Software\Tasso\Nome) va via
+	// nome_utente.go: "Il tuo nome" è di tutta la famiglia. Va via solo se Tasso è l'ultimo
+	// programma (né Tasso Zip né Tasso PDF restano); se no lo toglie il disinstallatore insieme
+	// all'ultimo programma, come fa anche togliendo Tasso da App e funzionalità.
+	if !piano.zipPdf {
+		togliNome()
+	}
 	defer func() {
 		if !*fatto {
 			releaseRun()
@@ -188,6 +195,7 @@ func togliTassoPassiDentro(rimetti bool, passo func(int, string), pianoOut *pian
 	// 1. impostazioni di Windows e cose accese da Tasso
 	// prima la riunione: rimette i valori di quando era partita, poi "Rimetti com'era" vince
 	officeSpegniTutto()
+	ottAvvisi := ottSpegniTutto() // Ottimizza tutto (3.2): le sue modifiche tornano com'erano, come la riunione
 	if rimetti {
 		msgs, ok, avvioNo := restoreOriginalDett()
 		if !ok {
@@ -200,7 +208,11 @@ func togliTassoPassiDentro(rimetti bool, passo func(int, string), pianoOut *pian
 			passo(0, "Impostazioni di Windows rimesse com'erano")
 		}
 	} else {
-		passo(0, "Boost, clic automatico e modalità dell'Ufficio spenti (le altre impostazioni restano come sono)")
+		passo(0, "Boost, clic automatico, modalità dell'Ufficio e modifiche di Ottimizza tutto rimessi com'erano (le altre impostazioni restano come sono)")
+	}
+	// Ottimizza tutto non blocca mai: quello che non è tornato va con le copie di sicurezza e lo dico
+	for _, a := range ottAvvisi {
+		passo(0, a)
 	}
 	// da qui nessuna pulizia programmata deve partire (restoreOriginal ha già preso e lasciato il posto)
 	if !claimRun() {

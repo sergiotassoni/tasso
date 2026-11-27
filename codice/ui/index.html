@@ -731,6 +731,156 @@ body.th-tasso:not(.office) .aa-passi li::before{background:var(--text);color:var
 .aa-nota{margin:0;font-size:14.5px;line-height:1.5;color:var(--soft)}
 .aa-manca{border:1px solid color-mix(in srgb,var(--a4) 45%,var(--line));background:color-mix(in srgb,var(--a4) 9%,var(--panel));border-radius:16px;padding:14px 18px;font-size:15px;line-height:1.5}
 @media (max-width:820px){.aa-passi li{grid-template-columns:44px 1fr}.aa-passi svg{grid-column:2;width:170px}}
+/* ---------- 3.2: Ottimizza tutto (fascia in Home, misura, interruttori dal vivo, risultato, elenco) ---------- */
+nav button[data-go="opt"]{--ic:#2FF3A6}
+.opt-band{display:grid;grid-template-columns:1fr auto;align-items:center;gap:28px;padding:30px 34px;border:1px solid var(--line);border-radius:14px;background:radial-gradient(600px 220px at 100% 0%,color-mix(in srgb,var(--a1) 10%,transparent),transparent 70%),var(--panel)}
+.opt-band .k{font:500 12px var(--mono);letter-spacing:.16em;text-transform:uppercase;color:var(--a1t);display:flex;align-items:center;gap:10px}
+.opt-band h2{font-size:30px;margin:10px 0 8px;font-weight:800;font-stretch:115%;letter-spacing:-.01em;font-family:var(--display)}
+.opt-band p{margin:0;color:var(--muted);font-size:15.5px;line-height:1.5}
+.opt-band .opt-go{display:flex;flex-direction:column;align-items:center;gap:10px}
+.opt-band .gbig{white-space:nowrap;padding:16px 38px;font-size:19px}
+.opt-band .btn.primary{min-height:54px;padding:14px 34px;font-size:17px;border-radius:14px}
+.opt-new{font:800 10.5px var(--body);letter-spacing:.08em;padding:3px 8px;border-radius:99px;color:var(--ink);background:var(--a1)}
+body.office .opt-band{border-radius:22px;background:var(--panel)}
+body.office .opt-band h2{font-weight:600;font-stretch:normal;font-size:26px}
+@media (max-width:900px){.opt-band{grid-template-columns:1fr}.opt-band .opt-go{align-items:flex-start}}
+#v-opt{margin:0 auto;width:100%;min-height:100%;position:relative;padding:96px 34px 60px}
+#v-opt .opt-head{position:absolute;top:26px;left:34px;right:34px}
+@media (max-width:760px){
+  #v-opt{padding:26px 18px 40px}
+  #v-opt .opt-head{position:static;flex-wrap:wrap;margin-bottom:22px}
+  #v-opt .opt-safe{display:none}
+  .opt-steps{flex-wrap:wrap;gap:10px 16px}
+  #v-opt .btn,#v-opt .gbig{white-space:nowrap}
+  .opt-live{grid-template-columns:1fr}
+  .opt-live .opt-stage{order:-1;min-height:0;padding:24px 20px 16px}
+  .opt-cats{display:grid;grid-template-columns:1fr 1fr}
+  .opt-meas{grid-template-columns:1fr}
+  .opt-meas>div+div{border-left:0;border-top:1px solid var(--line);padding-left:0}
+  .opt-comps{grid-template-columns:1fr 1fr;margin-top:0}
+  .opt-comps>div+div{border-left:0;padding-left:0}
+  .opt-foot{flex-wrap:wrap}
+  .opt-tg{flex-wrap:wrap;gap:12px}
+  .opt-tg .lab{min-width:0;text-align:left}
+  .opt-row{grid-template-columns:1fr auto auto;gap:12px}
+  .opt-row .c{grid-column:1/-1}
+  .opt-stage h2{font-size:28px}
+}
+#v-opt .opt-body{display:flex;flex-direction:column;gap:22px;justify-content:center;flex:1}
+.opt-head{display:flex;justify-content:space-between;gap:12px;align-items:center;font:500 12px var(--mono);letter-spacing:.16em;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--line);padding-bottom:16px}
+.opt-steps{display:flex;gap:22px}
+.opt-steps span{display:flex;align-items:center;gap:8px}
+.opt-steps span i{width:20px;height:20px;border-radius:99px;border:1px solid var(--line);display:grid;place-items:center;font-style:normal;font-size:10px;color:var(--muted)}
+.opt-steps span.on{color:var(--text)}
+.opt-steps span.on i{background:var(--a1);border-color:var(--a1);color:var(--ink)}
+.opt-steps span.ok i{background:color-mix(in srgb,var(--a1) 16%,transparent);border-color:transparent;color:var(--a1t)}
+.opt-safe{display:inline-flex;align-items:center;gap:8px;font:600 12.5px var(--body);letter-spacing:0;text-transform:none;color:var(--soft);padding:6px 12px 6px 9px;border-radius:99px;border:1px solid var(--line);background:var(--panel)}
+.opt-safe svg{color:var(--a1t)}
+.opt-title{font:800 44px/1.05 var(--display);font-stretch:115%;letter-spacing:-.02em;margin:0}
+.opt-sub{color:var(--muted);font-size:17px;line-height:1.55;margin:14px 0 0;max-width:62ch}
+body.office .opt-title{font-weight:600;font-stretch:normal;font-size:36px;letter-spacing:-.4px}
+body.office .opt-head{font-family:var(--body);letter-spacing:.06em}
+.opt-bar{height:14px;border-radius:99px;background:var(--track);overflow:hidden}
+.opt-bar i{display:block;height:100%;border-radius:99px;background:var(--a1);box-shadow:0 0 18px color-mix(in srgb,var(--a1) 55%,transparent);transition:width .5s ease}
+.opt-barrow{display:flex;justify-content:space-between;gap:12px;font:500 13px var(--mono);color:var(--muted);margin-top:10px}
+.opt-barrow b{color:var(--text);font-weight:500}
+.opt-meas{display:grid;grid-template-columns:repeat(3,1fr);border-block:1px solid var(--line);margin:0}
+.opt-meas>div{padding:26px 22px 26px 0}
+.opt-meas>div+div{border-left:1px solid var(--line);padding-left:22px}
+.opt-meas dt{font:500 11.5px var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.opt-meas dd{margin:10px 0 0;font:800 54px/1 var(--display);font-stretch:112%;font-variant-numeric:tabular-nums}
+.opt-meas dd small{font:600 16px var(--body);color:var(--muted);margin-left:8px}
+.opt-meas dd.wait{color:var(--track)}
+.opt-meas dd.no{font:500 14px/1.4 var(--body);color:var(--muted);margin-top:14px}
+body.office .opt-meas dd{font-weight:600;font-stretch:normal}
+.opt-comps{display:grid;grid-template-columns:repeat(5,1fr);border-bottom:1px solid var(--line);margin-top:-23px}
+.opt-comps>div{padding:16px 16px 18px 0;display:flex;flex-direction:column;gap:6px;min-width:0}
+.opt-comps>div+div{padding-left:16px;border-left:1px solid var(--line)}
+.opt-comps span{font:500 10.5px var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--muted);display:flex;align-items:center;gap:7px}
+.opt-comps b{font-size:14px;font-weight:600;color:var(--muted);overflow:hidden;min-height:19px;line-height:1.35;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow-wrap:anywhere}
+.opt-comps .ok b{color:var(--text)}
+.opt-comps .ok span::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--a1);box-shadow:0 0 8px var(--a1)}
+body.office .opt-comps span{font-family:var(--body);letter-spacing:.06em}
+.opt-hints{display:flex;gap:10px;align-items:center;color:var(--soft);font-size:14.5px}
+.opt-hints svg{color:var(--a4);flex:0 0 auto}
+.opt-foot{display:flex;justify-content:space-between;align-items:center;gap:14px}
+.opt-live{display:grid;grid-template-columns:320px 1fr;gap:30px;align-items:start}
+.opt-cats{display:flex;flex-direction:column;gap:2px}
+.opt-cat{display:flex;align-items:center;gap:14px;padding:16px 14px;border-radius:14px;font-weight:600;font-size:16.5px;color:var(--muted);transition:background .3s,color .3s}
+.opt-cat .ci{width:36px;height:36px;border-radius:10px;display:grid;place-items:center;flex:0 0 36px;color:var(--c);background:color-mix(in srgb,var(--c) 14%,transparent);opacity:.55}
+.opt-cat .st{margin-left:auto;width:22px;height:22px;border-radius:99px;border:2px solid var(--line);display:grid;place-items:center;flex:0 0 22px}
+.opt-cat.done{color:var(--soft)}
+.opt-cat.done .ci,.opt-cat.cur .ci{opacity:1}
+.opt-cat.done .st{border:0;background:var(--a1);color:var(--ink)}
+.opt-cat.cur{background:var(--panel);color:var(--text);box-shadow:inset 0 0 0 1px var(--line)}
+.opt-cat.cur .st{border-color:color-mix(in srgb,var(--a1) 30%,transparent);border-top-color:var(--a1);animation:rot 1s linear infinite}
+.opt-stage{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:36px 40px 24px;min-height:560px;display:flex;flex-direction:column}
+.opt-stage .sk{font:500 12px var(--mono);letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}
+.opt-stage h2{font:800 40px var(--display);font-stretch:112%;margin:10px 0 22px;display:flex;align-items:center;gap:14px}
+.opt-stage h2 .ci{width:56px;height:56px;border-radius:13px;display:grid;place-items:center;color:var(--c);background:color-mix(in srgb,var(--c) 15%,transparent)}
+body.office .opt-stage h2{font-weight:600;font-stretch:normal}
+.opt-tg{display:flex;align-items:center;gap:24px;padding:26px 24px;margin:0 -24px;border-radius:14px;border-bottom:1px solid var(--line);transition:background .3s,opacity .3s}
+.opt-tg:last-child{border-bottom:0}
+.opt-tg .x{flex:1;min-width:0}
+.opt-tg .x b{display:block;font-size:21px;font-weight:700;letter-spacing:-.005em}
+.opt-tg .x span{display:block;font-size:15.5px;color:var(--muted);margin-top:5px;line-height:1.45}
+.opt-tg .x em{display:block;font-style:normal;font-size:13.5px;color:var(--a4);margin-top:6px;line-height:1.4}
+.opt-tg .lab{font:500 11.5px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);white-space:nowrap;min-width:120px;text-align:right}
+.opt-tg .sw{transform:scale(1.65);transform-origin:right center;margin-left:14px;transition:background .45s}
+.opt-tg .sw i{transition:transform .45s cubic-bezier(.5,1.6,.4,1)}
+.opt-tg.wait{opacity:.42}
+.opt-tg.now{background:color-mix(in srgb,var(--a1) 7%,var(--panel));box-shadow:inset 3px 0 0 var(--a1);border-bottom-color:transparent}
+.opt-tg.now .lab,.opt-tg.ok .lab{color:var(--a1t)}
+.opt-tg.now .sw{background:color-mix(in srgb,var(--a1) 45%,var(--track));box-shadow:0 0 0 3px color-mix(in srgb,var(--a1) 22%,transparent)}
+.opt-tg.now .sw i{transform:translateX(10px)}
+.opt-tg.ask .lab{color:var(--a4)}
+.opt-tg .btn{min-height:38px;padding:8px 16px}
+.opt-ctrl{display:flex;gap:10px}
+.opt-ctrl .btn{min-height:40px}
+body.office .opt-barrow,body.office .opt-tg .lab,body.office .opt-stage .sk,body.office .opt-row .c,body.office .opt-row .s,body.office .opt-meas dt,body.office .opt-band .k,body.office .r2k,body.office .r2h span{font-family:var(--body);letter-spacing:.06em}
+.r2{display:flex;flex-direction:column;align-items:center;text-align:center}
+.r2logo svg{display:block}
+#v-opt .opt-body.r2{gap:0}
+.r2k{margin-top:22px;font:500 12px var(--mono);letter-spacing:.2em;text-transform:uppercase;color:var(--muted)}
+.r2t{margin:14px 0 0;font:700 34px var(--display);font-stretch:108%;letter-spacing:-.01em}
+.r2s{margin:10px 0 0;color:var(--muted);font-size:15.5px;max-width:60ch}
+.r2tab{margin-top:40px;width:460px;max-width:100%;font-variant-numeric:tabular-nums}
+.r2h,.r2r{display:grid;grid-template-columns:1fr 70px 34px 116px;align-items:baseline}
+.r2h span{font:500 10.5px var(--mono);letter-spacing:.16em;text-transform:uppercase;color:var(--muted);padding-bottom:10px;text-align:right}
+.r2h span:nth-child(4){text-align:left}
+.r2r{padding:12px 0;border-top:1px solid var(--line)}
+.r2r span{font:500 15px var(--mono);color:var(--soft);text-align:right}
+.r2r span:first-child{font:500 14.5px var(--body);color:var(--muted);text-align:left}
+.r2r .ar{color:var(--muted);text-align:center;font-family:var(--body)}
+.r2r .af{text-align:left;color:var(--text)}
+.r2r .af small{font:500 11px var(--body);color:var(--muted);margin-left:4px}
+.r2r .af.up{color:var(--a1t)}
+body.office .r2r span{font-family:var(--body)}
+.r2fn{margin:14px 0 0;font-size:12.5px;color:var(--muted);max-width:56ch}
+.opt-btns{display:flex;gap:12px;margin-top:36px;flex-wrap:wrap;justify-content:center}
+.opt-btns .btn{min-height:46px;padding:11px 24px}
+.opt-link{margin-top:18px;background:none;border:0;color:var(--muted);font-size:13.5px;text-decoration:underline;text-decoration-color:var(--line);text-underline-offset:4px}
+.opt-link:hover{color:var(--text)}
+body.office .r2t{font-weight:600;font-stretch:normal}
+.opt-sum{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:6px 28px}
+.opt-row{display:grid;grid-template-columns:150px 1fr auto auto;align-items:center;gap:20px;padding:13px 0;border-bottom:1px solid var(--line)}
+.opt-row:last-child{border-bottom:0}
+.opt-row .c{font:500 11px var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.opt-row .x b{font-size:15px;display:block}
+.opt-row .x span{font-size:13px;color:var(--muted)}
+.opt-row .x em{display:block;font-style:normal;font-size:12.5px;color:var(--a4);margin-top:2px}
+.opt-row .s{font:500 11px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--a1t);min-width:120px;text-align:right}
+.opt-row.off .s{color:var(--muted)}
+.opt-row.off .x b{color:var(--soft)}
+.opt-row .sw{border:0;cursor:pointer}
+.opt-row .sw[disabled]{opacity:.5;cursor:default}
+.opt-row .nos{width:46px}
+@media (max-width:1100px){.opt-live{grid-template-columns:1fr}.opt-comps{grid-template-columns:repeat(3,1fr)}.opt-row{grid-template-columns:1fr auto auto}.opt-row .c{display:none}}
+.opt-card-prev{display:flex;justify-content:center}
+body.cardsfondo #main{opacity:.3;transition:opacity .15s}
+.cardmodo{position:fixed;top:78px;right:34px;font:800 clamp(56px,7vw,96px)/1 var(--display);font-stretch:122%;letter-spacing:-.03em;text-transform:uppercase;color:var(--text);opacity:.42;pointer-events:none;white-space:nowrap;overflow:hidden}
+body.office .cardmodo{font-weight:700;font-stretch:normal;letter-spacing:-.02em;color:var(--a1);opacity:.92}
+.opt-card-prev canvas{width:560px;height:560px;max-width:100%;border-radius:14px;display:block;box-shadow:0 14px 34px rgba(0,0,0,.35)}
 </style>
 </head>
 <body>
@@ -756,6 +906,7 @@ body.th-tasso:not(.office) .aa-passi li::before{background:var(--text);color:var
     </div>
     <button data-grp="rip" class="navgrp" aria-controls="navsub-rip"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.8 4.7 4.7 1.8-4.7 1.8L12 16l-1.8-4.7-4.7-1.8 4.7-1.8z"/><path d="M19 15l.8 2.2 2.2.8-2.2.8L19 21l-.8-2.2-2.2-.8 2.2-.8z"/></svg>Pulisci e ripara</button>
     <div class="navsub" data-sub="rip" id="navsub-rip">
+      <button data-go="opt"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 18a8 8 0 1 1 16 0"/><path d="M12 18l4-6"/><circle cx="12" cy="18" r="1.2"/></svg>Ottimizza tutto</button>
       <button data-go="clean"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.8 4.7 4.7 1.8-4.7 1.8L12 16l-1.8-4.7-4.7-1.8 4.7-1.8z"/><path d="M19 15l.8 2.2 2.2.8-2.2.8L19 21l-.8-2.2-2.2-.8 2.2-.8z"/></svg>Pulisci</button>
       <button data-go="scan"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/><path d="M11 8v3.5M11 14h.01"/></svg>Salute e problemi</button>
       <button data-go="fix"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.6 2.6-2.4-.6-.6-2.4z"/></svg>Risolvi un problema</button>
@@ -796,6 +947,10 @@ body.th-tasso:not(.office) .aa-passi li::before{background:var(--text);color:var
         <div class="gbtns"><button class="gbig" id="gBoost">BOOST</button><button class="gline" id="gClean">Pulisci</button></div>
       </div>
     </div>
+    <div class="opt-band" role="group" aria-label="Ottimizza tutto">
+      <div><div class="k"><span class="opt-new">NUOVO</span>Ottimizza tutto</div><h2>Rendi il PC più veloce nei giochi</h2><p>Un pulsante solo: Tasso misura il PC, sistema Windows per giocare e ti mostra la differenza.</p></div>
+      <div class="opt-go"><button class="gbig" data-ottgo="1">OTTIMIZZA TUTTO</button><span class="small muted">circa 5 minuti · si rimette com'era</span></div>
+    </div>
     <dl class="gspecs">
       <div class="gspec" role="button" tabindex="0" data-go2="scan"><dt>Salute del PC</dt><dd id="gScore">…</dd><dd class="gsh">Vedi →</dd></div>
       <div class="gspec" role="button" tabindex="0" data-go2="clean"><dt>Da liberare</dt><dd id="gJunk">…</dd><dd class="gsh">Pulisci →</dd></div>
@@ -825,6 +980,10 @@ body.th-tasso:not(.office) .aa-passi li::before{background:var(--text);color:var
         <b>PULISCI</b><small>CONSIGLIATA</small>
       </button>
     </div>
+  </div>
+  <div class="opt-band om" role="group" aria-label="Ottimizza tutto">
+    <div><div class="k"><span class="opt-new">NUOVO</span>Ottimizza tutto</div><h2>Un PC più svelto per lavorare</h2><p>Un pulsante solo: Tasso misura il PC, sistema Windows per lavorare e ti mostra la differenza.</p></div>
+    <div class="opt-go"><button class="btn primary" data-ottgo="1">Ottimizza tutto</button><span class="small muted">circa 5 minuti · le impostazioni si rimettono com'erano</span></div>
   </div>
   <div class="quick q2 om" role="group" aria-label="Le cose principali">
     <button class="qk" id="btnHomeDetect"><span class="qi">🔎</span><b>Salute e problemi</b><span>Tasso controlla il PC e ti dice cosa non va</span></button>
@@ -857,6 +1016,9 @@ body.th-tasso:not(.office) .aa-passi li::before{background:var(--text);color:var
 </section>
 
 <!-- CLEAN -->
+<!-- OTTIMIZZA TUTTO (3.2): le schermate le disegna ottDisegna() -->
+<section class="view" id="v-opt"></section>
+
 <section class="view" id="v-clean">
   <div id="cleanIdle" style="display:flex;flex-direction:column;gap:22px">
     <div><h1 style="font-size:26px">Pulizia</h1><p class="sub">Scegli quanto a fondo pulire. Dalla Media in su viene fatto prima un backup automatico.</p></div>
@@ -1317,7 +1479,7 @@ body.th-tasso:not(.office) .aa-passi li::before{background:var(--text);color:var
   <div class="card idx" style="--c:var(--a3)"><details><summary><b>Licenze dei componenti</b> <span class="small muted">(avvisi da tenere insieme al programma)</span></summary><pre id="licTxt" style="white-space:pre-wrap;font:12px/1.5 ui-monospace,Consolas,monospace;margin:12px 0 0;max-height:420px;overflow:auto"></pre></details></div>
   <div class="card idx" style="--c:var(--a4)"><h3>Cosa Tasso non fa, apposta</h3><ul>
     <li><b>Pulizia del registro</b>: i benefici sono minimi e può rendere Windows instabile.</li>
-    <li><b>"Libera RAM" continuo e "acceleratori di internet" miracolosi</b>: Windows gestisce già bene memoria e rete. Tasso offre solo i comandi che servono davvero (svuota la memoria in standby quando un gioco scatta, rete a bassa latenza), e ti dice onestamente quando aiutano.</li>
+    <li><b>"Libera RAM" continuo e "acceleratori di internet" miracolosi</b>: Windows gestisce già bene memoria e rete. Tasso offre solo i comandi che servono davvero (svuota la memoria in standby quando un gioco scatta), e ti dice onestamente quando aiutano.</li>
     <li><b>Driver da siti sconosciuti o programmi "aggiorna tutti i driver"</b>: Tasso installa solo driver certificati da Microsoft (Windows Update) o il driver NVIDIA preso da NVIDIA e con la firma di NVIDIA controllata; per il resto ti apre il sito ufficiale del produttore.</li>
     <li><b>Overclock e aggiornamento automatico del BIOS</b>: troppo rischiosi da fare in automatico.</li></ul></div>
   <div class="card idx" style="--c:var(--a3)"><h3>Novità della 3.2</h3><ul>
@@ -1812,8 +1974,9 @@ function show(v){ prepPages(); const prevView = CURVIEW; CURVIEW=v;
   if (v === 'perf' && !loaded.perf) { loaded.perf = 1; call('goPerfScan'); }
   if (v === 'vault') vaultRefresh();
   if (v === 'scan') paintDetect();
+  if (v === 'opt') ottApri(); // 3.2: Ottimizza tutto
 }
-const NAVGRP = { rip: ['clean', 'scan', 'fix', 'aiuto', 'speed', 'programs', 'net', 'hw', 'perf', 'files', 'disk', 'vault'], opz: ['settings', 'info'] };
+const NAVGRP = { rip: ['clean', 'scan', 'fix', 'aiuto', 'speed', 'programs', 'net', 'hw', 'perf', 'files', 'disk', 'vault', 'opt'], opz: ['settings', 'info'] };
 function navGroups(v){
   Object.keys(NAVGRP).forEach(g => { const on = NAVGRP[g].indexOf(v) >= 0;
     const h = document.querySelector('nav [data-grp="' + g + '"]'); if (h) { h.classList.toggle('on', on); h.setAttribute('aria-expanded', on ? 'true' : 'false'); }
@@ -1934,6 +2097,7 @@ $('#fixToDetect').onclick = (e) => { e.preventDefault(); show('scan'); };
 
 /* ---------- modal ---------- */
 function modal(html, buttons){
+  $$('#modal .cardmodo').forEach(x => x.remove()); document.body.classList.remove('cardsfondo');
   if (!$('#modal').classList.contains('on')) MODAL_BACK = document.activeElement;
   const box = $('#modalBox'); box.innerHTML = html; box.style.maxWidth = '';
   const row = el('div', {class:'row wrap', style:'justify-content:flex-end;gap:10px;margin-top:6px'});
@@ -1950,7 +2114,7 @@ function modal(html, buttons){
   const f = fi >= 0 ? row.children[fi] : row.lastChild; if (f) f.focus();
 }
 let MODAL_BACK = null;
-function closeModal(){ $('#modal').classList.remove('on'); const b = MODAL_BACK; MODAL_BACK = null; if (b && b.isConnected && typeof b.focus === 'function') { try { b.focus(); } catch (e) {} } }
+function closeModal(){ $('#modal').classList.remove('on'); $$('#modal .cardmodo').forEach(x => x.remove()); document.body.classList.remove('cardsfondo'); const b = MODAL_BACK; MODAL_BACK = null; if (b && b.isConnected && typeof b.focus === 'function') { try { b.focus(); } catch (e) {} } }
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && $('#modal').classList.contains('on')) { closeModal(); e.stopImmediatePropagation(); } });
 // Tab resta dentro la finestra di conferma: dall'ultimo pulsante si torna al primo (e al contrario con Maiusc).
 document.addEventListener('keydown', (e) => {
@@ -2946,7 +3110,7 @@ const INDEX = [
   {t:_t('File'), c:'var(--a2)', i:[_t('<b>File doppi</b>, <b>file enormi</b>, <b>cartelle vuote</b>, <b>collegamenti rotti</b>: sempre con conferma e nel Cestino'),_t('<b>Riordino della cartella Download</b> per tipo di file'),_t('<b>Distruggi file</b> riservati (anche più file insieme) e <b>cancella lo spazio libero</b>'),_t('<b>Recupera file cancellati</b> con lo strumento di Microsoft')]},
   {t:_t('Riparazione e sicurezza'), c:'var(--red)', i:[_t('<b>Backup automatico</b> (punto di ripristino) prima delle pulizie importanti'),_t('<b>Risolvi problemi</b> di audio, internet, Windows Update, stampante, Store e ricerca'),_t('<b>Problemi nei giochi</b> (con un pulsante): scatti, pochi FPS, ping alto, il gioco non parte (Visual C++, DirectX), launcher, schermo nero, controller e cuffie, Xbox e Game Pass, anti-cheat, Discord, mira del mouse, gioco che si riduce a icona, download lenti'),_t('<b>Driver di tutto il PC</b>: scheda video AMD, NVIDIA, Intel, audio, mouse, tastiera, rete; Windows Update e siti ufficiali'),_t('<b>Riparazione di Windows</b> (DISM + SFC) e <b>controllo errori del disco</b>'),_t('<b>Controllo periferiche</b>, <b>salute dei dischi</b>, <b>antivirus</b> Defender'),_t('<b>Controllo sicurezza</b> (firewall, Secure Boot, TPM, SMBv1…) e <b>controllo stabilità</b> (crash, schermate blu, errori hardware)'),_t('<b>Privacy</b>: stop a pubblicità e tracciamento di Windows, con ripristino, e <b>tracce di attività</b>')]},
   {t:_t('Problemi di tutti i giorni'), gm:1, c:'var(--a4)', i:[_t('<b>Problemi di tutti i giorni</b> in Risolvi un problema, ognuno con un pulsante: Wi-Fi che si stacca, file zip, programma bloccato, secondo schermo, tastiera e touchpad, Win + V, batteria, ora sbagliata'),_t('<b>Prova microfono e cuffie</b> e <b>Chi usa webcam e microfono</b>')]},
-  {t:'Giochi', c:'var(--a2)', i:[_t('<b>Libreria</b> Steam, Epic e Riot con copertine'),_t('<b>Regola con Tasso</b>: grafica consigliata per ogni gioco in base al tipo di gioco e al tuo PC'),_t('<b>Comandi gaming</b>: priorità ai giochi, rete a bassa latenza, registrazione in background spenta, pianificazione GPU, memoria in standby, riavvio del driver video'),_t('<b>Ottimizza prima di giocare</b>, <b>pannellino in gioco</b>, <b>autoclick</b>'),_t('<b>Profilo gioco</b> con un interruttore: resta acceso anche dopo il riavvio finché non lo spegni'),_t('<b>Potenza per ogni gioco</b>: Potenza alta o Massima potenza, messa da sola quando apri il gioco'),_t('<b>Ping ai server dei giochi</b> (LoL, Valorant, CS2, Fortnite…) per scegliere il server migliore'),_t('<b>Problemi nei giochi</b>: in Risolvi un problema, ') + (Object.keys(STEP).filter(k => k.indexOf('fix_game_') === 0).length || 26) + _t(' riparazioni con un pulsante spiegate semplici')]},
+  {t:'Giochi', c:'var(--a2)', i:[_t('<b>Libreria</b> Steam, Epic e Riot con copertine'),_t('<b>Regola con Tasso</b>: grafica consigliata per ogni gioco in base al tipo di gioco e al tuo PC'),_t('<b>Comandi gaming</b>: registrazione in background spenta, pianificazione GPU, giochi in finestra, memoria in standby, riavvio del driver video'),_t('<b>Ottimizza prima di giocare</b>, <b>pannellino in gioco</b>, <b>autoclick</b>'),_t('<b>Profilo gioco</b> con un interruttore: resta acceso anche dopo il riavvio finché non lo spegni'),_t('<b>Potenza per ogni gioco</b>: Potenza alta o Massima potenza, messa da sola quando apri il gioco'),_t('<b>Ping ai server dei giochi</b> (LoL, Valorant, CS2, Fortnite…) per scegliere il server migliore'),_t('<b>Problemi nei giochi</b>: in Risolvi un problema, ') + (Object.keys(STEP).filter(k => k.indexOf('fix_game_') === 0).length || 26) + _t(' riparazioni con un pulsante spiegate semplici')]},
   {t:'Portachiavi e Discord', c:'var(--a1)', i:[_t('<b>Portachiavi</b> con PIN da 4 a 12 numeri o senza PIN: cifrato sul PC, generatore di password, password deboli o usate più volte'),_t('<b>Controllo password rubate</b> senza mandare la password'),_t('<b>Stato del PC su Discord</b>: report con spunte verdi e temperature, ogni 3/6/12/24 ore'),_t('<b>Report su richiesta</b> scrivendo !stato (con un bot tuo, facoltativo)')]},
   {t:_t('Hardware e comodità'), c:'var(--a3)', i:[_t('<b>Componenti</b>: processore, scheda video, scheda madre, RAM, dischi'),_t('<b>Sensori</b>: uso di processore e RAM, scheda video, temperatura dei dischi'),_t('<b>BIOS</b>: versione e pagina ufficiale del produttore'),_t('<b>Temi</b> chiari e scuri, <b>avvisi intelligenti</b>, <b>avvio con Windows</b>'),_t('<b>Interruttore Tasso acceso/spento</b>: da spento non fa nulla in automatico'),_t('<b>Torna indietro</b>: l\'elenco di tutto quello che Tasso ha cambiato, con un pulsante per rimettere com\'era ogni cosa o tutto insieme. Spegnere o riavviare il PC non cambia niente: torna indietro solo quando lo decidi tu')]}
 ];
@@ -3146,16 +3310,16 @@ function diskKind(k){ return k === 'nvme' ? 'SSD NVMe' : k === 'ssd' ? 'SSD' : k
 // Le righe del voto (finestra e biglietto): [nome, voto, sotto, nuovo]
 function votoRows(r){
   const p = paramsOf(r), rp = r.report || {}, rows = [];
-  rows.push([_t('Processore'), p.processore, (rp.processore ? rp.processore + ' · ' : '') + _t('un core ') + v100(r.cpu1) + _t(' · tutti i core ') + v100(r.cpuN)]);
-  if (p.schedaVideo > 0) rows.push([_t('Scheda video'), p.schedaVideo, (r.gpuName || '') + (r.gpuVramMB ? ' · ' + gbTxt(r.gpuVramMB / 1024) : '') + (r.gpuKnown ? '' : _t(' · voto stimato dalla memoria video')), true]);
+  rows.push([_t('Processore'), p.processore, (rp.processore ? rp.processore + ' · ' : '') + _t('un core ') + v100(r.cpu1) + _t(' · tutti i core ') + v100(r.cpuN), false, 'cpu']);
+  if (p.schedaVideo > 0) rows.push([_t('Scheda video'), p.schedaVideo, (r.gpuName || '') + (r.gpuVramMB ? ' · ' + gbTxt(r.gpuVramMB / 1024) : '') + (r.gpuKnown ? '' : _t(' · voto stimato dalla memoria video')), true, 'gpu']);
   const ram = [];
   if (rp.ramGB) ram.push(gbTxt(rp.ramGB) + (rp.ramTipo ? ' ' + rp.ramTipo : ''));
   if (rp.ramMTs) ram.push(rp.ramMTs + ' MT/s');
   if (rp.ramSaldata) ram.push(_t('saldata sulla scheda madre'));
   else if (rp.ramBanchi) ram.push(rp.ramBanchi + (rp.ramBanchi === 1 ? _t(' banco (canale singolo)') : _t(' banchi (doppio canale)')));
-  rows.push([_t('Memoria RAM'), p.ram, ram.length ? ram.join(' · ') : _t('velocità misurata ') + v100(r.ram)]);
-  rows.push([_t('Disco'), p.disco || null, r.diskSkip ? _t('saltato (poco spazio)') : ((rp.discoStimato && rp.disco ? _t('probabilmente ') : '') + diskKind(rp.disco) + (rp.discoMBs ? _t(' · lettura ') + Number(rp.discoMBs).toLocaleString(LANG) + ' MB/s' : ''))]);
-  rows.push([_t('Leggerezza di Windows'), p.leggerezza, _t('Memoria usata ') + (Number(r.ramPct) || 0) + '% · ' + (Number(r.procs) || 0) + _t(' processi · ') + (Number(r.startup) || 0) + _t(' all\'avvio · libero ') + (Number(r.freePct) || 0) + _t('% · inutili ') + String(Number(r.junkGB) || 0).replace('.', DEC) + ' GB']);
+  rows.push([_t('Memoria RAM'), p.ram, ram.length ? ram.join(' · ') : _t('velocità misurata ') + v100(r.ram), false, 'ram']);
+  rows.push([_t('Disco'), p.disco || null, r.diskSkip ? _t('saltato (poco spazio)') : ((rp.discoStimato && rp.disco ? _t('probabilmente ') : '') + diskKind(rp.disco) + (rp.discoMBs ? _t(' · lettura ') + Number(rp.discoMBs).toLocaleString(LANG) + ' MB/s' : '')), false, 'disco']);
+  rows.push([_t('Leggerezza di Windows'), p.leggerezza, _t('Memoria usata ') + (Number(r.ramPct) || 0) + '% · ' + (Number(r.procs) || 0) + _t(' processi · ') + (Number(r.startup) || 0) + _t(' all\'avvio · libero ') + (Number(r.freePct) || 0) + _t('% · inutili ') + String(Number(r.junkGB) || 0).replace('.', DEC) + ' GB', false, 'leggerezza']);
   if (p.raffreddamento > 0) rows.push([_t('Raffreddamento'), p.raffreddamento, _t('Processore a ') + Math.round(rp.tempMax || 0) + _t(' °C sotto carico · non conta nel totale')]);
   return rows;
 }
@@ -3173,7 +3337,7 @@ function paintBench(r, b, hist){
     benchTile(_t('Leggerezza di Windows'), '<span style="color:' + lc + '">' + Math.max(1, r.light) + '</span>', _t('Memoria usata ') + (Number(r.ramPct) || 0) + '% · ' + (Number(r.procs) || 0) + _t(' processi · ') + (Number(r.startup) || 0) + _t(' all\'avvio · libero ') + (Number(r.freePct) || 0) + _t('% · inutili ') + String(Number(r.junkGB) || 0).replace('.', DEC) + ' GB', b && Math.max(1, b.light)));
   LAST_BENCH = r; const rv = $('#btnVotoCard'); if (rv) rv.style.display = '';
   const h = (hist || []).slice(-6).reverse();
-  $('#bnHist').innerHTML = h.length > 1 ? _t('<div class="small muted" style="margin-bottom:6px">Ultime misure</div><div class="list">') + h.map(x => '<div class="li" style="min-height:40px"><span class="x"><b>' + esc(x.when) + (x.label ? ' · ' + (x.label === 'prima' ? _t('prima della pulizia') : x.label === 'dopo' ? _t('dopo la pulizia') : esc(x.label)) : '') + _t('</b></span><span class="mono small">totale ') + totalOf(x) + (x.formula >= 2 && x.report ? _t(' · potenza ') + x.report.potenza : _t(' · componenti ') + v100(x.score)) + _t(' · leggerezza ') + Math.max(1, Number(x.light) || 1) + '</span></div>').join('') + '</div>' : '';
+  $('#bnHist').innerHTML = h.length > 1 ? _t('<div class="small muted" style="margin-bottom:6px">Ultime misure</div><div class="list">') + h.map(x => '<div class="li" style="min-height:40px"><span class="x"><b>' + esc(x.when) + (x.label ? ' · ' + (x.label === 'prima' ? _t('prima della pulizia') : x.label === 'dopo' ? _t('dopo la pulizia') : x.label === 'ottimizza-prima' ? _t('prima di Ottimizza tutto') : x.label === 'ottimizza-dopo' ? _t('dopo Ottimizza tutto') : esc(x.label)) : '') + _t('</b></span><span class="mono small">totale ') + totalOf(x) + (x.formula >= 2 && x.report ? _t(' · potenza ') + x.report.potenza : _t(' · componenti ') + v100(x.score)) + _t(' · leggerezza ') + Math.max(1, Number(x.light) || 1) + '</span></div>').join('') + '</div>' : '';
 }
 // Riquadri della formula 2: un riquadro per parametro (la scheda video con l'etichetta NUOVO).
 function votoTiles(r, b){
@@ -3227,6 +3391,20 @@ function cardLogoSrc(){
   return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(new XMLSerializer().serializeToString(c).replace(/var\(--a1\)/g, a1));
 }
 function loadImg(src){ return new Promise(res => { if (!src) return res(null); const i = new Image(); i.onload = () => res(i); i.onerror = () => res(null); i.src = src; }); }
+// Il nome dei componenti, in piccolo accanto alle voci del biglietto (come in Ottimizza tutto).
+function votoNomiComp(r){
+  const rp = r.report || {}, ram = [];
+  if (rp.ramGB) ram.push(Math.round(Number(rp.ramGB)) + ' GB' + (rp.ramTipo ? ' ' + rp.ramTipo : ''));
+  if (rp.ramMTs) ram.push(rp.ramMTs + ' MT/s');
+  return {cpu: ottNome(rp.processore), gpu: ottNome(r.gpuName || rp.schedaVideo), ram: ram.join(' · '), disco: r.diskSkip ? '' : diskKind(rp.disco), leggerezza: r.winNome || ''};
+}
+// Un testo che sta in maxw, accorciato in modo pulito (parola intera e "…").
+function cardTaglia(g, t, maxw){
+  t = String(t || ''); if (maxw <= 0) return '';
+  if (g.measureText(t).width <= maxw) return t;
+  let x = t; while (x.length > 1 && g.measureText(x + '…').width > maxw) x = x.slice(0, -1);
+  const w = x.replace(/\s+\S*$/, ''); return (w.length >= 4 ? w : x).replace(/[\s·,-]+$/, '') + '…';
+}
 async function drawVotoCard(r, fmt){
   const V = fmt === 'v', W = 1080, H = V ? 1920 : 1080, C = cardColors();
   try { await document.fonts.ready; await Promise.all([document.fonts.load('800 100px ' + C.display), document.fonts.load('600 40px ' + C.body), document.fonts.load('400 30px ' + C.body)]); } catch (e) {}
@@ -3238,8 +3416,8 @@ async function drawVotoCard(r, fmt){
   g.fillStyle = C.bg; g.fillRect(0, 0, W, H);
   // aloni colorati come nella finestra
   [[W + 30, -60, 620, C.a2, .30], [-120, H + 40, 700, C.a1, .20]].forEach(o => { const rg = g.createRadialGradient(o[0], o[1], 0, o[0], o[1], o[2]); rg.addColorStop(0, o[3]); rg.addColorStop(1, 'rgba(0,0,0,0)'); g.globalAlpha = o[4]; g.fillStyle = rg; g.fillRect(0, 0, W, H); g.globalAlpha = 1; });
-  g.fillStyle = grad(0, W); g.fillRect(0, 0, W, 10);
-  const pad = V ? 96 : 72, tot = totalOf(r), rk = rankOf(tot), rc = rankColor(tot);
+  drawTesserino(g, W, H, C); // 3.2: contorno "tesserino" del tema (come il biglietto di Ottimizza tutto)
+  const pad = V ? 112 : 100, tot = totalOf(r), rk = rankOf(tot), rc = rankColor(tot);
   const d = new Date(), date = d.toLocaleDateString(LANG, {day: 'numeric', month: 'long', year: 'numeric'});
   g.textBaseline = 'alphabetic';
   let y;
@@ -3269,31 +3447,29 @@ async function drawVotoCard(r, fmt){
     y = 420;
   }
   if (V) { font(800, 50, C.display); const bw = g.measureText(rk[0]).width + 60, bx = (W - bw) / 2; g.beginPath(); g.roundRect(bx, y + 10, bw, 80, 40); g.globalAlpha = .12; g.fillStyle = rc; g.fill(); g.globalAlpha = 1; g.lineWidth = 3; g.strokeStyle = rc; g.stroke(); g.fillStyle = rc; g.textAlign = 'center'; g.fillText(rk[0], W / 2, y + 68); g.textAlign = 'left'; y += 150; }
-  // in fondo: indirizzo, e sopra i riquadri con scheda video e scheda madre
-  const rp = r.report || {}, info = [];
-  if (r.gpuName) info.push([_t('Scheda video'), r.gpuName]);
-  if (rp.schedaMadre && (V || !r.gpuName)) info.push([_t('Scheda madre'), rp.schedaMadre]); // nel quadrato c'è posto per un riquadro solo
-  const fs = V ? 1.12 : 1, ih = V ? 86 : 64, foot = H - pad;
-  let iy = foot - (V ? 60 : 46) - info.length * (ih + 12);
-  info.forEach(x => {
-    g.beginPath(); g.roundRect(pad, iy, W - 2 * pad, ih, 20); g.globalAlpha = .85; g.fillStyle = C.panel; g.fill(); g.globalAlpha = 1; g.lineWidth = 1.5; g.strokeStyle = C.line; g.stroke();
-    font(400, Math.round(24 * fs)); g.fillStyle = C.muted; g.textAlign = 'left'; g.fillText(x[0], pad + 24, iy + ih / 2 + 9 * fs);
-    const lw = g.measureText(x[0]).width; font(700, Math.round(28 * fs)); g.fillStyle = C.text;
-    let t = x[1]; const maxw = W - 2 * pad - lw - 70; while (g.measureText(t).width > maxw && t.length > 4) t = t.slice(0, -2);
-    if (t !== x[1]) t = t.replace(/\s*\S?$/, '') + '…';
-    g.fillText(t, pad + 24 + lw + 16, iy + ih / 2 + 10 * fs);
-    iy += ih + 12;
-  });
+  // in fondo: l'indirizzo (il nome dell'utente sta sotto la data). I nomi dei componenti stanno
+  // accanto alle voci, quindi niente riquadri in fondo.
+  const fs = V ? 1.12 : 1, foot = H - pad;
   g.textAlign = 'center'; g.fillStyle = C.muted; font(400, V ? 26 : 22); g.fillText(_t('Misurato con Tasso · sergiotassoni.github.io/tasso'), W / 2, foot);
+  const nomi = votoNomiComp(r);
   // le barre, nello spazio che resta
-  const rows = votoRows(r).filter(x => x[1] > 0), top = y + (V ? 0 : 10), bottom = foot - (V ? 60 : 46) - info.length * (ih + 12) - (V ? 40 : 24);
+  const rows = votoRows(r).filter(x => x[1] > 0), top = y + (V ? 0 : 10), bottom = foot - (V ? 60 : 46) - (V ? 40 : 24);
   const step = Math.min(V ? 150 : 104, (bottom - top) / Math.max(1, rows.length)), bh = V ? 22 : 16;
+  // il nome del componente sotto l'etichetta se c'è posto, se no accanto (sulla stessa riga)
+  const sotto = step >= (V ? 112 : 92);
   rows.forEach((x, i) => {
-    const by = top + i * step + step - bh - (V ? 24 : 14);
-    g.textAlign = 'left'; g.fillStyle = C.text; font(600, Math.round(32 * fs)); g.fillText(x[0], pad, by - 16);
-    if (x[3]) { const lw = g.measureText(x[0]).width; font(800, Math.round(17 * fs)); const tw = g.measureText(_t('NUOVO')).width + 20; g.beginPath(); g.roundRect(pad + lw + 14, by - 16 - 26 * fs, tw, 28 * fs, 14 * fs); g.fillStyle = grad(pad + lw, pad + lw + tw); g.fill(); g.fillStyle = C.bg; g.fillText(_t('NUOVO'), pad + lw + 24, by - 16 - 7 * fs); }
-    g.textAlign = 'right'; font(600, Math.round(22 * fs), C.display); g.fillStyle = C.muted; g.fillText('/100', W - pad, by - 16);
-    const sw = g.measureText('/100').width; font(800, Math.round(40 * fs), C.display); g.fillStyle = C.text; g.fillText(String(x[1]), W - pad - sw - 4, by - 16);
+    const by = top + i * step + step - bh - (V ? 24 : 14), ly = by - 16 - (sotto ? Math.round(30 * fs) : 0);
+    g.textAlign = 'left'; g.fillStyle = C.text; font(600, Math.round(32 * fs)); g.fillText(x[0], pad, ly);
+    const lw = g.measureText(x[0]).width;
+    g.textAlign = 'right'; font(600, Math.round(22 * fs), C.display); g.fillStyle = C.muted; g.fillText('/100', W - pad, ly);
+    const sw = g.measureText('/100').width; font(800, Math.round(40 * fs), C.display); g.fillStyle = C.text; g.fillText(String(x[1]), W - pad - sw - 4, ly);
+    const vw = sw + 4 + g.measureText(String(x[1])).width;
+    const nc = nomi[x[4]] || '';
+    if (nc) {
+      g.textAlign = 'left'; g.fillStyle = C.muted; font(400, Math.round(22 * fs));
+      if (sotto) g.fillText(cardTaglia(g, nc, W - 2 * pad - vw - 30), pad, by - 14);
+      else g.fillText(cardTaglia(g, nc, W - 2 * pad - lw - vw - 50), pad + lw + 16, ly);
+    }
     g.beginPath(); g.roundRect(pad, by, W - 2 * pad, bh, bh / 2); g.globalAlpha = .12; g.fillStyle = C.text; g.fill(); g.globalAlpha = 1;
     const fw = Math.max(bh, (W - 2 * pad) * Math.max(1, Math.min(100, x[1])) / 100); g.beginPath(); g.roundRect(pad, by, fw, bh, bh / 2); g.fillStyle = grad(pad, pad + fw); g.fill();
   });
@@ -3301,7 +3477,441 @@ async function drawVotoCard(r, fmt){
 }
 async function openVotoCard(r){
   r = r || LAST_BENCH; if (!r) return;
-  const [q, v] = await Promise.all([drawVotoCard(r, 'q'), drawVotoCard(r, 'v')]);
+  await nomeRileggi(); // 3.2: il nome giusto anche se l'hai cambiato in Tasso Zip o Tasso PDF
+  const disegna = () => Promise.all([drawVotoCard(r, 'q'), drawVotoCard(r, 'v')]);
+  const [q, v] = await disegna();
+  finestraBiglietto(_t('Il tuo biglietto da visita'), nomeOra() ? _t('Il voto del tuo PC, pronto da mandare agli amici. Quadrato per i post, verticale per le storie. Dentro ci sono solo i voti e i componenti. Il tuo nome c\'è solo se lo lasci acceso qui sotto.') : _t('Il voto del tuo PC, pronto da mandare agli amici. Quadrato per i post, verticale per le storie. Dentro ci sono solo i voti e i componenti, niente dati personali.'), q, v, (u, f) => call('goVotoSalva', u, f), disegna);
+}
+$('#btnVotoCard').onclick = () => openVotoCard();
+$('#btnBench').onclick = async () => { const r = await call('goBench'); if (r === 'busy') { toast(_t('Sto già misurando.'), 'var(--a4)'); return; } BENCH_MANUAL = true; $('#btnBench').disabled = true; $('#bnMsg').textContent = _t('Misuro… non usare il PC per circa 25 secondi (fino a 40 se misuro anche il raffreddamento).'); };
+$('#tgBenchAround').onclick = async () => { const on = !S.benchAround; await call('goSetBenchAround', on); S.benchAround = on; setToggle('#tgBenchAround', on, false); toast(on ? _t('Misurerò il voto prima e dopo ogni pulizia.') : _t('Voto automatico spento.')); };
+(async () => { const h = await call('goBenchHistory'); if (h && h.length) paintBench(h[h.length - 1], null, h); setToggle('#tgBenchAround', !!S.benchAround, false); })();
+
+// ---------- 3.2: Ottimizza tutto ----------
+// Go fa il lavoro (ottimizza_giro.go) e manda gli eventi onOtt*; qui si disegnano le schermate:
+// prima misura, interruttori dal vivo, risultato centrato, elenco "Rimetti com'era" e biglietto.
+const OTT_IC = {
+  cpu:'<rect x="6" y="6" width="12" height="12" rx="2"/><rect x="9.5" y="9.5" width="5" height="5"/><path d="M9 2v4M15 2v4M9 18v4M15 18v4M2 9h4M2 15h4M18 9h4M18 15h4"/>',
+  ram:'<rect x="2" y="7" width="20" height="10" rx="1.5"/><path d="M6 11v2M10 11v2M14 11v2M18 11v2M5 17v3M19 17v3"/>',
+  gpu:'<rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="9" cy="12" r="3"/><path d="M15 10h3M15 14h3M6 18v2"/>',
+  net:'<path d="M2 9a15 15 0 0 1 20 0M5.5 12.5a10 10 0 0 1 13 0M9 16a5 5 0 0 1 6 0"/><circle cx="12" cy="19.5" r="1"/>',
+  win:'<rect x="3" y="3" width="8" height="8" rx="1"/><rect x="13" y="3" width="8" height="8" rx="1"/><rect x="3" y="13" width="8" height="8" rx="1"/><rect x="13" y="13" width="8" height="8" rx="1"/>',
+  start:'<path d="M13 2L4 14h7l-1 8 9-12h-7z"/>',
+  mouse:'<rect x="6" y="2" width="12" height="20" rx="6"/><path d="M12 6v4"/>',
+  pow:'<path d="M12 2v10"/><path d="M18.4 6.6a9 9 0 1 1-12.8 0"/>',
+  clean:'<path d="M12 3l1.8 4.7 4.7 1.8-4.7 1.8L12 16l-1.8-4.7-4.7-1.8 4.7-1.8z"/><path d="M19 15l.8 2.2 2.2.8-2.2.8L19 21l-.8-2.2-2.2-.8 2.2-.8z"/>',
+  bell:'<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>',
+  batt:'<rect x="2" y="7" width="17" height="10" rx="2"/><path d="M22 11v2M6 10v4M10 10v4"/>',
+  ads:'<path d="M3 11v2a1 1 0 0 0 1 1h3l5 4V6L7 10H4a1 1 0 0 0-1 1z"/><path d="M16 9a4 4 0 0 1 0 6M19 6a8 8 0 0 1 0 12"/>'
+};
+const ottSvg = (k, s) => '<svg width="' + (s || 18) + '" height="' + (s || 18) + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + (OTT_IC[k] || k) + '</svg>';
+const OTT_CHECK = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
+const OTT_SHIELD = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l8 3v6c0 4.5-3.4 8.2-8 9-4.6-.8-8-4.5-8-9V6z"/><path d="M8.5 12l2.5 2.5 4.5-5"/></svg>';
+const OTT_INFO = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>';
+// Le categorie a sinistra e le modifiche (stessi id di ottimizza/elenco.go), con una frase semplice.
+const OTT_CATS = {
+  gioco: [['cpu', _t('Processore'), '#C084FC'], ['ram', _t('Memoria'), '#22D3EE'], ['gpu', _t('Scheda video'), '#FF8A3D'], ['net', _t('Rete'), '#38BDF8'], ['win', 'Windows', '#4DA3FF'], ['ads', _t('Consigli e pubblicità'), '#FB7185'], ['start', _t('Programmi all\'avvio'), '#FFE14D'], ['mouse', _t('Mouse e tastiera'), '#F472B6'], ['pow', _t('Energia'), '#2FF3A6']],
+  ufficio: [['start', _t('Programmi all\'avvio'), '#FFB020'], ['win', 'Windows', '#4DA3FF'], ['clean', _t('File inutili'), '#2FF3A6'], ['ram', _t('Riapertura delle app'), '#22D3EE'], ['bell', _t('Notifiche'), '#F472B6'], ['ads', _t('Consigli e pubblicità'), '#FB7185'], ['net', _t('Aggiornamenti'), '#38BDF8'], ['batt', _t('Batteria'), '#A3E635']]
+};
+const OTT_MOD = {
+  gioco: [
+    ['gamemode', 'cpu', _t('Modalità Gioco di Windows'), _t('Windows dà la precedenza al gioco e rimanda i lavori in background.')],
+    ['primopiano', 'cpu', _t('Precedenza ai programmi in primo piano'), _t('Il processore lavora prima per la finestra che stai usando.')],
+    ['bgapps', 'ram', _t('App di Windows in background ferme'), _t('Le app che non usi non restano accese a occupare memoria.')],
+    ['riapertura', 'ram', _t('Niente riapertura automatica delle app'), _t('All\'accensione Windows non riapre da solo le app di ieri.')],
+    ['hags', 'gpu', _t('Accelerazione GPU hardware'), _t('La scheda video organizza da sola il suo lavoro. Vale dal prossimo riavvio.')],
+    ['gpupref', 'gpu', _t('I giochi usano la scheda video potente'), _t('Sui PC con due schede video, i giochi usano quella più forte.')],
+    ['finestra', 'gpu', _t('Ottimizzazioni per i giochi in finestra'), _t('Solo Windows 11: i giochi DirectX 10 e 11 in finestra o senza bordi hanno meno ritardo. Vale dal prossimo avvio del gioco.')],
+    ['recapito', 'net', _t('Niente invio di aggiornamenti ad altri PC'), _t('Windows non usa la tua connessione per mandare file a sconosciuti.')],
+    ['orari', 'net', _t('Niente riavvii per aggiornamenti mentre giochi'), _t('Gli aggiornamenti continuano, ma Windows non riavvia il PC dalle 8 alle 2 di notte.')],
+    ['effetti', 'win', _t('Effetti che non si notano spenti'), _t('Tolgo solo gli effetti che non si notano: Windows resta bello.')],
+    ['notifgioco', 'win', _t('Notifiche in pausa durante il gioco'), _t('Nessun avviso a sorpresa sopra il gioco (con Tasso acceso).')],
+    ['registrazione', 'win', _t('Registrazione in background spenta'), _t('Windows smette di registrare di nascosto gli ultimi minuti di gioco.')],
+    ['ricerca', 'win', _t('Niente evidenziazioni nella ricerca'), _t('La ricerca non carica più immagini e notizie del giorno da internet. Cerca come prima.')],
+    ['consigli', 'ads', _t('Consigli e pubblicità di Windows spenti'), _t('Niente consigli, suggerimenti e app proposte in Impostazioni, nella schermata di blocco e dopo gli aggiornamenti.')],
+    ['feedback', 'ads', _t('Niente richieste di feedback'), _t('Windows non ti chiede più di dare un voto o un parere. I dati per la sicurezza non cambiano.')],
+    ['mouse', 'mouse', _t('Accelerazione del mouse spenta'), _t('Lo stesso movimento sposta la mira sempre della stessa distanza.')],
+    ['scorciatoie', 'mouse', _t('Niente scorciatoie che interrompono il gioco'), _t('Maiusc premuto 5 volte (o tenuto premuto, o Bloc Num tenuto) non apre più finestre sopra il gioco. Se usi queste funzioni, non le tocco.')],
+    ['piano', 'pow', _t('Piano energetico Prestazioni elevate'), _t('Il processore non rallenta per risparmiare (consuma un po\' di più).')],
+    ['modoac', 'pow', _t('Più prestazioni a corrente'), _t('Solo portatili con Windows 11: attaccato alla corrente usa "Prestazioni migliori". A batteria non cambia niente.')],
+    ['usb', 'pow', _t('Mouse e tastiera non si addormentano'), _t('Quando il PC è attaccato alla corrente, Windows non spegne le porte USB.')]
+  ],
+  ufficio: [
+    ['effetti', 'win', _t('Effetti che non si notano spenti'), _t('Tolgo solo gli effetti che non si notano: Windows resta bello.')],
+    ['ricerca', 'win', _t('Niente evidenziazioni nella ricerca'), _t('La ricerca non carica più immagini e notizie del giorno da internet. Cerca come prima.')],
+    ['menustart', 'win', _t('Meno suggerimenti nel menu Start'), _t('Solo Windows 11: niente consigli, app da provare e avvisi dell\'account. I tuoi file recenti restano.')],
+    ['pulizia_temp', 'clean', _t('File temporanei di Windows tolti'), _t('Con la pulizia di Tasso: solo file che Windows non usa più.')],
+    ['pulizia_resti', 'clean', _t('Resti di aggiornamenti e programmi tolti'), _t('Più spazio libero sul disco, niente dei tuoi documenti.')],
+    ['riapertura', 'ram', _t('Niente riapertura automatica delle app'), _t('All\'accensione Windows non riapre da solo le app di ieri.')],
+    ['suoni', 'bell', _t('Notifiche senza suono'), _t('Le notifiche arrivano in silenzio e le leggi quando vuoi.')],
+    ['consigli', 'ads', _t('Consigli e pubblicità di Windows spenti'), _t('Niente consigli, suggerimenti e app proposte in Impostazioni, nella schermata di blocco e dopo gli aggiornamenti.')],
+    ['feedback', 'ads', _t('Niente richieste di feedback'), _t('Windows non ti chiede più di dare un voto o un parere. I dati per la sicurezza non cambiano.')],
+    ['esplora', 'ads', _t('Niente pubblicità in Esplora file'), _t('Niente avvisi con offerte (per esempio di OneDrive o Microsoft 365). OneDrive funziona come prima.')],
+    ['pubblicita', 'ads', _t('Pubblicità su misura spenta'), _t('Le app non usano più il tuo ID pubblicitario e Windows non usa i dati di diagnostica per i consigli.')],
+    ['orari', 'net', _t('Niente riavvii per aggiornamenti mentre lavori'), _t('Gli aggiornamenti continuano, ma Windows non riavvia il PC dalle 8 alle 2 di notte.')],
+    ['recapito', 'net', _t('Niente invio di aggiornamenti ad altri PC'), _t('Windows non usa la tua connessione per mandare aggiornamenti ad altri PC. Gli aggiornamenti arrivano lo stesso.')],
+    ['batt_risparmio', 'batt', _t('Risparmio batteria automatico sotto il 20%'), _t('Solo sui portatili: quando la batteria cala, il PC consuma meno.')],
+    ['batt_schermo', 'batt', _t('Lo schermo si spegne prima quando sei a batteria'), _t('Solo sui portatili: più ore lontano dalla presa.')]
+  ]
+};
+let OTT = {info: null, fase: '', modo: '', mis: null, cat: '', passi: {}, avvio: null, fatti: 0, totale: 0, vista: '', ferma: false};
+const ottModo = () => OTT.modo || (isOffice() ? 'ufficio' : 'gioco');
+// Nomi dei componenti senza le sigle che non dicono niente: (R), (TM), "12th Gen", "6-Core Processor".
+const ottNome = (n) => String(n || '').replace(/\((R|TM|C)\)/gi, '').replace(/^\d+(st|nd|rd|th) Gen\s+/i, '').replace(/\s+(with\s+Radeon.*|\d+-Core\s+Processor|Processor|CPU\s*@.*)$/i, '').replace(/\s+/g, ' ').trim();
+const ottNum = (v, dec) => { v = Number(v) || 0; return dec ? v.toFixed(dec).replace('.', DEC) : String(Math.round(v)); };
+function ottHead(step, extra){
+  const st = [_t('Prima misura'), _t('Sistemo'), _t('Prima e dopo')].map((s, i) => '<span class="' + (i + 1 === step ? 'on' : i + 1 < step ? 'ok' : '') + '"><i>' + (i + 1 < step ? OTT_CHECK : i + 1) + '</i>' + s + '</span>').join('');
+  return '<div class="opt-head"><span>' + _t('Ottimizza tutto') + '</span><div class="opt-steps">' + st + '</div>' + (extra != null ? extra : '<span class="opt-safe">' + OTT_SHIELD + _t('Solo modifiche sicure e reversibili') + '</span>') + '</div>';
+}
+function ottView(html){ const v = $('#v-opt'); if (v) v.innerHTML = html; }
+// Lo stemma della barra a sinistra (quello del tema), grande.
+function ottStemma(px){
+  const l = [...document.querySelectorAll('aside .brand .tmlogo svg, aside .brand > svg')].find(x => x.getClientRects().length) || document.querySelector('aside .brand svg');
+  if (!l) return '';
+  const c = l.cloneNode(true); c.setAttribute('width', px); c.setAttribute('height', px); c.removeAttribute('id'); c.setAttribute('aria-hidden', 'true');
+  return c.outerHTML;
+}
+function ottRisultato(){ const r = OTT.info && OTT.info.risultati && OTT.info.risultati[ottModo()]; return r || null; }
+function ottVoce(id){ return ((OTT.info && OTT.info.voci) || []).find(v => v.id === id) || null; }
+// Apre la pagina: lavoro in corso, risultato dell'ultima volta o la schermata d'inizio.
+async function ottApri(){
+  const i = await call('goOttInfo'); if (i) OTT.info = i;
+  if (OTT.info && OTT.info.inCorso && OTT.fase) { ottDisegna(); return; }
+  if (!(OTT.info && OTT.info.inCorso)) OTT.fase = '';
+  OTT.modo = isOffice() ? 'ufficio' : 'gioco';
+  const r = ottRisultato();
+  if (r && r.risultato && r.risultato.accInAttesa) call('goOttAccensione');
+  OTT.vista = OTT.vista === 'elenco' ? 'elenco' : (r ? 'risultato' : 'inizio');
+  ottDisegna();
+}
+// Il pulsante grande (Home) e "Inizia": parte subito con la prima misura.
+async function ottInizia(){
+  show('opt');
+  if (OTT.info && OTT.info.inCorso) return;
+  const modo = isOffice() ? 'ufficio' : 'gioco';
+  const r = await call('goOttAvvia', modo);
+  if (r === 'busy') { toast(_t('Tasso sta facendo un altro lavoro (pulizia o aggiornamento): aspetta che finisca e riprova.'), 'var(--a4)'); return; }
+  if (r !== 'ok') { toast(_t('Non sono riuscito a partire: riprova tra poco.'), 'var(--a4)'); return; }
+  OTT = {info: OTT.info, fase: 'misura', modo: modo, mis: {prima: true, pct: 0, testo: _t('Leggo i componenti…'), secondi: 0, valori: {}, componenti: []}, cat: '', passi: {}, avvio: null, fatti: 0, totale: 0, vista: '', ferma: false};
+  if (OTT.info) OTT.info.inCorso = true;
+  ottDisegna();
+}
+function ottDisegna(){
+  if (CURVIEW !== 'opt') return;
+  if (OTT.fase === 'misura' || OTT.fase === 'dopo') return ottMisura();
+  if (OTT.fase === 'sistemo') return ottLive();
+  if (OTT.vista === 'elenco') return ottElenco();
+  if (OTT.vista === 'risultato' && ottRisultato()) return ottRis();
+  return ottInizio();
+}
+function ottInizio(){
+  const off = ottModo() === 'ufficio';
+  ottView(ottHead(0, '<span class="opt-safe">' + OTT_SHIELD + _t('Solo modifiche sicure e reversibili') + '</span>') +
+    '<div class="opt-body"><div><h1 class="opt-title" tabindex="-1">' + (off ? _t('Un PC più svelto per lavorare') : _t('Rendi il PC più veloce nei giochi')) + '</h1>' +
+    '<p class="opt-sub">' + (off ? _t('Un pulsante solo: Tasso misura il PC, sistema Windows per lavorare e ti mostra la differenza.') : _t('Un pulsante solo: Tasso misura il PC, sistema Windows per giocare e ti mostra la differenza.')) + ' ' +
+    (off ? _t('Ogni impostazione cambiata si rimette com\'era con un interruttore; i file inutili tolti dalla pulizia no.') + ' ' + _t('L\'antivirus non si tocca. Gli aggiornamenti non si spengono mai: Tasso evita i riavvii mentre lavori e non li condivide con altri PC.') : _t('Ogni cosa che cambia si rimette com\'era con un interruttore.') + ' ' + _t('L\'antivirus non si tocca. Gli aggiornamenti non si spengono mai: Tasso evita i riavvii mentre giochi e non li condivide con altri PC.')) + '</p></div>' +
+    '<div class="opt-foot"><div class="opt-hints">' + OTT_INFO + '<span>' + (off ? _t('Salva il lavoro aperto: Tasso apre e chiude Esplora file, Blocco note e il browser.') : _t('Chiudi i giochi e il browser: la misura viene più giusta.')) + '</span></div>' +
+    '<button class="' + (off ? 'btn primary' : 'gbig') + '" id="ottGo">' + (off ? _t('Ottimizza tutto') : _t('OTTIMIZZA TUTTO')) + '</button></div></div>');
+  $('#ottGo').onclick = ottInizia;
+}
+// 1 e 3: le misure (prima e dopo)
+function ottMisura(){
+  const m = OTT.mis || {valori: {}, componenti: []}, off = ottModo() === 'ufficio', dopo = OTT.fase === 'dopo';
+  const v = m.valori || {};
+  const dd = (x, u, dec) => x == null ? '<dd class="wait">—</dd>' : '<dd>' + ottNum(x, dec) + '<small>' + u + '</small></dd>';
+  let cols;
+  if (off) {
+    const accTxt = v.acc != null ? dd(v.acc, 's', 0) : (OTT.accNo && !dopo ? '<dd class="no">' + esc(OTT.accNo) + '</dd>' : dopo ? '<dd class="no">' + _t('alla prossima riaccensione') + '</dd>' : dd(null));
+    cols = [[_t('Accensione del PC'), accTxt], [_t('Apertura programmi'), dd(v.apertura, 's', 1)], [_t('Voto al PC') + (v.voto == null && m.pct > 0 ? _t(' · in corso') : ''), dd(v.voto, '/100')]];
+  } else {
+    const noFps = OTT.fpsNo ? '<dd class="no">' + esc(OTT.fpsNo) + '</dd>' : null;
+    cols = [[_t('FPS medi'), noFps || dd(v.fps, 'FPS')], [_t('FPS più bassi (1%)'), noFps || dd(v.fps1, 'FPS')], [_t('Voto al PC') + (v.voto == null && m.pct > 0 ? _t(' · in corso') : ''), dd(v.voto, '/100')]];
+  }
+  const nomi = {cpu: _t('Processore'), gpu: _t('Scheda video'), ram: _t('Memoria RAM'), disco: _t('Disco'), leggerezza: _t('Leggerezza di Windows')};
+  const cs = m.componenti || [];
+  const comps = ['cpu', 'gpu', 'ram', 'disco', 'leggerezza'].map((k, i) => { const c = cs.find(x => x.chiave === k); const ok = c && c.nome; return '<div class="' + (ok ? 'ok' : '') + '"><span>' + nomi[k] + '</span><b' + (ok ? ' title="' + esc(ottNome(c.nome)) + '"' : '') + '>' + (ok ? esc(ottNome(c.nome)) : (i === cs.length ? _t('leggo…') : '')) + '</b></div>'; }).join('');
+  const sub = dopo ? _t('Rifaccio le stesse prove di prima, così vedi la differenza vera.') : off ? _t('Tasso legge quanto ci mette il PC ad accendersi, apre i programmi di tutti i giorni e fa il Voto al PC completo. Ci vuole circa 1 minuto.') : _t('Tasso fa girare una sua scena di prova e, insieme, il Voto al PC completo. Ci vogliono circa 1-2 minuti.');
+  const pct = Math.max(0, Math.min(100, Number(m.pct) || 0));
+  ottView(ottHead(dopo ? 3 : 1, '<span></span>') +
+    '<div class="opt-body"><div><h1 class="opt-title" tabindex="-1">' + (dopo ? _t('Misuro di nuovo') + '<br>' + _t('per vedere la differenza') : _t('Misuro il tuo PC') + '<br>' + _t('prima di cambiare qualcosa')) + '</h1><p class="opt-sub">' + sub + '</p></div>' +
+    '<div><div class="opt-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + Math.round(pct) + '"><i style="width:' + pct + '%"></i></div><div class="opt-barrow"><span>' + esc(m.testo || '') + '</span><b>' + Math.round(pct) + '%' + (pct < 100 && m.secondi ? '  ·  ' + _t('ancora circa ') + m.secondi + _t(' secondi') : '') + '</b></div></div>' +
+    '<dl class="opt-meas">' + cols.map(c => '<div><dt>' + c[0] + '</dt>' + c[1] + '</div>').join('') + '</dl>' +
+    '<div class="opt-comps">' + comps + '</div>' +
+    '<div class="opt-foot"><div class="opt-hints">' + OTT_INFO + '<span>' + (off ? _t('Salva il lavoro aperto: Tasso apre e chiude Esplora file, Blocco note e il browser.') : _t('Chiudi i giochi e il browser: la misura viene più giusta.')) + '</span></div>' +
+    (dopo ? '' : '<button class="btn ghost" id="ottStop"' + (OTT.ferma ? ' disabled' : '') + '>' + (OTT.ferma ? _t('Mi fermo…') : _t('Fermati')) + '</button>') + '</div></div>');
+  const s = $('#ottStop'); if (s) s.onclick = ottFerma;
+}
+async function ottFerma(){ OTT.ferma = true; await call('goOttFerma'); ottDisegna(); }
+// 2: gli interruttori che si muovono da soli, uno alla volta
+function ottLive(){
+  const modo = ottModo(), cats = OTT_CATS[modo], mods = OTT_MOD[modo];
+  const ci = Math.max(0, cats.findIndex(c => c[0] === OTT.cat));
+  const finita = (cid) => { if (cid === 'start') return OTT.avvio != null && cats.findIndex(c => c[0] === cid) < ci; const l = mods.filter(x => x[1] === cid); return l.length && l.every(x => { const p = OTT.passi[x[0]]; return p && p.fase === 'fine'; }); };
+  const left = cats.map((c, i) => { const cls = i === ci ? 'cur' : (finita(c[0]) || i < ci ? 'done' : ''); return '<div class="opt-cat ' + cls + '" style="--c:' + c[2] + '"><span class="ci">' + ottSvg(c[0]) + '</span>' + c[1] + '<span class="st">' + (cls === 'done' ? OTT_CHECK : '') + '</span></div>'; }).join('');
+  const c = cats[ci];
+  let rows;
+  if (c[0] === 'start') {
+    const n = OTT.avvio;
+    rows = '<div class="opt-tg ask"><div class="x"><b>' + (n == null ? _t('Guardo i programmi all\'avvio…') : n + _t(' programmi partono con Windows')) + '</b><span>' + _t('Tasso te li propone: decidi tu quali togliere. Non tocca niente da solo, e non contano tra le modifiche.') + '</span></div><span class="lab">' + _t('Decidi tu') + '</span><button class="btn ghost" id="ottAvvio">' + _t('Scegli quali') + '</button></div>';
+  } else {
+    rows = mods.filter(x => x[1] === c[0]).map(x => {
+      const p = OTT.passi[x[0]] || {}, e = p.esito || {};
+      let cls = 'wait', lab = _t('Tra poco'), on = false, half = false, nota = '';
+      if (p.fase === 'inizio') { cls = 'now'; lab = _t('Lo cambio…'); half = true; }
+      else if (p.fase === 'fine') {
+        if (e.stato === 'fatta' || e.stato === 'pulita') { cls = 'ok'; lab = _t('Fatto'); on = true; if (e.motivo && e.motivo.indexOf(' ') > 0 && e.stato === 'fatta' && /riavvio|restart|reinicio|redémarrage|Neustart/i.test(e.motivo)) nota = e.motivo; }
+        else if (e.stato === 'aposto') { cls = 'ok'; lab = _t('Già a posto'); on = true; }
+        else { cls = ''; lab = e.stato === 'errore' ? _t('Non riuscita') : _t('Saltata'); nota = e.motivo || ''; }
+      }
+      return '<div class="opt-tg ' + cls + '"><div class="x"><b>' + x[2] + '</b><span>' + x[3] + '</span>' + (nota ? '<em>' + esc(nota) + '</em>' : '') + '</div><span class="lab">' + lab + '</span><span class="sw' + (on ? ' on' : '') + '" aria-hidden="true"' + (half ? '' : '') + '><i></i></span></div>';
+    }).join('');
+  }
+  const tot = OTT.totale || mods.length, pct = Math.round(OTT.fatti / Math.max(1, tot) * 100);
+  ottView(ottHead(2) +
+    '<div class="opt-body"><div style="display:flex;align-items:flex-end;gap:30px"><div style="flex:1"><div class="opt-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + pct + '"><i style="width:' + pct + '%"></i></div><div class="opt-barrow"><span>' + (modo === 'ufficio' ? _t('Sistemo Windows per lavorare') : _t('Sistemo Windows per giocare')) + '</span><b>' + OTT.fatti + _t(' di ') + tot + _t(' cose') + '</b></div></div>' +
+    '<div class="opt-ctrl"><button class="btn ghost" id="ottSalta"' + (OTT.ferma ? ' disabled' : '') + '>' + _t('Salta') + '</button><button class="btn ghost" id="ottStop2"' + (OTT.ferma ? ' disabled' : '') + '>' + (OTT.ferma ? _t('Mi fermo…') : _t('Fermati')) + '</button></div></div>' +
+    '<div class="opt-live"><div class="opt-cats">' + left + '</div>' +
+    '<div class="opt-stage" aria-live="polite"><div class="sk">' + (ci + 1) + _t(' di ') + cats.length + '</div><h2 style="--c:' + c[2] + '"><span class="ci">' + ottSvg(c[0], 24) + '</span>' + c[1] + '</h2>' + rows + '</div></div></div>');
+  const sa = $('#ottSalta'); if (sa) sa.onclick = () => { call('goOttSalta'); toast(_t('Salto il resto di questa parte.')); };
+  const st = $('#ottStop2'); if (st) st.onclick = ottFerma;
+  const av = $('#ottAvvio'); if (av) av.onclick = ottSceltaAvvio;
+}
+// "Scegli quali": gli stessi interruttori della pagina Avvio del PC, in una finestra.
+let OTT_AVVIO_OPEN = false;
+function ottSceltaAvvio(){
+  OTT_AVVIO_OPEN = true;
+  modal('<h2>' + _t('Programmi all\'avvio') + '</h2><p class="muted" style="margin:0">' + _t('Spegni quelli che non ti servono appena accendi il PC. Si possono riaccendere quando vuoi da Avvio del PC.') + '</p><div class="list" id="ottAvvioList" style="max-height:52vh;overflow:auto"><div class="li"><span class="muted">' + _t('Lettura…') + '</span></div></div>', [{label: _t('Chiudi'), fn: () => { OTT_AVVIO_OPEN = false; }}]);
+  $('#modalBox').style.maxWidth = '720px';
+  call('goStartupList');
+}
+function ottPaintAvvio(){
+  const box = $('#ottAvvioList'); if (!OTT_AVVIO_OPEN || !box) return;
+  box.innerHTML = '';
+  const list = (STARTUP || []).slice().sort((a, b) => String(a.name).localeCompare(String(b.name), LANG, {sensitivity: 'base'}));
+  if (!list.length) { box.innerHTML = '<div class="li"><span class="muted">' + esc(STARTUP_ERR || _t('Nessun programma parte all\'avvio. Ottimo!')) + '</span></div>'; return; }
+  list.forEach(it => {
+    const li = el('div', {class: 'li'}, '<span class="x"><b>' + esc(it.name) + '</b><span>' + (it.enabled ? _t('Acceso') : _t('Spento')) + '</span></span>');
+    const sw = el('button', {class: 'sw' + (it.enabled ? ' on' : ''), 'aria-label': (it.enabled ? _t('Disattiva ') : _t('Attiva ')) + it.name, style: 'border:0'}, '<i></i>');
+    sw.onclick = () => { it.enabled = !it.enabled; sw.classList.toggle('on', it.enabled); call('goStartupSet', it.scope, it.key || it.name, it.enabled).then(r => { if (r === 'busy' || r == null) { it.enabled = !it.enabled; sw.classList.toggle('on', it.enabled); toast(_t('Un attimo, sto ancora lavorando: riprova tra poco.'), 'var(--a4)'); } }); };
+    li.appendChild(sw); box.appendChild(li);
+  });
+}
+const OTT_RIGHE = {fps: _t('FPS medi'), fps1: _t('FPS più bassi (1%)'), voto: _t('Voto al PC'), accensione: _t('Accensione del PC'), apertura: _t('Apertura programmi')};
+// 4: il risultato, sobrio e centrato
+function ottRis(){
+  const R = ottRisultato(); if (!R) return ottInizio();
+  const r = R.risultato || {}, off = r.modo === 'ufficio', righe = R.righe || [];
+  const fatte = Number(r.fatte) || 0, pulite = Number(r.pulite) || (off ? ((OTT.info && OTT.info.voci) || []).filter(v => v.stato === 'pulita').length : 0); // risultati vecchi senza "pulite"
+  const tab = righe.length ? '<div class="r2tab"><div class="r2h"><span></span><span>' + _t('Prima') + '</span><span></span><span>' + _t('Dopo') + '</span></div>' + righe.map(x =>
+    '<div class="r2r"><span>' + (OTT_RIGHE[x.chiave] || '') + '</span><span>' + ottNum(x.prima, x.decimali) + '</span><span class="ar">→</span><span class="af' + (x.meglio ? ' up' : '') + '">' + (x.haDopo ? ottNum(x.dopo, x.decimali) + '<small>' + esc(x.unita) + '</small>' : '…') + '</span></div>').join('') + '</div>' : '';
+  const note = [];
+  if (off && r.accInAttesa) note.push(_t('L\'accensione "dopo" si misura alla prossima riaccensione del PC: il risultato si aggiorna da solo.'));
+  if (off && r.prima && !r.prima.accensioneMs && r.prima.accMotivo) note.push(r.prima.accMotivo);
+  if (!off && r.prima && !r.prima.fpsOk && r.prima.fpsMotivo) note.push(r.prima.fpsMotivo);
+  ottView(ottHead(3, '<span></span>') +
+    '<div class="opt-body r2"><div class="r2logo">' + ottStemma(112) + '</div>' +
+    '<div class="r2k">' + _t('Fatto') + '</div>' +
+    '<h1 class="r2t" tabindex="-1">' + (off ? _t('Il tuo PC è pronto per lavorare') : _t('Il tuo PC è pronto per giocare')) + '</h1>' +
+    (R.piccolo ? '<p class="r2s" style="color:var(--text)">' + _t('Il tuo PC era già messo bene: la differenza è piccola.') + '</p>' : '') +
+    '<p class="r2s">' + (off || pulite > 0 ? fatte + _t(' modifiche si rimettono com\'era con un interruttore; la pulizia dei file inutili no.') : fatte + _t(' modifiche sicure. Ognuna si rimette com\'era con un interruttore.')) + '</p>' + tab +
+    note.map(n => '<p class="r2fn">' + esc(n) + '</p>').join('') +
+    '<div class="opt-btns"><button class="btn primary" id="ottShare">' + _t('Condividi il risultato') + '</button><button class="btn ghost" id="ottBack">' + _t('Rimetti com\'era') + '</button></div>' +
+    '<button class="opt-link" id="ottAgain">' + _t('Rifai Ottimizza tutto') + '</button></div>');
+  $('#ottShare').onclick = () => ottBiglietto();
+  $('#ottBack').onclick = () => { OTT.vista = 'elenco'; ottDisegna(); };
+  $('#ottAgain').onclick = () => modal('<h2>' + _t('Rifaccio Ottimizza tutto?') + '</h2><p class="muted" style="margin:0">' + _t('Tasso misura di nuovo il PC e ricontrolla le impostazioni: ci vogliono alcuni minuti. Le modifiche già fatte restano.') + '</p>', [{label: _t('Annulla')}, {label: _t('Rifai'), cls: 'primary', fn: () => { ottInizia(); }}]);
+}
+// 5: Rimetti com'era, un interruttore per ogni modifica
+function ottElenco(){
+  const modo = ottModo(), cats = OTT_CATS[modo], mods = OTT_MOD[modo];
+  const nCat = {}; cats.forEach(c => { nCat[c[0]] = c[1]; });
+  let prev = '';
+  const rows = mods.map(x => {
+    const v = ottVoce(x[0]), st = v ? v.stato : '';
+    let lab = _t('Non fatta'), sw = '<span class="nos"></span>', off = true, nota = '';
+    if (st === 'fatta' || st === 'incorso') { lab = v.riavvio ? _t('Cambiato · al riavvio') : _t('Cambiato'); off = false; sw = '<button class="sw on" data-ott="' + x[0] + '" data-on="1" aria-label="' + esc(_t('Rimetti com\'era') + ': ' + x[2]) + '"><i></i></button>'; }
+    else if (st === 'rimessa' || st === 'lasciata') { lab = _t('Com\'era prima'); sw = '<button class="sw" data-ott="' + x[0] + '" data-on="0" aria-label="' + esc(_t('Cambia di nuovo') + ': ' + x[2]) + '"><i></i></button>'; if (st === 'lasciata') nota = v.motivo; }
+    else if (st === 'pulita') { lab = _t('Fatto · non si rimette'); off = false; nota = _t('I file tolti non servivano più: la pulizia non si può rimettere com\'era.'); }
+    else if (st === 'aposto') { lab = _t('Già a posto'); }
+    else if (st === 'saltata' || st === 'errore') { lab = st === 'errore' ? _t('Non riuscita') : _t('Saltata'); nota = v.motivo; }
+    const c = x[1] !== prev ? nCat[x[1]] : ''; prev = x[1];
+    return '<div class="opt-row' + (off ? ' off' : '') + '"><span class="c">' + esc(c) + '</span><div class="x"><b>' + x[2] + '</b><span>' + x[3] + '</span>' + (nota ? '<em>' + esc(nota) + '</em>' : '') + '</div><span class="s">' + lab + '</span>' + sw + '</div>';
+  }).join('');
+  // D1: le modifiche fatte nell'altra modalità (Gaming o Ufficio) si vedono anche qui, perché
+  // "Rimetti com'era tutto" rimette anche quelle.
+  const altro = modo === 'ufficio' ? 'gioco' : 'ufficio', mieId = mods.map(x => x[0]);
+  const altre = OTT_MOD[altro].filter(x => mieId.indexOf(x[0]) < 0 && (ottVoce(x[0]) || {}).stato === 'fatta' || mieId.indexOf(x[0]) < 0 && (ottVoce(x[0]) || {}).stato === 'incorso');
+  const rowsAltre = altre.length ? '<div class="opt-row"><span class="c">' + (altro === 'gioco' ? _t('Cambiate in Gaming') : _t('Cambiate in Ufficio')) + '</span></div>' + altre.map(x => {
+    const v = ottVoce(x[0]);
+    return '<div class="opt-row"><span class="c"></span><div class="x"><b>' + x[2] + '</b><span>' + x[3] + '</span></div><span class="s">' + (v.riavvio ? _t('Cambiato · al riavvio') : _t('Cambiato')) + '</span><button class="sw on" data-ott="' + x[0] + '" data-on="1" aria-label="' + esc(_t('Rimetti com\'era') + ': ' + x[2]) + '"><i></i></button></div>';
+  }).join('') : '';
+  const attive = (OTT.info && OTT.info.attive) || 0;
+  ottView(ottHead(3) +
+    '<div class="opt-body" style="justify-content:flex-start"><div style="display:flex;justify-content:space-between;align-items:flex-end;gap:20px;flex-wrap:wrap"><div><h1 class="opt-title" style="font-size:36px" tabindex="-1">' + _t('Cosa ho cambiato') + '</h1><p class="opt-sub" style="margin-top:8px">' + _t('Spegni un interruttore per rimettere com\'era solo quella cosa. Vale anche dopo un riavvio.') + '</p></div>' +
+    '<div class="row" style="gap:10px"><button class="btn ghost" id="ottRis">' + _t('Torna al risultato') + '</button><button class="btn ghost" id="ottAll"' + (attive ? '' : ' disabled') + '>' + _t('Rimetti com\'era tutto') + '</button></div></div>' +
+    '<div class="opt-sum">' + rows + rowsAltre + '</div></div>');
+  $('#ottRis').onclick = () => { OTT.vista = ottRisultato() ? 'risultato' : 'inizio'; ottDisegna(); };
+  $('#ottAll').onclick = () => modal('<h2>' + _t('Rimetto com\'era tutto?') + '</h2><p class="muted" style="margin:0">' + _t('Tutte le impostazioni cambiate da Ottimizza tutto tornano come prima, sia in Gaming sia in Ufficio. I file tolti dalla pulizia non tornano (non servivano più).') + '</p>', [{label: _t('Annulla')}, {label: _t('Rimetti com\'era tutto'), cls: 'primary', fn: () => { $('#ottAll').disabled = true; call('goOttRimettiTutto'); }}]);
+  $$('#v-opt [data-ott]').forEach(b => { b.onclick = () => { const id = b.dataset.ott, on = b.dataset.on === '1'; b.disabled = true; b.classList.toggle('on', !on); call(on ? 'goOttRimetti' : 'goOttApplica', id).then(r => { if (r === 'busy') { b.disabled = false; b.classList.toggle('on', on); toast(_t('Aspetta: sto già rimettendo qualcosa.'), 'var(--a4)'); } else if (r !== 'ok') { b.disabled = false; b.classList.toggle('on', on); toast(_t('Non ci sono riuscito: riprova tra poco.'), 'var(--a4)'); } }); }; });
+}
+Object.assign(window.tasso, {
+  onOttStato(p){
+    p = p || {};
+    if (p.fase === 'errore' || p.fase === 'fermato') {
+      OTT.fase = ''; OTT.ferma = false; if (p.msg) toast(p.msg, p.fase === 'errore' ? 'var(--a4)' : 'var(--a3)');
+      call('goOttInfo').then(i => { if (i) OTT.info = i; OTT.vista = ottRisultato() ? 'risultato' : 'inizio'; ottDisegna(); });
+      return;
+    }
+    if (p.modo) OTT.modo = p.modo;
+    if (p.fase === 'misura') { OTT.fase = 'misura'; OTT.fpsNo = ''; OTT.accNo = ''; OTT.mis = {prima: true, pct: 0, valori: {}, componenti: []}; }
+    if (p.fase === 'sistemo') { OTT.fase = 'sistemo'; OTT.totale = p.totale || 0; OTT.fatti = 0; OTT.passi = {}; OTT.avvio = null; OTT.cat = OTT_CATS[ottModo()][0][0]; }
+    if (p.fase === 'dopo') { OTT.fase = 'dopo'; OTT.fpsNo = ''; OTT.mis = {prima: false, pct: 0, valori: {}, componenti: (OTT.mis && OTT.mis.componenti) || []}; }
+    if (p.fase === 'fine') { OTT.fase = ''; OTT.ferma = false; if (p.info) OTT.info = p.info; OTT.vista = 'risultato'; if (CURVIEW !== 'opt') toast(_t('Ottimizza tutto ha finito: guarda il risultato.'), 'var(--a1)', {label: _t('Vedi'), fn: () => show('opt')}); }
+    ottDisegna();
+  },
+  onOttMisura(m){ if (!m) return; OTT.mis = m; if (OTT.fase !== 'misura' && OTT.fase !== 'dopo') OTT.fase = m.prima ? 'misura' : 'dopo'; ottDisegna(); },
+  onOttAvviso(p){ if (!p || !p.msg) return; if (ottModo() === 'ufficio') OTT.accNo = p.msg; else OTT.fpsNo = p.msg; ottDisegna(); },
+  onOttCat(p){ if (p && p.cat) { OTT.cat = p.cat; ottDisegna(); } },
+  onOttAvvio(p){ OTT.avvio = p ? Number(p.n) || 0 : 0; ottDisegna(); },
+  onOttPasso(p){ if (!p || !p.id) return; OTT.passi[p.id] = {fase: p.fase, esito: p.esito}; if (p.cat) OTT.cat = p.cat; if (typeof p.fatti === 'number') OTT.fatti = p.fatti; if (p.totale) OTT.totale = p.totale; ottDisegna(); },
+  onOttRimesso(p){
+    if (!p) return; if (p.info) OTT.info = p.info;
+    if (p.tutto) toast(p.ok ? _t('Fatto: tutto rimesso com\'era.') : _t('Non sono riuscito a rimettere tutto: riprova tra poco.'), p.ok ? 'var(--a1)' : 'var(--a4)');
+    else if (p.esito && p.esito.motivo) toast(p.esito.motivo, p.esito.stato === 'errore' ? 'var(--a4)' : 'var(--a1)');
+    ottDisegna();
+  },
+  onOttAggiornato(i){ if (i) { OTT.info = i; ottDisegna(); } }
+});
+const ottStartupPrima = window.tasso.onStartup;
+window.tasso.onStartup = function(p){ ottStartupPrima.call(this, p); ottPaintAvvio(); };
+$$('[data-ottgo]').forEach(b => { b.onclick = ottInizia; });
+
+// ---------- Il biglietto di Ottimizza tutto (stile "tesserino", fatto con il canvas) ----------
+function ottMix(a, b, t){
+  const h = (c) => { const m = /^#([0-9a-f]{6})$/i.exec(String(c).trim()); if (!m) return null; const n = parseInt(m[1], 16); return [n >> 16, (n >> 8) & 255, n & 255]; };
+  const x = h(a), y = h(b); if (!x || !y) return a;
+  return '#' + x.map((v, i) => Math.round(v + (y[i] - v) * t).toString(16).padStart(2, '0')).join('');
+}
+// Il colore del contorno: dalle variabili del tema (Neon RGB arcobaleno, Oro e Argento con la loro sfumatura).
+function tessColore(g, W, H, C){
+  const t = curTheme();
+  if (t === 'neonrgb' && g.createConicGradient) {
+    const z = g.createConicGradient(210 * Math.PI / 180, W / 2, H / 2);
+    ['#FF5A5A', '#FFA43B', '#FFE94D', '#5CFF8A', '#3BE8FF', '#7A95FF', '#C77DFF', '#FF6AD5', '#FF5A5A'].forEach((c, i, a) => z.addColorStop(i / (a.length - 1), c));
+    return z;
+  }
+  const z = g.createLinearGradient(0, 0, W, H);
+  if ((t === 'oro' || t === 'argento') && C.tg.length > 1) { C.tg.forEach((c, i) => z.addColorStop(i / (C.tg.length - 1), c)); return z; }
+  const chiaro = ottMix(C.a1, '#ffffff', isOffice() ? .45 : .5);
+  z.addColorStop(0, C.a1); z.addColorStop(.5, chiaro); z.addColorStop(1, C.a1);
+  return z;
+}
+// Contorno del tesserino: 3 px con angoli molto arrotondati, poco dentro il bordo, un filo interno
+// sottile e tenue, e in alto la fessura a pillola del laccetto.
+function drawTesserino(g, W, H, C){
+  const paint = tessColore(g, W, H, C), tbc = curTheme() === 'neonrgb' ? '#C77DFF' : C.a1;
+  g.save();
+  g.lineWidth = 3; g.strokeStyle = paint; g.beginPath(); g.roundRect(35.5, 35.5, W - 71, H - 71, 56); g.stroke();
+  g.lineWidth = 1; g.globalAlpha = .28; g.strokeStyle = tbc; g.beginPath(); g.roundRect(52.5, 52.5, W - 105, H - 105, 40); g.stroke();
+  g.globalAlpha = 1;
+  g.beginPath(); g.roundRect(W / 2 - 60, 78, 120, 18, 9); g.fillStyle = isOffice() ? C.panel : ottMix(C.bg, '#000000', .1); g.fill();
+  g.lineWidth = 2; g.strokeStyle = paint; if (['neonrgb', 'oro', 'argento'].indexOf(curTheme()) < 0) { g.globalAlpha = .7; g.strokeStyle = tbc; } g.stroke();
+  g.restore();
+  return paint;
+}
+// Stessa forma in Gaming e in Ufficio (come il biglietto del Voto al PC): cambiano solo i colori,
+// lo stemma e i numeri. Due formati: quadrato 1080 × 1080 e verticale 1080 × 1920.
+async function drawOttCard(R, fmt){
+  const V = fmt === 'v', W = 1080, H = V ? 1920 : 1080, C = cardColors(), r = R.risultato || {}, off = r.modo === 'ufficio', mono = cssVar('--mono') || 'monospace';
+  try { await document.fonts.ready; await Promise.all([document.fonts.load('800 60px ' + C.display), document.fonts.load('500 20px ' + C.body)]); } catch (e) {}
+  const logo = await loadImg(cardLogoSrc()), nome = nomeSulBiglietto(); await nomeFontPronto(C, nome); // 3.2 "Il tuo nome"
+  const cv = document.createElement('canvas'); cv.width = W; cv.height = H;
+  const g = cv.getContext('2d');
+  const font = (w, px, fam) => { g.font = w + ' ' + px + 'px ' + (fam || C.body); };
+  g.fillStyle = C.bg; g.fillRect(0, 0, W, H);
+  const rg = g.createRadialGradient(W * .85, H * .08, 0, W * .85, H * .08, V ? 900 : 640); rg.addColorStop(0, C.a2); rg.addColorStop(1, 'rgba(0,0,0,0)'); g.globalAlpha = .12; g.fillStyle = rg; g.fillRect(0, 0, W, H); g.globalAlpha = 1;
+  const paint = drawTesserino(g, W, H, C);
+  // misure del formato: quadrato come approvato, verticale più grande e con le righe una sotto l'altra
+  const L = V ? {logo: 230, logoY: 190, tasso: 52, tassoY: 500, data: 26, dataY: 548, trattY: 600, top: 680, s: 1.35, foot: H - 130, fs: 22}
+              : {logo: 150, logoY: 150, tasso: 34, tassoY: 356, data: 18, dataY: 386, trattY: 420, top: 460, s: 1, foot: H - 104, fs: 16};
+  g.textBaseline = 'alphabetic'; g.textAlign = 'center';
+  if (logo) g.drawImage(logo, (W - L.logo) / 2, L.logoY, L.logo, L.logo);
+  g.fillStyle = C.text; font(800, L.tasso, C.display); g.letterSpacing = Math.round(L.tasso * .35) + 'px'; g.fontStretch = C.stretch; g.fillText('TASSO', W / 2 + 6, L.tassoY); g.letterSpacing = '0px'; g.fontStretch = 'normal';
+  const date = new Date(r.quando || Date.now()).toLocaleDateString(LANG, {day: 'numeric', month: 'long', year: 'numeric'});
+  g.fillStyle = C.muted; font(400, L.data); g.fillText(date, W / 2, L.dataY);
+  // 3.2 "Il tuo nome" sotto la data (solo se c'è e l'interruttore è acceso): il resto scende di dn
+  const dn = nomeDisegna(g, C, nome, W / 2, L.dataY + (V ? 50 : 36), V ? 32 : 22, 'center') ? (V ? 46 : 32) : 0;
+  g.fillStyle = paint; g.fillRect(W / 2 - 28 * L.s, L.trattY + dn, 56 * L.s, 3 * L.s);
+  // prima → dopo (Gaming: Voto e FPS; Ufficio: accensione, apertura e voto)
+  const righe = (R.righe || []).filter(x => x.haDopo);
+  const ord = off ? ['accensione', 'apertura', 'voto'] : ['voto', 'fps'];
+  const pairs = ord.map(k => righe.find(x => x.chiave === k)).filter(Boolean);
+  const x0 = V ? 150 : 130, x1 = W - x0;
+  const riga = (p, cx0, cw, ly, ny, big) => {
+    const a0 = ottNum(p.prima, p.decimali), b0 = ottNum(p.dopo, p.decimali), us = Math.round(17 * L.s);
+    font(600, big, C.display); let lw = g.measureText(a0).width + g.measureText(b0).width + 36;
+    font(400, Math.round(big * .6)); lw += g.measureText('→').width; font(500, us); lw += g.measureText(p.unita).width;
+    const cx = cx0 + Math.max(8, (cw - lw) / 2);
+    g.textAlign = 'left'; g.fillStyle = C.muted; font(500, Math.round(13 * L.s), mono); g.letterSpacing = '3px';
+    const lab = String(OTT_RIGHE[p.chiave] || '').toUpperCase();
+    if (V) { g.textAlign = 'center'; g.fillText(lab, W / 2, ly); g.textAlign = 'left'; } else g.fillText(lab, cx, ly);
+    g.letterSpacing = '0px';
+    let x = cx;
+    font(600, big, C.display); g.fillStyle = C.muted; g.fillText(a0, x, ny); x += g.measureText(a0).width + 14;
+    font(400, Math.round(big * .6)); g.fillText('→', x, ny - 4); x += g.measureText('→').width + 14;
+    font(600, big, C.display); g.fillStyle = C.text; g.fillText(b0, x, ny); x += g.measureText(b0).width + 8;
+    font(500, us); g.fillStyle = C.muted; g.fillText(p.unita, x, ny);
+  };
+  let y;
+  if (V) {
+    pairs.forEach((p, i) => { const ry = L.top + dn + i * 170; if (i > 0) { g.fillStyle = C.line; g.fillRect(x0 + 80, ry - 34, x1 - x0 - 160, 1); } riga(p, x0, x1 - x0, ry + 20, ry + 104, 80); });
+    y = L.top + dn + Math.max(1, pairs.length) * 170 + 30;
+  } else {
+    const cw = (x1 - x0) / Math.max(1, pairs.length), big = pairs.length >= 3 ? 40 : 54;
+    pairs.forEach((p, i) => { if (i > 0) { g.fillStyle = C.line; g.fillRect(x0 + cw * i, 460 + dn, 1, 100); } riga(p, x0 + cw * i, cw, 482 + dn, 548 + dn, big); });
+    y = 620 + dn;
+  }
+  // componenti su due colonne
+  const comps = (r.componenti || []).slice(0, 5), gap = 40, lw = (x1 - x0 - gap) / 2, ch = Math.round(74 * L.s);
+  const nomi = {cpu: _t('Processore'), gpu: _t('Scheda video'), ram: _t('Memoria RAM'), disco: _t('Disco'), leggerezza: _t('Leggerezza di Windows')};
+  const cella = (c, cx, cy, w) => {
+    const f = Math.round(18 * L.s);
+    g.fillStyle = C.line; g.fillRect(cx, cy, w, 1);
+    g.textAlign = 'left'; g.fillStyle = C.muted; font(500, Math.round(12 * L.s), mono); g.letterSpacing = '2px'; g.fillText(String(nomi[c.chiave] || '').toUpperCase(), cx, cy + Math.round(26 * L.s)); g.letterSpacing = '0px';
+    font(500, f); g.fillStyle = C.text;
+    const nome = ottNome(c.nome) || '–'; let t = nome; while (g.measureText(t).width > w - 120 * L.s && t.length > 4) t = t.slice(0, -2); if (t !== nome) t = t.replace(/\s*\S?$/, '') + '…';
+    g.fillText(t, cx, cy + Math.round(54 * L.s));
+    g.textAlign = 'right'; font(500, f, mono);
+    if (c.chiave === 'leggerezza' && r.prima && r.dopo && r.prima.leggerezza && r.dopo.leggerezza) {
+      g.fillStyle = C.a1t || C.a1; const d = String(r.dopo.leggerezza); g.fillText(d, cx + w, cy + Math.round(54 * L.s)); const dw = g.measureText(d).width;
+      g.fillStyle = C.muted; g.fillText(r.prima.leggerezza + '  →  ', cx + w - dw, cy + Math.round(54 * L.s));
+    } else { g.fillStyle = C.muted; g.fillText(String(c.voto || ''), cx + w, cy + Math.round(54 * L.s)); }
+  };
+  const normali = comps.filter(c => c.chiave !== 'leggerezza'), legg = comps.find(c => c.chiave === 'leggerezza');
+  // verticale: una colonna sola, così i nomi si leggono interi; quadrato: due colonne
+  const col = V ? 1 : 2;
+  normali.forEach((c, i) => { cella(c, x0 + (i % col) * (lw + gap), y + Math.floor(i / col) * ch, V ? x1 - x0 : lw); });
+  y += Math.ceil(normali.length / col) * ch;
+  if (legg) cella(legg, x0, y, x1 - x0);
+  g.textAlign = 'center'; g.fillStyle = C.muted; font(400, L.fs); g.fillText(_t('Misurato con Tasso · sergiotassoni.github.io/tasso'), W / 2, L.foot);
+  return cv;
+}
+// La scritta grande della modalità (GAMING, UFFICIO) dietro la finestra dei biglietti, sopra il
+// programma oscurato, come nella Home di Gaming. Non si ripete se la Home di Gaming è già dietro.
+function cardSfondoModo(){
+  const m = $('#modal'); if (!m) return;
+  m.querySelectorAll('.cardmodo').forEach(x => x.remove());
+  if (!isOffice() && CURVIEW === 'home') return;
+  const a = document.querySelector('aside'), left = a ? Math.round(a.getBoundingClientRect().right) + 34 : 34;
+  const d = el('div', {class: 'cardmodo', 'aria-hidden': 'true', style: 'left:' + left + 'px'}, esc(isOffice() ? _t('Ufficio') : 'Gaming'));
+  m.insertBefore(d, m.firstChild);
+  // il programma resta visibile dietro, più tenue, così la scritta non si mescola ai testi della pagina
+  document.body.classList.add('cardsfondo');
+}
+// Finestra dei biglietti: la stessa per il Voto al PC e per Ottimizza tutto, in Gaming e in Ufficio.
+// ridisegna (3.2 "Il tuo nome"): () => Promise [quadrato, verticale] con il nome acceso o spento;
+// se c'è, sotto le anteprime compare l'interruttore "Mostra il mio nome sul biglietto".
+function finestraBiglietto(titolo, testo, q, v, salva, ridisegna){
   let fmt = 'q';
   const wrap = (c, f, w, h, label) => { c.style.cssText = 'width:' + w + 'px;height:' + h + 'px;display:block;border-radius:12px'; const d = el('button', {class:'votofmt', 'data-f': f, 'aria-pressed': f === fmt ? 'true' : 'false', style:'background:none;border:0;padding:0;cursor:pointer;display:flex;flex-direction:column;gap:8px;align-items:center;color:inherit;font:inherit'}); d.appendChild(c); d.appendChild(el('span', {class:'small'}, label)); return d; };
   const pub = CLASSIFICA_ATTIVA ? '<div style="border-top:1px solid var(--line);padding-top:12px;display:flex;flex-direction:column;gap:8px"><b>' + _t('Pubblica i tuoi risultati') + '</b><span class="small muted">' + _t('Scrivi un nome e ti trovi nella classifica sul sito di Tasso. Va solo il voto, con il nome che scegli tu.') + '</span><div class="row" style="gap:8px"><input id="votoNome" maxlength="24" style="flex:1" placeholder="' + esc(_t('Il tuo nome nella classifica')) + '"><button class="btn primary" id="votoPub">' + _t('Pubblica') + '</button></div></div>' : '';
@@ -3316,10 +3926,9 @@ async function openVotoCard(r){
     Promise.resolve().then(() => fn(c.toDataURL('image/png'))).catch(() => toast(err, 'var(--a4)')).finally(() => bs.forEach(b => { b.disabled = false; }));
     return 'keep';
   };
-  const conNome = !!nomeOra(); // 3.2 "Il tuo nome": la frase dice dove si spegne
-  modal('<h2>' + _t('Il tuo biglietto da visita') + '</h2><p class="muted" style="margin:0">' + (conNome ? _t('Il voto del tuo PC, pronto da mandare agli amici. Quadrato per i post, verticale per le storie. Dentro ci sono solo i voti e i componenti. Il tuo nome c\'è solo se lo lasci acceso qui sotto.') : _t('Il voto del tuo PC, pronto da mandare agli amici. Quadrato per i post, verticale per le storie. Dentro ci sono solo i voti e i componenti, niente dati personali.')) + '</p><div id="votoPrev" style="display:flex;gap:22px;justify-content:center;flex-wrap:wrap;padding:4px 0"></div>' + nomeInterruttoreHtml() + pub, [
+  modal('<h2>' + titolo + '</h2><p class="muted" style="margin:0">' + testo + '</p><div id="votoPrev" style="display:flex;gap:22px;justify-content:center;flex-wrap:wrap;padding:4px 0"></div>' + (ridisegna ? nomeInterruttoreHtml() : '') + pub, [
     {label: _t('Chiudi')},
-    {label: _t('Salva'), fn: busy(async (u) => { const x = await call('goVotoSalva', u, fmt === 'v' ? 'verticale' : 'quadrata'); toast(x === 'ok' ? _t('Salvato in Immagini\\Tasso.') : _t('Non sono riuscito a salvare l\'immagine.'), x === 'ok' ? 'var(--a1)' : 'var(--a4)'); }, _t('Non sono riuscito a salvare l\'immagine.'))},
+    {label: _t('Salva'), fn: busy(async (u) => { const x = await salva(u, fmt === 'v' ? 'verticale' : 'quadrata'); toast(x === 'ok' ? _t('Salvato in Immagini\\Tasso.') : _t('Non sono riuscito a salvare l\'immagine.'), x === 'ok' ? 'var(--a1)' : 'var(--a4)'); }, _t('Non sono riuscito a salvare l\'immagine.'))},
     {label: _t('Copia immagine'), cls: 'primary', fn: busy(async (u) => { const x = await call('goVotoCopia', u); toast(x === 'ok' ? _t('Immagine copiata: incollala dove vuoi con Ctrl+V.') : _t('Non sono riuscito a copiare l\'immagine.'), x === 'ok' ? 'var(--a1)' : 'var(--a4)'); }, _t('Non sono riuscito a copiare l\'immagine.'))}
   ]);
   const box = $('#modalBox'); box.style.maxWidth = '780px';
@@ -3330,13 +3939,17 @@ async function openVotoCard(r){
   prev.querySelectorAll('.votofmt').forEach(b => b.onclick = () => { fmt = b.dataset.f; paintSel(); });
   paintSel();
   // 3.2 "Mostra il mio nome sul biglietto": ridisegna i due biglietti negli stessi canvas
-  nomeInterruttore(async () => { const [q2, v2] = await Promise.all([drawVotoCard(r, 'q'), drawVotoCard(r, 'v')]); [[q, q2], [v, v2]].forEach(x => { const c = x[0].getContext('2d'); c.clearRect(0, 0, x[0].width, x[0].height); c.drawImage(x[1], 0, 0); }); });
+  if (ridisegna) nomeInterruttore(async () => { const [q2, v2] = await ridisegna(); [[q, q2], [v, v2]].forEach(x => { const c = x[0].getContext('2d'); c.clearRect(0, 0, x[0].width, x[0].height); c.drawImage(x[1], 0, 0); }); });
   const pb = $('#votoPub'); if (pb) pb.onclick = () => toast(_t('La classifica online arriva presto.'), 'var(--a3)');
+  cardSfondoModo();
 }
-$('#btnVotoCard').onclick = () => openVotoCard();
-$('#btnBench').onclick = async () => { const r = await call('goBench'); if (r === 'busy') { toast(_t('Sto già misurando.'), 'var(--a4)'); return; } BENCH_MANUAL = true; $('#btnBench').disabled = true; $('#bnMsg').textContent = _t('Misuro… non usare il PC per circa 25 secondi (fino a 40 se misuro anche il raffreddamento).'); };
-$('#tgBenchAround').onclick = async () => { const on = !S.benchAround; await call('goSetBenchAround', on); S.benchAround = on; setToggle('#tgBenchAround', on, false); toast(on ? _t('Misurerò il voto prima e dopo ogni pulizia.') : _t('Voto automatico spento.')); };
-(async () => { const h = await call('goBenchHistory'); if (h && h.length) paintBench(h[h.length - 1], null, h); setToggle('#tgBenchAround', !!S.benchAround, false); })();
+async function ottBiglietto(){
+  const R = ottRisultato(); if (!R) return;
+  await nomeRileggi(); // 3.2 "Il tuo nome"
+  const disegna = () => Promise.all([drawOttCard(R, 'q'), drawOttCard(R, 'v')]);
+  const [q, v] = await disegna(), off = (R.risultato || {}).modo === 'ufficio';
+  finestraBiglietto(_t('Il tuo biglietto'), (off ? _t('Voto al PC, componenti, accensione e apertura dei programmi in un biglietto solo.') : _t('Voto al PC, componenti e FPS in un biglietto solo.')) + ' ' + _t('Quadrato per i post, verticale per le storie.') + ' ' + (nomeOra() ? _t('Il tuo nome c\'è solo se lo lasci acceso qui sotto.') : _t('Dentro non ci sono dati personali.')), q, v, (u, f) => call('goOttSalva', u, f), disegna);
+}
 async function undoRefresh(){ paintUndo(await call('goChanges')); }
 function paintUndo(c){
   const box = $('#undoList'); if (!box) return; box.innerHTML = '';
@@ -4019,7 +4632,7 @@ function paintProfile(info){
   $('#gpCard').style.display = p.on ? 'flex' : 'none';
   $$('input[name=gpMode]').forEach(x => x.checked = x.value === (p.mode || 'gaming'));
   const box = $('#gpCmds'); box.innerHTML = '';
-  GAMING.filter(g => !g.act).forEach(g => {
+  GAMING.filter(g => !g.act && !g.ritirato).forEach(g => {
     const na = g.w11 && GCS && GCS.win11 === false;
     box.appendChild(el('label', {class:'check'}, '<input type="checkbox" value="' + g.id + '"' + ((p.cmds || []).includes(g.id) ? ' checked' : '') + (na ? ' disabled' : '') + '> <span><b>' + esc(g.t) + '</b>' + (na ? _t(' <span class="small muted">(solo Windows 11)</span>') : '') + '</span>'));
   });
@@ -4398,8 +5011,8 @@ if (!BOOT.autoLevel) setTimeout(() => { UPD_QUIET = true; call('goCheckUpdate').
 // ---------- Comandi gaming ----------
 const GAMING = [
   {id:'gamedvr', tag:'REC', c:'--red', t:_t('Registrazione in background spenta'), d:_t('<b>Cosa fa:</b> Windows, senza dirtelo, registra di continuo gli ultimi minuti di gioco per farti salvare un "clip". Questo ruba un po\' di potenza alla scheda video. Con l\'interruttore acceso la registrazione nascosta si ferma.<br><b>Quando serve:</b> sempre, se non usi i clip di Windows (Win+Alt+G). <b>Guadagno:</b> sui PC meno potenti qualche FPS in più; se la registrazione era già spenta (succede spesso), non cambia niente.<br><b>Rischi:</b> nessuno. OBS, Medal, NVIDIA e AMD continuano a registrare normalmente.')},
-  {id:'mmcss', tag:'PRI', c:'--a4', t:_t('Priorità ai giochi'), d:_t('<b>Cosa fa:</b> dice a Windows "quando c\'è un gioco aperto, dai a lui la precedenza" sul processore e sulla scheda video, prima dei programmi in background (aggiornamenti, browser, Discord).<br><b>Quando serve:</b> se mentre giochi hai altre cose aperte e senti piccoli scatti. <b>Guadagno:</b> onestamente piccolo: Windows 10 e 11 lo fanno già abbastanza bene da soli. Può aiutare solo su PC con poca potenza e tante cose aperte.<br><b>Rischi:</b> nessuno: i programmi in background vanno solo un po\' più piano mentre giochi.')},
-  {id:'nagle', tag:'NET', c:'--a3', t:_t('Rete a bassa latenza'), d:_t('<b>Cosa fa:</b> normalmente Windows aspetta un attimo e manda i dati a gruppetti per risparmiare. Per un gioco online è meglio che ogni comando (sparo, salto, movimento) parta subito. Qui Windows manda tutto appena può e non frena la rete.<br><b>Quando serve:</b> nei giochi online, soprattutto quelli un po\' più vecchi. <b>Guadagno:</b> qualche millisecondo in meno, ma solo nei giochi che usano questo tipo di connessione (soprattutto MMO e giochi più vecchi). Gli sparatutto moderni di solito no, e lì non cambia niente. Il ping di internet non cambia: quello dipende dal tuo operatore.<br><b>Rischi:</b> nessuno. Vale dal prossimo avvio del gioco.')},
+  {id:'mmcss', tag:'PRI', c:'--a4', t:_t('Priorità ai giochi'), d:_t('Tasso non accende più questo comando: non è documentato da Microsoft e quasi sempre non cambia niente. Se l\'avevi acceso con una versione di prima, spegnilo per rimetterlo com\'era.'), ritirato:true},
+  {id:'nagle', tag:'NET', c:'--a3', t:_t('Rete a bassa latenza'), d:_t('Tasso non accende più questo comando: non è documentato da Microsoft e quasi sempre non cambia niente. Se l\'avevi acceso con una versione di prima, spegnilo per rimetterlo com\'era.'), ritirato:true},
   {id:'hags', tag:'GPU', c:'--a2', t:_t('Pianificazione GPU hardware'), d:_t('<b>Cosa fa:</b> la scheda video organizza da sola il suo lavoro invece di farselo dire ogni volta dal processore. Il processore ha meno da fare e l\'immagine arriva prima allo schermo.<br><b>Quando serve:</b> con schede recenti: NVIDIA GTX 10 o più nuove, AMD RX 7000 o più nuove, Intel Arc. Serve per usare la "Generazione fotogrammi" (DLSS 3, AFMF). <b>Guadagno:</b> un po\' meno ritardo.<br><b>Rischi:</b> su qualche gioco vecchio può dare piccoli scatti: in quel caso spegnilo. Vale dopo il riavvio del PC; sulle schede vecchie Windows la ignora.')},
   {id:'winopt', tag:'WIN', c:'--a1', t:_t('Ottimizzazioni per i giochi in finestra'), d:_t('<b>Cosa fa:</b> fa funzionare i giochi in finestra e in "schermo intero senza bordi" quasi come lo schermo intero vero.<br><b>Quando serve:</b> se giochi in finestra o senza bordi (comodo per passare al browser o a Discord). <b>Guadagno:</b> meno ritardo e a volte qualche FPS in più.<br><b>Rischi:</b> nessuno. Solo Windows 11.'), w11:true},
   {id:'standby', tag:'RAM', c:'--a1', t:_t('Svuota la memoria in standby'), d:_t('<b>Cosa fa:</b> Windows tiene in memoria pezzi di programmi chiusi "per sicurezza", così si riaprono prima. Di solito è utile, ma su alcuni PC dopo ore di gioco questa memoria si riempie e il gioco comincia a scattare. Il pulsante la svuota.<br><b>Quando serve:</b> solo se un gioco va bene all\'inizio e scatta dopo tanto tempo. Windows poi la riempie di nuovo da solo, ed è normale.<br><b>Rischi:</b> nessuno; per qualche minuto i programmi si aprono un pelo più lenti.'), act:_t('Svuota ora')},
@@ -4408,7 +5021,8 @@ let GCS = null;
 async function paintGaming(){
   GCS = (await call('goGamingState')) || GCS || {};
   const box = $('#gcList'); box.innerHTML = '';
-  GAMING.forEach(g => {
+  // i comandi ritirati (mmcss, nagle) si vedono solo se sono ancora accesi, per poterli spegnere
+  GAMING.filter(g => !g.ritirato || GCS[g.id]).forEach(g => {
     const d = el('div', {class:'tool', style:'align-items:flex-start'}, '<span class="tag" style="--c:var(' + g.c + ')">' + g.tag + '</span><span class="x"><b>' + g.t + '</b><details class="small"><summary style="cursor:pointer;color:var(--muted)">' + _t('Cosa fa?') + '</summary><span style="line-height:1.45">' + g.d + (g.id === 'hags' && GCS.rebootHags ? _t(' <b style="color:var(--a4)">Riavvia il PC per completare.</b>') : '') + '</span></details></span>');
     if (g.act) {
       const b = el('button', {class:'btn ghost', style:'min-height:36px;padding:6px 12px;font-size:12px;flex:0 0 auto'}, g.act);
@@ -5503,20 +6117,42 @@ Object.assign(window.tasso, { onPwned(r){
 // Le regole sono le stesse di nomeutente/nome.go (da 2 a 20 caratteri, lettere, numeri, spazio, . - _).
 function nomeOra(){ const n = BOOT.nome; return n && typeof n.nome === 'string' ? n.nome : ''; }
 function nomeSulBiglietto(){ const n = BOOT.nome; return n && n.biglietto === false ? '' : nomeOra(); }
-function nomePulisci(s){ return String(s == null ? '' : s).replace(/\s+/g, ' ').trim(); }
-// Come nomeutente.Controlla: {codice:'' | 'corto' | 'lungo' | 'simbolo' | 'invisibile' | 'senza', simbolo}.
-function nomeControlla(s){
+/* ==== REGOLE DEL NOME: INIZIO ====
+   Uguali, carattere per carattere, nelle pagine di Tasso, installatore, Tasso Zip e Tasso PDF, e
+   uguali alle regole in Go (Controlla). Stessi elenchi espliciti di blocchi e di caratteri invisibili,
+   così la pagina e Go danno lo stesso esito anche con versioni diverse di Unicode. */
+const NOME_MIN = 2, NOME_MAX = 20, NOME_MAX_ACCENTI = 3;
+const NOME_BLOCCHI = [
+  [0x0030, 0x0039], [0x0041, 0x005A], [0x0061, 0x007A], [0x00C0, 0x024F], [0x0300, 0x036F],
+  [0x0370, 0x03FF], [0x0400, 0x052F], [0x0531, 0x058F], [0x0591, 0x05FF], [0x0600, 0x06FF],
+  [0x0900, 0x097F], [0x0E00, 0x0E7F], [0x10A0, 0x10FF], [0x1E00, 0x1FFF], [0x3040, 0x30FF],
+  [0x3400, 0x4DBF], [0x4E00, 0x9FFF], [0xAC00, 0xD7A3],
+];
+const NOME_INVISIBILI = [
+  [0x0000, 0x001F], [0x007F, 0x009F], [0x00AD, 0x00AD], [0x034F, 0x034F], [0x0600, 0x0605],
+  [0x061C, 0x061C], [0x06DD, 0x06DD], [0x115F, 0x1160], [0x17B4, 0x17B5], [0x180B, 0x180F],
+  [0x2000, 0x200F], [0x2028, 0x202F], [0x205F, 0x206F], [0x3000, 0x3000], [0x3164, 0x3164],
+  [0xFE00, 0xFE0F], [0xFEFF, 0xFEFF], [0xFFA0, 0xFFA0], [0xFFF0, 0xFFFB], [0xE0000, 0xE0FFF],
+];
+function nomeDentro(c, t) { for (const x of t) if (c >= x[0] && c <= x[1]) return true; return false; }
+function nomePulisci(s) { return String(s == null ? "" : s).replace(/[\t\n\v\f\r \u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000\ufeff]+/g, " ").trim(); }
+function nomeControlla(s) {
   const c = [...s];
-  if (c.length < 2) return {codice: 'corto'};
-  if (c.length > 20) return {codice: 'lungo'};
-  for (let i = 0; i < c.length; i++) {
-    const r = c[i];
-    if (r === ' ' || r === '.' || r === '-' || r === '_' || /^[\p{L}\p{Nd}]$/u.test(r) || (i > 0 && /^\p{M}$/u.test(r))) continue;
-    if (/^[\p{C}\p{Z}]$/u.test(r)) return {codice: 'invisibile'};
-    return {codice: 'simbolo', simbolo: r};
+  if (c.length < NOME_MIN) return { codice: "corto" };
+  if (c.length > NOME_MAX) return { codice: "lungo" };
+  let lettera = false, dopoLettera = false, accenti = 0;
+  for (const r of c) {
+    const k = r.codePointAt(0);
+    if (r === " " || r === "." || r === "-" || r === "_") { dopoLettera = false; accenti = 0; }
+    else if (nomeDentro(k, NOME_INVISIBILI)) return { codice: "invisibile" };
+    else if (!nomeDentro(k, NOME_BLOCCHI)) return { codice: "simbolo", simbolo: r };
+    else if (/^[\p{L}\p{Nd}]$/u.test(r)) { lettera = true; dopoLettera = true; accenti = 0; }
+    else if (/^\p{M}$/u.test(r)) { accenti++; if (!dopoLettera || accenti > NOME_MAX_ACCENTI) return { codice: "accenti" }; }
+    else return { codice: "simbolo", simbolo: r };
   }
-  return c.some(r => /^[\p{L}\p{Nd}]$/u.test(r)) ? {codice: ''} : {codice: 'senza'};
+  return lettera ? { codice: "" } : { codice: "senza" };
 }
+/* ==== REGOLE DEL NOME: FINE ==== */
 // La frase gentile per l'errore (si mostra in arancione).
 function nomeErrore(e){
   switch (e.codice) {
@@ -5525,6 +6161,7 @@ function nomeErrore(e){
     case 'simbolo': return _t('Il simbolo {0} non si può usare. Vanno bene lettere, numeri, spazio, punto, - e _.').replace('{0}', e.simbolo || '');
     case 'invisibile': return _t('C\'è un carattere che non si vede: cancellalo e riscrivi il nome.');
     case 'senza': return _t('Aggiungi almeno una lettera o un numero.');
+    case 'accenti': return _t('Gli accenti vanno sopra una lettera, al massimo 3.');
     case 'registro': return _t('Non sono riuscito a salvare il nome: riprova.');
   }
   return '';
@@ -5542,17 +6179,13 @@ async function nomeFontPronto(C, nome){ if (!nome) return; try { await Promise.a
 function nomeDisegna(g, C, nome, x, y, px, align){
   if (!nome) return 0;
   g.save(); g.textBaseline = 'alphabetic'; g.font = '600 ' + px + 'px ' + C.body; g.fillStyle = C.text; g.textAlign = align || 'center';
-  let t = nome; while (g.measureText(t).width > px * 14 && t.length > 2) t = t.slice(0, -1);
-  if (t !== nome) t += '…';
+  let c = [...nome]; while (g.measureText(c.join('')).width > px * 14 && c.length > 2) c = c.slice(0, -1); // caratteri interi
+  let t = c.join(''); if (t !== nome) t += '…';
   g.fillText(t, x, y);
   if ((align || 'center') === 'center') { const w = g.measureText(t).width, l = Math.round(px * .8), gap = Math.round(px * .45); g.globalAlpha = .55; g.fillStyle = C.line; g.fillRect(x - w / 2 - gap - l, y - px * .32, l, 2); g.fillRect(x + w / 2 + gap, y - px * .32, l, 2); }
   g.restore();
   return px + 14;
 }
-// Tesserino di Ottimizza tutto (f32-ottimizza, drawOttCard): il nome centrato sotto la data, al
-// posto della vecchia riga "Scheda video". Restituisce di quanto scendere con il resto (0 senza
-// nome o con l'interruttore spento: il biglietto resta com'era, senza righe vuote).
-function nomeTesserino(g, C, W, y){ return nomeDisegna(g, C, nomeSulBiglietto(), W / 2, y, 22, 'center') ? 30 : 0; }
 // L'interruttore "Mostra il mio nome sul biglietto" (solo se il nome c'è), acceso di base.
 function nomeInterruttoreHtml(){
   const n = nomeOra(); if (!n) return '';
@@ -5570,6 +6203,16 @@ function nomeInterruttore(ridisegna){
     try { await ridisegna(); } catch (e) {}
     call('goNomeBiglietto', on); b.disabled = false;
   };
+}
+// Rilegge il nome salvato (forse cambiato in Tasso Zip o Tasso PDF) e aggiorna saluti e Impostazioni.
+// Non tocca niente mentre stai scrivendo il nome nelle Impostazioni.
+async function nomeRileggi(){
+  const ed = $('#nomeEdit'); if (ed && ed.style.display !== 'none') return;
+  const r = await call('goNomeLeggi');
+  if (!r || typeof r.nome !== 'string') return;
+  const prima = nomeOra(), primaB = nomeSulBiglietto();
+  BOOT.nome = Object.assign({}, BOOT.nome, {nome: r.nome, biglietto: r.biglietto !== false});
+  if (r.nome !== prima || nomeSulBiglietto() !== primaB) { nomeCardPaint(); nomeSaluti(); }
 }
 // Impostazioni → "Il tuo nome": Cambia, Annulla e Salva.
 function nomeCardPaint(){
@@ -5616,7 +6259,9 @@ if ($('#nomeCard')) {
   $('#nomeIn').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); nomeSalva(); } else if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); nomeApri(false); } });
   nomeCardPaint();
   // cambiato in Tasso Zip o Tasso PDF mentre Tasso era aperto: lo rileggo quando apri le Impostazioni
-  $$('[data-go="settings"]').forEach(x => x.addEventListener('click', async () => { const r = await call('goNomeLeggi'); if (r && typeof r.nome === 'string' && r.nome !== nomeOra() && $('#nomeEdit').style.display === 'none') { BOOT.nome = Object.assign({}, BOOT.nome, r); nomeCardPaint(); nomeSaluti(); } }));
+  // e quando la finestra di Tasso torna in primo piano (come fanno Zip e PDF)
+  $$('[data-go="settings"]').forEach(x => x.addEventListener('click', nomeRileggi));
+  window.addEventListener('focus', nomeRileggi);
 }
 
 document.addEventListener('contextmenu', e => e.preventDefault());

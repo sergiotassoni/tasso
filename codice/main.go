@@ -152,6 +152,7 @@ func main() {
 	// Installato con Tasso Setup: modalità scelta nell'installatore (ecosistema.go).
 	profiloInstallatore, modalitaCambiata := applicaModalitaInstallatore()
 	go officeGuardia()
+	go ottAllAvvio() // ottimizza_win.go: notifiche durante il gioco, accensione "dopo" in Ufficio
 
 	autoLevel := 0
 	minimized := false
@@ -511,6 +512,7 @@ func chiudiTasso() {
 		// Anche la modalità messa per una partita in corso e la frequenza dello schermo in prova
 		// (non ancora confermata) tornano com'erano: senza Tasso aperto nessuno le rimetterebbe.
 		modalitaGiocoPerUscita()
+		ottNotificheFine() // Ottimizza tutto: notifiche in pausa per una partita in corso
 		screenHzUndo(false)
 		trayStop()
 		wv.Dispatch(func() { wv.Terminate() })
@@ -550,6 +552,7 @@ func openPath(p string, args string) bool {
 
 func bindAll(w webview2.WebView) {
 	bindAiutoAmico(w)
+	bindOttimizza(w) // ottimizza_win.go: Ottimizza tutto (3.2)
 	_ = w.Bind("goGetSettings", func() map[string]interface{} { return getSettings() })
 	_ = w.Bind("goSetProfile", func(id, p string) string { return bgCall("sched", id, func() string { return setProfile(p) }) })
 	_ = w.Bind("goSetLook", func(p string) string {
