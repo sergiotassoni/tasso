@@ -3214,9 +3214,13 @@ $('#tgAutostart').onclick = async () => { const on = !S.autostart; const r = awa
 $('#tgTray').onclick = async () => { const on = !!S.noCloseToTray; const r = await call('goSetCloseToTray', on); if (r === 'ok') { S.noCloseToTray = !on; toast(on ? _t('Con la X Tasso resta acceso vicino all\'orologio.') : _t('Con la X Tasso si chiude.')); } else toast(r || _t('Errore'), 'var(--red)'); paintSettings(); };
 const WK_DAYS = [_t('domenica'),_t('lunedì'),_t('martedì'),_t('mercoledì'),_t('giovedì'),_t('venerdì'),_t('sabato')];
 function wkPlan(){ const d = (S.weeklyDay >= 0 && S.weeklyDay <= 6) ? S.weeklyDay : 0, h = (S.weeklyHour >= 1 && S.weeklyHour <= 23) ? S.weeklyHour : 20, l = (S.weeklyLevel >= 1 && S.weeklyLevel <= 5) ? S.weeklyLevel : 2, e = S.weeklyEvery === 2 ? 2 : 1; return {d, h, l, e}; }
-function wkText(){ const p = wkPlan(); return _t('Pulizia ') + LEVELS[p.l - 1].name + (p.e === 2 ? _t(' un ') + WK_DAYS[p.d] + _t(' sì e uno no') : _t(' ogni ') + WK_DAYS[p.d]) + _t(' alle ') + String(p.h).padStart(2, '0') + ':00'; }
+function wkText(){ return _t('Pulizia ') + wkQuando(); }
 // Solo livello, giorno e ora (per le frasi che dicono già "Pulizia programmata").
-function wkQuando(){ const p = wkPlan(); return LEVELS[p.l - 1].name + (p.e === 2 ? _t(' un ') + WK_DAYS[p.d] + _t(' sì e uno no') : _t(' ogni ') + WK_DAYS[p.d]) + _t(' alle ') + String(p.h).padStart(2, '0') + ':00'; }
+function wkQuando(){ const p = wkPlan(), ora = String(p.h).padStart(2, '0') + ':00';
+  // Frasi intere con i segnaposto ({0} livello, {1} giorno, {2} ora): ogni lingua mette le parole nel suo ordine.
+  // In italiano domenica è femminile: "una domenica sì e una no", gli altri giorni "un lunedì sì e uno no".
+  const f = p.e === 2 ? (p.d === 0 ? _t('{0} una {1} sì e una no alle {2}') : _t('{0} un {1} sì e uno no alle {2}')) : _t('{0} ogni {1} alle {2}');
+  return f.replace('{0}', LEVELS[p.l - 1].name).replace('{1}', WK_DAYS[p.d]).replace('{2}', ora); }
 function paintWeekly(){
   const p = wkPlan();
   // Gli stessi tempi delle schede dei livelli (calcolati dai passaggi), non numeri scritti a mano.
