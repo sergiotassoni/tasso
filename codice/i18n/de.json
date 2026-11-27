@@ -479,6 +479,9 @@
   "Profilo salvato. Accendilo quando vuoi giocare.": "Profil gespeichert. Schalte es ein, wenn du spielen willst.",
   "Programmi all'avvio": "Autostart-Apps",
   "Programmi all'avvio rimessi com'erano.": "Autostart-Apps zurückgesetzt.",
+  "Attenzione: non sono riuscito a rimettere com'erano questi programmi all'avvio: ": "Achtung: Diese Autostart-Programme konnte ich nicht zurücksetzen: ",
+  ". Tolgo Tasso lo stesso. Se vuoi, cambiali a mano in Gestione attività, scheda \"App di avvio\".": ". Ich entferne Tasso trotzdem. Wenn du willst, ändere sie von Hand im Task-Manager, Registerkarte „Autostart-Apps“.",
+  "Il file delle impostazioni di Tasso era stato cambiato da un altro programma: per sicurezza riparto dalle impostazioni di base. Controlla le tue scelte in Tasso.": "Die Einstellungsdatei von Tasso wurde von einem anderen Programm geändert: Zur Sicherheit starte ich mit den Grundeinstellungen. Prüfe deine Auswahl in Tasso.",
   "Non sono riuscito a rimettere com'erano questi programmi all'avvio: ": "Diese Autostart-Programme konnte ich nicht zurücksetzen: ",
   ". Li tengo segnati: premi di nuovo \"Rimetti com'era\" tra poco. Se non basta, cambiali a mano in Gestione attività, scheda \"App di avvio\".": ". Ich merke sie mir: Drücke gleich noch einmal auf „Original wiederherstellen“. Wenn das nicht hilft, ändere sie von Hand im Task-Manager, Registerkarte „Autostart-Apps“.",
   "Prova": "Test",
@@ -1351,6 +1354,7 @@
   "Password": "Passwort"
  },
  "ps": {
+  "Windows non mi lascia cambiare questa voce.": "Windows lässt mich diesen Eintrag nicht ändern.",
   "Il programma di disinstallazione sta in una cartella dove possono scrivere anche i programmi normali: lo faccio partire senza i permessi di amministratore (se gli servono, te li chiede Windows).": "Das Deinstallationsprogramm liegt in einem Ordner, in den auch normale Programme schreiben können: Ich starte es ohne Administratorrechte (falls es sie braucht, fragt Windows dich).",
   " è aperta. Chiudila e riprova (prima copio le tue note e i tuoi dati).": " ist geöffnet. Schließe sie und versuche es erneut (vorher kopiere ich deine Notizen und Daten).",
   ". Non sono riuscito a fare la copia dei tuoi dati (le note di Sticky Notes, per esempio), quindi la lascio.": ". Ich konnte deine Daten nicht kopieren (zum Beispiel die Notizen von Sticky Notes), also lasse ich sie.",

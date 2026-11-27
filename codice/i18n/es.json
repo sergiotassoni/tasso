@@ -479,6 +479,9 @@
   "Profilo salvato. Accendilo quando vuoi giocare.": "Perfil guardado. Actívalo cuando quieras jugar.",
   "Programmi all'avvio": "Apps de inicio",
   "Programmi all'avvio rimessi com'erano.": "Apps de inicio devueltas a como estaban.",
+  "Attenzione: non sono riuscito a rimettere com'erano questi programmi all'avvio: ": "Atención: no he podido dejar como estaban estos programas de inicio: ",
+  ". Tolgo Tasso lo stesso. Se vuoi, cambiali a mano in Gestione attività, scheda \"App di avvio\".": ". Quito Tasso de todos modos. Si quieres, cámbialos a mano en el Administrador de tareas, pestaña \"Aplicaciones de arranque\".",
+  "Il file delle impostazioni di Tasso era stato cambiato da un altro programma: per sicurezza riparto dalle impostazioni di base. Controlla le tue scelte in Tasso.": "Otro programa había cambiado el archivo de configuración de Tasso: por seguridad empiezo con la configuración básica. Revisa tus opciones en Tasso.",
   "Non sono riuscito a rimettere com'erano questi programmi all'avvio: ": "No he podido dejar como estaban estos programas de inicio: ",
   ". Li tengo segnati: premi di nuovo \"Rimetti com'era\" tra poco. Se non basta, cambiali a mano in Gestione attività, scheda \"App di avvio\".": ". Los tengo apuntados: pulsa otra vez \"Restaurar original\" dentro de un momento. Si no basta, cámbialos a mano en el Administrador de tareas, pestaña \"Aplicaciones de arranque\".",
   "Prova": "Prueba",
@@ -1351,6 +1354,7 @@
   "Password": "Contraseña"
  },
  "ps": {
+  "Windows non mi lascia cambiare questa voce.": "Windows no me deja cambiar esta entrada.",
   "Il programma di disinstallazione sta in una cartella dove possono scrivere anche i programmi normali: lo faccio partire senza i permessi di amministratore (se gli servono, te li chiede Windows).": "El desinstalador está en una carpeta donde también pueden escribir los programas normales: lo inicio sin permisos de administrador (si los necesita, te los pedirá Windows).",
   " è aperta. Chiudila e riprova (prima copio le tue note e i tuoi dati).": " está abierta. Ciérrala y vuelve a intentarlo (antes copio tus notas y tus datos).",
   ". Non sono riuscito a fare la copia dei tuoi dati (le note di Sticky Notes, per esempio), quindi la lascio.": ". No pude hacer la copia de tus datos (las notas de Sticky Notes, por ejemplo), así que la dejo.",

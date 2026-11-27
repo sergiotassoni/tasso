@@ -62,8 +62,16 @@ func rememberStartup(scope, name string, newState bool) {
 // restoreOriginal rimette le impostazioni di Windows com'erano prima di Tasso.
 // ok = false se non ha potuto rimettere tutto (Tasso occupato o script non arrivato alla fine).
 func restoreOriginal() (msgs []string, ok bool) {
+	msgs, ok, avvioNo := restoreOriginalDett()
+	return msgs, ok && len(avvioNo) == 0
+}
+
+// restoreOriginalDett: come restoreOriginal, ma i programmi all'avvio che non sono tornati com'erano
+// non contano in ok: vengono restituiti a parte (avvioNo), così "Togli Tasso dal PC" può avvisare e
+// andare avanti invece di bloccarsi per sempre (un criterio di gruppo può impedire di rimetterli).
+func restoreOriginalDett() (msgs []string, ok bool, avvioNo []string) {
 	if !claimRun() {
-		return []string{"Sta girando una pulizia: aspetta che finisca, poi rimetti com'era."}, false
+		return []string{"Sta girando una pulizia: aspetta che finisca, poi rimetti com'era."}, false, nil
 	}
 	defer releaseRun()
 	profileForget()
@@ -109,9 +117,9 @@ func restoreOriginal() (msgs []string, ok bool) {
 	}
 	if len(snap) == 0 && len(orig) == 0 {
 		if len(msgs) > 0 {
-			return msgs, busy == 0
+			return msgs, busy == 0, nil
 		}
-		return []string{"Tasso non ha ancora cambiato impostazioni di Windows: non c'è niente da rimettere."}, true
+		return []string{"Tasso non ha ancora cambiato impostazioni di Windows: non c'è niente da rimettere."}, true, nil
 	}
 	snapOK := true
 	if len(snap) > 0 {
@@ -153,7 +161,7 @@ func restoreOriginal() (msgs []string, ok bool) {
 			s.StartupOrig = rimasti // li tengo: premendo di nuovo "Rimetti com'era" riprovo
 		}
 	})
-	return msgs, snapOK && busy == 0 && len(falliti) == 0
+	return msgs, snapOK && busy == 0, falliti
 }
 
 // Risparmio energetico delle porte USB cambiato da "L'audio gracchia": il valore di prima sta in
@@ -499,4 +507,14 @@ func scopeAvvioNoto(scope string) bool {
 		return true
 	}
 	return false
+}
+
+// msgAvvioFallitiTogli: per "Togli Tasso dal PC", che va avanti lo stesso.
+func msgAvvioFallitiTogli(nomi []string) string {
+	sort.Strings(nomi)
+	if len(nomi) > 8 {
+		nomi = append(nomi[:8:8], "…")
+	}
+	return "Attenzione: non sono riuscito a rimettere com'erano questi programmi all'avvio: " + strings.Join(nomi, ", ") +
+		". Tolgo Tasso lo stesso. Se vuoi, cambiali a mano in Gestione attività, scheda \"App di avvio\"."
 }

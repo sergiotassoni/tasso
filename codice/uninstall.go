@@ -184,11 +184,16 @@ func togliTassoPassi(rimetti bool, passo func(int, string)) (piano pianoTogli, m
 func togliTassoPassiDentro(rimetti bool, passo func(int, string), pianoOut *pianoTogli) string {
 	// 1. impostazioni di Windows e cose accese da Tasso
 	if rimetti {
-		msgs, ok := restoreOriginal()
+		msgs, ok, avvioNo := restoreOriginalDett()
 		if !ok {
 			return "Non ho finito di rimettere le impostazioni: " + strings.Join(msgs, " ") + " Non ho tolto niente: riprova."
 		}
-		passo(0, "Impostazioni di Windows rimesse com'erano")
+		if len(avvioNo) > 0 {
+			// un programma all'avvio che non torna com'era non blocca la disinstallazione: avviso e vado avanti
+			passo(0, msgAvvioFallitiTogli(avvioNo))
+		} else {
+			passo(0, "Impostazioni di Windows rimesse com'erano")
+		}
 	} else {
 		passo(0, "Boost, clic automatico e modalità dell'Ufficio spenti (le altre impostazioni restano come sono)")
 	}

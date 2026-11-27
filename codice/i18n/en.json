@@ -479,6 +479,9 @@
   "Profilo salvato. Accendilo quando vuoi giocare.": "Profile saved. Turn it on when you want to play.",
   "Programmi all'avvio": "Startup apps",
   "Programmi all'avvio rimessi com'erano.": "Startup apps put back as they were.",
+  "Attenzione: non sono riuscito a rimettere com'erano questi programmi all'avvio: ": "Warning: I couldn't put these startup apps back as they were: ",
+  ". Tolgo Tasso lo stesso. Se vuoi, cambiali a mano in Gestione attività, scheda \"App di avvio\".": ". I'm removing Tasso anyway. If you like, change them by hand in Task Manager, \"Startup apps\" tab.",
+  "Il file delle impostazioni di Tasso era stato cambiato da un altro programma: per sicurezza riparto dalle impostazioni di base. Controlla le tue scelte in Tasso.": "Tasso's settings file had been changed by another program: to be safe I'm starting from the default settings. Check your choices in Tasso.",
   "Non sono riuscito a rimettere com'erano questi programmi all'avvio: ": "I couldn't put these startup apps back as they were: ",
   ". Li tengo segnati: premi di nuovo \"Rimetti com'era\" tra poco. Se non basta, cambiali a mano in Gestione attività, scheda \"App di avvio\".": ". I'm keeping track of them: press \"Restore original\" again in a moment. If that doesn't help, change them by hand in Task Manager, \"Startup apps\" tab.",
   "Prova": "Test",
@@ -1351,6 +1354,7 @@
   "Password": "Password"
  },
  "ps": {
+  "Windows non mi lascia cambiare questa voce.": "Windows won't let me change this entry.",
   "Il programma di disinstallazione sta in una cartella dove possono scrivere anche i programmi normali: lo faccio partire senza i permessi di amministratore (se gli servono, te li chiede Windows).": "The uninstaller is in a folder that normal programs can also write to: I start it without administrator rights (if it needs them, Windows will ask you).",
   " è aperta. Chiudila e riprova (prima copio le tue note e i tuoi dati).": " is open. Close it and try again (I copy your notes and data first).",
   ". Non sono riuscito a fare la copia dei tuoi dati (le note di Sticky Notes, per esempio), quindi la lascio.": ". I could not make a copy of your data (your Sticky Notes, for example), so I am leaving it.",

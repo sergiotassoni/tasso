@@ -47,3 +47,30 @@ func TestMsgAvvioFalliti(t *testing.T) {
 		t.Fatal("hkcr")
 	}
 }
+
+// C2: "JSON ok" solo dopo scritture con -ErrorAction Stop e la rilettura del valore.
+func TestStartupSetScriptVerifica(t *testing.T) {
+	s := startupSetScript
+	if strings.Count(s, "-ErrorAction Stop") < 6 || strings.Count(s, "catch {") < 2 {
+		t.Fatal("scritture senza -ErrorAction Stop dentro try/catch")
+	}
+	resto := s
+	for {
+		i := strings.Index(resto, "[Console]::Out.WriteLine('JSON ok')")
+		if i < 0 {
+			break
+		}
+		prima := resto[:i]
+		if strings.LastIndex(prima, "Get-ItemProperty") < 0 || strings.LastIndex(prima, "-ne") < strings.LastIndex(prima, "Get-ItemProperty") {
+			t.Fatal("JSON ok senza rilettura e confronto prima")
+		}
+		resto = resto[i+10:]
+	}
+}
+
+func TestMsgAvvioFallitiTogli(t *testing.T) {
+	m := msgAvvioFallitiTogli([]string{"Steam"})
+	if !strings.Contains(m, "Steam") || !strings.Contains(m, "Tolgo Tasso lo stesso") {
+		t.Fatal(m)
+	}
+}

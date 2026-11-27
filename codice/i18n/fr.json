@@ -479,6 +479,9 @@
   "Profilo salvato. Accendilo quando vuoi giocare.": "Profil enregistré. Activez-le quand vous voulez jouer.",
   "Programmi all'avvio": "Applications au démarrage",
   "Programmi all'avvio rimessi com'erano.": "Applications au démarrage remises comme avant.",
+  "Attenzione: non sono riuscito a rimettere com'erano questi programmi all'avvio: ": "Attention : je n'ai pas pu remettre comme avant ces programmes au démarrage : ",
+  ". Tolgo Tasso lo stesso. Se vuoi, cambiali a mano in Gestione attività, scheda \"App di avvio\".": ". Je supprime Tasso quand même. Si vous voulez, changez-les à la main dans le Gestionnaire des tâches, onglet « Applications de démarrage ».",
+  "Il file delle impostazioni di Tasso era stato cambiato da un altro programma: per sicurezza riparto dalle impostazioni di base. Controlla le tue scelte in Tasso.": "Le fichier des réglages de Tasso avait été modifié par un autre programme : par sécurité, je repars des réglages de base. Vérifiez vos choix dans Tasso.",
   "Non sono riuscito a rimettere com'erano questi programmi all'avvio: ": "Je n'ai pas pu remettre comme avant ces programmes au démarrage : ",
   ". Li tengo segnati: premi di nuovo \"Rimetti com'era\" tra poco. Se non basta, cambiali a mano in Gestione attività, scheda \"App di avvio\".": ". Je les garde en mémoire : appuyez de nouveau sur « Rétablir l'original » dans un instant. Si cela ne suffit pas, changez-les à la main dans le Gestionnaire des tâches, onglet « Applications de démarrage ».",
   "Prova": "Test",
@@ -1351,6 +1354,7 @@
   "Password": "Mot de passe"
  },
  "ps": {
+  "Windows non mi lascia cambiare questa voce.": "Windows ne me laisse pas modifier cette entrée.",
   "Il programma di disinstallazione sta in una cartella dove possono scrivere anche i programmi normali: lo faccio partire senza i permessi di amministratore (se gli servono, te li chiede Windows).": "Le programme de désinstallation se trouve dans un dossier où les programmes normaux peuvent aussi écrire : je le lance sans droits d'administrateur (s'il en a besoin, Windows vous les demandera).",
   " è aperta. Chiudila e riprova (prima copio le tue note e i tuoi dati).": " est ouverte. Fermez-la et réessayez (je copie d'abord vos notes et vos données).",
   ". Non sono riuscito a fare la copia dei tuoi dati (le note di Sticky Notes, per esempio), quindi la lascio.": ". Je n'ai pas pu copier vos données (les notes de Sticky Notes, par exemple), donc je la laisse.",
