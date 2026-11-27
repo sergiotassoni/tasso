@@ -556,6 +556,11 @@ func bindAll(w webview2.WebView) {
 		return r
 	})
 	_ = w.Bind("goIconaTema", func(tema string, ufficio bool) string { return svgIconaTema(tema, ufficio) })
+	// 3.2: sfondo del desktop abbinato al tema (sfondo_desktop.go).
+	_ = w.Bind("goSfondoInfo", func(tema string, ufficio bool) map[string]interface{} { return sfondoInfo(tema, ufficio) })
+	_ = w.Bind("goSfondoRisposta", func(id string, si, maiPiu bool) string { return sfondoRisposta(id, si, maiPiu) })
+	_ = w.Bind("goSfondoMetti", func(id string) string { return sfondoMetti(id) })
+	_ = w.Bind("goSfondoRimetti", func() string { return sfondoRimetti() })
 	_ = w.Bind("goSetStats", func(on bool) string { return setStats(on) })
 	_ = w.Bind("goStatsHW", func(osName, cpu, gpu string, ram float64) string { return statsHardware(osName, cpu, gpu, ram) })
 	_ = w.Bind("goSetSmartAlerts", func(on bool) string { return setSmartAlerts(on) })

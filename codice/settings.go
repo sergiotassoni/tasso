@@ -48,6 +48,16 @@ type Settings struct {
 	PrevWeekly   bool          `json:"prevWeekly"`
 	AutoGame     bool          `json:"autoGame"`
 	AutoGameTune bool          `json:"autoGameTune,omitempty"` // accesa da "Regola con Tasso", non da te
+	// 3.2: sfondo del desktop abbinato al tema (sfondo_desktop.go). SfondoMio*: lo sfondo di
+	// Windows com'era prima che Tasso mettesse il suo (per "Rimetti il mio"); SfondoMioOk dice
+	// che è stato salvato (SfondoMio "" = nessuna immagine, solo il colore).
+	SfondoMio        string   `json:"sfondoMio,omitempty"`
+	SfondoMioStile   string   `json:"sfondoMioStile,omitempty"`
+	SfondoMioTile    string   `json:"sfondoMioTile,omitempty"`
+	SfondoMioOk      bool     `json:"sfondoMioOk,omitempty"`
+	SfondoTasso      string   `json:"sfondoTasso,omitempty"`      // sfondo di Tasso messo adesso ("" = quello dell'utente)
+	SfondoNoChiedere bool     `json:"sfondoNoChiedere,omitempty"` // "Non chiedermelo più"
+	SfondoChiesti    []string `json:"sfondoChiesti,omitempty"`    // sfondi già proposti (una volta sola ciascuno)
 	// Stato del PC su Discord (webhook di un canale privato, solo lettura).
 	DiscordWebhook string `json:"discordWebhook,omitempty"`
 	DiscordOn      bool   `json:"discordOn"`

@@ -5315,6 +5315,22 @@
   "… e altri {0} passaggi ✓": "… and {0} more steps ✓",
   "1 passaggio saltato: ": "1 step skipped: ",
   "{0} passaggi saltati: ": "{0} steps skipped: ",
-  "Perfetto": "Perfect"
+  "Perfetto": "Perfect",
+  "Sfondo del desktop:": "Desktop background:",
+  "Metti quello del tema": "Use the theme's one",
+  "Rimetti il mio": "Put mine back",
+  "Nebbia": "Mist",
+  "Blu notte": "Night blue",
+  "Questo tema non ha uno sfondo abbinato.": "This theme has no matching background.",
+  "Sfondo {0} impostato. Puoi tornare al tuo quando vuoi da Impostazioni → Aspetto.": "{0} background set. You can go back to yours at any time from Settings → Appearance.",
+  "Non trovo gli sfondi di Tasso: riapri l'installatore di Tasso per rimetterli.": "I can't find the Tasso backgrounds: open the Tasso installer again to put them back.",
+  "Non sono riuscito a cambiare lo sfondo del desktop.": "I couldn't change the desktop background.",
+  "Vuoi anche lo sfondo del desktop abbinato?": "Do you also want the matching desktop background?",
+  "Hai scelto il tema {0}. Tasso può mettere lo stesso stile anche sullo sfondo del tuo desktop.": "You chose the {0} theme. Tasso can put the same style on your desktop background too.",
+  "Sfondo {0} · nitido anche sugli schermi 4K. Il tuo sfondo di adesso lo tengo da parte.": "{0} background · sharp even on 4K screens. I'll keep your current background aside.",
+  "Non chiedermelo più": "Don't ask me again",
+  "Sì, mettilo": "Yes, set it",
+  "Ho rimesso il tuo sfondo del desktop.": "Your desktop background is back.",
+  "Non ho un tuo sfondo da rimettere: cambialo da Impostazioni di Windows → Personalizzazione.": "I don't have a background of yours to put back: change it in Windows Settings → Personalization."
  }
 }
