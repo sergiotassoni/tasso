@@ -47,6 +47,8 @@ function applicaLingua() {
   if (stato.vista === "sblocca") aggiornaSblocca();
   if (stato.vista === "firma") $("#fSalva").textContent = t(firma.alFine ? "firmaApplica" : "firmaSalva");
   linguaDocumento();
+  $("#nomeIn").placeholder = t("nomeCampo");
+  nomeDisegna();
 }
 
 export function localePdfjs() {
@@ -1041,6 +1043,8 @@ $("#btnInfo").onclick = async () => {
 
 // ---------------------------------------------------------------- avvio
 
+let nomeUtente = ""; // "Il tuo nome" (vedi più sotto)
+
 (async function avvio() {
   const box = $("#lingue");
   LINGUE.forEach(l => {
@@ -1058,6 +1062,7 @@ $("#btnInfo").onclick = async () => {
     if (a.sblocco === "A" || a.sblocco === "B") modoSblocco = a.sblocco;
     $("#hMenu").classList.toggle("hidden", !a.windows);
     $("#hMenuIn").checked = !!a.menu;
+    nomeUtente = typeof a.nome === "string" ? a.nome : ""; // "Il tuo nome"
   } catch { /* */ }
   initDocumento();
   applicaLingua();
@@ -1083,6 +1088,63 @@ $("#hMenuIn").onchange = async () => {
   try { $("#hMenuIn").checked = await go("goImpostaMenu", on); if (on) avvisa(t("menuFatto")); }
   catch (e) { $("#hMenuIn").checked = !on; avvisaErrore(e); }
 };
+
+// ---------------------------------------------------------------- "Il tuo nome" (Ecosistema Tasso 3.2)
+// Lo stesso nome di Tasso e Tasso Zip (HKCU\Software\Tasso\Nome, nome_utente.go), solo sul PC.
+// Sulla pagina entra sempre con textContent. Le regole sono quelle di nome/nome.go.
+function nomePulisci(s) { return String(s == null ? "" : s).replace(/\s+/g, " ").trim(); }
+function nomeControlla(s) {
+  const c = [...s];
+  if (c.length < 2) return { codice: "corto" };
+  if (c.length > 20) return { codice: "lungo" };
+  for (let i = 0; i < c.length; i++) {
+    const r = c[i];
+    if (r === " " || r === "." || r === "-" || r === "_" || /^[\p{L}\p{Nd}]$/u.test(r) || (i > 0 && /^\p{M}$/u.test(r))) continue;
+    if (/^[\p{C}\p{Z}]$/u.test(r)) return { codice: "invisibile" };
+    return { codice: "simbolo", simbolo: r };
+  }
+  return c.some(r => /^[\p{L}\p{Nd}]$/u.test(r)) ? { codice: "" } : { codice: "senza" };
+}
+// Fine delle regole (nome/pagina_test.go le confronta con quelle di Go).
+const NOME_ERR = { corto: "nomeErrCorto", lungo: "nomeErrLungo", simbolo: "nomeErrSimbolo", invisibile: "nomeErrInvisibile", senza: "nomeErrSenza", registro: "nomeErrRegistro" };
+function nomeDisegna() {
+  const n = nomeUtente, h = $("#v-home h1");
+  if (h) h.textContent = n ? t("cosaNome", n) : t("cosa");
+  $("#nomeB").textContent = n; $("#nomeB").hidden = !n;
+  $("#nomeBtn").textContent = n ? t("nomeCambia") : t("nomeAggiungi");
+}
+function nomeCampo() {
+  const p = nomePulisci($("#nomeIn").value), e = nomeControlla(p), err = !!p && !!e.codice, m = $("#nomeMsg");
+  $("#nomeCont").textContent = [...p].length + " / 20"; $("#nomeCont").classList.toggle("err", err);
+  $("#nomeIn").classList.toggle("err", err); $("#nomeIn").setAttribute("aria-invalid", err ? "true" : "false");
+  m.className = "msg" + (err ? " err" : "");
+  m.textContent = err ? t(NOME_ERR[e.codice], e.simbolo || "") : t("nomeRegole");
+  $("#nomeSi").disabled = !!e.codice;
+  return e;
+}
+function nomeApri() {
+  $("#nomeIn").value = nomeUtente; nomeCampo();
+  $("#nomeMod").classList.add("on"); setTimeout(() => { $("#nomeIn").focus(); $("#nomeIn").select(); }, 30);
+}
+function nomeChiudi() { $("#nomeMod").classList.remove("on"); $("#nomeBtn").focus(); }
+async function nomeSalva() {
+  if ($("#nomeSi").disabled || nomeCampo().codice) return;
+  $("#nomeSi").disabled = true;
+  let r = null;
+  try { r = await go("goNomeSalva", nomePulisci($("#nomeIn").value)); } catch { r = null; }
+  $("#nomeSi").disabled = false;
+  if (!r || !r.ok) { const m = $("#nomeMsg"); m.className = "msg err"; m.textContent = t(NOME_ERR[(r && r.errore) || "registro"] || "nomeErrRegistro", (r && r.simbolo) || ""); return; }
+  nomeUtente = r.nome; nomeChiudi(); nomeDisegna();
+  const f = $("#nomeFatto"); f.textContent = t("nomeSalvato", r.nome); clearTimeout(nomeSalva.t); nomeSalva.t = setTimeout(() => { f.textContent = ""; }, 4000);
+}
+$("#nomeBtn").onclick = nomeApri;
+$("#nomeNo").onclick = nomeChiudi;
+$("#nomeSi").onclick = nomeSalva;
+$("#nomeIn").addEventListener("input", nomeCampo);
+$("#nomeIn").addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); nomeSalva(); } else if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); nomeChiudi(); } });
+$("#nomeMod").addEventListener("mousedown", e => { if (e.target === $("#nomeMod")) nomeChiudi(); });
+// cambiato in Tasso o in Tasso Zip mentre Tasso PDF era aperto: lo rileggo quando la finestra torna in primo piano
+window.addEventListener("focus", async () => { if ($("#nomeMod").classList.contains("on")) return; try { const n = await go("goNome"); if (typeof n === "string" && n !== nomeUtente) { nomeUtente = n; nomeDisegna(); } } catch { /* */ } });
 
 // per le prove automatiche
 window.__tasso = { stato, unisci, firma, sblocca, gestisciFileTrascinati, apriDocumento, apriDaDialogo, apriFirma, apriSblocca, apriUnisci, aggiungiElemento, impostaFirma, pngTesto, azione, doc: __doc };

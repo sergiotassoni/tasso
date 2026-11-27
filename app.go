@@ -235,6 +235,7 @@ type Avvio struct {
 	Menu     bool   `json:"menu"`  // le voci nel menu del tasto destro di Windows sono attive
 	Windows  bool   `json:"windows"`
 	Sblocco  string `json:"sblocco"` // "A" (password del proprietario) o "B" (spunta di conferma)
+	Nome     string `json:"nome"`    // "Il tuo nome" (nome_utente.go), "" = senza nome
 }
 
 type impostazioni struct {
@@ -290,7 +291,7 @@ func linguaIniziale() string {
 }
 
 func goAvvio() Avvio {
-	return Avvio{Lingua: linguaIniziale(), Versione: versione, Firma: fileFirmaEsiste(), Menu: goMenu(), Windows: piattaforma.impostaMenu != nil, Sblocco: string(modoSblocco)}
+	return Avvio{Lingua: linguaIniziale(), Versione: versione, Firma: fileFirmaEsiste(), Menu: goMenu(), Windows: piattaforma.impostaMenu != nil, Sblocco: string(modoSblocco), Nome: leggiNome()}
 }
 
 func goLingua(l string) error {
@@ -885,6 +886,9 @@ func legami() map[string]interface{} {
 		"goFileAvvio":     goFileAvvio,
 		"goMenu":          goMenu,
 		"goImpostaMenu":   goImpostaMenu,
+		// nome_utente.go: "Il tuo nome", lo stesso di Tasso e Tasso Zip
+		"goNome":      goNome,
+		"goNomeSalva": goNomeSalva,
 		// aggiornamenti.go
 		"goControllaAggiornamenti": goControllaAggiornamenti,
 		"goPaginaVersioni":         goPaginaVersioni,
