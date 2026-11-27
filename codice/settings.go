@@ -504,6 +504,12 @@ func taskExeCheck() string {
 	if os.MkdirAll(dir, 0o755) != nil {
 		return ""
 	}
+	// La copia in Programmi la avviano le attività di Windows da amministratore: ci metto solo un
+	// Tasso con la firma digitale di Sergio Tassoni (Certum). Tasso.exe nella cartella dove l'hai
+	// estratto lo potrebbe scambiare un altro programma mentre parte.
+	if !copiaFirmata(src) && !fileExists(filepath.Join(dir, "prova-non-firmata")) {
+		return existingOr(dst)
+	}
 	if installProgramCopy(dir, src, appVersion) != nil {
 		return existingOr(dst)
 	}

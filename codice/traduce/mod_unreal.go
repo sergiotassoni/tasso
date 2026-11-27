@@ -480,6 +480,9 @@ func togliModUnreal(m ManifestoMod) error {
 		if filepath.IsAbs(a) || strings.Contains(a, "..") || !strings.EqualFold(filepath.Base(a), nomeModUnreal) {
 			continue
 		}
+		if !senzaCollegamenti(m.Cartella, a) {
+			return fmt.Errorf("non tolgo %s: la cartella passa da un collegamento", nomeModUnreal)
+		}
 		p := filepath.Join(m.Cartella, a)
 		_ = os.Remove(p + ".tmp") // rimasto se Tasso si era chiuso mentre lo scriveva
 		if err := os.Remove(p); err != nil && !os.IsNotExist(err) {

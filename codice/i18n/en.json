@@ -2693,7 +2693,8 @@
   "Per sicurezza salto una cartella che è un collegamento a un altro posto: ": "To be safe I skip a folder that is a link to another place: ",
   "Questa cartella è dentro quelle da copiare (Documenti, Desktop, Immagini, Video o Musica): scegli una chiavetta o un disco esterno.": "This folder is inside the ones to copy (Documents, Desktop, Pictures, Videos or Music): choose a USB stick or an external drive.",
   "). Quelli buttati nelle ultime 24 ore (": "). The ones deleted in the last 24 hours (",
-  " (può durare molto: meglio chiudere gli altri programmi, perché per qualche tempo il disco resta pieno e non si possono salvare file)...": " (this can take a long time: better close the other programs, because for a while the disk stays full and files can't be saved)..."
+  " (può durare molto: meglio chiudere gli altri programmi, perché per qualche tempo il disco resta pieno e non si possono salvare file)...": " (this can take a long time: better close the other programs, because for a while the disk stays full and files can't be saved)...",
+  "La cartella dei file temporanei non è nel tuo profilo: per sicurezza non la svuoto.": "The temporary files folder isn't in your profile: to be safe I don't empty it."
  },
  "ui": {
   "Non riesco ad accendere la traduzione adesso: chiudi Tasso e riaprilo, poi riprova.": "I can't turn translation on right now: close Tasso and open it again, then try again.",

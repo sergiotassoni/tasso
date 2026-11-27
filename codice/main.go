@@ -38,6 +38,8 @@ var (
 
 func main() {
 	hardenProcess()
+	// chiave della firma degli elenchi delle traduzioni nei giochi: dove scrivono solo gli amministratori
+	traduce.CartellaSicura = filepath.Join(programFilesDir(), "Tasso")
 	// Profilo gioco all'accensione del PC (Tasso non parte con Windows): rimetto il profilo e chiudo,
 	// senza finestra e senza tenere occupato Tasso, così se lo apri tu si apre normalmente.
 	for _, a := range os.Args[1:] {
@@ -255,6 +257,7 @@ func hardenProcess() {
 			_ = os.Setenv("ComSpec", filepath.Join(s, "cmd.exe"))
 		}
 	}
+	ambienteSicuro()
 }
 
 // startCrashLog: se Tasso si chiude per un errore grave, Go scrive il motivo in logs\crash.txt
@@ -342,6 +345,12 @@ func messageBox(text, title string) {
 func openURL(u string) {
 	if isWebURL(u) && openPath(explorerExe(), "\""+u+"\"") {
 		return // aperto come utente normale, non da amministratore
+	}
+	if i := strings.Index(u, ":"); i > 1 {
+		// un indirizzo con protocollo (ms-settings:, windowsdefender:…) mai da amministratore: il
+		// programma che lo apre si può cambiare senza privilegi (HKCU\Software\Classes)
+		openPath(explorerExe(), "\""+u+"\"")
+		return
 	}
 	verb, _ := windows.UTF16PtrFromString("open")
 	target, _ := windows.UTF16PtrFromString(u)

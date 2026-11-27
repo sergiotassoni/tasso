@@ -134,7 +134,7 @@ func (s *ServerIA) Avvia(dirMotore, fileModello string) error {
 		return errors.New("motore IA non installato")
 	}
 	if dirMotore == dirMotoreIA() {
-		if err := verificaMotore(dirMotore, improntaLlama, "llama-server.exe"); err != nil {
+		if err := verificaEBloccaMotore(dirMotore, improntaLlama, "llama-server.exe"); err != nil {
 			return err
 		}
 	}
@@ -218,6 +218,7 @@ func (s *ServerIA) Ferma() {
 	defer s.mu.Unlock()
 	if s.cmd != nil && s.cmd.Process != nil {
 		_ = s.cmd.Process.Kill()
+		sbloccaMotore(s.cmd.Dir) // (il programma già avviato non ne ha più bisogno)
 	}
 	s.cmd = nil
 	s.Client = nil

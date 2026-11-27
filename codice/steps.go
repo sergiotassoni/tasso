@@ -22,6 +22,8 @@ func stepList() []map[string]interface{} {
 
 const psPrelude = `
 $ErrorActionPreference = 'SilentlyContinue'
+# moduli solo dalle cartelle di sistema: PowerShell 5.1 aggiunge da solo Documenti\WindowsPowerShell\Modules
+$env:PSModulePath = (Join-Path $env:ProgramFiles 'WindowsPowerShell\Modules') + ';' + (Join-Path ([Environment]::SystemDirectory) 'WindowsPowerShell\v1.0\Modules')
 $ProgressPreference = 'SilentlyContinue'
 [Console]::OutputEncoding = New-Object System.Text.UTF8Encoding($false)
 function Say([string]$m) { [Console]::Out.WriteLine('MSG ' + $m); [Console]::Out.Flush() }
@@ -80,6 +82,19 @@ function Remove-Old([string]$p, [datetime]$limit) {
     # Anche la data di creazione: un file appena estratto da uno zip può avere una data di modifica vecchia.
     Remove-Item -LiteralPath $it.FullName -Force -ErrorAction SilentlyContinue
   }
+}
+function Get-Winget {
+  # winget solo dalla sua cartella vera (Program Files\WindowsApps, solo di sistema), mai cercato
+  # nel Path: un programma senza privilegi potrebbe mettere un suo "winget.exe" davanti
+  $pkg = $null
+  try { $pkg = Get-AppxPackage -Name 'Microsoft.DesktopAppInstaller' -ErrorAction Stop | Sort-Object Version -Descending | Select-Object -First 1 } catch {}
+  if (-not $pkg) { return $null }
+  $root = (Join-Path $env:ProgramFiles 'WindowsApps') + '\'
+  $loc = [string]$pkg.InstallLocation
+  if (-not $loc.StartsWith($root, [StringComparison]::OrdinalIgnoreCase)) { return $null }
+  $exe = Join-Path $loc 'winget.exe'
+  if (-not (Test-Path -LiteralPath $exe)) { return $null }
+  return [pscustomobject]@{ Source = $exe }
 }
 function Test-NoLink([string]$p) {
   # La cartella da svuotare e tutte quelle sopra (fino al disco) non devono essere collegamenti o
@@ -288,6 +303,10 @@ elseif ($after -gt 0) {
 else { Say 'ATTENZIONE: il Ripristino configurazione di sistema sembra disattivato su questo PC.' }
 `},
 	{ID: "temp_user", Name: "File temporanei", Desc: "Svuota i file temporanei del tuo account più vecchi di un giorno (quelli in uso restano).", Level: 1, Minutes: 0.5, Timeout: 10 * time.Minute, Script: `
+# TEMP la può cambiare qualsiasi programma (HKCU\Environment): svuoto solo se è dentro il profilo
+$tp = ''; try { $tp = [IO.Path]::GetFullPath($env:TEMP).TrimEnd('\') + '\' } catch {}
+$up = ([string]$env:USERPROFILE).TrimEnd('\') + '\'
+if (-not $env:USERPROFILE -or -not $tp.StartsWith($up, [StringComparison]::OrdinalIgnoreCase)) { Say 'La cartella dei file temporanei non è nel tuo profilo: per sicurezza non la svuoto.'; return }
 $f = Clear-Folder $env:TEMP 24
 Freed $f; Say ('Liberati ' + (Fmt $f))
 `},
@@ -441,7 +460,7 @@ Get-ChildItem -LiteralPath $dl -File -ErrorAction SilentlyContinue | ForEach-Obj
 Say ('Riordinati ' + $moved + ' file nella cartella Download.')
 `},
 	{ID: "apps", Name: "Aggiornamento programmi", Desc: "Aggiorna i programmi installati con winget. Attenzione: alcune app (Discord, Claude, Proton...) dopo l'aggiornamento chiedono di rifare l'accesso.", Level: 0, Minutes: 6, Timeout: 60 * time.Minute, Script: `
-$wg = Get-Command winget.exe -ErrorAction SilentlyContinue
+$wg = Get-Winget
 if (-not $wg) { Say 'winget non è disponibile su questo PC: salto.'; return }
 Say 'Aggiorno i programmi (alcuni minuti)...'
 $code = Run-Hidden $wg.Source 'upgrade --all --silent --accept-source-agreements --accept-package-agreements --disable-interactivity'
@@ -744,9 +763,9 @@ if ($code -eq 0) { Say 'Fatto: i file cancellati in passato non sono più recupe
 	{ID: "recover", Name: "Recupera file cancellati", Desc: "Apre il Cestino e lo strumento gratuito di Microsoft per recuperare foto e documenti cancellati.", Level: 0, Minutes: 1, Timeout: 20 * time.Minute, Script: `
 Say 'Prima guarda nel Cestino: lo apro adesso.'
 Start-Process 'explorer.exe' 'shell:RecycleBinFolder'
-$w = Get-Command winfr.exe -ErrorAction SilentlyContinue
+$w = Get-AppxPackage -Name 'Microsoft.WindowsFileRecovery' -ErrorAction SilentlyContinue
 if (-not $w) {
-  $wg = Get-Command winget.exe -ErrorAction SilentlyContinue
+  $wg = Get-Winget
   if ($wg) {
     Say 'Installo Windows File Recovery (strumento gratuito di Microsoft)...'
     [void](Run-Hidden $wg.Source 'install --id 9N26S50LN705 --source msstore --accept-source-agreements --accept-package-agreements --silent')

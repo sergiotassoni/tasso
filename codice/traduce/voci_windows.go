@@ -152,7 +152,7 @@ func (s *serverVoci) avvia() error {
 	if s.cmd != nil {
 		return nil
 	}
-	if err := verificaMotore(dirMotoreVoci(), improntaWhisper, "whisper-server.exe"); err != nil {
+	if err := verificaEBloccaMotore(dirMotoreVoci(), improntaWhisper, "whisper-server.exe"); err != nil {
 		return err
 	}
 	porta, err := portaLibera()

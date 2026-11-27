@@ -44,7 +44,7 @@ func updatesApply(ids []string) {
 }
 
 const updatesListScript = `
-$wg = Get-Command winget.exe -ErrorAction SilentlyContinue
+$wg = Get-Winget
 if (-not $wg) { [Console]::Out.WriteLine('JSON ' + (ConvertTo-Json -InputObject ([ordered]@{ ok = $false; error = 'winget non c''è su questo PC. Si installa gratis dal Microsoft Store: cerca "Programma di installazione app".' }) -Compress)); return }
 [Console]::OutputEncoding = [Text.Encoding]::UTF8
 $OutputEncoding = [Text.Encoding]::UTF8
@@ -91,7 +91,7 @@ Say ('Programmi da aggiornare: ' + $items.Count)
 `
 
 const updatesApplyScript = `
-$wg = Get-Command winget.exe -ErrorAction SilentlyContinue
+$wg = Get-Winget
 if (-not $wg) { Say 'winget non c''è su questo PC.'; return }
 $common = '--silent --accept-source-agreements --accept-package-agreements --disable-interactivity'
 if ($A.all) {

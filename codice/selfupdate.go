@@ -394,6 +394,24 @@ func contains(list []string, s string) bool {
 	return false
 }
 
+// copiaFirmata: questi byte sono un Tasso con una firma valida di Sergio Tassoni, rilasciata da
+// Certum (controllata su una copia nuova in Programmi, dove nessun altro programma può cambiarla).
+func copiaFirmata(exe []byte) bool {
+	p, err := copiaPerVerifica(exe)
+	if err != nil {
+		return false
+	}
+	defer os.Remove(p)
+	r := runPSArgs(sigCheckScript, map[string]string{"cur": p, "new": p}, 2*time.Minute, nil)
+	var res struct {
+		New sigFull `json:"new"`
+	}
+	if r.JSON == "" || json.Unmarshal([]byte(r.JSON), &res) != nil {
+		return false
+	}
+	return res.New.Status == "Valid" && isCertum(res.New.Issuer) && strings.Contains(res.New.Subject, "Sergio Tassoni")
+}
+
 // copiaPerVerifica: il nuovo Tasso in un file di Programmi nuovo di zecca (O_EXCL), per la firma.
 func copiaPerVerifica(exe []byte) (string, error) {
 	pf := programFilesDir()

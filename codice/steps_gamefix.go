@@ -21,7 +21,7 @@ Say 'Le cache della grafica le lascio: servono proprio a non scattare. Solo se g
 Say 'Altre cause frequenti: il gioco installato su un disco meccanico (meglio un SSD), un programma che registra in sottofondo, o il portatile a batteria.'
 `},
 	{ID: "fix_game_start", Name: "Il gioco non parte o si chiude da solo", Desc: "Installa o ripara i componenti che servono ai giochi (Visual C++, DirectX, .NET) dal sito ufficiale Microsoft.", Level: 0, Minutes: 4, Timeout: 30 * time.Minute, Script: `
-$wg = Get-Command winget.exe -ErrorAction SilentlyContinue
+$wg = Get-Winget
 if (-not $wg) {
   Say 'winget non c''è su questo PC: ti apro la pagina ufficiale Microsoft dei componenti Visual C++.'
   Start-Process -FilePath "$env:SystemRoot\explorer.exe" -ArgumentList 'https://learn.microsoft.com/it-it/cpp/windows/latest-supported-vc-redist'
@@ -62,7 +62,7 @@ Restart-Service -Name bthserv -Force -ErrorAction SilentlyContinue
 # Microfono bloccato nelle impostazioni della privacy: è la causa più comune del "non mi sentono".
 $mk = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\microphone'
 $v = ''; try { $v = [string](Get-ItemProperty -LiteralPath $mk -Name Value -ErrorAction Stop).Value } catch {}
-if ($v -eq 'Deny') { Say 'ATTENZIONE: il microfono è bloccato per tutte le app in Impostazioni > Privacy > Microfono. Accendilo lì per farti sentire su Discord e nei giochi.'; Start-Process 'ms-settings:privacy-microphone' }
+if ($v -eq 'Deny') { Say 'ATTENZIONE: il microfono è bloccato per tutte le app in Impostazioni > Privacy > Microfono. Accendilo lì per farti sentire su Discord e nei giochi.'; Start-Process -FilePath (Join-Path $env:SystemRoot 'explorer.exe') -ArgumentList '"ms-settings:privacy-microphone"' }
 $still = @(Get-CimInstance Win32_PnPEntity -ErrorAction SilentlyContinue | Where-Object { $_.PNPClass -match $cls -and $_.ConfigManagerErrorCode -ne 0 -and $_.ConfigManagerErrorCode -ne 22 -and $_.ConfigManagerErrorCode -ne 45 })
 if ($still.Count) { Say ('Ancora con problemi: ' + (($still | ForEach-Object { $_.Name }) -join ', ') + '. Scollegala, aspetta 5 secondi e ricollegala (meglio in una porta USB dietro il PC). Poi guarda "Driver di tutto il PC" qui sotto.') }
 else { Say 'Fatto. Se un controller o le cuffie non vanno ancora: scollegale e ricollegale, e controlla che siano scelte come dispositivo nel gioco o su Discord.' }

@@ -95,17 +95,19 @@ func ModGiaPresenti(cartella string) string {
 
 // ManifestoMod: tutto quello che ho aggiunto o sostituito in un gioco.
 type ManifestoMod struct {
-	Gioco      string    `json:"gioco"`
-	Cartella   string    `json:"cartella"`
-	Tipo       string    `json:"tipo"`
-	Exe        string    `json:"exe"`
-	Quando     time.Time `json:"quando"`
-	Aggiunti   []string  `json:"aggiunti"`              // percorsi relativi alla cartella del gioco (file e cartelle in cima)
-	Sostituiti []string  `json:"sostituiti"`            // file che esistevano: l'originale è nella copia di sicurezza
-	Token      string    `json:"token"`                 // segreto nell'indirizzo: solo questo gioco può chiedere traduzioni
-	Lingue     [2]string `json:"lingue"`                // da → a
-	CreataMods bool      `json:"creata_mods,omitempty"` // Unreal: la cartella ~mods l'ha creata Tasso
-	AntiCheat  bool      `json:"anti_cheat,omitempty"`  // installata su un gioco con anti-cheat, per scelta dell'utente
+	Gioco      string            `json:"gioco"`
+	Cartella   string            `json:"cartella"`
+	Tipo       string            `json:"tipo"`
+	Exe        string            `json:"exe"`
+	Quando     time.Time         `json:"quando"`
+	Aggiunti   []string          `json:"aggiunti"`              // percorsi relativi alla cartella del gioco (file e cartelle in cima)
+	Sostituiti []string          `json:"sostituiti"`            // file che esistevano: l'originale è nella copia di sicurezza
+	Token      string            `json:"token"`                 // segreto nell'indirizzo: solo questo gioco può chiedere traduzioni
+	Lingue     [2]string         `json:"lingue"`                // da → a
+	CreataMods bool              `json:"creata_mods,omitempty"` // Unreal: la cartella ~mods l'ha creata Tasso
+	AntiCheat  bool              `json:"anti_cheat,omitempty"`  // installata su un gioco con anti-cheat, per scelta dell'utente
+	Impronte   map[string]string `json:"impronte,omitempty"`    // sha256 degli originali messi da parte
+	Firma      string            `json:"firma,omitempty"`       // vedi firma_manifesto.go
 }
 
 func cartellaCopie(dirApp, chiave string) string {
@@ -118,12 +120,18 @@ func leggiManifesto(dirApp, chiave string) (ManifestoMod, bool) {
 	if err != nil || json.Unmarshal(b, &m) != nil {
 		return m, false
 	}
+	if !manifestoFirmato(dirApp, m) {
+		return m, false // scritto o cambiato da un altro programma: non lo uso
+	}
 	return m, true
 }
 
 func scriviManifesto(dirApp, chiave string, m ManifestoMod) error {
 	d := cartellaCopie(dirApp, chiave)
 	if err := os.MkdirAll(d, 0o755); err != nil {
+		return err
+	}
+	if err := firmaManifesto(dirApp, chiave, &m); err != nil {
 		return err
 	}
 	b, _ := json.MarshalIndent(m, "", "  ")
@@ -374,12 +382,16 @@ func TogliModGioco(dirApp, chiave string) error {
 	m, ok := leggiManifesto(dirApp, chiave)
 	if !ok {
 		if esisteVoce(filepath.Join(cartellaCopie(dirApp, chiave), "manifesto.json")) {
-			// c'è ma non si legge (PC spento mentre lo scrivevo): non dico "fatto" se non lo è
+			// c'è ma non si legge (PC spento mentre lo scrivevo) o non ha la firma di Tasso: non
+			// dico "fatto" se non lo è, e non tocco niente
 			return fmt.Errorf("l'elenco dei file aggiunti è rovinato: togli a mano BepInEx, winhttp.dll e doorstop dalla cartella del gioco")
 		}
 		return nil
 	}
 	copie := cartellaCopie(dirApp, chiave)
+	if st, err := os.Lstat(m.Cartella); err != nil || st.Mode()&(os.ModeSymlink|os.ModeIrregular) != 0 {
+		return fmt.Errorf("la cartella del gioco non c'è più o è un collegamento: non tolgo niente")
+	}
 	if m.Tipo == "unreal" {
 		if err := togliModUnreal(m); err != nil {
 			return err
@@ -423,12 +435,23 @@ func TogliModGioco(dirApp, chiave string) error {
 		if a == "" || strings.ContainsAny(a, `/\`) || a == "." || a == ".." {
 			continue
 		}
+		if !senzaCollegamenti(m.Cartella, a) {
+			errori = append(errori, a)
+			continue
+		}
 		if err := os.RemoveAll(filepath.Join(m.Cartella, a)); err != nil {
 			errori = append(errori, a)
 		}
 	}
 	for _, s := range m.Sostituiti {
 		if filepath.IsAbs(s) || strings.Contains(s, "..") {
+			continue
+		}
+		// l'originale messo da parte deve essere proprio quello (impronta firmata), e la strada
+		// fino al file nel gioco non deve passare da collegamenti
+		orig := filepath.Join(copie, "originali", s)
+		if m.Impronte[s] == "" || improntaFile(orig) != m.Impronte[s] || !senzaCollegamenti(m.Cartella, s) {
+			errori = append(errori, s)
 			continue
 		}
 		if err := copiaFile(filepath.Join(copie, "originali", s), filepath.Join(m.Cartella, s)); err != nil {

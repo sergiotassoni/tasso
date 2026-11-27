@@ -155,6 +155,23 @@ func salvaCopieDiSicurezza() {
 			return
 		}
 		_ = os.MkdirAll(filepath.Dir(a), 0o755)
+		// Documenti lo può preparare un altro programma: niente collegamenti di cartella lungo la
+		// strada (Tasso scriverebbe da amministratore dove punta il collegamento) e niente cartella
+		// già esistente da riempire
+		for _, x := range []string{dest, filepath.Dir(a)} {
+			if st, err := os.Lstat(x); err != nil || st.Mode()&(os.ModeSymlink|os.ModeIrregular) != 0 || !st.IsDir() {
+				return
+			}
+		}
+		for i := 2; ; i++ {
+			if _, err := os.Lstat(a); os.IsNotExist(err) {
+				break
+			}
+			if i > 50 {
+				return
+			}
+			a = strings.TrimSuffix(a, fmt.Sprintf(" (%d)", i-1)) + fmt.Sprintf(" (%d)", i)
+		}
 		if os.Rename(da, a) != nil {
 			_ = copiaCartellaSemplice(da, a)
 		}
