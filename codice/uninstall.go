@@ -233,7 +233,7 @@ func togliTassoPassiDentro(rimetti bool, passo func(int, string), pianoOut *pian
 		// sua cartella non trovo le copie dei giochi, quindi non dico "nessuna traduzione"
 		return "Non trovo la cartella di Tasso Traduce: apri Tasso e usa \"Togli Tasso dal PC\". Tasso non è stato tolto."
 	}
-	tolti, falliti, spariti, aManoQui := traduce.TogliTutteLeTraduzioni()
+	tolti, falliti, spariti, aManoQui, daControllare := traduce.TogliTutteLeTraduzioni()
 	if len(falliti) == 1 && falliti[0] == "ADMIN" {
 		return "Per togliere le traduzioni dai giochi Tasso deve essere aperto come amministratore: riaprilo, accetta la richiesta di Windows e riprova. Tasso non è stato tolto."
 	}
@@ -250,6 +250,10 @@ func togliTassoPassiDentro(rimetti bool, passo func(int, string), pianoOut *pian
 	if aMano := append(aManoQui, traduce.GiochiDaSistemareAMano()...); len(aMano) > 0 {
 		// elenchi in AppData che Tasso non usa (firma che non torna o manca il segno di Tasso nel gioco): lo dico
 		passo(1, msgGiochiAMano(aMano))
+	}
+	if len(daControllare) > 0 {
+		// traduzione tolta, ma qualche file non è tornato com'era: lo dico a parte
+		passo(1, msgGiochiDaControllare(daControllare))
 	}
 	if len(tolti) > 0 {
 		passo(1, trGo("Traduzioni tolte dai giochi: ")+strings.Join(tolti, ", "))
@@ -317,7 +321,16 @@ func togliSilenziosoSeChiesto() (codice int, chiesto bool) {
 
 func togliSilenzioso(out io.Writer) int {
 	fmt.Fprintln(out, segnoTogliSilenzioso)
-	_, msg, _ := togliTassoPassi(false, func(int, string) {})
+	// "TOGLI-PASSO n": il passo che comincia adesso (0 impostazioni, 1 traduzioni nei giochi, 2
+	// copie di sicurezza). Il disinstallatore lo legge riga per riga e lo mostra (R2).
+	fmt.Fprintln(out, "TOGLI-PASSO 0")
+	ultimo := 0
+	_, msg, _ := togliTassoPassi(false, func(i int, _ string) {
+		if i+1 > ultimo && i+1 <= 2 {
+			ultimo = i + 1
+			fmt.Fprintf(out, "TOGLI-PASSO %d\n", ultimo)
+		}
+	})
 	if msg != "" {
 		fmt.Fprintln(out, "TOGLI-NO "+unaRiga(msg))
 		return 1
@@ -411,20 +424,18 @@ func salvaCopieDiSicurezza() (nonSalvate, altrove []string) {
 		}
 		if dest != "" && strada(dest, a) {
 			if copiaPrima {
-				if copiaCartellaSemplice(da, a) == nil {
+				if copiaPoiRinomina(da, a) == nil {
 					_ = os.RemoveAll(da)
 					return
 				}
-				_ = os.RemoveAll(a) // niente copie a metà
 			}
 			if os.Rename(da, a) == nil {
 				return
 			}
-			if !copiaPrima && copiaCartellaSemplice(da, a) == nil {
+			if !copiaPrima && copiaPoiRinomina(da, a) == nil {
 				_ = os.RemoveAll(da)
 				return
 			}
-			_ = os.RemoveAll(a)
 		}
 		if riserva != "" {
 			r := nomeCopiaLibero(filepath.Join(riserva, filepath.Dir(rel)), filepath.Base(rel), time.Now(), esisteVoce)
@@ -493,15 +504,37 @@ func msgCopieNonSalvate(dove []string) string {
 		". Copiali a mano in un'altra cartella (per esempio su una chiavetta), poi riprova a togliere Tasso. Tasso non è stato tolto."
 }
 
-// msgGiochiAMano: giochi che Tasso non può rimettere com'era da qui (le copie vanno in Documenti).
+// msgGiochiAMano: giochi che Tasso non può rimettere com'era da qui (le copie vanno nelle copie di sicurezza).
 func msgGiochiAMano(giochi []string) string {
 	return "Non posso togliere da qui la traduzione dentro: " + strings.Join(giochi, ", ") +
-		". Per rimetterli com'erano usa \"Verifica file\" nel programma da cui lanci il gioco; gli originali vanno nelle copie di sicurezza in Documenti."
+		". Per rimetterli com'erano usa \"Verifica file\" nel programma da cui lanci il gioco; gli originali vanno nelle copie di sicurezza."
+}
+
+// msgGiochiDaControllare: traduzione tolta, ma alcuni file non sono tornati com'erano (R4).
+func msgGiochiDaControllare(giochi []string) string {
+	return "Ho tolto la traduzione da: " + strings.Join(giochi, ", ") +
+		", ma alcuni file non sono tornati com'erano. Usa \"Verifica file\" nel programma da cui lanci il gioco; le copie da controllare vanno nelle copie di sicurezza."
 }
 
 // msgCopieAltrove: Documenti non ha funzionato, le copie sono in un'altra cartella sicura.
 func msgCopieAltrove(dove []string) string {
 	return "Non ho potuto usare Documenti: le copie di sicurezza sono in " + strings.Join(dove, ", ") + ". Puoi spostarle dove vuoi."
+}
+
+// copiaPoiRinomina copia da in "<a> (copia non finita)" e solo alla fine la rinomina in a: se Tasso
+// viene fermato a metà, accanto a una copia buona non resta mai una copia incompleta con il nome
+// giusto (R3). La partenza non si tocca: la toglie chi chiama, solo se qui è andato tutto bene.
+func copiaPoiRinomina(da, a string) error {
+	tmp := nomeCopiaLibero(filepath.Dir(a), filepath.Base(a)+" (copia non finita)", time.Now(), esisteVoce)
+	if err := copiaCartellaSemplice(da, tmp); err != nil {
+		_ = os.RemoveAll(tmp) // solo la copia appena fatta: gli originali sono ancora in da
+		return err
+	}
+	if err := os.Rename(tmp, a); err != nil {
+		_ = os.RemoveAll(tmp)
+		return err
+	}
+	return nil
 }
 
 func copiaCartellaSemplice(da, a string) error {

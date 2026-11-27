@@ -429,8 +429,10 @@ func fermaModGioco(cartella string) string {
 	}
 	if err := TogliModGioco(baseDi(chiaveGioco(cartella)), chiaveGioco(cartella)); err != nil {
 		var dc *ErrOriginaliDaControllare
-		if errors.As(err, &dc) {
-			impostaGiocoTradotto(cartella, false) // la traduzione è tolta: il messaggio dice cosa controllare
+		var am *ErrDaSistemareAMano
+		if errors.As(err, &dc) || errors.As(err, &am) {
+			// tolta, o da sistemare a mano: non la considero più attiva (il messaggio dice cosa fare)
+			impostaGiocoTradotto(cartella, false)
 		}
 		return err.Error()
 	}
@@ -581,20 +583,21 @@ func controllaModInstallateIn(base string) {
 // quelli che non trovo più dove erano (spostati, rinominati, su un disco staccato) e quelli da
 // sistemare a mano (aMano: elenco non valido, originali cambiati, traduzione della 3.1.1 che non
 // posso togliere da qui): per questi riprovare non serve, quindi non fermano "Togli Tasso".
-func TogliTutteLeTraduzioni() (tolti, falliti, spariti, aMano []string) {
+func TogliTutteLeTraduzioni() (tolti, falliti, spariti, aMano, daControllare []string) {
 	if !muInstalla.TryLock() { // una traduzione si sta installando adesso
 		fermaUnreal.Store(true)
-		return nil, []string{"INSTALLA"}, nil, nil
+		return nil, []string{"INSTALLA"}, nil, nil, nil
 	}
 	defer muInstalla.Unlock()
 	if chiaveNonLeggibile() {
-		return nil, []string{"ADMIN"}, nil, nil // senza la chiave ogni elenco sembrerebbe finto
+		return nil, []string{"ADMIN"}, nil, nil, nil // senza la chiave ogni elenco sembrerebbe finto
 	}
 	for _, base := range basiCopie() { // copie in Programmi\Tasso\lavoro e quelle rimaste in AppData
-		t, f, sp, am := togliTutteIn(base)
+		t, f, sp, am, dc := togliTutteIn(base)
 		tolti, falliti, spariti, aMano = append(tolti, t...), append(falliti, f...), append(spariti, sp...), append(aMano, am...)
+		daControllare = append(daControllare, dc...)
 	}
-	return tolti, falliti, spariti, aMano
+	return tolti, falliti, spariti, aMano, daControllare
 }
 
 // nomeNellElenco: il nome del gioco scritto nell'elenco (anche non valido), o la chiave.
@@ -606,7 +609,7 @@ func nomeNellElenco(base, chiave string) string {
 	return chiave
 }
 
-func togliTutteIn(base string) (tolti, falliti, spariti, aMano []string) {
+func togliTutteIn(base string) (tolti, falliti, spariti, aMano, daControllare []string) {
 	voci, _ := os.ReadDir(filepath.Join(base, "copie-giochi"))
 	for _, v := range voci {
 		if doppione(base, v.Name()) {
@@ -660,6 +663,12 @@ func togliTutteIn(base string) (tolti, falliti, spariti, aMano []string) {
 			spariti = append(spariti, nome+" ("+m.Cartella+")")
 			continue
 		}
+		if !percorsoSenzaLink(m.Cartella) {
+			// cartella del gioco dietro un collegamento: non la tocco e non dico "chiudi e riprova"
+			impostaGiocoTradotto(m.Cartella, false)
+			aMano = append(aMano, nome)
+			continue
+		}
 		if m.Tipo != "unreal" && !cartellaModValida(m.Cartella) {
 			// non è (più) un gioco Unity: l'elenco può essere stato cambiato da un altro programma,
 			// quindi da amministratore non tocco quella cartella; le copie vanno in Documenti
@@ -671,20 +680,27 @@ func togliTutteIn(base string) (tolti, falliti, spariti, aMano []string) {
 		}
 		if err := TogliModGioco(base, v.Name()); err != nil {
 			var dc *ErrOriginaliDaControllare
-			if errors.As(err, &dc) {
-				// traduzione tolta, ma qualche originale non era quello messo da parte (o passa da un
-				// collegamento): riprovare non serve. Le copie da controllare vanno in Documenti.
+			var am *ErrDaSistemareAMano
+			switch {
+			case errors.As(err, &dc):
+				// traduzione tolta, ma qualche file non è com'era: riprovare non serve. Le copie da
+				// controllare vanno nelle copie di sicurezza.
+				impostaGiocoTradotto(m.Cartella, false)
+				tolti = append(tolti, nome)
+				daControllare = append(daControllare, nome)
+			case errors.As(err, &am):
+				// cartella del gioco (o delle copie) dietro un collegamento: da sistemare a mano
 				impostaGiocoTradotto(m.Cartella, false)
 				aMano = append(aMano, nome)
-				continue
+			default:
+				falliti = append(falliti, nome) // file in uso: il gioco è aperto, si riprova
 			}
-			falliti = append(falliti, nome)
 			continue
 		}
 		impostaGiocoTradotto(m.Cartella, false)
 		tolti = append(tolti, nome)
 	}
-	return tolti, falliti, spariti, aMano
+	return tolti, falliti, spariti, aMano, daControllare
 }
 
 // StaInstallando: una traduzione si sta mettendo dentro un gioco adesso (l'aggiornamento di Tasso aspetta).

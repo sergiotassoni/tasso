@@ -56,6 +56,9 @@ func UnrealPossibile(cartella string) (bool, string) {
 	if paks == "" {
 		return false, "non è un gioco Unreal"
 	}
+	if !percorsoSenzaLink(cartella) || !percorsoSenzaLink(paks) {
+		return false, motivoCartellaCollegamento
+	}
 	for _, pp := range pakOriginali(paks) {
 		p, err := unreal.ApriPak(pp)
 		if err != nil {
@@ -492,7 +495,7 @@ func togliModUnreal(m ManifestoMod) error {
 		}
 		_ = os.Remove(p + ".tmp") // rimasto se Tasso si era chiuso mentre lo scriveva
 		if err := os.Remove(p); err != nil && !os.IsNotExist(err) {
-			return fmt.Errorf("non sono riuscito a togliere %s (il gioco è aperto?)", nomeModUnreal)
+			return &errInUso{fmt.Sprintf("non sono riuscito a togliere %s (il gioco è aperto?)", nomeModUnreal)}
 		}
 		if m.CreataMods { // creata da Tasso
 			_ = os.Remove(filepath.Dir(p)) // solo se vuota

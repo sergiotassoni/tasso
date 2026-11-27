@@ -368,6 +368,9 @@ func InstallaModGioco(dirApp, nome, cartella, chiave string, zips []string, da, 
 	if tipo == "" {
 		return ManifestoMod{}, errors.New("non è un gioco Unity: lo traduco con la sovrimpressione")
 	}
+	if !percorsoSenzaLink(cartella) {
+		return ManifestoMod{}, errors.New(motivoCartellaCollegamento)
+	}
 	if g := ModGiaPresenti(cartella); g != "" {
 		return ManifestoMod{}, fmt.Errorf("il gioco ha già delle mod (%s): per sicurezza non lo tocco", g)
 	}
@@ -420,7 +423,8 @@ func InstallaModGioco(dirApp, nome, cartella, chiave string, zips []string, da, 
 // Le traduzioni fatte nel gioco le tengo da parte per la prossima volta.
 func TogliModGioco(dirApp, chiave string) error {
 	if !copieSenzaLink(dirApp, chiave, "") {
-		return errors.New("la cartella delle copie di sicurezza porta altrove (link o giunzione): per sicurezza non tocco niente")
+		// riprovare non serve: da sistemare a mano (mai "chiudi il gioco e riprova" all'infinito)
+		return &ErrDaSistemareAMano{Gioco: chiave, Motivo: motivoCopieCollegamento, Dove: cartellaCopie(dirApp, chiave)}
 	}
 	m, ok := leggiManifesto(dirApp, chiave)
 	if !ok {
@@ -433,12 +437,25 @@ func TogliModGioco(dirApp, chiave string) error {
 	}
 	copie := cartellaCopie(dirApp, chiave)
 	// (il controllo dei collegamenti nella cartella delle copie è già in cima, prima di leggere l'elenco)
-	if st, err := os.Lstat(m.Cartella); err != nil || st.Mode()&(os.ModeSymlink|os.ModeIrregular) != 0 {
-		return fmt.Errorf("la cartella del gioco non c'è più o è un collegamento: non tolgo niente")
+	nomeG := m.Gioco
+	if nomeG == "" {
+		nomeG = filepath.Base(m.Cartella)
+	}
+	if _, err := os.Lstat(m.Cartella); err != nil {
+		return fmt.Errorf("la cartella del gioco non c'è più: non tolgo niente")
+	}
+	if !percorsoSenzaLink(m.Cartella) {
+		// la cartella del gioco (o una cartella sopra) è un collegamento o una giunzione: da
+		// amministratore non ci scrivo. Riprovare non serve: da sistemare a mano.
+		return &ErrDaSistemareAMano{Gioco: nomeG, Motivo: motivoCartellaCollegamento, Dove: filepath.Join(copie, "originali")}
 	}
 	if m.Tipo == "unreal" {
 		if err := togliModUnreal(m); err != nil {
-			return err
+			var iu *errInUso
+			if errors.As(err, &iu) {
+				return err
+			}
+			return &ErrDaSistemareAMano{Gioco: nomeG, Motivo: motivoCartellaCollegamento, Dove: copie}
 		}
 		return os.Remove(filepath.Join(copie, "manifesto.json"))
 	}
@@ -490,13 +507,13 @@ func TogliModGioco(dirApp, chiave string) error {
 	// errori: file in uso (di solito il gioco è aperto): riprovare serve. daControllare: originali
 	// che non sono quelli messi da parte (impronta diversa, mancanti) o percorsi che passano da un
 	// collegamento: riprovare non serve, li salto e lo dico (ErrOriginaliDaControllare).
-	var errori, daControllare []string
+	var errori, daControllare, nonTolti []string
 	for _, a := range m.Aggiunti {
 		if a == "" || strings.ContainsAny(a, `/\:`) || a == "." || a == ".." || fileDelGiocoUnity(a) {
 			continue
 		}
 		if !senzaCollegamenti(m.Cartella, a) {
-			daControllare = append(daControllare, a)
+			nonTolti = append(nonTolti, a) // resta nel gioco: lo dico a parte (R6)
 			continue
 		}
 		if err := os.RemoveAll(filepath.Join(m.Cartella, a)); err != nil {
@@ -529,15 +546,21 @@ func TogliModGioco(dirApp, chiave string) error {
 	if len(errori) > 0 {
 		return fmt.Errorf("non sono riuscito a togliere: %s (il gioco è aperto?)", strings.Join(errori, ", "))
 	}
-	if len(daControllare) > 0 {
-		// la traduzione è tolta; gli originali messi da parte restano, con un nome che dice di
-		// controllarli (togliendo Tasso vanno in Documenti con il resto della copia)
+	if len(daControllare) > 0 || len(nonTolti) > 0 {
+		// la traduzione è tolta (tranne nonTolti); gli originali messi da parte restano, con un nome
+		// che dice di controllarli (togliendo Tasso vanno nelle copie di sicurezza con il resto)
 		dove := filepath.Join(copie, "originali-da-controllare-"+time.Now().Format("20060102-150405"))
-		if !esisteVoce(filepath.Join(copie, "originali")) || os.Rename(filepath.Join(copie, "originali"), dove) != nil {
-			dove = filepath.Join(copie, "originali")
+		if esisteVoce(filepath.Join(copie, "originali")) {
+			if err := os.Rename(filepath.Join(copie, "originali"), dove); err != nil {
+				// R5: senza il nome nuovo una traduzione nuova li cancellerebbe togliendola: l'elenco
+				// resta, e si riprova quando i file non sono più in uso
+				return &errInUso{"non sono riuscito a mettere da parte gli originali (" + err.Error() + "): riprova a gioco chiuso"}
+			}
+		} else {
+			dove = copie
 		}
 		_ = os.Remove(filepath.Join(copie, "manifesto.json"))
-		return &ErrOriginaliDaControllare{Gioco: m.Gioco, File: daControllare, Dove: dove}
+		return &ErrOriginaliDaControllare{Gioco: nomeG, File: daControllare, NonTolti: nonTolti, Dove: dove}
 	}
 	_ = os.Remove(filepath.Join(copie, "manifesto.json"))
 	_ = os.RemoveAll(filepath.Join(copie, "originali"))
@@ -548,15 +571,41 @@ func TogliModGioco(dirApp, chiave string) error {
 // perché la copia messa da parte non è quella di Tasso o il percorso passa da un collegamento.
 // Riprovare non serve: il gioco si rimette a posto con "Verifica file"; le copie restano in Dove.
 type ErrOriginaliDaControllare struct {
-	Gioco string
-	File  []string
-	Dove  string
+	Gioco    string
+	File     []string // originali non rimessi
+	NonTolti []string // file aggiunti da Tasso rimasti nel gioco (il percorso passa da un collegamento)
+	Dove     string
 }
 
 func (e *ErrOriginaliDaControllare) Error() string {
-	return "Ho tolto la traduzione, ma questi file non li ho rimessi com'erano, perché la copia messa da parte è cambiata o il percorso passa da un collegamento: " +
-		strings.Join(e.File, ", ") + ". Usa \"Verifica file\" nel programma da cui lanci il gioco. Le copie da controllare sono in " + e.Dove + "."
+	var s string
+	if len(e.NonTolti) > 0 {
+		s = "Ho tolto la traduzione, tranne questi file che passano da un collegamento (li ho lasciati nel gioco): " + strings.Join(e.NonTolti, ", ")
+		if len(e.File) > 0 {
+			s += ". Questi file non li ho rimessi com'erano, perché la copia messa da parte è cambiata o il percorso passa da un collegamento: " + strings.Join(e.File, ", ")
+		}
+	} else {
+		s = "Ho tolto la traduzione, ma questi file non li ho rimessi com'erano, perché la copia messa da parte è cambiata o il percorso passa da un collegamento: " + strings.Join(e.File, ", ")
+	}
+	return s + ". Usa \"Verifica file\" nel programma da cui lanci il gioco. Le copie da controllare sono in " + e.Dove + "."
 }
+
+// ErrDaSistemareAMano: la traduzione dentro il gioco non la posso togliere da qui (la cartella del
+// gioco, o quella delle copie, passa da un collegamento o da una giunzione). Riprovare non serve:
+// il gioco si rimette a posto con "Verifica file"; gli originali sono in Dove.
+type ErrDaSistemareAMano struct {
+	Gioco, Motivo, Dove string
+}
+
+func (e *ErrDaSistemareAMano) Error() string {
+	return "Attenzione: " + e.Motivo + ". " + msgSistemaAMano(e.Gioco, e.Dove)
+}
+
+// I motivi (tradotti nella sezione "go" delle lingue).
+const (
+	motivoCartellaCollegamento = "la cartella del gioco passa da un collegamento o da una giunzione, e per sicurezza Tasso non ci scrive"
+	motivoCopieCollegamento    = "la cartella delle copie di sicurezza passa da un collegamento o da una giunzione"
+)
 
 // senzaLink: nessun pezzo di rel dentro base (cartelle e file, se ci sono) è un link o una giunzione
 // di Windows. Una giunzione la può creare anche un programma normale: seguendola, Tasso da
@@ -697,6 +746,9 @@ const versioneMetadataMassima = 106
 
 // ModPossibile: si può tradurre dentro il gioco? Se no, il motivo in parole semplici.
 func ModPossibile(cartella string) (bool, string) {
+	if !percorsoSenzaLink(cartella) {
+		return false, motivoCartellaCollegamento
+	}
 	tipo, exe := TipoUnity(cartella)
 	if tipo == "mono" || tipo == "il2cpp" {
 		// gli strumenti che installo sono solo a 64 bit: in un gioco a 32 bit il gioco non partirebbe

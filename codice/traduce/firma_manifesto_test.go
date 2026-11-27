@@ -110,3 +110,74 @@ func TestOriginaleCambiatoNonBlocca(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+// R1 (REV-INT-32b): cartella del gioco come collegamento o giunzione. Non si installa (con il
+// motivo), e per un gioco già tradotto così "Ferma"/"Togli Tasso" danno "da sistemare a mano"
+// (Verifica file, dove sono gli originali), mai un errore "in uso" che fa riprovare all'infinito.
+func TestCartellaGiocoCollegamento(t *testing.T) {
+	vera := filepath.Join(t.TempDir(), "Gioco")
+	for p, s := range map[string]string{"Gioco.exe": "exe", "GameAssembly.dll": "dll", filepath.Join("Gioco_Data", "x"): "x", "winhttp.dll": "doorstop"} {
+		_ = os.MkdirAll(filepath.Dir(filepath.Join(vera, p)), 0o755)
+		_ = os.WriteFile(filepath.Join(vera, p), []byte(s), 0o644)
+	}
+	link := filepath.Join(t.TempDir(), "GiocoLink")
+	if err := os.Symlink(vera, link); err != nil {
+		t.Skip("collegamenti non disponibili:", err)
+	}
+	if ok, motivo := ModPossibile(link); ok || motivo != motivoCartellaCollegamento {
+		t.Fatalf("ModPossibile su un collegamento: %v %q", ok, motivo)
+	}
+	if ok, _ := ModPossibile(vera); !ok && percorsoSenzaLink(vera) {
+		// (la cartella vera va bene, salvo i controlli dei dati del gioco)
+		t.Log("cartella vera non possibile per altri motivi")
+	}
+	app := t.TempDir()
+	if _, err := InstallaModGioco(app, "Gioco", link, "g", nil, "en", "it"); err == nil || !strings.Contains(err.Error(), "collegamento") {
+		t.Fatalf("installata su un collegamento: %v", err)
+	}
+	m := ManifestoMod{Gioco: "Gioco", Cartella: link, Tipo: "il2cpp", Exe: "Gioco.exe", Aggiunti: []string{"winhttp.dll"}}
+	if err := scriviManifesto(app, "g", m); err != nil {
+		t.Fatal(err)
+	}
+	for i := 0; i < 2; i++ {
+		err := TogliModGioco(app, "g")
+		var am *ErrDaSistemareAMano
+		var iu *errInUso
+		if !errors.As(err, &am) || errors.As(err, &iu) {
+			t.Fatalf("giro %d: atteso ErrDaSistemareAMano, ho %v", i, err)
+		}
+		if !strings.Contains(err.Error(), "Verifica file") || strings.Contains(err.Error(), "aperto") || !strings.Contains(err.Error(), "originali") {
+			t.Fatalf("messaggio sbagliato: %s", err)
+		}
+	}
+	if !esisteVoce(filepath.Join(vera, "winhttp.dll")) {
+		t.Fatal("ha scritto nel gioco passando dal collegamento")
+	}
+}
+
+// R6: un file aggiunto che passa da un collegamento resta nel gioco e il messaggio lo dice
+// ("tranne questi file"), invece di dire "Ho tolto la traduzione".
+func TestAggiuntoDietroCollegamento(t *testing.T) {
+	app := t.TempDir()
+	gioco := filepath.Join(t.TempDir(), "Gioco")
+	for p, s := range map[string]string{"Gioco.exe": "exe", "GameAssembly.dll": "dll", filepath.Join("Gioco_Data", "x"): "x", "winhttp.dll": "doorstop"} {
+		_ = os.MkdirAll(filepath.Dir(filepath.Join(gioco, p)), 0o755)
+		_ = os.WriteFile(filepath.Join(gioco, p), []byte(s), 0o644)
+	}
+	altrove := t.TempDir()
+	if err := os.Symlink(altrove, filepath.Join(gioco, "BepInEx")); err != nil {
+		t.Skip(err)
+	}
+	m := ManifestoMod{Gioco: "Gioco", Cartella: gioco, Tipo: "il2cpp", Exe: "Gioco.exe", Aggiunti: []string{"winhttp.dll", "BepInEx"}}
+	if err := scriviManifesto(app, "g", m); err != nil {
+		t.Fatal(err)
+	}
+	err := TogliModGioco(app, "g")
+	var dc *ErrOriginaliDaControllare
+	if !errors.As(err, &dc) || len(dc.NonTolti) != 1 || dc.NonTolti[0] != "BepInEx" {
+		t.Fatalf("atteso ErrOriginaliDaControllare con BepInEx non tolto, ho %v", err)
+	}
+	if !strings.Contains(err.Error(), "tranne") || esisteVoce(filepath.Join(gioco, "winhttp.dll")) {
+		t.Fatalf("messaggio o rimozione sbagliati: %s", err)
+	}
+}
