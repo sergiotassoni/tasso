@@ -37,7 +37,7 @@ QUI="$(pwd)"
 risorse() {
   (cd ../strumenti/risorse && $GO run . crea -ico "$QUI/../icone/gaming/definitiva/tasso-gaming.ico" \
     -manifest "$QUI/setup.manifest" -o "$QUI/rsrc_windows_amd64.syso" -versione "$ECO_VER" \
-    -prodotto "Tasso Setup" -descrizione "$1" -azienda "Sergio Tassoni" -file "$2")
+    -prodotto "Tasso Setup" -descrizione "$1" -azienda "Sergio Tassoni" -copyright "© 2026 Sergio Tassoni" -file "$2")
 }
 
 # solo il disinstallatore (da firmare prima di metterlo dentro l'installatore)

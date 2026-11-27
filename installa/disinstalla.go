@@ -35,6 +35,11 @@ type OpzioniDisinstalla struct {
 	// TassoGiaPulito: Tasso ha già tolto le sue cose (PulisciTasso chiamata prima, per esempio
 	// prima di chiudere gli altri programmi): non lo richiamo.
 	TassoGiaPulito bool
+	// CartellaLavoroTasso: C:\Program Files\Tasso. Con Tasso installato altrove (per esempio fuori da
+	// Programmi) Tasso lavora lì (cartellaTasso in Tasso: lavoro\, chiave-traduzioni): togliendo Tasso
+	// va via anche quella, ma solo se dentro ci sono soltanto queste cose di Tasso
+	// (CartellaLavoroSoloTasso). "" = non guardare.
+	CartellaLavoroTasso string
 }
 
 // TogliTasso: togliendo questi componenti va via anche Tasso.exe (Gaming e Ufficio tutti e due,
@@ -214,6 +219,17 @@ func (in *Installatore) DisinstallaCon(base string, togli []Componente, od Opzio
 			return nil, err
 		}
 	}
+	// Tasso installato altrove: la sua cartella di lavoro in C:\Program Files\Tasso (con la stessa
+	// rete di sicurezza per gli originali dei giochi rimasti lì)
+	altraLavoro := ""
+	if viaTasso {
+		altraLavoro = cartellaLavoroDaTogliere(base, od.CartellaLavoroTasso)
+	}
+	if altraLavoro != "" {
+		if err := in.salvaCopieGiochiPrima(altraLavoro, ris); err != nil {
+			return nil, err
+		}
+	}
 	// prima i collegamenti (così nessuno apre un programma mentre lo tolgo)
 	var restColl []StatoCollegamento
 	for _, c := range st.Collegamenti {
@@ -279,6 +295,9 @@ func (in *Installatore) DisinstallaCon(base string, togli []Componente, od Opzio
 		ris.NonTolti = append(ris.NonTolti, in.togliTracceUtente(base, id)...)
 		if id == ProgTasso {
 			in.togliCoseDiTasso(base, stIniziale, od, ris)
+			if altraLavoro != "" {
+				in.togliCartellaLavoroTasso(altraLavoro, ris)
+			}
 		}
 		delete(st.Programmi, id)
 	}
@@ -421,6 +440,76 @@ func (in *Installatore) togliCoseDiTasso(base string, st *Stato, od OpzioniDisin
 				in.togliDatiTenendo(filepath.Join(radice, n), CartelleDaTenere[n], ris)
 			}
 		}
+	}
+}
+
+// cartellaLavoroDaTogliere: la cartella di lavoro di Tasso fuori dall'installazione (std, cioè
+// C:\Program Files\Tasso) da togliere insieme a Tasso; "" se non c'è, se è la cartella
+// dell'installazione (o una che la contiene o che sta dentro) o se dentro c'è altro
+// (CartellaLavoroSoloTasso).
+func cartellaLavoroDaTogliere(base, std string) string {
+	if std == "" || !filepath.IsAbs(std) {
+		return ""
+	}
+	std = filepath.Clean(std)
+	if Dentro(std, base) || Dentro(base, std) || !CartellaLavoroSoloTasso(std) {
+		return ""
+	}
+	return std
+}
+
+// CartellaLavoroSoloTasso: d è una cartella vera (non un collegamento o una giunzione) e dentro ci
+// sono soltanto le cose che Tasso scrive nella sua cartella di lavoro: le cartelle lavoro, strumenti
+// e driver (vere, non collegamenti) e il file chiave-traduzioni. Nessun Tasso.exe, nessuna
+// installazione, nessun file di altri: altrimenti non si tocca niente.
+func CartellaLavoroSoloTasso(d string) bool {
+	fi, err := os.Lstat(d)
+	if err != nil || !fi.IsDir() || fi.Mode()&(os.ModeSymlink|os.ModeIrregular) != 0 {
+		return false
+	}
+	voci, err := os.ReadDir(d)
+	if err != nil {
+		return false
+	}
+	for _, v := range voci {
+		ok := false
+		for _, n := range SottocartelleTasso {
+			ok = ok || (strings.EqualFold(v.Name(), n) && v.IsDir() && v.Type()&(os.ModeSymlink|os.ModeIrregular) == 0)
+		}
+		for _, n := range FileDiTassoNellaCartella {
+			ok = ok || (strings.EqualFold(v.Name(), n) && v.Type().IsRegular())
+		}
+		if !ok {
+			return false
+		}
+	}
+	return true
+}
+
+// togliCartellaLavoroTasso toglie le cose di Tasso nella sua cartella di lavoro d (ricontrolla
+// CartellaLavoroSoloTasso) e d se poi resta vuota. Gli originali dei giochi ancora lì non si
+// cancellano mai.
+func (in *Installatore) togliCartellaLavoroTasso(d string, ris *Risultato) {
+	if !CartellaLavoroSoloTasso(d) {
+		Diario("%s: dentro c'è qualcosa che non è di Tasso, non la tocco", d)
+		return
+	}
+	for _, n := range SottocartelleTasso {
+		p := filepath.Join(d, n)
+		if n == "lavoro" && len(giochiDaSalvare(d)) > 0 {
+			Diario("%s: dentro ci sono ancora originali dei giochi, non la tolgo", p)
+			ris.NonTolti = append(ris.NonTolti, CartellaCopieGiochi(d))
+			continue
+		}
+		in.togliCartellaORiavvio(p, ris)
+	}
+	for _, n := range FileDiTassoNellaCartella {
+		if fi, err := os.Lstat(filepath.Join(d, n)); err == nil && fi.Mode().IsRegular() {
+			in.togliORiavvio(filepath.Join(d, n), ris)
+		}
+	}
+	if os.Remove(d) == nil {
+		Diario("tolta anche la cartella di lavoro di Tasso %s", d)
 	}
 }
 

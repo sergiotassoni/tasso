@@ -313,3 +313,54 @@ func TestAlRiavvioSoloDentroBase(t *testing.T) {
 		t.Fatal("fuori dalla cartella non si cancella al riavvio")
 	}
 }
+
+// F17-5: Tasso installato fuori da Programmi lavora in C:\Program Files\Tasso (lavoro\,
+// chiave-traduzioni). Togliendo Tasso va via anche quella cartella, dopo aver messo al sicuro gli
+// originali dei giochi rimasti lì; se dentro c'è altro (un Tasso.exe, file di altri) non si tocca.
+func TestDisinstallaCartellaLavoroFuoriProgrammi(t *testing.T) {
+	p := nuovaProva(t, "3.1")
+	if _, err := p.in.Installa(context.Background(), p.opzioni(Gaming, Ufficio)); err != nil {
+		t.Fatal(err)
+	}
+	radice := t.TempDir()
+	std := filepath.Join(radice, "Program Files", "Tasso")
+	scrivi := func(parti ...string) {
+		f := filepath.Join(append([]string{std}, parti...)...)
+		os.MkdirAll(filepath.Dir(f), 0o755)
+		os.WriteFile(f, []byte("x"), 0o644)
+	}
+	scrivi("lavoro", "tmp", "a.tmp")
+	scrivi("lavoro", "copie-giochi", "Hollow Knight", "data.pak")
+	scrivi("strumenti", "s.exe")
+	scrivi("chiave-traduzioni")
+	meta := filepath.Join(radice, "Documenti", "Tasso - copie di sicurezza")
+	p.in.MeteCopieGiochi = func() []Meta { return []Meta{{Cartella: meta, Copia: true}} }
+	r, err := p.in.DisinstallaCon(p.base, []Componente{Gaming, Ufficio}, OpzioniDisinstalla{TassoGiaPulito: true, CartellaLavoroTasso: std})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if esiste(std) {
+		t.Fatal("resta la cartella di lavoro di Tasso in Programmi")
+	}
+	if !esiste(filepath.Join(meta, "giochi", "Hollow Knight", "data.pak")) || len(r.CopieSalvate) != 1 {
+		t.Fatalf("originali dei giochi non messi al sicuro: %v", r.CopieSalvate)
+	}
+
+	// dentro c'è anche altro: non si tocca niente
+	p2 := nuovaProva(t, "3.1")
+	if _, err := p2.in.Installa(context.Background(), p2.opzioni(Gaming)); err != nil {
+		t.Fatal(err)
+	}
+	scrivi("lavoro", "tmp", "a.tmp")
+	scrivi("Tasso.exe")
+	if _, err := p2.in.DisinstallaCon(p2.base, []Componente{Gaming}, OpzioniDisinstalla{TassoGiaPulito: true, CartellaLavoroTasso: std}); err != nil {
+		t.Fatal(err)
+	}
+	if !esiste(filepath.Join(std, "lavoro", "tmp", "a.tmp")) || !esiste(filepath.Join(std, "Tasso.exe")) {
+		t.Fatal("toccata una cartella con dentro cose non solo di Tasso")
+	}
+	// è la cartella dell'installazione stessa: la tratta già togliCoseDiTasso
+	if cartellaLavoroDaTogliere(std, std) != "" || cartellaLavoroDaTogliere(filepath.Join(std, "x"), std) != "" {
+		t.Fatal("la cartella dell'installazione non è una cartella di lavoro \"altra\"")
+	}
+}

@@ -44,6 +44,9 @@ ol.passi li.fatto i{color:var(--a1)}
 main{flex:1;min-width:0;display:flex;flex-direction:column;background:radial-gradient(120% 70% at 100% 0%,color-mix(in srgb,var(--a2) 5%,transparent),transparent 60%)}
 .pagina{display:none;flex:1;padding:22px 34px 8px;flex-direction:column;gap:14px;overflow-y:auto}
 .pagina.on{display:flex}
+/* i figli non si schiacciano quando il contenuto non ci sta (la pagina scorre): la riga .k non
+   perde il suo spazio sotto e la sua linea non taglia le lettere (F17-9) */
+.pagina>*{flex-shrink:0}
 .pagina::-webkit-scrollbar{width:10px}.pagina::-webkit-scrollbar-thumb{background:var(--line);border-radius:10px;border:3px solid var(--bg)}
 /* scritta piccola in maiuscoletto spaziato, con la linea sotto come la Home di Tasso */
 .k{font:500 10.5px var(--mono);letter-spacing:.22em;color:var(--muted);text-transform:uppercase;padding-bottom:13px;border-bottom:1px solid var(--line);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -91,7 +94,9 @@ input[type=text]:focus{outline:none;border-color:color-mix(in srgb,var(--a1) 70%
 .percorsi div+div{border-top:1px solid var(--line)}
 .percorsi img{width:24px;height:24px}
 .percorsi b{width:120px;flex:0 0 120px;font-size:13px;font-weight:600}
-.percorsi code{font:500 12px var(--mono);color:var(--soft);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.percorsi code{min-width:0;font:500 12px var(--mono);color:var(--soft);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;direction:rtl;text-align:left}
+/* percorso lungo: i puntini a sinistra, così resta sempre visibile la fine (\Tasso Zip, \Tasso PDF) */
+.percorsi code bdi{direction:ltr;unicode-bidi:isolate}
 .spazio{font:500 10.5px var(--mono);color:var(--muted);letter-spacing:.14em;text-transform:uppercase}
 label.scelta{display:flex;gap:12px;align-items:center;color:var(--soft);cursor:pointer;font-size:13px;line-height:1.4}
 #sceltaDati{font-size:12px;line-height:1.38;align-items:flex-start}
@@ -100,6 +105,10 @@ label.scelta{display:flex;gap:12px;align-items:center;color:var(--soft);cursor:p
 #p6{padding-top:18px;gap:11px}#p6 .comp{gap:8px}#p6 .testa{gap:18px}#p6 .testa .gmask{width:50px}#p6 h1{font-size:24px}#p6 h1::after{margin-top:9px}#p6 .testa>div{gap:9px}#p6 .sub{font-size:12.5px;line-height:1.45}
 #p6 .nota{padding:8px 12px;font-size:12px;line-height:1.42}#p6 .carta{padding:10px 12px}#p6 .carta p{line-height:1.33}#p6 .carta .badge{margin-top:5px}
 label.scelta.fissa{cursor:default;opacity:.7}
+/* disinstalla: attesa ed errori dentro la pagina, sotto le schede (non nel piede, F17-1) */
+#disStato{overflow-wrap:anywhere}
+#disStato.attesa{border-left-color:var(--a1);color:var(--soft)}
+.carta.fissa{cursor:default}
 /* "Come ti chiami?" (3.2): il campo grande, errori in arancione, il saluto di prova */
 #p8 .testa .gmask{width:96px}
 .nomebox{position:relative;display:flex;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:14px;transition:border-color .15s,box-shadow .15s;margin-top:4px}
@@ -133,7 +142,7 @@ label.scelta.fissa{cursor:default;opacity:.7}
 .apri label.scelta+label.scelta{border-top:1px solid var(--line)}
 .sopraPiede{padding:10px 34px;border-top:1px solid var(--line);background:color-mix(in srgb,var(--panel) 55%,transparent)}
 .piede{display:flex;justify-content:flex-end;align-items:center;gap:10px;padding:11px 34px 13px;border-top:1px solid var(--line)}
-.piede .msg{margin-right:auto;color:var(--red);font-size:13px}
+.piede .msg{margin-right:auto;flex:1;min-width:0;overflow-wrap:anywhere;color:var(--red);font-size:13px}
 .btn{border:0;border-radius:9px;padding:10px 24px;font:800 13px var(--display);font-stretch:112%;letter-spacing:.08em;text-transform:uppercase;min-height:40px;transition:transform .15s,box-shadow .15s,background .15s}
 .btn.primary{background:var(--text);color:var(--bg)}
 .btn.primary:hover{background:#fff;transform:translateY(-1px);box-shadow:0 0 0 3px color-mix(in srgb,var(--text) 14%,transparent)}
@@ -147,14 +156,57 @@ label.scelta.fissa{cursor:default;opacity:.7}
 .finestra h2{margin:0;font-family:var(--display);font-weight:800;font-stretch:112%;font-size:19px;text-transform:uppercase;letter-spacing:-.01em}
 .finestra h2::after{content:"";display:block;width:32px;height:3px;background:var(--a1);margin-top:10px}
 .finestra .riga{justify-content:flex-end;margin-top:6px}
-.toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 16px;display:none;z-index:10}
+.toast{position:fixed;left:calc(50% + 106px);bottom:90px;transform:translateX(-50%);max-width:min(560px,calc(100vw - 260px));background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 16px;display:none;z-index:10}
 .toast.on{display:block}
 /* programmi in aggiornamento (badge + nota): tutto in una schermata */
 #p1:has(#notaAgg:not([hidden])){gap:10px}#p1:has(#notaAgg:not([hidden])) .testa{gap:18px}#p1:has(#notaAgg:not([hidden])) .testa .gmask{width:52px}#p1:has(#notaAgg:not([hidden])) h1{font-size:24px}#p1:has(#notaAgg:not([hidden])) h1::after{margin-top:9px}#p1:has(#notaAgg:not([hidden])) .testa>div{gap:9px}
 #p1:has(#notaAgg:not([hidden])) .nota{padding:8px 12px;line-height:1.4}#p1:has(#notaAgg:not([hidden])) .comp{gap:8px}#p1:has(#notaAgg:not([hidden])) .carta{padding:10px 12px}#p1:has(#notaAgg:not([hidden])) .carta .badge{margin-top:5px}
+/* cartella con un avviso o un errore: titolo più piccolo, così ci sta anche in tedesco */
+#p2:has(.nota:not([hidden])){gap:11px}#p2:has(.nota:not([hidden])) .testa{gap:18px}#p2:has(.nota:not([hidden])) .testa .gmask{width:52px}#p2:has(.nota:not([hidden])) h1{font-size:24px}#p2:has(.nota:not([hidden])) h1::after{margin-top:9px}#p2:has(.nota:not([hidden])) .testa>div{gap:9px}
+#p2 .nota{padding:8px 12px;line-height:1.42}
+/* aggiornamento: le scritte delle schede (anche "già più nuova") più compatte */
+#p1:has(#notaAgg:not([hidden])) .carta .badge{letter-spacing:.06em}
 /* contrasto leggibile (>= 4.5:1) */
 ol.passi li i,.ver,.lingue button span{color:#7A808D}
 .carta.no{opacity:1}.carta.no img,.carta.no input{opacity:.45}.carta.no b{color:var(--muted)}
+/* finestra bassa (fino a 760x560): pagine più compatte, così ci stanno senza scorrere (F17-9, F17-10) */
+@media (max-height:560px){
+  .pagina{padding-top:16px;gap:10px}
+  .k{padding-bottom:10px}
+  .testa{gap:18px}.testa .gmask{width:50px}.testa>div{gap:8px}
+  h1{font-size:24px}h1::after{margin-top:8px}
+  .testa.big .gmask{width:96px}.testa.big h1{font-size:32px}.testa.big{gap:26px}
+  .sub{font-size:12.5px;line-height:1.45}
+  .nota{padding:7px 12px;font-size:12px;line-height:1.4}
+  .comp{gap:8px}.carta{padding:9px 12px;gap:11px}.carta img{width:34px;height:34px;flex-basis:34px}.carta p{line-height:1.3}.carta .badge{margin-top:4px}
+  .lingue button{padding:11px 14px}
+  .riga input[type=text]{padding:9px 12px}.riga .btn{min-height:36px;padding:8px 18px}
+  .percorsi div{padding:5px 4px}.percorsi img{width:20px;height:20px}
+  label.scelta{font-size:12.5px}
+  #p8 .testa .gmask{width:72px}.nomebox input[type=text]#nome{padding:14px 18px}
+  .sopraPiede{padding:8px 34px}.piede{padding:9px 34px 10px}.btn{min-height:36px;padding:8px 22px}
+  #p6,#p1:has(#notaAgg:not([hidden])){padding-top:14px;gap:8px}
+  #p6 .testa .gmask,#p1:has(#notaAgg:not([hidden])) .testa .gmask{display:none}
+  #p6 h1,#p1:has(#notaAgg:not([hidden])) h1{font-size:21px}
+  #p6 .carta,#p1:has(#notaAgg:not([hidden])) .carta{padding:8px 11px}
+  #p6 .carta p,#p1:has(#notaAgg:not([hidden])) .carta p{font-size:11.5px}
+  #p6 .nota,#p1:has(#notaAgg:not([hidden])) .nota{padding:6px 11px;font-size:11.5px;line-height:1.36}
+  #sceltaDati{font-size:11.5px;line-height:1.33}
+  #p6 .carta .badge{letter-spacing:.05em}
+  #p6 .carta p{display:none} /* disinstallando basta il nome: la descrizione serve per scegliere cosa installare */
+  #p2:has(.nota:not([hidden])) .testa .gmask{display:none}#p2:has(.nota:not([hidden])) h1{font-size:21px}
+  .percorsi b{width:96px;flex-basis:96px}
+  .spazio{letter-spacing:.08em}
+}
+/* aggiornamento alla misura normale o più piccola: le schede dei programmi già installati senza
+   descrizione (c'è la scritta "Installato"), così la pagina ci sta anche in tedesco */
+@media (max-height:620px){#p1:has(#notaAgg:not([hidden])) .carta.inst p{display:none}}
+/* finestra grande o massimizzata: il contenuto non si allunga oltre una larghezza ragionevole e
+   resta al centro, con la casella dei dati e i pulsanti vicini (F17-19) */
+@media (min-width:1180px),(min-height:780px){
+  main{max-width:940px;max-height:700px;margin:auto;height:100%;border:1px solid var(--line);border-radius:16px;overflow:hidden}
+  .app{background:radial-gradient(90% 70% at 70% 30%,color-mix(in srgb,var(--a2) 4%,transparent),transparent 70%)}
+}
 @media (prefers-reduced-motion:reduce){.barra i{transition:none}.gmask .look,.gmask .eye{animation:none}.btn{transition:none}}
 </style>
 </head>
@@ -192,15 +244,15 @@ ol.passi li i,.ver,.lingue button span{color:#7A808D}
     <section class="pagina" id="p1">
       <div class="k">03 · <span data-t="passo_componenti"></span></div>
       <div class="testa"><svg class="gmask" viewBox="0 0 240 220" aria-hidden="true"><path d="M44 22 H196 L226 104 L120 206 L14 104 Z" fill="var(--text)"/><path d="M80 22 H106 L108 142 L56 132 L36 98 Z" fill="var(--bg)"/><path d="M160 22 H134 L132 142 L184 132 L204 98 Z" fill="var(--bg)"/><g class="look"><circle class="eye" cx="82" cy="112" r="12" fill="var(--a1)"/></g><g class="look"><circle class="eye" cx="158" cy="112" r="12" fill="var(--a1)"/></g><path d="M100 164 H140 L120 190 Z" fill="var(--bg)"/></svg><div><h1 data-t="comp_titolo"></h1><p class="sub" data-t="comp_sotto"></p></div></div>
+      <div class="nota" id="notaAgg" hidden></div>
       <div class="comp" id="comp"></div>
       <div class="nota" data-t="comp_nota_tasso"></div>
-      <div class="nota" id="notaAgg" hidden></div>
     </section>
     <!-- 2. cartella -->
     <section class="pagina" id="p2">
       <div class="k">04 · <span data-t="passo_cartella"></span></div>
       <div class="testa"><svg class="gmask" viewBox="0 0 240 220" aria-hidden="true"><path d="M44 22 H196 L226 104 L120 206 L14 104 Z" fill="var(--text)"/><path d="M80 22 H106 L108 142 L56 132 L36 98 Z" fill="var(--bg)"/><path d="M160 22 H134 L132 142 L184 132 L204 98 Z" fill="var(--bg)"/><g class="look"><circle class="eye" cx="82" cy="112" r="12" fill="var(--a1)"/></g><g class="look"><circle class="eye" cx="158" cy="112" r="12" fill="var(--a1)"/></g><path d="M100 164 H140 L120 190 Z" fill="var(--bg)"/></svg><div><h1 data-t="cart_titolo"></h1><p class="sub" data-t="cart_sotto"></p></div></div>
-      <div class="riga"><input type="text" id="cartella" spellcheck="false" aria-label="Cartella"><button class="btn ghost" id="sfoglia" data-t="cart_sfoglia"></button></div>
+      <div class="riga"><input type="text" id="cartella" spellcheck="false" data-ta="passo_cartella"><button class="btn ghost" id="sfoglia" data-t="cart_sfoglia"></button></div>
       <div class="nota errore" id="errCartella" hidden></div>
       <div class="nota avviso" id="avvCartella" hidden data-t="cart_fuori_programmi"></div>
       <div class="percorsi" id="percorsi"></div>
@@ -234,6 +286,7 @@ ol.passi li i,.ver,.lingue button span{color:#7A808D}
       <div class="testa"><svg class="gmask" viewBox="0 0 240 220" aria-hidden="true"><path d="M44 22 H196 L226 104 L120 206 L14 104 Z" fill="var(--text)"/><path d="M80 22 H106 L108 142 L56 132 L36 98 Z" fill="var(--bg)"/><path d="M160 22 H134 L132 142 L184 132 L204 98 Z" fill="var(--bg)"/><g class="look"><circle class="eye" cx="82" cy="112" r="12" fill="var(--a1)"/></g><g class="look"><circle class="eye" cx="158" cy="112" r="12" fill="var(--a1)"/></g><path d="M100 164 H140 L120 190 Z" fill="var(--bg)"/></svg><div><h1 data-t="dis_titolo"></h1><p class="sub" data-t="dis_sotto"></p></div></div>
       <div class="comp" id="compDis"></div>
       <div class="nota" id="notaDis" data-t="dis_nota_tasso"></div>
+      <div class="nota" id="disStato" role="alert" hidden></div>
     </section>
     <!-- 7. disinstallazione finita -->
     <section class="pagina" id="p7">
@@ -278,6 +331,7 @@ function traduci(){
   document.documentElement.lang = L;
   document.querySelectorAll('[data-t]').forEach(e => { e.textContent = T(e.dataset.t); });
   document.querySelectorAll('[data-tp]').forEach(e => { e.placeholder = T(e.dataset.tp); e.setAttribute('aria-label', T(e.dataset.tp)); });
+  document.querySelectorAll('[data-ta]').forEach(e => { e.setAttribute('aria-label', T(e.dataset.ta)); });
   document.title = T('titolo');
 }
 function dim(n){
@@ -287,6 +341,13 @@ function dim(n){
 }
 function toast(t){ const e = $('#toast'); e.textContent = t; e.classList.add('on'); clearTimeout(toast.t); toast.t = setTimeout(() => e.classList.remove('on'), 3500); }
 function msg(t){ $('#msg').textContent = t || ''; }
+// disinstalla: l'attesa e gli errori stanno dentro la pagina, sotto le schede; intanto la nota
+// che spiega cosa succede togliendo Tasso si nasconde (è già stata letta prima di premere)
+function disStato(t, tipo){
+  const e = $('#disStato'); e.hidden = !t; e.textContent = t || '';
+  e.classList.toggle('errore', tipo === 'errore'); e.classList.toggle('attesa', tipo === 'attesa');
+  $('#notaDis').hidden = !!t;
+}
 // Mentre aspetto Tasso (può volerci qualche minuto) il messaggio cambia: il passo di Tasso e il
 // tempo che passa, così nessuno pensa che il setup sia bloccato (R2).
 const attesaTasso = { t0: 0, passo: -1, timer: null };
@@ -295,7 +356,7 @@ function attesaScrivi(){
   const s = Math.floor((Date.now() - attesaTasso.t0) / 1000);
   const tempo = Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
   const t = attesaTasso.passo >= 0 ? T('dis_tasso_passo_' + attesaTasso.passo) : attesaTasso.passo === -2 ? T('dis_in_corso') : T('dis_tasso_attesa');
-  $('#msg').style.color = 'var(--muted)'; $('#msg').textContent = t + ' · ' + tempo;
+  disStato(t + ' · ' + tempo, 'attesa');
 }
 function attesaInizio(p){ attesaTasso.t0 = Date.now(); attesaTasso.passo = p == null ? -1 : p; attesaScrivi(); attesaTasso.timer = setInterval(attesaScrivi, 1000); }
 function attesaFine(){ clearInterval(attesaTasso.timer); attesaTasso.timer = null; attesaTasso.t0 = 0; }
@@ -383,13 +444,14 @@ function vai(p){
   $('#passi').hidden = A.modo === 'disinstalla';
   $('#rigaDati').hidden = p !== 6 || $('#sceltaDati').hidden;
   const ind = $('#bIndietro'), av = $('#bAvanti'), ann = $('#bAnnulla');
-  ind.hidden = !(p === 1 || p === 2 || p === 8); ann.hidden = true; av.hidden = false; av.disabled = false;
+  // Indietro anche nella pagina d'errore dell'installazione: si torna ai Programmi (F17-12)
+  ind.hidden = !(p === 1 || p === 2 || p === 8 || (p === 5 && A.modo !== 'disinstalla' && !A.vuoto)); ann.hidden = true; av.hidden = false; av.disabled = false;
   if (p === 0 || p === 1 || p === 8) av.textContent = T('avanti');
   if (p === 8) { nomeCampo(); setTimeout(() => $('#nome').focus(), 30); } // Avanti spento finché il nome non va bene
   if (p === 2) { av.textContent = A.installata ? T('aggiorna') : T('installa'); controllaCartella(); }
   if (p === 3) { av.hidden = true; ann.hidden = false; ann.disabled = false; ann.textContent = T('annulla'); } // anche dopo Riprova (in 5 dice Chiudi)
   if (p === 4 || p === 7) { av.textContent = T('chiudi'); }
-  if (p === 5) { av.textContent = T('riprova'); ann.hidden = false; ann.textContent = T('chiudi'); }
+  if (p === 5) { av.textContent = T('riprova'); av.hidden = senzaRiprova; ann.hidden = false; ann.textContent = T('chiudi'); } // agg_vecchio: Riprova darebbe lo stesso errore
   if (p === 6) { av.textContent = T('dis_bottone'); ann.hidden = false; ann.textContent = T('annulla'); }
   const f = document.querySelector('.pagina.on h1'); if (f) f.setAttribute('tabindex', '-1');
 }
@@ -405,21 +467,25 @@ function disegnaLingue(){
   });
 }
 
-function carta(c, mappa, testoExtra){
-  const lab = document.createElement('label'); lab.className = 'carta ' + (mappa[c.id] ? 'si' : 'no');
+function carta(c, mappa, testoExtra, fisso){
+  const lab = document.createElement('label'); lab.className = 'carta ' + (mappa[c.id] ? 'si' : 'no') + (fisso ? ' fissa' : '');
   lab.innerHTML = '<img alt=""><div class="t"><b></b><p></p></div><input type="checkbox">';
   lab.querySelector('img').src = ICONE[c.id];
   lab.querySelector('b').textContent = nomeComp(c.id);
   lab.querySelector('p').textContent = T('comp_' + c.id + '_desc');
-  if (testoExtra) { const s = document.createElement('span'); s.className = 'badge'; s.textContent = testoExtra; lab.querySelector('.t').appendChild(s); }
+  if (testoExtra) { const s = document.createElement('span'); s.className = 'badge'; s.textContent = testoExtra; lab.querySelector('.t').appendChild(s); lab.classList.add('inst'); }
   const cb = lab.querySelector('input'); cb.checked = !!mappa[c.id];
   cb.setAttribute('aria-label', nomeComp(c.id));
-  cb.onchange = () => { mappa[c.id] = cb.checked; lab.className = 'carta ' + (cb.checked ? 'si' : 'no'); msg(''); if (mappa === dis) aggiornaSceltaDati(A.preScelti); };
+  cb.disabled = !!fisso; // già più nuovo sul PC: resta com'è, la casella non fa niente (F17-15)
+  cb.onchange = () => { mappa[c.id] = cb.checked; lab.classList.toggle('si', cb.checked); lab.classList.toggle('no', !cb.checked); msg(''); if (mappa === dis) { disStato(''); aggiornaSceltaDati(A.preScelti); } };
   return lab;
 }
 function disegnaComp(){
   const box = $('#comp'); box.innerHTML = '';
-  A.componenti.forEach(c => box.appendChild(carta(c, scelti, c.piuNuovo ? T('comp_piu_nuovo', c.piuNuovo) : (c.installato ? T('comp_installato', c.installato) : ''))));
+  A.componenti.forEach(c => box.appendChild(carta(c, scelti, c.piuNuovo ? T('comp_piu_nuovo', c.piuNuovo) : (c.installato ? T('comp_installato', c.installato) : ''), !!c.piuNuovo)));
+  // aggiornamento: "è già tutto spuntato" non è vero (sono spuntati solo i programmi che ci sono già):
+  // lo dice la nota dell'aggiornamento, sopra le schede (F17-8)
+  $('#p1 .sub').hidden = !!A.installata;
   const n = $('#notaAgg'); n.hidden = !A.installata;
   if (A.installata) n.textContent = T('agg_nota', A.installata.versione) + (A.installata.vecchio ? '\n' + T('agg_vecchio', A.versione) : '');
   const d = $('#compDis'); d.innerHTML = '';
@@ -441,7 +507,7 @@ async function controllaCartella(){
     if (scelti.gaming || scelti.ufficio) righe.push([scelti.gaming ? 'gaming' : 'ufficio', 'Tasso', r.percorsi.tasso]);
     if (scelti.zip) righe.push(['zip', nomeComp('zip'), r.percorsi.zip]);
     if (scelti.pdf) righe.push(['pdf', nomeComp('pdf'), r.percorsi.pdf]);
-    righe.forEach(x => { const d = document.createElement('div'); d.innerHTML = '<img alt=""><b></b><code></code>'; d.querySelector('img').src = ICONE[x[0]]; d.querySelector('b').textContent = x[1]; d.querySelector('code').textContent = x[2]; d.title = x[2]; box.appendChild(d); });
+    righe.forEach(x => { const d = document.createElement('div'); d.innerHTML = '<img alt=""><b></b><code><bdi></bdi></code>'; d.querySelector('img').src = ICONE[x[0]]; d.querySelector('b').textContent = x[1]; d.querySelector('bdi').textContent = x[2]; d.title = x[2]; box.appendChild(d); });
   }
   $('#spazio').textContent = r.errore ? '' : T('cart_spazio', dim(r.serve), r.libero > 0 ? dim(r.libero) : '?');
   if (!r.errore && r.libero > 0 && r.libero < r.serve) { e.hidden = false; e.textContent = T('cart_poco_spazio'); }
@@ -475,11 +541,13 @@ function chiediChiusura(nomi){
 }
 let ultimaOpz = null;  // le scelte dell'ultima installazione (per Riprova)
 let erroreCartella = false;
+let senzaRiprova = false; // agg_vecchio: con le stesse scelte Riprova darebbe lo stesso errore
 function mostraErrore(r){
   const conDettagli = r && (r.codice === 'err_generico' || r.codice === 'err_bloccato' || r.codice === 'agg_vecchio');
   let t = r && r.codice ? (conDettagli ? T(r.codice, r.dettagli || '') : T(r.codice)) : T('err_generico', String(r && r.dettagli || r));
   if (r && r.diario) t += '\n\n' + T('err_diario', r.diario);
   erroreCartella = !!(r && r.codice && String(r.codice).startsWith('cart_'));
+  senzaRiprova = !!(r && r.codice === 'agg_vecchio');
   $('#errTesto').textContent = t; vai(5);
 }
 
@@ -499,6 +567,8 @@ window.TS = {
     if (!r.ok) { mostraErrore(r); return; }
     fattoOk = r;
     $('#avvColl').hidden = !r.avvisoCollegamenti;
+    // "nel menu Start" solo se i collegamenti ci sono tutti; "aggiornato" se era già installato (F17-8)
+    $('#p4 .sub').textContent = A.installata ? (r.avvisoCollegamenti ? T('fine_sotto_agg_breve') : T('fine_sotto_agg')) : (r.avvisoCollegamenti ? T('fine_sotto_breve') : T('fine_sotto'));
     const box = $('#apri'); box.innerHTML = '';
     (r.apribili || []).forEach(id => {
       const l = document.createElement('label'); l.className = 'scelta';
@@ -510,7 +580,7 @@ window.TS = {
     $('#barra').style.width = '100%'; $('#perc').textContent = '100%';
     vai(4);
   },
-  chiusura(){ toast(T('uscita_durante')); },
+  chiusura(){ toast(A && A.modo === 'disinstalla' ? T('uscita_durante_dis') : T('uscita_durante')); },
 };
 
 $('#bAvanti').onclick = async () => {
@@ -521,11 +591,11 @@ $('#bAvanti').onclick = async () => {
   if (P === 4) { const ids = [...document.querySelectorAll('#apri input:checked')].map(i => i.dataset.id); await call('goApri', ids); call('goChiudi'); return; }
   // Riprova: rifà subito l'installazione con le stesse scelte (richiude i programmi se serve);
   // solo con un problema della cartella si torna alla pagina della cartella
-  if (P === 5) { if (erroreCartella || !ultimaOpz) { vai(2); return; } installa(ultimaOpz); return; }
+  if (P === 5) { if (senzaRiprova) return; if (erroreCartella || !ultimaOpz) { vai(2); return; } installa(ultimaOpz); return; }
   if (P === 6) { disinstalla(); return; }
   if (P === 7) { call('goChiudi'); }
 };
-$('#bIndietro').onclick = () => { const prima = {8: 0, 1: 8, 2: 1}[P]; if (prima != null) vai(prima); };
+$('#bIndietro').onclick = () => { const prima = {8: 0, 1: 8, 2: 1, 5: 1}[P]; if (prima != null) vai(prima); };
 $('#nome').addEventListener('input', nomeCampo);
 $('#nome').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); $('#bAvanti').click(); } });
 $('#bAnnulla').onclick = () => { if (P === 3) { $('#bAnnulla').disabled = true; call('goAnnulla'); } else call('goChiudi'); };
@@ -544,31 +614,39 @@ function aggiornaSceltaDati(pre){
   if ($('#sceltaDati').hidden) $('#disDati').checked = false;
   $('#rigaDati').hidden = P !== 6 || $('#sceltaDati').hidden;
 }
+// disinstalla: mentre lavora, schede e casella dei dati non si cambiano (F17-11)
+function disBlocca(si){
+  document.querySelectorAll('#compDis input, #disDati').forEach(i => { i.disabled = si; });
+  $('#bAvanti').disabled = si; $('#bAnnulla').disabled = si;
+}
+// il testo di un errore della disinstallazione: mai "non è cambiato niente" (F17-3, F17-4)
+function disErrore(r){
+  if (r && r.codice === 'dis_gia_in_corso') return T('dis_gia_in_corso');
+  if (r && r.rifiuta) return T('dis_rifiuta', r.dettagli || '');
+  if (r && r.copieNonSalvate) return T('dis_copie_non_salvate', r.dettagli || '');
+  if (r && r.chiuso === false) return T('tasso_occupato');
+  return T('dis_err_parziale', (r && r.dettagli) || '') + (r && r.diario ? '\n\n' + T('err_diario', r.diario) : '');
+}
 async function disinstalla(){
   // solo quelli installati (dis parte spuntato anche per quelli che non ci sono): tutti tolti = dis_nessuno
   const ids = A.componenti.map(c => c.id).filter(id => dis[id] && ((A.installata && A.installata.componenti) || []).includes(id));
-  if (!ids.length) { msg(T('dis_nessuno')); return; }
+  if (!ids.length) { disStato(T('dis_nessuno'), 'errore'); return; }
+  const togliDati = !!$('#disDati').checked && !$('#sceltaDati').hidden; // letta adesso: dopo non si cambia
   const aperti = await call('goProgrammiAperti', A.cartella, ids);
   if (aperti && aperti.length && !await chiediChiusura(aperti)) return;
-  $('#bAvanti').disabled = true; $('#bAnnulla').disabled = true; msg(''); $('#msg').style.color = 'var(--muted)'; $('#msg').textContent = T('dis_in_corso');
+  disBlocca(true); msg(''); disStato(T('dis_in_corso'), 'attesa');
   // prima Tasso toglie le sue cose (chiude solo Tasso); se rifiuta, Zip e PDF restano aperti
   attesaInizio();
   const pr = await call('goPreparaDisinstalla', ids);
   attesaFine();
-  if (!pr || !pr.ok) {
-    $('#msg').style.color = ''; $('#bAvanti').disabled = false; $('#bAnnulla').disabled = false;
-    msg(pr && pr.rifiuta ? T('dis_rifiuta', pr.dettagli || '') : T('aperti_errore')); return;
-  }
+  if (!pr || !pr.ok) { disBlocca(false); disStato(disErrore(pr), 'errore'); return; }
   if (aperti && aperti.length && !await call('goChiudiProgrammi', A.cartella, ids)) {
-    $('#msg').style.color = ''; $('#bAvanti').disabled = false; $('#bAnnulla').disabled = false;
-    msg(T('aperti_errore')); return;
+    disBlocca(false); disStato(T('aperti_errore'), 'errore'); return;
   }
-  $('#msg').textContent = T('dis_in_corso');
   attesaInizio(-2); // -2: "Tolgo i programmi scelti…"; il passo di Tasso, se c'è, arriva da passoTasso
-  const r = await call('goDisinstalla', ids, !!$('#disDati').checked && !$('#sceltaDati').hidden);
+  const r = await call('goDisinstalla', ids, togliDati);
   attesaFine();
-  $('#msg').style.color = '';
-  if (!r.ok) { $('#bAvanti').disabled = false; $('#bAnnulla').disabled = false; msg(r.rifiuta ? T('dis_rifiuta', r.dettagli || '') : r.copieNonSalvate ? T('dis_copie_non_salvate', r.dettagli || '') : T('err_generico', r.dettagli || '')); return; }
+  if (!r || !r.ok) { disBlocca(false); disStato(disErrore(r), 'errore'); return; }
   $('#disEsito').textContent = r.tuttoTolto ? T('dis_tutto') : T('dis_fatto');
   const nt = $('#disNonTolti'); const righe = [];
   if (r.nonTolti && r.nonTolti.length) righe.push(T('dis_non_tolti', r.nonTolti.join(', ')));

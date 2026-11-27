@@ -1251,6 +1251,31 @@ func collegamentoWin(p string) bool {
 	return a&windows.FILE_ATTRIBUTE_REPARSE_POINT != 0
 }
 
+// togliCartellaLavoro: dopo una disinstallazione che ha tolto tutto (senza file rimasti), via anche
+// %ProgramData%\TassoSetup: il diario (con percorsi e nome dell'account) e i dati della WebView2.
+// Tolgo solo quello che mette l'installatore, per nome; la cartella solo se poi resta vuota. Le
+// cartelle "TassoSetup.vecchia-*" accanto (spostate via perché non erano dell'installatore) restano.
+func togliCartellaLavoro(base string) {
+	if base == "" {
+		return
+	}
+	if fi, err := os.Lstat(base); err != nil || !fi.IsDir() || fi.Mode()&(fs.ModeSymlink|fs.ModeIrregular) != 0 || collegamentoWin(base) {
+		return
+	}
+	installa.ImpostaDiario("") // da qui in poi niente diario: lo sto togliendo
+	for _, n := range []string{installa.NomeDiario, installa.NomeDiario + ".1"} {
+		_ = os.Remove(filepath.Join(base, n))
+	}
+	if voci, err := os.ReadDir(base); err == nil {
+		for _, v := range voci {
+			if v.IsDir() && v.Type()&(fs.ModeSymlink|fs.ModeIrregular) == 0 && strings.HasPrefix(v.Name(), installa.PrefissoDatiWebView2) {
+				_ = os.RemoveAll(filepath.Join(base, v.Name()))
+			}
+		}
+	}
+	_ = os.Remove(base) // solo se vuota
+}
+
 // togliDatiWebView2Vecchi: le cartelle della WebView2 rimaste da installazioni chiuse male.
 func togliDatiWebView2Vecchi(base string) {
 	if base == "" {

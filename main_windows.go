@@ -37,13 +37,16 @@ var (
 	inCorso  atomic.Bool  // installazione o disinstallazione in corso
 	// tassoPulito: Tasso ha già tolto le sue cose (goPreparaDisinstalla)
 	tassoPulito atomic.Bool
-	annullaMu   sync.Mutex
-	annullaFn   context.CancelFunc
-	elenco      *installa.Elenco
-	errElenco   error
-	reg         = registroWin{}
-	modoDisins  bool
-	baseDisins  string
+	// tuttoToltoPulito: la disinstallazione ha tolto tutto, senza file rimasti: all'uscita va via
+	// anche la cartella di lavoro dell'installatore (%ProgramData%\TassoSetup, vedi togliCartellaLavoro)
+	tuttoToltoPulito atomic.Bool
+	annullaMu        sync.Mutex
+	annullaFn        context.CancelFunc
+	elenco           *installa.Elenco
+	errElenco        error
+	reg              = registroWin{}
+	modoDisins       bool
+	baseDisins       string
 	// --scegli=gaming,ufficio: nel disinstallatore sono già spuntati solo questi (lo usa
 	// "Togli Tasso dal PC" dentro Tasso). Si possono sempre cambiare.
 	preScelti []installa.Componente
@@ -156,6 +159,9 @@ func main() {
 	dati := nuoviDatiWebView2()
 	defer func() {
 		togliDatiWebView2(dati)
+		if tuttoToltoPulito.Load() {
+			togliCartellaLavoro(cartellaLav)
+		}
 		cancellaAllUscita()
 	}()
 
@@ -226,10 +232,13 @@ func scalaSchermo() float64 {
 }
 
 // portaDavanti: porta davanti la finestra di Tasso Setup già aperta; false se qui non c'è (per
-// esempio è aperta da un altro utente collegato).
+// esempio è aperta da un altro utente collegato). Cerca la classe della finestra della WebView2
+// ("webview", third_party/go-webview2/webview.go) con il titolo: una cartella di Esplora file che
+// si chiama "Tasso Setup" non conta.
 func portaDavanti() bool {
+	cl, _ := windows.UTF16PtrFromString("webview")
 	tit, _ := windows.UTF16PtrFromString(testi.T(L(), "titolo"))
-	if hw, _, _ := procFindWindowW.Call(0, uintptr(unsafe.Pointer(tit))); hw != 0 {
+	if hw, _, _ := procFindWindowW.Call(uintptr(unsafe.Pointer(cl)), uintptr(unsafe.Pointer(tit))); hw != 0 {
 		procSetForegroundWindow.Call(hw)
 		return true
 	}
@@ -428,6 +437,11 @@ func collega(w webview2.WebView) {
 		if !modoDisins || len(preScelti) > 0 || !installa.TogliTasso(st, componenti(cc)) {
 			return map[string]any{"ok": true}
 		}
+		// mentre Tasso toglie le sue cose (anche minuti) la X non chiude l'installatore (ChiusuraHook)
+		if !inCorso.CompareAndSwap(false, true) {
+			return map[string]any{"ok": false, "codice": "dis_gia_in_corso"}
+		}
+		defer inCorso.Store(false)
 		eraAperto := tassoGira(baseDisins)
 		if eraAperto && !chiudiProgrammi(baseDisins, []installa.Componente{installa.Gaming, installa.Ufficio}) {
 			return map[string]any{"ok": false, "chiuso": false}
@@ -534,7 +548,7 @@ func collega(w webview2.WebView) {
 	})
 	_ = w.Bind("goDisinstalla", func(cc []string, togliDati bool) map[string]any {
 		if !inCorso.CompareAndSwap(false, true) {
-			return map[string]any{"ok": false, "dettagli": "…"}
+			return map[string]any{"ok": false, "codice": "dis_gia_in_corso"}
 		}
 		defer inCorso.Store(false)
 		// CreaCollegamento serve anche qui: se resta Tasso con un'altra modalità (es. tolto
@@ -561,7 +575,9 @@ func collega(w webview2.WebView) {
 		manda("passoTasso", -2)
 		chiudiAiutanti(baseDisins, componenti(cc), nil, nil)
 		r, err := in.DisinstallaCon(baseDisins, componenti(cc), installa.OpzioniDisinstalla{
-			TogliDati: togliDati && viaTasso && len(preScelti) == 0, TassoGiaPulito: true})
+			TogliDati: togliDati && viaTasso && len(preScelti) == 0, TassoGiaPulito: true,
+			// Tasso fuori da Programmi lavora in C:\Program Files\Tasso (cartellaTasso di Tasso)
+			CartellaLavoroTasso: installa.CartellaPredefinita(programFiles())})
 		if err != nil {
 			installa.Diario("disinstallazione NON riuscita: %v", err)
 		}
@@ -575,7 +591,11 @@ func collega(w webview2.WebView) {
 			return map[string]any{"ok": false, "copieNonSalvate": true, "dettagli": strings.Join(nonSalv.Dove, ", ")}
 		}
 		if err != nil {
-			return map[string]any{"ok": false, "dettagli": err.Error()}
+			// può essersi fermata dopo aver già tolto file o collegamenti: mai "non è cambiato niente"
+			return map[string]any{"ok": false, "codice": "dis_err_parziale", "dettagli": err.Error(), "diario": installa.PercorsoDiario()}
+		}
+		if r.TuttoTolto && len(r.NonTolti) == 0 && len(r.AlRiavvio) == 0 {
+			tuttoToltoPulito.Store(true)
 		}
 		if viaTasso {
 			togliCollegamentoVecchio(baseDisins) // il Tasso.lnk della 3.0 sistemato all'installazione

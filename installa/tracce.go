@@ -75,9 +75,11 @@ func cartellaDatiProgramma(p Programma) string {
 	switch p {
 	case ProgZip:
 		return "Tasso Zip"
+	case ProgPDF:
+		// dentro c'è anche la firma salvata con "Ricorda" (firma.dat, cifrata per l'utente): senza
+		// Tasso PDF non serve più a niente e non deve restare sul PC di chi ha tolto il programma
+		return "Tasso PDF"
 	}
-	// Tasso PDF: la sua cartella dei dati resta, perché dentro c'è la firma salvata dall'utente
-	// (un file suo, non del programma).
 	return ""
 }
 

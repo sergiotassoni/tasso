@@ -41,7 +41,7 @@ func PaginaAggiorna(titolo, testo string) string {
 }
 
 var (
-	reDataT = regexp.MustCompile(`data-tp?="([a-z0-9_]+)"`) // data-tp: il testo del segnaposto
+	reDataT = regexp.MustCompile(`data-t[pa]?="([a-z0-9_]+)"`) // data-tp: il segnaposto; data-ta: l'etichetta per chi non vede
 	reT     = regexp.MustCompile(`\bT\('([a-z0-9_]+)'[,)]`)
 	reNome  = regexp.MustCompile(`'(nome_[a-z_]+)'`)
 	reComp  = regexp.MustCompile(`'comp_' \+ [a-z.]+ \+ '_([a-z]+)'`)

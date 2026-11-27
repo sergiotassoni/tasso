@@ -182,7 +182,8 @@ func eseguiAggiornamento(piano *installa.PianoAggiornamento, riapri bool, avanza
 		if tassoAperto {
 			riapriTasso(base)
 		}
-		return installa.UscitaErrore, testi.T(L(), "aperti_errore")
+		// qui resta aperto solo Tasso (Zip e PDF aperti si fermano sopra, con aggs_aperti)
+		return installa.UscitaErrore, testi.T(L(), "tasso_occupato")
 	}
 	chiudiAiutanti(base, o.Componenti, radici, prima)
 	in := nuovoInstallatore()
