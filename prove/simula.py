@@ -53,7 +53,7 @@ const ELENCO = { tipo: "zip", dim: 248512000, metodo: "Deflate, Store", voci: [
   { nome: "Foto vacanze 2026/leggimi.txt", dim: 2048, compresso: 900, quando: giorni(21) },
 ]};
 const pausa = ms => new Promise(r => setTimeout(r, ms));
-window.goAvvio = async () => ({ lingua: SCENA[1] || "it", lingue: ["it","en","es","fr","de","pt","pl"], testi: TESTI, versione: "1.3.0", menu: true, assoc: false, formato: "zip", livello: "massima", desktop: "C:\\Users\\Utente\\Desktop", formati: ["zip","7z","tar","targz","tarxz","tarbz2","tarzst"] });
+window.goAvvio = async () => ({ lingua: SCENA[1] || "it", lingue: ["it","en","es","fr","de","pt","pl"], testi: TESTI, versione: "1.3.1", menu: true, assoc: false, formato: "zip", livello: "massima", desktop: "C:\\Users\\Utente\\Desktop", formati: ["zip","7z","tar","targz","tarxz","tarbz2","tarzst"] });
 window.goLuoghi = async () => ({ luoghi: LUOGHI, iniziale: D, nascosti: false });
 window.goEsplora = async (id, dir) => { setTimeout(() => tz.cartella({ id, codice: "", el: { percorso: dir || D, padre: "C:\\Users\\Utente", voci: VOCI, nascosti: 2, troppi: false } }), 20); return "ok"; };
 window.goElenca = async (p) => { setTimeout(() => tz.elenco({ percorso: p, elenco: ELENCO }), 30); return "ok"; };
