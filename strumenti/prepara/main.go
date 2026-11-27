@@ -39,6 +39,9 @@ func main() {
 	zipVer := flag.String("zip-versione", "", "versione di Tasso Zip")
 	pdfDir := flag.String("pdf-dir", "../tassopdf", "repository di Tasso PDF")
 	pdfVer := flag.String("pdf-versione", "", "versione di Tasso PDF")
+	// 3.2: gli sfondi del desktop abbinati ai temi (JPEG 4K), in Programmi\Tasso\sfondi\. Senza,
+	// Tasso nasconde la funzione: per una prova va bene, per pubblicare no.
+	tassoSfondi := flag.String("tasso-sfondi", "../../tasso/codice/sfondi/4k", "cartella con gli sfondi 4K di Tasso (tasso-*.jpg)")
 	disinst := flag.String("disinstalla", "build/"+installa.NomeDisinstalla, "disinstallatore compilato")
 	rilascio := flag.Bool("rilascio", false, "installatore da pubblicare: exe compilati in modo pulito o niente (lo passa compila.sh con FIRMA=si)")
 	flag.Parse()
@@ -93,6 +96,14 @@ func main() {
 		}
 		tf = append(tf, [2]string{da, n})
 	}
+	sf, err := sfondiTasso(*tassoSfondi)
+	if err != nil {
+		if *rilascio {
+			esci(err)
+		}
+		fmt.Fprintf(os.Stderr, "ATTENZIONE: %v (per quei temi niente sfondo abbinato; senza nessuno sfondo Tasso nasconde la funzione)\n", err)
+	}
+	tf = append(tf, sf...)
 	// VERSIONE: lo legge Tasso (selfupdate.go/taskExeCheck) per sapere che versione c'è in Programmi
 	aggiungi(installa.ProgTasso, "Tasso", *tassoVer, "Tasso.exe", tf, map[string]string{"VERSIONE": *tassoVer})
 	aggiungi(installa.ProgZip, "Tasso Zip", *zipVer, "TassoZip.exe", [][2]string{
@@ -117,6 +128,32 @@ func main() {
 			fmt.Printf("%-6s %-22s %10d  %s\n", p.ID, f.Nome, f.Dim, f.SHA256)
 		}
 	}
+}
+
+// sfondiAttesi: gli sfondi di Tasso 3.2 (gli stessi di tasso/codice/sfondi, sfondi.Tutti()).
+var sfondiAttesi = []string{"gaming", "neonrgb", "oro", "argento", "nebbia", "blunotte", "sabbia"}
+
+// sfondiTasso: i file tasso-<id>.jpg della cartella, da installare in sfondi/ ([origine, nome
+// dentro]). Errore se ne manca anche uno solo (in prova è solo un avviso, con quelli che ci sono).
+func sfondiTasso(dir string) ([][2]string, error) {
+	if dir == "" {
+		return nil, fmt.Errorf("nessuna cartella degli sfondi (-tasso-sfondi)")
+	}
+	var out [][2]string
+	var mancano []string
+	for _, id := range sfondiAttesi {
+		n := "tasso-" + id + ".jpg"
+		f := filepath.Join(dir, n)
+		if fi, err := os.Lstat(f); err != nil || !fi.Mode().IsRegular() || fi.Size() == 0 {
+			mancano = append(mancano, n)
+			continue
+		}
+		out = append(out, [2]string{f, "sfondi/" + n})
+	}
+	if len(mancano) > 0 {
+		return out, fmt.Errorf("in %s mancano gli sfondi %s", dir, strings.Join(mancano, ", "))
+	}
+	return out, nil
 }
 
 // buildSporca: "" se l'exe Go è compilato con -trimpath e senza replace verso percorsi assoluti.
@@ -147,6 +184,9 @@ func assoluto(p string) bool {
 }
 
 func copia(da, a string) (installa.FileElenco, error) {
+	if err := os.MkdirAll(filepath.Dir(a), 0o755); err != nil { // sfondi/...
+		return installa.FileElenco{}, err
+	}
 	r, err := os.Open(da)
 	if err != nil {
 		return installa.FileElenco{}, err
