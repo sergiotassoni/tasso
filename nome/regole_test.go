@@ -20,8 +20,8 @@ import (
 )
 
 const (
-	impronteRegoleGo = "fb61622c982843d42885b391d396c2d53dde50e42cc5b49086980b0e91721670"
-	impronteRegoleJS = "1124eda3fe80099c7da69db9d7d595a0d67404e292f6aceaead7cfd0aa6e8033"
+	impronteRegoleGo = "16b10d79cef070a80ed840604a57d29303d19eb9b1ee28b41c7c17b308c208a8"
+	impronteRegoleJS = "cb8cd015b42b3c26037fc1f9a5d438399641cacb6150481a936d4b9d5da92580"
 	percorsoPagina   = "../ui/index.html"
 )
 
@@ -59,8 +59,9 @@ func TestRegoleUgualiNelleCopie(t *testing.T) {
 	}
 }
 
-// Tutti i caratteri di Unicode (tranne i surrogati), uno per volta dentro "a?b", più dei casi
-// scelti: la pagina e Go devono dare lo stesso codice (e lo stesso simbolo).
+// Tutti i caratteri di Unicode (tranne i surrogati), uno per volta dentro "a?b" e 4 volte di fila
+// dentro "a????b", più dei casi scelti: la pagina e Go devono dare lo stesso codice (e lo stesso
+// simbolo). node 22 ha Unicode 17, come le WebView2 di oggi; Go 1.26 ha Unicode 15.
 func TestPaginaControllaComeGo(t *testing.T) {
 	node, err := exec.LookPath("node")
 	if err != nil {
@@ -68,15 +69,18 @@ func TestPaginaControllaComeGo(t *testing.T) {
 	}
 	js := pezzo(t, pagina(t), "/* ==== REGOLE DEL NOME: INIZIO ====", "/* ==== REGOLE DEL NOME: FINE ==== */")
 	casi := []string{"Sergio", "  Gian   Luca ", "S", "", "Sergio★", "<b>x</b>", "Niccolò", "José-María", "Анна",
-		"e\u0301va", "\u0301ab", "a\u0301\u0302\u0303\u0304", "a \u0301", "ㅤㅤ", "Sergio\ufe0f", "\tAnna\u00a0Maria\n", "\ufeffLuca", strings.Repeat("è", 21)}
+		"e\u0301va", "\u0301ab", "a\u0301\u0302\u0303\u0304", "a \u0301", "ㅤㅤ", "Sergio\ufe0f", "\tAnna\u00a0Maria\n", "\ufeffLuca", strings.Repeat("è", 21),
+		// 3.2: le scritture delle lingue vive (tamil, bengali, etiope, 々, birmano, ol chiki, adlam...)
+		"தமிழ்செல்வி", "সৌমিত্র", "ኃይሌ", "佐々木", "ကြွေး", "ᱥᱟᱱᱛᱟᱲᱤ", "𞤀𞤣𞤤𞤢𞤥", "ລາວ", "ខ្មែរ", "ᏣᎳᎩ", "ꦗꦮ", "𠮷野", "Kɔfi",
+		"ক্\u200dষ", "ܐ\u070fܒ", "a\u0c5cb", "a\u0301\u0301\u0301\u0301", "a\u0bcd\u0bcd\u0bcd\u0bcd"}
 	in, _ := json.Marshal(casi)
 	prog := js + `
 const C = ` + string(in) + `;
 const out = C.map(x => { const p = nomePulisci(x), e = nomeControlla(p); return [p, e.codice, e.simbolo || ""]; });
 const M = {"": "o", corto: "c", lungo: "l", simbolo: "s", invisibile: "i", senza: "n", accenti: "a"};
-let tutti = "";
-for (let k = 0; k <= 0x10FFFF; k++) { if (k >= 0xD800 && k <= 0xDFFF) { tutti += "-"; continue; } const e = nomeControlla("a" + String.fromCodePoint(k) + "b"); tutti += M[e.codice]; }
-process.stdout.write(JSON.stringify({out, tutti}));`
+let tutti = "", quattro = "";
+for (let k = 0; k <= 0x10FFFF; k++) { if (k >= 0xD800 && k <= 0xDFFF) { tutti += "-"; quattro += "-"; continue; } const x = String.fromCodePoint(k); tutti += M[nomeControlla("a" + x + "b").codice]; quattro += M[nomeControlla("a" + x + x + x + x + "b").codice]; }
+process.stdout.write(JSON.stringify({out, tutti, quattro}));`
 	f := t.TempDir() + "/prova.js"
 	if err := os.WriteFile(f, []byte(prog), 0o644); err != nil {
 		t.Fatal(err)
@@ -86,8 +90,9 @@ process.stdout.write(JSON.stringify({out, tutti}));`
 		t.Fatalf("node: %v", err)
 	}
 	var r struct {
-		Out   [][3]string `json:"out"`
-		Tutti string      `json:"tutti"`
+		Out     [][3]string `json:"out"`
+		Tutti   string      `json:"tutti"`
+		Quattro string      `json:"quattro"`
 	}
 	if err := json.Unmarshal(b, &r); err != nil {
 		t.Fatalf("risposta di node: %v", err)
@@ -99,7 +104,7 @@ process.stdout.write(JSON.stringify({out, tutti}));`
 		}
 	}
 	M := map[string]byte{OK: 'o', Corto: 'c', Lungo: 'l', Simbolo: 's', Invisibile: 'i', Senza: 'n', Accenti: 'a'}
-	if utf8.RuneCountInString(r.Tutti) != 0x110000 {
+	if utf8.RuneCountInString(r.Tutti) != 0x110000 || utf8.RuneCountInString(r.Quattro) != 0x110000 {
 		t.Fatalf("node ha controllato %d caratteri", len(r.Tutti))
 	}
 	diversi := 0
@@ -110,6 +115,13 @@ process.stdout.write(JSON.stringify({out, tutti}));`
 		if g := M[Controlla("a"+string(k)+"b").Codice]; g != r.Tutti[k] {
 			if diversi++; diversi <= 10 {
 				t.Errorf("U+%04X: pagina %c, Go %c", k, r.Tutti[k], g)
+			}
+		}
+		// 4 volte di fila: accenti sopra/sotto (Mn, Me) contro vocali che occupano posto (Mc)
+		x := string(k)
+		if g := M[Controlla("a"+x+x+x+x+"b").Codice]; g != r.Quattro[k] {
+			if diversi++; diversi <= 10 {
+				t.Errorf("U+%04X ×4: pagina %c, Go %c", k, r.Quattro[k], g)
 			}
 		}
 	}
