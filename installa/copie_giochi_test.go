@@ -211,3 +211,18 @@ func TestLeggiUscitaTogli(t *testing.T) {
 		t.Fatalf("TOGLI-NO perso: %q", testo)
 	}
 }
+
+// F20-1: le righe TOGLI-AVVISO si raccolgono (non fermano niente), le altre no.
+func TestAvvisiTogli(t *testing.T) {
+	testo := LeggiUscitaTogli(strings.NewReader("tasso-togli-silenzioso-v1\nTOGLI-PASSO 0\nxx TOGLI-AVVISO Privacy: non rimessa com'era\nTOGLI-AVVISO   \nTOGLI-AVVISO Piano energetico: non rimesso\nTOGLI-OK\n"), nil)
+	a := AvvisiTogli(testo)
+	if len(a) != 2 || a[0] != "Privacy: non rimessa com'era" || a[1] != "Piano energetico: non rimesso" {
+		t.Fatalf("avvisi: %q", a)
+	}
+	if ok, rif := EsitoTogliSilenzioso(testo, nil); !ok || rif != nil {
+		t.Fatal("con gli avvisi Tasso ha comunque finito (TOGLI-OK)")
+	}
+	if len(AvvisiTogli("TOGLI-OK\n")) != 0 {
+		t.Fatal("avvisi inventati")
+	}
+}

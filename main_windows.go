@@ -40,13 +40,16 @@ var (
 	// tuttoToltoPulito: la disinstallazione ha tolto tutto, senza file rimasti: all'uscita va via
 	// anche la cartella di lavoro dell'installatore (%ProgramData%\TassoSetup, vedi togliCartellaLavoro)
 	tuttoToltoPulito atomic.Bool
-	annullaMu        sync.Mutex
-	annullaFn        context.CancelFunc
-	elenco           *installa.Elenco
-	errElenco        error
-	reg              = registroWin{}
-	modoDisins       bool
-	baseDisins       string
+	// avvisiTasso: le righe TOGLI-AVVISO di Tasso --togli-silenzioso (pagina finale)
+	avvisiMu    sync.Mutex
+	avvisiTasso []string
+	annullaMu   sync.Mutex
+	annullaFn   context.CancelFunc
+	elenco      *installa.Elenco
+	errElenco   error
+	reg         = registroWin{}
+	modoDisins  bool
+	baseDisins  string
 	// --scegli=gaming,ufficio: nel disinstallatore sono già spuntati solo questi (lo usa
 	// "Togli Tasso dal PC" dentro Tasso). Si possono sempre cambiare.
 	preScelti []installa.Componente
@@ -446,7 +449,8 @@ func collega(w webview2.WebView) {
 		if eraAperto && !chiudiProgrammi(baseDisins, []installa.Componente{installa.Gaming, installa.Ufficio}) {
 			return map[string]any{"ok": false, "chiuso": false}
 		}
-		if err := pulisciTasso(baseDisins); err != nil {
+		avvisi, err := pulisciTasso(baseDisins)
+		if err != nil {
 			installa.Diario("Tasso non ha tolto le sue cose: %v", err)
 			if eraAperto {
 				riapriTasso(baseDisins)
@@ -454,6 +458,9 @@ func collega(w webview2.WebView) {
 			return map[string]any{"ok": false, "rifiuta": true, "dettagli": err.Error()}
 		}
 		tassoPulito.Store(true)
+		avvisiMu.Lock()
+		avvisiTasso = avvisi
+		avvisiMu.Unlock()
 		return map[string]any{"ok": true}
 	})
 	_ = w.Bind("goChiudiProgrammi", func(base string, cc []string) bool {
@@ -566,10 +573,14 @@ func collega(w webview2.WebView) {
 		// chiuso niente per niente.
 		if viaTasso && len(preScelti) == 0 && !tassoPulito.Load() {
 			// (di solito l'ha già fatto goPreparaDisinstalla, prima di chiudere Zip e PDF)
-			if err := pulisciTasso(baseDisins); err != nil {
+			avvisi, err := pulisciTasso(baseDisins)
+			if err != nil {
 				installa.Diario("Tasso non ha tolto le sue cose: %v", err)
 				return map[string]any{"ok": false, "rifiuta": true, "dettagli": err.Error()}
 			}
+			avvisiMu.Lock()
+			avvisiTasso = avvisi
+			avvisiMu.Unlock()
 		}
 		// R9: Tasso ha finito: la finestra torna a "Tolgo i programmi scelti…" (passo -2)
 		manda("passoTasso", -2)
@@ -600,7 +611,11 @@ func collega(w webview2.WebView) {
 		if viaTasso {
 			togliCollegamentoVecchio(baseDisins) // il Tasso.lnk della 3.0 sistemato all'installazione
 		}
-		return map[string]any{"ok": true, "tuttoTolto": r.TuttoTolto, "nonTolti": r.NonTolti, "alRiavvio": r.AlRiavvio, "datiTenuti": r.DatiTenuti, "copieSalvate": r.CopieSalvate}
+		avvisiMu.Lock()
+		avvisi := avvisiTasso
+		avvisiMu.Unlock()
+		return map[string]any{"ok": true, "tuttoTolto": r.TuttoTolto, "nonTolti": r.NonTolti, "alRiavvio": r.AlRiavvio, "datiTenuti": r.DatiTenuti, "copieSalvate": r.CopieSalvate,
+			"avvisiTasso": avvisi} // impostazioni di Windows che Tasso non ha rimesso com'erano (F20-1)
 	})
 }
 

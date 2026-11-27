@@ -17,8 +17,8 @@ import (
 )
 
 const (
-	impronteRegoleGo = "16b10d79cef070a80ed840604a57d29303d19eb9b1ee28b41c7c17b308c208a8"
-	impronteRegoleJS = "cb8cd015b42b3c26037fc1f9a5d438399641cacb6150481a936d4b9d5da92580"
+	impronteRegoleGo = "5ba184d24c270426c1a8aee604866d9e0873c54b2b072a9be70a77fae8d7c145"
+	impronteRegoleJS = "6fae8e7de09ab7b9511d51465c29b05d87cd5169fb685d89a003cd33bdba6686"
 	percorsoPagina   = "../ui/index.html"
 )
 

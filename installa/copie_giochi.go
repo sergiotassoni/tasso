@@ -302,6 +302,22 @@ func PassoTogli(riga string) (int, bool) {
 	return n, true
 }
 
+// AvvisiTogli: le righe "TOGLI-AVVISO <testo>" di Tasso --togli-silenzioso (Tasso 3.2, F20-1):
+// impostazioni di Windows che Tasso non è riuscito a rimettere com'erano. Il testo è già tradotto
+// da Tasso. Non fermano la disinstallazione: la pagina finale li mostra. Al massimo 20.
+func AvvisiTogli(uscita string) []string {
+	var out []string
+	for _, riga := range strings.Split(uscita, "\n") {
+		riga = strings.TrimSpace(riga)
+		if t, ok := strings.CutPrefix(riga, "TOGLI-AVVISO "); ok {
+			if t = strings.TrimSpace(t); t != "" && len(out) < 20 {
+				out = append(out, t)
+			}
+		}
+	}
+	return out
+}
+
 // EsitoTogliSilenzioso legge la risposta di "Tasso.exe --togli-silenzioso": ok solo con
 // "TOGLI-OK"; con "TOGLI-NO <motivo>" il motivo (la disinstallazione si ferma). Errore, blocco o
 // tempo scaduto senza nessuna delle due: ok=false, rifiuto=nil (si va avanti, e gli originali dei

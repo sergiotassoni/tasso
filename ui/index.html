@@ -200,7 +200,7 @@ ol.passi li i,.ver,.lingue button span{color:#7A808D}
 }
 /* aggiornamento alla misura normale o più piccola: le schede dei programmi già installati senza
    descrizione (c'è la scritta "Installato"), così la pagina ci sta anche in tedesco */
-@media (max-height:620px){#p1:has(#notaAgg:not([hidden])) .carta.inst p{display:none}}
+@media (max-height:620px){#p1:has(#notaAgg:not([hidden])) .carta.inst p{display:none}#p6 .carta p{display:none}}
 /* finestra grande o massimizzata: il contenuto non si allunga oltre una larghezza ragionevole e
    resta al centro, con la casella dei dati e i pulsanti vicini (F17-19) */
 @media (min-width:1180px),(min-height:780px){
@@ -398,7 +398,7 @@ function nomeControlla(s) {
   let lettera = false, dopoLettera = false, accenti = 0;
   for (const r of c) {
     const k = r.codePointAt(0);
-    if (r === " " || r === "." || r === "-" || r === "_") { dopoLettera = false; accenti = 0; }
+    if (r === " " || r === "." || r === "-" || r === "_" || r === "'" || r === "’") { dopoLettera = false; accenti = 0; }
     else if (nomeDentro(k, NOME_INVISIBILI)) return { codice: "invisibile" };
     else if (!nomeDentro(k, NOME_BLOCCHI)) return { codice: "simbolo", simbolo: r };
     else if (/^[\p{L}\p{Nd}]$/u.test(r)) { lettera = true; dopoLettera = true; accenti = 0; }
@@ -653,6 +653,8 @@ async function disinstalla(){
   if (r.alRiavvio && r.alRiavvio.length) righe.push(T('dis_al_riavvio', r.alRiavvio.join(', ')));
   if (r.datiTenuti && r.datiTenuti.length) righe.push(T('dis_dati_tenuti', r.datiTenuti.join(', ')));
   if (r.copieSalvate && r.copieSalvate.length) righe.push(T('dis_copie_salvate', r.copieSalvate.join(', ')));
+  // impostazioni di Windows che Tasso non ha potuto rimettere com'erano (testo già tradotto da Tasso)
+  if (r.avvisiTasso && r.avvisiTasso.length) righe.push(T('dis_avvisi_tasso', r.avvisiTasso.map(a => '• ' + a).join('\n')));
   nt.hidden = !righe.length; if (!nt.hidden) nt.textContent = righe.join('\n');
   vai(7);
 }

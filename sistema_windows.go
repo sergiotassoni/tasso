@@ -846,16 +846,19 @@ const segnoTogliSilenzioso = "tasso-togli-silenzioso-v1"
 // "TOGLI-NO <motivo>" (ed esce con 1) se adesso non si può (un gioco tradotto aperto...): allora
 // la disinstallazione si ferma prima di togliere qualsiasi cosa. Se Tasso si blocca o va in errore
 // vado avanti con la mia parte (attività, cartelle), che è comunque fatta.
-func pulisciTasso(base string) error {
+//
+// avvisi: le righe TOGLI-AVVISO (impostazioni di Windows che Tasso non ha potuto rimettere com'erano,
+// testo già tradotto): non fermano niente, la pagina finale le mostra.
+func pulisciTasso(base string) (avvisi []string, rifiuto error) {
 	exe := filepath.Join(base, "Tasso.exe")
 	b, err := os.ReadFile(exe)
 	if err != nil {
 		installa.Diario("pulizia di Tasso saltata: %v", err)
-		return nil
+		return nil, nil
 	}
 	if !bytes.Contains(b, []byte(segnoTogliSilenzioso)) {
 		installa.Diario("questo Tasso.exe non conosce --togli-silenzioso: tolgo solo attività e cartelle")
-		return nil
+		return nil, nil
 	}
 	// 20 minuti: Tasso copia in Documenti gli originali dei giochi, che possono essere grandi
 	ctx, annulla := context.WithTimeout(context.Background(), 20*time.Minute)
@@ -880,8 +883,11 @@ func pulisciTasso(base string) error {
 	// Senza TOGLI-OK (errore, blocco, tempo scaduto) vado avanti con la mia parte: gli originali dei
 	// giochi rimasti in lavoro\copie-giochi li mette al sicuro DisinstallaCon (SalvaCopieGiochi),
 	// prima di cancellare qualsiasi cosa, e se non ci riesce si ferma.
-	_, rifiuto := installa.EsitoTogliSilenzioso(testo, err)
-	return rifiuto
+	_, rifiuto = installa.EsitoTogliSilenzioso(testo, err)
+	if rifiuto != nil {
+		return nil, rifiuto
+	}
+	return installa.AvvisiTogli(testo), nil
 }
 
 // meteCopieGiochi: Documenti\Tasso - copie di sicurezza (copiando: i file prendono i permessi di
