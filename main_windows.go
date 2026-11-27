@@ -33,7 +33,7 @@ import (
 )
 
 // Versione di Tasso Zip.
-const Versione = "1.3.1"
+const Versione = "1.3.2"
 
 //go:embed ui/index.html
 var paginaHTML string

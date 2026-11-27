@@ -53,7 +53,7 @@ const ELENCO = { tipo: "zip", dim: 248512000, metodo: "Deflate, Store", voci: [
   { nome: "Foto vacanze 2026/leggimi.txt", dim: 2048, compresso: 900, quando: giorni(21) },
 ]};
 const pausa = ms => new Promise(r => setTimeout(r, ms));
-window.goAvvio = async () => ({ lingua: SCENA[1] || "it", lingue: ["it","en","es","fr","de","pt","pl"], testi: TESTI, versione: "1.3.1", menu: true, assoc: false, formato: "zip", livello: "massima", desktop: "C:\\Users\\Utente\\Desktop", formati: ["zip","7z","tar","targz","tarxz","tarbz2","tarzst"], nome: SCENA[2] === "senza" ? "" : (SCENA[2] ? decodeURIComponent(SCENA[2]) : "Sergio") });
+window.goAvvio = async () => ({ lingua: SCENA[1] || "it", lingue: ["it","en","es","fr","de","pt","pl"], testi: TESTI, versione: "1.3.2", menu: true, assoc: false, formato: "zip", livello: "massima", desktop: "C:\\Users\\Utente\\Desktop", formati: ["zip","7z","tar","targz","tarxz","tarbz2","tarzst"], nome: SCENA[2] === "senza" ? "" : (SCENA[2] ? decodeURIComponent(SCENA[2]) : "Sergio") });
 // "Il tuo nome": #home-it (Sergio), #home-it-senza (senza nome), #nome-it, #nomeerr-it
 window.goNome = async () => S.nome || "";
 window.goNomeSalva = async (n) => ({ ok: true, nome: n });
