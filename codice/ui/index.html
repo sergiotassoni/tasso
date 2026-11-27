@@ -1724,7 +1724,9 @@ function paintLang(){ const cur = LANGSEL; document.querySelectorAll('.langbtn')
 const LANG_MSG = {
   cambio: {it: 'Sto cambiando lingua…', en: 'Changing language…', es: 'Cambiando de idioma…', fr: 'Changement de langue…', de: 'Sprache wird gewechselt…'},
   riapro: {it: 'Riapro Tasso nella lingua nuova…', en: 'Reopening Tasso in the new language…', es: 'Abriendo de nuevo Tasso en el nuevo idioma…', fr: 'Tasso se rouvre dans la nouvelle langue…', de: 'Tasso wird in der neuen Sprache neu geöffnet…'},
-  manuale: {it: 'Salvato: chiudi Tasso e riaprilo.', en: 'Saved: close Tasso and open it again.', es: 'Guardado: cierra Tasso y vuelve a abrirlo.', fr: 'Enregistré : fermez Tasso et rouvrez-le.', de: 'Gespeichert: Schließe Tasso und öffne es erneut.'}
+  manuale: {it: 'Salvato: chiudi Tasso e riaprilo.', en: 'Saved: close Tasso and open it again.', es: 'Guardado: cierra Tasso y vuelve a abrirlo.', fr: 'Enregistré : fermez Tasso et rouvrez-le.', de: 'Gespeichert: Schließe Tasso und öffne es erneut.'},
+  // Tasso non si può riaprire adesso perché sta lavorando: la lingua è già salvata
+  salvata: {it: 'Lingua salvata: vale alla prossima apertura di Tasso.', en: 'Language saved: it applies the next time you open Tasso.', es: 'Idioma guardado: se aplicará la próxima vez que abras Tasso.', fr: 'Langue enregistrée : elle s\'appliquera à la prochaine ouverture de Tasso.', de: 'Sprache gespeichert – gilt ab dem nächsten Start von Tasso.'}
 };
 const langMsg = (k, l) => LANG_MSG[k][l] || LANG_MSG[k].it;
 document.addEventListener('click', async (e) => {
@@ -1742,7 +1744,8 @@ document.addEventListener('click', async (e) => {
       toast(langMsg('riapro', l));
       const r2 = await call('goRiapriLingua');
       if (r2 === 'ok-riapre') return; // Tasso si chiude: i pulsanti restano spenti
-      riattiva(l); toast(r2 && r2 !== 'ok-manual' ? r2 : langMsg('manuale', l));
+      // Tasso occupato (un lavoro in corso): non si riapre, ma la lingua è già salvata
+      riattiva(l); toast(r2 === 'ok-manual' || !r2 ? langMsg('manuale', l) : langMsg('salvata', l));
     }, 4000);
     return;
   }
