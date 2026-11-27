@@ -1,4 +1,4 @@
-TASSO 3.1.1
+TASSO 3.2
 Pulisce, ripara e spinge il tuo PC. In un clic.
 =================================================
 
@@ -36,6 +36,23 @@ DOVE SALVA LE SUE COSE
 Il manuale completo, con le spiegazioni passo passo, è nel file Manuale_Tasso.pdf.
 L'elenco rapido delle funzioni è nel file INDICE.txt e dentro Tasso,
 alla voce "Info e indice".
+
+------------------------------------------------------------
+NOVITÀ DELLA 3.2
+------------------------------------------------------------
+- Sfondi del desktop abbinati al tema: quando scegli un tema (per esempio
+  Oro o Neon RGB) Tasso ti chiede se vuoi anche lo sfondo uguale, nitido anche
+  sugli schermi 4K. È facoltativo: puoi dire di no, e con "Rimetti il mio"
+  torna il tuo sfondo di prima.
+- Voto al PC nuovo: conta anche la scheda video, la memoria RAM completa e,
+  se si può, il raffreddamento. Alla fine c'è il tuo "biglietto da visita"
+  con il voto, da copiare o salvare come immagine.
+- Fai aiutare un amico: in Risolvi un problema trovi una guida semplice per
+  farti aiutare a distanza con Assistenza rapida di Windows (o per aiutare
+  qualcuno), con gli avvisi contro le truffe.
+- Più sicurezza dietro le quinte: le copie dei giochi tradotti e i file di
+  Tasso sono più protetti, e togliendo Tasso le copie dei giochi non si
+  perdono mai.
 
 ------------------------------------------------------------
 NOVITÀ DELLA 3.1.1

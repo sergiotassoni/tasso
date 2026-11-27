@@ -1,4 +1,4 @@
-﻿TASSO 3.1.1 - INDICE DELLE FUNZIONI
+﻿TASSO 3.2 - INDICE DELLE FUNZIONI
 =================================
 
 1. PULIZIA
@@ -197,6 +197,13 @@
      cosa e uno per tutto. Spegnere o riavviare il PC non rimette niente da solo
    - Avvio con Windows
    - Avvisi intelligenti (mai in modalità Gaming o FPS)
+
+NOVITÀ DELLA 3.2
+   - Sfondi del desktop abbinati al tema (facoltativi), nitidi anche in 4K; "Rimetti il mio"
+   - Voto al PC nuovo: scheda video, RAM completa, raffreddamento e biglietto da visita
+   - Fai aiutare un amico: Assistenza rapida di Windows spiegata passo passo, con gli avvisi
+     contro le truffe
+   - Più sicurezza dietro le quinte: copie dei giochi e file di Tasso più protetti
 
 NOVITÀ DELLA 3.1.1
    - Pulizia: "Aggiorna anche Windows" (per ultimo) e "Quando ha finito": Lascia acceso,

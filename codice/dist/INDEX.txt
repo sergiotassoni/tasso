@@ -1,4 +1,4 @@
-﻿TASSO 3.1.1 - FEATURE INDEX
+﻿TASSO 3.2 - FEATURE INDEX
 =================================
 
 1. CLEANUP
@@ -201,6 +201,13 @@
      by itself
    - Start with Windows
    - Smart alerts (never in Gaming or FPS mode)
+
+WHAT'S NEW IN 3.2
+   - Desktop backgrounds that match the theme (optional), sharp even in 4K; "Put mine back"
+   - New PC score: graphics card, full RAM, cooling and a business card
+   - Get help from a friend: Windows Quick Assist explained step by step, with warnings
+     against scams
+   - More security behind the scenes: game copies and Tasso's files better protected
 
 WHAT'S NEW IN 3.1.1
    - Cleanup: "Update Windows too" (last) and "When it's done": Leave on, Restart or

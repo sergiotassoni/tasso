@@ -1,4 +1,4 @@
-TASSO 3.1.1
+TASSO 3.2
 Cleans, repairs and boosts your PC. In one click.
 =================================================
 
@@ -38,6 +38,23 @@ WHERE IT SAVES ITS STUFF
 The full manual, with step-by-step explanations, is in the file Manual_Tasso_EN.pdf.
 The quick list of features is in the file INDEX.txt and inside Tasso,
 under "Info & index".
+
+------------------------------------------------------------
+WHAT'S NEW IN 3.2
+------------------------------------------------------------
+- Desktop backgrounds that match the theme: when you choose a theme (for
+  example Gold or Neon RGB) Tasso asks whether you want the matching
+  background too, sharp even on 4K screens. It is optional: you can say no,
+  and "Put mine back" brings back your previous background.
+- New PC score: it also counts the graphics card, the full RAM picture and,
+  when possible, the cooling. At the end you get your "business card" with
+  the score, to copy or save as a picture.
+- Get help from a friend: in Fix a problem there is a simple guide to get
+  remote help with Windows Quick Assist (or to help someone), with warnings
+  against scams.
+- More security behind the scenes: the copies of translated games and Tasso's
+  files are better protected, and when you remove Tasso the game copies are
+  never lost.
 
 ------------------------------------------------------------
 WHAT'S NEW IN 3.1.1

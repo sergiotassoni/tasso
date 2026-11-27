@@ -5455,6 +5455,14 @@
   "Il tuo nome": "Your name",
   "Sì": "Yes",
   "Scrivi o leggi il codice solo con una persona che conosci e con cui stai parlando adesso (al telefono o di persona).": "Only type or read out the code with someone you know and are talking to right now (on the phone or in person).",
-  "controllo remoto, assistenza remota, aiuto a distanza, Quick Assist": "remote control, remote assistance, remote help, Quick Assist"
+  "controllo remoto, assistenza remota, aiuto a distanza, Quick Assist": "remote control, remote assistance, remote help, Quick Assist",
+  "Novità della 3.2": "What's new in 3.2",
+  "Sfondi abbinati al tema": "Backgrounds that match the theme",
+  ": quando scegli un tema, Tasso ti propone anche lo sfondo del desktop uguale, nitido anche sugli schermi 4K. È facoltativo: puoi dire di no, e con \"Rimetti il mio\" torna il tuo sfondo.": ": when you choose a theme, Tasso also offers the matching desktop background, sharp even on 4K screens. It's optional: you can say no, and \"Put mine back\" brings back your background.",
+  "Voto al PC nuovo": "New PC score",
+  ": conta anche la scheda video, la memoria RAM e, se si può, il raffreddamento. Alla fine ti dà il tuo biglietto da visita con il voto, da copiare o salvare.": ": it also counts the graphics card, the RAM and, when possible, the cooling. At the end it gives you your business card with the score, to copy or save.",
+  ": in Risolvi un problema c'è una guida semplice per farti aiutare a distanza con Assistenza rapida di Windows (o per aiutare qualcuno), con gli avvisi contro le truffe.": ": in Fix a problem there's a simple guide to get remote help with Windows Quick Assist (or to help someone), with warnings against scams.",
+  "Più sicurezza dietro le quinte": "More security behind the scenes",
+  ": i file di Tasso e le copie dei giochi tradotti sono più protetti, e togliendo Tasso le copie dei giochi non si perdono mai.": ": Tasso's files and the copies of translated games are better protected, and when you remove Tasso the game copies are never lost."
  }
 }
