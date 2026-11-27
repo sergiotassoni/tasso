@@ -358,17 +358,21 @@ func bloatRemove(ids []string) {
 		ok[b.ID] = true
 	}
 	var sel []string
+	nomi := map[string]string{} // id -> nome mostrato nell'elenco, già nella lingua di Tasso
 	for _, id := range ids {
 		if ok[id] {
 			sel = append(sel, id)
 		}
+	}
+	for _, b := range bloatList {
+		nomi[b.ID] = trGo(b.Name)
 	}
 	var msgs []string
 	if len(sel) > 0 {
 		// La cartella backup di Tasso: lì va la copia dei dati delle app che li tengono solo sul PC (Sticky Notes).
 		bdir := filepath.Join(appDir, "backup")
 		_ = os.MkdirAll(bdir, 0o755)
-		runPSArgs(bloatRemoveScript, map[string]interface{}{"ids": sel, "dir": bdir}, 10*time.Minute, func(m string) { msgs = append(msgs, m) })
+		runPSArgs(bloatRemoveScript, map[string]interface{}{"ids": sel, "dir": bdir, "names": nomi}, 10*time.Minute, func(m string) { msgs = append(msgs, m) })
 	}
 	emit("onBloatDone", map[string]interface{}{"msgs": msgs})
 	bloatScan()

@@ -477,8 +477,9 @@ func trayMenu(hwnd uintptr, x, y int32) {
 	sub, _, _ := pCreatePopupMenu.Call()
 	if sub != 0 {
 		for i, md := range trayModi {
-			// in Ufficio Gaming e FPS competitivo non ci sono (si vedono solo se sono già accese)
-			if office && (md.id == "gaming" || md.id == "fps") && md.id != mode {
+			// Gaming e FPS competitivo li mette il Boost mentre giochi (come nella pagina Avvio del PC):
+			// nel menu si vedono solo se sono già accese, in Gaming e in Ufficio
+			if (md.id == "gaming" || md.id == "fps") && md.id != mode {
 				continue
 			}
 			f := grigio(paused)
@@ -548,7 +549,7 @@ func trayComando(cmd int) {
 			trayAvviso("Traduzione dei giochi", perche, false)
 		case r:
 			// il tasto scelto in Giochi → Impostazioni → Tasti rapidi (di base F7)
-			trayAvviso("Traduzione dei giochi", trGo("Traduzione accesa. Nel gioco premi ")+traduce.NomeTasto("pagina")+trGo(" per vedere le scritte in italiano."), false)
+			trayAvviso("Traduzione dei giochi", trGo("Traduzione accesa. Nel gioco premi ")+traduce.NomeTasto("pagina")+trGo(" per vedere le scritte tradotte."), false)
 		default:
 			trayAvviso("Traduzione dei giochi", "Traduzione spenta.", false)
 		}
