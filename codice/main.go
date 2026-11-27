@@ -778,6 +778,7 @@ func bindAll(w webview2.WebView) {
 	bindBoost(w)     // Boost 3.1 (boost.go)
 	bindGpuDrv(w)    // driver NVIDIA dentro il Tasso (gpudriver.go)
 	bindVaultFill(w) // Portachiavi > Compila (vault_compila.go)
+	bindNome(w)      // "Il tuo nome" (nome_utente.go)
 	_ = w.Bind("goAutoClickSet", func(c acConfig) string { return autoClickSet(c) })
 	_ = w.Bind("goAutoClickStart", func() string { return autoClickStart(false) })
 	_ = w.Bind("goAutoClickStop", func() string { return autoClickStop() })

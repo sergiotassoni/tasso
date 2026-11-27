@@ -289,6 +289,7 @@ func datiPagina(autoLevel int, controllaAgg bool) map[string]interface{} {
 		"settings":     getSettings(),
 		"steps":        stepList(),
 		"modoFisso":    modalitaFissa(), // ecosistema.go: "gioco"/"ufficio" = niente menu per cambiare modalità
+		"nome":         nomeInfo(),      // nome_utente.go: "Il tuo nome" e il biglietto (anche dopo un cambio di lingua)
 		"eco":          ecoInfo(),       // ecoupdate.go: Tasso, Zip e PDF installati con l'installatore (nil se no)
 		"controllaAgg": controllaAgg,
 	}

@@ -217,6 +217,27 @@ body .card.card.updcard{display:flex;align-items:center;gap:16px;flex-wrap:wrap;
 .updcard .updbtns{display:flex;flex-direction:column;align-items:flex-end;gap:6px}
 body .updcard .btn.btn,body .banner.upd .btn.btn{border-radius:8px}
 .updcard.new{border-color:var(--a3);box-shadow:0 0 0 1px var(--a3)}
+/* 3.2 "Il tuo nome" nelle Impostazioni */
+.nomecard .updicon{background:color-mix(in srgb,var(--a1) 14%,transparent);color:var(--a1t)}
+.nomecard .nomelock{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);margin-top:6px}
+.nomecard .nomelock svg{color:var(--a1t)}
+.nomecard .nomevedi{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.nomecard .nomepill{min-width:150px;padding:9px 16px;border:1px solid var(--line);border-radius:8px;background:var(--panel2);font-weight:700;font-size:16px;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nomecard .nomepill.vuoto{font-weight:400;font-size:14px;color:var(--muted)}
+.nomecard .nomeedit{flex-basis:100%;border-top:1px solid var(--line);padding-top:14px;display:flex;flex-direction:column;gap:8px}
+.nomecard .nomeriga{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.nomecard .nomeriga input{flex:0 1 420px;width:auto;min-width:180px;font-size:16px;font-weight:600;padding:10px 14px;border-radius:8px}
+.nomecard .nomeriga input:focus-visible{outline-offset:1px}
+.nomecard .nomeriga input.ok{border-color:var(--a1)}
+.nomecard .nomeriga input.err{border-color:var(--a4)}
+.nomecard .nomeriga input.err:focus-visible{outline-color:var(--a4)}
+.nomecard .nomecont{font-family:var(--mono);font-size:12px;color:var(--muted)}
+.nomecard .nomecont.err{color:var(--a4)}
+.nomeerrtxt{color:var(--a4);font-weight:600;font-size:13px}
+.nomecard .nomenota{flex-basis:100%}
+.nomesw{display:flex;align-items:center;justify-content:space-between;gap:14px;border:1px solid var(--line);border-radius:12px;background:var(--panel2);padding:10px 14px;text-align:left;width:100%;color:inherit;font:inherit;cursor:pointer}
+.nomesw b{display:block;font-size:14px}
+.nomesw .small{display:block}
 body .banner.banner.upd{border-radius:8px;background:color-mix(in srgb,var(--a3) 12%,var(--panel));border-color:color-mix(in srgb,var(--a3) 45%,var(--line))}
 .guide{border:1px solid var(--line);border-radius:12px;background:var(--panel2);padding:10px 14px}
 .guide>summary{cursor:pointer;font-weight:700;font-size:13px;list-style:none}
@@ -1526,6 +1547,17 @@ body.office .cardmodo{font-weight:700;font-stretch:normal;letter-spacing:-.02em;
     <div class="updbtns"><button class="btn primary" id="btnUpd">Controlla aggiornamenti</button><button class="btn primary" id="btnUpdNow" style="display:none">Aggiorna ora</button><a href="#" class="small" id="lnkUpdZip" style="display:none">oppure scarica lo zip</a></div>
     <label class="check autoupd" style="flex-basis:100%"><input type="checkbox" id="chkAutoUpd"> <span><b id="autoUpdTit">Aggiorna Tasso da solo</b><br><span class="small muted" id="autoUpdSub"><span class="gm">Quando esce una versione nuova Tasso la scarica, controlla che sia firmata da noi e si riapre. Prima ti avvisa e puoi dire "Non ora". Non lo fa mentre giochi o durante una pulizia.</span><span class="om">Quando esce una versione nuova Tasso la scarica, controlla che sia firmata da noi e si riapre. Prima ti avvisa e puoi dire "Non ora", così non ti interrompe mentre lavori. Non lo fa durante una pulizia.</span></span></span></label>
   </div>
+  <!-- 3.2 "Il tuo nome": condiviso con Tasso Zip e Tasso PDF (HKCU\Software\Tasso\Nome, nome_utente.go) -->
+  <div class="card updcard nomecard" id="nomeCard">
+    <div class="updicon" aria-hidden="true"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg></div>
+    <div class="updtxt"><h2 style="margin:0">Il tuo nome</h2><p class="sub" style="margin:4px 0 0">Tasso, Tasso Zip e Tasso PDF ti salutano con questo nome. Se lo cambi qui, cambia in tutti e tre.</p><div class="nomelock"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Resta solo sul tuo PC</span></div></div>
+    <div class="nomevedi" id="nomeVedi"><span class="nomepill" id="nomePill" translate="no"></span><button class="btn ghost" id="nomeCambia">Cambia</button></div>
+    <div class="note nomenota" id="nomeNota" style="display:none"></div>
+    <div class="nomeedit" id="nomeEdit" style="display:none">
+      <div class="nomeriga"><input class="search" id="nomeIn" autocomplete="off" spellcheck="false" placeholder="Il tuo nome o nickname" aria-describedby="nomeMsg" aria-label="Il tuo nome"><span class="nomecont" id="nomeCont" aria-hidden="true"></span><span style="flex:1"></span><button class="btn ghost" id="nomeAnnulla">Annulla</button><button class="btn primary" id="nomeSalva">Salva</button></div>
+      <div id="nomeMsg" class="small muted" role="status" aria-live="polite"></div>
+    </div>
+  </div>
   <div class="card" id="langCard" style="display:flex;flex-direction:column;gap:12px">
     <div><h2>🌐 Lingua · Language</h2><p class="sub" style="margin:2px 0 0">Tasso cambia lingua subito. · Tasso changes language right away.</p></div>
     <div class="row wrap" style="gap:8px"><button class="btn ghost langbtn" data-lang="it" lang="it" translate="no">Italiano</button><button class="btn ghost langbtn" data-lang="en" lang="en" translate="no">English</button><button class="btn ghost langbtn" data-lang="es" lang="es" translate="no">Español</button><button class="btn ghost langbtn" data-lang="fr" lang="fr" translate="no">Français</button><button class="btn ghost langbtn" data-lang="de" lang="de" translate="no">Deutsch</button></div>
@@ -1662,7 +1694,7 @@ const _t = (s) => (EN && typeof s === 'string' && TD[s] !== undefined) ? TD[s] :
 // tx: i dati che arrivano da Go (messaggi, elenchi). Nomi, percorsi e codici non si toccano.
 const TX_SKIP = {gpuName:1, report:1, id:1, cat:1, ids:1, key:1, path:1, paths:1, exe:1, dir:1, mode:1, theme:1, themeOffice:1, profile:1, guid:1, url:1, icon:1, src:1, value:1, val:1, hook:1, token:1, webhook:1, discordWebhook:1, discordBot:1, kind_id:1, file:1, cmd:1, arg:1, lang:1, region:1, settings:1, snapshot:1, originale:1, tradotto:1, non_tradurre:1, termini:1, parlante:1, cartella:1, password:1, pw:1, site:1, user:1, note:1};
 // TX_RAW: risposte fatte solo di dati dell'utente (password, siti, nomi di file): non si traducono mai.
-const TX_RAW = {goGetSettings:1, goVaultList:1, goVaultReveal:1, goVaultGen:1, goPickFiles:1, goBoostKeep:1, goIconaTema:1, goSfondoInfo:1, goSfondoRisposta:1, goSfondoMetti:1, goSfondoRimetti:1, goSfondoMai:1};
+const TX_RAW = {goNomeLeggi:1, goNomeSalva:1, goGetSettings:1, goVaultList:1, goVaultReveal:1, goVaultGen:1, goPickFiles:1, goBoostKeep:1, goIconaTema:1, goSfondoInfo:1, goSfondoRisposta:1, goSfondoMetti:1, goSfondoRimetti:1, goSfondoMai:1};
 function tx(v, depth){
   if (!EN) return v;
   depth = depth || 0;
@@ -2281,7 +2313,8 @@ window.tasso = {
     $('#btnLogs2').onclick = () => call('goOpenLogs');
     if (RIPARA.length && !p.cancelled) { const ids = RIPARA.slice(), rp = el('button', {class:'btn primary'}, _t('Ripara adesso')); rp.onclick = () => { const ss = ids.map(i => STEP[i]); runSteps(ids, ss.map(s => s.name).join(' + '), ss.map(s => s.desc).join(' '), ss.reduce((a, s) => a + s.minutes, 0)); }; $('#btnLogs2').before(rp); }
     RIPARA = []; ofStati();
-    toast(p.cancelled ? _t('Interrotto.') : (p.freed > 0 ? _t('Finito: liberati ') + fmtBytes(p.freed) + '.' : _t('Finito.')));
+    const nf = !p.cancelled && nomeOra() ? _t('Fatto, {0}: il tuo PC è pronto.').replace('{0}', nomeOra()) : ''; // 3.2 "Il tuo nome"
+    toast(p.cancelled ? _t('Interrotto.') : nf ? nf + (p.freed > 0 ? ' ' + _t('Liberati {0}.').replace('{0}', fmtBytes(p.freed)) : '') : (p.freed > 0 ? _t('Finito: liberati ') + fmtBytes(p.freed) + '.' : _t('Finito.')));
     paintLast(); call('goAnalyze');
     try { fbAskOnce(p); } catch (e) {}
   },
@@ -2354,7 +2387,8 @@ function showBentornato(b){
   head += b.end === 'spegni' ? _t(' e il PC si è spento.') : (up > 0 ? _t(' e il PC si è riavviato per completare gli aggiornamenti.') : _t(' e il PC si è riavviato.'));
   const stat = (k, v, c) => '<div><div class="muted" style="font-size:12px;text-transform:uppercase">' + k + '</div><div style="font-size:34px;font-weight:800' + (c ? ';color:' + c : '') + '">' + v + '</div></div>';
   const rows = (b.steps || []).map(s => '<div style="display:flex;justify-content:space-between;gap:12px;padding:7px 0;border-bottom:1px solid var(--line)"><span>✓ ' + esc(s.name) + '</span><span class="muted">' + (s.freed > 0 ? fmtBytes(s.freed) : _t('fatto')) + '</span></div>').join('');
-  modal('<h2>' + (skipped.length ? _t('Bentornato! Ho finito') : _t('Bentornato! È tutto fatto ✓')) + '</h2><span class="muted">' + esc(head) + '</span>' +
+  const nb = nomeOra(); // 3.2 "Il tuo nome": "Bentornato, Sergio! …" (senza nome resta "Bentornato! …")
+  modal('<h2>' + esc(nb ? (skipped.length ? _t('Bentornato, {0}! Ho finito') : _t('Bentornato, {0}! È tutto fatto ✓')).replace('{0}', nb) : (skipped.length ? _t('Bentornato! Ho finito') : _t('Bentornato! È tutto fatto ✓'))) + '</h2><span class="muted">' + esc(head) + '</span>' +
     '<div class="row wrap" style="gap:36px;margin:14px 0">' + stat(_t('Spazio liberato'), fmtBytes(b.freed || 0), 'var(--a1t)') + (up > 0 ? stat(_t('Aggiornamenti'), up) : '') + stat(_t('Passaggi'), ok + '/' + (Number(b.total) || 0) + (skipped.length ? '' : ' ✓')) + '</div>' + rows +
     (b.others > 0 ? '<div class="muted" style="padding-top:6px">' + esc(_t('… e altri {0} passaggi ✓').replace('{0}', b.others)) + '</div>' : '') +
     (skipped.length ? '<div class="note" style="margin-top:10px;border-color:color-mix(in srgb,var(--a4) 55%,var(--line))">' + esc((skipped.length === 1 ? _t('1 passaggio saltato: ') : _t('{0} passaggi saltati: ').replace('{0}', skipped.length)) + skipped.join(', ')) + '</div>' : ''),
@@ -2426,7 +2460,7 @@ function paintGHome(score){
   g('gDot').style.background = col; g('gDot').style.boxShadow = '0 0 12px ' + col;
   g('gState').textContent = score >= 80 ? _t('PC in forma') : score >= 60 ? _t('PC da sistemare un po\'') : _t('Il PC ha bisogno di una mano');
 }
-function gDatePaint(){ const d = document.getElementById('gDate'); if (d) { try { d.textContent = new Date().toLocaleDateString(LOC, {weekday:'long', day:'numeric', month:'long'}); } catch (e) {} } }
+function gDatePaint(){ const d = document.getElementById('gDate'); if (d) { try { d.textContent = new Date().toLocaleDateString(LOC, {weekday:'long', day:'numeric', month:'long'}) + (nomeOra() ? ' · ' + _t('Ciao, {0}').replace('{0}', nomeOra()) : ''); } catch (e) {} } }
 gDatePaint();
 // Il BOOST della Home è lo stesso del BOOST in Gioca: mostra se è acceso, e con Tasso spento spiega perché non parte.
 function gBoostPaint(){
@@ -3313,7 +3347,7 @@ function paintWelcome(){
   $('#profNote').textContent = chosen === 'ufficio' ? _t('Con Ufficio accendo la Pulizia programmata: {0}. La cambi o la spegni in Pulisci.').replace('{0}', wkQuando()) : _t('Il PC resta com\'è: piano energetico e notifiche di Windows non cambiano. Il Boost mette il PC al massimo solo mentre giochi.');
   $$('#profCards .offart').forEach(x => { x.innerHTML = OFF_ART; });
 }
-$('#btnWelcome').onclick = async () => { const wb = $('#btnWelcome'); if (wb.disabled) return; wb.disabled = true; const r = await callBg('goSetProfile', chosen); wb.disabled = false; if (r !== 'ok') { toast(typeof r === 'string' && r ? r : _t('Non sono riuscito a salvare la scelta: riprova.'), 'var(--a4)'); return; } $('#welcome').classList.remove('on'); await refreshS(); applyLook(); repaintLook(); toast(chosen === 'ufficio' ? _t('Fatto! Tasso è pronto per il lavoro.') : _t('Fatto! Tasso è configurato per te.')); setTimeout(statsAsk, 4000); setTimeout(async () => { await refreshS(); paintModes(); paintSettings(); }, 3000); };
+$('#btnWelcome').onclick = async () => { const wb = $('#btnWelcome'); if (wb.disabled) return; wb.disabled = true; const r = await callBg('goSetProfile', chosen); wb.disabled = false; if (r !== 'ok') { toast(typeof r === 'string' && r ? r : _t('Non sono riuscito a salvare la scelta: riprova.'), 'var(--a4)'); return; } $('#welcome').classList.remove('on'); await refreshS(); applyLook(); repaintLook(); toast(nomeOra() ? (chosen === 'ufficio' ? _t('Fatto, {0}! Tasso è pronto per il lavoro.') : _t('Fatto, {0}! Tasso è configurato per te.')).replace('{0}', nomeOra()) : chosen === 'ufficio' ? _t('Fatto! Tasso è pronto per il lavoro.') : _t('Fatto! Tasso è configurato per te.')); setTimeout(statsAsk, 4000); setTimeout(async () => { await refreshS(); paintModes(); paintSettings(); }, 3000); };
 
 /* ---------- 2.1: salute, internet, disco, gioco automatico ---------- */
 const H_ACTIONS = {clean:[_t('Pulisci'), () => confirmLevel(3)], startup:[_t('Apri l\'avvio'), () => show('speed')], recycle:[_t('Togli i vecchi (più di 7 giorni)'), () => runStep('recycle')], defender:[_t('Scansione'), () => runStep('defender')], winupdate:[_t('Aggiorna'), () => runStep('winupdate')], reboot:[_t('Riavvia'), () => modal(_t('<h2>Riavviare il PC?</h2><p class="muted" style="margin:0">Salva il lavoro aperto: il PC si riavvia tra 15 secondi.</p>'), [{label:_t('Annulla')}, {label:_t('Riavvia'), cls:'warn', fn: () => { doRestart(); }}])], turbo:['Boost', () => show('games')], diskmap:[_t('Mappa del disco'), () => show('disk')], disks:[_t('Vedi dischi'), () => runStep('disk_health')], security:[_t('Apri'), () => call('goOpenWin', 'firewall')], devices:[_t('Controlla'), () => runStep('devices')]};
@@ -3448,19 +3482,10 @@ function cardTaglia(g, t, maxw){
   let x = t; while (x.length > 1 && g.measureText(x + '…').width > maxw) x = x.slice(0, -1);
   const w = x.replace(/\s+\S*$/, ''); return (w.length >= 4 ? w : x).replace(/[\s·,-]+$/, '') + '…';
 }
-// Lo spazio per il nome dell'utente (lo prepara il ramo f32-nome): stessa posizione nei due biglietti,
-// centrato sopra "Misurato con Tasso". Senza nome non si disegna niente e lo spazio torna libero.
-function cardNome(){ return String((S && S.nomeUtente) || '').trim(); }
-function drawCardNome(g, C, W, foot, V){
-  const n = cardNome(); if (!n) return 0;
-  g.save(); g.textAlign = 'center'; g.fillStyle = C.text; g.font = '600 ' + (V ? 34 : 26) + 'px ' + C.body;
-  g.fillText(cardTaglia(g, n, W - 280), W / 2, foot - (V ? 58 : 44)); g.restore();
-  return V ? 64 : 50;
-}
 async function drawVotoCard(r, fmt){
   const V = fmt === 'v', W = 1080, H = V ? 1920 : 1080, C = cardColors();
   try { await document.fonts.ready; await Promise.all([document.fonts.load('800 100px ' + C.display), document.fonts.load('600 40px ' + C.body), document.fonts.load('400 30px ' + C.body)]); } catch (e) {}
-  const logo = await loadImg(cardLogoSrc());
+  const logo = await loadImg(cardLogoSrc()), nome = nomeSulBiglietto(); await nomeFontPronto(C, nome); // 3.2 "Il tuo nome"
   const cv = document.createElement('canvas'); cv.width = W; cv.height = H;
   const g = cv.getContext('2d');
   const font = (w, px, fam) => { g.font = w + ' ' + px + 'px ' + (fam || C.body); };
@@ -3477,6 +3502,7 @@ async function drawVotoCard(r, fmt){
     if (logo) g.drawImage(logo, (W - 230) / 2, pad, 230, 230);
     g.textAlign = 'center'; g.fillStyle = C.text; font(800, 64, C.display); g.fontStretch = C.stretch; g.letterSpacing = '12px'; g.fillText('TASSO', W / 2 + 6, pad + 320); g.letterSpacing = '0px'; g.fontStretch = 'normal';
     g.fillStyle = C.muted; font(400, 30); g.fillText(date, W / 2, pad + 372);
+    nomeDisegna(g, C, nome, W / 2, pad + 424, 36, 'center'); // 3.2: il nome sotto la data (se acceso)
     g.fillStyle = C.muted; font(600, 46); g.fillText(_t('Il mio PC'), W / 2, 640);
     font(800, 260, C.display); const nw = g.measureText(String(tot)).width; font(700, 64, C.display); const sw = g.measureText('/100').width;
     const x0 = (W - nw - 16 - sw) / 2; g.textAlign = 'left';
@@ -3487,6 +3513,7 @@ async function drawVotoCard(r, fmt){
     if (logo) g.drawImage(logo, pad, pad, 96, 96);
     g.textAlign = 'left'; g.fillStyle = C.text; font(800, 44, C.display); g.fontStretch = C.stretch; g.letterSpacing = '6px'; g.fillText('TASSO', pad + 118, pad + 64); g.letterSpacing = '0px'; g.fontStretch = 'normal';
     g.textAlign = 'right'; g.fillStyle = C.muted; font(400, 26); g.fillText(date, W - pad, pad + 58);
+    nomeDisegna(g, C, nome, W - pad, pad + 98, 28, 'right'); // 3.2: il nome sotto la data (se acceso)
     g.textAlign = 'left'; g.fillStyle = C.muted; font(600, 32); g.fillText(_t('Il mio PC'), pad, 250);
     font(800, 150, C.display); const nw = g.measureText(String(tot)).width; g.fillStyle = grad(pad, pad + nw); g.fillText(String(tot), pad, 390);
     font(700, 48, C.display); g.fillStyle = C.muted; g.fillText('/100', pad + nw + 18, 390);
@@ -3497,14 +3524,13 @@ async function drawVotoCard(r, fmt){
     y = 420;
   }
   if (V) { font(800, 50, C.display); const bw = g.measureText(rk[0]).width + 60, bx = (W - bw) / 2; g.beginPath(); g.roundRect(bx, y + 10, bw, 80, 40); g.globalAlpha = .12; g.fillStyle = rc; g.fill(); g.globalAlpha = 1; g.lineWidth = 3; g.strokeStyle = rc; g.stroke(); g.fillStyle = rc; g.textAlign = 'center'; g.fillText(rk[0], W / 2, y + 68); g.textAlign = 'left'; y += 150; }
-  // in fondo: indirizzo e, sopra, lo spazio per il nome dell'utente (come nel biglietto di Ottimizza
-  // tutto). I nomi dei componenti stanno accanto alle voci, quindi niente riquadri in fondo.
+  // in fondo: l'indirizzo (il nome dell'utente sta sotto la data). I nomi dei componenti stanno
+  // accanto alle voci, quindi niente riquadri in fondo.
   const fs = V ? 1.12 : 1, foot = H - pad;
   g.textAlign = 'center'; g.fillStyle = C.muted; font(400, V ? 26 : 22); g.fillText(_t('Misurato con Tasso · sergiotassoni.github.io/tasso'), W / 2, foot);
-  const nomeH = drawCardNome(g, C, W, foot, V);
   const nomi = votoNomiComp(r);
   // le barre, nello spazio che resta
-  const rows = votoRows(r).filter(x => x[1] > 0), top = y + (V ? 0 : 10), bottom = foot - (V ? 60 : 46) - nomeH - (V ? 40 : 24);
+  const rows = votoRows(r).filter(x => x[1] > 0), top = y + (V ? 0 : 10), bottom = foot - (V ? 60 : 46) - (V ? 40 : 24);
   const step = Math.min(V ? 150 : 104, (bottom - top) / Math.max(1, rows.length)), bh = V ? 22 : 16;
   // il nome del componente sotto l'etichetta se c'è posto, se no accanto (sulla stessa riga)
   const sotto = step >= (V ? 112 : 92);
@@ -3528,8 +3554,10 @@ async function drawVotoCard(r, fmt){
 }
 async function openVotoCard(r){
   r = r || LAST_BENCH; if (!r) return;
-  const [q, v] = await Promise.all([drawVotoCard(r, 'q'), drawVotoCard(r, 'v')]);
-  finestraBiglietto(_t('Il tuo biglietto da visita'), _t('Il voto del tuo PC, pronto da mandare agli amici. Quadrato per i post, verticale per le storie. Dentro ci sono solo i voti e i componenti, niente dati personali.'), q, v, (u, f) => call('goVotoSalva', u, f));
+  await nomeRileggi(); // 3.2: il nome giusto anche se l'hai cambiato in Tasso Zip o Tasso PDF
+  const disegna = () => Promise.all([drawVotoCard(r, 'q'), drawVotoCard(r, 'v')]);
+  const [q, v] = await disegna();
+  finestraBiglietto(_t('Il tuo biglietto da visita'), nomeOra() ? _t('Il voto del tuo PC, pronto da mandare agli amici. Quadrato per i post, verticale per le storie. Dentro ci sono solo i voti e i componenti. Il tuo nome c\'è solo se lo lasci acceso qui sotto.') : _t('Il voto del tuo PC, pronto da mandare agli amici. Quadrato per i post, verticale per le storie. Dentro ci sono solo i voti e i componenti, niente dati personali.'), q, v, (u, f) => call('goVotoSalva', u, f), disegna);
 }
 $('#btnVotoCard').onclick = () => openVotoCard();
 $('#btnBench').onclick = async () => { const r = await call('goBench'); if (r === 'busy') { toast(_t('Sto già misurando.'), 'var(--a4)'); return; } BENCH_MANUAL = true; $('#btnBench').disabled = true; $('#bnMsg').textContent = _t('Misuro… non usare il PC per circa 25 secondi (fino a 40 se misuro anche il raffreddamento).'); };
@@ -3873,7 +3901,7 @@ function drawTesserino(g, W, H, C){
 async function drawOttCard(R, fmt){
   const V = fmt === 'v', W = 1080, H = V ? 1920 : 1080, C = cardColors(), r = R.risultato || {}, off = r.modo === 'ufficio', mono = cssVar('--mono') || 'monospace';
   try { await document.fonts.ready; await Promise.all([document.fonts.load('800 60px ' + C.display), document.fonts.load('500 20px ' + C.body)]); } catch (e) {}
-  const logo = await loadImg(cardLogoSrc());
+  const logo = await loadImg(cardLogoSrc()), nome = nomeSulBiglietto(); await nomeFontPronto(C, nome); // 3.2 "Il tuo nome"
   const cv = document.createElement('canvas'); cv.width = W; cv.height = H;
   const g = cv.getContext('2d');
   const font = (w, px, fam) => { g.font = w + ' ' + px + 'px ' + (fam || C.body); };
@@ -3888,7 +3916,9 @@ async function drawOttCard(R, fmt){
   g.fillStyle = C.text; font(800, L.tasso, C.display); g.letterSpacing = Math.round(L.tasso * .35) + 'px'; g.fontStretch = C.stretch; g.fillText('TASSO', W / 2 + 6, L.tassoY); g.letterSpacing = '0px'; g.fontStretch = 'normal';
   const date = new Date(r.quando || Date.now()).toLocaleDateString(LANG, {day: 'numeric', month: 'long', year: 'numeric'});
   g.fillStyle = C.muted; font(400, L.data); g.fillText(date, W / 2, L.dataY);
-  g.fillStyle = paint; g.fillRect(W / 2 - 28 * L.s, L.trattY, 56 * L.s, 3 * L.s);
+  // 3.2 "Il tuo nome" sotto la data (solo se c'è e l'interruttore è acceso): il resto scende di dn
+  const dn = nomeDisegna(g, C, nome, W / 2, L.dataY + (V ? 50 : 36), V ? 32 : 22, 'center') ? (V ? 46 : 32) : 0;
+  g.fillStyle = paint; g.fillRect(W / 2 - 28 * L.s, L.trattY + dn, 56 * L.s, 3 * L.s);
   // prima → dopo (Gaming: Voto e FPS; Ufficio: accensione, apertura e voto)
   const righe = (R.righe || []).filter(x => x.haDopo);
   const ord = off ? ['accensione', 'apertura', 'voto'] : ['voto', 'fps'];
@@ -3911,12 +3941,12 @@ async function drawOttCard(R, fmt){
   };
   let y;
   if (V) {
-    pairs.forEach((p, i) => { const ry = L.top + i * 170; if (i > 0) { g.fillStyle = C.line; g.fillRect(x0 + 80, ry - 34, x1 - x0 - 160, 1); } riga(p, x0, x1 - x0, ry + 20, ry + 104, 80); });
-    y = L.top + Math.max(1, pairs.length) * 170 + 30;
+    pairs.forEach((p, i) => { const ry = L.top + dn + i * 170; if (i > 0) { g.fillStyle = C.line; g.fillRect(x0 + 80, ry - 34, x1 - x0 - 160, 1); } riga(p, x0, x1 - x0, ry + 20, ry + 104, 80); });
+    y = L.top + dn + Math.max(1, pairs.length) * 170 + 30;
   } else {
     const cw = (x1 - x0) / Math.max(1, pairs.length), big = pairs.length >= 3 ? 40 : 54;
-    pairs.forEach((p, i) => { if (i > 0) { g.fillStyle = C.line; g.fillRect(x0 + cw * i, 460, 1, 100); } riga(p, x0 + cw * i, cw, 482, 548, big); });
-    y = 620;
+    pairs.forEach((p, i) => { if (i > 0) { g.fillStyle = C.line; g.fillRect(x0 + cw * i, 460 + dn, 1, 100); } riga(p, x0 + cw * i, cw, 482 + dn, 548 + dn, big); });
+    y = 620 + dn;
   }
   // componenti su due colonne
   const comps = (r.componenti || []).slice(0, 5), gap = 40, lw = (x1 - x0 - gap) / 2, ch = Math.round(74 * L.s);
@@ -3941,7 +3971,6 @@ async function drawOttCard(R, fmt){
   y += Math.ceil(normali.length / col) * ch;
   if (legg) cella(legg, x0, y, x1 - x0);
   g.textAlign = 'center'; g.fillStyle = C.muted; font(400, L.fs); g.fillText(_t('Misurato con Tasso · sergiotassoni.github.io/tasso'), W / 2, L.foot);
-  drawCardNome(g, C, W, L.foot, V); // il nome dell'utente, nello stesso posto del biglietto del Voto
   return cv;
 }
 // La scritta grande della modalità (GAMING, UFFICIO) dietro la finestra dei biglietti, sopra il
@@ -3957,7 +3986,9 @@ function cardSfondoModo(){
   document.body.classList.add('cardsfondo');
 }
 // Finestra dei biglietti: la stessa per il Voto al PC e per Ottimizza tutto, in Gaming e in Ufficio.
-function finestraBiglietto(titolo, testo, q, v, salva){
+// ridisegna (3.2 "Il tuo nome"): () => Promise [quadrato, verticale] con il nome acceso o spento;
+// se c'è, sotto le anteprime compare l'interruttore "Mostra il mio nome sul biglietto".
+function finestraBiglietto(titolo, testo, q, v, salva, ridisegna){
   let fmt = 'q';
   const wrap = (c, f, w, h, label) => { c.style.cssText = 'width:' + w + 'px;height:' + h + 'px;display:block;border-radius:12px'; const d = el('button', {class:'votofmt', 'data-f': f, 'aria-pressed': f === fmt ? 'true' : 'false', style:'background:none;border:0;padding:0;cursor:pointer;display:flex;flex-direction:column;gap:8px;align-items:center;color:inherit;font:inherit'}); d.appendChild(c); d.appendChild(el('span', {class:'small'}, label)); return d; };
   const pub = CLASSIFICA_ATTIVA ? '<div style="border-top:1px solid var(--line);padding-top:12px;display:flex;flex-direction:column;gap:8px"><b>' + _t('Pubblica i tuoi risultati') + '</b><span class="small muted">' + _t('Scrivi un nome e ti trovi nella classifica sul sito di Tasso. Va solo il voto, con il nome che scegli tu.') + '</span><div class="row" style="gap:8px"><input id="votoNome" maxlength="24" style="flex:1" placeholder="' + esc(_t('Il tuo nome nella classifica')) + '"><button class="btn primary" id="votoPub">' + _t('Pubblica') + '</button></div></div>' : '';
@@ -3972,7 +4003,7 @@ function finestraBiglietto(titolo, testo, q, v, salva){
     Promise.resolve().then(() => fn(c.toDataURL('image/png'))).catch(() => toast(err, 'var(--a4)')).finally(() => bs.forEach(b => { b.disabled = false; }));
     return 'keep';
   };
-  modal('<h2>' + titolo + '</h2><p class="muted" style="margin:0">' + testo + '</p><div id="votoPrev" style="display:flex;gap:22px;justify-content:center;flex-wrap:wrap;padding:4px 0"></div>' + pub, [
+  modal('<h2>' + titolo + '</h2><p class="muted" style="margin:0">' + testo + '</p><div id="votoPrev" style="display:flex;gap:22px;justify-content:center;flex-wrap:wrap;padding:4px 0"></div>' + (ridisegna ? nomeInterruttoreHtml() : '') + pub, [
     {label: _t('Chiudi')},
     {label: _t('Salva'), fn: busy(async (u) => { const x = await salva(u, fmt === 'v' ? 'verticale' : 'quadrata'); toast(x === 'ok' ? _t('Salvato in Immagini\\Tasso.') : _t('Non sono riuscito a salvare l\'immagine.'), x === 'ok' ? 'var(--a1)' : 'var(--a4)'); }, _t('Non sono riuscito a salvare l\'immagine.'))},
     {label: _t('Copia immagine'), cls: 'primary', fn: busy(async (u) => { const x = await call('goVotoCopia', u); toast(x === 'ok' ? _t('Immagine copiata: incollala dove vuoi con Ctrl+V.') : _t('Non sono riuscito a copiare l\'immagine.'), x === 'ok' ? 'var(--a1)' : 'var(--a4)'); }, _t('Non sono riuscito a copiare l\'immagine.'))}
@@ -3984,13 +4015,17 @@ function finestraBiglietto(titolo, testo, q, v, salva){
   const paintSel = () => prev.querySelectorAll('.votofmt').forEach(b => { const on = b.dataset.f === fmt; b.setAttribute('aria-pressed', on ? 'true' : 'false'); b.firstChild.style.boxShadow = on ? '0 0 0 3px var(--a1),0 14px 34px rgba(0,0,0,.45)' : '0 0 0 1px var(--line),0 14px 34px rgba(0,0,0,.45)'; b.lastChild.style.color = on ? 'var(--a1t)' : 'var(--muted)'; b.lastChild.style.fontWeight = on ? '700' : '500'; });
   prev.querySelectorAll('.votofmt').forEach(b => b.onclick = () => { fmt = b.dataset.f; paintSel(); });
   paintSel();
+  // 3.2 "Mostra il mio nome sul biglietto": ridisegna i due biglietti negli stessi canvas
+  if (ridisegna) nomeInterruttore(async () => { const [q2, v2] = await ridisegna(); [[q, q2], [v, v2]].forEach(x => { const c = x[0].getContext('2d'); c.clearRect(0, 0, x[0].width, x[0].height); c.drawImage(x[1], 0, 0); }); });
   const pb = $('#votoPub'); if (pb) pb.onclick = () => toast(_t('La classifica online arriva presto.'), 'var(--a3)');
   cardSfondoModo();
 }
 async function ottBiglietto(){
   const R = ottRisultato(); if (!R) return;
-  const [q, v] = await Promise.all([drawOttCard(R, 'q'), drawOttCard(R, 'v')]), off = (R.risultato || {}).modo === 'ufficio';
-  finestraBiglietto(_t('Il tuo biglietto'), (off ? _t('Voto al PC, componenti, accensione e apertura dei programmi in un biglietto solo.') : _t('Voto al PC, componenti e FPS in un biglietto solo.')) + ' ' + _t('Quadrato per i post, verticale per le storie.') + ' ' + _t('Dentro non ci sono dati personali.'), q, v, (u, f) => call('goOttSalva', u, f));
+  await nomeRileggi(); // 3.2 "Il tuo nome"
+  const disegna = () => Promise.all([drawOttCard(R, 'q'), drawOttCard(R, 'v')]);
+  const [q, v] = await disegna(), off = (R.risultato || {}).modo === 'ufficio';
+  finestraBiglietto(_t('Il tuo biglietto'), (off ? _t('Voto al PC, componenti, accensione e apertura dei programmi in un biglietto solo.') : _t('Voto al PC, componenti e FPS in un biglietto solo.')) + ' ' + _t('Quadrato per i post, verticale per le storie.') + ' ' + (nomeOra() ? _t('Il tuo nome c\'è solo se lo lasci acceso qui sotto.') : _t('Dentro non ci sono dati personali.')), q, v, (u, f) => call('goOttSalva', u, f), disegna);
 }
 async function undoRefresh(){ paintUndo(await call('goChanges')); }
 function paintUndo(c){
@@ -6194,6 +6229,160 @@ Object.assign(window.tasso, { onPwned(r){
 }, onVaultLocked(){
   if (CURVIEW === 'vault') { const m = $('#modal'); if (m) m.classList.remove('on'); vaultRefresh(); if (!VST || !VST.noPin) toast(_t('Portachiavi chiuso da solo dopo 5 minuti.')); }
 }});
+
+// ---------- 3.2 "Il tuo nome" ----------
+// Il nome (o nickname) scritto nell'installatore o qui nelle Impostazioni. Lo salva Go
+// (nome_utente.go) in HKCU\Software\Tasso\Nome, solo sul PC, ed è lo stesso di Tasso Zip e Tasso PDF.
+// Non va mai in rete. Sulla pagina entra SEMPRE con esc() o textContent; nel biglietto con fillText.
+// Le regole sono le stesse di nomeutente/nome.go (da 2 a 20 caratteri, lettere, numeri, spazio, . - _).
+function nomeOra(){ const n = BOOT.nome; return n && typeof n.nome === 'string' ? n.nome : ''; }
+function nomeSulBiglietto(){ const n = BOOT.nome; return n && n.biglietto === false ? '' : nomeOra(); }
+/* ==== REGOLE DEL NOME: INIZIO ====
+   Uguali, carattere per carattere, nelle pagine di Tasso, installatore, Tasso Zip e Tasso PDF, e
+   uguali alle regole in Go (Controlla). Stessi elenchi espliciti di blocchi e di caratteri invisibili,
+   così la pagina e Go danno lo stesso esito anche con versioni diverse di Unicode. */
+const NOME_MIN = 2, NOME_MAX = 20, NOME_MAX_ACCENTI = 3;
+const NOME_BLOCCHI = [
+  [0x0030, 0x0039], [0x0041, 0x005A], [0x0061, 0x007A], [0x00C0, 0x024F], [0x0300, 0x036F],
+  [0x0370, 0x03FF], [0x0400, 0x052F], [0x0531, 0x058F], [0x0591, 0x05FF], [0x0600, 0x06FF],
+  [0x0900, 0x097F], [0x0E00, 0x0E7F], [0x10A0, 0x10FF], [0x1E00, 0x1FFF], [0x3040, 0x30FF],
+  [0x3400, 0x4DBF], [0x4E00, 0x9FFF], [0xAC00, 0xD7A3],
+];
+const NOME_INVISIBILI = [
+  [0x0000, 0x001F], [0x007F, 0x009F], [0x00AD, 0x00AD], [0x034F, 0x034F], [0x0600, 0x0605],
+  [0x061C, 0x061C], [0x06DD, 0x06DD], [0x115F, 0x1160], [0x17B4, 0x17B5], [0x180B, 0x180F],
+  [0x2000, 0x200F], [0x2028, 0x202F], [0x205F, 0x206F], [0x3000, 0x3000], [0x3164, 0x3164],
+  [0xFE00, 0xFE0F], [0xFEFF, 0xFEFF], [0xFFA0, 0xFFA0], [0xFFF0, 0xFFFB], [0xE0000, 0xE0FFF],
+];
+function nomeDentro(c, t) { for (const x of t) if (c >= x[0] && c <= x[1]) return true; return false; }
+function nomePulisci(s) { return String(s == null ? "" : s).replace(/[\t\n\v\f\r \u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000\ufeff]+/g, " ").trim(); }
+function nomeControlla(s) {
+  const c = [...s];
+  if (c.length < NOME_MIN) return { codice: "corto" };
+  if (c.length > NOME_MAX) return { codice: "lungo" };
+  let lettera = false, dopoLettera = false, accenti = 0;
+  for (const r of c) {
+    const k = r.codePointAt(0);
+    if (r === " " || r === "." || r === "-" || r === "_") { dopoLettera = false; accenti = 0; }
+    else if (nomeDentro(k, NOME_INVISIBILI)) return { codice: "invisibile" };
+    else if (!nomeDentro(k, NOME_BLOCCHI)) return { codice: "simbolo", simbolo: r };
+    else if (/^[\p{L}\p{Nd}]$/u.test(r)) { lettera = true; dopoLettera = true; accenti = 0; }
+    else if (/^\p{M}$/u.test(r)) { accenti++; if (!dopoLettera || accenti > NOME_MAX_ACCENTI) return { codice: "accenti" }; }
+    else return { codice: "simbolo", simbolo: r };
+  }
+  return lettera ? { codice: "" } : { codice: "senza" };
+}
+/* ==== REGOLE DEL NOME: FINE ==== */
+// La frase gentile per l'errore (si mostra in arancione).
+function nomeErrore(e){
+  switch (e.codice) {
+    case 'corto': return _t('Scrivi almeno 2 lettere.');
+    case 'lungo': return _t('Al massimo 20 caratteri: prova ad accorciarlo.');
+    case 'simbolo': return _t('Il simbolo {0} non si può usare. Vanno bene lettere, numeri, spazio, punto, - e _.').replace('{0}', e.simbolo || '');
+    case 'invisibile': return _t('C\'è un carattere che non si vede: cancellalo e riscrivi il nome.');
+    case 'senza': return _t('Aggiungi almeno una lettera o un numero.');
+    case 'accenti': return _t('Gli accenti vanno sopra una lettera, al massimo 3.');
+    case 'registro': return _t('Non sono riuscito a salvare il nome: riprova.');
+  }
+  return '';
+}
+// Saluti della Home: Ufficio "Buon pomeriggio, Sergio!", Gaming "venerdì 27 novembre · Ciao, Sergio".
+function nomeSaluti(){
+  const h = new Date().getHours(), n = nomeOra(), e = $('#hello');
+  // senza nome il saluto resta quello scritto all'avvio
+  if (e && n) e.textContent = (h < 6 ? _t('Ciao, {0}!') : h < 13 ? _t('Buongiorno, {0}!') : h < 18 ? _t('Buon pomeriggio, {0}!') : _t('Buonasera, {0}!')).replace('{0}', n);
+  gDatePaint();
+}
+// Biglietto: i caratteri con gli accenti (anche di altri alfabeti) pronti prima di disegnare.
+async function nomeFontPronto(C, nome){ if (!nome) return; try { await Promise.all([document.fonts.load('600 36px ' + C.body, nome), document.fonts.load('600 28px ' + C.body, nome)]); } catch (e) {} }
+// Disegna il nome sotto la data: centrato con due fili sottili ai lati, oppure allineato a destra.
+function nomeDisegna(g, C, nome, x, y, px, align){
+  if (!nome) return 0;
+  g.save(); g.textBaseline = 'alphabetic'; g.font = '600 ' + px + 'px ' + C.body; g.fillStyle = C.text; g.textAlign = align || 'center';
+  let c = [...nome]; while (g.measureText(c.join('')).width > px * 14 && c.length > 2) c = c.slice(0, -1); // caratteri interi
+  let t = c.join(''); if (t !== nome) t += '…';
+  g.fillText(t, x, y);
+  if ((align || 'center') === 'center') { const w = g.measureText(t).width, l = Math.round(px * .8), gap = Math.round(px * .45); g.globalAlpha = .55; g.fillStyle = C.line; g.fillRect(x - w / 2 - gap - l, y - px * .32, l, 2); g.fillRect(x + w / 2 + gap, y - px * .32, l, 2); }
+  g.restore();
+  return px + 14;
+}
+// L'interruttore "Mostra il mio nome sul biglietto" (solo se il nome c'è), acceso di base.
+function nomeInterruttoreHtml(){
+  const n = nomeOra(); if (!n) return '';
+  const on = !!nomeSulBiglietto();
+  return '<button type="button" class="nomesw" id="nomeSw" role="switch" aria-checked="' + on + '"><span><b>' + esc(_t('Mostra il mio nome sul biglietto')) + '</b><span class="small muted" id="nomeSwSub">' + esc((on ? _t('Sotto la data compare "{0}". Spento, il biglietto resta senza nome.') : _t('Spento: il biglietto resta senza nome.')).replace('{0}', n)) + '</span></span><span class="sw' + (on ? ' on' : '') + '"><i></i></span></button>';
+}
+function nomeInterruttore(ridisegna){
+  const b = $('#nomeSw'); if (!b) return;
+  b.onclick = async () => {
+    if (b.disabled) return;
+    const on = !nomeSulBiglietto(); b.disabled = true;
+    BOOT.nome = Object.assign({}, BOOT.nome, {biglietto: on});
+    b.setAttribute('aria-checked', on ? 'true' : 'false'); b.querySelector('.sw').classList.toggle('on', on);
+    $('#nomeSwSub').textContent = (on ? _t('Sotto la data compare "{0}". Spento, il biglietto resta senza nome.') : _t('Spento: il biglietto resta senza nome.')).replace('{0}', nomeOra());
+    try { await ridisegna(); } catch (e) {}
+    call('goNomeBiglietto', on); b.disabled = false;
+  };
+}
+// Rilegge il nome salvato (forse cambiato in Tasso Zip o Tasso PDF) e aggiorna saluti e Impostazioni.
+// Non tocca niente mentre stai scrivendo il nome nelle Impostazioni.
+async function nomeRileggi(){
+  const ed = $('#nomeEdit'); if (ed && ed.style.display !== 'none') return;
+  const r = await call('goNomeLeggi');
+  if (!r || typeof r.nome !== 'string') return;
+  const prima = nomeOra(), primaB = nomeSulBiglietto();
+  BOOT.nome = Object.assign({}, BOOT.nome, {nome: r.nome, biglietto: r.biglietto !== false});
+  if (r.nome !== prima || nomeSulBiglietto() !== primaB) { nomeCardPaint(); nomeSaluti(); }
+}
+// Impostazioni → "Il tuo nome": Cambia, Annulla e Salva.
+function nomeCardPaint(){
+  const n = nomeOra(), pill = $('#nomePill'); if (!pill) return;
+  pill.textContent = n || _t('Non l\'hai ancora scritto'); pill.classList.toggle('vuoto', !n);
+  $('#nomeCambia').textContent = n ? _t('Cambia') : _t('Aggiungi il tuo nome');
+  $('#nomeCambia').classList.toggle('primary', !n); $('#nomeCambia').classList.toggle('ghost', !!n);
+  const nota = $('#nomeNota'), ed = $('#nomeEdit').style.display !== 'none';
+  nota.style.display = n || ed ? 'none' : '';
+  if (!n) nota.innerHTML = esc(_t('Finché non lo scrivi, Tasso ti saluta senza nome:')) + ' <b>' + esc(_t('"Bentornato!"')) + '</b>. ' + esc(_t('Con il nome:')) + ' <b>' + esc(_t('"Bentornato, Sergio!"')) + '</b>';
+}
+function nomeCampo(){
+  const i = $('#nomeIn'), m = $('#nomeMsg'), c = $('#nomeCont'), p = nomePulisci(i.value), e = nomeControlla(p), k = [...p].length;
+  const vuoto = !p, err = !vuoto && e.codice;
+  c.textContent = k + ' / 20'; c.classList.toggle('err', !!err);
+  i.classList.toggle('err', !!err); i.classList.toggle('ok', !vuoto && !e.codice); i.setAttribute('aria-invalid', err ? 'true' : 'false');
+  m.className = err ? 'nomeerrtxt' : 'small muted';
+  m.textContent = err ? nomeErrore(e) : _t('Da 2 a 20 caratteri. Vanno bene lettere, numeri, spazio, punto, trattino e trattino basso.');
+  $('#nomeSalva').disabled = !!e.codice;
+  return e;
+}
+function nomeApri(on){
+  $('#nomeEdit').style.display = on ? '' : 'none'; $('#nomeVedi').style.display = on ? 'none' : '';
+  if (on) { const i = $('#nomeIn'); i.value = nomeOra(); nomeCampo(); setTimeout(() => { i.focus(); i.select(); }, 30); } else $('#nomeCambia').focus();
+  nomeCardPaint();
+}
+async function nomeSalva(){
+  const b = $('#nomeSalva'); if (b.disabled) return;
+  if (nomeCampo().codice) return;
+  b.disabled = true;
+  const r = await call('goNomeSalva', nomePulisci($('#nomeIn').value));
+  b.disabled = false;
+  if (!r || !r.ok) { const m = $('#nomeMsg'); m.className = 'nomeerrtxt'; m.textContent = nomeErrore({codice: (r && r.errore) || 'registro', simbolo: r && r.simbolo}); $('#nomeIn').classList.add('err'); return; }
+  BOOT.nome = Object.assign({}, BOOT.nome, {nome: r.nome});
+  nomeApri(false); nomeSaluti();
+  toast(_t('Fatto: ora ti chiamo {0}. Vale anche in Tasso Zip e Tasso PDF.').replace('{0}', r.nome));
+}
+nomeSaluti(); // all'apertura: con il nome "Buongiorno, Sergio!" (Ufficio) e "Ciao, Sergio" (Gaming)
+if ($('#nomeCard')) {
+  $('#nomeCambia').onclick = () => nomeApri(true);
+  $('#nomeAnnulla').onclick = () => nomeApri(false);
+  $('#nomeSalva').onclick = nomeSalva;
+  $('#nomeIn').addEventListener('input', nomeCampo);
+  $('#nomeIn').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); nomeSalva(); } else if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); nomeApri(false); } });
+  nomeCardPaint();
+  // cambiato in Tasso Zip o Tasso PDF mentre Tasso era aperto: lo rileggo quando apri le Impostazioni
+  // e quando la finestra di Tasso torna in primo piano (come fanno Zip e PDF)
+  $$('[data-go="settings"]').forEach(x => x.addEventListener('click', nomeRileggi));
+  window.addEventListener('focus', nomeRileggi);
+}
 
 document.addEventListener('contextmenu', e => e.preventDefault());
 call('goPaginaPronta'); // Go aspetta questo per gli avvisi che non devono perdersi (pulizia accesa dall'installatore)

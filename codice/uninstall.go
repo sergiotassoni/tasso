@@ -41,6 +41,7 @@ type pianoTogli struct {
 	seVuote []string // cartelle che si tolgono solo se restano vuote
 	disinst string   // disinstallatore dell'ecosistema da aprire alla chiusura ("" se non c'è)
 	eco     bool     // c'è l'ecosistema (disinstallatore o Tasso Zip / Tasso PDF): Zip e PDF restano
+	zipPdf  bool     // Tasso Zip o Tasso PDF restano sul PC ("Il tuo nome" serve ancora a loro)
 }
 
 // nomeCartellaTasso: le cartelle che si cancellano per intero hanno un nome che comincia con
@@ -66,7 +67,8 @@ func pianoTogliTasso() pianoTogli {
 	std := filepath.Join(pf, "Tasso")
 	disinst, dirInst := disinstallatoreEcosistema()
 	p.disinst = disinst
-	p.eco = disinst != "" || cartellaVera(filepath.Join(base, "Tasso Zip")) || cartellaVera(filepath.Join(base, "Tasso PDF"))
+	p.zipPdf = cartellaVera(filepath.Join(base, "Tasso Zip")) || cartellaVera(filepath.Join(base, "Tasso PDF"))
+	p.eco = disinst != "" || p.zipPdf
 	exe, _ := os.Executable()
 	if exe != "" {
 		exe, _ = filepath.Abs(exe)
@@ -148,6 +150,12 @@ func togliTasso(rimetti bool, passo func(int, string)) string {
 	piano, msg, fatto := togliTassoPassi(rimetti, passo)
 	if msg != "" {
 		return msg
+	}
+	// nome_utente.go: "Il tuo nome" è di tutta la famiglia. Va via solo se Tasso è l'ultimo
+	// programma (né Tasso Zip né Tasso PDF restano); se no lo toglie il disinstallatore insieme
+	// all'ultimo programma, come fa anche togliendo Tasso da App e funzionalità.
+	if !piano.zipPdf {
+		togliNome()
 	}
 	defer func() {
 		if !*fatto {
