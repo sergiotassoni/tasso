@@ -101,7 +101,6 @@ func TestNomiLingueInglesi(t *testing.T) {
 	}
 }
 
-
 // peFinto: l'intestazione minima di un programma di Windows con il tipo di processore dato.
 func peFinto(macchina uint16) []byte {
 	b := make([]byte, 0x40+24)
