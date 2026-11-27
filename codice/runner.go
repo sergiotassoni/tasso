@@ -4,6 +4,7 @@ package main
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -11,6 +12,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"runtime/debug"
 	"strconv"
 	"strings"
@@ -883,14 +885,50 @@ func setMode(id string) bool {
 	if prev == "fps" {
 		fromFps = "$TassoFromFps = $true\n"
 	}
+	// Modalità riunione accesa: notifiche spente e piano al massimo li ha messi lei. Save-Prev salva
+	// quelli di prima della riunione (dal suo file) e nessuna modalità riaccende le notifiche.
+	riunione := riunionePrima(fileUfficio("riunione"))
+	if strings.HasPrefix(riunione, "$TassoInMeeting = $true") && !strings.Contains(riunione, "$TassoMeetOk = $true") {
+		canSave = "$TassoCanSave = $false\n" // file illeggibile: non so com'era, non salvo niente come "tuo"
+	}
 	var msgs []string
-	r := runPS(canSave+mousePrev+fromFps+script, 2*time.Minute, func(m string) { msgs = append(msgs, m) })
+	r := runPS(canSave+mousePrev+fromFps+riunione+script, 2*time.Minute, func(m string) { msgs = append(msgs, m) })
 	if r.Err == nil {
 		updateSettings(func(s *Settings) { s.Mode = id })
 	}
 	emit("onModeDone", map[string]interface{}{"id": id, "ok": r.Err == nil, "msgs": msgs, "settings": getSettings()})
 	return r.Err == nil
 }
+
+// riunionePrima: le variabili per gli script delle modalità con la Modalità riunione accesa.
+// $TassoMeetToast e $TassoMeetPlan sono le notifiche e il piano di prima della riunione, letti dal
+// suo file e controllati (solo 0/1 e un GUID: niente altro finisce nello script).
+func riunionePrima(f string) string {
+	b, err := os.ReadFile(f)
+	if err != nil {
+		return "$TassoInMeeting = $false\n$TassoMeetOk = $false\n$TassoMeetToast = '1'\n$TassoMeetPlan = ''\n$TassoMeetFile = ''\n"
+	}
+	file := "$TassoMeetFile = '" + strings.ReplaceAll(f, "'", "''") + "'\n"
+	var st struct {
+		Toast interface{} `json:"toast"`
+		Plan  string      `json:"plan"`
+	}
+	if json.Unmarshal(bytes.TrimPrefix(b, []byte("\xef\xbb\xbf")), &st) != nil {
+		return "$TassoInMeeting = $true\n$TassoMeetOk = $false\n$TassoMeetToast = '0'\n$TassoMeetPlan = ''\n" + file
+	}
+	// toast vuoto: a fine riunione Fine-Riunione toglie il valore e Windows tiene le notifiche accese
+	toast := "1"
+	if v := fmt.Sprint(st.Toast); v == "0" || v == "1" {
+		toast = v
+	}
+	plan := ""
+	if guidPiano.MatchString(st.Plan) {
+		plan = st.Plan
+	}
+	return "$TassoInMeeting = $true\n$TassoMeetOk = $true\n$TassoMeetToast = '" + toast + "'\n$TassoMeetPlan = '" + plan + "'\n" + file
+}
+
+var guidPiano = regexp.MustCompile(`^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$`)
 
 // togliScript: cancella lo script; se il file è ancora aperto da qualcuno riprova in sottofondo
 // (fino a circa un minuto). Quelli che restano li toglie pulisciScriptVecchi al prossimo avvio.

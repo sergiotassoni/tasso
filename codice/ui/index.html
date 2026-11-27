@@ -369,7 +369,7 @@ h1.gname::after{content:"";display:block;width:48px;height:3px;background:var(--
 .meet .mt{display:flex;flex-direction:column;gap:2px;min-width:0}
 .meet .mt b{font-size:15px;font-weight:600}
 .meet .mt span{font-size:12.5px;color:var(--muted);line-height:1.35}
-.meet.on{border-color:color-mix(in srgb,var(--a1) 70%,transparent);background:color-mix(in srgb,var(--a1) 9%,transparent)}
+.meet.on{border-color:color-mix(in srgb,var(--a1) 70%,transparent);background:color-mix(in srgb,var(--a1) 6%,transparent)} /* 6%: la riga piccola resta sopra 4,5:1 in tutti i temi */
 .meet.on .mi{background:var(--a1);color:var(--ink)}
 .meet.on .mt b::before{content:'';display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--a1);margin-right:7px;vertical-align:1px;animation:meetDot 1.6s ease-in-out infinite}
 @keyframes meetDot{50%{opacity:.35}}
@@ -668,6 +668,8 @@ dl.sum{display:grid;grid-template-columns:max-content 1fr;gap:6px 14px;margin:0}
 .g5 .lvl.best{padding:17px 15px}
 .lvl .f2{flex-direction:column;align-items:flex-start;gap:2px}
 .theme .badge{white-space:nowrap;flex:none}
+/* Ufficio: "IN USO" sopra la miniatura, in alto a destra: la scheda in uso resta alta come le altre */
+body.office .theme{position:relative}body.office .theme .badge{position:absolute;top:14px;right:14px;box-shadow:0 1px 3px rgba(0,0,0,.25)}
 .betatag{white-space:nowrap;vertical-align:middle;margin-left:4px;cursor:help}
 @media (max-height:760px){aside{padding:14px 12px;gap:10px} nav button{padding:6px 12px} .navsub button{padding:4px 10px} .brand svg{width:38px;height:38px}.tmlogo{width:38px;height:38px}}
 .ofc{align-items:stretch}
@@ -692,6 +694,8 @@ nav button{min-width:0;max-width:100%;overflow-wrap:break-word;hyphens:auto}
 .navsub button{overflow:hidden;text-overflow:ellipsis}
 .gtabs button{flex:0 0 auto}
 html:not([lang="it"]) .navsub button{padding-right:4px;gap:8px}
+/* "Impostazioni di Tasso" nel menu entra intero a 1280 px (prima 186 px su 180), in Ufficio e in Gaming */
+@media (min-width:761px){aside nav .navsub button,body.office nav .navsub button{padding-right:4px;gap:8px}}
 .langbtn{white-space:nowrap}
 .langbtn.langwait{cursor:progress;opacity:.85}
 .langglobo{font-size:20px;line-height:1;margin-right:2px}
@@ -958,6 +962,7 @@ body.office .cardmodo{font-weight:700;font-stretch:normal;letter-spacing:-.02em;
 <!-- HOME -->
 <section class="view on" id="v-home">
   <div class="banner upd" id="updBanner"><span id="updBannerTxt"><b>È uscita una nuova versione di Tasso.</b></span><button class="btn primary" id="btnUpdBanner">Vai agli aggiornamenti</button></div>
+  <div class="banner upd gm" id="meetBanner"><span><b>La Modalità riunione è ancora accesa</b> <span class="muted">Notifiche, OneDrive e aggiornamenti restano in pausa anche in Gaming. La spengo? Tornano come prima.</span></span><button class="btn primary" id="btnMeetOff">Spegni</button></div>
   <div class="banner" id="pausedBanner"><span><b>Tasso è spento.</b> <span class="muted">Non parte con Windows, non fa pulizie automatiche e non manda avvisi.</span></span><button class="btn primary" id="btnResume">Riaccendi Tasso</button></div>
   <div class="row wrap om" style="justify-content:space-between">
     <h1 style="font-size:20px" id="hello">Ciao!</h1>
@@ -996,7 +1001,7 @@ body.office .cardmodo{font-weight:700;font-stretch:normal;letter-spacing:-.02em;
       <span style="font-size:12px;font-weight:800;letter-spacing:1.4px;color:var(--a2)">STATO DEL PC</span>
       <h1 id="heroTitle">Sto controllando il tuo PC…</h1>
       <p class="sub" id="heroSub" style="font-size:15px;max-width:470px;color:var(--soft)">Un attimo: guardo quanti file inutili ci sono e come stanno i dischi.</p>
-      <button class="meet" id="btnMeet" aria-pressed="false"><span class="mi"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></span><span class="mt"><b id="meetT">Modalità riunione</b><span id="meetS">Il Boost dell'ufficio: niente notifiche, PC al massimo.</span></span></button>
+      <button class="meet" id="btnMeet" aria-pressed="false"><span class="mi"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></span><span class="mt"><b id="meetT">Modalità riunione</b><span id="meetS">Un tasto prima della chiamata: niente notifiche, PC al massimo.</span></span></button>
     </div>
     <div class="orb">
       <svg class="orbit" width="260" height="260" viewBox="0 0 260 260" aria-hidden="true"><circle cx="130" cy="130" r="123" fill="none" stroke="var(--a2)" stroke-opacity=".5" stroke-width="1.5" stroke-dasharray="2 10"/><circle cx="130" cy="7" r="5" fill="var(--a2)"/></svg>
@@ -1943,7 +1948,7 @@ function paintThemes(){
       '<span style="flex:1;padding:8px;display:flex;flex-direction:column;gap:6px"><span style="flex:1;border-radius:8px;background:' + v.panel + ';display:flex;align-items:center;justify-content:space-between;padding:0 8px"><span style="display:flex;flex-direction:column;gap:4px"><span style="height:5px;width:46px;border-radius:9px;background:' + v.text + '"></span><span style="height:5px;width:30px;border-radius:9px;background:' + v.a2 + '"></span></span><span style="width:26px;height:26px;border-radius:50%;border:4px solid ' + v.a1 + '"></span></span>' +
       '<span style="display:flex;gap:4px"><span style="flex:1;height:12px;border-radius:5px;background:' + ga + '"></span><span style="flex:1;height:12px;border-radius:5px;background:' + v.a3 + '"></span><span style="flex:1;height:12px;border-radius:5px;background:' + v.a4 + '"></span><span style="flex:1;height:12px;border-radius:5px;background:' + v.a2 + '"></span></span></span></span>' +
       '<span class="row" style="justify-content:space-between;gap:6px;padding:0 4px 2px"><span style="display:flex;flex-direction:column;gap:2px"><b style="font-family:var(--display);font-size:15px">' + t.name + '</b><span class="small muted">' + t.tag + '</span></span>' + (on ? _t('<span class="badge" style="background:var(--a1);color:var(--ink)">IN USO</span>') : '') + '</span>');
-    b.onclick = async () => { applyTheme(t.id); if (isOffice()) S.themeOffice = t.id; else S.theme = t.id; const r = await call('goSetTheme', t.id, isOffice() ? 'ufficio' : 'gioco'); if (r !== 'ok') toast(_t('Non sono riuscito a salvare il tema.'), 'var(--a4)'); paintThemes(); if (r === 'ok') sfondoChiedi(t.id); };
+    b.onclick = async () => { const off = isOffice(), prima = off ? S.themeOffice : S.theme; applyTheme(t.id); if (off) S.themeOffice = t.id; else S.theme = t.id; const r = await call('goSetTheme', t.id, off ? 'ufficio' : 'gioco'); if (r !== 'ok') { toast(_t('Non sono riuscito a salvare il tema.'), 'var(--a4)'); if (off) S.themeOffice = prima; else S.theme = prima; applyTheme(curTheme()); } paintThemes(); if (r === 'ok') sfondoChiedi(t.id); };
     box.appendChild(b);
   });
   themeCols();
@@ -2378,6 +2383,8 @@ window.tasso = {
       (p.wuSkipped && AN && AN.wuBusy > 0 ? '<div class="note" style="margin-top:14px">' + esc(_t('La cache di Windows Update (circa {0}) è rimasta perché Windows stava installando degli aggiornamenti: rifai la pulizia dopo il riavvio per toglierla.').replace('{0}', fmtBytes(AN.wuBusy))) + '</div>' : '') +
       '<div class="row wrap" style="gap:10px;margin-top:14px">' + (p.reboot && !p.shutdown && !p.restart ? _t('<button class="btn warn" id="btnReboot">Riavvia ora</button>') : '') + _t('<button class="btn ghost" id="btnLogs2">Apri la cartella dei registri</button></div>');
     $('#doneLog').textContent = $('#runLog').textContent;
+    // Modalità riunione premuta dalla Home: resto sulla Home e il risultato lo dice un avviso (F11-10)
+    const meetHome = MEET_HOME && !p.cancelled && RUN && RUN.steps && RUN.steps.length === 1 && RUN.steps[0].id === 'of_new_meeting'; MEET_HOME = false;
     runUI(false); RUN = null;
     if (p.restart || p.shutdown) fineBanner(p.restart ? 'riavvia' : 'spegni', Number(p.endSecs) || 60, p.updates > 0 ? 'upd' : p.reboot ? 'rip' : '');
     else if (p.endErr) fineBanner(p.end === 'spegni' ? 'spegni' : 'riavvia', 0, false, true);
@@ -2387,9 +2394,11 @@ window.tasso = {
     if (RIPARA.length && !p.cancelled) { const ids = RIPARA.slice(), rp = el('button', {class:'btn primary'}, _t('Ripara adesso')); rp.onclick = () => { const ss = ids.map(i => STEP[i]); runSteps(ids, ss.map(s => s.name).join(' + '), ss.map(s => s.desc).join(' '), ss.reduce((a, s) => a + s.minutes, 0)); }; $('#btnLogs2').before(rp); }
     RIPARA = []; ofStati();
     const nf = !p.cancelled && nomeOra() ? (lvl0 ? _t('Finito, {0}: qui sotto cosa ho trovato.') : _t('Fatto, {0}: il tuo PC è pronto.')).replace('{0}', nomeOra()) : ''; // 3.2 "Il tuo nome": "pronto" solo dopo una pulizia
-    toast(p.cancelled ? _t('Interrotto.') : nf ? nf + (p.freed > 0 ? ' ' + _t('Liberati {0}.').replace('{0}', fmtBytes(p.freed)) : '') : (p.freed > 0 ? _t('Finito: liberati ') + fmtBytes(p.freed) + '.' : _t('Finito.')));
+    const ultima = $('#doneLog').textContent.trim().split('\n').pop();
+    if (meetHome) { show('home'); toast(ultima || _t('Finito.'), 'var(--a3)'); }
+    else toast(p.cancelled ? _t('Interrotto.') : nf ? nf + (p.freed > 0 ? ' ' + _t('Liberati {0}.').replace('{0}', fmtBytes(p.freed)) : '') : (p.freed > 0 ? _t('Finito: liberati ') + fmtBytes(p.freed) + '.' : _t('Finito.')));
     paintLast(); call('goAnalyze');
-    try { fbAskOnce(p); } catch (e) {}
+    try { if (!lvl0) fbAskOnce(p); } catch (e) {} // la domanda sulla prima pulizia solo dopo una pulizia vera
   },
   onOfficeStati(p){ OF_STATI = p || {}; paintStati(); },
   onAnalysis(a){ AN = a || {}; paintHero(); hwHealthAlert(); },
@@ -2465,8 +2474,8 @@ function showBentornato(b){
   head += b.end === 'spegni' ? _t(' e il PC si è spento.') : (up > 0 ? _t(' e il PC si è riavviato per completare gli aggiornamenti.') : _t(' e il PC si è riavviato.'));
   const stat = (k, v, c) => '<div><div class="muted" style="font-size:12px;text-transform:uppercase">' + k + '</div><div style="font-size:34px;font-weight:800' + (c ? ';color:' + c : '') + '">' + v + '</div></div>';
   const rows = (b.steps || []).map(s => '<div style="display:flex;justify-content:space-between;gap:12px;padding:7px 0;border-bottom:1px solid var(--line)"><span>✓ ' + esc(s.name) + '</span><span class="muted">' + (s.freed > 0 ? fmtBytes(s.freed) : _t('fatto')) + '</span></div>').join('');
-  const nb = nomeOra(); // 3.2 "Il tuo nome": "Bentornato, Sergio! …" (senza nome resta "Bentornato! …")
-  modal('<h2>' + esc(nb ? (skipped.length ? _t('Bentornato, {0}! Ho finito') : _t('Bentornato, {0}! È tutto fatto ✓')).replace('{0}', nb) : (skipped.length ? _t('Bentornato! Ho finito') : _t('Bentornato! È tutto fatto ✓'))) + '</h2><span class="muted">' + esc(head) + '</span>' +
+  const nb = nomeOra(); // 3.2 "Il tuo nome": "Ciao di nuovo, Sergio! …" (senza nome "Ciao di nuovo! …"): frasi neutre, il nome non dice se sei uomo o donna
+  modal('<h2>' + esc(nb ? (skipped.length ? _t('Ciao di nuovo, {0}! Ho finito') : _t('Ciao di nuovo, {0}! È tutto fatto ✓')).replace('{0}', nb) : (skipped.length ? _t('Ciao di nuovo! Ho finito') : _t('Ciao di nuovo! È tutto fatto ✓'))) + '</h2><span class="muted">' + esc(head) + '</span>' +
     '<div class="row wrap" style="gap:36px;margin:14px 0">' + stat(_t('Spazio liberato'), fmtBytes(b.freed || 0), 'var(--a1t)') + (up > 0 ? stat(_t('Aggiornamenti'), up) : '') + stat(_t('Passaggi'), ok + '/' + (Number(b.total) || 0) + (skipped.length ? '' : ' ✓')) + '</div>' + rows +
     (b.others > 0 ? '<div class="muted" style="padding-top:6px">' + esc(_t('… e altri {0} passaggi ✓').replace('{0}', b.others)) + '</div>' : '') +
     (skipped.length ? '<div class="note" style="margin-top:10px;border-color:color-mix(in srgb,var(--a4) 55%,var(--line))">' + esc((skipped.length === 1 ? _t('1 passaggio saltato: ') : _t('{0} passaggi saltati: ').replace('{0}', skipped.length)) + skipped.join(', ')) + '</div>' : ''),
@@ -2706,6 +2715,7 @@ function paintModes(){
   const p = $('#modePill');
   if (cur) { p.textContent = _t('MODALITÀ ') + cur.name.toUpperCase(); p.style.color = cur.c; p.style.borderColor = cur.c; }
   else { p.textContent = _t('IMPOSTAZIONI ORIGINALI DI WINDOWS'); p.style.color = 'var(--muted)'; p.style.borderColor = 'var(--line)'; }
+  delete p.dataset.riu; pillRiunione();
   boostPaint();
 }
 /* ---------- Gioca: pulsante BOOST (3.1) ----------
@@ -4456,18 +4466,30 @@ const OFFICE_CHECK = {of_new_call:1, of_new_camlog:1, of_outlook_mail:1, of_outl
 // Novità 3.1: interruttori (Modalità riunione, Blocco automatico) e "Ripara adesso" dopo la prova della videochiamata.
 const OFFICE_TOGGLE = {of_new_meeting:1, of_new_lock:1};
 let OF_STATI = {}, RIPARA = [];
-setInterval(() => { if (isOffice() && !document.hidden) ofStati(); }, 30000); // la guardia può spegnere la riunione da sola
+setInterval(() => { if ((isOffice() || OF_STATI.of_new_meeting) && !document.hidden) ofStati(); }, 30000); // la guardia può spegnere la riunione da sola (anche lasciata accesa in Gaming)
 function ofStati(){ call('goOfficeStati').then(r => { OF_STATI = r || {}; paintStati(); }).catch(() => {}); }
+// Riunione accesa: la pillola in alto non dice "MODALITÀ NORMALE" (notifiche spente, PC al massimo).
+function pillRiunione(){
+  const p = $('#modePill'); let on = false; try { on = !!OF_STATI.of_new_meeting; } catch (e) {}
+  if (!p || !on) return false;
+  p.textContent = _t('RIUNIONE IN CORSO'); p.style.color = 'var(--a1)'; p.style.borderColor = 'var(--a1)'; p.dataset.riu = '1';
+  return true;
+}
 function paintStati(){
+  if (!pillRiunione() && $('#modePill') && $('#modePill').dataset.riu) paintModes();
+  // Gaming: la riunione lasciata accesa si spegne anche da qui
+  const mb = $('#meetBanner'); if (mb) mb.classList.toggle('on', !!OF_STATI.of_new_meeting && !isOffice());
   $$('[data-tg]').forEach(b => { if (b.dataset.tg) b.textContent = OF_STATI[b.dataset.tg] ? _t('Spegni') : _t('Accendi'); });
   // Home dell'Ufficio: il pulsante della Modalità riunione dice se è accesa.
   const m = $('#btnMeet'); if (!m) return;
   const on = !!OF_STATI.of_new_meeting;
   m.classList.toggle('on', on); m.setAttribute('aria-pressed', on ? 'true' : 'false');
   $('#meetT').textContent = on ? _t('Riunione in corso') : _t('Modalità riunione');
-  $('#meetS').textContent = on ? _t('Premi per spegnerla: torna tutto com\'era.') : _t('Il Boost dell\'ufficio: niente notifiche, PC al massimo.');
+  $('#meetS').textContent = on ? _t('Premi per spegnerla: torna tutto com\'era.') : _t('Un tasto prima della chiamata: niente notifiche, PC al massimo.');
 }
-$('#btnMeet').onclick = () => runStep('of_new_meeting');
+var MEET_HOME = false; // Modalità riunione premuta dalla Home (F11-10)
+$('#btnMeetOff').onclick = () => runStep('of_new_meeting');
+$('#btnMeet').onclick = () => { MEET_HOME = true; runStep('of_new_meeting'); };
 function ofCard(id, ic, c){
   if (!STEP[id]) return null;
   const s = stepTxt(id);
@@ -4665,6 +4687,7 @@ async function setLook(p){
   if (p === 'ufficio' && (CURVIEW === 'games' || CURVIEW === 'perf')) show('home');
   // La Modalità riunione accesa resta così anche in Gaming (notifiche e aggiornamenti in pausa), ma lì il suo
   // pulsante non c'è: chiedo se spegnerla.
+  paintStati();
   if (p === 'gioco' && OF_STATI.of_new_meeting) modal('<h2>' + esc(_t('La Modalità riunione è ancora accesa')) + '</h2><p class="muted" style="margin:0;line-height:1.5">' + esc(_t('Notifiche, OneDrive e aggiornamenti restano in pausa anche in Gaming. La spengo? Tornano come prima.')) + '</p>',
     [{label:_t('Lasciala accesa')}, {label:_t('Spegni'), cls:'primary', fn: () => { call('goStartSteps', ['of_new_meeting'], 'acceso', true).then(r => { if (r === 'busy') toast(_t('Attendi la fine dell\'operazione in corso.'), 'var(--a4)'); else show('clean'); }); }}]);
   // 3.1: in Ufficio niente giochi e niente traduzione: se era accesa la spengo (tasti F7 liberi).
@@ -5174,7 +5197,7 @@ function fbAskOnce(p){
   S.feedbackAsked = true; call('goFeedbackAsked');
   setTimeout(() => {
     if ($('#modal').classList.contains('on')) return;
-    modal('<h2>' + _t('Com\'è andata la prima pulizia?') + '</h2><p class="muted" style="margin:0;line-height:1.5">' + _t('Se ti va, dimmi come ti sei trovato e cosa miglioreresti in Tasso. Bastano due righe. Questa domanda non compare più: puoi scrivermi quando vuoi da Impostazioni, Scrivici.') + '</p>',
+    modal('<h2>' + _t('Com\'è andata la prima pulizia?') + '</h2><p class="muted" style="margin:0;line-height:1.5">' + _t('Se ti va, dimmi com\'è stato usare Tasso e cosa miglioreresti. Bastano due righe. Questa domanda non compare più: puoi scrivermi quando vuoi da Impostazioni, Scrivici.') + '</p>',
       [{label:_t('No, grazie')}, {label:_t('Scrivi due righe'), cls:'primary', fn: () => { setTimeout(() => fbOpen('commento'), 0); }}]);
   }, 2500);
 }
@@ -6494,8 +6517,9 @@ function nomeErrore(e){
 // Saluti della Home: Ufficio "Buon pomeriggio, Sergio!", Gaming "venerdì 27 novembre · Ciao, Sergio".
 function nomeSaluti(){
   const h = new Date().getHours(), n = nomeOra(), e = $('#hello');
-  // senza nome il saluto resta quello scritto all'avvio
-  if (e && n) e.textContent = (h < 6 ? _t('Ciao, {0}!') : h < 13 ? _t('Buongiorno, {0}!') : h < 18 ? _t('Buon pomeriggio, {0}!') : _t('Buonasera, {0}!')).replace('{0}', n);
+  // anche senza nome: il saluto segue l'ora (Tasso resta aperto nella tray per ore)
+  const t = n ? (h < 6 ? _t('Ciao, {0}!') : h < 13 ? _t('Buongiorno, {0}!') : h < 18 ? _t('Buon pomeriggio, {0}!') : _t('Buonasera, {0}!')).replace('{0}', n) : (h < 6 ? _t('Ciao!') : h < 13 ? _t('Buongiorno!') : h < 18 ? _t('Buon pomeriggio!') : _t('Buonasera!'));
+  if (e && e.textContent !== t) e.textContent = t;
   gDatePaint();
 }
 // Biglietto: i caratteri con gli accenti (anche di altri alfabeti) pronti prima di disegnare.
@@ -6548,7 +6572,7 @@ function nomeCardPaint(){
   $('#nomeCambia').classList.toggle('primary', !n); $('#nomeCambia').classList.toggle('ghost', !!n);
   const nota = $('#nomeNota'), ed = $('#nomeEdit').style.display !== 'none';
   nota.style.display = n || ed ? 'none' : '';
-  if (!n) nota.innerHTML = esc(_t('Finché non lo scrivi, Tasso ti saluta senza nome:')) + ' <b>' + esc(_t('"Bentornato!"')) + '</b>. ' + esc(_t('Con il nome:')) + ' <b>' + esc(_t('"Bentornato, Sergio!"')) + '</b>';
+  if (!n) nota.innerHTML = esc(_t('Finché non lo scrivi, Tasso ti saluta senza nome:')) + ' <b>' + esc(_t('"Ciao di nuovo!"')) + '</b>. ' + esc(_t('Con il nome:')) + ' <b>' + esc(_t('"Ciao di nuovo, Sergio!"')) + '</b>';
 }
 function nomeCampo(){
   const i = $('#nomeIn'), m = $('#nomeMsg'), c = $('#nomeCont'), p = nomePulisci(i.value), e = nomeControlla(p), k = [...p].length;
@@ -6577,6 +6601,11 @@ async function nomeSalva(){
   toast(_t('Fatto: ora ti chiamo {0}. Vale anche in Tasso Zip e Tasso PDF.').replace('{0}', r.nome));
 }
 nomeSaluti(); // all'apertura: con il nome "Buongiorno, Sergio!" (Ufficio) e "Ciao, Sergio" (Gaming)
+// La finestra si riapre dalla tray senza ricaricarsi: saluto e data si aggiornano quando torna
+// visibile e ogni minuto (cambio di ora del giorno, mezzanotte).
+window.addEventListener('focus', nomeSaluti);
+document.addEventListener('visibilitychange', () => { if (!document.hidden) nomeSaluti(); });
+setInterval(() => { if (!document.hidden) nomeSaluti(); }, 60000);
 if ($('#nomeCard')) {
   $('#nomeCambia').onclick = () => nomeApri(true);
   $('#nomeAnnulla').onclick = () => nomeApri(false);
