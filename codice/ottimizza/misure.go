@@ -347,3 +347,46 @@ func ValoriUtente(s *Stato) []Valore {
 	}
 	return out
 }
+
+// SIDDaFileStato: il SID di un account vero (S-1-5-21-… o S-1-12-1-…) dal nome del file stato-<SID>.json.
+// Qualsiasi altra cosa (account di sistema, "utente", nomi strani) = "".
+func SIDDaFileStato(nome string) string {
+	if !strings.HasPrefix(nome, "stato-") || !strings.HasSuffix(nome, ".json") {
+		return ""
+	}
+	sid := strings.TrimSuffix(strings.TrimPrefix(nome, "stato-"), ".json")
+	p := strings.Split(sid, "-")
+	// account locali e di dominio (S-1-5-21-…) o di Microsoft Entra/Azure AD (S-1-12-1-…)
+	if len(p) < 5 || p[0] != "S" || p[1] != "1" || !(p[2] == "5" && p[3] == "21" || p[2] == "12" && p[3] == "1") {
+		return ""
+	}
+	for _, x := range p[1:] {
+		if x == "" || len(x) > 10 {
+			return ""
+		}
+		for _, c := range x {
+			if c < '0' || c > '9' {
+				return ""
+			}
+		}
+	}
+	return sid
+}
+
+// CartellaProfiloSicura: in una cartella del profilo di un altro account si scrive solo se il
+// proprietario è quell'account, gli amministratori, SYSTEM o TrustedInstaller e se possono
+// scriverci soltanto loro (niente Everyone, Users, Utenti autenticati o un altro account).
+// scrittori = i SID con diritti di scrittura sulla cartella stessa.
+func CartellaProfiloSicura(proprietario string, scrittori []string, sid string) bool {
+	fidati := map[string]bool{sid: true, "S-1-5-18": true, "S-1-5-32-544": true,
+		"S-1-5-80-956008885-3418522649-1831038044-1853292631-2271478464": true} // TrustedInstaller
+	if sid == "" || !fidati[proprietario] {
+		return false
+	}
+	for _, s := range scrittori {
+		if !fidati[s] && s != "S-1-3-0" { // CREATOR OWNER: vale per i file che crea il proprietario
+			return false
+		}
+	}
+	return true
+}

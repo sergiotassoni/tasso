@@ -281,3 +281,93 @@ func TestValoriUtente(t *testing.T) {
 		t.Fatalf("reg: %q", r)
 	}
 }
+
+// regCopiaFinta: come la copia .reg di Windows, tiene il primo valore visto prima di ogni scrittura.
+type regCopiaFinta struct {
+	Registro
+	visti map[string]Valore
+}
+
+func (c *regCopiaFinta) primo(r Radice, k, n string) {
+	id := chiaveFinta(r, k, n)
+	if _, ok := c.visti[id]; !ok {
+		v, _ := c.Registro.Leggi(r, k, n)
+		c.visti[id] = v
+	}
+}
+func (c *regCopiaFinta) Scrivi(v Valore) error {
+	c.primo(v.Radice, v.Chiave, v.Nome)
+	return c.Registro.Scrivi(v)
+}
+func (c *regCopiaFinta) Cancella(r Radice, k, n string) error {
+	c.primo(r, k, n)
+	return c.Registro.Cancella(r, k, n)
+}
+
+// R1b (verifica 7f280c8): nel secondo giro, il rimetti della voce cambiata in parte non passa dalla
+// copia: il .reg del giro ha solo i valori di prima di Tasso, mai i suoi.
+func TestCopiaSecondoGiroSenzaValoriDiTasso(t *testing.T) {
+	a, r, _, _ := ambienteFinto()
+	nomi := []string{"SubscribedContent-338389Enabled", "SoftLandingEnabled", "SystemPaneSuggestionsEnabled", "SubscribedContent-310093Enabled"}
+	for _, n := range nomi {
+		r.metti(dw(HKCU, kContenuti, n, 1))
+	}
+	r.metti(dw(HKCU, kEngagement, "ScoobeSystemSettingEnabled", 1))
+	m, _ := Trova("consigli")
+	st := &Stato{}
+	n := 0
+	if e := Esegui(m, a, st, salvaFinto(&n)); e.Stato != VoceFatta {
+		t.Fatal(e)
+	}
+	r.metti(dw(HKCU, kContenuti, nomi[0], 1)) // l'utente ne riaccende uno
+	copia := &regCopiaFinta{Registro: r, visti: map[string]Valore{}}
+	a.Reg, a.RegSenzaCopia = copia, r
+	if e := Esegui(m, a, st, salvaFinto(&n)); e.Stato != VoceFatta {
+		t.Fatalf("secondo giro: %+v", e)
+	}
+	if len(copia.visti) == 0 {
+		t.Fatal("nessun valore nella copia")
+	}
+	for id, v := range copia.visti {
+		if v.Esiste && v.Num == 0 {
+			t.Fatalf("la copia ha il valore di Tasso per %s", id)
+		}
+	}
+}
+
+// S1 (verifica 7f280c8): il .reg per un altro account va solo nel suo profilo, mai in una
+// cartella dove può scrivere qualcun altro.
+func TestProfiloAltroAccount(t *testing.T) {
+	sid := "S-1-5-21-111-222-333-1001"
+	if got := SIDDaFileStato("stato-" + sid + ".json"); got != sid {
+		t.Fatalf("sid %q", got)
+	}
+	if az := "S-1-12-1-1111111111-2222222222-3333333333-4444444444"; SIDDaFileStato("stato-"+az+".json") != az {
+		t.Fatal("account Microsoft Entra non riconosciuto")
+	}
+	for _, n := range []string{"stato-utente.json", "stato-S-1-5-18.json", "stato-S-1-12-2-1-2.json", "stato-S-1-5-20.json", "stato-S-1-5-21-1-2-x-4.json", "stato-S-1-5-21-1-2-3-4.json.bak", "notifiche-" + sid + ".json", `stato-S-1-5-21-1-2-3-4\..\x.json`} {
+		if SIDDaFileStato(n) != "" {
+			t.Fatalf("accettato %q", n)
+		}
+	}
+	casi := []struct {
+		owner string
+		scr   []string
+		ok    bool
+	}{
+		{sid, []string{sid, "S-1-5-18", "S-1-5-32-544"}, true},
+		{"S-1-5-32-544", []string{sid, "S-1-3-0"}, true},
+		{"S-1-5-21-111-222-333-1002", []string{sid}, false}, // proprietario un altro account
+		{sid, []string{sid, "S-1-5-32-545"}, false},         // Users può scrivere
+		{sid, []string{"S-1-1-0"}, false},                   // Everyone
+		{sid, []string{"S-1-5-11"}, false},                  // Utenti autenticati
+	}
+	for i, c := range casi {
+		if CartellaProfiloSicura(c.owner, c.scr, sid) != c.ok {
+			t.Fatalf("caso %d: atteso %v", i, c.ok)
+		}
+	}
+	if CartellaProfiloSicura(sid, nil, "") {
+		t.Fatal("senza SID")
+	}
+}

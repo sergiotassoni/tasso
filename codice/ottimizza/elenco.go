@@ -215,23 +215,18 @@ func nuoviOrari() Gestore {
 	return g
 }
 
-// effetti: animazioni e trasparenze (Gaming e Ufficio, la stessa modifica).
+// effetti: solo gli effetti che non si notano (Gaming e Ufficio, la stessa modifica).
+// Richiesta di Sergio: Windows deve restare bello. Mai il profilo "prestazioni migliori" degli
+// effetti visivi, e mai toccare: caratteri arrotondati (ClearType/FontSmoothing), contenuto della
+// finestra durante il trascinamento, miniature al posto delle icone, anteprime della barra delle
+// applicazioni (e Aero Peek), ombre sotto il puntatore, le finestre e i nomi delle icone,
+// rettangolo di selezione trasparente, animazione di apertura e chiusura delle finestre
+// (SPI_SETANIMATION), animazioni dentro le finestre (SPI_SETCLIENTAREAANIMATION) e trasparenze
+// di Start e barra (EnableTransparency). Resta solo l'animazione dei pulsanti della barra delle
+// applicazioni ("Animazioni nella barra delle applicazioni" in Opzioni prestazioni): un valore
+// HKCU documentato, che si rimette com'era e torna anche con il .reg.
 func nuoviEffetti() Gestore {
-	return &insieme{parti: []Gestore{
-		&regGest{bers: []bersaglio{{vuole: dw(HKCU, kTemi, "EnableTransparency", 0), ok: soloQuesti(0)}}, dopo: avvisa("ImmersiveColorSet")},
-		&regGest{bers: []bersaglio{{vuole: dw(HKCU, kEsplora, "TaskbarAnimations", 0), ok: soloQuesti(0)}}, dopo: avvisa("TraySettings")},
-		&spiGest{id: SPIAnimazioni, vuole: false},
-		&spiGest{id: SPIFinestre, vuole: false},
-	}}
-}
-
-// ombre: ombre e anteprime pesanti (solo Ufficio).
-func nuoveOmbre() Gestore {
-	return &insieme{parti: []Gestore{
-		&regGest{bers: []bersaglio{{vuole: dw(HKCU, kEsplora, "ListviewShadow", 0), ok: soloQuesti(0)}}, dopo: avvisa("TraySettings")},
-		&regGest{bers: []bersaglio{{vuole: dw(HKCU, kDWM, "EnableAeroPeek", 0), ok: soloQuesti(0)}}},
-		&spiGest{id: SPIOmbre, vuole: false},
-	}}
+	return &regGest{bers: []bersaglio{{vuole: dw(HKCU, kEsplora, "TaskbarAnimations", 0), ok: soloQuesti(0)}}, dopo: avvisa("TraySettings")}
 }
 
 func nuovaRegistrazione() Gestore {
@@ -258,7 +253,6 @@ func Elenco(modo string) []Modifica {
 		// Store chiuse non manderebbero più notifiche e promemoria (Posta, Calendario, Telefono).
 		return []Modifica{
 			{ID: "effetti", Categoria: "win", Utente: true, G: nuoviEffetti()},
-			{ID: "ombre", Categoria: "win", Utente: true, G: nuoveOmbre()},
 			{ID: "pulizia_temp", Categoria: "clean", Utente: true, NonRimette: true, G: &puliziaGest{passi: []string{"backup", "temp_user", "temp_win", "thumbs"}}},
 			{ID: "pulizia_resti", Categoria: "clean", NonRimette: true, G: &puliziaGest{passi: []string{"wu_cache", "cleanmgr"}}},
 			{ID: "riapertura", Categoria: "ram", Utente: true, G: nuovaRiapertura()},

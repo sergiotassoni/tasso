@@ -15,6 +15,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -744,14 +745,16 @@ func scriviSicuroOtt(p string, b []byte, protetto bool) error {
 		}
 	}
 	scrivi := func(f string, dati []byte) error {
-		// mai seguire un collegamento messo al posto del file (Tasso amministratore nella cartella
-		// dell'utente): lo tolgo, poi creo il file nuovo
-		if fi, e := os.Lstat(f); e == nil && (èLink(fi) || !fi.Mode().IsRegular()) {
-			if !èLink(fi) || os.Remove(f) != nil {
-				return fmt.Errorf("%s non è un file normale", filepath.Base(f))
+		// mai seguire un collegamento (simbolico, giunzione o hardlink) messo al posto del file
+		// (Tasso amministratore nella cartella dell'utente): tolgo il nome che c'è (togliere un
+		// hardlink non tocca l'altro file), poi creo un file nuovo con O_EXCL, che non apre mai
+		// un file o un collegamento rimesso lì nel frattempo.
+		if fi, e := os.Lstat(f); e == nil {
+			if fi.IsDir() || os.Remove(f) != nil {
+				return fmt.Errorf("%s non si può sostituire", filepath.Base(f))
 			}
 		}
-		h, err := os.OpenFile(f, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o644)
+		h, err := os.OpenFile(f, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o644)
 		if err != nil {
 			return err
 		}
@@ -765,16 +768,35 @@ func scriviSicuroOtt(p string, b []byte, protetto bool) error {
 		}
 		return h.Close()
 	}
-	if old, err := os.ReadFile(p); err == nil && len(old) > 0 {
-		if fi, e := os.Lstat(p); e == nil && !èLink(fi) {
-			_ = scrivi(p+".prima", old)
-		}
+	if old, ok := leggiFileUnicoOtt(p); ok && len(old) > 0 {
+		_ = scrivi(p+".prima", old)
 	}
 	tmp := p + ".nuovo"
 	if err := scrivi(tmp, b); err != nil {
 		return err
 	}
 	return os.Rename(tmp, p)
+}
+
+// leggiFileUnicoOtt: legge p solo se è un file normale con un nome solo: niente collegamenti,
+// giunzioni o hardlink (un hardlink a un file di un altro farebbe copiare quel file in ".prima").
+func leggiFileUnicoOtt(p string) ([]byte, bool) {
+	fi, err := os.Lstat(p)
+	if err != nil || èLink(fi) || !fi.Mode().IsRegular() {
+		return nil, false
+	}
+	h, err := os.Open(p)
+	if err != nil {
+		return nil, false
+	}
+	defer h.Close()
+	var info windows.ByHandleFileInformation
+	if windows.GetFileInformationByHandle(windows.Handle(h.Fd()), &info) != nil || info.NumberOfLinks != 1 ||
+		info.FileAttributes&windows.FILE_ATTRIBUTE_REPARSE_POINT != 0 {
+		return nil, false
+	}
+	b, err := io.ReadAll(io.LimitReader(h, 16<<20))
+	return b, err == nil
 }
 
 // salvaOtt scrive il file di stato. Chiamare con ottMu preso.
@@ -790,7 +812,7 @@ func salvaOtt(st *ottimizza.Stato) error {
 // ambienteOtt: registro con backup, piano energetico, desktop, preferenze e pulizia veri.
 // Per cambiare (giro, riaccendere un interruttore): il .reg di backup tiene i valori di prima.
 func ambienteOtt(ctx context.Context, log func(string)) *ottimizza.Ambiente {
-	return &ottimizza.Ambiente{Reg: nuovoRegConCopia(regVero{}), En: enVera{}, Sis: sisVero{}, Pref: prefVere{}, Pul: pulVero{ctx: ctx, log: log}, PC: pcOtt(),
+	return &ottimizza.Ambiente{Reg: nuovoRegConCopia(regVero{}), RegSenzaCopia: regVero{}, En: enVera{}, Sis: sisVero{}, Pref: prefVere{}, Pul: pulVero{ctx: ctx, log: log}, PC: pcOtt(),
 		Attendi: func(d time.Duration) { time.Sleep(d) }}
 }
 
@@ -949,16 +971,17 @@ func copiaPerDocumentiOtt(p string) bool {
 	return scriviFileApp(filepath.Join(dir, nome), b, 0o644) == nil
 }
 
-const leggimiRegOtt = "Questo file rimette com'erano le impostazioni cambiate da Ottimizza tutto di Tasso.\nCome si usa: entra in Windows con l'account di cui sono le impostazioni, fai doppio clic sul file .reg con lo stesso nome, rispondi Sì alle domande di Windows, poi esci e rientra.\nDentro ci sono solo i valori di prima: non rifà nessuna modifica. Dopo lo puoi cancellare."
+const leggimiRegOtt = "Questo file serve a rimettere com'erano le impostazioni di questo account cambiate da Ottimizza tutto di Tasso.\nIl file .reg con lo stesso nome rimette i valori che c'erano prima delle modifiche di Tasso. Attenzione: rimette quelli di prima anche se nel frattempo li hai cambiati tu. Non rifà nessuna modifica.\nCome si usa: entra in Windows con questo account, fai doppio clic sul file .reg, rispondi Sì alle domande di Windows, poi esci da Windows e rientra.\nAnimazioni e ombre delle finestre non sono in questo file (Tasso le lascia come sono). Se non ti sembrano come prima, sistemale a mano. Windows 11: Impostazioni > Accessibilità > Effetti visivi. Windows 10: Pannello di controllo > Sistema > Impostazioni di sistema avanzate > Prestazioni > Impostazioni, poi scegli \"Lascia scegliere a Windows\".\nDopo puoi cancellare tutti e due i file."
 
 // regAltroAccountOtt: dopo Togli Tasso, per le modifiche di un altro account che Tasso non può
-// raggiungere, un .reg con i valori di prima (solo HKCU, solo quelli toccati) in Documenti pubblici\Tasso,
-// che tutti gli account del PC vedono, più una copia con le copie di sicurezza in Documenti. Va aperto
-// da quell'account: HKEY_CURRENT_USER è il suo. Dentro ci sono solo i valori di prima di Tasso: un
-// doppio clic rimette com'era, mai le modifiche.
-func regAltroAccountOtt(st *ottimizza.Stato) bool {
+// raggiungere, un .reg con i valori di prima (solo HKCU, solo quelli toccati) e un .txt che spiega,
+// scritti nel profilo di quell'account (Desktop, se no la sua cartella personale): lì scrivono solo
+// lui, gli amministratori e SYSTEM, quindi nessun altro può cambiare il file prima del doppio clic.
+// Il profilo si trova dal SID (ProfileList). Se non c'è o non è sicuro: nessun file, solo parole.
+// Una copia va anche con le copie di sicurezza (in Documenti di chi toglie Tasso).
+func regAltroAccountOtt(st *ottimizza.Stato, sid string) bool {
 	v := ottimizza.ValoriUtente(st)
-	if len(v) == 0 {
+	if len(v) == 0 || sid == "" {
 		return false
 	}
 	u := utf16.Encode([]rune(ottimizza.TestoReg(v)))
@@ -973,30 +996,107 @@ func regAltroAccountOtt(st *ottimizza.Stato) bool {
 		}
 		return r
 	}, trGo("Tasso - rimetti com'era le impostazioni di questo account")) + "_" + time.Now().Format("20060102_150405") + ".reg"
-	ok := false
-	if pub, err := windows.KnownFolderPath(windows.FOLDERID_PublicDocuments, 0); err == nil && pub != "" {
-		d := filepath.Join(pub, "Tasso")
-		if fi, e := os.Lstat(d); e == nil && èLink(fi) {
-			d = "" // mai seguire un collegamento in una cartella che tutti possono scrivere
-		}
-		if d != "" && os.MkdirAll(d, 0o755) == nil {
-			f := filepath.Join(d, nome)
-			if fi, e := os.Lstat(f); !(e == nil && èLink(fi)) {
-				ok = os.WriteFile(f, b, 0o644) == nil
-			}
-			// due righe per chi lo trova lì
-			g := filepath.Join(d, strings.TrimSuffix(nome, ".reg")+".txt")
-			if fi, e := os.Lstat(g); ok && !(e == nil && èLink(fi)) {
-				_ = os.WriteFile(g, []byte("\ufeff"+strings.ReplaceAll(trGo(leggimiRegOtt), "\n", "\r\n")), 0o644)
-			}
-		}
-	}
 	if dir := filepath.Join(appDir, "backup-registro", "altro account"); os.MkdirAll(dir, 0o755) == nil {
-		if scriviFileApp(filepath.Join(dir, nome), b, 0o644) == nil {
-			ok = true
-		}
+		_ = scriviFileApp(filepath.Join(dir, nome), b, 0o644)
 	}
-	return ok
+	d := cartellaProfiloOtt(sid)
+	if d == "" {
+		return false
+	}
+	nuovo := func(f string, dati []byte) bool {
+		h, err := os.OpenFile(f, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o644) // mai un file che c'è già
+		if err != nil {
+			return false
+		}
+		_, err = h.Write(dati)
+		if e := h.Close(); err == nil {
+			err = e
+		}
+		if err != nil {
+			_ = os.Remove(f)
+		}
+		return err == nil
+	}
+	if !nuovo(filepath.Join(d, nome), b) {
+		return false
+	}
+	_ = nuovo(filepath.Join(d, strings.TrimSuffix(nome, ".reg")+".txt"), []byte("\ufeff"+strings.ReplaceAll(trGo(leggimiRegOtt), "\n", "\r\n")))
+	return true
+}
+
+// cartellaProfiloOtt: Desktop (o, se no, la cartella personale) dell'account con questo SID, solo
+// se è una cartella vera (non un collegamento o una giunzione) e se proprietario e permessi sono
+// quelli di un profilo (ottimizza.CartellaProfiloSicura). "" = non scrivo niente.
+func cartellaProfiloOtt(sid string) string {
+	k, err := registry.OpenKey(registry.LOCAL_MACHINE, `SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList\`+sid, registry.QUERY_VALUE)
+	if err != nil {
+		return ""
+	}
+	p, _, err := k.GetStringValue("ProfileImagePath")
+	k.Close()
+	if err != nil || p == "" {
+		return ""
+	}
+	if x, e := registry.ExpandString(p); e == nil {
+		p = x
+	}
+	p = filepath.Clean(p)
+	if !filepath.IsAbs(p) || strings.HasPrefix(p, `\\`) {
+		return "" // mai un profilo in rete
+	}
+	sicura := func(d string) bool {
+		fi, e := os.Lstat(d)
+		if e != nil || èLink(fi) || !fi.IsDir() {
+			return false
+		}
+		owner, scr, ok := permessiCartellaOtt(d)
+		return ok && ottimizza.CartellaProfiloSicura(owner, scr, sid)
+	}
+	if !sicura(p) {
+		return ""
+	}
+	if dt := filepath.Join(p, "Desktop"); sicura(dt) {
+		return dt
+	}
+	return p
+}
+
+// permessiCartellaOtt: proprietario e SID che possono scrivere nella cartella (diritti di
+// scrittura, permessi che valgono per la cartella stessa). ok=false se non si capisce.
+func permessiCartellaOtt(p string) (owner string, scrittori []string, ok bool) {
+	sd, err := windows.GetNamedSecurityInfo(p, windows.SE_FILE_OBJECT, windows.OWNER_SECURITY_INFORMATION|windows.DACL_SECURITY_INFORMATION)
+	if err != nil {
+		return "", nil, false
+	}
+	o, _, err := sd.Owner()
+	if err != nil || o == nil {
+		return "", nil, false
+	}
+	dacl, _, err := sd.DACL()
+	if err != nil || dacl == nil {
+		return "", nil, false // nessun elenco = tutti possono tutto
+	}
+	for i := uint32(0); i < uint32(dacl.AceCount); i++ {
+		var ace *windows.ACCESS_ALLOWED_ACE
+		if windows.GetAce(dacl, i, &ace) != nil || ace == nil {
+			return "", nil, false
+		}
+		if ace.Header.AceFlags&windows.INHERIT_ONLY_ACE != 0 {
+			continue
+		}
+		switch ace.Header.AceType {
+		case windows.ACCESS_DENIED_ACE_TYPE, 6, 10, 12:
+			continue
+		case windows.ACCESS_ALLOWED_ACE_TYPE, 9:
+		default:
+			return "", nil, false
+		}
+		if uint32(ace.Mask)&dirittiScrittura == 0 {
+			continue
+		}
+		scrittori = append(scrittori, (*windows.SID)(unsafe.Pointer(&ace.SidStart)).String())
+	}
+	return o.String(), scrittori, true
 }
 
 // ottAltriFile: i file di stato e delle notifiche diversi da quello dell'utente di adesso (un
@@ -1021,7 +1121,7 @@ func ottAltriFile() []string {
 	for _, x := range f {
 		l = append(l, file{x, false})
 	}
-	altri, illeggibili, conReg := 0, 0, 0
+	altri, illeggibili, conReg, senzaReg := 0, 0, 0, 0
 	for _, x := range l {
 		base := filepath.Base(x.p)
 		if strings.EqualFold(x.p, mio) || strings.HasPrefix(base, "notifiche-") && strings.EqualFold(x.p, fileNotificheOtt()) {
@@ -1068,14 +1168,20 @@ func ottAltriFile() []string {
 			if copiaPerDocumentiOtt(x.p) {
 				altri++
 			}
-			if regAltroAccountOtt(st) {
+			if regAltroAccountOtt(st, ottimizza.SIDDaFileStato(base)) {
 				conReg++
+			} else if len(ottimizza.ValoriUtente(st)) > 0 {
+				senzaReg++
 			}
 		}
 	}
 	if conReg > 0 {
-		avvisi = append(avvisi, "Ottimizza tutto: alcune impostazioni di un altro account del PC non sono tornate com'erano (Tasso non può cambiare le impostazioni di un altro account). Per rimetterle: entra in Windows con quell'account, apri Documenti pubblici, cartella Tasso, fai doppio clic sul file \"Tasso - rimetti com'era…\", rispondi Sì, poi esci e rientra.")
-	} else if altri > 0 {
+		avvisi = append(avvisi, "Ottimizza tutto: alcune impostazioni di un altro account del PC non sono tornate com'erano (Tasso non può cambiare le impostazioni di un altro account). Per rimetterle: entra in Windows con quell'account, fai doppio clic sul file \"Tasso - rimetti com'era…\" che trovi sul suo Desktop (o nella sua cartella personale), rispondi Sì, poi esci e rientra.")
+	}
+	if senzaReg > 0 {
+		avvisi = append(avvisi, "Ottimizza tutto: alcune impostazioni di un altro account del PC non sono tornate com'erano e non ho potuto lasciare un file nella sua cartella. Per rimetterle: entra in Windows con quell'account e, in Impostazioni, riaccendi a mano quello che serve (accelerazione del mouse, effetti visivi, suoni delle notifiche, consigli di Windows). L'elenco con i valori di prima va con le copie di sicurezza in Documenti.")
+	}
+	if conReg == 0 && senzaReg == 0 && altri > 0 {
 		avvisi = append(avvisi, "Ottimizza tutto: alcune impostazioni di un altro account del PC non sono tornate com'erano (Tasso non può cambiare le impostazioni di un altro account). Tolgo Tasso lo stesso: l'elenco va con le copie di sicurezza in Documenti.")
 	}
 	if illeggibili > 0 {
@@ -1264,11 +1370,11 @@ func bindOttimizza(w webview2.WebView) {
 			}
 		})
 	})
-	_ = w.Bind("goOttSalva", func(dataURL string) string { return salvaBigliettoOtt(dataURL) })
+	_ = w.Bind("goOttSalva", func(dataURL, forma string) string { return salvaBigliettoOtt(dataURL, forma) })
 }
 
 // salvaBigliettoOtt: Immagini\Tasso\ottimizza-tasso-AAAA-MM-GG-hhmm.png, poi apre la cartella.
-func salvaBigliettoOtt(dataURL string) string {
+func salvaBigliettoOtt(dataURL, forma string) string {
 	b, _, err := pngDaDataURL(dataURL)
 	if err != nil {
 		return "no"
@@ -1282,6 +1388,9 @@ func salvaBigliettoOtt(dataURL string) string {
 		return "no"
 	}
 	base := "ottimizza-tasso-" + time.Now().Format("2006-01-02-1504")
+	if forma == "verticale" {
+		base += "-verticale"
+	}
 	p := filepath.Join(dir, base+".png")
 	for i := 2; i < 100; i++ {
 		if _, err := os.Stat(p); err != nil {

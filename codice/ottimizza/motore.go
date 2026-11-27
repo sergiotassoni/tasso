@@ -76,7 +76,7 @@ func Esegui(m Modifica, a *Ambiente, st *Stato, salva Salvatore) Esito {
 		// Cambiata in parte (da te, o un giro interrotto a metà): prima rimetto com'erano i valori
 		// che hanno ancora quello di Tasso, poi riparto da com'è adesso. Se non riesco, la voce
 		// resta com'è (con il suo com'era) e questa volta la salto.
-		if _, err := m.G.Rimetti(a, old.Prima); err != nil {
+		if _, err := m.G.Rimetti(perRimettere(a), old.Prima); err != nil {
 			return Esito{ID: m.ID, Stato: VoceErrore, Motivo: MsgNonRimetto}
 		}
 		old.Stato, old.Motivo, old.Prima = VoceLasciata, MsgLasciata, Precedente{}
@@ -117,7 +117,7 @@ func Esegui(m Modifica, a *Ambiente, st *Stato, salva Salvatore) Esito {
 		return Esito{ID: m.ID, Stato: VoceSaltata, Motivo: MsgNonSalvo}
 	}
 	annulla := func(motivo string) Esito {
-		if _, err := m.G.Rimetti(a, p); err != nil {
+		if _, err := m.G.Rimetti(perRimettere(a), p); err != nil {
 			// non sono riuscito a rimettere: la voce resta "in corso" con il suo com'era
 			st.Metti(Voce{ID: m.ID, Stato: VoceInCorso, Motivo: MsgNonRimetto, Quando: adesso(), Prima: p})
 			_ = salva(st)
@@ -159,7 +159,7 @@ func Rimetti(id string, a *Ambiente, st *Stato, salva Salvatore) Esito {
 	if m.Modo && a.PC.ModoTasso != "" {
 		return Esito{ID: id, Stato: VoceErrore, Motivo: MsgModoRimetti}
 	}
-	r, err := m.G.Rimetti(a, v.Prima)
+	r, err := m.G.Rimetti(perRimettere(a), v.Prima)
 	if err != nil {
 		return Esito{ID: id, Stato: VoceErrore, Motivo: MsgNonRimetto}
 	}

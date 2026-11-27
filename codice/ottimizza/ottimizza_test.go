@@ -13,7 +13,7 @@ func TestQuanteModifiche(t *testing.T) {
 	if n := len(Elenco(ModoGioco)); n != 14 {
 		t.Fatalf("Gaming: %d modifiche, ne servono 14", n)
 	}
-	if n := len(Elenco(ModoUfficio)); n != 9 {
+	if n := len(Elenco(ModoUfficio)); n != 8 {
 		t.Fatalf("Ufficio: %d modifiche, ne servono 9 (senza \"App in background ferme\")", n)
 	}
 	for _, modo := range []string{ModoGioco, ModoUfficio} {
@@ -93,7 +93,7 @@ func TestGiroCompletoTornaComEra(t *testing.T) {
 				t.Errorf("%s/%s: errore %s", modo, m.ID, es.Motivo)
 			}
 		}
-		if fatte < 6 {
+		if fatte < 5 { // Ufficio: 8 voci, di cui 2 pulizie ("pulita", non "fatta")
 			t.Errorf("%s: solo %d fatte", modo, fatte)
 		}
 		if n == 0 {
@@ -521,30 +521,76 @@ func TestEvento100(t *testing.T) {
 	}
 }
 
-func TestEffettiSoloPezziDaCambiare(t *testing.T) {
+func TestEffettiSoloQuelliCheNonSiNotano(t *testing.T) {
 	a, r, _, s := ambienteFinto()
-	r.metti(dw(HKCU, kTemi, "EnableTransparency", 0)) // trasparenze già spente
-	s.spi[SPIFinestre] = false
 	m, _ := Trova("effetti")
 	st := &Stato{}
 	n := 0
 	if es := Esegui(m, a, st, salvaFinto(&n)); es.Stato != VoceFatta {
 		t.Fatal(es)
 	}
-	p := st.Voce("effetti").Prima
-	if !p.Parti[0].Vuoto || p.Parti[1].Vuoto || p.Parti[2].Vuoto || !p.Parti[3].Vuoto {
-		t.Fatalf("pezzi: %+v", p.Parti)
+	if v, _ := r.Leggi(HKCU, kEsplora, "TaskbarAnimations"); !v.Esiste || v.Num != 0 {
+		t.Fatalf("barra: %+v", v)
 	}
 	if len(s.avvisi) == 0 {
 		t.Fatal("niente avviso a Windows dopo il cambio della barra")
 	}
-	Rimetti("effetti", a, st, salvaFinto(&n))
-	if v, _ := r.Leggi(HKCU, kTemi, "EnableTransparency"); v.Num != 0 || !v.Esiste {
-		t.Fatal("ha toccato un pezzo che non aveva cambiato")
+	if !s.spi[SPIAnimazioni] || !s.spi[SPIFinestre] || !s.spi[SPIOmbre] {
+		t.Fatalf("toccate animazioni o ombre: %v", s.spi)
 	}
-	if !s.spi[SPIAnimazioni] || s.spi[SPIFinestre] {
-		t.Fatalf("desktop: %v", s.spi)
+	if es := Rimetti("effetti", a, st, salvaFinto(&n)); es.Stato != VoceRimessa {
+		t.Fatal(es)
 	}
+	if v, _ := r.Leggi(HKCU, kEsplora, "TaskbarAnimations"); v.Esiste {
+		t.Fatalf("non rimesso: %+v", v)
+	}
+}
+
+// Richiesta di Sergio: Windows resta bello in Gaming e in Ufficio. Nessuna modifica tocca gli
+// effetti che si vedono, e nessuna usa le impostazioni del desktop (animazioni, ombre).
+func TestWindowsRestaBello(t *testing.T) {
+	vietate := []string{"VisualFXSetting", "UserPreferencesMask", "FontSmoothing", "DragFullWindows", "IconsOnly",
+		"DisableThumbnails", "ExtendedUIHoverTime", "EnableAeroPeek", "ListviewShadow", "ListviewAlphaSelect",
+		"MinAnimate", "EnableTransparency", "CursorShadow", "DropShadow", "AlwaysHibernateThumbnails"}
+	for _, modo := range []string{ModoGioco, ModoUfficio} {
+		for _, m := range Elenco(modo) {
+			if usaSPI(m.G) {
+				t.Errorf("%s: %s cambia animazioni o ombre del desktop", modo, m.ID)
+			}
+			b, _ := json.Marshal(chiaviDi(m.G))
+			for _, v := range vietate {
+				if strings.Contains(strings.ToLower(string(b)), strings.ToLower(v)) {
+					t.Errorf("%s: %s tocca %q", modo, m.ID, v)
+				}
+			}
+		}
+	}
+	// il giro completo non cambia nessuna impostazione del desktop
+	for _, modo := range []string{ModoGioco, ModoUfficio} {
+		a, _, _, s := ambienteFinto()
+		st := &Stato{}
+		n := 0
+		for _, m := range Elenco(modo) {
+			Esegui(m, a, st, salvaFinto(&n))
+		}
+		if !s.spi[SPIAnimazioni] || !s.spi[SPIFinestre] || !s.spi[SPIOmbre] {
+			t.Errorf("%s: desktop cambiato %v", modo, s.spi)
+		}
+	}
+}
+
+func usaSPI(g Gestore) bool {
+	switch x := g.(type) {
+	case *spiGest:
+		return true
+	case *insieme:
+		for _, p := range x.parti {
+			if usaSPI(p) {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func TestNotificheGioco(t *testing.T) {

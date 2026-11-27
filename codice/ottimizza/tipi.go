@@ -167,4 +167,17 @@ type Ambiente struct {
 	// Attendi: aspetta un po' prima di ricontrollare un cambio che Windows potrebbe rimettere
 	// (orari degli aggiornamenti). nil = non aspetta (prove).
 	Attendi func(d time.Duration)
+	// RegSenzaCopia: lo stesso registro senza la copia di sicurezza (.reg). Per rimettere com'era:
+	// la copia salverebbe come "com'era" il valore di Tasso. nil = si usa Reg.
+	RegSenzaCopia Registro
+}
+
+// perRimettere: l'ambiente per rimettere com'era, con il registro senza copia.
+func perRimettere(a *Ambiente) *Ambiente {
+	if a.RegSenzaCopia == nil {
+		return a
+	}
+	b := *a
+	b.Reg = a.RegSenzaCopia
+	return &b
 }
