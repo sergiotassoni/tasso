@@ -2,8 +2,10 @@ package traduce
 
 import (
 	"encoding/json"
+	"errors"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -62,5 +64,49 @@ func TestManifestoFintoPrimaDellaChiave(t *testing.T) {
 		if _, ok := leggiManifesto(app, "finto"); ok {
 			t.Fatal("elenco finto accettato")
 		}
+	}
+}
+
+// C2 (REV-INT-32b): un originale cambiato dopo non blocca per sempre. La traduzione si toglie, il
+// file cambiato non si rimette, l'errore dice di usare "Verifica file" (non "il gioco è aperto") e
+// gli originali restano in una cartella "da controllare" (togliendo Tasso vanno in Documenti).
+func TestOriginaleCambiatoNonBlocca(t *testing.T) {
+	app := t.TempDir()
+	gioco := filepath.Join(t.TempDir(), "Gioco")
+	for p, s := range map[string]string{"Gioco.exe": "exe", "GameAssembly.dll": "dll", filepath.Join("Gioco_Data", "x"): "x", "winhttp.dll": "doorstop", "x.dll": "tradotto"} {
+		_ = os.MkdirAll(filepath.Dir(filepath.Join(gioco, p)), 0o755)
+		_ = os.WriteFile(filepath.Join(gioco, p), []byte(s), 0o644)
+	}
+	m := ManifestoMod{Gioco: "Gioco", Cartella: gioco, Tipo: "il2cpp", Exe: "Gioco.exe", Aggiunti: []string{"winhttp.dll"}, Sostituiti: []string{"x.dll"}}
+	d := cartellaCopie(app, "g")
+	_ = os.MkdirAll(filepath.Join(d, "originali"), 0o755)
+	_ = os.WriteFile(filepath.Join(d, "originali", "x.dll"), []byte("vero"), 0o644)
+	if err := scriviManifesto(app, "g", m); err != nil {
+		t.Fatal(err)
+	}
+	_ = os.WriteFile(filepath.Join(d, "originali", "x.dll"), []byte("CAMBIATO"), 0o644)
+	err := TogliModGioco(app, "g")
+	var dc *ErrOriginaliDaControllare
+	if !errors.As(err, &dc) || len(dc.File) != 1 || dc.File[0] != "x.dll" {
+		t.Fatalf("atteso ErrOriginaliDaControllare, ho %v", err)
+	}
+	if strings.Contains(err.Error(), "aperto") || !strings.Contains(err.Error(), "Verifica file") {
+		t.Fatalf("messaggio sbagliato: %s", err)
+	}
+	if esisteVoce(filepath.Join(gioco, "winhttp.dll")) {
+		t.Fatal("la traduzione non è stata tolta")
+	}
+	if b, _ := os.ReadFile(filepath.Join(gioco, "x.dll")); string(b) != "tradotto" {
+		t.Fatal("ha toccato il file del gioco con un originale cambiato")
+	}
+	if esisteVoce(filepath.Join(d, "manifesto.json")) {
+		t.Fatal("l'elenco resta: la prossima volta si bloccherebbe di nuovo")
+	}
+	if b, err := os.ReadFile(filepath.Join(dc.Dove, "x.dll")); err != nil || string(b) != "CAMBIATO" || !strings.Contains(filepath.Base(dc.Dove), "da-controllare") {
+		t.Fatalf("copia da controllare non tenuta: %s %v", dc.Dove, err)
+	}
+	// seconda volta: niente da togliere, niente blocco
+	if err := TogliModGioco(app, "g"); err != nil {
+		t.Fatal(err)
 	}
 }

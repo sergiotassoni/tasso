@@ -2,6 +2,7 @@ package traduce
 
 import (
 	"encoding/json"
+	"errors"
 	"os"
 	"path/filepath"
 	"testing"
@@ -31,11 +32,14 @@ func TestTogliModVecchia(t *testing.T) {
 	mv0 := m
 	if err := togliModVecchia(t.TempDir(), "k0", mv0); err == nil || !esisteVoce(filepath.Join(gioco, "winhttp.dll")) {
 		t.Fatal("tolto un BepInEx che non è di Tasso")
+	} else if iu := (*errInUso)(nil); errors.As(err, &iu) {
+		t.Fatal("BepInEx non di Tasso trattato come file in uso: si riproverebbe per sempre")
 	}
 	scrivi(filepath.Join(gioco, "BepInEx", "plugins", "XUnity.AutoTranslator", "XUnity.AutoTranslator.Plugin.Core.dll"), "x")
 	scrivi(filepath.Join(gioco, "BepInEx", "config", "AutoTranslatorConfig.ini"), "[Custom]\nUrl=http://127.0.0.1:47321/gioco/k/t\n")
 	b, _ := json.Marshal(m)
 	scrivi(filepath.Join(cartellaCopie(dirApp, "k"), "manifesto.json"), string(b))
+	scrivi(filepath.Join(cartellaCopie(dirApp, "k"), "originali", "x.dll"), "originale 3.1.1")
 
 	if _, ok := leggiManifesto(dirApp, "k"); ok {
 		t.Fatal("un elenco senza firma non si usa come valido")
@@ -61,6 +65,13 @@ func TestTogliModVecchia(t *testing.T) {
 	}
 	if esisteVoce(filepath.Join(cartellaCopie(dirApp, "k"), "manifesto.json")) || ModGiaPresenti(gioco) != "" {
 		t.Fatal("l'elenco vecchio o il caricatore bloccano ancora la nuova traduzione")
+	}
+	// D1: gli originali della 3.1.1 messi da parte con l'elenco (una traduzione nuova non li cancella)
+	if esisteVoce(filepath.Join(cartellaCopie(dirApp, "k"), "originali")) {
+		t.Fatal("originali della 3.1.1 ancora dove li cancellerebbe la prossima traduzione")
+	}
+	if o, _ := filepath.Glob(filepath.Join(cartellaCopie(dirApp, "k"), "originali-3.1.1-*", "x.dll")); len(o) != 1 {
+		t.Fatal("originali della 3.1.1 persi")
 	}
 
 	// elenco Unreal della 3.1.1: messo da parte, nessun file toccato

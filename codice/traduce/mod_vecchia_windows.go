@@ -5,6 +5,7 @@ package traduce
 import (
 	"crypto/sha1"
 	"encoding/hex"
+	"errors"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -75,7 +76,17 @@ func togliVecchiaSeCe(cartella string) (trovata bool, motivo string) {
 		return true, "Chiudi " + m.Gioco + " e riprova: con il gioco aperto non posso togliere i file."
 	}
 	if err := togliModVecchia(base, k, m); err != nil {
-		return true, err.Error()
+		var iu *errInUso
+		if errors.As(err, &iu) {
+			return true, err.Error()
+		}
+		// non è (più) la traduzione di Tasso (per esempio manca il file di XUnity): dico cosa fare e
+		// dove sono gli originali
+		nome := m.Gioco
+		if nome == "" {
+			nome = filepath.Base(m.Cartella)
+		}
+		return true, msgSistemaAMano(nome, filepath.Join(cartellaCopie(base, k), "originali"))
 	}
 	if k != chiaveGioco(cartella) {
 		muImp.Lock()

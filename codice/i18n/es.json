@@ -1400,7 +1400,9 @@
   "• Il file della grafica del gioco non l'ho potuto rimettere (è protetto, in uso o passa da un collegamento): la copia di prima è accanto, con il nome che finisce in .tasso-backup. Le impostazioni di Windows sono rimesse.": "• No pude restaurar el archivo de gráficos del juego (está protegido, en uso o pasa por un enlace): la copia de antes está al lado, con un nombre que termina en .tasso-backup. Los ajustes de Windows están restaurados.",
   "per i giochi Unreal per ora traduco sullo schermo": "para los juegos Unreal por ahora traduzco en la pantalla",
   "non riesco a scrivere l'elenco dei file sostituiti: ": "no consigo escribir la lista de archivos sustituidos: ",
-  "L'elenco dei file aggiunti a questo gioco non è valido: non tocco niente. Per rimettere il gioco com'era verifica i file del gioco dal suo launcher.": "La lista de archivos añadidos a este juego no es válida: no toco nada. Para dejar el juego como estaba, verifica los archivos del juego desde su launcher."
+  "L'elenco dei file aggiunti a questo gioco non è valido: non tocco niente. Per rimettere il gioco com'era verifica i file del gioco dal suo launcher.": "La lista de archivos añadidos a este juego no es válida: no toco nada. Para dejar el juego como estaba, verifica los archivos del juego desde su launcher.",
+  "Ho tolto la traduzione, ma questi file non li ho rimessi com'erano, perché la copia messa da parte è cambiata o il percorso passa da un collegamento: ": "He quitado la traducción, pero no he dejado estos archivos como estaban, porque la copia guardada ha cambiado o la ruta pasa por un enlace: ",
+  ". Usa \"Verifica file\" nel programma da cui lanci il gioco. Le copie da controllare sono in ": ". Usa \"Verificar archivos\" en el programa desde el que abres el juego. Las copias que hay que revisar están en "
  },
  "ps": {
   "Windows non mi lascia cambiare questa voce.": "Windows no me deja cambiar esta entrada.",
@@ -5507,6 +5509,8 @@
   ": in Risolvi un problema c'è una guida semplice per farti aiutare a distanza con Assistenza rapida di Windows (o per aiutare qualcuno), con gli avvisi contro le truffe.": ": en Arreglar un problema hay una guía sencilla para que te ayuden a distancia con Asistencia rápida de Windows (o para ayudar a alguien), con avisos contra las estafas.",
   "Più sicurezza dietro le quinte": "Más seguridad entre bastidores",
   ": i file di Tasso e le copie dei giochi tradotti sono più protetti, e togliendo Tasso le copie dei giochi non si perdono mai.": ": los archivos de Tasso y las copias de los juegos traducidos están más protegidos, y al quitar Tasso las copias de los juegos nunca se pierden.",
+  "Pulizia programmata più attenta": "Limpieza programada más atenta",
+  ": aspetta che chiudi il gioco.": ": espera a que cierres el juego.",
   " GB di RAM: la modalità aiuta, ma con i giochi pesanti chiudi gli altri programmi (browser compreso) o usa il Boost.": " GB de RAM: el modo ayuda, pero con juegos pesados cierra los demás programas (navegador incluido) o usa el Boost.",
   " Il ping va bene anche per le videochiamate.": " El ping también va bien para videollamadas.",
   " Il ping è alto: nelle videochiamate potresti avere ritardi.": " El ping es alto: en las videollamadas podrías tener retrasos.",

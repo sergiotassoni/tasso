@@ -56,23 +56,11 @@ WHAT'S NEW IN 3.2
 - More security behind the scenes: the copies of translated games and Tasso's
   files are better protected, and when you remove Tasso the game copies are
   never lost.
-
-------------------------------------------------------------
-WHAT'S NEW IN 3.1.2
-------------------------------------------------------------
-- Safer in-game translations: the list of added files is signed by Tasso and
-  only administrators can read the key; a fake or altered list is never used.
-  Original files are put back only if they are exactly the ones set aside.
-- "Remove Tasso from the PC": if it can't save the backup copies to Documents
-  (also with Documents in OneDrive) it doesn't delete the folder holding them.
-- Scheduled cleanup: waits until you close the game and never hangs.
-- In Office mode the cleanup doesn't touch game caches; the connection test
-  gives advice for video calls.
-- The anonymous statistics question has the focus on "No, thanks" and doesn't
-  appear on top of "Prepare the game".
-- Translation: AI corrections also for lines starting with a dash, percentages
-  read correctly ("by 10%"), "R U OK" in chat, a game is no longer marked as
-  translated if its list isn't valid.
+- Scheduled cleanup: it waits until you close the game.
+- File backup: Tasso warns you if you choose the wrong folder (one of those
+  you are copying).
+- Office: Meeting mode is separate for each user of the PC.
+- Lots of small fixes (translation, games, Office).
 
 ------------------------------------------------------------
 WHAT'S NEW IN 3.1.1

@@ -233,7 +233,7 @@ func togliTassoPassiDentro(rimetti bool, passo func(int, string), pianoOut *pian
 		// sua cartella non trovo le copie dei giochi, quindi non dico "nessuna traduzione"
 		return "Non trovo la cartella di Tasso Traduce: apri Tasso e usa \"Togli Tasso dal PC\". Tasso non è stato tolto."
 	}
-	tolti, falliti, spariti := traduce.TogliTutteLeTraduzioni()
+	tolti, falliti, spariti, aManoQui := traduce.TogliTutteLeTraduzioni()
 	if len(falliti) == 1 && falliti[0] == "ADMIN" {
 		return "Per togliere le traduzioni dai giochi Tasso deve essere aperto come amministratore: riaprilo, accetta la richiesta di Windows e riprova. Tasso non è stato tolto."
 	}
@@ -247,7 +247,7 @@ func togliTassoPassiDentro(rimetti bool, passo func(int, string), pianoOut *pian
 		// non blocco: il gioco non è più dove l'avevo tradotto. Dico dove guardare.
 		passo(1, trGo("Non trovo più questi giochi dove li avevo tradotti (spostati o su un disco staccato): ")+strings.Join(spariti, ", ")+trGo(". Se li hai ancora, nella loro nuova cartella togli BepInEx, winhttp.dll, doorstop_config.ini, .doorstop_version e, se c'è, dotnet."))
 	}
-	if aMano := traduce.GiochiDaSistemareAMano(); len(aMano) > 0 {
+	if aMano := append(aManoQui, traduce.GiochiDaSistemareAMano()...); len(aMano) > 0 {
 		// elenchi in AppData che Tasso non usa (firma che non torna o manca il segno di Tasso nel gioco): lo dico
 		passo(1, msgGiochiAMano(aMano))
 	}
@@ -370,15 +370,38 @@ func salvaCopieDiSicurezza() (nonSalvate, altrove []string) {
 		}
 		return st.IsDir()
 	}
-	// strada: prepara la cartella che conterrà a, dentro radice, solo se né radice né lei portano altrove
+	// tuttaLaStrada: dalla radice del disco fino a x (compresa), nessuna cartella porta altrove:
+	// anche Documenti stesso, o una cartella sopra, può essere una giunzione.
+	tuttaLaStrada := func(x string) bool {
+		x = filepath.Clean(x)
+		vol := filepath.VolumeName(x)
+		p := vol + string(filepath.Separator)
+		for _, pezzo := range strings.Split(strings.TrimPrefix(strings.TrimPrefix(x, vol), string(filepath.Separator)), string(filepath.Separator)) {
+			if pezzo == "" {
+				continue
+			}
+			p = filepath.Join(p, pezzo)
+			if !senzaRimandi(p) {
+				return false
+			}
+		}
+		return true
+	}
+	// strada: prepara la cartella che conterrà a, dentro radice, solo se la strada fino a lei (dalla
+	// radice del disco) non passa da collegamenti o giunzioni. Prima di creare controllo la parte
+	// che c'è già, dopo tutta.
 	strada := func(radice, a string) bool {
-		if esisteVoce(radice) && !senzaRimandi(radice) {
+		su := filepath.Dir(a)
+		for !esisteVoce(su) && filepath.Dir(su) != su {
+			su = filepath.Dir(su)
+		}
+		if !tuttaLaStrada(su) {
 			return false
 		}
 		if os.MkdirAll(filepath.Dir(a), 0o755) != nil {
 			return false
 		}
-		return senzaRimandi(radice) && senzaRimandi(filepath.Dir(a))
+		return tuttaLaStrada(radice) && tuttaLaStrada(filepath.Dir(a))
 	}
 	// salva: da va in a. copiaPrima=true per quello che viene da Programmi\Tasso\lavoro: copiati, i
 	// file prendono i permessi di Documenti (rinominando si porterebbero dietro quelli di Programmi).

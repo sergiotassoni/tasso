@@ -65,6 +65,10 @@ func togliModVecchia(dirApp, chiave string, m ManifestoMod) error {
 	}
 	adesso := time.Now().Format("20060102-150405")
 	metti := func() error { // l'elenco resta da parte (non si usa più): così non blocca la prossima traduzione
+		// anche gli originali: una traduzione nuova li cancellerebbe togliendola (TogliModGioco)
+		if esisteVoce(filepath.Join(copie, "originali")) {
+			_ = os.Rename(filepath.Join(copie, "originali"), filepath.Join(copie, "originali-3.1.1-"+adesso))
+		}
 		return os.Rename(filepath.Join(copie, "manifesto.json"), filepath.Join(copie, "manifesto-3.1.1-"+adesso+".json"))
 	}
 	if m.Tipo == "unreal" {
@@ -127,7 +131,13 @@ func togliModVecchia(dirApp, chiave string, m ManifestoMod) error {
 		}
 	}
 	if len(errori) > 0 {
-		return fmt.Errorf("non sono riuscito a togliere: %s (il gioco è aperto?)", strings.Join(errori, ", "))
+		return &errInUso{fmt.Sprintf("non sono riuscito a togliere: %s (il gioco è aperto?)", strings.Join(errori, ", "))}
 	}
 	return metti()
 }
+
+// errInUso: file del gioco in uso (di solito il gioco è aperto): riprovare a gioco chiuso serve.
+// Gli altri errori di togliModVecchia dicono che quella non è (più) la traduzione di Tasso.
+type errInUso struct{ msg string }
+
+func (e *errInUso) Error() string { return e.msg }

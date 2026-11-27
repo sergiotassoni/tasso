@@ -1400,7 +1400,9 @@
   "L'elenco dei file aggiunti a questo gioco non è valido: non tocco niente. Per rimettere il gioco com'era verifica i file del gioco dal suo launcher.": "The list of files added to this game isn't valid: I won't touch anything. To put the game back as it was, verify the game files from its launcher.",
   "non tolgo ": "I won't remove ",
   ": la cartella passa da un collegamento": ": the folder goes through a link",
-  "non riesco a proteggere la chiave": "I can't protect the key"
+  "non riesco a proteggere la chiave": "I can't protect the key",
+  "Ho tolto la traduzione, ma questi file non li ho rimessi com'erano, perché la copia messa da parte è cambiata o il percorso passa da un collegamento: ": "I removed the translation, but I didn't put these files back as they were, because the copy set aside has changed or the path goes through a link: ",
+  ". Usa \"Verifica file\" nel programma da cui lanci il gioco. Le copie da controllare sono in ": ". Use \"Verify files\" in the program you launch the game from. The copies to check are in "
  },
  "ps": {
   "Windows non mi lascia cambiare questa voce.": "Windows won't let me change this entry.",
@@ -5507,6 +5509,8 @@
   ": in Risolvi un problema c'è una guida semplice per farti aiutare a distanza con Assistenza rapida di Windows (o per aiutare qualcuno), con gli avvisi contro le truffe.": ": in Fix a problem there's a simple guide to get remote help with Windows Quick Assist (or to help someone), with warnings against scams.",
   "Più sicurezza dietro le quinte": "More security behind the scenes",
   ": i file di Tasso e le copie dei giochi tradotti sono più protetti, e togliendo Tasso le copie dei giochi non si perdono mai.": ": Tasso's files and the copies of translated games are better protected, and when you remove Tasso the game copies are never lost.",
+  "Pulizia programmata più attenta": "Smarter scheduled cleanup",
+  ": aspetta che chiudi il gioco.": ": it waits until you close the game.",
   "Svuota": "Empty",
   "overclock sicuro": "safe overclock",
   "Facoltativa. Circa 10 GB da scaricare una volta. Usa da 2 a 5 GB della scheda video (secondo quanta ne ha) e lascia sempre spazio al gioco; se non basta, Tasso usa il traduttore veloce.": "Optional. About 10 GB to download once. It uses 2 to 5 GB of the graphics card (depending on how much it has) and always leaves room for the game; if there is not enough, Tasso uses the fast translator.",

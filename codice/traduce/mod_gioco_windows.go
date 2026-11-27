@@ -8,6 +8,8 @@ package traduce
 import (
 	"context"
 	"crypto/subtle"
+	"encoding/json"
+	"errors"
 	"fmt"
 	"net"
 	"net/http"
@@ -426,6 +428,10 @@ func fermaModGioco(cartella string) string {
 		return "Chiudi " + m.Gioco + " e riprova: con il gioco aperto non posso togliere i file."
 	}
 	if err := TogliModGioco(baseDi(chiaveGioco(cartella)), chiaveGioco(cartella)); err != nil {
+		var dc *ErrOriginaliDaControllare
+		if errors.As(err, &dc) {
+			impostaGiocoTradotto(cartella, false) // la traduzione è tolta: il messaggio dice cosa controllare
+		}
 		return err.Error()
 	}
 	return ""
@@ -572,24 +578,35 @@ func controllaModInstallateIn(base string) {
 
 // TogliTutteLeTraduzioni (3.1, "Togli Tasso dal PC"): toglie le traduzioni messe dentro i giochi.
 // Restituisce i giochi sistemati, quelli dove non è riuscita (di solito perché il gioco è aperto)
-// e quelli che non trovo più dove erano (spostati, rinominati, su un disco staccato).
-func TogliTutteLeTraduzioni() (tolti, falliti, spariti []string) {
+// quelli che non trovo più dove erano (spostati, rinominati, su un disco staccato) e quelli da
+// sistemare a mano (aMano: elenco non valido, originali cambiati, traduzione della 3.1.1 che non
+// posso togliere da qui): per questi riprovare non serve, quindi non fermano "Togli Tasso".
+func TogliTutteLeTraduzioni() (tolti, falliti, spariti, aMano []string) {
 	if !muInstalla.TryLock() { // una traduzione si sta installando adesso
 		fermaUnreal.Store(true)
-		return nil, []string{"INSTALLA"}, nil
+		return nil, []string{"INSTALLA"}, nil, nil
 	}
 	defer muInstalla.Unlock()
 	if chiaveNonLeggibile() {
-		return nil, []string{"ADMIN"}, nil // senza la chiave ogni elenco sembrerebbe finto
+		return nil, []string{"ADMIN"}, nil, nil // senza la chiave ogni elenco sembrerebbe finto
 	}
 	for _, base := range basiCopie() { // copie in Programmi\Tasso\lavoro e quelle rimaste in AppData
-		t, f, sp := togliTutteIn(base)
-		tolti, falliti, spariti = append(tolti, t...), append(falliti, f...), append(spariti, sp...)
+		t, f, sp, am := togliTutteIn(base)
+		tolti, falliti, spariti, aMano = append(tolti, t...), append(falliti, f...), append(spariti, sp...), append(aMano, am...)
 	}
-	return tolti, falliti, spariti
+	return tolti, falliti, spariti, aMano
 }
 
-func togliTutteIn(base string) (tolti, falliti, spariti []string) {
+// nomeNellElenco: il nome del gioco scritto nell'elenco (anche non valido), o la chiave.
+func nomeNellElenco(base, chiave string) string {
+	var m ManifestoMod
+	if b, err := leggiFileManifesto(base, chiave); err == nil && json.Unmarshal(b, &m) == nil && m.Gioco != "" {
+		return m.Gioco
+	}
+	return chiave
+}
+
+func togliTutteIn(base string) (tolti, falliti, spariti, aMano []string) {
 	voci, _ := os.ReadDir(filepath.Join(base, "copie-giochi"))
 	for _, v := range voci {
 		if doppione(base, v.Name()) {
@@ -607,10 +624,15 @@ func togliTutteIn(base string) (tolti, falliti, spariti []string) {
 					spariti = append(spariti, nome+" ("+mv.Cartella+")")
 				} else if mv.Exe != "" && processoAperto(mv.Exe) {
 					falliti = append(falliti, nome)
-				} else if togliModVecchia(base, v.Name(), mv) != nil {
-					// non è (più) la traduzione di Tasso o non si toglie: non tocco il gioco, le copie
-					// vanno in Documenti e lo dico
-					spariti = append(spariti, nome+" ("+mv.Cartella+")")
+				} else if err := togliModVecchia(base, v.Name(), mv); err != nil {
+					var iu *errInUso
+					if errors.As(err, &iu) {
+						falliti = append(falliti, nome) // file in uso: il gioco è aperto, si riprova
+					} else {
+						// non è (più) la traduzione di Tasso: non tocco il gioco, le copie vanno in
+						// Documenti e dico di usare "Verifica file"
+						aMano = append(aMano, nome)
+					}
 				} else {
 					impostaGiocoTradotto(mv.Cartella, false)
 					tolti = append(tolti, nome)
@@ -619,9 +641,11 @@ func togliTutteIn(base string) (tolti, falliti, spariti []string) {
 			}
 			// senza elenco non tocco il gioco: la cartella delle copie va in Documenti, e lo dico
 			// (gli elenchi in AppData che Tasso non usa li elenca già GiochiDaSistemareAMano)
+			// Elenco rovinato o con la firma che non torna (anche chiave delle firme rifatta): non
+			// è "sparito", va sistemato a mano con "Verifica file".
 			if esisteVoce(filepath.Join(cartellaCopie(base, v.Name()), "manifesto.json")) {
 				if _, _, ign := elencoIgnorato(v.Name()); !ign || èCartellaProtetta(base) {
-					spariti = append(spariti, v.Name())
+					aMano = append(aMano, nomeNellElenco(base, v.Name()))
 				}
 			}
 			continue
@@ -646,13 +670,21 @@ func togliTutteIn(base string) (tolti, falliti, spariti []string) {
 			continue
 		}
 		if err := TogliModGioco(base, v.Name()); err != nil {
+			var dc *ErrOriginaliDaControllare
+			if errors.As(err, &dc) {
+				// traduzione tolta, ma qualche originale non era quello messo da parte (o passa da un
+				// collegamento): riprovare non serve. Le copie da controllare vanno in Documenti.
+				impostaGiocoTradotto(m.Cartella, false)
+				aMano = append(aMano, nome)
+				continue
+			}
 			falliti = append(falliti, nome)
 			continue
 		}
 		impostaGiocoTradotto(m.Cartella, false)
 		tolti = append(tolti, nome)
 	}
-	return tolti, falliti, spariti
+	return tolti, falliti, spariti, aMano
 }
 
 // StaInstallando: una traduzione si sta mettendo dentro un gioco adesso (l'aggiornamento di Tasso aspetta).

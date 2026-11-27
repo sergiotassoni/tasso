@@ -487,13 +487,16 @@ func TogliModGioco(dirApp, chiave string) error {
 			}
 		}
 	}
-	var errori []string
+	// errori: file in uso (di solito il gioco è aperto): riprovare serve. daControllare: originali
+	// che non sono quelli messi da parte (impronta diversa, mancanti) o percorsi che passano da un
+	// collegamento: riprovare non serve, li salto e lo dico (ErrOriginaliDaControllare).
+	var errori, daControllare []string
 	for _, a := range m.Aggiunti {
 		if a == "" || strings.ContainsAny(a, `/\:`) || a == "." || a == ".." || fileDelGiocoUnity(a) {
 			continue
 		}
 		if !senzaCollegamenti(m.Cartella, a) {
-			errori = append(errori, a)
+			daControllare = append(daControllare, a)
 			continue
 		}
 		if err := os.RemoveAll(filepath.Join(m.Cartella, a)); err != nil {
@@ -505,7 +508,7 @@ func TogliModGioco(dirApp, chiave string) error {
 			continue
 		}
 		if !senzaLink(m.Cartella, s) || !senzaLink(copie, filepath.Join("originali", s)) {
-			errori = append(errori, s) // un pezzo del percorso porta fuori dal gioco: non scrivo
+			daControllare = append(daControllare, s) // un pezzo del percorso porta fuori dal gioco: non scrivo
 			continue
 		}
 		// l'originale messo da parte deve essere proprio quello (impronta firmata), e la strada
@@ -514,7 +517,7 @@ func TogliModGioco(dirApp, chiave string) error {
 		// riaprissi, un altro programma potrebbe scambiarlo tra il controllo e la copia)
 		dati, err := os.ReadFile(filepath.Join(copie, "originali", s))
 		if err != nil || m.Impronte[s] == "" || improntaByte(dati) != m.Impronte[s] || !senzaCollegamenti(m.Cartella, s) {
-			errori = append(errori, s)
+			daControllare = append(daControllare, s)
 			continue
 		}
 		dst := filepath.Join(m.Cartella, s)
@@ -526,9 +529,33 @@ func TogliModGioco(dirApp, chiave string) error {
 	if len(errori) > 0 {
 		return fmt.Errorf("non sono riuscito a togliere: %s (il gioco è aperto?)", strings.Join(errori, ", "))
 	}
+	if len(daControllare) > 0 {
+		// la traduzione è tolta; gli originali messi da parte restano, con un nome che dice di
+		// controllarli (togliendo Tasso vanno in Documenti con il resto della copia)
+		dove := filepath.Join(copie, "originali-da-controllare-"+time.Now().Format("20060102-150405"))
+		if !esisteVoce(filepath.Join(copie, "originali")) || os.Rename(filepath.Join(copie, "originali"), dove) != nil {
+			dove = filepath.Join(copie, "originali")
+		}
+		_ = os.Remove(filepath.Join(copie, "manifesto.json"))
+		return &ErrOriginaliDaControllare{Gioco: m.Gioco, File: daControllare, Dove: dove}
+	}
 	_ = os.Remove(filepath.Join(copie, "manifesto.json"))
 	_ = os.RemoveAll(filepath.Join(copie, "originali"))
 	return nil
+}
+
+// ErrOriginaliDaControllare: la traduzione è stata tolta, ma questi file non li ho rimessi (o tolti)
+// perché la copia messa da parte non è quella di Tasso o il percorso passa da un collegamento.
+// Riprovare non serve: il gioco si rimette a posto con "Verifica file"; le copie restano in Dove.
+type ErrOriginaliDaControllare struct {
+	Gioco string
+	File  []string
+	Dove  string
+}
+
+func (e *ErrOriginaliDaControllare) Error() string {
+	return "Ho tolto la traduzione, ma questi file non li ho rimessi com'erano, perché la copia messa da parte è cambiata o il percorso passa da un collegamento: " +
+		strings.Join(e.File, ", ") + ". Usa \"Verifica file\" nel programma da cui lanci il gioco. Le copie da controllare sono in " + e.Dove + "."
 }
 
 // senzaLink: nessun pezzo di rel dentro base (cartelle e file, se ci sono) è un link o una giunzione

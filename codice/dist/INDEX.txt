@@ -209,12 +209,10 @@ WHAT'S NEW IN 3.2
    - Get help from a friend: Windows Quick Assist explained step by step, with warnings
      against scams
    - More security behind the scenes: game copies and Tasso's files better protected
-
-WHAT'S NEW IN 3.1.2
-   - Safer in-game translations (signed list, key readable only by administrators)
-   - Remove Tasso: backup copies are never lost; scheduled cleanup waits for the game
-   - Office: no game caches in the cleanup; connection test for video calls
-   - Translation: dash-line corrections, percentages, all-caps chat
+   - Scheduled cleanup that waits until you close the game
+   - File backup: warning if you choose the wrong folder
+   - Office: Meeting mode separate for each user of the PC
+   - Lots of small fixes (translation, games, Office)
 
 WHAT'S NEW IN 3.1.1
    - Cleanup: "Update Windows too" (last) and "When it's done": Leave on, Restart or

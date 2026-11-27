@@ -726,8 +726,8 @@ func collega(w webview2.WebView) {
 			if e == msgElencoNonValido {
 				// non lo posso togliere io, ma non lo considero più tradotto (il messaggio dice cosa fare)
 				impostaGiocoTradotto(cartella, false)
-				emetti("aggiorna", stato())
 			}
+			emetti("aggiorna", stato()) // fermaModGioco può averlo già segnato come non tradotto
 			return e
 		}
 		impostaGiocoTradotto(cartella, false)

@@ -53,25 +53,11 @@ NOVITÀ DELLA 3.2
 - Più sicurezza dietro le quinte: le copie dei giochi tradotti e i file di
   Tasso sono più protetti, e togliendo Tasso le copie dei giochi non si
   perdono mai.
-
-------------------------------------------------------------
-NOVITÀ DELLA 3.1.2
-------------------------------------------------------------
-- Più sicurezza nelle traduzioni dentro i giochi: l'elenco dei file aggiunti
-  è firmato da Tasso e la chiave la leggono solo gli amministratori; un elenco
-  finto o cambiato non viene mai usato. Gli originali si rimettono solo se
-  sono proprio quelli messi da parte.
-- "Togli Tasso dal PC": se non riesce a salvare le copie di sicurezza in
-  Documenti (anche con Documenti in OneDrive) non cancella la cartella che le
-  contiene.
-- Pulizia programmata: aspetta che chiudi il gioco e non resta mai appesa.
-- In modalità Ufficio la pulizia non tocca le cache dei giochi; test della
-  connessione con i consigli per le videochiamate.
-- La domanda sulle statistiche anonime ha il fuoco su "No, grazie" e non
-  compare sopra "Prepara il gioco".
-- Traduzione: correzioni dell'IA anche per le righe con il trattino davanti,
-  percentuali lette bene ("by 10%"), "R U OK" in chat, gioco non più segnato
-  come tradotto se il suo elenco non è valido.
+- Pulizia programmata: aspetta che chiudi il gioco.
+- Backup dei file: Tasso ti avvisa se scegli una cartella sbagliata (una di
+  quelle che stai copiando).
+- Ufficio: la Modalità riunione è separata per ogni utente del PC.
+- Tante piccole correzioni (traduzione, giochi, Ufficio).
 
 ------------------------------------------------------------
 NOVITÀ DELLA 3.1.1

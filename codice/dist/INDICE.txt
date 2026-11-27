@@ -205,12 +205,10 @@ NOVITÀ DELLA 3.2
    - Fai aiutare un amico: Assistenza rapida di Windows spiegata passo passo, con gli avvisi
      contro le truffe
    - Più sicurezza dietro le quinte: copie dei giochi e file di Tasso più protetti
-
-NOVITÀ DELLA 3.1.2
-   - Traduzioni dentro i giochi più sicure (elenco firmato, chiave solo per gli amministratori)
-   - Togli Tasso: le copie di sicurezza non si perdono mai; pulizia programmata che aspetta il gioco
-   - Ufficio: niente cache dei giochi nella pulizia; test della connessione per le videochiamate
-   - Traduzione: correzioni con il trattino, percentuali, chat in maiuscolo
+   - Pulizia programmata che aspetta che chiudi il gioco
+   - Backup dei file: avviso se scegli una cartella sbagliata
+   - Ufficio: Modalità riunione separata per ogni utente del PC
+   - Tante piccole correzioni (traduzione, giochi, Ufficio)
 
 NOVITÀ DELLA 3.1.1
    - Pulizia: "Aggiorna anche Windows" (per ultimo) e "Quando ha finito": Lascia acceso,
