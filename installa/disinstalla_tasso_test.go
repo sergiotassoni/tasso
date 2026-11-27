@@ -240,6 +240,8 @@ func TestDisinstallaDatiTieneOriginaliGiochi(t *testing.T) {
 	for _, f := range ResiduiAggiornamentoTasso {
 		os.WriteFile(filepath.Join(p.base, f), []byte("vecchio"), 0o755)
 	}
+	// la chiave delle firme che Tasso 3.1.2/3.2 scrive nella sua cartella: va via con Tasso
+	os.WriteFile(filepath.Join(p.base, "chiave-traduzioni"), make([]byte, 32), 0o600)
 	p.in.CartellaDatiUtente = func() string { return dati }
 	r, err := p.in.DisinstallaCon(p.base, TuttiComponenti, OpzioniDisinstalla{TogliDati: true})
 	if err != nil {

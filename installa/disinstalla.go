@@ -74,6 +74,9 @@ func CartellaSoloTasso(base string, st *Stato) bool {
 	for _, f := range ResiduiAggiornamentoTasso {
 		noti[strings.ToLower(f)] = true
 	}
+	for _, f := range FileDiTassoNellaCartella {
+		noti[strings.ToLower(f)] = true
+	}
 	for id, sp := range st.Programmi {
 		dir := CartellaDi(base, id)
 		if !strings.EqualFold(filepath.Clean(dir), filepath.Clean(base)) {
@@ -130,6 +133,13 @@ var CartelleDaTenere = map[string][]string{
 // dell'installatore: senza toglierle la cartella di Tasso non resterebbe mai vuota (e resterebbe un
 // Tasso.exe vecchio in Programmi).
 var ResiduiAggiornamentoTasso = []string{"Tasso.exe.new", "Tasso.exe.old", "Tasso.new.exe", "Tasso.old.exe"}
+
+// FileDiTassoNellaCartella: file che Tasso stesso scrive accanto a Tasso.exe e che non sono
+// nell'elenco dell'installatore. "chiave-traduzioni" è la chiave delle firme degli elenchi delle
+// traduzioni nei giochi (Tasso 3.1.2 e 3.2, leggibile solo dagli amministratori). Non è un resto:
+// un aggiornamento non la tocca (senza, Tasso non potrebbe più togliere le traduzioni messe prima).
+// Va via solo togliendo Tasso, così la cartella resta vuota e si toglie.
+var FileDiTassoNellaCartella = []string{"chiave-traduzioni"}
 
 // Disinstalla toglie i componenti scelti, e solo i file scritti in tasso-setup.json.
 //   - Gaming senza Ufficio (o il contrario): Tasso.exe resta, cambia solo la modalità.
@@ -370,7 +380,7 @@ func (in *Installatore) togliCoseDiTasso(base string, st *Stato, od OpzioniDisin
 		for _, d := range SottocartelleTasso {
 			in.togliCartellaORiavvio(filepath.Join(base, d), ris)
 		}
-		for _, f := range ResiduiAggiornamentoTasso {
+		for _, f := range append(append([]string{}, ResiduiAggiornamentoTasso...), FileDiTassoNellaCartella...) {
 			if fi, err := os.Lstat(filepath.Join(base, f)); err == nil && fi.Mode().IsRegular() {
 				in.togliORiavvio(filepath.Join(base, f), ris)
 			}

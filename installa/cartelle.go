@@ -209,6 +209,9 @@ var nomiRestiTasso = func() map[string]bool {
 	for _, f := range ResiduiAggiornamentoTasso {
 		m[strings.ToLower(f)] = true
 	}
+	for _, f := range FileDiTassoNellaCartella {
+		m[strings.ToLower(f)] = true
+	}
 	return m
 }()
 
