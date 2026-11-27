@@ -856,6 +856,9 @@ body.office .r2t{font-weight:600;font-stretch:normal}
 .opt-row .nos{width:46px}
 @media (max-width:1100px){.opt-live{grid-template-columns:1fr}.opt-comps{grid-template-columns:repeat(3,1fr)}.opt-row{grid-template-columns:1fr auto auto}.opt-row .c{display:none}}
 .opt-card-prev{display:flex;justify-content:center}
+body.cardsfondo #main{opacity:.3;transition:opacity .15s}
+.cardmodo{position:fixed;top:78px;right:34px;font:800 clamp(56px,7vw,96px)/1 var(--display);font-stretch:122%;letter-spacing:-.03em;text-transform:uppercase;color:var(--text);opacity:.42;pointer-events:none;white-space:nowrap;overflow:hidden}
+body.office .cardmodo{font-weight:700;font-stretch:normal;letter-spacing:-.02em;color:var(--a1);opacity:.92}
 .opt-card-prev canvas{width:560px;height:560px;max-width:100%;border-radius:14px;display:block;box-shadow:0 14px 34px rgba(0,0,0,.35)}
 </style>
 </head>
@@ -2062,6 +2065,7 @@ $('#fixToDetect').onclick = (e) => { e.preventDefault(); show('scan'); };
 
 /* ---------- modal ---------- */
 function modal(html, buttons){
+  $$('#modal .cardmodo').forEach(x => x.remove()); document.body.classList.remove('cardsfondo');
   if (!$('#modal').classList.contains('on')) MODAL_BACK = document.activeElement;
   const box = $('#modalBox'); box.innerHTML = html; box.style.maxWidth = '';
   const row = el('div', {class:'row wrap', style:'justify-content:flex-end;gap:10px;margin-top:6px'});
@@ -2078,7 +2082,7 @@ function modal(html, buttons){
   const f = fi >= 0 ? row.children[fi] : row.lastChild; if (f) f.focus();
 }
 let MODAL_BACK = null;
-function closeModal(){ $('#modal').classList.remove('on'); const b = MODAL_BACK; MODAL_BACK = null; if (b && b.isConnected && typeof b.focus === 'function') { try { b.focus(); } catch (e) {} } }
+function closeModal(){ $('#modal').classList.remove('on'); $$('#modal .cardmodo').forEach(x => x.remove()); document.body.classList.remove('cardsfondo'); const b = MODAL_BACK; MODAL_BACK = null; if (b && b.isConnected && typeof b.focus === 'function') { try { b.focus(); } catch (e) {} } }
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && $('#modal').classList.contains('on')) { closeModal(); e.stopImmediatePropagation(); } });
 // Tab resta dentro la finestra di conferma: dall'ultimo pulsante si torna al primo (e al contrario con Maiusc).
 document.addEventListener('keydown', (e) => {
@@ -3426,33 +3430,7 @@ async function drawVotoCard(r, fmt){
 async function openVotoCard(r){
   r = r || LAST_BENCH; if (!r) return;
   const [q, v] = await Promise.all([drawVotoCard(r, 'q'), drawVotoCard(r, 'v')]);
-  let fmt = 'q';
-  const wrap = (c, f, w, h, label) => { c.style.cssText = 'width:' + w + 'px;height:' + h + 'px;display:block;border-radius:12px'; const d = el('button', {class:'votofmt', 'data-f': f, 'aria-pressed': f === fmt ? 'true' : 'false', style:'background:none;border:0;padding:0;cursor:pointer;display:flex;flex-direction:column;gap:8px;align-items:center;color:inherit;font:inherit'}); d.appendChild(c); d.appendChild(el('span', {class:'small'}, label)); return d; };
-  const pub = CLASSIFICA_ATTIVA ? '<div style="border-top:1px solid var(--line);padding-top:12px;display:flex;flex-direction:column;gap:8px"><b>' + _t('Pubblica i tuoi risultati') + '</b><span class="small muted">' + _t('Scrivi un nome e ti trovi nella classifica sul sito di Tasso. Va solo il voto, con il nome che scegli tu.') + '</span><div class="row" style="gap:8px"><input id="votoNome" maxlength="24" style="flex:1" placeholder="' + esc(_t('Il tuo nome nella classifica')) + '"><button class="btn primary" id="votoPub">' + _t('Pubblica') + '</button></div></div>' : '';
-  // modal() chiude la finestra se fn non restituisce subito 'keep': il lavoro va avanti da solo.
-  // Copia e Salva lavorano con la finestra aperta: i due pulsanti restano spenti finché non hanno
-  // finito, e se qualcosa va storto compare un avviso.
-  const busy = (fn, err) => (box) => {
-    const row = box.lastElementChild, bs = row ? [...row.querySelectorAll('button')].slice(1) : [];
-    if (bs.some(b => b.disabled)) return 'keep';
-    bs.forEach(b => { b.disabled = true; });
-    const c = fmt === 'v' ? v : q;
-    Promise.resolve().then(() => fn(c.toDataURL('image/png'))).catch(() => toast(err, 'var(--a4)')).finally(() => bs.forEach(b => { b.disabled = false; }));
-    return 'keep';
-  };
-  modal('<h2>' + _t('Il tuo biglietto da visita') + '</h2><p class="muted" style="margin:0">' + _t('Il voto del tuo PC, pronto da mandare agli amici. Quadrato per i post, verticale per le storie. Dentro ci sono solo i voti e i componenti, niente dati personali.') + '</p><div id="votoPrev" style="display:flex;gap:22px;justify-content:center;flex-wrap:wrap;padding:4px 0"></div>' + pub, [
-    {label: _t('Chiudi')},
-    {label: _t('Salva'), fn: busy(async (u) => { const x = await call('goVotoSalva', u, fmt === 'v' ? 'verticale' : 'quadrata'); toast(x === 'ok' ? _t('Salvato in Immagini\\Tasso.') : _t('Non sono riuscito a salvare l\'immagine.'), x === 'ok' ? 'var(--a1)' : 'var(--a4)'); }, _t('Non sono riuscito a salvare l\'immagine.'))},
-    {label: _t('Copia immagine'), cls: 'primary', fn: busy(async (u) => { const x = await call('goVotoCopia', u); toast(x === 'ok' ? _t('Immagine copiata: incollala dove vuoi con Ctrl+V.') : _t('Non sono riuscito a copiare l\'immagine.'), x === 'ok' ? 'var(--a1)' : 'var(--a4)'); }, _t('Non sono riuscito a copiare l\'immagine.'))}
-  ]);
-  const box = $('#modalBox'); box.style.maxWidth = '780px';
-  const prev = $('#votoPrev');
-  prev.appendChild(wrap(q, 'q', 380, 380, _t('Quadrato · 1080 × 1080')));
-  prev.appendChild(wrap(v, 'v', 214, 380, _t('Verticale · 1080 × 1920')));
-  const paintSel = () => prev.querySelectorAll('.votofmt').forEach(b => { const on = b.dataset.f === fmt; b.setAttribute('aria-pressed', on ? 'true' : 'false'); b.firstChild.style.boxShadow = on ? '0 0 0 3px var(--a1),0 14px 34px rgba(0,0,0,.45)' : '0 0 0 1px var(--line),0 14px 34px rgba(0,0,0,.45)'; b.lastChild.style.color = on ? 'var(--a1t)' : 'var(--muted)'; b.lastChild.style.fontWeight = on ? '700' : '500'; });
-  prev.querySelectorAll('.votofmt').forEach(b => b.onclick = () => { fmt = b.dataset.f; paintSel(); });
-  paintSel();
-  const pb = $('#votoPub'); if (pb) pb.onclick = () => toast(_t('La classifica online arriva presto.'), 'var(--a3)');
+  finestraBiglietto(_t('Il tuo biglietto da visita'), _t('Il voto del tuo PC, pronto da mandare agli amici. Quadrato per i post, verticale per le storie. Dentro ci sono solo i voti e i componenti, niente dati personali.'), q, v, (u, f) => call('goVotoSalva', u, f));
 }
 $('#btnVotoCard').onclick = () => openVotoCard();
 $('#btnBench').onclick = async () => { const r = await call('goBench'); if (r === 'busy') { toast(_t('Sto già misurando.'), 'var(--a4)'); return; } BENCH_MANUAL = true; $('#btnBench').disabled = true; $('#bnMsg').textContent = _t('Misuro… non usare il PC per circa 25 secondi (fino a 40 se misuro anche il raffreddamento).'); };
@@ -3494,7 +3472,7 @@ const OTT_MOD = {
     ['gpupref', 'gpu', _t('I giochi usano la scheda video potente'), _t('Sui PC con due schede video, i giochi usano quella più forte.')],
     ['recapito', 'net', _t('Niente invio di aggiornamenti ad altri PC'), _t('Windows non usa la tua connessione per mandare file a sconosciuti.')],
     ['orari', 'net', _t('Niente riavvii per aggiornamenti mentre giochi'), _t('Gli aggiornamenti continuano, ma Windows non riavvia il PC dalle 8 alle 2 di notte.')],
-    ['effetti', 'win', _t('Effetti visivi inutili spenti'), _t('Meno animazioni e trasparenze: il PC risponde più in fretta.')],
+    ['effetti', 'win', _t('Effetti che non si notano spenti'), _t('Tolgo solo gli effetti che non si notano: Windows resta bello.')],
     ['notifgioco', 'win', _t('Notifiche in pausa durante il gioco'), _t('Nessun avviso a sorpresa sopra il gioco (con Tasso acceso).')],
     ['registrazione', 'win', _t('Registrazione in background spenta'), _t('Windows smette di registrare di nascosto gli ultimi minuti di gioco.')],
     ['mouse', 'mouse', _t('Accelerazione del mouse spenta'), _t('Lo stesso movimento sposta la mira sempre della stessa distanza.')],
@@ -3502,8 +3480,7 @@ const OTT_MOD = {
     ['usb', 'pow', _t('Mouse e tastiera non si addormentano'), _t('Quando il PC è attaccato alla corrente, Windows non spegne le porte USB.')]
   ],
   ufficio: [
-    ['effetti', 'win', _t('Animazioni e trasparenze inutili spente'), _t('Le finestre si aprono subito, senza effetti che rallentano.')],
-    ['ombre', 'win', _t('Ombre e anteprime pesanti spente'), _t('Meno lavoro per il PC, stessa comodità.')],
+    ['effetti', 'win', _t('Effetti che non si notano spenti'), _t('Tolgo solo gli effetti che non si notano: Windows resta bello.')],
     ['pulizia_temp', 'clean', _t('File temporanei di Windows tolti'), _t('Con la pulizia di Tasso: solo file che Windows non usa più.')],
     ['pulizia_resti', 'clean', _t('Resti di aggiornamenti e programmi tolti'), _t('Più spazio libero sul disco, niente dei tuoi documenti.')],
     ['riapertura', 'ram', _t('Niente riapertura automatica delle app'), _t('All\'accensione Windows non riapre da solo le app di ieri.')],
@@ -3660,7 +3637,7 @@ const OTT_RIGHE = {fps: _t('FPS medi'), fps1: _t('FPS più bassi (1%)'), voto: _
 function ottRis(){
   const R = ottRisultato(); if (!R) return ottInizio();
   const r = R.risultato || {}, off = r.modo === 'ufficio', righe = R.righe || [];
-  const fatte = Number(r.fatte) || 0, pulite = Number(r.pulite) || 0;
+  const fatte = Number(r.fatte) || 0, pulite = Number(r.pulite) || (off ? ((OTT.info && OTT.info.voci) || []).filter(v => v.stato === 'pulita').length : 0); // risultati vecchi senza "pulite"
   const tab = righe.length ? '<div class="r2tab"><div class="r2h"><span></span><span>' + _t('Prima') + '</span><span></span><span>' + _t('Dopo') + '</span></div>' + righe.map(x =>
     '<div class="r2r"><span>' + (OTT_RIGHE[x.chiave] || '') + '</span><span>' + ottNum(x.prima, x.decimali) + '</span><span class="ar">→</span><span class="af' + (x.meglio ? ' up' : '') + '">' + (x.haDopo ? ottNum(x.dopo, x.decimali) + '<small>' + esc(x.unita) + '</small>' : '…') + '</span></div>').join('') + '</div>' : '';
   const note = [];
@@ -3672,7 +3649,7 @@ function ottRis(){
     '<div class="r2k">' + _t('Fatto') + '</div>' +
     '<h1 class="r2t" tabindex="-1">' + (off ? _t('Il tuo PC è pronto per lavorare') : _t('Il tuo PC è pronto per giocare')) + '</h1>' +
     (R.piccolo ? '<p class="r2s" style="color:var(--text)">' + _t('Il tuo PC era già messo bene: la differenza è piccola.') + '</p>' : '') +
-    '<p class="r2s">' + (pulite > 0 ? fatte + _t(' modifiche si rimettono com\'era con un interruttore; la pulizia dei file inutili no.') : fatte + _t(' modifiche sicure. Ognuna si rimette com\'era con un interruttore.')) + '</p>' + tab +
+    '<p class="r2s">' + (off || pulite > 0 ? fatte + _t(' modifiche si rimettono com\'era con un interruttore; la pulizia dei file inutili no.') : fatte + _t(' modifiche sicure. Ognuna si rimette com\'era con un interruttore.')) + '</p>' + tab +
     note.map(n => '<p class="r2fn">' + esc(n) + '</p>').join('') +
     '<div class="opt-btns"><button class="btn primary" id="ottShare">' + _t('Condividi il risultato') + '</button><button class="btn ghost" id="ottBack">' + _t('Rimetti com\'era') + '</button></div>' +
     '<button class="opt-link" id="ottAgain">' + _t('Rifai Ottimizza tutto') + '</button></div>');
@@ -3778,83 +3755,128 @@ function drawTesserino(g, W, H, C){
   g.restore();
   return paint;
 }
-async function drawOttCard(R){
-  const W = 1080, H = 1080, C = cardColors(), r = R.risultato || {}, off = r.modo === 'ufficio', mono = cssVar('--mono') || 'monospace';
+// Stessa forma in Gaming e in Ufficio (come il biglietto del Voto al PC): cambiano solo i colori,
+// lo stemma e i numeri. Due formati: quadrato 1080 × 1080 e verticale 1080 × 1920.
+async function drawOttCard(R, fmt){
+  const V = fmt === 'v', W = 1080, H = V ? 1920 : 1080, C = cardColors(), r = R.risultato || {}, off = r.modo === 'ufficio', mono = cssVar('--mono') || 'monospace';
   try { await document.fonts.ready; await Promise.all([document.fonts.load('800 60px ' + C.display), document.fonts.load('500 20px ' + C.body)]); } catch (e) {}
   const logo = await loadImg(cardLogoSrc());
   const cv = document.createElement('canvas'); cv.width = W; cv.height = H;
   const g = cv.getContext('2d');
   const font = (w, px, fam) => { g.font = w + ' ' + px + 'px ' + (fam || C.body); };
   g.fillStyle = C.bg; g.fillRect(0, 0, W, H);
-  const rg = g.createRadialGradient(W * .85, H * .08, 0, W * .85, H * .08, 640); rg.addColorStop(0, C.a2); rg.addColorStop(1, 'rgba(0,0,0,0)'); g.globalAlpha = .12; g.fillStyle = rg; g.fillRect(0, 0, W, H); g.globalAlpha = 1;
+  const rg = g.createRadialGradient(W * .85, H * .08, 0, W * .85, H * .08, V ? 900 : 640); rg.addColorStop(0, C.a2); rg.addColorStop(1, 'rgba(0,0,0,0)'); g.globalAlpha = .12; g.fillStyle = rg; g.fillRect(0, 0, W, H); g.globalAlpha = 1;
   const paint = drawTesserino(g, W, H, C);
+  // misure del formato: quadrato come approvato, verticale più grande e con le righe una sotto l'altra
+  const L = V ? {logo: 230, logoY: 190, tasso: 52, tassoY: 500, data: 26, dataY: 548, trattY: 600, top: 680, s: 1.35, foot: H - 130, fs: 22}
+              : {logo: 150, logoY: 150, tasso: 34, tassoY: 356, data: 18, dataY: 386, trattY: 420, top: 460, s: 1, foot: H - 104, fs: 16};
   g.textBaseline = 'alphabetic'; g.textAlign = 'center';
-  if (logo) g.drawImage(logo, (W - 150) / 2, 150, 150, 150);
-  g.fillStyle = C.text; font(off ? 700 : 800, 34, C.display); g.letterSpacing = '12px'; g.fontStretch = C.stretch; g.fillText('TASSO', W / 2 + 6, 356); g.letterSpacing = '0px'; g.fontStretch = 'normal';
+  if (logo) g.drawImage(logo, (W - L.logo) / 2, L.logoY, L.logo, L.logo);
+  g.fillStyle = C.text; font(800, L.tasso, C.display); g.letterSpacing = Math.round(L.tasso * .35) + 'px'; g.fontStretch = C.stretch; g.fillText('TASSO', W / 2 + 6, L.tassoY); g.letterSpacing = '0px'; g.fontStretch = 'normal';
   const date = new Date(r.quando || Date.now()).toLocaleDateString(LANG, {day: 'numeric', month: 'long', year: 'numeric'});
-  g.fillStyle = C.muted; font(400, 18); g.fillText(date, W / 2, 386);
-  g.fillStyle = paint; g.fillRect(W / 2 - 28, 420, 56, 3);
-  // prima → dopo
+  g.fillStyle = C.muted; font(400, L.data); g.fillText(date, W / 2, L.dataY);
+  g.fillStyle = paint; g.fillRect(W / 2 - 28 * L.s, L.trattY, 56 * L.s, 3 * L.s);
+  // prima → dopo (Gaming: Voto e FPS; Ufficio: accensione, apertura e voto)
   const righe = (R.righe || []).filter(x => x.haDopo);
   const ord = off ? ['accensione', 'apertura', 'voto'] : ['voto', 'fps'];
   const pairs = ord.map(k => righe.find(x => x.chiave === k)).filter(Boolean);
-  const x0 = 130, x1 = W - 130, cw = (x1 - x0) / Math.max(1, pairs.length), big = pairs.length >= 3 ? 40 : 54;
-  pairs.forEach((p, i) => {
-    if (i > 0) { g.fillStyle = C.line; g.fillRect(x0 + cw * i, 460, 1, 100); }
-    // larghezza della riga "prima → dopo unità", per centrarla nella sua colonna
-    const a0 = ottNum(p.prima, p.decimali), b0 = ottNum(p.dopo, p.decimali);
-    font(600, big, off ? C.body : C.display); let lw = g.measureText(a0).width + g.measureText(b0).width + 36;
-    font(400, Math.round(big * .6)); lw += g.measureText('→').width; font(500, 17); lw += g.measureText(p.unita).width;
-    const cx = x0 + cw * i + Math.max(8, (cw - lw) / 2);
-    g.textAlign = 'left'; g.fillStyle = C.muted; font(500, 13, off ? C.body : mono); g.letterSpacing = off ? '1px' : '3px'; g.fillText(String(OTT_RIGHE[p.chiave] || '').toUpperCase(), cx, 482); g.letterSpacing = '0px';
-    let x = cx; const y = 548;
-    font(600, big, off ? C.body : C.display); g.fillStyle = C.muted; const a = ottNum(p.prima, p.decimali); g.fillText(a, x, y); x += g.measureText(a).width + 14;
-    font(400, Math.round(big * .6)); g.fillText('→', x, y - 4); x += g.measureText('→').width + 14;
-    font(600, big, off ? C.body : C.display); g.fillStyle = C.text; const b = ottNum(p.dopo, p.decimali); g.fillText(b, x, y); x += g.measureText(b).width + 8;
-    font(500, 17); g.fillStyle = C.muted; g.fillText(p.unita, x, y);
-  });
+  const x0 = V ? 150 : 130, x1 = W - x0;
+  const riga = (p, cx0, cw, ly, ny, big) => {
+    const a0 = ottNum(p.prima, p.decimali), b0 = ottNum(p.dopo, p.decimali), us = Math.round(17 * L.s);
+    font(600, big, C.display); let lw = g.measureText(a0).width + g.measureText(b0).width + 36;
+    font(400, Math.round(big * .6)); lw += g.measureText('→').width; font(500, us); lw += g.measureText(p.unita).width;
+    const cx = cx0 + Math.max(8, (cw - lw) / 2);
+    g.textAlign = 'left'; g.fillStyle = C.muted; font(500, Math.round(13 * L.s), mono); g.letterSpacing = '3px';
+    const lab = String(OTT_RIGHE[p.chiave] || '').toUpperCase();
+    if (V) { g.textAlign = 'center'; g.fillText(lab, W / 2, ly); g.textAlign = 'left'; } else g.fillText(lab, cx, ly);
+    g.letterSpacing = '0px';
+    let x = cx;
+    font(600, big, C.display); g.fillStyle = C.muted; g.fillText(a0, x, ny); x += g.measureText(a0).width + 14;
+    font(400, Math.round(big * .6)); g.fillText('→', x, ny - 4); x += g.measureText('→').width + 14;
+    font(600, big, C.display); g.fillStyle = C.text; g.fillText(b0, x, ny); x += g.measureText(b0).width + 8;
+    font(500, us); g.fillStyle = C.muted; g.fillText(p.unita, x, ny);
+  };
+  let y;
+  if (V) {
+    pairs.forEach((p, i) => { const ry = L.top + i * 170; if (i > 0) { g.fillStyle = C.line; g.fillRect(x0 + 80, ry - 34, x1 - x0 - 160, 1); } riga(p, x0, x1 - x0, ry + 20, ry + 104, 80); });
+    y = L.top + Math.max(1, pairs.length) * 170 + 30;
+  } else {
+    const cw = (x1 - x0) / Math.max(1, pairs.length), big = pairs.length >= 3 ? 40 : 54;
+    pairs.forEach((p, i) => { if (i > 0) { g.fillStyle = C.line; g.fillRect(x0 + cw * i, 460, 1, 100); } riga(p, x0 + cw * i, cw, 482, 548, big); });
+    y = 620;
+  }
   // componenti su due colonne
-  const comps = (r.componenti || []).slice(0, 5), lw = (x1 - x0 - 40) / 2;
-  let y = 620;
+  const comps = (r.componenti || []).slice(0, 5), gap = 40, lw = (x1 - x0 - gap) / 2, ch = Math.round(74 * L.s);
   const nomi = {cpu: _t('Processore'), gpu: _t('Scheda video'), ram: _t('Memoria RAM'), disco: _t('Disco'), leggerezza: _t('Leggerezza di Windows')};
   const cella = (c, cx, cy, w) => {
+    const f = Math.round(18 * L.s);
     g.fillStyle = C.line; g.fillRect(cx, cy, w, 1);
-    g.textAlign = 'left'; g.fillStyle = C.muted; font(500, 12, off ? C.body : mono); g.letterSpacing = '2px'; g.fillText(String(nomi[c.chiave] || '').toUpperCase(), cx, cy + 26); g.letterSpacing = '0px';
-    font(500, 18); g.fillStyle = C.text;
-    const nome = ottNome(c.nome) || '–'; let t = nome; while (g.measureText(t).width > w - 120 && t.length > 4) t = t.slice(0, -2); if (t !== nome) t = t.replace(/\s*\S?$/, '') + '…';
-    g.fillText(t, cx, cy + 54);
-    g.textAlign = 'right'; font(500, 18, off ? C.body : mono);
+    g.textAlign = 'left'; g.fillStyle = C.muted; font(500, Math.round(12 * L.s), mono); g.letterSpacing = '2px'; g.fillText(String(nomi[c.chiave] || '').toUpperCase(), cx, cy + Math.round(26 * L.s)); g.letterSpacing = '0px';
+    font(500, f); g.fillStyle = C.text;
+    const nome = ottNome(c.nome) || '–'; let t = nome; while (g.measureText(t).width > w - 120 * L.s && t.length > 4) t = t.slice(0, -2); if (t !== nome) t = t.replace(/\s*\S?$/, '') + '…';
+    g.fillText(t, cx, cy + Math.round(54 * L.s));
+    g.textAlign = 'right'; font(500, f, mono);
     if (c.chiave === 'leggerezza' && r.prima && r.dopo && r.prima.leggerezza && r.dopo.leggerezza) {
-      g.fillStyle = C.a1t || C.a1; const d = String(r.dopo.leggerezza); g.fillText(d, cx + w, cy + 54); const dw = g.measureText(d).width;
-      g.fillStyle = C.muted; g.fillText(r.prima.leggerezza + '  →  ', cx + w - dw, cy + 54);
-    } else { g.fillStyle = C.muted; g.fillText(String(c.voto || ''), cx + w, cy + 54); }
+      g.fillStyle = C.a1t || C.a1; const d = String(r.dopo.leggerezza); g.fillText(d, cx + w, cy + Math.round(54 * L.s)); const dw = g.measureText(d).width;
+      g.fillStyle = C.muted; g.fillText(r.prima.leggerezza + '  →  ', cx + w - dw, cy + Math.round(54 * L.s));
+    } else { g.fillStyle = C.muted; g.fillText(String(c.voto || ''), cx + w, cy + Math.round(54 * L.s)); }
   };
   const normali = comps.filter(c => c.chiave !== 'leggerezza'), legg = comps.find(c => c.chiave === 'leggerezza');
-  normali.forEach((c, i) => { cella(c, x0 + (i % 2) * (lw + 40), y + Math.floor(i / 2) * 74, lw); });
-  y += Math.ceil(normali.length / 2) * 74;
+  // verticale: una colonna sola, così i nomi si leggono interi; quadrato: due colonne
+  const col = V ? 1 : 2;
+  normali.forEach((c, i) => { cella(c, x0 + (i % col) * (lw + gap), y + Math.floor(i / col) * ch, V ? x1 - x0 : lw); });
+  y += Math.ceil(normali.length / col) * ch;
   if (legg) cella(legg, x0, y, x1 - x0);
-  g.textAlign = 'center'; g.fillStyle = C.muted; font(400, 16); g.fillText(_t('Misurato con Tasso · sergiotassoni.github.io/tasso'), W / 2, H - 104);
+  g.textAlign = 'center'; g.fillStyle = C.muted; font(400, L.fs); g.fillText(_t('Misurato con Tasso · sergiotassoni.github.io/tasso'), W / 2, L.foot);
   return cv;
 }
-async function ottBiglietto(){
-  const R = ottRisultato(); if (!R) return;
-  const cv = await drawOttCard(R), off = (R.risultato || {}).modo === 'ufficio';
-  const pub = CLASSIFICA_ATTIVA ? '<div style="border-top:1px solid var(--line);padding-top:12px;display:flex;flex-direction:column;gap:8px"><b>' + _t('Pubblica i tuoi risultati') + '</b><span class="small muted">' + _t('Scrivi un nome e ti trovi nella classifica sul sito di Tasso. Va solo il voto, con il nome che scegli tu.') + '</span><div class="row" style="gap:8px"><input id="ottNome" maxlength="24" style="flex:1" placeholder="' + esc(_t('Il tuo nome nella classifica')) + '"><button class="btn primary" id="ottPub">' + _t('Pubblica') + '</button></div></div>' : '';
+// La scritta grande della modalità (GAMING, UFFICIO) dietro la finestra dei biglietti, sopra il
+// programma oscurato, come nella Home di Gaming. Non si ripete se la Home di Gaming è già dietro.
+function cardSfondoModo(){
+  const m = $('#modal'); if (!m) return;
+  m.querySelectorAll('.cardmodo').forEach(x => x.remove());
+  if (!isOffice() && CURVIEW === 'home') return;
+  const a = document.querySelector('aside'), left = a ? Math.round(a.getBoundingClientRect().right) + 34 : 34;
+  const d = el('div', {class: 'cardmodo', 'aria-hidden': 'true', style: 'left:' + left + 'px'}, esc(isOffice() ? _t('Ufficio') : 'Gaming'));
+  m.insertBefore(d, m.firstChild);
+  // il programma resta visibile dietro, più tenue, così la scritta non si mescola ai testi della pagina
+  document.body.classList.add('cardsfondo');
+}
+// Finestra dei biglietti: la stessa per il Voto al PC e per Ottimizza tutto, in Gaming e in Ufficio.
+function finestraBiglietto(titolo, testo, q, v, salva){
+  let fmt = 'q';
+  const wrap = (c, f, w, h, label) => { c.style.cssText = 'width:' + w + 'px;height:' + h + 'px;display:block;border-radius:12px'; const d = el('button', {class:'votofmt', 'data-f': f, 'aria-pressed': f === fmt ? 'true' : 'false', style:'background:none;border:0;padding:0;cursor:pointer;display:flex;flex-direction:column;gap:8px;align-items:center;color:inherit;font:inherit'}); d.appendChild(c); d.appendChild(el('span', {class:'small'}, label)); return d; };
+  const pub = CLASSIFICA_ATTIVA ? '<div style="border-top:1px solid var(--line);padding-top:12px;display:flex;flex-direction:column;gap:8px"><b>' + _t('Pubblica i tuoi risultati') + '</b><span class="small muted">' + _t('Scrivi un nome e ti trovi nella classifica sul sito di Tasso. Va solo il voto, con il nome che scegli tu.') + '</span><div class="row" style="gap:8px"><input id="votoNome" maxlength="24" style="flex:1" placeholder="' + esc(_t('Il tuo nome nella classifica')) + '"><button class="btn primary" id="votoPub">' + _t('Pubblica') + '</button></div></div>' : '';
+  // modal() chiude la finestra se fn non restituisce subito 'keep': il lavoro va avanti da solo.
+  // Copia e Salva lavorano con la finestra aperta: i due pulsanti restano spenti finché non hanno
+  // finito, e se qualcosa va storto compare un avviso.
   const busy = (fn, err) => (box) => {
     const row = box.lastElementChild, bs = row ? [...row.querySelectorAll('button')].slice(1) : [];
     if (bs.some(b => b.disabled)) return 'keep';
     bs.forEach(b => { b.disabled = true; });
-    Promise.resolve().then(() => fn(cv.toDataURL('image/png'))).catch(() => toast(err, 'var(--a4)')).finally(() => bs.forEach(b => { b.disabled = false; }));
+    const c = fmt === 'v' ? v : q;
+    Promise.resolve().then(() => fn(c.toDataURL('image/png'))).catch(() => toast(err, 'var(--a4)')).finally(() => bs.forEach(b => { b.disabled = false; }));
     return 'keep';
   };
-  modal('<h2>' + _t('Il tuo biglietto') + '</h2><p class="muted" style="margin:0">' + (off ? _t('Voto al PC, componenti, accensione e apertura dei programmi in un biglietto solo.') : _t('Voto al PC, componenti e FPS in un biglietto solo.')) + ' ' + _t('Dentro non ci sono dati personali.') + '</p><div class="opt-card-prev" id="ottPrev"></div>' + pub, [
+  modal('<h2>' + titolo + '</h2><p class="muted" style="margin:0">' + testo + '</p><div id="votoPrev" style="display:flex;gap:22px;justify-content:center;flex-wrap:wrap;padding:4px 0"></div>' + pub, [
     {label: _t('Chiudi')},
-    {label: _t('Salva'), fn: busy(async (u) => { const x = await call('goOttSalva', u); toast(x === 'ok' ? _t('Salvato in Immagini\\Tasso.') : _t('Non sono riuscito a salvare l\'immagine.'), x === 'ok' ? 'var(--a1)' : 'var(--a4)'); }, _t('Non sono riuscito a salvare l\'immagine.'))},
+    {label: _t('Salva'), fn: busy(async (u) => { const x = await salva(u, fmt === 'v' ? 'verticale' : 'quadrata'); toast(x === 'ok' ? _t('Salvato in Immagini\\Tasso.') : _t('Non sono riuscito a salvare l\'immagine.'), x === 'ok' ? 'var(--a1)' : 'var(--a4)'); }, _t('Non sono riuscito a salvare l\'immagine.'))},
     {label: _t('Copia immagine'), cls: 'primary', fn: busy(async (u) => { const x = await call('goVotoCopia', u); toast(x === 'ok' ? _t('Immagine copiata: incollala dove vuoi con Ctrl+V.') : _t('Non sono riuscito a copiare l\'immagine.'), x === 'ok' ? 'var(--a1)' : 'var(--a4)'); }, _t('Non sono riuscito a copiare l\'immagine.'))}
   ]);
-  $('#modalBox').style.maxWidth = '700px';
-  $('#ottPrev').appendChild(cv);
-  const pb = $('#ottPub'); if (pb) pb.onclick = () => toast(_t('La classifica online arriva presto.'), 'var(--a3)');
+  const box = $('#modalBox'); box.style.maxWidth = '780px';
+  const prev = $('#votoPrev');
+  prev.appendChild(wrap(q, 'q', 380, 380, _t('Quadrato · 1080 × 1080')));
+  prev.appendChild(wrap(v, 'v', 214, 380, _t('Verticale · 1080 × 1920')));
+  const paintSel = () => prev.querySelectorAll('.votofmt').forEach(b => { const on = b.dataset.f === fmt; b.setAttribute('aria-pressed', on ? 'true' : 'false'); b.firstChild.style.boxShadow = on ? '0 0 0 3px var(--a1),0 14px 34px rgba(0,0,0,.45)' : '0 0 0 1px var(--line),0 14px 34px rgba(0,0,0,.45)'; b.lastChild.style.color = on ? 'var(--a1t)' : 'var(--muted)'; b.lastChild.style.fontWeight = on ? '700' : '500'; });
+  prev.querySelectorAll('.votofmt').forEach(b => b.onclick = () => { fmt = b.dataset.f; paintSel(); });
+  paintSel();
+  const pb = $('#votoPub'); if (pb) pb.onclick = () => toast(_t('La classifica online arriva presto.'), 'var(--a3)');
+  cardSfondoModo();
+}
+async function ottBiglietto(){
+  const R = ottRisultato(); if (!R) return;
+  const [q, v] = await Promise.all([drawOttCard(R, 'q'), drawOttCard(R, 'v')]), off = (R.risultato || {}).modo === 'ufficio';
+  finestraBiglietto(_t('Il tuo biglietto'), (off ? _t('Voto al PC, componenti, accensione e apertura dei programmi in un biglietto solo.') : _t('Voto al PC, componenti e FPS in un biglietto solo.')) + ' ' + _t('Quadrato per i post, verticale per le storie.') + ' ' + _t('Dentro non ci sono dati personali.'), q, v, (u, f) => call('goOttSalva', u, f));
 }
 async function undoRefresh(){ paintUndo(await call('goChanges')); }
 function paintUndo(c){
