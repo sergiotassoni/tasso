@@ -20,6 +20,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"tasso/traduce"
@@ -412,13 +413,16 @@ func copiaFirmata(exe []byte) bool {
 	return res.New.Status == "Valid" && isCertum(res.New.Issuer) && strings.Contains(res.New.Subject, "Sergio Tassoni")
 }
 
+// verificaN: aggiornamento e copia in Programmi possono verificare insieme: un file a testa.
+var verificaN atomic.Int64
+
 // copiaPerVerifica: il nuovo Tasso in un file di Programmi nuovo di zecca (O_EXCL), per la firma.
 func copiaPerVerifica(exe []byte) (string, error) {
 	pf := programFilesDir()
 	if pf == "" {
 		return "", os.ErrNotExist
 	}
-	p := filepath.Join(pf, "tasso-verifica-"+strconv.Itoa(os.Getpid())+".exe")
+	p := filepath.Join(pf, "tasso-verifica-"+strconv.Itoa(os.Getpid())+"-"+strconv.FormatInt(verificaN.Add(1), 10)+".exe")
 	_ = os.Remove(p) // resto di un aggiornamento interrotto (in Programmi lo scrive solo un amministratore)
 	f, err := os.OpenFile(p, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o644)
 	if err != nil {

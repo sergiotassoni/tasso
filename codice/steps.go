@@ -314,7 +314,7 @@ Freed $f; Say ('Liberati ' + (Fmt $f))
 $f = Clear-Folder (Join-Path $env:windir 'Temp') 24
 Freed $f; Say ('Liberati ' + (Fmt $f))
 `},
-	{ID: "recycle", Name: "Cestino", Desc: "Svuota il Cestino di tutte le unità, tranne quello buttato nelle ultime 24 ore (così puoi ancora recuperarlo). Nella pulizia programmata toglie solo quello che è nel Cestino da più di 7 giorni.", Level: 1, Minutes: 0.3, Timeout: 5 * time.Minute, Script: `
+	{ID: "recycle", Name: "Cestino", Desc: "Svuota il Cestino di tutte le unità, tranne quello buttato nelle ultime 24 ore (così puoi ancora recuperarlo). Nella pulizia programmata toglie solo quello che è nel Cestino da più di 7 giorni.", Level: 1, Minutes: 0.3, Timeout: 15 * time.Minute, Script: `
 # Lascio sempre le cose buttate di recente (anche quelle che Tasso ha appena messo nel Cestino
 # dicendo "le puoi recuperare"): 24 ore a mano, 7 giorni nella pulizia programmata.
 $giorni = 1; if ($TassoAuto) { $giorni = 7 }

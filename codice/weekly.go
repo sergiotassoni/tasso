@@ -150,8 +150,7 @@ var aspettaGioco atomic.Bool
 // al massimo 4 ore, poi la salto fino alla prossima volta.
 func avviaQuandoNessunGioco(lvl int) {
 	if runningGame() == "" {
-		markAutoRun(lvl, 3*time.Minute)
-		emit("onAutoRun", lvl)
+		go avviaPuliziaAuto(lvl)
 		return
 	}
 	if !aspettaGioco.CompareAndSwap(false, true) {
@@ -170,15 +169,43 @@ func avviaQuandoNessunGioco(lvl int) {
 			}
 			if runningGame() == "" {
 				time.Sleep(time.Minute) // il gioco si è appena chiuso: lascio respirare il PC
-				if runningGame() == "" && !isRunning() {
-					markAutoRun(lvl, 3*time.Minute)
-					emit("onAutoRun", lvl)
+				if runningGame() != "" {
+					continue // hai aperto un altro gioco (o il launcher l'ha riaperto): aspetto ancora
 				}
+				if isRunning() {
+					go maybeAutoExit() // c'è già una pulizia in corso: a fine pulizia si chiude da solo
+					return
+				}
+				avviaPuliziaAuto(lvl)
 				return
 			}
 		}
 		go maybeAutoExit() // hai giocato più di 4 ore: la pulizia la faccio la prossima volta
 	}()
+}
+
+// avviaPuliziaAuto: chiede alla finestra di far partire la pulizia programmata. Se la finestra
+// non era ancora pronta e il messaggio si è perso (la pulizia non ha preso il suo segno), lo
+// richiedo qualche volta; se non parte proprio, la sessione pianificata si chiude da sola.
+func avviaPuliziaAuto(lvl int) {
+	markAutoRun(lvl, 10*time.Minute)
+	emit("onAutoRun", lvl)
+	for i := 0; i < 8; i++ {
+		time.Sleep(30 * time.Second)
+		autoMu.Lock()
+		ancora := autoPending == lvl
+		autoMu.Unlock()
+		if !ancora || isRunning() {
+			return // partita (il segno l'ha preso la pulizia)
+		}
+		emit("onAutoRun", lvl)
+	}
+	autoMu.Lock()
+	if autoPending == lvl {
+		autoPending = 0
+	}
+	autoMu.Unlock()
+	go maybeAutoExit()
 }
 
 // diventaNormale: la sessione aperta dall'attività pianificata diventa un Tasso normale.

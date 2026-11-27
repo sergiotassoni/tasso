@@ -159,7 +159,17 @@ func salvaCopieDiSicurezza() {
 		// strada (Tasso scriverebbe da amministratore dove punta il collegamento) e niente cartella
 		// già esistente da riempire
 		for _, x := range []string{dest, filepath.Dir(a)} {
-			if st, err := os.Lstat(x); err != nil || st.Mode()&(os.ModeSymlink|os.ModeIrregular) != 0 || !st.IsDir() {
+			// Solo i veri collegamenti (symlink e junction): le cartelle di OneDrive sono anche loro
+			// "reparse point" ma non portano altrove, e lì le copie vanno salvate lo stesso.
+			st, err := os.Lstat(x)
+			if err != nil || st.Mode()&os.ModeSymlink != 0 {
+				return
+			}
+			if st.Mode()&os.ModeIrregular != 0 {
+				if _, e := os.Readlink(x); e == nil {
+					return // junction
+				}
+			} else if !st.IsDir() {
 				return
 			}
 		}
