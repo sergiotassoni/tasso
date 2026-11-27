@@ -40,6 +40,19 @@ alla voce "Info e indice".
 ------------------------------------------------------------
 NOVITÀ DELLA 3.2
 ------------------------------------------------------------
+- Ottimizza tutto, sulla Home: un pulsante solo. Tasso misura il PC,
+  sistema Windows e ti mostra la differenza, prima e dopo.
+  In Gaming lo prepara per giocare (Modalità Gioco, scheda video, notifiche
+  in pausa mentre giochi e altro). In Ufficio lo prepara per lavorare (meno
+  animazioni, notifiche senza suono, niente consigli di Windows, batteria
+  che dura di più). Ogni modifica si rimette com'era, una alla volta o
+  tutte insieme, anche con "Rimetti tutto com'era prima di Tasso" e
+  quando togli Tasso.
+- Biglietto tesserino: alla fine di Ottimizza tutto e del Voto al PC c'è
+  il tuo biglietto con il risultato, nei colori del tema, quadrato o
+  verticale, da copiare o salvare come immagine.
+- Modalità riunione sulla Home (Ufficio): un tasto accanto a PULISCI,
+  prima della chiamata.
 - Sfondi del desktop abbinati al tema: quando scegli un tema (per esempio
   Oro o Neon RGB) Tasso ti chiede se vuoi anche lo sfondo uguale, nitido anche
   sugli schermi 4K. È facoltativo: puoi dire di no, e con "Rimetti il mio"
@@ -50,11 +63,13 @@ NOVITÀ DELLA 3.2
 - Fai aiutare un amico: in Risolvi un problema trovi una guida semplice per
   farti aiutare a distanza con Assistenza rapida di Windows (o per aiutare
   qualcuno), con gli avvisi contro le truffe.
-- Gaming e Ufficio più equilibrati. In Gaming, in Risolvi un problema, ci
-  sono i "Problemi di tutti i giorni" (Wi-Fi, file zip, schermi, tastiera,
-  batteria, ora sbagliata...), "Prova microfono e cuffie" e "Chi usa webcam
-  e microfono". In Ufficio la Modalità riunione è sulla Home, accanto a
-  PULISCI, e in Risolvi un problema ci sono anche "Il PC si scalda", "Un
+- Più equilibrio tra Gaming e Ufficio. In Gaming, in Risolvi un problema,
+  ci sono i "Problemi di tutti i giorni" (Wi-Fi, file zip, schermi,
+  tastiera, batteria, ora sbagliata...), "Prova microfono e cuffie" e "Chi
+  usa webcam e microfono", e gli avvisi intelligenti arrivano anche in
+  Gaming (mentre giochi con il Boost solo quelli di temperatura e dischi).
+  Scegliere Gaming la prima volta non cambia niente nel PC. In Ufficio, in
+  Risolvi un problema, ci sono anche "Il PC si scalda", "Un
   programma non parte (manca un file .dll)", "Il PC si blocca con file
   grandi", "L'audio gracchia nelle chiamate" e "Lo schermo diventa nero".
 - Più sicurezza dietro le quinte: le copie dei giochi tradotti e i file di
@@ -64,7 +79,11 @@ NOVITÀ DELLA 3.2
 - Backup dei file: Tasso ti avvisa se scegli una cartella sbagliata (una di
   quelle che stai copiando).
 - Ufficio: la Modalità riunione è separata per ogni utente del PC.
-- Tante piccole correzioni (traduzione, giochi, Ufficio).
+- Tante correzioni: Salute e problemi e Risolvi un problema dicono quello
+  che trovano davvero; gli aggiornamenti dei programmi chiedono prima e
+  toccano solo quelli con la spunta; "Privacy: ripristina" rimette i
+  valori di prima; la pulizia ogni 2 settimane è descritta bene in tutte
+  le lingue; e tante piccole cose (traduzione, giochi, Ufficio).
 
 ------------------------------------------------------------
 NOVITÀ DELLA 3.1.1
