@@ -97,7 +97,7 @@ Say 'Cosa fare, in ordine: 1) aggiorna il driver video da Risolvi un problema > 
 `)},
 	{ID: "fix_game_heat", Name: "Il PC si scalda troppo quando gioco", Desc: "Legge le temperature di processore e scheda video, controlla se il PC sta già rallentando per il caldo e ti dice cosa fare. Non tocca le ventole.", Level: 0, Minutes: 0.2, Timeout: 2 * time.Minute, Script: ofs2(cpuTempPS + gpuTempPS + `
 $any = $false
-if ($ct -and $ctAcpi) { $any = $true; Say ('Sensore di temperatura della scheda madre: ' + [math]::Round($ct) + '°C. Su molti PC non è il processore: per la temperatura vera del processore apri LibreHardwareMonitor e rifai il controllo.') }
+if ($ct -and $ctAcpi) { $any = $true; Say ('Sensore di temperatura della scheda madre: ' + [math]::Round($ct) + '°C. Su molti PC non è il processore: per la temperatura vera del processore, se hai installato il programma gratuito LibreHardwareMonitor aprilo e rifai il controllo.') }
 elseif ($ct) { $any = $true; $r = [math]::Round($ct); if ($r -ge 90) { Say ('Processore: ' + $r + '°C adesso. Troppo caldo: oltre 90°C rallenta da solo per proteggersi.') } elseif ($r -ge 75) { if ($TassoUfficio) { Say ('Processore: ' + $r + '°C adesso. Caldo: succede con programmi pesanti o tante schede aperte; a PC fermo dovrebbe stare sotto i 60°C.') } else { Say ('Processore: ' + $r + '°C adesso. Caldo, ma è normale se stai giocando; a PC fermo dovrebbe stare sotto i 60°C.') } } else { Say ('Processore: ' + $r + '°C adesso: va bene.') } }
 if ($gt) { $any = $true; if ($gt -ge 87) { Say ('Scheda video: ' + $gt + '°C adesso. Troppo calda: oltre 85-90°C rallenta.') } elseif ($gt -ge 75) { if ($TassoUfficio) { Say ('Scheda video: ' + $gt + '°C adesso. Calda: per il lavoro d''ufficio è tanto, guarda se un programma la sta usando molto.') } else { Say ('Scheda video: ' + $gt + '°C adesso. Calda, normale mentre giochi.') } } else { Say ('Scheda video: ' + $gt + '°C adesso: va bene.') } }
 if (-not $any) { if ($TassoUfficio) { Say 'Su questo PC Windows non mi dà le temperature. Per vederle, prova la pagina Hardware di Tasso mentre il PC lavora.' } else { Say 'Su questo PC Windows non mi dà le temperature. Per vederle, prova la pagina Hardware di Tasso mentre giochi.' } }
@@ -267,7 +267,10 @@ if ($usb.Count -eq 2 -and $usb[0] -ne 0) {
       New-Item -ItemType Directory -Path $d -Force -ErrorAction Stop | Out-Null
       $f = Join-Path $d ('usb-audio_' + (Get-Date -Format 'yyyyMMdd_HHmmss') + '.cmd')
       $lines = @('@echo off', ('"%SystemRoot%\System32\powercfg.exe" /setacvalueindex ' + $plan + ' 2a737441-1930-4402-8d77-b2bebba308a3 48e6b7a6-50f5-4782-a5d4-53bb8f07e226 ' + [int64]$usb[0]), '"%SystemRoot%\System32\powercfg.exe" /setactive SCHEME_CURRENT', 'echo Risparmio energetico delle porte USB rimesso come prima.', 'pause')
-      [IO.File]::WriteAllLines($f, [string[]]$lines, [Text.Encoding]::ASCII)
+      # F10-11: la riga "echo" è tradotta: la scrivo con la codifica della finestra nera (OEM), così gli accenti si leggono.
+      $enc = [Text.Encoding]::ASCII
+      try { $enc = [Text.Encoding]::GetEncoding([int](Get-ItemProperty -LiteralPath 'HKLM:\SYSTEM\CurrentControlSet\Control\Nls\CodePage' -Name OEMCP -ErrorAction Stop).OEMCP) } catch {}
+      [IO.File]::WriteAllLines($f, [string[]]$lines, $enc)
       if (Test-Path -LiteralPath $f) { $u = $f }
     } catch { $u = '' }
   }

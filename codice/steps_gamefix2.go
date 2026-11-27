@@ -62,8 +62,8 @@ try {
 } catch {}
 if ($ok) { Say 'Fatto. Se lo schermo non ha lampeggiato, premi tu insieme Win + Ctrl + Maiusc + B (fa la stessa cosa).' }
 else { Say 'Da qui non sono riuscito a far ripartire la scheda video: premi insieme Win + Ctrl + Maiusc + B (fa la stessa cosa).' }
-if ($TassoUfficio) { Say 'Consigli: se lo schermo giusto resta nero premi Win + P e scegli "Solo schermo del PC", "Duplica" o "Estendi". Se la risoluzione è strana: tasto destro sul desktop > Impostazioni schermo > Risoluzione consigliata.' }
-else { Say 'Consigli: se il gioco è piccolo o tagliato premi Alt + Invio (passa da finestra a schermo intero). Se lo schermo giusto resta nero premi Win + P e scegli "Solo schermo del PC" o "Duplica". Se la risoluzione è strana: tasto destro sul desktop > Impostazioni schermo > Risoluzione consigliata.' }
+if ($TassoUfficio) { Say 'Consigli: se lo schermo giusto resta nero premi Win + P e scegli "Solo schermo PC", "Duplica" o "Estendi". Se la risoluzione è strana: tasto destro sul desktop > Impostazioni schermo > Risoluzione consigliata.' }
+else { Say 'Consigli: se il gioco è piccolo o tagliato premi Alt + Invio (passa da finestra a schermo intero). Se lo schermo giusto resta nero premi Win + P e scegli "Solo schermo PC" o "Duplica". Se la risoluzione è strana: tasto destro sul desktop > Impostazioni schermo > Risoluzione consigliata.' }
 `},
 	{ID: "fix_game_fps", Name: "Pochi FPS (il gioco va lento)", Desc: "Mette il piano energetico al massimo e ti dice cosa sta rubando potenza.", Level: 0, Minutes: 0.4, Timeout: 5 * time.Minute, Script: modeBase + `
 Use-HighPerf

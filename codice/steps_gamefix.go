@@ -24,7 +24,7 @@ Say 'Altre cause frequenti: il gioco installato su un disco meccanico (meglio un
 $wg = Get-Winget
 if (-not $wg) {
   Say 'winget non c''è su questo PC: ti apro la pagina ufficiale Microsoft dei componenti Visual C++.'
-  Start-Process -FilePath "$env:SystemRoot\explorer.exe" -ArgumentList 'https://learn.microsoft.com/it-it/cpp/windows/latest-supported-vc-redist'
+  Start-Process -FilePath "$env:SystemRoot\explorer.exe" -ArgumentList 'https://learn.microsoft.com/cpp/windows/latest-supported-vc-redist'
   return
 }
 $pk = @(

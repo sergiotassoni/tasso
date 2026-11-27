@@ -24,7 +24,15 @@ func desktopShortcut() string {
 	var last string
 	r := runPSArgs(desktopShortcutScript, map[string]interface{}{"exe": exe}, time.Minute, func(m string) { last = m })
 	if r.JSON == "ok" {
+		// Il collegamento nuovo prende subito l'icona del tema in uso (non solo alla prossima apertura).
+		go func() {
+			defer guard("icone-collegamenti")
+			aggiornaCollegamenti(idIconaInUso())
+		}()
 		return "ok"
+	}
+	if r.JSON == "gia" {
+		return "gia"
 	}
 	if last == "" {
 		last = "Non sono riuscito a creare il collegamento."
@@ -56,7 +64,11 @@ $n = 0; $fail = @()
 foreach ($s in @('MyPictures', 'MyDocuments', 'Desktop', 'MyVideos', 'MyMusic')) {
   $p = [Environment]::GetFolderPath($s)
   if (-not $p -or -not (Test-Path -LiteralPath $p)) { continue }
-  $name = Split-Path $p -Leaf
+  # Il nome che si vede in Esplora file (Immagini, Documenti...), non quello inglese della cartella vera.
+  $name = ''
+  try { $name = [string](New-Object -ComObject Shell.Application).Namespace($p).Self.Name } catch {}
+  $name = ($name -replace '[\\/:*?"<>|]', '_').Trim()
+  if (-not $name) { $name = Split-Path $p -Leaf }
   Say ('Copio ' + $name + '...')
   $d = Join-Path $out $name
   # /XA:SHO: niente file nascosti o di sistema, e niente file "solo online" di OneDrive
@@ -66,7 +78,7 @@ foreach ($s in @('MyPictures', 'MyDocuments', 'Desktop', 'MyVideos', 'MyMusic'))
   if ($code -lt 8) { $n++ } else { $fail += $name; Say ('Attenzione: alcuni file di ' + $name + ' non sono stati copiati (disco pieno, file troppo grandi per la chiavetta, o file in uso).') }
 }
 if ($fail.Count) { Say ('Backup finito, ma NON completo: controlla ' + ($fail -join ', ') + '. Le copie sono in: ' + $out) }
-else { Say ('Backup finito. Tutto copiato in: ' + $out) }
+else { Say ('Backup finito. Copiato tutto (tranne i file nascosti e di sistema) in: ' + $out) }
 Say 'I file di OneDrive che sono solo online (nuvoletta) non vengono copiati: sono già al sicuro su OneDrive.'
 [Console]::Out.WriteLine('JSON ' + (ConvertTo-Json -InputObject ([ordered]@{ ok = ($fail.Count -eq 0); path = $out; folders = $n }) -Compress))
 `
@@ -76,6 +88,17 @@ $exe = [string]$A.exe
 if (-not $exe -or -not (Test-Path -LiteralPath $exe)) { Say 'Non trovo il programma.'; return }
 try {
   $ws = New-Object -ComObject WScript.Shell
+  # Se sul Desktop c'è già un collegamento a questo Tasso (anche quelli dell'installatore), non ne faccio un doppione.
+  $full = [IO.Path]::GetFullPath($exe)
+  foreach ($dk in @([Environment]::GetFolderPath('Desktop'), [Environment]::GetFolderPath('CommonDesktopDirectory'))) {
+    if (-not $dk) { continue }
+    foreach ($nm in @('Tasso Gaming.lnk', 'Tasso Ufficio.lnk', 'Tasso.lnk')) {
+      $q = Join-Path $dk $nm
+      if (-not (Test-Path -LiteralPath $q)) { continue }
+      $t = ''; try { $t = [string]$ws.CreateShortcut($q).TargetPath } catch {}
+      if ($t -and [string]::Equals([IO.Path]::GetFullPath($t), $full, [StringComparison]::OrdinalIgnoreCase)) { [Console]::Out.WriteLine('JSON gia'); return }
+    }
+  }
   $lnk = Join-Path ([Environment]::GetFolderPath('Desktop')) 'Tasso.lnk'
   $s = $ws.CreateShortcut($lnk)
   $s.TargetPath = $exe

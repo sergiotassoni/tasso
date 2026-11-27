@@ -74,6 +74,22 @@ function Backup-Reg([string]$key, [string]$name) {
   if ($c -eq 0 -and (Test-Path -LiteralPath $f)) { return $f }
   return ''
 }
+function Save-ServiceStart([string]$svc, [string]$name) {
+  # F10-4: prima di riaccendere un servizio spento salvo com'era (Start e DelayedAutostart) in un file .reg:
+  # con un doppio clic torna spento. '' se non riesco a salvarlo: allora non lo cambio.
+  $k = 'HKLM:\SYSTEM\CurrentControlSet\Services\' + $svc
+  $st = $null; $de = $null
+  try { $st = [int](Get-ItemProperty -LiteralPath $k -Name Start -ErrorAction Stop).Start } catch { return '' }
+  try { $de = [int](Get-ItemProperty -LiteralPath $k -Name DelayedAutostart -ErrorAction Stop).DelayedAutostart } catch {}
+  $lines = @('Windows Registry Editor Version 5.00', '', ('[HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\' + $svc + ']'), ('"Start"=dword:' + ('{0:x8}' -f $st)))
+  if ($null -ne $de) { $lines += ('"DelayedAutostart"=dword:' + ('{0:x8}' -f $de)) } else { $lines += '"DelayedAutostart"=-' }
+  $d = Join-Path $env:LOCALAPPDATA 'Tasso\backup-registro'
+  New-Item -ItemType Directory -Path $d -Force | Out-Null
+  $f = Join-Path $d ($name + '_' + (Get-Date -Format 'yyyyMMdd_HHmmss') + '.reg')
+  try { [IO.File]::WriteAllLines($f, [string[]]($lines + @('')), [Text.Encoding]::Unicode) } catch { return '' }
+  if (Test-Path -LiteralPath $f) { return $f }
+  return ''
+}
 function Restart-BadDevices([string]$cls) {
   $n = 0
   foreach ($d in @(Get-CimInstance Win32_PnPEntity -ErrorAction SilentlyContinue | Where-Object { $_.PNPClass -match $cls -and $_.ConfigManagerErrorCode -ne 0 -and $_.ConfigManagerErrorCode -ne 22 -and $_.ConfigManagerErrorCode -ne 45 -and -not ($_.ConfigManagerErrorCode -eq 24 -and $_.Present -eq $false) })) {
@@ -210,9 +226,14 @@ func ofs(s string) string { return ofHelpers + s }
 var officeSteps = []Step{
 	// ---------- Stampa e scanner ----------
 	{ID: "of_print_offline", Name: "La stampante dice \"offline\"", Desc: "Riavvia il servizio di stampa, toglie la spunta \"Usa stampante offline\" e controlla se le stampanti di rete rispondono.", Level: 0, Minutes: 0.4, Timeout: 4 * time.Minute, Script: ofs(`
+# F10-4: con lo spooler disattivato (spesso apposta, contro PrintNightmare) le stampanti non si vedono: lo dico.
+$sv = Get-Service -Name Spooler -ErrorAction SilentlyContinue
+if ($sv -and [string]$sv.StartType -eq 'Disabled') { Say 'Il servizio di stampa è disattivato in Windows (qualcuno l''ha spento apposta): Tasso non lo riaccende. Se non stampi va bene così. Per stampare: Start > scrivi "Servizi" > Spooler di stampa > Tipo di avvio: Automatico > Avvia.'; return }
 Say 'Riavvio il servizio di stampa di Windows...'
 Restart-Service -Name Spooler -Force -ErrorAction SilentlyContinue
 Start-Sleep -Seconds 2
+$sv = Get-Service -Name Spooler -ErrorAction SilentlyContinue
+if (-not $sv -or [string]$sv.Status -ne 'Running') { Say 'Il servizio di stampa non è ripartito. Riavvia il PC e riprova; se non parte ancora, apri Start > scrivi "Servizi" > Spooler di stampa e guarda l''errore.'; return }
 $pr = @(Get-CimInstance Win32_Printer -ErrorAction SilentlyContinue | Where-Object { $_.Name -notmatch 'PDF|XPS|OneNote|Fax' })
 if (-not $pr.Count) { Say 'Non trovo nessuna stampante installata: ti apro le impostazioni per aggiungerla (Aggiungi dispositivo).'; Open-User 'ms-settings:printers'; return }
 foreach ($p in $pr) {
@@ -279,8 +300,13 @@ foreach ($n in $np) {
   if ($cat -eq 'DomainAuthenticated') { Say ('Rete "' + $n.Name + '": è la rete dell''azienda, la gestisce l''assistenza (IT). Se non vedi la stampante chiedi a loro il nome da aggiungere.') }
   elseif ($cat -eq 'Public') { Say ('Rete "' + $n.Name + '": è segnata come PUBBLICA, così Windows nasconde stampanti e PC per sicurezza. Se è la rete del tuo ufficio o di casa, mettila su "Privata": Impostazioni > Rete e Internet > Proprietà della rete.'); $pub = $true }
   else {
-    Get-NetFirewallRule -Group '@FirewallAPI.dll,-32752' -ErrorAction SilentlyContinue | Where-Object { [string]$_.Profile -match 'Private' -and [string]$_.Enabled -ne 'True' } | Enable-NetFirewallRule -ErrorAction SilentlyContinue
-    Say ('Rete "' + $n.Name + '" (privata): accesa la "Individuazione rete", così il PC vede stampanti e computer vicini (se l''ufficio non la blocca).')
+    # F10-13: "accesa" solo se era spenta, e con come rispegnerla.
+    $off = @(Get-NetFirewallRule -Group '@FirewallAPI.dll,-32752' -ErrorAction SilentlyContinue | Where-Object { [string]$_.Profile -match 'Private' -and [string]$_.Enabled -ne 'True' })
+    if ($off.Count) {
+      $off | Enable-NetFirewallRule -ErrorAction SilentlyContinue
+      Say ('Rete "' + $n.Name + '" (privata): accesa la "Individuazione rete", così il PC vede stampanti e computer vicini (se l''ufficio non la blocca).')
+      Say 'Per tornare come prima: Impostazioni > Rete e Internet > Impostazioni di rete avanzate > Impostazioni di condivisione avanzate > Reti private > Individuazione rete: No.'
+    } else { Say ('Rete "' + $n.Name + '" (privata): la "Individuazione rete" era già accesa.') }
   }
 }
 Say 'Ora vai su Impostazioni > Stampanti e scanner > "Aggiungi dispositivo" (te lo apro). Se non compare, chiedi l''indirizzo IP della stampante e scegli "La stampante desiderata non è nell''elenco".'
@@ -292,8 +318,12 @@ $n = Restart-BadDevices 'Printer|PrintQueue|USB'
 if ($n -eq 0) { Say 'Nessuna stampante o porta USB risulta rotta per Windows.' }
 Say 'Faccio ricercare a Windows i dispositivi collegati...'
 [void](Run-Hidden 'pnputil.exe' '/scan-devices')
+$sv = Get-Service -Name Spooler -ErrorAction SilentlyContinue
+if ($sv -and [string]$sv.StartType -eq 'Disabled') { Say 'Il servizio di stampa è disattivato in Windows (qualcuno l''ha spento apposta): Tasso non lo riaccende. Se non stampi va bene così. Per stampare: Start > scrivi "Servizi" > Spooler di stampa > Tipo di avvio: Automatico > Avvia.'; return }
 Restart-Service -Name Spooler -Force -ErrorAction SilentlyContinue
 Start-Sleep -Seconds 3
+$sv = Get-Service -Name Spooler -ErrorAction SilentlyContinue
+if (-not $sv -or [string]$sv.Status -ne 'Running') { Say 'Il servizio di stampa non è ripartito. Riavvia il PC e riprova; se non parte ancora, apri Start > scrivi "Servizi" > Spooler di stampa e guarda l''errore.'; return }
 $usb = @(Get-Printer -ErrorAction SilentlyContinue | Where-Object { [string]$_.PortName -match '^USB' })
 if ($usb.Count) { Say ('Stampanti col cavo trovate: ' + (($usb | ForEach-Object { $_.Name }) -join ', ') + '.') }
 else { Say 'Non vedo stampanti col cavo USB. Prova così: stampante accesa, stacca il cavo, aspetta 10 secondi, attaccalo in un''altra porta (meglio dietro il PC, non in un hub). Windows la installa da solo in un minuto.' }
@@ -301,7 +331,13 @@ else { Say 'Non vedo stampanti col cavo USB. Prova così: stampante accesa, stac
 	{ID: "of_scan", Name: "Lo scanner non funziona", Desc: "Riavvia il servizio di Windows per scanner e fotocamere, sblocca gli scanner bloccati e ti apre il programma per scansionare.", Level: 0, Minutes: 0.4, Timeout: 4 * time.Minute, Script: ofs(`
 Say 'Riavvio il servizio di Windows per scanner (Acquisizione immagini)...'
 $sv = Get-Service -Name stisvc -ErrorAction SilentlyContinue
-if ($sv -and $sv.StartType -eq 'Disabled') { Set-Service -Name stisvc -StartupType Manual -ErrorAction SilentlyContinue; Say 'Il servizio degli scanner era spento del tutto: l''ho rimesso come lo vuole Windows (manuale).' }
+if ($sv -and [string]$sv.StartType -eq 'Disabled') {
+  $u = Save-ServiceStart 'stisvc' 'servizio-scanner'
+  if (-not $u) { Say 'Il servizio degli scanner è spento del tutto e non sono riuscito a salvare com''era: non lo cambio. Per riaccenderlo: Start > scrivi "Servizi" > Acquisizione immagini di Windows (WIA) > Tipo di avvio: Manuale > Avvia.'; return }
+  Set-Service -Name stisvc -StartupType Manual -ErrorAction SilentlyContinue
+  Say 'Il servizio degli scanner era spento del tutto: l''ho rimesso come lo vuole Windows (manuale).'
+  Say ('Per tornare come prima: doppio clic su ' + $u + ', poi riavvia il PC.')
+}
 Restart-Service -Name stisvc -Force -ErrorAction SilentlyContinue
 Start-Service -Name stisvc -ErrorAction SilentlyContinue
 Restart-Service -Name ShellHWDetection -Force -ErrorAction SilentlyContinue
@@ -413,7 +449,8 @@ $lic = Join-Path $env:LOCALAPPDATA 'Microsoft\Office\Licenses'
 if (Test-Path -LiteralPath $lic) { $nn = 'Licenses_vecchie_' + (Get-Date -Format 'yyyyMMdd_HHmm'); try { Rename-Item -LiteralPath $lic -NewName $nn -ErrorAction Stop; $done++; Say 'Licenze salvate di Office messe da parte: Office le riscarica quando accedi.' } catch {} }
 $n = 0
 $list = (cmdkey /list) -join "§"
-foreach ($m in [regex]::Matches($list, '(?:Destinazione|Target):\s*(?:LegacyGeneric:target=)?(MicrosoftOffice1[56]_Data:[^§]+)')) { $t = $m.Groups[1].Value.Trim(); [void](Run-Hidden 'cmdkey.exe' ('/delete:"' + $t + '"')); $n++ }
+# F10-2: l'etichetta ("Target", "Destinazione", "Ziel", "Cible"...) cambia con la lingua: guardo solo il valore.
+foreach ($m in [regex]::Matches($list, '(?:^|§)[^§:]*:\s*(?:LegacyGeneric:target=)?(MicrosoftOffice1[56]_Data:[^§]+)')) { $t = $m.Groups[1].Value.Trim(); [void](Run-Hidden 'cmdkey.exe' ('/delete:"' + $t + '"')); $n++ }
 if ($n) { Say ('Tolte ' + $n + ' password vecchie di Office salvate in Windows.') }
 if ($done -eq 0 -and $n -eq 0) { Say 'Non c''era niente di salvato da svuotare.' }
 Say 'Ora apri Word: ti chiede di accedere. Usa l''account con cui hai Office (quello di lavoro o il tuo Microsoft). Se dice ancora "senza licenza", l''abbonamento potrebbe essere scaduto: controlla su account.microsoft.com o chiedi all''ufficio.'
@@ -466,7 +503,13 @@ Say 'Se non si apre ancora: tieni premuto Ctrl e clicca Outlook (modalità provv
 	{ID: "of_outlook_search", Name: "La ricerca di Outlook non trova le email", Desc: "Fa ricostruire a Windows l'indice di ricerca da zero. Ci vogliono alcune ore col PC acceso, poi la ricerca torna completa.", Level: 0, Minutes: 0.5, Timeout: 5 * time.Minute, Script: ofs(`
 $sv = Get-Service -Name WSearch -ErrorAction SilentlyContinue
 if (-not $sv) { Say 'La ricerca di Windows non c''è su questo PC.'; return }
-if ($sv.StartType -eq 'Disabled') { [void](Run-Hidden 'sc.exe' 'config WSearch start= delayed-auto'); Say 'La ricerca di Windows era spenta del tutto (Outlook la usa per cercare): l''ho riaccesa.' }
+if ([string]$sv.StartType -eq 'Disabled') {
+  $u = Save-ServiceStart 'WSearch' 'servizio-ricerca'
+  if (-not $u) { Say 'La ricerca di Windows è spenta del tutto e non sono riuscito a salvare com''era: non la cambio. Per riaccenderla: Start > scrivi "Servizi" > Windows Search > Tipo di avvio: Automatico (avvio ritardato) > Avvia.'; return }
+  [void](Run-Hidden 'sc.exe' 'config WSearch start= delayed-auto')
+  Say 'La ricerca di Windows era spenta del tutto (Outlook la usa per cercare): l''ho riaccesa.'
+  Say ('Per tornare come prima: doppio clic su ' + $u + ', poi riavvia il PC.')
+}
 Say 'Fermo la ricerca di Windows e preparo la ricostruzione dell''indice...'
 Stop-Service -Name WSearch -Force -ErrorAction SilentlyContinue
 Start-Sleep -Seconds 2
@@ -512,7 +555,8 @@ if ($big) {
 if (Stop-IfOfficeOpen @('OUTLOOK')) { return }
 $list = (cmdkey /list) -join "§"
 $n = 0
-foreach ($m in [regex]::Matches($list, '(?:Destinazione|Target):\s*(?:LegacyGeneric:target=)?((?:MicrosoftOffice1[56]_Data:|Outlook|msoutlook|MS\.Outlook)[^§]*)')) { $t = $m.Groups[1].Value.Trim(); [void](Run-Hidden 'cmdkey.exe' ('/delete:"' + $t + '"')); $n++ }
+# F10-2: l'etichetta ("Target", "Destinazione", "Ziel", "Cible"...) cambia con la lingua: guardo solo il valore.
+foreach ($m in [regex]::Matches($list, '(?:^|§)[^§:]*:\s*(?:LegacyGeneric:target=)?((?:MicrosoftOffice1[56]_Data:|Outlook|msoutlook|MS\.Outlook)[^§]*)')) { $t = $m.Groups[1].Value.Trim(); [void](Run-Hidden 'cmdkey.exe' ('/delete:"' + $t + '"')); $n++ }
 if ($n) { Say ('Tolte ' + $n + ' password vecchie di Outlook/Office salvate in Windows.') } else { Say 'In Windows non c''erano password vecchie di Outlook.' }
 Say 'Ora apri Outlook e inserisci la password una volta, con la spunta "Ricorda le credenziali". Se l''hai cambiata da poco, usa quella nuova.'
 Say 'Se continua a chiederla con Gmail, Aruba o Libero: serve la "password per le app" del tuo provider (Gmail: myaccount.google.com > Sicurezza > Password per le app).'
@@ -698,8 +742,9 @@ foreach ($a in $wl) {
     try { Set-NetAdapterPowerManagement -Name $a.Name -AllowComputerToTurnOffDevice Disabled -ErrorAction Stop; Say ($a.Name + ': Windows non può più spegnerla per risparmiare energia. (Per tornare come prima: Gestione dispositivi > scheda Wi-Fi > Risparmio energia.)') } catch { Say ($a.Name + ': il driver non mi lascia cambiare il risparmio energetico.') }
   } else { Say ($a.Name + ': il risparmio energetico non la spegne, ok.') }
 }
-$wi = (netsh wlan show interfaces) -join "§"
-$sig = ''; if ($wi -match '(?:^|§)\s*[^§:]*?(?<!SSID)\s*:\s*(\d+)\s*%\s*(?=§|$)') { $sig = $Matches[1] } # riga con solo un numero e "%": vale in ogni lingua di Windows
+$wiL = @(netsh wlan show interfaces); $wi = $wiL -join "§"
+# F10-2: come in Salute (B11): il segnale è la sola riga "nome : NN%" che non è l'SSID, in ogni lingua di Windows.
+$sig = ''; foreach ($ln in $wiL) { if ([string]$ln -match '^\s*([^:]+?)\s*:\s*(\d+)\s*%\s*$' -and $Matches[1] -notmatch 'SSID') { $sig = $Matches[2]; break } }
 $ssid = ''; if ($wi -match '§\s*SSID\s*:\s*([^§]+)') { $ssid = $Matches[1].Trim() }
 if ($sig) {
   Say ('Collegato a "' + $ssid + '" con segnale al ' + $sig + '%.')
@@ -776,7 +821,7 @@ if ($bad -eq 0) { Say 'Tutte le unità sono raggiungibili.' } else { Say 'Quando
 `)},
 	{ID: "of_netpwd", Name: "La cartella di rete chiede sempre la password", Desc: "Ti mostra le password salvate per i server dell'ufficio e ti apre il posto dove sistemarle. La password nuova la scrivi tu.", Level: 0, Minutes: 0.2, Timeout: 2 * time.Minute, Script: ofs(`
 $list = (cmdkey /list) -join "§"
-$tg = @(); foreach ($m in [regex]::Matches($list, '(?:Destinazione|Target):\s*Domain:target=([^§]+)')) { $tg += $m.Groups[1].Value.Trim() }
+$tg = @(); foreach ($m in [regex]::Matches($list, '(?:^|§)[^§:]*:\s*Domain:target=([^§]+)')) { $tg += $m.Groups[1].Value.Trim() }
 if ($tg.Count) { Say ('Password di Windows salvate per questi server: ' + ($tg -join ', ') + '. Se hai cambiato la password del lavoro, quella salvata è vecchia: va aggiornata.') }
 else { Say 'In Windows non c''è nessuna password salvata per i server dell''ufficio.' }
 Say 'Ti apro "Gestione credenziali" > Credenziali di Windows. Per sistemare: apri il server giusto > Modifica, scrivi la password nuova e salva. Se non c''è: "Aggiungi credenziale di Windows", indirizzo del server (es. \\server), utente nella forma DOMINIO\nome.'
@@ -805,8 +850,9 @@ if ($on -and $srv) {
   } else { Say ('Proxy acceso (' + $srv + ') ma NON risponde. Se sei fuori ufficio è normale (funziona solo lì): chiedi all''assistenza (IT) se puoi spegnerlo in Impostazioni > Rete > Proxy.'); Open-User 'ms-settings:network-proxy' }
 }
 if ($pac) { Say ('Configurazione automatica del proxy: ' + $pac + '. La imposta di solito l''ufficio.') }
-$wh = (netsh winhttp show proxy) -join ' '
-if ($wh -match '(?:Server proxy|Proxy Server)(?:\(s\))?\s*:\s*(\S+)') { Say ('Proxy di sistema (per Windows Update e app): ' + $Matches[1]) }
+# Con un proxy, netsh scrive righe "etichetta : valore" (la prima è il server); senza, solo una frase: niente parole fisse.
+$wh = ''; foreach ($ln in @(netsh winhttp show proxy)) { if ([string]$ln -match '^\s*[^:]+?\s*:\s*(\S+)\s*$') { $wh = $Matches[1]; break } }
+if ($wh) { Say ('Proxy di sistema (per Windows Update e app): ' + $wh) }
 Clear-DnsClientCache
 if (Test-Internet) { Say 'Il PC raggiunge internet. Se un solo sito non si apre, il problema è di quel sito: prova da un''altra rete o più tardi.' } else { Say 'Il PC non raggiunge internet: usa "Internet non va".' }
 `)},
@@ -820,7 +866,7 @@ Say ('Schermi che Windows vede: ' + $mon.Count + '.')
 if ($mon.Count -lt 2) { Say 'Windows vede un solo schermo: controlla che il secondo sia acceso, che il cavo sia ben attaccato alle due parti e che sul monitor sia scelto l''ingresso giusto (tasto "Input" o "Source": HDMI, DisplayPort...).' }
 if (Use-Display) {
   $r = [TassoDisplay]::Topology(4)
-  if ($r -eq 0) { Say 'Messo "Estendi": il desktop continua sul secondo schermo.' } else { Say 'Windows non ha accettato "Estendi": premi Win + P e scegli Estendi.' }
+  if ($r -eq 0) { Say 'Messo "Estendi": il desktop continua sul secondo schermo.'; Say 'Per tornare come prima: premi Win + P e scegli quello che avevi (per esempio Duplica).' } else { Say 'Windows non ha accettato "Estendi": premi Win + P e scegli Estendi.' }
 }
 Say 'Se gli schermi sono "al contrario" (il mouse esce dal lato sbagliato): Impostazioni > Schermo, trascina i riquadri 1 e 2 come sono sulla scrivania. Te lo apro.'
 Open-User 'ms-settings:display'
@@ -856,25 +902,29 @@ foreach ($m in $mon) { Say ('Risoluzione attuale: ' + $m.CurrentHorizontalResolu
 Say 'Ti apro Impostazioni > Schermo: in "Risoluzione" scegli quella con scritto (consigliato); in "Scala" alza a 125% o 150% se le scritte sono piccole. Per alcuni programmi serve uscire e rientrare in Windows.'
 Open-User 'ms-settings:display'
 `)},
-	{ID: "of_keyboard", Name: "La tastiera scrive i simboli sbagliati", Desc: "Rimette la tastiera italiana come predefinita e spegne Alt+Maiusc, la scorciatoia che la cambia per sbaglio in inglese (con copia di sicurezza).", Level: 0, Minutes: 0.2, Timeout: 2 * time.Minute, Script: ofs(`
+	{ID: "of_keyboard", Name: "La tastiera scrive i simboli sbagliati", Desc: "Rimette la tastiera italiana come predefinita e spegne Alt+Maiusc, la scorciatoia che la cambia per sbaglio in inglese (con copia di sicurezza).", Level: 0, Minutes: 0.2, Timeout: 2 * time.Minute, Script: ofs2(`
 $langs = @(Get-WinUserLanguageList -ErrorAction SilentlyContinue)
 $tips = @(); foreach ($l in $langs) { foreach ($t in $l.InputMethodTips) { $tips += [string]$t } }
 Say ('Tastiere installate: ' + ((($langs | ForEach-Object { $_.LanguageTag }) -join ', ')) + '.')
-if ($TassoLang -ne 'it') {
+# F10-13: prima di cambiare la tastiera predefinita salvo quella di prima (file .reg per tornare indietro).
+$kb = Save-Undo 'HKCU\Control Panel\International\User Profile' @('InputMethodOverride') 'tastiera-predefinita'
+if (-not $kb) { Say 'Non sono riuscito a salvare com''era la tastiera predefinita, quindi non la cambio. Per sceglierla al volo usa Win + Spazio.' }
+elseif ($TassoLang -ne 'it') {
   # Non in italiano: la tastiera "giusta" è la prima della tua lingua principale di Windows.
   $first = ''; if ($langs.Count -gt 0 -and @($langs[0].InputMethodTips).Count -gt 0) { $first = [string]@($langs[0].InputMethodTips)[0] }
-  if ($first) { Set-WinDefaultInputMethodOverride -InputTip $first -ErrorAction SilentlyContinue; Say ('Default keyboard set to the first one of ' + $langs[0].LanguageTag + '.') }
+  if ($first) { Set-WinDefaultInputMethodOverride -InputTip $first -ErrorAction SilentlyContinue; Say ('Default keyboard set to the first one of ' + $langs[0].LanguageTag + '.'); Say-Undo $kb }
   else { Say 'I could not read your keyboards: add or pick one in Settings > Time & language > Language & region (I am opening it).'; Open-User 'ms-settings:regionlanguage' }
 }
-elseif ($tips -contains '0410:00000410') { Set-WinDefaultInputMethodOverride -InputTip '0410:00000410' -ErrorAction SilentlyContinue; Say 'Tastiera italiana messa come predefinita.' }
+elseif ($tips -contains '0410:00000410') { Set-WinDefaultInputMethodOverride -InputTip '0410:00000410' -ErrorAction SilentlyContinue; Say 'Tastiera italiana messa come predefinita.'; Say-Undo $kb }
 else { Say 'La tastiera italiana non è installata: aggiungila da Impostazioni > Ora e lingua > Lingua (te lo apro).'; Open-User 'ms-settings:regionlanguage' }
 $k = 'HKCU:\Keyboard Layout\Toggle'
-$b = Backup-Reg 'HKCU\Keyboard Layout\Toggle' 'tastiera-scorciatoie'
-if ((Test-Path -LiteralPath $k) -and -not $b) { Say 'Non sono riuscito a fare la copia di sicurezza delle scorciatoie, quindi non le cambio. Per cambiare tastiera usa Win + Spazio.'; return }
+# Anche se la chiave non c'era: il file la rimette com'era (valori tolti).
+$b = Save-Undo 'HKCU\Keyboard Layout\Toggle' @('Hotkey', 'Language Hotkey', 'Layout Hotkey') 'tastiera-scorciatoie'
+if (-not $b) { Say 'Non sono riuscito a fare la copia di sicurezza delle scorciatoie, quindi non le cambio. Per cambiare tastiera usa Win + Spazio.'; return }
 if (-not (Test-Path -LiteralPath $k)) { New-Item -Path $k -Force | Out-Null }
 foreach ($n in @('Hotkey', 'Language Hotkey', 'Layout Hotkey')) { Set-ItemProperty -LiteralPath $k -Name $n -Value '3' -ErrorAction SilentlyContinue }
 Say 'Spente le scorciatoie Alt+Maiusc e Ctrl+Maiusc che cambiano tastiera per sbaglio. Se ti serve cambiarla apposta usa Win + Spazio.'
-if ($b) { Say ('Copia di sicurezza delle scorciatoie: ' + $b) }
+Say-Undo $b
 Say 'Altri casi: se escono numeri al posto delle lettere sul portatile premi "Bloc Num"; se scrive tutto MAIUSCOLO premi "Bloc Maiusc". Serve uscire e rientrare in Windows perché valga ovunque.'
 `)},
 	{ID: "of_usb", Name: "Chiavetta, disco USB o docking non vanno", Desc: "Riavvia le porte USB bloccate, fa ricercare i dispositivi e dà una lettera (E:, F:...) alle chiavette che non ce l'hanno. Non formatta mai niente.", Level: 0, Minutes: 0.4, Timeout: 4 * time.Minute, Script: ofs(`
@@ -973,10 +1023,15 @@ else { Say 'Windows non mi ha lasciato svuotare tutta la memoria dei caratteri: 
 Say 'Se manca un carattere preciso in un documento (es. ricevuto da un collega), va installato: doppio clic sul file del carattere > Installa.'
 [Console]::Out.WriteLine('REBOOT')
 `)},
-	{ID: "of_thumbs", Name: "Non vedo le anteprime di foto e documenti", Desc: "Riaccende le anteprime in Esplora file se erano spente e ricrea le miniature rovinate. Se stai copiando file, aspetta che finisca.", Level: 0, Minutes: 0.3, Timeout: 3 * time.Minute, Script: ofs(`
+	{ID: "of_thumbs", Name: "Non vedo le anteprime di foto e documenti", Desc: "Riaccende le anteprime in Esplora file se erano spente e ricrea le miniature rovinate. Se stai copiando file, aspetta che finisca.", Level: 0, Minutes: 0.3, Timeout: 3 * time.Minute, Script: ofs2(`
 $k = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced'
 $io = 0; try { $io = [int](Get-ItemProperty -LiteralPath $k -Name IconsOnly -ErrorAction Stop).IconsOnly } catch {}
-if ($io -eq 1) { Set-ItemProperty -LiteralPath $k -Name IconsOnly -Value 0 -Type DWord; Say 'Era accesa "Mostra sempre icone, mai anteprime": spenta.' }
+if ($io -eq 1) {
+  # F10-13: salvo com'era prima di cambiarlo (file .reg per tornare indietro).
+  $u = Save-Undo 'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced' @('IconsOnly') 'anteprime'
+  if ($u) { Set-ItemProperty -LiteralPath $k -Name IconsOnly -Value 0 -Type DWord; Say 'Era accesa "Mostra sempre icone, mai anteprime": spenta.'; Say-Undo $u }
+  else { Say 'È accesa "Mostra sempre icone, mai anteprime", ma non sono riuscito a salvare com''era, quindi non la cambio. Si spegne in Esplora file > Opzioni > Visualizzazione.' }
+}
 Say 'Ricreo le miniature (Esplora file si riavvia per un attimo)...'
 Get-Process -Name explorer -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
 Start-Sleep -Milliseconds 800
@@ -1005,7 +1060,7 @@ $names = @{}; foreach ($e in $slow) { try { $x = [xml]$e.ToXml(); $fn = ($x.Even
 if ($names.Count) { Say ('Programmi che Windows ha visto rallentare l''accensione: ' + (($names.Keys | Select-Object -First 6) -join ', ') + '.') }
 $st = @(Get-TassoStartup | Where-Object { $_.enabled })
 Say ('Programmi che partono da soli: ' + $st.Count + '.')
-if ($st.Count -gt 8) { Say 'Sono tanti: in Pulisci e ripara > Avvio del PC spegni quelli che non ti servono subito (Spotify, Steam, Skype, aggiornatori...). Antivirus, OneDrive e il programma della VPN lasciali accesi.' }
+if ($st.Count -gt 8) { Say 'Sono tanti: in Pulisci e ripara > Avvio del PC spegni quelli che non ti servono subito (Spotify, Zoom, aggiornatori...). Antivirus, OneDrive e il programma della VPN lasciali accesi.' }
 $sys = Get-PSDrive -Name ($env:SystemDrive.Trim(':')) -ErrorAction SilentlyContinue
 if ($sys -and $sys.Free -lt 10GB) { Say ('Il disco C: ha solo ' + (Fmt $sys.Free) + ' liberi: anche questo rallenta. Fai una pulizia.') }
 $sd = Get-Partition -DriveLetter ($env:SystemDrive.Trim(':')) -ErrorAction SilentlyContinue | Get-Disk -ErrorAction SilentlyContinue
@@ -1017,21 +1072,35 @@ if ($up.TotalDays -gt 7) { Say ('Il PC non si riavvia da ' + [int]$up.TotalDays 
 	{ID: "of_sleep", Name: "Il PC non va in sospensione o si riaccende da solo", Desc: "Ti dice quale programma o dispositivo tiene sveglio il PC o lo ha riacceso. Controlla e spiega cosa fare.", Level: 0, Minutes: 0.3, Timeout: 2 * time.Minute, Script: ofs(`
 $req = (powercfg /requests) 2>$null
 $cur = ''; $hits = @()
-foreach ($l in $req) { $s = [string]$l; if ($s -match '^[A-Z]+:\s*$') { $cur = $s.TrimEnd(':').Trim() } elseif ($s.Trim() -and $s -notmatch '^\s*(Nessuno|None)\.?\s*$' -and $cur -match 'DISPLAY|SYSTEM|AWAYMODE|EXECUTION') { $hits += ($cur + ': ' + $s.Trim()) } }
+# F10-2: le intestazioni (DISPLAY:, SYSTEM:...) e i tipi ([DRIVER], [PROCESS], [SERVICE]) restano uguali in ogni
+# lingua di Windows; "Nessuno" no ("Keine.", "Aucun."). Quindi conto solo le righe che iniziano con il tipo.
+foreach ($l in $req) { $s = [string]$l; if ($s -match '^[A-Z]+:\s*$') { $cur = $s.TrimEnd(':').Trim() } elseif ($s -match '^\s*\[(DRIVER|PROCESS|SERVICE)\]' -and $cur -match 'DISPLAY|SYSTEM|AWAYMODE|EXECUTION') { $hits += ($cur + ': ' + $s.Trim()) } }
 if ($hits.Count) { Say ('Tengono sveglio il PC adesso: ' + (($hits | Select-Object -First 6) -join ' | ')) ; Say 'Di solito è un video o una riunione aperta nel browser, una stampa in coda o un download: chiudili e il PC va in sospensione.' }
 else { Say 'Adesso nessun programma impedisce la sospensione.' }
-$lw = ((powercfg /lastwake) 2>$null) -join ' '
-if ($lw -match '(?:Nome descrittivo|Friendly Name)\s*:\s*(.+?)(?:\s{2,}|$)') { Say ('L''ultima volta il PC l''ha svegliato: ' + $Matches[1].Trim() + '.') }
+# Chi ha svegliato il PC: dal registro eventi (campo WakeSourceText, uguale in ogni lingua); powercfg solo di riserva.
+$wk = ''
+try { $ev = Get-WinEvent -FilterHashtable @{ LogName = 'System'; ProviderName = 'Microsoft-Windows-Power-Troubleshooter'; Id = 1 } -MaxEvents 1 -ErrorAction Stop; $wk = [string](@(([xml]$ev.ToXml()).Event.EventData.Data | Where-Object { $_.Name -eq 'WakeSourceText' })[0].'#text') } catch {}
+if (-not $wk.Trim()) { $lw = ((powercfg /lastwake) 2>$null) -join ' '; if ($lw -match '(?:Nome descrittivo|Friendly Name)\s*:\s*(.+?)(?:\s{2,}|$)') { $wk = $Matches[1] } }
+if ($wk.Trim()) { Say ('L''ultima volta il PC l''ha svegliato: ' + $wk.Trim() + '.') }
 $wt = ((powercfg /waketimers) 2>$null) -join ' '
 if ($wt -match '\[[A-Z]+\]') { Say 'Ci sono attività programmate che possono riaccendere il PC (spesso aggiornamenti di Windows). Si possono spegnere in Pannello di controllo > Opzioni risparmio energia > Modifica impostazioni avanzate > Sospensione > "Consenti timer di riattivazione".' }
-$arm = @((powercfg /devicequery wake_armed) 2>$null | Where-Object { $_ -and $_ -notmatch '^(NONE|NESSUNO)$' })
+# Senza dispositivi powercfg scrive una parola sola in maiuscolo ("NONE", "KEINE", "AUCUN"): tengo solo i nomi dei
+# dispositivi di Windows, o le righe con lettere minuscole (i nomi veri, come "Mouse HID").
+$pnp = @{}; foreach ($d in @(Get-CimInstance Win32_PnPEntity -ErrorAction SilentlyContinue)) { if ($d.Name) { $pnp[[string]$d.Name] = 1 } }
+$arm = @((powercfg /devicequery wake_armed) 2>$null | Where-Object { $_ -and $_.Trim() -and ($pnp.ContainsKey($_.Trim()) -or $_ -cmatch '\p{Ll}') })
 if ($arm.Count) { Say ('Possono svegliare il PC: ' + ($arm -join ', ') + '. Se si riaccende da solo di notte, in Gestione dispositivi apri quel dispositivo > Risparmio energia > togli "Consenti al dispositivo di riattivare il computer" (di solito il mouse o la scheda di rete).') }
 `)},
 
 	// ---------- Ora, OneDrive e sicurezza ----------
 	{ID: "of_time", Name: "L'ora è sbagliata (e i siti danno errore)", Desc: "Rimette l'ora giusta da internet. Con l'ora sbagliata i siti dicono \"connessione non privata\" e VPN e Office non si collegano.", Level: 0, Minutes: 0.3, Timeout: 3 * time.Minute, Script: ofs(`
 $sv = Get-Service -Name W32Time -ErrorAction SilentlyContinue
-if ($sv -and $sv.StartType -eq 'Disabled') { Set-Service -Name W32Time -StartupType Manual -ErrorAction SilentlyContinue; Say 'Il servizio dell''ora di Windows era spento del tutto: riacceso.' }
+if ($sv -and [string]$sv.StartType -eq 'Disabled') {
+  $u = Save-ServiceStart 'W32Time' 'servizio-ora'
+  if (-not $u) { Say 'Il servizio dell''ora di Windows è spento del tutto e non sono riuscito a salvare com''era: non lo cambio. Per riaccenderlo: Start > scrivi "Servizi" > Ora di Windows > Tipo di avvio: Manuale > Avvia.'; return }
+  Set-Service -Name W32Time -StartupType Manual -ErrorAction SilentlyContinue
+  Say 'Il servizio dell''ora di Windows era spento del tutto: riacceso.'
+  Say ('Per tornare come prima: doppio clic su ' + $u + ', poi riavvia il PC.')
+}
 Start-Service -Name W32Time -ErrorAction SilentlyContinue
 $dom = [bool](Get-CimInstance Win32_ComputerSystem -ErrorAction SilentlyContinue).PartOfDomain
 Say 'Sincronizzo l''ora...'

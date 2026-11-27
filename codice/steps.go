@@ -309,10 +309,24 @@ function Invoke-TassoCancella([string[]]$a) {
   } catch { $script:TassoRifiuto = $_.Exception.Message; return $null }
   foreach ($l in @($out -split "\r?\n")) {
     if ($l -match '^LIBERATI (\d+)\s*$') { return [long]$Matches[1] }
-    if ($l -match '^RIFIUTO (.*)$') { $script:TassoRifiuto = $Matches[1].Trim(); return $null }
+    if ($l -match '^RIFIUTO (.*)$') { $script:TassoRifiuto = Tr-Rifiuto $Matches[1].Trim(); return $null }
   }
   $script:TassoRifiuto = 'nessuna risposta'
   return $null
+}
+function Tr-Rifiuto([string]$m) {
+  # F10-3: Tasso.exe dice il motivo in italiano. Qui diventa una frase dello script, che Tasso traduce
+  # nella lingua scelta. I modelli sono tra virgolette doppie (così non si traducono) e senza accenti.
+  if ($m -match "giunzione") { return 'c''è una giunzione o un collegamento' }
+  if ($m -match "fra le cartelle che Tasso pulisce") { return 'non è fra le cartelle che Tasso pulisce' }
+  if ($m -match "cartella di sistema") { return 'porta in una cartella di sistema' }
+  if ($m -match "altro utente") { return 'porta nella cartella di un altro utente' }
+  if ($m -match "disco intero") { return 'porta a un disco intero' }
+  if ($m -match "dove si trova davvero") { return 'non so dove si trova davvero la cartella (in rete?)' }
+  if ($m -match "dove dovrebbe|dentro la radice|una cartella$") { return 'la cartella non è dove dovrebbe' }
+  if ($m -match "^non riesco a") { return 'non riesco ad aprire o leggere una cartella' }
+  if ($m -match "percorso non valido|argomenti sbagliati|comando|errore interno") { return 'errore interno di Tasso' }
+  return $m
 }
 function Remove-Safe([string]$p) {
   # Toglie $p (un file, o una cartella con tutto dentro) senza mai seguire collegamenti o giunzioni:
@@ -866,7 +880,7 @@ try {
 } catch {}
 Freed $f; Say ('Liberati ' + (Fmt $f))
 `},
-	{ID: "downloads", Name: "Riordino della cartella Download", Desc: "Mette i file sciolti in Immagini, Documenti, Video, Musica, Programmi, Archivi.", Level: 0, Minutes: 0.5, Timeout: 10 * time.Minute, Script: `
+	{ID: "downloads", Name: "Riordino della cartella Download", Desc: "Mette i file sciolti in sottocartelle di Download (Immagini, Documenti, Video, Musica, Programmi, Archivi). Si può annullare.", Level: 0, Minutes: 0.5, Timeout: 10 * time.Minute, Script: `
 # Lo script gira da amministratore: la cartella Download (si può spostare da HKCU senza permessi) deve
 # stare nel profilo vero dell'utente, e né lei né le cartelle dove sposto i file possono essere
 # giunzioni o collegamenti (porterebbero i file in System32 o in Programmi).

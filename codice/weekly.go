@@ -42,7 +42,7 @@ func setWeekly(on bool) string {
 	if on {
 		day, hour, level, every := weeklyPlan()
 		if taskExe() == "" {
-			return "Non sono riuscito a programmare la pulizia settimanale: non posso copiare Tasso nella cartella Programmi."
+			return "Non sono riuscito ad attivare la Pulizia programmata: non posso copiare Tasso nella cartella Programmi."
 		}
 		days := []string{"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"}
 		var out []string
@@ -50,7 +50,7 @@ func setWeekly(on bool) string {
 			"exe": taskExe(), "day": days[day], "at": fmt.Sprintf("%02d:00", hour), "level": level, "every": every,
 		}, 2*time.Minute, func(m string) { out = append(out, m) })
 		if !strings.Contains(strings.Join(out, "\n"), "TASK_OK") {
-			return "Non sono riuscito a programmare la pulizia settimanale."
+			return "Non sono riuscito ad attivare la Pulizia programmata."
 		}
 	} else {
 		_, _ = runHidden("schtasks.exe", "/Delete", "/TN", taskWeek, "/F")
@@ -89,6 +89,9 @@ try {
 // ---------------- Pulizia programmata con Tasso già aperto ----------------
 
 var scheduledRun atomic.Bool
+
+// autoRiavvioServe: l'ultima pulizia finita ha chiesto un riavvio che Tasso non ha fatto (F07-5).
+var autoRiavvioServe atomic.Bool
 
 func autoReqPath() string { return filepath.Join(appDir, "pulizia-richiesta.txt") }
 
@@ -243,6 +246,13 @@ func maybeAutoExit() {
 		}
 		busyMu.Unlock()
 		if !anyBusy && !isRunning() {
+			// F07-5: se la pulizia ha chiesto un riavvio, Tasso non sparisce in silenzio: lo dice vicino
+			// all'orologio e resta aperto (ridotto a icona) con la nota e il pulsante "Riavvia ora".
+			if autoRiavvioServe.Load() {
+				trayAvviso("Tasso", "La pulizia programmata è finita: riavvia il PC per completare aggiornamenti e riparazioni.", false)
+				diventaNormale()
+				return
+			}
 			// Come "Chiudi Tasso": Boost, modalità della partita e frequenza in prova tornano com'erano.
 			boostSpegniPerUscita()
 			modalitaGiocoPerUscita()

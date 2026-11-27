@@ -716,6 +716,7 @@ func startSteps(ids []string, level int, fine string, winupdate bool) string {
 			"settings":  getSettings(),
 		})
 		go func() { defer guard("numeri"); statsRun(level, doneNames, total, int(dur.Seconds()), cancelled) }()
+		autoRiavvioServe.Store(reboot && !restart && !shutdown)
 		go maybeAutoExit()
 	}()
 	return "ok"

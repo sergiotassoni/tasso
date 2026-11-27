@@ -68,7 +68,7 @@
    - Privacy: stop Windows ads and tracking (with a button to restore)
 
 5a. OFFICE (Office mode)
-   - The 100 most common work PC problems, each with a button, sorted into groups.
+   - The 109 most common work PC problems, each with a button, sorted into groups.
      In Fix problems there's a single search for all of them (Office, Gaming and Windows):
    Printing & scanners:
      - The printer says "offline"
@@ -273,7 +273,7 @@ WHAT'S NEW IN 2.6
    - Two modes: Gaming (everything, including games, FPS and ping) and Office (simpler and
      calmer, with a cuter badger). You choose it the first time you open Tasso and can
      switch whenever you want
-   - The 100 most common office problems in Fix problems (also Word, Excel, Adobe,
+   - The 109 most common office problems in Fix problems (also Word, Excel, Adobe,
      zip files, mouse and keyboard, accounts and BitLocker)
    - Fix problems split into sections (Office, Gaming, Windows) with a single search
    - 3 new game problems: mouse aim, game that minimizes by itself, slow downloads

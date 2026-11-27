@@ -193,6 +193,12 @@ body.office #themeCards>.theme{flex:0 0 calc((100% - 48px) / 5);min-width:0}
 .modal{width:100%;max-width:580px;background:var(--panel);border:1px solid var(--line);border-radius:22px;padding:24px;display:flex;flex-direction:column;gap:14px;max-height:90vh;overflow-y:auto;box-shadow:0 30px 80px rgba(0,0,0,.45)}
 .modal h2{font-size:22px}
 .modal ul{margin:0;padding-left:20px;color:var(--soft);line-height:1.7;font-size:13px}
+/* F07-1: niente nella finestra si stringe fino a sparire (l'elenco dei passaggi restava a 0 px): se non ci sta, scorre la finestra intera */
+.modal>*{flex-shrink:0}
+/* F07-11: con 4 colonne Eccezionale restava da sola sotto: lì 3 colonne (3+2) */
+@media (min-width:961px) and (max-width:1179px){.g5{grid-template-columns:repeat(3,minmax(0,1fr))}}
+/* F07-19: quando il risultato va a capo, "Spazio liberato" resta allineato al numero */
+@media (max-width:700px){#lastResult .stat{text-align:start!important}}
 .note{font-size:13px;color:var(--soft);background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:12px;line-height:1.55}
 .check{display:flex;align-items:center;gap:10px;font-size:14px;font-weight:600;cursor:pointer}
 .welcome{position:fixed;inset:0;background:var(--bg);z-index:60;display:none;overflow-y:auto}
@@ -219,6 +225,8 @@ body.office #themeCards>.theme{flex:0 0 calc((100% - 48px) / 5);min-width:0}
 @keyframes tin{from{opacity:0;transform:translateY(8px)}}
 .banner{display:none;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;background:color-mix(in srgb,var(--red) 12%,var(--panel));border:1px solid color-mix(in srgb,var(--red) 45%,var(--line));border-radius:16px;padding:14px 18px}
 .banner.on{display:flex}
+/* F07-2: il conto alla rovescia di fine pulizia fuori da Pulisci: in alto, sempre visibile anche scorrendo */
+#fineGlob{position:sticky;top:0;z-index:30;padding:12px 34px 0;max-width:1240px}#fineGlob[hidden]{display:none}
 body .card.card.updcard{display:flex;align-items:center;gap:16px;flex-wrap:wrap;border-radius:8px}
 .updcard .updicon{width:48px;height:48px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:24px;background:color-mix(in srgb,var(--a3) 14%,transparent);flex:0 0 48px}
 .updcard .updtxt{flex:1 1 260px;min-width:0}
@@ -388,6 +396,8 @@ body.office .prof .art svg{animation:none}
 .ofc .ic{font-size:21px;width:44px;height:44px;border-radius:14px;flex:0 0 44px;display:flex;align-items:center;justify-content:center;background:color-mix(in srgb,var(--c) 14%,var(--panel))}
 .ofc .x{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}
 .ofc .x b{font-size:14px;line-height:1.3}.ofc .x span{font-size:12.5px;color:var(--muted);line-height:1.45}
+/* F10-5: una parola troppo lunga per la scheda (de: "BitLocker-Wiederherstellungsschlüssel") va a capo dentro la scheda */
+.ofc .x b{overflow-wrap:break-word}html[lang=de] .ofc .x b{hyphens:auto;hyphenate-limit-chars:12 5 5}
 .ofc .btn{margin-top:6px;align-self:flex-start;min-height:34px;padding:7px 16px;font-size:13px}
 .fixsec{display:flex;flex-direction:column;gap:14px}
 .pchip{font-size:12.5px;font-weight:700;padding:5px 10px;border-radius:999px;color:var(--c);background:color-mix(in srgb,var(--c) 14%,var(--panel2))}
@@ -944,6 +954,7 @@ body.office .cardmodo{font-weight:700;font-stretch:normal;letter-spacing:-.02em;
 </aside>
 
 <main id="main">
+<div id="fineGlob" hidden></div><!-- F07-2: qui va #offBanner quando non sei in Pulisci (fineSposta) -->
 <!-- HOME -->
 <section class="view on" id="v-home">
   <div class="banner upd" id="updBanner"><span id="updBannerTxt"><b>È uscita una nuova versione di Tasso.</b></span><button class="btn primary" id="btnUpdBanner">Vai agli aggiornamenti</button></div>
@@ -1045,9 +1056,9 @@ body.office .cardmodo{font-weight:700;font-stretch:normal;letter-spacing:-.02em;
         <label class="acf">Giorno<select id="wkDay"><option value="1">Lunedì</option><option value="2">Martedì</option><option value="3">Mercoledì</option><option value="4">Giovedì</option><option value="5">Venerdì</option><option value="6">Sabato</option><option value="0">Domenica</option></select></label>
         <label class="acf">Ora<select id="wkHour"></select></label>
         <label class="acf">Pulizia<select id="wkLevel"><option value="1">Classica (1 min)</option><option value="2">Normale (pochi minuti)</option><option value="3">Media (con backup)</option><option value="4">Profonda (circa 50 min)</option><option value="5">Eccezionale (circa 1 ora e mezza)</option></select></label>
-        <label class="acf">Ogni<select id="wkEvery"><option value="1">settimana</option><option value="2">2 settimane</option></select></label>
+        <label class="acf">Frequenza<select id="wkEvery"><option value="1">ogni settimana</option><option value="2">ogni 2 settimane</option></select></label>
         <span class="small" id="wkLong" style="flex:1 1 100%;display:none;color:var(--a4)">È una pulizia lunga: scegli un giorno e un'ora in cui il PC resta acceso ma non lo usi, meglio con il caricatore attaccato. Aggiorna anche driver e Windows: se alla fine serve un riavvio Tasso non lo fa da solo, te lo dice.</span>
-        <span class="small muted" style="flex:1 1 220px;align-self:flex-end">Se a quell'ora il PC è spento, la fa appena lo riaccendi. Tasso si apre ridotto a icona e alla fine si richiude da solo. Funziona anche con il portatile a batteria.</span>
+        <span class="small muted" style="flex:1 1 220px;align-self:flex-end">Se a quell'ora il PC è spento, la fa appena lo riaccendi. Tasso si apre ridotto a icona e alla fine si richiude da solo. Funziona anche a batteria: i lavori più lunghi li rimanda alla volta dopo, con il caricatore attaccato.</span>
       </div>
   </div>
     <details class="more gadv" id="toolsMore">
@@ -1088,7 +1099,7 @@ body.office .cardmodo{font-weight:700;font-stretch:normal;letter-spacing:-.02em;
         <span class="mono" style="font-size:44px;font-weight:700;color:var(--a2);line-height:1" id="runPct">0%</span>
       </div>
       <div class="bigbar" role="progressbar" aria-label="Avanzamento"><i id="runBar" style="width:0%"></i></div>
-      <div class="row" style="gap:10px;min-height:24px"><svg class="spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--a2)" stroke-width="2.6" stroke-linecap="round"><path d="M21 12a9 9 0 1 1-9-9"/></svg><span class="msg" id="runMsg">Il computer sta lavorando per la pulizia finale…</span></div>
+      <div class="row" style="gap:10px;min-height:24px"><svg class="spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--a2)" stroke-width="2.6" stroke-linecap="round"><path d="M21 12a9 9 0 1 1-9-9"/></svg><span class="msg" id="runMsg">Il computer sta lavorando alla pulizia…</span></div>
     </div>
     <div class="row wrap" style="align-items:stretch;gap:18px">
       <div class="card" style="flex:2 1 380px"><h2 style="font-size:16px;margin-bottom:8px">Passaggi</h2><div class="steps" id="runSteps"></div></div>
@@ -1537,7 +1548,7 @@ body.office .cardmodo{font-weight:700;font-stretch:normal;letter-spacing:-.02em;
     <li class="om"><b>Riparazione di Windows</b> con il risultato vero; <b>Apri qualsiasi file</b> ora apre anche le cartelle.</li></ul></div>
   <div class="card idx" style="--c:var(--a3)"><h3>Novità della 2.6</h3><ul>
     <li><b>Due modalità</b>: <b>Gaming</b> (tutto, anche giochi, FPS e ping) e <b>Ufficio</b> (più semplice, tranquilla, con un tasso più morbido). Si sceglie al primo avvio e si cambia quando vuoi dal pulsante in alto a sinistra.</li>
-    <li class="om"><b>I 100 problemi dell'ufficio</b> in Risolvi un problema, ognuno con un pulsante: stampanti, Word ed Excel, Outlook, Teams e riunioni, Wi-Fi e VPN, unità di rete, schermi e proiettore, tastiera, OneDrive, ora sbagliata, programmi sospetti.</li>
+    <li class="om"><b>I 109 problemi dell'ufficio</b> in Risolvi un problema, ognuno con un pulsante: stampanti, Word ed Excel, Outlook, Teams e riunioni, Wi-Fi e VPN, unità di rete, schermi e proiettore, tastiera, OneDrive, ora sbagliata, programmi sospetti.</li>
     <li><b>Temi chiari e scuri</b> anche per l'ufficio: tanti temi tra cui scegliere, che si cambiano in Impostazioni.</li></ul></div>
   <div class="card idx gm" style="--c:var(--a1)"><h3>Novità della 2.5</h3><ul>
     <li><b>5 livelli di pulizia</b> (Classica, Normale, Media, Profonda, Eccezionale) e <b>pulizia programmata</b> ogni 1 o 2 settimane, in Home.</li>
@@ -1996,7 +2007,7 @@ document.addEventListener('click', (e) => {
 const LEVELS = [
   {n:1, name:_t('Classica'), c:'var(--text)', badge:_t('LAMPO'), d:_t('Un minuto: i tuoi file temporanei, il Cestino e le miniature.')},
   {n:2, name:_t('Normale'), c:'var(--a1t)', badge:_t('VELOCE'), d:_t('Passata veloce: temporanei anche di Windows, browser, DNS.')},
-  {n:3, name:_t('Media'), c:'var(--a3)', badge:_t('CONSIGLIATA'), d:_t('Backup, file di sistema inutili, cache di app e launcher, resti dei driver.'), dOf:_t('Backup, file di sistema inutili, cache delle app, resti dei driver.')},
+  {n:3, name:_t('Media'), c:'var(--a3)', badge:_t('CONSIGLIATA'), d:_t('Prima un backup, poi file di sistema inutili, cache di app e launcher, resti dei driver.'), dOf:_t('Prima un backup, poi file di sistema inutili, cache delle app, resti dei driver.')},
   {n:4, name:_t('Profonda'), c:'var(--a4)', badge:_t('MENSILE'), d:_t('Driver, Windows Update, driver video vecchi, sicurezza, deframmentazione, dischi, antivirus.')},
   {n:5, name:_t('Eccezionale'), c:'var(--a2)', badge:_t('COMPLETA'), d:_t('Ripara Windows, stabilità (crash ed errori hardware), ogni programma, il disco e le periferiche.')}
 ];
@@ -2026,6 +2037,7 @@ function show(v){ prepPages(); const prevView = CURVIEW; CURVIEW=v;
   if (prevView === 'games' && v !== 'games') call('goAutoClickDisarm', isOffice());
   const ae = document.activeElement;
   $$('.view').forEach(x => x.classList.toggle('on', x.id === 'v-' + v));
+  if (typeof fineSposta === 'function') fineSposta(); // F07-2
   // La tastiera non resta su un pulsante della pagina appena nascosta: va al titolo della pagina nuova.
   if (ae && ae.closest && ae.closest('.view') && !ae.closest('.view.on')) { const nv = $('#v-' + v); const h = nv && [...nv.querySelectorAll('h1')].find(x => x.offsetParent); const t = h || nv; if (t) { if (!t.hasAttribute('tabindex')) t.setAttribute('tabindex', '-1'); try { t.focus({preventScroll:true}); } catch (e) {} } }
   $$('nav button').forEach(x => x.classList.toggle('on', x.dataset.go === v || (v === 'aiuto' && x.dataset.go === 'fix')));
@@ -2197,7 +2209,8 @@ function modal(html, buttons){
   // "Annulla" = il primo pulsante che non fa niente (chiude soltanto), altrimenti il primo.
   let fi = buttons.findIndex(bt => bt.focus);
   if (fi < 0 && buttons.some(bt => bt.risky || /\b(danger|warn)\b/.test(bt.cls || ''))) { fi = buttons.findIndex(bt => !bt.fn); if (fi < 0) fi = 0; }
-  const f = fi >= 0 ? row.children[fi] : row.lastChild; if (f) f.focus();
+  // F07-1: la finestra lunga si apre dall'inizio (titolo ed elenco in vista), anche con il fuoco su un pulsante in fondo.
+  const f = fi >= 0 ? row.children[fi] : row.lastChild; if (f) { f.focus({preventScroll:true}); box.scrollTop = 0; }
 }
 let MODAL_BACK = null;
 function closeModal(){ $('#modal').classList.remove('on'); $$('#modal .cardmodo').forEach(x => x.remove()); document.body.classList.remove('cardsfondo'); const b = MODAL_BACK; MODAL_BACK = null; if (b && b.isConnected && typeof b.focus === 'function') { try { b.focus(); } catch (e) {} } }
@@ -2269,16 +2282,18 @@ function confirmLevel(n){
 }
 // fine: 'acceso' / 'riavvia' / 'spegni'; wu: Aggiorna anche Windows. La pulizia programmata passa 'acceso': mai riavvio o spegnimento da sola.
 async function startLevel(n, fine, wu){ const r = await call('goStartLevel', n, fine || 'acceso', wu !== false); if (r === 'busy') toast(_t('Una pulizia è già in corso.'), 'var(--a4)'); else { if (RUN === null) RUN = undefined; show('clean'); } }
-function runSteps(ids, title, desc, minutes){
+function runSteps(ids, title, desc, minutes, goLabel){
   const wu = ids.includes('winupdate'), long = minutes >= 10 || wu;
   modal('<h2>' + esc(title) + '</h2><p class="muted" style="margin:0;line-height:1.5">' + esc(desc) + _t('</p><span class="muted">Durata stimata: ') + fmtMin(minutes) + '</span>' + (long ? fineBox(wu && ids.length > 1) : ''),
-    [{label:_t('Annulla')}, {label:_t('Avvia'), cls:'primary', risky:true, fn: (box) => { const f = fineRead(box); call('goStartSteps', ids, f.fine, f.wu).then(r => { if (r === 'busy') toast(_t('Attendi la fine dell\'operazione in corso.'), 'var(--a4)'); else show('clean'); }); }}]);
+    [{label:_t('Annulla')}, {label:goLabel || _t('Avvia'), cls:'primary', risky:true, fn: (box) => { const f = fineRead(box); call('goStartSteps', ids, f.fine, f.wu).then(r => { if (r === 'busy') toast(_t('Attendi la fine dell\'operazione in corso.'), 'var(--a4)'); else show('clean'); }); }}]);
   if (long) fineWire();
 }
 function runStep(id){
   const s = STEP[id], x = stepTxt(id); if (!s) return;
   // La riunione accesa si spegne con lo stesso passaggio: la conferma lo dice.
-  if (id === 'of_new_meeting' && OF_STATI.of_new_meeting) { runSteps([id], _t('Spegni la Modalità riunione'), _t('Notifiche, OneDrive, aggiornamenti e alimentazione tornano come prima.'), s.minutes); return; }
+  if (id === 'of_new_meeting' && OF_STATI.of_new_meeting) { runSteps([id], _t('Spegni la Modalità riunione'), _t('Notifiche, OneDrive, aggiornamenti e alimentazione tornano come prima.'), s.minutes, _t('Spegni')); return; }
+  // F10-6: lo stesso per il blocco automatico acceso.
+  if (id === 'of_new_lock' && OF_STATI.of_new_lock) { runSteps([id], _t('Spegni il blocco automatico'), _t('Screensaver e blocco tornano come prima.'), s.minutes, _t('Spegni')); return; }
   runSteps([id], x.name, x.desc, s.minutes);
 }
 $$('[data-step]').forEach(b => { b.onclick = () => runStep(b.dataset.step); });
@@ -2287,8 +2302,13 @@ $('#bigGo').onclick = () => confirmLevel(RECOMMENDED);
 // Turbo (Velocità) tolto in 3.1: chiudere le app in background lo fa il Boost nella pagina Giochi.
 
 /* ---------- run events ---------- */
-const MSGS = [_t('Il computer sta lavorando per la pulizia finale…'), _t('Sto controllando che tutto funzioni bene…'), _t('Metto in ordine i file di Windows…'), _t('Ancora un attimo, sto finendo questo passaggio…'), _t('Niente paura: c\'è il backup se serve tornare indietro.'), _t('Il tasso sta scavando tra i file inutili…')];
+const MSGS = [_t('Il computer sta lavorando alla pulizia…'), _t('Sto controllando che tutto funzioni bene…'), _t('Metto in ordine i file di Windows…'), _t('Ancora un attimo, sto finendo questo passaggio…'), _t('Niente paura: c\'è il backup se serve tornare indietro.'), _t('Il tasso sta scavando tra i file inutili…')];
 let msgTimer = null, creepTimer = null;
+// F07-3: la frase sul backup solo se in questa pulizia il backup c'è davvero (creato o riusato, senza ATTENZIONE).
+// Le frasi arrivano già nella lingua di Tasso: le confronto con la loro traduzione (TG), non con parole fisse.
+const MSG_BK = MSGS[4], BK_OK = ['Backup creato. Se qualcosa non ti piace puoi tornare indietro da Ripristino configurazione di sistema.', 'Uso il backup di poco fa ('];
+// F07-22: Protezione sistema accesa dal backup: lo dico anche nel risultato, con come rispegnerla.
+const SR_ON = 'Protezione sistema era spenta su questo PC: l\'ho accesa per poter fare il backup (usa un po\' di spazio del disco). Se la vuoi spenta: Pannello di controllo > Sistema > Protezione sistema > Configura > Disattiva.';
 function runUI(on){ $('#cleanIdle').style.display = on ? 'none' : 'flex'; $('#cleanRun').style.display = on ? 'flex' : 'none'; }
 function paintRun(){
   if (!RUN) return;
@@ -2325,12 +2345,12 @@ window.tasso = {
     const lv = LEVELS[(p.level || 0) - 1];
     const st = (p.steps || []).map(s => { const x = s && s.id && STEP[s.id] ? stepTxt(s.id) : null; return x ? Object.assign({}, s, {name: x.name}) : s; });
     LOG_NOMI = {}; (p.steps || []).forEach((s, i) => { if (s && s.name && st[i] && st[i].name !== s.name) LOG_NOMI['» ' + s.name] = '» ' + st[i].name; });
-    RUN = {level:p.level, steps:st, cur:0, creep:0, freed:0, freedBy:{}, end:p.end || 'acceso', info:''}; RIPARA = [];
+    RUN = {level:p.level, steps:st, cur:0, creep:0, freed:0, freedBy:{}, end:p.end || 'acceso', info:'', bk:false}; RIPARA = [];
     $('#runTitle').textContent = lv ? _t('Pulizia ') + lv.name + _t(' in corso') : (RUN.steps.length === 1 ? RUN.steps[0].name : _t('Passaggi in corso'));
     $('#runSub').textContent = isOffice() ? (RUN.end === 'riavvia' ? _t('Quando ha finito: Riavvia. Puoi alzarti e lasciarlo lavorare, faccio tutto io.') : RUN.end === 'spegni' ? _t('Quando ha finito: Spegni. Puoi alzarti e lasciarlo lavorare, faccio tutto io.') : _t('Puoi lasciare il PC acceso e andare a fare altro.')) : RUN.end === 'riavvia' ? _t('Quando ha finito: Riavvia. Puoi uscire di casa, faccio tutto io.') : RUN.end === 'spegni' ? _t('Quando ha finito: Spegni. Puoi uscire di casa, faccio tutto io.') : _t('Puoi lasciare il PC acceso e andare a fare altro.');
     $('#runLog').textContent = ''; $('#btnCancel').disabled = false; $('#btnCancel').textContent = _t('Interrompi');
     runUI(true); paintRun();
-    let k = 0; clearInterval(msgTimer); msgTimer = setInterval(() => { const c = RUN && RUN.steps[RUN.cur]; $('#runMsg').textContent = (c && c.id === 'winupdate') ? _t('Ultimo passaggio: aggiorno Windows.') + (RUN.end === 'riavvia' ? ' ' + _t('Quando ha finito, riavvio il PC.') : RUN.end === 'spegni' ? ' ' + _t('Quando ha finito, spengo il PC.') : '') : MSGS[++k % MSGS.length]; }, 4000);
+    let k = 0; clearInterval(msgTimer); msgTimer = setInterval(() => { const c = RUN && RUN.steps[RUN.cur]; $('#runMsg').textContent = (c && c.id === 'winupdate') ? _t('Ultimo passaggio: aggiorno Windows.') + (RUN.end === 'riavvia' ? ' ' + _t('Quando ha finito, riavvio il PC.') : RUN.end === 'spegni' ? ' ' + _t('Quando ha finito, spengo il PC.') : '') : (() => { const ms = MSGS.filter(m => m !== MSG_BK || (RUN && RUN.bk)); return ms[++k % ms.length]; })(); }, 4000);
     clearInterval(creepTimer); creepTimer = setInterval(() => { if (!RUN || RUN.prog) return; const m = RUN.steps[RUN.cur] ? RUN.steps[RUN.cur].minutes : 1; RUN.creep = Math.min(0.92, RUN.creep + (2 / (Math.max(0.1, m) * 60)) * (1 - RUN.creep) * 1.6); paintRun(); }, 2000);
   },
   onStepStart(p){ if (!RUN) return; RUN.cur = p.index; RUN.creep = 0; RUN.prog = false; RUN.info = ''; paintRun(); },
@@ -2339,7 +2359,7 @@ window.tasso = {
   onStepProgress(p){ if (!RUN || p.index !== RUN.cur) return; const f = Number(p.frac); if (!(f >= 0)) return; RUN.prog = true; RUN.creep = Math.max(RUN.creep, Math.min(0.99, f)); paintRun(); },
   onStepDone(p){ if (!RUN) return; RUN.freed += p.freed || 0; RUN.freedBy[p.index] = p.freed || 0; RUN.cur = p.index + 1; RUN.creep = 0; RUN.prog = false; RUN.info = ''; paintRun(); },
   // Una riga in più senza riscrivere tutto il registro (con migliaia di righe la finestra si bloccava); al massimo 4000 righe a schermo, il registro completo resta nel file.
-  onLog(t){ if (LOG_NOMI[t]) t = LOG_NOMI[t]; const rm = /\s*\[ripara:([a-z_,]+)\]\s*$/.exec(t); if (rm) { RIPARA = rm[1].split(',').filter(x => STEP[x]); t = t.slice(0, rm.index); } const l = $('#runLog'); l.appendChild(document.createTextNode(t + '\n')); while (l.childNodes.length > 4000) l.removeChild(l.firstChild); if (!LOG_RAF) LOG_RAF = requestAnimationFrame(() => { LOG_RAF = 0; l.scrollTop = l.scrollHeight; }); },
+  onLog(t){ if (LOG_NOMI[t]) t = LOG_NOMI[t]; if (RUN && RUN.steps[RUN.cur] && RUN.steps[RUN.cur].id === 'backup') { const tt = String(t).trim(); if (BK_OK.some(k => tt.startsWith(TG[k] || k))) RUN.bk = true; if (tt === (TG[SR_ON] || SR_ON)) RUN.srOn = tt; } const rm = /\s*\[ripara:([a-z_,]+)\]\s*$/.exec(t); if (rm) { RIPARA = rm[1].split(',').filter(x => STEP[x]); t = t.slice(0, rm.index); } const l = $('#runLog'); l.appendChild(document.createTextNode(t + '\n')); while (l.childNodes.length > 4000) l.removeChild(l.firstChild); if (!LOG_RAF) LOG_RAF = requestAnimationFrame(() => { LOG_RAF = 0; l.scrollTop = l.scrollHeight; }); },
   onRunDone(p){
     clearInterval(msgTimer); clearInterval(creepTimer);
     if (p.settings) S = p.settings;
@@ -2349,14 +2369,15 @@ window.tasso = {
       '<div class="row" style="gap:10px">' + ((lvl0 && !(p.freed > 0)) ? '' : _t('<div class="stat" style="text-align:right"><div class="k">Spazio liberato</div><div class="v" style="color:var(--a1t)">') + fmtBytes(p.freed) + '</div></div>') + ((LIVE && LIVE.diskFree) ? _t('<div class="stat" style="text-align:right"><div class="k">Spazio libero ora</div><div class="v">') + fmtBytes(LIVE.diskFree) + '</div></div>' : '') + '</div></div>' +
       '<div class="log" id="doneLog" style="margin-top:14px;height:180px"></div>' +
       (p.reboot && !p.shutdown && !p.restart ? _t('<div class="note" style="margin-top:14px">Per completare aggiornamenti e riparazioni serve un riavvio.</div>') : '') +
+      (RUN && RUN.srOn ? '<div class="note" style="margin-top:14px">' + esc(RUN.srOn) + '</div>' : '') +
       (p.wuSkipped && AN && AN.wuBusy > 0 ? '<div class="note" style="margin-top:14px">' + esc(_t('La cache di Windows Update (circa {0}) è rimasta perché Windows stava installando degli aggiornamenti: rifai la pulizia dopo il riavvio per toglierla.').replace('{0}', fmtBytes(AN.wuBusy))) + '</div>' : '') +
       '<div class="row wrap" style="gap:10px;margin-top:14px">' + (p.reboot && !p.shutdown && !p.restart ? _t('<button class="btn warn" id="btnReboot">Riavvia ora</button>') : '') + _t('<button class="btn ghost" id="btnLogs2">Apri la cartella dei registri</button></div>');
     $('#doneLog').textContent = $('#runLog').textContent;
     runUI(false); RUN = null;
-    if (p.restart || p.shutdown) fineBanner(p.restart ? 'riavvia' : 'spegni', Number(p.endSecs) || 60, p.updates > 0 || !!p.reboot);
+    if (p.restart || p.shutdown) fineBanner(p.restart ? 'riavvia' : 'spegni', Number(p.endSecs) || 60, p.updates > 0 ? 'upd' : p.reboot ? 'rip' : '');
     else if (p.endErr) fineBanner(p.end === 'spegni' ? 'spegni' : 'riavvia', 0, false, true);
     else fineHide();
-    const rb = $('#btnReboot'); if (rb) rb.onclick = () => modal(_t('<h2>Riavviare il PC?</h2><p class="muted" style="margin:0">Salva il lavoro aperto: il PC si riavvia tra 15 secondi.</p>'), [{label:_t('Annulla')}, {label:_t('Riavvia'), cls:'warn', fn: () => { doRestart(); }}]);
+    const rb = $('#btnReboot'); if (rb) rb.onclick = rebootChiedi;
     $('#btnLogs2').onclick = () => call('goOpenLogs');
     if (RIPARA.length && !p.cancelled) { const ids = RIPARA.slice(), rp = el('button', {class:'btn primary'}, _t('Ripara adesso')); rp.onclick = () => { const ss = ids.map(i => STEP[i]); runSteps(ids, ss.map(s => s.name).join(' + '), ss.map(s => s.desc).join(' '), ss.reduce((a, s) => a + s.minutes, 0)); }; $('#btnLogs2').before(rp); }
     RIPARA = []; ofStati();
@@ -2404,27 +2425,32 @@ $('#btnCancel').onclick = () => { call('goCancel'); $('#btnCancel').disabled = t
 // 3.1.1: banner di fine pulizia con il conto alla rovescia (Riavvia/Spegni adesso, Annulla). Se a fine
 // conto Tasso è ancora vivo dopo 30 s, il riavvio non è partito: lo dico e lo si può richiedere.
 let FINE_T = null;
-function fineHide(){ FINE_GEN++; clearInterval(FINE_T); FINE_T = null; $('#offBanner').classList.remove('on'); }
+function rebootChiedi(){ modal(_t('<h2>Riavviare il PC?</h2><p class="muted" style="margin:0">Salva il lavoro aperto: il PC si riavvia tra 15 secondi.</p>'), [{label:_t('Annulla')}, {label:_t('Riavvia'), cls:'warn', fn: () => { doRestart(); }}]); }
+// F07-7: riavvio annullato ma servirebbe (aggiornamenti, riparazioni): nel risultato restano la nota e "Riavvia ora".
+function finePromemoria(){ const lg = $('#btnLogs2'); if (!lg || $('#btnReboot') || $('#lastResult').style.display === 'none') return; const row = lg.parentNode; row.insertAdjacentHTML('beforebegin', _t('<div class="note" style="margin-top:14px">Per completare aggiornamenti e riparazioni serve un riavvio.</div>')); row.insertAdjacentHTML('afterbegin', _t('<button class="btn warn" id="btnReboot">Riavvia ora</button>')); $('#btnReboot').onclick = rebootChiedi; }
+function fineHide(){ FINE_GEN++; clearInterval(FINE_T); FINE_T = null; $('#offBanner').classList.remove('on'); fineSposta(); }
+// F07-2: il banner del riavvio/spegnimento si vede da qualsiasi pagina: in Pulisci al suo posto, altrove in cima alla pagina.
+function fineSposta(){ const o = $('#offBanner'), g = $('#fineGlob'), ci = $('#cleanIdle'); if (!o || !g || !ci) return; if (CURVIEW === 'clean' || !o.classList.contains('on')) { if (o.parentNode !== ci) ci.firstElementChild.after(o); g.hidden = true; } else { if (o.parentNode !== g) g.appendChild(o); g.hidden = false; } }
 function fineBanner(kind, secs, wu, failed){
   const o = $('#offBanner'), rv = kind === 'riavvia', end = Date.now() + secs * 1000;
   clearInterval(FINE_T); FINE_T = null;
-  o.innerHTML = '<span><b class="fbT"></b> <span class="muted fbS"></span></span><span class="row" style="gap:8px"><button class="btn primary fbNow"></button><button class="btn warn fbNo">' + _t('Annulla') + '</button></span>';
+  o.innerHTML = '<span><b class="fbT"></b> <span class="muted fbS"></span></span><span class="row" style="gap:8px"><button class="btn primary fbNow"></button><button class="btn ghost fbNo">' + _t('Annulla') + '</button></span>';
   o.querySelector('.fbNow').textContent = rv ? _t('Riavvia adesso') : _t('Spegni adesso');
   o.querySelector('.fbNow').onclick = () => { endNow(kind); };
-  o.querySelector('.fbNo').onclick = async () => { await call('goCancelShutdown'); fineHide(); toast(rv ? _t('Riavvio annullato.') : _t('Spegnimento annullato.')); };
+  o.querySelector('.fbNo').onclick = async () => { await call('goCancelShutdown'); fineHide(); if (wu) finePromemoria(); toast(rv ? _t('Riavvio annullato.') : _t('Spegnimento annullato.')); };
   const T = o.querySelector('.fbT'), S2 = o.querySelector('.fbS');
   const g = ++FINE_GEN;
   let attesa = 30000, guardo = false; // dopo lo zero: 30 s, poi altri 15 s alla volta (massimo 20) se Windows si sta già spegnendo
   const fail = (msg) => { clearInterval(FINE_T); FINE_T = null; T.textContent = msg; S2.textContent = _t('Salva quello che hai aperto.'); o.querySelector('.fbNo').textContent = _t('Chiudi'); };
   const draw = () => {
     const now = Date.now(), left = Math.ceil((end - now) / 1000);
-    if (left > 0) { T.textContent = _t('Pulizia finita ✓') + ' ' + (rv ? _t('Il PC si riavvia tra {0} secondi') : _t('Il PC si spegne tra {0} secondi')).replace('{0}', left); S2.textContent = (rv && wu ? _t('per finire gli aggiornamenti di Windows.') + ' ' : '') + _t('Salva quello che hai aperto.'); }
+    if (left > 0) { T.textContent = _t('Pulizia finita ✓') + ' ' + (rv ? _t('Il PC si riavvia tra {0} secondi') : _t('Il PC si spegne tra {0} secondi')).replace('{0}', left); S2.textContent = (rv && wu ? (wu === 'rip' ? _t('per completare le riparazioni.') : _t('per finire gli aggiornamenti di Windows.')) + ' ' : '') + _t('Salva quello che hai aperto.'); }
     else if (now < end + attesa || guardo) { T.textContent = rv ? _t('Riavvio in corso…') : _t('Spegnimento in corso…'); S2.textContent = ''; }
     else { guardo = true; spegnimentoInCorso().then(si => { guardo = false; if (g !== FINE_GEN || FINE_T === null) return; if (si === null) { fineHide(); return; } if (si && attesa < 330000) attesa += 15000; else fail(rv ? _t('Il riavvio non è partito.') : _t('Lo spegnimento non è partito.')); }); }
   };
   if (failed) fail(rv ? _t('Windows non ha accettato il riavvio: premi Riavvia adesso') : _t('Windows non ha accettato lo spegnimento: premi Spegni adesso'));
   else { draw(); FINE_T = setInterval(draw, 1000); }
-  o.classList.add('on');
+  o.classList.add('on'); fineSposta();
 }
 // 3.1.1 "Bentornato": al primo avvio dopo il riavvio/spegnimento scelto nella pulizia, una volta sola.
 function showBentornato(b){
@@ -3244,7 +3270,7 @@ const INDEX = [
   {t:'Portachiavi e Discord', c:'var(--a1)', i:[_t('<b>Portachiavi</b> con PIN da 4 a 12 numeri o senza PIN: cifrato sul PC, generatore di password, password deboli o usate più volte'),_t('<b>Controllo password rubate</b> senza mandare la password'),_t('<b>Stato del PC su Discord</b>: report con spunte verdi e temperature, ogni 3/6/12/24 ore'),_t('<b>Report su richiesta</b> scrivendo !stato (con un bot tuo, facoltativo)')]},
   {t:_t('Hardware e comodità'), c:'var(--a3)', i:[_t('<b>Componenti</b>: processore, scheda video, scheda madre, RAM, dischi'),_t('<b>Sensori</b>: uso di processore e RAM, scheda video, temperatura dei dischi'),_t('<b>BIOS</b>: versione e pagina ufficiale del produttore'),_t('<b>Temi</b> chiari e scuri, <b>avvisi intelligenti</b>, <b>avvio con Windows</b>'),_t('<b>Interruttore Tasso acceso/spento</b>: da spento non fa nulla in automatico'),_t('<b>Torna indietro</b>: l\'elenco di tutto quello che Tasso ha cambiato, con un pulsante per rimettere com\'era ogni cosa o tutto insieme. Spegnere o riavviare il PC non cambia niente: torna indietro solo quando lo decidi tu')]}
 ];
-const OFFICE_INDEX = {t:_t('Ufficio'), c:'var(--a3)', i:[_t('<b>100 problemi del lavoro</b> con un pulsante, divisi in gruppi e con la ricerca: scrivi il problema e lo trovi'),_t('<b>Stampanti e scanner</b>: offline, stampante sbagliata, Stampa su PDF, stampanti di rete e USB'),_t('<b>Word, Excel, Adobe e Outlook</b>: riparazione ufficiale, aggiornamenti, documenti non salvati, file bloccati, date e CSV, Acrobat Reader, password, allegati, ricerca, Outlook classico'),_t('<b>Teams e riunioni</b>: cache, microfono, webcam, cuffie Bluetooth, casse'),_t('<b>Rete</b>: Wi-Fi che si stacca, VPN, unità di rete, proxy; <b>schermi</b>: secondo monitor, proiettore, schermo girato'),_t('<b>File e zip</b>: programma sbagliato, file bloccati o cancellati per sbaglio, nomi troppo lunghi, disco pieno'),_t('<b>Mouse, tastiera e portatile</b>: tasti permanenti, tasto Windows, touchpad, Bloc Num, batteria'),_t('<b>OneDrive</b>, <b>ora sbagliata</b>, <b>password che scade</b>, <b>BitLocker</b>, <b>attivazione</b>, <b>programmi sospetti</b>'),_t('<b>Il PC si scalda</b>, <b>un programma non parte</b> (manca un file .dll), <b>il PC si blocca con file grandi</b>, <b>l\'audio gracchia nelle chiamate</b>, <b>lo schermo diventa nero</b>'),_t('<b>Modalità riunione</b> sulla Home, accanto a PULISCI: niente notifiche, PC al massimo')]};
+const OFFICE_INDEX = {t:_t('Ufficio'), c:'var(--a3)', i:[_t('<b>109 problemi del lavoro</b> con un pulsante, divisi in gruppi e con la ricerca: scrivi il problema e lo trovi'),_t('<b>Stampanti e scanner</b>: offline, stampante sbagliata, Stampa su PDF, stampanti di rete e USB'),_t('<b>Word, Excel, Adobe e Outlook</b>: riparazione ufficiale, aggiornamenti, documenti non salvati, file bloccati, date e CSV, Acrobat Reader, password, allegati, ricerca, Outlook classico'),_t('<b>Teams e riunioni</b>: cache, microfono, webcam, cuffie Bluetooth, casse'),_t('<b>Rete</b>: Wi-Fi che si stacca, VPN, unità di rete, proxy; <b>schermi</b>: secondo monitor, proiettore, schermo girato'),_t('<b>File e zip</b>: programma sbagliato, file bloccati o cancellati per sbaglio, nomi troppo lunghi, disco pieno'),_t('<b>Mouse, tastiera e portatile</b>: tasti permanenti, tasto Windows, touchpad, Bloc Num, batteria'),_t('<b>OneDrive</b>, <b>ora sbagliata</b>, <b>password che scade</b>, <b>BitLocker</b>, <b>attivazione</b>, <b>programmi sospetti</b>'),_t('<b>Il PC si scalda</b>, <b>un programma non parte</b> (manca un file .dll), <b>il PC si blocca con file grandi</b>, <b>l\'audio gracchia nelle chiamate</b>, <b>lo schermo diventa nero</b>'),_t('<b>Modalità riunione</b> sulla Home, accanto a PULISCI: niente notifiche, PC al massimo')]};
 // In Ufficio alcune righe si riscrivono invece di sparire (dentro hanno anche cose da gioco, ma il resto serve).
 const OFFICE_IDX_ALT = {};
 OFFICE_IDX_ALT[_t('<b>Cache delle app</b>: Discord, Steam, Teams, Epic Games')] = _t('<b>Cache delle app</b>, per esempio quella di Teams');
@@ -3264,7 +3290,7 @@ function paintIndex(){
 /* ---------- settings ---------- */
 const PROFILES = [
   {id:'gioco', name:'Gaming', c:'var(--red)', d:_t('Per chi gioca: pulizia, riparazioni e strumenti di tutti i giorni, più giochi, Boost, FPS e ping.'), chips:[_t('Giochi e FPS'),_t('Ping ai server'),_t('Boost a un clic')], art:'<svg width="112" height="112" viewBox="0 0 200 200" aria-hidden="true"><rect x="4" y="4" width="192" height="192" rx="48" fill="#141725"/><rect x="4" y="4" width="192" height="192" rx="48" fill="none" stroke="var(--a1)" stroke-opacity=".8" stroke-width="7"/><path d="M100 172 L34 94 L58 38 L142 38 L166 94 Z" fill="#F2F4F8"/><path d="M58 38 L86 38 L94 122 L76 132 L44 104 Z" fill="#07080D"/><path d="M142 38 L114 38 L106 122 L124 132 L156 104 Z" fill="#07080D"/><circle cx="74" cy="98" r="9" fill="var(--a1)"/><circle cx="126" cy="98" r="9" fill="var(--a1)"/><path d="M88 148 L112 148 L100 164 Z" fill="#07080D"/></svg>'},
-  {id:'ufficio', name:_t('Ufficio'), c:'var(--a3)', d:_t('Per lavorare: più semplice e tranquilla, con i 100 problemi del PC da ufficio risolti con un clic.'), chips:[_t('Stampanti e Office'),_t('Teams e riunioni'),_t('Pulizia programmata')], art:'<span class="offart"></span>'},
+  {id:'ufficio', name:_t('Ufficio'), c:'var(--a3)', d:_t('Per lavorare: più semplice e tranquilla, con i 109 problemi del PC da ufficio risolti con un clic.'), chips:[_t('Stampanti e Office'),_t('Teams e riunioni'),_t('Pulizia programmata')], art:'<span class="offart"></span>'},
 ];
 function setToggle(id, on, disabled){ const t = $(id); t.classList.toggle('on', !!on); t.disabled = !!disabled; }
 // Interruttori (role="switch"): aria-checked segue sempre la classe "on", chiunque la cambi.
@@ -3354,15 +3380,15 @@ function paintWeekly(){
 ['#wkDay', '#wkHour', '#wkLevel', '#wkEvery'].forEach(i => { $(i).onchange = async () => {
   const d = +$('#wkDay').value, h = +$('#wkHour').value, l = +$('#wkLevel').value, e = +$('#wkEvery').value;
   const r = await callBg('goSetWeeklyPlan', d, h, l, e);
-  if (r === 'ok') { S.weeklyDay = d; S.weeklyHour = h; S.weeklyLevel = l; S.weeklyEvery = e; toast(S.weekly ? wkText() + '.' : _t('Salvato: vale quando accendi la pulizia automatica.')); } else toast(r || _t('Errore'), 'var(--red)');
+  if (r === 'ok') { S.weeklyDay = d; S.weeklyHour = h; S.weeklyLevel = l; S.weeklyEvery = e; toast(S.weekly ? wkText() + '.' : _t('Salvato: vale quando accendi la Pulizia programmata.')); } else toast(r || _t('Errore'), 'var(--red)');
   paintWeekly();
 }; });
-$('#tgWeekly').onclick = async () => { const on = !S.weekly; const r = await callBg('goSetWeekly', on); if (r === 'ok') { S.weekly = on; toast(on ? wkText() + '.' : _t('Pulizia automatica spenta.')); } else toast(r || _t('Errore'), 'var(--red)'); paintSettings(); };
+$('#tgWeekly').onclick = async () => { const on = !S.weekly; const r = await callBg('goSetWeekly', on); if (r === 'ok') { S.weekly = on; toast(on ? wkText() + '.' : _t('Pulizia programmata spenta.')); } else toast(r || _t('Errore'), 'var(--red)'); paintSettings(); };
 $('#tgStats').onclick = async () => { const on = S.stats !== true; await call('goSetStats', on); S.stats = on; paintSettings(); toast(on ? _t('Grazie! Tasso manderà solo numeri anonimi.') : _t('Fatto: Tasso non manda più nessun numero.')); };
 $('#lnkStatsWhat').onclick = (e) => { e.preventDefault(); statsWhat(); };
 $('#tgAlerts').onclick = async () => { const on = S.smartAlerts === false; await call('goSetSmartAlerts', on); S.smartAlerts = on; paintSettings(); toast(on ? _t('Avvisi intelligenti accesi.') : _t('Avvisi intelligenti spenti.')); };
 $('#btnBackup').onclick = async () => { const r = await call('goBackup'); if (r === 'busy') { toast(_t('Aspetta che finisca l\'operazione in corso.'), 'var(--a4)'); return; } toast(_t('Si apre la finestra per scegliere dove salvare il backup (una chiavetta o un disco esterno).')); };
-$('#btnShortcut').onclick = async () => { const r = await call('goDesktopShortcut'); if (r === 'ok') toast(_t('Collegamento a Tasso creato sul Desktop.')); else toast(r === 'no' ? _t('Non sono riuscito a creare il collegamento.') : (r || _t('Non sono riuscito a creare il collegamento.')), 'var(--red)'); };
+$('#btnShortcut').onclick = async () => { const r = await call('goDesktopShortcut'); if (r === 'ok') toast(_t('Collegamento a Tasso creato sul Desktop.')); else if (r === 'gia') toast(_t('C\'è già un collegamento a Tasso sul Desktop.'), 'var(--a3)'); else toast(r === 'no' ? _t('Non sono riuscito a creare il collegamento.') : (r || _t('Non sono riuscito a creare il collegamento.')), 'var(--red)'); };
 $('#btnLogs').onclick = () => call('goOpenLogs');
 $('#btnRestore').onclick = () => modal(_t('<h2>Rimettere le impostazioni com\'erano?</h2><p class="muted" style="margin:0;line-height:1.5">Tasso resta acceso, ma le impostazioni di Windows che ha cambiato tornano com\'erano prima di lui') + (S.snapshotAt ? _t(' (salvate il ') + esc(S.snapshotAt) + ')' : '') + '.</p>' + RESTORE_INFO,
   [{label:_t('Annulla')}, {label:_t('Rimetti com\'era'), cls:'primary', risky:true, fn: () => { call('goRestore', false).then(r => { if (r === 'busy') toast(_t('Sto già rimettendo le impostazioni…'), 'var(--a4)'); else toast(_t('Rimetto le impostazioni com\'erano…')); }); }}]);
@@ -4432,7 +4458,7 @@ function ofCard(id, ic, c){
   const d = el('div', {class:'ofc', 'data-id': id, style:'--c:' + c, 'data-q': (s.name + ' ' + s.desc).toLowerCase()},
     '<span class="ic">' + ic + '</span><span class="x"><b>' + esc(s.name) + '</b><span>' + esc(s.desc) + '</span></span>');
   const tg = OFFICE_TOGGLE[id];
-  const chk = OFFICE_CHECK[id] || id === 'fix_game_heat';
+  const chk = OFFICE_CHECK[id] || id === 'fix_game_heat' || id === 'fix_game_freeze'; // F10-12: anche "si blocca con file grandi" controlla soltanto
   const b = el('button', {class:'btn ' + (chk ? 'ghost' : 'primary'), 'data-tg': tg ? id : ''}, tg ? (OF_STATI[id] ? _t('Spegni') : _t('Accendi')) : chk ? _t('Controlla') : _t('Risolvi'));
   b.onclick = () => runStep(id);
   d.querySelector('.x').appendChild(b);
@@ -4460,9 +4486,14 @@ function paintOffice(){
 }
 // Una ricerca sola per tutti i problemi (Gaming, Ufficio e Windows).
 let FIX_Q = '';
+// F10-1: la ricerca non guarda accenti, trattini e maiuscole ("wifi" = "Wi-Fi", "camara" = "cámara", "heiss" = "heiß").
+// Le parole corte (fino a 4 lettere) valgono solo dall'inizio di una parola ("word" non trova "password");
+// le più lunghe anche dentro le parole composte (tedesco: "drucker" trova "Netzwerkdrucker").
+const fxNorm = s => ' ' + String(s || '').toLowerCase().normalize('NFD').replace(/\p{M}/gu, '').replace(/ß/g, 'ss').replace(/[-\u2010\u2011]/g, '').replace(/[^\p{L}\p{N}]+/gu, ' ').trim() + ' ';
+const FX_SIN = {wifi: ['wifi', 'wlan'], wlan: ['wlan', 'wifi'], email: ['email', 'mail'], mail: ['mail', 'email']};
 function fixFilter(){
-  const words = FIX_Q.toLowerCase().trim().split(/\s+/).filter(Boolean);
-  const hit = c => { if (!c.dataset.q) { const h = c.querySelector('h3'), pp = c.querySelector('p'); c.dataset.q = ((h ? h.textContent : '') + ' ' + (pp ? pp.textContent : '')).toLowerCase(); } return words.every(w => c.dataset.q.indexOf(w) >= 0); };
+  const words = fxNorm(FIX_Q).trim().split(/\s+/).filter(Boolean);
+  const hit = c => { if (!c.dataset.q) { const h = c.querySelector('h3'), pp = c.querySelector('p'); c.dataset.q = ((h ? h.textContent : '') + ' ' + (pp ? pp.textContent : '')).toLowerCase(); } if (c._qs !== c.dataset.q) { c._qs = c.dataset.q; c._qn = fxNorm(c.dataset.q); } const q = c._qn; return words.every(w => (FX_SIN[w] || [w]).some(v => q.indexOf(v.length <= 4 ? ' ' + v : v) >= 0)); };
   const off = document.body.classList.contains('office');
   // In Gaming la sezione ha solo i "Problemi di tutti i giorni" (mai Word, Outlook, Teams…); in Ufficio anche i 5 problemi dei giochi che valgono per tutti.
   let shown = 0;

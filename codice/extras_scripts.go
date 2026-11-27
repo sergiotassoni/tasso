@@ -36,7 +36,15 @@ elseif ($t -gt 500MB) { Bad 5 ('File temporanei: ' + (Fmt $t)) 'Una pulizia Norm
 else { Good 'File temporanei: pochi' }
 
 # Cestino
-try { $s = ((New-Object -ComObject Shell.Application).Namespace(0xA).Items() | Measure-Object -Property Size -Sum).Sum; if ($s -gt 1GB) { Bad 5 ('Cestino pieno: ' + (Fmt $s)) 'Svuotalo se non ti serve più niente lì dentro.' 'recycle' } } catch {}
+# Conto solo quello buttato da più di 7 giorni: è quello che toglie il pulsante (come la pulizia).
+try {
+  $lim = (Get-Date).AddDays(-7); $s = [long]0
+  foreach ($it in @((New-Object -ComObject Shell.Application).Namespace(0xA).Items())) {
+    $d = $null; try { $d = [datetime]$it.ExtendedProperty('System.Recycle.DateDeleted') } catch {}
+    if ($d -and $d -le $lim) { $s += [long]$it.Size }
+  }
+  if ($s -gt 1GB) { Bad 5 ('Cestino pieno: ' + (Fmt $s) + ' buttati più di 7 giorni fa') 'Se non ti servono più, toglili.' 'recycle' }
+} catch {}
 
 # Antivirus
 try {
