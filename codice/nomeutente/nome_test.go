@@ -27,7 +27,10 @@ func TestControlla(t *testing.T) {
 	buoni := []string{"Sergio", "Jo", "Gian Luca", "Niccolò", "José-María", "Zoë_92", "Ž. Šimić", "Łukasz",
 		"Ἀθηνᾶ", "Анна", "李小龍", "R2-D2", "a.b", "e\u0301va", "e\u0301\u0302\u0303", strings.Repeat("a", 20),
 		"ÀÈÌÒÙàèìòù ÇçÑñ ß", "שרה", "محمد", "र\u093eज", "สมชาย",
-		"გიო", "Nguyễn", "さくら", "サクラ", "민수", "Արա"}
+		"გიო", "Nguyễn", "さくら", "サクラ", "민수", "Արա",
+		// 3.2: anche le altre scritture delle lingue vive
+		"தமிழ்செல்வி", "সৌমিত্র", "ਗੁਰਪ੍ਰੀਤ", "ಕನ್ನಡ", "മലയാളം", "ලංකා", "ኃይሌ", "አበበ", "佐々木", "々子", "ကြွေး",
+		"ᱥᱟᱱᱛᱟᱲᱤ", "\U0001e900\U0001e923\U0001e924", "ລາວ", "ཀྲ", "ខ្មែរ", "ᏣᎳᎩ", "ꦗꦮ", "\U00020bb7野", "Kɔfi", "ⵜⴰⵎⴰⵣⵉⵖⵜ", "ꆈꌠ"}
 	for _, s := range buoni {
 		if e := Controlla(s); e.Codice != OK {
 			t.Errorf("Controlla(%q) = %+v, doveva andare bene", s, e)
@@ -62,6 +65,14 @@ func TestControlla(t *testing.T) {
 		{"ab\u180b", Invisibile, ""},
 		{"a\U000e0100b", Invisibile, ""},
 		{"a\u17b4b", Invisibile, ""},
+		{"ক্\u200dষ", Invisibile, ""},
+		{"ܐ\u070fܒ", Invisibile, ""},
+		{"a\u08e2b", Invisibile, ""},
+		{"a\u0c5cb", Simbolo, "\u0c5c"},
+		{"a\U0002b73ab", Simbolo, "\U0002b73a"},
+		{"a〆", Simbolo, "〆"},
+		{"a\u0bcd\u0bcd\u0bcd\u0bcd", Accenti, ""},
+		{"\u0bbeab", Accenti, ""},
 		{"\u0301ab", Accenti, ""},
 		{"ab \u0301", Accenti, ""},
 		{"a.\u0301b", Accenti, ""},
