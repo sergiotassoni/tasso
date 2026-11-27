@@ -272,7 +272,13 @@ func salvaSfondoMio() {
 	attuale, ok := sfondoAttuale()
 	if !ok {
 		// Non so che sfondo c'è: non registro "nessuna immagine" e non propongo "Rimetti il mio".
-		updateSettings(func(s *Settings) { s.SfondoMioOk = false })
+		// Se però sul desktop c'è già uno sfondo di Tasso (Oro e poi Argento), quello salvato prima
+		// è ancora lo sfondo dell'utente: lo tengo, se no "Rimetti il mio" non avrebbe più niente.
+		updateSettings(func(s *Settings) {
+			if !(s.SfondoMioOk && s.SfondoTasso != "") {
+				s.SfondoMioOk = false
+			}
+		})
 		return
 	}
 	if !sfondi.DaSalvare(attuale, cartelleSfondiTasso()...) {

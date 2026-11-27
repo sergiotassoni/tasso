@@ -251,7 +251,9 @@ func restoreAndMaybePause(pause bool) string {
 		// Se non ha rimesso tutto, Tasso resta acceso: spento non potrebbe più avvisarti.
 		paused := pause && ok
 		if paused {
-			setPaused(true)
+			if r := setPaused(true); strings.HasPrefix(r, "ok:") {
+				msgs = append(msgs, strings.TrimPrefix(r, "ok:")) // un'attività pianificata non si è tolta: lo dico
+			}
 		}
 		emit("onRestoreDone", map[string]interface{}{"msgs": msgs, "ok": ok, "paused": paused, "settings": getSettings()})
 	})
