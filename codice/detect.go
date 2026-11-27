@@ -125,8 +125,9 @@ try {
   if ([string](Get-RegValue ($cm + 'microphone') 'Value') -eq 'Deny' -or [string](Get-RegValue ($cl + 'microphone') 'Value') -eq 'Deny') { F 'of_meet_mic' 'p' 'Il microfono è bloccato nelle impostazioni della privacy: in riunione non ti sentono.' }
   if ([string](Get-RegValue ($cm + 'webcam') 'Value') -eq 'Deny' -or [string](Get-RegValue ($cl + 'webcam') 'Value') -eq 'Deny') { F 'of_meet_cam' 'p' 'La webcam è bloccata nelle impostazioni della privacy.' }
   if (@(Get-Service -Name Audiosrv, AudioEndpointBuilder -ErrorAction SilentlyContinue | Where-Object { $_.Status -ne 'Running' }).Count) { F 'fix_audio' 'p' 'Il servizio audio di Windows è fermo: niente suono.' }
-  # In modalità Gaming, FPS o Film le notifiche le mette in pausa Tasso apposta: non è un problema.
-  if (@('gaming','fps','film') -notcontains [string]$A.mode -and (Get-RegValue 'HKCU\Software\Microsoft\Windows\CurrentVersion\PushNotifications' 'ToastEnabled') -eq 0) { F 'of_notif' 'p' 'Le notifiche di Windows sono spente: Teams e Outlook non ti avvisano.' }
+  # In modalità Gaming, FPS o Film, o in Modalità riunione, le notifiche le mette in pausa Tasso apposta: non è un problema.
+  $riun = $false; try { $riun = Test-Path -LiteralPath (Join-Path ([Environment]::GetFolderPath('ProgramFiles')) ('Tasso\lavoro\ufficio\riunione-' + [Security.Principal.WindowsIdentity]::GetCurrent().User.Value + '.json')) } catch {}
+  if (-not $riun -and @('gaming','fps','film') -notcontains [string]$A.mode -and (Get-RegValue 'HKCU\Software\Microsoft\Windows\CurrentVersion\PushNotifications' 'ToastEnabled') -eq 0) { F 'of_notif' 'p' 'Le notifiche di Windows sono spente: Teams e Outlook non ti avvisano.' }
 } catch {}
 
 C 'Controllo le periferiche…'
@@ -181,7 +182,9 @@ try {
   $odMail = @(Get-ChildItem -LiteralPath 'HKCU:\Software\Microsoft\OneDrive\Accounts' -ErrorAction SilentlyContinue | Where-Object { [string](Get-ItemProperty -LiteralPath $_.PSPath -Name UserEmail -ErrorAction SilentlyContinue).UserEmail }).Count
   $odRun = [string](Get-RegValue 'HKCU\Software\Microsoft\Windows\CurrentVersion\Run' 'OneDrive')
   $odAuto = $odRun -and (Test-StartupOn 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\Run' 'OneDrive')
-  if ($roots.Count -and $odExe -and $odMail -and $odAuto -and -not (Get-Process -Name OneDrive -ErrorAction SilentlyContinue)) { F 'of_onedrive' 'p' 'OneDrive è collegato ma non è acceso: i file non si sincronizzano.' }
+  # in Modalità riunione OneDrive lo mette in pausa Tasso apposta
+  $riun2 = $false; try { $riun2 = Test-Path -LiteralPath (Join-Path ([Environment]::GetFolderPath('ProgramFiles')) ('Tasso\lavoro\ufficio\riunione-' + [Security.Principal.WindowsIdentity]::GetCurrent().User.Value + '.json')) } catch {}
+  if (-not $riun2 -and $roots.Count -and $odExe -and $odMail -and $odAuto -and -not (Get-Process -Name OneDrive -ErrorAction SilentlyContinue)) { F 'of_onedrive' 'p' 'OneDrive è collegato ma non è acceso: i file non si sincronizzano.' }
   foreach ($r in $roots) {
     $rx = '-' + [regex]::Escape($env:COMPUTERNAME) + '(-\d+)?$'
     $dup = Get-ChildItem -LiteralPath $r -Recurse -Depth 6 -File -Filter ('*-' + $env:COMPUTERNAME + '*') -ErrorAction SilentlyContinue | Where-Object { $_.BaseName -match $rx } | Select-Object -First 1

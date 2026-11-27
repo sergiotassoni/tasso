@@ -24,6 +24,8 @@ import (
 // o sostituire la cartella, e Tasso ci lavora da amministratore).
 const ofHelpers3 = `
 $OfState = Join-Path ([Environment]::GetFolderPath('ProgramFiles')) 'Tasso\lavoro\ufficio'
+# lo stato è di chi usa Tasso (le notifiche e lo schermo sono suoi): un file per utente
+$OfSid = [Security.Principal.WindowsIdentity]::GetCurrent().User.Value
 if (-not (Test-Path -LiteralPath $OfState)) { New-Item -ItemType Directory -Path $OfState -Force | Out-Null }
 function Get-CapUse([string]$what) {
   # Programmi che hanno usato webcam o microfono (dato di Windows: Impostazioni > Privacy).
@@ -60,7 +62,8 @@ func ofs3(s string) string { return ofHelpers + ofHelpers3 + s }
 const ofRiunioneFine = `
 function Fine-Riunione([string]$perche) {
   $OfState = Join-Path ([Environment]::GetFolderPath('ProgramFiles')) 'Tasso\lavoro\ufficio'
-  $f = Join-Path $OfState 'riunione.json'
+  $OfSid = [Security.Principal.WindowsIdentity]::GetCurrent().User.Value
+  $f = Join-Path $OfState ('riunione-' + $OfSid + '.json')
   if (-not (Test-Path -LiteralPath $f)) { return $false }
   try { $s = Get-Content -LiteralPath $f -Raw | ConvertFrom-Json } catch {
     # illeggibile: non so cosa rimettere. Non lo cancello: lo metto da parte (per capire cosa è successo)
@@ -136,11 +139,14 @@ elseif ($fix.Count) { Say ('Da sistemare: ' + $bad + '. Premi "Ripara adesso" qu
 else { Say 'Niente da riparare in automatico: segui il consiglio qui sopra.' }
 `)},
 	{ID: "of_new_meeting", Name: "Modalità riunione", Desc: "Premi prima di una chiamata: niente notifiche, OneDrive e aggiornamenti di Windows in pausa, PC al massimo. A fine chiamata (con Tasso aperto) si spegne da sola e rimette tutto com'era. Premi di nuovo per spegnerla subito.", Level: 0, Minutes: 0.4, Timeout: 2 * time.Minute, Script: ofs3(`
-$f = Join-Path $OfState 'riunione.json'
+$f = Join-Path $OfState ('riunione-' + $OfSid + '.json')
 ` + ofRiunioneFine + `
 if (Test-Path -LiteralPath $f) {
-  [void](Fine-Riunione 'pulsante')
-  Say 'Modalità riunione SPENTA: notifiche, OneDrive, aggiornamenti e alimentazione sono tornati come prima.'
+  if (Fine-Riunione 'pulsante') {
+    Say 'Modalità riunione SPENTA: notifiche, OneDrive, aggiornamenti e alimentazione sono tornati come prima.'
+  } else {
+    Say 'ATTENZIONE  Modalità riunione spenta, ma il file con le impostazioni di prima era rovinato: non ho potuto rimetterle. Controlla tu notifiche (Impostazioni > Sistema > Notifiche), OneDrive e il piano di alimentazione.'
+  }
   return
 }
 $n = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Notifications\Settings'
@@ -201,10 +207,10 @@ foreach ($w in @(@('webcam', 'Webcam'), @('microphone', 'Microfono'))) {
 }
 if ($tot) { Say 'Se vedi un programma che non conosci, puoi togliergli il permesso in Impostazioni > Privacy e sicurezza > Fotocamera (o Microfono), oppure usa "Controllo dei programmi sospetti" in Risolvi un problema.' }
 `)},
-	{ID: "of_new_lock", Name: "Blocca il PC quando ti alzi", Desc: "Accende il blocco automatico: dopo 5 minuti senza toccare mouse e tastiera lo schermo si blocca e per rientrare serve il PIN o la password. Premi di nuovo per rimettere com'era.", Level: 0, Minutes: 0.1, Timeout: time.Minute, Script: ofs3(`
+	{ID: "of_new_lock", Name: "Blocca il PC quando ti alzi", Desc: "Accende il blocco automatico: dopo 5 minuti senza toccare mouse e tastiera lo schermo si blocca e per rientrare serve il PIN o la password (se il tuo account ne ha uno). Premi di nuovo per rimettere com'era.", Level: 0, Minutes: 0.1, Timeout: time.Minute, Script: ofs3(`
 if (-not ('TassoSpi' -as [type])) { Add-Type -TypeDefinition 'using System; using System.Runtime.InteropServices; public static class TassoSpi { [DllImport("user32.dll")] public static extern bool SystemParametersInfo(uint a, uint b, IntPtr c, uint d); }' }
 $k = 'HKCU:\Control Panel\Desktop'
-$f = Join-Path $OfState 'blocco.json'
+$f = Join-Path $OfState ('blocco-' + $OfSid + '.json')
 function G([string]$nm) { try { return [string](Get-ItemProperty -LiteralPath $k -Name $nm -ErrorAction Stop).$nm } catch { return '' } }
 function Apply([int]$to, [int]$act, [int]$sec) { [void][TassoSpi]::SystemParametersInfo(15, [uint32]$to, [IntPtr]::Zero, 3); [void][TassoSpi]::SystemParametersInfo(17, [uint32]$act, [IntPtr]::Zero, 3); [void][TassoSpi]::SystemParametersInfo(119, [uint32]$sec, [IntPtr]::Zero, 3) }
 $pol = 'HKCU:\Software\Policies\Microsoft\Windows\Control Panel\Desktop'
@@ -227,7 +233,7 @@ $exe = G 'SCRNSAVE.EXE'
 if (-not $exe -or -not (Test-Path -LiteralPath $exe)) { Set-ItemProperty -LiteralPath $k -Name 'SCRNSAVE.EXE' -Value (Join-Path $env:SystemRoot 'System32\scrnsave.scr') }
 Apply 300 1 1
 Set-ItemProperty -LiteralPath $k -Name 'ScreenSaveTimeOut' -Value '300'; Set-ItemProperty -LiteralPath $k -Name 'ScreenSaveActive' -Value '1'; Set-ItemProperty -LiteralPath $k -Name 'ScreenSaverIsSecure' -Value '1'
-Say 'Blocco automatico ACCESO: dopo 5 minuti senza toccare niente lo schermo diventa nero e per rientrare serve il PIN o la password. Nessun documento si chiude.'
+Say 'Blocco automatico ACCESO: dopo 5 minuti senza toccare niente lo schermo diventa nero e per rientrare serve il PIN o la password (se il tuo account ne ha uno). Nessun documento si chiude.'
 Say 'Quando ti alzi puoi bloccare subito con Windows + L. Se il telefono è abbinato via Bluetooth, in Impostazioni > Account > Opzioni di accesso c''è anche "Blocco dinamico": il PC si blocca quando ti allontani col telefono.'
 `)},
 }
@@ -239,12 +245,46 @@ func init() {
 // officeStati: dice alla finestra se Modalità riunione e Blocco automatico sono accesi
 // (così il pulsante scrive Accendi o Spegni).
 func officeStati() map[string]bool {
-	d := officeDir()
-	ex := func(n string) bool { _, err := os.Stat(filepath.Join(d, n)); return err == nil }
-	return map[string]bool{"of_new_meeting": ex("riunione.json"), "of_new_lock": ex("blocco.json")}
+	ex := func(p string) bool { _, err := os.Stat(p); return err == nil }
+	return map[string]bool{"of_new_meeting": ex(fileUfficio("riunione")), "of_new_lock": ex(fileUfficio("blocco"))}
 }
 
 func officeDir() string { return filepath.Join(programFilesDir(), "Tasso", "lavoro", "ufficio") }
+
+// fileUfficio: lo stato di riunione e blocco è di un utente (le sue notifiche, il suo schermo):
+// con due account sul PC ognuno ha il suo file, e nessuno rimette i valori dell'altro.
+func fileUfficio(nome string) string {
+	sid := "utente"
+	if u, err := windows.GetCurrentProcessToken().GetTokenUser(); err == nil {
+		sid = u.User.Sid.String()
+	}
+	return filepath.Join(officeDir(), nome+"-"+sid+".json")
+}
+
+// spostaStatoVecchio: i file di prima (uno per tutto il PC, o in AppData nella prova del 24/11)
+// diventano quelli dell'utente di adesso, così una riunione accesa prima si spegne lo stesso.
+func spostaStatoVecchio() {
+	local, _ := windows.KnownFolderPath(windows.FOLDERID_LocalAppData, 0)
+	for _, n := range []string{"riunione", "blocco"} {
+		nuovo := fileUfficio(n)
+		if _, err := os.Stat(nuovo); err == nil {
+			continue
+		}
+		for _, d := range []string{officeDir(), filepath.Join(local, "Tasso", "ufficio")} {
+			if d == "" || (local == "" && d != officeDir()) {
+				continue
+			}
+			vecchio := filepath.Join(d, n+".json")
+			if b, err := os.ReadFile(vecchio); err == nil {
+				_ = os.MkdirAll(officeDir(), 0o755)
+				if os.WriteFile(nuovo, b, 0o644) == nil {
+					_ = os.Remove(vecchio)
+				}
+				break
+			}
+		}
+	}
+}
 
 // officeGuardia: gira dentro Tasso per tutta la sua vita. Se la Modalità riunione è accesa la
 // spegne da sola 3 minuti dopo che nessun programma usa più il microfono (dopo averlo usato),
@@ -257,7 +297,8 @@ func officeGuardia() {
 	for _, n := range []string{"riunione-fine.ps1", "riunione-guardia.ps1"} {
 		_ = os.Remove(filepath.Join(vecchia, n))
 	}
-	f := filepath.Join(officeDir(), "riunione.json")
+	spostaStatoVecchio()
+	f := fileUfficio("riunione")
 	id, seen, quiet := "", false, 0
 	for {
 		b, err := os.ReadFile(f)
@@ -358,10 +399,10 @@ func micInUso() bool {
 // officeSpegniTutto ("Togli Tasso dal PC"): spegne la Modalità riunione e il blocco automatico se
 // li aveva accesi Tasso, rimettendo com'era.
 func officeSpegniTutto() {
-	if _, err := os.Stat(filepath.Join(officeDir(), "riunione.json")); err == nil {
+	if _, err := os.Stat(fileUfficio("riunione")); err == nil {
 		runPS(ofRiunioneFine+"\n[void](Fine-Riunione 'Tasso tolto dal PC')\n", time.Minute, nil)
 	}
-	if _, err := os.Stat(filepath.Join(officeDir(), "blocco.json")); err == nil {
+	if _, err := os.Stat(fileUfficio("blocco")); err == nil {
 		for _, st := range allSteps {
 			if st.ID == "of_new_lock" { // il pulsante con blocco.json presente lo spegne e rimette com'era
 				runPS(st.Script, st.Timeout, nil)

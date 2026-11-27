@@ -70,6 +70,8 @@ var reExeTasso = regexp.MustCompile(`(?i)^tasso[\w .()-]*\.exe$`)
 // tutto bene (e Tasso si chiude da solo), altrimenti il motivo per cui si è fermato.
 func togliTasso(rimetti bool, passo func(int, string)) string {
 	// 1. impostazioni di Windows e cose accese da Tasso
+	// prima la riunione: rimette i valori di quando era partita, poi "Rimetti com'era" vince
+	officeSpegniTutto()
 	if rimetti {
 		msgs, ok := restoreOriginal()
 		if !ok {
@@ -92,7 +94,6 @@ func togliTasso(rimetti bool, passo func(int, string)) string {
 	}()
 	autoClickStop()
 	boostOff(true) // come "Rimetti com'era" del Boost (se non era acceso non fa niente)
-	officeSpegniTutto()
 
 	// 2. traduzioni dentro i giochi: se un gioco è aperto mi fermo qui
 	tolti, falliti, spariti := traduce.TogliTutteLeTraduzioni()
