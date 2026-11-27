@@ -14,6 +14,7 @@ package main
 
 import (
 	"errors"
+	"golang.org/x/sys/windows"
 	"io"
 	"os"
 	"path/filepath"
@@ -148,8 +149,28 @@ func leggiFileApp(p string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	if !os.SameFile(fi, fi2) {
+	if !os.SameFile(fi, fi2) || !apertoInApp(f, p) {
 		return nil, errPercorsoLink
 	}
 	return io.ReadAll(f)
+}
+
+// apertoInApp: se p sta sotto appDir, il file aperto deve stare davvero sotto appDir anche dopo
+// aver risolto collegamenti e giunzioni (GetFinalPathNameByHandle): così una cartella in mezzo
+// cambiata in giunzione dopo controllaPercorsoApp si vede lo stesso.
+func apertoInApp(f *os.File, p string) bool {
+	if appDir == "" {
+		return true
+	}
+	if _, sotto := sottoApp(appDir, p); !sotto {
+		return true
+	}
+	h, err := apriCartellaPerNome(appDir)
+	if err != nil {
+		return false
+	}
+	radice := percorsoFinale(h)
+	windows.CloseHandle(h)
+	vero := percorsoFinale(windows.Handle(f.Fd()))
+	return radice != "" && vero != "" && dentroDi(vero, radice)
 }

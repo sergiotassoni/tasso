@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -286,6 +287,13 @@ func settingsPath() string { return filepath.Join(appDir, "settings.json") }
 
 func loadSettings() {
 	b, err := leggiFileApp(settingsPath())
+	if errors.Is(err, errPercorsoLink) {
+		// settings.json è un collegamento o una giunzione (messo da un altro programma): non lo
+		// seguo, parto dalle impostazioni di base e al primo salvataggio diventa un file vero.
+		scriviAvvio("attenzione: settings.json è un collegamento o una giunzione: non lo leggo, riparto dalle impostazioni di base")
+		go avvisaSettingsLink()
+		err = os.ErrNotExist
+	}
 	for i := 0; i < 5 && err != nil && !os.IsNotExist(err); i++ {
 		// File occupato un attimo (antivirus, backup): riprovo invece di ripartire da zero.
 		time.Sleep(400 * time.Millisecond)
@@ -658,4 +666,14 @@ func refreshScheduledTasks() {
 	if profileIsOn() {
 		profileTask(true)
 	}
+}
+
+// avvisaSettingsLink: una volta sola (il salvataggio sostituisce il collegamento con un file vero),
+// appena c'è l'icona vicino all'orologio.
+func avvisaSettingsLink() {
+	defer guard("avvisaSettingsLink")
+	for i := 0; i < 120 && trayHwnd.Load() == 0; i++ {
+		time.Sleep(500 * time.Millisecond)
+	}
+	trayAvviso("Tasso", "Il file delle impostazioni di Tasso era stato cambiato da un altro programma: per sicurezza riparto dalle impostazioni di base. Controlla le tue scelte in Tasso.", false)
 }
