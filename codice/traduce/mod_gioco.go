@@ -491,6 +491,14 @@ func TogliModGioco(dirApp, chiave string) error {
 			}
 			_ = os.MkdirAll(filepath.Dir(a), 0o755)
 			if os.Rename(da, a) != nil {
+				if v.Type()&(os.ModeSymlink|os.ModeIrregular) != 0 {
+					// R7: il plugin è un collegamento (o una giunzione) e il gioco è su un altro disco:
+					// non lo seguo e non lo copio. Il file vero sta altrove e non si tocca; scrivo dove
+					// porta il collegamento, così l'utente lo può rifare. Riprovare non servirebbe.
+					dest, _ := os.Readlink(da)
+					annotaCollegamentoPlugin(filepath.Join(copie, "plugin-utente"), filepath.Join(sub, n), dest)
+					continue
+				}
 				// altro disco (gioco su D:, Tasso su C:): copio, e se non riesco non tolgo niente
 				var err error
 				if v.IsDir() {
@@ -565,6 +573,21 @@ func TogliModGioco(dirApp, chiave string) error {
 	_ = os.Remove(filepath.Join(copie, "manifesto.json"))
 	_ = os.RemoveAll(filepath.Join(copie, "originali"))
 	return nil
+}
+
+// annotaCollegamentoPlugin: in plugin-utente\collegamenti.txt scrive "plugins\X -> dove porta": un
+// plugin dell'utente che era solo un collegamento (il file vero resta dov'era).
+func annotaCollegamentoPlugin(dir, nome, dest string) {
+	if !senzaLink(dir, "collegamenti.txt") {
+		return
+	}
+	_ = os.MkdirAll(dir, 0o755)
+	f, err := os.OpenFile(filepath.Join(dir, "collegamenti.txt"), os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0o644)
+	if err != nil {
+		return
+	}
+	defer f.Close()
+	_, _ = f.WriteString(nome + " -> " + dest + "\r\n")
 }
 
 // ErrOriginaliDaControllare: la traduzione è stata tolta, ma questi file non li ho rimessi (o tolti)

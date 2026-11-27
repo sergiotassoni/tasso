@@ -181,3 +181,46 @@ func TestAggiuntoDietroCollegamento(t *testing.T) {
 		t.Fatalf("messaggio o rimozione sbagliati: %s", err)
 	}
 }
+
+// R7: un plugin dell'utente in BepInEx\plugins che è un collegamento, con il gioco su un altro
+// disco (Rename non va): non lo copio e non mi fermo con "in uso" (riprovare non servirebbe); dove
+// portava resta scritto in plugin-utente\collegamenti.txt e il file vero non si tocca.
+func TestPluginCollegamentoAltroDisco(t *testing.T) {
+	shm, err := os.MkdirTemp("/dev/shm", "tasso-r7-")
+	if err != nil {
+		t.Skip("nessun secondo disco per la prova:", err)
+	}
+	defer os.RemoveAll(shm)
+	app := t.TempDir() // copie su / (disco di sistema)
+	gioco := filepath.Join(shm, "Gioco")
+	for p, s := range map[string]string{"Gioco.exe": "exe", "GameAssembly.dll": "dll", filepath.Join("Gioco_Data", "x"): "x", "winhttp.dll": "doorstop"} {
+		_ = os.MkdirAll(filepath.Dir(filepath.Join(gioco, p)), 0o755)
+		_ = os.WriteFile(filepath.Join(gioco, p), []byte(s), 0o644)
+	}
+	vero := filepath.Join(shm, "MioPlugin.dll")
+	_ = os.WriteFile(vero, []byte("mio"), 0o644)
+	_ = os.MkdirAll(filepath.Join(gioco, "BepInEx", "plugins"), 0o755)
+	if err := os.Symlink(vero, filepath.Join(gioco, "BepInEx", "plugins", "MioPlugin.dll")); err != nil {
+		t.Skip(err)
+	}
+	if os.Rename(filepath.Join(gioco, "winhttp.dll"), filepath.Join(app, "prova-rename")) == nil {
+		t.Skip("stesso disco: la prova non vale")
+	}
+	m := ManifestoMod{Gioco: "Gioco", Cartella: gioco, Tipo: "il2cpp", Exe: "Gioco.exe", Aggiunti: []string{"winhttp.dll", "BepInEx"}}
+	if err := scriviManifesto(app, "g", m); err != nil {
+		t.Fatal(err)
+	}
+	if err := TogliModGioco(app, "g"); err != nil {
+		t.Fatalf("doveva togliere la traduzione senza fermarsi: %v", err)
+	}
+	if esisteVoce(filepath.Join(gioco, "BepInEx")) {
+		t.Fatal("BepInEx non tolta")
+	}
+	if b, err := os.ReadFile(vero); err != nil || string(b) != "mio" {
+		t.Fatal("toccato il file vero del plugin")
+	}
+	b, _ := os.ReadFile(filepath.Join(cartellaCopie(app, "g"), "plugin-utente", "collegamenti.txt"))
+	if !strings.Contains(string(b), "MioPlugin.dll -> "+vero) {
+		t.Fatalf("collegamento non annotato: %q", b)
+	}
+}
