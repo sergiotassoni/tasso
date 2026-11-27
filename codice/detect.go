@@ -74,8 +74,11 @@ try {
 } catch { Salta }
 try {
   $wi = (netsh.exe wlan show interfaces 2>$null) -join [char]10
-  # Il segnale è l'unica riga di netsh con un "%": così vale in ogni lingua di Windows (Signal, Segnale, Señal, Sinal...).
-  if ($wi -match '(?m)^\s*[^:\r\n]+:\s*(\d+)\s*%' -and [int]$Matches[1] -lt 40) { F 'of_net_slow' 'c' ('Il segnale del Wi-Fi è debole (' + $Matches[1] + '%): internet può essere lento o staccarsi.') }
+  # Il segnale è la riga di netsh che ha come valore solo un numero e "%": così vale in ogni lingua di Windows
+  # (Signal, Segnale, Señal, Sinal...). Le righe SSID/BSSID non contano: il nome della rete può finire con "5%".
+  $sig = $null
+  foreach ($ln in ($wi -split [char]10)) { if ($ln -match '^\s*([^:]+?)\s*:\s*(\d+)\s*%\s*$' -and $Matches[1] -notmatch 'SSID') { $sig = [int]$Matches[2]; break } }
+  if ($null -ne $sig -and $sig -lt 40) { F 'of_net_slow' 'c' ('Il segnale del Wi-Fi è debole (' + $sig + '%): internet può essere lento o staccarsi.') }
   $since = (Get-Date).AddDays(-3)
   # Conto solo i distacchi "strani": non quelli vicini a sospensione, riavvio o spegnimento.
   $pw = @(Get-WinEvent -FilterHashtable @{ LogName = 'System'; Id = 42, 107, 506, 507, 1074, 6006, 6008; StartTime = $since } -MaxEvents 500 -ErrorAction SilentlyContinue | ForEach-Object { $_.TimeCreated })

@@ -1423,7 +1423,7 @@ body.th-tasso:not(.office) .aa-passi li::before{background:var(--text);color:var
       </div>
       <button role="switch" aria-checked="false" class="toggle" id="tgStats" style="display:none"><span><b>📊 Aiuta a migliorare Tasso</b><span>Manda numeri anonimi: versione, Windows, marca di processore e scheda video, RAM, spazio liberato, pulsanti usati, errori. Niente nome, niente file.</span></span><span class="sw"><i></i></span></button>
       <div class="small" id="statsWhatRow" style="display:none;padding:10px 0;border-bottom:1px solid var(--line)"><a href="#" id="lnkStatsWhat">📄 Cosa manda Tasso, nel dettaglio</a></div>
-      <button role="switch" aria-checked="false" class="toggle" id="tgAlerts"><span><b>Avvisi intelligenti</b><span>Piccoli avvisi in basso a destra (disco quasi pieno, nuovo programma all'avvio). <span class="gm">Mentre giochi (Boost acceso o gioco aperto) arrivano solo quelli di temperatura e salute dei dischi.</span></span></span><span class="sw"><i></i></span></button>
+      <button role="switch" aria-checked="false" class="toggle" id="tgAlerts"><span><b>Avvisi intelligenti</b><span>Piccoli avvisi in basso a destra (disco quasi pieno, nuovo programma all'avvio). <span class="gm">Mentre giochi con il Boost (acceso a mano o automatico) arrivano solo quelli di temperatura e salute dei dischi.</span></span></span><span class="sw"><i></i></span></button>
       <div style="padding:15px 0;border-bottom:1px solid var(--line)"><b style="font-size:15px">Modalità di Tasso</b><br><span class="small muted">Gaming: pulizia, riparazioni e strumenti di tutti i giorni, più giochi, Boost, FPS e ping. Ufficio: più semplice e tranquilla, con i problemi del lavoro (Word, Outlook, Teams) e la Modalità riunione. Cambia solo cosa vedi, non il PC.</span><div class="row wrap" style="gap:8px;margin-top:10px" id="profBtns"></div></div>
       <div style="padding:15px 0;border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:10px" id="undoBox">
         <span><b style="font-size:15px">↩️ Torna indietro</b><br><span class="small muted">Tutto quello che Tasso ha cambiato, una cosa per riga. Le modifiche <b>restano anche se spegni o riavvii il PC</b>: tornano com'erano solo se premi tu "Rimetti". Prima di cambiare qualcosa la prima volta, Tasso si salva com'era.</span></span>
@@ -2328,7 +2328,7 @@ function paintLive(){
   if (alertOn('ram') && !ramAlerted && ramPct >= 92) { if (isOffice() ? alertSmart(_t('Memoria quasi piena (') + Math.round(ramPct) + _t('%). Chiudi i programmi che non usi.')) : alertSmart(_t('Memoria quasi piena (') + Math.round(ramPct) + _t('%). Chiudi i programmi che non usi, o usa il Boost prima di giocare.'), {label:'Boost', fn: () => show('games')})) { ramAlerted = true; setTimeout(() => { ramAlerted = false; }, 120000); } }
 }
 // sempre = true: temperatura e salute dei dischi passano anche mentre giochi.
-// Gli altri tacciono solo mentre giochi (Boost acceso o gioco aperto), non per la modalità salvata.
+// Gli altri tacciono solo mentre giochi con il Boost (acceso a mano o automatico), non per la modalità salvata.
 function alertSmart(text, action, sempre){
   if (S.paused || S.smartAlerts === false) return false;
   if (!sempre && (BST.on || BST.game)) return false;
@@ -3051,6 +3051,8 @@ $('#tgTray').onclick = async () => { const on = !!S.noCloseToTray; const r = awa
 const WK_DAYS = [_t('domenica'),_t('lunedì'),_t('martedì'),_t('mercoledì'),_t('giovedì'),_t('venerdì'),_t('sabato')];
 function wkPlan(){ const d = (S.weeklyDay >= 0 && S.weeklyDay <= 6) ? S.weeklyDay : 0, h = (S.weeklyHour >= 1 && S.weeklyHour <= 23) ? S.weeklyHour : 20, l = (S.weeklyLevel >= 1 && S.weeklyLevel <= 5) ? S.weeklyLevel : 2, e = S.weeklyEvery === 2 ? 2 : 1; return {d, h, l, e}; }
 function wkText(){ const p = wkPlan(); return _t('Pulizia ') + LEVELS[p.l - 1].name + (p.e === 2 ? _t(' un ') + WK_DAYS[p.d] + _t(' sì e uno no') : _t(' ogni ') + WK_DAYS[p.d]) + _t(' alle ') + String(p.h).padStart(2, '0') + ':00'; }
+// Solo livello, giorno e ora (per le frasi che dicono già "Pulizia programmata").
+function wkQuando(){ const p = wkPlan(); return LEVELS[p.l - 1].name + (p.e === 2 ? _t(' un ') + WK_DAYS[p.d] + _t(' sì e uno no') : _t(' ogni ') + WK_DAYS[p.d]) + _t(' alle ') + String(p.h).padStart(2, '0') + ':00'; }
 function paintWeekly(){
   const p = wkPlan();
   // Gli stessi tempi delle schede dei livelli (calcolati dai passaggi), non numeri scritti a mano.
@@ -3126,7 +3128,7 @@ function paintWelcome(){
   });
   $('#btnWelcome').textContent = _t('Continua con ') + PROFILES.find(p => p.id === chosen).name + '  →';
   // Cosa cambia sul PC con la scelta, detto prima di premere Continua.
-  $('#profNote').textContent = chosen === 'ufficio' ? _t('Con Ufficio accendo la Pulizia programmata: Normale, ogni domenica alle 20, senza riavviare il PC. La cambi o la spegni in Pulisci.') : _t('Il PC resta com\'è: piano energetico e notifiche di Windows non cambiano. Il Boost mette il PC al massimo solo mentre giochi.');
+  $('#profNote').textContent = chosen === 'ufficio' ? _t('Con Ufficio accendo la Pulizia programmata: {0}. La cambi o la spegni in Pulisci.').replace('{0}', wkQuando()) : _t('Il PC resta com\'è: piano energetico e notifiche di Windows non cambiano. Il Boost mette il PC al massimo solo mentre giochi.');
   $$('#profCards .offart').forEach(x => { x.innerHTML = OFF_ART; });
 }
 $('#btnWelcome').onclick = async () => { const wb = $('#btnWelcome'); if (wb.disabled) return; wb.disabled = true; const r = await callBg('goSetProfile', chosen); wb.disabled = false; if (r !== 'ok') { toast(typeof r === 'string' && r ? r : _t('Non sono riuscito a salvare la scelta: riprova.'), 'var(--a4)'); return; } $('#welcome').classList.remove('on'); await refreshS(); applyLook(); repaintLook(); toast(chosen === 'ufficio' ? _t('Fatto! Tasso è pronto per il lavoro.') : _t('Fatto! Tasso è configurato per te.')); setTimeout(statsAsk, 4000); setTimeout(async () => { await refreshS(); paintModes(); paintSettings(); }, 3000); };
@@ -3387,16 +3389,6 @@ $('#btnUpdCheck').onclick = updCheck;
 // è accorciato da winget (…) o ha caratteri che non si possono passare a winget.
 function updKey(x){ if (!x) return ''; if (x.id) return x.id; const n = String(x.name || '').trim(); return (n && n.length <= 200 && !/[\u2026"\r\n]/.test(n)) ? 'n:' + n : ''; }
 const UPD_LAVORO = /\b(office|microsoft 365|teams|outlook|onedrive|skype for business|vpn|forticlient|globalprotect|anyconnect|citrix|vmware horizon|webex|sap)\b/i;
-// "Aggiorna tutti": chiede prima, e aggiorna solo quelli con la spunta (in Ufficio mai Office e i programmi del lavoro).
-function updAll(){
-  const sel = $$('#updList input[data-upd]').filter(x => x.checked && x.dataset.upd && !(isOffice() && x.dataset.lavoro));
-  if (!sel.length) { toast(_t('Non hai selezionato niente.'), 'var(--a4)'); return; }
-  const nomi = sel.map(x => { const b = x.closest('label').querySelector('.x b'); return b ? b.textContent : x.dataset.upd; });
-  const fuori = $$('#updList input[data-upd]').filter(x => x.dataset.upd && !sel.includes(x)).length;
-  modal('<h2>' + esc(_t('Aggiorno tutti i programmi con la spunta?')) + '</h2><p class="muted" style="margin:0">' + esc(nomi.join(', ')) + '</p>' +
-    (fuori ? '<div class="note">' + esc(_t('Quelli senza spunta restano come sono.')) + (isOffice() ? ' ' + esc(_t('Office e i programmi del lavoro restano fuori: se il PC è dell\'ufficio, chiedi prima all\'assistenza.')) : '') + '</div>' : ''),
-    [{label:_t('Annulla')}, {label:_t('Sì, aggiorna'), cls:'primary', fn: () => { updApply(sel.map(x => x.dataset.upd)); }}]);
-}
 $('#btnUpdSel').onclick = () => { const ids = $$('#updList input[data-upd]').filter(x => x.checked && x.dataset.upd).map(x => x.dataset.upd); if (!ids.length) { toast(_t('Non hai selezionato niente.'), 'var(--a4)'); return; } updApply(ids); };
 const PREGIONS = [['eu',_t('Europa')],['na',_t('Nord America')],['sa',_t('Sud America')],['asia',_t('Asia e Oceania')]];
 let PREG = null;
@@ -3465,14 +3457,13 @@ Object.assign(window.tasso, {
     $('#updCount').textContent = it.length ? '(' + it.length + ')' : '';
     $('#updMsg').textContent = it.length ? _t('Ci sono versioni nuove: spunta quelle da installare.') : _t('Tutti i programmi sono aggiornati. 👍');
     if (!it.length) box.innerHTML = _t('<div class="li"><span class="muted">Niente da aggiornare.</span></div>');
-    // Ogni programma si aggiorna da solo: con il suo id di winget, o con il nome esatto se winget non dà l'id
-    // (niente più "winget upgrade --all", che aggiornava anche quelli senza spunta).
+    // Un solo pulsante, "Aggiorna i selezionati": ogni programma con la spunta si aggiorna da solo, con il suo
+    // id di winget o con il nome esatto se winget non dà l'id (niente più "winget upgrade --all").
     // In Ufficio Office e i programmi del lavoro partono senza spunta: di solito li aggiorna l'assistenza.
     it.forEach(x => {
       const key = updKey(x), can = !!key, lavoro = isOffice() && UPD_LAVORO.test(x.name + ' ' + (x.id || ''));
       box.appendChild(el('label', {class:'li check'}, '<input type="checkbox" data-upd="' + esc(key) + '"' + (lavoro ? ' data-lavoro="1"' : '') + (can ? (lavoro ? '' : ' checked') : ' disabled') + '>' + picHTML(x.id ? 'u:' + x.id : 'u:n:' + x.name, x.name) + '<span class="x"><b>' + esc(x.name) + '</b><span>' + esc(x.ver) + ' → <b style="color:var(--a1t)">' + esc(x.avail) + '</b>' + (!can ? _t(' · da qui non si aggiorna: aggiornalo dal programma stesso') : lavoro ? _t(' · programma del lavoro: di solito lo aggiorna l\'assistenza') : '') + '</span></span>'));
     });
-    if (it.filter(updKey).length >= 2) { const b = el('button', {class:'btn ghost', style:'align-self:flex-start;margin-top:8px'}, _t('Aggiorna tutti')); b.onclick = updAll; box.appendChild(b); }
     $('#btnUpdSel').disabled = !it.some(updKey);
   },
   onUpdatesDone(r){ (r.msgs || []).slice(-3).forEach(m => toast(m, 'var(--a3)')); },
@@ -3599,7 +3590,10 @@ const GM_ALIAS = {
   of_links: [null, _t('Controlla il browser predefinito, il problema più comune quando i link nelle email o nei programmi non si aprono o non fanno niente. Ti apre la pagina giusta per sceglierlo di nuovo (Windows non lascia farlo ai programmi). Controlla e spiega.')],
   of_static_ip: [null, _t('Se la scheda di rete ha un indirizzo o un DNS messi a mano (di un\'altra rete) e qui non funzionano, li rimette automatici. Salva prima i valori vecchi in un file, per rimetterli quando ti servono.')],
   of_screen_off: [null, _t('Se lo schermo si spegne o chiede la password dopo 1-2 minuti, porta l\'attesa a 10 minuti con la corrente e 5 a batteria. Ti dice anche se è un\'impostazione bloccata sul PC a deciderlo.')],
-  of_win_key: [null, _t('Controlla se il tasto Windows è bloccato da un\'impostazione e lo sblocca (se non è bloccata sul PC), con copia di sicurezza. Ti dice anche il blocco "Gaming" che hanno molte tastiere.')],
+  of_win_key: [null, _t('Controlla se il tasto Windows è bloccato da un\'impostazione e lo sblocca (se l\'impostazione non è bloccata sul PC), con copia di sicurezza. Ti dice anche il blocco "Gaming" che hanno molte tastiere.')],
+  of_cam_busy: [null, _t('Ti dice quale programma sta usando adesso la webcam o il microfono (Discord, il browser, un\'app di chiamata...), così sai cosa chiudere. Controlla e spiega.')],
+  of_sound_comm: [null, _t('Dice a Windows di non abbassare più musica, giochi e altri suoni quando sei in chiamata, per esempio su Discord. Puoi tornare indietro.')],
+  of_time: [null, _t('Rimette l\'ora giusta da internet. Con l\'ora sbagliata i siti dicono "connessione non privata" e giochi e programmi online possono non collegarsi.')],
   of_meet_speaker: [_t('Non sento gli altri nelle chiamate'), null],
   of_hosts: [_t('Un sito è bloccato senza motivo'), null],
   of_new_call: [_t('Prova microfono e cuffie'), _t('Prima di una chat vocale o di una diretta: prova in pochi secondi microfono, cuffie, webcam e internet. Se qualcosa non va, ti propone la riparazione con un pulsante.')],
@@ -4366,7 +4360,15 @@ function selfUpd(){
 $('#btnUpdNow').onclick = selfUpd;
 $('#lnkUpdZip').onclick = (e) => { e.preventDefault(); call('goOpenURL', UPD_URL || 'https://github.com/sergiotassoni/tasso/raw/main/Tasso.zip'); };
 // Prima apertura dopo l'installatore con Ufficio: la pulizia programmata si è accesa senza la schermata di scelta, lo dico.
-window.tasso.onPuliziaAccesa = () => { toast(_t('Ho acceso la Pulizia programmata: Normale, ogni domenica alle 20, senza riavviare il PC. La cambi o la spegni in Pulisci.'), 'var(--a3)', {label:_t('Vedi'), fn: () => show('clean')}); };
+let PULIZIA_DETTA = false;
+async function puliziaAccesa(){
+  if (PULIZIA_DETTA) return; PULIZIA_DETTA = true;
+  await refreshS(); // il testo con giorno, ora e livello veri delle impostazioni
+  toast(_t('Ho acceso la Pulizia programmata: {0}. La cambi o la spegni in Pulisci.').replace('{0}', wkQuando()), 'var(--a3)', {label:_t('Vedi'), fn: () => show('clean')});
+  call('goPuliziaDetta');
+}
+window.tasso.onPuliziaAccesa = puliziaAccesa;
+if (S.puliziaDaDire) setTimeout(puliziaAccesa, 1500); // non detto la volta scorsa (pagina non pronta o Tasso chiuso prima)
 // Tasso.exe --controlla-aggiornamenti (da Tasso Zip o Tasso PDF): apro Aggiornamenti e controllo.
 window.tasso.onControllaAgg = () => { goUpdCard(); if (!UPD_SELF) $('#btnUpd').click(); };
 if (BOOT.controllaAgg) setTimeout(() => window.tasso.onControllaAgg(), 1200);
@@ -5555,6 +5557,7 @@ Object.assign(window.tasso, { onPwned(r){
 }});
 
 document.addEventListener('contextmenu', e => e.preventDefault());
+call('goPaginaPronta'); // Go aspetta questo per gli avvisi che non devono perdersi (pulizia accesa dall'installatore)
 })();
 
 // Sicurezza: un file trascinato nella finestra non deve aprirsi al posto di Tasso (la finestra gira da amministratore).

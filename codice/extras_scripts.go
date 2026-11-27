@@ -129,7 +129,8 @@ try {
   $b = $iw | Select-String -Pattern '^\s*(Band|Banda)\s*:\s*(.+)$' | Select-Object -First 1; if ($b) { $band = $b.Matches[0].Groups[2].Value.Trim() }
   if (-not $band) { $r = $iw | Select-String -Pattern '^\s*(Radio type|Tipo radio)\s*:\s*(.+)$' | Select-Object -First 1; if ($r) { $band = $r.Matches[0].Groups[2].Value.Trim() } }
   if (-not $band -or $band -match '802') { $c = $iw | Select-String -Pattern '^\s*(Channel|Canale|Kanal|Canal)\s*:\s*(\d+)' | Select-Object -First 1; if ($c) { $band = $(if ([int]$c.Matches[0].Groups[2].Value -le 14) { '2.4 GHz' } else { '5 GHz' }) } }
-  $g = $iw | Select-String -Pattern '^\s*[^:]+:\s*(\d+)\s*%' | Select-Object -First 1; if ($g) { $signal = [int]$g.Matches[0].Groups[1].Value } # unica riga con "%", in ogni lingua
+  # segnale: la riga che ha come valore solo un numero e "%" (in ogni lingua), mai SSID/BSSID (il nome della rete)
+  foreach ($ln in @($iw)) { if ([string]$ln -match '^\s*([^:]+?)\s*:\s*(\d+)\s*%\s*$' -and $Matches[1] -notmatch 'SSID') { $signal = [int]$Matches[2]; break } }
 } catch {}
 if ($ssid) { $locOff = $false }
 # Reti a 5 GHz visibili adesso (solo i nomi, per consigliare quella più veloce).

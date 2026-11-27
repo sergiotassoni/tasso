@@ -10,6 +10,7 @@ import (
 	"runtime/debug"
 	"strconv"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"time"
 	"unsafe"
@@ -278,7 +279,14 @@ func main() {
 				wk := settings.Weekly
 				setMu.Unlock()
 				if profiloInstallatore != "gioco" && wk {
-					emit("onPuliziaAccesa", nil) // la pagina dice che la pulizia programmata si è accesa
+					// Lo segno nelle impostazioni (si toglie quando la pagina l'ha mostrato, goPuliziaDetta):
+					// se la pagina non è ancora pronta o Tasso si chiude prima, lo dice alla prossima apertura.
+					updateSettings(func(s *Settings) { s.PuliziaDaDire = true })
+					select {
+					case <-paginaPronta:
+						emit("onPuliziaAccesa", nil)
+					case <-time.After(5 * time.Minute):
+					}
 				}
 			} else {
 				lookChanged(officeMode()) // come il menu delle modalità (Boost, autoclick, pannellino)
@@ -553,8 +561,17 @@ func openPath(p string, args string) bool {
 	return windows.ShellExecute(0, verb, target, a, nil, windows.SW_SHOWNORMAL) == nil
 }
 
+// paginaPronta si chiude quando la pagina ha finito di partire (goPaginaPronta): gli avvisi che non
+// devono perdersi aspettano questo, non un ritardo fisso.
+var (
+	paginaPronta     = make(chan struct{})
+	paginaProntaOnce sync.Once
+)
+
 func bindAll(w webview2.WebView) {
 	bindAiutoAmico(w)
+	_ = w.Bind("goPaginaPronta", func() string { paginaProntaOnce.Do(func() { close(paginaPronta) }); return "ok" })
+	_ = w.Bind("goPuliziaDetta", func() string { updateSettings(func(s *Settings) { s.PuliziaDaDire = false }); return "ok" })
 	_ = w.Bind("goGetSettings", func() map[string]interface{} { return getSettings() })
 	_ = w.Bind("goSetProfile", func(id, p string) string { return bgCall("sched", id, func() string { return setProfile(p) }) })
 	_ = w.Bind("goSetLook", func(p string) string {

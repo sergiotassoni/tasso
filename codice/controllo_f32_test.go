@@ -7,13 +7,12 @@ import (
 	"testing"
 )
 
-// A1 + X3: la prima scelta della modalità di Tasso (anche dall'installatore) non mette mai il PC in
-// Gaming o FPS per sempre: con Gaming resta in Normale (piano energetico e notifiche come prima), e chi
-// ha già un'altra modalità del PC non viene toccato.
+// A1 + X3 + V1: la prima scelta della modalità di Tasso (anche dall'installatore) con Gaming non
+// tocca il PC per niente: niente Gaming o FPS per sempre e nemmeno lo script Normale.
 func TestPrimoAvvioMaiGaming(t *testing.T) {
 	casi := []struct{ profilo, prima, vuoi string }{
-		{"gioco", "", "normale"},
-		{"gioco", "normale", "normale"},
+		{"gioco", "", ""},
+		{"gioco", "normale", ""},
 		{"gioco", "gaming", ""},
 		{"gioco", "fps", ""},
 		{"gioco", "film", ""},
@@ -96,13 +95,25 @@ func TestConfrontiNonTradotti(t *testing.T) {
 	}
 }
 
-// B11: il segnale del Wi-Fi si legge in ogni lingua di Windows (prima solo "Segnale" e "Signal").
+// B11 + N5: il segnale del Wi-Fi si legge in ogni lingua di Windows (prima solo "Segnale" e "Signal"),
+// solo dalla riga giusta: mai dal nome della rete (SSID), anche se finisce con "5%".
 func TestSegnaleWifiOgniLingua(t *testing.T) {
-	m := regexp.MustCompile(`\$wi -match '([^']+)' -and \[int\]\$Matches\[1\] -lt 40`).FindStringSubmatch(detectScript)
-	if m == nil {
+	const rx = `'^\s*([^:]+?)\s*:\s*(\d+)\s*%\s*$' -and $Matches[1] -notmatch 'SSID'`
+	if !strings.Contains(detectScript, "$ln -match "+rx) || !strings.Contains(detectScript, "$sig -lt 40") {
 		t.Fatal("controllo del segnale non trovato in detectScript (o soglia diversa da 40)")
 	}
-	re := regexp.MustCompile(m[1])
+	if !strings.Contains(netUsageScript, "[string]$ln -match "+rx) {
+		t.Error("Internet (netUsageScript) deve leggere il segnale allo stesso modo")
+	}
+	re := regexp.MustCompile(`^\s*([^:]+?)\s*:\s*(\d+)\s*%\s*$`)
+	leggi := func(out string) string {
+		for _, ln := range strings.Split(out, "\n") {
+			if m := re.FindStringSubmatch(strings.TrimRight(ln, "\r")); m != nil && !strings.Contains(strings.ToUpper(m[1]), "SSID") {
+				return m[2]
+			}
+		}
+		return ""
+	}
 	for _, out := range []string{
 		"    Nome                   : Wi-Fi\n    SSID                   : Casa\n    Segnale                : 35%\n",
 		"    Name                   : Wi-Fi\n    Receive rate (Mbps)    : 144\n    Signal                 : 35%\n",
@@ -110,13 +121,10 @@ func TestSegnaleWifiOgniLingua(t *testing.T) {
 		"    Nom                    : Wi-Fi\n    Signal                 : 35 %\n",
 		"    Name                   : WLAN\n    Signal                 : 35%\n",
 		"    Nome                   : Wi-Fi\n    Sinal                  : 35%\n",
+		"    SSID                   : Casa 5%\n    BSSID                  : 5%\n    Signal                 : 35%\n    Profile                : Casa 5%\n",
 	} {
-		s := re.FindStringSubmatch(strings.ReplaceAll(out, "\n", "\r\n"))
-		if s == nil || s[1] != "35" {
-			t.Errorf("segnale non letto in:\n%s", out)
+		if g := leggi(strings.ReplaceAll(out, "\n", "\r\n")); g != "35" {
+			t.Errorf("segnale letto %q invece di 35 in:\n%s", g, out)
 		}
-	}
-	if !strings.Contains(netUsageScript, `Select-String -Pattern '^\s*[^:]+:\s*(\d+)\s*%'`) {
-		t.Error("Internet (netUsageScript) deve leggere il segnale allo stesso modo")
 	}
 }

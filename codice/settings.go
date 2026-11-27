@@ -26,29 +26,30 @@ type LastClean struct {
 }
 
 type Settings struct {
-	Onboarded    bool          `json:"onboarded"`
-	Profile      string        `json:"profile"`
-	Mode         string        `json:"mode"`
-	Theme        string        `json:"theme"`
-	Lang         string        `json:"lang,omitempty"`        // "it", "en", "es", "fr" o "de": lingua di Tasso
-	ThemeOffice  string        `json:"themeOffice,omitempty"` // tema scelto nella modalità Ufficio (2.6)
-	Autostart    bool          `json:"autostart"`
-	Weekly       bool          `json:"weekly"`
-	WeeklyDay    int           `json:"weeklyDay"`
-	WeeklyHour   int           `json:"weeklyHour,omitempty"`
-	WeeklyLevel  int           `json:"weeklyLevel,omitempty"`
-	WeeklyEvery  int           `json:"weeklyEvery,omitempty"`
-	Bench        []benchResult `json:"bench,omitempty"`
-	BenchAround  bool          `json:"benchAround,omitempty"`
-	LevelsV      int           `json:"levelsV,omitempty"` // 5 = livelli della 2.5 (Classica ... Eccezionale)
-	SmartAlerts  *bool         `json:"smartAlerts"`
-	LastClean    *LastClean    `json:"lastClean"`
-	KnownStartup []string      `json:"knownStartup"`
-	Paused       bool          `json:"paused"`
-	PrevAuto     bool          `json:"prevAutostart"`
-	PrevWeekly   bool          `json:"prevWeekly"`
-	AutoGame     bool          `json:"autoGame"`
-	AutoGameTune bool          `json:"autoGameTune,omitempty"` // accesa da "Regola con Tasso", non da te
+	Onboarded     bool          `json:"onboarded"`
+	Profile       string        `json:"profile"`
+	Mode          string        `json:"mode"`
+	Theme         string        `json:"theme"`
+	Lang          string        `json:"lang,omitempty"`        // "it", "en", "es", "fr" o "de": lingua di Tasso
+	ThemeOffice   string        `json:"themeOffice,omitempty"` // tema scelto nella modalità Ufficio (2.6)
+	Autostart     bool          `json:"autostart"`
+	Weekly        bool          `json:"weekly"`
+	PuliziaDaDire bool          `json:"puliziaDaDire,omitempty"` // pulizia programmata accesa dall'installatore: la pagina lo deve ancora dire
+	WeeklyDay     int           `json:"weeklyDay"`
+	WeeklyHour    int           `json:"weeklyHour,omitempty"`
+	WeeklyLevel   int           `json:"weeklyLevel,omitempty"`
+	WeeklyEvery   int           `json:"weeklyEvery,omitempty"`
+	Bench         []benchResult `json:"bench,omitempty"`
+	BenchAround   bool          `json:"benchAround,omitempty"`
+	LevelsV       int           `json:"levelsV,omitempty"` // 5 = livelli della 2.5 (Classica ... Eccezionale)
+	SmartAlerts   *bool         `json:"smartAlerts"`
+	LastClean     *LastClean    `json:"lastClean"`
+	KnownStartup  []string      `json:"knownStartup"`
+	Paused        bool          `json:"paused"`
+	PrevAuto      bool          `json:"prevAutostart"`
+	PrevWeekly    bool          `json:"prevWeekly"`
+	AutoGame      bool          `json:"autoGame"`
+	AutoGameTune  bool          `json:"autoGameTune,omitempty"` // accesa da "Regola con Tasso", non da te
 	// 3.2: sfondo del desktop abbinato al tema (sfondo_desktop.go). SfondoMio*: lo sfondo di
 	// Windows com'era prima che Tasso mettesse il suo (per "Rimetti il mio"); SfondoMioOk dice
 	// che è stato salvato (SfondoMio "" = nessuna immagine, solo il colore).
@@ -465,9 +466,9 @@ func setProfile(p string) string {
 
 // profiloPC: la parte di setProfile che regola il PC (modalità e pulizia settimanale). La usa
 // anche la prima apertura dopo l'installatore, che la scelta l'ha già fatta (ecosistema.go).
-// La modalità di Tasso cambia solo cosa vedi: anche con Gaming il PC resta in Normale (piano
-// energetico normale, notifiche di Windows accese). Gaming e FPS li mette il Boost, solo mentre giochi.
-// In Ufficio la pulizia programmata si accende, e la pagina lo dice (prima apertura e installatore).
+// La modalità di Tasso cambia solo cosa vedi: con Gaming il PC non si tocca per niente (piano
+// energetico, risparmio energia di Windows 11 e notifiche restano come sono). Gaming e FPS li mette
+// il Boost, solo mentre giochi. In Ufficio la pulizia programmata si accende, e la pagina lo dice.
 func profiloPC(p string) {
 	setMu.Lock()
 	prima := settings.Mode
@@ -484,15 +485,10 @@ func profiloPC(p string) {
 }
 
 // modoPrimoAvvio: la modalità del PC da mettere alla prima scelta del profilo ("" = non toccare).
-// Mai Gaming o FPS per sempre. Con Gaming, chi ha già scelto un'altra modalità del PC (Gaming,
-// FPS, Film, Silenzioso, impostazioni originali...) non viene toccato.
+// Gaming: mai niente (nemmeno lo script Normale, che rimetterebbe la modalità risparmio energia
+// di Windows 11 su Bilanciato). Ufficio: Normale, come prima.
 func modoPrimoAvvio(profilo, modoAttuale string) string {
 	switch profilo {
-	case "gioco":
-		if modoAttuale == "" || modoAttuale == "normale" {
-			return "normale"
-		}
-		return ""
 	case "ufficio", "entrambi":
 		return "normale"
 	}
