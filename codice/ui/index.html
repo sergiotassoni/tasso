@@ -692,6 +692,7 @@ body.th-neonrgb .gmask .eye{filter:drop-shadow(0 0 8px rgba(199,125,255,.55))}
 body.th-tasso:not(.office) .aa-passi li::before{background:var(--text);color:var(--bg)}
 .aa-passi p{margin:0;font-size:16px;line-height:1.55}
 .aa-passi svg{display:block;width:190px;height:auto;flex:none}
+.aa-fig2{display:flex;flex-direction:column;align-items:center;gap:6px;flex:none}.aa-fig2 span{font-size:13px;font-weight:700;color:var(--a4);text-align:center;max-width:190px}
 .aa-cod{font-family:var(--mono);font-weight:700;letter-spacing:.12em;padding:1px 8px;border-radius:7px;background:var(--panel2);border:1px solid var(--line)}
 .aa-apri{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
 .aa-apri .btn{font-size:16px;min-height:52px;padding:12px 26px}
@@ -1018,7 +1019,7 @@ body.th-tasso:not(.office) .aa-passi li::before{background:var(--text);color:var
     <div class="card fixcard om" style="--c:var(--a1)"><span class="big"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V3h12v6M6 18H4a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="7" rx="1"/></svg></span><h3>La stampante non stampa</h3><p class="sub" style="margin:0">Riavvia il servizio di stampa e svuota la coda bloccata. È la causa più comune quando non esce niente.</p><button class="btn primary" data-step="fix_print" style="margin-top:auto">Risolvi</button></div>
     <div class="card fixcard" style="--c:var(--a2)"><span class="big"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l1.5-5h15L21 9M3 9h18M3 9v9a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V9M9 13h6"/></svg></span><h3>Lo Store e le app non si aprono</h3><p class="sub" style="margin:0">Svuota la cache del Microsoft Store e ricontrolla le app di Windows quando restano bianche o non si aggiornano.</p><button class="btn primary" data-step="fix_store" style="margin-top:auto">Risolvi</button></div>
     <div class="card fixcard" style="--c:var(--a3)"><span class="big"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg></span><h3>Ricerca e menu Start bloccati</h3><p class="sub" style="margin:0">Riavvia la ricerca di Windows e il menu Start quando non rispondono o non trovano i programmi.</p><button class="btn primary" data-step="fix_search" style="margin-top:auto">Risolvi</button></div>
-    <div class="card fixcard" style="--c:var(--a1)"><span class="big"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="7" r="3"/><circle cx="17" cy="9" r="2.5"/><path d="M2 20c0-3.3 2.7-6 6-6s6 2.7 6 6M14 15.5c.9-.6 1.9-1 3-1 2.8 0 5 2.2 5 5"/></svg></span><h3>Fai aiutare un amico</h3><p class="sub" style="margin:0">Un amico vede il tuo schermo da lontano e ti aiuta. Si usa Assistenza rapida, un programma gratuito di Windows. Spiegato passo passo.</p><button class="btn primary" data-go2="aiuto" style="margin-top:auto">Apri</button></div>
+    <div class="card fixcard" style="--c:var(--a1)"><span class="big"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="7" r="3"/><circle cx="17" cy="9" r="2.5"/><path d="M2 20c0-3.3 2.7-6 6-6s6 2.7 6 6M14 15.5c.9-.6 1.9-1 3-1 2.8 0 5 2.2 5 5"/></svg></span><h3>Fai aiutare un amico</h3><p class="sub" style="margin:0">Un amico ti dà aiuto da remoto: vede il tuo schermo e ti aiuta. Si usa Assistenza rapida (Quick Assist), un programma gratuito di Windows. Spiegato passo passo.</p><button class="btn primary" data-go2="aiuto" style="margin-top:auto">Apri</button></div>
   </div>
   </div>
   <div class="gm fixsec" id="secGame">
@@ -1075,8 +1076,9 @@ body.th-tasso:not(.office) .aa-passi li::before{background:var(--text);color:var
   <div class="row wrap" style="justify-content:space-between;gap:12px"><div style="flex:1 1 420px"><h1 style="font-size:26px">Fai aiutare un amico</h1><p class="sub">Un amico può vedere il tuo schermo e aiutarti, anche se è lontano.</p><p class="sub" style="margin-top:4px">Si usa Assistenza rapida: è un programma di Windows, gratis, fatto da Microsoft. Tasso lo apre e basta: non vede niente e non passa niente dai suoi server.</p></div><button class="btn ghost" id="aaBack">← Torna a Risolvi un problema</button></div>
   <div class="aa-sicuro" role="note">
     <h2>⚠️ Attenzione alle truffe</h2>
-    <p>Dai il codice solo a una persona che conosci e con cui stai parlando adesso (al telefono o di persona).</p>
-    <p>Nessuno di Microsoft, di Tasso, della banca o della polizia ti chiamerà mai per chiederti di farlo: se succede, è una truffa. Riattacca.</p>
+    <p>Usa il codice solo con una persona che conosci e con cui stai parlando adesso (al telefono o di persona).</p>
+    <p>Nessuno di Microsoft, di Tasso, della banca o della polizia ti chiamerà mai per farti aprire Assistenza rapida o darti il codice. Se succede, è una truffa: riattacca.</p>
+    <p>Se un messaggio sul PC ti dice di chiamare un numero, è una truffa: non chiamare.</p>
     <p>Puoi chiudere l'aiuto quando vuoi: premi Esci (o Termina), oppure chiudi la finestra.</p>
   </div>
   <div class="aa-scelte">
@@ -3285,7 +3287,7 @@ function aaWin(body, title){
 function aaBtn(x, y, w, label, on){
   return '<rect x="' + x + '" y="' + y + '" width="' + w + '" height="20" rx="6" style="' + (on ? 'fill:var(--a1)' : 'fill:none;stroke:var(--muted);stroke-width:1.5') + '"/>' +
     '<text x="' + (x + w / 2) + '" y="' + (y + 13.5) + '" text-anchor="middle" style="fill:' + (on ? 'var(--ink)' : 'var(--text)') + ';font:700 9.5px var(--body)">' + aaEsc(label) + '</text>' +
-    (on ? '<path d="M' + (x + w - 6) + ' ' + (y + 12) + 'l9 14 2-6 6-1z" style="fill:var(--text);stroke:var(--bg);stroke-width:1.2"/>' : '');
+    (on ? '<path d="M' + (x + w - 2) + ' ' + (y + 16) + 'l8 12 2-5 5-1z" style="fill:var(--text);stroke:var(--bg);stroke-width:1.2"/>' : '');
 }
 function aaLines(y, n){ let s = ''; for (let i = 0; i < n; i++) s += '<rect x="16" y="' + (y + i * 9) + '" width="' + (150 - i * 34) + '" height="4" rx="2" style="fill:var(--muted);opacity:.45"/>'; return s; }
 function aaFig(k){
@@ -3299,13 +3301,18 @@ function aaFig(k){
   if (k === 'codIn') return aaWin('<text x="16" y="42" style="fill:var(--soft);font:600 9.5px var(--body)">' + aaEsc(_t('Codice di sicurezza')) + '</text>' +
     '<rect x="16" y="50" width="168" height="26" rx="6" style="fill:var(--bg);stroke:var(--a1);stroke-width:2"/><text x="26" y="68" style="fill:var(--text);font:700 14px var(--mono);letter-spacing:3px">AB12CD</text>' +
     aaBtn(124, 92, 60, LANG === 'en' ? 'Submit' : _t('Invia'), true)); // in inglese il pulsante di Assistenza rapida si chiama Submit
+  if (k === 'uac') return aaWin('<text x="16" y="46" style="fill:var(--text);font:700 10.5px var(--body)">' + aaEsc(_t('Vuoi consentire le modifiche?')) + '</text>' + aaLines(58, 2) +
+    aaBtn(16, 92, 78, _t('Sì'), true) + aaBtn(104, 92, 78, _t('No'), false), 'Windows');
+  if (k === 'vedeAmico') return '<div class="aa-fig2">' + aaWin('<circle cx="28" cy="44" r="10" style="fill:var(--a3)"/><text x="46" y="42" style="fill:var(--text);font:700 10.5px var(--body)">' + aaEsc(_t('Il tuo nome')) + '</text>' +
+    '<text x="46" y="55" style="fill:var(--soft);font:600 8px var(--body)">' + aaEsc(_t('vuole vedere lo schermo')) + '</text>' + aaLines(68, 1) +
+    aaBtn(16, 92, 78, _t('Consenti'), false) + aaBtn(104, 92, 78, _t('Rifiuta'), false)) + '<span>' + aaEsc(_t('Questo lo vede il tuo amico')) + '</span></div>';
   if (k === 'consenti' || k === 'controllo') return aaWin('<circle cx="28" cy="44" r="10" style="fill:var(--a3)"/><text x="46" y="42" style="fill:var(--text);font:700 10.5px var(--body)">' + aaEsc(_t('Il tuo amico')) + '</text>' +
-    '<text x="46" y="55" style="fill:var(--soft);font:600 8.5px var(--body)">' + aaEsc(k === 'consenti' ? _t('vuole vedere lo schermo') : _t('vuole usare mouse e tastiera')) + '</text>' + aaLines(68, 1) +
+    '<text x="46" y="55" style="fill:var(--soft);font:600 8px var(--body)">' + aaEsc(k === 'consenti' ? _t('vuole vedere lo schermo') : _t('vuole usare mouse e tastiera')) + '</text>' + aaLines(68, 1) +
     aaBtn(16, 92, 78, _t('Consenti'), true) + aaBtn(104, 92, 78, _t('Rifiuta'), false));
   if (k === 'esci') return '<svg viewBox="0 0 200 128" role="img" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">' +
     '<rect x="3" y="3" width="194" height="110" rx="8" style="fill:var(--bg);stroke:var(--line);stroke-width:2"/><rect x="88" y="113" width="24" height="10" style="fill:var(--line)"/><rect x="66" y="121" width="68" height="5" rx="2" style="fill:var(--line)"/>' +
-    '<rect x="20" y="9" width="160" height="24" rx="7" style="fill:var(--panel2);stroke:var(--a3);stroke-width:2"/><text x="30" y="25" style="fill:var(--soft);font:600 8.5px var(--body)">' + aaEsc(_t('Assistenza rapida')) + '</text>' +
-    aaBtn(128, 11, 46, _t('Esci'), true) + aaLines(50, 3) + '</svg>';
+    '<rect x="10" y="9" width="180" height="24" rx="7" style="fill:var(--panel2);stroke:var(--a3);stroke-width:2"/><text x="18" y="25" style="fill:var(--soft);font:600 8.5px var(--body)">' + aaEsc(_t('Assistenza rapida')) + '</text>' +
+    aaBtn(120, 11, 56, _t('Esci'), true) + aaLines(50, 3) + '</svg>';
   if (k === 'aiuta') return aaWin('<text x="16" y="44" style="fill:var(--muted);font:700 11px var(--body)">' + aaEsc(_t('Ricevi assistenza')) + '</text>' + aaLines(52, 2) +
     '<rect x="16" y="76" width="168" height="1" style="fill:var(--line)"/>' + aaBtn(16, 90, 100, _t('Aiuta qualcuno'), true));
   if (k === 'account') return aaWin('<circle cx="100" cy="48" r="13" style="fill:var(--a2)"/><path d="M80 76c2-9 10-14 20-14s18 5 20 14z" style="fill:var(--a2)"/>' +
@@ -3313,10 +3320,10 @@ function aaFig(k){
     '<text x="100" y="117" text-anchor="middle" style="fill:var(--soft);font:600 8px var(--body)">' + aaEsc(_t('Accedi')) + '</text>');
   if (k === 'codOut') return aaWin('<text x="100" y="44" text-anchor="middle" style="fill:var(--soft);font:600 9.5px var(--body)">' + aaEsc(_t('Codice di sicurezza')) + '</text>' +
     '<text x="100" y="76" text-anchor="middle" style="fill:var(--a1);font:800 24px var(--mono);letter-spacing:4px">AB12CD</text>' +
-    '<text x="100" y="98" text-anchor="middle" style="fill:var(--soft);font:600 9px var(--body)">⏱ 10:00</text>');
+    '<text x="100" y="98" text-anchor="middle" style="fill:var(--soft);font:600 11px var(--body)">⏱</text>');
   if (k === 'richiedi') return '<svg viewBox="0 0 200 128" role="img" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">' +
     '<rect x="3" y="3" width="194" height="122" rx="10" style="fill:var(--panel2);stroke:var(--line);stroke-width:2"/><rect x="3" y="3" width="194" height="28" rx="10" style="fill:var(--line)"/>' +
-    aaBtn(10, 7, 108, _t('Richiedi il controllo'), true) + '<rect x="18" y="42" width="164" height="74" rx="5" style="fill:var(--bg)"/>' +
+    aaBtn(10, 7, 124, _t('Richiedi il controllo'), true) + '<rect x="18" y="42" width="164" height="74" rx="5" style="fill:var(--bg)"/>' +
     '<text x="100" y="84" text-anchor="middle" style="fill:var(--muted);font:600 9px var(--body)">' + aaEsc(_t('lo schermo del tuo amico')) + '</text></svg>';
   return '';
 }
@@ -3325,25 +3332,28 @@ const AA_PASSI = {
     ['tel', _t('Chiama il tuo amico al telefono. Resta in linea mentre fate tutto.')],
     ['apri', _t('Premi il pulsante qui sopra: <b>Apri Assistenza rapida</b>. Si apre una finestra di Windows.')],
     ['codIn', _t('Il tuo amico ti dirà un codice di 6 lettere e numeri, per esempio <span class="aa-cod">AB12CD</span>. Scrivilo nella casella in alto e premi <b>Invia</b>.')],
-    ['', _t('Il codice dura solo 10 minuti. Se non va, chiedi al tuo amico un codice nuovo.')],
+    ['', _t('Il codice dura poco tempo. Se non va, chiedi al tuo amico un codice nuovo.')],
     ['consenti', _t('Ti chiederà se il tuo amico può vedere lo schermo. Controlla che il nome sia quello del tuo amico. Poi premi <b>Consenti</b>.')],
     ['controllo', _t('Se il tuo amico deve sistemare lui, ti chiederà di usare il mouse e la tastiera. Premi <b>Consenti</b>. Se vuoi che guardi soltanto, premi <b>Rifiuta</b>.')],
+    ['uac', _t('Se compare una finestra di Windows che chiede <b>Sì</b> o <b>No</b>, devi premerla tu: il tuo amico la vede nera. Premi <b>Sì</b> solo se il tuo amico ti ha detto cosa sta facendo.')],
     ['esci', _t('Quando avete finito, premi <b>Esci</b> (o <b>Termina</b>) nella barra in alto, oppure chiudi la finestra. Il tuo amico non vede più niente.')]
   ],
   dai: [
     ['tel', _t('Chiama al telefono la persona da aiutare. Resta in linea mentre fate tutto.')],
     ['apri', _t('Premi il pulsante qui sopra: <b>Apri Assistenza rapida</b>. Si apre una finestra di Windows.')],
     ['aiuta', _t('Premi <b>Aiuta qualcuno</b>, in basso nella finestra.')],
-    ['account', _t('Entra con il tuo account Microsoft: è quello di Outlook, Hotmail, Xbox o Skype. Serve solo a te che aiuti: l\'altra persona non ne ha bisogno.')],
-    ['codOut', _t('Vedrai un codice di 6 lettere e numeri, per esempio <span class="aa-cod">AB12CD</span>. Leggilo al telefono, una lettera alla volta. Dura 10 minuti.')],
-    ['consenti', _t('Dopo che l\'altra persona ha scritto il codice e premuto <b>Consenti</b>, vedi il suo schermo.')],
+    ['account', _t('Entra con il tuo account Microsoft: è quello che usi per Outlook, Hotmail o Xbox. Serve solo a te che aiuti: l\'altra persona non ne ha bisogno.')],
+    ['codOut', _t('Vedrai un codice di 6 lettere e numeri, per esempio <span class="aa-cod">AB12CD</span>. Leggilo al telefono, una lettera alla volta. Dura poco tempo.')],
+    ['vedeAmico', _t('Dopo che l\'altra persona ha scritto il codice e premuto <b>Consenti</b>, vedi il suo schermo.')],
     ['richiedi', _t('Per usare tu il mouse e la tastiera, premi <b>Richiedi il controllo</b>. L\'altra persona deve premere <b>Consenti</b>.')],
+    ['', _t('Se vedi lo schermo nero, sull\'altro PC c\'è una finestra di Windows che chiede <b>Sì</b> o <b>No</b>: chiedi all\'altra persona di premere <b>Sì</b>.')],
     ['esci', _t('Spiega sempre cosa stai facendo. Quando avete finito, premi <b>Esci</b> (o <b>Termina</b>).')]
   ]
 };
+const AA_APRI_MANCA = _t('Premi il pulsante qui sopra: <b>Scarica Assistenza rapida</b>. Quando è installata, premi di nuovo il pulsante: si apre una finestra di Windows.');
 function aaMancaHTML(m){
   if (m === 'store') return _t('Su questo PC Assistenza rapida non c\'è ancora. Il pulsante apre la sua pagina nel Microsoft Store: premi <b>Installa</b> (o <b>Ottieni</b>). È gratis. Poi torna qui e premi di nuovo il pulsante.');
-  if (m === 'web') return _t('Su questo PC Assistenza rapida non c\'è ancora, e manca anche il Microsoft Store. Il pulsante apre la pagina per scaricarla nel browser. È gratis.');
+  if (m === 'web') return _t('Su questo PC Assistenza rapida non c\'è, e manca anche il Microsoft Store. Il pulsante apre la sua pagina nel browser, ma forse non si potrà installare: serve Windows 10 o 11 aggiornato. Se non ci riesci, chiedi aiuto a chi ti ha dato il PC.');
   return '';
 }
 function aaPaint(){
@@ -3355,7 +3365,7 @@ function aaPaint(){
     (manca ? '' : '<p class="aa-nota">' + _t('Non si apre? Premi insieme i tasti <b>Ctrl</b> + <b>Windows</b> + <b>Q</b>.') + '</p>') + '</div>';
   box.innerHTML = '<h2>' + (AA.guida === 'ricevi' ? _t('Per farti aiutare') : _t('Per aiutare qualcuno')) + '</h2>' +
     (manca ? '<div class="aa-manca" role="status">' + manca + '</div>' : '') + apri +
-    '<ol class="aa-passi">' + AA_PASSI[AA.guida].map(p => '<li><p>' + p[1] + '</p>' + (p[0] ? aaFig(p[0]) : '<span></span>') + '</li>').join('') + '</ol>' +
+    '<ol class="aa-passi">' + AA_PASSI[AA.guida].map(p => '<li><p>' + (p[0] === 'apri' && manca ? AA_APRI_MANCA : p[1]) + '</p>' + (p[0] ? aaFig(p[0]) : '<span></span>') + '</li>').join('') + '</ol>' +
     (AA.guida === 'dai' ? '<p class="aa-nota">' + _t('Aiuta solo persone che conosci e che ti hanno chiesto aiuto. Non chiedere mai password o codici della banca.') + '</p>' : '');
   $('#aaApri').onclick = aaApri;
 }

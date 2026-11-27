@@ -5,22 +5,33 @@ package main
 // è in aiutoamico/ (con i test), qui c'è solo l'apertura.
 
 import (
+	"os"
+	"path/filepath"
+	"strings"
+
 	"tasso/aiutoamico"
 
 	webview2 "github.com/jchv/go-webview2"
 )
 
-// aiutoAmicoScelta: Assistenza rapida è installata? Se no, dove la si prende.
+// aiutoAmicoScelta: Assistenza rapida è installata? Se no, dove la si prende. I pacchetti vengono
+// dal registro dell'utente (niente PowerShell); il manifest lo leggo solo per Assistenza rapida.
 func aiutoAmicoScelta() aiutoamico.Scelta {
-	var nomi []string
+	var lista []aiutoamico.Installato
 	for _, p := range leggiPacchettiAppx() {
-		nomi = append(nomi, p.nomeCompleto)
+		x := aiutoamico.Installato{NomeCompleto: p.nomeCompleto}
+		if strings.EqualFold(p.nome, aiutoamico.Pacchetto) && p.cartella != "" {
+			if b, err := os.ReadFile(filepath.Join(p.cartella, "AppxManifest.xml")); err == nil && len(b) < 4<<20 {
+				x.AppID, x.Protocolli = aiutoamico.LeggiManifest(b)
+			}
+		}
+		lista = append(lista, x)
 	}
-	return aiutoamico.Scegli(nomi)
+	return aiutoamico.Scegli(lista)
 }
 
-// aiutoAmicoApri: apre Assistenza rapida (o la sua pagina nello Store) come utente normale,
-// non da amministratore. Risponde con il modo usato: "app", "store" o "web".
+// aiutoAmicoApri: apre Assistenza rapida (shell:AppsFolder\<AUMID>, o la sua pagina nello Store)
+// come utente normale, non da amministratore, passando da Esplora file. Risponde con il modo usato: "app", "store" o "web".
 func aiutoAmicoApri() string {
 	s := aiutoAmicoScelta()
 	if !aiutoamico.IndirizzoAmmesso(s.Indirizzo) {
