@@ -232,6 +232,10 @@ func togliTassoPassiDentro(rimetti bool, passo func(int, string), pianoOut *pian
 	if len(falliti) > 0 {
 		return "Chiudi " + strings.Join(falliti, ", ") + " e riprova: con il gioco aperto non posso togliere la traduzione. Tasso non è stato tolto."
 	}
+	if aMano := traduce.GiochiDaSistemareAMano(); len(aMano) > 0 {
+		// elenchi in AppData che Tasso non usa (manca il segno di Tasso nel gioco): lo dico
+		passo(1, msgGiochiAMano(aMano))
+	}
 	if len(tolti) > 0 {
 		passo(1, trGo("Traduzioni tolte dai giochi: ")+strings.Join(tolti, ", "))
 	} else {
@@ -247,7 +251,11 @@ try { $s = New-Object -ComObject Schedule.Service; $s.Connect(); $s.GetFolder('\
 	passo(2, "Partenza con Windows e pulizie automatiche tolte")
 
 	// 4. copie di sicurezza in Documenti (backup del registro, plugin dei giochi messi da parte)
-	salvaCopieDiSicurezza()
+	if nonSalvate, altrove := salvaCopieDiSicurezza(); len(nonSalvate) > 0 {
+		return msgCopieNonSalvate(nonSalvate)
+	} else if len(altrove) > 0 {
+		passo(2, msgCopieAltrove(altrove))
+	}
 	piano := pianoTogliTasso()
 	_ = registry.DeleteKey(registry.CURRENT_USER, `Software\Tasso\PrimaDelleModalita`)
 	_ = registry.DeleteKey(registry.LOCAL_MACHINE, `SOFTWARE\Tasso\PuntoRipristino`)
@@ -311,40 +319,62 @@ func unaRiga(s string) string {
 
 // salvaCopieDiSicurezza: i backup del registro e i plugin che l'utente aveva messo in un gioco
 // tradotto finiscono in Documenti\Tasso - copie di sicurezza (non si cancellano mai).
-func salvaCopieDiSicurezza() {
-	doc, err := os.UserHomeDir()
-	if err != nil {
-		return
-	}
-	dest := filepath.Join(doc, "Documents", "Tasso - copie di sicurezza")
+// Le copie non si perdono mai: se in Documenti non si riesce (cartella protetta da "Accesso
+// controllato alle cartelle", disco pieno, Documenti in rete), le sposto in un posto sicuro che la
+// disinstallazione non cancella (altrove). Se non riesce neanche quello, restituisco in nonSalvate
+// dove sono rimaste: allora la disinstallazione si ferma prima di cancellare le cartelle di Tasso.
+func salvaCopieDiSicurezza() (nonSalvate, altrove []string) {
+	dest := ""
 	if p, e := windows.KnownFolderPath(windows.FOLDERID_Documents, 0); e == nil && p != "" {
 		dest = filepath.Join(p, "Tasso - copie di sicurezza")
+	} else if doc, err := os.UserHomeDir(); err == nil {
+		dest = filepath.Join(doc, "Documents", "Tasso - copie di sicurezza")
 	}
-	sposta := func(da, a string) {
+	riserva := "" // %ProgramData%\Tasso - copie di sicurezza: stesso disco di Programmi, non si cancella
+	if pd, e := windows.KnownFolderPath(windows.FOLDERID_ProgramData, 0); e == nil && pd != "" {
+		riserva = filepath.Join(pd, "Tasso - copie di sicurezza")
+	}
+	// salva: da va in a. copiaPrima=true per quello che viene da Programmi\Tasso\lavoro: copiati, i
+	// file prendono i permessi di Documenti (rinominando si porterebbero dietro quelli di Programmi).
+	salva := func(da, a, rel string, copiaPrima bool) {
 		if voci, _ := os.ReadDir(da); len(voci) == 0 {
 			return
 		}
-		_ = os.MkdirAll(filepath.Dir(a), 0o755)
-		if os.Rename(da, a) != nil {
-			_ = copiaCartellaSemplice(da, a)
+		if dest != "" {
+			_ = os.MkdirAll(filepath.Dir(a), 0o755)
+			if copiaPrima {
+				if copiaCartellaSemplice(da, a) == nil {
+					_ = os.RemoveAll(da)
+					return
+				}
+				_ = os.RemoveAll(a) // niente copie a metà
+			}
+			if os.Rename(da, a) == nil {
+				return
+			}
+			if !copiaPrima && copiaCartellaSemplice(da, a) == nil {
+				_ = os.RemoveAll(da)
+				return
+			}
+			_ = os.RemoveAll(a)
 		}
+		if riserva != "" {
+			r := nomeCopiaLibero(filepath.Join(riserva, filepath.Dir(rel)), filepath.Base(rel), time.Now(), esisteVoce)
+			_ = os.MkdirAll(filepath.Dir(r), 0o755)
+			if os.Rename(da, r) == nil {
+				altrove = append(altrove, r)
+				return
+			}
+		}
+		nonSalvate = append(nonSalvate, da)
 	}
-	// copia: per quello che viene da Programmi\Tasso\lavoro. Rinominando, i file si porterebbero
-	// dietro i permessi di Programmi (l'utente non li potrebbe cancellare senza la richiesta di
-	// Windows); copiati prendono quelli di Documenti. L'originale lo tolgo solo se la copia è riuscita.
-	copia := func(da, a string) {
-		if voci, _ := os.ReadDir(da); len(voci) == 0 {
-			return
-		}
-		_ = os.MkdirAll(filepath.Dir(a), 0o755)
-		if copiaCartellaSemplice(da, a) == nil {
-			_ = os.RemoveAll(da)
-		}
+	in := func(rel string) string {
+		return nomeCopiaLibero(filepath.Join(dest, filepath.Dir(rel)), filepath.Base(rel), time.Now(), esisteVoce)
 	}
-	sposta(filepath.Join(appDir, "backup"), filepath.Join(dest, "backup del registro"))
+	salva(filepath.Join(appDir, "backup"), in("backup del registro"), "backup del registro", false)
 	// backup fatti dalle voci dell'Ufficio (stessa cartella di Windows, non la variabile d'ambiente)
 	if local, e := windows.KnownFolderPath(windows.FOLDERID_LocalAppData, 0); e == nil && local != "" {
-		sposta(filepath.Join(local, "Tasso", "backup-registro"), filepath.Join(dest, "backup del registro - ufficio"))
+		salva(filepath.Join(local, "Tasso", "backup-registro"), in("backup del registro - ufficio"), "backup del registro - ufficio", false)
 	}
 	// copie dei giochi: tutto quello che resta (plugin messi da parte, originali di giochi che non
 	// ho potuto sistemare perché disinstallati o su un disco staccato, elenchi illeggibili)
@@ -358,17 +388,53 @@ func salvaCopieDiSicurezza() {
 			if !v.IsDir() || v.Type()&(fs.ModeSymlink|fs.ModeIrregular) != 0 {
 				continue // il segno dello spostamento, link e giunzioni: non li porto via
 			}
-			a := filepath.Join(dest, "giochi", v.Name())
-			if _, err := os.Lstat(a); err == nil {
-				a = filepath.Join(dest, "giochi", v.Name()+" (copia vecchia)") // non mescolo due copie dello stesso gioco
-			}
-			if i == 0 {
-				copia(filepath.Join(copie, v.Name()), a)
-			} else {
-				sposta(filepath.Join(copie, v.Name()), a)
-			}
+			rel := filepath.Join("giochi", v.Name())
+			salva(filepath.Join(copie, v.Name()), in(rel), rel, i == 0)
 		}
 	}
+	return nonSalvate, altrove
+}
+
+// esisteVoce: c'è già qualcosa con quel nome (anche un collegamento).
+func esisteVoce(p string) bool { _, err := os.Lstat(p); return err == nil }
+
+// nomeCopiaLibero: dir\nome se è libero; se no "nome (copia del 27-11-2026)", poi con l'ora e poi
+// con un numero. La copia che c'è già resta com'è: non si mescolano mai due copie.
+func nomeCopiaLibero(dir, nome string, ora time.Time, esiste func(string) bool) string {
+	p := filepath.Join(dir, nome)
+	if !esiste(p) {
+		return p
+	}
+	base := nome + " (copia del " + ora.Format("02-01-2006")
+	if p = filepath.Join(dir, base+")"); !esiste(p) {
+		return p
+	}
+	base += " " + ora.Format("15.04")
+	if p = filepath.Join(dir, base+")"); !esiste(p) {
+		return p
+	}
+	for n := 2; ; n++ {
+		if p = filepath.Join(dir, base+" "+strconv.Itoa(n)+")"); !esiste(p) {
+			return p
+		}
+	}
+}
+
+// msgCopieNonSalvate: la disinstallazione si ferma, così le cartelle di Tasso non si cancellano.
+func msgCopieNonSalvate(dove []string) string {
+	return "Non sono riuscito a mettere al sicuro le copie dei giochi tradotti e i backup: sono ancora in " + strings.Join(dove, ", ") +
+		". Copiali a mano in un'altra cartella (per esempio su una chiavetta), poi riprova a togliere Tasso. Tasso non è stato tolto."
+}
+
+// msgGiochiAMano: giochi che Tasso non può rimettere com'era da qui (le copie vanno in Documenti).
+func msgGiochiAMano(giochi []string) string {
+	return "Non posso togliere da qui la traduzione dentro: " + strings.Join(giochi, ", ") +
+		". Per rimetterli com'erano usa \"Verifica file\" nel programma da cui lanci il gioco; gli originali vanno nelle copie di sicurezza in Documenti."
+}
+
+// msgCopieAltrove: Documenti non ha funzionato, le copie sono in un'altra cartella sicura.
+func msgCopieAltrove(dove []string) string {
+	return "Non ho potuto usare Documenti: le copie di sicurezza sono in " + strings.Join(dove, ", ") + ". Puoi spostarle dove vuoi."
 }
 
 func copiaCartellaSemplice(da, a string) error {
