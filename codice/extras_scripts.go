@@ -80,7 +80,7 @@ try {
 
 # Periferiche
 try {
-  $bd = @(Get-CimInstance Win32_PnPEntity -ErrorAction Stop | Where-Object { $_.ConfigManagerErrorCode -ne 0 -and $_.ConfigManagerErrorCode -ne 22 -and $_.ConfigManagerErrorCode -ne 45 })
+  $bd = @(Get-CimInstance Win32_PnPEntity -ErrorAction Stop | Where-Object { $_.ConfigManagerErrorCode -ne 0 -and $_.ConfigManagerErrorCode -ne 22 -and $_.ConfigManagerErrorCode -ne 45 -and -not ($_.ConfigManagerErrorCode -eq 24 -and $_.Present -eq $false) })
   if ($bd.Count -gt 0) { Bad 6 ($bd.Count.ToString() + ' periferiche con problemi') ('Ad esempio: ' + $bd[0].Name + '. Il controllo periferiche ti dice quali.') 'devices' }
   else { Good 'Periferiche funzionanti' }
 } catch {}
@@ -129,7 +129,7 @@ try {
   $b = $iw | Select-String -Pattern '^\s*(Band|Banda)\s*:\s*(.+)$' | Select-Object -First 1; if ($b) { $band = $b.Matches[0].Groups[2].Value.Trim() }
   if (-not $band) { $r = $iw | Select-String -Pattern '^\s*(Radio type|Tipo radio)\s*:\s*(.+)$' | Select-Object -First 1; if ($r) { $band = $r.Matches[0].Groups[2].Value.Trim() } }
   if (-not $band -or $band -match '802') { $c = $iw | Select-String -Pattern '^\s*(Channel|Canale|Kanal|Canal)\s*:\s*(\d+)' | Select-Object -First 1; if ($c) { $band = $(if ([int]$c.Matches[0].Groups[2].Value -le 14) { '2.4 GHz' } else { '5 GHz' }) } }
-  $g = $iw | Select-String -Pattern '^\s*(Signal|Segnale)\s*:\s*(\d+)\s*%' | Select-Object -First 1; if ($g) { $signal = [int]$g.Matches[0].Groups[2].Value }
+  $g = $iw | Select-String -Pattern '^\s*[^:]+:\s*(\d+)\s*%' | Select-Object -First 1; if ($g) { $signal = [int]$g.Matches[0].Groups[1].Value } # unica riga con "%", in ogni lingua
 } catch {}
 if ($ssid) { $locOff = $false }
 # Reti a 5 GHz visibili adesso (solo i nomi, per consigliare quella più veloce).
@@ -235,15 +235,16 @@ try { $altri = @(Get-CimInstance Win32_LogicalDisk -Filter 'DriveType=3' -ErrorA
 foreach ($dl in $altri) {
   foreach ($d in @(Get-ChildItem -LiteralPath ($dl + '\') -Directory -Force -ErrorAction SilentlyContinue)) {
     if ($skip -contains $d.Name -or ($d.Attributes -band [IO.FileAttributes]::ReparsePoint)) { continue }
-    [void]$targets.Add(@{ path = $d.FullName; group = 'Disco ' + $dl })
+    [void]$targets.Add(@{ path = $d.FullName; group = 'Disco ' + $dl; altro = $true })
   }
 }
 $t0 = [DateTime]::UtcNow
 $i = 0
 foreach ($t in $targets) {
   $i++
-  # gli altri dischi solo se c'è ancora tempo (il disco di sistema viene sempre per primo)
-  if ($t.group -like 'Disco *' -and $t.group -ne ('Disco ' + $env:SystemDrive) -and ([DateTime]::UtcNow - $t0).TotalMinutes -gt 12) { continue }
+  # gli altri dischi solo se c'è ancora tempo (il disco di sistema viene sempre per primo).
+  # Il segno "altro" non è un testo: i testi tra apici li traduce trPS e un confronto con 'Disco *' in inglese non scatterebbe mai.
+  if ($t.altro -and ([DateTime]::UtcNow - $t0).TotalMinutes -gt 12) { continue }
   Say ('Misuro ' + $i + ' di ' + $targets.Count + ': ' + (Split-Path $t.path -Leaf))
   $size = Measure-Dir $t.path
   if ($size -gt 50MB) { [void]$roots.Add([pscustomobject]@{ path = $t.path; name = (Split-Path $t.path -Leaf); group = $t.group; size = $size }) }

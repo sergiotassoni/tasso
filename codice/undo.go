@@ -187,7 +187,13 @@ func undoChange(kind, id string) {
 			msg = "Non c'è niente da rimettere."
 			break
 		}
-		runPSArgs(startupSetScript, map[string]interface{}{"scope": parts[0], "name": parts[1], "enable": was}, time.Minute, nil)
+		// Lo script scrive "JSON ok" solo se, rileggendo, il valore è quello giusto: se no la voce resta
+		// in Torna indietro e si può riprovare.
+		r := runPSArgs(startupSetScript, map[string]interface{}{"scope": parts[0], "name": parts[1], "enable": was}, time.Minute, nil)
+		if r.Err != nil || r.TooSlow || r.JSON != "ok" {
+			msg = "Non sono riuscito a rimetterlo com'era: riprova tra poco."
+			break
+		}
 		updateSettings(func(s *Settings) { delete(s.StartupOrig, id) })
 	case "gaming":
 		if _, ok := gamingTitles[id]; !ok {

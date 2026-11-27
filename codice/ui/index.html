@@ -1033,7 +1033,7 @@ body.th-tasso:not(.office) .aa-passi li::before{background:var(--text);color:var
     <div class="card fixcard" style="--c:var(--a3)"><span class="big"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg></span><h3>Una periferica non va</h3><p class="sub" style="margin:0">Controlla mouse, tastiera, rete, video e USB e ti dice quale ha problemi.</p><button class="btn primary" data-step="devices" style="margin-top:auto">Controlla</button></div>
     <div class="card fixcard" style="--c:var(--a1)"><span class="big"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v6c0 1.7 3.6 3 8 3s8-1.3 8-3V6M4 12v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/></svg></span><h3>Il disco fa i capricci</h3><p class="sub" style="margin:0">Controlla errori, salute e usura dei dischi.</p><button class="btn primary" data-steps="chkdsk,disk_health" style="margin-top:auto">Controlla</button></div>
     <div class="card fixcard om" style="--c:var(--a1)"><span class="big"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V3h12v6M6 18H4a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="7" rx="1"/></svg></span><h3>La stampante non stampa</h3><p class="sub" style="margin:0">Riavvia il servizio di stampa e svuota la coda bloccata. È la causa più comune quando non esce niente.</p><button class="btn primary" data-step="fix_print" style="margin-top:auto">Risolvi</button></div>
-    <div class="card fixcard" style="--c:var(--a2)"><span class="big"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l1.5-5h15L21 9M3 9h18M3 9v9a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V9M9 13h6"/></svg></span><h3>Lo Store e le app non si aprono</h3><p class="sub" style="margin:0">Svuota la cache del Microsoft Store e ricontrolla le app di Windows quando restano bianche o non si aggiornano.</p><button class="btn primary" data-step="fix_store" style="margin-top:auto">Risolvi</button></div>
+    <div class="card fixcard" style="--c:var(--a2)"><span class="big"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l1.5-5h15L21 9M3 9h18M3 9v9a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V9M9 13h6"/></svg></span><h3>Lo Store e le app non si aprono</h3><p class="sub" style="margin:0">Svuota la cache del Microsoft Store e ripara lo Store quando le app restano bianche o non si aggiornano.</p><button class="btn primary" data-step="fix_store" style="margin-top:auto">Risolvi</button></div>
     <div class="card fixcard" style="--c:var(--a3)"><span class="big"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg></span><h3>Ricerca e menu Start bloccati</h3><p class="sub" style="margin:0">Riavvia la ricerca di Windows e il menu Start quando non rispondono o non trovano i programmi.</p><button class="btn primary" data-step="fix_search" style="margin-top:auto">Risolvi</button></div>
     <div class="card fixcard gm" style="--c:var(--a2)"><span class="big"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></span><h3>Chi usa webcam e microfono</h3><p class="sub" style="margin:0">Ti fa vedere quali programmi hanno usato la webcam e il microfono negli ultimi 30 giorni e chi li sta usando adesso. Così scopri se qualcuno ti guarda o ti ascolta.</p><button class="btn ghost" data-step="of_new_camlog" style="margin-top:auto">Controlla</button></div>
     <div class="card fixcard" style="--c:var(--a1)"><span class="big"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="7" r="3"/><circle cx="17" cy="9" r="2.5"/><path d="M2 20c0-3.3 2.7-6 6-6s6 2.7 6 6M14 15.5c.9-.6 1.9-1 3-1 2.8 0 5 2.2 5 5"/></svg></span><h3>Fai aiutare un amico</h3><p class="sub" style="margin:0">Un amico ti dà aiuto da remoto: vede il tuo schermo e ti aiuta. Si usa Assistenza rapida (Quick Assist), un programma gratuito di Windows. Spiegato passo passo.</p><button class="btn primary" data-go2="aiuto" style="margin-top:auto">Apri</button></div>
@@ -1827,18 +1827,19 @@ function detIgnSection(box, found){
     const s = STEP[id], x = (found || []).find(f => f.id === id);
     const why = x ? (x.why || s.desc) : (found ? _t('All\'ultimo controllo non c\'era.') : s.desc);
     const sev = x ? '<span class="detsev' + (x.sev === 'p' ? '' : ' c') + '">' + (x.sev === 'p' ? _t('Problema') : _t('Consiglio')) + '</span>' : '';
-    const r = el('div', {class:'detitem detignrow'}, '<div class="x">' + sev + '<b>' + esc(s.name) + '</b><span class="sub" style="margin:0">' + esc(why) + '</span></div>');
+    const r = el('div', {class:'detitem detignrow'}, '<div class="x">' + sev + '<b>' + esc(detNome(id)) + '</b><span class="sub" style="margin:0">' + esc(why) + '</span></div>');
     const rb = el('button', {class:'btn ghost'}, _t('Ripristina'));
     rb.onclick = () => detIgnore(id, false, rb);
     r.appendChild(rb); d.appendChild(r);
   });
   box.appendChild(d);
 }
+const DET_BTN0 = $('#btnDetect') ? $('#btnDetect').textContent : '';
 function paintDetect(){
   $('#btnDetect').disabled = DET_RUN; $('#detBar').hidden = !DET_RUN;
   if (DET_RUN) return;
   const box = $('#detResult'); box.innerHTML = '';
-  if (!DET) { detIgnSection(box, null); return; }
+  if (!DET) { $('#detTitle').textContent = _t('Pronto a controllare'); $('#detStatus').textContent = _t('Ci vuole circa un minuto. Puoi continuare a usare il PC.'); $('#btnDetect').textContent = DET_BTN0; detIgnSection(box, null); return; }
   $('#btnDetect').textContent = _t('🔎 Controlla di nuovo');
   if (DET.error) { $('#detTitle').textContent = _t('Controllo non riuscito'); $('#detStatus').textContent = DET.error; detIgnSection(box, null); return; }
   const office = isOffice();
@@ -1867,7 +1868,7 @@ function paintDetect(){
   }
   list.forEach(x => {
     const s = STEP[x.id], chk = !!OFFICE_CHECK[x.id];
-    const c = el('div', {class:'card detitem'}, '<div class="x"><span class="detsev' + (x.sev === 'p' ? '' : ' c') + '">' + (x.sev === 'p' ? _t('Problema') : _t('Consiglio')) + '</span><b>' + esc(s.name) + '</b><span class="sub" style="margin:0">' + esc(x.why || s.desc) + '</span></div>');
+    const c = el('div', {class:'card detitem'}, '<div class="x"><span class="detsev' + (x.sev === 'p' ? '' : ' c') + '">' + (x.sev === 'p' ? _t('Problema') : _t('Consiglio')) + '</span><b>' + esc(detNome(x.id)) + '</b><span class="sub" style="margin:0">' + esc(x.why || s.desc) + '</span></div>');
     const btns = el('div', {class:'row', style:'gap:8px'});
     const b = el('button', {class:'btn ' + (x.sev === 'p' ? 'primary' : 'ghost')}, chk ? _t('Controlla') : _t('Risolvi'));
     b.onclick = () => runStep(x.id);
@@ -1876,6 +1877,13 @@ function paintDetect(){
     btns.appendChild(b); btns.appendChild(ig); c.appendChild(btns); box.appendChild(c);
   });
   detIgnSection(box, found);
+}
+// Il titolo di un problema trovato: per i 6 della sezione Windows lo stesso della scheda in "Risolvi un problema"
+// ("Internet non va", non "Risolvi problemi di internet"), per gli altri quello adatto alla modalità.
+const DET_SCHEDA = ['fix_audio', 'fix_net', 'fix_wu', 'fix_print', 'fix_store', 'fix_search'];
+function detNome(id){
+  if (DET_SCHEDA.includes(id)) { const b = document.querySelector('#v-fix .fixcard [data-step="' + id + '"]'), h = b && b.closest('.fixcard').querySelector('h3'); if (h && h.textContent.trim()) return h.textContent.trim(); }
+  return stepTxt(id).name;
 }
 let DET_IGN_OPEN = false, DET_TOAST = null;
 async function detIgnore(id, on, btn){
@@ -3451,7 +3459,7 @@ Object.assign(window.tasso, {
       else tip(_t('<b>Sei sul Wi-Fi a 2.4 GHz</b>, il più lento e affollato. Se il tuo router ha anche il <b>5 GHz</b> (quasi tutti i router moderni), collegati a quella rete: di solito ha lo stesso nome più "5G" o "5GHz".'));
     }
     if (n && n.locOff && ad.some(a => a.kind === 'Wi-Fi')) tip(_t('<b>Windows non mi fa vedere i dati del Wi-Fi.</b> Su Windows 11 servono i permessi della Posizione: Impostazioni > Privacy e sicurezza > Posizione, accendila. Così Tasso può consigliarti la rete più veloce.'));
-    if (n && typeof n.signal === 'number' && n.signal < 45) tip(_t('<b>Il segnale del Wi-Fi è debole (') + n.signal + _t('%).</b> Avvicinati al router o togli ostacoli: internet sarà più veloce e non si staccherà.'));
+    if (n && typeof n.signal === 'number' && n.signal < 40) tip(_t('<b>Il segnale del Wi-Fi è debole (') + n.signal + _t('%).</b> Avvicinati al router o togli ostacoli: internet sarà più veloce e non si staccherà.'));
     if (n && n.cable && ad.some(a => a.kind === 'Wi-Fi') && !ad.some(a => a.kind === 'Cavo')) tip(_t('<b>Il PC ha una presa per il cavo di rete.</b> Se il router è vicino, con il cavo vai più veloce e più stabile che con il Wi-Fi') + (S.profile === 'ufficio' ? '.' : _t(', e il ping nei giochi scende.')));
     if (!ad.length) { box.appendChild(el('div', {class:'li'}, _t('<span class="muted">Nessuna connessione attiva.</span>'))); return; }
     ad.forEach(a => box.appendChild(el('div', {class:'li'}, '<span style="flex:1"><b>' + esc(a.name) + '</b>' + (a.name === a.kind ? '' : ' <span class="small muted">' + esc(_t(a.kind)) + '</span>') + '</span><span class="small muted">' + (a.speed ? _t('Velocità del collegamento: ') + esc(a.speed) : '') + '</span>')));
@@ -3739,6 +3747,9 @@ async function setLook(p){
   const r = await call('goSetLook', p);
   if (r !== 'ok') { toast(_t('Non sono riuscito a cambiare modalità: riprova.'), 'var(--a4)'); return; }
   S.profile = p; S.onboarded = true;
+  // I controlli di Salute dipendono dalla modalità (stampanti e Office solo in Ufficio, giochi solo in Gaming):
+  // il risultato di prima non vale più.
+  if (!DET_RUN) { DET = null; paintDetect(); }
   applyLook(); repaintLook();
   if (p === 'ufficio' && typeof GP_ID !== 'undefined' && GP_ID) closeGame();
   if (p === 'ufficio' && (CURVIEW === 'games' || CURVIEW === 'perf')) show('home');
