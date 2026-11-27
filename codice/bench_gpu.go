@@ -14,7 +14,6 @@ import (
 	"image/png"
 	"os"
 	"path/filepath"
-	"regexp"
 	"runtime"
 	"strconv"
 	"strings"
@@ -91,15 +90,20 @@ func schedeVideo() (out []votopc.Scheda) {
 
 // infoPC: nomi e numeri che Windows conosce (servono per il risultato e per il voto della RAM).
 type infoPC struct {
-	CPU       string  `json:"cpu"`
-	Board     string  `json:"board"`
-	BIOS      string  `json:"bios"`
-	RAMGB     float64 `json:"ramGB"`
-	RAMMTs    int     `json:"ramMTs"`
-	RAMSMBIOS int     `json:"ramSmbios"` // codice SMBIOS del tipo di memoria (26 = DDR4, 34 = DDR5, 30 = LPDDR4...)
-	Banchi    int     `json:"banchi"`
-	Disco     string  `json:"disco"` // "nvme", "ssd", "hdd" letto da Windows; "" se non lo dice
-	Portatile bool    `json:"portatile"`
+	CPU       string   `json:"cpu"`
+	Board     string   `json:"board"`
+	BIOS      string   `json:"bios"`
+	RAMGB     float64  `json:"ramGB"`
+	RAMMTs    int      `json:"ramMTs"`
+	RAMSMBIOS int      `json:"ramSmbios"` // codice SMBIOS del tipo di memoria (26 = DDR4, 34 = DDR5, 30 = LPDDR4...)
+	Banchi    int      `json:"banchi"`
+	Bus       string   `json:"bus"`
+	Media     string   `json:"media"`
+	PCType    int      `json:"pcType"`
+	Telai     []int    `json:"telai"`
+	Batterie  []string `json:"batterie"`
+	Disco     string   `json:"-"` // "nvme", "ssd", "hdd" se Windows lo dice con sicurezza
+	Portatile bool     `json:"-"`
 }
 
 const infoPCScript = `
@@ -114,46 +118,27 @@ foreach ($m in $mem) {
   if ($s -gt $mts) { $mts = $s }
   if ([int]$m.SMBIOSMemoryType -gt 0) { $tipo = [int]$m.SMBIOSMemoryType }
 }
-# Portatile: tipo di PC (2 = mobile), telaio da portatile o batteria interna.
-$lap = $false
-try { if ([int](Get-CimInstance Win32_ComputerSystem -ErrorAction Stop).PCSystemType -eq 2) { $lap = $true } } catch {}
-try { foreach ($c in @((Get-CimInstance Win32_SystemEnclosure -ErrorAction Stop).ChassisTypes)) { if (@(8,9,10,11,12,14,18,21,30,31,32) -contains [int]$c) { $lap = $true } } } catch {}
-try { if (@(Get-CimInstance Win32_Battery -ErrorAction Stop).Count -gt 0) { $lap = $true } } catch {}
-# Tipo del disco di Windows letto da Windows (NVMe, SSD, HDD).
-$dk = ''
+# Portatile o fisso: i dati grezzi, la decisione la prende Go (votopc.Portatile).
+$pct = 0; $tel = @(); $bat = @()
+try { $pct = [int](Get-CimInstance Win32_ComputerSystem -ErrorAction Stop).PCSystemType } catch {}
+try { $tel = @(@((Get-CimInstance Win32_SystemEnclosure -ErrorAction Stop).ChassisTypes) | ForEach-Object { [int]$_ }) } catch {}
+try { $bat = @(Get-CimInstance Win32_Battery -ErrorAction Stop | ForEach-Object { ([string]$_.Name + ' ' + [string]$_.DeviceID).Trim() }) } catch {}
+# Disco di Windows: BusType e MediaType grezzi (votopc.TipoDiscoWindows).
+$bus = ''; $med = ''
 try {
   $n = (Get-Partition -DriveLetter ($env:SystemDrive).TrimEnd(':') -ErrorAction Stop | Select-Object -First 1).DiskNumber
   $pd = Get-PhysicalDisk -ErrorAction Stop | Where-Object { [string]$_.DeviceId -eq [string]$n } | Select-Object -First 1
-  if ($pd) {
-    if ([string]$pd.BusType -match '^(17|NVMe)$') { $dk = 'nvme' }
-    elseif ([string]$pd.MediaType -match '^(4|SSD)$') { $dk = 'ssd' }
-    elseif ([string]$pd.MediaType -match '^(3|HDD)$') { $dk = 'hdd' }
-  }
+  if ($pd) { $bus = [string]$pd.BusType; $med = [string]$pd.MediaType }
 } catch {}
 $o = [ordered]@{
   cpu = (([string]$cpu.Name) -replace '\s+', ' ').Trim()
   board = ((([string]$bb.Manufacturer).Trim() + ' ' + ([string]$bb.Product).Trim()).Trim())
   bios = ((([string]$bi.SMBIOSBIOSVersion).Trim()))
   ramGB = [math]::Round($tot / 1GB, 0); ramMTs = $mts; ramSmbios = $tipo; banchi = $mem.Count
-  disco = $dk; portatile = $lap
+  bus = $bus; media = $med; pcType = $pct; telai = $tel; batterie = $bat
 }
 [Console]::Out.WriteLine('JSON ' + (ConvertTo-Json -InputObject $o -Compress))
 `
-
-// Frasi che il BIOS mette quando il costruttore non ha scritto niente (PC assemblati).
-var (
-	reFraseVuota = regexp.MustCompile(`(?i)to be filled by o\.?e\.?m\.?|default string|system product name|system manufacturer|not applicable|\bn/a\b`)
-	reNomeVuoto  = regexp.MustCompile(`(?i)^(none|unknown|o\.?e\.?m\.?|[-_.\s]*)$`)
-)
-
-// pulisciNome: toglie solo le frasi vuote e tiene il resto ("ASUSTeK Default string" → "ASUSTeK").
-func pulisciNome(s string) string {
-	s = strings.Join(strings.Fields(reFraseVuota.ReplaceAllString(s, " ")), " ")
-	if reNomeVuoto.MatchString(s) {
-		return ""
-	}
-	return s
-}
 
 // I dati del PC non cambiano mentre Tasso è aperto: li leggo una volta sola (con PowerShell).
 var (
@@ -170,7 +155,9 @@ func leggiInfoPC() infoPC {
 	var in infoPC
 	r := runPS(infoPCScript, 40*time.Second, nil)
 	letto := r.JSON != "" && json.Unmarshal([]byte(r.JSON), &in) == nil
-	in.Board, in.BIOS = pulisciNome(in.Board), pulisciNome(in.BIOS)
+	in.Board, in.BIOS = votopc.PulisciNome(in.Board), votopc.PulisciNome(in.BIOS)
+	in.Portatile = votopc.Portatile(in.PCType, in.Telai, in.Batterie)
+	in.Disco = votopc.TipoDiscoWindows(in.Bus, in.Media)
 	if in.RAMMTs < 400 || in.RAMMTs > 20000 {
 		in.RAMMTs = 0
 	}

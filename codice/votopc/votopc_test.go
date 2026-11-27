@@ -39,7 +39,11 @@ func TestVotoGPUTabella(t *testing.T) {
 		{"Intel(R) Arc(TM) A370M Graphics", 4096, 32, 36},
 		{"AMD Radeon RX 6500M", 4096, 36, 40},
 		{"AMD Radeon RX 6550M", 4096, 38, 42},
-		{"AMD Radeon RX 6850M XT", 12288, 74, 78},
+		{"AMD Radeon RX 6850M XT", 12288, 76, 76},
+		{"AMD Radeon RX 6650M XT", 8192, 64, 64},
+		{"AMD Radeon RX 6650M", 8192, 60, 60},
+		{"AMD Radeon RX 7600M XT", 8192, 66, 66},
+		{"AMD Radeon RX 7900 XT", 20464, 91, 91},
 		{"AMD Radeon RX 7900M", 16384, 78, 82},
 	}
 	for _, c := range casi {
@@ -212,5 +216,112 @@ func TestTipoRAM(t *testing.T) {
 		if tp, sd := TipoRAM(c.cod, c.mts); tp != c.tipo || sd != c.saldata {
 			t.Errorf("TipoRAM(%d, %d) = %q %v", c.cod, c.mts, tp, sd)
 		}
+	}
+}
+
+func TestNienteDoppiaRiduzione(t *testing.T) {
+	casi := []struct {
+		nome string
+		v    int
+	}{
+		{"NVIDIA GeForce RTX 2050", 40},       // solo da portatile: il 40 è già il valore da portatile
+		{"NVIDIA GeForce GTX 1650 Ti", 50},    // solo da portatile
+		{"NVIDIA GeForce GTX 1660 SUPER", 60}, // solo da PC fisso: su un portatile è una scheda esterna
+		{"NVIDIA GeForce RTX 2060 SUPER", 70}, // solo da PC fisso
+		{"NVIDIA GeForce GTX 1080 Ti", 70},    // solo da PC fisso
+		{"NVIDIA GeForce GTX 1070 Ti", 62},    // solo da PC fisso
+		{"NVIDIA GeForce GTX 1060", 46},       // nome uguale alla desktop: ridotta
+		{"NVIDIA GeForce RTX 2080", 73},       // nome uguale alla desktop: ridotta
+	}
+	for _, c := range casi {
+		if v, _ := VotoGPUPC(c.nome, 4096, true); v != c.v {
+			t.Errorf("%q su portatile: %d, atteso %d", c.nome, v, c.v)
+		}
+	}
+}
+
+func TestPortatileOFisso(t *testing.T) {
+	casi := []struct {
+		nome     string
+		tipo     int
+		telai    []int
+		batterie []string
+		atteso   bool
+	}{
+		{"PC fisso con UPS in USB", 1, []int{3}, []string{"Back-UPS ES 700 FW:871.O4 USB"}, false},
+		{"PC fisso con UPS, BIOS senza dati", 0, []int{2}, []string{"UPS"}, false},
+		{"PC fisso con telaio 18 o 21", 1, []int{3, 21}, nil, false},
+		{"PC fisso con batteria strana ma telaio da fisso", 1, []int{3}, []string{"Batteria"}, false},
+		{"portatile dal tipo di PC", 2, []int{3}, nil, true},
+		{"portatile dal telaio", 0, []int{10}, nil, true},
+		{"convertibile", 1, []int{31}, nil, true},
+		{"portatile senza dati se non la batteria", 0, []int{2}, []string{"DELL 7FHHV"}, true},
+		{"nessun dato", 0, nil, nil, false},
+	}
+	for _, c := range casi {
+		if got := Portatile(c.tipo, c.telai, c.batterie); got != c.atteso {
+			t.Errorf("%s: %v, atteso %v", c.nome, got, c.atteso)
+		}
+	}
+}
+
+func TestTipoDisco(t *testing.T) {
+	for _, c := range []struct{ bus, media, atteso string }{
+		{"17", "4", "nvme"}, {"NVMe", "SSD", "nvme"}, {"11", "4", "ssd"}, {"SATA", "HDD", "hdd"}, {"7", "3", "hdd"},
+		{"8", "4", ""}, {"RAID", "SSD", ""}, {"0", "4", ""}, {"11", "0", ""}, {"", "", ""},
+	} {
+		if got := TipoDiscoWindows(c.bus, c.media); got != c.atteso {
+			t.Errorf("TipoDiscoWindows(%q, %q) = %q, atteso %q", c.bus, c.media, got, c.atteso)
+		}
+	}
+	// Ripiego: se Windows non è sicuro (RAID/RST/VMD) vale la stima, segnata come stimata.
+	if tp, st := DiscoFinale("", 1500); tp != "nvme" || !st {
+		t.Errorf("ripiego NVMe: %q %v", tp, st)
+	}
+	if tp, st := DiscoFinale("", 0); tp != "" || st {
+		t.Errorf("disco saltato: %q %v", tp, st)
+	}
+	if tp, st := DiscoFinale("ssd", 1500); tp != "ssd" || st {
+		t.Errorf("detto da Windows: %q %v", tp, st)
+	}
+}
+
+func TestPulisciNome(t *testing.T) {
+	for in, out := range map[string]string{
+		"ASUSTeK COMPUTER INC. ROG STRIX B550-F":        "ASUSTeK COMPUTER INC. ROG STRIX B550-F",
+		"ASUSTeK Default string":                        "ASUSTeK",
+		"To be filled by O.E.M. To be filled by O.E.M.": "",
+		"System manufacturer System Product Name":       "",
+		"Gigabyte Technology Co., Ltd. B450M DS3H":      "Gigabyte Technology Co., Ltd. B450M DS3H",
+		"OEM":                           "",
+		"Default string Default string": "",
+		"  ":                            "",
+	} {
+		if got := PulisciNome(in); got != out {
+			t.Errorf("PulisciNome(%q) = %q, atteso %q", in, got, out)
+		}
+	}
+}
+
+func TestLPDDR5XDalProcessore(t *testing.T) {
+	for _, c := range []struct {
+		mts  int
+		cpu  string
+		tipo string
+	}{
+		{6400, "Intel(R) Core(TM) Ultra 7 155H", "LPDDR5X"},
+		{6400, "AMD Ryzen 7 7840U w/ Radeon 780M Graphics", "LPDDR5X"},
+		{6400, "AMD Ryzen AI 9 HX 370 w/ Radeon 890M", "LPDDR5X"},
+		{6400, "AMD Ryzen 7 6800U with Radeon Graphics", "LPDDR5"},
+		{6400, "", "LPDDR5"},
+		{5500, "Intel(R) Core(TM) Ultra 7 155H", "LPDDR5"},
+		{7467, "", "LPDDR5X"},
+	} {
+		if tp, _ := TipoRAMCPU(35, c.mts, c.cpu); tp != c.tipo {
+			t.Errorf("%d MT/s con %q: %q, atteso %q", c.mts, c.cpu, tp, c.tipo)
+		}
+	}
+	if tp, _ := TipoRAMCPU(26, 3200, "Intel(R) Core(TM) Ultra 7 155H"); tp != "DDR4" {
+		t.Error("la DDR4 non cambia")
 	}
 }

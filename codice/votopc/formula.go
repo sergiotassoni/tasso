@@ -1,6 +1,9 @@
 package votopc
 
-import "math"
+import (
+	"math"
+	"regexp"
+)
 
 // Versione della formula del voto. Va aumentata ogni volta che cambiano i conti, così una futura
 // classifica online confronta solo voti fatti con la stessa formula.
@@ -164,6 +167,20 @@ func TipoRAM(smbios, mts int) (tipo string, saldata bool) {
 		return "LPDDR5", true
 	}
 	return "", false
+}
+
+// Processori che usano LPDDR5X anche a 6400 MT/s (Core Ultra, Ryzen 7040/8040 e AI, Snapdragon X):
+// con loro "6400" vuol dire LPDDR5X. I Ryzen 6000 usavano LPDDR5-6400, quindi senza processore
+// noto 6400 resta LPDDR5.
+var reCPULPDDR5X = regexp.MustCompile(`(?i)core\W*(\(tm\))?\s*ultra|ryzen\b.*\b(7\d4\d|8\d4\d)[a-z]*\b|ryzen\s+ai\b|snapdragon`)
+
+// TipoRAMCPU: come TipoRAM, guardando anche il processore per LPDDR5X a 6400 MT/s.
+func TipoRAMCPU(smbios, mts int, cpu string) (tipo string, saldata bool) {
+	tipo, saldata = TipoRAM(smbios, mts)
+	if tipo == "LPDDR5" && mts == 6400 && reCPULPDDR5X.MatchString(cpu) {
+		tipo = "LPDDR5X"
+	}
+	return
 }
 
 // Canali: con 2 o più banchi la memoria lavora quasi sempre in doppio canale (stima: Windows non

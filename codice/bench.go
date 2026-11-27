@@ -302,7 +302,7 @@ func runBench(label string) benchResult {
 	// Formula 2: voti per parametro e totale (uguali per tutti i PC).
 	info := leggiInfoPC() // PowerShell solo alla prima misura, poi dalla memoria
 	best, gpuV, gpuNoto, gpuOk := votopc.SceltaGPU(schede, info.Portatile)
-	ramTipo, ramSaldata := votopc.TipoRAM(info.RAMSMBIOS, info.RAMMTs)
+	ramTipo, ramSaldata := votopc.TipoRAMCPU(info.RAMSMBIOS, info.RAMMTs, info.CPU)
 	if info.RAMGB <= 0 && rt > 0 {
 		info.RAMGB = math.Round(float64(rt) / (1 << 30))
 	}
@@ -377,10 +377,8 @@ func risultatoVoto(r benchResult, in infoPC, ramTipo string, ramSaldata bool, ca
 		out.Potenza = votopc.Potenza(*r.Params)
 	}
 	if !r.DiskSkip {
-		out.Disco, out.DiscoMBs = in.Disco, diskMB
-		if out.Disco == "" { // Windows non l'ha detto: stima dalla velocità misurata
-			out.Disco, out.DiscoStimato = votopc.TipoDisco(r.Disk), true
-		}
+		out.Disco, out.DiscoStimato = votopc.DiscoFinale(in.Disco, r.Disk) // stima se Windows non è sicuro
+		out.DiscoMBs = diskMB
 	}
 	return out
 }

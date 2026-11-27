@@ -3029,7 +3029,9 @@ function cardColors(){
   const a1 = cssVar('--a1') || '#2FF3A6';
   return {bg: cssVar('--bg') || '#050506', panel: cssVar('--panel') || '#0B0C0F', line: cssVar('--line') || '#1F2128', text: cssVar('--text') || '#F4F5F7', muted: cssVar('--muted') || '#8A8F9C',
     a1: a1, a2: cssVar('--a2') || a1, a1t: cssVar('--a1t') || a1, tg: stops.length >= 2 ? stops : [a1, a1],
-    display: cssVar('--display') || 'sans-serif', body: cssVar('--body') || 'sans-serif'};
+    display: cssVar('--display') || 'sans-serif', body: cssVar('--body') || 'sans-serif',
+    // la scritta TASSO larga come nella barra a sinistra (.brand b: font-stretch 112%, solo in Gaming)
+    stretch: document.body.classList.contains('office') ? 'normal' : 'semi-expanded'};
 }
 function rankColor(v){ const c = rankOf(v)[1], m = /var\((--[a-z0-9]+)\)/.exec(c); return m ? cssVar(m[1]) : c; }
 // Il logo che si vede in alto a sinistra (quello del tema), come immagine a sé.
@@ -3064,7 +3066,7 @@ async function drawVotoCard(r, fmt){
   let y;
   if (V) {
     if (logo) g.drawImage(logo, (W - 230) / 2, pad, 230, 230);
-    g.textAlign = 'center'; g.fillStyle = C.text; font(800, 64, C.display); g.letterSpacing = '12px'; g.fillText('TASSO', W / 2 + 6, pad + 320); g.letterSpacing = '0px';
+    g.textAlign = 'center'; g.fillStyle = C.text; font(800, 64, C.display); g.fontStretch = C.stretch; g.letterSpacing = '12px'; g.fillText('TASSO', W / 2 + 6, pad + 320); g.letterSpacing = '0px'; g.fontStretch = 'normal';
     g.fillStyle = C.muted; font(400, 30); g.fillText(date, W / 2, pad + 372);
     g.fillStyle = C.muted; font(600, 46); g.fillText(_t('Il mio PC'), W / 2, 640);
     font(800, 260, C.display); const nw = g.measureText(String(tot)).width; font(700, 64, C.display); const sw = g.measureText('/100').width;
@@ -3074,7 +3076,7 @@ async function drawVotoCard(r, fmt){
     y = 900;
   } else {
     if (logo) g.drawImage(logo, pad, pad, 96, 96);
-    g.textAlign = 'left'; g.fillStyle = C.text; font(800, 44, C.display); g.letterSpacing = '6px'; g.fillText('TASSO', pad + 118, pad + 64); g.letterSpacing = '0px';
+    g.textAlign = 'left'; g.fillStyle = C.text; font(800, 44, C.display); g.fontStretch = C.stretch; g.letterSpacing = '6px'; g.fillText('TASSO', pad + 118, pad + 64); g.letterSpacing = '0px'; g.fontStretch = 'normal';
     g.textAlign = 'right'; g.fillStyle = C.muted; font(400, 26); g.fillText(date, W - pad, pad + 58);
     g.textAlign = 'left'; g.fillStyle = C.muted; font(600, 32); g.fillText(_t('Il mio PC'), pad, 250);
     font(800, 150, C.display); const nw = g.measureText(String(tot)).width; g.fillStyle = grad(pad, pad + nw); g.fillText(String(tot), pad, 390);
@@ -3123,11 +3125,20 @@ async function openVotoCard(r){
   const wrap = (c, f, w, h, label) => { c.style.cssText = 'width:' + w + 'px;height:' + h + 'px;display:block;border-radius:12px'; const d = el('button', {class:'votofmt', 'data-f': f, 'aria-pressed': f === fmt ? 'true' : 'false', style:'background:none;border:0;padding:0;cursor:pointer;display:flex;flex-direction:column;gap:8px;align-items:center;color:inherit;font:inherit'}); d.appendChild(c); d.appendChild(el('span', {class:'small'}, label)); return d; };
   const pub = CLASSIFICA_ATTIVA ? '<div style="border-top:1px solid var(--line);padding-top:12px;display:flex;flex-direction:column;gap:8px"><b>' + _t('Pubblica i tuoi risultati') + '</b><span class="small muted">' + _t('Scrivi un nome e ti trovi nella classifica sul sito di Tasso. Va solo il voto, con il nome che scegli tu.') + '</span><div class="row" style="gap:8px"><input id="votoNome" maxlength="24" style="flex:1" placeholder="' + esc(_t('Il tuo nome nella classifica')) + '"><button class="btn primary" id="votoPub">' + _t('Pubblica') + '</button></div></div>' : '';
   // modal() chiude la finestra se fn non restituisce subito 'keep': il lavoro va avanti da solo.
-  const busy = (fn) => () => { const c = fmt === 'v' ? v : q; fn(c.toDataURL('image/png')); return 'keep'; };
+  // Copia e Salva lavorano con la finestra aperta: i due pulsanti restano spenti finché non hanno
+  // finito, e se qualcosa va storto compare un avviso.
+  const busy = (fn, err) => (box) => {
+    const row = box.lastElementChild, bs = row ? [...row.querySelectorAll('button')].slice(1) : [];
+    if (bs.some(b => b.disabled)) return 'keep';
+    bs.forEach(b => { b.disabled = true; });
+    const c = fmt === 'v' ? v : q;
+    Promise.resolve().then(() => fn(c.toDataURL('image/png'))).catch(() => toast(err, 'var(--a4)')).finally(() => bs.forEach(b => { b.disabled = false; }));
+    return 'keep';
+  };
   modal('<h2>' + _t('Il tuo biglietto da visita') + '</h2><p class="muted" style="margin:0">' + _t('Il voto del tuo PC, pronto da mandare agli amici. Quadrato per i post, verticale per le storie. Dentro ci sono solo i voti e i componenti, niente dati personali.') + '</p><div id="votoPrev" style="display:flex;gap:22px;justify-content:center;flex-wrap:wrap;padding:4px 0"></div>' + pub, [
     {label: _t('Chiudi')},
-    {label: _t('Salva'), fn: busy(async (u) => { const x = await call('goVotoSalva', u, fmt === 'v' ? 'verticale' : 'quadrata'); toast(x === 'ok' ? _t('Salvato in Immagini\\Tasso.') : _t('Non sono riuscito a salvare l\'immagine.'), x === 'ok' ? 'var(--a1)' : 'var(--a4)'); })},
-    {label: _t('Copia immagine'), cls: 'primary', fn: busy(async (u) => { const x = await call('goVotoCopia', u); toast(x === 'ok' ? _t('Immagine copiata: incollala dove vuoi con Ctrl+V.') : _t('Non sono riuscito a copiare l\'immagine.'), x === 'ok' ? 'var(--a1)' : 'var(--a4)'); })}
+    {label: _t('Salva'), fn: busy(async (u) => { const x = await call('goVotoSalva', u, fmt === 'v' ? 'verticale' : 'quadrata'); toast(x === 'ok' ? _t('Salvato in Immagini\\Tasso.') : _t('Non sono riuscito a salvare l\'immagine.'), x === 'ok' ? 'var(--a1)' : 'var(--a4)'); }, _t('Non sono riuscito a salvare l\'immagine.'))},
+    {label: _t('Copia immagine'), cls: 'primary', fn: busy(async (u) => { const x = await call('goVotoCopia', u); toast(x === 'ok' ? _t('Immagine copiata: incollala dove vuoi con Ctrl+V.') : _t('Non sono riuscito a copiare l\'immagine.'), x === 'ok' ? 'var(--a1)' : 'var(--a4)'); }, _t('Non sono riuscito a copiare l\'immagine.'))}
   ]);
   const box = $('#modalBox'); box.style.maxWidth = '780px';
   const prev = $('#votoPrev');

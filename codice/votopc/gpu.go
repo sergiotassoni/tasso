@@ -54,12 +54,19 @@ var nvidiaLaptop = map[string]int{
 	"rtx 5090": 92, "rtx 5080": 88, "rtx 5070 ti": 82, "rtx 5070": 76, "rtx 5060": 72, "rtx 5050": 64,
 	"rtx 4090": 88, "rtx 4080": 84, "rtx 4070": 76, "rtx 4060": 71, "rtx 4050": 63,
 	"rtx 3080 ti": 81, "rtx 3080": 77, "rtx 3070 ti": 75, "rtx 3070": 73, "rtx 3060": 66, "rtx 3050 ti": 52, "rtx 3050": 50,
-	"rtx 2080 super": 72, "rtx 2080": 70, "rtx 2070 super": 68, "rtx 2070": 65, "rtx 2060": 60, "rtx 2050": 38,
+	"rtx 2080 super": 72, "rtx 2080": 70, "rtx 2070 super": 68, "rtx 2070": 65, "rtx 2060": 60,
 }
 
 // Serie NVIDIA che nei portatili hanno lo stesso nome della desktop (senza "Laptop"): sul
 // portatile vanno circa il 10% in meno.
-var reNomeUguale = regexp.MustCompile(`^(gtx 9\d\d|gtx 10\d\d|gtx 16\d\d|rtx 20\d\d)`)
+// Esclusi: le schede solo da portatile (RTX 2050, GTX 1650 Ti: il voto in tabella è già quello da
+// portatile) e quelle solo da PC fisso (SUPER delle serie 16 e la 2060 SUPER, 1070 Ti, 1080 Ti,
+// 980 Ti, 2080 Ti): su un portatile sono per forza una scheda esterna, che va a piena potenza.
+var reNomeUguale = regexp.MustCompile(`^(gtx 9\d\d|gtx 10\d\d|gtx 16\d\d|rtx 20[6-8]\d)`)
+
+var soloFisso = map[string]bool{"gtx 1660 super": true, "gtx 1650 super": true, "rtx 2060 super": true,
+	"gtx 1070 ti": true, "gtx 1080 ti": true, "gtx 980 ti": true, "rtx 2080 ti": true}
+var soloPortatile = map[string]bool{"gtx 1650 ti": true, "rtx 2050": true}
 
 var amd = map[string]int{
 	// RX 9000
@@ -70,7 +77,7 @@ var amd = map[string]int{
 	// RX 6000
 	"rx 7900": 86, "rx 6850 xt": 82, "rx 6850": 80, "rx 6550": 46, "rx 6500": 44,
 	"rx 6950 xt": 89, "rx 6900 xt": 88, "rx 6800 xt": 86, "rx 6800": 83, "rx 6750 xt": 78, "rx 6750 gre": 76,
-	"rx 6700 xt": 77, "rx 6700": 74, "rx 6650 xt": 70, "rx 6600 xt": 68, "rx 6600": 66, "rx 6500 xt": 46, "rx 6400": 40,
+	"rx 6700 xt": 77, "rx 6700": 74, "rx 6650 xt": 70, "rx 6650": 66, "rx 6600 xt": 68, "rx 6600": 66, "rx 6500 xt": 46, "rx 6400": 40,
 	// RX 5000
 	"rx 5700 xt": 68, "rx 5700": 64, "rx 5600 xt": 61, "rx 5600": 58, "rx 5500 xt": 50, "rx 5500": 47, "rx 5300": 42,
 	// Polaris e Vega
@@ -80,7 +87,7 @@ var amd = map[string]int{
 
 var (
 	reNvidia = regexp.MustCompile(`\b(rtx|gtx|gt|mx)\s?(\d{3,4})(m)?(?:\s?(ti|super))?(?:\s?(super))?\b`)
-	reAMD    = regexp.MustCompile(`\brx\s?(\d{3,4})\s?(xtx|xt|gre)?\s?(m|s)?\b`)
+	reAMD    = regexp.MustCompile(`\brx\s?(\d{3,4})(m|s)?\s?(xtx|xt|gre)?\s?(m|s)?\b`) // RX 6600M, RX 6850M XT, RX 7900 XTX
 	reArc    = regexp.MustCompile(`\barc\s?(?:pro\s?)?([ab])(\d{3})(m)?\b`)
 	reArcInt = regexp.MustCompile(`\barc\s?(\d{3})([vt])\b`)
 	reRadM   = regexp.MustCompile(`\bradeon\s?(\d{3,4})([ms])\b`)
@@ -152,7 +159,7 @@ func VotoGPUPC(nome string, vramMB uint64, pcPortatile bool) (voto int, noto boo
 			v, ok = nvidia[base] // variante non in tabella: uso il modello base
 		}
 		if ok {
-			if pcPortatile && !portatile && !maxq && m[3] == "" && reNomeUguale.MatchString(k) {
+			if pcPortatile && !portatile && !maxq && m[3] == "" && reNomeUguale.MatchString(k) && !soloFisso[k] && !soloPortatile[k] {
 				return limita(v - 4), true
 			}
 			return meno(v), true
@@ -182,15 +189,15 @@ func VotoGPUPC(nome string, vramMB uint64, pcPortatile bool) (voto int, noto boo
 	// AMD dedicate
 	if m := reAMD.FindStringSubmatch(n); m != nil {
 		k := "rx " + m[1]
-		if m[2] != "" {
-			k += " " + m[2]
+		if m[3] != "" {
+			k += " " + m[3]
 		}
 		v, ok := amd[k]
 		if !ok {
 			v, ok = amd["rx "+m[1]]
 		}
 		if ok {
-			if m[3] == "m" || m[3] == "s" { // portatili: RX 6600M, RX 7600S
+			if m[2] != "" || m[4] != "" { // portatili: RX 6600M, RX 7600S, RX 6850M XT
 				v -= 6
 			}
 			return meno(v), true
