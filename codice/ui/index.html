@@ -1494,12 +1494,13 @@ function fmtMin(m){ m = Math.max(0, Math.round(m)); if (m < 1) return _t('meno d
 let RST_T = null;
 // spegnimentoInCorso: Windows sta già chiudendo i programmi per spegnersi o riavviarsi (può metterci
 // più di 30 secondi): allora il riavvio è partito, non dico "non è partito".
-async function spegnimentoInCorso(){ return (await call('goSpegnimentoInCorso')) === '1'; }
+// null = la domanda a Tasso non è riuscita: chi chiama chiude il banner invece di restare su "in corso".
+async function spegnimentoInCorso(){ try { const r = await call('goSpegnimentoInCorso'); return r === '1' ? true : (r === '0' ? false : null); } catch (e) { return null; } }
 // Limite uguale per il toast e per il banner: dopo i primi controlli, al massimo 20 attese da 15 s
 // (5 minuti) mentre Windows dice "mi sto spegnendo"; poi si dice comunque che non è partito.
 // RST_GEN/FINE_GEN: una risposta arrivata tardi da un controllo vecchio (annullato o sostituito) non fa niente.
 let RST_GEN = 0, FINE_GEN = 0;
-function rstControlla(n, g){ spegnimentoInCorso().then(si => { if (g !== RST_GEN) return; if (si && n < 20) RST_T = setTimeout(() => rstControlla(n + 1, g), 15000); else restartFailed(_t('Il riavvio non è partito.')); }); }
+function rstControlla(n, g){ spegnimentoInCorso().then(si => { if (g !== RST_GEN || si === null) return; if (si && n < 20) RST_T = setTimeout(() => rstControlla(n + 1, g), 15000); else restartFailed(_t('Il riavvio non è partito.')); }); }
 function restartToast(){ clearTimeout(RST_T); const g = ++RST_GEN; RST_T = setTimeout(() => rstControlla(0, g), 45000); toast(_t('Il PC si riavvia tra 15 secondi.'), 'var(--a4)', {label:_t('Annulla'), fn: async () => { clearTimeout(RST_T); RST_GEN++; await call('goCancelShutdown'); toast(_t('Riavvio annullato.')); }}); }
 async function doRestart(){ const r = await call('goRestart'); if (r === 'ok') restartToast(); else restartFailed(_t('Windows non ha accettato il riavvio: premi Riavvia adesso')); }
 function restartFailed(msg){ modal('<h2>' + esc(msg) + '</h2><p class="muted" style="margin:0">' + _t('Salva il lavoro aperto prima di riavviare.') + '</p>', [{label:_t('Annulla')}, {label:_t('Riavvia adesso'), cls:'warn', fn: () => { endNow('riavvia'); }}]); }
@@ -1996,7 +1997,7 @@ function fineBanner(kind, secs, wu, failed){
     const now = Date.now(), left = Math.ceil((end - now) / 1000);
     if (left > 0) { T.textContent = _t('Pulizia finita ✓') + ' ' + (rv ? _t('Il PC si riavvia tra {0} secondi') : _t('Il PC si spegne tra {0} secondi')).replace('{0}', left); S2.textContent = (rv && wu ? _t('per finire gli aggiornamenti di Windows.') + ' ' : '') + _t('Salva quello che hai aperto.'); }
     else if (now < end + attesa || guardo) { T.textContent = rv ? _t('Riavvio in corso…') : _t('Spegnimento in corso…'); S2.textContent = ''; }
-    else { guardo = true; spegnimentoInCorso().then(si => { guardo = false; if (g !== FINE_GEN || FINE_T === null) return; if (si && attesa < 330000) attesa += 15000; else fail(rv ? _t('Il riavvio non è partito.') : _t('Lo spegnimento non è partito.')); }); }
+    else { guardo = true; spegnimentoInCorso().then(si => { guardo = false; if (g !== FINE_GEN || FINE_T === null) return; if (si === null) { fineHide(); return; } if (si && attesa < 330000) attesa += 15000; else fail(rv ? _t('Il riavvio non è partito.') : _t('Lo spegnimento non è partito.')); }); }
   };
   if (failed) fail(rv ? _t('Windows non ha accettato il riavvio: premi Riavvia adesso') : _t('Windows non ha accettato lo spegnimento: premi Spegni adesso'));
   else { draw(); FINE_T = setInterval(draw, 1000); }
