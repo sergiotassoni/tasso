@@ -204,6 +204,11 @@ NOVITÀ DELLA 3.2
    - Nuovo Voto al PC: scheda video, RAM completa, raffreddamento e biglietto da visita
    - Fai aiutare un amico: Assistenza rapida di Windows spiegata passo passo, con gli avvisi
      contro le truffe
+   - Gaming: "Problemi di tutti i giorni" in Risolvi un problema, "Prova microfono e cuffie"
+     e "Chi usa webcam e microfono"
+   - Ufficio: Modalità riunione sulla Home, accanto a PULISCI; in Risolvi un problema anche
+     PC che si scalda, programma che non parte (manca un .dll), PC che si blocca con file
+     grandi, audio che gracchia nelle chiamate, schermo nero
    - Più sicurezza dietro le quinte: copie dei giochi e file di Tasso più protetti
    - Pulizia programmata che aspetta che chiudi il gioco
    - Backup dei file: avviso se scegli una cartella sbagliata

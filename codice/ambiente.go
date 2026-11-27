@@ -13,6 +13,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"golang.org/x/sys/windows"
@@ -403,5 +404,22 @@ func psCartelle() string {
 		"\n$TassoTempOriginale = " + psQuote(c.TempOriginale) +
 		"\n$TassoExe = " + psQuote(tassoExe()) +
 		"\n$TassoCartella = " + psQuote(cartellaTasso()) +
-		"\n$TassoSysDrive = " + psQuote(filepath.VolumeName(c.Win))
+		"\n$TassoSysDrive = " + psQuote(filepath.VolumeName(c.Win)) +
+		"\n$TassoUfficio = " + map[bool]string{true: "$true", false: "$false"}[ufficioPerScript()]
+}
+
+// ultimoUfficio: l'ultima modalità letta, per quando setMu è già preso.
+var ultimoUfficio atomic.Bool
+
+// ufficioPerScript: Tasso è in Ufficio ($TassoUfficio negli script: testi da ufficio invece che da gioco).
+// Non aspetta mai setMu: se qualcuno lo tiene (anche chi sta facendo partire lo script) usa l'ultima
+// modalità letta, così uno script non si può mai bloccare per questo.
+func ufficioPerScript() bool {
+	if setMu.TryLock() {
+		u := settings.Profile == "ufficio"
+		setMu.Unlock()
+		ultimoUfficio.Store(u)
+		return u
+	}
+	return ultimoUfficio.Load()
 }

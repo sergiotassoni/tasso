@@ -128,8 +128,15 @@ C 'Controllo microfono, webcam, audio e notifiche…' 'microfono, webcam, audio 
 try {
   $cm = 'HKCU\Software\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\'
   $cl = 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\'
-  if ([string](Get-RegValue ($cm + 'microphone') 'Value') -eq 'Deny' -or [string](Get-RegValue ($cl + 'microphone') 'Value') -eq 'Deny') { F 'of_meet_mic' 'p' 'Il microfono è bloccato nelle impostazioni della privacy: in riunione non ti sentono.' }
-  if ([string](Get-RegValue ($cm + 'webcam') 'Value') -eq 'Deny' -or [string](Get-RegValue ($cl + 'webcam') 'Value') -eq 'Deny') { F 'of_meet_cam' 'p' 'La webcam è bloccata nelle impostazioni della privacy.' }
+  # In Gaming microfono e webcam bloccati per la privacy sono un consiglio (spesso è una scelta), in Ufficio un problema.
+  if ([string](Get-RegValue ($cm + 'microphone') 'Value') -eq 'Deny' -or [string](Get-RegValue ($cl + 'microphone') 'Value') -eq 'Deny') {
+    if ([string]$A.profile -eq 'ufficio') { F 'of_meet_mic' 'p' 'Il microfono è bloccato nelle impostazioni della privacy: in riunione non ti sentono.' }
+    else { F 'of_meet_mic' 'c' 'Il microfono è bloccato nelle impostazioni della privacy: in chat vocale non ti sentono. Se l''hai fatto apposta, va bene così.' }
+  }
+  if ([string](Get-RegValue ($cm + 'webcam') 'Value') -eq 'Deny' -or [string](Get-RegValue ($cl + 'webcam') 'Value') -eq 'Deny') {
+    if ([string]$A.profile -eq 'ufficio') { F 'of_meet_cam' 'p' 'La webcam è bloccata nelle impostazioni della privacy.' }
+    elseif (@(Get-CimInstance Win32_PnPEntity -Filter "PNPClass='Camera' OR PNPClass='Image'" -ErrorAction SilentlyContinue).Count) { F 'of_meet_cam' 'c' 'La webcam è bloccata nelle impostazioni della privacy. Se l''hai fatto apposta, va bene così.' }
+  }
   if (@(Get-Service -Name Audiosrv, AudioEndpointBuilder -ErrorAction SilentlyContinue | Where-Object { $_.Status -ne 'Running' }).Count) { F 'fix_audio' 'p' 'Il servizio audio di Windows è fermo: niente suono.' }
   # In modalità Gaming, FPS o Film, o in Modalità riunione, le notifiche le mette in pausa Tasso apposta: non è un problema.
   $riun = $false; try { $cart = if ($TassoCartella) { $TassoCartella } else { Join-Path ([Environment]::GetFolderPath('ProgramFiles')) 'Tasso' }; $riun = Test-Path -LiteralPath (Join-Path $cart ('lavoro\ufficio\riunione-' + [Security.Principal.WindowsIdentity]::GetCurrent().User.Value + '.json')) } catch { Salta }

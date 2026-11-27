@@ -50,6 +50,13 @@ NOVITÀ DELLA 3.2
 - Fai aiutare un amico: in Risolvi un problema trovi una guida semplice per
   farti aiutare a distanza con Assistenza rapida di Windows (o per aiutare
   qualcuno), con gli avvisi contro le truffe.
+- Gaming e Ufficio più equilibrati. In Gaming, in Risolvi un problema, ci
+  sono i "Problemi di tutti i giorni" (Wi-Fi, file zip, schermi, tastiera,
+  batteria, ora sbagliata...), "Prova microfono e cuffie" e "Chi usa webcam
+  e microfono". In Ufficio la Modalità riunione è sulla Home, accanto a
+  PULISCI, e in Risolvi un problema ci sono anche "Il PC si scalda", "Un
+  programma non parte (manca un file .dll)", "Il PC si blocca con file
+  grandi", "L'audio gracchia nelle chiamate" e "Lo schermo diventa nero".
 - Più sicurezza dietro le quinte: le copie dei giochi tradotti e i file di
   Tasso sono più protetti, e togliendo Tasso le copie dei giochi non si
   perdono mai.

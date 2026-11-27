@@ -1043,7 +1043,7 @@ body.th-tasso:not(.office) .aa-passi li::before{background:var(--text);color:var
   <div class="sech"><span class="sei">🎮</span><div><h2>Sezione Gaming</h2><p class="sub">I problemi più comuni di chi gioca, ognuno con un pulsante. Tasso spiega sempre cosa fa e non tocca mai giochi, salvataggi o file dell'anti-cheat.</p></div></div>
   <div class="grid g3">
     <div class="card fixcard" style="--c:var(--red)"><span class="big">🎮</span><h3>Il gioco va a scatti</h3><p class="sub" style="margin:0">Accende la Modalità Gioco di Windows e ti dice se il PC sta risparmiando energia mentre giochi. Le cache della grafica non le cancella: servono proprio a non scattare.</p><button class="btn primary" data-step="fix_game_lag" style="margin-top:auto">Risolvi</button></div>
-    <div class="card fixcard" style="--c:var(--a4)"><span class="big">🚀</span><h3>Il gioco non parte o si chiude</h3><p class="sub" style="margin:0">Installa o ripara i "pezzi" di Windows che servono ai giochi (Visual C++, DirectX, .NET) dal sito ufficiale Microsoft. 2-5 minuti.</p><button class="btn primary" data-step="fix_game_start" style="margin-top:auto">Risolvi</button></div>
+    <div class="card fixcard" style="--c:var(--a4)"><span class="big">🚀</span><h3>Il gioco non parte o si chiude</h3><p class="sub" style="margin:0">Installa o ripara i "pezzi" di Windows che servono ai giochi (Visual C++, DirectX, .NET) dal sito ufficiale Microsoft, anche quando manca un file .dll. 2-5 minuti.</p><button class="btn primary" data-step="fix_game_start" style="margin-top:auto">Risolvi</button></div>
     <div class="card fixcard" style="--c:var(--a2)"><span class="big">🎧</span><h3>Controller, cuffie o microfono non vanno</h3><p class="sub" style="margin:0">Riavvia controller, cuffie, microfono e periferiche USB o Bluetooth bloccate, e l'audio di Windows. Controlla anche se il microfono è bloccato dalla privacy.</p><button class="btn primary" data-step="fix_game_pads" style="margin-top:auto">Risolvi</button></div>
     <div class="card fixcard" style="--c:var(--a3)"><span class="big">🎙️</span><h3>Prova microfono e cuffie</h3><p class="sub" style="margin:0">Prima di una chat vocale o di una diretta: prova in pochi secondi microfono, cuffie, webcam e internet. Se qualcosa non va, ti propone la riparazione con un pulsante.</p><button class="btn ghost" data-step="of_new_call" style="margin-top:auto">Controlla</button></div>
     <div class="card fixcard" style="--c:var(--a3)"><span class="big">📶</span><h3>Ping alto o lag online</h3><p class="sub" style="margin:0">Il "ping" è il tempo che serve a un tuo comando per arrivare al server del gioco. Tasso svuota la memoria degli indirizzi internet, rimette la rete di Windows come deve essere, ferma la condivisione nascosta degli aggiornamenti e ti dice se il Wi-Fi ti sta rallentando.</p><button class="btn primary" data-step="fix_game_ping" style="margin-top:auto">Risolvi</button></div>
@@ -1310,7 +1310,7 @@ body.th-tasso:not(.office) .aa-passi li::before{background:var(--text);color:var
     <li class="gm"><b>Pulizia programmata più attenta</b>: aspetta che chiudi il gioco.</li></ul></div>
   <div class="card idx" style="--c:var(--a1)"><h3>Novità della 3.1</h3><ul>
     <li class="gm"><b>Boost nuovo</b>: un tasto prima di giocare chiude i programmi in background che non servono e prepara il PC; con "Rimetti com'era" torna tutto come prima.</li>
-    <li class="gm"><b>Gaming e Ufficio separati</b>, con il menu a gruppi: in Gaming le cose per giocare (con "Mostra tutte le funzioni" vedi anche il resto), in Ufficio quelle per lavorare.</li>
+    <li class="gm"><b>Gaming e Ufficio separati</b>, con il menu a gruppi: in Gaming anche le cose per giocare (con "Mostra tutte le funzioni" vedi anche quelle da esperti), in Ufficio quelle per lavorare.</li>
     <li class="om"><b>Gaming e Ufficio separati</b>, con il menu a gruppi: in Ufficio le cose per lavorare, più semplici e tranquille.</li>
     <li class="gm"><b>Traduzione dei giochi</b>: nel gioco premi F7 e le scritte compaiono tradotte, tutto sul PC.</li>
     <li class="om"><b>Modalità riunione e Blocco automatico</b> nella sezione Ufficio.</li>
@@ -1545,6 +1545,7 @@ const DEC = LANG === 'en' ? '.' : ',';
 let S = BOOT.settings || {};
 if (EN && BOOT.steps) BOOT.steps = tx(BOOT.steps);
 let HEALTH = null;
+let LOG_NOMI = {}; // nel registro del passaggio: nome di Go -> nome adatto alla modalità ("» Il PC si scalda")
 let LOG_RAF = 0;
 const STEPS = BOOT.steps || [];
 const STEP = {}; STEPS.forEach(s => { STEP[s.id] = s; });
@@ -1806,8 +1807,8 @@ async function detStart(){
 }
 // 3.1: Gaming e Ufficio divisi. Le cose del lavoro (stampanti, Office...) solo in Ufficio, quelle dei giochi solo in Gaming.
 // Solo le cose del lavoro (stampa, Office, Outlook, Teams, OneDrive, VPN, unità di rete…). Tastiera, mouse, Wi-Fi, disco pieno, ora: valgono per tutti.
-// 3.2: stampanti e scanner restano solo in Ufficio (decisione di Sergio), anche in Salute e problemi.
-const OFFICE_ONLY = (id) => /^of_(print_|scan$|office_|outlook_|teams$|adobe$|netdrive$|netpwd$|vpn|excel_locked$|onedrive|rdp$|projector$|pwd_expire$|mailto$|regional$)/.test(id) || id === 'fix_print';
+// 3.2: stampanti e scanner restano solo in Ufficio (decisione di Sergio), anche in Salute e problemi; così le notifiche di Teams e Outlook.
+const OFFICE_ONLY = (id) => /^of_(print_|scan$|notif$|office_|outlook_|teams$|adobe$|netdrive$|netpwd$|vpn|excel_locked$|onedrive|rdp$|projector$|pwd_expire$|mailto$|regional$)/.test(id) || id === 'fix_print';
 const GAME_ONLY = (id) => /^fix_game_/.test(id) || id === 'fix_discord' || id === 'turbo' || id === 'game_cache';
 const forMode = (id) => isOffice() ? !GAME_ONLY(String(id)) : !OFFICE_ONLY(String(id));
 function detOkId(id){ return !!STEP[id] && forMode(id); }
@@ -1991,7 +1992,12 @@ function runSteps(ids, title, desc, minutes){
     [{label:_t('Annulla')}, {label:_t('Avvia'), cls:'primary', risky:true, fn: (box) => { const f = fineRead(box); call('goStartSteps', ids, f.fine, f.wu).then(r => { if (r === 'busy') toast(_t('Attendi la fine dell\'operazione in corso.'), 'var(--a4)'); else show('clean'); }); }}]);
   if (long) fineWire();
 }
-function runStep(id){ const s = STEP[id], x = stepTxt(id); if (s) runSteps([id], x.name, x.desc, s.minutes); }
+function runStep(id){
+  const s = STEP[id], x = stepTxt(id); if (!s) return;
+  // La riunione accesa si spegne con lo stesso passaggio: la conferma lo dice.
+  if (id === 'of_new_meeting' && OF_STATI.of_new_meeting) { runSteps([id], _t('Spegni la Modalità riunione'), _t('Notifiche, OneDrive, aggiornamenti e alimentazione tornano come prima.'), s.minutes); return; }
+  runSteps([id], x.name, x.desc, s.minutes);
+}
 $$('[data-step]').forEach(b => { b.onclick = () => runStep(b.dataset.step); });
 $$('[data-steps]').forEach(b => { b.onclick = () => { const ids = b.dataset.steps.split(','); const ss = ids.map(i => STEP[i]).filter(Boolean); runSteps(ids, ss.map(s => s.name).join(' + '), ss.map(s => s.desc).join(' '), ss.reduce((a, s) => a + s.minutes, 0)); }; });
 $('#bigGo').onclick = () => confirmLevel(RECOMMENDED);
@@ -2035,6 +2041,7 @@ window.tasso = {
   onRunStart(p){
     const lv = LEVELS[(p.level || 0) - 1];
     const st = (p.steps || []).map(s => { const x = s && s.id && STEP[s.id] ? stepTxt(s.id) : null; return x ? Object.assign({}, s, {name: x.name}) : s; });
+    LOG_NOMI = {}; (p.steps || []).forEach((s, i) => { if (s && s.name && st[i] && st[i].name !== s.name) LOG_NOMI['» ' + s.name] = '» ' + st[i].name; });
     RUN = {level:p.level, steps:st, cur:0, creep:0, freed:0, freedBy:{}, end:p.end || 'acceso', info:''}; RIPARA = [];
     $('#runTitle').textContent = lv ? _t('Pulizia ') + lv.name + _t(' in corso') : (RUN.steps.length === 1 ? RUN.steps[0].name : _t('Passaggi in corso'));
     $('#runSub').textContent = RUN.end === 'riavvia' ? _t('Quando ha finito: Riavvia. Puoi uscire di casa, faccio tutto io.') : RUN.end === 'spegni' ? _t('Quando ha finito: Spegni. Puoi uscire di casa, faccio tutto io.') : _t('Puoi lasciare il PC acceso e andare a fare altro.');
@@ -2049,7 +2056,7 @@ window.tasso = {
   onStepProgress(p){ if (!RUN || p.index !== RUN.cur) return; const f = Number(p.frac); if (!(f >= 0)) return; RUN.prog = true; RUN.creep = Math.max(RUN.creep, Math.min(0.99, f)); paintRun(); },
   onStepDone(p){ if (!RUN) return; RUN.freed += p.freed || 0; RUN.freedBy[p.index] = p.freed || 0; RUN.cur = p.index + 1; RUN.creep = 0; RUN.prog = false; RUN.info = ''; paintRun(); },
   // Una riga in più senza riscrivere tutto il registro (con migliaia di righe la finestra si bloccava); al massimo 4000 righe a schermo, il registro completo resta nel file.
-  onLog(t){ const rm = /\s*\[ripara:([a-z_,]+)\]\s*$/.exec(t); if (rm) { RIPARA = rm[1].split(',').filter(x => STEP[x]); t = t.slice(0, rm.index); } const l = $('#runLog'); l.appendChild(document.createTextNode(t + '\n')); while (l.childNodes.length > 4000) l.removeChild(l.firstChild); if (!LOG_RAF) LOG_RAF = requestAnimationFrame(() => { LOG_RAF = 0; l.scrollTop = l.scrollHeight; }); },
+  onLog(t){ if (LOG_NOMI[t]) t = LOG_NOMI[t]; const rm = /\s*\[ripara:([a-z_,]+)\]\s*$/.exec(t); if (rm) { RIPARA = rm[1].split(',').filter(x => STEP[x]); t = t.slice(0, rm.index); } const l = $('#runLog'); l.appendChild(document.createTextNode(t + '\n')); while (l.childNodes.length > 4000) l.removeChild(l.firstChild); if (!LOG_RAF) LOG_RAF = requestAnimationFrame(() => { LOG_RAF = 0; l.scrollTop = l.scrollHeight; }); },
   onRunDone(p){
     clearInterval(msgTimer); clearInterval(creepTimer);
     if (p.settings) S = p.settings;
@@ -2823,7 +2830,8 @@ function paintTools(){
     if(!items.length) { g.ids.forEach(id => { placed[id] = true; }); return; }
     const det = el('details', {class:'tgroup', style:'--c:var(' + g.c + ')'});
     if (!(g.office && !isOffice())) det.setAttribute('open',''); // tutte le sezioni aperte (quelle dell'ufficio chiuse in Gaming)
-    const gt = (!isOffice() && g.ids.indexOf('fix_print') >= 0) ? _t('Internet e app') : g.t;
+    // Il nome dice quello che c'è davvero: senza la stampa (in Gaming è solo dell'Ufficio) il gruppo è "Internet e app".
+    const gt = (g.ids.indexOf('fix_print') >= 0 && !items.some(s => s.id === 'fix_print')) ? _t('Internet e app') : g.t;
     const sum = el('summary', {}, '<span class="gi">' + g.e + '</span><span>' + gt + '</span><span class="gc">' + items.length + '</span><span class="chev"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span>');
     det.appendChild(sum);
     const body = el('div', {class:'tgbody'});
@@ -3506,13 +3514,20 @@ const OF_ALIAS = {
   fix_game_screen: [_t('Lo schermo diventa nero'), _t('Fa ripartire la scheda video senza riavviare il PC (lo schermo lampeggia un attimo) e ti spiega i tasti per rimettere lo schermo giusto e la risoluzione.')]
 };
 // In Gaming: i problemi dell'ufficio che servono anche a chi gioca. Stanno nella Sezione Windows e nella Sezione Gaming.
+// I nomi senza descrizione (null) tengono la descrizione di sempre. Le schede fisse della Sezione Windows e Gaming
+// prendono nome e testo da qui (vedi gmCards), così scheda e conferma dicono sempre la stessa cosa.
 const GM_ALIAS = {
+  of_meet_mic: [_t('Nelle chiamate non mi sentono'), null],
+  of_meet_speaker: [_t('Non sento gli altri nelle chiamate'), null],
+  of_hosts: [_t('Un sito è bloccato senza motivo'), null],
   of_new_call: [_t('Prova microfono e cuffie'), _t('Prima di una chat vocale o di una diretta: prova in pochi secondi microfono, cuffie, webcam e internet. Se qualcosa non va, ti propone la riparazione con un pulsante.')],
   of_new_camlog: [_t('Chi usa webcam e microfono'), _t('Ti fa vedere quali programmi hanno usato la webcam e il microfono negli ultimi 30 giorni e chi li sta usando adesso. Così scopri se qualcuno ti guarda o ti ascolta.')]
 };
 // In Gaming non vanno nei "Problemi di tutti i giorni": la riunione (in Gaming c'è il Boost) e quelli già nelle altre sezioni.
 const GM_SKIP = {of_new_meeting:1, of_new_call:1, of_new_camlog:1};
-function stepTxt(id){ const s = STEP[id] || {name:'', desc:''}, a = (isOffice() ? OF_ALIAS : GM_ALIAS)[id]; return a ? {name: a[0], desc: a[1]} : {name: s.name, desc: s.desc}; }
+function stepTxt(id){ const s = STEP[id] || {name:'', desc:''}, a = (isOffice() ? OF_ALIAS : GM_ALIAS)[id]; return a ? {name: a[0], desc: a[1] || s.desc} : {name: s.name, desc: s.desc}; }
+// Le schede fisse "Prova microfono e cuffie" e "Chi usa webcam e microfono" (solo Gaming): testo da GM_ALIAS.
+(function gmCards(){ ['of_new_call', 'of_new_camlog'].forEach(id => { const b = document.querySelector('.fixcard [data-step="' + id + '"]'); if (!b) return; const c = b.closest('.fixcard'), a = GM_ALIAS[id]; c.querySelector('h3').textContent = a[0]; c.querySelector('p').textContent = a[1]; delete c.dataset.q; }); })();
 // I gruppi della sezione, per la modalità di adesso. In Gaming: solo i problemi che valgono per tutti.
 function ofGroups(){
   if (isOffice()) return OFFICE.map(g => ({t: g.t, e: g.e, c: g.c, ids: g.ids}));
@@ -5344,17 +5359,17 @@ function vaultAns(r, okMsg){ if (r === 'ok') toast(okMsg); else if (r === 'locke
 function vaultEdit(it){
   const e = it || {};
   modal('<h2>' + (it ? _t('Modifica') : _t('Nuova password')) + '</h2>' +
-    _t('<label class="acf">Sito o programma<input id="veSite" value="') + esc(e.site || '') + _t('" placeholder="es. Steam, Gmail, Amazon"></label>') +
+    _t('<label class="acf">Sito o programma<input id="veSite" value="') + esc(e.site || '') + (isOffice() ? _t('" placeholder="es. Microsoft, Gmail, Amazon"></label>') : _t('" placeholder="es. Steam, Gmail, Amazon"></label>')) +
     _t('<label class="acf">Nome utente o email<input id="veUser" value="') + esc(e.user || '') + '"></label>' +
     '<label class="acf">Password' + (it ? _t(' (lascia vuoto per non cambiarla)') : '') + _t('<span class="row" style="gap:6px"><input id="vePw" type="password" style="flex:1" autocomplete="off"><button class="btn ghost" id="veShow" type="button" style="min-height:38px">Mostra</button><button class="btn ghost" id="veGen" type="button" style="min-height:38px">Genera</button></span></label>') +
     '<span class="small" id="veStr"></span>' +
     _t('<label class="acf">Nota (facoltativa)<input id="veNote" value="') + esc(e.note || '') + '"></label>' +
     '<details class="guide"' + (e.web || e.win || e.seq || e.keys ? ' open' : '') + '><summary>' + _t('Compila da solo (facoltativo)') + '</summary><div style="display:flex;flex-direction:column;gap:8px;margin-top:8px">' +
     _t('<label class="acf">Indirizzo del sito o programma<input id="veWeb" value="') + esc(e.web || '') + _t('" placeholder="es. accounts.google.com oppure steam.exe"></label>') +
-    _t('<label class="acf">Titolo della finestra<input id="veWin" value="') + esc(e.win || '') + _t('" placeholder="es. Steam oppure Accedi*Google"></label>') +
+    _t('<label class="acf">Titolo della finestra<input id="veWin" value="') + esc(e.win || '') + (isOffice() ? _t('" placeholder="es. Outlook oppure Accedi*Google"></label>') : _t('" placeholder="es. Steam oppure Accedi*Google"></label>')) +
     _t('<label class="acf">Sequenza dei tasti<input id="veSeq" class="mono" value="') + esc(e.seq || '') + '" placeholder="{UTENTE}{TAB}{PASSWORD}{INVIO}"></label>' +
     _t('<label class="check"><input type="checkbox" id="veKeys"') + (e.keys ? ' checked' : '') + _t('> <span>Scrivi lettera per lettera (per i siti o programmi che non accettano la compilazione diretta)</span></label>') +
-    (isOffice() ? _t('<span class="small muted" style="line-height:1.5">Per Microsoft, Outlook, Google, Amazon, PayPal e altri siti famosi basta il nome in "Sito o programma". Il titolo della finestra serve per i programmi: va bene anche solo un pezzo, * vuol dire "qualsiasi testo". Nella sequenza: {UTENTE}, {TAB}, {PASSWORD}, {INVIO}, {ATTESA 2s}.</span>')
+    (isOffice() ? _t('<span class="small muted" style="line-height:1.5">Per Microsoft, Google, Amazon, PayPal e altri siti famosi basta il nome in "Sito o programma". Il titolo della finestra serve per i programmi: va bene anche solo un pezzo, * vuol dire "qualsiasi testo". Nella sequenza: {UTENTE}, {TAB}, {PASSWORD}, {INVIO}, {ATTESA 2s}.</span>')
       : _t('<span class="small muted" style="line-height:1.5">Per Steam, Google, Microsoft, Epic, Riot e altri siti famosi basta il nome in "Sito o programma". Il titolo della finestra serve per i programmi: va bene anche solo un pezzo, * vuol dire "qualsiasi testo". Nella sequenza: {UTENTE}, {TAB}, {PASSWORD}, {INVIO}, {ATTESA 2s}.</span>')) +
     '</div></details>',
     [{label:_t('Annulla')}, {label:_t('Salva'), cls:'primary', fn: (box) => {

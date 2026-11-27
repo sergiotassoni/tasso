@@ -208,6 +208,11 @@ WHAT'S NEW IN 3.2
    - PC score, renewed: graphics card, full RAM, cooling and a business card
    - Get help from a friend: Windows Quick Assist explained step by step, with warnings
      against scams
+   - Gaming: "Everyday problems" in Fix a problem, "Test microphone and headset" and
+     "Who is using the webcam and microphone"
+   - Office: Meeting mode on the Home page, next to CLEAN UP; in Fix a problem also PC
+     getting hot, program that won't start (missing .dll), PC freezing with big files,
+     sound crackling in calls, black screen
    - More security behind the scenes: game copies and Tasso's files better protected
    - Scheduled cleanup that waits until you close the game
    - File backup: warning if you choose the wrong folder

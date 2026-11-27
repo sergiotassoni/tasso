@@ -53,6 +53,13 @@ WHAT'S NEW IN 3.2
 - Get help from a friend: in Fix a problem there is a simple guide to get
   remote help with Windows Quick Assist (or to help someone), with warnings
   against scams.
+- Gaming and Office more balanced. In Gaming, in Fix a problem, there are
+  the "Everyday problems" (Wi-Fi, zip files, screens, keyboard, battery,
+  wrong time...), "Test microphone and headset" and "Who is using the webcam
+  and microphone". In Office, Meeting mode is on the Home page, next to
+  CLEAN UP, and in Fix a problem there are also "The PC gets hot", "A
+  program won't start (a .dll file is missing)", "The PC freezes with big
+  files", "The sound crackles in calls" and "The screen goes black".
 - More security behind the scenes: the copies of translated games and Tasso's
   files are better protected, and when you remove Tasso the game copies are
   never lost.

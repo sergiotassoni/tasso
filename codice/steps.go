@@ -1256,8 +1256,16 @@ Say 'Fermo il servizio di stampa...'
 Stop-Service -Name Spooler -Force -ErrorAction SilentlyContinue
 $q = Join-Path $TassoWin 'System32\spool\PRINTERS'
 if (Test-Path -LiteralPath $q) { Get-ChildItem -LiteralPath $q -Force -ErrorAction SilentlyContinue | ForEach-Object { Remove-Item -LiteralPath $_.FullName -Force -ErrorAction SilentlyContinue }; Say 'Coda di stampa svuotata.' }
-Start-Service -Name Spooler -ErrorAction SilentlyContinue
-Say 'Servizio di stampa riavviato. Riprova a stampare.'
+$sv = Get-Service -Name Spooler -ErrorAction SilentlyContinue
+if ($sv -and [string]$sv.StartType -eq 'Disabled') {
+  Say 'Il servizio di stampa è disattivato in Windows (qualcuno l''ha spento apposta): Tasso non lo riaccende. Se non stampi va bene così. Per stampare: Start > scrivi "Servizi" > Spooler di stampa > Tipo di avvio: Automatico > Avvia.'
+} else {
+  Start-Service -Name Spooler -ErrorAction SilentlyContinue
+  Start-Sleep -Seconds 2
+  $sv = Get-Service -Name Spooler -ErrorAction SilentlyContinue
+  if ($sv -and $sv.Status -eq 'Running') { Say 'Servizio di stampa riavviato. Riprova a stampare.' }
+  else { Say 'Il servizio di stampa non è ripartito. Riavvia il PC e riprova; se non parte ancora, apri Start > scrivi "Servizi" > Spooler di stampa e guarda l''errore.' }
+}
 `},
 	{ID: "fix_store", Name: "Risolvi problemi del Microsoft Store e delle app", Desc: "Svuota la cache del Microsoft Store e ri-registra le app di Windows quando non si aprono o non si aggiornano.", Level: 0, Minutes: 1, Timeout: 10 * time.Minute, Script: `
 Say 'Svuoto la cache del Microsoft Store...'

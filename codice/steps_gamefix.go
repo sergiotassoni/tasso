@@ -30,7 +30,7 @@ if (-not $wg) {
 $pk = @(
   @('Microsoft.VCRedist.2015+.x64', 'Visual C++ 2015-2022 (64 bit)'),
   @('Microsoft.VCRedist.2015+.x86', 'Visual C++ 2015-2022 (32 bit)'),
-  @('Microsoft.DirectX', 'DirectX (librerie dei giochi più vecchi)'),
+  @('Microsoft.DirectX', $(if ($TassoUfficio) { 'DirectX (librerie grafiche dei programmi più vecchi)' } else { 'DirectX (librerie dei giochi più vecchi)' })),
   @('Microsoft.DotNet.DesktopRuntime.8', '.NET Desktop Runtime 8')
 )
 $ok = 0
@@ -39,8 +39,14 @@ foreach ($p in $pk) {
   $code = Run-Hidden $wg ('install --id "' + $p[0] + '" --exact --silent --force --accept-source-agreements --accept-package-agreements --disable-interactivity')
   if (@(0, -1978335189, -1978335135, -1978334963, -1978334967) -contains $code) { $ok++; Say ('A posto: ' + $p[1]) } else { Say ('Non sono riuscito a sistemare ' + $p[1] + ' (codice ' + $code + ').') }
 }
-Say ('Componenti dei giochi a posto: ' + $ok + ' su ' + $pk.Count + '.')
-Say 'Se il gioco non parte ancora: su Steam fai tasto destro sul gioco > Proprietà > File installati > "Verifica integrità dei file"; su Epic: tre puntini > Gestisci > Verifica. Ricontrollano e riscaricano solo i file rotti.'
+# $TassoUfficio: in Ufficio lo stesso passaggio si chiama "Un programma non parte (manca un file .dll)".
+if ($TassoUfficio) {
+  Say ('Componenti di Windows per i programmi a posto: ' + $ok + ' su ' + $pk.Count + '.')
+  Say 'Se il programma non parte ancora: in Impostazioni > App > App installate cercalo, premi i tre puntini > Modifica o Opzioni avanzate > Ripristina. Se non c''è, disinstallalo e reinstallalo dal sito ufficiale. Se il PC è dell''ufficio, chiedi all''assistenza.'
+} else {
+  Say ('Componenti dei giochi a posto: ' + $ok + ' su ' + $pk.Count + '.')
+  Say 'Se il gioco non parte ancora: su Steam fai tasto destro sul gioco > Proprietà > File installati > "Verifica integrità dei file"; su Epic: tre puntini > Gestisci > Verifica. Ricontrollano e riscaricano solo i file rotti.'
+}
 `},
 	{ID: "fix_game_pads", Name: "Controller, cuffie o microfono non vanno", Desc: "Riavvia controller, cuffie, microfono e periferiche USB o Bluetooth che non rispondono, e riavvia l'audio di Windows.", Level: 0, Minutes: 0.5, Timeout: 5 * time.Minute, Script: `
 Say 'Cerco controller, cuffie e periferiche USB con problemi...'
