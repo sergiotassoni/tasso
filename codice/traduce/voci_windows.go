@@ -157,6 +157,7 @@ func (s *serverVoci) avvia() error {
 	}
 	porta, err := portaLibera()
 	if err != nil {
+		sbloccaMotore(dirMotoreVoci())
 		return err
 	}
 	// tutti i core per pochi decimi di secondo, a priorità più bassa del gioco: il gioco passa
@@ -179,6 +180,10 @@ func (s *serverVoci) avvia() error {
 	logf, _ := os.Create(filepath.Join(dirApp, "logs", "voci.txt"))
 	cmd.Stdout, cmd.Stderr = logf, logf
 	if err := cmd.Start(); err != nil {
+		if logf != nil {
+			logf.Close()
+		}
+		sbloccaMotore(dirMotoreVoci())
 		return err
 	}
 	jobChiudiConMe(cmd.Process.Pid)
@@ -195,6 +200,9 @@ func (s *serverVoci) avvia() error {
 		s.mu.Lock()
 		if s.cmd == cmd {
 			s.cmd = nil
+		}
+		if s.cmd == nil {
+			sbloccaMotore(dirMotoreVoci()) // motore fermo: file di nuovo liberi
 		}
 		s.mu.Unlock()
 	}()

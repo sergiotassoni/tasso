@@ -21,7 +21,7 @@ import (
 // controllo l'impronta leggendo proprio dal file bloccato, sempre (niente risultato ricordato).
 var (
 	muBloccati sync.Mutex
-	bloccati   = map[string][]windows.Handle{}
+	bloccati   = map[string][]*os.File{}
 )
 
 func verificaEBloccaMotore(dir string, impronte map[string]string, exe string) error {
@@ -33,10 +33,12 @@ func verificaEBloccaMotore(dir string, impronte map[string]string, exe string) e
 	if err != nil {
 		return err
 	}
-	var presi []windows.Handle
+	// Tengo gli *os.File (non i numeri nudi): se buttassi via l'os.File, il garbage collector
+	// chiuderebbe il file da solo (addio blocco) e poi lo richiuderei io su un handle altrui.
+	var presi []*os.File
 	fallito := func(e error) error {
-		for _, h := range presi {
-			windows.CloseHandle(h)
+		for _, f := range presi {
+			f.Close()
 		}
 		return e
 	}
@@ -57,8 +59,8 @@ func verificaEBloccaMotore(dir string, impronte map[string]string, exe string) e
 		if err != nil {
 			return fallito(fmt.Errorf("il file %s del motore è in uso o non si apre: non lo avvio", nome))
 		}
-		presi = append(presi, h)
 		f := os.NewFile(uintptr(h), nome)
+		presi = append(presi, f)
 		hs := sha256.New()
 		_, err = io.Copy(hs, f)
 		if err != nil || !strings.EqualFold(hex.EncodeToString(hs.Sum(nil)), atteso) {
@@ -83,7 +85,7 @@ func sbloccaMotore(dir string) {
 	hs := bloccati[dir]
 	delete(bloccati, dir)
 	muBloccati.Unlock()
-	for _, h := range hs {
-		windows.CloseHandle(h)
+	for _, f := range hs {
+		f.Close()
 	}
 }

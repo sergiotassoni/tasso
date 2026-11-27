@@ -1199,7 +1199,18 @@
   " GB, ne servono circa ": " GB free, it needs about ",
   " (più un po' di margine). Libera spazio e riprova.": " (plus a little margin). Free up some space and try again.",
   "Svuota il Cestino di tutte le unità, tranne quello buttato nelle ultime 24 ore (così puoi ancora recuperarlo). Nella pulizia programmata toglie solo quello che è nel Cestino da più di 7 giorni.": "Empties the Recycle Bin on all drives, except what was deleted in the last 24 hours (so you can still get it back). In the scheduled cleanup it only removes what has been in the Recycle Bin for more than 7 days.",
-  "L'IA intera toglierebbe troppa memoria al gioco con una scheda video da ": "The full AI would take too much memory from the game with a graphics card of "
+  "L'IA intera toglierebbe troppa memoria al gioco con una scheda video da ": "The full AI would take too much memory from the game with a graphics card of ",
+  "la cartella del gioco non c'è più o è un collegamento: non tolgo niente": "the game folder is gone or is a link: I won't remove anything",
+  "la cartella del motore non va bene: non lo avvio": "the engine folder isn't right: I won't start it",
+  "nella cartella del motore c'è un file sconosciuto (": "there's an unknown file in the engine folder (",
+  "): non lo avvio": "): I won't start it",
+  "il file ": "the file ",
+  " del motore è in uso o non si apre: non lo avvio": " of the engine is in use or won't open: I won't start it",
+  " del motore è stato cambiato: non lo avvio (riscaricalo)": " of the engine has been changed: I won't start it (download it again)",
+  "non riesco a preparare la firma dell'elenco dei file (cartella Tasso in Programmi)": "I can't prepare the signature for the list of files (Tasso folder in Program Files)",
+  "L'elenco dei file aggiunti a questo gioco non è valido: non tocco niente. Per rimettere il gioco com'era verifica i file del gioco dal suo launcher.": "The list of files added to this game isn't valid: I won't touch anything. To put the game back as it was, verify the game files from its launcher.",
+  "non tolgo ": "I won't remove ",
+  ": la cartella passa da un collegamento": ": the folder goes through a link"
  },
  "ps": {
   " di ": " of ",
@@ -4951,6 +4962,10 @@
   " Il ping va bene anche per le videochiamate.": " The ping is fine for video calls too.",
   " Il ping è alto: nelle videochiamate potresti avere ritardi.": " The ping is high: video calls may lag.",
   "Ottima: va bene per film in 4K, videochiamate e download veloci.": "Excellent: fine for 4K movies, video calls and fast downloads.",
-  "Buona: film in HD e videochiamate senza problemi.": "Good: HD movies and video calls with no problems."
+  "Buona: film in HD e videochiamate senza problemi.": "Good: HD movies and video calls with no problems.",
+  "con la tua libreria, la pagina di ogni gioco e": "with your library, a page for each game and",
+  "in Risolvi un problema.": "in Fix a problem.",
+  "(Impostazioni): rimette com'era e toglie Tasso dal PC.": "(Settings): puts things back as they were and removes Tasso from the PC.",
+  "<b>Problemi nei giochi</b> (27, con un pulsante): scatti, pochi FPS, ping alto, il gioco non parte (Visual C++, DirectX), launcher, schermo nero, controller e cuffie, Xbox e Game Pass, anti-cheat, Discord, mira del mouse, gioco che si riduce a icona, download lenti": "<b>Game problems</b> (27, one button each): stutters, low FPS, high ping, game won't start (Visual C++, DirectX), launchers, black screen, controllers and headsets, Xbox and Game Pass, anti-cheat, Discord, mouse aim, game minimizing itself, slow downloads"
  }
 }

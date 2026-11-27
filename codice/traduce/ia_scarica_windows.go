@@ -11,7 +11,8 @@ import (
 	"golang.org/x/sys/windows"
 )
 
-func init() { iaMancante = func() bool { return !iaPresente() } }
+// mai il controllo lungo (5 GB) sul filo della finestra: quello svelto usa il risultato già pronto
+func init() { iaMancante = func() bool { return !iaPresenteSvelto() } }
 
 // spazioDisco: byte liberi sul disco della cartella (per chi usa Tasso, quote comprese).
 func spazioDisco(dir string) (uint64, bool) {

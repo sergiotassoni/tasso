@@ -507,6 +507,11 @@ func CorreggiFileXUnity(file string, corr map[string][2]string) (int, error) {
 				righe[i] = chiave + "=" + escapeXUnity(c[1])
 				n++
 			}
+			// "- Trova la chiave": nel gioco la frase ha il trattino davanti (TraduciPer lo rimette)
+			if chiave == escapeXUnity("- "+en) && val == escapeXUnity("- "+c[0]) {
+				righe[i] = chiave + "=" + escapeXUnity("- "+c[1])
+				n++
+			}
 		}
 	}
 	if n == 0 {

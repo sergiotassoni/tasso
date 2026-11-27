@@ -385,6 +385,10 @@ func fermaModGioco(cartella string) string {
 	defer muInstalla.Unlock()
 	m, ok := leggiManifesto(dirApp, chiaveGioco(cartella))
 	if !ok {
+		if _, err := os.Stat(filepath.Join(cartellaCopie(dirApp, chiaveGioco(cartella)), "manifesto.json")); err == nil {
+			// l'elenco c'è ma non è firmato da Tasso (o è rovinato): non dico "tolta" se non lo è
+			return "L'elenco dei file aggiunti a questo gioco non è valido: non tocco niente. Per rimettere il gioco com'era verifica i file del gioco dal suo launcher."
+		}
 		return ""
 	}
 	if !strings.EqualFold(filepath.Clean(m.Cartella), filepath.Clean(cartella)) {

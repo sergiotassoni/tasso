@@ -151,6 +151,7 @@ func (s *ServerIA) Avvia(dirMotore, fileModello string) error {
 	}
 	porta, err := portaLibera()
 	if err != nil {
+		sbloccaMotore(dirMotore)
 		return err
 	}
 	cmd := exec.Command(exe,
@@ -169,6 +170,10 @@ func (s *ServerIA) Avvia(dirMotore, fileModello string) error {
 	logf, _ := os.Create(filepath.Join(dirApp, "logs", "motore-ia.txt"))
 	cmd.Stdout, cmd.Stderr = logf, logf
 	if err := cmd.Start(); err != nil {
+		if logf != nil {
+			logf.Close()
+		}
+		sbloccaMotore(dirMotore)
 		return err
 	}
 	s.job = jobChiudiConMe(cmd.Process.Pid)
@@ -181,6 +186,11 @@ func (s *ServerIA) Avvia(dirMotore, fileModello string) error {
 		if logf != nil {
 			logf.Close()
 		}
+		s.mu.Lock()
+		if s.cmd == cmd || s.cmd == nil {
+			sbloccaMotore(dirMotore) // motore fermo (chiuso, crash o tempo scaduto): file di nuovo liberi
+		}
+		s.mu.Unlock()
 		close(uscito)
 		s.mu.Lock()
 		if s.cmd == cmd {

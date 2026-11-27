@@ -25,9 +25,10 @@ import (
 var CartellaSicura string
 
 var (
-	muChiave    sync.Mutex
-	chiaveMem   []byte
-	vecchiFatti sync.Once
+	muChiave  sync.Mutex
+	chiaveMem []byte
+	muVecchi  sync.Mutex
+	vecchiOK  = map[string]bool{} // utenti (cartelle dati) già controllati in questa sessione
 )
 
 // chiaveFirma: la chiave della firma; nuova=true se l'ho appena creata (prima volta).
@@ -41,17 +42,28 @@ func chiaveFirma() (k []byte, nuova bool, err error) {
 		return nil, false, errors.New("manca la cartella sicura")
 	}
 	p := filepath.Join(CartellaSicura, "chiave-traduzioni")
-	if b, err := os.ReadFile(p); err == nil && len(b) == 32 {
+	b, err := os.ReadFile(p)
+	if err == nil && len(b) == 32 {
 		chiaveMem = b
 		return b, false, nil
 	}
-	b := make([]byte, 32)
+	if err == nil {
+		// chiave rovinata (per esempio corrente saltata mentre la scrivevo): in Programmi\Tasso
+		// scrivono solo gli amministratori, la rifaccio
+		_ = os.Remove(p)
+	}
+	b = make([]byte, 32)
 	if _, err := io.ReadFull(rand.Reader, b); err != nil {
 		return nil, false, err
 	}
 	_ = os.MkdirAll(CartellaSicura, 0o755)
 	f, err := os.OpenFile(p, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o600)
 	if err != nil {
+		// un'altra copia di Tasso l'ha appena creata: uso la sua
+		if b2, e := os.ReadFile(p); e == nil && len(b2) == 32 {
+			chiaveMem = b2
+			return b2, false, nil
+		}
 		return nil, false, err
 	}
 	_, err = f.Write(b)
@@ -63,7 +75,46 @@ func chiaveFirma() (k []byte, nuova bool, err error) {
 		return nil, false, err
 	}
 	chiaveMem = b
+	// chiave nuova: gli elenchi di tutti gli utenti vanno firmati di nuovo
+	if vecchi, _ := filepath.Glob(filepath.Join(CartellaSicura, "firmati-*")); len(vecchi) > 0 {
+		for _, v := range vecchi {
+			_ = os.Remove(v)
+		}
+	}
 	return b, true, nil
+}
+
+// segnoFirmati: il segno (in Programmi\Tasso, solo amministratori) che gli elenchi di questo
+// utente sono già stati firmati una volta con la chiave attuale.
+func segnoFirmati(dirApp string) string {
+	h := sha256.Sum256([]byte(strings.ToLower(filepath.Clean(dirApp))))
+	return filepath.Join(CartellaSicura, "firmati-"+hex.EncodeToString(h[:8]))
+}
+
+// preparaFirma: la chiave, e la prima volta per ogni utente (ogni account Windows ha i suoi
+// elenchi) firmo gli elenchi che ci sono già, scritti dalle versioni di prima della firma.
+// adesso=true se li ho firmati proprio ora.
+func preparaFirma(dirApp string) (k []byte, adesso bool, err error) {
+	k, _, err = chiaveFirma()
+	if err != nil {
+		return nil, false, err
+	}
+	muVecchi.Lock()
+	defer muVecchi.Unlock()
+	if vecchiOK[dirApp] {
+		return k, false, nil
+	}
+	segno := segnoFirmati(dirApp)
+	if _, e := os.Lstat(segno); e == nil {
+		vecchiOK[dirApp] = true
+		return k, false, nil
+	}
+	firmaVecchi(dirApp, k)
+	if f, e := os.OpenFile(segno, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o600); e == nil {
+		f.Close()
+		vecchiOK[dirApp] = true
+	}
+	return k, true, nil
 }
 
 func firmaDi(k []byte, m ManifestoMod) string {
@@ -89,12 +140,9 @@ func improntaFile(p string) string {
 
 // firmaManifesto: aggiunge le impronte degli originali messi da parte e la firma.
 func firmaManifesto(dirApp, chiave string, m *ManifestoMod) error {
-	k, nuova, err := chiaveFirma()
+	k, _, err := preparaFirma(dirApp)
 	if err != nil {
-		return errors.New("non riesco a preparare la firma dell'elenco dei file (Programmi\\Tasso)")
-	}
-	if nuova {
-		firmaVecchi(dirApp, k)
+		return errors.New("non riesco a preparare la firma dell'elenco dei file (cartella Tasso in Programmi)")
 	}
 	m.Impronte = map[string]string{}
 	for _, s := range m.Sostituiti {
@@ -108,21 +156,27 @@ func firmaManifesto(dirApp, chiave string, m *ManifestoMod) error {
 
 // manifestoFirmato: l'elenco è stato scritto da Tasso e non è stato cambiato dopo.
 func manifestoFirmato(dirApp string, m ManifestoMod) bool {
-	k, nuova, err := chiaveFirma()
+	k, adesso, err := preparaFirma(dirApp)
 	if err != nil {
 		return false
 	}
-	if nuova {
-		firmaVecchi(dirApp, k)
-		return false // elenchi di prima della firma: li firmo adesso, si leggono dalla prossima volta
+	if m.Firma != "" && hmac.Equal([]byte(m.Firma), []byte(firmaDi(k, m))) {
+		return true
 	}
+	// elenco letto prima che firmassi quelli vecchi (proprio in questa chiamata): firmato adesso
+	// come gli altri, vale già
+	return adesso && m.Firma == ""
+}
+
+// firmatoConChiave: l'elenco porta una firma valida con la chiave attuale.
+func firmatoConChiave(k []byte, m ManifestoMod) bool {
 	return m.Firma != "" && hmac.Equal([]byte(m.Firma), []byte(firmaDi(k, m)))
 }
 
-// firmaVecchi: la chiave è appena nata (prima versione con la firma): firmo una volta gli
-// elenchi che ci sono già, scritti dalle versioni di prova di prima.
+// firmaVecchi: una volta per utente e per chiave firmo gli elenchi che ci sono già e non hanno
+// una firma valida (scritti dalle versioni di prima, o firmati con una chiave andata persa).
 func firmaVecchi(dirApp string, k []byte) {
-	vecchiFatti.Do(func() {
+	func() {
 		voci, _ := os.ReadDir(filepath.Join(dirApp, "copie-giochi"))
 		for _, v := range voci {
 			if !v.IsDir() || strings.ContainsAny(v.Name(), `/\`) {
@@ -134,7 +188,7 @@ func firmaVecchi(dirApp string, k []byte) {
 				continue
 			}
 			var m ManifestoMod
-			if json.Unmarshal(b, &m) != nil || m.Firma != "" {
+			if json.Unmarshal(b, &m) != nil || firmatoConChiave(k, m) {
 				continue
 			}
 			m.Impronte = map[string]string{}
@@ -149,7 +203,7 @@ func firmaVecchi(dirApp string, k []byte) {
 				_ = os.Rename(p+".tmp", p)
 			}
 		}
-	})
+	}()
 }
 
 // senzaCollegamenti: dalla cartella del gioco fino al file, nessuna cartella è un collegamento

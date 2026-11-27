@@ -28,10 +28,12 @@ func correggiNumeriOCR(s string) string {
 	return rePercento96.ReplaceAllStringFunc(s, func(m string) string {
 		p := rePercento96.FindStringSubmatch(m)
 		parola, num := strings.ToLower(p[1]), p[2]
-		// "by 1996", "bonus 396": anni e numeri veri. Lo cambio solo con i decimali ("6.796")
-		// o con un numero piccolo dopo le parole delle statistiche ("Increased 1096", non "by 1996")
-		if !strings.ContainsAny(num, ".,") && !(parola != "by" && parola != "bonus" && len(num) <= 2) {
-			return m
+		// Con i decimali ("6.796") è sempre una percentuale. Senza, solo con un numero piccolo
+		// (1-2 cifre); dopo "by" e "bonus" non con 19 e 20, che sono anni ("by 1996", "by 2096")
+		if !strings.ContainsAny(num, ".,") {
+			if len(num) > 2 || ((parola == "by" || parola == "bonus") && (num == "19" || num == "20")) {
+				return m
+			}
 		}
 		return p[1] + " " + num + "%"
 	})
