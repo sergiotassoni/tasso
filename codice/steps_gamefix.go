@@ -13,10 +13,10 @@ Say 'Modalità Gioco di Windows accesa: mentre giochi Windows non fa aggiornamen
 # "Limitazione dell'alimentazione": su alcuni PC Windows rallenta i programmi che pensa siano in secondo piano.
 $pt = 'HKLM:\SYSTEM\CurrentControlSet\Control\Power\PowerThrottling'
 $cur = $null; try { $cur = (Get-ItemProperty -LiteralPath $pt -Name PowerThrottlingOff -ErrorAction Stop).PowerThrottlingOff } catch {}
-if ($cur -ne 1) { Say 'Su questo PC Windows può rallentare i programmi in secondo piano per risparmiare: se giochi con il portatile, attaccalo alla corrente e metti la modalità Gaming in Tasso.' }
+if ($cur -ne 1) { Say 'Su questo PC Windows può rallentare i programmi in secondo piano per risparmiare: se giochi con il portatile, attaccalo alla corrente. Per avere la potenza massima solo mentre giochi, usa il Boost nella pagina Giochi.' }
 $s = (powercfg /getactivescheme) -join ' '
 $ov = ''; try { $ov = [string](Get-ItemProperty -LiteralPath 'HKLM:\SYSTEM\CurrentControlSet\Control\Power\User\PowerSchemes' -Name ActiveOverlayAcPowerScheme -ErrorAction Stop).ActiveOverlayAcPowerScheme } catch {}
-if ($s -notmatch '8c5e7fda|Prestazioni elevate|High performance|Ultimate|Prestazioni ottimali' -and $ov -notmatch 'ded574b5') { Say 'Consiglio: in Tasso metti la modalità Gaming (o accendi il Profilo gioco): il piano energetico ora non è al massimo.' }
+if ($s -notmatch '8c5e7fda|Prestazioni elevate|High performance|Ultimate|Prestazioni ottimali' -and $ov -notmatch 'ded574b5') { Say 'Il piano energetico ora non è al massimo. Per avere la potenza massima solo mentre giochi, usa il Boost nella pagina Giochi.' }
 Say 'Le cache della grafica le lascio: servono proprio a non scattare. Solo se gli scatti o gli errori grafici sono iniziati dopo un aggiornamento del driver, usa "Cache della scheda video" in Pulisci › Un passaggio alla volta (in Gaming accendi prima "Mostra tutte le funzioni" in Impostazioni).'
 Say 'Altre cause frequenti: il gioco installato su un disco meccanico (meglio un SSD), un programma che registra in sottofondo, o il portatile a batteria.'
 `},

@@ -99,9 +99,10 @@ var officeSteps3 = []Step{
 	{ID: "of_new_call", Name: "Pronto per la videochiamata?", Desc: "Prova in pochi secondi webcam, microfono, casse o cuffie e internet. Ti dice cosa va e cosa no e, se serve, ti propone la riparazione con un pulsante. Controlla e spiega.", Level: 0, Minutes: 0.2, Timeout: 90 * time.Second, Script: ofs3(`
 Say 'Provo webcam, microfono, casse e internet...'
 $fix = @(); $bad = 0
-# Internet: Teams/Zoom/Meet usano la porta 443; il ping misura quanto è pronta la linea.
+# Internet: Teams/Zoom/Meet usano la porta 443; il ping misura quanto è pronta la linea. In Gaming niente Teams:
+# basta sapere se internet c'è (Test-Internet).
 $tcp = $false
-try { $c = New-Object System.Net.Sockets.TcpClient; $a = $c.BeginConnect('teams.microsoft.com', 443, $null, $null); if ($a.AsyncWaitHandle.WaitOne(4000) -and $c.Connected) { $tcp = $true }; $c.Close() } catch {}
+if ($TassoUfficio) { try { $c = New-Object System.Net.Sockets.TcpClient; $a = $c.BeginConnect('teams.microsoft.com', 443, $null, $null); if ($a.AsyncWaitHandle.WaitOne(4000) -and $c.Connected) { $tcp = $true }; $c.Close() } catch {} }
 $ms = @(); $lost = 0
 $pg = New-Object System.Net.NetworkInformation.Ping
 foreach ($i in 1..5) { try { $r = $pg.Send('1.1.1.1', 1500); if ($r.Status -eq 'Success') { $ms += [int]$r.RoundtripTime } else { $lost++ } } catch { $lost++ } }
@@ -111,11 +112,13 @@ elseif ($ms.Count) {
   $avg = [int](($ms | Measure-Object -Average).Average)
   if ($avg -gt 150 -or $lost -ge 2) { Say ('ATTENZIONE  Internet: lento o a singhiozzo (' + $avg + ' ms, ' + $lost + ' risposte perse su 5). La chiamata può bloccarsi: avvicinati al Wi-Fi o usa il cavo.'); $bad++ }
   else { Say ('OK  Internet: va bene (' + $avg + ' ms).') }
-} else { Say 'OK  Internet: raggiungo Teams (il ping è bloccato da questa rete, ma la chiamata funziona).' }
+} elseif ($TassoUfficio) { Say 'OK  Internet: raggiungo Teams (il ping è bloccato da questa rete, ma la chiamata funziona).' }
+else { Say 'OK  Internet: raggiungo internet (il ping è bloccato da questa rete, ma la chiamata funziona).' }
 # Webcam
 $cams = @(Get-PnpDevice -PresentOnly -ErrorAction SilentlyContinue | Where-Object { ([string]$_.Class -eq 'Camera' -or ([string]$_.Class -eq 'Image' -and $_.FriendlyName -match 'cam')) -and $_.FriendlyName -notmatch 'Scanner|\bIR\b' })
 $pvc = Get-Privacy 'webcam'
-if (-not $cams.Count) { Say 'NO  Webcam: Windows non la vede. Sul portatile cerca la tendina sopra lo schermo o il tasto con la telecamera barrata.'; $fix += 'of_meet_cam'; $bad++ }
+if (-not $cams.Count -and -not $TassoUfficio) { Say 'INFO  Webcam: non c''è (per la chat vocale non serve).' }
+elseif (-not $cams.Count) { Say 'NO  Webcam: Windows non la vede. Sul portatile cerca la tendina sopra lo schermo o il tasto con la telecamera barrata.'; $fix += 'of_meet_cam'; $bad++ }
 elseif (@($cams | Where-Object { $_.Status -ne 'OK' }).Count -eq $cams.Count) { Say ('NO  Webcam: c''è (' + $cams[0].FriendlyName + ') ma è spenta o ha un problema.'); $fix += 'of_meet_cam'; $bad++ }
 elseif ($pvc.pc -eq 'Deny' -or $pvc.all -eq 'Deny' -or $pvc.desk -eq 'Deny') { Say 'NO  Webcam: Windows la blocca ai programmi (privacy).'; $fix += 'of_meet_cam'; $bad++ }
 else {
@@ -134,7 +137,8 @@ if (Use-Audio) {
 } else { Say 'ATTENZIONE  Audio: non riesco a leggere microfono e casse su questo PC.' }
 $pvm = Get-Privacy 'microphone'
 if ($pvm.pc -eq 'Deny' -or $pvm.all -eq 'Deny' -or $pvm.desk -eq 'Deny') { Say 'NO  Microfono: Windows lo blocca ai programmi (privacy).'; if ($fix -notcontains 'of_meet_mic') { $fix += 'of_meet_mic' }; $bad++ }
-if (-not $bad) { Say 'Tutto pronto per la videochiamata.' }
+if (-not $bad -and -not $TassoUfficio) { Say 'Tutto pronto per la chat vocale.' }
+elseif (-not $bad) { Say 'Tutto pronto per la videochiamata.' }
 elseif ($fix.Count) { Say ('Da sistemare: ' + $bad + '. Premi "Ripara adesso" qui sotto. [ripara:' + (($fix | Select-Object -Unique) -join ',') + ']') }
 else { Say 'Niente da riparare in automatico: segui il consiglio qui sopra.' }
 `)},

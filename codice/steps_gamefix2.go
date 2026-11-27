@@ -6,21 +6,38 @@ package main
 import "time"
 
 var gameFixSteps2 = []Step{
-	{ID: "fix_game_ping", Name: "Ping alto o lag nei giochi online", Desc: "Svuota la memoria degli indirizzi internet, rimette la rete di Windows come deve essere e ferma la condivisione nascosta degli aggiornamenti.", Level: 0, Minutes: 0.4, Timeout: 5 * time.Minute, Script: `
+	{ID: "fix_game_ping", Name: "Ping alto o lag nei giochi online", Desc: "Svuota la memoria degli indirizzi internet, rimette la rete di Windows come deve essere e ferma la condivisione nascosta degli aggiornamenti.", Level: 0, Minutes: 0.4, Timeout: 5 * time.Minute, Script: undoCmdPS + `
 Say 'Svuoto la memoria degli indirizzi internet (DNS)...'
 ipconfig /flushdns | Out-Null
-Say 'Rimetto la regolazione automatica della rete come la vuole Windows...'
-netsh int tcp set global autotuninglevel=normal | Out-Null
+# Regolazione automatica della rete e Ottimizzazione recapito: prima di cambiarle salvo com'erano in un
+# file (doppio clic e tornano così). Se non riesco a leggerle o a salvarle, non le cambio.
+$at = ''; try { $at = [string](Get-NetTCPSetting -SettingName Internet -ErrorAction Stop).AutoTuningLevelLocal } catch {}
+$atNet = @{ 'Disabled' = 'disabled'; 'HighlyRestricted' = 'highlyrestricted'; 'Restricted' = 'restricted'; 'Experimental' = 'experimental' }[$at]
 # Ottimizzazione recapito: Windows può mandare pezzi di aggiornamenti ad altri PC su internet usando la tua connessione.
 # La scelta fatta nelle Impostazioni sta qui (Windows 10 1709 e dopo); quella vecchia in Config.
 $doSet = 'Registry::HKEY_USERS\S-1-5-20\Software\Microsoft\Windows\CurrentVersion\DeliveryOptimization\Settings'
 $doOld = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\DeliveryOptimization\Config'
-$done = $false
-foreach ($kv in @(@($doSet, 'DownloadMode'), @($doOld, 'DODownloadMode'))) {
+$doFix = @()
+foreach ($kv in @(@($doSet, 'DownloadMode', 'HKU\S-1-5-20\Software\Microsoft\Windows\CurrentVersion\DeliveryOptimization\Settings'), @($doOld, 'DODownloadMode', 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\DeliveryOptimization\Config'))) {
   $m = $null; try { $m = (Get-ItemProperty -LiteralPath $kv[0] -Name $kv[1] -ErrorAction Stop).($kv[1]) } catch {}
-  if ($m -eq 3) { try { Set-ItemProperty -LiteralPath $kv[0] -Name $kv[1] -Value 1 -Type DWord -ErrorAction Stop; $done = $true } catch {} }
+  if ($m -eq 3) { $doFix += ,$kv }
 }
+$cmds = @()
+if ($atNet) { $cmds += ('netsh.exe int tcp set global autotuninglevel=' + $atNet) }
+foreach ($kv in $doFix) { $cmds += ('reg.exe add "' + $kv[2] + '" /v ' + $kv[1] + ' /t REG_DWORD /d 3 /f') }
+$u = ''
+if ($cmds.Count) {
+  $u = New-UndoCmd $cmds 'rete-giochi' 'Impostazioni di rete rimesse come prima.'
+  if (-not $u) { Say 'Non sono riuscito a salvare com''erano le impostazioni di rete, quindi non le cambio.'; $atNet = $null; $doFix = @() }
+}
+if ($atNet) {
+  Say 'Rimetto la regolazione automatica della rete come la vuole Windows...'
+  netsh int tcp set global autotuninglevel=normal | Out-Null
+}
+$done = $false
+foreach ($kv in $doFix) { try { Set-ItemProperty -LiteralPath $kv[0] -Name $kv[1] -Value 1 -Type DWord -ErrorAction Stop; $done = $true } catch {} }
 if ($done) { Say 'Windows mandava pezzi di aggiornamenti ad altri PC su internet: ora li condivide solo dentro casa tua.' }
+Say-UndoCmd $u
 $bits = @(Get-BitsTransfer -AllUsers -ErrorAction SilentlyContinue | Where-Object { [string]$_.JobState -match 'Transferring|Queued' })
 if ($bits.Count) { Say ('Ci sono ' + $bits.Count + ' download di Windows in corso: rallentano il gioco online. Lasciali finire o mettili in pausa da Windows Update.') }
 $up = @(Get-NetAdapter -ErrorAction SilentlyContinue | Where-Object { $_.Status -eq 'Up' })
@@ -65,11 +82,14 @@ else { Say 'Da qui non sono riuscito a far ripartire la scheda video: premi insi
 if ($TassoUfficio) { Say 'Consigli: se lo schermo giusto resta nero premi Win + P e scegli "Solo schermo PC", "Duplica" o "Estendi". Se la risoluzione è strana: tasto destro sul desktop > Impostazioni schermo > Risoluzione consigliata.' }
 else { Say 'Consigli: se il gioco è piccolo o tagliato premi Alt + Invio (passa da finestra a schermo intero). Se lo schermo giusto resta nero premi Win + P e scegli "Solo schermo PC" o "Duplica". Se la risoluzione è strana: tasto destro sul desktop > Impostazioni schermo > Risoluzione consigliata.' }
 `},
-	{ID: "fix_game_fps", Name: "Pochi FPS (il gioco va lento)", Desc: "Mette il piano energetico al massimo e ti dice cosa sta rubando potenza.", Level: 0, Minutes: 0.4, Timeout: 5 * time.Minute, Script: modeBase + `
+	{ID: "fix_game_fps", Name: "Pochi FPS (il gioco va lento)", Desc: "Sceglie il piano energetico più veloce per il tuo PC, accende la Modalità Gioco di Windows e ti dice cosa sta rubando potenza.", Level: 0, Minutes: 0.4, Timeout: 5 * time.Minute, Script: modeBase + `
 Use-HighPerf
 Set-CpuMax 100
-Say 'Piano energetico al massimo.'
-Say 'Per tornare come prima: Impostazioni > Torna indietro > "Impostazioni di Windows" (rimette il piano energetico e il processore com''erano).'
+# La Modalità Gioco è nella foto di "com'era" (passoConFoto): Torna indietro la rimette.
+$gmv = $null; try { $gmv = (Get-ItemProperty -LiteralPath 'HKCU:\Software\Microsoft\GameBar' -Name AutoGameModeEnabled -ErrorAction Stop).AutoGameModeEnabled } catch {}
+if ($gmv -eq 0) { SetDw 'HKCU:\Software\Microsoft\GameBar' 'AutoGameModeEnabled' 1; Say 'Accesa la Modalità Gioco di Windows: mentre giochi Windows non fa partire aggiornamenti e lavori in sottofondo.' }
+else { Say 'La Modalità Gioco di Windows è accesa.' }
+Say 'Per tornare come prima: Impostazioni > Torna indietro > "Impostazioni di Windows" (rimette il piano energetico, il processore e la Modalità Gioco com''erano).'
 $bat = Get-CimInstance Win32_Battery -ErrorAction SilentlyContinue | Select-Object -First 1
 if ($bat -and $bat.BatteryStatus -eq 1) { Say 'ATTENZIONE: il portatile va a batteria. A batteria la scheda video va molto più piano: attaccalo alla corrente per giocare.' }
 $os = Get-CimInstance Win32_OperatingSystem -ErrorAction SilentlyContinue
@@ -79,16 +99,24 @@ if ($os -and $os.TotalVisibleMemorySize) {
 }
 $top = @(Get-Process -ErrorAction SilentlyContinue | Where-Object { $_.ProcessName -notmatch '^(Idle|System|Tasso|dwm|csrss|explorer|Registry|MemCompression|svchost)$' } | Sort-Object WorkingSet64 -Descending | Select-Object -First 3)
 if ($top.Count) { Say ('I programmi che usano più memoria adesso: ' + (($top | ForEach-Object { $_.ProcessName + ' (' + [math]::Round($_.WorkingSet64 / 1MB) + ' MB)' }) -join ', ') + '.') }
-Say 'Fatto. Altri consigli: nel gioco abbassa "Ombre" e "Risoluzione di rendering" (sono le opzioni che pesano di più) e usa "Prepara a passi" nella pagina del gioco in Giochi. Per tenere tutto così anche dopo il riavvio accendi il Profilo gioco.'
+Say 'Fatto. Altri consigli: nel gioco abbassa "Ombre" e "Risoluzione di rendering" (sono le opzioni che pesano di più) e usa "Prepara a passi" nella pagina del gioco in Giochi. Per avere la potenza massima solo mentre giochi, usa il Boost nella pagina Giochi.'
 `},
-	{ID: "fix_game_xbox", Name: "App Xbox e Game Pass non funzionano", Desc: "Riavvia i servizi Xbox di Windows e ripara l'app Xbox e lo Store. Utile quando i giochi Game Pass non si installano, non partono o chiedono sempre l'accesso.", Level: 0, Minutes: 1, Timeout: 10 * time.Minute, Script: `
+	{ID: "fix_game_xbox", Name: "App Xbox e Game Pass non funzionano", Desc: "Riavvia i servizi Xbox di Windows e ripara l'app Xbox e lo Store. Utile quando i giochi Game Pass non si installano, non partono o chiedono sempre l'accesso.", Level: 0, Minutes: 1, Timeout: 10 * time.Minute, Script: undoCmdPS + `
 Say 'Chiudo l''app Xbox e lo Store...'
 Get-Process -Name XboxPcApp,XboxApp,WinStore.App -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
 Say 'Riavvio i servizi Xbox di Windows (accesso, rete e Gaming Services)...'
-foreach ($s in 'XblAuthManager','XblGameSave','XboxNetApiSvc','XboxGipSvc','GamingServices','GamingServicesNet','InstallService') {
+$xs = 'XblAuthManager','XblGameSave','XboxNetApiSvc','XboxGipSvc','GamingServices','GamingServicesNet','InstallService'
+# Prima di riaccendere i servizi spenti del tutto salvo com'erano: con un doppio clic si rispengono.
+$spenti = @($xs | Where-Object { $v = Get-Service -Name $_ -ErrorAction SilentlyContinue; $v -and [string]$v.StartType -eq 'Disabled' })
+$u = ''
+if ($spenti.Count) {
+  $u = New-UndoCmd @($spenti | ForEach-Object { 'sc.exe config ' + $_ + ' start= disabled' }) 'servizi-xbox' 'Servizi Xbox rimessi come prima.'
+  if (-not $u) { Say 'Non sono riuscito a salvare com''erano i servizi Xbox spenti, quindi non li riaccendo: li riavvio soltanto.' }
+}
+foreach ($s in $xs) {
   $svc = Get-Service -Name $s -ErrorAction SilentlyContinue
   if (-not $svc) { continue }
-  if ([string]$svc.StartType -eq 'Disabled') {
+  if ([string]$svc.StartType -eq 'Disabled' -and $u) {
     $want = 'Manual'; if ($s -like 'GamingServices*') { $want = 'Automatic' }
     Set-Service -Name $s -StartupType $want -ErrorAction SilentlyContinue
     $now = [string](Get-Service -Name $s -ErrorAction SilentlyContinue).StartType
@@ -98,6 +126,7 @@ foreach ($s in 'XblAuthManager','XblGameSave','XboxNetApiSvc','XboxGipSvc','Gami
   }
   Restart-Service -Name $s -Force -ErrorAction SilentlyContinue
 }
+Say-UndoCmd $u
 if (-not (Get-Service -Name GamingServices -ErrorAction SilentlyContinue)) {
   Say 'Manca "Gaming Services", il pezzo di Windows che installa i giochi Game Pass: ti apro la sua pagina ufficiale nello Store, premi Installa.'
   Start-Process -FilePath (Join-Path $env:SystemRoot 'explorer.exe') -ArgumentList '"ms-windows-store://pdp/?ProductId=9MWPM2CQNLHN"'
@@ -110,7 +139,7 @@ try { Start-Process -FilePath 'wsreset.exe' -WindowStyle Hidden -ErrorAction Sto
 Say ('Controlla anche data e ora del PC (ora segna ' + (Get-Date).ToString('dd/MM/yyyy HH:mm') + '): se sono sbagliate l''accesso a Xbox non funziona.')
 Say 'Fatto. Riapri l''app Xbox e rifai l''accesso se te lo chiede. Se un gioco non si installa ancora, riavvia il PC.'
 `},
-	{ID: "fix_game_anticheat", Name: "Errore dell'anti-cheat (Vanguard, Easy Anti-Cheat, BattlEye)", Desc: "Controlla i programmi anti-trucchi dei giochi online (LoL, Valorant, Fortnite, Apex, Rainbow Six…) e riaccende i loro servizi se un altro programma li ha spenti. I loro file non vengono mai toccati.", Level: 0, Minutes: 0.3, Timeout: 3 * time.Minute, Script: `
+	{ID: "fix_game_anticheat", Name: "Errore dell'anti-cheat (Vanguard, Easy Anti-Cheat, BattlEye)", Desc: "Controlla i programmi anti-trucchi dei giochi online (LoL, Valorant, Fortnite, Apex, Rainbow Six…) e riaccende i loro servizi se un altro programma li ha spenti. I loro file non vengono mai toccati.", Level: 0, Minutes: 0.3, Timeout: 3 * time.Minute, Script: undoCmdPS + `
 $found = 0
 $list = @(
   @('vgc', 'Riot Vanguard (League of Legends, Valorant)'),
@@ -127,11 +156,14 @@ foreach ($a in $list) {
   $want = 'Manual'; if ($a[0] -eq 'vgc') { $want = 'Automatic' }
   $st = [string]$s.StartType
   $bad = ($st -eq 'Disabled') -or ($a[0] -eq 'vgc' -and $st -ne 'Automatic')
-  if ($bad) {
+  # Prima di cambiarlo salvo com'era (c'è chi spegne Vanguard apposta quando non gioca): doppio clic e torna così.
+  $u = ''; if ($bad) { $sc = Get-ScStart $st; if ($sc) { $u = New-UndoCmd @('sc.exe config ' + $a[0] + ' start= ' + $sc) ('anti-cheat-' + $a[0]) ($a[1] + ': rimesso come prima. Riavvia il PC.') } }
+  if ($bad -and -not $u) { Say ($a[1] + ': non parte come deve, ma non sono riuscito a salvare com''era, quindi non lo cambio. Reinstallalo dal launcher del gioco.') }
+  elseif ($bad) {
     Set-Service -Name $a[0] -StartupType $want -ErrorAction SilentlyContinue
     $now = [string](Get-Service -Name $a[0] -ErrorAction SilentlyContinue).StartType
-    if ($now -eq $want) { Say ($a[1] + ': non partiva come deve (lo fanno alcuni programmi "ottimizzatori"). Sistemato: riavvia il PC.'); [Console]::Out.WriteLine('REBOOT') }
-    else { Say ($a[1] + ': non riesco a sistemarlo da qui. Reinstallalo dal launcher del gioco.') }
+    if ($now -eq $want) { Say ($a[1] + ': non partiva come deve (lo fanno alcuni programmi "ottimizzatori"). Sistemato: riavvia il PC.'); Say-UndoCmd $u; [Console]::Out.WriteLine('REBOOT') }
+    else { Remove-Item -LiteralPath $u -Force -ErrorAction SilentlyContinue; Say ($a[1] + ': non riesco a sistemarlo da qui. Reinstallalo dal launcher del gioco.') }
   } else { Say ($a[1] + ': a posto.') }
 }
 if (Get-Service -Name vgc -ErrorAction SilentlyContinue) {
@@ -140,8 +172,10 @@ if (Get-Service -Name vgc -ErrorAction SilentlyContinue) {
   else {
     $ks = $null; try { $ks = (Get-ItemProperty -LiteralPath $vk -Name Start -ErrorAction Stop).Start } catch {}
     if ($ks -eq 4) {
-      [void](Run-Hidden 'sc.exe' 'config vgk start= system')
-      Say 'Il pezzo di Vanguard che parte con Windows (vgk) era spento: l''ho riacceso. Riavvia il PC, altrimenti Valorant e LoL danno errore VAN.'; [Console]::Out.WriteLine('REBOOT')
+      $u = New-UndoCmd @('sc.exe config vgk start= disabled') 'anti-cheat-vgk' 'Vanguard rimesso come prima. Riavvia il PC.'
+      if (-not $u) { Say 'Il pezzo di Vanguard che parte con Windows (vgk) è spento, ma non sono riuscito a salvare com''era, quindi non lo cambio. Se Valorant o LoL danno errore VAN, reinstalla Vanguard dal Riot Client.' }
+      elseif ((Run-Hidden 'sc.exe' 'config vgk start= system') -eq 0) { Say 'Il pezzo di Vanguard che parte con Windows (vgk) era spento: l''ho riacceso. Riavvia il PC, altrimenti Valorant e LoL danno errore VAN.'; Say-UndoCmd $u; [Console]::Out.WriteLine('REBOOT') }
+      else { Remove-Item -LiteralPath $u -Force -ErrorAction SilentlyContinue; Say 'Il pezzo di Vanguard che parte con Windows (vgk) è spento e Windows non mi lascia riaccenderlo: reinstalla Vanguard dal Riot Client.' }
     } else { Say 'Vanguard parte insieme a Windows: dopo un errore VAN riavvia sempre il PC.' }
   }
 }
