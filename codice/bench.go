@@ -6,6 +6,10 @@ package main
 //   - Leggerezza di Windows (0-100): memoria occupata, processi in background, programmi all'avvio,
 //     spazio libero e file inutili. È quella che migliora davvero dopo una pulizia.
 // 1000 punti = un PC da gioco di fascia media di oggi (processore a 6 core, RAM DDR4, SSD NVMe).
+//
+// Tasso 3.2 (formula 2, conti in votopc/): voto per parametro (Processore, Scheda video, Memoria
+// RAM, Disco, Leggerezza di Windows) e voto totale uguale su tutti i PC, Gaming o Ufficio, così si
+// può confrontare. Raffreddamento solo se la temperatura si legge, e fuori dal totale.
 
 import (
 	"encoding/json"
@@ -13,12 +17,15 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"sync"
 	"sync/atomic"
 	"time"
 	"unsafe"
 
 	"golang.org/x/sys/windows"
+
+	"tasso/votopc"
 )
 
 type benchResult struct {
@@ -37,6 +44,15 @@ type benchResult struct {
 	JunkGB   float64 `json:"junkGB"`
 	Cores    int     `json:"cores"`
 	DiskSkip bool    `json:"diskSkip,omitempty"`
+
+	// Tasso 3.2 (formula 2). Le misure vecchie non li hanno: la finestra usa la formula 1.
+	Formula   int               `json:"formula,omitempty"`
+	Total     int               `json:"total,omitempty"`
+	Params    *votopc.Parametri `json:"params,omitempty"`
+	GPUName   string            `json:"gpuName,omitempty"`
+	GPUVRAMMB uint64            `json:"gpuVramMB,omitempty"`
+	GPUKnown  bool              `json:"gpuKnown,omitempty"`
+	Report    *votopc.Risultato `json:"report,omitempty"`
 }
 
 // Valori di riferimento (= 1000 punti).
@@ -123,10 +139,16 @@ func alignedBuf(n int) ([]byte, func()) {
 // diskScore: scrittura e lettura vere sul disco di Windows (senza la cache), poi lettura casuale 4K.
 // Usa un file temporaneo di 256 MB che poi cancella.
 func diskScore() (float64, bool) {
+	v, _, ok := diskScoreMB()
+	return v, ok
+}
+
+// diskScoreMB: come diskScore, più la lettura sequenziale in MB/s (da mostrare).
+func diskScoreMB() (float64, int, bool) {
 	var free, total, tf uint64
 	root, _ := windows.UTF16PtrFromString(os.Getenv("SystemDrive") + "\\")
 	if windows.GetDiskFreeSpaceEx(root, &free, &total, &tf) != nil || free < 2<<30 {
-		return 0, false // meno di 2 GB liberi: non scrivo niente
+		return 0, 0, false // meno di 2 GB liberi: non scrivo niente
 	}
 	const size = 256 << 20
 	const chunk = 4 << 20
@@ -134,7 +156,7 @@ func diskScore() (float64, bool) {
 	defer os.Remove(path)
 	buf, release := alignedBuf(chunk)
 	if buf == nil {
-		return 0, false
+		return 0, 0, false
 	}
 	defer release()
 	for i := range buf {
@@ -144,14 +166,14 @@ func diskScore() (float64, bool) {
 	const noBuf, writeThrough = 0x20000000, 0x80000000
 	h, err := windows.CreateFile(p16, windows.GENERIC_WRITE, 0, nil, windows.CREATE_ALWAYS, windows.FILE_ATTRIBUTE_TEMPORARY|noBuf|writeThrough, 0)
 	if err != nil {
-		return 0, false
+		return 0, 0, false
 	}
 	start := time.Now()
 	var n uint32
 	for done := 0; done < size; done += chunk {
 		if windows.WriteFile(h, buf, &n, nil) != nil {
 			windows.CloseHandle(h)
-			return 0, false
+			return 0, 0, false
 		}
 	}
 	_ = windows.FlushFileBuffers(h)
@@ -160,7 +182,7 @@ func diskScore() (float64, bool) {
 
 	h, err = windows.CreateFile(p16, windows.GENERIC_READ, windows.FILE_SHARE_READ, nil, windows.OPEN_EXISTING, noBuf, 0)
 	if err != nil {
-		return 0, false
+		return 0, 0, false
 	}
 	defer windows.CloseHandle(h)
 	start = time.Now()
@@ -190,7 +212,7 @@ func diskScore() (float64, bool) {
 	}
 	rnd := reads * 4096 / time.Since(start).Seconds()
 	// Media geometrica dei tre, pesata come li senti tu: aprire programmi = letture casuali.
-	return math.Pow(w/refDiskW, 0.25) * math.Pow(r/refDiskR, 0.25) * math.Pow(rnd/refRand, 0.5), true
+	return math.Pow(w/refDiskW, 0.25) * math.Pow(r/refDiskR, 0.25) * math.Pow(rnd/refRand, 0.5), int(math.Round(r / 1e6)), true
 }
 
 func procCount() int {
@@ -224,7 +246,10 @@ func runBench(label string) benchResult {
 	emit("onBenchProgress", "Misuro la memoria…")
 	ram := ramScore()
 	emit("onBenchProgress", "Misuro il disco (256 MB di prova, poi li cancello)…")
-	dk, ok := diskScore()
+	dk, diskMB, ok := diskScoreMB()
+	emit("onBenchProgress", "Guardo la scheda video…")
+	best, gpuV, gpuNoto, gpuOk := votopc.SceltaGPU(schedeVideo())
+	tempMax := tempSottoCarico() // 0 se la temperatura non si legge (e allora niente attesa)
 	res.CPU1, res.CPUN, res.RAM = clampPts(c1/refCPU1), clampPts(cn/refCPUN), clampPts(ram/refRAM)
 	parts := []float64{float64(res.CPU1), float64(res.CPUN), float64(res.RAM)}
 	weights := []float64{0.3, 0.25, 0.15}
@@ -272,6 +297,29 @@ func runBench(label string) benchResult {
 	light -= math.Max(0, math.Min(20, (res.JunkGB-0.5)*4))           // file inutili
 	res.Light = int(math.Round(math.Max(0, light)))
 
+	// Formula 2: voti per parametro e totale (uguali per tutti i PC).
+	info := leggiInfoPC()
+	if info.RAMGB <= 0 && rt > 0 {
+		info.RAMGB = math.Round(float64(rt) / (1 << 30))
+	}
+	canali := votopc.Canali(info.Banchi)
+	pr := votopc.Parametri{
+		Processore:     votopc.Punti100(votopc.PuntiProcessore(res.CPU1, res.CPUN)),
+		RAM:            votopc.VotoRAM(votopc.Punti100(res.RAM), votopc.VotoCapacita(info.RAMGB), votopc.VotoConfigurazione(info.RAMMTs, canali)),
+		Leggerezza:     int(math.Max(1, float64(res.Light))),
+		Raffreddamento: votopc.VotoRaffreddamento(tempMax),
+	}
+	if ok {
+		pr.Disco = votopc.Punti100(res.Disk)
+	}
+	if gpuOk {
+		pr.SchedaVideo = gpuV
+		res.GPUName, res.GPUVRAMMB, res.GPUKnown = best.Nome, best.VRAMMB, gpuNoto
+	}
+	res.Formula, res.Params, res.Total = votopc.Formula, &pr, votopc.Totale(pr)
+	rep := risultatoVoto(res, info, canali, diskMB, tempMax)
+	res.Report = &rep
+
 	updateSettings(func(s *Settings) {
 		s.Bench = append(s.Bench, res)
 		if len(s.Bench) > 12 {
@@ -302,4 +350,27 @@ func setBenchAround(on bool) string {
 func score100(v int) int {
 	x := math.Round(70 + 25*math.Log2(math.Max(1, float64(v))/1000))
 	return int(math.Max(1, math.Min(100, x)))
+}
+
+// risultatoVoto: il voto in forma stabile (votopc.Risultato), pronto da salvare o, un domani, da
+// mandare a una classifica. Niente nome utente, nome del PC o numeri di serie.
+func risultatoVoto(r benchResult, in infoPC, canali, diskMB int, tempMax float64) votopc.Risultato {
+	ddr := ""
+	if in.RAMDDR > 0 {
+		ddr = "DDR" + strconv.Itoa(in.RAMDDR)
+	}
+	out := votopc.Risultato{
+		Formula: votopc.Formula, Data: time.Now().Format(time.RFC3339), Totale: r.Total, Classifica: votopc.Classifica(r.Total),
+		Processore: in.CPU, Core: r.Cores, SchedaVideo: r.GPUName, VRAMGB: math.Round(float64(r.GPUVRAMMB)/1024*10) / 10, SchedaNota: r.GPUKnown,
+		RAMGB: in.RAMGB, RAMTipo: ddr, RAMMTs: in.RAMMTs, RAMBanchi: in.Banchi, RAMCanali: canali,
+		SchedaMadre: in.Board, BIOS: in.BIOS, TempMax: tempMax,
+	}
+	if r.Params != nil {
+		out.Parametri = *r.Params
+		out.Potenza = votopc.Potenza(*r.Params)
+	}
+	if !r.DiskSkip {
+		out.Disco, out.DiscoMBs = votopc.TipoDisco(r.Disk), diskMB
+	}
+	return out
 }

@@ -821,14 +821,16 @@ body.th-neonrgb .gmask .eye{filter:drop-shadow(0 0 8px rgba(199,125,255,.55))}
     </details>
     <div class="card" id="lastResult" style="display:none"></div>
     <div class="card" style="display:flex;flex-direction:column;gap:14px">
-      <div class="row wrap" style="justify-content:space-between"><div><h2>Voto al PC</h2><p class="sub" style="margin:2px 0 0" id="bnMsg">Misura quanto va il PC in circa 20 secondi. Tutti i voti vanno da 1 a 100: la velocità dei componenti, quanto è leggero Windows e il voto totale.</p></div><button class="btn primary" id="btnBench">Misura il voto</button></div>
+      <div class="row wrap" style="justify-content:space-between"><div><h2>Voto al PC</h2><p class="sub" style="margin:2px 0 0" id="bnMsg">Controlla tutto il PC in circa 25 secondi: processore, scheda video, memoria RAM, disco e quanto è leggero Windows. Ogni voto va da 1 a 100, poi il voto totale.</p></div><div class="row wrap" style="gap:10px"><button class="btn ghost" id="btnVotoCard" style="display:none"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px;vertical-align:-3px" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg>Rivedi il biglietto</button><button class="btn primary" id="btnBench">Misura il voto</button></div></div>
       <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(min(190px,100%),1fr));gap:12px" id="bnNow"></div>
       <button role="switch" aria-checked="false" class="toggle" id="tgBenchAround"><span><b>Misura da solo prima e dopo ogni pulizia</b><span>Così vedi subito cosa è cambiato (la pulizia dura circa 40 secondi in più).</span></span><span class="sw"><i></i></span></button>
       <details class="guide"><summary>📘 Cosa vogliono dire i voti</summary>
         <ul>
-          <li><b>Velocità dei componenti</b> (da 1 a 100: 70 è un PC da gioco medio di oggi, e ogni volta che la velocità raddoppia il voto sale di 25): processore su un core (conta nei giochi), processore su tutti i core (conta per video e programmi pesanti), memoria RAM e disco. Dipende dai componenti: <b>una pulizia la cambia poco</b>, e chi ti promette il contrario ti prende in giro. Può salire un po' se il disco era quasi pieno.</li>
+          <li><b>Processore, memoria RAM e disco</b> (da 1 a 100: 70 è un PC da gioco medio di oggi, e ogni volta che la velocità raddoppia il voto sale di 25): misurati davvero con una prova di pochi secondi. La RAM conta anche quanta ce n'è e come è montata (velocità in MT/s e numero di banchi). Dipendono dai componenti: <b>una pulizia li cambia poco</b>, e chi ti promette il contrario ti prende in giro.</li>
+          <li><b>Scheda video</b>: Tasso legge il modello e la memoria video e le dà un voto con una sua tabella, senza scaricare niente. Se il PC ha due schede (quella dentro il processore e quella vera) conta quella vera, cioè quella che usano i giochi.</li>
+          <li><b>Raffreddamento</b>: compare solo se Tasso riesce a leggere la temperatura del processore (con LibreHardwareMonitor aperto). Non conta nel voto totale, perché dipende anche da quanto è calda la stanza.</li>
           <li><b>Leggerezza di Windows</b> (da 1 a 100): quanta memoria è già occupata, quanti programmi girano in background, quanti partono all'avvio, quanto spazio è libero e quanti file inutili ci sono. <b>Questa sì che migliora dopo una pulizia</b>, ed è quella che senti nell'uso di tutti i giorni.</li>
-          <li><b>Voto totale</b> e <b>classifica</b>: 60% velocità dei componenti e 40% leggerezza. Fasce: sotto 40 PC lento, 40-59 PC da ufficio, 60-79 buon PC, 80-94 PC veloce, da 95 in su top.</li>
+          <li><b>Voto totale</b> e <b>classifica</b>: 60% potenza del PC e 40% leggerezza di Windows. La potenza è la media di processore (35%), scheda video (25%), disco (25%) e memoria RAM (15%). Il conto è uguale per tutti, in Gaming e in Ufficio, così puoi confrontare il tuo PC con quello degli amici. Fasce: sotto 40 PC lento, 40-59 PC da ufficio, 60-79 buon PC, 80-94 PC veloce, da 95 in su top.</li>
           <li>Per un voto giusto chiudi giochi e programmi pesanti prima di misurare. Il test del disco scrive un file di prova di 256 MB e lo cancella subito.</li>
         </ul>
       </details>
@@ -1412,7 +1414,7 @@ const TF = EN ? (I18N.frags || []).filter(k => k.length >= 6 && TG[k] !== undefi
 // t: un testo scritto qui nella finestra.
 const _t = (s) => (EN && typeof s === 'string' && TD[s] !== undefined) ? TD[s] : s;
 // tx: i dati che arrivano da Go (messaggi, elenchi). Nomi, percorsi e codici non si toccano.
-const TX_SKIP = {id:1, cat:1, ids:1, key:1, path:1, paths:1, exe:1, dir:1, mode:1, theme:1, themeOffice:1, profile:1, guid:1, url:1, icon:1, src:1, value:1, val:1, hook:1, token:1, webhook:1, discordWebhook:1, discordBot:1, kind_id:1, file:1, cmd:1, arg:1, lang:1, region:1, settings:1, snapshot:1, originale:1, tradotto:1, non_tradurre:1, termini:1, parlante:1, cartella:1, password:1, pw:1, site:1, user:1, note:1};
+const TX_SKIP = {gpuName:1, report:1, id:1, cat:1, ids:1, key:1, path:1, paths:1, exe:1, dir:1, mode:1, theme:1, themeOffice:1, profile:1, guid:1, url:1, icon:1, src:1, value:1, val:1, hook:1, token:1, webhook:1, discordWebhook:1, discordBot:1, kind_id:1, file:1, cmd:1, arg:1, lang:1, region:1, settings:1, snapshot:1, originale:1, tradotto:1, non_tradurre:1, termini:1, parlante:1, cartella:1, password:1, pw:1, site:1, user:1, note:1};
 // TX_RAW: risposte fatte solo di dati dell'utente (password, siti, nomi di file): non si traducono mai.
 const TX_RAW = {goGetSettings:1, goVaultList:1, goVaultReveal:1, goVaultGen:1, goPickFiles:1, goBoostKeep:1, goIconaTema:1};
 function tx(v, depth){
@@ -1772,7 +1774,7 @@ $('#fixToDetect').onclick = (e) => { e.preventDefault(); show('scan'); };
 /* ---------- modal ---------- */
 function modal(html, buttons){
   if (!$('#modal').classList.contains('on')) MODAL_BACK = document.activeElement;
-  const box = $('#modalBox'); box.innerHTML = html;
+  const box = $('#modalBox'); box.innerHTML = html; box.style.maxWidth = '';
   const row = el('div', {class:'row wrap', style:'justify-content:flex-end;gap:10px;margin-top:6px'});
   buttons.forEach(bt => { const b = el('button', {class:'btn ' + (bt.cls || 'ghost')}, esc(bt.label)); b.onclick = () => { const keep = bt.fn ? bt.fn(box) : null; if (keep !== 'keep') closeModal(); }; row.appendChild(b); });
   box.appendChild(row); $('#modal').classList.add('on');
@@ -2952,7 +2954,31 @@ function mbps(v){ v = Number(v) || 0; return v >= 100 ? Math.round(v) + ' Mbit/s
 // I punti dei pezzi si misurano con 1000 = PC medio: qui diventano un voto da 1 a 100.
 function to100(v){ if (v == null || isNaN(v)) return null; return Math.max(1, Math.min(100, Math.round(70 + 25 * Math.log2(Math.max(1, v) / 1000)))); }
 function rankOf(v){ return v >= 95 ? ['Top', 'var(--a2)'] : v >= 80 ? [_t('PC veloce'), 'var(--a1)'] : v >= 60 ? [_t('Buon PC'), 'var(--a3)'] : v >= 40 ? [_t('PC da ufficio'), 'var(--a4)'] : [_t('PC lento'), 'var(--red)']; }
-function totalOf(r){ return Math.max(1, Math.round(0.6 * (to100(r.score) || 1) + 0.4 * Math.max(1, Number(r.light) || 1))); }
+// 3.2 (formula 2): i voti per parametro e il totale li calcola Go, uguali su tutti i PC (Gaming o
+// Ufficio). Le misure vecchie (formula 1) restano col conto di prima.
+function totalOf(r){ if (r && r.formula >= 2 && r.total > 0) return r.total; return Math.max(1, Math.round(0.6 * (to100(r.score) || 1) + 0.4 * Math.max(1, Number(r.light) || 1))); }
+function paramsOf(r){
+  if (r.params) return r.params;
+  return {processore: to100(Math.sqrt(Math.max(1, r.cpu1) * Math.max(1, r.cpuN))), schedaVideo: 0, ram: to100(r.ram), disco: r.diskSkip ? 0 : to100(r.disk), leggerezza: Math.max(1, Number(r.light) || 1)};
+}
+const NEW_TAG = '<span style="font-size:10px;font-weight:800;letter-spacing:.06em;padding:2px 7px;border-radius:99px;background:var(--a1);color:var(--ink);margin-left:6px;vertical-align:2px">' + _t('NUOVO') + '</span>';
+function gbTxt(v){ v = Number(v) || 0; return (Math.round(v * 10) / 10).toString().replace('.', DEC) + ' GB'; }
+function diskKind(k){ return k === 'nvme' ? 'SSD NVMe' : k === 'ssd' ? 'SSD' : k === 'hdd' ? _t('disco meccanico (HDD)') : ''; }
+// Le righe del voto (finestra e biglietto): [nome, voto, sotto, nuovo]
+function votoRows(r){
+  const p = paramsOf(r), rp = r.report || {}, rows = [];
+  rows.push([_t('Processore'), p.processore, (rp.processore ? rp.processore + ' · ' : '') + _t('un core ') + v100(r.cpu1) + _t(' · tutti i core ') + v100(r.cpuN)]);
+  if (p.schedaVideo > 0) rows.push([_t('Scheda video'), p.schedaVideo, (r.gpuName || '') + (r.gpuVramMB ? ' · ' + gbTxt(r.gpuVramMB / 1024) : '') + (r.gpuKnown ? '' : _t(' · voto stimato dalla memoria video')), true]);
+  const ram = [];
+  if (rp.ramGB) ram.push(gbTxt(rp.ramGB) + (rp.ramTipo ? ' ' + rp.ramTipo : ''));
+  if (rp.ramMTs) ram.push(rp.ramMTs + ' MT/s');
+  if (rp.ramBanchi) ram.push(rp.ramBanchi + (rp.ramBanchi === 1 ? _t(' banco (canale singolo)') : _t(' banchi (doppio canale)')));
+  rows.push([_t('Memoria RAM'), p.ram, ram.length ? ram.join(' · ') : _t('velocità misurata ') + v100(r.ram)]);
+  rows.push([_t('Disco'), p.disco || null, r.diskSkip ? _t('saltato (poco spazio)') : (diskKind(rp.disco) + (rp.discoMBs ? _t(' · lettura ') + Number(rp.discoMBs).toLocaleString(LANG) + ' MB/s' : ''))]);
+  rows.push([_t('Leggerezza di Windows'), p.leggerezza, _t('Memoria usata ') + (Number(r.ramPct) || 0) + '% · ' + (Number(r.procs) || 0) + _t(' processi · ') + (Number(r.startup) || 0) + _t(' all\'avvio · libero ') + (Number(r.freePct) || 0) + _t('% · inutili ') + String(Number(r.junkGB) || 0).replace('.', DEC) + ' GB']);
+  if (p.raffreddamento > 0) rows.push([_t('Raffreddamento'), p.raffreddamento, _t('Processore a ') + Math.round(rp.tempMax || 0) + _t(' °C sotto carico · non conta nel totale')]);
+  return rows;
+}
 function v100(v){ const x = to100(v); return x == null ? '–' : x; }
 function benchTile(k, v, sub, prev){ const d = prev != null && v != null ? v - prev : null; return '<div class="stat"><div class="k">' + k + '</div><div class="v">' + (v == null ? '–' : v) + '<span style="font-size:14px;color:var(--muted)">/100</span>' + (d ? ' <span style="font-size:15px;color:' + (d > 0 ? 'var(--a1)' : 'var(--red)') + '">' + (d > 0 ? '+' : '') + d + '</span>' : '') + '</div><div class="small muted">' + sub + '</div></div>'; }
 function paintBench(r, b, hist){
@@ -2961,13 +2987,156 @@ function paintBench(r, b, hist){
   const sp = to100(r.score), tot = totalOf(r), rk = rankOf(tot);
   const bands = [[1, 40, _t('Lento'), 'var(--red)'], [40, 60, _t('Ufficio'), 'var(--a4)'], [60, 80, _t('Buono'), 'var(--a3)'], [80, 95, _t('Veloce'), 'var(--a1)'], [95, 101, 'Top', 'var(--a2)']];
   const scale = '<div class="rankbar">' + bands.map(x => '<span style="flex:' + (x[1] - x[0]) + ';--c:' + x[3] + '" class="' + (tot >= x[0] && tot < x[1] ? 'on' : '') + '">' + x[2] + '</span>').join('') + '</div>';
-  $('#bnNow').innerHTML = _t('<div class="stat" style="grid-column:1/-1"><div class="k">Voto totale · classifica</div><div class="v"><span style="color:') + rk[1] + '">' + tot + '</span><span style="font-size:14px;color:var(--muted)">/100</span> <span style="font-size:17px;font-family:var(--display);font-weight:700;color:' + rk[1] + '">' + rk[0] + '</span>' + (b && tot !== totalOf(b) ? ' <span style="font-size:15px;color:' + (tot > totalOf(b) ? 'var(--a1)' : 'var(--red)') + '">' + (tot > totalOf(b) ? '+' : '') + (tot - totalOf(b)) + '</span>' : '') + '</div>' + scale + '</div>' +
+  $('#bnNow').innerHTML = _t('<div class="stat" style="grid-column:1/-1"><div class="k">Voto totale · classifica</div><div class="v"><span style="color:') + rk[1] + '">' + tot + '</span><span style="font-size:14px;color:var(--muted)">/100</span> <span style="font-size:17px;font-family:var(--display);font-weight:700;color:' + rk[1] + '">' + rk[0] + '</span>' + (b && tot !== totalOf(b) ? ' <span style="font-size:15px;color:' + (tot > totalOf(b) ? 'var(--a1)' : 'var(--red)') + '">' + (tot > totalOf(b) ? '+' : '') + (tot - totalOf(b)) + '</span>' : '') + '</div>' + scale + votoNota(r) + '</div>' +
+    (r.formula >= 2 ? votoTiles(r, b) :
     benchTile(_t('Velocità dei componenti'), sp, _t('Processore ') + v100(r.cpu1) + _t(' · tutti i core ') + v100(r.cpuN) + _t(' · RAM ') + v100(r.ram) + _t(' · disco ') + (r.diskSkip ? _t('saltato (poco spazio)') : v100(r.disk)), b && to100(b.score)) +
-    benchTile(_t('Leggerezza di Windows'), '<span style="color:' + lc + '">' + Math.max(1, r.light) + '</span>', _t('Memoria usata ') + (Number(r.ramPct) || 0) + '% · ' + (Number(r.procs) || 0) + _t(' processi · ') + (Number(r.startup) || 0) + _t(' all\'avvio · libero ') + (Number(r.freePct) || 0) + _t('% · inutili ') + String(Number(r.junkGB) || 0).replace('.', DEC) + ' GB', b && Math.max(1, b.light));
+    benchTile(_t('Leggerezza di Windows'), '<span style="color:' + lc + '">' + Math.max(1, r.light) + '</span>', _t('Memoria usata ') + (Number(r.ramPct) || 0) + '% · ' + (Number(r.procs) || 0) + _t(' processi · ') + (Number(r.startup) || 0) + _t(' all\'avvio · libero ') + (Number(r.freePct) || 0) + _t('% · inutili ') + String(Number(r.junkGB) || 0).replace('.', DEC) + ' GB', b && Math.max(1, b.light)));
+  LAST_BENCH = r; const rv = $('#btnVotoCard'); if (rv) rv.style.display = '';
   const h = (hist || []).slice(-6).reverse();
   $('#bnHist').innerHTML = h.length > 1 ? _t('<div class="small muted" style="margin-bottom:6px">Ultime misure</div><div class="list">') + h.map(x => '<div class="li" style="min-height:40px"><span class="x"><b>' + esc(x.when) + (x.label ? ' · ' + (x.label === 'prima' ? _t('prima della pulizia') : x.label === 'dopo' ? _t('dopo la pulizia') : esc(x.label)) : '') + _t('</b></span><span class="mono small">totale ') + totalOf(x) + _t(' · componenti ') + v100(x.score) + _t(' · leggerezza ') + Math.max(1, Number(x.light) || 1) + '</span></div>').join('') + '</div>' : '';
 }
-$('#btnBench').onclick = async () => { const r = await call('goBench'); if (r === 'busy') { toast(_t('Sto già misurando.'), 'var(--a4)'); return; } $('#btnBench').disabled = true; $('#bnMsg').textContent = _t('Misuro… non usare il PC per 20 secondi.'); };
+// Riquadri della formula 2: un riquadro per parametro (la scheda video con l'etichetta NUOVO).
+function votoTiles(r, b){
+  const pb = b ? paramsOf(b) : null, keys = ['processore', 'schedaVideo', 'ram', 'disco', 'leggerezza', 'raffreddamento'];
+  const byName = {}; if (pb) votoRows(b).forEach(x => { byName[x[0]] = x[1]; });
+  let out = votoRows(r).map(x => benchTile(esc(x[0]) + (x[3] ? NEW_TAG : ''), x[1], esc(x[2]), pb && byName[x[0]] != null ? byName[x[0]] : null)).join('');
+  const rp = r.report || {};
+  if (rp.schedaMadre) out += '<div class="small muted" style="grid-column:1/-1">' + _t('Scheda madre: ') + esc(rp.schedaMadre) + (rp.bios ? ' · BIOS ' + esc(rp.bios) : '') + _t(' (solo informazione, senza voto)') + '</div>';
+  return out;
+}
+// Il giudizio a parole tiene conto della modalità; il numero no (è uguale per tutti).
+function votoNota(r){
+  if (!(r.formula >= 2)) return '';
+  const p = paramsOf(r);
+  if (!(p.schedaVideo > 0)) return '';
+  let t = '';
+  if (isOffice()) t = p.schedaVideo < 45 ? _t('Per il lavoro d\'ufficio la scheda video conta poco: per quello che fai il voto è più severo del necessario.') : '';
+  else if (p.schedaVideo < 45) t = _t('Per i giochi il punto debole è la scheda video.');
+  else if (p.schedaVideo >= 80 && p.processore < 55) t = _t('Per i giochi il punto debole è il processore: la scheda video è più forte di lui.');
+  return t ? '<div class="small muted" style="margin-top:8px">' + t + '</div>' : '';
+}
+
+// ---------- Biglietto da visita del voto (immagine fatta qui con il canvas) ----------
+// La pubblicazione nella classifica online arriverà quando ci sarà il server: per ora resta spenta.
+const CLASSIFICA_ATTIVA = false;
+let LAST_BENCH = null, BENCH_MANUAL = false;
+function cssVar(n){ return getComputedStyle(document.documentElement).getPropertyValue(n).trim() || getComputedStyle(document.body).getPropertyValue(n).trim(); }
+function cardColors(){
+  const t = THEMES.find(x => x.id === curTheme()) || THEMES[0];
+  const stops = String(t.g || '').match(/#[0-9a-fA-F]{6}\b/g) || [];
+  const a1 = cssVar('--a1') || '#2FF3A6';
+  return {bg: cssVar('--bg') || '#050506', panel: cssVar('--panel') || '#0B0C0F', line: cssVar('--line') || '#1F2128', text: cssVar('--text') || '#F4F5F7', muted: cssVar('--muted') || '#8A8F9C',
+    a1: a1, a2: cssVar('--a2') || a1, a1t: cssVar('--a1t') || a1, tg: stops.length >= 2 ? stops : [a1, a1],
+    display: cssVar('--display') || 'sans-serif', body: cssVar('--body') || 'sans-serif'};
+}
+function rankColor(v){ const c = rankOf(v)[1], m = /var\((--[a-z0-9]+)\)/.exec(c); return m ? cssVar(m[1]) : c; }
+// Il logo che si vede in alto a sinistra (quello del tema), come immagine a sé.
+function cardLogoSrc(){
+  const vis = [...document.querySelectorAll('aside .brand .tmlogo svg, aside .brand > svg')].find(x => x.getClientRects().length);
+  if (!vis) return '';
+  const c = vis.cloneNode(true), a1 = cssVar('--a1');
+  const src = [vis, ...vis.querySelectorAll('*')], dst = [c, ...c.querySelectorAll('*')];
+  src.forEach((e, i) => { const cs = getComputedStyle(e), d = dst[i]; if (!d.setAttribute || e === vis) return;
+    ['fill', 'stroke'].forEach(k => { const v = cs[k]; if (v && v !== 'none' && !/url\(/.test(v)) d.setAttribute(k, v); else if (/url\(/.test(v || '') && !/<(linear|radial)Gradient/.test(vis.outerHTML)) d.setAttribute(k, a1); });
+    if (cs.strokeOpacity && cs.strokeOpacity !== '1') d.setAttribute('stroke-opacity', cs.strokeOpacity); });
+  c.removeAttribute('class'); c.setAttribute('width', '512'); c.setAttribute('height', '512'); c.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+  c.querySelectorAll('.pup').forEach(e => e.removeAttribute('style'));
+  return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(new XMLSerializer().serializeToString(c).replace(/var\(--a1\)/g, a1));
+}
+function loadImg(src){ return new Promise(res => { if (!src) return res(null); const i = new Image(); i.onload = () => res(i); i.onerror = () => res(null); i.src = src; }); }
+async function drawVotoCard(r, fmt){
+  const V = fmt === 'v', W = 1080, H = V ? 1920 : 1080, C = cardColors();
+  try { await Promise.all([document.fonts.load('800 100px ' + C.display), document.fonts.load('600 40px ' + C.body)]); } catch (e) {}
+  const logo = await loadImg(cardLogoSrc());
+  const cv = document.createElement('canvas'); cv.width = W; cv.height = H;
+  const g = cv.getContext('2d');
+  const font = (w, px, fam) => { g.font = w + ' ' + px + 'px ' + (fam || C.body); };
+  const grad = (x0, x1) => { const z = g.createLinearGradient(x0, 0, x1, 0); C.tg.forEach((c, i) => z.addColorStop(C.tg.length > 1 ? i / (C.tg.length - 1) : 0, c)); return z; };
+  g.fillStyle = C.bg; g.fillRect(0, 0, W, H);
+  // aloni colorati come nella finestra
+  [[W + 30, -60, 620, C.a2, .30], [-120, H + 40, 700, C.a1, .20]].forEach(o => { const rg = g.createRadialGradient(o[0], o[1], 0, o[0], o[1], o[2]); rg.addColorStop(0, o[3]); rg.addColorStop(1, 'rgba(0,0,0,0)'); g.globalAlpha = o[4]; g.fillStyle = rg; g.fillRect(0, 0, W, H); g.globalAlpha = 1; });
+  g.fillStyle = grad(0, W); g.fillRect(0, 0, W, 10);
+  const pad = V ? 96 : 72, tot = totalOf(r), rk = rankOf(tot), rc = rankColor(tot);
+  const d = new Date(), date = d.toLocaleDateString(LANG, {day: 'numeric', month: 'long', year: 'numeric'});
+  g.textBaseline = 'alphabetic';
+  let y;
+  if (V) {
+    if (logo) g.drawImage(logo, (W - 230) / 2, pad, 230, 230);
+    g.textAlign = 'center'; g.fillStyle = C.text; font(800, 64, C.display); g.letterSpacing = '12px'; g.fillText('TASSO', W / 2 + 6, pad + 320); g.letterSpacing = '0px';
+    g.fillStyle = C.muted; font(400, 30); g.fillText(date, W / 2, pad + 372);
+    g.fillStyle = C.muted; font(600, 46); g.fillText(_t('Il mio PC'), W / 2, 640);
+    font(800, 260, C.display); const nw = g.measureText(String(tot)).width; font(700, 64, C.display); const sw = g.measureText('/100').width;
+    const x0 = (W - nw - 16 - sw) / 2; g.textAlign = 'left';
+    font(800, 260, C.display); g.fillStyle = grad(x0, x0 + nw); g.fillText(String(tot), x0, 880);
+    font(700, 64, C.display); g.fillStyle = C.muted; g.fillText('/100', x0 + nw + 16, 880);
+    y = 900;
+  } else {
+    if (logo) g.drawImage(logo, pad, pad, 96, 96);
+    g.textAlign = 'left'; g.fillStyle = C.text; font(800, 44, C.display); g.letterSpacing = '6px'; g.fillText('TASSO', pad + 118, pad + 64); g.letterSpacing = '0px';
+    g.textAlign = 'right'; g.fillStyle = C.muted; font(400, 26); g.fillText(date, W - pad, pad + 58);
+    g.textAlign = 'left'; g.fillStyle = C.muted; font(600, 32); g.fillText(_t('Il mio PC'), pad, 250);
+    font(800, 150, C.display); const nw = g.measureText(String(tot)).width; g.fillStyle = grad(pad, pad + nw); g.fillText(String(tot), pad, 390);
+    font(700, 48, C.display); g.fillStyle = C.muted; g.fillText('/100', pad + nw + 18, 390);
+    const bx = pad + nw + 18 + g.measureText('/100').width + 30;
+    font(800, 40, C.display); const bw = g.measureText(rk[0]).width + 48;
+    g.beginPath(); g.roundRect(bx, 330, bw, 64, 32); g.globalAlpha = .12; g.fillStyle = rc; g.fill(); g.globalAlpha = 1; g.lineWidth = 3; g.strokeStyle = rc; g.stroke();
+    g.fillStyle = rc; g.fillText(rk[0], bx + 24, 376);
+    y = 420;
+  }
+  if (V) { font(800, 50, C.display); const bw = g.measureText(rk[0]).width + 60, bx = (W - bw) / 2; g.beginPath(); g.roundRect(bx, y + 10, bw, 80, 40); g.globalAlpha = .12; g.fillStyle = rc; g.fill(); g.globalAlpha = 1; g.lineWidth = 3; g.strokeStyle = rc; g.stroke(); g.fillStyle = rc; g.textAlign = 'center'; g.fillText(rk[0], W / 2, y + 68); g.textAlign = 'left'; y += 150; }
+  // in fondo: indirizzo, e sopra i riquadri con scheda video e scheda madre
+  const rp = r.report || {}, info = [];
+  if (r.gpuName) info.push([_t('Scheda video'), r.gpuName]);
+  if (rp.schedaMadre && (V || !r.gpuName)) info.push([_t('Scheda madre'), rp.schedaMadre]); // nel quadrato c'è posto per un riquadro solo
+  const fs = V ? 1.12 : 1, ih = V ? 86 : 64, foot = H - pad;
+  let iy = foot - (V ? 60 : 46) - info.length * (ih + 12);
+  info.forEach(x => {
+    g.beginPath(); g.roundRect(pad, iy, W - 2 * pad, ih, 20); g.globalAlpha = .85; g.fillStyle = C.panel; g.fill(); g.globalAlpha = 1; g.lineWidth = 1.5; g.strokeStyle = C.line; g.stroke();
+    font(400, Math.round(24 * fs)); g.fillStyle = C.muted; g.textAlign = 'left'; g.fillText(x[0], pad + 24, iy + ih / 2 + 9 * fs);
+    const lw = g.measureText(x[0]).width; font(700, Math.round(28 * fs)); g.fillStyle = C.text;
+    let t = x[1]; const maxw = W - 2 * pad - lw - 70; while (g.measureText(t).width > maxw && t.length > 4) t = t.slice(0, -2);
+    if (t !== x[1]) t = t.replace(/\s*\S?$/, '') + '…';
+    g.fillText(t, pad + 24 + lw + 16, iy + ih / 2 + 10 * fs);
+    iy += ih + 12;
+  });
+  g.textAlign = 'center'; g.fillStyle = C.muted; font(400, V ? 26 : 22); g.fillText(_t('Misurato con Tasso · sergiotassoni.github.io/tasso'), W / 2, foot);
+  // le barre, nello spazio che resta
+  const rows = votoRows(r).filter(x => x[1] > 0), top = y + (V ? 0 : 10), bottom = foot - (V ? 60 : 46) - info.length * (ih + 12) - (V ? 40 : 24);
+  const step = Math.min(V ? 150 : 104, (bottom - top) / Math.max(1, rows.length)), bh = V ? 22 : 16;
+  rows.forEach((x, i) => {
+    const by = top + i * step + step - bh - (V ? 24 : 14);
+    g.textAlign = 'left'; g.fillStyle = C.text; font(600, Math.round(32 * fs)); g.fillText(x[0], pad, by - 16);
+    if (x[3]) { const lw = g.measureText(x[0]).width; font(800, Math.round(17 * fs)); const tw = g.measureText(_t('NUOVO')).width + 20; g.beginPath(); g.roundRect(pad + lw + 14, by - 16 - 26 * fs, tw, 28 * fs, 14 * fs); g.fillStyle = grad(pad + lw, pad + lw + tw); g.fill(); g.fillStyle = C.bg; g.fillText(_t('NUOVO'), pad + lw + 24, by - 16 - 7 * fs); }
+    g.textAlign = 'right'; font(600, Math.round(22 * fs), C.display); g.fillStyle = C.muted; g.fillText('/100', W - pad, by - 16);
+    const sw = g.measureText('/100').width; font(800, Math.round(40 * fs), C.display); g.fillStyle = C.text; g.fillText(String(x[1]), W - pad - sw - 4, by - 16);
+    g.beginPath(); g.roundRect(pad, by, W - 2 * pad, bh, bh / 2); g.globalAlpha = .12; g.fillStyle = C.text; g.fill(); g.globalAlpha = 1;
+    const fw = Math.max(bh, (W - 2 * pad) * Math.max(1, Math.min(100, x[1])) / 100); g.beginPath(); g.roundRect(pad, by, fw, bh, bh / 2); g.fillStyle = grad(pad, pad + fw); g.fill();
+  });
+  return cv;
+}
+async function openVotoCard(r){
+  r = r || LAST_BENCH; if (!r) return;
+  const [q, v] = await Promise.all([drawVotoCard(r, 'q'), drawVotoCard(r, 'v')]);
+  let fmt = 'q';
+  const wrap = (c, f, w, h, label) => { c.style.cssText = 'width:' + w + 'px;height:' + h + 'px;display:block;border-radius:12px'; const d = el('button', {class:'votofmt', 'data-f': f, 'aria-pressed': f === fmt ? 'true' : 'false', style:'background:none;border:0;padding:0;cursor:pointer;display:flex;flex-direction:column;gap:8px;align-items:center;color:inherit;font:inherit'}); d.appendChild(c); d.appendChild(el('span', {class:'small'}, label)); return d; };
+  const pub = CLASSIFICA_ATTIVA ? '<div style="border-top:1px solid var(--line);padding-top:12px;display:flex;flex-direction:column;gap:8px"><b>' + _t('Pubblica i tuoi risultati') + '</b><span class="small muted">' + _t('Scrivi un nome e ti trovi nella classifica sul sito di Tasso. Va solo il voto, con il nome che scegli tu.') + '</span><div class="row" style="gap:8px"><input id="votoNome" maxlength="24" style="flex:1" placeholder="' + esc(_t('Il tuo nome nella classifica')) + '"><button class="btn primary" id="votoPub">' + _t('Pubblica') + '</button></div></div>' : '';
+  const busy = (fn) => async (box) => { const c = fmt === 'v' ? v : q; const res = await fn(c.toDataURL('image/png')); return res; };
+  modal('<h2>' + _t('Il tuo biglietto da visita') + '</h2><p class="muted" style="margin:0">' + _t('Il voto del tuo PC, pronto da mandare agli amici. Quadrato per i post, verticale per le storie. Dentro ci sono solo i voti e i componenti, niente dati personali.') + '</p><div id="votoPrev" style="display:flex;gap:22px;justify-content:center;flex-wrap:wrap;padding:4px 0"></div>' + pub, [
+    {label: _t('Chiudi')},
+    {label: _t('Salva'), fn: busy(async (u) => { const x = await call('goVotoSalva', u, fmt === 'v' ? 'verticale' : 'quadrata'); toast(x === 'ok' ? _t('Salvato in Immagini\\Tasso.') : _t('Non sono riuscito a salvare l\'immagine.'), x === 'ok' ? 'var(--a1)' : 'var(--a4)'); return 'keep'; })},
+    {label: _t('Copia immagine'), cls: 'primary', fn: busy(async (u) => { const x = await call('goVotoCopia', u); toast(x === 'ok' ? _t('Immagine copiata: incollala dove vuoi con Ctrl+V.') : _t('Non sono riuscito a copiare l\'immagine.'), x === 'ok' ? 'var(--a1)' : 'var(--a4)'); return 'keep'; })}
+  ]);
+  const box = $('#modalBox'); box.style.maxWidth = '780px';
+  const prev = $('#votoPrev');
+  prev.appendChild(wrap(q, 'q', 380, 380, _t('Quadrato · 1080 × 1080')));
+  prev.appendChild(wrap(v, 'v', 214, 380, _t('Verticale · 1080 × 1920')));
+  const paintSel = () => prev.querySelectorAll('.votofmt').forEach(b => { const on = b.dataset.f === fmt; b.setAttribute('aria-pressed', on ? 'true' : 'false'); b.firstChild.style.boxShadow = on ? '0 0 0 3px var(--a1),0 14px 34px rgba(0,0,0,.45)' : '0 0 0 1px var(--line),0 14px 34px rgba(0,0,0,.45)'; b.lastChild.style.color = on ? 'var(--a1t)' : 'var(--muted)'; b.lastChild.style.fontWeight = on ? '700' : '500'; });
+  prev.querySelectorAll('.votofmt').forEach(b => b.onclick = () => { fmt = b.dataset.f; paintSel(); });
+  paintSel();
+  const pb = $('#votoPub'); if (pb) pb.onclick = () => toast(_t('La classifica online arriva presto.'), 'var(--a3)');
+}
+$('#btnVotoCard').onclick = () => openVotoCard();
+$('#btnBench').onclick = async () => { const r = await call('goBench'); if (r === 'busy') { toast(_t('Sto già misurando.'), 'var(--a4)'); return; } BENCH_MANUAL = true; $('#btnBench').disabled = true; $('#bnMsg').textContent = _t('Misuro… non usare il PC per 20 secondi.'); };
 $('#tgBenchAround').onclick = async () => { const on = !S.benchAround; await call('goSetBenchAround', on); S.benchAround = on; setToggle('#tgBenchAround', on, false); toast(on ? _t('Misurerò il voto prima e dopo ogni pulizia.') : _t('Voto automatico spento.')); };
 (async () => { const h = await call('goBenchHistory'); if (h && h.length) paintBench(h[h.length - 1], null, h); setToggle('#tgBenchAround', !!S.benchAround, false); })();
 async function undoRefresh(){ paintUndo(await call('goChanges')); }
@@ -3056,7 +3225,7 @@ Object.assign(window.tasso, {
   onPingProgress(m){ $('#pgMsg').textContent = m; },
   onAutoRun(l){ if (RUN) return; toast(_t('È l\'ora della pulizia programmata: parto.'), 'var(--a3)'); startLevel(l, 'acceso', true); },
   onBenchProgress(m){ $('#bnMsg').textContent = m; },
-  onBench(r){ $('#btnBench').disabled = false; $('#bnMsg').textContent = r.before ? _t('Ecco com\'era prima e com\'è dopo la pulizia.') : _t('Fatto.'); paintBench(r.result, r.before, r.history); if (r.before) toast(_t('Leggerezza di Windows: ') + r.before.light + ' → ' + r.result.light + '.', 'var(--a1)'); },
+  onBench(r){ $('#btnBench').disabled = false; $('#bnMsg').textContent = r.before ? _t('Ecco com\'era prima e com\'è dopo la pulizia.') : _t('Fatto.'); paintBench(r.result, r.before, r.history); if (BENCH_MANUAL && !r.before) { BENCH_MANUAL = false; openVotoCard(r.result); } if (r.before) toast(_t('Leggerezza di Windows: ') + r.before.light + ' → ' + r.result.light + '.', 'var(--a1)'); },
   onUpdatesProgress(m){ $('#updMsg').textContent = m; },
   onUpdates(r){
     UPD_BUSY = false; $('#btnUpdCheck').disabled = false;
