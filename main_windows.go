@@ -29,7 +29,7 @@ import (
 const paginaWebView2 = "https://go.microsoft.com/fwlink/p/?LinkId=2124703"
 
 // nomeMutex: una sola copia di Tasso Setup alla volta (anche con l'aggiornamento silenzioso).
-const nomeMutex = "Local\\TassoSetup"
+const nomeMutex = "Global\\TassoSetup" // Global: una sola copia anche con più utenti collegati (cartella di lavoro comune)
 
 var (
 	finestra webview2.WebView
@@ -47,6 +47,8 @@ var (
 	// --scegli=gaming,ufficio: nel disinstallatore sono già spuntati solo questi (lo usa
 	// "Togli Tasso dal PC" dentro Tasso). Si possono sempre cambiare.
 	preScelti []installa.Componente
+	// cartellaLav: la cartella protetta per diario e dati della WebView2 ("" = %TEMP%, come prima)
+	cartellaLav string
 )
 
 func L() string {
@@ -58,7 +60,13 @@ func L() string {
 
 func main() {
 	protezioneAvvio()
-	installa.ImpostaDiario(filepath.Join(os.TempDir(), installa.NomeDiario))
+	cartellaLav = cartellaLavoro() // %ProgramData%\TassoSetup, solo gli amministratori la cambiano
+	if cartellaLav != "" {
+		installa.ImpostaDiario(filepath.Join(cartellaLav, installa.NomeDiario))
+	} else {
+		installa.ImpostaDiario(filepath.Join(os.TempDir(), installa.NomeDiario))
+		installa.Diario("cartella protetta per il diario non disponibile: uso %%TEMP%%")
+	}
 	installa.Diario("---- Tasso Setup avviato (%s), argomenti %q", versioneSetup(), os.Args[1:])
 	modoDisins = !pacco.Pieno
 	lingua.Store(testi.DaWindows(linguaWindows()))
@@ -91,8 +99,19 @@ func main() {
 	// una sola copia alla volta
 	mn, _ := windows.UTF16PtrFromString(nomeMutex)
 	h, err := windows.CreateMutex(nil, true, mn)
-	if err == windows.ERROR_ALREADY_EXISTS {
-		portaDavanti()
+	if err == windows.ERROR_ALREADY_EXISTS || err == windows.ERROR_ACCESS_DENIED || h == 0 {
+		// un'altra copia c'è già (anche di un altro utente, o un mutex che non posso aprire): se la sua
+		// finestra è qui la porto davanti, altrimenti lo dico. Mai chiudere senza dire niente.
+		if h != 0 {
+			windows.CloseHandle(h)
+		}
+		installa.Diario("Tasso Setup è già aperto (mutex: %v)", err)
+		if !portaDavanti() {
+			tit, _ := windows.UTF16PtrFromString(testi.T(L(), "titolo"))
+			txt, _ := windows.UTF16PtrFromString(testi.T(L(), "gia_aperto"))
+			const mbOK, mbIconInformation = 0x0, 0x40
+			_, _ = windows.MessageBox(0, txt, tit, mbOK|mbIconInformation)
+		}
 		return
 	}
 	if h != 0 {
@@ -133,7 +152,8 @@ func main() {
 		return
 	}
 
-	dati, _ := os.MkdirTemp("", "TassoSetup-WebView2-")
+	togliDatiWebView2Vecchi(cartellaLav)
+	dati := nuoviDatiWebView2()
 	defer func() {
 		togliDatiWebView2(dati)
 		cancellaAllUscita()
@@ -171,6 +191,18 @@ func main() {
 	w.Destroy()
 }
 
+// nuoviDatiWebView2: una cartella nuova per i dati della WebView2, dentro la cartella protetta
+// (se non si può, in %TEMP% come prima).
+func nuoviDatiWebView2() string {
+	if cartellaLav != "" {
+		if d, err := os.MkdirTemp(cartellaLav, installa.PrefissoDatiWebView2); err == nil {
+			return d
+		}
+	}
+	d, _ := os.MkdirTemp("", "TassoSetup-"+installa.PrefissoDatiWebView2)
+	return d
+}
+
 // togliDatiWebView2 cancella la cartella temporanea della WebView2. I processi di WebView2
 // escono un attimo dopo la finestra: riprova per circa 3 secondi.
 func togliDatiWebView2(dati string) {
@@ -193,11 +225,15 @@ func scalaSchermo() float64 {
 	return scala
 }
 
-func portaDavanti() {
+// portaDavanti: porta davanti la finestra di Tasso Setup già aperta; false se qui non c'è (per
+// esempio è aperta da un altro utente collegato).
+func portaDavanti() bool {
 	tit, _ := windows.UTF16PtrFromString(testi.T(L(), "titolo"))
 	if hw, _, _ := procFindWindowW.Call(0, uintptr(unsafe.Pointer(tit))); hw != 0 {
 		procSetForegroundWindow.Call(hw)
+		return true
 	}
+	return false
 }
 
 // manda un evento alla pagina: window.TS.<nome>(dati).

@@ -116,6 +116,7 @@ func aggiornaSilenzioso(soloControlla, riapri bool) int {
 		if h != 0 {
 			windows.CloseHandle(h)
 		}
+		installa.Diario("aggiornamento silenzioso non fatto: Tasso Setup è già aperto su questo PC (anche da un altro utente) (mutex: %v)", err)
 		if riapri {
 			riapriTasso(piano.Opzioni.Base)
 		}
@@ -272,7 +273,7 @@ func conBarra(lavoro func(avanza func(testo string, perc int, errore bool)) int)
 	if v, err := webviewloader.GetInstalledVersion(); err != nil || v == "" {
 		return lavoro(func(string, int, bool) {})
 	}
-	dati, _ := os.MkdirTemp("", "TassoSetup-WebView2-")
+	dati := nuoviDatiWebView2()
 	defer togliDatiWebView2(dati)
 	scala := scalaSchermo()
 	var finito atomic.Bool
