@@ -28,7 +28,7 @@ Il codice è nella cartella [`codice`](codice), con licenza [GPL-3.0](LICENSE).
 ## Cosa fa
 
 - 🔎 **Rileva i problemi**: un clic e Tasso controlla 58 cose in circa un minuto (stampanti, internet, Word, Excel, Outlook, OneDrive, periferiche, Windows e giochi). Non cambia niente: ti mostra solo i problemi trovati davvero, ognuno con il suo **Risolvi**.
-- 💼 **100 problemi dell'ufficio** risolti con un pulsante, divisi in gruppi e con la ricerca: stampanti, Wi-Fi, VPN, Word, Excel, Outlook, Teams, riunioni, OneDrive, tastiera, schermo…
+- 💼 **109 problemi dell'ufficio** risolti con un pulsante, divisi in gruppi e con la ricerca: stampanti, Wi-Fi, VPN, Word, Excel, Outlook, Teams, riunioni, OneDrive, tastiera, schermo…
 - ⬆️ **Aggiorna con un clic**: quando esce una versione nuova, Tasso te lo dice e si aggiorna da solo.
 - 🧹 **Pulizia a 5 livelli**: Classica, Normale, Media, Profonda, Eccezionale, con **pulizia programmata** ogni 1 o 2 settimane (anche Profonda o Eccezionale, se le vuoi) e **voto al PC** da 1 a 100 prima e dopo.
 - 🎮 **Giochi**: **profilo gioco** con un interruttore che resta acceso anche dopo il riavvio, **potenza per ogni gioco**, **ping ai server dei giochi**, Regola con Tasso, comandi gaming spiegati in parole semplici, pannellino in gioco, autoclick, libreria Steam/Epic/Riot.

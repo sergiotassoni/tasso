@@ -156,7 +156,7 @@ toc = [
     ('4', 'Speed', 'modes, Turbo, startup apps'),
     ('5', 'Programs', 'uninstalling properly, preinstalled apps'),
     ('6', 'Files', 'duplicates, large files, empty folders, shred and recover'),
-    ('7', 'Fix problems', 'the 100 office problems, games and Windows'),
+    ('7', 'Fix problems', 'the 109 office problems, games and Windows'),
     ('8', 'Internet, disk and games', 'ping, Internet speed, disk, games'),
     ('9', 'Hardware', 'components, sensors, BIOS, graphics card'),
     ('10', 'Settings', 'themes, start with Windows, alerts'),
@@ -186,7 +186,7 @@ S += [P('<b>First-time setup</b>', 'h2'),
       P('The first time, Tasso asks you <b>how you\'ll use the PC</b>. Click the right card (Tasso shows you right away what it will look like) and then <b>Continue</b>:')]
 S += [table([['Mode', 'What Tasso looks like and what it sets'],
              ['<b>Gaming</b>', 'All of Tasso: games, FPS, server ping, Turbo, Performance+, dark and colorful themes. It puts the PC in Gaming mode.'],
-             ['<b>Office</b>', 'Simpler and calmer: soft, light colors, a cuter badger, no games, FPS or ping. In Fix problems you\'ll find the <b>100 most common office problems</b> right away. It puts the PC in Normal mode and sets up a weekly scheduled cleanup.']],
+             ['<b>Office</b>', 'Simpler and calmer: soft, light colors, a cuter badger, no games, FPS or ping. In Fix problems you\'ll find the <b>109 most common office problems</b> right away. It puts the PC in Normal mode and sets up a weekly scheduled cleanup.']],
             [32 * mm, W - 2 * M - 32 * mm])]
 S += [P('You can switch modes whenever you want with the <b>Gaming / Office</b> button at the top left, under the logo (or from <b>Settings</b>). The button only changes how Tasso looks; it doesn\'t touch the PC. Each mode remembers its own theme.', 'small')]
 
@@ -283,8 +283,8 @@ S += [table([['Problem', 'What Tasso does'],
              ['<b>The game minimizes by itself</b>', 'Turns back on the Windows protection that stops other programs from "stealing" the window, and tells you which open programs usually do it.'],
              ['<b>Game downloads are slow</b>', 'Checks for a "metered" network, speed limits, updates and a full disk, and clears the Steam download cache. Games and saves stay.']],
             [46 * mm, W - 2 * M - 46 * mm])]
-S += [P('<b>The 100 office problems</b> (new in 2.6)', 'h2'),
-      P('Fix problems is split into three sections: <b>Office</b>, <b>Gaming</b> (only in Gaming mode) and <b>Windows</b>, with <b>a single search</b> at the top: type the problem (for example "printer", "zip" or "password") and Tasso shows you only the matching ones, across all sections. The 100 office problems are split into 10 groups that open with one click (printing, Word/Excel/Adobe, Outlook, Teams, files and zip, network, screens, mouse and keyboard, Windows, accounts and security). In Office mode the groups are open and this section comes first; in Gaming mode it is called <b>Everyday problems</b> and has only the ones for everyone. Tasso never deletes documents (at most it moves them to a folder in Documents), saves the settings before changing them and <b>never closes Word, Excel or Outlook while you\'re working in them</b>: it asks you to save and close them yourself (the only exception is Outlook stuck for more than 2 minutes with no window). The <b>Check</b> buttons (instead of Fix) are for cases that can\'t be fixed automatically: Tasso finds the cause and explains what to do.')]
+S += [P('<b>The 109 office problems</b> (new in 2.6, grown in later versions)', 'h2'),
+      P('Fix problems is split into three sections: <b>Office</b>, <b>Gaming</b> (only in Gaming mode) and <b>Windows</b>, with <b>a single search</b> at the top: type the problem (for example "printer", "zip" or "password") and Tasso shows you only the matching ones, across all sections. The 109 office problems are split into 10 groups, plus the one with what\'s new, that open with one click (printing, Word/Excel/Adobe, Outlook, Teams, files and zip, network, screens, mouse and keyboard, Windows, accounts and security). In Office mode the groups are open and this section comes first; in Gaming mode it is called <b>Everyday problems</b> and has only the ones for everyone. Tasso never deletes documents (at most it moves them to a folder in Documents), saves the settings before changing them and <b>never closes Word, Excel or Outlook while you\'re working in them</b>: it asks you to save and close them yourself (the only exception is Outlook stuck for more than 2 minutes with no window). The <b>Check</b> buttons (instead of Fix) are for cases that can\'t be fixed automatically: Tasso finds the cause and explains what to do.')]
 S += [table([['Problem', 'What Tasso does'],
              ['<b><font color="#2F6BE0">PRINTING &amp; SCANNERS</font></b>', ''],
              ['<b>The printer says "offline"</b>', 'Restarts the print service, unchecks "Use Printer Offline" and checks whether network printers respond.'],
@@ -421,7 +421,7 @@ S += [P('<b>What\'s new in 2.6</b>', 'h2')]
 S += bullets(['<b>Detect problems</b> (at the top of the menu, right under Home together with Fix problems, and as a button in Home): one click and Tasso checks for 58 different problems (54 in Office mode) in about a minute. <b>It doesn\'t change anything</b>: it only shows you the ones it really found, each with its own Fix button, plus "Fix all at once" to solve them all in one go. Some problems only show up when they happen (for example a black second screen): for those, there\'s Fix problems.',
               '<b>Internet</b>: instead of data usage there\'s now <b>Your connection</b>, with useful tips (for example "connect to the 5 GHz network" when your router has it).',
               '<b>Two modes</b>: Gaming and Office, chosen the first time you open Tasso and changeable whenever you want from the button at the top left. In Office mode Tasso is simpler and calmer (soft, light colors, a cuter badger) and hides games, FPS, ping, Turbo and Performance+.',
-              '<b>The 100 most common office problems</b> in Fix problems (printing, Word, Excel, Adobe, Outlook, Teams, files and zip, network, screens, mouse and keyboard, accounts), each with a button and a simple explanation (see chapter 7).',
+              '<b>The 109 most common office problems</b> in Fix problems (printing, Word, Excel, Adobe, Outlook, Teams, files and zip, network, screens, mouse and keyboard, accounts), each with a button and a simple explanation (see chapter 7).',
               '<b>Fix problems split into sections</b> (Office, Gaming, Windows) with <b>a single search</b> for all problems, and <b>3 new game problems</b>: mouse aim, game that minimizes by itself, slow downloads.',
               '<b>PC score from 1 to 100</b> for everything, with the overall score and the rank (from "Slow PC" to "top").',
               '<b>Games</b>: your library is at the top of the page. <b>Performance+</b> reorganized: easy, safe things first, then the ones for experts.',

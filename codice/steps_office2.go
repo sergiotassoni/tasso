@@ -184,7 +184,7 @@ var officeSteps2 = []Step{
 if (-not (Test-Path -LiteralPath 'HKCU:\Software\Microsoft\Office\16.0')) { Say 'Non trovo Office 2016, 2019, 2021 o Microsoft 365 su questo PC.'; return }
 if (Stop-IfOfficeOpen @('WINWORD', 'EXCEL', 'POWERPNT', 'OUTLOOK')) { return }
 $k = 'HKCU\Software\Microsoft\Office\16.0\Common\Graphics'
-if ((Get-RegValue $k 'DisableHardwareAcceleration') -eq 1) { Say 'L''accelerazione grafica di Office era già spenta.'; Say 'Altre cause frequenti: driver della scheda video vecchio (in Tasso: Aggiornamento driver) e componenti aggiuntivi (usa "Word o Excel si chiudono appena li apri").'; return }
+if ((Get-RegValue $k 'DisableHardwareAcceleration') -eq 1) { Say 'L''accelerazione grafica di Office era già spenta.'; Say 'Altre cause frequenti: driver della scheda video vecchio (in Tasso: "Driver di tutto il PC" in Risolvi un problema) e componenti aggiuntivi (usa "Word o Excel si chiudono appena li apri").'; return }
 $u = Save-Undo $k @('DisableHardwareAcceleration') 'office-grafica'
 Set-RegValue $k 'DisableHardwareAcceleration' 1 'DWord'
 Say 'Fatto: Office ora disegna le finestre senza la scheda video. Riapri Word ed Excel: finestre bianche e sfarfallii di solito spariscono.'
@@ -509,9 +509,9 @@ Say 'Cosa fare: nella finestra che ti apro scegli di nuovo il browser che usi (a
 Say 'Poi chiudi e riapri Outlook.'
 Open-User 'ms-settings:defaultapps'
 `)},
-	{ID: "of_mailto", Name: "\"Nessun programma di posta\" quando invio un file per email", Desc: "Rimette Outlook come programma di posta di Windows, quello che usano \"Invia a > Destinatario\" e i pulsanti \"Invia per email\" degli altri programmi. Puoi tornare indietro.", Level: 0, Minutes: 0.1, Timeout: time.Minute, Script: ofs2(`
+	{ID: "of_mailto", Name: "\"Nessun programma di posta\" quando invio un file per email", Desc: "Rimette Outlook come programma di posta di Windows, quello che usano \"Invia a > Destinatario posta\" e i pulsanti \"Invia per email\" degli altri programmi. Puoi tornare indietro.", Level: 0, Minutes: 0.1, Timeout: time.Minute, Script: ofs2(`
 $ol = Get-AppPath 'OUTLOOK.EXE'
-if (-not $ol -or -not (Test-Path -LiteralPath 'HKLM:\SOFTWARE\Clients\Mail\Microsoft Outlook')) { Say 'Outlook classico non è installato. "Invia a > Destinatario" e "Invia per email" funzionano solo con un programma di posta installato (Outlook classico, Thunderbird): con il nuovo Outlook o la posta nel browser allega il file a mano.'; return }
+if (-not $ol -or -not (Test-Path -LiteralPath 'HKLM:\SOFTWARE\Clients\Mail\Microsoft Outlook')) { Say 'Outlook classico non è installato. "Invia a > Destinatario posta" e "Invia per email" funzionano solo con un programma di posta installato (Outlook classico, Thunderbird): con il nuovo Outlook o la posta nel browser allega il file a mano.'; return }
 $f = @()
 $cur = [string](Get-RegValue 'HKLM\SOFTWARE\Clients\Mail' '(default)')
 if ($cur -ne 'Microsoft Outlook') { $u = Save-Undo 'HKLM\SOFTWARE\Clients\Mail' @('') 'posta-predefinita-pc'; Set-RegValue 'HKLM\SOFTWARE\Clients\Mail' '(default)' 'Microsoft Outlook' 'String'; $f += $u }
@@ -560,7 +560,7 @@ if ($mic.Count) { Say ('Il microfono è usato da: ' + ($mic -join ', ') + '.') }
 Say 'Ricorda: la webcam la può usare un solo programma alla volta. Se hai Teams aperto anche nel browser, chiudi una delle due.'
 if (-not $cam.Count) { Say 'Se la webcam dice ancora "in uso", prova "La webcam non va": riavvia la webcam e controlla i permessi.' }
 `)},
-	{ID: "of_sound_comm", Name: "Il volume si abbassa da solo durante le chiamate", Desc: "Dice a Windows di non abbassare più musica e altri suoni quando sei in chiamata su Teams, Zoom o Skype. Puoi tornare indietro.", Level: 0, Minutes: 0.1, Timeout: time.Minute, Script: ofs2(`
+	{ID: "of_sound_comm", Name: "Il volume si abbassa da solo durante le chiamate", Desc: "Dice a Windows di non abbassare più musica e altri suoni quando sei in chiamata su Teams o Zoom. Puoi tornare indietro.", Level: 0, Minutes: 0.1, Timeout: time.Minute, Script: ofs2(`
 $k = 'HKCU\Software\Microsoft\Multimedia\Audio'
 if ((Get-RegValue $k 'UserDuckingPreference') -eq 3) { Say 'Windows già non abbassava il volume nelle chiamate. Se succede ancora, è il programma della riunione o delle cuffie: in Teams controlla Impostazioni > Dispositivi.'; return }
 $u = Save-Undo $k @('UserDuckingPreference') 'volume-chiamate'
@@ -589,7 +589,7 @@ foreach ($a in $eth) {
     if (@($ip | Where-Object { $_ -like '169.254.*' }).Count -or -not $ip.Count) { Say 'Il cavo funziona ma il router non dà l''indirizzo al PC: riavvia il router o lo switch, o prova un''altra presa. In ufficio può essere la presa non attivata: chiedi all''assistenza.' }
   }
 }
-if (Test-Internet) { Say 'Internet funziona.' } else { Say 'Internet ancora non va: prova anche "Risolvi problemi di internet".' }
+if (Test-Internet) { Say 'Internet funziona.' } else { Say 'Internet ancora non va: prova anche "Internet non va".' }
 `)},
 	{ID: "of_metered", Name: "Aggiornamenti e OneDrive fermi: \"connessione a consumo\"", Desc: "Se la rete Wi-Fi che usi è segnata \"a consumo\", Windows e OneDrive non scaricano. Toglie il segno dalla rete di casa o dell'ufficio (non dall'hotspot del telefono). Puoi rimetterlo.", Level: 0, Minutes: 0.1, Timeout: time.Minute, Script: ofs2(`
 $p = $null
@@ -607,9 +607,11 @@ else { Say 'Windows non mi ha lasciato cambiarlo (forse lo decide l''ufficio). P
 `)},
 	{ID: "of_net_slow", Name: "Internet è lento solo su questo PC", Desc: "Controlla segnale Wi-Fi, velocità del cavo, VPN e i programmi che scaricano o caricano in sottofondo (OneDrive, aggiornamenti). Ti dice cosa rallenta. Controlla e spiega.", Level: 0, Minutes: 0.2, Timeout: 2 * time.Minute, Script: ofs2(`
 $wi = (netsh.exe wlan show interfaces 2>$null) -join [char]10
-if ($wi -match '(?:Segnale|Signal)\s*:\s*(\d+)%') { $sig = [int]$Matches[1]; Say ('Segnale Wi-Fi: ' + $sig + '%.'); if ($sig -lt 50) { Say 'È debole: avvicinati al router, o usa il cavo. Muri e armadi di metallo lo bloccano molto.' } }
-if ($wi -match '(?:Banda|Band)\s*:\s*2[.,]4') { Say 'Sei collegato al Wi-Fi a 2,4 GHz (più lento e affollato): se il router ha la rete "5G" o "5GHz", collegati a quella.' }
-elseif ($wi -match '(?:Tipo radio|Tipo di radio|Radio type)\s*:\s*802\.11(b|g)\b') { Say 'Sei collegato al Wi-Fi in un modo vecchio e lento (802.11' + $Matches[1] + '): se il router ha la rete "5G" o "5GHz", collegati a quella.' }
+# F10-2: niente etichette (cambiano con la lingua di Windows): il segnale è la sola riga "nome : NN%" che non è l'SSID.
+$sig = $null; foreach ($ln in ($wi -split "\n")) { if ($ln -match '^\s*([^:]+?)\s*:\s*(\d+)\s*%\s*$' -and $Matches[1] -notmatch 'SSID') { $sig = [int]$Matches[2]; break } }
+if ($null -ne $sig) { Say ('Segnale Wi-Fi: ' + $sig + '%.'); if ($sig -lt 50) { Say 'È debole: avvicinati al router, o usa il cavo. Muri e armadi di metallo lo bloccano molto.' } }
+if ($wi -match '(?m)^\s*[^:\n]+?\s*:\s*2[.,]4\s*GHz') { Say 'Sei collegato al Wi-Fi a 2,4 GHz (più lento e affollato): se il router ha la rete "5G" o "5GHz", collegati a quella.' }
+elseif ($wi -match '(?m)^\s*[^:\n]+?\s*:\s*802\.11(b|g)\s*$') { Say 'Sei collegato al Wi-Fi in un modo vecchio e lento (802.11' + $Matches[1] + '): se il router ha la rete "5G" o "5GHz", collegati a quella.' }
 foreach ($a in @(Get-NetAdapter -Physical -ErrorAction SilentlyContinue | Where-Object { [string]$_.Status -eq 'Up' -and $_.InterfaceDescription -notmatch 'Wi-?Fi|Wireless|WLAN|802\.11' })) { if ([string]$a.LinkSpeed -match '^(10|100) Mbps') { Say ('Il cavo va solo a ' + $a.LinkSpeed + ': cambialo, dovrebbe andare a 1 Gbps.') } }
 $vpn = @(Get-NetAdapter -ErrorAction SilentlyContinue | Where-Object { [string]$_.Status -eq 'Up' -and $_.InterfaceDescription -match 'VPN|TAP-|WireGuard|Fortinet|Cisco|AnyConnect|GlobalProtect|PANGP|Pulse|SonicWall|OpenVPN|Check Point' })
 if ($vpn.Count) { Say 'La VPN è accesa: tutto passa dal server dell''ufficio, ed è normale che vada più piano. Spegnila quando non ti serve.' }
@@ -625,7 +627,9 @@ Say 'Per misurare la velocità vera: in Tasso, pagina Internet > Test di velocit
 if (Get-Process -Name mstsc -ErrorAction SilentlyContinue) { Say 'Il Desktop remoto è aperto: chiudi la connessione (salva il lavoro sul PC remoto) e premi di nuovo Risolvi.'; return }
 $f = Clear-Folder (Join-Path $env:LOCALAPPDATA 'Microsoft\Terminal Server Client\Cache')
 Freed $f
-Say ('Memoria delle immagini del Desktop remoto svuotata (' + (Fmt $f) + ').')
+# F10-14: "svuotata" solo se Tasso l'ha pulita davvero (come per Teams e i componenti di Office).
+if ($TassoRifiuto) { Say ('Non ho svuotato la memoria delle immagini del Desktop remoto: la cartella non è sul disco del PC o non è sicura da pulire (' + $TassoRifiuto + ').') }
+else { Say ('Memoria delle immagini del Desktop remoto svuotata (' + (Fmt $f) + ').') }
 $mru = @()
 foreach ($i in 0..9) { $v = [string](Get-RegValue 'HKCU\Software\Microsoft\Terminal Server Client\Default' ('MRU' + $i)); if ($v) { $mru += $v } }
 if (-not $mru.Count) { Say 'Non ci sono connessioni recenti salvate da controllare.' }
@@ -688,7 +692,7 @@ foreach ($a in @(Get-NetAdapter -Physical -ErrorAction SilentlyContinue | Where-
   Say ($a.Name + ': aveva ' + $(if ($staticIp) { 'indirizzo e DNS' } else { 'il DNS' }) + ' messi a mano che qui non funzionavano: ora sono automatici. I valori vecchi sono salvati in ' + $f)
 }
 if (-not $done) { Say 'Le schede di rete sono già in automatico (o le impostazioni a mano funzionano): non era questo il problema.'; return }
-if (Test-Internet) { Say 'Internet funziona.' } else { Say 'Internet ancora non va: prova "Il Wi-Fi non si collega" o "Risolvi problemi di internet".' }
+if (Test-Internet) { Say 'Internet funziona.' } else { Say 'Internet ancora non va: prova "Il Wi-Fi non si collega" o "Internet non va".' }
 Say 'Quando torni in ufficio, se lì serviva l''indirizzo fisso, rimettilo con i valori del file (o chiedi all''assistenza).'
 `)},
 
@@ -758,14 +762,15 @@ $b2 = Backup-Reg 'HKCU\Control Panel\Desktop' 'mouse-rotellina'
 if (-not $b1 -or -not $b2) { Say 'Non sono riuscito a fare la copia di sicurezza, quindi non cambio niente. Ti apro le impostazioni del mouse.'; Open-User 'ms-settings:mousetouchpad'; return }
 if (-not (Use-Input)) { Say 'Windows non mi ha lasciato cambiare le impostazioni del mouse. Te le apro.'; Open-User 'ms-settings:mousetouchpad'; return }
 [TassoInput]::Mouse()
-Say 'Fatto: velocità del puntatore media, doppio clic normale, "precisione del puntatore" accesa e rotellina a 3 righe. Si vede subito. (Se giochi e avevi spento la precisione per la mira, rispegnila con "La mira con il mouse non è precisa".)'
+Say 'Fatto: velocità del puntatore media, doppio clic normale, "precisione del puntatore" accesa e rotellina a 3 righe. Si vede subito.'
+if (-not $TassoUfficio) { Say '(Se giochi e avevi spento la precisione per la mira, rispegnila con "La mira con il mouse non è precisa".)' }
 if ((Get-RegValue 'HKCU\Control Panel\Mouse' 'SwapMouseButtons') -eq '1') { Say 'I tasti del mouse sono invertiti (impostazione per mancini): se non l''hai scelto tu, Impostazioni > Bluetooth e dispositivi > Mouse > "Pulsante principale del mouse": Sinistro.' }
 Say 'Se il puntatore salta o si blocca: mouse senza filo con la pila scarica o ricevitore lontano (mettilo in una porta davanti), oppure il tappetino/la superficie (vetro e superfici lucide non vanno bene).'
 Say ('Per tornare come prima: doppio clic su ' + $b1 + ' e su ' + $b2 + ', poi esci e rientra in Windows.')
 `)},
 	{ID: "of_touchpad", Name: "Il touchpad del portatile non funziona", Desc: "Riaccende il touchpad se era spento in Gestione dispositivi, riavvia il suo driver e ti dice dove si accende in Windows e quale tasto Fn lo spegne.", Level: 0, Minutes: 0.2, Timeout: 2 * time.Minute, Script: ofs2(`
 $tp = @(Get-PnpDevice -PresentOnly -ErrorAction SilentlyContinue | Where-Object { $_.Class -match 'Mouse|HIDClass' -and $_.FriendlyName -match 'touch ?pad|TouchPad|Precision|I2C HID|Synaptics|ELAN|Alps' })
-if (-not $tp.Count) { Say 'Windows non vede nessun touchpad. Se è un portatile: riavvia il PC; se non torna, manca il driver (in Tasso: Aggiornamento driver) o è un problema del touchpad.'; return }
+if (-not $tp.Count) { Say 'Windows non vede nessun touchpad. Se è un portatile: riavvia il PC; se non torna, manca il driver (in Tasso: "Driver di tutto il PC" in Risolvi un problema) o è un problema del touchpad.'; return }
 foreach ($d in $tp) {
   if ([string]$d.Status -ne 'OK') {
     $id = [string]$d.InstanceId
@@ -785,7 +790,7 @@ Open-User 'ms-settings:devices-touchpad'
 $k1 = 'HKU\.DEFAULT\Control Panel\Keyboard'; $k2 = 'HKCU\Control Panel\Keyboard'
 $v1 = [string](Get-RegValue $k1 'InitialKeyboardIndicators'); $v2 = [string](Get-RegValue $k2 'InitialKeyboardIndicators')
 $on = { param($v) try { return (([long]$v) -band 2) -ne 0 } catch { return $false } }
-if ((& $on $v1) -and (& $on $v2)) { Say 'Il Bloc Num era già impostato acceso all''avvio.'; Say 'Se si spegne lo stesso, lo decide il BIOS del PC (voce "NumLock" o "Boot Up NumLock State") o l''Avvio rapido: prova "Spegnendo il PC i problemi restano".'; return }
+if ((& $on $v1) -and (& $on $v2)) { Say 'Il Bloc Num era già impostato acceso all''avvio.'; Say 'Se si spegne lo stesso, lo decide il BIOS del PC (voce "NumLock" o "Boot Up NumLock State") o l''Avvio rapido: prova "Spegnendo il PC i problemi non spariscono".'; return }
 $u1 = Save-Undo $k1 @('InitialKeyboardIndicators') 'bloc-num-avvio'
 $u2 = Save-Undo $k2 @('InitialKeyboardIndicators') 'bloc-num-utente'
 Set-RegValue $k1 'InitialKeyboardIndicators' '2147483650' 'String'
@@ -828,7 +833,7 @@ if ($map) {
 }
 if ($fixed.Count) { Say ('Sbloccato: ' + ($fixed -join '; ') + '.') } else { Say 'In Windows il tasto non è bloccato.' }
 Say 'Molte tastiere (soprattutto da gioco) hanno un tasto o una lucina "Win Lock" o "Game Mode", oppure si sblocca con Fn + tasto Windows: premili.'
-Say 'Se il tasto funziona ma il menu Start non si apre, usa "Risolvi problemi di ricerca e menu Start".'
+Say 'Se il tasto funziona ma il menu Start non si apre, usa "Ricerca e menu Start bloccati".'
 if ($reboot) { [Console]::Out.WriteLine('REBOOT') }
 `)},
 	{ID: "of_battery", Name: "La batteria del portatile dura poco", Desc: "Legge quanto si è consumata la batteria rispetto a nuova e i cicli di ricarica, e ti dice cosa la scarica e se è da cambiare. Controlla e spiega.", Level: 0, Minutes: 0.3, Timeout: 2 * time.Minute, Script: ofs2(`
@@ -969,7 +974,7 @@ if (-not $temp) {
 Say 'Sì: sei entrato con un PROFILO TEMPORANEO. Quello che salvi adesso sul desktop o in Documenti si PERDE quando esci.'
 if ($bak) { Say ('Il tuo profilo vero è in: ' + $bak + '. I tuoi file sono lì: puoi aprirli da Esplora file e copiarli su una chiavetta per sicurezza.') }
 Say 'Cosa fare: 1) riavvia il PC (non "Arresta"): spesso basta e rientri con il tuo profilo; 2) se resta temporaneo, serve un tecnico o l''assistenza: la riparazione tocca una parte delicata del registro e Tasso, per sicurezza, non la fa da solo.'
-Say 'Di solito succede se il PC si è spento male mentre usciva, o se il disco ha errori: dopo, fai anche "Controllo errori del disco" in Tasso.'
+Say 'Di solito succede se il PC si è spento male mentre usciva, o se il disco ha errori: dopo, fai anche "Il disco fa i capricci" in Tasso.'
 `)},
 	{ID: "of_pwd_expire", Name: "La password di Windows sta per scadere", Desc: "Ti dice quando scade la password del tuo account di Windows o dell'ufficio e come cambiarla prima (Ctrl + Alt + Canc > Cambia password). Tasso non vede né salva la password. Controlla e spiega.", Level: 0, Minutes: 0.2, Timeout: 2 * time.Minute, Script: ofs2(`
 $cs = Get-CimInstance Win32_ComputerSystem -ErrorAction SilentlyContinue
@@ -978,9 +983,20 @@ $who = [Security.Principal.WindowsIdentity]::GetCurrent().Name
 $isDom = $cs.PartOfDomain -and ($who -split '\\')[0] -ne $env:COMPUTERNAME
 $cambia = $isDom -or $aad
 if ($isDom) {
-  $o = @(net.exe user $env:USERNAME /domain 2>$null)
-  $line = @($o | Where-Object { $_ -match '^(Scadenza password|Password expires)' })
-  if ($line.Count) { $v = ($line[0] -split '\s{2,}', 2)[-1].Trim(); if ($v -match '^(Mai|Never)$') { Say 'Account dell''ufficio: la password non scade.' } else { Say ('Account dell''ufficio: la password scade il ' + $v + '.') } } else { Say 'Account dell''ufficio: il server non risponde adesso (sei fuori ufficio senza VPN?).' }
+  # F10-2: la scadenza la chiedo al server come numero (msDS-UserPasswordExpiryTimeComputed), non leggendo
+  # le scritte di "net user", che cambiano con la lingua di Windows.
+  $srv = $false; $exp = $null
+  try {
+    $un = $env:USERNAME -replace '\\', '\5c' -replace '\*', '\2a' -replace '\(', '\28' -replace '\)', '\29'
+    $ds = New-Object DirectoryServices.DirectorySearcher
+    $ds.Filter = '(&(objectCategory=person)(sAMAccountName=' + $un + '))'
+    [void]$ds.PropertiesToLoad.Add('msDS-UserPasswordExpiryTimeComputed')
+    $r = $ds.FindOne()
+    if ($r) { $srv = $true; $pv = @($r.Properties['msds-userpasswordexpirytimecomputed']); if ($pv.Count) { $ft = [long]$pv[0]; if ($ft -gt 0 -and $ft -lt [long]::MaxValue) { $exp = [datetime]::FromFileTime($ft) } } }
+  } catch {}
+  if (-not $srv) { Say 'Account dell''ufficio: il server non risponde adesso (sei fuori ufficio senza VPN?).' }
+  elseif ($exp) { Say ('Account dell''ufficio: la password scade il ' + $exp.ToString('dd/MM/yyyy') + '.') }
+  else { Say 'Account dell''ufficio: la password non scade.' }
   Say 'Per cambiarla: premi Ctrl + Alt + Canc > Cambia password, quando sei collegato alla rete dell''ufficio o alla VPN. Poi blocca e sblocca il PC con la nuova.'
 } elseif ($aad) {
   Say 'Il PC usa l''account di lavoro Microsoft 365: la scadenza la decide l''azienda e Windows te lo ricorda da solo qualche giorno prima.'
@@ -995,13 +1011,13 @@ if ($isDom) {
 if ($cambia) { Say 'Dopo averla cambiata, aggiorna la password salvata anche sul telefono (posta) e in Outlook se te la chiede: usa "Outlook chiede sempre la password".' }
 `)},
 	{ID: "of_bitlocker", Name: "Il PC chiede la chiave di ripristino BitLocker", Desc: "Controlla se i dischi sono protetti con BitLocker e ti dice dove trovare la chiave di ripristino (account Microsoft o dell'ufficio) prima che serva. Tasso non mostra né salva la chiave. Controlla e spiega.", Level: 0, Minutes: 0.2, Timeout: 2 * time.Minute, Script: ofs2(`
-if (-not (Get-Command Get-BitLockerVolume -ErrorAction SilentlyContinue)) { $o = (manage-bde.exe -status 2>$null) -join [char]10; if ($o -match '(?i)(Crittografia completata|Fully Encrypted|Crittografia in corso|Encryption in Progress)') { Say 'Almeno un disco è cifrato con BitLocker.' } else { Say 'Non riesco a controllare BitLocker su questa versione di Windows (Home senza BitLocker non cifra i dischi).' }; Say 'La chiave di ripristino è su aka.ms/myrecoverykey (account Microsoft) o la ha l''assistenza (PC dell''ufficio).'; return }
+if (-not (Get-Command Get-BitLockerVolume -ErrorAction SilentlyContinue)) { $enc = $false; foreach ($ev in @(Get-CimInstance -Namespace 'root\cimv2\Security\MicrosoftVolumeEncryption' -ClassName Win32_EncryptableVolume -ErrorAction SilentlyContinue)) { $cs = $null; try { $cs = (Invoke-CimMethod -InputObject $ev -MethodName GetConversionStatus -ErrorAction Stop).ConversionStatus } catch {}; if ([int]$ev.ProtectionStatus -eq 1 -or ($null -ne $cs -and [int]$cs -ne 0)) { $enc = $true } }; if ($enc) { Say 'Almeno un disco è cifrato con BitLocker.' } else { Say 'Non riesco a controllare BitLocker su questa versione di Windows (Home senza BitLocker non cifra i dischi).' }; Say 'La chiave di ripristino è su aka.ms/myrecoverykey (account Microsoft) o la ha l''assistenza (PC dell''ufficio).'; return }
 $v = @(Get-BitLockerVolume -ErrorAction SilentlyContinue | Where-Object { [string]$_.VolumeStatus -ne 'FullyDecrypted' })
 if (-not $v.Count) { Say 'Nessun disco di questo PC è cifrato con BitLocker: non ti verrà chiesta nessuna chiave.'; return }
 foreach ($x in $v) {
   $rp = @($x.KeyProtector | Where-Object { [string]$_.KeyProtectorType -eq 'RecoveryPassword' })
   $st = if ([string]$x.ProtectionStatus -eq 'On') { 'protetto' } else { 'cifrato ma con la protezione in pausa' }
-  Say ('Disco ' + $x.MountPoint + ': ' + $st + '.' + $(if ($rp.Count) { ' Ha una chiave di ripristino (ID che inizia con ' + ([string]$rp[0].KeyProtectorId).Trim('{').Substring(0, 8) + ').' } else { ' NON ha una chiave di ripristino: chiedi all''assistenza di crearne una prima che serva.' }))
+  Say ('Disco ' + $x.MountPoint + ' ' + $st + '.' + $(if ($rp.Count) { ' Ha una chiave di ripristino (ID che inizia con ' + ([string]$rp[0].KeyProtectorId).Trim('{').Substring(0, 8) + ').' } else { ' NON ha una chiave di ripristino: chiedi all''assistenza di crearne una prima che serva.' }))
 }
 $aad = ((dsregcmd.exe /status 2>$null) -join [char]10) -match 'AzureAdJoined\s*:\s*YES'
 $dom = [bool](Get-CimInstance Win32_ComputerSystem -ErrorAction SilentlyContinue).PartOfDomain

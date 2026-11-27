@@ -66,7 +66,7 @@
    - Privacy: stop a pubblicità e tracciamento di Windows (con tasto per ripristinare)
 
 5a. UFFICIO (modalità Ufficio)
-   - I 100 problemi più comuni del PC da lavoro, ognuno con un pulsante, divisi in gruppi.
+   - I 109 problemi più comuni del PC da lavoro, ognuno con un pulsante, divisi in gruppi.
      In Risolvi problemi c'è una ricerca sola per tutti (Ufficio, Gaming e Windows):
    Stampa e scanner:
      - La stampante dice "offline"
@@ -267,7 +267,7 @@ NOVITÀ DELLA 2.6
      consumo di dati
    - Due modalità: Gaming (tutto, anche giochi, FPS e ping) e Ufficio (più semplice e
      tranquilla, con un tasso più carino). Si sceglie al primo avvio e si cambia quando vuoi
-   - I 100 problemi più comuni dell'ufficio in Risolvi problemi (anche Word, Excel, Adobe,
+   - I 109 problemi più comuni dell'ufficio in Risolvi problemi (anche Word, Excel, Adobe,
      file zip, mouse e tastiera, account e BitLocker)
    - Risolvi problemi diviso in sezioni (Ufficio, Gaming, Windows) con una ricerca sola
    - 3 problemi da gioco nuovi: mira del mouse, gioco che si riduce a icona, download lenti
