@@ -3803,7 +3803,6 @@
   "MENSILE": "MENSUEL",
   "MODALITÀ ": "MODE : ",
   "MODALITÀ NORMALE": "MODE NORMAL",
-  "Mai in modalità Gaming o FPS.": "Jamais en mode Gaming ou FPS compétitif.",
   "Maiusc": "Shift",
   "Manda il report ogni": "Envoyer le rapport toutes les",
   "Mappa del disco": "Carte du disque",
@@ -5619,6 +5618,7 @@
   "Installa o ripara i \"pezzi\" di Windows che servono ai giochi (Visual C++, DirectX, .NET) dal sito ufficiale Microsoft, anche quando manca un file .dll. 2-5 minuti.": "Installe ou répare les \"pièces\" de Windows dont les jeux ont besoin (Visual C++, DirectX, .NET) depuis le site officiel de Microsoft, même quand il manque un fichier .dll. 2-5 minutes.",
   "Con Ufficio accendo la Pulizia programmata: Normale, ogni domenica alle 20, senza riavviare il PC. La cambi o la spegni in Pulisci.": "Avec Bureau, j'active le Nettoyage programmé : Normal, chaque dimanche à 20 h, sans redémarrer le PC. Vous pouvez le modifier ou le désactiver dans Nettoyer.",
   "Il PC resta com'è: piano energetico e notifiche di Windows non cambiano. Il Boost mette il PC al massimo solo mentre giochi.": "Le PC reste tel quel : le mode d'alimentation et les notifications de Windows ne changent pas. Le Boost pousse le PC au maximum seulement pendant que vous jouez.",
-  "Ho acceso la Pulizia programmata: Normale, ogni domenica alle 20, senza riavviare il PC. La cambi o la spegni in Pulisci.": "J'ai activé le Nettoyage programmé : Normal, chaque dimanche à 20 h, sans redémarrer le PC. Vous pouvez le modifier ou le désactiver dans Nettoyer."
+  "Ho acceso la Pulizia programmata: Normale, ogni domenica alle 20, senza riavviare il PC. La cambi o la spegni in Pulisci.": "J'ai activé le Nettoyage programmé : Normal, chaque dimanche à 20 h, sans redémarrer le PC. Vous pouvez le modifier ou le désactiver dans Nettoyer.",
+  "Mentre giochi (Boost acceso o gioco aperto) arrivano solo quelli di temperatura e salute dei dischi.": "Pendant que vous jouez (Boost activé ou jeu ouvert), seules les alertes de température et de santé des disques s'affichent."
  }
 }

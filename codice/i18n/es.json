@@ -3803,7 +3803,6 @@
   "MENSILE": "MENSUAL",
   "MODALITÀ ": "MODO: ",
   "MODALITÀ NORMALE": "MODO NORMAL",
-  "Mai in modalità Gaming o FPS.": "Nunca en modo Gaming o FPS competitivo.",
   "Maiusc": "Shift",
   "Manda il report ogni": "Enviar el informe cada",
   "Mappa del disco": "Mapa del disco",
@@ -5619,6 +5618,7 @@
   "Installa o ripara i \"pezzi\" di Windows che servono ai giochi (Visual C++, DirectX, .NET) dal sito ufficiale Microsoft, anche quando manca un file .dll. 2-5 minuti.": "Instala o repara las \"piezas\" de Windows que necesitan los juegos (Visual C++, DirectX, .NET) desde la web oficial de Microsoft, también cuando falta un archivo .dll. 2-5 minutos.",
   "Con Ufficio accendo la Pulizia programmata: Normale, ogni domenica alle 20, senza riavviare il PC. La cambi o la spegni in Pulisci.": "Con Oficina activo la Limpieza programada: Normal, cada domingo a las 20, sin reiniciar el PC. La cambias o la apagas en Limpiar.",
   "Il PC resta com'è: piano energetico e notifiche di Windows non cambiano. Il Boost mette il PC al massimo solo mentre giochi.": "El PC se queda como está: el plan de energía y las notificaciones de Windows no cambian. El Boost pone el PC al máximo solo mientras juegas.",
-  "Ho acceso la Pulizia programmata: Normale, ogni domenica alle 20, senza riavviare il PC. La cambi o la spegni in Pulisci.": "He activado la Limpieza programada: Normal, cada domingo a las 20, sin reiniciar el PC. La cambias o la apagas en Limpiar."
+  "Ho acceso la Pulizia programmata: Normale, ogni domenica alle 20, senza riavviare il PC. La cambi o la spegni in Pulisci.": "He activado la Limpieza programada: Normal, cada domingo a las 20, sin reiniciar el PC. La cambias o la apagas en Limpiar.",
+  "Mentre giochi (Boost acceso o gioco aperto) arrivano solo quelli di temperatura e salute dei dischi.": "Mientras juegas (Boost activado o un juego abierto) solo llegan los de temperatura y salud de los discos."
  }
 }

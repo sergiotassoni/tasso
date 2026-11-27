@@ -1421,7 +1421,7 @@ body.th-tasso:not(.office) .aa-passi li::before{background:var(--text);color:var
       </div>
       <button role="switch" aria-checked="false" class="toggle" id="tgStats" style="display:none"><span><b>📊 Aiuta a migliorare Tasso</b><span>Manda numeri anonimi: versione, Windows, marca di processore e scheda video, RAM, spazio liberato, pulsanti usati, errori. Niente nome, niente file.</span></span><span class="sw"><i></i></span></button>
       <div class="small" id="statsWhatRow" style="display:none;padding:10px 0;border-bottom:1px solid var(--line)"><a href="#" id="lnkStatsWhat">📄 Cosa manda Tasso, nel dettaglio</a></div>
-      <button role="switch" aria-checked="false" class="toggle" id="tgAlerts"><span><b>Avvisi intelligenti</b><span>Piccoli avvisi in basso a destra (disco quasi pieno, nuovo programma all'avvio). <span class="gm">Mai in modalità Gaming o FPS.</span></span></span><span class="sw"><i></i></span></button>
+      <button role="switch" aria-checked="false" class="toggle" id="tgAlerts"><span><b>Avvisi intelligenti</b><span>Piccoli avvisi in basso a destra (disco quasi pieno, nuovo programma all'avvio). <span class="gm">Mentre giochi (Boost acceso o gioco aperto) arrivano solo quelli di temperatura e salute dei dischi.</span></span></span><span class="sw"><i></i></span></button>
       <div style="padding:15px 0;border-bottom:1px solid var(--line)"><b style="font-size:15px">Modalità di Tasso</b><br><span class="small muted">Gaming: pulizia, riparazioni e strumenti di tutti i giorni, più giochi, Boost, FPS e ping. Ufficio: più semplice e tranquilla, con i problemi del lavoro (Word, Outlook, Teams) e la Modalità riunione. Cambia solo cosa vedi, non il PC.</span><div class="row wrap" style="gap:8px;margin-top:10px" id="profBtns"></div></div>
       <div style="padding:15px 0;border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:10px" id="undoBox">
         <span><b style="font-size:15px">↩️ Torna indietro</b><br><span class="small muted">Tutto quello che Tasso ha cambiato, una cosa per riga. Le modifiche <b>restano anche se spegni o riavvii il PC</b>: tornano com'erano solo se premi tu "Rimetti". Prima di cambiare qualcosa la prima volta, Tasso si salva com'era.</span></span>
@@ -2253,7 +2253,7 @@ function hwHealthAlert(){
   const bad = ((HW && HW.disks) || []).filter(d => d.health === 'Warning' || d.health === 'Unhealthy');
   if (!bad.length && (HW_LOADING || !(AN && AN.diskWarnings > 0))) return; // aspetto i nomi dei dischi se stanno arrivando
   const txt = bad.length ? _t('Salute dei dischi: ') + bad.map(d => d.name).join(', ') + (bad.some(d => d.health === 'Unhealthy') ? _t(' a rischio. Fai subito un backup dei tuoi file.') : _t(' da tenere d\'occhio. Conviene fare un backup dei tuoi file.')) : _t('Salute dei dischi: un disco dà segni di problemi. Conviene fare un backup dei tuoi file.');
-  if (alertSmart(txt, {label:_t('Vedi'), fn: () => show('hw')})) healthAlerted = true;
+  if (alertSmart(txt, {label:_t('Vedi'), fn: () => show('hw')}, true)) healthAlerted = true;
 }
 let LAST_SENS='', LAST_HW='';
 function paintLive(){
@@ -2283,17 +2283,19 @@ function paintLive(){
   if (HW && HW.disks) HW.disks.forEach(d => { const dt = Number(d.temp) || 0; if (dt) hw += hwNew ? sensorTile(_t('Temperatura ') + esc(d.name), dt + '°C', dt, diskColor(d, dt)) : sensorTile(_t('Temperatura ') + esc(d.name), dt + '°C · ' + _t('letta alle ') + hhmm(HW.at), dt, 'var(--muted)'); });
   if (CURVIEW === 'hw' && hw !== LAST_HW) { LAST_HW = hw; $('#hwLive').innerHTML = hw; }
   if (CURVIEW === 'home' && AN) paintHero();
-  if (alertOn('disk') && !diskAlerted && LIVE.diskTotal && LIVE.diskFree / LIVE.diskTotal < 0.1) { diskAlerted = true; alertSmart(_t('Il disco è quasi pieno: restano ') + fmtBytes(LIVE.diskFree) + '.', {label:_t('Pulisci ora'), fn: () => confirmLevel(3)}); }
+  if (alertOn('disk') && !diskAlerted && LIVE.diskTotal && LIVE.diskFree / LIVE.diskTotal < 0.1) { if (alertSmart(_t('Il disco è quasi pieno: restano ') + fmtBytes(LIVE.diskFree) + '.', {label:_t('Pulisci ora'), fn: () => confirmLevel(3)})) diskAlerted = true; }
   // Dischi: solo con una lettura di meno di 5 minuti fa, un avviso per disco per tutta la sessione.
-  if (alertOn('temp') && hwNew && HW.disks) HW.disks.forEach(d => { const dt = Number(d.temp) || 0, k = d.name + '|' + (d.size || ''); if (dt && dt >= diskHotLimit(d) && !DISK_HOT_SENT[k] && alertSmart(_t('Temperatura alta: il disco ') + d.name + _t(' è a ') + Math.round(dt) + '°C' + _t('. Chiudi qualche programma pesante o controlla le ventole.'))) DISK_HOT_SENT[k] = 1; });
+  if (alertOn('temp') && hwNew && HW.disks) HW.disks.forEach(d => { const dt = Number(d.temp) || 0, k = d.name + '|' + (d.size || ''); if (dt && dt >= diskHotLimit(d) && !DISK_HOT_SENT[k] && alertSmart(_t('Temperatura alta: il disco ') + d.name + _t(' è a ') + Math.round(dt) + '°C' + _t('. Chiudi qualche programma pesante o controlla le ventole.'), null, true)) DISK_HOT_SENT[k] = 1; });
   const hotGpu = (g && g.temp != null) ? g.temp : 0;
-  if (alertOn('temp') && !tempAlerted && hotGpu >= 88 && alertSmart(_t('Temperatura alta: ') + _t('scheda video a ') + Math.round(hotGpu) + '°C' + _t('. Chiudi qualche programma pesante o controlla le ventole.'))) { tempAlerted = true; setTimeout(() => { tempAlerted = false; }, 900000); }
+  if (alertOn('temp') && !tempAlerted && hotGpu >= 88 && alertSmart(_t('Temperatura alta: ') + _t('scheda video a ') + Math.round(hotGpu) + '°C' + _t('. Chiudi qualche programma pesante o controlla le ventole.'), null, true)) { tempAlerted = true; setTimeout(() => { tempAlerted = false; }, 900000); }
   hwHealthAlert();
-  if (alertOn('ram') && !ramAlerted && ramPct >= 92) { ramAlerted = true; (isOffice() ? alertSmart(_t('Memoria quasi piena (') + Math.round(ramPct) + _t('%). Chiudi i programmi che non usi.')) : alertSmart(_t('Memoria quasi piena (') + Math.round(ramPct) + _t('%). Chiudi i programmi che non usi, o usa il Boost prima di giocare.'), {label:'Boost', fn: () => show('games')})); setTimeout(() => { ramAlerted = false; }, 120000); }
+  if (alertOn('ram') && !ramAlerted && ramPct >= 92) { if (isOffice() ? alertSmart(_t('Memoria quasi piena (') + Math.round(ramPct) + _t('%). Chiudi i programmi che non usi.')) : alertSmart(_t('Memoria quasi piena (') + Math.round(ramPct) + _t('%). Chiudi i programmi che non usi, o usa il Boost prima di giocare.'), {label:'Boost', fn: () => show('games')})) { ramAlerted = true; setTimeout(() => { ramAlerted = false; }, 120000); } }
 }
-function alertSmart(text, action){
+// sempre = true: temperatura e salute dei dischi passano anche mentre giochi.
+// Gli altri tacciono solo mentre giochi (Boost acceso o gioco aperto), non per la modalità salvata.
+function alertSmart(text, action, sempre){
   if (S.paused || S.smartAlerts === false) return false;
-  if (S.mode === 'gaming' || S.mode === 'fps') return false;
+  if (!sempre && (BST.on || BST.game)) return false;
   toast(text, 'var(--a4)', action);
   return true;
 }

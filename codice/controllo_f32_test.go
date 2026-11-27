@@ -39,3 +39,35 @@ func TestPrimoAvvioMaiGaming(t *testing.T) {
 		t.Error("profiloPC non deve mettere Gaming o FPS")
 	}
 }
+
+// A2 + X2: gli avvisi intelligenti tacciono solo mentre si gioca (Boost acceso o gioco aperto), non per
+// la modalità salvata; temperatura e salute dei dischi passano sempre; "già avvisato" solo se l'avviso è
+// partito davvero (prima l'avviso del disco si perdeva per tutta la sessione).
+func TestAvvisiIntelligenti(t *testing.T) {
+	b, err := os.ReadFile("ui/index.html")
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := string(b)
+	f := regexp.MustCompile(`(?s)function alertSmart\(text, action, sempre\)\{.*?\n\}`).FindString(s)
+	if f == "" {
+		t.Fatal("alertSmart non trovata")
+	}
+	if strings.Contains(f, "S.mode") || !strings.Contains(f, "BST.on || BST.game") {
+		t.Error("alertSmart deve guardare il Boost, non la modalità salvata")
+	}
+	for _, q := range []string{`diskAlerted = true; alertSmart`, `ramAlerted = true; (isOffice() ? alertSmart`} {
+		if strings.Contains(s, q) {
+			t.Errorf("segno messo prima dell'avviso: %s", q)
+		}
+	}
+	if !strings.Contains(s, `{label:_t('Pulisci ora'), fn: () => confirmLevel(3)})) diskAlerted = true;`) {
+		t.Error("diskAlerted va messo solo se alertSmart risponde true")
+	}
+	if n := strings.Count(s, ", null, true)) "); n < 2 {
+		t.Errorf("le temperature devono passare sempre (sempre = true): %d", n)
+	}
+	if !strings.Contains(s, `show('hw')}, true)) healthAlerted = true;`) {
+		t.Error("la salute dei dischi deve passare sempre")
+	}
+}
