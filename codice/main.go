@@ -187,8 +187,8 @@ func main() {
 	if scheduledRun.Load() && autoLevel == 0 {
 		return // attività pianificata con Tasso spento: non apro neanche la finestra
 	}
-	if scheduledRun.Load() && autoLevel > 0 && runningGame() != "" {
-		// stai giocando: la pulizia programmata parte quando chiudi il gioco
+	if scheduledRun.Load() && autoLevel > 0 && occupatoPerPulizia() {
+		// stai giocando o sei in chiamata: la pulizia programmata parte quando hai finito
 		lvl := autoLevel
 		autoLevel = 0
 		go func() {

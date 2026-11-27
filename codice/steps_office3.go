@@ -32,6 +32,11 @@ function Get-CapUse([string]$what) {
   $out = @()
   $b = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\' + $what
   $keys = @(Get-ChildItem -LiteralPath $b -ErrorAction SilentlyContinue | Where-Object { $_.PSChildName -ne 'NonPackaged' }) + @(Get-ChildItem -LiteralPath ($b + '\NonPackaged') -ErrorAction SilentlyContinue)
+  # Windows lascia voci "mai finite" quando un programma si chiude di colpo: come micInUso in Go,
+  # "adesso" vale solo per un uso iniziato dopo l'accensione del PC e, per i programmi normali,
+  # con il programma ancora aperto.
+  $boot = [long]0; try { $boot = (Get-CimInstance Win32_OperatingSystem -ErrorAction Stop).LastBootUpTime.ToFileTime() } catch {}
+  $open = $null
   foreach ($k in $keys) {
     $p = Get-ItemProperty -LiteralPath $k.PSPath -ErrorAction SilentlyContinue
     if (-not $p -or -not $p.LastUsedTimeStart) { continue }
@@ -41,7 +46,11 @@ function Get-CapUse([string]$what) {
     $pretty = $nm
     if ($full -and (Test-Path -LiteralPath $full)) { try { $d = (Get-Item -LiteralPath $full).VersionInfo.FileDescription; if ($d) { $pretty = $d.Trim() } } catch {} }
     elseif (-not $full -and $nm -match '\.') { $pretty = ($nm -split '\.')[-1] }
-    $now = ([long]$p.LastUsedTimeStop -eq 0)
+    $now = ([long]$p.LastUsedTimeStop -eq 0) -and ($start -ge $boot)
+    if ($now -and $full) {
+      if ($null -eq $open) { $open = @(Get-Process -ErrorAction SilentlyContinue | ForEach-Object { try { [string]$_.Path } catch {} } | Where-Object { $_ }) }
+      $now = [bool](@($open | Where-Object { $_ -ieq $full }).Count)
+    }
     try { $when = [DateTime]::FromFileTime($start) } catch { continue }
     $out += [pscustomobject]@{ Name = $pretty; When = $when; Now = $now }
   }
@@ -96,7 +105,7 @@ function Fine-Riunione([string]$perche) {
 `
 
 var officeSteps3 = []Step{
-	{ID: "of_new_call", Name: "Pronto per la videochiamata?", Desc: "Prova in pochi secondi webcam, microfono, casse o cuffie e internet. Ti dice cosa va e cosa no e, se serve, ti propone la riparazione con un pulsante. Controlla e spiega.", Level: 0, Minutes: 0.2, Timeout: 90 * time.Second, Script: ofs3(`
+	{ID: "of_new_call", Name: "Tutto pronto per la videochiamata?", Desc: "Prova in pochi secondi webcam, microfono, casse o cuffie e internet. Ti dice cosa va e cosa no e, se serve, ti propone la riparazione con un pulsante. Controlla e spiega.", Level: 0, Minutes: 0.2, Timeout: 90 * time.Second, Script: ofs3(`
 Say 'Provo webcam, microfono, casse e internet...'
 $fix = @(); $bad = 0
 # Internet: Teams/Zoom/Meet usano la porta 443; il ping misura quanto è pronta la linea.
@@ -233,7 +242,9 @@ $exe = G 'SCRNSAVE.EXE'
 if (-not $exe -or -not (Test-Path -LiteralPath $exe)) { Set-ItemProperty -LiteralPath $k -Name 'SCRNSAVE.EXE' -Value (Join-Path $TassoSys32 'scrnsave.scr') }
 Apply 300 1 1
 Set-ItemProperty -LiteralPath $k -Name 'ScreenSaveTimeOut' -Value '300'; Set-ItemProperty -LiteralPath $k -Name 'ScreenSaveActive' -Value '1'; Set-ItemProperty -LiteralPath $k -Name 'ScreenSaverIsSecure' -Value '1'
-Say 'Blocco automatico ACCESO: dopo 5 minuti senza toccare niente lo schermo diventa nero e per rientrare serve il PIN o la password (se il tuo account ne ha uno). Nessun documento si chiude.'
+# lo schermo nero è scrnsave.scr: se avevi già uno screensaver tuo, parte quello
+if ([string](G 'SCRNSAVE.EXE') -match '(?i)(^|\\)scrnsave\.scr$') { Say 'Blocco automatico ACCESO: dopo 5 minuti senza toccare niente lo schermo diventa nero e per rientrare serve il PIN o la password (se il tuo account ne ha uno). Nessun documento si chiude.' }
+else { Say 'Blocco automatico ACCESO: dopo 5 minuti senza toccare niente parte il tuo screensaver e per rientrare serve il PIN o la password (se il tuo account ne ha uno). Nessun documento si chiude.' }
 Say 'Quando ti alzi puoi bloccare subito con Windows + L. Se il telefono è abbinato via Bluetooth, in Impostazioni > Account > Opzioni di accesso c''è anche "Blocco dinamico": il PC si blocca quando ti allontani col telefono.'
 `)},
 }

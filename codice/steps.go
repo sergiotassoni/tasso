@@ -1545,6 +1545,8 @@ function Save-Prev {
   try {
     New-Item -Path $PrevKey -Force | Out-Null
     $g = [regex]::Match((@(powercfg /getactivescheme 2>$null) -join ' '), '[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}').Value
+    # Modalità riunione accesa: il piano di adesso l'ha messo lei, salvo quello di prima della riunione.
+    if ($TassoInMeeting -and $TassoMeetPlan) { $g = [string]$TassoMeetPlan }
     if ($g) { New-ItemProperty -Path $PrevKey -Name 'Plan' -Value $g -PropertyType String -Force | Out-Null }
     $v = Get-PowerIdx 'SUB_VIDEO' 'VIDEOIDLE'; if ($v) { New-ItemProperty -Path $PrevKey -Name 'Monitor' -Value $v[0] -PropertyType DWord -Force | Out-Null }
     $v = Get-PowerIdx 'SUB_SLEEP' 'STANDBYIDLE'; if ($v) { New-ItemProperty -Path $PrevKey -Name 'Standby' -Value $v[0] -PropertyType DWord -Force | Out-Null }
@@ -1564,6 +1566,8 @@ function Save-Prev {
     }
     $t = Get-ItemProperty -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\PushNotifications' -Name 'ToastEnabled' -ErrorAction SilentlyContinue
     $tv = 1; if ($t -and $null -ne $t.ToastEnabled) { $tv = [int]$t.ToastEnabled }
+    # Modalità riunione accesa: le notifiche spente sono sue, salvo come erano prima della riunione.
+    if ($TassoInMeeting) { $tv = [int]$TassoMeetToast }
     New-ItemProperty -Path $PrevKey -Name 'Toasts' -Value $tv -PropertyType DWord -Force | Out-Null
     # Modalità Gioco di Windows: c'è chi la spegne apposta (scatti con OBS o con lo streaming).
     $gm = Get-ItemProperty -Path 'HKCU:\Software\Microsoft\GameBar' -Name 'AutoGameModeEnabled' -ErrorAction SilentlyContinue
@@ -1593,7 +1597,7 @@ function Restore-Prev {
     # Niente di salvato: rimetto solo il minimo, senza toccare il mouse e i tempi che hai scelto tu.
     [void](Use-Plan $BAL)
     Set-CpuMax 100
-    Set-Toasts 1
+    if (-not $TassoInMeeting) { Set-Toasts 1 }
     $v = Get-PowerIdx 'SUB_VIDEO' 'VIDEOIDLE'; if ($v -and $v[0] -eq 0) { powercfg /change monitor-timeout-ac 10 | Out-Null }
     $v = Get-PowerIdx 'SUB_SLEEP' 'STANDBYIDLE'; if ($v -and $v[0] -eq 0) { powercfg /change standby-timeout-ac 30 | Out-Null }
     Remove-Item -Path $PrevKey -Recurse -Force -ErrorAction SilentlyContinue
@@ -1609,7 +1613,18 @@ function Restore-Prev {
   if ($null -ne $p.Standby) { powercfg /setacvalueindex SCHEME_CURRENT SUB_SLEEP STANDBYIDLE $p.Standby 2>$null | Out-Null }
   powercfg /setactive SCHEME_CURRENT 2>$null | Out-Null
   if ($p.Overlay -and $p.Overlay -match '^[0-9a-fA-F-]{36}$') { powercfg /overlaysetactive $p.Overlay 2>$null | Out-Null }
-  if ($null -ne $p.Toasts) { Set-Toasts ([int]$p.Toasts) }
+  # con la Modalità riunione accesa le notifiche restano spente: a fine riunione le rimette lei.
+  # Le tue (e il tuo piano) le scrivo nel suo file, così a fine riunione tornano quelle tue e non
+  # quelle che c'erano quando l'hai accesa (per esempio spente da Gaming).
+  if (-not $TassoInMeeting) { if ($null -ne $p.Toasts) { Set-Toasts ([int]$p.Toasts) } }
+  elseif ($TassoMeetFile -and (Test-Path -LiteralPath $TassoMeetFile)) {
+    try {
+      $ms = Get-Content -LiteralPath $TassoMeetFile -Raw | ConvertFrom-Json
+      if ($null -ne $p.Toasts) { $ms.toast = [string][int]$p.Toasts }
+      if ($p.Plan) { $ms.plan = [string]$p.Plan }
+      $ms | ConvertTo-Json | Set-Content -LiteralPath $TassoMeetFile -Encoding UTF8
+    } catch {}
+  }
   if ([string]$p.GameMode -eq 'none') { Remove-ItemProperty -Path 'HKCU:\Software\Microsoft\GameBar' -Name 'AutoGameModeEnabled' -ErrorAction SilentlyContinue }
   elseif ([string]$p.GameMode -match '^[01]$') { SetDw 'HKCU:\Software\Microsoft\GameBar' 'AutoGameModeEnabled' ([int]$p.GameMode) }
   if ($p.Mouse) {
@@ -1628,7 +1643,13 @@ function Restore-Prev {
 var modeScripts = map[string]string{
 	"normale": modeBase + `
 powercfg /overlaysetactive 00000000-0000-0000-0000-000000000000 2>$null | Out-Null
-if (Restore-Prev) { Say 'Modalità Normale: ho rimesso piano energetico, mouse, notifiche e tempi dello schermo come li avevi tu.' }
+$rp = Restore-Prev
+if ($TassoInMeeting) {
+  if ($rp) { Say 'Modalità Normale: ho rimesso piano energetico, mouse e tempi dello schermo come li avevi tu.' }
+  else { Say 'Modalità Normale: equilibrio tra velocità e consumi.' }
+  Say 'Notifiche: restano spente finché è accesa la Modalità riunione. Quando la spegni tornano come prima.'
+}
+elseif ($rp) { Say 'Modalità Normale: ho rimesso piano energetico, mouse, notifiche e tempi dello schermo come li avevi tu.' }
 else { Say 'Modalità Normale: equilibrio tra velocità e consumi, notifiche attive.' }
 `,
 	"gaming": modeBase + `
@@ -1667,7 +1688,8 @@ Save-Prev
 Undo-FpsMouse
 if (-not (Use-Plan $SAVER)) { [void](Use-Plan $BAL); powercfg /overlaysetactive 961cc777-2547-4f9d-8174-7d86181b8a7a 2>$null | Out-Null }
 Set-CpuMax 70
-Set-Toasts 1
 Say 'Modalità Silenziosa: processore limitato al 70%, meno calore e ventole più tranquille.'
+if ($TassoInMeeting) { Say 'Notifiche: restano spente finché è accesa la Modalità riunione. Quando la spegni tornano come prima.' }
+else { Set-Toasts 1 }
 `,
 }

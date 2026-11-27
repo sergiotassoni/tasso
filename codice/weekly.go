@@ -148,8 +148,10 @@ var aspettaGioco atomic.Bool
 // avviaQuandoNessunGioco: la pulizia programmata non parte mentre giochi (driver, DISM e
 // deframmentazione rallenterebbero o fermerebbero il gioco): aspetto che il gioco sia chiuso,
 // al massimo 4 ore, poi la salto fino alla prossima volta.
+// Lo stesso durante una chiamata (Modalità riunione accesa o microfono in uso): dal livello 3 gli
+// aggiornamenti di Windows si installano lo stesso, anche con la pausa della riunione.
 func avviaQuandoNessunGioco(lvl int) {
-	if runningGame() == "" {
+	if !occupatoPerPulizia() {
 		go avviaPuliziaAuto(lvl)
 		return
 	}
@@ -167,9 +169,9 @@ func avviaQuandoNessunGioco(lvl int) {
 					diventaNormale() // l'hai aperto tu mentre aspettavo: è un Tasso normale (con la traduzione)
 				}
 			}
-			if runningGame() == "" {
-				time.Sleep(time.Minute) // il gioco si è appena chiuso: lascio respirare il PC
-				if runningGame() != "" {
+			if !occupatoPerPulizia() {
+				time.Sleep(time.Minute) // il gioco (o la chiamata) è appena finito: lascio respirare il PC
+				if occupatoPerPulizia() {
 					continue // hai aperto un altro gioco (o il launcher l'ha riaperto): aspetto ancora
 				}
 				if isRunning() {
@@ -253,4 +255,16 @@ func maybeAutoExit() {
 		time.Sleep(time.Minute)
 	}
 	diventaNormale()
+}
+
+// occupatoPerPulizia: c'è un gioco aperto o una chiamata in corso (Modalità riunione accesa o un
+// programma che usa il microfono): la pulizia programmata aspetta.
+func occupatoPerPulizia() bool {
+	if runningGame() != "" {
+		return true
+	}
+	if _, err := os.Stat(fileUfficio("riunione")); err == nil {
+		return true
+	}
+	return micInUso()
 }
