@@ -1210,7 +1210,8 @@
   "non riesco a preparare la firma dell'elenco dei file (cartella Tasso in Programmi)": "I can't prepare the signature for the list of files (Tasso folder in Program Files)",
   "L'elenco dei file aggiunti a questo gioco non è valido: non tocco niente. Per rimettere il gioco com'era verifica i file del gioco dal suo launcher.": "The list of files added to this game isn't valid: I won't touch anything. To put the game back as it was, verify the game files from its launcher.",
   "non tolgo ": "I won't remove ",
-  ": la cartella passa da un collegamento": ": the folder goes through a link"
+  ": la cartella passa da un collegamento": ": the folder goes through a link",
+  "non riesco a proteggere la chiave": "I can't protect the key"
  },
  "ps": {
   " di ": " of ",

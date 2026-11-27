@@ -139,6 +139,10 @@ try { $s = New-Object -ComObject Schedule.Service; $s.Connect(); $s.GetFolder('\
 	return ""
 }
 
+// copieNonSalvate: cartelle con copie di sicurezza che non sono riuscito a spostare in Documenti:
+// la cartella di Tasso che le contiene non si cancella (meglio un resto che perdere i backup).
+var copieNonSalvate []string
+
 // salvaCopieDiSicurezza: i backup del registro e i plugin che l'utente aveva messo in un gioco
 // tradotto finiscono in Documenti\Tasso - copie di sicurezza (non si cancellano mai).
 func salvaCopieDiSicurezza() {
@@ -150,10 +154,17 @@ func salvaCopieDiSicurezza() {
 	if p, e := windows.KnownFolderPath(windows.FOLDERID_Documents, 0); e == nil && p != "" {
 		dest = filepath.Join(p, "Tasso - copie di sicurezza")
 	}
+	copieNonSalvate = nil
 	sposta := func(da, a string) {
 		if voci, _ := os.ReadDir(da); len(voci) == 0 {
 			return
 		}
+		salvato := false
+		defer func() {
+			if !salvato {
+				copieNonSalvate = append(copieNonSalvate, da) // non la cancello: resta dov'è
+			}
+		}()
 		_ = os.MkdirAll(filepath.Dir(a), 0o755)
 		// Documenti lo può preparare un altro programma: niente collegamenti di cartella lungo la
 		// strada (Tasso scriverebbe da amministratore dove punta il collegamento) e niente cartella
@@ -182,8 +193,8 @@ func salvaCopieDiSicurezza() {
 			}
 			a = strings.TrimSuffix(a, fmt.Sprintf(" (%d)", i-1)) + fmt.Sprintf(" (%d)", i)
 		}
-		if os.Rename(da, a) != nil {
-			_ = copiaCartellaSemplice(da, a)
+		if os.Rename(da, a) == nil || copiaCartellaSemplice(da, a) == nil {
+			salvato = true
 		}
 	}
 	sposta(filepath.Join(appDir, "backup"), filepath.Join(dest, "backup del registro"))
@@ -288,6 +299,15 @@ func scriptCancellazione() (string, error) {
 	tl, fd, pg := filepath.Join(sys, "tasklist.exe"), filepath.Join(sys, "find.exe"), filepath.Join(sys, "PING.EXE")
 	fmt.Fprintf(&cmd, "for /L %%%%i in (1,1,120) do (\"%s\" /FI \"PID eq %d\" | \"%s\" \"%d\" >nul || goto via & \"%s\" -n 2 127.0.0.1 >nul)\r\n(goto) 2>nul & del /f /q \"%%~f0\"\r\n:via\r\n", tl, os.Getpid(), fd, os.Getpid(), pg)
 	for _, d := range cartelleTasso() {
+		tieni := false
+		for _, c := range copieNonSalvate {
+			if r, e := filepath.Rel(d, c); e == nil && r != ".." && !strings.HasPrefix(r, ".."+string(filepath.Separator)) {
+				tieni = true
+			}
+		}
+		if tieni {
+			continue // dentro ci sono copie di sicurezza non salvate in Documenti
+		}
 		if strings.ContainsAny(d, "\"%&|<>^\r\n") {
 			return "", fmt.Errorf("percorso strano: %s", d)
 		}

@@ -571,6 +571,11 @@ func collega(w webview2.WebView) {
 	_ = w.Bind("ttVerifica", func(cartella string) string { return VerificaDopoAvvio(cartella) })
 	_ = w.Bind("ttFermaTraduzione", func(cartella string) string {
 		if e := fermaModGioco(cartella); e != "" {
+			if e == msgElencoNonValido {
+				// non lo posso togliere io, ma non lo considero più tradotto (il messaggio dice cosa fare)
+				impostaGiocoTradotto(cartella, false)
+				emetti("aggiorna", stato())
+			}
 			return e
 		}
 		impostaGiocoTradotto(cartella, false)

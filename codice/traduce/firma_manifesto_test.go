@@ -46,3 +46,21 @@ func TestManifestoFalso(t *testing.T) {
 		t.Fatal("ha cancellato un file seguendo un elenco finto")
 	}
 }
+
+// Un elenco finto messo prima che Tasso abbia mai firmato niente (nessuna chiave, utente nuovo)
+// non diventa mai valido: niente "firma degli elenchi vecchi".
+func TestManifestoFintoPrimaDellaChiave(t *testing.T) {
+	vecchia, vecchiaMem := CartellaSicura, chiaveMem
+	CartellaSicura, chiaveMem = t.TempDir(), nil
+	defer func() { CartellaSicura, chiaveMem = vecchia, vecchiaMem }()
+	app, gioco := t.TempDir(), t.TempDir()
+	d := cartellaCopie(app, "finto")
+	_ = os.MkdirAll(d, 0o755)
+	b, _ := json.Marshal(ManifestoMod{Gioco: "Finto", Cartella: gioco, Aggiunti: []string{"x.dll"}})
+	_ = os.WriteFile(filepath.Join(d, "manifesto.json"), b, 0o644)
+	for i := 0; i < 3; i++ {
+		if _, ok := leggiManifesto(app, "finto"); ok {
+			t.Fatal("elenco finto accettato")
+		}
+	}
+}

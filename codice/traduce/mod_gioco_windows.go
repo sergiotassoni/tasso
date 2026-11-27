@@ -375,6 +375,8 @@ func applicaModGioco(nome, cartella string, rischioOK bool) {
 	emetti("aggiorna", stato())
 }
 
+const msgElencoNonValido = "L'elenco dei file aggiunti a questo gioco non è valido: non tocco niente. Per rimettere il gioco com'era verifica i file del gioco dal suo launcher."
+
 // fermaModGioco: toglie tutto e rimette il gioco com'era.
 func fermaModGioco(cartella string) string {
 	if !muInstalla.TryLock() {
@@ -387,7 +389,7 @@ func fermaModGioco(cartella string) string {
 	if !ok {
 		if _, err := os.Stat(filepath.Join(cartellaCopie(dirApp, chiaveGioco(cartella)), "manifesto.json")); err == nil {
 			// l'elenco c'è ma non è firmato da Tasso (o è rovinato): non dico "tolta" se non lo è
-			return "L'elenco dei file aggiunti a questo gioco non è valido: non tocco niente. Per rimettere il gioco com'era verifica i file del gioco dal suo launcher."
+			return msgElencoNonValido
 		}
 		return ""
 	}

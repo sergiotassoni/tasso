@@ -449,12 +449,16 @@ func TogliModGioco(dirApp, chiave string) error {
 		}
 		// l'originale messo da parte deve essere proprio quello (impronta firmata), e la strada
 		// fino al file nel gioco non deve passare da collegamenti
-		orig := filepath.Join(copie, "originali", s)
-		if m.Impronte[s] == "" || improntaFile(orig) != m.Impronte[s] || !senzaCollegamenti(m.Cartella, s) {
+		// leggo l'originale una volta sola: controllo l'impronta e scrivo proprio quei byte (se lo
+		// riaprissi, un altro programma potrebbe scambiarlo tra il controllo e la copia)
+		dati, err := os.ReadFile(filepath.Join(copie, "originali", s))
+		if err != nil || m.Impronte[s] == "" || improntaByte(dati) != m.Impronte[s] || !senzaCollegamenti(m.Cartella, s) {
 			errori = append(errori, s)
 			continue
 		}
-		if err := copiaFile(filepath.Join(copie, "originali", s), filepath.Join(m.Cartella, s)); err != nil {
+		dst := filepath.Join(m.Cartella, s)
+		_ = os.MkdirAll(filepath.Dir(dst), 0o755)
+		if err := os.WriteFile(dst, dati, 0o644); err != nil {
 			errori = append(errori, s)
 		}
 	}
