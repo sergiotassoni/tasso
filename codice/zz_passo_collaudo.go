@@ -8,6 +8,7 @@ package main
 // %LOCALAPPDATA%\Tasso\logs\passo-<id>.txt, senza aprire la finestra.
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -144,7 +145,7 @@ foreach ($k in 'HKCU:\Software\Tasso','HKLM:\SOFTWARE\Tasso') { Say ($k + ': ' +
 			}
 			found = true
 			t0 := time.Now()
-			r := runPS(s.Script, s.Timeout, func(m string) { fmt.Fprintln(f, time.Now().Format("15:04:05")+"  "+m) })
+			r := eseguiPasso(context.Background(), s, func(m string) { fmt.Fprintln(f, time.Now().Format("15:04:05")+"  "+m) }, nil, nil)
 			fmt.Fprintf(f, "-- fine in %.1f s, errore: %v\n", time.Since(t0).Seconds(), r.Err)
 		}
 		if !found {

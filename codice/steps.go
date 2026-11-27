@@ -12,6 +12,8 @@ type Step struct {
 	Minutes float64
 	Timeout time.Duration
 	Script  string
+	// Go: il passaggio è fatto in Go invece che con uno script (Script vuoto). log: i messaggi.
+	Go func(log func(string))
 }
 
 func stepList() []map[string]interface{} {
@@ -1333,33 +1335,10 @@ Start-Process -FilePath "$TassoWin\explorer.exe" -ArgumentList 'https://support.
 Say 'Ho aperto la guida ufficiale Microsoft: spiega passo passo come recuperare i file.'
 Say 'Consiglio: non salvare nuovi file sul disco finché non hai recuperato quelli che ti servono.'
 `},
-	{ID: "privacy", Name: "Privacy: stop pubblicità e tracciamento", Desc: "Spegne pubblicità, suggerimenti e raccolta dati di Windows.", Level: 0, Minutes: 0.2, Timeout: 3 * time.Minute, Script: `
-function SetDw([string]$path, [string]$name, [int]$val) { if (-not (Test-Path $path)) { New-Item -Path $path -Force | Out-Null }; New-ItemProperty -Path $path -Name $name -Value $val -PropertyType DWord -Force | Out-Null }
-SetDw 'HKCU:\Software\Microsoft\Windows\CurrentVersion\AdvertisingInfo' 'Enabled' 0
-$cdm = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager'
-foreach ($n in @('SilentInstalledAppsEnabled','SystemPaneSuggestionsEnabled','SoftLandingEnabled','SubscribedContent-338388Enabled','SubscribedContent-338389Enabled','SubscribedContent-338393Enabled','SubscribedContent-353694Enabled','SubscribedContent-353696Enabled','SubscribedContent-310093Enabled')) { SetDw $cdm $n 0 }
-SetDw 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Privacy' 'TailoredExperiencesWithDiagnosticDataEnabled' 0
-SetDw 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced' 'ShowSyncProviderNotifications' 0
-SetDw 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced' 'Start_IrisRecommendations' 0
-SetDw 'HKCU:\Software\Policies\Microsoft\Windows\Explorer' 'DisableSearchBoxSuggestions' 1
-SetDw 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\DataCollection' 'AllowTelemetry' 1
-SetDw 'HKCU:\Software\Microsoft\Input\TIPC' 'Enabled' 0
-Say 'Pubblicità nel menu Start, suggerimenti, ID pubblicitario e raccolta dati extra: spenti.'
-Say 'Alcune modifiche si vedono dopo il riavvio. Puoi annullarle con "Privacy: ripristina".'
-`},
-	{ID: "privacy_undo", Name: "Privacy: ripristina", Desc: "Rimette le impostazioni di privacy com'erano di fabbrica.", Level: 0, Minutes: 0.2, Timeout: 3 * time.Minute, Script: `
-function SetDw([string]$path, [string]$name, [int]$val) { if (-not (Test-Path $path)) { New-Item -Path $path -Force | Out-Null }; New-ItemProperty -Path $path -Name $name -Value $val -PropertyType DWord -Force | Out-Null }
-SetDw 'HKCU:\Software\Microsoft\Windows\CurrentVersion\AdvertisingInfo' 'Enabled' 1
-$cdm = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager'
-foreach ($n in @('SilentInstalledAppsEnabled','SystemPaneSuggestionsEnabled','SoftLandingEnabled','SubscribedContent-338388Enabled','SubscribedContent-338389Enabled','SubscribedContent-338393Enabled','SubscribedContent-353694Enabled','SubscribedContent-353696Enabled','SubscribedContent-310093Enabled')) { SetDw $cdm $n 1 }
-SetDw 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Privacy' 'TailoredExperiencesWithDiagnosticDataEnabled' 1
-Remove-ItemProperty -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced' -Name 'ShowSyncProviderNotifications' -ErrorAction SilentlyContinue
-Remove-ItemProperty -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced' -Name 'Start_IrisRecommendations' -ErrorAction SilentlyContinue
-Remove-ItemProperty -Path 'HKCU:\Software\Policies\Microsoft\Windows\Explorer' -Name 'DisableSearchBoxSuggestions' -ErrorAction SilentlyContinue
-Remove-ItemProperty -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\DataCollection' -Name 'AllowTelemetry' -ErrorAction SilentlyContinue
-Remove-ItemProperty -Path 'HKCU:\Software\Microsoft\Input\TIPC' -Name 'Enabled' -ErrorAction SilentlyContinue
-Say 'Impostazioni di privacy rimesse come di fabbrica.'
-`},
+	// I due passi Privacy girano in Go con il motore di Ottimizza tutto (privacy_win.go): com'era
+	// salvato per ogni singolo valore, "ripristina" rimette i valori di prima.
+	{ID: "privacy", Name: "Privacy: stop pubblicità e tracciamento", Desc: "Spegne pubblicità, suggerimenti e raccolta dati di Windows.", Level: 0, Minutes: 0.2, Timeout: 3 * time.Minute},
+	{ID: "privacy_undo", Name: "Privacy: ripristina", Desc: "Rimette le impostazioni di privacy com'erano prima di Tasso.", Level: 0, Minutes: 0.2, Timeout: 3 * time.Minute},
 }
 
 const analyzeScript = `

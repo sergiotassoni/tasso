@@ -610,14 +610,14 @@ func startSteps(ids []string, level int, fine string, winupdate bool) string {
 			}
 			idx := i
 			lastProg := -1.0
-			r := runPSInfo(runCtx(), s.Script, s.Timeout, func(m string) { logLine("   " + m) }, func(f float64) {
+			r := eseguiPasso(runCtx(), s, func(m string) { logLine("   " + m) }, func(f float64) {
 				if f-lastProg >= 0.01 || f >= 1 { // al massimo 100 aggiornamenti per passaggio
 					lastProg = f
 					emit("onStepProgress", map[string]interface{}{"index": idx, "frac": f})
 				}
 			}, func(t string) {
 				emit("onStepInfo", map[string]interface{}{"index": idx, "text": t})
-			}, true)
+			})
 			if r.TooSlow {
 				slow++
 			}
@@ -799,6 +799,10 @@ func setMode(id string) bool {
 		emit("onModeDone", map[string]interface{}{"id": id, "ok": false, "msgs": []string{"Non riesco a salvare com'era Windows, quindi per sicurezza non cambio niente. Riprova tra poco."}})
 		return false
 	}
+	// Ottimizza tutto: se i fumetti delle notifiche sono in pausa per una partita, li rimetto com'erano
+	// prima che Save-Prev li salvi spenti come "tuoi" (tornando a Normale resterebbero spenti per sempre).
+	// Con una modalità per i giochi accesa la pausa non riparte: le notifiche le gestisce lei.
+	ottNotificheFine()
 	// Le impostazioni "tue" si salvano solo se adesso il PC è in Normale (o com'era):
 	// se è già in Gaming/FPS/Film salverei quelle messe da Tasso.
 	setMu.Lock()

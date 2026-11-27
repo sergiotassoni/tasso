@@ -148,6 +148,8 @@ type Settings struct {
 	StatsErr    int    `json:"statsErr,omitempty"`
 	// Rileva i problemi (3.1): problemi che la persona ha scelto di ignorare (id del passaggio Risolvi).
 	DetIgnored []string `json:"detIgnored,omitempty"`
+	// Ottimizza tutto (3.2): notifiche in pausa durante il gioco, con Tasso acceso (ottimizza_win.go).
+	OttNotifGioco bool `json:"ottNotifGioco,omitempty"`
 }
 
 // setPaused spegne o riaccende Tasso: da spento non parte con Windows, non fa pulizie
