@@ -5534,14 +5534,12 @@
   "Ottima: va bene per film in 4K, videochiamate e download veloci.": "Excellent: fine for 4K movies, video calls and fast downloads.",
   "Buona: film in HD e videochiamate senza problemi.": "Good: HD movies and video calls with no problems.",
   "in Risolvi un problema.": "in Fix a problem.",
-  " problemi</b> che capitano a tutti: Wi-Fi, file e zip, schermi, tastiera, batteria, ora sbagliata, stampante di casa. ": " problems</b> that happen to everyone: Wi-Fi, files and zip, screens, keyboard, battery, wrong time, home printer. ",
   "<b>Cache delle app</b>, per esempio quella di Teams": "<b>App cache</b>, for example the Teams one",
   "<b>Il PC si scalda</b>, <b>un programma non parte</b> (manca un file .dll), <b>il PC si blocca con file grandi</b>, <b>l'audio gracchia nelle chiamate</b>, <b>lo schermo diventa nero</b>": "<b>The PC gets hot</b>, <b>a program won't start</b> (a .dll file is missing), <b>the PC freezes with big files</b>, <b>the sound crackles in calls</b>, <b>the screen goes black</b>",
   "<b>Modalità riunione</b> sulla Home, accanto a PULISCI: niente notifiche, PC al massimo": "<b>Meeting mode</b> on the Home page, next to CLEAN UP: no notifications, PC at full power",
   "<b>Modalità</b> Normale, Film e Silenzioso, con controllo dei componenti": "<b>Modes</b>: Normal, Movie and Quiet, with a component check",
   "<b>Problemi di tutti i giorni</b> in Risolvi un problema, ognuno con un pulsante: Wi-Fi che si stacca, file zip, programma bloccato, secondo schermo, tastiera e touchpad, Win + V, batteria, ora sbagliata": "<b>Everyday problems</b> in Fix a problem, each with a button: Wi-Fi that drops, zip files, frozen program, second screen, keyboard and touchpad, Win + V, battery, wrong time",
   "<b>Resti dei driver</b> (C:\\AMD, C:\\NVIDIA) e <b>driver video vecchi</b>": "<b>Driver leftovers</b> (C:\\AMD, C:\\NVIDIA) and <b>old video drivers</b>",
-  "<b>Stampante e scanner di casa</b>, <b>Prova microfono e cuffie</b>, <b>Chi usa webcam e microfono</b>": "<b>Home printer and scanner</b>, <b>Test microphone and headset</b>, <b>Who is using the webcam and microphone</b>",
   "<b>Temi</b> chiari e scuri, <b>avvisi intelligenti</b>, <b>avvio con Windows</b>": "Light and dark <b>themes</b>, <b>smart alerts</b>, <b>start with Windows</b>",
   "<span class=\"small muted\" style=\"line-height:1.5\">Per Microsoft, Outlook, Google, Amazon, PayPal e altri siti famosi basta il nome in \"Sito o programma\". Il titolo della finestra serve per i programmi: va bene anche solo un pezzo, * vuol dire \"qualsiasi testo\". Nella sequenza: {UTENTE}, {TAB}, {PASSWORD}, {INVIO}, {ATTESA 2s}.</span>": "<span class=\"small muted\" style=\"line-height:1.5\">For Microsoft, Outlook, Google, Amazon, PayPal and other well-known sites the name in \"Site or program\" is enough. The window title is for programs: just a part of it is fine, * means \"any text\". In the sequence: {UTENTE} (username), {TAB}, {PASSWORD}, {INVIO} (Enter), {ATTESA 2s} (wait).</span>",
   "Chi usa webcam e microfono": "Who is using the webcam and microphone",
@@ -5567,7 +5565,6 @@
   "Riavvia l'audio di Windows, spegne il risparmio energetico delle porte USB (causa comune con le cuffie USB) e controlla le cuffie Bluetooth in modalità chiamata. Puoi tornare indietro.": "Restarts Windows audio, turns off power saving on the USB ports (a common cause with USB headsets) and checks Bluetooth headsets in call mode. You can undo it.",
   "Riunione in corso": "Meeting in progress",
   "Se un programma dice che manca un file .dll o si chiude appena lo apri: Tasso installa o ripara i componenti di Windows che servono ai programmi (Visual C++, DirectX, .NET) dal sito ufficiale Microsoft. 2-5 minuti.": "If a program says a .dll file is missing or closes as soon as you open it: Tasso installs or repairs the Windows components that programs need (Visual C++, DirectX, .NET) from the official Microsoft site. 2-5 minutes.",
-  "Stampante e scanner di casa": "Home printer & scanner",
   "Ti fa vedere quali programmi hanno usato la webcam e il microfono negli ultimi 30 giorni e chi li sta usando adesso. Così scopri se qualcuno ti guarda o ti ascolta.": "Shows you which programs used the webcam and microphone in the last 30 days and who is using them right now. So you find out if someone is watching or listening to you.",
   "Un programma non parte (manca un file .dll)": "A program won't start (a .dll file is missing)",
   "(da 1 a 100: 70 è un buon PC di oggi, e ogni volta che la velocità raddoppia il voto sale di 25): misurati davvero con una prova di pochi secondi. La RAM conta anche quanta ce n'è e come è montata (velocità in MT/s e numero di banchi). Dipendono dai componenti:": "(from 1 to 100: 70 is a good PC of today, and every time the speed doubles the score goes up by 25): really measured with a test of a few seconds. For the RAM, how much there is and how it is installed (speed in MT/s and number of modules) also count. They depend on the components:",
@@ -5587,9 +5584,12 @@
   "Non disinstallare da qui Office, Teams, la VPN e i programmi del lavoro": "Don't uninstall Office, Teams, the VPN or work programs from here",
   "Quando esce una versione nuova Tasso la scarica, controlla che sia firmata da noi e si riapre. Prima ti avvisa e puoi dire \"Non ora\", così non ti interrompe mentre lavori. Non lo fa durante una pulizia.": "When a new version comes out Tasso downloads it, checks that it's signed by us and reopens. It warns you first and you can say \"Not now\", so it doesn't interrupt you while you work. It doesn't do it during a cleanup.",
   "il PC che si scalda": "the PC getting hot",
-  "in Risolvi un problema, ognuno con un pulsante: Wi-Fi che si stacca, file zip, schermi, tastiera, batteria, ora sbagliata e la stampante di casa. In più": "in Fix a problem, each with a button: Wi-Fi that drops, zip files, screens, keyboard, battery, wrong time and the home printer. Plus",
   "lo schermo che diventa nero": "the screen going black",
   "ora apre anche le cartelle.": "now opens folders too.",
-  "un programma che non parte": "a program that won't start"
+  "un programma che non parte": "a program that won't start",
+  "Audio, internet, aggiornamenti e ricerca: valgono per tutti.": "Audio, internet, updates and search: for everyone.",
+  "in Risolvi un problema, ognuno con un pulsante: Wi-Fi che si stacca, file zip, schermi, tastiera, batteria e ora sbagliata. In più": "in Fix a problem, each with a button: Wi-Fi that drops, zip files, screens, keyboard, battery, and wrong time. Plus",
+  "<b>Prova microfono e cuffie</b> e <b>Chi usa webcam e microfono</b>": "<b>Test microphone and headset</b> and <b>Who is using the webcam and microphone</b>",
+  " problemi</b> che capitano a tutti: Wi-Fi, file e zip, schermi, tastiera, batteria, ora sbagliata. ": " problems</b> that happen to everyone: Wi-Fi, files and zip, screens, keyboard, battery, wrong time. "
  }
 }

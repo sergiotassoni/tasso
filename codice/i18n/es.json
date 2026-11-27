@@ -5534,14 +5534,12 @@
   "Driver della scheda video": "Controladores de la tarjeta gráfica",
   "Accende la Modalità Gioco di Windows e ti dice se il PC sta risparmiando energia mentre giochi. Le cache della grafica non le cancella: servono proprio a non scattare.": "Activa el Modo de juego de Windows y te dice si el PC está ahorrando energía mientras juegas. No borra las cachés de gráficos: sirven precisamente para que no vaya a tirones.",
   "Frequenza dello schermo": "Frecuencia de la pantalla",
-  " problemi</b> che capitano a tutti: Wi-Fi, file e zip, schermi, tastiera, batteria, ora sbagliata, stampante di casa. ": " problemas</b> que le pasan a todo el mundo: Wi-Fi, archivos y zip, pantallas, teclado, batería, hora incorrecta, impresora de casa. ",
   "<b>Cache delle app</b>, per esempio quella di Teams": "<b>Caché de apps</b>, por ejemplo la de Teams",
   "<b>Il PC si scalda</b>, <b>un programma non parte</b> (manca un file .dll), <b>il PC si blocca con file grandi</b>, <b>l'audio gracchia nelle chiamate</b>, <b>lo schermo diventa nero</b>": "<b>El PC se calienta</b>, <b>un programa no arranca</b> (falta un archivo .dll), <b>el PC se bloquea con archivos grandes</b>, <b>el audio cruje en las llamadas</b>, <b>la pantalla se pone negra</b>",
   "<b>Modalità riunione</b> sulla Home, accanto a PULISCI: niente notifiche, PC al massimo": "<b>Modo reunión</b> en el Inicio, junto a LIMPIAR: sin notificaciones, PC al máximo",
   "<b>Modalità</b> Normale, Film e Silenzioso, con controllo dei componenti": "<b>Modos</b>: Normal, Película y Silencioso, con revisión de componentes",
   "<b>Problemi di tutti i giorni</b> in Risolvi un problema, ognuno con un pulsante: Wi-Fi che si stacca, file zip, programma bloccato, secondo schermo, tastiera e touchpad, Win + V, batteria, ora sbagliata": "<b>Problemas de todos los días</b> en Arreglar un problema, cada uno con un botón: Wi-Fi que se corta, archivos zip, programa bloqueado, segunda pantalla, teclado y touchpad, Win + V, batería, hora incorrecta",
   "<b>Resti dei driver</b> (C:\\AMD, C:\\NVIDIA) e <b>driver video vecchi</b>": "<b>Restos de drivers</b> (C:\\AMD, C:\\NVIDIA) y <b>drivers de vídeo antiguos</b>",
-  "<b>Stampante e scanner di casa</b>, <b>Prova microfono e cuffie</b>, <b>Chi usa webcam e microfono</b>": "<b>Impresora y escáner de casa</b>, <b>Prueba micrófono y auriculares</b>, <b>Quién usa la webcam y el micrófono</b>",
   "<b>Temi</b> chiari e scuri, <b>avvisi intelligenti</b>, <b>avvio con Windows</b>": "<b>Temas</b> claros y oscuros, <b>avisos inteligentes</b>, <b>arranque con Windows</b>",
   "<span class=\"small muted\" style=\"line-height:1.5\">Per Microsoft, Outlook, Google, Amazon, PayPal e altri siti famosi basta il nome in \"Sito o programma\". Il titolo della finestra serve per i programmi: va bene anche solo un pezzo, * vuol dire \"qualsiasi testo\". Nella sequenza: {UTENTE}, {TAB}, {PASSWORD}, {INVIO}, {ATTESA 2s}.</span>": "<span class=\"small muted\" style=\"line-height:1.5\">Para Microsoft, Outlook, Google, Amazon, PayPal y otras webs conocidas basta el nombre en \"Web o programa\". El título de la ventana es para programas: basta una parte, * significa \"cualquier texto\". En la secuencia: {UTENTE} (usuario), {TAB}, {PASSWORD}, {INVIO} (Intro), {ATTESA 2s} (espera).</span>",
   "Chi usa webcam e microfono": "Quién usa la webcam y el micrófono",
@@ -5567,7 +5565,6 @@
   "Riavvia l'audio di Windows, spegne il risparmio energetico delle porte USB (causa comune con le cuffie USB) e controlla le cuffie Bluetooth in modalità chiamata. Puoi tornare indietro.": "Reinicia el audio de Windows, desactiva el ahorro de energía de los puertos USB (causa común con los auriculares USB) y revisa los auriculares Bluetooth en modo llamada. Puedes volver atrás.",
   "Riunione in corso": "Reunión en curso",
   "Se un programma dice che manca un file .dll o si chiude appena lo apri: Tasso installa o ripara i componenti di Windows che servono ai programmi (Visual C++, DirectX, .NET) dal sito ufficiale Microsoft. 2-5 minuti.": "Si un programa dice que falta un archivo .dll o se cierra nada más abrirlo: Tasso instala o repara los componentes de Windows que necesitan los programas (Visual C++, DirectX, .NET) desde la web oficial de Microsoft. 2-5 minutos.",
-  "Stampante e scanner di casa": "Impresora y escáner de casa",
   "Ti fa vedere quali programmi hanno usato la webcam e il microfono negli ultimi 30 giorni e chi li sta usando adesso. Così scopri se qualcuno ti guarda o ti ascolta.": "Te enseña qué programas han usado la webcam y el micrófono en los últimos 30 días y quién los está usando ahora. Así descubres si alguien te mira o te escucha.",
   "Un programma non parte (manca un file .dll)": "Un programa no arranca (falta un archivo .dll)",
   "(da 1 a 100: 70 è un buon PC di oggi, e ogni volta che la velocità raddoppia il voto sale di 25): misurati davvero con una prova di pochi secondi. La RAM conta anche quanta ce n'è e come è montata (velocità in MT/s e numero di banchi). Dipendono dai componenti:": "(de 1 a 100: 70 es un buen PC de hoy, y cada vez que la velocidad se duplica la nota sube 25): medidos de verdad con una prueba de pocos segundos. En la RAM también cuenta cuánta hay y cómo está montada (velocidad en MT/s y número de módulos). Dependen de los componentes:",
@@ -5587,9 +5584,12 @@
   "Non disinstallare da qui Office, Teams, la VPN e i programmi del lavoro": "No desinstales desde aquí Office, Teams, la VPN ni los programas del trabajo",
   "Quando esce una versione nuova Tasso la scarica, controlla che sia firmata da noi e si riapre. Prima ti avvisa e puoi dire \"Non ora\", così non ti interrompe mentre lavori. Non lo fa durante una pulizia.": "Cuando sale una versión nueva Tasso la descarga, comprueba que está firmada por nosotros y se vuelve a abrir. Te avisa antes y puedes decir \"Ahora no\", así no te interrumpe mientras trabajas. No lo hace durante una limpieza.",
   "il PC che si scalda": "el PC que se calienta",
-  "in Risolvi un problema, ognuno con un pulsante: Wi-Fi che si stacca, file zip, schermi, tastiera, batteria, ora sbagliata e la stampante di casa. In più": "en Arreglar un problema, cada uno con un botón: Wi-Fi que se corta, archivos zip, pantallas, teclado, batería, hora incorrecta y la impresora de casa. Además,",
   "lo schermo che diventa nero": "la pantalla que se pone negra",
   "ora apre anche le cartelle.": "ahora también abre carpetas.",
-  "un programma che non parte": "un programa que no arranca"
+  "un programma che non parte": "un programa que no arranca",
+  "Audio, internet, aggiornamenti e ricerca: valgono per tutti.": "Audio, internet, actualizaciones y búsqueda: para todos.",
+  "in Risolvi un problema, ognuno con un pulsante: Wi-Fi che si stacca, file zip, schermi, tastiera, batteria e ora sbagliata. In più": "en Arreglar un problema, cada uno con un botón: Wi-Fi que se corta, archivos zip, pantallas, teclado, batería y hora incorrecta. Además,",
+  "<b>Prova microfono e cuffie</b> e <b>Chi usa webcam e microfono</b>": "<b>Prueba micrófono y auriculares</b> y <b>Quién usa la webcam y el micrófono</b>",
+  " problemi</b> che capitano a tutti: Wi-Fi, file e zip, schermi, tastiera, batteria, ora sbagliata. ": " problemas</b> que le pasan a todo el mundo: Wi-Fi, archivos y zip, pantallas, teclado, batería, hora incorrecta. "
  }
 }
