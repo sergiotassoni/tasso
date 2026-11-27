@@ -8,6 +8,9 @@ $out = Get-TassoStartup
 `
 
 const startupSetScript = `
+# 3.2: il preludio ha ErrorActionPreference SilentlyContinue, quindi una scrittura che non riesce
+# (chiave in sola lettura, criterio di gruppo) non fermerebbe lo script. Qui ogni scrittura ha
+# -ErrorAction Stop dentro try/catch, e "JSON ok" esce solo se rileggendo il valore è quello giusto.
 $map = @{
   hkcu   = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\Run'
   hklm   = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\Run'
@@ -20,23 +23,32 @@ if ([string]$A.scope -eq 'appx') {
   $parts = ([string]$A.name) -split '\\', 2
   if ($parts.Count -ne 2) { Say 'Voce non valida.'; return }
   $k = 'HKCU:\Software\Classes\Local Settings\Software\Microsoft\Windows\CurrentVersion\AppModel\SystemAppData\' + $parts[0] + '\' + $parts[1]
-  if (-not (Test-Path -LiteralPath $k)) { New-Item -Path $k -Force | Out-Null }
   $v = 1; if ($A.enable) { $v = 2 }
-  New-ItemProperty -LiteralPath $k -Name 'State' -Value $v -PropertyType DWord -Force | Out-Null
+  try {
+    if (-not (Test-Path -LiteralPath $k)) { New-Item -Path $k -Force -ErrorAction Stop | Out-Null }
+    New-ItemProperty -LiteralPath $k -Name 'State' -Value $v -PropertyType DWord -Force -ErrorAction Stop | Out-Null
+    $letto = (Get-ItemProperty -LiteralPath $k -Name 'State' -ErrorAction Stop).State
+  } catch { Say 'Windows non mi lascia cambiare questa voce.'; return }
+  if ([int]$letto -ne $v) { Say 'Windows non mi lascia cambiare questa voce.'; return }
   [Console]::Out.WriteLine('JSON ok')
   Say 'Fatto.'
   return
 }
 $key = $map[[string]$A.scope]
 if (-not $key) { Say 'Voce non valida.'; return }
-if (-not (Test-Path -LiteralPath $key)) { New-Item -Path $key -Force | Out-Null }
+$n = [string]$A.name
 $b = New-Object byte[] 12
 if ($A.enable) { $b[0] = 2 } else {
   $b[0] = 3
   $ft = [BitConverter]::GetBytes([DateTime]::Now.ToFileTime())
   [Array]::Copy($ft, 0, $b, 4, 8)
 }
-New-ItemProperty -LiteralPath $key -Name ([string]$A.name) -Value $b -PropertyType Binary -Force | Out-Null
+try {
+  if (-not (Test-Path -LiteralPath $key)) { New-Item -Path $key -Force -ErrorAction Stop | Out-Null }
+  New-ItemProperty -LiteralPath $key -Name $n -Value $b -PropertyType Binary -Force -ErrorAction Stop | Out-Null
+  $letto = [byte[]]((Get-ItemProperty -LiteralPath $key -Name $n -ErrorAction Stop).$n)
+} catch { Say 'Windows non mi lascia cambiare questa voce.'; return }
+if (-not $letto -or $letto.Length -lt 1 -or $letto[0] -ne $b[0]) { Say 'Windows non mi lascia cambiare questa voce.'; return }
 [Console]::Out.WriteLine('JSON ok')
 Say 'Fatto.'
 `
