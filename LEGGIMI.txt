@@ -15,7 +15,7 @@ NOVITÀ DELLA 1.3.1 E DELLA 1.3.2
     ti saluta ("Ciao Sergio, cosa vuoi fare?"). È lo stesso nome di Tasso e di Tasso PDF:
     se lo cambi in uno, cambia in tutti e tre. Sta solo sul PC, nel registro di Windows
     (HKEY_CURRENT_USER\Software\Tasso, valore "Nome"). Vanno bene le lettere di tutti gli
-    alfabeti delle lingue vive, numeri, spazio, punto, - e _.
+    alfabeti delle lingue vive, numeri, spazio, punto, apostrofo (anche ’), - e _ (per esempio D'Angelo).
   - Nomi riservati di Windows: anche COM0 e LPT0 (oltre a CON, NUL, COM1...) diventano
     "_COM0..." quando si estrae.
   - Più estensioni pericolose: anche .msc, .appref-ms, .xll, .wsc, .sct, .diagcab,

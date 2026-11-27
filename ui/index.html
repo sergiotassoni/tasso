@@ -571,7 +571,7 @@ select.sel,#c-livello{background:var(--bg);color:inherit;border:1px solid var(--
 
 <div id="drop"><div class="dc" data-t="lascia_comprimi"></div><div class="de" data-t="lascia_estrai"></div></div>
 <div id="toast"></div>
-<div id="modale"><div class="box"><div id="m-ico"></div><h2 id="m-titolo"></h2><p id="m-testo"></p><dl class="dati" id="m-dati" hidden></dl><div class="row" style="justify-content:flex-end"><button class="btn ghost" id="m-no" data-t="annulla"></button><button class="btn blu" id="m-si"></button></div></div></div>
+<div id="modale" role="dialog" aria-modal="true" aria-labelledby="m-titolo"><div class="box"><div id="m-ico"></div><h2 id="m-titolo"></h2><p id="m-testo"></p><dl class="dati" id="m-dati" hidden></dl><div class="row" style="justify-content:flex-end"><button class="btn ghost" id="m-no" data-t="annulla"></button><button class="btn blu" id="m-si"></button></div></div></div>
 <div id="ctx"></div>
 <div id="nomeMod" role="dialog" aria-modal="true" aria-labelledby="nomeTit"><div class="box">
   <h2 id="nomeTit" data-t="nome_titolo"></h2>
@@ -1130,8 +1130,8 @@ function conferma(titolo, testo, si, opz) {
   const ico = $("m-ico"); ico.className = opz.ico ? "on " + opz.ico : ""; ico.innerHTML = opz.ico ? ICONE_MODALE[opz.ico] : "";
   const dl = $("m-dati"); dl.textContent = ""; dl.hidden = !opz.dati;
   for (const [k, v] of opz.dati || []) { const a = document.createElement("dt"); a.textContent = k; const b = document.createElement("dd"); b.textContent = v; dl.append(a, b); }
-  $("modale").classList.add("on");
-  setTimeout(() => $("m-no").focus(), 30);
+  apriFinestra($("modale"));
+  setTimeout(() => ($("m-no").hidden ? $("m-si") : $("m-no")).focus(), 30);
   return new Promise(ok => { modaleRisolvi = ok; });
 }
 const ICONE_MODALE = {
@@ -1144,11 +1144,45 @@ function avviso(titolo, testo, opz) {
   opz = Object.assign({ no: false, colore: "ambra" }, opz || {});
   return conferma(titolo, testo, opz.si || "OK", opz);
 }
-function chiudiModale(v) { $("modale").classList.remove("on"); if (modaleRisolvi) { const f = modaleRisolvi; modaleRisolvi = null; f(v); } }
+function chiudiModale(v) { chiudiFinestra($("modale")); if (modaleRisolvi) { const f = modaleRisolvi; modaleRisolvi = null; f(v); } }
 $("m-si").onclick = () => chiudiModale(true);
 $("m-no").onclick = () => chiudiModale(false);
+// Finestre di conferma (#modale) e del nome (#nomeMod): mentre sono aperte la pagina dietro è
+// "inert" (né clic né tasti), il Tab gira solo fra i loro pulsanti, Esc le chiude e alla
+// chiusura il fuoco torna dov'era.
+let fuocoPrima = null;
+function finestraAperta() { return ["modale", "nomeMod"].map($).find(f => f.classList.contains("on")) || null; }
+function apriFinestra(f) {
+  if (!finestraAperta()) fuocoPrima = document.activeElement;
+  f.classList.add("on");
+  document.querySelector(".app").inert = true;
+}
+function chiudiFinestra(f) {
+  const era = f.classList.contains("on");
+  f.classList.remove("on");
+  if (finestraAperta()) return;
+  document.querySelector(".app").inert = false;
+  if (era && fuocoPrima && fuocoPrima.isConnected && typeof fuocoPrima.focus === "function") fuocoPrima.focus();
+  fuocoPrima = null;
+}
 document.addEventListener("keydown", e => {
-  if ($("modale").classList.contains("on") && e.key === "Escape") chiudiModale(false);
+  const f = finestraAperta();
+  if (!f) return;
+  if (e.key === "Escape") { e.preventDefault(); e.stopImmediatePropagation(); if (f.id === "modale") chiudiModale(false); else nomeChiudi(); return; }
+  const dentro = f.contains(document.activeElement);
+  if (e.key === "Tab") {
+    const el = [...f.querySelectorAll("button, input, select, textarea, [tabindex]")].filter(x => !x.disabled && x.tabIndex >= 0 && x.offsetParent !== null);
+    if (!el.length) { e.preventDefault(); return; }
+    const i = el.indexOf(document.activeElement);
+    if (e.shiftKey && i <= 0) { e.preventDefault(); el[el.length - 1].focus(); }
+    else if (!e.shiftKey && (i === -1 || i === el.length - 1)) { e.preventDefault(); el[0].focus(); }
+    return;
+  }
+  // Invio, spazio e gli altri tasti non arrivano mai alla pagina dietro
+  if (!dentro) { e.preventDefault(); e.stopImmediatePropagation(); }
+}, true);
+document.addEventListener("keydown", e => {
+  if (finestraAperta()) return;
   if (S.vista === "archivio" && e.key === "Backspace" && document.activeElement !== $("a-cerca") && S.arch && S.arch.cartella) {
     const c = S.arch.cartella; S.arch.cartella = c.includes("/") ? c.slice(0, c.lastIndexOf("/")) : ""; S.arch.sel.clear(); disegnaArchivio();
   }
@@ -1921,7 +1955,7 @@ function nomeControlla(s) {
   let lettera = false, dopoLettera = false, accenti = 0;
   for (const r of c) {
     const k = r.codePointAt(0);
-    if (r === " " || r === "." || r === "-" || r === "_") { dopoLettera = false; accenti = 0; }
+    if (r === " " || r === "." || r === "-" || r === "_" || r === "'" || r === "’") { dopoLettera = false; accenti = 0; }
     else if (nomeDentro(k, NOME_INVISIBILI)) return { codice: "invisibile" };
     else if (!nomeDentro(k, NOME_BLOCCHI)) return { codice: "simbolo", simbolo: r };
     else if (/^[\p{L}\p{Nd}]$/u.test(r)) { lettera = true; dopoLettera = true; accenti = 0; }
@@ -1949,9 +1983,9 @@ function nomeCampo() {
 }
 function nomeApri() {
   $("nomeIn").value = S.nome || ""; nomeCampo();
-  $("nomeMod").classList.add("on"); setTimeout(() => { $("nomeIn").focus(); $("nomeIn").select(); }, 30);
+  apriFinestra($("nomeMod")); setTimeout(() => { $("nomeIn").focus(); $("nomeIn").select(); }, 30);
 }
-function nomeChiudi() { $("nomeMod").classList.remove("on"); $("nomeBtn").focus(); }
+function nomeChiudi() { chiudiFinestra($("nomeMod")); }
 async function nomeSalva() {
   if ($("nomeSi").disabled || nomeCampo().codice) return;
   $("nomeSi").disabled = true;

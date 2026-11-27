@@ -10,4 +10,4 @@ export GOTOOLCHAIN=local GOPROXY=off GOSUMDB=off GOFLAGS=-mod=mod
 cd ../strumenti/risorse
 go run . crea -ico "$QUI/assets/tasso.ico" -manifest "$QUI/tassozip.manifest" \
   -o "$QUI/rsrc_windows_amd64.syso" -versione "$VERSIONE" \
-  -prodotto "Tasso Zip" -descrizione "Tasso Zip" -azienda "Sergio Tassoni" -file TassoZip.exe
+  -prodotto "Tasso Zip" -descrizione "Tasso Zip" -azienda "Sergio Tassoni" -copyright "© 2026 Sergio Tassoni" -file TassoZip.exe
