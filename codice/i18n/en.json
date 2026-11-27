@@ -479,6 +479,8 @@
   "Profilo salvato. Accendilo quando vuoi giocare.": "Profile saved. Turn it on when you want to play.",
   "Programmi all'avvio": "Startup apps",
   "Programmi all'avvio rimessi com'erano.": "Startup apps put back as they were.",
+  "Non sono riuscito a rimettere com'erano questi programmi all'avvio: ": "I couldn't put these startup apps back as they were: ",
+  ". Li tengo segnati: premi di nuovo \"Rimetti com'era\" tra poco. Se non basta, cambiali a mano in Gestione attività, scheda \"App di avvio\".": ". I'm keeping track of them: press \"Restore original\" again in a moment. If that doesn't help, change them by hand in Task Manager, \"Startup apps\" tab.",
   "Prova": "Test",
   "Prova a far ripartire la scheda video senza riavviare il PC (come Win + Ctrl + Maiusc + B: lo schermo lampeggia) e ti dice i tasti per rimettere a posto lo schermo.": "Tries to restart the graphics card without restarting the PC (like Win + Ctrl + Shift + B: the screen flashes) and tells you the keys to fix the screen.",
   "Pulizia componenti di Windows": "Windows component cleanup",

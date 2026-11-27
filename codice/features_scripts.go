@@ -23,6 +23,7 @@ if ([string]$A.scope -eq 'appx') {
   if (-not (Test-Path -LiteralPath $k)) { New-Item -Path $k -Force | Out-Null }
   $v = 1; if ($A.enable) { $v = 2 }
   New-ItemProperty -LiteralPath $k -Name 'State' -Value $v -PropertyType DWord -Force | Out-Null
+  [Console]::Out.WriteLine('JSON ok')
   Say 'Fatto.'
   return
 }
@@ -36,6 +37,7 @@ if ($A.enable) { $b[0] = 2 } else {
   [Array]::Copy($ft, 0, $b, 4, 8)
 }
 New-ItemProperty -LiteralPath $key -Name ([string]$A.name) -Value $b -PropertyType Binary -Force | Out-Null
+[Console]::Out.WriteLine('JSON ok')
 Say 'Fatto.'
 `
 

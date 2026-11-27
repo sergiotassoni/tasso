@@ -479,6 +479,8 @@
   "Profilo salvato. Accendilo quando vuoi giocare.": "Profil gespeichert. Schalte es ein, wenn du spielen willst.",
   "Programmi all'avvio": "Autostart-Apps",
   "Programmi all'avvio rimessi com'erano.": "Autostart-Apps zurückgesetzt.",
+  "Non sono riuscito a rimettere com'erano questi programmi all'avvio: ": "Diese Autostart-Programme konnte ich nicht zurücksetzen: ",
+  ". Li tengo segnati: premi di nuovo \"Rimetti com'era\" tra poco. Se non basta, cambiali a mano in Gestione attività, scheda \"App di avvio\".": ". Ich merke sie mir: Drücke gleich noch einmal auf „Original wiederherstellen“. Wenn das nicht hilft, ändere sie von Hand im Task-Manager, Registerkarte „Autostart-Apps“.",
   "Prova": "Test",
   "Prova a far ripartire la scheda video senza riavviare il PC (come Win + Ctrl + Maiusc + B: lo schermo lampeggia) e ti dice i tasti per rimettere a posto lo schermo.": "Versucht, die Grafikkarte ohne PC-Neustart neu zu starten (wie Win + Ctrl + Shift + B: Der Bildschirm blinkt), und sagt dir die Tasten, um den Bildschirm zu korrigieren.",
   "Pulizia componenti di Windows": "Bereinigung der Windows-Komponenten",
