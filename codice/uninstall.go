@@ -290,11 +290,16 @@ try { $s = New-Object -ComObject Schedule.Service; $s.Connect(); $s.GetFolder('\
 	}
 	piano := pianoTogliTasso()
 	_ = registry.DeleteKey(registry.CURRENT_USER, `Software\Tasso\PrimaDelleModalita`)
+	_ = registry.DeleteKey(registry.CURRENT_USER, `Software\Tasso\PrimaDelProfilo`)
 	_ = registry.DeleteKey(registry.LOCAL_MACHINE, `SOFTWARE\Tasso\PuntoRipristino`)
 	if piano.eco {
 		// Software\Tasso è anche dell'installatore (Lingua, Modalita, Cartella...: le leggono Zip,
 		// PDF e il disinstallatore): tolgo solo le cose di Tasso.
 		_ = registry.DeleteKey(registry.CURRENT_USER, `Software\Tasso\AudioUSB`)
+		if k, err := registry.OpenKey(registry.CURRENT_USER, `Software\Tasso`, registry.SET_VALUE); err == nil {
+			_ = k.DeleteValue("PianoAltoAggiunto") // il segno del piano aggiunto dalle modalità (3.2)
+			k.Close()
+		}
 	} else {
 		_ = registry.DeleteKey(registry.CURRENT_USER, `Software\Tasso`)
 		_ = registry.DeleteKey(registry.LOCAL_MACHINE, `SOFTWARE\Tasso`)
@@ -345,12 +350,33 @@ func togliSilenzioso(out io.Writer) int {
 		}
 	})
 	if msg != "" {
-		fmt.Fprintln(out, "TOGLI-NO "+unaRiga(msg))
+		fmt.Fprintln(out, "TOGLI-NO "+motivoTogliNo(msg))
 		return 1
 	}
 	releaseRun()
 	fmt.Fprintln(out, "TOGLI-OK")
 	return 0
+}
+
+// finaliNonTolto: la fine dei motivi di togliTassoPassi, in tutte le lingue di Tasso.
+var finaliNonTolto = []string{"Tasso non è stato tolto.", "Tasso was not removed.", "Tasso has not been removed.",
+	"Tasso no se ha quitado.", "Tasso n'a pas été retiré.", "Tasso wurde nicht entfernt."}
+
+// motivoTogliNo: il motivo per il disinstallatore, nella lingua di Tasso (trGo traduce anche la
+// parte fissa delle frasi con nomi e percorsi) e senza "Tasso non è stato tolto." alla fine: lo
+// dice già l'installatore, così la frase non si ripete.
+func motivoTogliNo(msg string) string {
+	m := strings.TrimSpace(trGo(msg))
+	for _, f := range finaliNonTolto {
+		if strings.HasSuffix(m, f) {
+			m = strings.TrimSpace(strings.TrimSuffix(m, f))
+			break
+		}
+	}
+	if m == "" {
+		m = msg
+	}
+	return unaRiga(m)
 }
 
 // unaRiga: il motivo su una riga sola (il disinstallatore legge fino al primo a capo).

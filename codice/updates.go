@@ -6,16 +6,41 @@ package main
 import (
 	"regexp"
 	"strings"
+	"sync"
 	"time"
 )
 
 var wingetIDRe = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._+\-]{1,127}$`)
+
+// nomiAggiornamenti: id di winget → nome del programma, dall'ultimo elenco letto. Nei messaggi
+// dell'aggiornamento si legge "Aggiornato: Mozilla Firefox", non "Aggiornato: Mozilla.Firefox".
+var (
+	nomiAggMu         sync.Mutex
+	nomiAggiornamenti = map[string]string{}
+)
 
 func updatesList() {
 	r := runPS(updatesListScript, 5*time.Minute, func(m string) { emit("onUpdatesProgress", m) })
 	res := decodeJSON(r.JSON)
 	if res == nil {
 		res = map[string]interface{}{"ok": false, "error": "Non sono riuscito a leggere gli aggiornamenti."}
+	}
+	if m, ok := res.(map[string]interface{}); ok {
+		nomi := map[string]string{}
+		if it, ok := m["items"].([]interface{}); ok {
+			for _, x := range it {
+				if v, ok := x.(map[string]interface{}); ok {
+					id, _ := v["id"].(string)
+					n, _ := v["name"].(string)
+					if id != "" && nomeWingetValido(n) {
+						nomi[id] = n
+					}
+				}
+			}
+		}
+		nomiAggMu.Lock()
+		nomiAggiornamenti = nomi
+		nomiAggMu.Unlock()
 	}
 	emit("onUpdates", res)
 	// La lista è già sullo schermo: le icone vere dei programmi arrivano dopo (icone_programmi.go).
@@ -43,7 +68,15 @@ func updatesApply(ids []string) {
 	if len(ok) == 0 && len(nomi) == 0 {
 		msgs = append(msgs, "Niente da aggiornare.")
 	} else {
-		args := map[string]interface{}{"ids": ok, "names": nomi}
+		etichette := map[string]string{}
+		nomiAggMu.Lock()
+		for _, id := range ok {
+			if n := nomiAggiornamenti[id]; n != "" {
+				etichette[id] = n
+			}
+		}
+		nomiAggMu.Unlock()
+		args := map[string]interface{}{"ids": ok, "names": nomi, "labels": etichette}
 		runPSArgs(updatesApplyScript, args, 90*time.Minute, func(m string) { msgs = append(msgs, m); emit("onUpdatesProgress", m) })
 	}
 	emit("onUpdatesDone", map[string]interface{}{"msgs": msgs})
@@ -130,6 +163,7 @@ function Esito-Winget([int]$c) {
   }
 }
 $ok = 0; $ko = 0; $na = 0
+$nomiNa = @(); $nomiKo = @()
 # Un programma alla volta: $sel è l'argomento per winget (--id o --name, sempre --exact), $nome quello da mostrare.
 function Aggiorna-Uno([string]$sel, [string]$nome) {
   Say ('Aggiorno ' + $nome + '...')
@@ -138,14 +172,17 @@ function Aggiorna-Uno([string]$sel, [string]$nome) {
     'ok' { $script:ok++; Say ('Aggiornato: ' + $nome) }
     'riavvio' { $script:ok++; Say ('Aggiornato: ' + $nome + ' (per finire serve un riavvio)'); [Console]::Out.WriteLine('REBOOT') }
     'gia' { $script:ok++; Say ('Già alla versione nuova: ' + $nome) }
-    'nonapplicabile' { $script:na++; Say ('Non aggiornato: ' + $nome + ' (winget non ha un aggiornamento che può installare: aggiornalo dal programma stesso o dal suo sito)') }
-    default { $script:ko++; Say ('Non aggiornato: ' + $nome + ' (se è aperto, chiudilo e riprova)') }
+    'nonapplicabile' { $script:na++; $script:nomiNa += $nome; Say ('Non aggiornato: ' + $nome + ' (winget non ha un aggiornamento che può installare: aggiornalo dal programma stesso o dal suo sito)') }
+    default { $script:ko++; $script:nomiKo += $nome; Say ('Non aggiornato: ' + $nome + ' (se è aperto, chiudilo e riprova)') }
   }
 }
 foreach ($id in @($A.ids)) {
   $id = [string]$id
   if ($id -notmatch '^[A-Za-z0-9][A-Za-z0-9._+\-]{1,127}$') { continue }
-  Aggiorna-Uno ('--id "' + $id + '"') $id
+  # il nome dell'elenco (se c'è) nei messaggi, l'id solo per winget
+  $nome = $id
+  if ($A.labels) { $l = $A.labels.PSObject.Properties[$id]; if ($l -and [string]$l.Value -and [string]$l.Value -notmatch '[\r\n]') { $nome = [string]$l.Value } }
+  Aggiorna-Uno ('--id "' + $id + '"') $nome
 }
 # Programmi che winget mostra senza id: per nome esatto (se il nome vale per più programmi winget non fa niente).
 foreach ($n in @($A.names)) {
@@ -153,8 +190,9 @@ foreach ($n in @($A.names)) {
   if (-not $n -or $n -match '["\r\n]' -or $n.Contains([string][char]0x2026)) { continue }
   Aggiorna-Uno ('--name "' + $n + '"') $n
 }
-$resto = @()
-if ($na) { $resto += ($na.ToString() + ' da aggiornare dal programma stesso') }
-if ($ko) { $resto += ($ko.ToString() + ' da riprovare') }
-Say ('Aggiornati ' + $ok + ' programmi' + $(if ($resto.Count) { ', ' + ($resto -join ', ') + '.' } else { '.' }))
+# Riga finale con il numero a parte (niente singolare e plurale) e i nomi di tutti quelli non aggiornati.
+$fine = 'Programmi aggiornati: ' + $ok + '.'
+if ($na) { $fine += ' Da aggiornare dal programma stesso: ' + $na + ' (' + ($nomiNa -join ', ') + ').' }
+if ($ko) { $fine += ' Da riprovare: ' + $ko + ' (' + ($nomiKo -join ', ') + ').' }
+Say $fine
 `

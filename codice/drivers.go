@@ -47,6 +47,44 @@ var vendorPages = map[string][2]string{
 	"sony":        {"Controller PlayStation su PC (DualSense)", "https://www.playstation.com/it-it/support/hardware/pair-dualsense-controller-bluetooth/"},
 }
 
+// sitiInLingua (3.2): l'inizio degli indirizzi di vendorPages (e del pannello della scheda video) in
+// it, en, es, fr, de. I siti dei produttori si aprono nella lingua di Tasso, come la guida Microsoft
+// (B25); gli indirizzi senza lingua (Razer, SteelSeries…) restano uguali.
+var sitiInLingua = [][5]string{
+	{"https://www.nvidia.com/it-it/", "https://www.nvidia.com/en-us/", "https://www.nvidia.com/es-es/", "https://www.nvidia.com/fr-fr/", "https://www.nvidia.com/de-de/"},
+	{"https://www.amd.com/it/", "https://www.amd.com/en/", "https://www.amd.com/es/", "https://www.amd.com/fr/", "https://www.amd.com/de/"},
+	{"https://www.intel.it/content/www/it/it/", "https://www.intel.com/content/www/us/en/", "https://www.intel.es/content/www/es/es/", "https://www.intel.fr/content/www/fr/fr/", "https://www.intel.de/content/www/de/de/"},
+	{"https://www.logitechg.com/it-it/", "https://www.logitechg.com/en-us/", "https://www.logitechg.com/es-es/", "https://www.logitechg.com/fr-fr/", "https://www.logitechg.com/de-de/"},
+	{"https://www.logitech.com/it-it/", "https://www.logitech.com/en-us/", "https://www.logitech.com/es-es/", "https://www.logitech.com/fr-fr/", "https://www.logitech.com/de-de/"},
+	{"https://www.corsair.com/it/it/", "https://www.corsair.com/us/en/", "https://www.corsair.com/es/es/", "https://www.corsair.com/fr/fr/", "https://www.corsair.com/de/de/"},
+	{"https://www.asus.com/it/", "https://www.asus.com/", "https://www.asus.com/es/", "https://www.asus.com/fr/", "https://www.asus.com/de/"},
+	{"https://it.msi.com/", "https://www.msi.com/", "https://es.msi.com/", "https://fr.msi.com/", "https://de.msi.com/"},
+	{"https://www.gigabyte.com/it/", "https://www.gigabyte.com/", "https://www.gigabyte.com/es/", "https://www.gigabyte.com/fr/", "https://www.gigabyte.com/de/"},
+	{"https://www.asrock.com/support/index.it.asp", "https://www.asrock.com/support/index.asp", "https://www.asrock.com/support/index.es.asp", "https://www.asrock.com/support/index.fr.asp", "https://www.asrock.com/support/index.de.asp"},
+	{"https://pcsupport.lenovo.com/it/it", "https://pcsupport.lenovo.com/us/en", "https://pcsupport.lenovo.com/es/es", "https://pcsupport.lenovo.com/fr/fr", "https://pcsupport.lenovo.com/de/de"},
+	{"https://support.hp.com/it-it/", "https://support.hp.com/us-en/", "https://support.hp.com/es-es/", "https://support.hp.com/fr-fr/", "https://support.hp.com/de-de/"},
+	{"https://www.dell.com/support/home/it-it", "https://www.dell.com/support/home/en-us", "https://www.dell.com/support/home/es-es", "https://www.dell.com/support/home/fr-fr", "https://www.dell.com/support/home/de-de"},
+	{"https://www.acer.com/it-it/", "https://www.acer.com/us-en/", "https://www.acer.com/es-es/", "https://www.acer.com/fr-fr/", "https://www.acer.com/de-de/"},
+	{"https://www.elgato.com/it/it/", "https://www.elgato.com/us/en/", "https://www.elgato.com/es/es/", "https://www.elgato.com/fr/fr/", "https://www.elgato.com/de/de/"},
+	{"https://www.playstation.com/it-it/", "https://www.playstation.com/en-us/", "https://www.playstation.com/es-es/", "https://www.playstation.com/fr-fr/", "https://www.playstation.com/de-de/"},
+}
+
+// sitoInLingua: l'indirizzo nella lingua di Tasso.
+func sitoInLingua(u string) string { return sitoInLinguaL(u, curLang()) }
+
+func sitoInLinguaL(u, l string) string {
+	i, ok := map[string]int{"it": 0, "en": 1, "es": 2, "fr": 3, "de": 4}[l]
+	if !ok {
+		i = 1 // le altre lingue: inglese, come il resto di Tasso
+	}
+	for _, s := range sitiInLingua {
+		if strings.HasPrefix(u, s[0]) {
+			return s[i] + u[len(s[0]):]
+		}
+	}
+	return u
+}
+
 func driversScan() {
 	r := runPS(driversScanScript, 4*time.Minute, func(m string) { emit("onDriversProgress", m) })
 	res, _ := decodeJSON(r.JSON).(map[string]interface{})
@@ -116,7 +154,7 @@ func driverFix(id string) {
 
 func openVendorPage(id string) string {
 	if p, ok := vendorPages[id]; ok {
-		openURL(p[1])
+		openURL(sitoInLingua(p[1]))
 		return "ok"
 	}
 	return "no"

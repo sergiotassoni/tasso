@@ -347,6 +347,7 @@ try {
   Say 'Mouse: rimesso com''era.'
 } catch {}
 Remove-Item -Path 'HKCU:\Software\Tasso\PrimaDelleModalita' -Recurse -Force -ErrorAction SilentlyContinue
+Remove-Item -Path 'HKCU:\Software\Tasso\PrimaDelProfilo' -Recurse -Force -ErrorAction SilentlyContinue
 Say 'RESTORE_OK'
 `
 

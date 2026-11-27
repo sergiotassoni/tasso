@@ -49,7 +49,7 @@ const perfStateScript = `
 $scheme = ''
 try { $scheme = (powercfg /getactivescheme) | Out-String } catch {}
 $highOn = ($scheme -match '8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c') -or ($scheme -match 'Prestazioni elevate') -or ($scheme -match 'High performance') -or ($scheme -match 'Ultimate')
-# Su PC con il solo Bilanciato (o Ryzen X3D) Use-HighPerf mette la modalità "Prestazioni migliori":
+# Su PC con il solo Bilanciato (o Ryzen X3D) Use-HighPerf mette la modalità "Prestazioni ottimali":
 # conta come accesa, così il pulsante permette di tornare indietro.
 $ov = (Get-ItemProperty 'HKLM:\SYSTEM\CurrentControlSet\Control\Power\User\PowerSchemes' -Name 'ActiveOverlayAcPowerScheme' -ErrorAction SilentlyContinue).ActiveOverlayAcPowerScheme
 if ([string]$ov -match 'ded574b5-45a0-4f42-8737-46345c09c238') { $highOn = $true }
@@ -107,12 +107,44 @@ func openPerfTool(id string) string {
 
 func perfProfileScript(on bool) string {
 	// Molti PC (soprattutto portatili nuovi) hanno solo il piano "Bilanciato": Use-HighPerf lo crea o,
-	// se non si può, mette la modalità "Prestazioni migliori".
+	// se non si può, mette la modalità "Prestazioni ottimali".
 	if on {
-		return modeBase + "\nUse-HighPerf\n"
+		return modeBase + perfPrimaScript + "\nSave-PerfPrima\nUse-HighPerf\n"
 	}
-	return modeBase + "\n[void](Use-Plan $BAL)\npowercfg /overlaysetactive 00000000-0000-0000-0000-000000000000 2>$null | Out-Null\n"
+	return modeBase + perfPrimaScript + "\nRestore-PerfPrima\nRemove-HighAdded\n"
 }
+
+// perfPrimaScript (3.2): prima di accendere il profilo salvo il piano energetico e la modalità di
+// risparmio energia di adesso; spegnendolo rimetto quelli (prima tornava sempre a Bilanciato, anche
+// con il piano del produttore del PC o con Risparmio energia). Senza niente di salvato: Bilanciato.
+const perfPrimaScript = `
+$PerfKey = 'HKCU:\Software\Tasso\PrimaDelProfilo'
+$GuidRe = '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$'
+function Save-PerfPrima {
+  $sch = (@(powercfg /getactivescheme 2>$null) -join ' ')
+  $g = [regex]::Match($sch, '[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}').Value
+  $ov = [string](Get-ItemProperty 'HKLM:\SYSTEM\CurrentControlSet\Control\Power\User\PowerSchemes' -Name 'ActiveOverlayAcPowerScheme' -ErrorAction SilentlyContinue).ActiveOverlayAcPowerScheme
+  # già al massimo (profilo acceso, o messo da una modalità): tengo quello salvato prima
+  $alto = ($sch -match '8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c|Prestazioni elevate|High performance|Ultimate') -or ($ov -match 'ded574b5-45a0-4f42-8737-46345c09c238')
+  if (-not $g -or $alto) { return }
+  try {
+    Remove-Item -Path $PerfKey -Recurse -Force -ErrorAction SilentlyContinue
+    New-Item -Path $PerfKey -Force -ErrorAction Stop | Out-Null
+    New-ItemProperty -Path $PerfKey -Name 'Plan' -Value $g -PropertyType String -Force -ErrorAction Stop | Out-Null
+    if ($ov -match $GuidRe) { New-ItemProperty -Path $PerfKey -Name 'Overlay' -Value $ov -PropertyType String -Force | Out-Null }
+  } catch {}
+}
+function Restore-PerfPrima {
+  $p = Get-ItemProperty -Path $PerfKey -ErrorAction SilentlyContinue
+  $ok = $false
+  if ($p -and [string]$p.Plan -match $GuidRe) { $ok = Use-Plan ([string]$p.Plan) }
+  if (-not $ok) { [void](Use-Plan $BAL) }
+  $ov = '00000000-0000-0000-0000-000000000000'
+  if ($ok -and [string]$p.Overlay -match $GuidRe -and [string]$p.Overlay -notmatch 'ded574b5-45a0-4f42-8737-46345c09c238') { $ov = [string]$p.Overlay }
+  powercfg /overlaysetactive $ov 2>$null | Out-Null
+  Remove-Item -Path $PerfKey -Recurse -Force -ErrorAction SilentlyContinue
+}
+`
 
 const perfScript = `
 $cpu = Get-CimInstance Win32_Processor -ErrorAction SilentlyContinue | Select-Object -First 1

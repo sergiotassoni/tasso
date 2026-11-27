@@ -156,8 +156,34 @@ func startupSet(scope, name string, enable bool) {
 	default:
 		return
 	}
+	// Com'era lo salvo prima di scrivere (se Tasso si chiude a metà, si può rimettere), ma se Windows
+	// non lascia cambiare la voce lo tolgo di nuovo: in Torna indietro non resta un cambio mai fatto.
+	id := scope + "|" + name
+	setMu.Lock()
+	_, giaSalvato := settings.StartupOrig[id]
+	setMu.Unlock()
 	rememberStartup(scope, name, enable)
-	runPSArgs(startupSetScript, map[string]interface{}{"scope": scope, "name": name, "enable": enable}, time.Minute, nil)
+	var msgs []string
+	r := runPSArgs(startupSetScript, map[string]interface{}{"scope": scope, "name": name, "enable": enable}, time.Minute, func(m string) { msgs = append(msgs, m) })
+	ok := startupRimessoOK(r)
+	updateSettings(func(s *Settings) {
+		v, c := s.StartupOrig[id]
+		if !c {
+			return
+		}
+		// non riuscito (e la voce l'avevo appena aggiunta), oppure tornato com'era prima di Tasso
+		if (!ok && !giaSalvato) || (ok && v == enable) {
+			delete(s.StartupOrig, id)
+		}
+	})
+	msg := ""
+	if !ok {
+		msg = "Windows non mi lascia cambiare questa voce."
+		if len(msgs) > 0 && msgs[len(msgs)-1] != "Fatto." {
+			msg = msgs[len(msgs)-1]
+		}
+	}
+	emit("onStartupSet", map[string]interface{}{"key": id, "ok": ok, "enable": enable, "msg": msg})
 	startupList()
 }
 
@@ -330,7 +356,7 @@ var bloatList = []bloat{
 	{"Microsoft.MixedReality.Portal", "Portale Realtà mista", true},
 	{"Microsoft.People", "Contatti", true},
 	{"Microsoft.ZuneVideo", "Film e TV", false},
-	{"Microsoft.MicrosoftOfficeHub", "Office (pubblicità)", false},
+	{"Microsoft.MicrosoftOfficeHub", "App Microsoft 365", false}, // in Ufficio può servire: niente "pubblicità" nel nome
 	{"Microsoft.549981C3F5F10", "Cortana", true},
 	{"Clipchamp.Clipchamp", "Clipchamp", false},
 	{"Microsoft.PowerAutomateDesktop", "Power Automate", false},
