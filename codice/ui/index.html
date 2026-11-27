@@ -5299,11 +5299,12 @@ async function paintCro(){
   const box = $('#croList'); box.innerHTML = '<div class="li"><span class="muted">' + esc(_t('Un momento…')) + '</span></div>';
   const l = await ttc('ttCronologia') || [];
   box.innerHTML = '';
+  $('#btnCroSave').disabled = !l.length; // cronologia vuota: niente da salvare
   if (!l.length) { box.innerHTML = '<div class="li"><span class="muted">' + esc(_t('Ancora niente: le traduzioni dei giochi compaiono qui.')) + '</span></div>'; return; }
   l.slice().reverse().slice(0, 200).forEach(x => box.appendChild(el('div', {class:'li'}, '<span style="flex:1;min-width:0"><b>' + esc(x.tradotto || '') + '</b><br><span class="small muted">' + esc(x.originale || '') + (x.parlante ? ' · ' + esc(x.parlante) : '') + '</span></span>')));
 }
 $('#btnCroRe').onclick = paintCro;
-$('#btnCroSave').onclick = async () => { const r = await ttc('ttSalvaCronologia'); if (r) toast(_t('Salvata in ') + r, 'var(--a3)', {label:_t('Apri la cartella'), fn: () => call('goRevealFile', r)}); else toast(_t('Non sono riuscito a salvare la cronologia.'), 'var(--a4)'); };
+$('#btnCroSave').onclick = async () => { const r = await ttc('ttSalvaCronologia'); if (r === 'vuota') { $('#btnCroSave').disabled = true; toast(_t('Ancora niente: le traduzioni dei giochi compaiono qui.')); } else if (r) toast(_t('Salvata in ') + r, 'var(--a3)', {label:_t('Apri la cartella'), fn: () => call('goRevealFile', r)}); else toast(_t('Non sono riuscito a salvare la cronologia.'), 'var(--a4)'); };
 async function loadLangs(){ if (!LANGS.length) LANGS = await ttc('ttLingue') || []; return LANGS; }
 // rilegge le lingue (dopo le Impostazioni di Windows o uno scaricamento); se la risposta è vuota tengo quelle che ho
 async function reloadLangs(){ const l = await ttc('ttLingue'); if (Array.isArray(l) && l.length) LANGS = l; return LANGS; }
@@ -5321,14 +5322,14 @@ async function paintTrSet(){
   da.value = st.lingua_da || 'auto'; a.value = st.lingua_a || 'it';
   const busy = !!st.scaricando;
   const mozFail = !st.mozilla_ok && st.mozilla_file && st.mozilla_err;
-  $('#trMozTxt').textContent = st.mozilla_ok ? _t('Pronto: traduce sul tuo PC, senza internet.') : busy ? _t('Sto scaricando: aspetta che finisca.') : mozFail ? _t('Scaricato, ma non è partito: ') + tx(st.mozilla_err) + _t('. Premi Riprova.') : st.mozilla_file ? _t('Scaricato. Lo preparo appena serve (pochi secondi).') : _t('Serve per tradurre. Si scarica una volta sola (circa 35 MB).');
+  $('#trMozTxt').textContent = st.mozilla_ok ? _t('Pronto: traduce sul tuo PC, senza internet.') : busy ? (st.scaricando_ia ? _t('Aspetto che finisca lo scaricamento dell\'IA.') : _t('Sto scaricando: aspetta che finisca.')) : mozFail ? _t('Scaricato, ma non è partito: ') + tx(st.mozilla_err) + _t('. Premi Riprova.') : st.mozilla_file ? _t('Scaricato. Lo preparo appena serve (pochi secondi).') : _t('Serve per tradurre. Si scarica una volta sola (circa 35 MB).');
   $('#btnTrMoz').hidden = !!st.mozilla_ok; $('#btnTrMoz').disabled = busy; $('#btnTrMoz').textContent = st.mozilla_file ? _t('Riprova') : _t('Scarica');
   $('#trIaTxt').textContent = st.ia_file ? (st.ia_pc_ok ? (st.ia_attiva ? _t('Accesa: ricontrolla le frasi e le rende naturali.') : _t('Installata: parte da sola quando la scheda video ha spazio. La accendi o spegni per ogni gioco, nella procedura a passi.')) : _t('Installata, ma su questo PC rallenterebbe il gioco: Tasso usa il traduttore veloce.')) : !st.ia_pc_ok ? _t('Non adatta a questo PC: ') + tx(st.ia_pc_motivo || '') : st.ia_offerta ? _t('Facoltativa. Circa 10 GB da scaricare una volta. Usa da 2 a 5 GB della scheda video (secondo quanta ne ha) e lascia sempre spazio al gioco; se non basta, Tasso usa il traduttore veloce.') : _t('Non disponibile in questa versione.');
   $('#btnTrIa').hidden = !!st.ia_file || !st.ia_offerta || !st.ia_pc_ok; $('#btnTrIa').disabled = busy;
   const v = st.voci || {};
   // Le voci si traducono nella "Lingua che vuoi" (non sempre in italiano), come le scritte.
   const lgA = TT && TT.lingua_a ? langName(TT.lingua_a) : _t('Italiano'), lgV = LOWNAMES ? lgA.toLowerCase() : lgA;
-  $('#trVociTxt').textContent = v.scaricando ? _t('Le sto scaricando…') : v.file ? (v.accese ? _t('Accese: ') : _t('Pronte. ')) + keyName('voci', 'Ctrl+Alt+V') + _t(' le accende o spegne nel gioco.') : _t('Facoltative: scrivono in {0} quello che dicono i personaggi.').replace('{0}', lgV);
+  $('#trVociTxt').textContent = v.scaricando ? _t('Le sto scaricando…') : v.file ? (v.accese ? _t('Accese: ') : _t('Pronte. ')) + keyName('voci', 'Ctrl+Alt+V') + _t(' le accende o spegne nel gioco.') : _t('Facoltative: scrivono in {0} quello che i personaggi dicono in inglese. Circa 150 MB da scaricare una volta.').replace('{0}', lgV);
   $('#btnTrVoci').textContent = v.file ? (v.accese ? _t('Spegni') : _t('Accendi')) : _t('Scarica'); $('#btnTrVoci').disabled = !!v.scaricando;
   $('#trChatTxt').textContent = st.scaricando_chat ? _t('La sto scaricando…') : st.chat_file ? _t('Pronta. Copia la tua frase in italiano e premi ') + keyName('chat', 'Ctrl+Alt+T') + _t(': negli appunti trovi la frase in inglese, da incollare nella chat.') : _t('Facoltativa. Scrivi in italiano e Tasso lo copia in inglese, da incollare nella chat del gioco.');
   $('#btnTrChat').hidden = !!st.chat_file; $('#btnTrChat').disabled = !!st.scaricando_chat;
@@ -5429,7 +5430,13 @@ $('#trSwEn').onclick = async () => { const on = !(TT && TT.mostra_en); await ttc
 $('#trPos').onchange = async (e) => { const p = await ttc('ttImpostaPosizione', e.target.value); if (TT) TT.posizione = p; toast(_t('Salvato.'), 'var(--a3)'); };
 $('#trFont').oninput = (e) => { $('#trFontV').textContent = e.target.value + ' px'; };
 $('#trFont').onchange = async (e) => { const px = await ttc('ttImpostaFont', +e.target.value); if (TT) TT.dim_font = px; $('#trFont').value = px; $('#trFontV').textContent = px + ' px'; };
-$('#btnTrZona').onclick = async () => { if (!(TT && TT.acceso)) { toast(_t('Prima accendi la traduzione dei giochi.'), 'var(--a4)'); return; } await ttc('ttScegliZona'); toast(_t('Tasso si riduce a icona: tra 3 secondi, sopra il gioco, disegna con il mouse il riquadro da tradurre. Esc per annullare.')); };
+$('#btnTrZona').onclick = async () => {
+  if (!(TT && TT.acceso)) { // l'interruttore generale non è più nella pagina: la accendo io, come le voci e la chat degli altri
+    if (TT && !TT.mozilla_ok && !TT.mozilla_file) { toast(_t('Prima scarica il traduttore veloce in Impostazioni giochi.'), 'var(--a4)'); return; }
+    const on = await ttc('ttAccendi', true); if (TT) TT.acceso = !!on; paintTr(); gpRepaintTr();
+    if (!on) { toast(_t('Non riesco ad accendere la traduzione adesso: chiudi Tasso e riaprilo, poi riprova.'), 'var(--a4)'); return; }
+  }
+  await ttc('ttScegliZona'); toast(_t('Tasso si riduce a icona: tra 3 secondi, sopra il gioco, disegna con il mouse il riquadro da tradurre. Esc per annullare.')); };
 $('#btnTrWords').onclick = async () => {
   const gl = await ttc('ttGlossario') || {};
   const nt = (gl.non_tradurre || []).join('\n');
@@ -5517,6 +5524,8 @@ async function openGame(id, quiet){
   if (GP_ID !== id) GP_TAB = 'tr'; // gioco nuovo: si riparte dagli strumenti della traduzione
   if (!quiet || GP_ID !== id) GPI = null;
   GP_ID = id;
+  // la pagina del gioco è dentro "I miei giochi" (anche se aperta dai recenti stando in Cronologia): il menu lo dice
+  $$('nav [data-gtab]').forEach(b => { const on = b.dataset.gtab === 'lib'; b.classList.toggle('on', on); if (on) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current'); });
   $$('#v-games .gpanel').forEach(p => { p.hidden = true; }); $('#gTabs').hidden = true; $('#trBar').hidden = true; $('#boostCard').hidden = true;
   const box = $('#gamePage'); box.hidden = false;
   paintGame(g);
@@ -5554,7 +5563,7 @@ function gameTools(g){
   const on = (b) => b ? _t('ACCESO') : _t('SPENTO');
   return [
     {k:'tr', id:'trs', ic:'🔤', t:_t('Traduzione dello schermo'), d:_t('Menu e dialoghi tradotti al loro posto. Tasto ') + keyName('pagina', 'F7') + '.', s: st.acceso ? _t('ACCESA') : _t('SPENTA'), ok: !!st.acceso},
-    {k:'tr', id:'voci', ic:'🎙️', t:_t('Voci tradotte'), d:_t('Sottotitoli di quello che dicono i personaggi. Tasto ') + keyName('voci', 'Ctrl+Alt+V') + '.', s: v.file ? (v.accese ? _t('ACCESE') : _t('SPENTE')) : _t('DA SCARICARE'), ok: !!v.accese},
+    {k:'tr', id:'voci', ic:'🎙️', t:_t('Voci tradotte'), d:_t('Sottotitoli di quello che i personaggi dicono in inglese. Tasto ') + keyName('voci', 'Ctrl+Alt+V') + '.', s: v.file ? (v.accese ? _t('ACCESE') : _t('SPENTE')) : _t('DA SCARICARE'), ok: !!v.accese},
     {k:'tr', id:'chat', ic:'💬', t:_t('Chat tradotta'), d:_t('Scrivi in italiano, Tasso lo copia in inglese. Tasto ') + keyName('chat', 'Ctrl+Alt+T') + '.', s: st.chat_file ? _t('QUANDO VUOI') : _t('DA SCARICARE')},
     {k:'tr', id:'chata', ic:'🗨️', t:_t('Chat degli altri'), d:_t('I messaggi degli altri giocatori tradotti, accanto alla chat.'), s: !chatQui(i) ? _t('DA SCEGLIERE') : !st.chat_altri ? _t('SPENTA') : st.acceso ? _t('ACCESA') : _t('SPENTA (accendi la traduzione)'), ok: !!(st.chat_altri && st.acceso) && chatQui(i)},
     {k:'tr', id:'cro', ic:'🕘', t:_t('Cronologia delle traduzioni'), d:_t('Le ultime scritte tradotte. Tasto ') + keyName('cronologia', 'F8') + '.', s:_t('APRI')},
@@ -5876,7 +5885,7 @@ function wzDraw0(){
     const iaTxt = st.ia_file ? (st.ia_pc_ok ? _t('Installata. Accendila per questo gioco: ricontrolla le frasi e le rende naturali, si fa da parte se il gioco ha bisogno della scheda video.') : _t('Installata, ma su questo PC rallenterebbe il gioco: Tasso usa il traduttore veloce.')) : !st.ia_pc_ok ? _t('Non adatta a questo PC: ') + tx(st.ia_pc_motivo || '') : st.ia_offerta ? _t('Non scaricata. Si scarica una volta (circa 10 GB) in Impostazioni giochi. Senza, traduce il traduttore veloce.') : _t('Non disponibile: traduce il traduttore veloce.');
     h = P(_t('In che lingua lo vuoi?')) + '<div class="opz">' + langBtns(LANGS.filter(l => l.codice !== W.da), W.a, false) + '</div>' +
       ((i.lingue_ufficiali || []).indexOf(W.a) >= 0 ? '<div class="callout">💡 ' + esc(g.name) + esc(_t(' ha già questa lingua ufficiale: sceglila nelle impostazioni del gioco (di solito Opzioni → Lingua). Tasso serve per le scritte che restano in inglese.')) + '</div>' : '') +
-      '<h3>' + esc(_t('Come lo traduco?')) + '</h3><div class="opz"><button data-m="file" class="' + (W.modo === 'file' ? 'on' : '') + '" aria-pressed="' + (W.modo === 'file') + '"' + (canFile() ? '' : ' disabled') + '>' + esc(_t('Dentro il gioco')) + '<small>' + esc(canFile() ? (i.unreal ? _t('Scritte identiche all\'originale, il gioco non viene toccato') : _t('Le scritte del gioco, con copia di sicurezza')) : i.anticheat ? _t('No: c\'è l\'anti-cheat') : tx(i.file_motivo || _t('Solo per alcuni giochi Unity e Unreal'))) + '</small></button><button data-m="schermo" class="' + (W.modo === 'schermo' ? 'on' : '') + '" aria-pressed="' + (W.modo === 'schermo') + '"' + (soloFile() ? ' disabled' : '') + '>' + esc(_t('Sullo schermo')) + '<small>' + esc(soloFile() ? _t('No: Windows non sa leggere questa lingua') : _t('legge lo schermo, non tocca nessun file')) + '</small></button></div>' +
+      '<h3>' + esc(_t('Come lo traduco?')) + '</h3><div class="opz"><button data-m="file" class="' + (W.modo === 'file' ? 'on' : '') + '" aria-pressed="' + (W.modo === 'file') + '"' + (canFile() ? '' : ' disabled') + '>' + esc(_t('Dentro il gioco')) + '<small>' + esc(canFile() ? (i.unreal ? _t('Scritte identiche all\'originale: aggiunge un file, i file del gioco non cambiano') : _t('Le scritte del gioco, con copia di sicurezza')) : i.anticheat ? _t('No: c\'è l\'anti-cheat') : tx(i.file_motivo || _t('Solo per alcuni giochi Unity'))) + '</small></button><button data-m="schermo" class="' + (W.modo === 'schermo' ? 'on' : '') + '" aria-pressed="' + (W.modo === 'schermo') + '"' + (soloFile() ? ' disabled' : '') + '>' + esc(_t('Sullo schermo')) + '<small>' + esc(soloFile() ? _t('No: Windows non sa leggere questa lingua') : _t('legge lo schermo, non tocca nessun file')) + '</small></button></div>' +
       lvHtml(st, iaTxt) +
       (i.anticheat ? '<div class="callout">🛡 ' + esc(_t('Sullo schermo è la scelta sicura con l\'anti-cheat: il gioco non viene toccato.')) + '</div>' : '');
   }
@@ -5904,7 +5913,7 @@ function wzDraw0(){
     const trTxt = W.kind === 'boost' ? _t('Non toccata') : wzUntr() ? _t('La tolgo: il gioco torna com\'era') : W.skip ? _t('Non serve (saltata)') : langName(W.da) + ' → ' + langName(W.a) + ', ' + (W.modo === 'file' ? _t('dentro il gioco') : _t('sullo schermo')) + (W.ia && W.liv !== 'off' && st.ia_file && st.ia_pc_ok ? _t(', con l\'IA') + ' ' + ({auto:_t('automatica'), piccola:_t('piccola'), media:_t('media'), grande:_t('grande')}[W.liv || 'auto'] || '') : '');
     const nT = W.tuneSel ? Object.keys(W.tuneSel).filter(k => W.tuneSel[k] && k !== 'noLimit').length : 0; // il limite FPS vale solo con la grafica: non è una cosa a sé
     h = P(_t('Tutto pronto')) + '<dl class="sum"><dt>' + esc(_t('Gioco')) + '</dt><dd>' + esc(g.name) + '</dd><dt>' + esc(_t('Traduzione')) + '</dt><dd>' + esc(trTxt) + '</dd><dt>' + esc(_t('Potenza')) + '</dt><dd>' + esc(POW[potKey(W.pot)]) + (BST && BST.auto ? esc(_t(' + Boost automatico')) : '') + '</dd><dt>' + esc(_t('Consigliate')) + '</dt><dd>' + esc(nT ? nT + _t(' da applicare') : _t('nessuna')) + '</dd></dl>' +
-      (W.kind !== 'boost' && !W.skip && !st.mozilla_ok && !st.mozilla_file ? '<div class="callout">' + esc(_t('Per tradurre serve il traduttore veloce (circa 35 MB, una volta sola).')) + ' <button class="btn ghost" id="gwMozGo"' + (st.scaricando ? ' disabled' : '') + '>' + esc(st.scaricando ? _t('Lo sto scaricando…') : _t('Scaricalo ora')) + '</button> <span id="gwMoz"></span></div>' : '') +
+      (W.kind !== 'boost' && !W.skip && !st.mozilla_ok && !st.mozilla_file ? '<div class="callout">' + esc(_t('Per tradurre serve il traduttore veloce (circa 35 MB, una volta sola).')) + ' <button class="btn ghost" id="gwMozGo"' + (st.scaricando ? ' disabled' : '') + '>' + esc(st.scaricando && !st.scaricando_ia ? _t('Lo sto scaricando…') : _t('Scaricalo ora')) + '</button> <span id="gwMoz">' + (st.scaricando_ia ? esc(_t('Aspetto che finisca lo scaricamento dell\'IA.')) : '') + '</span></div>' : '') +
       '<div class="gwbar"><i id="gwBar"></i></div><p class="small" id="gwMsg" style="margin:0;color:' + (W.err ? 'var(--a4)' : 'var(--muted)') + '">' + esc(W.err ? W.err : _t('Premi Applica: Tasso fa tutto da solo.')) + '</p>';
   }
   const nts = W.notes || [], allBad = nts.length > 0 && nts.every(n => n[1]), someBad = nts.some(n => n[1]);

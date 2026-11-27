@@ -168,7 +168,7 @@ func sorvegliaIA() {
 			if morti != mortiViste {
 				// chiuso da solo (es. memoria video finita): conta come un fallimento, con un'attesa
 				// che cresce, invece di ricaricare 5 GB ogni 15 secondi e far scattare il gioco
-				fallitaIA(attuale, "il motore IA si è chiuso da solo (forse la memoria video è finita)")
+				fallitaIA(attuale, trTasso("si è chiusa da sola (forse la memoria video è finita)"))
 			}
 			attuale = ""
 		}
@@ -325,7 +325,8 @@ func fallitaIA(livello, motivo string) {
 	attesa := time.Duration(1<<min(falliteIA, 5)) * time.Minute
 	prossimoTentativoIA = time.Now().Add(attesa)
 	if falliteIA <= 2 {
-		emetti("info", map[string]string{"testo": "Correttore IA: " + motivo + ". Continuo con il traduttore veloce e riprovo tra " + fmt.Sprint(int(attesa.Minutes())) + " minuti."})
+		// tradotto qui: il motivo può contenere un percorso, e la pagina non traduce i testi con \ o /
+		emetti("info", map[string]string{"testo": fmt.Sprintf(trTasso("IA: %s. Continuo con il traduttore veloce e riprovo tra %d minuti."), motivo, int(attesa.Minutes()))})
 	}
 }
 
@@ -356,7 +357,7 @@ func applicaProfiloIA(nome string, ram float64, core int) {
 			modello = fileMediaIA()
 		}
 		if err := ia.Avvia(dirMotoreIA(), modello); err != nil {
-			fallitaIA(nome, "non avviato ("+err.Error()+")")
+			fallitaIA(nome, fmt.Sprintf(trTasso("non è partita (%s)"), err.Error()))
 			return
 		}
 		// mentre il modello caricava (anche qualche minuto) la traduzione può essere stata spenta

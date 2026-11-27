@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sync/atomic"
 
 	"golang.org/x/sys/windows"
 )
@@ -34,6 +35,10 @@ func spazioDisco(dir string) (uint64, bool) {
 	}
 }
 
+// scaricandoIA: lo scaricamento in corso (scaricando, uno alla volta) è quello dell'IA. La pagina
+// lo usa per non dire "Sto scaricando" sotto il traduttore veloce mentre arriva l'IA.
+var scaricandoIA atomic.Bool
+
 // scaricaIA: solo dopo il sì dell'utente, solo file con impronta verificata.
 func scaricaIA() {
 	defer guard("scarica-ia")
@@ -45,6 +50,8 @@ func scaricaIA() {
 		return
 	}
 	defer scaricando.Store(false)
+	scaricandoIA.Store(true) // la pagina dice che si aspetta l'IA, non il traduttore veloce
+	defer scaricandoIA.Store(false)
 	muImp.Lock()
 	imp.IASi = true
 	muImp.Unlock()
@@ -73,7 +80,7 @@ func scaricaIA() {
 		err = estraiMotore(filepath.Join(dirIA(), risorseIA.Motore.Nome), dirMotoreIA())
 	}
 	if err != nil {
-		emetti("erroreScarica", map[string]string{"cosa": "ia", "errore": err.Error()})
+		emetti("erroreScarica", map[string]string{"cosa": "ia", "errore": erroreScaricaPerUtente("ia", err)})
 		return
 	}
 	_ = os.Remove(filepath.Join(dirIA(), risorseIA.Motore.Nome)) // lo zip non serve più (l'impronta del motore resta nei file estratti)

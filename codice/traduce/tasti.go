@@ -71,7 +71,8 @@ func TastoGiaUsato(codice uint32, attuali map[string]uint32, salvo string) strin
 
 // nomeFunzioneTasto: il nome della funzione come lo vede l'utente nella pagina Giochi.
 func nomeFunzioneTasto(k string) string {
-	n := map[string]string{"pagina": "Mostra/nascondi le scritte tradotte", "cronologia": "Cronologia",
+	// stessi nomi della pagina (KEYN in ui/index.html), senza "/": la pagina non traduce i testi con \ o /
+	n := map[string]string{"pagina": "Mostra o nascondi le scritte tradotte", "cronologia": "Cronologia delle traduzioni",
 		"zona": "Traduci solo una zona", "traduci": "Ritraduci adesso", "auto": "Zona automatica",
 		"inglese": "Mostra anche la frase originale", "voci": "Voci (sottotitoli)", "chat": "Chat tradotta"}[k]
 	if n == "" {

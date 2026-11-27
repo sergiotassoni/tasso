@@ -34,7 +34,7 @@ func avvisaVecchia(base, chiave string) {
 	if nome == "" {
 		nome = filepath.Base(m.Cartella)
 	}
-	emetti("info", map[string]string{"testo": "In " + nome + " c'è la traduzione dentro il gioco della versione di prima di Tasso: ora lo traduco sullo schermo. Per rimetterla dentro il gioco, applica di nuovo la traduzione (Tasso toglie da solo quella vecchia)."})
+	emetti("info", map[string]string{"testo": "C'è la traduzione dentro il gioco della versione di prima di Tasso in " + nome + ": ora lo traduco sullo schermo. Per rimetterla dentro il gioco, applica di nuovo la traduzione (Tasso toglie da solo quella vecchia)."})
 }
 
 // chiaveGiocoVecchia: la chiave della 3.1.1, senza cambiare "#", "%" e "?" nel nome.

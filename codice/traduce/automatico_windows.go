@@ -4,8 +4,9 @@ package traduce
 
 // Modalità "tutto automatico": nessun tasto. Quando in primo piano c'è un gioco (a schermo
 // intero / senza bordi, oppure un gioco già usato con Tasso Traduce), il programma traduce da
-// solo tutte le scritte della sua finestra, al loro posto (come F6). Se esci dal gioco si ferma,
-// quando torni riparte. F6 dentro il gioco mette in pausa / riprende per quel gioco.
+// solo tutte le scritte della sua finestra, al loro posto (come F7). Se esci dal gioco si ferma,
+// quando torni riparte. F7 dentro il gioco mette in pausa / riprende per quel gioco (F6 è
+// l'autoclick di Tasso; i tasti si cambiano in Impostazioni giochi → Tasti rapidi).
 
 import (
 	"os"
@@ -153,7 +154,7 @@ func cicloTuttoAutomatico() {
 }
 
 // proponiTraduzione: un avviso in alto nel gioco per 6 secondi. Non si clicca (il clic va al
-// gioco): si accetta con F6.
+// gioco): si accetta con F7 (il tasto "Mostra o nascondi le scritte tradotte").
 func proponiTraduzione(fg uintptr, nome string) {
 	area, ok := areaFinestra(fg)
 	if !ok {

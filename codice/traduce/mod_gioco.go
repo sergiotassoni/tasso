@@ -552,7 +552,8 @@ func TogliModGioco(dirApp, chiave string) error {
 		}
 	}
 	if len(errori) > 0 {
-		return fmt.Errorf("non sono riuscito a togliere: %s (il gioco è aperto?)", strings.Join(errori, ", "))
+		// pezzi fissi tradotti qui: i nomi dei file contengono \ e la pagina non li traduce
+		return errors.New(trTasso("non sono riuscito a togliere: ") + strings.Join(errori, ", ") + trTasso(" (il gioco è aperto?)"))
 	}
 	if len(daControllare) > 0 || len(nonTolti) > 0 {
 		// la traduzione è tolta (tranne nonTolti); gli originali messi da parte restano, con un nome
@@ -562,7 +563,7 @@ func TogliModGioco(dirApp, chiave string) error {
 			if err := os.Rename(filepath.Join(copie, "originali"), dove); err != nil {
 				// R5: senza il nome nuovo una traduzione nuova li cancellerebbe togliendola: l'elenco
 				// resta, e si riprova quando i file non sono più in uso
-				return &errInUso{"non sono riuscito a mettere da parte gli originali (" + err.Error() + "): riprova a gioco chiuso"}
+				return &errInUso{trTasso("non sono riuscito a mettere da parte gli originali (") + err.Error() + trTasso("): riprova a gioco chiuso")}
 			}
 		} else {
 			dove = copie
@@ -603,14 +604,14 @@ type ErrOriginaliDaControllare struct {
 func (e *ErrOriginaliDaControllare) Error() string {
 	var s string
 	if len(e.NonTolti) > 0 {
-		s = "Ho tolto la traduzione, tranne questi file che passano da un collegamento (li ho lasciati nel gioco): " + strings.Join(e.NonTolti, ", ")
+		s = trTasso("Ho tolto la traduzione, tranne questi file che passano da un collegamento (li ho lasciati nel gioco): ") + strings.Join(e.NonTolti, ", ")
 		if len(e.File) > 0 {
-			s += ". Questi file non li ho rimessi com'erano, perché la copia messa da parte è cambiata o il percorso passa da un collegamento: " + strings.Join(e.File, ", ")
+			s += trTasso(". Questi file non li ho rimessi com'erano, perché la copia messa da parte è cambiata o il percorso passa da un collegamento: ") + strings.Join(e.File, ", ")
 		}
 	} else {
-		s = "Ho tolto la traduzione, ma questi file non li ho rimessi com'erano, perché la copia messa da parte è cambiata o il percorso passa da un collegamento: " + strings.Join(e.File, ", ")
+		s = trTasso("Ho tolto la traduzione, ma questi file non li ho rimessi com'erano, perché la copia messa da parte è cambiata o il percorso passa da un collegamento: ") + strings.Join(e.File, ", ")
 	}
-	return s + ". Usa \"Verifica file\" nel programma da cui lanci il gioco. Le copie da controllare sono in " + e.Dove + "."
+	return s + trTasso(". Usa \"Verifica file\" nel programma da cui lanci il gioco. Le copie da controllare sono in ") + e.Dove + "."
 }
 
 // ErrDaSistemareAMano: la traduzione dentro il gioco non la posso togliere da qui (la cartella del
@@ -621,7 +622,7 @@ type ErrDaSistemareAMano struct {
 }
 
 func (e *ErrDaSistemareAMano) Error() string {
-	return "Attenzione: " + e.Motivo + ". " + msgSistemaAMano(e.Gioco, e.Dove)
+	return trTasso("Attenzione: ") + trTasso(e.Motivo) + ". " + msgSistemaAMano(e.Gioco, e.Dove)
 }
 
 // I motivi (tradotti nella sezione "go" delle lingue).
@@ -811,7 +812,7 @@ func ModPossibile(cartella string) (bool, string) {
 		}
 		return UnrealPossibile(cartella)
 	}
-	return false, "solo giochi Unity e Unreal"
+	return false, "solo alcuni giochi Unity"
 }
 
 // ModNonPartita: dal registro di BepInEx, la traduzione dentro il gioco non è partita.

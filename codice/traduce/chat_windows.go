@@ -56,7 +56,7 @@ func scaricaChat() {
 		emetti("avanzamento", map[string]interface{}{"cosa": "chat", "fatti": f, "totale": t})
 	})
 	if err != nil {
-		emetti("erroreScarica", map[string]string{"cosa": "chat", "errore": err.Error()})
+		emetti("erroreScarica", map[string]string{"cosa": "chat", "errore": erroreScaricaPerUtente("chat", err)})
 		return
 	}
 	emetti("scaricato", map[string]string{"cosa": "chat"})

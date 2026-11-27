@@ -254,10 +254,19 @@ func Avvia() {
 // all'avvio e a ogni cambio di modalità con ImpostaUfficio.
 var InUfficio atomic.Bool
 
-// ImpostaUfficio segna la modalità di Tasso. Tornando a Gaming riapre il motore se serve
-// (traduzione "da sola" o giochi tradotti dentro il gioco).
+// ImpostaUfficio segna la modalità di Tasso. Passando a Ufficio spegne la traduzione: tasti dei
+// giochi liberi in tutto Windows e voci che smettono di ascoltare (vale per ogni strada: menu
+// delle modalità, prima apertura, installatore). Tornando a Gaming riapre il motore se serve
+// (traduzione "da sola" o giochi tradotti dentro il gioco); la traduzione la riaccendi tu con F7.
 func ImpostaUfficio(on bool) {
-	if InUfficio.Swap(on) == on || on || !avviato.Load() {
+	if InUfficio.Swap(on) == on || !avviato.Load() {
+		return
+	}
+	if on {
+		go func() {
+			defer guard("spegni-per-ufficio")
+			spegniPerUfficio()
+		}()
 		return
 	}
 	if !acceso.Load() {
@@ -705,7 +714,7 @@ func collega(w webview2.WebView) {
 				emetti("avanzamento", map[string]interface{}{"cosa": "lingue", "fatti": p, "totale": 100})
 			})
 			if err != nil {
-				emetti("erroreScarica", map[string]string{"cosa": "lingue", "errore": err.Error()})
+				emetti("erroreScarica", map[string]string{"cosa": "lingue", "errore": erroreScaricaPerUtente("lingue", err)})
 				return
 			}
 			if da == "en" && a == "it" {
@@ -737,7 +746,14 @@ func collega(w webview2.WebView) {
 	_ = w.Bind("ttScaricaVoci", func() string { go scaricaVoci(); return "ok" })
 	_ = w.Bind("ttAccendiVoci", func(on bool) map[string]string {
 		if on && !acceso.Load() {
-			return map[string]string{"errore": "Prima accendi la traduzione dei giochi con l'interruttore in Giochi."}
+			// le voci si traducono solo con la traduzione accesa: la accendo io (come la chat degli
+			// altri), perché nella pagina non c'è più un interruttore generale
+			if !mozOK.Load() && !mozillaPresente() {
+				return map[string]string{"errore": "Prima scarica il traduttore veloce in Impostazioni giochi."}
+			}
+			if !accendi(true) {
+				return map[string]string{"errore": "Non riesco ad accendere la traduzione adesso: chiudi Tasso e riaprilo, poi riprova."}
+			}
 		}
 		go func() {
 			defer guard("voci-finestra")
@@ -822,8 +838,7 @@ func collega(w webview2.WebView) {
 	// passando a Ufficio la traduzione si spegne e i tasti dei giochi si tolgono; tornando a Gaming
 	// tornano i tasti (la traduzione la riaccendi tu con F7)
 	_ = w.Bind("ttSpegniPerUfficio", func() bool {
-		accendi(false)
-		cambiaTasti(map[string]uint32{}) // in Ufficio nessun tasto dei giochi
+		spegniPerUfficio()
 		return false
 	})
 	_ = w.Bind("ttImpostaTuttoAuto", func(on bool) bool {
@@ -1004,6 +1019,7 @@ func stato() map[string]interface{} {
 		"motore_ora":      ma,
 		"ocr_err":         ocrErrore(),
 		"scaricando":      scaricando.Load(),
+		"scaricando_ia":   scaricandoIA.Load(),
 		"chat_file":       chatPresente(),
 		"giochi_tradotti": giochiTradottiCopia(),
 		"lingua_da":       i.LinguaDa,
@@ -1022,6 +1038,13 @@ func mozillaPresente() bool {
 	return true
 }
 
+// erroreScaricaPerUtente: il messaggio semplice per la pagina; l'errore tecnico (nome del file,
+// indirizzo, errore di rete) va nel registro logs\motore.txt.
+func erroreScaricaPerUtente(cosa string, err error) string {
+	scriviLog("scaricamento non riuscito (" + cosa + "): " + err.Error())
+	return msgErroreScarica(err)
+}
+
 func scaricaMozilla() {
 	defer guard("scarica-mozilla")
 	if !scaricando.CompareAndSwap(false, true) {
@@ -1036,7 +1059,7 @@ func scaricaMozilla() {
 		emetti("avanzamento", map[string]interface{}{"cosa": "mozilla", "fatti": f, "totale": t})
 	})
 	if err != nil {
-		emetti("erroreScarica", map[string]string{"cosa": "mozilla", "errore": err.Error()})
+		emetti("erroreScarica", map[string]string{"cosa": "mozilla", "errore": erroreScaricaPerUtente("mozilla", err)})
 		return
 	}
 	assicuraMotore() // il traduttore è arrivato: apro il motore
@@ -1183,8 +1206,8 @@ var acceso atomic.Bool
 
 // accendiTraduzione accende la traduzione dei giochi (motore e tasti rapidi), se era spenta.
 func accendiTraduzione() {
-	if !avviato.Load() {
-		return // Tasso Traduce non è ancora partito: niente tasti senza la finestrella
+	if !avviato.Load() || InUfficio.Load() {
+		return // Tasso Traduce non è ancora partito (niente tasti senza la finestrella), o Tasso è in Ufficio
 	}
 	assicuraMotore()
 	if acceso.CompareAndSwap(false, true) {
@@ -1210,7 +1233,7 @@ func suTasto(id int) {
 		emetti("info", map[string]string{"testo": testoTasso("Traduttore acceso: traduco le scritte del gioco.", "Translator on: translating the game text.")})
 	}
 	if !acceso.Load() && id != tastoCronologia {
-		emetti("info", map[string]string{"testo": "La traduzione dei giochi è spenta: accendila con l'interruttore in Giochi."})
+		emetti("info", map[string]string{"testo": "La traduzione dei giochi è spenta: premi " + nomeTasto("pagina") + " nel gioco per accenderla."})
 		return
 	}
 	switch id {
@@ -1700,14 +1723,23 @@ func cronologia() []Risultato {
 
 // salvaCronologia scrive i dialoghi tradotti in Documenti\Tasso Traduce (solo sul PC).
 func salvaCronologia() string {
-	home, _ := os.UserHomeDir()
-	dir := filepath.Join(home, "Documents", "Tasso Traduce")
+	righe := cronologia()
+	if len(righe) == 0 {
+		return "vuota" // niente file vuoto: la pagina dice che non c'è niente da salvare
+	}
+	// la cartella Documenti vera (può essere spostata, per esempio in OneDrive), non %USERPROFILE%\Documents
+	docs, err := windows.KnownFolderPath(windows.FOLDERID_Documents, 0)
+	if err != nil || docs == "" {
+		home, _ := os.UserHomeDir()
+		docs = filepath.Join(home, "Documents")
+	}
+	dir := filepath.Join(docs, "Tasso Traduce")
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return ""
 	}
 	p := filepath.Join(dir, "dialoghi-"+time.Now().Format("2006-01-02_15-04")+".txt")
 	var b strings.Builder
-	for _, r := range cronologia() {
+	for _, r := range righe {
 		chi := ""
 		if r.Parlante != "" {
 			chi = r.Parlante + ": "
@@ -1734,8 +1766,8 @@ var cartellaWebView = "WebView2"
 
 // accendi: l'interruttore Traduzione (dalla finestra, da F7 nel gioco o spegnendo per Ufficio).
 func accendi(on bool) bool {
-	if on && !avviato.Load() {
-		return false // Tasso Traduce non è ancora partito (Tasso aperto dall'attività pianificata)
+	if on && (!avviato.Load() || InUfficio.Load()) {
+		return false // Tasso Traduce non è ancora partito (Tasso aperto dall'attività pianificata), o Tasso è in Ufficio
 	}
 	if on {
 		assicuraMotore()
@@ -1747,7 +1779,7 @@ func accendi(on bool) bool {
 		go preparaOCR()     // la lettura di Windows parte adesso: il primo F7 non aspetta PowerShell
 		t := tastiCompleti(leggiImp().Tasti)
 		if f := cambiaTasti(t); len(f) > 0 {
-			emetti("info", map[string]string{"testo": "Già usati da un altro programma: " + nomiTasti(f, t) + ". Cambiali in Giochi → Impostazioni → Tasti nel gioco."})
+			emetti("info", map[string]string{"testo": "Già usati da un altro programma: " + nomiTasti(f, t) + ". Cambiali in Giochi → Impostazioni giochi → Tasti rapidi."})
 		}
 	} else {
 		cambiaTasti(soloTastoAccendi()) // spento: libero i tasti, tranne quello che la riaccende dal gioco
@@ -1764,6 +1796,14 @@ func accendi(on bool) bool {
 		ovChat.Nascondi()
 	}
 	return on
+}
+
+// spegniPerUfficio: traduzione spenta, voci ferme e, in Ufficio, nessun tasto dei giochi (F7 compreso:
+// soloTastoAccendi in Ufficio è vuoto). Se nel frattempo si è già tornati a Gaming resta F7, che la
+// riaccende dal gioco. La pagina Giochi si aggiorna subito.
+func spegniPerUfficio() {
+	accendi(false)
+	emetti("aggiorna", stato())
 }
 
 // soloTastoAccendi: a traduzione spenta resta solo il tasto della schermata (F7): premuto nel
