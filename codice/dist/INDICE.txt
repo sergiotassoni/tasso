@@ -194,7 +194,8 @@
 
 7. IMPOSTAZIONI
    - Modalità di Tasso: Gaming o Ufficio (pulsante in alto a sinistra, cambia solo l'aspetto)
-   - Temi Gaming: Tasso, Aurora, Lava, Neon, Carbonio, Belva, Ghiaccio, Sabbia
+   - Temi Gaming: Tasso, Aurora, Lava, Neon, Neon RGB, Oro, Argento, Carbonio, Belva, Ghiaccio,
+     Sabbia
    - Temi Ufficio: Azzurro, Carta, Perla (chiari), Grafite, Bosco, Prugna, Petrolio, Tortora,
      Ardesia (scuri)
    - Tasso acceso / spento

@@ -38,7 +38,7 @@ Il codice è nella cartella [`codice`](codice), con licenza [GPL-3.0](LICENSE).
 - 📂 **File**: doppi e grandi anche su altri dischi, distruggi file.
 - 🔑 **Portachiavi**: password cifrate solo sul PC, con PIN da 4 a 12 numeri o senza PIN.
 - ↩️ **Torna indietro**: tutto quello che Tasso cambia resta anche dopo il riavvio, e torna com'era solo quando lo decidi tu.
-- 🌐 **La tua connessione** con consigli utili (rete a 5 GHz, segnale, cavo), 🩺 **Salute del PC**, 💬 **Stato del PC su Discord**, 🎨 **14 temi** (8 per il Gaming e 8 per l'Ufficio).
+- 🌐 **La tua connessione** con consigli utili (rete a 5 GHz, segnale, cavo), 🩺 **Salute del PC**, 💬 **Stato del PC su Discord**, 🎨 **20 temi** (11 per il Gaming e 9 per l'Ufficio).
 
 ## Versioni
 

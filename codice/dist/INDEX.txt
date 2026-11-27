@@ -197,7 +197,8 @@
 7. SETTINGS
    - Tasso mode: Gaming or Office (button at the top left; it only changes how Tasso
      looks)
-   - Gaming themes: Tasso, Aurora, Lava, Neon, Carbon, Beast, Ice, Sand
+   - Gaming themes: Tasso, Aurora, Lava, Neon, Neon RGB, Gold, Silver, Carbon, Beast, Ice,
+     Sand
    - Office themes: Light blue, Paper, Pearl (light), Graphite, Forest, Plum, Teal, Taupe,
      Slate (dark)
    - Tasso on / off

@@ -84,7 +84,8 @@ func TestTemiValidiInSettings(t *testing.T) {
 }
 
 // Colori dei temi dell'Ufficio (THEMES in ui/index.html): ogni scritta si legge, almeno 4,5:1
-// (WCAG AA), anche il colore principale sulla voce attiva del menu e la scritta sui pulsanti.
+// (WCAG AA), anche il colore principale sulla voce attiva del menu e la scritta sui pulsanti
+// (normali, gialli e rossi); a2, a3, a4 e rosso sia sui pannelli sia sullo sfondo.
 // I temi scuri non sono nell'elenco dei temi chiari di applyTheme.
 func TestContrastoTemiUfficio(t *testing.T) {
 	ui, err := os.ReadFile("../ui/index.html")
@@ -124,6 +125,7 @@ func TestContrastoTemiUfficio(t *testing.T) {
 			continue
 		}
 		menu := mescola(v["a1"], v["panel"], 0.13) // voce attiva del menu in Ufficio (come applyTheme)
+		warnBg, onWarn := pulsanteGiallo(v["a4"])
 		// --a1t: il colore principale usato come testo, avvicinato al testo da applyTheme solo quanto serve
 		a1t := coloreTesto(v, []string{v["bg"], v["panel"], v["side"], mescola(v["text"], v["panel"], 0.05), menu})
 		if scuri[id] && a1t != strings.ToLower(v["a1"]) {
@@ -135,6 +137,8 @@ func TestContrastoTemiUfficio(t *testing.T) {
 			{"principale/sfondo", v["a1"], v["bg"]}, {"principale/pannello", v["a1"], v["panel"]}, {"principale come testo/menu attivo", a1t, menu}, {"principale come testo/sfondo", a1t, v["bg"]},
 			{"scritta sui pulsanti", v["ink"], v["a1"]},
 			{"a2/pannello", v["a2"], v["panel"]}, {"a3/pannello", v["a3"], v["panel"]}, {"a4/pannello", v["a4"], v["panel"]}, {"rosso/pannello", v["red"], v["panel"]},
+			{"a2/sfondo", v["a2"], v["bg"]}, {"a3/sfondo", v["a3"], v["bg"]}, {"a4/sfondo", v["a4"], v["bg"]}, {"rosso/sfondo", v["red"], v["bg"]},
+			{"scritta sul pulsante giallo", onWarn, warnBg}, {"scritta sul pulsante rosso", onRed(v["red"]), v["red"]},
 		} {
 			if r := contrasto(c.a, c.b); r < 4.5 {
 				t.Errorf("%s %s: %.2f:1 (serve almeno 4,5)", id, c.nome, r)
@@ -184,6 +188,30 @@ func coloreTesto(v map[string]string, fondi []string) string {
 		at = mescola(v["a1"], v["text"], p)
 	}
 	return at
+}
+
+// pulsanteGiallo: come --warnbg e --onwarn in applyTheme (ui/index.html): scritta bianca o scura,
+// quella che si legge meglio; se non basta, il fondo si scurisce (o schiarisce) un poco.
+func pulsanteGiallo(a4 string) (fondo, scritta string) {
+	const bianco, scuro = "#ffffff", "#241500"
+	scritta = scuro
+	verso := "#ffffff"
+	if contrasto(bianco, a4) >= contrasto(scuro, a4) {
+		scritta, verso = bianco, "#000000"
+	}
+	fondo = strings.ToLower(a4)
+	for p := 1.0; p >= 0.6 && contrasto(scritta, fondo) < 4.6; p -= 0.02 {
+		fondo = mescola(a4, verso, p)
+	}
+	return fondo, scritta
+}
+
+// onRed: come --onred in applyTheme: bianca sui rossi scuri, quasi nera sui rossi chiari.
+func onRed(red string) string {
+	if luce(red) > 0.22 {
+		return "#1a0b09"
+	}
+	return "#ffffff"
 }
 
 func luce(h string) float64 {
