@@ -3536,7 +3536,6 @@
   "Cosa Tasso non fa, apposta": "Lo que Tasso no hace, a propósito",
   "Cosa c'è nel profilo (tocca per cambiare)": "Qué hay en el perfil (clic para cambiar)",
   "Cosa cambia davvero tra le modalità": "Qué cambia de verdad entre los modos",
-  "Così vedi subito cosa è cambiato (la pulizia dura circa 40 secondi in più).": "Así ves enseguida qué ha cambiado (la limpieza tarda unos 40 segundos más).",
   "Crea": "Crear",
   "Crea il tuo portachiavi": "Crea tu caja fuerte",
   "Ctrl + Maiusc + F12": "Ctrl + Shift + F12",
@@ -3748,7 +3747,6 @@
   "Misura il voto": "Medir la puntuación",
   "Misura quanto va il PC in circa 20 secondi. Tutti i voti vanno da 1 a 100: la velocità dei componenti, quanto è leggero Windows e il voto totale.": "Mide lo rápido que es tu PC en unos 20 segundos. Todas las puntuaciones van de 1 a 100: velocidad de los componentes, ligereza de Windows y puntuación general.",
   "Misurerò il voto prima e dopo ogni pulizia.": "Mediré la puntuación antes y después de cada limpieza.",
-  "Misuro… non usare il PC per 20 secondi.": "Midiendo… no uses el PC durante 20 segundos.",
   "Modalità": "Modos",
   "Modalità Ufficio attiva. Il PC però è ancora in modalità ": "El modo Oficina está activado. Pero el PC sigue en ",
   "Modalità Ufficio: Tasso più semplice e tranquillo.": "Modo Oficina: Tasso es más sencillo y tranquilo.",
@@ -5359,6 +5357,11 @@
   ": Tasso legge il modello e la memoria video e le dà un voto con una sua tabella, senza scaricare niente. Se il PC ha due schede (quella dentro il processore e quella vera) conta quella vera, cioè quella che usano i giochi.": ": Tasso lee el modelo y la memoria de vídeo y le da una nota con su propia tabla, sin descargar nada. Si el PC tiene dos tarjetas (la integrada en el procesador y la de verdad), cuenta la de verdad, es decir, la que usan los juegos.",
   ": compare solo se Tasso riesce a leggere la temperatura del processore (con LibreHardwareMonitor aperto). Non conta nel voto totale, perché dipende anche da quanto è calda la stanza.": ": solo aparece si Tasso puede leer la temperatura del procesador (con LibreHardwareMonitor abierto). No cuenta en la nota total, porque también depende de lo caliente que esté la habitación.",
   ": 60% potenza del PC e 40% leggerezza di Windows. La potenza è la media di processore (35%), scheda video (25%), disco (25%) e memoria RAM (15%). Il conto è uguale per tutti, in Gaming e in Ufficio, così puoi confrontare il tuo PC con quello degli amici. Fasce: sotto 40 PC lento, 40-59 PC da ufficio, 60-79 buon PC, 80-94 PC veloce, da 95 in su top.": ": 60% potencia del PC y 40% ligereza de Windows. La potencia es la media de procesador (35%), tarjeta gráfica (25%), disco (25%) y memoria RAM (15%). El cálculo es igual para todos, en Gaming y en Oficina, así puedes comparar tu PC con el de tus amigos. Rangos: por debajo de 40 PC lento, 40-59 PC de oficina, 60-79 buen PC, 80-94 PC rápido, de 95 en adelante top.",
-  "Controlla tutto il PC in circa 25 secondi: processore, scheda video, memoria RAM, disco e quanto è leggero Windows. Ogni voto va da 1 a 100, poi il voto totale.": "Revisa todo el PC en unos 25 segundos: procesador, tarjeta gráfica, memoria RAM, disco y lo ligero que está Windows. Cada nota va de 1 a 100, y luego la nota total."
+  "Controlla tutto il PC in circa 25 secondi: processore, scheda video, memoria RAM, disco e quanto è leggero Windows. Ogni voto va da 1 a 100, poi il voto totale.": "Revisa todo el PC en unos 25 segundos: procesador, tarjeta gráfica, memoria RAM, disco y lo ligero que está Windows. Cada nota va de 1 a 100, y luego la nota total.",
+  "saldata sulla scheda madre": "soldada a la placa base",
+  "probabilmente ": "probablemente ",
+  " · potenza ": " · potencia ",
+  "Così vedi subito cosa è cambiato (la pulizia dura circa 50 secondi in più).": "Así ves enseguida qué ha cambiado (la limpieza tarda unos 50 segundos más).",
+  "Misuro… non usare il PC per circa 25 secondi (fino a 40 se misuro anche il raffreddamento).": "Midiendo… no uses el PC durante unos 25 segundos (hasta 40 si también mido la refrigeración)."
  }
 }

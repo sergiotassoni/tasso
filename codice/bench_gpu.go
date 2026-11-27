@@ -18,6 +18,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"syscall"
 	"time"
@@ -63,19 +64,19 @@ func schedeVideo() (out []votopc.Scheda) {
 		return nil
 	}
 	var fac uintptr
-	if hr, _, _ := pCreateDXGIFactory.Call(uintptr(unsafe.Pointer(&iidDXGIFactory1)), uintptr(unsafe.Pointer(&fac))); hr != 0 || fac == 0 {
+	if hr, _, _ := pCreateDXGIFactory.Call(uintptr(unsafe.Pointer(&iidDXGIFactory1)), uintptr(unsafe.Pointer(&fac))); uint32(hr) != 0 || fac == 0 {
 		return nil
 	}
 	defer comCall(fac, 2) // Release
 	for i := uintptr(0); i < 16; i++ {
 		var ad uintptr
-		if hr := comCall(fac, 12, i, uintptr(unsafe.Pointer(&ad))); hr != 0 || ad == 0 { // EnumAdapters1
+		if hr := comCall(fac, 12, i, uintptr(unsafe.Pointer(&ad))); uint32(hr) != 0 || ad == 0 { // EnumAdapters1
 			break
 		}
 		var d dxgiAdapterDesc1
 		hr := comCall(ad, 10, uintptr(unsafe.Pointer(&d))) // GetDesc1
 		comCall(ad, 2)
-		if hr != 0 {
+		if uint32(hr) != 0 {
 			continue
 		}
 		out = append(out, votopc.Scheda{
@@ -90,13 +91,15 @@ func schedeVideo() (out []votopc.Scheda) {
 
 // infoPC: nomi e numeri che Windows conosce (servono per il risultato e per il voto della RAM).
 type infoPC struct {
-	CPU    string  `json:"cpu"`
-	Board  string  `json:"board"`
-	BIOS   string  `json:"bios"`
-	RAMGB  float64 `json:"ramGB"`
-	RAMMTs int     `json:"ramMTs"`
-	RAMDDR int     `json:"ramDdr"`
-	Banchi int     `json:"banchi"`
+	CPU       string  `json:"cpu"`
+	Board     string  `json:"board"`
+	BIOS      string  `json:"bios"`
+	RAMGB     float64 `json:"ramGB"`
+	RAMMTs    int     `json:"ramMTs"`
+	RAMSMBIOS int     `json:"ramSmbios"` // codice SMBIOS del tipo di memoria (26 = DDR4, 34 = DDR5, 30 = LPDDR4...)
+	Banchi    int     `json:"banchi"`
+	Disco     string  `json:"disco"` // "nvme", "ssd", "hdd" letto da Windows; "" se non lo dice
+	Portatile bool    `json:"portatile"`
 }
 
 const infoPCScript = `
@@ -104,51 +107,83 @@ $cpu = Get-CimInstance Win32_Processor -ErrorAction SilentlyContinue | Select-Ob
 $bb = Get-CimInstance Win32_BaseBoard -ErrorAction SilentlyContinue | Select-Object -First 1
 $bi = Get-CimInstance Win32_BIOS -ErrorAction SilentlyContinue | Select-Object -First 1
 $mem = @(Get-CimInstance Win32_PhysicalMemory -ErrorAction SilentlyContinue)
-$tot = [long]0; $mts = 0; $ddr = 0
+$tot = [long]0; $mts = 0; $tipo = 0
 foreach ($m in $mem) {
   if ($m.Capacity) { $tot += [long]$m.Capacity }
   $s = [int]$m.ConfiguredClockSpeed; if (-not $s) { $s = [int]$m.Speed }
   if ($s -gt $mts) { $mts = $s }
-  $t = [int]$m.SMBIOSMemoryType; if ($t -eq 24) { $ddr = 3 } elseif ($t -eq 26) { $ddr = 4 } elseif ($t -eq 34) { $ddr = 5 } elseif ($t -eq 35) { $ddr = 5 }
+  if ([int]$m.SMBIOSMemoryType -gt 0) { $tipo = [int]$m.SMBIOSMemoryType }
 }
+# Portatile: tipo di PC (2 = mobile), telaio da portatile o batteria interna.
+$lap = $false
+try { if ([int](Get-CimInstance Win32_ComputerSystem -ErrorAction Stop).PCSystemType -eq 2) { $lap = $true } } catch {}
+try { foreach ($c in @((Get-CimInstance Win32_SystemEnclosure -ErrorAction Stop).ChassisTypes)) { if (@(8,9,10,11,12,14,18,21,30,31,32) -contains [int]$c) { $lap = $true } } } catch {}
+try { if (@(Get-CimInstance Win32_Battery -ErrorAction Stop).Count -gt 0) { $lap = $true } } catch {}
+# Tipo del disco di Windows letto da Windows (NVMe, SSD, HDD).
+$dk = ''
+try {
+  $n = (Get-Partition -DriveLetter ($env:SystemDrive).TrimEnd(':') -ErrorAction Stop | Select-Object -First 1).DiskNumber
+  $pd = Get-PhysicalDisk -ErrorAction Stop | Where-Object { [string]$_.DeviceId -eq [string]$n } | Select-Object -First 1
+  if ($pd) {
+    if ([string]$pd.BusType -match '^(17|NVMe)$') { $dk = 'nvme' }
+    elseif ([string]$pd.MediaType -match '^(4|SSD)$') { $dk = 'ssd' }
+    elseif ([string]$pd.MediaType -match '^(3|HDD)$') { $dk = 'hdd' }
+  }
+} catch {}
 $o = [ordered]@{
   cpu = (([string]$cpu.Name) -replace '\s+', ' ').Trim()
   board = ((([string]$bb.Manufacturer).Trim() + ' ' + ([string]$bb.Product).Trim()).Trim())
   bios = ((([string]$bi.SMBIOSBIOSVersion).Trim()))
-  ramGB = [math]::Round($tot / 1GB, 0); ramMTs = $mts; ramDdr = $ddr; banchi = $mem.Count
+  ramGB = [math]::Round($tot / 1GB, 0); ramMTs = $mts; ramSmbios = $tipo; banchi = $mem.Count
+  disco = $dk; portatile = $lap
 }
 [Console]::Out.WriteLine('JSON ' + (ConvertTo-Json -InputObject $o -Compress))
 `
 
-// Nomi di scheda madre che non dicono niente (PC assemblati senza dati nel BIOS).
-var reNomeVuoto = regexp.MustCompile(`(?i)^(to be filled by o\.?e\.?m\.?|default string|system product name|not applicable|n/?a|none|unknown|o\.?e\.?m\.?)?$`)
+// Frasi che il BIOS mette quando il costruttore non ha scritto niente (PC assemblati).
+var (
+	reFraseVuota = regexp.MustCompile(`(?i)to be filled by o\.?e\.?m\.?|default string|system product name|system manufacturer|not applicable|\bn/a\b`)
+	reNomeVuoto  = regexp.MustCompile(`(?i)^(none|unknown|o\.?e\.?m\.?|[-_.\s]*)$`)
+)
+
+// pulisciNome: toglie solo le frasi vuote e tiene il resto ("ASUSTeK Default string" → "ASUSTeK").
+func pulisciNome(s string) string {
+	s = strings.Join(strings.Fields(reFraseVuota.ReplaceAllString(s, " ")), " ")
+	if reNomeVuoto.MatchString(s) {
+		return ""
+	}
+	return s
+}
+
+// I dati del PC non cambiano mentre Tasso è aperto: li leggo una volta sola (con PowerShell).
+var (
+	infoMu   sync.Mutex
+	infoSalv *infoPC
+)
 
 func leggiInfoPC() infoPC {
+	infoMu.Lock()
+	defer infoMu.Unlock()
+	if infoSalv != nil {
+		return *infoSalv
+	}
 	var in infoPC
-	if r := runPS(infoPCScript, 40*time.Second, nil); r.JSON != "" {
-		_ = json.Unmarshal([]byte(r.JSON), &in)
-	}
-	for _, p := range []*string{&in.Board, &in.BIOS} {
-		var parti []string
-		for _, w := range strings.Fields(*p) {
-			if !reNomeVuoto.MatchString(w) {
-				parti = append(parti, w)
-			}
-		}
-		*p = strings.Join(parti, " ")
-		if reNomeVuoto.MatchString(*p) || strings.Contains(strings.ToLower(*p), "filled by") || strings.Contains(strings.ToLower(*p), "default string") {
-			*p = ""
-		}
-	}
+	r := runPS(infoPCScript, 40*time.Second, nil)
+	letto := r.JSON != "" && json.Unmarshal([]byte(r.JSON), &in) == nil
+	in.Board, in.BIOS = pulisciNome(in.Board), pulisciNome(in.BIOS)
 	if in.RAMMTs < 400 || in.RAMMTs > 20000 {
 		in.RAMMTs = 0
+	}
+	if letto && in.RAMGB > 0 {
+		infoSalv = &in // se la lettura non è riuscita, riprovo alla prossima misura
 	}
 	return in
 }
 
 // tempSottoCarico: solo se c'è LibreHardwareMonitor aperto (l'unico modo affidabile di leggere la
 // temperatura vera del processore, come nella pagina Hardware). Scalda tutti i core per circa 8
-// secondi e legge la temperatura mentre il carico è ancora acceso. 0 = non letta.
+// secondi e legge la temperatura mentre il carico è ancora acceso (in tutto 8-17 secondi, perché
+// PowerShell parte lento con i core occupati). 0 = non letta.
 func tempSottoCarico() float64 {
 	if !exeRunning([]string{"LibreHardwareMonitor.exe"}) {
 		return 0
@@ -162,9 +197,9 @@ func tempSottoCarico() float64 {
 	}
 	for i := 0; i < n; i++ {
 		go func() {
+			defer func() { done <- struct{}{} }() // arriva anche se cpuWork andasse in errore
 			defer guard("bench_gpu.go:caldo")
 			cpuWork(&stop)
-			done <- struct{}{}
 		}()
 	}
 	time.Sleep(5 * time.Second)

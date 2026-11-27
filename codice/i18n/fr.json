@@ -3536,7 +3536,6 @@
   "Cosa Tasso non fa, apposta": "Ce que Tasso ne fait pas, exprès",
   "Cosa c'è nel profilo (tocca per cambiare)": "Contenu du profil (cliquez pour changer)",
   "Cosa cambia davvero tra le modalità": "Ce qui change vraiment entre les modes",
-  "Così vedi subito cosa è cambiato (la pulizia dura circa 40 secondi in più).": "Ainsi vous voyez tout de suite ce qui a changé (le nettoyage dure environ 40 secondes de plus).",
   "Crea": "Créer",
   "Crea il tuo portachiavi": "Créez votre coffre-fort",
   "Ctrl + Maiusc + F12": "Ctrl + Shift + F12",
@@ -3748,7 +3747,6 @@
   "Misura il voto": "Mesurer le score",
   "Misura quanto va il PC in circa 20 secondi. Tutti i voti vanno da 1 a 100: la velocità dei componenti, quanto è leggero Windows e il voto totale.": "Mesure la vitesse de votre PC en environ 20 secondes. Tous les scores vont de 1 à 100 : vitesse des composants, légèreté de Windows et score global.",
   "Misurerò il voto prima e dopo ogni pulizia.": "Je mesurerai le score avant et après chaque nettoyage.",
-  "Misuro… non usare il PC per 20 secondi.": "Mesure… n'utilisez pas le PC pendant 20 secondes.",
   "Modalità": "Modes",
   "Modalità Ufficio attiva. Il PC però è ancora in modalità ": "Le mode Bureau est activé. Mais le PC est encore en ",
   "Modalità Ufficio: Tasso più semplice e tranquillo.": "Mode Bureau : Tasso est plus simple et plus calme.",
@@ -5359,6 +5357,11 @@
   ": Tasso legge il modello e la memoria video e le dà un voto con una sua tabella, senza scaricare niente. Se il PC ha due schede (quella dentro il processore e quella vera) conta quella vera, cioè quella che usano i giochi.": " : Tasso lit le modèle et la mémoire vidéo et lui donne une note avec sa propre table, sans rien télécharger. Si le PC a deux cartes (celle intégrée au processeur et la vraie), c'est la vraie qui compte, c'est-à-dire celle qu'utilisent les jeux.",
   ": compare solo se Tasso riesce a leggere la temperatura del processore (con LibreHardwareMonitor aperto). Non conta nel voto totale, perché dipende anche da quanto è calda la stanza.": " : n'apparaît que si Tasso arrive à lire la température du processeur (avec LibreHardwareMonitor ouvert). Elle ne compte pas dans la note totale, car elle dépend aussi de la chaleur de la pièce.",
   ": 60% potenza del PC e 40% leggerezza di Windows. La potenza è la media di processore (35%), scheda video (25%), disco (25%) e memoria RAM (15%). Il conto è uguale per tutti, in Gaming e in Ufficio, così puoi confrontare il tuo PC con quello degli amici. Fasce: sotto 40 PC lento, 40-59 PC da ufficio, 60-79 buon PC, 80-94 PC veloce, da 95 in su top.": " : 60 % puissance du PC et 40 % légèreté de Windows. La puissance est la moyenne du processeur (35 %), de la carte graphique (25 %), du disque (25 %) et de la mémoire RAM (15 %). Le calcul est le même pour tous, en Gaming et en Bureau, pour que vous puissiez comparer votre PC à celui de vos amis. Tranches : moins de 40 PC lent, 40-59 PC de bureau, 60-79 bon PC, 80-94 PC rapide, 95 et plus top.",
-  "Controlla tutto il PC in circa 25 secondi: processore, scheda video, memoria RAM, disco e quanto è leggero Windows. Ogni voto va da 1 a 100, poi il voto totale.": "Contrôle tout le PC en 25 secondes environ : processeur, carte graphique, mémoire RAM, disque et légèreté de Windows. Chaque note va de 1 à 100, puis la note totale."
+  "Controlla tutto il PC in circa 25 secondi: processore, scheda video, memoria RAM, disco e quanto è leggero Windows. Ogni voto va da 1 a 100, poi il voto totale.": "Contrôle tout le PC en 25 secondes environ : processeur, carte graphique, mémoire RAM, disque et légèreté de Windows. Chaque note va de 1 à 100, puis la note totale.",
+  "saldata sulla scheda madre": "soudée à la carte mère",
+  "probabilmente ": "probablement ",
+  " · potenza ": " · puissance ",
+  "Così vedi subito cosa è cambiato (la pulizia dura circa 50 secondi in più).": "Vous voyez ainsi tout de suite ce qui a changé (le nettoyage dure environ 50 secondes de plus).",
+  "Misuro… non usare il PC per circa 25 secondi (fino a 40 se misuro anche il raffreddamento).": "Mesure en cours… n'utilisez pas le PC pendant environ 25 secondes (jusqu'à 40 si je mesure aussi le refroidissement)."
  }
 }

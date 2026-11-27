@@ -38,12 +38,28 @@ var nvidia = map[string]int{
 	// GTX 10
 	"gtx 1080 ti": 70, "gtx 1080": 64, "gtx 1070 ti": 62, "gtx 1070": 58, "gtx 1060": 50, "gtx 1050 ti": 38, "gtx 1050": 33,
 	"gt 1030": 18, "gt 1010": 12,
+	// GTX 900M (portatili 2015-2016: la M è attaccata al numero)
+	"gtx 980m": 40, "gtx 970m": 33, "gtx 965m": 27, "gtx 960m": 22, "gtx 950m": 18, "gtx 860m": 16, "gtx 850m": 14,
+	"rtx 2050": 40,
 	// GTX 900 e più vecchie
 	"gtx 980 ti": 54, "gtx 980": 47, "gtx 970": 43, "gtx 960": 33, "gtx 950": 29, "gtx 750 ti": 20, "gtx 750": 17,
 	"gt 730": 7, "gt 710": 5,
 	// MX dei portatili (piccole: poco più di una integrata)
 	"mx 570": 30, "mx 550": 26, "mx 450": 24, "mx 350": 18, "mx 330": 17, "mx 250": 16, "mx 230": 14, "mx 150": 15, "mx 130": 12, "mx 110": 9,
 }
+
+// RTX dei portatili ("Laptop GPU" nel nome): voti propri, perché la differenza con la desktop
+// cresce nelle schede più potenti (una RTX 4090 Laptop va più o meno come una RTX 4070 Ti).
+var nvidiaLaptop = map[string]int{
+	"rtx 5090": 92, "rtx 5080": 88, "rtx 5070 ti": 82, "rtx 5070": 76, "rtx 5060": 72, "rtx 5050": 64,
+	"rtx 4090": 88, "rtx 4080": 84, "rtx 4070": 76, "rtx 4060": 71, "rtx 4050": 63,
+	"rtx 3080 ti": 81, "rtx 3080": 77, "rtx 3070 ti": 75, "rtx 3070": 73, "rtx 3060": 66, "rtx 3050 ti": 52, "rtx 3050": 50,
+	"rtx 2080 super": 72, "rtx 2080": 70, "rtx 2070 super": 68, "rtx 2070": 65, "rtx 2060": 60, "rtx 2050": 38,
+}
+
+// Serie NVIDIA che nei portatili hanno lo stesso nome della desktop (senza "Laptop"): sul
+// portatile vanno circa il 10% in meno.
+var reNomeUguale = regexp.MustCompile(`^(gtx 9\d\d|gtx 10\d\d|gtx 16\d\d|rtx 20\d\d)`)
 
 var amd = map[string]int{
 	// RX 9000
@@ -52,6 +68,7 @@ var amd = map[string]int{
 	"rx 7900 xtx": 95, "rx 7900 xt": 91, "rx 7900 gre": 86, "rx 7800 xt": 84, "rx 7700 xt": 80, "rx 7700": 77,
 	"rx 7650 gre": 72, "rx 7600 xt": 72, "rx 7600": 70,
 	// RX 6000
+	"rx 7900": 86, "rx 6850 xt": 82, "rx 6850": 80, "rx 6550": 46, "rx 6500": 44,
 	"rx 6950 xt": 89, "rx 6900 xt": 88, "rx 6800 xt": 86, "rx 6800": 83, "rx 6750 xt": 78, "rx 6750 gre": 76,
 	"rx 6700 xt": 77, "rx 6700": 74, "rx 6650 xt": 70, "rx 6600 xt": 68, "rx 6600": 66, "rx 6500 xt": 46, "rx 6400": 40,
 	// RX 5000
@@ -62,7 +79,7 @@ var amd = map[string]int{
 }
 
 var (
-	reNvidia = regexp.MustCompile(`\b(rtx|gtx|gt|mx)\s?(\d{3,4})(?:\s?(ti|super))?(?:\s?(super))?\b`)
+	reNvidia = regexp.MustCompile(`\b(rtx|gtx|gt|mx)\s?(\d{3,4})(m)?(?:\s?(ti|super))?(?:\s?(super))?\b`)
 	reAMD    = regexp.MustCompile(`\brx\s?(\d{3,4})\s?(xtx|xt|gre)?\s?(m|s)?\b`)
 	reArc    = regexp.MustCompile(`\barc\s?(?:pro\s?)?([ab])(\d{3})(m)?\b`)
 	reArcInt = regexp.MustCompile(`\barc\s?(\d{3})([vt])\b`)
@@ -72,7 +89,8 @@ var (
 	reSpazi  = regexp.MustCompile(`\s+`)
 )
 
-var arc = map[string]int{"b580": 72, "b570": 68, "a770": 70, "a750": 66, "a580": 60, "a380": 40, "a310": 32}
+var arc = map[string]int{"b580": 72, "b570": 68, "a770": 70, "a750": 66, "a730": 68, "a580": 60, "a570": 58, "a550": 56,
+	"a530": 52, "a380": 40, "a370": 42, "a350": 36, "a310": 32}
 
 // APU AMD: Radeon 890M, 780M...
 var radeonM = map[string]int{"8060s": 72, "8050s": 64, "8040s": 56, "890m": 44, "880m": 40, "860m": 32, "840m": 24,
@@ -87,9 +105,15 @@ func normalizza(s string) string {
 	return strings.TrimSpace(reSpazi.ReplaceAllString(s, " "))
 }
 
-// VotoGPU: voto 1-100 dal nome e dalla memoria video. noto=false vuol dire stimato solo dalla
-// memoria video (modello che la tabella non conosce).
+// VotoGPU: voto 1-100 dal nome e dalla memoria video, come su un PC fisso. noto=false vuol dire
+// stimato solo dalla memoria video (modello che la tabella non conosce).
 func VotoGPU(nome string, vramMB uint64) (voto int, noto bool) {
+	return VotoGPUPC(nome, vramMB, false)
+}
+
+// VotoGPUPC: come VotoGPU, sapendo se il PC è un portatile (batteria o telaio da portatile).
+// Serve per le schede che sul portatile hanno lo stesso nome della desktop (GTX 10/16, RTX 20).
+func VotoGPUPC(nome string, vramMB uint64, pcPortatile bool) (voto int, noto bool) {
 	n := normalizza(nome)
 	if n == "" {
 		return 0, false
@@ -107,17 +131,30 @@ func VotoGPU(nome string, vramMB uint64) (voto int, noto bool) {
 	}
 	// NVIDIA
 	if m := reNvidia.FindStringSubmatch(n); m != nil {
-		k := m[1] + " " + m[2]
-		if m[3] != "" {
-			k += " " + m[3]
-		}
+		base := m[1] + " " + m[2] + m[3]
+		k := base
 		if m[4] != "" {
 			k += " " + m[4]
 		}
-		if v, ok := nvidia[k]; ok {
-			return meno(v), true
+		if m[5] != "" {
+			k += " " + m[5]
 		}
-		if v, ok := nvidia[m[1]+" "+m[2]]; ok { // variante non in tabella: uso il modello base
+		if portatile && !maxq {
+			if v, ok := nvidiaLaptop[k]; ok {
+				return v, true
+			}
+			if v, ok := nvidiaLaptop[base]; ok {
+				return v, true
+			}
+		}
+		v, ok := nvidia[k]
+		if !ok {
+			v, ok = nvidia[base] // variante non in tabella: uso il modello base
+		}
+		if ok {
+			if pcPortatile && !portatile && !maxq && m[3] == "" && reNomeUguale.MatchString(k) {
+				return limita(v - 4), true
+			}
 			return meno(v), true
 		}
 	}
@@ -264,12 +301,12 @@ func escludi(s Scheda) bool {
 
 // SceltaGPU: con più schede (integrata + dedicata) vale quella con il voto più alto, cioè la
 // dedicata: è quella che usano i giochi. ok=false se non c'è nessuna scheda vera.
-func SceltaGPU(schede []Scheda) (best Scheda, voto int, noto bool, ok bool) {
+func SceltaGPU(schede []Scheda, pcPortatile bool) (best Scheda, voto int, noto bool, ok bool) {
 	for _, s := range schede {
 		if escludi(s) {
 			continue
 		}
-		v, k := VotoGPU(s.Nome, s.VRAMMB)
+		v, k := VotoGPUPC(s.Nome, s.VRAMMB, pcPortatile)
 		if !ok || v > voto || (v == voto && s.VRAMMB > best.VRAMMB) {
 			best, voto, noto, ok = s, v, k, true
 		}

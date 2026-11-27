@@ -17,7 +17,6 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
-	"strconv"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -248,8 +247,11 @@ func runBench(label string) benchResult {
 	emit("onBenchProgress", "Misuro il disco (256 MB di prova, poi li cancello)…")
 	dk, diskMB, ok := diskScoreMB()
 	emit("onBenchProgress", "Guardo la scheda video…")
-	best, gpuV, gpuNoto, gpuOk := votopc.SceltaGPU(schedeVideo())
-	tempMax := tempSottoCarico() // 0 se la temperatura non si legge (e allora niente attesa)
+	schede := schedeVideo()
+	tempMax := 0.0
+	if label == "" { // prima e dopo la pulizia niente prova di temperatura: lì il biglietto non serve
+		tempMax = tempSottoCarico() // 0 se la temperatura non si legge (e allora niente attesa)
+	}
 	res.CPU1, res.CPUN, res.RAM = clampPts(c1/refCPU1), clampPts(cn/refCPUN), clampPts(ram/refRAM)
 	parts := []float64{float64(res.CPU1), float64(res.CPUN), float64(res.RAM)}
 	weights := []float64{0.3, 0.25, 0.15}
@@ -298,11 +300,16 @@ func runBench(label string) benchResult {
 	res.Light = int(math.Round(math.Max(0, light)))
 
 	// Formula 2: voti per parametro e totale (uguali per tutti i PC).
-	info := leggiInfoPC()
+	info := leggiInfoPC() // PowerShell solo alla prima misura, poi dalla memoria
+	best, gpuV, gpuNoto, gpuOk := votopc.SceltaGPU(schede, info.Portatile)
+	ramTipo, ramSaldata := votopc.TipoRAM(info.RAMSMBIOS, info.RAMMTs)
 	if info.RAMGB <= 0 && rt > 0 {
 		info.RAMGB = math.Round(float64(rt) / (1 << 30))
 	}
 	canali := votopc.Canali(info.Banchi)
+	if ramSaldata {
+		canali = 2 // LPDDR saldata: Windows elenca 4-8 "banchi" finti; di solito lavora come un doppio canale
+	}
 	pr := votopc.Parametri{
 		Processore:     votopc.Punti100(votopc.PuntiProcessore(res.CPU1, res.CPUN)),
 		RAM:            votopc.VotoRAM(votopc.Punti100(res.RAM), votopc.VotoCapacita(info.RAMGB), votopc.VotoConfigurazione(info.RAMMTs, canali)),
@@ -317,7 +324,7 @@ func runBench(label string) benchResult {
 		res.GPUName, res.GPUVRAMMB, res.GPUKnown = best.Nome, best.VRAMMB, gpuNoto
 	}
 	res.Formula, res.Params, res.Total = votopc.Formula, &pr, votopc.Totale(pr)
-	rep := risultatoVoto(res, info, canali, diskMB, tempMax)
+	rep := risultatoVoto(res, info, ramTipo, ramSaldata, canali, diskMB, tempMax)
 	res.Report = &rep
 
 	updateSettings(func(s *Settings) {
@@ -354,23 +361,26 @@ func score100(v int) int {
 
 // risultatoVoto: il voto in forma stabile (votopc.Risultato), pronto da salvare o, un domani, da
 // mandare a una classifica. Niente nome utente, nome del PC o numeri di serie.
-func risultatoVoto(r benchResult, in infoPC, canali, diskMB int, tempMax float64) votopc.Risultato {
-	ddr := ""
-	if in.RAMDDR > 0 {
-		ddr = "DDR" + strconv.Itoa(in.RAMDDR)
+func risultatoVoto(r benchResult, in infoPC, ramTipo string, ramSaldata bool, canali, diskMB int, tempMax float64) votopc.Risultato {
+	banchi := in.Banchi
+	if ramSaldata {
+		banchi = 0
 	}
 	out := votopc.Risultato{
 		Formula: votopc.Formula, Data: time.Now().Format(time.RFC3339), Totale: r.Total, Classifica: votopc.Classifica(r.Total),
 		Processore: in.CPU, Core: r.Cores, SchedaVideo: r.GPUName, VRAMGB: math.Round(float64(r.GPUVRAMMB)/1024*10) / 10, SchedaNota: r.GPUKnown,
-		RAMGB: in.RAMGB, RAMTipo: ddr, RAMMTs: in.RAMMTs, RAMBanchi: in.Banchi, RAMCanali: canali,
-		SchedaMadre: in.Board, BIOS: in.BIOS, TempMax: tempMax,
+		RAMGB: in.RAMGB, RAMTipo: ramTipo, RAMMTs: in.RAMMTs, RAMBanchi: banchi, RAMSaldata: ramSaldata, RAMCanali: canali,
+		SchedaMadre: in.Board, BIOS: in.BIOS, TempMax: tempMax, Portatile: in.Portatile,
 	}
 	if r.Params != nil {
 		out.Parametri = *r.Params
 		out.Potenza = votopc.Potenza(*r.Params)
 	}
 	if !r.DiskSkip {
-		out.Disco, out.DiscoMBs = votopc.TipoDisco(r.Disk), diskMB
+		out.Disco, out.DiscoMBs = in.Disco, diskMB
+		if out.Disco == "" { // Windows non l'ha detto: stima dalla velocità misurata
+			out.Disco, out.DiscoStimato = votopc.TipoDisco(r.Disk), true
+		}
 	}
 	return out
 }

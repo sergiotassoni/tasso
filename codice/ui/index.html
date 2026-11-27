@@ -823,7 +823,7 @@ body.th-neonrgb .gmask .eye{filter:drop-shadow(0 0 8px rgba(199,125,255,.55))}
     <div class="card" style="display:flex;flex-direction:column;gap:14px">
       <div class="row wrap" style="justify-content:space-between"><div><h2>Voto al PC</h2><p class="sub" style="margin:2px 0 0" id="bnMsg">Controlla tutto il PC in circa 25 secondi: processore, scheda video, memoria RAM, disco e quanto è leggero Windows. Ogni voto va da 1 a 100, poi il voto totale.</p></div><div class="row wrap" style="gap:10px"><button class="btn ghost" id="btnVotoCard" style="display:none"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px;vertical-align:-3px" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg>Rivedi il biglietto</button><button class="btn primary" id="btnBench">Misura il voto</button></div></div>
       <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(min(190px,100%),1fr));gap:12px" id="bnNow"></div>
-      <button role="switch" aria-checked="false" class="toggle" id="tgBenchAround"><span><b>Misura da solo prima e dopo ogni pulizia</b><span>Così vedi subito cosa è cambiato (la pulizia dura circa 40 secondi in più).</span></span><span class="sw"><i></i></span></button>
+      <button role="switch" aria-checked="false" class="toggle" id="tgBenchAround"><span><b>Misura da solo prima e dopo ogni pulizia</b><span>Così vedi subito cosa è cambiato (la pulizia dura circa 50 secondi in più).</span></span><span class="sw"><i></i></span></button>
       <details class="guide"><summary>📘 Cosa vogliono dire i voti</summary>
         <ul>
           <li><b>Processore, memoria RAM e disco</b> (da 1 a 100: 70 è un PC da gioco medio di oggi, e ogni volta che la velocità raddoppia il voto sale di 25): misurati davvero con una prova di pochi secondi. La RAM conta anche quanta ce n'è e come è montata (velocità in MT/s e numero di banchi). Dipendono dai componenti: <b>una pulizia li cambia poco</b>, e chi ti promette il contrario ti prende in giro.</li>
@@ -2972,9 +2972,10 @@ function votoRows(r){
   const ram = [];
   if (rp.ramGB) ram.push(gbTxt(rp.ramGB) + (rp.ramTipo ? ' ' + rp.ramTipo : ''));
   if (rp.ramMTs) ram.push(rp.ramMTs + ' MT/s');
-  if (rp.ramBanchi) ram.push(rp.ramBanchi + (rp.ramBanchi === 1 ? _t(' banco (canale singolo)') : _t(' banchi (doppio canale)')));
+  if (rp.ramSaldata) ram.push(_t('saldata sulla scheda madre'));
+  else if (rp.ramBanchi) ram.push(rp.ramBanchi + (rp.ramBanchi === 1 ? _t(' banco (canale singolo)') : _t(' banchi (doppio canale)')));
   rows.push([_t('Memoria RAM'), p.ram, ram.length ? ram.join(' · ') : _t('velocità misurata ') + v100(r.ram)]);
-  rows.push([_t('Disco'), p.disco || null, r.diskSkip ? _t('saltato (poco spazio)') : (diskKind(rp.disco) + (rp.discoMBs ? _t(' · lettura ') + Number(rp.discoMBs).toLocaleString(LANG) + ' MB/s' : ''))]);
+  rows.push([_t('Disco'), p.disco || null, r.diskSkip ? _t('saltato (poco spazio)') : ((rp.discoStimato && rp.disco ? _t('probabilmente ') : '') + diskKind(rp.disco) + (rp.discoMBs ? _t(' · lettura ') + Number(rp.discoMBs).toLocaleString(LANG) + ' MB/s' : ''))]);
   rows.push([_t('Leggerezza di Windows'), p.leggerezza, _t('Memoria usata ') + (Number(r.ramPct) || 0) + '% · ' + (Number(r.procs) || 0) + _t(' processi · ') + (Number(r.startup) || 0) + _t(' all\'avvio · libero ') + (Number(r.freePct) || 0) + _t('% · inutili ') + String(Number(r.junkGB) || 0).replace('.', DEC) + ' GB']);
   if (p.raffreddamento > 0) rows.push([_t('Raffreddamento'), p.raffreddamento, _t('Processore a ') + Math.round(rp.tempMax || 0) + _t(' °C sotto carico · non conta nel totale')]);
   return rows;
@@ -2993,7 +2994,7 @@ function paintBench(r, b, hist){
     benchTile(_t('Leggerezza di Windows'), '<span style="color:' + lc + '">' + Math.max(1, r.light) + '</span>', _t('Memoria usata ') + (Number(r.ramPct) || 0) + '% · ' + (Number(r.procs) || 0) + _t(' processi · ') + (Number(r.startup) || 0) + _t(' all\'avvio · libero ') + (Number(r.freePct) || 0) + _t('% · inutili ') + String(Number(r.junkGB) || 0).replace('.', DEC) + ' GB', b && Math.max(1, b.light)));
   LAST_BENCH = r; const rv = $('#btnVotoCard'); if (rv) rv.style.display = '';
   const h = (hist || []).slice(-6).reverse();
-  $('#bnHist').innerHTML = h.length > 1 ? _t('<div class="small muted" style="margin-bottom:6px">Ultime misure</div><div class="list">') + h.map(x => '<div class="li" style="min-height:40px"><span class="x"><b>' + esc(x.when) + (x.label ? ' · ' + (x.label === 'prima' ? _t('prima della pulizia') : x.label === 'dopo' ? _t('dopo la pulizia') : esc(x.label)) : '') + _t('</b></span><span class="mono small">totale ') + totalOf(x) + _t(' · componenti ') + v100(x.score) + _t(' · leggerezza ') + Math.max(1, Number(x.light) || 1) + '</span></div>').join('') + '</div>' : '';
+  $('#bnHist').innerHTML = h.length > 1 ? _t('<div class="small muted" style="margin-bottom:6px">Ultime misure</div><div class="list">') + h.map(x => '<div class="li" style="min-height:40px"><span class="x"><b>' + esc(x.when) + (x.label ? ' · ' + (x.label === 'prima' ? _t('prima della pulizia') : x.label === 'dopo' ? _t('dopo la pulizia') : esc(x.label)) : '') + _t('</b></span><span class="mono small">totale ') + totalOf(x) + (x.formula >= 2 && x.report ? _t(' · potenza ') + x.report.potenza : _t(' · componenti ') + v100(x.score)) + _t(' · leggerezza ') + Math.max(1, Number(x.light) || 1) + '</span></div>').join('') + '</div>' : '';
 }
 // Riquadri della formula 2: un riquadro per parametro (la scheda video con l'etichetta NUOVO).
 function votoTiles(r, b){
@@ -3020,7 +3021,8 @@ function votoNota(r){
 // La pubblicazione nella classifica online arriverà quando ci sarà il server: per ora resta spenta.
 const CLASSIFICA_ATTIVA = false;
 let LAST_BENCH = null, BENCH_MANUAL = false;
-function cssVar(n){ return getComputedStyle(document.documentElement).getPropertyValue(n).trim() || getComputedStyle(document.body).getPropertyValue(n).trim(); }
+// Dal body: i font del tema (--display, --body) cambiano su body (Gaming/Ufficio), i colori arrivano per eredità.
+function cssVar(n){ return getComputedStyle(document.body).getPropertyValue(n).trim(); }
 function cardColors(){
   const t = THEMES.find(x => x.id === curTheme()) || THEMES[0];
   const stops = String(t.g || '').match(/#[0-9a-fA-F]{6}\b/g) || [];
@@ -3046,7 +3048,7 @@ function cardLogoSrc(){
 function loadImg(src){ return new Promise(res => { if (!src) return res(null); const i = new Image(); i.onload = () => res(i); i.onerror = () => res(null); i.src = src; }); }
 async function drawVotoCard(r, fmt){
   const V = fmt === 'v', W = 1080, H = V ? 1920 : 1080, C = cardColors();
-  try { await Promise.all([document.fonts.load('800 100px ' + C.display), document.fonts.load('600 40px ' + C.body)]); } catch (e) {}
+  try { await document.fonts.ready; await Promise.all([document.fonts.load('800 100px ' + C.display), document.fonts.load('600 40px ' + C.body), document.fonts.load('400 30px ' + C.body)]); } catch (e) {}
   const logo = await loadImg(cardLogoSrc());
   const cv = document.createElement('canvas'); cv.width = W; cv.height = H;
   const g = cv.getContext('2d');
@@ -3120,11 +3122,12 @@ async function openVotoCard(r){
   let fmt = 'q';
   const wrap = (c, f, w, h, label) => { c.style.cssText = 'width:' + w + 'px;height:' + h + 'px;display:block;border-radius:12px'; const d = el('button', {class:'votofmt', 'data-f': f, 'aria-pressed': f === fmt ? 'true' : 'false', style:'background:none;border:0;padding:0;cursor:pointer;display:flex;flex-direction:column;gap:8px;align-items:center;color:inherit;font:inherit'}); d.appendChild(c); d.appendChild(el('span', {class:'small'}, label)); return d; };
   const pub = CLASSIFICA_ATTIVA ? '<div style="border-top:1px solid var(--line);padding-top:12px;display:flex;flex-direction:column;gap:8px"><b>' + _t('Pubblica i tuoi risultati') + '</b><span class="small muted">' + _t('Scrivi un nome e ti trovi nella classifica sul sito di Tasso. Va solo il voto, con il nome che scegli tu.') + '</span><div class="row" style="gap:8px"><input id="votoNome" maxlength="24" style="flex:1" placeholder="' + esc(_t('Il tuo nome nella classifica')) + '"><button class="btn primary" id="votoPub">' + _t('Pubblica') + '</button></div></div>' : '';
-  const busy = (fn) => async (box) => { const c = fmt === 'v' ? v : q; const res = await fn(c.toDataURL('image/png')); return res; };
+  // modal() chiude la finestra se fn non restituisce subito 'keep': il lavoro va avanti da solo.
+  const busy = (fn) => () => { const c = fmt === 'v' ? v : q; fn(c.toDataURL('image/png')); return 'keep'; };
   modal('<h2>' + _t('Il tuo biglietto da visita') + '</h2><p class="muted" style="margin:0">' + _t('Il voto del tuo PC, pronto da mandare agli amici. Quadrato per i post, verticale per le storie. Dentro ci sono solo i voti e i componenti, niente dati personali.') + '</p><div id="votoPrev" style="display:flex;gap:22px;justify-content:center;flex-wrap:wrap;padding:4px 0"></div>' + pub, [
     {label: _t('Chiudi')},
-    {label: _t('Salva'), fn: busy(async (u) => { const x = await call('goVotoSalva', u, fmt === 'v' ? 'verticale' : 'quadrata'); toast(x === 'ok' ? _t('Salvato in Immagini\\Tasso.') : _t('Non sono riuscito a salvare l\'immagine.'), x === 'ok' ? 'var(--a1)' : 'var(--a4)'); return 'keep'; })},
-    {label: _t('Copia immagine'), cls: 'primary', fn: busy(async (u) => { const x = await call('goVotoCopia', u); toast(x === 'ok' ? _t('Immagine copiata: incollala dove vuoi con Ctrl+V.') : _t('Non sono riuscito a copiare l\'immagine.'), x === 'ok' ? 'var(--a1)' : 'var(--a4)'); return 'keep'; })}
+    {label: _t('Salva'), fn: busy(async (u) => { const x = await call('goVotoSalva', u, fmt === 'v' ? 'verticale' : 'quadrata'); toast(x === 'ok' ? _t('Salvato in Immagini\\Tasso.') : _t('Non sono riuscito a salvare l\'immagine.'), x === 'ok' ? 'var(--a1)' : 'var(--a4)'); })},
+    {label: _t('Copia immagine'), cls: 'primary', fn: busy(async (u) => { const x = await call('goVotoCopia', u); toast(x === 'ok' ? _t('Immagine copiata: incollala dove vuoi con Ctrl+V.') : _t('Non sono riuscito a copiare l\'immagine.'), x === 'ok' ? 'var(--a1)' : 'var(--a4)'); })}
   ]);
   const box = $('#modalBox'); box.style.maxWidth = '780px';
   const prev = $('#votoPrev');
@@ -3136,7 +3139,7 @@ async function openVotoCard(r){
   const pb = $('#votoPub'); if (pb) pb.onclick = () => toast(_t('La classifica online arriva presto.'), 'var(--a3)');
 }
 $('#btnVotoCard').onclick = () => openVotoCard();
-$('#btnBench').onclick = async () => { const r = await call('goBench'); if (r === 'busy') { toast(_t('Sto già misurando.'), 'var(--a4)'); return; } BENCH_MANUAL = true; $('#btnBench').disabled = true; $('#bnMsg').textContent = _t('Misuro… non usare il PC per 20 secondi.'); };
+$('#btnBench').onclick = async () => { const r = await call('goBench'); if (r === 'busy') { toast(_t('Sto già misurando.'), 'var(--a4)'); return; } BENCH_MANUAL = true; $('#btnBench').disabled = true; $('#bnMsg').textContent = _t('Misuro… non usare il PC per circa 25 secondi (fino a 40 se misuro anche il raffreddamento).'); };
 $('#tgBenchAround').onclick = async () => { const on = !S.benchAround; await call('goSetBenchAround', on); S.benchAround = on; setToggle('#tgBenchAround', on, false); toast(on ? _t('Misurerò il voto prima e dopo ogni pulizia.') : _t('Voto automatico spento.')); };
 (async () => { const h = await call('goBenchHistory'); if (h && h.length) paintBench(h[h.length - 1], null, h); setToggle('#tgBenchAround', !!S.benchAround, false); })();
 async function undoRefresh(){ paintUndo(await call('goChanges')); }

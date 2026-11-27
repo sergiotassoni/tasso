@@ -3536,7 +3536,6 @@
   "Cosa Tasso non fa, apposta": "What Tasso doesn't do, on purpose",
   "Cosa c'è nel profilo (tocca per cambiare)": "What's in the profile (click to change)",
   "Cosa cambia davvero tra le modalità": "What really changes between modes",
-  "Così vedi subito cosa è cambiato (la pulizia dura circa 40 secondi in più).": "This way you see right away what changed (the cleanup takes about 40 seconds longer).",
   "Crea": "Create",
   "Crea il tuo portachiavi": "Create your vault",
   "Ctrl + Maiusc + F12": "Ctrl + Shift + F12",
@@ -3748,7 +3747,6 @@
   "Misura il voto": "Measure the score",
   "Misura quanto va il PC in circa 20 secondi. Tutti i voti vanno da 1 a 100: la velocità dei componenti, quanto è leggero Windows e il voto totale.": "Measures how fast your PC is in about 20 seconds. All scores go from 1 to 100: component speed, how light Windows is, and the overall score.",
   "Misurerò il voto prima e dopo ogni pulizia.": "I'll measure the score before and after every cleanup.",
-  "Misuro… non usare il PC per 20 secondi.": "Measuring… don't use the PC for 20 seconds.",
   "Modalità": "Modes",
   "Modalità Ufficio attiva. Il PC però è ancora in modalità ": "Office mode is on. But the PC is still in ",
   "Modalità Ufficio: Tasso più semplice e tranquillo.": "Office mode: Tasso is simpler and calmer.",
@@ -5359,6 +5357,11 @@
   ": Tasso legge il modello e la memoria video e le dà un voto con una sua tabella, senza scaricare niente. Se il PC ha due schede (quella dentro il processore e quella vera) conta quella vera, cioè quella che usano i giochi.": ": Tasso reads the model and the video memory and gives it a score using its own table, without downloading anything. If the PC has two cards (the one inside the processor and the real one), the real one counts, that is the one games use.",
   ": compare solo se Tasso riesce a leggere la temperatura del processore (con LibreHardwareMonitor aperto). Non conta nel voto totale, perché dipende anche da quanto è calda la stanza.": ": appears only if Tasso can read the processor temperature (with LibreHardwareMonitor open). It does not count in the total score, because it also depends on how warm the room is.",
   ": 60% potenza del PC e 40% leggerezza di Windows. La potenza è la media di processore (35%), scheda video (25%), disco (25%) e memoria RAM (15%). Il conto è uguale per tutti, in Gaming e in Ufficio, così puoi confrontare il tuo PC con quello degli amici. Fasce: sotto 40 PC lento, 40-59 PC da ufficio, 60-79 buon PC, 80-94 PC veloce, da 95 in su top.": ": 60% PC power and 40% Windows lightness. Power is the average of processor (35%), graphics card (25%), disk (25%) and RAM (15%). The calculation is the same for everyone, in Gaming and in Office, so you can compare your PC with your friends' PCs. Ranges: below 40 = slow PC, 40-59 = office PC, 60-79 = good PC, 80-94 = fast PC, 95 and up = top tier.",
-  "Controlla tutto il PC in circa 25 secondi: processore, scheda video, memoria RAM, disco e quanto è leggero Windows. Ogni voto va da 1 a 100, poi il voto totale.": "Checks the whole PC in about 25 seconds: processor, graphics card, RAM, disk and how light Windows is. Each score goes from 1 to 100, then the total score."
+  "Controlla tutto il PC in circa 25 secondi: processore, scheda video, memoria RAM, disco e quanto è leggero Windows. Ogni voto va da 1 a 100, poi il voto totale.": "Checks the whole PC in about 25 seconds: processor, graphics card, RAM, disk and how light Windows is. Each score goes from 1 to 100, then the total score.",
+  "saldata sulla scheda madre": "soldered to the motherboard",
+  "probabilmente ": "probably ",
+  " · potenza ": " · power ",
+  "Così vedi subito cosa è cambiato (la pulizia dura circa 50 secondi in più).": "So you can see right away what changed (the cleanup takes about 50 seconds longer).",
+  "Misuro… non usare il PC per circa 25 secondi (fino a 40 se misuro anche il raffreddamento).": "Measuring… don't use the PC for about 25 seconds (up to 40 if I also measure the cooling)."
  }
 }

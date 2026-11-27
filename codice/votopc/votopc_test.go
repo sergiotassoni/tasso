@@ -29,6 +29,18 @@ func TestVotoGPUTabella(t *testing.T) {
 		{"Intel(R) Arc(TM) 140V GPU (16GB)", 128, 38, 42},
 		{"Intel(R) HD Graphics 4000", 64, 7, 11},
 		{"NVIDIA GeForce MX450", 2048, 22, 26},
+		{"NVIDIA GeForce GTX 980M", 4096, 38, 42},
+		{"NVIDIA GeForce GTX 960M", 2048, 20, 24},
+		{"NVIDIA GeForce RTX 2050", 4096, 38, 42},
+		{"NVIDIA GeForce RTX 4090 Laptop GPU", 16376, 86, 90},
+		{"NVIDIA GeForce RTX 3080 Laptop GPU", 16384, 75, 79},
+		{"Intel(R) Arc(TM) A730M Graphics", 12288, 58, 62},
+		{"Intel(R) Arc(TM) A550M Graphics", 8192, 46, 50},
+		{"Intel(R) Arc(TM) A370M Graphics", 4096, 32, 36},
+		{"AMD Radeon RX 6500M", 4096, 36, 40},
+		{"AMD Radeon RX 6550M", 4096, 38, 42},
+		{"AMD Radeon RX 6850M XT", 12288, 74, 78},
+		{"AMD Radeon RX 7900M", 16384, 78, 82},
 	}
 	for _, c := range casi {
 		v, noto := VotoGPU(c.nome, c.vram)
@@ -57,21 +69,21 @@ func TestSceltaDedicataSullIntegrata(t *testing.T) {
 		{Nome: "NVIDIA GeForce GTX 1660 Ti", VRAMMB: 6144, Vendor: 0x10DE},
 		{Nome: "Microsoft Basic Render Driver", Vendor: 0x1414, Software: true},
 	}
-	s, v, _, ok := SceltaGPU(schede)
+	s, v, _, ok := SceltaGPU(schede, false)
 	if !ok || s.Vendor != 0x10DE || v != 60 {
 		t.Fatalf("doveva scegliere la GTX 1660 Ti, ha scelto %q (%d)", s.Nome, v)
 	}
 	// Ordine diverso, stesso risultato.
-	s, _, _, _ = SceltaGPU([]Scheda{schede[1], schede[0]})
+	s, _, _, _ = SceltaGPU([]Scheda{schede[1], schede[0]}, false)
 	if s.Vendor != 0x10DE {
 		t.Fatalf("l'ordine non deve contare: %q", s.Nome)
 	}
 	// Solo adattatori finti: nessuna scheda.
-	if _, _, _, ok := SceltaGPU([]Scheda{schede[2], {Nome: "Parsec Virtual Display Adapter"}}); ok {
+	if _, _, _, ok := SceltaGPU([]Scheda{schede[2], {Nome: "Parsec Virtual Display Adapter"}}, false); ok {
 		t.Fatal("gli adattatori finti non sono schede video")
 	}
 	// AMD integrata + AMD dedicata.
-	s, _, _, _ = SceltaGPU([]Scheda{{Nome: "AMD Radeon(TM) Graphics", VRAMMB: 512, Vendor: 0x1002}, {Nome: "AMD Radeon RX 6600M", VRAMMB: 8176, Vendor: 0x1002}})
+	s, _, _, _ = SceltaGPU([]Scheda{{Nome: "AMD Radeon(TM) Graphics", VRAMMB: 512, Vendor: 0x1002}, {Nome: "AMD Radeon RX 6600M", VRAMMB: 8176, Vendor: 0x1002}}, false)
 	if s.Nome != "AMD Radeon RX 6600M" {
 		t.Fatalf("doveva scegliere la RX 6600M, ha scelto %q", s.Nome)
 	}
@@ -159,5 +171,46 @@ func TestVotoRaffreddamento(t *testing.T) {
 	q.Raffreddamento = 15
 	if Totale(p) != Totale(q) {
 		t.Error("il raffreddamento non deve cambiare il voto totale")
+	}
+}
+
+func TestPortatileConNomeDaDesktop(t *testing.T) {
+	// Stesso nome della desktop: sul portatile 4 punti in meno.
+	if v, _ := VotoGPUPC("NVIDIA GeForce GTX 1660 Ti", 6144, true); v != 56 {
+		t.Errorf("GTX 1660 Ti su portatile: %d, atteso 56", v)
+	}
+	if v, _ := VotoGPUPC("NVIDIA GeForce RTX 2070", 8192, true); v != 68 {
+		t.Errorf("RTX 2070 su portatile: %d, atteso 68", v)
+	}
+	// Le RTX 30/40 hanno già "Laptop GPU": niente doppia riduzione.
+	a, _ := VotoGPUPC("NVIDIA GeForce RTX 3060 Laptop GPU", 6144, true)
+	b, _ := VotoGPUPC("NVIDIA GeForce RTX 3060 Laptop GPU", 6144, false)
+	if a != b || a != 66 {
+		t.Errorf("RTX 3060 Laptop: %d / %d", a, b)
+	}
+	// Una desktop RTX 4070 su un PC fisso resta 86; le integrate non cambiano.
+	if v, _ := VotoGPUPC("NVIDIA GeForce RTX 4070", 12282, false); v != 86 {
+		t.Errorf("RTX 4070 fissa: %d", v)
+	}
+	if v, _ := VotoGPUPC("Intel(R) UHD Graphics 620", 128, true); v != 12 {
+		t.Errorf("UHD 620 su portatile: %d", v)
+	}
+	s, v, _, _ := SceltaGPU([]Scheda{{Nome: "Intel(R) UHD Graphics 630", VRAMMB: 128}, {Nome: "NVIDIA GeForce GTX 1660 Ti", VRAMMB: 6144}}, true)
+	if s.Nome != "NVIDIA GeForce GTX 1660 Ti" || v != 56 {
+		t.Errorf("portatile con Optimus: %q %d", s.Nome, v)
+	}
+}
+
+func TestTipoRAM(t *testing.T) {
+	casi := []struct {
+		cod, mts int
+		tipo     string
+		saldata  bool
+	}{{26, 3200, "DDR4", false}, {34, 6000, "DDR5", false}, {24, 1600, "DDR3", false}, {29, 2133, "LPDDR3", true},
+		{30, 3200, "LPDDR4", true}, {30, 4267, "LPDDR4X", true}, {35, 6400, "LPDDR5", true}, {35, 7467, "LPDDR5X", true}, {0, 0, "", false}}
+	for _, c := range casi {
+		if tp, sd := TipoRAM(c.cod, c.mts); tp != c.tipo || sd != c.saldata {
+			t.Errorf("TipoRAM(%d, %d) = %q %v", c.cod, c.mts, tp, sd)
+		}
 	}
 }

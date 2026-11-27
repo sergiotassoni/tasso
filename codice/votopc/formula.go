@@ -94,27 +94,30 @@ func Classifica(tot int) string {
 // Risultato: il voto in forma stabile, pronto per essere salvato o, un domani, mandato a una
 // classifica. Niente dati personali: nessun nome utente, nome del PC o numero di serie.
 type Risultato struct {
-	Formula     int       `json:"formula"`
-	Data        string    `json:"data"` // RFC 3339
-	Totale      int       `json:"totale"`
-	Classifica  string    `json:"classifica"`
-	Potenza     int       `json:"potenza"`
-	Parametri   Parametri `json:"parametri"`
-	Processore  string    `json:"processore"`
-	Core        int       `json:"core"`
-	SchedaVideo string    `json:"schedaVideo"`
-	VRAMGB      float64   `json:"vramGB"`
-	SchedaNota  bool      `json:"schedaNota"` // false = voto stimato dalla memoria video
-	RAMGB       float64   `json:"ramGB"`
-	RAMTipo     string    `json:"ramTipo,omitempty"` // "DDR4", "DDR5"...
-	RAMMTs      int       `json:"ramMTs,omitempty"`  // velocità effettiva in MT/s
-	RAMBanchi   int       `json:"ramBanchi,omitempty"`
-	RAMCanali   int       `json:"ramCanali,omitempty"`   // stimati dal numero di banchi
-	Disco       string    `json:"disco"`                 // "nvme", "ssd", "hdd" (stimato dalla velocità misurata), "" se saltato
-	DiscoMBs    int       `json:"discoMBs,omitempty"`    // lettura sequenziale misurata
-	SchedaMadre string    `json:"schedaMadre,omitempty"` // solo informazione, senza voto
-	BIOS        string    `json:"bios,omitempty"`
-	TempMax     float64   `json:"tempMax,omitempty"` // °C del processore sotto carico, se letta
+	Formula      int       `json:"formula"`
+	Data         string    `json:"data"` // RFC 3339
+	Totale       int       `json:"totale"`
+	Classifica   string    `json:"classifica"`
+	Potenza      int       `json:"potenza"`
+	Parametri    Parametri `json:"parametri"`
+	Processore   string    `json:"processore"`
+	Core         int       `json:"core"`
+	SchedaVideo  string    `json:"schedaVideo"`
+	VRAMGB       float64   `json:"vramGB"`
+	SchedaNota   bool      `json:"schedaNota"` // false = voto stimato dalla memoria video
+	RAMGB        float64   `json:"ramGB"`
+	RAMTipo      string    `json:"ramTipo,omitempty"` // "DDR4", "DDR5"...
+	RAMMTs       int       `json:"ramMTs,omitempty"`  // velocità effettiva in MT/s
+	RAMBanchi    int       `json:"ramBanchi,omitempty"`
+	RAMSaldata   bool      `json:"ramSaldata,omitempty"`   // LPDDR saldata sulla scheda madre: niente banchi
+	RAMCanali    int       `json:"ramCanali,omitempty"`    // stimati dal numero di banchi
+	Disco        string    `json:"disco"`                  // "nvme", "ssd", "hdd" (stimato dalla velocità misurata), "" se saltato
+	DiscoStimato bool      `json:"discoStimato,omitempty"` // tipo stimato dalla velocità (Windows non l'ha detto)
+	DiscoMBs     int       `json:"discoMBs,omitempty"`     // lettura sequenziale misurata
+	Portatile    bool      `json:"portatile,omitempty"`
+	SchedaMadre  string    `json:"schedaMadre,omitempty"` // solo informazione, senza voto
+	BIOS         string    `json:"bios,omitempty"`
+	TempMax      float64   `json:"tempMax,omitempty"` // °C del processore sotto carico, se letta
 }
 
 // TipoDisco: dalla velocità misurata (punti, 1000 = SSD NVMe medio).
@@ -131,6 +134,37 @@ func TipoDisco(punti int) string {
 }
 
 // ---------------- Memoria RAM ----------------
+
+// TipoRAM: il nome dal codice SMBIOS (Win32_PhysicalMemory.SMBIOSMemoryType) e dalla velocità.
+// LPDDR4X e LPDDR5X hanno lo stesso codice di LPDDR4 e LPDDR5: si riconoscono dalla velocità,
+// oltre il massimo ufficiale delle versioni senza X (3200 e 6400 MT/s).
+func TipoRAM(smbios, mts int) (tipo string, saldata bool) {
+	switch smbios {
+	case 24:
+		return "DDR3", false
+	case 26:
+		return "DDR4", false
+	case 34:
+		return "DDR5", false
+	case 27:
+		return "LPDDR", true
+	case 28:
+		return "LPDDR2", true
+	case 29:
+		return "LPDDR3", true
+	case 30:
+		if mts > 3200 {
+			return "LPDDR4X", true
+		}
+		return "LPDDR4", true
+	case 35:
+		if mts > 6400 {
+			return "LPDDR5X", true
+		}
+		return "LPDDR5", true
+	}
+	return "", false
+}
 
 // Canali: con 2 o più banchi la memoria lavora quasi sempre in doppio canale (stima: Windows non
 // lo dice). 0 = non so.
