@@ -100,8 +100,17 @@ func askRunningInstance(level string) bool {
 	if n, err := strconv.Atoi(level); err != nil || n < 1 || n > 5 {
 		return false
 	}
-	appDir = filepath.Join(os.Getenv("LOCALAPPDATA"), "Tasso")
-	if os.WriteFile(autoReqPath(), []byte(level), 0o600) != nil {
+	// la cartella vera di Windows, non la variabile d'ambiente; e niente collegamenti o giunzioni
+	// (F20-6: questo Tasso può girare da amministratore, la cartella è dell'utente)
+	if la := cartellaNota(windows.FOLDERID_LocalAppData); la != "" {
+		appDir = filepath.Join(la, "Tasso")
+	} else {
+		appDir = filepath.Join(os.Getenv("LOCALAPPDATA"), "Tasso")
+	}
+	if controllaPercorsoApp(appDir) == nil {
+		_ = os.Remove(autoReqPath()) // un collegamento al suo posto si toglie, non si segue
+	}
+	if scriviFileApp(autoReqPath(), []byte(level), 0o600) != nil {
 		return false
 	}
 	name, _ := windows.UTF16PtrFromString("Local\\TassoAutoRun")

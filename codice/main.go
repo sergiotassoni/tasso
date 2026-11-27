@@ -641,11 +641,20 @@ func bindAll(w webview2.WebView) {
 	_ = w.Bind("goTogliTassoInfo", func() map[string]interface{} { return togliTassoInfo() })
 	_ = w.Bind("goTogliTasso", func(rimetti bool) string {
 		return async("uninstall-tasso", func() {
-			err := togliTasso(rimetti, func(i int, t string) { emit("onTogliTasso", map[string]interface{}{"step": i, "text": t}) })
+			avvisi := false // F14-6: con un avviso da leggere Tasso non si chiude dopo 10 secondi
+			err := togliTasso(rimetti, func(i int, t string) {
+				av := strings.HasPrefix(t, avvisoTogli)
+				avvisi = avvisi || av
+				emit("onTogliTasso", map[string]interface{}{"step": i, "text": strings.TrimPrefix(t, avvisoTogli), "avviso": av})
+			})
 			eco, _ := disinstAllaChiusura.Load().(string)
-			emit("onTogliTasso", map[string]interface{}{"done": err == "", "error": err, "eco": err == "" && eco != ""})
+			emit("onTogliTasso", map[string]interface{}{"done": err == "", "error": err, "eco": err == "" && eco != "", "avvisi": avvisi})
 			if err == "" {
-				time.Sleep(10 * time.Second)
+				attesa := 10 * time.Second
+				if avvisi {
+					attesa = 10 * time.Minute // si chiude con "Chiudi adesso" (il comando che cancella aspetta 15 minuti)
+				}
+				time.Sleep(attesa)
 				wv.Dispatch(func() { wv.Terminate() })
 				// se la finestra non si chiude, il comando che cancella aspetterebbe invano: esco comunque
 				time.Sleep(20 * time.Second)
@@ -655,7 +664,33 @@ func bindAll(w webview2.WebView) {
 		})
 	})
 	_ = w.Bind("goQuit", func() string {
+		// F14-5: come "Chiudi Tasso" dal menu dell'icona, non a metà di una pulizia, di un
+		// aggiornamento o di una traduzione che si sta installando in un gioco
+		if tassoNonSiChiude() {
+			switch {
+			case traduce.StaInstallando():
+				return "Tasso sta installando una traduzione in un gioco: aspetta che finisca, poi chiudi Tasso."
+			case updating.Load():
+				return "Tasso si sta aggiornando: aspetta che finisca, poi chiudi Tasso."
+			}
+			return "Aspetta la fine della pulizia prima di chiudere."
+		}
 		chiudiTasso()
+		return "ok"
+	})
+	// F14-7: un avviso intelligente con Tasso nascosto vicino all'orologio o ridotto a icona arriva
+	// anche come avviso di Windows (dentro la finestra non lo vedresti). Con la finestra davanti no.
+	_ = w.Bind("goAvvisoTray", func(testo string) string {
+		if wv == nil || testo == "" {
+			return "no"
+		}
+		h := uintptr(wv.Window())
+		vis, _, _ := pIsWindowVisible.Call(h)
+		ic, _, _ := pIsIconic.Call(h)
+		if vis != 0 && ic == 0 {
+			return "no"
+		}
+		trayAvviso("Tasso", testo, true)
 		return "ok"
 	})
 	_ = w.Bind("goStartupList", func() string { return async("startup", startupList) })

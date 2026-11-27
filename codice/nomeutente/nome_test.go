@@ -30,7 +30,9 @@ func TestControlla(t *testing.T) {
 		"გიო", "Nguyễn", "さくら", "サクラ", "민수", "Արա",
 		// 3.2: anche le altre scritture delle lingue vive
 		"தமிழ்செல்வி", "সৌমিত্র", "ਗੁਰਪ੍ਰੀਤ", "ಕನ್ನಡ", "മലയാളം", "ලංකා", "ኃይሌ", "አበበ", "佐々木", "々子", "ကြွေး",
-		"ᱥᱟᱱᱛᱟᱲᱤ", "\U0001e900\U0001e923\U0001e924", "ລາວ", "ཀྲ", "ខ្មែរ", "ᏣᎳᎩ", "ꦗꦮ", "\U00020bb7野", "Kɔfi", "ⵜⴰⵎⴰⵣⵉⵖⵜ", "ꆈꌠ"}
+		"ᱥᱟᱱᱛᱟᱲᱤ", "\U0001e900\U0001e923\U0001e924", "ລາວ", "ཀྲ", "ខ្មែរ", "ᏣᎳᎩ", "ꦗꦮ", "\U00020bb7野", "Kɔfi", "ⵜⴰⵎⴰⵣⵉⵖⵜ", "ꆈꌠ",
+		// l'apostrofo, dritto o tipografico, è di nomi veri (CTRL-FIN-14 F14-21)
+		"D'Angelo", "D’Amico", "O'Brien", "Ser'gio", "L'é"}
 	for _, s := range buoni {
 		if e := Controlla(s); e.Codice != OK {
 			t.Errorf("Controlla(%q) = %+v, doveva andare bene", s, e)
@@ -47,7 +49,6 @@ func TestControlla(t *testing.T) {
 		{"Sergio★", Simbolo, "★"},
 		{"<b>Ciao</b>", Simbolo, "<"},
 		{"Ser\"gio", Simbolo, "\""},
-		{"Ser'gio", Simbolo, "'"},
 		{"a&b", Simbolo, "&"},
 		{"Sergio\U0001f600", Simbolo, "\U0001f600"},
 		{"Ser/gio", Simbolo, "/"},
@@ -80,6 +81,10 @@ func TestControlla(t *testing.T) {
 		{"a" + strings.Repeat("\u0301", 19), Accenti, ""},
 		{"..", Senza, ""},
 		{"-_ .", Senza, ""},
+		{"''", Senza, ""},
+		{"’ '", Senza, ""},
+		{"'\u0301a", Accenti, ""},
+		{"Ser`gio", Simbolo, "`"},
 		{"ab\xff", Invisibile, ""},
 	}
 	for _, c := range cattivi {

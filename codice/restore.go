@@ -5,6 +5,7 @@ package main
 import (
 	"encoding/json"
 	"math"
+	"path/filepath"
 	"regexp"
 	"sort"
 	"strconv"
@@ -61,16 +62,39 @@ func rememberStartup(scope, name string, newState bool) {
 }
 
 // restoreOriginal rimette le impostazioni di Windows com'erano prima di Tasso.
-// ok = false se non ha potuto rimettere tutto (Tasso occupato o script non arrivato alla fine).
-func restoreOriginal() (msgs []string, ok bool) {
-	msgs, ok, avvioNo := restoreOriginalDett()
-	return msgs, ok && len(avvioNo) == 0
+// ok = false se non ha potuto rimettere tutto (Tasso occupato, script non arrivato alla fine, un
+// programma all'avvio o Ottimizza tutto che non tornano). nulla = non c'era niente da rimettere
+// (F14-3: allora la finestra non scrive "Fatto: impostazioni rimesse com'erano").
+func restoreOriginal() (msgs []string, ok, nulla bool) {
+	e := restoreOriginalEsito()
+	return e.msgs, e.ok && len(e.avvioNo) == 0 && e.ottOK, e.nulla
 }
 
 // restoreOriginalDett: come restoreOriginal, ma i programmi all'avvio che non sono tornati com'erano
 // non contano in ok: vengono restituiti a parte (avvioNo), così "Togli Tasso dal PC" può avvisare e
 // andare avanti invece di bloccarsi per sempre (un criterio di gruppo può impedire di rimetterli).
+// Neanche Ottimizza tutto conta in ok (lo rimette da solo, e se non torna non blocca mai).
 func restoreOriginalDett() (msgs []string, ok bool, avvioNo []string) {
+	e := restoreOriginalEsito()
+	return e.msgs, e.ok, e.avvioNo
+}
+
+// esitoRimetti: com'è andato "Rimetti tutto com'era".
+type esitoRimetti struct {
+	msgs    []string
+	ok      bool     // impostazioni di Windows e giochi rimessi (senza avvio e Ottimizza)
+	avvioNo []string // programmi all'avvio non tornati com'erano
+	ottOK   bool     // Ottimizza tutto: tutto rimesso (o niente da rimettere)
+	nulla   bool     // non c'era niente da rimettere
+}
+
+func restoreOriginalEsito() esitoRimetti {
+	e := esitoRimetti{ottOK: true}
+	e.msgs, e.ok, e.avvioNo = restoreOriginalDentro(&e.ottOK, &e.nulla)
+	return e
+}
+
+func restoreOriginalDentro(ottOK, nulla *bool) (msgs []string, ok bool, avvioNo []string) {
 	if !claimRun() {
 		return []string{"Sta girando una pulizia: aspetta che finisca, poi rimetti com'era."}, false, nil
 	}
@@ -109,8 +133,9 @@ func restoreOriginalDett() (msgs []string, ok bool, avvioNo []string) {
 	msgs = append(msgs, restoreUsbAudio()...)
 	// Ottimizza tutto (3.2): anche le sue modifiche. Se qualcuna non torna lo dico, ma non blocca
 	// (si riprova dalla sua pagina; "Togli Tasso" la mette con le copie di sicurezza)
-	ottMsgs, ottOK := msgRimettiOtt()
-	if ottOK {
+	ottMsgs, ottTutto := msgRimettiOtt()
+	*ottOK = ottTutto
+	if ottTutto {
 		msgs = append(msgs, ottMsgs...)
 	}
 	// poi il passo Privacy (i valori che tiene lui Ottimizza li ha lasciati), prima della foto
@@ -130,12 +155,13 @@ func restoreOriginalDett() (msgs []string, ok bool, avvioNo []string) {
 		msgs = append(msgs, "Un gioco regolato è aperto: chiudilo e premi di nuovo per togliere anche la sua regolazione.")
 	}
 	if len(snap) == 0 && len(orig) == 0 {
-		if !ottOK {
+		if !ottTutto {
 			msgs = append(msgs, ottMsgs...)
 		}
 		if len(msgs) > 0 {
 			return msgs, busy == 0, nil
 		}
+		*nulla = true
 		return []string{"Tasso non ha ancora cambiato impostazioni di Windows: non c'è niente da rimettere."}, true, nil
 	}
 	snapOK := true
@@ -144,6 +170,9 @@ func restoreOriginalDett() (msgs []string, ok bool, avvioNo []string) {
 		if !snapOK {
 			msgs = append(msgs, "Non sono riuscito a rimettere tutte le impostazioni di Windows: le tengo salvate, così puoi riprovare.")
 		}
+	}
+	if snapOK {
+		msgs = append(msgs, togliPianoCreato()...) // dopo la foto: il piano di prima è di nuovo quello attivo
 	}
 	n := 0
 	var falliti []string         // nomi da mostrare all'utente
@@ -178,15 +207,48 @@ func restoreOriginalDett() (msgs []string, ok bool, avvioNo []string) {
 			s.StartupOrig = rimasti // li tengo: premendo di nuovo "Rimetti com'era" riprovo
 		}
 	})
-	if !ottOK {
+	if !ottTutto {
 		// F04-2: le voci di Ottimizza tutto che una modalità di Tasso teneva: adesso la modalità è
 		// tornata com'era, quindi riprovo (si chiudono, o si rimettono se hanno ancora il valore di Tasso)
 		if m, ok := msgRimettiOtt(); m != nil || ok {
 			ottMsgs = m
+			*ottOK = ok // esito vero dopo il secondo tentativo (conta in ok di restoreOriginal)
 		}
 		msgs = append(msgs, ottMsgs...)
 	}
 	return msgs, snapOK && busy == 0, falliti
+}
+
+// togliPianoCreato (F20-15): il piano "Prestazioni elevate" che Tasso ha aggiunto quando mancava
+// (powercfg -duplicatescheme in steps.go, ricordato in HKLM\SOFTWARE\Tasso\PianoCreato) si toglie,
+// se non è quello in uso. Se è in uso resta, e si riprova la prossima volta.
+func togliPianoCreato() []string {
+	k, err := registry.OpenKey(registry.LOCAL_MACHINE, `SOFTWARE\Tasso`, registry.QUERY_VALUE|registry.SET_VALUE)
+	if err != nil {
+		return nil
+	}
+	defer k.Close()
+	g, _, err := k.GetStringValue("PianoCreato")
+	if err != nil {
+		return nil
+	}
+	if !snapGUID.MatchString(g) {
+		_ = k.DeleteValue("PianoCreato") // valore strano: non lo uso
+		return nil
+	}
+	pc := filepath.Join(sistema32(), "powercfg.exe")
+	if out, err := runHidden(pc, "/getactivescheme"); err != nil || strings.Contains(strings.ToLower(out), strings.ToLower(g)) {
+		return nil // è quello in uso (o non lo so): non lo tolgo adesso
+	}
+	if _, err := runHidden(pc, "/query", g); err != nil {
+		_ = k.DeleteValue("PianoCreato") // non c'è più
+		return nil
+	}
+	if _, err := runHidden(pc, "/delete", g); err != nil {
+		return []string{"Non sono riuscito a togliere il piano energetico \"Prestazioni elevate\" aggiunto da Tasso: se vuoi, toglilo tu in Pannello di controllo > Opzioni risparmio energia."}
+	}
+	_ = k.DeleteValue("PianoCreato")
+	return []string{"Piano energetico \"Prestazioni elevate\" aggiunto da Tasso: tolto."}
 }
 
 // Risparmio energetico delle porte USB cambiato da "L'audio gracchia": il valore di prima sta in
@@ -260,7 +322,7 @@ func runRestoreScript(snap json.RawMessage, onMsg func(string)) bool {
 
 func restoreAndMaybePause(pause bool) string {
 	return async("restore", func() {
-		msgs, ok := restoreOriginal()
+		msgs, ok, nulla := restoreOriginal()
 		// Se non ha rimesso tutto, Tasso resta acceso: spento non potrebbe più avvisarti.
 		paused := pause && ok
 		if paused {
@@ -268,7 +330,8 @@ func restoreAndMaybePause(pause bool) string {
 				msgs = append(msgs, strings.TrimPrefix(r, "ok:")) // un'attività pianificata non si è tolta: lo dico
 			}
 		}
-		emit("onRestoreDone", map[string]interface{}{"msgs": msgs, "ok": ok, "paused": paused, "settings": getSettings()})
+		// "nulla": non c'era niente da rimettere, quindi la finestra non scrive "Fatto: rimesse" (F14-3)
+		emit("onRestoreDone", map[string]interface{}{"msgs": msgs, "ok": ok, "nulla": nulla, "paused": paused, "settings": getSettings()})
 	})
 }
 
@@ -326,18 +389,29 @@ $o = [ordered]@{ active = $active; overlayAc = $ovAc; overlayDc = $ovDc; schemes
 `
 
 const restoreScript = `
+# F20-9: ogni comando si controlla (exit code di powercfg, valore riletto dal registro). RESTORE_OK
+# solo se è tornato tutto: se no la foto resta salvata e si può riprovare.
+$bad = @{ p = 0; r = 0 } # tabella: la funzione PC la cambia anche dentro altri blocchi
+function PC([string[]]$x) { & powercfg @x 2>$null | Out-Null; if ($LASTEXITCODE -ne 0) { $bad.p++ } }
 foreach ($s in @($A.schemes)) {
   $g = [string]$s.guid
   if (-not $g) { continue }
-  if ($s.cpu)   { powercfg /setacvalueindex $g SUB_PROCESSOR PROCTHROTTLEMAX ([string]$s.cpu[0]) 2>$null | Out-Null; powercfg /setdcvalueindex $g SUB_PROCESSOR PROCTHROTTLEMAX ([string]$s.cpu[1]) 2>$null | Out-Null }
-  if ($s.video) { powercfg /setacvalueindex $g SUB_VIDEO VIDEOIDLE ([string]$s.video[0]) 2>$null | Out-Null; powercfg /setdcvalueindex $g SUB_VIDEO VIDEOIDLE ([string]$s.video[1]) 2>$null | Out-Null }
-  if ($s.sleep) { powercfg /setacvalueindex $g SUB_SLEEP STANDBYIDLE ([string]$s.sleep[0]) 2>$null | Out-Null; powercfg /setdcvalueindex $g SUB_SLEEP STANDBYIDLE ([string]$s.sleep[1]) 2>$null | Out-Null }
+  # un piano che non c'è più (cancellato nel frattempo) non ha niente da rimettere
+  powercfg /query $g SUB_PROCESSOR PROCTHROTTLEMAX 2>$null | Out-Null
+  if ($LASTEXITCODE -ne 0) { continue }
+  if ($s.cpu)   { PC @('/setacvalueindex', $g, 'SUB_PROCESSOR', 'PROCTHROTTLEMAX', [string]$s.cpu[0]); PC @('/setdcvalueindex', $g, 'SUB_PROCESSOR', 'PROCTHROTTLEMAX', [string]$s.cpu[1]) }
+  if ($s.video) { PC @('/setacvalueindex', $g, 'SUB_VIDEO', 'VIDEOIDLE', [string]$s.video[0]); PC @('/setdcvalueindex', $g, 'SUB_VIDEO', 'VIDEOIDLE', [string]$s.video[1]) }
+  if ($s.sleep) { PC @('/setacvalueindex', $g, 'SUB_SLEEP', 'STANDBYIDLE', [string]$s.sleep[0]); PC @('/setdcvalueindex', $g, 'SUB_SLEEP', 'STANDBYIDLE', [string]$s.sleep[1]) }
 }
-if ($A.active) { powercfg /setactive ([string]$A.active) 2>$null | Out-Null }
+if ($A.active) {
+  powercfg /query ([string]$A.active) 2>$null | Out-Null
+  if ($LASTEXITCODE -eq 0) { PC @('/setactive', [string]$A.active) }
+}
 $ov = [string]$A.overlayAc
 if (-not $ov) { $ov = '00000000-0000-0000-0000-000000000000' }
 powercfg /overlaysetactive $ov 2>$null | Out-Null
-Say 'Piano energetico, processore, schermo e sospensione: rimessi com''erano.'
+if ($bad.p -eq 0) { Say 'Piano energetico, processore, schermo e sospensione: rimessi com''erano.' }
+else { Say 'Piano energetico, processore, schermo e sospensione: non sono riuscito a rimetterli tutti com''erano.' }
 foreach ($r in @($A.reg)) {
   $path = [string]$r.path; $name = [string]$r.name
   if (-not $path -or -not $name) { continue }
@@ -348,11 +422,18 @@ foreach ($r in @($A.reg)) {
     $val = $r.value
     if ($kind -eq 'DWord') { $val = [int]$val } elseif ($kind -eq 'QWord') { $val = [long]$val } else { $val = [string]$val }
     New-ItemProperty -LiteralPath $path -Name $name -Value $val -PropertyType $kind -Force | Out-Null
+    $ora = $null; try { $ora = (Get-Item -LiteralPath $path -ErrorAction Stop).GetValue($name, $null, 'DoNotExpandEnvironmentNames') } catch {}
+    if ($ora -eq $null -or [string]$ora -ne [string]$val) { $bad.r++ }
   } else {
-    if (Test-Path -LiteralPath $path) { Remove-ItemProperty -LiteralPath $path -Name $name -ErrorAction SilentlyContinue }
+    if (Test-Path -LiteralPath $path) {
+      Remove-ItemProperty -LiteralPath $path -Name $name -ErrorAction SilentlyContinue
+      $ora = $null; try { $ora = (Get-Item -LiteralPath $path -ErrorAction Stop).GetValue($name, $null, 'DoNotExpandEnvironmentNames') } catch {}
+      if ($ora -ne $null) { $bad.r++ }
+    }
   }
 }
-Say 'Notifiche, Modalità Gioco e privacy: rimesse com''erano.'
+if ($bad.r -eq 0) { Say 'Notifiche, Modalità Gioco e privacy: rimesse com''erano.' }
+else { Say 'Notifiche, Modalità Gioco e privacy: alcune impostazioni non sono tornate com''erano (forse le decide un criterio dell''ufficio).' }
 try {
   $m = Get-Item -LiteralPath 'HKCU:\Control Panel\Mouse'
   $t1 = [int]$m.GetValue('MouseThreshold1', '6'); $t2 = [int]$m.GetValue('MouseThreshold2', '10'); $sp = [int]$m.GetValue('MouseSpeed', '1')
@@ -361,8 +442,10 @@ try {
   [void][TassoMouseRestore.SPI]::SystemParametersInfo(4, 0, [int[]]($t1, $t2, $sp), 3)
   Say 'Mouse: rimesso com''era.'
 } catch {}
-Remove-Item -Path 'HKCU:\Software\Tasso\PrimaDelleModalita' -Recurse -Force -ErrorAction SilentlyContinue
-Say 'RESTORE_OK'
+if ($bad.p -eq 0 -and $bad.r -eq 0) {
+  Remove-Item -Path 'HKCU:\Software\Tasso\PrimaDelleModalita' -Recurse -Force -ErrorAction SilentlyContinue
+  Say 'RESTORE_OK'
+}
 `
 
 // ---------------- Controllo della foto prima di rimetterla ----------------

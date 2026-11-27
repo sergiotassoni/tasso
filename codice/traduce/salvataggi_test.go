@@ -248,9 +248,11 @@ func TestMessaggiChatNonSalvati(t *testing.T) {
 }
 
 func TestImprontaRicordataSuDisco(t *testing.T) {
-	vecchia := dirApp
+	vecchia, vecchiaP := dirApp, Ospite.CartellaProtetta
 	dirApp = t.TempDir()
-	defer func() { dirApp = vecchia }()
+	protetta := t.TempDir() // F20-7: i controlli si ricordano solo nella cartella protetta
+	Ospite.CartellaProtetta = func() string { return protetta }
+	defer func() { dirApp, Ospite.CartellaProtetta = vecchia, vecchiaP }()
 	azzera := func() {
 		muVerificati.Lock()
 		verificati, verificatiDisco = map[string]bool{}, map[string]bool{}
@@ -282,6 +284,48 @@ func TestImprontaRicordataSuDisco(t *testing.T) {
 	_ = os.Chtimes(p, data.Add(time.Hour), data.Add(time.Hour))
 	if presente(dir, f) {
 		t.Fatal("file cambiato accettato senza controllo")
+	}
+	if _, err := os.Stat(filepath.Join(protetta, "modelli", "impronte-controllate.json")); err != nil {
+		t.Fatal("controllo non ricordato nella cartella protetta:", err)
+	}
+	if _, err := os.Stat(filepath.Join(dirApp, "modelli", "impronte-controllate.json")); err == nil {
+		t.Fatal("controllo ricordato in AppData")
+	}
+}
+
+// CTRL-FIN-20 F20-7: un "controllato" scritto in AppData (da un programma qualsiasi dell'utente) non
+// vale, e senza cartella protetta niente si ricorda su disco.
+func TestImpronteInAppDataIgnorate(t *testing.T) {
+	vecchia, vecchiaP := dirApp, Ospite.CartellaProtetta
+	dirApp = t.TempDir()
+	defer func() { dirApp, Ospite.CartellaProtetta = vecchia, vecchiaP }()
+	azzera := func() {
+		muVerificati.Lock()
+		verificati, verificatiDisco = map[string]bool{}, map[string]bool{}
+		muVerificati.Unlock()
+		caricaVerDisco = sync.Once{}
+	}
+	azzera()
+	defer azzera()
+	dir := t.TempDir()
+	p := filepath.Join(dir, "modello.gguf")
+	_ = os.WriteFile(p, []byte("modello CAMBIATO"), 0o644)
+	h := sha256.Sum256([]byte("modello giusto!!"))
+	f := FileDaScaricare{Nome: "modello.gguf", SHA256: hex.EncodeToString(h[:]), Byte: 16}
+	data := time.Unix(1700000000, 0)
+	_ = os.Chtimes(p, data, data)
+	finto, _ := json.Marshal([]string{chiaveVerifica(p, 16, data.UnixNano(), f.SHA256)})
+	_ = os.MkdirAll(filepath.Join(dirApp, "modelli"), 0o755)
+	_ = os.WriteFile(filepath.Join(dirApp, "modelli", "impronte-controllate.json"), finto, 0o644)
+	for _, prot := range []func() string{nil, func() string { return "" }} {
+		Ospite.CartellaProtetta = prot
+		azzera()
+		if fileVerificati() != "" {
+			t.Fatal("senza cartella protetta c'è un file dei controlli")
+		}
+		if presente(dir, f) {
+			t.Fatal("modello cambiato accettato per un controllo scritto in AppData")
+		}
 	}
 }
 

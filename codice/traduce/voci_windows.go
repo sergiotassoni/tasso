@@ -163,6 +163,24 @@ func (s *serverVoci) avvia() error {
 	if err != nil {
 		return errors.New("riconoscimento delle voci non disponibile: copia nella cartella protetta non riuscita (" + err.Error() + ")")
 	}
+	// F20-7: i modelli restano bloccati (nessuno li può cambiare) e controllati: quello delle voci
+	// finché il server non l'ha caricato, quello del silenzio (VAD, che whisper rilegge a ogni frase)
+	// finché il server resta acceso
+	sblocca, err := bloccaModello(filepath.Join(dirVoci(), risorseVoci.Modello.Nome))
+	if err != nil {
+		return errors.New("riconoscimento delle voci non disponibile: " + err.Error())
+	}
+	defer sblocca()
+	sbloccaVAD, err := bloccaModello(filepath.Join(dirVoci(), risorseVoci.VAD.Nome))
+	if err != nil {
+		return errors.New("riconoscimento delle voci non disponibile: " + err.Error())
+	}
+	partito := false
+	defer func() {
+		if !partito {
+			sbloccaVAD()
+		}
+	}()
 	porta, err := portaLibera()
 	if err != nil {
 		return err
@@ -193,6 +211,7 @@ func (s *serverVoci) avvia() error {
 		return err
 	}
 	job := jobChiudiConMe(cmd.Process.Pid)
+	partito = true // il modello del silenzio si sblocca quando il server si chiude
 	s.cmd = cmd
 	s.url = fmt.Sprintf("http://127.0.0.1:%d/%s", porta, chiave) // tutte le chiamate partono da qui
 	uscito := make(chan struct{})
@@ -200,6 +219,7 @@ func (s *serverVoci) avvia() error {
 	go func() {
 		defer guard("server-voci")
 		_ = cmd.Wait()
+		sbloccaVAD()
 		if logf != nil {
 			logf.Close()
 		}

@@ -217,7 +217,8 @@ func ecoSelfUpdate(u map[string]interface{}) {
 	setup, err := copiaPerVerifica(data)
 	if err != nil {
 		updating.Store(false)
-		updMsg("error", "Non riesco a preparare il controllo della firma: per sicurezza non aggiorno. Scarica lo zip a mano da Info.")
+		// F18-4: il collegamento per scaricare a mano è nelle Impostazioni, non in Info
+		updMsg("error", "Non riesco a preparare il controllo della firma: per sicurezza non aggiorno. Scarica l'installatore a mano: Impostazioni, \"oppure scarica l'installatore\".")
 		return
 	}
 	fallito := func(msg string) {

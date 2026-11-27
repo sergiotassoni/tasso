@@ -1,8 +1,8 @@
 package main
 
 // "Il tuo nome" (3.2): il nome o nickname che hai scritto nell'installatore (o nelle Impostazioni
-// di Tasso, di Tasso Zip o di Tasso PDF). Tasso lo usa per salutarti ("Bentornato, Sergio!",
-// "Ciao, Sergio"), in pochi messaggi e, se lo lasci acceso, sul biglietto.
+// di Tasso, di Tasso Zip o di Tasso PDF). Tasso lo usa per salutarti ("Ciao di nuovo, Marco!",
+// "Ciao, Marco"), in pochi messaggi e, se lo lasci acceso, sul biglietto.
 //
 // Dove sta: HKCU\Software\Tasso, valore "Nome" (REG_SZ), uno per ogni utente di Windows e solo
 // su questo PC. È condiviso con Tasso Zip e Tasso PDF (stessa chiave): cambiarlo in uno lo cambia
@@ -15,7 +15,7 @@ package main
 // al PC: lo leggo e lo scrivo in HKEY_USERS\<SID di chi usa Esplora file>\Software\Tasso, come fa
 // l'installatore (sistema_windows.go: utenteSessione), dove lo trovano anche Tasso Zip e Tasso PDF.
 //
-// Le regole (da 2 a 20 caratteri, lettere, numeri, spazio, punto, - e _) stanno in nomeutente/.
+// Le regole (da 2 a 20 caratteri, lettere, numeri, spazio, punto, apostrofo, - e _) stanno in nomeutente/.
 
 import (
 	"strings"

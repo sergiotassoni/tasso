@@ -335,8 +335,9 @@ if ($sv -and [string]$sv.StartType -eq 'Disabled') {
   $u = Save-ServiceStart 'stisvc' 'servizio-scanner'
   if (-not $u) { Say 'Il servizio degli scanner è spento del tutto e non sono riuscito a salvare com''era: non lo cambio. Per riaccenderlo: Start > scrivi "Servizi" > Acquisizione immagini di Windows (WIA) > Tipo di avvio: Manuale > Avvia.'; return }
   Set-Service -Name stisvc -StartupType Manual -ErrorAction SilentlyContinue
-  Say 'Il servizio degli scanner era spento del tutto: l''ho rimesso come lo vuole Windows (manuale).'
-  Say ('Per tornare come prima: doppio clic su ' + $u + ', poi riavvia il PC.')
+  # F20-10: lo dico solo se, rileggendo, è cambiato davvero
+  if ([string](Get-Service -Name stisvc -ErrorAction SilentlyContinue).StartType -ne 'Disabled') { Say 'Il servizio degli scanner era spento del tutto: l''ho rimesso come lo vuole Windows (manuale).'; Say ('Per tornare come prima: doppio clic su ' + $u + ', poi riavvia il PC.') }
+  else { Say 'ATTENZIONE  Il servizio degli scanner è spento del tutto e Windows non mi lascia riaccenderlo (forse lo decide l''ufficio): senza, lo scanner non funziona.' }
 }
 Restart-Service -Name stisvc -Force -ErrorAction SilentlyContinue
 Start-Service -Name stisvc -ErrorAction SilentlyContinue
@@ -1102,8 +1103,9 @@ if ($sv -and [string]$sv.StartType -eq 'Disabled') {
   $u = Save-ServiceStart 'W32Time' 'servizio-ora'
   if (-not $u) { Say 'Il servizio dell''ora di Windows è spento del tutto e non sono riuscito a salvare com''era: non lo cambio. Per riaccenderlo: Start > scrivi "Servizi" > Ora di Windows > Tipo di avvio: Manuale > Avvia.'; return }
   Set-Service -Name W32Time -StartupType Manual -ErrorAction SilentlyContinue
-  Say 'Il servizio dell''ora di Windows era spento del tutto: riacceso.'
-  Say ('Per tornare come prima: doppio clic su ' + $u + ', poi riavvia il PC.')
+  # F20-10: lo dico solo se, rileggendo, è cambiato davvero
+  if ([string](Get-Service -Name W32Time -ErrorAction SilentlyContinue).StartType -ne 'Disabled') { Say 'Il servizio dell''ora di Windows era spento del tutto: riacceso.'; Say ('Per tornare come prima: doppio clic su ' + $u + ', poi riavvia il PC.') }
+  else { Say 'ATTENZIONE  Il servizio dell''ora di Windows è spento del tutto e Windows non mi lascia riaccenderlo (forse lo decide l''ufficio): senza, l''ora non si sincronizza.' }
 }
 Start-Service -Name W32Time -ErrorAction SilentlyContinue
 $dom = [bool](Get-CimInstance Win32_ComputerSystem -ErrorAction SilentlyContinue).PartOfDomain

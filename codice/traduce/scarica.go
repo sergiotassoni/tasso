@@ -109,11 +109,21 @@ func chiaveVerifica(p string, dim, data int64, sha string) string {
 	return fmt.Sprintf("%s|%d|%d|%s", strings.ToLower(p), dim, data, strings.ToLower(sha))
 }
 
+// fileVerificati: dove si ricordano i controlli riusciti dei modelli. CTRL-FIN-20 F20-7: mai in
+// AppData (la cartella dei modelli la può scrivere qualsiasi programma dell'utente, che potrebbe
+// aggiungere un "controllato" falso per un modello cambiato), solo nella cartella protetta di Tasso
+// (Programmi\Tasso\lavoro, dove scrivono solo gli amministratori). Senza cartella protetta ("" =
+// Tasso usa il ripiego in AppData, o Tasso Traduce da solo) i controlli valgono solo finché il
+// programma resta aperto.
 func fileVerificati() string {
-	if dirApp == "" {
+	if Ospite.CartellaProtetta == nil {
 		return ""
 	}
-	return filepath.Join(dirApp, "modelli", "impronte-controllate.json")
+	d := Ospite.CartellaProtetta()
+	if d == "" || !filepath.IsAbs(d) {
+		return ""
+	}
+	return filepath.Join(d, "modelli", "impronte-controllate.json")
 }
 
 func caricaVerificati() {

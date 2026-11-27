@@ -326,6 +326,7 @@ func datiPagina(autoLevel int, controllaAgg bool) map[string]interface{} {
 		"nome":         nomeInfo(),      // nome_utente.go: "Il tuo nome" e il biglietto (anche dopo un cambio di lingua)
 		"eco":          ecoInfo(),       // ecoupdate.go: Tasso, Zip e PDF installati con l'installatore (nil se no)
 		"controllaAgg": controllaAgg,
+		"altroUtente":  altroUtenteOtt(), // F20-11: Tasso da amministratore con l'account di un altro (UAC)
 	}
 }
 

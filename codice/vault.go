@@ -79,7 +79,7 @@ func vaultExists() bool {
 		return true
 	}
 	if fileExists(vaultPath() + ".bak") {
-		return os.Rename(vaultPath()+".bak", vaultPath()) == nil
+		return rinominaApp(vaultPath()+".bak", vaultPath()) == nil // F20-6: niente giunzioni nel percorso
 	}
 	return false
 }
@@ -109,7 +109,7 @@ func saveGuard(g vaultGuard) {
 	}
 	raw, _ := json.Marshal(g)
 	if enc, err := protect(raw); err == nil {
-		_ = os.WriteFile(guardPath(), enc, 0o600)
+		_ = scriviFileApp(guardPath(), enc, 0o600) // F20-6
 	}
 }
 
@@ -192,11 +192,14 @@ func vaultWrite(items []vaultEntry, salt, key []byte) error {
 		return err
 	}
 	tmp := vaultPath() + ".tmp"
-	if err := os.WriteFile(tmp, enc, 0o600); err != nil {
+	// F20-6: Tasso è amministratore e la cartella è dell'utente: un collegamento al posto del file a
+	// parte si toglie (non si segue) e nel percorso non ci devono essere giunzioni
+	_ = os.Remove(tmp)
+	if err := scriviFileApp(tmp, enc, 0o600); err != nil {
 		return err
 	}
 	// Su Windows os.Rename sostituisce il file in un colpo solo (MoveFileEx): niente file a metà.
-	if err := os.Rename(tmp, vaultPath()); err != nil {
+	if err := rinominaApp(tmp, vaultPath()); err != nil {
 		_ = os.Remove(tmp)
 		return err
 	}
@@ -290,7 +293,7 @@ func vaultNoPin() bool {
 
 func setNoPin(on bool) {
 	if on {
-		_ = os.WriteFile(noPinPath(), []byte("Portachiavi senza PIN: si apre da solo con il tuo account di Windows.\r\n"), 0o600)
+		_ = scriviFileApp(noPinPath(), []byte("Portachiavi senza PIN: si apre da solo con il tuo account di Windows.\r\n"), 0o600) // F20-6
 	} else {
 		_ = os.Remove(noPinPath())
 	}
