@@ -7,6 +7,7 @@ package traduce
 // solo gli amministratori scrivono. Le copie vecchie si spostano lì da sole, una volta sola.
 
 import (
+	"encoding/json"
 	"errors"
 	"io"
 	"os"
@@ -394,4 +395,45 @@ func cartellaDiSistema(c string) bool {
 		w = os.Getenv("windir")
 	}
 	return w != "" && dentroFinale(c, w)
+}
+
+// elencoIgnorato: in AppData c'è un elenco di quel gioco che si legge ma che Tasso non usa
+// (manifestoAffidabile: per esempio il file di XUnity di Tasso non c'è più). dove = la cartella con
+// gli originali. Serve per dire all'utente cosa fare, invece di non dire niente.
+func elencoIgnorato(chiave string) (m ManifestoMod, dove string, ok bool) {
+	if dirApp == "" || èCartellaProtetta(dirApp) {
+		return m, "", false
+	}
+	b, err := leggiSenzaLink(dirApp, filepath.Join("copie-giochi", chiave, "manifesto.json"))
+	if err != nil || json.Unmarshal(b, &m) != nil || manifestoAffidabile(dirApp, m) {
+		return m, "", false
+	}
+	return m, filepath.Join(dirApp, "copie-giochi", chiave, "originali"), true
+}
+
+// GiochiDaSistemareAMano: i giochi con un elenco ignorato in AppData (per "Togli Tasso dal PC").
+func GiochiDaSistemareAMano() []string {
+	if dirApp == "" {
+		return nil
+	}
+	var out []string
+	voci, _ := os.ReadDir(filepath.Join(dirApp, "copie-giochi"))
+	for _, v := range voci {
+		if !v.IsDir() || v.Type()&(os.ModeSymlink|os.ModeIrregular) != 0 || doppione(dirApp, v.Name()) {
+			continue
+		}
+		if m, _, ok := elencoIgnorato(v.Name()); ok {
+			n := m.Gioco
+			if n == "" {
+				n = v.Name()
+			}
+			out = append(out, n)
+		}
+	}
+	return out
+}
+
+// msgSistemaAMano: cosa fare per un gioco che Tasso non può rimettere com'era da qui.
+func msgSistemaAMano(gioco, dove string) string {
+	return "Non riesco a togliere da qui la traduzione dentro " + gioco + ": usa \"Verifica file\" nel programma da cui lanci il gioco. Gli originali dei file sono in " + dove + "."
 }

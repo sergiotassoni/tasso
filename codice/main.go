@@ -452,6 +452,7 @@ func impostaOspiteTraduce() {
 	traduce.Ospite.CartellaScript = scriptDir
 	traduce.Ospite.CartellaProtetta = cartellaLavoroProtetta // runner.go: "" se uso il ripiego in AppData
 	traduce.Ospite.CartellaTasso = cartellaTasso             // ecosistema.go
+	traduce.Ospite.Avvisa = func(t, s string) { trayAvviso(t, s, false) }
 }
 
 // fineSessione: Windows ha mandato WM_QUERYENDSESSION/WM_ENDSESSION (si spegne, si riavvia o ci si

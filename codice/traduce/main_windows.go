@@ -13,6 +13,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"golang.org/x/sys/windows/registry"
 	"image"
 	"io/fs"
 	"net"
@@ -111,6 +112,11 @@ func caricaImp() {
 			}
 		} else {
 			impSolaLettura.Store(true) // il collegamento è più in alto: non scrivo
+			if fd, e := os.Lstat(dirApp); e == nil && fd.Mode()&(os.ModeSymlink|os.ModeIrregular) != 0 {
+				// la cartella TassoTraduce è una giunzione (spesso voluta, per tenere i modelli su un
+				// altro disco): da amministratore non ci scrivo, quindi le scelte non si salvano. Lo dico.
+				go avvisaGiunzioneUnaVolta()
+			}
 		}
 	}
 	if imp.Glossario.Termini == nil {
@@ -1743,4 +1749,24 @@ func preparaOCR() {
 	if err := assicuraOCR(); err != nil {
 		impostaOcrErr(err.Error())
 	}
+}
+
+// avvisaGiunzioneUnaVolta: l'avviso sulla cartella TassoTraduce giunzione, una volta sola per
+// sempre (segno in HKCU\Software\Tasso, AvvisoTraduceGiunzione).
+func avvisaGiunzioneUnaVolta() {
+	defer func() { _ = recover() }()
+	k, _, err := registry.CreateKey(registry.CURRENT_USER, `Software\Tasso`, registry.QUERY_VALUE|registry.SET_VALUE)
+	if err != nil {
+		return
+	}
+	defer k.Close()
+	if v, _, err := k.GetIntegerValue("AvvisoTraduceGiunzione"); err == nil && v == 1 {
+		return
+	}
+	if Ospite.Avvisa == nil {
+		return
+	}
+	time.Sleep(20 * time.Second) // l'icona vicino all'orologio c'è già
+	Ospite.Avvisa("Tasso Traduce", "La cartella dei dati di Tasso Traduce porta a un'altra cartella (collegamento o giunzione): per sicurezza Tasso non ci scrive, quindi le scelte del traduttore non vengono salvate. Per salvarle, rimetti la cartella TassoTraduce normale dentro AppData\\Local.")
+	_ = k.SetDWordValue("AvvisoTraduceGiunzione", 1)
 }

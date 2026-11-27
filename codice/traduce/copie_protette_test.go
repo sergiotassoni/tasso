@@ -1,9 +1,11 @@
 package traduce
 
 import (
+	"encoding/json"
 	"errors"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -237,3 +239,39 @@ func TestManifestoAffidabile(t *testing.T) {
 		t.Fatal("Tasso Traduce da solo: come prima")
 	}
 }
+
+// Ritocco 5: un elenco in AppData che Tasso non usa viene riconosciuto, per dire cosa fare.
+func TestElencoIgnorato(t *testing.T) {
+	vecchiDir, vecchiaF := dirApp, Ospite.CartellaProtetta
+	t.Cleanup(func() {
+		dirApp, Ospite.CartellaProtetta = vecchiDir, vecchiaF
+		copieMu.Lock()
+		copieDeciso, copieProtetta = false, ""
+		copieMu.Unlock()
+	})
+	radice := t.TempDir()
+	dirApp = filepath.Join(radice, "app")
+	lavoro := filepath.Join(radice, "lavoro")
+	_ = os.MkdirAll(filepath.Join(lavoro, "copie-giochi"), 0o755)
+	_ = os.WriteFile(filepath.Join(lavoro, "copie-giochi", segnoCopieSpostate), []byte("ok"), 0o644)
+	copieMu.Lock()
+	copieDeciso, copieProtetta = false, ""
+	copieMu.Unlock()
+	Ospite.CartellaProtetta = func() string { return lavoro }
+	g := t.TempDir()
+	d := filepath.Join(dirApp, "copie-giochi", "k")
+	_ = os.MkdirAll(d, 0o755)
+	_ = os.WriteFile(filepath.Join(d, "manifesto.json"), []byte(`{"gioco":"Gioco","cartella":`+strconvQuote(g)+`,"tipo":"mono","token":"0123456789abcdef"}`), 0o644)
+	_ = baseCopie()
+	if _, dove, ok := elencoIgnorato("k"); !ok || dove != filepath.Join(d, "originali") {
+		t.Fatalf("non riconosciuto: %v %s", ok, dove)
+	}
+	if l := GiochiDaSistemareAMano(); len(l) != 1 || l[0] != "Gioco" {
+		t.Fatal(l)
+	}
+	if m := msgSistemaAMano("Gioco", "x"); !strings.Contains(m, "Verifica file") || strings.Contains(m, "Steam") {
+		t.Fatal(m)
+	}
+}
+
+func strconvQuote(s string) string { b, _ := json.Marshal(s); return string(b) }

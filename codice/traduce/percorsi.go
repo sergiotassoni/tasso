@@ -34,6 +34,8 @@ var Ospite struct {
 	// CartellaProtetta: Programmi\Tasso\lavoro se c'è davvero ("" se Tasso usa il ripiego in
 	// AppData). Ci stanno le copie di sicurezza dei giochi tradotti (copie_protette.go).
 	CartellaProtetta func() string
+	// Avvisa: un avviso all'utente dall'icona vicino all'orologio (testo in italiano, lo traduce Tasso).
+	Avvisa func(titolo, testo string)
 	// CartellaTasso: la cartella di Tasso in Programmi (di base C:\Program Files\Tasso; un'altra
 	// cartella dentro Programmi se l'installatore ha messo Tasso lì). nil = quella di base.
 	CartellaTasso func() string

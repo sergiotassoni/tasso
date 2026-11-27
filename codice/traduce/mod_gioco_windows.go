@@ -357,6 +357,13 @@ func fermaModGioco(cartella string) string {
 	defer muInstalla.Unlock()
 	m, ok := leggiManifesto(baseDi(chiaveGioco(cartella)), chiaveGioco(cartella))
 	if !ok {
+		if mi, dove, ign := elencoIgnorato(chiaveGioco(cartella)); ign {
+			nome := mi.Gioco
+			if nome == "" {
+				nome = filepath.Base(cartella)
+			}
+			return msgSistemaAMano(nome, dove)
+		}
 		return ""
 	}
 	if !strings.EqualFold(filepath.Clean(m.Cartella), filepath.Clean(cartella)) {
