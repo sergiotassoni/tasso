@@ -237,7 +237,12 @@ func startLevel(level int, shutdownAfter bool) string {
 		return "livello non valido"
 	}
 	var ids []string
+	ufficio := officeMode()
 	for _, s := range allSteps {
+		// 3.1: in Ufficio niente pulizia delle cache dei giochi (come nella lista dei passaggi).
+		if ufficio && s.ID == "game_cache" {
+			continue
+		}
 		if s.Level > 0 && s.Level <= level {
 			ids = append(ids, s.ID)
 		}

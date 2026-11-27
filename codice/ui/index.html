@@ -1133,7 +1133,7 @@ body nav button[data-go="games"].on{background:transparent;box-shadow:none}
       <div class="row" style="margin-top:auto;gap:8px"><button class="btn ghost" id="btnGpuPanel">Apri il pannello NVIDIA / AMD</button></div>
     </div>
   </div>
-  <p class="muted small" style="margin:0">Tasso legge uso e temperatura della scheda video (NVIDIA e AMD) e la temperatura dei dischi. Processore e scheda madre: Windows non sempre le dà; con LibreHardwareMonitor aperto (gratuito) Tasso le legge anche nel report Discord.</p>
+  <p class="muted small" style="margin:0">Tasso legge uso e temperatura della scheda video (NVIDIA e AMD) e la temperatura dei dischi. Processore e scheda madre: Windows non sempre le dà; con LibreHardwareMonitor aperto (gratuito) Tasso le legge anche.</p>
 </section>
 
 <!-- TOOLS -->
@@ -1162,7 +1162,7 @@ body nav button[data-go="games"].on{background:transparent;box-shadow:none}
     <li><b>Driver da siti sconosciuti o programmi "aggiorna tutti i driver"</b>: Tasso installa solo driver certificati da Microsoft (Windows Update) o il driver NVIDIA preso da NVIDIA e con la firma di NVIDIA controllata; per il resto ti apre il sito ufficiale del produttore.</li>
     <li><b>Overclock e aggiornamento automatico del BIOS</b>: troppo rischiosi da fare in automatico.</li></ul></div>
   <div class="card idx" style="--c:var(--a1)"><h3>Novità della 3.1</h3><ul>
-    <li><b>Menu nuovo e più semplice</b>: Home, Giochi, Pulisci e ripara, Impostazioni. In alto scegli Gaming o Ufficio.</li>
+    <li><b>Menu nuovo e più semplice</b>: Home, Giochi (solo in Gaming), Pulisci e ripara, Impostazioni. In alto scegli Gaming o Ufficio.</li>
     <li class="gm"><b>Tasso Traduce</b>: i giochi in inglese tradotti in italiano sullo schermo, con F7. Funziona sul tuo PC, senza abbonamento; un'IA facoltativa sulla scheda video corregge la traduzione.</li>
     <li class="gm"><b>Pagina Giochi</b> con la tua libreria, la pagina di ogni gioco e <b>Prepara il gioco</b>, una procedura a passi.</li>
     <li class="gm"><b>Boost più onesto</b>: misura gli FPS veri e con "Rimetti com'era" torna tutto come prima.</li>
@@ -1494,7 +1494,7 @@ const LEVELS = [
   {n:4, name:_t('Profonda'), c:'var(--a4)', badge:_t('MENSILE'), d:_t('Driver, Windows Update, driver video vecchi, sicurezza, deframmentazione, dischi, antivirus.')},
   {n:5, name:_t('Eccezionale'), c:'var(--a2)', badge:_t('COMPLETA'), d:_t('Ripara Windows, stabilità (crash ed errori hardware), ogni programma, il disco e le periferiche.')}
 ];
-const levelSteps = (n) => STEPS.filter(s => s.level > 0 && s.level <= n);
+const levelSteps = (n) => STEPS.filter(s => s.level > 0 && s.level <= n && !(S && isOffice() && s.id === 'game_cache'));
 const levelMinutes = (n) => levelSteps(n).reduce((a, s) => a + s.minutes, 0);
 const RECOMMENDED = 3;
 function levelCard(L){
@@ -2856,8 +2856,8 @@ Object.assign(window.tasso, {
     $('#spDown').textContent = mbps(r.downMbps); $('#spUp').textContent = mbps(r.upMbps); $('#spPing').textContent = r.pingMs + ' ms';
     $('#spMsg').textContent = _t('Fatto.');
     const d = Number(r.downMbps) || 0, p = Number(r.pingMs) || 0;
-    const v = d >= 100 ? _t('Ottima: va bene per film in 4K, giochi online e download veloci.') : d >= 30 ? _t('Buona: film in HD e giochi online senza problemi.') : d >= 10 ? _t('Sufficiente per navigare e video in HD; i download sono lenti.') : _t('Lenta: prova a riavviare il modem o ad avvicinarti al Wi-Fi.');
-    const g = p <= 30 ? _t(' Il ping è ottimo per giocare.') : p <= 70 ? _t(' Il ping va bene per giocare.') : _t(' Il ping è alto: nei giochi online potresti avere ritardi.');
+    const v = isOffice() ? (d >= 100 ? _t('Ottima: va bene per film in 4K, videochiamate e download veloci.') : d >= 30 ? _t('Buona: film in HD e videochiamate senza problemi.') : d >= 10 ? _t('Sufficiente per navigare e video in HD; i download sono lenti.') : _t('Lenta: prova a riavviare il modem o ad avvicinarti al Wi-Fi.')) : d >= 100 ? _t('Ottima: va bene per film in 4K, giochi online e download veloci.') : d >= 30 ? _t('Buona: film in HD e giochi online senza problemi.') : d >= 10 ? _t('Sufficiente per navigare e video in HD; i download sono lenti.') : _t('Lenta: prova a riavviare il modem o ad avvicinarti al Wi-Fi.');
+    const g = isOffice() ? (p <= 70 ? _t(' Il ping va bene anche per le videochiamate.') : _t(' Il ping è alto: nelle videochiamate potresti avere ritardi.')) : p <= 30 ? _t(' Il ping è ottimo per giocare.') : p <= 70 ? _t(' Il ping va bene per giocare.') : _t(' Il ping è alto: nei giochi online potresti avere ritardi.');
     $('#spVerdict').textContent = v + g; $('#spVerdict').style.display = 'block';
   },
   onNet(n){
@@ -3483,11 +3483,12 @@ function statsWhat(){
 let statsTry = 0;
 function statsAsk(){
   if (!BOOT.cassetta || !S || S.stats === true || S.stats === false || BOOT.autoLevel) return;
+  if (!$('#gwz').hidden) { setTimeout(statsAsk, 8000); return; }
   if ($('#modal').classList.contains('on') || $('#welcome').classList.contains('on')) { if (++statsTry < 6) setTimeout(statsAsk, 8000); return; }
   const set = async (on) => { S.stats = on; await call('goSetStats', on); paintSettings(); if (on) toast(_t('Grazie! Mi aiuti a migliorare Tasso.')); };
   modal('<h2>📊 ' + _t('Mi aiuti a migliorare Tasso?') + '</h2><p class="muted" style="margin:0;line-height:1.5">' + _t('Se dici sì, Tasso mi manda qualche numero anonimo per capire su che PC funziona e cosa migliorare:') + '</p>' + statsList() +
     '<p class="muted" style="margin:0;line-height:1.5">' + _t('Tasso funziona uguale anche se dici no. Puoi cambiare idea quando vuoi nelle Impostazioni.') + '</p>',
-    [{label:_t('No, grazie'), fn: () => { set(false); }}, {label:_t('Sì, va bene'), cls:'primary', fn: () => { set(true); }}]);
+    [{label:_t('No, grazie'), focus: true, fn: () => { set(false); }}, {label:_t('Sì, va bene'), cls:'primary', fn: () => { set(true); }}]);
 }
 function statsHW(h){
   if (!BOOT.cassetta || !h) return;
@@ -4014,7 +4015,7 @@ async function wzOpen(g, kind){
   W = {kind: kind || 'prep', g: null, info: {}, m: null, i: 0, da: st.lingua_da || 'auto', a: st.lingua_a || 'it', modo: 'schermo', skip: kind === 'boost', ia: !!(st.ia_file && st.ia_pc_ok), liv: (st.ia_file && st.ia_pc_ok) ? (st.ia_livello || 'auto') : 'off', pot: '', tune: null, tuneSel: null, busy: false, err: '', msg: '', run: 0, q: '', f: 'all', ret: from, retKey: fromKey};
   W.steps = W.kind === 'boost' ? ['pick', 'pot', 'cons', 'fine', 'ok'] : ['da', 'a', 'pot', 'cons', 'fine', 'ok'];
   if (g) await wzGame(g);
-  $('#gwz').hidden = false; wzDraw(); const n = $('#gwzNext'); if (n) n.focus();
+  $('#gwz').hidden = false; wzDraw(); wzFuocoDentro();
 }
 async function wzGame(g){
   W.g = g; W.tune = null; W.tuneSel = null; W.tuneErr = '';
@@ -4056,7 +4057,7 @@ function wzClose(){
   else back();
 }
 $('#gwzX').onclick = wzClose;
-document.addEventListener('keydown', (ev) => { if (ev.key === 'Escape' && W && !$('#gwz').hidden && !$('#modal').classList.contains('on')) { if (ev.target && ev.target.id === 'gwQ' && ev.target.value) { ev.target.value = ''; W.q = ''; wzDraw(); const n = $('#gwQ'); if (n) n.focus(); return; } wzClose(); } });
+document.addEventListener('keydown', (ev) => { if (ev.key === 'Escape' && W && !$('#gwz').hidden && !$('#modal').classList.contains('on')) { if (ev.target && ev.target.id === 'gwQ' && ev.target.value) { ev.target.value = ''; W.q = ''; W.qRaw = ''; wzDraw(); const n = $('#gwQ'); if (n) n.focus(); return; } wzClose(); } });
 // "Non serve tradurre" su un gioco già tradotto: Applica toglie la traduzione
 function wzUntr(){ return !!(W && W.kind === 'prep' && W.skip && !W.noGame && W.info && W.info.tradotto && W.info.cartella); }
 // Il Tab resta dentro la procedura (dietro c'è il resto di Tasso, per esempio il cambio di modalità).
@@ -4132,7 +4133,25 @@ function lvHtml(st, iaTxt){
     '</div><div class="lv">' + card + '</div><button class="lvoff' + (cur === 'off' ? ' on' : '') + '" data-lv="off" aria-pressed="' + (cur === 'off') + '">' + esc(_t('Spenta: solo il traduttore veloce (0 GB della scheda video)')) + '</button>';
 }
 function wzLingue(){ if (W && !$('#gwz').hidden && wzStep() === 'da') wzDraw(); }
+// 3.1: ridisegnare la finestra non deve far perdere il punto in cui si è (tastiera, lettori di schermo, ricerca).
 function wzDraw(){
+  const box = $('#gwz'), a = document.activeElement, dentro = !!(box && a && a !== document.body && box.contains(a));
+  const k = dentro ? focusKey(a) : null; let sel = null;
+  if (dentro && a.id === 'gwQ') { try { sel = [a.selectionStart, a.selectionEnd]; } catch (e) {} }
+  wzDraw0();
+  if (!W || box.hidden || $('#modal').classList.contains('on')) return;
+  const ora = document.activeElement;
+  if (dentro && ora === a && a.isConnected) return;
+  if (dentro && k && focusByKey(k)) { const n = document.activeElement; if (sel && n && n.id === 'gwQ') { try { n.setSelectionRange(sel[0], sel[1]); } catch (e) {} } return; }
+  // Un pulsante spento mentre lavora butta il fuoco sul fondo: lo riporto dentro la finestra.
+  if (dentro || !ora || ora === document.body) wzFuocoDentro();
+}
+function wzFuocoDentro(){
+  const n = $('#gwzNext'); if (n && !n.disabled && n.offsetParent) { n.focus(); return; }
+  const f = $('#gwzB') && $('#gwzB').querySelector('input,button:not([disabled]),[tabindex]:not([tabindex="-1"])'); if (f) { f.focus(); return; }
+  const x = $('#gwz').querySelector('button:not([disabled])'); if (x) x.focus();
+}
+function wzDraw0(){
   if (!W) return; const g = W.g, i = W.info || {}, st = TT || {}, s = wzStep();
   $('#gwzT').textContent = W.kind === 'boost' ? _t('Boost del gioco') : _t('Prepara ') + (g ? g.name : '');
   const vis = W.steps.filter(x => x !== 'ok');
@@ -4146,7 +4165,7 @@ function wzDraw(){
     const fl = [['all', _t('Tutti')], ['rec', _t('Recenti')]].concat(stores.map(x => [x, storeName(x)]));
     const list = sortedLib().filter(x => !x.hidden && (W.f === 'all' || (W.f === 'rec' ? isRecent(x) : x.store === W.f)) && (!W.q || x.name.toLowerCase().includes(W.q)));
     h = P(_t('Quale gioco vuoi boostare?')) + (g ? '<p class="small" style="margin:0;color:var(--a1t)">✓ ' + esc(_t('Gioco scelto: ')) + esc(g.name) + esc(_t('. Premi "Sì, conferma".')) + '</p>' + memoBox : '<p class="small muted" style="margin:0">' + esc(_t('Tutti i giochi della libreria, anche quelli installati a mano. Scrivi il nome per trovarlo subito.')) + '</p>') +
-      '<input id="gwQ" type="search" placeholder="' + esc(_t('Cerca un gioco…')) + '" value="' + esc(W.q) + '" class="gwq">' +
+      '<input id="gwQ" type="search" placeholder="' + esc(_t('Cerca un gioco…')) + '" value="' + esc(W.qRaw != null ? W.qRaw : W.q) + '" class="gwq">' +
       '<div class="row wrap" style="gap:6px" id="gwF">' + fl.map(f => '<button class="chip' + (W.f === f[0] ? ' on' : '') + '" data-f="' + esc(f[0]) + '" aria-pressed="' + (W.f === f[0]) + '">' + esc(f[1]) + '</button>').join('') + '</div>' +
       '<div class="gwpick">' + (list.length ? list.slice(0, 120).map(x => '<button data-pick="' + esc(x.id) + '" class="' + (g && g.id === x.id ? 'on' : '') + '" aria-pressed="' + !!(g && g.id === x.id) + '"><span class="cover" data-cv="' + esc(x.id) + '"></span><b>' + esc(x.name) + '</b><small>' + esc(storeName(x.store)) + (isRecent(x) ? ' · ' + esc(_t('recente')) : '') + '</small></button>').join('') : '<span class="muted">' + esc(LIB.length ? ((W.f === 'rec' && !W.q) ? _t('Nessun gioco giocato negli ultimi 14 giorni.') : _t('Nessun gioco con questo nome.')) : _t('Nessun gioco nella libreria: premi Aggiorna o Aggiungi un gioco.')) + '</span>') + '</div>';
   }
@@ -4205,7 +4224,7 @@ function wzDraw(){
   $('#gwzNext').textContent = s === 'fine' ? _t('Applica') : s === 'pick' ? _t('Sì, conferma') : _t('Avanti');
   $('#gwzNext').disabled = !!W.busy || (s === 'pick' && !g) || (s === 'fine' && W.kind !== 'boost' && !W.skip && !st.mozilla_ok && !st.mozilla_file);
   if (s === 'pick') {
-    const qi = $('#gwQ'); qi.oninput = () => { W.q = qi.value.toLowerCase().trim(); const pos = qi.selectionStart; wzDraw(); const n = $('#gwQ'); n.focus(); try { n.setSelectionRange(pos, pos); } catch (e) {} };
+    const qi = $('#gwQ'); qi.oninput = () => { W.qRaw = qi.value; W.q = qi.value.toLowerCase().trim(); const pos = qi.selectionStart; wzDraw(); const n = $('#gwQ'); n.focus(); try { n.setSelectionRange(pos, pos); } catch (e) {} };
     $$('#gwzB [data-cv]').forEach(c => { const x = LIB.find(y => y.id === c.dataset.cv); if (x) putCover(c, x); });
   }
   const pv = $('#gwPrev'); if (pv) pv.onclick = () => { const m = W.m; W.skip = W.kind === 'boost' || !!m.skip || !m.a; if (!W.skip) { W.da = m.da || 'auto'; W.a = m.a; W.modo = m.modo === 'file' && canFile() ? 'file' : 'schermo'; W.ia = !!m.ia; W.liv = m.ia ? (m.liv || 'auto') : 'off'; } if (m.pot) W.pot = m.pot; W.i = W.steps.indexOf('cons'); wzDraw(); };
