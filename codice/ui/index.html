@@ -519,7 +519,8 @@ nav [data-sub="gio"] button{--ic:#FF4D6D}
 .gp-big:focus-visible{outline:2px solid var(--a1);outline-offset:3px}
 .gp-sets{display:flex;flex-direction:column;gap:0;padding-top:6px;padding-bottom:6px}
 .gp-line{flex-wrap:wrap}.gp-line>span{flex:1 1 220px}
-.gp-side{display:flex;flex-direction:column;gap:10px;min-width:0}.gp-side h3{margin:0;font-size:17px}
+.gp-side{display:flex;flex-direction:column;gap:10px;min-width:0}
+#gpToolTabs{display:grid;grid-template-columns:1fr 1fr;gap:6px}#gpToolTabs .chip{text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis} /* 4 schede in 2 righe uguali, non 3 + 1 */.gp-side h3{margin:0;font-size:17px}
 .tl{display:flex;gap:12px;align-items:flex-start;width:100%;text-align:left;padding:9px 4px;border:0;border-bottom:1px solid var(--line);background:none;color:var(--text);cursor:pointer;font:inherit;border-radius:0}
 .tl:last-child{border-bottom:0}.tl:hover b{color:var(--a1t)}.tl:focus-visible{outline:2px solid var(--a1);outline-offset:2px}.tl:disabled{opacity:.5;cursor:default}
 .tl i{font-style:normal;flex:none;width:34px;height:34px;display:grid;place-items:center;border-radius:9px;background:var(--panel2);font-size:16px}
@@ -1239,7 +1240,7 @@ body.th-tasso:not(.office) .aa-passi li::before{background:var(--text);color:var
       <label class="acf">Parte dopo<select id="acDelay"><option value="0">subito</option><option value="3" selected>3 secondi</option><option value="5">5 secondi</option><option value="10">10 secondi</option></select></label>
     </div>
     <div class="row wrap"><button class="btn primary" id="btnAcGo">Avvia autoclick</button><button class="btn ghost" id="btnAcStop" disabled>Ferma</button></div>
-    <span class="small muted">Il movimento resta sempre dentro la finestra in primo piano (il gioco). "Parte dopo" ti dà il tempo di andare nel gioco. <b>Esc</b> lo ferma sempre, in qualsiasi momento.</span>
+    <span class="small muted">Se cambia la finestra in primo piano (Alt+Tab, una finestra di Windows) l'autoclick si ferma. Con il punto fisso, scegli un punto dentro il gioco. "Parte dopo" ti dà il tempo di andare nel gioco. <b>Esc</b> lo ferma sempre, in qualsiasi momento.</span>
     <span class="small muted" id="acWarn">⚠️ Nei giochi online con anti-cheat (LoL, Valorant, Fortnite, CS2…) l'autoclick può portare al ban. <a href="#" id="acWarnHide" style="color:var(--a1t)">Non mostrare più</a></span>
   </div>
   </div>
@@ -1297,7 +1298,7 @@ body.th-tasso:not(.office) .aa-passi li::before{background:var(--text);color:var
   <div class="card idx" style="--c:var(--a3)"><details><summary><b>Licenze dei componenti</b> <span class="small muted">(avvisi da tenere insieme al programma)</span></summary><pre id="licTxt" style="white-space:pre-wrap;font:12px/1.5 ui-monospace,Consolas,monospace;margin:12px 0 0;max-height:420px;overflow:auto"></pre></details></div>
   <div class="card idx" style="--c:var(--a4)"><h3>Cosa Tasso non fa, apposta</h3><ul>
     <li><b>Pulizia del registro</b>: i benefici sono minimi e può rendere Windows instabile.</li>
-    <li><b>"Libera RAM" continuo e "acceleratori di internet" miracolosi</b>: Windows gestisce già bene memoria e rete. Tasso offre solo i comandi che servono davvero (svuota la memoria in standby quando un gioco scatta, rete a bassa latenza), e ti dice onestamente quando aiutano.</li>
+    <li><b>"Libera RAM" continuo e "acceleratori di internet" miracolosi</b>: Windows gestisce già bene memoria e rete. <span class="gm">Tasso offre solo i comandi che servono davvero (svuota la memoria in standby quando un gioco scatta, rete a bassa latenza), e ti dice onestamente quando aiutano.</span><span class="om">Tasso offre solo i comandi che servono davvero e ti dice onestamente quando aiutano.</span></li>
     <li><b>Driver da siti sconosciuti o programmi "aggiorna tutti i driver"</b>: Tasso installa solo driver certificati da Microsoft (Windows Update) o il driver NVIDIA preso da NVIDIA e con la firma di NVIDIA controllata; per il resto ti apre il sito ufficiale del produttore.</li>
     <li><b>Overclock e aggiornamento automatico del BIOS</b>: troppo rischiosi da fare in automatico.</li></ul></div>
   <div class="card idx" style="--c:var(--a3)"><h3>Novità della 3.2</h3><ul>
@@ -1366,7 +1367,7 @@ body.th-tasso:not(.office) .aa-passi li::before{background:var(--text);color:var
   </div>
   <div class="card" style="display:flex;flex-direction:column;gap:14px">
     <div><h2>Aspetto</h2><p class="sub" style="margin:2px 0 0">Clicca una scheda e Tasso cambia colore subito. Gaming e Ufficio ricordano ognuna il suo tema.</p></div>
-    <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px" id="themeCards"></div>
+    <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px" id="themeCards"></div>
     <div class="row wrap" id="sfondoRow" style="display:none;gap:8px;align-items:center"><span class="small muted">Sfondo del desktop:</span><button class="btn ghost" id="sfondoMetti">Metti quello del tema</button><button class="btn ghost" id="sfondoRimetti">Rimetti il mio</button></div>
     <button role="switch" aria-checked="false" class="toggle gm" id="tgShowAll"><span><b>Mostra tutte le funzioni</b><span>In Gaming alcune funzioni da esperti restano nascoste. Accendi per vedere anche Prestazioni+ e, in Pulisci, le pulizie una per una (privacy, Download…).</span></span><span class="sw"><i></i></span></button>
     <button role="switch" aria-checked="false" class="toggle gm" id="tgCovers"><span><b>Copertine dei giochi da internet</b><span>Per i giochi che non sono di Steam, Tasso cerca la copertina su Steam usando il nome del gioco (il nome va a Steam). Spento: solo le immagini che ci sono già sul PC.</span></span><span class="sw"><i></i></span></button>
@@ -1434,7 +1435,7 @@ body.th-tasso:not(.office) .aa-passi li::before{background:var(--text);color:var
     </div>
     <div style="flex:1 1 260px;display:flex;flex-direction:column;gap:14px">
       <div class="card" style="display:flex;flex-direction:column;gap:6px">
-        <svg width="64" height="64" viewBox="0 0 200 200" aria-hidden="true"><rect x="4" y="4" width="192" height="192" rx="48" fill="#141725"/><rect x="4" y="4" width="192" height="192" rx="48" fill="none" stroke="var(--a1)" stroke-opacity=".75" stroke-width="6"/><path d="M100 172 L34 94 L58 38 L142 38 L166 94 Z" fill="#F2F4F8"/><path d="M58 38 L86 38 L94 122 L76 132 L44 104 Z" fill="#07080D"/><path d="M142 38 L114 38 L106 122 L124 132 L156 104 Z" fill="#07080D"/><circle class="pup" cx="74" cy="98" r="9" fill="var(--a1)"/><circle class="pup" cx="126" cy="98" r="9" fill="var(--a1)"/></svg>
+        <svg class="gm" width="64" height="64" viewBox="0 0 200 200" aria-hidden="true"><rect x="4" y="4" width="192" height="192" rx="48" fill="#141725"/><rect x="4" y="4" width="192" height="192" rx="48" fill="none" stroke="var(--a1)" stroke-opacity=".75" stroke-width="6"/><path d="M100 172 L34 94 L58 38 L142 38 L166 94 Z" fill="#F2F4F8"/><path d="M58 38 L86 38 L94 122 L76 132 L44 104 Z" fill="#07080D"/><path d="M142 38 L114 38 L106 122 L124 132 L156 104 Z" fill="#07080D"/><circle class="pup" cx="74" cy="98" r="9" fill="var(--a1)"/><circle class="pup" cx="126" cy="98" r="9" fill="var(--a1)"/></svg><svg class="om tassino" width="64" height="64" viewBox="0 0 200 200" aria-hidden="true"><rect x="4" y="4" width="192" height="192" rx="48" fill="#FFFFFF"/><rect x="4" y="4" width="192" height="192" rx="48" fill="none" stroke="#C9CDD4" stroke-width="6"/><g transform="translate(28 36) scale(0.6)"><path d="M44 22 H196 L226 104 L120 206 L14 104 Z" fill="#0A0B0D"/><path d="M80 22 H106 L108 142 L56 132 L36 98 Z" fill="#FFFFFF"/><path d="M160 22 H134 L132 142 L184 132 L204 98 Z" fill="#FFFFFF"/><circle class="pup" cx="82" cy="112" r="12" fill="#2F6FEB"/><circle class="pup" cx="158" cy="112" r="12" fill="#2F6FEB"/><path d="M100 164 H140 L120 190 Z" fill="#FFFFFF"/></g></svg>
         <b style="font-family:var(--display);font-size:20px">TASSO</b>
         <span class="muted" id="verLine">Versione</span>
         <span class="muted small">Pulisce, ripara e spinge il tuo PC.</span>
@@ -2205,7 +2206,8 @@ function paintHero(){
   const col = score >= 80 ? 'var(--a1)' : score >= 60 ? 'var(--a4)' : 'var(--red)';
   $('#scoreArc').setAttribute('stroke-dasharray', (641 * score / 100).toFixed(0) + ' 641');
   $('#scoreArc').setAttribute('stroke', col);
-  $('#heroTitle').innerHTML = (/^(8|11|8\d)$/.test(String(score)) ? _t('Il tuo PC è all\'') : _t('Il tuo PC è al ')) + '<span style="color:' + col + '">' + score + '%</span>.<br>' + (score >= 95 ? _t('In forma perfetta.') : _t('Portiamolo al 100.'));
+  // Lo stesso voto si scrive dappertutto allo stesso modo: 72/100 (come in Gaming e nella scheda Salute).
+  $('#heroTitle').innerHTML = _t('Salute del PC: ') + '<span style="color:' + col + '">' + score + '/100</span>.<br>' + (score >= 95 ? _t('In forma perfetta.') : _t('Portiamolo al 100.'));
   const bits = okJunk ? [fmtBytes(junk) + _t(' di file inutili')] : [];
   if (st > 5) bits.push(st + _t(' programmi che rallentano l\'avvio'));
   if (AN.badDevices > 0) bits.push(AN.badDevices + (AN.badDevices === 1 ? _t(' periferica con problemi') : _t(' periferiche con problemi')));
@@ -2987,9 +2989,13 @@ function alertOn(k){ return !(S.alerts && S.alerts[k] === false); }
 function paintAlerts(){
   const box = $('#alertList'); if(!box) return;
   box.innerHTML = '';
+  // Con "Avvisi intelligenti" spento questi 5 non fanno niente: lo dico e li mostro in grigio.
+  const gen = S.smartAlerts !== false && !S.paused;
+  if (S.smartAlerts === false) box.appendChild(el('p', {class:'small muted', style:'margin:8px 0 0'}, esc(_t('"Avvisi intelligenti" è spento: accendilo per ricevere questi avvisi.'))));
   ALERTS.forEach(al => {
     const on = alertOn(al.k);
     const b = el('button', {class:'toggle' + (on ? ' on' : ''), role:'switch', 'aria-checked': on ? 'true' : 'false'}, '<span><b>' + al.name + '</b><span>' + al.d + '</span></span><span class="sw"><i></i></span>');
+    if (!gen) b.disabled = true;
     b.onclick = async () => { const nv = !alertOn(al.k); if(!S.alerts) S.alerts = {}; S.alerts[al.k] = nv; await call('goSetAlert', al.k, nv); paintAlerts(); if(CURVIEW==='hw'){ LAST_HW=''; paintLive(); } toast(nv ? (_t('Avviso acceso: ') + al.name) : (_t('Avviso spento: ') + al.name)); };
     box.appendChild(b);
   });
@@ -3077,8 +3083,8 @@ $('#btnTogli').onclick = async () => {
   if (RUN) { toast(_t('Aspetta la fine della pulizia prima di togliere Tasso.'), 'var(--a4)'); return; }
   const info = (await call('goTogliTassoInfo')) || {vault: true}; // se non so, avviso del portachiavi lo stesso
   const gb = info.bytes ? ' (' + fmtBytes(info.bytes) + ')' : '';
-  const h = '<h3>' + esc(_t('Togliere Tasso dal PC?')) + '</h3><p class="muted" style="margin:0 0 8px">' + esc(_t('Tasso toglie tutto quello che ha messo e poi si chiude. I tuoi file, i giochi e i salvataggi non si toccano.')) + '</p>' +
-    '<div class="callout"><b>' + esc(_t('Tasso toglie:')) + '</b><ul style="margin:6px 0 0;padding-left:20px"><li>' + esc(_t('la partenza con Windows e le pulizie automatiche')) + '</li><li>' + esc(_t('le traduzioni messe dentro i giochi (solo i file aggiunti da Tasso; gli originali sono intatti)')) + '</li><li>' + esc(_t('le sue cartelle: impostazioni, registri e modelli della traduzione')) + esc(gb) + '</li><li>' + esc(_t('il collegamento sul Desktop e il file di Tasso')) + '</li></ul></div>' +
+  const h = '<h3>' + esc(_t('Togliere Tasso dal PC?')) + '</h3><p class="muted" style="margin:0 0 8px">' + esc(isOffice() ? _t('Tasso toglie tutto quello che ha messo e poi si chiude. I tuoi file non si toccano.') : _t('Tasso toglie tutto quello che ha messo e poi si chiude. I tuoi file, i giochi e i salvataggi non si toccano.')) + '</p>' +
+    '<div class="callout"><b>' + esc(_t('Tasso toglie:')) + '</b><ul style="margin:6px 0 0;padding-left:20px"><li>' + esc(_t('la partenza con Windows e le pulizie automatiche')) + '</li><li>' + esc(isOffice() ? _t('le traduzioni dei giochi, se le hai usate in Gaming') : _t('le traduzioni messe dentro i giochi (solo i file aggiunti da Tasso; gli originali sono intatti)')) + '</li><li>' + esc(_t('le sue cartelle: impostazioni, registri e modelli della traduzione')) + esc(gb) + '</li><li>' + esc(_t('il collegamento sul Desktop e il file di Tasso')) + '</li></ul></div>' +
     '<label class="li check" style="align-items:flex-start;margin-top:8px;border-bottom:0;min-height:0"><input type="checkbox" id="tgRimetti" checked> <span>' + esc(_t('Rimetti anche le impostazioni di Windows com\'erano prima di Tasso')) + '<br><span class="small muted">' + esc(_t('Piano energetico, schermo, notifiche, mouse, programmi all\'avvio. I file cancellati dalle pulizie non tornano: per quelli c\'è il punto di ripristino di Windows.')) + '</span></span></label>' +
     (info.vault ? '<div class="callout" style="border-color:var(--a4);margin-top:8px"><b>' + esc(_t('Hai il portachiavi di Tasso con delle password.')) + '</b> ' + esc(_t('Togliendo Tasso si cancellano e non si recuperano. Prima copiale altrove (Portachiavi > tocca una password > Copia).')) + '<label class="li check" style="margin-top:8px;border-bottom:0;min-height:0"><input type="checkbox" id="tgVault"> <span>' + esc(_t('Ho copiato le password che mi servono')) + '</span></label></div>' : '') +
     '<p class="small muted" style="margin:8px 0 0">' + esc(_t('Restano: i punti di ripristino di Windows e i backup del registro fatti da Tasso, che sposto in Documenti > Tasso - copie di sicurezza.')) + '</p>';
@@ -3805,6 +3811,10 @@ async function setLook(p){
   applyLook(); repaintLook();
   if (p === 'ufficio' && typeof GP_ID !== 'undefined' && GP_ID) closeGame();
   if (p === 'ufficio' && (CURVIEW === 'games' || CURVIEW === 'perf')) show('home');
+  // La Modalità riunione accesa resta così anche in Gaming (notifiche e aggiornamenti in pausa), ma lì il suo
+  // pulsante non c'è: chiedo se spegnerla.
+  if (p === 'gioco' && OF_STATI.of_new_meeting) modal('<h2>' + esc(_t('La Modalità riunione è ancora accesa')) + '</h2><p class="muted" style="margin:0;line-height:1.5">' + esc(_t('Notifiche, OneDrive e aggiornamenti restano in pausa anche in Gaming. La spengo? Tornano come prima.')) + '</p>',
+    [{label:_t('Lasciala accesa')}, {label:_t('Spegni'), cls:'primary', fn: () => { call('goStartSteps', ['of_new_meeting'], 'acceso', true).then(r => { if (r === 'busy') toast(_t('Attendi la fine dell\'operazione in corso.'), 'var(--a4)'); else show('clean'); }); }}]);
   // 3.1: in Ufficio niente giochi e niente traduzione: se era accesa la spengo (tasti F7 liberi).
   // Il tasto dell'autoclick, il Boost automatico, la modalità gioco automatica, il pannellino e il
   // Profilo gioco li mette in pausa Tasso (goSetLook): tornando a Gaming riprendono come prima.
@@ -3840,7 +3850,7 @@ applyLook();
 // per passare all'altra (solo nascosto; Go rifiuta comunque il cambio, vedi ecosistema.go).
 if (BOOT.modoFisso === 'gioco' || BOOT.modoFisso === 'ufficio') { ['#modeBtn', '#lookSw'].forEach(q => { const e = $(q); if (e) e.style.display = 'none'; }); const pb = $('#profBtns'); if (pb && pb.parentElement) pb.parentElement.style.display = 'none'; }
 const h = new Date().getHours();
-$('#hello').textContent = h < 6 ? _t('Buonanotte!') : h < 13 ? _t('Buongiorno!') : h < 18 ? _t('Buon pomeriggio!') : _t('Buonasera!');
+$('#hello').textContent = h < 6 ? _t('Ciao!') : h < 13 ? _t('Buongiorno!') : h < 18 ? _t('Buon pomeriggio!') : _t('Buonasera!');
 renderLevels(); paintModes(); paintFixPh(); ofStati();
 // Apertura più veloce: le pagine che all'avvio non si vedono (Strumenti, Info, Temi e Impostazioni,
 // Ufficio in Risolvi problemi) si preparano subito dopo che la Home è disegnata, oppure appena le apri
@@ -4370,7 +4380,7 @@ Object.assign(window.tasso, { onUpdate(u){
     m.innerHTML = _t('🎉 È uscita la versione <b>') + esc(u.latest) + _t('</b>. Premi <b>Aggiorna ora</b>: Tasso si aggiorna e si riapre da solo.');
     $('#btnUpd').style.display = 'none'; $('#btnUpdNow').style.display = ''; $('#lnkUpdZip').style.display = '';
     $('#updCard').classList.add('new');
-    $('#updBannerTxt').innerHTML = _t('<b>È uscita Tasso ') + esc(u.latest) + _t('.</b> <span class="muted">Puoi aggiornarla con un clic dalle Impostazioni.</span>');
+    $('#updBannerTxt').innerHTML = _t('<b>È uscito Tasso ') + esc(u.latest) + _t('.</b> <span class="muted">Puoi aggiornarlo con un clic dalle Impostazioni.</span>');
     $('#updBanner').classList.add('on');
     if (quiet) autoUpdate(u);
   } else if (u.componenti && u.componenti.length > 1) m.textContent = _t('Sei già aggiornato: hai le ultime versioni.');
@@ -4770,7 +4780,7 @@ function gameTools(g){
     {k:'perf', id:'tune', ic:'🎛️', t:_t('Impostazioni consigliate'), d:_t('Calcolate per questo gioco e per il tuo PC.'), s: S.gameTunes && S.gameTunes[g.id] ? _t('FATTE') : _t('QUANDO VUOI'), ok: !!(S.gameTunes && S.gameTunes[g.id])},
     // «Misura gli FPS» e «Controllo FPS» tolti dalla pagina (scelta voluta): il codice resta, il Boost li usa da solo
     {k:'perf', id:'ov', ic:'📟', t:_t('Pannellino in gioco'), d:_t('Processore, scheda video e RAM in un angolo mentre giochi.'), s: on(!!S.overlayOn), ok: !!S.overlayOn},
-    {k:'altro', id:'ac', ic:'🖲️', t:_t('Autoclick'), d:_t('Clicca da solo al posto tuo (non nei giochi con anti-imbroglio).'), s:_t('QUANDO VUOI')},
+    {k:'altro', id:'ac', ic:'🖲️', t:_t('Autoclick'), d:_t('Clicca da solo al posto tuo (non nei giochi con anti-cheat).'), s:_t('QUANDO VUOI')},
     {k:'fix', id:'start', ic:'🧩', t:_t('Non parte o mancano file'), d:_t('Rimette DirectX, Visual C++ e .NET dal sito Microsoft.'), s:_t('RIPARA')},
     {k:'fix', id:'lag', ic:'🎮', t:_t('Va a scatti'), d:_t('Modalità Gioco, energia e cosa rallenta.'), s:_t('RIPARA')},
     {k:'fix', id:'more', ic:'🛠️', t:_t('Altri problemi dei giochi'), d:_t('Tutti i problemi con un pulsante, in Risolvi un problema.'), s:_t('APRI')},
@@ -4829,7 +4839,7 @@ async function playGame(g, out){
 }
 function gpTrText(){
   const i = GPI, st = TT || {};
-  return !i ? _t('Controllo il gioco…') : i.errore ? tx(i.errore) : i.tradotto ? (i.in_file ? _t('Tradotto dentro il gioco.') : st.acceso ? _t('Tradotto sullo schermo: nel gioco premi ') + keyName('pagina', 'F7') + '.' : _t('Tradotto sullo schermo. Il traduttore adesso è spento: si accende da solo con GIOCA o premendo ') + keyName('pagina', 'F7') + _t(' nel gioco.')) : i.anticheat ? _t('Non tradotto. Si può tradurre solo sullo schermo, per non rischiare con l\'anti-imbroglio.') : _t('Non tradotto.');
+  return !i ? _t('Controllo il gioco…') : i.errore ? tx(i.errore) : i.tradotto ? (i.in_file ? _t('Tradotto dentro il gioco.') : st.acceso ? _t('Tradotto sullo schermo: nel gioco premi ') + keyName('pagina', 'F7') + '.' : _t('Tradotto sullo schermo. Il traduttore adesso è spento: si accende da solo con GIOCA o premendo ') + keyName('pagina', 'F7') + _t(' nel gioco.')) : i.anticheat ? _t('Non tradotto. Si può tradurre solo sullo schermo, per non rischiare con l\'anti-cheat.') : _t('Non tradotto.');
 }
 // Traduzione del gioco (3.1, scelta voluta): è qui, nella pagina del gioco, e non più in cima a Giochi.
 // L'interruttore «Traduci questo gioco»: la prima volta apre i passaggi (lingue, IA), poi accende e
@@ -4842,15 +4852,16 @@ function gpTrCard(g){
   return '<div class="card gptr"><h3>🌐 ' + esc(_t('Traduzione')) + ' <span class="badge betatag" title="' + esc(_t('Stiamo migliorando qualità e velocità: qualche frase può uscire strana o restare nella lingua originale del gioco.')) + '">' + esc(_t('Beta')) + '</span></h3>' +
     '<div class="gp-line"><span><b>' + esc(_t('Traduci questo gioco')) + '</b><small>' + esc(_t('Nel gioco premi ')) + k + esc(_t(' e le scritte diventano in ')) + lg + '. ' + esc(_t('Se il traduttore è spento, si accende da solo.')) + '</small></span>' +
       (can ? '<button class="sw' + (on ? ' on' : '') + '" role="switch" aria-checked="' + on + '" data-act="trsw" aria-label="' + esc(_t('Traduci questo gioco')) + '" title="' + esc(_t('Accende il traduttore di Tasso: lo prepara in sottofondo, senza toccare il gioco.')) + '"><i></i></button>' : '') + '</div>' +
-    '<div class="gp-line" style="border-bottom:0"><span><b>' + esc(_t('Come lo traduco')) + '</b><small id="gpTrTxt">' + esc(gpTrText()) + '</small><a href="#" class="trhint" data-act="keys">' + esc(_t('Tasti rapidi: si cambiano in Impostazioni')) + '</a></span>' +
+    '<div class="gp-line" style="border-bottom:0"><span><b>' + esc(_t('Come lo traduco')) + '</b><small id="gpTrTxt">' + esc(gpTrText()) + '</small><a href="#" class="trhint" data-act="keys">' + esc(_t('Tasti rapidi: si cambiano in Impostazioni giochi')) + '</a></span>' +
       (can ? '<button class="btn ghost" data-act="wiz">' + esc(i.tradotto ? _t('Lingue e passaggi') : _t('Traduci')) + '</button>' : '') +
       (i && i.tradotto ? '<button class="btn ghost" data-act="trstop">' + esc(_t('Togli la traduzione')) + '</button>' : '') + '</div></div>';
 }
 function paintGame(g){
   const box = $('#gamePage'), m = S.gameMemo && S.gameMemo[g.id], i = GPI;
   const pw = gamePow(g.id);
-  const pills = '<span class="pill">' + esc(storeName(g.store)) + '</span>' + (i && i.anticheat ? '<span class="pill warn">' + esc(_t('Anti-imbroglio')) + '</span>' : '') + (i && i.unity ? '<span class="pill">Unity</span>' : '') + (i && i.tradotto ? '<span class="pill ok">' + esc(_t('Tradotto')) + '</span>' : '');
-  const live = LIVE && LIVE.gpu && LIVE.gpu.temp != null ? Math.round(LIVE.gpu.temp) + '°' : '—';
+  // il negozio è già scritto sopra il titolo: qui niente doppione
+  const pills = (i && i.anticheat ? '<span class="pill warn">' + esc(_t('Anti-cheat')) + '</span>' : '') + (i && i.unity ? '<span class="pill">Unity</span>' : '') + (i && i.tradotto ? '<span class="pill ok">' + esc(_t('Tradotto')) + '</span>' : '');
+  const live = LIVE && LIVE.gpu && LIVE.gpu.temp != null ? Math.round(LIVE.gpu.temp) + '°C' : '—';
   const stats = [[i && i.traduzioni ? String(i.traduzioni) : '0', _t('Frasi già tradotte')], [pw ? POW[pw] : autoAll() ? _t('Alta (Boost automatico)') : POW[''], _t('Potenza quando giochi')], [live, _t('Scheda video adesso')]];
   box.innerHTML = '<div class="gp"><div><button class="btn ghost" id="gpBack">← ' + esc(_t('Tutti i giochi')) + '</button></div>' +
     '<div class="card gp-hero"><div class="cover gp-cv"></div><div class="gp-tit"><div class="gp-store">' + esc(storeName(g.store)) + '</div><h2 tabindex="-1">' + esc(g.name) + '</h2><div>' + pills + '</div></div></div>' +
@@ -5000,7 +5011,7 @@ function tuneRows(){
   if (t.ini) rows.push({k:'inGame', on: !!o.inGame, t:_t('Grafica dentro il gioco: ') + (q[o.quality] || q[2]) + (o.vsync ? _t(', VSync acceso') : _t(', VSync spento')), d:_t('Solo per i giochi Unreal, con copia di sicurezza.')});
   else rows.push({k:'info', t:_t('Grafica dentro il gioco'), d: t.anticheat ? _t('Questo gioco ha un anti-cheat: Tasso non tocca i suoi file. La grafica la imposti tu dal menu del gioco (i valori giusti sono in "Mostra i dettagli").') : _t('Questo gioco non ha un file che Tasso può cambiare in sicurezza: le impostazioni giuste te le dico in "Mostra i dettagli".'), off:true, on:false});
   if (t.ini) rows.push({k:'noLimit', on: !o.fpsCap, t:_t('Nessun limite agli FPS'), d: t.hz ? _t('Spuntata: il gioco fa tutti gli FPS che può. Tolta: il limite è uguale al tuo schermo (') + t.hz + _t(' FPS con ') + t.hz + _t(' Hz) e il PC scalda meno.') + _t(' Vale insieme a «Grafica dentro il gioco».') : _t('Spuntata: il gioco fa tutti gli FPS che può. Tolta: limite a ') + ((rec.opts || {}).fpsCap || 60) + _t(' FPS. Vale insieme a «Grafica dentro il gioco».')});
-  rows.push({k:'priority', on: !!o.priority && !t.anticheat, t:_t('Priorità alta del processore'), d: t.anticheat ? _t('Non per questo gioco: ha un anti-cheat.') : _t('Il processore serve prima il gioco. Con alcuni anti-imbroglio meglio lasciarla spenta.'), off: !t.hasExe || !!t.anticheat});
+  rows.push({k:'priority', on: !!o.priority && !t.anticheat, t:_t('Priorità alta del processore'), d: t.anticheat ? _t('Non per questo gioco: ha un anti-cheat.') : _t('Il processore serve prima il gioco. Con alcuni anti-cheat meglio lasciarla spenta.'), off: !t.hasExe || !!t.anticheat});
   rows.push({k:'noFso', on: !!o.noFso, t:_t('Spegni le ottimizzazioni a schermo intero'), d:_t('Serve solo con alcuni giochi vecchi.'), off: !t.hasExe});
   return rows;
 }
@@ -5084,7 +5095,7 @@ function wzDraw0(){
     const iaTxt = st.ia_file ? (st.ia_pc_ok ? _t('Installata. Accendila per questo gioco: ricontrolla le frasi e le rende naturali, si fa da parte se il gioco ha bisogno della scheda video.') : _t('Installata, ma su questo PC rallenterebbe il gioco: Tasso usa il traduttore veloce.')) : !st.ia_pc_ok ? _t('Non adatta a questo PC: ') + tx(st.ia_pc_motivo || '') : st.ia_offerta ? _t('Non scaricata. Si scarica una volta (circa 10 GB) in Impostazioni giochi. Senza, traduce il traduttore veloce.') : _t('Non disponibile: traduce il traduttore veloce.');
     h = P(_t('In che lingua lo vuoi?')) + '<div class="opz">' + langBtns(LANGS.filter(l => l.codice !== W.da), W.a, false) + '</div>' +
       ((i.lingue_ufficiali || []).indexOf(W.a) >= 0 ? '<div class="callout">💡 ' + esc(g.name) + esc(_t(' ha già questa lingua ufficiale: sceglila nelle impostazioni del gioco (di solito Opzioni → Lingua). Tasso serve per le scritte che restano in inglese.')) + '</div>' : '') +
-      '<h3>' + esc(_t('Come lo traduco?')) + '</h3><div class="opz"><button data-m="file" class="' + (W.modo === 'file' ? 'on' : '') + '" aria-pressed="' + (W.modo === 'file') + '"' + (canFile() ? '' : ' disabled') + '>' + esc(_t('Dentro il gioco')) + '<small>' + esc(canFile() ? (i.unreal ? _t('Scritte identiche all\'originale, il gioco non viene toccato') : _t('Le scritte del gioco, con copia di sicurezza')) : i.anticheat ? _t('No: c\'è l\'anti-imbroglio') : tx(i.file_motivo || _t('Solo per alcuni giochi Unity e Unreal'))) + '</small></button><button data-m="schermo" class="' + (W.modo === 'schermo' ? 'on' : '') + '" aria-pressed="' + (W.modo === 'schermo') + '"' + (soloFile() ? ' disabled' : '') + '>' + esc(_t('Sullo schermo')) + '<small>' + esc(soloFile() ? _t('No: Windows non sa leggere questa lingua') : _t('legge lo schermo, non tocca nessun file')) + '</small></button></div>' +
+      '<h3>' + esc(_t('Come lo traduco?')) + '</h3><div class="opz"><button data-m="file" class="' + (W.modo === 'file' ? 'on' : '') + '" aria-pressed="' + (W.modo === 'file') + '"' + (canFile() ? '' : ' disabled') + '>' + esc(_t('Dentro il gioco')) + '<small>' + esc(canFile() ? (i.unreal ? _t('Scritte identiche all\'originale, il gioco non viene toccato') : _t('Le scritte del gioco, con copia di sicurezza')) : i.anticheat ? _t('No: c\'è l\'anti-cheat') : tx(i.file_motivo || _t('Solo per alcuni giochi Unity e Unreal'))) + '</small></button><button data-m="schermo" class="' + (W.modo === 'schermo' ? 'on' : '') + '" aria-pressed="' + (W.modo === 'schermo') + '"' + (soloFile() ? ' disabled' : '') + '>' + esc(_t('Sullo schermo')) + '<small>' + esc(soloFile() ? _t('No: Windows non sa leggere questa lingua') : _t('legge lo schermo, non tocca nessun file')) + '</small></button></div>' +
       lvHtml(st, iaTxt) +
       (i.anticheat ? '<div class="callout">🛡 ' + esc(_t('Sullo schermo è la scelta sicura con l\'anti-cheat: il gioco non viene toccato.')) + '</div>' : '');
   }
