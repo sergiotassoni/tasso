@@ -465,18 +465,38 @@ func setProfile(p string) string {
 
 // profiloPC: la parte di setProfile che regola il PC (modalità e pulizia settimanale). La usa
 // anche la prima apertura dopo l'installatore, che la scelta l'ha già fatta (ecosistema.go).
+// La modalità di Tasso cambia solo cosa vedi: anche con Gaming il PC resta in Normale (piano
+// energetico normale, notifiche di Windows accese). Gaming e FPS li mette il Boost, solo mentre giochi.
+// In Ufficio la pulizia programmata si accende, e la pagina lo dice (prima apertura e installatore).
 func profiloPC(p string) {
+	setMu.Lock()
+	prima := settings.Mode
+	setMu.Unlock()
+	if m := modoPrimoAvvio(p, prima); m != "" {
+		go setMode(m)
+	}
 	switch p {
 	case "gioco":
-		go setMode("gaming")
 		setWeekly(false)
-	case "ufficio":
-		go setMode("normale")
-		setWeekly(true)
-	case "entrambi":
-		go setMode("normale")
+	case "ufficio", "entrambi":
 		setWeekly(true)
 	}
+}
+
+// modoPrimoAvvio: la modalità del PC da mettere alla prima scelta del profilo ("" = non toccare).
+// Mai Gaming o FPS per sempre. Con Gaming, chi ha già scelto un'altra modalità del PC (Gaming,
+// FPS, Film, Silenzioso, impostazioni originali...) non viene toccato.
+func modoPrimoAvvio(profilo, modoAttuale string) string {
+	switch profilo {
+	case "gioco":
+		if modoAttuale == "" || modoAttuale == "normale" {
+			return "normale"
+		}
+		return ""
+	case "ufficio", "entrambi":
+		return "normale"
+	}
+	return ""
 }
 
 // sysExe: i programmi di Windows (schtasks, powercfg, taskkill, shutdown, powershell...) li avvio

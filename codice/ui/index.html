@@ -1457,6 +1457,7 @@ body.th-tasso:not(.office) .aa-passi li::before{background:var(--text);color:var
     <p class="sub" style="font-size:17px;max-width:600px">Scegli e Tasso si prepara per te. Puoi cambiare quando vuoi con il pulsante in alto a sinistra.</p>
   </div>
   <div class="grid g2" id="profCards" style="max-width:860px;margin:0 auto;width:100%"></div>
+  <p class="small muted" id="profNote" style="max-width:860px;margin:-4px auto 0;width:100%;text-align:center;line-height:1.5"></p>
   <div class="row wrap" style="justify-content:space-between">
     <span class="row muted" style="gap:10px;max-width:560px"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--a2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M8.5 12l2.5 2.5 4.5-5"/></svg>Prima di ogni pulizia importante Tasso fa un backup automatico.</span>
     <button class="btn primary" id="btnWelcome" style="padding:16px 28px;font-size:16px;border-radius:16px">Continua</button>
@@ -3070,6 +3071,8 @@ function paintWelcome(){
     box.appendChild(b);
   });
   $('#btnWelcome').textContent = _t('Continua con ') + PROFILES.find(p => p.id === chosen).name + '  →';
+  // Cosa cambia sul PC con la scelta, detto prima di premere Continua.
+  $('#profNote').textContent = chosen === 'ufficio' ? _t('Con Ufficio accendo la Pulizia programmata: Normale, ogni domenica alle 20, senza riavviare il PC. La cambi o la spegni in Pulisci.') : _t('Il PC resta com\'è: piano energetico e notifiche di Windows non cambiano. Il Boost mette il PC al massimo solo mentre giochi.');
   $$('#profCards .offart').forEach(x => { x.innerHTML = OFF_ART; });
 }
 $('#btnWelcome').onclick = async () => { const wb = $('#btnWelcome'); if (wb.disabled) return; wb.disabled = true; const r = await callBg('goSetProfile', chosen); wb.disabled = false; if (r !== 'ok') { toast(typeof r === 'string' && r ? r : _t('Non sono riuscito a salvare la scelta: riprova.'), 'var(--a4)'); return; } $('#welcome').classList.remove('on'); await refreshS(); applyLook(); repaintLook(); toast(chosen === 'ufficio' ? _t('Fatto! Tasso è pronto per il lavoro.') : _t('Fatto! Tasso è configurato per te.')); setTimeout(statsAsk, 4000); setTimeout(async () => { await refreshS(); paintModes(); paintSettings(); }, 3000); };
@@ -4276,6 +4279,8 @@ function selfUpd(){
 }
 $('#btnUpdNow').onclick = selfUpd;
 $('#lnkUpdZip').onclick = (e) => { e.preventDefault(); call('goOpenURL', UPD_URL || 'https://github.com/sergiotassoni/tasso/raw/main/Tasso.zip'); };
+// Prima apertura dopo l'installatore con Ufficio: la pulizia programmata si è accesa senza la schermata di scelta, lo dico.
+window.tasso.onPuliziaAccesa = () => { toast(_t('Ho acceso la Pulizia programmata: Normale, ogni domenica alle 20, senza riavviare il PC. La cambi o la spegni in Pulisci.'), 'var(--a3)', {label:_t('Vedi'), fn: () => show('clean')}); };
 // Tasso.exe --controlla-aggiornamenti (da Tasso Zip o Tasso PDF): apro Aggiornamenti e controllo.
 window.tasso.onControllaAgg = () => { goUpdCard(); if (!UPD_SELF) $('#btnUpd').click(); };
 if (BOOT.controllaAgg) setTimeout(() => window.tasso.onControllaAgg(), 1200);

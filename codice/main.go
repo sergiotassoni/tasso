@@ -274,6 +274,12 @@ func main() {
 				// come il pulsante "Continua" della prima apertura, con la scelta fatta nell'installatore
 				lookChanged(profiloInstallatore == "ufficio")
 				profiloPC(profiloInstallatore)
+				setMu.Lock()
+				wk := settings.Weekly
+				setMu.Unlock()
+				if profiloInstallatore != "gioco" && wk {
+					emit("onPuliziaAccesa", nil) // la pagina dice che la pulizia programmata si è accesa
+				}
 			} else {
 				lookChanged(officeMode()) // come il menu delle modalità (Boost, autoclick, pannellino)
 			}
