@@ -10,7 +10,7 @@ lì alcuni numeri e motori sono **superati** (per esempio il vecchio correttore 
 
 ## Cosa fa (versione 0.16)
 
-- **Traduzione dello schermo** (F6 nel gioco, o da sola con "Traduzione gioco"): legge tutte le
+- **Traduzione dello schermo** (F7 nel gioco, o da sola con "Traduzione gioco"): legge tutte le
   scritte della finestra del gioco con la lettura del testo di Windows, le traduce e le rimette
   al loro posto, con colori e grandezza simili. Funziona con qualsiasi gioco in finestra o
   "schermo intero senza bordi", anche con l'anti-imbroglio (non tocca il gioco).

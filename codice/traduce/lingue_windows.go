@@ -245,7 +245,7 @@ func installaLetturaOCR(codice string) string {
 			letta = letta || strings.HasPrefix(t, strings.ToLower(pre)+"-")
 		}
 		if err == nil && strings.Contains(out, "OK") && letta {
-			emetti("info", map[string]string{"testo": "Fatto: ora Windows sa leggere questa lingua."})
+			emetti("info", map[string]string{"testo": "Fatto: ora Windows sa leggere questa lingua. Se un giorno non ti serve più, la togli in Impostazioni di Windows → Funzionalità facoltative."})
 		} else {
 			apriImpostazioniLingue()
 			emetti("info", map[string]string{"testo": "Windows non è riuscito ad aggiungerla da solo (serve internet). Ti ho aperto le Impostazioni: aggiungi la lingua da lì."})

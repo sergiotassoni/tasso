@@ -187,6 +187,22 @@ func impronta(p string) (string, error) {
 	return hex.EncodeToString(h.Sum(nil)), nil
 }
 
+// msgErroreScarica: cosa dire all'utente di uno scaricamento non riuscito, senza nomi di file,
+// indirizzi né errori tecnici (quelli li scrive il registro, logScarica).
+func msgErroreScarica(err error) string {
+	var pe *os.PathError
+	var le *os.LinkError
+	switch {
+	case errors.Is(err, errScaricaRete):
+		return "connessione non riuscita: controlla internet e riprova."
+	case errors.Is(err, errScaricaSicurezza):
+		return "il file scaricato non è quello giusto e l'ho cancellato: riprova più tardi."
+	case errors.As(err, &pe), errors.As(err, &le):
+		return "non riesco a salvare il file sul disco: controlla lo spazio libero e riprova."
+	}
+	return err.Error()
+}
+
 // scaricaTutti scarica i file mancanti. avanzamento(fatti, totale) viene chiamata spesso.
 func scaricaTutti(ctx context.Context, dir string, files []FileDaScaricare, avanzamento func(int64, int64)) error {
 	if err := os.MkdirAll(dir, 0o755); err != nil {
@@ -216,6 +232,13 @@ func scaricaTutti(ctx context.Context, dir string, files []FileDaScaricare, avan
 	return nil
 }
 
+// Per dire all'utente cosa è successo senza l'errore tecnico (che resta nel registro): la rete o il
+// controllo dell'impronta. Restano dentro l'errore con %w (errors.Is).
+var (
+	errScaricaRete      = errors.New("connessione non riuscita")
+	errScaricaSicurezza = errors.New("controllo di sicurezza fallito, il file non è quello atteso (cancellato)")
+)
+
 func scaricaUno(ctx context.Context, dir string, f FileDaScaricare, avanzamento func(int64)) error {
 	if strings.ContainsAny(f.Nome, `/\:`) || f.Nome == "" || f.Nome == "." || f.Nome == ".." {
 		return fmt.Errorf("nome file non valido: %q", f.Nome)
@@ -231,11 +254,11 @@ func scaricaUno(ctx context.Context, dir string, f FileDaScaricare, avanzamento 
 	req.Header.Set("Accept-Encoding", "identity")
 	resp, err := clientScarica.Do(req)
 	if err != nil {
-		return fmt.Errorf("%s: %w", f.Nome, err)
+		return fmt.Errorf("%s: %w: %w", f.Nome, errScaricaRete, err)
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != 200 {
-		return fmt.Errorf("%s: il server ha risposto %d", f.Nome, resp.StatusCode)
+		return fmt.Errorf("%s: %w: il server ha risposto %d", f.Nome, errScaricaRete, resp.StatusCode)
 	}
 	var sorgente io.Reader = resp.Body
 	if f.Gzip || resp.Header.Get("Content-Encoding") == "gzip" {
@@ -260,11 +283,15 @@ func scaricaUno(ctx context.Context, dir string, f FileDaScaricare, avanzamento 
 	}
 	if err != nil {
 		os.Remove(tmp)
-		return fmt.Errorf("%s: %w", f.Nome, err)
+		var pe *os.PathError
+		if errors.As(err, &pe) { // scrittura sul disco
+			return fmt.Errorf("%s: %w", f.Nome, err)
+		}
+		return fmt.Errorf("%s: %w: %w", f.Nome, errScaricaRete, err) // la connessione si è interrotta
 	}
 	if got := hex.EncodeToString(h.Sum(nil)); !strings.EqualFold(got, f.SHA256) {
 		os.Remove(tmp)
-		return fmt.Errorf("%s: controllo di sicurezza fallito, il file non è quello atteso (cancellato)", f.Nome)
+		return fmt.Errorf("%s: %w", f.Nome, errScaricaSicurezza)
 	}
 	return os.Rename(tmp, filepath.Join(dir, f.Nome))
 }

@@ -31,7 +31,7 @@ func applicaModUnreal(nome, cartella string, antiCheat bool, passo func(int, str
 	}
 	chiave := chiaveGioco(cartella)
 	if _, motivo := togliVecchiaSeCe(cartella); motivo != "" {
-		fallito("Non riesco a togliere la traduzione messa dalla versione di prima: " + motivo)
+		fallito(trTasso("Non riesco a togliere la traduzione messa dalla versione di prima: ") + motivo)
 		return
 	}
 	if _, gia := leggiManifesto(baseDi(chiave), chiave); gia {

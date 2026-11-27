@@ -439,6 +439,8 @@ func GiochiDaSistemareAMano() []string {
 }
 
 // msgSistemaAMano: cosa fare per un gioco che Tasso non può rimettere com'era da qui.
+// I pezzi fissi si traducono qui (trTasso), prima di unire il percorso: la pagina non traduce i
+// messaggi che contengono \ o /.
 func msgSistemaAMano(gioco, dove string) string {
-	return "Non riesco a togliere da qui la traduzione dentro " + gioco + ": usa \"Verifica file\" nel programma da cui lanci il gioco. Gli originali dei file sono in " + dove + "."
+	return trTasso("Non riesco a togliere da qui la traduzione dentro ") + gioco + trTasso(": usa \"Verifica file\" nel programma da cui lanci il gioco. Gli originali dei file sono in ") + dove + "."
 }

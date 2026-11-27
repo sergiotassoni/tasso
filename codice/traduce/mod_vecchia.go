@@ -131,7 +131,7 @@ func togliModVecchia(dirApp, chiave string, m ManifestoMod) error {
 		}
 	}
 	if len(errori) > 0 {
-		return &errInUso{fmt.Sprintf("non sono riuscito a togliere: %s (il gioco è aperto?)", strings.Join(errori, ", "))}
+		return &errInUso{trTasso("non sono riuscito a togliere: ") + strings.Join(errori, ", ") + trTasso(" (il gioco è aperto?)")}
 	}
 	return metti()
 }

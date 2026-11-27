@@ -75,7 +75,7 @@ func scaricaVoci() {
 		err = estraiWhisper(filepath.Join(dirVoci(), risorseVoci.Motore.Nome), dirMotoreVoci())
 	}
 	if err != nil {
-		emetti("erroreScarica", map[string]string{"cosa": "voci", "errore": err.Error()})
+		emetti("erroreScarica", map[string]string{"cosa": "voci", "errore": erroreScaricaPerUtente("voci", err)})
 		return
 	}
 	_ = os.Remove(filepath.Join(dirVoci(), risorseVoci.Motore.Nome))

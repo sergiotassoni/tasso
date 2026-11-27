@@ -145,9 +145,9 @@ func haAntiCheat(cartella string) bool {
 	return ConAntiCheat(g)
 }
 
-// messaggioAntiCheat: con l'anti-imbroglio non tocco mai i file, traduco sullo schermo.
+// messaggioAntiCheat: con l'anti-cheat non tocco mai i file, traduco sullo schermo.
 func messaggioAntiCheat(nome string) string {
-	return "Per non rischiare con l'anti-imbroglio, " + nome + " viene tradotto sullo schermo."
+	return "Per non rischiare con l'anti-cheat, " + nome + " viene tradotto sullo schermo."
 }
 
 // applicaTraduzione: i passi veri, con l'avanzamento mandato alla finestra.

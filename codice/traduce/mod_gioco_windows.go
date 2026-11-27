@@ -281,7 +281,7 @@ func applicaModGioco(nome, cartella string) {
 		if _, a := coppiaAttiva(); (GiocoHaLingua(CartellaPaksUnreal(cartella), a) || LinguaUfficialeNota(cartella, a)) && !forzaPerProva("TASSO_FORZA_FILE") {
 			// Il controllo può sbagliare (file della lingua quasi vuoti): lo dico, ma la traduzione
 			// dello schermo parte lo stesso, così non resti mai senza niente.
-			emetti("guidata", map[string]any{"nome": nome, "percento": 4, "testo": nome + " sembra avere già la sua traduzione in " + strings.ToLower(nomeLingua(a)) + ": prova a sceglierla nelle impostazioni del gioco (di solito Opzioni → Lingua). Intanto lo traduco sullo schermo."})
+			emetti("guidata", map[string]any{"nome": nome, "percento": 4, "testo": nome + " sembra avere già la sua traduzione nella lingua che vuoi: prova a sceglierla nelle impostazioni del gioco (di solito Opzioni → Lingua). Intanto lo traduco sullo schermo."})
 			applicaTraduzione(nome, cartella)
 			return
 		}
@@ -317,7 +317,7 @@ func applicaModGioco(nome, cartella string) {
 	// traduzione messa dalla 3.1.1 (elenco senza firma): la tolgo prima, altrimenti il suo BepInEx
 	// sembrerebbe una mod dell'utente
 	if _, motivo := togliVecchiaSeCe(cartella); motivo != "" {
-		fallito("Non riesco a togliere la traduzione messa dalla versione di prima: " + motivo)
+		fallito(trTasso("Non riesco a togliere la traduzione messa dalla versione di prima: ") + motivo)
 		return
 	}
 	if g := ModGiaPresenti(cartella); g != "" {
@@ -497,7 +497,7 @@ func modDaUsare(cartella string, inPrimoPianoDa time.Duration, nome string) bool
 		muRichiestePerGioco.Lock()
 		modNonFunziona[chiave] = true
 		muRichiestePerGioco.Unlock()
-		emetti("info", map[string]string{"testo": nome + ": la traduzione dentro il gioco non è partita (forse per un aggiornamento del gioco). Passo alla traduzione dello schermo. Con Ferma traduzione puoi togliere i file aggiunti."})
+		emetti("info", map[string]string{"testo": nome + ": la traduzione dentro il gioco non è partita (forse per un aggiornamento del gioco). Passo alla traduzione dello schermo. Con «Togli la traduzione», nella pagina del gioco, puoi togliere i file aggiunti."})
 		return false
 	}
 	return true
