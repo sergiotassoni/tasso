@@ -178,6 +178,8 @@ foreach ($d in @(Get-CimInstance Win32_PnPSignedDriver -ErrorAction SilentlyCont
   $cat = $catOf[$cls]
   $e = $ent[$d.DeviceID]
   $err = 0; if ($e) { $err = [int]$e.ConfigManagerErrorCode }
+  # Codice 24 con la periferica che non c'è (Present falso) = non collegata, come il 45. Con la periferica presente è un problema vero.
+  if ($err -eq 24 -and $e.Present -eq $false) { $err = 45 }
   if (-not $cat) { if ($err -ne 0 -and $err -ne 22 -and $err -ne 45) { $cat = 'Altro' } else { continue } }
   # Le voci di sistema sono centinaia: tengo solo il chipset vero (AMD, Intel) e quelle con problemi.
   if ($cls -eq 'SYSTEM' -and $err -eq 0 -and ([string]$d.Manufacturer + ' ' + $d.DeviceName) -notmatch 'AMD|Intel|NVIDIA|chipset|SMBus|PSP|Management Engine|GPIO|Serial IO|Thermal') { continue }
@@ -195,6 +197,7 @@ foreach ($d in @(Get-CimInstance Win32_PnPSignedDriver -ErrorAction SilentlyCont
 # Periferiche senza nessun driver (codice 28) non compaiono tra i driver firmati.
 foreach ($e in $ent.Values) {
   $c = [int]$e.ConfigManagerErrorCode
+  if ($c -eq 24 -and $e.Present -eq $false) { $c = 45 }
   if ($c -eq 0 -or $c -eq 22 -or $c -eq 45) { continue }
   if (@($list | Where-Object { $_.id -eq $e.PNPDeviceID }).Count) { continue }
   $vid = ''; if ($e.PNPDeviceID -match 'VID_([0-9A-Fa-f]{4})') { $vid = $Matches[1].ToUpper() } elseif ($e.PNPDeviceID -match 'VEN_([0-9A-Fa-f]{4})') { $vid = $Matches[1].ToUpper() }

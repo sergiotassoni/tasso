@@ -42,6 +42,19 @@ under "Info & index".
 ------------------------------------------------------------
 WHAT'S NEW IN 3.2
 ------------------------------------------------------------
+- Optimize everything, on the Home page: just one button. Tasso measures
+  the PC, sets up Windows and shows you the difference, before and after.
+  In Gaming it gets the PC ready for playing (Game Mode, graphics card,
+  notifications paused while you play and more). In Office it gets it
+  ready for work (fewer animations, silent notifications, no Windows tips,
+  longer battery life). Every change can be put back as it was, one at a
+  time or all together, also with "Put everything back as it was before
+  Tasso" and when you remove Tasso.
+- Badge card: at the end of Optimize everything and of the PC score you
+  get your card with the result, in the colors of your theme, square or
+  vertical, to copy or save as a picture.
+- Meeting mode on the Home page (Office): one button next to CLEAN UP,
+  before the call.
 - Desktop backgrounds that match the theme: when you choose a theme (for
   example Gold or Neon RGB) Tasso asks whether you want the matching
   background too, sharp even on 4K screens. It is optional: you can say no,
@@ -53,11 +66,13 @@ WHAT'S NEW IN 3.2
 - Get help from a friend: in Fix a problem there is a simple guide to get
   remote help with Windows Quick Assist (or to help someone), with warnings
   against scams.
-- Gaming and Office more balanced. In Gaming, in Fix a problem, there are
-  the "Everyday problems" (Wi-Fi, zip files, screens, keyboard, battery,
-  wrong time...), "Test microphone and headset" and "Who is using the webcam
-  and microphone". In Office, Meeting mode is on the Home page, next to
-  CLEAN UP, and in Fix a problem there are also "The PC gets hot", "A
+- Better balance between Gaming and Office. In Gaming, in Fix a problem,
+  there are the "Everyday problems" (Wi-Fi, zip files, screens, keyboard,
+  battery, wrong time...), "Test microphone and headset" and "Who is using
+  the webcam and microphone", and smart alerts now also come in Gaming
+  (while you play with the Boost only the temperature and disk ones).
+  Choosing Gaming the first time doesn't change anything on the PC. In
+  Office, in Fix a problem, there are also "The PC gets hot", "A
   program won't start (a .dll file is missing)", "The PC freezes with big
   files", "The sound crackles in calls" and "The screen goes black".
 - More security behind the scenes: the copies of translated games and Tasso's
@@ -70,7 +85,11 @@ WHAT'S NEW IN 3.2
 - Office: 5 new restful dark themes in Settings > Appearance: Graphite,
   Forest, Plum, Teal and Taupe (with their own icons). Sage and Lavender are
   gone: if you used them, Tasso switches you to Paper and Pearl.
-- Lots of small fixes (translation, games, Office).
+- Lots of fixes: Health & problems and Fix a problem tell you what they
+  really find; program updates ask first and only touch the ones with a
+  check mark; "Privacy: restore" puts back the values you had before; the
+  cleanup every 2 weeks is described correctly in every language; and lots
+  of small things (translation, games, Office).
 
 ------------------------------------------------------------
 WHAT'S NEW IN 3.1.1

@@ -450,12 +450,15 @@ $withData = '(?i)^Microsoft\.(MicrosoftStickyNotes|People|Todos)$'
 $bdir = [string]$A.dir
 foreach ($id in @($A.ids)) {
   $pks = @(Get-AppxPackage -Name ([string]$id) -ErrorAction SilentlyContinue)
+  # Nei messaggi il nome che vedi nell'elenco (Microsoft Notizie), non quello tecnico (Microsoft.BingNews).
+  $nm = ''; try { $nm = [string]$A.names.PSObject.Properties[[string]$id].Value } catch {}
   foreach ($pk in $pks) {
+    if ($nm) { $pn = $nm } else { $pn = $pk.Name }
     if ($pk.Name -match $withData) {
       $data = Join-Path $env:LOCALAPPDATA ('Packages\' + $pk.PackageFamilyName)
       $copied = $false; $dst = ''
       if (Test-Path -LiteralPath $data) {
-        if (@(Get-Process -ErrorAction SilentlyContinue | Where-Object { [string]$_.Path -like ($pk.InstallLocation + '\*') }).Count) { Say ('Non rimossa: ' + $pk.Name + ' è aperta. Chiudila e riprova (prima copio le tue note e i tuoi dati).'); continue }
+        if (@(Get-Process -ErrorAction SilentlyContinue | Where-Object { [string]$_.Path -like ($pk.InstallLocation + '\*') }).Count) { Say ('Non rimossa: ' + $pn + ' è aperta. Chiudila e riprova (prima copio le tue note e i tuoi dati).'); continue }
         try {
           $dst = Join-Path $bdir ('app-' + $pk.Name + '-' + (Get-Date -Format 'yyyyMMdd_HHmmss'))
           foreach ($sub in @('LocalState', 'RoamingState', 'Settings')) {
@@ -465,10 +468,10 @@ foreach ($id in @($A.ids)) {
           $copied = $true
         } catch { $copied = $false }
       } else { $copied = $true }
-      if (-not $copied) { Say ('Non rimossa: ' + $pk.Name + '. Non sono riuscito a fare la copia dei tuoi dati (le note di Sticky Notes, per esempio), quindi la lascio.'); continue }
-      if ($dst -and (Test-Path -LiteralPath $dst)) { Say ('Copia dei dati di ' + $pk.Name + ' salvata in: ' + $dst + ' (per le note di Sticky Notes è il file plum.sqlite).') }
+      if (-not $copied) { Say ('Non rimossa: ' + $pn + '. Non sono riuscito a fare la copia dei tuoi dati (le note di Sticky Notes, per esempio), quindi la lascio.'); continue }
+      if ($dst -and (Test-Path -LiteralPath $dst)) { Say ('Copia dei dati di ' + $pn + ' salvata in: ' + $dst + ' (per le note di Sticky Notes è il file plum.sqlite).') }
     }
-    try { Remove-AppxPackage -Package $pk.PackageFullName -ErrorAction Stop; Say ('Rimossa: ' + $pk.Name) } catch { Say ('Non rimossa: ' + $pk.Name) }
+    try { Remove-AppxPackage -Package $pk.PackageFullName -ErrorAction Stop; Say ('Rimossa: ' + $pn) } catch { Say ('Non rimossa: ' + $pn) }
   }
 }
 `

@@ -26,11 +26,15 @@
    - Programmi all'avvio: interruttore acceso/spento per ognuno
    - Guardiano dell'avvio: avvisa se si aggiunge un programma nuovo
    - Deframmentazione (dischi meccanici) e TRIM (SSD)
+   - Ottimizza tutto (Home): misura il PC, sistema Windows per giocare (Gaming) o per
+     lavorare (Ufficio), mostra prima e dopo e il biglietto tesserino; ogni modifica si
+     rimette com'era, una alla volta o tutte
 
 3. PROGRAMMI E AGGIORNAMENTI
    - Disinstallazione completa, con ricerca delle cartelle rimaste
    - Rimozione app preinstallate (Candy Crush, TikTok, Solitaire, ecc.)
-   - Aggiornamento programmi (winget): elenco di quelli con una versione nuova, uno per uno o tutti
+   - Aggiornamento programmi (winget): elenco di quelli con una versione nuova, uno per uno o quelli con la spunta
+     (chiede prima)
    - Driver di tutto il PC: scheda video AMD/NVIDIA/Intel, audio, mouse, tastiera, rete,
      Bluetooth, webcam; Windows Update e siti ufficiali; download automatico dei driver
    - Icone vere dei programmi
@@ -197,17 +201,22 @@
    - Torna indietro: l'elenco di tutto quello che Tasso ha cambiato, un pulsante per ogni
      cosa e uno per tutto. Spegnere o riavviare il PC non rimette niente da solo
    - Avvio con Windows
-   - Avvisi intelligenti (mai in modalità Gaming o FPS)
+   - Avvisi intelligenti (mentre giochi con il Boost solo temperatura e salute dei dischi)
 
 NOVITÀ DELLA 3.2
+   - Ottimizza tutto sulla Home, in Gaming e in Ufficio: misura, sistema Windows, mostra la
+     differenza; tutto si rimette com'era
+   - Biglietto tesserino con il risultato di Ottimizza tutto e del Voto al PC
+   - Ufficio: Modalità riunione sulla Home, accanto a PULISCI
    - Sfondi del desktop abbinati al tema (facoltativi), nitidi anche in 4K; "Rimetti il mio"
      (con Tasso installato con l'installatore)
    - Nuovo Voto al PC: scheda video, RAM completa, raffreddamento e biglietto da visita
    - Fai aiutare un amico: Assistenza rapida di Windows spiegata passo passo, con gli avvisi
      contro le truffe
-   - Gaming: "Problemi di tutti i giorni" in Risolvi un problema, "Prova microfono e cuffie"
-     e "Chi usa webcam e microfono"
-   - Ufficio: Modalità riunione sulla Home, accanto a PULISCI; in Risolvi un problema anche
+   - Più equilibrio tra Gaming e Ufficio. Gaming: "Problemi di tutti i giorni" in Risolvi un
+     problema, "Prova microfono e cuffie", "Chi usa webcam e microfono", avvisi intelligenti;
+     la prima scelta di Gaming non cambia il PC
+   - Ufficio: in Risolvi un problema anche
      PC che si scalda, programma che non parte (manca un .dll), PC che si blocca con file
      grandi, audio che gracchia nelle chiamate, schermo nero
    - Più sicurezza dietro le quinte: copie dei giochi e file di Tasso più protetti
@@ -216,7 +225,8 @@ NOVITÀ DELLA 3.2
    - Ufficio: Modalità riunione separata per ogni utente del PC
    - Ufficio: 5 temi scuri nuovi (Grafite, Bosco, Prugna, Petrolio, Tortora); Salvia e Lavanda
      non ci sono più (chi le usava passa da solo a Carta e Perla)
-   - Tante piccole correzioni (traduzione, giochi, Ufficio)
+   - Tante correzioni: Salute e Risolvi dicono il vero, aggiornamenti solo con la spunta,
+     "Privacy: ripristina" rimette i valori di prima, pulizia ogni 2 settimane descritta bene
 
 NOVITÀ DELLA 3.1.1
    - Pulizia: "Aggiorna anche Windows" (per ultimo) e "Quando ha finito": Lascia acceso,

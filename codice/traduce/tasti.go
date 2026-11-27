@@ -71,9 +71,9 @@ func TastoGiaUsato(codice uint32, attuali map[string]uint32, salvo string) strin
 
 // nomeFunzioneTasto: il nome della funzione come lo vede l'utente nella pagina Giochi.
 func nomeFunzioneTasto(k string) string {
-	n := map[string]string{"pagina": "Mostra/nascondi le scritte in italiano", "cronologia": "Cronologia",
+	n := map[string]string{"pagina": "Mostra/nascondi le scritte tradotte", "cronologia": "Cronologia",
 		"zona": "Traduci solo una zona", "traduci": "Ritraduci adesso", "auto": "Zona automatica",
-		"inglese": "Mostra anche l'inglese", "voci": "Voci (sottotitoli)", "chat": "Chat tradotta"}[k]
+		"inglese": "Mostra anche la frase originale", "voci": "Voci (sottotitoli)", "chat": "Chat tradotta"}[k]
 	if n == "" {
 		return k
 	}
