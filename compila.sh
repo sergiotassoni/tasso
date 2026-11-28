@@ -31,21 +31,33 @@ TASSO_VER=${TASSO_VER:-$(cat ../../tasso/VERSION 2>/dev/null || echo 3.2)}
 ECO_VER=${ECO_VER:-$TASSO_VER}
 
 # icona (Tasso Gaming, con gli occhi) + manifest requireAdministrator + versione. Lo stesso codice
-# fa due exe: ognuno con il suo nome nelle Proprietà (OriginalFilename), quindi la risorsa si rifà
-# prima di ogni compilazione. risorse <descrizione> <nome-file>
+# fa due exe, ognuno con il suo nome nelle Proprietà (OriginalFilename): le due risorse stanno in
+# due pacchetti salvati nel repository (risorse/setup e risorse/disinstalla, scelti dal tag
+# disinstallatore). Si rifanno a ogni compilazione, ma escono identiche a quelle salvate: la build
+# non modifica niente e i due exe risultano puliti (vcs.modified=false, niente "+dirty").
+# risorse <descrizione> <nome-file> <cartella>
 QUI="$(pwd)"
 risorse() {
   (cd ../strumenti/risorse && $GO run . crea -ico "$QUI/../icone/gaming/definitiva/tasso-gaming.ico" \
-    -manifest "$QUI/setup.manifest" -o "$QUI/rsrc_windows_amd64.syso" -versione "$ECO_VER" \
+    -manifest "$QUI/setup.manifest" -o "$QUI/risorse/$3/rsrc_windows_amd64.syso" -versione "$ECO_VER" \
     -prodotto "Tasso Setup" -descrizione "$1" -azienda "Sergio Tassoni" -copyright "© 2026 Sergio Tassoni" -file "$2")
+}
+# pulito <exe>: si ferma se l'exe risulta compilato da file modificati (per esempio con ECO_VER
+# diversa da quella delle risorse salvate: allora vanno salvate nel repository e si ricompila).
+pulito() {
+  if $GO version -m "$1" | grep -q 'vcs.modified=true'; then
+    echo "$1 risulta compilato da file modificati (vcs.modified=true): salva le modifiche (git status) e ricompila." >&2
+    git status --short >&2
+    exit 1
+  fi
 }
 
 # solo il disinstallatore (da firmare prima di metterlo dentro l'installatore)
 if [ "$1" = "disinstallatore" ]; then
   GOOS=windows GOARCH=amd64 $GO vet -tags disinstallatore .
-  risorse "Disinstalla Tasso" "Disinstalla Tasso.exe"
+  risorse "Disinstalla Tasso" "Disinstalla Tasso.exe" disinstalla
   GOOS=windows GOARCH=amd64 $GO build -tags disinstallatore -trimpath -ldflags "$LDF" -o "build/Disinstalla Tasso.exe" .
-  risorse "Tasso Setup" TassoSetup.exe   # rimetto quella dell'installatore
+  pulito "build/Disinstalla Tasso.exe"
   ls -l "build/Disinstalla Tasso.exe"
   echo "Adesso firma build/Disinstalla Tasso.exe, poi rilancia con DISINSTALLA_EXE=\"build/Disinstalla Tasso.exe\"."
   exit 0
@@ -67,8 +79,9 @@ $GO test -count=1 ./...
 if [ -n "$DISINSTALLA_EXE" ]; then
   DISINST="$DISINSTALLA_EXE"
 else
-  risorse "Disinstalla Tasso" "Disinstalla Tasso.exe"
+  risorse "Disinstalla Tasso" "Disinstalla Tasso.exe" disinstalla
   GOOS=windows GOARCH=amd64 $GO build -tags disinstallatore -trimpath -ldflags "$LDF" -o "build/Disinstalla Tasso.exe" .
+  pulito "build/Disinstalla Tasso.exe"
   DISINST="build/Disinstalla Tasso.exe"
 fi
 if [ "$FIRMA" = "si" ]; then
@@ -82,8 +95,9 @@ $GO run ./strumenti/prepara -versione "$ECO_VER" \
   -zip-dir ../tassozip -zip-versione "$ZIP_VER" -pdf-dir ../tassopdf -pdf-versione "$PDF_VER" \
   -disinstalla "$DISINST" $( [ "$FIRMA" = "si" ] && echo -rilascio )
 # 3. l'installatore (con la sua risorsa: nome TassoSetup.exe)
-risorse "Tasso Setup" TassoSetup.exe
+risorse "Tasso Setup" TassoSetup.exe setup
 GOOS=windows GOARCH=amd64 $GO build -trimpath -ldflags "$LDF" -o dist/TassoSetup.exe .
+pulito dist/TassoSetup.exe
 (cd ../strumenti/risorse && $GO run . controlla -exe "$QUI/dist/TassoSetup.exe" -ico "$QUI/../icone/gaming/definitiva/tasso-gaming.ico" -livello requireAdministrator)
 # 4. TassoSetup.sha256 per l'aggiornamento da Tasso (DOPO la firma di TassoSetup.exe va rifatto:
 #    go run ./strumenti/impronta)

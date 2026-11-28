@@ -94,8 +94,10 @@ WEBVIEW2
 
 COMPILARE (anche da Linux)
   TASSO_EXE=/percorso/Tasso.exe ./compila.sh      (installatore di prova, senza firme)
-  - prova tutto (go vet anche GOOS=windows, go test), rifà rsrc_windows_amd64.syso con
-    ../strumenti/risorse (icona Tasso Gaming, manifest requireAdministrator, versione);
+  - prova tutto (go vet anche GOOS=windows, go test), rifà le risorse (risorse/setup e
+    risorse/disinstalla) con ../strumenti/risorse (icona Tasso Gaming, manifest
+    requireAdministrator, versione): escono uguali a quelle salvate, così i due exe risultano
+    compilati da codice pulito (niente "+dirty");
   - compila build/Disinstalla Tasso.exe (go build -tags disinstallatore: niente programmi dentro);
   - strumenti/prepara copia in pacco/file Tasso.exe, ../tassozip, ../tassopdf (le loro
     cartelle dist/ vanno compilate prima) e il disinstallatore, e scrive elenco.json;
