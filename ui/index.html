@@ -117,7 +117,8 @@ input::placeholder{color:#5F6676}
 .grande.ok{background:color-mix(in srgb,var(--a1) 8%,var(--panel));border-color:color-mix(in srgb,var(--a1) 30%,var(--line))}
 .grande.ko{background:color-mix(in srgb,var(--red) 8%,var(--panel));border-color:color-mix(in srgb,var(--red) 30%,var(--line))}
 .grande.pw{background:color-mix(in srgb,var(--a4) 8%,var(--panel));border-color:color-mix(in srgb,var(--a4) 30%,var(--line))}
-.percorso{font-size:12px;color:var(--soft);background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:8px 12px;max-width:560px;word-break:break-all;user-select:text;font-family:'Cascadia Mono',Consolas,monospace}
+.percorso{font-size:12px;color:var(--soft);background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:8px 12px;max-width:560px;overflow-wrap:anywhere;user-select:text;font-family:'Cascadia Mono',Consolas,monospace}
+.percorso .pz{display:inline-block;max-width:100%;white-space:pre;overflow:hidden;text-overflow:ellipsis;vertical-align:bottom}
 details{max-width:560px;width:100%;text-align:left;color:var(--muted);font-size:12px}
 details{text-align:center}details summary{cursor:pointer;color:var(--soft)}details pre{text-align:left}
 details pre{white-space:pre-wrap;word-break:break-all;background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:10px;max-height:150px;overflow:auto;user-select:text;font-family:'Cascadia Mono',Consolas,monospace}
@@ -672,6 +673,13 @@ function toast(s) {
 async function mostraFile(p) { if ((await goApri(p)) !== "ok") toast(t("file_sparito")); }
 // fraseConNome: un nome che finisce col punto ("Gian Luca P.") non fa "P.." alla fine della frase.
 function fraseConNome(s, nome) { return /\.$/.test(nome || "") && s.endsWith(nome + ".") ? s.slice(0, -1) : s; }
+// Prova sul PC vero: il percorso andava a capo a metà parola ("Archivio.zi / p"). Adesso va a capo
+// solo dopo le barre; un pezzo più lungo di tutta la riga si accorcia con i puntini (il testo copiato resta intero).
+function percorsoACapo(el, p) {
+  el.textContent = "";
+  // ogni pezzo (fino alla barra compresa) resta intero; uno più lungo della riga finisce con i puntini
+  String(p || "").split(/(?<=[\\/])/).forEach(pz => { const sp = document.createElement("span"); sp.className = "pz"; sp.textContent = pz; el.append(sp, document.createElement("wbr")); });
+}
 function nomeFile(p) { return p.split(/[\\/]/).filter(Boolean).pop() || p; }
 function cartellaDi(p) { const i = Math.max(p.lastIndexOf("\\"), p.lastIndexOf("/")); return i > 0 ? p.slice(0, i) : p; }
 
@@ -875,7 +883,7 @@ function mostraFatto(r, quanti) {
   if (r.tipo === "estrai" && r.qui && !quanti) $("f-dettagli").textContent = tn("fatto_dettagli_q", r.file, { file: r.file });
   $("f-ok").textContent = INIZIO.mini ? t("chiudi") : (S.daVista && S.arch ? t("torna_archivio") : S.ritorno === "esplora" ? t("torna_esplora") : t("nuovo"));
   if (S.ritorno === "guida") $("f-apri").textContent = t("apri_cartella");
-  $("f-percorso").textContent = r.percorso;
+  percorsoACapo($("f-percorso"), r.percorso);
   const avvisi = [];
   if (r.rinominati) avvisi.push(tn("rinominati", r.rinominati));
   if (r.riserva) avvisi.push(t("riserva"));
