@@ -34,7 +34,7 @@ func main() {
 	// LICENZE.txt e LICENSES.txt: gli avvisi dei componenti di terze parti dentro Tasso.exe (PresentMon,
 	// caratteri, WebView2, wazero, ooz, Bergamot...). Le licenze MIT, BSD, OFL e Apache chiedono che
 	// arrivino insieme al programma: senza, l'installatore non si prepara.
-	tassoAvvisi := flag.String("tasso-avvisi", "../../tasso/codice/dist", "cartella con LICENZE.txt e LICENSES.txt di Tasso")
+	tassoAvvisi := flag.String("tasso-avvisi", "../../tasso/codice/dist", "cartella con LICENZE.txt, LICENSES.txt e i manuali PDF di Tasso")
 	zipDir := flag.String("zip-dir", "../tassozip", "repository di Tasso Zip")
 	zipVer := flag.String("zip-versione", "", "versione di Tasso Zip")
 	pdfDir := flag.String("pdf-dir", "../tassopdf", "repository di Tasso PDF")
@@ -93,6 +93,19 @@ func main() {
 		da := filepath.Join(*tassoAvvisi, n)
 		if fi, err := os.Stat(da); err != nil || !fi.Mode().IsRegular() || fi.Size() == 0 {
 			esci(fmt.Errorf("manca %s (avvisi delle licenze di Tasso): passa -tasso-avvisi", da))
+		}
+		tf = append(tf, [2]string{da, n})
+	}
+	// Il manuale (italiano e inglese), come in Tasso.zip: senza, in Programmi\Tasso non c'era nessun
+	// manuale (prova sul PC vero di Tasso 3.2). Per pubblicare è obbligatorio.
+	for _, n := range []string{"Manuale_Tasso.pdf", "Manual_Tasso_EN.pdf"} {
+		da := filepath.Join(*tassoAvvisi, n)
+		if fi, err := os.Stat(da); err != nil || !fi.Mode().IsRegular() || fi.Size() == 0 {
+			if *rilascio {
+				esci(fmt.Errorf("manca %s (manuale di Tasso): passa -tasso-avvisi", da))
+			}
+			fmt.Fprintf(os.Stderr, "ATTENZIONE: manca %s: l'installatore non metterà il manuale\n", da)
+			continue
 		}
 		tf = append(tf, [2]string{da, n})
 	}
