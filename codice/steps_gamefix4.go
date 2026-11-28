@@ -6,9 +6,12 @@ package main
 
 import "time"
 
-// gpuTempPS: temperatura della scheda video NVIDIA (se c'è nvidia-smi), in $gt.
+// gpuTempPS: temperatura della scheda video, in $gt. Per prima la stessa lettura della pagina
+// Hardware ($TassoGpuTemp, la mette writeScript: NVIDIA con nvidia-smi, AMD con i sensori del driver);
+// se manca, nvidia-smi direttamente.
 const gpuTempPS = `
 $gt = $null
+if ($TassoGpuTemp) { $gt = [int]$TassoGpuTemp }
 foreach ($smi in @((Join-Path $env:SystemRoot 'System32\nvidia-smi.exe'), (Join-Path $env:ProgramFiles 'NVIDIA Corporation\NVSMI\nvidia-smi.exe'))) {
   if (-not $gt -and (Test-Path -LiteralPath $smi)) {
     try { $o = (& $smi --query-gpu=temperature.gpu --format=csv,noheader,nounits 2>$null | Select-Object -First 1); if ([string]$o -match '^\s*(\d{2,3})') { $gt = [int]$Matches[1] } } catch {}

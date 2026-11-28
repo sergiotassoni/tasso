@@ -107,6 +107,11 @@ func writeScript(script string) (string, error) {
 	} else {
 		auto += "\n$TassoSingle = $false"
 	}
+	// $TassoGpuTemp: la temperatura della scheda video letta come nella pagina Hardware (live.go),
+	// solo per gli script che la usano (Risolvi: caldo, errori della scheda video).
+	if strings.Contains(script, "$TassoGpuTemp") {
+		auto += "\n$TassoGpuTemp = " + gpuTempPerScript()
+	}
 	// Le cartelle vere vanno per prime (fuori dalla traduzione: sono percorsi, non frasi).
 	body := "\uFEFF" + strings.ReplaceAll(psCartelle()+"\n"+trPS(psPrelude+"\n"+auto+"\n"+script), "\n", "\r\n")
 	f, err := os.OpenFile(p, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o644)
@@ -646,7 +651,12 @@ func startSteps(ids []string, level int, fine string, winupdate bool) string {
 		// ripristino e Windows stesso liberano spazio che i passaggi non sanno contare). Aspetto un
 		// attimo perché Windows finisca di liberarlo. Mai un numero negativo (spazioOnesto).
 		somma := total
-		if len(freePrima) > 0 {
+		// Solo passaggi di Risolvi (livello 0): controllano o cambiano impostazioni, non puliscono.
+		// I pochi che tolgono file lo contano da soli; la differenza dei dischi qui sarebbe solo
+		// quello che Windows e i programmi scrivono o tolgono nel frattempo (es. "liberati 20 KB"
+		// dopo un controllo in sola lettura), quindi non la uso.
+		soloRisolvi := soloPassiRisolvi(sel)
+		if len(freePrima) > 0 && !soloRisolvi {
 			select {
 			case <-runCtx().Done():
 			case <-time.After(5 * time.Second):
@@ -661,7 +671,11 @@ func startSteps(ids []string, level int, fine string, winupdate bool) string {
 			logLine(fmt.Sprintf(trGo("Passaggi fermati prima della fine perché troppo lenti: %d (li puoi rifare da soli più tardi)."), slow))
 		}
 		dur := time.Since(start)
-		logLine(fmt.Sprintf(trGo("Fine: liberati %s in %s"), fmtBytes(total), dur.Round(time.Second)))
+		if soloRisolvi && total <= 0 {
+			logLine(fmt.Sprintf(trGo("Fine: durata %s"), dur.Round(time.Second)))
+		} else {
+			logLine(fmt.Sprintf(trGo("Fine: liberati %s in %s"), fmtBytes(total), dur.Round(time.Second)))
+		}
 		if level > 0 && done == len(sel) {
 			updateSettings(func(st *Settings) {
 				st.LastClean = &LastClean{Date: time.Now().Format("2006-01-02"), Level: level, Freed: total}
@@ -722,6 +736,16 @@ func startSteps(ids []string, level int, fine string, winupdate bool) string {
 		go maybeAutoExit()
 	}()
 	return "ok"
+}
+
+// soloPassiRisolvi: true se tutti i passaggi sono di Risolvi (livello 0, nessuna pulizia).
+func soloPassiRisolvi(sel []Step) bool {
+	for _, x := range sel {
+		if x.Level > 0 {
+			return false
+		}
+	}
+	return len(sel) > 0
 }
 
 // spazioLiberoDischi: lo spazio libero di ogni disco fisso (C:, D:...), per lettera.

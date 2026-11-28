@@ -190,6 +190,22 @@ func sampleGPUNow() {
 	}
 }
 
+// gpuTempPerScript: la temperatura della scheda video della pagina Hardware, per gli script
+// ("$null" se non c'è una lettura di adesso). Se il valore è vecchio la rilegge subito.
+func gpuTempPerScript() string {
+	sampleGPUNow()
+	liveMu.Lock()
+	defer liveMu.Unlock()
+	if gpuLive == nil || time.Since(gpuTempAt) > 15*time.Second {
+		return "$null"
+	}
+	t, ok := gpuLive["temp"].(float64)
+	if !ok || t < 1 || t > 125 {
+		return "$null"
+	}
+	return strconv.Itoa(int(t + 0.5))
+}
+
 // ---- Uso della scheda video per AMD e Intel (contatori di Windows, come Gestione attività) ----
 
 var (

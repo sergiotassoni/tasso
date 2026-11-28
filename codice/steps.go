@@ -731,6 +731,9 @@ try {
 } catch {}
 New-ItemProperty -Path $key -Name 'SystemRestorePointCreationFrequency' -Value 0 -PropertyType DWord -Force | Out-Null
 $before = @(Get-ComputerRestorePoint).Count
+# Prova sul PC vero: "creato" solo se c'è davvero un punto nuovo fatto adesso da Tasso (numero più alto
+# di quelli di prima e con la nostra descrizione), non solo perché il conto è salito.
+$maxSeq = 0; foreach ($p in @(Get-ComputerRestorePoint)) { if ([long]$p.SequenceNumber -gt $maxSeq) { $maxSeq = [long]$p.SequenceNumber } }
 # Windows a volte resta appeso a creare il punto (copie shadow): al massimo 5 minuti, poi vado avanti.
 $cp = Invoke-Limited { try { Checkpoint-Computer -Description 'Tasso - prima della manutenzione' -RestorePointType MODIFY_SETTINGS -ErrorAction Stop; 'ok' } catch { 'ERR ' + $_.Exception.Message } } 300 'Backup'
 if ($TassoLento) { Say 'Il punto di ripristino ci metteva troppo: non lo aspetto (Windows lo può finire da solo).' }
@@ -738,7 +741,8 @@ elseif ($cp -and ([string]@($cp)[0]).StartsWith('ERR ')) { Say ('Punto di ripris
 $after = @(Get-ComputerRestorePoint).Count
 if ($null -ne $oldFreq) { New-ItemProperty -Path $key -Name 'SystemRestorePointCreationFrequency' -Value ([int]$oldFreq) -PropertyType DWord -Force | Out-Null } else { Remove-ItemProperty -Path $key -Name 'SystemRestorePointCreationFrequency' -ErrorAction SilentlyContinue }
 Remove-Item -Path $mark -Recurse -Force -ErrorAction SilentlyContinue
-if ($after -gt $before) { Say 'Backup creato. Se qualcosa non ti piace puoi tornare indietro da Ripristino configurazione di sistema.' }
+$nuovo = @(Get-ComputerRestorePoint | Where-Object { [long]$_.SequenceNumber -gt $maxSeq -and [string]$_.Description -eq 'Tasso - prima della manutenzione' })
+if ($nuovo.Count -gt 0) { Say 'Backup creato. Se qualcosa non ti piace puoi tornare indietro da Ripristino configurazione di sistema.' }
 elseif ($after -gt 0) {
   $last = @(Get-ComputerRestorePoint | Sort-Object SequenceNumber)[-1]
   $when = $null; try { $when = [Management.ManagementDateTimeConverter]::ToDateTime([string]$last.CreationTime) } catch {}

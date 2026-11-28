@@ -531,20 +531,15 @@ func setProfile(p string) string {
 // anche la prima apertura dopo l'installatore, che la scelta l'ha già fatta (ecosistema.go).
 // La modalità di Tasso cambia solo cosa vedi: con Gaming il PC non si tocca per niente (piano
 // energetico, risparmio energia di Windows 11 e notifiche restano come sono). Gaming e FPS li mette
-// il Boost, solo mentre giochi. In Ufficio la pulizia programmata si accende, e la pagina lo dice.
-// Restituisce "ok" o il messaggio di setWeekly se la pulizia programmata non si è potuta accendere.
+// il Boost, solo mentre giochi. La pulizia programmata non si tocca mai, in nessuna modalità:
+// di base è spenta (decisione di Sergio, prova sul PC vero di Tasso 3.2) e chi l'aveva già accesa
+// in una versione di prima la tiene com'è. Restituisce sempre "ok".
 func profiloPC(p string) string {
 	setMu.Lock()
 	prima := settings.Mode
 	setMu.Unlock()
 	if m := modoPrimoAvvio(p, prima); m != "" {
 		go setMode(m)
-	}
-	switch p {
-	case "gioco":
-		setWeekly(false)
-	case "ufficio", "entrambi":
-		return setWeekly(true)
 	}
 	return "ok"
 }

@@ -1245,6 +1245,7 @@ body.office .cardmodo{font-weight:700;font-stretch:normal;letter-spacing:-.02em;
 <!-- FIX -->
 <section class="view" id="v-fix">
   <div id="fixTitle"><h1 style="font-size:26px">Risolvi un problema</h1><p class="sub">Un clic sul problema che hai: Tasso prova a sistemarlo da solo. Se non lo trovi, scrivilo nella ricerca. Non sai qual è il problema? Apri <a href="#" id="fixToDetect">Salute e problemi</a> e te lo dice Tasso.</p></div>
+  <div id="fixRunHost" style="display:contents"></div><!-- un Risolvi partito da qui mostra qui avanzamento e risultato (runHost) -->
   <div class="fixsearch"><input class="search" id="fixSearch" type="search" placeholder="Scrivi il problema: Wi-Fi, audio, lento, mouse…" aria-label="Cerca un problema"><p class="sub" id="fixNone" role="status" aria-live="polite" style="display:none;margin:8px 0 0">Nessun problema con queste parole. Prova con una parola sola, per esempio "audio", "lento", "mouse" o "password".</p></div>
   <div class="fixsec" id="secWin">
   <div class="sech"><span class="sei">🪟</span><div><h2>Sezione Windows</h2><p class="sub"><span class="gm">Audio, internet, aggiornamenti e ricerca: valgono per tutti.</span><span class="om">Audio, internet, stampa, aggiornamenti e ricerca: valgono per tutti.</span></p></div></div>
@@ -1809,7 +1810,12 @@ function translateStatic(root){
 }
 translateStatic(document.body);
 // Menu stretto (≤760 px) = solo icone: il nome di ogni voce resta nel suggerimento al passaggio del mouse (già tradotto qui sopra).
-document.querySelectorAll('aside nav button').forEach(b => { const t = b.textContent.replace(/\s+/g, ' ').trim(); if (!t) return; if (!b.title) b.title = t; if (!b.hasAttribute('aria-label')) b.setAttribute('aria-label', t); });
+// Prova sul PC vero: col menu largo il nome si legge già, e il suggerimento di Windows a volte restava vuoto
+// sopra la voce sotto dopo un clic. Il suggerimento c'è quindi solo col menu stretto.
+const NAV_STRETTO = matchMedia('(max-width:760px)');
+document.querySelectorAll('aside nav button').forEach(b => { const t = b.textContent.replace(/\s+/g, ' ').trim(); if (!t) return; if (!b.title) b.dataset.tip = t; else { b.dataset.tip = b.title; } if (!b.hasAttribute('aria-label')) b.setAttribute('aria-label', t); });
+function navTips(){ document.querySelectorAll('aside nav button[data-tip]').forEach(b => { if (NAV_STRETTO.matches) b.title = b.dataset.tip; else b.removeAttribute('title'); }); }
+navTips(); NAV_STRETTO.addEventListener('change', navTips);
 // Tasso non è un browser: niente Indietro (Alt+Freccia sinistra, tasto Indietro del mouse), Ricarica (F5, Ctrl+R),
 // Cerca, Stampa e zoom. Go li spegne già in WebView2; qui li blocco anche dal lato pagina, perché una pagina ricaricata
 // o tornata indietro resterebbe bianca. Copia, incolla e seleziona tutto nei campi di testo restano.
@@ -2285,7 +2291,7 @@ document.addEventListener('keydown', (e) => {
 // 3.1.1 "Un clic, esci di casa, torni e trovi tutto fatto": Aggiorna anche Windows + Quando ha finito
 // (Lascia acceso / Riavvia / Spegni) + avviso batteria. Sostituisce "Spegni il PC quando ha finito".
 function fineBox(wu){
-  const def = wu ? 'riavvia' : 'acceso';
+  const def = 'acceso'; // il riavvio lo sceglie sempre l'utente: di base "Lascia acceso" (decisione di Sergio, anche con Windows Update)
   const bt = [['acceso', _t('Lascia acceso')], ['riavvia', _t('Riavvia')], ['spegni', _t('Spegni')]].map(([k, l]) => '<button type="button" role="radio" class="btn ' + (k === def ? 'primary' : 'ghost') + '" aria-checked="' + (k === def) + '" data-fine="' + k + '">' + esc(l) + '</button>').join('');
   return '<div class="note" style="display:flex;flex-direction:column;gap:12px;border-color:color-mix(in srgb,var(--a1) 40%,var(--line))">' +
     (wu ? '<label style="display:flex;gap:10px;align-items:flex-start;cursor:pointer"><input type="checkbox" id="chkWU" checked style="margin-top:3px;accent-color:var(--a1)"><span><b>' + _t('Aggiorna anche Windows') + '</b><br><span class="muted">' + _t('Lo faccio per ultimo, dopo tutta la pulizia.') + '</span></span></label>' : '') +
@@ -2295,10 +2301,8 @@ function fineBox(wu){
 }
 function fineWire(){
   const box = $('#modalBox'), bs = [...box.querySelectorAll('[data-fine]')], wu = box.querySelector('#chkWU');
-  let touched = false;
   const pick = (k) => bs.forEach(b => { const on = b.dataset.fine === k; b.className = 'btn ' + (on ? 'primary' : 'ghost'); b.setAttribute('aria-checked', on ? 'true' : 'false'); });
-  bs.forEach(b => { b.onclick = () => { touched = true; pick(b.dataset.fine); }; });
-  if (wu) wu.onchange = () => { if (!touched) pick(wu.checked ? 'riavvia' : 'acceso'); };
+  bs.forEach(b => { b.onclick = () => { pick(b.dataset.fine); }; });
   call('goBattery').then(b => { const n = box.querySelector('#fineBatt'); if (!n || !b || !b.battery) return; n.innerHTML = '<b>' + esc(_t('🔌 Il portatile è a batteria ({0}%).').replace('{0}', b.pct >= 0 ? b.pct : '?')) + '</b> ' + esc(_t('Attacca il caricatore prima di uscire.')); n.style.display = ''; }).catch(() => {});
 }
 function fineRead(box){ const b = box.querySelector('[data-fine][aria-checked="true"]'), wu = box.querySelector('#chkWU'); return {fine: b ? b.dataset.fine : 'acceso', wu: wu ? wu.checked : true}; }
@@ -2339,7 +2343,7 @@ async function startLevel(n, fine, wu){ const r = await call('goStartLevel', n, 
 function runSteps(ids, title, desc, minutes, goLabel){
   const wu = ids.includes('winupdate'), long = minutes >= 10 || wu;
   modal('<h2>' + esc(title) + '</h2><p class="muted" style="margin:0;line-height:1.5;white-space:pre-line">' + esc(desc) + _t('</p><span class="muted">Durata stimata: ') + fmtMin(minutes) + '</span>' + (long ? fineBox(wu && ids.length > 1) : ''),
-    [{label:_t('Annulla')}, {label:goLabel || _t('Avvia'), cls:'primary', risky:true, fn: (box) => { const f = fineRead(box); call('goStartSteps', ids, f.fine, f.wu).then(r => { if (r === 'busy') toast(_t('Attendi la fine dell\'operazione in corso.'), 'var(--a4)'); else show('clean'); }); }}]);
+    [{label:_t('Annulla')}, {label:goLabel || _t('Avvia'), cls:'primary', risky:true, fn: (box) => { const f = fineRead(box), inFix = CURVIEW === 'fix'; RUN_FIX_NEXT = inFix; call('goStartSteps', ids, f.fine, f.wu).then(r => { if (r === 'busy') { RUN_FIX_NEXT = false; toast(_t('Attendi la fine dell\'operazione in corso.'), 'var(--a4)'); } else show(inFix ? 'fix' : 'clean'); }); }}]);
   if (long) fineWire();
 }
 function runStep(id){
@@ -2364,7 +2368,11 @@ let msgTimer = null, creepTimer = null;
 const MSG_BK = MSGS[4], BK_OK = ['Backup creato. Se qualcosa non ti piace puoi tornare indietro da Ripristino configurazione di sistema.', 'Uso il backup di poco fa ('];
 // F07-22: Protezione sistema accesa dal backup: lo dico anche nel risultato, con come rispegnerla.
 const SR_ON = 'Protezione sistema era spenta su questo PC: l\'ho accesa per poter fare il backup (usa un po\' di spazio del disco). Se la vuoi spenta: Pannello di controllo > Sistema > Protezione sistema > Configura > Disattiva.';
-function runUI(on){ $('#cleanIdle').style.display = on ? 'none' : 'flex'; $('#cleanRun').style.display = on ? 'flex' : 'none'; }
+function runUI(on){ if ($('#cleanRun').parentNode !== $('#fixRunHost')) $('#cleanIdle').style.display = on ? 'none' : 'flex'; else $('#cleanIdle').style.display = 'flex'; $('#cleanRun').style.display = on ? 'flex' : 'none'; }
+// Prova sul PC vero: un Risolvi fatto partire dalla pagina Risolvi mostra avanzamento e risultato lì,
+// non in Pulisci. Le pulizie (e tutto il resto) restano in Pulisci.
+let RUN_FIX_NEXT = false;
+function runHost(fix){ const h = $('#fixRunHost'), r = $('#cleanRun'), l = $('#lastResult'); if (!h || !r || !l) return; if (fix) { if (r.parentNode !== h) { h.appendChild(r); h.appendChild(l); } } else if (r.parentNode === h) { $('#cleanIdle').after(r); $('#toolsMore').after(l); } }
 function paintRun(){
   if (!RUN) return;
   const tot = RUN.steps.reduce((a, s) => a + s.minutes, 0) || 1;
@@ -2404,6 +2412,7 @@ window.tasso = {
     RUN = {level:p.level, steps:st, cur:0, creep:0, freed:0, freedBy:{}, end:p.end || 'acceso', info:'', bk:false}; RIPARA = [];
     $('#runTitle').textContent = lv ? _t('Pulizia ') + lv.name + _t(' in corso') : (RUN.steps.length === 1 ? RUN.steps[0].name : _t('Passaggi in corso'));
     $('#runSub').textContent = isOffice() ? (RUN.end === 'riavvia' ? _t('Quando ha finito: Riavvia. Puoi alzarti e lasciarlo lavorare, faccio tutto io.') : RUN.end === 'spegni' ? _t('Quando ha finito: Spegni. Puoi alzarti e lasciarlo lavorare, faccio tutto io.') : _t('Puoi lasciare il PC acceso e andare a fare altro.')) : RUN.end === 'riavvia' ? _t('Quando ha finito: Riavvia. Puoi uscire di casa, faccio tutto io.') : RUN.end === 'spegni' ? _t('Quando ha finito: Spegni. Puoi uscire di casa, faccio tutto io.') : _t('Puoi lasciare il PC acceso e andare a fare altro.');
+    runHost(RUN_FIX_NEXT && !p.level); RUN_FIX_NEXT = false;
     $('#runLog').textContent = ''; $('#btnCancel').disabled = false; $('#btnCancel').textContent = _t('Interrompi');
     runUI(true); paintRun();
     let k = 0; clearInterval(msgTimer); msgTimer = setInterval(() => { const c = RUN && RUN.steps[RUN.cur]; $('#runMsg').textContent = (c && c.id === 'winupdate') ? _t('Ultimo passaggio: aggiorno Windows.') + (RUN.end === 'riavvia' ? ' ' + _t('Quando ha finito, riavvio il PC.') : RUN.end === 'spegni' ? ' ' + _t('Quando ha finito, spengo il PC.') : '') : (() => { const ms = MSGS.filter(m => m !== MSG_BK || (RUN && RUN.bk)); return ms[++k % ms.length]; })(); }, 4000);
@@ -3531,7 +3540,7 @@ function paintWelcome(){
   });
   $('#btnWelcome').textContent = _t('Continua con ') + PROFILES.find(p => p.id === chosen).name + '  →';
   // Cosa cambia sul PC con la scelta, detto prima di premere Continua.
-  $('#profNote').textContent = chosen === 'ufficio' ? _t('Con Ufficio accendo la Pulizia programmata: {0}. La cambi o la spegni in Pulisci.').replace('{0}', wkQuando()) : _t('Il PC resta com\'è: piano energetico e notifiche di Windows non cambiano. Il Boost mette il PC al massimo solo mentre giochi.');
+  $('#profNote').textContent = chosen === 'ufficio' ? _t('La Pulizia programmata resta spenta: se vuoi, la accendi in Pulisci.') : _t('Il PC resta com\'è: piano energetico e notifiche di Windows non cambiano. Il Boost mette il PC al massimo solo mentre giochi.');
   $$('#profCards .offart').forEach(x => { x.innerHTML = OFF_ART; });
 }
 $('#btnWelcome').onclick = async () => { const wb = $('#btnWelcome'); if (wb.disabled) return; wb.disabled = true; const r = await callBg('goSetProfile', chosen); wb.disabled = false; const wkNo = typeof r === 'string' && r.indexOf('ok:') === 0; if (r !== 'ok' && !wkNo) { toast(typeof r === 'string' && r ? r : _t('Non sono riuscito a salvare la scelta: riprova.'), 'var(--a4)'); return; } $('#welcome').classList.remove('on'); await refreshS(); applyLook(); repaintLook(); if (wkNo) toast(_t('Non sono riuscito ad accendere la Pulizia programmata: accendila da Pulisci.'), 'var(--a4)'); else toast(nomeOra() ? (chosen === 'ufficio' ? _t('Fatto, {0}! Tasso è pronto per il lavoro.') : _t('Fatto, {0}! Tasso è configurato per te.')).replace('{0}', nomeOra()) : chosen === 'ufficio' ? _t('Fatto! Tasso è pronto per il lavoro.') : _t('Fatto! Tasso è configurato per te.')); setTimeout(statsAsk, 4000); setTimeout(async () => { await refreshS(); paintModes(); paintSettings(); }, 3000); };
@@ -4455,7 +4464,7 @@ Object.assign(window.tasso, {
       const box = el('div', {class:'pg'}, '<h3>' + esc(g.name) + '</h3><span class="small muted">' + esc(tx(g.note)) + (best ? _t(' <b style="color:var(--a1t)">Il migliore per te: ') + esc(best.name) + ' (' + best.avg + _t(' ms).</b>') : '') + '</span>');
       const list = el('div', {class:'list'});
       rows.forEach(x => {
-        const det = x.ok ? (_t('min ') + x.min + _t(' ms · stabilità ±') + x.jitter + _t(' ms · persi ') + x.loss + '%' + (x.tcp ? _t(' · connessione') : '')) : _t('Non risponde (il server non accetta il ping o la rete lo blocca)');
+        const det = x.ok ? (_t('min ') + x.min + _t(' ms · stabilità ±') + x.jitter + _t(' ms · persi ') + x.loss + '%' + (x.tcp ? _t(' · connessione') : '') + (x.stima ? _t(' · stima') : '')) : _t('Non risponde (il server non accetta il ping o la rete lo blocca)');
         list.appendChild(el('div', {class:'li'}, '<i class="pd ' + esc(x.color) + '"></i><div class="x"><b>' + esc(x.name) + '</b><span>' + esc(det) + '</span></div><span style="display:flex;align-items:center;gap:8px;flex:0 0 auto;margin-left:auto">' + (best && best.host === x.host ? _t('<span class="bestsrv">MIGLIORE</span>') : '') + '<span class="pms">' + (x.ok ? x.avg + ' ms' : '–') + '</span></span>'));
       });
       box.appendChild(list); out.appendChild(box);

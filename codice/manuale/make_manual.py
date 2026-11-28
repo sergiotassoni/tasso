@@ -186,7 +186,7 @@ S += [P('<b>La prima configurazione</b>', 'h2'),
       P('La prima volta Tasso ti chiede <b>come userai il PC</b>. Tocca la scheda giusta (Tasso ti fa vedere subito come sarà) e poi <b>Continua</b>:')]
 S += [table([['Modalità', 'Com\'è Tasso e cosa imposta'],
              ['<b>Gaming</b>', 'Tutto Tasso: giochi, FPS, ping ai server, Turbo, Prestazioni+, temi scuri e colorati. Mette la modalità Gaming del PC.'],
-             ['<b>Ufficio</b>', 'Più semplice e tranquillo: colori chiari e morbidi, un tasso più carino, niente giochi, FPS e ping. In Risolvi problemi trovi subito i <b>109 problemi più comuni dell\'ufficio</b>. Mette la modalità Normale e la pulizia programmata ogni settimana.']],
+             ['<b>Ufficio</b>', 'Più semplice e tranquillo: colori chiari e morbidi, un tasso più carino, niente giochi, FPS e ping. In Risolvi problemi trovi subito i <b>109 problemi più comuni dell\'ufficio</b>. Mette la modalità Normale. La pulizia programmata resta spenta: la accendi tu in Pulisci, se vuoi.']],
             [32 * mm, W - 2 * M - 32 * mm])]
 S += [P('Puoi cambiare modalità quando vuoi con il pulsante <b>Gaming / Ufficio</b> in alto a sinistra, sotto il logo (o da <b>Impostazioni</b>). Il pulsante cambia solo come appare Tasso, non tocca il PC. Ogni modalità ricorda il suo tema.', 'small')]
 

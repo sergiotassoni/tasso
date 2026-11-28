@@ -308,20 +308,9 @@ func main() {
 			if profiloInstallatore != "" {
 				// come il pulsante "Continua" della prima apertura, con la scelta fatta nell'installatore
 				lookChanged(profiloInstallatore == "ufficio")
+				// La pulizia programmata resta spenta anche in Ufficio (prima la accendeva, F01-4):
+				// niente più avviso "Ho acceso la Pulizia programmata".
 				profiloPC(profiloInstallatore)
-				setMu.Lock()
-				wk := settings.Weekly
-				setMu.Unlock()
-				if profiloInstallatore != "gioco" && wk {
-					// Lo segno nelle impostazioni (si toglie quando la pagina l'ha mostrato, goPuliziaDetta):
-					// se la pagina non è ancora pronta o Tasso si chiude prima, lo dice alla prossima apertura.
-					updateSettings(func(s *Settings) { s.PuliziaDaDire = true })
-					select {
-					case <-paginaPronta:
-						emit("onPuliziaAccesa", nil)
-					case <-time.After(5 * time.Minute):
-					}
-				}
 			} else {
 				lookChanged(officeMode()) // come il menu delle modalità (Boost, autoclick, pannellino)
 			}

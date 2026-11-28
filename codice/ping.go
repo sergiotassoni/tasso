@@ -4,7 +4,9 @@ package main
 // veri dove girano i giochi più usati. Onestà: i giochi non pubblicano l'indirizzo di ogni partita,
 // quindi Tasso misura i data center (Riot Direct, relay di Valve, Amazon AWS): il ping in partita
 // è di solito uguale o di pochi ms diverso.
-//   - Riot (League of Legends, TFT, Valorant): indirizzi pubblici di Riot Direct, rispondono al ping.
+//   - Riot (League of Legends, TFT, Valorant): gli indirizzi pubblici di Riot Direct non rispondono più
+//     al ping (né alla porta 443). Provo una volta l'indirizzo di Riot; se tace, misuro il relay ufficiale
+//     di Valve nella stessa città dei server Riot (o la più vicina) e il risultato è segnato come stima.
 //   - Valve (CS2, Dota 2): l'elenco ufficiale dei relay arriva da Steam (GetSDRConfig), sempre aggiornato.
 //   - Amazon AWS (Fortnite e tanti altri giochi online): tempo di connessione al data center della regione.
 //   - due server pubblici (1.1.1.1 e 8.8.8.8): per capire se il ritardo è già nella tua rete o nel tuo operatore.
@@ -33,7 +35,7 @@ type pingTarget struct {
 }
 
 var pingGroups = []map[string]string{
-	{"id": "riot", "name": "League of Legends · TFT · Valorant", "note": "Server Riot Direct. Valorant usa la stessa rete: per Valorant il valore è indicativo."},
+	{"id": "riot", "name": "League of Legends · TFT · Valorant", "note": "Questi server non rispondono al ping: misuro un server nella stessa città (o nella più vicina), quindi il valore è una stima."},
 	{"id": "valve", "name": "Counter-Strike 2 · Dota 2", "note": "Relay ufficiali di Valve, elenco preso da Steam. In CS2 puoi limitare il ping massimo in Impostazioni > Gioco."},
 	{"id": "aws", "name": "Fortnite e altri giochi online", "note": "Data center Amazon AWS, dove girano Fortnite e molti altri giochi. Misurato come tempo di connessione."},
 	{"id": "base", "name": "Internet in generale (server pubblici)", "note": "Server vicinissimi a tutti: se qui il ping è alto, il problema è la tua rete o il tuo operatore, non il gioco."},
@@ -46,6 +48,13 @@ var riotTargets = []pingTarget{
 	{"riot", "na", "America Latina Nord (Miami)", "104.160.136.3", false},
 	{"riot", "sa", "Brasile (San Paolo)", "104.160.152.3", false},
 	{"riot", "asia", "Oceania (Sydney)", "104.160.156.1", false},
+}
+
+// riotVicino: per ogni indirizzo Riot, il relay Valve (codice della città) nella stessa città dei
+// server Riot o nella più vicina: Amsterdam, Francoforte, Chicago, Atlanta per Miami, San Paolo, Sydney.
+var riotVicino = map[string]string{
+	"104.160.141.3": "ams", "104.160.142.3": "fra", "104.160.131.3": "ord",
+	"104.160.136.3": "atl", "104.160.152.3": "gru", "104.160.156.1": "syd",
 }
 
 var awsRegions = []struct{ region, code, name string }{
@@ -71,15 +80,16 @@ var valvePops = map[string][2]string{
 var pingRegions = map[string]bool{"eu": true, "na": true, "sa": true, "asia": true}
 
 // valveTargets legge da Steam l'elenco ufficiale dei relay (cambia nel tempo, quindi niente indirizzi fissi).
-func valveTargets(region string) ([]pingTarget, error) {
+// Restituisce anche il primo indirizzo di ogni città (per misurare i server Riot che non rispondono).
+func valveTargets(region string) ([]pingTarget, map[string]string, error) {
 	client := &http.Client{Timeout: 12 * time.Second}
 	resp, err := client.Get("https://api.steampowered.com/ISteamApps/GetSDRConfig/v1/?appid=730")
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != 200 {
-		return nil, fmt.Errorf("Steam ha risposto %d", resp.StatusCode)
+		return nil, nil, fmt.Errorf("Steam ha risposto %d", resp.StatusCode)
 	}
 	var cfg struct {
 		Pops map[string]struct {
@@ -89,7 +99,13 @@ func valveTargets(region string) ([]pingTarget, error) {
 		} `json:"pops"`
 	}
 	if err := json.NewDecoder(io.LimitReader(resp.Body, 4<<20)).Decode(&cfg); err != nil {
-		return nil, err
+		return nil, nil, err
+	}
+	citta := map[string]string{}
+	for code, p := range cfg.Pops {
+		if len(p.Relays) > 0 && net.ParseIP(p.Relays[0].IPv4) != nil {
+			citta[code] = p.Relays[0].IPv4
+		}
 	}
 	var out []pingTarget
 	for code, info := range valvePops {
@@ -102,10 +118,16 @@ func valveTargets(region string) ([]pingTarget, error) {
 		}
 		out = append(out, pingTarget{"valve", region, info[1], p.Relays[0].IPv4, false})
 	}
-	return out, nil
+	return out, citta, nil
 }
 
+// riotAlt: i relay Valve per città dell'ultima lettura (vedi riotVicino); nil se Steam non ha risposto.
+var riotAlt map[string]string
+
 func pingTargetsFor(region string) ([]pingTarget, string) {
+	riotAltMu.Lock()
+	riotAlt = nil
+	riotAltMu.Unlock()
 	var t []pingTarget
 	for _, x := range riotTargets {
 		if x.Region == region {
@@ -113,8 +135,11 @@ func pingTargetsFor(region string) ([]pingTarget, string) {
 		}
 	}
 	valveNote := ""
-	if v, err := valveTargets(region); err == nil {
+	if v, citta, err := valveTargets(region); err == nil {
 		t = append(t, v...)
+		riotAltMu.Lock()
+		riotAlt = citta
+		riotAltMu.Unlock()
 	} else {
 		valveNote = "Non riesco a leggere da Steam l'elenco dei server Valve: CS2 e Dota 2 saltati."
 	}
@@ -170,6 +195,15 @@ func icmpEcho(ip net.IP, timeout time.Duration) float64 {
 	return rtt
 }
 
+// riotAltFor: l'indirizzo del relay Valve vicino al server Riot ("" se non c'è).
+func riotAltFor(host string) string {
+	riotAltMu.Lock()
+	defer riotAltMu.Unlock()
+	return riotAlt[riotVicino[host]]
+}
+
+var riotAltMu sync.Mutex
+
 func tcpConnect(addr string, timeout time.Duration) float64 {
 	start := time.Now()
 	c, err := net.DialTimeout("tcp", addr, timeout)
@@ -192,6 +226,7 @@ type pingResult struct {
 	OK     bool    `json:"ok"`
 	Color  string  `json:"color"` // green, yellow, red
 	TCP    bool    `json:"tcp"`
+	Stima  bool    `json:"stima"` // misurato su un server vicino (Riot non risponde al ping)
 }
 
 func measure(t pingTarget) pingResult {
@@ -207,6 +242,12 @@ func measure(t pingTarget) pingResult {
 	if err != nil || ip == nil {
 		r.Loss, r.Color = 100, "red"
 		return r
+	}
+	// Riot: un ping di prova; se l'indirizzo di Riot tace, misuro il server vicino (stima).
+	if t.Group == "riot" && icmpEcho(ip, time.Second) < 0 {
+		if alt := net.ParseIP(riotAltFor(t.Host)); alt != nil && alt.To4() != nil {
+			ip, r.Stima = alt, true
+		}
 	}
 	const n = 8
 	var got []float64

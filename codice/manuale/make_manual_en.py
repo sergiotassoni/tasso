@@ -186,7 +186,7 @@ S += [P('<b>First-time setup</b>', 'h2'),
       P('The first time, Tasso asks you <b>how you\'ll use the PC</b>. Click the right card (Tasso shows you right away what it will look like) and then <b>Continue</b>:')]
 S += [table([['Mode', 'What Tasso looks like and what it sets'],
              ['<b>Gaming</b>', 'All of Tasso: games, FPS, server ping, Turbo, Performance+, dark and colorful themes. It puts the PC in Gaming mode.'],
-             ['<b>Office</b>', 'Simpler and calmer: soft, light colors, a cuter badger, no games, FPS or ping. In Fix problems you\'ll find the <b>109 most common office problems</b> right away. It puts the PC in Normal mode and sets up a weekly scheduled cleanup.']],
+             ['<b>Office</b>', 'Simpler and calmer: soft, light colors, a cuter badger, no games, FPS or ping. In Fix problems you\'ll find the <b>109 most common office problems</b> right away. It puts the PC in Normal mode. Scheduled cleanup stays off: you can turn it on in Clean up if you want.']],
             [32 * mm, W - 2 * M - 32 * mm])]
 S += [P('You can switch modes whenever you want with the <b>Gaming / Office</b> button at the top left, under the logo (or from <b>Settings</b>). The button only changes how Tasso looks; it doesn\'t touch the PC. Each mode remembers its own theme.', 'small')]
 
