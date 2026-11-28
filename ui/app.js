@@ -124,7 +124,9 @@ export function chiedi(titolo, testo, tasti, esc) {
       box.appendChild(b);
     });
     finestra("dMsg", true);
-    setTimeout(() => box.lastChild && box.lastChild.focus(), 30);
+    // RECENSIONE-2c, B1: il fuoco va sul tasto principale (quello colorato), che in ogni domanda è la
+    // scelta sicura o quella attesa; senza tasto principale, sull'ultimo come prima.
+    setTimeout(() => { const f = box.querySelector(".prim") || box.lastChild; if (f) f.focus(); }, 30);
   });
 }
 
