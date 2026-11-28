@@ -161,6 +161,8 @@ var (
 	user32                   = windows.NewLazySystemDLL("user32.dll")
 	procSendMessageW         = user32.NewProc("SendMessageW")
 	procSendMessageTimeoutW  = user32.NewProc("SendMessageTimeoutW")
+	procPostMessageW         = user32.NewProc("PostMessageW")
+	procIsWindowVisible      = user32.NewProc("IsWindowVisible")
 	procGetDpiForSystem      = user32.NewProc("GetDpiForSystem")
 	procSetForegroundWindow  = user32.NewProc("SetForegroundWindow")
 	procFindWindowW          = user32.NewProc("FindWindowW")
@@ -414,8 +416,12 @@ func ancoraAperto(pid uint32) bool {
 
 // chiudiProgrammi: Tasso prima con "Tasso.exe --chiudi" (si chiude bene da solo, e se sta facendo
 // una pulizia o un aggiornamento rifiuta: allora non lo chiudo a forza e restituisco false).
-// Agli altri (e a un Tasso vecchio) prima dice che "Windows si sta spegnendo"
-// (WM_QUERYENDSESSION/WM_ENDSESSION: Tasso salva impostazioni e memoria), poi li chiude.
+// Tasso Zip e Tasso PDF: ricevono WM_CLOSE, come se l'utente premesse la X. Così, se c'è lavoro
+// non salvato, chiedono loro "Chiudere senza salvare?". Aspetto che si chiudano da soli; se
+// l'utente risponde "Annulla" (o non risponde entro 2 minuti) NON li chiudo mai a forza:
+// restituisco false e la pagina dice quale programma chiudere prima di riprovare.
+// A un Tasso vecchio (senza --chiudi) prima dice che "Windows si sta spegnendo"
+// (WM_QUERYENDSESSION/WM_ENDSESSION: Tasso salva impostazioni e memoria), poi lo chiude.
 //
 // Dopo, chiude anche quello che Tasso aveva avviato e che tiene occupati i file (la sua WebView2,
 // llama-server, whisper-server, PresentMon): vedi chiudiAiutanti.
@@ -444,6 +450,53 @@ func chiudiProgrammi(base string, cc []installa.Componente) bool {
 		}
 		lista = append(lista, a)
 	}
+	// Zip e PDF: WM_CLOSE alle loro finestre, poi aspetto (mai TerminateProcess).
+	var gentili, forti []aperto
+	for _, a := range lista {
+		if a.nome == "Tasso" {
+			forti = append(forti, a)
+		} else {
+			gentili = append(gentili, a)
+		}
+	}
+	for _, a := range gentili {
+		pid := a.pid
+		for _, soloVisibili := range []bool{true, false} {
+			mandati := 0
+			cb := windows.NewCallback(func(hwnd uintptr, _ uintptr) uintptr {
+				var p uint32
+				_, _ = windows.GetWindowThreadProcessId(windows.HWND(hwnd), &p)
+				if p == pid {
+					if v, _, _ := procIsWindowVisible.Call(hwnd); v != 0 || !soloVisibili {
+						procPostMessageW.Call(hwnd, 0x0010 /*WM_CLOSE*/, 0, 0)
+						mandati++
+					}
+				}
+				return 1
+			})
+			_ = windows.EnumWindows(cb, nil)
+			if mandati > 0 {
+				break // nessuna finestra visibile (ridotta nel vassoio?): allora a tutte le sue
+			}
+		}
+	}
+	ok := true
+	for _, a := range gentili {
+		h, err := windows.OpenProcess(windows.SYNCHRONIZE, false, a.pid)
+		if err != nil {
+			continue // già chiuso
+		}
+		// c'è il tempo di rispondere a "Chiudere senza salvare?"
+		if ev, _ := windows.WaitForSingleObject(h, 120000); ev != windows.WAIT_OBJECT_0 {
+			installa.Diario("%s (pid %d) non si è chiuso (lavoro non salvato o \"Annulla\"): non lo chiudo a forza", a.nome, a.pid)
+			ok = false
+		}
+		windows.CloseHandle(h)
+	}
+	if !ok {
+		return false // Zip o PDF ancora aperti: la pagina chiede di chiuderli e riprovare
+	}
+	lista = forti
 	for _, a := range lista {
 		pid := a.pid
 		cb := windows.NewCallback(func(hwnd uintptr, _ uintptr) uintptr {
@@ -458,7 +511,6 @@ func chiudiProgrammi(base string, cc []installa.Componente) bool {
 		})
 		_ = windows.EnumWindows(cb, nil)
 	}
-	ok := true
 	for _, a := range lista {
 		h, err := windows.OpenProcess(windows.PROCESS_TERMINATE|windows.SYNCHRONIZE, false, a.pid)
 		if err != nil {

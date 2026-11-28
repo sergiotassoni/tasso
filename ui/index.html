@@ -522,7 +522,7 @@ async function installa(ripeti){
   if (aperti && aperti.length) {
     const ok = await chiediChiusura(aperti);
     if (!ok) return;
-    if (!await call('goChiudiProgrammi', opz.cartella, opz.componenti)) { msg(T('aperti_errore')); return; }
+    if (!await call('goChiudiProgrammi', opz.cartella, opz.componenti)) { msg(await testoRestano(opz.cartella, opz.componenti)); return; }
   }
   lavoro = true; fattoOk = null;
   $('#barra').style.width = '0'; $('#perc').textContent = '0%'; $('#fase').textContent = T('fase_prepara');
@@ -530,6 +530,12 @@ async function installa(ripeti){
   const r = await call('goInstalla', opz);
   if (r && r.codice === 'nome') { lavoro = false; vai(8); nomeErrGo(r); return; } // Go non accetta il nome: si torna al passo del nome
   if (r !== 'ok') { lavoro = false; mostraErrore(r); }
+}
+// testoRestano: quali programmi sono ancora aperti (per esempio Tasso PDF con un documento non
+// salvato, dopo "Annulla"): l'installatore non li chiude a forza e dice quale chiudere.
+async function testoRestano(cartella, componenti){
+  const resta = await call('goProgrammiAperti', cartella, componenti);
+  return resta && resta.length ? T('aperti_restano', resta.join(', ')) : T('aperti_errore');
 }
 function chiediChiusura(nomi){
   return new Promise(ok => {
@@ -641,7 +647,7 @@ async function disinstalla(){
   attesaFine();
   if (!pr || !pr.ok) { disBlocca(false); disStato(disErrore(pr), 'errore'); return; }
   if (aperti && aperti.length && !await call('goChiudiProgrammi', A.cartella, ids)) {
-    disBlocca(false); disStato(T('aperti_errore'), 'errore'); return;
+    disBlocca(false); disStato(await testoRestano(A.cartella, ids), 'errore'); return;
   }
   attesaInizio(-2); // -2: "Tolgo i programmi scelti…"; il passo di Tasso, se c'è, arriva da passoTasso
   const r = await call('goDisinstalla', ids, togliDati);
