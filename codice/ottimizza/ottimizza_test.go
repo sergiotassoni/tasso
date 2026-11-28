@@ -13,8 +13,8 @@ func TestQuanteModifiche(t *testing.T) {
 	if n := len(Elenco(ModoGioco)); n != 20 {
 		t.Fatalf("Gaming: %d modifiche, ne servono 20", n)
 	}
-	if n := len(Elenco(ModoUfficio)); n != 15 {
-		t.Fatalf("Ufficio: %d modifiche, ne servono 15 (13 impostazioni e 2 pulizie)", n)
+	if n := len(Elenco(ModoUfficio)); n != 14 {
+		t.Fatalf("Ufficio: %d modifiche, ne servono 14 (12 impostazioni e 2 pulizie)", n)
 	}
 	for _, modo := range []string{ModoGioco, ModoUfficio} {
 		cats := map[string]bool{}
@@ -675,5 +675,47 @@ func TestNotificheGioco(t *testing.T) {
 	}
 	if es := Rimetti("notifgioco", a, st, salvaFinto(&n)); es.Stato != VoceRimessa || a.Pref.NotificheGioco() {
 		t.Fatal(es)
+	}
+}
+
+// RECENSIONE-2, problema 2: in Ufficio "Notifiche senza suono" non si fa più (il suono di Teams e
+// della posta serve), ma chi l'aveva già fatta la rimette com'era, anche dopo aver riaperto Tasso.
+func TestSuoniRitirataUfficio(t *testing.T) {
+	for _, modo := range []string{ModoGioco, ModoUfficio} {
+		for _, m := range Elenco(modo) {
+			if m.ID == "suoni" {
+				t.Fatalf("%s: \"suoni\" è ancora nell'elenco", modo)
+			}
+		}
+		for _, c := range Categorie(modo) {
+			if c.ID == "bell" {
+				t.Fatalf("%s: la categoria vuota \"bell\" è ancora nella finestra", modo)
+			}
+		}
+	}
+	a, r, _, _ := ambienteFinto()
+	m, ok := Trova("suoni")
+	if !ok || !m.Ritirata {
+		t.Fatalf("suoni non si trova più come ritirata: %+v %v", m, ok)
+	}
+	st := &Stato{}
+	n := 0
+	// una 3.2 di prova l'aveva già fatta
+	if es := Esegui(m, a, st, salvaFinto(&n)); es.Stato != VoceFatta {
+		t.Fatalf("%+v", es)
+	}
+	b, err := json.Marshal(st)
+	if err != nil {
+		t.Fatal(err)
+	}
+	st2, scartate, err := Leggi(b, true)
+	if err != nil || scartate != 0 || len(st2.Attive()) != 1 {
+		t.Fatalf("la voce ritirata si perde riaprendo Tasso: %v %d %v", err, scartate, st2.Attive())
+	}
+	if _, tutto := RimettiTutto(a, st2, salvaFinto(&n)); !tutto {
+		t.Fatal("Rimetti com'era tutto non l'ha rimessa")
+	}
+	if v, _ := r.Leggi(HKCU, kNotifiche, "NOC_GLOBAL_SETTING_ALLOW_NOTIFICATION_SOUND"); v.Esiste {
+		t.Fatalf("il suono delle notifiche non è tornato com'era: %+v", v)
 	}
 }

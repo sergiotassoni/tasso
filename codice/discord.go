@@ -17,6 +17,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"tasso/segreti"
 )
 
 var webhookRe = regexp.MustCompile(`^https://(?:(?:ptb|canary)\.)?discord(?:app)?\.com/api/webhooks/(\d{5,25})/[A-Za-z0-9_\-]{20,100}$`)
@@ -41,17 +43,30 @@ func discordEvery() int {
 // setDiscord salva l'indirizzo del webhook e se l'invio automatico è acceso.
 func setDiscord(url string, on bool) string {
 	url = strings.TrimSpace(url)
+	setMu.Lock()
+	salvato := settings.DiscordWebhook
+	setMu.Unlock()
+	if salvato != "" && url == segreti.Maschera(salvato) {
+		url = salvato // la finestra vede l'indirizzo senza il token: è quello già salvato
+	}
 	if url != "" && !webhookRe.MatchString(url) {
 		return "Questo non sembra un indirizzo webhook di Discord. Deve iniziare con https://discord.com/api/webhooks/"
 	}
 	if url == "" {
 		on = false
 	}
+	// su disco solo protetto con Windows (DPAPI), come il token del bot: mai in chiaro
+	enc := ""
+	if url != "" {
+		if enc = protectString(url); enc == "" {
+			return "Windows non mi lascia proteggere l'indirizzo del webhook: non lo salvo."
+		}
+	}
 	updateSettings(func(s *Settings) {
 		if s.DiscordWebhook != url {
 			s.DiscordChannel = "" // canale nuovo: lo rileggo dal webhook
 		}
-		s.DiscordWebhook = url
+		s.DiscordWebhook, s.DiscordWebhookEnc, s.DiscordWebhookVecchio = url, enc, ""
 		s.DiscordOn = on
 	})
 	return "ok"

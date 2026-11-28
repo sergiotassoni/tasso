@@ -13,7 +13,6 @@ import (
 	"crypto/sha1"
 	"encoding/hex"
 	"fmt"
-	"os"
 	"path/filepath"
 	"runtime/debug"
 	"strings"
@@ -199,7 +198,7 @@ func applicaTraduzione(nome, cartella string) {
 	}
 	passo(25, "Preparo la libreria delle traduzioni di "+nome+"…")
 	dir := filepath.Join(dirApp, "librerie")
-	_ = os.MkdirAll(dir, 0o755)
+	_ = creaCartellaDati(dir)
 	file := fileLibreriaGioco(cartella, nome, nomeRiconosciuto(cartella))
 	prima := ContaLibreria(file)
 	passo(45, "Provo il traduttore sulle scritte più comuni dei giochi…")

@@ -1018,7 +1018,7 @@ func rimettiOtt(id string) ottimizza.Esito {
 // applicaUnaOtt: riaccende una sola modifica (interruttore riacceso nell'elenco).
 func applicaUnaOtt(id string) ottimizza.Esito {
 	m, ok := ottimizza.Trova(id)
-	if !ok || m.NonRimette {
+	if !ok || m.NonRimette || m.Ritirata {
 		return ottimizza.Esito{ID: id, Stato: ottimizza.VoceErrore, Motivo: ottimizza.MsgNienteDa}
 	}
 	if ottInCorso.Load() {

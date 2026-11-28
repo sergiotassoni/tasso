@@ -449,7 +449,7 @@ func registraRigaGioco(chiave, en, it string) {
 	if st, err := os.Stat(p); err == nil && st.Size() > 4<<20 {
 		return
 	}
-	f, err := os.OpenFile(p, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0o644)
+	f, err := apriLogDati(p) // R3-1
 	if err != nil {
 		return
 	}

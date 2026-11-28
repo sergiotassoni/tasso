@@ -983,17 +983,23 @@ func salvaAnteprima(img *image.RGBA, blocchi []Blocco, percorso string) error {
 		out.Pix[i], out.Pix[i+1], out.Pix[i+2], out.Pix[i+3] = buf[i+2], buf[i+1], buf[i], 255
 	}
 	// prima in un file a parte, poi al suo posto: chi lo legge non trova mai un'immagine a metà
-	tmp := percorso + ".tmp"
-	f, err := os.Create(tmp)
+	// R3-1: file nuovo con un nome a caso, poi al suo posto (niente collegamenti sotto TassoTraduce)
+	f, err := creaFileDati(percorso)
 	if err != nil {
 		return err
 	}
+	tmp := f.Name()
 	if err := png.Encode(f, out); err != nil {
 		f.Close()
+		os.Remove(tmp)
 		return err
 	}
 	f.Close()
-	return os.Rename(tmp, percorso)
+	if err := rinominaDati(tmp, percorso); err != nil {
+		os.Remove(tmp)
+		return err
+	}
+	return nil
 }
 
 // disegnaToppaPulita: copia dalla pagina "pulita" (tutte le scritte inglesi cancellate). Dove la

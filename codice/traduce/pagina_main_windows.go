@@ -11,7 +11,6 @@ import (
 	"fmt"
 	"image"
 	"image/draw"
-	"os"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -608,7 +607,7 @@ func preparaPaginaCon(area Zona, img, primaImg *image.RGBA, giro int64, annulla 
 		for _, b := range blocchi {
 			fmt.Fprintf(&sb, "%d,%d %dx%d righe=%d em=%.1f affid=%d motivo=%q | %s | letto: %s\n", b.X, b.Y, b.W, b.H, b.Righe, b.Em, b.Affid, motivoNonTradurre(b), b.Testo, b.Grezzo)
 		}
-		_ = os.WriteFile(filepath.Join(dirApp, "logs", "pagina-letto.txt"), []byte(sb.String()), 0o644)
+		_ = scriviDati(filepath.Join(dirApp, "logs", "pagina-letto.txt"), []byte(sb.String()))
 	}
 	nostra, ceNostra := nostraFinestraIn(area)
 	tOCR := time.Since(t0)
@@ -734,7 +733,7 @@ func preparaPaginaCon(area Zona, img, primaImg *image.RGBA, giro int64, annulla 
 		for i, b := range da {
 			fmt.Fprintf(&sb, "%d,%d | %s => %s (%s) %s\n", b.X, b.Y, b.Testo, risultati[i].Tradotto, risultati[i].Motore, motivoScartaTraduzione(b, risultati[i]))
 		}
-		_ = os.WriteFile(filepath.Join(dirApp, "logs", "pagina-tradotto.txt"), []byte(sb.String()), 0o644)
+		_ = scriviDati(filepath.Join(dirApp, "logs", "pagina-tradotto.txt"), []byte(sb.String()))
 	}
 	return &paginaPronta{area: area, img: img, pronti: pronti, nuove: nuove, t0: t0, tOCR: tOCR, tTrad: tTrad, cron: cron, mancanti: mancanti, inglesi: ingl, letti: blocchi}, letturaFatta
 }
@@ -835,7 +834,7 @@ func mostraPaginaPronta(p *paginaPronta, giro int64) bool {
 			riga := fmt.Sprintf("%s lettura=%dms traduzione=%dms totale=%dms dal-cambio=%dms scritte=%d nuove=%d motivo=%s\n",
 				time.Now().Format("15:04:05.000"), tOCR.Milliseconds(), tTrad.Milliseconds(), time.Since(t0).Milliseconds(),
 				time.Since(visto).Milliseconds(), len(pronti), nuove, motivo)
-			if f, err := os.OpenFile(filepath.Join(dirApp, "logs", "pagina-tempi.txt"), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644); err == nil {
+			if f, err := apriLogDati(filepath.Join(dirApp, "logs", "pagina-tempi.txt")); err == nil {
 				_, _ = f.WriteString(riga)
 				_ = f.Close()
 			}

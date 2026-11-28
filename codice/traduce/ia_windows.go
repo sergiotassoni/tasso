@@ -314,11 +314,12 @@ func (s *ServerIA) avviaProcesso(exe, dirAvvio string, args []string, nota strin
 	cmd.Env = append(os.Environ(), "LLAMA_API_KEY="+chiave)
 	cmd.Dir = dirAvvio
 	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true, CreationFlags: 0x08000000 | 0x00004000} // nessuna finestra, priorità sotto la normale
-	modo := os.O_WRONLY | os.O_CREATE | os.O_TRUNC
+	// R3-1: il registro non segue collegamenti o giunzioni sotto TassoTraduce
+	apri := creaLogDati
 	if aggiungi {
-		modo = os.O_WRONLY | os.O_CREATE | os.O_APPEND
+		apri = apriLogDati
 	}
-	logf, _ := os.OpenFile(filepath.Join(dirApp, "logs", "motore-ia.txt"), modo, 0o644)
+	logf, _ := apri(filepath.Join(dirApp, "logs", "motore-ia.txt"))
 	if logf != nil && nota != "" {
 		_, _ = logf.WriteString(nota)
 	}

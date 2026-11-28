@@ -146,10 +146,7 @@ func salvaImp() {
 	muImp.Lock()
 	b, _ := json.MarshalIndent(imp, "", "  ")
 	muImp.Unlock()
-	tmp := fileImp() + ".tmp"
-	if os.WriteFile(tmp, b, 0o644) == nil {
-		_ = os.Rename(tmp, fileImp())
-	}
+	_ = scriviDati(fileImp(), b) // R3-1: niente scritture attraverso collegamenti o giunzioni
 }
 
 func leggiImp() Impostazioni {
@@ -181,7 +178,7 @@ func Prepara(w webview2.WebView, dati string) {
 		base = os.TempDir()
 	}
 	dirApp = filepath.Join(base, "TassoTraduce")
-	_ = os.MkdirAll(filepath.Join(dirApp, "logs"), 0o755)
+	_ = creaCartellaDati(filepath.Join(dirApp, "logs"))
 	avviaLogErrori(false) // dentro Tasso: gli errori gravi li scrive il crash.txt di Tasso
 	caricaImp()
 	wv = w
@@ -512,10 +509,8 @@ func rinascondiMotore(m webview2.WebView) {
 // crash di tutto Tasso finivano nel file del traduttore (collaudo 26/11).
 func avviaLogErrori(comeProgramma bool) {
 	p := filepath.Join(dirApp, "logs", "crash.txt")
-	if fi, err := os.Stat(p); err == nil && fi.Size() > 1<<20 {
-		_ = os.Rename(p, p+".old")
-	}
-	f, err := os.OpenFile(p, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0o644)
+	ruotaLogDati(p, 1<<20)
+	f, err := apriLogDati(p)
 	if err != nil {
 		return
 	}
@@ -527,7 +522,7 @@ func avviaLogErrori(comeProgramma bool) {
 }
 
 func logErrore(dove string, r interface{}, stack []byte) {
-	f, err := os.OpenFile(filepath.Join(dirApp, "logs", "crash.txt"), os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0o644)
+	f, err := apriLogDati(filepath.Join(dirApp, "logs", "crash.txt"))
 	if err != nil {
 		return
 	}
@@ -538,10 +533,8 @@ func logErrore(dove string, r interface{}, stack []byte) {
 // scriviLog: una riga in logs\motore.txt (nascita del motore, tentativi, processi caduti).
 func scriviLog(riga string) {
 	p := filepath.Join(dirApp, "logs", "motore.txt")
-	if fi, err := os.Stat(p); err == nil && fi.Size() > 256<<10 {
-		_ = os.Rename(p, p+".old")
-	}
-	f, err := os.OpenFile(p, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0o644)
+	ruotaLogDati(p, 256<<10)
+	f, err := apriLogDati(p)
 	if err != nil {
 		return
 	}
@@ -1866,7 +1859,7 @@ func avvisaGiunzioneUnaVolta() {
 		return
 	}
 	time.Sleep(20 * time.Second) // l'icona vicino all'orologio c'è già
-	Ospite.Avvisa("Tasso Traduce", "La cartella dei dati di Tasso Traduce porta a un'altra cartella (collegamento o giunzione): per sicurezza Tasso non ci scrive, quindi le scelte del traduttore non vengono salvate. Per salvarle, rimetti la cartella TassoTraduce normale dentro AppData\\Local.")
+	Ospite.Avvisa("Tasso Traduce", "La cartella dei dati di Tasso Traduce porta a un'altra cartella (collegamento o giunzione): per sicurezza Tasso non ci scrive, quindi le scelte del traduttore non vengono salvate e i modelli non si scaricano. Per salvarle, rimetti la cartella TassoTraduce normale dentro AppData\\Local.")
 	_ = k.SetDWordValue("AvvisoTraduceGiunzione", 1)
 }
 

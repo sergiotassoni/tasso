@@ -178,9 +178,8 @@ func ricordaVerificato(p, chiave string) {
 	if err != nil {
 		return
 	}
-	_ = os.MkdirAll(filepath.Dir(f), 0o755)
-	if os.WriteFile(f+".tmp", b, 0o644) == nil {
-		_ = os.Rename(f+".tmp", f)
+	if creaCartellaDati(filepath.Dir(f)) == nil {
+		_ = scriviDati(f, b) // R3-1: niente collegamenti o giunzioni sotto TassoTraduce
 	}
 }
 
@@ -203,6 +202,8 @@ func msgErroreScarica(err error) string {
 	var pe *os.PathError
 	var le *os.LinkError
 	switch {
+	case errors.Is(err, errDatiLink):
+		return msgDatiLink
 	case errors.Is(err, errScaricaRete):
 		return "connessione non riuscita: controlla internet e riprova."
 	case errors.Is(err, errScaricaSicurezza):
@@ -215,7 +216,7 @@ func msgErroreScarica(err error) string {
 
 // scaricaTutti scarica i file mancanti. avanzamento(fatti, totale) viene chiamata spesso.
 func scaricaTutti(ctx context.Context, dir string, files []FileDaScaricare, avanzamento func(int64, int64)) error {
-	if err := os.MkdirAll(dir, 0o755); err != nil {
+	if err := creaCartellaDati(dir); err != nil {
 		return err
 	}
 	var totale, fatti int64
@@ -279,11 +280,19 @@ func scaricaUno(ctx context.Context, dir string, f FileDaScaricare, avanzamento 
 		defer gz.Close()
 		sorgente = gz
 	}
-	tmp := filepath.Join(dir, f.Nome+".parziale")
-	out, err := os.Create(tmp)
+	// R3-1: un file nuovo con un nome a caso (O_EXCL), solo se la cartella dei modelli non passa
+	// da collegamenti o giunzioni: un .parziale preparato da un altro programma non si segue.
+	// Prima tolgo i pezzi rimasti da uno scaricamento interrotto (Tasso chiuso a metà).
+	if vecchi, _ := filepath.Glob(filepath.Join(dir, f.Nome+".parziale*")); len(vecchi) > 0 {
+		for _, v := range vecchi {
+			_ = rimuoviDati(v)
+		}
+	}
+	out, err := creaFileDati(filepath.Join(dir, f.Nome+".parziale"))
 	if err != nil {
 		return err
 	}
+	tmp := out.Name()
 	h := sha256.New()
 	cont := &contatore{fn: avanzamento}
 	limite := f.Byte + f.Byte/10 + 1<<20 // un file molto più grande del previsto non è quello giusto
@@ -303,7 +312,11 @@ func scaricaUno(ctx context.Context, dir string, f FileDaScaricare, avanzamento 
 		os.Remove(tmp)
 		return fmt.Errorf("%s: %w", f.Nome, errScaricaSicurezza)
 	}
-	return os.Rename(tmp, filepath.Join(dir, f.Nome))
+	if err := rinominaDati(tmp, filepath.Join(dir, f.Nome)); err != nil {
+		os.Remove(tmp)
+		return err
+	}
+	return nil
 }
 
 type contatore struct {

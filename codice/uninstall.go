@@ -240,12 +240,19 @@ func togliTassoPassiDentro(rimetti, silenzioso bool, passo func(int, string), pi
 		case !ok && silenzioso:
 			// dal disinstallatore non mi fermo: dico cosa non è tornato com'era
 			avviso(0, trGo("Non sono riuscito a rimettere tutte le impostazioni di Windows com'erano prima di Tasso: ")+trGoTutti(msgs))
+			// R3-3: i valori di com'era non si perdono (sotto si cancellano): vanno con le copie di sicurezza
+			if salvaNonRimesse(msgs) {
+				avviso(0, msgNonRimesseSalvate)
+			}
 		case !ok:
 			// il prefisso tradotto qui: con i messaggi dentro, la finestra non traduce i pezzi
 			return trGo("Modalità riunione, Ottimizza tutto e modalità del PC sono già tornati com'erano, ma non ho finito di rimettere le altre impostazioni di Windows: ") + trGoTutti(msgs) + " " + trGo("Tasso non è stato tolto: riprova.")
 		case len(avvioNo) > 0:
 			// un programma all'avvio che non torna com'era non blocca la disinstallazione: avviso e vado avanti
 			avviso(0, msgAvvioFallitiTogli(avvioNo))
+			if salvaNonRimesse(avvioNo) { // R3-3: com'erano, prima che settings.json si cancelli
+				avviso(0, msgNonRimesseSalvate)
+			}
 		default:
 			passo(0, "Impostazioni di Windows rimesse com'erano")
 		}
@@ -590,6 +597,8 @@ func salvaCopieDiSicurezza() (nonSalvate, altrove []string) {
 		// si potrebbe più rimettere (F20-8)
 		salva(filepath.Join(local, "Tasso", "sfondi"), in("sfondo del desktop di prima"), "sfondo del desktop di prima", false)
 	}
+	// R3-3: i valori di com'era che Windows non ha lasciato rimettere (uninstall_copia_prima.go)
+	salva(cartellaNonRimesse(), in(nomeNonRimesseDocumenti), nomeNonRimesseDocumenti, false)
 	// copie dei giochi: tutto quello che resta (plugin messi da parte, originali di giochi che non
 	// ho potuto sistemare perché disinstallati o su un disco staccato, elenchi illeggibili)
 	// (dalla 3.2 in Programmi\Tasso\lavoro; guardo anche il posto vecchio in AppData)

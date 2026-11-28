@@ -83,7 +83,7 @@ func scaricaIA() {
 		emetti("erroreScarica", map[string]string{"cosa": "ia", "errore": erroreScaricaPerUtente("ia", err)})
 		return
 	}
-	_ = os.Remove(filepath.Join(dirIA(), risorseIA.Motore.Nome)) // lo zip non serve più (l'impronta del motore resta nei file estratti)
+	_ = rimuoviDati(filepath.Join(dirIA(), risorseIA.Motore.Nome)) // lo zip non serve più (l'impronta del motore resta nei file estratti)
 	// i file nuovi sono verificati: tolgo quelli di prima (solo nella cartella dell'IA di Tasso)
 	pulisciRiserveIA()
 	emetti("scaricato", map[string]string{"cosa": "ia"})

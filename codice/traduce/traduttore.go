@@ -99,7 +99,7 @@ func (t *Traduttore) leggiMemoria(file string) {
 	}
 	t.cache, t.usoCache = map[string]string{}, map[string]int64{}
 	da := strings.TrimSuffix(file, ".json") + "-illeggibile-" + time.Now().Format("20060102-150405") + ".json.bak"
-	if os.Rename(file, da) != nil {
+	if rinominaDati(file, da) != nil {
 		t.cacheNonSalvare = true
 	}
 }
@@ -947,7 +947,7 @@ func leggiLibreria(file string) (lib map[string]string, nonSalvare bool) {
 	}
 	lib = map[string]string{}
 	da := strings.TrimSuffix(file, ".json") + "-illeggibile-" + time.Now().Format("20060102-150405") + ".json.bak"
-	if os.Rename(file, da) != nil {
+	if rinominaDati(file, da) != nil {
 		return lib, true
 	}
 	return lib, false
@@ -992,17 +992,16 @@ func scriviLibreria(file string, lib map[string]string, dubbi map[string]Dubbio)
 	if err != nil {
 		return false
 	}
-	_ = os.MkdirAll(filepath.Dir(file), 0o755)
+	// R3-1: sotto TassoTraduce niente collegamenti o giunzioni (scrivi_dati.go)
+	if creaCartellaDati(filepath.Dir(file)) != nil {
+		return false
+	}
 	if len(dubbi) > 0 {
 		if bd, err := json.MarshalIndent(dubbi, "", " "); err == nil {
-			dc := strings.TrimSuffix(file, ".json") + "-da-controllare.json"
-			if os.WriteFile(dc+".tmp", bd, 0o644) == nil {
-				_ = os.Rename(dc+".tmp", dc)
-			}
+			_ = scriviDati(strings.TrimSuffix(file, ".json")+"-da-controllare.json", bd)
 		}
 	}
-	tmp := file + ".tmp"
-	return os.WriteFile(tmp, b, 0o644) == nil && os.Rename(tmp, file) == nil
+	return scriviDati(file, b) == nil
 }
 
 // Dubbio: una traduzione da controllare a mano.
@@ -1139,8 +1138,7 @@ func (t *Traduttore) salvaCache() {
 	if err != nil {
 		return
 	}
-	tmp := t.fileCache + ".tmp"
-	if os.WriteFile(tmp, b, 0o644) == nil && os.Rename(tmp, t.fileCache) == nil {
+	if scriviDati(t.fileCache, b) == nil { // R3-1
 		t.mu.Lock()
 		t.cacheSalvate = n
 		t.mu.Unlock()

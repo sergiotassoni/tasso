@@ -116,7 +116,7 @@ func scriviLogCopie(s string) {
 	if dirApp == "" {
 		return
 	}
-	f, err := os.OpenFile(filepath.Join(dirApp, "logs", "copie-giochi.txt"), os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0o644)
+	f, err := apriLogDati(filepath.Join(dirApp, "logs", "copie-giochi.txt"))
 	if err != nil {
 		return
 	}

@@ -19,6 +19,7 @@ import (
 	"golang.org/x/sys/windows"
 
 	"tasso/icotema"
+	"tasso/segreti"
 )
 
 type LastClean struct {
@@ -64,11 +65,17 @@ type Settings struct {
 	SfondoTasso      string   `json:"sfondoTasso,omitempty"`      // sfondo di Tasso messo adesso ("" = quello dell'utente)
 	SfondoNoChiedere bool     `json:"sfondoNoChiedere,omitempty"` // "Non chiedermelo più"
 	SfondoChiesti    []string `json:"sfondoChiesti,omitempty"`    // sfondi già proposti (una volta sola ciascuno)
-	// Stato del PC su Discord (webhook di un canale privato, solo lettura).
-	DiscordWebhook string `json:"discordWebhook,omitempty"`
-	DiscordOn      bool   `json:"discordOn"`
-	DiscordLast    string `json:"discordLast,omitempty"`
-	DiscordEvery   int    `json:"discordEvery,omitempty"` // ore tra un report e l'altro: 3, 6, 12 o 24
+	// Stato del PC su Discord (webhook di un canale privato, solo lettura). L'indirizzo contiene il
+	// token del webhook: in chiaro solo in memoria (DiscordWebhook, mai su disco), su disco solo
+	// protetto con Windows (DPAPI, DiscordWebhookEnc) come il token del bot. DiscordWebhookVecchio:
+	// il testo in chiaro delle versioni fino alla 3.1, letto solo per proteggerlo e toglierlo
+	// (segretiDopoLettura).
+	DiscordWebhook        string `json:"-"`
+	DiscordWebhookEnc     string `json:"discordWebhookEnc,omitempty"`
+	DiscordWebhookVecchio string `json:"discordWebhook,omitempty"`
+	DiscordOn             bool   `json:"discordOn"`
+	DiscordLast           string `json:"discordLast,omitempty"`
+	DiscordEvery          int    `json:"discordEvery,omitempty"` // ore tra un report e l'altro: 3, 6, 12 o 24
 	// Bot facoltativo per il report su richiesta: token protetto con Windows (DPAPI), mai in chiaro.
 	DiscordBot     string `json:"discordBot,omitempty"`
 	DiscordBotOn   bool   `json:"discordBotOn"`
@@ -363,11 +370,19 @@ func loadSettings() {
 	}
 	if err == nil {
 		if json.Unmarshal(b, &settings) != nil {
-			// File rovinato: lo metto da parte invece di sovrascriverlo (dentro c'è il backup delle impostazioni).
-			_ = scriviFileApp(settingsPath()+".bad", b, 0o644)
+			// File rovinato: lo metto da parte invece di sovrascriverlo (dentro c'è il backup delle
+			// impostazioni), senza il webhook in chiaro (segreti.TogliInChiaro).
+			pulito, _ := segreti.TogliInChiaro(b)
+			_ = scriviFileApp(settingsPath()+".bad", pulito, 0o644)
 			settings = Settings{Mode: "normale"}
+		} else if segretiDopoLettura(&settings) && !settingsReadOnly {
+			// 3.2: il webhook di Discord era in chiaro (fino alla 3.1): adesso è protetto e il
+			// testo in chiaro sparisce subito dal file
+			saveSettings()
+			scriviAvvio("indirizzo del webhook di Discord protetto con Windows e tolto in chiaro da settings.json")
 		}
 	}
+	togliWebhookCopie()
 	if settings.Mode == "" {
 		settings.Mode = "normale"
 	}
@@ -427,12 +442,14 @@ func saveSettings() bool {
 			return false
 		}
 		if err == nil {
-			_ = scriviFileApp(settingsPath()+".prima", old, 0o644)
+			pulito, _ := segreti.TogliInChiaro(old) // la copia non tiene il webhook in chiaro
+			_ = scriviFileApp(settingsPath()+".prima", pulito, 0o644)
 			// Il file adesso si legge: quello è quello vero. Lo tengo così com'è invece di
 			// sovrascriverlo con le impostazioni di partenza di questa sessione (si perde al massimo
 			// l'ultimo cambio fatto adesso, non tutto il resto).
 			var o Settings
 			if json.Unmarshal(old, &o) == nil {
+				segretiDopoLettura(&o) // il file vero, riletto: webhook protetto anche qui
 				if o.Mode == "" {
 					o.Mode = "normale"
 				}
@@ -470,6 +487,9 @@ func getSettings() map[string]interface{} {
 	_ = json.Unmarshal(b, &m)
 	// Il token del bot (anche se protetto) non va mai all'interfaccia: basta sapere se c'è.
 	m["discordBotSaved"] = settings.DiscordBot != ""
+	// Il webhook neanche: la finestra vede l'indirizzo senza il token (setDiscord lo riconosce).
+	m["discordWebhook"] = segreti.Maschera(settings.DiscordWebhook)
+	delete(m, "discordWebhookEnc")
 	m["autoGameAll"] = autoGameForAll(&settings) // i giochi senza una loro potenza vanno in Gaming
 	delete(m, "discordBot")
 	delete(m, "vault")
@@ -770,4 +790,32 @@ func avvisaSettingsLink() {
 		time.Sleep(500 * time.Millisecond)
 	}
 	trayAvviso("Tasso", "Il file delle impostazioni di Tasso era stato cambiato da un altro programma: per sicurezza riparto dalle impostazioni di base. Controlla le tue scelte in Tasso.", false)
+}
+
+// segretiDopoLettura: dopo aver letto settings.json. Il webhook di Discord in chiaro (fino alla
+// 3.1) si protegge con Windows (DPAPI) e si toglie; quello protetto si sblocca in memoria.
+// true = il file va riscritto (c'era il testo in chiaro).
+func segretiDopoLettura(s *Settings) bool {
+	chiaro, enc, cambiato := segreti.Migra(s.DiscordWebhookVecchio, s.DiscordWebhookEnc, protectString, unprotectString)
+	if cambiato && enc == "" {
+		// Windows non ha protetto: vale solo per adesso, in chiaro su disco non torna
+		scriviAvvio("attenzione: Windows non ha protetto l'indirizzo del webhook di Discord: lo tengo solo finché Tasso è aperto (va incollato di nuovo)")
+	}
+	s.DiscordWebhook, s.DiscordWebhookEnc, s.DiscordWebhookVecchio = chiaro, enc, ""
+	return cambiato
+}
+
+// togliWebhookCopie: le copie di settings.json fatte da Tasso (.prima, .bad, .tmp) non devono
+// tenere il webhook in chiaro delle versioni di prima.
+func togliWebhookCopie() {
+	for _, suf := range []string{".prima", ".bad", ".tmp"} {
+		p := settingsPath() + suf
+		b, err := leggiFileApp(p)
+		if err != nil {
+			continue
+		}
+		if pulito, ok := segreti.TogliInChiaro(b); ok {
+			_ = scriviFileApp(p, pulito, 0o644)
+		}
+	}
 }

@@ -91,7 +91,7 @@ func pulisciCatture(dir, tieni string) {
 	vecchie, _ := filepath.Glob(filepath.Join(dir, "cattura*.png"))
 	for _, f := range vecchie {
 		if f != tieni {
-			_ = os.Remove(f) // se è ancora aperta ci riprovo la volta dopo
+			_ = rimuoviDati(f) // se è ancora aperta ci riprovo la volta dopo
 		}
 	}
 }
@@ -128,7 +128,7 @@ func avviaOCR(dir string) (*LettoreOCR, error) {
 }
 
 func (l *LettoreOCR) avvia() error {
-	if err := os.MkdirAll(l.dir, 0o755); err != nil {
+	if err := creaCartellaDati(l.dir); err != nil { // R3-1
 		return err
 	}
 	// lo script va nella cartella protetta (Tasso gira come amministratore): un programma normale
@@ -151,7 +151,7 @@ func (l *LettoreOCR) avvia() error {
 	if err != nil {
 		return err
 	}
-	logf, err := os.Create(filepath.Join(l.dir, "ocr-errori.txt"))
+	logf, err := creaLogDati(filepath.Join(l.dir, "ocr-errori.txt"))
 	if err == nil {
 		cmd.Stderr = logf // i messaggi di errore di PowerShell, per capire cosa non va
 	}
@@ -262,7 +262,7 @@ func (l *LettoreOCR) leggiTutto(png []byte) (rispostaOCR, error) {
 	// vecchie si cancellano quando Windows le lascia andare.
 	l.n++
 	p := filepath.Join(l.dir, fmt.Sprintf("cattura-%d.png", l.n))
-	if err := os.WriteFile(p, png, 0o644); err != nil {
+	if err := scriviDati(p, png); err != nil { // R3-1
 		return rispostaOCR{}, err
 	}
 	defer pulisciCatture(l.dir, p)

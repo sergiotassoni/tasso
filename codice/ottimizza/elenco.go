@@ -1,6 +1,6 @@
 package ottimizza
 
-// Le modifiche di Ottimizza tutto: 20 in Gaming, 15 in Ufficio (13 impostazioni che si rimettono
+// Le modifiche di Ottimizza tutto: 20 in Gaming, 14 in Ufficio (12 impostazioni che si rimettono
 // com'erano e 2 pulizie dei file inutili, che non si rimettono). Sette voci sono uguali nelle due
 // modalità (stesso id: effetti, riapertura, consigli, feedback, ricerca, orari, recapito). Su un PC
 // vero alcune si saltano da sole (per esempio "Più prestazioni a corrente" sui fissi e le voci solo
@@ -38,6 +38,9 @@ type Modifica struct {
 	// LivelloB: Microsoft descrive l'interruttore ma non pubblica il nome del valore. Se dopo la
 	// scrittura Windows non lo tiene, la voce si salta e si dice perché.
 	LivelloB bool
+	// Ritirata: non si fa più (non è in nessun Elenco). Resta solo per rimettere com'era chi l'aveva
+	// già (Trova la trova ancora); non si riaccende.
+	Ritirata bool
 	G        Gestore
 }
 
@@ -269,6 +272,8 @@ func Elenco(modo string) []Modifica {
 	if modo == ModoUfficio {
 		// "App in background ferme" non c'è in Ufficio (decisione di Sergio, 28/11): le app dello
 		// Store chiuse non manderebbero più notifiche e promemoria (Posta, Calendario, Telefono).
+		// Per lo stesso motivo non c'è più "Notifiche senza suono" (RECENSIONE-2, problema 2): in
+		// ufficio il suono di Teams e della posta serve. Resta in Ritirate, solo per rimetterla.
 		return []Modifica{
 			{ID: "effetti", Categoria: "win", Utente: true, G: nuoviEffetti()},
 			{ID: "ricerca", Categoria: "win", Utente: true, LivelloB: true, G: nuovaRicerca()},
@@ -276,7 +281,6 @@ func Elenco(modo string) []Modifica {
 			{ID: "pulizia_temp", Categoria: "clean", Utente: true, NonRimette: true, G: &puliziaGest{passi: []string{"backup", "temp_user", "temp_win", "thumbs"}}},
 			{ID: "pulizia_resti", Categoria: "clean", NonRimette: true, G: &puliziaGest{passi: []string{"wu_cache", "cleanmgr"}}},
 			{ID: "riapertura", Categoria: "ram", Utente: true, G: nuovaRiapertura()},
-			{ID: "suoni", Categoria: "bell", Utente: true, G: nuoviSuoni()},
 			{ID: "consigli", Categoria: "ads", Utente: true, LivelloB: true, G: nuoviConsigli()},
 			{ID: "feedback", Categoria: "ads", Utente: true, G: nuovoFeedback()},
 			{ID: "esplora", Categoria: "ads", Utente: true, LivelloB: true, G: nuovaEsplora()},
@@ -314,18 +318,31 @@ func Elenco(modo string) []Modifica {
 // Categorie: le righe a sinistra, nell'ordine della finestra (quella "start" è chiedi).
 func Categorie(modo string) []Categoria {
 	if modo == ModoUfficio {
-		return []Categoria{{ID: "start", Chiedi: true}, {ID: "win"}, {ID: "clean"}, {ID: "ram"}, {ID: "bell"}, {ID: "ads"}, {ID: "net"}, {ID: "batt"}}
+		return []Categoria{{ID: "start", Chiedi: true}, {ID: "win"}, {ID: "clean"}, {ID: "ram"}, {ID: "ads"}, {ID: "net"}, {ID: "batt"}}
 	}
 	return []Categoria{{ID: "cpu"}, {ID: "ram"}, {ID: "gpu"}, {ID: "net"}, {ID: "win"}, {ID: "ads"}, {ID: "start", Chiedi: true}, {ID: "mouse"}, {ID: "pow"}}
 }
 
-// Trova: la modifica con questo id (di Gaming o di Ufficio: alcune sono le stesse).
+// Ritirate: modifiche che Ottimizza tutto non fa più. Chi le aveva già fatte le rimette com'erano
+// (dall'elenco "Cosa ho cambiato", da "Rimetti com'era tutto" e togliendo Tasso).
+func Ritirate() []Modifica {
+	return []Modifica{
+		{ID: "suoni", Categoria: "bell", Utente: true, Ritirata: true, G: nuoviSuoni()},
+	}
+}
+
+// Trova: la modifica con questo id (di Gaming o di Ufficio: alcune sono le stesse; o ritirata).
 func Trova(id string) (Modifica, bool) {
 	for _, modo := range []string{ModoGioco, ModoUfficio} {
 		for _, m := range Elenco(modo) {
 			if m.ID == id {
 				return m, true
 			}
+		}
+	}
+	for _, m := range Ritirate() {
+		if m.ID == id {
+			return m, true
 		}
 	}
 	if id == IDPrivacy {

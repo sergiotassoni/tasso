@@ -238,11 +238,11 @@ func fileLibreriaGioco(cartella string, nomi ...string) string {
 		if _, err := os.Stat(vecchio); err != nil {
 			continue
 		}
-		if os.Rename(vecchio, nuovo) != nil {
+		if rinominaDati(vecchio, nuovo) != nil {
 			return vecchio
 		}
 		dubbi := func(f string) string { return strings.TrimSuffix(f, ".json") + "-da-controllare.json" }
-		_ = os.Rename(dubbi(vecchio), dubbi(nuovo))
+		_ = rinominaDati(dubbi(vecchio), dubbi(nuovo))
 		return nuovo
 	}
 	return nuovo

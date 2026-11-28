@@ -155,6 +155,15 @@ func bloccaModello(p string) (sblocca func(), err error) {
 	if !conosciuto && dirApp != "" && dentroCartella(p, dirApp) {
 		return nil, errors.New("modello sconosciuto: per sicurezza non lo uso")
 	}
+	// R3-2: il percorso vero di TassoTraduce, preso prima di aprire il modello (vedi sotto)
+	radice := ""
+	if dirApp != "" && dentroCartella(p, dirApp) {
+		r, err := radiceVera(dirApp)
+		if err != nil {
+			return nil, errors.New("la cartella dei modelli porta a un'altra cartella (collegamento o giunzione) o non si può controllare: per sicurezza non uso il modello")
+		}
+		radice = r
+	}
 	u, err := windows.UTF16PtrFromString(p)
 	if err != nil {
 		return nil, err
@@ -175,6 +184,20 @@ func bloccaModello(p string) (sblocca func(), err error) {
 	var info windows.ByHandleFileInformation
 	if windows.GetFileInformationByHandle(h, &info) != nil || info.FileAttributes&(windows.FILE_ATTRIBUTE_REPARSE_POINT|windows.FILE_ATTRIBUTE_DIRECTORY) != 0 {
 		return nil, errors.New("il modello non è un file normale: per sicurezza non lo uso")
+	}
+	// R3-2: il server riapre il modello per nome. Con il modello aperto qui (senza condivisione per
+	// rinominare o cancellare), Windows non lascia rinominare né togliere le cartelle vere che lo
+	// contengono; una giunzione invece si toglie e si rifà verso un'altra cartella. Quindi, adesso
+	// che il file è aperto: da TassoTraduce in giù nessun pezzo del percorso è un collegamento o una
+	// giunzione, e il percorso vero del file aperto è proprio quello che passo al server.
+	if radice != "" {
+		if percorsoDatiSicuro(p) != nil {
+			return nil, errors.New("la cartella dei modelli porta a un'altra cartella (collegamento o giunzione) o non si può controllare: per sicurezza non uso il modello")
+		}
+		rel, e := filepath.Rel(filepath.Clean(dirApp), filepath.Clean(p))
+		if v := finaleDiHandle(h); e != nil || v == "" || !strings.EqualFold(filepath.Clean(v), filepath.Join(radice, rel)) {
+			return nil, errors.New("la cartella dei modelli porta a un'altra cartella (collegamento o giunzione) o non si può controllare: per sicurezza non uso il modello")
+		}
 	}
 	if conosciuto {
 		dim := int64(info.FileSizeHigh)<<32 | int64(info.FileSizeLow)

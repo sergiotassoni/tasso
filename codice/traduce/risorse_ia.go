@@ -153,7 +153,7 @@ func pulisciRiserveIA() {
 		if vecchio.Nome == "" || vecchio.Nome == nuovo.Nome || !presente(dirIA(), nuovo) {
 			continue
 		}
-		_ = os.Remove(filepath.Join(dirIA(), vecchio.Nome))
+		_ = rimuoviDati(filepath.Join(dirIA(), vecchio.Nome))
 	}
 }
 
@@ -164,7 +164,7 @@ func estraiMotore(zipPath, dest string) error {
 		return err
 	}
 	defer zr.Close()
-	if err := os.MkdirAll(dest, 0o755); err != nil {
+	if err := creaCartellaDati(dest); err != nil { // R3-1
 		return err
 	}
 	trovato := false
@@ -194,13 +194,21 @@ func copiaDaZip(f *zip.File, dest string) error {
 		return err
 	}
 	defer rc.Close()
-	out, err := os.Create(dest)
+	// R3-1: file nuovo con un nome a caso, poi al suo posto (niente collegamenti seguiti)
+	out, err := creaFileDati(dest)
 	if err != nil {
 		return err
 	}
+	tmp := out.Name()
 	_, err = io.Copy(out, io.LimitReader(rc, 1<<30))
 	if cerr := out.Close(); err == nil {
 		err = cerr
+	}
+	if err == nil {
+		err = rinominaDati(tmp, dest)
+	}
+	if err != nil {
+		_ = os.Remove(tmp)
 	}
 	return err
 }

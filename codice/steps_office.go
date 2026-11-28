@@ -619,9 +619,22 @@ Say 'Fatto. I promemoria di appuntamenti futuri ricompaiono all''ora giusta.'
 `)},
 
 	// ---------- Teams e riunioni ----------
-	{ID: "of_teams", Name: "Teams lento, bianco o non si apre", Desc: "Chiude Teams e svuota la sua cache, la soluzione ufficiale di Microsoft. Chat, file e riunioni restano (sono online). Se sei in riunione, prima esci: Teams si chiude.", Level: 0, Minutes: 0.4, Timeout: 4 * time.Minute, Script: ofs(`
+	{ID: "of_teams", Name: "Teams lento, bianco o non si apre", Desc: "Chiude Teams e svuota la sua cache, la soluzione ufficiale di Microsoft. Chat, file e riunioni restano (sono online). Se sei in una chiamata non lo chiude: te lo dice e aspetta.", Level: 0, Minutes: 0.4, Timeout: 4 * time.Minute, Script: ofs(`
 $p = @(Get-Process -Name 'ms-teams', 'Teams', 'msteams', 'MSTeams' -ErrorAction SilentlyContinue)
-if ($p.Count) { Say 'Chiudo Teams...'; $p | Stop-Process -Force -ErrorAction SilentlyContinue; Start-Sleep -Seconds 3 }
+# RECENSIONE-2, 7: in chiamata Teams non si chiude (la chiamata si perderebbe). Teams usa il microfono
+# adesso se la sua voce in Privacy > Microfono è iniziata dopo l'accensione e non è finita (come micInUso).
+if ($p.Count) {
+  $boot = [long]0; try { $boot = (Get-CimInstance Win32_OperatingSystem -ErrorAction Stop).LastBootUpTime.ToFileTime() } catch {}
+  $mb = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\microphone'
+  $inCall = $false
+  foreach ($k in @(Get-ChildItem -LiteralPath $mb -ErrorAction SilentlyContinue) + @(Get-ChildItem -LiteralPath ($mb + '\NonPackaged') -ErrorAction SilentlyContinue)) {
+    if ([string]$k.PSChildName -notmatch 'teams') { continue }
+    $q = Get-ItemProperty -LiteralPath $k.PSPath -ErrorAction SilentlyContinue
+    if ($q -and [long]$q.LastUsedTimeStart -gt 0 -and [long]$q.LastUsedTimeStop -eq 0 -and [long]$q.LastUsedTimeStart -ge $boot) { $inCall = $true }
+  }
+  if ($inCall) { Say 'Teams sta usando il microfono: sembra che tu sia in una chiamata, e chiudendolo la perderesti. Non lo chiudo: finisci la chiamata e premi di nuovo. Se non sei in chiamata, esci tu da Teams (tasto destro sulla sua icona vicino all''orologio > Esci) e premi di nuovo.'; return }
+  Say 'Chiudo Teams...'; $p | Stop-Process -Force -ErrorAction SilentlyContinue; Start-Sleep -Seconds 3
+}
 $f = [long]0; $any = $false
 # "Svuotata" solo se ho liberato qualcosa o se la cartella adesso è vuota: Clear-Folder può rifiutare
 # (per esempio AppData su una cartella di rete, o una giunzione), e allora lo dico.

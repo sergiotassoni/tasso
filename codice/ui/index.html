@@ -1060,7 +1060,7 @@ body.office .cardmodo{font-weight:700;font-stretch:normal;letter-spacing:-.02em;
 
 <section class="view" id="v-clean">
   <div id="cleanIdle" style="display:flex;flex-direction:column;gap:22px">
-    <div><h1 style="font-size:26px">Pulizia</h1><p class="sub">Scegli quanto a fondo pulire. Dalla Media in su viene fatto prima un backup automatico.</p></div>
+    <div><h1 style="font-size:26px">Pulizia</h1><p class="sub">Scegli quanto a fondo pulire. Dalla Media in su Tasso crea prima un punto di ripristino di Windows (non è una copia dei tuoi documenti).</p></div>
     <div class="banner" id="offBanner" style="background:color-mix(in srgb,var(--a4) 12%,var(--panel));border-color:color-mix(in srgb,var(--a4) 45%,var(--line))"></div><!-- il contenuto lo scrive fineBanner -->
     <div class="grid g5" id="levelCards2"></div>
   <div class="card" style="display:flex;flex-direction:column;gap:12px;padding-top:6px" id="wkCard">
@@ -1671,7 +1671,7 @@ body.office .cardmodo{font-weight:700;font-stretch:normal;letter-spacing:-.02em;
         <div class="list" id="undoList"><div class="li"><span class="muted">Lettura…</span></div></div>
         <div id="undoExtra" style="display:flex;flex-direction:column;gap:8px"></div>
         <div class="row wrap" style="gap:8px"><button class="btn primary" id="btnRestore">Rimetti tutto com'era prima di Tasso</button><button class="btn ghost" data-undo="restorepoint">Punto di ripristino di Windows</button><button class="btn ghost" data-undo="recycle">Apri il Cestino</button><button class="btn ghost" data-undo="regfolder" id="btnRegBak" style="display:none">Backup del registro</button></div>
-        <span class="small muted">I file cancellati si recuperano dal <b>Cestino</b> (se non l'hai svuotato). Per tornare indietro con tutto Windows c'è il <b>punto di ripristino</b> che Tasso crea prima delle pulizie Media, Profonda ed Eccezionale.</span>
+        <span class="small muted">I file cancellati si recuperano dal <b>Cestino</b> (se sono ancora lì: la pulizia di Tasso toglie quello che è nel Cestino da più di 7 giorni). Per tornare indietro con tutto Windows c'è il <b>punto di ripristino</b> che Tasso crea prima delle pulizie Media, Profonda ed Eccezionale.</span>
       </div>
       <div style="padding:15px 0" class="row wrap"><button class="btn ghost" id="btnLogs">Apri la cartella dei registri</button><button class="btn ghost" id="btnQuit">Chiudi Tasso</button><button class="btn ghost" id="btnTogli" style="color:var(--red);border-color:color-mix(in srgb,var(--red) 45%,var(--line))">Togli Tasso dal PC</button></div>
     </div>
@@ -1703,7 +1703,7 @@ body.office .cardmodo{font-weight:700;font-stretch:normal;letter-spacing:-.02em;
   <div class="grid g2" id="profCards" style="max-width:860px;margin:0 auto;width:100%"></div>
   <p class="small muted" id="profNote" style="max-width:860px;margin:-4px auto 0;width:100%;text-align:center;line-height:1.5"></p>
   <div class="row wrap" style="justify-content:space-between">
-    <span class="row muted" style="gap:10px;max-width:560px"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--a2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M8.5 12l2.5 2.5 4.5-5"/></svg>Prima di ogni pulizia importante Tasso fa un backup automatico.</span>
+    <span class="row muted" style="gap:10px;max-width:560px"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--a2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M8.5 12l2.5 2.5 4.5-5"/></svg>Prima di ogni pulizia importante Tasso crea un punto di ripristino di Windows.</span>
     <button class="btn primary" id="btnWelcome" style="padding:16px 28px;font-size:16px;border-radius:16px">Continua</button>
   </div>
 </div></div>
@@ -1873,7 +1873,7 @@ const THEMES = [
   {id:'oro', name:_t('Oro'), tag:_t('Scuro · oro lucido'), g:'linear-gradient(100deg,#B8892A,#F5C542 30%,#FFF1B8 50%,#E0A526 72%,#C49A3A)', v:{bg:'#0B0906',side:'#100D08',panel:'#16120A',line:'#3A2F17',text:'#FFF7E0',muted:'#C9B27A',a1:'#F5C542',a2:'#FFE08A',a3:'#E0A526',a4:'#FFB547',ink:'#1F1500',red:'#FF6B5C'}},
   {id:'argento', name:_t('Argento'), tag:_t('Scuro · argento cromato'), g:'linear-gradient(100deg,#7D8794,#E9EEF3 32%,#FFFFFF 50%,#B9C2CC 70%,#8A949F)', v:{bg:'#0C0E11',side:'#111418',panel:'#171B20',line:'#2E343C',text:'#F2F5F8',muted:'#A3ACB8',a1:'#D7DEE6',a2:'#9FB4C8',a3:'#7FD1E8',a4:'#F0C36D',ink:'#111418',red:'#FF6B6B'}},
   {id:'ghiaccio', name:_t('Ghiaccio'), tag:_t('Chiaro · blu e verde'), v:{bg:'#F2F5FB',side:'#FFFFFF',panel:'#FFFFFF',line:'#D9E0EE',text:'#0E1525',muted:'#55627D',a1:'#2D69FC',a2:'#7C4DFF',a3:'#0B7D57',a4:'#A65208',ink:'#FFFFFF',red:'#D93025'}},
-  {id:'sabbia', name:_t('Sabbia'), tag:_t('Chiaro · terracotta'), v:{bg:'#F6F1E9',side:'#FFFBF5',panel:'#FFFFFF',line:'#E6DCCB',text:'#2A1F14',muted:'#6E5E4B',a1:'#B04A22',a2:'#2F7D6B',a3:'#3D5A99',a4:'#A86A0C',ink:'#FFFFFF',red:'#C0392B'}},
+  {id:'sabbia', name:_t('Sabbia'), tag:_t('Chiaro · terracotta'), v:{bg:'#F6F1E9',side:'#FFFBF5',panel:'#FFFFFF',line:'#E6DCCB',text:'#2A1F14',muted:'#6E5E4B',a1:'#B04A22',a2:'#2F7D6B',a3:'#3D5A99',a4:'#99600A',ink:'#FFFFFF',red:'#C0392B'}},
   {id:'ufficio', name:_t('Azzurro'), tag:_t('Chiaro · azzurro tenue'), v:{bg:'#E7EFF9',side:'#F2F7FD',panel:'#F2F7FD',line:'#D0DDEE',text:'#1E293B',muted:'#5A6B84',a1:'#2963D7',a2:'#6A4CD6',a3:'#0A7953',a4:'#975A00',ink:'#FFFFFF',red:'#C23049'}},
   {id:'carta', name:_t('Carta'), tag:_t('Chiaro · caldo e riposante'), v:{bg:'#F1ECE3',side:'#F8F4EE',panel:'#F8F4EE',line:'#DDD4C5',text:'#2B2620',muted:'#71685D',a1:'#387364',a2:'#99553D',a3:'#4767A6',a4:'#8E600A',ink:'#FFFFFF',red:'#C0392B'}},
   {id:'notte', name:_t('Notte'), tag:_t('Scuro · morbido per gli occhi'), v:{bg:'#161A21',side:'#1A1F27',panel:'#1F252E',line:'#2D3440',text:'#E6EAF0',muted:'#98A2B3',a1:'#7AA7F7',a2:'#A9B4F8',a3:'#5FC3A7',a4:'#E9BE6B',ink:'#0D1524',red:'#EE7B7B'}},
@@ -2022,7 +2022,7 @@ document.addEventListener('click', (e) => {
 const LEVELS = [
   {n:1, name:_t('Classica'), c:'var(--text)', badge:_t('LAMPO'), d:_t('Un minuto: i tuoi file temporanei, il Cestino e le miniature.')},
   {n:2, name:_t('Normale'), c:'var(--a1t)', badge:_t('VELOCE'), d:_t('Passata veloce: temporanei anche di Windows, browser, DNS.')},
-  {n:3, name:_t('Media'), c:'var(--a3)', badge:_t('CONSIGLIATA'), d:_t('Prima un backup, poi file di sistema inutili, cache di app e launcher, resti dei driver.'), dOf:_t('Prima un backup, poi file di sistema inutili, cache delle app, resti dei driver.')},
+  {n:3, name:_t('Media'), c:'var(--a3)', badge:_t('CONSIGLIATA'), d:_t('Prima un punto di ripristino, poi file di sistema inutili, cache di app e launcher, resti dei driver.'), dOf:_t('Prima un punto di ripristino, poi file di sistema inutili, cache delle app, resti dei driver.')},
   {n:4, name:_t('Profonda'), c:'var(--a4)', badge:_t('MENSILE'), d:_t('Driver, Windows Update, driver video vecchi, sicurezza, deframmentazione, dischi, antivirus.')},
   {n:5, name:_t('Eccezionale'), c:'var(--a2)', badge:_t('COMPLETA'), d:_t('Ripara Windows, stabilità (crash ed errori hardware), ogni programma, il disco e le periferiche.')}
 ];
@@ -2271,7 +2271,7 @@ function confirmLevel(n){
   const list = levelSteps(n).map(s => '<li>' + esc(s.name) + '</li>').join('');
   // I browser contano solo se questa pulizia ha la loro cache (la Classica no).
   let note = levelSteps(n).some(s => s.id === 'browser') ? _t('Salva il tuo lavoro e chiudi i browser prima di iniziare (i programmi aperti vengono saltati).') : _t('Salva il tuo lavoro prima di iniziare (i programmi aperti vengono saltati).');
-  if (n >= 3) note += _t(' Prima di tutto viene creato un backup automatico.');
+  if (n >= 3) note += _t(' Prima di tutto viene creato un punto di ripristino di Windows (non è una copia dei tuoi documenti).');
   if (n >= 4) note += _t(' Questa pulizia aggiorna driver e Windows: alla fine potrebbe servire un riavvio.');
   // 3.1.1: l'anteprima conta come la pulizia. A parte (AN.wuBusy, AN.browserOpen) quello che questa
   // pulizia lascia per forza adesso: lo dico qui, così il numero alla fine non sembra un errore.
@@ -3304,7 +3304,7 @@ const INDEX = [
   {t:_t('File'), c:'var(--a2)', i:[_t('<b>File doppi</b>, <b>file enormi</b>, <b>cartelle vuote</b>, <b>collegamenti rotti</b>: sempre con conferma e nel Cestino'),_t('<b>Riordino della cartella Download</b> per tipo di file'),_t('<b>Distruggi file</b> riservati (anche più file insieme) e <b>cancella lo spazio libero</b>'),_t('<b>Recupera file cancellati</b> con lo strumento di Microsoft')]},
   {t:_t('Riparazione e sicurezza'), c:'var(--red)', i:[_t('<b>Backup automatico</b> (punto di ripristino) prima delle pulizie importanti'),_t('<b>Risolvi problemi</b> di audio, internet, Windows Update, stampante, Store e ricerca'),_t('<b>Problemi nei giochi</b> (con un pulsante): scatti, pochi FPS, ping alto, il gioco non parte (Visual C++, DirectX), launcher, schermo nero, controller e cuffie, Xbox e Game Pass, anti-cheat, Discord, mira del mouse, gioco che si riduce a icona, download lenti'),_t('<b>Driver di tutto il PC</b>: scheda video AMD, NVIDIA, Intel, audio, mouse, tastiera, rete; Windows Update e siti ufficiali'),_t('<b>Riparazione di Windows</b> (DISM + SFC) e <b>controllo errori del disco</b>'),_t('<b>Controllo periferiche</b>, <b>salute dei dischi</b>, <b>antivirus</b> Defender'),_t('<b>Controllo sicurezza</b> (firewall, Secure Boot, TPM, SMBv1…) e <b>controllo stabilità</b> (crash, schermate blu, errori hardware)'),_t('<b>Privacy</b>: stop a pubblicità e tracciamento di Windows, con ripristino, e <b>tracce di attività</b>')]},
   {t:_t('Problemi di tutti i giorni'), gm:1, c:'var(--a4)', i:[_t('<b>Problemi di tutti i giorni</b> in Risolvi un problema, ognuno con un pulsante: Wi-Fi che si stacca, file zip, programma bloccato, secondo schermo, tastiera e touchpad, Win + V, batteria, ora sbagliata'),_t('<b>Prova microfono e cuffie</b> e <b>Chi usa webcam e microfono</b>')]},
-  {t:'Giochi', c:'var(--a2)', i:[_t('<b>Libreria</b> Steam, Epic e Riot con copertine'),_t('<b>Regola con Tasso</b>: grafica consigliata per ogni gioco in base al tipo di gioco e al tuo PC'),_t('<b>Comandi gaming</b>: registrazione in background spenta, pianificazione GPU, giochi in finestra, memoria in standby, riavvio del driver video'),_t('<b>Ottimizza prima di giocare</b>, <b>pannellino in gioco</b>, <b>autoclick</b>'),_t('<b>Profilo gioco</b> con un interruttore: resta acceso anche dopo il riavvio finché non lo spegni'),_t('<b>Potenza per ogni gioco</b>: Potenza alta o Massima potenza, messa da sola quando apri il gioco'),_t('<b>Ping ai server dei giochi</b> (LoL, Valorant, CS2, Fortnite…) per scegliere il server migliore'),_t('<b>Problemi nei giochi</b>: in Risolvi un problema, ') + (Object.keys(STEP).filter(k => k.indexOf('fix_game_') === 0).length || 26) + _t(' riparazioni con un pulsante spiegate semplici')]},
+  {t:'Giochi', c:'var(--a2)', i:[_t('<b>Libreria</b> Steam, Epic e Riot con copertine'),_t('<b>Impostazioni consigliate</b> (pagina del gioco → Prestazioni): grafica consigliata per ogni gioco in base al tipo di gioco e al tuo PC'),_t('<b>Comandi gaming</b>: registrazione in background spenta, pianificazione GPU, giochi in finestra, memoria in standby, riavvio del driver video'),_t('<b>Ottimizza prima di giocare</b>, <b>pannellino in gioco</b>, <b>autoclick</b>'),_t('<b>Profilo gioco</b> con un interruttore: resta acceso anche dopo il riavvio finché non lo spegni'),_t('<b>Potenza per ogni gioco</b>: Potenza alta o Massima potenza, messa da sola quando apri il gioco'),_t('<b>Ping ai server dei giochi</b> (LoL, Valorant, CS2, Fortnite…) per scegliere il server migliore'),_t('<b>Problemi nei giochi</b>: in Risolvi un problema, ') + (Object.keys(STEP).filter(k => k.indexOf('fix_game_') === 0).length || 26) + _t(' riparazioni con un pulsante spiegate semplici')]},
   {t:'Portachiavi e Discord', c:'var(--a1)', i:[_t('<b>Portachiavi</b> con PIN da 4 a 12 numeri o senza PIN: cifrato sul PC, generatore di password, password deboli o usate più volte'),_t('<b>Controllo password rubate</b> senza mandare la password'),_t('<b>Stato del PC su Discord</b>: report con spunte verdi e temperature, ogni 3/6/12/24 ore'),_t('<b>Report su richiesta</b> scrivendo !stato (con un bot tuo, facoltativo)')]},
   {t:_t('Hardware e comodità'), c:'var(--a3)', i:[_t('<b>Componenti</b>: processore, scheda video, scheda madre, RAM, dischi'),_t('<b>Sensori</b>: uso di processore e RAM, scheda video, temperatura dei dischi'),_t('<b>BIOS</b>: versione e pagina ufficiale del produttore'),_t('<b>Temi</b> chiari e scuri, <b>avvisi intelligenti</b>, <b>avvio con Windows</b>'),_t('<b>Interruttore Tasso acceso/spento</b>: da spento non fa nulla in automatico'),_t('<b>Torna indietro</b>: l\'elenco di tutto quello che Tasso ha cambiato, con un pulsante per rimettere com\'era ogni cosa o tutto insieme. Spegnere o riavviare il PC non cambia niente: torna indietro solo quando lo decidi tu')]},
   // F14-16: le novità della 3.2 (come in INDICE.txt), in Gaming e in Ufficio
@@ -3411,7 +3411,7 @@ function wkQuando(){ const p = wkPlan(), ora = String(p.h).padStart(2, '0') + ':
 function paintWeekly(){
   const p = wkPlan();
   // Gli stessi tempi delle schede dei livelli (calcolati dai passaggi), non numeri scritti a mano.
-  $$('#wkLevel option').forEach(o => { const n = +o.value, L = LEVELS[n - 1]; if (L) o.textContent = L.name + ' (' + (n === 3 ? _t('con backup') + ', ' : '') + '~' + fmtMin(levelMinutes(n)) + ')'; });
+  $$('#wkLevel option').forEach(o => { const n = +o.value, L = LEVELS[n - 1]; if (L) o.textContent = L.name + ' (' + (n === 3 ? _t('con punto di ripristino') + ', ' : '') + '~' + fmtMin(levelMinutes(n)) + ')'; });
   if (!$('#wkHour').options.length) { for (let h = 1; h <= 23; h++) $('#wkHour').appendChild(el('option', {value:String(h)}, String(h).padStart(2, '0') + ':00')); }
   $('#wkDay').value = String(p.d); $('#wkHour').value = String(p.h); $('#wkLevel').value = String(p.l); $('#wkEvery').value = String(p.e);
   $('#wkDesc').textContent = S.weekly ? wkText() + _t(', senza aprire Tasso.') : _t('Spenta. Accendila e scegli quando: Tasso pulisce da solo, senza che tu debba aprirlo.');
@@ -3734,7 +3734,7 @@ const OTT_INFO = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" st
 // Le categorie a sinistra e le modifiche (stessi id di ottimizza/elenco.go), con una frase semplice.
 const OTT_CATS = {
   gioco: [['cpu', _t('Processore'), '#C084FC'], ['ram', _t('Memoria'), '#22D3EE'], ['gpu', _t('Scheda video'), '#FF8A3D'], ['net', _t('Rete'), '#38BDF8'], ['win', 'Windows', '#4DA3FF'], ['ads', _t('Consigli e pubblicità'), '#FB7185'], ['start', _t('Programmi all\'avvio'), '#FFE14D'], ['mouse', _t('Mouse e tastiera'), '#F472B6'], ['pow', _t('Energia'), '#2FF3A6']],
-  ufficio: [['start', _t('Programmi all\'avvio'), '#FFB020'], ['win', 'Windows', '#4DA3FF'], ['clean', _t('File inutili'), '#2FF3A6'], ['ram', _t('Riapertura delle app'), '#22D3EE', 'reopen'], ['bell', _t('Notifiche'), '#F472B6'], ['ads', _t('Consigli e pubblicità'), '#FB7185'], ['net', _t('Aggiornamenti'), '#38BDF8', 'upd'], ['batt', _t('Batteria'), '#A3E635']]
+  ufficio: [['start', _t('Programmi all\'avvio'), '#FFB020'], ['win', 'Windows', '#4DA3FF'], ['clean', _t('File inutili'), '#2FF3A6'], ['ram', _t('Riapertura delle app'), '#22D3EE', 'reopen'], ['ads', _t('Consigli e pubblicità'), '#FB7185'], ['net', _t('Aggiornamenti'), '#38BDF8', 'upd'], ['batt', _t('Batteria'), '#A3E635']]
 };
 const OTT_MOD = {
   gioco: [
@@ -3766,7 +3766,6 @@ const OTT_MOD = {
     ['pulizia_temp', 'clean', _t('File temporanei di Windows tolti'), _t('Con la pulizia di Tasso: solo file che Windows non usa più.')],
     ['pulizia_resti', 'clean', _t('Resti di aggiornamenti e programmi tolti'), _t('Più spazio libero sul disco, niente dei tuoi documenti.')],
     ['riapertura', 'ram', _t('Niente riapertura automatica delle app'), _t('All\'accensione Windows non riapre da solo le app di ieri.')],
-    ['suoni', 'bell', _t('Notifiche senza suono'), _t('Le notifiche arrivano in silenzio e le leggi quando vuoi.')],
     ['consigli', 'ads', _t('Consigli e pubblicità di Windows spenti'), _t('Niente consigli, suggerimenti e app proposte in Impostazioni, nella schermata di blocco e dopo gli aggiornamenti.')],
     ['feedback', 'ads', _t('Niente richieste di feedback'), _t('Windows non ti chiede più di dare un voto o un parere. I dati per la sicurezza non cambiano.')],
     ['esplora', 'ads', _t('Niente pubblicità in Esplora file'), _t('Niente avvisi con offerte (per esempio di OneDrive o Microsoft 365). OneDrive funziona come prima.')],
@@ -3777,6 +3776,9 @@ const OTT_MOD = {
     ['batt_schermo', 'batt', _t('Lo schermo si spegne prima quando sei a batteria'), _t('Solo sui portatili: a batteria lo schermo si spegne dopo 5 minuti senza usarlo.')]
   ]
 };
+// Ritirate (RECENSIONE-2, 2): Ottimizza tutto non le fa più; si vedono solo se sono ancora cambiate, per rimetterle.
+const OTT_RIT = [['suoni', 'bell', _t('Notifiche senza suono'), _t('Le notifiche arrivano in silenzio e le leggi quando vuoi.')]];
+const ottRitAttive = () => OTT_RIT.filter(x => { const s = (ottVoce(x[0]) || {}).stato; return s === 'fatta' || s === 'incorso'; });
 let OTT = {info: null, fase: '', modo: '', mis: null, cat: '', passi: {}, avvio: null, fatti: 0, totale: 0, vista: '', ferma: false};
 const ottModo = () => OTT.modo || (isOffice() ? 'ufficio' : 'gioco');
 // Nomi dei componenti senza le sigle che non dicono niente: (R), (TM), "12th Gen", "6-Core Processor".
@@ -3835,7 +3837,7 @@ function ottInizio(){
   ottView(ottHead(0, ottPill()) +
     '<div class="opt-body"><div><h1 class="opt-title" tabindex="-1">' + (off ? _t('Un PC più svelto per lavorare') : _t('Rendi il PC più veloce nei giochi')) + '</h1>' +
     '<p class="opt-sub">' + (off ? _t('Un pulsante solo: Tasso misura il PC, sistema Windows per lavorare e ti mostra la differenza.') : _t('Un pulsante solo: Tasso misura il PC, sistema Windows per giocare e ti mostra la differenza.')) + ' ' +
-    (off ? _t('Ogni impostazione cambiata si rimette com\'era con un interruttore; i file inutili tolti dalla pulizia no.') + ' ' + _t('L\'antivirus non si tocca. Gli aggiornamenti non si spengono mai: Tasso evita i riavvii mentre lavori e non li condivide con altri PC.') : _t('Ogni cosa che cambia si rimette com\'era con un interruttore.') + ' ' + _t('L\'antivirus non si tocca. Gli aggiornamenti non si spengono mai: Tasso evita i riavvii mentre giochi e non li condivide con altri PC.')) + '</p></div>' +
+    (off ? _t('Ogni impostazione cambiata si rimette com\'era con un interruttore; i file inutili tolti dalla pulizia no.') + ' ' + _t('L\'antivirus non si tocca. Gli aggiornamenti non si spengono mai: Tasso evita solo i riavvii mentre lavori e non manda gli aggiornamenti ad altri PC.') : _t('Ogni cosa che cambia si rimette com\'era con un interruttore.') + ' ' + _t('L\'antivirus non si tocca. Gli aggiornamenti non si spengono mai: Tasso evita solo i riavvii mentre giochi e non manda gli aggiornamenti ad altri PC.')) + '</p></div>' +
     '<div class="opt-foot"><div class="opt-hints">' + OTT_INFO + '<span>' + (off ? _t('Salva il lavoro aperto: Tasso apre e chiude Esplora file, Blocco note e il browser (con una sua pagina vuota, che resta nella cronologia).') : _t('Chiudi i giochi e il browser: la misura viene più giusta.')) + '</span></div>' +
     '<button class="' + (off ? 'btn primary' : 'gbig') + '" id="ottGo">' + (off ? _t('Ottimizza tutto') : _t('OTTIMIZZA TUTTO')) + '</button></div></div>');
   $('#ottGo').onclick = ottInizia;
@@ -3964,8 +3966,8 @@ function ottRis(){
 }
 // 5: Rimetti com'era, un interruttore per ogni modifica
 function ottElenco(){
-  const modo = ottModo(), cats = OTT_CATS[modo], mods = OTT_MOD[modo];
-  const nCat = {}; cats.forEach(c => { nCat[c[0]] = c[1]; });
+  const modo = ottModo(), cats = OTT_CATS[modo], mods = modo === 'ufficio' ? OTT_MOD.ufficio.concat(ottRitAttive()) : OTT_MOD[modo];
+  const nCat = {bell: _t('Notifiche')}; cats.forEach(c => { nCat[c[0]] = c[1]; });
   let prev = '';
   const rows = mods.map(x => {
     const v = ottVoce(x[0]), st = v ? v.stato : '';
@@ -3985,7 +3987,7 @@ function ottElenco(){
   // D1: le modifiche fatte nell'altra modalità (Gaming o Ufficio) si vedono anche qui, perché
   // "Rimetti com'era tutto" rimette anche quelle.
   const altro = modo === 'ufficio' ? 'gioco' : 'ufficio', mieId = mods.map(x => x[0]);
-  const altre = OTT_MOD[altro].filter(x => mieId.indexOf(x[0]) < 0 && (ottVoce(x[0]) || {}).stato === 'fatta' || mieId.indexOf(x[0]) < 0 && (ottVoce(x[0]) || {}).stato === 'incorso');
+  const altre = (altro === 'ufficio' ? OTT_MOD.ufficio.concat(OTT_RIT) : OTT_MOD[altro]).filter(x => mieId.indexOf(x[0]) < 0 && (ottVoce(x[0]) || {}).stato === 'fatta' || mieId.indexOf(x[0]) < 0 && (ottVoce(x[0]) || {}).stato === 'incorso');
   const rowsAltre = altre.length ? '<div class="opt-row"><span class="c">' + (altro === 'gioco' ? _t('Cambiate in Gaming') : _t('Cambiate in Ufficio')) + '</span></div>' + altre.map(x => {
     const v = ottVoce(x[0]);
     return '<div class="opt-row"><span class="c"></span><div class="x"><b>' + x[2] + '</b><span>' + x[3] + '</span>' + (v.blocco ? '<em>' + esc(v.blocco) + '</em>' : '') + '</div><span class="s">' + (v.riavvio ? _t('Cambiato · al riavvio') : _t('Cambiato')) + '</span><button class="sw on" data-ott="' + x[0] + '" data-on="1" aria-label="' + esc(_t('Rimetti com\'era') + ': ' + x[2]) + '"><i></i></button></div>';
@@ -4028,7 +4030,7 @@ Object.assign(window.tasso, {
     if (p.tutto && p.ok) toast(_t('Fatto: tutto rimesso com\'era.'), 'var(--a1)');
     else if (p.tutto) {
       // F04-2: quali restano e il motivo vero (con una modalità di Tasso accesa: torna a Normale), mai "riprova" a vuoto
-      const es = p.esiti || [], rest = es.filter(e => e.stato === 'errore'), titolo = (id) => { const t = [...OTT_MOD.gioco, ...OTT_MOD.ufficio].find(x => x[0] === id); return t ? t[2] : ''; };
+      const es = p.esiti || [], rest = es.filter(e => e.stato === 'errore'), titolo = (id) => { const t = [...OTT_MOD.gioco, ...OTT_MOD.ufficio, ...OTT_RIT].find(x => x[0] === id); return t ? t[2] : ''; };
       const nomi = [...new Set(rest.map(e => titolo(e.id)).filter(Boolean))], motivi = [...new Set(rest.map(e => e.motivo).filter(Boolean))], tornate = es.filter(e => e.id && e.stato !== 'errore').length;
       if (!nomi.length) toast(motivi[0] || _t('Non sono riuscito a rimettere tutto: riprova tra poco.'), 'var(--a4)');
       else modal('<h2>' + _t('Non ho rimesso tutto com\'era') + '</h2>' + (tornate ? '<p class="muted" style="margin:0">' + _t('Il resto è tornato com\'era.') + '</p>' : '') + '<p style="margin:0">' + _t('Queste restano come sono:') + '</p><ul style="margin:0;padding-left:20px;line-height:1.6">' + nomi.map(n => '<li>' + n + '</li>').join('') + '</ul>' + motivi.map(m => '<p class="muted" style="margin:0">' + esc(m) + '</p>').join(''), [{label: _t('Ho capito'), cls: 'primary'}]);
@@ -4489,7 +4491,7 @@ const OFF_ART = '<svg width="112" height="112" viewBox="0 0 200 200" aria-hidden
 
 /* ---------- 2.6: modalità Gaming / Ufficio e i 100 problemi dell'ufficio ---------- */
 const OFFICE = [
-  {k:'new', t:_t('Novità'), e:'✨', c:'var(--a1)', ids:[['of_new_call','🎥'],['of_new_meeting','🤫'],['of_new_camlog','👁️'],['of_new_lock','🔒']]},
+  {k:'new', t:_t('Novità'), e:'✨', c:'var(--a1)', ids:[['of_new_call','🎙️'],['of_new_meeting','🤫'],['of_new_camlog','👁️'],['of_new_lock','🔒']]},
   {t:_t('Stampa e scanner'), e:'🖨️', c:'var(--a3)', ids:[['of_print_offline','🖨️'],['of_print_default','📌'],['of_print_pdf','📄'],['of_print_find','🔎'],['of_print_usb','🔌'],['of_scan','📠']]},
   {t:_t('Word, Excel, Office e Adobe'), e:'📝', c:'var(--a1)', ids:[['of_office_repair','🛠️'],['of_office_update','⬆️'],['of_office_lost','🛟'],['of_office_crash','💥'],['of_office_login','🔑'],['of_office_addins','🧩'],['of_office_gpu','🌫️'],['of_office_cache','☁️'],['of_office_protected','🟨'],['of_excel_locked','🔒'],['of_regional','📅'],['of_adobe','📕']]},
   {t:_t('Outlook e posta'), gno:1, e:'📧', c:'var(--a2)', ids:[['of_outlook_open','📬'],['of_outlook_search','🔍'],['of_outlook_mail','✉️'],['of_outlook_size','📦'],['of_outlook_pwd','🔒'],['of_outlook_attach','📎'],['of_outlook_reminders','⏰'],['of_outlook_ost','🔄'],['of_outlook_classic','↩️'],['of_links','🔗'],['of_mailto','📨']]},
@@ -6289,7 +6291,7 @@ let TUNE = null, TUNE_P = '';
 const PRESETS = [['auto',_t('Automatico')], ['competitivo',_t('Competitivo')], ['prestazionale',_t('Bilanciato')], ['grafico',_t('Qualità')]];
 function openTune(g){
   TUNE = null;
-  modal(_t('<h2>Regola con Tasso</h2><div class="row" style="gap:10px"><svg class="spin" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--a1)" stroke-width="2.6" stroke-linecap="round"><path d="M21 12a9 9 0 1 1-9-9"/></svg><span class="muted" id="tuneWait">Guardo ') + esc(g.name) + _t(' e il tuo PC…</span></div>'), [{label:_t('Chiudi')}]);
+  modal(_t('<h2>Impostazioni consigliate</h2><div class="row" style="gap:10px"><svg class="spin" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--a1)" stroke-width="2.6" stroke-linecap="round"><path d="M21 12a9 9 0 1 1-9-9"/></svg><span class="muted" id="tuneWait">Guardo ') + esc(g.name) + _t(' e il tuo PC…</span></div>'), [{label:_t('Chiudi')}]);
   TUNE_REQ = g.id;
   call('goGameTune', g.id).then(r => { if (r === 'busy') toast(_t('Un attimo, sto finendo la regolazione precedente.'), 'var(--a4)'); });
 }
@@ -6318,7 +6320,7 @@ function paintTune(){
   const cur = t.current && t.current.preset === p ? t.current.opts : rec.opts;
   const kv = (rows) => '<div class="kv" style="grid-template-columns:minmax(150px,40%) minmax(0,1fr)">' + rows.map(r => '<span>' + esc(r[0]) + '</span><span>' + esc(r[1]) + '</span>').join('') + '</div>';
   const vend = t.vendor === 'amd' ? 'AMD Software' : t.vendor === 'nvidia' ? 'NVIDIA App' : _t('pannello della scheda video');
-  modal(_t('<h2>Regola con Tasso · ') + esc(t.name) + '</h2>' +
+  modal(_t('<h2>Impostazioni consigliate · ') + esc(t.name) + '</h2>' +
     _t('<div class="note">🎯 <b>Tipo di gioco:</b> ') + esc(t.kindLabel) + (t.kindWhy ? ' <span class="muted">(' + esc(t.kindWhy) + ')</span>' : '') + _t('<br>🖥️ <b>Il tuo PC:</b> fascia ') + esc([_t('base'), _t('media'), _t('alta'), _t('top')][t.tier] || t.tierLabel) + ' <span class="muted">(' + esc(t.tierWhy) + ')</span>' + (t.hz ? '<br>🖵 <b>Monitor:</b> ' + t.hz + ' Hz' : '') + (t.current ? _t('<br>✓ <span style="color:var(--a1t)">Regolato da Tasso il ') + esc(t.current.applied) + '</span>' : '') + '</div>' +
     '<div class="row wrap" style="gap:6px" id="tuneChips">' + PRESETS.map(x => '<button class="chip' + (TUNE_P === x[0] ? ' on' : '') + '" data-p="' + x[0] + '">' + x[1] + (x[0] === 'auto' ? ' (' + ({competitivo:_t('Competitivo'), prestazionale:_t('Bilanciato'), grafico:_t('Qualità')})[t.kind] + ')' : '') + '</button>').join('') + '</div>' +
     '<h3 style="margin-top:4px">' + esc(rec.label) + '</h3>' +
@@ -6600,7 +6602,7 @@ function nomeErrore(e){
   switch (e.codice) {
     case 'corto': return _t('Scrivi almeno 2 lettere.');
     case 'lungo': return _t('Al massimo 20 caratteri: prova ad accorciarlo.');
-    case 'simbolo': return _t('Il simbolo {0} non si può usare. Vanno bene lettere, numeri, spazio, punto, - e _.').replace('{0}', e.simbolo || '');
+    case 'simbolo': return _t("Il simbolo {0} non si può usare. Vanno bene lettere, numeri, spazio, punto, ', - e _.").replace('{0}', e.simbolo || '');
     case 'invisibile': return _t('C\'è un carattere che non si vede: cancellalo e riscrivi il nome.');
     case 'senza': return _t('Aggiungi almeno una lettera o un numero.');
     case 'accenti': return _t('Gli accenti vanno sopra una lettera, al massimo 3.');

@@ -78,7 +78,7 @@ func scaricaVoci() {
 		emetti("erroreScarica", map[string]string{"cosa": "voci", "errore": erroreScaricaPerUtente("voci", err)})
 		return
 	}
-	_ = os.Remove(filepath.Join(dirVoci(), risorseVoci.Motore.Nome))
+	_ = rimuoviDati(filepath.Join(dirVoci(), risorseVoci.Motore.Nome))
 	emetti("scaricato", map[string]string{"cosa": "voci"})
 	emetti("aggiorna", stato())
 }
@@ -90,7 +90,7 @@ func estraiWhisper(zipPath, dest string) error {
 		return err
 	}
 	defer zr.Close()
-	if err := os.MkdirAll(dest, 0o755); err != nil {
+	if err := creaCartellaDati(dest); err != nil { // R3-1
 		return err
 	}
 	trovato := false
@@ -111,7 +111,7 @@ func estraiWhisper(zipPath, dest string) error {
 	if !trovato {
 		return errors.New("nello zip manca il riconoscimento della voce di Tasso")
 	}
-	return os.WriteFile(filepath.Join(dest, "LICENZE.txt"), []byte(licenzeVoci), 0o644)
+	return scriviDati(filepath.Join(dest, "LICENZE.txt"), []byte(licenzeVoci))
 }
 
 const licenzeVoci = `Riconoscimento delle voci di Tasso Traduce: componenti di terze parti, tutti con licenza MIT.
@@ -202,7 +202,7 @@ func (s *serverVoci) avvia() error {
 	)
 	cmd.Dir = dirAvvio
 	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true, CreationFlags: 0x08000000 | 0x00004000}
-	logf, _ := os.Create(filepath.Join(dirApp, "logs", "voci.txt"))
+	logf, _ := creaLogDati(filepath.Join(dirApp, "logs", "voci.txt"))
 	cmd.Stdout, cmd.Stderr = logf, logf
 	if err := cmd.Start(); err != nil {
 		if logf != nil {
