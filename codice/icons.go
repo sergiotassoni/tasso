@@ -340,9 +340,16 @@ func iconsFor(req map[string][]string) {
 	}
 	for key, srcs := range req {
 		got := ""
+		// copertina di un gioco senza immagine (aggiunto a mano, launcher): l'icona grande del
+		// programma (256 px), non quella da 32 px ingrandita
+		grande := strings.HasPrefix(key, "g:")
 		for _, s := range srcs {
+			ck := s
+			if grande {
+				ck = "g256|" + s
+			}
 			iconMu.Lock()
-			c, ok := iconCache[s]
+			c, ok := iconCache[ck]
 			iconMu.Unlock()
 			if !ok {
 				c = func() (r string) {
@@ -351,13 +358,18 @@ func iconsFor(req map[string][]string) {
 							r = ""
 						}
 					}()
+					if p := strings.Trim(expandEnv(s), "\""); grande && strings.HasSuffix(strings.ToLower(p), ".exe") && fileExists(p) {
+						if g := estraiIcona(p, 0, 256); g != "" {
+							return g
+						}
+					}
 					return iconFrom(s)
 				}()
 				iconMu.Lock()
 				if len(iconCache) > 3000 {
 					iconCache = map[string]string{}
 				}
-				iconCache[s] = c
+				iconCache[ck] = c
 				iconMu.Unlock()
 			}
 			if c != "" {

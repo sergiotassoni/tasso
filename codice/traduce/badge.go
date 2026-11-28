@@ -1,7 +1,8 @@
 package traduce
 
 // Avviso di stato della traduzione (variante 1 delle anteprime, in attesa della scelta del
-// proprietario): un piccolo badge in alto al centro del gioco, scuro semitrasparente con angoli
+// proprietario): un piccolo badge in un angolo in basso del gioco (28/11: in alto al centro
+// copriva il menu di Hytale; se il mouse ci passa sopra salta nell'altro angolo), scuro semitrasparente con angoli
 // arrotondati, stemma del tasso, puntino verde menta che pulsa piano mentre traduco e un testo
 // breve. Compare per 2 secondi e poi sparisce (resta, se acceso, solo un puntino minuscolo).
 // Non copre il gioco e non prende i clic (finestra trasparente ai clic, fuori dalle catture).
@@ -195,6 +196,25 @@ func puntinoBadge(scala float64) *image.RGBA {
 		}
 	}
 	return img
+}
+
+// posizioneBadge: dove va il badge largo w e alto h nella finestra del gioco. angolo 0 = in
+// basso a sinistra, 1 = in basso a destra; un po' staccato dal bordo. In alto al centro (dove
+// era prima) i giochi mettono le schede dei menu.
+func posizioneBadge(area Zona, w, h int, scala float64, angolo int) (int32, int32) {
+	m := int(18*scala + 0.5)
+	x := area.X + m
+	if angolo == 1 {
+		x = area.X + area.W - w - m
+	}
+	y := area.Y + area.H - h - m
+	if x < area.X {
+		x = area.X
+	}
+	if y < area.Y {
+		y = area.Y
+	}
+	return int32(x), int32(y)
 }
 
 // testoBadge: il testo di ogni stato.

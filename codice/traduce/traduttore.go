@@ -407,6 +407,24 @@ func pulisciFile(s string) string {
 
 func (t *Traduttore) traduciIn(ctx context.Context, grezzo string, dialogo bool, da, a string) Risultato {
 	inizio := time.Now()
+	if ctx.Value(chiaveFile{}) == nil {
+		// nomi da non tradurre (negozi, launcher, giochi della libreria, nomi utente, "15,3 GB"):
+		// si traduce solo il resto (nomi_protetti.go)
+		if r, ok := t.traduciConNomiProtetti(ctx, pulisciFile(grezzo), dialogo, da, a, inizio); ok {
+			return r
+		}
+	}
+	r := t.traduciInSenzaNomi(ctx, grezzo, dialogo, da, a, inizio)
+	if r.Tradotto != "" && ctx.Value(chiaveFile{}) == nil && ctx.Value(chiaveProtetti{}) == nil {
+		// frase lunga con un nome dentro: se il traduttore l'ha cambiato, torna com'era
+		r.Tradotto = rimettiNomiProtetti(r.Originale, r.Tradotto, nomiProtetti(), func(n string) string {
+			return t.traduciInSenzaNomi(context.WithValue(ctx, chiaveProtetti{}, true), n, false, da, a, time.Now()).Tradotto
+		})
+	}
+	return r
+}
+
+func (t *Traduttore) traduciInSenzaNomi(ctx context.Context, grezzo string, dialogo bool, da, a string, inizio time.Time) Risultato {
 	if !(da == "en" && a == "it") {
 		return t.traduciCoppia(ctx, grezzo, da, a, inizio, true)
 	}

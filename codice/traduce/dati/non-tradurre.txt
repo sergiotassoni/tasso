@@ -1,0 +1,67 @@
+# Nomi da non tradurre mai (negozi, launcher, marchi, programmi). Uno per riga, così come si
+# scrivono. Si confrontano senza maiuscole, solo come parole intere. Si aggiungono anche i nomi
+# dei giochi della libreria di Tasso e dei loro launcher (vedi nomi_protetti.go).
+Tasso
+Tasso Traduce
+Steam
+Steam Deck
+Steam Workshop
+Steam Cloud
+Epic Games
+Epic Games Store
+Epic Games Launcher
+GOG
+GOG Galaxy
+Ubisoft
+Ubisoft Connect
+Uplay
+EA app
+EA
+Battle.net
+Blizzard
+Riot Games
+Riot Client
+Xbox
+Xbox Game Pass
+Game Pass
+PC Game Pass
+Microsoft Store
+PlayStation
+PlayStation Network
+PSN
+Nintendo
+Nintendo Switch
+Discord
+Twitch
+YouTube
+Reddit
+Patreon
+Windows 10
+Windows 11
+NVIDIA
+GeForce
+GeForce Experience
+Radeon
+AMD
+DirectX
+Vulkan
+OpenGL
+DLSS
+FSR
+XeSS
+Unreal Engine
+Hytale
+Hytale Launcher
+Hypixel
+Hypixel Studios
+Minecraft
+Minecraft Launcher
+Roblox
+Fortnite
+Rockstar Games Launcher
+Rockstar Games
+Battlestate Games
+Itch.io
+Amazon Games
+Prime Gaming
+LagoFast

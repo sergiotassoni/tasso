@@ -282,6 +282,25 @@ func main() {
 		dirs, exes := libraryGamePaths()
 		return isGamePath(p, exe, dirs, exes)
 	}
+	traduce.Ospite.VociLibreria = func() []traduce.VoceLibreria { // giochi e launcher della libreria (anche aggiunti a mano)
+		libMu.Lock()
+		defer libMu.Unlock()
+		out := make([]traduce.VoceLibreria, 0, len(library))
+		for _, g := range library {
+			if g.Hidden {
+				continue
+			}
+			exe := g.exe
+			if exe != "" && notGameExe[strings.ToLower(filepath.Base(exe))] {
+				exe = "" // Steam, Epic…: il negozio non è il gioco
+			}
+			out = append(out, traduce.VoceLibreria{Nome: g.Name, Exe: exe})
+			if g.launcherName != "" && g.launcherName != g.Name {
+				out = append(out, traduce.VoceLibreria{Nome: g.launcherName, Exe: exe})
+			}
+		}
+		return out
+	}
 	traduce.InIngleseTasso = traduciTasso // es/fr/de: le scritte sopra il gioco che non sono nel dizionario restano in inglese
 	traduce.LinguaTasso = curLang
 	traduce.InUfficio.Store(officeMode())

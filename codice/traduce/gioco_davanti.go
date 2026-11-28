@@ -2,8 +2,10 @@ package traduce
 
 // Solo nei giochi: la traduzione dello schermo legge e disegna solo quando in primo piano c'è un
 // gioco. Desktop, browser (anche YouTube a schermo intero), Esplora risorse, programmi di Windows
-// e di lavoro, Discord, Tasso stesso: niente cattura, niente scritte. Eccezioni a richiesta
-// dell'utente (zona scelta a mano, tasto "ritraduci"): una volta sola.
+// e di lavoro, Discord, Tasso stesso (anche un'altra copia): niente cattura, niente scritte.
+// Dal 28/11 niente eccezioni, nemmeno col tasto "ritraduci" o con una zona scelta a mano: fuori
+// dal gioco la traduzione si mette in pausa da sola e riparte quando torni nel gioco. Un gioco
+// partito da un launcher della libreria conta come gioco della libreria (launcher.go).
 
 import "strings"
 

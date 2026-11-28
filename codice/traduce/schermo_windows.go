@@ -316,18 +316,19 @@ func avviaFinestrella(dimFont int, tasti func(int), selezione func(Zona)) {
 		ov.hwnd = h
 		ov.mu.Unlock()
 		if h != 0 {
-			pSetLayeredAttr.Call(h, 0, 228, 2) // LWA_ALPHA: leggermente trasparente
+			pSetLayeredAttr.Call(h, 0, opacitaRiquadro, 2) // LWA_ALPHA: pieno, l'inglese sotto non traspare (riquadro_colori.go)
 			// La finestrella non compare nelle catture dello schermo (Windows 10 2004+):
 			// così non rileggo la mia stessa traduzione.
 			pSetDisplayAffin.Call(h, affinita()) // WDA_EXCLUDEFROMCAPTURE
 			ov.creaFont()
-			ov.sfondo, _, _ = pCreateBrush.Call(0x000D0807) // #07080D
-			ov.bordo, _, _ = pCreateBrush.Call(0x00A6F32F)  // #2FF3A6 (BGR)
+			ov.sfondo, _, _ = pCreateBrush.Call(colFondoRiquadro) // #07080D
+			ov.bordo, _, _ = pCreateBrush.Call(0x00A6F32F)        // #2FF3A6 (BGR)
 			// Tasti rapidi validi in tutto Windows, anche mentre giochi.
 			pSetTimer.Call(h, 1, 400, 0) // controllo se il gioco è ancora in primo piano
 			// i tasti rapidi si registrano solo quando accendi Tasso Traduce (ttAccendi):
 			// da spento F6…F11 restano liberi per gli altri programmi
 			creaFinestraPagina()
+			creaTastoChiudi() // la X per spegnere il riquadro (chiudi_riquadro_windows.go)
 			// traduzione accesa prima che la finestrella esistesse: cambiaTasti non ha potuto
 			// registrare i tasti, li registro adesso
 			if acceso.Load() {
@@ -335,11 +336,11 @@ func avviaFinestrella(dimFont int, tasti func(int), selezione func(Zona)) {
 			}
 			// 3.1: secondo riquadro, per la chat degli altri (stessa classe, stesso disegno)
 			if hc, _, _ := pCreateWindowEx.Call(ex, uintptr(unsafe.Pointer(classe)), 0, 0x80000000, 0, 0, 420, 120, 0, 0, 0, 0); hc != 0 {
-				pSetLayeredAttr.Call(hc, 0, 228, 2)
+				pSetLayeredAttr.Call(hc, 0, opacitaRiquadro, 2)
 				pSetDisplayAffin.Call(hc, affinita())
 				ovChat.mu.Lock()
 				ovChat.creaFont()
-				ovChat.sfondo, _, _ = pCreateBrush.Call(0x000D0807)
+				ovChat.sfondo, _, _ = pCreateBrush.Call(colFondoRiquadro)
 				ovChat.bordo, _, _ = pCreateBrush.Call(0x00FF7BA9) // #A97BFF (BGR): viola, diverso dai dialoghi
 				ovChat.hwnd = hc
 				ovChat.mu.Unlock()
@@ -444,6 +445,13 @@ func (f *finestrella) NascondiVoce() {
 	}
 }
 
+// mostraDialogo: il riquadro dei dialoghi (non il sottotitolo di una voce) è sullo schermo.
+func (f *finestrella) mostraDialogo() bool {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return f.visibile && !f.voce && f.testo != "" && !f.nascosta
+}
+
 // Nascondi toglie il dialogo (anche quello salvato sotto una voce, così non torna più).
 // Se sta mostrando il sottotitolo di una voce, il sottotitolo resta fino alla sua fine.
 func (f *finestrella) Nascondi() {
@@ -522,17 +530,25 @@ func (f *finestrella) impostaGioco(h uintptr) bool {
 }
 
 // giocoDavanti: fg è il gioco ricordato (la sua finestra, o un'altra finestra dello stesso
-// programma, per esempio il gioco chiuso e riaperto). Senza gioco ricordato vale qualsiasi
-// finestra. Una finestra nuova del gioco diventa quella ricordata.
+// programma, per esempio il gioco chiuso e riaperto). Senza gioco ricordato vale solo un gioco
+// riconosciuto (libreria, negozi, profili, schermo intero): mai Tasso, il desktop, il browser o
+// un programma qualsiasi (foto di Sergio 28/11: nomi tradotti sopra YouTube). Una finestra
+// nuova del gioco diventa quella ricordata.
 func (f *finestrella) giocoDavanti(fg uintptr) bool {
+	if fg == 0 || finestraNostra(fg) {
+		return false
+	}
 	f.mu.Lock()
 	g, exe := f.gioco, f.exeGioco
 	f.mu.Unlock()
+	if exe != "" && exeDiFinestra(fg) != exe {
+		return false
+	}
+	if !finestraPerTradurre(fg) {
+		return false // zona scelta sopra un browser o un programma che non è un gioco: niente
+	}
 	if exe == "" || (fg == g && g != 0) {
 		return true
-	}
-	if fg == 0 || exeDiFinestra(fg) != exe {
-		return false
 	}
 	f.mu.Lock()
 	if f.exeGioco == exe {
@@ -626,9 +642,14 @@ func (f *finestrella) posiziona(hwnd uintptr) {
 	if f.voce {
 		pos, stato = "sottotitoli", ""
 	}
+	conX := f == ov && pos != "sottotitoli" // la X solo sul riquadro dei dialoghi
+	dimF := f.dimFont
 	f.mu.Unlock()
 	if !vis || testo == "" {
 		pShowWindow.Call(hwnd, 0)
+		if f == ov {
+			nascondiTastoChiudi()
+		}
 		return
 	}
 	larg := int32(z.W)
@@ -642,12 +663,16 @@ func (f *finestrella) posiziona(hwnd uintptr) {
 		larg = int32(z.W) // fascia larga come la zona dei sottotitoli
 	}
 	hdc, _, _ := pGetDC.Call(hwnd)
-	alt := int32(margine) + misura(hdc, f.fontT, testo, larg-2*margine)
+	lt := larg - 2*margine
+	if conX {
+		lt -= latoChiudi(dimF) // il testo non passa sotto la X
+	}
+	alt := int32(margine) + misura(hdc, f.fontT, testo, lt)
 	if mostraEN && en != "" {
-		alt += misura(hdc, f.fontP, en, larg-2*margine) + 6
+		alt += misura(hdc, f.fontP, en, lt) + 6
 	}
 	if stato != "" {
-		alt += misura(hdc, f.fontP, stato, larg-2*margine) + 4
+		alt += misura(hdc, f.fontP, stato, lt) + 4
 	}
 	alt += margine
 	if pos == "sottotitoli" && alt < int32(z.H) {
@@ -659,6 +684,11 @@ func (f *finestrella) posiziona(hwnd uintptr) {
 	pSetWindowPos.Call(hwnd, ^uintptr(0), uintptr(x), uintptr(y), uintptr(larg), uintptr(alt), swpNoActivate)
 	pShowWindow.Call(hwnd, 4) // SW_SHOWNOACTIVATE
 	pInvalidateRect.Call(hwnd, 0, 1)
+	if conX {
+		mostraTastoChiudi(x, y, larg, dimF) // dopo il riquadro: resta sopra
+	} else if f == ov {
+		nascondiTastoChiudi()
+	}
 }
 
 func ovProc(hwnd, msg, wp, lp uintptr) uintptr {
@@ -674,8 +704,12 @@ func ovProc(hwnd, msg, wp, lp uintptr) uintptr {
 		pSetBkMode.Call(hdc, 1) // TRANSPARENT
 		f.mu.Lock()
 		testo, en, stato, mostraEN, cinema := f.testo, f.inglese, f.stato, f.mostraEN, f.posizione == "sottotitoli" || f.voce
+		dimF := f.dimFont
 		f.mu.Unlock()
 		larg := r.Right - 2*margine
+		if f == ov && !cinema {
+			larg -= latoChiudi(dimF) // spazio per la X in alto a destra
+		}
 		y := int32(margine)
 		if cinema { // sottotitoli: testo centrato, senza riga di stato, fascia senza bordo verde
 			pFillRect.Call(hdc, uintptr(unsafe.Pointer(&r)), f.sfondo)
@@ -690,14 +724,14 @@ func ovProc(hwnd, msg, wp, lp uintptr) uintptr {
 		}
 		if mostraEN && en != "" {
 			hh := misura(hdc, f.fontP, en, larg)
-			disegna(hdc, f.fontP, 0x00A7918B, en, rect{margine, y, margine + larg, y + hh}) // grigio
+			disegna(hdc, f.fontP, colIngleseRiquadro, en, rect{margine, y, margine + larg, y + hh}) // grigio chiaro
 			y += hh + 6
 		}
 		ht := misura(hdc, f.fontT, testo, larg)
-		disegna(hdc, f.fontT, 0x00F8F4F2, testo, rect{margine, y, margine + larg, y + ht}) // bianco
+		disegna(hdc, f.fontT, colTestoRiquadro, testo, rect{margine, y, margine + larg, y + ht}) // bianco
 		y += ht + 4
 		if stato != "" {
-			disegna(hdc, f.fontP, 0x00A6F32F, stato, rect{margine, y, margine + larg, r.Bottom})
+			disegna(hdc, f.fontP, colStatoRiquadro, stato, rect{margine, y, margine + larg, r.Bottom})
 		}
 		pEndPaint.Call(hwnd, uintptr(unsafe.Pointer(&ps)))
 		return 0

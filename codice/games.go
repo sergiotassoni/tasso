@@ -41,6 +41,9 @@ type gameEntry struct {
 	exeArgs   string
 	dir       string // cartella dove è installato (serve a "Regola con Tasso")
 	steamApp  string // numero Steam del gioco installato da Steam (per la copertina di riserva)
+	// launcherName: il nome con "Launcher" com'era ("Hytale Launcher"), se in libreria si mostra
+	// senza ("Hytale"). Serve al traduttore per riconoscere e non tradurre anche quel nome.
+	launcherName string
 }
 
 var (

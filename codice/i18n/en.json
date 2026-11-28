@@ -1614,7 +1614,15 @@
   "la cartella dei modelli porta a un'altra cartella (collegamento o giunzione) o non si può controllare: per sicurezza non uso il modello": "the models folder leads to another folder (a link or junction) or can't be checked: to be safe I'm not using the model",
   "I valori che c'erano prima di Tasso li ho salvati in Documenti > Tasso - copie di sicurezza > impostazioni non rimesse com'erano: servono per rimetterli a mano (o per chi ti aiuta).": "I saved the values from before Tasso in Documents > Tasso - copie di sicurezza > impostazioni non rimesse com'erano: they're for putting them back by hand (or for whoever helps you).",
   "Togliendo Tasso, Windows non ha lasciato rimettere com'erano alcune impostazioni.\nIl file che comincia con impostazioni-di-prima contiene i valori che c'erano prima di Tasso: il piano energetico e i tempi di spegnimento dello schermo e di sospensione (PrimaDelleModalita e PrimaDelProfilo), la foto delle impostazioni di Windows (snapshot) e i programmi all'avvio da rimettere (startupOrig, true = acceso).\nIn \"nonTornate\" c'è cosa non è tornato com'era. Puoi rimettere queste cose a mano in Impostazioni di Windows > Sistema > Alimentazione e in Gestione attività > Avvio, oppure mostrare il file a chi ti aiuta.\nTasso non usa più questo file: puoi cancellarlo quando vuoi.": "While Tasso was being removed, Windows didn't let some settings be put back as they were.\nThe file starting with impostazioni-di-prima contains the values from before Tasso: the power plan and the screen turn-off and sleep times (PrimaDelleModalita and PrimaDelProfilo), the Windows settings saved as they were (snapshot) and the startup apps to put back (startupOrig, true = on).\nUnder \"nonTornate\" there's what didn't go back as it was. You can put these things back by hand in Windows Settings > System > Power and in Task Manager > Startup, or show the file to whoever helps you.\nTasso no longer uses this file: you can delete it whenever you want.",
-  "Windows non mi lascia proteggere l'indirizzo del webhook: non lo salvo.": "Windows won't let me protect the webhook address: I'm not saving it."
+  "Windows non mi lascia proteggere l'indirizzo del webhook: non lo salvo.": "Windows won't let me protect the webhook address: I'm not saving it.",
+  "%s   ·   %s spegne   ·   %s   ·   %.1f s   ·   %s ritraduci   ·   %s inglese": "%s   ·   %s turns off   ·   %s   ·   %.1f s   ·   %s translate again   ·   %s English",
+  "Qui non c'è un gioco: la traduzione resta in pausa e riparte da sola quando torni nel gioco.": "There's no game here: translation stays paused and starts again by itself when you go back to the game.",
+  "Traduzione in pausa: %s per riprendere.": "Translation paused: %s to resume.",
+  "Traduco…": "Translating…",
+  "Traduzione attiva · ": "Translation on · ",
+  "Traduzione spenta": "Translation off",
+  "Qui non c'è un gioco": "No game here",
+  "● Automatico": "● Automatic"
  },
  "ps": {
   "Windows non mi lascia cambiare questa voce.": "Windows won't let me change this entry.",

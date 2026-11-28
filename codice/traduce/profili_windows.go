@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"time"
 	"unsafe"
 
 	"golang.org/x/sys/windows"
@@ -76,7 +77,10 @@ func nonGiocoMai(h uintptr, exe string) bool {
 }
 
 func eNostro(exe string) bool {
-	return exe == "" || exe == "tassotraduce.exe" || exe == nostroExe() || exe == "explorer.exe" || exe == "msedgewebview2.exe"
+	// anche un'altra copia di Tasso aperta insieme (Tasso-3_1-prova.exe, "Tasso Gaming.exe"):
+	// la traduzione non deve mai leggere le finestre di Tasso (foto di Sergio 28/11: "Steam" → "Vapore")
+	return exe == "" || exe == "tassotraduce.exe" || exe == nostroExe() || exe == "explorer.exe" || exe == "msedgewebview2.exe" ||
+		strings.HasPrefix(exe, "tasso")
 }
 
 // nostroExe: il nome del programma che contiene Tasso Traduce (Tasso.exe, o una sua copia rinominata).
@@ -165,11 +169,62 @@ func controllaProfilo() {
 	emetti("info", map[string]string{"testo": "Profilo caricato: " + exe})
 }
 
-// finestraPerTradurre: in primo piano c'è un gioco da tradurre (gioco_davanti.go decide).
-func finestraPerTradurre(h uintptr) bool {
+// finestraNostra: la finestra è di Tasso (questo programma o un'altra copia di Tasso).
+func finestraNostra(h uintptr) bool {
 	if h == 0 {
+		return true
+	}
+	var pid uint32
+	pGetWindowThreadProcessId.Call(h, uintptr(unsafe.Pointer(&pid)))
+	if pid == windows.GetCurrentProcessId() {
+		return true
+	}
+	return eNostro(exeDiFinestra(h)) || h == sel.hwnd.Load() || (wv != nil && h == uintptr(wv.Window()))
+}
+
+var (
+	muPerTradurre    sync.Mutex
+	cachePerTradurre = map[uintptr]esitoFinestra{}
+)
+
+type esitoFinestra struct {
+	si     bool
+	quando time.Time
+}
+
+// dimenticaFinestre: le decisioni ricordate non valgono più (profilo nuovo, libreria cambiata).
+func dimenticaFinestre() {
+	muPerTradurre.Lock()
+	clear(cachePerTradurre)
+	muPerTradurre.Unlock()
+}
+
+// finestraPerTradurre: in primo piano c'è un gioco da tradurre (gioco_davanti.go decide).
+// Ricordato per 2 secondi per finestra: la chiamano più fili, anche ogni 400 ms.
+func finestraPerTradurre(h uintptr) bool {
+	if h == 0 || finestraNostra(h) {
 		return false
 	}
+	if paginaAttiva.Load() && h == paginaGiocoA.Load() && !paginaUnaVolta.Load() {
+		return true
+	}
+	muPerTradurre.Lock()
+	if e, ok := cachePerTradurre[h]; ok && time.Since(e.quando) < 2*time.Second {
+		muPerTradurre.Unlock()
+		return e.si
+	}
+	muPerTradurre.Unlock()
+	si := finestraPerTradurreOra(h)
+	muPerTradurre.Lock()
+	if len(cachePerTradurre) > 64 {
+		cachePerTradurre = map[uintptr]esitoFinestra{}
+	}
+	cachePerTradurre[h] = esitoFinestra{si, time.Now()}
+	muPerTradurre.Unlock()
+	return si
+}
+
+func finestraPerTradurreOra(h uintptr) bool {
 	exe := exeDiFinestra(h)
 	p := strings.ToLower(percorsoDiFinestra(h))
 	f := infoFinestra{Exe: exe, Percorso: p, Nostra: eNostro(exe) || h == sel.hwnd.Load()}
@@ -188,6 +243,10 @@ func finestraPerTradurre(h uintptr) bool {
 	muImp.Unlock()
 	if Ospite.GiocoDiTasso != nil {
 		f.DiTasso = Ospite.GiocoDiTasso(p)
+	}
+	if !f.DiTasso && !f.Nostra {
+		// in libreria c'è il launcher ("Hytale Launcher") e il gioco gira con un altro programma
+		_, f.DiTasso = giocoParenteDiFinestra(h)
 	}
 	f.Tradotto = paginaAttiva.Load() && h == paginaGiocoA.Load() && !paginaUnaVolta.Load()
 	f.SchermoIntero = aSchermoIntero(h)

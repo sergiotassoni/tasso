@@ -132,6 +132,9 @@ func rigaNonInglese(grezzo string) (string, int) {
 	return s, letturaBuona
 }
 
+// motivoSoloNomi: la scritta è solo una lista di nomi (persone, giochi, negozi): resta com'è.
+const motivoSoloNomi = "solo nomi propri"
+
 // motivoNonTradurre: perché questa scritta non va tradotta ("" = va tradotta).
 func motivoNonTradurre(b Blocco) string {
 	if b.NonInglese {
@@ -142,6 +145,8 @@ func motivoNonTradurre(b Blocco) string {
 		case !formaPlausibile(b):
 			return "forma strana"
 		case b.Affid == letturaDubbia && !b.GiaMostrata:
+			return "lettura incerta"
+		case !rigaOCRAffidabile(togliSimboliSpuri(b.Testo), false):
 			return "lettura incerta"
 		case nomeConCodice(b.Testo):
 			return motivoNomeCodice
@@ -163,6 +168,10 @@ func motivoNonTradurre(b Blocco) string {
 		return "lettura incerta"
 	case !letturaAffidabile(b.Testo):
 		return "lettura incerta"
+	case !rigaOCRAffidabile(togliSimboliSpuri(b.Testo), true):
+		return "lettura incerta" // parola inventata, carattere strano, pezzo di parola (affidabilita_ocr.go)
+	case soloNomiPropri(togliSimboliSpuri(b.Testo)):
+		return motivoSoloNomi
 	case logoLettoMale(b.Testo):
 		return "lettura incerta" // logo o nome del canale letto male
 	case parolacciaDubbia(b.Testo):

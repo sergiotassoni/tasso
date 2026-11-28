@@ -113,7 +113,7 @@ func cicloTuttoAutomatico() {
 		if _, ok := areaFinestra(fg); !ok {
 			continue
 		}
-		nomeG, cartG := exe, ""
+		nomeG, cartG := nomeGioco(fg), ""
 		if g, ok := riconosciGioco(percorsoDiFinestra(fg)); ok {
 			nomeG, cartG = g.Nome, g.Cartella
 		}
@@ -173,6 +173,9 @@ func proponiTraduzione(fg uintptr, nome string) {
 func nomeGioco(h uintptr) string {
 	if g, ok := riconosciGioco(percorsoDiFinestra(h)); ok {
 		return g.Nome
+	}
+	if n, ok := giocoParenteDiFinestra(h); ok && n != "" {
+		return senzaLauncher(n) // "HytaleClient" partito da "Hytale Launcher": si chiama "Hytale"
 	}
 	return strings.TrimSuffix(exeDiFinestra(h), ".exe")
 }

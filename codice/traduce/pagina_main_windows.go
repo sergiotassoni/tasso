@@ -48,8 +48,30 @@ var (
 
 func attivaPagina() { attivaPaginaCome(false) }
 
+// zonaInPausa: il riquadro della zona dei dialoghi è stato spento con F7 o con la X: non legge
+// e non si mostra finché F7 non riaccende.
+var zonaInPausa atomic.Bool
+
+// spegniZona: F7 o la X del riquadro: via il riquadro dei dialoghi, la zona resta in pausa.
+func spegniZona() {
+	zonaInPausa.Store(true)
+	ov.Nascondi()
+	dimenticaDialogo()
+	emetti("info", map[string]string{"testo": fmt.Sprintf(testoTasso("Traduzione in pausa: %s per riprendere.", "Translation paused: %s to resume."), nomeTasto("pagina"))})
+	badgeStato(statoBadgeSpento)
+}
+
+// spegniDalRiquadro: clic sulla X del riquadro della traduzione. Come F7 quando qualcosa è acceso.
+func spegniDalRiquadro() {
+	if paginaAttiva.Load() {
+		attivaPagina()
+		return
+	}
+	spegniZona()
+}
+
 // attivaPaginaCome: F7 accende o mette in pausa la traduzione della schermata. aRichiesta (tasto
-// "ritraduci"): anche fuori da un gioco, ma una volta sola.
+// "ritraduci"): come F7 ma senza spegnere; mai fuori da un gioco (28/11).
 func attivaPaginaCome(aRichiesta bool) {
 	muAttiva.Lock()
 	defer muAttiva.Unlock()
@@ -60,7 +82,16 @@ func attivaPaginaCome(aRichiesta bool) {
 	}
 	ultimoF7 = time.Now()
 	fg, _, _ := pGetForeground.Call()
+	if !aRichiesta && !paginaAttiva.Load() && ov.mostraDialogo() {
+		// F7 spegne anche il riquadro della zona dei dialoghi (scritto in basso nel riquadro)
+		spegniZona()
+		return
+	}
+	if !aRichiesta {
+		zonaInPausa.Store(false) // F7 riaccende: anche la zona dei dialoghi riparte
+	}
 	if paginaAttiva.Load() {
+		zonaInPausa.Store(true) // F7 mette in pausa tutto: anche la zona non deve ricomparire
 		paginaAttiva.Store(false)
 		paginaGiro.Add(1)
 		NascondiPagina()
@@ -79,14 +110,16 @@ func attivaPaginaCome(aRichiesta bool) {
 		return
 	}
 	gioco := finestraPerTradurre(fg)
-	if !gioco && !aRichiesta {
-		// desktop, browser, YouTube, programmi di lavoro: la traduzione dello schermo è solo per i
-		// giochi (lì resta pronta ma non legge niente). Per tradurre qui una volta: il tasto zona o "ritraduci"
-		emetti("info", map[string]string{"testo": "Qui non c'è un gioco: la traduzione dello schermo parte solo nei giochi. Per tradurre questa finestra una volta usa " + nomeTasto("traduci") + " o scegli una zona con " + nomeTasto("zona") + "."})
+	if !gioco {
+		// desktop, browser, YouTube, Esplora file, Tasso, programmi che non sono in libreria: la
+		// traduzione dello schermo è solo per i giochi, anche col tasto "ritraduci" (28/11: niente
+		// più "una volta" fuori dai giochi). Resta pronta e riparte quando torni nel gioco.
+		emetti("info", map[string]string{"testo": testoTasso("Qui non c'è un gioco: la traduzione resta in pausa e riparte da sola quando torni nel gioco.",
+			"There's no game here: translation stays paused and starts again by itself when you go back to the game.")})
 		badgeStato(statoBadgeNonGioco)
 		return
 	}
-	paginaUnaVolta.Store(!gioco)
+	paginaUnaVolta.Store(false)
 	avviaPaginaSu(fg)
 }
 

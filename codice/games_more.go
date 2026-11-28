@@ -504,9 +504,39 @@ func customGames() []gameEntry {
 		}
 		// Nota: per riconoscere un gioco aggiunto a mano conta solo il suo programma esatto, mai la
 		// cartella (vedi libraryGamePaths).
-		out = append(out, gameEntry{ID: "man:" + shortHash(c.Exe), Name: c.Name, Store: "Mano", exe: c.Exe, dir: dir, Icon: c.Exe, private: true})
+		// un launcher aggiunto a mano ("Hytale Launcher"): in libreria si chiama come il gioco
+		name, launcher := gameNameFromLauncher(c.Name)
+		out = append(out, gameEntry{ID: "man:" + shortHash(c.Exe), Name: name, Store: "Mano", exe: c.Exe, dir: dir, Icon: c.Exe, private: true, launcherName: launcher})
 	}
 	return out
+}
+
+// gameNameFromLauncher: "Hytale Launcher" → ("Hytale", "Hytale Launcher"); "Launcher di Hytale" e
+// "Hytale - Launcher" uguale. Un nome senza la parola "Launcher" resta com'è (launcher = "").
+func gameNameFromLauncher(n string) (name, launcher string) {
+	var keep []string
+	found := false
+	for _, p := range strings.Fields(n) {
+		t := strings.ToLower(strings.Trim(p, "-–—:()"))
+		switch {
+		case t == "launcher":
+			found = true
+		case t == "":
+			// solo un segno ("-", ":"): via
+		default:
+			keep = append(keep, p)
+		}
+	}
+	if found && len(keep) > 1 {
+		if f := strings.ToLower(keep[0]); f == "di" || f == "of" || f == "for" {
+			keep = keep[1:]
+		}
+	}
+	r := strings.Join(keep, " ")
+	if !found || len([]rune(r)) < 2 {
+		return n, ""
+	}
+	return r, n
 }
 
 var genericDirRe = regexp.MustCompile(`(?i)^(bin|binaries|win64|win32|x64|x86|game|games|giochi|downloads|download|desktop|documents|documenti|program files.*|programs)$`)

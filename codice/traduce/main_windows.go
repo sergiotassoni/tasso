@@ -1321,6 +1321,7 @@ func suZonaScelta(z Zona) {
 	imp.Zona = z
 	muImp.Unlock()
 	ricordaProfilo()
+	dimenticaFinestre() // il gioco ha appena il suo profilo: va riconosciuto subito
 	salvaImp()
 	muImpronte.Lock()
 	ultimaImp = Impronta{}
@@ -1369,12 +1370,12 @@ func cicloAutomatico() {
 		time.Sleep(450 * time.Millisecond)
 		controllaProfilo()
 		i := leggiImp()
-		if !acceso.Load() || !i.Auto || !i.Zona.Valida() || occupato.Load() || paginaAttiva.Load() {
+		if !acceso.Load() || !i.Auto || !i.Zona.Valida() || occupato.Load() || paginaAttiva.Load() || zonaInPausa.Load() {
 			continue
 		}
-		// davanti c'è Tasso Traduce stesso o il desktop: niente da tradurre, risparmio il PC
+		// davanti c'è Tasso (anche un'altra copia) o il desktop: niente da tradurre, risparmio il PC
 		fg, _, _ := pGetForeground.Call()
-		if eNostro(exeDiFinestra(fg)) {
+		if finestraNostra(fg) {
 			continue
 		}
 		// davanti c'è un altro programma (non il gioco della zona): stessa regola della finestrella
@@ -1447,9 +1448,19 @@ func traduciOra(forza bool) {
 	}
 	if !i.Zona.Valida() {
 		// nessuna zona scelta: traduco tutto lo schermo del gioco (quello dove sta la sua finestra)
-		attivaPaginaCome(true) // a richiesta: anche fuori da un gioco, una volta sola
+		attivaPaginaCome(true) // a richiesta, ma solo in un gioco
 		return
 	}
+	if fg, _, _ := pGetForeground.Call(); !ov.giocoDavanti(fg) {
+		// fuori da un gioco (Tasso, browser, desktop) la zona non si legge, nemmeno a richiesta.
+		// Davanti c'è Tasso (zona scelta col pulsante di Tasso): niente avviso, si traduce
+		// appena torni nel gioco
+		if !finestraNostra(fg) {
+			badgeStato(statoBadgeNonGioco)
+		}
+		return
+	}
+	zonaInPausa.Store(false)
 	img, err := cattura(i.Zona)
 	if err != nil {
 		emetti("info", map[string]string{"testo": err.Error()})
@@ -1514,6 +1525,18 @@ func leggiETraduci(img *image.RGBA, impronta Impronta, forza bool) {
 		pulito = righeSottotitolo(pulito)
 		grezzo = righeSottotitolo(grezzo)
 	}
+	// righe lette male, simboli spuri, righe di soli nomi: via prima di tradurre (affidabilita_ocr.go)
+	menu := sembraMenu(grezzo)
+	if da, _ := coppiaAttiva(); true {
+		grezzo = righeAffidabili(grezzo, da == "en", menu)
+		if grezzo == "" {
+			pulito = ""
+		} else if p := pulisci(grezzo); da == "en" {
+			pulito = p
+		} else {
+			pulito = pulisciFile(grezzo)
+		}
+	}
 	ultimoGrezzo = grezzo
 	if rileggi.Swap(false) {
 		ultimoTesto, candidatoSub = "", ""
@@ -1542,19 +1565,19 @@ func leggiETraduci(img *image.RGBA, impronta Impronta, forza bool) {
 			return
 		}
 	}
-	if !acceso.Load() || paginaAttiva.Load() {
+	if !acceso.Load() || paginaAttiva.Load() || zonaInPausa.Load() {
 		return // spenta mentre leggevo: niente "…" rimasto sullo schermo
 	}
 	ultimoTesto = pulito
 	z := leggiImp().Zona
 	ov.Mostra(z, "…", pulito, "")
 	var r Risultato
-	if sembraMenu(grezzo) {
+	if menu {
 		r = traduciZonaMenu(img, grezzo)
 	} else {
 		r = traduttore.Traduci(context.Background(), grezzo)
 	}
-	if !acceso.Load() || paginaAttiva.Load() {
+	if !acceso.Load() || paginaAttiva.Load() || zonaInPausa.Load() {
 		ultimoTesto = "" // tornando alla traduzione normale questo dialogo si rimostra
 		if !acceso.Load() {
 			ov.Nascondi() // via anche il "…" (la schermata intera invece non la tocco)
@@ -1572,6 +1595,12 @@ func leggiETraduci(img *image.RGBA, impronta Impronta, forza bool) {
 		return
 	}
 	erroreVisto = false
+	if !traduzioneDaMostrare(r.Originale, r.Tradotto) {
+		// niente di tradotto (solo nomi, voci rimaste uguali): non lo mostro come "tradotto"
+		ov.Nascondi()
+		dimenticaDialogo()
+		return
+	}
 	testo := r.Tradotto
 	if r.Parlante != "" {
 		testo = r.Parlante + ": " + testo
@@ -1580,8 +1609,9 @@ func leggiETraduci(img *image.RGBA, impronta Impronta, forza bool) {
 	if leggiImp().Auto {
 		auto = testoTasso("● Automatico", "● Automatic")
 	}
-	statoRiga := fmt.Sprintf(testoTasso("%s   ·   %s   ·   %.1f s   ·   %s ritraduci   ·   %s inglese", "%s   ·   %s   ·   %.1f s   ·   %s translate again   ·   %s English"),
-		auto, nomeMotore(r.Motore), float64(msOCR+r.Millisec)/1000, nomeTasto("traduci"), nomeTasto("inglese"))
+	// "F7 spegne" subito dopo lo stato: si deve capire come togliere il riquadro (28/11)
+	statoRiga := fmt.Sprintf(testoTasso("%s   ·   %s spegne   ·   %s   ·   %.1f s   ·   %s ritraduci   ·   %s inglese", "%s   ·   %s turns off   ·   %s   ·   %.1f s   ·   %s translate again   ·   %s English"),
+		auto, nomeTasto("pagina"), nomeMotore(r.Motore), float64(msOCR+r.Millisec)/1000, nomeTasto("traduci"), nomeTasto("inglese"))
 	ov.Mostra(z, testo, r.Originale, statoRiga)
 	muDialogo.Lock()
 	dialogoMostrato = mostratoDialogo{z, r.Parlante, r.Tradotto, r.Originale, statoRiga}
@@ -1606,10 +1636,21 @@ func traduciZonaMenu(img *image.RGBA, grezzo string) Risultato {
 		return traduttore.Traduci(context.Background(), grezzo)
 	}
 	blocchi := segmenti(righeOCR, f)
+	da, _ := coppiaAttiva()
+	tenuti := blocchi[:0]
 	for i := range blocchi {
-		blocchi[i].Testo = correggiParole(separaAttaccate(blocchi[i].Testo))
+		// righe lette male o fatte solo di nomi: non si traducono e non si mostrano
+		t, ok := rigaDaTradurre(blocchi[i].Testo, da == "en")
+		if !ok {
+			continue
+		}
+		blocchi[i].Testo = correggiParole(separaAttaccate(t))
+		tenuti = append(tenuti, blocchi[i])
 	}
-	blocchi = unisciParagrafi(blocchi)
+	blocchi = unisciParagrafi(tenuti)
+	if len(blocchi) == 0 {
+		return Risultato{Originale: grezzo} // niente di affidabile da tradurre: non mostro niente
+	}
 	if len(blocchi) < 2 {
 		return traduttore.Traduci(context.Background(), grezzo)
 	}
@@ -1646,9 +1687,10 @@ func traduciZonaMenu(img *image.RGBA, grezzo string) Risultato {
 	}
 	for i, b := range blocchi {
 		t := strings.TrimSpace(tradotti[i].Tradotto)
-		if t == "" {
-			t = b.Testo
-		} else if motore == "" {
+		if !traduzioneDaMostrare(b.Testo, t) {
+			continue // rimasta uguale (nome, sigla) o non tradotta: non la mostro come tradotta
+		}
+		if motore == "" {
 			motore = tradotti[i].Motore
 		}
 		trad[fmt.Sprint(b.X, ",", b.Y)] = t
@@ -1657,11 +1699,19 @@ func traduciZonaMenu(img *image.RGBA, grezzo string) Risultato {
 	for _, riga := range righeDiBlocchi(blocchi) {
 		var a, b []string
 		for _, x := range riga {
-			a = append(a, trad[fmt.Sprint(x.X, ",", x.Y)])
-			b = append(b, x.Testo)
+			if v, ok := trad[fmt.Sprint(x.X, ",", x.Y)]; ok {
+				a = append(a, v)
+				b = append(b, x.Testo)
+			}
+		}
+		if len(a) == 0 {
+			continue
 		}
 		it = append(it, strings.Join(a, " — "))
 		en = append(en, strings.Join(b, " — "))
+	}
+	if len(it) == 0 {
+		return Risultato{Originale: grezzo, Millisec: time.Since(t0).Milliseconds()}
 	}
 	return Risultato{Originale: strings.Join(en, "\n"), Tradotto: strings.Join(it, "\n"), Motore: motore, Millisec: time.Since(t0).Milliseconds()}
 }

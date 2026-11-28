@@ -71,7 +71,13 @@ func fraseMenu(battuta string) (string, bool) {
 	}
 	it, ok := frasiMenu[chiaveFrase(b)]
 	if !ok {
-		return "", false
+		// sigle lette male dall'OCR: "Ul Volume" è "UI Volume" (la I maiuscola letta come l)
+		if c := sigleOCR(b); c != b {
+			it, ok = frasiMenu[chiaveFrase(c)]
+		}
+		if !ok {
+			return "", false
+		}
 	}
 	fine := b[len(strings.TrimRightFunc(b, func(r rune) bool { return unicode.IsPunct(r) && r != '+' })):]
 	fine = senzaVirgoletteSole(b, fine)
@@ -96,4 +102,23 @@ func (g Glossario) conGiochi() Glossario {
 		delete(out.Termini, n)
 	}
 	return out
+}
+
+// sigleOCR: le sigle dei menu che l'OCR di Windows legge con la "l" al posto della "I"
+// ("Ul Volume", "Ul Scale", "HUl"). Solo parole intere che in inglese non esistono.
+func sigleOCR(s string) string {
+	w := strings.Fields(s)
+	cambiato := false
+	for i, p := range w {
+		switch p {
+		case "Ul", "U1", "Ui":
+			w[i], cambiato = "UI", true
+		case "HUl", "HU1":
+			w[i], cambiato = "HUI", true
+		}
+	}
+	if !cambiato {
+		return s
+	}
+	return strings.Join(w, " ")
 }

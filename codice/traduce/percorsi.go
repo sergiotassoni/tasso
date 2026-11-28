@@ -42,6 +42,10 @@ var Ospite struct {
 	// GiocoDiTasso: il programma (percorso completo) è un gioco della libreria di Tasso o sta in una
 	// cartella di giochi. nil = Tasso Traduce da solo (allora contano negozi e profili).
 	GiocoDiTasso func(percorso string) bool
+	// VociLibreria: i giochi della libreria di Tasso (anche quelli aggiunti a mano, anche i
+	// launcher), con il nome mostrato e il programma. Servono per riconoscere il gioco vero
+	// partito da un launcher (launcher.go) e per non tradurre i loro nomi (nomi_protetti.go).
+	VociLibreria func() []VoceLibreria
 }
 
 // cartellaScript: la cartella protetta di Tasso se c'è, altrimenti quella di Tasso Traduce.

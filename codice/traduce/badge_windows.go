@@ -35,6 +35,11 @@ var (
 
 const wmBadge = wmApp + 20
 
+var (
+	pGetCursorPos = user32.NewProc("GetCursorPos")
+	badgeAngolo   atomic.Int32 // 0 = in basso a sinistra, 1 = in basso a destra (badge.go)
+)
+
 type testoMisurato struct {
 	maschera []uint8
 	w, h     int
@@ -147,9 +152,17 @@ func aggiornaBadge(hwnd uintptr) bool {
 		t := misuraTestoBadge(testoBadge(stato, nomeTasto("pagina")), scala)
 		img = componiBadge(t.maschera, t.w, t.h, scala, pulsa, stato == statoBadgeSpento || stato == statoBadgeNonGioco, alfa)
 	}
-	w := img.Bounds().Dx()
-	x := int32(area.X + (area.W-w)/2)
-	y := int32(area.Y + int(14*scala))
+	w, hb := img.Bounds().Dx(), img.Bounds().Dy()
+	x, y := posizioneBadge(*area, w, hb, scala, int(badgeAngolo.Load()))
+	// il mouse ci va sopra (vuoi cliccare lì sotto): il badge si sposta nell'altro angolo
+	var cur [2]int32
+	if ok, _, _ := pGetCursorPos.Call(uintptr(unsafe.Pointer(&cur))); ok != 0 {
+		m := int32(24 * scala)
+		if cur[0] >= x-m && cur[0] <= x+int32(w)+m && cur[1] >= y-m && cur[1] <= y+int32(hb)+m {
+			badgeAngolo.Store(1 - badgeAngolo.Load())
+			x, y = posizioneBadge(*area, w, hb, scala, int(badgeAngolo.Load()))
+		}
+	}
 	mostraLayered(hwnd, img, x, y)
 	// il puntino fermo non ha bisogno del timer veloce: lo controllo due volte al secondo
 	if img.Bounds().Dx() < 20 {
