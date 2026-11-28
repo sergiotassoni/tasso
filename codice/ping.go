@@ -36,8 +36,8 @@ type pingTarget struct {
 
 var pingGroups = []map[string]string{
 	{"id": "riot", "name": "League of Legends · TFT · Valorant", "note": "Questi server non rispondono al ping: misuro un server nella stessa città (o nella più vicina), quindi il valore è una stima."},
-	{"id": "valve", "name": "Counter-Strike 2 · Dota 2", "note": "Relay ufficiali di Valve, elenco preso da Steam. In CS2 puoi limitare il ping massimo in Impostazioni > Gioco."},
-	{"id": "aws", "name": "Fortnite e altri giochi online", "note": "Data center Amazon AWS, dove girano Fortnite e molti altri giochi. Misurato come tempo di connessione."},
+	{"id": "valve", "name": "Counter-Strike 2 · Dota 2", "note": "Server ufficiali del gioco, elenco preso da Steam. In CS2 puoi limitare il ping massimo in Impostazioni > Gioco."},
+	{"id": "aws", "name": "Fortnite e altri giochi online", "note": "Data center dove girano Fortnite e molti altri giochi. Misurato come tempo di connessione."},
 	{"id": "base", "name": "Internet in generale (server pubblici)", "note": "Server vicinissimi a tutti: se qui il ping è alto, il problema è la tua rete o il tuo operatore, non il gioco."},
 }
 
