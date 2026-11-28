@@ -130,7 +130,7 @@ body.office .go small{opacity:1} /* temi chiari di Ufficio: "CONSIGLIATA" leggib
 .mode.on{border-color:var(--c);background:color-mix(in srgb,var(--c) 10%,var(--panel))}
 .mode.on .t,.mode.on .s{color:var(--cx,var(--c))}.mode.on .d{color:var(--mutedx,var(--muted))}
 .tool{display:flex;align-items:center;gap:12px;padding:13px 14px;border-radius:16px;background:var(--panel);border:1px solid var(--line)}
-.tag{width:38px;height:38px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-weight:700;font-size:12px;flex:0 0 38px;color:var(--c);background:color-mix(in srgb,var(--c) 15%,var(--panel))}
+.tag{width:38px;height:38px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-weight:700;font-size:12px;flex:0 0 38px;color:var(--ct,var(--c));background:color-mix(in srgb,var(--c) 15%,var(--panel))}
 .tool .x{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
 .tool .x b{font-size:14px}.tool .x span{font-size:12px;color:var(--muted)}
 .play{width:42px;height:42px;border-radius:11px;background:var(--panel2);border:1px solid var(--line);color:var(--a1t);display:flex;align-items:center;justify-content:center;flex:0 0 42px}
@@ -1733,6 +1733,8 @@ const TG = EN ? (I18N.g || {}) : {};
 const TF = EN ? (I18N.frags || []).filter(k => k.length >= 6 && TG[k] !== undefined) : [];
 // t: un testo scritto qui nella finestra.
 const _t = (s) => (EN && typeof s === 'string' && TD[s] !== undefined) ? TD[s] : s;
+// dp (RECENSIONE-4c): i due punti delle frasi composte nel codice; in francese con lo spazio non separabile davanti.
+const dp = () => LANG === 'fr' ? '\u00a0: ' : ': ';
 // tx: i dati che arrivano da Go (messaggi, elenchi). Nomi, percorsi e codici non si toccano.
 const TX_SKIP = {gpuName:1, report:1, id:1, cat:1, ids:1, key:1, path:1, paths:1, exe:1, dir:1, mode:1, theme:1, themeOffice:1, profile:1, guid:1, url:1, icon:1, src:1, value:1, val:1, hook:1, token:1, webhook:1, discordWebhook:1, discordBot:1, kind_id:1, file:1, cmd:1, arg:1, lang:1, region:1, settings:1, snapshot:1, originale:1, tradotto:1, non_tradurre:1, termini:1, parlante:1, cartella:1, password:1, pw:1, site:1, user:1, note:1};
 // TX_RAW: risposte fatte solo di dati dell'utente (password, siti, nomi di file): non si traducono mai.
@@ -1934,6 +1936,9 @@ function applyTheme(id){
   tinte.forEach(([k, c, sf]) => { let x = c; for (let p = 1; p >= 0.4 && Math.min(cr(x, pn), cr(x, sf)) < 4.6; p -= 0.02) x = mx(c, te, p); r.setProperty('--' + k + 'x', hx6(x)); });
   const mu0 = h3(t.v.muted); let mu = mu0; for (let p = 1; p >= 0.4 && Math.min(...tinte.map(x => cr(mu, x[2]))) < 4.6; p -= 0.02) mu = mx(mu0, te, p);
   r.setProperty('--mutedx', hx6(mu));
+  // RECENSIONE-4c: il testo delle tessere di lettere (.tag: TMP, RUN, SFC…, fondo con il 15% del colore) almeno a 4,5:1,
+  // avvicinato al testo solo quanto serve (--a1g… e --mutedg). Dove basta già resta il colore del tema.
+  ['a1', 'a2', 'a3', 'a4', 'red', 'muted'].forEach(k => { const c = h3(t.v[k] || t.v.a1), tb = mx(c, pn, 0.15); let x = c; for (let p = 1; p >= 0 && cr(x, tb) < 4.6; p -= 0.02) x = mx(c, te, p); r.setProperty('--' + k + 'g', hx6(x)); });
   const light = ['ghiaccio', 'sabbia', 'ufficio', 'carta', 'salvia', 'lavanda', 'perla'].indexOf(t.id) >= 0;
   if (document.body) { THEMES.forEach(x => document.body.classList.remove('th-' + x.id)); document.body.classList.add('th-' + t.id); }
   document.documentElement.style.colorScheme = light ? 'light' : 'dark';
@@ -2172,7 +2177,7 @@ function paintDetect(){
   if (fixable.length >= 2) {
     const all = el('button', {class:'btn primary', style:'align-self:flex-start'}, fixable.length === 2 ? _t('Risolvi i 2 problemi insieme') : _t('Risolvi i ') + fixable.length + _t(' problemi insieme'));
     // Nomi come nell'elenco e, sotto, l'avviso di chi chiude programmi o stacca internet (come nella conferma singola).
-    all.onclick = () => { const ss = fixable.map(i => STEP[i]), avv = fixable.filter(i => DET_AVVISA.includes(i)).map(i => '\n\n' + detNome(i) + ': ' + stepTxt(i).desc).join(''); runSteps(fixable, _t('Risolvi i problemi trovati'), fixable.map(detNome).join(' · ') + avv, ss.reduce((a, s) => a + s.minutes, 0)); };
+    all.onclick = () => { const ss = fixable.map(i => STEP[i]), avv = fixable.filter(i => DET_AVVISA.includes(i)).map(i => '\n\n' + detNome(i) + dp() + stepTxt(i).desc).join(''); runSteps(fixable, _t('Risolvi i problemi trovati'), fixable.map(detNome).join(' · ') + avv, ss.reduce((a, s) => a + s.minutes, 0)); };
     box.appendChild(all);
   }
   list.forEach(x => {
@@ -2734,6 +2739,8 @@ const MODES = [
 ];
 // cTesto: per var(--a1)…var(--a4) e var(--red), il colore da usare come testo (--a1x…, vedi applyTheme).
 function cTesto(c){ return /^var\(--(a[1-4]|red)\)$/.test(c) ? c.replace(/\)$/, 'x)') : c; }
+// cTag (RECENSIONE-4c): il colore del testo delle tessere di lettere (TMP, RUN, SFC…), almeno 4,5:1 come la scheda attiva.
+function cTag(v){ return /^--(a[1-4]|red|muted)$/.test(v) ? 'var(' + v + 'g,var(' + v + '))' : 'var(' + v + ')'; }
 function paintModes(){
   const box = $('#modeCards'); box.innerHTML = '';
   // 3.1: Gaming e FPS competitivo li mette il Boost (pagina Giochi): qui si vedono solo se sono accese.
@@ -3215,7 +3222,7 @@ const TOOLGROUPS = [
 function toolCard(s){
   const t = TAGS[s.id] || ['•', '--muted'];
   const x = stepTxt(s.id); // nome e descrizione adatti alla modalità (per es. la cache delle app in Ufficio)
-  const d = el('div', {class:'tool'}, '<span class="tag" style="--c:var(' + t[1] + ')">' + t[0] + '</span><span class="x"><b>' + esc(x.name) + '</b><span>' + esc(x.desc) + '</span></span>');
+  const d = el('div', {class:'tool'}, '<span class="tag" style="--c:var(' + t[1] + ');--ct:' + cTag(t[1]) + '">' + t[0] + '</span><span class="x"><b>' + esc(x.name) + '</b><span>' + esc(x.desc) + '</span></span>');
   const p = el('button', {class:'play', 'aria-label':_t('Avvia ') + x.name}, '<svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M7 4l13 8-13 8z"/></svg>');
   p.onclick = () => runStep(s.id);
   d.appendChild(p); return d;
@@ -5262,7 +5269,7 @@ window.tasso.onFeedbackDone = (p) => {
   const st = box.querySelector('#fbState'); st.textContent = p.msg; st.style.color = 'var(--a4)';
   if (p.fallback && last) {
     modal('<h2>' + _t('Mandalo per email') + '</h2><p class="muted" style="margin:0;line-height:1.5">' + esc(p.msg) + '</p><p class="muted" style="margin:0;line-height:1.5">' + _t('Tasso apre la tua email con il messaggio già scritto, indirizzato a ') + '<b>tasso.services@proton.me</b>.' + (FB && FB.photos.length ? _t(' Le foto aggiungile tu come allegato.') : '') + '</p>',
-      [{label:_t('Annulla')}, {label:_t('Apri l\'email'), cls:'primary', fn: () => { const extra = last.stars ? '\n\n' + '★'.repeat(last.stars) + (last.pub ? ' · ' + _t('Puoi metterlo sul sito') + (last.name ? ': ' + last.name : '') : '') : ''; call('goFeedbackMail', last.kind, last.text + extra, last.pc); }}]);
+      [{label:_t('Annulla')}, {label:_t('Apri l\'email'), cls:'primary', fn: () => { const extra = last.stars ? '\n\n' + '★'.repeat(last.stars) + (last.pub ? ' · ' + _t('Puoi metterlo sul sito') + (last.name ? dp() + last.name : '') : '') : ''; call('goFeedbackMail', last.kind, last.text + extra, last.pc); }}]);
   }
 };
 document.addEventListener('click', (e) => { const b = e.target.closest && e.target.closest('[data-fb]'); if (b) { e.preventDefault(); fbOpen(b.dataset.fb); } });
@@ -5323,7 +5330,7 @@ function ecoRighe(cc){
   $('#updTit').textContent = ecoTitolo(cc);
   $('#updVerRow').style.display = 'none';
   const box = $('#updEco'); box.style.display = '';
-  box.innerHTML = cc.map(c => '<p class="sub" style="margin:4px 0 0">' + esc(c.nome) + ': ' + _t('installata ') + '<b>' + esc(c.installata || '?') + '</b>' +
+  box.innerHTML = cc.map(c => '<p class="sub" style="margin:4px 0 0">' + esc(c.nome) + dp() + _t('installata ') + '<b>' + esc(c.installata || '?') + '</b>' +
     (c.disponibile ? ' · ' + (c.nuova ? _t('disponibile ') + '<b>' + esc(c.disponibile) + '</b>' : _t('aggiornata')) : '') + '</p>').join('');
   if (cc.length > 1) {
     $('#autoUpdTit').textContent = _t('Aggiorna da solo Tasso, Tasso Zip e Tasso PDF');
@@ -5451,7 +5458,7 @@ async function paintGaming(){
   const box = $('#gcList'); box.innerHTML = '';
   // i comandi ritirati (mmcss, nagle) si vedono solo se sono ancora accesi, per poterli spegnere
   GAMING.filter(g => !g.ritirato || GCS[g.id]).forEach(g => {
-    const d = el('div', {class:'tool', style:'align-items:flex-start'}, '<span class="tag" style="--c:var(' + g.c + ')">' + g.tag + '</span><span class="x"><b>' + g.t + '</b><details class="small"><summary style="cursor:pointer;color:var(--muted)">' + _t('Cosa fa?') + '</summary><span style="line-height:1.45">' + g.d + (g.id === 'hags' && GCS.rebootHags ? _t(' <b style="color:var(--a4)">Riavvia il PC per completare.</b>') : '') + '</span></details></span>');
+    const d = el('div', {class:'tool', style:'align-items:flex-start'}, '<span class="tag" style="--c:var(' + g.c + ');--ct:' + cTag(g.c) + '">' + g.tag + '</span><span class="x"><b>' + g.t + '</b><details class="small"><summary style="cursor:pointer;color:var(--muted)">' + _t('Cosa fa?') + '</summary><span style="line-height:1.45">' + g.d + (g.id === 'hags' && GCS.rebootHags ? _t(' <b style="color:var(--a4)">Riavvia il PC per completare.</b>') : '') + '</span></details></span>');
     if (g.act) {
       const b = el('button', {class:'btn ghost', style:'min-height:36px;padding:6px 12px;font-size:12px;flex:0 0 auto'}, g.act);
       b.onclick = async () => {
@@ -5601,7 +5608,7 @@ document.addEventListener('keydown', async (e) => {
   if (!lab) lab = hkLabel(k);
   paintKeys();
   if (err) { hkMsg(err, false); toast(err, 'var(--a4)'); }
-  else { const t = (Object.assign({}, KEYN, KEYX))[k] + ': ' + lab + '.' + (warn ? ' ' + warn : ''); hkMsg('✓ ' + t, !warn); toast(t, warn ? 'var(--a4)' : 'var(--a3)'); }
+  else { const t = (Object.assign({}, KEYN, KEYX))[k] + dp() + lab + '.' + (warn ? ' ' + warn : ''); hkMsg('✓ ' + t, !warn); toast(t, warn ? 'var(--a4)' : 'var(--a3)'); }
 }, true);
 // langMissing: MB dei modelli che mancano per tradurre da → a (-1 = c'è tutto). Si passa sempre dall'inglese.
 function langMissing(da, a){
@@ -5687,7 +5694,7 @@ window.tt = {
   info(x){ if (x && x.testo && !document.body.classList.contains('office')) toast(tx(x.testo)); },
   avanzamento(x){
     if (!x) return; const pc = x.totale ? Math.round(x.fatti * 100 / x.totale) : 0;
-    const t = (DLN[x.cosa] || x.cosa) + ': ' + pc + '%';
+    const t = (DLN[x.cosa] || x.cosa) + dp() + pc + '%';
     if (x.cosa === 'mozilla') { $('#trMozTxt').textContent = _t('Scarico… ') + pc + '%'; const w = $('#gwMoz'); if (w) w.textContent = t; }
     else if (x.cosa === 'ia') $('#trIaTxt').textContent = _t('Scarico… ') + pc + '%';
     else if (x.cosa === 'voci') $('#trVociTxt').textContent = _t('Scarico… ') + pc + '%';
@@ -5696,7 +5703,7 @@ window.tt = {
   },
   scaricato(x){ if (!document.body.classList.contains('office')) toast((DLN[x && x.cosa] || '') + _t(': scaricato.'), 'var(--a3)'); if (x && x.cosa === 'lingue') $('#trLangMsg').textContent = _t('✓ Salvato'); ttRefresh().then(ttRepaint); },
   lingue(x){ if (!Array.isArray(x)) return; LANGS = x; ttRepaint(); if (typeof wzLingue === 'function') wzLingue(); },
-  erroreScarica(x){ if (!document.body.classList.contains('office')) toast((DLN[x && x.cosa] ? DLN[x.cosa] + ': ' : '') + _t('scaricamento non riuscito: ') + tx((x && x.errore) || ''), 'var(--a4)'); ttRefresh().then(ttRepaint); },
+  erroreScarica(x){ if (!document.body.classList.contains('office')) toast((DLN[x && x.cosa] ? DLN[x.cosa] + dp() : '') + _t('scaricamento non riuscito: ') + tx((x && x.errore) || ''), 'var(--a4)'); ttRefresh().then(ttRepaint); },
   guidata(x){ wzProgress(x); },
   verifica(x){ if (x && x.testo) { const v = $('#gwVer'); if (v && W && W.info && W.info.cartella === x.cartella) v.textContent = tx(x.testo); } },
   apriCronologia(){ if (document.body.classList.contains('office')) return; show('games'); gTab('cro'); },
@@ -5897,7 +5904,7 @@ function paintGame(g){
     const k = b.dataset.pow; if (k === gamePow(g.id)) return;
     box.querySelectorAll('[data-pow]').forEach(x => { x.disabled = true; });
     const r = await setPower(g.id, k);
-    if (r && r.ok) { toast(_t('Potenza per ') + g.name + ': ' + POW[k] + '.', 'var(--a3)'); if (m && m.pot) call('goGameMemo', g.id, Object.assign({}, m, {pot: k || 'normale'})).then(refreshS); }
+    if (r && r.ok) { toast(_t('Potenza per ') + g.name + dp() + POW[k] + '.', 'var(--a3)'); if (m && m.pot) call('goGameMemo', g.id, Object.assign({}, m, {pot: k || 'normale'})).then(refreshS); }
     else { toast((r && r.error) || _t('Non sono riuscito a salvare.'), 'var(--a4)'); if (r && r.error && /programma|program/i.test(r.error)) POW_FAIL[g.id] = r.error; }
     if (GP_ID === g.id) paintGame(g);
   }; });
@@ -6082,7 +6089,7 @@ function wzDraw0(){
   $('#gwzSteps').innerHTML = vis.map((n, k) => '<i class="' + (k <= Math.min(W.i, vis.length - 1) ? 'on' : '') + '"></i>').join('');
   const num = Math.min(W.i, vis.length - 1) + 1;
   const P = (t) => '<h3>' + esc(_t('Passo ') + num + ' · ' + t) + '</h3>';
-  const memoBox = (g && W.m && memoTxt(W.m)) ? '<div class="mem"><div><b>🧠 ' + esc(_t('Tasso si ricorda di ')) + esc(g.name) + '</b><span>' + esc(_t('L\'ultima volta')) + (W.m.when ? ' (' + esc(fmtDay(W.m.when)) + ')' : '') + ': ' + esc(memoTxt(W.m)) + '.</span></div><button class="btn ghost" id="gwPrev">' + esc(_t('Usa le stesse →')) + '</button></div>' : '';
+  const memoBox = (g && W.m && memoTxt(W.m)) ? '<div class="mem"><div><b>🧠 ' + esc(_t('Tasso si ricorda di ')) + esc(g.name) + '</b><span>' + esc(_t('L\'ultima volta')) + (W.m.when ? ' (' + esc(fmtDay(W.m.when)) + ')' : '') + dp() + esc(memoTxt(W.m)) + '.</span></div><button class="btn ghost" id="gwPrev">' + esc(_t('Usa le stesse →')) + '</button></div>' : '';
   let h = '';
   if (s === 'pick') {
     const stores = [...new Set(LIB.filter(x => !x.hidden).map(x => x.store))];

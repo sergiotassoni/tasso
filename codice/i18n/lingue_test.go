@@ -385,4 +385,25 @@ func TestFrancesePunteggiatura(t *testing.T) {
 			}
 		}
 	}
+	// RECENSIONE-4c: anche le frasi composte nella pagina. I due punti messi dal codice tra due pezzi
+	// di testo passano da dp(), che in francese mette lo spazio non separabile. Restano fuori solo le
+	// etichette per i lettori di schermo (aria-label), che non si vedono.
+	html, err := os.ReadFile("../ui/index.html")
+	if err != nil {
+		t.Skip("index.html non trovato")
+	}
+	pagina := string(html)
+	if !strings.Contains(pagina, `const dp = () => LANG === 'fr' ? '\u00a0: ' : ': ';`) {
+		t.Error("index.html: manca dp() con lo spazio non separabile per il francese")
+	}
+	composta := regexp.MustCompile(`[+?] ': ' [+:)]`)
+	for _, riga := range strings.Split(pagina, "\n") {
+		for _, m := range composta.FindAllStringIndex(riga, -1) {
+			prima := riga[max(0, m[0]-160):m[0]]
+			if i := strings.LastIndex(prima, `aria-label="'`); i >= 0 && !strings.Contains(prima[i:], `">`) {
+				continue
+			}
+			t.Errorf("index.html: due punti composti senza dp(): …%s…", riga[max(0, m[0]-60):min(len(riga), m[1]+30)])
+		}
+	}
 }
