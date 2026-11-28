@@ -321,6 +321,7 @@ func datiPagina(autoLevel int, controllaAgg bool) map[string]interface{} {
 		"autoLevel":    autoLevel,
 		"cassetta":     strings.HasPrefix(cassettaURL, "https://"),
 		"settings":     getSettings(),
+		"novitaFino":   novitaFinoOra(), // novita.go: le scritte "NUOVO" si vedono fino al giorno prima
 		"steps":        stepList(),
 		"modoFisso":    modalitaFissa(), // ecosistema.go: "gioco"/"ufficio" = niente menu per cambiare modalità
 		"nome":         nomeInfo(),      // nome_utente.go: "Il tuo nome" e il biglietto (anche dopo un cambio di lingua)

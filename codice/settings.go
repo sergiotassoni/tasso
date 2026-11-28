@@ -142,6 +142,9 @@ type Settings struct {
 	FeedbackDay   string `json:"feedbackDay,omitempty"`
 	FeedbackCount int    `json:"feedbackCount,omitempty"`
 	FeedbackSent  int    `json:"feedbackSent,omitempty"`
+	// 3.2 (novita.go): giorno del primo avvio della versione NovitaVer; le scritte "NUOVO" durano 14 giorni.
+	NovitaDal string `json:"novitaDal,omitempty"`
+	NovitaVer string `json:"novitaVer,omitempty"`
 	// Portachiavi > Compila (vault_compila.go): finestrella sui campi di login (0 accesa di base,
 	// 2 spenta), scorciatoia (modificatori<<16|tasto, 0 = spenta), avviso già letto, ci sono account.
 	VtSuggest  int    `json:"vtSuggest,omitempty"`
@@ -398,6 +401,9 @@ func loadSettings() {
 	}
 	if fixSettingsDefaults() && err == nil && !settingsReadOnly {
 		saveSettings() // 3.2: tema dell'Ufficio ritirato già sostituito, non lo rifaccio a ogni avvio
+	}
+	if segnaNovita(&settings, appVersion, time.Now()) && (err == nil || os.IsNotExist(err)) && !settingsReadOnly {
+		saveSettings() // la data delle novità si salva subito: il conto dei 14 giorni parte da qui
 	}
 }
 

@@ -772,6 +772,8 @@ nav button[data-go="opt"]{--ic:#2FF3A6}
 .opt-band .gbig{white-space:nowrap;padding:16px 38px;font-size:19px}
 .opt-band .btn.primary{min-height:54px;padding:14px 34px;font-size:17px;border-radius:14px}
 .opt-new{font:800 10.5px var(--body);letter-spacing:.08em;padding:3px 8px;border-radius:99px;color:var(--ink);background:var(--a1)}
+/* 3.2: le scritte "NUOVO" delle novità si vedono solo per 14 giorni dal primo avvio della versione (novita.go, novitaOn) */
+body:not(.novita-on) .opt-new{display:none}
 body.office .opt-band{border-radius:22px;background:var(--panel)}
 body.office .opt-band h2{font-weight:600;font-stretch:normal;font-size:26px}
 @media (max-width:900px){.opt-band{grid-template-columns:1fr}.opt-band .opt-go{align-items:flex-start}}
@@ -1833,6 +1835,12 @@ navTips(); NAV_STRETTO.addEventListener('change', navTips);
 paintLang();
 const DEC = LANG === 'en' ? '.' : ',';
 let S = BOOT.settings || {};
+// 3.2: scritte "NUOVO" delle novità della versione: fino al giorno BOOT.novitaFino (escluso), calcolato da Go
+// (novita.go: 14 giorni dal primo avvio della versione). Senza la data non si vedono. Si ricontrolla ogni ora:
+// Tasso resta aperto anche per giorni.
+function novitaOn(){ const f = BOOT.novitaFino || '', d = new Date(), oggi = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); return !!f && oggi < f; }
+function paintNovita(){ document.body.classList.toggle('novita-on', novitaOn()); }
+paintNovita(); setInterval(paintNovita, 3600000);
 if (EN && BOOT.steps) BOOT.steps = tx(BOOT.steps);
 let HEALTH = null;
 let LOG_NOMI = {}; // nel registro del passaggio: nome di Go -> nome adatto alla modalità ("» Il PC si scalda")
@@ -3577,7 +3585,6 @@ function paramsOf(r){
   if (r.params) return r.params;
   return {processore: to100(Math.sqrt(Math.max(1, r.cpu1) * Math.max(1, r.cpuN))), schedaVideo: 0, ram: to100(r.ram), disco: r.diskSkip ? 0 : to100(r.disk), leggerezza: Math.max(1, Number(r.light) || 1)};
 }
-const NEW_TAG = '<span style="font-size:10px;font-weight:800;letter-spacing:.06em;padding:2px 7px;border-radius:99px;background:var(--a1);color:var(--ink);margin-left:6px;vertical-align:2px">' + _t('NUOVO') + '</span>';
 function gbTxt(v){ v = Number(v) || 0; return (Math.round(v * 10) / 10).toString().replace('.', DEC) + ' ' + BYTE_U[2]; }
 function diskKind(k){ return k === 'nvme' ? 'SSD NVMe' : k === 'ssd' ? 'SSD' : k === 'hdd' ? _t('disco meccanico (HDD)') : ''; }
 // Le righe del voto (finestra e biglietto): [nome, voto, sotto, nuovo]
@@ -3612,11 +3619,11 @@ function paintBench(r, b, hist){
   const h = (hist || []).slice(-6).reverse();
   $('#bnHist').innerHTML = h.length > 1 ? _t('<div class="small muted" style="margin-bottom:6px">Ultime misure</div><div class="list">') + h.map(x => '<div class="li" style="min-height:40px"><span class="x"><b>' + esc(x.when) + (x.label ? ' · ' + (x.label === 'prima' ? _t('prima della pulizia') : x.label === 'dopo' ? _t('dopo la pulizia') : x.label === 'ottimizza-prima' ? _t('prima di Ottimizza tutto') : x.label === 'ottimizza-dopo' ? _t('dopo Ottimizza tutto') : esc(x.label)) : '') + _t('</b></span><span class="mono small">totale ') + totalOf(x) + (x.formula >= 2 && x.report ? _t(' · potenza ') + x.report.potenza : _t(' · componenti ') + v100(x.score)) + _t(' · leggerezza ') + Math.max(1, Number(x.light) || 1) + '</span></div>').join('') + '</div>' : '';
 }
-// Riquadri della formula 2: un riquadro per parametro (la scheda video con l'etichetta NUOVO).
+// Riquadri della formula 2: un riquadro per parametro (niente etichetta NUOVO sulla scheda video: chiesto da Sergio).
 function votoTiles(r, b){
   const pb = b ? paramsOf(b) : null, keys = ['processore', 'schedaVideo', 'ram', 'disco', 'leggerezza', 'raffreddamento'];
   const byName = {}; if (pb) votoRows(b).forEach(x => { byName[x[0]] = x[1]; });
-  let out = votoRows(r).map(x => benchTile(esc(x[0]) + (x[3] ? NEW_TAG : ''), x[1], esc(x[2]), pb && byName[x[0]] != null ? byName[x[0]] : null)).join('');
+  let out = votoRows(r).map(x => benchTile(esc(x[0]), x[1], esc(x[2]), pb && byName[x[0]] != null ? byName[x[0]] : null)).join('');
   const rp = r.report || {};
   if (rp.schedaMadre) out += '<div class="small muted" style="grid-column:1/-1">' + _t('Scheda madre: ') + esc(rp.schedaMadre) + (rp.bios ? ' · BIOS ' + esc(rp.bios) : '') + _t(' (solo informazione, senza voto)') + '</div>';
   return out;
