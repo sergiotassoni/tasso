@@ -60,6 +60,12 @@ type Installatore struct {
 	// lingua. nil = lo stesso utente (il caso normale) o i test.
 	RegistroUtente       Registro
 	CartellaDatiSessione func() string
+	// TogliCartellaSessione toglie una cartella della %LOCALAPPDATA% dell'utente della sessione
+	// CON I PERMESSI DI QUELL'UTENTE (il token del suo explorer.exe), mai da amministratore: il
+	// percorso viene dal suo HKCU, che lui può cambiare, e con una giunzione potrebbe far
+	// cancellare all'amministratore una cartella di Windows (RECENSIONE-3b, R3b-1). nil con
+	// CartellaDatiSessione = la cartella non si cancella e si dice che è rimasta.
+	TogliCartellaSessione func(p string) error
 	// EsisteFile: il file c'è? Serve per le voci di un'altra copia di Zip o PDF (si lasciano solo
 	// se quell'exe esiste ancora). nil = os.Stat.
 	EsisteFile func(percorso string) bool
@@ -128,6 +134,15 @@ func (in *Installatore) togliCartella(p string) error {
 		return fmt.Errorf("%s: non tolta del tutto (un file è aperto?)", p)
 	}
 	return nil
+}
+
+// togliCartellaSessione: come togliCartella, ma per la cartella dati dell'utente della sessione
+// (UAC con un altro account), solo con i suoi permessi. Senza il modo di farlo, non si tocca.
+func (in *Installatore) togliCartellaSessione(p string) error {
+	if in.TogliCartellaSessione == nil {
+		return fmt.Errorf("%s: non tolta (si cancella solo con i permessi dell'utente della sessione)", p)
+	}
+	return in.TogliCartellaSessione(p)
 }
 
 func (in *Installatore) adesso() time.Time {

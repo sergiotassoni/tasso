@@ -143,6 +143,9 @@ label.scelta.fissa{cursor:default;opacity:.7}
 .sopraPiede{padding:10px 34px;border-top:1px solid var(--line);background:color-mix(in srgb,var(--panel) 55%,transparent)}
 .piede{display:flex;justify-content:flex-end;align-items:center;gap:10px;padding:11px 34px 13px;border-top:1px solid var(--line)}
 .piede .msg{margin-right:auto;flex:1;min-width:0;overflow-wrap:anywhere;color:var(--red);font-size:13px}
+/* finestra piccola: il messaggio lungo del piede (es. "Ancora aperti" in tedesco) va sopra i pulsanti, su tutta la larghezza, invece che in una colonna stretta di 7 righe */
+.piede .msg:empty{display:none}
+@media (max-width:800px),(max-height:560px){.piede{flex-wrap:wrap;row-gap:8px}.piede .msg.lungo{flex:1 1 100%;line-height:1.4}}
 .btn{border:0;border-radius:9px;padding:10px 24px;font:800 13px var(--display);font-stretch:112%;letter-spacing:.08em;text-transform:uppercase;min-height:40px;transition:transform .15s,box-shadow .15s,background .15s}
 .btn.primary{background:var(--text);color:var(--bg)}
 .btn.primary:hover{background:#fff;transform:translateY(-1px);box-shadow:0 0 0 3px color-mix(in srgb,var(--text) 14%,transparent)}
@@ -340,7 +343,7 @@ function dim(n){
   return new Intl.NumberFormat(L, {maximumFractionDigits: i >= 3 ? 1 : 0}).format(n) + ' ' + u[i];
 }
 function toast(t){ const e = $('#toast'); e.textContent = t; e.classList.add('on'); clearTimeout(toast.t); toast.t = setTimeout(() => e.classList.remove('on'), 3500); }
-function msg(t){ $('#msg').textContent = t || ''; }
+function msg(t){ $('#msg').textContent = t || ''; $('#msg').classList.toggle('lungo', (t || '').length > 70); } // lungo: sopra i pulsanti nella finestra piccola
 // disinstalla: l'attesa e gli errori stanno dentro la pagina, sotto le schede; intanto la nota
 // che spiega cosa succede togliendo Tasso si nasconde (è già stata letta prima di premere)
 function disStato(t, tipo){
@@ -535,7 +538,8 @@ async function installa(ripeti){
 // salvato, dopo "Annulla"): l'installatore non li chiude a forza e dice quale chiudere.
 async function testoRestano(cartella, componenti){
   const resta = await call('goProgrammiAperti', cartella, componenti);
-  return resta && resta.length ? T('aperti_restano', resta.join(', ')) : T('aperti_errore');
+  if (!resta || !resta.length) return T('aperti_errore');
+  return T(resta.length === 1 ? 'aperti_restano' : 'aperti_restano_n', resta.join(', ')); // "Ancora aperti: …, chiudili"
 }
 function chiediChiusura(nomi){
   return new Promise(ok => {

@@ -184,15 +184,17 @@ func (in *Installatore) togliTracceUtente(base string, p Programma) []string {
 			}
 		}
 	}
-	dati := in.CartellaDatiUtente
+	dati, togli := in.CartellaDatiUtente, in.togliCartella
 	if in.CartellaDatiSessione != nil {
-		dati = in.CartellaDatiSessione // Zip e PDF: la %LOCALAPPDATA% dell'utente che li usa
+		// Zip e PDF: la %LOCALAPPDATA% dell'utente che li usa, tolta con i SUOI permessi (R3b-1)
+		dati, togli = in.CartellaDatiSessione, in.togliCartellaSessione
 	}
 	if dati != nil {
 		if nome := cartellaDatiProgramma(p); nome != "" {
 			if radice := dati(); radice != "" && filepath.IsAbs(radice) {
 				d := filepath.Join(radice, nome)
-				if err := in.togliCartella(d); err != nil {
+				if err := togli(d); err != nil {
+					Diario("cartella dati %s non tolta: %v", d, err)
 					nonTolti = append(nonTolti, d)
 				}
 			}

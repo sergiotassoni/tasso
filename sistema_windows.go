@@ -1071,8 +1071,17 @@ func utenteSessione() (installa.Registro, func() string, bool) {
 			return nil, nil, false
 		}
 		dati, _ := tok.KnownFolderPath(windows.FOLDERID_LocalAppData, 0)
+		// R3b-1: la sua cartella dati si cancella con i SUOI permessi. Copia del token adatta a
+		// impersonare (resta aperta finché l'installatore gira: è il processo che la chiude).
+		var imp windows.Token
+		if err := windows.DuplicateTokenEx(tok, windows.TOKEN_IMPERSONATE|windows.TOKEN_QUERY, nil,
+			windows.SecurityImpersonation, windows.TokenImpersonation, &imp); err != nil {
+			installa.Diario("token dell'utente della sessione non copiato (%v): la sua cartella dati non si cancella", err)
+			imp = 0
+		}
 		tok.Close()
 		installa.Diario("UAC con un altro account: tracce di Zip e PDF nell'utente della sessione %s (%s)", sid, dati)
+		utenteToken, utenteSID = imp, sid
 		return registroWin{hkcu: k}, func() string { return dati }, true
 	}
 	return nil, nil, false
@@ -1082,7 +1091,49 @@ var (
 	utenteUna    sync.Once
 	utenteReg    installa.Registro
 	utenteCartel func() string
+	utenteToken  windows.Token // copia per impersonare l'utente della sessione (0 = non c'è)
+	utenteSID    string
 )
+
+// togliComeUtenteSessione (RECENSIONE-3b, R3b-1) toglie la cartella p con i permessi dell'utente
+// della sessione, mai da amministratore: il percorso viene dal suo HKCU ("Local AppData" lo può
+// cambiare lui) e con una giunzione potrebbe far cancellare all'amministratore file di Windows.
+// Impersonato, Windows gli lascia cancellare solo quello che potrebbe cancellare da solo.
+// Il lavoro si fa in un filo di sistema a parte, legato al goroutine e mai sciolto: quando il
+// goroutine finisce, Go chiude quel filo, così nessun altro lavoro gira con il token dell'utente.
+func togliComeUtenteSessione(p string) error {
+	if utenteToken == 0 {
+		return fmt.Errorf("%s: non tolta (manca il token dell'utente della sessione)", p)
+	}
+	fatto := make(chan error, 1)
+	go func() {
+		runtime.LockOSThread() // niente UnlockOSThread: il filo muore con il goroutine
+		if err := windows.SetThreadToken(nil, utenteToken); err != nil {
+			fatto <- fmt.Errorf("%s: non tolta (impersonazione non riuscita: %v)", p, err)
+			return
+		}
+		defer windows.RevertToSelf()
+		// controllo: il filo gira davvero come l'utente della sessione, a livello "impersonazione"
+		var tt windows.Token
+		if err := windows.OpenThreadToken(windows.CurrentThread(), windows.TOKEN_QUERY, true, &tt); err != nil {
+			fatto <- fmt.Errorf("%s: non tolta (token del filo: %v)", p, err)
+			return
+		}
+		u, err := tt.GetTokenUser()
+		tt.Close()
+		if err != nil || u.User.Sid.String() != utenteSID {
+			fatto <- fmt.Errorf("%s: non tolta (il filo non è dell'utente della sessione)", p)
+			return
+		}
+		_ = os.RemoveAll(p)
+		if _, err := os.Lstat(p); err == nil {
+			fatto <- fmt.Errorf("%s: non tolta del tutto (un file è aperto, o non è dell'utente?)", p)
+			return
+		}
+		fatto <- nil
+	}()
+	return <-fatto
+}
 
 // conUtenteSessione aggiunge all'installatore l'utente della sessione, se è diverso.
 func conUtenteSessione(in *installa.Installatore) *installa.Installatore {
@@ -1093,6 +1144,7 @@ func conUtenteSessione(in *installa.Installatore) *installa.Installatore {
 	})
 	if utenteReg != nil {
 		in.RegistroUtente, in.CartellaDatiSessione = utenteReg, utenteCartel
+		in.TogliCartellaSessione = togliComeUtenteSessione
 	}
 	return in
 }
