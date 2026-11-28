@@ -21,13 +21,24 @@ var snapMu sync.Mutex
 // ensureSnapshot salva le impostazioni originali di Windows la prima volta che Tasso sta per cambiarle.
 // ensureSnapshot salva com'era Windows prima del primo cambio. Restituisce false se non ci
 // riesce: in quel caso chi chiama non cambia niente (altrimenti "Rimetti com'era" non potrebbe funzionare).
-func ensureSnapshot() bool {
+func ensureSnapshot() bool { return ensureSnapshotDa(false) }
+
+// ensureSnapshotOtt: come ensureSnapshot, per Ottimizza tutto. Se la foto la fa lui lo ricorda
+// (SnapshotDaOtt): quando tutte le sue modifiche sono rimesse, la foto non serve più e "Torna
+// indietro" non deve mostrare "Impostazioni di Windows" come se restasse qualcosa (P3).
+func ensureSnapshotOtt() bool { return ensureSnapshotDa(true) }
+
+func ensureSnapshotDa(ott bool) bool {
 	snapMu.Lock()
 	defer snapMu.Unlock()
 	setMu.Lock()
-	has := len(settings.Snapshot) > 0
+	has, daOtt := len(settings.Snapshot) > 0, settings.SnapshotDaOtt
 	setMu.Unlock()
 	if has {
+		if !ott && daOtt {
+			// un'altra parte di Tasso cambia Windows partendo da questa foto: adesso serve a tutti
+			updateSettings(func(s *Settings) { s.SnapshotDaOtt = false })
+		}
 		return true
 	}
 	r := runPS(snapshotScript, 2*time.Minute, nil)
@@ -44,8 +55,38 @@ func ensureSnapshot() bool {
 		// i valori messi da Ottimizza tutto o dal passo Privacy diventano il loro com'era vero
 		s.Snapshot = json.RawMessage(fotoConPrimaVera(r.JSON))
 		s.SnapshotAt = time.Now().Format("2006-01-02 15:04")
+		s.SnapshotDaOtt = ott
 	})
 	return true
+}
+
+// fotoSoloOttDaTogliere: la regola di togliFotoSoloOtt (foto fatta solo da Ottimizza, niente di
+// Ottimizza o della Privacy ancora da rimettere).
+func fotoSoloOttDaTogliere(daOtt bool, attiveOtt, attivePrivacy int) bool {
+	return daOtt && attiveOtt == 0 && attivePrivacy == 0
+}
+
+// togliFotoSoloOtt (P3): la foto fatta da Ottimizza tutto, che nessun'altra parte di Tasso ha usato,
+// si toglie quando non resta niente di suo da rimettere (né di Ottimizza né della Privacy). Così
+// dopo "Rimetti com'era tutto" in "Torna indietro" non resta la riga "Impostazioni di Windows".
+// Restituisce true se l'ha tolta.
+func togliFotoSoloOtt() bool {
+	setMu.Lock()
+	daOtt := settings.SnapshotDaOtt && len(settings.Snapshot) > 0
+	setMu.Unlock()
+	if !daOtt || !fotoSoloOttDaTogliere(daOtt, attiveOtt(), privacyAttive()) {
+		return false
+	}
+	snapMu.Lock()
+	defer snapMu.Unlock()
+	tolta := false
+	updateSettings(func(s *Settings) {
+		if s.SnapshotDaOtt {
+			s.Snapshot, s.SnapshotAt, s.SnapshotDaOtt = nil, "", false
+			tolta = true
+		}
+	})
+	return tolta
 }
 
 // rememberStartup ricorda com'era un programma all'avvio prima del primo cambio fatto da Tasso.
@@ -200,6 +241,7 @@ func restoreOriginalDentro(ottOK, nulla *bool) (msgs []string, ok bool, avvioNo 
 		if snapOK {
 			s.Snapshot = nil
 			s.SnapshotAt = ""
+			s.SnapshotDaOtt = false
 			s.Mode = "originale"
 		}
 		s.StartupOrig = nil

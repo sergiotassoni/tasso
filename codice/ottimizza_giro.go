@@ -86,7 +86,7 @@ func giroOtt(modo string) {
 
 	// 2. le modifiche, una alla volta. Prima la foto di com'era Windows (se non c'è ancora): così
 	// "Rimetti tutto com'era" non prende mai come "com'era" il piano o un valore messo da Tasso.
-	if !ensureSnapshot() {
+	if !ensureSnapshotOtt() {
 		logf("Foto di com'era Windows non salvata: vado avanti, ogni modifica ha comunque il suo com'era.")
 	}
 	elenco := ottimizza.Elenco(modo)
@@ -167,6 +167,7 @@ func giroOtt(modo string) {
 			msg = "Fermato: non ho cambiato niente."
 		}
 		logf(msg)
+		togliFotoSoloOtt() // P3: niente di suo resta cambiato, la foto fatta per questo giro non serve
 		emit("onOttStato", map[string]interface{}{"fase": "fermato", "msg": msg})
 		return
 	}
@@ -247,19 +248,22 @@ func misuraOtt(ctx context.Context, modo string, prima bool, logf func(string)) 
 	m := ottimizza.Misura{Quando: time.Now().Format(time.RFC3339)}
 	valori := map[string]interface{}{}
 	var comps []map[string]interface{}
-	durata := 40.0 // secondi stimati che restano
-	prog := func(pct float64, testo string) {
-		emit("onOttMisura", map[string]interface{}{"prima": prima, "pct": math.Round(pct), "testo": testo,
-			"secondi": int(math.Max(1, durata*(100-pct)/100)), "valori": valori, "componenti": comps})
+	// L'avanzamento segue il lavoro vero: ogni parte ha i suoi secondi stimati (quelli del Voto e
+	// dell'apertura dei programmi presi dalla misura di prima, se c'è), e "resta" si aggiorna man mano.
+	stima := stimeOtt()
+	votoTot := 0.0
+	for _, d := range stima.voto {
+		votoTot += d
 	}
 	gioco := modo != ottimizza.ModoUfficio
+	fase := stima.apertura
 	if gioco {
-		durata = 70
-	} else {
-		durata = 70 // ogni programma si apre due volte (la prima non conta)
+		fase = 34 // la scena di prova: 3 secondi di riscaldamento e 30 di misura
 	}
-	if !prima {
-		durata -= 10
+	resta := 1.5 + fase + votoTot
+	prog := func(pct float64, testo string) {
+		emit("onOttMisura", map[string]interface{}{"prima": prima, "pct": math.Round(pct), "testo": testo,
+			"secondi": int(math.Max(1, math.Round(resta))), "valori": valori, "componenti": comps})
 	}
 	// componenti (Leggo i componenti…)
 	prog(1, "Leggo i componenti…")
@@ -273,9 +277,11 @@ func misuraOtt(ctx context.Context, modo string, prima bool, logf func(string)) 
 	}
 	for i, v := range voci {
 		comps = append(comps, map[string]interface{}{"chiave": v[0], "nome": v[1]})
+		resta = 1.5 - float64(i)*0.35 + fase + votoTot
 		prog(2+float64(i)*2, "Leggo i componenti…")
 		pausaOtt(ctx, 350*time.Millisecond)
 	}
+	resta = fase + votoTot
 	pct := 10.0
 	if gioco {
 		// la scena di prova DirectX: FPS medi e più bassi (1%)
@@ -285,12 +291,15 @@ func misuraOtt(ctx context.Context, modo string, prima bool, logf func(string)) 
 			if f > 0.6 {
 				testo = "Misuro gli FPS più bassi…"
 			}
+			resta = (1-f)*30 + votoTot
 			prog(10+f*40, testo)
 		})
 		if err == nil {
 			m.FPSMedi, m.FPSBassi, m.FPSOk = ottimizza.StatFotogrammi(durate)
 		}
-		if !m.FPSOk {
+		if ctx.Err() != nil {
+			// Fermati: niente avviso "la scena non è partita" (non è vero, l'hai fermata tu)
+		} else if !m.FPSOk {
 			m.FPSMotivo = "La scena di prova DirectX non è partita su questo PC: continuo senza FPS."
 			if err != nil {
 				logf("Scena di prova: " + err.Error())
@@ -316,7 +325,14 @@ func misuraOtt(ctx context.Context, modo string, prima bool, logf func(string)) 
 		}
 		pct = 15
 		prog(pct, "Apro i programmi di tutti i giorni…")
-		m.Apertura = aperturaOtt(ctx, func(f float64) { prog(15+f*30, "Apro i programmi di tutti i giorni…") }, logf)
+		tAp := time.Now()
+		m.Apertura = aperturaOtt(ctx, func(f float64) {
+			resta = math.Max((1-f)*fase, fase-time.Since(tAp).Seconds()) + votoTot
+			prog(15+f*30, "Apro i programmi di tutti i giorni…")
+		}, logf)
+		if ctx.Err() == nil {
+			salvaStimaAperturaOtt(time.Since(tAp).Seconds())
+		}
 		if p, _, ok := ottimizza.AperturaTotale(m.Apertura, nil); ok {
 			valori["apertura"] = math.Round(p*10) / 10
 		}
@@ -325,19 +341,41 @@ func misuraOtt(ctx context.Context, modo string, prima bool, logf func(string)) 
 	if ctx.Err() != nil {
 		return m, nil
 	}
-	// il Voto al PC completo (circa 25 secondi): l'avanzamento va avanti da solo
+	// il Voto al PC completo: 6 prove. La barra va avanti con le prove vere (e dentro ogni prova con
+	// il tempo che ci ha messo l'altra volta, senza mai passarla); al 100% solo quando è finito.
+	resta = votoTot
 	prog(pct, "Calcolo il Voto al PC…")
-	fermo := make(chan struct{})
+	var passoMu sync.Mutex
+	passoI, passoT, fatte := 0, time.Now(), [6]float64{}
+	avanti := func() {
+		passoMu.Lock()
+		i, el := passoI, time.Since(passoT).Seconds()
+		passoMu.Unlock()
+		if i >= len(stima.voto) {
+			return
+		}
+		fatto, dopoI := 0.0, 0.0
+		for k, d := range stima.voto {
+			if k < i {
+				fatto += d
+			} else if k > i {
+				dopoI += d
+			}
+		}
+		fatto += math.Min(el, stima.voto[i]*0.9)
+		resta = math.Max(0.5, stima.voto[i]-el) + dopoI
+		prog(math.Min(99, pct+(100-pct)*fatto/votoTot), "Calcolo il Voto al PC…")
+	}
+	fermo, finito := make(chan struct{}), make(chan struct{})
 	go func() {
 		defer guard("ottimizza:avanzamento")
-		t0 := time.Now()
+		defer close(finito)
 		for {
 			select {
 			case <-fermo:
 				return
-			case <-time.After(700 * time.Millisecond):
-				f := math.Min(0.97, time.Since(t0).Seconds()/26)
-				prog(pct+(99-pct)*f, "Calcolo il Voto al PC…")
+			case <-time.After(500 * time.Millisecond):
+				avanti()
 			}
 		}
 	}()
@@ -345,8 +383,17 @@ func misuraOtt(ctx context.Context, modo string, prima bool, logf func(string)) 
 	if prima {
 		etichetta = "ottimizza-prima"
 	}
-	r := runBench(etichetta)
+	r := runBenchPassi(etichetta, func(i int) {
+		passoMu.Lock()
+		if i > 0 && i-1 < len(fatte) {
+			fatte[i-1] = time.Since(passoT).Seconds()
+		}
+		passoI, passoT = i, time.Now()
+		passoMu.Unlock()
+	})
 	close(fermo)
+	<-finito
+	salvaStimaVotoOtt(fatte)
 	m.Voto, m.Leggerezza = r.Total, r.Light
 	if m.Voto <= 0 {
 		m.Voto = int(math.Max(1, math.Round(0.6*float64(score100(r.Score))+0.4*math.Max(1, float64(r.Light)))))
@@ -382,8 +429,46 @@ func misuraOtt(ctx context.Context, modo string, prima bool, logf func(string)) 
 		}
 	}
 	logf(fmt.Sprintf("Voto al PC: %d", m.Voto))
+	resta = 0
 	prog(100, "Misura finita")
+	time.Sleep(900 * time.Millisecond) // il 100% si vede prima del passo dopo (o del risultato)
 	return m, out
+}
+
+// Le stime dei secondi per l'avanzamento: all'inizio quelle tipiche, poi quelle vere dell'ultima
+// misura (così la seconda misura sa quanto ci mette questo PC).
+type stimeOttT struct {
+	voto     [6]float64 // processore 1 core, tutti i core, memoria, disco, scheda video, leggerezza
+	apertura float64
+}
+
+var (
+	stimeOttMu sync.Mutex
+	stimeOttV  = stimeOttT{voto: [6]float64{2.1, 2.1, 1.5, 2.5, 0.5, 4}, apertura: 25}
+)
+
+func stimeOtt() stimeOttT {
+	stimeOttMu.Lock()
+	defer stimeOttMu.Unlock()
+	return stimeOttV
+}
+
+func salvaStimaVotoOtt(d [6]float64) {
+	stimeOttMu.Lock()
+	defer stimeOttMu.Unlock()
+	for i, x := range d {
+		if x > 0.05 && x < 300 {
+			stimeOttV.voto[i] = x
+		}
+	}
+}
+
+func salvaStimaAperturaOtt(s float64) {
+	stimeOttMu.Lock()
+	defer stimeOttMu.Unlock()
+	if s > 1 && s < 600 {
+		stimeOttV.apertura = s
+	}
 }
 
 // ---------------- Tempo di accensione (Windows) ----------------

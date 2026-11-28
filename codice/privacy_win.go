@@ -137,6 +137,13 @@ func privacyRimetti(log func(string)) psResult {
 	return psResult{}
 }
 
+// privacyAttive: quante impostazioni di privacy cambiate da Tasso ci sono da rimettere.
+func privacyAttive() int {
+	privMu.Lock()
+	defer privMu.Unlock()
+	return len(caricaPrivacyLock().Attive())
+}
+
 // privacyRimettiTutto: per "Rimetti tutto com'era" (prima della foto). nil se non c'è niente.
 func privacyRimettiTutto() []string {
 	privMu.Lock()

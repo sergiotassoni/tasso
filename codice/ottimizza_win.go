@@ -557,7 +557,7 @@ func (p pulVero) Pulisci(id string) (int64, error) {
 	if st == nil {
 		return 0, errors.New("passaggio sconosciuto")
 	}
-	if passoConFoto[id] && !ensureSnapshot() && id != "backup" {
+	if passoConFoto[id] && !ensureSnapshotOtt() && id != "backup" {
 		return 0, errors.New("foto di com'era non salvata")
 	}
 	if p.log != nil {
@@ -1035,7 +1035,7 @@ func applicaUnaOtt(id string) ottimizza.Esito {
 	if ottInCorso.Load() {
 		return ottimizza.Esito{ID: id, Stato: ottimizza.VoceErrore, Motivo: msgAspettaOtt}
 	}
-	_ = ensureSnapshot() // la foto di com'era prima del cambio (C-1)
+	_ = ensureSnapshotOtt() // la foto di com'era prima del cambio (C-1)
 	a := ambienteOtt(context.Background(), nil)
 	ottMu.Lock()
 	defer ottMu.Unlock()
@@ -1548,6 +1548,7 @@ func bindOttimizza(w webview2.WebView) {
 	_ = w.Bind("goOttRimetti", func(id string) string {
 		return async("ottimizza-rimetti", func() {
 			e := rimettiOtt(id)
+			togliFotoSoloOtt() // P3: se era l'ultima modifica, la foto fatta da Ottimizza non serve più
 			emit("onOttRimesso", map[string]interface{}{"esito": e, "info": infoOtt()})
 		})
 	})
@@ -1560,6 +1561,9 @@ func bindOttimizza(w webview2.WebView) {
 	_ = w.Bind("goOttRimettiTutto", func() string {
 		return async("ottimizza-rimetti", func() {
 			es, ok := rimettiTuttoOtt(false)
+			if ok {
+				togliFotoSoloOtt() // P3: "Torna indietro" non mostra più "Impostazioni di Windows"
+			}
 			emit("onOttRimesso", map[string]interface{}{"tutto": true, "ok": ok, "n": len(es), "esiti": es, "info": infoOtt()})
 		})
 	})

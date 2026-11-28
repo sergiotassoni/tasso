@@ -102,6 +102,10 @@ type Settings struct {
 	Snapshot    json.RawMessage `json:"snapshot,omitempty"`
 	SnapshotAt  string          `json:"snapshotAt,omitempty"`
 	StartupOrig map[string]bool `json:"startupOrig,omitempty"`
+
+	// P3 (3.2): la foto l'ha fatta Ottimizza tutto e nessun'altra parte di Tasso l'ha ancora usata.
+	SnapshotDaOtt bool `json:"snapshotDaOtt,omitempty"`
+
 	// "Regola con Tasso": regolazioni per gioco e modalità del PC da mettere quando parte quel gioco.
 	GameTunes map[string]*GameTune `json:"gameTunes,omitempty"`
 	GameModes map[string]string    `json:"gameModes,omitempty"`

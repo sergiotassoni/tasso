@@ -892,6 +892,10 @@ body.office .opt-barrow,body.office .opt-tg .lab,body.office .opt-stage .sk,body
 .r2r .ar{color:var(--muted);text-align:center;font-family:var(--body)}
 .r2r .af{text-align:left;color:var(--text)}
 .r2r .af small{font:500 11px var(--body);color:var(--muted);margin-left:4px}
+.r2r .af small.pc{color:var(--a1t, var(--a1));font-weight:600;margin-left:8px;white-space:nowrap}
+.opt-meas>div{display:flex;flex-direction:column}.opt-meas dt{flex:1 0 auto}
+.opt-scena{margin:10px 0 0;font:400 13px/1.45 var(--body);color:var(--muted)}
+.opt-fermo{font-weight:600;color:var(--text)!important;margin-bottom:6px}
 .r2r .af.up{color:var(--a1t)}
 body.office .r2r span{font-family:var(--body)}
 .r2fn{margin:14px 0 0;font-size:12.5px;color:var(--muted);max-width:56ch}
@@ -1411,7 +1415,7 @@ body.office .cardmodo{font-weight:700;font-stretch:normal;letter-spacing:-.02em;
       <div class="li" id="trVociRow"><span style="flex:1"><b>Voci tradotte (sottotitoli)</b><br><span class="small muted" id="trVociTxt"></span></span><button class="btn ghost" id="btnTrVoci">Scarica</button></div>
       <div class="li" id="trChatRow"><span style="flex:1"><b>Chat tradotta</b><br><span class="small muted" id="trChatTxt"></span></span><button class="btn ghost" id="btnTrChat">Scarica</button></div>
       <div class="li" id="trChatAltriRow"><span style="flex:1"><b>Traduci i messaggi degli altri</b><br><span class="small muted" id="trChatAltriTxt"></span></span><button class="btn ghost" id="btnTrChatZona">Scegli dove sta la chat</button><button class="sw" role="switch" aria-checked="false" id="trSwChatAltri" aria-label="Traduci i messaggi degli altri"><i></i></button></div>
-      <div class="li"><span style="flex:1"><b>Traduci da solo appena apro un gioco</b><br><span class="small muted">Spento: Tasso traduce da solo i giochi che hai preparato, e per gli altri te lo chiede.</span></span><button class="sw" role="switch" aria-checked="false" id="trSwAuto" aria-label="Traduci da solo appena apro un gioco"><i></i></button></div>
+      <div class="li"><span style="flex:1"><b>Traduci da solo appena apro un gioco</b><br><span class="small muted" id="trSwAutoNota">Spento: Tasso traduce da solo i giochi che hai preparato, e per gli altri te lo chiede.</span></span><button class="sw" role="switch" aria-checked="false" id="trSwAuto" aria-label="Traduci da solo appena apro un gioco"><i></i></button></div>
       <div class="li"><span style="flex:1"><b>Mostra anche la frase originale</b><br><span class="small muted">Sotto la traduzione vedi anche la frase originale.</span></span><button class="sw" role="switch" aria-checked="false" id="trSwEn" aria-label="Mostra anche la frase originale"><i></i></button></div>
       <div class="row wrap" style="gap:14px;align-items:flex-end"><label class="acf">Dove mettere la traduzione<select id="trPos"><option value="sopra">Sopra la scritta</option><option value="sotto">Sotto la scritta</option><option value="copri">Al posto della scritta</option><option value="lato">Di lato</option><option value="sottotitoli">In basso, come sottotitoli</option></select></label><label class="acf">Grandezza del testo <span class="small muted" id="trFontV"></span><input type="range" id="trFont" min="14" max="48" step="1"></label></div>
       <div class="row wrap" style="gap:8px"><button class="btn ghost" id="btnTrZona">Traduci solo una zona</button><button class="btn ghost" id="btnTrWords">Parole fisse</button></div>
@@ -3874,7 +3878,7 @@ async function ottApri(){
   OTT.modo = isOffice() ? 'ufficio' : 'gioco';
   const r = ottRisultato();
   if (r && r.risultato && r.risultato.accInAttesa) call('goOttAccensione');
-  OTT.vista = OTT.vuoleInizio ? 'inizio' : OTT.vista === 'elenco' ? 'elenco' : (r ? 'risultato' : 'inizio');
+  OTT.vista = OTT.vuoleInizio || OTT.fermato ? 'inizio' : OTT.vista === 'elenco' ? 'elenco' : (r ? 'risultato' : 'inizio');
   OTT.vuoleInizio = false;
   ottDisegna();
 }
@@ -3903,6 +3907,7 @@ function ottInizio(){
   ottView(ottHead(0, ottPill()) +
     '<div class="opt-body"><div><h1 class="opt-title" tabindex="-1">' + (off ? _t('Un PC più svelto per lavorare') : _t('Rendi il PC più veloce nei giochi')) + '</h1>' +
     '<p class="opt-sub">' + (off ? _t('Un pulsante solo: Tasso misura il PC, sistema Windows per lavorare e ti mostra la differenza.') : _t('Un pulsante solo: Tasso misura il PC, sistema Windows per giocare e ti mostra la differenza.')) + ' ' +
+    (OTT.fermato && OTT.fermato.trim() ? '<p class="opt-sub opt-fermo" role="status">' + esc(OTT.fermato) + '</p>' : '') +
     (off ? _t('Ogni impostazione cambiata si rimette com\'era con un interruttore; i file inutili tolti dalla pulizia no.') + ' ' + _t('L\'antivirus non si tocca. Gli aggiornamenti non si spengono mai: Tasso evita solo i riavvii mentre lavori e non manda gli aggiornamenti ad altri PC.') : _t('Ogni cosa che cambia si rimette com\'era con un interruttore.') + ' ' + _t('L\'antivirus non si tocca. Gli aggiornamenti non si spengono mai: Tasso evita solo i riavvii mentre giochi e non manda gli aggiornamenti ad altri PC.')) + '</p></div>' +
     '<div class="opt-foot"><div class="opt-hints">' + OTT_INFO + '<span>' + (off ? _t('Salva il lavoro aperto: Tasso apre e chiude Esplora file, Blocco note e il browser (con una sua pagina vuota, che resta nella cronologia).') : _t('Chiudi i giochi e il browser: la misura viene più giusta.')) + '</span></div>' +
     '<button class="' + (off ? 'btn primary' : 'gbig') + '" id="ottGo">' + (off ? _t('Ottimizza tutto') : _t('OTTIMIZZA TUTTO')) + '</button></div></div>');
@@ -3920,7 +3925,7 @@ function ottMisura(){
     cols = [[_t('Accensione del PC'), accTxt], [_t('Apertura programmi'), dd(v.apertura, 's', 1)], [_t('Voto al PC') + (v.voto == null && m.pct > 0 ? _t(' · in corso') : ''), dd(v.voto, '/100')]];
   } else {
     const noFps = OTT.fpsNo ? '<dd class="no">' + esc(OTT.fpsNo) + '</dd>' : null;
-    cols = [[_t('FPS medi'), noFps || dd(v.fps, 'FPS')], [_t('FPS più bassi (1%)'), noFps ? dd(null) : dd(v.fps1, 'FPS')], [_t('Voto al PC') + (v.voto == null && m.pct > 0 ? _t(' · in corso') : ''), dd(v.voto, '/100')]];
+    cols = [[OTT_RIGHE.fps, noFps || dd(v.fps, 'FPS')], [OTT_RIGHE.fps1, noFps ? dd(null) : dd(v.fps1, 'FPS')], [_t('Voto al PC') + (v.voto == null && m.pct > 0 ? _t(' · in corso') : ''), dd(v.voto, '/100')]];
   }
   const nomi = {cpu: _t('Processore'), gpu: _t('Scheda video'), ram: _t('Memoria RAM'), disco: _t('Disco'), leggerezza: _t('Leggerezza di Windows')};
   const cs = m.componenti || [];
@@ -3931,6 +3936,7 @@ function ottMisura(){
     '<div class="opt-body"><div><h1 class="opt-title" tabindex="-1">' + (dopo ? _t('Misuro di nuovo') + '<br>' + _t('per vedere la differenza') : _t('Misuro il tuo PC') + '<br>' + _t('prima di cambiare qualcosa')) + '</h1><p class="opt-sub">' + sub + '</p></div>' +
     '<div><div class="opt-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + Math.round(pct) + '"><i style="width:' + pct + '%"></i></div><div class="opt-barrow"><span>' + esc(m.testo || '') + '</span><b>' + Math.round(pct) + '%' + (pct < 100 && m.secondi ? '  ·  ' + _t('ancora circa ') + m.secondi + _t(' secondi') : '') + '</b></div></div>' +
     '<dl class="opt-meas">' + cols.map(c => '<div><dt>' + c[0] + '</dt>' + c[1] + '</div>').join('') + '</dl>' +
+    (off ? '' : '<p class="opt-scena">' + _t('È una scena di prova di Tasso, pesante come un gioco di media pesantezza: serve a confrontare il prima e il dopo, non sono gli FPS dei tuoi giochi.') + '</p>') +
     '<div class="opt-comps">' + comps + '</div>' +
     '<div class="opt-foot"><div class="opt-hints">' + OTT_INFO + '<span>' + (off ? _t('Salva il lavoro aperto: Tasso apre e chiude Esplora file, Blocco note e il browser (con una sua pagina vuota, che resta nella cronologia).') : _t('Chiudi i giochi e il browser: la misura viene più giusta.')) + '</span></div>' +
     (dopo ? '' : '<button class="btn ghost" id="ottStop"' + (OTT.ferma ? ' disabled' : '') + '>' + (OTT.ferma ? _t('Mi fermo…') : _t('Fermati')) + '</button>') + '</div></div>');
@@ -3999,7 +4005,10 @@ function ottPaintAvvio(){
     li.appendChild(sw); box.appendChild(li);
   });
 }
-const OTT_RIGHE = {fps: _t('FPS medi'), fps1: _t('FPS più bassi (1%)'), voto: _t('Voto al PC'), accensione: _t('Accensione del PC'), apertura: _t('Apertura programmi')};
+// 3.2: gli FPS sono quelli della scena di prova di Tasso, non di un gioco: lo dice l'etichetta
+const OTT_RIGHE = {fps: _t('Scena di prova · FPS medi'), fps1: _t('Scena di prova · FPS più bassi (1%)'), voto: _t('Voto al PC'), accensione: _t('Accensione del PC'), apertura: _t('Apertura programmi')};
+// La differenza in percentuale (+0,2%), quella che conta per la scena di prova.
+function ottPct(a, b){ a = Number(a) || 0; b = Number(b) || 0; if (a <= 0) return ''; let d = (b - a) / a * 100; if (Math.abs(d) < 0.05) d = 0; return (d > 0 ? '+' : d < 0 ? '−' : '') + Math.abs(d).toFixed(1).replace('.', DEC) + '%'; }
 // Quante modifiche, con singolare e plurale (F04-6, F05-3). La frase sulla pulizia solo se c'è stata.
 function ottQuante(fatte, pulite){
   if (pulite > 0) return fatte === 0 ? _t('Nessuna impostazione da cambiare; la pulizia dei file inutili è fatta e non si rimette com\'era.') : fatte === 1 ? _t('1 modifica si rimette com\'era con un interruttore; la pulizia dei file inutili no.') : fatte + _t(' modifiche si rimettono com\'era con un interruttore; la pulizia dei file inutili no.');
@@ -4011,17 +4020,20 @@ function ottRis(){
   const r = R.risultato || {}, off = r.modo === 'ufficio', righe = R.righe || [];
   const fatte = Number(r.fatte) || 0, pulite = Number(r.pulite) || (off ? ((OTT.info && OTT.info.voci) || []).filter(v => v.stato === 'pulita').length : 0); // risultati vecchi senza "pulite"
   const tab = righe.length ? '<div class="r2tab"><div class="r2h"><span></span><span>' + _t('Prima') + '</span><span></span><span>' + _t('Dopo') + '</span></div>' + righe.map(x =>
-    '<div class="r2r"><span>' + (OTT_RIGHE[x.chiave] || '') + '</span><span>' + ottNum(x.prima, x.decimali) + '</span><span class="ar">→</span><span class="af' + (x.meglio ? ' up' : '') + '">' + (x.haDopo ? ottNum(x.dopo, x.decimali) : '…') + '<small>' + esc(x.unita) + '</small></span></div>').join('') + '</div>' : '';
+    '<div class="r2r"><span>' + (OTT_RIGHE[x.chiave] || '') + '</span><span>' + ottNum(x.prima, x.decimali) + '</span><span class="ar">→</span><span class="af' + (x.meglio ? ' up' : '') + '">' + (x.haDopo ? ottNum(x.dopo, x.decimali) : '…') + '<small>' + esc(x.unita) + '</small>' + (x.haDopo && /^fps/.test(x.chiave) ? '<small class="pc">' + ottPct(x.prima, x.dopo) + '</small>' : '') + '</span></div>').join('') + '</div>' : '';
   const note = [];
+  if (fatte > 0 && OTT.info && OTT.info.attive === 0) note.push(_t('Le modifiche di questo giro sono già state rimesse com\'era.'));
   if (off && r.accInAttesa) note.push(_t('L\'accensione "dopo" si misura alla prossima riaccensione del PC: il risultato si aggiorna da solo.'));
   if (off && r.prima && !r.prima.accensioneMs && r.prima.accMotivo) note.push(r.prima.accMotivo);
+  if (!off && righe.some(x => /^fps/.test(x.chiave))) note.push(_t('È una scena di prova di Tasso, pesante come un gioco di media pesantezza: serve a confrontare il prima e il dopo, non sono gli FPS dei tuoi giochi.'));
   if (!off && r.prima && !r.prima.fpsOk && r.prima.fpsMotivo) note.push(r.prima.fpsMotivo);
   else if (!off && r.dopo && !r.dopo.fpsOk && r.dopo.fpsMotivo) note.push(r.dopo.fpsMotivo); // F04-12: la scena non è partita solo nella seconda misura
   ottView(ottHead(3, '<span></span>') +
     '<div class="opt-body r2"><div class="r2logo">' + ottStemma(112) + '</div>' +
     '<div class="r2k">' + _t('Fatto') + '</div>' +
-    '<h1 class="r2t" tabindex="-1">' + (off ? _t('Il tuo PC è pronto per lavorare') : _t('Il tuo PC è pronto per giocare')) + '</h1>' +
-    (R.piccolo ? '<p class="r2s" style="color:var(--text)">' + _t('Il tuo PC era già messo bene: la differenza è piccola.') + '</p>' : '') +
+    // P4: se la misura non mostra un miglioramento (anche con numeri un po' più bassi) lo dice, senza "pronto"
+    '<h1 class="r2t" tabindex="-1">' + (R.piccolo ? _t('Nessuna differenza misurabile') : off ? _t('Il tuo PC è pronto per lavorare') : _t('Il tuo PC è pronto per giocare')) + '</h1>' +
+    (R.piccolo ? '<p class="r2s" style="color:var(--text)">' + _t('Le modifiche sono fatte, ma la misura non mostra una differenza: il PC era già messo bene. Tra una misura e l\'altra piccoli aumenti o cali sono normali.') + '</p>' : '') +
     '<p class="r2s">' + ottQuante(fatte, pulite) + '</p>' + tab +
     note.map(n => '<p class="r2fn">' + esc(n) + '</p>').join('') +
     '<div class="opt-btns"><button class="btn primary" id="ottShare">' + _t('Condividi il risultato') + '</button><button class="btn ghost" id="ottBack">' + _t('Rimetti com\'era') + '</button></div>' +
@@ -4076,7 +4088,9 @@ Object.assign(window.tasso, {
     p = p || {};
     if (p.fase === 'errore' || p.fase === 'fermato') {
       OTT.fase = ''; OTT.ferma = false; if (p.msg) toast(p.msg, p.fase === 'errore' ? 'var(--a4)' : 'var(--a3)');
-      call('goOttInfo').then(i => { if (i) OTT.info = i; OTT.vista = ottRisultato() ? 'risultato' : 'inizio'; ottDisegna(); });
+      // Fermati: si torna alla schermata d'inizio con il messaggio, mai il risultato di un giro di prima
+      if (p.fase === 'fermato') OTT.fermato = p.msg || ' ';
+      call('goOttInfo').then(i => { if (i) OTT.info = i; OTT.vista = OTT.fermato ? 'inizio' : ottRisultato() ? 'risultato' : 'inizio'; ottDisegna(); });
       return;
     }
     if (p.modo) OTT.modo = p.modo;
@@ -4174,8 +4188,8 @@ async function drawOttCard(R, fmt){
   const pairs = ord.map(k => righe.find(x => x.chiave === k)).filter(Boolean);
   const x0 = V ? 150 : 130, x1 = W - x0;
   const riga = (p, cx0, cw, ly, ny, big) => {
-    const a0 = ottNum(p.prima, p.decimali), b0 = ottNum(p.dopo, p.decimali), us = Math.round(17 * L.s);
-    const largo = () => { font(600, big, C.display); let w = g.measureText(a0).width + g.measureText(b0).width + 36; font(400, Math.round(big * .6)); w += g.measureText('→').width; font(500, us); return w + g.measureText(p.unita).width; };
+    const a0 = ottNum(p.prima, p.decimali), b0 = ottNum(p.dopo, p.decimali), us = Math.round(17 * L.s), pc = /^fps/.test(p.chiave) ? '  ' + ottPct(p.prima, p.dopo) : '';
+    const largo = () => { font(600, big, C.display); let w = g.measureText(a0).width + g.measureText(b0).width + 36; font(400, Math.round(big * .6)); w += g.measureText('→').width; font(500, us); return w + g.measureText(p.unita + pc).width; };
     let lw = largo();
     while (lw > cw - 16 && big > 24) { big -= 2; lw = largo(); } // numeri lunghi: mai fuori dalla colonna
     const cx = cx0 + Math.max(8, (cw - lw) / 2);
@@ -4194,6 +4208,7 @@ async function drawOttCard(R, fmt){
     font(400, Math.round(big * .6)); g.fillText('→', x, ny - 4); x += g.measureText('→').width + 14;
     font(600, big, C.display); g.fillStyle = C.text; g.fillText(b0, x, ny); x += g.measureText(b0).width + 8;
     font(500, us); g.fillStyle = C.muted; g.fillText(p.unita, x, ny);
+    if (pc) { x += g.measureText(p.unita).width; g.fillStyle = C.a1t || C.a1; g.fillText(pc, x, ny); }
   };
   let y;
   if (V) {
@@ -4338,7 +4353,7 @@ async function ottBiglietto(){
   const [q, v] = await disegna(), off = (R.risultato || {}).modo === 'ufficio';
   // F05-17: l'accensione si promette solo se è già nel biglietto
   const conAcc = off && (R.righe || []).some(x => x.chiave === 'accensione' && x.haDopo), attesa = off && !conAcc && (R.risultato || {}).accInAttesa;
-  finestraBiglietto(_t('Il tuo biglietto'), (conAcc ? _t('Voto al PC, componenti, accensione e apertura dei programmi in un biglietto solo.') : off ? _t('Voto al PC, componenti e apertura dei programmi in un biglietto solo.') + (attesa ? ' ' + _t('L\'accensione si aggiunge dopo la prossima riaccensione del PC.') : '') : _t('Voto al PC, componenti e FPS in un biglietto solo.')) + ' ' + _t('Quadrato per i post, verticale per le storie.') + ' ' + (nomeOra() ? _t('Il tuo nome c\'è solo se lo lasci acceso qui sotto.') : _t('Dentro non ci sono dati personali.')), q, v, (u, f) => call('goOttSalva', u, f), disegna);
+  finestraBiglietto(_t('Il tuo biglietto'), (conAcc ? _t('Voto al PC, componenti, accensione e apertura dei programmi in un biglietto solo.') : off ? _t('Voto al PC, componenti e apertura dei programmi in un biglietto solo.') + (attesa ? ' ' + _t('L\'accensione si aggiunge dopo la prossima riaccensione del PC.') : '') : _t('Voto al PC, componenti e FPS della scena di prova in un biglietto solo.')) + ' ' + _t('Quadrato per i post, verticale per le storie.') + ' ' + (nomeOra() ? _t('Il tuo nome c\'è solo se lo lasci acceso qui sotto.') : _t('Dentro non ci sono dati personali.')), q, v, (u, f) => call('goOttSalva', u, f), disegna);
 }
 async function undoRefresh(){ paintUndo(await call('goChanges')); }
 // F14-13: "2026-11-20 10:15" (come la salva Tasso) nella forma della lingua: 20/11/2026, 10:15
@@ -5617,7 +5632,7 @@ async function paintTrSet(){
   $('#trChatAltriTxt').textContent = (st.zona_chat_ok && cg.length ? _t('Zona scelta per: ') + cg.slice(0, 5).join(', ') + (cg.length > 5 ? '…' : '') + '. ' : '') + (!st.zona_chat_ok ? _t('Facoltativa. Per ogni gioco disegni una volta il riquadro della chat: i messaggi nuovi degli altri compaiono tradotti accanto. Legge solo lo schermo.') : st.chat_altri ? _t('Accesa: con la traduzione dello schermo attiva, i messaggi nuovi compaiono tradotti accanto alla chat.') : _t('Spenta.')) ;
   $('#btnTrChatZona').textContent = st.zona_chat_ok ? _t('Aggiungi o cambia un gioco') : _t('Scegli dove sta la chat');
   setSw('#trSwChatAltri', !!st.chat_altri);
-  setSw('#trSwAuto', !!st.tutto_auto); setSw('#trSwEn', !!st.mostra_en);
+  setSw('#trSwAuto', !!st.tutto_auto); trAutoNota(!!st.tutto_auto); setSw('#trSwEn', !!st.mostra_en);
   $('#trPos').value = st.posizione || 'sopra';
   $('#trFont').value = st.dim_font || 22; $('#trFontV').textContent = (st.dim_font || 22) + ' px';
   paintKeys(); hkxRefresh().then(paintKeys);
@@ -5696,7 +5711,9 @@ $('#btnTrVoci').onclick = async () => {
   if (!v.file) { $('#btnTrVoci').disabled = true; $('#trVociTxt').textContent = _t('Le sto scaricando…'); ttc('ttScaricaVoci'); return; }
   const r = await ttc('ttAccendiVoci', !v.accese); if (r && r.errore) toast(tx(r.errore), 'var(--a4)'); ttRefresh();
 };
-$('#trSwAuto').onclick = async () => { const r = await ttc('ttImpostaTuttoAuto', !(TT && TT.tutto_auto)); if (TT) TT.tutto_auto = !!r; setSw('#trSwAuto', !!r); toast(r ? _t('Tasso traduce da solo appena apre un gioco (con la traduzione accesa).') : _t('Tasso traduce in automatico solo i giochi che hai preparato; per gli altri chiede.')); };
+// P5: la scritta sotto l'interruttore segue lo stato (prima diceva sempre "Spento: …")
+function trAutoNota(on){ const n = $('#trSwAutoNota'); if (n) n.textContent = on ? _t('Acceso: Tasso traduce da solo appena apri un gioco (con la traduzione accesa).') : _t('Spento: Tasso traduce da solo i giochi che hai preparato, e per gli altri te lo chiede.'); }
+$('#trSwAuto').onclick = async () => { const r = await ttc('ttImpostaTuttoAuto', !(TT && TT.tutto_auto)); if (TT) TT.tutto_auto = !!r; setSw('#trSwAuto', !!r); trAutoNota(!!r); toast(r ? _t('Tasso traduce da solo appena apre un gioco (con la traduzione accesa).') : _t('Tasso traduce in automatico solo i giochi che hai preparato; per gli altri chiede.')); };
 // chatQui: per questo gioco (la sua cartella) la zona della chat è già scelta
 function chatQui(i){ const c = String((i && i.cartella) || '').toLowerCase().replace(/[\\/]+$/, ''); return !!c && ((TT && TT.chat_giochi) || []).some(x => { const d = String(x.dove || '').toLowerCase(); return d === c || d.startsWith(c + '\\'); }); }
 async function chatAltri(on){

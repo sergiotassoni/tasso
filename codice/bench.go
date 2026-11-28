@@ -236,18 +236,31 @@ func clampPts(v float64) int { return int(math.Round(math.Max(1, math.Min(v*1000
 // benchMu: due misure insieme si disturberebbero (e il disco darebbe 0).
 var benchMu sync.Mutex
 
-func runBench(label string) benchResult {
+func runBench(label string) benchResult { return runBenchPassi(label, nil) }
+
+// runBenchPassi: come runBench, e dice a passo quando comincia ognuna delle 6 prove (0-5) e quando
+// ha finito (6). Serve a Ottimizza tutto per un avanzamento che segue il lavoro vero.
+func runBenchPassi(label string, passo func(int)) benchResult {
+	if passo == nil {
+		passo = func(int) {}
+	}
 	benchMu.Lock()
 	defer benchMu.Unlock()
+	defer passo(6)
 	res := benchResult{When: time.Now().Format("2006-01-02 15:04"), Label: label, Cores: runtime.NumCPU()}
+	passo(0)
 	emit("onBenchProgress", "Misuro il processore su un core…")
 	c1 := cpuScore(1, 2*time.Second)
+	passo(1)
 	emit("onBenchProgress", "Misuro il processore su tutti i core…")
 	cn := cpuScore(runtime.NumCPU(), 2*time.Second)
+	passo(2)
 	emit("onBenchProgress", "Misuro la memoria…")
 	ram := ramScore()
+	passo(3)
 	emit("onBenchProgress", "Misuro il disco (256 MB di prova, poi li cancello)…")
 	dk, diskMB, ok := diskScoreMB()
+	passo(4)
 	emit("onBenchProgress", "Guardo la scheda video…")
 	schede := schedeVideo()
 	tempMax := 0.0
@@ -270,6 +283,7 @@ func runBench(label string) benchResult {
 	}
 	res.Score = int(math.Round(math.Exp(lg / wsum)))
 
+	passo(5)
 	emit("onBenchProgress", "Guardo quanto è leggero Windows…")
 	ls := liveStats()
 	rt, _ := ls["ramTotal"].(uint64)
