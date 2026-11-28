@@ -126,7 +126,7 @@ float4 PS(float4 pos : SV_Position) : SV_Target {
 
 // scenaPassate: quante volte si disegna la scena in ogni fotogramma (il numero da cambiare per
 // calibrare il peso: 2 = circa il doppio del lavoro per la scheda video).
-const scenaPassate = 1
+const scenaPassate = 2
 
 // scenaFolla: quanti personaggi muove il processore a ogni fotogramma.
 const scenaFolla = 3000
