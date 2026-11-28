@@ -75,7 +75,8 @@ func TestDisinstallaToglieTracceUtente(t *testing.T) {
 		t.Fatal("tolto il menu di Tasso PDF insieme a Zip")
 	}
 
-	// Il menu di Tasso PDF che avvia un'ALTRA copia (es. portatile) non si tocca.
+	// Il menu di Tasso PDF che avvia un'ALTRA copia (es. portatile, che c'è) non si tocca.
+	p.in.EsisteFile = func(s string) bool { return strings.HasPrefix(s, `D:\Portatili\`) }
 	altroPDF := `"D:\Portatili\TassoPDF.exe" --apri "%1"`
 	r.ScriviTesto(HKCU, cl+`SystemFileAssociations\.pdf\shell\TassoPDF\shell\1apri\command`, "", altroPDF)
 	if _, err := p.in.Disinstalla(p.base, []Componente{PDF}); err != nil {
@@ -121,12 +122,15 @@ func TestDisinstallaToglieSceltaApriCon(t *testing.T) {
 		exe := filepath.Join(p.base, "Tasso Zip", "TassoZip.exe")
 		if altraCopia {
 			exe = `D:\Portatili\TassoZip.exe`
+			p.in.EsisteFile = func(s string) bool { return s == exe }
 		}
 		r := p.reg
 		r.ScriviTesto(HKCU, `Software\Classes\`+progIDZip+`\shell\open\command`, "", `"`+exe+`" --apri "%1"`)
 		r.ScriviTesto(HKCU, fe+`.zip\UserChoice`, "ProgId", progIDZip)
 		r.ScriviTesto(HKCU, fe+`.zip\UserChoice`, "Hash", "abc=")
-		r.ScriviTesto(HKCU, fe+`.rar\UserChoiceLatest`, "ProgId", `Applications\TassoZip.exe`)
+		// UserChoiceLatest com'è su Windows 11: solo "Hash", il programma nella sottochiave ProgId
+		r.ScriviTesto(HKCU, fe+`.rar\UserChoiceLatest`, "Hash", "1xZShZRatSi=")
+		r.ScriviTesto(HKCU, fe+`.rar\UserChoiceLatest\ProgId`, "ProgId", `Applications\TassoZip.exe`)
 		r.ScriviTesto(HKCU, fe+`.rar\UserChoice`, "ProgId", "WinRAR")
 		r.ScriviTesto(HKCU, fe+`.7z\UserChoice`, "ProgId", "7-Zip.7z")
 		r.ScriviTesto(HKCU, fe+`.pdf\UserChoice`, "ProgId", progIDZip) // non è un'estensione di Zip: non si guarda
@@ -134,7 +138,10 @@ func TestDisinstallaToglieSceltaApriCon(t *testing.T) {
 			t.Fatal(err)
 		}
 		_, zip := r.LeggiTesto(HKCU, fe+`.zip\UserChoice`, "ProgId")
-		_, rar := r.LeggiTesto(HKCU, fe+`.rar\UserChoiceLatest`, "ProgId")
+		_, rar := r.LeggiTesto(HKCU, fe+`.rar\UserChoiceLatest\ProgId`, "ProgId")
+		if _, h := r.LeggiTesto(HKCU, fe+`.rar\UserChoiceLatest`, "Hash"); h != rar {
+			t.Errorf("altra copia %v: UserChoiceLatest tolta a metà (Hash %v, ProgId %v)", altraCopia, h, rar)
+		}
 		if zip != altraCopia || rar != altraCopia { // nostra copia: tolte; altra copia: restano
 			t.Errorf("altra copia %v: scelte di Tasso Zip presenti dopo .zip=%v .rar=%v", altraCopia, zip, rar)
 		}

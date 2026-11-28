@@ -1,10 +1,15 @@
 package installa
 
 import (
+	"errors"
 	"sort"
 	"strings"
 	"sync"
 )
+
+// ErrHaSottochiavi: come Windows (RegDeleteKey), TogliChiave non toglie una chiave che ha
+// ancora sottochiavi. Per quelle serve TogliAlbero.
+var ErrHaSottochiavi = errors.New("la chiave ha sottochiavi")
 
 // Radice del registro di Windows.
 type Radice int
@@ -123,7 +128,13 @@ func (m *RegistroMemoria) TogliChiave(r Radice, chiave string) error {
 			return err
 		}
 	}
-	delete(m.chiavi, nomeChiave(r, chiave))
+	k := nomeChiave(r, chiave)
+	for altra := range m.chiavi {
+		if strings.HasPrefix(altra, k+`\`) {
+			return ErrHaSottochiavi // come RegDeleteKey: ERROR_ACCESS_DENIED
+		}
+	}
+	delete(m.chiavi, k)
 	return nil
 }
 

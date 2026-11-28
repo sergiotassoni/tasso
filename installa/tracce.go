@@ -1,6 +1,7 @@
 package installa
 
 import (
+	"os"
 	"path/filepath"
 	"strings"
 )
@@ -34,6 +35,40 @@ type gruppoTracce struct {
 const chiaveScelteUtente = `Software\Microsoft\Windows\CurrentVersion\Explorer\FileExts\`
 
 var scelteUtente = []string{"UserChoiceLatest", "UserChoice"}
+
+// progIdScelta: il programma scritto in una chiave di scelteUtente. In UserChoiceLatest Windows
+// 11 lo tiene nella sottochiave "ProgId" (valore "ProgId"; la chiave ha solo "Hash"): prima
+// quella, poi il valore diretto. È la stessa regola di Tasso Zip (associa_windows.go).
+func progIdScelta(r Registro, chiave string) string {
+	for _, c := range []string{chiave + `\ProgId`, chiave} {
+		if v, ok := r.LeggiTesto(HKCU, c, "ProgId"); ok && v != "" {
+			return v
+		}
+	}
+	return ""
+}
+
+// exeDelComando: l'exe all'inizio di un comando come `"C:\…\TassoZip.exe" --zip "%1"`.
+func exeDelComando(c string) string {
+	c = strings.TrimSpace(c)
+	if !strings.HasPrefix(c, `"`) {
+		return ""
+	}
+	i := strings.Index(c[1:], `"`)
+	if i <= 0 {
+		return ""
+	}
+	return c[1 : 1+i]
+}
+
+// esisteFile: il file c'è? (nil = os.Stat; i test lo cambiano per le copie "D:\Portatili\…")
+func (in *Installatore) esisteFile(p string) bool {
+	if in.EsisteFile != nil {
+		return in.EsisteFile(p)
+	}
+	fi, err := os.Stat(p)
+	return err == nil && !fi.IsDir()
+}
 
 // sceltaDiTassoZip: il ProgId scelto dall'utente porta a Tasso Zip (il suo tipo di file o "Apri con >
 // Tasso Zip"). È la stessa regola di diTassoZip in Tasso Zip.
@@ -108,7 +143,12 @@ func (in *Installatore) togliTracceUtente(base string, p Programma) []string {
 			exe := strings.ToLower(filepath.Join(CartellaDi(base, p), g.exeNome))
 			if g.prova != "" {
 				if c, ok := r.LeggiTesto(HKCU, g.prova, ""); ok && c != "" && !strings.Contains(strings.ToLower(c), exe) {
-					continue // un'altra copia del programma: le sue voci restano
+					// un'altra copia del programma: le sue voci restano, ma solo se quella copia c'è
+					// davvero (una copia aperta una volta da TEMP, che Windows ha già cancellato,
+					// lascerebbe per sempre voci che avviano un exe inesistente)
+					if altro := exeDelComando(c); altro == "" || in.esisteFile(altro) {
+						continue
+					}
 				}
 			}
 			for _, a := range g.alberi {
@@ -130,11 +170,13 @@ func (in *Installatore) togliTracceUtente(base string, p Programma) []string {
 			}
 			// "Apri con > Tasso Zip > Sempre": senza Tasso Zip Windows chiederebbe "Come vuoi aprire?".
 			// Si legge e, solo se porta a Tasso Zip, si cancella (mai scritta: niente hash).
+			// UserChoiceLatest ha la sottochiave ProgId: si toglie tutto l'albero.
 			for _, e := range g.scelte {
+				togliRestiWindows(r, e)
 				for _, c := range scelteUtente {
 					k := chiaveScelteUtente + e + `\` + c
-					if v, ok := r.LeggiTesto(HKCU, k, "ProgId"); ok && sceltaDiTassoZip(v) {
-						if err := r.TogliChiave(HKCU, k); err != nil {
+					if sceltaDiTassoZip(progIdScelta(r, k)) {
+						if err := r.TogliAlbero(HKCU, k); err != nil {
 							Diario("scelta \"Apri con\" di %s non tolta: %v", e, err)
 						}
 					}
@@ -157,6 +199,31 @@ func (in *Installatore) togliTracceUtente(base string, p Programma) []string {
 		}
 	}
 	return nonTolti
+}
+
+// togliRestiWindows: quello che Windows stesso scrive quando si usa Tasso Zip e che porta a lui
+// (innocuo, ma il registro deve tornare com'era): TassoZip.Archivio in FileExts\<ext>\OpenWithProgids,
+// TassoZip.exe in FileExts\<ext>\OpenWithList (con la sua lettera in MRUList) e gli avvisi
+// "nuova app" in ApplicationAssociationToasts. Gli stessi di Tasso Zip (associa_windows.go).
+func togliRestiWindows(r Registro, e string) {
+	fe := chiaveScelteUtente + e
+	_ = r.TogliValore(HKCU, fe+`\OpenWithProgids`, progIDZip)
+	if mru, ok := r.LeggiTesto(HKCU, fe+`\OpenWithList`, "MRUList"); ok {
+		nuovo := mru
+		for c := 'a'; c <= 'z'; c++ {
+			if v, ok := r.LeggiTesto(HKCU, fe+`\OpenWithList`, string(c)); ok && strings.EqualFold(v, "TassoZip.exe") {
+				if r.TogliValore(HKCU, fe+`\OpenWithList`, string(c)) == nil {
+					nuovo = strings.ReplaceAll(nuovo, string(c), "")
+				}
+			}
+		}
+		if nuovo != mru {
+			_ = r.ScriviTesto(HKCU, fe+`\OpenWithList`, "MRUList", nuovo)
+		}
+	}
+	toasts := `Software\Microsoft\Windows\CurrentVersion\ApplicationAssociationToasts`
+	_ = r.TogliValore(HKCU, toasts, progIDZip+"_"+e)
+	_ = r.TogliValore(HKCU, toasts, `Applications\TassoZip.exe_`+e)
 }
 
 // togliGenitoriVuoti: dopo aver tolto "…\.pdf\shell\TassoPDF", toglie anche "…\.pdf\shell" e

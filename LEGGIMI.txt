@@ -76,6 +76,10 @@ DISINSTALLAZIONE ("Programmi e funzionalità" > Tasso > Disinstalla)
   (lo usa "Togli Tasso dal PC" dentro Tasso, dopo aver tolto le sue impostazioni e cartelle).
   Gaming senza Ufficio: Tasso.exe resta e Modalita diventa "ufficio" (e viceversa).
   Con l'ultimo programma vanno via anche disinstallatore, voce di registro e cartella (se vuota).
+  Le voci che Tasso Zip e Tasso PDF scrivono da soli (tasto destro, doppio clic, "Apri con")
+  vanno via dall'account dell'utente della sessione. Con più account sul PC: in ogni altro
+  account spegni i due interruttori di Zip e PDF prima di disinstallare. Le voci di un'altra
+  copia di Zip o PDF restano solo se quella copia c'è ancora.
 
 AMMINISTRATORE
   TassoSetup.exe e il disinstallatore: requireAdministrator (scrivono in Programmi e HKLM).

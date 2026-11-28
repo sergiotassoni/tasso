@@ -60,6 +60,9 @@ type Installatore struct {
 	// lingua. nil = lo stesso utente (il caso normale) o i test.
 	RegistroUtente       Registro
 	CartellaDatiSessione func() string
+	// EsisteFile: il file c'è? Serve per le voci di un'altra copia di Zip o PDF (si lasciano solo
+	// se quell'exe esiste ancora). nil = os.Stat.
+	EsisteFile func(percorso string) bool
 	// File occupati (vedi riprova.go). nil = i valori veri: codici di Windows, time.Sleep, e
 	// nessuna cancellazione al riavvio.
 	Bloccato          func(error) bool
