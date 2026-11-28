@@ -1548,7 +1548,10 @@ func bindOttimizza(w webview2.WebView) {
 	_ = w.Bind("goOttRimetti", func(id string) string {
 		return async("ottimizza-rimetti", func() {
 			e := rimettiOtt(id)
-			togliFotoSoloOtt() // P3: se era l'ultima modifica, la foto fatta da Ottimizza non serve più
+			if !ottInCorso.Load() {
+				togliFotoSoloOtt() // P3
+			}
+			// P3: se era l'ultima modifica, la foto fatta da Ottimizza non serve più
 			emit("onOttRimesso", map[string]interface{}{"esito": e, "info": infoOtt()})
 		})
 	})
@@ -1561,7 +1564,7 @@ func bindOttimizza(w webview2.WebView) {
 	_ = w.Bind("goOttRimettiTutto", func() string {
 		return async("ottimizza-rimetti", func() {
 			es, ok := rimettiTuttoOtt(false)
-			if ok {
+			if ok && !ottInCorso.Load() {
 				togliFotoSoloOtt() // P3: "Torna indietro" non mostra più "Impostazioni di Windows"
 			}
 			emit("onOttRimesso", map[string]interface{}{"tutto": true, "ok": ok, "n": len(es), "esiti": es, "info": infoOtt()})
