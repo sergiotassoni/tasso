@@ -109,6 +109,14 @@ type WebViewOptions struct {
 	// WindowOptions customizes the window that is created to embed the
 	// WebView2 widget.
 	WindowOptions WindowOptions
+
+	// Modifiche di Tasso Zip (vedi pkg/edge/guardiano.go).
+	// NavigazionePermessa: gli indirizzi che la pagina (e i suoi riquadri) possono aprire.
+	NavigazionePermessa func(uri string) bool
+	// PopupRichiesto: la pagina ha chiesto una finestra nuova (non si apre mai).
+	PopupRichiesto func(uri string)
+	// FontePermessa: le pagine da cui si accettano i messaggi per le funzioni legate con Bind.
+	FontePermessa func(uri string) bool
 }
 
 // New creates a new webview in a new window.
@@ -130,6 +138,9 @@ func NewWithOptions(options WebViewOptions) WebView {
 	chromium := edge.NewChromium()
 	chromium.MessageCallback = w.msgcb
 	chromium.DataPath = options.DataPath
+	chromium.NavigazionePermessa = options.NavigazionePermessa
+	chromium.PopupRichiesto = options.PopupRichiesto
+	chromium.FontePermessa = options.FontePermessa
 	chromium.SetPermission(edge.CoreWebView2PermissionKindClipboardRead, edge.CoreWebView2PermissionStateAllow)
 
 	w.browser = chromium

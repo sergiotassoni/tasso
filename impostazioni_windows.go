@@ -40,21 +40,30 @@ func fileImpostazioni() string { return filepath.Join(cartella, "impostazioni.js
 func caricaImpostazioni() {
 	impMu.Lock()
 	defer impMu.Unlock()
+	imp, _ = leggiImpostazioni()
+}
+
+// leggiImpostazioni: il file come è adesso sul disco (anche se lo ha scritto un'altra finestra).
+// letto=false: il file c'è ma non si legge in questo momento (per esempio un'altra finestra lo
+// sta sostituendo): chi salva usa allora quello che ha in memoria.
+func leggiImpostazioni() (s impostazioni, letto bool) {
 	b, err := os.ReadFile(fileImpostazioni())
+	letto = err == nil || os.IsNotExist(err)
 	if err == nil && len(b) < 64<<10 {
-		_ = json.Unmarshal(b, &imp)
+		letto = json.Unmarshal(b, &s) == nil
 	}
 	// Il vecchio "tarxz" (Tasso Zip 1.0) diventa la super compressione .7z.
 	// Se non c'è niente (o è strano) si parte da .zip, il più compatibile.
-	if imp.Formato == "tarxz" {
-		imp.Formato = "7z"
-	} else if !archivio.FormatoValido(imp.Formato) {
-		imp.Formato = "zip"
+	if s.Formato == "tarxz" {
+		s.Formato = "7z"
+	} else if !archivio.FormatoValido(s.Formato) {
+		s.Formato = "zip"
 	}
-	if !livelloValido(imp.Livello) {
-		imp.Livello = "massima"
+	if !livelloValido(s.Livello) {
+		s.Livello = "massima"
 	}
-	imp.Lingua = testi.Normalizza(imp.Lingua)
+	s.Lingua = testi.Normalizza(s.Lingua)
+	return s, letto
 }
 
 func impostazioniCopia() impostazioni {
@@ -63,18 +72,34 @@ func impostazioniCopia() impostazioni {
 	return imp
 }
 
+// modificaImpostazioni cambia solo quello che fa f. Prima rilegge il file: con due finestre
+// aperte, quello che ha cambiato l'altra (la lingua, il formato) non torna com'era.
+// Tutto dentro il lucchetto, con un file di lavoro dal nome sempre nuovo nella stessa cartella,
+// poi rinominato: mai un file di impostazioni a metà, e mai due salvataggi sullo stesso file.
 func modificaImpostazioni(f func(*impostazioni)) {
 	impMu.Lock()
-	f(&imp)
-	b, _ := json.MarshalIndent(imp, "", "  ")
-	impMu.Unlock()
-	// Scrivo in un file nuovo e poi lo rinomino: mai un file di impostazioni a metà.
-	tmp := fileImpostazioni() + ".nuovo"
-	if err := os.WriteFile(tmp, b, 0o644); err != nil {
+	defer impMu.Unlock()
+	s, letto := leggiImpostazioni()
+	if !letto {
+		s = imp
+	}
+	f(&s)
+	imp = s
+	b, _ := json.MarshalIndent(s, "", "  ")
+	t, err := os.CreateTemp(cartella, "impostazioni-*.nuovo")
+	if err != nil {
 		registraErrore("impostazioni: %v", err)
 		return
 	}
-	if err := os.Rename(tmp, fileImpostazioni()); err != nil {
+	_, err = t.Write(b)
+	if e := t.Close(); err == nil {
+		err = e
+	}
+	if err == nil {
+		err = os.Rename(t.Name(), fileImpostazioni())
+	}
+	if err != nil {
+		_ = os.Remove(t.Name())
 		registraErrore("impostazioni: %v", err)
 	}
 }

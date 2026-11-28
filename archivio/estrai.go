@@ -75,6 +75,33 @@ func riconosciDati(b []byte) (Tipo, bool) {
 	return "", false
 }
 
+// tarVuoto: un tar senza voci è fatto solo di blocchi di zeri (almeno due da 512 byte).
+func tarVuoto(b []byte) bool {
+	if len(b) < 1024 {
+		return false
+	}
+	for _, c := range b[:1024] {
+		if c != 0 {
+			return false
+		}
+	}
+	return true
+}
+
+// nomeDaTar: il nome dice che è un tar (anche compresso): allora gli zeri sono un tar vuoto.
+func nomeDaTar(percorso string) bool {
+	n := minuscolo(filepath.Base(percorso))
+	if m := reNumero3.FindStringSubmatch(n); m != nil {
+		n = m[1]
+	}
+	for _, e := range []string{".tar", ".tgz", ".tbz2", ".tbz", ".txz", ".tzst", ".tar.gz", ".tar.bz2", ".tar.xz", ".tar.zst"} {
+		if strings.HasSuffix(n, e) {
+			return true
+		}
+	}
+	return false
+}
+
 // sembraTar: intestazione tar valida (con "ustar" o con la somma di controllo giusta).
 func sembraTar(b []byte) bool {
 	if len(b) < 512 {
@@ -127,6 +154,10 @@ type OpzioniEstrai struct {
 	// TogliPrefisso: cartella dell'archivio da togliere davanti ai nomi (es. "Foto/2024":
 	// "Foto/2024/mare.jpg" esce come "mare.jpg").
 	TogliPrefisso string
+	// Esatto: solo le voci con il nome scelto, senza quello che c'è "dentro" (per aprire un
+	// file con il doppio clic: un archivio può avere il file "fattura.pdf" e anche una cartella
+	// "fattura.pdf/" con dentro un programma, che non deve uscire al posto del file).
+	Esatto bool
 }
 
 // ModoEstrai: dove finiscono i file estratti.
@@ -238,7 +269,7 @@ func Estrai(ctx context.Context, percorso string, opz OpzioniEstrai) (ris Risult
 	l.d = nuovaDestinazione(ctx, tmp, limiti, l.vol.Size())
 	l.d.zona = zonaArchivio(l.parti)
 	l.d.avanzamento = l.avanza
-	l.d.filtro = filtroSelezione(opz.Selezione, opz.TogliPrefisso)
+	l.d.filtro = filtroSelezione(opz.Selezione, opz.TogliPrefisso, opz.Esatto)
 
 	switch tipo {
 	case TipoZip:
@@ -266,6 +297,7 @@ func Estrai(ctx context.Context, percorso string, opz OpzioniEstrai) (ris Risult
 		return ris, err
 	}
 
+	l.d.rimettiDateCartelle()
 	sblocca()
 	finale, ultimo, err := l.d.concludi(dove, NomeBaseArchivio(percorso), opz.Modo)
 	if err != nil {
@@ -290,12 +322,12 @@ func (l *lavoroEstrai) soloQuesto(err error) bool {
 		return false
 	}
 	for _, e := range []error{ErrAnnullato, context.Canceled, ErrBomba, ErrSpazio, ErrTroppeVoci, ErrPassword,
-		ErrPasswordSbagliata, ErrZipCifrato, ErrMemoria, ErrParteMancante} {
+		ErrPasswordSbagliata, ErrZipCifrato, ErrMemoria, ErrParteMancante, ErrMetodo} {
 		if errors.Is(err, e) {
 			return false
 		}
 	}
-	if erroreMemoria(err) || erroreDiscoPieno(err) {
+	if erroreMemoria(err) || erroreDiscoPieno(err) || metodoSconosciuto(err) {
 		return false
 	}
 	if l.multipli && errors.Is(err, io.ErrUnexpectedEOF) {
@@ -369,10 +401,19 @@ func (l *lavoroEstrai) apri(percorso string) (string, Tipo, error) {
 
 	if tipo == "" {
 		testa := make([]byte, 1024)
-		k, _ := l.vol.ReadAt(testa, 0)
+		k, errL := l.vol.ReadAt(testa, 0)
+		if errL != nil && errL != io.EOF {
+			// il disco non si legge (chiavetta staccata, settore rovinato, rete): non è "formato
+			// non riconosciuto"
+			l.vol.Close()
+			return "", "", fmt.Errorf("lettura dell'archivio: %w", errL)
+		}
 		testa = testa[:k]
 		var ok bool
 		tipo, ok = riconosciDati(testa)
+		if !ok && tarVuoto(testa) && nomeDaTar(percorso) {
+			tipo, ok = TipoTar, true // un .tar vuoto (solo zeri) è valido (ZP01-12)
+		}
 		if !ok {
 			if bytes.HasPrefix(testa, []byte("PK\x07\x08")) {
 				l.vol.Close()
@@ -407,10 +448,13 @@ func (l *lavoroEstrai) erroreLettura(err error) error {
 	if err == nil {
 		return nil
 	}
-	for _, e := range []error{ErrAnnullato, ErrBomba, ErrSpazio, ErrTroppeVoci, ErrPassword, ErrPasswordSbagliata, ErrZipCifrato, ErrMemoria} {
+	for _, e := range []error{ErrAnnullato, ErrBomba, ErrSpazio, ErrTroppeVoci, ErrPassword, ErrPasswordSbagliata, ErrZipCifrato, ErrMemoria, ErrMetodo} {
 		if errors.Is(err, e) {
 			return err
 		}
+	}
+	if metodoSconosciuto(err) {
+		return fmt.Errorf("%w (%v)", ErrMetodo, err) // non è rovinato: non so aprire quel metodo
 	}
 	if erroreMemoria(err) {
 		return fmt.Errorf("%w (%v)", ErrMemoria, err)

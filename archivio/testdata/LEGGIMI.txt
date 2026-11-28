@@ -6,3 +6,4 @@ File di prova per i test di Tasso Zip.
   github.com/mholt/archives (MIT, Copyright (c) 2016 Matthew Holt).
 - unarr-test.rar: test.rar dai test di github.com/gen2brain/go-unarr (zlib, Copyright (C) 2017 Milan Nikolic).
 - nota.txt.bz2, cartella.tar.bz2: creati per Tasso Zip.
+- py_bzip2.zip, py_lzma.zip: creati per Tasso Zip con zipfile di Python (metodi 12 BZip2 e 14 LZMA).

@@ -257,7 +257,8 @@ func avviaVerifica(percorso, password string) string {
 		ris, err := archivio.Verifica(ctx, percorso, archivio.OpzioniVerifica{Password: password, Avanzamento: avanzamento})
 		if err != nil {
 			c := archivio.Codice(err)
-			if c == "annullato" || c == "password" || c == "password_sbagliata" {
+			// Uno zip con password non è rovinato: Tasso Zip non lo sa leggere. Niente "Ripara".
+			if c == "annullato" || c == "password" || c == "password_sbagliata" || c == "zip_cifrato" || c == "zip_cifrato_aes" {
 				erroreVersoPagina("verifica", percorso, err)
 				return
 			}

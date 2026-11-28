@@ -141,6 +141,8 @@ type voce struct {
 	cartella bool
 	dim      int64
 	quando   time.Time
+	// soloLettura: il file ha l'attributo "sola lettura": lo salvo nell'archivio (ZP01-8)
+	soloLettura bool
 }
 
 // estensioniGiaCompresse: file che non si comprimono più (foto, video, archivi...):
@@ -201,15 +203,25 @@ func Comprimi(ctx context.Context, sorgenti []string, opz OpzioniComprimi) (ris 
 		nome = "Archivio"
 	}
 
-	// File di lavoro.
-	tmpNome := ""
+	// Cartella di lavoro nascosta accanto all'archivio (come per Estrai), con dentro il file di
+	// lavoro e, per il 7z su più core, i pezzi: segnata "in uso" (.in-corso), così un altro lavoro
+	// non la scambia per un avanzo anche se dura più di 6 ore, e non si vede in Esplora file.
+	tmpNome, lavoro := "", ""
+	sblocca := func() {}
 	var out *os.File
 	apri := func(dir string) error {
 		for i := 0; i < 20; i++ {
-			p := filepath.Join(dir, nomeTemporaneo(".tmp"))
-			f, e := os.OpenFile(p, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o644)
+			d := filepath.Join(dir, nomeTemporaneo(".tmp"))
+			e := os.Mkdir(d, 0o755)
 			if e == nil {
-				tmpNome, out = p, f
+				p := filepath.Join(d, "archivio.tmp")
+				f, e := os.OpenFile(p, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o644)
+				if e != nil {
+					_ = os.Remove(d)
+					return e
+				}
+				tmpNome, lavoro, out = p, d, f
+				sblocca = bloccaLavoro(d)
 				return nil
 			}
 			if !errors.Is(e, fs.ErrExist) {
@@ -229,18 +241,16 @@ func Comprimi(ctx context.Context, sorgenti []string, opz OpzioniComprimi) (ris 
 			return ris, fmt.Errorf("%w: %v", ErrNonScrivibile, e)
 		}
 	}
-	finito := false
 	defer func() {
 		if out != nil {
 			out.Close()
 		}
-		if !finito {
-			_ = os.Remove(tmpNome) // annullato o errore: niente a metà
-		}
+		sblocca()
+		_ = os.RemoveAll(lavoro) // annullato o errore: niente a metà (finito: è già vuota)
 	}()
 
 	// L'elenco di tutto quello che va nell'archivio.
-	voci, saltati, err := elencaVoci(ctx, puliti, tmpNome)
+	voci, saltati, err := elencaVoci(ctx, puliti, lavoro)
 	if err != nil {
 		return ris, err
 	}
@@ -258,7 +268,7 @@ func Comprimi(ctx context.Context, sorgenti []string, opz OpzioniComprimi) (ris 
 
 	c := &copiatore{ctx: ctx, totale: totale, avanzamento: opz.Avanzamento, buf: make([]byte, 256<<10)}
 	if opz.Formato == Formato7z {
-		err = scrivi7z(ctx, c, out, dove, voci, opz.Livello, &ris)
+		err = scrivi7z(ctx, c, out, lavoro, voci, opz.Livello, &ris)
 	} else {
 		bw := bufio.NewWriterSize(out, 1<<20)
 		switch opz.Formato {
@@ -299,7 +309,6 @@ func Comprimi(ctx context.Context, sorgenti []string, opz OpzioniComprimi) (ris 
 	if err != nil {
 		return ris, err
 	}
-	finito = true
 	ris.Archivio = finale
 	ris.Originale = totale
 	if fi, e := os.Stat(finale); e == nil {
@@ -348,7 +357,7 @@ func elencaVoci(ctx context.Context, sorgenti []string, escludi string) ([]voce,
 			if s == escludi {
 				continue
 			}
-			voci = append(voci, voce{percorso: s, nome: nomeRadice, dim: fi.Size(), quando: fi.ModTime()})
+			voci = append(voci, voce{percorso: s, nome: nomeRadice, dim: fi.Size(), quando: fi.ModTime(), soloLettura: fi.Mode().Perm()&0o200 == 0})
 		case fi.IsDir():
 			err := filepath.WalkDir(s, func(p string, d fs.DirEntry, err error) error {
 				select {
@@ -369,6 +378,9 @@ func elencaVoci(ctx context.Context, sorgenti []string, escludi string) ([]voce,
 					return nil
 				}
 				if p == escludi {
+					if d != nil && d.IsDir() {
+						return fs.SkipDir // la cartella di lavoro (archivio salvato dentro una cartella scelta)
+					}
 					return nil
 				}
 				info, e := d.Info()
@@ -392,7 +404,7 @@ func elencaVoci(ctx context.Context, sorgenti []string, escludi string) ([]voce,
 					salta(nomeArch, "file_speciale")
 					return nil
 				}
-				voci = append(voci, voce{percorso: p, nome: nomeArch, dim: info.Size(), quando: info.ModTime()})
+				voci = append(voci, voce{percorso: p, nome: nomeArch, dim: info.Size(), quando: info.ModTime(), soloLettura: info.Mode().Perm()&0o200 == 0})
 				return nil
 			})
 			if err != nil {
@@ -454,10 +466,35 @@ func (c *copiatore) copia(w io.Writer, r io.Reader, nome string, max int64) (int
 	return tot, nil
 }
 
+// flateRiusato: il compressore deflate di un file, rimesso a disposizione alla fine (Reset)
+// invece di crearne uno nuovo per ogni file: ogni compressore nuovo prepara più di 1 MB di
+// tabelle, e con 66.000 file piccoli lo zip ci metteva 25 secondi (CTRL-ZP-01).
+type flateRiusato struct {
+	*flate.Writer
+	pool *[]*flate.Writer
+}
+
+func (f *flateRiusato) Close() error {
+	err := f.Writer.Close()
+	*f.pool = append(*f.pool, f.Writer)
+	return err
+}
+
 func scriviZip(c *copiatore, w io.Writer, voci []voce, ris *RisultatoComprimi) error {
 	zw := zip.NewWriter(w)
+	var liberi []*flate.Writer // un file alla volta: niente lucchetti
 	zw.RegisterCompressor(zip.Deflate, func(out io.Writer) (io.WriteCloser, error) {
-		return flate.NewWriter(out, flate.BestCompression)
+		if n := len(liberi); n > 0 {
+			fw := liberi[n-1]
+			liberi = liberi[:n-1]
+			fw.Reset(out)
+			return &flateRiusato{fw, &liberi}, nil
+		}
+		fw, err := flate.NewWriter(out, flate.BestCompression)
+		if err != nil {
+			return nil, err
+		}
+		return &flateRiusato{fw, &liberi}, nil
 	})
 	for _, v := range voci {
 		if err := c.annullato(); err != nil {
@@ -475,6 +512,9 @@ func scriviZip(c *copiatore, w io.Writer, voci []voce, ris *RisultatoComprimi) e
 			continue
 		}
 		h.SetMode(0o644)
+		if v.soloLettura {
+			h.SetMode(0o444) // anche l'attributo DOS "sola lettura"
+		}
 		h.Method = zip.Deflate
 		if estensioniGiaCompresse[strings.ToLower(filepath.Ext(v.nome))] {
 			h.Method = zip.Store
@@ -534,7 +574,11 @@ func scrivi7z(ctx context.Context, c *copiatore, out *os.File, dove string, voci
 	sv := make([]settezip.Voce, len(voci))
 	for i, v := range voci {
 		p := v.percorso
-		sv[i] = settezip.Voce{Nome: v.nome, Cartella: v.cartella, Dim: v.dim, Quando: v.quando,
+		var attr uint32
+		if v.soloLettura {
+			attr = 0x01 | 0x20 | 0x8000 | 0o100444<<16 // sola lettura, archivio, modo unix
+		}
+		sv[i] = settezip.Voce{Nome: v.nome, Cartella: v.cartella, Dim: v.dim, Quando: v.quando, Attributi: attr,
 			GiaCompresso: estensioniGiaCompresse[strings.ToLower(filepath.Ext(v.nome))],
 			Apri:         func() (io.ReadCloser, error) { return os.Open(p) }}
 	}
@@ -608,7 +652,8 @@ func scriviTarXz(c *copiatore, w io.Writer, voci []voce, liv Livello, ris *Risul
 	if m := memoriaLibera(); m > 0 && int64(dict)*12 > m {
 		dict = 8 << 20 // poca memoria libera: dizionario più piccolo
 	}
-	cfg := xz.WriterConfig{DictCap: dict, CheckSum: xz.CRC64}
+	prof, basta := settezip.Ricerca(liv.settezip())
+	cfg := xz.WriterConfig{DictCap: dict, CheckSum: xz.CRC64, Profondita: prof, Basta: basta}
 	xw, err := cfg.NewWriter(w)
 	if err != nil {
 		return err
@@ -683,7 +728,11 @@ func scriviTar(c *copiatore, xw io.Writer, voci []voce, ris *RisultatoComprimi) 
 			continue
 		}
 		c.totale += fi.Size() - v.dim
-		if err := tw.WriteHeader(&tar.Header{Typeflag: tar.TypeReg, Name: v.nome, Mode: 0o644, Size: fi.Size(), ModTime: v.quando}); err != nil {
+		modo := int64(0o644)
+		if v.soloLettura {
+			modo = 0o444
+		}
+		if err := tw.WriteHeader(&tar.Header{Typeflag: tar.TypeReg, Name: v.nome, Mode: modo, Size: fi.Size(), ModTime: v.quando}); err != nil {
 			f.Close()
 			return err
 		}

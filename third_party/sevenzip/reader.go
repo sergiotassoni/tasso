@@ -144,6 +144,24 @@ func (fr *fileReader) Close() error {
 	return nil
 }
 
+// IsEncrypted reports whether the file's data passes through the 7-Zip AES coder
+// (06F10701). Modifica di Tasso Zip: senza compressione (solo AES) la libreria non se ne
+// accorge da sola, e una password mancante sembrava un archivio rovinato.
+func (f *File) IsEncrypted() bool {
+	if f.isEmptyStream || f.isEmptyFile || f.zip == nil || f.zip.si == nil || f.zip.si.unpackInfo == nil {
+		return false
+	}
+	if f.folder < 0 || f.folder >= len(f.zip.si.unpackInfo.folder) {
+		return false
+	}
+	for _, c := range f.zip.si.unpackInfo.folder[f.folder].coder {
+		if bytes.Equal(c.id, []byte{0x06, 0xf1, 0x07, 0x01}) {
+			return true
+		}
+	}
+	return false
+}
+
 // Open returns an [io.ReadCloser] that provides access to the [File]'s
 // contents. Multiple files may be read concurrently.
 func (f *File) Open() (io.ReadCloser, error) {

@@ -370,7 +370,8 @@ func TestFileDiProva(t *testing.T) {
 			}
 		}},
 		{nome: "tar con collegamenti fisici", file: []string{"gnu-hardlinks.tar"}, controlla: func(t *testing.T, m map[string]string, r RisultatoEstrai) {
-			if len(r.Saltati) == 0 || r.File == 0 {
+			// CTRL-ZP-01, ZP01-3: l'hard link esce come file (copia di quello già uscito)
+			if len(r.Saltati) != 0 || r.File != 2 || m["dir-2/file-a"] != m["dir-2/file-b"] || m["dir-2/file-a"] == "" {
 				t.Errorf("risultato: %+v %v", r, m)
 			}
 		}},

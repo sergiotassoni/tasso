@@ -19,7 +19,9 @@ package main
 //     davvero Tasso Zip) e si segna quella che c'era prima (Software\Tasso\TassoZip\Prima);
 //   - spegnendo, se la scelta dell'utente porta a Tasso Zip la cancella: così Windows torna
 //     al programma di prima invece di chiedere "Come vuoi aprire questo file?". Se prima
-//     c'era la scelta di un altro programma, Windows non la lascia rimettere: lo diciamo.
+//     c'era la scelta di un altro programma, Windows non la lascia rimettere: lo diciamo. Se
+//     la scelta di Tasso Zip ("Apri con > TassoZip.exe > Sempre") l'aveva fatta l'utente prima
+//     di accendere, resta (con Applications\TassoZip.exe): torna com'era.
 
 import (
 	"errors"
@@ -48,10 +50,12 @@ func comandoApri(exe string) string { return `"` + exe + `" --apri "%1"` }
 // Windows 11 più nuovi e, se c'è, conta lei).
 var scelteUtente = []string{"UserChoiceLatest", "UserChoice"}
 
-// sceltaUtente legge il programma scelto dall'utente per l'estensione ("" = nessuna scelta).
-func sceltaUtente(e string) string {
-	for _, c := range scelteUtente {
-		k, err := registry.OpenKey(registry.CURRENT_USER, chiaveScelte+e+`\`+c, registry.QUERY_VALUE)
+// progIdScelta: il programma scritto in una delle chiavi di scelteUtente. In UserChoiceLatest
+// Windows 11 lo mette nella sottochiave "ProgId" (valore "ProgId"; la chiave ha solo "Hash"):
+// la leggo per prima, poi il valore diretto (UserChoice, e per sicurezza UserChoiceLatest).
+func progIdScelta(chiave string) string {
+	for _, c := range []string{chiave + `\ProgId`, chiave} {
+		k, err := registry.OpenKey(registry.CURRENT_USER, c, registry.QUERY_VALUE)
 		if err != nil {
 			continue
 		}
@@ -63,6 +67,25 @@ func sceltaUtente(e string) string {
 	}
 	return ""
 }
+
+// sceltaUtente legge il programma scelto dall'utente per l'estensione ("" = nessuna scelta).
+func sceltaUtente(e string) string {
+	for _, c := range scelteUtente {
+		if v := progIdScelta(chiaveScelte + e + `\` + c); v != "" {
+			return v
+		}
+	}
+	return ""
+}
+
+// primaTassoZip: in Prima, "la scelta dell'utente portava già a Tasso Zip" (fatta da lui con
+// "Apri con > Cerca un'altra app > TassoZip.exe > Sempre" prima di accendere l'interruttore):
+// spegnendo non la cancello, perché c'era prima. valoreAppExePrima: Applications\TassoZip.exe
+// c'era già (scritta da Windows con quella scelta): spegnendo resta.
+const (
+	primaTassoZip     = "=tassozip"
+	valoreAppExePrima = "AppExePrima"
+)
 
 // diTassoZip: il tipo di file porta a Tasso Zip (il nostro, o "Apri con > Tasso Zip").
 func diTassoZip(p string) bool {
@@ -77,16 +100,35 @@ func attivaAssociazioni(l string) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
+	return attivaAssociazioniCon(exe, l)
+}
+
+// attivaAssociazioniCon: come attivaAssociazioni, verso l'exe indicato.
+func attivaAssociazioniCon(exe, l string) ([]string, error) {
 	var errs []error
 	// prima di tutto mi segno la scelta dell'utente com'era (solo la prima volta)
 	if k, _, err := registry.CreateKey(registry.CURRENT_USER, chiavePrima, registry.QUERY_VALUE|registry.SET_VALUE); err == nil {
+		appExeNuova := !associazioniAttive() // prima accensione: Applications\TassoZip.exe non è ancora nostra
 		for _, e := range estensioniAssoc {
 			if _, _, err := k.GetStringValue(e); err == nil {
 				continue // già segnata da un'accensione di prima
 			}
-			if v := sceltaUtente(e); !diTassoZip(v) {
-				_ = k.SetStringValue(e, v) // "" = nessuna scelta
+			v := sceltaUtente(e)
+			if strings.EqualFold(v, `Applications\TassoZip.exe`) {
+				v = primaTassoZip // scelta dall'utente da "Apri con": spegnendo resta
+			} else if diTassoZip(v) {
+				v = "" // il nostro tipo di file, rimasto da prima: va via con lui
 			}
+			_ = k.SetStringValue(e, v) // "" = nessuna scelta
+		}
+		if _, _, err := k.GetStringValue(valoreAppExePrima); err != nil && appExeNuova {
+			c, err := registry.OpenKey(registry.CURRENT_USER, chiaveAppExe, registry.QUERY_VALUE)
+			c2 := "0"
+			if err == nil {
+				c.Close()
+				c2 = "1"
+			}
+			_ = k.SetStringValue(valoreAppExePrima, c2)
 		}
 		k.Close()
 	} else {
@@ -157,32 +199,34 @@ func togliAssociazioni() ([]string, error) {
 	var errs []error
 	var daRiscegliere []string
 	prima := map[string]string{}
+	appExePrima := false
 	if k, err := registry.OpenKey(registry.CURRENT_USER, chiavePrima, registry.QUERY_VALUE); err == nil {
 		for _, e := range estensioniAssoc {
 			if v, _, err := k.GetStringValue(e); err == nil {
 				prima[e] = v
 			}
 		}
+		v, _, _ := k.GetStringValue(valoreAppExePrima)
+		appExePrima = v == "1"
 		k.Close()
 	}
 	for _, e := range estensioniAssoc {
 		tolta := false
 		for _, c := range scelteUtente {
-			k, err := registry.OpenKey(registry.CURRENT_USER, chiaveScelte+e+`\`+c, registry.QUERY_VALUE)
-			if err != nil {
+			if prima[e] == primaTassoZip {
+				break // la scelta di Tasso Zip l'aveva fatta l'utente prima di accendere: resta
+			}
+			if !diTassoZip(progIdScelta(chiaveScelte + e + `\` + c)) {
 				continue
 			}
-			v, _, _ := k.GetStringValue("ProgId")
-			k.Close()
-			if !diTassoZip(v) {
-				continue
-			}
-			if err := registry.DeleteKey(registry.CURRENT_USER, chiaveScelte+e+`\`+c); err != nil {
+			// UserChoiceLatest ha la sottochiave ProgId: RegDeleteKey da sola non la cancellerebbe
+			if err := cancellaAlbero(registry.CURRENT_USER, chiaveScelte+e+`\`+c); err != nil {
 				errs = append(errs, err) // la pagina dice "non sono riuscito", non "fatto"
 				continue
 			}
 			tolta = true
 		}
+		togliResti(e, appExePrima)
 		if tolta && prima[e] != "" && !diTassoZip(prima[e]) && sceltaUtente(e) == "" {
 			daRiscegliere = append(daRiscegliere, e)
 		}
@@ -202,17 +246,60 @@ func togliAssociazioni() ([]string, error) {
 		cancellaSeVuota(`Software\Classes\` + e + `\OpenWithProgids`)
 		cancellaSeVuota(`Software\Classes\` + e)
 	}
-	for _, c := range []string{`Software\Classes\` + progID, chiaveAppExe, `Software\Tasso\TassoZip`} {
+	togliere := []string{`Software\Classes\` + progID, `Software\Tasso\TassoZip`}
+	if !appExePrima {
+		togliere = append(togliere, chiaveAppExe)
+	}
+	for _, c := range togliere {
 		if err := cancellaAlbero(registry.CURRENT_USER, c); err != nil {
 			errs = append(errs, err)
 		}
 	}
+	togliTassoVuota()
 	if k, err := registry.OpenKey(registry.CURRENT_USER, `Software\RegisteredApplications`, registry.SET_VALUE); err == nil {
 		_ = k.DeleteValue(nomeRegApp)
 		k.Close()
 	}
 	avvisaExplorer()
 	return daRiscegliere, errors.Join(errs...)
+}
+
+// togliResti: quello che Windows stesso scrive quando si usa Tasso Zip e che porta a Tasso Zip
+// (innocuo, ma il registro deve tornare com'era): TassoZip.Archivio in FileExts\<ext>\OpenWithProgids,
+// TassoZip.exe in FileExts\<ext>\OpenWithList (con la sua lettera in MRUList) e gli avvisi
+// "nuova app" in ApplicationAssociationToasts. Con appExePrima (l'utente aveva già scelto
+// TassoZip.exe da "Apri con" prima di accendere) quelli di TassoZip.exe restano.
+func togliResti(e string, appExePrima bool) {
+	if k, err := registry.OpenKey(registry.CURRENT_USER, chiaveScelte+e+`\OpenWithProgids`, registry.SET_VALUE); err == nil {
+		_ = k.DeleteValue(progID)
+		k.Close()
+	}
+	if appExePrima {
+		if k, err := registry.OpenKey(registry.CURRENT_USER, `Software\Microsoft\Windows\CurrentVersion\ApplicationAssociationToasts`, registry.SET_VALUE); err == nil {
+			_ = k.DeleteValue(progID + "_" + e)
+			k.Close()
+		}
+		return
+	}
+	if k, err := registry.OpenKey(registry.CURRENT_USER, chiaveScelte+e+`\OpenWithList`, registry.QUERY_VALUE|registry.SET_VALUE); err == nil {
+		mru, _, _ := k.GetStringValue("MRUList")
+		for c := 'a'; c <= 'z'; c++ {
+			if v, _, err := k.GetStringValue(string(c)); err == nil && strings.EqualFold(v, "TassoZip.exe") {
+				if k.DeleteValue(string(c)) == nil {
+					mru = strings.ReplaceAll(mru, string(c), "")
+				}
+			}
+		}
+		if m, _, err := k.GetStringValue("MRUList"); err == nil && m != mru {
+			_ = k.SetStringValue("MRUList", mru)
+		}
+		k.Close()
+	}
+	if k, err := registry.OpenKey(registry.CURRENT_USER, `Software\Microsoft\Windows\CurrentVersion\ApplicationAssociationToasts`, registry.SET_VALUE); err == nil {
+		_ = k.DeleteValue(progID + "_" + e)
+		_ = k.DeleteValue(`Applications\TassoZip.exe_` + e)
+		k.Close()
+	}
 }
 
 // cancellaSeVuota cancella la chiave solo se non ha più né valori né sottochiavi.

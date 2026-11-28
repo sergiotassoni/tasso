@@ -25,6 +25,9 @@ type WriterConfig struct {
 	NoCheckSum bool
 	// match algorithm
 	Matcher lzma.MatchAlgorithm
+	// Tasso Zip: quanto cercare (vedi lzma.Writer2Config).
+	Profondita int
+	Basta      int
 }
 
 // fill replaces zero values with default values.

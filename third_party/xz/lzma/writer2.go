@@ -23,6 +23,12 @@ type Writer2Config struct {
 	BufSize int
 	// Match algorithm
 	Matcher MatchAlgorithm
+	// Modifica di Tasso Zip: quanto cercare (solo HashTable4). Profondita: quante posizioni
+	// precedenti con le stesse 4 lettere provare (0 = 64, come prima; al massimo 1024).
+	// Basta: una corrispondenza lunga almeno così ferma la ricerca (0 = cerca sempre tutto).
+	// Più profondità = archivio più piccolo e più lento: sono i livelli veri di Tasso Zip.
+	Profondita int
+	Basta      int
 }
 
 // fill replaces zero values with default values.
@@ -111,6 +117,9 @@ func (c Writer2Config) NewWriter2(lzma2 io.Writer) (w *Writer2, err error) {
 	m, err := c.Matcher.new(c.DictCap)
 	if err != nil {
 		return nil, err
+	}
+	if ht, ok := m.(*hashTable); ok {
+		ht.cerca(c.Profondita, c.Basta)
 	}
 	d, err := newEncoderDict(c.DictCap, c.BufSize, m)
 	if err != nil {

@@ -134,7 +134,7 @@ func Elenca(ctx context.Context, percorso, password string) (el ElencoArchivio, 
 			}
 			m := f.Mode()
 			v := VoceArchivio{Nome: decodificaNomeZip(f.Name), Cartella: m.IsDir() || hasSlash(f.Name),
-				Dim: int64(f.UncompressedSize64), Compresso: int64(f.CompressedSize64), Quando: f.Modified, Cifrato: f.Flags&1 != 0}
+				Dim: int64(f.UncompressedSize64), Compresso: int64(f.CompressedSize64), Quando: dataZip(f), Cifrato: f.Flags&1 != 0}
 			if !aggiungi(v) {
 				return el, ErrAnnullato
 			}
@@ -153,7 +153,8 @@ func Elenca(ctx context.Context, percorso, password string) (el ElencoArchivio, 
 					el.Solido = true
 				}
 			}
-			v := VoceArchivio{Nome: f.Name, Cartella: f.Mode().IsDir(), Dim: int64(f.UncompressedSize), Compresso: -1, Quando: f.Modified}
+			v := VoceArchivio{Nome: f.Name, Cartella: f.Mode().IsDir(), Dim: int64(f.UncompressedSize), Compresso: -1, Quando: f.Modified,
+				Cifrato: f.IsEncrypted()}
 			if !aggiungi(v) {
 				return el, ErrAnnullato
 			}
@@ -204,19 +205,25 @@ func (l *lavoroEstrai) elencaFlusso(tipo Tipo, percorso string, aggiungi func(Vo
 	}
 	defer chiudi()
 	br := bufio.NewReaderSize(r, 1<<20)
-	testa, errP := br.Peek(512)
+	testa, errP := br.Peek(1024)
 	if errP != nil && errP != io.EOF && errP != bufio.ErrBufferFull {
 		// Errore già all'inizio (es. intestazione del blocco xz rovinata). Va detto adesso:
 		// bufio lo "consuma" e la lettura dopo sembrerebbe un file vuoto e sano.
 		return l.erroreLettura(errP)
 	}
-	if tipo != TipoTar && !sembraTar(testa) {
+	if tipo != TipoTar && !sembraTar(testa) && !(tarVuoto(testa) && nomeDaTar(percorso)) {
 		// Un file solo compresso: la dimensione si sa solo leggendolo tutto.
 		n, err := io.Copy(io.Discard, &lettoreAnnullabile{ctx: l.ctx, r: br})
 		if err != nil {
 			return l.erroreLettura(err)
 		}
-		aggiungi(VoceArchivio{Nome: nomeDentro(percorso), Dim: n, Compresso: l.vol.Size()})
+		nome := nomeDentro(percorso)
+		if g, ok := r.(*gzMembri); ok {
+			if x := nomeGz(g.gz.Header.Name); x != "" {
+				nome = x
+			}
+		}
+		aggiungi(VoceArchivio{Nome: nome, Dim: n, Compresso: l.vol.Size()})
 		return nil
 	}
 	tr := tar.NewReader(br)
@@ -236,7 +243,7 @@ func (l *lavoroEstrai) elencaFlusso(tipo Tipo, percorso string, aggiungi func(Vo
 			return l.erroreLettura(err)
 		}
 		switch h.Typeflag {
-		case tar.TypeReg, tar.TypeRegA, tar.TypeGNUSparse:
+		case tar.TypeReg, tar.TypeRegA, tar.TypeCont, tar.TypeGNUSparse, tar.TypeLink: // anche "contiguo" e hard link: escono come file
 			if !aggiungi(VoceArchivio{Nome: h.Name, Dim: h.Size, Compresso: -1, Quando: h.ModTime}) {
 				return ErrAnnullato
 			}

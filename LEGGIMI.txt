@@ -94,9 +94,11 @@ APRI UN ARCHIVIO
   entri nelle cartelle con un doppio clic, cerchi, ordini cliccando sulle colonne.
   - Spunta i file e premi "Estrai selezionati", oppure "Estrai tutto".
   - Doppio clic su un file: Tasso Zip lo mette in una cartella temporanea
-    (%LOCALAPPDATA%\Tasso Zip\Temp, pulita da sola dopo un giorno) e lo apre col suo
-    programma. Per programmi e script (.exe .bat .cmd .ps1 .vbs .js .msi .lnk ...) chiede
-    prima di aprirli. Se l'archivio viene da internet, anche il file aperto lo "sa"
+    (%LOCALAPPDATA%\Tasso Zip\Temp, che si svuota quando chiudi Tasso Zip; un file ancora
+    aperto in un altro programma va via al primo avvio dopo un giorno) e lo apre col suo
+    programma. È una copia in sola lettura: per tenere le modifiche salvala in un'altra
+    cartella. Per programmi e script (.exe .bat .cmd .ps1 .vbs .js .msi .lnk ...) chiede
+    prima di aprirli (Tasso Zip ricontrolla il file vero prima di aprirlo). Se l'archivio viene da internet, anche il file aperto lo "sa"
     (marchio del web: Windows fa i suoi controlli), come tutti i file estratti.
   - Interruttore in basso "Apri gli archivi con doppio clic con Tasso Zip": acceso,
     .zip .7z .rar .tar .gz .tgz .bz2 .xz .zst si aprono con Tasso Zip (solo per il tuo
@@ -131,20 +133,22 @@ ESTRAI
 TASTO DESTRO DEL MOUSE
   In basso nella finestra c'è l'interruttore "Aggiungi Tasso Zip al tasto destro del mouse".
   Acceso, compare il sottomenu "Tasso Zip" con la sua icona:
-  - su file e cartelle: "Aggiungi all'archivio..." (apre la finestra), "Comprimi in .zip
+  - su file e cartelle: "Comprimi in un archivio..." (apre la finestra), "Comprimi in .zip
     (compatibile con tutti)", "Comprimi in .7z (super compressione)": questi due partono
     subito con una piccola finestra di avanzamento; più file scelti insieme diventano un
     archivio solo, col nome della loro cartella;
   - sugli archivi: "Apri con Tasso Zip", "Estrai qui" (i file vanno nella cartella
     dell'archivio; i nomi già presenti diventano "(2)"), "Estrai in una cartella col suo
-    nome", "Estrai in..." (scegli tu la cartella), "Aggiungi all'archivio...".
+    nome", "Estrai in..." (scegli tu la cartella), "Comprimi in un archivio...".
   Le voci sono solo per il tuo utente (HKEY_CURRENT_USER\Software\Classes): niente
   amministratore. Funziona su Windows 10 e su Windows 11 sotto "Mostra altre opzioni".
   Limiti: il menu nuovo e corto di Windows 11 accetta solo programmi con un'estensione COM
   e un pacchetto MSIX firmato: Tasso Zip non lo fa (resta in "Mostra altre opzioni").
   Per lo stesso motivo le voci non possono contenere il nome del file ("Comprimi in
-  Foto.zip"): dicono ".zip" e ".7z". Windows passa al massimo 15 file per volta al menu.
-  Se sposti TassoZip.exe, alla prima apertura voci e associazioni si aggiornano da sole.
+  Foto.zip"): dicono ".zip" e ".7z". Con più di 15 file scelti il menu c'è lo stesso.
+  Se sposti TassoZip.exe, alla prima apertura voci e associazioni si aggiornano da sole (anche
+  la lingua). Una copia di TassoZip.exe aperta da un'altra cartella (per esempio dentro lo zip
+  scaricato) non le sposta su di sé se quella di prima c'è ancora.
   Un nuovo comando dal tasto destro mentre Tasso Zip sta già lavorando non si perde: aspetta
   il suo turno e parte da solo appena finisce il lavoro in corso (più "Comprimi in .zip"
   arrivati insieme diventano un archivio solo).
@@ -157,10 +161,10 @@ SICUREZZA
     come C:\... o \\server\..., nomi riservati di Windows come CON o NUL).
   - Non crea mai collegamenti simbolici.
   - Limiti contro le "zip bomb": si ferma se l'archivio si espande più di 1000 volte la sua
-    dimensione (sopra gli 8 GB), oltre 1 milione di file, o se il disco sta per riempirsi
+    dimensione (sopra 1 GB), oltre 1 milione di file, o se il disco sta per riempirsi
     (lascia sempre almeno 512 MB liberi).
-  - Se annulli, chiudi la finestra o qualcosa va storto, non resta niente a metà: lavora in un
-    file/cartella temporaneo accanto (".tassozip-....tmp", nascosto) e lo rinomina solo alla
+  - Se annulli, chiudi la finestra o qualcosa va storto, non resta niente a metà: lavora in una
+    cartella temporanea accanto (".tassozip-....tmp", nascosta) e sposta il risultato solo alla
     fine. Se il PC si spegne di colpo, gli avanzi vecchi si tolgono da soli al lavoro dopo.
   - Marchio del web: se l'archivio viene da internet, TUTTI i file estratti (Estrai, Estrai qui,
     tasto destro, procedura guidata, doppio clic nella vista) e l'archivio riparato lo "sanno":
@@ -207,7 +211,9 @@ RIGA DI COMANDO
 PER TOGLIERLO
   Spegni i due interruttori in basso (tasto destro e doppio clic), poi cancella TassoZip.exe
   e la cartella %LOCALAPPDATA%\Tasso Zip. Se l'hai installato con l'Ecosistema Tasso, usa il
-  suo disinstallatore: fa tutto lui.
+  suo disinstallatore: fa tutto lui. Se sul PC più account hanno acceso i due interruttori,
+  spegnili in ogni account prima di disinstallare (il disinstallatore pulisce l'account con
+  cui lo avvii).
   Il tuo nome resta nel registro (HKEY_CURRENT_USER\Software\Tasso, valore "Nome") perché
   è anche di Tasso e di Tasso PDF: lo togli da Tasso, oppure lo toglie il disinstallatore
   dell'Ecosistema.
@@ -285,7 +291,8 @@ OPEN AN ARCHIVE
   "Look inside" (or double-click an archive if you turned that on, or right-click >
   Tasso Zip > Open with Tasso Zip): name, size, packed size and date of every file,
   folders, search, sorting, "Extract selected", "Extract all". Double-clicking a file
-  extracts it to %LOCALAPPDATA%\Tasso Zip\Temp and opens it with its program; programs
+  extracts a read-only copy to %LOCALAPPDATA%\Tasso Zip\Temp (emptied when you close Tasso
+  Zip; to keep changes, save it in another folder) and opens it with its program; programs
   and scripts (.exe .bat .cmd .ps1 .vbs .js .msi .lnk ...) need a confirmation first.
   The switch "Open archives with Tasso Zip on double click" registers the
   TassoZip.Archivio file type in HKCU (with confirmation; turning it off restores
@@ -315,7 +322,7 @@ RIGHT-CLICK MENU
   on files/folders "Compress with Tasso Zip...", "Compress to .zip", "Compress to .7z"
   (the last two start right away with a small progress window); on archives "Open with
   Tasso Zip", "Extract here", "Extract to a folder with its name", "Extract to..." (choose the
-  folder). On files and folders the first entry is now "Add to archive...". Only for your user
+  folder). On files and folders the first entry is now "Compress into an archive...". Only for your user
   (HKEY_CURRENT_USER\Software\Classes), no administrator. Windows 10, and Windows 11 under
   "Show more options". The new short Windows 11 menu requires a COM extension and a
   signed MSIX package: not done, and for the same reason the entries cannot show the file
@@ -328,7 +335,7 @@ SAFETY
   - Protection against paths escaping the folder ("zip slip": .., absolute names, C:\..., \\server\...,
     reserved Windows names such as CON or NUL).
   - Never creates symbolic links.
-  - "Zip bomb" limits: stops if the archive expands more than 1000 times its size (above 8 GB),
+  - "Zip bomb" limits: stops if the archive expands more than 1000 times its size (above 1 GB),
     has more than 1 million entries, or the disk is about to fill up (always keeps 512 MB free).
   - If you cancel, close the window or something goes wrong, nothing is left half-done: it works in
     a temporary file/folder next to the target (".tassozip-....tmp") and renames it only at the end.
@@ -344,7 +351,8 @@ LANGUAGE
 
 TO REMOVE IT
   Turn off both switches at the bottom, then delete TassoZip.exe and %LOCALAPPDATA%\Tasso Zip
-  (or use the Tasso Ecosystem uninstaller). Your name stays in the registry
+  (or use the Tasso Ecosystem uninstaller; with several accounts, turn the switches off in each
+  account first: the uninstaller cleans the account that runs it). Your name stays in the registry
   (HKEY_CURRENT_USER\Software\Tasso, value "Nome") because Tasso and Tasso PDF use it too:
   remove it from Tasso, or the Ecosystem uninstaller removes it.
 

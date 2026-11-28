@@ -6,6 +6,7 @@ package archivio
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io/fs"
 	"os"
 	"syscall"
@@ -21,11 +22,18 @@ var (
 	ErrSpazio            = errors.New("spazio su disco insufficiente")
 	ErrFormato           = errors.New("formato non riconosciuto")
 	ErrZipCifrato        = errors.New("zip con password: non supportato")
-	ErrZipDiviso         = errors.New("zip diviso in parti .z01: non supportato")
-	ErrParteMancante     = errors.New("manca una parte dell'archivio")
-	ErrRovinato          = errors.New("archivio rovinato o incompleto")
-	ErrNienteDaFare      = errors.New("nessun file da comprimere")
-	ErrNonScrivibile     = errors.New("non posso scrivere nella cartella")
+	// ErrZipCifratoAES: zip con password AES (Esplora file di Windows di solito non lo apre).
+	ErrZipCifratoAES = fmt.Errorf("%w (AES)", ErrZipCifrato)
+	// ErrMetodo: un metodo di compressione che Tasso Zip non sa ancora aprire (l'archivio è sano).
+	ErrMetodo = errors.New("metodo di compressione non supportato")
+	// ErrMetaRimasta: "Estrai qui" non è riuscito a finire e non ha potuto rimettere tutto
+	// com'era: qualche file è rimasto nella cartella.
+	ErrMetaRimasta   = errors.New("estrazione non finita: qualche file è rimasto nella cartella")
+	ErrZipDiviso     = errors.New("zip diviso in parti .z01: non supportato")
+	ErrParteMancante = errors.New("manca una parte dell'archivio")
+	ErrRovinato      = errors.New("archivio rovinato o incompleto")
+	ErrNienteDaFare  = errors.New("nessun file da comprimere")
+	ErrNonScrivibile = errors.New("non posso scrivere nella cartella")
 
 	errEsisteGia = errors.New("esiste già")
 )
@@ -51,6 +59,12 @@ func Codice(err error) string {
 		return "spazio"
 	case errors.Is(err, ErrFormato):
 		return "formato"
+	case errors.Is(err, ErrMetodo):
+		return "metodo"
+	case errors.Is(err, ErrMetaRimasta):
+		return "meta_rimasta"
+	case errors.Is(err, ErrZipCifratoAES):
+		return "zip_cifrato_aes"
 	case errors.Is(err, ErrZipCifrato):
 		return "zip_cifrato"
 	case errors.Is(err, ErrZipDiviso):

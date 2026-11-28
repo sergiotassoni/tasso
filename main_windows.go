@@ -101,7 +101,7 @@ func main() {
 		case strings.HasPrefix(a, "--"):
 			// sconosciuto: lo ignoro
 		default:
-			if p, err := filepath.Abs(a); err == nil {
+			if p, err := filepath.Abs(nomeLungo(a)); err == nil {
 				percorsi = append(percorsi, p)
 			}
 		}
@@ -130,20 +130,13 @@ func main() {
 		}
 		defer chiudi()
 		codaModo = modo
-		percorsi = raccogliCoda(modo, percorsi, 450*time.Millisecond)
+		percorsi = raccogliCoda(modo, percorsi, 700*time.Millisecond, 5*time.Second)
 	}
 
-	// Se il menu del tasto destro è attivo ma l'exe è stato spostato, aggiorno i percorsi.
-	if menuAttivo() {
-		if exe, err := os.Executable(); err == nil && !menuPuntaA(exe) {
-			_ = attivaMenu(lingua())
-		}
-	}
-	if associazioniAttive() {
-		if exe, err := os.Executable(); err == nil && !associazioniPuntanoA(exe) {
-			_, _ = attivaAssociazioni(lingua())
-		}
-	}
+	// Menu del tasto destro e doppio clic già accesi: li riscrivo da solo se sono di una versione
+	// di prima, se la lingua è cambiata o se l'exe a cui puntano non c'è più. Mai verso una copia
+	// aperta da TEMP o da Download quando c'è quella installata (vedi exePerVoci).
+	aggiornaVociRegistrate()
 
 	mini := modiMini[modo] && len(percorsi) > 0
 	w := nuovaFinestra(mini)
@@ -182,6 +175,7 @@ func main() {
 	}
 	w.Run()
 	chiusa.Store(true)
+	defer pulisciTempAllaChiusura()
 
 	lavoroMu.Lock()
 	if lavoroStop != nil {
@@ -220,6 +214,12 @@ func nuovaFinestra(mini bool) webview2.WebView {
 	w := webview2.NewWithOptions(webview2.WebViewOptions{
 		DataPath:  filepath.Join(cartella, "WebView2"),
 		AutoFocus: true,
+		// La pagina di Tasso Zip non va mai altrove (un link trascinato nella finestra non apre
+		// quel sito al posto della pagina), niente finestre nuove, e le funzioni del programma
+		// rispondono solo alla pagina interna.
+		NavigazionePermessa: navigazionePermessa,
+		PopupRichiesto:      func(string) {},
+		FontePermessa:       fontePermessa,
 		WindowOptions: webview2.WindowOptions{
 			Title:  "Tasso Zip",
 			Width:  uint(larg * scala),
@@ -232,6 +232,51 @@ func nuovaFinestra(mini bool) webview2.WebView {
 		w.SetSize(int(minL*scala), int(minA*scala), webview2.HintMin)
 	}
 	return w
+}
+
+var (
+	paginaMu    sync.Mutex
+	paginaPrima string // l'indirizzo della pagina interna (la prima navigazione, quella di SetHtml)
+	paginaVista bool
+)
+
+// esterno: indirizzi di siti o di file, mai permessi alla finestra.
+func esterno(u string) bool {
+	l := strings.ToLower(strings.TrimSpace(u))
+	for _, s := range []string{"http:", "https:", "file:", "ftp:", "ws:", "wss:", "javascript:", "blob:", "filesystem:", "\\\\", "//"} {
+		if strings.HasPrefix(l, s) {
+			return true
+		}
+	}
+	return false
+}
+
+// navigazionePermessa: solo la pagina interna. La prima navigazione è quella di SetHtml (la
+// pagina di Tasso Zip): la segno; dopo, solo lei (per esempio se si ricarica). Ogni altra
+// (un link trascinato, un indirizzo scritto da una pagina) viene annullata.
+func navigazionePermessa(u string) bool {
+	if esterno(u) {
+		return false
+	}
+	paginaMu.Lock()
+	defer paginaMu.Unlock()
+	if !paginaVista {
+		paginaVista, paginaPrima = true, u
+		return true
+	}
+	return u == paginaPrima
+}
+
+// fontePermessa: i messaggi per le funzioni del programma arrivano solo dalla pagina interna
+// (scritta con SetHtml: WebView2 la indica come "about:blank" o "data:text/html…"). Mai da un
+// sito o da un file; altre pagine non si aprono comunque (navigazionePermessa).
+func fontePermessa(u string) bool {
+	if esterno(u) {
+		return false
+	}
+	paginaMu.Lock()
+	defer paginaMu.Unlock()
+	return u == "" || u == "about:blank" || strings.HasPrefix(u, "data:text/html") || paginaVista && u == paginaPrima
 }
 
 // manda un evento alla pagina: window.tz.<nome>(dati).
@@ -325,11 +370,16 @@ func collega(w webview2.WebView) {
 		}
 		linguaRiga = ""
 		modificaImpostazioni(func(s *impostazioni) { s.Lingua = l })
+		// anche le voci del tasto destro nella lingua nuova (verso lo stesso exe di prima: vedi exePerVoci)
 		if menuAttivo() {
-			_ = attivaMenu(l) // anche le voci del tasto destro nella lingua nuova
+			if exe := exePerVoci(leggiComando()); exe != "" {
+				_ = attivaMenuCon(exe, l)
+			}
 		}
 		if associazioniAttive() {
-			_, _ = attivaAssociazioni(l)
+			if exe := exePerVoci(leggiComandoApri()); exe != "" {
+				_, _ = attivaAssociazioniCon(exe, l)
+			}
 		}
 		return "ok"
 	})
@@ -443,7 +493,7 @@ func avanzamento(a archivio.Avanzamento) {
 
 func erroreVersoPagina(tipo, percorso string, err error) {
 	c := archivio.Codice(err)
-	if c != "annullato" && c != "password" && c != "password_sbagliata" {
+	if c != "annullato" && c != "password" && c != "password_sbagliata" && c != "zip_cifrato" && c != "zip_cifrato_aes" {
 		registraErrore("%s %s: %v", tipo, percorso, err)
 	}
 	manda("errore", map[string]interface{}{"tipo": tipo, "codice": c, "dettagli": testi.Dettagli(lingua(), err.Error()), "percorso": percorso})
@@ -566,10 +616,24 @@ var estensioniPericolose = map[string]bool{
 	".sys": true, ".scf": true, ".settingcontent-ms": true, ".library-ms": true, ".iso": true, ".img": true, ".vhd": true, ".vhdx": true,
 	".msc": true, ".appref-ms": true, ".xll": true, ".wsc": true, ".sct": true, ".diagcab": true, ".search-ms": true,
 	".ps1xml": true, ".mht": true, ".mhtml": true,
+	// usati negli attacchi più recenti (OneNote, desktop remoto, pacchetti, temi, collegamenti web)
+	".one": true, ".onepkg": true, ".rdp": true, ".cab": true, ".msu": true, ".wsb": true, ".xbap": true,
+	".ocx": true, ".vb": true, ".ws": true, ".shb": true, ".theme": true, ".themepack": true,
+	".website": true, ".mde": true, ".accde": true,
 }
 
+// pericoloso: il file (l'ultimo pezzo del nome) è un programma o uno script? Il nome si guarda
+// dopo la STESSA pulizia dell'estrazione (archivio.PulisciNome): "fattura.exe" seguito da uno
+// spazio speciale (U+00A0, U+3000…) sul disco diventa "fattura.exe", e va confermato.
 func pericoloso(nome string) bool {
-	return estensioniPericolose[strings.ToLower(filepath.Ext(strings.TrimRight(nome, ". ")))]
+	n := strings.ReplaceAll(nome, `\`, "/")
+	if i := strings.LastIndex(n, "/"); i >= 0 {
+		n = n[i+1:]
+	}
+	if p := archivio.PulisciNome(n); p != "" {
+		n = p
+	}
+	return estensioniPericolose[strings.ToLower(filepath.Ext(strings.TrimRight(n, ". ")))]
 }
 
 // avviaApriVoce estrae una voce in una cartella temporanea di Tasso Zip e la apre con il
@@ -597,12 +661,17 @@ func avviaApriVoce(percorso, password, nome string, confermato bool) string {
 			erroreVersoPagina("apri", percorso, err)
 			return
 		}
+		apertiMu.Lock()
+		aperti = append(aperti, dir)
+		apertiMu.Unlock()
 		prefisso := ""
 		if i := strings.LastIndex(nome, "/"); i > 0 {
 			prefisso = nome[:i]
 		}
+		// Solo la voce esatta: non quello che c'è in una cartella con lo stesso nome
+		// ("fattura.pdf" file e "fattura.pdf/avvia.exe").
 		ris, err := archivio.Estrai(ctx, percorso, archivio.OpzioniEstrai{
-			Password: password, Selezione: []string{nome}, TogliPrefisso: prefisso,
+			Password: password, Selezione: []string{nome}, TogliPrefisso: prefisso, Esatto: true,
 			Modo: archivio.ModoQui, Destinazione: dir, Avanzamento: avanzamento,
 		})
 		if err == nil && ris.UltimoFile == "" {
@@ -613,8 +682,26 @@ func avviaApriVoce(percorso, password, nome string, confermato bool) string {
 			erroreVersoPagina("apri", percorso, err)
 			return
 		}
-		// ShellExecute nel filo della finestra (COM già pronto lì, come vuole Windows).
+		// Prima di aprire ricontrollo il file vero: deve essere proprio la voce scelta (un file
+		// solo, con il suo nome pulito) e, se è un programma, ci vuole la conferma.
 		file := ris.UltimoFile
+		atteso := archivio.PulisciNome(nome[strings.LastIndex(nome, "/")+1:])
+		if ris.File != 1 || filepath.Base(file) != atteso {
+			_ = os.RemoveAll(dir)
+			registraErrore("apri voce %s: uscito %q (%d file) invece di %q", nome, filepath.Base(file), ris.File, atteso)
+			manda("errore", map[string]interface{}{"tipo": "apri", "codice": "generico", "percorso": percorso,
+				"dettagli": testi.Dettagli(lingua(), "voce diversa da quella scelta")})
+			return
+		}
+		if pericoloso(file) && !confermato {
+			_ = os.RemoveAll(dir)
+			manda("confermaApri", map[string]interface{}{"voce": nome, "nome": filepath.Base(file)})
+			return
+		}
+		// Sola lettura: Word, Excel e gli altri non salvano sopra la copia temporanea (che poi
+		// si cancella) ma chiedono "Salva con nome". La pagina dice che è una copia.
+		_ = os.Chmod(file, 0o444)
+		// ShellExecute nel filo della finestra (COM già pronto lì, come vuole Windows).
 		if w := finestra; w != nil && !chiusa.Load() {
 			w.Dispatch(func() { apriFile(file) })
 		}
@@ -641,6 +728,26 @@ func pulisciAvanziAvvio(percorsi []string) {
 		}
 	}
 }
+
+// pulisciTempAllaChiusura: chiudendo la finestra tolgo le copie dei file aperti dagli archivi
+// (anche da quelli con password: non restano in chiaro sul disco). Windows non lascia cancellare
+// quelle ancora aperte in un programma: restano, e vanno via al prossimo avvio dopo un giorno.
+// Solo le cartelle create da questa finestra: quelle di un'altra finestra di Tasso Zip ancora
+// aperta non si toccano.
+func pulisciTempAllaChiusura() {
+	apertiMu.Lock()
+	dirs := aperti
+	aperti = nil
+	apertiMu.Unlock()
+	for _, d := range dirs {
+		_ = os.RemoveAll(d) // se il file è ancora aperto resta (con la sua cartella)
+	}
+}
+
+var (
+	apertiMu sync.Mutex
+	aperti   []string // cartelle apri-… create da questa finestra
+)
 
 // pulisciTemp toglie i file aperti dagli archivi più di un giorno fa.
 func pulisciTemp() {
@@ -693,7 +800,9 @@ func apriFile(p string) {
 	}
 }
 
-// apriURL: solo la pagina ufficiale Microsoft di WebView2 (Tasso Zip non usa internet).
+// apriURL: solo la pagina ufficiale Microsoft di WebView2, quando manca. Tasso Zip non usa
+// internet: l'unica altra pagina che apre nel browser è quella delle versioni di Tasso
+// (goPaginaVersioni in aggiornamenti_windows.go), e solo dopo che l'utente ha detto sì.
 func apriURL(u string) {
 	if strings.HasPrefix(u, "https://go.microsoft.com/") {
 		shellExecute(u, "")
@@ -716,6 +825,30 @@ func mostraInEsplora(p string) bool {
 		return shellExecute(explorer, `"`+p+`"`) > 32
 	}
 	return shellExecute(explorer, `/select,"`+p+`"`) > 32
+}
+
+// nomeLungo: con percorsi lunghi Esplora file può passare il nome corto 8.3 ("FOTOGR~1.JPG"):
+// lo trasformo nel nome vero, così l'archivio e l'elenco hanno i nomi giusti.
+func nomeLungo(p string) string {
+	if !strings.Contains(p, "~") {
+		return p
+	}
+	u, err := windows.UTF16PtrFromString(p)
+	if err != nil {
+		return p
+	}
+	buf := make([]uint16, 1024)
+	for i := 0; i < 2; i++ {
+		n, err := windows.GetLongPathName(u, &buf[0], uint32(len(buf)))
+		if err != nil || n == 0 {
+			return p
+		}
+		if int(n) < len(buf) {
+			return windows.UTF16ToString(buf[:n])
+		}
+		buf = make([]uint16, n+1)
+	}
+	return p
 }
 
 func cartellaDesktop() string {

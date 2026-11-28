@@ -16,6 +16,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -23,6 +24,50 @@ import (
 )
 
 func fileCoda(modo string) string { return filepath.Join(cartella, "coda-"+modo+".txt") }
+
+// filePid: il numero del processo del primo (per lasciargli portare la finestra davanti).
+func filePid(modo string) string { return filepath.Join(cartella, "coda-"+modo+".pid") }
+
+var (
+	procAllowSetForegroundWindow = user32.NewProc("AllowSetForegroundWindow")
+	procSetForegroundWindow      = user32.NewProc("SetForegroundWindow")
+	procShowWindow               = user32.NewProc("ShowWindow")
+	procIsIconic                 = user32.NewProc("IsIconic")
+	procFlashWindow              = user32.NewProc("FlashWindow")
+)
+
+// lasciaDavantiIlPrimo: Windows lascia portare una finestra davanti solo a chi l'utente ha appena
+// usato (qui: questo processo, avviato dal tasto destro). Passo il permesso al primo.
+func lasciaDavantiIlPrimo(modo string) {
+	b, err := os.ReadFile(filePid(modo))
+	if err != nil {
+		return
+	}
+	if pid, err := strconv.Atoi(strings.TrimSpace(string(b))); err == nil && pid > 0 {
+		procAllowSetForegroundWindow.Call(uintptr(pid))
+	}
+}
+
+// portaDavanti: file arrivati da un tasto destro nuovo mentre la finestra è già aperta (magari
+// ridotta a icona o dietro Esplora file): la mostro, così si vede che il clic ha fatto qualcosa.
+func portaDavanti() {
+	w := finestra
+	if w == nil || chiusa.Load() {
+		return
+	}
+	w.Dispatch(func() {
+		h := uintptr(w.Window())
+		if h == 0 {
+			return
+		}
+		if r, _, _ := procIsIconic.Call(h); r != 0 {
+			procShowWindow.Call(h, 9) // SW_RESTORE
+		}
+		if r, _, _ := procSetForegroundWindow.Call(h); r == 0 {
+			procFlashWindow.Call(h, 1) // se Windows non lo permette, almeno lampeggia
+		}
+	})
+}
 
 // sonoIlPrimo: true se nessun altro Tasso Zip sta raccogliendo i file per questo modo.
 func sonoIlPrimo(modo string) (bool, func()) {
@@ -37,7 +82,9 @@ func sonoIlPrimo(modo string) (bool, func()) {
 		}
 		return true, func() {} // mutex non disponibile: apro comunque la finestra
 	}
+	_ = os.WriteFile(filePid(modo), []byte(strconv.Itoa(os.Getpid())), 0o644)
 	return true, func() {
+		_ = os.Remove(filePid(modo))
 		_ = windows.ReleaseMutex(h)
 		windows.CloseHandle(h)
 		// arrivati proprio mentre chiudevo: non li perdo, li passo a un Tasso Zip nuovo
@@ -71,9 +118,20 @@ func riapriPer(modo string, percorsi []string) {
 // (per esempio estratto una seconda volta) invece si rifà.
 const finestraDoppi = 3 * time.Second
 
+// etàMassimaRiga: le righe della coda più vecchie di così sono di un tasto destro di prima,
+// rimaste perché la finestra è stata chiusa a forza (Gestione attività, PC spento): si buttano.
+const etàMassimaRiga = time.Minute
+
 // passaAlPrimo aggiunge i percorsi alla coda (riprova se il file è occupato in quel momento).
+// Ogni riga ha davanti l'ora in cui è stata scritta.
 func passaAlPrimo(modo string, percorsi []string) {
-	riga := strings.Join(percorsi, "\n") + "\n"
+	lasciaDavantiIlPrimo(modo)
+	ora := strconv.FormatInt(time.Now().UnixMilli(), 10)
+	var b strings.Builder
+	for _, p := range percorsi {
+		b.WriteString(ora + "\t" + p + "\n")
+	}
+	riga := b.String()
 	for i := 0; i < 40; i++ {
 		f, err := os.OpenFile(fileCoda(modo), os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0o644)
 		if err == nil {
@@ -106,7 +164,12 @@ func leggiCoda(modo string) []string {
 	defer codaVistiMu.Unlock()
 	ora := time.Now()
 	for _, r := range strings.Split(string(b), "\n") {
-		r = strings.TrimSpace(r)
+		quando, percorso, ok := strings.Cut(strings.TrimSpace(r), "\t")
+		ms, err := strconv.ParseInt(quando, 10, 64)
+		if !ok || err != nil || ora.Sub(time.UnixMilli(ms)) > etàMassimaRiga {
+			continue // riga vecchia (o senza ora): non è di questa selezione
+		}
+		r = strings.TrimSpace(percorso)
 		k := strings.ToLower(r)
 		if r == "" {
 			continue
@@ -128,18 +191,24 @@ func leggiCodaTutti(modo string) []string {
 	return leggiCoda(modo)
 }
 
-// raccogliCoda: aspetta un attimo gli altri Tasso Zip partiti insieme e unisce i loro file.
-func raccogliCoda(modo string, miei []string, attesa time.Duration) []string {
+// raccogliCoda: aspetta gli altri Tasso Zip partiti insieme e unisce i loro file. Windows li
+// avvia uno per file e con Defender o un disco lento gli ultimi arrivano tardi: la raccolta
+// finisce solo quando per "quiete" non arriva più niente (al massimo dopo "massimo").
+func raccogliCoda(modo string, miei []string, quiete, massimo time.Duration) []string {
 	codaVistiMu.Lock()
 	for _, p := range miei {
 		codaVisti[strings.ToLower(p)] = time.Now()
 	}
 	codaVistiMu.Unlock()
 	tutti := append([]string{}, miei...)
-	fine := time.Now().Add(attesa)
-	for time.Now().Before(fine) {
+	inizio := time.Now()
+	ultimo := inizio
+	for time.Since(ultimo) < quiete && time.Since(inizio) < massimo {
 		time.Sleep(75 * time.Millisecond)
-		tutti = append(tutti, leggiCoda(modo)...)
+		if nuovi := leggiCoda(modo); len(nuovi) > 0 {
+			tutti = append(tutti, nuovi...)
+			ultimo = time.Now()
+		}
 	}
 	return tutti
 }
@@ -159,6 +228,7 @@ func ascoltaCoda(modo string) {
 		}
 		if nuovi := leggiCoda(modo); len(nuovi) > 0 {
 			manda("aggiunti", nuovi)
+			portaDavanti()
 		}
 	}
 }

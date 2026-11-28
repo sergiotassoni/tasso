@@ -59,8 +59,26 @@ type hashTable struct {
 	// hash roller for computing arbitrary hashes
 	hr hash.Roller
 	// preallocated slices
-	p         [maxMatches]int64
-	distances [maxMatches + shortDists + 4]int
+	p         []int64
+	distances []int
+	// Tasso Zip: basta, lunghezza che ferma la ricerca (0 = mai); vedi cerca.
+	basta int
+}
+
+// maxProfondita: il massimo di posizioni da provare (Writer2Config.Profondita).
+const maxProfondita = 1024
+
+// cerca (Tasso Zip) imposta quante posizioni provare e quando fermarsi (Writer2Config).
+func (t *hashTable) cerca(profondita, basta int) {
+	if profondita <= 0 {
+		profondita = maxMatches
+	}
+	if profondita > maxProfondita {
+		profondita = maxProfondita
+	}
+	t.p = make([]int64, profondita)
+	t.distances = make([]int, 0, profondita+shortDists+4)
+	t.basta = basta
 }
 
 // hashTableExponent derives the hash table exponent from the dictionary
@@ -100,6 +118,7 @@ func newHashTable(capacity int, wordLen int) (t *hashTable, err error) {
 		wr:      newRoller(wordLen),
 		hr:      newRoller(wordLen),
 	}
+	t.cerca(0, 0)
 	return t, nil
 }
 
@@ -245,7 +264,7 @@ func (t *hashTable) NextOp(rep [4]uint32) operation {
 	if n < t.wordLen {
 		p = t.p[:0]
 	} else {
-		p = t.p[:maxMatches]
+		p = t.p
 		n = t.Matches(data[:t.wordLen], p)
 		p = p[:n]
 	}
@@ -283,6 +302,11 @@ func (t *hashTable) NextOp(rep [4]uint32) operation {
 		i := t.dict.buf.rear - dist + m.n
 		if i < 0 {
 			i += len(t.dict.buf.data)
+		} else if i >= len(t.dict.buf.data) {
+			// Tasso Zip: corrispondenza che si sovrappone (distanza più corta della lunghezza
+			// già trovata) vicino alla fine del buffer circolare: si riparte dall'inizio.
+			// Prima: "index out of range" (panico) con tanti file piccoli e ripetitivi in .7z.
+			i -= len(t.dict.buf.data)
 		}
 		if t.dict.buf.data[i] != data[m.n] {
 			// We can't get a longer match. Jump to the next
@@ -301,8 +325,8 @@ func (t *hashTable) NextOp(rep [4]uint32) operation {
 		}
 		if n > m.n {
 			m = match{int64(dist), n}
-			if n == len(data) {
-				// No better match will be found.
+			if n == len(data) || t.basta > 0 && n >= t.basta {
+				// No better match will be found (or it is long enough: Tasso Zip).
 				break
 			}
 		}

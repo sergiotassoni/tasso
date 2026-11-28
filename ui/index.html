@@ -255,7 +255,7 @@ main.pieno .view.on{height:100%}
 #x-trova{width:220px;min-height:30px;padding:0 10px 0 30px;font-size:12.5px;background:var(--panel);border-color:var(--line)}
 .esp-corpo{flex:1;min-height:0;display:grid;grid-template-columns:176px minmax(0,1fr);gap:8px}
 .luoghi{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:4px;overflow-y:auto}
-.luoghi h3{font-size:10.5px;letter-spacing:.8px;text-transform:uppercase;color:#636A7A;margin:12px 8px 4px;font-weight:500}
+.luoghi h3{font-size:10.5px;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);margin:12px 8px 4px;font-weight:500}
 .luoghi h3:first-child{margin-top:6px}
 .luoghi button{display:flex;align-items:center;gap:8px;width:100%;border:0;background:transparent;padding:5px 8px;border-radius:5px;text-align:left;color:var(--soft);font-size:12.5px;min-width:0;position:relative}
 .luoghi button span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -287,6 +287,7 @@ main.pieno .view.on{height:100%}
 .giro{width:12px;height:12px;border:1.5px solid var(--line2);border-top-color:var(--a4);border-radius:50%;animation:gira .8s linear infinite;display:inline-block;vertical-align:-2px}
 @keyframes gira{to{transform:rotate(360deg)}}
 /* menu del tasto destro nell'elenco */
+.view [tabindex="-1"]:focus{outline:none}
 #ctx{position:fixed;z-index:80;background:var(--panel2);border:1px solid var(--line2);border-radius:var(--r);padding:4px;min-width:200px;box-shadow:0 12px 32px rgba(0,0,0,.5);display:none}
 #ctx.on{display:block}
 #ctx button{display:flex;align-items:center;gap:9px;width:100%;border:0;background:transparent;padding:6px 10px;border-radius:5px;text-align:left;font-size:12.5px;color:var(--text)}
@@ -539,10 +540,10 @@ select.sel,#c-livello{background:var(--bg);color:inherit;border:1px solid var(--
     <!-- PASSWORD -->
     <section class="view centro" id="v-password">
       <div class="grande pw"><svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="#FFB547" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="16" height="11" rx="2.5"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg></div>
-      <h1 data-t="password_titolo"></h1>
+      <h1 data-t="password_titolo" id="p-tit"></h1>
       <p class="sub" id="p-nome"></p>
       <p class="sub" data-t="password_testo"></p>
-      <div class="pwbox"><input type="password" id="p-campo" autocomplete="off" spellcheck="false"><button class="btn ghost" id="p-mostra" data-t="mostra_password"></button></div>
+      <div class="pwbox"><input type="password" id="p-campo" autocomplete="off" spellcheck="false" data-tp="password_campo" aria-labelledby="p-tit p-nome"><button class="btn ghost" id="p-mostra" data-t="mostra_password"></button></div>
       <div class="errpw" id="p-errore"></div>
       <div class="row"><button class="btn ghost" id="p-annulla" data-t="annulla"></button><button class="btn verde" id="p-vai" data-t="estrai_btn"></button></div>
     </section>
@@ -590,6 +591,10 @@ const S = {
   lista: [],          // file e cartelle da comprimere
   coda: [], codaTot: 0, codaFatti: 0, ultimoEstratto: null,
   inAttesa: [],       // richieste arrivate (tasto destro) mentre lavoravo: partono dopo
+  diretto: null,      // "Comprimi in .zip/.7z" dal tasto destro in corso: file, formato, cartella, ora
+  riavvio: null,      // stessa selezione arrivata in ritardo: annullo e ricomincio con questi file
+  sceltaIn: null,     // "Estrai in…": archivi arrivati mentre l'utente sceglie la cartella
+  destinazioneQuando: 0,
   corrente: null,     // archivio che sto estraendo
   tipo: "",           // "comprimi" o "estrai" (lavoro in corso)
   dropDove: "auto", vista: "home", occupato: false,
@@ -646,6 +651,13 @@ function vista(v) {
   chiudiCtx();
   document.querySelectorAll(".view").forEach(e => e.classList.toggle("on", e.id === "v-" + v));
   document.querySelector("main").scrollTop = 0;
+  // Il fuoco non resta su un pulsante che non si vede più: va sul titolo della schermata nuova
+  // (con la tastiera il Tab riparte da lì). Esplora e la password mettono il fuoco da sole.
+  const sez = $("v-" + v), att = document.activeElement;
+  if (sez && !finestraAperta() && !(att && att !== document.body && sez.contains(att))) {
+    const h = sez.querySelector("h1, h2");
+    if (h) { h.tabIndex = -1; h.focus({ preventScroll: true }); }
+  }
 }
 let toastT = 0;
 function toast(s) {
@@ -654,6 +666,8 @@ function toast(s) {
 }
 // "Mostra nella cartella": se il file non c'è più lo dico, invece di non fare niente.
 async function mostraFile(p) { if ((await goApri(p)) !== "ok") toast(t("file_sparito")); }
+// fraseConNome: un nome che finisce col punto ("Gian Luca P.") non fa "P.." alla fine della frase.
+function fraseConNome(s, nome) { return /\.$/.test(nome || "") && s.endsWith(nome + ".") ? s.slice(0, -1) : s; }
 function nomeFile(p) { return p.split(/[\\/]/).filter(Boolean).pop() || p; }
 function cartellaDi(p) { const i = Math.max(p.lastIndexOf("\\"), p.lastIndexOf("/")); return i > 0 ? p.slice(0, i) : p; }
 
@@ -677,23 +691,34 @@ function nomeProposto() {
   }
   return t("nome_multiplo");
 }
-function disegnaLista() {
-  const l = $("c-lista"); l.textContent = "";
+// disegnaElenco: la lista dei file scelti (Comprimi e procedura guidata), con "Togli".
+// Restituisce i byte in tutto. "Togli" rimette il fuoco su un "Togli" vicino (o sul titolo).
+function disegnaElenco(box, lista, togli) {
+  box.textContent = "";
   let tot = 0;
-  S.lista.forEach((e, i) => {
+  lista.forEach((e, i) => {
     tot += e.dim || 0;
     const r = document.createElement("div"); r.className = "el";
-    r.innerHTML = e.cartella
-      ? '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#D2A65E" stroke-width="1.5"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>'
-      : '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#868D9D" stroke-width="1.5"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></svg>';
+    r.innerHTML = e.cartella ? ICONE_TIPO.cartella : e.archivio ? ICONE_TIPO.archivio : ICONE_TIPO.file;
     const n = document.createElement("span"); n.className = "n"; n.textContent = e.nome; n.title = e.percorso;
     const d = document.createElement("span"); d.className = "d"; d.textContent = e.cartella ? "" : dim(e.dim);
     const b = document.createElement("button"); b.textContent = t("togli");
-    b.onclick = () => { S.lista.splice(i, 1); if (!S.lista.length) { vista("home"); return; } disegnaLista(); };
-    r.append(n, d, b); l.append(r);
+    b.onclick = () => {
+      const tastiera = document.activeElement === b;
+      togli(i);
+      if (!tastiera || !box.isConnected) return;
+      const altri = box.querySelectorAll("button");
+      if (altri.length) altri[Math.min(i, altri.length - 1)].focus();
+    };
+    r.append(n, d, b); box.append(r);
   });
+  return tot;
+}
+function contaScelti(n, tot) { return tn("scelti", n) + (tot ? " · " + dim(tot) : ""); }
+function disegnaLista() {
+  const tot = disegnaElenco($("c-lista"), S.lista, i => { S.lista.splice(i, 1); if (!S.lista.length) { vista("home"); return; } disegnaLista(); });
   const n = S.lista.length;
-  $("c-conta").textContent = (n === 1 ? t("scelti_1") : t("scelti_n", { n })) + (tot ? " · " + dim(tot) : "");
+  $("c-conta").textContent = contaScelti(n, tot);
   if (!$("c-nome").dataset.toccato) $("c-nome").value = nomeProposto();
   document.querySelectorAll("#v-comprimi .fmt").forEach(b => b.classList.toggle("on", b.dataset.f === S.formato));
   aggiornaDove();
@@ -775,6 +800,13 @@ const tz = window.tz = {
     if (a.nome) $("l-nome").textContent = a.nome;
   },
   fine(r) {
+    if (r.tipo === "comprimi" && S.riavvio) {
+      // l'archivio era già finito quando sono arrivati gli ultimi file: quelli vanno dopo
+      const gia = new Set((S.diretto ? S.diretto.percorsi : []).map(x => x.toLowerCase()));
+      const resto = S.riavvio.percorsi.filter(x => !gia.has(x.toLowerCase()));
+      if (resto.length) S.inAttesa.push({ percorsi: resto, dove: S.riavvio.formato });
+      S.riavvio = null;
+    }
     if (r.tipo === "estrai") {
       S.codaFatti++; S.ultimoEstratto = r;
       if (S.coda.length) { prossimo(); return; }
@@ -785,6 +817,12 @@ const tz = window.tz = {
     mostraFatto(r, 0);
   },
   errore(e) {
+    if (S.riavvio && e.tipo === "comprimi") {
+      // annullato per ricominciare con tutti i file della stessa selezione (arrivati in ritardo)
+      const r = S.riavvio; S.riavvio = null;
+      if (e.codice === "annullato") { S.occupato = false; comprimiDiretto(r.percorsi, r.formato, 20); return; }
+      if (r.percorsi.length) S.inAttesa.push({ percorsi: r.percorsi, dove: r.formato });
+    }
     if (S.riprova && (e.codice === "password" || e.codice === "password_sbagliata")) {
       chiediPassword(e.codice === "password_sbagliata"); return;
     }
@@ -804,7 +842,13 @@ const tz = window.tz = {
   aperto(r) {
     S.occupato = false;
     vista("archivio");
-    toast(t("aperto", { nome: nomeFile(r.nome) }));
+    toast(t("aperto", { nome: nomeFile(r.nome) }) + " · " + t("aperto_copia"));
+  },
+  // Go ha ricontrollato il file vero prima di aprirlo: è un programma, quindi chiedo.
+  async confermaApri(r) {
+    S.occupato = false;
+    vista("archivio");
+    if (await conferma(t("pericoloso_tit"), t("pericoloso", { nome: vedi(r.nome) }), t("apri_comunque"))) apriVoce({ percorso: r.voce, nome: r.nome }, true);
   },
   cartella(r) { esploraArrivata(r); },
   trovati(r) { trovaArrivata(r); },
@@ -886,15 +930,22 @@ async function arrivati(percorsi, dove) {
   if (S.vista === "comprimi") { aggiungi(percorsi); return; }
   if (S.vista === "guida" && dove !== "estrai-in") { guidaAggiungi(percorsi); return; }
   if (dove === "estrai-in") {
+    // mentre l'utente sceglie la cartella: gli archivi in ritardo della stessa selezione aspettano lei
+    if (S.sceltaIn) { S.sceltaIn.push(...percorsi); return; }
     if (S.occupato) {
-      // estrazione "in..." già in corso: stessa cartella, senza richiederla
-      if (S.tipo === "estrai" && S.destinazione) { estraiTutti(percorsi, S.destinazione, ""); toast(t("in_attesa")); return; }
+      // estrazione "in..." già in corso: la stessa cartella solo per gli archivi della stessa
+      // selezione (arrivati pochi secondi dopo); un tasto destro nuovo aspetta e la chiede
+      if (S.tipo === "estrai" && S.destinazione && Date.now() - S.destinazioneQuando < 5000) { estraiTutti(percorsi, S.destinazione, ""); toast(t("in_attesa")); return; }
       mettiInAttesa(percorsi, dove); return;
     }
-    const d = await goScegliDestinazione();
+    S.sceltaIn = percorsi.slice();
+    let d;
+    try { d = await goScegliDestinazione(); } finally { percorsi = S.sceltaIn; S.sceltaIn = null; }
     if (!d || !d.length) { if (INIZIO.mini) chiudiOAttesa(); return; }
+    S.destinazioneQuando = Date.now();
     estraiTutti(percorsi, d[0], ""); return;
   }
+  if (S.occupato && (dove === "zip" || dove === "7z") && stessaSelezione(percorsi, dove)) return;
   if (S.occupato && !(S.tipo === "estrai" && dove !== "comprimi" && dove !== "zip" && dove !== "7z" && dove !== "apri")) { mettiInAttesa(percorsi, dove); return; }
   if (dove === "comprimi") { aggiungi(percorsi); return; }
   if (dove === "zip" || dove === "7z") { comprimiDiretto(percorsi, dove); return; }
@@ -924,13 +975,29 @@ function mettiInAttesa(percorsi, dove) {
   S.inAttesa.push({ percorsi: percorsi.slice(), dove });
   toast(t("in_attesa"));
 }
+// stessaSelezione: file per "Comprimi in .zip/.7z" arrivati in ritardo dallo stesso tasto destro
+// (stessa cartella, pochi secondi dopo l'inizio) mentre l'archivio è in corso: annullo e
+// ricomincio con tutti, così esce UN archivio (mai un secondo con gli ultimi file).
+function stessaSelezione(percorsi, formato) {
+  const D = S.diretto;
+  if (S.tipo !== "comprimi" || !D || D.formato !== formato) return false;
+  if (!percorsi.every(p => cartellaDi(p).toLowerCase() === D.cartella)) return false;
+  if (S.riavvio) { S.riavvio.percorsi.push(...percorsi); return true; }
+  if (Date.now() - D.quando > 15000) return false;
+  S.riavvio = { percorsi: D.percorsi.concat(percorsi), formato };
+  goAnnulla();
+  return true;
+}
 function eseguiAttesa() {
   if (!S.inAttesa.length) return false;
   const a = S.inAttesa.shift();
-  // più richieste uguali di "comprimi subito": un archivio solo con tutti i file
+  // più richieste di "comprimi subito" dalla STESSA cartella: un archivio solo con tutti i file
+  // (due tasti destri su cartelle diverse restano due archivi)
   if (a.dove === "zip" || a.dove === "7z") {
+    const dir = cartellaDi(a.percorsi[0] || "").toLowerCase();
     for (let i = 0; i < S.inAttesa.length;) {
-      if (S.inAttesa[i].dove === a.dove) a.percorsi.push(...S.inAttesa.splice(i, 1)[0].percorsi); else i++;
+      const b = S.inAttesa[i];
+      if (b.dove === a.dove && cartellaDi(b.percorsi[0] || "").toLowerCase() === dir) a.percorsi.push(...S.inAttesa.splice(i, 1)[0].percorsi); else i++;
     }
   }
   S.ultimoEstratto = null;
@@ -941,11 +1008,17 @@ function chiudiOAttesa() { if (!eseguiAttesa()) goChiudi(); }
 setInterval(() => { if (S.inAttesa.length && !S.occupato && puoiLasciare()) eseguiAttesa(); }, 500);
 
 // ---------- dal tasto destro: comprimi subito ----------
-async function comprimiDiretto(percorsi, formato) {
+async function comprimiDiretto(percorsi, formato, riprova) {
   if (S.occupato) { mettiInAttesa(percorsi, formato); return; }
-  const r = await goComprimi(percorsi, formato, "", S.livello || "massima", "");
+  let r = await goComprimi(percorsi, formato, "", S.livello || "massima", "");
+  // dopo un annullo per ricominciare, il lavoro di prima può metterci un attimo a chiudersi
+  for (let i = 0; r === "occupato" && i < (riprova || 0); i++) {
+    await new Promise(ok => setTimeout(ok, 150));
+    r = await goComprimi(percorsi, formato, "", S.livello || "massima", "");
+  }
   if (r === "occupato") { toast(t("err_occupato")); return; }
   if (r !== "ok") return;
+  S.diretto = { percorsi: percorsi.slice(), formato, cartella: cartellaDi(percorsi[0] || "").toLowerCase(), quando: Date.now() };
   S.daVista = false;
   S.tipo = "comprimi"; inizioLavoro(t("lavoro_comprimo"), "");
 }
@@ -1183,6 +1256,12 @@ document.addEventListener("keydown", e => {
 }, true);
 document.addEventListener("keydown", e => {
   if (finestraAperta()) return;
+  // Esc = "Indietro" / "OK" nelle schermate che hanno quel pulsante
+  if (e.key === "Escape" && !e.defaultPrevented) {
+    const b = { comprimi: "c-indietro", errore: "e-ok", archivio: "a-chiudi", fatto: "f-ok",
+      guida: G.passo > 1 ? "g-indietro" : "g-esci" }[S.vista];
+    if (b && $(b) && !$(b).hidden && !$(b).disabled) { e.preventDefault(); $(b).click(); return; }
+  }
   if (S.vista === "archivio" && e.key === "Backspace" && document.activeElement !== $("a-cerca") && S.arch && S.arch.cartella) {
     const c = S.arch.cartella; S.arch.cartella = c.includes("/") ? c.slice(0, c.lastIndexOf("/")) : ""; S.arch.sel.clear(); disegnaArchivio();
   }
@@ -1242,7 +1321,10 @@ document.addEventListener("dragenter", e => {
   else $("drop").classList.add("on");
 });
 document.addEventListener("dragover", e => {
-  if (!haFile(e)) return; e.preventDefault();
+  // un link o un testo trascinato (da un browser, da una mail) non deve mai aprire quel sito al
+  // posto di Tasso Zip: si annulla sempre, e per quello che non è un file il cursore dice "no"
+  if (!haFile(e)) { e.preventDefault(); if (e.dataTransfer) e.dataTransfer.dropEffect = "none"; return; }
+  e.preventDefault();
   if (!puoiLasciare()) { e.dataTransfer.dropEffect = "none"; return; }
   e.dataTransfer.dropEffect = "copy";
   const z = zonaDrop(e);
@@ -1317,7 +1399,7 @@ async function apriEsplora() {
     X.nascosti = !!(l && l.nascosti);
     $("x-nascosti").checked = X.nascosti;
     disegnaLuoghi();
-    if (!X.el) { apriCartella((l && l.iniziale) || ""); return; }
+    if (!X.el) { apriCartella((l && l.iniziale) || ""); setTimeout(() => $("x-corpo").focus(), 30); return; }
   }
   if (!X.el) apriCartella(""); else { disegnaEsplora(); $("x-corpo").focus(); }
 }
@@ -1465,6 +1547,7 @@ function scegliIndice(i, e) {
   ridisegnaSelezione();
 }
 function ridisegnaSelezione() {
+  if (ctxSel && chiaveSel() !== ctxSel) chiudiCtx(); // il menu era per un'altra selezione
   const righe = righeEsplora();
   $("x-corpo").querySelectorAll(".r").forEach(r => {
     const i = +r.dataset.i;
@@ -1524,8 +1607,8 @@ async function azione(a) {
       if (!(await conferma(t("elimina_tit"), testo + " " + tn("elimina_cestino", s.length), t("elimina_si"), { colore: "rosso" }))) return;
       const r = await goCestino(s.map(v => v.percorso));
       if (r && r.ok) { toast(tn("eliminati", r.n)); apriCartella(X.el.percorso); }
-      else if (r && r.codice === "protetto") avviso(t("elimina_tit"), t("elimina_protetto", { nome: r.nome || "" }), { ico: "am" });
-      else if (r && r.codice !== "annullato") toast(t("elimina_errore"));
+      else if (r && r.codice === "protetto") avviso(t("elimina_protetto_tit"), t("elimina_protetto", { nome: r.nome || "" }), { ico: "am" });
+      else if (r && r.codice !== "annullato") toast(tn("elimina_errore", s.length));
       else apriCartella(X.el.percorso);
       return;
     }
@@ -1630,17 +1713,39 @@ function chiudiTrova(silenzio) {
   if (!silenzio) { $("x-trova").value = ""; if (c) { X.sel.clear(); X.fuoco = X.ancora = -1; disegnaEsplora(); } }
 }
 // ----- menu del tasto destro -----
-function chiudiCtx() { const c = $("ctx"); if (c) c.classList.remove("on"); }
+// Il menu vale per la selezione che c'era quando si è aperto: se la selezione cambia si chiude,
+// e una voce non fa mai niente su un file diverso da quello mostrato. Si usa anche da tastiera:
+// frecce, Home/Fine, Invio, Esc (che rimette il fuoco nell'elenco).
+let ctxSel = "";
+function chiaveSel() { return [...X.sel].sort().join("\n"); }
+function chiudiCtx() {
+  const c = $("ctx"); if (!c || !c.classList.contains("on")) return;
+  const fuocoDentro = c.contains(document.activeElement);
+  c.classList.remove("on"); ctxSel = "";
+  if (fuocoDentro && S.vista === "esplora") $("x-corpo").focus();
+}
+$("ctx").setAttribute("role", "menu");
+$("ctx").addEventListener("keydown", e => {
+  const voci = [...$("ctx").querySelectorAll("button")].filter(b => !b.disabled);
+  const i = voci.indexOf(document.activeElement);
+  const vai = j => { if (voci.length) voci[(j + voci.length) % voci.length].focus(); e.preventDefault(); };
+  if (e.key === "ArrowDown") vai(i + 1);
+  else if (e.key === "ArrowUp") vai(i < 0 ? -1 : i - 1);
+  else if (e.key === "Home") vai(0);
+  else if (e.key === "End") vai(-1);
+  else if (e.key === "Escape" || e.key === "Tab") { e.preventDefault(); e.stopPropagation(); chiudiCtx(); $("x-corpo").focus(); }
+});
 function apriCtx(x, y) {
   const s = selezionate();
   const c = $("ctx"); c.textContent = "";
+  ctxSel = chiaveSel();
   const voce = (a, k, dis, rischio) => {
-    const b = document.createElement("button");
+    const b = document.createElement("button"); b.setAttribute("role", "menuitem");
     const src = document.querySelector('#x-attrezzi [data-a="' + a + '"] svg');
     b.innerHTML = src ? src.outerHTML : "";
     const sp = document.createElement("span"); sp.textContent = t(k); b.append(sp);
     b.disabled = !!dis; if (rischio) b.classList.add("rischio");
-    b.onclick = () => azione(a);
+    b.onclick = () => { if (chiaveSel() !== ctxSel) { chiudiCtx(); return; } azione(a); };
     c.append(b);
   };
   const arch = s.filter(v => v.archivio);
@@ -1655,12 +1760,14 @@ function apriCtx(x, y) {
   const b = document.createElement("button");
   b.innerHTML = '<svg viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M14 13h-5M11.5 10.5 14 13l-2.5 2.5"/></svg>';
   const sp = document.createElement("span"); sp.textContent = t("x_mostra"); b.append(sp);
-  b.disabled = s.length !== 1; b.onclick = () => azione("mostra"); c.append(b);
+  b.setAttribute("role", "menuitem");
+  b.disabled = s.length !== 1; b.onclick = () => { if (chiaveSel() !== ctxSel) { chiudiCtx(); return; } azione("mostra"); }; c.append(b);
   voce("elimina", "x_elimina_ctx", !s.length, true);
   c.classList.add("on");
   const w = c.offsetWidth, h = c.offsetHeight;
   c.style.left = Math.min(x, window.innerWidth - w - 8) + "px";
   c.style.top = Math.min(y, window.innerHeight - h - 8) + "px";
+  const primo = c.querySelector("button:not(:disabled)"); if (primo) primo.focus();
 }
 // ----- eventi della vista -----
 $("x-corpo").addEventListener("mousedown", e => {
@@ -1682,6 +1789,7 @@ $("x-corpo").addEventListener("click", e => { if (!e.target.closest(".r")) { X.s
 document.addEventListener("mousedown", e => { if (!e.target.closest("#ctx")) chiudiCtx(); });
 window.addEventListener("blur", chiudiCtx);
 $("x-corpo").addEventListener("keydown", e => {
+  if (e.key !== "ContextMenu" && !(e.key === "F10" && e.shiftKey)) chiudiCtx();
   const righe = righeEsplora();
   const muovi = n => {
     if (!righe.length) return;
@@ -1701,7 +1809,7 @@ $("x-corpo").addEventListener("keydown", e => {
   else if (e.key === "Backspace" || (e.key === "ArrowUp" && e.altKey)) { $("x-su").click(); e.preventDefault(); }
   else if ((e.key === "a" || e.key === "A") && e.ctrlKey) { for (const v of righe) X.sel.add(v.percorso); ridisegnaSelezione(); e.preventDefault(); }
   else if (e.key === "F5") { apriCartella(X.el.percorso); e.preventDefault(); }
-  else if (e.key === "ContextMenu") { const r = $("x-corpo").querySelector(".r.fuoco") || $("x-corpo"); const b = r.getBoundingClientRect(); apriCtx(b.left + 40, b.top + 20); e.preventDefault(); }
+  else if (e.key === "ContextMenu" || (e.key === "F10" && e.shiftKey)) { const r = $("x-corpo").querySelector(".r.fuoco") || $("x-corpo"); const b = r.getBoundingClientRect(); apriCtx(b.left + 40, b.top + 20); e.preventDefault(); }
 });
 document.querySelectorAll("#v-esplora .th button").forEach(b => b.onclick = () => {
   if (X.ordine === b.dataset.o) X.dir = -X.dir; else { X.ordine = b.dataset.o; X.dir = b.dataset.o === "nome" || b.dataset.o === "tipo" ? 1 : -1; }
@@ -1759,20 +1867,10 @@ function disegnaGuida() {
   $("g-zona-t").textContent = est ? t("g_trascina_archivi") : t("g_trascina_file");
   $("g-sfoglia-f").textContent = est ? t("g_sfoglia_archivi") : t("g_sfoglia_file");
   $("g-sfoglia-c").hidden = est;
-  const l = $("g-lista"); l.textContent = "";
-  let tot = 0;
-  G.lista.forEach((e, i) => {
-    tot += e.dim || 0;
-    const r = document.createElement("div"); r.className = "el";
-    r.innerHTML = e.cartella ? ICONE_TIPO.cartella : e.archivio ? ICONE_TIPO.archivio : ICONE_TIPO.file;
-    const n = document.createElement("span"); n.className = "n"; n.textContent = e.nome; n.title = e.percorso;
-    const d = document.createElement("span"); d.className = "d"; d.textContent = e.cartella ? "" : dim(e.dim);
-    const b = document.createElement("button"); b.textContent = t("togli");
-    b.onclick = () => { G.lista.splice(i, 1); disegnaGuida(); };
-    r.append(n, d, b); l.append(r);
-  });
+  const l = $("g-lista");
+  const tot = disegnaElenco(l, G.lista, i => { G.lista.splice(i, 1); disegnaGuida(); });
   if (!G.lista.length) { const v = document.createElement("div"); v.className = "g-vuota"; v.textContent = t("g_niente"); l.append(v); }
-  $("g-conta").textContent = G.lista.length ? (G.lista.length === 1 ? t("scelti_1") : t("scelti_n", { n: G.lista.length })) + (tot ? " · " + dim(tot) : "") : "";
+  $("g-conta").textContent = G.lista.length ? contaScelti(G.lista.length, tot) : "";
   // passo 3 comprimi
   const box = $("g-formati");
   if (!box.children.length || box.dataset.lingua !== S.lingua) {
@@ -1787,6 +1885,10 @@ function disegnaGuida() {
   }
   box.querySelectorAll(".fmt").forEach(b => b.classList.toggle("on", b.dataset.f === G.formato));
   $("g-livello-box").style.visibility = LIVELLO_FORMATI[G.formato] ? "" : "hidden";
+  // .tar.gz e .tar.bz2 non hanno niente oltre "Massima": "Ultra" non si promette (ZP01-2)
+  const senzaUltra = G.formato === "targz" || G.formato === "tarbz2";
+  $("g-livello").querySelector('option[value="ultra"]').hidden = senzaUltra;
+  if (senzaUltra && $("g-livello").value === "ultra") $("g-livello").value = "massima";
   if (!G.nomeToccato) $("g-nome").value = G.lista.length ? nomeGuida() : "";
   $("g-dove-c-t").textContent = G.doveC; $("g-dove-c-t").title = G.doveC;
   $("g-dove-e-t").textContent = G.doveE; $("g-dove-e-t").title = G.doveE;
@@ -1992,7 +2094,7 @@ async function nomeSalva() {
   const r = await goNomeSalva(nomePulisci($("nomeIn").value));
   $("nomeSi").disabled = false;
   if (!r || !r.ok) { const m = $("nomeMsg"); m.className = "msg err"; m.textContent = t("nome_err_" + ((r && r.errore) || "registro"), { s: (r && r.simbolo) || "" }); return; }
-  S.nome = r.nome; nomeChiudi(); nomeDisegna(); toast(t("nome_salvato", { n: r.nome }));
+  S.nome = r.nome; nomeChiudi(); nomeDisegna(); toast(fraseConNome(t("nome_salvato", { n: r.nome }), r.nome));
 }
 $("nomeBtn").onclick = nomeApri;
 $("nomeNo").onclick = nomeChiudi;
@@ -2033,7 +2135,9 @@ const INIZIO = window.__TZ_INIZIO__ || { modo: "", percorsi: [] };
     const r = await goControllaAggiornamenti();
     if (r === "errore") { avviso(t("agg_titolo"), t("agg_non_aperto"), { ico: "am" }); return; }
     if (r !== "nessuno") return;
-    if (await conferma(t("agg_titolo"), t("agg_senza_tasso"), t("agg_apri_pagina"), { ico: "am" })) goPaginaVersioni();
+    if (await conferma(t("agg_titolo"), t("agg_senza_tasso"), t("agg_apri_pagina"), { ico: "am" })) {
+      if ((await goPaginaVersioni()) !== "ok") toast(t("agg_pagina_errore"));
+    }
   };
   const licenze = async () => { if ((await goLicenze()) !== "ok") toast(t("licenze_errore")); };
   $("lic").onclick = licenze;

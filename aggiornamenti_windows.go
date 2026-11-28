@@ -59,8 +59,11 @@ func collegaAggiornamenti(w webview2.WebView) {
 		}
 		return "tasso"
 	})
+	// "errore": il browser non è partito (la pagina lo dice, invece di non fare niente)
 	_ = w.Bind("goPaginaVersioni", func() string {
-		shellExecute(paginaVersioni, "")
+		if shellExecute(paginaVersioni, "") <= 32 {
+			return "errore"
+		}
 		return "ok"
 	})
 }

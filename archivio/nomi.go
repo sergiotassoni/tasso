@@ -55,6 +55,11 @@ var nomiRiservati = map[string]bool{
 	"lpt¹": true, "lpt²": true, "lpt³": true,
 }
 
+// PulisciNome: il nome di un file come esce sul disco quando si estrae (la stessa pulizia
+// dell'estrazione). Serve a chi deve decidere prima che cosa sarà quel file (per esempio se è
+// un programma): "fattura.exe" seguito da uno spazio speciale diventa "fattura.exe".
+func PulisciNome(n string) string { return pulisciPezzo(n) }
+
 // pulisciPezzo rende sicuro un pezzo di percorso (un nome di cartella o di file) per Windows.
 // Restituisce "" se il pezzo va scartato ("", ".", "..").
 func pulisciPezzo(p string) string {
@@ -91,18 +96,41 @@ func pulisciPezzo(p string) string {
 	if nomiRiservati[base] {
 		p = "_" + p
 	}
-	if len(p) > 240 {
+	if nomeTroppoLungo(p) {
 		// nomi lunghissimi: li accorcio senza spezzare le lettere e tenendo l'estensione
-		// (".pdf", ".jpg"...), così il file si apre ancora col suo programma
+		// (".pdf", ".jpg"...), così il file si apre ancora col suo programma. Si misura come
+		// Windows (unità UTF-16, al massimo 255): prima erano 240 byte, e un nome di 124
+		// lettere accentate veniva tagliato senza motivo (ZP01-6).
 		_, ext := DividiNome(p, false)
-		taglio := 240 - len(ext)
-		for taglio > 0 && !utf8.RuneStart(p[taglio]) {
-			taglio--
+		base := []rune(p[:len(p)-len(ext)])
+		for len(base) > 0 && lunghezzaWindows(string(base)+ext) > maxNomeWindows {
+			base = base[:len(base)-1]
 		}
-		p = strings.TrimRight(p[:taglio], ". ") + ext
+		p = strings.TrimRight(string(base), ". ") + ext
 	}
 	return p
 }
+
+// maxNomeWindows: Windows accetta 255 unità UTF-16 per pezzo di percorso; ne lascio 5 per " (2)".
+// Sugli altri sistemi (solo per le prove) il limite è di 255 byte: lì conto i byte, fino a 240.
+var maxNomeWindows = map[bool]int{true: 250, false: 240}[suWindows]
+
+func lunghezzaWindows(s string) int {
+	if !suWindows {
+		return len(s)
+	}
+	n := 0
+	for _, r := range s {
+		if r >= 0x10000 {
+			n += 2 // coppia surrogata (emoji…)
+		} else {
+			n++
+		}
+	}
+	return n
+}
+
+func nomeTroppoLungo(p string) bool { return lunghezzaWindows(p) > maxNomeWindows }
 
 var unitaDisco = regexp.MustCompile(`^[A-Za-z]:`)
 
@@ -115,7 +143,8 @@ func NomeSicuro(nome string) (pezzi []string, ok bool) {
 		return nil, false
 	}
 	for _, p := range strings.Split(n, "/") {
-		grezzo := strings.TrimRightFunc(p, func(r rune) bool { return r == '.' || r == ' ' })
+		// gli stessi caratteri che toglie pulisciPezzo (anche gli spazi speciali, "..\u00A0")
+		grezzo := strings.TrimRightFunc(p, func(r rune) bool { return r == '.' || r == ' ' || unicode.IsSpace(r) })
 		if p != "" && p != "." && grezzo == "" && strings.Contains(p, "..") {
 			return nil, false // "..", "... ", ".. ": tentativo di risalire
 		}

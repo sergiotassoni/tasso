@@ -114,6 +114,22 @@ var firma = []byte{'7', 'z', 0xBC, 0xAF, 0x27, 0x1C, 0, 4}
 // ErrAnnullato: lavoro annullato.
 var ErrAnnullato = errors.New("annullato")
 
+// Ricerca: quanto cerca l'encoder LZMA2 per ogni livello (profondità e lunghezza che basta,
+// vedi lzma.Writer2Config). È questo che rende veri i livelli: con dati più piccoli del
+// dizionario il dizionario da solo non cambiava niente, e "Ultra" poteva uscire più grande
+// di "Veloce" (CTRL-ZP-01, ZP01-2). Massima è come prima.
+func Ricerca(l Livello) (profondita, basta int) {
+	switch l {
+	case Veloce:
+		return 6, 24
+	case Normale:
+		return 24, 64
+	case Ultra:
+		return 256, 0
+	}
+	return 64, 0
+}
+
 // Parametri calcola dizionario, thread e blocco per il livello e la RAM.
 func Parametri(o Opzioni, totale int64) (diz int, thread int, blocco int64) {
 	diz, blocco = 16<<20, 256<<20
@@ -341,7 +357,8 @@ func Scrivi(ctx context.Context, f *os.File, voci []Voce, o Opzioni) (ris Risult
 	if _, err = f.Write(make([]byte, firmaLen)); err != nil {
 		return ris, err
 	}
-	cfg := lzma.Writer2Config{DictCap: diz, Matcher: lzma.HashTable4, BufSize: 1 << 16}
+	prof, basta := Ricerca(o.Livello)
+	cfg := lzma.Writer2Config{DictCap: diz, Matcher: lzma.HashTable4, BufSize: 1 << 16, Profondita: prof, Basta: basta}
 	if err = cfg.Verify(); err != nil {
 		return ris, err
 	}

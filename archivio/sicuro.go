@@ -13,6 +13,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"time"
 )
@@ -32,12 +33,13 @@ type Limiti struct {
 }
 
 // LimitiPredefiniti: valori pensati per non bloccare mai un archivio normale.
-// Un archivio di 10 MB può dare fino a 10 GB (rapporto 1000), e comunque fino a 8 GB
+// Un archivio di 10 MB può dare fino a 10 GB (rapporto 1000), e comunque fino a 1 GB
 // qualunque sia il rapporto; mai più di 2 TB in tutto; sul disco restano sempre 512 MB liberi.
+// (Prima 1 GB era 8 GB: un xz di poche centinaia di KB poteva scrivere 8 GB prima di fermarsi.)
 func LimitiPredefiniti() Limiti {
 	return Limiti{
 		MaxRapporto:    1000,
-		SogliaRapporto: 8 << 30,
+		SogliaRapporto: 1 << 30,
 		MaxTotale:      2 << 40,
 		MaxVoci:        1_000_000,
 		MargineDisco:   512 << 20,
@@ -128,6 +130,11 @@ type destinazione struct {
 	// filtro: nil = tutto; altrimenti dice se la voce va estratta e con che nome.
 	filtro func(nome string) (string, bool)
 	ultimo string // percorso relativo (alla radice) dell'ultimo file scritto
+	// scrittiQui: nome nell'archivio (dopo il filtro, pezzi puliti, chiave) -> percorso del file
+	// scritto; serve agli hard link dei tar (ZP01-3). In prova vale "" (niente sul disco).
+	scrittiQui map[string]string
+	// dateCartelle: le date delle cartelle dell'archivio, da rimettere alla fine (ZP01-7).
+	dateCartelle map[string]time.Time
 	// prova: "Verifica". Legge e controlla tutti i dati (somme di controllo comprese) ma non
 	// scrive niente sul disco.
 	prova         bool
@@ -159,9 +166,9 @@ func NormalizzaNome(n string) string {
 	return strings.Join(pezzi, "/")
 }
 
-// filtroSelezione: solo le voci scelte (e quello che c'è dentro le cartelle scelte),
-// togliendo il prefisso indicato.
-func filtroSelezione(sel []string, prefisso string) func(string) (string, bool) {
+// filtroSelezione: solo le voci scelte (e quello che c'è dentro le cartelle scelte, se non è
+// esatto), togliendo il prefisso indicato.
+func filtroSelezione(sel []string, prefisso string, esatto bool) func(string) (string, bool) {
 	prefisso = NormalizzaNome(prefisso)
 	if len(sel) == 0 && prefisso == "" {
 		return nil
@@ -177,7 +184,7 @@ func filtroSelezione(sel []string, prefisso string) func(string) (string, bool) 
 		if len(scelti) > 0 {
 			ok := false
 			for _, x := range scelti {
-				if n == x || strings.HasPrefix(n, x+"/") {
+				if n == x || !esatto && strings.HasPrefix(n, x+"/") {
 					ok = true
 					break
 				}
@@ -212,6 +219,7 @@ func nuovaDestinazione(ctx context.Context, radice string, limiti Limiti, dimArc
 		limiti:     limiti,
 		consentito: limiti.consentito(dimArchivio),
 		cartelle:   map[string]string{},
+		scrittiQui: map[string]string{},
 		buf:        make([]byte, 256<<10),
 	}
 }
@@ -332,12 +340,84 @@ func (d *destinazione) creaCartella(nome string, quando time.Time) error {
 		d.cartelleProva++
 		return nil
 	}
-	_, err := d.cartella(pezzi)
+	rel, err := d.cartella(pezzi)
+	if err == nil && dataValida(quando) {
+		if d.dateCartelle == nil {
+			d.dateCartelle = map[string]time.Time{}
+		}
+		d.dateCartelle[rel] = quando
+	}
 	return err
+}
+
+// dataValida: una data da rimettere sul file (dal 1970: prima del 1981 si perdeva, ZP01-9).
+func dataValida(t time.Time) bool {
+	return !t.IsZero() && t.Unix() >= 0 && t.Year() < 2200
+}
+
+// rimettiDateCartelle: alla fine, quando dentro non si scrive più niente, le date delle
+// cartelle come nell'archivio (prima le più profonde).
+func (d *destinazione) rimettiDateCartelle() {
+	if d.prova || len(d.dateCartelle) == 0 {
+		return
+	}
+	rel := make([]string, 0, len(d.dateCartelle))
+	for r := range d.dateCartelle {
+		rel = append(rel, r)
+	}
+	sort.Slice(rel, func(i, j int) bool {
+		return strings.Count(rel[i], string(filepath.Separator)) > strings.Count(rel[j], string(filepath.Separator))
+	})
+	for _, r := range rel {
+		q := d.dateCartelle[r]
+		_ = os.Chtimes(filepath.Join(d.radice, r), q, q)
+	}
+}
+
+// creaCollegamentoFisso: hard link di un tar verso un file già uscito dallo stesso archivio
+// (dentro la cartella di lavoro): esce come copia di quel file. false = il file non c'è
+// (fuori dalla selezione, nome non sicuro, non ancora uscito): il chiamante lo salta.
+func (d *destinazione) creaCollegamentoFisso(nome, bersaglio string, quando time.Time) (bool, error) {
+	if d.filtro != nil {
+		if _, ok := d.filtro(nome); !ok {
+			return true, d.annullato() // il link non è fra quelli scelti: niente da fare
+		}
+		n, ok := d.filtro(bersaglio)
+		if !ok {
+			return false, nil
+		}
+		bersaglio = n
+	}
+	pz, ok := NomeSicuro(bersaglio)
+	if !ok {
+		return false, nil
+	}
+	src, ok := d.scrittiQui[chiave(strings.Join(pz, "/"))]
+	if !ok {
+		return false, nil
+	}
+	if d.prova {
+		return true, d.creaFile(nome, strings.NewReader(""), quando)
+	}
+	f, err := os.Open(src)
+	if err != nil {
+		return false, nil
+	}
+	defer f.Close()
+	sl := false
+	if fi, err := f.Stat(); err == nil {
+		sl = fi.Mode().Perm()&0o200 == 0
+	}
+	return true, d.creaFileAttr(nome, f, quando, sl)
 }
 
 // creaFile: voce "file" dell'archivio. Non sovrascrive mai: se il nome c'è già usa "(2)".
 func (d *destinazione) creaFile(nome string, r io.Reader, quando time.Time) error {
+	return d.creaFileAttr(nome, r, quando, false)
+}
+
+// creaFileAttr: come creaFile; soloLettura rimette l'attributo "sola lettura" (ZP01-8).
+func (d *destinazione) creaFileAttr(nome string, r io.Reader, quando time.Time, soloLettura bool) error {
 	if d.filtro != nil {
 		n, ok := d.filtro(nome)
 		if !ok {
@@ -362,7 +442,16 @@ func (d *destinazione) creaFile(nome string, r io.Reader, quando time.Time) erro
 			return err
 		}
 		d.file++
+		if ok {
+			d.scrittiQui[chiave(strings.Join(pezzi, "/"))] = ""
+		}
 		return nil
+	}
+	for _, p := range strings.Split(strings.ReplaceAll(nome, `\`, "/"), "/") {
+		if nomeTroppoLungo(p) {
+			d.rinominati++ // accorciato: lo dico come i nomi doppi
+			break
+		}
 	}
 	dir, err := d.cartella(pezzi[:len(pezzi)-1])
 	if err != nil {
@@ -400,9 +489,13 @@ func (d *destinazione) creaFile(nome string, r io.Reader, quando time.Time) erro
 	if d.zona != nil {
 		scriviZona(percorso, d.zona)
 	}
-	if !quando.IsZero() && quando.Year() > 1980 && quando.Year() < 2200 {
+	if dataValida(quando) {
 		_ = os.Chtimes(percorso, quando, quando)
 	}
+	if soloLettura {
+		_ = os.Chmod(percorso, 0o444) // su Windows: FILE_ATTRIBUTE_READONLY
+	}
+	d.scrittiQui[chiave(strings.Join(pezzi, "/"))] = percorso
 	d.ultimoPrima, d.ultimoScritto = d.ultimo, percorso
 	if rel, e := filepath.Rel(d.radice, percorso); e == nil {
 		d.ultimo = rel
@@ -502,12 +595,22 @@ func (d *destinazione) concludi(dove, nomeBase string, modo ModoEstrai) (string,
 			da := filepath.Join(d.radice, v.Name())
 			fin, err := spostaQui(da, dove, v.Name(), v.IsDir())
 			if err != nil {
+				rimasti := 0
 				for i := len(fatti) - 1; i >= 0; i-- {
-					_ = rinominaSeLibero(fatti[i].a, fatti[i].da)
+					if rinominaSeLibero(fatti[i].a, fatti[i].da) != nil {
+						rimasti++
+					}
+				}
+				if rimasti > 0 {
+					// non sono riuscito a rimettere tutto com'era: lo dico (ZP01-13)
+					return "", "", fmt.Errorf("%w (%d; %v)", ErrMetaRimasta, rimasti, err)
 				}
 				return "", "", err
 			}
 			fatti = append(fatti, spostato{da, fin})
+			if fin != filepath.Join(dove, v.Name()) {
+				d.rinominati++ // c'era già: è diventato "(2)" (ZP01-5)
+			}
 			if v.Name() == primo {
 				ultimo = filepath.Join(fin, resto)
 			}
@@ -521,6 +624,9 @@ func (d *destinazione) concludi(dove, nomeBase string, modo ModoEstrai) (string,
 		if err != nil {
 			return "", "", err
 		}
+		if filepath.Base(finale) != voci[0].Name() {
+			d.rinominati++
+		}
 		_ = os.Remove(d.radice) // ora è vuota
 		ultimo := ""
 		if d.ultimo != "" {
@@ -531,6 +637,9 @@ func (d *destinazione) concludi(dove, nomeBase string, modo ModoEstrai) (string,
 	finale, err := spostaConNomeLibero(d.radice, dove, nomeBase, true)
 	if err != nil {
 		return "", "", err
+	}
+	if filepath.Base(finale) != nomeBase {
+		d.rinominati++
 	}
 	mostra(finale) // la cartella di lavoro era nascosta
 	ultimo := ""

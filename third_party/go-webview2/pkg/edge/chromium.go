@@ -42,6 +42,16 @@ type Chromium struct {
 	WebResourceRequestedCallback func(request *ICoreWebView2WebResourceRequest, args *ICoreWebView2WebResourceRequestedEventArgs)
 	NavigationCompletedCallback  func(sender *ICoreWebView2, args *ICoreWebView2NavigationCompletedEventArgs)
 	AcceleratorKeyCallback       func(uint) bool
+
+	// Modifica di Tasso Zip (vedi guardiano.go): quali indirizzi la pagina può aprire, cosa fare
+	// quando chiede una finestra nuova (che non si apre mai) e da quali pagine si accettano i
+	// messaggi per le funzioni del programma.
+	NavigazionePermessa func(uri string) bool
+	PopupRichiesto      func(uri string)
+	FontePermessa       func(uri string) bool
+	guardNav            *guardianoHandler
+	guardFrame          *guardianoHandler
+	guardPopup          *guardianoHandler
 }
 
 func NewChromium() *Chromium {
@@ -220,6 +230,7 @@ func (e *Chromium) CreateCoreWebView2ControllerCompleted(res uintptr, controller
 	)
 
 	_ = e.controller.AddAcceleratorKeyPressed(e.acceleratorKeyPressed, &token)
+	e.installaGuardiani()
 
 	atomic.StoreUintptr(&e.inited, 1)
 
@@ -237,7 +248,9 @@ func (e *Chromium) MessageReceived(sender *ICoreWebView2, args *iCoreWebView2Web
 		uintptr(unsafe.Pointer(&message)),
 	)
 	msg := w32.Utf16PtrToString(message)
-	if handleDrop(msg, args) {
+	if e.FontePermessa != nil && !e.FontePermessa(leggiUri(args.vtbl.GetSource, uintptr(unsafe.Pointer(args)))) {
+		// Modifica di Tasso Zip: un messaggio da una pagina che non è quella del programma.
+	} else if handleDrop(msg, args) {
 		// Modifica di Tasso Zip: file trascinati nella finestra (vedi drop_tassozip.go).
 	} else if e.MessageCallback != nil {
 		e.MessageCallback(msg)
