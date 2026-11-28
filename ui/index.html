@@ -610,6 +610,8 @@ const S = {
   formati: ["zip", "7z"],
 };
 
+// dp (RECENSIONE-4c): i due punti delle frasi composte qui nella pagina; in francese con lo spazio non separabile davanti.
+function dp() { return S.lingua === "fr" ? "\u00a0: " : ": "; }
 function t(k, v) {
   let s = (S.testi[S.lingua] || {})[k] ?? (S.testi.en || {})[k] ?? (S.testi.it || {})[k] ?? k;
   if (v) for (const [a, b] of Object.entries(v)) s = s.split("{" + a + "}").join(b);
@@ -731,7 +733,7 @@ function aggiornaDove() {
   $("c-livello-riga").style.display = S.formato === "7z" ? "" : "none";
   $("c-livello").value = S.livello || "massima";
   const dove = S.lista.length ? S.lista[0].dove : "";
-  $("c-dove").textContent = t("salva_in") + ": " + dove + "\\" + ($("c-nome").value.trim() || nomeProposto()) + est;
+  $("c-dove").textContent = t("salva_in") + dp() + dove + "\\" + ($("c-nome").value.trim() || nomeProposto()) + est;
   $("c-dove").title = $("c-dove").textContent;
 }
 async function comprimi() {
@@ -903,7 +905,7 @@ function mostraErrore(e) {
   $("e-titolo").textContent = t($("e-titolo").dataset.t);
   $("e-ico").className = "grande " + (annullato ? "pw" : "ko");
   $("e-ico").querySelector("svg").setAttribute("stroke", annullato ? "#FFB547" : "#E0786C");
-  $("e-testo").textContent = (e.percorso ? nomeFile(e.percorso) + ": " : "") + testo;
+  $("e-testo").textContent = (e.percorso ? nomeFile(e.percorso) + dp() : "") + testo;
   $("e-dettagli").textContent = e.dettagli || "";
   $("e-box").hidden = !e.dettagli || e.codice === "annullato";
   $("e-ok").onclick = () => {
@@ -1640,7 +1642,7 @@ async function verificaArrivata(r) {
     const chiave = "err_" + (r.codice || "generico");
     const testo = t(chiave) === chiave ? t("err_rovinato") : t(chiave);
     const zip = /\.zip$/i.test(r.percorso || "");
-    const si = await conferma(t("verifica_ko_tit"), nomeFile(r.percorso) + ": " + testo + (zip ? " " + t("verifica_ko_zip") : ""), zip ? t("x_ripara") : "OK", { ico: "ko", colore: zip ? "ambra" : "blu", no: zip });
+    const si = await conferma(t("verifica_ko_tit"), nomeFile(r.percorso) + dp() + testo + (zip ? " " + t("verifica_ko_zip") : ""), zip ? t("x_ripara") : "OK", { ico: "ko", colore: zip ? "ambra" : "blu", no: zip });
     if (si && zip) {
       const p = r.percorso;
       const rr = await goRipara(p);
