@@ -66,6 +66,12 @@ type Installatore struct {
 	// cancellare all'amministratore una cartella di Windows (RECENSIONE-3b, R3b-1). nil con
 	// CartellaDatiSessione = la cartella non si cancella e si dice che è rimasta.
 	TogliCartellaSessione func(p string) error
+	// TogliCartellaUtente (RECENSIONE-3c, R3c-3): come TogliCartellaSessione, ma per la
+	// %LOCALAPPDATA% dell'utente stesso quando conferma l'UAC per sé: il percorso viene dal suo
+	// HKCU, che anche un suo programma senza permessi può cambiare, quindi le cartelle dati (di
+	// Zip, PDF, Tasso e Tasso Traduce) si tolgono con il suo token limitato, mai da amministratore.
+	// Toglie una cartella o un file; errore se resta. nil = come prima (os.RemoveAll; i test).
+	TogliCartellaUtente func(p string) error
 	// EsisteFile: il file c'è? Serve per le voci di un'altra copia di Zip o PDF (si lasciano solo
 	// se quell'exe esiste ancora). nil = os.Stat.
 	EsisteFile func(percorso string) bool
@@ -134,6 +140,18 @@ func (in *Installatore) togliCartella(p string) error {
 		return fmt.Errorf("%s: non tolta del tutto (un file è aperto?)", p)
 	}
 	return nil
+}
+
+// togliCartellaUtente: una cartella dati della %LOCALAPPDATA% dell'utente (stesso account):
+// con TogliCartellaUtente, se c'è (R3c-3), altrimenti come togliCartella.
+func (in *Installatore) togliCartellaUtente(p string) error {
+	if in.TogliCartellaUtente == nil {
+		return in.togliCartella(p)
+	}
+	if _, err := os.Lstat(p); err != nil {
+		return nil // non c'è: va bene
+	}
+	return in.TogliCartellaUtente(p)
 }
 
 // togliCartellaSessione: come togliCartella, ma per la cartella dati dell'utente della sessione

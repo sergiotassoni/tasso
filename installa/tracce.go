@@ -184,7 +184,7 @@ func (in *Installatore) togliTracceUtente(base string, p Programma) []string {
 			}
 		}
 	}
-	dati, togli := in.CartellaDatiUtente, in.togliCartella
+	dati, togli := in.CartellaDatiUtente, in.togliCartellaUtente // R3c-3: con il token limitato dell'utente
 	if in.CartellaDatiSessione != nil {
 		// Zip e PDF: la %LOCALAPPDATA% dell'utente che li usa, tolta con i SUOI permessi (R3b-1)
 		dati, togli = in.CartellaDatiSessione, in.togliCartellaSessione

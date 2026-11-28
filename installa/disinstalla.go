@@ -523,7 +523,7 @@ func (in *Installatore) togliDatiTenendo(d string, tieni []string, ris *Risultat
 		}
 	}
 	if len(tenute) == 0 {
-		in.togliCartellaORiavvio(d, ris)
+		in.togliDatoUtente(d, true, ris)
 		return
 	}
 	Diario("%s: tengo %v (originali dei giochi o copie del registro che Tasso non ha messo in Documenti)", d, tenute)
@@ -542,12 +542,29 @@ func (in *Installatore) togliDatiTenendo(d string, tieni []string, ris *Risultat
 		if tenuta {
 			continue
 		}
-		p := filepath.Join(d, v.Name())
-		if v.IsDir() {
+		in.togliDatoUtente(filepath.Join(d, v.Name()), v.IsDir(), ris)
+	}
+}
+
+// togliDatoUtente (RECENSIONE-3c, R3c-3): una cartella o un file dei dati di Tasso nella
+// %LOCALAPPDATA% dell'utente. Con TogliCartellaUtente si toglie con il token limitato
+// dell'utente (mai da amministratore per nome), riprovando se è occupato; se resta, va tra i non
+// tolti (fuori dall'installazione non si cancella al riavvio). Senza, come prima.
+func (in *Installatore) togliDatoUtente(p string, cartella bool, ris *Risultato) {
+	if in.TogliCartellaUtente == nil {
+		if cartella {
 			in.togliCartellaORiavvio(p, ris)
 		} else {
 			in.togliORiavvio(p, ris)
 		}
+		return
+	}
+	if _, err := os.Lstat(p); err != nil {
+		return
+	}
+	if _, err := Riprova(func() error { return in.TogliCartellaUtente(p) }, func(error) bool { return true }, in.dormi, 8, PausaRiprova); err != nil {
+		Diario("dati %s non tolti: %v", p, err)
+		ris.NonTolti = append(ris.NonTolti, p)
 	}
 }
 

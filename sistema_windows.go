@@ -1061,8 +1061,18 @@ func utenteSessione() (installa.Registro, func() string, bool) {
 		}
 		sid := u.User.Sid.String()
 		if sid == mioSID {
+			// stesso utente: va bene HKCU normale. R3c-3: il token del suo explorer.exe è quello
+			// limitato (UAC confermato per sé); la copia serve per togliere le sue cartelle dati con
+			// i suoi permessi normali, come per l'altro account (R3b-1).
+			var imp windows.Token
+			if err := windows.DuplicateTokenEx(tok, windows.TOKEN_IMPERSONATE|windows.TOKEN_QUERY, nil,
+				windows.SecurityImpersonation, windows.TokenImpersonation, &imp); err != nil {
+				installa.Diario("token limitato dell'utente non copiato (%v): le sue cartelle dati non si cancellano", err)
+				imp = 0
+			}
 			tok.Close()
-			return nil, nil, false // stesso utente: va bene HKCU normale
+			limitatoToken, limitatoSID = imp, sid
+			return nil, nil, false
 		}
 		k, err := registry.OpenKey(registry.USERS, sid, registry.ALL_ACCESS|registry.WOW64_64KEY)
 		if err != nil {
@@ -1093,6 +1103,9 @@ var (
 	utenteCartel func() string
 	utenteToken  windows.Token // copia per impersonare l'utente della sessione (0 = non c'è)
 	utenteSID    string
+	// R3c-3: lo stesso utente dell'installatore, con il token limitato del suo explorer.exe
+	limitatoToken windows.Token
+	limitatoSID   string
 )
 
 // togliComeUtenteSessione (RECENSIONE-3b, R3b-1) toglie la cartella p con i permessi dell'utente
@@ -1105,10 +1118,26 @@ func togliComeUtenteSessione(p string) error {
 	if utenteToken == 0 {
 		return fmt.Errorf("%s: non tolta (manca il token dell'utente della sessione)", p)
 	}
+	return togliConToken(p, utenteToken, utenteSID)
+}
+
+// togliComeUtenteLimitato (RECENSIONE-3c, R3c-3): l'utente ha confermato l'UAC per sé. Le sue
+// cartelle dati (%LOCALAPPDATA% viene dal suo HKCU, che anche un suo programma senza permessi può
+// cambiare) si tolgono con il suo token limitato collegato, quello del suo explorer.exe: la stessa
+// impersonazione di R3b-1. Senza il token la cartella resta e si dice.
+func togliComeUtenteLimitato(p string) error {
+	if limitatoToken == 0 {
+		return fmt.Errorf("%s: non tolta (manca il token limitato dell'utente)", p)
+	}
+	return togliConToken(p, limitatoToken, limitatoSID)
+}
+
+// togliConToken toglie p (cartella o file) impersonando tok, il cui utente deve essere sid.
+func togliConToken(p string, tok windows.Token, sid string) error {
 	fatto := make(chan error, 1)
 	go func() {
 		runtime.LockOSThread() // niente UnlockOSThread: il filo muore con il goroutine
-		if err := windows.SetThreadToken(nil, utenteToken); err != nil {
+		if err := windows.SetThreadToken(nil, tok); err != nil {
 			fatto <- fmt.Errorf("%s: non tolta (impersonazione non riuscita: %v)", p, err)
 			return
 		}
@@ -1121,8 +1150,8 @@ func togliComeUtenteSessione(p string) error {
 		}
 		u, err := tt.GetTokenUser()
 		tt.Close()
-		if err != nil || u.User.Sid.String() != utenteSID {
-			fatto <- fmt.Errorf("%s: non tolta (il filo non è dell'utente della sessione)", p)
+		if err != nil || u.User.Sid.String() != sid {
+			fatto <- fmt.Errorf("%s: non tolta (il filo non gira con il token dell'utente)", p)
 			return
 		}
 		_ = os.RemoveAll(p)
@@ -1145,6 +1174,9 @@ func conUtenteSessione(in *installa.Installatore) *installa.Installatore {
 	if utenteReg != nil {
 		in.RegistroUtente, in.CartellaDatiSessione = utenteReg, utenteCartel
 		in.TogliCartellaSessione = togliComeUtenteSessione
+	} else if in.CartellaDatiUtente != nil {
+		// R3c-3: stesso utente, UAC confermato per sé: le cartelle dati con il token limitato.
+		in.TogliCartellaUtente = togliComeUtenteLimitato
 	}
 	return in
 }
