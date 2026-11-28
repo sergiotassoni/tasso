@@ -29,19 +29,24 @@ func TestLeggiArgomenti(t *testing.T) {
 	if _, pp := leggiArgomenti([]string{filepath.Join(dir, "non-esiste.pdf"), dir}); len(pp) != 0 {
 		t.Fatal("file inesistenti o cartelle accettati")
 	}
-	avvio.modo, avvio.percorsi = "unisci", []string{f}
+	arrivano("unisci", []string{f})
 	fa := goFileAvvio()
 	if fa.Modo != "unisci" || len(fa.File) != 1 || fa.File[0].Nome != "Contratto.pdf" {
 		t.Fatalf("%+v", fa)
 	}
-	arrivano([]string{f})
-	if fa := goFileAvvio(); len(fa.File) != 1 {
-		t.Fatal("file arrivati dopo")
+	// ZP07-5: file arrivati dopo, anche con un altro modo, uno alla volta e nell'ordine giusto
+	arrivano("apri", []string{f})
+	arrivano("apri", []string{f})
+	arrivano("firma", []string{f})
+	if fa := goFileAvvio(); fa.Modo != "apri" || len(fa.File) != 2 {
+		t.Fatalf("file arrivati dopo: %+v", fa)
+	}
+	if fa := goFileAvvio(); fa.Modo != "firma" || len(fa.File) != 1 {
+		t.Fatalf("altro modo: %+v", fa)
 	}
 	if fa := goFileAvvio(); len(fa.File) != 0 {
 		t.Fatal("consegnati due volte")
 	}
-	avvio.modo = ""
 }
 
 func TestSerieEsportaETesto(t *testing.T) {
@@ -62,16 +67,16 @@ func TestSerieEsportaETesto(t *testing.T) {
 		t.Fatal(err)
 	}
 	png := base64.StdEncoding.EncodeToString(pngProva(t, 4, 4, false))
-	p1, err := goSerieScrivi(tok, 1, png)
+	p1, err := goSerieScrivi(tok, 1, png, 0)
 	if err != nil || filepath.Base(p1) != "Contratto - 1.png" {
 		t.Fatalf("%s %v", p1, err)
 	}
-	p1b, _ := goSerieScrivi(tok, 1, png)
+	p1b, _ := goSerieScrivi(tok, 1, png, 0)
 	if filepath.Base(p1b) != "Contratto - 1 (2).png" {
 		t.Fatalf("non deve sovrascrivere: %s", p1b)
 	}
 	goSerieFine(tok)
-	if _, err := goSerieScrivi(tok, 2, png); err == nil {
+	if _, err := goSerieScrivi(tok, 2, png, 0); err == nil {
 		t.Fatal("serie chiusa ancora attiva")
 	}
 	if _, err := goSerieInizio(vi.ID, "x.exe", "", "exe"); err == nil {

@@ -19,9 +19,12 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 	"sync"
+	"syscall"
+	"time"
 )
 
 const versione = "1.1.2"
@@ -69,6 +72,10 @@ type Voce struct {
 	Tipo     string // pdf, jpg, png, heic
 	jpgHEIC  []byte // anteprima JPG di una foto HEIC
 	Zona     []byte // marchio del web del file d'origine (nil = file locale o sconosciuto)
+	// ZP07-6: dimensione e data del file sul disco quando è stato aperto. Se cambiano, il file è
+	// stato spostato o sostituito fuori da Tasso PDF: non lo rileggo (sarebbe un altro contenuto).
+	dimDisco int64
+	oraDisco time.Time
 }
 
 // idZona: il numero ZoneId del marchio del web (3 = internet, 4 = siti non attendibili); 0 se manca.
@@ -151,16 +158,30 @@ func (v *Voce) contenuto() ([]byte, error) {
 	}
 	fi, err := os.Stat(v.Percorso)
 	if err != nil {
+		if os.IsNotExist(err) && !v.oraDisco.IsZero() {
+			return nil, errc("spostato", err)
+		}
 		return nil, errc("lettura", err)
 	}
 	if fi.Size() > maxFile {
 		return nil, errc("troppo_grande", nil)
 	}
+	if v.cambiato(fi) {
+		return nil, errc("cambiato", nil)
+	}
 	b, err := os.ReadFile(v.Percorso)
 	if err != nil {
 		return nil, errc("lettura", err)
 	}
+	if int64(len(b)) != fi.Size() && !v.oraDisco.IsZero() {
+		return nil, errc("cambiato", nil) // cambiato proprio mentre lo leggevo
+	}
 	return b, nil
+}
+
+// cambiato: il file sul disco non è più quello aperto (altra dimensione o altra data).
+func (v *Voce) cambiato(fi os.FileInfo) bool {
+	return !v.oraDisco.IsZero() && (fi.Size() != v.dimDisco || !fi.ModTime().Equal(v.oraDisco))
 }
 
 // cartella: dove proporre di salvare (quella del file originale, se si sa).
@@ -180,12 +201,16 @@ func apriPercorso(p string) (VoceInfo, error) {
 	}
 	testa := make([]byte, 1024)
 	n, _ := f.Read(testa)
+	fi, errStat := f.Stat()
 	f.Close()
 	tipo := TipoFile(testa[:n])
 	if tipo == "" {
 		tipo = tipoDaNome(p)
 	}
 	v := &Voce{Nome: filepath.Base(p), Percorso: p, Tipo: tipo}
+	if errStat == nil {
+		v.dimDisco, v.oraDisco = fi.Size(), fi.ModTime()
+	}
 	if piattaforma.leggiZona != nil {
 		v.Zona = piattaforma.leggiZona(p)
 	}
@@ -369,6 +394,31 @@ func goCaricaFine(id string) (VoceInfo, error) {
 	}
 	archivio.Unlock()
 	return v.info(), nil
+}
+
+// goTipoFile (ZP07-7): il tipo di un file trascinato dal suo primo pezzo (b64) e dal nome, come
+// lo darebbe goCaricaFine: la pagina non carica tutto un file che non si può usare.
+func goTipoFile(b64, nome string) string {
+	b, err := base64.StdEncoding.DecodeString(b64)
+	if err != nil {
+		return ""
+	}
+	if t := TipoFile(b); t != "" {
+		return t
+	}
+	return tipoDaNome(nome)
+}
+
+// goStessoFile (ZP07-11): a e b sono lo stesso file sul disco, e non è cambiato da quando a è
+// stato aperto (se è cambiato, aprirlo di nuovo mostra il contenuto nuovo in un'altra scheda).
+func goStessoFile(a, b string) bool {
+	va, err1 := prendiVoce(a)
+	vb, err2 := prendiVoce(b)
+	if err1 != nil || err2 != nil || va.Percorso == "" || vb.Percorso == "" || !stessoFile(va.Percorso, vb.Percorso) {
+		return false
+	}
+	fi, err := os.Stat(va.Percorso)
+	return err == nil && !va.cambiato(fi)
 }
 
 // goDimentica: il file non serve più (libera la memoria).
@@ -567,6 +617,9 @@ func goSalvaTipo(id, nomeSuggerito, titolo, ext string) (string, error) {
 		return "", perPagina(err)
 	}
 	if err := scriviSicuro(p, b); err != nil {
+		if discoPieno(err) {
+			return "", perPagina(errc("disco_pieno", err)) // ZP07-13
+		}
 		return "", perPagina(errc("scrittura", err))
 	}
 	archivio.Lock()
@@ -625,6 +678,18 @@ func scriviNuovo(p string, b []byte) error {
 	return err
 }
 
+// discoPieno: l'errore di scrittura dice che il disco (o la chiavetta) è pieno.
+func discoPieno(err error) bool {
+	var en syscall.Errno
+	if !errors.As(err, &en) {
+		return false
+	}
+	if runtime.GOOS == "windows" {
+		return en == 112 || en == 39 // ERROR_DISK_FULL, ERROR_HANDLE_DISK_FULL
+	}
+	return en == syscall.ENOSPC || en == syscall.EDQUOT
+}
+
 // percorsoLibero: p, oppure "nome (2).ext", "nome (3).ext"... il primo che non esiste.
 func percorsoLibero(p string) string {
 	if _, err := os.Lstat(p); os.IsNotExist(err) && !eUnOriginale(p) {
@@ -658,7 +723,21 @@ func nomeValido(n string) string {
 		n = "documento" + ext
 	}
 	if len([]rune(n)) > 180 {
-		n = string([]rune(n)[:176]) + ext
+		// ZP07-10: si accorcia la parte prima di " - suffisso" e il suffisso resta: così il nome
+		// proposto non diventa uguale a quello dell'originale.
+		base := n
+		if strings.EqualFold(filepath.Ext(base), ext) {
+			base = base[:len(base)-len(ext)]
+		}
+		suff := ""
+		if i := strings.LastIndex(base, " - "); i > 0 && len([]rune(base[i:])) < 60 {
+			base, suff = base[:i], base[i:]
+		}
+		r := []rune(base)
+		if max := 176 - len([]rune(suff)); len(r) > max {
+			r = r[:max]
+		}
+		n = strings.TrimRight(string(r), ". ") + suff + ext
 	}
 	return n
 }
@@ -883,6 +962,8 @@ func legami() map[string]interface{} {
 		"goSerieScrivi":   goSerieScrivi,
 		"goSerieFine":     goSerieFine,
 		"goFileAvvio":     goFileAvvio,
+		"goTipoFile":      goTipoFile,
+		"goStessoFile":    goStessoFile,
 		"goImpostaMenu":   goImpostaMenu,
 		// nome_utente.go: "Il tuo nome", lo stesso di Tasso e Tasso Zip
 		"goNome":      goNome,
@@ -894,6 +975,7 @@ func legami() map[string]interface{} {
 		"goDocumentiAperti": goDocumentiAperti,
 		"goChiusuraVista":   goChiusuraVista,
 		"goChiudiFinestra":  goChiudiFinestra,
+		"goLavoroAperto":    goLavoroAperto,
 	}
 }
 
@@ -901,4 +983,4 @@ func legami() map[string]interface{} {
 var legamiSuFinestra = []string{"goScegli", "goSalva", "goSalvaTipo", "goSerieInizio"}
 
 // Funzioni veloci che non devono aspettare in coda dietro un lavoro lungo.
-var legamiSubito = []string{"goCaricaPezzo", "goDimentica", "goFileAvvio", "goDocumentiAperti", "goChiusuraVista", "goChiudiFinestra"}
+var legamiSubito = []string{"goCaricaPezzo", "goDimentica", "goFileAvvio", "goDocumentiAperti", "goChiusuraVista", "goChiudiFinestra", "goLavoroAperto", "goTipoFile"}

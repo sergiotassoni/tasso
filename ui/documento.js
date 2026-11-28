@@ -10,7 +10,7 @@ import { ico } from "./icone.js";
 import {
   $, $$, t, go, testoErrore, attesa, chiedi, avvisa, avvisaErrore, chiediPassword, toast, nomeCon,
   caricaArray, scegli, salva, vista, stato, OPZ_PDFJS, chiediLink, lingua, localePdfjs, apriFirmaDaDocumento,
-  apriUnisci, apriSblocca, base64DaBytes, oggi, firmaInSospeso,
+  apriUnisci, apriSblocca, base64DaBytes, oggi, firmaInSospeso, unisciInSospeso, proteggiCopia,
 } from "./app.js";
 
 // "1 pagina" / "3 pagine" (in polacco "Stron: 3", giusto con ogni numero).
@@ -154,9 +154,12 @@ async function dimensioniPagina(v, n) {
 
 // apriDocumento: apre un PDF in una nuova scheda (chiede la password se serve, lo ripara se è rovinato).
 export async function apriDocumento(voce) {
-  if (voce.tipo !== "pdf") return avvisa(t("e_non_pdf"));
-  const gia = D.schede.find(s => s.originale.id === voce.id);
-  if (gia) return attiva(gia);
+  if (voce.tipo !== "pdf") return avvisa(t("e_non_pdf"), voce.nome);
+  // ZP07-11: lo stesso file già aperto (anche da un'altra strada): torno alla sua scheda.
+  for (const s of D.schede) {
+    if (s.originale.id === voce.id) return attiva(s);
+    if (await go("goStessoFile", s.originale.id, voce.id).catch(() => false)) { go("goDimentica", voce.id).catch(() => { }); return attiva(s); }
+  }
   let pw = "", info = null;
   try {
     info = await go("goInfo", voce.id, "");
@@ -169,9 +172,9 @@ export async function apriDocumento(voce) {
       sbagliata = true;
     }
   } catch (e) {
-    if (e.codice !== "rovinato") return avvisaErrore(e);
+    if (e.codice !== "rovinato") return avvisa(testoErrore(e), voce.nome);
   }
-  const sc = { k: ++D.conta, nome: voce.nome, originale: voce, versioni: [{ voce, pw }], pagina: 1, info, chiuse: new Set(), riparato: false, salvata: true };
+  const sc = { k: ++D.conta, nome: voce.nome, originale: voce, versioni: [{ voce, pw }], pagina: 1, info, chiuse: new Set(), riparato: false, salvata: true, salvataId: voce.id };
   // PDF.js deve riuscire a leggerlo; se no, provo a ripararlo.
   try {
     await docJS(sc.versioni[0]);
@@ -181,27 +184,48 @@ export async function apriDocumento(voce) {
     try {
       const r = await go("goRipara", voce.id, pw);
       sc.versioni = [{ voce: r, pw: "" }];
+      sc.salvataId = r.id;
       sc.riparato = true;
       await docJS(sc.versioni[0]);
     } catch {
       attesa(false);
-      return avvisa(t("nonRiparabile"));
+      return avvisa(t("nonRiparabile"), voce.nome);
     }
     attesa(false);
   }
+  // ZP07-3: un editor o Organizza non applicati nella scheda attiva: prima la domanda.
+  if (!(await chiudiStrumento(true))) { lasciaVoce(sc); return; }
   D.schede.push(sc);
-  await attiva(sc);
+  if (!(await attiva(sc))) { D.schede.splice(D.schede.indexOf(sc), 1); lasciaVoce(sc); disegnaSchede(); }
 }
 
+// lasciaVoce: la scheda non si è aperta: libero quello che era stato caricato per lei.
+function lasciaVoce(sc) {
+  for (const v of sc.versioni) { dimenticaDoc(v.voce.id); if (v.voce.id !== sc.originale.id) go("goDimentica", v.voce.id).catch(() => { }); }
+}
+
+// lascia: prima di passare a un'altra scheda (ZP07-1/3). Editor e Organizza non applicati: domanda.
+// Note, disegni e moduli compilati non si perdono: diventano una versione della scheda (consolida).
+// false = l'utente ha scelto di restare (o il salvataggio delle note in memoria non è riuscito).
+async function lascia() {
+  if (!D.att) return true;
+  if (!(await chiudiStrumento(true))) return false;
+  if (appV) D.att.pagina = appV.page || D.att.pagina;
+  try { await consolida(); } catch { return false; }
+  return true;
+}
+
+// attiva: mostra la scheda sc. false = si resta dove si era.
 async function attiva(sc) {
-  if (D.att && D.att !== sc && appV) D.att.pagina = appV.page || D.att.pagina;
-  chiudiStrumento(true);
+  if (sc === D.att) { vista("doc"); disegnaSchede(); return true; }
+  if (!(await lascia())) return false;
   D.att = sc;
   vista("doc");
   disegnaSchede();
   disegnaSezioni();
   disegnaPannello();
   await caricaNelVisore();
+  return true;
 }
 
 async function caricaNelVisore() {
@@ -221,7 +245,8 @@ async function caricaNelVisore() {
       applicaRapido(D.rapido);
     });
     if (doc) {
-      try { const f = await doc.getFieldObjects(); sc.moduli = !!(f && Object.keys(f).length); } catch { sc.moduli = false; }
+      // ZP05-12: i campi li conta il programma (PDF.js a volte non li elenca)
+      try { const f = await doc.getFieldObjects(); sc.moduli = !!(f && Object.keys(f).length) || !!(sc.info && sc.info.moduli); } catch { sc.moduli = !!(sc.info && sc.info.moduli); }
     }
   } catch (e) {
     avvisaErrore(e);
@@ -252,22 +277,27 @@ function disegnaSchede() {
 }
 
 async function chiudiScheda(sc) {
-  // Pagine girate o spostate in Organizza e non ancora applicate: non sono nel documento, quindi
-  // "Salva una copia" non le avrebbe. Chiedo solo se chiudere senza salvare.
-  if (sc.salvata && sc === D.att && organizzaInSospeso()) {
-    const r = await chiedi(t("chiudiT"), t("chiudiD", sc.nome), [[t("chiudiSenza"), 1], [t("annulla"), 0, true]]);
-    if (r !== 1) return;
+  // Una sola domanda (ZP07-12). Conta anche il lavoro della scheda attiva non ancora diventato
+  // versione: note e campi compilati (ZP07-1), editor e Organizza non applicati (ZP07-2).
+  const att = sc === D.att;
+  const sospeso = att && strumentoInSospeso();
+  if (sospeso || !sc.salvata || (att && noteNuove())) {
+    const r = await chiedi(t("chiudiT"), t("chiudiD", sc.nome), [[t("annulla"), 0], [t("chiudiSenza"), 1], [t(sospeso ? "applicaSalva" : "salvaCopia"), 2, true]]);
+    if (r !== 1 && r !== 2) return;
+    if (r === 2) {
+      if (!att && !(await attiva(sc))) return;
+      if (sospeso) { await applicaStrumento(); if (strumentoInSospeso() || E.tipo || O.aperto) return; }
+      const p = await salvaCopiaDoc(); if (!p) return;
+    }
   }
-  if (!sc.salvata) {
-    const r = await chiedi(t("chiudiT"), t("chiudiD", sc.nome), [[t("annulla"), 0], [t("chiudiSenza"), 1], [t("salvaCopia"), 2, true]]);
-    if (r === 0) return;
-    if (r === 2) { if (D.att !== sc) await attiva(sc); const p = await salvaCopiaDoc(); if (!p) return; }
-  }
+  if (!D.schede.includes(sc)) return;
+  if (D.att === sc) chiudiStrumentoSubito(true);
   const i = D.schede.indexOf(sc);
   D.schede.splice(i, 1);
   for (const v of sc.versioni) {
     dimenticaDoc(v.voce.id);
-    if (v.voce.id !== sc.originale.id) go("goDimentica", v.voce.id).catch(() => { });
+    // ZP07-7: anche l'originale trascinato (in memoria) si libera.
+    if (v.voce.id !== sc.originale.id || sc.originale.trascinato) go("goDimentica", v.voce.id).catch(() => { });
   }
   if (D.att === sc) {
     D.att = null;
@@ -304,6 +334,7 @@ function aggiornaFasce() {
   if (sc.info && sc.info.cifrato) f.push(["protetto", "giallo", t(sc.info.conPassword ? "fasciaProtetto" : "fasciaBlocchi")]);
   if (sc.info && sc.info.firmatoDigitalmente) f.push(["firmaDigitale", "giallo", t("fasciaFirmaDigitale")]);
   if (sc.moduli) f.push(["moduli", "", t("fasciaModuli")]);
+  if (sc.info && sc.info.attivo) f.push(["attivo", "giallo", t("fasciaAttivo")]); // ZP06-8
   for (const [k, c, testo] of f) {
     if (sc.chiuse.has(k)) continue;
     const d = document.createElement("div");
@@ -319,25 +350,36 @@ function aggiornaFasce() {
 
 // consolida: le note, i disegni e i moduli compilati nel visualizzatore diventano una versione,
 // prima di uno strumento che lavora sul file.
+// ZP05-8: se non riesce lo dice (e chi la chiama si ferma).
 async function consolida() {
   const sc = D.att;
   const doc = appV && appV.pdfDocument;
   if (!sc || !doc || !doc.annotationStorage || doc.annotationStorage.size === 0) return;
+  const modificate = noteNuove(); // dopo «Salva una copia» le note ci sono ma sono già salvate
   attesa(true);
   try {
     const bytes = await doc.saveDocument();
     const v = await caricaArray(bytes, sc.nome);
+    if (!modificate && sc.salvata) sc.salvataId = v.id;
     sc.versioni.push({ voce: v, pw: corrente(sc).pw });
-    sc.salvata = false;
-  } finally { attesa(false); }
+    statoSalvata(sc);
+    // le note sono ora nella versione: nel visualizzatore non contano più come «nuove»
+    doc.annotationStorage.resetModified();
+  } catch (e) { avvisaErrore(e); throw e; }
+  finally { attesa(false); }
+}
+
+// ZP05-4: la scheda è «salvata» se mostra l'originale o la versione salvata per ultima.
+function statoSalvata(sc) {
+  sc.salvata = sc.versioni.length === 1 || corrente(sc).voce.id === sc.salvataId;
 }
 
 async function nuovaVersione(r) {
   const sc = D.att;
   sc.pagina = appV ? appV.page || sc.pagina : sc.pagina;
   sc.versioni.push({ voce: r, pw: "" });
-  sc.salvata = false;
-  sc.info = Object.assign({}, sc.info || {}, { cifrato: false });
+  statoSalvata(sc);
+  // ZP05-7: la fascia «PDF protetto» resta: le copie modificate si salvano senza password.
   disegnaSchede();
   await caricaNelVisore();
 }
@@ -345,11 +387,13 @@ async function nuovaVersione(r) {
 async function annullaModifica() {
   const sc = D.att;
   if (!sc || sc.versioni.length < 2) return;
+  // ZP05-11: con un editor o Organizza non applicati prima chiedo.
+  if (!(await chiudiStrumento(true, true))) return;
+  if (D.att !== sc || sc.versioni.length < 2) return;
   const v = sc.versioni.pop();
   dimenticaDoc(v.voce.id);
   go("goDimentica", v.voce.id).catch(() => { });
-  if (sc.versioni.length === 1) sc.salvata = true;
-  chiudiStrumento(true);
+  statoSalvata(sc);
   disegnaSchede();
   disegnaPannello();
   await caricaNelVisore();
@@ -361,7 +405,7 @@ function aggiornaAnnulla() {
 
 // esegui: chiama una funzione del programma sulla versione corrente; il risultato diventa una versione nuova.
 async function applica(nome, ...args) {
-  await consolida();
+  try { await consolida(); } catch { return null; }
   const v = corrente(D.att);
   attesa(true);
   let r;
@@ -374,7 +418,7 @@ async function applica(nome, ...args) {
 
 // produci: come applica, ma il risultato non diventa una versione: si salva subito (Proteggi, Estrai...).
 async function produci(nome, suffisso, ...args) {
-  await consolida();
+  try { await consolida(); } catch { return null; }
   const v = corrente(D.att);
   attesa(true);
   let r;
@@ -396,9 +440,22 @@ export async function salvaCopiaDoc() {
     }
   } catch (e) { avvisaErrore(e); return ""; }
   const suff = sc.riparato && !modificato(sc) && !tmp ? t("suffRiparato") : (modificato(sc) || tmp ? t("suffModificato") : t("suffCopia"));
-  const p = await salva(id, nomeCon(sc.nome, suff));
+  let p = "";
+  try { p = await go("goSalva", id, nomeCon(sc.nome, suff), t("titoloSalva")); }
+  catch (e) {
+    // ZP07-6: l'originale è stato spostato o cambiato fuori da Tasso PDF. Non lo rileggo: salvo
+    // quello che si vede, cioè la copia già caricata in memoria dal visualizzatore.
+    if ((e.codice === "spostato" || e.codice === "cambiato") && doc && !tmp) {
+      try {
+        const v = await caricaArray(await doc.getData(), sc.nome);
+        tmp = v;
+        p = await go("goSalva", v.id, nomeCon(sc.nome, suff), t("titoloSalva"));
+      } catch (e2) { avvisaErrore(e2); p = ""; }
+    } else avvisaErrore(e);
+  }
+  if (p) toast(p);
   if (tmp) go("goDimentica", tmp.id).catch(() => { });
-  if (p) { sc.salvata = true; if (tmp && doc) doc.annotationStorage.resetModified(); disegnaSchede(); }
+  if (p) { sc.salvata = true; sc.salvataId = corrente(sc).voce.id; if (doc) doc.annotationStorage.resetModified(); disegnaSchede(); }
   return p;
 }
 
@@ -442,9 +499,9 @@ function disegnaSezioni() {
   $$("#dSez [data-sez]").forEach(b => b.classList.toggle("on", b.dataset.sez === D.sez));
 }
 
-function vaiSezione(s) {
+async function vaiSezione(s) {
+  if (!(await chiudiStrumento(true))) return;
   D.sez = s;
-  chiudiStrumento();
   disegnaSezioni();
   disegnaPannello();
   if (!D.pannello) mostraPannello(true);
@@ -496,16 +553,39 @@ async function usaStrumento(s) {
   if (s.nd) return avvisa(t("d_" + s.id), t("s_" + s.id));
   if (s.vai) return vaiSezione(s.vai);
   if (s.fai) return s.fai();
-  chiudiStrumento(true);
+  if (!(await chiudiStrumento(true))) return;
   D.strumento = s.id;
   disegnaPannello();
 }
 
-function chiudiStrumento(muto) {
+// chiudiStrumento: chiude lo strumento aperto. Se un editor o Organizza hanno modifiche non
+// applicate, prima chiede (ZP07-3): Applica / Butta via / Annulla. false = resta tutto com'era.
+// senzaApplica: solo «Butta via / Annulla» (per Annulla in alto, che toglie l'ultima versione).
+async function chiudiStrumento(muto, senzaApplica) {
+  if (strumentoInSospeso()) {
+    const tasti = [[t("annulla"), 0], [t("buttaVia"), 1]];
+    if (!senzaApplica) tasti.push([t("applicaModifiche"), 2, true]);
+    else tasti[0].push(true);
+    const r = await chiedi(t("sospesoT"), t("sospesoD", t("s_" + (E.tipo || "organizza"))), tasti);
+    if (r !== 1 && r !== 2) return false;
+    if (r === 2) { await applicaStrumento(); return !E.tipo && !O.aperto; }
+  }
+  chiudiStrumentoSubito(muto);
+  return true;
+}
+
+// chiudiStrumentoSubito: senza domanda (tasto «Annulla» del pannello, dopo «Applica»).
+function chiudiStrumentoSubito(muto) {
   if (E.tipo) chiudiEditor();
   if (O.aperto) chiudiOrganizza();
   D.strumento = null;
   if (!muto) disegnaPannello();
+}
+
+// applicaStrumento: il tasto «Applica» dell'editor aperto o di Organizza.
+async function applicaStrumento() {
+  if (E.tipo && E.applica) await E.applica();
+  else if (O.aperto) await applicaOrganizza();
 }
 
 function mostraPannello(on) {
@@ -558,7 +638,9 @@ export function pagineDa(s, n) {
   s = String(s || "").trim().toLowerCase();
   if (!s || s === t("tutte").toLowerCase()) return Array.from({ length: n }, (_, i) => i + 1);
   const set = new Set();
-  for (const parte of s.split(/[,; ]+/).filter(Boolean)) {
+  // ZP05-2: "2 - 3", "2- 3" e "2 -3" = "2-3"; un trattino da solo non vuol dire "tutte".
+  for (const parte of s.replace(/\s*[-–]\s*/g, "-").split(/[,; ]+/).filter(Boolean)) {
+    if (parte === "-") return null;
     const m = /^(\d*)\s*[-–]\s*(\d*)$/.exec(parte);
     let a, b;
     if (m) { a = m[1] ? +m[1] : 1; b = m[2] ? +m[2] : n; }
@@ -577,6 +659,14 @@ function campoPagine(box, chiave = "quali") {
   p.textContent = t("pagineAiuto", pagineTesto(totPagine()), totPagine());
   box.appendChild(p);
   return i;
+}
+
+// pagineMotore (ZP05-10): le pagine scelte come le capisce il programma: "" = tutte, altrimenti
+// i numeri già letti qui ("tutte" in ogni lingua, gli spazi intorno ai trattini). null = sbagliate.
+function pagineMotore(i) {
+  const pp = leggiPagine(i);
+  if (!pp) return null;
+  return pp.length === totPagine() ? "" : pp.join(",");
 }
 
 function leggiPagine(i, vuotoTutte = true) {
@@ -634,8 +724,9 @@ function pEstrai(box) {
 }
 
 async function estraiESalva(seq, altri) {
-  const r = await produci("goOrganizza", null, altri, seq);
+  let r = await produci("goOrganizza", null, altri, seq);
   if (!r) return;
+  r = await riproteggi(r);
   await salva(r.id, nomeCon(D.att.nome, t("suffEstratto")));
   go("goDimentica", r.id).catch(() => { });
 }
@@ -657,7 +748,8 @@ function pInserisci(box) {
     const seq = sequenzaDi(n);
     let nuove, altri = [];
     if (cosa.valore === "vuota") {
-      const d = await dimensioniPagina(corrente(D.att), Math.max(1, Math.min(n, pos || 1)));
+      let d;
+      try { d = await dimensioniPagina(corrente(D.att), Math.max(1, Math.min(n, pos || 1))); } catch (e) { return avvisaErrore(e); }
       nuove = [{ f: -1, p: 0, r: 0, w: d.w, h: d.h }];
     } else {
       const altro = await scegliAltroPDF();
@@ -671,6 +763,15 @@ function pInserisci(box) {
 }
 
 // scegliAltroPDF: chiede un PDF (e la sua password, se serve). { voce, pw, pagine }
+// riproteggi (ZP06-4): la copia compressa o estratta di un PDF con password: come la Firma,
+// propone di rimettere la stessa password (o dice che i blocchi non ci sono più).
+async function riproteggi(r) {
+  const sc = D.att, inf = sc.info || {};
+  if (!inf.cifrato) return r;
+  const pw = sc.versioni[0].pw;
+  return proteggiCopia(r, sc.nome, inf.conPassword ? pw : "", !inf.conPassword);
+}
+
 async function scegliAltroPDF() {
   const vv = await scegli(false, true, t("titoloApri"));
   if (!vv.length) return null;
@@ -747,7 +848,12 @@ function pComprimi(box) {
   });
   box.insertBefore(ris, a);
   a.appendChild(salvaB);
-  salvaB.onclick = async () => { if (ultimo) await salva(ultimo.id, nomeCon(D.att.nome, t("suffCompresso"))); };
+  salvaB.onclick = async () => {
+    if (!ultimo) return;
+    const r = await riproteggi(ultimo);
+    if (r !== ultimo) { go("goDimentica", ultimo.id).catch(() => { }); ultimo = r; }
+    await salva(r.id, nomeCon(D.att.nome, t("suffCompresso")));
+  };
 }
 
 function pEsporta(box) {
@@ -775,7 +881,7 @@ function pEsportaTesto(box) {
 }
 
 async function esportaImmagini(pp, fmt, scala) {
-  await consolida();
+  try { await consolida(); } catch { return; }
   const v = corrente(D.att);
   let tok;
   try { tok = await go("goSerieInizio", v.voce.id, D.att.nome.replace(/\.pdf$/i, "") + "." + fmt, t("titoloEsporta"), fmt); }
@@ -795,7 +901,7 @@ async function esportaImmagini(pp, fmt, scala) {
       await pag.render({ canvasContext: x, viewport: vp }).promise;
       const blob = await new Promise(ok => c.toBlob(ok, fmt === "jpg" ? "image/jpeg" : "image/png", 0.9));
       const u8 = new Uint8Array(await blob.arrayBuffer());
-      ultimo = await go("goSerieScrivi", tok, pp[i], base64DaBytes(u8));
+      ultimo = await go("goSerieScrivi", tok, pp[i], base64DaBytes(u8), Math.round(scala * 72)); // ZP06-7
       attesa(false);
       pag.cleanup();
     }
@@ -805,7 +911,7 @@ async function esportaImmagini(pp, fmt, scala) {
 }
 
 async function esportaTesto() {
-  await consolida();
+  try { await consolida(); } catch { return; }
   const v = corrente(D.att);
   attesa(true);
   let r;
@@ -830,9 +936,9 @@ async function esportaTesto() {
 }
 
 function creaDaImmagini() { scegli(true, false, t("titoloApriMolti")).then(vv => { if (vv.length) apriUnisci(vv, true); }); }
-async function combina() { await consolida(); const v = corrente(D.att); apriUnisci([Object.assign({}, v.voce, { nome: D.att.nome })], true, v.pw); }
+async function combina() { try { await consolida(); } catch { return; } const v = corrente(D.att); apriUnisci([Object.assign({}, v.voce, { nome: D.att.nome })], true, v.pw); }
 async function firmaDoc() {
-  await consolida();
+  try { await consolida(); } catch { return; }
   const v = corrente(D.att);
   apriFirmaDaDocumento(Object.assign({}, v.voce, { nome: D.att.nome }), v.pw, async r => { vista("doc"); await nuovaVersione(r); });
 }
@@ -917,10 +1023,10 @@ function pIntestazione(box) {
   const qp = campoPagine(box, "suQualiPagine");
   bottone(azioni(box), "applica", true, async () => {
     const n = totPagine();
-    if (!leggiPagine(qp)) return;
-    const pagine = qp.value.trim() ? qp.value : "";
+    const pagine = pagineMotore(qp); if (pagine === null) return;
     const d = Math.max(6, Math.min(24, parseFloat(dim.value) || 10));
-    const P = await dimensioniPagina(corrente(D.att), 1);
+    let P;
+    try { P = await dimensioniPagina(corrente(D.att), 1); } catch (e) { return avvisaErrore(e); }
     const m = 0.045, altezza = d * 1.25 / P.h;
     const yA = 26 / P.h, yB = 1 - 26 / P.h - altezza;
     const ee = [];
@@ -931,7 +1037,8 @@ function pIntestazione(box) {
       else {
         const im = pngTestoBox(testo, font.value, d, "#222222");
         const l = im.wPt / P.w, a = im.hPt / P.h;
-        ee.push({ ...base, tipo: "immagine", img: im.png, l, a, x: all === "c" ? (1 - l) / 2 : all === "d" ? 1 - m - l : m });
+        // ZP05-3: su pagine di altre misure resta grande come il testo e non si deforma
+        ee.push({ ...base, tipo: "immagine", img: im.png, l, a, x: all === "c" ? (1 - l) / 2 : all === "d" ? 1 - m - l : m, lpt: im.wPt, prop: im.hPt / im.wPt, allinea: all });
       }
     };
     voce(alto.value.trim(), yA, altoA.valore);
@@ -976,9 +1083,9 @@ function pFiligrana(box) {
   const dietro = spunta(box, "dietroContenuto");
   const qp = campoPagine(box, "suQualiPagine");
   bottone(azioni(box), "applica", true, async () => {
-    if (!leggiPagine(qp)) return;
-    const pagine = qp.value.trim() ? qp.value : "";
-    const P = await dimensioniPagina(corrente(D.att), 1);
+    const pagine = pagineMotore(qp); if (pagine === null) return;
+    let P;
+    try { P = await dimensioniPagina(corrente(D.att), 1); } catch (e) { return avvisaErrore(e); }
     const base = { pagina: 0, pagine, opacita: (+op.value) / 100, rot: +rot.value, sotto: dietro.checked };
     let e;
     if (tipo.valore === "testo") {
@@ -988,12 +1095,12 @@ function pFiligrana(box) {
       const ms = misuraTesto(s, font.value, d);
       const l = Math.min(1.6, ms.w / P.w), a = ms.h / P.h;
       e = elementoTesto({ ...base, x: (1 - l) / 2, y: (1 - a) / 2, l, a }, s, font.value, d, colore, "c");
-      if (e.tipo === "immagine") { const im = pngTestoBox(s, font.value, d, colore); e.l = im.wPt / P.w; e.a = im.hPt / P.h; e.x = (1 - e.l) / 2; e.y = (1 - e.a) / 2; }
+      if (e.tipo === "immagine") { const im = pngTestoBox(s, font.value, d, colore); e.l = im.wPt / P.w; e.a = im.hPt / P.h; e.x = (1 - e.l) / 2; e.y = (1 - e.a) / 2; e.lpt = im.wPt; e.prop = im.hPt / im.wPt; e.allinea = "c"; }
     } else {
       if (!immagine) return avvisa(t("e_vuoto_immagine"));
       const { w, h } = await misuraImg(immagine);
       const l = (+scala.value) / 100, a = l * (h / w) * (P.w / P.h);
-      e = { ...base, tipo: "immagine", img: immagine, x: (1 - l) / 2, y: (1 - a) / 2, l, a };
+      e = { ...base, tipo: "immagine", img: immagine, x: (1 - l) / 2, y: (1 - a) / 2, l, a, prop: h / w }; // ZP05-3
     }
     await applica("goDisegna", [e]);
   });
@@ -1004,10 +1111,10 @@ const misuraImg = src => new Promise((ok, ko) => { const i = new Image(); i.onlo
 
 // ---------------------------------------------------------------- editor di pagina (testo, immagine, link, oscura)
 
-const E = { tipo: null, pag: 1, n: 0, elementi: [], sel: null, dimPag: null, pxPt: 1, doc: null, conta: 0, pannelloSel: null };
+const E = { tipo: null, pag: 1, n: 0, elementi: [], sel: null, dimPag: null, pxPt: 1, doc: null, conta: 0, pannelloSel: null, applica: null };
 
 async function apriEditor(tipo, aiuto) {
-  await consolida();
+  try { await consolida(); } catch { return chiudiStrumentoSubito(); }
   const v = corrente(D.att);
   E.tipo = tipo; E.elementi = []; E.sel = null;
   E.doc = await docJS(v);
@@ -1021,7 +1128,7 @@ async function apriEditor(tipo, aiuto) {
 }
 
 function chiudiEditor() {
-  E.pannelloSel = null;
+  E.pannelloSel = null; E.applica = null;
   E.tipo = null; E.elementi = []; E.sel = null;
   $("#dEditor").classList.add("hidden");
   aggiornaRapidi();
@@ -1189,7 +1296,8 @@ function piedeEditor(box, chiaveApplica, f) {
   box.appendChild(info);
   const a = azioni(box);
   const b = bottone(a, chiaveApplica, true, f);
-  bottone(a, "annulla", false, () => chiudiStrumento());
+  E.applica = f; // per «Applica» nella domanda di chiudiStrumento
+  bottone(a, "annulla", false, () => chiudiStrumentoSubito()); // qui l'utente vuole proprio buttare via
   const agg = () => {
     const n = E.elementi.length, p = new Set(E.elementi.map(e => e.pagina)).size;
     info.textContent = n ? t("elementiPronti", n, pagineTesto(p), p) : t("nessunoAncora");
@@ -1206,7 +1314,7 @@ function pTesto(box) {
   box.appendChild(sb);
   const agg = piedeEditor(box, "applica", async () => {
     const ee = E.elementi.map(it => elementoTesto({ pagina: it.pagina, x: it.x, y: it.y, l: it.l, a: it.a }, it.testo, it.font, it.dim, it.colore, "s")).filter(e => e.testo !== "" || e.tipo === "immagine");
-    if (await applica("goDisegna", ee)) chiudiStrumento();
+    if (await applica("goDisegna", ee)) chiudiStrumentoSubito();
   });
   const ta = el("textarea"); ta.id = "tTesto"; ta.spellcheck = false;
   campo(sb, t("testo"), ta);
@@ -1239,7 +1347,7 @@ function pImmagine(box) {
   bottone(azioni(box), "scegliImmagine", false, () => file.click());
   const agg = piedeEditor(box, "applica", async () => {
     const ee = E.elementi.map(it => ({ tipo: "immagine", pagina: it.pagina, x: it.x, y: it.y, l: it.l, a: it.a, img: it.img }));
-    if (await applica("goDisegna", ee)) chiudiStrumento();
+    if (await applica("goDisegna", ee)) chiudiStrumentoSubito();
   });
   file.onchange = async () => {
     const f = file.files[0]; if (!f) return;
@@ -1276,7 +1384,7 @@ function pLink(box) {
     const senza = E.elementi.find(it => !it.url && !it.verso);
     if (senza) { E.pag = senza.pagina; await disegnaPaginaEditor(); selezionaE(senza); return avvisa(t("linkSenzaMeta")); }
     const cc = E.elementi.map(it => ({ pagina: it.pagina, x: it.x, y: it.y, l: it.l, a: it.a, url: it.url || "", verso: it.url ? 0 : it.verso }));
-    if (await applica("goCollegamenti", cc)) chiudiStrumento();
+    if (await applica("goCollegamenti", cc)) chiudiStrumentoSubito();
   });
   E.pannelloSel = it => {
     sb.classList.toggle("pNd", !it);
@@ -1318,7 +1426,7 @@ function pOscura(box) {
       }
     } catch (e) { attesa(false); return avvisaErrore(e); }
     attesa(false);
-    if (await applica("goOscura", pp)) chiudiStrumento();
+    if (await applica("goOscura", pp)) chiudiStrumentoSubito();
   });
   E.pannelloSel = () => agg();
   apriEditor("oscura", t("aiutoOscura")).then(() => agg());
@@ -1330,8 +1438,8 @@ const O = { aperto: false, seq: [], fonti: [], sel: new Set(), conta: 0, osserva
 
 async function apriOrganizza() {
   if (!D.att) return;
-  chiudiStrumento(true);
-  await consolida();
+  if (!(await chiudiStrumento(true))) return;
+  try { await consolida(); } catch { return; }
   D.strumento = "organizza";
   disegnaPannello();
   const v = corrente(D.att);
@@ -1358,16 +1466,16 @@ function pOrganizza(box) {
   testoP(box, "organizzaAiuto", "pPiccolo");
   const a = azioni(box);
   bottone(a, "applicaModifiche", true, () => applicaOrganizza());
-  bottone(a, "annulla", false, () => chiudiStrumento());
+  bottone(a, "annulla", false, () => chiudiStrumentoSubito()); // qui l'utente vuole proprio buttare via
 }
 strumento("organizza").p = pOrganizza;
 
 async function applicaOrganizza() {
   if (!O.seq.length) return avvisa(t("e_nessuna_pagina"));
   const invariata = O.seq.length === totPagine() && O.seq.every((s, i) => s.f === 0 && s.p === i + 1 && !s.r);
-  if (invariata) return chiudiStrumento();
+  if (invariata) return chiudiStrumentoSubito();
   const altri = O.fonti.slice(1).map(f => ({ id: f.voce.id, pw: f.pw }));
-  if (await applica("goOrganizza", altri, O.seq.map(({ f, p, r, w, h }) => ({ f, p, r, w, h })))) chiudiStrumento();
+  if (await applica("goOrganizza", altri, O.seq.map(({ f, p, r, w, h }) => ({ f, p, r, w, h })))) chiudiStrumentoSubito();
 }
 
 function barraOrganizza() {
@@ -1638,7 +1746,7 @@ const MODO_EDITOR = { seleziona: 0, selTesto: 0, nota: 3, evidenzia: 9, penna: 1
 async function applicaRapido(k) {
   if (k === "firma") return firmaDoc();
   if (k === "istantanea") return iniziaIstantanea();
-  if (E.tipo || O.aperto) chiudiStrumento();
+  if ((E.tipo || O.aperto) && !(await chiudiStrumento())) return;
   D.rapido = k;
   aggiornaRapidi();
   const app = appV;
@@ -1758,8 +1866,13 @@ async function tastoDoc(k) {
 document.addEventListener("keydown", e => {
   if (stato.vista !== "doc") return;
   if ((e.ctrlKey || e.metaKey) && ["s", "f", "p"].includes(e.key.toLowerCase())) { e.preventDefault(); tastoDoc(e.key.toLowerCase()); return; }
+  const campoAttivo = document.activeElement && /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName);
+  // ZP05-11: Ctrl+Z = Annulla (non mentre si scrive in un campo).
+  if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === "z" && !campoAttivo && !$(".velo.on")) { e.preventDefault(); annullaModifica(); return; }
   if (e.key === "Escape" && !$(".velo.on")) {
     if (!$("#dCercaBox").classList.contains("hidden") && document.activeElement === $("#dCercaIn")) { $("#dCercaBox").classList.add("hidden"); return; }
+    // ZP07-3: Esc mentre scrivi in un campo del pannello vuol dire «ho finito di scrivere».
+    if (campoAttivo && document.activeElement.closest("#dPannello")) { document.activeElement.blur(); return; }
     if (E.tipo || O.aperto || D.strumento) chiudiStrumento();
   }
 });
@@ -1787,6 +1900,7 @@ export function initDocumento() {
   initEditor();
 
   $("#dHome").onclick = () => { vista("home"); disegnaAperti(); };
+  setInterval(segnalaAperti, 1000); // le note di PDF.js cambiano senza avvisare: per lo spegnimento di Windows (ZP07-8)
   $("#dPiu").onclick = () => window.__tasso.apriDaDialogo();
   $("#dSalva").onclick = () => salvaCopiaDoc();
   $("#dStampa").onclick = () => tastoDoc("p");
@@ -1821,30 +1935,50 @@ export function salvaTutto() { return D.schede.some(s => !s.salvata); }
 
 // F16-1: la X della finestra e Alt+F4. Go chiede alla pagina (tassoChiudiFinestra) solo se ci
 // sono documenti aperti; con modifiche non salvate la finestra si chiude solo dopo la risposta.
-let numAperti = 0, ultimiAperti = null, chiusuraInCorso = false;
-// La firma messa e non salvata (vista Firma, anche senza documenti aperti) conta come lavoro aperto.
+let numAperti = 0, ultimiAperti = null, numLavoro = 0, ultimoLavoro = null, chiusuraInCorso = false;
+// Contano come lavoro aperto anche la firma messa e non salvata e la lista di Unisci preparata
+// (ZP07-4, ZP07-9), anche senza documenti aperti.
 export function segnalaAperti() {
-  const on = D.schede.length > 0 || !!firmaInSospeso();
-  if (on === ultimiAperti) return;
-  ultimiAperti = on;
-  go("goDocumentiAperti", ++numAperti, on).catch(() => { ultimiAperti = null; });
+  const on = D.schede.length > 0 || !!firmaInSospeso() || !!unisciInSospeso();
+  if (on !== ultimiAperti) {
+    ultimiAperti = on;
+    go("goDocumentiAperti", ++numAperti, on).catch(() => { ultimiAperti = null; });
+  }
+  // ZP07-8: per lo spegnimento di Windows Go deve sapere subito se c'è lavoro non salvato.
+  const lav = lavoroNonSalvato().length > 0;
+  if (lav !== ultimoLavoro) {
+    ultimoLavoro = lav;
+    go("goLavoroAperto", ++numLavoro, lav).catch(() => { ultimoLavoro = null; });
+  }
 }
 // Organizza pagine aperto con pagine girate, spostate, tolte o aggiunte e non ancora applicate.
 function organizzaInSospeso() {
   if (!O.aperto || !D.att) return false;
   return !(O.seq.length === totPagine() && O.seq.every((s, i) => s.f === 0 && s.p === i + 1 && !s.r));
 }
-function nonSalvate() {
-  const noteNuove = !!(appV && appV.pdfDocument && appV._annotationStorageModified);
-  const mod = D.schede.filter(s => !s.salvata || (s === D.att && (noteNuove || organizzaInSospeso())));
+// Un editor del pannello (Testo, Immagine, Link, Oscura) con elementi messi e non applicati (ZP07-2).
+function editorInSospeso() { return !!E.tipo && E.elementi.length > 0; }
+function strumentoInSospeso() { return editorInSospeso() || organizzaInSospeso(); }
+// Note, evidenziazioni, penna e campi dei moduli nel visualizzatore, non ancora salvati.
+function noteNuove() { return !!(appV && appV.pdfDocument && appV._annotationStorageModified); }
+
+// lavoroNonSalvato: L'UNICO PUNTO che sa tutto quello che non è salvato o applicato (ZP-07):
+// schede modificate, e nella scheda attiva note e moduli, editor e Organizza; Firma; Unisci.
+// Lo usano la X della finestra, Alt+F4 e lo spegnimento di Windows. La X della scheda, Esc,
+// Indietro, le sezioni, le altre schede, Ctrl+O e il trascinamento passano da chiudiStrumento,
+// lascia, chiudiScheda e (in app.js) lasciaFirma e lasciaUnisci, che guardano le stesse cose.
+export function lavoroNonSalvato() {
+  const mod = D.schede.filter(s => !s.salvata || (s === D.att && (noteNuove() || strumentoInSospeso())));
   const f = firmaInSospeso();
   if (f) mod.push({ nome: f });
+  const u = unisciInSospeso();
+  if (u) mod.push({ nome: u });
   return mod;
 }
 window.tassoChiudiFinestra = async () => {
   go("goChiusuraVista").catch(() => { });
   if (chiusuraInCorso || $("#dMsg").classList.contains("on")) return; // prima si risponde alla domanda aperta
-  const mod = nonSalvate();
+  const mod = lavoroNonSalvato();
   if (mod.length) {
     chiusuraInCorso = true;
     let r;

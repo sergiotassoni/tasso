@@ -43,12 +43,20 @@ func leggiArgomenti(args []string) (string, []string) {
 	return modo, percorsi
 }
 
+// avvio: i file da aprire, in gruppi con il loro modo, nell'ordine in cui sono arrivati: quelli
+// dell'avvio e poi quelli di altre copie del programma, anche molto dopo (ZP07-5).
 var avvio = struct {
 	sync.Mutex
-	modo     string
-	percorsi []string // file dell'avvio (consegnati una volta sola)
-	arrivati []string // file arrivati dopo, da altre copie del programma
+	coda []gruppoAvvio
 }{}
+
+type gruppoAvvio struct {
+	modo     string
+	percorsi []string
+}
+
+// nuoviArrivati: avvisa la pagina che ci sono file nuovi (main_windows.go, window.tassoArrivati).
+var nuoviArrivati func(mostra bool)
 
 // FileAvvio: cosa la pagina deve aprire subito, o appena arriva.
 type FileAvvio struct {
@@ -66,23 +74,35 @@ func apriTutti(pp []string) []VoceInfo {
 	return out
 }
 
-// goFileAvvio: i file dell'avvio (la prima volta) e poi quelli arrivati nel frattempo.
+// goFileAvvio: il primo gruppo di file in attesa (una volta sola); vuoto se non ce ne sono.
 func goFileAvvio() FileAvvio {
-	avvio.Lock()
-	pp := append(avvio.percorsi, avvio.arrivati...)
-	avvio.percorsi, avvio.arrivati = nil, nil
-	modo := avvio.modo
-	avvio.Unlock()
-	if len(pp) == 0 {
-		return FileAvvio{Modo: modo}
+	for {
+		avvio.Lock()
+		if len(avvio.coda) == 0 {
+			avvio.Unlock()
+			return FileAvvio{}
+		}
+		g := avvio.coda[0]
+		avvio.coda = avvio.coda[1:]
+		avvio.Unlock()
+		if vv := apriTutti(g.percorsi); len(vv) > 0 {
+			return FileAvvio{Modo: g.modo, File: vv}
+		}
 	}
-	return FileAvvio{Modo: modo, File: apriTutti(pp)}
 }
 
-func arrivano(pp []string) {
+// arrivano: file nuovi con il loro modo. Quelli dello stesso modo arrivati insieme stanno insieme.
+func arrivano(modo string, pp []string) {
+	if len(pp) == 0 {
+		return
+	}
 	avvio.Lock()
-	avvio.arrivati = append(avvio.arrivati, pp...)
-	avvio.Unlock()
+	defer avvio.Unlock()
+	if n := len(avvio.coda); n > 0 && avvio.coda[n-1].modo == modo {
+		avvio.coda[n-1].percorsi = append(avvio.coda[n-1].percorsi, pp...)
+		return
+	}
+	avvio.coda = append(avvio.coda, gruppoAvvio{modo: modo, percorsi: append([]string{}, pp...)})
 }
 
 // Il menu del tasto destro di Windows (vedi menu_windows.go).

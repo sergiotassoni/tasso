@@ -371,6 +371,11 @@ var PanicHook func(method string, r interface{}, stack []byte)
 // Destroy() chiude sempre davvero, senza chiedere.
 var ChiusuraHook func() bool
 
+// FineSessioneHook: modifica di Tasso PDF (ZP07-8). Windows si spegne o l'utente esce
+// (WM_QUERYENDSESSION): se risponde true, la finestra dice a Windows «non ancora» (c'è lavoro non
+// salvato e la pagina mostra la sua domanda). Gira nel filo della finestra: deve essere veloce.
+var FineSessioneHook func() bool
+
 func (w *webview) callbinding(d rpcMessage) (res0 interface{}, err0 error) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -457,6 +462,11 @@ func wndproc(hwnd, msg, wp, lp uintptr) uintptr {
 			if w.autofocus {
 				w.browser.Focus()
 			}
+		case 0x0011: // WM_QUERYENDSESSION (modifica di Tasso PDF, vedi FineSessioneHook)
+			if atomic.LoadInt32(&w.chiusuraVera) == 0 && FineSessioneHook != nil && FineSessioneHook() {
+				return 0
+			}
+			return 1
 		case w32.WMClose:
 			// Modifica di Tasso: la X può nascondere la finestra invece di chiuderla (vedi ChiusuraHook).
 			if atomic.LoadInt32(&w.chiusuraVera) == 0 && ChiusuraHook != nil && ChiusuraHook() {

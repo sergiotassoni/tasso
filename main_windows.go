@@ -92,18 +92,23 @@ func main() {
 
 	// File dalla riga di comando (doppio clic su un PDF, menu del tasto destro). Windows avvia
 	// una copia per ogni file scelto: la prima raccoglie quelli delle altre, che si chiudono.
+	// ZP07-5: una sola finestra di Tasso PDF, comunque sia stato avviato. Una seconda copia passa
+	// i suoi file alla prima (anche molto dopo), la porta in primo piano e si chiude.
 	modo, percorsi := leggiArgomenti(os.Args[1:])
+	primo, chiudi := sonoIlPrimo()
+	if !primo {
+		passaAlPrimo(modo, percorsi)
+		return
+	}
+	defer chiudi()
 	if modo != "" {
-		primo, chiudi := sonoIlPrimo(modo)
-		if !primo {
-			passaAlPrimo(modo, percorsi)
-			return
-		}
-		defer chiudi()
-		percorsi = raccogliCoda(modo, percorsi, 450*time.Millisecond)
+		var altri []voceCoda
+		percorsi, altri = raccogliCoda(modo, percorsi, 450*time.Millisecond)
 		ordinaPerNome(percorsi) // Windows avvia una copia per file, in ordine casuale
-		avvio.modo, avvio.percorsi = modo, percorsi
-		go ascoltaCoda(modo)
+		arrivano(modo, percorsi)
+		for _, a := range altri {
+			arrivano(a.modo, []string{a.percorso})
+		}
 	}
 	// Se il menu del tasto destro è attivo ma l'exe è stato spostato, aggiorno i percorsi.
 	if menuAttivoWin() {
@@ -132,6 +137,19 @@ func main() {
 		w.Dispatch(func() { w.Eval("window.tassoChiudiFinestra && window.tassoChiudiFinestra()") })
 	}
 	webview2.ChiusuraHook = suChiusuraX
+	// ZP07-8: con lavoro non salvato, lo spegnimento di Windows aspetta la risposta della pagina.
+	webview2.FineSessioneHook = suFineSessione
+	avvisaLavoro = func(on bool) { w.Dispatch(func() { bloccaSpegnimento(hwndPrincipale, on) }) }
+	// ZP07-5: file arrivati da un'altra copia: la pagina li apre subito e la finestra viene avanti.
+	nuoviArrivati = func(mostra bool) {
+		w.Dispatch(func() {
+			if mostra {
+				inPrimoPiano(hwndPrincipale)
+			}
+			w.Eval("window.tassoArrivati && window.tassoArrivati()")
+		})
+	}
+	go ascoltaCoda()
 
 	for _, n := range legamiSuFinestra {
 		webview2.SuFinestra[n] = true

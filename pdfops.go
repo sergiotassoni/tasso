@@ -15,6 +15,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"image"
+	_ "image/png"
 	"io"
 	"math"
 	"regexp"
@@ -120,6 +122,91 @@ type InfoDoc struct {
 	FirmatoDigitalmente bool `json:"firmatoDigitalmente"`
 	// ConPassword: per aprirlo serve una password (anche se qui è stata data giusta).
 	ConPassword bool `json:"conPassword"`
+	// Moduli (ZP05-12): il PDF ha campi da compilare (/AcroForm con /Fields non vuoto).
+	Moduli bool `json:"moduli"`
+	// Attivo (ZP06-8): JavaScript, Launch, invio di moduli, azioni automatiche (non GoTo) o
+	// allegati. In Tasso PDF sono spenti, ma le copie li conservano: la pagina lo dice.
+	Attivo bool `json:"attivo"`
+}
+
+// haModuli: /AcroForm con almeno un campo.
+func haModuli(ctx *model.Context) bool {
+	af, err := ctx.DereferenceDict(ctx.RootDict["AcroForm"])
+	if err != nil || af == nil {
+		return false
+	}
+	f, err := ctx.DereferenceArray(af["Fields"])
+	return err == nil && len(f) > 0
+}
+
+// azioniAttive: le azioni che un lettore PDF potrebbe eseguire da solo o con un clic.
+var azioniAttive = map[string]bool{"JavaScript": true, "Launch": true, "SubmitForm": true, "ImportData": true, "Rendition": true, "GoToE": true}
+
+// haContenutoAttivo: cerca in tutto il PDF JavaScript, Launch, SubmitForm, /AA, /OpenAction
+// che non sia una semplice destinazione, e allegati.
+func haContenutoAttivo(ctx *model.Context) bool {
+	if oa, ok := ctx.RootDict.Find("OpenAction"); ok {
+		if d, err := ctx.DereferenceDict(oa); err == nil && d != nil {
+			if n, ok := d["S"].(types.Name); ok && n != "GoTo" {
+				return true
+			}
+		}
+	}
+	if nn, err := ctx.DereferenceDict(ctx.RootDict["Names"]); err == nil && nn != nil {
+		if _, ok := nn.Find("JavaScript"); ok {
+			return true
+		}
+		if _, ok := nn.Find("EmbeddedFiles"); ok {
+			return true
+		}
+	}
+	for _, e := range ctx.Table {
+		if e == nil || e.Free || e.Object == nil {
+			continue
+		}
+		var d types.Dict
+		switch x := e.Object.(type) {
+		case types.Dict:
+			d = x
+		case types.StreamDict:
+			d = x.Dict
+		default:
+			continue
+		}
+		if dictAttivo(d, 0) {
+			return true
+		}
+	}
+	return false
+}
+
+func dictAttivo(d types.Dict, prof int) bool {
+	if prof > 8 {
+		return false
+	}
+	if _, ok := d["AA"]; ok {
+		return true
+	}
+	if _, ok := d["JS"]; ok {
+		return true
+	}
+	if n, ok := d["S"].(types.Name); ok && azioniAttive[string(n)] {
+		return true
+	}
+	if n, ok := d["Subtype"].(types.Name); ok && n == "FileAttachment" {
+		return true
+	}
+	if t := d.Type(); t != nil && (*t == "Filespec" || *t == "EmbeddedFile") {
+		if _, ok := d["EF"]; ok || *t == "EmbeddedFile" {
+			return true
+		}
+	}
+	for _, v := range d {
+		if x, ok := v.(types.Dict); ok && dictAttivo(x, prof+1) {
+			return true
+		}
+	}
+	return false
 }
 
 // haFirmaDigitale: c'è almeno un campo firma (/FT /Sig) con un valore (/V), oppure
@@ -442,6 +529,8 @@ func Info(data []byte, pw string) (InfoDoc, error) {
 	inf.Riparato = rip
 	inf.Cifrato = ctx.Encrypt != nil
 	inf.FirmatoDigitalmente = haFirmaDigitale(ctx)
+	inf.Moduli = haModuli(ctx)
+	inf.Attivo = haContenutoAttivo(ctx)
 	if ctx.Encrypt != nil && pw != "" {
 		// Si apre anche senza password? Se no, la password data era quella di apertura.
 		if _, _, e := leggi(data, ""); CodiceErrore(e) == "password" {
@@ -832,6 +921,32 @@ func unisciParti(parti [][]byte) ([]byte, error) {
 			}
 		}
 	}
+	out, err := uniscieRaw(parti)
+	if err != nil && strings.Contains(err.Error(), "unsupported in version") {
+		// ZP05-5: un PDF buono con l'intestazione «troppo vecchia» per quello che contiene (per
+		// esempio 1.3 con un allegato della 1.4): lo riscrivo come 1.7 e riprovo una volta.
+		nuove := make([][]byte, len(parti))
+		for i, b := range parti {
+			nuove[i] = b
+			c, errL := api.ReadContext(context.Background(), bytes.NewReader(b), confBase(""))
+			if errL != nil || c.XRefTable.Version() >= model.V17 {
+				continue
+			}
+			v := model.V17
+			c.HeaderVersion, c.RootVersion = &v, &v
+			if b2, errS := scrivi(c); errS == nil {
+				nuove[i] = b2
+			}
+		}
+		out, err = uniscieRaw(nuove)
+	}
+	if err != nil {
+		return nil, classifica(err)
+	}
+	return out, nil
+}
+
+func uniscieRaw(parti [][]byte) ([]byte, error) {
 	var rss []io.ReadSeeker
 	for _, b := range parti {
 		rss = append(rss, bytes.NewReader(b))
@@ -840,7 +955,7 @@ func unisciParti(parti [][]byte) ([]byte, error) {
 	conf := confBase("")
 	conf.CreateBookmarks = false
 	if err := api.MergeRaw(context.Background(), rss, &out, false, conf); err != nil {
-		return nil, classifica(err)
+		return nil, err
 	}
 	return out.Bytes(), nil
 }
@@ -856,6 +971,10 @@ type Timbro struct {
 	Y      float64 `json:"y"`
 	L      float64 `json:"l"`
 	A      float64 `json:"a"`
+	// ZP06-3: con Pagina 0 (tutte le pagine) la larghezza in punti: su pagine di forma diversa
+	// la firma resta grande uguale e con le proporzioni dell'immagine (prop = altezza/larghezza).
+	LPt  float64 `json:"lpt"`
+	prop float64
 }
 
 // matrice 2D di PDF: [a b c d e f]
@@ -880,6 +999,16 @@ func matriceTimbro(vb *types.Rectangle, rot int, t Timbro) mat {
 		dw, dh = hu, wu
 	}
 	x, y, w, h := t.X*dw, t.Y*dh, t.L*dw, t.A*dh
+	if t.Pagina == 0 && t.LPt > 0 && t.prop > 0 {
+		cx, cy := x+w/2, y+h/2 // lo stesso centro
+		w = math.Min(t.LPt, dw)
+		h = w * t.prop
+		if h > dh {
+			h, w = dh, dh/t.prop
+		}
+		x = math.Max(0, math.Min(dw-w, cx-w/2))
+		y = math.Max(0, math.Min(dh-h, cy-h/2))
+	}
 	// nella pagina come si vede, con y verso l'alto
 	img := mat{w, 0, 0, h, x, dh - y - h}
 	var d2u mat
@@ -908,6 +1037,12 @@ func numPDF(f float64) string {
 func Timbra(data []byte, pw string, timbri []Timbro) ([]byte, error) {
 	if len(timbri) == 0 {
 		return nil, errc("vuoto", nil)
+	}
+	timbri = append([]Timbro{}, timbri...)
+	for i := range timbri {
+		if c, _, err := image.DecodeConfig(bytes.NewReader(timbri[i].PNG)); err == nil && c.Width > 0 {
+			timbri[i].prop = float64(c.Height) / float64(c.Width)
+		}
 	}
 	plain, err := inChiaro(data, pw)
 	if err != nil {

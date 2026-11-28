@@ -14,13 +14,16 @@ import (
 	"image"
 	"image/draw"
 	"image/jpeg"
+	"io"
 	"math"
 	"net/url"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
 
 	"github.com/pdfcpu/pdfcpu/pkg/api"
+	"github.com/pdfcpu/pdfcpu/pkg/filter"
 	"github.com/pdfcpu/pdfcpu/pkg/font"
 	"github.com/pdfcpu/pdfcpu/pkg/pdfcpu"
 	"github.com/pdfcpu/pdfcpu/pkg/pdfcpu/model"
@@ -179,6 +182,8 @@ func aggiungiContenuto(ctx *model.Context, g *paginaGeo, cs string, sotto bool) 
 	return nil
 }
 
+var spaziTrattino = regexp.MustCompile(`\s*[-–]\s*`)
+
 // pagineScelte: "" o "tutte" = tutte; altrimenti "1-3, 5, 8-" (le pagine oltre la fine si ignorano).
 func pagineScelte(s string, n int) (map[int]bool, error) {
 	out := map[int]bool{}
@@ -189,8 +194,13 @@ func pagineScelte(s string, n int) (map[int]bool, error) {
 		}
 		return out, nil
 	}
+	// ZP05-2: "2 - 3", "2- 3" e "2 -3" vogliono dire "2-3": prima tolgo gli spazi intorno al trattino.
+	s = spaziTrattino.ReplaceAllString(s, "-")
 	for _, parte := range strings.FieldsFunc(s, func(r rune) bool { return r == ',' || r == ';' || r == ' ' }) {
 		da, a := parte, parte
+		if parte == "-" {
+			return nil, errc("intervallo", nil) // un trattino da solo non vuol dire "tutte"
+		}
 		if i := strings.IndexAny(parte, "-–"); i >= 0 {
 			da, a = parte[:i], strings.TrimLeft(parte[i:], "-–")
 			if da == "" {
@@ -292,6 +302,11 @@ type Elemento struct {
 	Allinea string  `json:"allinea"` // "s", "c", "d"
 	Sotto   bool    `json:"sotto"`   // dietro al contenuto della pagina
 	Img     []byte  `json:"-"`
+	// ZP05-3: per le immagini su pagine di misure diverse. Prop = altezza/larghezza dell'immagine
+	// (resta uguale su ogni pagina); LPt = larghezza in punti (un testo diventato immagine resta
+	// grande come il testo), messa secondo Allinea. 0 = come prima (frazioni della pagina).
+	Prop float64 `json:"prop"`
+	LPt  float64 `json:"lpt"`
 }
 
 type disegnatore struct {
@@ -333,6 +348,21 @@ func (dz *disegnatore) gsRef(a float64) (*types.IndirectRef, error) {
 func (dz *disegnatore) contenuto(g *paginaGeo, res types.Dict, i int, e Elemento, p, n int) (string, error) {
 	x, w, h := e.X*g.dw, e.L*g.dw, e.A*g.dh
 	y := g.dh - e.Y*g.dh - h // in basso a sinistra, y verso l'alto
+	if e.Tipo == "immagine" && e.LPt > 0 {
+		w2 := math.Min(e.LPt, g.dw)
+		switch e.Allinea {
+		case "c":
+			x += (w - w2) / 2
+		case "d":
+			x += w - w2
+		}
+		w = w2
+	}
+	if e.Tipo == "immagine" && e.Prop > 0 {
+		h2 := w * e.Prop
+		y += (h - h2) / 2 // lo stesso centro
+		h = h2
+	}
 	var cs strings.Builder
 	cs.WriteString("q " + g.versoUtente().cm() + "\n")
 	if e.Rot != 0 {
@@ -671,7 +701,6 @@ func Organizza(fonti [][]byte, seq []PaginaSeq) ([]byte, error) {
 		}
 		unito = u
 	}
-	// Nuova sequenza (pdfcpu "collect": ordine libero, anche ripetute).
 	ctx, _, err := leggi(unito, "")
 	if err != nil {
 		return nil, err
@@ -679,8 +708,16 @@ func Organizza(fonti [][]byte, seq []PaginaSeq) ([]byte, error) {
 	if err := ctx.EnsurePageCount(); err != nil {
 		return nil, classifica(err)
 	}
-	ctxN, err := pdfcpu.ExtractPages(bg, ctx, globali, false)
-	if err != nil {
+	// ZP05-1: le pagine si riordinano nello STESSO documento, così restano moduli, segnalibri,
+	// allegati, lingua, etichette e titolo. Solo con una pagina ripetuta si passa dall'estrazione
+	// di pdfcpu (che fa un documento nuovo con le sole pagine).
+	ctxN := ctx
+	if ripetute(globali) {
+		ctxN, err = pdfcpu.ExtractPages(bg, ctx, globali, false)
+		if err != nil {
+			return nil, classifica(err)
+		}
+	} else if err := senzaPanico(func() error { return riordinaSulPosto(ctx, globali) }); err != nil {
 		return nil, classifica(err)
 	}
 	if err := ctxN.EnsurePageCount(); err != nil {
@@ -706,6 +743,291 @@ func Organizza(fonti [][]byte, seq []PaginaSeq) ([]byte, error) {
 		}
 	}
 	return scrivi(ctxN)
+}
+
+func ripetute(pp []int) bool {
+	visti := map[int]bool{}
+	for _, p := range pp {
+		if visti[p] {
+			return true
+		}
+		visti[p] = true
+	}
+	return false
+}
+
+// paginaAlbero: una pagina dell'albero /Pages, con gli attributi ereditati dai nodi sopra.
+type paginaAlbero struct {
+	ref types.IndirectRef
+	d   types.Dict
+}
+
+var chiaviEreditate = []string{"Resources", "MediaBox", "CropBox", "Rotate"}
+
+// pagineInOrdine: le pagine del documento in ordine. Gli attributi che una pagina eredita dai
+// nodi sopra (risorse, misure, rotazione) vengono scritti nella pagina stessa.
+func pagineInOrdine(ctx *model.Context) ([]paginaAlbero, error) {
+	var out []paginaAlbero
+	visti := map[int]bool{}
+	var giu func(o types.Object, ered types.Dict, prof int) error
+	giu = func(o types.Object, ered types.Dict, prof int) error {
+		ir, ok := o.(types.IndirectRef)
+		if !ok || prof > 64 || visti[ir.ObjectNumber.Value()] {
+			return errc("rovinato", nil)
+		}
+		visti[ir.ObjectNumber.Value()] = true
+		d, err := ctx.DereferenceDict(ir)
+		if err != nil || d == nil {
+			return errc("rovinato", err)
+		}
+		if t := d.Type(); t != nil && *t == "Page" {
+			for _, k := range chiaviEreditate {
+				if _, c := d.Find(k); !c {
+					if v, c2 := ered.Find(k); c2 {
+						d[k] = v
+					}
+				}
+			}
+			out = append(out, paginaAlbero{ref: ir, d: d})
+			return nil
+		}
+		e2 := types.Dict{}
+		for k, v := range ered {
+			e2[k] = v
+		}
+		for _, k := range chiaviEreditate {
+			if v, c := d.Find(k); c {
+				e2[k] = v
+			}
+		}
+		kids, err := ctx.DereferenceArray(d["Kids"])
+		if err != nil {
+			return errc("rovinato", err)
+		}
+		for _, k := range kids {
+			if err := giu(k, e2, prof+1); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+	r := ctx.RootDict.IndirectRefEntry("Pages")
+	if r == nil {
+		return nil, errc("rovinato", nil)
+	}
+	if err := giu(*r, types.Dict{}, 0); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// riordinaSulPosto: l'albero /Pages diventa la lista delle pagine scelte (numeri da 1, senza
+// ripetute), nello stesso documento. I collegamenti alle pagine tolte (segnalibri, link, campi
+// dei moduli, destinazioni con nome, struttura) si tolgono: così niente rimanda al loro contenuto
+// e il contenuto delle pagine tolte non resta nascosto nella copia.
+func riordinaSulPosto(ctx *model.Context, scelte []int) error {
+	pp, err := pagineInOrdine(ctx)
+	if err != nil {
+		return err
+	}
+	radice := ctx.RootDict.IndirectRefEntry("Pages")
+	nodo, err := ctx.DereferenceDict(*radice)
+	if err != nil {
+		return errc("rovinato", err)
+	}
+	tenute := map[int]bool{}
+	kids := types.Array{}
+	for _, n := range scelte {
+		if n < 1 || n > len(pp) {
+			return errc("intervallo", nil)
+		}
+		p := pp[n-1]
+		p.d["Parent"] = *radice
+		kids = append(kids, p.ref)
+		tenute[p.ref.ObjectNumber.Value()] = true
+	}
+	nodo["Kids"] = kids
+	nodo["Count"] = types.Integer(len(kids))
+	ctx.PageCount = len(kids)
+	// Oggetti "morti": le pagine tolte, le loro annotazioni (campi compresi) e le destinazioni
+	// scritte come oggetto a sé che puntano a una pagina tolta.
+	morti, pagineTolte := map[int]bool{}, map[int]bool{}
+	var primaTenuta types.Object = kids[0]
+	for _, p := range pp {
+		if tenute[p.ref.ObjectNumber.Value()] {
+			continue
+		}
+		morti[p.ref.ObjectNumber.Value()] = true
+		pagineTolte[p.ref.ObjectNumber.Value()] = true
+		if a, err := ctx.DereferenceArray(p.d["Annots"]); err == nil {
+			for _, o := range a {
+				if ir, ok := o.(types.IndirectRef); ok && !tenuteAnnot(ctx, ir, tenute) {
+					morti[ir.ObjectNumber.Value()] = true
+				}
+			}
+		}
+	}
+	if len(morti) == 0 {
+		return nil
+	}
+	eMorto := func(o types.Object) bool {
+		ir, ok := o.(types.IndirectRef)
+		return ok && morti[ir.ObjectNumber.Value()]
+	}
+	// una destinazione [pagina /XYZ ...] verso una pagina tolta
+	destMorta := func(o types.Object) bool {
+		a, ok := o.(types.Array)
+		if !ok || len(a) < 2 {
+			return false
+		}
+		ir, ok := a[0].(types.IndirectRef)
+		if !ok || !pagineTolte[ir.ObjectNumber.Value()] {
+			return false
+		}
+		n, ok := a[1].(types.Name)
+		return ok && (strings.HasPrefix(string(n), "Fit") || n == "XYZ")
+	}
+	for nr, e := range ctx.Table {
+		if e == nil || e.Free || e.Object == nil || morti[nr] {
+			continue
+		}
+		if destMorta(e.Object) {
+			morti[nr] = true
+		}
+	}
+	var pulisci func(o types.Object, prof int) types.Object
+	pulisci = func(o types.Object, prof int) types.Object {
+		if prof > 100 {
+			return o
+		}
+		switch x := o.(type) {
+		case types.Dict:
+			for k, v := range x {
+				if eMorto(v) || destMorta(v) {
+					delete(x, k)
+					continue
+				}
+				x[k] = pulisci(v, prof+1)
+			}
+			return x
+		case types.StreamDict:
+			pulisci(x.Dict, prof+1)
+			return x
+		case types.Array:
+			out := x[:0]
+			for _, v := range x {
+				if eMorto(v) {
+					continue
+				}
+				if destMorta(v) {
+					v = types.Array{primaTenuta, types.Name("Fit")} // nell'elenco dei nomi la coppia resta
+				}
+				out = append(out, pulisci(v, prof+1))
+			}
+			return out
+		}
+		return o
+	}
+	for nr, e := range ctx.Table {
+		if e == nil || e.Free || e.Object == nil || morti[nr] {
+			continue
+		}
+		e.Object = pulisci(e.Object, 0)
+	}
+	potaSegnalibri(ctx)
+	return nil
+}
+
+// potaSegnalibri: i segnalibri rimasti senza destinazione (puntavano a pagine tolte) si tolgono.
+func potaSegnalibri(ctx *model.Context) {
+	rad, err := ctx.DereferenceDict(ctx.RootDict["Outlines"])
+	if err != nil || rad == nil {
+		return
+	}
+	vuoto := func(d types.Dict) bool {
+		if _, c := d.Find("First"); c {
+			return false
+		}
+		if _, c := d.Find("Dest"); c {
+			return false
+		}
+		a, err := ctx.DereferenceDict(d["A"])
+		if err != nil || a == nil {
+			return true
+		}
+		if n, ok := a["S"].(types.Name); ok && (n == "GoTo") {
+			_, c := a.Find("D")
+			return !c
+		}
+		return false
+	}
+	var pota func(padre types.Dict, prof int) int
+	pota = func(padre types.Dict, prof int) int {
+		if prof > 50 {
+			return 0
+		}
+		var tenuti []types.IndirectRef
+		cur := padre["First"]
+		for i := 0; cur != nil && i < 100000; i++ {
+			ir, ok := cur.(types.IndirectRef)
+			if !ok {
+				break
+			}
+			d, err := ctx.DereferenceDict(ir)
+			if err != nil || d == nil {
+				break
+			}
+			cur = d["Next"]
+			figli := pota(d, prof+1)
+			if vuoto(d) {
+				continue
+			}
+			if c, ok := d["Count"].(types.Integer); ok && c < 0 {
+				d["Count"] = types.Integer(-figli)
+			} else if figli > 0 {
+				d["Count"] = types.Integer(figli)
+			}
+			tenuti = append(tenuti, ir)
+		}
+		if len(tenuti) == 0 {
+			delete(padre, "First")
+			delete(padre, "Last")
+			delete(padre, "Count")
+			return 0
+		}
+		visibili := 0
+		for i, ir := range tenuti {
+			d, _ := ctx.DereferenceDict(ir)
+			delete(d, "Prev")
+			delete(d, "Next")
+			if i > 0 {
+				d["Prev"] = tenuti[i-1]
+			}
+			if i < len(tenuti)-1 {
+				d["Next"] = tenuti[i+1]
+			}
+			visibili++
+			if c, ok := d["Count"].(types.Integer); ok && c > 0 {
+				visibili += int(c)
+			}
+		}
+		padre["First"], padre["Last"] = tenuti[0], tenuti[len(tenuti)-1]
+		return visibili
+	}
+	n := pota(rad, 0)
+	if n > 0 {
+		rad["Count"] = types.Integer(n)
+	}
+}
+
+// tenuteAnnot: l'annotazione sta anche su una pagina tenuta (raro: la stessa annotazione su due pagine).
+func tenuteAnnot(ctx *model.Context, ir types.IndirectRef, tenute map[int]bool) bool {
+	d, err := ctx.DereferenceDict(ir)
+	if err != nil || d == nil {
+		return false
+	}
+	p, ok := d["P"].(types.IndirectRef)
+	return ok && tenute[p.ObjectNumber.Value()]
 }
 
 func contaPagine(b []byte) (int, error) {
@@ -750,7 +1072,9 @@ func Proteggi(data []byte, pw string, o OpzProteggi) ([]byte, error) {
 	perm := model.PermissionsAll
 	if o.Blocca {
 		proprietario = o.Permessi
-		perm = model.PermissionsNone
+		// ZP06-5: la lettura per gli screen reader (bit 10) resta sempre permessa; la copia
+		// normale resta vietata dal bit 5 se non si sceglie «Copia».
+		perm = model.PermissionsNone | model.PermissionExtractRev3
 		if o.Stampa {
 			perm |= model.PermissionPrintRev2 | model.PermissionPrintRev3
 		}
@@ -785,6 +1109,7 @@ func Comprimi(data []byte, pw string, immagini bool) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+	togliFiltriTesto(ctx) // ZP06-2: anche in «Leggera»
 	if immagini {
 		alleggerisciImmagini(ctx, 1600, 65)
 	}
@@ -813,6 +1138,86 @@ func finisceBene(b []byte) bool {
 		coda = coda[len(coda)-1024:]
 	}
 	return bytes.Contains(coda, []byte("startxref")) && bytes.Contains(coda, []byte("%%EOF"))
+}
+
+// togliFiltriTesto (ZP06-2): i filtri «di solo testo» (ASCII85, ASCIIHex) messi davanti agli
+// altri in molti PDF (per esempio quelli fatti con ReportLab) pesano un quarto in più e non
+// servono: li tolgo da tutti i flussi. Poi le foto si possono anche ricomprimere.
+func togliFiltriTesto(ctx *model.Context) {
+	for _, e := range ctx.XRefTable.Table {
+		if e == nil || e.Free || e.Object == nil {
+			continue
+		}
+		sd, ok := e.Object.(types.StreamDict)
+		if !ok || len(sd.FilterPipeline) == 0 {
+			continue
+		}
+		k := 0
+		for k < len(sd.FilterPipeline) && (sd.FilterPipeline[k].Name == filter.ASCII85 || sd.FilterPipeline[k].Name == filter.ASCIIHex) {
+			k++
+		}
+		if k == 0 {
+			continue
+		}
+		raw := sd.Raw
+		bene := true
+		for _, f := range sd.FilterPipeline[:k] {
+			fl, err := filter.NewFilter(f.Name, nil)
+			if err != nil {
+				bene = false
+				break
+			}
+			r, err := fl.Decode(bytes.NewReader(raw))
+			if err != nil {
+				bene = false
+				break
+			}
+			b, err := io.ReadAll(r)
+			if err != nil {
+				bene = false
+				break
+			}
+			raw = b
+		}
+		if !bene {
+			continue
+		}
+		resto := sd.FilterPipeline[k:]
+		d := sd.Dict
+		delete(d, "Filter")
+		delete(d, "DecodeParms")
+		switch len(resto) {
+		case 0:
+		case 1:
+			d["Filter"] = types.Name(resto[0].Name)
+			if resto[0].DecodeParms != nil {
+				d["DecodeParms"] = resto[0].DecodeParms
+			}
+		default:
+			ff, pp, conParms := types.Array{}, types.Array{}, false
+			for _, f := range resto {
+				ff = append(ff, types.Name(f.Name))
+				if f.DecodeParms != nil {
+					pp = append(pp, f.DecodeParms)
+					conParms = true
+				} else {
+					pp = append(pp, nil)
+				}
+			}
+			d["Filter"] = ff
+			if conParms {
+				d["DecodeParms"] = pp
+			}
+		}
+		n := int64(len(raw))
+		d["Length"] = types.Integer(n)
+		sd.Raw = raw
+		sd.FilterPipeline = resto
+		sd.StreamLength = &n
+		sd.StreamLengthObjNr = nil
+		sd.Content = nil
+		e.Object = sd
+	}
 }
 
 // alleggerisciImmagini: le foto (RGB o grigi, 8 bit) più grandi di maxLato pixel vengono

@@ -88,6 +88,7 @@ SICUREZZA
 
 DOVE TIENE I SUOI DATI
 %LOCALAPPDATA%\Tasso PDF : lingua scelta, firma salvata (protetta), dati di WebView2.
+La toglie il disinstallatore quando togli Tasso PDF, firma compresa.
 Il tuo nome: HKCU\Software\Tasso\Nome, lo stesso di Tasso e Tasso Zip; resta sul PC.
 Lo toglie il disinstallatore con l'ultimo programma.
 Lingua: quella scelta in alto; altrimenti quella dell'installatore di Tasso
@@ -150,6 +151,7 @@ standard PDF fonts (e.g. Polish ł) are added as an image. Optional right-click 
 
 WHERE IT KEEPS ITS DATA
 %LOCALAPPDATA%\Tasso PDF : chosen language, saved signature (protected), WebView2 data.
+The uninstaller removes it when you remove Tasso PDF, signature included.
 Your name: HKCU\Software\Tasso\Nome, the same as Tasso and Tasso Zip; it stays on this PC.
 The uninstaller removes it together with the last program.
 

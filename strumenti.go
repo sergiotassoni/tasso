@@ -7,10 +7,14 @@ package main
 // Ogni modifica crea un NUOVO file in memoria: si scrive su disco solo con "Salva una copia".
 
 import (
+	"bytes"
 	"encoding/base64"
+	"encoding/binary"
 	"errors"
 	"fmt"
+	"hash/crc32"
 	"io/fs"
+	"math"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -163,7 +167,48 @@ func goSerieInizio(idOrigine, nomeSuggerito, titolo, ext string) (string, error)
 	return tok, nil
 }
 
-func goSerieScrivi(tok string, n int, b64 string) (string, error) {
+// conDPI (ZP06-7): scrive nel PNG (blocco pHYs) o nel JPEG (JFIF) la risoluzione con cui la
+// pagina è stata disegnata: in Word o in stampa l'immagine esce grande come la pagina vera.
+// Cambia solo qualche byte dell'intestazione: l'immagine non viene ricodificata.
+func conDPI(b []byte, dpi int) []byte {
+	if dpi <= 0 || dpi > 10000 {
+		return b
+	}
+	switch {
+	case len(b) > 33 && bytes.HasPrefix(b, []byte("\x89PNG\r\n\x1a\n")) && string(b[12:16]) == "IHDR":
+		if bytes.Contains(b[:min(len(b), 4096)], []byte("pHYs")) {
+			return b
+		}
+		ppm := uint32(math.Round(float64(dpi) / 0.0254))
+		ch := make([]byte, 0, 21)
+		ch = binary.BigEndian.AppendUint32(ch, 9)
+		ch = append(ch, "pHYs"...)
+		ch = binary.BigEndian.AppendUint32(ch, ppm)
+		ch = binary.BigEndian.AppendUint32(ch, ppm)
+		ch = append(ch, 1) // metro
+		ch = binary.BigEndian.AppendUint32(ch, crc32.ChecksumIEEE(ch[4:]))
+		out := append([]byte{}, b[:33]...)
+		out = append(out, ch...)
+		return append(out, b[33:]...)
+	case len(b) > 4 && b[0] == 0xFF && b[1] == 0xD8:
+		if len(b) > 18 && b[2] == 0xFF && b[3] == 0xE0 && string(b[6:11]) == "JFIF\x00" {
+			out := append([]byte{}, b...)
+			out[13] = 1 // punti per pollice
+			binary.BigEndian.PutUint16(out[14:], uint16(dpi))
+			binary.BigEndian.PutUint16(out[16:], uint16(dpi))
+			return out
+		}
+		app0 := []byte{0xFF, 0xE0, 0, 16, 'J', 'F', 'I', 'F', 0, 1, 1, 1, 0, 0, 0, 0, 0, 0}
+		binary.BigEndian.PutUint16(app0[12:], uint16(dpi))
+		binary.BigEndian.PutUint16(app0[14:], uint16(dpi))
+		out := append([]byte{0xFF, 0xD8}, app0...)
+		return append(out, b[2:]...)
+	}
+	return b
+}
+
+// goSerieScrivi: dpi = la risoluzione delle immagini (0 = non scriverla).
+func goSerieScrivi(tok string, n int, b64 string, dpi int) (string, error) {
 	serieAperte.Lock()
 	s, ok := serieAperte.m[tok]
 	serieAperte.Unlock()
@@ -174,6 +219,7 @@ func goSerieScrivi(tok string, n int, b64 string) (string, error) {
 	if err != nil {
 		return "", perPagina(errc("immagine", err))
 	}
+	b = conDPI(b, dpi)
 	p := ""
 	for k := 1; ; k++ {
 		if k > 99 {

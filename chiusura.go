@@ -23,13 +23,48 @@ var chiusura struct {
 	aperti  bool      // la pagina ha almeno un documento aperto
 	numero  int       // l'ultimo aggiornamento ricevuto (le chiamate "Subito" possono arrivare in disordine)
 	chiesta time.Time // quando ho chiesto alla pagina; zero = nessuna domanda senza risposta
+	// ZP07-8: la pagina ha lavoro non salvato (per lo spegnimento di Windows, che non può aspettare)
+	lavoro    bool
+	numLavoro int
 }
 
 // Impostate da main_windows.go (e da prova_ui.go per le prove).
 var (
 	chiediChiusuraPagina func() // chiede alla pagina se si può chiudere (tassoChiudiFinestra)
 	chiudiFinestraVera   func() // chiude davvero, senza chiedere di nuovo
+	// avvisaLavoro: Windows deve sapere perché Tasso PDF ferma lo spegnimento (ShutdownBlockReason)
+	avvisaLavoro func(on bool)
 )
+
+// goLavoroAperto: la pagina dice se ha lavoro non salvato o non applicato (lavoroNonSalvato).
+func goLavoroAperto(n int, on bool) {
+	chiusura.mu.Lock()
+	if n <= chiusura.numLavoro {
+		chiusura.mu.Unlock()
+		return
+	}
+	cambia := chiusura.lavoro != on
+	chiusura.numLavoro, chiusura.lavoro = n, on
+	chiusura.mu.Unlock()
+	if cambia && avvisaLavoro != nil {
+		avvisaLavoro(on)
+	}
+}
+
+// suFineSessione: Windows si spegne o l'utente esce (WM_QUERYENDSESSION, ZP07-8). Con lavoro non
+// salvato rispondo «non ancora» (true) e mostro la domanda della X; altrimenti Windows va avanti.
+func suFineSessione() bool {
+	chiusura.mu.Lock()
+	lavoro := chiusura.lavoro
+	chiusura.mu.Unlock()
+	if !lavoro {
+		return false
+	}
+	if chiediChiusuraPagina != nil {
+		chiediChiusuraPagina()
+	}
+	return true
+}
 
 // goDocumentiAperti: la pagina dice se ha documenti aperti. n cresce a ogni chiamata.
 func goDocumentiAperti(n int, aperti bool) {

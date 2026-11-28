@@ -208,14 +208,17 @@ export function base64DaBytes(u8) {
 }
 
 // caricaBytes: manda al programma dei byte (file trascinato o PDF compilato) a pezzi da 4 MB.
+// ZP07-7: se qualcosa va storto a metà, il pezzo già caricato si libera subito.
 async function caricaBytes(leggiPezzo, dim, nome) {
   const id = await go("goCaricaInizio", nome);
   const passo = 4 << 20;
-  for (let i = 0; i < dim; i += passo) {
-    const u8 = await leggiPezzo(i, Math.min(dim, i + passo));
-    await go("goCaricaPezzo", id, base64DaBytes(u8));
-  }
-  return await go("goCaricaFine", id);
+  try {
+    for (let i = 0; i < dim; i += passo) {
+      const u8 = await leggiPezzo(i, Math.min(dim, i + passo));
+      await go("goCaricaPezzo", id, base64DaBytes(u8));
+    }
+    return await go("goCaricaFine", id);
+  } catch (e) { go("goDimentica", id).catch(() => { }); throw e; }
 }
 
 export const caricaFile = f => caricaBytes(async (a, b) => new Uint8Array(await f.slice(a, b).arrayBuffer()), f.size, f.name);
@@ -269,9 +272,17 @@ export function vista(nome) {
 }
 
 // Indietro: al documento, se si è arrivati da lì; altrimenti alla schermata iniziale.
-$$("[data-indietro]").forEach(b => b.addEventListener("click", () => {
+// ZP07-4, ZP07-9: dalla Firma con elementi messi, o da Unisci con la lista preparata, prima chiede.
+$$("[data-indietro]").forEach(b => b.addEventListener("click", async () => {
+  if (stato.vista === "firma" && !(await lasciaFirma())) return;
+  if (stato.vista === "unisci" && !(await lasciaUnisci())) return;
   if (stato.ritorno === "doc" && documentiAperti()) vista("doc"); else vista("home");
 }));
+
+// chiediPerdita: «Chiudere senza salvare?» per il lavoro di nome. true = buttare via.
+async function chiediPerdita(nome) {
+  return (await chiedi(t("chiudiT"), t("chiudiD", nome), [[t("chiudiSenza"), 1], [t("annulla"), 0, true]])) === 1;
+}
 
 // ---------------------------------------------------------------- collegamenti e apertura
 
@@ -289,7 +300,21 @@ async function apriDaDialogo() {
 
 // ---------------------------------------------------------------- UNISCI
 
-const unisci = { voci: [] }; // { voce, rot, pw, pagine, protetto }
+const unisci = { voci: [], cambiata: false }; // voci: { voce, rot, pw, pagine, protetto }
+
+// unisciInSospeso (ZP07-9): la lista di Unisci cambiata a mano (file aggiunti, ordine, rotazioni)
+// e non ancora salvata: il nome da mostrare nella domanda, altrimenti "".
+export function unisciInSospeso() {
+  if (!unisci.cambiata || !unisci.voci.length) return "";
+  return t("unisciSospeso", unisci.voci.length);
+}
+async function lasciaUnisci() {
+  const u = unisciInSospeso();
+  if (u && !(await chiediPerdita(u))) return false;
+  unisci.cambiata = false;
+  segnalaAperti();
+  return true;
+}
 
 async function aggiungiAUnisci(voci, pwNoto) {
   for (const v of voci) {
@@ -409,6 +434,7 @@ function disegnaLista() {
       r.classList.remove("sopra");
       const [x] = unisci.voci.splice(trascinato, 1);
       unisci.voci.splice(i, 0, x);
+      unisci.cambiata = true;
       trascinato = -1;
       disegnaLista();
     });
@@ -417,6 +443,7 @@ function disegnaLista() {
   $("#uZona").textContent = unisci.voci.length === 1 ? t("unisciPochi") : t("unisciVuoto");
   $("#uZona").classList.toggle("hidden", unisci.voci.length > 1);
   $("#uSalva").disabled = unisci.voci.length === 0;
+  segnalaAperti();
 }
 
 function azioneVoce(i, a) {
@@ -426,10 +453,12 @@ function azioneVoce(i, a) {
   if (a === "giu" && i < v.length - 1) [v[i + 1], v[i]] = [v[i], v[i + 1]];
   if (a === "sx") v[i].rot = (v[i].rot + 270) % 360;
   if (a === "dx") v[i].rot = (v[i].rot + 90) % 360;
+  unisci.cambiata = true;
   disegnaLista();
 }
 
 export async function apriUnisci(voci, daDoc, pw) {
+  if (!(await lasciaUnisci())) return;
   if (!daDoc) stato.ritorno = "home";
   unisci.voci = [];
   miniature.clear();
@@ -438,7 +467,7 @@ export async function apriUnisci(voci, daDoc, pw) {
   else disegnaLista();
 }
 
-$("#uAggiungi").onclick = async () => aggiungiAUnisci(await scegli(true, false, t("titoloApriMolti")));
+$("#uAggiungi").onclick = async () => { const vv = await scegli(true, false, t("titoloApriMolti")); if (vv.length) { unisci.cambiata = true; await aggiungiAUnisci(vv); } };
 $("#uSalva").onclick = async () => {
   if (!unisci.voci.length) return avvisa(t("unisciVuoto"));
   attesa(true);
@@ -455,7 +484,7 @@ $("#uSalva").onclick = async () => {
   const conBlocchi = unisci.voci.find(it => it.protetto && !it.conPassword);
   if (conPw) r = await proteggiCopia(r, conPw.voce.nome, conPw.pw, false);
   else if (conBlocchi) r = await proteggiCopia(r, conBlocchi.voce.nome, "", true);
-  await salva(r.id, nomeCon(unisci.voci[0].voce.nome, t("suffUnito")));
+  if (await salva(r.id, nomeCon(unisci.voci[0].voce.nome, t("suffUnito")))) { unisci.cambiata = false; segnalaAperti(); }
   go("goDimentica", r.id).catch(() => {});
 };
 
@@ -465,9 +494,17 @@ const firma = { alFine: null, voce: null, pw: "", doc: null, n: 0, pag: 1, eleme
 
 // firmaInSospeso: il nome del PDF se nella vista Firma ci sono elementi messi e non ancora salvati
 // (per la X della finestra, documento.js nonSalvate); altrimenti "".
+// ZP07-4: non dipende più dalla vista: conta finché non si salva o si sceglie di buttarla via.
 export function firmaInSospeso() {
-  if (stato.vista !== "firma" || !firma.modificata || !firma.elementi.length || !firma.voce) return "";
+  if (!firma.modificata || !firma.elementi.length || !firma.voce) return "";
   return firma.nomeOrig || firma.voce.nome;
+}
+// lasciaFirma: prima di Indietro, «Cambia» o di un altro PDF nella Firma. true = si può andare.
+async function lasciaFirma() {
+  const f = firmaInSospeso();
+  if (f && !(await chiediPerdita(f))) return false;
+  firmaCambiata(false);
+  return true;
 }
 function firmaCambiata(on = true) {
   firma.modificata = on;
@@ -478,7 +515,8 @@ function firmaCambiata(on = true) {
 export function apriFirmaDaDocumento(voce, pw, alFine) { return apriFirma(voce, pw, alFine); }
 
 async function apriFirma(voce, pwNoto, alFine) {
-  if (voce.tipo !== "pdf") return avvisa(t("e_non_pdf"));
+  if (voce.tipo !== "pdf") return avvisa(t("e_non_pdf"), voce.nome);
+  if (!(await lasciaFirma())) return;
   if (!alFine) stato.ritorno = "home";
   let pw = pwNoto || "";
   let inf;
@@ -718,7 +756,10 @@ $$("#fColori button").forEach(b => b.onclick = async () => {
 
 $("#fSalva").onclick = async () => {
   if (!firma.elementi.length) return avvisa(t("nessunElemento"));
-  const timbri = firma.elementi.map(e => ({ pagina: e.tutte ? 0 : e.pagina, x: e.x, y: e.y, l: e.l, a: e.a, png: e.png }));
+  // ZP06-3: «su tutte le pagine» con la larghezza in punti della pagina dove è stata messa.
+  const larghezze = {};
+  for (const e of firma.elementi) if (e.tutte && !larghezze[e.pagina]) { try { larghezze[e.pagina] = (await firma.doc.getPage(e.pagina)).getViewport({ scale: 1 }).width; } catch { /* */ } }
+  const timbri = firma.elementi.map(e => ({ pagina: e.tutte ? 0 : e.pagina, x: e.x, y: e.y, l: e.l, a: e.a, png: e.png, lpt: e.tutte && larghezze[e.pagina] ? e.l * larghezze[e.pagina] : 0 }));
   attesa(true);
   let r;
   try { r = await go("goFirma", firma.voce.id, firma.pw, timbri); }
@@ -910,8 +951,8 @@ $("#tOk").onclick = async () => {
   finestra("dFirma", false);
   impostaFirma(png);
   try {
+    // ZP06-6: senza la spunta la firma salvata resta com'è: si cancella solo con «Dimentica».
     if ($("#tRicorda").checked) { await go("goSalvaFirma", png); firmaSalvataEsiste = true; }
-    else if (firmaSalvataEsiste) { await go("goCancellaFirma"); firmaSalvataEsiste = false; }
   } catch (e) { avvisaErrore(e); }
   if (poiMetti && firma.doc) await aggiungiElemento("firma", png, 170);
 };
@@ -1008,13 +1049,23 @@ async function azione(nome, voci) {
   }
 }
 
+// ZP07-7: il tipo si guarda dal primo pezzo, prima di caricare tutto: un video trascinato per
+// sbaglio non finisce in memoria. Se qualcosa va storto, quello già caricato si libera.
+const TIPI_OK = ["pdf", "jpg", "png", "heic"];
 async function caricaTrascinati(files) {
   const voci = [];
   attesa(true, t("caricamento"));
   try {
-    for (const f of files) voci.push(await caricaFile(f));
+    for (const f of files) {
+      const testa = new Uint8Array(await f.slice(0, 1024).arrayBuffer());
+      if (!TIPI_OK.includes(await go("goTipoFile", base64DaBytes(testa), f.name))) continue;
+      const v = await caricaFile(f);
+      v.trascinato = true; // in memoria: si libera quando la scheda si chiude
+      voci.push(v);
+    }
   } catch (e) {
     attesa(false);
+    for (const v of voci) go("goDimentica", v.id).catch(() => { });
     avvisaErrore(e);
     return null;
   }
@@ -1026,11 +1077,12 @@ async function gestisciFileTrascinati(files, sullaScheda) {
   if (!files.length) return;
   const voci = await caricaTrascinati(files);
   if (!voci) return;
-  const ok = voci.filter(v => ["pdf", "jpg", "png", "heic"].includes(v.tipo));
+  const ok = voci.filter(v => TIPI_OK.includes(v.tipo));
+  for (const v of voci) if (!ok.includes(v)) go("goDimentica", v.id).catch(() => { });
   if (!ok.length) return avvisa(t("e_formato"));
   const pdf = ok.filter(v => v.tipo === "pdf");
   switch (stato.vista) {
-    case "unisci": return aggiungiAUnisci(ok);
+    case "unisci": unisci.cambiata = true; return aggiungiAUnisci(ok);
     case "firma":
       if (!pdf.length) return avvisa(t("e_non_pdf"));
       // F16-10: la firma aperta da un documento torna in quella scheda: un altro PDF non va mescolato.
@@ -1110,21 +1162,32 @@ let nomeUtente = ""; // "Il tuo nome" (vedi più sotto)
   initDocumento();
   applicaLingua();
   window.__tassoPronto = true;
-  // File dell'avvio (doppio clic su un PDF, menu del tasto destro) e quelli che arrivano subito dopo.
-  let primo = true;
-  for (let i = 0; i < 48; i++) {
-    let fa = null;
-    try { fa = await go("goFileAvvio"); } catch { break; }
-    if (fa && fa.file && fa.file.length) {
-      const modo = fa.modo || "apri";
-      if (primo || modo === "apri" || modo === "comprimi") await azione(modo, fa.file);
-      else if (stato.vista === "unisci") await aggiungiAUnisci(fa.file);
-      else await azione(modo, fa.file);
-      primo = false;
-    } else if (!fa || !fa.modo) break;
-    await new Promise(ok => setTimeout(ok, 250));
-  }
+  // File dell'avvio (doppio clic su un PDF, menu del tasto destro) e quelli che arrivano dopo da
+  // un'altra copia del programma, anche molto dopo (ZP07-5): Go chiama window.tassoArrivati.
+  window.tassoArrivati = prendiArrivati;
+  await prendiArrivati();
 })();
+
+let prendendo = false, ancora = false, ultimoUnisci = 0;
+async function prendiArrivati() {
+  if (prendendo) { ancora = true; return; }
+  prendendo = true;
+  try {
+    do {
+      ancora = false;
+      for (;;) {
+        let fa = null;
+        try { fa = await go("goFileAvvio"); } catch { break; }
+        if (!fa || !fa.file || !fa.file.length) break;
+        const modo = fa.modo || "apri";
+        // Dal tasto destro con più file Windows avvia una copia per file: arrivano a pezzi.
+        if (modo === "unisci" && stato.vista === "unisci" && Date.now() - ultimoUnisci < 3000) await aggiungiAUnisci(fa.file);
+        else await azione(modo, fa.file);
+        if (modo === "unisci") ultimoUnisci = Date.now();
+      }
+    } while (ancora);
+  } finally { prendendo = false; }
+}
 
 $("#hMenuIn").onchange = async () => {
   const on = $("#hMenuIn").checked;

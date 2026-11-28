@@ -168,7 +168,9 @@ func newEncryptDict(pdf20, needAES bool, keyLength int, permissions int16) types
 			i = 5
 		}
 		d.Insert("V", types.Integer(i))
-		if pdf20 {
+		// Modifica di Tasso PDF (ZP06-1): AES-256 sempre con R=6 (ISO 32000-2), anche nei PDF
+		// che non sono 2.0. R=5 (Adobe Extension Level 3) è superato e molto più debole.
+		if pdf20 || keyLength == 256 {
 			i++
 		}
 		d.Insert("R", types.Integer(i))
