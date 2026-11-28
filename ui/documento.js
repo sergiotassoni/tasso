@@ -61,6 +61,9 @@ document.addEventListener("webviewerloaded", e => {
   imposta("externalLinkTarget", 0);
   imposta("supportsDownloading", false);
   imposta("sidebarViewOnLoad", 0);
+  // FIX-RUOTA: PDF.js non rimette la vista (rotazione, pagina, zoom) ricordata da un avvio
+  // precedente: la vista girata vale solo per la scheda aperta (sc.giro) e solo finché è aperta.
+  imposta("viewOnLoad", 1);
 });
 
 function preparaVisore() {
@@ -122,7 +125,7 @@ function sistemaVisore(w, app) {
   const eb = app.eventBus;
   eb.on("pagechanging", ev => { if (D.att) D.att.pagina = ev.pageNumber; aggiornaNav(); evidenziaMini(); });
   eb.on("scalechanging", () => aggiornaNav());
-  eb.on("rotationchanging", () => aggiornaNav());
+  eb.on("rotationchanging", ev => { if (D.att && appV) D.att.giro = ev.pagesRotation; aggiornaNav(); }); // anche col tasto R
   eb.on("updatefindmatchescount", ev => mostraConteggio(ev.matchesCount));
   eb.on("updatefindcontrolstate", ev => mostraConteggio(ev.matchesCount, ev.state));
 }
@@ -241,6 +244,7 @@ async function caricaNelVisore() {
     const doc = app.pdfDocument;
     app.eventBus.on("pagesinit", function una() {
       app.eventBus.off("pagesinit", una);
+      if (sc.giro) app.pdfViewer.pagesRotation = sc.giro; // FIX-RUOTA: la vista girata di questa scheda
       if (pag > 1 && pag <= app.pagesCount) app.page = pag;
       applicaRapido(D.rapido, true); // solo il modo del visualizzatore: lo strumento aperto resta
     });
@@ -434,6 +438,16 @@ async function produci(nome, suffisso, ...args) {
 export async function salvaCopiaDoc() {
   const sc = D.att;
   if (!sc) return "";
+  // FIX-RUOTA: la vista è girata ma il file no. Lo dico, e propongo di girare davvero le pagine.
+  if (sc.giro) {
+    const r = await chiedi(t("giroT"), t("giroD"), [[t("annulla"), 0], [t("giroSenza"), 1], [t("giroSalva"), 2, true]]);
+    if (r !== 1 && r !== 2) return "";
+    if (r === 2) {
+      const g = sc.giro;
+      sc.giro = 0; // la rotazione passa nelle pagine: la vista non deve girarle una seconda volta
+      if (!(await applica("goOrganizza", [], sequenzaDi(totPagine()).map(s => ({ ...s, r: g }))))) { sc.giro = g; if (appV) appV.pdfViewer.pagesRotation = g; return ""; }
+    }
+  }
   const doc = appV && appV.pdfDocument;
   let id = corrente(sc).voce.id, tmp = null;
   try {
