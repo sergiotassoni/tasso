@@ -1733,7 +1733,7 @@ func aggiungiCronologia(r Risultato, unica bool) {
 func cronologia() []Risultato {
 	muCronologia.Lock()
 	defer muCronologia.Unlock()
-	return append([]Risultato(nil), righe...)
+	return append([]Risultato{}, righe...) // mai nil: vuota è [] per la pagina, null vuol dire "nessuna risposta"
 }
 
 // salvaCronologia scrive i dialoghi tradotti in Documenti\Tasso Traduce (solo sul PC).

@@ -828,11 +828,17 @@ func leggiStatoFile(p string, protetto, admin bool) (*ottimizza.Stato, bool, err
 
 // caricaOtt legge il file di stato (chiamare con ottMu preso). Da amministratore unisce anche il
 // file dell'utente di un giro fatto senza permessi e poi lo toglie: lo stato vero sta in un posto solo.
-func caricaOtt() *ottimizza.Stato {
+func caricaOtt() *ottimizza.Stato { return caricaOttCon(true) }
+
+// caricaOttCon: scrivi=false (la pagina che si apre, infoOtt) legge soltanto: il file dell'utente si
+// unisce solo in memoria e niente si rinomina o si salva. Le scritture le fa il giro (scrivi=true).
+func caricaOttCon(scrivi bool) *ottimizza.Stato {
 	vuoto := &ottimizza.Stato{Versione: ottimizza.VersioneStato, Risultati: map[string]*ottimizza.Risultato{}}
 	p, protetto := fileStatoOtt()
 	st, scartate, err := leggiStatoFile(p, protetto, protetto)
-	if err != nil && !os.IsNotExist(err) && !errors.Is(err, errPercorsoLink) {
+	if err != nil && !os.IsNotExist(err) && !errors.Is(err, errPercorsoLink) && !scrivi {
+		ottRovinato.Store(true)
+	} else if err != nil && !os.IsNotExist(err) && !errors.Is(err, errPercorsoLink) {
 		ottRovinato.Store(true)
 		via := filepath.Join(filepath.Dir(p), "stato-illeggibile-"+time.Now().Format("20060102-150405")+".json")
 		if protetto {
@@ -844,7 +850,7 @@ func caricaOtt() *ottimizza.Stato {
 	if st == nil {
 		st = vuoto
 	}
-	if scartate {
+	if scartate && scrivi {
 		logPanic("ottimizza", "file di stato: voci non valide scartate", nil)
 	}
 	if st.Risultati == nil {
@@ -854,7 +860,7 @@ func caricaOtt() *ottimizza.Stato {
 		u := fileStatoUtenteOtt()
 		if su, _, e := leggiStatoFile(u, false, false); e == nil {
 			st.Unisci(su)
-			if salvaOtt(st) == nil {
+			if scrivi && salvaOtt(st) == nil {
 				_ = os.Remove(u)
 				_ = os.Remove(u + ".prima")
 			}
@@ -963,11 +969,16 @@ func modoAttualeOtt() string {
 }
 
 // infoOtt: lo stato per la finestra (voci, ultimi risultati con la tabella prima → dopo).
+// Blocco al primo avvio: gira in Subito, quindi non aspetta un giro che tiene ottMu (il file si
+// scrive sempre intero, con lo scambio di scriviSicuroOtt: leggerlo senza lucchetto è sicuro) e non
+// scrive niente su disco.
 func infoOtt() map[string]interface{} {
-	ottMu.Lock()
-	st := caricaOtt()
-	ottMu.Unlock()
-	return infoDaStatoOtt(st)
+	if ottMu.TryLock() {
+		st := caricaOttCon(false)
+		ottMu.Unlock()
+		return infoDaStatoOtt(st)
+	}
+	return infoDaStatoOtt(caricaOttCon(false))
 }
 
 func infoDaStatoOtt(st *ottimizza.Stato) map[string]interface{} {

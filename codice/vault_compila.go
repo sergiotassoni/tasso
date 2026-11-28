@@ -119,8 +119,10 @@ func vtFirstOK() bool {
 
 func vaultFillCfg() map[string]interface{} {
 	setMu.Lock()
-	defer setMu.Unlock()
-	return map[string]interface{}{"suggest": settings.VtSuggest != 2, "key": settings.VtKey, "keyLabel": vtKeyLabel(settings.VtKey), "firstOK": settings.VtFirstOK}
+	suggest, key, firstOK := settings.VtSuggest != 2, settings.VtKey, settings.VtFirstOK
+	setMu.Unlock()
+	// vtKeyLabel traduce "Maiusc" con trGo, che prende setMu: va chiamata dopo l'Unlock (blocco al primo avvio)
+	return map[string]interface{}{"suggest": suggest, "key": key, "keyLabel": vtKeyLabel(key), "firstOK": firstOK}
 }
 
 func vaultFillSuggest(on bool) string {

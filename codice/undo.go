@@ -28,6 +28,8 @@ func changesList() map[string]interface{} {
 	for k, v := range settings.StartupOrig {
 		orig[k] = v
 	}
+	// Blocco al primo avvio: trGo prende setMu (curLang): chiamarla qui, con setMu già preso, fermava
+	// per sempre Impostazioni, la coda dei pulsanti e la X. La traduzione si fa dopo l'Unlock.
 	tunes := map[string]string{}
 	for id, t := range settings.GameTunes {
 		if t != nil {
@@ -35,7 +37,7 @@ func changesList() map[string]interface{} {
 			if n == "" {
 				n = id
 			}
-			tunes[id] = n + trGo(" · regolato il ") + t.Applied // con la data (/) la finestra non tradurrebbe il pezzo (F20-12)
+			tunes[id] = n + "\x00" + t.Applied
 		}
 	}
 	var cmds []string
@@ -45,6 +47,10 @@ func changesList() map[string]interface{} {
 		}
 	}
 	setMu.Unlock()
+	regolato := trGo(" · regolato il ") // con la data (/) la finestra non tradurrebbe il pezzo (F20-12)
+	for id, v := range tunes {
+		tunes[id] = strings.Replace(v, "\x00", regolato, 1)
+	}
 
 	var items []map[string]interface{}
 	if p := profileCopy(); p.On {

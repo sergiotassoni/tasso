@@ -70,13 +70,27 @@ type webview struct {
 	// Modifica di Tasso: 1 dopo Destroy(), così la chiusura chiesta dal programma non passa da ChiusuraHook.
 	chiusuraVera int32
 	fuori        bool // modifica di Tasso: finestra di lavoro fuori dallo schermo (vedi FuoriSchermo)
+	// Modifica di Tasso (blocco al primo avvio): le risposte per la pagina (Dispatch) vanno alla
+	// finestra, non al filo, e un timer le svuota comunque ogni 250 ms (vedi svuotaDispatch).
+	dispatchPronto int32 // 1 = finestra e WebView pronte: Dispatch usa PostMessage alla finestra
+	svuotando      int32 // 1 = svuotaDispatch sta già girando (niente rientri)
 }
+
+// idTimerDispatch: il timer della finestra che svuota la coda di Dispatch (modifica di Tasso).
+const idTimerDispatch = 0x7A55
+
+// LentaHook (modifica di Tasso): se c'è, riceve il nome delle chiamate in coda che durano più di
+// 5 secondi (finita=false mentre è ancora ferma, finita=true quando ha finito, con la durata).
+// Una coda ferma lascia così una traccia nei registri.
+var LentaHook func(method string, durata time.Duration, finita bool)
 
 // Funzioni di Windows per far girare i messaggi nel filo della coda (non sono in internal/w32).
 var (
 	user32Coda                      = windows.NewLazySystemDLL("user32.dll")
 	user32MsgWaitForMultipleObjects = user32Coda.NewProc("MsgWaitForMultipleObjectsEx")
 	user32PeekMessageW              = user32Coda.NewProc("PeekMessageW")
+	user32SetTimer                  = user32Coda.NewProc("SetTimer")
+	user32KillTimer                 = user32Coda.NewProc("KillTimer")
 )
 
 // SuFinestra: funzioni legate con Bind che devono girare nel filo della finestra (aprono
@@ -314,7 +328,7 @@ func (w *webview) lavoraCoda() {
 			return
 		}
 		if ok {
-			w.rispondiSicuro(d)
+			w.rispondiSegnata(d)
 			continue
 		}
 		ev := w.codaEvento
@@ -336,6 +350,26 @@ func pompaMessaggi() {
 		}
 		_, _, _ = w32.User32TranslateMessage.Call(uintptr(unsafe.Pointer(&msg)))
 		_, _, _ = w32.User32DispatchMessageW.Call(uintptr(unsafe.Pointer(&msg)))
+	}
+}
+
+// rispondiSegnata: come rispondiSicuro, ma una chiamata che dura più di 5 secondi finisce nei
+// registri con il suo nome (LentaHook), anche se non finisce mai (modifica di Tasso).
+func (w *webview) rispondiSegnata(d rpcMessage) {
+	if LentaHook == nil {
+		w.rispondiSicuro(d)
+		return
+	}
+	t0 := time.Now()
+	var lenta atomic.Bool
+	t := time.AfterFunc(5*time.Second, func() {
+		lenta.Store(true)
+		LentaHook(d.Method, time.Since(t0), false)
+	})
+	w.rispondiSicuro(d)
+	t.Stop()
+	if lenta.Load() {
+		LentaHook(d.Method, time.Since(t0), true)
 	}
 }
 
@@ -478,7 +512,21 @@ func wndproc(hwnd, msg, wp, lp uintptr) uintptr {
 				break
 			}
 			_, _, _ = w32.User32DestroyWindow.Call(hwnd)
+		case w32.WMApp:
+			// Modifica di Tasso: le risposte per la pagina arrivano anche come messaggio alla finestra,
+			// che Windows consegna anche dentro un ciclo di messaggi interno (menu, spostamento,
+			// finestra modale), dove i messaggi al filo si perdono.
+			w.svuotaDispatch()
+		case 0x0113: // WM_TIMER
+			if wp == idTimerDispatch {
+				w.svuotaDispatch() // per sicurezza: niente risposta resta ferma più di 250 ms
+				break
+			}
+			r, _, _ := w32.User32DefWindowProcW.Call(hwnd, msg, wp, lp)
+			return r
 		case w32.WMDestroy:
+			atomic.StoreInt32(&w.dispatchPronto, 0)
+			_, _, _ = user32KillTimer.Call(hwnd, idTimerDispatch)
 			w.Terminate()
 		case w32.WMGetMinMaxInfo:
 			lpmmi := (*w32.MinMaxInfo)(unsafe.Pointer(lp))
@@ -604,6 +652,9 @@ func (w *webview) CreateWithOptions(opts WindowOptions) bool {
 		return false
 	}
 	w.browser.Resize()
+	// Modifica di Tasso: da qui Dispatch manda le risposte alla finestra e il timer le svuota comunque.
+	atomic.StoreInt32(&w.dispatchPronto, 1)
+	_, _, _ = user32SetTimer.Call(w.hwnd, idTimerDispatch, 250, 0)
 	return true
 }
 
@@ -663,14 +714,9 @@ func (w *webview) Run() {
 			0,
 			0,
 		)
-		if msg.Message == w32.WMApp {
-			w.m.Lock()
-			q := append([]func(){}, w.dispatchq...)
-			w.dispatchq = []func(){}
-			w.m.Unlock()
-			for _, v := range q {
-				v()
-			}
+		if msg.Message == w32.WMApp && msg.Hwnd == 0 {
+			w.svuotaDispatch()
+			continue
 		} else if msg.Message == w32.WMQuit {
 			return
 		}
@@ -747,11 +793,43 @@ func (w *webview) Eval(js string) {
 	w.browser.Eval(js)
 }
 
+// Dispatch: f gira nel filo della finestra. Modifica di Tasso (blocco al primo avvio): quando la
+// finestra è pronta il segnale va alla finestra (PostMessage), non al filo (PostThreadMessage).
+// Un messaggio al filo si perde se il filo è in un ciclo di messaggi interno (menu, spostamento della
+// finestra, finestra modale, alcune chiamate COM): le risposte di Go non arrivavano più alla pagina.
+// Il timer della finestra (250 ms) svuota comunque la coda.
 func (w *webview) Dispatch(f func()) {
 	w.m.Lock()
 	w.dispatchq = append(w.dispatchq, f)
 	w.m.Unlock()
+	if atomic.LoadInt32(&w.dispatchPronto) == 1 && w.hwnd != 0 {
+		if r, _, _ := w32.User32PostMessageW.Call(w.hwnd, w32.WMApp, 0, 0); r != 0 {
+			return
+		}
+	}
 	_, _, _ = w32.User32PostThreadMessageW.Call(w.mainthread, w32.WMApp, 0, 0)
+}
+
+// svuotaDispatch (modifica di Tasso): fa girare, nel filo della finestra, le funzioni in attesa.
+// Niente rientri: se una di queste fa girare i messaggi (e arriva un altro WM_APP o il timer),
+// la chiamata interna esce subito e le funzioni nuove le prende il giro di fuori, nell'ordine.
+func (w *webview) svuotaDispatch() {
+	if !atomic.CompareAndSwapInt32(&w.svuotando, 0, 1) {
+		return
+	}
+	defer atomic.StoreInt32(&w.svuotando, 0)
+	for giro := 0; giro < 100; giro++ { // un limite: se ne arrivano senza sosta, il resto al prossimo messaggio
+		w.m.Lock()
+		q := w.dispatchq
+		w.dispatchq = nil
+		w.m.Unlock()
+		if len(q) == 0 {
+			return
+		}
+		for _, v := range q {
+			v()
+		}
+	}
 }
 
 func (w *webview) Bind(name string, f interface{}) error {

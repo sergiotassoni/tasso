@@ -1714,6 +1714,15 @@ body.office .cardmodo{font-weight:700;font-stretch:normal;letter-spacing:-.02em;
 <div class="toasts" id="toasts" role="status" aria-live="polite" aria-atomic="false"></div>
 
 <script>
+// Blocco al primo avvio (FIX-BLOCCO-AVVIO): un errore della pagina non resta più nascosto. Messaggio e
+// riga vanno in logs\avvio.txt (goJsErrore, che non aspetta in coda). Prima dello script principale,
+// così si vede anche un errore nelle sue prime righe.
+(function(){
+  const manda = (t) => { try { if (typeof window.goJsErrore === 'function') Promise.resolve(window.goJsErrore(String(t).slice(0, 600))).catch(() => {}); } catch (e) {} };
+  window.__tassoErr = manda;
+  window.addEventListener('error', (e) => { manda('errore JS: ' + (e && e.message) + ' (riga ' + (e && e.lineno) + ':' + (e && e.colno) + ')'); });
+  window.addEventListener('unhandledrejection', (e) => { const r = e && e.reason; manda('promessa rifiutata: ' + ((r && (r.stack || r.message)) || r)); });
+})();
 (function(){
 'use strict';
 // Cambio di lingua (dalla 3.2): Go ricarica la pagina con i dati e il dizionario della lingua nuova in
@@ -1833,7 +1842,21 @@ const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({'&':'
 let BG_SEQ = 0; const BG_WAIT = {};
 // Il numero della pagina (BOOT.gen) nel nome: dopo un cambio di lingua una risposta per la pagina di prima non si confonde.
 const callBg = (name, ...a) => new Promise(res => { const id = 'bg' + (BOOT.gen ? BOOT.gen + '_' : '') + (++BG_SEQ); BG_WAIT[id] = res; call(name, id, ...a).then(r => { if (r !== 'ok' && BG_WAIT[id]) { delete BG_WAIT[id]; res(r === 'busy' ? _t('Un attimo, sto ancora finendo la cosa di prima.') : r); } }); });
-const call = (name, ...a) => { try { return typeof window[name] === 'function' ? Promise.resolve(window[name](...a)).then(r => TX_RAW[name] ? r : tx(r)).catch(() => null) : Promise.resolve(null); } catch (e) { return Promise.resolve(null); } };
+// call: ogni chiamata a Go ha un tempo massimo (blocco al primo avvio: prima una risposta che non
+// arrivava lasciava la pagina ferma per sempre, senza avvisi). Dopo 8 s il nome va nei registri e un
+// avviso dice che Tasso sta ancora lavorando; dopo 45 s la chiamata finisce con null, come un errore
+// (chi chiama lo mostra già), e la pagina dice che Tasso non ha risposto.
+const CALL_AVVISO = 8000, CALL_MAX = 45000; const CALL_TOAST = {};
+const callAvvisa = (testo, colore) => { const ora = Date.now(); if (ora - (CALL_TOAST[testo] || 0) < 20000) return; CALL_TOAST[testo] = ora; try { toast(testo, colore); } catch (e) {} };
+const callGo = (name, a) => { try { return typeof window[name] === 'function' ? Promise.resolve(window[name](...a)).then(r => TX_RAW[name] ? r : tx(r)).catch(() => null) : Promise.resolve(null); } catch (e) { return Promise.resolve(null); } };
+const call = (name, ...a) => {
+  if (name === 'goJsErrore') return callGo(name, a);
+  let finita = false;
+  const p = callGo(name, a).then(r => { finita = true; return r; });
+  const t1 = setTimeout(() => { if (finita) return; if (window.__tassoErr) window.__tassoErr('chiamata senza risposta dopo 8 s: ' + name); callAvvisa(_t('Un attimo, sto ancora finendo.'), 'var(--a4)'); }, CALL_AVVISO);
+  const scad = new Promise(res => setTimeout(() => { if (finita) return; if (window.__tassoErr) window.__tassoErr('chiamata senza risposta dopo 45 s, la pagina va avanti: ' + name); callAvvisa(_t('Tasso non ha risposto: riprova.'), 'var(--red)'); res(null); }, CALL_MAX));
+  return Promise.race([p, scad]).finally(() => clearTimeout(t1));
+};
 const refreshS = async () => { const s = await call('goGetSettings'); if (s) S = s; return S; };
 
 // unità: TB da 1024 GB in su; in francese Ko, Mo, Go, To
@@ -2810,8 +2833,11 @@ function paintFps(r, summary){
 async function boostAccendi(e){
   if (e) e.preventDefault();
   if (BST.on || BST.game) { toast(_t('Il Boost è già acceso. Per spegnerlo premi "Rimetti com\'era".')); return; }
-  const r = await call('goBoostAll'); if (r === 'busy') { toast(_t('Un attimo, sto ancora finendo.')); return; }
+  // Riscontro subito (blocco al primo avvio: prima l'avviso arrivava solo dopo la risposta di Go).
   $('#btnBoost').disabled = true; toast(_t('Preparo il PC per giocare…'), 'var(--a3)');
+  const r = await call('goBoostAll');
+  if (r === 'busy') { $('#btnBoost').disabled = false; toast(_t('Un attimo, sto ancora finendo.')); return; }
+  if (r == null) $('#btnBoost').disabled = false; // nessuna risposta: il pulsante torna premibile (l'avviso l'ha già dato call)
 }
 $('#btnBoost').onclick = boostAccendi;
 $('#boostNow').onclick = boostAccendi;
@@ -3819,7 +3845,11 @@ function ottRisultato(){ const r = OTT.info && OTT.info.risultati && OTT.info.ri
 function ottVoce(id){ return ((OTT.info && OTT.info.voci) || []).find(v => v.id === id) || null; }
 // Apre la pagina: lavoro in corso, risultato dell'ultima volta o la schermata d'inizio.
 async function ottApri(){
+  // Blocco al primo avvio: la pagina si disegna subito (prima restava nera finché Go non rispondeva)
+  // e si aggiorna quando arriva lo stato.
+  if (!OTT.info && !OTT.fase) { OTT.modo = isOffice() ? 'ufficio' : 'gioco'; ottInizio(); }
   const i = await call('goOttInfo'); if (i) OTT.info = i;
+  if (!i && !OTT.info) return; // nessuna risposta: resta la schermata d'inizio, l'avviso l'ha dato call
   if (OTT.info && OTT.info.inCorso && OTT.fase) { ottDisegna(); return; }
   if (!(OTT.info && OTT.info.inCorso)) OTT.fase = '';
   OTT.modo = isOffice() ? 'ufficio' : 'gioco';
@@ -5524,7 +5554,9 @@ $$('nav [data-gtab]').forEach(b => { b.onclick = () => { show('games'); gTab(b.d
 gTab('lib');
 async function paintCro(){
   const box = $('#croList'); box.innerHTML = '<div class="li"><span class="muted">' + esc(_t('Un momento…')) + '</span></div>';
-  const l = await ttc('ttCronologia') || [];
+  const r = await ttc('ttCronologia'); const l = r || [];
+  // nessuna risposta (o errore): lo dico, invece di "Ancora niente" che non sarebbe vero
+  if (r == null) { box.innerHTML = '<div class="li"><span class="muted">' + esc(_t('Tasso non ha risposto: riprova.')) + '</span></div>'; $('#btnCroSave').disabled = true; return; }
   box.innerHTML = '';
   $('#btnCroSave').disabled = !l.length; // cronologia vuota: niente da salvare
   if (!l.length) { box.innerHTML = '<div class="li"><span class="muted">' + esc(_t('Ancora niente: le traduzioni dei giochi compaiono qui.')) + '</span></div>'; return; }

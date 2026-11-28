@@ -163,7 +163,19 @@ func trayChiusuraX() bool {
 	if wv == nil || !trayIcona.Load() || trayFermata.Load() {
 		return false // senza icona la X chiude davvero, se no Tasso resterebbe acceso senza modo di riaprirlo
 	}
-	setMu.Lock()
+	// Gira nel filo della finestra: non deve mai aspettare un lucchetto (blocco al primo avvio: con
+	// setMu preso da un lavoro fermo la finestra diventava "Non risponde"). Se le impostazioni non
+	// si leggono entro mezzo secondo, la X chiude davvero: meglio che una finestra bloccata.
+	preso := false
+	for t0 := time.Now(); time.Since(t0) < 500*time.Millisecond; time.Sleep(10 * time.Millisecond) {
+		if preso = setMu.TryLock(); preso {
+			break
+		}
+	}
+	if !preso {
+		go scriviAvvio("X: impostazioni occupate da un lavoro fermo, chiudo Tasso invece di nasconderlo")
+		return false
+	}
 	no, visto := settings.NoCloseToTray, settings.TrayTipShown
 	setMu.Unlock()
 	if no {

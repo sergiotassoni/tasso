@@ -240,9 +240,37 @@ func main() {
 	for _, n := range []string{"goCancel", "goIsRunning", "goLive", "goHwWatch", "goGpuDrvCancel", "goAutoClickStop", "goBoostAllOff", "goPronto", "goIconaTema", "goSetLang", "goRiapriLingua"} {
 		webview2.Subito[n] = true
 	}
+	// Blocco al primo avvio (FIX-BLOCCO-AVVIO): anche queste non devono aspettare dietro una chiamata
+	// ferma. goJsErrore scrive solo una riga nei registri; ttCronologia copia una lista sotto il suo
+	// lucchetto; goBoostInfo legge boost.json e lo stato della batteria; goQuit guarda solo se Tasso
+	// sta lavorando e poi chiude in un filo a parte (chiudiTasso), così "Chiudi Tasso" funziona sempre.
+	// Girano ognuna nel suo filo: nessuna blocca mai il filo della finestra.
+	for _, n := range []string{"goJsErrore", "ttCronologia", "goBoostInfo", "goQuit"} {
+		webview2.Subito[n] = true
+	}
+	// Una chiamata in coda che dura più di 5 secondi lascia il suo nome in logs\avvio.txt.
+	webview2.LentaHook = func(nome string, d time.Duration, finita bool) {
+		if finita {
+			scriviAvvio(fmt.Sprintf("chiamata lenta finita: %s dopo %.1f s", nome, d.Seconds()))
+			return
+		}
+		scriviAvvio("chiamata lenta, la coda aspetta: " + nome)
+	}
 	bindAll(w)
 	bindTray(w) // tray.go: interruttore "Resta acceso vicino all'orologio"
 	_ = w.Bind("goPronto", func() string { scriviAvvio("pagina pronta"); return "ok" })
+	// Errori della pagina (window.onerror, promesse rifiutate, chiamate senza risposta): una riga in
+	// logs\avvio.txt, al massimo 60 per apertura, così il file resta piccolo.
+	_ = w.Bind("goJsErrore", func(testo string) string {
+		if jsErroriScritti.Add(1) > 60 {
+			return "ok"
+		}
+		if r := []rune(testo); len(r) > 600 {
+			testo = string(r[:600]) + "…"
+		}
+		scriviAvvio("pagina: " + strings.NewReplacer("\r", " ", "\n", " ").Replace(testo))
+		return "ok"
+	})
 	// Tasso Traduce (sezione Traduci): collegamenti prima di caricare la pagina; il resto parte
 	// in sottofondo e non legge lo schermo finché non accendi la traduzione.
 	traduce.Ospite.GiocoDiTasso = func(percorso string) bool { // extras.go: libreria di Tasso e cartelle dei giochi
@@ -339,6 +367,14 @@ func main() {
 	}
 	apriBentornatoAllAvvio(minimized, autoLevel > 0 || scheduledRun.Load()) // bentornato_apri.go
 	w.Run()
+	// La finestra è chiusa. Le chiusure qui sotto (defer: traduzione, icona, frequenza dello schermo)
+	// rimettono a posto quello che possono; se una resta ferma (un lucchetto preso da un lavoro
+	// bloccato), dopo 20 secondi Tasso esce lo stesso invece di restare acceso senza finestra.
+	go func() {
+		time.Sleep(20 * time.Second)
+		scriviAvvio("chiusura ferma dopo la finestra: esco lo stesso")
+		os.Exit(0)
+	}()
 	apriDisinstallatoreSeServe() // dopo "Togli Tasso dal PC" con l'installatore (uninstall.go)
 }
 
@@ -525,7 +561,18 @@ func chiudiTasso() {
 		trayStop()
 		wv.Dispatch(func() { wv.Terminate() })
 	}()
+	// Se uno dei passi qui sopra resta fermo (un lucchetto preso da un lavoro bloccato), dopo 15
+	// secondi la finestra si chiude lo stesso: quello che si è potuto rimettere è già rimesso.
+	go func() {
+		defer guard("main.go:chiudi-scadenza")
+		time.Sleep(15 * time.Second)
+		scriviAvvio("Chiudi Tasso: un passo della chiusura non ha risposto in 15 s, chiudo lo stesso")
+		wv.Dispatch(func() { wv.Terminate() })
+	}()
 }
+
+// jsErroriScritti: quante righe "pagina: …" sono già in avvio.txt in questa apertura.
+var jsErroriScritti atomic.Int32
 
 func messageBox(text, title string) {
 	t, _ := windows.UTF16PtrFromString(trGo(text))
