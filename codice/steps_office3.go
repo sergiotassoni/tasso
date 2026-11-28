@@ -2,7 +2,8 @@ package main
 
 // Modalità Ufficio, novità 3.1 (approvate da Sergio il 22/11): Pronto per la videochiamata?,
 // Modalità riunione, Chi ha usato webcam e microfono, Blocca il PC quando ti alzi.
-// Stanno in Pulisci e ripara → Risolvi un problema, in cima, nel gruppo "Novità".
+// Stanno in Pulisci e ripara → Risolvi un problema, in cima, nel gruppo "Novità" (per 14 giorni, poi nei
+// gruppi Teams e riunioni e sicurezza: index.html, nadd).
 // Regole di sempre: niente documenti toccati, ogni impostazione cambiata si salva prima e si
 // rimette com'era premendo di nuovo lo stesso pulsante.
 
