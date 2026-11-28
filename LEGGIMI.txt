@@ -1,4 +1,4 @@
-TASSO PDF - Apri, modifica, unisci e firma i tuoi PDF
+TASSO PDF 1.1.2 - Apri, modifica, unisci e firma i tuoi PDF
 Copyright (C) 2026 Sergio Tassoni - Software libero con licenza GNU GPL 3.0 (file LICENSE)
 Parte dell'ecosistema Tasso.
 

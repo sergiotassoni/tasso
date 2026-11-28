@@ -10,8 +10,11 @@ import { ico } from "./icone.js";
 import {
   $, $$, t, go, testoErrore, attesa, chiedi, avvisa, avvisaErrore, chiediPassword, toast, nomeCon,
   caricaArray, scegli, salva, vista, stato, OPZ_PDFJS, chiediLink, lingua, localePdfjs, apriFirmaDaDocumento,
-  apriUnisci, apriSblocca, base64DaBytes, oggi,
+  apriUnisci, apriSblocca, base64DaBytes, oggi, firmaInSospeso,
 } from "./app.js";
+
+// "1 pagina" / "3 pagine" (in polacco "Stron: 3", giusto con ogni numero).
+const pagineTesto = n => n === 1 ? t("pagine1") : t("pagineN", n);
 
 // ---------------------------------------------------------------- stato
 
@@ -249,6 +252,12 @@ function disegnaSchede() {
 }
 
 async function chiudiScheda(sc) {
+  // Pagine girate o spostate in Organizza e non ancora applicate: non sono nel documento, quindi
+  // "Salva una copia" non le avrebbe. Chiedo solo se chiudere senza salvare.
+  if (sc.salvata && sc === D.att && organizzaInSospeso()) {
+    const r = await chiedi(t("chiudiT"), t("chiudiD", sc.nome), [[t("chiudiSenza"), 1], [t("annulla"), 0, true]]);
+    if (r !== 1) return;
+  }
   if (!sc.salvata) {
     const r = await chiedi(t("chiudiT"), t("chiudiD", sc.nome), [[t("annulla"), 0], [t("chiudiSenza"), 1], [t("salvaCopia"), 2, true]]);
     if (r === 0) return;
@@ -565,7 +574,7 @@ function campoPagine(box, chiave = "quali") {
   const i = inp("text", "", { placeholder: t("esempioPagine") });
   campo(box, t(chiave), i);
   const p = el("p", "pPiccolo");
-  p.textContent = t("pagineAiuto", totPagine());
+  p.textContent = t("pagineAiuto", pagineTesto(totPagine()), totPagine());
   box.appendChild(p);
   return i;
 }
@@ -1183,7 +1192,7 @@ function piedeEditor(box, chiaveApplica, f) {
   bottone(a, "annulla", false, () => chiudiStrumento());
   const agg = () => {
     const n = E.elementi.length, p = new Set(E.elementi.map(e => e.pagina)).size;
-    info.textContent = n ? t("elementiPronti", n, p) : t("nessunoAncora");
+    info.textContent = n ? t("elementiPronti", n, pagineTesto(p), p) : t("nessunoAncora");
     b.disabled = !n;
   };
   return agg;
@@ -1378,7 +1387,7 @@ function barraOrganizza() {
   tasto("vuota", "paginaVuota", () => inserisciInOrganizza("vuota"));
   tasto("inserisci", "daAltroPDF", () => inserisciInOrganizza("pdf"));
   const info = el("span", "info");
-  info.textContent = n ? t("selezionate", n, O.seq.length) : t("pagineTot", O.seq.length);
+  info.textContent = n ? t("selezionate", n, O.seq.length) : pagineTesto(O.seq.length);
   b.appendChild(el("div", "spazio")); b.appendChild(info);
 }
 
@@ -1813,15 +1822,24 @@ export function salvaTutto() { return D.schede.some(s => !s.salvata); }
 // F16-1: la X della finestra e Alt+F4. Go chiede alla pagina (tassoChiudiFinestra) solo se ci
 // sono documenti aperti; con modifiche non salvate la finestra si chiude solo dopo la risposta.
 let numAperti = 0, ultimiAperti = null, chiusuraInCorso = false;
-function segnalaAperti() {
-  const on = D.schede.length > 0;
+// La firma messa e non salvata (vista Firma, anche senza documenti aperti) conta come lavoro aperto.
+export function segnalaAperti() {
+  const on = D.schede.length > 0 || !!firmaInSospeso();
   if (on === ultimiAperti) return;
   ultimiAperti = on;
   go("goDocumentiAperti", ++numAperti, on).catch(() => { ultimiAperti = null; });
 }
+// Organizza pagine aperto con pagine girate, spostate, tolte o aggiunte e non ancora applicate.
+function organizzaInSospeso() {
+  if (!O.aperto || !D.att) return false;
+  return !(O.seq.length === totPagine() && O.seq.every((s, i) => s.f === 0 && s.p === i + 1 && !s.r));
+}
 function nonSalvate() {
   const noteNuove = !!(appV && appV.pdfDocument && appV._annotationStorageModified);
-  return D.schede.filter(s => !s.salvata || (s === D.att && noteNuove));
+  const mod = D.schede.filter(s => !s.salvata || (s === D.att && (noteNuove || organizzaInSospeso())));
+  const f = firmaInSospeso();
+  if (f) mod.push({ nome: f });
+  return mod;
 }
 window.tassoChiudiFinestra = async () => {
   go("goChiusuraVista").catch(() => { });

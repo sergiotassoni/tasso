@@ -3,7 +3,7 @@
 
 import { LINGUE, TESTI } from "./testi.js";
 import * as pdfjsLib from "./pdfjs/build/pdf.mjs";
-import { apriDocumento, initDocumento, linguaDocumento, documentiAperti, __doc } from "./documento.js";
+import { apriDocumento, initDocumento, linguaDocumento, documentiAperti, segnalaAperti, __doc } from "./documento.js";
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = "/pdfjs/build/pdf.worker.mjs";
 
@@ -461,7 +461,18 @@ $("#uSalva").onclick = async () => {
 
 // ---------------------------------------------------------------- FIRMA
 
-const firma = { alFine: null, voce: null, pw: "", doc: null, n: 0, pag: 1, elementi: [], sel: null, colore: "#1a3ea8", png: "", dimPag: null, conta: 0 };
+const firma = { alFine: null, voce: null, pw: "", doc: null, n: 0, pag: 1, elementi: [], sel: null, colore: "#1a3ea8", png: "", dimPag: null, conta: 0, modificata: false };
+
+// firmaInSospeso: il nome del PDF se nella vista Firma ci sono elementi messi e non ancora salvati
+// (per la X della finestra, documento.js nonSalvate); altrimenti "".
+export function firmaInSospeso() {
+  if (stato.vista !== "firma" || !firma.modificata || !firma.elementi.length || !firma.voce) return "";
+  return firma.nomeOrig || firma.voce.nome;
+}
+function firmaCambiata(on = true) {
+  firma.modificata = on;
+  segnalaAperti();
+}
 
 // apriFirmaDaDocumento: la firma va sul documento aperto; alla fine il risultato torna lì.
 export function apriFirmaDaDocumento(voce, pw, alFine) { return apriFirma(voce, pw, alFine); }
@@ -501,7 +512,7 @@ async function apriFirma(voce, pwNoto, alFine) {
   } finally { attesa(false); }
   if (firma.doc) chiudiDocPdf(firma.doc);
   Object.assign(firma, { voce, pw, doc, n: doc.numPages, pag: 1, elementi: [], sel: null, alFine: alFine || null,
-    protetto: !!(inf && inf.cifrato), pwApertura: inf && inf.conPassword ? pw : "", nomeOrig: voce.nome });
+    protetto: !!(inf && inf.cifrato), pwApertura: inf && inf.conPassword ? pw : "", nomeOrig: voce.nome, modificata: false });
   // Firma digitale (PAdES) già presente: con la firma disegnata la copia non la avrà più valida.
   $("#fAvvisoDig").classList.toggle("hidden", !(inf && inf.firmatoDigitalmente));
   $("#fSalva").textContent = t(alFine ? "firmaApplica" : "firmaSalva");
@@ -586,6 +597,7 @@ function eliminaElemento(el) {
   firma.elementi = firma.elementi.filter(e => e !== el);
   if (firma.sel === el) firma.sel = null;
   disegnaElementi();
+  firmaCambiata();
 }
 
 function trascinabile(div, el, ang) {
@@ -611,6 +623,7 @@ function trascinabile(div, el, ang) {
         el.y = Math.max(0, Math.min(1 - el.a, s.y + dy));
       }
       Object.assign(div.style, { left: el.x * 100 + "%", top: el.y * 100 + "%", width: el.l * 100 + "%", height: el.a * 100 + "%" });
+      if (!firma.modificata) firmaCambiata();
     };
     const fine = () => { div.removeEventListener("pointermove", muovi); div.removeEventListener("pointerup", fine); div.removeEventListener("pointercancel", fine); };
     div.addEventListener("pointermove", muovi);
@@ -626,7 +639,7 @@ document.addEventListener("keydown", e => {
   if ($(".velo.on")) return;
   if (e.key === "Delete" || e.key === "Backspace") { e.preventDefault(); eliminaElemento(firma.sel); }
 });
-$("#fTutte").onchange = () => { if (firma.sel) { firma.sel.tutte = $("#fTutte").checked; if (!firma.sel.tutte) firma.sel.pagina = firma.pag; disegnaElementi(); } };
+$("#fTutte").onchange = () => { if (firma.sel) { firma.sel.tutte = $("#fTutte").checked; if (!firma.sel.tutte) firma.sel.pagina = firma.pag; disegnaElementi(); firmaCambiata(); } };
 
 // dimensioni dell'immagine PNG
 const misuraImg = src => new Promise((ok, ko) => { const i = new Image(); i.onload = () => ok({ w: i.naturalWidth, h: i.naturalHeight }); i.onerror = ko; i.src = src; });
@@ -645,6 +658,7 @@ async function aggiungiElemento(tipo, png, larghezzaPt, extra = {}) {
   const el = { id: ++firma.conta, tipo, png, pagina: firma.pag, tutte: false, x, y, l, a, ...extra };
   firma.elementi.push(el);
   seleziona(el);
+  firmaCambiata();
 }
 
 // PNG di un testo (data o testo libero), disegnato in alta risoluzione con il carattere del programma.
@@ -698,8 +712,8 @@ $$("#fColori button").forEach(b => b.onclick = async () => {
   firma.colore = b.dataset.c;
   $$("#fColori button").forEach(x => x.classList.toggle("on", x === b));
   const el = firma.sel;
-  if (el && (el.tipo === "data" || el.tipo === "testo")) { el.png = await pngTesto(el.testo, firma.colore); disegnaElementi(); }
-  if (el && el.tipo === "spunta") { el.png = pngSpunta(firma.colore); disegnaElementi(); }
+  if (el && (el.tipo === "data" || el.tipo === "testo")) { el.png = await pngTesto(el.testo, firma.colore); disegnaElementi(); firmaCambiata(); }
+  if (el && el.tipo === "spunta") { el.png = pngSpunta(firma.colore); disegnaElementi(); firmaCambiata(); }
 });
 
 $("#fSalva").onclick = async () => {
@@ -710,9 +724,10 @@ $("#fSalva").onclick = async () => {
   try { r = await go("goFirma", firma.voce.id, firma.pw, timbri); }
   catch (e) { attesa(false); return avvisaErrore(e); }
   attesa(false);
-  if (firma.alFine) { const f = firma.alFine; firma.alFine = null; return f(r); }
+  // Dal documento: la firma diventa una versione della scheda (lì la X chiede già, se non è salvata).
+  if (firma.alFine) { const f = firma.alFine; firma.alFine = null; firmaCambiata(false); return f(r); }
   if (firma.protetto) r = await proteggiCopia(r, firma.nomeOrig || firma.voce.nome, firma.pwApertura, !firma.pwApertura);
-  await salva(r.id, nomeCon(firma.voce.nome, t("suffFirmato")));
+  if (await salva(r.id, nomeCon(firma.voce.nome, t("suffFirmato")))) firmaCambiata(false);
   go("goDimentica", r.id).catch(() => {});
 };
 
@@ -1169,7 +1184,7 @@ const NOME_ERR = { corto: "nomeErrCorto", lungo: "nomeErrLungo", simbolo: "nomeE
 function nomeDisegna() {
   const n = nomeUtente, h = $("#v-home h1");
   if (h) h.textContent = n ? t("cosaNome", n) : t("cosa");
-  $("#nomeB").textContent = n; $("#nomeB").hidden = !n;
+  $("#nomeB").textContent = n; $("#nomeB").title = n; $("#nomeB").hidden = !n;
   $("#nomeBtn").textContent = n ? t("nomeCambia") : t("nomeAggiungi");
 }
 function nomeCampo() {
