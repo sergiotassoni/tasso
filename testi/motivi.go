@@ -27,6 +27,21 @@ func Motivi(lingua string, voci []string) []string {
 	return out
 }
 
+// ConMotivo conta le voci "nome (codice)" con uno dei codici dati (prima di Motivi, che li
+// traduce): per esempio i file non estratti perché hanno una password ("con_password").
+func ConMotivo(voci []string, codici ...string) int {
+	n := 0
+	for _, v := range voci {
+		for _, c := range codici {
+			if strings.HasSuffix(v, " ("+c+")") {
+				n++
+				break
+			}
+		}
+	}
+	return n
+}
+
 // frasiErrori: i messaggi degli errori di Tasso Zip (in italiano nel programma) e il testo
 // che li spiega nella lingua scelta.
 var frasiErrori = []struct{ frase, chiave string }{

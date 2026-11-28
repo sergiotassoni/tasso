@@ -277,6 +277,8 @@ main.pieno .view.on{height:100%}
 .banner{display:flex;align-items:center;gap:10px;background:var(--panel);border:1px solid var(--line);border-left:2px solid var(--a4);border-radius:6px;padding:4px 6px 4px 12px;font-size:12.5px;color:var(--soft);flex:none}
 .banner b{color:var(--text);font-weight:600}
 .banner .btn{min-height:26px;padding:0 10px;font-size:12px;margin-left:auto;border-radius:5px}
+/* finestra stretta (fino a 900 px, anche la minima 760x560): niente colonna "Tipo" (l'icona dice già il tipo), così il nome ha più spazio */
+@media (min-width:760px) and (max-width:900px){.tab.esp .rg{grid-template-columns:minmax(0,1fr) 84px 124px;gap:10px}.tab.esp .rg>:nth-child(3){display:none}}
 /* sotto la misura minima della finestra (testo di Windows ingrandito): attrezzi su due righe, niente colonna "Tipo" */
 @media (max-width:759px){.attrezzi{flex-wrap:wrap;overflow-x:visible}.attrezzi .spazio{display:none}.esp-corpo{grid-template-columns:136px minmax(0,1fr)}#x-trova{width:150px}
   .tab.esp .rg{grid-template-columns:minmax(0,1fr) 76px 112px;gap:8px}.tab.esp .rg>:nth-child(3){display:none}}
@@ -875,6 +877,7 @@ function mostraFatto(r, quanti) {
   const avvisi = [];
   if (r.rinominati) avvisi.push(tn("rinominati", r.rinominati));
   if (r.riserva) avvisi.push(t("riserva"));
+  if (r.nonEstratti) avvisi.unshift(tn("non_estratti_avviso", r.nonEstratti)); // con password o metodo non supportato
   const fal = r.falliti || [];
   const nFal = fal.filter(x => !x.startsWith("… ")).length || fal.length; // "… resto illeggibile" non è un file
   if (fal.length) avvisi.unshift(tn("falliti_avviso", nFal));

@@ -139,7 +139,7 @@ func TestFormatiCreatiRilettiBytePerByte(t *testing.T) {
 	atteso["Progetto/"] = ""
 	for _, f := range FormatiCreabili {
 		for _, liv := range []Livello{LivelloVeloce, LivelloMassima} {
-			if !f.HaLivello() && liv != LivelloMassima {
+			if (f == FormatoZip || f == FormatoTar) && liv != LivelloMassima { // il livello non conta (LIVELLO_FORMATI)
 				continue
 			}
 			t.Run(string(f)+"-"+string(liv), func(t *testing.T) {

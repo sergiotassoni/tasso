@@ -82,15 +82,6 @@ func (f Formato) Estensione() string {
 	return ".zip"
 }
 
-// HaLivello: il livello (Veloce...Ultra) cambia qualcosa per questo formato?
-func (f Formato) HaLivello() bool {
-	switch f {
-	case Formato7z, FormatoTarGz, FormatoTarBz2, FormatoTarZst, FormatoTarXz:
-		return true
-	}
-	return false
-}
-
 // Livello di compressione per il 7z: "veloce", "normale", "massima", "ultra".
 type Livello string
 
@@ -116,7 +107,7 @@ func (l Livello) settezip() settezip.Livello {
 // OpzioniComprimi: come comprimere.
 type OpzioniComprimi struct {
 	Formato         Formato
-	Livello         Livello // 7z, tar.gz, tar.bz2, tar.xz, tar.zst ("" = massima); vedi HaLivello
+	Livello         Livello // 7z, tar.gz, tar.bz2, tar.xz, tar.zst ("" = massima); la finestra decide da sola quando mostrarlo (LIVELLO_FORMATI)
 	Nome            string  // nome dell'archivio senza estensione ("" = dal primo elemento)
 	NomeMultiplo    string  // nome se scegli più elementi (es. "Archivio"); "" = "Archivio"
 	Cartella        string  // dove salvarlo ("" = accanto al primo elemento)

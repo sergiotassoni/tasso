@@ -6,6 +6,7 @@ package settezip
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"hash/crc32"
 	"io"
@@ -254,6 +255,36 @@ func TestSegmentiParalleli(t *testing.T) {
 				}
 				verifica(t, p, casi)
 			}
+		}
+	}
+}
+
+// PRESTAZIONI-ZIP-PDF, Z2: un panic in un lavoro in parallelo (qui provocato da Progresso, che gira
+// dentro quel goroutine) diventa un errore di Scrivi e non chiude il programma; con un core solo
+// vale lo stesso.
+func TestPanicoNeiLavoriDiventaErrore(t *testing.T) {
+	casi := []caso{{nome: "a.txt", dati: generaTesto(3<<20, 1)}, {nome: "b.txt", dati: generaTesto(2<<20, 2)}}
+	for _, th := range []int{1, 4} {
+		dir := t.TempDir()
+		f, err := os.Create(filepath.Join(dir, "prova.7z"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		var voci []Voce
+		for _, c := range casi {
+			c := c
+			voci = append(voci, Voce{Nome: c.nome, Dim: int64(len(c.dati)), Quando: time.Now(),
+				Apri: func() (io.ReadCloser, error) { return io.NopCloser(bytes.NewReader(c.dati)), nil }})
+		}
+		o := Opzioni{Livello: Veloce, Thread: th, Segmento: 1 << 20, DirTemp: dir,
+			Progresso: func(int64, string) { panic("guasto di prova") }}
+		_, err = Scrivi(context.Background(), f, voci, o)
+		f.Close()
+		if !errors.Is(err, ErrInterno) || !strings.Contains(err.Error(), "guasto di prova") {
+			t.Fatalf("thread %d: errore %v, atteso ErrInterno", th, err)
+		}
+		if l, _ := os.ReadDir(dir); len(l) != 1 {
+			t.Fatalf("thread %d: file temporanei rimasti: %d voci", th, len(l))
 		}
 	}
 }

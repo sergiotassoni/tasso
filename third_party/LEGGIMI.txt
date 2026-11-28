@@ -6,13 +6,21 @@ Per tenere piccolo il codice ho tolto: cartelle .git, test (*_test.go), testdata
 configurazione degli strumenti degli autori (prove automatiche, rilasci) e i pacchetti
 che Tasso Zip non usa. Nei go.mod di sevenzip, plumbing, brotli, go4 e x/text ho tolto le
 dipendenze usate solo dai loro test o da pacchetti non usati (testify, randomstring, cloud...).
-Il codice delle librerie non è cambiato, tranne go-webview2 (vedi go-webview2/README.md) e
-una piccola modifica a xz/lzma/hashtable.go (encoder, non tocca la lettura):
-  - maxMatches da 16 a 64: l'encoder guarda più possibili ripetizioni (file circa 5-7% più
-    piccoli, un po' più lento);
-  - prova anche le 4 distanze ripetute (rep0..rep3).
+Il codice delle librerie non è cambiato, tranne in questi punti (ogni modifica è segnata nel
+codice con "Tasso Zip"):
+  - go-webview2: vedi go-webview2/README.md (anche pkg/edge/guardiano.go, il guardiano delle
+    pagine);
+  - xz/lzma/hashtable.go (encoder, non tocca la lettura): profondità di ricerca scelta dal
+    livello (cerca, fino a 1024 posizioni) e lunghezza che ferma la ricerca ("basta"); prova
+    anche le 4 distanze ripetute (rep0..rep3) e le corrispondenze che si sovrappongono;
+    correzione dell'indice nel buffer circolare (crash con alcuni file al livello Veloce);
+  - xz/lzma/writer2.go: i campi Profondita e Basta di Writer2Config, passati all'encoder;
+  - xz/writer.go e xz/lzmafilter.go: gli stessi due campi in WriterConfig, passati al filtro
+    LZMA2 (per i .tar.xz);
+  - sevenzip/reader.go: File.IsEncrypted, per riconoscere i file cifrati con AES anche senza
+    compressione (prima una password mancante sembrava un archivio rovinato).
 L'uscita resta LZMA/LZMA2 standard: i test riaprono ogni archivio con bodgit/sevenzip e
-(a mano) con libarchive. Per tornare all'originale basta ricopiare il file dal tag v0.5.15.
+(a mano) con libarchive. Per tornare all'originale basta ricopiare i file dai tag indicati.
 
 Le licenze sono in ogni cartella e, tutte insieme, in ../LICENZE.txt.
 

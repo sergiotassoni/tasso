@@ -3,10 +3,18 @@ package main
 import "testing"
 
 func TestPericolosoNuove(t *testing.T) {
+	prima := assocPericolosa
+	assocPericolosa = func(string) bool { return false } // qui conta solo l'elenco di Tasso Zip
+	defer func() { assocPericolosa = prima }()
 	for _, n := range []string{"a.msc", "b.appref-ms", "c.XLL", "d.wsc", "e.sct", "f.diagcab", "g.search-ms", "h.ps1xml", "i.mht", "j.MHTML", "k.exe. ",
 		// CTRL-ZP-02, ZP02-10: estensioni degli attacchi recenti
 		"l.one", "m.onepkg", "n.rdp", "o.cab", "p.msu", "q.wsb", "r.xbap", "s.ocx", "t.vb", "u.ws", "v.shb", "w.theme", "x.themepack",
 		"y.website", "z.mde", "aa.accde",
+		// RECENSIONE-3b, R3b-2
+		"script.py", "finestra.PYW", "a.pyz", "a.pyzw", "a.pyc", "a.pyo", "avvia.jnlp", "cerca.searchConnector-ms",
+		"a.appcontent-ms", "cert.cer", "cert.crt", "cert.der", "a.mst", "a.msh", "a.msh1", "a.msh2", "a.mshxml",
+		"a.ps2", "a.ps2xml", "a.psc1", "a.psc2", "query.iqy", "foglio.slk", "db.mdb", "db.accdb", "a.ade", "a.adp",
+		"guida.its", "stampanti.printerexport", "script.py\u00a0",
 		// ZP02-2: spazi speciali in fondo (sul disco diventano "fattura.exe")
 		"fattura.exe\u00a0", "fattura.exe\u3000", "fattura.exe\u2002", "fattura.bat\u0085", "cartella/fattura.exe\u00a0",
 		`C:\Users\Mario\AppData\Local\Tasso Zip\Temp\apri-1\avvia.exe`} {
@@ -49,5 +57,36 @@ func TestNavigazionePermessa(t *testing.T) {
 	}
 	if !navigazionePermessa("data:text/html;charset=utf-8;base64,PGh0bWw+") || !fontePermessa("about:blank") {
 		t.Error("ricaricare la pagina interna deve andare")
+	}
+}
+
+// R3b-2: se Windows (AssocIsDangerous) dice che un tipo è pericoloso, chiedo anche se non è
+// nell'elenco di Tasso Zip. Il controllo riceve l'estensione pulita, in minuscolo.
+func TestPericolosoPerWindows(t *testing.T) {
+	prima := assocPericolosa
+	defer func() { assocPericolosa = prima }()
+	var viste []string
+	assocPericolosa = func(est string) bool { viste = append(viste, est); return est == ".nuovotipo" }
+	if !pericoloso("cartella/strano.NuovoTipo. ") {
+		t.Error("un tipo pericoloso per Windows non chiede conferma")
+	}
+	if pericoloso("foto.jpg") {
+		t.Error("foto.jpg visto come pericoloso")
+	}
+	if len(viste) != 2 || viste[0] != ".nuovotipo" || viste[1] != ".jpg" {
+		t.Errorf("estensioni passate a Windows: %q", viste)
+	}
+}
+
+// Su Windows vero: AssocIsDangerous conosce almeno .exe, e non segna .txt.
+func TestAssocIsDangerousVero(t *testing.T) {
+	if procAssocIsDangerous.Find() != nil {
+		t.Skip("shlwapi senza AssocIsDangerous")
+	}
+	if !assocPericolosa(".exe") {
+		t.Error("AssocIsDangerous(.exe) = false")
+	}
+	if assocPericolosa(".txt") || assocPericolosa("") {
+		t.Error("AssocIsDangerous segna .txt o niente")
 	}
 }

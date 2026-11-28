@@ -577,6 +577,7 @@ func avviaEstrai(percorso string, opz archivio.OpzioniEstrai, tipo string) strin
 			"tipo": tipo, "percorso": ris.Cartella, "file": ris.File, "rinominati": ris.Rinominati,
 			"saltati": testi.Motivi(lingua(), ris.Saltati), "falliti": testi.Motivi(lingua(), ris.Falliti), "sommaSbagliata": ris.SommaSbagliata,
 			"riserva": ris.Riserva, "archivio": percorso, "qui": opz.Modo == archivio.ModoQui,
+			"nonEstratti": testi.ConMotivo(ris.Saltati, "con_password", "metodo"),
 		})
 	}()
 	return "ok"
@@ -620,7 +621,32 @@ var estensioniPericolose = map[string]bool{
 	".one": true, ".onepkg": true, ".rdp": true, ".cab": true, ".msu": true, ".wsb": true, ".xbap": true,
 	".ocx": true, ".vb": true, ".ws": true, ".shb": true, ".theme": true, ".themepack": true,
 	".website": true, ".mde": true, ".accde": true,
+	// RECENSIONE-3b, R3b-2: script Python (partono senza avviso se Python c'è), Java Web Start,
+	// connettori di ricerca, certificati (procedura di importazione), Monad/PowerShell 2, query
+	// web di Excel, Access, guida e porte delle stampanti (elenco degli allegati bloccati di Outlook)
+	".py": true, ".pyw": true, ".pyz": true, ".pyzw": true, ".pyc": true, ".pyo": true,
+	".jnlp": true, ".searchconnector-ms": true, ".appcontent-ms": true, ".cer": true, ".crt": true, ".der": true,
+	".mst": true, ".msh": true, ".msh1": true, ".msh2": true, ".mshxml": true, ".msh1xml": true, ".msh2xml": true,
+	".ps2": true, ".ps2xml": true, ".psc1": true, ".psc2": true,
+	".iqy": true, ".slk": true, ".mdb": true, ".accdb": true, ".ade": true, ".adp": true,
+	".its": true, ".printerexport": true,
 }
+
+// assocPericolosa: Windows stesso considera pericoloso questo tipo di file (AssocIsDangerous di
+// shlwapi: l'elenco di Windows e i tipi segnati FTA_AlwaysUnsafe). È una variabile per i test.
+var assocPericolosa = func(est string) bool {
+	if est == "" || est == "." || procAssocIsDangerous.Find() != nil {
+		return false
+	}
+	p, err := windows.UTF16PtrFromString(est)
+	if err != nil {
+		return false
+	}
+	r, _, _ := procAssocIsDangerous.Call(uintptr(unsafe.Pointer(p)))
+	return r != 0
+}
+
+var procAssocIsDangerous = windows.NewLazySystemDLL("shlwapi.dll").NewProc("AssocIsDangerous")
 
 // pericoloso: il file (l'ultimo pezzo del nome) è un programma o uno script? Il nome si guarda
 // dopo la STESSA pulizia dell'estrazione (archivio.PulisciNome): "fattura.exe" seguito da uno
@@ -633,7 +659,8 @@ func pericoloso(nome string) bool {
 	if p := archivio.PulisciNome(n); p != "" {
 		n = p
 	}
-	return estensioniPericolose[strings.ToLower(filepath.Ext(strings.TrimRight(n, ". ")))]
+	est := strings.ToLower(filepath.Ext(strings.TrimRight(n, ". ")))
+	return estensioniPericolose[est] || assocPericolosa(est)
 }
 
 // avviaApriVoce estrae una voce in una cartella temporanea di Tasso Zip e la apre con il

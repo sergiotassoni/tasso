@@ -69,6 +69,30 @@ func TestMotivi(t *testing.T) {
 	}
 }
 
+// RECENSIONE-4b, BASSA 3: i file con password o con un metodo non supportato si contano, per
+// l'avviso sopra l'elenco dei "non presi".
+func TestConMotivo(t *testing.T) {
+	v := []string{"a.txt (con_password)", "b.txt (metodo)", "c.lnk (collegamento)", "d (con_password) bis", "e.txt (con_password)"}
+	if n := ConMotivo(v, "con_password", "metodo"); n != 3 {
+		t.Errorf("ConMotivo = %d, atteso 3", n)
+	}
+	if n := ConMotivo(nil, "con_password"); n != 0 {
+		t.Errorf("ConMotivo(nil) = %d", n)
+	}
+	for _, l := range Lingue {
+		for _, k := range []string{"non_estratti_avviso", "non_estratti_avviso_1", "non_estratti_avviso_2"} {
+			if s := Tutti()[l][k]; !strings.Contains(s, "{n}") {
+				t.Errorf("%s/%s senza {n}: %q", l, k, s)
+			}
+		}
+		for _, k := range []string{"saltati", "saltati_1", "saltati_2"} {
+			if strings.Contains(Tutti()[l][k], "(colleg") || strings.Contains(Tutti()[l][k], "link") {
+				t.Errorf("%s/%s ha ancora i motivi nel titolo: %q", l, k, Tutti()[l][k])
+			}
+		}
+	}
+}
+
 func TestDettagli(t *testing.T) {
 	d := Dettagli("de", "archivio rovinato o incompleto (sevenzip: bad header)")
 	if strings.Contains(d, "rovinato") || !strings.Contains(d, "sevenzip: bad header") {
@@ -84,18 +108,13 @@ func TestDettagli(t *testing.T) {
 	}
 }
 
-// Nessun nome di altri programmi per archivi nei testi della finestra. Unica eccezione:
-// err_zip_cifrato (e err_zip_cifrato_aes, per gli zip AES che Esplora file non apre: CTRL-ZP-02,
-// ZP02-7) consiglia 7-Zip (gratuito) quando Windows non apre lo zip con password,
-// perché lì Tasso Zip non ha ancora una strada sua (RECENSIONE-2, MEDIA 3; lo stesso consiglio
-// lo dà Tasso in Risolvi > "I file .zip non si aprono").
+// Nessun nome di altri programmi per archivi nei testi della finestra, senza eccezioni: nella
+// finestra si nominano solo programmi Tasso. Per gli zip con password si dice "un altro programma
+// per archivi" (regola di Sergio, giro 3 delle correzioni finali).
 func TestNiente7ZipWinRAR(t *testing.T) {
 	for l, m := range Tutti() {
 		for k, v := range m {
-			for _, x := range []string{"7-Zip", "7zip", "WinRAR", "WinZip", "PeaZip", "NanaZip"} {
-				if (k == "err_zip_cifrato" || k == "err_zip_cifrato_aes") && x == "7-Zip" {
-					continue
-				}
+			for _, x := range []string{"7-Zip", "7zip", "7 zip", "WinRAR", "WinZip", "PeaZip", "NanaZip", "Bandizip"} {
 				if strings.Contains(strings.ToLower(v), strings.ToLower(x)) {
 					t.Errorf("%s/%s nomina %s: %q", l, k, x, v)
 				}

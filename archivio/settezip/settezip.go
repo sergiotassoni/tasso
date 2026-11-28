@@ -114,6 +114,9 @@ var firma = []byte{'7', 'z', 0xBC, 0xAF, 0x27, 0x1C, 0, 4}
 // ErrAnnullato: lavoro annullato.
 var ErrAnnullato = errors.New("annullato")
 
+// ErrInterno: errore imprevisto dentro il compressore (un panic recuperato).
+var ErrInterno = errors.New("errore interno del compressore 7z")
+
 // Ricerca: quanto cerca l'encoder LZMA2 per ogni livello (profondità e lunghezza che basta,
 // vedi lzma.Writer2Config). È questo che rende veri i livelli: con dati più piccoli del
 // dizionario il dizionario da solo non cambiava niente, e "Ultra" poteva uscire più grande
@@ -364,6 +367,14 @@ func Scrivi(ctx context.Context, f *os.File, voci []Voce, o Opzioni) (ris Risult
 	}
 
 	comprimi := func(s *segmento, w io.Writer) {
+		// Un errore imprevisto (panic) nel compressore diventa un errore dell'archivio, non la
+		// chiusura di Tasso Zip: nei lavori in parallelo (go func più sotto) i recover della
+		// finestra non arrivano (PRESTAZIONI-ZIP-PDF, Z2/C7).
+		defer func() {
+			if r := recover(); r != nil {
+				s.err = fmt.Errorf("%w: %v", ErrInterno, r)
+			}
+		}()
 		cw := &contatore{w: w}
 		var lw io.WriteCloser
 		if s.copia {
