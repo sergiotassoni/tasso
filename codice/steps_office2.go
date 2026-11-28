@@ -437,7 +437,7 @@ else { Say 'Gli zip si aprono con Windows (cartelle compresse).' }
 $blk = @(Get-ChildItem -LiteralPath (Get-DownloadsPath) -Filter '*.zip' -File -ErrorAction SilentlyContinue | Where-Object { Get-Item -LiteralPath $_.FullName -Stream Zone.Identifier -ErrorAction SilentlyContinue })
 if ($blk.Count) { Say ('Nei Download ci sono ' + $blk.Count + ' zip segnati "da internet": i file che estrai sono bloccati anche loro (Word li apre in sola lettura, i programmi non partono). Se ti fidi di chi l''ha mandato: tasto destro sullo zip > Proprietà > spunta "Sblocca" PRIMA di estrarre.') }
 Say 'Consigli: 1) non aprire i file direttamente dentro lo zip, prima fai tasto destro > "Estrai tutto"; 2) se dice "percorso troppo lungo", estrailo in una cartella corta (es. C:\Estratti); 3) se lo zip è "non valido", spesso il download non è finito: scaricalo di nuovo.'
-Say 'Zip con password moderne (AES), file .rar e .7z: Windows 11 aggiornato apre .rar e .7z, ma non gli zip con password AES. In quel caso serve 7-Zip (gratuito, da 7-zip.org).'
+Say 'Zip con password moderne (AES), file .rar e .7z: Windows 11 aggiornato apre .rar e .7z (li apre anche Tasso Zip), ma non gli zip con password AES. In quel caso usa un altro programma per archivi.'
 `)},
 	{ID: "of_context_menu", Name: "Windows 11: il menu del tasto destro è corto", Desc: "Rimette il menu completo del tasto destro (come in Windows 10), senza dover premere \"Mostra altre opzioni\" ogni volta. Puoi tornare indietro.", Level: 0, Minutes: 0.2, Timeout: time.Minute, Script: ofs2(`
 if ([Environment]::OSVersion.Version.Build -lt 22000) { Say 'Questo PC ha Windows 10: il menu del tasto destro è già quello completo.'; return }
