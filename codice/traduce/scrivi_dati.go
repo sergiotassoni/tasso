@@ -13,13 +13,21 @@ package traduce
 // collegamento invece di seguirlo.
 //
 // Fuori da dirApp (Programmi\Tasso, Documenti, cartelle dei giochi) queste funzioni non
-// controllano niente: lì valgono le regole di chi chiama. Limite, come in Tasso: resta una
-// piccola corsa tra il controllo e l'apertura; i collegamenti fisici non si vedono con Lstat.
+// controllano niente: lì valgono le regole di chi chiama. I collegamenti fisici non si vedono con Lstat.
+//
+// RECENSIONE-3b, R3b-4: dopo il controllo, la scrittura vera (creazione, apertura, rinomino,
+// cancellazione, cartelle) passa da os.Root aperto su dirApp: lavora a maniglie dentro dirApp e non
+// segue collegamenti o giunzioni che portano fuori (le giunzioni hanno sempre un percorso assoluto,
+// quindi os.Root non le segue mai). Così non c'è più la corsa tra il controllo e la scrittura, per
+// esempio alla fine di uno scaricamento lungo. dirApp lo apro dalla cartella sopra (AppData\Local,
+// controllata da Tasso all'avvio, R3b-3): anche dirApp stesso non può essere una giunzione.
 
 import (
 	"errors"
+	"math/rand/v2"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 )
 
@@ -43,6 +51,46 @@ func sottoDati(p string) (pezzi []string, ok bool) {
 		return nil, true
 	}
 	return strings.Split(rel, string(filepath.Separator)), true
+}
+
+// radiceDati: dirApp aperta come os.Root, partendo dalla cartella sopra (così una giunzione al posto
+// di dirApp non si segue). crea=true la crea se non c'è ancora. Va chiusa da chi la chiede.
+func radiceDati(crea bool) (*os.Root, error) {
+	base := filepath.Clean(dirApp)
+	su, err := os.OpenRoot(filepath.Dir(base))
+	if err != nil {
+		return nil, err
+	}
+	defer su.Close()
+	r, err := su.OpenRoot(filepath.Base(base))
+	if err != nil && crea && errors.Is(err, os.ErrNotExist) {
+		if err = su.Mkdir(filepath.Base(base), 0o755); err == nil || errors.Is(err, os.ErrExist) {
+			r, err = su.OpenRoot(filepath.Base(base))
+		}
+	}
+	return r, err
+}
+
+// relDati: p come nome relativo a dirApp, per os.Root ("." per dirApp). ok=false se p non è sotto dirApp.
+func relDati(p string) (string, bool) {
+	pezzi, ok := sottoDati(p)
+	if !ok {
+		return "", false
+	}
+	if len(pezzi) == 0 {
+		return ".", true
+	}
+	return filepath.Join(pezzi...), true
+}
+
+// apriInDati: apre o crea p dentro dirApp con os.Root (vedi sopra).
+func apriInDati(rel string, flag int, perm os.FileMode) (*os.File, error) {
+	r, err := radiceDati(flag&os.O_CREATE != 0)
+	if err != nil {
+		return nil, err
+	}
+	defer r.Close()
+	return r.OpenFile(rel, flag, perm)
 }
 
 // percorsoDatiSicuro: nil se p non è sotto dirApp, oppure se né dirApp né un pezzo tra dirApp e p
@@ -82,7 +130,17 @@ func creaCartellaDati(d string) error {
 	if err := percorsoDatiSicuro(d); err != nil {
 		return err
 	}
-	if err := os.MkdirAll(d, 0o755); err != nil {
+	if rel, ok := relDati(d); ok {
+		r, err := radiceDati(true)
+		if err != nil {
+			return err
+		}
+		err = r.MkdirAll(rel, 0o755)
+		r.Close()
+		if err != nil {
+			return err
+		}
+	} else if err := os.MkdirAll(d, 0o755); err != nil {
 		return err
 	}
 	return percorsoDatiSicuro(d)
@@ -94,7 +152,22 @@ func creaFileDati(p string) (*os.File, error) {
 	if err := cartellaDatiSicura(p); err != nil {
 		return nil, err
 	}
-	return os.CreateTemp(filepath.Dir(p), filepath.Base(p)+".*.tmp")
+	rel, ok := relDati(p)
+	if !ok {
+		return os.CreateTemp(filepath.Dir(p), filepath.Base(p)+".*.tmp")
+	}
+	r, err := radiceDati(false)
+	if err != nil {
+		return nil, err
+	}
+	defer r.Close()
+	// Come os.CreateTemp, ma dentro la radice: nome a caso e O_EXCL (un nome già preso non si apre).
+	for i := 0; ; i++ {
+		f, err := r.OpenFile(rel+"."+strconv.FormatUint(rand.Uint64N(1e10), 10)+".tmp", os.O_RDWR|os.O_CREATE|os.O_EXCL, 0o600)
+		if err == nil || !errors.Is(err, os.ErrExist) || i >= 1000 {
+			return f, err
+		}
+	}
 }
 
 // scriviDati: come os.WriteFile sotto dirApp, ma senza seguire collegamenti o giunzioni: scrive un
@@ -126,7 +199,17 @@ func rinominaDati(da, a string) error {
 	if err := cartellaDatiSicura(a); err != nil {
 		return err
 	}
-	return os.Rename(da, a)
+	rda, ok1 := relDati(da)
+	ra, ok2 := relDati(a)
+	if !ok1 || !ok2 {
+		return os.Rename(da, a)
+	}
+	r, err := radiceDati(false)
+	if err != nil {
+		return err
+	}
+	defer r.Close()
+	return r.Rename(rda, ra)
 }
 
 // rimuoviDati: os.Remove, solo se la cartella è sicura (un collegamento si toglie lui, non il file a
@@ -135,7 +218,16 @@ func rimuoviDati(p string) error {
 	if err := cartellaDatiSicura(p); err != nil {
 		return err
 	}
-	return os.Remove(p)
+	rel, ok := relDati(p)
+	if !ok {
+		return os.Remove(p)
+	}
+	r, err := radiceDati(false)
+	if err != nil {
+		return err
+	}
+	defer r.Close()
+	return r.Remove(rel)
 }
 
 // apriLogDati: apre in aggiunta (o crea) un file di registro sotto dirApp. Se il file stesso è un
@@ -152,6 +244,9 @@ func apriLogDati(p string) (*os.File, error) {
 			}
 		}
 	}
+	if rel, ok := relDati(p); ok {
+		return apriInDati(rel, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0o644)
+	}
 	return os.OpenFile(p, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0o644)
 }
 
@@ -167,6 +262,9 @@ func creaLogDati(p string) (*os.File, error) {
 				return nil, errDatiLink
 			}
 		}
+	}
+	if rel, ok := relDati(p); ok {
+		return apriInDati(rel, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o644)
 	}
 	return os.OpenFile(p, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o644)
 }

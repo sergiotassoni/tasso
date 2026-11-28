@@ -529,7 +529,7 @@ func fpsFindings(f pcFacts, scr []screenInfo, last *fpsResult, battery, gpuPrefS
 			add(fpsFinding{ID: "upscale", Sev: "big", Title: "La scheda video è al massimo in " + last.Game,
 				Why:  "Lavora per il " + strconv.Itoa(int(last.GpuBusy)) + "% di ogni fotogramma: il limite è lei, non Windows.",
 				Gain: "DLSS, FSR o XeSS su Qualità: di solito +20–40% (se non sono già accesi). La generazione di fotogrammi arriva quasi al doppio degli FPS mostrati, ma serve partire da almeno 50–60 FPS.",
-				Fix:  "Nelle impostazioni grafiche del gioco accendi DLSS (NVIDIA), FSR o XeSS su Qualità, oppure abbassa la grafica di un livello. \"Regola con Tasso\" ti dice la grafica giusta per il tuo PC.", Action: "tune"})
+				Fix:  "Nelle impostazioni grafiche del gioco accendi DLSS (NVIDIA), FSR o XeSS su Qualità, oppure abbassa la grafica di un livello. Le \"Impostazioni consigliate\" (pagina del gioco → Prestazioni) ti dicono la grafica giusta per il tuo PC.", Action: "tune"})
 		case last.GpuBusy > 0 && last.GpuBusy < 60 && last.Avg < 120 && !vicinoAlLimite(last.Avg, last.Hz):
 			add(fpsFinding{ID: "cpu", Sev: "mid", Title: "In " + last.Game + " il limite è il processore",
 				Why:  "La scheda video lavora solo il " + strconv.Itoa(int(last.GpuBusy)) + "% del tempo: aspetta il processore.",

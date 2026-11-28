@@ -9,8 +9,11 @@ package main
 // collegamento simbolico (ModeSymlink) o una giunzione/altro punto di rianalisi (ModeIrregular,
 // così le giunzioni risultano da Go 1.23), non scrivo.
 //
-// Limiti (scritti nel rapporto O3-sicdati): resta una piccola corsa tra il controllo e l'apertura
-// (TOCTOU); i collegamenti fisici (hard link) non si vedono con Lstat.
+// Limiti (scritti nel rapporto O3-sicdati): i collegamenti fisici (hard link) non si vedono con Lstat.
+// RECENSIONE-3b, R3b-4: la corsa tra il controllo e la scrittura è chiusa con os.Root: dopo il
+// controllo, scrittura, apertura dei registri e rinomino lavorano a maniglie dentro appDir (aperta
+// dalla cartella sopra, AppData\Local, controllata all'avvio: R3b-3) e non seguono collegamenti o
+// giunzioni che portano fuori (le giunzioni hanno sempre un percorso assoluto: os.Root non le segue).
 
 import (
 	"errors"
@@ -71,6 +74,30 @@ func controllaPercorsoIn(base, p string) error {
 	return nil
 }
 
+// radiceApp: appDir aperta come os.Root dalla cartella sopra (una giunzione al posto di appDir non si
+// segue). Va chiusa da chi la chiede.
+func radiceApp() (*os.Root, error) {
+	base := filepath.Clean(appDir)
+	su, err := os.OpenRoot(filepath.Dir(base))
+	if err != nil {
+		return nil, err
+	}
+	defer su.Close()
+	return su.OpenRoot(filepath.Base(base))
+}
+
+// relApp: p come nome relativo ad appDir, per os.Root. ok=false se p non è dentro appDir (o è appDir).
+func relApp(p string) (string, bool) {
+	if appDir == "" {
+		return "", false
+	}
+	pezzi, ok := sottoApp(appDir, p)
+	if !ok || len(pezzi) == 0 {
+		return "", false
+	}
+	return filepath.Join(pezzi...), true
+}
+
 // controllaPercorsoApp: come controllaPercorsoIn con la cartella dati di Tasso.
 func controllaPercorsoApp(p string) error {
 	if appDir == "" {
@@ -85,6 +112,14 @@ func scriviFileApp(p string, b []byte, perm os.FileMode) error {
 	if err := controllaPercorsoApp(p); err != nil {
 		return err
 	}
+	if rel, ok := relApp(p); ok {
+		r, err := radiceApp()
+		if err != nil {
+			return err
+		}
+		defer r.Close()
+		return r.WriteFile(rel, b, perm)
+	}
 	return os.WriteFile(p, b, perm)
 }
 
@@ -97,6 +132,16 @@ func rinominaApp(da, a string) error {
 	}
 	if err := controllaPercorsoApp(filepath.Dir(a)); err != nil {
 		return err
+	}
+	rda, ok1 := relApp(da)
+	ra, ok2 := relApp(a)
+	if ok1 && ok2 {
+		r, err := radiceApp()
+		if err != nil {
+			return err
+		}
+		defer r.Close()
+		return r.Rename(rda, ra)
 	}
 	return os.Rename(da, a)
 }
@@ -119,6 +164,14 @@ func apriLogApp(p string, flag int) (*os.File, error) {
 		if fi2, err := os.Lstat(p); err == nil && èLink(fi2) {
 			return nil, errPercorsoLink
 		}
+	}
+	if rel, ok := relApp(p); ok {
+		r, err := radiceApp()
+		if err != nil {
+			return nil, err
+		}
+		defer r.Close()
+		return r.OpenFile(rel, flag, 0o644)
 	}
 	return os.OpenFile(p, flag, 0o644)
 }

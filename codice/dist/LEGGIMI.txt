@@ -44,10 +44,9 @@ NOVITÀ DELLA 3.2
   sistema Windows e ti mostra la differenza, prima e dopo.
   In Gaming lo prepara per giocare (Modalità Gioco, scheda video, notifiche
   in pausa mentre giochi e altro). In Ufficio lo prepara per lavorare (meno
-  animazioni, notifiche senza suono, niente consigli di Windows, batteria
-  che dura di più). Ogni modifica si rimette com'era, una alla volta o
-  tutte insieme, anche con "Rimetti tutto com'era prima di Tasso" e
-  quando togli Tasso.
+  animazioni, niente consigli di Windows, batteria che dura di più).
+  Ogni modifica si rimette com'era, una alla volta o tutte insieme,
+  anche con "Rimetti tutto com'era prima di Tasso" e quando togli Tasso.
 - Biglietto tesserino: alla fine di Ottimizza tutto e del Voto al PC c'è
   il tuo biglietto con il risultato, nei colori del tema, quadrato o
   verticale, da copiare o salvare come immagine.

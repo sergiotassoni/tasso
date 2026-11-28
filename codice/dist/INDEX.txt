@@ -184,7 +184,7 @@
 5b. GAMES (Gaming mode)
    - Steam, Epic and Riot library with covers
    - Tasso Translate (F7) and "Prepare the game", per-game power
-   - Tune with Tasso, Gaming commands explained, Boost with real FPS
+   - Recommended settings, Gaming commands explained, Boost with real FPS
    - Game server ping, in-game overlay, autoclicker
 
 6. HARDWARE

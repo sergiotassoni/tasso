@@ -31,6 +31,7 @@ type cartelle struct {
 	Common, Common86         string // Programmi\File comuni
 	TempTasso, TempTassoNota string // la cartella dei temporanei dei programmi avviati da Tasso (e perché, se non è quella solita)
 	TempOriginale            string // il TEMP dell'utente com'era prima che Tasso lo cambiasse, se è da pulire ("" se no)
+	LocalNota                string // perché AppData\Local non è quella del known folder ("" se è quella)
 }
 
 // pathDiSistema: il PATH per Tasso e per tutto quello che fa partire: le cartelle di Windows, poi il
@@ -225,6 +226,65 @@ func cartellaNota(id *windows.KNOWNFOLDERID) string {
 	return ""
 }
 
+// localVera (RECENSIONE-3b, R3b-3): la cartella AppData\Local dove Tasso (%LOCALAPPDATA%\Tasso) e
+// Tasso Traduce (%LOCALAPPDATA%\TassoTraduce) tengono i loro dati. Il known folder viene da HKCU, che
+// un programma qualsiasi dell'utente può cambiare, anche verso una giunzione o "\RPC Control": Tasso,
+// da amministratore, scriverebbe registri e modelli dove vuole quel programma. Va bene solo se sta
+// dentro il profilo vero dell'utente (ProfileImagePath in HKLM, profiloVero) e ci si arriva dal
+// profilo senza collegamenti né giunzioni; se no uso <profilo vero>\AppData\Local, come per i
+// temporanei (psCartelle). Senza profilo vero (non dovrebbe succedere) resta quella di prima.
+// La seconda risposta dice perché è cambiata ("" se non è cambiata), per il registro dell'avvio.
+func localVera(local string) (string, string) {
+	prof := profiloVero()
+	if prof == "" {
+		return local, ""
+	}
+	if local != "" && dentroDi(local, prof) && senzaLinkDaProfilo(prof, local) {
+		return local, ""
+	}
+	std := filepath.Join(prof, "AppData", "Local")
+	nota := "AppData\\Local del known folder (" + local + ") non è dentro il profilo vero o ci passa una giunzione: uso " + std
+	if !senzaLinkDaProfilo(prof, std) {
+		nota += " (attenzione: anche qui c'è un collegamento o una giunzione)"
+	}
+	return std, nota
+}
+
+// senzaLinkDaProfilo: si arriva da prof alla cartella p senza collegamenti né giunzioni e la cartella
+// sta davvero (percorso finale) dentro il profilo. os.Root non segue mai un collegamento con un
+// percorso assoluto (le giunzioni lo hanno sempre) né uno che esce dalla radice.
+func senzaLinkDaProfilo(prof, p string) bool {
+	rel, err := filepath.Rel(prof, p)
+	if err != nil || rel == ".." || strings.HasPrefix(rel, `..\`) {
+		return false
+	}
+	rp, err := os.OpenRoot(prof)
+	if err != nil {
+		return false
+	}
+	defer rp.Close()
+	fp, err := rp.Open(".")
+	if err != nil {
+		return false
+	}
+	finProf := percorsoFinale(windows.Handle(fp.Fd()))
+	fp.Close()
+	r := rp
+	if rel != "." {
+		if r, err = rp.OpenRoot(rel); err != nil {
+			return false
+		}
+		defer r.Close()
+	}
+	f, err := r.Open(".")
+	if err != nil {
+		return false
+	}
+	defer f.Close()
+	fin := percorsoFinale(windows.Handle(f.Fd()))
+	return finProf != "" && fin != "" && dentroDi(fin, finProf)
+}
+
 // ambientePulito: va chiamata una volta sola, all'inizio di main (in hardenProcess), prima di
 // qualsiasi goroutine e prima di far partire qualunque programma.
 func ambientePulito() {
@@ -240,6 +300,8 @@ func ambientePulito() {
 	c.Pubblica = cartellaNota(windows.FOLDERID_Public)
 	c.Common = cartellaNota(windows.FOLDERID_ProgramFilesCommon)
 	c.Common86 = cartellaNota(windows.FOLDERID_ProgramFilesCommonX86)
+	// RECENSIONE-3b, R3b-3: AppData\Local (dati di Tasso e di Tasso Traduce) solo dentro il profilo vero.
+	c.Local, c.LocalNota = localVera(c.Local)
 
 	// Variabili che fanno caricare codice dentro i programmi .NET (PowerShell compreso): via tutte.
 	// Anche il percorso della cache dei moduli di PowerShell: deciderebbe dove scrive un PowerShell da amministratore.

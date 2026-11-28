@@ -182,7 +182,7 @@
 5b. GIOCHI (modalità Gaming)
    - Libreria Steam, Epic, Riot con copertine
    - Tasso Traduce (F7) e "Prepara il gioco", potenza per ogni gioco
-   - Regola con Tasso, Comandi gaming spiegati, Boost con FPS veri
+   - Impostazioni consigliate, Comandi gaming spiegati, Boost con FPS veri
    - Ping ai server dei giochi, pannellino in gioco, autoclick
 
 6. HARDWARE

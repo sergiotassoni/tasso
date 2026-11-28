@@ -140,7 +140,7 @@ def page(c, doc):
 
 
 doc = BaseDocTemplate(OUT, pagesize=A4, leftMargin=M, rightMargin=M, topMargin=18 * mm, bottomMargin=17 * mm,
-                      title="Tasso - User manual", author='Tasso', subject='Tasso 2.6 manual')
+                      title="Tasso - User manual", author='Tasso', subject='Tasso 3.2 manual')
 frame = Frame(M, 17 * mm, W - 2 * M, H - 35 * mm, id='f', leftPadding=0, rightPadding=0, topPadding=0, bottomPadding=0)
 doc.addPageTemplates([PageTemplate(id='cover', frames=[frame], onPage=cover), PageTemplate(id='body', frames=[frame], onPage=page)])
 
@@ -205,7 +205,7 @@ S += chapter(3, 'The 5 cleanups', 'the heart of Tasso')
 S += [table([['Cleanup', 'Time', 'What it does', 'When'],
              ['<b>1 Classic</b>', '1 min', 'Your temporary files, the Recycle Bin and photo thumbnails.', 'Whenever you want, even every day.'],
              ['<b>2 Normal</b>', '3 min', 'Everything in Classic + Windows temporary files, browser cache, DNS cache.', 'Every week.'],
-             ['<b>3 Medium</b>', '16 min', 'Everything in Normal + <b>backup</b>, app cache (Discord, Steam, Teams, Epic) and graphics card cache, Windows Update cache, useless system files, driver leftovers, launcher cache. This is the <b>recommended</b> one.', 'Every 2 weeks.'],
+             ['<b>3 Medium</b>', '16 min', 'Everything in Normal + <b>restore point</b>, app cache (Discord, Steam, Teams, Epic) and graphics card cache, Windows Update cache, useless system files, driver leftovers, launcher cache. This is the <b>recommended</b> one.', 'Every 2 weeks.'],
              ['<b>4 Deep</b>', '55 min', 'Everything in Medium + drivers and Windows updates, old graphics drivers, startup apps, browser extensions, disk health, security, defragmentation or TRIM, antivirus.', 'Once a month.'],
              ['<b>5 Extreme</b>', '90 min', 'Everything in Deep + Windows repair (DISM and SFC), stability (crashes and hardware errors), a check of every program, disk errors, devices.', 'When the PC has problems, or every 2-3 months.']],
             [28 * mm, 17 * mm, 90 * mm, W - 2 * M - 135 * mm])]
@@ -319,7 +319,7 @@ S += [table([['Problem', 'What Tasso does'],
              ['<b>Links in emails won\'t open</b>', 'Checks the default browser, the most common problem when Outlook says "organization\'s policies" or does nothing. It opens the right page so you can choose it again (Windows doesn\'t let programs do this). Checks and explains.'],
              ['<b>"No email program" when I send a file by email</b>', 'Sets Outlook back as the Windows email program, the one used by "Send to > Mail recipient" and by other programs\' "Send by email" buttons. You can undo it.'],
              ['<b><font color="#2F6BE0">TEAMS &amp; MEETINGS</font></b>', ''],
-             ['<b>Teams is slow, blank or won\'t open</b>', 'Closes Teams and clears its cache, Microsoft\'s official fix. Chats, files and meetings stay (they\'re online). If you\'re in a meeting, leave it first: Teams will close.'],
+             ['<b>Teams is slow, blank or won\'t open</b>', 'Closes Teams and clears its cache, Microsoft\'s official fix. Chats, files and meetings stay (they\'re online). If you\'re in a call it doesn\'t close it: it tells you and waits.'],
              ['<b>People can\'t hear me in meetings</b>', 'Unmutes the microphone and turns up the volume if it\'s at zero, checks that Windows isn\'t blocking the microphone for Teams, Zoom and Meet and, only if Windows can\'t see it, restarts the audio.'],
              ['<b>The webcam doesn\'t work</b>', 'Tells you if the webcam is already being used by another program, turns it back on if it was off, restarts the camera service and checks the privacy settings.'],
              ['<b>Bluetooth headphones won\'t connect</b>', 'Restarts Bluetooth and its audio services. It also explains why Bluetooth headphones sound worse during calls.'],
@@ -430,7 +430,7 @@ S += [P('<b>What\'s new in 2.5</b>', 'h2')]
 S += bullets(['<b>Game profile</b> (in Games): choose once what you need for gaming (Gaming or Competitive FPS, the gaming commands, the overlay, automatic game mode) and turn it on with <b>one switch</b>. <b>It stays on even if you turn off or restart the PC</b>: every time the PC starts, Tasso checks that everything is the way you chose and puts back whatever has changed (for example the power plan set back to normal by an update). When you turn it off, everything goes back to how it was before.',
               '<b>Per-game power</b>: choose a game and <b>High power</b> (Gaming mode) or <b>Maximum power</b> (Competitive FPS, with the mouse without acceleration). When you open that game Tasso sets it by itself, and when you close it, it puts things back as they were.',
               '<b>Game server ping</b> (in Internet): League of Legends, TFT, Valorant, CS2, Dota 2, Fortnite and other games on Amazon servers. You see the milliseconds, the jitter and the lost packets, and Tasso tells you which server is best for you.',
-              '<b>Tune with Tasso</b> (under each game): it figures out whether the game is competitive, graphics-heavy or performance-focused, looks at your PC and suggests the right graphics settings. It applies what it safely can by itself, and you can undo it with <b>Cancel</b>.',
+              '<b>Recommended settings</b> (game page &gt; Performance): it figures out whether the game is competitive, graphics-heavy or performance-focused, looks at your PC and suggests the right graphics settings. It applies what it safely can by itself, and you can undo it with <b>Cancel</b>.',
               '<b>Gaming commands</b> explained in plain words: for each one, <b>what it does</b>, <b>when it helps</b> and <b>whether there are any risks</b>. They stay on after a restart; when turned off, they go back to exactly how they were before Tasso.',
               '<b>Program updates</b> (in Programs): the list of programs with a new version, to update one by one or all at once, and the programs\' <b>real icons</b>.',
               '<b>Vault</b> (in the menu on the left): your passwords, encrypted (AES-256) and saved only on this PC. Choose a <b>4-digit PIN</b> (handy but weaker), <b>6-digit</b> (recommended), <b>7 to 12 digits</b> (the safest) or <b>no PIN</b>: it opens by itself with your Windows account, but anyone who uses the PC with your account can see the passwords. It creates strong passwords and checks whether they\'ve been stolen (the Have I Been Pwned service only receives a tiny piece of the fingerprint, never the password).',
@@ -467,13 +467,13 @@ S += [table([['Choice', 'What happens'],
              ['<b>Turn off and leave everything as it is</b>', 'Tasso turns off, but the settings stay the way they are now.']],
             [56 * mm, W - 2 * M - 56 * mm])]
 S += [box('What goes back and what doesn\'t', ['<b>Goes back as it was:</b> power plan and processor limit, screen turn-off and sleep, notifications, mouse, Game Mode, privacy settings, startup apps you turned on or off from Tasso.',
-                                            '<b>Can\'t be undone:</b> deleted files, uninstalled programs and installed updates. For those, there\'s the Windows backup in chapter 12.'], VIOLET, VIOLET_BG)]
-S += [box('Turning off or restarting the PC doesn\'t put anything back', ['Everything Tasso changes <b>stays that way</b> even if you turn off or restart the PC. It only goes back to how it was when you decide: from the button above or from <b>Settings → Undo</b>, where you can put things back one at a time or all at once.'], GREEN, GREEN_BG)]
+                                            '<b>Can\'t be undone:</b> deleted files, uninstalled programs and installed updates. For those, there\'s the Windows restore point in chapter 12.'], VIOLET, VIOLET_BG)]
+S += [box('Turning off or restarting the PC doesn\'t put anything back', ['Everything Tasso changes <b>stays that way</b> even if you turn off or restart the PC. It only goes back to how it was when you decide: from the button above or from <b>Settings &gt; Undo</b>, where you can put things back one at a time or all at once.'], GREEN, GREEN_BG)]
 S += [P('To turn Tasso back on, just click the button again, or <b>Turn Tasso back on</b> in Home.', 'p')]
 
 # 11 Sicurezza
 S += chapter(12, 'Safety and backup', 'nothing to fear')
-S += bullets(['<b>Automatic backup</b>: before Medium, Deep and Extreme cleanups, Tasso creates a Windows <b>restore point</b>.',
+S += bullets(['<b>Automatic restore point</b>: before Medium, Deep and Extreme cleanups, Tasso creates a Windows <b>restore point</b>.',
               '<b>Your files</b> are never deleted without your OK, and they go to the Recycle Bin.',
               'Browser <b>passwords and cookies</b> aren\'t touched: Tasso only clears the cache.',
               '<b>Drivers</b>: Tasso only installs the ones certified by Microsoft (Windows Update); for everything else it opens the maker\'s official website.',
@@ -491,8 +491,8 @@ faq = [
     ('Can I keep it on a USB stick?', 'Yes. Copy the whole Tasso folder to the USB stick and start Tasso.exe from there: there\'s no need to install it. The settings are saved on the PC you use it on.'),
     ('How do I put it on another PC?', 'Use the permanent link <b>github.com/sergiotassoni/tasso/raw/main/Tasso.zip</b>: it always downloads the latest version, no account needed. For questions or problems write to <b>tasso.services@proton.me</b> (or use Write to us inside Tasso).'),
     ('Does it slow down the PC while I play?', 'No. Tasso reads the sensors every 2 seconds only while it\'s open, and only does work when you start something. In Gaming and FPS mode it doesn\'t send alerts.'),
-    ('If I turn off the PC, do the settings go back to how they were?', 'No. They stay the way Tasso set them, including the Game profile. They only go back to how they were if you ask from <b>Settings → Undo</b>.'),
-    ('How do I update Tasso?', 'When a new version comes out, an alert shows up in Home that takes you to <b>Settings → Tasso updates</b>. Click <b>Update now</b>: Tasso downloads the new version from the official page, checks that the file is the right one and reopens by itself. Your settings stay. If something goes wrong, you can always download the zip by hand.'),
+    ('If I turn off the PC, do the settings go back to how they were?', 'No. They stay the way Tasso set them, including the Game profile. They only go back to how they were if you ask from <b>Settings &gt; Undo</b>.'),
+    ('How do I update Tasso?', 'When a new version comes out, an alert shows up in Home that takes you to <b>Settings &gt; Tasso updates</b>. Click <b>Update now</b>: Tasso downloads the new version from the official page, checks that the file is the right one and reopens by itself. Your settings stay. If something goes wrong, you can always download the zip by hand.'),
     ('Where does it save its stuff?', 'In the <b>%LOCALAPPDATA%\\Tasso</b> folder: settings, logs of every cleanup and the encrypted vault.'),
     ('A cleanup is taking a long time: is that normal?', 'Yes, for Deep and Extreme: Windows updates, repairs and defragmentation can take a while. If a step is stuck for too long, Tasso stops it by itself and moves on.'),
     ('A white window or a message about WebView2 shows up.', 'Microsoft\'s free component is missing: click OK, the official page to install it opens, then open Tasso again.'),

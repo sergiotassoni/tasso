@@ -140,7 +140,7 @@ def page(c, doc):
 
 
 doc = BaseDocTemplate(OUT, pagesize=A4, leftMargin=M, rightMargin=M, topMargin=18 * mm, bottomMargin=17 * mm,
-                      title="Tasso - Manuale d'uso", author='Tasso', subject='Manuale di Tasso 2.6')
+                      title="Tasso - Manuale d'uso", author='Tasso', subject='Manuale di Tasso 3.2')
 frame = Frame(M, 17 * mm, W - 2 * M, H - 35 * mm, id='f', leftPadding=0, rightPadding=0, topPadding=0, bottomPadding=0)
 doc.addPageTemplates([PageTemplate(id='cover', frames=[frame], onPage=cover), PageTemplate(id='body', frames=[frame], onPage=page)])
 
@@ -205,7 +205,7 @@ S += chapter(3, 'Le 5 pulizie', 'il cuore di Tasso')
 S += [table([['Pulizia', 'Durata', 'Cosa fa', 'Quando'],
              ['<b>1 Classica</b>', '1 min', 'I tuoi file temporanei, il Cestino e le miniature delle foto.', 'Quando vuoi, anche ogni giorno.'],
              ['<b>2 Normale</b>', '3 min', 'Tutto la Classica + file temporanei di Windows, cache dei browser, cache DNS.', 'Ogni settimana.'],
-             ['<b>3 Media</b>', '16 min', 'Tutto la Normale + <b>backup</b>, cache delle app (Discord, Steam, Teams, Epic) e della scheda video, cache di Windows Update, file di sistema inutili, resti dei driver, cache dei launcher. È la <b>consigliata</b>.', 'Ogni 2 settimane.'],
+             ['<b>3 Media</b>', '16 min', 'Tutto la Normale + <b>punto di ripristino</b>, cache delle app (Discord, Steam, Teams, Epic) e della scheda video, cache di Windows Update, file di sistema inutili, resti dei driver, cache dei launcher. È la <b>consigliata</b>.', 'Ogni 2 settimane.'],
              ['<b>4 Profonda</b>', '55 min', 'Tutto la Media + driver e aggiornamenti di Windows, driver video vecchi, programmi all\'avvio, estensioni dei browser, salute dei dischi, sicurezza, deframmentazione o TRIM, antivirus.', 'Una volta al mese.'],
              ['<b>5 Eccezionale</b>', '90 min', 'Tutto la Profonda + riparazione di Windows (DISM e SFC), stabilità (crash ed errori hardware), controllo di ogni programma, errori del disco, periferiche.', 'Quando il PC dà problemi o ogni 2-3 mesi.']],
             [28 * mm, 17 * mm, 90 * mm, W - 2 * M - 135 * mm])]
@@ -319,7 +319,7 @@ S += [table([['Problema', 'Cosa fa Tasso'],
              ['<b>I link nelle email non si aprono</b>', 'Controlla il browser predefinito, il problema più comune quando Outlook dice "criteri dell\'organizzazione" o non fa niente. Ti apre la pagina giusta per sceglierlo di nuovo (Windows non lascia farlo ai programmi). Controlla e spiega.'],
              ['<b>"Nessun programma di posta" quando invio un file per email</b>', 'Rimette Outlook come programma di posta di Windows, quello che usano "Invia a > Destinatario" e i pulsanti "Invia per email" degli altri programmi. Puoi tornare indietro.'],
              ['<b><font color="#2F6BE0">TEAMS E RIUNIONI</font></b>', ''],
-             ['<b>Teams lento, bianco o non si apre</b>', 'Chiude Teams e svuota la sua cache, la soluzione ufficiale di Microsoft. Chat, file e riunioni restano (sono online). Se sei in riunione, prima esci: Teams si chiude.'],
+             ['<b>Teams lento, bianco o non si apre</b>', 'Chiude Teams e svuota la sua cache, la soluzione ufficiale di Microsoft. Chat, file e riunioni restano (sono online). Se sei in una chiamata non lo chiude: te lo dice e aspetta.'],
              ['<b>In riunione non mi sentono</b>', 'Toglie il muto al microfono e alza il volume se è a zero, controlla che Windows non blocchi il microfono a Teams, Zoom e Meet e, solo se non lo vede, riavvia l\'audio.'],
              ['<b>La webcam non va</b>', 'Ti dice se la webcam è già usata da un altro programma, la riaccende se era spenta, riavvia il servizio della fotocamera e controlla la privacy.'],
              ['<b>Le cuffie Bluetooth non si collegano</b>', 'Riavvia il Bluetooth e i suoi servizi audio. Ti spiega anche perché in chiamata le cuffie Bluetooth si sentono peggio.'],
@@ -430,7 +430,7 @@ S += [P('<b>Novità della 2.5</b>', 'h2')]
 S += bullets(['<b>Profilo gioco</b> (in Giochi): scegli una volta cosa ti serve per giocare (Gaming o FPS competitivo, i comandi gaming, il pannellino, la modalità gioco automatica) e lo accendi con <b>un interruttore</b>. <b>Resta acceso anche se spegni o riavvii il PC</b>: a ogni accensione Tasso controlla che sia tutto come l\'hai scelto e rimette quello che è cambiato (per esempio il piano energetico rimesso normale da un aggiornamento). Quando lo spegni torna tutto com\'era prima.',
               '<b>Potenza per ogni gioco</b>: scegli un gioco e <b>Potenza alta</b> (modalità Gaming) o <b>Massima potenza</b> (FPS competitivo, con il mouse senza accelerazione). Quando apri quel gioco Tasso la mette da solo, quando lo chiudi rimette com\'era.',
               '<b>Ping ai server dei giochi</b> (in Internet): League of Legends, TFT, Valorant, CS2, Dota 2, Fortnite e altri giochi sui server Amazon. Vedi i millisecondi, i salti e i pacchetti persi, e Tasso ti dice qual è il server migliore per te.',
-              '<b>Regola con Tasso</b> (sotto ogni gioco): capisce se il gioco è competitivo, grafico o "prestazionale", guarda il tuo PC e propone la grafica giusta. Applica da solo quello che può in sicurezza, con <b>Annulla</b>.',
+              '<b>Impostazioni consigliate</b> (pagina del gioco &gt; Prestazioni): capisce se il gioco è competitivo, grafico o "prestazionale", guarda il tuo PC e propone la grafica giusta. Applica da solo quello che può in sicurezza, con <b>Annulla</b>.',
               '<b>Comandi gaming</b> spiegati in parole semplici: per ognuno <b>cosa fa</b>, <b>quando serve</b> e <b>se ci sono rischi</b>. Restano accesi dopo il riavvio; spenti tornano esattamente com\'erano prima di Tasso.',
               '<b>Aggiornamento programmi</b> (in Programmi): l\'elenco dei programmi con una versione nuova, da aggiornare uno per uno o tutti insieme, e le <b>icone vere</b> dei programmi.',
               '<b>Portachiavi</b> (nel menu a sinistra): le tue password cifrate (AES-256) e salvate solo su questo PC. Scegli un <b>PIN da 4 numeri</b> (comodo ma più debole), <b>da 6</b> (consigliato), <b>da 7 a 12</b> (il più sicuro) oppure <b>senza PIN</b>: si apre da solo con il tuo account di Windows, ma chi usa il PC con il tuo account vede le password. Genera password forti e controlla se sono state rubate (al servizio Have I Been Pwned arriva solo un pezzetto dell\'impronta, mai la password).',
@@ -467,13 +467,13 @@ S += [table([['Scelta', 'Cosa succede'],
              ['<b>Spegni e lascia tutto così</b>', 'Tasso si spegne ma le impostazioni restano come sono adesso.']],
             [56 * mm, W - 2 * M - 56 * mm])]
 S += [box('Cosa torna com\'era e cosa no', ['<b>Torna com\'era:</b> piano energetico e limite del processore, spegnimento dello schermo e sospensione, notifiche, mouse, Modalità Gioco, impostazioni di privacy, programmi all\'avvio che hai acceso o spento da Tasso.',
-                                            '<b>Non può tornare indietro:</b> i file cancellati, i programmi disinstallati e gli aggiornamenti installati. Per quelli c\'è il backup di Windows del capitolo 12.'], VIOLET, VIOLET_BG)]
-S += [box('Spegnere o riavviare il PC non rimette niente', ['Tutto quello che Tasso cambia <b>resta così</b> anche se spegni o riavvii il PC. Torna com\'era solo quando lo decidi tu: dal pulsante qui sopra oppure da <b>Impostazioni → Torna indietro</b>, dove puoi rimettere com\'era una cosa alla volta o tutto insieme.'], GREEN, GREEN_BG)]
+                                            '<b>Non può tornare indietro:</b> i file cancellati, i programmi disinstallati e gli aggiornamenti installati. Per quelli c\'è il punto di ripristino di Windows del capitolo 12.'], VIOLET, VIOLET_BG)]
+S += [box('Spegnere o riavviare il PC non rimette niente', ['Tutto quello che Tasso cambia <b>resta così</b> anche se spegni o riavvii il PC. Torna com\'era solo quando lo decidi tu: dal pulsante qui sopra oppure da <b>Impostazioni &gt; Torna indietro</b>, dove puoi rimettere com\'era una cosa alla volta o tutto insieme.'], GREEN, GREEN_BG)]
 S += [P('Per riaccendere Tasso basta ricliccare il pulsante, oppure <b>Riaccendi Tasso</b> nella Home.', 'p')]
 
 # 11 Sicurezza
 S += chapter(12, 'Sicurezza e backup', 'niente paura')
-S += bullets(['<b>Backup automatico</b>: prima delle pulizie Media, Profonda ed Eccezionale Tasso crea un <b>punto di ripristino</b> di Windows.',
+S += bullets(['<b>Punto di ripristino automatico</b>: prima delle pulizie Media, Profonda ed Eccezionale Tasso crea un <b>punto di ripristino</b> di Windows.',
               '<b>I tuoi file</b> non vengono mai cancellati senza conferma, e vanno nel Cestino.',
               '<b>Password e cookie</b> dei browser non vengono toccati: Tasso pulisce solo la cache.',
               '<b>Driver</b>: Tasso installa solo quelli certificati da Microsoft (Windows Update); per il resto apre il sito ufficiale del produttore.',
@@ -491,8 +491,8 @@ faq = [
     ('Posso tenerlo su una chiavetta USB?', 'Sì. Copia tutta la cartella Tasso sulla chiavetta e avvia Tasso.exe da lì: non serve installarlo. Le impostazioni vengono salvate sul PC in cui lo usi.'),
     ('Come lo metto su un altro PC?', 'Usa il link fisso <b>github.com/sergiotassoni/tasso/raw/main/Tasso.zip</b>: scarica sempre l\'ultima versione, senza account. Per domande o problemi scrivi a <b>tasso.services@proton.me</b> (oppure usa Scrivici dentro Tasso).'),
     ('Rallenta il PC mentre gioco?', 'No. Tasso legge i sensori ogni 2 secondi solo mentre è aperto e lavora solo quando avvii qualcosa. In modalità Gaming e FPS non manda avvisi.'),
-    ('Se spengo il PC le impostazioni tornano come prima?', 'No. Restano come le ha messe Tasso, anche il Profilo gioco. Tornano com\'erano solo se lo chiedi tu da <b>Impostazioni → Torna indietro</b>.'),
-    ('Come si aggiorna Tasso?', 'Quando esce una versione nuova, in Home compare un avviso che ti porta in <b>Impostazioni → Aggiornamenti di Tasso</b>. Premi <b>Aggiorna ora</b>: Tasso scarica la nuova versione dalla pagina ufficiale, controlla che il file sia quello giusto e si riapre da solo. Le impostazioni restano. Se qualcosa non va, puoi sempre scaricare lo zip a mano.'),
+    ('Se spengo il PC le impostazioni tornano come prima?', 'No. Restano come le ha messe Tasso, anche il Profilo gioco. Tornano com\'erano solo se lo chiedi tu da <b>Impostazioni &gt; Torna indietro</b>.'),
+    ('Come si aggiorna Tasso?', 'Quando esce una versione nuova, in Home compare un avviso che ti porta in <b>Impostazioni &gt; Aggiornamenti di Tasso</b>. Premi <b>Aggiorna ora</b>: Tasso scarica la nuova versione dalla pagina ufficiale, controlla che il file sia quello giusto e si riapre da solo. Le impostazioni restano. Se qualcosa non va, puoi sempre scaricare lo zip a mano.'),
     ('Dove salva le sue cose?', 'Nella cartella <b>%LOCALAPPDATA%\\Tasso</b>: impostazioni, registri di ogni pulizia e portachiavi cifrato.'),
     ('Una pulizia ci mette tanto: è normale?', 'Sì per Profonda ed Eccezionale: aggiornamenti di Windows, riparazione e deframmentazione possono richiedere tempo. Se un passaggio si blocca troppo a lungo, Tasso lo ferma da solo e va avanti.'),
     ('Si apre una finestra bianca o un messaggio su WebView2.', 'Manca il componente gratuito di Microsoft: premi OK, si apre la pagina ufficiale per installarlo, poi riapri Tasso.'),

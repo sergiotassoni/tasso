@@ -128,7 +128,7 @@ body.office .go small{opacity:1} /* temi chiari di Ufficio: "CONSIGLIATA" leggib
 .mode .d{font-size:12px;color:var(--muted);line-height:1.5}
 .mode .s{margin-top:auto;font-size:11px;font-weight:800;letter-spacing:.4px;color:var(--muted)}
 .mode.on{border-color:var(--c);background:color-mix(in srgb,var(--c) 10%,var(--panel))}
-.mode.on .t,.mode.on .s{color:var(--c)}
+.mode.on .t,.mode.on .s{color:var(--cx,var(--c))}.mode.on .d{color:var(--mutedx,var(--muted))}
 .tool{display:flex;align-items:center;gap:12px;padding:13px 14px;border-radius:16px;background:var(--panel);border:1px solid var(--line)}
 .tag{width:38px;height:38px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-weight:700;font-size:12px;flex:0 0 38px;color:var(--c);background:color-mix(in srgb,var(--c) 15%,var(--panel))}
 .tool .x{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
@@ -186,7 +186,7 @@ body.office #themeCards>.theme{flex:0 0 calc((100% - 48px) / 5);min-width:0}
 .mini{height:92px;border-radius:12px;display:flex;overflow:hidden;border:1px solid}
 .fixcard{display:flex;flex-direction:column;gap:10px;min-height:200px}
 .fixcard .big{width:52px;height:52px;border-radius:15px;display:flex;align-items:center;justify-content:center;color:var(--c);background:color-mix(in srgb,var(--c) 15%,var(--panel))}
-.idx h3{font-family:var(--display);font-size:17px;color:var(--c);margin-bottom:6px}
+.idx h3{font-family:var(--display);font-size:17px;color:var(--cx,var(--c));margin-bottom:6px}
 .idx ul{margin:0;padding-left:18px;line-height:1.75;color:var(--soft)}
 .idx li b{color:var(--text)}
 /* WELCOME + MODAL + TOAST */
@@ -299,6 +299,7 @@ body.th-tasso:not(.office) .btn.primary:hover{background:#fff;filter:none;box-sh
 body:not(.office) main a{color:var(--text);text-decoration-color:var(--line);text-underline-offset:3px}
 body.office #fixToDetect{color:var(--a1)}
 body:not(.office) main a:hover{color:var(--a1t)}
+body.office main a{color:var(--a1t);text-underline-offset:3px}
 body:not(.office) .boostk{font:500 12px var(--mono);letter-spacing:.14em;color:var(--muted)}
 body.th-tasso:not(.office) .dethead{color:var(--a1t);background:none;border:1px solid var(--line);border-radius:12px}
 body:not(.office) .boostcard{border-color:var(--line)}
@@ -1523,7 +1524,7 @@ body.office .cardmodo{font-weight:700;font-stretch:normal;letter-spacing:-.02em;
     <li><b>Overclock e aggiornamento automatico del BIOS</b>: troppo rischiosi da fare in automatico.</li></ul></div>
   <div class="card idx" style="--c:var(--a3)"><h3>Novità della 3.2</h3><ul>
     <li class="gm"><b>Ottimizza tutto</b>, sulla Home: un pulsante solo e Tasso misura il PC, sistema Windows per giocare (Modalità Gioco, scheda video, notifiche in pausa mentre giochi e altro) e ti mostra la differenza. Ogni modifica si rimette com'era, una alla volta o tutte insieme.</li>
-    <li class="om"><b>Ottimizza tutto</b>, sulla Home: un pulsante solo e Tasso misura il PC, sistema Windows per lavorare (meno animazioni, notifiche senza suono, niente consigli di Windows, batteria che dura di più) e ti mostra la differenza. Le impostazioni si rimettono com'erano, una alla volta o tutte insieme.</li>
+    <li class="om"><b>Ottimizza tutto</b>, sulla Home: un pulsante solo e Tasso misura il PC, sistema Windows per lavorare (meno animazioni, niente consigli di Windows, batteria che dura di più) e ti mostra la differenza. Le impostazioni si rimettono com'erano, una alla volta o tutte insieme.</li>
     <li><b>Biglietto tesserino</b>: alla fine di Ottimizza tutto e del Voto al PC hai il tuo biglietto con il risultato, nei colori del tema, da copiare o salvare come immagine.</li>
     <li class="om"><b>Modalità riunione sulla Home</b>, accanto a PULISCI: un tasto prima della chiamata.</li>
     <li class="gm"><b>Più equilibrio tra Gaming e Ufficio</b>: in Gaming, in Risolvi un problema, ci sono anche i problemi di tutti i giorni, ognuno con un pulsante (Wi-Fi che si stacca, file zip, schermi, tastiera, batteria e ora sbagliata), più <b>Prova microfono e cuffie</b> e <b>Chi usa webcam e microfono</b>. Gli avvisi intelligenti arrivano anche in Gaming.</li>
@@ -1926,6 +1927,13 @@ function applyTheme(id){
   const a1 = h3(t.v.a1), te = h3(t.v.text), pn = h3(t.v.panel), bgs = [h3(t.v.bg), pn, h3(t.v.side), mx(te, pn, 0.05)].concat(OFFICE_THEMES.indexOf(t.id) >= 0 ? [mx(a1, pn, 0.13)] : []);
   let at = a1; for (let p = 1; p >= 0.4 && Math.min(...bgs.map(b => cr(at, b))) < 4.6; p -= 0.02) at = mx(a1, te, p);
   r.setProperty('--a1t', hx6(at));
+  // RECENSIONE-4b, punto 9: i colori del tema usati come testo sulla scheda attiva (fondo con il 10% del colore,
+  // vedi .mode.on) e sui titoli dell'Info, avvicinati al testo solo quanto serve per 4,5:1 (--a1x... e --mutedx).
+  // Dove bastano già (quasi tutti i temi) restano uguali.
+  const tinte = ['a1', 'a2', 'a3', 'a4', 'red'].map(k => [k, h3(t.v[k] || t.v.a1)]).map(([k, c]) => [k, c, mx(c, pn, 0.1)]);
+  tinte.forEach(([k, c, sf]) => { let x = c; for (let p = 1; p >= 0.4 && Math.min(cr(x, pn), cr(x, sf)) < 4.6; p -= 0.02) x = mx(c, te, p); r.setProperty('--' + k + 'x', hx6(x)); });
+  const mu0 = h3(t.v.muted); let mu = mu0; for (let p = 1; p >= 0.4 && Math.min(...tinte.map(x => cr(mu, x[2]))) < 4.6; p -= 0.02) mu = mx(mu0, te, p);
+  r.setProperty('--mutedx', hx6(mu));
   const light = ['ghiaccio', 'sabbia', 'ufficio', 'carta', 'salvia', 'lavanda', 'perla'].indexOf(t.id) >= 0;
   if (document.body) { THEMES.forEach(x => document.body.classList.remove('th-' + x.id)); document.body.classList.add('th-' + t.id); }
   document.documentElement.style.colorScheme = light ? 'light' : 'dark';
@@ -2724,12 +2732,14 @@ const MODES = [
   {id:'film', name:_t('Film'), c:'var(--a3)', d:_t('Niente notifiche, lo schermo non si spegne durante il film.')},
   {id:'silenzioso', name:_t('Silenzioso'), c:'var(--a2)', d:_t('Meno calore e ventole tranquille: ideale per lavorare o la notte.')}
 ];
+// cTesto: per var(--a1)…var(--a4) e var(--red), il colore da usare come testo (--a1x…, vedi applyTheme).
+function cTesto(c){ return /^var\(--(a[1-4]|red)\)$/.test(c) ? c.replace(/\)$/, 'x)') : c; }
 function paintModes(){
   const box = $('#modeCards'); box.innerHTML = '';
   // 3.1: Gaming e FPS competitivo li mette il Boost (pagina Giochi): qui si vedono solo se sono accese.
   MODES.filter(m => (m.id !== 'gaming' && m.id !== 'fps') || m.id === (S.mode || 'normale')).forEach(m => {
     const on = (S.mode || 'normale') === m.id;
-    const b = el('button', {class:'mode' + (on ? ' on' : ''), style:'--c:' + m.c, 'aria-pressed': on ? 'true' : 'false'}, '<span class="t">' + m.name + '</span><span class="d">' + m.d + '</span><span class="s">' + (on ? _t('ATTIVA') : _t('ATTIVA CON UN CLIC')) + '</span>');
+    const b = el('button', {class:'mode' + (on ? ' on' : ''), style:'--c:' + m.c + ';--cx:' + cTesto(m.c), 'aria-pressed': on ? 'true' : 'false'}, '<span class="t">' + m.name + '</span><span class="d">' + m.d + '</span><span class="s">' + (on ? _t('ATTIVA') : _t('ATTIVA CON UN CLIC')) + '</span>');
     b.onclick = () => askMode(m);
     box.appendChild(b);
   });
@@ -3302,7 +3312,7 @@ const INDEX = [
   {t:_t('Avvio del PC'), c:'var(--a4)', i:[_t('<b>Modalità</b> Normale, Gaming, FPS competitivo, Film, Silenzioso, con controllo dei componenti'),_t('<b>Programmi all\'avvio</b>: accendi e spegni con un interruttore'),_t('<b>Guardiano dell\'avvio</b>: ti avvisa quando si aggiunge un programma nuovo'),_t('<b>Deframmentazione</b> dei dischi meccanici e <b>TRIM</b> degli SSD')]},
   {t:_t('Programmi e aggiornamenti'), c:'var(--a3)', i:[_t('<b>Disinstallazione completa</b>, con ricerca delle cartelle rimaste'),_t('<b>App preinstallate</b>: via Candy Crush, TikTok e simili'),_t('<b>Aggiornamento programmi</b> con winget: vedi quali hanno una versione nuova e li aggiorni uno per uno o tutti'),_t('<b>Driver di tutto il PC</b> (scheda video AMD, NVIDIA o Intel, audio, mouse, tastiera, rete…): Windows Update e siti ufficiali'),_t('<b>Aggiornamenti di Windows</b>'),_t('<b>Icone vere</b> dei programmi installati e all\'avvio'),_t('<b>Controllo estensioni</b> dei browser')]},
   {t:_t('File'), c:'var(--a2)', i:[_t('<b>File doppi</b>, <b>file enormi</b>, <b>cartelle vuote</b>, <b>collegamenti rotti</b>: sempre con conferma e nel Cestino'),_t('<b>Riordino della cartella Download</b> per tipo di file'),_t('<b>Distruggi file</b> riservati (anche più file insieme) e <b>cancella lo spazio libero</b>'),_t('<b>Recupera file cancellati</b> con lo strumento di Microsoft')]},
-  {t:_t('Riparazione e sicurezza'), c:'var(--red)', i:[_t('<b>Backup automatico</b> (punto di ripristino) prima delle pulizie importanti'),_t('<b>Risolvi problemi</b> di audio, internet, Windows Update, stampante, Store e ricerca'),_t('<b>Problemi nei giochi</b> (con un pulsante): scatti, pochi FPS, ping alto, il gioco non parte (Visual C++, DirectX), launcher, schermo nero, controller e cuffie, Xbox e Game Pass, anti-cheat, Discord, mira del mouse, gioco che si riduce a icona, download lenti'),_t('<b>Driver di tutto il PC</b>: scheda video AMD, NVIDIA, Intel, audio, mouse, tastiera, rete; Windows Update e siti ufficiali'),_t('<b>Riparazione di Windows</b> (DISM + SFC) e <b>controllo errori del disco</b>'),_t('<b>Controllo periferiche</b>, <b>salute dei dischi</b>, <b>antivirus</b> Defender'),_t('<b>Controllo sicurezza</b> (firewall, Secure Boot, TPM, SMBv1…) e <b>controllo stabilità</b> (crash, schermate blu, errori hardware)'),_t('<b>Privacy</b>: stop a pubblicità e tracciamento di Windows, con ripristino, e <b>tracce di attività</b>')]},
+  {t:_t('Riparazione e sicurezza'), c:'var(--red)', i:[_t('<b>Punto di ripristino di Windows</b> prima delle pulizie importanti (non è una copia dei tuoi documenti)'),_t('<b>Risolvi problemi</b> di audio, internet, Windows Update, stampante, Store e ricerca'),_t('<b>Problemi nei giochi</b> (con un pulsante): scatti, pochi FPS, ping alto, il gioco non parte (Visual C++, DirectX), launcher, schermo nero, controller e cuffie, Xbox e Game Pass, anti-cheat, Discord, mira del mouse, gioco che si riduce a icona, download lenti'),_t('<b>Driver di tutto il PC</b>: scheda video AMD, NVIDIA, Intel, audio, mouse, tastiera, rete; Windows Update e siti ufficiali'),_t('<b>Riparazione di Windows</b> (DISM + SFC) e <b>controllo errori del disco</b>'),_t('<b>Controllo periferiche</b>, <b>salute dei dischi</b>, <b>antivirus</b> Defender'),_t('<b>Controllo sicurezza</b> (firewall, Secure Boot, TPM, SMBv1…) e <b>controllo stabilità</b> (crash, schermate blu, errori hardware)'),_t('<b>Privacy</b>: stop a pubblicità e tracciamento di Windows, con ripristino, e <b>tracce di attività</b>')]},
   {t:_t('Problemi di tutti i giorni'), gm:1, c:'var(--a4)', i:[_t('<b>Problemi di tutti i giorni</b> in Risolvi un problema, ognuno con un pulsante: Wi-Fi che si stacca, file zip, programma bloccato, secondo schermo, tastiera e touchpad, Win + V, batteria, ora sbagliata'),_t('<b>Prova microfono e cuffie</b> e <b>Chi usa webcam e microfono</b>')]},
   {t:'Giochi', c:'var(--a2)', i:[_t('<b>Libreria</b> Steam, Epic e Riot con copertine'),_t('<b>Impostazioni consigliate</b> (pagina del gioco → Prestazioni): grafica consigliata per ogni gioco in base al tipo di gioco e al tuo PC'),_t('<b>Comandi gaming</b>: registrazione in background spenta, pianificazione GPU, giochi in finestra, memoria in standby, riavvio del driver video'),_t('<b>Ottimizza prima di giocare</b>, <b>pannellino in gioco</b>, <b>autoclick</b>'),_t('<b>Profilo gioco</b> con un interruttore: resta acceso anche dopo il riavvio finché non lo spegni'),_t('<b>Potenza per ogni gioco</b>: Potenza alta o Massima potenza, messa da sola quando apri il gioco'),_t('<b>Ping ai server dei giochi</b> (LoL, Valorant, CS2, Fortnite…) per scegliere il server migliore'),_t('<b>Problemi nei giochi</b>: in Risolvi un problema, ') + (Object.keys(STEP).filter(k => k.indexOf('fix_game_') === 0).length || 26) + _t(' riparazioni con un pulsante spiegate semplici')]},
   {t:'Portachiavi e Discord', c:'var(--a1)', i:[_t('<b>Portachiavi</b> con PIN da 4 a 12 numeri o senza PIN: cifrato sul PC, generatore di password, password deboli o usate più volte'),_t('<b>Controllo password rubate</b> senza mandare la password'),_t('<b>Stato del PC su Discord</b>: report con spunte verdi e temperature, ogni 3/6/12/24 ore'),_t('<b>Report su richiesta</b> scrivendo !stato (con un bot tuo, facoltativo)')]},
@@ -3324,7 +3334,7 @@ function idxIt(x){ if (!EN) return x; if (!IDX_IT) { IDX_IT = {}; Object.keys(TD
 const IDX_GAMEY = /(?:^|[^\p{L}])(?:gioc|game|gaming|fps|ping|discord|turbo|autoclick|pannellino|overlay|anti-?cheat|steam|epic|afterburner|reflex|anti-lag|overclock|!stato)/iu;
 function paintIndex(){
   const idx = isOffice() ? [OFFICE_INDEX].concat(INDEX.filter(s => s.t !== 'Giochi' && !s.gm).map(s => ({t: s.t.replace(/ e Discord$/, ''), c: s.c, i: s.i.map(x => OFFICE_IDX_ALT[x] || x).filter(x => !IDX_GAMEY.test(idxIt(x)))})).filter(s => s.i.length)) : INDEX;
-  $('#indexCards').innerHTML = idx.map(s => '<div class="card idx" style="--c:' + s.c + '"><h3>' + _t(s.t) + '</h3><ul>' + s.i.map(x => '<li>' + x + '</li>').join('') + '</ul></div>').join('');
+  $('#indexCards').innerHTML = idx.map(s => '<div class="card idx" style="--c:' + s.c + ';--cx:' + cTesto(s.c) + '"><h3>' + _t(s.t) + '</h3><ul>' + s.i.map(x => '<li>' + x + '</li>').join('') + '</ul></div>').join('');
 }
 
 /* ---------- settings ---------- */
@@ -4506,6 +4516,7 @@ const OFFICE = [
 // 3.2: gli stessi problemi in tutte e due le modalità, con il nome adatto (lo script è sempre lo stesso).
 // In Ufficio: 5 problemi della Sezione Gaming che capitano anche lavorando.
 const OF_ALIAS = {
+  gpu_cache: [null, _t('Shader di DirectX, NVIDIA, AMD e Intel. Usala solo se compaiono errori grafici dopo un aggiornamento del driver: dopo, i programmi con grafica 3D possono andare un po\' a scatti all\'inizio, finché le cache si rifanno.')],
   app_cache: [null, _t('Teams, Discord e altre app: solo la cache, accessi e impostazioni restano.')],
   fix_game_heat: [_t('Il PC si scalda'), _t('Legge le temperature di processore e scheda video, controlla se il PC rallenta per il caldo e ti dice come rinfrescarlo. Non tocca le ventole.')],
   fix_game_start: [_t('Un programma non parte (manca un file .dll)'), _t('Se un programma dice che manca un file .dll o si chiude appena lo apri: Tasso installa o ripara i componenti di Windows che servono ai programmi (Visual C++, DirectX, .NET) dal sito ufficiale Microsoft. 2-5 minuti.')],

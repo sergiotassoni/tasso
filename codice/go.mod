@@ -1,6 +1,6 @@
 module tasso
 
-go 1.24.7
+go 1.25.0
 
 // Compilare sempre con questo Go (correzioni di sicurezza della libreria standard).
 toolchain go1.26.10

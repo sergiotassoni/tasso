@@ -39,9 +39,10 @@ func segni(s string) []string {
 	return m
 }
 
+// Gli spazi non separabili del francese (U+00A0, U+202F, vedi TestFrancesePunteggiatura) contano come spazi.
 func spaziAiLati(s string) (string, string) {
-	a := s[:len(s)-len(strings.TrimLeft(s, " \t\n"))]
-	b := s[len(strings.TrimRight(s, " \t\n")):]
+	a := s[:len(s)-len(strings.TrimLeft(s, " \t\n\u00a0\u202f"))]
+	b := s[len(strings.TrimRight(s, " \t\n\u00a0\u202f")):]
 	return a, b
 }
 
@@ -363,5 +364,25 @@ func TestConsiglioAvviaUgualeAlPulsante(t *testing.T) {
 	}
 	if v := leggi(t, "de")["ui"][k]; strings.Contains(v, "„") && !strings.Contains(v, "“") {
 		t.Errorf("de.json: virgolette tedesche non chiuse in %q", v)
+	}
+}
+
+// RECENSIONE-4b, punto 7: in francese prima di ; ! ? : » e dopo « lo spazio è non separabile
+// (U+202F prima di ; ! ?, U+00A0 prima di : e » e dopo «), così il segno non va a capo da solo
+// all'inizio della riga. I comandi come "!report" (lettera subito dopo il segno) restano come sono.
+func TestFrancesePunteggiatura(t *testing.T) {
+	prima := regexp.MustCompile(`[ \t]+[;!?:»]([^0-9A-Za-zÀ-ÿ]|$)`)
+	dopo := regexp.MustCompile(`«[ \t]`)
+	stretto := regexp.MustCompile(`\x{00A0}[;!?]`)
+	n := 0
+	for sez, voci := range leggi(t, "fr") {
+		for k, v := range voci {
+			if prima.MatchString(v) || dopo.MatchString(v) || stretto.MatchString(v) {
+				n++
+				if n <= 20 {
+					t.Errorf("fr.json/%s: spazio normale nella punteggiatura in %q = %q", sez, k, v)
+				}
+			}
+		}
 	}
 }

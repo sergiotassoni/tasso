@@ -46,10 +46,10 @@ WHAT'S NEW IN 3.2
   the PC, sets up Windows and shows you the difference, before and after.
   In Gaming it gets the PC ready for playing (Game Mode, graphics card,
   notifications paused while you play and more). In Office it gets it
-  ready for work (fewer animations, silent notifications, no Windows tips,
-  longer battery life). Every change can be put back as it was, one at a
-  time or all together, also with "Put everything back as it was before
-  Tasso" and when you remove Tasso.
+  ready for work (fewer animations, no Windows tips, longer battery
+  life). Every change can be put back as it was, one at a time or all
+  together, also with "Put everything back as it was before Tasso" and
+  when you remove Tasso.
 - Badge card: at the end of Optimize everything and of the PC score you
   get your card with the result, in the colors of your theme, square or
   vertical, to copy or save as a picture.

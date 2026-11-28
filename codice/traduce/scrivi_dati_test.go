@@ -218,3 +218,75 @@ func TestScriviLibreriaGiunzione(t *testing.T) {
 	}
 	intatto(t, fuori)
 }
+
+// RECENSIONE-3b, R3b-4: dopo il controllo la scrittura vera passa da os.Root su dirApp. Anche se un
+// collegamento compare dopo il controllo (qui lo metto e chiamo direttamente le funzioni a radice,
+// cioè quello che succede se lo scambio arriva tra il controllo e l'operazione), niente esce da dirApp.
+func TestRadiceDatiNonEsce(t *testing.T) {
+	app, fuori := datiFinti(t)
+	collegaFinto(t, filepath.Dir(fuori), filepath.Join(app, "modelli"))
+	if f, err := apriInDati(filepath.Join("modelli", "importante.dll"), os.O_WRONLY|os.O_TRUNC, 0o644); err == nil {
+		f.Close()
+		t.Fatal("aperto per scrivere un file fuori da dirApp attraverso il collegamento")
+	}
+	r, err := radiceDati(false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer r.Close()
+	if err := os.WriteFile(filepath.Join(app, "logs", "nuovo.bin"), []byte("scaricato"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := r.Rename(filepath.Join("logs", "nuovo.bin"), filepath.Join("modelli", "importante.dll")); err == nil {
+		t.Fatal("rinominato al posto di un file fuori da dirApp attraverso il collegamento")
+	}
+	if err := r.Remove(filepath.Join("modelli", "importante.dll")); err == nil {
+		t.Fatal("cancellato un file fuori da dirApp attraverso il collegamento")
+	}
+	intatto(t, fuori)
+	// dirApp stesso come collegamento: la radice non si apre (si apre dalla cartella sopra).
+	via := filepath.Join(filepath.Dir(app), "TassoTraduce-vero")
+	if err := os.Rename(app, via); err != nil {
+		t.Fatal(err)
+	}
+	collegaFinto(t, via, app)
+	if r2, err := radiceDati(false); err == nil {
+		r2.Close()
+		t.Fatal("dirApp collegamento: radice aperta lo stesso")
+	}
+}
+
+// R3b-4: le funzioni di sempre funzionano anche a radice (file a caso, rinomino, cancellazione, registri).
+func TestRadiceDatiNormale(t *testing.T) {
+	app, _ := datiFinti(t)
+	if err := creaCartellaDati(filepath.Join(app, "modelli", "ia")); err != nil {
+		t.Fatal(err)
+	}
+	f, err := creaFileDati(filepath.Join(app, "modelli", "ia", "m.gguf"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.HasPrefix(f.Name(), filepath.Join(app, "modelli", "ia", "m.gguf.")) {
+		t.Errorf("nome del file a caso %q", f.Name())
+	}
+	_, _ = f.WriteString("modello")
+	f.Close()
+	if err := rinominaDati(f.Name(), filepath.Join(app, "modelli", "ia", "m.gguf")); err != nil {
+		t.Fatal(err)
+	}
+	if b, _ := os.ReadFile(filepath.Join(app, "modelli", "ia", "m.gguf")); string(b) != "modello" {
+		t.Errorf("dopo il rinomino: %q", b)
+	}
+	l, err := apriLogDati(filepath.Join(app, "logs", "x.txt"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, _ = l.WriteString("riga\n")
+	l.Close()
+	if err := rimuoviDati(filepath.Join(app, "modelli", "ia", "m.gguf")); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(filepath.Join(app, "modelli", "ia", "m.gguf")); !os.IsNotExist(err) {
+		t.Errorf("non cancellato: %v", err)
+	}
+}

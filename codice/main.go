@@ -139,6 +139,9 @@ func main() {
 	if cartelleVere.TempTassoNota != "" {
 		scriviAvvio(cartelleVere.TempTassoNota) // ambiente.go: temporanei non in Programmi\Tasso\lavoro\tmp
 	}
+	if cartelleVere.LocalNota != "" {
+		scriviAvvio(cartelleVere.LocalNota) // ambiente.go, localVera: AppData\Local presa dal profilo vero
+	}
 	webview2.PanicHook = logPanic
 	loadSettings()
 	// Tasso.exe --togli-silenzioso (lo usa il disinstallatore, anche da App e funzionalità):

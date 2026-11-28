@@ -699,7 +699,7 @@ try { [void]$wuPs.EndInvoke($wuH); $wuPs.Dispose(); $wuRs.Dispose() } catch {}
 `
 
 var allSteps = []Step{
-	{ID: "backup", Name: "Backup (punto di ripristino)", Desc: "Crea un punto di ripristino: se qualcosa non va torni indietro.", Level: 2, Minutes: 1.5, Timeout: 8 * time.Minute, Script: `
+	{ID: "backup", Name: "Punto di ripristino di Windows", Desc: "Crea un punto di ripristino: se qualcosa non va torni indietro.", Level: 2, Minutes: 1.5, Timeout: 8 * time.Minute, Script: `
 Say 'Creo il backup di Windows (punto di ripristino)...'
 # 3.1.1: con un riavvio in attesa il punto di ripristino spesso ci mette molto o non riesce: lo dico subito.
 if ((Test-Path -LiteralPath 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\RebootPending') -or (Test-Path -LiteralPath 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\RebootRequired')) { Say 'Windows aspetta un riavvio per finire un aggiornamento: il backup può metterci di più o non riuscire. Ci provo per al massimo 5 minuti, poi vado avanti.' }

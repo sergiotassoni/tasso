@@ -89,7 +89,7 @@ func changesList() map[string]interface{} {
 	}
 	sort.Strings(tids)
 	for _, id := range tids {
-		items = append(items, map[string]interface{}{"kind": "tune", "id": id, "title": "Regola con Tasso", "detail": tunes[id]})
+		items = append(items, map[string]interface{}{"kind": "tune", "id": id, "title": "Impostazioni consigliate", "detail": tunes[id]})
 	}
 	if n := attiveOtt(); n > 0 {
 		items = append(items, map[string]interface{}{"kind": "ottimizza", "id": "", "title": "Ottimizza tutto",
