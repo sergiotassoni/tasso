@@ -185,9 +185,20 @@ export function toast(percorso) {
   ultimoSalvato = percorso;
   $("#toastT").textContent = t("salvato", percorso);
   $("#toastT").title = percorso;
+  $("#toastMostra").classList.remove("hidden"); // ZP08-11
   $("#toast").classList.add("on");
   clearTimeout(timerToast);
   timerToast = setTimeout(() => $("#toast").classList.remove("on"), 12000);
+}
+
+// avvisoBreve: un messaggio di pochi secondi (istantanea), con lo stesso timer di toast (ZP08-11).
+export function avvisoBreve(testo) {
+  $("#toastT").textContent = testo;
+  $("#toastT").title = "";
+  $("#toastMostra").classList.add("hidden");
+  $("#toast").classList.add("on");
+  clearTimeout(timerToast);
+  timerToast = setTimeout(() => $("#toast").classList.remove("on"), 2600);
 }
 
 // ---------------------------------------------------------------- file
@@ -410,6 +421,7 @@ function disegnaLista() {
         <button class="icobtn" data-a="x" title="${t("togli")}">${icona("x")}</button>
       </div>`;
     $("b", r).textContent = it.voce.nome;
+    $("b", r).title = it.voce.nome; // ZP08-8
     const m = miniatura(it);
     m.style.transform = `rotate(${it.rot}deg)`;
     $(".min", r).appendChild(m);
@@ -556,6 +568,7 @@ async function apriFirma(voce, pwNoto, alFine) {
   $("#fSalva").textContent = t(alFine ? "firmaApplica" : "firmaSalva");
   $("#fCambia").classList.toggle("hidden", !!alFine);
   $("#fNome").textContent = voce.nome;
+  $("#fNome").title = voce.nome;
   vista("firma");
   if (!firma.png && firmaSalvataEsiste) {
     try { const p = await go("goCaricaFirma"); if (p) impostaFirma(p); } catch { /* */ }
@@ -679,8 +692,8 @@ document.addEventListener("keydown", e => {
 });
 $("#fTutte").onchange = () => { if (firma.sel) { firma.sel.tutte = $("#fTutte").checked; if (!firma.sel.tutte) firma.sel.pagina = firma.pag; disegnaElementi(); firmaCambiata(); } };
 
-// dimensioni dell'immagine PNG
-const misuraImg = src => new Promise((ok, ko) => { const i = new Image(); i.onload = () => ok({ w: i.naturalWidth, h: i.naturalHeight }); i.onerror = ko; i.src = src; });
+// dimensioni dell'immagine PNG (anche per documento.js)
+export const misuraImg = src => new Promise((ok, ko) => { const i = new Image(); i.onload = () => ok({ w: i.naturalWidth, h: i.naturalHeight }); i.onerror = ko; i.src = src; });
 
 // aggiungiElemento: larghezza in punti della pagina; l'altezza segue le proporzioni dell'immagine.
 async function aggiungiElemento(tipo, png, larghezzaPt, extra = {}) {
@@ -972,6 +985,7 @@ export async function apriSblocca(voce, daDoc) {
   } finally { attesa(false); }
   sblocca.voce = voce;
   $("#sNome").textContent = voce.nome;
+  $("#sNome").title = voce.nome;
   $("#sPw").value = "";
   $("#sConferma").checked = false;
   $("#sErrore").classList.add("hidden");
@@ -1116,6 +1130,14 @@ window.addEventListener("drop", e => {
 });
 
 document.addEventListener("keydown", e => {
+  // ZP08-12: Esc in Unisci, Firma e Sblocca = «Indietro» (che chiede, se c'è lavoro da perdere)
+  if (e.key === "Escape" && ["unisci", "firma", "sblocca"].includes(stato.vista) && !$(".velo.on") && !$("#nomeMod").classList.contains("on")) {
+    const a = document.activeElement;
+    if (a && /INPUT|TEXTAREA|SELECT/.test(a.tagName)) return;
+    const b = $(`#v-${stato.vista} [data-indietro]`);
+    if (b) { e.preventDefault(); b.click(); }
+    return;
+  }
   if (!(e.ctrlKey || e.metaKey)) return;
   if (e.key.toLowerCase() === "o") { e.preventDefault(); apriDaDialogo(); }
 });
@@ -1280,6 +1302,15 @@ $("#nomeSi").onclick = nomeSalva;
 $("#nomeIn").addEventListener("input", nomeCampo);
 $("#nomeIn").addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); nomeSalva(); } else if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); nomeChiudi(); } });
 $("#nomeMod").addEventListener("mousedown", e => { if (e.target === $("#nomeMod")) nomeChiudi(); });
+// ZP08-2: come le altre finestre, Esc chiude da qualsiasi tasto e Tab resta dentro.
+$("#nomeMod").addEventListener("keydown", e => {
+  if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); nomeChiudi(); return; }
+  if (e.key !== "Tab") return;
+  const f = $$("button, input", $("#nomeMod")).filter(x => !x.disabled && x.getClientRects().length);
+  if (!f.length) return;
+  const i = f.indexOf(document.activeElement);
+  if (e.shiftKey ? i <= 0 : (i < 0 || i === f.length - 1)) { e.preventDefault(); f[e.shiftKey ? f.length - 1 : 0].focus(); }
+});
 // cambiato in Tasso o in Tasso Zip mentre Tasso PDF era aperto: lo rileggo quando la finestra torna in primo piano
 window.addEventListener("focus", async () => { if ($("#nomeMod").classList.contains("on")) return; try { const n = await go("goNome"); if (typeof n === "string" && n !== nomeUtente) { nomeUtente = n; nomeDisegna(); } } catch { /* */ } });
 

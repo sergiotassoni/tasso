@@ -10,7 +10,7 @@ import { ico } from "./icone.js";
 import {
   $, $$, t, go, testoErrore, attesa, chiedi, avvisa, avvisaErrore, chiediPassword, toast, nomeCon,
   caricaArray, scegli, salva, vista, stato, OPZ_PDFJS, chiediLink, lingua, localePdfjs, apriFirmaDaDocumento,
-  apriUnisci, apriSblocca, base64DaBytes, oggi, firmaInSospeso, unisciInSospeso, proteggiCopia,
+  apriUnisci, apriSblocca, base64DaBytes, oggi, firmaInSospeso, unisciInSospeso, proteggiCopia, misuraImg, avvisoBreve,
 } from "./app.js";
 
 // "1 pagina" / "3 pagine" (in polacco "Stron: 3", giusto con ogni numero).
@@ -242,7 +242,7 @@ async function caricaNelVisore() {
     app.eventBus.on("pagesinit", function una() {
       app.eventBus.off("pagesinit", una);
       if (pag > 1 && pag <= app.pagesCount) app.page = pag;
-      applicaRapido(D.rapido);
+      applicaRapido(D.rapido, true); // solo il modo del visualizzatore: lo strumento aperto resta
     });
     if (doc) {
       // ZP05-12: i campi li conta il programma (PDF.js a volte non li elenca)
@@ -266,6 +266,9 @@ function disegnaSchede() {
     const b = document.createElement("div");
     b.className = "dTab" + (sc === D.att ? " on" : "");
     b.title = sc.nome;
+    // ZP08-5: le schede si raggiungono anche con Tab, e Invio o Spazio le apre
+    b.tabIndex = 0; b.setAttribute("role", "tab"); b.setAttribute("aria-selected", sc === D.att ? "true" : "false");
+    b.onkeydown = e => { if ((e.key === "Enter" || e.key === " ") && e.target === b) { e.preventDefault(); attiva(sc); } };
     b.innerHTML = `<svg class="tf" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></svg><span class="tn"></span>${!sc.salvata ? '<span class="tm" title="' + t("nonSalvato") + '"></span>' : ""}<button class="tx" title="${t("chiudi")}">${ico("x", 14)}</button>`;
     $(".tn", b).textContent = sc.nome;
     b.onclick = e => { if (!e.target.closest(".tx")) attiva(sc); };
@@ -690,10 +693,9 @@ function pRuota(box) {
     const set = new Set(pp);
     await applica("goOrganizza", [], sequenzaDi(totPagine()).map(s => set.has(s.p) ? { ...s, r: gradi } : s));
   };
-  const r = el("div", "pRiga");
-  bottone(r, "girSx", false, () => gira(270)).innerHTML = ico("ruotaSx", 16) + " " + t("girSx");
-  bottone(r, "girDx", false, () => gira(90)).innerHTML = ico("ruotaDx", 16) + " " + t("girDx");
-  a.appendChild(r);
+  // ZP08-4: uno sotto l'altro, come gli altri tasti del pannello (in tedesco non stanno affiancati)
+  bottone(a, "girSx", false, () => gira(270)).innerHTML = ico("ruotaSx", 16) + " " + t("girSx");
+  bottone(a, "girDx", false, () => gira(90)).innerHTML = ico("ruotaDx", 16) + " " + t("girDx");
   bottone(a, "apriOrganizza", false, () => apriOrganizza());
 }
 
@@ -1107,7 +1109,6 @@ function pFiligrana(box) {
 }
 
 const leggiDataURL = f => new Promise((ok, ko) => { const r = new FileReader(); r.onload = () => ok(r.result); r.onerror = ko; r.readAsDataURL(f); });
-const misuraImg = src => new Promise((ok, ko) => { const i = new Image(); i.onload = () => ok({ w: i.naturalWidth, h: i.naturalHeight }); i.onerror = ko; i.src = src; });
 
 // ---------------------------------------------------------------- editor di pagina (testo, immagine, link, oscura)
 
@@ -1116,7 +1117,7 @@ const E = { tipo: null, pag: 1, n: 0, elementi: [], sel: null, dimPag: null, pxP
 async function apriEditor(tipo, aiuto) {
   try { await consolida(); } catch { return chiudiStrumentoSubito(); }
   const v = corrente(D.att);
-  E.tipo = tipo; E.elementi = []; E.sel = null;
+  E.tipo = tipo; E.elementi = E.tieni || []; E.tieni = null; E.sel = null;
   E.doc = await docJS(v);
   E.n = E.doc.numPages;
   E.pag = Math.min(E.n, (appV && appV.page) || 1);
@@ -1406,7 +1407,7 @@ function pOscura(box) {
   testoP(box, "oscuraAvviso", "pAvviso rosso");
   const agg = piedeEditor(box, "oscuraApplica", async () => {
     const pagine = [...new Set(E.elementi.map(e => e.pagina))].sort((a, b) => a - b);
-    const ok = await chiedi(t("s_oscura"), t("oscuraConferma", pagine.join(", ")), [[t("annulla"), false], [t("oscuraApplica"), true, true]]);
+    const ok = await chiedi(t("s_oscura"), t(pagine.length === 1 ? "oscuraConferma1" : "oscuraConferma", pagine.join(", ")), [[t("annulla"), false], [t("oscuraApplica"), true, true]]);
     if (!ok) return;
     attesa(true, t("oscurando"));
     const pp = [];
@@ -1472,8 +1473,7 @@ strumento("organizza").p = pOrganizza;
 
 async function applicaOrganizza() {
   if (!O.seq.length) return avvisa(t("e_nessuna_pagina"));
-  const invariata = O.seq.length === totPagine() && O.seq.every((s, i) => s.f === 0 && s.p === i + 1 && !s.r);
-  if (invariata) return chiudiStrumentoSubito();
+  if (organizzaInvariata()) return chiudiStrumentoSubito();
   const altri = O.fonti.slice(1).map(f => ({ id: f.voce.id, pw: f.pw }));
   if (await applica("goOrganizza", altri, O.seq.map(({ f, p, r, w, h }) => ({ f, p, r, w, h })))) chiudiStrumentoSubito();
 }
@@ -1743,10 +1743,10 @@ function aggiornaRapidi() {
 
 const MODO_EDITOR = { seleziona: 0, selTesto: 0, nota: 3, evidenzia: 9, penna: 15 };
 
-async function applicaRapido(k) {
+async function applicaRapido(k, soloVisore) {
   if (k === "firma") return firmaDoc();
   if (k === "istantanea") return iniziaIstantanea();
-  if ((E.tipo || O.aperto) && !(await chiudiStrumento())) return;
+  if (!soloVisore && (E.tipo || O.aperto) && !(await chiudiStrumento())) return;
   D.rapido = k;
   aggiornaRapidi();
   const app = appV;
@@ -1828,12 +1828,6 @@ async function scatta(q) {
   }
 }
 
-function avvisoBreve(testo) {
-  $("#toastT").textContent = testo;
-  $("#toastMostra").classList.add("hidden");
-  $("#toast").classList.add("on");
-  setTimeout(() => { $("#toast").classList.remove("on"); $("#toastMostra").classList.remove("hidden"); }, 2600);
-}
 
 // ---------------------------------------------------------------- cerca
 
@@ -1926,12 +1920,13 @@ export function initDocumento() {
 // Quando cambia la lingua: ridisegno i testi della vista.
 export function linguaDocumento() {
   disegnaRapidi();
+  // ZP08-1: ridisegnando il pannello in un'altra lingua l'editor aperto tiene i suoi elementi
+  if (E.tipo) E.tieni = E.elementi;
   if (stato.vista === "doc") { disegnaSchede(); disegnaPannello(); aggiornaFasce(); aggiornaNav(); }
   disegnaAperti();
 }
 
 export function documentiAperti() { return D.schede.length; }
-export function salvaTutto() { return D.schede.some(s => !s.salvata); }
 
 // F16-1: la X della finestra e Alt+F4. Go chiede alla pagina (tassoChiudiFinestra) solo se ci
 // sono documenti aperti; con modifiche non salvate la finestra si chiude solo dopo la risposta.
@@ -1954,8 +1949,9 @@ export function segnalaAperti() {
 // Organizza pagine aperto con pagine girate, spostate, tolte o aggiunte e non ancora applicate.
 function organizzaInSospeso() {
   if (!O.aperto || !D.att) return false;
-  return !(O.seq.length === totPagine() && O.seq.every((s, i) => s.f === 0 && s.p === i + 1 && !s.r));
+  return !organizzaInvariata();
 }
+function organizzaInvariata() { return O.seq.length === totPagine() && O.seq.every((s, i) => s.f === 0 && s.p === i + 1 && !s.r); }
 // Un editor del pannello (Testo, Immagine, Link, Oscura) con elementi messi e non applicati (ZP07-2).
 function editorInSospeso() { return !!E.tipo && E.elementi.length > 0; }
 function strumentoInSospeso() { return editorInSospeso() || organizzaInSospeso(); }
