@@ -84,11 +84,17 @@ func TestDettagli(t *testing.T) {
 	}
 }
 
-// Nessun nome di altri programmi per archivi nei testi della finestra.
+// Nessun nome di altri programmi per archivi nei testi della finestra. Unica eccezione:
+// err_zip_cifrato consiglia 7-Zip (gratuito) quando Windows non apre lo zip con password,
+// perché lì Tasso Zip non ha ancora una strada sua (RECENSIONE-2, MEDIA 3; lo stesso consiglio
+// lo dà Tasso in Risolvi > "I file .zip non si aprono").
 func TestNiente7ZipWinRAR(t *testing.T) {
 	for l, m := range Tutti() {
 		for k, v := range m {
 			for _, x := range []string{"7-Zip", "7zip", "WinRAR", "WinZip", "PeaZip", "NanaZip"} {
+				if k == "err_zip_cifrato" && x == "7-Zip" {
+					continue
+				}
 				if strings.Contains(strings.ToLower(v), strings.ToLower(x)) {
 					t.Errorf("%s/%s nomina %s: %q", l, k, x, v)
 				}

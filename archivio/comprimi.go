@@ -547,16 +547,17 @@ func scrivi7z(ctx context.Context, c *copiatore, out *os.File, dove string, voci
 		RAMLibera: memoriaLibera(),
 		DirTemp:   dove,
 		Thread:    threadPerSpazio(spazioLibero(dove), totale),
+		// Progresso arriva da più goroutine di settezip insieme: chiamo c.avanzamento dentro mu,
+		// così chi lo riceve non deve proteggersi (R3-4) e la barra non torna mai indietro.
 		Progresso: func(n int64, nome string) {
 			mu.Lock()
+			defer mu.Unlock()
 			c.fatto += n
 			if c.fatto > c.totale {
 				c.totale = c.fatto
 			}
-			a := Avanzamento{Fatto: c.fatto, Totale: c.totale, Nome: nome}
-			mu.Unlock()
 			if c.avanzamento != nil {
-				c.avanzamento(a)
+				c.avanzamento(Avanzamento{Fatto: c.fatto, Totale: c.totale, Nome: nome})
 			}
 		},
 		Saltato: func(nome string, _ error) {

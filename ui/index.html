@@ -185,12 +185,12 @@ footer .sep{width:1px;height:20px;background:var(--line);margin:0 8px}
 /* "Il tuo nome" (Ecosistema Tasso 3.2): nella barra in basso e nella sua finestrella */
 footer .nomef{display:flex;align-items:center;gap:6px;color:var(--muted);white-space:nowrap;flex:none}
 footer .nomef svg{color:var(--a4);flex:none}
-footer .nomef b{color:var(--text);font-weight:600;max-width:150px;overflow:hidden;text-overflow:ellipsis}
+footer .nomef b{color:var(--text);font-weight:600;max-width:260px;overflow:hidden;text-overflow:ellipsis}
 footer .nomef button{background:none;border:0;padding:2px 4px;color:var(--a4);font:inherit;font-weight:600;cursor:pointer;border-radius:4px}
 footer .nomef button:hover{text-decoration:underline}
 footer .eco{white-space:nowrap;display:inline-flex;align-items:center} /* con il nome la barra è più piena: "Ecosistema Tasso" resta su una riga, col pallino attaccato; sotto 960 px resta solo il pallino (il nome è nel suggerimento) */
-/* finestra stretta (fino a 760 px): il nome si accorcia con i puntini e "Il tuo nome:" lascia posto */
-@media (max-width:1100px){footer .nomef b{max-width:110px}}
+/* finestra stretta (fino a 760 px): "Il tuo nome:" lascia posto al nome (resta l'omino), che si accorcia con i puntini solo se è molto lungo (il nome intero è nel suggerimento) */
+@media (max-width:1100px){footer .nomef>span[data-t]{display:none}footer .nomef b{max-width:160px}}
 @media (max-width:960px){footer .nomef>span[data-t]{display:none}footer .nomef b{max-width:70px}footer .eco{font-size:0}footer .eco::before{margin-right:0}footer{gap:8px}footer .sep{margin:0 2px}}
 #nomeMod{position:fixed;inset:0;background:rgba(5,6,10,.66);display:none;place-items:center;z-index:72;padding:20px}
 #nomeMod.on{display:grid}
@@ -1969,7 +1969,7 @@ function nomeDisegna() {
   const n = S.nome || "";
   const h = document.querySelector(SALUTO_SEL);
   if (h) h.textContent = n ? t("domanda_nome", { n }) : t("domanda");
-  $("nomeB").textContent = n; $("nomeB").hidden = !n;
+  $("nomeB").textContent = n; $("nomeB").title = n; $("nomeB").hidden = !n;
   $("nomeBtn").textContent = n ? t("nome_cambia") : t("nome_aggiungi");
 }
 function nomeCampo() {

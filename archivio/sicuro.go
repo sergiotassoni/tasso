@@ -69,6 +69,7 @@ type Avanzamento struct {
 }
 
 // FunzioneAvanzamento riceve l'avanzamento (spesso: chi la usa deve rallentare gli aggiornamenti).
+// Comprimi la chiama una volta alla volta, anche quando lavora con più core (7z).
 type FunzioneAvanzamento func(Avanzamento)
 
 // nomeTemporaneo: nome della cartella o del file di lavoro, accanto al risultato.
