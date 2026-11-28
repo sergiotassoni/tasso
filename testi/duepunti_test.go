@@ -25,3 +25,27 @@ func TestDuePuntiComposti(t *testing.T) {
 		}
 	}
 }
+
+// Nei testi francesi di testi.json la punteggiatura segue la stessa regola di Tasso: spazio non
+// separabile (U+00A0) prima di ":" e di "»" e dopo "«", spazio stretto (U+202F) prima di ";", "!" e "?".
+func TestFrancesePunteggiatura(t *testing.T) {
+	prima := regexp.MustCompile(`[ \t]+[;!?:»]([^0-9A-Za-zÀ-ÿ]|$)`)
+	dopo := regexp.MustCompile(`«[ \t]`)
+	stretto := regexp.MustCompile(`\x{00A0}[;!?]`)
+	voci, ok := Tutti()["fr"]
+	if !ok || len(voci) == 0 {
+		t.Fatal("testi.json: manca il francese")
+	}
+	n := 0
+	for k, v := range voci {
+		if prima.MatchString(v) || dopo.MatchString(v) || stretto.MatchString(v) {
+			n++
+			if n <= 20 {
+				t.Errorf("testi.json/fr: spazio sbagliato nella punteggiatura in %q = %q", k, v)
+			}
+		}
+	}
+	if n > 20 {
+		t.Errorf("testi.json/fr: in tutto %d frasi da sistemare", n)
+	}
+}
