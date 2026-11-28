@@ -702,7 +702,7 @@ var allSteps = []Step{
 	{ID: "backup", Name: "Punto di ripristino di Windows", Desc: "Crea un punto di ripristino: se qualcosa non va torni indietro.", Level: 2, Minutes: 1.5, Timeout: 8 * time.Minute, Script: `
 Say 'Creo il backup di Windows (punto di ripristino)...'
 # 3.1.1: con un riavvio in attesa il punto di ripristino spesso ci mette molto o non riesce: lo dico subito.
-if ((Test-Path -LiteralPath 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\RebootPending') -or (Test-Path -LiteralPath 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\RebootRequired')) { Say 'Windows aspetta un riavvio per finire un aggiornamento: il backup può metterci di più o non riuscire. Ci provo per al massimo 5 minuti, poi vado avanti.' }
+if ((Test-Path -LiteralPath 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\RebootPending') -or (Test-Path -LiteralPath 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\RebootRequired')) { Say 'Windows aspetta un riavvio per finire un aggiornamento: il punto di ripristino può metterci di più o non riuscire. Ci provo per al massimo 5 minuti, poi vado avanti.' }
 $key = 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\SystemRestore'
 # "Protezione sistema" spenta (RPSessionInterval = 0): per fare il backup la devo accendere, ma lo dico
 # chiaramente e spiego come rispegnerla (occupa un po' di spazio del disco). Niente più accensione muta.
@@ -734,7 +734,7 @@ $before = @(Get-ComputerRestorePoint).Count
 # Windows a volte resta appeso a creare il punto (copie shadow): al massimo 5 minuti, poi vado avanti.
 $cp = Invoke-Limited { try { Checkpoint-Computer -Description 'Tasso - prima della manutenzione' -RestorePointType MODIFY_SETTINGS -ErrorAction Stop; 'ok' } catch { 'ERR ' + $_.Exception.Message } } 300 'Backup'
 if ($TassoLento) { Say 'Il punto di ripristino ci metteva troppo: non lo aspetto (Windows lo può finire da solo).' }
-elseif ($cp -and ([string]@($cp)[0]).StartsWith('ERR ')) { Say ('Backup non creato: ' + ([string]@($cp)[0]).Substring(4)) }
+elseif ($cp -and ([string]@($cp)[0]).StartsWith('ERR ')) { Say ('Punto di ripristino non creato: ' + ([string]@($cp)[0]).Substring(4)) }
 $after = @(Get-ComputerRestorePoint).Count
 if ($null -ne $oldFreq) { New-ItemProperty -Path $key -Name 'SystemRestorePointCreationFrequency' -Value ([int]$oldFreq) -PropertyType DWord -Force | Out-Null } else { Remove-ItemProperty -Path $key -Name 'SystemRestorePointCreationFrequency' -ErrorAction SilentlyContinue }
 Remove-Item -Path $mark -Recurse -Force -ErrorAction SilentlyContinue
@@ -743,8 +743,8 @@ elseif ($after -gt 0) {
   $last = @(Get-ComputerRestorePoint | Sort-Object SequenceNumber)[-1]
   $when = $null; try { $when = [Management.ManagementDateTimeConverter]::ToDateTime([string]$last.CreationTime) } catch {}
   if ($when -and $when -gt (Get-Date).AddDays(-1)) { Say ('Uso il backup di poco fa (' + $when.ToString('dd/MM HH:mm') + ').') }
-  elseif ($when) { Say ('ATTENZIONE: non sono riuscito a fare un backup nuovo. L''ultimo è del ' + $when.ToString('dd/MM/yyyy') + ': se qualcosa va storto si torna a quel giorno.') }
-  else { Say 'ATTENZIONE: non sono riuscito a fare un backup nuovo; c''è solo uno vecchio.' }
+  elseif ($when) { Say ('ATTENZIONE: non sono riuscito a fare un punto di ripristino nuovo. L''ultimo è del ' + $when.ToString('dd/MM/yyyy') + ': se qualcosa va storto si torna a quel giorno.') }
+  else { Say 'ATTENZIONE: non sono riuscito a fare un punto di ripristino nuovo; c''è solo uno vecchio.' }
 }
 else { Say 'ATTENZIONE: il Ripristino configurazione di sistema sembra disattivato su questo PC.' }
 `},

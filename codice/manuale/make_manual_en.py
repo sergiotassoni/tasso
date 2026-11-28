@@ -161,14 +161,14 @@ toc = [
     ('9', 'Hardware', 'components, sensors, BIOS, graphics card'),
     ('10', 'Settings', 'themes, start with Windows, alerts'),
     ('11', 'Turning Tasso off and putting things back', 'the switch and the restore'),
-    ('12', 'Safety and backup', 'how to go back if you need to'),
+    ('12', 'Safety and restore point', 'how to go back if you need to'),
     ('13', 'Frequently asked questions', 'antivirus, USB stick, putting it on another PC'),
 ]
 rows = [[Paragraph('<font name="PopB" color="#0FA46E">%s</font>' % n, st['toc']), Paragraph('<b>%s</b>' % t, st['toc']), Paragraph(d, st['small'])] for n, t, d in toc]
 tt = Table(rows, colWidths=[12 * mm, 62 * mm, W - 2 * M - 74 * mm])
 tt.setStyle(TableStyle([('LINEBELOW', (0, 0), (-1, -1), 0.5, LINE), ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'), ('TOPPADDING', (0, 0), (-1, -1), 4), ('BOTTOMPADDING', (0, 0), (-1, -1), 4)]))
 S += [tt, Spacer(1, 10)]
-S += [box('In short', ['Tasso is a free program that keeps your PC clean, fast and tidy. It uses Microsoft\'s official tools, makes an <b>automatic backup</b> before the big cleanups, and never deletes your personal files without asking you first: whatever you choose to delete goes to the <b>Recycle Bin</b>.'], GREEN, GREEN_BG)]
+S += [box('In short', ['Tasso is a free program that keeps your PC clean, fast and tidy. It uses Microsoft\'s official tools, creates a <b>Windows restore point</b> before the big cleanups, and never deletes your personal files without asking you first: whatever you choose to delete goes to the <b>Recycle Bin</b>.'], GREEN, GREEN_BG)]
 
 # 1 Primi passi
 S += chapter(1, 'Getting started', 'the basics')
@@ -472,16 +472,16 @@ S += [box('Turning off or restarting the PC doesn\'t put anything back', ['Every
 S += [P('To turn Tasso back on, just click the button again, or <b>Turn Tasso back on</b> in Home.', 'p')]
 
 # 11 Sicurezza
-S += chapter(12, 'Safety and backup', 'nothing to fear')
+S += chapter(12, 'Safety and restore point', 'nothing to fear')
 S += bullets(['<b>Automatic restore point</b>: before Medium, Deep and Extreme cleanups, Tasso creates a Windows <b>restore point</b>.',
               '<b>Your files</b> are never deleted without your OK, and they go to the Recycle Bin.',
               'Browser <b>passwords and cookies</b> aren\'t touched: Tasso only clears the cache.',
               '<b>Drivers</b>: Tasso only installs the ones certified by Microsoft (Windows Update); for everything else it opens the maker\'s official website.',
               '<b>Privacy</b>: the "Privacy: stop ads and tracking" tool has its own "Privacy: restore" button.'])
-S += [P('<b>How to go back with the Windows backup</b>', 'h2')]
+S += [P('<b>How to go back with the Windows restore point</b>', 'h2')]
 S += steps(['Press the <b>Windows</b> key, type <b>Create a restore point</b> and open it.',
             'Click <b>System Restore</b> and then <b>Next</b>.',
-            'Choose the point called <b>"Tasso - before maintenance"</b> and confirm. The PC restarts the way it was at that moment (your documents aren\'t touched).'])
+            'Choose the point called <b>"Tasso - prima della manutenzione"</b> (Windows shows the name in Italian) and confirm. The PC restarts the way it was at that moment (your documents aren\'t touched).'])
 S += [box('What Tasso doesn\'t do, on purpose', ['<b>Registry cleaning</b>, <b>constant "RAM freeing"</b>, miracle <b>internet boosters</b>, <b>drivers from unknown websites</b>, <b>overclocking</b> and <b>automatic BIOS updates</b>: they either don\'t really help or are too risky to do automatically.'], RED, RED_BG)]
 
 # 12 FAQ

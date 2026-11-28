@@ -161,7 +161,7 @@ func regAltroAccountUff(sid string, valori []ottimizza.Valore) bool {
 		}
 		return r
 	}, trGo("Tasso - rimetti com'era le impostazioni di questo account")) + "_" + time.Now().Format("20060102_150405") + "_ufficio.reg"
-	if dir := filepath.Join(appDir, "backup-registro", "altro account"); controllaPercorsoApp(dir) == nil && os.MkdirAll(dir, 0o755) == nil {
+	if dir := filepath.Join(appDir, "backup-registro", "altro account"); creaCartellaApp(dir) == nil {
 		_ = scriviFileApp(filepath.Join(dir, nome), b, 0o644)
 	}
 	d := cartellaProfiloOtt(sid)
@@ -193,7 +193,7 @@ func regAltroAccountUff(sid string, valori []ottimizza.Valore) bool {
 // Tasso dal PC" sposta in Documenti con le altre copie di sicurezza.
 func copiaUffPerDocumenti(p string, b []byte) bool {
 	dir := filepath.Join(appDir, "backup-registro")
-	if controllaPercorsoApp(dir) != nil || os.MkdirAll(dir, 0o755) != nil {
+	if creaCartellaApp(dir) != nil {
 		return false
 	}
 	nome := "ufficio-altro-account-" + strings.TrimSuffix(filepath.Base(p), ".json") + "_" + time.Now().Format("20060102_150405") + ".json"

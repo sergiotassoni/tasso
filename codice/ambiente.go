@@ -234,16 +234,24 @@ func cartellaNota(id *windows.KNOWNFOLDERID) string {
 // profilo senza collegamenti né giunzioni; se no uso <profilo vero>\AppData\Local, come per i
 // temporanei (psCartelle). Senza profilo vero (non dovrebbe succedere) resta quella di prima.
 // La seconda risposta dice perché è cambiata ("" se non è cambiata), per il registro dell'avvio.
+// RECENSIONE-3c, R3c-1: va bene SOLO <profilo vero>\AppData\Local. Un'altra cartella dentro il
+// profilo passerebbe il controllo all'avvio, ma poi un programma dell'utente la potrebbe scambiare con
+// una giunzione mentre Tasso è aperto (la vera AppData\Local invece resta bloccata finché l'utente è
+// collegato). Microsoft non supporta comunque AppData\Local spostata.
 func localVera(local string) (string, string) {
-	prof := profiloVero()
+	return localVeraDa(local, profiloVero())
+}
+
+// localVeraDa: localVera con il profilo vero già trovato (prof), così si prova anche senza registro.
+func localVeraDa(local, prof string) (string, string) {
 	if prof == "" {
 		return local, ""
 	}
-	if local != "" && dentroDi(local, prof) && senzaLinkDaProfilo(prof, local) {
+	std := filepath.Join(prof, "AppData", "Local")
+	if local != "" && strings.EqualFold(filepath.Clean(local), std) && senzaLinkDaProfilo(prof, std) {
 		return local, ""
 	}
-	std := filepath.Join(prof, "AppData", "Local")
-	nota := "AppData\\Local del known folder (" + local + ") non è dentro il profilo vero o ci passa una giunzione: uso " + std
+	nota := "AppData\\Local del known folder (" + local + ") non è <profilo vero>\\AppData\\Local o ci passa una giunzione: uso " + std
 	if !senzaLinkDaProfilo(prof, std) {
 		nota += " (attenzione: anche qui c'è un collegamento o una giunzione)"
 	}

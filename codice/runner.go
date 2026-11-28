@@ -62,7 +62,7 @@ func scriptDir() string {
 			}
 		}
 		scriptDirPath = filepath.Join(appDir, "scripts")
-		_ = os.MkdirAll(scriptDirPath, 0o755)
+		_ = creaCartellaApp(scriptDirPath)
 	})
 	return scriptDirPath
 }

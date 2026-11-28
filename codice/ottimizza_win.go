@@ -185,7 +185,7 @@ func (c *regConCopia) primaDiScrivere(r ottimizza.Radice, chiave, nome string) {
 	if dir == "" {
 		dir = filepath.Join(appDir, "backup-registro")
 	}
-	if os.MkdirAll(dir, 0o755) != nil {
+	if creaCartellaApp(dir) != nil {
 		return
 	}
 	// .reg come lo scrive Windows: UTF-16 con BOM
@@ -793,7 +793,7 @@ func fileStatoNomeOtt(nome string) (string, bool) {
 		}
 	}
 	d := filepath.Join(appDir, "ottimizza")
-	_ = os.MkdirAll(d, 0o755)
+	_ = creaCartellaApp(d)
 	return filepath.Join(d, nome), false
 }
 
@@ -1113,7 +1113,7 @@ func copiaPerDocumentiOtt(p string) bool {
 		return false
 	}
 	dir := filepath.Join(appDir, "backup-registro")
-	if os.MkdirAll(dir, 0o755) != nil {
+	if creaCartellaApp(dir) != nil {
 		return false
 	}
 	nome := "ottimizza-tutto-" + strings.TrimSuffix(filepath.Base(p), ".json") + "_" + time.Now().Format("20060102_150405") + ".json"
@@ -1145,7 +1145,7 @@ func regAltroAccountOtt(st *ottimizza.Stato, sid string) bool {
 		}
 		return r
 	}, trGo("Tasso - rimetti com'era le impostazioni di questo account")) + "_" + time.Now().Format("20060102_150405") + ".reg"
-	if dir := filepath.Join(appDir, "backup-registro", "altro account"); os.MkdirAll(dir, 0o755) == nil {
+	if dir := filepath.Join(appDir, "backup-registro", "altro account"); creaCartellaApp(dir) == nil {
 		_ = scriviFileApp(filepath.Join(dir, nome), b, 0o644)
 	}
 	d := cartellaProfiloOtt(sid)
@@ -1429,7 +1429,7 @@ func ottNotificheInizio() {
 		prima = fmt.Sprint(v)
 	}
 	b, _ := json.Marshal(map[string]string{"prima": prima, "at": time.Now().Format(time.RFC3339)})
-	_ = os.MkdirAll(filepath.Dir(f), 0o755)
+	_ = creaCartellaApp(filepath.Dir(f))
 	if scriviSicuroOtt(f, b, false) != nil {
 		return // senza il file non cambio niente
 	}

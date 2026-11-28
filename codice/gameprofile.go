@@ -385,7 +385,7 @@ func runProfileOnly() {
 	}
 	exePath, _ = os.Executable()
 	appDir = filepath.Join(os.Getenv("LOCALAPPDATA"), "Tasso")
-	_ = os.MkdirAll(filepath.Join(appDir, "logs"), 0o755)
+	_ = creaCartellaApp(filepath.Join(appDir, "logs"))
 	loadSettings()
 	time.Sleep(20 * time.Second) // lascio finire l'avvio di Windows e dei programmi del produttore
 	profileCheck()

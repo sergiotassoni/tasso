@@ -296,11 +296,11 @@ func undoChange(kind, id string) {
 			msg, riuscito = strings.Join(msgRestaOtt(es), " "), false // F04-2: il motivo vero e cosa fare
 		}
 	case "regfolder":
-		_ = os.MkdirAll(filepath.Join(appDir, "backup"), 0o755)
+		_ = creaCartellaApp(filepath.Join(appDir, "backup"))
 		openPath(explorerExe(), "\""+filepath.Join(appDir, "backup")+"\"")
 		return
 	case "undofolder":
-		_ = os.MkdirAll(filepath.Join(appDir, "backup-registro"), 0o755)
+		_ = creaCartellaApp(filepath.Join(appDir, "backup-registro"))
 		openPath(explorerExe(), "\""+filepath.Join(appDir, "backup-registro")+"\"")
 		return
 	case "restorepoint":

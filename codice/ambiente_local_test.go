@@ -4,6 +4,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -41,5 +42,29 @@ func TestLocalVeraNelProfilo(t *testing.T) {
 	}
 	if l, nota := localVera(filepath.Join(prof, "AppData", "Local")); nota != "" && senzaLinkDaProfilo(prof, l) {
 		t.Fatalf("AppData\\Local normale cambiata: %q (%s)", l, nota)
+	}
+}
+
+// RECENSIONE-3c, R3c-1: solo <profilo>\AppData\Local. Un'altra cartella dentro il profilo (che un
+// programma dell'utente potrebbe poi scambiare con una giunzione) non va bene.
+func TestLocalVeraSoloAppDataLocal(t *testing.T) {
+	prof := t.TempDir()
+	std := filepath.Join(prof, "AppData", "Local")
+	altra := filepath.Join(prof, "L")
+	for _, d := range []string{std, altra} {
+		if err := os.MkdirAll(d, 0o755); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if l, nota := localVeraDa(std, prof); l != std || nota != "" {
+		t.Fatalf("AppData\\Local normale cambiata: %q (%s)", l, nota)
+	}
+	if l, nota := localVeraDa(strings.ToUpper(std)+`\`, prof); !strings.EqualFold(filepath.Clean(l), std) || nota != "" {
+		t.Fatalf("AppData\\Local scritta in maiuscolo rifiutata: %q (%s)", l, nota)
+	}
+	for _, local := range []string{altra, filepath.Join(prof, "AppData"), filepath.Join(std, "Sotto"), `C:\Windows\Temp`, ""} {
+		if l, nota := localVeraDa(local, prof); l != std || nota == "" {
+			t.Fatalf("localVeraDa(%q) = %q (%s): doveva essere %q con la nota", local, l, nota, std)
+		}
 	}
 }

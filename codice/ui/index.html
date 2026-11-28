@@ -1069,7 +1069,7 @@ body.office .cardmodo{font-weight:700;font-stretch:normal;letter-spacing:-.02em;
       <div class="row wrap" style="gap:12px" id="wkPlan">
         <label class="acf">Giorno<select id="wkDay"><option value="1">Lunedì</option><option value="2">Martedì</option><option value="3">Mercoledì</option><option value="4">Giovedì</option><option value="5">Venerdì</option><option value="6">Sabato</option><option value="0">Domenica</option></select></label>
         <label class="acf">Ora<select id="wkHour"></select></label>
-        <label class="acf">Pulizia<select id="wkLevel"><option value="1">Classica (1 min)</option><option value="2">Normale (pochi minuti)</option><option value="3">Media (con backup)</option><option value="4">Profonda (circa 50 min)</option><option value="5">Eccezionale (circa 1 ora e mezza)</option></select></label>
+        <label class="acf">Pulizia<select id="wkLevel"><option value="1">Classica (1 min)</option><option value="2">Normale (pochi minuti)</option><option value="3">Media (con punto di ripristino)</option><option value="4">Profonda (circa 50 min)</option><option value="5">Eccezionale (circa 1 ora e mezza)</option></select></label>
         <label class="acf">Frequenza<select id="wkEvery"><option value="1">ogni settimana</option><option value="2">ogni 2 settimane</option></select></label>
         <span class="small" id="wkLong" style="flex:1 1 100%;display:none;color:var(--a4)">È una pulizia lunga: scegli un giorno e un'ora in cui il PC resta acceso ma non lo usi, meglio con il caricatore attaccato. Aggiorna anche driver e Windows: se alla fine serve un riavvio Tasso non lo fa da solo, te lo dice.</span>
         <span class="small muted" style="flex:1 1 220px;align-self:flex-end">Se a quell'ora il PC è spento, la fa appena lo riaccendi. Tasso si apre ridotto a icona e alla fine si richiude da solo. Funziona anche a batteria: i lavori più lunghi li rimanda alla volta dopo, con il caricatore attaccato.</span>
@@ -2329,7 +2329,7 @@ $('#bigGo').onclick = () => confirmLevel(RECOMMENDED);
 // Turbo (Velocità) tolto in 3.1: chiudere le app in background lo fa il Boost nella pagina Giochi.
 
 /* ---------- run events ---------- */
-const MSGS = [_t('Il computer sta lavorando alla pulizia…'), _t('Sto controllando che tutto funzioni bene…'), _t('Metto in ordine i file di Windows…'), _t('Ancora un attimo, sto finendo questo passaggio…'), _t('Niente paura: c\'è il backup se serve tornare indietro.'), _t('Il tasso sta scavando tra i file inutili…')];
+const MSGS = [_t('Il computer sta lavorando alla pulizia…'), _t('Sto controllando che tutto funzioni bene…'), _t('Metto in ordine i file di Windows…'), _t('Ancora un attimo, sto finendo questo passaggio…'), _t('Niente paura: c\'è il punto di ripristino se serve tornare indietro.'), _t('Il tasso sta scavando tra i file inutili…')];
 let msgTimer = null, creepTimer = null;
 // F07-3: la frase sul backup solo se in questa pulizia il backup c'è davvero (creato o riusato, senza ATTENZIONE).
 // Le frasi arrivano già nella lingua di Tasso: le confronto con la loro traduzione (TG), non con parole fisse.

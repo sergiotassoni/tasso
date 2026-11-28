@@ -144,7 +144,7 @@ func TestTestiFineTradotti(t *testing.T) {
 	}
 	psKeys := []string{
 		"Windows aspetta già un riavvio per finire un aggiornamento: salto questo passaggio. Dopo il riavvio Windows lo finisce da solo.",
-		"Windows aspetta un riavvio per finire un aggiornamento: il backup può metterci di più o non riuscire. Ci provo per al massimo 5 minuti, poi vado avanti.",
+		"Windows aspetta un riavvio per finire un aggiornamento: il punto di ripristino può metterci di più o non riuscire. Ci provo per al massimo 5 minuti, poi vado avanti.",
 		"Cerco gli aggiornamenti...",
 		"Scarico gli aggiornamenti: {0} di {1}",
 		"Installo {0} aggiornamenti: {1} di {2} fatti",

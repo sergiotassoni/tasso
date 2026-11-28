@@ -321,7 +321,7 @@ func removeLeftovers(paths, keys []string) {
 	}
 	if len(okKeys) > 0 {
 		bdir := filepath.Join(appDir, "backup")
-		_ = os.MkdirAll(bdir, 0o755)
+		_ = creaCartellaApp(bdir)
 		runPSArgs(regRemoveScript, map[string]interface{}{"keys": okKeys, "dir": bdir}, 10*time.Minute, func(m string) { msgs = append(msgs, m) })
 	}
 	if len(okPaths) == 0 && len(okKeys) == 0 {
@@ -397,7 +397,7 @@ func bloatRemove(ids []string) {
 	if len(sel) > 0 {
 		// La cartella backup di Tasso: lì va la copia dei dati delle app che li tengono solo sul PC (Sticky Notes).
 		bdir := filepath.Join(appDir, "backup")
-		_ = os.MkdirAll(bdir, 0o755)
+		_ = creaCartellaApp(bdir)
 		runPSArgs(bloatRemoveScript, map[string]interface{}{"ids": sel, "dir": bdir, "names": nomi}, 10*time.Minute, func(m string) { msgs = append(msgs, m) })
 	}
 	emit("onBloatDone", map[string]interface{}{"msgs": msgs})

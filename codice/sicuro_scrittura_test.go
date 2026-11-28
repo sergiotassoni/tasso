@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"testing"
 )
@@ -190,5 +191,59 @@ func TestLoadSettingsCollegamentoMessoDaParte(t *testing.T) {
 	}
 	if _, err := os.Lstat(filepath.Join(app, "settings.json")); !os.IsNotExist(err) {
 		t.Fatal("settings.json collegamento ancora al suo posto")
+	}
+}
+
+// RECENSIONE-3c, R3c-2: le cartelle sotto appDir si creano dentro la radice (creaCartellaApp).
+func TestCreaCartellaApp(t *testing.T) {
+	radice := t.TempDir()
+	vecchio := appDir
+	appDir = filepath.Join(radice, "Tasso") // non c'è ancora: si crea dalla cartella sopra
+	t.Cleanup(func() { appDir = vecchio })
+	for _, d := range []string{filepath.Join(appDir, "logs"), filepath.Join(appDir, "backup-registro", "altro account"), appDir} {
+		if err := creaCartellaApp(d); err != nil {
+			t.Fatalf("creaCartellaApp(%q): %v", d, err)
+		}
+		if fi, err := os.Stat(d); err != nil || !fi.IsDir() {
+			t.Fatalf("%q non creata: %v", d, err)
+		}
+	}
+	// Fuori da appDir: come os.MkdirAll.
+	fuori := filepath.Join(radice, "altro", "sotto")
+	if err := creaCartellaApp(fuori); err != nil {
+		t.Fatal(err)
+	}
+	// Una cartella del percorso è un collegamento: non si crea niente dall'altra parte.
+	altrove := filepath.Join(radice, "altrove")
+	if err := os.Mkdir(altrove, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	link(t, altrove, filepath.Join(appDir, "backup"))
+	if err := creaCartellaApp(filepath.Join(appDir, "backup", "nuova")); err == nil {
+		t.Fatal("cartella creata attraverso un collegamento")
+	}
+	if _, err := os.Stat(filepath.Join(altrove, "nuova")); err == nil {
+		t.Fatal("cartella creata dall'altra parte del collegamento")
+	}
+}
+
+// R3c-2: appDir stessa trasformata in giunzione (come farebbe un programma dell'utente).
+func TestCreaCartellaAppGiunzione(t *testing.T) {
+	radice := t.TempDir()
+	altrove := filepath.Join(radice, "Windows-finta")
+	if err := os.Mkdir(altrove, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	vecchio := appDir
+	appDir = filepath.Join(radice, "Tasso")
+	t.Cleanup(func() { appDir = vecchio })
+	if out, err := exec.Command(filepath.Join(os.Getenv("SystemRoot"), "System32", "cmd.exe"), "/c", "mklink", "/J", appDir, altrove).CombinedOutput(); err != nil {
+		t.Skip("giunzione non creata:", err, string(out))
+	}
+	if err := creaCartellaApp(filepath.Join(appDir, "logs")); err == nil {
+		t.Fatal("cartella creata attraverso la giunzione")
+	}
+	if _, err := os.Stat(filepath.Join(altrove, "logs")); err == nil {
+		t.Fatal("logs creata nella cartella di arrivo della giunzione")
 	}
 }

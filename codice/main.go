@@ -134,7 +134,7 @@ func main() {
 	exePath, _ = os.Executable()
 	lockSelfExe()
 	appDir = filepath.Join(os.Getenv("LOCALAPPDATA"), "Tasso")
-	_ = os.MkdirAll(filepath.Join(appDir, "logs"), 0o755)
+	_ = creaCartellaApp(filepath.Join(appDir, "logs"))
 	startCrashLog()
 	if cartelleVere.TempTassoNota != "" {
 		scriviAvvio(cartelleVere.TempTassoNota) // ambiente.go: temporanei non in Programmi\Tasso\lavoro\tmp

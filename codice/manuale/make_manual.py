@@ -161,14 +161,14 @@ toc = [
     ('9', 'Hardware', 'componenti, sensori, BIOS, scheda video'),
     ('10', 'Impostazioni', 'temi, avvio con Windows, avvisi'),
     ('11', 'Spegnere Tasso e rimettere com\'era', 'l\'interruttore e il ripristino'),
-    ('12', 'Sicurezza e backup', 'come tornare indietro se serve'),
+    ('12', 'Sicurezza e punto di ripristino', 'come tornare indietro se serve'),
     ('13', 'Domande frequenti', 'antivirus, chiavetta, metterlo su un altro PC'),
 ]
 rows = [[Paragraph('<font name="PopB" color="#0FA46E">%s</font>' % n, st['toc']), Paragraph('<b>%s</b>' % t, st['toc']), Paragraph(d, st['small'])] for n, t, d in toc]
 tt = Table(rows, colWidths=[12 * mm, 62 * mm, W - 2 * M - 74 * mm])
 tt.setStyle(TableStyle([('LINEBELOW', (0, 0), (-1, -1), 0.5, LINE), ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'), ('TOPPADDING', (0, 0), (-1, -1), 4), ('BOTTOMPADDING', (0, 0), (-1, -1), 4)]))
 S += [tt, Spacer(1, 10)]
-S += [box('In breve', ['Tasso è un programma gratuito che tiene il PC pulito, veloce e in ordine. Usa gli strumenti ufficiali di Microsoft, prima delle pulizie importanti fa un <b>backup automatico</b>, e non cancella mai i tuoi file personali senza chiedertelo: quello che scegli di eliminare va nel <b>Cestino</b>.'], GREEN, GREEN_BG)]
+S += [box('In breve', ['Tasso è un programma gratuito che tiene il PC pulito, veloce e in ordine. Usa gli strumenti ufficiali di Microsoft, prima delle pulizie importanti crea un <b>punto di ripristino di Windows</b>, e non cancella mai i tuoi file personali senza chiedertelo: quello che scegli di eliminare va nel <b>Cestino</b>.'], GREEN, GREEN_BG)]
 
 # 1 Primi passi
 S += chapter(1, 'Primi passi', 'per iniziare')
@@ -472,13 +472,13 @@ S += [box('Spegnere o riavviare il PC non rimette niente', ['Tutto quello che Ta
 S += [P('Per riaccendere Tasso basta ricliccare il pulsante, oppure <b>Riaccendi Tasso</b> nella Home.', 'p')]
 
 # 11 Sicurezza
-S += chapter(12, 'Sicurezza e backup', 'niente paura')
+S += chapter(12, 'Sicurezza e punto di ripristino', 'niente paura')
 S += bullets(['<b>Punto di ripristino automatico</b>: prima delle pulizie Media, Profonda ed Eccezionale Tasso crea un <b>punto di ripristino</b> di Windows.',
               '<b>I tuoi file</b> non vengono mai cancellati senza conferma, e vanno nel Cestino.',
               '<b>Password e cookie</b> dei browser non vengono toccati: Tasso pulisce solo la cache.',
               '<b>Driver</b>: Tasso installa solo quelli certificati da Microsoft (Windows Update); per il resto apre il sito ufficiale del produttore.',
               '<b>Privacy</b>: lo strumento "Privacy: stop pubblicità e tracciamento" ha il suo tasto "Privacy: ripristina".'])
-S += [P('<b>Come tornare indietro con il backup di Windows</b>', 'h2')]
+S += [P('<b>Come tornare indietro con il punto di ripristino di Windows</b>', 'h2')]
 S += steps(['Premi il tasto <b>Windows</b> e scrivi <b>Crea un punto di ripristino</b>, poi aprilo.',
             'Clicca <b>Ripristino configurazione di sistema</b> e poi <b>Avanti</b>.',
             'Scegli il punto chiamato <b>"Tasso - prima della manutenzione"</b> e conferma. Il PC si riavvia com\'era in quel momento (i tuoi documenti non vengono toccati).'])

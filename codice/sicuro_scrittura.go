@@ -86,6 +86,41 @@ func radiceApp() (*os.Root, error) {
 	return su.OpenRoot(filepath.Base(base))
 }
 
+// creaCartellaApp (RECENSIONE-3c, R3c-2): come os.MkdirAll per le cartelle sotto appDir (logs,
+// backup, backup-registro...), ma appDir si apre dalla cartella sopra (e si crea lì se manca) e le
+// sottocartelle si creano dentro la radice: una giunzione al posto di appDir o di una cartella del
+// percorso non si segue, quindi Tasso da amministratore non crea mai cartelle dove vuole un altro
+// programma. Una cartella fuori da appDir si crea come prima.
+func creaCartellaApp(p string) error {
+	if err := controllaPercorsoApp(p); err != nil {
+		return err
+	}
+	pezzi, ok := sottoApp(appDir, p)
+	if appDir == "" || !ok {
+		return os.MkdirAll(p, 0o755)
+	}
+	base := filepath.Clean(appDir)
+	su, err := os.OpenRoot(filepath.Dir(base))
+	if err != nil {
+		return err
+	}
+	defer su.Close()
+	if err := su.Mkdir(filepath.Base(base), 0o755); err != nil && !errors.Is(err, os.ErrExist) {
+		return err
+	}
+	r, err := su.OpenRoot(filepath.Base(base))
+	if err != nil {
+		return err
+	}
+	defer r.Close()
+	if len(pezzi) > 0 {
+		if err := r.MkdirAll(filepath.Join(pezzi...), 0o755); err != nil {
+			return err
+		}
+	}
+	return controllaPercorsoApp(p)
+}
+
 // relApp: p come nome relativo ad appDir, per os.Root. ok=false se p non è dentro appDir (o è appDir).
 func relApp(p string) (string, bool) {
 	if appDir == "" {

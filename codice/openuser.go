@@ -43,7 +43,7 @@ func openUser(p, args string) bool {
 		// riprovo nella cartella di lavoro di Tasso in Programmi, poi lascio perdere.
 		var lnk string
 		for _, dir := range []string{filepath.Join(appDir, "tmp"), scriptDir()} {
-			_ = os.MkdirAll(dir, 0o755)
+			_ = creaCartellaApp(dir) // fuori da appDir (scriptDir) è come os.MkdirAll
 			try := filepath.Join(dir, "apri-"+time.Now().Format("150405.000")+".lnk")
 			r := runPSArgs(lnkScript, map[string]interface{}{"lnk": try, "t": p, "a": args, "w": filepath.Dir(p)}, time.Minute, nil)
 			if r.Err == nil && fileExists(try) {

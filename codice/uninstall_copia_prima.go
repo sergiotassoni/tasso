@@ -9,7 +9,6 @@ package main
 
 import (
 	"encoding/json"
-	"os"
 	"path/filepath"
 	"strings"
 	"time"
@@ -87,7 +86,7 @@ func salvaNonRimesse(nonTornate []string) bool {
 	}
 	d := cartellaNonRimesse()
 	// sicuro_scrittura.go: niente collegamenti o giunzioni nella cartella dati (Tasso è amministratore)
-	if controllaPercorsoApp(d) != nil || os.MkdirAll(d, 0o755) != nil || controllaPercorsoApp(d) != nil {
+	if creaCartellaApp(d) != nil {
 		return false
 	}
 	nome := "impostazioni-di-prima_" + time.Now().Format("20060102_150405")
