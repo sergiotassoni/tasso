@@ -317,7 +317,7 @@ const unisci = { voci: [], cambiata: false }; // voci: { voce, rot, pw, pagine, 
 // e non ancora salvata: il nome da mostrare nella domanda, altrimenti "".
 export function unisciInSospeso() {
   if (!unisci.cambiata || !unisci.voci.length) return "";
-  return t("unisciSospeso", unisci.voci.length);
+  return t(unisci.voci.length === 1 ? "unisciSospeso1" : "unisciSospeso", unisci.voci.length); // "Merge (1 file)", non "1 files"
 }
 async function lasciaUnisci() {
   const u = unisciInSospeso();

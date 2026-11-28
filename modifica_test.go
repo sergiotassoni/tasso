@@ -4,6 +4,7 @@ package main
 
 import (
 	"bytes"
+	"fmt"
 	"image"
 	"image/color"
 	"image/png"
@@ -324,5 +325,67 @@ func TestOscuraToglieDavveroIlTesto(t *testing.T) {
 	_, _, attrs, _ := ctx.PageDict(bg, 2, false)
 	if w := attrs.MediaBox.Width(); w < 841 || w > 842 {
 		t.Fatalf("larghezza %v", w)
+	}
+}
+
+// PRESTAZIONI-ZIP-PDF, P1: un PDF con il testo delle pagine salvato SENZA compressione si
+// comprime davvero (Flate, come qpdf), il testo resta uguale e i metadati XMP restano in chiaro.
+func TestComprimiFlussiNonCompressi(t *testing.T) {
+	var testo strings.Builder
+	for i := 0; i < 400; i++ {
+		fmt.Fprintf(&testo, "BT /F1 9 Tf 40 %d Td (Riga %d della relazione mensile: fatture, clienti e consegne.) Tj ET\n", 800-(i%80)*10, i)
+	}
+	c := testo.String()
+	xmp := `<?xpacket begin=""?><x:xmpmeta xmlns:x="adobe:ns:meta/"><rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"></rdf:RDF></x:xmpmeta><?xpacket end="w"?>`
+	orig := pdfAMano(
+		"<< /Type /Catalog /Pages 2 0 R /Metadata 6 0 R >>",
+		"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+		"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>",
+		fmt.Sprintf("<< /Length %d >>\nstream\n%sendstream", len(c), c),
+		"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+		fmt.Sprintf("<< /Type /Metadata /Subtype /XML /Length %d >>\nstream\n%s\nendstream", len(xmp)+1, xmp),
+	)
+	out, err := Comprimi(orig, "", false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	salvaProva(t, "flussi-compressi.pdf", out)
+	t.Logf("non compresso: %d -> %d", len(orig), len(out))
+	if len(out) > len(orig)/3 {
+		t.Fatalf("il testo delle pagine non è stato compresso: %d -> %d", len(orig), len(out))
+	}
+	validoRigoroso(t, "flussi-compressi.pdf", out, "")
+	ctx := leggiCtxProva(t, out)
+	if p := testoDiPagina(t, ctx, 1); !strings.Contains(p, "(Riga 0 della relazione") || !strings.Contains(p, "(Riga 399 della relazione") {
+		t.Fatal("testo della pagina perso")
+	}
+	metaInChiaro := false
+	for _, e := range ctx.XRefTable.Table {
+		if e == nil || e.Free || e.Object == nil {
+			continue
+		}
+		if sd, ok := e.Object.(types.StreamDict); ok {
+			if ty := sd.Type(); ty != nil && *ty == "Metadata" {
+				metaInChiaro = len(sd.FilterPipeline) == 0 && bytes.Contains(sd.Raw, []byte("xmpmeta"))
+			}
+		}
+	}
+	if !metaInChiaro {
+		t.Error("i metadati XMP non sono più in chiaro")
+	}
+}
+
+// PRESTAZIONI-ZIP-PDF, P3: Comprimi con una password sbagliata dice "password_sbagliata"; senza
+// password dice ancora "password" (serve la password).
+func TestComprimiPasswordSbagliata(t *testing.T) {
+	prot := cifra(t, treePagine(), "Giusta123", "Giusta123", model.PermissionsAll)
+	if _, err := Comprimi(prot, "sbagliata", false); CodiceErrore(err) != "password_sbagliata" {
+		t.Fatalf("password sbagliata: codice %q (%v)", CodiceErrore(err), err)
+	}
+	if _, err := Comprimi(prot, "", false); CodiceErrore(err) != "password" {
+		t.Fatalf("senza password: codice %q (%v)", CodiceErrore(err), err)
+	}
+	if _, err := Comprimi(prot, "Giusta123", false); err != nil {
+		t.Fatalf("password giusta: %v", err)
 	}
 }

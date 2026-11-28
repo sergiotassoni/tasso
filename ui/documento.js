@@ -562,14 +562,16 @@ async function usaStrumento(s) {
 }
 
 // chiudiStrumento: chiude lo strumento aperto. Se un editor o Organizza hanno modifiche non
-// applicate, prima chiede (ZP07-3): Applica / Butta via / Annulla. false = resta tutto com'era.
-// senzaApplica: solo «Butta via / Annulla» (per Annulla in alto, che toglie l'ultima versione).
+// applicate, prima chiede (ZP07-3): Applica / Butta via / Continua a modificare. false = resta
+// tutto com'era. senzaApplica: solo «Butta via / Continua a modificare» (per Annulla in alto, che
+// toglie l'ultima versione). Qui niente tasto «Annulla»: alla domanda «Buttare via le modifiche?»
+// si leggerebbe come un sì (RECENSIONE-4b, BASSA 1). Esc resta «Continua a modificare».
 async function chiudiStrumento(muto, senzaApplica) {
   if (strumentoInSospeso()) {
-    const tasti = [[t("annulla"), 0], [t("buttaVia"), 1]];
+    const tasti = [[t("continuaMod"), 0], [t("buttaVia"), 1]];
     if (!senzaApplica) tasti.push([t("applicaModifiche"), 2, true]);
     else tasti[0].push(true);
-    const r = await chiedi(t("sospesoT"), t("sospesoD", t("s_" + (E.tipo || "organizza"))), tasti);
+    const r = await chiedi(t("sospesoT"), t("sospesoD", t("s_" + (E.tipo || "organizza"))), tasti, 0);
     if (r !== 1 && r !== 2) return false;
     if (r === 2) { await applicaStrumento(); return !E.tipo && !O.aperto; }
   }

@@ -9,6 +9,7 @@ package main
 
 import (
 	"bytes"
+	"compress/zlib"
 	"context"
 	"fmt"
 	"image"
@@ -1113,6 +1114,7 @@ func Comprimi(data []byte, pw string, immagini bool) ([]byte, error) {
 	if immagini {
 		alleggerisciImmagini(ctx, 1600, 65)
 	}
+	comprimiFlussiNudi(ctx) // pagine e font salvati senza compressione: Flate, come qpdf
 	if err := api.OptimizeContext(bg, ctx); err != nil {
 		return nil, classifica(err)
 	}
@@ -1218,6 +1220,54 @@ func togliFiltriTesto(ctx *model.Context) {
 		sd.Content = nil
 		e.Object = sd
 	}
+}
+
+// comprimiFlussiNudi (PRESTAZIONI-ZIP-PDF, P1): i flussi salvati senza nessun filtro (il testo
+// delle pagine, i font, le immagini in chiaro di alcuni programmi) vengono compressi con Flate,
+// senza perdita, come fa qpdf --compress-streams. pdfcpu da solo non lo fa. Restano come sono:
+// i metadati XMP (/Type /Metadata, che alcuni programmi leggono senza decodificare), i flussi
+// con DecodeParms senza filtro (strani: meglio non toccarli) e quelli che non si accorciano.
+func comprimiFlussiNudi(ctx *model.Context) int {
+	fatti := 0
+	for _, e := range ctx.XRefTable.Table {
+		if e == nil || e.Free || e.Object == nil {
+			continue
+		}
+		sd, ok := e.Object.(types.StreamDict)
+		if !ok || len(sd.FilterPipeline) > 0 || len(sd.Raw) < 64 {
+			continue
+		}
+		d := sd.Dict
+		if _, c := d["Filter"]; c {
+			continue
+		}
+		if _, c := d["DecodeParms"]; c {
+			continue
+		}
+		if t := d.Type(); t != nil && (*t == "Metadata" || *t == "XRef" || *t == "ObjStm") {
+			continue
+		}
+		var z bytes.Buffer
+		w, err := zlib.NewWriterLevel(&z, zlib.BestCompression)
+		if err != nil {
+			continue
+		}
+		if _, err := w.Write(sd.Raw); err != nil || w.Close() != nil || z.Len() >= len(sd.Raw) {
+			continue
+		}
+		raw := z.Bytes()
+		n := int64(len(raw))
+		d["Filter"] = types.Name(filter.Flate)
+		d["Length"] = types.Integer(n)
+		sd.Raw = raw
+		sd.FilterPipeline = []types.PDFFilter{{Name: filter.Flate}}
+		sd.StreamLength = &n
+		sd.StreamLengthObjNr = nil
+		sd.Content = nil
+		e.Object = sd
+		fatti++
+	}
+	return fatti
 }
 
 // alleggerisciImmagini: le foto (RGB o grigi, 8 bit) più grandi di maxLato pixel vengono

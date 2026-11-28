@@ -568,6 +568,11 @@ func scrivi(ctx *model.Context) ([]byte, error) {
 func inChiaro(data []byte, pw string) ([]byte, error) {
 	ctx, rip, err := leggi(data, pw)
 	if err != nil {
+		// Una password c'era, ma non apre il PDF: "password_sbagliata", non "serve la password"
+		// (PRESTAZIONI-ZIP-PDF, P3).
+		if pw != "" && CodiceErrore(err) == "password" {
+			return nil, errc("password_sbagliata", err)
+		}
 		return nil, err
 	}
 	if ctx.Encrypt == nil && !rip {
